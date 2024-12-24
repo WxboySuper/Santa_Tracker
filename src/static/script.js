@@ -36,7 +36,7 @@ document.addEventListener('DOMContentLoaded', function() {
     };
 
     // Create Santa's marker at North Pole
-    // skipcq: JS-0125s
+    // skipcq: JS-0125
     const santaMarker = L.marker(NORTH_POLE.coordinates, {
         // skipcq: JS-0125
         icon: L.icon({
