@@ -5,7 +5,9 @@
 document.addEventListener('DOMContentLoaded', function() {
     // Initialize map without setting view yet
     // skipcq: JS-0125
-    const map = L.map('map');
+    const map = L.map('map', {
+        zoomControl: false
+    });
     
     // Add map tiles
     // skipcq: JS-0125
