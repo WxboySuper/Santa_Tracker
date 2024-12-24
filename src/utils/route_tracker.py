@@ -75,5 +75,4 @@ def get_current_position(route):
     return last_stop['latitude'], last_stop['longitude'], len(route) - 1
 
 if __name__ == "__main__":
-    update_map()
     webbrowser.open('santa_tracker.html')
