@@ -16,6 +16,11 @@ document.addEventListener('DOMContentLoaded', function() {
     let routeLine = null;
     let santaMarker = null;
 
+    const NORTH_POLE = {
+        name: "North Pole",
+        coordinates: [90.0, 135.0]
+    };
+
     // Get initial position and set up map
     fetch('/api/santa-location')
         .then(response => response.json())
