@@ -1,5 +1,5 @@
 import json
-from src.utils.route_tracker import load_route, get_santa_status, get_current_position
+from utils.route_tracker import load_route, get_santa_status, get_current_position
 
 def generate_static_data():
     route = load_route()
