@@ -1,0 +1,42 @@
+Testing:
+- changed-files:
+  - any-glob-to-any-file: 'src/tests/**/*'
+  - any-glob-to-any-file: '**/*test*.py'
+  - any-glob-to-any-file: '**/*spec*.js'
+
+GitHub-Action:
+- changed-files:
+  - any-glob-to-any-file: '.github/workflows/*'
+  - any-glob-to-any-file: '.github/**/*'
+  - any-glob-to-any-file: '.github/*'
+
+python:
+- changed-files:
+  - any-glob-to-any-file: 'src/python/*'
+  - any-glob-to-any-file: '**/*.py'
+  - any-glob-to-any-file: '**/requirements.txt'
+  - any-glob-to-any-file: '**/setup.py'
+  - any-glob-to-any-file: '**/pyproject.toml'
+
+javascript:
+- changed-files:
+  - any-glob-to-any-file: 'src/*.js'
+
+html:
+- changed-files:
+  - any-glob-to-any-file: 'src/*.html'
+
+css:
+- changed-files:
+  - any-glob-to-any-file: 'src/*.css'
+
+dependencies:
+- changed-files:
+  - any-glob-to-any-file: 'requirements.txt'
+  - any-glob-to-any-file: 'package.json'
+  - any-glob-to-any-file: 'package-lock.json'
+
+documentation:
+- changed-files:
+  - any-glob-to-any-file: '**/*.md'
+  - any-glob-to-any-file: '*.md'

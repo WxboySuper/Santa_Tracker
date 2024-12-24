@@ -1,0 +1,48 @@
+name: Run all tests
+
+on: 
+    push:
+        branches:
+        - main
+    pull_request:
+        branches:
+        - main
+
+permissions:
+    contents: read
+    pull-requests: write
+    checks: write
+
+jobs:
+    build:
+        runs-on: ubuntu-latest
+
+        steps:
+        - uses: actions/checkout@v4
+
+        - name: Set up Python 3.12
+          uses: actions/setup-python@v4
+          with:
+            python-version: "3.12"
+
+        - name: Install dependencies
+          run: |
+            python -m pip install --upgrade pip
+            pip install -r requirements.txt
+
+        - name: Test with unittest
+          run: |
+            coverage run --omit=*/test_* -m unittest discover
+
+        - name: Create Coverage Report
+          run: |
+            coverage report -m
+            coverage xml
+
+        - name: DeepSource Test Coverage
+          uses: deepsourcelabs/test-coverage-action@master
+          with: 
+            key: python
+            coverage-file: coverage.xml
+            dsn: ${{ secrets.DEEPSOURCE_DSN }}
+            fail-ci-on-error: true
