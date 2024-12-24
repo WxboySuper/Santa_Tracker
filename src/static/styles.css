@@ -9,7 +9,7 @@ header {
     padding: 10px;
     background: linear-gradient(135deg, #ff0000 0%, #006400 100%);
     color: white;
-    width: 280px;
+    width: 15%;
     position: fixed;
     left: 0;
     top: 0;
@@ -17,6 +17,21 @@ header {
     z-index: 1000;
     font-size: 1.3em;
 }
+
+@media (max-width: 768px) {
+      header {
+        position: relative;
+      }
+      
+      #tracker-container {
+        position: relative;
+        width: 100%;
+        top: 0;
+      }
+      
+      #map {
+        margin-left: 0;
+      }}
 
 main {
     display: flex;
