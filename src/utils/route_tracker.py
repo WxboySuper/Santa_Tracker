@@ -1,7 +1,5 @@
 import json
-import folium
 from datetime import datetime
-import time
 from math import radians, sin, cos, sqrt, atan2
 import webbrowser
 from dateutil import parser
