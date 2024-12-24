@@ -54,6 +54,11 @@ document.addEventListener('DOMContentLoaded', function() {
         ];
         EventSystem.emit('santaMove', newPosition);
     }, 5000);
+
+    document.addEventListener('DOMContentLoaded', () => {
+        updateCountdown();
+        setInterval(updateCountdown, 1000);
+    });
 });
 
 // Countdown timer
@@ -74,8 +79,3 @@ function updateCountdown() {
     
     countdownElement.innerHTML = `${days}d ${hours}h ${minutes}m ${seconds}s`;
 }
-
-document.addEventListener('DOMContentLoaded', () => {
-    updateCountdown();
-    setInterval(updateCountdown, 1000);
-});
