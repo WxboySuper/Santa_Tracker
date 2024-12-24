@@ -4,9 +4,11 @@
 // skipcq: JS-0241
 document.addEventListener('DOMContentLoaded', function() {
     // Initialize map
+    // skipcq: JS-0125
     const map = L.map('map').setView([90, 0], 3);
     
     // Add map tiles
+    // skipcq: JS-0125
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '© OpenStreetMap contributors'
     }).addTo(map);
@@ -16,11 +18,11 @@ document.addEventListener('DOMContentLoaded', function() {
         const events = {};
         
         return {
-            subscribe: function(event, callback) {
+            subscribe(event, callback) {
                 if (!events[event]) events[event] = [];
                 events[event].push(callback);
             },
-            emit: function(event, data) {
+            emit(event, data) {
                 if (events[event]) {
                     events[event].forEach(callback => callback(data));
                 }
@@ -29,7 +31,9 @@ document.addEventListener('DOMContentLoaded', function() {
     })();
 
     // Create Santa's marker
+    // skipcq: JS-0125
     const santaMarker = L.marker([90, 0], {
+        // skipcq: JS-0125
         icon: L.icon({
             iconUrl: 'src/static/images/santa-icon.png',
             iconSize: [38, 38]
@@ -37,7 +41,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }).addTo(map);
 
     // Subscribe to Santa location updates
-    EventSystem.subscribe('santaMove', function(position) {
+    EventSystem.subscribe('santaMove', (position) => {
         santaMarker.setLatLng(position);
         map.panTo(position);
     });
