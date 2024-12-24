@@ -7,6 +7,11 @@ on:
   schedule:
     - cron: '*/15 * * * *'  # Update every 15 minutes
 
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
