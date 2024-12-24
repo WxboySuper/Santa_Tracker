@@ -4,19 +4,16 @@
 // skipcq: JS-0241
 document.addEventListener('DOMContentLoaded', function() {
     // Initialize map
-    // skipcq: JS-0125
     const map = L.map('map').setView([90, 0], 3);
     
     // Add map tiles
-    // skipcq: JS-0125
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '© OpenStreetMap contributors'
     }).addTo(map);
 
-    // Event System for handling updates
+    // Event System implementation
     const EventSystem = (function() {
         const events = {};
-        
         return {
             subscribe(event, callback) {
                 if (!events[event]) events[event] = [];
@@ -35,52 +32,104 @@ document.addEventListener('DOMContentLoaded', function() {
         coordinates: [90.0, 135.0]
     };
 
-    // Create Santa's marker at North Pole
-    // skipcq: JS-0125
+    // Create Santa's marker
     const santaMarker = L.marker(NORTH_POLE.coordinates, {
-        // skipcq: JS-0125
         icon: L.icon({
             iconUrl: 'src/static/images/santa-icon.png',
             iconSize: [38, 38]
         })
     }).addTo(map);
 
-    // Center map on North Pole
-    map.setView(NORTH_POLE.coordinates, 3);
+    function formatTimeComponent(value) {
+        return value.toString().padStart(2, '0');
+    }
 
-    // Update location info
-    document.getElementById('current-location').textContent = 
-        `Current Location: ${NORTH_POLE.name}`;
-    document.getElementById('next-stop').textContent = 
-        'Next Stop: Preparing for Christmas Eve!';
+    function calculateTimeComponents(diff) {
+        const hours = Math.floor(diff / (1000 * 60 * 60));
+        const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+        return { hours, minutes, seconds };
+    }
 
-    // Subscribe to Santa location updates
+    function updateLocationCountdown() {
+        const locationCountdownElement = document.getElementById('location-countdown');
+        if (!locationCountdownElement) {
+            console.error('Location countdown element not found');
+            return;
+        }
+    
+        const now = new Date();
+        const northPoleDeparture = new Date('2024-12-24T09:45:00Z');
+        const diff = northPoleDeparture - now;
+    
+        if (diff > 0) {
+            const { hours, minutes, seconds } = calculateTimeComponents(diff);
+            locationCountdownElement.textContent = 
+                `Time until departure: ${formatTimeComponent(hours)}:${formatTimeComponent(minutes)}:${formatTimeComponent(seconds)}`;
+        } else {
+            locationCountdownElement.textContent = 'Santa has departed!';
+            // Start tracking next location after departure
+            updateNextLocationCountdown();
+        }
+    }
+
+    function updateNextLocationCountdown() {
+        fetch('/api/santa-location')
+            .then(response => response.json())
+            .then(data => {
+                if (data.current_stop) {
+                    const now = new Date();
+                    const departureTime = new Date(data.current_stop.departure_time);
+                    const diff = departureTime - now;
+
+                    const locationCountdownElement = document.getElementById('location-countdown');
+                    if (diff > 0) {
+                        const { hours, minutes, seconds } = calculateTimeComponents(diff);
+                        locationCountdownElement.textContent = 
+                            `Time until next departure: ${formatTimeComponent(hours)}:${formatTimeComponent(minutes)}:${formatTimeComponent(seconds)}`;
+                    } else {
+                        locationCountdownElement.textContent = 'Departing...';
+                    }
+                }
+            })
+            .catch(error => console.error('Error fetching departure time:', error));
+    }
+
+    function updateSantaLocation() {
+        fetch('/api/santa-location')
+            .then(response => response.json())
+            .then(data => {
+                if (data.latitude && data.longitude) {
+                    EventSystem.emit('santaMove', [data.latitude, data.longitude]);
+                    
+                    document.getElementById('current-location').textContent = 
+                        `Current Location: ${data.current_stop.location}`;
+                    document.getElementById('next-stop').textContent = 
+                        data.next_stop ? `Next Stop: ${data.next_stop.location}` : 'Journey Complete!';
+                }
+            })
+            .catch(error => console.error('Error fetching Santa\'s location:', error));
+    }
+
+    // Single EventSystem subscription
     EventSystem.subscribe('santaMove', (position) => {
         santaMarker.setLatLng(position);
         map.panTo(position);
     });
 
-    document.addEventListener('DOMContentLoaded', () => {
-        updateCountdown();
-        setInterval(updateCountdown, 1000);
-    });
-});
+    // Initial setup
+    map.setView(NORTH_POLE.coordinates, 3);
+    document.getElementById('current-location').textContent = `Current Location: ${NORTH_POLE.name}`;
+    document.getElementById('next-stop').textContent = 'Next Stop: Preparing for Christmas Eve!';
 
-// Countdown timer
-function updateCountdown() {
-    const countdownElement = document.getElementById('countdown');
-    if (!countdownElement) {
-        console.error('Countdown element not found');
-        return;
-    }
-    const christmas = new Date(new Date().getFullYear(), 11, 25);
-    const now = new Date();
-    const diff = christmas - now;
+    // Initialize functionality
+    updateSantaLocation();
+    updateLocationCountdown();
+
+    // Set intervals - remove duplicates
+    const MINUTE = 60000;
+    const SECOND = 1000;
     
-    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-    const seconds = Math.floor((diff % (1000 * 60)) / 1000);
-    
-    countdownElement.innerHTML = `${days}d ${hours}h ${minutes}m ${seconds}s`;
-}
+    setInterval(updateSantaLocation, MINUTE);
+    setInterval(updateLocationCountdown, SECOND);
+});
