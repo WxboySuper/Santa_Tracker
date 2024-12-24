@@ -9,8 +9,8 @@
     },
     {
       "location": "Napari, Kiribati",
-      "latitude": -0.8721,
-      "longitude": -169.5400,
+      "latitude": 3.916801,
+      "longitude": -159.387869,
       "arrival_time": "2024-12-24T10:00:00Z",
       "departure_time": "2024-12-24T10:05:00Z"
     },
@@ -65,141 +65,141 @@
     },
     {
       "location": "Starbuck Islands, Kiribati",
-      "latitude": -5.6167,
-      "longitude": -155.9333,
+      "latitude": -5.638690,
+      "longitude": -155.850191,
       "arrival_time": "2024-12-24T11:08:00Z",
       "departure_time": "2024-12-24T11:11:00Z"
     },
     {
       "location": "Te One, New Zealand",
-      "latitude": -44.0000,
-      "longitude": -176.3667,
+      "latitude": -43.932205,
+      "longitude": -176.527514,
       "arrival_time": "2024-12-24T11:16:00Z",
       "departure_time": "2024-12-24T11:21:00Z"
     },
     {
       "location": "Kaingaroa, New Zealand",
-      "latitude": -43.8500,
-      "longitude": -176.3667,
+      "latitude": -43.734959,
+      "longitude": -176.266484,
       "arrival_time": "2024-12-24T11:26:00Z",
       "departure_time": "2024-12-24T11:29:00Z"
     },
     {
       "location": "Pitt Island, New Zealand",
-      "latitude": -44.2833,
-      "longitude": -176.2000,
+      "latitude": -44.241555,
+      "longitude": -176.239363,
       "arrival_time": "2024-12-24T11:34:00Z",
       "departure_time": "2024-12-24T11:37:00Z"
     },
     {
       "location": "Arariki, Hull Island",
-      "latitude": -4.5000,
-      "longitude": -172.2167,
+      "latitude": -4.516574,
+      "longitude": -172.224931,
       "arrival_time": "2024-12-24T11:42:00Z",
       "departure_time": "2024-12-24T11:45:00Z"
     },
     {
       "location": "Manra Island, Kiribati",
-      "latitude": -4.4500,
-      "longitude": -171.2333,
+      "latitude": -4.441292,
+      "longitude": -171.242937,
       "arrival_time": "2024-12-24T11:50:00Z",
       "departure_time": "2024-12-24T11:53:00Z"
     },
     {
       "location": "Noriti, Kiribati",
-      "latitude": -4.5000,
-      "longitude": -171.2333,
+      "latitude": -4.676394,
+      "longitude": -174.539564,
       "arrival_time": "2024-12-24T11:58:00Z",
       "departure_time": "2024-12-24T12:01:00Z"
     },
     {
       "location": "Na Utua, Tokelau",
-      "latitude": -9.2000,
-      "longitude": -171.8333,
+      "latitude": -8.564024,
+      "longitude": -172.467719,
       "arrival_time": "2024-12-24T12:06:00Z",
       "departure_time": "2024-12-24T12:09:00Z"
     },
     {
       "location": "Atafu Village, Tokelau",
-      "latitude": -9.1667,
-      "longitude": -171.8333,
+      "latitude": -8.535605,
+      "longitude": -172.518316,
       "arrival_time": "2024-12-24T12:14:00Z",
       "departure_time": "2024-12-24T12:17:00Z"
     },
     {
       "location": "Nukunonu Village, Tokelau",
-      "latitude": -9.2000,
-      "longitude": -171.8333,
+      "latitude": -9.199350,
+      "longitude": -171.849432,
       "arrival_time": "2024-12-24T12:22:00Z",
       "departure_time": "2024-12-24T12:25:00Z"
     },
     {
       "location": "Na Taulaga, Tokelau",
-      "latitude": -9.2000,
-      "longitude": -171.8333,
+      "latitude": -9.197092,
+      "longitude": -171.772856,
       "arrival_time": "2024-12-24T12:30:00Z",
       "departure_time": "2024-12-24T12:33:00Z"
     },
     {
       "location": "Kapiomotu, Tokelau",
-      "latitude": -9.2000,
-      "longitude": -171.8333,
+      "latitude": -9.429219,
+      "longitude": -171.196431,
       "arrival_time": "2024-12-24T12:38:00Z",
       "departure_time": "2024-12-24T12:41:00Z"
     },
     {
       "location": "Sato'alepai, Samoa",
-      "latitude": -13.8333,
-      "longitude": -172.0000,
+      "latitude": -13.442798,
+      "longitude": -172.347189,
       "arrival_time": "2024-12-24T12:46:00Z",
       "departure_time": "2024-12-24T12:49:00Z"
     },
     {
       "location": "Sagone, Samoa",
-      "latitude": -13.8333,
-      "longitude": -172.0000,
+      "latitude": -13.682585,
+      "longitude": -172.624235,
       "arrival_time": "2024-12-24T12:54:00Z",
       "departure_time": "2024-12-24T12:57:00Z"
     },
     {
-      "location": "Upolu, Samoa",
-      "latitude": -13.8333,
-      "longitude": -172.0000,
+      "location": "Apia, Samoa",
+      "latitude": -13.830432,
+      "longitude": -171.768667,
       "arrival_time": "2024-12-24T13:02:00Z",
       "departure_time": "2024-12-24T13:05:00Z"
     },
     {
       "location": "Hihifo, Tonga",
-      "latitude": -15.9500,
-      "longitude": -173.7500,
+      "latitude": -15.954521,
+      "longitude": -173.797215,
       "arrival_time": "2024-12-24T13:10:00Z",
       "departure_time": "2024-12-24T13:13:00Z"
     },
     {
       "location": "Sapa ata, Tonga",
-      "latitude": -15.9500,
-      "longitude": -173.7500,
+      "latitude": -15.574014,
+      "longitude": -175.629491,
       "arrival_time": "2024-12-24T13:18:00Z",
       "departure_time": "2024-12-24T13:21:00Z"
     },
     {
       "location": "Neiafu, Tonga",
-      "latitude": -18.6500,
-      "longitude": -173.9833,
+      "latitude": -18.649538,
+      "longitude": -173.985178,
       "arrival_time": "2024-12-24T13:26:00Z",
       "departure_time": "2024-12-24T13:29:00Z"
     },
     {
       "location": "Lotofoa, Tonga",
-      "latitude": -18.6500,
-      "longitude": -173.9833,
+      "latitude": -19.741773,
+      "longitude": -174.308953,
       "arrival_time": "2024-12-24T13:34:00Z",
       "departure_time": "2024-12-24T13:37:00Z"
     },
     {
       "location": "Kolonga, Tonga",
-      "latitude": -21.1500,
-      "longitude": -175.2000,
+      "latitude": -21.127679,
+      "longitude": -175.069156,
       "arrival_time": "2024-12-24T13:42:00Z",
       "departure_time": "2024-12-24T13:45:00Z"
     }
