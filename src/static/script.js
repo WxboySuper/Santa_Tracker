@@ -14,6 +14,10 @@ document.addEventListener('DOMContentLoaded', function() {
         attribution: '© OpenStreetMap contributors'
     }).addTo(map);
 
+    // Update asset paths to be relative to root
+    const SANTA_ICON = './images/santa-icon.png';
+    const FLAG_ICON = './images/flag-icon.png';
+
     // Global variables
     let nextLocationMarker = null;
     let routeLine = null;
@@ -51,7 +55,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                     nextLocationMarker = L.marker(nextLatLng, {
                                         // skipcq: JS-0125
                                         icon: L.icon({
-                                            iconUrl: '../static/images/flag-icon.png',
+                                            iconUrl: FLAG_ICON,
                                             iconSize: [32, 32]
                                         })
                                     }).addTo(map);
@@ -137,7 +141,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 santaMarker = L.marker([data.latitude, data.longitude], {
                     // skipcq: JS-0125
                     icon: L.icon({
-                        iconUrl: '../static/images/santa-icon.png',
+                        iconUrl: SANTA_ICON,
                         iconSize: [38, 38]
                     })
                 }).addTo(map);
