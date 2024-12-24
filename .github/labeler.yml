@@ -21,14 +21,18 @@ python:
 javascript:
 - changed-files:
   - any-glob-to-any-file: 'src/*.js'
+  - any-glob-to-any-file: '**/*.js'
 
 html:
 - changed-files:
   - any-glob-to-any-file: 'src/*.html'
+  - any-glob-to-any-file: '**/*.html'
+  - any-glob-to-any-file: '*.html'
 
 css:
 - changed-files:
   - any-glob-to-any-file: 'src/*.css'
+  - any-glob-to-any-file: '**/*.css'
 
 dependencies:
 - changed-files:
