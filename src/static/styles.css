@@ -11,3 +11,10 @@
     margin-top: 20px;
     text-align: center;
 }
+
+#delivery-status {
+    color: #ff0000;
+    font-weight: bold;
+    text-align: center;
+    margin: 10px 0;
+}
