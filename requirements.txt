@@ -1,5 +1,5 @@
-Flask==2.0.1
-requests==2.26.0
+Flask==2.2.5
+requests==2.32.0
 gunicorn==23.0.0
 coverage==7.6.9
 geopy==2.2.0
