@@ -4,39 +4,21 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Santa Tracker</title>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
-    <link rel="stylesheet" href="src/static/styles.css">
-    <link rel="manifest" href="manifest.json">
+    <link rel="stylesheet" href="../static/styles.css">
 </head>
 <body>
     <header>
         <h1>Santa Tracker</h1>
-        <div id="countdown"></div>
     </header>
     <main>
-        <div id="map" aria-label="Santa's current location on map" role="application"></div>
-        <div id="tracker-info">
-            <h2>Santa's Location</h2>
-            <p id="current-location" aria-live="polite">Loading current location...</p>  
-            <p id="next-stop" aria-live="polite">Next Stop: Loading destination...</p>  
-            <p id="distance" aria-live="polite">Distance from you: Calculating...</p>
+        <h2>Track Santa's Journey!</h2>
+        <div id="tracker">
+            <!-- Tracker information will be displayed here -->
         </div>
     </main>
     <footer>
         <p>&copy; 2023 Santa Tracker. All rights reserved.</p>
     </footer>
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script> 
-    <script src="src/static/script.js"></script>
-    <script>
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('sw.js')
-                .then(registration => {
-                    console.log('Service Worker registered:', registration);
-                })
-                .catch(error => {
-                    console.log('Service Worker registration failed:', error);
-                });
-        }
-    </script>
+    <script src="../static/script.js"></script>
 </body>
 </html>
