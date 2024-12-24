@@ -4,9 +4,11 @@
 // skipcq: JS-0241
 document.addEventListener('DOMContentLoaded', function() {
     // Initialize map without setting view yet
+    // skipcq: JS-0125
     const map = L.map('map');
     
     // Add map tiles
+    // skipcq: JS-0125
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '© OpenStreetMap contributors',
     }).addTo(map);
@@ -30,7 +32,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 map.setView([data.latitude, data.longitude], 9);
                 
                 // Create Santa's marker (only once)
+                // skipcq: JS-0125
                 santaMarker = L.marker([data.latitude, data.longitude], {
+                    // skipcq: JS-0125
                     icon: L.icon({
                         iconUrl: '../static/images/santa-icon.png',
                         iconSize: [38, 38]
@@ -40,9 +44,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Add next location marker if available
                 if (data.next_stop) {
                     console.log('Adding next location marker:', data.next_stop);
+                    // skipcq: JS-0125
                     nextLocationMarker = L.marker(
                         [data.next_stop.latitude, data.next_stop.longitude], 
                         {
+                            // skipcq: JS-0125
                             icon: L.icon({
                                 iconUrl: '../static/images/flag-icon.png',
                                 iconSize: [32, 32]
@@ -51,6 +57,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     ).addTo(map);
 
                     // Add route line
+                    // skipcq: JS-0125
                     routeLine = L.polyline(
                         [[data.latitude, data.longitude], 
                          [data.next_stop.latitude, data.next_stop.longitude]], 
@@ -156,6 +163,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                 // Update or create next location marker
                                 if (!nextLocationMarker) {
                                     nextLocationMarker = L.marker(nextLatLng, {
+                                        // skipcq: JS-0125
                                         icon: L.icon({
                                             iconUrl: '../static/images/flag-icon.png',
                                             iconSize: [32, 32]
