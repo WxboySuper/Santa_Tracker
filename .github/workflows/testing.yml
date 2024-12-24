@@ -33,12 +33,12 @@ jobs:
         - name: Check for tests
           id: check_tests
           run: |
-            if [ -z "$(find . -type f -name 'test_*.py' -o -name '*_test.py' 2>/dev/null)" ]; then
+            if [ -z "$(find . -type f -name "test_*.py" -o -name "*_test.py" 2>/dev/null)" ]; then
               echo "No test files found"
-              echo "has_tests=false" >> $GITHUB_OUTPUT
+              echo "has_tests=false" >> "$GITHUB_OUTPUT"
             else
               echo "Test files found"
-              echo "has_tests=true" >> $GITHUB_OUTPUT
+              echo "has_tests=true" >> "$GITHUB_OUTPUT"
             fi
 
         - name: Test with unittest
