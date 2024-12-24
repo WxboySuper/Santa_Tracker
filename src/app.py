@@ -25,3 +25,6 @@ def get_santa_location():
 @app.route('/')
 def index():
     return render_template('base.html', year=datetime.now().year)
+
+if __name__ == "__main__":
+    app.run(port=5000)
