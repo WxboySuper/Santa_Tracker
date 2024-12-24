@@ -1,1 +1,13 @@
-/* This file is intentionally left blank. */
+#map {
+    height: 500px;
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+}
+
+.tracker-info {
+    margin-top: 20px;
+    text-align: center;
+}
