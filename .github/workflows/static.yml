@@ -31,12 +31,23 @@ jobs:
       - name: Setup Pages
         uses: actions/configure-pages@v4
       
-      - name: Build static site
+      - name: Create static site structure
         run: |
-          mkdir -p _site
-          cp -r src/static/* _site/
+          mkdir -p _site/static/data
+          mkdir -p _site/static/images
+          mkdir -p _site/static/styles
+          
+          # Copy static assets
+          cp src/static/images/* _site/static/images/
+          cp src/static/styles.css _site/static/styles/
+          cp src/static/script.js _site/static/
+          cp src/static/data/santa_route.json _site/static/data/
+          
+          # Copy and rename template
           cp src/index.html _site/
-          cp src/static/data/santa_route.json _site/data/
+          
+          # Generate static data
+          python src/generate_static.py
       
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
