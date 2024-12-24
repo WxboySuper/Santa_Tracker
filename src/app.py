@@ -1,5 +1,5 @@
 from flask import Flask, render_template, jsonify
-from utils.route_tracker import get_current_position, load_route, haversine_distance
+from utils.route_tracker import get_current_position, load_route
 
 app = Flask(__name__)
 
