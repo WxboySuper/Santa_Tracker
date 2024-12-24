@@ -3,45 +3,53 @@
 
 // skipcq: JS-0241
 document.addEventListener('DOMContentLoaded', function() {
-    // Initialize the map
-    // skipcq: JS-0241, JS-0125
-    const map = new L.Map('map').setView([90, 0], 3);
+    // Initialize map
+    const map = L.map('map').setView([90, 0], 3);
     
-    // Add OpenStreetMap tiles
-    // skipcq: JS-0125
-    new L.TileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+    // Add map tiles
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors'
     }).addTo(map);
 
-    // Add a marker for Santa's initial position (North Pole)
-    // skipcq: JS-0241, JS-0125
-    const santaIcon = new L.Icon({
-        iconUrl: '/src/static/santa-icon.png',
-        iconSize: [38, 38]
-    });
-
-    // skipcq: JS-0241, JS-0125
-    const santaMarker = new L.Marker([90, 0], {icon: santaIcon})
-        .addTo(map)
-        .bindPopup('Santa is here!');
-    // Create an event system module
+    // Event System for handling updates
     const EventSystem = (function() {
         const events = {};
         
         return {
-            // Subscribe to an event
-            on: function(event, callback) {
+            subscribe: function(event, callback) {
                 if (!events[event]) events[event] = [];
                 events[event].push(callback);
             },
-            
-            // Emit an event
             emit: function(event, data) {
-                if (!events[event]) return;
-                events[event].forEach(callback => callback(data));
+                if (events[event]) {
+                    events[event].forEach(callback => callback(data));
+                }
             }
         };
     })();
+
+    // Create Santa's marker
+    const santaMarker = L.marker([90, 0], {
+        icon: L.icon({
+            iconUrl: 'src/static/images/santa-icon.png',
+            iconSize: [38, 38]
+        })
+    }).addTo(map);
+
+    // Subscribe to Santa location updates
+    EventSystem.subscribe('santaMove', function(position) {
+        santaMarker.setLatLng(position);
+        map.panTo(position);
+    });
+
+    // Example update (replace with real tracking logic)
+    setInterval(() => {
+        const newPosition = [
+            90 - Math.random() * 10,
+            Math.random() * 360 - 180
+        ];
+        EventSystem.emit('santaMove', newPosition);
+    }, 5000);
 });
 
 // Countdown timer
@@ -63,7 +71,7 @@ function updateCountdown() {
     countdownElement.innerHTML = `${days}d ${hours}h ${minutes}m ${seconds}s`;
 }
 
-document.addEvenetLister('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', () => {
     updateCountdown();
     setInterval(updateCountdown, 1000);
-})
+});
