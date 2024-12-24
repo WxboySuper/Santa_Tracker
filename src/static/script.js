@@ -17,7 +17,9 @@ document.addEventListener('DOMContentLoaded', function() {
     let nextLocationMarker = null;
     let routeLine = null;
     let santaMarker = null;
+    // skipcq: JS-0119
     let targetTime;
+    // skipcq: JS-0119
     let message;
 
     const NORTH_POLE = {
@@ -162,6 +164,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                 
                                 // Update or create next location marker
                                 if (!nextLocationMarker) {
+                                    // skipcq: JS-0125
                                     nextLocationMarker = L.marker(nextLatLng, {
                                         // skipcq: JS-0125
                                         icon: L.icon({
@@ -175,6 +178,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                 
                                 // Update or create route line
                                 if (!routeLine) {
+                                    // skipcq: JS-0125
                                     routeLine = L.polyline([santaLatLng, nextLatLng], {
                                         color: 'blue',
                                         dashArray: '10',
