@@ -30,19 +30,39 @@ jobs:
             python -m pip install --upgrade pip
             pip install -r requirements.txt
 
+        - name: Check for tests
+          id: check_tests
+          run: |
+            if [ -z "$(find . -name 'test_*.py')" ]; then
+              echo "No test files found"
+              echo "has_tests=false" >> $GITHUB_OUTPUT
+            else
+              echo "Test files found"
+              echo "has_tests=true" >> $GITHUB_OUTPUT
+            fi
+
         - name: Test with unittest
+          if: steps.check_tests.outputs.has_tests == 'true'
           run: |
             coverage run --omit=*/test_* -m unittest discover
 
         - name: Create Coverage Report
+          if: steps.check_tests.outputs.has_tests == 'true'
           run: |
             coverage report -m
             coverage xml
 
         - name: DeepSource Test Coverage
+          if: steps.check_tests.outputs.has_tests == 'true'
           uses: deepsourcelabs/test-coverage-action@master
           with: 
             key: python
             coverage-file: coverage.xml
             dsn: ${{ secrets.DEEPSOURCE_DSN }}
             fail-ci-on-error: true
+
+        - name: Set neutral status if no tests
+          if: steps.check_tests.outputs.has_tests == 'false'
+          run: |
+            echo "::notice::No tests found - workflow completed with neutral status"
+            exit 0
