@@ -25,73 +25,56 @@ document.addEventListener('DOMContentLoaded', function() {
     let targetTime;
     let message;
 
-    function updateSantaLocation() {
-        fetch('/api/santa-status')
-            .then(response => response.json())
-            .then(statusData => {
-                const deliveryStatus = document.getElementById('delivery-status');
+    async function loadSantaData() {
+        const response = await fetch('./static/data/santa_data.json');
+        const data = await response.json();
+        return data;
+    }
+
+    async function updateSantaLocation() {
+        try {
+            const data = await loadSantaData();
+            const { status, location, position, route } = data;
+            
+            // Update delivery status
+            const deliveryStatus = document.getElementById('delivery-status');
+            if (status === 'at-location') {
+                deliveryStatus.textContent = 'Santa is Delivering Presents! 🎁';
+                deliveryStatus.style.display = 'block';
+            } else {
+                deliveryStatus.textContent = '';
+                deliveryStatus.style.display = 'none';
+            }
+
+            // Update marker and map
+            if (position.latitude && position.longitude) {
+                const currentZoom = map.getZoom();
+                const santaLatLng = [position.latitude, position.longitude];
                 
-                if (statusData.status === 'at-location') {
-                    deliveryStatus.textContent = 'Santa is Delivering Presents! 🎁';
-                    deliveryStatus.style.display = 'block';
+                if (!santaMarker) {
+                    santaMarker = L.marker(santaLatLng, {
+                        icon: L.icon({
+                            iconUrl: './static/images/santa-icon.png',
+                            iconSize: [38, 38]
+                        })
+                    }).addTo(map);
                 } else {
-                    deliveryStatus.textContent = '';
-                    deliveryStatus.style.display = 'none';
+                    santaMarker.setLatLng(santaLatLng);
                 }
 
-                if (statusData.status === 'in-transit') {
-                    fetch('/api/santa-location')
-                        .then(response => response.json())
-                        .then(locationData => {
-                            if (locationData.latitude && locationData.longitude && locationData.next_stop) {
-                                const currentZoom = map.getZoom();
-                                const santaLatLng = [locationData.latitude, locationData.longitude];
-                                const nextLatLng = [locationData.next_stop.latitude, locationData.next_stop.longitude];
-                                
-                                santaMarker.setLatLng(santaLatLng);
-                                
-                                if (!nextLocationMarker) {
-                                    // skipcq: JS-0125
-                                    nextLocationMarker = L.marker(nextLatLng, {
-                                        // skipcq: JS-0125
-                                        icon: L.icon({
-                                            iconUrl: FLAG_ICON,
-                                            iconSize: [32, 32]
-                                        })
-                                    }).addTo(map);
-                                } else {
-                                    nextLocationMarker.setLatLng(nextLatLng);
-                                }
-                                
-                                if (!routeLine) {
-                                    // skipcq: JS-0125
-                                    routeLine = L.polyline([santaLatLng, nextLatLng], {
-                                        color: 'blue',
-                                        dashArray: '10',
-                                        opacity: 0.5,
-                                        weight: 3
-                                    }).addTo(map);
-                                } else {
-                                    routeLine.setLatLngs([santaLatLng, nextLatLng]);
-                                }
-                                
-                                map.flyTo(santaLatLng, currentZoom, {
-                                    animate: true,
-                                    duration: 1.5
-                                });
-
-                                document.getElementById('current-location').textContent = 
-                                    `Current Location: ${locationData.current_stop.location}`;
-                                document.getElementById('next-stop').textContent = 
-                                    `Next Stop: ${locationData.next_stop.location}`;
-                            }
-                        });
-                } else if (routeLine) {
-                    map.removeLayer(routeLine);
-                    routeLine = null;
+                // Update location text
+                document.getElementById('current-location').textContent = 
+                    `Current Location: ${location ? location.location : 'North Pole'}`;
+                
+                if (position.current_index < route.length - 1) {
+                    const nextStop = route[position.current_index + 1];
+                    document.getElementById('next-stop').textContent = 
+                        `Next Stop: ${nextStop.location}`;
                 }
-            })
-            .catch(error => console.error('Error updating location:', error));
+            }
+        } catch (error) {
+            console.error('Error updating location:', error);
+        }
     }
 
     function updateLocationCountdown() {
@@ -156,6 +139,10 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         })
         .catch(error => console.error('Error initializing map:', error));
+
+    // Initialize
+    updateSantaLocation();
+    updateLocationCountdown();
 
     // Set update intervals
     setInterval(updateSantaLocation, 1000);

@@ -1,21 +1,28 @@
+from datetime import datetime
 import json
-from utils.route_tracker import load_route, get_santa_status, get_current_position
+import pytz
+from utils.route_tracker import get_santa_status, get_current_position
 
 def generate_static_data():
-    route = load_route()
-    initial_status = get_santa_status(route)
-    initial_position = get_current_position(route)
+    with open('src/static/data/santa_route.json', 'r') as f:
+        route = json.load(f)['route']
+    
+    status, location = get_santa_status(route)
+    lat, lon, idx = get_current_position(route)
     
     static_data = {
-        "initial_status": initial_status[0],
-        "current_stop": initial_status[1],
-        "initial_position": {
-            "latitude": initial_position[0],
-            "longitude": initial_position[1],
-            "route_index": initial_position[2]
+        "status": status,
+        "location": location,
+        "position": {
+            "latitude": lat,
+            "longitude": lon,
+            "current_index": idx
         },
         "route": route
     }
     
-    with open('src/static/data/static_data.json', 'w') as f:
+    with open('_site/static/data/santa_data.json', 'w') as f:
         json.dump(static_data, f)
+
+if __name__ == "__main__":
+    generate_static_data()

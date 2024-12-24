@@ -4,6 +4,8 @@ on:
   push:
     branches: ["main"]
   workflow_dispatch:
+  schedule:
+    - cron: '*/15 * * * *'
 
 permissions:
   contents: read
@@ -19,41 +21,29 @@ jobs:
     
     steps:
       - uses: actions/checkout@v4
-      
-      - name: Setup Python
-        uses: actions/setup-python@v5
+      - uses: actions/setup-python@v5
         with:
           python-version: '3.x'
       
       - name: Install dependencies
         run: pip install -r requirements.txt
       
-      - name: Setup Pages
-        uses: actions/configure-pages@v4
-      
-      - name: Create static site structure
+      - name: Create static structure
         run: |
-          mkdir -p _site/static/data
-          mkdir -p _site/static/images
-          mkdir -p _site/static/styles
-          
-          # Copy static assets
-          cp src/static/images/* _site/static/images/
+          mkdir -p _site/static/{data,images,styles}
+          cp -r src/static/images/* _site/static/images/
           cp src/static/styles.css _site/static/styles/
           cp src/static/script.js _site/static/
           cp src/static/data/santa_route.json _site/static/data/
-          
-          # Copy and rename template
           cp src/index.html _site/
-          
-          # Generate static data
-          python src/generate_static.py
       
-      - name: Upload artifact
+      - name: Generate static data
+        run: python src/generate_static.py
+      
+      - name: Upload and deploy
         uses: actions/upload-pages-artifact@v3
         with:
           path: '_site'
       
       - name: Deploy to GitHub Pages
-        id: deployment
         uses: actions/deploy-pages@v4
