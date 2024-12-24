@@ -30,30 +30,33 @@ document.addEventListener('DOMContentLoaded', function() {
         };
     })();
 
-    // Create Santa's marker
-    // skipcq: JS-0125
-    const santaMarker = L.marker([90, 0], {
-        // skipcq: JS-0125
+    const NORTH_POLE = {
+        name: "North Pole",
+        coordinates: [90.0, 135.0]
+    };
+
+    // Create Santa's marker at North Pole
+    const santaMarker = L.marker(NORTH_POLE.coordinates, {
         icon: L.icon({
             iconUrl: 'src/static/images/santa-icon.png',
             iconSize: [38, 38]
         })
     }).addTo(map);
 
+    // Center map on North Pole
+    map.setView(NORTH_POLE.coordinates, 3);
+
+    // Update location info
+    document.getElementById('current-location').textContent = 
+        `Current Location: ${NORTH_POLE.name}`;
+    document.getElementById('next-stop').textContent = 
+        'Next Stop: Preparing for Christmas Eve!';
+
     // Subscribe to Santa location updates
     EventSystem.subscribe('santaMove', (position) => {
         santaMarker.setLatLng(position);
         map.panTo(position);
     });
-
-    // Example update (replace with real tracking logic)
-    setInterval(() => {
-        const newPosition = [
-            90 - Math.random() * 10,
-            Math.random() * 360 - 180
-        ];
-        EventSystem.emit('santaMove', newPosition);
-    }, 5000);
 
     document.addEventListener('DOMContentLoaded', () => {
         updateCountdown();
