@@ -1,5 +1,20 @@
 // filepath: /sw.js
 const CACHE_NAME = 'santa-tracker-v1';
+
+self.addEventListener('activate', event => {
+  event.waitUntil(
+    CacheStorage.keys().then(cacheNames => {
+      return Promise.all(
+        cacheNames.map(cacheName => {
+          if (cacheName !== CACHE_NAME) {
+            return caches.delete(cacheName);
+          }
+        })
+      );
+    })
+  );
+});
+
 const urlsToCache = [
   '/',
   '/index.html',
@@ -14,12 +29,6 @@ self.addEventListener('install', event => {
   );
 });
 
-self.addEventListener('fetch', event => {
-  event.respondWith(
-    caches.match(event.request)
-      .then(response => response || fetch(event.request))
-  );
-});
 self.addEventListener('fetch', event => {
   event.respondWith(
     caches.match(event.request)
