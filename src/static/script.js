@@ -3,42 +3,76 @@
 
 // skipcq: JS-0241
 document.addEventListener('DOMContentLoaded', function() {
-    // Initialize map
-    const map = L.map('map').setView([90, 0], 3);
+    // Initialize map without setting view yet
+    const map = L.map('map');
     
     // Add map tiles
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap contributors'
+        attribution: '© OpenStreetMap contributors',
     }).addTo(map);
 
-    // Event System implementation
-    const EventSystem = (function() {
-        const events = {};
-        return {
-            subscribe(event, callback) {
-                if (!events[event]) events[event] = [];
-                events[event].push(callback);
-            },
-            emit(event, data) {
-                if (events[event]) {
-                    events[event].forEach(callback => callback(data));
+    // Declare markers at top level scope
+    let nextLocationMarker = null;
+    let routeLine = null;
+    let santaMarker = null;
+
+    // Get initial position and set up map
+    fetch('/api/santa-location')
+        .then(response => response.json())
+        .then(data => {
+            if (data.latitude && data.longitude) {
+                // Set initial view to Santa's position
+                map.setView([data.latitude, data.longitude], 9);
+                
+                // Create Santa's marker (only once)
+                santaMarker = L.marker([data.latitude, data.longitude], {
+                    icon: L.icon({
+                        iconUrl: '../static/images/santa-icon.png',
+                        iconSize: [38, 38]
+                    })
+                }).addTo(map);
+
+                // Add next location marker if available
+                if (data.next_stop) {
+                    console.log('Adding next location marker:', data.next_stop);
+                    nextLocationMarker = L.marker(
+                        [data.next_stop.latitude, data.next_stop.longitude], 
+                        {
+                            icon: L.icon({
+                                iconUrl: '../static/images/flag-icon.png',
+                                iconSize: [32, 32]
+                            })
+                        }
+                    ).addTo(map);
+
+                    // Add route line
+                    routeLine = L.polyline(
+                        [[data.latitude, data.longitude], 
+                         [data.next_stop.latitude, data.next_stop.longitude]], 
+                        {
+                            color: 'blue',
+                            dashArray: '10',
+                            opacity: 0.5
+                        }
+                    ).addTo(map);
                 }
+
+                // Initialize location displays
+                document.getElementById('current-location').textContent = 
+                    `Current Location: ${data.current_stop ? data.current_stop.location : 'North Pole'}`;
+                document.getElementById('next-stop').textContent = 
+                    data.next_stop ? `Next Stop: ${data.next_stop.location}` : 'Preparing for Christmas Eve!';
+
+                // Initialize functionality
+                updateLocationCountdown();
+                updateSantaLocation();
+                
+                // Set intervals
+                setInterval(updateSantaLocation, 1000);
+                setInterval(updateLocationCountdown, 1000);
             }
-        };
-    })();
-
-    const NORTH_POLE = {
-        name: "North Pole",
-        coordinates: [90.0, 135.0]
-    };
-
-    // Create Santa's marker
-    const santaMarker = L.marker(NORTH_POLE.coordinates, {
-        icon: L.icon({
-            iconUrl: 'src/static/images/santa-icon.png',
-            iconSize: [38, 38]
         })
-    }).addTo(map);
+        .catch(error => console.error('Error initializing map:', error));
 
     function formatTimeComponent(value) {
         return value.toString().padStart(2, '0');
@@ -53,69 +87,115 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function updateLocationCountdown() {
         const locationCountdownElement = document.getElementById('location-countdown');
-        if (!locationCountdownElement) {
-            console.error('Location countdown element not found');
-            return;
-        }
-    
-        const now = new Date();
-        const northPoleDeparture = new Date('2024-12-24T09:45:00Z');
-        const diff = northPoleDeparture - now;
-    
-        if (diff > 0) {
-            const { hours, minutes, seconds } = calculateTimeComponents(diff);
-            locationCountdownElement.textContent = 
-                `Time until departure: ${formatTimeComponent(hours)}:${formatTimeComponent(minutes)}:${formatTimeComponent(seconds)}`;
-        } else {
-            locationCountdownElement.textContent = 'Santa has departed!';
-            // Start tracking next location after departure
-            updateNextLocationCountdown();
-        }
-    }
-
-    function updateNextLocationCountdown() {
-        fetch('/api/santa-location')
+        
+        fetch('/api/santa-status')
             .then(response => response.json())
             .then(data => {
-                if (data.current_stop) {
-                    const now = new Date();
-                    const departureTime = new Date(data.current_stop.departure_time);
-                    const diff = departureTime - now;
-
-                    const locationCountdownElement = document.getElementById('location-countdown');
-                    if (diff > 0) {
-                        const { hours, minutes, seconds } = calculateTimeComponents(diff);
-                        locationCountdownElement.textContent = 
-                            `Time until next departure: ${formatTimeComponent(hours)}:${formatTimeComponent(minutes)}:${formatTimeComponent(seconds)}`;
-                    } else {
-                        locationCountdownElement.textContent = 'Departing...';
-                    }
+                const now = new Date();
+                let targetTime;
+                let message;
+                
+                switch(data.status) {
+                    case 'pre-departure':
+                        targetTime = new Date(data.location.departure_time);
+                        message = 'Time until departure from North Pole: ';
+                        break;
+                    case 'in-transit':
+                        targetTime = new Date(data.location.arrival_time);
+                        message = `Time until arrival at ${data.location.location}: `;
+                        break;
+                    case 'at-location':
+                        targetTime = new Date(data.location.departure_time);
+                        message = `Time until departure from ${data.location.location}: `;
+                        break;
+                    default:
+                        locationCountdownElement.textContent = 'Journey Complete!';
+                        return;
+                }
+                
+                const diff = targetTime - now;
+                if (diff > 0) {
+                    const { hours, minutes, seconds } = calculateTimeComponents(diff);
+                    locationCountdownElement.textContent = 
+                        `${message}${formatTimeComponent(hours)}:${formatTimeComponent(minutes)}:${formatTimeComponent(seconds)}`;
                 }
             })
-            .catch(error => console.error('Error fetching departure time:', error));
+            .catch(error => console.error('Error fetching santa status:', error));
     }
 
     function updateSantaLocation() {
-        fetch('/api/santa-location')
+        fetch('/api/santa-status')
             .then(response => response.json())
-            .then(data => {
-                if (data.latitude && data.longitude) {
-                    EventSystem.emit('santaMove', [data.latitude, data.longitude]);
-                    
-                    document.getElementById('current-location').textContent = 
-                        `Current Location: ${data.current_stop.location}`;
-                    document.getElementById('next-stop').textContent = 
-                        data.next_stop ? `Next Stop: ${data.next_stop.location}` : 'Journey Complete!';
+            .then(statusData => {
+                const deliveryStatus = document.getElementById('delivery-status');
+                
+                if (statusData.status === 'at-location') {
+                    deliveryStatus.textContent = 'Santa is Delivering Presents! 🎁';
+                    deliveryStatus.style.display = 'block';
+                } else {
+                    deliveryStatus.textContent = '';
+                    deliveryStatus.style.display = 'none';
                 }
+                if (statusData.status === 'in-transit') {
+                    fetch('/api/santa-location')
+                        .then(response => response.json())
+                        .then(locationData => {
+                            if (locationData.latitude && locationData.longitude && locationData.next_stop) {
+                                const currentZoom = map.getZoom();
+                                const santaLatLng = [locationData.latitude, locationData.longitude];
+                                const nextLatLng = [locationData.next_stop.latitude, locationData.next_stop.longitude];
+                                
+                                // Update Santa's marker
+                                santaMarker.setLatLng(santaLatLng);
+                                
+                                // Update or create next location marker
+                                if (!nextLocationMarker) {
+                                    nextLocationMarker = L.marker(nextLatLng, {
+                                        icon: L.icon({
+                                            iconUrl: '../static/images/flag-icon.png',
+                                            iconSize: [32, 32]
+                                        })
+                                    }).addTo(map);
+                                } else {
+                                    nextLocationMarker.setLatLng(nextLatLng);
+                                }
+                                
+                                // Update or create route line
+                                if (!routeLine) {
+                                    routeLine = L.polyline([santaLatLng, nextLatLng], {
+                                        color: 'blue',
+                                        dashArray: '10',
+                                        opacity: 0.5,
+                                        weight: 3
+                                    }).addTo(map);
+                                } else {
+                                    routeLine.setLatLngs([santaLatLng, nextLatLng]);
+                                }
+                                
+                                map.flyTo(santaLatLng, currentZoom, {
+                                    animate: true,
+                                    duration: 1.5
+                                });
+                            }
+                        });
+                } else {
+                    // Remove route line when not in transit
+                    if (routeLine) {
+                        map.removeLayer(routeLine);
+                        routeLine = null;
+                    }
+                }
+                
+                // Update status text
+                document.getElementById('current-location').textContent = 
+                    `Current Location: ${statusData.location ? statusData.location.location : 'North Pole'}`;
+                document.getElementById('next-stop').textContent = 
+                    statusData.status === 'pre-departure' ? 'Next Stop: Preparing for Christmas Eve!' :
+                    statusData.status === 'journey-complete' ? 'Journey Complete!' :
+                    `Next Stop: ${statusData.location ? statusData.location.location : ''}`;
             })
-            .catch(error => console.error('Error fetching Santa\'s location:', error));
+            .catch(error => console.error('Error updating location:', error));
     }
-
-    // Single EventSystem subscription
-    EventSystem.subscribe('santaMove', (position) => {
-        santaMarker.setLatLng(position);
-        map.panTo(position);
-    });
 
     // Initial setup
     map.setView(NORTH_POLE.coordinates, 3);
@@ -125,11 +205,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initialize functionality
     updateSantaLocation();
     updateLocationCountdown();
-
-    // Set intervals - remove duplicates
-    const MINUTE = 60000;
-    const SECOND = 1000;
     
-    setInterval(updateSantaLocation, MINUTE);
-    setInterval(updateLocationCountdown, SECOND);
+    setInterval(updateSantaLocation, 1000);
+    setInterval(updateLocationCountdown, 1000);
 });

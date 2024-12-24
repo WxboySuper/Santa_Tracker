@@ -1,6 +1,6 @@
 from flask import Flask, render_template, jsonify
-from utils.route_tracker import get_current_position, load_route
-import datetime
+from utils.route_tracker import get_current_position, load_route, get_santa_status
+from datetime import datetime
 
 app = Flask(__name__)
 
@@ -22,9 +22,27 @@ def get_santa_location():
         
     return jsonify({'error': 'Could not determine Santa\'s location'})
 
+@app.route('/api/departure-time')
+def get_departure_time():
+    route = load_route()
+    if route and len(route) > 0:
+        return jsonify({
+            'departure_time': route[0]['departure_time']
+        })
+    return jsonify({'error': 'Could not determine departure time'})
+
+@app.route('/api/santa-status')
+def get_status():
+    route = load_route()
+    status, location = get_santa_status(route)
+    return jsonify({
+        'status': status,
+        'location': location
+    })
+
 @app.route('/')
 def index():
-    return render_template('base.html', year=datetime.now().year)
+    return render_template('index.html', year=datetime.now().year)
 
 if __name__ == "__main__":
     app.run(port=5000)

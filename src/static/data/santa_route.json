@@ -16,50 +16,50 @@
     },
     {
       "location": "Tabwakea, Kiritimati",
-      "latitude": 1.8721,
-      "longitude": -157.4278,
+      "latitude": 1.928637,
+      "longitude": -157.495361,
       "arrival_time": "2024-12-24T10:10:00Z",
       "departure_time": "2024-12-24T10:15:00Z"
     },
     {
       "location": "Poland, Kiritimati",
-      "latitude": 1.8700,
-      "longitude": -157.3333,
+      "latitude": 1.866927,
+      "longitude": -157.554005,
       "arrival_time": "2024-12-24T10:20:00Z",
       "departure_time": "2024-12-24T10:23:00Z"
     },
     {
       "location": "Paris, Kiritimati",
-      "latitude": 1.8500,
+      "latitude": 1.866959,
       "longitude": -157.3000,
       "arrival_time": "2024-12-24T10:28:00Z",
       "departure_time": "2024-12-24T10:31:00Z"
     },
     {
       "location": "London, Kiritimati",
-      "latitude": 1.8500,
-      "longitude": -157.2500,
+      "latitude": 1.983387,
+      "longitude": -157.475180,
       "arrival_time": "2024-12-24T10:36:00Z",
       "departure_time": "2024-12-24T10:39:00Z"
     },
     {
       "location": "Banana, Kiritimati",
-      "latitude": 1.8500,
-      "longitude": -157.2000,
+      "latitude": 1.982540,
+      "longitude": -157.363858,
       "arrival_time": "2024-12-24T10:44:00Z",
       "departure_time": "2024-12-24T10:47:00Z"
     },
     {
       "location": "Onouea Village, Kiribati",
-      "latitude": -0.8721,
-      "longitude": -169.5400,
+      "latitude": 4.670661,
+      "longitude": -160.378593,
       "arrival_time": "2024-12-24T10:52:00Z",
       "departure_time": "2024-12-24T10:55:00Z"
     },
     {
       "location": "Malden Island, Kiribati",
-      "latitude": -4.0167,
-      "longitude": -154.9333,
+      "latitude": -4.006211,
+      "longitude": -154.964967,
       "arrival_time": "2024-12-24T11:00:00Z",
       "departure_time": "2024-12-24T11:03:00Z"
     },
