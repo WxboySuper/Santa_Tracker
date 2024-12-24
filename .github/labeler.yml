@@ -12,7 +12,6 @@ GitHub-Action:
 
 python:
 - changed-files:
-  - any-glob-to-any-file: 'src/python/*'
   - any-glob-to-any-file: '**/*.py'
   - any-glob-to-any-file: '**/requirements.txt'
   - any-glob-to-any-file: '**/setup.py'
@@ -22,6 +21,7 @@ javascript:
 - changed-files:
   - any-glob-to-any-file: 'src/*.js'
   - any-glob-to-any-file: '**/*.js'
+  - any-glob-to-any-file: '*.js'
 
 html:
 - changed-files:
