@@ -56,10 +56,10 @@ jobs:
           if: steps.check_tests.outputs.has_tests == 'true'
           uses: deepsourcelabs/test-coverage-action@master
           with: 
-            key: python
-            coverage-file: coverage.xml
-            dsn: ${{ secrets.DEEPSOURCE_DSN }}
-            fail-ci-on-error: true
+              key: python
+              coverage-file: coverage.xml
+              dsn: ${{ secrets.DEEPSOURCE_DSN }}
+              fail-ci-on-error: true
 
         - name: Set neutral status if no tests
           if: steps.check_tests.outputs.has_tests == 'false'
