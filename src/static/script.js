@@ -1,55 +1,6 @@
 // filepath: /static/script.js
 // Wait for the DOM to be fully loaded
 
-async function updateSantaLocation() {
-    try {
-        const response = await fetch('./static/data/santa_data.json');
-        const data = await response.json();
-        
-        const { status, location, position, route } = data;
-        
-        // Update delivery status
-        const deliveryStatus = document.getElementById('delivery-status');
-        if (status === 'at-location') {
-            deliveryStatus.textContent = 'Santa is Delivering Presents! 🎁';
-            deliveryStatus.style.display = 'block';
-        } else {
-            deliveryStatus.textContent = '';
-            deliveryStatus.style.display = 'none';
-        }
-
-        // Update marker and map
-        if (position.latitude && position.longitude) {
-            const currentZoom = map.getZoom();
-            const santaLatLng = [position.latitude, position.longitude];
-            
-            // Update Santa's marker
-            if (!santaMarker) {
-                santaMarker = L.marker(santaLatLng, {
-                    icon: L.icon({
-                        iconUrl: './static/images/santa-icon.png',
-                        iconSize: [38, 38]
-                    })
-                }).addTo(map);
-            } else {
-                santaMarker.setLatLng(santaLatLng);
-            }
-
-            // Update text displays
-            document.getElementById('current-location').textContent = 
-                `Current Location: ${location ? location.location : 'North Pole'}`;
-            
-            if (position.current_index < route.length - 1) {
-                const nextStop = route[position.current_index + 1];
-                document.getElementById('next-stop').textContent = 
-                    `Next Stop: ${nextStop.location}`;
-            }
-        }
-    } catch (error) {
-        console.error('Error updating Santa location:', error);
-    }
-}
-
 // skipcq: JS-0241
 document.addEventListener('DOMContentLoaded', function() {
     // Initialize map
@@ -78,6 +29,55 @@ document.addEventListener('DOMContentLoaded', function() {
         const response = await fetch('./static/data/santa_data.json');
         const data = await response.json();
         return data;
+    }
+
+    async function updateSantaLocation() {
+        try {
+            const response = await fetch('./static/data/santa_data.json');
+            const data = await response.json();
+            
+            const { status, location, position, route } = data;
+            
+            // Update delivery status
+            const deliveryStatus = document.getElementById('delivery-status');
+            if (status === 'at-location') {
+                deliveryStatus.textContent = 'Santa is Delivering Presents! 🎁';
+                deliveryStatus.style.display = 'block';
+            } else {
+                deliveryStatus.textContent = '';
+                deliveryStatus.style.display = 'none';
+            }
+    
+            // Update marker and map
+            if (position.latitude && position.longitude) {
+                const currentZoom = map.getZoom();
+                const santaLatLng = [position.latitude, position.longitude];
+                
+                // Update Santa's marker
+                if (!santaMarker) {
+                    santaMarker = L.marker(santaLatLng, {
+                        icon: L.icon({
+                            iconUrl: './static/images/santa-icon.png',
+                            iconSize: [38, 38]
+                        })
+                    }).addTo(map);
+                } else {
+                    santaMarker.setLatLng(santaLatLng);
+                }
+    
+                // Update text displays
+                document.getElementById('current-location').textContent = 
+                    `Current Location: ${location ? location.location : 'North Pole'}`;
+                
+                if (position.current_index < route.length - 1) {
+                    const nextStop = route[position.current_index + 1];
+                    document.getElementById('next-stop').textContent = 
+                        `Next Stop: ${nextStop.location}`;
+                }
+            }
+        } catch (error) {
+            console.error('Error updating Santa location:', error);
+        }
     }
 
     function updateLocationCountdown() {
