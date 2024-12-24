@@ -1,0 +1,36 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.env
+
+# Node
+node_modules/
+npm-debug.log
+package-lock.json
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Build & Distribution
+dist/
+build/
+*.egg-info/
+.coverage
+htmlcov/
+
+# Local development
+*.log
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local

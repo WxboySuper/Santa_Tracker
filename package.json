@@ -1,0 +1,9 @@
+{
+  "name": "santa-tracker",
+  "version": "1.0.0",
+  "description": "Santa Tracker Web App",
+  "dependencies": {
+    "leaflet": "^1.7.1",
+    "moment": "^2.29.4"
+  }
+}
