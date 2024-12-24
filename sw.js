@@ -6,8 +6,8 @@ const urlsToCache = [
     '/src/static/styles.css',
     '/src/static/script.js',
     '/src/static/images/santa-icon.png',
-    'https://unpkg.com/leaflet@1.7.1/dist/leaflet.css',
-    'https://unpkg.com/leaflet@1.7.1/dist/leaflet.js'
+    'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css',
+    'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js'
 ];
 
 // Install event handler
