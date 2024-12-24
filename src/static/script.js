@@ -17,6 +17,8 @@ document.addEventListener('DOMContentLoaded', function() {
     let nextLocationMarker = null;
     let routeLine = null;
     let santaMarker = null;
+    let targetTime;
+    let message;
 
     const NORTH_POLE = {
         name: "North Pole",
@@ -104,8 +106,6 @@ document.addEventListener('DOMContentLoaded', function() {
             .then(response => response.json())
             .then(data => {
                 const now = new Date();
-                let targetTime;
-                let message;
                 
                 switch(data.status) {
                     case 'pre-departure':
