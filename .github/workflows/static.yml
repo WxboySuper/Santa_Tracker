@@ -4,8 +4,6 @@ on:
   push:
     branches: ["main"]
   workflow_dispatch:
-  schedule:
-    - cron: '*/15 * * * *'  # Update every 15 minutes
 
 permissions:
   contents: read
@@ -15,25 +13,36 @@ permissions:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      
+      - name: Setup Python
+        uses: actions/setup-python@v5
         with:
           python-version: '3.x'
       
       - name: Install dependencies
         run: pip install -r requirements.txt
-        
-      - name: Generate static data
-        run: python src/generate_static.py
-        
+      
       - name: Setup Pages
-        uses: actions/configure-pages@v5
-        
+        uses: actions/configure-pages@v4
+      
+      - name: Build static site
+        run: |
+          mkdir -p _site
+          cp -r src/static/* _site/
+          cp src/templates/index.html _site/
+          cp src/static/data/santa_route.json _site/data/
+      
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: '.'
-          
+          path: '_site'
+      
       - name: Deploy to GitHub Pages
+        id: deployment
         uses: actions/deploy-pages@v4
