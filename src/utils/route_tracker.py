@@ -19,6 +19,8 @@ def load_route():
         return json.load(f)['route']
 
 def get_santa_status(route):
+    if not route:
++    return "journey-complete", None
     now = datetime.now(pytz.UTC)
     north_pole_departure = parser.parse(route[0]['departure_time']).replace(tzinfo=pytz.UTC)
     
