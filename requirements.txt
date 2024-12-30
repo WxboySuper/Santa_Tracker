@@ -1,6 +1,6 @@
-Flask==2.2.5
-requests==2.32.0
+Flask==3.1.0
+requests==2.32.3
 gunicorn==23.0.0
-coverage==7.6.9
-geopy==2.2.0
-python-dotenv==0.19.0
+coverage==7.6.10
+geopy==2.4.1
+python-dotenv==1.0.1
