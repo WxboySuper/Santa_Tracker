@@ -1,0 +1,65 @@
+name: ❓ Question or Discussion
+description: Ask a question or start a discussion about Santa Tracker
+title: "[Question]: "
+labels: ["question"]
+assignees:
+  - WxboySuper
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Have a question or want to discuss something about Santa Tracker? We're here to help!
+
+  - type: dropdown
+    id: category
+    attributes:
+      label: Question Category
+      description: What is your question about?
+      options:
+        - Installation/Setup
+        - Usage/How-to
+        - Configuration
+        - API/Integration
+        - General Question
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: question
+    attributes:
+      label: Question
+      description: Please describe your question in detail
+      placeholder: I would like to know...
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Context
+      description: Provide any relevant context that might help us answer your question
+      placeholder: I'm trying to...
+
+  - type: textarea
+    id: tried
+    attributes:
+      label: What have you tried?
+      description: Have you tried any solutions already? What was the result?
+      placeholder: I've tried...
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional Information
+      description: Any other information that might be helpful
+      placeholder: Additional details...
+
+  - type: checkboxes
+    id: terms
+    attributes:
+      label: Code of Conduct
+      description: By submitting this issue, you agree to follow our Code of Conduct
+      options:
+        - label: I agree to follow this project's Code of Conduct
+          required: true
