@@ -2,7 +2,7 @@
 
 [![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/WxboySuper/Santa_Tracker/testing.yml?branch=main&label=tests&style=flat-square)](https://github.com/WxboySuper/Santa_Tracker/actions)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](https://opensource.org/licenses/MIT)
-[![Python Version](https://img.shields.io/badge/python-3.8%2B-blue?style=flat-square)](https://www.python.org/downloads/)
+[![Python Version](https://img.shields.io/badge/python-3.10%2B-blue?style=flat-square)](https://www.python.org/downloads/)
 [![Code Quality](https://img.shields.io/badge/code%20quality-A-brightgreen?style=flat-square)](https://deepsource.io/gh/WxboySuper/Santa_Tracker)
 
 Track Santa's magical journey around the world on Christmas Eve! This interactive web application provides real-time updates on Santa's location, next destinations, and estimated arrival times for your family to enjoy.
@@ -21,7 +21,7 @@ Track Santa's magical journey around the world on Christmas Eve! This interactiv
 
 ### Prerequisites
 
-- Python 3.8 or higher
+- Python 3.10 or higher
 - pip (Python package manager)
 - Modern web browser (Chrome, Firefox, Safari, or Edge)
 
