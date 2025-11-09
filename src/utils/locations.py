@@ -8,6 +8,7 @@ def get_santa_locations():
         {"name": "Tokyo", "coordinates": (35.6762, 139.6503)},
     ]
 
+
 def update_santa_location(location):
     # This function updates Santa's current location.
     # In a real application, this would involve more complex logic.
