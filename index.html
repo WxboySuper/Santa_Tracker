@@ -27,16 +27,6 @@
     </footer>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script> 
     <script src="src/static/script.js"></script>
-    <script>
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('sw.js')
-                .then(registration => {
-                    console.log('Service Worker registered:', registration);
-                })
-                .catch(error => {
-                    console.log('Service Worker registration failed:', error);
-                });
-        }
-    </script>
+    <script src="src/static/sw-register.js"></script>
 </body>
 </html>

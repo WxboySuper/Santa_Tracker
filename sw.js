@@ -5,6 +5,7 @@ const urlsToCache = [
     '/index.html',
     '/src/static/styles.css',
     '/src/static/script.js',
+    '/src/static/sw-register.js',
     '/src/static/images/santa-icon.png',
     'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css',
     'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js'
