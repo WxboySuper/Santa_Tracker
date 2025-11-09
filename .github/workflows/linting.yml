@@ -1,0 +1,98 @@
+name: Linting
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+  pull-requests: write
+  checks: write
+
+jobs:
+  python-lint:
+    runs-on: ubuntu-latest
+    name: Python Linting
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.12"
+      
+      - name: Install Python linters
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-dev.txt
+      
+      - name: Run Black
+        run: |
+          black --check --diff .
+      
+      - name: Run isort
+        run: |
+          isort --check-only --diff .
+      
+      - name: Run Flake8
+        run: |
+          flake8 .
+
+  javascript-lint:
+    runs-on: ubuntu-latest
+    name: JavaScript Linting
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+      
+      - name: Install dependencies
+        run: npm install
+      
+      - name: Run ESLint
+        run: npm run lint:js
+
+  css-lint:
+    runs-on: ubuntu-latest
+    name: CSS Linting
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+      
+      - name: Install dependencies
+        run: npm install
+      
+      - name: Run Stylelint
+        run: npm run lint:css
+
+  html-lint:
+    runs-on: ubuntu-latest
+    name: HTML Linting
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+      
+      - name: Install dependencies
+        run: npm install
+      
+      - name: Run HTMLHint
+        run: npm run lint:html
