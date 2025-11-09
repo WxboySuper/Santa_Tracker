@@ -124,7 +124,38 @@ python src/generate_static.py
 The project uses automated code quality checks:
 - **DeepSource**: Automated code review
 - **GitHub Actions**: Continuous integration
-- **Linting**: Python and JavaScript linters
+- **Linting**: Comprehensive linting for all file types
+
+#### Running Linters
+
+**Python Linters:**
+```bash
+# Install development dependencies
+pip install -r requirements-dev.txt
+
+# Run all Python linters
+black --check .      # Code formatting
+isort --check-only . # Import sorting
+flake8 .            # Style guide enforcement
+
+# Auto-fix Python code
+black .
+isort .
+```
+
+**JavaScript/CSS/HTML Linters:**
+```bash
+# Install Node.js dependencies
+npm install
+
+# Run individual linters
+npm run lint:js    # ESLint for JavaScript
+npm run lint:css   # Stylelint for CSS
+npm run lint:html  # HTMLHint for HTML
+
+# Run all frontend linters
+npm run lint
+```
 
 ## 🤝 Contributing
 
