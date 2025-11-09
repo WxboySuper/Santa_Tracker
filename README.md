@@ -49,6 +49,11 @@ Track Santa's magical journey around the world on Christmas Eve! This interactiv
    ```bash
    python src/app.py
    ```
+   
+   For development with debug mode enabled:
+   ```bash
+   FLASK_DEBUG=True python src/app.py
+   ```
 
 5. **Open your browser**
    Navigate to `http://localhost:5000` to start tracking Santa!
