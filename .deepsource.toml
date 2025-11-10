@@ -14,12 +14,3 @@ name = "isort"
 
 [[transformers]]
 name = "black"
-
-[[transformers]]
-name = "standardjs"
-
-[[transformers]]
-name = "ruff"
-
-[[transformers]]
-name = "autopep8"
