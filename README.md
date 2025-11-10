@@ -12,7 +12,7 @@ Track Santa's magical journey around the world on Christmas Eve! This interactiv
 - 🗺️ **Interactive Map**: Real-time visualization of Santa's journey using Leaflet.js
 - 📍 **Location Tracking**: See Santa's current location and next destination
 - 📏 **Distance Calculator**: Calculate the distance from Santa to your location
-- ⏱️ **Countdown Timer**: Countdown to Christmas Eve and Santa's departure
+- ⏱️ **Countdown Timer**: Live countdown to Christmas Eve tour launch with days, hours, minutes, and seconds (supports both local time and UTC)
 - 📱 **Progressive Web App**: Install on your device for offline access
 - 🎨 **Responsive Design**: Works seamlessly on desktop, tablet, and mobile devices
 - ♿ **Accessibility**: ARIA labels and screen reader support
@@ -191,6 +191,33 @@ FLASK_ENV=development
 FLASK_DEBUG=True
 SECRET_KEY=your-secret-key-here
 ```
+
+### Countdown Timer Configuration
+
+The countdown timer can be configured to use either local time or UTC for the Christmas Eve tour launch. To customize the countdown behavior, edit the `COUNTDOWN_CONFIG` object in `src/static/script.js`:
+
+```javascript
+const COUNTDOWN_CONFIG = {
+    USE_UTC: false, // Set to true to use UTC time instead of local time
+    TARGET_MONTH: 11, // December (0-indexed, so 11 = December)
+    TARGET_DAY: 24, // Christmas Eve
+    TARGET_HOUR: 0, // Midnight
+    TARGET_MINUTE: 0,
+    TARGET_SECOND: 0
+};
+```
+
+**Configuration Options:**
+- `USE_UTC`: Set to `true` to count down to Christmas Eve at midnight UTC, or `false` (default) to use the user's local timezone
+- `TARGET_MONTH`: Month of the year (0-indexed, where 0 = January, 11 = December)
+- `TARGET_DAY`: Day of the month (24 for Christmas Eve)
+- `TARGET_HOUR`, `TARGET_MINUTE`, `TARGET_SECOND`: Time of day for the launch
+
+The countdown automatically updates every second and displays:
+- Days remaining until the launch
+- Hours, minutes, and seconds (formatted with leading zeros)
+- Current timezone indicator (when using UTC)
+- Special message when Santa's tour has started
 
 ## 🌐 Deployment
 
