@@ -93,15 +93,53 @@ Santa_Tracker/
 - **Python-dotenv**: Environment variable management
 
 ### Frontend
-- **Leaflet.js**: Interactive mapping library
-- **Moment.js**: Date and time manipulation
-- **Vanilla JavaScript**: Core functionality
-- **CSS3**: Modern styling and animations
+- **Tailwind CSS**: Utility-first CSS framework via CDN (cost-free, no build step)
+- **Leaflet.js**: Interactive mapping library with OpenStreetMap tiles (free and open-source)
+- **Leaflet.markercluster**: Plugin for efficient marker clustering
+- **Vanilla JavaScript**: Core functionality with modern ES6+ features
+- **CSS3**: Custom animations and festive theming
 
 ### DevOps
 - **GitHub Actions**: CI/CD automation
 - **Dependabot**: Dependency updates
 - **DeepSource**: Code quality analysis
+
+## 🎨 Design Choices
+
+### UI/UX Design
+- **Mobile-First Approach**: Responsive design with breakpoints optimized for mobile, tablet, and desktop
+- **Accessibility**: Full ARIA labels, keyboard navigation, screen reader support, and reduced motion preferences
+- **Christmas Color Palette**: 
+  - Christmas Red (#C41E3A) - Primary action color
+  - Christmas Green (#165B33) - Secondary/accent color
+  - Gold (#FFD700) - Highlights and borders
+  - Blue gradient background - Night sky theme
+- **Festive Elements**:
+  - Animated snowfall effect with 50 snowflakes using pure CSS/JS
+  - Emoji-based icons for visual appeal and better compatibility
+  - Gradient backgrounds with festive colors
+  - Smooth animations and transitions (respecting `prefers-reduced-motion`)
+
+### Map Implementation
+- **Cost-Free Solution**: OpenStreetMap tiles (no API key required)
+- **Marker Clustering**: Leaflet.markercluster for performance with many route points
+- **Smooth Animations**: 30-step interpolation for Santa's movement (1.5s transitions)
+- **Keyboard Accessible**: Arrow keys for pan, +/- for zoom
+- **Custom Santa Icon**: 48x48px with hover effects
+
+### Performance Optimizations
+- **CDN Resources**: Tailwind CSS and Leaflet from CDN for fast loading
+- **Lazy Animations**: Snowfall respects `prefers-reduced-motion` media query
+- **Efficient Clustering**: Marker grouping reduces DOM elements for better performance
+- **Minimal Dependencies**: Only essential libraries included
+
+### Accessibility Features
+- **ARIA Labels**: All interactive elements properly labeled
+- **Live Regions**: Real-time updates announced to screen readers
+- **Keyboard Navigation**: Full keyboard support for map and controls
+- **Focus Indicators**: High-contrast focus outlines (3px gold)
+- **Semantic HTML**: Proper heading hierarchy and landmark regions
+- **High Contrast Support**: Tested with `prefers-contrast: high`
 
 ## 🧪 Development
 
