@@ -1,3 +1,4 @@
+import logging
 import os
 import secrets
 import sys
@@ -15,6 +16,13 @@ from utils.locations import (  # noqa: E402
     save_santa_route_to_json,
     validate_locations,
 )
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+)
+logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "dev-secret-key")
@@ -339,7 +347,8 @@ def import_locations():
                         missing_fields.append(field)
                 if missing_fields:
                     errors.append(
-                        f"Location {idx} ({name}): Missing required field(s): {', '.join(missing_fields)}"
+                        f"Location {idx} ({name}): "
+                        f"Missing required field(s): {', '.join(missing_fields)}"
                     )
                     continue
 
@@ -378,7 +387,9 @@ def import_locations():
         return (
             jsonify(
                 {
-                    "message": f"Successfully imported {len(new_locations)} location(s)",
+                    "message": (
+                        f"Successfully imported {len(new_locations)} " f"location(s)"
+                    ),
                     "imported": len(new_locations),
                     "errors": errors if errors else None,
                     "mode": import_mode,
@@ -388,7 +399,8 @@ def import_locations():
         )
     except FileNotFoundError:
         return jsonify({"error": "Location data not found"}), 404
-    except Exception:
+    except Exception as e:
+        logger.exception("Error importing locations: %s", str(e))
         return jsonify({"error": "Internal server error"}), 500
 
 
