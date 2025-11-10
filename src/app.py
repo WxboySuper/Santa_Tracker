@@ -4,7 +4,7 @@ import secrets
 import sys
 from functools import wraps
 
-from flask import Flask, escape, jsonify, render_template, request
+from flask import Flask, jsonify, render_template, request
 
 # Add the src directory to the path to allow imports
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -325,7 +325,10 @@ def _parse_location_from_data(loc_data, idx):
     # Support both "name" and "location" fields
     name = loc_data.get("name") or loc_data.get("location")
     if not name:
-        return None, f"Location {idx}: Missing required field 'name' or 'location'"
+        return (
+            None,
+            f"Location at index {idx}: Missing required field 'name' or 'location'",
+        )
 
     # Check for required fields
     missing_fields = [
@@ -334,9 +337,10 @@ def _parse_location_from_data(loc_data, idx):
         if field not in loc_data or loc_data[field] is None
     ]
     if missing_fields:
+        # Don't include user-provided name in error message to prevent XSS
+        safe_fields = ", ".join(str(f) for f in missing_fields)
         return None, (
-            f"Location {idx} ({escape(name)}): "
-            f"Missing required field(s): {escape(', '.join(missing_fields))}"
+            f"Location at index {idx}: " f"Missing required field(s): {safe_fields}"
         )
 
     try:
@@ -354,28 +358,7 @@ def _parse_location_from_data(loc_data, idx):
         )
         return location, None
     except (ValueError, TypeError):
-        return None, f"Location {idx}: Invalid data"
-
-
-def _validate_import_request(data):
-    """Validate the import request data.
-
-    Returns:
-        tuple: (locations_data, import_mode, error_response or None)
-    """
-    if not data:
-        return None, None, (jsonify({"error": "No data provided"}), 400)
-
-    import_mode = data.get("mode", "append")
-    locations_data = data.get("locations", [])
-
-    if not isinstance(locations_data, list):
-        return None, None, (jsonify({"error": "Locations must be a list"}), 400)
-
-    if len(locations_data) == 0:
-        return None, None, (jsonify({"error": "No locations provided"}), 400)
-
-    return locations_data, import_mode, None
+        return None, f"Location at index {idx}: Invalid data"
 
 
 @app.route("/api/admin/locations/import", methods=["POST"])
@@ -384,9 +367,19 @@ def import_locations():
     """Import locations in bulk from JSON data."""
     try:
         data = request.get_json(force=True, silent=True)
-        locations_data, import_mode, error = _validate_import_request(data)
-        if error:
-            return error
+
+        # Validate request data
+        if not data:
+            return jsonify({"error": "No data provided"}), 400
+
+        import_mode = data.get("mode", "append")
+        locations_data = data.get("locations", [])
+
+        if not isinstance(locations_data, list):
+            return jsonify({"error": "Locations must be a list"}), 400
+
+        if len(locations_data) == 0:
+            return jsonify({"error": "No locations provided"}), 400
 
         # Parse and validate each location
         new_locations = []
