@@ -50,17 +50,25 @@ class TestAdminAuthentication:
 
     def test_admin_route_without_auth(self, client):
         """Test admin route requires authentication."""
-        # Remove any existing password first
-        if "ADMIN_PASSWORD" in os.environ:
-            del os.environ["ADMIN_PASSWORD"]
-        # Set it back
-        os.environ["ADMIN_PASSWORD"] = "test"
+        # Backup original ADMIN_PASSWORD
+        orig_admin_pw = os.environ.get("ADMIN_PASSWORD")
+        try:
+            # Remove any existing password first
+            if "ADMIN_PASSWORD" in os.environ:
+                del os.environ["ADMIN_PASSWORD"]
+            # Set it back
+            os.environ["ADMIN_PASSWORD"] = "test"
 
-        response = client.get("/api/admin/locations")
-        assert response.status_code == 401
-        data = response.get_json()
-        assert "error" in data
-
+            response = client.get("/api/admin/locations")
+            assert response.status_code == 401
+            data = response.get_json()
+            assert "error" in data
+        finally:
+            # Restore original ADMIN_PASSWORD
+            if orig_admin_pw is not None:
+                os.environ["ADMIN_PASSWORD"] = orig_admin_pw
+            elif "ADMIN_PASSWORD" in os.environ:
+                del os.environ["ADMIN_PASSWORD"]
     def test_admin_route_with_invalid_auth(self, client):
         """Test admin route with invalid credentials."""
         os.environ["ADMIN_PASSWORD"] = "correct_password"
