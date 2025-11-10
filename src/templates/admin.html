@@ -534,18 +534,31 @@
     </div>
 
     <script>
-        let authToken = null;
+        // Use sessionStorage for auth token to improve security
+        // Note: For enhanced security in production, consider using httpOnly cookies
+        
+        function getAuthToken() {
+            return sessionStorage.getItem('adminAuthToken');
+        }
+        
+        function setAuthToken(token) {
+            if (token) {
+                sessionStorage.setItem('adminAuthToken', token);
+            } else {
+                sessionStorage.removeItem('adminAuthToken');
+            }
+        }
 
         // Login
         document.getElementById('loginForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const password = document.getElementById('password').value;
-            authToken = password;
+            setAuthToken(password);
 
             try {
                 const response = await fetch('/api/admin/locations', {
                     headers: {
-                        'Authorization': `Bearer ${authToken}`
+                        'Authorization': `Bearer ${getAuthToken()}`
                     }
                 });
 
@@ -555,11 +568,11 @@
                     loadLocations();
                 } else {
                     showLoginError('Invalid password');
-                    authToken = null;
+                    setAuthToken(null);
                 }
             } catch (error) {
                 showLoginError('Connection error. Please try again.');
-                authToken = null;
+                setAuthToken(null);
             }
         });
 
@@ -570,7 +583,7 @@
         }
 
         function logout() {
-            authToken = null;
+            setAuthToken(null);
             document.getElementById('dashboard').classList.remove('active');
             document.getElementById('loginContainer').style.display = 'block';
             document.getElementById('password').value = '';
@@ -584,7 +597,7 @@
             try {
                 const response = await fetch('/api/admin/locations', {
                     headers: {
-                        'Authorization': `Bearer ${authToken}`
+                        'Authorization': `Bearer ${getAuthToken()}`
                     }
                 });
 
@@ -688,7 +701,7 @@
             try {
                 const response = await fetch('/api/admin/locations', {
                     headers: {
-                        'Authorization': `Bearer ${authToken}`
+                        'Authorization': `Bearer ${getAuthToken()}`
                     }
                 });
 
@@ -743,7 +756,7 @@
                 const response = await fetch(url, {
                     method: method,
                     headers: {
-                        'Authorization': `Bearer ${authToken}`,
+                        'Authorization': `Bearer ${getAuthToken()}`,
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify(locationData)
@@ -772,7 +785,7 @@
                 const response = await fetch(`/api/admin/locations/${id}`, {
                     method: 'DELETE',
                     headers: {
-                        'Authorization': `Bearer ${authToken}`
+                        'Authorization': `Bearer ${getAuthToken()}`
                     }
                 });
 
@@ -794,7 +807,7 @@
                 const response = await fetch('/api/admin/locations/validate', {
                     method: 'POST',
                     headers: {
-                        'Authorization': `Bearer ${authToken}`
+                        'Authorization': `Bearer ${getAuthToken()}`
                     }
                 });
 
@@ -979,7 +992,7 @@
                 const response = await fetch('/api/admin/locations/import', {
                     method: 'POST',
                     headers: {
-                        'Authorization': `Bearer ${authToken}`,
+                        'Authorization': `Bearer ${getAuthToken()}`,
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
