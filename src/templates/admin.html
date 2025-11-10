@@ -603,18 +603,54 @@
 
             locations.forEach(location => {
                 const row = document.createElement('tr');
-                row.innerHTML = `
-                    <td>${location.id}</td>
-                    <td>${location.name}</td>
-                    <td>${location.latitude.toFixed(4)}</td>
-                    <td>${location.longitude.toFixed(4)}</td>
-                    <td>${location.utc_offset}</td>
-                    <td>${location.priority || '-'}</td>
-                    <td class="action-buttons">
-                        <button class="btn btn-primary" onclick="editLocation(${location.id})">Edit</button>
-                        <button class="btn btn-danger" onclick="deleteLocation(${location.id}, '${location.name}')">Delete</button>
-                    </td>
-                `;
+
+                // ID
+                const idCell = document.createElement('td');
+                idCell.textContent = location.id;
+                row.appendChild(idCell);
+
+                // Name (XSS-safe)
+                const nameCell = document.createElement('td');
+                nameCell.textContent = location.name;
+                row.appendChild(nameCell);
+
+                // Latitude
+                const latCell = document.createElement('td');
+                latCell.textContent = location.latitude.toFixed(4);
+                row.appendChild(latCell);
+
+                // Longitude
+                const lonCell = document.createElement('td');
+                lonCell.textContent = location.longitude.toFixed(4);
+                row.appendChild(lonCell);
+
+                // UTC Offset
+                const offsetCell = document.createElement('td');
+                offsetCell.textContent = location.utc_offset;
+                row.appendChild(offsetCell);
+
+                // Priority
+                const priorityCell = document.createElement('td');
+                priorityCell.textContent = location.priority || '-';
+                row.appendChild(priorityCell);
+
+                // Action buttons
+                const actionCell = document.createElement('td');
+                actionCell.className = 'action-buttons';
+
+                const editBtn = document.createElement('button');
+                editBtn.className = 'btn btn-primary';
+                editBtn.textContent = 'Edit';
+                editBtn.onclick = function() { editLocation(location.id); };
+                actionCell.appendChild(editBtn);
+
+                const deleteBtn = document.createElement('button');
+                deleteBtn.className = 'btn btn-danger';
+                deleteBtn.textContent = 'Delete';
+                deleteBtn.onclick = function() { deleteLocation(location.id, location.name); };
+                actionCell.appendChild(deleteBtn);
+
+                row.appendChild(actionCell);
                 tbody.appendChild(row);
             });
 
