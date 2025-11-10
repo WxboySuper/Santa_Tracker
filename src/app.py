@@ -29,8 +29,8 @@ def advent_manifest():
         return jsonify(manifest), 200
     except FileNotFoundError:
         return jsonify({"error": "Advent calendar data not found"}), 404
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+    except Exception:
+        return jsonify({"error": "Internal server error"}), 500
 
 
 @app.route("/api/advent/day/<int:day_number>")
@@ -66,8 +66,8 @@ def advent_day(day_number):
         return jsonify(day_content), 200
     except FileNotFoundError:
         return jsonify({"error": "Advent calendar data not found"}), 404
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+    except Exception:
+        return jsonify({"error": "Internal server error"}), 500
 
 
 if __name__ == "__main__":
