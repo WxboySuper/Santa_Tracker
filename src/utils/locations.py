@@ -72,12 +72,15 @@ def load_santa_route_from_json(json_file_path=None):
 
     locations = []
     for location_data in data.get("route", []):
-        location = Location(
-            name=location_data["location"],
-            latitude=location_data["latitude"],
-            longitude=location_data["longitude"],
-            utc_offset=location_data["utc_offset"],
-        )
+        try:
+            location = Location(
+                name=location_data["location"],
+                latitude=location_data["latitude"],
+                longitude=location_data["longitude"],
+                utc_offset=location_data["utc_offset"],
+            )
+        except KeyError as e:
+            raise ValueError(f"Missing required field in location data: {e} (data: {location_data})")
         locations.append(location)
 
     return locations
