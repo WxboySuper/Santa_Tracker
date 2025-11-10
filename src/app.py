@@ -331,11 +331,22 @@ def import_locations():
                     )
                     continue
 
+                # Check for required fields: latitude, longitude, utc_offset
+                missing_fields = []
+                for field in ["latitude", "longitude", "utc_offset"]:
+                    if field not in loc_data or loc_data[field] is None:
+                        missing_fields.append(field)
+                if missing_fields:
+                    errors.append(
+                        f"Location {idx} ({name}): Missing required field(s): {', '.join(missing_fields)}"
+                    )
+                    continue
+
                 location = Location(
                     name=name,
-                    latitude=float(loc_data.get("latitude", 0)),
-                    longitude=float(loc_data.get("longitude", 0)),
-                    utc_offset=float(loc_data.get("utc_offset", 0)),
+                    latitude=float(loc_data["latitude"]),
+                    longitude=float(loc_data["longitude"]),
+                    utc_offset=float(loc_data["utc_offset"]),
                     arrival_time=loc_data.get("arrival_time"),
                     departure_time=loc_data.get("departure_time"),
                     stop_duration=loc_data.get("stop_duration"),
