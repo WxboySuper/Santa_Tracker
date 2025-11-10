@@ -299,6 +299,89 @@ def validate_location_data():
         return jsonify({"error": "Internal server error"}), 500
 
 
+@app.route("/api/admin/locations/import", methods=["POST"])
+@require_admin_auth
+def import_locations():
+    """Import locations in bulk from JSON data."""
+    try:
+        data = request.get_json(force=True, silent=True)
+        if not data:
+            return jsonify({"error": "No data provided"}), 400
+
+        import_mode = data.get("mode", "append")  # "append" or "replace"
+        locations_data = data.get("locations", [])
+
+        if not isinstance(locations_data, list):
+            return jsonify({"error": "Locations must be a list"}), 400
+
+        if len(locations_data) == 0:
+            return jsonify({"error": "No locations provided"}), 400
+
+        # Parse and validate each location
+        new_locations = []
+        errors = []
+
+        for idx, loc_data in enumerate(locations_data):
+            try:
+                # Support both "name" and "location" fields
+                name = loc_data.get("name") or loc_data.get("location")
+                if not name:
+                    errors.append(
+                        f"Location {idx}: Missing required field 'name' or 'location'"
+                    )
+                    continue
+
+                location = Location(
+                    name=name,
+                    latitude=float(loc_data.get("latitude", 0)),
+                    longitude=float(loc_data.get("longitude", 0)),
+                    utc_offset=float(loc_data.get("utc_offset", 0)),
+                    arrival_time=loc_data.get("arrival_time"),
+                    departure_time=loc_data.get("departure_time"),
+                    stop_duration=loc_data.get("stop_duration"),
+                    is_stop=loc_data.get("is_stop", True),
+                    priority=loc_data.get("priority"),
+                    fun_facts=loc_data.get("fun_facts"),
+                )
+                new_locations.append(location)
+            except (ValueError, TypeError) as e:
+                errors.append(
+                    f"Location {idx} ({loc_data.get('name', 'unknown')}): Invalid data"
+                )
+
+        if errors and len(new_locations) == 0:
+            return (
+                jsonify({"error": "No valid locations to import", "details": errors}),
+                400,
+            )
+
+        # Load existing locations if appending
+        if import_mode == "replace":
+            final_locations = new_locations
+        else:  # append
+            existing_locations = load_santa_route_from_json()
+            final_locations = existing_locations + new_locations
+
+        # Save the locations
+        save_santa_route_to_json(final_locations)
+
+        return (
+            jsonify(
+                {
+                    "message": f"Successfully imported {len(new_locations)} location(s)",
+                    "imported": len(new_locations),
+                    "errors": errors if errors else None,
+                    "mode": import_mode,
+                }
+            ),
+            200,
+        )
+    except FileNotFoundError:
+        return jsonify({"error": "Location data not found"}), 404
+    except Exception:
+        return jsonify({"error": "Internal server error"}), 500
+
+
 if __name__ == "__main__":
     # Only enable debug mode via environment variable to prevent security issues
     debug_mode = os.environ.get("FLASK_DEBUG", "False") == "True"

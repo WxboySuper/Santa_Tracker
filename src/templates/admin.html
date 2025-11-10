@@ -372,6 +372,7 @@
 
         <div class="actions">
             <button class="btn btn-primary" onclick="showAddLocationModal()">➕ Add Location</button>
+            <button class="btn btn-success" onclick="showImportModal()">📥 Import Locations</button>
             <button class="btn btn-warning" onclick="validateLocations()">✓ Validate All Locations</button>
             <button class="btn btn-secondary" onclick="loadLocations()">🔄 Refresh</button>
         </div>
@@ -474,6 +475,61 @@
             </div>
             <div id="validationResults"></div>
             <button class="btn btn-secondary" onclick="closeValidationModal()" style="margin-top: 20px;">Close</button>
+        </div>
+    </div>
+
+    <!-- Import Locations Modal -->
+    <div id="importModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Import Locations</h2>
+                <button class="close-modal" onclick="closeImportModal()">&times;</button>
+            </div>
+            <div style="margin-bottom: 20px;">
+                <p style="color: #666; margin-bottom: 15px;">
+                    Paste JSON data or upload a JSON file containing location data. 
+                    Supports both single objects and arrays of locations.
+                </p>
+                
+                <div class="form-group">
+                    <label for="importMode">Import Mode</label>
+                    <select id="importMode">
+                        <option value="append">Append - Add to existing locations</option>
+                        <option value="replace">Replace - Replace all existing locations</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="importData">JSON Data</label>
+                    <textarea id="importData" style="font-family: monospace; min-height: 300px;" placeholder='[
+  {
+    "name": "City Name",
+    "latitude": 40.7128,
+    "longitude": -74.0060,
+    "utc_offset": -5.0,
+    "priority": 1,
+    "fun_facts": "Optional description"
+  }
+]'></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label>Or Upload JSON File</label>
+                    <input type="file" id="importFile" accept=".json" onchange="handleFileUpload(event)" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
+                </div>
+
+                <div id="importPreview" style="display: none; margin-top: 15px; padding: 10px; background: #f8f9fa; border-radius: 5px;">
+                    <strong>Preview:</strong>
+                    <p id="importPreviewText" style="margin-top: 5px; color: #333;"></p>
+                </div>
+
+                <div id="importErrors" style="display: none; margin-top: 15px;" class="alert alert-error"></div>
+            </div>
+            
+            <div>
+                <button class="btn btn-success" onclick="importLocations()">📥 Import Locations</button>
+                <button class="btn btn-secondary" onclick="closeImportModal()">Cancel</button>
+            </div>
         </div>
     </div>
 
@@ -752,6 +808,143 @@
 
         function closeValidationModal() {
             document.getElementById('validationModal').classList.remove('active');
+        }
+
+        // Import Locations Functions
+        function showImportModal() {
+            document.getElementById('importData').value = '';
+            document.getElementById('importFile').value = '';
+            document.getElementById('importPreview').style.display = 'none';
+            document.getElementById('importErrors').style.display = 'none';
+            document.getElementById('importMode').value = 'append';
+            document.getElementById('importModal').classList.add('active');
+        }
+
+        function closeImportModal() {
+            document.getElementById('importModal').classList.remove('active');
+        }
+
+        function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const content = e.target.result;
+                    // Validate JSON
+                    JSON.parse(content);
+                    document.getElementById('importData').value = content;
+                    showImportPreview(content);
+                } catch (error) {
+                    showImportError('Invalid JSON file: ' + error.message);
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        function showImportPreview(jsonString) {
+            try {
+                const data = JSON.parse(jsonString);
+                let locations = [];
+                
+                // Handle both single object and array
+                if (Array.isArray(data)) {
+                    locations = data;
+                } else if (data.route && Array.isArray(data.route)) {
+                    locations = data.route;
+                } else if (data.locations && Array.isArray(data.locations)) {
+                    locations = data.locations;
+                } else {
+                    locations = [data];
+                }
+
+                const previewDiv = document.getElementById('importPreview');
+                const previewText = document.getElementById('importPreviewText');
+                previewText.textContent = `Found ${locations.length} location(s) to import`;
+                previewDiv.style.display = 'block';
+                
+                document.getElementById('importErrors').style.display = 'none';
+            } catch (error) {
+                showImportError('Invalid JSON: ' + error.message);
+            }
+        }
+
+        function showImportError(message) {
+            const errorDiv = document.getElementById('importErrors');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+            document.getElementById('importPreview').style.display = 'none';
+        }
+
+        async function importLocations() {
+            const jsonString = document.getElementById('importData').value.trim();
+            const mode = document.getElementById('importMode').value;
+
+            if (!jsonString) {
+                showImportError('Please provide JSON data');
+                return;
+            }
+
+            try {
+                let data = JSON.parse(jsonString);
+                let locations = [];
+
+                // Handle different JSON structures
+                if (Array.isArray(data)) {
+                    locations = data;
+                } else if (data.route && Array.isArray(data.route)) {
+                    locations = data.route;
+                } else if (data.locations && Array.isArray(data.locations)) {
+                    locations = data.locations;
+                } else {
+                    // Single object
+                    locations = [data];
+                }
+
+                if (locations.length === 0) {
+                    showImportError('No locations found in JSON data');
+                    return;
+                }
+
+                // Confirm if replacing all locations
+                if (mode === 'replace') {
+                    if (!confirm(`Are you sure you want to REPLACE all existing locations with ${locations.length} new location(s)? This cannot be undone.`)) {
+                        return;
+                    }
+                }
+
+                const response = await fetch('/api/admin/locations/import', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        mode: mode,
+                        locations: locations
+                    })
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || 'Failed to import locations');
+                }
+
+                const result = await response.json();
+                
+                let message = result.message;
+                if (result.errors && result.errors.length > 0) {
+                    message += ` (${result.errors.length} error(s) - check console for details)`;
+                    console.error('Import errors:', result.errors);
+                }
+
+                showAlert(message, 'success');
+                closeImportModal();
+                loadLocations();
+            } catch (error) {
+                showImportError('Error: ' + error.message);
+            }
         }
     </script>
 </body>

@@ -360,3 +360,236 @@ class TestValidateLocations:
 
         data = response.get_json()
         assert data["total_locations"] == actual_count
+
+
+class TestImportLocations:
+    """Test POST /api/admin/locations/import endpoint."""
+
+    def test_import_locations_append_mode(self, client, auth_headers):
+        """Test importing locations in append mode."""
+        # Get initial count
+        response = client.get("/api/admin/locations", headers=auth_headers)
+        initial_count = len(response.get_json()["locations"])
+
+        # Import new locations
+        import_data = {
+            "mode": "append",
+            "locations": [
+                {
+                    "name": "Import Test Location 1",
+                    "latitude": 45.0,
+                    "longitude": -90.0,
+                    "utc_offset": -6.0,
+                },
+                {
+                    "name": "Import Test Location 2",
+                    "latitude": 50.0,
+                    "longitude": -100.0,
+                    "utc_offset": -7.0,
+                },
+            ],
+        }
+
+        response = client.post(
+            "/api/admin/locations/import",
+            headers=auth_headers,
+            data=json.dumps(import_data),
+            content_type="application/json",
+        )
+
+        assert response.status_code == 200
+        data = response.get_json()
+        assert "message" in data
+        assert data["imported"] == 2
+        assert data["mode"] == "append"
+
+        # Verify locations were added
+        response = client.get("/api/admin/locations", headers=auth_headers)
+        new_count = len(response.get_json()["locations"])
+        assert new_count == initial_count + 2
+
+    def test_import_locations_replace_mode(self, client, auth_headers):
+        """Test importing locations in replace mode."""
+        import_data = {
+            "mode": "replace",
+            "locations": [
+                {
+                    "name": "Only Location",
+                    "latitude": 0.0,
+                    "longitude": 0.0,
+                    "utc_offset": 0.0,
+                }
+            ],
+        }
+
+        response = client.post(
+            "/api/admin/locations/import",
+            headers=auth_headers,
+            data=json.dumps(import_data),
+            content_type="application/json",
+        )
+
+        assert response.status_code == 200
+        data = response.get_json()
+        assert data["imported"] == 1
+        assert data["mode"] == "replace"
+
+        # Verify only one location exists
+        response = client.get("/api/admin/locations", headers=auth_headers)
+        locations = response.get_json()["locations"]
+        assert len(locations) == 1
+        assert locations[0]["name"] == "Only Location"
+
+    def test_import_with_all_fields(self, client, auth_headers):
+        """Test importing location with all optional fields."""
+        import_data = {
+            "mode": "append",
+            "locations": [
+                {
+                    "name": "Complete Import Location",
+                    "latitude": 40.0,
+                    "longitude": -80.0,
+                    "utc_offset": -5.0,
+                    "priority": 1,
+                    "arrival_time": "2024-12-24T10:00:00Z",
+                    "departure_time": "2024-12-24T10:30:00Z",
+                    "stop_duration": 30,
+                    "is_stop": True,
+                    "fun_facts": "Test location with all fields",
+                }
+            ],
+        }
+
+        response = client.post(
+            "/api/admin/locations/import",
+            headers=auth_headers,
+            data=json.dumps(import_data),
+            content_type="application/json",
+        )
+
+        assert response.status_code == 200
+
+    def test_import_supports_location_field(self, client, auth_headers):
+        """Test that import supports 'location' field as alias for 'name'."""
+        import_data = {
+            "mode": "append",
+            "locations": [
+                {
+                    "location": "Test with location field",
+                    "latitude": 30.0,
+                    "longitude": -70.0,
+                    "utc_offset": -4.0,
+                }
+            ],
+        }
+
+        response = client.post(
+            "/api/admin/locations/import",
+            headers=auth_headers,
+            data=json.dumps(import_data),
+            content_type="application/json",
+        )
+
+        assert response.status_code == 200
+        data = response.get_json()
+        assert data["imported"] == 1
+
+    def test_import_no_data(self, client, auth_headers):
+        """Test import with no data provided."""
+        response = client.post(
+            "/api/admin/locations/import",
+            headers=auth_headers,
+            data=None,
+            content_type="application/json",
+        )
+
+        assert response.status_code == 400
+        data = response.get_json()
+        assert "No data provided" in data["error"]
+
+    def test_import_empty_list(self, client, auth_headers):
+        """Test import with empty locations list."""
+        import_data = {"mode": "append", "locations": []}
+
+        response = client.post(
+            "/api/admin/locations/import",
+            headers=auth_headers,
+            data=json.dumps(import_data),
+            content_type="application/json",
+        )
+
+        assert response.status_code == 400
+        data = response.get_json()
+        assert "No locations provided" in data["error"]
+
+    def test_import_invalid_data_type(self, client, auth_headers):
+        """Test import with non-list locations."""
+        import_data = {"mode": "append", "locations": "not a list"}
+
+        response = client.post(
+            "/api/admin/locations/import",
+            headers=auth_headers,
+            data=json.dumps(import_data),
+            content_type="application/json",
+        )
+
+        assert response.status_code == 400
+        data = response.get_json()
+        assert "must be a list" in data["error"]
+
+    def test_import_with_invalid_location_data(self, client, auth_headers):
+        """Test import with some invalid locations."""
+        import_data = {
+            "mode": "append",
+            "locations": [
+                {
+                    "name": "Valid Location",
+                    "latitude": 40.0,
+                    "longitude": -75.0,
+                    "utc_offset": -5.0,
+                },
+                {
+                    # Missing name
+                    "latitude": 50.0,
+                    "longitude": -80.0,
+                    "utc_offset": -6.0,
+                },
+                {
+                    "name": "Another Valid",
+                    "latitude": 45.0,
+                    "longitude": -85.0,
+                    "utc_offset": -5.0,
+                },
+            ],
+        }
+
+        response = client.post(
+            "/api/admin/locations/import",
+            headers=auth_headers,
+            data=json.dumps(import_data),
+            content_type="application/json",
+        )
+
+        # Should succeed with warnings about invalid entries
+        assert response.status_code == 200
+        data = response.get_json()
+        assert data["imported"] == 2  # Only valid ones imported
+        assert data["errors"] is not None
+        assert len(data["errors"]) > 0
+
+    def test_import_requires_authentication(self, client):
+        """Test that import requires authentication."""
+        import_data = {
+            "mode": "append",
+            "locations": [
+                {"name": "Test", "latitude": 0.0, "longitude": 0.0, "utc_offset": 0.0}
+            ],
+        }
+
+        response = client.post(
+            "/api/admin/locations/import",
+            data=json.dumps(import_data),
+            content_type="application/json",
+        )
+
+        assert response.status_code == 401
