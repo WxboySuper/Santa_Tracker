@@ -27,6 +27,14 @@ logger = logging.getLogger(__name__)
 app = Flask(__name__)
 app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "dev-secret-key")
 
+# Warn if using default SECRET_KEY (security risk in production)
+if app.config["SECRET_KEY"] == "dev-secret-key":
+    logger.warning(
+        "Using default SECRET_KEY 'dev-secret-key'. "
+        "This is insecure for production. "
+        "Set SECRET_KEY environment variable to a secure random value."
+    )
+
 
 def require_admin_auth(f):
     """Decorator to require admin authentication via password."""
