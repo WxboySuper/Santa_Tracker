@@ -83,8 +83,7 @@ def get_santa_locations():
             is_stop=True,
             priority=1,
             fun_facts=(
-                "The city that never sleeps - perfect for Santa's "
-                "midnight deliveries!"
+                "The city that never sleeps - perfect for Santa's midnight deliveries!"
             ),
         ),
         Location(
@@ -110,7 +109,7 @@ def get_santa_locations():
             is_stop=True,
             priority=2,
             fun_facts=(
-                "Famous for its mix of traditional temples and modern " "skyscrapers!"
+                "Famous for its mix of traditional temples and modern skyscrapers!"
             ),
         ),
     ]

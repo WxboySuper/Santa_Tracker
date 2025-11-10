@@ -340,7 +340,7 @@ def _parse_location_from_data(loc_data, idx):
         # Don't include user-provided name in error message to prevent XSS
         safe_fields = ", ".join(str(f) for f in missing_fields)
         return None, (
-            f"Location at index {idx}: " f"Missing required field(s): {safe_fields}"
+            f"Location at index {idx}: Missing required field(s): {safe_fields}"
         )
 
     try:
