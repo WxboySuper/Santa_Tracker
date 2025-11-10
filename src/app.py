@@ -357,9 +357,7 @@ def import_locations():
                 )
                 new_locations.append(location)
             except (ValueError, TypeError):
-                errors.append(
-                    f"Location {idx}: Invalid data"
-                )
+                errors.append(f"Location {idx}: Invalid data")
 
         if errors and len(new_locations) == 0:
             return (
