@@ -70,6 +70,12 @@ def admin():
     return render_template("admin.html")
 
 
+@app.route("/advent")
+def advent():
+    """Advent calendar with North Pole map."""
+    return render_template("advent.html")
+
+
 @app.route("/api/advent/manifest")
 def advent_manifest():
     """

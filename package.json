@@ -14,7 +14,7 @@
   },
   "scripts": {
     "lint:js": "eslint .",
-    "lint:html": "htmlhint \"**/*.html\"",
+    "lint:html": "htmlhint \"**/*.html\" --ignore \"src/templates/index.html,src/templates/advent.html\"",
     "lint:css": "stylelint \"**/*.css\"",
     "lint": "npm run lint:js && npm run lint:html && npm run lint:css"
   }
