@@ -26,6 +26,29 @@ class TestLocation(unittest.TestCase):
         self.assertEqual(location.longitude, -74.0060)
         self.assertEqual(location.utc_offset, -5.0)
 
+    def test_location_with_new_fields(self):
+        """Test creating a Location object with new optional fields."""
+        location = Location(
+            name="Tokyo",
+            latitude=35.6762,
+            longitude=139.6503,
+            utc_offset=9.0,
+            arrival_time="2024-12-24T12:00:00Z",
+            departure_time="2024-12-24T12:25:00Z",
+            stop_duration=25,
+            is_stop=True,
+            priority=1,
+            fun_facts="Famous for its mix of traditional and modern!",
+        )
+        self.assertEqual(location.arrival_time, "2024-12-24T12:00:00Z")
+        self.assertEqual(location.departure_time, "2024-12-24T12:25:00Z")
+        self.assertEqual(location.stop_duration, 25)
+        self.assertTrue(location.is_stop)
+        self.assertEqual(location.priority, 1)
+        self.assertEqual(
+            location.fun_facts, "Famous for its mix of traditional and modern!"
+        )
+
     def test_location_coordinates_property(self):
         """Test the coordinates property returns tuple."""
         location = Location(
@@ -53,6 +76,37 @@ class TestLocation(unittest.TestCase):
             Location(name="Invalid", latitude=0.0, longitude=0.0, utc_offset=15.0)
         with self.assertRaises(ValueError):
             Location(name="Invalid", latitude=0.0, longitude=0.0, utc_offset=-13.0)
+
+    def test_invalid_priority(self):
+        """Test that invalid priority raises ValueError."""
+        with self.assertRaises(ValueError):
+            Location(
+                name="Invalid",
+                latitude=0.0,
+                longitude=0.0,
+                utc_offset=0.0,
+                priority=0,
+            )
+        with self.assertRaises(ValueError):
+            Location(
+                name="Invalid",
+                latitude=0.0,
+                longitude=0.0,
+                utc_offset=0.0,
+                priority=4,
+            )
+
+    def test_valid_priority_values(self):
+        """Test that priority values 1, 2, and 3 are valid."""
+        for priority in [1, 2, 3]:
+            location = Location(
+                name="Test",
+                latitude=0.0,
+                longitude=0.0,
+                utc_offset=0.0,
+                priority=priority,
+            )
+            self.assertEqual(location.priority, priority)
 
     def test_boundary_values(self):
         """Test boundary values for coordinates and UTC offset."""
@@ -101,6 +155,20 @@ class TestGetSantaLocations(unittest.TestCase):
             self.assertIsNotNone(location.latitude)
             self.assertIsNotNone(location.longitude)
             self.assertIsNotNone(location.utc_offset)
+
+    def test_get_santa_locations_includes_new_fields(self):
+        """Test that locations include new optional fields."""
+        locations = get_santa_locations()
+        # At least some locations should have the new fields populated
+        has_arrival_time = any(loc.arrival_time is not None for loc in locations)
+        has_fun_facts = any(loc.fun_facts is not None for loc in locations)
+        has_priority = any(loc.priority is not None for loc in locations)
+
+        self.assertTrue(
+            has_arrival_time, "Expected some locations to have arrival_time"
+        )
+        self.assertTrue(has_fun_facts, "Expected some locations to have fun_facts")
+        self.assertTrue(has_priority, "Expected some locations to have priority")
 
 
 class TestUpdateSantaLocation(unittest.TestCase):
@@ -170,6 +238,41 @@ class TestLoadSantaRouteFromJson(unittest.TestCase):
             self.assertEqual(locations[0].latitude, 40.0)
             self.assertEqual(locations[0].longitude, -74.0)
             self.assertEqual(locations[0].utc_offset, -5.0)
+        finally:
+            os.unlink(temp_file)
+
+    def test_load_from_json_with_new_fields(self):
+        """Test loading Santa's route with new optional fields from JSON."""
+        test_data = {
+            "route": [
+                {
+                    "location": "Test City",
+                    "latitude": 40.0,
+                    "longitude": -74.0,
+                    "utc_offset": -5.0,
+                    "arrival_time": "2024-12-24T10:00:00Z",
+                    "departure_time": "2024-12-24T10:15:00Z",
+                    "stop_duration": 15,
+                    "is_stop": True,
+                    "priority": 1,
+                    "fun_facts": "Test fun fact!",
+                }
+            ]
+        }
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
+            json.dump(test_data, f)
+            temp_file = f.name
+
+        try:
+            locations = load_santa_route_from_json(temp_file)
+            self.assertEqual(len(locations), 1)
+            loc = locations[0]
+            self.assertEqual(loc.arrival_time, "2024-12-24T10:00:00Z")
+            self.assertEqual(loc.departure_time, "2024-12-24T10:15:00Z")
+            self.assertEqual(loc.stop_duration, 15)
+            self.assertTrue(loc.is_stop)
+            self.assertEqual(loc.priority, 1)
+            self.assertEqual(loc.fun_facts, "Test fun fact!")
         finally:
             os.unlink(temp_file)
 
