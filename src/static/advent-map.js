@@ -75,6 +75,42 @@
     }
 
     /**
+     * Building positions on the North Pole village map
+     * Positions are in percentage (left, bottom) for responsive layout
+     */
+    const buildingPositions = [
+        // Front row (close to viewer) - Days 1-8
+        { left: 8, bottom: 15 },   // Day 1
+        { left: 18, bottom: 18 },  // Day 2
+        { left: 28, bottom: 16 },  // Day 3
+        { left: 38, bottom: 19 },  // Day 4
+        { left: 60, bottom: 19 },  // Day 5
+        { left: 70, bottom: 16 },  // Day 6
+        { left: 80, bottom: 18 },  // Day 7
+        { left: 90, bottom: 15 },  // Day 8
+        
+        // Middle row - Days 9-16
+        { left: 5, bottom: 32 },   // Day 9
+        { left: 15, bottom: 35 },  // Day 10
+        { left: 25, bottom: 33 },  // Day 11
+        { left: 35, bottom: 36 },  // Day 12
+        { left: 63, bottom: 36 },  // Day 13
+        { left: 73, bottom: 33 },  // Day 14
+        { left: 83, bottom: 35 },  // Day 15
+        { left: 93, bottom: 32 },  // Day 16
+        
+        // Back row - Days 17-24
+        { left: 10, bottom: 50 },  // Day 17
+        { left: 20, bottom: 53 },  // Day 18
+        { left: 30, bottom: 51 },  // Day 19
+        { left: 40, bottom: 54 },  // Day 20
+        { left: 58, bottom: 54 },  // Day 21
+        { left: 68, bottom: 51 },  // Day 22
+        { left: 78, bottom: 53 },  // Day 23
+        { left: 88, bottom: 50 }   // Day 24
+    ];
+
+    /**
      * Render all buildings on the map
      * @param {Array} days - Array of advent day objects
      */
@@ -87,8 +123,8 @@
 
         container.innerHTML = '';
 
-        days.forEach(day => {
-            const building = createBuildingElement(day);
+        days.forEach((day, index) => {
+            const building = createBuildingElement(day, index);
             container.appendChild(building);
         });
     }
@@ -96,14 +132,20 @@
     /**
      * Create a building element for a day
      * @param {Object} day - The day object
+     * @param {number} index - The index for positioning
      * @returns {HTMLElement} The building element
      */
-    function createBuildingElement(day) {
+    function createBuildingElement(day, index) {
         const building = document.createElement('div');
         building.className = 'advent-building';
         building.setAttribute('role', 'button');
         building.setAttribute('tabindex', '0');
         building.setAttribute('data-day', day.day);
+
+        // Position the building on the map
+        const position = buildingPositions[index] || { left: 50, bottom: 30 };
+        building.style.left = `${position.left}%`;
+        building.style.bottom = `${position.bottom}%`;
 
         // Set locked/unlocked state
         if (day.is_unlocked) {
@@ -116,8 +158,6 @@
                 `Day ${day.day}: Locked - Unlocks on ${formatUnlockTime(day.unlock_time)}`);
             building.setAttribute('aria-disabled', 'true');
         }
-
-        // Day number
         const dayNumber = document.createElement('div');
         dayNumber.className = 'building-day-number';
         dayNumber.textContent = day.day;
@@ -139,11 +179,18 @@
             building.appendChild(lockIcon);
         }
 
-        // Title
-        const title = document.createElement('div');
-        title.className = 'building-title';
-        title.textContent = day.is_unlocked ? day.title : 'Locked';
-        building.appendChild(title);
+        // Building windows for visual appeal
+        const windows = document.createElement('div');
+        windows.className = 'building-windows';
+        building.appendChild(windows);
+
+        // Title (optional, can be hidden for cleaner look)
+        if (day.is_unlocked) {
+            const title = document.createElement('div');
+            title.className = 'building-title';
+            title.textContent = day.title.substring(0, 15) + (day.title.length > 15 ? '...' : '');
+            building.appendChild(title);
+        }
 
         // Add click handler for unlocked days
         if (day.is_unlocked) {
