@@ -1153,7 +1153,7 @@
                 link.href = url;
                 
                 // Use timestamp in filename
-                const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
+                const timestamp = new Date().toISOString().replace(/[:.]/g, '-').replace(/Z$/, '');
                 link.download = `santa-route-backup-${timestamp}.json`;
                 
                 document.body.appendChild(link);
