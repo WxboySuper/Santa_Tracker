@@ -500,8 +500,8 @@ def precompute_route():
         for idx, loc in enumerate(sorted_locations):
             # Set default stop duration if not present
             if loc.stop_duration is None:
-                # First location (North Pole) gets longer prep time
-                loc.stop_duration = 30 if idx > 0 else 60
+                # North Pole gets longer prep time
+                loc.stop_duration = 60 if loc.name == "North Pole" else 30
 
             loc.arrival_time = current_time.isoformat() + "Z"
             current_time += timedelta(minutes=loc.stop_duration)
