@@ -110,8 +110,7 @@ def get_santa_locations():
             is_stop=True,
             priority=2,
             fun_facts=(
-                "Famous for its mix of traditional temples and modern "
-                "skyscrapers!"
+                "Famous for its mix of traditional temples and modern " "skyscrapers!"
             ),
         ),
     ]
