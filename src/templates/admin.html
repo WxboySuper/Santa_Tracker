@@ -603,7 +603,7 @@
 
             locations.forEach(location => {
                 const row = document.createElement('tr');
-
+                
                 // ID
                 const idCell = document.createElement('td');
                 idCell.textContent = location.id;
@@ -641,13 +641,13 @@
                 const editBtn = document.createElement('button');
                 editBtn.className = 'btn btn-primary';
                 editBtn.textContent = 'Edit';
-                editBtn.onclick = function() { editLocation(location.id); };
+                editBtn.addEventListener('click', () => editLocation(location.id));
                 actionCell.appendChild(editBtn);
 
                 const deleteBtn = document.createElement('button');
                 deleteBtn.className = 'btn btn-danger';
                 deleteBtn.textContent = 'Delete';
-                deleteBtn.onclick = function() { deleteLocation(location.id, location.name); };
+                deleteBtn.addEventListener('click', () => deleteLocation(location.id, location.name));
                 actionCell.appendChild(deleteBtn);
 
                 row.appendChild(actionCell);
@@ -810,34 +810,60 @@
         function displayValidationResults(results) {
             const resultsDiv = document.getElementById('validationResults');
             
-            let html = '<div class="validation-results">';
-            
+            // Clear previous content
+            resultsDiv.innerHTML = '';
+
+            const container = document.createElement('div');
+            container.className = 'validation-results';
+
             if (results.valid) {
-                html += '<div class="alert alert-success">✓ All locations are valid!</div>';
+                const successDiv = document.createElement('div');
+                successDiv.className = 'alert alert-success';
+                successDiv.textContent = '✓ All locations are valid!';
+                container.appendChild(successDiv);
             } else {
-                html += '<div class="alert alert-error">✗ Validation found errors</div>';
+                const errorDiv = document.createElement('div');
+                errorDiv.className = 'alert alert-error';
+                errorDiv.textContent = '✗ Validation found errors';
+                container.appendChild(errorDiv);
             }
-            
-            html += `<p><strong>Total Locations:</strong> ${results.total_locations}</p>`;
-            
+
+            const totalP = document.createElement('p');
+            const strong = document.createElement('strong');
+            strong.textContent = 'Total Locations:';
+            totalP.appendChild(strong);
+            totalP.appendChild(document.createTextNode(' ' + results.total_locations));
+            container.appendChild(totalP);
+
             if (results.errors.length > 0) {
-                html += '<h3>Errors:</h3><ul>';
+                const errorsHeader = document.createElement('h3');
+                errorsHeader.textContent = 'Errors:';
+                container.appendChild(errorsHeader);
+                const errorsList = document.createElement('ul');
                 results.errors.forEach(error => {
-                    html += `<li class="error">${error}</li>`;
+                    const li = document.createElement('li');
+                    li.className = 'error';
+                    li.textContent = error;
+                    errorsList.appendChild(li);
                 });
-                html += '</ul>';
+                container.appendChild(errorsList);
             }
-            
+
             if (results.warnings.length > 0) {
-                html += '<h3>Warnings:</h3><ul>';
+                const warningsHeader = document.createElement('h3');
+                warningsHeader.textContent = 'Warnings:';
+                container.appendChild(warningsHeader);
+                const warningsList = document.createElement('ul');
                 results.warnings.forEach(warning => {
-                    html += `<li class="warning">${warning}</li>`;
+                    const li = document.createElement('li');
+                    li.className = 'warning';
+                    li.textContent = warning;
+                    warningsList.appendChild(li);
                 });
-                html += '</ul>';
+                container.appendChild(warningsList);
             }
-            
-            html += '</div>';
-            resultsDiv.innerHTML = html;
+
+            resultsDiv.appendChild(container);
             
             document.getElementById('validationModal').classList.add('active');
         }

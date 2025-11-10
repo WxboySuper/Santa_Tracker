@@ -1,4 +1,5 @@
 import os
+import secrets
 import sys
 from functools import wraps
 
@@ -34,7 +35,7 @@ def require_admin_auth(f):
             return jsonify({"error": "Authentication required"}), 401
 
         token = auth_header.split(" ")[1]
-        if token != admin_password:
+        if not secrets.compare_digest(token, admin_password):
             return jsonify({"error": "Invalid credentials"}), 403
 
         return f(*args, **kwargs)

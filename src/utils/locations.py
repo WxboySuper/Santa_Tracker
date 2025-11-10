@@ -206,8 +206,7 @@ def save_santa_route_to_json(locations, json_file_path=None):
             location_dict["departure_time"] = loc.departure_time
         if loc.stop_duration is not None:
             location_dict["stop_duration"] = loc.stop_duration
-        if loc.is_stop is not None:
-            location_dict["is_stop"] = loc.is_stop
+        location_dict["is_stop"] = loc.is_stop
         if loc.priority is not None:
             location_dict["priority"] = loc.priority
         if loc.fun_facts is not None:
@@ -276,7 +275,7 @@ def validate_locations(locations):
             )
 
         # Warn about unusual UTC offsets (not multiples of 0.5)
-        if loc.utc_offset % 0.5 != 0:
+        if abs(loc.utc_offset % 0.5) > 1e-6:
             warnings.append(
                 f"Unusual UTC offset for '{loc.name}' (index {idx}): "
                 f"{loc.utc_offset} (not a multiple of 0.5)"
