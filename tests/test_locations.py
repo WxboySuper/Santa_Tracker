@@ -270,7 +270,7 @@ class TestLoadSantaRouteFromJson(unittest.TestCase):
             self.assertEqual(loc.arrival_time, "2024-12-24T10:00:00Z")
             self.assertEqual(loc.departure_time, "2024-12-24T10:15:00Z")
             self.assertEqual(loc.stop_duration, 15)
-            self.assertEqual(loc.is_stop, True)
+            self.assertTrue(loc.is_stop)
             self.assertEqual(loc.priority, 1)
             self.assertEqual(loc.fun_facts, "Test fun fact!")
         finally:
