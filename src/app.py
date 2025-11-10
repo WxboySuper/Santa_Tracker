@@ -138,8 +138,8 @@ def get_locations():
         )
     except FileNotFoundError:
         return jsonify({"error": "Location data not found"}), 404
-    except Exception as e:
-        return jsonify({"error": f"Internal server error: {str(e)}"}), 500
+    except Exception:
+        return jsonify({"error": "Internal server error"}), 500
 
 
 @app.route("/api/admin/locations", methods=["POST"])
@@ -174,8 +174,8 @@ def add_location():
                 priority=data.get("priority"),
                 fun_facts=data.get("fun_facts"),
             )
-        except (ValueError, TypeError) as e:
-            return jsonify({"error": f"Invalid data: {str(e)}"}), 400
+        except (ValueError, TypeError):
+            return jsonify({"error": "Invalid data format or values"}), 400
 
         # Load existing locations and append
         locations = load_santa_route_from_json()
@@ -201,8 +201,8 @@ def add_location():
         )
     except FileNotFoundError:
         return jsonify({"error": "Location data not found"}), 404
-    except Exception as e:
-        return jsonify({"error": f"Internal server error: {str(e)}"}), 500
+    except Exception:
+        return jsonify({"error": "Internal server error"}), 500
 
 
 @app.route("/api/admin/locations/<int:location_id>", methods=["PUT"])
@@ -243,8 +243,8 @@ def update_location(location_id):
                 priority=data.get("priority", locations[location_id].priority),
                 fun_facts=data.get("fun_facts", locations[location_id].fun_facts),
             )
-        except (ValueError, TypeError) as e:
-            return jsonify({"error": f"Invalid data: {str(e)}"}), 400
+        except (ValueError, TypeError):
+            return jsonify({"error": "Invalid data format or values"}), 400
 
         locations[location_id] = updated_location
         save_santa_route_to_json(locations)
@@ -252,8 +252,8 @@ def update_location(location_id):
         return jsonify({"message": "Location updated successfully"}), 200
     except FileNotFoundError:
         return jsonify({"error": "Location data not found"}), 404
-    except Exception as e:
-        return jsonify({"error": f"Internal server error: {str(e)}"}), 500
+    except Exception:
+        return jsonify({"error": "Internal server error"}), 500
 
 
 @app.route("/api/admin/locations/<int:location_id>", methods=["DELETE"])
@@ -280,8 +280,8 @@ def delete_location(location_id):
         )
     except FileNotFoundError:
         return jsonify({"error": "Location data not found"}), 404
-    except Exception as e:
-        return jsonify({"error": f"Internal server error: {str(e)}"}), 500
+    except Exception:
+        return jsonify({"error": "Internal server error"}), 500
 
 
 @app.route("/api/admin/locations/validate", methods=["POST"])
@@ -295,8 +295,8 @@ def validate_location_data():
         return jsonify(validation_results), 200
     except FileNotFoundError:
         return jsonify({"error": "Location data not found"}), 404
-    except Exception as e:
-        return jsonify({"error": f"Internal server error: {str(e)}"}), 500
+    except Exception:
+        return jsonify({"error": "Internal server error"}), 500
 
 
 if __name__ == "__main__":
