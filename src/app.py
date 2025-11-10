@@ -4,7 +4,7 @@ import secrets
 import sys
 from functools import wraps
 
-from flask import Flask, jsonify, render_template, request
+from flask import Flask, jsonify, render_template, request, escape
 
 # Add the src directory to the path to allow imports
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -335,8 +335,8 @@ def _parse_location_from_data(loc_data, idx):
     ]
     if missing_fields:
         return None, (
-            f"Location {idx} ({name}): "
-            f"Missing required field(s): {', '.join(missing_fields)}"
+            f"Location {idx} ({escape(name)}): "
+            f"Missing required field(s): {escape(', '.join(missing_fields))}"
         )
 
     try:
