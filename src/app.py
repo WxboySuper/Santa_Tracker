@@ -316,65 +316,88 @@ def validate_location_data():
         return jsonify({"error": "Internal server error"}), 500
 
 
+def _parse_location_from_data(loc_data, idx):
+    """Parse a single location from import data.
+
+    Returns:
+        tuple: (Location object or None, error message or None)
+    """
+    # Support both "name" and "location" fields
+    name = loc_data.get("name") or loc_data.get("location")
+    if not name:
+        return None, f"Location {idx}: Missing required field 'name' or 'location'"
+
+    # Check for required fields
+    missing_fields = [
+        field
+        for field in ["latitude", "longitude", "utc_offset"]
+        if field not in loc_data or loc_data[field] is None
+    ]
+    if missing_fields:
+        return None, (
+            f"Location {idx} ({name}): "
+            f"Missing required field(s): {', '.join(missing_fields)}"
+        )
+
+    try:
+        location = Location(
+            name=name,
+            latitude=float(loc_data["latitude"]),
+            longitude=float(loc_data["longitude"]),
+            utc_offset=float(loc_data["utc_offset"]),
+            arrival_time=loc_data.get("arrival_time"),
+            departure_time=loc_data.get("departure_time"),
+            stop_duration=loc_data.get("stop_duration"),
+            is_stop=loc_data.get("is_stop", True),
+            priority=loc_data.get("priority"),
+            fun_facts=loc_data.get("fun_facts"),
+        )
+        return location, None
+    except (ValueError, TypeError):
+        return None, f"Location {idx}: Invalid data"
+
+
+def _validate_import_request(data):
+    """Validate the import request data.
+
+    Returns:
+        tuple: (locations_data, import_mode, error_response or None)
+    """
+    if not data:
+        return None, None, (jsonify({"error": "No data provided"}), 400)
+
+    import_mode = data.get("mode", "append")
+    locations_data = data.get("locations", [])
+
+    if not isinstance(locations_data, list):
+        return None, None, (jsonify({"error": "Locations must be a list"}), 400)
+
+    if len(locations_data) == 0:
+        return None, None, (jsonify({"error": "No locations provided"}), 400)
+
+    return locations_data, import_mode, None
+
+
 @app.route("/api/admin/locations/import", methods=["POST"])
 @require_admin_auth
 def import_locations():
     """Import locations in bulk from JSON data."""
     try:
         data = request.get_json(force=True, silent=True)
-        if not data:
-            return jsonify({"error": "No data provided"}), 400
-
-        import_mode = data.get("mode", "append")  # "append" or "replace"
-        locations_data = data.get("locations", [])
-
-        if not isinstance(locations_data, list):
-            return jsonify({"error": "Locations must be a list"}), 400
-
-        if len(locations_data) == 0:
-            return jsonify({"error": "No locations provided"}), 400
+        locations_data, import_mode, error = _validate_import_request(data)
+        if error:
+            return error
 
         # Parse and validate each location
         new_locations = []
         errors = []
 
         for idx, loc_data in enumerate(locations_data):
-            try:
-                # Support both "name" and "location" fields
-                name = loc_data.get("name") or loc_data.get("location")
-                if not name:
-                    errors.append(
-                        f"Location {idx}: Missing required field 'name' or 'location'"
-                    )
-                    continue
-
-                # Check for required fields: latitude, longitude, utc_offset
-                missing_fields = []
-                for field in ["latitude", "longitude", "utc_offset"]:
-                    if field not in loc_data or loc_data[field] is None:
-                        missing_fields.append(field)
-                if missing_fields:
-                    errors.append(
-                        f"Location {idx} ({name}): "
-                        f"Missing required field(s): {', '.join(missing_fields)}"
-                    )
-                    continue
-
-                location = Location(
-                    name=name,
-                    latitude=float(loc_data["latitude"]),
-                    longitude=float(loc_data["longitude"]),
-                    utc_offset=float(loc_data["utc_offset"]),
-                    arrival_time=loc_data.get("arrival_time"),
-                    departure_time=loc_data.get("departure_time"),
-                    stop_duration=loc_data.get("stop_duration"),
-                    is_stop=loc_data.get("is_stop", True),
-                    priority=loc_data.get("priority"),
-                    fun_facts=loc_data.get("fun_facts"),
-                )
+            location, error_msg = _parse_location_from_data(loc_data, idx)
+            if error_msg:
+                errors.append(error_msg)
+            elif location:
                 new_locations.append(location)
-            except (ValueError, TypeError):
-                errors.append(f"Location {idx}: Invalid data")
 
         if errors and len(new_locations) == 0:
             return (
@@ -396,7 +419,7 @@ def import_locations():
             jsonify(
                 {
                     "message": (
-                        f"Successfully imported {len(new_locations)} " f"location(s)"
+                        f"Successfully imported {len(new_locations)} location(s)"
                     ),
                     "imported": len(new_locations),
                     "errors": errors if errors else None,
