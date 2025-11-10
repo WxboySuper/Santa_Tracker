@@ -80,7 +80,9 @@ def load_santa_route_from_json(json_file_path=None):
                 utc_offset=location_data["utc_offset"],
             )
         except KeyError as e:
-            raise ValueError(f"Missing required field in location data: {e} (data: {location_data})")
+            raise ValueError(
+                f"Missing required field in location data: {e} (data: {location_data})"
+            )
         locations.append(location)
 
     return locations
