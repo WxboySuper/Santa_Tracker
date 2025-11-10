@@ -1,0 +1,408 @@
+/* Santa Tracker Landing Page - Festive Styles */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+:root {
+    --christmas-red: #c41e3a;
+    --christmas-green: #165b33;
+    --christmas-gold: #ffd700;
+    --christmas-dark-red: #8b0000;
+    --christmas-light-green: #228b22;
+    --snow-white: #fffafa;
+    --night-blue: #0a1929;
+    --gradient-blue-start: #1a237e;
+    --gradient-blue-end: #0d47a1;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    background: linear-gradient(180deg, var(--gradient-blue-start) 0%, var(--night-blue) 50%, var(--gradient-blue-end) 100%);
+    color: var(--snow-white);
+    min-height: 100vh;
+    overflow-x: hidden;
+    position: relative;
+}
+
+/* Snowfall Animation */
+#snowfall {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 1000;
+}
+
+.snowflake {
+    position: absolute;
+    top: -10vh;
+    color: white;
+    font-size: 1.5em;
+    animation-timing-function: linear;
+    animation-iteration-count: infinite;
+}
+
+@keyframes snowfall {
+    0% {
+        transform: translateY(-10vh) translateX(0) rotate(0deg);
+        opacity: 1;
+    }
+
+    100% {
+        transform: translateY(110vh) translateX(100px) rotate(360deg);
+        opacity: 0.5;
+    }
+}
+
+@keyframes snowfall-left {
+    0% {
+        transform: translateY(-10vh) translateX(0) rotate(0deg);
+        opacity: 1;
+    }
+
+    100% {
+        transform: translateY(110vh) translateX(-100px) rotate(-360deg);
+        opacity: 0.5;
+    }
+}
+
+/* Hero Section */
+.hero {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    position: relative;
+    text-align: center;
+}
+
+.hero-content {
+    max-width: 900px;
+    z-index: 10;
+    animation: fade-in-up 1s ease-out;
+}
+
+@keyframes fade-in-up {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Hero Santa */
+.hero-santa {
+    margin-bottom: 1.5rem;
+}
+
+.emoji-large {
+    font-size: 6rem;
+    display: inline-block;
+    line-height: 1;
+}
+
+.santa-bounce {
+    animation: bounce 2s infinite;
+}
+
+@keyframes bounce {
+    0%, 100% {
+        transform: translateY(0);
+    }
+
+    50% {
+        transform: translateY(-20px);
+    }
+}
+
+/* Hero Title */
+.hero-title {
+    font-size: 4rem;
+    font-weight: bold;
+    margin-bottom: 1rem;
+    text-shadow: 3px 3px 6px rgb(0 0 0 / 50%);
+    line-height: 1.2;
+}
+
+.text-red {
+    color: var(--christmas-red);
+    text-shadow: 
+        0 0 10px rgb(196 30 58 / 80%),
+        0 0 20px rgb(196 30 58 / 60%),
+        3px 3px 6px rgb(0 0 0 / 50%);
+}
+
+.text-green {
+    color: var(--christmas-light-green);
+    text-shadow: 
+        0 0 10px rgb(34 139 34 / 80%),
+        0 0 20px rgb(34 139 34 / 60%),
+        3px 3px 6px rgb(0 0 0 / 50%);
+}
+
+.hero-subtitle {
+    font-size: 1.5rem;
+    margin-bottom: 2.5rem;
+    color: var(--snow-white);
+    text-shadow: 2px 2px 4px rgb(0 0 0 / 50%);
+}
+
+/* Countdown Box */
+.countdown-box {
+    background: linear-gradient(135deg, var(--christmas-red) 0%, var(--christmas-dark-red) 100%);
+    border-radius: 20px;
+    padding: 2rem;
+    margin-bottom: 2.5rem;
+    box-shadow: 
+        0 10px 30px rgb(0 0 0 / 30%),
+        0 0 40px rgb(196 30 58 / 40%);
+    border: 3px solid var(--christmas-gold);
+    animation: pulse-glow 2s infinite;
+}
+
+@keyframes pulse-glow {
+    0%, 100% {
+        box-shadow: 
+            0 10px 30px rgb(0 0 0 / 30%),
+            0 0 40px rgb(196 30 58 / 40%);
+    }
+
+    50% {
+        box-shadow: 
+            0 10px 30px rgb(0 0 0 / 30%),
+            0 0 60px rgb(196 30 58 / 80%);
+    }
+}
+
+.countdown-label {
+    font-size: 1.2rem;
+    font-weight: bold;
+    margin-bottom: 1rem;
+}
+
+.countdown-display {
+    font-size: 2.5rem;
+    font-weight: bold;
+    font-variant-numeric: tabular-nums;
+    color: var(--christmas-gold);
+    text-shadow: 
+        0 0 10px rgb(255 215 0 / 80%),
+        2px 2px 4px rgb(0 0 0 / 50%);
+}
+
+/* CTA Button */
+.cta-button {
+    display: inline-block;
+    background: linear-gradient(135deg, var(--christmas-green) 0%, var(--christmas-light-green) 100%);
+    color: white;
+    font-size: 1.5rem;
+    font-weight: bold;
+    padding: 1.25rem 3rem;
+    border-radius: 50px;
+    text-decoration: none;
+    box-shadow: 
+        0 8px 25px rgb(0 0 0 / 30%),
+        0 0 30px rgb(34 139 34 / 40%);
+    transition: all 0.3s ease;
+    border: 3px solid var(--christmas-gold);
+    margin-bottom: 3rem;
+}
+
+.cta-button:hover {
+    transform: translateY(-5px) scale(1.05);
+    box-shadow: 
+        0 12px 35px rgb(0 0 0 / 40%),
+        0 0 50px rgb(34 139 34 / 80%);
+}
+
+.cta-button:active {
+    transform: translateY(-2px) scale(1.02);
+}
+
+/* Features Section */
+.features {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 2rem;
+    margin-top: 3rem;
+}
+
+.feature-card {
+    background: linear-gradient(135deg, rgb(196 30 58 / 90%) 0%, rgb(139 0 0 / 90%) 100%);
+    border-radius: 20px;
+    padding: 2rem;
+    box-shadow: 0 10px 25px rgb(0 0 0 / 30%);
+    border: 3px solid var(--christmas-gold);
+    transition: all 0.3s ease;
+}
+
+.feature-card:hover {
+    transform: translateY(-10px);
+    box-shadow: 0 15px 35px rgb(0 0 0 / 40%);
+}
+
+.feature-icon {
+    font-size: 3rem;
+    display: block;
+    margin-bottom: 1rem;
+}
+
+.feature-card h3 {
+    font-size: 1.5rem;
+    margin-bottom: 0.5rem;
+    color: var(--christmas-gold);
+}
+
+.feature-card p {
+    font-size: 1rem;
+    color: var(--snow-white);
+}
+
+/* Decorative Elements */
+.decoration {
+    position: absolute;
+    font-size: 8rem;
+    opacity: 0.3;
+    animation: sway 4s ease-in-out infinite;
+}
+
+.decoration-left {
+    left: 5%;
+    top: 20%;
+}
+
+.decoration-right {
+    right: 5%;
+    top: 60%;
+}
+
+@keyframes sway {
+    0%, 100% {
+        transform: rotate(-5deg);
+    }
+
+    50% {
+        transform: rotate(5deg);
+    }
+}
+
+/* Footer */
+.footer {
+    background: linear-gradient(90deg, var(--christmas-green) 0%, var(--christmas-red) 50%, var(--christmas-green) 100%);
+    padding: 2rem;
+    text-align: center;
+    box-shadow: 0 -5px 20px rgb(0 0 0 / 30%);
+}
+
+.footer-content {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.footer-santa {
+    font-size: 2rem;
+    margin-bottom: 1rem;
+}
+
+.emoji-medium {
+    font-size: 2rem;
+    margin: 0 0.5rem;
+    display: inline-block;
+    animation: bounce 2s infinite;
+    animation-delay: calc(var(--delay, 0) * 0.2s);
+}
+
+.footer-santa .emoji-medium:nth-child(1) {
+    --delay: 0;
+}
+
+.footer-santa .emoji-medium:nth-child(2) {
+    --delay: 1;
+}
+
+.footer-santa .emoji-medium:nth-child(3) {
+    --delay: 2;
+}
+
+.footer p {
+    font-size: 1rem;
+    margin: 0.5rem 0;
+}
+
+.footer-tagline {
+    font-weight: bold;
+    font-size: 1.2rem;
+    color: var(--christmas-gold);
+}
+
+/* Responsive Design */
+@media (width <= 768px) {
+    .hero-title {
+        font-size: 2.5rem;
+    }
+
+    .emoji-large {
+        font-size: 4rem;
+    }
+
+    .hero-subtitle {
+        font-size: 1.2rem;
+    }
+
+    .countdown-display {
+        font-size: 1.8rem;
+    }
+
+    .cta-button {
+        font-size: 1.2rem;
+        padding: 1rem 2rem;
+    }
+
+    .features {
+        grid-template-columns: 1fr;
+    }
+
+    .decoration {
+        font-size: 4rem;
+    }
+}
+
+/* Accessibility */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+
+    .snowflake {
+        display: none;
+    }
+}
+
+/* Focus Styles */
+*:focus {
+    outline: 3px solid var(--christmas-gold);
+    outline-offset: 2px;
+}
+
+/* Print Styles */
+@media print {
+    #snowfall,
+    .decoration {
+        display: none;
+    }
+}

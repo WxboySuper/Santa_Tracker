@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎅 Santa Tracker - Track Santa's Magical Journey</title>
+    <meta name="description" content="Welcome to Santa Tracker! Track Santa's magical journey around the world on Christmas Eve in real-time!">
+    <link rel="stylesheet" href="{{ url_for('static', filename='home-styles.css') }}">
+</head>
+<body>
+    <!-- Snowfall Container -->
+    <div id="snowfall" aria-hidden="true"></div>
+    
+    <!-- Hero Section -->
+    <div class="hero">
+        <div class="hero-content">
+            <div class="hero-santa">
+                <span class="emoji-large santa-bounce">🎅</span>
+            </div>
+            <h1 class="hero-title">
+                <span class="text-red">Santa</span> <span class="text-green">Tracker</span>
+            </h1>
+            <p class="hero-subtitle">Track Santa's Magical Journey Around the World!</p>
+            
+            <!-- Countdown Box -->
+            <div class="countdown-box">
+                <p class="countdown-label">🎄 Christmas Countdown 🎄</p>
+                <div id="countdown" class="countdown-display" aria-live="polite"></div>
+            </div>
+            
+            <!-- CTA Button -->
+            <a href="{{ url_for('tracker') }}" class="cta-button">
+                <span>🎁 Start Tracking Santa 🎁</span>
+            </a>
+            
+            <!-- Features -->
+            <div class="features">
+                <div class="feature-card">
+                    <span class="feature-icon">🗺️</span>
+                    <h3>Live Map</h3>
+                    <p>Follow Santa's route in real-time</p>
+                </div>
+                <div class="feature-card">
+                    <span class="feature-icon">📍</span>
+                    <h3>Location Updates</h3>
+                    <p>See where Santa is right now</p>
+                </div>
+                <div class="feature-card">
+                    <span class="feature-icon">⏱️</span>
+                    <h3>Countdown Timer</h3>
+                    <p>Know exactly when he arrives</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Decorative Elements -->
+        <div class="decoration decoration-left">
+            <span class="emoji-large">🎄</span>
+        </div>
+        <div class="decoration decoration-right">
+            <span class="emoji-large">⛄</span>
+        </div>
+    </div>
+    
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-content">
+            <div class="footer-santa">
+                <span class="emoji-medium">🎅</span>
+                <span class="emoji-medium">🦌</span>
+                <span class="emoji-medium">🎁</span>
+            </div>
+            <p>&copy; <span id="year">2024</span> Santa Tracker. Made with ❤️ for Christmas!</p>
+            <p class="footer-tagline">✨ Merry Christmas and Happy Holidays! ✨</p>
+        </div>
+    </footer>
+
+    <script src="{{ url_for('static', filename='home-script.js') }}"></script>
+</body>
+</html>

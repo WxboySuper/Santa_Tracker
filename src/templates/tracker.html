@@ -8,9 +8,8 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
-    <link rel="stylesheet" href="src/static/styles.css">
-    <link rel="stylesheet" href="src/static/tracker-styles.css">
-    <link rel="manifest" href="manifest.json">
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='tracker-styles.css') }}">
 </head>
 <body>
     <!-- Snowfall Container -->
@@ -21,7 +20,7 @@
         <div class="container">
             <div class="header-content">
                 <div class="header-left">
-                    <a href="/home.html" class="back-button" aria-label="Back to home">🏠</a>
+                    <a href="{{ url_for('home') }}" class="back-button" aria-label="Back to home">🏠</a>
                     <span class="emoji-bounce">🎅</span>
                     <h1 class="header-title">Santa Tracker</h1>
                     <span class="emoji-pulse">🎄</span>
@@ -118,15 +117,13 @@
                 <span class="icon">🎅</span>
                 <span class="icon">🎁</span>
             </div>
-            <p class="footer-text">&copy; <span id="year"></span> Santa Tracker. All rights reserved.</p>
+            <p class="footer-text">&copy; <span id="year">2024</span> Santa Tracker. All rights reserved.</p>
             <p class="footer-tagline">Made with ❤️ for the holiday season. Merry Christmas! 🎄✨</p>
         </div>
     </footer>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/Leaflet.markercluster.js"></script>
-    <script src="src/static/script.js"></script>
-    <script src="src/static/sw-register.js"></script>
-    <script>document.getElementById('year').textContent = new Date().getFullYear();</script>
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
 </body>
 </html>
