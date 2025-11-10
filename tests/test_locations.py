@@ -43,7 +43,7 @@ class TestLocation(unittest.TestCase):
         self.assertEqual(location.arrival_time, "2024-12-24T12:00:00Z")
         self.assertEqual(location.departure_time, "2024-12-24T12:25:00Z")
         self.assertEqual(location.stop_duration, 25)
-        self.assertEqual(location.is_stop, True)
+        self.assertTrue(location.is_stop)
         self.assertEqual(location.priority, 1)
         self.assertEqual(
             location.fun_facts, "Famous for its mix of traditional and modern!"
