@@ -176,7 +176,7 @@ Get content for a specific day if it's unlocked.
 **Response: 500 Internal Server Error** (if server error)
 ```json
 {
-    "error": "Error message"
+    "error": "Internal server error"
 }
 ```
 
@@ -186,6 +186,8 @@ The Advent calendar data is stored in:
 ```
 src/static/data/advent_calendar.json
 ```
+
+**Important**: The unlock times in the data file are set for a specific year (e.g., 2024-12-01). Remember to update the year in all `unlock_time` fields when deploying for a new Advent season. The unlock logic compares the full ISO 8601 timestamp, so incorrect years will prevent content from unlocking at the right time.
 
 ## Unlock Logic
 
