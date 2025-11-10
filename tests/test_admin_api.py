@@ -86,13 +86,22 @@ class TestAdminAuthentication:
 
     def test_admin_route_without_password_configured(self, client):
         """Test admin route when no password is configured."""
-        # Remove admin password
-        if "ADMIN_PASSWORD" in os.environ:
-            del os.environ["ADMIN_PASSWORD"]
+        # Backup original ADMIN_PASSWORD
+        orig_admin_pw = os.environ.get("ADMIN_PASSWORD")
+        try:
+            # Remove admin password
+            if "ADMIN_PASSWORD" in os.environ:
+                del os.environ["ADMIN_PASSWORD"]
 
-        headers = {"Authorization": "Bearer some_password"}
-        response = client.get("/api/admin/locations", headers=headers)
-        assert response.status_code == 500
+            headers = {"Authorization": "Bearer some_password"}
+            response = client.get("/api/admin/locations", headers=headers)
+            assert response.status_code == 500
+        finally:
+            # Restore original ADMIN_PASSWORD
+            if orig_admin_pw is not None:
+                os.environ["ADMIN_PASSWORD"] = orig_admin_pw
+            elif "ADMIN_PASSWORD" in os.environ:
+                del os.environ["ADMIN_PASSWORD"]
         data = response.get_json()
         assert "not configured" in data["error"].lower()
 
