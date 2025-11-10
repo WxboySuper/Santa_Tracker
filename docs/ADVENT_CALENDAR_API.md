@@ -278,6 +278,7 @@ curl http://localhost:5000/api/advent/day/25
 - **Input Validation**: Day numbers are validated (1-24 only)
 - **Error Handling**: Proper error responses for invalid requests
 - **UTC Time**: All times use UTC to ensure consistency across timezones
+- **Stack Trace Protection**: Generic error messages prevent information disclosure
 
 ## Example Integration
 
