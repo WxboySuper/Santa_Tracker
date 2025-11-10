@@ -1,19 +1,56 @@
 import os
 import sys
+from functools import wraps
 
-from flask import Flask, jsonify, render_template
+from flask import Flask, jsonify, render_template, request
 
 # Add the src directory to the path to allow imports
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from utils.advent import get_day_content, get_manifest  # noqa: E402
+from utils.locations import (  # noqa: E402
+    Location,
+    load_santa_route_from_json,
+    save_santa_route_to_json,
+    validate_locations,
+)
 
 app = Flask(__name__)
+app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "dev-secret-key")
+
+
+def require_admin_auth(f):
+    """Decorator to require admin authentication via password."""
+
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        auth_header = request.headers.get("Authorization")
+        admin_password = os.environ.get("ADMIN_PASSWORD")
+
+        if not admin_password:
+            return jsonify({"error": "Admin access not configured"}), 500
+
+        if not auth_header or not auth_header.startswith("Bearer "):
+            return jsonify({"error": "Authentication required"}), 401
+
+        token = auth_header.split(" ")[1]
+        if token != admin_password:
+            return jsonify({"error": "Invalid credentials"}), 403
+
+        return f(*args, **kwargs)
+
+    return decorated_function
 
 
 @app.route("/")
 def index():
     return render_template("index.html")
+
+
+@app.route("/admin")
+def admin():
+    """Admin dashboard for location management."""
+    return render_template("admin.html")
 
 
 @app.route("/api/advent/manifest")
@@ -68,6 +105,198 @@ def advent_day(day_number):
         return jsonify({"error": "Advent calendar data not found"}), 404
     except Exception:
         return jsonify({"error": "Internal server error"}), 500
+
+
+@app.route("/api/admin/locations", methods=["GET"])
+@require_admin_auth
+def get_locations():
+    """Get all locations from the route."""
+    try:
+        locations = load_santa_route_from_json()
+        return (
+            jsonify(
+                {
+                    "locations": [
+                        {
+                            "id": idx,
+                            "name": loc.name,
+                            "latitude": loc.latitude,
+                            "longitude": loc.longitude,
+                            "utc_offset": loc.utc_offset,
+                            "arrival_time": loc.arrival_time,
+                            "departure_time": loc.departure_time,
+                            "stop_duration": loc.stop_duration,
+                            "is_stop": loc.is_stop,
+                            "priority": loc.priority,
+                            "fun_facts": loc.fun_facts,
+                        }
+                        for idx, loc in enumerate(locations)
+                    ]
+                }
+            ),
+            200,
+        )
+    except FileNotFoundError:
+        return jsonify({"error": "Location data not found"}), 404
+    except Exception as e:
+        return jsonify({"error": f"Internal server error: {str(e)}"}), 500
+
+
+@app.route("/api/admin/locations", methods=["POST"])
+@require_admin_auth
+def add_location():
+    """Add a new location to the route."""
+    try:
+        data = request.get_json(force=True, silent=True)
+        if not data:
+            return jsonify({"error": "No data provided"}), 400
+
+        # Validate required fields
+        required_fields = ["name", "latitude", "longitude", "utc_offset"]
+        missing_fields = [field for field in required_fields if field not in data]
+        if missing_fields:
+            return (
+                jsonify({"error": f"Missing required fields: {missing_fields}"}),
+                400,
+            )
+
+        # Create location object (this validates the data)
+        try:
+            new_location = Location(
+                name=data["name"],
+                latitude=float(data["latitude"]),
+                longitude=float(data["longitude"]),
+                utc_offset=float(data["utc_offset"]),
+                arrival_time=data.get("arrival_time"),
+                departure_time=data.get("departure_time"),
+                stop_duration=data.get("stop_duration"),
+                is_stop=data.get("is_stop", True),
+                priority=data.get("priority"),
+                fun_facts=data.get("fun_facts"),
+            )
+        except (ValueError, TypeError) as e:
+            return jsonify({"error": f"Invalid data: {str(e)}"}), 400
+
+        # Load existing locations and append
+        locations = load_santa_route_from_json()
+        locations.append(new_location)
+
+        # Save back to JSON
+        save_santa_route_to_json(locations)
+
+        return (
+            jsonify(
+                {
+                    "message": "Location added successfully",
+                    "id": len(locations) - 1,
+                    "location": {
+                        "name": new_location.name,
+                        "latitude": new_location.latitude,
+                        "longitude": new_location.longitude,
+                        "utc_offset": new_location.utc_offset,
+                    },
+                }
+            ),
+            201,
+        )
+    except FileNotFoundError:
+        return jsonify({"error": "Location data not found"}), 404
+    except Exception as e:
+        return jsonify({"error": f"Internal server error: {str(e)}"}), 500
+
+
+@app.route("/api/admin/locations/<int:location_id>", methods=["PUT"])
+@require_admin_auth
+def update_location(location_id):
+    """Update an existing location."""
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({"error": "No data provided"}), 400
+
+        locations = load_santa_route_from_json()
+
+        if location_id < 0 or location_id >= len(locations):
+            return jsonify({"error": "Location not found"}), 404
+
+        # Update location fields
+        try:
+            updated_location = Location(
+                name=data.get("name", locations[location_id].name),
+                latitude=float(data.get("latitude", locations[location_id].latitude)),
+                longitude=float(
+                    data.get("longitude", locations[location_id].longitude)
+                ),
+                utc_offset=float(
+                    data.get("utc_offset", locations[location_id].utc_offset)
+                ),
+                arrival_time=data.get(
+                    "arrival_time", locations[location_id].arrival_time
+                ),
+                departure_time=data.get(
+                    "departure_time", locations[location_id].departure_time
+                ),
+                stop_duration=data.get(
+                    "stop_duration", locations[location_id].stop_duration
+                ),
+                is_stop=data.get("is_stop", locations[location_id].is_stop),
+                priority=data.get("priority", locations[location_id].priority),
+                fun_facts=data.get("fun_facts", locations[location_id].fun_facts),
+            )
+        except (ValueError, TypeError) as e:
+            return jsonify({"error": f"Invalid data: {str(e)}"}), 400
+
+        locations[location_id] = updated_location
+        save_santa_route_to_json(locations)
+
+        return jsonify({"message": "Location updated successfully"}), 200
+    except FileNotFoundError:
+        return jsonify({"error": "Location data not found"}), 404
+    except Exception as e:
+        return jsonify({"error": f"Internal server error: {str(e)}"}), 500
+
+
+@app.route("/api/admin/locations/<int:location_id>", methods=["DELETE"])
+@require_admin_auth
+def delete_location(location_id):
+    """Delete a location from the route."""
+    try:
+        locations = load_santa_route_from_json()
+
+        if location_id < 0 or location_id >= len(locations):
+            return jsonify({"error": "Location not found"}), 404
+
+        deleted_location = locations.pop(location_id)
+        save_santa_route_to_json(locations)
+
+        return (
+            jsonify(
+                {
+                    "message": "Location deleted successfully",
+                    "deleted_location": deleted_location.name,
+                }
+            ),
+            200,
+        )
+    except FileNotFoundError:
+        return jsonify({"error": "Location data not found"}), 404
+    except Exception as e:
+        return jsonify({"error": f"Internal server error: {str(e)}"}), 500
+
+
+@app.route("/api/admin/locations/validate", methods=["POST"])
+@require_admin_auth
+def validate_location_data():
+    """Validate location data for correctness."""
+    try:
+        locations = load_santa_route_from_json()
+        validation_results = validate_locations(locations)
+
+        return jsonify(validation_results), 200
+    except FileNotFoundError:
+        return jsonify({"error": "Location data not found"}), 404
+    except Exception as e:
+        return jsonify({"error": f"Internal server error: {str(e)}"}), 500
 
 
 if __name__ == "__main__":

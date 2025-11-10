@@ -1,0 +1,362 @@
+"""Tests for admin API endpoints."""
+
+import json
+import os
+import shutil
+from pathlib import Path
+
+import pytest
+
+from src.app import app
+
+
+@pytest.fixture
+def client():
+    """Create test client."""
+    app.config["TESTING"] = True
+    with app.test_client() as client:
+        yield client
+
+
+@pytest.fixture
+def auth_headers():
+    """Create authentication headers."""
+    # Set admin password for testing
+    os.environ["ADMIN_PASSWORD"] = "test_password"
+    return {"Authorization": "Bearer test_password"}
+
+
+@pytest.fixture(autouse=True)
+def backup_route_file():
+    """Backup and restore the route file after tests."""
+    route_file = (
+        Path(__file__).parent.parent / "src" / "static" / "data" / "santa_route.json"
+    )
+    backup_file = route_file.with_suffix(".json.backup")
+
+    # Backup the original file
+    if route_file.exists():
+        shutil.copy(route_file, backup_file)
+
+    yield
+
+    # Restore the original file
+    if backup_file.exists():
+        shutil.move(backup_file, route_file)
+
+
+class TestAdminAuthentication:
+    """Test admin authentication."""
+
+    def test_admin_route_without_auth(self, client):
+        """Test admin route requires authentication."""
+        # Remove any existing password first
+        if "ADMIN_PASSWORD" in os.environ:
+            del os.environ["ADMIN_PASSWORD"]
+        # Set it back
+        os.environ["ADMIN_PASSWORD"] = "test"
+
+        response = client.get("/api/admin/locations")
+        assert response.status_code == 401
+        data = response.get_json()
+        assert "error" in data
+
+    def test_admin_route_with_invalid_auth(self, client):
+        """Test admin route with invalid credentials."""
+        os.environ["ADMIN_PASSWORD"] = "correct_password"
+        headers = {"Authorization": "Bearer wrong_password"}
+        response = client.get("/api/admin/locations", headers=headers)
+        assert response.status_code == 403
+        data = response.get_json()
+        assert "error" in data
+
+    def test_admin_route_with_valid_auth(self, client, auth_headers):
+        """Test admin route with valid credentials."""
+        response = client.get("/api/admin/locations", headers=auth_headers)
+        assert response.status_code == 200
+
+    def test_admin_route_without_password_configured(self, client):
+        """Test admin route when no password is configured."""
+        # Remove admin password
+        if "ADMIN_PASSWORD" in os.environ:
+            del os.environ["ADMIN_PASSWORD"]
+
+        headers = {"Authorization": "Bearer some_password"}
+        response = client.get("/api/admin/locations", headers=headers)
+        assert response.status_code == 500
+        data = response.get_json()
+        assert "not configured" in data["error"].lower()
+
+
+class TestGetLocations:
+    """Test GET /api/admin/locations endpoint."""
+
+    def test_get_all_locations(self, client, auth_headers):
+        """Test getting all locations."""
+        response = client.get("/api/admin/locations", headers=auth_headers)
+        assert response.status_code == 200
+
+        data = response.get_json()
+        assert "locations" in data
+        assert len(data["locations"]) > 0  # Should have at least some locations
+
+        # Check first location has required fields
+        loc1 = data["locations"][0]
+        assert "name" in loc1
+        assert "latitude" in loc1
+        assert "longitude" in loc1
+        assert "utc_offset" in loc1
+        assert "id" in loc1
+
+    def test_get_locations_includes_all_fields(self, client, auth_headers):
+        """Test that all location fields are included in response."""
+        response = client.get("/api/admin/locations", headers=auth_headers)
+        data = response.get_json()
+
+        location = data["locations"][0]
+        required_fields = [
+            "id",
+            "name",
+            "latitude",
+            "longitude",
+            "utc_offset",
+            "arrival_time",
+            "departure_time",
+            "stop_duration",
+            "is_stop",
+            "priority",
+            "fun_facts",
+        ]
+
+        for field in required_fields:
+            assert field in location
+
+
+class TestAddLocation:
+    """Test POST /api/admin/locations endpoint."""
+
+    def test_add_location_success(self, client, auth_headers):
+        """Test successfully adding a new location."""
+        # Get current count
+        response = client.get("/api/admin/locations", headers=auth_headers)
+        initial_count = len(response.get_json()["locations"])
+
+        new_location = {
+            "name": "Test New Location XYZ",
+            "latitude": 35.6762,
+            "longitude": 139.6503,
+            "utc_offset": 9.0,
+            "priority": 1,
+        }
+
+        response = client.post(
+            "/api/admin/locations",
+            headers=auth_headers,
+            data=json.dumps(new_location),
+            content_type="application/json",
+        )
+
+        assert response.status_code == 201
+        data = response.get_json()
+        assert "message" in data
+        assert "Location added successfully" in data["message"]
+        assert "id" in data
+
+        # Verify it was added
+        response = client.get("/api/admin/locations", headers=auth_headers)
+        assert len(response.get_json()["locations"]) == initial_count + 1
+
+    def test_add_location_with_all_fields(self, client, auth_headers):
+        """Test adding location with all optional fields."""
+        new_location = {
+            "name": "Complete Location Test XYZ",
+            "latitude": 48.8566,
+            "longitude": 2.3522,
+            "utc_offset": 1.0,
+            "priority": 2,
+            "arrival_time": "2024-12-24T12:00:00Z",
+            "departure_time": "2024-12-24T12:30:00Z",
+            "stop_duration": 30,
+            "is_stop": True,
+            "fun_facts": "City of Light!",
+        }
+
+        response = client.post(
+            "/api/admin/locations",
+            headers=auth_headers,
+            data=json.dumps(new_location),
+            content_type="application/json",
+        )
+
+        assert response.status_code == 201
+
+    def test_add_location_missing_required_field(self, client, auth_headers):
+        """Test adding location with missing required fields."""
+        incomplete_location = {
+            "name": "Incomplete Location",
+            "latitude": 40.7128,
+            # Missing longitude and utc_offset
+        }
+
+        response = client.post(
+            "/api/admin/locations",
+            headers=auth_headers,
+            data=json.dumps(incomplete_location),
+            content_type="application/json",
+        )
+
+        assert response.status_code == 400
+        data = response.get_json()
+        assert "error" in data
+        assert "Missing required fields" in data["error"]
+
+    def test_add_location_invalid_latitude(self, client, auth_headers):
+        """Test adding location with invalid latitude."""
+        invalid_location = {
+            "name": "Invalid Location",
+            "latitude": 100.0,  # Invalid: > 90
+            "longitude": 0.0,
+            "utc_offset": 0.0,
+        }
+
+        response = client.post(
+            "/api/admin/locations",
+            headers=auth_headers,
+            data=json.dumps(invalid_location),
+            content_type="application/json",
+        )
+
+        assert response.status_code == 400
+        data = response.get_json()
+        assert "error" in data
+        assert "Invalid data" in data["error"]
+
+    def test_add_location_invalid_utc_offset(self, client, auth_headers):
+        """Test adding location with invalid UTC offset."""
+        invalid_location = {
+            "name": "Invalid Location UTC",
+            "latitude": 40.0,
+            "longitude": 0.0,
+            "utc_offset": 15.0,  # Invalid: > 14
+        }
+
+        response = client.post(
+            "/api/admin/locations",
+            headers=auth_headers,
+            data=json.dumps(invalid_location),
+            content_type="application/json",
+        )
+
+        assert response.status_code == 400
+
+    def test_add_location_no_data(self, client, auth_headers):
+        """Test adding location with no data."""
+        response = client.post(
+            "/api/admin/locations",
+            headers=auth_headers,
+            data=None,
+            content_type="application/json",
+        )
+
+        assert response.status_code == 400
+        data = response.get_json()
+        assert "No data provided" in data["error"]
+
+
+class TestUpdateLocation:
+    """Test PUT /api/admin/locations/<id> endpoint."""
+
+    def test_update_location_success(self, client, auth_headers):
+        """Test successfully updating a location."""
+        # Get existing location to update
+        response = client.get("/api/admin/locations", headers=auth_headers)
+        locations = response.get_json()["locations"]
+        location_to_update = locations[-1]  # Use last location
+        location_id = location_to_update["id"]
+
+        updated_data = {
+            "name": "Updated Test Location",
+            "latitude": 41.0,
+            "longitude": -75.0,
+            "utc_offset": -4.0,
+        }
+
+        response = client.put(
+            f"/api/admin/locations/{location_id}",
+            headers=auth_headers,
+            data=json.dumps(updated_data),
+            content_type="application/json",
+        )
+
+        assert response.status_code == 200
+        data = response.get_json()
+        assert "Location updated successfully" in data["message"]
+
+    def test_update_location_not_found(self, client, auth_headers):
+        """Test updating non-existent location."""
+        updated_data = {"name": "Does Not Exist"}
+
+        response = client.put(
+            "/api/admin/locations/99999",
+            headers=auth_headers,
+            data=json.dumps(updated_data),
+            content_type="application/json",
+        )
+
+        assert response.status_code == 404
+        data = response.get_json()
+        assert "Location not found" in data["error"]
+
+    def test_update_location_invalid_data(self, client, auth_headers):
+        """Test updating location with invalid data."""
+        invalid_data = {"latitude": 100.0}  # Invalid latitude
+
+        response = client.put(
+            "/api/admin/locations/0",
+            headers=auth_headers,
+            data=json.dumps(invalid_data),
+            content_type="application/json",
+        )
+
+        assert response.status_code == 400
+
+
+class TestDeleteLocation:
+    """Test DELETE /api/admin/locations/<id> endpoint."""
+
+    def test_delete_location_not_found(self, client, auth_headers):
+        """Test deleting non-existent location."""
+        response = client.delete("/api/admin/locations/99999", headers=auth_headers)
+
+        assert response.status_code == 404
+        data = response.get_json()
+        assert "Location not found" in data["error"]
+
+
+class TestValidateLocations:
+    """Test POST /api/admin/locations/validate endpoint."""
+
+    def test_validate_locations_endpoint_works(self, client, auth_headers):
+        """Test that validation endpoint returns expected structure."""
+        response = client.post("/api/admin/locations/validate", headers=auth_headers)
+
+        assert response.status_code == 200
+        data = response.get_json()
+        assert "valid" in data
+        assert "total_locations" in data
+        assert "errors" in data
+        assert "warnings" in data
+        assert isinstance(data["errors"], list)
+        assert isinstance(data["warnings"], list)
+
+    def test_validation_returns_location_count(self, client, auth_headers):
+        """Test that validation returns correct location count."""
+        # Get actual count
+        response = client.get("/api/admin/locations", headers=auth_headers)
+        actual_count = len(response.get_json()["locations"])
+
+        # Validate
+        response = client.post("/api/admin/locations/validate", headers=auth_headers)
+
+        data = response.get_json()
+        assert data["total_locations"] == actual_count
