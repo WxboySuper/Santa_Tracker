@@ -553,19 +553,37 @@
         document.getElementById('loginForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const password = document.getElementById('password').value;
-            setAuthToken(password);
 
             try {
-                const response = await fetch('/api/admin/locations', {
+                // Send password to server for authentication
+                const loginResponse = await fetch('/api/admin/login', {
+                    method: 'POST',
                     headers: {
-                        'Authorization': `Bearer ${getAuthToken()}`
-                    }
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ password })
                 });
 
-                if (response.ok) {
-                    document.getElementById('loginContainer').style.display = 'none';
-                    document.getElementById('dashboard').classList.add('active');
-                    loadLocations();
+                if (loginResponse.ok) {
+                    const data = await loginResponse.json();
+                    const token = data.token;
+                    setAuthToken(token); // Store only the token, never the password
+
+                    // Now fetch locations using the returned token
+                    const response = await fetch('/api/admin/locations', {
+                        headers: {
+                            'Authorization': `Bearer ${getAuthToken()}`
+                        }
+                    });
+
+                    if (response.ok) {
+                        document.getElementById('loginContainer').style.display = 'none';
+                        document.getElementById('dashboard').classList.add('active');
+                        loadLocations();
+                    } else {
+                        showLoginError('Invalid authentication.');
+                        setAuthToken(null);
+                    }
                 } else {
                     showLoginError('Invalid password');
                     setAuthToken(null);
