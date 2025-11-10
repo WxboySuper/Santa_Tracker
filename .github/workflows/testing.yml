@@ -33,11 +33,3 @@ jobs:
         - name: Test with pytest
           run: |
             pytest --cov=src --cov-report=xml --cov-report=term-missing || [ $? -eq 5 ]
-
-        - name: DeepSource Test Coverage
-          uses: deepsourcelabs/test-coverage-action@master
-          with: 
-              key: python
-              coverage-file: coverage.xml
-              dsn: ${{ secrets.DEEPSOURCE_DSN }}
-              fail-ci-on-error: true
