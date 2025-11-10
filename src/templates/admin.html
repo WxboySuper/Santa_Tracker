@@ -1,0 +1,1044 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Santa Tracker - Admin Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: white;
+            border-radius: 10px;
+            padding: 20px 30px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            color: #333;
+            font-size: 28px;
+        }
+
+        .logout-btn {
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .logout-btn:hover {
+            background: #c82333;
+        }
+
+        .login-container {
+            max-width: 400px;
+            margin: 100px auto;
+            background: white;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .login-container h2 {
+            margin-bottom: 20px;
+            color: #333;
+            text-align: center;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #555;
+            font-weight: 500;
+        }
+
+        .form-group input,
+        .form-group textarea,
+        .form-group select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-right: 10px;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5568d3;
+        }
+
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #218838;
+        }
+
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #c82333;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+
+        .btn-warning {
+            background: #ffc107;
+            color: #333;
+        }
+
+        .btn-warning:hover {
+            background: #e0a800;
+        }
+
+        .dashboard {
+            display: none;
+        }
+
+        .dashboard.active {
+            display: block;
+        }
+
+        .actions {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .actions button {
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+
+        .locations-table-container {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            overflow-x: auto;
+        }
+
+        .locations-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .locations-table th,
+        .locations-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .locations-table th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .locations-table tr:hover {
+            background: #f8f9fa;
+        }
+
+        .locations-table .action-buttons button {
+            padding: 5px 10px;
+            font-size: 12px;
+            margin-right: 5px;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            overflow-y: auto;
+        }
+
+        .modal.active {
+            display: block;
+        }
+
+        .modal-content {
+            background: white;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 30px;
+            border-radius: 10px;
+            position: relative;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .modal-header h2 {
+            color: #333;
+        }
+
+        .close-modal {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #999;
+        }
+
+        .close-modal:hover {
+            color: #333;
+        }
+
+        .alert {
+            padding: 12px 20px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .alert-warning {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+
+        .validation-results {
+            margin-top: 20px;
+        }
+
+        .validation-results h3 {
+            margin-bottom: 10px;
+            color: #333;
+        }
+
+        .validation-results ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        .validation-results li {
+            padding: 8px;
+            margin-bottom: 5px;
+            border-radius: 3px;
+        }
+
+        .validation-results .error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .validation-results .warning {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+
+        .required::after {
+            content: "*";
+            color: #dc3545;
+            margin-left: 4px;
+        }
+
+        @media (max-width: 768px) {
+            .header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .logout-btn {
+                margin-top: 10px;
+            }
+
+            .locations-table {
+                font-size: 12px;
+            }
+
+            .locations-table th,
+            .locations-table td {
+                padding: 8px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Login Form -->
+    <div id="loginContainer" class="login-container">
+        <h2>🎅 Admin Login</h2>
+        <form id="loginForm">
+            <div class="form-group">
+                <label for="password">Admin Password</label>
+                <input type="password" id="password" required>
+            </div>
+            <button type="submit" class="btn btn-primary" style="width: 100%;">Login</button>
+        </form>
+        <div id="loginError" class="alert alert-error" style="display: none; margin-top: 15px;"></div>
+    </div>
+
+    <!-- Admin Dashboard -->
+    <div id="dashboard" class="dashboard container">
+        <div class="header">
+            <h1>🎅 Santa Tracker - Admin Dashboard</h1>
+            <button class="logout-btn" onclick="logout()">Logout</button>
+        </div>
+
+        <div id="alertContainer"></div>
+
+        <div class="actions">
+            <button class="btn btn-primary" onclick="showAddLocationModal()">➕ Add Location</button>
+            <button class="btn btn-success" onclick="showImportModal()">📥 Import Locations</button>
+            <button class="btn btn-warning" onclick="validateLocations()">✓ Validate All Locations</button>
+            <button class="btn btn-secondary" onclick="loadLocations()">🔄 Refresh</button>
+        </div>
+
+        <div class="locations-table-container">
+            <h2 style="margin-bottom: 15px; color: #333;">Location Management</h2>
+            <div id="loadingMessage" class="loading">Loading locations...</div>
+            <table id="locationsTable" class="locations-table" style="display: none;">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Name</th>
+                        <th>Latitude</th>
+                        <th>Longitude</th>
+                        <th>UTC Offset</th>
+                        <th>Priority</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="locationsTableBody">
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Add/Edit Location Modal -->
+    <div id="locationModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalTitle">Add Location</h2>
+                <button class="close-modal" onclick="closeLocationModal()">&times;</button>
+            </div>
+            <form id="locationForm">
+                <input type="hidden" id="locationId">
+                <div class="form-group">
+                    <label for="locationName" class="required">Location Name</label>
+                    <input type="text" id="locationName" required>
+                </div>
+                <div class="form-group">
+                    <label for="latitude" class="required">Latitude (-90 to 90)</label>
+                    <input type="number" id="latitude" step="0.0001" min="-90" max="90" required>
+                </div>
+                <div class="form-group">
+                    <label for="longitude" class="required">Longitude (-180 to 180)</label>
+                    <input type="number" id="longitude" step="0.0001" min="-180" max="180" required>
+                </div>
+                <div class="form-group">
+                    <label for="utcOffset" class="required">UTC Offset (-12 to +14)</label>
+                    <input type="number" id="utcOffset" step="0.5" min="-12" max="14" required>
+                    <small style="color: #666; display: block; margin-top: 5px;">
+                        Examples: -5 (EST), 0 (UTC), 9 (JST), 5.5 (IST)
+                    </small>
+                </div>
+                <div class="form-group">
+                    <label for="priority">Priority (1-3, where 1 is highest)</label>
+                    <select id="priority">
+                        <option value="">None</option>
+                        <option value="1">1 - High Priority</option>
+                        <option value="2">2 - Medium Priority</option>
+                        <option value="3">3 - Low Priority</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="arrivalTime">Arrival Time (ISO 8601 format)</label>
+                    <input type="text" id="arrivalTime" placeholder="2024-12-24T10:00:00Z">
+                </div>
+                <div class="form-group">
+                    <label for="departureTime">Departure Time (ISO 8601 format)</label>
+                    <input type="text" id="departureTime" placeholder="2024-12-24T10:15:00Z">
+                </div>
+                <div class="form-group">
+                    <label for="stopDuration">Stop Duration (minutes)</label>
+                    <input type="number" id="stopDuration" min="0">
+                </div>
+                <div class="form-group">
+                    <label for="isStop">Is Stop?</label>
+                    <select id="isStop">
+                        <option value="true">Yes</option>
+                        <option value="false">No</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="funFacts">Fun Facts</label>
+                    <textarea id="funFacts" placeholder="Interesting facts about this location..."></textarea>
+                </div>
+                <div style="margin-top: 20px;">
+                    <button type="submit" class="btn btn-primary">Save Location</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeLocationModal()">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Validation Results Modal -->
+    <div id="validationModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Validation Results</h2>
+                <button class="close-modal" onclick="closeValidationModal()">&times;</button>
+            </div>
+            <div id="validationResults"></div>
+            <button class="btn btn-secondary" onclick="closeValidationModal()" style="margin-top: 20px;">Close</button>
+        </div>
+    </div>
+
+    <!-- Import Locations Modal -->
+    <div id="importModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Import Locations</h2>
+                <button class="close-modal" onclick="closeImportModal()">&times;</button>
+            </div>
+            <div style="margin-bottom: 20px;">
+                <p style="color: #666; margin-bottom: 15px;">
+                    Paste JSON data or upload a JSON file containing location data. 
+                    Supports both single objects and arrays of locations.
+                </p>
+                
+                <div class="form-group">
+                    <label for="importMode">Import Mode</label>
+                    <select id="importMode">
+                        <option value="append">Append - Add to existing locations</option>
+                        <option value="replace">Replace - Replace all existing locations</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="importData">JSON Data</label>
+                    <textarea id="importData" style="font-family: monospace; min-height: 300px;" placeholder="[
+  {
+    &quot;name&quot;: &quot;City Name&quot;,
+    &quot;latitude&quot;: 40.7128,
+    &quot;longitude&quot;: -74.0060,
+    &quot;utc_offset&quot;: -5.0,
+    &quot;priority&quot;: 1,
+    &quot;fun_facts&quot;: &quot;Optional description&quot;
+  }
+]"></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label>Or Upload JSON File</label>
+                    <input type="file" id="importFile" accept=".json" onchange="handleFileUpload(event)" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
+                </div>
+
+                <div id="importPreview" style="display: none; margin-top: 15px; padding: 10px; background: #f8f9fa; border-radius: 5px;">
+                    <strong>Preview:</strong>
+                    <p id="importPreviewText" style="margin-top: 5px; color: #333;"></p>
+                </div>
+
+                <div id="importErrors" style="display: none; margin-top: 15px;" class="alert alert-error"></div>
+            </div>
+            
+            <div>
+                <button class="btn btn-success" onclick="importLocations()">📥 Import Locations</button>
+                <button class="btn btn-secondary" onclick="closeImportModal()">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Use sessionStorage for auth token to improve security
+        // Note: For enhanced security in production, consider using httpOnly cookies
+        
+        function getAuthToken() {
+            return sessionStorage.getItem('adminAuthToken');
+        }
+        
+        function setAuthToken(token) {
+            if (token) {
+                sessionStorage.setItem('adminAuthToken', token);
+            } else {
+                sessionStorage.removeItem('adminAuthToken');
+            }
+        }
+
+        // Login
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const password = document.getElementById('password').value;
+
+            try {
+                // Send password to server for authentication
+                const loginResponse = await fetch('/api/admin/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ password })
+                });
+
+                if (loginResponse.ok) {
+                    const data = await loginResponse.json();
+                    const token = data.token;
+                    setAuthToken(token); // Store only the token, never the password
+
+                    // Now fetch locations using the returned token
+                    const response = await fetch('/api/admin/locations', {
+                        headers: {
+                            'Authorization': `Bearer ${getAuthToken()}`
+                        }
+                    });
+
+                    if (response.ok) {
+                        document.getElementById('loginContainer').style.display = 'none';
+                        document.getElementById('dashboard').classList.add('active');
+                        loadLocations();
+                    } else {
+                        showLoginError('Invalid authentication.');
+                        setAuthToken(null);
+                    }
+                } else {
+                    showLoginError('Invalid password');
+                    setAuthToken(null);
+                }
+            } catch (error) {
+                showLoginError('Connection error. Please try again.');
+                setAuthToken(null);
+            }
+        });
+
+        function showLoginError(message) {
+            const errorDiv = document.getElementById('loginError');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+        }
+
+        function logout() {
+            setAuthToken(null);
+            document.getElementById('dashboard').classList.remove('active');
+            document.getElementById('loginContainer').style.display = 'block';
+            document.getElementById('password').value = '';
+        }
+
+        // Load Locations
+        async function loadLocations() {
+            document.getElementById('loadingMessage').style.display = 'block';
+            document.getElementById('locationsTable').style.display = 'none';
+
+            try {
+                const response = await fetch('/api/admin/locations', {
+                    headers: {
+                        'Authorization': `Bearer ${getAuthToken()}`
+                    }
+                });
+
+                if (!response.ok) throw new Error('Failed to load locations');
+
+                const data = await response.json();
+                displayLocations(data.locations);
+            } catch (error) {
+                showAlert('Error loading locations: ' + error.message, 'error');
+            }
+        }
+
+        function displayLocations(locations) {
+            const tbody = document.getElementById('locationsTableBody');
+            tbody.innerHTML = '';
+
+            locations.forEach(location => {
+                const row = document.createElement('tr');
+                
+                // ID
+                const idCell = document.createElement('td');
+                idCell.textContent = location.id;
+                row.appendChild(idCell);
+
+                // Name (XSS-safe)
+                const nameCell = document.createElement('td');
+                nameCell.textContent = location.name;
+                row.appendChild(nameCell);
+
+                // Latitude
+                const latCell = document.createElement('td');
+                latCell.textContent = location.latitude.toFixed(4);
+                row.appendChild(latCell);
+
+                // Longitude
+                const lonCell = document.createElement('td');
+                lonCell.textContent = location.longitude.toFixed(4);
+                row.appendChild(lonCell);
+
+                // UTC Offset
+                const offsetCell = document.createElement('td');
+                offsetCell.textContent = location.utc_offset;
+                row.appendChild(offsetCell);
+
+                // Priority
+                const priorityCell = document.createElement('td');
+                priorityCell.textContent = location.priority || '-';
+                row.appendChild(priorityCell);
+
+                // Action buttons
+                const actionCell = document.createElement('td');
+                actionCell.className = 'action-buttons';
+
+                const editBtn = document.createElement('button');
+                editBtn.className = 'btn btn-primary';
+                editBtn.textContent = 'Edit';
+                editBtn.addEventListener('click', () => editLocation(location.id));
+                actionCell.appendChild(editBtn);
+
+                const deleteBtn = document.createElement('button');
+                deleteBtn.className = 'btn btn-danger';
+                deleteBtn.textContent = 'Delete';
+                deleteBtn.addEventListener('click', () => deleteLocation(location.id, location.name));
+                actionCell.appendChild(deleteBtn);
+
+                row.appendChild(actionCell);
+                tbody.appendChild(row);
+            });
+
+            document.getElementById('loadingMessage').style.display = 'none';
+            document.getElementById('locationsTable').style.display = 'table';
+        }
+
+        function showAlert(message, type) {
+            const alertContainer = document.getElementById('alertContainer');
+            const alert = document.createElement('div');
+            alert.className = `alert alert-${type}`;
+            alert.textContent = message;
+            alertContainer.innerHTML = '';
+            alertContainer.appendChild(alert);
+            
+            setTimeout(() => {
+                alert.remove();
+            }, 5000);
+        }
+
+        // Add Location Modal
+        function showAddLocationModal() {
+            document.getElementById('modalTitle').textContent = 'Add Location';
+            document.getElementById('locationForm').reset();
+            document.getElementById('locationId').value = '';
+            document.getElementById('locationModal').classList.add('active');
+        }
+
+        function closeLocationModal() {
+            document.getElementById('locationModal').classList.remove('active');
+        }
+
+        // Edit Location
+        async function editLocation(id) {
+            try {
+                const response = await fetch('/api/admin/locations', {
+                    headers: {
+                        'Authorization': `Bearer ${getAuthToken()}`
+                    }
+                });
+
+                if (!response.ok) throw new Error('Failed to load location');
+
+                const data = await response.json();
+                const location = data.locations.find(loc => loc.id === id);
+
+                if (!location) throw new Error('Location not found');
+
+                document.getElementById('modalTitle').textContent = 'Edit Location';
+                document.getElementById('locationId').value = id;
+                document.getElementById('locationName').value = location.name;
+                document.getElementById('latitude').value = location.latitude;
+                document.getElementById('longitude').value = location.longitude;
+                document.getElementById('utcOffset').value = location.utc_offset;
+                document.getElementById('priority').value = location.priority || '';
+                document.getElementById('arrivalTime').value = location.arrival_time || '';
+                document.getElementById('departureTime').value = location.departure_time || '';
+                document.getElementById('stopDuration').value = location.stop_duration || '';
+                document.getElementById('isStop').value = location.is_stop ? 'true' : 'false';
+                document.getElementById('funFacts').value = location.fun_facts || '';
+
+                document.getElementById('locationModal').classList.add('active');
+            } catch (error) {
+                showAlert('Error loading location: ' + error.message, 'error');
+            }
+        }
+
+        // Save Location
+        document.getElementById('locationForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const locationId = document.getElementById('locationId').value;
+            const locationData = {
+                name: document.getElementById('locationName').value,
+                latitude: parseFloat(document.getElementById('latitude').value),
+                longitude: parseFloat(document.getElementById('longitude').value),
+                utc_offset: parseFloat(document.getElementById('utcOffset').value),
+                priority: document.getElementById('priority').value ? parseInt(document.getElementById('priority').value) : null,
+                arrival_time: document.getElementById('arrivalTime').value || null,
+                departure_time: document.getElementById('departureTime').value || null,
+                stop_duration: document.getElementById('stopDuration').value ? parseInt(document.getElementById('stopDuration').value) : null,
+                is_stop: document.getElementById('isStop').value === 'true',
+                fun_facts: document.getElementById('funFacts').value || null
+            };
+
+            try {
+                const url = locationId ? `/api/admin/locations/${locationId}` : '/api/admin/locations';
+                const method = locationId ? 'PUT' : 'POST';
+
+                const response = await fetch(url, {
+                    method: method,
+                    headers: {
+                        'Authorization': `Bearer ${getAuthToken()}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(locationData)
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || 'Failed to save location');
+                }
+
+                showAlert(`Location ${locationId ? 'updated' : 'added'} successfully!`, 'success');
+                closeLocationModal();
+                loadLocations();
+            } catch (error) {
+                showAlert('Error: ' + error.message, 'error');
+            }
+        });
+
+        // Delete Location
+        async function deleteLocation(id, name) {
+            if (!confirm(`Are you sure you want to delete "${name}"?`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/admin/locations/${id}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${getAuthToken()}`
+                    }
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || 'Failed to delete location');
+                }
+
+                showAlert('Location deleted successfully!', 'success');
+                loadLocations();
+            } catch (error) {
+                showAlert('Error: ' + error.message, 'error');
+            }
+        }
+
+        // Validate Locations
+        async function validateLocations() {
+            try {
+                const response = await fetch('/api/admin/locations/validate', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${getAuthToken()}`
+                    }
+                });
+
+                if (!response.ok) throw new Error('Failed to validate locations');
+
+                const results = await response.json();
+                displayValidationResults(results);
+            } catch (error) {
+                showAlert('Error: ' + error.message, 'error');
+            }
+        }
+
+        function displayValidationResults(results) {
+            const resultsDiv = document.getElementById('validationResults');
+            
+            // Clear previous content
+            resultsDiv.innerHTML = '';
+
+            const container = document.createElement('div');
+            container.className = 'validation-results';
+
+            if (results.valid) {
+                const successDiv = document.createElement('div');
+                successDiv.className = 'alert alert-success';
+                successDiv.textContent = '✓ All locations are valid!';
+                container.appendChild(successDiv);
+            } else {
+                const errorDiv = document.createElement('div');
+                errorDiv.className = 'alert alert-error';
+                errorDiv.textContent = '✗ Validation found errors';
+                container.appendChild(errorDiv);
+            }
+
+            const totalP = document.createElement('p');
+            const strong = document.createElement('strong');
+            strong.textContent = 'Total Locations:';
+            totalP.appendChild(strong);
+            totalP.appendChild(document.createTextNode(' ' + results.total_locations));
+            container.appendChild(totalP);
+
+            if (results.errors.length > 0) {
+                const errorsHeader = document.createElement('h3');
+                errorsHeader.textContent = 'Errors:';
+                container.appendChild(errorsHeader);
+                const errorsList = document.createElement('ul');
+                results.errors.forEach(error => {
+                    const li = document.createElement('li');
+                    li.className = 'error';
+                    li.textContent = error;
+                    errorsList.appendChild(li);
+                });
+                container.appendChild(errorsList);
+            }
+
+            if (results.warnings.length > 0) {
+                const warningsHeader = document.createElement('h3');
+                warningsHeader.textContent = 'Warnings:';
+                container.appendChild(warningsHeader);
+                const warningsList = document.createElement('ul');
+                results.warnings.forEach(warning => {
+                    const li = document.createElement('li');
+                    li.className = 'warning';
+                    li.textContent = warning;
+                    warningsList.appendChild(li);
+                });
+                container.appendChild(warningsList);
+            }
+
+            resultsDiv.appendChild(container);
+            
+            document.getElementById('validationModal').classList.add('active');
+        }
+
+        function closeValidationModal() {
+            document.getElementById('validationModal').classList.remove('active');
+        }
+
+        // Import Locations Functions
+        function showImportModal() {
+            document.getElementById('importData').value = '';
+            document.getElementById('importFile').value = '';
+            document.getElementById('importPreview').style.display = 'none';
+            document.getElementById('importErrors').style.display = 'none';
+            document.getElementById('importMode').value = 'append';
+            document.getElementById('importModal').classList.add('active');
+        }
+
+        function closeImportModal() {
+            document.getElementById('importModal').classList.remove('active');
+        }
+
+        function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const content = e.target.result;
+                    // Validate JSON
+                    JSON.parse(content);
+                    document.getElementById('importData').value = content;
+                    showImportPreview(content);
+                } catch (error) {
+                    showImportError('Invalid JSON file: ' + error.message);
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        function showImportPreview(jsonString) {
+            try {
+                const data = JSON.parse(jsonString);
+                let locations = [];
+                
+                // Handle both single object and array
+                if (Array.isArray(data)) {
+                    locations = data;
+                } else if (data.route && Array.isArray(data.route)) {
+                    locations = data.route;
+                } else if (data.locations && Array.isArray(data.locations)) {
+                    locations = data.locations;
+                } else {
+                    locations = [data];
+                }
+
+                const previewDiv = document.getElementById('importPreview');
+                const previewText = document.getElementById('importPreviewText');
+                previewText.textContent = `Found ${locations.length} location(s) to import`;
+                previewDiv.style.display = 'block';
+                
+                document.getElementById('importErrors').style.display = 'none';
+            } catch (error) {
+                showImportError('Invalid JSON: ' + error.message);
+            }
+        }
+
+        function showImportError(message) {
+            const errorDiv = document.getElementById('importErrors');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+            document.getElementById('importPreview').style.display = 'none';
+        }
+
+        async function importLocations() {
+            const jsonString = document.getElementById('importData').value.trim();
+            const mode = document.getElementById('importMode').value;
+
+            if (!jsonString) {
+                showImportError('Please provide JSON data');
+                return;
+            }
+
+            try {
+                let data = JSON.parse(jsonString);
+                let locations = [];
+
+                // Handle different JSON structures
+                if (Array.isArray(data)) {
+                    locations = data;
+                } else if (data.route && Array.isArray(data.route)) {
+                    locations = data.route;
+                } else if (data.locations && Array.isArray(data.locations)) {
+                    locations = data.locations;
+                } else {
+                    // Single object
+                    locations = [data];
+                }
+
+                if (locations.length === 0) {
+                    showImportError('No locations found in JSON data');
+                    return;
+                }
+
+                // Confirm if replacing all locations
+                if (mode === 'replace') {
+                    if (!confirm(`Are you sure you want to REPLACE all existing locations with ${locations.length} new location(s)? This cannot be undone.`)) {
+                        return;
+                    }
+                }
+
+                const response = await fetch('/api/admin/locations/import', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${getAuthToken()}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        mode: mode,
+                        locations: locations
+                    })
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || 'Failed to import locations');
+                }
+
+                const result = await response.json();
+                
+                let message = result.message;
+                if (result.errors && result.errors.length > 0) {
+                    message += ` (${result.errors.length} error(s) - check console for details)`;
+                    console.error('Import errors:', result.errors);
+                }
+
+                showAlert(message, 'success');
+                closeImportModal();
+                loadLocations();
+            } catch (error) {
+                showImportError('Error: ' + error.message);
+            }
+        }
+    </script>
+</body>
+</html>

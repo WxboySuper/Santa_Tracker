@@ -1,36 +1,24 @@
 {
   "route": [
     {
-      "location": "North Pole",
-      "latitude": 90.0,
-      "longitude": 135.0,
+      "location": "Updated Location",
+      "latitude": 41.0,
+      "longitude": -75.0,
+      "utc_offset": -4.0,
       "arrival_time": "2024-12-24T00:00:00Z",
       "departure_time": "2024-12-24T09:45:00Z",
-      "utc_offset": 0.0,
       "stop_duration": 585,
       "is_stop": true,
       "priority": 1,
       "fun_facts": "Santa's workshop and home! This is where all the magic begins each Christmas Eve."
     },
     {
-      "location": "Napari, Kiribati",
-      "latitude": 3.916801,
-      "longitude": -159.387869,
-      "arrival_time": "2024-12-24T10:00:00Z",
-      "departure_time": "2024-12-24T10:05:00Z",
-      "utc_offset": 14.0,
-      "stop_duration": 5,
-      "is_stop": true,
-      "priority": 2,
-      "fun_facts": "One of the first places to celebrate Christmas Day!"
-    },
-    {
       "location": "Tabwakea, Kiritimati",
       "latitude": 1.928637,
       "longitude": -157.495361,
+      "utc_offset": 14.0,
       "arrival_time": "2024-12-24T10:10:00Z",
       "departure_time": "2024-12-24T10:15:00Z",
-      "utc_offset": 14.0,
       "stop_duration": 5,
       "is_stop": true,
       "priority": 2,
@@ -40,209 +28,278 @@
       "location": "Poland, Kiritimati",
       "latitude": 1.866927,
       "longitude": -157.554005,
+      "utc_offset": 14.0,
       "arrival_time": "2024-12-24T10:20:00Z",
       "departure_time": "2024-12-24T10:23:00Z",
-      "utc_offset": 14.0
+      "is_stop": true
     },
     {
       "location": "Paris, Kiritimati",
       "latitude": 1.866959,
       "longitude": -157.3,
+      "utc_offset": 14.0,
       "arrival_time": "2024-12-24T10:28:00Z",
       "departure_time": "2024-12-24T10:31:00Z",
-      "utc_offset": 14.0
+      "is_stop": true
     },
     {
       "location": "London, Kiritimati",
       "latitude": 1.983387,
       "longitude": -157.47518,
+      "utc_offset": 14.0,
       "arrival_time": "2024-12-24T10:36:00Z",
       "departure_time": "2024-12-24T10:39:00Z",
-      "utc_offset": 14.0
+      "is_stop": true
     },
     {
       "location": "Banana, Kiritimati",
       "latitude": 1.98254,
       "longitude": -157.363858,
+      "utc_offset": 14.0,
       "arrival_time": "2024-12-24T10:44:00Z",
       "departure_time": "2024-12-24T10:47:00Z",
-      "utc_offset": 14.0
+      "is_stop": true
     },
     {
       "location": "Onouea Village, Kiribati",
       "latitude": 4.670661,
       "longitude": -160.378593,
+      "utc_offset": 14.0,
       "arrival_time": "2024-12-24T10:52:00Z",
       "departure_time": "2024-12-24T10:55:00Z",
-      "utc_offset": 14.0
+      "is_stop": true
     },
     {
       "location": "Malden Island, Kiribati",
       "latitude": -4.006211,
       "longitude": -154.964967,
+      "utc_offset": 14.0,
       "arrival_time": "2024-12-24T11:00:00Z",
       "departure_time": "2024-12-24T11:03:00Z",
-      "utc_offset": 14.0
+      "is_stop": true
     },
     {
       "location": "Starbuck Islands, Kiribati",
       "latitude": -5.63869,
       "longitude": -155.850191,
+      "utc_offset": 14.0,
       "arrival_time": "2024-12-24T11:08:00Z",
       "departure_time": "2024-12-24T11:11:00Z",
-      "utc_offset": 14.0
+      "is_stop": true
     },
     {
       "location": "Te One, New Zealand",
       "latitude": -43.932205,
       "longitude": -176.527514,
+      "utc_offset": 13.75,
       "arrival_time": "2024-12-24T11:16:00Z",
       "departure_time": "2024-12-24T11:21:00Z",
-      "utc_offset": 13.75
+      "is_stop": true
     },
     {
       "location": "Kaingaroa, New Zealand",
       "latitude": -43.734959,
       "longitude": -176.266484,
+      "utc_offset": 13.75,
       "arrival_time": "2024-12-24T11:26:00Z",
       "departure_time": "2024-12-24T11:29:00Z",
-      "utc_offset": 13.75
+      "is_stop": true
     },
     {
       "location": "Pitt Island, New Zealand",
       "latitude": -44.241555,
       "longitude": -176.239363,
+      "utc_offset": 13.75,
       "arrival_time": "2024-12-24T11:34:00Z",
       "departure_time": "2024-12-24T11:37:00Z",
-      "utc_offset": 13.75
+      "is_stop": true
     },
     {
       "location": "Arariki, Hull Island",
       "latitude": -4.516574,
       "longitude": -172.224931,
+      "utc_offset": 13.0,
       "arrival_time": "2024-12-24T11:42:00Z",
       "departure_time": "2024-12-24T11:45:00Z",
-      "utc_offset": 13.0
+      "is_stop": true
     },
     {
       "location": "Manra Island, Kiribati",
       "latitude": -4.441292,
       "longitude": -171.242937,
+      "utc_offset": 13.0,
       "arrival_time": "2024-12-24T11:50:00Z",
       "departure_time": "2024-12-24T11:53:00Z",
-      "utc_offset": 13.0
+      "is_stop": true
     },
     {
       "location": "Noriti, Kiribati",
       "latitude": -4.676394,
       "longitude": -174.539564,
+      "utc_offset": 13.0,
       "arrival_time": "2024-12-24T11:58:00Z",
       "departure_time": "2024-12-24T12:01:00Z",
-      "utc_offset": 13.0
+      "is_stop": true
     },
     {
       "location": "Na Utua, Tokelau",
       "latitude": -8.564024,
       "longitude": -172.467719,
+      "utc_offset": 13.0,
       "arrival_time": "2024-12-24T12:06:00Z",
       "departure_time": "2024-12-24T12:09:00Z",
-      "utc_offset": 13.0
+      "is_stop": true
     },
     {
       "location": "Atafu Village, Tokelau",
       "latitude": -8.535605,
       "longitude": -172.518316,
+      "utc_offset": 13.0,
       "arrival_time": "2024-12-24T12:14:00Z",
       "departure_time": "2024-12-24T12:17:00Z",
-      "utc_offset": 13.0
+      "is_stop": true
     },
     {
       "location": "Nukunonu Village, Tokelau",
       "latitude": -9.19935,
       "longitude": -171.849432,
+      "utc_offset": 13.0,
       "arrival_time": "2024-12-24T12:22:00Z",
       "departure_time": "2024-12-24T12:25:00Z",
-      "utc_offset": 13.0
+      "is_stop": true
     },
     {
       "location": "Na Taulaga, Tokelau",
       "latitude": -9.197092,
       "longitude": -171.772856,
+      "utc_offset": 13.0,
       "arrival_time": "2024-12-24T12:30:00Z",
       "departure_time": "2024-12-24T12:33:00Z",
-      "utc_offset": 13.0
+      "is_stop": true
     },
     {
       "location": "Kapiomotu, Tokelau",
       "latitude": -9.429219,
       "longitude": -171.196431,
+      "utc_offset": 13.0,
       "arrival_time": "2024-12-24T12:38:00Z",
       "departure_time": "2024-12-24T12:41:00Z",
-      "utc_offset": 13.0
+      "is_stop": true
     },
     {
       "location": "Sato'alepai, Samoa",
       "latitude": -13.442798,
       "longitude": -172.347189,
+      "utc_offset": 13.0,
       "arrival_time": "2024-12-24T12:46:00Z",
       "departure_time": "2024-12-24T12:49:00Z",
-      "utc_offset": 13.0
+      "is_stop": true
     },
     {
       "location": "Sagone, Samoa",
       "latitude": -13.682585,
       "longitude": -172.624235,
+      "utc_offset": 13.0,
       "arrival_time": "2024-12-24T12:54:00Z",
       "departure_time": "2024-12-24T12:57:00Z",
-      "utc_offset": 13.0
+      "is_stop": true
     },
     {
       "location": "Apia, Samoa",
       "latitude": -13.830432,
       "longitude": -171.768667,
+      "utc_offset": 13.0,
       "arrival_time": "2024-12-24T13:02:00Z",
       "departure_time": "2024-12-24T13:05:00Z",
-      "utc_offset": 13.0
+      "is_stop": true
     },
     {
       "location": "Hihifo, Tonga",
       "latitude": -15.954521,
       "longitude": -173.797215,
+      "utc_offset": 13.0,
       "arrival_time": "2024-12-24T13:10:00Z",
       "departure_time": "2024-12-24T13:13:00Z",
-      "utc_offset": 13.0
+      "is_stop": true
     },
     {
       "location": "Sapa ata, Tonga",
       "latitude": -15.574014,
       "longitude": -175.629491,
+      "utc_offset": 13.0,
       "arrival_time": "2024-12-24T13:18:00Z",
       "departure_time": "2024-12-24T13:21:00Z",
-      "utc_offset": 13.0
+      "is_stop": true
     },
     {
       "location": "Neiafu, Tonga",
       "latitude": -18.649538,
       "longitude": -173.985178,
+      "utc_offset": 13.0,
       "arrival_time": "2024-12-24T13:26:00Z",
       "departure_time": "2024-12-24T13:29:00Z",
-      "utc_offset": 13.0
+      "is_stop": true
     },
     {
       "location": "Lotofoa, Tonga",
       "latitude": -19.741773,
       "longitude": -174.308953,
+      "utc_offset": 13.0,
       "arrival_time": "2024-12-24T13:34:00Z",
       "departure_time": "2024-12-24T13:37:00Z",
-      "utc_offset": 13.0
+      "is_stop": true
     },
     {
       "location": "Kolonga, Tonga",
       "latitude": -21.127679,
       "longitude": -175.069156,
+      "utc_offset": 13.0,
       "arrival_time": "2024-12-24T13:42:00Z",
       "departure_time": "2024-12-24T13:45:00Z",
-      "utc_offset": 13.0
+      "is_stop": true
+    },
+    {
+      "location": "New Test Location",
+      "latitude": 35.6762,
+      "longitude": 139.6503,
+      "utc_offset": 9.0,
+      "is_stop": true,
+      "priority": 1
+    },
+    {
+      "location": "Complete Location",
+      "latitude": 48.8566,
+      "longitude": 2.3522,
+      "utc_offset": 1.0,
+      "arrival_time": "2024-12-24T12:00:00Z",
+      "departure_time": "2024-12-24T12:30:00Z",
+      "stop_duration": 30,
+      "is_stop": true,
+      "priority": 2,
+      "fun_facts": "City of Light!"
+    },
+    {
+      "location": "Test Location 1",
+      "latitude": 35.0,
+      "longitude": 140.0,
+      "utc_offset": 9.0,
+      "is_stop": true
+    },
+    {
+      "location": "Sydney, Australia",
+      "latitude": -33.8688,
+      "longitude": 151.2093,
+      "utc_offset": 10.0,
+      "is_stop": true,
+      "priority": 1
+    },
+    {
+      "location": "Auckland, New Zealand",
+      "latitude": -36.8485,
+      "longitude": 174.7633,
+      "utc_offset": 12.0,
+      "is_stop": true,
+      "priority": 1
     }
   ]
 }
