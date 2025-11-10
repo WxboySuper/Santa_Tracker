@@ -611,3 +611,84 @@ class TestImportLocations:
         )
 
         assert response.status_code == 401
+
+
+class TestRouteStatus:
+    """Test GET /api/admin/route/status endpoint."""
+
+    def test_get_route_status_success(self, client, auth_headers):
+        """Test getting route status."""
+        response = client.get("/api/admin/route/status", headers=auth_headers)
+        assert response.status_code == 200
+
+        data = response.get_json()
+        assert "total_locations" in data
+        assert "locations_with_timing" in data
+        assert "priority_breakdown" in data
+        assert "last_modified" in data
+        assert "route_complete" in data
+        assert isinstance(data["total_locations"], int)
+        assert isinstance(data["route_complete"], bool)
+
+    def test_get_route_status_requires_auth(self, client):
+        """Test that route status requires authentication."""
+        response = client.get("/api/admin/route/status")
+        assert response.status_code == 401
+
+
+class TestRoutePrecompute:
+    """Test POST /api/admin/route/precompute endpoint."""
+
+    def test_precompute_route_success(self, client, auth_headers):
+        """Test route precomputation."""
+        response = client.post("/api/admin/route/precompute", headers=auth_headers)
+        assert response.status_code == 200
+
+        data = response.get_json()
+        assert "message" in data
+        assert "total_locations" in data
+        assert "completion_status" in data
+        assert data["completion_status"] == "complete"
+
+    def test_precompute_route_requires_auth(self, client):
+        """Test that route precomputation requires authentication."""
+        response = client.post("/api/admin/route/precompute")
+        assert response.status_code == 401
+
+
+class TestBackupExport:
+    """Test GET /api/admin/backup/export endpoint."""
+
+    def test_export_backup_success(self, client, auth_headers):
+        """Test exporting backup."""
+        response = client.get("/api/admin/backup/export", headers=auth_headers)
+        assert response.status_code == 200
+
+        data = response.get_json()
+        assert "backup_timestamp" in data
+        assert "total_locations" in data
+        assert "route" in data
+        assert isinstance(data["route"], list)
+        assert data["total_locations"] == len(data["route"])
+
+    def test_export_backup_contains_all_fields(self, client, auth_headers):
+        """Test that export includes all location fields."""
+        response = client.get("/api/admin/backup/export", headers=auth_headers)
+        data = response.get_json()
+
+        if len(data["route"]) > 0:
+            location = data["route"][0]
+            required_fields = [
+                "location",
+                "latitude",
+                "longitude",
+                "utc_offset",
+                "is_stop",
+            ]
+            for field in required_fields:
+                assert field in location
+
+    def test_export_backup_requires_auth(self, client):
+        """Test that backup export requires authentication."""
+        response = client.get("/api/admin/backup/export")
+        assert response.status_code == 401

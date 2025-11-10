@@ -2,6 +2,7 @@ import logging
 import os
 import secrets
 import sys
+from datetime import datetime, timedelta
 from functools import wraps
 
 from flask import Flask, jsonify, render_template, request
@@ -425,6 +426,142 @@ def import_locations():
         return jsonify({"error": "Location data not found"}), 404
     except Exception as e:
         logger.exception("Error importing locations: %s", str(e))
+        return jsonify({"error": "Internal server error"}), 500
+
+
+@app.route("/api/admin/route/status", methods=["GET"])
+@require_admin_auth
+def get_route_status():
+    """Get status information about the current route data."""
+    try:
+        locations = load_santa_route_from_json()
+
+        # Calculate statistics
+        total_locations = len(locations)
+        locations_with_times = sum(
+            1 for loc in locations if loc.arrival_time and loc.departure_time
+        )
+        priority_counts = {}
+        for loc in locations:
+            if loc.priority:
+                priority_counts[loc.priority] = priority_counts.get(loc.priority, 0) + 1
+
+        # Get file modification time for last update info
+        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        route_file = os.path.join(base_dir, "static", "data", "santa_route.json")
+        import time
+
+        last_modified = (
+            time.ctime(os.path.getmtime(route_file))
+            if os.path.exists(route_file)
+            else "Unknown"
+        )
+
+        return (
+            jsonify(
+                {
+                    "total_locations": total_locations,
+                    "locations_with_timing": locations_with_times,
+                    "priority_breakdown": priority_counts,
+                    "last_modified": last_modified,
+                    "route_complete": locations_with_times == total_locations
+                    and total_locations > 0,
+                }
+            ),
+            200,
+        )
+    except FileNotFoundError:
+        return jsonify({"error": "Route data not found"}), 404
+    except Exception:
+        return jsonify({"error": "Internal server error"}), 500
+
+
+@app.route("/api/admin/route/precompute", methods=["POST"])
+@require_admin_auth
+def precompute_route():
+    """Trigger route precomputation to calculate optimal timings."""
+    try:
+        locations = load_santa_route_from_json()
+
+        if len(locations) == 0:
+            return jsonify({"error": "No locations to precompute"}), 400
+
+        # Simple precomputation: assign times based on UTC offset order
+        # This is a basic implementation - can be enhanced with actual routing logic
+
+        # Sort locations by UTC offset (descending) to follow time zones
+        sorted_locations = sorted(
+            locations, key=lambda loc: (-loc.utc_offset, loc.priority or 2)
+        )
+
+        # Start at midnight UTC on Christmas Eve
+        current_time = datetime(2024, 12, 24, 0, 0, 0)
+
+        for idx, loc in enumerate(sorted_locations):
+            # Set default stop duration if not present
+            if loc.stop_duration is None:
+                # First location (North Pole) gets longer prep time
+                loc.stop_duration = 30 if idx > 0 else 60
+
+            loc.arrival_time = current_time.isoformat() + "Z"
+            current_time += timedelta(minutes=loc.stop_duration)
+            loc.departure_time = current_time.isoformat() + "Z"
+
+            # Add travel time to next location (simplified)
+            current_time += timedelta(minutes=10)
+
+        # Save the updated route
+        save_santa_route_to_json(sorted_locations)
+
+        return (
+            jsonify(
+                {
+                    "message": "Route precomputed successfully",
+                    "total_locations": len(sorted_locations),
+                    "completion_status": "complete",
+                }
+            ),
+            200,
+        )
+    except FileNotFoundError:
+        return jsonify({"error": "Route data not found"}), 404
+    except Exception as e:
+        logger.exception("Error precomputing route: %s", str(e))
+        return jsonify({"error": "Internal server error"}), 500
+
+
+@app.route("/api/admin/backup/export", methods=["GET"])
+@require_admin_auth
+def export_backup():
+    """Export current locations and route data as JSON backup."""
+    try:
+        locations = load_santa_route_from_json()
+
+        # Create backup data structure
+        backup_data = {
+            "backup_timestamp": datetime.now().isoformat(),
+            "total_locations": len(locations),
+            "route": [
+                {
+                    "location": loc.name,
+                    "latitude": loc.latitude,
+                    "longitude": loc.longitude,
+                    "utc_offset": loc.utc_offset,
+                    "arrival_time": loc.arrival_time,
+                    "departure_time": loc.departure_time,
+                    "stop_duration": loc.stop_duration,
+                    "is_stop": loc.is_stop,
+                    "priority": loc.priority,
+                    "fun_facts": loc.fun_facts,
+                }
+                for loc in locations
+            ],
+        }
+
+        return jsonify(backup_data), 200
+    except FileNotFoundError:
+        return jsonify({"error": "Route data not found"}), 404
+    except Exception:
         return jsonify({"error": "Internal server error"}), 500
 
 
