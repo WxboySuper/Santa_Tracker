@@ -69,6 +69,7 @@ class TestAdminAuthentication:
                 os.environ["ADMIN_PASSWORD"] = orig_admin_pw
             elif "ADMIN_PASSWORD" in os.environ:
                 del os.environ["ADMIN_PASSWORD"]
+
     def test_admin_route_with_invalid_auth(self, client):
         """Test admin route with invalid credentials."""
         os.environ["ADMIN_PASSWORD"] = "correct_password"
