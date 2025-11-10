@@ -4,7 +4,7 @@ import secrets
 import sys
 from functools import wraps
 
-from flask import Flask, jsonify, render_template, request, escape
+from flask import Flask, escape, jsonify, render_template, request
 
 # Add the src directory to the path to allow imports
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
