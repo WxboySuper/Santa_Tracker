@@ -514,10 +514,10 @@ function checkQuizAnswer(questionIndex, selectedOption, correctAnswer) {
         const option = parseInt(btn.dataset.option, 10);
         if (option === correctAnswer) {
             btn.classList.add('correct');
-            btn.setAttribute('aria-label', btn.getAttribute('aria-label') + ' - Correct answer');
+            btn.setAttribute('aria-label', `${btn.getAttribute('aria-label')} - Correct answer`);
         } else if (option === selectedOption && option !== correctAnswer) {
             btn.classList.add('incorrect');
-            btn.setAttribute('aria-label', btn.getAttribute('aria-label') + ' - Incorrect answer');
+            btn.setAttribute('aria-label', `${btn.getAttribute('aria-label')} - Incorrect answer`);
         }
     });
 }
