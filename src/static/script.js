@@ -37,7 +37,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Custom Santa icon with animation
     // skipcq: JS-0125
     const santaIcon = L.icon({
-        iconUrl: 'src/static/images/santa-icon.png',
+        iconUrl: '/static/images/santa-icon.png',
         iconSize: [48, 48],
         iconAnchor: [24, 24],
         popupAnchor: [0, -24],
@@ -168,7 +168,7 @@ function initSnowfall() {
     const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     if (prefersReducedMotion) return;
 
-    const snowflakeCount = 50;
+    const snowflakeCount = 40;
     const snowflakes = ['❄', '❅', '❆'];
 
     for (let i = 0; i < snowflakeCount; i++) {
@@ -204,11 +204,11 @@ function updateCountdown() {
     
     const now = new Date();
     const currentYear = now.getFullYear();
-    const christmas = new Date(currentYear, 11, 25, 0, 0, 0);
+    let christmas = new Date(currentYear, 11, 25, 0, 0, 0);
     
     // If Christmas has passed this year, show next year's Christmas
     if (now > christmas) {
-        christmas.setFullYear(currentYear + 1);
+        christmas = new Date(currentYear + 1, 11, 25, 0, 0, 0);
     }
     
     const diff = christmas - now;

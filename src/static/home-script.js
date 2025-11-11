@@ -52,11 +52,11 @@ function updateCountdown() {
     
     const now = new Date();
     const currentYear = now.getFullYear();
-    const christmas = new Date(currentYear, 11, 25, 0, 0, 0);
+    let christmas = new Date(currentYear, 11, 25, 0, 0, 0);
     
     // If Christmas has passed this year, show next year's Christmas
     if (now > christmas) {
-        christmas.setFullYear(currentYear + 1);
+        christmas = new Date(currentYear + 1, 11, 25, 0, 0, 0);
     }
     
     const diff = christmas - now;
