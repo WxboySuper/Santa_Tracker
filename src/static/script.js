@@ -9,6 +9,15 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initialize snowfall effect
     initSnowfall();
     
+    // Initialize countdown timers first (independent of map)
+    initCountdowns();
+    
+    // Check if Leaflet is loaded before initializing map
+    if (typeof L === 'undefined') {
+        console.error('Leaflet library not loaded. Map functionality will be disabled.');
+        return;
+    }
+    
     // Initialize map with festive theme
     // skipcq: JS-0125
     const map = L.map('map', {
@@ -127,9 +136,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }, 50); // 50ms per step = 1.5s total animation
     }
 
-    // Initialize countdown timers
-    initCountdowns();
-
     // Example: Load and display route (replace with actual data loading)
     loadSantaRoute();
 
@@ -203,43 +209,22 @@ let christmasCountdownInterval = null;
 let locationCountdownInterval = null;
 
 function initCountdowns() {
-    updateCountdown();
-    christmasCountdownInterval = setInterval(updateCountdown, 1000);
+    // Initialize main tour launch countdown using CountdownModule
+    const countdownElement = document.getElementById('countdown');
+    if (countdownElement) {
+        christmasCountdownInterval = window.CountdownModule.createCountdown({
+            targetElement: countdownElement,
+            useLocalTime: true // Use local time for user-friendly display
+        });
+        christmasCountdownInterval.start();
+    }
     
+    // Initialize location-specific countdown
     updateLocationCountdown();
     locationCountdownInterval = setInterval(updateLocationCountdown, 1000);
 }
 
-// Update main Christmas countdown
-function updateCountdown() {
-    const countdownElement = document.getElementById('countdown');
-    if (!countdownElement) return;
-    
-    const now = new Date();
-    const currentYear = now.getFullYear();
-    let christmas = new Date(currentYear, 11, 25, 0, 0, 0);
-    
-    // If Christmas has passed this year, show next year's Christmas
-    if (now > christmas) {
-        christmas = new Date(currentYear + 1, 11, 25, 0, 0, 0);
-    }
-    
-    const diff = christmas - now;
-    
-    if (diff <= 0) {
-        countdownElement.innerHTML = '🎄 Merry Christmas! 🎅';
-        return;
-    }
-    
-    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-    const seconds = Math.floor((diff % (1000 * 60)) / 1000);
-    
-    countdownElement.innerHTML = `${days}d ${hours}h ${minutes}m ${seconds}s`;
-}
-
-// Update location countdown timer
+// Update location countdown timer (for next departure from current location)
 function updateLocationCountdown() {
     const countdownElement = document.getElementById('location-countdown');
     if (!countdownElement) return;

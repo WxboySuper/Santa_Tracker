@@ -12,7 +12,11 @@ Track Santa's magical journey around the world on Christmas Eve! This interactiv
 - 🗺️ **Interactive Map**: Real-time visualization of Santa's journey using Leaflet.js
 - 📍 **Location Tracking**: See Santa's current location and next destination
 - 📏 **Distance Calculator**: Calculate the distance from Santa to your location
-- ⏱️ **Countdown Timer**: Countdown to Christmas Eve and Santa's departure
+- ⏱️ **Countdown Timer**: Live countdown to Christmas Eve tour launch (December 24th)
+  - Displays days, hours, minutes, and seconds until Santa's tour begins
+  - Updates in real-time every second
+  - Uses local time for user convenience
+  - Automatically adjusts for next year after Christmas Eve passes
 - 📱 **Progressive Web App**: Install on your device for offline access
 - 🎨 **Responsive Design**: Works seamlessly on desktop, tablet, and mobile devices
 - ♿ **Accessibility**: ARIA labels and screen reader support
@@ -140,6 +144,36 @@ Santa_Tracker/
 - **Focus Indicators**: High-contrast focus outlines (3px gold)
 - **Semantic HTML**: Proper heading hierarchy and landmark regions
 - **High Contrast Support**: Tested with `prefers-contrast: high`
+
+### Countdown Timer Implementation
+The countdown timer is a core feature that builds excitement for Santa's Christmas Eve tour launch:
+
+- **Target Time**: December 24th at midnight (local time) when Santa begins his journey
+- **Live Updates**: Refreshes every second to show real-time countdown
+- **Format**: Displays as "Xd XXh XXm XXs" (days, hours, minutes, seconds)
+- **Completion Message**: Shows "🎅 Santa's Tour Has Begun! 🎄" when the tour starts
+- **Year Rollover**: Automatically targets next year's Christmas Eve after the current one passes
+- **Modular Design**: Implemented in `src/static/countdown.js` for reusability
+- **Configuration Options**:
+  - `useLocalTime`: true (default) uses local timezone, false uses UTC-based calculation
+  - `formatFunction`: Custom formatting function can be provided
+  - `onUpdate`: Optional callback triggered on each countdown update
+- **Usage Example**:
+  ```javascript
+  // Create a countdown instance
+  const countdown = window.CountdownModule.createCountdown({
+      targetElement: document.getElementById('countdown'),
+      useLocalTime: true,
+      onUpdate: (timeData) => {
+          console.log(`${timeData.days} days remaining`);
+      }
+  });
+  
+  countdown.start();  // Begin countdown
+  countdown.stop();   // Stop countdown
+  ```
+
+For more details, see the inline documentation in `src/static/countdown.js`.
 
 ## 🧪 Development
 
