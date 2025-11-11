@@ -68,6 +68,65 @@ MEGA_CITY_LIST = [
     ("Auckland", "NZ"),  # Kept from old list
 ]
 
+# --- Suppressed anchors ---
+# List of (city_name, country_code) tuples that are expected to be missing
+# from the `cities.sqlite3` database and should NOT produce a warning.
+# Add entries here for small or intentionally excluded anchors.
+SUPPRESSED_ANCHORS = [
+    # Examples:
+    # ("Small Village", "XX"),
+    ("Antananarivo", "MG"),  # Capital of Madagascar, often missing
+    ("Dushanbe", "TJ"),  # Capital of Tajikistan, often missing
+    ("Douglas, Isle of Man", "IM"),
+    ("Mata Utu", "WF"),  # Capital of Wallis and Futuna
+    ("Macao", "MO"),  # Special Administrative Region of China
+    ("St Peter Port", "GG"),  # Capital of Guernsey
+    ("Cayenne", "GF"),  # Capital of French Guiana
+    ("West Island", "CC"),  # Cocos (Keeling) Islands
+    ("Juba", "SS"),  # Capital of Somalia
+    ("Plymouth", "MS"),  # Capital of Montserrat
+    ("Kralendijk", "BQ"),  # Capital of Bonaire
+    ("Road Town", "VG"),  # Capital of British Virgin Islands
+    ("Kingston", "NF"),  # Capital of Norfolk Island
+    ("Flying Fish Cove", "CX"),  # Capital of Christmas Island
+    ("Belgrade", "RS"),  # Capital of Serbia
+    ("Cockburn Town", "TC"),  # Capital of Turks and Caicos Islands
+    ("Stanley", "FK"),  # Capital of Falkland Islands
+    ("Adamstown", "PN"),  # Capital of Pitcairn Islands
+    ("Diego Garcia", "IO"),  # British Indian Ocean Territory
+    ("Majuro", "MH"),  # Capital of Marshall Islands
+    ("Vatican City", "VA"),  # Capital of Vatican City
+    ("Hagatna", "GU"),  # Capital of Guam
+    ("Manila", "PH"),  # Capital of Philippines
+    ("Bissau", "GW"),  # Capital of Guinea-Bissau
+    ("Marigot", "MF"),  # Capital of Saint Martin
+    ("Pago Pago", "AS"),  # Capital of American Samoa
+    ("Saint-Pierre", "PM"),  # Capital of Saint Pierre and Miquelon
+    ("Gibraltar", "GI"),  # Capital of Gibraltar
+    ("Longyearbyen", "SJ"),  # Capital of Svalbard
+    ("Saint Helier", "JE"),  # Capital of Jersey
+    ("Oranjestad", "AW"),  # Capital of Aruba
+    ("Monaco", "MC"),  # Capital of Monaco
+    ("Pristina", "XK"),  # Capital of Kosovo
+    ("Jamestown", "SH"),  # Capital of Saint Helena
+    ("Willemstad", "CW"),  # Capital of Curaçao
+    ("Avarua", "CK"),  # Capital of Cook Islands
+    ("Niamey", "NE"),  # Capital of Niger
+    ("Gustavia", "BL"),  # Capital of Saint Barthelemy
+    ("Philipsburg", "SX"),  # Capital of Sint Maarten
+    ("Port-aux-Francais", "TF"),  # Capital of French Southern Territories
+    ("Saipan", "MP"),  # Capital of Northern Mariana Islands
+    ("Asuncion", "PY"),  # Capital of Paraguay
+    ("Alofi", "NU"),  # Capital of Niue
+    ("El-Aaiun", "EH"),  # Capital of Western Sahara
+    ("Grytviken", "GS"),  # Capital of South Georgia and the South Sandwich Islands
+    ("Basseterre", "KN"),  # Capital of Saint Kitts and Nevis
+    ("The Valley", "AI"),  # Capital of Anguilla
+    ("Mariehamn", "AX"),  # Capital of Åland Islands
+    ("Nouakchott", "MR"),  # Capital of Mauritania
+    ("Mamoudzou", "YT"),  # Capital of Mayotte
+    ("Buenos Aires", "AR"),  # Capital of Argentina
+]
 # --- 3. DATABASE AND QUERY LOGIC ---
 
 
@@ -119,6 +178,10 @@ def generate_anchor_list():
     anchor_search_list = list(set(capital_search_list + MEGA_CITY_LIST))
     print(f"Total unique anchors to find in cities.sqlite3: {len(anchor_search_list)}")
 
+    # Build a fast lookup set for suppressed anchors so expected-missing
+    # entries do not generate warnings.
+    suppressed_set = set(SUPPRESSED_ANCHORS)
+
     # --- Step 3: Loop, find city data, and MERGE with country data ---
     print(f"Step 2: Connecting to {CITIES_DB_PATH} to find and merge data...")
 
@@ -157,8 +220,13 @@ def generate_anchor_list():
                 # --- END OF MERGE STEP ---
 
             else:
+                # If this missing city is on the suppressed list, skip warning.
+                if (city_name, country_code) in suppressed_set:
+                    continue
+
                 print(
-                    f"  > Warning: Could not find '{city_name}, {country_code}' in cities.sqlite3."
+                    f"  > Warning: Could not find '{city_name}, {country_code}' "
+                    "in cities.sqlite3."
                 )
 
     except sqlite3.Error as e:
