@@ -105,6 +105,60 @@ class TestAdminAuthentication:
         data = response.get_json()
         assert "not configured" in data["error"].lower()
 
+    def test_login_endpoint_success(self, client):
+        """Test successful login with correct password."""
+        os.environ["ADMIN_PASSWORD"] = "test_password"
+        response = client.post(
+            "/api/admin/login",
+            data=json.dumps({"password": "test_password"}),
+            content_type="application/json",
+        )
+        assert response.status_code == 200
+        data = response.get_json()
+        assert "token" in data
+        assert len(data["token"]) > 0
+
+    def test_login_endpoint_invalid_password(self, client):
+        """Test login with incorrect password."""
+        os.environ["ADMIN_PASSWORD"] = "correct_password"
+        response = client.post(
+            "/api/admin/login",
+            data=json.dumps({"password": "wrong_password"}),
+            content_type="application/json",
+        )
+        assert response.status_code == 401
+        data = response.get_json()
+        assert "error" in data
+
+    def test_login_endpoint_no_password(self, client):
+        """Test login without password."""
+        response = client.post(
+            "/api/admin/login",
+            data=json.dumps({}),
+            content_type="application/json",
+        )
+        assert response.status_code == 400
+        data = response.get_json()
+        assert "error" in data
+
+    def test_session_token_authentication(self, client):
+        """Test that session token can be used for authentication."""
+        os.environ["ADMIN_PASSWORD"] = "test_password"
+
+        # Login to get session token
+        login_response = client.post(
+            "/api/admin/login",
+            data=json.dumps({"password": "test_password"}),
+            content_type="application/json",
+        )
+        assert login_response.status_code == 200
+        token = login_response.get_json()["token"]
+
+        # Use session token to access protected endpoint
+        headers = {"Authorization": f"Bearer {token}"}
+        response = client.get("/api/admin/locations", headers=headers)
+        assert response.status_code == 200
+
 
 class TestGetLocations:
     """Test GET /api/admin/locations endpoint."""

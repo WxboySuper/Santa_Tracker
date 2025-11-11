@@ -37,26 +37,35 @@ if app.config["SECRET_KEY"] == "dev-secret-key":
         "Set SECRET_KEY environment variable to a secure random value."
     )
 
+# Simple in-memory session store (in production, use Redis or database)
+active_sessions = {}
+
 
 def require_admin_auth(f):
-    """Decorator to require admin authentication via password."""
+    """Decorator to require admin authentication via session token."""
 
     @wraps(f)
     def decorated_function(*args, **kwargs):
         auth_header = request.headers.get("Authorization")
-        admin_password = os.environ.get("ADMIN_PASSWORD")
-
-        if not admin_password:
-            return jsonify({"error": "Admin access not configured"}), 500
 
         if not auth_header or not auth_header.startswith("Bearer "):
             return jsonify({"error": "Authentication required"}), 401
 
         token = auth_header.split(" ")[1]
-        if not secrets.compare_digest(token, admin_password):
-            return jsonify({"error": "Invalid credentials"}), 403
 
-        return f(*args, **kwargs)
+        # Check if token is valid session token
+        if token in active_sessions:
+            return f(*args, **kwargs)
+
+        # Fallback: check if token matches admin password (for backward compatibility)
+        admin_password = os.environ.get("ADMIN_PASSWORD")
+        if not admin_password:
+            return jsonify({"error": "Admin access not configured"}), 500
+
+        if secrets.compare_digest(token, admin_password):
+            return f(*args, **kwargs)
+
+        return jsonify({"error": "Invalid credentials"}), 403
 
     return decorated_function
 
@@ -71,6 +80,33 @@ def home():
 def tracker():
     """Santa tracking page with live map."""
     return render_template("tracker.html")
+
+
+@app.route("/api/admin/login", methods=["POST"])
+def admin_login():
+    """Admin login endpoint that returns a session token."""
+    try:
+        data = request.get_json(force=True, silent=True)
+        if not data or "password" not in data:
+            return jsonify({"error": "Password required"}), 400
+
+        admin_password = os.environ.get("ADMIN_PASSWORD")
+        if not admin_password:
+            return jsonify({"error": "Admin access not configured"}), 500
+
+        if not secrets.compare_digest(data["password"], admin_password):
+            return jsonify({"error": "Invalid password"}), 401
+
+        # Generate a secure session token
+        session_token = secrets.token_urlsafe(32)
+        active_sessions[session_token] = {
+            "created_at": datetime.now().isoformat(),
+            "last_used": datetime.now().isoformat(),
+        }
+
+        return jsonify({"token": session_token}), 200
+    except Exception:
+        return jsonify({"error": "Internal server error"}), 500
 
 
 @app.route("/index")
@@ -509,7 +545,7 @@ def precompute_route():
         # Start at midnight UTC on Christmas Eve
         current_time = datetime(2024, 12, 24, 0, 0, 0)
 
-        for idx, loc in enumerate(sorted_locations):
+        for loc in sorted_locations:
             # Set default stop duration if not present
             if loc.stop_duration is None:
                 # North Pole gets longer prep time

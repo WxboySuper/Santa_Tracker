@@ -569,8 +569,22 @@
             const password = document.getElementById('password').value;
 
             try {
-                // Use password directly as Bearer token (simple authentication)
-                setAuthToken(password);
+                // Call login endpoint to get session token
+                const loginResponse = await fetch('/api/admin/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ password })
+                });
+
+                if (!loginResponse.ok) {
+                    showLoginError('Invalid password');
+                    return;
+                }
+
+                const loginData = await loginResponse.json();
+                setAuthToken(loginData.token);
 
                 // Verify authentication by fetching locations
                 const response = await fetch('/api/admin/locations', {
