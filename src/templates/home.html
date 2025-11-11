@@ -28,10 +28,15 @@
                 <div id="countdown" class="countdown-display" aria-live="polite"></div>
             </div>
             
-            <!-- CTA Button -->
-            <a href="{{ url_for('tracker') }}" class="cta-button">
-                <span>🎁 Start Tracking Santa 🎁</span>
-            </a>
+            <!-- CTA Buttons -->
+            <div style="display: flex; flex-wrap: wrap; gap: 1rem; justify-content: center; margin-bottom: 2rem;">
+                <a href="{{ url_for('tracker') }}" class="cta-button">
+                    <span>🎁 Start Tracking Santa 🎁</span>
+                </a>
+                <a href="{{ url_for('advent') }}" class="cta-button" style="background: linear-gradient(135deg, #165b33, #228b22);">
+                    <span>🎄 Advent Calendar 🎄</span>
+                </a>
+            </div>
             
             <!-- Features -->
             <div class="features">
@@ -41,9 +46,9 @@
                     <p>Follow Santa's route in real-time</p>
                 </div>
                 <div class="feature-card">
-                    <span class="feature-icon">📍</span>
-                    <h3>Location Updates</h3>
-                    <p>See where Santa is right now</p>
+                    <span class="feature-icon">🎄</span>
+                    <h3>Advent Calendar</h3>
+                    <p>Daily surprises Dec 1-24</p>
                 </div>
                 <div class="feature-card">
                     <span class="feature-icon">⏱️</span>

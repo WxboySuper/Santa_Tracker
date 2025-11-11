@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎄 Advent Calendar - Santa Tracker</title>
+    <meta name="description" content="Unlock daily surprises on our interactive North Pole Advent Calendar! New content each day from December 1st to 24th.">
+    <link rel="stylesheet" href="{{ url_for('static', filename='advent-map.css') }}">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="nav-bar" role="navigation" aria-label="Main navigation">
+        <div class="nav-container">
+            <a href="{{ url_for('home') }}" class="nav-link">
+                <span aria-hidden="true">🏠</span>
+                <span>Home</span>
+            </a>
+            <a href="{{ url_for('tracker') }}" class="nav-link">
+                <span aria-hidden="true">🗺️</span>
+                <span>Tracker</span>
+            </a>
+            <a href="{{ url_for('advent') }}" class="nav-link nav-link-active">
+                <span aria-hidden="true">🎄</span>
+                <span>Advent</span>
+            </a>
+        </div>
+    </nav>
+
+    <!-- Header -->
+    <header class="advent-header">
+        <h1 class="advent-title">
+            <span aria-hidden="true">🎄</span>
+            North Pole Advent Calendar
+            <span aria-hidden="true">🎄</span>
+        </h1>
+        <p class="advent-subtitle">Discover daily surprises from December 1st to 24th!</p>
+    </header>
+
+    <!-- Main Content -->
+    <main class="advent-main">
+        <div class="advent-container">
+            <!-- Loading State -->
+            <div id="loading" class="loading-state" aria-live="polite" aria-busy="true">
+                <span class="loading-spinner" aria-hidden="true">❄️</span>
+                <p>Loading your Advent Calendar...</p>
+            </div>
+
+            <!-- Error State -->
+            <div id="error" class="error-state" role="alert" style="display: none;">
+                <span aria-hidden="true">⚠️</span>
+                <p id="error-message">Something went wrong. Please try again later.</p>
+            </div>
+
+            <!-- North Pole Map -->
+            <div id="north-pole-map" class="map-container" style="display: none;">
+                <svg viewBox="0 0 800 600" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Interactive North Pole Advent Calendar Map">
+                    <title>North Pole Advent Calendar Map</title>
+                    <desc>Interactive map showing 24 locations representing each day of December's Advent Calendar. Click on unlocked buildings to reveal daily content.</desc>
+                    
+                    <!-- Background -->
+                    <rect width="800" height="600" fill="#e6f2ff"/>
+                    
+                    <!-- Snow ground -->
+                    <ellipse cx="400" cy="500" rx="350" ry="80" fill="#ffffff" opacity="0.8"/>
+                    
+                    <!-- Day 1: Santa's Workshop (Center Top) -->
+                    <g id="building-1" class="building" data-day="1" role="button" tabindex="0" aria-label="Day 1: Santa's Workshop">
+                        <rect x="350" y="80" width="100" height="80" fill="#8b0000" stroke="#5c0000" stroke-width="2"/>
+                        <polygon points="400,40 340,80 460,80" fill="#c41e3a"/>
+                        <rect x="370" y="120" width="25" height="30" fill="#4a2511"/>
+                        <text x="400" y="100" text-anchor="middle" font-size="24" font-weight="bold" fill="#ffffff">1</text>
+                    </g>
+
+                    <!-- Day 2: Toy Factory -->
+                    <g id="building-2" class="building" data-day="2" role="button" tabindex="0" aria-label="Day 2: Toy Factory">
+                        <rect x="150" y="120" width="80" height="70" fill="#165b33" stroke="#0d3d22" stroke-width="2"/>
+                        <polygon points="190,90 140,120 240,120" fill="#228b22"/>
+                        <text x="190" y="140" text-anchor="middle" font-size="20" font-weight="bold" fill="#ffffff">2</text>
+                    </g>
+
+                    <!-- Day 3: Reindeer Stable -->
+                    <g id="building-3" class="building" data-day="3" role="button" tabindex="0" aria-label="Day 3: Reindeer Stable">
+                        <rect x="570" y="120" width="80" height="70" fill="#8b4513" stroke="#5d2e0e" stroke-width="2"/>
+                        <polygon points="610,90 560,120 660,120" fill="#a0522d"/>
+                        <text x="610" y="140" text-anchor="middle" font-size="20" font-weight="bold" fill="#ffffff">3</text>
+                    </g>
+
+                    <!-- Day 4: Gift Wrapping Station -->
+                    <g id="building-4" class="building" data-day="4" role="button" tabindex="0" aria-label="Day 4: Gift Wrapping Station">
+                        <rect x="250" y="200" width="70" height="60" fill="#ffd700" stroke="#daa520" stroke-width="2"/>
+                        <polygon points="285,175 245,200 325,200" fill="#ffec8b"/>
+                        <text x="285" y="220" text-anchor="middle" font-size="18" font-weight="bold" fill="#8b0000">4</text>
+                    </g>
+
+                    <!-- Day 5: Candy Cane Factory -->
+                    <g id="building-5" class="building" data-day="5" role="button" tabindex="0" aria-label="Day 5: Candy Cane Factory">
+                        <rect x="480" y="200" width="70" height="60" fill="#ff69b4" stroke="#ff1493" stroke-width="2"/>
+                        <polygon points="515,175 475,200 555,200" fill="#ffb6c1"/>
+                        <text x="515" y="220" text-anchor="middle" font-size="18" font-weight="bold" fill="#ffffff">5</text>
+                    </g>
+
+                    <!-- Day 6: Elf Dormitory -->
+                    <g id="building-6" class="building" data-day="6" role="button" tabindex="0" aria-label="Day 6: Elf Dormitory">
+                        <rect x="90" y="220" width="65" height="55" fill="#4169e1" stroke="#1e3a8a" stroke-width="2"/>
+                        <polygon points="122.5,200 85,220 160,220" fill="#6495ed"/>
+                        <text x="122.5" y="238" text-anchor="middle" font-size="18" font-weight="bold" fill="#ffffff">6</text>
+                    </g>
+
+                    <!-- Day 7: Snowman Village -->
+                    <g id="building-7" class="building" data-day="7" role="button" tabindex="0" aria-label="Day 7: Snowman Village">
+                        <circle cx="650" cy="240" r="30" fill="#ffffff" stroke="#b0c4de" stroke-width="2"/>
+                        <text x="650" y="248" text-anchor="middle" font-size="18" font-weight="bold" fill="#000000">7</text>
+                    </g>
+
+                    <!-- Day 8: Christmas Tree Farm -->
+                    <g id="building-8" class="building" data-day="8" role="button" tabindex="0" aria-label="Day 8: Christmas Tree Farm">
+                        <polygon points="360,320 340,360 380,360" fill="#165b33"/>
+                        <rect x="355" y="360" width="10" height="15" fill="#8b4513"/>
+                        <text x="360" y="350" text-anchor="middle" font-size="18" font-weight="bold" fill="#ffffff">8</text>
+                    </g>
+
+                    <!-- Day 9: Mrs. Claus Kitchen -->
+                    <g id="building-9" class="building" data-day="9" role="button" tabindex="0" aria-label="Day 9: Mrs. Claus Kitchen">
+                        <rect x="440" y="290" width="65" height="55" fill="#c71585" stroke="#8b008b" stroke-width="2"/>
+                        <polygon points="472.5,270 435,290 510,290" fill="#ff1493"/>
+                        <text x="472.5" y="308" text-anchor="middle" font-size="18" font-weight="bold" fill="#ffffff">9</text>
+                    </g>
+
+                    <!-- Day 10: Post Office -->
+                    <g id="building-10" class="building" data-day="10" role="button" tabindex="0" aria-label="Day 10: Post Office">
+                        <rect x="180" y="300" width="65" height="55" fill="#dc143c" stroke="#8b0000" stroke-width="2"/>
+                        <polygon points="212.5,280 175,300 250,300" fill="#ff6347"/>
+                        <text x="212.5" y="318" text-anchor="middle" font-size="16" font-weight="bold" fill="#ffffff">10</text>
+                    </g>
+
+                    <!-- Day 11: Ice Skating Rink -->
+                    <g id="building-11" class="building" data-day="11" role="button" tabindex="0" aria-label="Day 11: Ice Skating Rink">
+                        <ellipse cx="120" cy="350" rx="45" ry="25" fill="#b0e0e6" stroke="#4682b4" stroke-width="2"/>
+                        <text x="120" y="356" text-anchor="middle" font-size="16" font-weight="bold" fill="#000080">11</text>
+                    </g>
+
+                    <!-- Day 12: Gingerbread House -->
+                    <g id="building-12" class="building" data-day="12" role="button" tabindex="0" aria-label="Day 12: Gingerbread House">
+                        <rect x="560" y="310" width="65" height="55" fill="#d2691e" stroke="#8b4513" stroke-width="2"/>
+                        <polygon points="592.5,290 555,310 630,310" fill="#cd853f"/>
+                        <text x="592.5" y="328" text-anchor="middle" font-size="16" font-weight="bold" fill="#ffffff">12</text>
+                    </g>
+
+                    <!-- Day 13: Music Hall -->
+                    <g id="building-13" class="building" data-day="13" role="button" tabindex="0" aria-label="Day 13: Music Hall">
+                        <rect x="290" y="380" width="65" height="55" fill="#9370db" stroke="#663399" stroke-width="2"/>
+                        <polygon points="322.5,360 285,380 360,380" fill="#ba55d3"/>
+                        <text x="322.5" y="398" text-anchor="middle" font-size="16" font-weight="bold" fill="#ffffff">13</text>
+                    </g>
+
+                    <!-- Day 14: Library -->
+                    <g id="building-14" class="building" data-day="14" role="button" tabindex="0" aria-label="Day 14: Library">
+                        <rect x="400" y="380" width="65" height="55" fill="#4682b4" stroke="#1e3a8a" stroke-width="2"/>
+                        <polygon points="432.5,360 395,380 470,380" fill="#87ceeb"/>
+                        <text x="432.5" y="398" text-anchor="middle" font-size="16" font-weight="bold" fill="#ffffff">14</text>
+                    </g>
+
+                    <!-- Day 15: Bakery -->
+                    <g id="building-15" class="building" data-day="15" role="button" tabindex="0" aria-label="Day 15: Bakery">
+                        <rect x="510" y="390" width="60" height="50" fill="#ff8c00" stroke="#d2691e" stroke-width="2"/>
+                        <polygon points="540,370 505,390 575,390" fill="#ffa500"/>
+                        <text x="540" y="406" text-anchor="middle" font-size="16" font-weight="bold" fill="#ffffff">15</text>
+                    </g>
+
+                    <!-- Day 16: Weather Station -->
+                    <g id="building-16" class="building" data-day="16" role="button" tabindex="0" aria-label="Day 16: Weather Station">
+                        <rect x="650" y="380" width="60" height="50" fill="#708090" stroke="#2f4f4f" stroke-width="2"/>
+                        <polygon points="680,360 645,380 715,380" fill="#778899"/>
+                        <text x="680" y="396" text-anchor="middle" font-size="16" font-weight="bold" fill="#ffffff">16</text>
+                    </g>
+
+                    <!-- Day 17: Toy Testing Lab -->
+                    <g id="building-17" class="building" data-day="17" role="button" tabindex="0" aria-label="Day 17: Toy Testing Lab">
+                        <rect x="80" y="420" width="60" height="50" fill="#20b2aa" stroke="#008b8b" stroke-width="2"/>
+                        <polygon points="110,400 75,420 145,420" fill="#48d1cc"/>
+                        <text x="110" y="436" text-anchor="middle" font-size="16" font-weight="bold" fill="#ffffff">17</text>
+                    </g>
+
+                    <!-- Day 18: Sleigh Garage -->
+                    <g id="building-18" class="building" data-day="18" role="button" tabindex="0" aria-label="Day 18: Sleigh Garage">
+                        <rect x="180" y="430" width="60" height="50" fill="#b22222" stroke="#8b0000" stroke-width="2"/>
+                        <polygon points="210,410 175,430 245,430" fill="#cd5c5c"/>
+                        <text x="210" y="446" text-anchor="middle" font-size="16" font-weight="bold" fill="#ffffff">18</text>
+                    </g>
+
+                    <!-- Day 19: North Pole Sign -->
+                    <g id="building-19" class="building" data-day="19" role="button" tabindex="0" aria-label="Day 19: North Pole Sign">
+                        <rect x="280" y="460" width="55" height="45" fill="#ffffff" stroke="#000000" stroke-width="2"/>
+                        <rect x="305" y="505" width="5" height="25" fill="#8b4513"/>
+                        <text x="307.5" y="477" text-anchor="middle" font-size="16" font-weight="bold" fill="#000000">19</text>
+                    </g>
+
+                    <!-- Day 20: Aurora Observatory -->
+                    <g id="building-20" class="building" data-day="20" role="button" tabindex="0" aria-label="Day 20: Aurora Observatory">
+                        <circle cx="380" cy="475" r="28" fill="#191970" stroke="#000080" stroke-width="2"/>
+                        <text x="380" y="481" text-anchor="middle" font-size="16" font-weight="bold" fill="#ffffff">20</text>
+                    </g>
+
+                    <!-- Day 21: Hot Cocoa Cafe -->
+                    <g id="building-21" class="building" data-day="21" role="button" tabindex="0" aria-label="Day 21: Hot Cocoa Cafe">
+                        <rect x="450" y="460" width="55" height="45" fill="#8b4513" stroke="#654321" stroke-width="2"/>
+                        <polygon points="477.5,445 445,460 510,460" fill="#a0522d"/>
+                        <text x="477.5" y="477" text-anchor="middle" font-size="16" font-weight="bold" fill="#ffffff">21</text>
+                    </g>
+
+                    <!-- Day 22: Gift Storage -->
+                    <g id="building-22" class="building" data-day="22" role="button" tabindex="0" aria-label="Day 22: Gift Storage">
+                        <rect x="540" y="470" width="55" height="45" fill="#daa520" stroke="#b8860b" stroke-width="2"/>
+                        <polygon points="567.5,455 535,470 600,470" fill="#ffd700"/>
+                        <text x="567.5" y="487" text-anchor="middle" font-size="16" font-weight="bold" fill="#8b0000">22</text>
+                    </g>
+
+                    <!-- Day 23: Santa's Study -->
+                    <g id="building-23" class="building" data-day="23" role="button" tabindex="0" aria-label="Day 23: Santa's Study">
+                        <rect x="630" y="460" width="55" height="45" fill="#556b2f" stroke="#2f4f2f" stroke-width="2"/>
+                        <polygon points="657.5,445 625,460 690,460" fill="#6b8e23"/>
+                        <text x="657.5" y="477" text-anchor="middle" font-size="16" font-weight="bold" fill="#ffffff">23</text>
+                    </g>
+
+                    <!-- Day 24: Launch Pad -->
+                    <g id="building-24" class="building" data-day="24" role="button" tabindex="0" aria-label="Day 24: Launch Pad">
+                        <polygon points="400,540 360,570 440,570" fill="#c41e3a"/>
+                        <circle cx="400" cy="558" r="18" fill="#ffd700" stroke="#daa520" stroke-width="2"/>
+                        <text x="400" y="564" text-anchor="middle" font-size="14" font-weight="bold" fill="#8b0000">24</text>
+                    </g>
+                </svg>
+            </div>
+
+            <!-- Legend -->
+            <div id="legend" class="legend" style="display: none;">
+                <div class="legend-item">
+                    <span class="legend-icon legend-unlocked" aria-hidden="true"></span>
+                    <span>Unlocked</span>
+                </div>
+                <div class="legend-item">
+                    <span class="legend-icon legend-locked" aria-hidden="true"></span>
+                    <span>Locked</span>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Content Modal -->
+    <div id="content-modal" class="modal" role="dialog" aria-labelledby="modal-title" aria-modal="true" style="display: none;">
+        <div class="modal-overlay" aria-hidden="true"></div>
+        <div class="modal-content">
+            <button class="modal-close" aria-label="Close modal" id="close-modal">
+                <span aria-hidden="true">✕</span>
+            </button>
+            <div class="modal-header">
+                <h2 id="modal-title" class="modal-day-title"></h2>
+                <p id="modal-content-type" class="modal-content-type"></p>
+            </div>
+            <div class="modal-body" id="modal-body">
+                <!-- Content will be dynamically inserted -->
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='advent-map.js') }}"></script>
+</body>
+</html>
