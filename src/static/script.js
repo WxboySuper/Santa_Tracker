@@ -133,7 +133,7 @@ document.addEventListener('DOMContentLoaded', function() {
     simulateSantaMovement();
 
     // Make map keyboard accessible
-    map.getContainer().addEventListener('keydown', function(e) {
+    map.getContainer().addEventListener('keydown', (e) => {
         const step = 0.1;
         const center = map.getCenter();
         
@@ -158,6 +158,9 @@ document.addEventListener('DOMContentLoaded', function() {
         case '_':
             map.zoomOut();
             break;
+        default:
+            // No action for other keys
+            break;
         }
     });
 });
@@ -178,10 +181,10 @@ function initSnowfall() {
         const snowflake = document.createElement('div');
         snowflake.className = 'snowflake';
         snowflake.textContent = snowflakes[Math.floor(Math.random() * snowflakes.length)];
-        snowflake.style.left = Math.random() * 100 + 'vw';
-        snowflake.style.fontSize = (Math.random() * 1 + 0.5) + 'em';
-        snowflake.style.animationDuration = (Math.random() * 10 + 10) + 's';
-        snowflake.style.animationDelay = Math.random() * 10 + 's';
+        snowflake.style.left = `${Math.random() * 100}vw`;
+        snowflake.style.fontSize = `${Math.random() * 1 + 0.5}em`;
+        snowflake.style.animationDuration = `${Math.random() * 10 + 10}s`;
+        snowflake.style.animationDelay = `${Math.random() * 10}s`;
         snowflake.style.opacity = Math.random() * 0.6 + 0.4;
         
         // Alternate animation direction for variety
@@ -310,7 +313,7 @@ function simulateSantaMovement() {
         const nextIndex = (currentIndex + 1) % cities.length;
         
         const EventSystem = window.EventSystem || {
-            emit: function() {}
+            emit() {}
         };
         
         // Emit movement event with smooth animation

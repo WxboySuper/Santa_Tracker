@@ -1,6 +1,6 @@
 // Santa Tracker Landing Page - Interactive Features
 
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', () => {
     // Initialize snowfall
     initSnowfall();
     
@@ -27,10 +27,10 @@ function initSnowfall() {
         const snowflake = document.createElement('div');
         snowflake.className = 'snowflake';
         snowflake.textContent = snowflakes[Math.floor(Math.random() * snowflakes.length)];
-        snowflake.style.left = Math.random() * 100 + 'vw';
-        snowflake.style.fontSize = (Math.random() * 1.5 + 0.8) + 'em';
-        snowflake.style.animationDuration = (Math.random() * 10 + 10) + 's';
-        snowflake.style.animationDelay = Math.random() * 10 + 's';
+        snowflake.style.left = `${Math.random() * 100}vw`;
+        snowflake.style.fontSize = `${Math.random() * 1.5 + 0.8}em`;
+        snowflake.style.animationDuration = `${Math.random() * 10 + 10}s`;
+        snowflake.style.animationDelay = `${Math.random() * 10}s`;
         snowflake.style.opacity = Math.random() * 0.6 + 0.4;
         
         // Alternate animation direction
