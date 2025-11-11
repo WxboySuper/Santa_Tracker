@@ -32,9 +32,9 @@ body {
 
 /* Navigation Bar */
 .nav-bar {
-    background: rgb(10 25 41 / 95%);
+    background: linear-gradient(90deg, var(--christmas-red) 0%, var(--christmas-green) 50%, var(--christmas-red) 100%);
     padding: 1rem 2rem;
-    box-shadow: 0 2px 8px rgb(0 0 0 / 30%);
+    box-shadow: 0 4px 12px rgb(0 0 0 / 30%);
     position: sticky;
     top: 0;
     z-index: 100;
@@ -53,73 +53,77 @@ body {
     color: var(--snow-white);
     text-decoration: none;
     font-size: 1rem;
-    font-weight: 500;
-    padding: 0.5rem 1rem;
-    border-radius: 8px;
+    font-weight: 600;
+    padding: 0.75rem 1.5rem;
+    border-radius: 12px;
     display: flex;
     align-items: center;
     gap: 0.5rem;
     transition: all 0.3s ease;
+    text-shadow: 1px 1px 2px rgb(0 0 0 / 50%);
 }
 
 .nav-link:hover,
 .nav-link:focus {
-    background: rgb(255 255 255 / 10%);
+    background: rgb(255 255 255 / 20%);
     transform: translateY(-2px);
     outline: 2px solid var(--christmas-gold);
     outline-offset: 2px;
+    box-shadow: 0 4px 8px rgb(0 0 0 / 30%);
 }
 
 .nav-link-active {
-    background: var(--christmas-red);
-    font-weight: 600;
+    background: rgb(255 255 255 / 30%);
+    font-weight: 700;
+    border: 2px solid var(--christmas-gold);
 }
 
 /* Header */
 .advent-header {
     text-align: center;
-    padding: 2rem 1rem;
+    padding: 3rem 1rem 2rem;
     animation: fade-in-down 0.8s ease-out;
 }
 
 .advent-title {
-    font-size: clamp(2rem, 5vw, 3rem);
+    font-size: clamp(2rem, 5vw, 3.5rem);
     font-weight: 700;
-    margin-bottom: 0.5rem;
+    margin-bottom: 0.75rem;
     color: var(--snow-white);
-    text-shadow: 2px 2px 4px rgb(0 0 0 / 50%);
+    text-shadow: 3px 3px 6px rgb(0 0 0 / 50%);
 }
 
 .advent-subtitle {
-    font-size: clamp(1rem, 2.5vw, 1.25rem);
+    font-size: clamp(1rem, 2.5vw, 1.5rem);
     color: var(--christmas-gold);
-    font-weight: 500;
+    font-weight: 600;
+    text-shadow: 2px 2px 4px rgb(0 0 0 / 50%);
 }
 
 /* Main Content */
 .advent-main {
-    padding: 2rem 1rem;
-    max-width: 1200px;
+    padding: 2rem 1rem 4rem;
+    max-width: 1400px;
     margin: 0 auto;
 }
 
 .advent-container {
     background: rgb(255 255 255 / 95%);
-    border-radius: 16px;
-    padding: 2rem;
-    box-shadow: 0 8px 32px rgb(0 0 0 / 30%);
+    border-radius: 24px;
+    padding: 3rem;
+    box-shadow: 0 8px 32px rgb(0 0 0 / 30%), 0 0 0 2px var(--christmas-gold);
 }
 
 /* Loading State */
 .loading-state {
     text-align: center;
-    padding: 3rem;
+    padding: 4rem;
     color: var(--night-blue);
 }
 
 .loading-spinner {
     display: inline-block;
-    font-size: 3rem;
+    font-size: 4rem;
     animation: spin 2s linear infinite;
 }
 
@@ -131,49 +135,46 @@ body {
 /* Error State */
 .error-state {
     text-align: center;
-    padding: 3rem;
+    padding: 4rem;
     color: var(--christmas-dark-red);
 }
 
 /* Grid Container */
 .grid-container {
     width: 100%;
-    max-width: 900px;
     margin: 0 auto;
-    background: linear-gradient(180deg, #e6f2ff 0%, #f0f8ff 100%);
-    border-radius: 16px;
-    padding: 2rem;
-    box-shadow: 0 4px 16px rgb(0 0 0 / 20%);
 }
 
 .advent-grid {
     display: grid;
     grid-template-columns: repeat(6, 1fr);
-    gap: 1rem;
-    margin-bottom: 1.5rem;
+    gap: 1.25rem;
 }
 
 /* Calendar Cell Styles */
 .calendar-cell {
     aspect-ratio: 1;
-    border-radius: 12px;
+    border-radius: 16px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: clamp(1.5rem, 3vw, 2rem);
-    font-weight: 700;
+    font-size: clamp(2rem, 3.5vw, 3rem);
+    font-weight: 800;
     cursor: pointer;
     transition: all 0.3s ease;
     position: relative;
     border: 3px solid transparent;
-    box-shadow: 0 2px 8px rgb(0 0 0 / 15%);
+    box-shadow: 0 4px 12px rgb(0 0 0 / 20%);
+    text-shadow: 2px 2px 4px rgb(0 0 0 / 30%);
 }
 
 .calendar-cell:hover,
 .calendar-cell:focus {
     outline: 3px solid var(--christmas-gold);
-    outline-offset: 2px;
-    transform: translateY(-4px);
+    outline-offset: 3px;
+    transform: translateY(-6px) scale(1.05);
+    box-shadow: 0 12px 24px rgb(0 0 0 / 30%);
+    z-index: 10;
 }
 
 .calendar-cell.unlocked {
@@ -182,19 +183,21 @@ body {
 
 .calendar-cell.unlocked:hover,
 .calendar-cell.unlocked:focus {
-    transform: translateY(-4px) scale(1.05);
-    box-shadow: 0 8px 16px rgb(0 0 0 / 25%);
+    transform: translateY(-6px) scale(1.08);
+    box-shadow: 0 16px 32px rgb(0 0 0 / 35%);
 }
 
 .calendar-cell.locked {
-    filter: grayscale(80%) brightness(0.9);
-    opacity: 0.7;
+    filter: grayscale(70%) brightness(0.85);
+    opacity: 0.65;
     cursor: not-allowed;
 }
 
 .calendar-cell.locked:hover {
-    transform: none;
-    outline: none;
+    transform: translateY(-2px);
+    outline: 2px solid var(--christmas-red);
+    outline-offset: 2px;
+    box-shadow: 0 6px 16px rgb(0 0 0 / 25%);
 }
 
 @keyframes unlock-pulse {
@@ -204,47 +207,14 @@ body {
     }
 
     50% {
-        transform: scale(1.1);
-        filter: brightness(1.3);
+        transform: scale(1.12);
+        filter: brightness(1.4);
     }
 
     100% {
         transform: scale(1);
         filter: brightness(1);
     }
-}
-
-/* Legend */
-.legend {
-    display: flex;
-    justify-content: center;
-    gap: 2rem;
-    margin-top: 1.5rem;
-    padding: 1rem;
-}
-
-.legend-item {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    color: var(--night-blue);
-    font-weight: 500;
-}
-
-.legend-icon {
-    width: 24px;
-    height: 24px;
-    border-radius: 4px;
-    border: 2px solid var(--night-blue);
-}
-
-.legend-unlocked {
-    background: linear-gradient(135deg, var(--christmas-red), var(--christmas-green));
-}
-
-.legend-locked {
-    background: #ccc;
-    opacity: 0.6;
 }
 
 /* Modal */
@@ -462,12 +432,6 @@ body {
         gap: 0.75rem;
     }
 
-    .legend {
-        flex-direction: column;
-        gap: 0.75rem;
-        align-items: center;
-    }
-
     .modal-content {
         max-width: 95%;
         max-height: 90vh;
@@ -488,24 +452,28 @@ body {
 
 @media (width <= 480px) {
     .advent-header {
-        padding: 1.5rem 0.5rem;
+        padding: 2rem 0.5rem 1.5rem;
     }
 
     .advent-main {
-        padding: 1rem 0.5rem;
+        padding: 1rem 0.5rem 2rem;
+    }
+
+    .advent-container {
+        padding: 2rem 1.5rem;
     }
 
     .grid-container {
-        padding: 1rem;
+        padding: 0;
     }
 
     .advent-grid {
         grid-template-columns: repeat(3, 1fr);
-        gap: 0.5rem;
+        gap: 0.75rem;
     }
 
     .calendar-cell {
-        font-size: 1.25rem;
+        font-size: 1.5rem;
     }
 
     .nav-link span:not([aria-hidden]) {

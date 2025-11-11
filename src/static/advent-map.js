@@ -18,7 +18,6 @@ const loadingEl = document.getElementById('loading');
 const errorEl = document.getElementById('error');
 const errorMessageEl = document.getElementById('error-message');
 const gridEl = document.getElementById('advent-grid');
-const legendEl = document.getElementById('legend');
 const modalEl = document.getElementById('content-modal');
 const modalTitleEl = document.getElementById('modal-title');
 const modalContentTypeEl = document.getElementById('modal-content-type');
@@ -473,7 +472,6 @@ function showLoading() {
     loadingEl.setAttribute('aria-busy', 'true');
     errorEl.style.display = 'none';
     gridEl.style.display = 'none';
-    legendEl.style.display = 'none';
 }
 
 /**
@@ -489,7 +487,6 @@ function hideLoading() {
  */
 function showGrid() {
     gridEl.style.display = 'block';
-    legendEl.style.display = 'flex';
 }
 
 /**
