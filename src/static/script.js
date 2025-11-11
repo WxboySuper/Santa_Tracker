@@ -72,6 +72,9 @@ document.addEventListener('DOMContentLoaded', function() {
         };
     })();
 
+    // Make EventSystem globally accessible for simulateSantaMovement
+    window.EventSystem = EventSystem;
+
     // Track Santa's route for smooth animation
     let isAnimating = false;
 
@@ -283,6 +286,9 @@ function updateLocationDisplay(currentLocation, nextStop) {
 }
 
 // Simulate Santa's movement (replace with real tracking)
+// Store interval ID for cleanup
+let santaMovementInterval = null;
+
 function simulateSantaMovement() {
     const cities = [
         { pos: [90, 0], name: 'North Pole' },
@@ -294,7 +300,12 @@ function simulateSantaMovement() {
     
     let currentIndex = 0;
     
-    setInterval(() => {
+    // Clear any existing interval to prevent duplicates
+    if (santaMovementInterval) {
+        clearInterval(santaMovementInterval);
+    }
+    
+    santaMovementInterval = setInterval(() => {
         currentIndex = (currentIndex + 1) % cities.length;
         const nextIndex = (currentIndex + 1) % cities.length;
         
@@ -314,3 +325,10 @@ function simulateSantaMovement() {
         updateLocationDisplay(cities[currentIndex].name, cities[nextIndex].name);
     }, 8000); // Move every 8 seconds
 }
+
+// Cleanup function for page unload
+window.addEventListener('beforeunload', () => {
+    if (santaMovementInterval) {
+        clearInterval(santaMovementInterval);
+    }
+});
