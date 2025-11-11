@@ -115,7 +115,7 @@ Santa_Tracker/
   - Gold (#FFD700) - Highlights and borders
   - Blue gradient background - Night sky theme
 - **Festive Elements**:
-  - Animated snowfall effect with 50 snowflakes using pure CSS/JS
+  - Animated snowfall effect with 40 snowflakes using pure CSS/JS
   - Emoji-based icons for visual appeal and better compatibility
   - Gradient backgrounds with festive colors
   - Smooth animations and transitions (respecting `prefers-reduced-motion`)
