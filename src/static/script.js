@@ -182,7 +182,7 @@ function initSnowfall() {
         snowflake.className = 'snowflake';
         snowflake.textContent = snowflakes[Math.floor(Math.random() * snowflakes.length)];
         snowflake.style.left = `${Math.random() * 100}vw`;
-        snowflake.style.fontSize = `${Math.random() * 1 + 0.5}em`;
+        snowflake.style.fontSize = `${Number(Math.random()) * 1 + 0.5}em`;
         snowflake.style.animationDuration = `${Math.random() * 10 + 10}s`;
         snowflake.style.animationDelay = `${Math.random() * 10}s`;
         snowflake.style.opacity = Math.random() * 0.6 + 0.4;
@@ -313,7 +313,8 @@ function simulateSantaMovement() {
         const nextIndex = (currentIndex + 1) % cities.length;
         
         const EventSystem = window.EventSystem || {
-            emit() {}
+            // eslint-disable-next-line no-empty-function
+            emit() {} // No-op fallback when EventSystem is not available
         };
         
         // Emit movement event with smooth animation
