@@ -216,7 +216,18 @@ body {
         0 0 30px rgb(34 139 34 / 40%);
     transition: all 0.3s ease;
     border: 3px solid var(--christmas-gold);
-    margin-bottom: 3rem;
+}
+
+.cta-buttons-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    justify-content: center;
+    margin-bottom: 2rem;
+}
+
+.cta-button-advent {
+    background: linear-gradient(135deg, #165b33, #228b22);
 }
 
 .cta-button:hover {

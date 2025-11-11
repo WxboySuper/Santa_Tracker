@@ -82,6 +82,12 @@ def tracker():
     return render_template("tracker.html")
 
 
+@app.route("/advent")
+def advent():
+    """Advent calendar page with North Pole map."""
+    return render_template("advent.html")
+
+
 @app.route("/api/admin/login", methods=["POST"])
 def admin_login():
     """Admin login endpoint that returns a session token."""
