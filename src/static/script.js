@@ -195,12 +195,15 @@ function initSnowfall() {
 }
 
 // Initialize countdown timers
+let christmasCountdownInterval = null;
+let locationCountdownInterval = null;
+
 function initCountdowns() {
     updateCountdown();
-    setInterval(updateCountdown, 1000);
+    christmasCountdownInterval = setInterval(updateCountdown, 1000);
     
     updateLocationCountdown();
-    setInterval(updateLocationCountdown, 1000);
+    locationCountdownInterval = setInterval(updateLocationCountdown, 1000);
 }
 
 // Update main Christmas countdown
@@ -334,5 +337,11 @@ function simulateSantaMovement() {
 window.addEventListener('beforeunload', () => {
     if (santaMovementInterval) {
         clearInterval(santaMovementInterval);
+    }
+    if (christmasCountdownInterval) {
+        clearInterval(christmasCountdownInterval);
+    }
+    if (locationCountdownInterval) {
+        clearInterval(locationCountdownInterval);
     }
 });

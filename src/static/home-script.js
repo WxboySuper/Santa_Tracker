@@ -11,6 +11,13 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('year').textContent = new Date().getFullYear();
 });
 
+// Cleanup on page unload
+window.addEventListener('beforeunload', () => {
+    if (countdownInterval) {
+        clearInterval(countdownInterval);
+    }
+});
+
 // Snowfall effect
 function initSnowfall() {
     const snowfallContainer = document.getElementById('snowfall');
@@ -21,14 +28,14 @@ function initSnowfall() {
     if (prefersReducedMotion) return;
 
     const snowflakeCount = 40;
-    const snowflakes = ['❄', '❅', '❆', '✳'];
+    const snowflakes = ['❄', '❅', '❆'];
 
     for (let i = 0; i < snowflakeCount; i++) {
         const snowflake = document.createElement('div');
         snowflake.className = 'snowflake';
         snowflake.textContent = snowflakes[Math.floor(Math.random() * snowflakes.length)];
         snowflake.style.left = `${Math.random() * 100}vw`;
-        snowflake.style.fontSize = `${Math.random() * 1.5 + 0.8}em`;
+        snowflake.style.fontSize = `${Number(Math.random()) * 1.5 + 0.8}em`;
         snowflake.style.animationDuration = `${Math.random() * 10 + 10}s`;
         snowflake.style.animationDelay = `${Math.random() * 10}s`;
         snowflake.style.opacity = Math.random() * 0.6 + 0.4;
@@ -41,9 +48,11 @@ function initSnowfall() {
 }
 
 // Countdown to Christmas
+let countdownInterval = null;
+
 function initCountdown() {
     updateCountdown();
-    setInterval(updateCountdown, 1000);
+    countdownInterval = setInterval(updateCountdown, 1000);
 }
 
 function updateCountdown() {
