@@ -2,6 +2,8 @@ import logging
 import os
 import secrets
 import sys
+import time
+from datetime import datetime, timedelta
 from functools import wraps
 
 from flask import Flask, jsonify, render_template, request
@@ -35,26 +37,35 @@ if app.config["SECRET_KEY"] == "dev-secret-key":
         "Set SECRET_KEY environment variable to a secure random value."
     )
 
+# Simple in-memory session store (in production, use Redis or database)
+active_sessions = {}
+
 
 def require_admin_auth(f):
-    """Decorator to require admin authentication via password."""
+    """Decorator to require admin authentication via session token."""
 
     @wraps(f)
     def decorated_function(*args, **kwargs):
         auth_header = request.headers.get("Authorization")
-        admin_password = os.environ.get("ADMIN_PASSWORD")
-
-        if not admin_password:
-            return jsonify({"error": "Admin access not configured"}), 500
 
         if not auth_header or not auth_header.startswith("Bearer "):
             return jsonify({"error": "Authentication required"}), 401
 
         token = auth_header.split(" ")[1]
-        if not secrets.compare_digest(token, admin_password):
-            return jsonify({"error": "Invalid credentials"}), 403
 
-        return f(*args, **kwargs)
+        # Check if token is valid session token
+        if token in active_sessions:
+            return f(*args, **kwargs)
+
+        # Fallback: check if token matches admin password (for backward compatibility)
+        admin_password = os.environ.get("ADMIN_PASSWORD")
+        if not admin_password:
+            return jsonify({"error": "Admin access not configured"}), 500
+
+        if secrets.compare_digest(token, admin_password):
+            return f(*args, **kwargs)
+
+        return jsonify({"error": "Invalid credentials"}), 403
 
     return decorated_function
 
@@ -69,6 +80,33 @@ def home():
 def tracker():
     """Santa tracking page with live map."""
     return render_template("tracker.html")
+
+
+@app.route("/api/admin/login", methods=["POST"])
+def admin_login():
+    """Admin login endpoint that returns a session token."""
+    try:
+        data = request.get_json(force=True, silent=True)
+        if not data or "password" not in data:
+            return jsonify({"error": "Password required"}), 400
+
+        admin_password = os.environ.get("ADMIN_PASSWORD")
+        if not admin_password:
+            return jsonify({"error": "Admin access not configured"}), 500
+
+        if not secrets.compare_digest(data["password"], admin_password):
+            return jsonify({"error": "Invalid password"}), 401
+
+        # Generate a secure session token
+        session_token = secrets.token_urlsafe(32)
+        active_sessions[session_token] = {
+            "created_at": datetime.now().isoformat(),
+            "last_used": datetime.now().isoformat(),
+        }
+
+        return jsonify({"token": session_token}), 200
+    except Exception:
+        return jsonify({"error": "Internal server error"}), 500
 
 
 @app.route("/index")
@@ -438,6 +476,140 @@ def import_locations():
         return jsonify({"error": "Location data not found"}), 404
     except Exception as e:
         logger.exception("Error importing locations: %s", str(e))
+        return jsonify({"error": "Internal server error"}), 500
+
+
+@app.route("/api/admin/route/status", methods=["GET"])
+@require_admin_auth
+def get_route_status():
+    """Get status information about the current route data."""
+    try:
+        locations = load_santa_route_from_json()
+
+        # Calculate statistics
+        total_locations = len(locations)
+        locations_with_times = sum(
+            1 for loc in locations if loc.arrival_time and loc.departure_time
+        )
+        priority_counts = {}
+        for loc in locations:
+            if loc.priority:
+                priority_counts[loc.priority] = priority_counts.get(loc.priority, 0) + 1
+
+        # Get file modification time for last update info
+        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        route_file = os.path.join(base_dir, "static", "data", "santa_route.json")
+        last_modified = (
+            time.ctime(os.path.getmtime(route_file))
+            if os.path.exists(route_file)
+            else "Unknown"
+        )
+
+        return (
+            jsonify(
+                {
+                    "total_locations": total_locations,
+                    "locations_with_timing": locations_with_times,
+                    "priority_breakdown": priority_counts,
+                    "last_modified": last_modified,
+                    "route_complete": locations_with_times == total_locations
+                    and total_locations > 0,
+                }
+            ),
+            200,
+        )
+    except FileNotFoundError:
+        return jsonify({"error": "Route data not found"}), 404
+    except Exception:
+        return jsonify({"error": "Internal server error"}), 500
+
+
+@app.route("/api/admin/route/precompute", methods=["POST"])
+@require_admin_auth
+def precompute_route():
+    """Trigger route precomputation to calculate optimal timings."""
+    try:
+        locations = load_santa_route_from_json()
+
+        if len(locations) == 0:
+            return jsonify({"error": "No locations to precompute"}), 400
+
+        # Simple precomputation: assign times based on UTC offset order
+        # This is a basic implementation - can be enhanced with actual routing logic
+
+        # Sort locations by UTC offset (descending) to follow time zones
+        sorted_locations = sorted(
+            locations, key=lambda loc: (-loc.utc_offset, loc.priority or 2)
+        )
+
+        # Start at midnight UTC on Christmas Eve
+        current_time = datetime(2024, 12, 24, 0, 0, 0)
+
+        for loc in sorted_locations:
+            # Set default stop duration if not present
+            if loc.stop_duration is None:
+                # North Pole gets longer prep time
+                loc.stop_duration = 60 if loc.name == "North Pole" else 30
+
+            loc.arrival_time = current_time.isoformat() + "Z"
+            current_time += timedelta(minutes=loc.stop_duration)
+            loc.departure_time = current_time.isoformat() + "Z"
+
+            # Add travel time to next location (simplified)
+            current_time += timedelta(minutes=10)
+
+        # Save the updated route
+        save_santa_route_to_json(sorted_locations)
+
+        return (
+            jsonify(
+                {
+                    "message": "Route precomputed successfully",
+                    "total_locations": len(sorted_locations),
+                    "completion_status": "complete",
+                }
+            ),
+            200,
+        )
+    except FileNotFoundError:
+        return jsonify({"error": "Route data not found"}), 404
+    except Exception as e:
+        logger.exception("Error precomputing route: %s", str(e))
+        return jsonify({"error": "Internal server error"}), 500
+
+
+@app.route("/api/admin/backup/export", methods=["GET"])
+@require_admin_auth
+def export_backup():
+    """Export current locations and route data as JSON backup."""
+    try:
+        locations = load_santa_route_from_json()
+
+        # Create backup data structure
+        backup_data = {
+            "backup_timestamp": datetime.now().isoformat(),
+            "total_locations": len(locations),
+            "route": [
+                {
+                    "location": loc.name,
+                    "latitude": loc.latitude,
+                    "longitude": loc.longitude,
+                    "utc_offset": loc.utc_offset,
+                    "arrival_time": loc.arrival_time,
+                    "departure_time": loc.departure_time,
+                    "stop_duration": loc.stop_duration,
+                    "is_stop": loc.is_stop,
+                    "priority": loc.priority,
+                    "fun_facts": loc.fun_facts,
+                }
+                for loc in locations
+            ],
+        }
+
+        return jsonify(backup_data), 200
+    except FileNotFoundError:
+        return jsonify({"error": "Route data not found"}), 404
+    except Exception:
         return jsonify({"error": "Internal server error"}), 500
 
 

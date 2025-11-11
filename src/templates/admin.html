@@ -377,6 +377,20 @@
             <button class="btn btn-secondary" onclick="loadLocations()">🔄 Refresh</button>
         </div>
 
+        <!-- Route Management Section -->
+        <div class="actions" style="margin-top: 20px;">
+            <h3 style="margin-bottom: 15px; color: #333;">Route Management</h3>
+            <button class="btn btn-primary" onclick="precomputeRoute()">🚀 Precompute Route</button>
+            <button class="btn btn-success" onclick="exportBackup()">💾 Export Backup</button>
+            <button class="btn btn-secondary" onclick="loadRouteStatus()">📊 View Route Status</button>
+        </div>
+
+        <!-- Route Status Display -->
+        <div id="routeStatusContainer" class="locations-table-container" style="margin-top: 20px; display: none;">
+            <h2 style="margin-bottom: 15px; color: #333;">Route Status</h2>
+            <div id="routeStatusContent"></div>
+        </div>
+
         <div class="locations-table-container">
             <h2 style="margin-bottom: 15px; color: #333;">Location Management</h2>
             <div id="loadingMessage" class="loading">Loading locations...</div>
@@ -555,7 +569,7 @@
             const password = document.getElementById('password').value;
 
             try {
-                // Send password to server for authentication
+                // Call login endpoint to get session token
                 const loginResponse = await fetch('/api/admin/login', {
                     method: 'POST',
                     headers: {
@@ -564,26 +578,25 @@
                     body: JSON.stringify({ password })
                 });
 
-                if (loginResponse.ok) {
-                    const data = await loginResponse.json();
-                    const token = data.token;
-                    setAuthToken(token); // Store only the token, never the password
+                if (!loginResponse.ok) {
+                    showLoginError('Invalid password');
+                    return;
+                }
 
-                    // Now fetch locations using the returned token
-                    const response = await fetch('/api/admin/locations', {
-                        headers: {
-                            'Authorization': `Bearer ${getAuthToken()}`
-                        }
-                    });
+                const loginData = await loginResponse.json();
+                setAuthToken(loginData.token);
 
-                    if (response.ok) {
-                        document.getElementById('loginContainer').style.display = 'none';
-                        document.getElementById('dashboard').classList.add('active');
-                        loadLocations();
-                    } else {
-                        showLoginError('Invalid authentication.');
-                        setAuthToken(null);
+                // Verify authentication by fetching locations
+                const response = await fetch('/api/admin/locations', {
+                    headers: {
+                        'Authorization': `Bearer ${getAuthToken()}`
                     }
+                });
+
+                if (response.ok) {
+                    document.getElementById('loginContainer').style.display = 'none';
+                    document.getElementById('dashboard').classList.add('active');
+                    loadLocations();
                 } else {
                     showLoginError('Invalid password');
                     setAuthToken(null);
@@ -1037,6 +1050,134 @@
                 loadLocations();
             } catch (error) {
                 showImportError('Error: ' + error.message);
+            }
+        }
+
+        // Route Status Functions
+        async function loadRouteStatus() {
+            try {
+                const response = await fetch('/api/admin/route/status', {
+                    headers: {
+                        'Authorization': `Bearer ${getAuthToken()}`
+                    }
+                });
+
+                if (!response.ok) throw new Error('Failed to load route status');
+
+                const data = await response.json();
+                displayRouteStatus(data);
+            } catch (error) {
+                showAlert('Error loading route status: ' + error.message, 'error');
+            }
+        }
+
+        function displayRouteStatus(status) {
+            const container = document.getElementById('routeStatusContainer');
+            const content = document.getElementById('routeStatusContent');
+            
+            const completionBadge = status.route_complete 
+                ? '<span style="background: #28a745; color: white; padding: 5px 10px; border-radius: 5px; font-size: 12px;">✓ Complete</span>'
+                : '<span style="background: #ffc107; color: #333; padding: 5px 10px; border-radius: 5px; font-size: 12px;">⚠ Incomplete</span>';
+            
+            let priorityBreakdown = '';
+            if (status.priority_breakdown && Object.keys(status.priority_breakdown).length > 0) {
+                priorityBreakdown = '<div style="margin-top: 10px;"><strong>Priority Breakdown:</strong><ul style="margin-top: 5px;">';
+                for (const [priority, count] of Object.entries(status.priority_breakdown)) {
+                    priorityBreakdown += `<li>Priority ${priority}: ${count} location(s)</li>`;
+                }
+                priorityBreakdown += '</ul></div>';
+            }
+            
+            content.innerHTML = `
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-bottom: 20px;">
+                    <div style="background: #f8f9fa; padding: 15px; border-radius: 8px;">
+                        <h4 style="margin-bottom: 10px; color: #555;">Total Locations</h4>
+                        <p style="font-size: 24px; font-weight: bold; color: #333; margin: 0;">${status.total_locations}</p>
+                    </div>
+                    <div style="background: #f8f9fa; padding: 15px; border-radius: 8px;">
+                        <h4 style="margin-bottom: 10px; color: #555;">Locations with Timing</h4>
+                        <p style="font-size: 24px; font-weight: bold; color: #333; margin: 0;">${status.locations_with_timing}</p>
+                    </div>
+                    <div style="background: #f8f9fa; padding: 15px; border-radius: 8px;">
+                        <h4 style="margin-bottom: 10px; color: #555;">Route Status</h4>
+                        <p style="margin: 10px 0 0 0;">${completionBadge}</p>
+                    </div>
+                    <div style="background: #f8f9fa; padding: 15px; border-radius: 8px;">
+                        <h4 style="margin-bottom: 10px; color: #555;">Last Modified</h4>
+                        <p style="font-size: 14px; color: #555; margin: 0;">${status.last_modified}</p>
+                    </div>
+                </div>
+                ${priorityBreakdown}
+            `;
+            
+            container.style.display = 'block';
+            
+            // Scroll to status
+            container.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+
+        async function precomputeRoute() {
+            if (!confirm('This will calculate and assign arrival/departure times for all locations based on UTC offset order. Continue?')) {
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/admin/route/precompute', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${getAuthToken()}`
+                    }
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || 'Failed to precompute route');
+                }
+
+                const result = await response.json();
+                showAlert(result.message + ` (${result.total_locations} locations processed)`, 'success');
+                
+                // Reload locations and status
+                loadLocations();
+                loadRouteStatus();
+            } catch (error) {
+                showAlert('Error precomputing route: ' + error.message, 'error');
+            }
+        }
+
+        async function exportBackup() {
+            try {
+                const response = await fetch('/api/admin/backup/export', {
+                    headers: {
+                        'Authorization': `Bearer ${getAuthToken()}`
+                    }
+                });
+
+                if (!response.ok) throw new Error('Failed to export backup');
+
+                const data = await response.json();
+                
+                // Create downloadable JSON file
+                const dataStr = JSON.stringify(data, null, 2);
+                const dataBlob = new Blob([dataStr], { type: 'application/json' });
+                
+                // Create download link
+                const url = URL.createObjectURL(dataBlob);
+                const link = document.createElement('a');
+                link.href = url;
+                
+                // Use timestamp in filename
+                const timestamp = new Date().toISOString().replace(/[:.]/g, '-').replace(/Z$/, '');
+                link.download = `santa-route-backup-${timestamp}.json`;
+                
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(url);
+                
+                showAlert('Backup exported successfully!', 'success');
+            } catch (error) {
+                showAlert('Error exporting backup: ' + error.message, 'error');
             }
         }
     </script>
