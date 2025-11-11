@@ -465,7 +465,7 @@ function renderQuiz(payload) {
         <div>
             <h3>${escapeHtml(payload.title)}</h3>
             <p>${escapeHtml(payload.description || '')}</p>
-            <div style="margin-top: 1.5rem;">
+            <div class="quiz-container">
     `;
     
     payload.questions.forEach((q, index) => {

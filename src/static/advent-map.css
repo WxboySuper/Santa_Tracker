@@ -618,6 +618,11 @@ body {
     border-radius: 8px;
 }
 
+/* Quiz Container */
+.quiz-container {
+    margin-top: 1.5rem;
+}
+
 /* Quiz Options Unavailable */
 .quiz-options-unavailable {
     display: block;
