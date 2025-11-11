@@ -1,6 +1,9 @@
 // filepath: /static/script.js
 // Santa Tracker - Enhanced with festive features and smooth animations
 
+// Interval variables for cleanup
+let animationInterval = null;
+
 // skipcq: JS-0241
 document.addEventListener('DOMContentLoaded', function() {
     // Initialize snowfall effect
@@ -105,7 +108,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const steps = 30; // Number of animation steps
         let currentStep = 0;
 
-        const animationInterval = setInterval(() => {
+        animationInterval = setInterval(() => {
             currentStep++;
             const progress = currentStep / steps;
             
@@ -117,6 +120,7 @@ document.addEventListener('DOMContentLoaded', function() {
             
             if (currentStep >= steps) {
                 clearInterval(animationInterval);
+                animationInterval = null;
                 isAnimating = false;
                 map.panTo(targetPosition, { animate: true, duration: 0.5 });
             }
@@ -343,5 +347,8 @@ window.addEventListener('beforeunload', () => {
     }
     if (locationCountdownInterval) {
         clearInterval(locationCountdownInterval);
+    }
+    if (animationInterval) {
+        clearInterval(animationInterval);
     }
 });
