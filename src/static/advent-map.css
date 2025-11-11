@@ -515,3 +515,113 @@ body {
 *:focus:not(:focus-visible) {
     outline: none;
 }
+
+/* Locked Message Styles */
+.locked-message-container {
+    text-align: center;
+    padding: 2rem;
+}
+
+.locked-message-icon {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+}
+
+.locked-message-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+}
+
+.locked-message-text {
+    color: #666;
+}
+
+/* Error Message Styles */
+.error-message-container {
+    text-align: center;
+    padding: 2rem;
+    color: var(--christmas-red);
+    font-weight: 600;
+}
+
+/* Game Content Styles */
+.game-container {
+    text-align: center;
+}
+
+.game-info {
+    margin-top: 1.5rem;
+}
+
+.game-url-box {
+    margin-top: 1rem;
+    padding: 1rem;
+    background: #f0f0f0;
+    border-radius: 8px;
+}
+
+/* Activity Content Styles */
+.activity-container {
+    text-align: center;
+}
+
+.recipe-section {
+    text-align: left;
+    margin-top: 1.5rem;
+}
+
+.recipe-heading {
+    color: var(--christmas-green);
+    margin-top: 1rem;
+}
+
+.recipe-heading:first-child {
+    margin-top: 0;
+}
+
+.ingredient-list {
+    margin: 0.5rem 0;
+    padding-left: 1.5rem;
+}
+
+.activity-url-box {
+    margin-top: 1rem;
+    padding: 1rem;
+    background: #f0f0f0;
+    border-radius: 8px;
+}
+
+/* Video Content Styles */
+.video-container {
+    text-align: center;
+}
+
+.video-info {
+    margin-top: 1rem;
+}
+
+.special-message-box {
+    margin-top: 1.5rem;
+    padding: 1rem;
+    background: linear-gradient(135deg, var(--christmas-red), var(--christmas-green));
+    color: white;
+    border-radius: 8px;
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+.video-url-box {
+    margin-top: 1rem;
+    padding: 1rem;
+    background: #f0f0f0;
+    border-radius: 8px;
+}
+
+/* Quiz Options Unavailable */
+.quiz-options-unavailable {
+    display: block;
+    padding: 1rem;
+    color: var(--christmas-red);
+    font-style: italic;
+}

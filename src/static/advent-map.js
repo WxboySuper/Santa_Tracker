@@ -224,13 +224,13 @@ function showLockedMessage(day) {
     modalTitleEl.textContent = `Day ${day}: ${dayData.title}`;
     modalContentTypeEl.textContent = '🔒 Locked';
     modalBodyEl.innerHTML = `
-        <div style="text-align: center; padding: 2rem;">
-            <p style="font-size: 3rem; margin-bottom: 1rem;">🔒</p>
-            <p style="font-size: 1.25rem; font-weight: 600; margin-bottom: 1rem;">
+        <div class="locked-message-container">
+            <p class="locked-message-icon">🔒</p>
+            <p class="locked-message-title">
                 This content is locked!
             </p>
-            <p style="color: #666;">
-                Come back on <strong>${formattedDate}</strong> to unlock this surprise.
+            <p class="locked-message-text">
+                Come back on <strong>${escapeHtml(formattedDate)}</strong> to unlock this surprise.
             </p>
         </div>
     `;
@@ -262,7 +262,7 @@ async function loadDayContent(day) {
         modalTitleEl.textContent = 'Error';
         modalContentTypeEl.textContent = '';
         modalBodyEl.innerHTML = `
-            <div style="text-align: center; padding: 2rem; color: var(--christmas-red);">
+            <div class="error-message-container">
                 <p>Failed to load content. Please try again later.</p>
             </div>
         `;
@@ -363,13 +363,13 @@ function renderGame(payload) {
     }
     
     return `
-        <div style="text-align: center;">
+        <div class="game-container">
             <h3>${escapeHtml(payload.title)}</h3>
             <p>${escapeHtml(payload.description || '')}</p>
-            <p style="margin-top: 1.5rem;">
+            <p class="game-info">
                 <strong>Difficulty:</strong> ${escapeHtml(payload.difficulty || 'Unknown')}
             </p>
-            <p style="margin-top: 1rem; padding: 1rem; background: #f0f0f0; border-radius: 8px;">
+            <p class="game-url-box">
                 🎮 Game will be available at: <strong>${escapeHtml(payload.url || '')}</strong>
             </p>
         </div>
@@ -387,25 +387,25 @@ function renderActivity(payload) {
     }
     
     let html = `
-        <div style="text-align: center;">
+        <div class="activity-container">
             <h3>${escapeHtml(payload.title)}</h3>
             <p>${escapeHtml(payload.description || '')}</p>
     `;
     
-    if (payload.activity_type === 'recipe' && payload.ingredients) {
+    if (payload.activity_type === 'recipe' && payload.ingredients && Array.isArray(payload.ingredients)) {
         html += `
-            <div style="text-align: left; margin-top: 1.5rem;">
-                <h4 style="color: var(--christmas-green);">Ingredients:</h4>
-                <ul>
+            <div class="recipe-section">
+                <h4 class="recipe-heading">Ingredients:</h4>
+                <ul class="ingredient-list">
                     ${payload.ingredients.map(ing => `<li>${escapeHtml(ing)}</li>`).join('')}
                 </ul>
-                <h4 style="color: var(--christmas-green); margin-top: 1rem;">Instructions:</h4>
+                <h4 class="recipe-heading">Instructions:</h4>
                 <p>${escapeHtml(payload.instructions || '')}</p>
             </div>
         `;
     } else if (payload.url) {
         html += `
-            <p style="margin-top: 1rem; padding: 1rem; background: #f0f0f0; border-radius: 8px;">
+            <p class="activity-url-box">
                 🎨 Activity available at: <strong>${escapeHtml(payload.url)}</strong>
             </p>
         `;
@@ -426,24 +426,24 @@ function renderVideo(payload) {
     }
     
     let html = `
-        <div style="text-align: center;">
+        <div class="video-container">
             <h3>${escapeHtml(payload.title)}</h3>
             <p>${escapeHtml(payload.description || '')}</p>
-            <p style="margin-top: 1rem;">
+            <p class="video-info">
                 <strong>Duration:</strong> ${escapeHtml(String(payload.duration_minutes || 0))} minutes
             </p>
     `;
     
     if (payload.special_message) {
         html += `
-            <div style="margin-top: 1.5rem; padding: 1rem; background: linear-gradient(135deg, var(--christmas-red), var(--christmas-green)); color: white; border-radius: 8px;">
-                <p style="font-size: 1.1rem; font-weight: 600;">${escapeHtml(payload.special_message)}</p>
+            <div class="special-message-box">
+                <p>${escapeHtml(payload.special_message)}</p>
             </div>
         `;
     }
     
     html += `
-        <p style="margin-top: 1rem; padding: 1rem; background: #f0f0f0; border-radius: 8px;">
+        <p class="video-url-box">
             🎥 Video available at: <strong>${escapeHtml(payload.video_url || '')}</strong>
         </p>
         </div>
@@ -473,16 +473,28 @@ function renderQuiz(payload) {
             <div class="quiz-question">
                 <h4>Question ${index + 1}: ${escapeHtml(q.question)}</h4>
                 <div class="quiz-options">
-                    ${q.options.map((opt, optIndex) => `
-                        <button 
-                            class="quiz-option" 
-                            data-question="${index}" 
-                            data-option="${optIndex}"
-                            data-correct="${q.correct_answer}"
-                        >
-                            ${escapeHtml(opt)}
-                        </button>
-                    `).join('')}
+        `;
+        
+        if (Array.isArray(q.options)) {
+            q.options.forEach((opt, optIndex) => {
+                html += `
+                    <button 
+                        type="button"
+                        class="quiz-option" 
+                        data-question="${index}" 
+                        data-option="${optIndex}"
+                        data-correct="${q.correct_answer}"
+                        aria-label="Option ${optIndex + 1}: ${escapeHtml(opt)}"
+                    >
+                        ${escapeHtml(opt)}
+                    </button>
+                `;
+            });
+        } else {
+            html += '<span class="quiz-options-unavailable">Options unavailable.</span>';
+        }
+        
+        html += `
                 </div>
             </div>
         `;
@@ -502,8 +514,10 @@ function checkQuizAnswer(questionIndex, selectedOption, correctAnswer) {
         const option = parseInt(btn.dataset.option, 10);
         if (option === correctAnswer) {
             btn.classList.add('correct');
+            btn.setAttribute('aria-label', btn.getAttribute('aria-label') + ' - Correct answer');
         } else if (option === selectedOption && option !== correctAnswer) {
             btn.classList.add('incorrect');
+            btn.setAttribute('aria-label', btn.getAttribute('aria-label') + ' - Incorrect answer');
         }
     });
 }
