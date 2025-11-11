@@ -70,7 +70,7 @@
     },
     {
         "id": 150,
-        "name": "Saint John\u2019s",
+        "name": "St. John's",
         "state_id": 3706,
         "state_code": "04",
         "country_id": 10,
@@ -1410,6 +1410,218 @@
         ]
     },
     {
+        "id": 17121,
+        "name": "Toronto",
+        "state_id": 866,
+        "state_code": "ON",
+        "country_id": 39,
+        "country_code": "CA",
+        "latitude": 43.70011,
+        "longitude": -79.4163,
+        "created_at": "2019-10-05 22:35:50",
+        "updated_at": "2019-10-05 22:35:50",
+        "flag": 1,
+        "wikiDataId": "Q172",
+        "timezones": [
+            {
+                "zoneName": "America/Atikokan",
+                "gmtOffset": -18000,
+                "gmtOffsetName": "UTC-05:00",
+                "abbreviation": "EST",
+                "tzName": "Eastern Standard Time (North America)"
+            },
+            {
+                "zoneName": "America/Blanc-Sablon",
+                "gmtOffset": -14400,
+                "gmtOffsetName": "UTC-04:00",
+                "abbreviation": "AST",
+                "tzName": "Atlantic Standard Time"
+            },
+            {
+                "zoneName": "America/Cambridge_Bay",
+                "gmtOffset": -25200,
+                "gmtOffsetName": "UTC-07:00",
+                "abbreviation": "MST",
+                "tzName": "Mountain Standard Time (North America)"
+            },
+            {
+                "zoneName": "America/Creston",
+                "gmtOffset": -25200,
+                "gmtOffsetName": "UTC-07:00",
+                "abbreviation": "MST",
+                "tzName": "Mountain Standard Time (North America)"
+            },
+            {
+                "zoneName": "America/Dawson",
+                "gmtOffset": -25200,
+                "gmtOffsetName": "UTC-07:00",
+                "abbreviation": "MST",
+                "tzName": "Mountain Standard Time (North America)"
+            },
+            {
+                "zoneName": "America/Dawson_Creek",
+                "gmtOffset": -25200,
+                "gmtOffsetName": "UTC-07:00",
+                "abbreviation": "MST",
+                "tzName": "Mountain Standard Time (North America)"
+            },
+            {
+                "zoneName": "America/Edmonton",
+                "gmtOffset": -25200,
+                "gmtOffsetName": "UTC-07:00",
+                "abbreviation": "MST",
+                "tzName": "Mountain Standard Time (North America)"
+            },
+            {
+                "zoneName": "America/Fort_Nelson",
+                "gmtOffset": -25200,
+                "gmtOffsetName": "UTC-07:00",
+                "abbreviation": "MST",
+                "tzName": "Mountain Standard Time (North America)"
+            },
+            {
+                "zoneName": "America/Glace_Bay",
+                "gmtOffset": -14400,
+                "gmtOffsetName": "UTC-04:00",
+                "abbreviation": "AST",
+                "tzName": "Atlantic Standard Time"
+            },
+            {
+                "zoneName": "America/Goose_Bay",
+                "gmtOffset": -14400,
+                "gmtOffsetName": "UTC-04:00",
+                "abbreviation": "AST",
+                "tzName": "Atlantic Standard Time"
+            },
+            {
+                "zoneName": "America/Halifax",
+                "gmtOffset": -14400,
+                "gmtOffsetName": "UTC-04:00",
+                "abbreviation": "AST",
+                "tzName": "Atlantic Standard Time"
+            },
+            {
+                "zoneName": "America/Inuvik",
+                "gmtOffset": -25200,
+                "gmtOffsetName": "UTC-07:00",
+                "abbreviation": "MST",
+                "tzName": "Mountain Standard Time (North America"
+            },
+            {
+                "zoneName": "America/Iqaluit",
+                "gmtOffset": -18000,
+                "gmtOffsetName": "UTC-05:00",
+                "abbreviation": "EST",
+                "tzName": "Eastern Standard Time (North America"
+            },
+            {
+                "zoneName": "America/Moncton",
+                "gmtOffset": -14400,
+                "gmtOffsetName": "UTC-04:00",
+                "abbreviation": "AST",
+                "tzName": "Atlantic Standard Time"
+            },
+            {
+                "zoneName": "America/Nipigon",
+                "gmtOffset": -18000,
+                "gmtOffsetName": "UTC-05:00",
+                "abbreviation": "EST",
+                "tzName": "Eastern Standard Time (North America"
+            },
+            {
+                "zoneName": "America/Pangnirtung",
+                "gmtOffset": -18000,
+                "gmtOffsetName": "UTC-05:00",
+                "abbreviation": "EST",
+                "tzName": "Eastern Standard Time (North America"
+            },
+            {
+                "zoneName": "America/Rainy_River",
+                "gmtOffset": -21600,
+                "gmtOffsetName": "UTC-06:00",
+                "abbreviation": "CST",
+                "tzName": "Central Standard Time (North America"
+            },
+            {
+                "zoneName": "America/Rankin_Inlet",
+                "gmtOffset": -21600,
+                "gmtOffsetName": "UTC-06:00",
+                "abbreviation": "CST",
+                "tzName": "Central Standard Time (North America"
+            },
+            {
+                "zoneName": "America/Regina",
+                "gmtOffset": -21600,
+                "gmtOffsetName": "UTC-06:00",
+                "abbreviation": "CST",
+                "tzName": "Central Standard Time (North America"
+            },
+            {
+                "zoneName": "America/Resolute",
+                "gmtOffset": -21600,
+                "gmtOffsetName": "UTC-06:00",
+                "abbreviation": "CST",
+                "tzName": "Central Standard Time (North America"
+            },
+            {
+                "zoneName": "America/St_Johns",
+                "gmtOffset": -12600,
+                "gmtOffsetName": "UTC-03:30",
+                "abbreviation": "NST",
+                "tzName": "Newfoundland Standard Time"
+            },
+            {
+                "zoneName": "America/Swift_Current",
+                "gmtOffset": -21600,
+                "gmtOffsetName": "UTC-06:00",
+                "abbreviation": "CST",
+                "tzName": "Central Standard Time (North America"
+            },
+            {
+                "zoneName": "America/Thunder_Bay",
+                "gmtOffset": -18000,
+                "gmtOffsetName": "UTC-05:00",
+                "abbreviation": "EST",
+                "tzName": "Eastern Standard Time (North America"
+            },
+            {
+                "zoneName": "America/Toronto",
+                "gmtOffset": -18000,
+                "gmtOffsetName": "UTC-05:00",
+                "abbreviation": "EST",
+                "tzName": "Eastern Standard Time (North America"
+            },
+            {
+                "zoneName": "America/Vancouver",
+                "gmtOffset": -28800,
+                "gmtOffsetName": "UTC-08:00",
+                "abbreviation": "PST",
+                "tzName": "Pacific Standard Time (North America"
+            },
+            {
+                "zoneName": "America/Whitehorse",
+                "gmtOffset": -25200,
+                "gmtOffsetName": "UTC-07:00",
+                "abbreviation": "MST",
+                "tzName": "Mountain Standard Time (North America"
+            },
+            {
+                "zoneName": "America/Winnipeg",
+                "gmtOffset": -21600,
+                "gmtOffsetName": "UTC-06:00",
+                "abbreviation": "CST",
+                "tzName": "Central Standard Time (North America"
+            },
+            {
+                "zoneName": "America/Yellowknife",
+                "gmtOffset": -25200,
+                "gmtOffsetName": "UTC-07:00",
+                "abbreviation": "MST",
+                "tzName": "Mountain Standard Time (North America"
+            }
+        ]
+    },
+    {
         "id": 16785,
         "name": "Ottawa",
         "state_id": 866,
@@ -1834,218 +2046,6 @@
         ]
     },
     {
-        "id": 17121,
-        "name": "Toronto",
-        "state_id": 866,
-        "state_code": "ON",
-        "country_id": 39,
-        "country_code": "CA",
-        "latitude": 43.70011,
-        "longitude": -79.4163,
-        "created_at": "2019-10-05 22:35:50",
-        "updated_at": "2019-10-05 22:35:50",
-        "flag": 1,
-        "wikiDataId": "Q172",
-        "timezones": [
-            {
-                "zoneName": "America/Atikokan",
-                "gmtOffset": -18000,
-                "gmtOffsetName": "UTC-05:00",
-                "abbreviation": "EST",
-                "tzName": "Eastern Standard Time (North America)"
-            },
-            {
-                "zoneName": "America/Blanc-Sablon",
-                "gmtOffset": -14400,
-                "gmtOffsetName": "UTC-04:00",
-                "abbreviation": "AST",
-                "tzName": "Atlantic Standard Time"
-            },
-            {
-                "zoneName": "America/Cambridge_Bay",
-                "gmtOffset": -25200,
-                "gmtOffsetName": "UTC-07:00",
-                "abbreviation": "MST",
-                "tzName": "Mountain Standard Time (North America)"
-            },
-            {
-                "zoneName": "America/Creston",
-                "gmtOffset": -25200,
-                "gmtOffsetName": "UTC-07:00",
-                "abbreviation": "MST",
-                "tzName": "Mountain Standard Time (North America)"
-            },
-            {
-                "zoneName": "America/Dawson",
-                "gmtOffset": -25200,
-                "gmtOffsetName": "UTC-07:00",
-                "abbreviation": "MST",
-                "tzName": "Mountain Standard Time (North America)"
-            },
-            {
-                "zoneName": "America/Dawson_Creek",
-                "gmtOffset": -25200,
-                "gmtOffsetName": "UTC-07:00",
-                "abbreviation": "MST",
-                "tzName": "Mountain Standard Time (North America)"
-            },
-            {
-                "zoneName": "America/Edmonton",
-                "gmtOffset": -25200,
-                "gmtOffsetName": "UTC-07:00",
-                "abbreviation": "MST",
-                "tzName": "Mountain Standard Time (North America)"
-            },
-            {
-                "zoneName": "America/Fort_Nelson",
-                "gmtOffset": -25200,
-                "gmtOffsetName": "UTC-07:00",
-                "abbreviation": "MST",
-                "tzName": "Mountain Standard Time (North America)"
-            },
-            {
-                "zoneName": "America/Glace_Bay",
-                "gmtOffset": -14400,
-                "gmtOffsetName": "UTC-04:00",
-                "abbreviation": "AST",
-                "tzName": "Atlantic Standard Time"
-            },
-            {
-                "zoneName": "America/Goose_Bay",
-                "gmtOffset": -14400,
-                "gmtOffsetName": "UTC-04:00",
-                "abbreviation": "AST",
-                "tzName": "Atlantic Standard Time"
-            },
-            {
-                "zoneName": "America/Halifax",
-                "gmtOffset": -14400,
-                "gmtOffsetName": "UTC-04:00",
-                "abbreviation": "AST",
-                "tzName": "Atlantic Standard Time"
-            },
-            {
-                "zoneName": "America/Inuvik",
-                "gmtOffset": -25200,
-                "gmtOffsetName": "UTC-07:00",
-                "abbreviation": "MST",
-                "tzName": "Mountain Standard Time (North America"
-            },
-            {
-                "zoneName": "America/Iqaluit",
-                "gmtOffset": -18000,
-                "gmtOffsetName": "UTC-05:00",
-                "abbreviation": "EST",
-                "tzName": "Eastern Standard Time (North America"
-            },
-            {
-                "zoneName": "America/Moncton",
-                "gmtOffset": -14400,
-                "gmtOffsetName": "UTC-04:00",
-                "abbreviation": "AST",
-                "tzName": "Atlantic Standard Time"
-            },
-            {
-                "zoneName": "America/Nipigon",
-                "gmtOffset": -18000,
-                "gmtOffsetName": "UTC-05:00",
-                "abbreviation": "EST",
-                "tzName": "Eastern Standard Time (North America"
-            },
-            {
-                "zoneName": "America/Pangnirtung",
-                "gmtOffset": -18000,
-                "gmtOffsetName": "UTC-05:00",
-                "abbreviation": "EST",
-                "tzName": "Eastern Standard Time (North America"
-            },
-            {
-                "zoneName": "America/Rainy_River",
-                "gmtOffset": -21600,
-                "gmtOffsetName": "UTC-06:00",
-                "abbreviation": "CST",
-                "tzName": "Central Standard Time (North America"
-            },
-            {
-                "zoneName": "America/Rankin_Inlet",
-                "gmtOffset": -21600,
-                "gmtOffsetName": "UTC-06:00",
-                "abbreviation": "CST",
-                "tzName": "Central Standard Time (North America"
-            },
-            {
-                "zoneName": "America/Regina",
-                "gmtOffset": -21600,
-                "gmtOffsetName": "UTC-06:00",
-                "abbreviation": "CST",
-                "tzName": "Central Standard Time (North America"
-            },
-            {
-                "zoneName": "America/Resolute",
-                "gmtOffset": -21600,
-                "gmtOffsetName": "UTC-06:00",
-                "abbreviation": "CST",
-                "tzName": "Central Standard Time (North America"
-            },
-            {
-                "zoneName": "America/St_Johns",
-                "gmtOffset": -12600,
-                "gmtOffsetName": "UTC-03:30",
-                "abbreviation": "NST",
-                "tzName": "Newfoundland Standard Time"
-            },
-            {
-                "zoneName": "America/Swift_Current",
-                "gmtOffset": -21600,
-                "gmtOffsetName": "UTC-06:00",
-                "abbreviation": "CST",
-                "tzName": "Central Standard Time (North America"
-            },
-            {
-                "zoneName": "America/Thunder_Bay",
-                "gmtOffset": -18000,
-                "gmtOffsetName": "UTC-05:00",
-                "abbreviation": "EST",
-                "tzName": "Eastern Standard Time (North America"
-            },
-            {
-                "zoneName": "America/Toronto",
-                "gmtOffset": -18000,
-                "gmtOffsetName": "UTC-05:00",
-                "abbreviation": "EST",
-                "tzName": "Eastern Standard Time (North America"
-            },
-            {
-                "zoneName": "America/Vancouver",
-                "gmtOffset": -28800,
-                "gmtOffsetName": "UTC-08:00",
-                "abbreviation": "PST",
-                "tzName": "Pacific Standard Time (North America"
-            },
-            {
-                "zoneName": "America/Whitehorse",
-                "gmtOffset": -25200,
-                "gmtOffsetName": "UTC-07:00",
-                "abbreviation": "MST",
-                "tzName": "Mountain Standard Time (North America"
-            },
-            {
-                "zoneName": "America/Winnipeg",
-                "gmtOffset": -21600,
-                "gmtOffsetName": "UTC-06:00",
-                "abbreviation": "CST",
-                "tzName": "Central Standard Time (North America"
-            },
-            {
-                "zoneName": "America/Yellowknife",
-                "gmtOffset": -25200,
-                "gmtOffsetName": "UTC-07:00",
-                "abbreviation": "MST",
-                "tzName": "Mountain Standard Time (North America"
-            }
-        ]
-    },
-    {
         "id": 17263,
         "name": "Kinshasa",
         "state_id": 2741,
@@ -2205,6 +2205,29 @@
         ]
     },
     {
+        "id": 19169,
+        "name": "Douala",
+        "state_id": 2662,
+        "state_code": "LT",
+        "country_id": 38,
+        "country_code": "CM",
+        "latitude": 4.04827,
+        "longitude": 9.70428,
+        "created_at": "2019-10-05 22:36:03",
+        "updated_at": "2019-10-05 22:36:03",
+        "flag": 1,
+        "wikiDataId": "Q132830",
+        "timezones": [
+            {
+                "zoneName": "Africa/Douala",
+                "gmtOffset": 3600,
+                "gmtOffsetName": "UTC+01:00",
+                "abbreviation": "WAT",
+                "tzName": "West Africa Time"
+            }
+        ]
+    },
+    {
         "id": 19266,
         "name": "Yaound\u00e9",
         "state_id": 2660,
@@ -2228,25 +2251,32 @@
         ]
     },
     {
-        "id": 19169,
-        "name": "Douala",
-        "state_id": 2662,
-        "state_code": "LT",
-        "country_id": 38,
-        "country_code": "CM",
-        "latitude": 4.04827,
-        "longitude": 9.70428,
-        "created_at": "2019-10-05 22:36:03",
-        "updated_at": "2019-10-05 22:36:03",
+        "id": 149198,
+        "name": "Tianjin",
+        "state_id": 2276,
+        "state_code": "TJ",
+        "country_id": 45,
+        "country_code": "CN",
+        "latitude": 39.14666667,
+        "longitude": 117.20555556,
+        "created_at": "2021-11-27 14:53:44",
+        "updated_at": "2021-11-27 14:53:44",
         "flag": 1,
-        "wikiDataId": "Q132830",
+        "wikiDataId": "Q11736",
         "timezones": [
             {
-                "zoneName": "Africa/Douala",
-                "gmtOffset": 3600,
-                "gmtOffsetName": "UTC+01:00",
-                "abbreviation": "WAT",
-                "tzName": "West Africa Time"
+                "zoneName": "Asia/Shanghai",
+                "gmtOffset": 28800,
+                "gmtOffsetName": "UTC+08:00",
+                "abbreviation": "CST",
+                "tzName": "China Standard Time"
+            },
+            {
+                "zoneName": "Asia/Urumqi",
+                "gmtOffset": 21600,
+                "gmtOffsetName": "UTC+06:00",
+                "abbreviation": "XJT",
+                "tzName": "China Standard Time"
             }
         ]
     },
@@ -2281,18 +2311,18 @@
         ]
     },
     {
-        "id": 19562,
-        "name": "Guangzhou",
-        "state_id": 2279,
-        "state_code": "GD",
+        "id": 19404,
+        "name": "Chongqing",
+        "state_id": 2271,
+        "state_code": "CQ",
         "country_id": 45,
         "country_code": "CN",
-        "latitude": 23.11667,
-        "longitude": 113.25,
-        "created_at": "2019-10-05 22:39:36",
-        "updated_at": "2019-10-05 22:39:36",
+        "latitude": 29.56278,
+        "longitude": 106.55278,
+        "created_at": "2019-10-05 22:39:35",
+        "updated_at": "2019-10-05 22:39:35",
         "flag": 1,
-        "wikiDataId": "Q16572",
+        "wikiDataId": "Q360870",
         "timezones": [
             {
                 "zoneName": "Asia/Shanghai",
@@ -2371,48 +2401,18 @@
         ]
     },
     {
-        "id": 19404,
-        "name": "Chongqing",
-        "state_id": 2271,
-        "state_code": "CQ",
+        "id": 19562,
+        "name": "Guangzhou",
+        "state_id": 2279,
+        "state_code": "GD",
         "country_id": 45,
         "country_code": "CN",
-        "latitude": 29.56278,
-        "longitude": 106.55278,
-        "created_at": "2019-10-05 22:39:35",
-        "updated_at": "2019-10-05 22:39:35",
+        "latitude": 23.11667,
+        "longitude": 113.25,
+        "created_at": "2019-10-05 22:39:36",
+        "updated_at": "2019-10-05 22:39:36",
         "flag": 1,
-        "wikiDataId": "Q360870",
-        "timezones": [
-            {
-                "zoneName": "Asia/Shanghai",
-                "gmtOffset": 28800,
-                "gmtOffsetName": "UTC+08:00",
-                "abbreviation": "CST",
-                "tzName": "China Standard Time"
-            },
-            {
-                "zoneName": "Asia/Urumqi",
-                "gmtOffset": 21600,
-                "gmtOffsetName": "UTC+06:00",
-                "abbreviation": "XJT",
-                "tzName": "China Standard Time"
-            }
-        ]
-    },
-    {
-        "id": 149198,
-        "name": "Tianjin",
-        "state_id": 2276,
-        "state_code": "TJ",
-        "country_id": 45,
-        "country_code": "CN",
-        "latitude": 39.14666667,
-        "longitude": 117.20555556,
-        "created_at": "2021-11-27 14:53:44",
-        "updated_at": "2021-11-27 14:53:44",
-        "flag": 1,
-        "wikiDataId": "Q11736",
+        "wikiDataId": "Q16572",
         "timezones": [
             {
                 "zoneName": "Asia/Shanghai",
@@ -2454,18 +2454,18 @@
         ]
     },
     {
-        "id": 21755,
+        "id": 21756,
         "name": "San Jos\u00e9",
-        "state_id": 1215,
-        "state_code": "A",
+        "state_id": 1214,
+        "state_code": "SJ",
         "country_id": 53,
         "country_code": "CR",
-        "latitude": 10.95173,
-        "longitude": -85.1361,
+        "latitude": 9.93333,
+        "longitude": -84.08333,
         "created_at": "2019-10-05 22:40:00",
         "updated_at": "2020-05-01 17:22:40",
         "flag": 1,
-        "wikiDataId": "Q23736949",
+        "wikiDataId": "Q3070",
         "timezones": [
             {
                 "zoneName": "America/Costa_Rica",
@@ -3176,7 +3176,7 @@
     },
     {
         "id": 52032,
-        "name": "Saint George's",
+        "name": "St. George's",
         "state_id": 3864,
         "state_code": "03",
         "country_id": 87,
@@ -3449,6 +3449,29 @@
         ]
     },
     {
+        "id": 153488,
+        "name": "Hong Kong",
+        "state_id": 4893,
+        "state_code": "KYT",
+        "country_id": 98,
+        "country_code": "HK",
+        "latitude": 22.319,
+        "longitude": 114.169,
+        "created_at": "2014-01-01 05:01:01",
+        "updated_at": "2023-05-20 18:47:02",
+        "flag": 1,
+        "wikiDataId": "Q85764",
+        "timezones": [
+            {
+                "zoneName": "Asia/Hong_Kong",
+                "gmtOffset": 28800,
+                "gmtOffsetName": "UTC+08:00",
+                "abbreviation": "HKT",
+                "tzName": "Hong Kong Time"
+            }
+        ]
+    },
+    {
         "id": 54333,
         "name": "Tegucigalpa",
         "state_id": 4052,
@@ -3541,18 +3564,18 @@
         ]
     },
     {
-        "id": 57011,
-        "name": "Surabaya",
-        "state_id": 1827,
-        "state_code": "JI",
+        "id": 154470,
+        "name": "Jakarta",
+        "state_id": 1805,
+        "state_code": "JK",
         "country_id": 102,
         "country_code": "ID",
-        "latitude": -7.24917,
-        "longitude": 112.75083,
-        "created_at": "2019-10-05 22:53:41",
-        "updated_at": "2019-10-05 22:53:41",
+        "latitude": -6.1822261,
+        "longitude": 106.7952648,
+        "created_at": "2024-11-14 09:07:19",
+        "updated_at": "2024-11-14 09:07:19",
         "flag": 1,
-        "wikiDataId": "Q11462",
+        "wikiDataId": "Q10109",
         "timezones": [
             {
                 "zoneName": "Asia/Jakarta",
@@ -3585,18 +3608,18 @@
         ]
     },
     {
-        "id": 154470,
-        "name": "Jakarta",
-        "state_id": 1805,
-        "state_code": "JK",
+        "id": 57011,
+        "name": "Surabaya",
+        "state_id": 1827,
+        "state_code": "JI",
         "country_id": 102,
         "country_code": "ID",
-        "latitude": -6.1822261,
-        "longitude": 106.7952648,
-        "created_at": "2024-11-14 09:07:19",
-        "updated_at": "2024-11-14 09:07:19",
+        "latitude": -7.24917,
+        "longitude": 112.75083,
+        "created_at": "2019-10-05 22:53:41",
+        "updated_at": "2019-10-05 22:53:41",
         "flag": 1,
-        "wikiDataId": "Q10109",
+        "wikiDataId": "Q11462",
         "timezones": [
             {
                 "zoneName": "Asia/Jakarta",
@@ -3675,41 +3698,18 @@
         ]
     },
     {
-        "id": 142001,
-        "name": "Kolkata",
-        "state_id": 4853,
-        "state_code": "WB",
+        "id": 133024,
+        "name": "Mumbai",
+        "state_id": 4008,
+        "state_code": "MH",
         "country_id": 101,
         "country_code": "IN",
-        "latitude": 22.54111111,
-        "longitude": 88.33777778,
-        "created_at": "2020-05-24 16:04:27",
-        "updated_at": "2020-05-24 16:04:27",
+        "latitude": 19.07283,
+        "longitude": 72.88261,
+        "created_at": "2019-10-05 23:38:47",
+        "updated_at": "2019-10-05 23:38:47",
         "flag": 1,
-        "wikiDataId": "Q1348",
-        "timezones": [
-            {
-                "zoneName": "Asia/Kolkata",
-                "gmtOffset": 19800,
-                "gmtOffsetName": "UTC+05:30",
-                "abbreviation": "IST",
-                "tzName": "Indian Standard Time"
-            }
-        ]
-    },
-    {
-        "id": 132132,
-        "name": "Hyderabad",
-        "state_id": 4012,
-        "state_code": "TG",
-        "country_id": 101,
-        "country_code": "IN",
-        "latitude": 17.38405,
-        "longitude": 78.45636,
-        "created_at": "2019-10-05 23:38:39",
-        "updated_at": "2019-10-05 23:38:39",
-        "flag": 1,
-        "wikiDataId": "Q1361",
+        "wikiDataId": "Q1156",
         "timezones": [
             {
                 "zoneName": "Asia/Kolkata",
@@ -3744,18 +3744,18 @@
         ]
     },
     {
-        "id": 133024,
-        "name": "Mumbai",
-        "state_id": 4008,
-        "state_code": "MH",
+        "id": 142001,
+        "name": "Kolkata",
+        "state_id": 4853,
+        "state_code": "WB",
         "country_id": 101,
         "country_code": "IN",
-        "latitude": 19.07283,
-        "longitude": 72.88261,
-        "created_at": "2019-10-05 23:38:47",
-        "updated_at": "2019-10-05 23:38:47",
+        "latitude": 22.54111111,
+        "longitude": 88.33777778,
+        "created_at": "2020-05-24 16:04:27",
+        "updated_at": "2020-05-24 16:04:27",
         "flag": 1,
-        "wikiDataId": "Q1156",
+        "wikiDataId": "Q1348",
         "timezones": [
             {
                 "zoneName": "Asia/Kolkata",
@@ -3790,6 +3790,29 @@
         ]
     },
     {
+        "id": 132132,
+        "name": "Hyderabad",
+        "state_id": 4012,
+        "state_code": "TG",
+        "country_id": 101,
+        "country_code": "IN",
+        "latitude": 17.38405,
+        "longitude": 78.45636,
+        "created_at": "2019-10-05 23:38:39",
+        "updated_at": "2019-10-05 23:38:39",
+        "flag": 1,
+        "wikiDataId": "Q1361",
+        "timezones": [
+            {
+                "zoneName": "Asia/Kolkata",
+                "gmtOffset": 19800,
+                "gmtOffsetName": "UTC+05:30",
+                "abbreviation": "IST",
+                "tzName": "Indian Standard Time"
+            }
+        ]
+    },
+    {
         "id": 134504,
         "name": "Baghdad",
         "state_id": 3959,
@@ -3813,29 +3836,6 @@
         ]
     },
     {
-        "id": 135129,
-        "name": "Tehran",
-        "state_id": 3945,
-        "state_code": "23",
-        "country_id": 103,
-        "country_code": "IR",
-        "latitude": 35.69439,
-        "longitude": 51.42151,
-        "created_at": "2019-10-05 23:39:05",
-        "updated_at": "2021-07-19 11:04:40",
-        "flag": 1,
-        "wikiDataId": "Q3616",
-        "timezones": [
-            {
-                "zoneName": "Asia/Tehran",
-                "gmtOffset": 12600,
-                "gmtOffsetName": "UTC+03:30",
-                "abbreviation": "IRDT",
-                "tzName": "Iran Daylight Time"
-            }
-        ]
-    },
-    {
         "id": 134698,
         "name": "Mashhad",
         "state_id": 3927,
@@ -3848,6 +3848,29 @@
         "updated_at": "2021-07-19 10:58:52",
         "flag": 1,
         "wikiDataId": "Q121157",
+        "timezones": [
+            {
+                "zoneName": "Asia/Tehran",
+                "gmtOffset": 12600,
+                "gmtOffsetName": "UTC+03:30",
+                "abbreviation": "IRDT",
+                "tzName": "Iran Daylight Time"
+            }
+        ]
+    },
+    {
+        "id": 135129,
+        "name": "Tehran",
+        "state_id": 3945,
+        "state_code": "23",
+        "country_id": 103,
+        "country_code": "IR",
+        "latitude": 35.69439,
+        "longitude": 51.42151,
+        "created_at": "2019-10-05 23:39:05",
+        "updated_at": "2021-07-19 11:04:40",
+        "flag": 1,
+        "wikiDataId": "Q3616",
         "timezones": [
             {
                 "zoneName": "Asia/Tehran",
@@ -3974,29 +3997,6 @@
         ]
     },
     {
-        "id": 64500,
-        "name": "Tokyo",
-        "state_id": 823,
-        "state_code": "13",
-        "country_id": 109,
-        "country_code": "JP",
-        "latitude": 35.6895,
-        "longitude": 139.69171,
-        "created_at": "2019-10-05 23:07:41",
-        "updated_at": "2019-10-05 23:07:41",
-        "flag": 1,
-        "wikiDataId": "Q207309",
-        "timezones": [
-            {
-                "zoneName": "Asia/Tokyo",
-                "gmtOffset": 32400,
-                "gmtOffsetName": "UTC+09:00",
-                "abbreviation": "JST",
-                "tzName": "Japan Standard Time"
-            }
-        ]
-    },
-    {
         "id": 64214,
         "name": "Osaka",
         "state_id": 859,
@@ -4032,6 +4032,29 @@
         "updated_at": "2019-10-05 23:07:37",
         "flag": 1,
         "wikiDataId": "Q11751",
+        "timezones": [
+            {
+                "zoneName": "Asia/Tokyo",
+                "gmtOffset": 32400,
+                "gmtOffsetName": "UTC+09:00",
+                "abbreviation": "JST",
+                "tzName": "Japan Standard Time"
+            }
+        ]
+    },
+    {
+        "id": 64500,
+        "name": "Tokyo",
+        "state_id": 823,
+        "state_code": "13",
+        "country_id": 109,
+        "country_code": "JP",
+        "latitude": 35.6895,
+        "longitude": 139.69171,
+        "created_at": "2019-10-05 23:07:41",
+        "updated_at": "2019-10-05 23:07:41",
+        "flag": 1,
+        "wikiDataId": "Q207309",
         "timezones": [
             {
                 "zoneName": "Asia/Tokyo",
@@ -4288,7 +4311,7 @@
     },
     {
         "id": 65737,
-        "name": "Nur-Sultan",
+        "name": "Astana",
         "state_id": 156,
         "state_code": "AST",
         "country_id": 112,
@@ -4743,29 +4766,6 @@
         ]
     },
     {
-        "id": 67672,
-        "name": "Nay Pyi Taw",
-        "state_id": 2146,
-        "state_code": "18",
-        "country_id": 151,
-        "country_code": "MM",
-        "latitude": 19.745,
-        "longitude": 96.12972,
-        "created_at": "2019-10-05 23:08:04",
-        "updated_at": "2019-10-05 23:08:04",
-        "flag": 1,
-        "wikiDataId": "Q37400",
-        "timezones": [
-            {
-                "zoneName": "Asia/Yangon",
-                "gmtOffset": 23400,
-                "gmtOffsetName": "UTC+06:30",
-                "abbreviation": "MMT",
-                "tzName": "Myanmar Standard Time"
-            }
-        ]
-    },
-    {
         "id": 67703,
         "name": "Yangon",
         "state_id": 2135,
@@ -4778,6 +4778,29 @@
         "updated_at": "2019-10-05 23:08:05",
         "flag": 1,
         "wikiDataId": "Q37995",
+        "timezones": [
+            {
+                "zoneName": "Asia/Yangon",
+                "gmtOffset": 23400,
+                "gmtOffsetName": "UTC+06:30",
+                "abbreviation": "MMT",
+                "tzName": "Myanmar Standard Time"
+            }
+        ]
+    },
+    {
+        "id": 67672,
+        "name": "Nay Pyi Taw",
+        "state_id": 2146,
+        "state_code": "18",
+        "country_id": 151,
+        "country_code": "MM",
+        "latitude": 19.745,
+        "longitude": 96.12972,
+        "created_at": "2019-10-05 23:08:04",
+        "updated_at": "2019-10-05 23:08:04",
+        "flag": 1,
+        "wikiDataId": "Q37400",
         "timezones": [
             {
                 "zoneName": "Asia/Yangon",
@@ -5133,29 +5156,6 @@
         ]
     },
     {
-        "id": 77002,
-        "name": "Lagos",
-        "state_id": 306,
-        "state_code": "LA",
-        "country_id": 161,
-        "country_code": "NG",
-        "latitude": 6.45407,
-        "longitude": 3.39467,
-        "created_at": "2019-10-05 23:10:41",
-        "updated_at": "2019-10-05 23:10:41",
-        "flag": 1,
-        "wikiDataId": "Q8673",
-        "timezones": [
-            {
-                "zoneName": "Africa/Lagos",
-                "gmtOffset": 3600,
-                "gmtOffsetName": "UTC+01:00",
-                "abbreviation": "WAT",
-                "tzName": "West Africa Time"
-            }
-        ]
-    },
-    {
         "id": 76749,
         "name": "Abuja",
         "state_id": 293,
@@ -5168,6 +5168,29 @@
         "updated_at": "2019-10-05 23:10:40",
         "flag": 1,
         "wikiDataId": "Q3787",
+        "timezones": [
+            {
+                "zoneName": "Africa/Lagos",
+                "gmtOffset": 3600,
+                "gmtOffsetName": "UTC+01:00",
+                "abbreviation": "WAT",
+                "tzName": "West Africa Time"
+            }
+        ]
+    },
+    {
+        "id": 77002,
+        "name": "Lagos",
+        "state_id": 306,
+        "state_code": "LA",
+        "country_id": 161,
+        "country_code": "NG",
+        "latitude": 6.45407,
+        "longitude": 3.39467,
+        "created_at": "2019-10-05 23:10:41",
+        "updated_at": "2019-10-05 23:10:41",
+        "flag": 1,
+        "wikiDataId": "Q8673",
         "timezones": [
             {
                 "zoneName": "Africa/Lagos",
@@ -5294,18 +5317,18 @@
         ]
     },
     {
-        "id": 79915,
-        "name": "Wellington",
-        "state_id": 4065,
-        "state_code": "WGN",
+        "id": 79773,
+        "name": "Auckland",
+        "state_id": 4072,
+        "state_code": "AUK",
         "country_id": 158,
         "country_code": "NZ",
-        "latitude": -41.28664,
-        "longitude": 174.77557,
-        "created_at": "2019-10-05 23:12:17",
-        "updated_at": "2019-10-05 23:12:17",
+        "latitude": -36.84853,
+        "longitude": 174.76349,
+        "created_at": "2019-10-05 23:12:15",
+        "updated_at": "2019-10-05 23:12:15",
         "flag": 1,
-        "wikiDataId": "Q23661",
+        "wikiDataId": "Q15784197",
         "timezones": [
             {
                 "zoneName": "Pacific/Auckland",
@@ -5324,18 +5347,18 @@
         ]
     },
     {
-        "id": 79773,
-        "name": "Auckland",
-        "state_id": 4072,
-        "state_code": "AUK",
+        "id": 79915,
+        "name": "Wellington",
+        "state_id": 4065,
+        "state_code": "WGN",
         "country_id": 158,
         "country_code": "NZ",
-        "latitude": -36.84853,
-        "longitude": 174.76349,
-        "created_at": "2019-10-05 23:12:15",
-        "updated_at": "2019-10-05 23:12:15",
+        "latitude": -41.28664,
+        "longitude": 174.77557,
+        "created_at": "2019-10-05 23:12:17",
+        "updated_at": "2019-10-05 23:12:17",
         "flag": 1,
-        "wikiDataId": "Q15784197",
+        "wikiDataId": "Q23661",
         "timezones": [
             {
                 "zoneName": "Pacific/Auckland",
@@ -5373,6 +5396,29 @@
                 "gmtOffsetName": "UTC+04:00",
                 "abbreviation": "GST",
                 "tzName": "Gulf Standard Time"
+            }
+        ]
+    },
+    {
+        "id": 80394,
+        "name": "Panam\u00e1 City",
+        "state_id": 1395,
+        "state_code": "8",
+        "country_id": 170,
+        "country_code": "PA",
+        "latitude": 8.9936,
+        "longitude": -79.51973,
+        "created_at": "2019-10-05 23:12:20",
+        "updated_at": "2020-05-01 17:23:04",
+        "flag": 1,
+        "wikiDataId": "Q3306",
+        "timezones": [
+            {
+                "zoneName": "America/Panama",
+                "gmtOffset": -18000,
+                "gmtOffsetName": "UTC-05:00",
+                "abbreviation": "EST",
+                "tzName": "Eastern Standard Time (North America"
             }
         ]
     },
@@ -5741,18 +5787,18 @@
         ]
     },
     {
-        "id": 101074,
-        "name": "Saint Petersburg",
-        "state_id": 1879,
-        "state_code": "SPE",
+        "id": 99972,
+        "name": "Moscow",
+        "state_id": 1901,
+        "state_code": "MOW",
         "country_id": 182,
         "country_code": "RU",
-        "latitude": 59.93863,
-        "longitude": 30.31413,
-        "created_at": "2019-10-05 23:17:31",
-        "updated_at": "2019-10-05 23:17:31",
+        "latitude": 55.75222,
+        "longitude": 37.61556,
+        "created_at": "2019-10-05 23:17:22",
+        "updated_at": "2019-10-05 23:17:22",
         "flag": 1,
-        "wikiDataId": "Q656",
+        "wikiDataId": "Q649",
         "timezones": [
             {
                 "zoneName": "Asia/Anadyr",
@@ -5939,18 +5985,18 @@
         ]
     },
     {
-        "id": 99972,
-        "name": "Moscow",
-        "state_id": 1901,
-        "state_code": "MOW",
+        "id": 101074,
+        "name": "Saint Petersburg",
+        "state_id": 1879,
+        "state_code": "SPE",
         "country_id": 182,
         "country_code": "RU",
-        "latitude": 55.75222,
-        "longitude": 37.61556,
-        "created_at": "2019-10-05 23:17:22",
-        "updated_at": "2019-10-05 23:17:22",
+        "latitude": 59.93863,
+        "longitude": 30.31413,
+        "created_at": "2019-10-05 23:17:31",
+        "updated_at": "2019-10-05 23:17:31",
         "flag": 1,
-        "wikiDataId": "Q649",
+        "wikiDataId": "Q656",
         "timezones": [
             {
                 "zoneName": "Asia/Anadyr",
@@ -6735,29 +6781,6 @@
         ]
     },
     {
-        "id": 153787,
-        "name": "Ankara",
-        "state_id": 2217,
-        "state_code": "06",
-        "country_id": 225,
-        "country_code": "TR",
-        "latitude": 39.9034367,
-        "longitude": 32.4331003,
-        "created_at": "2019-10-05 23:31:27",
-        "updated_at": "2024-09-05 15:16:10",
-        "flag": 1,
-        "wikiDataId": "Q3640",
-        "timezones": [
-            {
-                "zoneName": "Europe/Istanbul",
-                "gmtOffset": 10800,
-                "gmtOffsetName": "UTC+03:00",
-                "abbreviation": "EET",
-                "tzName": "Eastern European Time"
-            }
-        ]
-    },
-    {
         "id": 153786,
         "name": "Istanbul",
         "state_id": 2170,
@@ -6770,6 +6793,29 @@
         "updated_at": "2024-09-04 21:36:34",
         "flag": 1,
         "wikiDataId": "Q406",
+        "timezones": [
+            {
+                "zoneName": "Europe/Istanbul",
+                "gmtOffset": 10800,
+                "gmtOffsetName": "UTC+03:00",
+                "abbreviation": "EET",
+                "tzName": "Eastern European Time"
+            }
+        ]
+    },
+    {
+        "id": 153787,
+        "name": "Ankara",
+        "state_id": 2217,
+        "state_code": "06",
+        "country_id": 225,
+        "country_code": "TR",
+        "latitude": 39.9034367,
+        "longitude": 32.4331003,
+        "created_at": "2019-10-05 23:31:27",
+        "updated_at": "2024-09-05 15:16:10",
+        "flag": 1,
+        "wikiDataId": "Q3640",
         "timezones": [
             {
                 "zoneName": "Europe/Istanbul",
@@ -6959,225 +7005,6 @@
                 "gmtOffsetName": "UTC+03:00",
                 "abbreviation": "EAT",
                 "tzName": "East Africa Time"
-            }
-        ]
-    },
-    {
-        "id": 128537,
-        "name": "Washington",
-        "state_id": 1406,
-        "state_code": "KS",
-        "country_id": 233,
-        "country_code": "US",
-        "latitude": 39.81806,
-        "longitude": -97.05086,
-        "created_at": "2019-10-05 23:36:56",
-        "updated_at": "2019-10-05 23:36:56",
-        "flag": 1,
-        "wikiDataId": "Q2184036",
-        "timezones": [
-            {
-                "zoneName": "America/Adak",
-                "gmtOffset": -36000,
-                "gmtOffsetName": "UTC-10:00",
-                "abbreviation": "HST",
-                "tzName": "Hawaii\u2013Aleutian Standard Time"
-            },
-            {
-                "zoneName": "America/Anchorage",
-                "gmtOffset": -32400,
-                "gmtOffsetName": "UTC-09:00",
-                "abbreviation": "AKST",
-                "tzName": "Alaska Standard Time"
-            },
-            {
-                "zoneName": "America/Boise",
-                "gmtOffset": -25200,
-                "gmtOffsetName": "UTC-07:00",
-                "abbreviation": "MST",
-                "tzName": "Mountain Standard Time (North America"
-            },
-            {
-                "zoneName": "America/Chicago",
-                "gmtOffset": -21600,
-                "gmtOffsetName": "UTC-06:00",
-                "abbreviation": "CST",
-                "tzName": "Central Standard Time (North America"
-            },
-            {
-                "zoneName": "America/Denver",
-                "gmtOffset": -25200,
-                "gmtOffsetName": "UTC-07:00",
-                "abbreviation": "MST",
-                "tzName": "Mountain Standard Time (North America"
-            },
-            {
-                "zoneName": "America/Detroit",
-                "gmtOffset": -18000,
-                "gmtOffsetName": "UTC-05:00",
-                "abbreviation": "EST",
-                "tzName": "Eastern Standard Time (North America"
-            },
-            {
-                "zoneName": "America/Indiana/Indianapolis",
-                "gmtOffset": -18000,
-                "gmtOffsetName": "UTC-05:00",
-                "abbreviation": "EST",
-                "tzName": "Eastern Standard Time (North America"
-            },
-            {
-                "zoneName": "America/Indiana/Knox",
-                "gmtOffset": -21600,
-                "gmtOffsetName": "UTC-06:00",
-                "abbreviation": "CST",
-                "tzName": "Central Standard Time (North America"
-            },
-            {
-                "zoneName": "America/Indiana/Marengo",
-                "gmtOffset": -18000,
-                "gmtOffsetName": "UTC-05:00",
-                "abbreviation": "EST",
-                "tzName": "Eastern Standard Time (North America"
-            },
-            {
-                "zoneName": "America/Indiana/Petersburg",
-                "gmtOffset": -18000,
-                "gmtOffsetName": "UTC-05:00",
-                "abbreviation": "EST",
-                "tzName": "Eastern Standard Time (North America"
-            },
-            {
-                "zoneName": "America/Indiana/Tell_City",
-                "gmtOffset": -21600,
-                "gmtOffsetName": "UTC-06:00",
-                "abbreviation": "CST",
-                "tzName": "Central Standard Time (North America"
-            },
-            {
-                "zoneName": "America/Indiana/Vevay",
-                "gmtOffset": -18000,
-                "gmtOffsetName": "UTC-05:00",
-                "abbreviation": "EST",
-                "tzName": "Eastern Standard Time (North America"
-            },
-            {
-                "zoneName": "America/Indiana/Vincennes",
-                "gmtOffset": -18000,
-                "gmtOffsetName": "UTC-05:00",
-                "abbreviation": "EST",
-                "tzName": "Eastern Standard Time (North America"
-            },
-            {
-                "zoneName": "America/Indiana/Winamac",
-                "gmtOffset": -18000,
-                "gmtOffsetName": "UTC-05:00",
-                "abbreviation": "EST",
-                "tzName": "Eastern Standard Time (North America"
-            },
-            {
-                "zoneName": "America/Juneau",
-                "gmtOffset": -32400,
-                "gmtOffsetName": "UTC-09:00",
-                "abbreviation": "AKST",
-                "tzName": "Alaska Standard Time"
-            },
-            {
-                "zoneName": "America/Kentucky/Louisville",
-                "gmtOffset": -18000,
-                "gmtOffsetName": "UTC-05:00",
-                "abbreviation": "EST",
-                "tzName": "Eastern Standard Time (North America"
-            },
-            {
-                "zoneName": "America/Kentucky/Monticello",
-                "gmtOffset": -18000,
-                "gmtOffsetName": "UTC-05:00",
-                "abbreviation": "EST",
-                "tzName": "Eastern Standard Time (North America"
-            },
-            {
-                "zoneName": "America/Los_Angeles",
-                "gmtOffset": -28800,
-                "gmtOffsetName": "UTC-08:00",
-                "abbreviation": "PST",
-                "tzName": "Pacific Standard Time (North America"
-            },
-            {
-                "zoneName": "America/Menominee",
-                "gmtOffset": -21600,
-                "gmtOffsetName": "UTC-06:00",
-                "abbreviation": "CST",
-                "tzName": "Central Standard Time (North America"
-            },
-            {
-                "zoneName": "America/Metlakatla",
-                "gmtOffset": -32400,
-                "gmtOffsetName": "UTC-09:00",
-                "abbreviation": "AKST",
-                "tzName": "Alaska Standard Time"
-            },
-            {
-                "zoneName": "America/New_York",
-                "gmtOffset": -18000,
-                "gmtOffsetName": "UTC-05:00",
-                "abbreviation": "EST",
-                "tzName": "Eastern Standard Time (North America"
-            },
-            {
-                "zoneName": "America/Nome",
-                "gmtOffset": -32400,
-                "gmtOffsetName": "UTC-09:00",
-                "abbreviation": "AKST",
-                "tzName": "Alaska Standard Time"
-            },
-            {
-                "zoneName": "America/North_Dakota/Beulah",
-                "gmtOffset": -21600,
-                "gmtOffsetName": "UTC-06:00",
-                "abbreviation": "CST",
-                "tzName": "Central Standard Time (North America"
-            },
-            {
-                "zoneName": "America/North_Dakota/Center",
-                "gmtOffset": -21600,
-                "gmtOffsetName": "UTC-06:00",
-                "abbreviation": "CST",
-                "tzName": "Central Standard Time (North America"
-            },
-            {
-                "zoneName": "America/North_Dakota/New_Salem",
-                "gmtOffset": -21600,
-                "gmtOffsetName": "UTC-06:00",
-                "abbreviation": "CST",
-                "tzName": "Central Standard Time (North America"
-            },
-            {
-                "zoneName": "America/Phoenix",
-                "gmtOffset": -25200,
-                "gmtOffsetName": "UTC-07:00",
-                "abbreviation": "MST",
-                "tzName": "Mountain Standard Time (North America"
-            },
-            {
-                "zoneName": "America/Sitka",
-                "gmtOffset": -32400,
-                "gmtOffsetName": "UTC-09:00",
-                "abbreviation": "AKST",
-                "tzName": "Alaska Standard Time"
-            },
-            {
-                "zoneName": "America/Yakutat",
-                "gmtOffset": -32400,
-                "gmtOffsetName": "UTC-09:00",
-                "abbreviation": "AKST",
-                "tzName": "Alaska Standard Time"
-            },
-            {
-                "zoneName": "Pacific/Honolulu",
-                "gmtOffset": -36000,
-                "gmtOffsetName": "UTC-10:00",
-                "abbreviation": "HST",
-                "tzName": "Hawaii\u2013Aleutian Standard Time"
             }
         ]
     },
@@ -7620,18 +7447,18 @@
         ]
     },
     {
-        "id": 120784,
-        "name": "Los Angeles",
-        "state_id": 1416,
-        "state_code": "CA",
+        "id": 128537,
+        "name": "Washington",
+        "state_id": 1406,
+        "state_code": "KS",
         "country_id": 233,
         "country_code": "US",
-        "latitude": 34.05223,
-        "longitude": -118.24368,
-        "created_at": "2019-10-05 23:33:22",
-        "updated_at": "2019-10-05 23:33:22",
+        "latitude": 39.81806,
+        "longitude": -97.05086,
+        "created_at": "2019-10-05 23:36:56",
+        "updated_at": "2019-10-05 23:36:56",
         "flag": 1,
-        "wikiDataId": "Q65",
+        "wikiDataId": "Q2184036",
         "timezones": [
             {
                 "zoneName": "America/Adak",
@@ -8058,6 +7885,225 @@
         ]
     },
     {
+        "id": 120784,
+        "name": "Los Angeles",
+        "state_id": 1416,
+        "state_code": "CA",
+        "country_id": 233,
+        "country_code": "US",
+        "latitude": 34.05223,
+        "longitude": -118.24368,
+        "created_at": "2019-10-05 23:33:22",
+        "updated_at": "2019-10-05 23:33:22",
+        "flag": 1,
+        "wikiDataId": "Q65",
+        "timezones": [
+            {
+                "zoneName": "America/Adak",
+                "gmtOffset": -36000,
+                "gmtOffsetName": "UTC-10:00",
+                "abbreviation": "HST",
+                "tzName": "Hawaii\u2013Aleutian Standard Time"
+            },
+            {
+                "zoneName": "America/Anchorage",
+                "gmtOffset": -32400,
+                "gmtOffsetName": "UTC-09:00",
+                "abbreviation": "AKST",
+                "tzName": "Alaska Standard Time"
+            },
+            {
+                "zoneName": "America/Boise",
+                "gmtOffset": -25200,
+                "gmtOffsetName": "UTC-07:00",
+                "abbreviation": "MST",
+                "tzName": "Mountain Standard Time (North America"
+            },
+            {
+                "zoneName": "America/Chicago",
+                "gmtOffset": -21600,
+                "gmtOffsetName": "UTC-06:00",
+                "abbreviation": "CST",
+                "tzName": "Central Standard Time (North America"
+            },
+            {
+                "zoneName": "America/Denver",
+                "gmtOffset": -25200,
+                "gmtOffsetName": "UTC-07:00",
+                "abbreviation": "MST",
+                "tzName": "Mountain Standard Time (North America"
+            },
+            {
+                "zoneName": "America/Detroit",
+                "gmtOffset": -18000,
+                "gmtOffsetName": "UTC-05:00",
+                "abbreviation": "EST",
+                "tzName": "Eastern Standard Time (North America"
+            },
+            {
+                "zoneName": "America/Indiana/Indianapolis",
+                "gmtOffset": -18000,
+                "gmtOffsetName": "UTC-05:00",
+                "abbreviation": "EST",
+                "tzName": "Eastern Standard Time (North America"
+            },
+            {
+                "zoneName": "America/Indiana/Knox",
+                "gmtOffset": -21600,
+                "gmtOffsetName": "UTC-06:00",
+                "abbreviation": "CST",
+                "tzName": "Central Standard Time (North America"
+            },
+            {
+                "zoneName": "America/Indiana/Marengo",
+                "gmtOffset": -18000,
+                "gmtOffsetName": "UTC-05:00",
+                "abbreviation": "EST",
+                "tzName": "Eastern Standard Time (North America"
+            },
+            {
+                "zoneName": "America/Indiana/Petersburg",
+                "gmtOffset": -18000,
+                "gmtOffsetName": "UTC-05:00",
+                "abbreviation": "EST",
+                "tzName": "Eastern Standard Time (North America"
+            },
+            {
+                "zoneName": "America/Indiana/Tell_City",
+                "gmtOffset": -21600,
+                "gmtOffsetName": "UTC-06:00",
+                "abbreviation": "CST",
+                "tzName": "Central Standard Time (North America"
+            },
+            {
+                "zoneName": "America/Indiana/Vevay",
+                "gmtOffset": -18000,
+                "gmtOffsetName": "UTC-05:00",
+                "abbreviation": "EST",
+                "tzName": "Eastern Standard Time (North America"
+            },
+            {
+                "zoneName": "America/Indiana/Vincennes",
+                "gmtOffset": -18000,
+                "gmtOffsetName": "UTC-05:00",
+                "abbreviation": "EST",
+                "tzName": "Eastern Standard Time (North America"
+            },
+            {
+                "zoneName": "America/Indiana/Winamac",
+                "gmtOffset": -18000,
+                "gmtOffsetName": "UTC-05:00",
+                "abbreviation": "EST",
+                "tzName": "Eastern Standard Time (North America"
+            },
+            {
+                "zoneName": "America/Juneau",
+                "gmtOffset": -32400,
+                "gmtOffsetName": "UTC-09:00",
+                "abbreviation": "AKST",
+                "tzName": "Alaska Standard Time"
+            },
+            {
+                "zoneName": "America/Kentucky/Louisville",
+                "gmtOffset": -18000,
+                "gmtOffsetName": "UTC-05:00",
+                "abbreviation": "EST",
+                "tzName": "Eastern Standard Time (North America"
+            },
+            {
+                "zoneName": "America/Kentucky/Monticello",
+                "gmtOffset": -18000,
+                "gmtOffsetName": "UTC-05:00",
+                "abbreviation": "EST",
+                "tzName": "Eastern Standard Time (North America"
+            },
+            {
+                "zoneName": "America/Los_Angeles",
+                "gmtOffset": -28800,
+                "gmtOffsetName": "UTC-08:00",
+                "abbreviation": "PST",
+                "tzName": "Pacific Standard Time (North America"
+            },
+            {
+                "zoneName": "America/Menominee",
+                "gmtOffset": -21600,
+                "gmtOffsetName": "UTC-06:00",
+                "abbreviation": "CST",
+                "tzName": "Central Standard Time (North America"
+            },
+            {
+                "zoneName": "America/Metlakatla",
+                "gmtOffset": -32400,
+                "gmtOffsetName": "UTC-09:00",
+                "abbreviation": "AKST",
+                "tzName": "Alaska Standard Time"
+            },
+            {
+                "zoneName": "America/New_York",
+                "gmtOffset": -18000,
+                "gmtOffsetName": "UTC-05:00",
+                "abbreviation": "EST",
+                "tzName": "Eastern Standard Time (North America"
+            },
+            {
+                "zoneName": "America/Nome",
+                "gmtOffset": -32400,
+                "gmtOffsetName": "UTC-09:00",
+                "abbreviation": "AKST",
+                "tzName": "Alaska Standard Time"
+            },
+            {
+                "zoneName": "America/North_Dakota/Beulah",
+                "gmtOffset": -21600,
+                "gmtOffsetName": "UTC-06:00",
+                "abbreviation": "CST",
+                "tzName": "Central Standard Time (North America"
+            },
+            {
+                "zoneName": "America/North_Dakota/Center",
+                "gmtOffset": -21600,
+                "gmtOffsetName": "UTC-06:00",
+                "abbreviation": "CST",
+                "tzName": "Central Standard Time (North America"
+            },
+            {
+                "zoneName": "America/North_Dakota/New_Salem",
+                "gmtOffset": -21600,
+                "gmtOffsetName": "UTC-06:00",
+                "abbreviation": "CST",
+                "tzName": "Central Standard Time (North America"
+            },
+            {
+                "zoneName": "America/Phoenix",
+                "gmtOffset": -25200,
+                "gmtOffsetName": "UTC-07:00",
+                "abbreviation": "MST",
+                "tzName": "Mountain Standard Time (North America"
+            },
+            {
+                "zoneName": "America/Sitka",
+                "gmtOffset": -32400,
+                "gmtOffsetName": "UTC-09:00",
+                "abbreviation": "AKST",
+                "tzName": "Alaska Standard Time"
+            },
+            {
+                "zoneName": "America/Yakutat",
+                "gmtOffset": -32400,
+                "gmtOffsetName": "UTC-09:00",
+                "abbreviation": "AKST",
+                "tzName": "Alaska Standard Time"
+            },
+            {
+                "zoneName": "Pacific/Honolulu",
+                "gmtOffset": -36000,
+                "gmtOffsetName": "UTC-10:00",
+                "abbreviation": "HST",
+                "tzName": "Hawaii\u2013Aleutian Standard Time"
+            }
+        ]
+    },
+    {
         "id": 129833,
         "name": "Montevideo",
         "state_id": 3218,
@@ -8180,6 +8226,29 @@
         ]
     },
     {
+        "id": 130201,
+        "name": "Hanoi",
+        "state_id": 3810,
+        "state_code": "HN",
+        "country_id": 240,
+        "country_code": "VN",
+        "latitude": 21.0348233,
+        "longitude": 105.808547,
+        "created_at": "2019-10-05 23:37:14",
+        "updated_at": "2024-12-23 15:39:52",
+        "flag": 1,
+        "wikiDataId": "Q890194",
+        "timezones": [
+            {
+                "zoneName": "Asia/Ho_Chi_Minh",
+                "gmtOffset": 25200,
+                "gmtOffsetName": "UTC+07:00",
+                "abbreviation": "ICT",
+                "tzName": "Indochina Time"
+            }
+        ]
+    },
+    {
         "id": 130202,
         "name": "Ho Chi Minh City",
         "state_id": 3811,
@@ -8204,7 +8273,7 @@
     },
     {
         "id": 130641,
-        "name": "Port-Vila",
+        "name": "Port Vila",
         "state_id": 4774,
         "state_code": "SEE",
         "country_id": 237,
