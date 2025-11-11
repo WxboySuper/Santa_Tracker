@@ -30,6 +30,20 @@ body {
     overflow-x: hidden;
 }
 
+/* Modal open state - prevent body scrolling */
+body.modal-open {
+    overflow: hidden;
+}
+
+/* Utility Classes */
+.hidden {
+    display: none !important;
+}
+
+.visible {
+    display: block !important;
+}
+
 /* Navigation Bar */
 .nav-bar {
     background: linear-gradient(90deg, var(--christmas-red) 0%, var(--christmas-green) 50%, var(--christmas-red) 100%);
@@ -229,6 +243,15 @@ body {
     align-items: center;
     justify-content: center;
     animation: fade-in 0.3s ease-out;
+}
+
+/* Modal visibility */
+.modal.hidden {
+    display: none !important;
+}
+
+.modal:not(.hidden) {
+    display: flex !important;
 }
 
 .modal-overlay {

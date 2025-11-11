@@ -174,7 +174,7 @@ function setupModalListeners() {
     
     // Close modal on Escape key
     document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape' && modalEl.style.display !== 'none') {
+        if (e.key === 'Escape' && !modalEl.classList.contains('hidden')) {
             closeModal();
         }
     });
@@ -346,7 +346,7 @@ function renderFactOrStory(payload) {
         const img = document.createElement('img');
         img.src = payload.image_url;
         img.alt = 'Day illustration';
-        img.addEventListener('error', function() { this.style.display = 'none'; });
+        img.addEventListener('error', function() { this.classList.add('hidden'); });
         html += img.outerHTML;
     }
     return html;
@@ -542,19 +542,19 @@ function getContentTypeIcon(contentType) {
  */
 function showModal() {
     lastFocusedElement = document.activeElement;
-    modalEl.style.display = 'flex';
+    modalEl.classList.remove('hidden');
     modalEl.setAttribute('aria-hidden', 'false');
     closeModalBtn.focus();
-    document.body.style.overflow = 'hidden';
+    document.body.classList.add('modal-open');
 }
 
 /**
  * Close modal
  */
 function closeModal() {
-    modalEl.style.display = 'none';
+    modalEl.classList.add('hidden');
     modalEl.setAttribute('aria-hidden', 'true');
-    document.body.style.overflow = '';
+    document.body.classList.remove('modal-open');
     currentDayContent = null;
     if (lastFocusedElement) {
         lastFocusedElement.focus();
@@ -565,17 +565,17 @@ function closeModal() {
  * Show loading state
  */
 function showLoading() {
-    loadingEl.style.display = 'block';
+    loadingEl.classList.remove('hidden');
     loadingEl.setAttribute('aria-busy', 'true');
-    errorEl.style.display = 'none';
-    gridEl.style.display = 'none';
+    errorEl.classList.add('hidden');
+    gridEl.classList.add('hidden');
 }
 
 /**
  * Hide loading state
  */
 function hideLoading() {
-    loadingEl.style.display = 'none';
+    loadingEl.classList.add('hidden');
     loadingEl.setAttribute('aria-busy', 'false');
 }
 
@@ -583,7 +583,7 @@ function hideLoading() {
  * Show grid
  */
 function showGrid() {
-    gridEl.style.display = 'block';
+    gridEl.classList.remove('hidden');
 }
 
 /**
@@ -591,6 +591,6 @@ function showGrid() {
  */
 function showError(message) {
     hideLoading();
-    errorEl.style.display = 'block';
+    errorEl.classList.remove('hidden');
     errorMessageEl.textContent = message || 'Something went wrong. Please try again later.';
 }
