@@ -1,5 +1,8 @@
 // Santa Tracker Landing Page - Interactive Features
 
+// Interval variable for cleanup
+let countdownInterval = null;
+
 document.addEventListener('DOMContentLoaded', () => {
     // Initialize snowfall
     initSnowfall();
@@ -48,8 +51,6 @@ function initSnowfall() {
 }
 
 // Countdown to Christmas
-let countdownInterval = null;
-
 function initCountdown() {
     updateCountdown();
     countdownInterval = setInterval(updateCountdown, 1000);
