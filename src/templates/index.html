@@ -1,27 +1,66 @@
 {% extends "base.html" %}
 
 {% block head %}
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+    .home-container {
+        min-height: 100vh;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 2rem;
+        text-align: center;
+        color: white;
+    }
+    
+    .home-container h1 {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+    }
+    
+    .home-container p {
+        font-size: 1.2rem;
+        margin-bottom: 2rem;
+        opacity: 0.9;
+    }
+    
+    .nav-links {
+        display: flex;
+        gap: 1rem;
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+    
+    .nav-link {
+        display: inline-block;
+        padding: 1rem 2rem;
+        background: rgb(255 255 255 / 20%);
+        color: white;
+        text-decoration: none;
+        border-radius: 8px;
+        font-weight: 600;
+        transition: all 0.3s;
+        border: 2px solid transparent;
+    }
+    
+    .nav-link:hover,
+    .nav-link:focus {
+        background: rgb(255 255 255 / 30%);
+        border-color: white;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgb(0 0 0 / 20%);
+    }
+</style>
 {% endblock %}
 
 {% block content %}
-<header class="tracker-header">
-    <h1>Santa Tracker</h1>
-    <div id="countdown"></div>
-    <div class="navigation-links">
-        <a href="/advent" class="advent-link">🎄 Advent Calendar</a>
+<div class="home-container">
+    <h1>🎅 Santa Tracker 🎄</h1>
+    <p>Track Santa's journey around the world and explore the Advent Calendar!</p>
+    <div class="nav-links">
+        <a href="/advent" class="nav-link">🎄 Advent Calendar</a>
+        <a href="/admin" class="nav-link">⚙️ Admin</a>
     </div>
-</header>
-<main class="tracker-main">
-    <div id="map" aria-label="Santa's current location on map" role="application"></div>
-    <div id="tracker-info">
-        <h2>Santa's Location</h2>
-        <p id="current-location" aria-live="polite">Loading current location...</p>
-        <p id="next-stop" aria-live="polite">Next Stop: Loading destination...</p>
-        <p id="location-countdown">Time until departure: --:--:--</p>
-        <p id="delivery-status" aria-live="polite"></p>
-    </div>
-</main>
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="{{ url_for('static', filename='script.js') }}"></script>
+</div>
 {% endblock %}

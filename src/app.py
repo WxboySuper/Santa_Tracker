@@ -64,16 +64,16 @@ def index():
     return render_template("index.html")
 
 
+@app.route("/advent")
+def advent():
+    """Advent calendar page."""
+    return render_template("advent.html")
+
+
 @app.route("/admin")
 def admin():
     """Admin dashboard for location management."""
     return render_template("admin.html")
-
-
-@app.route("/advent")
-def advent():
-    """Advent calendar with North Pole map."""
-    return render_template("advent.html")
 
 
 @app.route("/api/advent/manifest")
