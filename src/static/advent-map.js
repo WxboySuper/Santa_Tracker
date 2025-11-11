@@ -4,6 +4,8 @@
 let adventData = null;
 let currentDayContent = null;
 let shuffledDays = [];
+let modalListenersInitialized = false;
+let lastFocusedElement = null;
 
 // Color schemes for calendar cells
 const cellColors = [
@@ -63,6 +65,8 @@ async function initAdventCalendar() {
 
 /**
  * Shuffle array using Fisher-Yates algorithm
+ * @param {Array} array - Array to shuffle
+ * @returns {Array} New shuffled array (does not modify original)
  */
 function shuffleArray(array) {
     const shuffled = [...array];
@@ -82,13 +86,16 @@ function generateGrid() {
         return;
     }
     
+    // Create lookup map for O(1) access
+    const dayDataMap = new Map(adventData.days.map(d => [d.day, d]));
+    
     const gridContainer = document.createElement('div');
     gridContainer.className = 'advent-grid';
     gridContainer.setAttribute('role', 'list');
     gridContainer.setAttribute('aria-label', 'Advent calendar days 1 through 24');
     
     shuffledDays.forEach(dayNumber => {
-        const dayData = adventData.days.find(d => d.day === dayNumber);
+        const dayData = dayDataMap.get(dayNumber);
         if (!dayData) return;
         
         const cell = document.createElement('div');
@@ -98,9 +105,10 @@ function generateGrid() {
         cell.setAttribute('tabindex', '0');
         cell.setAttribute('aria-label', `Day ${dayNumber}: ${dayData.title}`);
         
-        // Set color
-        cell.style.backgroundColor = cellColors[dayNumber - 1];
-        cell.style.color = getContrastColor(cellColors[dayNumber - 1]);
+        // Set color with bounds checking
+        const colorIndex = Math.max(0, Math.min(dayNumber - 1, cellColors.length - 1));
+        cell.style.backgroundColor = cellColors[colorIndex];
+        cell.style.color = getContrastColor(cellColors[colorIndex]);
         
         // Add day number
         cell.textContent = dayNumber;
@@ -126,9 +134,17 @@ function generateGrid() {
 }
 
 /**
- * Get contrasting text color (black or white) based on background
+ * Get contrasting text color (black or white) based on background color.
+ * @param {string} hexColor - Hex color string in format #RRGGBB
+ * @returns {string} '#000000' for light backgrounds, '#ffffff' for dark backgrounds
  */
 function getContrastColor(hexColor) {
+    // Validate hex color format
+    if (!hexColor || typeof hexColor !== 'string' || !/^#[0-9A-Fa-f]{6}$/.test(hexColor)) {
+        console.warn(`Invalid hex color: ${hexColor}, defaulting to white`);
+        return '#ffffff';
+    }
+    
     // Convert hex to RGB
     const red = parseInt(hexColor.slice(1, 3), 16);
     const green = parseInt(hexColor.slice(3, 5), 16);
@@ -144,6 +160,9 @@ function getContrastColor(hexColor) {
  * Setup modal event listeners
  */
 function setupModalListeners() {
+    if (modalListenersInitialized) return;
+    modalListenersInitialized = true;
+    
     // Modal close events
     closeModalBtn.addEventListener('click', closeModal);
     
@@ -283,33 +302,75 @@ function displayDayContent(dayContent) {
     }
     
     modalBodyEl.innerHTML = bodyHTML;
+    
+    // Attach event listeners for quiz options if content type is quiz
+    if (dayContent.content_type === 'quiz') {
+        modalBodyEl.querySelectorAll('.quiz-option').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const questionIndex = parseInt(btn.dataset.question, 10);
+                const optIndex = parseInt(btn.dataset.option, 10);
+                const correctAnswer = parseInt(btn.dataset.correct, 10);
+                checkQuizAnswer(questionIndex, optIndex, correctAnswer);
+            });
+        });
+    }
+    
     showModal();
 }
 
 /**
+ * Escape HTML to prevent XSS attacks
+ * @param {string} text - Text to escape
+ * @returns {string} Escaped HTML
+ */
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+/**
  * Render fact or story content
+ * @param {Object} payload - Content payload from API
+ * @param {string} payload.text - The fact or story text
+ * @param {string} [payload.image_url] - Optional image URL
+ * @returns {string} HTML string
  */
 function renderFactOrStory(payload) {
-    let html = `<p>${payload.text}</p>`;
+    if (!payload || typeof payload.text !== 'string') {
+        return '<p>Content unavailable.</p>';
+    }
+    
+    let html = `<p>${escapeHtml(payload.text)}</p>`;
     if (payload.image_url) {
-        html += `<img src="${payload.image_url}" alt="Day illustration" onerror="this.style.display='none'">`;
+        const img = document.createElement('img');
+        img.src = payload.image_url;
+        img.alt = 'Day illustration';
+        img.addEventListener('error', function() { this.style.display = 'none'; });
+        html += img.outerHTML;
     }
     return html;
 }
 
 /**
  * Render game content
+ * @param {Object} payload - Content payload from API
+ * @returns {string} HTML string
  */
 function renderGame(payload) {
+    if (!payload || typeof payload.title !== 'string') {
+        return '<p>Content unavailable.</p>';
+    }
+    
     return `
         <div style="text-align: center;">
-            <h3>${payload.title}</h3>
-            <p>${payload.description}</p>
+            <h3>${escapeHtml(payload.title)}</h3>
+            <p>${escapeHtml(payload.description || '')}</p>
             <p style="margin-top: 1.5rem;">
-                <strong>Difficulty:</strong> ${payload.difficulty}
+                <strong>Difficulty:</strong> ${escapeHtml(payload.difficulty || 'Unknown')}
             </p>
             <p style="margin-top: 1rem; padding: 1rem; background: #f0f0f0; border-radius: 8px;">
-                🎮 Game will be available at: <strong>${payload.url}</strong>
+                🎮 Game will be available at: <strong>${escapeHtml(payload.url || '')}</strong>
             </p>
         </div>
     `;
@@ -317,12 +378,18 @@ function renderGame(payload) {
 
 /**
  * Render activity content
+ * @param {Object} payload - Content payload from API
+ * @returns {string} HTML string
  */
 function renderActivity(payload) {
+    if (!payload || typeof payload.title !== 'string') {
+        return '<p>Content unavailable.</p>';
+    }
+    
     let html = `
         <div style="text-align: center;">
-            <h3>${payload.title}</h3>
-            <p>${payload.description}</p>
+            <h3>${escapeHtml(payload.title)}</h3>
+            <p>${escapeHtml(payload.description || '')}</p>
     `;
     
     if (payload.activity_type === 'recipe' && payload.ingredients) {
@@ -330,16 +397,16 @@ function renderActivity(payload) {
             <div style="text-align: left; margin-top: 1.5rem;">
                 <h4 style="color: var(--christmas-green);">Ingredients:</h4>
                 <ul>
-                    ${payload.ingredients.map(ing => `<li>${ing}</li>`).join('')}
+                    ${payload.ingredients.map(ing => `<li>${escapeHtml(ing)}</li>`).join('')}
                 </ul>
                 <h4 style="color: var(--christmas-green); margin-top: 1rem;">Instructions:</h4>
-                <p>${payload.instructions}</p>
+                <p>${escapeHtml(payload.instructions || '')}</p>
             </div>
         `;
     } else if (payload.url) {
         html += `
             <p style="margin-top: 1rem; padding: 1rem; background: #f0f0f0; border-radius: 8px;">
-                🎨 Activity available at: <strong>${payload.url}</strong>
+                🎨 Activity available at: <strong>${escapeHtml(payload.url)}</strong>
             </p>
         `;
     }
@@ -350,28 +417,34 @@ function renderActivity(payload) {
 
 /**
  * Render video content
+ * @param {Object} payload - Content payload from API
+ * @returns {string} HTML string
  */
 function renderVideo(payload) {
+    if (!payload || typeof payload.title !== 'string') {
+        return '<p>Content unavailable.</p>';
+    }
+    
     let html = `
         <div style="text-align: center;">
-            <h3>${payload.title}</h3>
-            <p>${payload.description}</p>
+            <h3>${escapeHtml(payload.title)}</h3>
+            <p>${escapeHtml(payload.description || '')}</p>
             <p style="margin-top: 1rem;">
-                <strong>Duration:</strong> ${payload.duration_minutes} minutes
+                <strong>Duration:</strong> ${escapeHtml(String(payload.duration_minutes || 0))} minutes
             </p>
     `;
     
     if (payload.special_message) {
         html += `
             <div style="margin-top: 1.5rem; padding: 1rem; background: linear-gradient(135deg, var(--christmas-red), var(--christmas-green)); color: white; border-radius: 8px;">
-                <p style="font-size: 1.1rem; font-weight: 600;">${payload.special_message}</p>
+                <p style="font-size: 1.1rem; font-weight: 600;">${escapeHtml(payload.special_message)}</p>
             </div>
         `;
     }
     
     html += `
         <p style="margin-top: 1rem; padding: 1rem; background: #f0f0f0; border-radius: 8px;">
-            🎥 Video available at: <strong>${payload.video_url}</strong>
+            🎥 Video available at: <strong>${escapeHtml(payload.video_url || '')}</strong>
         </p>
         </div>
     `;
@@ -380,28 +453,34 @@ function renderVideo(payload) {
 
 /**
  * Render quiz content
+ * @param {Object} payload - Content payload from API
+ * @returns {string} HTML string
  */
 function renderQuiz(payload) {
+    if (!payload || typeof payload.title !== 'string' || !Array.isArray(payload.questions)) {
+        return '<p>Content unavailable.</p>';
+    }
+    
     let html = `
         <div>
-            <h3>${payload.title}</h3>
-            <p>${payload.description}</p>
+            <h3>${escapeHtml(payload.title)}</h3>
+            <p>${escapeHtml(payload.description || '')}</p>
             <div style="margin-top: 1.5rem;">
     `;
     
     payload.questions.forEach((q, index) => {
         html += `
             <div class="quiz-question">
-                <h4>Question ${index + 1}: ${q.question}</h4>
+                <h4>Question ${index + 1}: ${escapeHtml(q.question)}</h4>
                 <div class="quiz-options">
                     ${q.options.map((opt, optIndex) => `
                         <button 
                             class="quiz-option" 
                             data-question="${index}" 
                             data-option="${optIndex}"
-                            onclick="checkQuizAnswer(${index}, ${optIndex}, ${q.correct_answer})"
+                            data-correct="${q.correct_answer}"
                         >
-                            ${opt}
+                            ${escapeHtml(opt)}
                         </button>
                     `).join('')}
                 </div>
@@ -448,6 +527,7 @@ function getContentTypeIcon(contentType) {
  * Show modal
  */
 function showModal() {
+    lastFocusedElement = document.activeElement;
     modalEl.style.display = 'flex';
     modalEl.setAttribute('aria-hidden', 'false');
     closeModalBtn.focus();
@@ -462,6 +542,9 @@ function closeModal() {
     modalEl.setAttribute('aria-hidden', 'true');
     document.body.style.overflow = '';
     currentDayContent = null;
+    if (lastFocusedElement) {
+        lastFocusedElement.focus();
+    }
 }
 
 /**
@@ -497,6 +580,3 @@ function showError(message) {
     errorEl.style.display = 'block';
     errorMessageEl.textContent = message || 'Something went wrong. Please try again later.';
 }
-
-// Make checkQuizAnswer available globally for onclick handlers
-window.checkQuizAnswer = checkQuizAnswer;

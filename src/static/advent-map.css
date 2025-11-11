@@ -499,7 +499,7 @@ body {
 /* High Contrast Mode */
 @media (prefers-contrast: high) {
     .nav-link:focus,
-    .building:focus,
+    .calendar-cell:focus,
     .modal-close:focus {
         outline: 3px solid;
         outline-offset: 3px;
