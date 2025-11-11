@@ -1,14 +1,23 @@
-// Advent Calendar - North Pole Map Interactive Features
+// Advent Calendar - Grid-Based Interactive Features
 
 // State management
 let adventData = null;
 let currentDayContent = null;
+let shuffledDays = [];
+
+// Color schemes for calendar cells
+const cellColors = [
+    '#8b0000', '#165b33', '#8b4513', '#ffd700', '#ff69b4', '#4169e1',
+    '#ffffff', '#165b33', '#c71585', '#dc143c', '#b0e0e6', '#d2691e',
+    '#9370db', '#4682b4', '#ff8c00', '#708090', '#20b2aa', '#b22222',
+    '#ffffff', '#191970', '#8b4513', '#daa520', '#556b2f', '#c41e3a'
+];
 
 // DOM Elements
 const loadingEl = document.getElementById('loading');
 const errorEl = document.getElementById('error');
 const errorMessageEl = document.getElementById('error-message');
-const mapEl = document.getElementById('north-pole-map');
+const gridEl = document.getElementById('advent-grid');
 const legendEl = document.getElementById('legend');
 const modalEl = document.getElementById('content-modal');
 const modalTitleEl = document.getElementById('modal-title');
@@ -19,7 +28,7 @@ const closeModalBtn = document.getElementById('close-modal');
 // Initialize on DOM ready
 document.addEventListener('DOMContentLoaded', () => {
     initAdventCalendar();
-    setupEventListeners();
+    setupModalListeners();
 });
 
 /**
@@ -38,11 +47,14 @@ async function initAdventCalendar() {
         
         adventData = await response.json();
         
-        // Render the map with unlock states
-        renderMap();
+        // Create shuffled array of days (1-24)
+        shuffledDays = shuffleArray([...Array(24).keys()].map(i => i + 1));
+        
+        // Generate and render the grid
+        generateGrid();
         
         hideLoading();
-        showMap();
+        showGrid();
         
     } catch (error) {
         console.error('Error initializing advent calendar:', error);
@@ -51,45 +63,88 @@ async function initAdventCalendar() {
 }
 
 /**
- * Render the map by applying unlock states to buildings
+ * Shuffle array using Fisher-Yates algorithm
  */
-function renderMap() {
+function shuffleArray(array) {
+    const shuffled = [...array];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    return shuffled;
+}
+
+/**
+ * Generate the grid HTML
+ */
+function generateGrid() {
     if (!adventData || !adventData.days) {
         console.error('No advent data available');
         return;
     }
     
-    // Update each building based on unlock status
-    adventData.days.forEach(day => {
-        const buildingEl = document.getElementById(`building-${day.day}`);
-        if (!buildingEl) {
-            console.warn(`Building element not found for day ${day.day}`);
-            return;
+    const gridContainer = document.createElement('div');
+    gridContainer.className = 'advent-grid';
+    gridContainer.setAttribute('role', 'list');
+    gridContainer.setAttribute('aria-label', 'Advent calendar days 1 through 24');
+    
+    shuffledDays.forEach(dayNumber => {
+        const dayData = adventData.days.find(d => d.day === dayNumber);
+        if (!dayData) return;
+        
+        const cell = document.createElement('div');
+        cell.className = 'calendar-cell';
+        cell.setAttribute('data-day', dayNumber);
+        cell.setAttribute('role', 'button');
+        cell.setAttribute('tabindex', '0');
+        cell.setAttribute('aria-label', `Day ${dayNumber}: ${dayData.title}`);
+        
+        // Set color
+        cell.style.backgroundColor = cellColors[dayNumber - 1];
+        cell.style.color = getContrastColor(cellColors[dayNumber - 1]);
+        
+        // Add day number
+        cell.textContent = dayNumber;
+        
+        // Apply unlock state
+        if (dayData.is_unlocked) {
+            cell.classList.add('unlocked');
+            cell.setAttribute('aria-disabled', 'false');
+        } else {
+            cell.classList.add('locked');
+            cell.setAttribute('aria-disabled', 'true');
         }
         
-        if (day.is_unlocked) {
-            buildingEl.classList.add('unlocked');
-            buildingEl.classList.remove('locked');
-            buildingEl.setAttribute('aria-disabled', 'false');
-        } else {
-            buildingEl.classList.add('locked');
-            buildingEl.classList.remove('unlocked');
-            buildingEl.setAttribute('aria-disabled', 'true');
-        }
+        // Add event listeners
+        cell.addEventListener('click', () => handleCellClick(dayNumber));
+        cell.addEventListener('keydown', (e) => handleCellKeydown(e, dayNumber));
+        
+        gridContainer.appendChild(cell);
     });
+    
+    gridEl.innerHTML = '';
+    gridEl.appendChild(gridContainer);
 }
 
 /**
- * Setup event listeners for interaction
+ * Get contrasting text color (black or white) based on background
  */
-function setupEventListeners() {
-    // Building click/keyboard events
-    const buildings = document.querySelectorAll('.building');
-    buildings.forEach(building => {
-        building.addEventListener('click', handleBuildingClick);
-        building.addEventListener('keydown', handleBuildingKeydown);
-    });
+function getContrastColor(hexColor) {
+    // Convert hex to RGB
+    const r = parseInt(hexColor.slice(1, 3), 16);
+    const g = parseInt(hexColor.slice(3, 5), 16);
+    const b = parseInt(hexColor.slice(5, 7), 16);
     
+    // Calculate relative luminance
+    const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+    
+    return luminance > 0.5 ? '#000000' : '#ffffff';
+}
+
+/**
+ * Setup modal event listeners
+ */
+function setupModalListeners() {
     // Modal close events
     closeModalBtn.addEventListener('click', closeModal);
     
@@ -108,13 +163,13 @@ function setupEventListeners() {
 }
 
 /**
- * Handle building click
+ * Handle cell click
  */
-async function handleBuildingClick(event) {
-    const building = event.currentTarget;
-    const day = parseInt(building.dataset.day, 10);
+async function handleCellClick(day) {
+    const dayData = adventData.days.find(d => d.day === day);
+    if (!dayData) return;
     
-    if (building.classList.contains('locked')) {
+    if (!dayData.is_unlocked) {
         showLockedMessage(day);
         return;
     }
@@ -123,12 +178,12 @@ async function handleBuildingClick(event) {
 }
 
 /**
- * Handle building keyboard navigation
+ * Handle cell keyboard navigation
  */
-function handleBuildingKeydown(event) {
+function handleCellKeydown(event, day) {
     if (event.key === 'Enter' || event.key === ' ') {
         event.preventDefault();
-        handleBuildingClick(event);
+        handleCellClick(day);
     }
 }
 
@@ -417,7 +472,7 @@ function showLoading() {
     loadingEl.style.display = 'block';
     loadingEl.setAttribute('aria-busy', 'true');
     errorEl.style.display = 'none';
-    mapEl.style.display = 'none';
+    gridEl.style.display = 'none';
     legendEl.style.display = 'none';
 }
 
@@ -430,10 +485,10 @@ function hideLoading() {
 }
 
 /**
- * Show map
+ * Show grid
  */
-function showMap() {
-    mapEl.style.display = 'block';
+function showGrid() {
+    gridEl.style.display = 'block';
     legendEl.style.display = 'flex';
 }
 
