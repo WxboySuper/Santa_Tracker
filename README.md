@@ -93,15 +93,53 @@ Santa_Tracker/
 - **Python-dotenv**: Environment variable management
 
 ### Frontend
-- **Leaflet.js**: Interactive mapping library
-- **Moment.js**: Date and time manipulation
-- **Vanilla JavaScript**: Core functionality
-- **CSS3**: Modern styling and animations
+- **Tailwind CSS**: Utility-first CSS framework via CDN (cost-free, no build step)
+- **Leaflet.js**: Interactive mapping library with OpenStreetMap tiles (free and open-source)
+- **Leaflet.markercluster**: Plugin for efficient marker clustering
+- **Vanilla JavaScript**: Core functionality with modern ES6+ features
+- **CSS3**: Custom animations and festive theming
 
 ### DevOps
 - **GitHub Actions**: CI/CD automation
 - **Dependabot**: Dependency updates
 - **DeepSource**: Code quality analysis
+
+## 🎨 Design Choices
+
+### UI/UX Design
+- **Mobile-First Approach**: Responsive design with breakpoints optimized for mobile, tablet, and desktop
+- **Accessibility**: Full ARIA labels, keyboard navigation, screen reader support, and reduced motion preferences
+- **Christmas Color Palette**: 
+  - Christmas Red (#C41E3A) - Primary action color
+  - Christmas Green (#165B33) - Secondary/accent color
+  - Gold (#FFD700) - Highlights and borders
+  - Blue gradient background - Night sky theme
+- **Festive Elements**:
+  - Animated snowfall effect with 40 snowflakes using pure CSS/JS
+  - Emoji-based icons for visual appeal and better compatibility
+  - Gradient backgrounds with festive colors
+  - Smooth animations and transitions (respecting `prefers-reduced-motion`)
+
+### Map Implementation
+- **Cost-Free Solution**: OpenStreetMap tiles (no API key required)
+- **Marker Clustering**: Leaflet.markercluster for performance with many route points
+- **Smooth Animations**: 30-step interpolation for Santa's movement (1.5s transitions)
+- **Keyboard Accessible**: Arrow keys for pan, +/- for zoom
+- **Custom Santa Icon**: 48x48px with hover effects
+
+### Performance Optimizations
+- **CDN Resources**: Tailwind CSS and Leaflet from CDN for fast loading
+- **Lazy Animations**: Snowfall respects `prefers-reduced-motion` media query
+- **Efficient Clustering**: Marker grouping reduces DOM elements for better performance
+- **Minimal Dependencies**: Only essential libraries included
+
+### Accessibility Features
+- **ARIA Labels**: All interactive elements properly labeled
+- **Live Regions**: Real-time updates announced to screen readers
+- **Keyboard Navigation**: Full keyboard support for map and controls
+- **Focus Indicators**: High-contrast focus outlines (3px gold)
+- **Semantic HTML**: Proper heading hierarchy and landmark regions
+- **High Contrast Support**: Tested with `prefers-contrast: high`
 
 ## 🧪 Development
 
@@ -190,7 +228,10 @@ Create a `.env` file in the root directory for environment variables:
 FLASK_ENV=development
 FLASK_DEBUG=True
 SECRET_KEY=your-secret-key-here
+ADMIN_PASSWORD=your-secure-admin-password
 ```
+
+**Important:** Never commit your `.env` file to version control. Add it to `.gitignore` to keep your credentials secure.
 
 ## 🌐 Deployment
 
@@ -212,6 +253,76 @@ Currently, the Santa Tracker uses simulated location data. To integrate with a r
 1. Update `src/utils/tracker.py` with API credentials
 2. Configure the API endpoint in `config.py`
 3. Restart the application
+
+## 🔐 Admin Dashboard
+
+The Santa Tracker includes a comprehensive admin dashboard for managing locations and route data.
+
+### Accessing the Admin Dashboard
+
+1. Navigate to `http://localhost:5000/admin`
+2. Set the `ADMIN_PASSWORD` environment variable before starting the application:
+   ```bash
+   export ADMIN_PASSWORD="your-secure-password"
+   python src/app.py
+   ```
+3. Log in with your admin password
+
+### Admin Features
+
+#### Location Management
+- **Add Location**: Create new stops on Santa's route with coordinates, UTC offset, and optional details
+- **Edit Location**: Modify existing location data including timing and priority
+- **Delete Location**: Remove locations from the route
+- **Import Locations**: Bulk import locations from JSON files
+  - Supports both append and replace modes
+  - Accepts various JSON formats (`route`, `locations` arrays, or single objects)
+- **Validate Locations**: Check route data for errors and inconsistencies
+
+#### Route Management
+- **Precompute Route**: Automatically calculate arrival/departure times for all locations
+  - Sorts locations by UTC offset to follow time zones
+  - Assigns default stop durations based on location priority
+  - Ensures optimal route timing for Christmas Eve delivery
+- **View Route Status**: Display comprehensive statistics about the current route:
+  - Total number of locations
+  - Locations with complete timing information
+  - Priority breakdown
+  - Last modification timestamp
+  - Overall route completion status
+
+#### Data Backup & Export
+- **Export Backup**: Download complete route data as JSON
+  - Includes all location details and timing information
+  - Timestamped filename for version tracking
+  - Can be reimported later to restore data
+
+### Admin Workflow
+
+**Initial Setup:**
+1. Access the admin dashboard and log in
+2. Import initial location data or add locations manually
+3. Set priorities for important stops (1 = highest, 3 = lowest)
+4. Validate the location data to check for errors
+
+**Route Preparation:**
+1. Click "Precompute Route" to calculate optimal timing
+2. Review the route status to ensure completeness
+3. Export a backup before finalizing
+
+**Ongoing Management:**
+1. Add/edit/delete locations as needed
+2. Re-run precomputation after making changes
+3. Regularly export backups for data safety
+4. Use validation to maintain data quality
+
+### Security Best Practices
+
+- Use a strong, unique password for `ADMIN_PASSWORD`
+- Keep the admin password secure and never commit it to version control
+- In production, use HTTPS to encrypt admin traffic
+- Regularly export backups to prevent data loss
+- The admin interface uses session-based authentication with Bearer tokens
 
 ## 🔒 Security
 

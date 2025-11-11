@@ -3,20 +3,72 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎅 Santa Tracker - Track Santa's Journey on Christmas Eve</title>
+    <meta name="description" content="Track Santa's magical journey around the world on Christmas Eve in real-time!">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
-    <title>Santa Tracker</title>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        christmas: {
+                            red: '#C41E3A',
+                            green: '#165B33',
+                            gold: '#FFD700',
+                            snow: '#FFFAFA'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
 </head>
-<body>
-    <header>
-        <h1>Santa Tracker</h1>
+<body class="bg-gradient-to-b from-blue-900 via-blue-800 to-blue-900 min-h-screen overflow-x-hidden">
+    <!-- Snowfall Container -->
+    <div id="snowfall" class="fixed inset-0 pointer-events-none z-50" aria-hidden="true"></div>
+    
+    <!-- Header with festive design -->
+    <header class="bg-gradient-to-r from-christmas-red via-christmas-green to-christmas-red text-white shadow-2xl sticky top-0 z-40">
+        <div class="container mx-auto px-4 py-4">
+            <div class="flex flex-col md:flex-row items-center justify-between gap-4">
+                <div class="flex items-center gap-3">
+                    <span class="text-4xl animate-bounce" role="img" aria-label="Santa">🎅</span>
+                    <h1 class="text-2xl md:text-4xl font-bold tracking-tight">Santa Tracker</h1>
+                    <span class="text-4xl animate-pulse" role="img" aria-label="Christmas Tree">🎄</span>
+                </div>
+                <div class="bg-white/20 backdrop-blur-sm rounded-lg px-6 py-3 shadow-lg">
+                    <div class="text-center">
+                        <p class="text-sm font-semibold mb-1">Time Until Christmas</p>
+                        <div id="countdown" class="text-2xl font-bold tabular-nums" aria-live="polite" aria-atomic="true"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </header>
-    <main>
+
+    <main class="container mx-auto px-2 md:px-4 py-4 md:py-6">
         {% block content %}
         {% endblock %}
     </main>
-    <footer>
-        <p>&copy; {{ year }} Santa Tracker. All rights reserved.</p>
+
+    <!-- Festive Footer -->
+    <footer class="bg-gradient-to-r from-christmas-green via-christmas-red to-christmas-green text-white mt-8 py-6 shadow-2xl">
+        <div class="container mx-auto px-4 text-center">
+            <div class="flex flex-col md:flex-row items-center justify-center gap-2 mb-2">
+                <span class="text-2xl" role="img" aria-label="Santa">🎅</span>
+                <p class="text-lg font-semibold">&copy; {{ year }} Santa Tracker. All rights reserved.</p>
+                <span class="text-2xl" role="img" aria-label="Gift">🎁</span>
+            </div>
+            <p class="text-sm opacity-90">Made with ❤️ for the holiday season. Merry Christmas! 🎄✨</p>
+        </div>
     </footer>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/Leaflet.markercluster.js"></script>
     <script src="{{ url_for('static', filename='script.js') }}"></script>
 </body>
 </html>

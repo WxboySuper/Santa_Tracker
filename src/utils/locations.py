@@ -1,15 +1,295 @@
+import json
+import os
+from dataclasses import dataclass
+from typing import Optional
+
+
+@dataclass
+class Location:
+    """
+    Canonical data model for cities/locations.
+
+    Attributes:
+        name: City/location name
+        latitude: Latitude coordinate in decimal degrees
+        longitude: Longitude coordinate in decimal degrees
+        utc_offset: UTC offset in hours (e.g., -5.0 for EST, 9.0 for JST)
+        arrival_time: Arrival time in ISO 8601 format (optional)
+        departure_time: Departure time in ISO 8601 format (optional)
+        stop_duration: Duration of stop in minutes (optional, calculated if
+            not provided)
+        is_stop: Boolean flag indicating if this is an actual stop
+            (default: True)
+        priority: Location priority from 1-3, where 1 is highest (optional)
+        fun_facts: Fun facts about the location (optional)
+    """
+
+    name: str
+    latitude: float
+    longitude: float
+    utc_offset: float
+    arrival_time: Optional[str] = None
+    departure_time: Optional[str] = None
+    stop_duration: Optional[int] = None
+    is_stop: bool = True
+    priority: Optional[int] = None
+    fun_facts: Optional[str] = None
+
+    def __post_init__(self):
+        """Validate location data."""
+        if not -90 <= self.latitude <= 90:
+            raise ValueError(f"Invalid latitude: {self.latitude}")
+        if not -180 <= self.longitude <= 180:
+            raise ValueError(f"Invalid longitude: {self.longitude}")
+        if not -12 <= self.utc_offset <= 14:
+            raise ValueError(f"Invalid UTC offset: {self.utc_offset}")
+        if self.priority is not None and not 1 <= self.priority <= 3:
+            raise ValueError(f"Invalid priority: {self.priority}. Must be 1, 2, or 3.")
+
+    @property
+    def coordinates(self):
+        """Return coordinates as a tuple for backward compatibility."""
+        return (self.latitude, self.longitude)
+
+
 def get_santa_locations():
-    # This function retrieves the current locations of Santa.
-    # For now, it returns a placeholder list of locations.
+    """
+    Retrieves the current locations of Santa.
+
+    Returns:
+        List of Location objects representing Santa's route.
+    """
     return [
-        {"name": "North Pole", "coordinates": (90.0, 135.0)},
-        {"name": "New York", "coordinates": (40.7128, -74.0060)},
-        {"name": "London", "coordinates": (51.5074, -0.1278)},
-        {"name": "Tokyo", "coordinates": (35.6762, 139.6503)},
+        Location(
+            name="North Pole",
+            latitude=90.0,
+            longitude=135.0,
+            utc_offset=0.0,
+            arrival_time="2024-12-24T00:00:00Z",
+            departure_time="2024-12-24T09:45:00Z",
+            stop_duration=585,
+            is_stop=True,
+            priority=1,
+            fun_facts="Santa's workshop and home!",
+        ),
+        Location(
+            name="New York",
+            latitude=40.7128,
+            longitude=-74.0060,
+            utc_offset=-5.0,
+            arrival_time="2024-12-24T10:00:00Z",
+            departure_time="2024-12-24T10:15:00Z",
+            stop_duration=15,
+            is_stop=True,
+            priority=1,
+            fun_facts=(
+                "The city that never sleeps - perfect for Santa's midnight deliveries!"
+            ),
+        ),
+        Location(
+            name="London",
+            latitude=51.5074,
+            longitude=-0.1278,
+            utc_offset=0.0,
+            arrival_time="2024-12-24T11:00:00Z",
+            departure_time="2024-12-24T11:20:00Z",
+            stop_duration=20,
+            is_stop=True,
+            priority=2,
+            fun_facts="Home of Big Ben and the Royal Family!",
+        ),
+        Location(
+            name="Tokyo",
+            latitude=35.6762,
+            longitude=139.6503,
+            utc_offset=9.0,
+            arrival_time="2024-12-24T12:00:00Z",
+            departure_time="2024-12-24T12:25:00Z",
+            stop_duration=25,
+            is_stop=True,
+            priority=2,
+            fun_facts=(
+                "Famous for its mix of traditional temples and modern skyscrapers!"
+            ),
+        ),
     ]
 
 
+def load_santa_route_from_json(json_file_path=None):
+    """
+    Load Santa's route from a JSON file.
+
+    Args:
+        json_file_path: Path to the JSON file. If None, uses the default route file.
+
+    Returns:
+        List of Location objects representing Santa's complete route.
+    """
+    if json_file_path is None:
+        # Use default path relative to this file
+        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        json_file_path = os.path.join(base_dir, "static", "data", "santa_route.json")
+
+    with open(json_file_path, "r") as f:
+        data = json.load(f)
+
+    locations = []
+    for location_data in data.get("route", []):
+        try:
+            location = Location(
+                name=location_data["location"],
+                latitude=location_data["latitude"],
+                longitude=location_data["longitude"],
+                utc_offset=location_data["utc_offset"],
+                arrival_time=location_data.get("arrival_time"),
+                departure_time=location_data.get("departure_time"),
+                stop_duration=location_data.get("stop_duration"),
+                is_stop=location_data.get("is_stop", True),
+                priority=location_data.get("priority"),
+                fun_facts=location_data.get("fun_facts"),
+            )
+        except KeyError as e:
+            raise ValueError(
+                f"Missing required field in location data: {e} (data: {location_data})"
+            )
+        locations.append(location)
+
+    return locations
+
+
 def update_santa_location(location):
-    # This function updates Santa's current location.
-    # In a real application, this would involve more complex logic.
-    print(f"Santa's current location updated to: {location['name']}")
+    """
+    Updates Santa's current location.
+
+    Args:
+        location: Location object or dict with location information
+    """
+    # Handle both Location objects and dictionaries for backward compatibility
+    if isinstance(location, Location):
+        location_name = location.name
+    elif isinstance(location, dict):
+        location_name = location.get("name", "Unknown")
+    else:
+        location_name = str(location)
+
+    print(f"Santa's current location updated to: {location_name}")
+
+
+def save_santa_route_to_json(locations, json_file_path=None):
+    """
+    Save Santa's route to a JSON file.
+
+    Args:
+        locations: List of Location objects to save
+        json_file_path: Path to the JSON file. If None, uses the default route file.
+    """
+    if json_file_path is None:
+        # Use default path relative to this file
+        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        json_file_path = os.path.join(base_dir, "static", "data", "santa_route.json")
+
+    # Convert Location objects to dictionaries
+    route_data = []
+    for loc in locations:
+        location_dict = {
+            "location": loc.name,
+            "latitude": loc.latitude,
+            "longitude": loc.longitude,
+            "utc_offset": loc.utc_offset,
+        }
+
+        # Add optional fields if they exist
+        if loc.arrival_time is not None:
+            location_dict["arrival_time"] = loc.arrival_time
+        if loc.departure_time is not None:
+            location_dict["departure_time"] = loc.departure_time
+        if loc.stop_duration is not None:
+            location_dict["stop_duration"] = loc.stop_duration
+        location_dict["is_stop"] = loc.is_stop
+        if loc.priority is not None:
+            location_dict["priority"] = loc.priority
+        if loc.fun_facts is not None:
+            location_dict["fun_facts"] = loc.fun_facts
+
+        route_data.append(location_dict)
+
+    # Write to file
+    with open(json_file_path, "w") as f:
+        json.dump({"route": route_data}, f, indent=2)
+
+
+def validate_locations(locations):
+    """
+    Validate a list of locations for correctness.
+
+    Args:
+        locations: List of Location objects to validate
+
+    Returns:
+        Dictionary with validation results including errors and warnings
+    """
+    errors = []
+    warnings = []
+
+    # Check for duplicates
+    seen_names = {}
+    seen_coords = {}
+
+    for idx, loc in enumerate(locations):
+        # Check for duplicate names
+        if loc.name in seen_names:
+            errors.append(
+                f"Duplicate location name '{loc.name}' at indices "
+                f"{seen_names[loc.name]} and {idx}"
+            )
+        else:
+            seen_names[loc.name] = idx
+
+        # Check for duplicate coordinates (within a small tolerance)
+        coord_key = (round(loc.latitude, 4), round(loc.longitude, 4))
+        if coord_key in seen_coords:
+            warnings.append(
+                f"Very close coordinates for '{loc.name}' (index {idx}) and "
+                f"'{locations[seen_coords[coord_key]].name}' "
+                f"(index {seen_coords[coord_key]})"
+            )
+        else:
+            seen_coords[coord_key] = idx
+
+        # Validate coordinate ranges (already done in __post_init__ but check again)
+        if not -90 <= loc.latitude <= 90:
+            errors.append(
+                f"Invalid latitude for '{loc.name}' (index {idx}): {loc.latitude}"
+            )
+        if not -180 <= loc.longitude <= 180:
+            errors.append(
+                f"Invalid longitude for '{loc.name}' (index {idx}): {loc.longitude}"
+            )
+
+        # Validate UTC offset
+        if not -12 <= loc.utc_offset <= 14:
+            errors.append(
+                f"Invalid UTC offset for '{loc.name}' (index {idx}): "
+                f"{loc.utc_offset} (must be between -12 and +14)"
+            )
+
+        # Warn about unusual UTC offsets (not multiples of 0.5)
+        if abs(loc.utc_offset % 0.5) > 1e-6:
+            warnings.append(
+                f"Unusual UTC offset for '{loc.name}' (index {idx}): "
+                f"{loc.utc_offset} (not a multiple of 0.5)"
+            )
+
+        # Validate priority if present
+        if loc.priority is not None and not 1 <= loc.priority <= 3:
+            errors.append(
+                f"Invalid priority for '{loc.name}' (index {idx}): "
+                f"{loc.priority} (must be 1, 2, or 3)"
+            )
+
+    return {
+        "valid": len(errors) == 0,
+        "total_locations": len(locations),
+        "errors": errors,
+        "warnings": warnings,
+    }
