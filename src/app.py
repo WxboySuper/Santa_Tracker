@@ -62,8 +62,21 @@ def require_admin_auth(f):
 
 
 @app.route("/")
+def home():
+    """Landing page with festive design."""
+    return render_template("home.html")
+
+
+@app.route("/tracker")
+def tracker():
+    """Santa tracking page with live map."""
+    return render_template("tracker.html")
+
+
+@app.route("/index")
 def index():
-    return render_template("index.html")
+    """Legacy route - redirect to tracker."""
+    return render_template("tracker.html")
 
 
 @app.route("/admin")
