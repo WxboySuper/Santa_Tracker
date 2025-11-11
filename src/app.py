@@ -2,6 +2,7 @@ import logging
 import os
 import secrets
 import sys
+import time
 from datetime import datetime, timedelta
 from functools import wraps
 
@@ -449,8 +450,6 @@ def get_route_status():
         # Get file modification time for last update info
         base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         route_file = os.path.join(base_dir, "static", "data", "santa_route.json")
-        import time
-
         last_modified = (
             time.ctime(os.path.getmtime(route_file))
             if os.path.exists(route_file)
