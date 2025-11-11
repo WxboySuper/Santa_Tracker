@@ -1,0 +1,2 @@
+# Ignore the sqlite database file for local instance
+santa.db
