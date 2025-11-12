@@ -440,8 +440,8 @@
 
         <!-- Tab Navigation -->
         <div class="tab-navigation">
-            <button class="tab-button active" onclick="switchTab('locations')">🎄 Locations</button>
-            <button class="tab-button" onclick="switchTab('advent')">🎁 Advent Calendar</button>
+            <button class="tab-button active" onclick="switchTab('locations', event)">🎄 Locations</button>
+            <button class="tab-button" onclick="switchTab('advent', event)">🎁 Advent Calendar</button>
         </div>
 
         <!-- Locations Tab -->
@@ -1477,7 +1477,7 @@
         }
 
         // ============== TAB SWITCHING ==============
-        function switchTab(tabName) {
+        function switchTab(tabName, event) {
             // Hide all tabs
             document.querySelectorAll('.tab-content').forEach(tab => {
                 tab.classList.remove('active');

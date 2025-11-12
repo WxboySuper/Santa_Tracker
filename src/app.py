@@ -865,7 +865,7 @@ def import_advent_calendar():
         if len(days_data) == 0:
             return jsonify({"error": "Days array cannot be empty"}), 400
 
-        # Parse and validate each day
+        # Parse and validate each day (all-or-nothing approach)
         imported_days = []
         errors = []
 
@@ -884,22 +884,22 @@ def import_advent_calendar():
                 logging.error(
                     "Error importing day at index %d: %s", idx, str(e), exc_info=True
                 )
-                errors.append(f"Invalid day data at index {idx}")
+                errors.append(f"Invalid day data at index {idx}: {str(e)}")
 
+        # If any errors occurred, reject entire import (all-or-nothing)
         if errors:
             return (
                 jsonify(
                     {
-                        "error": "Failed to import some days",
+                        "error": "Import failed - no days were saved due to validation errors",
                         "details": errors,
-                        "imported_count": len(imported_days),
                         "failed_count": len(errors),
                     }
                 ),
                 400,
             )
 
-        # Save imported days
+        # Save all imported days (only if no errors)
         save_advent_calendar(imported_days)
 
         return (
