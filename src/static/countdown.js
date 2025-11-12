@@ -84,9 +84,25 @@ function calculateTimeRemaining(targetDate) {
     
     // Check if Santa's tour has started (past midnight Dec 25)
     if (diff <= 0) {
-        // Determine end of Christmas Day (midnight Dec 26) in the same timezone as targetDate
-        const christmasEnd = new Date(targetDate);
-        christmasEnd.setDate(christmasEnd.getDate() + 1); // Add 1 day to get Dec 26
+        // Determine if targetDate is UTC-based (Dec 24 10:00 UTC for UTC+14 midnight)
+        // UTC+14 mode: targetDate is Dec 24, 10:00 UTC (= Dec 25, 00:00 UTC+14)
+        // Local mode: targetDate is Dec 25, 00:00 local
+        const isUTCMode = (
+            targetDate.getUTCHours() === 10 &&
+            targetDate.getUTCMinutes() === 0 &&
+            targetDate.getUTCDate() === 24 &&
+            targetDate.getUTCMonth() === 11
+        );
+        
+        let christmasEnd;
+        if (isUTCMode) {
+            // UTC mode: Add 24 hours to get Dec 25, 10:00 UTC (= Dec 26, 00:00 UTC+14)
+            christmasEnd = new Date(targetDate.getTime() + 24 * 60 * 60 * 1000);
+        } else {
+            // Local mode: Add 1 day using local date methods
+            christmasEnd = new Date(targetDate);
+            christmasEnd.setDate(christmasEnd.getDate() + 1);
+        }
         
         // If we're still on Christmas Day (Santa is still delivering), show completion message
         if (now < christmasEnd) {
