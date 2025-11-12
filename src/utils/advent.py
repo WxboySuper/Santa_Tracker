@@ -198,3 +198,104 @@ def get_day_content(
             return day.to_dict(include_payload=True, current_time=current_time)
 
     return None
+
+
+def save_advent_calendar(
+    days: List[AdventDay], json_file_path: Optional[str] = None
+) -> None:
+    """
+    Save Advent calendar data to a JSON file.
+
+    Args:
+        days: List of AdventDay objects to save
+        json_file_path: Path to the JSON file. If None, uses the default calendar file.
+    """
+    if json_file_path is None:
+        # Use default path relative to this file
+        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        json_file_path = os.path.join(
+            base_dir, "static", "data", "advent_calendar.json"
+        )
+
+    # Convert days to dictionary format
+    days_data = []
+    for day in days:
+        day_dict = {
+            "day": day.day,
+            "title": day.title,
+            "unlock_time": day.unlock_time,
+            "content_type": day.content_type,
+            "payload": day.payload,
+        }
+        # Only include override if it's set
+        if day.is_unlocked_override is not None:
+            day_dict["is_unlocked_override"] = day.is_unlocked_override
+
+        days_data.append(day_dict)
+
+    # Save to file
+    with open(json_file_path, "w") as f:
+        json.dump({"days": days_data}, f, indent=2)
+
+
+def validate_advent_calendar(days: List[AdventDay]) -> dict:
+    """
+    Validate Advent calendar data for completeness and correctness.
+
+    Args:
+        days: List of AdventDay objects to validate
+
+    Returns:
+        Dictionary with validation results including errors and warnings
+    """
+    errors = []
+    warnings = []
+
+    # Check for duplicate days
+    day_numbers = [day.day for day in days]
+    duplicates = [d for d in day_numbers if day_numbers.count(d) > 1]
+    if duplicates:
+        errors.append(f"Duplicate day numbers found: {set(duplicates)}")
+
+    # Check for missing days
+    expected_days = set(range(1, 25))
+    actual_days = set(day_numbers)
+    missing_days = expected_days - actual_days
+    if missing_days:
+        warnings.append(f"Missing days: {sorted(missing_days)}")
+
+    # Check each day for issues
+    for day in days:
+        # Check for missing payload data based on content type
+        if day.content_type == "fact":
+            if not day.payload.get("text"):
+                warnings.append(f"Day {day.day}: Missing 'text' in payload")
+        elif day.content_type == "game":
+            if not day.payload.get("url"):
+                warnings.append(f"Day {day.day}: Missing 'url' in payload")
+        elif day.content_type == "video":
+            if not day.payload.get("video_url"):
+                warnings.append(f"Day {day.day}: Missing 'video_url' in payload")
+        elif day.content_type == "activity":
+            if not day.payload.get("url"):
+                warnings.append(f"Day {day.day}: Missing 'url' in payload")
+        elif day.content_type == "story":
+            if not day.payload.get("text"):
+                warnings.append(f"Day {day.day}: Missing 'text' in payload")
+
+        # Check for image URLs that might be broken
+        image_url = day.payload.get("image_url")
+        if image_url and not (
+            image_url.startswith("/static/") or image_url.startswith("http")
+        ):
+            warnings.append(
+                f"Day {day.day}: Unusual image_url format: {image_url}"
+            )
+
+    return {
+        "valid": len(errors) == 0,
+        "errors": errors,
+        "warnings": warnings,
+        "total_days": len(days),
+        "complete_days": len([d for d in days if d.payload]),
+    }
