@@ -155,7 +155,7 @@ The countdown timer is a core feature that builds excitement for Santa's Christm
 - **Year Rollover**: Automatically targets next year's Christmas Day after the current one passes
 - **Modular Design**: Implemented in `src/static/countdown.js` for reusability
 - **Configuration Options**:
-  - `useLocalTime`: true (default) uses local timezone, false uses UTC-based calculation
+  - `useLocalTime`: true uses local timezone, false uses UTC+14-based calculation for Santa's actual tour start time
   - `formatFunction`: Custom formatting function can be provided
   - `onUpdate`: Optional callback triggered on each countdown update
 - **Usage Example**:
@@ -163,7 +163,8 @@ The countdown timer is a core feature that builds excitement for Santa's Christm
   // Create a countdown instance
   const countdown = window.CountdownModule.createCountdown({
       targetElement: document.getElementById('countdown'),
-      useLocalTime: true,
+      // Set useLocalTime to false to use UTC+14 (Santa's official start time)
+      useLocalTime: false,
       onUpdate: (timeData) => {
           console.log(`${timeData.days} days remaining`);
       }
