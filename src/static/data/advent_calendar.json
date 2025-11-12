@@ -2,308 +2,218 @@
   "days": [
     {
       "day": 1,
-      "title": "Welcome to the Advent Calendar!",
+      "title": "Day 1",
       "unlock_time": "2024-12-01T00:00:00Z",
       "content_type": "fact",
       "payload": {
-        "text": "Did you know? Santa's workshop at the North Pole employs thousands of elves who work year-round to prepare gifts for children around the world!",
-        "image_url": "/static/images/advent/day1.jpg"
+        "text": "Content coming soon!"
       }
     },
     {
       "day": 2,
-      "title": "Reindeer Facts",
+      "title": "Day 2",
       "unlock_time": "2024-12-02T00:00:00Z",
       "content_type": "fact",
       "payload": {
-        "text": "Rudolph the Red-Nosed Reindeer was created in 1939 by Robert L. May for a Montgomery Ward marketing campaign. His glowing red nose helps guide Santa's sleigh through foggy weather!",
-        "image_url": "/static/images/advent/day2.jpg"
+        "text": "Content coming soon!"
       }
     },
     {
       "day": 3,
-      "title": "Christmas Tree Origins",
+      "title": "Day 3",
       "unlock_time": "2024-12-03T00:00:00Z",
       "content_type": "fact",
       "payload": {
-        "text": "The tradition of decorating Christmas trees began in Germany in the 16th century. It was brought to America by German immigrants in the 1800s.",
-        "image_url": "/static/images/advent/day3.jpg"
+        "text": "Content coming soon!"
       }
     },
     {
       "day": 4,
-      "title": "Snowflake Memory Game",
+      "title": "Day 4",
       "unlock_time": "2024-12-04T00:00:00Z",
-      "content_type": "game",
+      "content_type": "fact",
       "payload": {
-        "game_type": "memory",
-        "title": "Match the Snowflakes",
-        "description": "Test your memory by matching pairs of snowflakes!",
-        "difficulty": "easy",
-        "url": "/games/snowflake-memory"
+        "text": "Content coming soon!"
       }
     },
     {
       "day": 5,
-      "title": "Candy Cane Story",
+      "title": "Day 5",
       "unlock_time": "2024-12-05T00:00:00Z",
-      "content_type": "story",
+      "content_type": "fact",
       "payload": {
-        "text": "Legend has it that in 1670, a choirmaster in Germany gave candy canes to children to keep them quiet during long church services. The shape was meant to remind them of shepherds who visited baby Jesus.",
-        "image_url": "/static/images/advent/day5.jpg"
+        "text": "Content coming soon!"
       }
     },
     {
       "day": 6,
-      "title": "Santa's Workshop Tour",
+      "title": "Day 6",
       "unlock_time": "2024-12-06T00:00:00Z",
-      "content_type": "video",
+      "content_type": "fact",
       "payload": {
-        "title": "Virtual Tour of Santa's Workshop",
-        "description": "Take a magical journey through Santa's toy-making workshop!",
-        "video_url": "/videos/workshop-tour.mp4",
-        "duration_minutes": 5
+        "text": "Content coming soon!"
       }
     },
     {
       "day": 7,
-      "title": "Christmas Around the World",
+      "title": "Day 7",
       "unlock_time": "2024-12-07T00:00:00Z",
       "content_type": "fact",
       "payload": {
-        "text": "In Japan, it's traditional to eat KFC on Christmas Eve! This started from a successful marketing campaign in 1974 and has become a beloved tradition.",
-        "image_url": "/static/images/advent/day7.jpg"
+        "text": "Content coming soon!"
       }
     },
     {
       "day": 8,
-      "title": "Decorate the Tree",
+      "title": "Day 8",
       "unlock_time": "2024-12-08T00:00:00Z",
-      "content_type": "activity",
+      "content_type": "fact",
       "payload": {
-        "activity_type": "creative",
-        "title": "Virtual Tree Decorator",
-        "description": "Decorate your own virtual Christmas tree with ornaments, lights, and a star on top!",
-        "url": "/activities/tree-decorator"
+        "text": "Content coming soon!"
       }
     },
     {
       "day": 9,
-      "title": "Jingle Bells History",
+      "title": "Day 9",
       "unlock_time": "2024-12-09T00:00:00Z",
       "content_type": "fact",
       "payload": {
-        "text": "'Jingle Bells' was originally written for Thanksgiving! James Lord Pierpont composed it in 1857 under the title 'One Horse Open Sleigh' and it was only later associated with Christmas.",
-        "image_url": "/static/images/advent/day9.jpg"
+        "text": "Content coming soon!"
       }
     },
     {
       "day": 10,
-      "title": "Christmas Trivia Quiz",
+      "title": "Day 10",
       "unlock_time": "2024-12-10T00:00:00Z",
-      "content_type": "quiz",
+      "content_type": "fact",
       "payload": {
-        "title": "Test Your Christmas Knowledge",
-        "description": "How well do you know Christmas traditions and history?",
-        "questions": [
-          {
-            "question": "In which country did the tradition of putting up a Christmas tree originate?",
-            "options": ["Germany", "England", "America", "France"],
-            "correct_answer": 0
-          },
-          {
-            "question": "How many reindeer does Santa have (including Rudolph)?",
-            "options": ["7", "8", "9", "10"],
-            "correct_answer": 2
-          },
-          {
-            "question": "What is the best-selling Christmas song of all time?",
-            "options": ["Jingle Bells", "White Christmas", "Silent Night", "All I Want for Christmas Is You"],
-            "correct_answer": 1
-          }
-        ]
+        "text": "Content coming soon!"
       }
     },
     {
       "day": 11,
-      "title": "The First Christmas Card",
+      "title": "Day 11",
       "unlock_time": "2024-12-11T00:00:00Z",
       "content_type": "fact",
       "payload": {
-        "text": "The first commercial Christmas card was created in London in 1843 by Sir Henry Cole. He commissioned artist John Callcott Horsley to design the card, which featured a family raising a toast.",
-        "image_url": "/static/images/advent/day11.jpg"
+        "text": "Content coming soon!"
       }
     },
     {
       "day": 12,
-      "title": "Build a Snowman",
+      "title": "Day 12",
       "unlock_time": "2024-12-12T00:00:00Z",
-      "content_type": "game",
+      "content_type": "fact",
       "payload": {
-        "game_type": "builder",
-        "title": "Snowman Builder",
-        "description": "Create the perfect snowman by stacking snowballs and adding accessories!",
-        "difficulty": "easy",
-        "url": "/games/snowman-builder"
+        "text": "Content coming soon!"
       }
     },
     {
       "day": 13,
-      "title": "The Nutcracker Ballet",
+      "title": "Day 13",
       "unlock_time": "2024-12-13T00:00:00Z",
-      "content_type": "story",
+      "content_type": "fact",
       "payload": {
-        "text": "The Nutcracker ballet, based on E.T.A. Hoffmann's story, premiered in 1892 in St. Petersburg, Russia. Today, it's one of the most performed ballets during the Christmas season worldwide!",
-        "image_url": "/static/images/advent/day13.jpg"
+        "text": "Content coming soon!"
       }
     },
     {
       "day": 14,
-      "title": "Letters to Santa",
+      "title": "Day 14",
       "unlock_time": "2024-12-14T00:00:00Z",
       "content_type": "fact",
       "payload": {
-        "text": "Every year, the United States Postal Service receives hundreds of thousands of letters addressed to Santa Claus at the North Pole. The postal code for Santa's Workshop is H0H 0H0 in Canada!",
-        "image_url": "/static/images/advent/day14.jpg"
+        "text": "Content coming soon!"
       }
     },
     {
       "day": 15,
-      "title": "Christmas Cookie Recipe",
+      "title": "Day 15",
       "unlock_time": "2024-12-15T00:00:00Z",
-      "content_type": "activity",
+      "content_type": "fact",
       "payload": {
-        "activity_type": "recipe",
-        "title": "Classic Sugar Cookie Recipe",
-        "description": "Bake delicious sugar cookies to leave out for Santa!",
-        "ingredients": [
-          "2 3/4 cups all-purpose flour",
-          "1 teaspoon baking soda",
-          "1/2 teaspoon baking powder",
-          "1 cup butter, softened",
-          "1 1/2 cups white sugar",
-          "1 egg",
-          "1 teaspoon vanilla extract"
-        ],
-        "instructions": "Preheat oven to 375°F. Mix dry ingredients. Cream butter and sugar, add egg and vanilla. Combine mixtures. Roll and cut shapes. Bake 8-10 minutes."
+        "text": "Content coming soon!"
       }
     },
     {
       "day": 16,
-      "title": "Santa's Sleigh Speed",
+      "title": "Day 16",
       "unlock_time": "2024-12-16T00:00:00Z",
       "content_type": "fact",
       "payload": {
-        "text": "To visit every child on Christmas Eve, Santa's sleigh would need to travel at about 650 miles per second! That's roughly 3,000 times the speed of sound. Good thing it's magic!",
-        "image_url": "/static/images/advent/day16.jpg"
+        "text": "Content coming soon!"
       }
     },
     {
       "day": 17,
-      "title": "Present Wrapping Challenge",
+      "title": "Day 17",
       "unlock_time": "2024-12-17T00:00:00Z",
-      "content_type": "game",
+      "content_type": "fact",
       "payload": {
-        "game_type": "puzzle",
-        "title": "Gift Wrapping Master",
-        "description": "Help the elves wrap presents as quickly as possible!",
-        "difficulty": "medium",
-        "url": "/games/gift-wrapping"
+        "text": "Content coming soon!"
       }
     },
     {
       "day": 18,
-      "title": "The Twelve Days of Christmas",
+      "title": "Day 18",
       "unlock_time": "2024-12-18T00:00:00Z",
       "content_type": "fact",
       "payload": {
-        "text": "If you received all the gifts from 'The Twelve Days of Christmas,' you'd have 364 presents! That includes 12 partridges, 22 turtle doves, 30 French hens, and much more.",
-        "image_url": "/static/images/advent/day18.jpg"
+        "text": "Content coming soon!"
       }
     },
     {
       "day": 19,
-      "title": "Design Your Ornament",
+      "title": "Day 19",
       "unlock_time": "2024-12-19T00:00:00Z",
-      "content_type": "activity",
+      "content_type": "fact",
       "payload": {
-        "activity_type": "creative",
-        "title": "Custom Ornament Designer",
-        "description": "Create and save your own unique Christmas ornament design!",
-        "url": "/activities/ornament-designer"
+        "text": "Content coming soon!"
       }
     },
     {
       "day": 20,
-      "title": "Santa's Reindeer Names",
+      "title": "Day 20",
       "unlock_time": "2024-12-20T00:00:00Z",
       "content_type": "fact",
       "payload": {
-        "text": "Santa's nine reindeer are: Dasher, Dancer, Prancer, Vixen, Comet, Cupid, Donner, Blitzen, and Rudolph. Their names were first published in the 1823 poem 'A Visit from St. Nicholas' (except Rudolph, who came later in 1939).",
-        "image_url": "/static/images/advent/day20.jpg"
+        "text": "Content coming soon!"
       }
     },
     {
       "day": 21,
-      "title": "Christmas Carol Challenge",
+      "title": "Day 21",
       "unlock_time": "2024-12-21T00:00:00Z",
-      "content_type": "quiz",
+      "content_type": "fact",
       "payload": {
-        "title": "Name That Christmas Carol",
-        "description": "Can you identify these classic Christmas songs from their lyrics?",
-        "questions": [
-          {
-            "question": "Which carol includes the lyrics 'Sleep in heavenly peace'?",
-            "options": ["Silent Night", "Away in a Manger", "O Holy Night", "Hark! The Herald Angels Sing"],
-            "correct_answer": 0
-          },
-          {
-            "question": "What song mentions 'figgy pudding'?",
-            "options": ["Deck the Halls", "We Wish You a Merry Christmas", "Good King Wenceslas", "The First Noel"],
-            "correct_answer": 1
-          },
-          {
-            "question": "Which carol describes a 'one-horse open sleigh'?",
-            "options": ["Winter Wonderland", "Let It Snow", "Jingle Bells", "Sleigh Ride"],
-            "correct_answer": 2
-          }
-        ]
+        "text": "Content coming soon!"
       }
     },
     {
       "day": 22,
-      "title": "Christmas Lights History",
+      "title": "Day 22",
       "unlock_time": "2024-12-22T00:00:00Z",
       "content_type": "fact",
       "payload": {
-        "text": "The first electrically lit Christmas tree was displayed in 1882 by Edward H. Johnson, an associate of Thomas Edison. Before electric lights, people used candles on their trees, which was quite dangerous!",
-        "image_url": "/static/images/advent/day22.jpg"
+        "text": "Content coming soon!"
       }
     },
     {
       "day": 23,
-      "title": "Santa's Route Planner",
+      "title": "Day 23",
       "unlock_time": "2024-12-23T00:00:00Z",
-      "content_type": "game",
+      "content_type": "fact",
       "payload": {
-        "game_type": "strategy",
-        "title": "Help Santa Plan His Route",
-        "description": "Navigate Santa through cities around the world in the most efficient path!",
-        "difficulty": "hard",
-        "url": "/games/route-planner"
+        "text": "Content coming soon!"
       }
     },
     {
       "day": 24,
-      "title": "Merry Christmas!",
+      "title": "Day 24",
       "unlock_time": "2024-12-24T00:00:00Z",
-      "content_type": "video",
+      "content_type": "fact",
       "payload": {
-        "title": "Christmas Eve with Santa",
-        "description": "Join Santa as he begins his magical journey around the world! Track him live on the map.",
-        "video_url": "/videos/christmas-eve.mp4",
-        "duration_minutes": 3,
-        "special_message": "Merry Christmas from all of us at Santa Tracker! May your holiday be filled with joy, love, and wonder. 🎄✨"
+        "text": "Content coming soon!"
       }
     }
   ]
