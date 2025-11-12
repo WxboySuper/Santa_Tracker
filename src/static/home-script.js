@@ -16,9 +16,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Cleanup on page unload
 window.addEventListener('beforeunload', () => {
-    if (countdownInterval && countdownInterval.stop) {
-        countdownInterval.stop();
-    }
+    countdownInterval?.stop?.();
 });
 
 // Snowfall effect

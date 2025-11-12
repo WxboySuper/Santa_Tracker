@@ -49,25 +49,15 @@ function getTourLaunchDate(useLocalTime = true) {
     const now = new Date();
     const currentYear = now.getFullYear();
     
-    let tourLaunchDate;
+    let tourLaunchDate = useLocalTime 
+        ? new Date(currentYear, 11, 24, 0, 0, 0)
+        : new Date(Date.UTC(currentYear, 11, 23, 10, 0, 0));
     
-    if (useLocalTime) {
-        // For local time: Tour launches Dec 24 at midnight local time
-        tourLaunchDate = new Date(currentYear, 11, 24, 0, 0, 0);
-        
-        // If we've passed Christmas Eve this year, target next year
-        if (now > tourLaunchDate) {
-            tourLaunchDate = new Date(currentYear + 1, 11, 24, 0, 0, 0);
-        }
-    } else {
-        // For UTC: Tour launches when it becomes Dec 24 in UTC+14 (earliest timezone)
-        // UTC+14 on Dec 24 00:00 = Dec 23 10:00 UTC
-        tourLaunchDate = new Date(Date.UTC(currentYear, 11, 23, 10, 0, 0));
-        
-        // If we've passed the launch this year, target next year
-        if (now > tourLaunchDate) {
-            tourLaunchDate = new Date(Date.UTC(currentYear + 1, 11, 23, 10, 0, 0));
-        }
+    // If we've passed the launch this year, target next year
+    if (now > tourLaunchDate) {
+        tourLaunchDate = useLocalTime
+            ? new Date(currentYear + 1, 11, 24, 0, 0, 0)
+            : new Date(Date.UTC(currentYear + 1, 11, 23, 10, 0, 0));
     }
     
     return tourLaunchDate;
@@ -116,12 +106,12 @@ function defaultFormatFunction(timeData) {
     const { days, hours, minutes, seconds } = timeData;
     
     // Format with leading zeros for better visual consistency
-    const d = String(days);
-    const h = String(hours).padStart(2, '0');
-    const m = String(minutes).padStart(2, '0');
-    const s = String(seconds).padStart(2, '0');
+    const daysStr = String(days);
+    const hoursStr = String(hours).padStart(2, '0');
+    const minutesStr = String(minutes).padStart(2, '0');
+    const secondsStr = String(seconds).padStart(2, '0');
     
-    return `${d}d ${h}h ${m}m ${s}s`;
+    return `${daysStr}d ${hoursStr}h ${minutesStr}m ${secondsStr}s`;
 }
 
 /**
