@@ -721,7 +721,7 @@ def update_advent_day(day_number):
                             "is_unlocked_override", day.is_unlocked_override
                         ),
                     )
-                except (ValueError, KeyError, TypeError) as e:
+                except (ValueError, KeyError, TypeError):
                     logging.exception("Invalid advent day data provided by user.")
                     return jsonify({"error": "Invalid data provided"}), 400
 
@@ -882,7 +882,7 @@ def import_advent_calendar():
                 imported_days.append(day)
             except (KeyError, ValueError, TypeError) as e:
                 logging.error(
-                    f"Error importing day at index {idx}: {str(e)}", exc_info=True
+                    "Error importing day at index %d: %s", idx, str(e), exc_info=True
                 )
                 errors.append(f"Invalid day data at index {idx}")
 

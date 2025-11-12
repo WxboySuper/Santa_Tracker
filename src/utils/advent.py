@@ -266,32 +266,8 @@ def validate_advent_calendar(days: List[AdventDay]) -> dict:
 
     # Check each day for issues
     for day in days:
-        # Check for missing payload data based on content type
-        if day.content_type == "fact":
-            if not day.payload.get("text"):
-                warnings.append(f"Day {day.day}: Missing 'text' in payload")
-        elif day.content_type == "game":
-            if not day.payload.get("url"):
-                warnings.append(f"Day {day.day}: Missing 'url' in payload")
-        elif day.content_type == "video":
-            if not day.payload.get("video_url"):
-                warnings.append(f"Day {day.day}: Missing 'video_url' in payload")
-        elif day.content_type == "activity":
-            if not day.payload.get("url"):
-                warnings.append(f"Day {day.day}: Missing 'url' in payload")
-        elif day.content_type == "story":
-            if not day.payload.get("text"):
-                warnings.append(f"Day {day.day}: Missing 'text' in payload")
-        elif day.content_type == "quiz":
-            if not day.payload.get("url"):
-                warnings.append(f"Day {day.day}: Missing 'url' in payload")
-
-        # Check for image URLs that might be broken
-        image_url = day.payload.get("image_url")
-        if image_url and not (
-            image_url.startswith("/static/") or image_url.startswith("http")
-        ):
-            warnings.append(f"Day {day.day}: Unusual image_url format: {image_url}")
+        _validate_day_payload(day, warnings)
+        _validate_day_image_url(day, warnings)
 
     return {
         "valid": len(errors) == 0,
@@ -300,3 +276,41 @@ def validate_advent_calendar(days: List[AdventDay]) -> dict:
         "total_days": len(days),
         "complete_days": len([d for d in days if d.payload]),
     }
+
+
+def _validate_day_payload(day: AdventDay, warnings: List[str]) -> None:
+    """
+    Validate payload data for a single day based on content type.
+
+    Args:
+        day: AdventDay object to validate
+        warnings: List to append warning messages to
+    """
+    # Define required fields for each content type
+    required_fields = {
+        "fact": "text",
+        "story": "text",
+        "game": "url",
+        "video": "video_url",
+        "activity": "url",
+        "quiz": "url",
+    }
+
+    required_field = required_fields.get(day.content_type)
+    if required_field and not day.payload.get(required_field):
+        warnings.append(f"Day {day.day}: Missing '{required_field}' in payload")
+
+
+def _validate_day_image_url(day: AdventDay, warnings: List[str]) -> None:
+    """
+    Validate image URL format for a single day.
+
+    Args:
+        day: AdventDay object to validate
+        warnings: List to append warning messages to
+    """
+    image_url = day.payload.get("image_url")
+    if image_url and not (
+        image_url.startswith("/static/") or image_url.startswith("http")
+    ):
+        warnings.append(f"Day {day.day}: Unusual image_url format: {image_url}")
