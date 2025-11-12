@@ -107,14 +107,15 @@ class TestUpdateAdventDay:
     def backup_calendar(self):
         """Backup and restore calendar data for each test."""
         import shutil
+
         calendar_path = "src/static/data/advent_calendar.json"
         backup_path = "src/static/data/advent_calendar.json.backup"
-        
+
         if os.path.exists(calendar_path):
             shutil.copy(calendar_path, backup_path)
-        
+
         yield
-        
+
         # Restore original calendar
         if os.path.exists(backup_path):
             shutil.move(backup_path, calendar_path)
@@ -178,14 +179,15 @@ class TestToggleUnlock:
     def backup_calendar(self):
         """Backup and restore calendar data for each test."""
         import shutil
+
         calendar_path = "src/static/data/advent_calendar.json"
         backup_path = "src/static/data/advent_calendar.json.backup"
-        
+
         if os.path.exists(calendar_path):
             shutil.copy(calendar_path, backup_path)
-        
+
         yield
-        
+
         # Restore original calendar
         if os.path.exists(backup_path):
             shutil.move(backup_path, calendar_path)
@@ -253,9 +255,7 @@ class TestValidateAdventCalendar:
 
     def test_validate_calendar(self, client, auth_headers):
         """Test validating the advent calendar."""
-        response = client.post(
-            "/api/admin/advent/validate", headers=auth_headers
-        )
+        response = client.post("/api/admin/advent/validate", headers=auth_headers)
         assert response.status_code == 200
 
         data = response.get_json()
@@ -300,14 +300,15 @@ class TestImportAdventCalendar:
         """Backup and restore calendar data for each test."""
         # Backup original calendar
         import shutil
+
         calendar_path = "src/static/data/advent_calendar.json"
         backup_path = "src/static/data/advent_calendar.json.backup"
-        
+
         if os.path.exists(calendar_path):
             shutil.copy(calendar_path, backup_path)
-        
+
         yield
-        
+
         # Restore original calendar
         if os.path.exists(backup_path):
             shutil.move(backup_path, calendar_path)
@@ -317,10 +318,8 @@ class TestImportAdventCalendar:
         # First, export current data to get complete structure
         export_response = client.get("/api/admin/advent/export", headers=auth_headers)
         original_data = export_response.get_json()
-        
-        import_data = {
-            "days": original_data["days"][:1]  # Import just the first day
-        }
+
+        import_data = {"days": original_data["days"][:1]}  # Import just the first day
 
         response = client.post(
             "/api/admin/advent/import",
@@ -338,7 +337,7 @@ class TestImportAdventCalendar:
         # First, export current data to get complete structure
         export_response = client.get("/api/admin/advent/export", headers=auth_headers)
         original_data = export_response.get_json()
-        
+
         import_data = original_data["days"][:1]  # Import just the first day
 
         response = client.post(
