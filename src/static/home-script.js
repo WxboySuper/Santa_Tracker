@@ -57,7 +57,7 @@ function initCountdown() {
     // Create countdown instance using the CountdownModule
     const countdown = window.CountdownModule.createCountdown({
         targetElement: countdownElement,
-        useLocalTime: true, // Use local time for user convenience
+        useLocalTime: false, // Use UTC+14 time to match when Santa actually starts
         onUpdate: (timeData) => {
             // Optional: Add custom behavior on each update
             // For example, change styling when close to launch

@@ -214,7 +214,7 @@ function initCountdowns() {
     if (countdownElement) {
         christmasCountdownInterval = window.CountdownModule.createCountdown({
             targetElement: countdownElement,
-            useLocalTime: true // Use local time for user-friendly display
+            useLocalTime: false // Use UTC+14 time to match when Santa actually starts
         });
         christmasCountdownInterval.start();
     }

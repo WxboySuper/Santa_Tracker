@@ -12,10 +12,10 @@ Track Santa's magical journey around the world on Christmas Eve! This interactiv
 - 🗺️ **Interactive Map**: Real-time visualization of Santa's journey using Leaflet.js
 - 📍 **Location Tracking**: See Santa's current location and next destination
 - 📏 **Distance Calculator**: Calculate the distance from Santa to your location
-- ⏱️ **Countdown Timer**: Live countdown to Christmas morning tour launch (December 25th)
+- ⏱️ **Countdown Timer**: Live countdown to when Santa's tour actually begins (UTC+14 midnight)
   - Displays days, hours, minutes, and seconds until Santa's tour begins
   - Updates in real-time every second
-  - Uses local time for user convenience
+  - Uses UTC+14 timezone (when Santa actually starts) for accuracy
   - Automatically adjusts for next year after Christmas Day passes
 - 📱 **Progressive Web App**: Install on your device for offline access
 - 🎨 **Responsive Design**: Works seamlessly on desktop, tablet, and mobile devices
@@ -148,7 +148,7 @@ Santa_Tracker/
 ### Countdown Timer Implementation
 The countdown timer is a core feature that builds excitement for Santa's Christmas morning tour launch:
 
-- **Target Time**: December 25th at midnight (Christmas morning, local time) when Santa begins his journey
+- **Target Time**: Midnight December 25th in UTC+14 (10:00 UTC December 24th) when Santa actually begins his journey
 - **Live Updates**: Refreshes every second to show real-time countdown
 - **Format**: Displays as "Xd XXh XXm XXs" (days, hours, minutes, seconds)
 - **Completion Message**: Shows "🎅 Santa's Tour Has Begun! 🎄" when the tour starts
