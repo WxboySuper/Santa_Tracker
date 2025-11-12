@@ -10,7 +10,7 @@
 //   const countdown = window.CountdownModule.createCountdown({
 //     targetElement: document.getElementById('countdown'),
 //     onUpdate: (timeData) => console.log(timeData),
-//     useLocalTime: true  // false for UTC-based tour launch
+//     useLocalTime: false  // false for UTC+14-based tour launch
 //   });
 //   countdown.start();
 //   countdown.stop();
@@ -20,7 +20,7 @@
 //   const countdown = createCountdown({
 //     targetElement: document.getElementById('countdown'),
 //     onUpdate: (timeData) => console.log(timeData),
-//     useLocalTime: true
+//     useLocalTime: false  // false for UTC+14-based tour launch
 //   });
 //   countdown.start();
 //   countdown.stop();
@@ -30,7 +30,7 @@
  * @typedef {Object} CountdownConfig
  * @property {HTMLElement} targetElement - DOM element to update with countdown
  * @property {Function} [onUpdate] - Callback function called on each update
- * @property {boolean} [useLocalTime] - Use local time (true) or UTC time (false)
+ * @property {boolean} [useLocalTime] - Use local time (true) or UTC+14 time for Santa's tour start (false)
  * @property {Function} [formatFunction] - Custom format function
  */
 
