@@ -155,6 +155,46 @@
             background: #e0a800;
         }
 
+        .tab-navigation {
+            background: white;
+            border-radius: 10px;
+            padding: 10px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            display: flex;
+            gap: 10px;
+        }
+
+        .tab-button {
+            flex: 1;
+            padding: 12px 20px;
+            border: none;
+            background: #f8f9fa;
+            color: #333;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+
+        .tab-button:hover {
+            background: #e9ecef;
+        }
+
+        .tab-button.active {
+            background: #667eea;
+            color: white;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
         .dashboard {
             display: none;
         }
@@ -320,6 +360,34 @@
             color: #666;
         }
 
+        .status-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .status-badge.unlocked {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-badge.locked {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .status-badge.override-unlocked {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .status-badge.override-locked {
+            background: #cce5ff;
+            color: #004085;
+        }
+
         .required::after {
             content: "*";
             color: #dc3545;
@@ -370,45 +438,89 @@
 
         <div id="alertContainer"></div>
 
-        <div class="actions">
-            <button class="btn btn-primary" onclick="showAddLocationModal()">➕ Add Location</button>
-            <button class="btn btn-success" onclick="showImportModal()">📥 Import Locations</button>
-            <button class="btn btn-warning" onclick="validateLocations()">✓ Validate All Locations</button>
-            <button class="btn btn-secondary" onclick="loadLocations()">🔄 Refresh</button>
+        <!-- Tab Navigation -->
+        <div class="tab-navigation">
+            <button class="tab-button active" onclick="switchTab('locations', event)">🎄 Locations</button>
+            <button class="tab-button" onclick="switchTab('advent', event)">🎁 Advent Calendar</button>
         </div>
 
-        <!-- Route Management Section -->
-        <div class="actions" style="margin-top: 20px;">
-            <h3 style="margin-bottom: 15px; color: #333;">Route Management</h3>
-            <button class="btn btn-primary" onclick="precomputeRoute()">🚀 Precompute Route</button>
-            <button class="btn btn-success" onclick="exportBackup()">💾 Export Backup</button>
-            <button class="btn btn-secondary" onclick="loadRouteStatus()">📊 View Route Status</button>
+        <!-- Locations Tab -->
+        <div id="locationsTab" class="tab-content active">
+            <div class="actions">
+                <button class="btn btn-primary" onclick="showAddLocationModal()">➕ Add Location</button>
+                <button class="btn btn-success" onclick="showImportModal()">📥 Import Locations</button>
+                <button class="btn btn-warning" onclick="validateLocations()">✓ Validate All Locations</button>
+                <button class="btn btn-secondary" onclick="loadLocations()">🔄 Refresh</button>
+            </div>
+
+            <!-- Route Management Section -->
+            <div class="actions" style="margin-top: 20px;">
+                <h3 style="margin-bottom: 15px; color: #333;">Route Management</h3>
+                <button class="btn btn-primary" onclick="precomputeRoute()">🚀 Precompute Route</button>
+                <button class="btn btn-success" onclick="exportBackup()">💾 Export Backup</button>
+                <button class="btn btn-secondary" onclick="loadRouteStatus()">📊 View Route Status</button>
+            </div>
+
+            <!-- Route Status Display -->
+            <div id="routeStatusContainer" class="locations-table-container" style="margin-top: 20px; display: none;">
+                <h2 style="margin-bottom: 15px; color: #333;">Route Status</h2>
+                <div id="routeStatusContent"></div>
+            </div>
+
+            <div class="locations-table-container">
+                <h2 style="margin-bottom: 15px; color: #333;">Location Management</h2>
+                <div id="loadingMessage" class="loading">Loading locations...</div>
+                <table id="locationsTable" class="locations-table" style="display: none;">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Name</th>
+                            <th>Latitude</th>
+                            <th>Longitude</th>
+                            <th>UTC Offset</th>
+                            <th>Priority</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="locationsTableBody">
+                    </tbody>
+                </table>
+            </div>
         </div>
 
-        <!-- Route Status Display -->
-        <div id="routeStatusContainer" class="locations-table-container" style="margin-top: 20px; display: none;">
-            <h2 style="margin-bottom: 15px; color: #333;">Route Status</h2>
-            <div id="routeStatusContent"></div>
-        </div>
+        <!-- Advent Calendar Tab -->
+        <div id="adventTab" class="tab-content">
+            <div class="actions">
+                <button class="btn btn-success" onclick="showImportAdventModal()">📥 Import Calendar</button>
+                <button class="btn btn-warning" onclick="validateAdventCalendar()">✓ Validate Calendar</button>
+                <button class="btn btn-secondary" onclick="loadAdventDays()">🔄 Refresh</button>
+            </div>
 
-        <div class="locations-table-container">
-            <h2 style="margin-bottom: 15px; color: #333;">Location Management</h2>
-            <div id="loadingMessage" class="loading">Loading locations...</div>
-            <table id="locationsTable" class="locations-table" style="display: none;">
-                <thead>
-                    <tr>
-                        <th>ID</th>
-                        <th>Name</th>
-                        <th>Latitude</th>
-                        <th>Longitude</th>
-                        <th>UTC Offset</th>
-                        <th>Priority</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody id="locationsTableBody">
-                </tbody>
-            </table>
+            <!-- Advent Management Section -->
+            <div class="actions" style="margin-top: 20px;">
+                <h3 style="margin-bottom: 15px; color: #333;">Calendar Management</h3>
+                <button class="btn btn-success" onclick="exportAdventBackup()">💾 Export Calendar</button>
+            </div>
+
+            <div class="locations-table-container">
+                <h2 style="margin-bottom: 15px; color: #333;">Advent Calendar Days</h2>
+                <div id="adventLoadingMessage" class="loading">Loading advent days...</div>
+                <table id="adventDaysTable" class="locations-table" style="display: none;">
+                    <thead>
+                        <tr>
+                            <th>Day</th>
+                            <th>Title</th>
+                            <th>Type</th>
+                            <th>Unlock Time</th>
+                            <th>Status</th>
+                            <th>Override</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="adventDaysTableBody">
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
 
@@ -547,6 +659,181 @@
         </div>
     </div>
 
+    <!-- Advent Day Editor Modal -->
+    <div id="adventDayModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="adventModalTitle">Edit Advent Day</h2>
+                <button class="close-modal" onclick="closeAdventDayModal()">&times;</button>
+            </div>
+            <form id="adventDayForm">
+                <input type="hidden" id="adventDayNumber">
+                <div class="form-group">
+                    <label for="adventTitle" class="required">Title</label>
+                    <input type="text" id="adventTitle" required>
+                </div>
+                <div class="form-group">
+                    <label for="adventUnlockTime" class="required">Unlock Time (UTC)</label>
+                    <input type="datetime-local" id="adventUnlockTime" required>
+                    <small style="color: #666; display: block; margin-top: 5px;">
+                        Time when this day unlocks (in UTC timezone)
+                    </small>
+                </div>
+                <div class="form-group">
+                    <label for="adventContentType" class="required">Content Type</label>
+                    <select id="adventContentType" onchange="updatePayloadFields()" required>
+                        <option value="fact">Fact</option>
+                        <option value="game">Game</option>
+                        <option value="story">Story</option>
+                        <option value="video">Video</option>
+                        <option value="activity">Activity</option>
+                        <option value="quiz">Quiz</option>
+                    </select>
+                </div>
+                
+                <!-- Payload fields (dynamically shown based on content type) -->
+                <div id="payloadFields">
+                    <!-- Fact/Story fields -->
+                    <div class="payload-field fact-fields story-fields">
+                        <div class="form-group">
+                            <label for="payloadText" class="required">Text Content</label>
+                            <textarea id="payloadText" rows="4" required data-required="true"></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label for="payloadImageUrl">Image URL</label>
+                            <input type="text" id="payloadImageUrl" placeholder="/static/images/advent/dayX.jpg">
+                            <small style="color: #666; display: block; margin-top: 5px;">
+                                Path to image file or full URL
+                            </small>
+                        </div>
+                    </div>
+
+                    <!-- Game fields -->
+                    <div class="payload-field game-fields" style="display: none;">
+                        <div class="form-group">
+                            <label for="payloadGameType">Game Type</label>
+                            <input type="text" id="payloadGameType" placeholder="memory, puzzle, etc.">
+                        </div>
+                        <div class="form-group">
+                            <label for="payloadGameTitle" class="required">Game Title</label>
+                            <input type="text" id="payloadGameTitle" required data-required="true">
+                        </div>
+                        <div class="form-group">
+                            <label for="payloadGameDescription">Description</label>
+                            <textarea id="payloadGameDescription" rows="3"></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label for="payloadGameUrl" class="required">Game URL</label>
+                            <input type="text" id="payloadGameUrl" placeholder="/games/game-name" required data-required="true">
+                        </div>
+                        <div class="form-group">
+                            <label for="payloadGameDifficulty">Difficulty</label>
+                            <select id="payloadGameDifficulty">
+                                <option value="easy">Easy</option>
+                                <option value="medium">Medium</option>
+                                <option value="hard">Hard</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Video fields -->
+                    <div class="payload-field video-fields" style="display: none;">
+                        <div class="form-group">
+                            <label for="payloadVideoTitle" class="required">Video Title</label>
+                            <input type="text" id="payloadVideoTitle" required data-required="true">
+                        </div>
+                        <div class="form-group">
+                            <label for="payloadVideoDescription">Description</label>
+                            <textarea id="payloadVideoDescription" rows="3"></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label for="payloadVideoUrl" class="required">Video URL</label>
+                            <input type="text" id="payloadVideoUrl" placeholder="/videos/video-name.mp4" required data-required="true">
+                        </div>
+                        <div class="form-group">
+                            <label for="payloadVideoDuration">Duration (minutes)</label>
+                            <input type="number" id="payloadVideoDuration" min="1">
+                        </div>
+                    </div>
+
+                    <!-- Activity fields -->
+                    <div class="payload-field activity-fields" style="display: none;">
+                        <div class="form-group">
+                            <label for="payloadActivityType">Activity Type</label>
+                            <input type="text" id="payloadActivityType" placeholder="creative, educational, etc.">
+                        </div>
+                        <div class="form-group">
+                            <label for="payloadActivityTitle" class="required">Activity Title</label>
+                            <input type="text" id="payloadActivityTitle" required data-required="true">
+                        </div>
+                        <div class="form-group">
+                            <label for="payloadActivityDescription">Description</label>
+                            <textarea id="payloadActivityDescription" rows="3"></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label for="payloadActivityUrl" class="required">Activity URL</label>
+                            <input type="text" id="payloadActivityUrl" placeholder="/activities/activity-name" required data-required="true">
+                        </div>
+                    </div>
+
+                    <!-- Quiz fields -->
+                    <div class="payload-field quiz-fields" style="display: none;">
+                        <div class="form-group">
+                            <label for="payloadQuizTitle" class="required">Quiz Title</label>
+                            <input type="text" id="payloadQuizTitle" required data-required="true">
+                        </div>
+                        <div class="form-group">
+                            <label for="payloadQuizDescription">Description</label>
+                            <textarea id="payloadQuizDescription" rows="3"></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label for="payloadQuizUrl" class="required">Quiz URL</label>
+                            <input type="text" id="payloadQuizUrl" placeholder="/quiz/quiz-name" required data-required="true">
+                        </div>
+                    </div>
+                </div>
+
+                <div style="margin-top: 20px;">
+                    <button type="submit" class="btn btn-primary">💾 Save Day</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeAdventDayModal()">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Import Advent Calendar Modal -->
+    <div id="importAdventModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Import Advent Calendar</h2>
+                <button class="close-modal" onclick="closeImportAdventModal()">&times;</button>
+            </div>
+            <div>
+                <div class="form-group">
+                    <label for="importAdventData">JSON Data</label>
+                    <textarea id="importAdventData" style="font-family: monospace; min-height: 300px;" placeholder="{&quot;days&quot;:[{&quot;day&quot;:1,&quot;title&quot;:&quot;Day Title&quot;,&quot;unlock_time&quot;:&quot;2024-12-01T00:00:00Z&quot;,&quot;content_type&quot;:&quot;fact&quot;,&quot;payload&quot;:{&quot;text&quot;:&quot;Content text&quot;}}]}"></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label>Or Upload JSON File</label>
+                    <input type="file" id="importAdventFile" accept=".json" onchange="handleAdventFileUpload(event)" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
+                </div>
+
+                <div id="importAdventPreview" style="display: none; margin-top: 15px; padding: 10px; background: #f8f9fa; border-radius: 5px;">
+                    <strong>Preview:</strong>
+                    <p id="importAdventPreviewText" style="margin-top: 5px; color: #333;"></p>
+                </div>
+
+                <div id="importAdventErrors" style="display: none; margin-top: 15px;" class="alert alert-error"></div>
+            </div>
+            
+            <div>
+                <button class="btn btn-success" onclick="importAdventCalendar()">📥 Import Calendar</button>
+                <button class="btn btn-secondary" onclick="closeImportAdventModal()">Cancel</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         // Use sessionStorage for auth token to improve security
         // Note: For enhanced security in production, consider using httpOnly cookies
@@ -561,6 +848,14 @@
             } else {
                 sessionStorage.removeItem('adminAuthToken');
             }
+        }
+
+        // Utility function to escape HTML and prevent XSS
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
         }
 
         // Login
@@ -1178,6 +1473,474 @@
                 showAlert('Backup exported successfully!', 'success');
             } catch (error) {
                 showAlert('Error exporting backup: ' + error.message, 'error');
+            }
+        }
+
+        // ============== TAB SWITCHING ==============
+        function switchTab(tabName, event) {
+            // Hide all tabs
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Remove active class from all tab buttons
+            document.querySelectorAll('.tab-button').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            // Show selected tab
+            document.getElementById(tabName + 'Tab').classList.add('active');
+            
+            // Activate the corresponding button
+            event.target.classList.add('active');
+            
+            // Load data for the selected tab
+            if (tabName === 'locations') {
+                loadLocations();
+            } else if (tabName === 'advent') {
+                loadAdventDays();
+            }
+        }
+
+        // ============== ADVENT CALENDAR FUNCTIONS ==============
+        
+        async function loadAdventDays() {
+            try {
+                const response = await fetch('/api/admin/advent/days', {
+                    headers: {
+                        'Authorization': `Bearer ${getAuthToken()}`
+                    }
+                });
+
+                if (!response.ok) {
+                    if (response.status === 401 || response.status === 403) {
+                        logout();
+                        return;
+                    }
+                    throw new Error('Failed to load advent days');
+                }
+
+                const data = await response.json();
+                const tbody = document.getElementById('adventDaysTableBody');
+                tbody.innerHTML = '';
+
+                data.days.forEach(day => {
+                    const row = document.createElement('tr');
+                    
+                    // Determine status badge
+                    let statusBadge = '';
+                    if (day.is_unlocked_override === true) {
+                        statusBadge = '<span class="status-badge override-unlocked">Override: Unlocked</span>';
+                    } else if (day.is_unlocked_override === false) {
+                        statusBadge = '<span class="status-badge override-locked">Override: Locked</span>';
+                    } else if (day.is_currently_unlocked) {
+                        statusBadge = '<span class="status-badge unlocked">Unlocked</span>';
+                    } else {
+                        statusBadge = '<span class="status-badge locked">Locked</span>';
+                    }
+
+                    // Format unlock time
+                    const unlockDate = new Date(day.unlock_time);
+                    const formattedDate = unlockDate.toLocaleDateString() + ' ' + unlockDate.toLocaleTimeString();
+
+                    row.innerHTML = `
+                        <td>${day.day}</td>
+                        <td>${escapeHtml(day.title)}</td>
+                        <td>${escapeHtml(day.content_type)}</td>
+                        <td>${formattedDate}</td>
+                        <td>${statusBadge}</td>
+                        <td>
+                            <button class="btn btn-warning" style="padding: 5px 10px; font-size: 12px; margin: 0;" 
+                                    onclick="toggleDayUnlock(${day.day}, ${day.is_unlocked_override !== null})">
+                                ${day.is_unlocked_override !== null ? '🔓 Clear Override' : '🔒 Override'}
+                            </button>
+                        </td>
+                        <td class="action-buttons">
+                            <button class="btn btn-primary" onclick="showEditAdventDayModal(${day.day})">✏️ Edit</button>
+                        </td>
+                    `;
+                    tbody.appendChild(row);
+                });
+
+                document.getElementById('adventLoadingMessage').style.display = 'none';
+                document.getElementById('adventDaysTable').style.display = 'table';
+            } catch (error) {
+                document.getElementById('adventLoadingMessage').style.display = 'none';
+                showAlert('Error loading advent days: ' + error.message, 'error');
+            }
+        }
+
+        async function showEditAdventDayModal(dayNumber) {
+            try {
+                const response = await fetch(`/api/admin/advent/day/${dayNumber}`, {
+                    headers: {
+                        'Authorization': `Bearer ${getAuthToken()}`
+                    }
+                });
+
+                if (!response.ok) throw new Error('Failed to load day data');
+
+                const day = await response.json();
+                
+                // Populate form
+                document.getElementById('adventDayNumber').value = day.day;
+                document.getElementById('adventTitle').value = day.title;
+                
+                // Convert ISO time to datetime-local format
+                // Parse the UTC time and display it as-is (not converted to local time)
+                const unlockDate = new Date(day.unlock_time);
+                const year = unlockDate.getUTCFullYear();
+                const month = String(unlockDate.getUTCMonth() + 1).padStart(2, '0');
+                const dayNum = String(unlockDate.getUTCDate()).padStart(2, '0');
+                const hours = String(unlockDate.getUTCHours()).padStart(2, '0');
+                const minutes = String(unlockDate.getUTCMinutes()).padStart(2, '0');
+                const utcDatetime = `${year}-${month}-${dayNum}T${hours}:${minutes}`;
+                document.getElementById('adventUnlockTime').value = utcDatetime;
+                
+                document.getElementById('adventContentType').value = day.content_type;
+                
+                // Populate payload fields
+                populatePayloadFields(day.content_type, day.payload);
+                updatePayloadFields();
+                
+                document.getElementById('adventModalTitle').textContent = `Edit Day ${day.day}`;
+                document.getElementById('adventDayModal').classList.add('active');
+            } catch (error) {
+                showAlert('Error loading day data: ' + error.message, 'error');
+            }
+        }
+
+        function closeAdventDayModal() {
+            document.getElementById('adventDayModal').classList.remove('active');
+        }
+
+        function updatePayloadFields() {
+            const contentType = document.getElementById('adventContentType').value;
+            
+            // Hide all payload fields
+            document.querySelectorAll('.payload-field').forEach(field => {
+                field.style.display = 'none';
+                // Disable required validation for hidden fields
+                field.querySelectorAll('[required]').forEach(input => {
+                    input.removeAttribute('required');
+                });
+            });
+            
+            // Show relevant fields and enable required validation
+            const relevantFields = document.querySelectorAll(`.${contentType}-fields`);
+            relevantFields.forEach(field => {
+                field.style.display = 'block';
+                // Re-enable required validation for visible fields that should be required
+                field.querySelectorAll('[data-required="true"]').forEach(input => {
+                    input.setAttribute('required', 'required');
+                });
+            });
+        }
+
+        function populatePayloadFields(contentType, payload) {
+            // Clear all fields first
+            document.querySelectorAll('.payload-field input, .payload-field textarea').forEach(input => {
+                input.value = '';
+            });
+            
+            // Populate based on content type
+            if (contentType === 'fact' || contentType === 'story') {
+                document.getElementById('payloadText').value = payload.text || '';
+                document.getElementById('payloadImageUrl').value = payload.image_url || '';
+            } else if (contentType === 'game') {
+                document.getElementById('payloadGameType').value = payload.game_type || '';
+                document.getElementById('payloadGameTitle').value = payload.title || '';
+                document.getElementById('payloadGameDescription').value = payload.description || '';
+                document.getElementById('payloadGameUrl').value = payload.url || '';
+                document.getElementById('payloadGameDifficulty').value = payload.difficulty || 'easy';
+            } else if (contentType === 'video') {
+                document.getElementById('payloadVideoTitle').value = payload.title || '';
+                document.getElementById('payloadVideoDescription').value = payload.description || '';
+                document.getElementById('payloadVideoUrl').value = payload.video_url || '';
+                document.getElementById('payloadVideoDuration').value = payload.duration_minutes || '';
+            } else if (contentType === 'activity') {
+                document.getElementById('payloadActivityType').value = payload.activity_type || '';
+                document.getElementById('payloadActivityTitle').value = payload.title || '';
+                document.getElementById('payloadActivityDescription').value = payload.description || '';
+                document.getElementById('payloadActivityUrl').value = payload.url || '';
+            } else if (contentType === 'quiz') {
+                document.getElementById('payloadQuizTitle').value = payload.title || '';
+                document.getElementById('payloadQuizDescription').value = payload.description || '';
+                document.getElementById('payloadQuizUrl').value = payload.url || '';
+            }
+        }
+
+        function getPayloadFromForm(contentType) {
+            const payload = {};
+            
+            if (contentType === 'fact' || contentType === 'story') {
+                payload.text = document.getElementById('payloadText').value;
+                const imageUrl = document.getElementById('payloadImageUrl').value;
+                if (imageUrl) payload.image_url = imageUrl;
+            } else if (contentType === 'game') {
+                const gameType = document.getElementById('payloadGameType').value;
+                if (gameType) payload.game_type = gameType;
+                payload.title = document.getElementById('payloadGameTitle').value;
+                payload.description = document.getElementById('payloadGameDescription').value;
+                payload.url = document.getElementById('payloadGameUrl').value;
+                payload.difficulty = document.getElementById('payloadGameDifficulty').value;
+            } else if (contentType === 'video') {
+                payload.title = document.getElementById('payloadVideoTitle').value;
+                payload.description = document.getElementById('payloadVideoDescription').value;
+                payload.video_url = document.getElementById('payloadVideoUrl').value;
+                const duration = document.getElementById('payloadVideoDuration').value;
+                if (duration) payload.duration_minutes = parseInt(duration);
+            } else if (contentType === 'activity') {
+                const activityType = document.getElementById('payloadActivityType').value;
+                if (activityType) payload.activity_type = activityType;
+                payload.title = document.getElementById('payloadActivityTitle').value;
+                payload.description = document.getElementById('payloadActivityDescription').value;
+                payload.url = document.getElementById('payloadActivityUrl').value;
+            } else if (contentType === 'quiz') {
+                payload.title = document.getElementById('payloadQuizTitle').value;
+                payload.description = document.getElementById('payloadQuizDescription').value;
+                payload.url = document.getElementById('payloadQuizUrl').value;
+            }
+            
+            return payload;
+        }
+
+        document.getElementById('adventDayForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const dayNumber = document.getElementById('adventDayNumber').value;
+            const title = document.getElementById('adventTitle').value;
+            const unlockTime = document.getElementById('adventUnlockTime').value;
+            const contentType = document.getElementById('adventContentType').value;
+            const payload = getPayloadFromForm(contentType);
+            
+            // Convert datetime-local to ISO 8601 UTC format
+            // Parse the datetime-local value as UTC (not local time)
+            const [datePart, timePart] = unlockTime.split('T');
+            const [year, month, day] = datePart.split('-').map(Number);
+            const [hour, minute] = timePart.split(':').map(Number);
+            const unlockDateUTC = new Date(Date.UTC(year, month - 1, day, hour, minute));
+            const unlockTimeISO = unlockDateUTC.toISOString();
+            
+            const dayData = {
+                title,
+                unlock_time: unlockTimeISO,
+                content_type: contentType,
+                payload
+            };
+            
+            try {
+                const response = await fetch(`/api/admin/advent/day/${dayNumber}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${getAuthToken()}`
+                    },
+                    body: JSON.stringify(dayData)
+                });
+                
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || 'Failed to save day');
+                }
+                
+                showAlert('Day updated successfully!', 'success');
+                closeAdventDayModal();
+                loadAdventDays();
+            } catch (error) {
+                showAlert('Error saving day: ' + error.message, 'error');
+            }
+        });
+
+        async function toggleDayUnlock(dayNumber, hasOverride) {
+            try {
+                let overrideState;
+                
+                if (hasOverride) {
+                    // Clear override
+                    overrideState = null;
+                } else {
+                    // Set override - ask user whether to unlock or lock
+                    const unlock = confirm(`Do you want to UNLOCK day ${dayNumber}?\n\nClick OK to unlock, Cancel to lock.`);
+                    overrideState = unlock;
+                }
+                
+                const response = await fetch(`/api/admin/advent/day/${dayNumber}/toggle-unlock`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${getAuthToken()}`
+                    },
+                    body: JSON.stringify({
+                        is_unlocked_override: overrideState
+                    })
+                });
+                
+                if (!response.ok) throw new Error('Failed to toggle unlock');
+                
+                const data = await response.json();
+                showAlert(data.message, 'success');
+                loadAdventDays();
+            } catch (error) {
+                showAlert('Error toggling unlock: ' + error.message, 'error');
+            }
+        }
+
+        async function validateAdventCalendar() {
+            try {
+                const response = await fetch('/api/admin/advent/validate', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${getAuthToken()}`
+                    }
+                });
+
+                if (!response.ok) throw new Error('Failed to validate calendar');
+
+                const data = await response.json();
+                
+                let resultsHTML = '<div class="validation-results">';
+                resultsHTML += `<h3>Validation Results</h3>`;
+                resultsHTML += `<p><strong>Total Days:</strong> ${data.total_days}</p>`;
+                resultsHTML += `<p><strong>Complete Days:</strong> ${data.complete_days}</p>`;
+                resultsHTML += `<p><strong>Status:</strong> ${data.valid ? '✅ Valid' : '❌ Invalid'}</p>`;
+                
+                if (data.errors && data.errors.length > 0) {
+                    resultsHTML += '<h4>Errors:</h4><ul>';
+                    data.errors.forEach(error => {
+                        resultsHTML += `<li class="error">${escapeHtml(error)}</li>`;
+                    });
+                    resultsHTML += '</ul>';
+                }
+                
+                if (data.warnings && data.warnings.length > 0) {
+                    resultsHTML += '<h4>Warnings:</h4><ul>';
+                    data.warnings.forEach(warning => {
+                        resultsHTML += `<li class="warning">${escapeHtml(warning)}</li>`;
+                    });
+                    resultsHTML += '</ul>';
+                }
+                
+                resultsHTML += '</div>';
+                
+                document.getElementById('validationResults').innerHTML = resultsHTML;
+                document.getElementById('validationModal').classList.add('active');
+            } catch (error) {
+                showAlert('Error validating calendar: ' + error.message, 'error');
+            }
+        }
+
+        async function exportAdventBackup() {
+            try {
+                const response = await fetch('/api/admin/advent/export', {
+                    headers: {
+                        'Authorization': `Bearer ${getAuthToken()}`
+                    }
+                });
+
+                if (!response.ok) throw new Error('Failed to export calendar');
+
+                const data = await response.json();
+                
+                // Create downloadable JSON file
+                const dataStr = JSON.stringify(data, null, 2);
+                const dataBlob = new Blob([dataStr], { type: 'application/json' });
+                
+                // Create download link
+                const url = URL.createObjectURL(dataBlob);
+                const link = document.createElement('a');
+                link.href = url;
+                
+                // Use timestamp in filename
+                const timestamp = new Date().toISOString().replace(/[:.]/g, '-').replace(/Z$/, '');
+                link.download = `advent-calendar-backup-${timestamp}.json`;
+                
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(url);
+                
+                showAlert('Calendar backup exported successfully!', 'success');
+            } catch (error) {
+                showAlert('Error exporting calendar: ' + error.message, 'error');
+            }
+        }
+
+        function showImportAdventModal() {
+            document.getElementById('importAdventModal').classList.add('active');
+        }
+
+        function closeImportAdventModal() {
+            document.getElementById('importAdventModal').classList.remove('active');
+            document.getElementById('importAdventData').value = '';
+            document.getElementById('importAdventFile').value = '';
+            document.getElementById('importAdventPreview').style.display = 'none';
+            document.getElementById('importAdventErrors').style.display = 'none';
+        }
+
+        function handleAdventFileUpload(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    document.getElementById('importAdventData').value = e.target.result;
+                    
+                    try {
+                        const data = JSON.parse(e.target.result);
+                        const days = data.days || data;
+                        const count = Array.isArray(days) ? days.length : 0;
+                        
+                        document.getElementById('importAdventPreviewText').textContent = 
+                            `Loaded ${count} days from file`;
+                        document.getElementById('importAdventPreview').style.display = 'block';
+                        document.getElementById('importAdventErrors').style.display = 'none';
+                    } catch (error) {
+                        document.getElementById('importAdventErrors').textContent = 
+                            'Invalid JSON file: ' + error.message;
+                        document.getElementById('importAdventErrors').style.display = 'block';
+                        document.getElementById('importAdventPreview').style.display = 'none';
+                    }
+                };
+                reader.readAsText(file);
+            }
+        }
+
+        async function importAdventCalendar() {
+            const jsonData = document.getElementById('importAdventData').value;
+            
+            if (!jsonData.trim()) {
+                showAlert('Please provide JSON data to import', 'error');
+                return;
+            }
+            
+            try {
+                const data = JSON.parse(jsonData);
+                
+                const response = await fetch('/api/admin/advent/import', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${getAuthToken()}`
+                    },
+                    body: JSON.stringify(data)
+                });
+                
+                const result = await response.json();
+                
+                if (!response.ok) {
+                    let errorMsg = result.error || 'Failed to import calendar';
+                    if (result.details && result.details.length > 0) {
+                        errorMsg += ':\n' + result.details.join('\n');
+                    }
+                    throw new Error(errorMsg);
+                }
+                
+                showAlert(`Calendar imported successfully! ${result.imported_days} days imported.`, 'success');
+                closeImportAdventModal();
+                loadAdventDays();
+            } catch (error) {
+                document.getElementById('importAdventErrors').textContent = error.message;
+                document.getElementById('importAdventErrors').style.display = 'block';
             }
         }
     </script>

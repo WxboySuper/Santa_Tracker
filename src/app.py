@@ -11,7 +11,14 @@ from flask import Flask, jsonify, render_template, request
 # Add the src directory to the path to allow imports
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from utils.advent import get_day_content, get_manifest  # noqa: E402
+from utils.advent import (  # noqa: E402
+    AdventDay,
+    get_day_content,
+    get_manifest,
+    load_advent_calendar,
+    save_advent_calendar,
+    validate_advent_calendar,
+)
 from utils.locations import (  # noqa: E402
     Location,
     load_santa_route_from_json,
@@ -615,6 +622,301 @@ def export_backup():
         return jsonify(backup_data), 200
     except FileNotFoundError:
         return jsonify({"error": "Route data not found"}), 404
+    except Exception:
+        return jsonify({"error": "Internal server error"}), 500
+
+
+# ============== ADVENT CALENDAR ADMIN API ENDPOINTS ==============
+
+
+@app.route("/api/admin/advent/days", methods=["GET"])
+@require_admin_auth
+def get_advent_days():
+    """Get all advent calendar days with admin access (bypass unlock)."""
+    try:
+        days = load_advent_calendar()
+
+        # Return all days with full payload for admin view
+        days_data = [
+            {
+                "day": day.day,
+                "title": day.title,
+                "unlock_time": day.unlock_time,
+                "content_type": day.content_type,
+                "payload": day.payload,
+                "is_unlocked_override": day.is_unlocked_override,
+                "is_currently_unlocked": day.is_unlocked(),
+            }
+            for day in days
+        ]
+
+        return jsonify({"days": days_data, "total_days": len(days)}), 200
+    except FileNotFoundError:
+        return jsonify({"error": "Advent calendar data not found"}), 404
+    except Exception:
+        return jsonify({"error": "Internal server error"}), 500
+
+
+@app.route("/api/admin/advent/day/<int:day_number>", methods=["GET"])
+@require_admin_auth
+def get_advent_day_admin(day_number):
+    """Get a specific advent day with admin access (bypass unlock)."""
+    try:
+        if not 1 <= day_number <= 24:
+            return jsonify({"error": "Day number must be between 1 and 24"}), 400
+
+        days = load_advent_calendar()
+
+        # Find the requested day
+        for day in days:
+            if day.day == day_number:
+                return (
+                    jsonify(
+                        {
+                            "day": day.day,
+                            "title": day.title,
+                            "unlock_time": day.unlock_time,
+                            "content_type": day.content_type,
+                            "payload": day.payload,
+                            "is_unlocked_override": day.is_unlocked_override,
+                            "is_currently_unlocked": day.is_unlocked(),
+                        }
+                    ),
+                    200,
+                )
+
+        return jsonify({"error": "Day not found"}), 404
+    except FileNotFoundError:
+        return jsonify({"error": "Advent calendar data not found"}), 404
+    except Exception:
+        return jsonify({"error": "Internal server error"}), 500
+
+
+@app.route("/api/admin/advent/day/<int:day_number>", methods=["PUT"])
+@require_admin_auth
+def update_advent_day(day_number):
+    """Update a specific advent day's content."""
+    try:
+        if not 1 <= day_number <= 24:
+            return jsonify({"error": "Day number must be between 1 and 24"}), 400
+
+        data = request.get_json(force=True, silent=True)
+        if not data:
+            return jsonify({"error": "No data provided"}), 400
+
+        days = load_advent_calendar()
+
+        # Find and update the day
+        for i, day in enumerate(days):
+            if day.day == day_number:
+                # Create updated day object with validation
+                try:
+                    updated_day = AdventDay(
+                        day=day_number,
+                        title=data.get("title", day.title),
+                        unlock_time=data.get("unlock_time", day.unlock_time),
+                        content_type=data.get("content_type", day.content_type),
+                        payload=data.get("payload", day.payload),
+                        is_unlocked_override=data.get(
+                            "is_unlocked_override", day.is_unlocked_override
+                        ),
+                    )
+                except (ValueError, KeyError, TypeError):
+                    logging.exception("Invalid advent day data provided by user.")
+                    return jsonify({"error": "Invalid data provided"}), 400
+
+                days[i] = updated_day
+                save_advent_calendar(days)
+
+                return jsonify({"message": "Day updated successfully"}), 200
+
+        # If we get here, the day was not found
+        return jsonify({"error": "Day not found"}), 404
+
+    except FileNotFoundError:
+        return jsonify({"error": "Advent calendar data not found"}), 404
+    except Exception:
+        return jsonify({"error": "Internal server error"}), 500
+
+
+@app.route("/api/admin/advent/day/<int:day_number>/toggle-unlock", methods=["POST"])
+@require_admin_auth
+def toggle_advent_day_unlock(day_number):
+    """Toggle unlock override for a specific advent day."""
+    try:
+        if not 1 <= day_number <= 24:
+            return jsonify({"error": "Day number must be between 1 and 24"}), 400
+
+        data = request.get_json(force=True, silent=True)
+        if data is None:
+            return jsonify({"error": "No data provided"}), 400
+
+        # Get the desired override state (can be true, false, or null to clear override)
+        override_state = data.get("is_unlocked_override")
+
+        days = load_advent_calendar()
+
+        # Find and update the day
+        for i, day in enumerate(days):
+            if day.day == day_number:
+                # Create updated day with new override state
+                updated_day = AdventDay(
+                    day=day.day,
+                    title=day.title,
+                    unlock_time=day.unlock_time,
+                    content_type=day.content_type,
+                    payload=day.payload,
+                    is_unlocked_override=override_state,
+                )
+
+                days[i] = updated_day
+                save_advent_calendar(days)
+
+                return (
+                    jsonify(
+                        {
+                            "message": "Unlock override toggled successfully",
+                            "is_unlocked_override": override_state,
+                            "is_currently_unlocked": updated_day.is_unlocked(),
+                        }
+                    ),
+                    200,
+                )
+
+        # If we get here, the day was not found
+        return jsonify({"error": "Day not found"}), 404
+
+    except FileNotFoundError:
+        return jsonify({"error": "Advent calendar data not found"}), 404
+    except Exception:
+        return jsonify({"error": "Internal server error"}), 500
+
+
+@app.route("/api/admin/advent/validate", methods=["POST"])
+@require_admin_auth
+def validate_advent_calendar_endpoint():
+    """Validate advent calendar data for completeness and correctness."""
+    try:
+        days = load_advent_calendar()
+        validation_results = validate_advent_calendar(days)
+
+        return jsonify(validation_results), 200
+    except FileNotFoundError:
+        return jsonify({"error": "Advent calendar data not found"}), 404
+    except Exception:
+        return jsonify({"error": "Internal server error"}), 500
+
+
+@app.route("/api/admin/advent/export", methods=["GET"])
+@require_admin_auth
+def export_advent_backup():
+    """Export advent calendar data as JSON backup."""
+    try:
+        days = load_advent_calendar()
+
+        # Create backup data structure
+        backup_data = {
+            "backup_timestamp": datetime.now().isoformat(),
+            "total_days": len(days),
+            "days": [
+                {
+                    "day": day.day,
+                    "title": day.title,
+                    "unlock_time": day.unlock_time,
+                    "content_type": day.content_type,
+                    "payload": day.payload,
+                    "is_unlocked_override": day.is_unlocked_override,
+                }
+                for day in days
+            ],
+        }
+
+        return jsonify(backup_data), 200
+    except FileNotFoundError:
+        return jsonify({"error": "Advent calendar data not found"}), 404
+    except Exception:
+        return jsonify({"error": "Internal server error"}), 500
+
+
+@app.route("/api/admin/advent/import", methods=["POST"])
+@require_admin_auth
+def import_advent_calendar():
+    """Import advent calendar data from JSON."""
+    try:
+        data = request.get_json(force=True, silent=True)
+        if not data:
+            return jsonify({"error": "No data provided"}), 400
+
+        # Extract days array from various possible formats
+        days_data = None
+        if "days" in data:
+            days_data = data["days"]
+        elif isinstance(data, list):
+            days_data = data
+        else:
+            return (
+                jsonify({"error": "Invalid format: expected 'days' array or list"}),
+                400,
+            )
+
+        if not isinstance(days_data, list):
+            return jsonify({"error": "Days data must be an array"}), 400
+
+        if len(days_data) == 0:
+            return jsonify({"error": "Days array cannot be empty"}), 400
+
+        # Parse and validate each day (all-or-nothing approach)
+        imported_days = []
+        errors = []
+
+        for idx, day_data in enumerate(days_data):
+            try:
+                day = AdventDay(
+                    day=day_data["day"],
+                    title=day_data["title"],
+                    unlock_time=day_data["unlock_time"],
+                    content_type=day_data["content_type"],
+                    payload=day_data["payload"],
+                    is_unlocked_override=day_data.get("is_unlocked_override"),
+                )
+                imported_days.append(day)
+            except (KeyError, ValueError, TypeError) as e:
+                logging.error(
+                    "Error importing day at index %d: %s", idx, str(e), exc_info=True
+                )
+                errors.append(f"Invalid day data at index {idx}")
+
+        # If any errors occurred, reject entire import (all-or-nothing)
+        if errors:
+            return (
+                jsonify(
+                    {
+                        "error": (
+                            "Import failed - no days were saved "
+                            "due to validation errors"
+                        ),
+                        "details": errors,
+                        "failed_count": len(errors),
+                    }
+                ),
+                400,
+            )
+
+        # Save all imported days (only if no errors)
+        save_advent_calendar(imported_days)
+
+        return (
+            jsonify(
+                {
+                    "message": "Advent calendar imported successfully",
+                    "imported_days": len(imported_days),
+                }
+            ),
+            200,
+        )
+
+    except FileNotFoundError:
+        return jsonify({"error": "Advent calendar data file not found"}), 404
     except Exception:
         return jsonify({"error": "Internal server error"}), 500
 
