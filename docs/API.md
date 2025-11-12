@@ -227,7 +227,7 @@ Get content for a specific day if unlocked.
 }
 ```
 
-For detailed Advent Calendar API documentation, see [ADVENT_CALENDAR_API.md](ADVENT_CALENDAR_API.md).
+For detailed Advent Calendar API documentation, see [ADVENT_CALENDAR_API.md](./ADVENT_CALENDAR_API.md).
 
 ---
 
