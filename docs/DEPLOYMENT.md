@@ -622,7 +622,7 @@ def ready():
 
 ## 📚 Additional Resources
 
-- [Flask Deployment Options](https://flask.palletsprojects.com/en/2.3.x/deploying/)
+- [Flask Deployment Options](https://flask.palletsprojects.com/en/latest/deploying/)
 - [Gunicorn Documentation](https://docs.gunicorn.org/)
 - [Nginx Documentation](https://nginx.org/en/docs/)
 - [Docker Documentation](https://docs.docker.com/)
