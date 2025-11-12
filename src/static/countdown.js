@@ -2,8 +2,8 @@
 // Santa Tracker Countdown Module - Countdown to Christmas Eve Tour Launch
 //
 // This module provides countdown functionality for Santa's Christmas Eve tour launch.
-// Santa's tour traditionally begins on December 24th when it becomes Christmas Eve
-// in the first time zone (UTC+14, Line Islands).
+// Santa's tour traditionally begins at midnight on December 25th (Christmas morning)
+// in the first time zone (UTC+14, Line Islands), which is 10:00 UTC on December 24th.
 //
 // Usage:
 //   import { createCountdown } from './countdown.js';
@@ -39,8 +39,9 @@
 
 /**
  * Get the target date for Santa's tour launch
- * Santa's tour starts on December 24th at 10:00 AM in the first time zone to reach Christmas Eve
- * (UTC+14, Line Islands, which means Dec 24 10:00 local = Dec 23 20:00 UTC)
+ * Santa's tour starts at midnight on December 25th in UTC+14 (Line Islands),
+ * when it becomes Christmas morning and children are asleep.
+ * In UTC, this is December 24th at 10:00 UTC.
  * 
  * @param {boolean} useLocalTime - Whether to use local time or UTC
  * @returns {Date} Target date for tour launch
@@ -50,14 +51,14 @@ function getTourLaunchDate(useLocalTime = true) {
     const currentYear = now.getFullYear();
     
     let tourLaunchDate = useLocalTime 
-        ? new Date(currentYear, 11, 24, 0, 0, 0)
-        : new Date(Date.UTC(currentYear, 11, 23, 10, 0, 0));
+        ? new Date(currentYear, 11, 25, 0, 0, 0)  // Local midnight Dec 25
+        : new Date(Date.UTC(currentYear, 11, 24, 10, 0, 0));  // UTC+14 midnight = Dec 24 10:00 UTC
     
     // If we've passed the launch this year, target next year
     if (now > tourLaunchDate) {
         tourLaunchDate = useLocalTime
-            ? new Date(currentYear + 1, 11, 24, 0, 0, 0)
-            : new Date(Date.UTC(currentYear + 1, 11, 23, 10, 0, 0));
+            ? new Date(currentYear + 1, 11, 25, 0, 0, 0)
+            : new Date(Date.UTC(currentYear + 1, 11, 24, 10, 0, 0));
     }
     
     return tourLaunchDate;
@@ -65,6 +66,7 @@ function getTourLaunchDate(useLocalTime = true) {
 
 /**
  * Calculate time remaining until target date
+ * Keeps completion message during Santa's delivery (all of Christmas Day)
  * @param {Date} targetDate - Target date to count down to
  * @returns {TimeData} Time data object
  */
@@ -72,15 +74,24 @@ function calculateTimeRemaining(targetDate) {
     const now = new Date();
     const diff = targetDate - now;
     
+    // Check if Santa's tour has started (past midnight Dec 25)
     if (diff <= 0) {
-        return {
-            days: 0,
-            hours: 0,
-            minutes: 0,
-            seconds: 0,
-            totalMilliseconds: 0,
-            isComplete: true
-        };
+        // Determine end of Christmas Day (midnight Dec 26) in the same timezone as targetDate
+        const christmasEnd = new Date(targetDate);
+        christmasEnd.setDate(christmasEnd.getDate() + 1); // Add 1 day to get Dec 26
+        
+        // If we're still on Christmas Day (Santa is still delivering), show completion message
+        if (now < christmasEnd) {
+            return {
+                days: 0,
+                hours: 0,
+                minutes: 0,
+                seconds: 0,
+                totalMilliseconds: 0,
+                isComplete: true
+            };
+        }
+        // Christmas Day has passed, countdown will restart for next year
     }
     
     return {
