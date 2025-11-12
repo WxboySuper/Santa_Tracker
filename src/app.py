@@ -729,8 +729,8 @@ def update_advent_day(day_number):
 
                 return jsonify({"message": "Day updated successfully"}), 200
 
-        if not day_found:
-            return jsonify({"error": "Day not found"}), 404
+        # If we get here, the day was not found
+        return jsonify({"error": "Day not found"}), 404
 
     except FileNotFoundError:
         return jsonify({"error": "Advent calendar data not found"}), 404
@@ -782,8 +782,8 @@ def toggle_advent_day_unlock(day_number):
                     200,
                 )
 
-        if not day_found:
-            return jsonify({"error": "Day not found"}), 404
+        # If we get here, the day was not found
+        return jsonify({"error": "Day not found"}), 404
 
     except FileNotFoundError:
         return jsonify({"error": "Advent calendar data not found"}), 404
