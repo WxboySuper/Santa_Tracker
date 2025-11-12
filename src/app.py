@@ -891,7 +891,10 @@ def import_advent_calendar():
             return (
                 jsonify(
                     {
-                        "error": "Import failed - no days were saved due to validation errors",
+                        "error": (
+                            "Import failed - no days were saved "
+                            "due to validation errors"
+                        ),
                         "details": errors,
                         "failed_count": len(errors),
                     }
