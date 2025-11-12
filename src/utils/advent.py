@@ -288,9 +288,7 @@ def validate_advent_calendar(days: List[AdventDay]) -> dict:
         if image_url and not (
             image_url.startswith("/static/") or image_url.startswith("http")
         ):
-            warnings.append(
-                f"Day {day.day}: Unusual image_url format: {image_url}"
-            )
+            warnings.append(f"Day {day.day}: Unusual image_url format: {image_url}")
 
     return {
         "valid": len(errors) == 0,
