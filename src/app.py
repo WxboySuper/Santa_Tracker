@@ -722,7 +722,8 @@ def update_advent_day(day_number):
                         ),
                     )
                 except (ValueError, KeyError, TypeError) as e:
-                    return jsonify({"error": f"Invalid data: {str(e)}"}), 400
+                    logging.exception("Invalid advent day data provided by user.")
+                    return jsonify({"error": "Invalid data provided"}), 400
 
                 days[i] = updated_day
                 save_advent_calendar(days)
