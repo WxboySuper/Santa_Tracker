@@ -12,7 +12,11 @@ Track Santa's magical journey around the world on Christmas Eve! This interactiv
 - 🗺️ **Interactive Map**: Real-time visualization of Santa's journey using Leaflet.js
 - 📍 **Location Tracking**: See Santa's current location and next destination
 - 📏 **Distance Calculator**: Calculate the distance from Santa to your location
-- ⏱️ **Countdown Timer**: Countdown to Christmas Eve and Santa's departure
+- ⏱️ **Countdown Timer**: Live countdown to when Santa's tour actually begins (UTC+14 midnight)
+  - Displays days, hours, minutes, and seconds until Santa's tour begins
+  - Updates in real-time every second
+  - Uses UTC+14 timezone (when Santa actually starts) for accuracy
+  - Automatically adjusts for next year after Christmas Day passes
 - 📱 **Progressive Web App**: Install on your device for offline access
 - 🎨 **Responsive Design**: Works seamlessly on desktop, tablet, and mobile devices
 - ♿ **Accessibility**: ARIA labels and screen reader support
@@ -140,6 +144,37 @@ Santa_Tracker/
 - **Focus Indicators**: High-contrast focus outlines (3px gold)
 - **Semantic HTML**: Proper heading hierarchy and landmark regions
 - **High Contrast Support**: Tested with `prefers-contrast: high`
+
+### Countdown Timer Implementation
+The countdown timer is a core feature that builds excitement for Santa's Christmas morning tour launch:
+
+- **Target Time**: Midnight December 25th in UTC+14 (10:00 UTC December 24th) when Santa actually begins his journey
+- **Live Updates**: Refreshes every second to show real-time countdown
+- **Format**: Displays as "Xd XXh XXm XXs" (days, hours, minutes, seconds)
+- **Completion Message**: Shows "🎅 Santa's Tour Has Begun! 🎄" when the tour starts
+- **Year Rollover**: Automatically targets next year's Christmas Day after the current one passes
+- **Modular Design**: Implemented in `src/static/countdown.js` for reusability
+- **Configuration Options**:
+  - `useLocalTime`: true uses local timezone, false uses UTC+14-based calculation for Santa's actual tour start time
+  - `formatFunction`: Custom formatting function can be provided
+  - `onUpdate`: Optional callback triggered on each countdown update
+- **Usage Example**:
+  ```javascript
+  // Create a countdown instance
+  const countdown = window.CountdownModule.createCountdown({
+      targetElement: document.getElementById('countdown'),
+      // Set useLocalTime to false to use UTC+14 (Santa's official start time)
+      useLocalTime: false,
+      onUpdate: (timeData) => {
+          console.log(`${timeData.days} days remaining`);
+      }
+  });
+  
+  countdown.start();  // Begin countdown
+  countdown.stop();   // Stop countdown
+  ```
+
+For more details, see the inline documentation in `src/static/countdown.js`.
 
 ## 🧪 Development
 

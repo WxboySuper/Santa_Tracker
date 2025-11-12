@@ -16,9 +16,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Cleanup on page unload
 window.addEventListener('beforeunload', () => {
-    if (countdownInterval) {
-        clearInterval(countdownInterval);
-    }
+    countdownInterval?.stop?.();
 });
 
 // Snowfall effect
@@ -50,36 +48,27 @@ function initSnowfall() {
     }
 }
 
-// Countdown to Christmas
+// Countdown to Santa's Tour Launch (Christmas Day)
+// Uses the CountdownModule for consistent countdown behavior
 function initCountdown() {
-    updateCountdown();
-    countdownInterval = setInterval(updateCountdown, 1000);
-}
-
-function updateCountdown() {
     const countdownElement = document.getElementById('countdown');
     if (!countdownElement) return;
     
-    const now = new Date();
-    const currentYear = now.getFullYear();
-    let christmas = new Date(currentYear, 11, 25, 0, 0, 0);
+    // Create countdown instance using the CountdownModule
+    const countdown = window.CountdownModule.createCountdown({
+        targetElement: countdownElement,
+        useLocalTime: false, // Use UTC+14 time to match when Santa actually starts
+        onUpdate: (timeData) => {
+            // Optional: Add custom behavior on each update
+            // For example, change styling when close to launch
+            if (timeData.days === 0 && timeData.hours < 1) {
+                countdownElement.classList.add('countdown-urgent');
+            }
+        }
+    });
     
-    // If Christmas has passed this year, show next year's Christmas
-    if (now > christmas) {
-        christmas = new Date(currentYear + 1, 11, 25, 0, 0, 0);
-    }
+    countdown.start();
     
-    const diff = christmas - now;
-    
-    if (diff <= 0) {
-        countdownElement.innerHTML = '🎄 Merry Christmas! 🎅';
-        return;
-    }
-    
-    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-    const seconds = Math.floor((diff % (1000 * 60)) / 1000);
-    
-    countdownElement.innerHTML = `${days}d ${hours}h ${minutes}m ${seconds}s`;
+    // Store countdown instance for cleanup
+    countdownInterval = countdown;
 }

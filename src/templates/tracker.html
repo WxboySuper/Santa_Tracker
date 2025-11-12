@@ -26,7 +26,7 @@
                     <span class="emoji-pulse">🎄</span>
                 </div>
                 <div class="countdown-widget">
-                    <p class="countdown-label">Time Until Christmas</p>
+                    <p class="countdown-label">Santa's Tour Launch</p>
                     <div id="countdown" class="countdown-value" aria-live="polite" aria-atomic="true"></div>
                 </div>
             </div>
@@ -124,6 +124,7 @@
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/Leaflet.markercluster.js"></script>
+    <script src="{{ url_for('static', filename='countdown.js') }}"></script>
     <script src="{{ url_for('static', filename='script.js') }}"></script>
 </body>
 </html>
