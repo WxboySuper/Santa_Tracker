@@ -94,15 +94,14 @@ function calculateTimeRemaining(targetDate) {
             targetDate.getUTCMonth() === 11
         );
         
-        let christmasEnd;
-        if (isUTCMode) {
-            // UTC mode: Add 24 hours to get Dec 25, 10:00 UTC (= Dec 26, 00:00 UTC+14)
-            christmasEnd = new Date(targetDate.getTime() + 24 * 60 * 60 * 1000);
-        } else {
-            // Local mode: Add 1 day using local date methods
-            christmasEnd = new Date(targetDate);
-            christmasEnd.setDate(christmasEnd.getDate() + 1);
-        }
+        const christmasEnd = isUTCMode
+            ? new Date(targetDate.getTime() + 24 * 60 * 60 * 1000)  // UTC mode: Add 24 hours
+            : (() => {
+                // Local mode: Add 1 day using local date methods
+                const end = new Date(targetDate);
+                end.setDate(end.getDate() + 1);
+                return end;
+            })();
         
         // If we're still on Christmas Day (Santa is still delivering), show completion message
         if (now < christmasEnd) {
