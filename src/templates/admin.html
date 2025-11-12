@@ -491,7 +491,6 @@
         <!-- Advent Calendar Tab -->
         <div id="adventTab" class="tab-content">
             <div class="actions">
-                <button class="btn btn-primary" onclick="showAddAdventDayModal()">➕ Add Day</button>
                 <button class="btn btn-success" onclick="showImportAdventModal()">📥 Import Calendar</button>
                 <button class="btn btn-warning" onclick="validateAdventCalendar()">✓ Validate Calendar</button>
                 <button class="btn btn-secondary" onclick="loadAdventDays()">🔄 Refresh</button>
@@ -698,7 +697,7 @@
                     <div class="payload-field fact-fields story-fields">
                         <div class="form-group">
                             <label for="payloadText" class="required">Text Content</label>
-                            <textarea id="payloadText" rows="4" required></textarea>
+                            <textarea id="payloadText" rows="4" required data-required="true"></textarea>
                         </div>
                         <div class="form-group">
                             <label for="payloadImageUrl">Image URL</label>
@@ -717,7 +716,7 @@
                         </div>
                         <div class="form-group">
                             <label for="payloadGameTitle" class="required">Game Title</label>
-                            <input type="text" id="payloadGameTitle" required>
+                            <input type="text" id="payloadGameTitle" required data-required="true">
                         </div>
                         <div class="form-group">
                             <label for="payloadGameDescription">Description</label>
@@ -725,7 +724,7 @@
                         </div>
                         <div class="form-group">
                             <label for="payloadGameUrl" class="required">Game URL</label>
-                            <input type="text" id="payloadGameUrl" placeholder="/games/game-name" required>
+                            <input type="text" id="payloadGameUrl" placeholder="/games/game-name" required data-required="true">
                         </div>
                         <div class="form-group">
                             <label for="payloadGameDifficulty">Difficulty</label>
@@ -741,7 +740,7 @@
                     <div class="payload-field video-fields" style="display: none;">
                         <div class="form-group">
                             <label for="payloadVideoTitle" class="required">Video Title</label>
-                            <input type="text" id="payloadVideoTitle" required>
+                            <input type="text" id="payloadVideoTitle" required data-required="true">
                         </div>
                         <div class="form-group">
                             <label for="payloadVideoDescription">Description</label>
@@ -749,7 +748,7 @@
                         </div>
                         <div class="form-group">
                             <label for="payloadVideoUrl" class="required">Video URL</label>
-                            <input type="text" id="payloadVideoUrl" placeholder="/videos/video-name.mp4" required>
+                            <input type="text" id="payloadVideoUrl" placeholder="/videos/video-name.mp4" required data-required="true">
                         </div>
                         <div class="form-group">
                             <label for="payloadVideoDuration">Duration (minutes)</label>
@@ -765,7 +764,7 @@
                         </div>
                         <div class="form-group">
                             <label for="payloadActivityTitle" class="required">Activity Title</label>
-                            <input type="text" id="payloadActivityTitle" required>
+                            <input type="text" id="payloadActivityTitle" required data-required="true">
                         </div>
                         <div class="form-group">
                             <label for="payloadActivityDescription">Description</label>
@@ -773,7 +772,7 @@
                         </div>
                         <div class="form-group">
                             <label for="payloadActivityUrl" class="required">Activity URL</label>
-                            <input type="text" id="payloadActivityUrl" placeholder="/activities/activity-name" required>
+                            <input type="text" id="payloadActivityUrl" placeholder="/activities/activity-name" required data-required="true">
                         </div>
                     </div>
 
@@ -781,7 +780,7 @@
                     <div class="payload-field quiz-fields" style="display: none;">
                         <div class="form-group">
                             <label for="payloadQuizTitle" class="required">Quiz Title</label>
-                            <input type="text" id="payloadQuizTitle" required>
+                            <input type="text" id="payloadQuizTitle" required data-required="true">
                         </div>
                         <div class="form-group">
                             <label for="payloadQuizDescription">Description</label>
@@ -789,7 +788,7 @@
                         </div>
                         <div class="form-group">
                             <label for="payloadQuizUrl" class="required">Quiz URL</label>
-                            <input type="text" id="payloadQuizUrl" placeholder="/quiz/quiz-name" required>
+                            <input type="text" id="payloadQuizUrl" placeholder="/quiz/quiz-name" required data-required="true">
                         </div>
                     </div>
                 </div>
@@ -1566,6 +1565,7 @@
                 document.getElementById('adventLoadingMessage').style.display = 'none';
                 document.getElementById('adventDaysTable').style.display = 'table';
             } catch (error) {
+                document.getElementById('adventLoadingMessage').style.display = 'none';
                 showAlert('Error loading advent days: ' + error.message, 'error');
             }
         }
@@ -1587,11 +1587,15 @@
                 document.getElementById('adventTitle').value = day.title;
                 
                 // Convert ISO time to datetime-local format
+                // Parse the UTC time and display it as-is (not converted to local time)
                 const unlockDate = new Date(day.unlock_time);
-                const localDatetime = new Date(unlockDate.getTime() - unlockDate.getTimezoneOffset() * 60000)
-                    .toISOString()
-                    .slice(0, 16);
-                document.getElementById('adventUnlockTime').value = localDatetime;
+                const year = unlockDate.getUTCFullYear();
+                const month = String(unlockDate.getUTCMonth() + 1).padStart(2, '0');
+                const dayNum = String(unlockDate.getUTCDate()).padStart(2, '0');
+                const hours = String(unlockDate.getUTCHours()).padStart(2, '0');
+                const minutes = String(unlockDate.getUTCMinutes()).padStart(2, '0');
+                const utcDatetime = `${year}-${month}-${dayNum}T${hours}:${minutes}`;
+                document.getElementById('adventUnlockTime').value = utcDatetime;
                 
                 document.getElementById('adventContentType').value = day.content_type;
                 
@@ -1604,15 +1608,6 @@
             } catch (error) {
                 showAlert('Error loading day data: ' + error.message, 'error');
             }
-        }
-
-        function showAddAdventDayModal() {
-            // Reset form
-            document.getElementById('adventDayForm').reset();
-            document.getElementById('adventDayNumber').value = '';
-            document.getElementById('adventModalTitle').textContent = 'Add Advent Day';
-            updatePayloadFields();
-            document.getElementById('adventDayModal').classList.add('active');
         }
 
         function closeAdventDayModal() {
@@ -1720,8 +1715,12 @@
             const payload = getPayloadFromForm(contentType);
             
             // Convert datetime-local to ISO 8601 UTC format
-            const unlockDate = new Date(unlockTime);
-            const unlockTimeISO = unlockDate.toISOString();
+            // Parse the datetime-local value as UTC (not local time)
+            const [datePart, timePart] = unlockTime.split('T');
+            const [year, month, day] = datePart.split('-').map(Number);
+            const [hour, minute] = timePart.split(':').map(Number);
+            const unlockDateUTC = new Date(Date.UTC(year, month - 1, day, hour, minute));
+            const unlockTimeISO = unlockDateUTC.toISOString();
             
             const dayData = {
                 title,

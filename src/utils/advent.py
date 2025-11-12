@@ -282,6 +282,9 @@ def validate_advent_calendar(days: List[AdventDay]) -> dict:
         elif day.content_type == "story":
             if not day.payload.get("text"):
                 warnings.append(f"Day {day.day}: Missing 'text' in payload")
+        elif day.content_type == "quiz":
+            if not day.payload.get("url"):
+                warnings.append(f"Day {day.day}: Missing 'url' in payload")
 
         # Check for image URLs that might be broken
         image_url = day.payload.get("image_url")

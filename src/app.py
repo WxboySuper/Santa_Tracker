@@ -707,11 +707,8 @@ def update_advent_day(day_number):
         days = load_advent_calendar()
 
         # Find and update the day
-        day_found = False
         for i, day in enumerate(days):
             if day.day == day_number:
-                day_found = True
-
                 # Create updated day object with validation
                 try:
                     updated_day = AdventDay(
@@ -759,11 +756,8 @@ def toggle_advent_day_unlock(day_number):
         days = load_advent_calendar()
 
         # Find and update the day
-        day_found = False
         for i, day in enumerate(days):
             if day.day == day_number:
-                day_found = True
-
                 # Create updated day with new override state
                 updated_day = AdventDay(
                     day=day.day,
