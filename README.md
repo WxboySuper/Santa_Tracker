@@ -12,11 +12,11 @@ Track Santa's magical journey around the world on Christmas Eve! This interactiv
 - 🗺️ **Interactive Map**: Real-time visualization of Santa's journey using Leaflet.js
 - 📍 **Location Tracking**: See Santa's current location and next destination
 - 📏 **Distance Calculator**: Calculate the distance from Santa to your location
-- ⏱️ **Countdown Timer**: Live countdown to Christmas Eve tour launch (December 24th)
+- ⏱️ **Countdown Timer**: Live countdown to Christmas morning tour launch (December 25th)
   - Displays days, hours, minutes, and seconds until Santa's tour begins
   - Updates in real-time every second
   - Uses local time for user convenience
-  - Automatically adjusts for next year after Christmas Eve passes
+  - Automatically adjusts for next year after Christmas Day passes
 - 📱 **Progressive Web App**: Install on your device for offline access
 - 🎨 **Responsive Design**: Works seamlessly on desktop, tablet, and mobile devices
 - ♿ **Accessibility**: ARIA labels and screen reader support
@@ -146,13 +146,13 @@ Santa_Tracker/
 - **High Contrast Support**: Tested with `prefers-contrast: high`
 
 ### Countdown Timer Implementation
-The countdown timer is a core feature that builds excitement for Santa's Christmas Eve tour launch:
+The countdown timer is a core feature that builds excitement for Santa's Christmas morning tour launch:
 
-- **Target Time**: December 24th at midnight (local time) when Santa begins his journey
+- **Target Time**: December 25th at midnight (Christmas morning, local time) when Santa begins his journey
 - **Live Updates**: Refreshes every second to show real-time countdown
 - **Format**: Displays as "Xd XXh XXm XXs" (days, hours, minutes, seconds)
 - **Completion Message**: Shows "🎅 Santa's Tour Has Begun! 🎄" when the tour starts
-- **Year Rollover**: Automatically targets next year's Christmas Eve after the current one passes
+- **Year Rollover**: Automatically targets next year's Christmas Day after the current one passes
 - **Modular Design**: Implemented in `src/static/countdown.js` for reusability
 - **Configuration Options**:
   - `useLocalTime`: true (default) uses local timezone, false uses UTC-based calculation

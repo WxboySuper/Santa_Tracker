@@ -1,19 +1,27 @@
 // filepath: /static/countdown.js
-// Santa Tracker Countdown Module - Countdown to Christmas Eve Tour Launch
+// Santa Tracker Countdown Module - Countdown to Christmas Morning Tour Launch
 //
-// This module provides countdown functionality for Santa's Christmas Eve tour launch.
+// This module provides countdown functionality for Santa's Christmas morning tour launch.
 // Santa's tour traditionally begins at midnight on December 25th (Christmas morning)
 // in the first time zone (UTC+14, Line Islands), which is 10:00 UTC on December 24th.
 //
 // Usage:
-//   import { createCountdown } from './countdown.js';
-//   
-//   const countdown = createCountdown({
+//   // In the browser (after including countdown.js as a script):
+//   const countdown = window.CountdownModule.createCountdown({
 //     targetElement: document.getElementById('countdown'),
 //     onUpdate: (timeData) => console.log(timeData),
 //     useLocalTime: true  // false for UTC-based tour launch
 //   });
-//   
+//   countdown.start();
+//   countdown.stop();
+//
+//   // In Node.js/CommonJS:
+//   const { createCountdown } = require('./countdown.js');
+//   const countdown = createCountdown({
+//     targetElement: document.getElementById('countdown'),
+//     onUpdate: (timeData) => console.log(timeData),
+//     useLocalTime: true
+//   });
 //   countdown.start();
 //   countdown.stop();
 
@@ -38,12 +46,12 @@
  */
 
 /**
- * Get the target date for Santa's tour launch
- * Santa's tour starts at midnight on December 25th in UTC+14 (Line Islands),
- * when it becomes Christmas morning and children are asleep.
- * In UTC, this is December 24th at 10:00 UTC.
+ * Get the target date for Santa's tour launch.
+ * When useLocalTime is true, returns midnight on December 25th in the user's local time zone.
+ * When useLocalTime is false, returns midnight on December 25th in UTC+14 (Line Islands),
+ * which is 10:00 UTC on December 24th. This matches the traditional start of Santa's tour.
  * 
- * @param {boolean} useLocalTime - Whether to use local time or UTC
+ * @param {boolean} useLocalTime - If true, use local midnight Dec 25; if false, use UTC+14 midnight Dec 25 (10:00 UTC Dec 24)
  * @returns {Date} Target date for tour launch
  */
 function getTourLaunchDate(useLocalTime = true) {
@@ -152,19 +160,19 @@ function createCountdown(config) {
         const targetDate = getTourLaunchDate(useLocalTime);
         const timeData = calculateTimeRemaining(targetDate);
         
-        // Update DOM element
+        // Update DOM element - use textContent for security
         const formattedTime = formatFunction(timeData);
-        targetElement.innerHTML = formattedTime;
+        targetElement.textContent = formattedTime;
         
         // Trigger callback if provided
         if (onUpdate && typeof onUpdate === 'function') {
             onUpdate(timeData);
         }
         
-        // Stop countdown if complete
-        if (timeData.isComplete && isRunning) {
-            stop();
-        }
+        // Note: We do NOT stop the countdown when complete. This allows it to
+        // automatically restart for next year after midnight December 26th.
+        // The completion message will show throughout Christmas Day (Dec 25),
+        // then the countdown will automatically roll over to next year.
     }
     
     /**
@@ -218,8 +226,9 @@ function createCountdown(config) {
 
 // Export for use in other scripts
 // For browsers without module support, attach to window
+// Check for both module and module.exports to avoid false positives
 // eslint-disable-next-line no-undef
-if (typeof module !== 'undefined' && module.exports) {
+if (typeof module !== 'undefined' && typeof module.exports !== 'undefined') {
     // eslint-disable-next-line no-undef
     module.exports = {
         createCountdown,

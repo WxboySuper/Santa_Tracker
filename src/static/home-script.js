@@ -48,7 +48,7 @@ function initSnowfall() {
     }
 }
 
-// Countdown to Santa's Tour Launch (Christmas Eve)
+// Countdown to Santa's Tour Launch (Christmas Day)
 // Uses the CountdownModule for consistent countdown behavior
 function initCountdown() {
     const countdownElement = document.getElementById('countdown');
