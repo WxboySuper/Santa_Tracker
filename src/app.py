@@ -880,7 +880,8 @@ def import_advent_calendar():
                 )
                 imported_days.append(day)
             except (KeyError, ValueError, TypeError) as e:
-                errors.append(f"Day at index {idx}: {str(e)}")
+                logging.error(f"Error importing day at index {idx}: {str(e)}", exc_info=True)
+                errors.append(f"Invalid day data at index {idx}")
 
         if errors:
             return (
