@@ -136,7 +136,7 @@ Automatically calculate optimal route timing:
 3. Calculates stop durations based on priority:
    - Priority 1: Longer stops (major cities)
    - Priority 2: Medium stops
-   - Priority 3: Shorter stops (small towns)
+   - Priority 3: Touch and go stops
 4. Ensures logical progression through time zones
 
 **Configuration:**

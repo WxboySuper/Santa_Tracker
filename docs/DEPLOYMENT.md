@@ -576,7 +576,7 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       
       - name: Deploy to Heroku
         uses: akhileshns/heroku-deploy@v3.12.12
