@@ -1,0 +1,2420 @@
+<!DOCTYPE html>
+<html>
+<head>
+    
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+    <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.3/dist/leaflet.js"></script>
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Leaflet.awesome-markers/2.0.2/leaflet.awesome-markers.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.3/dist/leaflet.css"/>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/css/bootstrap.min.css"/>
+    <link rel="stylesheet" href="https://netdna.bootstrapcdn.com/bootstrap/3.0.0/css/bootstrap-glyphicons.css"/>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.2.0/css/all.min.css"/>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/Leaflet.awesome-markers/2.0.2/leaflet.awesome-markers.css"/>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/python-visualization/folium/folium/templates/leaflet.awesome.rotate.min.css"/>
+    
+            <meta name="viewport" content="width=device-width,
+                initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+            <style>
+                #map_fa72d0f37dafdc7899fd20568ec46c8c {
+                    position: relative;
+                    width: 100.0%;
+                    height: 100.0%;
+                    left: 0.0%;
+                    top: 0.0%;
+                }
+                .leaflet-container { font-size: 1rem; }
+            </style>
+
+            <style>html, body {
+                width: 100%;
+                height: 100%;
+                margin: 0;
+                padding: 0;
+            }
+            </style>
+
+            <style>#map {
+                position:absolute;
+                top:0;
+                bottom:0;
+                right:0;
+                left:0;
+                }
+            </style>
+
+            <script>
+                L_NO_TOUCH = false;
+                L_DISABLE_3D = false;
+            </script>
+
+        
+</head>
+<body>
+    
+    
+            <div class="folium-map" id="map_fa72d0f37dafdc7899fd20568ec46c8c" ></div>
+        
+</body>
+<script>
+    
+    
+            var map_fa72d0f37dafdc7899fd20568ec46c8c = L.map(
+                "map_fa72d0f37dafdc7899fd20568ec46c8c",
+                {
+                    center: [1.85293, 172.94369],
+                    crs: L.CRS.EPSG3857,
+                    ...{
+  "zoom": 3,
+  "zoomControl": true,
+  "preferCanvas": false,
+}
+
+                }
+            );
+
+            
+
+        
+    
+            var tile_layer_20a54573bb180da008c6bfc16ca36a8b = L.tileLayer(
+                "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+                {
+  "minZoom": 0,
+  "maxZoom": 19,
+  "maxNativeZoom": 19,
+  "noWrap": false,
+  "attribution": "\u0026copy; \u003ca href=\"https://www.openstreetmap.org/copyright\"\u003eOpenStreetMap\u003c/a\u003e contributors",
+  "subdomains": "abc",
+  "detectRetina": false,
+  "tms": false,
+  "opacity": 1,
+}
+
+            );
+        
+    
+            tile_layer_20a54573bb180da008c6bfc16ca36a8b.addTo(map_fa72d0f37dafdc7899fd20568ec46c8c);
+        
+    
+            var feature_group_db58d3b05fd6ea83a909caa13702930f = L.featureGroup(
+                {
+}
+            );
+        
+    
+            var marker_1f004c304f94652a5078ed45178c410c = L.marker(
+                [1.3278, 172.97696],
+                {
+}
+            ).addTo(feature_group_db58d3b05fd6ea83a909caa13702930f);
+        
+    
+            var icon_2f299b642fb2a6ef48ab667693fdd7bf = L.AwesomeMarkers.icon(
+                {
+  "markerColor": "red",
+  "iconColor": "white",
+  "icon": "info-sign",
+  "prefix": "glyphicon",
+  "extraClasses": "fa-rotate-0",
+}
+            );
+        
+    
+        var popup_1fae89d6165546df2f6bd069d60851f8 = L.popup({
+  "maxWidth": "100%",
+});
+
+        
+            
+                var html_4acdddde3321c813754d5e97f59d1302 = $(`<div id="html_4acdddde3321c813754d5e97f59d1302" style="width: 100.0%; height: 100.0%;">ANCHOR: Tarawa</div>`)[0];
+                popup_1fae89d6165546df2f6bd069d60851f8.setContent(html_4acdddde3321c813754d5e97f59d1302);
+            
+        
+
+        marker_1f004c304f94652a5078ed45178c410c.bindPopup(popup_1fae89d6165546df2f6bd069d60851f8)
+        ;
+
+        
+    
+    
+                marker_1f004c304f94652a5078ed45178c410c.setIcon(icon_2f299b642fb2a6ef48ab667693fdd7bf);
+            
+    
+            var marker_1429455e1bd7032e8a5f09998ee27bf7 = L.marker(
+                [-13.83333, -171.76666],
+                {
+}
+            ).addTo(feature_group_db58d3b05fd6ea83a909caa13702930f);
+        
+    
+            var icon_b2503362cd13e4fe6527358fbb99e774 = L.AwesomeMarkers.icon(
+                {
+  "markerColor": "red",
+  "iconColor": "white",
+  "icon": "info-sign",
+  "prefix": "glyphicon",
+  "extraClasses": "fa-rotate-0",
+}
+            );
+        
+    
+        var popup_4540d12b78f2b271ebc62fd60085f32c = L.popup({
+  "maxWidth": "100%",
+});
+
+        
+            
+                var html_d622f50e727cbe8cb4e02e171d8937e5 = $(`<div id="html_d622f50e727cbe8cb4e02e171d8937e5" style="width: 100.0%; height: 100.0%;">ANCHOR: Apia</div>`)[0];
+                popup_4540d12b78f2b271ebc62fd60085f32c.setContent(html_d622f50e727cbe8cb4e02e171d8937e5);
+            
+        
+
+        marker_1429455e1bd7032e8a5f09998ee27bf7.bindPopup(popup_4540d12b78f2b271ebc62fd60085f32c)
+        ;
+
+        
+    
+    
+                marker_1429455e1bd7032e8a5f09998ee27bf7.setIcon(icon_b2503362cd13e4fe6527358fbb99e774);
+            
+    
+            feature_group_db58d3b05fd6ea83a909caa13702930f.addTo(map_fa72d0f37dafdc7899fd20568ec46c8c);
+        
+    
+            var feature_group_f86bbf6bce0266342351a5e1c1ca2e28 = L.featureGroup(
+                {
+}
+            );
+        
+    
+            var marker_38cd4522db8c82cfbff27044bc65a22b = L.marker(
+                [1.85293, 172.94369],
+                {
+}
+            ).addTo(feature_group_f86bbf6bce0266342351a5e1c1ca2e28);
+        
+    
+            var icon_9fdf47f99654ceb3a332e4ed4a4e74a0 = L.AwesomeMarkers.icon(
+                {
+  "markerColor": "blue",
+  "iconColor": "white",
+  "icon": "info-sign",
+  "prefix": "glyphicon",
+  "extraClasses": "fa-rotate-0",
+}
+            );
+        
+    
+        var popup_a1cf9042e95f89148bae096f016d936b = L.popup({
+  "maxWidth": "100%",
+});
+
+        
+            
+                var html_6f498fd606a509aee57d2fbe1675f0af = $(`<div id="html_6f498fd606a509aee57d2fbe1675f0af" style="width: 100.0%; height: 100.0%;">CANDIDATE: Abaiang</div>`)[0];
+                popup_a1cf9042e95f89148bae096f016d936b.setContent(html_6f498fd606a509aee57d2fbe1675f0af);
+            
+        
+
+        marker_38cd4522db8c82cfbff27044bc65a22b.bindPopup(popup_a1cf9042e95f89148bae096f016d936b)
+        ;
+
+        
+    
+    
+                marker_38cd4522db8c82cfbff27044bc65a22b.setIcon(icon_9fdf47f99654ceb3a332e4ed4a4e74a0);
+            
+    
+            var marker_b0e53af3aad63ebc25d46530fce31d23 = L.marker(
+                [0.4, 173.86667],
+                {
+}
+            ).addTo(feature_group_f86bbf6bce0266342351a5e1c1ca2e28);
+        
+    
+            var icon_5708f894f177e769edfcc99227557247 = L.AwesomeMarkers.icon(
+                {
+  "markerColor": "blue",
+  "iconColor": "white",
+  "icon": "info-sign",
+  "prefix": "glyphicon",
+  "extraClasses": "fa-rotate-0",
+}
+            );
+        
+    
+        var popup_2181ada71eae69d6faf4bb3bfbeb40b6 = L.popup({
+  "maxWidth": "100%",
+});
+
+        
+            
+                var html_2baa63a02c96d6f302dde1cfbf506d30 = $(`<div id="html_2baa63a02c96d6f302dde1cfbf506d30" style="width: 100.0%; height: 100.0%;">CANDIDATE: Abemama</div>`)[0];
+                popup_2181ada71eae69d6faf4bb3bfbeb40b6.setContent(html_2baa63a02c96d6f302dde1cfbf506d30);
+            
+        
+
+        marker_b0e53af3aad63ebc25d46530fce31d23.bindPopup(popup_2181ada71eae69d6faf4bb3bfbeb40b6)
+        ;
+
+        
+    
+    
+                marker_b0e53af3aad63ebc25d46530fce31d23.setIcon(icon_5708f894f177e769edfcc99227557247);
+            
+    
+            var marker_102bf864897e320d5dd0600186a28966 = L.marker(
+                [1.35317, 173.04259],
+                {
+}
+            ).addTo(feature_group_f86bbf6bce0266342351a5e1c1ca2e28);
+        
+    
+            var icon_6af2e333902a75f3e7c4ba4ef5eb1ce1 = L.AwesomeMarkers.icon(
+                {
+  "markerColor": "blue",
+  "iconColor": "white",
+  "icon": "info-sign",
+  "prefix": "glyphicon",
+  "extraClasses": "fa-rotate-0",
+}
+            );
+        
+    
+        var popup_fb69a770906a0475221a0bcfdb5b8ba9 = L.popup({
+  "maxWidth": "100%",
+});
+
+        
+            
+                var html_044828409f3d737d8077138e9d9c1afa = $(`<div id="html_044828409f3d737d8077138e9d9c1afa" style="width: 100.0%; height: 100.0%;">CANDIDATE: Ambo Village</div>`)[0];
+                popup_fb69a770906a0475221a0bcfdb5b8ba9.setContent(html_044828409f3d737d8077138e9d9c1afa);
+            
+        
+
+        marker_102bf864897e320d5dd0600186a28966.bindPopup(popup_fb69a770906a0475221a0bcfdb5b8ba9)
+        ;
+
+        
+    
+    
+                marker_102bf864897e320d5dd0600186a28966.setIcon(icon_6af2e333902a75f3e7c4ba4ef5eb1ce1);
+            
+    
+            var marker_01559664f16b77b4e247644aebc30149 = L.marker(
+                [0.16428, 173.60579],
+                {
+}
+            ).addTo(feature_group_f86bbf6bce0266342351a5e1c1ca2e28);
+        
+    
+            var icon_ca41f9c9d1536d798592a80d5d174937 = L.AwesomeMarkers.icon(
+                {
+  "markerColor": "blue",
+  "iconColor": "white",
+  "icon": "info-sign",
+  "prefix": "glyphicon",
+  "extraClasses": "fa-rotate-0",
+}
+            );
+        
+    
+        var popup_82e92837f89342784b6b8cc3f0aef109 = L.popup({
+  "maxWidth": "100%",
+});
+
+        
+            
+                var html_966cb4d860fc22819bd0002bfc46a57f = $(`<div id="html_966cb4d860fc22819bd0002bfc46a57f" style="width: 100.0%; height: 100.0%;">CANDIDATE: Aranuka</div>`)[0];
+                popup_82e92837f89342784b6b8cc3f0aef109.setContent(html_966cb4d860fc22819bd0002bfc46a57f);
+            
+        
+
+        marker_01559664f16b77b4e247644aebc30149.bindPopup(popup_82e92837f89342784b6b8cc3f0aef109)
+        ;
+
+        
+    
+    
+                marker_01559664f16b77b4e247644aebc30149.setIcon(icon_ca41f9c9d1536d798592a80d5d174937);
+            
+    
+            var marker_aa68f73fd1e9b6edf64a8c14187956c7 = L.marker(
+                [-2.63493, 176.82229],
+                {
+}
+            ).addTo(feature_group_f86bbf6bce0266342351a5e1c1ca2e28);
+        
+    
+            var icon_9425d8b3ec1cdae9f14a4d6a7986e272 = L.AwesomeMarkers.icon(
+                {
+  "markerColor": "blue",
+  "iconColor": "white",
+  "icon": "info-sign",
+  "prefix": "glyphicon",
+  "extraClasses": "fa-rotate-0",
+}
+            );
+        
+    
+        var popup_1625b59d5090e14444ef540b856670ff = L.popup({
+  "maxWidth": "100%",
+});
+
+        
+            
+                var html_e951de84da8e170fb329a00daf345be7 = $(`<div id="html_e951de84da8e170fb329a00daf345be7" style="width: 100.0%; height: 100.0%;">CANDIDATE: Arorae</div>`)[0];
+                popup_1625b59d5090e14444ef540b856670ff.setContent(html_e951de84da8e170fb329a00daf345be7);
+            
+        
+
+        marker_aa68f73fd1e9b6edf64a8c14187956c7.bindPopup(popup_1625b59d5090e14444ef540b856670ff)
+        ;
+
+        
+    
+    
+                marker_aa68f73fd1e9b6edf64a8c14187956c7.setIcon(icon_9425d8b3ec1cdae9f14a4d6a7986e272);
+            
+    
+            var marker_72104fff4ab5675d9c9f2325e52a2337 = L.marker(
+                [1.32924, 172.97522],
+                {
+}
+            ).addTo(feature_group_f86bbf6bce0266342351a5e1c1ca2e28);
+        
+    
+            var icon_0c4b64321df562ba2b615a05e73ea570 = L.AwesomeMarkers.icon(
+                {
+  "markerColor": "blue",
+  "iconColor": "white",
+  "icon": "info-sign",
+  "prefix": "glyphicon",
+  "extraClasses": "fa-rotate-0",
+}
+            );
+        
+    
+        var popup_48f0e175545d7b18c8dda4f62c9e7bf2 = L.popup({
+  "maxWidth": "100%",
+});
+
+        
+            
+                var html_4e4da5786fe91a4d19830ec3f3abae58 = $(`<div id="html_4e4da5786fe91a4d19830ec3f3abae58" style="width: 100.0%; height: 100.0%;">CANDIDATE: Bairiki Village</div>`)[0];
+                popup_48f0e175545d7b18c8dda4f62c9e7bf2.setContent(html_4e4da5786fe91a4d19830ec3f3abae58);
+            
+        
+
+        marker_72104fff4ab5675d9c9f2325e52a2337.bindPopup(popup_48f0e175545d7b18c8dda4f62c9e7bf2)
+        ;
+
+        
+    
+    
+                marker_72104fff4ab5675d9c9f2325e52a2337.setIcon(icon_0c4b64321df562ba2b615a05e73ea570);
+            
+    
+            var marker_a1fa015a49650870f6cb4f07591a3efb = L.marker(
+                [-0.855, 169.538],
+                {
+}
+            ).addTo(feature_group_f86bbf6bce0266342351a5e1c1ca2e28);
+        
+    
+            var icon_8d88fd8e0462acbf2a32e36fca4b3373 = L.AwesomeMarkers.icon(
+                {
+  "markerColor": "blue",
+  "iconColor": "white",
+  "icon": "info-sign",
+  "prefix": "glyphicon",
+  "extraClasses": "fa-rotate-0",
+}
+            );
+        
+    
+        var popup_06eced66f19c22ecce34850236a904cc = L.popup({
+  "maxWidth": "100%",
+});
+
+        
+            
+                var html_24014b85d76421ce04ddb32e4958f42e = $(`<div id="html_24014b85d76421ce04ddb32e4958f42e" style="width: 100.0%; height: 100.0%;">CANDIDATE: Banaba</div>`)[0];
+                popup_06eced66f19c22ecce34850236a904cc.setContent(html_24014b85d76421ce04ddb32e4958f42e);
+            
+        
+
+        marker_a1fa015a49650870f6cb4f07591a3efb.bindPopup(popup_06eced66f19c22ecce34850236a904cc)
+        ;
+
+        
+    
+    
+                marker_a1fa015a49650870f6cb4f07591a3efb.setIcon(icon_8d88fd8e0462acbf2a32e36fca4b3373);
+            
+    
+            var marker_23d5b136003b8d54c0a7afbe63b39aa1 = L.marker(
+                [1.98329, -157.36526],
+                {
+}
+            ).addTo(feature_group_f86bbf6bce0266342351a5e1c1ca2e28);
+        
+    
+            var icon_4b7a57cf7fafa0aee83495ca3888b22f = L.AwesomeMarkers.icon(
+                {
+  "markerColor": "blue",
+  "iconColor": "white",
+  "icon": "info-sign",
+  "prefix": "glyphicon",
+  "extraClasses": "fa-rotate-0",
+}
+            );
+        
+    
+        var popup_5afd72693480675cd86a23b7a39b1570 = L.popup({
+  "maxWidth": "100%",
+});
+
+        
+            
+                var html_0872f29f273544d3c90d059ffe70bd3c = $(`<div id="html_0872f29f273544d3c90d059ffe70bd3c" style="width: 100.0%; height: 100.0%;">CANDIDATE: Banana Village</div>`)[0];
+                popup_5afd72693480675cd86a23b7a39b1570.setContent(html_0872f29f273544d3c90d059ffe70bd3c);
+            
+        
+
+        marker_23d5b136003b8d54c0a7afbe63b39aa1.bindPopup(popup_5afd72693480675cd86a23b7a39b1570)
+        ;
+
+        
+    
+    
+                marker_23d5b136003b8d54c0a7afbe63b39aa1.setIcon(icon_4b7a57cf7fafa0aee83495ca3888b22f);
+            
+    
+            var marker_49e6a28f216c3fb6972edb2c6dfa50f7 = L.marker(
+                [1.3454, 173.03464],
+                {
+}
+            ).addTo(feature_group_f86bbf6bce0266342351a5e1c1ca2e28);
+        
+    
+            var icon_cae4b9b5d2b49e7501e5623b9212a0cf = L.AwesomeMarkers.icon(
+                {
+  "markerColor": "blue",
+  "iconColor": "white",
+  "icon": "info-sign",
+  "prefix": "glyphicon",
+  "extraClasses": "fa-rotate-0",
+}
+            );
+        
+    
+        var popup_9d4110ceb41605a2daee0aa4cd248c86 = L.popup({
+  "maxWidth": "100%",
+});
+
+        
+            
+                var html_0e458ab8a37d94bc1ca8af1ea0c80056 = $(`<div id="html_0e458ab8a37d94bc1ca8af1ea0c80056" style="width: 100.0%; height: 100.0%;">CANDIDATE: Banraeaba Village</div>`)[0];
+                popup_9d4110ceb41605a2daee0aa4cd248c86.setContent(html_0e458ab8a37d94bc1ca8af1ea0c80056);
+            
+        
+
+        marker_49e6a28f216c3fb6972edb2c6dfa50f7.bindPopup(popup_9d4110ceb41605a2daee0aa4cd248c86)
+        ;
+
+        
+    
+    
+                marker_49e6a28f216c3fb6972edb2c6dfa50f7.setIcon(icon_cae4b9b5d2b49e7501e5623b9212a0cf);
+            
+    
+            var marker_8f9f663f8a04763447c145d750b56d53 = L.marker(
+                [-1.32957, 175.98072],
+                {
+}
+            ).addTo(feature_group_f86bbf6bce0266342351a5e1c1ca2e28);
+        
+    
+            var icon_307e26030b2ccf2b46e424b2de618f5b = L.AwesomeMarkers.icon(
+                {
+  "markerColor": "blue",
+  "iconColor": "white",
+  "icon": "info-sign",
+  "prefix": "glyphicon",
+  "extraClasses": "fa-rotate-0",
+}
+            );
+        
+    
+        var popup_7054606a1a3d995e2dcace0eb174ee4b = L.popup({
+  "maxWidth": "100%",
+});
+
+        
+            
+                var html_531885daf7ef130dabfde8c7a72776fc = $(`<div id="html_531885daf7ef130dabfde8c7a72776fc" style="width: 100.0%; height: 100.0%;">CANDIDATE: Beru</div>`)[0];
+                popup_7054606a1a3d995e2dcace0eb174ee4b.setContent(html_531885daf7ef130dabfde8c7a72776fc);
+            
+        
+
+        marker_8f9f663f8a04763447c145d750b56d53.bindPopup(popup_7054606a1a3d995e2dcace0eb174ee4b)
+        ;
+
+        
+    
+    
+                marker_8f9f663f8a04763447c145d750b56d53.setIcon(icon_307e26030b2ccf2b46e424b2de618f5b);
+            
+    
+            var marker_e5e937d71da8838f22270eed9720ea65 = L.marker(
+                [1.35797, 172.92105],
+                {
+}
+            ).addTo(feature_group_f86bbf6bce0266342351a5e1c1ca2e28);
+        
+    
+            var icon_cf71a6d8b87652387112fb12fd7838be = L.AwesomeMarkers.icon(
+                {
+  "markerColor": "blue",
+  "iconColor": "white",
+  "icon": "info-sign",
+  "prefix": "glyphicon",
+  "extraClasses": "fa-rotate-0",
+}
+            );
+        
+    
+        var popup_752815b82e8a8ce1c7457731fdb7b180 = L.popup({
+  "maxWidth": "100%",
+});
+
+        
+            
+                var html_03caf09820386afe3b810218574e3939 = $(`<div id="html_03caf09820386afe3b810218574e3939" style="width: 100.0%; height: 100.0%;">CANDIDATE: Betio Village</div>`)[0];
+                popup_752815b82e8a8ce1c7457731fdb7b180.setContent(html_03caf09820386afe3b810218574e3939);
+            
+        
+
+        marker_e5e937d71da8838f22270eed9720ea65.bindPopup(popup_752815b82e8a8ce1c7457731fdb7b180)
+        ;
+
+        
+    
+    
+                marker_e5e937d71da8838f22270eed9720ea65.setIcon(icon_cf71a6d8b87652387112fb12fd7838be);
+            
+    
+            var marker_039d0a762528276ad8602867e5b93466 = L.marker(
+                [1.3673, 173.12415],
+                {
+}
+            ).addTo(feature_group_f86bbf6bce0266342351a5e1c1ca2e28);
+        
+    
+            var icon_a2e9add3bfacc5d6cbd45d9926f47343 = L.AwesomeMarkers.icon(
+                {
+  "markerColor": "blue",
+  "iconColor": "white",
+  "icon": "info-sign",
+  "prefix": "glyphicon",
+  "extraClasses": "fa-rotate-0",
+}
+            );
+        
+    
+        var popup_a99d79cf803dc3dfb6384ce73fea93be = L.popup({
+  "maxWidth": "100%",
+});
+
+        
+            
+                var html_b9e9ef634887a359615a2592ebf4c93e = $(`<div id="html_b9e9ef634887a359615a2592ebf4c93e" style="width: 100.0%; height: 100.0%;">CANDIDATE: Bikenibeu Village</div>`)[0];
+                popup_a99d79cf803dc3dfb6384ce73fea93be.setContent(html_b9e9ef634887a359615a2592ebf4c93e);
+            
+        
+
+        marker_039d0a762528276ad8602867e5b93466.bindPopup(popup_a99d79cf803dc3dfb6384ce73fea93be)
+        ;
+
+        
+    
+    
+                marker_039d0a762528276ad8602867e5b93466.setIcon(icon_a2e9add3bfacc5d6cbd45d9926f47343);
+            
+    
+            var marker_5f43b0ed8a5ca67fb2c3547cfe06d1eb = L.marker(
+                [1.38081, 173.13887],
+                {
+}
+            ).addTo(feature_group_f86bbf6bce0266342351a5e1c1ca2e28);
+        
+    
+            var icon_73644b18b21ef0d56f5bd61d5ade57e2 = L.AwesomeMarkers.icon(
+                {
+  "markerColor": "blue",
+  "iconColor": "white",
+  "icon": "info-sign",
+  "prefix": "glyphicon",
+  "extraClasses": "fa-rotate-0",
+}
+            );
+        
+    
+        var popup_f72df72b5cd68eb57621b477779ea7b0 = L.popup({
+  "maxWidth": "100%",
+});
+
+        
+            
+                var html_3fb233280d483880122f094c24cddbec = $(`<div id="html_3fb233280d483880122f094c24cddbec" style="width: 100.0%; height: 100.0%;">CANDIDATE: Bonriki Village</div>`)[0];
+                popup_f72df72b5cd68eb57621b477779ea7b0.setContent(html_3fb233280d483880122f094c24cddbec);
+            
+        
+
+        marker_5f43b0ed8a5ca67fb2c3547cfe06d1eb.bindPopup(popup_f72df72b5cd68eb57621b477779ea7b0)
+        ;
+
+        
+    
+    
+                marker_5f43b0ed8a5ca67fb2c3547cfe06d1eb.setIcon(icon_73644b18b21ef0d56f5bd61d5ade57e2);
+            
+    
+            var marker_939beb3d7caf90e73ccb05f9b12a7118 = L.marker(
+                [1.39078, 173.13082],
+                {
+}
+            ).addTo(feature_group_f86bbf6bce0266342351a5e1c1ca2e28);
+        
+    
+            var icon_7702077bc294a82deb72eb473eddc9a9 = L.AwesomeMarkers.icon(
+                {
+  "markerColor": "blue",
+  "iconColor": "white",
+  "icon": "info-sign",
+  "prefix": "glyphicon",
+  "extraClasses": "fa-rotate-0",
+}
+            );
+        
+    
+        var popup_36ab6058c35dfab1f2a0371f857662d7 = L.popup({
+  "maxWidth": "100%",
+});
+
+        
+            
+                var html_a654e0c5138ccc2d21293f202adb990d = $(`<div id="html_a654e0c5138ccc2d21293f202adb990d" style="width: 100.0%; height: 100.0%;">CANDIDATE: Buota Village</div>`)[0];
+                popup_36ab6058c35dfab1f2a0371f857662d7.setContent(html_a654e0c5138ccc2d21293f202adb990d);
+            
+        
+
+        marker_939beb3d7caf90e73ccb05f9b12a7118.bindPopup(popup_36ab6058c35dfab1f2a0371f857662d7)
+        ;
+
+        
+    
+    
+                marker_939beb3d7caf90e73ccb05f9b12a7118.setIcon(icon_7702077bc294a82deb72eb473eddc9a9);
+            
+    
+            var marker_98db1a7c372636157ad1139fecd4e41e = L.marker(
+                [3.17205, 172.79675],
+                {
+}
+            ).addTo(feature_group_f86bbf6bce0266342351a5e1c1ca2e28);
+        
+    
+            var icon_250a03314770d2c12fe18e866cde1f71 = L.AwesomeMarkers.icon(
+                {
+  "markerColor": "blue",
+  "iconColor": "white",
+  "icon": "info-sign",
+  "prefix": "glyphicon",
+  "extraClasses": "fa-rotate-0",
+}
+            );
+        
+    
+        var popup_02f0421187d786352109df22fb07e1f9 = L.popup({
+  "maxWidth": "100%",
+});
+
+        
+            
+                var html_9ff2f48e0f1ad984f77f116fb0b259bf = $(`<div id="html_9ff2f48e0f1ad984f77f116fb0b259bf" style="width: 100.0%; height: 100.0%;">CANDIDATE: Butaritari</div>`)[0];
+                popup_02f0421187d786352109df22fb07e1f9.setContent(html_9ff2f48e0f1ad984f77f116fb0b259bf);
+            
+        
+
+        marker_98db1a7c372636157ad1139fecd4e41e.bindPopup(popup_02f0421187d786352109df22fb07e1f9)
+        ;
+
+        
+    
+    
+                marker_98db1a7c372636157ad1139fecd4e41e.setIcon(icon_250a03314770d2c12fe18e866cde1f71);
+            
+    
+            var marker_b9403956277dbdd18465b2610375e476 = L.marker(
+                [1.36154, 173.08113],
+                {
+}
+            ).addTo(feature_group_f86bbf6bce0266342351a5e1c1ca2e28);
+        
+    
+            var icon_1e36c29e52c8136f934345f391121a1f = L.AwesomeMarkers.icon(
+                {
+  "markerColor": "blue",
+  "iconColor": "white",
+  "icon": "info-sign",
+  "prefix": "glyphicon",
+  "extraClasses": "fa-rotate-0",
+}
+            );
+        
+    
+        var popup_0247090f8805d9afb4cdbb52a7ed9ef9 = L.popup({
+  "maxWidth": "100%",
+});
+
+        
+            
+                var html_0f95f4657a4622d96450c093db43e007 = $(`<div id="html_0f95f4657a4622d96450c093db43e007" style="width: 100.0%; height: 100.0%;">CANDIDATE: Eita Village</div>`)[0];
+                popup_0247090f8805d9afb4cdbb52a7ed9ef9.setContent(html_0f95f4657a4622d96450c093db43e007);
+            
+        
+
+        marker_b9403956277dbdd18465b2610375e476.bindPopup(popup_0247090f8805d9afb4cdbb52a7ed9ef9)
+        ;
+
+        
+    
+    
+                marker_b9403956277dbdd18465b2610375e476.setIcon(icon_1e36c29e52c8136f934345f391121a1f);
+            
+    
+            var marker_3ad09773f451b16f7bddc34c3ce8a9b0 = L.marker(
+                [-2.81, -171.678],
+                {
+}
+            ).addTo(feature_group_f86bbf6bce0266342351a5e1c1ca2e28);
+        
+    
+            var icon_89e225dec0ba38d8d453e5a8eb0a2c60 = L.AwesomeMarkers.icon(
+                {
+  "markerColor": "blue",
+  "iconColor": "white",
+  "icon": "info-sign",
+  "prefix": "glyphicon",
+  "extraClasses": "fa-rotate-0",
+}
+            );
+        
+    
+        var popup_d2b3eea692ae7e2278cc799269d39abc = L.popup({
+  "maxWidth": "100%",
+});
+
+        
+            
+                var html_6bc0c45a9fbb74632424411b3da5b360 = $(`<div id="html_6bc0c45a9fbb74632424411b3da5b360" style="width: 100.0%; height: 100.0%;">CANDIDATE: Kanton</div>`)[0];
+                popup_d2b3eea692ae7e2278cc799269d39abc.setContent(html_6bc0c45a9fbb74632424411b3da5b360);
+            
+        
+
+        marker_3ad09773f451b16f7bddc34c3ce8a9b0.bindPopup(popup_d2b3eea692ae7e2278cc799269d39abc)
+        ;
+
+        
+    
+    
+                marker_3ad09773f451b16f7bddc34c3ce8a9b0.setIcon(icon_89e225dec0ba38d8d453e5a8eb0a2c60);
+            
+    
+            var marker_3434b76f93f7219c7ed484fe0a83adb6 = L.marker(
+                [1.94, -157.475],
+                {
+}
+            ).addTo(feature_group_f86bbf6bce0266342351a5e1c1ca2e28);
+        
+    
+            var icon_a429d11789e1af422f6ec989e2d6cc22 = L.AwesomeMarkers.icon(
+                {
+  "markerColor": "blue",
+  "iconColor": "white",
+  "icon": "info-sign",
+  "prefix": "glyphicon",
+  "extraClasses": "fa-rotate-0",
+}
+            );
+        
+    
+        var popup_40ca6a227424d2ebbe1cb0bc39e87fb0 = L.popup({
+  "maxWidth": "100%",
+});
+
+        
+            
+                var html_31c7dfd80c0e5218190c73d36e9415ee = $(`<div id="html_31c7dfd80c0e5218190c73d36e9415ee" style="width: 100.0%; height: 100.0%;">CANDIDATE: Kiritimati</div>`)[0];
+                popup_40ca6a227424d2ebbe1cb0bc39e87fb0.setContent(html_31c7dfd80c0e5218190c73d36e9415ee);
+            
+        
+
+        marker_3434b76f93f7219c7ed484fe0a83adb6.bindPopup(popup_40ca6a227424d2ebbe1cb0bc39e87fb0)
+        ;
+
+        
+    
+    
+                marker_3434b76f93f7219c7ed484fe0a83adb6.setIcon(icon_a429d11789e1af422f6ec989e2d6cc22);
+            
+    
+            var marker_329b4278ea1386bc994b5ba39aef3cef = L.marker(
+                [0.26522, 173.38881],
+                {
+}
+            ).addTo(feature_group_f86bbf6bce0266342351a5e1c1ca2e28);
+        
+    
+            var icon_cf4fcd0287da0ed55b2e6431e433436c = L.AwesomeMarkers.icon(
+                {
+  "markerColor": "blue",
+  "iconColor": "white",
+  "icon": "info-sign",
+  "prefix": "glyphicon",
+  "extraClasses": "fa-rotate-0",
+}
+            );
+        
+    
+        var popup_1761a9595b3c16aca6a092d4b6216a1a = L.popup({
+  "maxWidth": "100%",
+});
+
+        
+            
+                var html_8ee7812efb13b51428034bbd4bbc6229 = $(`<div id="html_8ee7812efb13b51428034bbd4bbc6229" style="width: 100.0%; height: 100.0%;">CANDIDATE: Kuria</div>`)[0];
+                popup_1761a9595b3c16aca6a092d4b6216a1a.setContent(html_8ee7812efb13b51428034bbd4bbc6229);
+            
+        
+
+        marker_329b4278ea1386bc994b5ba39aef3cef.bindPopup(popup_1761a9595b3c16aca6a092d4b6216a1a)
+        ;
+
+        
+    
+    
+                marker_329b4278ea1386bc994b5ba39aef3cef.setIcon(icon_cf4fcd0287da0ed55b2e6431e433436c);
+            
+    
+            var marker_64f87c3a60130ed85a02404798fb7019 = L.marker(
+                [1.98487, -157.47502],
+                {
+}
+            ).addTo(feature_group_f86bbf6bce0266342351a5e1c1ca2e28);
+        
+    
+            var icon_647edb7d1db19f499579111c827860cf = L.AwesomeMarkers.icon(
+                {
+  "markerColor": "blue",
+  "iconColor": "white",
+  "icon": "info-sign",
+  "prefix": "glyphicon",
+  "extraClasses": "fa-rotate-0",
+}
+            );
+        
+    
+        var popup_9ef1b15eeb8c5a62aa0e6cee61914909 = L.popup({
+  "maxWidth": "100%",
+});
+
+        
+            
+                var html_fa13c6ac3841fd5d6f83381cb355f02e = $(`<div id="html_fa13c6ac3841fd5d6f83381cb355f02e" style="width: 100.0%; height: 100.0%;">CANDIDATE: London Village</div>`)[0];
+                popup_9ef1b15eeb8c5a62aa0e6cee61914909.setContent(html_fa13c6ac3841fd5d6f83381cb355f02e);
+            
+        
+
+        marker_64f87c3a60130ed85a02404798fb7019.bindPopup(popup_9ef1b15eeb8c5a62aa0e6cee61914909)
+        ;
+
+        
+    
+    
+                marker_64f87c3a60130ed85a02404798fb7019.setIcon(icon_647edb7d1db19f499579111c827860cf);
+            
+    
+            var marker_d269a6ad0f8f891c438fa53cf02dce26 = L.marker(
+                [0.91869, 172.99759],
+                {
+}
+            ).addTo(feature_group_f86bbf6bce0266342351a5e1c1ca2e28);
+        
+    
+            var icon_989d19a062ab7621b40210ed4478f7da = L.AwesomeMarkers.icon(
+                {
+  "markerColor": "blue",
+  "iconColor": "white",
+  "icon": "info-sign",
+  "prefix": "glyphicon",
+  "extraClasses": "fa-rotate-0",
+}
+            );
+        
+    
+        var popup_045238662b488e30a6ddb46bcb10f9c7 = L.popup({
+  "maxWidth": "100%",
+});
+
+        
+            
+                var html_7b28afed063e9e4a540d900a22ecc02b = $(`<div id="html_7b28afed063e9e4a540d900a22ecc02b" style="width: 100.0%; height: 100.0%;">CANDIDATE: Maiana</div>`)[0];
+                popup_045238662b488e30a6ddb46bcb10f9c7.setContent(html_7b28afed063e9e4a540d900a22ecc02b);
+            
+        
+
+        marker_d269a6ad0f8f891c438fa53cf02dce26.bindPopup(popup_045238662b488e30a6ddb46bcb10f9c7)
+        ;
+
+        
+    
+    
+                marker_d269a6ad0f8f891c438fa53cf02dce26.setIcon(icon_989d19a062ab7621b40210ed4478f7da);
+            
+    
+            var marker_23a7f6805dbdaad241f24f82b07650b8 = L.marker(
+                [3.38816, 172.99656],
+                {
+}
+            ).addTo(feature_group_f86bbf6bce0266342351a5e1c1ca2e28);
+        
+    
+            var icon_9eae6367fbbdd41184cf53770ab29417 = L.AwesomeMarkers.icon(
+                {
+  "markerColor": "blue",
+  "iconColor": "white",
+  "icon": "info-sign",
+  "prefix": "glyphicon",
+  "extraClasses": "fa-rotate-0",
+}
+            );
+        
+    
+        var popup_adc0033c3a7d0cfb70b2c2abad7bdfc5 = L.popup({
+  "maxWidth": "100%",
+});
+
+        
+            
+                var html_4a1d954fe13bff7b66a6e2e9449234e4 = $(`<div id="html_4a1d954fe13bff7b66a6e2e9449234e4" style="width: 100.0%; height: 100.0%;">CANDIDATE: Makin</div>`)[0];
+                popup_adc0033c3a7d0cfb70b2c2abad7bdfc5.setContent(html_4a1d954fe13bff7b66a6e2e9449234e4);
+            
+        
+
+        marker_23a7f6805dbdaad241f24f82b07650b8.bindPopup(popup_adc0033c3a7d0cfb70b2c2abad7bdfc5)
+        ;
+
+        
+    
+    
+                marker_23a7f6805dbdaad241f24f82b07650b8.setIcon(icon_9eae6367fbbdd41184cf53770ab29417);
+            
+    
+            var marker_55085681b088f1a4fe6aa7b2b1167de7 = L.marker(
+                [3.3644, 172.98352],
+                {
+}
+            ).addTo(feature_group_f86bbf6bce0266342351a5e1c1ca2e28);
+        
+    
+            var icon_3712d604202a135684cbeedc76ff19c8 = L.AwesomeMarkers.icon(
+                {
+  "markerColor": "blue",
+  "iconColor": "white",
+  "icon": "info-sign",
+  "prefix": "glyphicon",
+  "extraClasses": "fa-rotate-0",
+}
+            );
+        
+    
+        var popup_c6b4b6a2cf699b4bb435d606be8f7ca3 = L.popup({
+  "maxWidth": "100%",
+});
+
+        
+            
+                var html_46143e1b261d784d0614ab7266a86ed9 = $(`<div id="html_46143e1b261d784d0614ab7266a86ed9" style="width: 100.0%; height: 100.0%;">CANDIDATE: Makin Village</div>`)[0];
+                popup_c6b4b6a2cf699b4bb435d606be8f7ca3.setContent(html_46143e1b261d784d0614ab7266a86ed9);
+            
+        
+
+        marker_55085681b088f1a4fe6aa7b2b1167de7.bindPopup(popup_c6b4b6a2cf699b4bb435d606be8f7ca3)
+        ;
+
+        
+    
+    
+                marker_55085681b088f1a4fe6aa7b2b1167de7.setIcon(icon_3712d604202a135684cbeedc76ff19c8);
+            
+    
+            var marker_ade2ee02016d15db0d42d553c9b7071b = L.marker(
+                [2.01077, 173.27637],
+                {
+}
+            ).addTo(feature_group_f86bbf6bce0266342351a5e1c1ca2e28);
+        
+    
+            var icon_bb2367464c9ea8763f239222f71dbb2e = L.AwesomeMarkers.icon(
+                {
+  "markerColor": "blue",
+  "iconColor": "white",
+  "icon": "info-sign",
+  "prefix": "glyphicon",
+  "extraClasses": "fa-rotate-0",
+}
+            );
+        
+    
+        var popup_65e39107aed49901cabdaa144ce980ee = L.popup({
+  "maxWidth": "100%",
+});
+
+        
+            
+                var html_4e40c8e4ff55ec0e1e6d2baf94c086a6 = $(`<div id="html_4e40c8e4ff55ec0e1e6d2baf94c086a6" style="width: 100.0%; height: 100.0%;">CANDIDATE: Marakei</div>`)[0];
+                popup_65e39107aed49901cabdaa144ce980ee.setContent(html_4e40c8e4ff55ec0e1e6d2baf94c086a6);
+            
+        
+
+        marker_ade2ee02016d15db0d42d553c9b7071b.bindPopup(popup_65e39107aed49901cabdaa144ce980ee)
+        ;
+
+        
+    
+    
+                marker_ade2ee02016d15db0d42d553c9b7071b.setIcon(icon_bb2367464c9ea8763f239222f71dbb2e);
+            
+    
+            var marker_40b2127478923103216901a4b968cbaf = L.marker(
+                [3.90806, -159.38832],
+                {
+}
+            ).addTo(feature_group_f86bbf6bce0266342351a5e1c1ca2e28);
+        
+    
+            var icon_74c8e2d155f387f16768af0090cab76d = L.AwesomeMarkers.icon(
+                {
+  "markerColor": "blue",
+  "iconColor": "white",
+  "icon": "info-sign",
+  "prefix": "glyphicon",
+  "extraClasses": "fa-rotate-0",
+}
+            );
+        
+    
+        var popup_69e4397adfb9a6996233179cbec9b5b7 = L.popup({
+  "maxWidth": "100%",
+});
+
+        
+            
+                var html_ec0f45d0540c29305d494d9a537fa8f6 = $(`<div id="html_ec0f45d0540c29305d494d9a537fa8f6" style="width: 100.0%; height: 100.0%;">CANDIDATE: Napari Village</div>`)[0];
+                popup_69e4397adfb9a6996233179cbec9b5b7.setContent(html_ec0f45d0540c29305d494d9a537fa8f6);
+            
+        
+
+        marker_40b2127478923103216901a4b968cbaf.bindPopup(popup_69e4397adfb9a6996233179cbec9b5b7)
+        ;
+
+        
+    
+    
+                marker_40b2127478923103216901a4b968cbaf.setIcon(icon_74c8e2d155f387f16768af0090cab76d);
+            
+    
+            var marker_786ab3a6238083c3f25e9a41c90590e7 = L.marker(
+                [1.36362, 173.13935],
+                {
+}
+            ).addTo(feature_group_f86bbf6bce0266342351a5e1c1ca2e28);
+        
+    
+            var icon_e85c6b00dd39c48f5cd30f2a4ec09faf = L.AwesomeMarkers.icon(
+                {
+  "markerColor": "blue",
+  "iconColor": "white",
+  "icon": "info-sign",
+  "prefix": "glyphicon",
+  "extraClasses": "fa-rotate-0",
+}
+            );
+        
+    
+        var popup_c28802181e5dd37e5df37e6de1d71e4b = L.popup({
+  "maxWidth": "100%",
+});
+
+        
+            
+                var html_bf063128fb154b86e88c13189b6832dd = $(`<div id="html_bf063128fb154b86e88c13189b6832dd" style="width: 100.0%; height: 100.0%;">CANDIDATE: Nawerewere Village</div>`)[0];
+                popup_c28802181e5dd37e5df37e6de1d71e4b.setContent(html_bf063128fb154b86e88c13189b6832dd);
+            
+        
+
+        marker_786ab3a6238083c3f25e9a41c90590e7.bindPopup(popup_c28802181e5dd37e5df37e6de1d71e4b)
+        ;
+
+        
+    
+    
+                marker_786ab3a6238083c3f25e9a41c90590e7.setIcon(icon_e85c6b00dd39c48f5cd30f2a4ec09faf);
+            
+    
+            var marker_01639c8551bb2f5cbecee9210ed55215 = L.marker(
+                [-1.36567, 176.46412],
+                {
+}
+            ).addTo(feature_group_f86bbf6bce0266342351a5e1c1ca2e28);
+        
+    
+            var icon_23d191e5f95ecee8c3a7356b03309056 = L.AwesomeMarkers.icon(
+                {
+  "markerColor": "blue",
+  "iconColor": "white",
+  "icon": "info-sign",
+  "prefix": "glyphicon",
+  "extraClasses": "fa-rotate-0",
+}
+            );
+        
+    
+        var popup_8d304f0d99e4f47d244eb5d0f4c7ae9d = L.popup({
+  "maxWidth": "100%",
+});
+
+        
+            
+                var html_9c33103d452c57cab2d697d8e2cedea5 = $(`<div id="html_9c33103d452c57cab2d697d8e2cedea5" style="width: 100.0%; height: 100.0%;">CANDIDATE: Nikunau</div>`)[0];
+                popup_8d304f0d99e4f47d244eb5d0f4c7ae9d.setContent(html_9c33103d452c57cab2d697d8e2cedea5);
+            
+        
+
+        marker_01639c8551bb2f5cbecee9210ed55215.bindPopup(popup_8d304f0d99e4f47d244eb5d0f4c7ae9d)
+        ;
+
+        
+    
+    
+                marker_01639c8551bb2f5cbecee9210ed55215.setIcon(icon_23d191e5f95ecee8c3a7356b03309056);
+            
+    
+            var marker_89cbac7197a1cf9b1e3747d2586208d3 = L.marker(
+                [-0.66667, 174.35],
+                {
+}
+            ).addTo(feature_group_f86bbf6bce0266342351a5e1c1ca2e28);
+        
+    
+            var icon_a6ba32fee4948bb259001b146d268f9a = L.AwesomeMarkers.icon(
+                {
+  "markerColor": "blue",
+  "iconColor": "white",
+  "icon": "info-sign",
+  "prefix": "glyphicon",
+  "extraClasses": "fa-rotate-0",
+}
+            );
+        
+    
+        var popup_a75916b7bdbae6c390894318312cc2d3 = L.popup({
+  "maxWidth": "100%",
+});
+
+        
+            
+                var html_38044bc8ccfe7841ab41051f87809de3 = $(`<div id="html_38044bc8ccfe7841ab41051f87809de3" style="width: 100.0%; height: 100.0%;">CANDIDATE: Nonouti</div>`)[0];
+                popup_a75916b7bdbae6c390894318312cc2d3.setContent(html_38044bc8ccfe7841ab41051f87809de3);
+            
+        
+
+        marker_89cbac7197a1cf9b1e3747d2586208d3.bindPopup(popup_a75916b7bdbae6c390894318312cc2d3)
+        ;
+
+        
+    
+    
+                marker_89cbac7197a1cf9b1e3747d2586208d3.setIcon(icon_a6ba32fee4948bb259001b146d268f9a);
+            
+    
+            var marker_6f6157f4696fb6db5f27de7940ca59e6 = L.marker(
+                [-1.88587, 175.56393],
+                {
+}
+            ).addTo(feature_group_f86bbf6bce0266342351a5e1c1ca2e28);
+        
+    
+            var icon_4a35e793ee039881d929cc60c1f66735 = L.AwesomeMarkers.icon(
+                {
+  "markerColor": "blue",
+  "iconColor": "white",
+  "icon": "info-sign",
+  "prefix": "glyphicon",
+  "extraClasses": "fa-rotate-0",
+}
+            );
+        
+    
+        var popup_f7f0c64c6c0e3c390be5658ac0b7ddf8 = L.popup({
+  "maxWidth": "100%",
+});
+
+        
+            
+                var html_46b22adcadb252807aeadf45ce869249 = $(`<div id="html_46b22adcadb252807aeadf45ce869249" style="width: 100.0%; height: 100.0%;">CANDIDATE: Onotoa</div>`)[0];
+                popup_f7f0c64c6c0e3c390be5658ac0b7ddf8.setContent(html_46b22adcadb252807aeadf45ce869249);
+            
+        
+
+        marker_6f6157f4696fb6db5f27de7940ca59e6.bindPopup(popup_f7f0c64c6c0e3c390be5658ac0b7ddf8)
+        ;
+
+        
+    
+    
+                marker_6f6157f4696fb6db5f27de7940ca59e6.setIcon(icon_4a35e793ee039881d929cc60c1f66735);
+            
+    
+            var marker_8d1c802800e96679c8b01b4118854401 = L.marker(
+                [2.05379, 173.26354],
+                {
+}
+            ).addTo(feature_group_f86bbf6bce0266342351a5e1c1ca2e28);
+        
+    
+            var icon_15bc6bb7ce5f37ad7235b7ce6be8cd25 = L.AwesomeMarkers.icon(
+                {
+  "markerColor": "blue",
+  "iconColor": "white",
+  "icon": "info-sign",
+  "prefix": "glyphicon",
+  "extraClasses": "fa-rotate-0",
+}
+            );
+        
+    
+        var popup_4150c909aabfdfe04d35f8e784589343 = L.popup({
+  "maxWidth": "100%",
+});
+
+        
+            
+                var html_0ba4549e61af6bcf079b01c491d3582e = $(`<div id="html_0ba4549e61af6bcf079b01c491d3582e" style="width: 100.0%; height: 100.0%;">CANDIDATE: Rawannawi Village</div>`)[0];
+                popup_4150c909aabfdfe04d35f8e784589343.setContent(html_0ba4549e61af6bcf079b01c491d3582e);
+            
+        
+
+        marker_8d1c802800e96679c8b01b4118854401.bindPopup(popup_4150c909aabfdfe04d35f8e784589343)
+        ;
+
+        
+    
+    
+                marker_8d1c802800e96679c8b01b4118854401.setIcon(icon_15bc6bb7ce5f37ad7235b7ce6be8cd25);
+            
+    
+            var marker_e875e53ac5fd1b81286ea84a65c84f2c = L.marker(
+                [-1.42241, 174.89805],
+                {
+}
+            ).addTo(feature_group_f86bbf6bce0266342351a5e1c1ca2e28);
+        
+    
+            var icon_58a12da2d49e2b6f96886e4cecb88876 = L.AwesomeMarkers.icon(
+                {
+  "markerColor": "blue",
+  "iconColor": "white",
+  "icon": "info-sign",
+  "prefix": "glyphicon",
+  "extraClasses": "fa-rotate-0",
+}
+            );
+        
+    
+        var popup_54360af5106d6a8c4fd0bbd3a1ab2cb7 = L.popup({
+  "maxWidth": "100%",
+});
+
+        
+            
+                var html_02a140a4ca569e53056801beb48021c6 = $(`<div id="html_02a140a4ca569e53056801beb48021c6" style="width: 100.0%; height: 100.0%;">CANDIDATE: Tabiteuea</div>`)[0];
+                popup_54360af5106d6a8c4fd0bbd3a1ab2cb7.setContent(html_02a140a4ca569e53056801beb48021c6);
+            
+        
+
+        marker_e875e53ac5fd1b81286ea84a65c84f2c.bindPopup(popup_54360af5106d6a8c4fd0bbd3a1ab2cb7)
+        ;
+
+        
+    
+    
+                marker_e875e53ac5fd1b81286ea84a65c84f2c.setIcon(icon_58a12da2d49e2b6f96886e4cecb88876);
+            
+    
+            var marker_a2f620d02173b9f254b9788c28e17c8b = L.marker(
+                [3.86667, -159.33333],
+                {
+}
+            ).addTo(feature_group_f86bbf6bce0266342351a5e1c1ca2e28);
+        
+    
+            var icon_bd71ae8d0059f8804d3a056ca713849e = L.AwesomeMarkers.icon(
+                {
+  "markerColor": "blue",
+  "iconColor": "white",
+  "icon": "info-sign",
+  "prefix": "glyphicon",
+  "extraClasses": "fa-rotate-0",
+}
+            );
+        
+    
+        var popup_3a0fcb3b3a1284ef40e481624cdcf7aa = L.popup({
+  "maxWidth": "100%",
+});
+
+        
+            
+                var html_e0fe9257a602763a66f73013503aff2c = $(`<div id="html_e0fe9257a602763a66f73013503aff2c" style="width: 100.0%; height: 100.0%;">CANDIDATE: Tabuaeran</div>`)[0];
+                popup_3a0fcb3b3a1284ef40e481624cdcf7aa.setContent(html_e0fe9257a602763a66f73013503aff2c);
+            
+        
+
+        marker_a2f620d02173b9f254b9788c28e17c8b.bindPopup(popup_3a0fcb3b3a1284ef40e481624cdcf7aa)
+        ;
+
+        
+    
+    
+                marker_a2f620d02173b9f254b9788c28e17c8b.setIcon(icon_bd71ae8d0059f8804d3a056ca713849e);
+            
+    
+            var marker_fe555360f8ec7213381373d7702bb3fa = L.marker(
+                [2.01643, -157.48773],
+                {
+}
+            ).addTo(feature_group_f86bbf6bce0266342351a5e1c1ca2e28);
+        
+    
+            var icon_21c40c6b1828c71ca733e75f3f300387 = L.AwesomeMarkers.icon(
+                {
+  "markerColor": "blue",
+  "iconColor": "white",
+  "icon": "info-sign",
+  "prefix": "glyphicon",
+  "extraClasses": "fa-rotate-0",
+}
+            );
+        
+    
+        var popup_4d966a761df7616d0a6543959cc02446 = L.popup({
+  "maxWidth": "100%",
+});
+
+        
+            
+                var html_589d795bc6a2dc0c7bf4d551eb4849eb = $(`<div id="html_589d795bc6a2dc0c7bf4d551eb4849eb" style="width: 100.0%; height: 100.0%;">CANDIDATE: Tabwakea Village</div>`)[0];
+                popup_4d966a761df7616d0a6543959cc02446.setContent(html_589d795bc6a2dc0c7bf4d551eb4849eb);
+            
+        
+
+        marker_fe555360f8ec7213381373d7702bb3fa.bindPopup(popup_4d966a761df7616d0a6543959cc02446)
+        ;
+
+        
+    
+    
+                marker_fe555360f8ec7213381373d7702bb3fa.setIcon(icon_21c40c6b1828c71ca733e75f3f300387);
+            
+    
+            var marker_300347466b1bcc3f27f0ba1a7a69c674 = L.marker(
+                [-2.50113, 175.98621],
+                {
+}
+            ).addTo(feature_group_f86bbf6bce0266342351a5e1c1ca2e28);
+        
+    
+            var icon_2fc11b46dca34d58c71b0927aa54d839 = L.AwesomeMarkers.icon(
+                {
+  "markerColor": "blue",
+  "iconColor": "white",
+  "icon": "info-sign",
+  "prefix": "glyphicon",
+  "extraClasses": "fa-rotate-0",
+}
+            );
+        
+    
+        var popup_bb39718665d983ded241353e436a3aca = L.popup({
+  "maxWidth": "100%",
+});
+
+        
+            
+                var html_9771f2d015a9b73b9495ea2190eb526e = $(`<div id="html_9771f2d015a9b73b9495ea2190eb526e" style="width: 100.0%; height: 100.0%;">CANDIDATE: Tamana</div>`)[0];
+                popup_bb39718665d983ded241353e436a3aca.setContent(html_9771f2d015a9b73b9495ea2190eb526e);
+            
+        
+
+        marker_300347466b1bcc3f27f0ba1a7a69c674.bindPopup(popup_bb39718665d983ded241353e436a3aca)
+        ;
+
+        
+    
+    
+                marker_300347466b1bcc3f27f0ba1a7a69c674.setIcon(icon_2fc11b46dca34d58c71b0927aa54d839);
+            
+    
+            var marker_69266e10d0ce2abfa4a11d456dc03e04 = L.marker(
+                [1.3278, 172.97696],
+                {
+}
+            ).addTo(feature_group_f86bbf6bce0266342351a5e1c1ca2e28);
+        
+    
+            var icon_e8ee8f702de2e7aa971ef253c81b9cf9 = L.AwesomeMarkers.icon(
+                {
+  "markerColor": "blue",
+  "iconColor": "white",
+  "icon": "info-sign",
+  "prefix": "glyphicon",
+  "extraClasses": "fa-rotate-0",
+}
+            );
+        
+    
+        var popup_b2e463215c902fe259dd8f21dce182dd = L.popup({
+  "maxWidth": "100%",
+});
+
+        
+            
+                var html_e772043acd081ad94072248fb7be47bd = $(`<div id="html_e772043acd081ad94072248fb7be47bd" style="width: 100.0%; height: 100.0%;">CANDIDATE: Tarawa</div>`)[0];
+                popup_b2e463215c902fe259dd8f21dce182dd.setContent(html_e772043acd081ad94072248fb7be47bd);
+            
+        
+
+        marker_69266e10d0ce2abfa4a11d456dc03e04.bindPopup(popup_b2e463215c902fe259dd8f21dce182dd)
+        ;
+
+        
+    
+    
+                marker_69266e10d0ce2abfa4a11d456dc03e04.setIcon(icon_e8ee8f702de2e7aa971ef253c81b9cf9);
+            
+    
+            var marker_f8df70903158e65ec8e842fcadfaa66b = L.marker(
+                [1.33309, 173.01162],
+                {
+}
+            ).addTo(feature_group_f86bbf6bce0266342351a5e1c1ca2e28);
+        
+    
+            var icon_56be324687048a91b413392712786bc6 = L.AwesomeMarkers.icon(
+                {
+  "markerColor": "blue",
+  "iconColor": "white",
+  "icon": "info-sign",
+  "prefix": "glyphicon",
+  "extraClasses": "fa-rotate-0",
+}
+            );
+        
+    
+        var popup_21fbae5afe57910c5ba6e7c19acbf539 = L.popup({
+  "maxWidth": "100%",
+});
+
+        
+            
+                var html_09d429d97822732913b957e069860f29 = $(`<div id="html_09d429d97822732913b957e069860f29" style="width: 100.0%; height: 100.0%;">CANDIDATE: Teaoraereke Village</div>`)[0];
+                popup_21fbae5afe57910c5ba6e7c19acbf539.setContent(html_09d429d97822732913b957e069860f29);
+            
+        
+
+        marker_f8df70903158e65ec8e842fcadfaa66b.bindPopup(popup_21fbae5afe57910c5ba6e7c19acbf539)
+        ;
+
+        
+    
+    
+                marker_f8df70903158e65ec8e842fcadfaa66b.setIcon(icon_56be324687048a91b413392712786bc6);
+            
+    
+            var marker_8e18a7ff29d3e6c3d73ddc7c3d867d23 = L.marker(
+                [1.36292, 173.16226],
+                {
+}
+            ).addTo(feature_group_f86bbf6bce0266342351a5e1c1ca2e28);
+        
+    
+            var icon_ff22f2783d31fee3d3b57d3a590355bf = L.AwesomeMarkers.icon(
+                {
+  "markerColor": "blue",
+  "iconColor": "white",
+  "icon": "info-sign",
+  "prefix": "glyphicon",
+  "extraClasses": "fa-rotate-0",
+}
+            );
+        
+    
+        var popup_617fe1b1bd3b139eb0c7a3d8bffb0d3d = L.popup({
+  "maxWidth": "100%",
+});
+
+        
+            
+                var html_35c70853821ed9ec906b2d5095fbc7e1 = $(`<div id="html_35c70853821ed9ec906b2d5095fbc7e1" style="width: 100.0%; height: 100.0%;">CANDIDATE: Temaiku Village</div>`)[0];
+                popup_617fe1b1bd3b139eb0c7a3d8bffb0d3d.setContent(html_35c70853821ed9ec906b2d5095fbc7e1);
+            
+        
+
+        marker_8e18a7ff29d3e6c3d73ddc7c3d867d23.bindPopup(popup_617fe1b1bd3b139eb0c7a3d8bffb0d3d)
+        ;
+
+        
+    
+    
+                marker_8e18a7ff29d3e6c3d73ddc7c3d867d23.setIcon(icon_ff22f2783d31fee3d3b57d3a590355bf);
+            
+    
+            var marker_bfdf92a8da942053795781b151591a58 = L.marker(
+                [4.68764, -160.38803],
+                {
+}
+            ).addTo(feature_group_f86bbf6bce0266342351a5e1c1ca2e28);
+        
+    
+            var icon_da4e2260da1130f238e36f27729c6b66 = L.AwesomeMarkers.icon(
+                {
+  "markerColor": "blue",
+  "iconColor": "white",
+  "icon": "info-sign",
+  "prefix": "glyphicon",
+  "extraClasses": "fa-rotate-0",
+}
+            );
+        
+    
+        var popup_e28bdea8600748639ca048af838e1f49 = L.popup({
+  "maxWidth": "100%",
+});
+
+        
+            
+                var html_f1948314411250497e86828260bd79ae = $(`<div id="html_f1948314411250497e86828260bd79ae" style="width: 100.0%; height: 100.0%;">CANDIDATE: Teraina</div>`)[0];
+                popup_e28bdea8600748639ca048af838e1f49.setContent(html_f1948314411250497e86828260bd79ae);
+            
+        
+
+        marker_bfdf92a8da942053795781b151591a58.bindPopup(popup_e28bdea8600748639ca048af838e1f49)
+        ;
+
+        
+    
+    
+                marker_bfdf92a8da942053795781b151591a58.setIcon(icon_da4e2260da1130f238e36f27729c6b66);
+            
+    
+            var marker_2113f8691c5c1db6486d40b13a6a43b1 = L.marker(
+                [-13.79726, -171.85308],
+                {
+}
+            ).addTo(feature_group_f86bbf6bce0266342351a5e1c1ca2e28);
+        
+    
+            var icon_08d8f15e54cb6074c8a2048ab3a1ac8d = L.AwesomeMarkers.icon(
+                {
+  "markerColor": "blue",
+  "iconColor": "white",
+  "icon": "info-sign",
+  "prefix": "glyphicon",
+  "extraClasses": "fa-rotate-0",
+}
+            );
+        
+    
+        var popup_1fd26ae394c8fc6faea2f6c866d8736d = L.popup({
+  "maxWidth": "100%",
+});
+
+        
+            
+                var html_673489f405203ece7c4ec351bd38b7eb = $(`<div id="html_673489f405203ece7c4ec351bd38b7eb" style="width: 100.0%; height: 100.0%;">CANDIDATE: Afega</div>`)[0];
+                popup_1fd26ae394c8fc6faea2f6c866d8736d.setContent(html_673489f405203ece7c4ec351bd38b7eb);
+            
+        
+
+        marker_2113f8691c5c1db6486d40b13a6a43b1.bindPopup(popup_1fd26ae394c8fc6faea2f6c866d8736d)
+        ;
+
+        
+    
+    
+                marker_2113f8691c5c1db6486d40b13a6a43b1.setIcon(icon_08d8f15e54cb6074c8a2048ab3a1ac8d);
+            
+    
+            var marker_48b7e8f1816a75abb1ba730dc7b7a27b = L.marker(
+                [-13.83333, -171.76666],
+                {
+}
+            ).addTo(feature_group_f86bbf6bce0266342351a5e1c1ca2e28);
+        
+    
+            var icon_7a1aa0fad2958b6d12c98ab2303bfc7e = L.AwesomeMarkers.icon(
+                {
+  "markerColor": "blue",
+  "iconColor": "white",
+  "icon": "info-sign",
+  "prefix": "glyphicon",
+  "extraClasses": "fa-rotate-0",
+}
+            );
+        
+    
+        var popup_ad4411d102ec1dac6db0c10eb1b35cc7 = L.popup({
+  "maxWidth": "100%",
+});
+
+        
+            
+                var html_0abac39f6d0a41647c4a57809fad041c = $(`<div id="html_0abac39f6d0a41647c4a57809fad041c" style="width: 100.0%; height: 100.0%;">CANDIDATE: Apia</div>`)[0];
+                popup_ad4411d102ec1dac6db0c10eb1b35cc7.setContent(html_0abac39f6d0a41647c4a57809fad041c);
+            
+        
+
+        marker_48b7e8f1816a75abb1ba730dc7b7a27b.bindPopup(popup_ad4411d102ec1dac6db0c10eb1b35cc7)
+        ;
+
+        
+    
+    
+                marker_48b7e8f1816a75abb1ba730dc7b7a27b.setIcon(icon_7a1aa0fad2958b6d12c98ab2303bfc7e);
+            
+    
+            var marker_775c8aadb433a8a515de5bfb50d81004 = L.marker(
+                [-13.51963, -172.63784],
+                {
+}
+            ).addTo(feature_group_f86bbf6bce0266342351a5e1c1ca2e28);
+        
+    
+            var icon_ff11352b42bc0064ecbb14781322d276 = L.AwesomeMarkers.icon(
+                {
+  "markerColor": "blue",
+  "iconColor": "white",
+  "icon": "info-sign",
+  "prefix": "glyphicon",
+  "extraClasses": "fa-rotate-0",
+}
+            );
+        
+    
+        var popup_8844c05c5d902e147d022ca9a2925747 = L.popup({
+  "maxWidth": "100%",
+});
+
+        
+            
+                var html_f7f0f5b32c66fac223d155b43bef7f91 = $(`<div id="html_f7f0f5b32c66fac223d155b43bef7f91" style="width: 100.0%; height: 100.0%;">CANDIDATE: Asau</div>`)[0];
+                popup_8844c05c5d902e147d022ca9a2925747.setContent(html_f7f0f5b32c66fac223d155b43bef7f91);
+            
+        
+
+        marker_775c8aadb433a8a515de5bfb50d81004.bindPopup(popup_8844c05c5d902e147d022ca9a2925747)
+        ;
+
+        
+    
+    
+                marker_775c8aadb433a8a515de5bfb50d81004.setIcon(icon_ff11352b42bc0064ecbb14781322d276);
+            
+    
+            var marker_d5005d614411cc0b3588ee1e9d85260f = L.marker(
+                [-13.88695, -171.58805],
+                {
+}
+            ).addTo(feature_group_f86bbf6bce0266342351a5e1c1ca2e28);
+        
+    
+            var icon_eba168ae4ef0bd6c259c42647b42bdc0 = L.AwesomeMarkers.icon(
+                {
+  "markerColor": "blue",
+  "iconColor": "white",
+  "icon": "info-sign",
+  "prefix": "glyphicon",
+  "extraClasses": "fa-rotate-0",
+}
+            );
+        
+    
+        var popup_c2681ef7d77af782a683d4dcb9ac80de = L.popup({
+  "maxWidth": "100%",
+});
+
+        
+            
+                var html_a87bb1749246df8e585d6887b531cad4 = $(`<div id="html_a87bb1749246df8e585d6887b531cad4" style="width: 100.0%; height: 100.0%;">CANDIDATE: Falefa</div>`)[0];
+                popup_c2681ef7d77af782a683d4dcb9ac80de.setContent(html_a87bb1749246df8e585d6887b531cad4);
+            
+        
+
+        marker_d5005d614411cc0b3588ee1e9d85260f.bindPopup(popup_c2681ef7d77af782a683d4dcb9ac80de)
+        ;
+
+        
+    
+    
+                marker_d5005d614411cc0b3588ee1e9d85260f.setIcon(icon_eba168ae4ef0bd6c259c42647b42bdc0);
+            
+    
+            var marker_16de08e94c777313548af1a22b907036 = L.marker(
+                [-13.81163, -171.94063],
+                {
+}
+            ).addTo(feature_group_f86bbf6bce0266342351a5e1c1ca2e28);
+        
+    
+            var icon_e10d50c4a3869e71cf7f69e9e97579b1 = L.AwesomeMarkers.icon(
+                {
+  "markerColor": "blue",
+  "iconColor": "white",
+  "icon": "info-sign",
+  "prefix": "glyphicon",
+  "extraClasses": "fa-rotate-0",
+}
+            );
+        
+    
+        var popup_7c0101a69b00d97a049df6d9f2ca7126 = L.popup({
+  "maxWidth": "100%",
+});
+
+        
+            
+                var html_be64f1f67808486f462d24b870de2e15 = $(`<div id="html_be64f1f67808486f462d24b870de2e15" style="width: 100.0%; height: 100.0%;">CANDIDATE: Fasito‘outa</div>`)[0];
+                popup_7c0101a69b00d97a049df6d9f2ca7126.setContent(html_be64f1f67808486f462d24b870de2e15);
+            
+        
+
+        marker_16de08e94c777313548af1a22b907036.bindPopup(popup_7c0101a69b00d97a049df6d9f2ca7126)
+        ;
+
+        
+    
+    
+                marker_16de08e94c777313548af1a22b907036.setIcon(icon_e10d50c4a3869e71cf7f69e9e97579b1);
+            
+    
+            var marker_ee9a501df0ce3788166402e231e5563a = L.marker(
+                [-13.7736, -172.38802],
+                {
+}
+            ).addTo(feature_group_f86bbf6bce0266342351a5e1c1ca2e28);
+        
+    
+            var icon_d4f0e9ef904d8b9ded6c1e5700615aad = L.AwesomeMarkers.icon(
+                {
+  "markerColor": "blue",
+  "iconColor": "white",
+  "icon": "info-sign",
+  "prefix": "glyphicon",
+  "extraClasses": "fa-rotate-0",
+}
+            );
+        
+    
+        var popup_da9c11cd39b12d73b4b8a0b895082b5a = L.popup({
+  "maxWidth": "100%",
+});
+
+        
+            
+                var html_3bbdef33547c6f0616a749eb9a720ad4 = $(`<div id="html_3bbdef33547c6f0616a749eb9a720ad4" style="width: 100.0%; height: 100.0%;">CANDIDATE: Gataivai</div>`)[0];
+                popup_da9c11cd39b12d73b4b8a0b895082b5a.setContent(html_3bbdef33547c6f0616a749eb9a720ad4);
+            
+        
+
+        marker_ee9a501df0ce3788166402e231e5563a.bindPopup(popup_da9c11cd39b12d73b4b8a0b895082b5a)
+        ;
+
+        
+    
+    
+                marker_ee9a501df0ce3788166402e231e5563a.setIcon(icon_d4f0e9ef904d8b9ded6c1e5700615aad);
+            
+    
+            var marker_83f59225b9647ea204e01fd4a358f64a = L.marker(
+                [-13.82297, -171.96127],
+                {
+}
+            ).addTo(feature_group_f86bbf6bce0266342351a5e1c1ca2e28);
+        
+    
+            var icon_88c325f0cfa630ed4e9b765bba14c090 = L.AwesomeMarkers.icon(
+                {
+  "markerColor": "blue",
+  "iconColor": "white",
+  "icon": "info-sign",
+  "prefix": "glyphicon",
+  "extraClasses": "fa-rotate-0",
+}
+            );
+        
+    
+        var popup_9aa5572dfa637c3070c98299313cb8eb = L.popup({
+  "maxWidth": "100%",
+});
+
+        
+            
+                var html_b6f9ed92f433e1df8782dbb40fef1ca5 = $(`<div id="html_b6f9ed92f433e1df8782dbb40fef1ca5" style="width: 100.0%; height: 100.0%;">CANDIDATE: Leulumoega</div>`)[0];
+                popup_9aa5572dfa637c3070c98299313cb8eb.setContent(html_b6f9ed92f433e1df8782dbb40fef1ca5);
+            
+        
+
+        marker_83f59225b9647ea204e01fd4a358f64a.bindPopup(popup_9aa5572dfa637c3070c98299313cb8eb)
+        ;
+
+        
+    
+    
+                marker_83f59225b9647ea204e01fd4a358f64a.setIcon(icon_88c325f0cfa630ed4e9b765bba14c090);
+            
+    
+            var marker_25195904b56903b587d73713aa3240b0 = L.marker(
+                [-13.97643, -171.85781],
+                {
+}
+            ).addTo(feature_group_f86bbf6bce0266342351a5e1c1ca2e28);
+        
+    
+            var icon_44cc340f05a911a2530ba641b07c90c2 = L.AwesomeMarkers.icon(
+                {
+  "markerColor": "blue",
+  "iconColor": "white",
+  "icon": "info-sign",
+  "prefix": "glyphicon",
+  "extraClasses": "fa-rotate-0",
+}
+            );
+        
+    
+        var popup_7460c9e020de85ef2ccb0928ed515ed1 = L.popup({
+  "maxWidth": "100%",
+});
+
+        
+            
+                var html_f44cdf233397fcbf71e6fb7c610e78ea = $(`<div id="html_f44cdf233397fcbf71e6fb7c610e78ea" style="width: 100.0%; height: 100.0%;">CANDIDATE: Lotofagā</div>`)[0];
+                popup_7460c9e020de85ef2ccb0928ed515ed1.setContent(html_f44cdf233397fcbf71e6fb7c610e78ea);
+            
+        
+
+        marker_25195904b56903b587d73713aa3240b0.bindPopup(popup_7460c9e020de85ef2ccb0928ed515ed1)
+        ;
+
+        
+    
+    
+                marker_25195904b56903b587d73713aa3240b0.setIcon(icon_44cc340f05a911a2530ba641b07c90c2);
+            
+    
+            var marker_3bafa21541df38a35ffd6d57b7e7741d = L.marker(
+                [-13.87449, -171.59857],
+                {
+}
+            ).addTo(feature_group_f86bbf6bce0266342351a5e1c1ca2e28);
+        
+    
+            var icon_aed27b390528983e1b9369048329b92d = L.AwesomeMarkers.icon(
+                {
+  "markerColor": "blue",
+  "iconColor": "white",
+  "icon": "info-sign",
+  "prefix": "glyphicon",
+  "extraClasses": "fa-rotate-0",
+}
+            );
+        
+    
+        var popup_85569e77f87a45bf21f6769bd73f785e = L.popup({
+  "maxWidth": "100%",
+});
+
+        
+            
+                var html_eeaa7ce464aadf4bb8cb5b32ed5fa1fd = $(`<div id="html_eeaa7ce464aadf4bb8cb5b32ed5fa1fd" style="width: 100.0%; height: 100.0%;">CANDIDATE: Lufilufi</div>`)[0];
+                popup_85569e77f87a45bf21f6769bd73f785e.setContent(html_eeaa7ce464aadf4bb8cb5b32ed5fa1fd);
+            
+        
+
+        marker_3bafa21541df38a35ffd6d57b7e7741d.bindPopup(popup_85569e77f87a45bf21f6769bd73f785e)
+        ;
+
+        
+    
+    
+                marker_3bafa21541df38a35ffd6d57b7e7741d.setIcon(icon_aed27b390528983e1b9369048329b92d);
+            
+    
+            var marker_4fa4c17cd908cc4e3d718b34fad3f9ac = L.marker(
+                [-13.80044, -171.8469],
+                {
+}
+            ).addTo(feature_group_f86bbf6bce0266342351a5e1c1ca2e28);
+        
+    
+            var icon_519447f29eac6c2751c6febb59fd3bdc = L.AwesomeMarkers.icon(
+                {
+  "markerColor": "blue",
+  "iconColor": "white",
+  "icon": "info-sign",
+  "prefix": "glyphicon",
+  "extraClasses": "fa-rotate-0",
+}
+            );
+        
+    
+        var popup_e068607d8c904c7446497db89159660a = L.popup({
+  "maxWidth": "100%",
+});
+
+        
+            
+                var html_e94dbdf8774196d7d31d20537a607350 = $(`<div id="html_e94dbdf8774196d7d31d20537a607350" style="width: 100.0%; height: 100.0%;">CANDIDATE: Malie</div>`)[0];
+                popup_e068607d8c904c7446497db89159660a.setContent(html_e94dbdf8774196d7d31d20537a607350);
+            
+        
+
+        marker_4fa4c17cd908cc4e3d718b34fad3f9ac.bindPopup(popup_e068607d8c904c7446497db89159660a)
+        ;
+
+        
+    
+    
+                marker_4fa4c17cd908cc4e3d718b34fad3f9ac.setIcon(icon_519447f29eac6c2751c6febb59fd3bdc);
+            
+    
+            var marker_6f9e9542ef15b4c34703e1b8db789bc7 = L.marker(
+                [-14.03208, -171.64768],
+                {
+}
+            ).addTo(feature_group_f86bbf6bce0266342351a5e1c1ca2e28);
+        
+    
+            var icon_dff41f70f85e37f023de89613e86a682 = L.AwesomeMarkers.icon(
+                {
+  "markerColor": "blue",
+  "iconColor": "white",
+  "icon": "info-sign",
+  "prefix": "glyphicon",
+  "extraClasses": "fa-rotate-0",
+}
+            );
+        
+    
+        var popup_69ba3ddcfb9dc2a8149f5211e0a0b0e4 = L.popup({
+  "maxWidth": "100%",
+});
+
+        
+            
+                var html_e6619b787c65cd1f543b17a1c03fd6d0 = $(`<div id="html_e6619b787c65cd1f543b17a1c03fd6d0" style="width: 100.0%; height: 100.0%;">CANDIDATE: Matavai</div>`)[0];
+                popup_69ba3ddcfb9dc2a8149f5211e0a0b0e4.setContent(html_e6619b787c65cd1f543b17a1c03fd6d0);
+            
+        
+
+        marker_6f9e9542ef15b4c34703e1b8db789bc7.bindPopup(popup_69ba3ddcfb9dc2a8149f5211e0a0b0e4)
+        ;
+
+        
+    
+    
+                marker_6f9e9542ef15b4c34703e1b8db789bc7.setIcon(icon_dff41f70f85e37f023de89613e86a682);
+            
+    
+            var marker_dfc230c43385284acdf270cf6c369718 = L.marker(
+                [-13.83183, -172.03602],
+                {
+}
+            ).addTo(feature_group_f86bbf6bce0266342351a5e1c1ca2e28);
+        
+    
+            var icon_0b6673c75b441f82f0e970f42711d947 = L.AwesomeMarkers.icon(
+                {
+  "markerColor": "blue",
+  "iconColor": "white",
+  "icon": "info-sign",
+  "prefix": "glyphicon",
+  "extraClasses": "fa-rotate-0",
+}
+            );
+        
+    
+        var popup_25101f889087571ad1582c75d9e4c473 = L.popup({
+  "maxWidth": "100%",
+});
+
+        
+            
+                var html_04ae2eaf6bddf3e0d5ba84743436e0f5 = $(`<div id="html_04ae2eaf6bddf3e0d5ba84743436e0f5" style="width: 100.0%; height: 100.0%;">CANDIDATE: Mulifanua</div>`)[0];
+                popup_25101f889087571ad1582c75d9e4c473.setContent(html_04ae2eaf6bddf3e0d5ba84743436e0f5);
+            
+        
+
+        marker_dfc230c43385284acdf270cf6c369718.bindPopup(popup_25101f889087571ad1582c75d9e4c473)
+        ;
+
+        
+    
+    
+                marker_dfc230c43385284acdf270cf6c369718.setIcon(icon_0b6673c75b441f82f0e970f42711d947);
+            
+    
+            var marker_f0b93cb6214518656114511731ec38e6 = L.marker(
+                [-13.8217, -171.95873],
+                {
+}
+            ).addTo(feature_group_f86bbf6bce0266342351a5e1c1ca2e28);
+        
+    
+            var icon_b742681b9a593a34ffca2f43e7450edb = L.AwesomeMarkers.icon(
+                {
+  "markerColor": "blue",
+  "iconColor": "white",
+  "icon": "info-sign",
+  "prefix": "glyphicon",
+  "extraClasses": "fa-rotate-0",
+}
+            );
+        
+    
+        var popup_c262215c27812489085a2c507e06e64a = L.popup({
+  "maxWidth": "100%",
+});
+
+        
+            
+                var html_982dad9b9b782a376755b16c0cfb9ec5 = $(`<div id="html_982dad9b9b782a376755b16c0cfb9ec5" style="width: 100.0%; height: 100.0%;">CANDIDATE: Nofoali‘i</div>`)[0];
+                popup_c262215c27812489085a2c507e06e64a.setContent(html_982dad9b9b782a376755b16c0cfb9ec5);
+            
+        
+
+        marker_f0b93cb6214518656114511731ec38e6.bindPopup(popup_c262215c27812489085a2c507e06e64a)
+        ;
+
+        
+    
+    
+                marker_f0b93cb6214518656114511731ec38e6.setIcon(icon_b742681b9a593a34ffca2f43e7450edb);
+            
+    
+            var marker_dc5f478be17a091dc4f127051a72275a = L.marker(
+                [-13.45132, -172.40177],
+                {
+}
+            ).addTo(feature_group_f86bbf6bce0266342351a5e1c1ca2e28);
+        
+    
+            var icon_c0a28f443512b527e6c24f2cc84f8eff = L.AwesomeMarkers.icon(
+                {
+  "markerColor": "blue",
+  "iconColor": "white",
+  "icon": "info-sign",
+  "prefix": "glyphicon",
+  "extraClasses": "fa-rotate-0",
+}
+            );
+        
+    
+        var popup_93a30d7714895f34c7b5d9e625877b2f = L.popup({
+  "maxWidth": "100%",
+});
+
+        
+            
+                var html_0b64cab6f852d5c5680b8e784c473631 = $(`<div id="html_0b64cab6f852d5c5680b8e784c473631" style="width: 100.0%; height: 100.0%;">CANDIDATE: Safotu</div>`)[0];
+                popup_93a30d7714895f34c7b5d9e625877b2f.setContent(html_0b64cab6f852d5c5680b8e784c473631);
+            
+        
+
+        marker_dc5f478be17a091dc4f127051a72275a.bindPopup(popup_93a30d7714895f34c7b5d9e625877b2f)
+        ;
+
+        
+    
+    
+                marker_dc5f478be17a091dc4f127051a72275a.setIcon(icon_c0a28f443512b527e6c24f2cc84f8eff);
+            
+    
+            var marker_21ef667d0102a8aa6f61324365c3ad50 = L.marker(
+                [-13.93375, -171.53122],
+                {
+}
+            ).addTo(feature_group_f86bbf6bce0266342351a5e1c1ca2e28);
+        
+    
+            var icon_3ab20d8d4cb8c5cc11024988528af82d = L.AwesomeMarkers.icon(
+                {
+  "markerColor": "blue",
+  "iconColor": "white",
+  "icon": "info-sign",
+  "prefix": "glyphicon",
+  "extraClasses": "fa-rotate-0",
+}
+            );
+        
+    
+        var popup_a5f63cde463f419cc14334546a0c5161 = L.popup({
+  "maxWidth": "100%",
+});
+
+        
+            
+                var html_256419141c2f0985243fbc059e8a8883 = $(`<div id="html_256419141c2f0985243fbc059e8a8883" style="width: 100.0%; height: 100.0%;">CANDIDATE: Samamea</div>`)[0];
+                popup_a5f63cde463f419cc14334546a0c5161.setContent(html_256419141c2f0985243fbc059e8a8883);
+            
+        
+
+        marker_21ef667d0102a8aa6f61324365c3ad50.bindPopup(popup_a5f63cde463f419cc14334546a0c5161)
+        ;
+
+        
+    
+    
+                marker_21ef667d0102a8aa6f61324365c3ad50.setIcon(icon_3ab20d8d4cb8c5cc11024988528af82d);
+            
+    
+            var marker_79e1f943870429d94db796e2adba4370 = L.marker(
+                [-13.83535, -171.97963],
+                {
+}
+            ).addTo(feature_group_f86bbf6bce0266342351a5e1c1ca2e28);
+        
+    
+            var icon_d95326c644d72f930d8f222c1a4d7d6a = L.AwesomeMarkers.icon(
+                {
+  "markerColor": "blue",
+  "iconColor": "white",
+  "icon": "info-sign",
+  "prefix": "glyphicon",
+  "extraClasses": "fa-rotate-0",
+}
+            );
+        
+    
+        var popup_16744d39a5f0b4e2bae10ab52b738f59 = L.popup({
+  "maxWidth": "100%",
+});
+
+        
+            
+                var html_5d5111666f1e3d49393658562b68128a = $(`<div id="html_5d5111666f1e3d49393658562b68128a" style="width: 100.0%; height: 100.0%;">CANDIDATE: Satapuala</div>`)[0];
+                popup_16744d39a5f0b4e2bae10ab52b738f59.setContent(html_5d5111666f1e3d49393658562b68128a);
+            
+        
+
+        marker_79e1f943870429d94db796e2adba4370.bindPopup(popup_16744d39a5f0b4e2bae10ab52b738f59)
+        ;
+
+        
+    
+    
+                marker_79e1f943870429d94db796e2adba4370.setIcon(icon_d95326c644d72f930d8f222c1a4d7d6a);
+            
+    
+            var marker_5c38fe98a551a2116620d5c2d3d69537 = L.marker(
+                [-13.87504, -171.64181],
+                {
+}
+            ).addTo(feature_group_f86bbf6bce0266342351a5e1c1ca2e28);
+        
+    
+            var icon_900261589ce5e72d673f106d47a747a2 = L.AwesomeMarkers.icon(
+                {
+  "markerColor": "blue",
+  "iconColor": "white",
+  "icon": "info-sign",
+  "prefix": "glyphicon",
+  "extraClasses": "fa-rotate-0",
+}
+            );
+        
+    
+        var popup_691ee5036460c729231340f45e6ccf0f = L.popup({
+  "maxWidth": "100%",
+});
+
+        
+            
+                var html_12587eb7f824a9cff4a1d7959cfbfa0d = $(`<div id="html_12587eb7f824a9cff4a1d7959cfbfa0d" style="width: 100.0%; height: 100.0%;">CANDIDATE: Solosolo</div>`)[0];
+                popup_691ee5036460c729231340f45e6ccf0f.setContent(html_12587eb7f824a9cff4a1d7959cfbfa0d);
+            
+        
+
+        marker_5c38fe98a551a2116620d5c2d3d69537.bindPopup(popup_691ee5036460c729231340f45e6ccf0f)
+        ;
+
+        
+    
+    
+                marker_5c38fe98a551a2116620d5c2d3d69537.setIcon(icon_900261589ce5e72d673f106d47a747a2);
+            
+    
+            var marker_5280651101df5fd39de84572eeee3369 = L.marker(
+                [-13.86417, -171.76126],
+                {
+}
+            ).addTo(feature_group_f86bbf6bce0266342351a5e1c1ca2e28);
+        
+    
+            var icon_4380338a40ddaf8f699204fd534d5f87 = L.AwesomeMarkers.icon(
+                {
+  "markerColor": "blue",
+  "iconColor": "white",
+  "icon": "info-sign",
+  "prefix": "glyphicon",
+  "extraClasses": "fa-rotate-0",
+}
+            );
+        
+    
+        var popup_063c66c958f4bfc145f4cc419c9f6f16 = L.popup({
+  "maxWidth": "100%",
+});
+
+        
+            
+                var html_3b4e6d5cdd6287fb99b2bddfbe3c5040 = $(`<div id="html_3b4e6d5cdd6287fb99b2bddfbe3c5040" style="width: 100.0%; height: 100.0%;">CANDIDATE: Vailima</div>`)[0];
+                popup_063c66c958f4bfc145f4cc419c9f6f16.setContent(html_3b4e6d5cdd6287fb99b2bddfbe3c5040);
+            
+        
+
+        marker_5280651101df5fd39de84572eeee3369.bindPopup(popup_063c66c958f4bfc145f4cc419c9f6f16)
+        ;
+
+        
+    
+    
+                marker_5280651101df5fd39de84572eeee3369.setIcon(icon_4380338a40ddaf8f699204fd534d5f87);
+            
+    
+            var marker_38f303f4bb8ebf30833b6b7d6b9ddf80 = L.marker(
+                [-13.75551, -172.30698],
+                {
+}
+            ).addTo(feature_group_f86bbf6bce0266342351a5e1c1ca2e28);
+        
+    
+            var icon_a69e96c1afc1782f480b1199fb60a09a = L.AwesomeMarkers.icon(
+                {
+  "markerColor": "blue",
+  "iconColor": "white",
+  "icon": "info-sign",
+  "prefix": "glyphicon",
+  "extraClasses": "fa-rotate-0",
+}
+            );
+        
+    
+        var popup_dd3f35e5dd9d71e0b926d6a943e0e1c6 = L.popup({
+  "maxWidth": "100%",
+});
+
+        
+            
+                var html_d2b90a6a265c49ccd9f00f0518830949 = $(`<div id="html_d2b90a6a265c49ccd9f00f0518830949" style="width: 100.0%; height: 100.0%;">CANDIDATE: Vailoa</div>`)[0];
+                popup_dd3f35e5dd9d71e0b926d6a943e0e1c6.setContent(html_d2b90a6a265c49ccd9f00f0518830949);
+            
+        
+
+        marker_38f303f4bb8ebf30833b6b7d6b9ddf80.bindPopup(popup_dd3f35e5dd9d71e0b926d6a943e0e1c6)
+        ;
+
+        
+    
+    
+                marker_38f303f4bb8ebf30833b6b7d6b9ddf80.setIcon(icon_a69e96c1afc1782f480b1199fb60a09a);
+            
+    
+            var marker_2c6bd34da2613174d676c67ce6128583 = L.marker(
+                [-13.82678, -171.79333],
+                {
+}
+            ).addTo(feature_group_f86bbf6bce0266342351a5e1c1ca2e28);
+        
+    
+            var icon_72c5c5bdf1b3af929ab3713e6e6d1025 = L.AwesomeMarkers.icon(
+                {
+  "markerColor": "blue",
+  "iconColor": "white",
+  "icon": "info-sign",
+  "prefix": "glyphicon",
+  "extraClasses": "fa-rotate-0",
+}
+            );
+        
+    
+        var popup_c11a14291eb7dee0c7eb4fa56cad235e = L.popup({
+  "maxWidth": "100%",
+});
+
+        
+            
+                var html_b3b0c130df207f61816fca5f3874f309 = $(`<div id="html_b3b0c130df207f61816fca5f3874f309" style="width: 100.0%; height: 100.0%;">CANDIDATE: Vaiusu</div>`)[0];
+                popup_c11a14291eb7dee0c7eb4fa56cad235e.setContent(html_b3b0c130df207f61816fca5f3874f309);
+            
+        
+
+        marker_2c6bd34da2613174d676c67ce6128583.bindPopup(popup_c11a14291eb7dee0c7eb4fa56cad235e)
+        ;
+
+        
+    
+    
+                marker_2c6bd34da2613174d676c67ce6128583.setIcon(icon_72c5c5bdf1b3af929ab3713e6e6d1025);
+            
+    
+            feature_group_f86bbf6bce0266342351a5e1c1ca2e28.addTo(map_fa72d0f37dafdc7899fd20568ec46c8c);
+        
+    
+            var layer_control_c26d5a9c3cbf3f42e9ee6b2384be4bde_layers = {
+                base_layers : {
+                    "openstreetmap" : tile_layer_20a54573bb180da008c6bfc16ca36a8b,
+                },
+                overlays :  {
+                    "Anchors (UTC+14:00)" : feature_group_db58d3b05fd6ea83a909caa13702930f,
+                    "Candidates (UTC+14:00)" : feature_group_f86bbf6bce0266342351a5e1c1ca2e28,
+                },
+            };
+            let layer_control_c26d5a9c3cbf3f42e9ee6b2384be4bde = L.control.layers(
+                layer_control_c26d5a9c3cbf3f42e9ee6b2384be4bde_layers.base_layers,
+                layer_control_c26d5a9c3cbf3f42e9ee6b2384be4bde_layers.overlays,
+                {
+  "position": "topright",
+  "collapsed": true,
+  "autoZIndex": true,
+}
+            ).addTo(map_fa72d0f37dafdc7899fd20568ec46c8c);
+
+        
+</script>
+</html>
