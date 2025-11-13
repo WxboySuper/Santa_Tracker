@@ -945,8 +945,7 @@ def apply_trial_route():
         save_santa_route_to_json(trial_locations)
 
         message = (
-            f"Trial route applied as main route "
-            f"({len(trial_locations)} locations)"
+            f"Trial route applied as main route " f"({len(trial_locations)} locations)"
         )
         return (
             jsonify({"success": True, "message": message}),
