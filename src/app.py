@@ -674,7 +674,7 @@ def _get_stop_duration(location):
         return 0
     elif location.priority in [1, 2]:
         return 5
-    
+
     # Default for locations without priority
     return 5
 
