@@ -180,11 +180,11 @@
             
             <label for="speedMultiplier">Speed:</label>
             <select id="speedMultiplier">
-                <option value="1">1x (Real-time)</option>
-                <option value="60" selected>60x (1 hour per minute)</option>
-                <option value="120">120x (2 hours per minute)</option>
-                <option value="300">300x (5 hours per minute)</option>
-                <option value="600">600x (10 hours per minute)</option>
+                <option value="1">1x (Slowest - Watch every stop)</option>
+                <option value="60" selected>60x (Recommended - Smooth preview)</option>
+                <option value="120">120x (Fast preview)</option>
+                <option value="300">300x (Very fast)</option>
+                <option value="600">600x (Ultra fast)</option>
             </select>
             
             <button class="btn btn-primary" onclick="runSimulation()">▶️ Run Simulation</button>
@@ -520,10 +520,17 @@
 
         // Main simulation update function
         function updateSimulation() {
-            const speed = parseInt(document.getElementById('speedMultiplier').value);
+            const speedMultiplier = parseInt(document.getElementById('speedMultiplier').value);
+            
+            // Apply fantasy speed: multiply by an additional base speed factor
+            // This makes travel visible but not too slow
+            // Base speed of 120x means even at "1x" setting, it runs at 2 hours per minute (enjoyable pace)
+            const baseFantasySpeed = 120;
+            const effectiveSpeed = speedMultiplier * baseFantasySpeed;
+            
             const now = Date.now();
             const realTimeDelta = now - lastUpdateTime; // milliseconds passed in real time
-            const simTimeDelta = realTimeDelta * speed; // milliseconds to advance in simulation
+            const simTimeDelta = realTimeDelta * effectiveSpeed; // milliseconds to advance in simulation
             
             lastUpdateTime = now;
             currentSimulationTime = new Date(currentSimulationTime.getTime() + simTimeDelta);
