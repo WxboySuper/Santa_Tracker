@@ -1,6 +1,7 @@
-import folium
 import json
 import os
+
+import folium
 
 # --- 1. CONFIGURATION ---
 
