@@ -142,7 +142,7 @@ class TestRouteSaving(unittest.TestCase):
             self.assertEqual(len(data["route"]), 1)
 
             saved_loc = data["route"][0]
-            self.assertEqual(saved_loc["location"], "Test City")
+            self.assertEqual(saved_loc["name"], "Test City")
             self.assertEqual(saved_loc["latitude"], 40.0)
             self.assertEqual(saved_loc["longitude"], -74.0)
             self.assertEqual(saved_loc["utc_offset"], -5.0)
@@ -151,7 +151,8 @@ class TestRouteSaving(unittest.TestCase):
             self.assertEqual(saved_loc["stop_duration"], 30)
             self.assertTrue(saved_loc["is_stop"])
             self.assertEqual(saved_loc["priority"], 1)
-            self.assertEqual(saved_loc["fun_facts"], "Test fact")
+            # Should be saved as 'notes' in new schema
+            self.assertEqual(saved_loc["notes"], "Test fact")
         finally:
             os.unlink(temp_file)
 
@@ -176,14 +177,16 @@ class TestRouteSaving(unittest.TestCase):
                 data = json.load(f)
 
             saved_loc = data["route"][0]
-            self.assertEqual(saved_loc["location"], "Minimal City")
+            self.assertEqual(saved_loc["name"], "Minimal City")
             self.assertTrue(saved_loc["is_stop"])
             # Optional fields should not be in the JSON if None
             self.assertNotIn("arrival_time", saved_loc)
             self.assertNotIn("departure_time", saved_loc)
             self.assertNotIn("stop_duration", saved_loc)
             self.assertNotIn("priority", saved_loc)
-            self.assertNotIn("fun_facts", saved_loc)
+            self.assertNotIn("notes", saved_loc)
+            self.assertNotIn("country", saved_loc)
+            self.assertNotIn("population", saved_loc)
         finally:
             os.unlink(temp_file)
 

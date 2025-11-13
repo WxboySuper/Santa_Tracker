@@ -7,7 +7,6 @@ import unittest
 
 from src.utils.locations import (
     Location,
-    get_santa_locations,
     load_santa_route_from_json,
     update_santa_location,
 )
@@ -130,45 +129,6 @@ class TestLocation(unittest.TestCase):
             name="West", latitude=0.0, longitude=-180.0, utc_offset=-12.0
         )
         self.assertEqual(location4.longitude, -180.0)
-
-
-class TestGetSantaLocations(unittest.TestCase):
-    """Test cases for get_santa_locations function."""
-
-    def test_get_santa_locations_returns_list(self):
-        """Test that get_santa_locations returns a list."""
-        locations = get_santa_locations()
-        self.assertIsInstance(locations, list)
-
-    def test_get_santa_locations_returns_location_objects(self):
-        """Test that get_santa_locations returns Location objects."""
-        locations = get_santa_locations()
-        self.assertGreater(len(locations), 0)
-        for location in locations:
-            self.assertIsInstance(location, Location)
-
-    def test_get_santa_locations_includes_required_fields(self):
-        """Test that all locations have required fields."""
-        locations = get_santa_locations()
-        for location in locations:
-            self.assertIsNotNone(location.name)
-            self.assertIsNotNone(location.latitude)
-            self.assertIsNotNone(location.longitude)
-            self.assertIsNotNone(location.utc_offset)
-
-    def test_get_santa_locations_includes_new_fields(self):
-        """Test that locations include new optional fields."""
-        locations = get_santa_locations()
-        # At least some locations should have the new fields populated
-        has_arrival_time = any(loc.arrival_time is not None for loc in locations)
-        has_fun_facts = any(loc.fun_facts is not None for loc in locations)
-        has_priority = any(loc.priority is not None for loc in locations)
-
-        self.assertTrue(
-            has_arrival_time, "Expected some locations to have arrival_time"
-        )
-        self.assertTrue(has_fun_facts, "Expected some locations to have fun_facts")
-        self.assertTrue(has_priority, "Expected some locations to have priority")
 
 
 class TestUpdateSantaLocation(unittest.TestCase):
