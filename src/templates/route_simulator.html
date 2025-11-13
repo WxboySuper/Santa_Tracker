@@ -298,6 +298,11 @@
         let currentLocationIndex = 0;
         let simulationInterval;
         let isPaused = false;
+        let isAtStop = false; // Track if Santa is currently at a stop
+        let stopStartTime = null; // When the current stop started
+        let travelStartTime = null; // When travel to current location started
+        let currentSimulationTime = null; // Current simulation time
+        let simulationStartRealTime = null; // Real-world time when simulation started
         let santaMarker;
         let routeLine;
         let markers = [];

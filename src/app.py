@@ -667,7 +667,16 @@ def _get_stop_duration(location):
     if location.name == "North Pole":
         return 60
 
-    return 30
+    # Priority-based stop duration
+    # Priority 1-2: 5 minute stops
+    # Priority 3: Touch and go (0 minutes)
+    if location.priority == 3:
+        return 0
+    elif location.priority in [1, 2]:
+        return 5
+    
+    # Default for locations without priority
+    return 5
 
 
 def _build_simulated_location(location, arrival_time, stop_duration):
