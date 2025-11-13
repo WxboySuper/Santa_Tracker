@@ -21,8 +21,12 @@ from utils.advent import (  # noqa: E402
 )
 from utils.locations import (  # noqa: E402
     Location,
+    delete_trial_route,
+    has_trial_route,
     load_santa_route_from_json,
+    load_trial_route_from_json,
     save_santa_route_to_json,
+    save_trial_route_to_json,
     validate_locations,
 )
 
@@ -793,6 +797,185 @@ def simulate_route():
         return jsonify({"error": "Route data not found"}), 404
     except Exception as e:
         logger.exception("Error simulating route: %s", str(e))
+        return jsonify({"error": "Internal server error"}), 500
+
+
+@app.route("/api/admin/route/trial", methods=["GET", "POST", "DELETE"])
+@require_admin_auth
+def manage_trial_route():
+    """
+    Manage trial route for testing.
+    GET: Check if trial route exists and return status
+    POST: Upload a trial route from JSON data
+    DELETE: Delete the trial route
+    """
+    try:
+        if request.method == "GET":
+            # Check if trial route exists
+            exists = has_trial_route()
+            if exists:
+                trial_locations = load_trial_route_from_json()
+                return jsonify({
+                    "exists": True,
+                    "location_count": len(trial_locations) if trial_locations else 0
+                }), 200
+            else:
+                return jsonify({"exists": False, "location_count": 0}), 200
+        
+        elif request.method == "POST":
+            # Upload trial route
+            data = request.get_json(force=True, silent=True)
+            if not data or "route" not in data:
+                return jsonify({"error": "Route data required"}), 400
+            
+            # Parse locations from JSON
+            locations = []
+            for loc_data in data["route"]:
+                try:
+                    location = Location(
+                        name=loc_data.get("location", loc_data.get("name")),
+                        latitude=loc_data["latitude"],
+                        longitude=loc_data["longitude"],
+                        utc_offset=loc_data["utc_offset"],
+                        arrival_time=loc_data.get("arrival_time"),
+                        departure_time=loc_data.get("departure_time"),
+                        stop_duration=loc_data.get("stop_duration"),
+                        is_stop=loc_data.get("is_stop", True),
+                        priority=loc_data.get("priority"),
+                        fun_facts=loc_data.get("fun_facts"),
+                    )
+                    locations.append(location)
+                except (KeyError, ValueError) as e:
+                    return jsonify({"error": f"Invalid location data: {str(e)}"}), 400
+            
+            # Validate the trial route
+            validation_result = validate_locations(locations)
+            if validation_result["errors"]:
+                return jsonify({
+                    "error": "Validation failed",
+                    "errors": validation_result["errors"],
+                    "warnings": validation_result["warnings"]
+                }), 400
+            
+            # Save trial route
+            save_trial_route_to_json(locations)
+            
+            return jsonify({
+                "success": True,
+                "message": f"Trial route uploaded with {len(locations)} locations",
+                "location_count": len(locations),
+                "warnings": validation_result["warnings"]
+            }), 200
+        
+        elif request.method == "DELETE":
+            # Delete trial route
+            deleted = delete_trial_route()
+            if deleted:
+                return jsonify({
+                    "success": True,
+                    "message": "Trial route deleted"
+                }), 200
+            else:
+                return jsonify({
+                    "success": False,
+                    "message": "No trial route to delete"
+                }), 404
+    
+    except FileNotFoundError:
+        return jsonify({"error": "Route file not found"}), 404
+    except Exception as e:
+        logger.exception("Error managing trial route: %s", str(e))
+        return jsonify({"error": "Internal server error"}), 500
+
+
+@app.route("/api/admin/route/trial/apply", methods=["POST"])
+@require_admin_auth
+def apply_trial_route():
+    """
+    Apply the trial route as the main route.
+    This copies the trial route to the main route file.
+    """
+    try:
+        # Check if trial route exists
+        if not has_trial_route():
+            return jsonify({"error": "No trial route to apply"}), 404
+        
+        # Load trial route
+        trial_locations = load_trial_route_from_json()
+        if not trial_locations:
+            return jsonify({"error": "Trial route is empty"}), 400
+        
+        # Save as main route
+        save_santa_route_to_json(trial_locations)
+        
+        return jsonify({
+            "success": True,
+            "message": f"Trial route applied as main route ({len(trial_locations)} locations)"
+        }), 200
+    
+    except Exception as e:
+        logger.exception("Error applying trial route: %s", str(e))
+        return jsonify({"error": "Internal server error"}), 500
+
+
+@app.route("/api/admin/route/trial/simulate", methods=["POST"])
+@require_admin_auth
+def simulate_trial_route():
+    """
+    Simulate the trial route instead of the main route.
+    Accepts optional start time parameter.
+    """
+    try:
+        # Check if trial route exists
+        if not has_trial_route():
+            return jsonify({"error": "No trial route to simulate"}), 404
+        
+        data = request.get_json(force=True, silent=True) or {}
+
+        # Load trial locations
+        all_locations = load_trial_route_from_json()
+        if not all_locations:
+            return jsonify({"error": "Trial route is empty"}), 400
+
+        # Parse start time
+        start_time, error = _parse_simulation_start_time(data.get("start_time"))
+        if error:
+            return error
+
+        # Filter locations by IDs if provided
+        locations, error = _filter_locations_by_ids(
+            all_locations, data.get("location_ids")
+        )
+        if error:
+            return error
+
+        # Sort locations by UTC offset (descending) to follow time zones
+        sorted_locations = sorted(
+            locations, key=lambda loc: (-loc.utc_offset, loc.priority or 2)
+        )
+
+        # Simulate the route timing
+        simulated_route = _simulate_route_timing(sorted_locations, start_time)
+
+        # Calculate end time for summary (current_time after all stops)
+        final_stop_time = start_time + timedelta(
+            minutes=sum(loc["stop_duration"] for loc in simulated_route)
+            + (len(simulated_route) * 10)
+        )
+
+        # Build response
+        summary = _calculate_route_summary(simulated_route, start_time, final_stop_time)
+
+        return jsonify({
+            "simulated_route": simulated_route,
+            "summary": summary,
+            "is_trial": True
+        }), 200
+
+    except FileNotFoundError:
+        return jsonify({"error": "Trial route not found"}), 404
+    except Exception as e:
+        logger.exception("Error simulating trial route: %s", str(e))
         return jsonify({"error": "Internal server error"}), 500
 
 
