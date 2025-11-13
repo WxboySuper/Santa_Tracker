@@ -298,15 +298,19 @@
         let currentLocationIndex = 0;
         let simulationInterval;
         let isPaused = false;
-        let isAtStop = false; // Track if Santa is currently at a stop
-        let stopStartTime = null; // When the current stop started
-        let travelStartTime = null; // When travel to current location started
-        let currentSimulationTime = null; // Current simulation time
-        let simulationStartRealTime = null; // Real-world time when simulation started
         let santaMarker;
         let routeLine;
         let markers = [];
         let visitedMarkers = [];
+        
+        // New simulation timing variables
+        let simulationState = 'stopped'; // 'stopped', 'traveling', 'at_stop'
+        let currentSimulationTime = null; // Current time in simulation (Date object)
+        let simulationStartRealTime = null; // Real-world time when sim started (Date.now())
+        let lastUpdateTime = null; // Last real-world time we updated (Date.now())
+        let currentTargetLocation = null; // Location we're traveling to or at
+        let travelStartLocation = null; // Where we're traveling from
+        let travelProgress = 0; // 0-1 for interpolation during travel
 
         // Initialize map
         function initMap() {
@@ -343,6 +347,7 @@
         // Load simulated route from API
         async function loadSimulatedRoute() {
             const startTime = document.getElementById('startTime').value + ':00Z';
+            const routeType = document.getElementById('routeSelector').value;
             
             // Get admin auth token from session storage (set by admin dashboard)
             const adminAuthToken = sessionStorage.getItem('adminAuthToken');
@@ -355,7 +360,11 @@
             }
             
             try {
-                const response = await fetch('/api/admin/route/simulate', {
+                const endpoint = routeType === 'trial' 
+                    ? '/api/admin/route/trial/simulate' 
+                    : '/api/admin/route/simulate';
+                    
+                const response = await fetch(endpoint, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -372,6 +381,10 @@
                         }, 2000);
                         return false;
                     }
+                    if (response.status === 404 && routeType === 'trial') {
+                        showAlert('No trial route found. Please upload a trial route first.', 'error');
+                        return false;
+                    }
                     throw new Error('Failed to load route simulation');
                 }
 
@@ -379,7 +392,8 @@
                 simulatedRoute = data.simulated_route;
                 
                 // Update summary
-                document.getElementById('totalLocations').textContent = data.summary.total_locations;
+                const routeLabel = data.is_trial ? ' (Trial)' : '';
+                document.getElementById('totalLocations').textContent = data.summary.total_locations + routeLabel;
                 document.getElementById('routeStartTime').textContent = new Date(data.summary.start_time).toLocaleString();
                 document.getElementById('routeEndTime').textContent = new Date(data.summary.end_time).toLocaleString();
                 
@@ -391,7 +405,8 @@
                 drawRoute();
                 updateUpcomingLocations();
                 
-                showAlert('Route loaded successfully! Ready to simulate.', 'success');
+                const routeTypeLabel = routeType === 'trial' ? 'Trial route' : 'Route';
+                showAlert(`${routeTypeLabel} loaded successfully! Ready to simulate.`, 'success');
                 return true;
             } catch (error) {
                 showAlert('Error loading route: ' + error.message, 'error');
@@ -463,50 +478,164 @@
             }
 
             if (isPaused) {
+                // Resume from pause
                 isPaused = false;
+                simulationStartRealTime = Date.now() - (currentSimulationTime - new Date(simulatedRoute[0].arrival_time).getTime());
+                lastUpdateTime = Date.now();
                 showAlert('Simulation resumed', 'success');
             } else {
+                // Start fresh simulation
                 currentLocationIndex = 0;
+                simulationState = 'traveling';
+                currentSimulationTime = new Date(simulatedRoute[0].arrival_time);
+                simulationStartRealTime = Date.now();
+                lastUpdateTime = Date.now();
+                travelStartLocation = {
+                    latitude: simulatedRoute[0].latitude,
+                    longitude: simulatedRoute[0].longitude
+                };
+                currentTargetLocation = simulatedRoute[0];
+                travelProgress = 0;
+                
+                // Reset all markers to default color
+                markers.forEach(marker => {
+                    marker.setStyle({
+                        fillColor: '#3498db',
+                        color: '#2980b9'
+                    });
+                });
+                
                 showAlert('Starting simulation...', 'success');
             }
 
             document.getElementById('simulationStatus').style.display = 'block';
             
-            const speed = parseInt(document.getElementById('speedMultiplier').value);
-            const intervalTime = 1000 / speed; // Update every second divided by speed multiplier
-
+            // Update at 30 FPS for smooth animation
+            const updateInterval = 1000 / 30; // 33.3ms per frame
+            
             simulationInterval = setInterval(() => {
-                if (currentLocationIndex >= simulatedRoute.length) {
-                    stopSimulation();
-                    showAlert('Simulation completed!', 'success');
-                    return;
-                }
+                updateSimulation();
+            }, updateInterval);
+        }
 
-                const currentLoc = simulatedRoute[currentLocationIndex];
+        // Main simulation update function
+        function updateSimulation() {
+            const speed = parseInt(document.getElementById('speedMultiplier').value);
+            const now = Date.now();
+            const realTimeDelta = now - lastUpdateTime; // milliseconds passed in real time
+            const simTimeDelta = realTimeDelta * speed; // milliseconds to advance in simulation
+            
+            lastUpdateTime = now;
+            currentSimulationTime = new Date(currentSimulationTime.getTime() + simTimeDelta);
+            
+            // Check if simulation is complete
+            if (currentLocationIndex >= simulatedRoute.length) {
+                stopSimulation();
+                showAlert('Simulation completed!', 'success');
+                return;
+            }
+            
+            const currentLoc = simulatedRoute[currentLocationIndex];
+            const arrivalTime = new Date(currentLoc.arrival_time);
+            const departureTime = new Date(currentLoc.departure_time);
+            
+            // Determine current state
+            if (currentSimulationTime < arrivalTime) {
+                // Traveling to location
+                if (simulationState !== 'traveling') {
+                    simulationState = 'traveling';
+                    // Calculate travel start location
+                    if (currentLocationIndex > 0) {
+                        const prevLoc = simulatedRoute[currentLocationIndex - 1];
+                        travelStartLocation = {
+                            latitude: prevLoc.latitude,
+                            longitude: prevLoc.longitude
+                        };
+                    } else {
+                        travelStartLocation = {
+                            latitude: currentLoc.latitude,
+                            longitude: currentLoc.longitude
+                        };
+                    }
+                }
                 
-                // Update Santa position
-                santaMarker.setLatLng([currentLoc.latitude, currentLoc.longitude]);
+                // Calculate travel progress (0 to 1)
+                const travelStartTime = currentLocationIndex > 0 
+                    ? new Date(simulatedRoute[currentLocationIndex - 1].departure_time)
+                    : new Date(arrivalTime.getTime() - 10 * 60 * 1000); // 10 min before if first location
+                
+                const totalTravelTime = arrivalTime - travelStartTime;
+                const elapsedTravelTime = currentSimulationTime - travelStartTime;
+                travelProgress = Math.max(0, Math.min(1, elapsedTravelTime / totalTravelTime));
+                
+                // Interpolate Santa's position
+                const startLat = travelStartLocation.latitude;
+                const startLng = travelStartLocation.longitude;
+                const endLat = currentLoc.latitude;
+                const endLng = currentLoc.longitude;
+                
+                const currentLat = startLat + (endLat - startLat) * travelProgress;
+                const currentLng = startLng + (endLng - startLng) * travelProgress;
+                
+                santaMarker.setLatLng([currentLat, currentLng]);
                 santaMarker.setOpacity(1);
-                map.panTo([currentLoc.latitude, currentLoc.longitude]);
-
-                // Update marker color for visited location
-                if (markers[currentLocationIndex]) {
-                    markers[currentLocationIndex].setStyle({
-                        fillColor: '#27ae60',
-                        color: '#229954'
-                    });
-                }
-
+                map.panTo([currentLat, currentLng]);
+                
                 // Update status
-                document.getElementById('currentLocation').textContent = currentLoc.name;
+                document.getElementById('currentLocation').textContent = `Traveling to ${currentLoc.name}`;
+                document.getElementById('locationsVisited').textContent = currentLocationIndex;
+                
+            } else if (currentSimulationTime >= arrivalTime && currentSimulationTime < departureTime) {
+                // At stop
+                if (simulationState !== 'at_stop') {
+                    simulationState = 'at_stop';
+                    
+                    // Santa has arrived - update marker
+                    santaMarker.setLatLng([currentLoc.latitude, currentLoc.longitude]);
+                    santaMarker.setOpacity(1);
+                    map.panTo([currentLoc.latitude, currentLoc.longitude]);
+                    
+                    // Mark location as visited
+                    if (markers[currentLocationIndex]) {
+                        markers[currentLocationIndex].setStyle({
+                            fillColor: '#27ae60',
+                            color: '#229954'
+                        });
+                    }
+                }
+                
+                // Update status showing stop duration
+                const stopDuration = currentLoc.stop_duration || 0;
+                const timeAtStop = (currentSimulationTime - arrivalTime) / 1000 / 60; // minutes
+                const remainingStopTime = Math.max(0, stopDuration - timeAtStop);
+                
+                if (stopDuration > 0) {
+                    document.getElementById('currentLocation').textContent = 
+                        `At ${currentLoc.name} (${Math.ceil(remainingStopTime)} min remaining)`;
+                } else {
+                    document.getElementById('currentLocation').textContent = `At ${currentLoc.name} (Touch and go)`;
+                }
                 document.getElementById('locationsVisited').textContent = currentLocationIndex + 1;
-                document.getElementById('simulationTime').textContent = new Date(currentLoc.arrival_time).toLocaleString();
-                document.getElementById('progress').textContent = Math.round((currentLocationIndex + 1) / simulatedRoute.length * 100) + '%';
                 
-                updateUpcomingLocations();
-                
+            } else {
+                // Departed - move to next location
                 currentLocationIndex++;
-            }, intervalTime);
+                if (currentLocationIndex < simulatedRoute.length) {
+                    simulationState = 'traveling';
+                    travelStartLocation = {
+                        latitude: currentLoc.latitude,
+                        longitude: currentLoc.longitude
+                    };
+                    currentTargetLocation = simulatedRoute[currentLocationIndex];
+                }
+            }
+            
+            // Update common UI elements
+            document.getElementById('simulationTime').textContent = currentSimulationTime.toLocaleString();
+            document.getElementById('progress').textContent = 
+                Math.round((currentLocationIndex / simulatedRoute.length) * 100) + '%';
+            
+            updateUpcomingLocations();
         }
 
         // Pause simulation
@@ -533,6 +662,12 @@
         function resetSimulation() {
             stopSimulation();
             currentLocationIndex = 0;
+            simulationState = 'stopped';
+            currentSimulationTime = null;
+            simulationStartRealTime = null;
+            lastUpdateTime = null;
+            travelProgress = 0;
+            
             santaMarker.setOpacity(0);
             
             // Reset marker colors
@@ -542,6 +677,12 @@
                     color: '#2980b9'
                 });
             });
+            
+            // Reset status display
+            document.getElementById('currentLocation').textContent = '-';
+            document.getElementById('locationsVisited').textContent = '0';
+            document.getElementById('simulationTime').textContent = '-';
+            document.getElementById('progress').textContent = '0%';
             
             if (simulatedRoute.length > 0) {
                 map.fitBounds(routeLine.getBounds(), { padding: [50, 50] });
