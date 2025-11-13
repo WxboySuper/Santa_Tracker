@@ -25,6 +25,10 @@ from utils.locations import (  # noqa: E402
     save_santa_route_to_json,
     validate_locations,
 )
+from utils.route_simulator import (  # noqa: E402
+    get_route_summary,
+    simulate_route_at_time,
+)
 
 # Configure logging
 logging.basicConfig(
@@ -918,6 +922,79 @@ def import_advent_calendar():
     except FileNotFoundError:
         return jsonify({"error": "Advent calendar data file not found"}), 404
     except Exception:
+        return jsonify({"error": "Internal server error"}), 500
+
+
+# ============== ROUTE SIMULATOR API ENDPOINTS ==============
+
+
+@app.route("/api/admin/route/simulate", methods=["POST"])
+@require_admin_auth
+def simulate_route():
+    """
+    Simulate Santa's route at a specific date/time.
+
+    Request body should contain:
+    {
+        "simulation_time": "2024-12-24T12:00:00Z"  # ISO 8601 format
+    }
+    """
+    try:
+        data = request.get_json(force=True, silent=True)
+        if not data or "simulation_time" not in data:
+            return jsonify({"error": "simulation_time is required"}), 400
+
+        # Parse the simulation time
+        try:
+            sim_time_str = data["simulation_time"]
+            # Handle both Z suffix and +00:00 format
+            sim_time = datetime.fromisoformat(sim_time_str.replace('Z', '+00:00'))
+        except (ValueError, AttributeError):
+            return (
+                jsonify(
+                    {
+                        "error": "Invalid simulation_time format. "
+                                 "Use ISO 8601 format (e.g., 2024-12-24T12:00:00Z)"
+                    }
+                ),
+                400,
+            )
+
+        # Load the route
+        locations = load_santa_route_from_json()
+
+        # Run simulation
+        simulation_result = simulate_route_at_time(locations, sim_time)
+
+        return jsonify(simulation_result), 200
+
+    except FileNotFoundError:
+        return jsonify({"error": "Route data not found"}), 404
+    except Exception:
+        logger.exception("Error simulating route")
+        return jsonify({"error": "Internal server error"}), 500
+
+
+@app.route("/api/admin/route/summary", methods=["GET"])
+@require_admin_auth
+def route_summary():
+    """
+    Get a summary of the route for simulation purposes.
+
+    Returns information about:
+    - Total locations
+    - Locations with valid times
+    - Start and end times of the route
+    """
+    try:
+        locations = load_santa_route_from_json()
+        summary = get_route_summary(locations)
+        return jsonify(summary), 200
+
+    except FileNotFoundError:
+        return jsonify({"error": "Route data not found"}), 404
+    except Exception:
+        logger.exception("Error getting route summary")
         return jsonify({"error": "Internal server error"}), 500
 
 
