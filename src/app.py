@@ -95,6 +95,12 @@ def advent():
     return render_template("advent.html")
 
 
+@app.route("/admin/route-simulator")
+def route_simulator():
+    """Admin-only visual route simulator for testing (auth checked in JavaScript)."""
+    return render_template("route_simulator.html")
+
+
 @app.route("/api/admin/login", methods=["POST"])
 def admin_login():
     """Admin login endpoint that returns a session token."""
