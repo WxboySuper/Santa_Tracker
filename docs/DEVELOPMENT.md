@@ -160,27 +160,6 @@ npm run lint
 npm install
 ```
 
-## 🏗️ Static Site Generation
-
-Generate a static version of the site for deployment to static hosts:
-
-```bash
-# Generate static files
-python src/generate_static.py
-
-# Output directory: dist/
-# Files generated:
-#   - index.html
-#   - All static assets
-#   - Pre-rendered content
-```
-
-### Use Cases
-- Deploy to GitHub Pages
-- Deploy to Netlify/Vercel
-- CDN hosting
-- Offline usage
-
 ## 🔧 Development Tools
 
 ### Virtual Environment

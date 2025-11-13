@@ -175,6 +175,66 @@ def update_santa_location(location):
     print(f"Santa's current location updated to: {location_name}")
 
 
+def load_trial_route_from_json():
+    """
+    Load trial route from JSON file.
+    Trial routes are temporary test routes that don't affect the main route.
+
+    Returns:
+        List of Location objects representing the trial route,
+        or None if no trial route exists.
+    """
+    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    trial_route_path = os.path.join(base_dir, "static", "data", "trial_route.json")
+
+    if not os.path.exists(trial_route_path):
+        return None
+
+    return load_santa_route_from_json(trial_route_path)
+
+
+def save_trial_route_to_json(locations):
+    """
+    Save trial route to JSON file.
+    Trial routes are temporary test routes that don't affect the main route.
+
+    Args:
+        locations: List of Location objects to save as trial route
+    """
+    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    trial_route_path = os.path.join(base_dir, "static", "data", "trial_route.json")
+
+    save_santa_route_to_json(locations, trial_route_path)
+
+
+def delete_trial_route():
+    """
+    Delete the trial route file if it exists.
+
+    Returns:
+        bool: True if trial route was deleted, False if it didn't exist
+    """
+    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    trial_route_path = os.path.join(base_dir, "static", "data", "trial_route.json")
+
+    if os.path.exists(trial_route_path):
+        os.remove(trial_route_path)
+        return True
+    return False
+
+
+def has_trial_route():
+    """
+    Check if a trial route exists.
+
+    Returns:
+        bool: True if trial route exists, False otherwise
+    """
+    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    trial_route_path = os.path.join(base_dir, "static", "data", "trial_route.json")
+    return os.path.exists(trial_route_path)
+
+
 def save_santa_route_to_json(locations, json_file_path=None):
     """
     Save Santa's route to a JSON file.

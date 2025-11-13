@@ -155,6 +155,15 @@
             background: #e0a800;
         }
 
+        .btn-info {
+            background: #17a2b8;
+            color: white;
+        }
+
+        .btn-info:hover {
+            background: #138496;
+        }
+
         .tab-navigation {
             background: white;
             border-radius: 10px;
@@ -461,6 +470,31 @@
                 <button class="btn btn-secondary" onclick="loadRouteStatus()">📊 View Route Status</button>
             </div>
 
+            <!-- Route Testing/Simulation Section -->
+            <div class="actions" style="margin-top: 20px;">
+                <h3 style="margin-bottom: 15px; color: #333;">Route Testing & Simulation</h3>
+                <button class="btn btn-info" onclick="showSimulateModal()">🧪 Simulate Route Data</button>
+                <button class="btn btn-primary" onclick="window.open('/admin/route-simulator', '_blank')">🗺️ Visual Route Simulator</button>
+                <button class="btn btn-secondary" onclick="clearSimulation()">🗑️ Clear Simulation</button>
+            </div>
+
+            <!-- Trial Route Management Section -->
+            <div class="actions" style="margin-top: 20px;">
+                <h3 style="margin-bottom: 15px; color: #333;">Trial Route Management</h3>
+                <button class="btn btn-success" onclick="showUploadTrialRouteModal()">📤 Upload Trial Route</button>
+                <button class="btn btn-info" onclick="simulateTrialRoute()">🧪 Simulate Trial Route</button>
+                <button class="btn btn-primary" onclick="applyTrialRoute()">✅ Apply Trial to Main</button>
+                <button class="btn btn-danger" onclick="deleteTrialRoute()">🗑️ Delete Trial Route</button>
+                <div id="trialRouteStatus" style="margin-top: 10px; font-size: 14px; color: #666;"></div>
+            </div>
+
+            <!-- Route Simulation Results -->
+            <div id="simulationContainer" class="locations-table-container" style="margin-top: 20px; display: none;">
+                <h2 style="margin-bottom: 15px; color: #333;">Simulation Results</h2>
+                <div id="simulationSummary" style="margin-bottom: 20px;"></div>
+                <div id="simulationContent"></div>
+            </div>
+
             <!-- Route Status Display -->
             <div id="routeStatusContainer" class="locations-table-container" style="margin-top: 20px; display: none;">
                 <h2 style="margin-bottom: 15px; color: #333;">Route Status</h2>
@@ -659,6 +693,54 @@
         </div>
     </div>
 
+    <!-- Route Simulation Modal -->
+    <div id="simulateModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Route Simulation</h2>
+                <button class="close-modal" onclick="closeSimulateModal()">&times;</button>
+            </div>
+            <div style="margin-bottom: 20px;">
+                <p style="color: #666; margin-bottom: 15px;">
+                    Test and preview Santa's route with different timing scenarios. 
+                    This will not modify the actual route data.
+                </p>
+                
+                <div class="form-group">
+                    <label for="simulateStartTime">Start Time (UTC)</label>
+                    <input type="datetime-local" id="simulateStartTime" placeholder="2024-12-24T00:00:00">
+                    <small style="color: #666; display: block; margin-top: 5px;">
+                        Leave empty to use default (Christmas Eve midnight UTC)
+                    </small>
+                </div>
+
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="useAllLocations" checked onchange="toggleLocationSelection()">
+                        Simulate all locations
+                    </label>
+                </div>
+
+                <div id="locationSelectionContainer" style="display: none;">
+                    <div class="form-group">
+                        <label for="selectedLocationIds">Select Locations (comma-separated IDs)</label>
+                        <input type="text" id="selectedLocationIds" placeholder="0,1,2,3">
+                        <small style="color: #666; display: block; margin-top: 5px;">
+                            Enter location IDs separated by commas (e.g., 0,1,2,3)
+                        </small>
+                    </div>
+                </div>
+
+                <div id="simulateErrors" style="display: none; margin-top: 15px;" class="alert alert-error"></div>
+            </div>
+            
+            <div>
+                <button class="btn btn-info" onclick="runSimulation()">🧪 Run Simulation</button>
+                <button class="btn btn-secondary" onclick="closeSimulateModal()">Cancel</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Advent Day Editor Modal -->
     <div id="adventDayModal" class="modal">
         <div class="modal-content">
@@ -834,6 +916,40 @@
         </div>
     </div>
 
+    <!-- Upload Trial Route Modal -->
+    <div id="uploadTrialRouteModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Upload Trial Route</h2>
+                <button class="close-modal" onclick="closeUploadTrialRouteModal()">&times;</button>
+            </div>
+            <div style="margin-bottom: 20px;">
+                <p style="color: #666; margin-bottom: 15px;">
+                    Upload a trial route for testing. This allows you to test routes before applying them to the main route.
+                    Trial routes can be simulated and validated without affecting the live route.
+                </p>
+                
+                <div class="form-group">
+                    <label for="trialRouteJson">Trial Route JSON</label>
+                    <textarea id="trialRouteJson" rows="15" placeholder="{&quot;route&quot;: [{&quot;location&quot;: &quot;...&quot;, &quot;latitude&quot;: ..., &quot;longitude&quot;: ..., &quot;utc_offset&quot;: ...}]}"></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="trialRouteFile">Or Upload JSON File</label>
+                    <input type="file" id="trialRouteFile" accept=".json" onchange="loadTrialRouteFile(event)">
+                </div>
+
+                <div id="trialRouteErrors" style="display: none; margin-top: 15px;" class="alert alert-error"></div>
+                <div id="trialRouteWarnings" style="display: none; margin-top: 15px;" class="alert alert-warning"></div>
+            </div>
+            
+            <div>
+                <button class="btn btn-success" onclick="uploadTrialRoute()">📤 Upload Trial Route</button>
+                <button class="btn btn-secondary" onclick="closeUploadTrialRouteModal()">Cancel</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         // Use sessionStorage for auth token to improve security
         // Note: For enhanced security in production, consider using httpOnly cookies
@@ -892,6 +1008,7 @@
                     document.getElementById('loginContainer').style.display = 'none';
                     document.getElementById('dashboard').classList.add('active');
                     loadLocations();
+                    checkTrialRouteStatus(); // Check trial route status on login
                 } else {
                     showLoginError('Invalid password');
                     setAuthToken(null);
@@ -1473,6 +1590,419 @@
                 showAlert('Backup exported successfully!', 'success');
             } catch (error) {
                 showAlert('Error exporting backup: ' + error.message, 'error');
+            }
+        }
+
+        // ============== ROUTE SIMULATION ==============
+        function showSimulateModal() {
+            document.getElementById('simulateModal').classList.add('active');
+            // Set default start time to Christmas Eve midnight UTC
+            const defaultTime = '2024-12-24T00:00';
+            document.getElementById('simulateStartTime').value = defaultTime;
+        }
+
+        function closeSimulateModal() {
+            document.getElementById('simulateModal').classList.remove('active');
+            document.getElementById('simulateStartTime').value = '';
+            document.getElementById('selectedLocationIds').value = '';
+            document.getElementById('useAllLocations').checked = true;
+            document.getElementById('locationSelectionContainer').style.display = 'none';
+            document.getElementById('simulateErrors').style.display = 'none';
+        }
+
+        function toggleLocationSelection() {
+            const useAll = document.getElementById('useAllLocations').checked;
+            const container = document.getElementById('locationSelectionContainer');
+            container.style.display = useAll ? 'none' : 'block';
+        }
+
+        async function runSimulation() {
+            try {
+                const startTime = document.getElementById('simulateStartTime').value;
+                const useAll = document.getElementById('useAllLocations').checked;
+                
+                const payload = {};
+                
+                // Add start time if provided
+                if (startTime) {
+                    payload.start_time = startTime + ':00Z';
+                }
+                
+                // Add location IDs if not using all
+                if (!useAll) {
+                    const idsString = document.getElementById('selectedLocationIds').value;
+                    if (idsString.trim()) {
+                        const ids = idsString.split(',').map(id => parseInt(id.trim())).filter(id => !isNaN(id));
+                        if (ids.length === 0) {
+                            throw new Error('Please enter valid location IDs');
+                        }
+                        payload.location_ids = ids;
+                    }
+                }
+                
+                const response = await fetch('/api/admin/route/simulate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${getAuthToken()}`
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || 'Failed to simulate route');
+                }
+
+                const data = await response.json();
+                
+                // Close modal and display results
+                closeSimulateModal();
+                displaySimulationResults(data);
+                showAlert('Route simulation completed successfully!', 'success');
+            } catch (error) {
+                document.getElementById('simulateErrors').textContent = error.message;
+                document.getElementById('simulateErrors').style.display = 'block';
+            }
+        }
+
+        function displaySimulationResults(data) {
+            const container = document.getElementById('simulationContainer');
+            const summaryDiv = document.getElementById('simulationSummary');
+            const contentDiv = document.getElementById('simulationContent');
+            
+            // Display summary
+            const summary = data.summary;
+            summaryDiv.innerHTML = `
+                <div style="background: #e8f5e9; padding: 15px; border-radius: 5px; margin-bottom: 15px;">
+                    <h3 style="margin-bottom: 10px; color: #2e7d32;">Simulation Summary</h3>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px;">
+                        <div><strong>Total Locations:</strong> ${summary.total_locations}</div>
+                        <div><strong>Start Time:</strong> ${new Date(summary.start_time).toUTCString()}</div>
+                        <div><strong>End Time:</strong> ${new Date(summary.end_time).toUTCString()}</div>
+                        <div><strong>Total Duration:</strong> ${Math.floor(summary.total_duration_minutes / 60)}h ${summary.total_duration_minutes % 60}m</div>
+                        <div><strong>Stop Time:</strong> ${Math.floor(summary.total_stop_time_minutes / 60)}h ${summary.total_stop_time_minutes % 60}m</div>
+                    </div>
+                </div>
+            `;
+            
+            // Display route table
+            let tableHTML = `
+                <table class="locations-table">
+                    <thead>
+                        <tr>
+                            <th>Location</th>
+                            <th>Arrival Time</th>
+                            <th>Departure Time</th>
+                            <th>Stop Duration</th>
+                            <th>UTC Offset</th>
+                            <th>Priority</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+            
+            data.simulated_route.forEach(loc => {
+                const arrivalLocal = new Date(loc.arrival_time).toLocaleString();
+                const departureLocal = new Date(loc.departure_time).toLocaleString();
+                tableHTML += `
+                    <tr>
+                        <td><strong>${loc.name}</strong></td>
+                        <td>${arrivalLocal}</td>
+                        <td>${departureLocal}</td>
+                        <td>${loc.stop_duration} min</td>
+                        <td>UTC ${loc.utc_offset > 0 ? '+' : ''}${loc.utc_offset}</td>
+                        <td>${loc.priority || '-'}</td>
+                    </tr>
+                `;
+            });
+            
+            tableHTML += `
+                    </tbody>
+                </table>
+            `;
+            
+            contentDiv.innerHTML = tableHTML;
+            container.style.display = 'block';
+            
+            // Scroll to results
+            container.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function clearSimulation() {
+            document.getElementById('simulationContainer').style.display = 'none';
+            document.getElementById('simulationSummary').innerHTML = '';
+            document.getElementById('simulationContent').innerHTML = '';
+            showAlert('Simulation results cleared', 'info');
+        }
+
+        // ============== TRIAL ROUTE MANAGEMENT ==============
+        async function checkTrialRouteStatus() {
+            try {
+                const response = await fetch('/api/admin/route/trial', {
+                    headers: {
+                        'Authorization': `Bearer ${getAuthToken()}`
+                    }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    const statusDiv = document.getElementById('trialRouteStatus');
+                    if (data.exists) {
+                        statusDiv.innerHTML = `✅ Trial route exists (${data.location_count} locations)`;
+                        statusDiv.style.color = '#27ae60';
+                    } else {
+                        statusDiv.innerHTML = '❌ No trial route uploaded';
+                        statusDiv.style.color = '#e74c3c';
+                    }
+                }
+            } catch (error) {
+                console.error('Error checking trial route status:', error);
+            }
+        }
+
+        function showUploadTrialRouteModal() {
+            document.getElementById('uploadTrialRouteModal').classList.add('active');
+            document.getElementById('trialRouteJson').value = '';
+            document.getElementById('trialRouteFile').value = '';
+            document.getElementById('trialRouteErrors').style.display = 'none';
+            document.getElementById('trialRouteWarnings').style.display = 'none';
+        }
+
+        function closeUploadTrialRouteModal() {
+            document.getElementById('uploadTrialRouteModal').classList.remove('active');
+        }
+
+        function loadTrialRouteFile(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    document.getElementById('trialRouteJson').value = e.target.result;
+                };
+                reader.readAsText(file);
+            }
+        }
+
+        async function uploadTrialRoute() {
+            const jsonText = document.getElementById('trialRouteJson').value.trim();
+            const errorsDiv = document.getElementById('trialRouteErrors');
+            const warningsDiv = document.getElementById('trialRouteWarnings');
+            
+            errorsDiv.style.display = 'none';
+            warningsDiv.style.display = 'none';
+
+            if (!jsonText) {
+                errorsDiv.textContent = 'Please provide JSON data or upload a file';
+                errorsDiv.style.display = 'block';
+                return;
+            }
+
+            try {
+                const data = JSON.parse(jsonText);
+                
+                const response = await fetch('/api/admin/route/trial', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${getAuthToken()}`
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    showAlert(result.message, 'success');
+                    if (result.warnings && result.warnings.length > 0) {
+                        // Clear previous content
+                        warningsDiv.innerHTML = '';
+                        const strong = document.createElement('strong');
+                        strong.textContent = 'Warnings:';
+                        warningsDiv.appendChild(strong);
+                        warningsDiv.appendChild(document.createElement('br'));
+                        result.warnings.forEach(warning => {
+                            const p = document.createElement('p');
+                            p.textContent = warning;
+                            warningsDiv.appendChild(p);
+                        });
+                        warningsDiv.style.display = 'block';
+                    }
+                    closeUploadTrialRouteModal();
+                    checkTrialRouteStatus();
+                } else {
+                    if (result.errors) {
+                        // Clear previous content
+                        errorsDiv.innerHTML = '';
+                        const strong = document.createElement('strong');
+                        strong.textContent = 'Errors:';
+                        errorsDiv.appendChild(strong);
+                        errorsDiv.appendChild(document.createElement('br'));
+                        result.errors.forEach((error, idx) => {
+                            const text = document.createTextNode(error);
+                            errorsDiv.appendChild(text);
+                            if (idx < result.errors.length - 1) {
+                                errorsDiv.appendChild(document.createElement('br'));
+                            }
+                        });
+                    } else {
+                        errorsDiv.textContent = result.error || 'Failed to upload trial route';
+                    }
+                    errorsDiv.style.display = 'block';
+                    
+                    if (result.warnings && result.warnings.length > 0) {
+                        // Clear previous content
+                        warningsDiv.innerHTML = '';
+                        const strong = document.createElement('strong');
+                        strong.textContent = 'Warnings:';
+                        warningsDiv.appendChild(strong);
+                        warningsDiv.appendChild(document.createElement('br'));
+                        result.warnings.forEach(warning => {
+                            const p = document.createElement('p');
+                            p.textContent = warning;
+                            warningsDiv.appendChild(p);
+                        });
+                        warningsDiv.style.display = 'block';
+                    }
+                }
+            } catch (error) {
+                errorsDiv.textContent = 'Invalid JSON: ' + error.message;
+                errorsDiv.style.display = 'block';
+            }
+        }
+
+        async function simulateTrialRoute() {
+            try {
+                const response = await fetch('/api/admin/route/trial/simulate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${getAuthToken()}`
+                    },
+                    body: JSON.stringify({})
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || 'Failed to simulate trial route');
+                }
+
+                const data = await response.json();
+                
+                // Display results with trial indicator
+                const container = document.getElementById('simulationContainer');
+                const summaryDiv = document.getElementById('simulationSummary');
+                const contentDiv = document.getElementById('simulationContent');
+                
+                const summary = data.summary;
+                summaryDiv.innerHTML = `
+                    <div class="alert alert-success">
+                        <strong>✅ Trial Route simulation completed successfully!</strong>
+                        <span style="background: #f39c12; color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px; margin-left: 10px;">TRIAL ROUTE</span>
+                    </div>
+                    <div class="simulation-summary" style="background: #fff3cd; padding: 15px; border-radius: 5px; margin-bottom: 20px;">
+                        <h3 style="margin-top: 0;">Simulation Summary</h3>
+                        <div><strong>Total Locations:</strong> ${summary.total_locations}</div>
+                        <div><strong>Start Time:</strong> ${new Date(summary.start_time).toUTCString()}</div>
+                        <div><strong>End Time:</strong> ${new Date(summary.end_time).toUTCString()}</div>
+                        <div><strong>Total Duration:</strong> ${Math.floor(summary.total_duration_minutes / 60)}h ${summary.total_duration_minutes % 60}m</div>
+                        <div><strong>Stop Time:</strong> ${Math.floor(summary.total_stop_time_minutes / 60)}h ${summary.total_stop_time_minutes % 60}m</div>
+                    </div>
+                `;
+                
+                let tableHTML = `
+                    <table class="locations-table">
+                        <thead>
+                            <tr>
+                                <th>Location</th>
+                                <th>Arrival Time</th>
+                                <th>Departure Time</th>
+                                <th>Stop Duration</th>
+                                <th>UTC Offset</th>
+                                <th>Priority</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                `;
+                
+                data.simulated_route.forEach(loc => {
+                    const arrivalLocal = new Date(loc.arrival_time).toLocaleString();
+                    const departureLocal = new Date(loc.departure_time).toLocaleString();
+                    tableHTML += `
+                        <tr>
+                            <td><strong>${loc.name}</strong></td>
+                            <td>${arrivalLocal}</td>
+                            <td>${departureLocal}</td>
+                            <td>${loc.stop_duration} min</td>
+                            <td>UTC ${loc.utc_offset > 0 ? '+' : ''}${loc.utc_offset}</td>
+                            <td>${loc.priority || '-'}</td>
+                        </tr>
+                    `;
+                });
+                
+                tableHTML += `
+                        </tbody>
+                    </table>
+                `;
+                
+                contentDiv.innerHTML = tableHTML;
+                container.style.display = 'block';
+                container.scrollIntoView({ behavior: 'smooth' });
+            } catch (error) {
+                showAlert('Error: ' + error.message, 'error');
+            }
+        }
+
+        async function applyTrialRoute() {
+            if (!confirm('Are you sure you want to apply the trial route as the main route? This will replace the current main route.')) {
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/admin/route/trial/apply', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${getAuthToken()}`
+                    }
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    showAlert(result.message, 'success');
+                    loadLocations(); // Reload locations to show updated route
+                    checkTrialRouteStatus();
+                } else {
+                    throw new Error(result.error || 'Failed to apply trial route');
+                }
+            } catch (error) {
+                showAlert('Error: ' + error.message, 'error');
+            }
+        }
+
+        async function deleteTrialRoute() {
+            if (!confirm('Are you sure you want to delete the trial route?')) {
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/admin/route/trial', {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${getAuthToken()}`
+                    }
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    showAlert(result.message, 'success');
+                    checkTrialRouteStatus();
+                } else {
+                    throw new Error(result.message || 'Failed to delete trial route');
+                }
+            } catch (error) {
+                showAlert('Error: ' + error.message, 'error');
             }
         }
 

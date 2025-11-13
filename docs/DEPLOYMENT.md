@@ -75,9 +75,6 @@ heroku ps:scale web=1
 # View logs
 heroku logs --tail
 
-# Run commands
-heroku run python src/generate_static.py
-
 # Database (if needed)
 heroku addons:create heroku-postgresql:mini
 ```
@@ -146,18 +143,6 @@ vercel env add SECRET_KEY
 vercel env add ADMIN_PASSWORD
 ```
 
-### Static Site Deployment
-
-For static-only version:
-
-```bash
-# Generate static files
-python src/generate_static.py
-
-# Deploy dist/ directory
-vercel --prod dist/
-```
-
 ---
 
 ## 🟢 Netlify Deployment
@@ -167,8 +152,8 @@ vercel --prod dist/
 1. Push code to GitHub
 2. Connect repository in Netlify dashboard
 3. Configure build settings:
-   - **Build command**: `python src/generate_static.py`
-   - **Publish directory**: `dist`
+   - **Build command**: Leave empty or use a build script if needed
+   - **Publish directory**: `src`
 4. Add environment variables in Netlify UI
 5. Deploy
 
@@ -178,8 +163,7 @@ Create `netlify.toml`:
 
 ```toml
 [build]
-  command = "python src/generate_static.py"
-  publish = "dist"
+  publish = "src"
 
 [build.environment]
   PYTHON_VERSION = "3.10"

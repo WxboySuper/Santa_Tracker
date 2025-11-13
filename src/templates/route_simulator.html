@@ -1,0 +1,743 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎅 Route Simulator - Admin Testing</title>
+    <meta name="description" content="Visual route simulation for testing Santa's journey">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='tracker-styles.css') }}">
+    <style>
+        .admin-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 15px 20px;
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .admin-badge {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        
+        .simulation-controls {
+            background: white;
+            padding: 20px;
+            margin: 10px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .control-group {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        
+        .control-group label {
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .control-group input,
+        .control-group select {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+        
+        .btn-primary {
+            background: #4CAF50;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #45a049;
+        }
+        
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+        
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+        
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+        
+        .btn-danger:hover {
+            background: #c82333;
+        }
+        
+        .simulation-status {
+            background: #e3f2fd;
+            padding: 15px;
+            margin: 10px;
+            border-radius: 8px;
+            border-left: 4px solid #2196F3;
+        }
+        
+        .route-info {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+            margin-top: 10px;
+        }
+        
+        .route-info-item {
+            background: white;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        
+        .route-info-item strong {
+            display: block;
+            color: #666;
+            font-size: 12px;
+            margin-bottom: 5px;
+        }
+        
+        .route-info-item span {
+            font-size: 18px;
+            font-weight: bold;
+            color: #2196F3;
+        }
+        
+        .alert {
+            padding: 15px;
+            margin: 10px;
+            border-radius: 5px;
+            font-weight: 500;
+        }
+        
+        .alert-warning {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+        
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+    </style>
+</head>
+<body>
+    <!-- Admin Header -->
+    <div class="admin-header">
+        <div>
+            <h1 style="margin: 0; font-size: 24px;">🎅 Route Simulator - Admin Testing</h1>
+            <p style="margin: 5px 0 0 0; font-size: 14px; opacity: 0.9;">Visual route testing environment</p>
+        </div>
+        <div>
+            <span class="admin-badge">ADMIN ONLY</span>
+            <a href="{{ url_for('admin') }}" style="color: white; margin-left: 15px; text-decoration: none;">← Back to Admin</a>
+        </div>
+    </div>
+
+    <!-- Simulation Controls -->
+    <div class="simulation-controls">
+        <div class="control-group">
+            <label for="routeSelector">Route:</label>
+            <select id="routeSelector">
+                <option value="main">Main Route</option>
+                <option value="trial">Trial Route</option>
+            </select>
+            
+            <label for="startTime">Start Time (UTC):</label>
+            <input type="datetime-local" id="startTime" value="2024-12-24T00:00">
+            
+            <label for="speedMultiplier">Speed:</label>
+            <select id="speedMultiplier">
+                <option value="1">1x (Slowest - Watch every stop)</option>
+                <option value="60" selected>60x (Recommended - Smooth preview)</option>
+                <option value="120">120x (Fast preview)</option>
+                <option value="300">300x (Very fast)</option>
+                <option value="600">600x (Ultra fast)</option>
+            </select>
+            
+            <button class="btn btn-primary" onclick="runSimulation()">▶️ Run Simulation</button>
+            <button class="btn btn-secondary" onclick="pauseSimulation()">⏸️ Pause</button>
+            <button class="btn btn-danger" onclick="stopSimulation()">⏹️ Stop</button>
+            <button class="btn btn-secondary" onclick="resetSimulation()">🔄 Reset</button>
+        </div>
+    </div>
+
+    <!-- Simulation Status -->
+    <div class="simulation-status" id="simulationStatus" style="display: none;">
+        <h3 style="margin-top: 0;">Simulation Running</h3>
+        <div class="route-info">
+            <div class="route-info-item">
+                <strong>Current Location</strong>
+                <span id="currentLocation">-</span>
+            </div>
+            <div class="route-info-item">
+                <strong>Locations Visited</strong>
+                <span id="locationsVisited">0</span>
+            </div>
+            <div class="route-info-item">
+                <strong>Simulation Time</strong>
+                <span id="simulationTime">-</span>
+            </div>
+            <div class="route-info-item">
+                <strong>Progress</strong>
+                <span id="progress">0%</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Alert Container -->
+    <div id="alertContainer"></div>
+
+    <!-- Main Content -->
+    <main class="main-container">
+        <div class="content-grid">
+            <!-- Sidebar with Route Info -->
+            <aside class="sidebar">
+                <div class="info-card">
+                    <div class="card-header">
+                        <h2 class="card-title">
+                            <span class="icon">📍</span>
+                            Simulated Route
+                        </h2>
+                    </div>
+                    
+                    <div class="card-content">
+                        <!-- Route Summary -->
+                        <div class="info-box info-box-blue">
+                            <div class="info-label">Total Locations</div>
+                            <div class="info-value" id="totalLocations">-</div>
+                        </div>
+
+                        <div class="info-box info-box-green">
+                            <div class="info-label">Start Time</div>
+                            <div class="info-value" id="routeStartTime">-</div>
+                        </div>
+
+                        <div class="info-box info-box-purple">
+                            <div class="info-label">End Time</div>
+                            <div class="info-value" id="routeEndTime">-</div>
+                        </div>
+
+                        <div class="info-box info-box-orange">
+                            <div class="info-label">Total Duration</div>
+                            <div class="info-value" id="totalDuration">-</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Upcoming Locations -->
+                <div class="info-card">
+                    <div class="card-header">
+                        <h2 class="card-title">
+                            <span class="icon">🗺️</span>
+                            Upcoming Stops
+                        </h2>
+                    </div>
+                    <div class="card-content">
+                        <div id="upcomingLocations" class="locations-list"></div>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- Map Section -->
+            <section class="map-section">
+                <div class="map-container">
+                    <div id="map" class="map" aria-label="Interactive map showing simulated Santa route" role="application" tabindex="0"></div>
+                </div>
+
+                <div class="map-help">
+                    <p class="map-help-text">
+                        <span class="icon">💡</span>
+                        <strong>Testing Mode:</strong> This is a visual simulation for testing routes. 
+                        Use the controls above to start/pause/stop the simulation and verify the route makes sense.
+                    </p>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <!-- Scripts -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/Leaflet.markercluster.js"></script>
+    <script>
+        // Global variables
+        let map;
+        let simulatedRoute = [];
+        let currentLocationIndex = 0;
+        let simulationInterval;
+        let isPaused = false;
+        let santaMarker;
+        let routeLine;
+        let markers = [];
+        let visitedMarkers = [];
+        
+        // New simulation timing variables
+        let simulationState = 'stopped'; // 'stopped', 'traveling', 'at_stop'
+        let currentSimulationTime = null; // Current time in simulation (Date object)
+        let simulationStartRealTime = null; // Real-world time when sim started (Date.now())
+        let lastUpdateTime = null; // Last real-world time we updated (Date.now())
+        let currentTargetLocation = null; // Location we're traveling to or at
+        let travelStartLocation = null; // Where we're traveling from
+        let travelProgress = 0; // 0-1 for interpolation during travel
+
+        // Initialize map
+        function initMap() {
+            map = L.map('map').setView([20, 0], 2);
+            
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors',
+                maxZoom: 18
+            }).addTo(map);
+
+            // Create custom Santa icon
+            const santaIcon = L.divIcon({
+                html: '<div style="font-size: 32px;">🎅</div>',
+                className: 'santa-marker',
+                iconSize: [32, 32],
+                iconAnchor: [16, 32]
+            });
+
+            santaMarker = L.marker([0, 0], { icon: santaIcon }).addTo(map);
+            santaMarker.setOpacity(0);
+        }
+
+        // Show alert
+        function showAlert(message, type = 'success') {
+            const alertContainer = document.getElementById('alertContainer');
+            const alert = document.createElement('div');
+            alert.className = `alert alert-${type}`;
+            alert.textContent = message;
+            alertContainer.appendChild(alert);
+            
+            setTimeout(() => alert.remove(), 5000);
+        }
+
+        // Load simulated route from API
+        async function loadSimulatedRoute() {
+            const startTime = document.getElementById('startTime').value + ':00Z';
+            const routeType = document.getElementById('routeSelector').value;
+            
+            // Get admin auth token from session storage (set by admin dashboard)
+            const adminAuthToken = sessionStorage.getItem('adminAuthToken');
+            if (!adminAuthToken) {
+                showAlert('Admin authentication required. Please log in via admin dashboard first.', 'error');
+                setTimeout(() => {
+                    window.location.href = '/admin';
+                }, 2000);
+                return false;
+            }
+            
+            try {
+                const endpoint = routeType === 'trial' 
+                    ? '/api/admin/route/trial/simulate' 
+                    : '/api/admin/route/simulate';
+                    
+                const response = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + adminAuthToken
+                    },
+                    body: JSON.stringify({ start_time: startTime })
+                });
+
+                if (!response.ok) {
+                    if (response.status === 401) {
+                        showAlert('Authentication failed. Redirecting to admin login...', 'error');
+                        setTimeout(() => {
+                            window.location.href = '/admin';
+                        }, 2000);
+                        return false;
+                    }
+                    if (response.status === 404 && routeType === 'trial') {
+                        showAlert('No trial route found. Please upload a trial route first.', 'error');
+                        return false;
+                    }
+                    throw new Error('Failed to load route simulation');
+                }
+
+                const data = await response.json();
+                simulatedRoute = data.simulated_route;
+                
+                // Update summary
+                const routeLabel = data.is_trial ? ' (Trial)' : '';
+                document.getElementById('totalLocations').textContent = data.summary.total_locations + routeLabel;
+                document.getElementById('routeStartTime').textContent = new Date(data.summary.start_time).toLocaleString();
+                document.getElementById('routeEndTime').textContent = new Date(data.summary.end_time).toLocaleString();
+                
+                const hours = Math.floor(data.summary.total_duration_minutes / 60);
+                const minutes = data.summary.total_duration_minutes % 60;
+                document.getElementById('totalDuration').textContent = `${hours}h ${minutes}m`;
+                
+                // Draw route on map
+                drawRoute();
+                updateUpcomingLocations();
+                
+                const routeTypeLabel = routeType === 'trial' ? 'Trial route' : 'Route';
+                showAlert(`${routeTypeLabel} loaded successfully! Ready to simulate.`, 'success');
+                return true;
+            } catch (error) {
+                showAlert('Error loading route: ' + error.message, 'error');
+                return false;
+            }
+        }
+
+        // Draw route on map
+        function drawRoute() {
+            // Clear previous markers and lines
+            markers.forEach(m => map.removeLayer(m));
+            markers = [];
+            visitedMarkers = [];
+            if (routeLine) map.removeLayer(routeLine);
+
+            if (simulatedRoute.length === 0) return;
+
+            // Create route line
+            const routeCoords = simulatedRoute.map(loc => [loc.latitude, loc.longitude]);
+            routeLine = L.polyline(routeCoords, {
+                color: '#e74c3c',
+                weight: 3,
+                opacity: 0.7,
+                dashArray: '10, 10'
+            }).addTo(map);
+
+            // Add markers for all locations
+            simulatedRoute.forEach((loc, idx) => {
+                const marker = L.circleMarker([loc.latitude, loc.longitude], {
+                    radius: 6,
+                    fillColor: '#3498db',
+                    color: '#2980b9',
+                    weight: 2,
+                    opacity: 1,
+                    fillOpacity: 0.8
+                }).addTo(map);
+
+                // Create safe popup content
+                const popupDiv = document.createElement('div');
+                const nameStrong = document.createElement('strong');
+                nameStrong.textContent = loc.name;
+                popupDiv.appendChild(nameStrong);
+                popupDiv.appendChild(document.createElement('br'));
+                
+                const arrivalText = document.createTextNode(`Arrival: ${new Date(loc.arrival_time).toLocaleTimeString()}`);
+                popupDiv.appendChild(arrivalText);
+                popupDiv.appendChild(document.createElement('br'));
+                
+                const stopText = document.createTextNode(`Stop: ${loc.stop_duration} min`);
+                popupDiv.appendChild(stopText);
+                
+                marker.bindPopup(popupDiv);
+
+                markers.push(marker);
+            });
+
+            // Fit map to route
+            map.fitBounds(routeLine.getBounds(), { padding: [50, 50] });
+        }
+
+        // Update upcoming locations list
+        function updateUpcomingLocations() {
+            const container = document.getElementById('upcomingLocations');
+            const upcoming = simulatedRoute.slice(currentLocationIndex, currentLocationIndex + 5);
+            
+            // Clear container
+            container.innerHTML = '';
+            
+            upcoming.forEach((loc, idx) => {
+                const div = document.createElement('div');
+                div.style.padding = '10px';
+                div.style.borderBottom = '1px solid #eee';
+                if (idx === 0) {
+                    div.style.background = '#e3f2fd';
+                }
+                
+                const nameStrong = document.createElement('strong');
+                nameStrong.textContent = loc.name;
+                div.appendChild(nameStrong);
+                div.appendChild(document.createElement('br'));
+                
+                const arrivalSmall = document.createElement('small');
+                arrivalSmall.textContent = `Arrival: ${new Date(loc.arrival_time).toLocaleTimeString()}`;
+                div.appendChild(arrivalSmall);
+                
+                container.appendChild(div);
+            });
+        }
+
+        // Run simulation
+        async function runSimulation() {
+            if (simulatedRoute.length === 0) {
+                const loaded = await loadSimulatedRoute();
+                if (!loaded) return;
+            }
+
+            if (isPaused) {
+                // Resume from pause
+                isPaused = false;
+                simulationStartRealTime = Date.now() - (currentSimulationTime - new Date(simulatedRoute[0].arrival_time).getTime());
+                lastUpdateTime = Date.now();
+                showAlert('Simulation resumed', 'success');
+            } else {
+                // Start fresh simulation
+                currentLocationIndex = 0;
+                simulationState = 'traveling';
+                currentSimulationTime = new Date(simulatedRoute[0].arrival_time);
+                simulationStartRealTime = Date.now();
+                lastUpdateTime = Date.now();
+                travelStartLocation = {
+                    latitude: simulatedRoute[0].latitude,
+                    longitude: simulatedRoute[0].longitude
+                };
+                currentTargetLocation = simulatedRoute[0];
+                travelProgress = 0;
+                
+                // Reset all markers to default color
+                markers.forEach(marker => {
+                    marker.setStyle({
+                        fillColor: '#3498db',
+                        color: '#2980b9'
+                    });
+                });
+                
+                showAlert('Starting simulation...', 'success');
+            }
+
+            document.getElementById('simulationStatus').style.display = 'block';
+            
+            // Update at 30 FPS for smooth animation
+            const updateInterval = 1000 / 30; // 33.3ms per frame
+            
+            simulationInterval = setInterval(() => {
+                updateSimulation();
+            }, updateInterval);
+        }
+
+        // Main simulation update function
+        function updateSimulation() {
+            const speedMultiplier = parseInt(document.getElementById('speedMultiplier').value);
+            
+            // Apply fantasy speed: multiply by an additional base speed factor
+            // This makes travel visible but not too slow
+            // Base speed of 120x means even at "1x" setting, it runs at 2 hours per minute (enjoyable pace)
+            const baseFantasySpeed = 120;
+            const effectiveSpeed = speedMultiplier * baseFantasySpeed;
+            
+            const now = Date.now();
+            const realTimeDelta = now - lastUpdateTime; // milliseconds passed in real time
+            const simTimeDelta = realTimeDelta * effectiveSpeed; // milliseconds to advance in simulation
+            
+            lastUpdateTime = now;
+            currentSimulationTime = new Date(currentSimulationTime.getTime() + simTimeDelta);
+            
+            // Check if simulation is complete
+            if (currentLocationIndex >= simulatedRoute.length) {
+                stopSimulation();
+                showAlert('Simulation completed!', 'success');
+                return;
+            }
+            
+            const currentLoc = simulatedRoute[currentLocationIndex];
+            const arrivalTime = new Date(currentLoc.arrival_time);
+            const departureTime = new Date(currentLoc.departure_time);
+            
+            // Determine current state
+            if (currentSimulationTime < arrivalTime) {
+                // Traveling to location
+                if (simulationState !== 'traveling') {
+                    simulationState = 'traveling';
+                    // Calculate travel start location
+                    if (currentLocationIndex > 0) {
+                        const prevLoc = simulatedRoute[currentLocationIndex - 1];
+                        travelStartLocation = {
+                            latitude: prevLoc.latitude,
+                            longitude: prevLoc.longitude
+                        };
+                    } else {
+                        travelStartLocation = {
+                            latitude: currentLoc.latitude,
+                            longitude: currentLoc.longitude
+                        };
+                    }
+                }
+                
+                // Calculate travel progress (0 to 1)
+                const travelStartTime = currentLocationIndex > 0 
+                    ? new Date(simulatedRoute[currentLocationIndex - 1].departure_time)
+                    : new Date(arrivalTime.getTime() - 10 * 60 * 1000); // 10 min before if first location
+                
+                const totalTravelTime = arrivalTime - travelStartTime;
+                const elapsedTravelTime = currentSimulationTime - travelStartTime;
+                travelProgress = Math.max(0, Math.min(1, elapsedTravelTime / totalTravelTime));
+                
+                // Interpolate Santa's position
+                const startLat = travelStartLocation.latitude;
+                const startLng = travelStartLocation.longitude;
+                const endLat = currentLoc.latitude;
+                const endLng = currentLoc.longitude;
+                
+                const currentLat = startLat + (endLat - startLat) * travelProgress;
+                const currentLng = startLng + (endLng - startLng) * travelProgress;
+                
+                santaMarker.setLatLng([currentLat, currentLng]);
+                santaMarker.setOpacity(1);
+                map.panTo([currentLat, currentLng]);
+                
+                // Update status
+                document.getElementById('currentLocation').textContent = `Traveling to ${currentLoc.name}`;
+                document.getElementById('locationsVisited').textContent = currentLocationIndex;
+                
+            } else if (currentSimulationTime >= arrivalTime && currentSimulationTime < departureTime) {
+                // At stop
+                if (simulationState !== 'at_stop') {
+                    simulationState = 'at_stop';
+                    
+                    // Santa has arrived - update marker
+                    santaMarker.setLatLng([currentLoc.latitude, currentLoc.longitude]);
+                    santaMarker.setOpacity(1);
+                    map.panTo([currentLoc.latitude, currentLoc.longitude]);
+                    
+                    // Mark location as visited
+                    if (markers[currentLocationIndex]) {
+                        markers[currentLocationIndex].setStyle({
+                            fillColor: '#27ae60',
+                            color: '#229954'
+                        });
+                    }
+                }
+                
+                // Update status showing stop duration
+                const stopDuration = currentLoc.stop_duration || 0;
+                const timeAtStop = (currentSimulationTime - arrivalTime) / 1000 / 60; // minutes
+                const remainingStopTime = Math.max(0, stopDuration - timeAtStop);
+                
+                if (stopDuration > 0) {
+                    document.getElementById('currentLocation').textContent = 
+                        `At ${currentLoc.name} (${Math.ceil(remainingStopTime)} min remaining)`;
+                } else {
+                    document.getElementById('currentLocation').textContent = `At ${currentLoc.name} (Touch and go)`;
+                }
+                document.getElementById('locationsVisited').textContent = currentLocationIndex + 1;
+                
+            } else {
+                // Departed - move to next location
+                currentLocationIndex++;
+                if (currentLocationIndex < simulatedRoute.length) {
+                    simulationState = 'traveling';
+                    travelStartLocation = {
+                        latitude: currentLoc.latitude,
+                        longitude: currentLoc.longitude
+                    };
+                    currentTargetLocation = simulatedRoute[currentLocationIndex];
+                }
+            }
+            
+            // Update common UI elements
+            document.getElementById('simulationTime').textContent = currentSimulationTime.toLocaleString();
+            document.getElementById('progress').textContent = 
+                Math.round((currentLocationIndex / simulatedRoute.length) * 100) + '%';
+            
+            updateUpcomingLocations();
+        }
+
+        // Pause simulation
+        function pauseSimulation() {
+            if (simulationInterval) {
+                clearInterval(simulationInterval);
+                isPaused = true;
+                showAlert('Simulation paused', 'warning');
+            }
+        }
+
+        // Stop simulation
+        function stopSimulation() {
+            if (simulationInterval) {
+                clearInterval(simulationInterval);
+                simulationInterval = null;
+            }
+            isPaused = false;
+            document.getElementById('simulationStatus').style.display = 'none';
+            showAlert('Simulation stopped', 'warning');
+        }
+
+        // Reset simulation
+        function resetSimulation() {
+            stopSimulation();
+            currentLocationIndex = 0;
+            simulationState = 'stopped';
+            currentSimulationTime = null;
+            simulationStartRealTime = null;
+            lastUpdateTime = null;
+            travelProgress = 0;
+            
+            santaMarker.setOpacity(0);
+            
+            // Reset marker colors
+            markers.forEach(m => {
+                m.setStyle({
+                    fillColor: '#3498db',
+                    color: '#2980b9'
+                });
+            });
+            
+            // Reset status display
+            document.getElementById('currentLocation').textContent = '-';
+            document.getElementById('locationsVisited').textContent = '0';
+            document.getElementById('simulationTime').textContent = '-';
+            document.getElementById('progress').textContent = '0%';
+            
+            if (simulatedRoute.length > 0) {
+                map.fitBounds(routeLine.getBounds(), { padding: [50, 50] });
+                updateUpcomingLocations();
+            }
+            
+            showAlert('Simulation reset', 'success');
+        }
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            initMap();
+            
+            // Check if admin auth token is in session storage
+            const adminAuthToken = sessionStorage.getItem('adminAuthToken');
+            if (!adminAuthToken) {
+                showAlert('Please log in via admin dashboard first to use this simulator.', 'warning');
+                setTimeout(() => {
+                    window.location.href = '/admin';
+                }, 3000);
+            }
+        });
+    </script>
+</body>
+</html>

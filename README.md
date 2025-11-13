@@ -69,7 +69,45 @@ Santa_Tracker/
 
 **Backend:** Flask, Gunicorn, Geopy, Python-dotenv  
 **Frontend:** Tailwind CSS (CDN), Leaflet.js, Vanilla JavaScript, CSS3  
-**DevOps:** GitHub Actions, Dependabot, DeepSource
+**DevOps:** GitHub Actions, Dependabot, DeepSource  
+**Testing:** pytest, pytest-cov (79% coverage across 140 tests)
+
+## 🧪 Testing & Route Simulation
+
+### Running Tests
+```bash
+# Run all tests with coverage
+pytest --cov=src --cov-report=term-missing tests/
+
+# Run specific test files
+pytest tests/test_tracker.py -v
+pytest tests/test_route_generation.py -v
+
+# Quick test run
+pytest tests/ -q
+```
+
+### Route Simulation
+The admin dashboard includes a **Route Testing & Simulation** feature that allows you to:
+- Test Santa's route with different timing scenarios
+- Preview routes before finalizing them
+- Simulate with custom start times
+- Test specific location subsets
+- View detailed timing calculations and summaries
+
+Access via Admin Dashboard → Route Testing & Simulation → Simulate Route
+
+**API Endpoint:** `POST /api/admin/route/simulate`
+- Accepts optional `start_time` (ISO 8601 format) and `location_ids` (array)
+- Returns simulated route with arrival/departure times
+- Does not modify stored route data
+
+### Test Coverage
+- **tracker.py**: 100% coverage
+- **locations.py**: 94% coverage  
+- **advent.py**: 95% coverage
+- **app.py**: 75% coverage
+- **Overall**: 79% coverage (140 tests passing)
 
 ## 📚 Documentation
 
