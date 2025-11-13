@@ -84,7 +84,7 @@ document.addEventListener('DOMContentLoaded', function() {
         };
     })();
 
-    // Make EventSystem globally accessible for simulateSantaMovement
+    // Make EventSystem globally accessible
     window.EventSystem = EventSystem;
 
     // Track Santa's route for smooth animation
@@ -443,41 +443,17 @@ function updateLocationDisplay(currentLocation, nextStop) {
 let santaMovementInterval = null;
 
 function simulateSantaMovement() {
-    const cities = [
-        { pos: [90, 0], name: 'North Pole' },
-        { pos: [64.2, -21.9], name: 'Reykjavik' },
-        { pos: [51.5, -0.1], name: 'London' },
-        { pos: [48.9, 2.3], name: 'Paris' },
-        { pos: [41.9, 12.5], name: 'Rome' }
-    ];
+    // Display error message instead of simulating with fake data
+    console.error('Santa route data failed to load. Cannot display tracking.');
     
-    let currentIndex = 0;
+    // Update UI to show error state
+    updateLocationDisplay('Route data unavailable', 'Please check back later');
     
-    // Clear any existing interval to prevent duplicates
-    if (santaMovementInterval) {
-        clearInterval(santaMovementInterval);
-    }
-    
-    santaMovementInterval = setInterval(() => {
-        currentIndex = (currentIndex + 1) % cities.length;
-        const nextIndex = (currentIndex + 1) % cities.length;
-        
-        const EventSystem = window.EventSystem || {
-            // eslint-disable-next-line no-empty-function
-            emit() {} // No-op fallback when EventSystem is not available
-        };
-        
-        // Emit movement event with smooth animation
-        if (typeof EventSystem.emit === 'function') {
-            EventSystem.emit('santaMove', {
-                position: cities[currentIndex].pos,
-                location: cities[currentIndex].name,
-                animate: true
-            });
-        }
-        
-        updateLocationDisplay(cities[currentIndex].name, cities[nextIndex].name);
-    }, 8000); // Move every 8 seconds
+    // Try to reload after 30 seconds
+    setTimeout(() => {
+        console.log('Retrying route data load...');
+        loadSantaRoute();
+    }, 30000);
 }
 
 // Cleanup function for page unload
