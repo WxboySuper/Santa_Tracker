@@ -259,7 +259,7 @@ def add_location():
         try:
             # Support both 'notes' and 'fun_facts' for backward compatibility
             notes = data.get("notes") or data.get("fun_facts")
-            
+
             new_location = Location(
                 name=data["name"],
                 latitude=float(data["latitude"]),
@@ -324,8 +324,10 @@ def update_location(location_id):
         # Update location fields
         try:
             # Support both 'notes' and 'fun_facts' for backward compatibility
-            notes = data.get("notes") or data.get("fun_facts", locations[location_id].notes)
-            
+            notes = data.get("notes") or data.get(
+                "fun_facts", locations[location_id].notes
+            )
+
             updated_location = Location(
                 name=data.get("name", locations[location_id].name),
                 latitude=float(data.get("latitude", locations[location_id].latitude)),
@@ -438,7 +440,7 @@ def _parse_location_from_data(loc_data, idx):
     try:
         # Support both 'notes' and 'fun_facts' for backward compatibility
         notes = loc_data.get("notes") or loc_data.get("fun_facts")
-        
+
         location = Location(
             name=name,
             latitude=float(loc_data["latitude"]),
@@ -881,7 +883,7 @@ def upload_trial_route():
                 name = loc_data.get("name") or loc_data.get("location")
                 # Support both 'notes' and 'fun_facts' fields
                 notes = loc_data.get("notes") or loc_data.get("fun_facts")
-                
+
                 location = Location(
                     name=name,
                     latitude=loc_data["latitude"],

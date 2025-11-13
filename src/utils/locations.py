@@ -50,7 +50,7 @@ class Location:
             raise ValueError(f"Invalid UTC offset: {self.utc_offset}")
         if self.priority is not None and not 1 <= self.priority <= 3:
             raise ValueError(f"Invalid priority: {self.priority}. Must be 1, 2, or 3.")
-        
+
         # Bidirectional migration between fun_facts and notes for backward compatibility
         if self.notes is None and self.fun_facts is not None:
             self.notes = self.fun_facts
@@ -156,10 +156,10 @@ def load_santa_route_from_json(json_file_path=None):
             name = location_data.get("name") or location_data.get("location")
             if not name:
                 raise ValueError("Missing location name field")
-            
+
             # Support both 'notes' (new) and 'fun_facts' (old) field names
             notes = location_data.get("notes") or location_data.get("fun_facts")
-            
+
             location = Location(
                 name=name,
                 latitude=location_data["latitude"],
@@ -291,7 +291,7 @@ def save_santa_route_to_json(locations, json_file_path=None):
             location_dict["arrival_time"] = loc.arrival_time
         if loc.departure_time is not None:
             location_dict["departure_time"] = loc.departure_time
-        
+
         # Add optional new fields
         if loc.country is not None:
             location_dict["country"] = loc.country
@@ -299,15 +299,15 @@ def save_santa_route_to_json(locations, json_file_path=None):
             location_dict["population"] = loc.population
         if loc.priority is not None:
             location_dict["priority"] = loc.priority
-        
+
         # Use 'notes' field (new schema) - prefer notes over fun_facts
         notes = loc.notes or loc.fun_facts
         if notes is not None:
             location_dict["notes"] = notes
-        
+
         # Keep is_stop for backward compatibility
         location_dict["is_stop"] = loc.is_stop
-        
+
         # Deprecated: keep stop_duration for tools that may still use it
         if loc.stop_duration is not None:
             location_dict["stop_duration"] = loc.stop_duration
