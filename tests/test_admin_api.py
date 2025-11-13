@@ -694,15 +694,15 @@ class TestRoutePrecompute:
     """Test POST /api/admin/route/precompute endpoint."""
 
     def test_precompute_route_success(self, client, auth_headers):
-        """Test route precomputation."""
+        """Test route validation (precompute now validates, not calculates)."""
         response = client.post("/api/admin/route/precompute", headers=auth_headers)
         assert response.status_code == 200
 
         data = response.get_json()
         assert "message" in data
         assert "total_locations" in data
-        assert "completion_status" in data
-        assert data["completion_status"] == "complete"
+        assert "status" in data
+        assert data["status"] == "complete"
 
     def test_precompute_route_requires_auth(self, client):
         """Test that route precomputation requires authentication."""
@@ -752,24 +752,23 @@ class TestRouteSimulation:
     """Test POST /api/admin/route/simulate endpoint."""
 
     def test_simulate_route_default_params(self, client, auth_headers):
-        """Test simulating route with default parameters."""
+        """Test previewing route with default parameters."""
         response = client.post("/api/admin/route/simulate", headers=auth_headers)
         assert response.status_code == 200
 
         data = response.get_json()
-        assert "simulated_route" in data
+        assert "route_preview" in data
         assert "summary" in data
-        assert isinstance(data["simulated_route"], list)
+        assert isinstance(data["route_preview"], list)
 
         summary = data["summary"]
         assert "total_locations" in summary
         assert "start_time" in summary
         assert "end_time" in summary
-        assert "total_duration_minutes" in summary
-        assert "total_stop_time_minutes" in summary
+        assert "locations_with_timing" in summary
 
     def test_simulate_route_with_custom_start_time(self, client, auth_headers):
-        """Test simulating route with custom start time."""
+        """Test that custom start time is no longer used (returns existing timestamps)."""
         custom_time = "2024-12-25T10:00:00Z"
         response = client.post(
             "/api/admin/route/simulate",
@@ -780,10 +779,12 @@ class TestRouteSimulation:
         assert response.status_code == 200
 
         data = response.get_json()
-        assert data["summary"]["start_time"] == custom_time
+        # Start time should come from route data, not custom parameter
+        # This is expected behavior in the new static timeline model
+        assert "start_time" in data["summary"]
 
     def test_simulate_route_with_location_ids(self, client, auth_headers):
-        """Test simulating route with specific location IDs."""
+        """Test previewing route with specific location IDs."""
         response = client.post(
             "/api/admin/route/simulate",
             headers=auth_headers,
@@ -793,20 +794,19 @@ class TestRouteSimulation:
         assert response.status_code == 200
 
         data = response.get_json()
-        # Should only simulate the specified locations
-        assert len(data["simulated_route"]) <= 2
+        # Should only preview the specified locations
+        assert len(data["route_preview"]) <= 2
 
     def test_simulate_route_invalid_start_time(self, client, auth_headers):
-        """Test simulating route with invalid start time format."""
+        """Test that invalid start time parameter is ignored (no longer used)."""
         response = client.post(
             "/api/admin/route/simulate",
             headers=auth_headers,
             data=json.dumps({"start_time": "invalid-time"}),
             content_type="application/json",
         )
-        assert response.status_code == 400
-        data = response.get_json()
-        assert "error" in data
+        # Should succeed because start_time parameter is no longer parsed
+        assert response.status_code == 200
 
     def test_simulate_route_requires_auth(self, client):
         """Test that route simulation requires authentication."""
@@ -814,12 +814,12 @@ class TestRouteSimulation:
         assert response.status_code == 401
 
     def test_simulated_route_contains_all_fields(self, client, auth_headers):
-        """Test that simulated locations contain all expected fields."""
+        """Test that preview locations contain all expected fields."""
         response = client.post("/api/admin/route/simulate", headers=auth_headers)
         data = response.get_json()
 
-        if len(data["simulated_route"]) > 0:
-            location = data["simulated_route"][0]
+        if len(data["route_preview"]) > 0:
+            location = data["route_preview"][0]
             required_fields = [
                 "name",
                 "latitude",
@@ -827,7 +827,6 @@ class TestRouteSimulation:
                 "utc_offset",
                 "arrival_time",
                 "departure_time",
-                "stop_duration",
                 "is_stop",
             ]
             for field in required_fields:
