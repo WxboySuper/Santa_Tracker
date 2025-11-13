@@ -746,3 +746,90 @@ class TestBackupExport:
         """Test that backup export requires authentication."""
         response = client.get("/api/admin/backup/export")
         assert response.status_code == 401
+
+
+class TestRouteSimulation:
+    """Test POST /api/admin/route/simulate endpoint."""
+
+    def test_simulate_route_default_params(self, client, auth_headers):
+        """Test simulating route with default parameters."""
+        response = client.post("/api/admin/route/simulate", headers=auth_headers)
+        assert response.status_code == 200
+
+        data = response.get_json()
+        assert "simulated_route" in data
+        assert "summary" in data
+        assert isinstance(data["simulated_route"], list)
+        
+        summary = data["summary"]
+        assert "total_locations" in summary
+        assert "start_time" in summary
+        assert "end_time" in summary
+        assert "total_duration_minutes" in summary
+        assert "total_stop_time_minutes" in summary
+
+    def test_simulate_route_with_custom_start_time(self, client, auth_headers):
+        """Test simulating route with custom start time."""
+        custom_time = "2024-12-25T10:00:00Z"
+        response = client.post(
+            "/api/admin/route/simulate",
+            headers=auth_headers,
+            data=json.dumps({"start_time": custom_time}),
+            content_type="application/json",
+        )
+        assert response.status_code == 200
+
+        data = response.get_json()
+        assert data["summary"]["start_time"] == custom_time
+
+    def test_simulate_route_with_location_ids(self, client, auth_headers):
+        """Test simulating route with specific location IDs."""
+        response = client.post(
+            "/api/admin/route/simulate",
+            headers=auth_headers,
+            data=json.dumps({"location_ids": [0, 1]}),
+            content_type="application/json",
+        )
+        assert response.status_code == 200
+
+        data = response.get_json()
+        # Should only simulate the specified locations
+        assert len(data["simulated_route"]) <= 2
+
+    def test_simulate_route_invalid_start_time(self, client, auth_headers):
+        """Test simulating route with invalid start time format."""
+        response = client.post(
+            "/api/admin/route/simulate",
+            headers=auth_headers,
+            data=json.dumps({"start_time": "invalid-time"}),
+            content_type="application/json",
+        )
+        assert response.status_code == 400
+        data = response.get_json()
+        assert "error" in data
+
+    def test_simulate_route_requires_auth(self, client):
+        """Test that route simulation requires authentication."""
+        response = client.post("/api/admin/route/simulate")
+        assert response.status_code == 401
+
+    def test_simulated_route_contains_all_fields(self, client, auth_headers):
+        """Test that simulated locations contain all expected fields."""
+        response = client.post("/api/admin/route/simulate", headers=auth_headers)
+        data = response.get_json()
+
+        if len(data["simulated_route"]) > 0:
+            location = data["simulated_route"][0]
+            required_fields = [
+                "name",
+                "latitude",
+                "longitude",
+                "utc_offset",
+                "arrival_time",
+                "departure_time",
+                "stop_duration",
+                "is_stop",
+            ]
+            for field in required_fields:
+                assert field in location
+

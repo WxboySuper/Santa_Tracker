@@ -591,6 +591,119 @@ def precompute_route():
         return jsonify({"error": "Internal server error"}), 500
 
 
+@app.route("/api/admin/route/simulate", methods=["POST"])
+@require_admin_auth
+def simulate_route():
+    """
+    Simulate a Santa route for testing without saving changes.
+    Accepts optional start time and location IDs to simulate.
+    """
+    try:
+        data = request.get_json(force=True, silent=True)
+        if data is None:
+            data = {}
+
+        # Load current locations
+        all_locations = load_santa_route_from_json()
+
+        if len(all_locations) == 0:
+            return jsonify({"error": "No locations to simulate"}), 400
+
+        # Get simulation parameters
+        start_time_str = data.get("start_time")
+        location_ids = data.get("location_ids")  # Optional: simulate specific locations
+
+        # Parse start time or use default
+        if start_time_str:
+            try:
+                # Parse and convert to naive datetime (remove timezone info)
+                start_time = datetime.fromisoformat(
+                    start_time_str.replace("Z", "+00:00")
+                ).replace(tzinfo=None)
+            except (ValueError, AttributeError):
+                return jsonify({"error": "Invalid start_time format"}), 400
+        else:
+            # Default: Christmas Eve midnight UTC
+            start_time = datetime(2024, 12, 24, 0, 0, 0)
+
+        # Filter locations if specific IDs provided
+        if location_ids is not None:
+            if not isinstance(location_ids, list):
+                return jsonify({"error": "location_ids must be a list"}), 400
+            try:
+                locations = [
+                    all_locations[idx]
+                    for idx in location_ids
+                    if 0 <= idx < len(all_locations)
+                ]
+            except (IndexError, TypeError):
+                return jsonify({"error": "Invalid location_ids"}), 400
+        else:
+            locations = all_locations
+
+        # Sort locations by UTC offset (descending) to follow time zones
+        sorted_locations = sorted(
+            locations, key=lambda loc: (-loc.utc_offset, loc.priority or 2)
+        )
+
+        # Simulate the route without modifying the original locations
+        simulated_route = []
+        current_time = start_time
+
+        for loc in sorted_locations:
+            # Use existing stop duration or default
+            stop_duration = loc.stop_duration if loc.stop_duration else 30
+            if loc.name == "North Pole" and not loc.stop_duration:
+                stop_duration = 60
+
+            arrival_time = current_time
+            departure_time = arrival_time + timedelta(minutes=stop_duration)
+
+            simulated_route.append(
+                {
+                    "name": loc.name,
+                    "latitude": loc.latitude,
+                    "longitude": loc.longitude,
+                    "utc_offset": loc.utc_offset,
+                    "arrival_time": arrival_time.isoformat() + "Z",
+                    "departure_time": departure_time.isoformat() + "Z",
+                    "stop_duration": stop_duration,
+                    "priority": loc.priority,
+                    "is_stop": loc.is_stop,
+                }
+            )
+
+            # Add travel time to next location
+            current_time = departure_time + timedelta(minutes=10)
+
+        # Calculate summary statistics
+        total_duration = (current_time - start_time).total_seconds() / 60
+        end_time = current_time - timedelta(minutes=10)  # Remove last travel time
+
+        return (
+            jsonify(
+                {
+                    "simulated_route": simulated_route,
+                    "summary": {
+                        "total_locations": len(simulated_route),
+                        "start_time": start_time.isoformat() + "Z",
+                        "end_time": end_time.isoformat() + "Z",
+                        "total_duration_minutes": int(total_duration),
+                        "total_stop_time_minutes": sum(
+                            loc["stop_duration"] for loc in simulated_route
+                        ),
+                    },
+                }
+            ),
+            200,
+        )
+    except FileNotFoundError:
+        return jsonify({"error": "Route data not found"}), 404
+    except Exception as e:
+        logger.exception("Error simulating route: %s", str(e))
+        return jsonify({"error": "Internal server error"}), 500
+
+
 @app.route("/api/admin/backup/export", methods=["GET"])
 @require_admin_auth
 def export_backup():
