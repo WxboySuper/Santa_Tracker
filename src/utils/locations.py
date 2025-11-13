@@ -185,10 +185,10 @@ def load_trial_route_from_json():
     """
     base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     trial_route_path = os.path.join(base_dir, "static", "data", "trial_route.json")
-    
+
     if not os.path.exists(trial_route_path):
         return None
-    
+
     return load_santa_route_from_json(trial_route_path)
 
 
@@ -202,7 +202,7 @@ def save_trial_route_to_json(locations):
     """
     base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     trial_route_path = os.path.join(base_dir, "static", "data", "trial_route.json")
-    
+
     save_santa_route_to_json(locations, trial_route_path)
 
 
@@ -215,7 +215,7 @@ def delete_trial_route():
     """
     base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     trial_route_path = os.path.join(base_dir, "static", "data", "trial_route.json")
-    
+
     if os.path.exists(trial_route_path):
         os.remove(trial_route_path)
         return True

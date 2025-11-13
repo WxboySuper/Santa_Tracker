@@ -815,19 +815,26 @@ def manage_trial_route():
             exists = has_trial_route()
             if exists:
                 trial_locations = load_trial_route_from_json()
-                return jsonify({
-                    "exists": True,
-                    "location_count": len(trial_locations) if trial_locations else 0
-                }), 200
+                return (
+                    jsonify(
+                        {
+                            "exists": True,
+                            "location_count": (
+                                len(trial_locations) if trial_locations else 0
+                            ),
+                        }
+                    ),
+                    200,
+                )
             else:
                 return jsonify({"exists": False, "location_count": 0}), 200
-        
+
         elif request.method == "POST":
             # Upload trial route
             data = request.get_json(force=True, silent=True)
             if not data or "route" not in data:
                 return jsonify({"error": "Route data required"}), 400
-            
+
             # Parse locations from JSON
             locations = []
             for loc_data in data["route"]:
@@ -847,40 +854,47 @@ def manage_trial_route():
                     locations.append(location)
                 except (KeyError, ValueError) as e:
                     return jsonify({"error": f"Invalid location data: {str(e)}"}), 400
-            
+
             # Validate the trial route
             validation_result = validate_locations(locations)
             if validation_result["errors"]:
-                return jsonify({
-                    "error": "Validation failed",
-                    "errors": validation_result["errors"],
-                    "warnings": validation_result["warnings"]
-                }), 400
-            
+                return (
+                    jsonify(
+                        {
+                            "error": "Validation failed",
+                            "errors": validation_result["errors"],
+                            "warnings": validation_result["warnings"],
+                        }
+                    ),
+                    400,
+                )
+
             # Save trial route
             save_trial_route_to_json(locations)
-            
-            return jsonify({
-                "success": True,
-                "message": f"Trial route uploaded with {len(locations)} locations",
-                "location_count": len(locations),
-                "warnings": validation_result["warnings"]
-            }), 200
-        
+
+            return (
+                jsonify(
+                    {
+                        "success": True,
+                        "message": f"Trial route uploaded with {len(locations)} locations",
+                        "location_count": len(locations),
+                        "warnings": validation_result["warnings"],
+                    }
+                ),
+                200,
+            )
+
         elif request.method == "DELETE":
             # Delete trial route
             deleted = delete_trial_route()
             if deleted:
-                return jsonify({
-                    "success": True,
-                    "message": "Trial route deleted"
-                }), 200
+                return jsonify({"success": True, "message": "Trial route deleted"}), 200
             else:
-                return jsonify({
-                    "success": False,
-                    "message": "No trial route to delete"
-                }), 404
-    
+                return (
+                    jsonify({"success": False, "message": "No trial route to delete"}),
+                    404,
+                )
+
     except FileNotFoundError:
         return jsonify({"error": "Route file not found"}), 404
     except Exception as e:
@@ -899,20 +913,25 @@ def apply_trial_route():
         # Check if trial route exists
         if not has_trial_route():
             return jsonify({"error": "No trial route to apply"}), 404
-        
+
         # Load trial route
         trial_locations = load_trial_route_from_json()
         if not trial_locations:
             return jsonify({"error": "Trial route is empty"}), 400
-        
+
         # Save as main route
         save_santa_route_to_json(trial_locations)
-        
-        return jsonify({
-            "success": True,
-            "message": f"Trial route applied as main route ({len(trial_locations)} locations)"
-        }), 200
-    
+
+        return (
+            jsonify(
+                {
+                    "success": True,
+                    "message": f"Trial route applied as main route ({len(trial_locations)} locations)",
+                }
+            ),
+            200,
+        )
+
     except Exception as e:
         logger.exception("Error applying trial route: %s", str(e))
         return jsonify({"error": "Internal server error"}), 500
@@ -929,7 +948,7 @@ def simulate_trial_route():
         # Check if trial route exists
         if not has_trial_route():
             return jsonify({"error": "No trial route to simulate"}), 404
-        
+
         data = request.get_json(force=True, silent=True) or {}
 
         # Load trial locations
@@ -966,11 +985,16 @@ def simulate_trial_route():
         # Build response
         summary = _calculate_route_summary(simulated_route, start_time, final_stop_time)
 
-        return jsonify({
-            "simulated_route": simulated_route,
-            "summary": summary,
-            "is_trial": True
-        }), 200
+        return (
+            jsonify(
+                {
+                    "simulated_route": simulated_route,
+                    "summary": summary,
+                    "is_trial": True,
+                }
+            ),
+            200,
+        )
 
     except FileNotFoundError:
         return jsonify({"error": "Trial route not found"}), 404
