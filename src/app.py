@@ -592,14 +592,16 @@ def precompute_route():
         missing_times = []
         for idx, loc in enumerate(locations):
             if not loc.arrival_time or not loc.departure_time:
-                missing_times.append({
-                    "index": idx,
-                    "name": loc.name,
-                    "missing": {
-                        "arrival_time": not loc.arrival_time,
-                        "departure_time": not loc.departure_time,
+                missing_times.append(
+                    {
+                        "index": idx,
+                        "name": loc.name,
+                        "missing": {
+                            "arrival_time": not loc.arrival_time,
+                            "departure_time": not loc.departure_time,
+                        },
                     }
-                })
+                )
 
         if missing_times:
             return (
@@ -690,26 +692,29 @@ def simulate_route():
         # Build response from existing timing data
         route_preview = []
         for loc in sorted_locations:
-            route_preview.append({
-                "name": loc.name,
-                "latitude": loc.latitude,
-                "longitude": loc.longitude,
-                "utc_offset": loc.utc_offset,
-                "arrival_time": loc.arrival_time,
-                "departure_time": loc.departure_time,
-                "country": loc.country,
-                "population": loc.population,
-                "priority": loc.priority,
-                "notes": loc.notes or loc.fun_facts,
-                "is_stop": loc.is_stop,
-            })
+            route_preview.append(
+                {
+                    "name": loc.name,
+                    "latitude": loc.latitude,
+                    "longitude": loc.longitude,
+                    "utc_offset": loc.utc_offset,
+                    "arrival_time": loc.arrival_time,
+                    "departure_time": loc.departure_time,
+                    "country": loc.country,
+                    "population": loc.population,
+                    "priority": loc.priority,
+                    "notes": loc.notes or loc.fun_facts,
+                    "is_stop": loc.is_stop,
+                }
+            )
 
         # Calculate summary from existing timestamps
         locations_with_times = [
-            loc for loc in route_preview 
+            loc
+            for loc in route_preview
             if loc["arrival_time"] and loc["departure_time"]
         ]
-        
+
         if len(locations_with_times) > 0:
             start_time = locations_with_times[0]["arrival_time"]
             end_time = locations_with_times[-1]["departure_time"]
@@ -924,26 +929,29 @@ def simulate_trial_route():
         # Build response from existing timing data
         route_preview = []
         for loc in sorted_locations:
-            route_preview.append({
-                "name": loc.name,
-                "latitude": loc.latitude,
-                "longitude": loc.longitude,
-                "utc_offset": loc.utc_offset,
-                "arrival_time": loc.arrival_time,
-                "departure_time": loc.departure_time,
-                "country": loc.country,
-                "population": loc.population,
-                "priority": loc.priority,
-                "notes": loc.notes or loc.fun_facts,
-                "is_stop": loc.is_stop,
-            })
+            route_preview.append(
+                {
+                    "name": loc.name,
+                    "latitude": loc.latitude,
+                    "longitude": loc.longitude,
+                    "utc_offset": loc.utc_offset,
+                    "arrival_time": loc.arrival_time,
+                    "departure_time": loc.departure_time,
+                    "country": loc.country,
+                    "population": loc.population,
+                    "priority": loc.priority,
+                    "notes": loc.notes or loc.fun_facts,
+                    "is_stop": loc.is_stop,
+                }
+            )
 
         # Calculate summary from existing timestamps
         locations_with_times = [
-            loc for loc in route_preview 
+            loc
+            for loc in route_preview
             if loc["arrival_time"] and loc["departure_time"]
         ]
-        
+
         if len(locations_with_times) > 0:
             start_time = locations_with_times[0]["arrival_time"]
             end_time = locations_with_times[-1]["departure_time"]
