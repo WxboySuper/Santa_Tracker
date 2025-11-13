@@ -37,7 +37,9 @@ class TestRouteValidation(unittest.TestCase):
     def test_validate_duplicate_names(self):
         """Test validation catches duplicate location names."""
         locations = [
-            Location(name="New York", latitude=40.7128, longitude=-74.0060, utc_offset=-5.0),
+            Location(
+                name="New York", latitude=40.7128, longitude=-74.0060, utc_offset=-5.0
+            ),
             Location(name="New York", latitude=41.0, longitude=-73.0, utc_offset=-5.0),
         ]
         result = validate_locations(locations)
@@ -48,8 +50,12 @@ class TestRouteValidation(unittest.TestCase):
     def test_validate_close_coordinates(self):
         """Test validation warns about very close coordinates."""
         locations = [
-            Location(name="City A", latitude=40.7128, longitude=-74.0060, utc_offset=-5.0),
-            Location(name="City B", latitude=40.7128, longitude=-74.0060, utc_offset=-5.0),  # Exact same coords
+            Location(
+                name="City A", latitude=40.7128, longitude=-74.0060, utc_offset=-5.0
+            ),
+            Location(
+                name="City B", latitude=40.7128, longitude=-74.0060, utc_offset=-5.0
+            ),  # Exact same coords
         ]
         result = validate_locations(locations)
         self.assertTrue(result["valid"])  # Warning, not error
@@ -71,7 +77,7 @@ class TestRouteValidation(unittest.TestCase):
 
     def test_validate_invalid_priority(self):
         """Test validation catches invalid priority values."""
-        # Priority validation happens in Location.__post_init__, 
+        # Priority validation happens in Location.__post_init__,
         # so we test that it's caught there
         with self.assertRaises(ValueError):
             Location(
@@ -86,9 +92,15 @@ class TestRouteValidation(unittest.TestCase):
         """Test validation of multiple valid locations."""
         locations = [
             Location(name="North Pole", latitude=90.0, longitude=0.0, utc_offset=0.0),
-            Location(name="New York", latitude=40.7128, longitude=-74.0060, utc_offset=-5.0),
-            Location(name="Tokyo", latitude=35.6762, longitude=139.6503, utc_offset=9.0),
-            Location(name="Sydney", latitude=-33.8688, longitude=151.2093, utc_offset=11.0),
+            Location(
+                name="New York", latitude=40.7128, longitude=-74.0060, utc_offset=-5.0
+            ),
+            Location(
+                name="Tokyo", latitude=35.6762, longitude=139.6503, utc_offset=9.0
+            ),
+            Location(
+                name="Sydney", latitude=-33.8688, longitude=151.2093, utc_offset=11.0
+            ),
         ]
         result = validate_locations(locations)
         self.assertTrue(result["valid"])
@@ -115,20 +127,20 @@ class TestRouteSaving(unittest.TestCase):
                 fun_facts="Test fact",
             )
         ]
-        
+
         with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
             temp_file = f.name
-        
+
         try:
             save_santa_route_to_json(locations, temp_file)
-            
+
             # Read back the saved file
             with open(temp_file, "r") as f:
                 data = json.load(f)
-            
+
             self.assertIn("route", data)
             self.assertEqual(len(data["route"]), 1)
-            
+
             saved_loc = data["route"][0]
             self.assertEqual(saved_loc["location"], "Test City")
             self.assertEqual(saved_loc["latitude"], 40.0)
@@ -153,16 +165,16 @@ class TestRouteSaving(unittest.TestCase):
                 utc_offset=0.0,
             )
         ]
-        
+
         with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
             temp_file = f.name
-        
+
         try:
             save_santa_route_to_json(locations, temp_file)
-            
+
             with open(temp_file, "r") as f:
                 data = json.load(f)
-            
+
             saved_loc = data["route"][0]
             self.assertEqual(saved_loc["location"], "Minimal City")
             self.assertTrue(saved_loc["is_stop"])
@@ -185,29 +197,37 @@ class TestRouteGeneration(unittest.TestCase):
         start_time = datetime(2024, 12, 24, 0, 0, 0)
         stop_duration_minutes = 30
         travel_duration_minutes = 10
-        
+
         arrival = start_time
         departure = arrival + timedelta(minutes=stop_duration_minutes)
         next_arrival = departure + timedelta(minutes=travel_duration_minutes)
-        
+
         expected_departure = datetime(2024, 12, 24, 0, 30, 0)
         expected_next_arrival = datetime(2024, 12, 24, 0, 40, 0)
-        
+
         self.assertEqual(departure, expected_departure)
         self.assertEqual(next_arrival, expected_next_arrival)
 
     def test_route_sorting_by_utc_offset(self):
         """Test that locations can be sorted by UTC offset for route planning."""
         locations = [
-            Location(name="Tokyo", latitude=35.6762, longitude=139.6503, utc_offset=9.0),
-            Location(name="London", latitude=51.5074, longitude=-0.1278, utc_offset=0.0),
-            Location(name="New York", latitude=40.7128, longitude=-74.0060, utc_offset=-5.0),
-            Location(name="Sydney", latitude=-33.8688, longitude=151.2093, utc_offset=11.0),
+            Location(
+                name="Tokyo", latitude=35.6762, longitude=139.6503, utc_offset=9.0
+            ),
+            Location(
+                name="London", latitude=51.5074, longitude=-0.1278, utc_offset=0.0
+            ),
+            Location(
+                name="New York", latitude=40.7128, longitude=-74.0060, utc_offset=-5.0
+            ),
+            Location(
+                name="Sydney", latitude=-33.8688, longitude=151.2093, utc_offset=11.0
+            ),
         ]
-        
+
         # Sort by UTC offset descending (following timezones)
         sorted_locs = sorted(locations, key=lambda loc: -loc.utc_offset)
-        
+
         self.assertEqual(sorted_locs[0].name, "Sydney")
         self.assertEqual(sorted_locs[1].name, "Tokyo")
         self.assertEqual(sorted_locs[2].name, "London")
@@ -216,14 +236,20 @@ class TestRouteGeneration(unittest.TestCase):
     def test_route_with_priority_sorting(self):
         """Test that priority can be used in route sorting."""
         locations = [
-            Location(name="City A", latitude=0.0, longitude=0.0, utc_offset=0.0, priority=2),
-            Location(name="City B", latitude=0.0, longitude=0.0, utc_offset=0.0, priority=1),
-            Location(name="City C", latitude=0.0, longitude=0.0, utc_offset=0.0, priority=3),
+            Location(
+                name="City A", latitude=0.0, longitude=0.0, utc_offset=0.0, priority=2
+            ),
+            Location(
+                name="City B", latitude=0.0, longitude=0.0, utc_offset=0.0, priority=1
+            ),
+            Location(
+                name="City C", latitude=0.0, longitude=0.0, utc_offset=0.0, priority=3
+            ),
         ]
-        
+
         # Sort by priority (1 is highest)
         sorted_locs = sorted(locations, key=lambda loc: loc.priority or 999)
-        
+
         self.assertEqual(sorted_locs[0].name, "City B")
         self.assertEqual(sorted_locs[1].name, "City A")
         self.assertEqual(sorted_locs[2].name, "City C")

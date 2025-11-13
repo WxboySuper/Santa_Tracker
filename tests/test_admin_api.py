@@ -760,7 +760,7 @@ class TestRouteSimulation:
         assert "simulated_route" in data
         assert "summary" in data
         assert isinstance(data["simulated_route"], list)
-        
+
         summary = data["summary"]
         assert "total_locations" in summary
         assert "start_time" in summary
@@ -832,4 +832,3 @@ class TestRouteSimulation:
             ]
             for field in required_fields:
                 assert field in location
-
