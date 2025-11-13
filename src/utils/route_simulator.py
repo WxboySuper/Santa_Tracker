@@ -7,9 +7,7 @@ from .locations import Location
 
 
 def calculate_progress_between_locations(
-    start_time: datetime,
-    end_time: datetime,
-    current_time: datetime
+    start_time: datetime, end_time: datetime, current_time: datetime
 ) -> float:
     """
     Calculate progress percentage between two times.
@@ -38,9 +36,7 @@ def calculate_progress_between_locations(
 
 
 def interpolate_position(
-    loc1: Location,
-    loc2: Location,
-    progress: float
+    loc1: Location, loc2: Location, progress: float
 ) -> Tuple[float, float]:
     """
     Interpolate position between two locations.
@@ -59,8 +55,7 @@ def interpolate_position(
 
 
 def simulate_route_at_time(
-    locations: List[Location],
-    simulation_time: datetime
+    locations: List[Location], simulation_time: datetime
 ) -> Dict:
     """
     Simulate Santa's position at a specific time.
@@ -94,10 +89,10 @@ def simulate_route_at_time(
         if loc.arrival_time and loc.departure_time:
             try:
                 arrival = datetime.fromisoformat(
-                    loc.arrival_time.replace('Z', '+00:00')
+                    loc.arrival_time.replace("Z", "+00:00")
                 )
                 departure = datetime.fromisoformat(
-                    loc.departure_time.replace('Z', '+00:00')
+                    loc.departure_time.replace("Z", "+00:00")
                 )
                 locations_with_times.append((loc, arrival, departure))
             except (ValueError, AttributeError):
@@ -155,20 +150,20 @@ def simulate_route_at_time(
             prev_loc = None
             if i > 0:
                 prev_loc = {
-                    "name": locations_with_times[i-1][0].name,
-                    "latitude": locations_with_times[i-1][0].latitude,
-                    "longitude": locations_with_times[i-1][0].longitude,
-                    "arrival_time": locations_with_times[i-1][0].arrival_time,
-                    "departure_time": locations_with_times[i-1][0].departure_time,
+                    "name": locations_with_times[i - 1][0].name,
+                    "latitude": locations_with_times[i - 1][0].latitude,
+                    "longitude": locations_with_times[i - 1][0].longitude,
+                    "arrival_time": locations_with_times[i - 1][0].arrival_time,
+                    "departure_time": locations_with_times[i - 1][0].departure_time,
                 }
 
             next_loc = None
             if i < len(locations_with_times) - 1:
                 next_loc = {
-                    "name": locations_with_times[i+1][0].name,
-                    "latitude": locations_with_times[i+1][0].latitude,
-                    "longitude": locations_with_times[i+1][0].longitude,
-                    "arrival_time": locations_with_times[i+1][0].arrival_time,
+                    "name": locations_with_times[i + 1][0].name,
+                    "latitude": locations_with_times[i + 1][0].latitude,
+                    "longitude": locations_with_times[i + 1][0].longitude,
+                    "arrival_time": locations_with_times[i + 1][0].arrival_time,
                 }
 
             return {
@@ -207,7 +202,7 @@ def simulate_route_at_time(
                 return {
                     "status": "traveling",
                     "message": f"Santa is traveling from {loc.name} to "
-                               f"{locations_with_times[i + 1][0].name}",
+                    f"{locations_with_times[i + 1][0].name}",
                     "current_position": {
                         "latitude": lat,
                         "longitude": lng,
@@ -263,10 +258,10 @@ def get_route_summary(locations: List[Location]) -> Dict:
         if loc.arrival_time and loc.departure_time:
             try:
                 arrival = datetime.fromisoformat(
-                    loc.arrival_time.replace('Z', '+00:00')
+                    loc.arrival_time.replace("Z", "+00:00")
                 )
                 departure = datetime.fromisoformat(
-                    loc.departure_time.replace('Z', '+00:00')
+                    loc.departure_time.replace("Z", "+00:00")
                 )
                 locations_with_times.append((loc, arrival, departure))
             except (ValueError, AttributeError):

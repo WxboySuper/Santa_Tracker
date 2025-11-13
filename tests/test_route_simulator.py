@@ -128,7 +128,9 @@ class TestGetRouteSummary(unittest.TestCase):
         """Test summary with locations but no times."""
         locations = [
             Location(name="NYC", latitude=40.7128, longitude=-74.0060, utc_offset=-5.0),
-            Location(name="London", latitude=51.5074, longitude=-0.1278, utc_offset=0.0),
+            Location(
+                name="London", latitude=51.5074, longitude=-0.1278, utc_offset=0.0
+            ),
         ]
 
         summary = get_route_summary(locations)
@@ -364,12 +366,12 @@ class TestRouteSimulatorEdgeCases(unittest.TestCase):
         # At first location - should be 1/3
         sim_time = datetime(2024, 12, 24, 10, 5, 0, tzinfo=timezone.utc)
         result = simulate_route_at_time(locations, sim_time)
-        self.assertAlmostEqual(result["progress"], 1/3, places=2)
+        self.assertAlmostEqual(result["progress"], 1 / 3, places=2)
 
         # At second location - should be 2/3
         sim_time = datetime(2024, 12, 24, 10, 25, 0, tzinfo=timezone.utc)
         result = simulate_route_at_time(locations, sim_time)
-        self.assertAlmostEqual(result["progress"], 2/3, places=2)
+        self.assertAlmostEqual(result["progress"], 2 / 3, places=2)
 
         # At third location - should be 3/3 = 1.0
         sim_time = datetime(2024, 12, 24, 10, 45, 0, tzinfo=timezone.utc)

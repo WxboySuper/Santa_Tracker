@@ -948,13 +948,13 @@ def simulate_route():
         try:
             sim_time_str = data["simulation_time"]
             # Handle both Z suffix and +00:00 format
-            sim_time = datetime.fromisoformat(sim_time_str.replace('Z', '+00:00'))
+            sim_time = datetime.fromisoformat(sim_time_str.replace("Z", "+00:00"))
         except (ValueError, AttributeError):
             return (
                 jsonify(
                     {
                         "error": "Invalid simulation_time format. "
-                                 "Use ISO 8601 format (e.g., 2024-12-24T12:00:00Z)"
+                        "Use ISO 8601 format (e.g., 2024-12-24T12:00:00Z)"
                     }
                 ),
                 400,
