@@ -216,9 +216,13 @@ def get_locations():
                             "utc_offset": loc.utc_offset,
                             "arrival_time": loc.arrival_time,
                             "departure_time": loc.departure_time,
+                            "country": loc.country,
+                            "population": loc.population,
+                            "priority": loc.priority,
+                            "notes": loc.notes,
+                            # Deprecated fields for backward compatibility
                             "stop_duration": loc.stop_duration,
                             "is_stop": loc.is_stop,
-                            "priority": loc.priority,
                             "fun_facts": loc.fun_facts,
                         }
                         for idx, loc in enumerate(locations)
@@ -253,6 +257,9 @@ def add_location():
 
         # Create location object (this validates the data)
         try:
+            # Support both 'notes' and 'fun_facts' for backward compatibility
+            notes = data.get("notes") or data.get("fun_facts")
+            
             new_location = Location(
                 name=data["name"],
                 latitude=float(data["latitude"]),
@@ -260,9 +267,13 @@ def add_location():
                 utc_offset=float(data["utc_offset"]),
                 arrival_time=data.get("arrival_time"),
                 departure_time=data.get("departure_time"),
+                country=data.get("country"),
+                population=data.get("population"),
+                priority=data.get("priority"),
+                notes=notes,
+                # Deprecated fields
                 stop_duration=data.get("stop_duration"),
                 is_stop=data.get("is_stop", True),
-                priority=data.get("priority"),
                 fun_facts=data.get("fun_facts"),
             )
         except (ValueError, TypeError):
@@ -312,6 +323,9 @@ def update_location(location_id):
 
         # Update location fields
         try:
+            # Support both 'notes' and 'fun_facts' for backward compatibility
+            notes = data.get("notes") or data.get("fun_facts", locations[location_id].notes)
+            
             updated_location = Location(
                 name=data.get("name", locations[location_id].name),
                 latitude=float(data.get("latitude", locations[location_id].latitude)),
@@ -327,11 +341,15 @@ def update_location(location_id):
                 departure_time=data.get(
                     "departure_time", locations[location_id].departure_time
                 ),
+                country=data.get("country", locations[location_id].country),
+                population=data.get("population", locations[location_id].population),
+                priority=data.get("priority", locations[location_id].priority),
+                notes=notes,
+                # Deprecated fields
                 stop_duration=data.get(
                     "stop_duration", locations[location_id].stop_duration
                 ),
                 is_stop=data.get("is_stop", locations[location_id].is_stop),
-                priority=data.get("priority", locations[location_id].priority),
                 fun_facts=data.get("fun_facts", locations[location_id].fun_facts),
             )
         except (ValueError, TypeError):
@@ -418,6 +436,9 @@ def _parse_location_from_data(loc_data, idx):
         )
 
     try:
+        # Support both 'notes' and 'fun_facts' for backward compatibility
+        notes = loc_data.get("notes") or loc_data.get("fun_facts")
+        
         location = Location(
             name=name,
             latitude=float(loc_data["latitude"]),
@@ -425,9 +446,13 @@ def _parse_location_from_data(loc_data, idx):
             utc_offset=float(loc_data["utc_offset"]),
             arrival_time=loc_data.get("arrival_time"),
             departure_time=loc_data.get("departure_time"),
+            country=loc_data.get("country"),
+            population=loc_data.get("population"),
+            priority=loc_data.get("priority"),
+            notes=notes,
+            # Deprecated fields
             stop_duration=loc_data.get("stop_duration"),
             is_stop=loc_data.get("is_stop", True),
-            priority=loc_data.get("priority"),
             fun_facts=loc_data.get("fun_facts"),
         )
         return location, None
@@ -852,16 +877,25 @@ def upload_trial_route():
         locations = []
         for loc_data in data["route"]:
             try:
+                # Support both 'name' and 'location' fields
+                name = loc_data.get("name") or loc_data.get("location")
+                # Support both 'notes' and 'fun_facts' fields
+                notes = loc_data.get("notes") or loc_data.get("fun_facts")
+                
                 location = Location(
-                    name=loc_data.get("location", loc_data.get("name")),
+                    name=name,
                     latitude=loc_data["latitude"],
                     longitude=loc_data["longitude"],
                     utc_offset=loc_data["utc_offset"],
                     arrival_time=loc_data.get("arrival_time"),
                     departure_time=loc_data.get("departure_time"),
+                    country=loc_data.get("country"),
+                    population=loc_data.get("population"),
+                    priority=loc_data.get("priority"),
+                    notes=notes,
+                    # Deprecated fields
                     stop_duration=loc_data.get("stop_duration"),
                     is_stop=loc_data.get("is_stop", True),
-                    priority=loc_data.get("priority"),
                     fun_facts=loc_data.get("fun_facts"),
                 )
                 locations.append(location)
@@ -1030,22 +1064,25 @@ def export_backup():
     try:
         locations = load_santa_route_from_json()
 
-        # Create backup data structure
+        # Create backup data structure using new schema
         backup_data = {
             "backup_timestamp": datetime.now().isoformat(),
             "total_locations": len(locations),
             "route": [
                 {
-                    "location": loc.name,
+                    "name": loc.name,
                     "latitude": loc.latitude,
                     "longitude": loc.longitude,
                     "utc_offset": loc.utc_offset,
                     "arrival_time": loc.arrival_time,
                     "departure_time": loc.departure_time,
+                    "country": loc.country,
+                    "population": loc.population,
+                    "priority": loc.priority,
+                    "notes": loc.notes or loc.fun_facts,
+                    # Include deprecated fields for backward compatibility
                     "stop_duration": loc.stop_duration,
                     "is_stop": loc.is_stop,
-                    "priority": loc.priority,
-                    "fun_facts": loc.fun_facts,
                 }
                 for loc in locations
             ],

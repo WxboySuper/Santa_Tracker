@@ -733,7 +733,7 @@ class TestBackupExport:
         if len(data["route"]) > 0:
             location = data["route"][0]
             required_fields = [
-                "location",
+                "name",  # Updated from 'location' to 'name'
                 "latitude",
                 "longitude",
                 "utc_offset",
