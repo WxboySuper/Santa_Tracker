@@ -181,7 +181,8 @@ def load_trial_route_from_json():
     Trial routes are temporary test routes that don't affect the main route.
 
     Returns:
-        List of Location objects representing the trial route, or None if no trial route exists.
+        List of Location objects representing the trial route,
+        or None if no trial route exists.
     """
     base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     trial_route_path = os.path.join(base_dir, "static", "data", "trial_route.json")
