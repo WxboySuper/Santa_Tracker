@@ -809,106 +809,118 @@ def simulate_route():
         return jsonify({"error": "Internal server error"}), 500
 
 
-@app.route("/api/admin/route/trial", methods=["GET", "POST", "DELETE"])
+@app.route("/api/admin/route/trial", methods=["GET"])
 @require_admin_auth
-def manage_trial_route():
+def get_trial_route_status():
     """
-    Manage trial route for testing.
-    GET: Check if trial route exists and return status
-    POST: Upload a trial route from JSON data
-    DELETE: Delete the trial route
+    Check if trial route exists and return status.
     """
     try:
-        if request.method == "GET":
-            # Check if trial route exists
-            exists = has_trial_route()
-            if exists:
-                trial_locations = load_trial_route_from_json()
-                return (
-                    jsonify(
-                        {
-                            "exists": True,
-                            "location_count": (
-                                len(trial_locations) if trial_locations else 0
-                            ),
-                        }
-                    ),
-                    200,
-                )
-            else:
-                return jsonify({"exists": False, "location_count": 0}), 200
-
-        elif request.method == "POST":
-            # Upload trial route
-            data = request.get_json(force=True, silent=True)
-            if not data or "route" not in data:
-                return jsonify({"error": "Route data required"}), 400
-
-            # Parse locations from JSON
-            locations = []
-            for loc_data in data["route"]:
-                try:
-                    location = Location(
-                        name=loc_data.get("location", loc_data.get("name")),
-                        latitude=loc_data["latitude"],
-                        longitude=loc_data["longitude"],
-                        utc_offset=loc_data["utc_offset"],
-                        arrival_time=loc_data.get("arrival_time"),
-                        departure_time=loc_data.get("departure_time"),
-                        stop_duration=loc_data.get("stop_duration"),
-                        is_stop=loc_data.get("is_stop", True),
-                        priority=loc_data.get("priority"),
-                        fun_facts=loc_data.get("fun_facts"),
-                    )
-                    locations.append(location)
-                except (KeyError, ValueError) as e:
-                    logging.exception("Invalid location data in uploaded trial route.")
-                    return jsonify({"error": "Invalid location data."}), 400
-
-            # Validate the trial route
-            validation_result = validate_locations(locations)
-            if validation_result["errors"]:
-                return (
-                    jsonify(
-                        {
-                            "error": "Validation failed",
-                            "errors": validation_result["errors"],
-                            "warnings": validation_result["warnings"],
-                        }
-                    ),
-                    400,
-                )
-
-            # Save trial route
-            save_trial_route_to_json(locations)
-
+        exists = has_trial_route()
+        if exists:
+            trial_locations = load_trial_route_from_json()
             return (
                 jsonify(
                     {
-                        "success": True,
-                        "message": f"Trial route uploaded with {len(locations)} locations",
-                        "location_count": len(locations),
-                        "warnings": validation_result["warnings"],
+                        "exists": True,
+                        "location_count": (
+                            len(trial_locations) if trial_locations else 0
+                        ),
                     }
                 ),
                 200,
             )
+        else:
+            return jsonify({"exists": False, "location_count": 0}), 200
+    except Exception as e:
+        logger.exception("Error getting trial route status: %s", str(e))
+        return jsonify({"error": "Internal server error"}), 500
 
-        elif request.method == "DELETE":
-            # Delete trial route
-            deleted = delete_trial_route()
-            if deleted:
-                return jsonify({"success": True, "message": "Trial route deleted"}), 200
-            else:
-                return (
-                    jsonify({"success": False, "message": "No trial route to delete"}),
-                    404,
+
+@app.route("/api/admin/route/trial", methods=["POST"])
+@require_admin_auth
+def upload_trial_route():
+    """
+    Upload a trial route from JSON data.
+    """
+    try:
+        data = request.get_json(force=True, silent=True)
+        if not data or "route" not in data:
+            return jsonify({"error": "Route data required"}), 400
+
+        # Parse locations from JSON
+        locations = []
+        for loc_data in data["route"]:
+            try:
+                location = Location(
+                    name=loc_data.get("location", loc_data.get("name")),
+                    latitude=loc_data["latitude"],
+                    longitude=loc_data["longitude"],
+                    utc_offset=loc_data["utc_offset"],
+                    arrival_time=loc_data.get("arrival_time"),
+                    departure_time=loc_data.get("departure_time"),
+                    stop_duration=loc_data.get("stop_duration"),
+                    is_stop=loc_data.get("is_stop", True),
+                    priority=loc_data.get("priority"),
+                    fun_facts=loc_data.get("fun_facts"),
                 )
+                locations.append(location)
+            except (KeyError, ValueError):
+                logging.exception("Invalid location data in uploaded trial route.")
+                return jsonify({"error": "Invalid location data."}), 400
 
+        # Validate the trial route
+        validation_result = validate_locations(locations)
+        if validation_result["errors"]:
+            return (
+                jsonify(
+                    {
+                        "error": "Validation failed",
+                        "errors": validation_result["errors"],
+                        "warnings": validation_result["warnings"],
+                    }
+                ),
+                400,
+            )
+
+        # Save trial route
+        save_trial_route_to_json(locations)
+
+        return (
+            jsonify(
+                {
+                    "success": True,
+                    "message": f"Trial route uploaded with {len(locations)} locations",
+                    "location_count": len(locations),
+                    "warnings": validation_result["warnings"],
+                }
+            ),
+            200,
+        )
     except FileNotFoundError:
         return jsonify({"error": "Route file not found"}), 404
     except Exception as e:
-        logger.exception("Error managing trial route: %s", str(e))
+        logger.exception("Error uploading trial route: %s", str(e))
+        return jsonify({"error": "Internal server error"}), 500
+
+
+@app.route("/api/admin/route/trial", methods=["DELETE"])
+@require_admin_auth
+def delete_trial_route_endpoint():
+    """
+    Delete the trial route.
+    """
+    try:
+        deleted = delete_trial_route()
+        if deleted:
+            return jsonify({"success": True, "message": "Trial route deleted"}), 200
+        else:
+            return (
+                jsonify({"success": False, "message": "No trial route to delete"}),
+                404,
+            )
+    except Exception as e:
+        logger.exception("Error deleting trial route: %s", str(e))
         return jsonify({"error": "Internal server error"}), 500
 
 
