@@ -591,6 +591,152 @@ def precompute_route():
         return jsonify({"error": "Internal server error"}), 500
 
 
+def _parse_simulation_start_time(start_time_str):
+    """
+    Parse start time from string or return default.
+
+    Args:
+        start_time_str: ISO 8601 formatted time string or None
+
+    Returns:
+        tuple: (datetime object, error_response or None)
+    """
+    if not start_time_str:
+        return datetime(2024, 12, 24, 0, 0, 0), None
+
+    try:
+        # Parse and convert to naive datetime (remove timezone info)
+        start_time = datetime.fromisoformat(
+            start_time_str.replace("Z", "+00:00")
+        ).replace(tzinfo=None)
+        return start_time, None
+    except (ValueError, AttributeError):
+        return None, (jsonify({"error": "Invalid start_time format"}), 400)
+
+
+def _filter_locations_by_ids(all_locations, location_ids):
+    """
+    Filter locations by provided IDs.
+
+    Args:
+        all_locations: List of all available locations
+        location_ids: List of location indices or None
+
+    Returns:
+        tuple: (filtered locations list, error_response or None)
+    """
+    if location_ids is None:
+        return all_locations, None
+
+    if not isinstance(location_ids, list):
+        return None, (jsonify({"error": "location_ids must be a list"}), 400)
+
+    try:
+        locations = [
+            all_locations[idx] for idx in location_ids if 0 <= idx < len(all_locations)
+        ]
+        return locations, None
+    except (IndexError, TypeError):
+        return None, (jsonify({"error": "Invalid location_ids"}), 400)
+
+
+def _get_stop_duration(location):
+    """
+    Get stop duration for a location.
+
+    Args:
+        location: Location object
+
+    Returns:
+        int: Stop duration in minutes
+    """
+    if location.stop_duration:
+        return location.stop_duration
+
+    # North Pole gets longer prep time
+    if location.name == "North Pole":
+        return 60
+
+    return 30
+
+
+def _build_simulated_location(location, arrival_time, stop_duration):
+    """
+    Build a simulated location dict with timing information.
+
+    Args:
+        location: Location object
+        arrival_time: datetime of arrival
+        stop_duration: int stop duration in minutes
+
+    Returns:
+        dict: Simulated location data
+    """
+    departure_time = arrival_time + timedelta(minutes=stop_duration)
+
+    return {
+        "name": location.name,
+        "latitude": location.latitude,
+        "longitude": location.longitude,
+        "utc_offset": location.utc_offset,
+        "arrival_time": arrival_time.isoformat() + "Z",
+        "departure_time": departure_time.isoformat() + "Z",
+        "stop_duration": stop_duration,
+        "priority": location.priority,
+        "is_stop": location.is_stop,
+    }
+
+
+def _simulate_route_timing(locations, start_time):
+    """
+    Simulate route timing for a list of locations.
+
+    Args:
+        locations: List of Location objects (already sorted)
+        start_time: datetime to start simulation
+
+    Returns:
+        list: List of simulated location dicts with timing
+    """
+    simulated_route = []
+    current_time = start_time
+
+    for loc in locations:
+        stop_duration = _get_stop_duration(loc)
+        simulated_loc = _build_simulated_location(loc, current_time, stop_duration)
+        simulated_route.append(simulated_loc)
+
+        # Add travel time to next location
+        departure_time = current_time + timedelta(minutes=stop_duration)
+        current_time = departure_time + timedelta(minutes=10)
+
+    return simulated_route
+
+
+def _calculate_route_summary(simulated_route, start_time, current_time):
+    """
+    Calculate summary statistics for simulated route.
+
+    Args:
+        simulated_route: List of simulated location dicts
+        start_time: datetime of route start
+        current_time: datetime after last location
+
+    Returns:
+        dict: Summary statistics
+    """
+    total_duration = (current_time - start_time).total_seconds() / 60
+    end_time = current_time - timedelta(minutes=10)  # Remove last travel time
+
+    return {
+        "total_locations": len(simulated_route),
+        "start_time": start_time.isoformat() + "Z",
+        "end_time": end_time.isoformat() + "Z",
+        "total_duration_minutes": int(total_duration),
+        "total_stop_time_minutes": sum(loc["stop_duration"] for loc in simulated_route),
+    }
+
+
 @app.route("/api/admin/route/simulate", methods=["POST"])
 @require_admin_auth
 def simulate_route():
@@ -599,104 +745,44 @@ def simulate_route():
     Accepts optional start time and location IDs to simulate.
     """
     try:
-        data = request.get_json(force=True, silent=True)
-        if data is None:
-            data = {}
+        data = request.get_json(force=True, silent=True) or {}
 
         # Load current locations
         all_locations = load_santa_route_from_json()
-
-        if len(all_locations) == 0:
+        if not all_locations:
             return jsonify({"error": "No locations to simulate"}), 400
 
-        # Get simulation parameters
-        start_time_str = data.get("start_time")
-        location_ids = data.get("location_ids")  # Optional: simulate specific locations
+        # Parse start time
+        start_time, error = _parse_simulation_start_time(data.get("start_time"))
+        if error:
+            return error
 
-        # Parse start time or use default
-        if start_time_str:
-            try:
-                # Parse and convert to naive datetime (remove timezone info)
-                start_time = datetime.fromisoformat(
-                    start_time_str.replace("Z", "+00:00")
-                ).replace(tzinfo=None)
-            except (ValueError, AttributeError):
-                return jsonify({"error": "Invalid start_time format"}), 400
-        else:
-            # Default: Christmas Eve midnight UTC
-            start_time = datetime(2024, 12, 24, 0, 0, 0)
-
-        # Filter locations if specific IDs provided
-        if location_ids is not None:
-            if not isinstance(location_ids, list):
-                return jsonify({"error": "location_ids must be a list"}), 400
-            try:
-                locations = [
-                    all_locations[idx]
-                    for idx in location_ids
-                    if 0 <= idx < len(all_locations)
-                ]
-            except (IndexError, TypeError):
-                return jsonify({"error": "Invalid location_ids"}), 400
-        else:
-            locations = all_locations
+        # Filter locations by IDs if provided
+        locations, error = _filter_locations_by_ids(
+            all_locations, data.get("location_ids")
+        )
+        if error:
+            return error
 
         # Sort locations by UTC offset (descending) to follow time zones
         sorted_locations = sorted(
             locations, key=lambda loc: (-loc.utc_offset, loc.priority or 2)
         )
 
-        # Simulate the route without modifying the original locations
-        simulated_route = []
-        current_time = start_time
+        # Simulate the route timing
+        simulated_route = _simulate_route_timing(sorted_locations, start_time)
 
-        for loc in sorted_locations:
-            # Use existing stop duration or default
-            stop_duration = loc.stop_duration if loc.stop_duration else 30
-            if loc.name == "North Pole" and not loc.stop_duration:
-                stop_duration = 60
-
-            arrival_time = current_time
-            departure_time = arrival_time + timedelta(minutes=stop_duration)
-
-            simulated_route.append(
-                {
-                    "name": loc.name,
-                    "latitude": loc.latitude,
-                    "longitude": loc.longitude,
-                    "utc_offset": loc.utc_offset,
-                    "arrival_time": arrival_time.isoformat() + "Z",
-                    "departure_time": departure_time.isoformat() + "Z",
-                    "stop_duration": stop_duration,
-                    "priority": loc.priority,
-                    "is_stop": loc.is_stop,
-                }
-            )
-
-            # Add travel time to next location
-            current_time = departure_time + timedelta(minutes=10)
-
-        # Calculate summary statistics
-        total_duration = (current_time - start_time).total_seconds() / 60
-        end_time = current_time - timedelta(minutes=10)  # Remove last travel time
-
-        return (
-            jsonify(
-                {
-                    "simulated_route": simulated_route,
-                    "summary": {
-                        "total_locations": len(simulated_route),
-                        "start_time": start_time.isoformat() + "Z",
-                        "end_time": end_time.isoformat() + "Z",
-                        "total_duration_minutes": int(total_duration),
-                        "total_stop_time_minutes": sum(
-                            loc["stop_duration"] for loc in simulated_route
-                        ),
-                    },
-                }
-            ),
-            200,
+        # Calculate end time for summary (current_time after all stops)
+        final_stop_time = start_time + timedelta(
+            minutes=sum(loc["stop_duration"] for loc in simulated_route)
+            + (len(simulated_route) * 10)
         )
+
+        # Build response
+        summary = _calculate_route_summary(simulated_route, start_time, final_stop_time)
+
+        return jsonify({"simulated_route": simulated_route, "summary": summary}), 200
+
     except FileNotFoundError:
         return jsonify({"error": "Route data not found"}), 404
     except Exception as e:
