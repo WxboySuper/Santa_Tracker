@@ -1,7 +1,7 @@
 """Route simulator for testing Santa's route."""
 
 from datetime import datetime
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Tuple
 
 from .locations import Location
 
@@ -66,7 +66,8 @@ def simulate_route_at_time(
 
     Returns:
         Dictionary containing simulation results with keys:
-        - status: Current status ("not_started", "traveling", "at_location", "completed")
+        - status: Current status ("not_started", "traveling", "at_location",
+          "completed")
         - current_location: Current location info (if at a location)
         - current_position: Current lat/lng (if traveling)
         - next_location: Next destination info
@@ -201,8 +202,15 @@ def simulate_route_at_time(
 
                 return {
                     "status": "traveling",
+<<<<<<< Updated upstream
                     "message": f"Santa is traveling from {loc.name} to "
                     f"{locations_with_times[i + 1][0].name}",
+=======
+                    "message": (
+                        f"Santa is traveling from {loc.name} to "
+                        f"{locations_with_times[i + 1][0].name}"
+                    ),
+>>>>>>> Stashed changes
                     "current_position": {
                         "latitude": lat,
                         "longitude": lng,

@@ -1,7 +1,7 @@
 """Tests for the route simulator module."""
 
 import unittest
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 
 from src.utils.locations import Location
 from src.utils.route_simulator import (
@@ -103,8 +103,12 @@ class TestInterpolatePosition(unittest.TestCase):
 
     def test_interpolate_with_negative_coordinates(self):
         """Test interpolation with negative coordinates."""
-        loc1 = Location(name="Start", latitude=-10.0, longitude=-20.0, utc_offset=0.0)
-        loc2 = Location(name="End", latitude=10.0, longitude=20.0, utc_offset=0.0)
+        loc1 = Location(
+            name="Start", latitude=-10.0, longitude=-20.0, utc_offset=0.0
+        )
+        loc2 = Location(
+            name="End", latitude=10.0, longitude=20.0, utc_offset=0.0
+        )
 
         lat, lng = interpolate_position(loc1, loc2, 0.5)
         self.assertEqual(lat, 0.0)
@@ -127,7 +131,13 @@ class TestGetRouteSummary(unittest.TestCase):
     def test_summary_with_locations_no_times(self):
         """Test summary with locations but no times."""
         locations = [
+<<<<<<< Updated upstream
             Location(name="NYC", latitude=40.7128, longitude=-74.0060, utc_offset=-5.0),
+=======
+            Location(
+                name="NYC", latitude=40.7128, longitude=-74.0060, utc_offset=-5.0
+            ),
+>>>>>>> Stashed changes
             Location(
                 name="London", latitude=51.5074, longitude=-0.1278, utc_offset=0.0
             ),

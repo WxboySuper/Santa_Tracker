@@ -442,6 +442,7 @@
         <div class="tab-navigation">
             <button class="tab-button active" onclick="switchTab('locations', event)">🎄 Locations</button>
             <button class="tab-button" onclick="switchTab('advent', event)">🎁 Advent Calendar</button>
+            <button class="tab-button" onclick="switchTab('simulator', event)">🧪 Route Simulator</button>
         </div>
 
         <!-- Locations Tab -->
@@ -520,6 +521,61 @@
                     <tbody id="adventDaysTableBody">
                     </tbody>
                 </table>
+            </div>
+        </div>
+
+        <!-- Route Simulator Tab -->
+        <div id="simulatorTab" class="tab-content">
+            <div style="background: white; border-radius: 10px; padding: 20px; margin-bottom: 20px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+                <h2 style="margin-bottom: 15px; color: #333;">🧪 Route Simulator</h2>
+                <p style="color: #666; margin-bottom: 20px;">
+                    Test and preview Santa's route by simulating any date and time. 
+                    This helps you verify the route before going live on Christmas Eve.
+                </p>
+                
+                <div id="routeSummaryInfo" style="display: none; margin-bottom: 20px; padding: 15px; background: #f8f9fa; border-radius: 5px;">
+                    <h3 style="margin-bottom: 10px; color: #333; font-size: 16px;">Route Information</h3>
+                    <div id="routeSummaryContent"></div>
+                </div>
+                
+                <div style="margin-bottom: 20px;">
+                    <h3 style="margin-bottom: 15px; color: #333; font-size: 18px;">Simulation Controls</h3>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                        <div class="form-group">
+                            <label for="simDate">Date</label>
+                            <input type="date" id="simDate" value="2024-12-24" 
+                                   style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
+                        </div>
+                        <div class="form-group">
+                            <label for="simTime">Time (UTC)</label>
+                            <input type="time" id="simTime" value="12:00" 
+                                   style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                        <button class="btn btn-primary" onclick="runSimulation()">▶️ Simulate</button>
+                        <button class="btn btn-secondary" onclick="loadRouteSummary()">📊 Load Route Info</button>
+                        <button class="btn btn-secondary" onclick="setSimulationToNow()">⏰ Set to Now</button>
+                        <button class="btn btn-secondary" onclick="setSimulationToStart()">⏮️ Start of Route</button>
+                    </div>
+                </div>
+
+                <div id="simulationResults" style="display: none; margin-top: 20px;">
+                    <h3 style="margin-bottom: 15px; color: #333; font-size: 18px;">Simulation Results</h3>
+                    <div id="simulationStatus" style="margin-bottom: 15px;"></div>
+                    <div id="simulationDetails" style="background: #f8f9fa; border-radius: 5px; padding: 15px;"></div>
+                </div>
+
+                <div id="simulationError" style="display: none; margin-top: 20px;" class="alert alert-error"></div>
+            </div>
+
+            <!-- Map Visualization -->
+            <div style="background: white; border-radius: 10px; padding: 20px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+                <h3 style="margin-bottom: 15px; color: #333;">Map Visualization</h3>
+                <div id="simulatorMap" style="height: 500px; border-radius: 5px; background: #e0e0e0;"></div>
+                <p style="margin-top: 10px; color: #666; font-size: 14px;">
+                    💡 Tip: The map shows Santa's current simulated position with markers for previous and next locations.
+                </p>
             </div>
         </div>
     </div>
@@ -1499,6 +1555,9 @@
                 loadLocations();
             } else if (tabName === 'advent') {
                 loadAdventDays();
+            } else if (tabName === 'simulator') {
+                loadRouteSummary();
+                initializeSimulatorMap();
             }
         }
 
@@ -1943,6 +2002,399 @@
                 document.getElementById('importAdventErrors').style.display = 'block';
             }
         }
+
+        // ============== ROUTE SIMULATOR FUNCTIONS ==============
+        let simulatorMap = null;
+        let simulatorMarkers = {
+            current: null,
+            previous: null,
+            next: null
+        };
+
+        function initializeSimulatorMap() {
+            if (simulatorMap) {
+                return; // Map already initialized
+            }
+            
+            // Initialize Leaflet map
+            simulatorMap = L.map('simulatorMap').setView([40.7128, -74.0060], 3);
+            
+            // Add tile layer
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19,
+                attribution: '© OpenStreetMap contributors'
+            }).addTo(simulatorMap);
+        }
+
+        async function loadRouteSummary() {
+            try {
+                const response = await fetch('/api/admin/route/summary', {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${getAuthToken()}`
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to load route summary');
+                }
+
+                const summary = await response.json();
+                
+                const summaryDiv = document.getElementById('routeSummaryInfo');
+                const contentDiv = document.getElementById('routeSummaryContent');
+                
+                summaryDiv.style.display = 'block';
+                
+                let statusIcon = summary.valid ? '✅' : '⚠️';
+                let statusText = summary.valid ? 'Valid' : 'Invalid - Missing timing data';
+                
+                contentDiv.innerHTML = `
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+                        <div>
+                            <strong>Status:</strong><br>
+                            <span style="color: ${summary.valid ? '#28a745' : '#dc3545'}">
+                                ${statusIcon} ${statusText}
+                            </span>
+                        </div>
+                        <div>
+                            <strong>Total Locations:</strong><br>
+                            ${summary.total_locations}
+                        </div>
+                        <div>
+                            <strong>With Timing:</strong><br>
+                            ${summary.locations_with_times}
+                        </div>
+                        <div>
+                            <strong>Start Time:</strong><br>
+                            ${summary.start_time ? new Date(summary.start_time).toLocaleString() : 'N/A'}
+                        </div>
+                        <div>
+                            <strong>End Time:</strong><br>
+                            ${summary.end_time ? new Date(summary.end_time).toLocaleString() : 'N/A'}
+                        </div>
+                    </div>
+                `;
+                
+                // Set simulation date to route start if available
+                if (summary.start_time) {
+                    const startDate = new Date(summary.start_time);
+                    document.getElementById('simDate').value = startDate.toISOString().split('T')[0];
+                    document.getElementById('simTime').value = startDate.toISOString().split('T')[1].substring(0, 5);
+                }
+                
+            } catch (error) {
+                console.error('Error loading route summary:', error);
+                showSimulationError('Failed to load route summary: ' + error.message);
+            }
+        }
+
+        async function runSimulation() {
+            const date = document.getElementById('simDate').value;
+            const time = document.getElementById('simTime').value;
+            
+            if (!date || !time) {
+                showSimulationError('Please enter both date and time');
+                return;
+            }
+            
+            // Combine date and time into ISO format
+            const simulationTime = `${date}T${time}:00Z`;
+            
+            try {
+                const response = await fetch('/api/admin/route/simulate', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${getAuthToken()}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        simulation_time: simulationTime
+                    })
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || 'Simulation failed');
+                }
+
+                const result = await response.json();
+                displaySimulationResults(result);
+                updateSimulatorMap(result);
+                
+            } catch (error) {
+                console.error('Simulation error:', error);
+                showSimulationError('Simulation failed: ' + error.message);
+            }
+        }
+
+        function displaySimulationResults(result) {
+            const resultsDiv = document.getElementById('simulationResults');
+            const statusDiv = document.getElementById('simulationStatus');
+            const detailsDiv = document.getElementById('simulationDetails');
+            const errorDiv = document.getElementById('simulationError');
+            
+            errorDiv.style.display = 'none';
+            resultsDiv.style.display = 'block';
+            
+            // Display status
+            let statusHtml = '';
+            let statusColor = '#666';
+            
+            switch (result.status) {
+                case 'not_started':
+                    statusColor = '#ffc107';
+                    statusHtml = `<div style="padding: 15px; background: #fff3cd; border-radius: 5px; color: #856404;">
+                        <strong>🚫 Not Started</strong><br>
+                        ${result.message}
+                    </div>`;
+                    break;
+                case 'at_location':
+                    statusColor = '#28a745';
+                    statusHtml = `<div style="padding: 15px; background: #d4edda; border-radius: 5px; color: #155724;">
+                        <strong>📍 At Location</strong><br>
+                        ${result.message}
+                    </div>`;
+                    break;
+                case 'traveling':
+                    statusColor = '#007bff';
+                    statusHtml = `<div style="padding: 15px; background: #d1ecf1; border-radius: 5px; color: #0c5460;">
+                        <strong>✈️ Traveling</strong><br>
+                        ${result.message}
+                    </div>`;
+                    break;
+                case 'completed':
+                    statusColor = '#17a2b8';
+                    statusHtml = `<div style="padding: 15px; background: #d1ecf1; border-radius: 5px; color: #0c5460;">
+                        <strong>🎉 Completed</strong><br>
+                        ${result.message}
+                    </div>`;
+                    break;
+                default:
+                    statusHtml = `<div style="padding: 15px; background: #f8d7da; border-radius: 5px; color: #721c24;">
+                        <strong>❓ ${result.status}</strong><br>
+                        ${result.message || 'Unknown status'}
+                    </div>`;
+            }
+            
+            statusDiv.innerHTML = statusHtml;
+            
+            // Display details
+            let detailsHtml = '<div style="display: grid; gap: 15px;">';
+            
+            // Progress bar
+            if (result.progress !== undefined) {
+                const progressPercent = (result.progress * 100).toFixed(1);
+                detailsHtml += `
+                    <div>
+                        <strong>Overall Progress:</strong>
+                        <div style="background: #e0e0e0; border-radius: 10px; height: 20px; margin-top: 5px; overflow: hidden;">
+                            <div style="background: linear-gradient(90deg, #667eea 0%, #764ba2 100%); 
+                                        height: 100%; width: ${progressPercent}%; transition: width 0.3s;"></div>
+                        </div>
+                        <div style="margin-top: 5px; font-size: 14px; color: #666;">
+                            ${progressPercent}% (${result.locations_visited}/${result.total_locations} locations)
+                        </div>
+                    </div>
+                `;
+            }
+            
+            // Current location details
+            if (result.current_location) {
+                detailsHtml += `
+                    <div>
+                        <strong>Current Location:</strong>
+                        <div style="margin-top: 5px; padding: 10px; background: white; border-radius: 5px; border: 2px solid #28a745;">
+                            <div style="font-weight: 600; color: #333;">${result.current_location.name}</div>
+                            <div style="font-size: 14px; color: #666; margin-top: 5px;">
+                                📍 ${result.current_location.latitude.toFixed(4)}, ${result.current_location.longitude.toFixed(4)}
+                            </div>
+                            ${result.current_location.fun_facts ? `
+                                <div style="margin-top: 8px; font-size: 13px; color: #555; font-style: italic;">
+                                    ${result.current_location.fun_facts}
+                                </div>
+                            ` : ''}
+                        </div>
+                    </div>
+                `;
+            }
+            
+            // Current position (when traveling)
+            if (result.current_position) {
+                detailsHtml += `
+                    <div>
+                        <strong>Current Position:</strong>
+                        <div style="margin-top: 5px; padding: 10px; background: white; border-radius: 5px; border: 2px solid #007bff;">
+                            📍 ${result.current_position.latitude.toFixed(4)}, ${result.current_position.longitude.toFixed(4)}
+                            ${result.travel_progress !== undefined ? `
+                                <br><span style="font-size: 14px; color: #666;">
+                                    Travel Progress: ${(result.travel_progress * 100).toFixed(1)}%
+                                </span>
+                            ` : ''}
+                        </div>
+                    </div>
+                `;
+            }
+            
+            // Previous and Next locations
+            const locColumns = [];
+            if (result.previous_location) {
+                locColumns.push(`
+                    <div>
+                        <strong>Previous Location:</strong>
+                        <div style="margin-top: 5px; padding: 10px; background: white; border-radius: 5px;">
+                            ${result.previous_location.name}<br>
+                            <span style="font-size: 14px; color: #666;">
+                                📍 ${result.previous_location.latitude.toFixed(4)}, ${result.previous_location.longitude.toFixed(4)}
+                            </span>
+                        </div>
+                    </div>
+                `);
+            }
+            
+            if (result.next_location) {
+                locColumns.push(`
+                    <div>
+                        <strong>Next Location:</strong>
+                        <div style="margin-top: 5px; padding: 10px; background: white; border-radius: 5px;">
+                            ${result.next_location.name}<br>
+                            <span style="font-size: 14px; color: #666;">
+                                📍 ${result.next_location.latitude.toFixed(4)}, ${result.next_location.longitude.toFixed(4)}
+                            </span>
+                        </div>
+                    </div>
+                `);
+            }
+            
+            if (locColumns.length > 0) {
+                detailsHtml += `
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px;">
+                        ${locColumns.join('')}
+                    </div>
+                `;
+            }
+            
+            detailsHtml += '</div>';
+            detailsDiv.innerHTML = detailsHtml;
+        }
+
+        function updateSimulatorMap(result) {
+            if (!simulatorMap) {
+                initializeSimulatorMap();
+            }
+            
+            // Clear existing markers
+            Object.values(simulatorMarkers).forEach(marker => {
+                if (marker) {
+                    simulatorMap.removeLayer(marker);
+                }
+            });
+            
+            let centerLat, centerLng;
+            
+            // Add current location or position marker
+            if (result.current_location) {
+                centerLat = result.current_location.latitude;
+                centerLng = result.current_location.longitude;
+                
+                simulatorMarkers.current = L.marker([centerLat, centerLng], {
+                    icon: L.divIcon({
+                        className: 'current-marker',
+                        html: '<div style="background: #28a745; width: 20px; height: 20px; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3);"></div>',
+                        iconSize: [20, 20],
+                        iconAnchor: [10, 10]
+                    })
+                }).addTo(simulatorMap);
+                
+                simulatorMarkers.current.bindPopup(`
+                    <strong>Current Location</strong><br>
+                    ${result.current_location.name}
+                `);
+                
+            } else if (result.current_position) {
+                centerLat = result.current_position.latitude;
+                centerLng = result.current_position.longitude;
+                
+                simulatorMarkers.current = L.marker([centerLat, centerLng], {
+                    icon: L.divIcon({
+                        className: 'traveling-marker',
+                        html: '<div style="background: #007bff; width: 16px; height: 16px; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3);"></div>',
+                        iconSize: [16, 16],
+                        iconAnchor: [8, 8]
+                    })
+                }).addTo(simulatorMap);
+                
+                simulatorMarkers.current.bindPopup('<strong>Traveling...</strong>');
+            }
+            
+            // Add previous location marker
+            if (result.previous_location) {
+                simulatorMarkers.previous = L.marker([
+                    result.previous_location.latitude, 
+                    result.previous_location.longitude
+                ], {
+                    icon: L.divIcon({
+                        className: 'previous-marker',
+                        html: '<div style="background: #6c757d; width: 12px; height: 12px; border-radius: 50%; border: 2px solid white; box-shadow: 0 1px 2px rgba(0,0,0,0.2);"></div>',
+                        iconSize: [12, 12],
+                        iconAnchor: [6, 6]
+                    })
+                }).addTo(simulatorMap);
+                
+                simulatorMarkers.previous.bindPopup(`
+                    <strong>Previous</strong><br>
+                    ${result.previous_location.name}
+                `);
+            }
+            
+            // Add next location marker
+            if (result.next_location) {
+                simulatorMarkers.next = L.marker([
+                    result.next_location.latitude, 
+                    result.next_location.longitude
+                ], {
+                    icon: L.divIcon({
+                        className: 'next-marker',
+                        html: '<div style="background: #ffc107; width: 14px; height: 14px; border-radius: 50%; border: 2px solid white; box-shadow: 0 1px 3px rgba(0,0,0,0.2);"></div>',
+                        iconSize: [14, 14],
+                        iconAnchor: [7, 7]
+                    })
+                }).addTo(simulatorMap);
+                
+                simulatorMarkers.next.bindPopup(`
+                    <strong>Next</strong><br>
+                    ${result.next_location.name}
+                `);
+            }
+            
+            // Center map on current position
+            if (centerLat && centerLng) {
+                simulatorMap.setView([centerLat, centerLng], 6);
+            }
+        }
+
+        function setSimulationToNow() {
+            const now = new Date();
+            document.getElementById('simDate').value = now.toISOString().split('T')[0];
+            document.getElementById('simTime').value = now.toISOString().split('T')[1].substring(0, 5);
+        }
+
+        function setSimulationToStart() {
+            document.getElementById('simDate').value = '2024-12-24';
+            document.getElementById('simTime').value = '00:00';
+        }
+
+        function showSimulationError(message) {
+            const errorDiv = document.getElementById('simulationError');
+            const resultsDiv = document.getElementById('simulationResults');
+            
+            resultsDiv.style.display = 'none';
+            errorDiv.style.display = 'block';
+            errorDiv.textContent = message;
+        }
+
+        // ============== END OF ROUTE SIMULATOR FUNCTIONS ==============
+
     </script>
 </body>
 </html>
