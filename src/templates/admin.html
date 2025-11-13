@@ -1815,21 +1815,53 @@
                 if (response.ok) {
                     showAlert(result.message, 'success');
                     if (result.warnings && result.warnings.length > 0) {
-                        warningsDiv.innerHTML = '<strong>Warnings:</strong><br>' + result.warnings.join('<br>');
+                        // Clear previous content
+                        warningsDiv.innerHTML = '';
+                        const strong = document.createElement('strong');
+                        strong.textContent = 'Warnings:';
+                        warningsDiv.appendChild(strong);
+                        warningsDiv.appendChild(document.createElement('br'));
+                        result.warnings.forEach(warning => {
+                            const p = document.createElement('p');
+                            p.textContent = warning;
+                            warningsDiv.appendChild(p);
+                        });
                         warningsDiv.style.display = 'block';
                     }
                     closeUploadTrialRouteModal();
                     checkTrialRouteStatus();
                 } else {
                     if (result.errors) {
-                        errorsDiv.innerHTML = '<strong>Errors:</strong><br>' + result.errors.join('<br>');
+                        // Clear previous content
+                        errorsDiv.innerHTML = '';
+                        const strong = document.createElement('strong');
+                        strong.textContent = 'Errors:';
+                        errorsDiv.appendChild(strong);
+                        errorsDiv.appendChild(document.createElement('br'));
+                        result.errors.forEach((error, idx) => {
+                            const text = document.createTextNode(error);
+                            errorsDiv.appendChild(text);
+                            if (idx < result.errors.length - 1) {
+                                errorsDiv.appendChild(document.createElement('br'));
+                            }
+                        });
                     } else {
                         errorsDiv.textContent = result.error || 'Failed to upload trial route';
                     }
                     errorsDiv.style.display = 'block';
                     
                     if (result.warnings && result.warnings.length > 0) {
-                        warningsDiv.innerHTML = '<strong>Warnings:</strong><br>' + result.warnings.join('<br>');
+                        // Clear previous content
+                        warningsDiv.innerHTML = '';
+                        const strong = document.createElement('strong');
+                        strong.textContent = 'Warnings:';
+                        warningsDiv.appendChild(strong);
+                        warningsDiv.appendChild(document.createElement('br'));
+                        result.warnings.forEach(warning => {
+                            const p = document.createElement('p');
+                            p.textContent = warning;
+                            warningsDiv.appendChild(p);
+                        });
                         warningsDiv.style.display = 'block';
                     }
                 }

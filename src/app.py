@@ -866,7 +866,7 @@ def upload_trial_route():
                 )
                 locations.append(location)
             except (KeyError, ValueError):
-                logging.exception("Invalid location data in uploaded trial route.")
+                logger.exception("Invalid location data in uploaded trial route.")
                 return jsonify({"error": "Invalid location data."}), 400
 
         # Validate the trial route

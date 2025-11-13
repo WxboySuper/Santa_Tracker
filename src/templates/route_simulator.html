@@ -444,11 +444,21 @@
                     fillOpacity: 0.8
                 }).addTo(map);
 
-                marker.bindPopup(`
-                    <strong>${loc.name}</strong><br>
-                    Arrival: ${new Date(loc.arrival_time).toLocaleTimeString()}<br>
-                    Stop: ${loc.stop_duration} min
-                `);
+                // Create safe popup content
+                const popupDiv = document.createElement('div');
+                const nameStrong = document.createElement('strong');
+                nameStrong.textContent = loc.name;
+                popupDiv.appendChild(nameStrong);
+                popupDiv.appendChild(document.createElement('br'));
+                
+                const arrivalText = document.createTextNode(`Arrival: ${new Date(loc.arrival_time).toLocaleTimeString()}`);
+                popupDiv.appendChild(arrivalText);
+                popupDiv.appendChild(document.createElement('br'));
+                
+                const stopText = document.createTextNode(`Stop: ${loc.stop_duration} min`);
+                popupDiv.appendChild(stopText);
+                
+                marker.bindPopup(popupDiv);
 
                 markers.push(marker);
             });
@@ -462,12 +472,28 @@
             const container = document.getElementById('upcomingLocations');
             const upcoming = simulatedRoute.slice(currentLocationIndex, currentLocationIndex + 5);
             
-            container.innerHTML = upcoming.map((loc, idx) => `
-                <div style="padding: 10px; border-bottom: 1px solid #eee; ${idx === 0 ? 'background: #e3f2fd;' : ''}">
-                    <strong>${loc.name}</strong><br>
-                    <small>Arrival: ${new Date(loc.arrival_time).toLocaleTimeString()}</small>
-                </div>
-            `).join('');
+            // Clear container
+            container.innerHTML = '';
+            
+            upcoming.forEach((loc, idx) => {
+                const div = document.createElement('div');
+                div.style.padding = '10px';
+                div.style.borderBottom = '1px solid #eee';
+                if (idx === 0) {
+                    div.style.background = '#e3f2fd';
+                }
+                
+                const nameStrong = document.createElement('strong');
+                nameStrong.textContent = loc.name;
+                div.appendChild(nameStrong);
+                div.appendChild(document.createElement('br'));
+                
+                const arrivalSmall = document.createElement('small');
+                arrivalSmall.textContent = `Arrival: ${new Date(loc.arrival_time).toLocaleTimeString()}`;
+                div.appendChild(arrivalSmall);
+                
+                container.appendChild(div);
+            });
         }
 
         // Run simulation
