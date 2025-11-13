@@ -136,11 +136,8 @@ document.addEventListener('DOMContentLoaded', function() {
         }, 50); // 50ms per step = 1.5s total animation
     }
 
-    // Example: Load and display route (replace with actual data loading)
+    // Load and display route with real tracking logic
     loadSantaRoute();
-
-    // Simulate Santa movement (replace with real tracking logic)
-    simulateSantaMovement();
 
     // Make map keyboard accessible
     map.getContainer().addEventListener('keydown', (e) => {
@@ -246,24 +243,185 @@ function updateLocationCountdown() {
 }
 
 // Load Santa's route from data source
-function loadSantaRoute() {
-    // Example route points (replace with actual data loading)
-    const exampleRoute = [
-        { lat: 90, lng: 0, name: 'North Pole' },
-        { lat: 64.2, lng: -21.9, name: 'Reykjavik, Iceland' },
-        { lat: 51.5, lng: -0.1, name: 'London, UK' },
-        { lat: 48.9, lng: 2.3, name: 'Paris, France' },
-        { lat: 41.9, lng: 12.5, name: 'Rome, Italy' },
-        { lat: 40.7, lng: -74.0, name: 'New York, USA' },
-        { lat: -33.9, lng: 151.2, name: 'Sydney, Australia' },
-        { lat: 35.7, lng: 139.7, name: 'Tokyo, Japan' }
-    ];
+let santaRoute = [];
+
+async function loadSantaRoute() {
+    try {
+        const response = await fetch('/static/data/santa_route.json');
+        const data = await response.json();
+        santaRoute = data.route || [];
+        
+        if (santaRoute.length > 0) {
+            // Initialize with first location
+            const firstLocation = santaRoute[0];
+            updateLocationDisplay(firstLocation.name || firstLocation.location, 
+                santaRoute[1] ? (santaRoute[1].name || santaRoute[1].location) : 'Unknown');
+        }
+        
+        // Start real-time tracking based on timestamps
+        startRealTimeTracking();
+    } catch (error) {
+        console.error('Failed to load Santa route:', error);
+        // Fallback to simulation if route data fails to load
+        simulateSantaMovement();
+    }
+}
+
+// Interpolate Santa's position between two locations based on timestamps
+function interpolatePosition(loc1, loc2, currentTime) {
+    const departure = new Date(loc1.departure_time);
+    const arrival = new Date(loc2.arrival_time);
+    const now = new Date(currentTime);
     
-    // Update current location display
-    updateLocationDisplay(exampleRoute[0].name, exampleRoute[1].name);
+    // Calculate progress between 0 and 1
+    const totalDuration = arrival - departure;
+    const elapsed = now - departure;
+    const progress = Math.max(0, Math.min(1, elapsed / totalDuration));
     
-    // Draw route on map (optional)
-    // drawRouteOnMap(exampleRoute);
+    // Linear interpolation of latitude and longitude
+    const lat = loc1.latitude + (loc2.latitude - loc1.latitude) * progress;
+    const lng = loc1.longitude + (loc2.longitude - loc1.longitude) * progress;
+    
+    return [lat, lng];
+}
+
+// Determine Santa's current status and position
+function getSantaStatus() {
+    if (santaRoute.length === 0) {
+        return null;
+    }
+    
+    const now = new Date();
+    
+    // Check each location to determine status
+    for (let i = 0; i < santaRoute.length; i++) {
+        const location = santaRoute[i];
+        const arrivalTime = new Date(location.arrival_time);
+        const departureTime = new Date(location.departure_time);
+        
+        // Santa is "Landed" if current time is between arrival and departure
+        if (now >= arrivalTime && now <= departureTime) {
+            return {
+                status: 'Landed',
+                location: location,
+                position: [location.latitude, location.longitude],
+                currentIndex: i,
+                notes: location.notes || location.fun_facts
+            };
+        }
+        
+        // Check if Santa is "In Transit" to next location
+        if (i < santaRoute.length - 1) {
+            const nextLocation = santaRoute[i + 1];
+            const nextArrivalTime = new Date(nextLocation.arrival_time);
+            
+            if (now > departureTime && now < nextArrivalTime) {
+                return {
+                    status: 'In Transit',
+                    from: location,
+                    to: nextLocation,
+                    position: interpolatePosition(location, nextLocation, now),
+                    currentIndex: i,
+                    progress: ((now - departureTime) / (nextArrivalTime - departureTime) * 100).toFixed(1)
+                };
+            }
+        }
+    }
+    
+    // Before first location or after last location
+    if (now < new Date(santaRoute[0].arrival_time)) {
+        return {
+            status: 'Preparing',
+            location: santaRoute[0],
+            position: [santaRoute[0].latitude, santaRoute[0].longitude],
+            currentIndex: 0
+        };
+    } else {
+        const lastLocation = santaRoute[santaRoute.length - 1];
+        return {
+            status: 'Completed',
+            location: lastLocation,
+            position: [lastLocation.latitude, lastLocation.longitude],
+            currentIndex: santaRoute.length - 1
+        };
+    }
+}
+
+// Start real-time tracking based on timestamps
+function startRealTimeTracking() {
+    // Update immediately
+    updateSantaPosition();
+    
+    // Update every 5 seconds for smooth tracking
+    santaMovementInterval = setInterval(updateSantaPosition, 5000);
+}
+
+// Update Santa's position based on current time and route data
+function updateSantaPosition() {
+    const status = getSantaStatus();
+    
+    if (!status) return;
+    
+    const EventSystem = window.EventSystem || {
+        // eslint-disable-next-line no-empty-function
+        emit() {} // No-op fallback when EventSystem is not available
+    };
+    
+    // Emit movement event with position
+    if (typeof EventSystem.emit === 'function') {
+        EventSystem.emit('santaMove', {
+            position: status.position,
+            location: status.location ? (status.location.name || status.location.location) : 
+                (status.to ? `En route to ${status.to.name || status.to.location}` : 'Unknown'),
+            animate: false  // Use smooth updates instead of discrete animation
+        });
+    }
+    
+    // Update location display
+    let currentLocationText = '';
+    let nextStopText = '';
+    
+    if (status.status === 'Landed') {
+        currentLocationText = `${status.location.name || status.location.location} (Landed)`;
+        const nextIndex = status.currentIndex + 1;
+        if (nextIndex < santaRoute.length) {
+            nextStopText = `Next Stop: ${santaRoute[nextIndex].name || santaRoute[nextIndex].location}`;
+        } else {
+            nextStopText = 'Journey Complete!';
+        }
+        
+        // Display notes/fun facts if available
+        if (status.notes) {
+            updateNotesDisplay(status.notes);
+        }
+    } else if (status.status === 'In Transit') {
+        currentLocationText = `In Transit (${status.progress}%)`;
+        nextStopText = `Next Stop: ${status.to.name || status.to.location}`;
+        
+        // Display notes about destination
+        if (status.to.notes || status.to.fun_facts) {
+            updateNotesDisplay(status.to.notes || status.to.fun_facts);
+        }
+    } else if (status.status === 'Preparing') {
+        currentLocationText = 'Preparing for departure...';
+        nextStopText = `First Stop: ${status.location.name || status.location.location}`;
+    } else if (status.status === 'Completed') {
+        currentLocationText = `${status.location.name || status.location.location} (Journey Complete!)`;
+        nextStopText = 'All deliveries complete! 🎉';
+    }
+    
+    updateLocationDisplay(currentLocationText, nextStopText);
+}
+
+// Update notes/fun facts display
+function updateNotesDisplay(notes) {
+    const notesElement = document.getElementById('location-notes');
+    if (notesElement && notes) {
+        notesElement.textContent = notes;
+        notesElement.style.display = 'block';
+    } else if (notesElement) {
+        notesElement.style.display = 'none';
+    }
 }
 
 // Update location display in sidebar
@@ -280,7 +438,7 @@ function updateLocationDisplay(currentLocation, nextStop) {
     }
 }
 
-// Simulate Santa's movement (replace with real tracking)
+// Simulate Santa's movement (fallback when real data is unavailable)
 // Store interval ID for cleanup
 let santaMovementInterval = null;
 
