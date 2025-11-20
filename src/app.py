@@ -628,8 +628,7 @@ def precompute_route():
                 jsonify(
                     {
                         "error": (
-                            "Some locations have missing/invalid timing "
-                            "information"
+                            "Some locations have missing/invalid timing " "information"
                         ),
                         "invalid_times": missing_or_invalid_times,
                         "message": (
