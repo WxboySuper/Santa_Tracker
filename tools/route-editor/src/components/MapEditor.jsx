@@ -81,6 +81,7 @@ function SearchBar({ onLocationSelect }) {
     }, [handleSelectResult]);
 
     return (
+        // skipcq: JS-0417
         <div className="absolute top-4 left-4 z-[1000] bg-white rounded-lg shadow-lg p-2 w-80">
             {/* skipcq: JS-0417 */}
             <form onSubmit={handleSearch} className="flex gap-2">
