@@ -54,7 +54,7 @@ class Location:
         # Bidirectional migration between fun_facts and notes for backward compatibility
         if self.notes is None and self.fun_facts is not None:
             self.notes = self.fun_facts
-        elif self.fun_facts is None and self.notes is not None:
+        if self.fun_facts is None and self.notes is not None:
             self.fun_facts = self.notes
 
     @property
@@ -91,7 +91,7 @@ def load_santa_route_from_json(json_file_path=None):
                 raise ValueError("Missing location name field")
 
             # Support both 'notes' (new) and 'fun_facts' (old) field names
-            notes = location_data.get("notes") or location_data.get("fun_facts")
+            notes = location_data.get("notes") if "notes" in location_data else location_data.get("fun_facts")
 
             location = Location(
                 name=name,
@@ -107,7 +107,6 @@ def load_santa_route_from_json(json_file_path=None):
                 # Keep deprecated fields for backward compatibility
                 stop_duration=location_data.get("stop_duration"),
                 is_stop=location_data.get("is_stop", True),
-                fun_facts=location_data.get("fun_facts"),
             )
         except KeyError as e:
             raise ValueError(
@@ -234,7 +233,7 @@ def save_santa_route_to_json(locations, json_file_path=None):
             location_dict["priority"] = loc.priority
 
         # Use 'notes' field (new schema) - prefer notes over fun_facts
-        notes = loc.notes or loc.fun_facts
+        notes = loc.notes if loc.notes is not None else loc.fun_facts
         if notes is not None:
             location_dict["notes"] = notes
 

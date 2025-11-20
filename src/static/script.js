@@ -277,6 +277,10 @@ function interpolatePosition(loc1, loc2, currentTime) {
     
     // Calculate progress between 0 and 1
     const totalDuration = arrival - departure;
+    if (totalDuration <= 0) {
+        // Instant transition or invalid timestamps
+        return [loc2.latitude, loc2.longitude];
+    }
     const elapsed = now - departure;
     const progress = Math.max(0, Math.min(1, elapsed / totalDuration));
     
@@ -298,8 +302,18 @@ function getSantaStatus() {
     // Check each location to determine status
     for (let i = 0; i < santaRoute.length; i++) {
         const location = santaRoute[i];
+        
+        // Validate arrival_time and departure_time
+        if (!location.arrival_time || !location.departure_time) {
+            console.warn(`Location at index ${i} missing required timestamps`);
+            continue;
+        }
         const arrivalTime = new Date(location.arrival_time);
         const departureTime = new Date(location.departure_time);
+        if (isNaN(arrivalTime.getTime()) || isNaN(departureTime.getTime())) {
+            console.warn(`Location at index ${i} has invalid timestamps`);
+            continue;
+        }
         
         // Santa is "Landed" if current time is between arrival and departure
         if (now >= arrivalTime && now <= departureTime) {
@@ -384,29 +398,35 @@ function updateSantaPosition() {
     let nextStopText = '';
     
     if (status.status === 'Landed') {
-        currentLocationText = `${status.location.name || status.location.location} (Landed)`;
-        const nextIndex = status.currentIndex + 1;
-        if (nextIndex < santaRoute.length) {
-            nextStopText = `Next Stop: ${santaRoute[nextIndex].name || santaRoute[nextIndex].location}`;
-        } else {
-            nextStopText = 'Journey Complete!';
-        }
-        
-        // Display notes/fun facts if available
-        if (status.notes) {
-            updateNotesDisplay(status.notes);
+        if (status.location) {
+            currentLocationText = `${status.location.name || status.location.location} (Landed)`;
+            const nextIndex = status.currentIndex + 1;
+            if (nextIndex < santaRoute.length) {
+                nextStopText = `Next Stop: ${santaRoute[nextIndex].name || santaRoute[nextIndex].location}`;
+            } else {
+                nextStopText = 'Journey Complete!';
+            }
+            
+            // Display notes/fun facts if available
+            if (status.notes) {
+                updateNotesDisplay(status.notes);
+            }
         }
     } else if (status.status === 'In Transit') {
         currentLocationText = `In Transit (${status.progress}%)`;
-        nextStopText = `Next Stop: ${status.to.name || status.to.location}`;
-        
-        // Display notes about destination
-        if (status.to.notes || status.to.fun_facts) {
-            updateNotesDisplay(status.to.notes || status.to.fun_facts);
+        if (status.to) {
+            nextStopText = `Next Stop: ${status.to.name || status.to.location}`;
+            
+            // Display notes about destination
+            if (status.to.notes || status.to.fun_facts) {
+                updateNotesDisplay(status.to.notes || status.to.fun_facts);
+            }
         }
     } else if (status.status === 'Preparing') {
         currentLocationText = 'Preparing for departure...';
-        nextStopText = `First Stop: ${status.location.name || status.location.location}`;
+        if (status.location) {
+            nextStopText = `First Stop: ${status.location.name || status.location.location}`;
+        }
     } else if (status.status === 'Completed') {
         currentLocationText = `${status.location.name || status.location.location} (Journey Complete!)`;
         nextStopText = 'All deliveries complete! 🎉';

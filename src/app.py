@@ -258,7 +258,7 @@ def add_location():
         # Create location object (this validates the data)
         try:
             # Support both 'notes' and 'fun_facts' for backward compatibility
-            notes = data.get("notes") or data.get("fun_facts")
+            notes = data.get("notes") if "notes" in data else data.get("fun_facts")
 
             new_location = Location(
                 name=data["name"],
@@ -274,7 +274,6 @@ def add_location():
                 # Deprecated fields
                 stop_duration=data.get("stop_duration"),
                 is_stop=data.get("is_stop", True),
-                fun_facts=data.get("fun_facts"),
             )
         except (ValueError, TypeError):
             return jsonify({"error": "Invalid data format or values"}), 400
@@ -324,9 +323,12 @@ def update_location(location_id):
         # Update location fields
         try:
             # Support both 'notes' and 'fun_facts' for backward compatibility
-            notes = data.get("notes") or data.get(
-                "fun_facts", locations[location_id].notes
-            )
+            if "notes" in data:
+                notes = data["notes"]
+            elif "fun_facts" in data:
+                notes = data["fun_facts"]
+            else:
+                notes = locations[location_id].notes
 
             updated_location = Location(
                 name=data.get("name", locations[location_id].name),
@@ -439,7 +441,7 @@ def _parse_location_from_data(loc_data, idx):
 
     try:
         # Support both 'notes' and 'fun_facts' for backward compatibility
-        notes = loc_data.get("notes") or loc_data.get("fun_facts")
+        notes = loc_data.get("notes") if "notes" in loc_data else loc_data.get("fun_facts")
 
         location = Location(
             name=name,
@@ -455,7 +457,6 @@ def _parse_location_from_data(loc_data, idx):
             # Deprecated fields
             stop_duration=loc_data.get("stop_duration"),
             is_stop=loc_data.get("is_stop", True),
-            fun_facts=loc_data.get("fun_facts"),
         )
         return location, None
     except (ValueError, TypeError):
@@ -589,26 +590,43 @@ def precompute_route():
             return jsonify({"error": "No locations to validate"}), 400
 
         # Check if all locations have required timing information
-        missing_times = []
+        missing_or_invalid_times = []
         for idx, loc in enumerate(locations):
-            if not loc.arrival_time or not loc.departure_time:
-                missing_times.append(
+            issues = {}
+            
+            if not loc.arrival_time:
+                issues["arrival_time"] = "missing"
+            else:
+                # Validate ISO 8601 format
+                try:
+                    datetime.fromisoformat(loc.arrival_time.replace("Z", "+00:00"))
+                except (ValueError, AttributeError):
+                    issues["arrival_time"] = "invalid format"
+            
+            if not loc.departure_time:
+                issues["departure_time"] = "missing"
+            else:
+                # Validate ISO 8601 format
+                try:
+                    datetime.fromisoformat(loc.departure_time.replace("Z", "+00:00"))
+                except (ValueError, AttributeError):
+                    issues["departure_time"] = "invalid format"
+            
+            if issues:
+                missing_or_invalid_times.append(
                     {
                         "index": idx,
                         "name": loc.name,
-                        "missing": {
-                            "arrival_time": not loc.arrival_time,
-                            "departure_time": not loc.departure_time,
-                        },
+                        "issues": issues,
                     }
                 )
 
-        if missing_times:
+        if missing_or_invalid_times:
             return (
                 jsonify(
                     {
-                        "error": "Some locations are missing timing information",
-                        "missing_times": missing_times,
+                        "error": "Some locations have missing or invalid timing information",
+                        "invalid_times": missing_or_invalid_times,
                         "message": (
                             "All locations must have explicit arrival_time and "
                             "departure_time in ISO 8601 format. "
@@ -706,7 +724,7 @@ def simulate_route():
                     "country": loc.country,
                     "population": loc.population,
                     "priority": loc.priority,
-                    "notes": loc.notes or loc.fun_facts,
+                    "notes": loc.notes if loc.notes is not None else loc.fun_facts,
                     "is_stop": loc.is_stop,
                 }
             )
@@ -787,7 +805,7 @@ def upload_trial_route():
                 # Support both 'name' and 'location' fields
                 name = loc_data.get("name") or loc_data.get("location")
                 # Support both 'notes' and 'fun_facts' fields
-                notes = loc_data.get("notes") or loc_data.get("fun_facts")
+                notes = loc_data.get("notes") if "notes" in loc_data else loc_data.get("fun_facts")
 
                 location = Location(
                     name=name,
@@ -803,7 +821,6 @@ def upload_trial_route():
                     # Deprecated fields
                     stop_duration=loc_data.get("stop_duration"),
                     is_stop=loc_data.get("is_stop", True),
-                    fun_facts=loc_data.get("fun_facts"),
                 )
                 locations.append(location)
             except (KeyError, ValueError):
@@ -946,7 +963,7 @@ def simulate_trial_route():
                     "country": loc.country,
                     "population": loc.population,
                     "priority": loc.priority,
-                    "notes": loc.notes or loc.fun_facts,
+                    "notes": loc.notes if loc.notes is not None else loc.fun_facts,
                     "is_stop": loc.is_stop,
                 }
             )
@@ -1012,7 +1029,7 @@ def export_backup():
                     "country": loc.country,
                     "population": loc.population,
                     "priority": loc.priority,
-                    "notes": loc.notes or loc.fun_facts,
+                    "notes": loc.notes if loc.notes is not None else loc.fun_facts,
                     # Include deprecated fields for backward compatibility
                     "stop_duration": loc.stop_duration,
                     "is_stop": loc.is_stop,
