@@ -13,6 +13,9 @@
   "ignoreFiles": [
     "node_modules/**",
     "dist/**",
-    "build/**"
+    "build/**",
+    "**/node_modules/**",
+    "**/dist/**",
+    "**/build/**"
   ]
 }
