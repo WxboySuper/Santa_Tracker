@@ -28,25 +28,60 @@ const greenIcon = createColoredIcon('green');
 const redIcon = createColoredIcon('red');
 const blueIcon = createColoredIcon('blue');
 
+// Rate limiting for Nominatim API (1 request per second)
+let lastRequestTime = 0;
+const MIN_REQUEST_INTERVAL = 1000;
+
+const waitForRateLimit = async () => {
+    const now = Date.now();
+    const timeSinceLastRequest = now - lastRequestTime;
+    if (timeSinceLastRequest < MIN_REQUEST_INTERVAL) {
+        await new Promise(resolve =>
+            setTimeout(resolve, MIN_REQUEST_INTERVAL - timeSinceLastRequest)
+        );
+    }
+    lastRequestTime = Date.now();
+};
+
 // Search bar component
 function SearchBar({ onLocationSelect }) {
     const [query, setQuery] = useState('');
     const [results, setResults] = useState([]);
     const [loading, setLoading] = useState(false);
+    const [error, setError] = useState('');
 
     const handleSearch = async (e) => {
         e.preventDefault();
         if (!query.trim()) return;
 
         setLoading(true);
+        setError('');
+        
+        await waitForRateLimit();
+        
         try {
             const response = await fetch(
-                `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}`
+                `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}`,
+                {
+                    headers: {
+                        'User-Agent': 'SantaRouteEditor/1.0 (https://github.com/WxboySuper/Santa_Tracker)'
+                    }
+                }
             );
+            
+            if (!response.ok) {
+                throw new Error(`Search failed with status ${response.status}`);
+            }
+            
             const data = await response.json();
             setResults(data);
+            
+            if (data.length === 0) {
+                setError('No results found. Try a different search term.');
+            }
         } catch (error) {
             console.error('Search error:', error);
+            setError('Search failed. Please check your connection and try again.');
         }
         setLoading(false);
     };
@@ -72,10 +107,12 @@ function SearchBar({ onLocationSelect }) {
     
         setQuery('');
         setResults([]);
+        setError('');
     }, [onLocationSelect]);
 
-    const handleResultKeyPress = useCallback((e, result) => {
+    const handleResultKeyDown = useCallback((e, result) => {
         if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
             handleSelectResult(result);
         }
     }, [handleSelectResult]);
@@ -99,14 +136,20 @@ function SearchBar({ onLocationSelect }) {
                     {loading ? 'Searching...' : 'Search'}
                 </button>
             </form>
+            
+            {error && (
+                <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded text-sm text-red-600">
+                    {error}
+                </div>
+            )}
       
             {results.length > 0 && (
                 <div className="mt-2 max-h-64 overflow-y-auto">
                     {results.map((result) => (
                         <div
                             key={result.place_id}
-                            onClick={() => handleSelectResult(result)}  // skipcq: JS-0417
-                            onKeyPress={(e) => handleResultKeyPress(e, result)}  // skipcq: JS-0417
+                            onClick={() => handleSelectResult(result)}
+                            onKeyDown={(e) => handleResultKeyDown(e, result)}
                             role="button"
                             tabIndex={0}
                             className="p-2 hover:bg-gray-100 cursor-pointer border-b border-gray-200 text-sm"
@@ -150,12 +193,24 @@ function MapEditor({ locations, onAddLocation, setSelectedLocation }) {
 
     const handleMapClick = useCallback(async (latlng) => {
         const { lat, lng } = latlng;
+        
+        await waitForRateLimit();
     
         // Reverse geocode to get location name
         try {
             const response = await fetch(
-                `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`
+                `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`,
+                {
+                    headers: {
+                        'User-Agent': 'SantaRouteEditor/1.0 (https://github.com/WxboySuper/Santa_Tracker)'
+                    }
+                }
             );
+            
+            if (!response.ok) {
+                throw new Error(`Reverse geocoding failed: ${response.status}`);
+            }
+            
             const data = await response.json();
       
             onAddLocation({

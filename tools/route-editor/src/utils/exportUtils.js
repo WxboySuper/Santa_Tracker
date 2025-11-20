@@ -1,14 +1,14 @@
 export const exportToJSON = (locations) => {
-    // Transform locations to match the required schema
+    // Transform locations to match the required schema with proper validation
     const exportData = locations.map(loc => ({
-        name: loc.name || '',
-        latitude: loc.latitude || 0,
-        longitude: loc.longitude || 0,
-        utc_offset: loc.utc_offset || 0,
-        country: loc.country || '',
-        population: loc.population || 0,
-        priority: loc.priority || 1,
-        notes: loc.notes || ''
+        name: loc.name ?? '',
+        latitude: typeof loc.latitude === 'number' ? loc.latitude : (Number(loc.latitude) || 0),
+        longitude: typeof loc.longitude === 'number' ? loc.longitude : (Number(loc.longitude) || 0),
+        utc_offset: typeof loc.utc_offset === 'number' ? loc.utc_offset : (Number(loc.utc_offset) || 0),
+        country: loc.country ?? '',
+        population: typeof loc.population === 'number' ? loc.population : (Number(loc.population) || 0),
+        priority: typeof loc.priority === 'number' ? loc.priority : (Number(loc.priority) || 1),
+        notes: loc.notes ?? ''
     }));
 
     // Create a blob and download

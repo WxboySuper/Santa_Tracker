@@ -8,7 +8,7 @@ function App() {
     const [selectedLocation, setSelectedLocation] = useState(null);
 
     const addLocation = useCallback((location) => {
-        setLocations(prevLocations => [...prevLocations, { ...location, id: Date.now() }]);
+        setLocations(prevLocations => [...prevLocations, { ...location, id: crypto.randomUUID() }]);
     }, []);
 
     const updateLocation = useCallback((id, updatedData) => {

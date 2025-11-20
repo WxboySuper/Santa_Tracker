@@ -56,8 +56,9 @@ function SortableLocationCard({ location, index, total, onUpdate, onDelete, isSe
         onSelect(location.id);
     }, [location.id, onSelect]);
 
-    const handleCardKeyPress = useCallback((e) => {
+    const handleCardKeyDown = useCallback((e) => {
         if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
             handleCardClick();
         }
     }, [handleCardClick]);
@@ -106,7 +107,6 @@ function SortableLocationCard({ location, index, total, onUpdate, onDelete, isSe
 
     // skipcq: JS-0415 - JSX nesting required for form layout structure
     return (
-        // skipcq: JS-0415
         <div
             ref={setNodeRef}
             style={style}
@@ -114,7 +114,7 @@ function SortableLocationCard({ location, index, total, onUpdate, onDelete, isSe
                 isSelected ? 'border-blue-500' : 'border-transparent'
             }`}
             onClick={handleCardClick}
-            onKeyPress={handleCardKeyPress}
+            onKeyDown={handleCardKeyDown}
             role="button"
             tabIndex={0}
         >
@@ -168,7 +168,6 @@ function SortableLocationCard({ location, index, total, onUpdate, onDelete, isSe
 
                 {/* skipcq: JS-0415 - Complex form structure requires nesting for proper layout */}
                 {isExpanded && (
-                    // skipcq: JS-0415
                     <div className="mt-3 pt-3 border-t border-gray-200 space-y-2">
                         <div>
                             <label htmlFor={`name-${location.id}`} className="block text-xs font-medium text-gray-700 mb-1">
