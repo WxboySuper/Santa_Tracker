@@ -22,6 +22,7 @@ Track Santa's magical journey around the world on Christmas Eve! This interactiv
 ## 🚀 Quick Start
 
 ### Prerequisites
+
 - Python 3.10+
 - pip (Python package manager)
 - Modern web browser
@@ -52,7 +53,7 @@ Navigate to `http://localhost:5000` to start tracking Santa!
 
 ## 📁 Project Structure
 
-```
+```text
 Santa_Tracker/
 ├── src/
 │   ├── static/          # CSS, JavaScript, images
@@ -77,6 +78,7 @@ Santa_Tracker/
 ## 🧪 Testing & Route Simulation
 
 ### Running Tests
+
 ```bash
 # Run all tests with coverage
 pytest --cov=src --cov-report=term-missing tests/
@@ -90,7 +92,9 @@ pytest tests/ -q
 ```
 
 ### Route Simulation
+
 The admin dashboard includes a **Route Testing & Simulation** feature that allows you to:
+
 - Test Santa's route with different timing scenarios
 - Preview routes before finalizing them
 - Simulate with custom start times
@@ -100,11 +104,13 @@ The admin dashboard includes a **Route Testing & Simulation** feature that allow
 Access via Admin Dashboard → Route Testing & Simulation → Simulate Route
 
 **API Endpoint:** `POST /api/admin/route/simulate`
+
 - Accepts optional `start_time` (ISO 8601 format) and `location_ids` (array)
 - Returns simulated route with arrival/departure times
 - Does not modify stored route data
 
 ### Test Coverage
+
 - **tracker.py**: 100% coverage
 - **locations.py**: 94% coverage  
 - **advent.py**: 95% coverage
@@ -114,13 +120,16 @@ Access via Admin Dashboard → Route Testing & Simulation → Simulate Route
 ## 🛠️ Developer Tools
 
 ### Santa Route Editor
+
 A standalone visual route editor for creating and managing Santa's journey routes. This tool provides:
+
 - Interactive map interface with geocoding search
 - Drag-and-drop route ordering
 - Editable location metadata (priority, UTC offset, notes, etc.)
 - JSON export matching the Santa Tracker route format
 
 **Quick Start:**
+
 ```bash
 cd tools/route-editor
 npm install
@@ -154,6 +163,7 @@ We welcome contributions! Here's how:
 See our [Pull Request Template](.github/pull_request_template.md) for guidelines.
 
 ### Issue Templates
+
 - 🐛 [Bug Reports](.github/ISSUE_TEMPLATE/bug_report.yml)
 - ✨ [Feature Requests](.github/ISSUE_TEMPLATE/feature_request.yml)
 - ❓ [Questions](.github/ISSUE_TEMPLATE/question.yml)
@@ -184,8 +194,6 @@ Licensed under the MIT License - see [LICENSE](LICENSE) file for details.
 
 ---
 
-<div align="center">
-  Made with ❤️ for the holiday season
-  <br>
-  <sub>May your Christmas be merry and bright! 🎅🎄</sub>
-</div>
+Made with ❤️ for the holiday season
+
+> _May your Christmas be merry and bright!_ 🎅🎄

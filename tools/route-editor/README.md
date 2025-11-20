@@ -8,11 +8,13 @@ A standalone web-based visual route editor for constructing Santa's journey with
 - **Location Search**: Geocoding search bar using OpenStreetMap Nominatim API
 - **Click-to-Add**: Right-click anywhere on the map to add new stops
 - **Drag-and-Drop Reordering**: Intuitive route sequencing with visual feedback
-- **Editable Stop Details**: 
+- **Editable Stop Details**:
+
   - Name, Country, Priority (1-3)
   - UTC Offset, Stop Duration, Population
   - Custom notes for each location
-- **Visual Route Display**: 
+- **Visual Route Display**:
+
   - Color-coded markers (Green=Start, Red=End, Blue=Intermediate)
   - Connected polyline showing the route path
 - **JSON Export**: Download route as properly formatted JSON file
@@ -20,6 +22,7 @@ A standalone web-based visual route editor for constructing Santa's journey with
 ## 🚀 Getting Started
 
 ### Prerequisites
+
 - Node.js 16+ and npm
 
 ### Installation
@@ -51,7 +54,8 @@ npm run preview
 
 ### Adding Locations
 
-1. **Search Method**: 
+1. **Search Method**:
+
    - Use the search bar at the top-left
    - Type a city or landmark name
    - Click on a result to add it to the route
@@ -119,7 +123,7 @@ The exported JSON follows this schema:
 
 ## 🗂️ Project Structure
 
-```
+```text
 route-editor/
 ├── src/
 │   ├── components/
@@ -161,15 +165,18 @@ npm install <package>@latest
 ## 🐛 Troubleshooting
 
 ### Map tiles not loading
+
 - Check your internet connection
 - The app uses CARTO Voyager tiles from OpenStreetMap
 
 ### Search not working
+
 - The Nominatim API has rate limits
 - Wait a few seconds between searches
 - Ensure you have an internet connection
 
 ### Markers not appearing
+
 - Check browser console for errors
 - Ensure Leaflet CSS is loaded correctly
 
@@ -183,6 +190,7 @@ npm install <package>@latest
 ## 🤝 Contributing
 
 This tool is part of the Santa Tracker project. To contribute:
+
 1. Make changes in the `tools/route-editor` directory
 2. Test thoroughly with `npm run dev`
 3. Build with `npm run build` to ensure no errors
