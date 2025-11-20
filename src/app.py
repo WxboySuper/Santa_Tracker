@@ -627,12 +627,16 @@ def precompute_route():
             return (
                 jsonify(
                     {
-                        "error": "Some locations have missing or invalid timing information",
+                        "error": (
+                            "Some locations have missing/invalid timing "
+                            "information"
+                        ),
                         "invalid_times": missing_or_invalid_times,
                         "message": (
-                            "All locations must have explicit arrival_time and "
-                            "departure_time in ISO 8601 format. "
-                            "Calculation of timings is no longer supported."
+                            "All locations must have explicit arrival_time "
+                            "and departure_time in ISO 8601 format. "
+                            "Calculation of timings is no longer "
+                            "supported."
                         ),
                     }
                 ),
