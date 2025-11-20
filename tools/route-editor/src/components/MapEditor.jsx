@@ -188,7 +188,7 @@ function MapEditor({ locations, onAddLocation, selectedLocation, setSelectedLoca
         center={[20, 0]}
         zoom={2}
         className="h-full w-full"
-        worldCopyJump={true}
+        worldCopyJump
       >
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
