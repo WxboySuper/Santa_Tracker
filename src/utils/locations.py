@@ -14,14 +14,15 @@ class Location:
         latitude: Latitude coordinate in decimal degrees
         longitude: Longitude coordinate in decimal degrees
         utc_offset: UTC offset in hours (e.g., -5.0 for EST, 9.0 for JST)
-        arrival_time: Arrival time in ISO 8601 format (optional)
-        departure_time: Departure time in ISO 8601 format (optional)
-        stop_duration: Duration of stop in minutes (optional, calculated if
-            not provided)
-        is_stop: Boolean flag indicating if this is an actual stop
-            (default: True)
+        arrival_time: Arrival time in ISO 8601 format (required for static timeline)
+        departure_time: Departure time in ISO 8601 format (required for static timeline)
+        country: Country name (optional)
+        population: Population of the location (optional)
         priority: Location priority from 1-3, where 1 is highest (optional)
-        fun_facts: Fun facts about the location (optional)
+        notes: Fun facts or trivia about the location (optional)
+        stop_duration: Duration of stop in minutes (deprecated, calculated from times)
+        is_stop: Boolean flag indicating if this is an actual stop (default: True)
+        fun_facts: Deprecated - use notes instead (optional, for backward compatibility)
     """
 
     name: str
@@ -30,13 +31,17 @@ class Location:
     utc_offset: float
     arrival_time: Optional[str] = None
     departure_time: Optional[str] = None
+    country: Optional[str] = None
+    population: Optional[int] = None
+    priority: Optional[int] = None
+    notes: Optional[str] = None
+    # Deprecated fields for backward compatibility
     stop_duration: Optional[int] = None
     is_stop: bool = True
-    priority: Optional[int] = None
     fun_facts: Optional[str] = None
 
     def __post_init__(self):
-        """Validate location data."""
+        """Validate location data and handle field migrations."""
         if not -90 <= self.latitude <= 90:
             raise ValueError(f"Invalid latitude: {self.latitude}")
         if not -180 <= self.longitude <= 180:
@@ -46,78 +51,22 @@ class Location:
         if self.priority is not None and not 1 <= self.priority <= 3:
             raise ValueError(f"Invalid priority: {self.priority}. Must be 1, 2, or 3.")
 
+        # Bidirectional migration between fun_facts and notes for backward compatibility
+        if self.notes is None and self.fun_facts is not None:
+            self.notes = self.fun_facts
+        if self.fun_facts is None and self.notes is not None:
+            self.fun_facts = self.notes
+
     @property
     def coordinates(self):
         """Return coordinates as a tuple for backward compatibility."""
         return (self.latitude, self.longitude)
 
 
-def get_santa_locations():
-    """
-    Retrieves the current locations of Santa.
-
-    Returns:
-        List of Location objects representing Santa's route.
-    """
-    return [
-        Location(
-            name="North Pole",
-            latitude=90.0,
-            longitude=135.0,
-            utc_offset=0.0,
-            arrival_time="2024-12-24T00:00:00Z",
-            departure_time="2024-12-24T09:45:00Z",
-            stop_duration=585,
-            is_stop=True,
-            priority=1,
-            fun_facts="Santa's workshop and home!",
-        ),
-        Location(
-            name="New York",
-            latitude=40.7128,
-            longitude=-74.0060,
-            utc_offset=-5.0,
-            arrival_time="2024-12-24T10:00:00Z",
-            departure_time="2024-12-24T10:15:00Z",
-            stop_duration=15,
-            is_stop=True,
-            priority=1,
-            fun_facts=(
-                "The city that never sleeps - perfect for Santa's midnight deliveries!"
-            ),
-        ),
-        Location(
-            name="London",
-            latitude=51.5074,
-            longitude=-0.1278,
-            utc_offset=0.0,
-            arrival_time="2024-12-24T11:00:00Z",
-            departure_time="2024-12-24T11:20:00Z",
-            stop_duration=20,
-            is_stop=True,
-            priority=2,
-            fun_facts="Home of Big Ben and the Royal Family!",
-        ),
-        Location(
-            name="Tokyo",
-            latitude=35.6762,
-            longitude=139.6503,
-            utc_offset=9.0,
-            arrival_time="2024-12-24T12:00:00Z",
-            departure_time="2024-12-24T12:25:00Z",
-            stop_duration=25,
-            is_stop=True,
-            priority=2,
-            fun_facts=(
-                "Famous for its mix of traditional temples and modern skyscrapers!"
-            ),
-        ),
-    ]
-
-
 def load_santa_route_from_json(json_file_path=None):
     """
     Load Santa's route from a JSON file.
+    Supports both old and new JSON schema formats for backward compatibility.
 
     Args:
         json_file_path: Path to the JSON file. If None, uses the default route file.
@@ -136,17 +85,32 @@ def load_santa_route_from_json(json_file_path=None):
     locations = []
     for location_data in data.get("route", []):
         try:
+            # Support both 'name' (new) and 'location' (old) field names
+            name = location_data.get("name") or location_data.get("location")
+            if not name:
+                raise ValueError("Missing location name field")
+
+            # Support both 'notes' (new) and 'fun_facts' (old) field names
+            notes = (
+                location_data.get("notes")
+                if "notes" in location_data
+                else location_data.get("fun_facts")
+            )
+
             location = Location(
-                name=location_data["location"],
+                name=name,
                 latitude=location_data["latitude"],
                 longitude=location_data["longitude"],
                 utc_offset=location_data["utc_offset"],
                 arrival_time=location_data.get("arrival_time"),
                 departure_time=location_data.get("departure_time"),
+                country=location_data.get("country"),
+                population=location_data.get("population"),
+                priority=location_data.get("priority"),
+                notes=notes,
+                # Keep deprecated fields for backward compatibility
                 stop_duration=location_data.get("stop_duration"),
                 is_stop=location_data.get("is_stop", True),
-                priority=location_data.get("priority"),
-                fun_facts=location_data.get("fun_facts"),
             )
         except KeyError as e:
             raise ValueError(
@@ -237,7 +201,7 @@ def has_trial_route():
 
 def save_santa_route_to_json(locations, json_file_path=None):
     """
-    Save Santa's route to a JSON file.
+    Save Santa's route to a JSON file using the new schema format.
 
     Args:
         locations: List of Location objects to save
@@ -248,28 +212,41 @@ def save_santa_route_to_json(locations, json_file_path=None):
         base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         json_file_path = os.path.join(base_dir, "static", "data", "santa_route.json")
 
-    # Convert Location objects to dictionaries
+    # Convert Location objects to dictionaries using new schema format
     route_data = []
     for loc in locations:
         location_dict = {
-            "location": loc.name,
+            "name": loc.name,
             "latitude": loc.latitude,
             "longitude": loc.longitude,
             "utc_offset": loc.utc_offset,
         }
 
-        # Add optional fields if they exist
+        # Add arrival_time and departure_time (required in new schema)
         if loc.arrival_time is not None:
             location_dict["arrival_time"] = loc.arrival_time
         if loc.departure_time is not None:
             location_dict["departure_time"] = loc.departure_time
-        if loc.stop_duration is not None:
-            location_dict["stop_duration"] = loc.stop_duration
-        location_dict["is_stop"] = loc.is_stop
+
+        # Add optional new fields
+        if loc.country is not None:
+            location_dict["country"] = loc.country
+        if loc.population is not None:
+            location_dict["population"] = loc.population
         if loc.priority is not None:
             location_dict["priority"] = loc.priority
-        if loc.fun_facts is not None:
-            location_dict["fun_facts"] = loc.fun_facts
+
+        # Use 'notes' field (new schema) - prefer notes over fun_facts
+        notes = loc.notes if loc.notes is not None else loc.fun_facts
+        if notes is not None:
+            location_dict["notes"] = notes
+
+        # Keep is_stop for backward compatibility
+        location_dict["is_stop"] = loc.is_stop
+
+        # Deprecated: keep stop_duration for tools that may still use it
+        if loc.stop_duration is not None:
+            location_dict["stop_duration"] = loc.stop_duration
 
         route_data.append(location_dict)
 
