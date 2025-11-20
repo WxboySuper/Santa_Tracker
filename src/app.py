@@ -3,7 +3,7 @@ import os
 import secrets
 import sys
 import time
-from datetime import datetime, timedelta
+from datetime import datetime
 from functools import wraps
 
 from flask import Flask, jsonify, render_template, request
@@ -685,6 +685,9 @@ def simulate_route():
             return error
 
         # Sort locations by UTC offset (descending) to follow time zones
+        # `locations` may be reported as Optional by static type checkers;
+        # assert it's not None to satisfy type checkers and guarantee runtime safety
+        assert locations is not None
         sorted_locations = sorted(
             locations, key=lambda loc: (-loc.utc_offset, loc.priority or 2)
         )
@@ -922,6 +925,9 @@ def simulate_trial_route():
             return error
 
         # Sort locations by UTC offset (descending) to follow time zones
+        # `locations` may be reported as Optional by static type checkers;
+        # assert it's not None to satisfy type checkers and guarantee runtime safety
+        assert locations is not None
         sorted_locations = sorted(
             locations, key=lambda loc: (-loc.utc_offset, loc.priority or 2)
         )

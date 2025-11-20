@@ -768,7 +768,7 @@ class TestRouteSimulation:
         assert "locations_with_timing" in summary
 
     def test_simulate_route_with_custom_start_time(self, client, auth_headers):
-        """Test that custom start time is no longer used (returns existing timestamps)."""
+        """Test that custom start time is ignored."""
         custom_time = "2024-12-25T10:00:00Z"
         response = client.post(
             "/api/admin/route/simulate",

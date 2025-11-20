@@ -3,6 +3,8 @@
 
 // Interval variables for cleanup
 let animationInterval = null;
+// Interval for Santa movement updates
+let santaMovementInterval = null;
 
 // skipcq: JS-0241
 document.addEventListener('DOMContentLoaded', function() {
@@ -303,7 +305,7 @@ function getSantaStatus() {
         if (now >= arrivalTime && now <= departureTime) {
             return {
                 status: 'Landed',
-                location: location,
+                location,
                 position: [location.latitude, location.longitude],
                 currentIndex: i,
                 notes: location.notes || location.fun_facts
@@ -437,10 +439,6 @@ function updateLocationDisplay(currentLocation, nextStop) {
         nextStopEl.textContent = `Next Stop: ${nextStop}`;
     }
 }
-
-// Simulate Santa's movement (fallback when real data is unavailable)
-// Store interval ID for cleanup
-let santaMovementInterval = null;
 
 function simulateSantaMovement() {
     // Display error message instead of simulating with fake data

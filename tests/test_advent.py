@@ -313,9 +313,12 @@ class TestGetDayContent(unittest.TestCase):
         content = get_day_content(1, current_time=test_time)
 
         self.assertIsNotNone(content)
-        self.assertEqual(content["day"], 1)
-        self.assertIn("title", content)
-        self.assertIn("is_unlocked", content)
+        # Ensure content is a mapping before subscripting to satisfy type checkers
+        self.assertIsInstance(content, dict)
+        # Ignore type checkers because content is checked for None above
+        self.assertEqual(content["day"], 1)  # type: ignore
+        self.assertIn("title", content or {})
+        self.assertIn("is_unlocked", content or {})
 
     def test_get_day_content_invalid_day_low(self):
         """Test that day 0 returns None."""
@@ -333,8 +336,11 @@ class TestGetDayContent(unittest.TestCase):
         test_time = datetime(2024, 12, 25, 0, 0, 0, tzinfo=timezone.utc)
         content = get_day_content(1, current_time=test_time)
 
-        self.assertTrue(content.get("is_unlocked", False))
-        self.assertIn("payload", content)
+        # Ensure content is present before accessing its attributes
+        self.assertIsNotNone(content)
+        # Ignore type checkers because content is checked for None above
+        self.assertTrue(content.get("is_unlocked", False))  # type: ignore
+        self.assertIn("payload", content or {})
 
     def test_get_day_content_locked_no_payload(self):
         """Test that locked day doesn't include payload."""
@@ -342,8 +348,10 @@ class TestGetDayContent(unittest.TestCase):
         test_time = datetime(2024, 11, 1, 0, 0, 0, tzinfo=timezone.utc)
         content = get_day_content(1, current_time=test_time)
 
-        self.assertFalse(content.get("is_unlocked", False))
-        self.assertNotIn("payload", content)
+        # Ignore type checkers because content is checked for None above
+        self.assertFalse(content.get("is_unlocked", False))  # type: ignore
+        # Use a safe fallback to satisfy type checkers in case content is None
+        self.assertNotIn("payload", content or {})
 
 
 if __name__ == "__main__":
