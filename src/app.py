@@ -354,7 +354,7 @@ def update_location(location_id):
                     "stop_duration", locations[location_id].stop_duration
                 ),
                 is_stop=data.get("is_stop", locations[location_id].is_stop),
-                fun_facts=data.get("fun_facts", locations[location_id].fun_facts),
+                fun_facts=notes,
             )
         except (ValueError, TypeError):
             return jsonify({"error": "Invalid data format or values"}), 400
@@ -627,9 +627,7 @@ def precompute_route():
             return (
                 jsonify(
                     {
-                        "error": (
-                            "Some locations have missing/invalid timing " "information"
-                        ),
+                        "error": "Some locations have missing/invalid timing information",
                         "invalid_times": missing_or_invalid_times,
                         "message": (
                             "All locations must have explicit arrival_time "

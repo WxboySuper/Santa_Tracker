@@ -329,7 +329,16 @@ function getSantaStatus() {
         // Check if Santa is "In Transit" to next location
         if (i < santaRoute.length - 1) {
             const nextLocation = santaRoute[i + 1];
+            // Validate nextLocation.arrival_time
+            if (!nextLocation.arrival_time) {
+                console.warn(`Next location at index ${i + 1} missing arrival_time`);
+                continue;
+            }
             const nextArrivalTime = new Date(nextLocation.arrival_time);
+            if (isNaN(nextArrivalTime.getTime())) {
+                console.warn(`Next location at index ${i + 1} has invalid arrival_time`);
+                continue;
+            }
             
             if (now > departureTime && now < nextArrivalTime) {
                 return {
@@ -345,22 +354,28 @@ function getSantaStatus() {
     }
     
     // Before first location or after last location
-    if (now < new Date(santaRoute[0].arrival_time)) {
-        return {
-            status: 'Preparing',
-            location: santaRoute[0],
-            position: [santaRoute[0].latitude, santaRoute[0].longitude],
-            currentIndex: 0
-        };
-    } else {
-        const lastLocation = santaRoute[santaRoute.length - 1];
-        return {
-            status: 'Completed',
-            location: lastLocation,
-            position: [lastLocation.latitude, lastLocation.longitude],
-            currentIndex: santaRoute.length - 1
-        };
+    const firstLocation = santaRoute[0];
+    if (firstLocation.arrival_time) {
+        const firstArrivalTime = new Date(firstLocation.arrival_time);
+        if (!isNaN(firstArrivalTime.getTime())) {
+            if (now < firstArrivalTime) {
+                return {
+                    status: 'Preparing',
+                    location: firstLocation,
+                    position: [firstLocation.latitude, firstLocation.longitude],
+                    currentIndex: 0
+                };
+            }
+        }
     }
+    // If first arrival_time is missing or invalid, or now >= firstArrivalTime
+    const lastLocation = santaRoute[santaRoute.length - 1];
+    return {
+        status: 'Completed',
+        location: lastLocation,
+        position: [lastLocation.latitude, lastLocation.longitude],
+        currentIndex: santaRoute.length - 1
+    };
 }
 
 // Start real-time tracking based on timestamps
