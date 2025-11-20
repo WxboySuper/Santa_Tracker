@@ -59,6 +59,8 @@ Santa_Tracker/
 │   ├── templates/       # HTML templates
 │   ├── utils/           # Core logic (tracker, locations, advent)
 │   └── app.py           # Flask application
+├── tools/
+│   └── route-editor/    # Standalone route editor tool (React + Vite)
 ├── docs/                # Documentation
 ├── tests/               # Test suite
 ├── config.py            # Configuration
@@ -108,6 +110,24 @@ Access via Admin Dashboard → Route Testing & Simulation → Simulate Route
 - **advent.py**: 95% coverage
 - **app.py**: 75% coverage
 - **Overall**: 79% coverage (140 tests passing)
+
+## 🛠️ Developer Tools
+
+### Santa Route Editor
+A standalone visual route editor for creating and managing Santa's journey routes. This tool provides:
+- Interactive map interface with geocoding search
+- Drag-and-drop route ordering
+- Editable location metadata (priority, UTC offset, notes, etc.)
+- JSON export matching the Santa Tracker route format
+
+**Quick Start:**
+```bash
+cd tools/route-editor
+npm install
+npm run dev
+```
+
+See [tools/route-editor/README.md](tools/route-editor/README.md) for detailed documentation.
 
 ## 📚 Documentation
 
