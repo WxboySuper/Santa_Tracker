@@ -705,7 +705,7 @@ class TestRoutePrecompute:
         assert data["status"] == "complete"
 
     def test_precompute_route_requires_auth(self, client):
-        """Test that route precomputation requires authentication."""
+        """Test that route validation requires authentication."""
         response = client.post("/api/admin/route/precompute")
         assert response.status_code == 401
 

@@ -317,8 +317,8 @@ class TestGetDayContent(unittest.TestCase):
         self.assertIsInstance(content, dict)
         # Ignore type checkers because content is checked for None above
         self.assertEqual(content["day"], 1)  # type: ignore
-        self.assertIn("title", content or {})
-        self.assertIn("is_unlocked", content or {})
+        self.assertIn("title", content)  # type: ignore
+        self.assertIn("is_unlocked", content)  # type: ignore
 
     def test_get_day_content_invalid_day_low(self):
         """Test that day 0 returns None."""
@@ -350,8 +350,8 @@ class TestGetDayContent(unittest.TestCase):
 
         # Ignore type checkers because content is checked for None above
         self.assertFalse(content.get("is_unlocked", False))  # type: ignore
-        # Use a safe fallback to satisfy type checkers in case content is None
-        self.assertNotIn("payload", content or {})
+        # Ignore type checkers because content is checked for None above
+        self.assertNotIn("payload", content)  # type: ignore
 
 
 if __name__ == "__main__":
