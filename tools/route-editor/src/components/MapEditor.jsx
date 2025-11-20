@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { MapContainer, TileLayer, Marker, Polyline, Popup, useMap, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 import { Search } from 'lucide-react';
@@ -74,6 +74,12 @@ function SearchBar({ onLocationSelect }) {
         setResults([]);
     }, [onLocationSelect]);
 
+    const handleResultKeyPress = useCallback((e, result) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+            handleSelectResult(result);
+        }
+    }, [handleSelectResult]);
+
     return (
         <div className="absolute top-4 left-4 z-[1000] bg-white rounded-lg shadow-lg p-2 w-80">
             <form onSubmit={handleSearch} className="flex gap-2">
@@ -100,11 +106,7 @@ function SearchBar({ onLocationSelect }) {
                         <div
                             key={result.place_id}
                             onClick={() => handleSelectResult(result)}
-                            onKeyPress={(e) => {
-                                if (e.key === 'Enter' || e.key === ' ') {
-                                    handleSelectResult(result);
-                                }
-                            }}
+                            onKeyPress={(e) => handleResultKeyPress(e, result)}
                             role="button"
                             tabIndex={0}
                             className="p-2 hover:bg-gray-100 cursor-pointer border-b border-gray-200 text-sm"
@@ -143,7 +145,7 @@ function MapCenter({ center }) {
     return null;
 }
 
-function MapEditor({ locations, onAddLocation, selectedLocation, setSelectedLocation }) {
+function MapEditor({ locations, onAddLocation, setSelectedLocation }) {
     const [mapCenter, setMapCenter] = useState(null);
 
     const handleMapClick = useCallback(async (latlng) => {

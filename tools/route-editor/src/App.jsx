@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import MapEditor from './components/MapEditor';
 import Sidebar from './components/Sidebar';
 import { exportToJSON } from './utils/exportUtils';
@@ -43,7 +43,6 @@ function App() {
             <MapEditor 
                 locations={locations}
                 onAddLocation={addLocation}
-                selectedLocation={selectedLocation}
                 setSelectedLocation={setSelectedLocation}
             />
         </div>

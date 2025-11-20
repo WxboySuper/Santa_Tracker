@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import {
     DndContext,
     closestCenter,
@@ -56,6 +56,12 @@ function SortableLocationCard({ location, index, total, onUpdate, onDelete, isSe
         onSelect(location.id);
     }, [location.id, onSelect]);
 
+    const handleCardKeyPress = useCallback((e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+            handleCardClick();
+        }
+    }, [handleCardClick]);
+
     const handleExpandToggle = useCallback((e) => {
         e.stopPropagation();
         setIsExpanded(!isExpanded);
@@ -98,6 +104,7 @@ function SortableLocationCard({ location, index, total, onUpdate, onDelete, isSe
         handleChange('population', parseInt(e.target.value, 10) || 0);
     }, [handleChange]);
 
+    // skipcq: JS-0415 - JSX nesting required for form layout structure
     return (
         <div
             ref={setNodeRef}
@@ -106,11 +113,7 @@ function SortableLocationCard({ location, index, total, onUpdate, onDelete, isSe
                 isSelected ? 'border-blue-500' : 'border-transparent'
             }`}
             onClick={handleCardClick}
-            onKeyPress={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                    handleCardClick();
-                }
-            }}
+            onKeyPress={handleCardKeyPress}
             role="button"
             tabIndex={0}
         >
@@ -162,6 +165,7 @@ function SortableLocationCard({ location, index, total, onUpdate, onDelete, isSe
                     </div>
                 </div>
 
+                {/* skipcq: JS-0415 - Complex form structure requires nesting for proper layout */}
                 {isExpanded && (
                     <div className="mt-3 pt-3 border-t border-gray-200 space-y-2">
                         <div>
