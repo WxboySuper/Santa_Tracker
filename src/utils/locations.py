@@ -91,7 +91,11 @@ def load_santa_route_from_json(json_file_path=None):
                 raise ValueError("Missing location name field")
 
             # Support both 'notes' (new) and 'fun_facts' (old) field names
-            notes = location_data.get("notes") if "notes" in location_data else location_data.get("fun_facts")
+            notes = (
+                location_data.get("notes")
+                if "notes" in location_data
+                else location_data.get("fun_facts")
+            )
 
             location = Location(
                 name=name,

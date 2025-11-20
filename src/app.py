@@ -441,7 +441,9 @@ def _parse_location_from_data(loc_data, idx):
 
     try:
         # Support both 'notes' and 'fun_facts' for backward compatibility
-        notes = loc_data.get("notes") if "notes" in loc_data else loc_data.get("fun_facts")
+        notes = (
+            loc_data.get("notes") if "notes" in loc_data else loc_data.get("fun_facts")
+        )
 
         location = Location(
             name=name,
@@ -593,7 +595,7 @@ def precompute_route():
         missing_or_invalid_times = []
         for idx, loc in enumerate(locations):
             issues = {}
-            
+
             if not loc.arrival_time:
                 issues["arrival_time"] = "missing"
             else:
@@ -602,7 +604,7 @@ def precompute_route():
                     datetime.fromisoformat(loc.arrival_time.replace("Z", "+00:00"))
                 except (ValueError, AttributeError):
                     issues["arrival_time"] = "invalid format"
-            
+
             if not loc.departure_time:
                 issues["departure_time"] = "missing"
             else:
@@ -611,7 +613,7 @@ def precompute_route():
                     datetime.fromisoformat(loc.departure_time.replace("Z", "+00:00"))
                 except (ValueError, AttributeError):
                     issues["departure_time"] = "invalid format"
-            
+
             if issues:
                 missing_or_invalid_times.append(
                     {
@@ -805,7 +807,11 @@ def upload_trial_route():
                 # Support both 'name' and 'location' fields
                 name = loc_data.get("name") or loc_data.get("location")
                 # Support both 'notes' and 'fun_facts' fields
-                notes = loc_data.get("notes") if "notes" in loc_data else loc_data.get("fun_facts")
+                notes = (
+                    loc_data.get("notes")
+                    if "notes" in loc_data
+                    else loc_data.get("fun_facts")
+                )
 
                 location = Location(
                     name=name,
