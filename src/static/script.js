@@ -271,9 +271,25 @@ async function loadSantaRoute() {
 
 // Interpolate Santa's position between two locations based on timestamps
 function interpolatePosition(loc1, loc2, currentTime) {
+    // Validate inputs
+    if (!loc1 || !loc2) {
+        console.warn('interpolatePosition: Missing location objects.');
+        return loc2 && typeof loc2.latitude === 'number' && typeof loc2.longitude === 'number'
+            ? [loc2.latitude, loc2.longitude]
+            : [0, 0];
+    }
+
     const departure = new Date(loc1.departure_time);
     const arrival = new Date(loc2.arrival_time);
-    const now = new Date(currentTime);
+    const now = currentTime ? new Date(currentTime) : new Date();
+
+    // Validate parsed dates
+    if (isNaN(departure.getTime()) || isNaN(arrival.getTime())) {
+        console.warn('interpolatePosition: Invalid departure or arrival timestamps.', loc1.departure_time, loc2.arrival_time);
+        return (typeof loc2.latitude === 'number' && typeof loc2.longitude === 'number')
+            ? [loc2.latitude, loc2.longitude]
+            : [0, 0];
+    }
     
     // Calculate progress between 0 and 1
     const totalDuration = arrival - departure;
@@ -284,9 +300,22 @@ function interpolatePosition(loc1, loc2, currentTime) {
     const elapsed = now - departure;
     const progress = Math.max(0, Math.min(1, elapsed / totalDuration));
     
+    // Ensure numeric coordinates
+    const lat1 = Number(loc1.latitude);
+    const lng1 = Number(loc1.longitude);
+    const lat2 = Number(loc2.latitude);
+    const lng2 = Number(loc2.longitude);
+
+    if ([lat1, lng1, lat2, lng2].some(v => Number.isNaN(v))) {
+        console.warn('interpolatePosition: Invalid coordinate values.', loc1, loc2);
+        return (typeof loc2.latitude === 'number' && typeof loc2.longitude === 'number')
+            ? [loc2.latitude, loc2.longitude]
+            : [0, 0];
+    }
+
     // Linear interpolation of latitude and longitude
-    const lat = loc1.latitude + (loc2.latitude - loc1.latitude) * progress;
-    const lng = loc1.longitude + (loc2.longitude - loc1.longitude) * progress;
+    const lat = lat1 + (lat2 - lat1) * progress;
+    const lng = lng1 + (lng2 - lng1) * progress;
     
     return [lat, lng];
 }

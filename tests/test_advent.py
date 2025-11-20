@@ -340,7 +340,8 @@ class TestGetDayContent(unittest.TestCase):
         self.assertIsNotNone(content)
         # Ignore type checkers because content is checked for None above
         self.assertTrue(content.get("is_unlocked", False))  # type: ignore
-        self.assertIn("payload", content or {})
+        # Ignore type checkers because content is checked for None above
+        self.assertIn("payload", content)  # type: ignore
 
     def test_get_day_content_locked_no_payload(self):
         """Test that locked day doesn't include payload."""
