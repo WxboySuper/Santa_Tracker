@@ -1,241 +1,258 @@
-import React, { useState, useEffect, useRef } from 'react'
-import { MapContainer, TileLayer, Marker, Polyline, Popup, useMap, useMapEvents, GeoJSON } from 'react-leaflet'
-import L from 'leaflet'
-import { Search } from 'lucide-react'
-import { getTimezoneOffset } from '../utils/exportUtils'
+import React, { useState, useEffect, useCallback } from 'react';
+import { MapContainer, TileLayer, Marker, Polyline, Popup, useMap, useMapEvents } from 'react-leaflet';
+import L from 'leaflet';
+import { Search } from 'lucide-react';
+import { getTimezoneOffset } from '../utils/exportUtils';
 
 // Fix Leaflet default marker icons
-delete L.Icon.Default.prototype._getIconUrl
+delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
-  iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
-  iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-})
+    iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+    iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+    shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+});
 
 // Custom colored markers
 const createColoredIcon = (color) => {
-  return new L.Icon({
-    iconUrl: `https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-${color}.png`,
-    shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-    iconSize: [25, 41],
-    iconAnchor: [12, 41],
-    popupAnchor: [1, -34],
-    shadowSize: [41, 41]
-  })
-}
+    return new L.Icon({
+        iconUrl: `https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-${color}.png`,
+        shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+        iconSize: [25, 41],
+        iconAnchor: [12, 41],
+        popupAnchor: [1, -34],
+        shadowSize: [41, 41]
+    });
+};
 
-const greenIcon = createColoredIcon('green')
-const redIcon = createColoredIcon('red')
-const blueIcon = createColoredIcon('blue')
+const greenIcon = createColoredIcon('green');
+const redIcon = createColoredIcon('red');
+const blueIcon = createColoredIcon('blue');
 
 // Search bar component
 function SearchBar({ onLocationSelect }) {
-  const [query, setQuery] = useState('')
-  const [results, setResults] = useState([])
-  const [loading, setLoading] = useState(false)
+    const [query, setQuery] = useState('');
+    const [results, setResults] = useState([]);
+    const [loading, setLoading] = useState(false);
 
-  const handleSearch = async (e) => {
-    e.preventDefault()
-    if (!query.trim()) return
+    const handleSearch = async (e) => {
+        e.preventDefault();
+        if (!query.trim()) return;
 
-    setLoading(true)
-    try {
-      const response = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}`
-      )
-      const data = await response.json()
-      setResults(data)
-    } catch (error) {
-      console.error('Search error:', error)
-    }
-    setLoading(false)
-  }
+        setLoading(true);
+        try {
+            const response = await fetch(
+                `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}`
+            );
+            const data = await response.json();
+            setResults(data);
+        } catch (error) {
+            console.error('Search error:', error);
+        }
+        setLoading(false);
+    };
 
-  const handleSelectResult = (result) => {
-    const lat = parseFloat(result.lat)
-    const lng = parseFloat(result.lon)
+    const handleQueryChange = useCallback((e) => {
+        setQuery(e.target.value);
+    }, []);
+
+    const handleSelectResult = useCallback((result) => {
+        const lat = parseFloat(result.lat);
+        const lng = parseFloat(result.lon);
     
-    onLocationSelect({
-      name: result.display_name.split(',')[0],
-      latitude: lat,
-      longitude: lng,
-      country: result.address?.country || '',
-      utc_offset: getTimezoneOffset(lat, lng),
-      priority: 1,
-      notes: '',
-      population: 0
-    }, { lat, lng })
+        onLocationSelect({
+            name: result.display_name.split(',')[0],
+            latitude: lat,
+            longitude: lng,
+            country: result.address?.country || '',
+            utc_offset: getTimezoneOffset(lat, lng),
+            priority: 1,
+            notes: '',
+            population: 0
+        }, { lat, lng });
     
-    setQuery('')
-    setResults([])
-  }
+        setQuery('');
+        setResults([]);
+    }, [onLocationSelect]);
 
-  return (
-    <div className="absolute top-4 left-4 z-[1000] bg-white rounded-lg shadow-lg p-2 w-80">
-      <form onSubmit={handleSearch} className="flex gap-2">
-        <input
-          type="text"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search for a city or location..."
-          className="flex-1 px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
-        <button
-          type="submit"
-          disabled={loading}
-          className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:bg-gray-400 flex items-center gap-2"
-        >
-          <Search size={16} />
-          {loading ? 'Searching...' : 'Search'}
-        </button>
-      </form>
+    return (
+        <div className="absolute top-4 left-4 z-[1000] bg-white rounded-lg shadow-lg p-2 w-80">
+            <form onSubmit={handleSearch} className="flex gap-2">
+                <input
+                    type="text"
+                    value={query}
+                    onChange={handleQueryChange}
+                    placeholder="Search for a city or location..."
+                    className="flex-1 px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <button
+                    type="submit"
+                    disabled={loading}
+                    className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:bg-gray-400 flex items-center gap-2"
+                >
+                    <Search size={16} />
+                    {loading ? 'Searching...' : 'Search'}
+                </button>
+            </form>
       
-      {results.length > 0 && (
-        <div className="mt-2 max-h-64 overflow-y-auto">
-          {results.map((result, index) => (
-            <div
-              key={index}
-              onClick={() => handleSelectResult(result)}
-              className="p-2 hover:bg-gray-100 cursor-pointer border-b border-gray-200 text-sm"
-            >
-              {result.display_name}
-            </div>
-          ))}
+            {results.length > 0 && (
+                <div className="mt-2 max-h-64 overflow-y-auto">
+                    {results.map((result) => (
+                        <div
+                            key={result.place_id}
+                            onClick={() => handleSelectResult(result)}
+                            onKeyPress={(e) => {
+                                if (e.key === 'Enter' || e.key === ' ') {
+                                    handleSelectResult(result);
+                                }
+                            }}
+                            role="button"
+                            tabIndex={0}
+                            className="p-2 hover:bg-gray-100 cursor-pointer border-b border-gray-200 text-sm"
+                        >
+                            {result.display_name}
+                        </div>
+                    ))}
+                </div>
+            )}
         </div>
-      )}
-    </div>
-  )
+    );
 }
 
 // Map event handlers
 function MapEventHandler({ onMapClick }) {
-  const map = useMapEvents({
-    contextmenu: (e) => {
-      onMapClick(e.latlng)
-    },
-  })
-  return null
+    const handleContextMenu = useCallback((e) => {
+        onMapClick(e.latlng);
+    }, [onMapClick]);
+
+    useMapEvents({
+        contextmenu: handleContextMenu,
+    });
+    return null;
 }
 
 // Component to handle map centering
 function MapCenter({ center }) {
-  const map = useMap()
+    const map = useMap();
   
-  useEffect(() => {
-    if (center) {
-      map.flyTo(center, 8, { duration: 1 })
-    }
-  }, [center, map])
+    useEffect(() => {
+        if (center) {
+            map.flyTo(center, 8, { duration: 1 });
+        }
+    }, [center, map]);
   
-  return null
+    return null;
 }
 
 function MapEditor({ locations, onAddLocation, selectedLocation, setSelectedLocation }) {
-  const [mapCenter, setMapCenter] = useState(null)
+    const [mapCenter, setMapCenter] = useState(null);
 
-  const handleMapClick = async (latlng) => {
-    const { lat, lng } = latlng
+    const handleMapClick = useCallback(async (latlng) => {
+        const { lat, lng } = latlng;
     
-    // Reverse geocode to get location name
-    try {
-      const response = await fetch(
-        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`
-      )
-      const data = await response.json()
+        // Reverse geocode to get location name
+        try {
+            const response = await fetch(
+                `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`
+            );
+            const data = await response.json();
       
-      onAddLocation({
-        name: data.address?.city || data.address?.town || data.address?.village || 'Unknown Location',
-        latitude: lat,
-        longitude: lng,
-        country: data.address?.country || '',
-        utc_offset: getTimezoneOffset(lat, lng),
-        priority: 1,
-        notes: '',
-        population: 0
-      })
-    } catch (error) {
-      console.error('Reverse geocoding error:', error)
-      onAddLocation({
-        name: 'Unknown Location',
-        latitude: lat,
-        longitude: lng,
-        country: '',
-        utc_offset: getTimezoneOffset(lat, lng),
-        priority: 1,
-        notes: '',
-        population: 0
-      })
-    }
-  }
+            onAddLocation({
+                name: data.address?.city || data.address?.town || data.address?.village || 'Unknown Location',
+                latitude: lat,
+                longitude: lng,
+                country: data.address?.country || '',
+                utc_offset: getTimezoneOffset(lat, lng),
+                priority: 1,
+                notes: '',
+                population: 0
+            });
+        } catch (error) {
+            console.error('Reverse geocoding error:', error);
+            onAddLocation({
+                name: 'Unknown Location',
+                latitude: lat,
+                longitude: lng,
+                country: '',
+                utc_offset: getTimezoneOffset(lat, lng),
+                priority: 1,
+                notes: '',
+                population: 0
+            });
+        }
+    }, [onAddLocation]);
 
-  const handleLocationSelect = (location, center) => {
-    onAddLocation(location)
-    setMapCenter(center)
-  }
+    const handleLocationSelect = useCallback((location, center) => {
+        onAddLocation(location);
+        setMapCenter(center);
+    }, [onAddLocation]);
 
-  const getMarkerIcon = (index, total) => {
-    if (total === 1) return blueIcon
-    if (index === 0) return greenIcon
-    if (index === total - 1) return redIcon
-    return blueIcon
-  }
+    const getMarkerIcon = useCallback((index, total) => {
+        if (total === 1) return blueIcon;
+        if (index === 0) return greenIcon;
+        if (index === total - 1) return redIcon;
+        return blueIcon;
+    }, []);
 
-  const polylinePositions = locations.map(loc => [loc.latitude, loc.longitude])
+    const handleMarkerClick = useCallback((locationId) => {
+        setSelectedLocation(locationId);
+    }, [setSelectedLocation]);
 
-  return (
-    <div className="flex-1 relative">
-      <MapContainer
-        center={[20, 0]}
-        zoom={2}
-        className="h-full w-full"
-        worldCopyJump
-      >
-        <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
-          url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
-          subdomains="abcd"
-          maxZoom={20}
-        />
+    const polylinePositions = locations.map(loc => [loc.latitude, loc.longitude]);
+
+    return (
+        <div className="flex-1 relative">
+            <MapContainer
+                center={[20, 0]}
+                zoom={2}
+                className="h-full w-full"
+                worldCopyJump
+            >
+                <TileLayer
+                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+                    url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+                    subdomains="abcd"
+                    maxZoom={20}
+                />
         
-        <MapEventHandler onMapClick={handleMapClick} />
-        <MapCenter center={mapCenter} />
+                <MapEventHandler onMapClick={handleMapClick} />
+                <MapCenter center={mapCenter} />
         
-        {/* Render markers */}
-        {locations.map((location, index) => (
-          <Marker
-            key={location.id}
-            position={[location.latitude, location.longitude]}
-            icon={getMarkerIcon(index, locations.length)}
-            eventHandlers={{
-              click: () => setSelectedLocation(location.id)
-            }}
-          >
-            <Popup>
-              <div className="text-sm">
-                <strong>{location.name}</strong>
-                <br />
-                {location.country && `${location.country}`}
-                <br />
-                Priority: {location.priority}
-              </div>
-            </Popup>
-          </Marker>
-        ))}
+                {/* Render markers */}
+                {locations.map((location, index) => (
+                    <Marker
+                        key={location.id}
+                        position={[location.latitude, location.longitude]}
+                        icon={getMarkerIcon(index, locations.length)}
+                        eventHandlers={{
+                            click: () => handleMarkerClick(location.id)
+                        }}
+                    >
+                        <Popup>
+                            <div className="text-sm">
+                                <strong>{location.name}</strong>
+                                <br />
+                                {location.country && `${location.country}`}
+                                <br />
+                                Priority: {location.priority}
+                            </div>
+                        </Popup>
+                    </Marker>
+                ))}
         
-        {/* Render polyline connecting locations */}
-        {polylinePositions.length > 1 && (
-          <Polyline
-            positions={polylinePositions}
-            color="#3b82f6"
-            weight={3}
-            opacity={0.7}
-          />
-        )}
-      </MapContainer>
+                {/* Render polyline connecting locations */}
+                {polylinePositions.length > 1 && (
+                    <Polyline
+                        positions={polylinePositions}
+                        color="#3b82f6"
+                        weight={3}
+                        opacity={0.7}
+                    />
+                )}
+            </MapContainer>
       
-      <SearchBar onLocationSelect={handleLocationSelect} />
-    </div>
-  )
+            <SearchBar onLocationSelect={handleLocationSelect} />
+        </div>
+    );
 }
 
-export default MapEditor
+export default MapEditor;
