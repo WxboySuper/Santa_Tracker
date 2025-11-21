@@ -1,0 +1,263 @@
+/* Ornament Smash - Custom Styles */
+
+/* CSS Variables matching Santa Tracker site */
+:root {
+    --christmas-red: #c41e3a;
+    --christmas-green: #165b33;
+    --christmas-gold: #ffd700;
+    --christmas-dark-red: #8b0000;
+    --christmas-light-green: #228b22;
+    --snow-white: #fffafa;
+    --night-blue: #0a1929;
+    
+    /* Tree layer colors for visual depth */
+    --tree-base: #165b33;
+    --tree-layer-2: #1a7040;
+    --tree-layer-3: #228b4d;
+    --tree-top: #2e9c5a;
+    --tree-shadow: #0f4d2a;
+    --tree-trunk: #6d4c3b;
+    --tree-trunk-shadow: #4a3327;
+}
+
+/* Reset and base styles */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html, body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+/* Screen reader only utility class */
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+}
+
+/* Game container - fits in modal */
+.game-container {
+    width: 100%;
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+/* Canvas wrapper */
+.canvas-wrapper {
+    position: relative;
+    background: linear-gradient(180deg, #e3f2fd 0%, #bbdefb 100%);
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: inset 0 2px 8px rgb(0 0 0 / 10%);
+}
+
+/* Canvas */
+#gameCanvas {
+    display: block;
+    width: 100%;
+    height: auto;
+    cursor: pointer;
+    touch-action: manipulation;
+    user-select: none;
+}
+
+/* Overlays */
+.overlay {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    background: rgba(0, 0, 0, 0.75);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    z-index: 10;
+}
+
+.overlay.hidden {
+    display: none;
+}
+
+.overlay-card {
+    background: white;
+    padding: 2rem 1.5rem;
+    border-radius: 16px;
+    box-shadow: 0 8px 32px rgb(0 0 0 / 30%);
+    text-align: center;
+    max-width: 400px;
+    width: 100%;
+    border: 3px solid var(--christmas-gold);
+}
+
+.overlay-title {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: var(--christmas-green);
+    margin-bottom: 1rem;
+}
+
+.overlay-title-success {
+    color: var(--christmas-red);
+}
+
+.overlay-text {
+    color: var(--night-blue);
+    font-size: 1rem;
+    line-height: 1.5;
+    margin-bottom: 1.5rem;
+}
+
+.overlay-text strong {
+    color: var(--christmas-red);
+    font-weight: 700;
+}
+
+/* Buttons */
+.btn {
+    border: none;
+    padding: 1rem 2rem;
+    font-size: 1.125rem;
+    font-weight: 700;
+    border-radius: 50px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgb(0 0 0 / 20%);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgb(0 0 0 / 30%);
+}
+
+.btn:active {
+    transform: translateY(0);
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, var(--christmas-red), var(--christmas-dark-red));
+    color: white;
+}
+
+.btn-primary:hover {
+    background: linear-gradient(135deg, var(--christmas-dark-red), var(--christmas-red));
+}
+
+.btn-success {
+    background: linear-gradient(135deg, var(--christmas-green), var(--christmas-light-green));
+    color: white;
+}
+
+.btn-success:hover {
+    background: linear-gradient(135deg, var(--christmas-light-green), var(--christmas-green));
+}
+
+/* Badge notification */
+.badge-notification {
+    background: linear-gradient(135deg, var(--christmas-gold), #f4c430);
+    color: var(--night-blue);
+    padding: 1rem;
+    border-radius: 12px;
+    margin-bottom: 1.5rem;
+    border: 2px solid #daa520;
+    animation: badge-pulse 1s ease-in-out infinite alternate;
+}
+
+.badge-notification.hidden {
+    display: none;
+}
+
+.badge-title {
+    font-weight: 700;
+    font-size: 1.125rem;
+    margin-bottom: 0.25rem;
+}
+
+.badge-text {
+    font-size: 0.875rem;
+    opacity: 0.9;
+}
+
+@keyframes badge-pulse {
+    from {
+        transform: scale(1);
+    }
+
+    to {
+        transform: scale(1.03);
+    }
+}
+
+/* HUD */
+.hud {
+    position: absolute;
+    top: 1rem;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 5;
+}
+
+.hud.hidden {
+    display: none;
+}
+
+.hud-content {
+    background: linear-gradient(135deg, var(--christmas-red), var(--christmas-dark-red));
+    color: white;
+    padding: 0.75rem 1.5rem;
+    border-radius: 50px;
+    box-shadow: 0 4px 12px rgb(0 0 0 / 30%);
+    border: 2px solid var(--christmas-gold);
+}
+
+.hud-text {
+    font-size: 1.25rem;
+    font-weight: 700;
+    margin: 0;
+}
+
+/* Accessibility */
+.btn:focus-visible {
+    outline: 3px solid var(--christmas-gold);
+    outline-offset: 3px;
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+    .overlay-card {
+        padding: 1.5rem 1rem;
+    }
+    
+    .overlay-title {
+        font-size: 1.5rem;
+    }
+    
+    .btn {
+        padding: 0.875rem 1.5rem;
+        font-size: 1rem;
+    }
+    
+    .hud-text {
+        font-size: 1.125rem;
+    }
+}
+
+/* Print styles */
+@media print {
+    .game-container {
+        display: none;
+    }
+}

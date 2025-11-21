@@ -10,6 +10,19 @@
       }
     ]
   },
+  "overrides": [
+    {
+      "files": ["src/advent_activities/**/*.css"],
+      "rules": {
+        "selector-id-pattern": null,
+        "keyframes-name-pattern": null,
+        "declaration-block-no-redundant-longhand-properties": null,
+        "color-function-notation": null,
+        "alpha-value-notation": null,
+        "media-feature-range-notation": null
+      }
+    }
+  ],
   "ignoreFiles": [
     "node_modules/**",
     "dist/**",

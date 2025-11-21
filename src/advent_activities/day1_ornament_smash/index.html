@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Day 1: Ornament Smash - Santa Tracker Advent</title>
+    <meta name="description" content="Clear ornaments from the Christmas tree in this festive tapping game!">
+    
+    <!-- Game Styles -->
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Game Container -->
+    <div class="game-container">
+        <!-- Accessibility: Screen reader announcements -->
+        <div id="gameAnnouncements" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
+        
+        <!-- Game Canvas Container -->
+        <div class="canvas-wrapper">
+            <!-- Canvas for Game -->
+            <canvas id="gameCanvas" width="560" height="500" 
+                    role="application"
+                    aria-label="Ornament Smash Game - Tap ornaments on the Christmas tree"
+                    aria-describedby="gameDescription"></canvas>
+            
+            <!-- Hidden game description for screen readers -->
+            <div id="gameDescription" class="sr-only">
+                An interactive Christmas game where you tap colorful ornaments that appear on a Christmas tree. 
+                Clear 20 ornaments to win. The game tracks your remaining ornaments and announces updates.
+            </div>
+            
+            <!-- Start Overlay -->
+            <div id="startOverlay" class="overlay">
+                <div class="overlay-card">
+                    <h2 class="overlay-title">🎄 Ready to Play? 🎄</h2>
+                    <p class="overlay-text">
+                        Tap the colorful ornaments as they appear on the tree. 
+                        Clear <strong>20 ornaments</strong> to win!
+                    </p>
+                    <button id="startButton" class="btn btn-primary">
+                        Start Game
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Win Overlay -->
+            <div id="winOverlay" class="overlay hidden">
+                <div class="overlay-card">
+                    <h2 class="overlay-title overlay-title-success">🎉 Tree Decorated! 🎉</h2>
+                    <p class="overlay-text">
+                        Congratulations! You've cleared all the ornaments!
+                    </p>
+                    <div id="badgeNotification" class="badge-notification hidden">
+                        <p class="badge-title">🏆 Badge Unlocked!</p>
+                        <p class="badge-text">First time completion!</p>
+                    </div>
+                    <button id="playAgainButton" class="btn btn-success">
+                        Play Again
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Game HUD -->
+            <div id="gameHUD" class="hud hidden">
+                <div class="hud-content">
+                    <p class="hud-text">
+                        <span id="remainingCount">20</span> Remaining
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Game Script -->
+    <script src="game.js"></script>
+</body>
+</html>
