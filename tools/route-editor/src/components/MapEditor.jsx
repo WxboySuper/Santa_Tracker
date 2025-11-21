@@ -274,7 +274,7 @@ function MapEditor({ locations, onAddLocation, setSelectedLocation }) {
             type: "FeatureCollection",
             features: [...left, ...center, ...right]
         };
-    }, [timezones]);
+    }, []);
 
     const handleMapClick = useCallback(async (latlng) => {
         const { lat, lng } = latlng;
