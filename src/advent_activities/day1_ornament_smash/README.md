@@ -7,6 +7,7 @@ A festive whack-a-mole style tapping game where players clear colorful ornaments
 **Objective:** Clear 20 ornaments from the Christmas tree by tapping/clicking them before they fade away.
 
 **Features:**
+
 - Canvas-based rendering with smooth animations
 - Particle effects when ornaments are smashed
 - Background snowfall animation
@@ -101,6 +102,7 @@ const CONFIG = {
 ### Difficulty Adjustments
 
 **Easy Mode:**
+
 ```javascript
 targetCount: 15,
 maxOrnaments: 4,
@@ -108,6 +110,7 @@ ornamentLifetime: 5000,
 ```
 
 **Hard Mode:**
+
 ```javascript
 targetCount: 30,
 maxOrnaments: 8,
@@ -191,12 +194,14 @@ function initAudio() {
 ## 🐛 Browser Compatibility
 
 **Supported Browsers:**
+
 - Chrome/Edge 90+
 - Firefox 88+
 - Safari 14+
 - Mobile browsers (iOS Safari, Chrome Mobile)
 
 **Required APIs:**
+
 - Canvas API
 - Web Audio API (optional, gracefully degrades)
 - localStorage
@@ -214,12 +219,14 @@ The game is fully optimized for mobile devices:
 ## ⚡ Performance
 
 **Lightweight Design:**
-- No external dependencies (except Tailwind CSS CDN)
+
+- No external dependencies
 - No image assets required
 - Procedurally generated graphics
 - ~28KB total size (HTML + JS + CSS)
 
 **Frame Rate:**
+
 - Target: 60 FPS
 - Canvas updates via `requestAnimationFrame`
 - Efficient particle system with automatic cleanup
@@ -266,10 +273,8 @@ Test in multiple browsers to ensure compatibility:
 
 ## 📦 Dependencies
 
-**External:**
-- Tailwind CSS (CDN) - UI styling
-
 **Built-in APIs:**
+
 - Canvas API - Rendering
 - Web Audio API - Sound effects
 - localStorage - Persistence

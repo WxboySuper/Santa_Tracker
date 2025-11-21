@@ -14,7 +14,7 @@ Each day from December 1st to 24th (and a special Christmas Day activity), users
 
 ## 🗂️ Directory Structure
 
-```
+```text
 src/advent_activities/
 ├── README.md (this file)
 ├── day1_ornament_smash/
@@ -59,12 +59,14 @@ Activities can be of different types:
 Each activity supports multiple integration methods:
 
 #### 1. Standalone Deployment
+
 ```bash
 cd src/advent_activities/day1_ornament_smash
 python -m http.server 8000
 ```
 
 #### 2. Iframe Embedding
+
 ```html
 <iframe 
     src="/advent_activities/day1_ornament_smash/index.html"
@@ -74,6 +76,7 @@ python -m http.server 8000
 ```
 
 #### 3. Direct Import (Flask/Jinja)
+
 ```python
 @app.route('/advent/day/<int:day>')
 def advent_day(day):
@@ -208,6 +211,7 @@ function playSoundEffect(frequency, duration) {
 ### Audio Files (If Necessary)
 
 If using audio files, keep them:
+
 - **Small** - < 100KB per file
 - **Compressed** - MP3 or OGG format
 - **Licensed** - Royalty-free or original
@@ -272,6 +276,7 @@ Keep modules lightweight:
 ### Creating a New Activity
 
 1. **Create Directory**
+
    ```bash
    mkdir src/advent_activities/day{N}_{activity_name}
    ```
@@ -322,7 +327,8 @@ To contribute a new activity:
 ## 📝 Naming Conventions
 
 ### Directory Names
-```
+
+```text
 day{number}_{activity_name_lowercase}
 Examples:
   day1_ornament_smash
@@ -331,7 +337,8 @@ Examples:
 ```
 
 ### File Names
-```
+
+```text
 index.html    - Always the main entry point
 game.js       - For game logic
 script.js     - For non-game activities
@@ -340,7 +347,8 @@ README.md     - Documentation
 ```
 
 ### localStorage Keys
-```
+
+```text
 santa_advent_day_{number}_complete
 santa_advent_day_{number}_score (optional)
 santa_advent_day_{number}_best_time (optional)
