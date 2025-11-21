@@ -219,7 +219,6 @@ The game is fully optimized for mobile devices:
 ## ⚡ Performance
 
 **Lightweight Design:**
-
 - No external dependencies
 - No image assets required
 - Procedurally generated graphics
@@ -272,6 +271,9 @@ Test in multiple browsers to ensure compatibility:
 - No network requests made during gameplay
 
 ## 📦 Dependencies
+
+**External:**
+- None
 
 **Built-in APIs:**
 

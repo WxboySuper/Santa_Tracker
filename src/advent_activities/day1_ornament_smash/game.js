@@ -40,6 +40,21 @@ const badgeNotification = document.getElementById('badgeNotification');
 // Audio Context for synthetic sounds
 let audioContext = null;
 
+// Tree colors from CSS variables
+const getTreeColors = () => {
+    const root = document.documentElement;
+    const style = getComputedStyle(root);
+    return {
+        base: style.getPropertyValue('--tree-base').trim() || '#165b33',
+        layer2: style.getPropertyValue('--tree-layer-2').trim() || '#1a7040',
+        layer3: style.getPropertyValue('--tree-layer-3').trim() || '#228b4d',
+        top: style.getPropertyValue('--tree-top').trim() || '#2e9c5a',
+        shadow: style.getPropertyValue('--tree-shadow').trim() || '#0f4d2a',
+        trunk: style.getPropertyValue('--tree-trunk').trim() || '#6d4c3b',
+        trunkShadow: style.getPropertyValue('--tree-trunk-shadow').trim() || '#4a3327'
+    };
+};
+
 // Tree boundary (triangular area where ornaments can spawn)
 const treeBounds = {
     top: 80,
@@ -423,17 +438,18 @@ function drawSnowflakes() {
 // Draw Christmas tree
 function drawTree() {
     const centerX = canvas.width / 2;
+    const colors = getTreeColors();
     
     // Tree trunk
-    ctx.fillStyle = '#6d4c3b';
+    ctx.fillStyle = colors.trunk;
     ctx.fillRect(centerX - 25, 450, 50, 50);
     
     // Trunk shadow/depth
-    ctx.fillStyle = '#4a3327';
+    ctx.fillStyle = colors.trunkShadow;
     ctx.fillRect(centerX - 25, 450, 8, 50);
     
     // Bottom tree layer
-    ctx.fillStyle = '#165b33';
+    ctx.fillStyle = colors.base;
     ctx.beginPath();
     ctx.moveTo(centerX, 360);
     ctx.lineTo(centerX - 230, 460);
@@ -442,7 +458,7 @@ function drawTree() {
     ctx.fill();
     
     // Bottom layer shadow
-    ctx.fillStyle = '#0f4d2a';
+    ctx.fillStyle = colors.shadow;
     ctx.beginPath();
     ctx.moveTo(centerX, 360);
     ctx.lineTo(centerX - 230, 460);
@@ -451,7 +467,7 @@ function drawTree() {
     ctx.fill();
     
     // Middle tree layer
-    ctx.fillStyle = '#1a7040';
+    ctx.fillStyle = colors.layer2;
     ctx.beginPath();
     ctx.moveTo(centerX, 260);
     ctx.lineTo(centerX - 180, 380);
@@ -460,7 +476,7 @@ function drawTree() {
     ctx.fill();
     
     // Middle layer shadow
-    ctx.fillStyle = '#0f4d2a';
+    ctx.fillStyle = colors.shadow;
     ctx.beginPath();
     ctx.moveTo(centerX, 260);
     ctx.lineTo(centerX - 180, 380);
@@ -469,7 +485,7 @@ function drawTree() {
     ctx.fill();
     
     // Top tree layer
-    ctx.fillStyle = '#228b4d';
+    ctx.fillStyle = colors.layer3;
     ctx.beginPath();
     ctx.moveTo(centerX, 140);
     ctx.lineTo(centerX - 130, 280);
@@ -478,7 +494,7 @@ function drawTree() {
     ctx.fill();
     
     // Top layer shadow
-    ctx.fillStyle = '#1a7040';
+    ctx.fillStyle = colors.layer2;
     ctx.beginPath();
     ctx.moveTo(centerX, 140);
     ctx.lineTo(centerX - 130, 280);
@@ -487,7 +503,7 @@ function drawTree() {
     ctx.fill();
     
     // Tree top cone
-    ctx.fillStyle = '#2e9c5a';
+    ctx.fillStyle = colors.top;
     ctx.beginPath();
     ctx.moveTo(centerX, 60);
     ctx.lineTo(centerX - 80, 160);
