@@ -56,10 +56,12 @@ const treeBounds = {
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
     setupCanvas();
-    initAudio();
     initSnowflakes();
     
-    startButton.addEventListener('click', startGame);
+    startButton.addEventListener('click', () => {
+        initAudio(); // Initialize audio on user interaction
+        startGame();
+    });
     playAgainButton.addEventListener('click', () => {
         hideWinOverlay();
         resetGame();
@@ -107,7 +109,7 @@ function playPopSound() {
     oscillator.frequency.exponentialRampToValueAtTime(200, audioContext.currentTime + 0.1);
     
     gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
-    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
+    gainNode.gain.linearRampToValueAtTime(0, audioContext.currentTime + 0.1);
     
     oscillator.start(audioContext.currentTime);
     oscillator.stop(audioContext.currentTime + 0.1);
@@ -130,7 +132,7 @@ function playWinSound() {
         
         const startTime = audioContext.currentTime + (i * 0.15);
         gainNode.gain.setValueAtTime(0.2, startTime);
-        gainNode.gain.exponentialRampToValueAtTime(0.01, startTime + 0.3);
+        gainNode.gain.linearRampToValueAtTime(0, startTime + 0.3);
         
         oscillator.start(startTime);
         oscillator.stop(startTime + 0.3);
