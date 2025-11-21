@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { MapContainer, TileLayer, Marker, Polyline, Popup, useMap, useMapEvents } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Polyline, Popup, useMap, useMapEvents, GeoJSON } from 'react-leaflet';
 import L from 'leaflet';
 import { Search } from 'lucide-react';
 import { getTimezoneOffset } from '../utils/exportUtils';
@@ -188,6 +188,46 @@ function MapCenter({ center }) {
     return null;
 }
 
+// Component to load and display timezone GeoJSON layer
+function TimezoneLayer() {
+    const [timezoneData, setTimezoneData] = useState(null);
+
+    useEffect(() => {
+        fetch('/data/timezones-simple.geojson')
+            .then(response => response.json())
+            .then(data => setTimezoneData(data))
+            .catch(error => console.error('Error loading timezone data:', error));
+    }, []);
+
+    const onEachFeature = useCallback((feature, layer) => {
+        if (feature.properties && feature.properties.timezone) {
+            layer.bindPopup(`<strong>${feature.properties.timezone}</strong>`);
+        }
+    }, []);
+
+    const style = useCallback((feature) => {
+        return {
+            fillColor: feature.properties.color,
+            fillOpacity: 0.15,
+            color: feature.properties.color,
+            weight: 1,
+            opacity: 0.4
+        };
+    }, []);
+
+    if (!timezoneData) {
+        return null;
+    }
+
+    return (
+        <GeoJSON
+            data={timezoneData}
+            style={style}
+            onEachFeature={onEachFeature}
+        />
+    );
+}
+
 function MapEditor({ locations, onAddLocation, setSelectedLocation }) {
     const [mapCenter, setMapCenter] = useState(null);
 
@@ -267,11 +307,13 @@ function MapEditor({ locations, onAddLocation, setSelectedLocation }) {
                 worldCopyJump
             >
                 <TileLayer
-                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
-                    url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
-                    subdomains="abcd"
-                    maxZoom={20}
+                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                    maxZoom={19}
                 />
+        
+                {/* Timezone overlay layer */}
+                <TimezoneLayer />
         
                 <MapEventHandler onMapClick={handleMapClick} />
                 <MapCenter center={mapCenter} />

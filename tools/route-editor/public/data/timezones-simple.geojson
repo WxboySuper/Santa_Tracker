@@ -1,0 +1,355 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "timezone": "UTC-12",
+        "utc_offset": -12,
+        "color": "#8B0000"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [-180, -90], [-165, -90], [-165, 90], [-180, 90], [-180, -90]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "timezone": "UTC-11",
+        "utc_offset": -11,
+        "color": "#A52A2A"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [-165, -90], [-150, -90], [-150, 90], [-165, 90], [-165, -90]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "timezone": "UTC-10",
+        "utc_offset": -10,
+        "color": "#CD5C5C"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [-150, -90], [-135, -90], [-135, 90], [-150, 90], [-150, -90]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "timezone": "UTC-9",
+        "utc_offset": -9,
+        "color": "#DC143C"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [-135, -90], [-120, -90], [-120, 90], [-135, 90], [-135, -90]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "timezone": "UTC-8",
+        "utc_offset": -8,
+        "color": "#FF6347"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [-120, -90], [-105, -90], [-105, 90], [-120, 90], [-120, -90]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "timezone": "UTC-7",
+        "utc_offset": -7,
+        "color": "#FF7F50"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [-105, -90], [-90, -90], [-90, 90], [-105, 90], [-105, -90]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "timezone": "UTC-6",
+        "utc_offset": -6,
+        "color": "#FFA500"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [-90, -90], [-75, -90], [-75, 90], [-90, 90], [-90, -90]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "timezone": "UTC-5",
+        "utc_offset": -5,
+        "color": "#FFD700"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [-75, -90], [-60, -90], [-60, 90], [-75, 90], [-75, -90]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "timezone": "UTC-4",
+        "utc_offset": -4,
+        "color": "#FFFF00"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [-60, -90], [-45, -90], [-45, 90], [-60, 90], [-60, -90]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "timezone": "UTC-3",
+        "utc_offset": -3,
+        "color": "#ADFF2F"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [-45, -90], [-30, -90], [-30, 90], [-45, 90], [-45, -90]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "timezone": "UTC-2",
+        "utc_offset": -2,
+        "color": "#7FFF00"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [-30, -90], [-15, -90], [-15, 90], [-30, 90], [-30, -90]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "timezone": "UTC-1",
+        "utc_offset": -1,
+        "color": "#00FF00"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [-15, -90], [0, -90], [0, 90], [-15, 90], [-15, -90]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "timezone": "UTC+0",
+        "utc_offset": 0,
+        "color": "#00CED1"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [0, -90], [15, -90], [15, 90], [0, 90], [0, -90]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "timezone": "UTC+1",
+        "utc_offset": 1,
+        "color": "#1E90FF"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [15, -90], [30, -90], [30, 90], [15, 90], [15, -90]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "timezone": "UTC+2",
+        "utc_offset": 2,
+        "color": "#0000FF"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [30, -90], [45, -90], [45, 90], [30, 90], [30, -90]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "timezone": "UTC+3",
+        "utc_offset": 3,
+        "color": "#4B0082"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [45, -90], [60, -90], [60, 90], [45, 90], [45, -90]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "timezone": "UTC+4",
+        "utc_offset": 4,
+        "color": "#8B00FF"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [60, -90], [75, -90], [75, 90], [60, 90], [60, -90]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "timezone": "UTC+5",
+        "utc_offset": 5,
+        "color": "#9932CC"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [75, -90], [90, -90], [90, 90], [75, 90], [75, -90]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "timezone": "UTC+6",
+        "utc_offset": 6,
+        "color": "#BA55D3"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [90, -90], [105, -90], [105, 90], [90, 90], [90, -90]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "timezone": "UTC+7",
+        "utc_offset": 7,
+        "color": "#DA70D6"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [105, -90], [120, -90], [120, 90], [105, 90], [105, -90]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "timezone": "UTC+8",
+        "utc_offset": 8,
+        "color": "#EE82EE"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [120, -90], [135, -90], [135, 90], [120, 90], [120, -90]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "timezone": "UTC+9",
+        "utc_offset": 9,
+        "color": "#FF00FF"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [135, -90], [150, -90], [150, 90], [135, 90], [135, -90]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "timezone": "UTC+10",
+        "utc_offset": 10,
+        "color": "#FF1493"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [150, -90], [165, -90], [165, 90], [150, 90], [150, -90]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "timezone": "UTC+11",
+        "utc_offset": 11,
+        "color": "#FF69B4"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [165, -90], [180, -90], [180, 90], [165, 90], [165, -90]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "timezone": "UTC+12",
+        "utc_offset": 12,
+        "color": "#FFB6C1"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [180, -90], [195, -90], [195, 90], [180, 90], [180, -90]
+        ]]
+      }
+    }
+  ]
+}
