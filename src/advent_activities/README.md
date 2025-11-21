@@ -304,7 +304,6 @@ Keep modules lightweight:
 
 - [Canvas API Documentation](https://developer.mozilla.org/en-US/docs/Web/API/Canvas_API)
 - [Web Audio API Guide](https://developer.mozilla.org/en-US/docs/Web/API/Web_Audio_API)
-- [Tailwind CSS Docs](https://tailwindcss.com/docs)
 - [localStorage Guide](https://developer.mozilla.org/en-US/docs/Web/API/Window/localStorage)
 
 ### Code Examples
