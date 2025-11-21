@@ -77,12 +77,13 @@ document.addEventListener('DOMContentLoaded', () => {
         initAudio(); // Initialize audio on user interaction
         startGame();
     });
-    playAgainButton.addEventListener('click', () => {
+    function handlePlayAgainClick() {
         hideWinOverlay();
         resetGame();
         initAudio(); // Ensure audio context is initialized for replay
         startGame();
-    });
+    }
+    playAgainButton.addEventListener('click', handlePlayAgainClick);
     
     canvas.addEventListener('click', handleCanvasClick);
     canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
