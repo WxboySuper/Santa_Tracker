@@ -101,6 +101,7 @@ function setupCanvas() {
 function initAudio() {
     try {
         audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        audioContext.resume();
     } catch (e) {
         console.warn('Web Audio API not supported');
     }
