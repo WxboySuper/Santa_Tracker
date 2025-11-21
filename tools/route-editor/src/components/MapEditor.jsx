@@ -194,7 +194,12 @@ function TimezoneLayer() {
 
     useEffect(() => {
         fetch('/data/timezones-simple.geojson')
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
             .then(data => setTimezoneData(data))
             .catch(error => console.error('Error loading timezone data:', error));
     }, []);
