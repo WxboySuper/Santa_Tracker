@@ -217,7 +217,7 @@ The game is fully optimized for mobile devices:
 - No external dependencies (except Tailwind CSS CDN)
 - No image assets required
 - Procedurally generated graphics
-- ~21KB total size (HTML + JS + CSS)
+- ~28KB total size (HTML + JS + CSS)
 
 **Frame Rate:**
 - Target: 60 FPS
