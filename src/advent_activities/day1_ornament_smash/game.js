@@ -42,13 +42,13 @@ let audioContext = null;
 
 // Tree boundary (triangular area where ornaments can spawn)
 const treeBounds = {
-    top: 100,
-    bottom: 550,
+    top: 80,
+    bottom: 450,
     getWidth: (y) => {
         // Tree gets wider from top to bottom
         const progress = (y - treeBounds.top) / (treeBounds.bottom - treeBounds.top);
-        const topWidth = 150;
-        const bottomWidth = 600;
+        const topWidth = 100;
+        const bottomWidth = 420;
         return topWidth + (bottomWidth - topWidth) * progress;
     }
 };
@@ -77,13 +77,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Setup canvas with proper sizing
 function setupCanvas() {
-    // Set display size
-    canvas.style.width = '100%';
-    canvas.style.height = 'auto';
-    
-    // Set canvas dimensions
-    canvas.width = 800;
-    canvas.height = 600;
+    // Set canvas dimensions to fit modal better (560x500)
+    canvas.width = 560;
+    canvas.height = 500;
 }
 
 // Initialize Web Audio API
@@ -426,30 +422,124 @@ function drawSnowflakes() {
 
 // Draw Christmas tree
 function drawTree() {
-    // Tree body (green triangle)
-    ctx.fillStyle = '#165b33';
-    ctx.beginPath();
-    ctx.moveTo(canvas.width / 2, 80); // Top
-    ctx.lineTo(canvas.width / 2 - 320, 570); // Bottom left
-    ctx.lineTo(canvas.width / 2 + 320, 570); // Bottom right
-    ctx.closePath();
-    ctx.fill();
-    
-    // Tree layers for depth
-    ctx.fillStyle = '#0f4d2a';
-    ctx.beginPath();
-    ctx.moveTo(canvas.width / 2, 100);
-    ctx.lineTo(canvas.width / 2 - 200, 350);
-    ctx.lineTo(canvas.width / 2 + 200, 350);
-    ctx.closePath();
-    ctx.fill();
+    const centerX = canvas.width / 2;
     
     // Tree trunk
-    ctx.fillStyle = '#8b4513';
-    ctx.fillRect(canvas.width / 2 - 30, 570, 60, 30);
+    ctx.fillStyle = '#6d4c3b';
+    ctx.fillRect(centerX - 25, 450, 50, 50);
     
-    // Star on top
-    drawStar(canvas.width / 2, 60, 20, '#FFD700');
+    // Trunk shadow/depth
+    ctx.fillStyle = '#4a3327';
+    ctx.fillRect(centerX - 25, 450, 8, 50);
+    
+    // Bottom tree layer
+    ctx.fillStyle = '#165b33';
+    ctx.beginPath();
+    ctx.moveTo(centerX, 360);
+    ctx.lineTo(centerX - 230, 460);
+    ctx.lineTo(centerX + 230, 460);
+    ctx.closePath();
+    ctx.fill();
+    
+    // Bottom layer shadow
+    ctx.fillStyle = '#0f4d2a';
+    ctx.beginPath();
+    ctx.moveTo(centerX, 360);
+    ctx.lineTo(centerX - 230, 460);
+    ctx.lineTo(centerX - 180, 460);
+    ctx.closePath();
+    ctx.fill();
+    
+    // Middle tree layer
+    ctx.fillStyle = '#1a7040';
+    ctx.beginPath();
+    ctx.moveTo(centerX, 260);
+    ctx.lineTo(centerX - 180, 380);
+    ctx.lineTo(centerX + 180, 380);
+    ctx.closePath();
+    ctx.fill();
+    
+    // Middle layer shadow
+    ctx.fillStyle = '#0f4d2a';
+    ctx.beginPath();
+    ctx.moveTo(centerX, 260);
+    ctx.lineTo(centerX - 180, 380);
+    ctx.lineTo(centerX - 140, 380);
+    ctx.closePath();
+    ctx.fill();
+    
+    // Top tree layer
+    ctx.fillStyle = '#228b4d';
+    ctx.beginPath();
+    ctx.moveTo(centerX, 140);
+    ctx.lineTo(centerX - 130, 280);
+    ctx.lineTo(centerX + 130, 280);
+    ctx.closePath();
+    ctx.fill();
+    
+    // Top layer shadow
+    ctx.fillStyle = '#1a7040';
+    ctx.beginPath();
+    ctx.moveTo(centerX, 140);
+    ctx.lineTo(centerX - 130, 280);
+    ctx.lineTo(centerX - 100, 280);
+    ctx.closePath();
+    ctx.fill();
+    
+    // Tree top cone
+    ctx.fillStyle = '#2e9c5a';
+    ctx.beginPath();
+    ctx.moveTo(centerX, 60);
+    ctx.lineTo(centerX - 80, 160);
+    ctx.lineTo(centerX + 80, 160);
+    ctx.closePath();
+    ctx.fill();
+    
+    // Add some snow on branches
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+    
+    // Snow on bottom layer
+    ctx.beginPath();
+    ctx.arc(centerX - 150, 450, 12, 0, Math.PI, true);
+    ctx.arc(centerX - 50, 445, 10, 0, Math.PI, true);
+    ctx.arc(centerX + 50, 445, 10, 0, Math.PI, true);
+    ctx.arc(centerX + 150, 450, 12, 0, Math.PI, true);
+    ctx.fill();
+    
+    // Snow on middle layer
+    ctx.beginPath();
+    ctx.arc(centerX - 120, 370, 10, 0, Math.PI, true);
+    ctx.arc(centerX, 365, 8, 0, Math.PI, true);
+    ctx.arc(centerX + 120, 370, 10, 0, Math.PI, true);
+    ctx.fill();
+    
+    // Snow on top layer
+    ctx.beginPath();
+    ctx.arc(centerX - 80, 275, 8, 0, Math.PI, true);
+    ctx.arc(centerX + 80, 275, 8, 0, Math.PI, true);
+    ctx.fill();
+    
+    // Star on top with glow
+    const starGlow = ctx.createRadialGradient(centerX, 50, 0, centerX, 50, 30);
+    starGlow.addColorStop(0, 'rgba(255, 215, 0, 0.6)');
+    starGlow.addColorStop(1, 'rgba(255, 215, 0, 0)');
+    ctx.fillStyle = starGlow;
+    ctx.beginPath();
+    ctx.arc(centerX, 50, 30, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Draw star
+    drawStar(centerX, 50, 18, '#FFD700');
+    
+    // Star sparkle
+    ctx.strokeStyle = '#FFF';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(centerX, 35);
+    ctx.lineTo(centerX, 65);
+    ctx.moveTo(centerX - 15, 50);
+    ctx.lineTo(centerX + 15, 50);
+    ctx.stroke();
 }
 
 // Draw a star

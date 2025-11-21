@@ -1,111 +1,240 @@
 /* Ornament Smash - Custom Styles */
 
-/* Ensure full viewport usage */
-html, body {
-    margin: 0;
-    padding: 0;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+/* CSS Variables matching Santa Tracker site */
+:root {
+    --christmas-red: #c41e3a;
+    --christmas-green: #165b33;
+    --christmas-gold: #ffd700;
+    --christmas-dark-red: #8b0000;
+    --christmas-light-green: #228b22;
+    --snow-white: #fffafa;
+    --night-blue: #0a1929;
 }
 
-/* Game container responsiveness */
+/* Reset and base styles */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html, body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+}
+
+/* Game container - fits in modal */
+.game-container {
+    width: 100%;
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+/* Canvas wrapper */
+.canvas-wrapper {
+    position: relative;
+    background: linear-gradient(180deg, #e3f2fd 0%, #bbdefb 100%);
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: inset 0 2px 8px rgb(0 0 0 / 10%);
+}
+
+/* Canvas */
 #gameCanvas {
+    display: block;
+    width: 100%;
+    height: auto;
     cursor: pointer;
     touch-action: none;
     user-select: none;
 }
 
-/* Smooth transitions */
-.hidden {
-    display: none !important;
+/* Overlays */
+.overlay {
+    position: absolute;
+    inset: 0;
+    background: rgb(0 0 0 / 75%);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    z-index: 10;
 }
 
-/* Modal animations */
-#startOverlay,
-#winOverlay {
-    transition: opacity 0.3s ease-in-out;
+.overlay.hidden {
+    display: none;
 }
 
-/* Button hover effects */
-button {
-    transition: all 0.2s ease-in-out;
+.overlay-card {
+    background: white;
+    padding: 2rem 1.5rem;
+    border-radius: 16px;
+    box-shadow: 0 8px 32px rgb(0 0 0 / 30%);
+    text-align: center;
+    max-width: 400px;
+    width: 100%;
+    border: 3px solid var(--christmas-gold);
 }
 
-button:active {
-    transform: scale(0.95) !important;
+.overlay-title {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: var(--christmas-green);
+    margin-bottom: 1rem;
 }
 
-/* Loading animation for start button */
-#startButton:hover,
-#playAgainButton:hover {
-    box-shadow: 0 10px 30px rgb(0 0 0 / 30%);
+.overlay-title-success {
+    color: var(--christmas-red);
 }
 
-/* HUD styling */
-#gameHUD {
-    animation: slideDown 0.3s ease-out;
+.overlay-text {
+    color: var(--night-blue);
+    font-size: 1rem;
+    line-height: 1.5;
+    margin-bottom: 1.5rem;
 }
 
-@keyframes slideDown {
-    from {
-        opacity: 0;
-        transform: translateY(-20px);
-    }
-
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
+.overlay-text strong {
+    color: var(--christmas-red);
+    font-weight: 700;
 }
 
-/* Badge notification animation */
-#badgeNotification {
-    animation: pulse 0.5s ease-in-out infinite alternate;
+/* Buttons */
+.btn {
+    border: none;
+    padding: 1rem 2rem;
+    font-size: 1.125rem;
+    font-weight: 700;
+    border-radius: 50px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgb(0 0 0 / 20%);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 }
 
-@keyframes pulse {
+.btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgb(0 0 0 / 30%);
+}
+
+.btn:active {
+    transform: translateY(0);
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, var(--christmas-red), var(--christmas-dark-red));
+    color: white;
+}
+
+.btn-primary:hover {
+    background: linear-gradient(135deg, var(--christmas-dark-red), var(--christmas-red));
+}
+
+.btn-success {
+    background: linear-gradient(135deg, var(--christmas-green), var(--christmas-light-green));
+    color: white;
+}
+
+.btn-success:hover {
+    background: linear-gradient(135deg, var(--christmas-light-green), var(--christmas-green));
+}
+
+/* Badge notification */
+.badge-notification {
+    background: linear-gradient(135deg, var(--christmas-gold), #f4c430);
+    color: var(--night-blue);
+    padding: 1rem;
+    border-radius: 12px;
+    margin-bottom: 1.5rem;
+    border: 2px solid #daa520;
+    animation: badge-pulse 1s ease-in-out infinite alternate;
+}
+
+.badge-notification.hidden {
+    display: none;
+}
+
+.badge-title {
+    font-weight: 700;
+    font-size: 1.125rem;
+    margin-bottom: 0.25rem;
+}
+
+.badge-text {
+    font-size: 0.875rem;
+    opacity: 0.9;
+}
+
+@keyframes badge-pulse {
     from {
         transform: scale(1);
     }
 
     to {
-        transform: scale(1.05);
+        transform: scale(1.03);
     }
 }
 
-/* Responsive canvas sizing */
-@media (width <= 768px) {
-    #gameCanvas {
-        max-height: 450px;
+/* HUD */
+.hud {
+    position: absolute;
+    top: 1rem;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 5;
+}
+
+.hud.hidden {
+    display: none;
+}
+
+.hud-content {
+    background: linear-gradient(135deg, var(--christmas-red), var(--christmas-dark-red));
+    color: white;
+    padding: 0.75rem 1.5rem;
+    border-radius: 50px;
+    box-shadow: 0 4px 12px rgb(0 0 0 / 30%);
+    border: 2px solid var(--christmas-gold);
+}
+
+.hud-text {
+    font-size: 1.25rem;
+    font-weight: 700;
+    margin: 0;
+}
+
+/* Accessibility */
+.btn:focus-visible {
+    outline: 3px solid var(--christmas-gold);
+    outline-offset: 3px;
+}
+
+/* Responsive */
+@media (width <= 600px) {
+    .overlay-card {
+        padding: 1.5rem 1rem;
     }
     
-    h1 {
-        font-size: 2rem;
+    .overlay-title {
+        font-size: 1.5rem;
     }
     
-    .modal-content {
-        margin: 1rem;
+    .btn {
+        padding: 0.875rem 1.5rem;
+        font-size: 1rem;
+    }
+    
+    .hud-text {
+        font-size: 1.125rem;
     }
 }
 
-/* Accessibility - Focus states */
-button:focus-visible {
-    outline: 3px solid #fbbf24;
-    outline-offset: 2px;
-}
-
-/* Touch feedback */
-@media (hover: none) and (pointer: coarse) {
-    button:active {
-        background-color: rgb(0 0 0 / 10%);
-    }
-}
-
-/* Print styles - hide game for printing */
+/* Print styles */
 @media print {
-    #gameCanvas,
-    #startOverlay,
-    #winOverlay,
-    #gameHUD {
+    .game-container {
         display: none;
     }
 }
