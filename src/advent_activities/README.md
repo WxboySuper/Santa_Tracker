@@ -88,7 +88,7 @@ def advent_day(day):
 All activities follow these conventions:
 
 1. **Self-Contained HTML** - Each `index.html` is a complete page
-2. **Tailwind CSS** - Using CDN for consistent styling
+2. **Custom CSS** - Each activity uses its own `styles.css` for consistent styling
 3. **Vanilla JavaScript** - No framework dependencies
 4. **localStorage Keys** - Format: `santa_advent_day_{N}_complete`
 5. **Responsive Design** - Mobile-first approach
