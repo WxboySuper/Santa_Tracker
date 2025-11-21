@@ -5,6 +5,7 @@ A standalone web-based visual route editor for constructing Santa's journey with
 ## 🌟 Features
 
 - **Interactive Map Interface**: Full-screen Leaflet.js map with OpenStreetMap tiles
+- **Timezone Overlay**: Color-coded timezone bands (UTC-12 to UTC+12) overlaid on the map for easy timezone identification
 - **Location Search**: Geocoding search bar using OpenStreetMap Nominatim API
 - **Click-to-Add**: Right-click anywhere on the map to add new stops
 - **Drag-and-Drop Reordering**: Intuitive route sequencing with visual feedback
@@ -17,6 +18,7 @@ A standalone web-based visual route editor for constructing Santa's journey with
 
   - Color-coded markers (Green=Start, Red=End, Blue=Intermediate)
   - Connected polyline showing the route path
+  - Semi-transparent timezone bands for easy planning across time zones
 - **JSON Export**: Download route as properly formatted JSON file
 
 ## 🚀 Getting Started
@@ -147,7 +149,15 @@ route-editor/
 - **Zoom**: Scroll wheel or use +/- controls
 - **Add Location**: Right-click on the map
 - **View Details**: Click on a marker
+- **View Timezone**: Click on any colored timezone band to see its UTC offset
 - **Search**: Use the search bar in the top-left corner
+
+### Timezone Visualization
+
+The map displays color-coded timezone bands from UTC-12 (dark red) to UTC+12 (pink) as semi-transparent overlays. This helps in:
+- Planning routes across different time zones
+- Visualizing when Santa will arrive in each timezone
+- Understanding the global distribution of stops
 
 ## 🔄 Updating Dependencies
 
