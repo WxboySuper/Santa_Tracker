@@ -1,0 +1,111 @@
+/* Ornament Smash - Custom Styles */
+
+/* Ensure full viewport usage */
+html, body {
+    margin: 0;
+    padding: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+}
+
+/* Game container responsiveness */
+#gameCanvas {
+    cursor: pointer;
+    touch-action: none;
+    user-select: none;
+}
+
+/* Smooth transitions */
+.hidden {
+    display: none !important;
+}
+
+/* Modal animations */
+#startOverlay,
+#winOverlay {
+    transition: opacity 0.3s ease-in-out;
+}
+
+/* Button hover effects */
+button {
+    transition: all 0.2s ease-in-out;
+}
+
+button:active {
+    transform: scale(0.95) !important;
+}
+
+/* Loading animation for start button */
+#startButton:hover,
+#playAgainButton:hover {
+    box-shadow: 0 10px 30px rgb(0 0 0 / 30%);
+}
+
+/* HUD styling */
+#gameHUD {
+    animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Badge notification animation */
+#badgeNotification {
+    animation: pulse 0.5s ease-in-out infinite alternate;
+}
+
+@keyframes pulse {
+    from {
+        transform: scale(1);
+    }
+
+    to {
+        transform: scale(1.05);
+    }
+}
+
+/* Responsive canvas sizing */
+@media (width <= 768px) {
+    #gameCanvas {
+        max-height: 450px;
+    }
+    
+    h1 {
+        font-size: 2rem;
+    }
+    
+    .modal-content {
+        margin: 1rem;
+    }
+}
+
+/* Accessibility - Focus states */
+button:focus-visible {
+    outline: 3px solid #fbbf24;
+    outline-offset: 2px;
+}
+
+/* Touch feedback */
+@media (hover: none) and (pointer: coarse) {
+    button:active {
+        background-color: rgb(0 0 0 / 10%);
+    }
+}
+
+/* Print styles - hide game for printing */
+@media print {
+    #gameCanvas,
+    #startOverlay,
+    #winOverlay,
+    #gameHUD {
+        display: none;
+    }
+}

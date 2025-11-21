@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Day 1: Ornament Smash - Santa Tracker Advent</title>
+    <meta name="description" content="Clear ornaments from the Christmas tree in this festive tapping game!">
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Game Styles -->
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body class="bg-gradient-to-b from-blue-900 via-blue-800 to-blue-900 min-h-screen flex items-center justify-center p-4">
+    
+    <!-- Game Container -->
+    <div class="max-w-4xl w-full">
+        <!-- Header -->
+        <header class="text-center mb-6">
+            <h1 class="text-4xl md:text-5xl font-bold text-white mb-2">
+                🎄 Ornament Smash 🎄
+            </h1>
+            <p class="text-blue-200 text-lg">
+                Clear all the ornaments from the tree!
+            </p>
+        </header>
+
+        <!-- Game Canvas Container -->
+        <div class="relative bg-gradient-to-b from-sky-100 to-blue-50 rounded-2xl shadow-2xl overflow-hidden">
+            <!-- Canvas for Game -->
+            <canvas id="gameCanvas" class="w-full block" width="800" height="600"></canvas>
+            
+            <!-- Start Overlay -->
+            <div id="startOverlay" class="absolute inset-0 bg-black bg-opacity-70 flex items-center justify-center">
+                <div class="text-center p-8 bg-white rounded-xl shadow-xl max-w-md mx-4">
+                    <h2 class="text-3xl font-bold text-green-700 mb-4">🎄 Ready to Play? 🎄</h2>
+                    <p class="text-gray-700 mb-6 text-lg">
+                        Tap the colorful ornaments as they appear on the tree. 
+                        Clear <strong>20 ornaments</strong> to win!
+                    </p>
+                    <button id="startButton" 
+                            class="bg-red-600 hover:bg-red-700 text-white font-bold py-4 px-8 rounded-full text-xl transition-all transform hover:scale-105 shadow-lg">
+                        Start Game
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Win Overlay -->
+            <div id="winOverlay" class="absolute inset-0 bg-black bg-opacity-70 flex items-center justify-center hidden">
+                <div class="text-center p-8 bg-white rounded-xl shadow-xl max-w-md mx-4">
+                    <h2 class="text-4xl font-bold text-green-600 mb-4">🎉 Tree Decorated! 🎉</h2>
+                    <p class="text-gray-700 mb-4 text-lg">
+                        Congratulations! You've cleared all the ornaments!
+                    </p>
+                    <div id="badgeNotification" class="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mb-6 hidden">
+                        <p class="font-bold">🏆 Badge Unlocked!</p>
+                        <p class="text-sm">First time completion!</p>
+                    </div>
+                    <button id="playAgainButton" 
+                            class="bg-green-600 hover:bg-green-700 text-white font-bold py-4 px-8 rounded-full text-xl transition-all transform hover:scale-105 shadow-lg">
+                        Play Again
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Game HUD -->
+            <div id="gameHUD" class="absolute top-4 left-0 right-0 flex justify-center hidden">
+                <div class="bg-white bg-opacity-90 rounded-full px-6 py-3 shadow-lg">
+                    <p class="text-2xl font-bold text-red-600">
+                        <span id="remainingCount">20</span> Remaining
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Instructions -->
+        <div class="mt-6 text-center">
+            <p class="text-blue-200 text-sm">
+                💡 Tip: Click or tap ornaments quickly before they fade away!
+            </p>
+        </div>
+    </div>
+
+    <!-- Game Script -->
+    <script src="game.js"></script>
+</body>
+</html>

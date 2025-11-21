@@ -10,6 +10,15 @@
       }
     ]
   },
+  "overrides": [
+    {
+      "files": ["src/advent_activities/**/*.css"],
+      "rules": {
+        "selector-id-pattern": null,
+        "keyframes-name-pattern": null
+      }
+    }
+  ],
   "ignoreFiles": [
     "node_modules/**",
     "dist/**",
