@@ -87,8 +87,8 @@ document.addEventListener('DOMContentLoaded', () => {
     canvas.addEventListener('click', handleCanvasClick);
     canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
     
-    // Start rendering loop
-    render();
+    // Start a passive render loop that only draws background elements
+    passiveRender();
 });
 
 // Setup canvas with proper sizing
@@ -100,11 +100,19 @@ function setupCanvas() {
 
 // Initialize Web Audio API
 function initAudio() {
-    try {
-        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    // Only create AudioContext if it doesn't exist
+    if (!audioContext) {
+        try {
+            audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        } catch (e) {
+            console.warn('Web Audio API not supported');
+            return;
+        }
+    }
+    
+    // Resume the context if it's suspended
+    if (audioContext && audioContext.state === 'suspended') {
         audioContext.resume();
-    } catch (e) {
-        console.warn('Web Audio API not supported');
     }
 }
 
@@ -179,6 +187,9 @@ function startGame() {
             spawnOrnament();
         }
     }, CONFIG.spawnInterval);
+    
+    // Start active render loop
+    render();
 }
 
 // Reset game state
@@ -356,6 +367,23 @@ function hideWinOverlay() {
 }
 
 // Update game state
+// Update snowflakes animation
+function updateSnowflakes() {
+    gameState.snowflakes.forEach(flake => {
+        flake.y += flake.speed;
+        flake.x += flake.drift;
+        
+        if (flake.y > canvas.height) {
+            flake.y = -10;
+            flake.x = Math.random() * canvas.width;
+        }
+        
+        if (flake.x > canvas.width) flake.x = 0;
+        if (flake.x < 0) flake.x = canvas.width;
+    });
+}
+
+// Update game state
 function update() {
     const now = Date.now();
     
@@ -390,21 +418,31 @@ function update() {
     }
     
     // Update snowflakes
-    gameState.snowflakes.forEach(flake => {
-        flake.y += flake.speed;
-        flake.x += flake.drift;
-        
-        if (flake.y > canvas.height) {
-            flake.y = -10;
-            flake.x = Math.random() * canvas.width;
-        }
-        
-        if (flake.x > canvas.width) flake.x = 0;
-        if (flake.x < 0) flake.x = canvas.width;
-    });
+    updateSnowflakes();
 }
 
-// Render game
+// Passive render loop for background elements only (when game is not playing)
+function passiveRender() {
+    // Clear canvas
+    ctx.fillStyle = '#e0f2fe';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    // Draw snowflakes
+    drawSnowflakes();
+    
+    // Draw Christmas tree
+    drawTree();
+    
+    // Update snowflakes only
+    updateSnowflakes();
+    
+    // Continue passive loop if game is not playing
+    if (!gameState.isPlaying) {
+        requestAnimationFrame(passiveRender);
+    }
+}
+
+// Render game (active loop during gameplay)
 function render() {
     // Clear canvas
     ctx.fillStyle = '#e0f2fe';
@@ -424,7 +462,14 @@ function render() {
     
     // Update and continue loop
     update();
-    gameState.animationId = requestAnimationFrame(render);
+    
+    // Continue active loop only while game is playing
+    if (gameState.isPlaying) {
+        gameState.animationId = requestAnimationFrame(render);
+    } else {
+        // Switch back to passive render when game stops
+        passiveRender();
+    }
 }
 
 // Cleanup function to stop animation and timers
@@ -437,6 +482,10 @@ function cleanup() {  // skipcq: JS-0128
         clearInterval(gameState.spawnTimer);
         gameState.spawnTimer = null;
     }
+    
+    // Remove canvas event listeners
+    canvas.removeEventListener('click', handleCanvasClick);
+    canvas.removeEventListener('touchstart', handleTouchStart);
 }
 
 // Ensure cleanup is called when the window is unloaded
