@@ -223,7 +223,7 @@ html, body {
 }
 
 /* Responsive */
-@media (width <= 600px) {
+@media (max-width: 600px) {
     .overlay-card {
         padding: 1.5rem 1rem;
     }
