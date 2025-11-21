@@ -143,7 +143,7 @@ function initSnowflakes() {
             x: Math.random() * canvas.width,
             y: Math.random() * canvas.height,
             radius: Math.random() * 2 + 1,
-            speed: Math.random() * 1 + 0.5,
+            speed: Number(Math.random()) + 0.5,
             drift: Math.random() * 0.5 - 0.25,
         });
     }
