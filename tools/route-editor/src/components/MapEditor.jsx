@@ -211,8 +211,10 @@ function MapEditor({ locations, onAddLocation, setSelectedLocation }) {
                 throw new Error(`Reverse geocoding failed: ${response.status}`);
             }
             
+            if (!response.ok) {
+                throw new Error(`Reverse geocoding failed: ${response.status}`);
+            }
             const data = await response.json();
-      
             onAddLocation({
                 name: data.address?.city || data.address?.town || data.address?.village || 'Unknown Location',
                 latitude: lat,
