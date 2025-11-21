@@ -261,7 +261,7 @@ Keep modules lightweight:
 
 ## 🔒 Security Best Practices
 
-- **No External Scripts** - Except trusted CDNs (Tailwind)
+- **No External Scripts**
 - **Input Validation** - Sanitize all user input
 - **localStorage Only** - No sensitive data storage
 - **CSP Compliance** - Follow Content Security Policy
