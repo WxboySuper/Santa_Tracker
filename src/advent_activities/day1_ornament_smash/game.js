@@ -203,8 +203,8 @@ function spawnOrnament() {
     const x = centerX + (Math.random() - 0.5) * treeWidth;
     
     const colors = [
-        '#FF0000', '#00FF00', '#0000FF', '#FFD700', 
-        '#FF69B4', '#FF8C00', '#9370DB', '#00CED1'
+        '#ff0000', '#00ff00', '#0000ff', '#ffd700', 
+        '#ff69b4', '#ff8c00', '#9370db', '#00ced1'
     ];
     
     gameState.ornaments.push({
