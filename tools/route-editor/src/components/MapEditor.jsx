@@ -29,6 +29,13 @@ const greenIcon = createColoredIcon('green');
 const redIcon = createColoredIcon('red');
 const blueIcon = createColoredIcon('blue');
 
+const colors = [
+        '#e6194b', '#3cb44b', '#ffe119', '#4363d8', '#f58231',
+        '#911eb4', '#46f0f0', '#f032e6', '#bcf60c', '#fabebe',
+        '#008080', '#e6beff', '#9a6324', '#fffac8', '#800000',
+        '#aaffc3', '#808000', '#ffd8b1', '#000075', '#808080'
+    ];
+
 /**
  * Styles the timezone polygons based on their properties.
  * Uses map_color6 for coloring if available, otherwise falls back to a hash of the zone.
@@ -37,16 +44,10 @@ const blueIcon = createColoredIcon('blue');
  * @returns {Object} Leaflet style object
  */
 const timezoneStyle = (feature) => {
-    const colors = [
-        '#e6194b', '#3cb44b', '#ffe119', '#4363d8', '#f58231', 
-        '#911eb4', '#46f0f0', '#f032e6', '#bcf60c', '#fabebe', 
-        '#008080', '#e6beff', '#9a6324', '#fffac8', '#800000', 
-        '#aaffc3', '#808000', '#ffd8b1', '#000075', '#808080'
-    ];
     // Use map_color6 for coloring if available, otherwise fallback to a hash of the zone
     const colorIndex = feature.properties.map_color6 
         ? (feature.properties.map_color6 - 1) % colors.length 
-        : Math.abs(feature.properties.zone) % colors.length;
+        : Math.abs(feature.properties.zone ?? 0) % colors.length;
 
     return {
         fillColor: colors[colorIndex] || '#cccccc',
@@ -253,27 +254,22 @@ function MapCenter({ center }) {
             return coords.map(c => shiftCoords(c, offset));
         };
 
-        // Create a copy shifted to the left (West)
-        const left = timezones.features.map((f, index) => ({
-            ...f,
-            geometry: { ...f.geometry, coordinates: shiftCoords(f.geometry.coordinates, -360) },
-            properties: { ...f.properties, uniqueId: `left-${index}` }
-        }));
-        
-        // Create a copy shifted to the right (East)
-        const right = timezones.features.map((f, index) => ({
-            ...f,
-            geometry: { ...f.geometry, coordinates: shiftCoords(f.geometry.coordinates, 360) },
-            properties: { ...f.properties, uniqueId: `right-${index}` }
-        }));
+        const createFeatures = (offset, prefix) =>
+            timezones.features.map((f, index) => ({
+                ...f,
+                geometry: offset !== 0 ? { ...f.geometry, coordinates: shiftCoords(f.geometry.coordinates, offset) } : f.geometry,
+                properties: { ...f.properties, uniqueId: `${prefix}-${index}` },
+            }));
 
-        // Combine all three sets into one FeatureCollection        }));
+        const left = createFeatures(-360, 'left');
+        const center = createFeatures(0, 'center');
+        const right = createFeatures(360, 'right');
 
         return {
             type: "FeatureCollection",
-            features: [...left, ...timezones.features, ...right]
+            features: [...left, ...center, ...right]
         };
-    }, []);
+    }, [timezones]);
 
     const handleMapClick = useCallback(async (latlng) => {
         const { lat, lng } = latlng;
@@ -358,6 +354,7 @@ function MapCenter({ center }) {
                 />
 
                 <GeoJSON 
+                    key="timezones"
                     data={extendedTimezones} 
                     style={timezoneStyle} 
                     onEachFeature={onEachTimezone} 
