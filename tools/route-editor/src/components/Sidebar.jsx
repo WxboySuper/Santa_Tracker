@@ -105,8 +105,8 @@ function SortableLocationCard({ location, index, total, onUpdate, onDelete, isSe
         handleChange('population', parseInt(e.target.value, 10) || 0);
     }, [handleChange]);
 
-    // skipcq: JS-0415 - JSX nesting required for form layout structure
     return (
+        // skipcq: JS-0415
         <div
             ref={setNodeRef}
             style={style}
@@ -168,6 +168,7 @@ function SortableLocationCard({ location, index, total, onUpdate, onDelete, isSe
 
                 {/* skipcq: JS-0415 - Complex form structure requires nesting for proper layout */}
                 {isExpanded && (
+                    // skipcq: 0415
                     <div className="mt-3 pt-3 border-t border-gray-200 space-y-2">
                         <div>
                             <label htmlFor={`name-${location.id}`} className="block text-xs font-medium text-gray-700 mb-1">
