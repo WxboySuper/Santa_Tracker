@@ -427,7 +427,7 @@ function render() {
 }
 
 // Cleanup function to stop animation and timers
-function cleanup() {
+function cleanup() {  // skipcq: JS-0128
     if (gameState.animationId) {
         cancelAnimationFrame(gameState.animationId);
         gameState.animationId = null;
