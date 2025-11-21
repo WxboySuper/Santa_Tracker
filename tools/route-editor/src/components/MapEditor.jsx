@@ -1,8 +1,9 @@
-import { useState, useEffect, useCallback } from 'react';
-import { MapContainer, TileLayer, Marker, Polyline, Popup, useMap, useMapEvents } from 'react-leaflet';
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import { MapContainer, TileLayer, Marker, Polyline, Popup, useMap, useMapEvents, GeoJSON } from 'react-leaflet';
 import L from 'leaflet';
 import { Search } from 'lucide-react';
 import { getTimezoneOffset } from '../utils/exportUtils';
+import timezones from '../data/ne_10m_time_zones.json';
 
 // Fix Leaflet default marker icons
 delete L.Icon.Default.prototype._getIconUrl;
@@ -27,6 +28,41 @@ const createColoredIcon = (color) => {
 const greenIcon = createColoredIcon('green');
 const redIcon = createColoredIcon('red');
 const blueIcon = createColoredIcon('blue');
+
+// Timezone layer styling
+const timezoneStyle = (feature) => {
+    const colors = [
+        '#e6194b', '#3cb44b', '#ffe119', '#4363d8', '#f58231', 
+        '#911eb4', '#46f0f0', '#f032e6', '#bcf60c', '#fabebe', 
+        '#008080', '#e6beff', '#9a6324', '#fffac8', '#800000', 
+        '#aaffc3', '#808000', '#ffd8b1', '#000075', '#808080'
+    ];
+    // Use map_color6 for coloring if available, otherwise fallback to a hash of the zone
+    const colorIndex = feature.properties.map_color6 
+        ? (feature.properties.map_color6 - 1) % colors.length 
+        : Math.abs(feature.properties.zone) % colors.length;
+
+    return {
+        fillColor: colors[colorIndex] || '#cccccc',
+        weight: 1,
+        opacity: 1,
+        color: 'white',
+        dashArray: '3',
+        fillOpacity: 0.2
+    };
+};
+
+const onEachTimezone = (feature, layer) => {
+    if (feature.properties) {
+        layer.bindPopup(`
+            <div class="text-sm">
+                <strong>${feature.properties.name}</strong><br/>
+                UTC: ${feature.properties.utc_format}<br/>
+                Places: ${feature.properties.places}
+            </div>
+        `);
+    }
+};
 
 // Rate limiting for Nominatim API (1 request per second)
 let lastRequestTime = 0;
@@ -191,6 +227,35 @@ function MapCenter({ center }) {
 function MapEditor({ locations, onAddLocation, setSelectedLocation }) {
     const [mapCenter, setMapCenter] = useState(null);
 
+    // Create 3 copies of the timezone data (left, center, right) for seamless wrapping
+    const extendedTimezones = useMemo(() => {
+        const shiftCoords = (coords, offset) => {
+            // Base case: [x, y] point
+            if (typeof coords[0] === 'number') {
+                return [coords[0] + offset, coords[1]];
+            }
+            // Recursive case: Array of points or arrays
+            return coords.map(c => shiftCoords(c, offset));
+        };
+
+        const left = timezones.features.map((f, index) => ({
+            ...f,
+            geometry: { ...f.geometry, coordinates: shiftCoords(f.geometry.coordinates, -360) },
+            properties: { ...f.properties, uniqueId: `left-${index}` }
+        }));
+        
+        const right = timezones.features.map((f, index) => ({
+            ...f,
+            geometry: { ...f.geometry, coordinates: shiftCoords(f.geometry.coordinates, 360) },
+            properties: { ...f.properties, uniqueId: `right-${index}` }
+        }));
+
+        return {
+            type: "FeatureCollection",
+            features: [...left, ...timezones.features, ...right]
+        };
+    }, []);
+
     const handleMapClick = useCallback(async (latlng) => {
         const { lat, lng } = latlng;
 
@@ -271,6 +336,12 @@ function MapEditor({ locations, onAddLocation, setSelectedLocation }) {
                     url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
                     subdomains="abcd"
                     maxZoom={20}
+                />
+
+                <GeoJSON 
+                    data={extendedTimezones} 
+                    style={timezoneStyle} 
+                    onEachFeature={onEachTimezone} 
                 />
         
                 <MapEventHandler onMapClick={handleMapClick} />
