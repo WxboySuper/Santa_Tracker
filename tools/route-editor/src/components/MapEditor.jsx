@@ -112,8 +112,13 @@ const onEachTimezone = (feature, layer) => {
             />
         );
         
-        // Bind the container as popup content
-        layer.bindPopup(popupContainer);
+        // Bind the container as popup content and clean up on popup removal
+        const popup = layer.bindPopup(popupContainer);
+        
+        // Clean up React root when popup is removed to prevent memory leaks
+        layer.on('popupclose', () => {
+            root.unmount();
+        });
     }
 };
 
