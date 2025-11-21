@@ -13,7 +13,7 @@ const CONFIG = {
 };
 
 // Game State
-let gameState = {
+const gameState = {
     isPlaying: false,
     ornaments: [],
     snowflakes: [],
@@ -548,9 +548,9 @@ function drawStar(x, y, radius, color) {
     ctx.beginPath();
     for (let i = 0; i < 5; i++) {
         const angle = (i * 4 * Math.PI) / 5 - Math.PI / 2;
-        const r = i % 2 === 0 ? radius : radius / 2;
-        const px = x + r * Math.cos(angle);
-        const py = y + r * Math.sin(angle);
+        const rad = i % 2 === 0 ? radius : radius / 2;
+        const px = x + rad * Math.cos(angle);
+        const py = y + rad * Math.sin(angle);
         
         if (i === 0) {
             ctx.moveTo(px, py);
