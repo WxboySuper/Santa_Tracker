@@ -43,11 +43,20 @@ const colors = [
  * @param {Object} feature - The GeoJSON feature to style
  * @returns {Object} Leaflet style object
  */
+// Simple string hash function (djb2)
+function hashString(str) {
+    let hash = 5381;
+    for (let i = 0; i < str.length; i++) {
+        hash = ((hash << 5) + hash) + str.charCodeAt(i); // hash * 33 + c
+    }
+    return Math.abs(hash);
+}
+
 const timezoneStyle = (feature) => {
     // Use map_color6 for coloring if available, otherwise fallback to a hash of the zone
     const colorIndex = feature.properties.map_color6 
         ? (feature.properties.map_color6 - 1) % colors.length 
-        : Math.abs(feature.properties.zone ?? 0) % colors.length;
+        : hashString(String(feature.properties.zone ?? '')) % colors.length;
 
     return {
         fillColor: colors[colorIndex] || '#cccccc',
