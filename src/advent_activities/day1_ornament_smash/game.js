@@ -12,6 +12,40 @@ const CONFIG = {
     particleCount: 15,         // Particles per smash
 };
 
+// Tree Drawing Constants (for drawTree function)
+const TREE = {
+    // Trunk dimensions
+    TRUNK_WIDTH: 50,
+    TRUNK_HEIGHT: 50,
+    TRUNK_Y: 450,
+    TRUNK_SHADOW_WIDTH: 8,
+    
+    // Tree layer widths (half-width for each side)
+    BOTTOM_WIDTH: 230,
+    MIDDLE_WIDTH: 180,
+    TOP_WIDTH: 130,
+    CONE_WIDTH: 80,
+    
+    // Tree layer Y positions
+    CONE_TIP_Y: 60,
+    CONE_BASE_Y: 160,
+    TOP_TIP_Y: 140,
+    TOP_BASE_Y: 280,
+    MIDDLE_TIP_Y: 260,
+    MIDDLE_BASE_Y: 380,
+    BOTTOM_TIP_Y: 360,
+    BOTTOM_BASE_Y: 460,
+    
+    // Shadow offsets
+    SHADOW_OFFSET: 50,
+    SHADOW_SMALL: 30,
+    
+    // Star properties
+    STAR_Y: 50,
+    STAR_SIZE: 18,
+    STAR_GLOW_RADIUS: 30,
+};
+
 // Game State
 const gameState = {
     isPlaying: false,
@@ -36,9 +70,17 @@ const startButton = document.getElementById('startButton');
 const playAgainButton = document.getElementById('playAgainButton');
 const remainingCountEl = document.getElementById('remainingCount');
 const badgeNotification = document.getElementById('badgeNotification');
+const gameAnnouncements = document.getElementById('gameAnnouncements');
 
 // Audio Context for synthetic sounds
 let audioContext = null;
+
+// Announce game state to screen readers
+function announceToScreenReader(message) {
+    if (gameAnnouncements) {
+        gameAnnouncements.textContent = message;
+    }
+}
 
 // Tree colors from CSS variables
 const getTreeColors = () => {
@@ -68,6 +110,9 @@ const treeBounds = {
     }
 };
 
+// Track page visibility
+let isPageVisible = true;
+
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
     setupCanvas();
@@ -88,9 +133,22 @@ document.addEventListener('DOMContentLoaded', () => {
     canvas.addEventListener('click', handleCanvasClick);
     canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
     
+    // Handle page visibility changes
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
     // Start a passive render loop that only draws background elements
     passiveRender();
 });
+
+// Handle visibility changes (pause/resume passive render)
+function handleVisibilityChange() {
+    isPageVisible = !document.hidden;
+    
+    // Resume passive render if page becomes visible and game is not playing
+    if (isPageVisible && !gameState.isPlaying) {
+        passiveRender();
+    }
+}
 
 // Setup canvas with proper sizing
 function setupCanvas() {
@@ -180,6 +238,9 @@ function startGame() {
     gameState.isPlaying = true;
     startOverlay.classList.add('hidden');
     gameHUD.classList.remove('hidden');
+    
+    // Announce game start
+    announceToScreenReader('Game started! Tap ornaments as they appear. 20 ornaments remaining');
     
     // Start spawning ornaments
     spawnOrnament();
@@ -330,6 +391,11 @@ function shakeScreen() {
 // Update remaining count display
 function updateRemainingCount() {
     remainingCountEl.textContent = gameState.remaining;
+    
+    // Announce to screen readers
+    if (gameState.remaining > 0) {
+        announceToScreenReader(`${gameState.remaining} ornaments remaining`);
+    }
 }
 
 // End game and show win screen
@@ -345,6 +411,9 @@ function endGame() {
     
     // Play win sound
     playWinSound();
+    
+    // Announce win to screen readers
+    announceToScreenReader('Congratulations! You cleared all ornaments and won the game!');
     
     // Check if first time win
     const isFirstWin = !localStorage.getItem('santa_advent_day_1_complete');
@@ -424,6 +493,11 @@ function update() {
 
 // Passive render loop for background elements only (when game is not playing)
 function passiveRender() {
+    // Stop if page is hidden or game is playing
+    if (!isPageVisible || gameState.isPlaying) {
+        return;
+    }
+    
     // Clear canvas
     ctx.fillStyle = '#e0f2fe';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -437,8 +511,8 @@ function passiveRender() {
     // Update snowflakes only
     updateSnowflakes();
     
-    // Continue passive loop if game is not playing
-    if (!gameState.isPlaying) {
+    // Continue passive loop if page is visible and game is not playing
+    if (isPageVisible && !gameState.isPlaying) {
         requestAnimationFrame(passiveRender);
     }
 }
@@ -475,10 +549,16 @@ function render() {
 
 // Cleanup function to stop animation and timers
 function cleanup() {  // skipcq: JS-0128
+    // Stop game if playing
+    gameState.isPlaying = false;
+    
+    // Cancel animation frames
     if (gameState.animationId) {
         cancelAnimationFrame(gameState.animationId);
         gameState.animationId = null;
     }
+    
+    // Clear timers
     if (gameState.spawnTimer) {
         clearInterval(gameState.spawnTimer);
         gameState.spawnTimer = null;
@@ -487,6 +567,14 @@ function cleanup() {  // skipcq: JS-0128
     // Remove canvas event listeners
     canvas.removeEventListener('click', handleCanvasClick);
     canvas.removeEventListener('touchstart', handleTouchStart);
+    
+    // Remove visibility change listener
+    document.removeEventListener('visibilitychange', handleVisibilityChange);
+}
+
+// Expose cleanup function globally for modal/component lifecycle
+if (typeof window !== 'undefined') {
+    window.ornamentSmashCleanup = cleanup;
 }
 
 // Ensure cleanup is called when the window is unloaded
@@ -508,72 +596,72 @@ function drawTree() {
     
     // Tree trunk
     ctx.fillStyle = colors.trunk;
-    ctx.fillRect(centerX - 25, 450, 50, 50);
+    ctx.fillRect(centerX - TREE.TRUNK_WIDTH / 2, TREE.TRUNK_Y, TREE.TRUNK_WIDTH, TREE.TRUNK_HEIGHT);
     
     // Trunk shadow/depth
     ctx.fillStyle = colors.trunkShadow;
-    ctx.fillRect(centerX - 25, 450, 8, 50);
+    ctx.fillRect(centerX - TREE.TRUNK_WIDTH / 2, TREE.TRUNK_Y, TREE.TRUNK_SHADOW_WIDTH, TREE.TRUNK_HEIGHT);
     
     // Bottom tree layer
     ctx.fillStyle = colors.base;
     ctx.beginPath();
-    ctx.moveTo(centerX, 360);
-    ctx.lineTo(centerX - 230, 460);
-    ctx.lineTo(centerX + 230, 460);
+    ctx.moveTo(centerX, TREE.BOTTOM_TIP_Y);
+    ctx.lineTo(centerX - TREE.BOTTOM_WIDTH, TREE.BOTTOM_BASE_Y);
+    ctx.lineTo(centerX + TREE.BOTTOM_WIDTH, TREE.BOTTOM_BASE_Y);
     ctx.closePath();
     ctx.fill();
     
     // Bottom layer shadow
     ctx.fillStyle = colors.shadow;
     ctx.beginPath();
-    ctx.moveTo(centerX, 360);
-    ctx.lineTo(centerX - 230, 460);
-    ctx.lineTo(centerX - 180, 460);
+    ctx.moveTo(centerX, TREE.BOTTOM_TIP_Y);
+    ctx.lineTo(centerX - TREE.BOTTOM_WIDTH, TREE.BOTTOM_BASE_Y);
+    ctx.lineTo(centerX - TREE.MIDDLE_WIDTH, TREE.BOTTOM_BASE_Y);
     ctx.closePath();
     ctx.fill();
     
     // Middle tree layer
     ctx.fillStyle = colors.layer2;
     ctx.beginPath();
-    ctx.moveTo(centerX, 260);
-    ctx.lineTo(centerX - 180, 380);
-    ctx.lineTo(centerX + 180, 380);
+    ctx.moveTo(centerX, TREE.MIDDLE_TIP_Y);
+    ctx.lineTo(centerX - TREE.MIDDLE_WIDTH, TREE.MIDDLE_BASE_Y);
+    ctx.lineTo(centerX + TREE.MIDDLE_WIDTH, TREE.MIDDLE_BASE_Y);
     ctx.closePath();
     ctx.fill();
     
     // Middle layer shadow
     ctx.fillStyle = colors.shadow;
     ctx.beginPath();
-    ctx.moveTo(centerX, 260);
-    ctx.lineTo(centerX - 180, 380);
-    ctx.lineTo(centerX - 140, 380);
+    ctx.moveTo(centerX, TREE.MIDDLE_TIP_Y);
+    ctx.lineTo(centerX - TREE.MIDDLE_WIDTH, TREE.MIDDLE_BASE_Y);
+    ctx.lineTo(centerX - TREE.TOP_WIDTH - 10, TREE.MIDDLE_BASE_Y);
     ctx.closePath();
     ctx.fill();
     
     // Top tree layer
     ctx.fillStyle = colors.layer3;
     ctx.beginPath();
-    ctx.moveTo(centerX, 140);
-    ctx.lineTo(centerX - 130, 280);
-    ctx.lineTo(centerX + 130, 280);
+    ctx.moveTo(centerX, TREE.TOP_TIP_Y);
+    ctx.lineTo(centerX - TREE.TOP_WIDTH, TREE.TOP_BASE_Y);
+    ctx.lineTo(centerX + TREE.TOP_WIDTH, TREE.TOP_BASE_Y);
     ctx.closePath();
     ctx.fill();
     
     // Top layer shadow
     ctx.fillStyle = colors.layer2;
     ctx.beginPath();
-    ctx.moveTo(centerX, 140);
-    ctx.lineTo(centerX - 130, 280);
-    ctx.lineTo(centerX - 100, 280);
+    ctx.moveTo(centerX, TREE.TOP_TIP_Y);
+    ctx.lineTo(centerX - TREE.TOP_WIDTH, TREE.TOP_BASE_Y);
+    ctx.lineTo(centerX - TREE.TOP_WIDTH + TREE.SHADOW_SMALL, TREE.TOP_BASE_Y);
     ctx.closePath();
     ctx.fill();
     
     // Tree top cone
     ctx.fillStyle = colors.top;
     ctx.beginPath();
-    ctx.moveTo(centerX, 60);
-    ctx.lineTo(centerX - 80, 160);
-    ctx.lineTo(centerX + 80, 160);
+    ctx.moveTo(centerX, TREE.CONE_TIP_Y);
+    ctx.lineTo(centerX - TREE.CONE_WIDTH, TREE.CONE_BASE_Y);
+    ctx.lineTo(centerX + TREE.CONE_WIDTH, TREE.CONE_BASE_Y);
     ctx.closePath();
     ctx.fill();
     
@@ -582,45 +670,45 @@ function drawTree() {
     
     // Snow on bottom layer
     ctx.beginPath();
-    ctx.arc(centerX - 150, 450, 12, 0, Math.PI, true);
-    ctx.arc(centerX - 50, 445, 10, 0, Math.PI, true);
-    ctx.arc(centerX + 50, 445, 10, 0, Math.PI, true);
-    ctx.arc(centerX + 150, 450, 12, 0, Math.PI, true);
+    ctx.arc(centerX - 150, TREE.BOTTOM_BASE_Y - 10, 12, 0, Math.PI, true);
+    ctx.arc(centerX - 50, TREE.BOTTOM_BASE_Y - 15, 10, 0, Math.PI, true);
+    ctx.arc(centerX + 50, TREE.BOTTOM_BASE_Y - 15, 10, 0, Math.PI, true);
+    ctx.arc(centerX + 150, TREE.BOTTOM_BASE_Y - 10, 12, 0, Math.PI, true);
     ctx.fill();
     
     // Snow on middle layer
     ctx.beginPath();
-    ctx.arc(centerX - 120, 370, 10, 0, Math.PI, true);
-    ctx.arc(centerX, 365, 8, 0, Math.PI, true);
-    ctx.arc(centerX + 120, 370, 10, 0, Math.PI, true);
+    ctx.arc(centerX - 120, TREE.MIDDLE_BASE_Y - 10, 10, 0, Math.PI, true);
+    ctx.arc(centerX, TREE.MIDDLE_BASE_Y - 15, 8, 0, Math.PI, true);
+    ctx.arc(centerX + 120, TREE.MIDDLE_BASE_Y - 10, 10, 0, Math.PI, true);
     ctx.fill();
     
     // Snow on top layer
     ctx.beginPath();
-    ctx.arc(centerX - 80, 275, 8, 0, Math.PI, true);
-    ctx.arc(centerX + 80, 275, 8, 0, Math.PI, true);
+    ctx.arc(centerX - TREE.CONE_WIDTH, TREE.TOP_BASE_Y - 5, 8, 0, Math.PI, true);
+    ctx.arc(centerX + TREE.CONE_WIDTH, TREE.TOP_BASE_Y - 5, 8, 0, Math.PI, true);
     ctx.fill();
     
     // Star on top with glow
-    const starGlow = ctx.createRadialGradient(centerX, 50, 0, centerX, 50, 30);
+    const starGlow = ctx.createRadialGradient(centerX, TREE.STAR_Y, 0, centerX, TREE.STAR_Y, TREE.STAR_GLOW_RADIUS);
     starGlow.addColorStop(0, 'rgba(255, 215, 0, 0.6)');
     starGlow.addColorStop(1, 'rgba(255, 215, 0, 0)');
     ctx.fillStyle = starGlow;
     ctx.beginPath();
-    ctx.arc(centerX, 50, 30, 0, Math.PI * 2);
+    ctx.arc(centerX, TREE.STAR_Y, TREE.STAR_GLOW_RADIUS, 0, Math.PI * 2);
     ctx.fill();
     
     // Draw star
-    drawStar(centerX, 50, 18, '#FFD700');
+    drawStar(centerX, TREE.STAR_Y, TREE.STAR_SIZE, '#FFD700');
     
     // Star sparkle
     ctx.strokeStyle = '#FFF';
     ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.moveTo(centerX, 35);
-    ctx.lineTo(centerX, 65);
-    ctx.moveTo(centerX - 15, 50);
-    ctx.lineTo(centerX + 15, 50);
+    ctx.moveTo(centerX, TREE.STAR_Y - 15);
+    ctx.lineTo(centerX, TREE.STAR_Y + 15);
+    ctx.moveTo(centerX - 15, TREE.STAR_Y);
+    ctx.lineTo(centerX + 15, TREE.STAR_Y);
     ctx.stroke();
 }
 

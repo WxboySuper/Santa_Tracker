@@ -12,10 +12,22 @@
 <body>
     <!-- Game Container -->
     <div class="game-container">
+        <!-- Accessibility: Screen reader announcements -->
+        <div id="gameAnnouncements" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
+        
         <!-- Game Canvas Container -->
         <div class="canvas-wrapper">
             <!-- Canvas for Game -->
-            <canvas id="gameCanvas" width="560" height="500"></canvas>
+            <canvas id="gameCanvas" width="560" height="500" 
+                    role="application"
+                    aria-label="Ornament Smash Game - Tap ornaments on the Christmas tree"
+                    aria-describedby="gameDescription"></canvas>
+            
+            <!-- Hidden game description for screen readers -->
+            <div id="gameDescription" class="sr-only">
+                An interactive Christmas game where you tap colorful ornaments that appear on a Christmas tree. 
+                Clear 20 ornaments to win. The game tracks your remaining ornaments and announces updates.
+            </div>
             
             <!-- Start Overlay -->
             <div id="startOverlay" class="overlay">
