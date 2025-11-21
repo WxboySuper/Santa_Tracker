@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import { createRoot } from 'react-dom/client';
 import { MapContainer, TileLayer, Marker, Polyline, Popup, useMap, useMapEvents, GeoJSON } from 'react-leaflet';
 import L from 'leaflet';
 import { Search } from 'lucide-react';
@@ -69,21 +70,50 @@ const timezoneStyle = (feature) => {
 };
 
 /**
+ * React component for timezone popup content.
+ * Safely displays timezone information without XSS vulnerabilities.
+ * 
+ * @param {Object} props - Component props
+ * @param {string} props.name - Timezone name
+ * @param {string} props.utcFormat - UTC offset format
+ * @param {string} props.places - Places in this timezone
+ * @returns {JSX.Element} Popup content
+ */
+function TimezonePopupContent({ name, utcFormat, places }) {
+    return (
+        <div className="text-sm">
+            <strong>{name}</strong><br/>
+            UTC: {utcFormat}<br/>
+            Places: {places}
+        </div>
+    );
+}
+
+/**
  * Adds popup interactions to each timezone feature.
  * Displays timezone name, UTC offset, and affected places.
+ * Uses React components to prevent XSS vulnerabilities.
  * 
  * @param {Object} feature - The GeoJSON feature
  * @param {Object} layer - The Leaflet layer
  */
 const onEachTimezone = (feature, layer) => {
     if (feature.properties) {
-        layer.bindPopup(`
-            <div class="text-sm">
-                <strong>${feature.properties.name}</strong><br/>
-                UTC: ${feature.properties.utc_format}<br/>
-                Places: ${feature.properties.places}
-            </div>
-        `);
+        // Create a container div for the popup content
+        const popupContainer = document.createElement('div');
+        
+        // Render React component into the container
+        const root = createRoot(popupContainer);
+        root.render(
+            <TimezonePopupContent 
+                name={feature.properties.name}
+                utcFormat={feature.properties.utc_format}
+                places={feature.properties.places}
+            />
+        );
+        
+        // Bind the container as popup content
+        layer.bindPopup(popupContainer);
     }
 };
 
