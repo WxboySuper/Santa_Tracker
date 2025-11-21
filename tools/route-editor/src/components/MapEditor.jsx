@@ -29,7 +29,13 @@ const greenIcon = createColoredIcon('green');
 const redIcon = createColoredIcon('red');
 const blueIcon = createColoredIcon('blue');
 
-// Timezone layer styling
+/**
+ * Styles the timezone polygons based on their properties.
+ * Uses map_color6 for coloring if available, otherwise falls back to a hash of the zone.
+ * 
+ * @param {Object} feature - The GeoJSON feature to style
+ * @returns {Object} Leaflet style object
+ */
 const timezoneStyle = (feature) => {
     const colors = [
         '#e6194b', '#3cb44b', '#ffe119', '#4363d8', '#f58231', 
@@ -52,6 +58,13 @@ const timezoneStyle = (feature) => {
     };
 };
 
+/**
+ * Adds popup interactions to each timezone feature.
+ * Displays timezone name, UTC offset, and affected places.
+ * 
+ * @param {Object} feature - The GeoJSON feature
+ * @param {Object} layer - The Leaflet layer
+ */
 const onEachTimezone = (feature, layer) => {
     if (feature.properties) {
         layer.bindPopup(`
@@ -221,14 +234,16 @@ function MapCenter({ center }) {
         }
     }, [center, map]);
   
-    return null;
-}
-
-function MapEditor({ locations, onAddLocation, setSelectedLocation }) {
-    const [mapCenter, setMapCenter] = useState(null);
-
-    // Create 3 copies of the timezone data (left, center, right) for seamless wrapping
+    // This ensures that when panning across the dateline, the timezone layer continues uninterrupted.
     const extendedTimezones = useMemo(() => {
+        /**
+         * Recursively shifts coordinates by a given longitude offset.
+         * Handles both simple polygons and multi-polygons.
+         * 
+         * @param {Array} coords - The coordinates array (nested arrays of numbers)
+         * @param {number} offset - The longitude offset to apply (e.g., -360 or 360)
+         * @returns {Array} The shifted coordinates
+         */
         const shiftCoords = (coords, offset) => {
             // Base case: [x, y] point
             if (typeof coords[0] === 'number') {
@@ -238,17 +253,21 @@ function MapEditor({ locations, onAddLocation, setSelectedLocation }) {
             return coords.map(c => shiftCoords(c, offset));
         };
 
+        // Create a copy shifted to the left (West)
         const left = timezones.features.map((f, index) => ({
             ...f,
             geometry: { ...f.geometry, coordinates: shiftCoords(f.geometry.coordinates, -360) },
             properties: { ...f.properties, uniqueId: `left-${index}` }
         }));
         
+        // Create a copy shifted to the right (East)
         const right = timezones.features.map((f, index) => ({
             ...f,
             geometry: { ...f.geometry, coordinates: shiftCoords(f.geometry.coordinates, 360) },
             properties: { ...f.properties, uniqueId: `right-${index}` }
         }));
+
+        // Combine all three sets into one FeatureCollection        }));
 
         return {
             type: "FeatureCollection",
