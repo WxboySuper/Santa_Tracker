@@ -25,9 +25,21 @@ export const exportToJSON = (locations) => {
     URL.revokeObjectURL(url);
 };
 
-export const getTimezoneOffset = (lat, lng) => {
-    // Simple approximation based on longitude
-    // More accurate would require a timezone database
+export const getTimezoneOffset = async (lat, lng) => {
+    try {
+        // Fetch timezone info from Nominatim API
+        const response = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`
+        );
+        const data = await response.json();
+        // Use timezone offset if available, otherwise fallback
+        if (data && typeof data.timezone_offset !== 'undefined') {
+            return data.timezone_offset;
+        }
+    } catch (e) {
+        // Ignore errors and fallback
+    }
+    // Fallback to approximation
     const offset = Math.round(lng / 15);
     return Math.max(-12, Math.min(14, offset));
 };
