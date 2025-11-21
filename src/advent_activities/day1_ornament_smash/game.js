@@ -117,7 +117,7 @@ function playPopSound() {
     gainNode.connect(audioContext.destination);
     
     oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
-    oscillator.frequency.exponentialRampToValueAtTime(200, audioContext.currentTime + 0.1);
+    oscillator.frequency.linearRampToValueAtTime(200, audioContext.currentTime + 0.1);
     
     gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
     gainNode.gain.linearRampToValueAtTime(0, audioContext.currentTime + 0.1);
