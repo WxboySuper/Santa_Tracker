@@ -259,7 +259,7 @@ Test in multiple browsers to ensure compatibility:
 
 ## 🔒 Security Notes
 
-- No external scripts loaded (except Tailwind CSS CDN)
+- No external scripts loaded
 - No user data collected
 - localStorage only stores completion flag
 - No network requests made during gameplay
