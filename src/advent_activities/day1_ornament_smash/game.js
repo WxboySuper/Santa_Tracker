@@ -80,6 +80,7 @@ document.addEventListener('DOMContentLoaded', () => {
     playAgainButton.addEventListener('click', () => {
         hideWinOverlay();
         resetGame();
+        initAudio(); // Ensure audio context is initialized for replay
         startGame();
     });
     
