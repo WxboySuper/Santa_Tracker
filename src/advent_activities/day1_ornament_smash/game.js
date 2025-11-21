@@ -438,6 +438,9 @@ function cleanup() {  // skipcq: JS-0128
         gameState.spawnTimer = null;
     }
 }
+
+// Ensure cleanup is called when the window is unloaded
+window.addEventListener('beforeunload', cleanup);
 // Draw snowflakes
 function drawSnowflakes() {
     ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
