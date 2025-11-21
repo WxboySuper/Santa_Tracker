@@ -422,9 +422,20 @@ function render() {
     
     // Update and continue loop
     update();
-    requestAnimationFrame(render);
+    gameState.animationId = requestAnimationFrame(render);
 }
 
+// Cleanup function to stop animation and timers
+function cleanup() {
+    if (gameState.animationId) {
+        cancelAnimationFrame(gameState.animationId);
+        gameState.animationId = null;
+    }
+    if (gameState.spawnTimer) {
+        clearInterval(gameState.spawnTimer);
+        gameState.spawnTimer = null;
+    }
+}
 // Draw snowflakes
 function drawSnowflakes() {
     ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
