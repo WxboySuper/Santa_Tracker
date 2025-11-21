@@ -234,7 +234,12 @@ function MapCenter({ center }) {
             map.flyTo(center, 8, { duration: 1 });
         }
     }, [center, map]);
-  
+    return null;
+}
+
+function MapEditor({ locations, onAddLocation, setSelectedLocation }) {
+    const [mapCenter, setMapCenter] = useState(null);
+
     // This ensures that when panning across the dateline, the timezone layer continues uninterrupted.
     const extendedTimezones = useMemo(() => {
         /**
