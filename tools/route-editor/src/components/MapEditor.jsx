@@ -1,8 +1,9 @@
-import { useState, useEffect, useCallback } from 'react';
-import { MapContainer, TileLayer, Marker, Polyline, Popup, useMap, useMapEvents } from 'react-leaflet';
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import { MapContainer, TileLayer, Marker, Polyline, Popup, useMap, useMapEvents, GeoJSON } from 'react-leaflet';
 import L from 'leaflet';
 import { Search } from 'lucide-react';
 import { getTimezoneOffset } from '../utils/exportUtils';
+import timezones from '../data/ne_10m_time_zones.json';
 
 // Fix Leaflet default marker icons
 delete L.Icon.Default.prototype._getIconUrl;
@@ -27,6 +28,64 @@ const createColoredIcon = (color) => {
 const greenIcon = createColoredIcon('green');
 const redIcon = createColoredIcon('red');
 const blueIcon = createColoredIcon('blue');
+
+const colors = [
+    '#e6194b', '#3cb44b', '#ffe119', '#4363d8', '#f58231',
+    '#911eb4', '#46f0f0', '#f032e6', '#bcf60c', '#fabebe',
+    '#008080', '#e6beff', '#9a6324', '#fffac8', '#800000',
+    '#aaffc3', '#808000', '#ffd8b1', '#000075', '#808080'
+];
+
+/**
+ * Styles the timezone polygons based on their properties.
+ * Uses map_color6 for coloring if available, otherwise falls back to a hash of the zone.
+ * 
+ * @param {Object} feature - The GeoJSON feature to style
+ * @returns {Object} Leaflet style object
+ */
+// Simple string hash function (djb2)
+function hashString(str) {
+    let hash = 5381;
+    for (let i = 0; i < str.length; i++) {
+        hash = ((hash << 5) + hash) + str.charCodeAt(i); // hash * 33 + c
+    }
+    return Math.abs(hash);
+}
+
+const timezoneStyle = (feature) => {
+    // Use map_color6 for coloring if available, otherwise fallback to a hash of the zone
+    const colorIndex = feature.properties.map_color6 
+        ? (feature.properties.map_color6 - 1) % colors.length 
+        : hashString(String(feature.properties.zone ?? '')) % colors.length;
+
+    return {
+        fillColor: colors[colorIndex] || '#cccccc',
+        weight: 1,
+        opacity: 1,
+        color: 'white',
+        dashArray: '3',
+        fillOpacity: 0.2
+    };
+};
+
+/**
+ * Adds popup interactions to each timezone feature.
+ * Displays timezone name, UTC offset, and affected places.
+ * 
+ * @param {Object} feature - The GeoJSON feature
+ * @param {Object} layer - The Leaflet layer
+ */
+const onEachTimezone = (feature, layer) => {
+    if (feature.properties) {
+        layer.bindPopup(`
+            <div class="text-sm">
+                <strong>${feature.properties.name}</strong><br/>
+                UTC: ${feature.properties.utc_format}<br/>
+                Places: ${feature.properties.places}
+            </div>
+        `);
+    }
+};
 
 // Rate limiting for Nominatim API (1 request per second)
 let lastRequestTime = 0;
@@ -184,12 +243,47 @@ function MapCenter({ center }) {
             map.flyTo(center, 8, { duration: 1 });
         }
     }, [center, map]);
-  
     return null;
 }
 
 function MapEditor({ locations, onAddLocation, setSelectedLocation }) {
     const [mapCenter, setMapCenter] = useState(null);
+
+    // This ensures that when panning across the dateline, the timezone layer continues uninterrupted.
+    const extendedTimezones = useMemo(() => {
+        /**
+         * Recursively shifts coordinates by a given longitude offset.
+         * Handles both simple polygons and multi-polygons.
+         * 
+         * @param {Array} coords - The coordinates array (nested arrays of numbers)
+         * @param {number} offset - The longitude offset to apply (e.g., -360 or 360)
+         * @returns {Array} The shifted coordinates
+         */
+        const shiftCoords = (coords, offset) => {
+            // Base case: [x, y] point
+            if (typeof coords[0] === 'number') {
+                return [coords[0] + offset, coords[1]];
+            }
+            // Recursive case: Array of points or arrays
+            return coords.map(c => shiftCoords(c, offset));
+        };
+
+        const createFeatures = (offset, prefix) =>
+            timezones.features.map((f, index) => ({
+                ...f,
+                geometry: offset !== 0 ? { ...f.geometry, coordinates: shiftCoords(f.geometry.coordinates, offset) } : f.geometry,
+                properties: { ...f.properties, uniqueId: `${prefix}-${index}` },
+            }));
+
+        const left = createFeatures(-360, 'left');
+        const center = createFeatures(0, 'center');
+        const right = createFeatures(360, 'right');
+
+        return {
+            type: "FeatureCollection",
+            features: [...left, ...center, ...right]
+        };
+    }, []);
 
     const handleMapClick = useCallback(async (latlng) => {
         const { lat, lng } = latlng;
@@ -271,6 +365,13 @@ function MapEditor({ locations, onAddLocation, setSelectedLocation }) {
                     url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
                     subdomains="abcd"
                     maxZoom={20}
+                />
+
+                <GeoJSON 
+                    key="timezones"
+                    data={extendedTimezones} 
+                    style={timezoneStyle} 
+                    onEachFeature={onEachTimezone} 
                 />
         
                 <MapEventHandler onMapClick={handleMapClick} />
