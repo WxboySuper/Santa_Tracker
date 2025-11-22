@@ -41,7 +41,7 @@ jobs:
           rsync -av --exclude='*.pyc' --exclude='__pycache__' --exclude='.env' --exclude='venv/' \
             ./src/ deployment-package/src/ || true
           # If Santa Tracker is a static/JS site or has frontend, include root html/static
-          rsync -av --exclude='.env' --exclude='node_modules/' ./ public/ deployment-package/public/ || true
+          rsync -av --exclude='.env' --exclude='node_modules/' ./public/ deployment-package/public/ || true
           # Copy top-level requirements.txt if present
           cp requirements.txt deployment-package/ || true
           if [ -d "alembic" ]; then rsync -av --delete alembic/ deployment-package/alembic/ || true; fi
