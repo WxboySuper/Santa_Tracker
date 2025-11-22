@@ -1350,4 +1350,4 @@ def import_advent_calendar():
 if __name__ == "__main__":
     # Only enable debug mode via environment variable to prevent security issues
     debug_mode = os.environ.get("FLASK_DEBUG", "False") == "True"
-    app.run(debug=debug_mode)
+    app.run(debug=debug_mode, port=5001)
