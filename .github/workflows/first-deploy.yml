@@ -104,9 +104,9 @@ jobs:
           [Service]
           Type=simple
           User=santa
-          WorkingDirectory=srv/santa-tracker/current
+          WorkingDirectory=/srv/santa-tracker/current
           # Adjust ExecStart to your app's entrypoint (see docs/DEPLOY.md)
-          ExecStart=srv/santa-tracker/current/venv/bin/python -m src.app
+          ExecStart=/srv/santa-tracker/current/venv/bin/python -m src.app
           Restart=on-failure
           RestartSec=5
           Environment=PYTHONUNBUFFERED=1
