@@ -64,7 +64,7 @@ jobs:
             deployment-package/ ${PROD_DEPLOY_USER}@${PROD_DEPLOY_HOST}:"${REMOTE_DIR}/"
           sshpass -p "${PROD_SSH_PASSWORD}" ssh -o StrictHostKeyChecking=no \
             ${PROD_DEPLOY_USER}@${PROD_DEPLOY_HOST} \
-            "bash -s" <<'EOF'
+            "bash -s" <<EOF
           set -euo pipefail
           REMOTE_DIR="${REMOTE_DIR}"
           PROD_DEPLOY_PATH="${PROD_DEPLOY_PATH}"
