@@ -81,8 +81,8 @@ jobs:
             (cd "${REMOTE_DIR}" && venv/bin/alembic upgrade head) || true
           fi
           ln -sfn "${REMOTE_DIR}" "${PROD_DEPLOY_PATH}/current"
-          chown -R ${PROD_DEPLOY_USER}:${PROD_DEPLOY_USER} "${REMOTE_DIR}" || true
-          systemctl daemon-reload || true
-          systemctl restart santa-tracker || true
+          sudo chown -R ${PROD_DEPLOY_USER}:${PROD_DEPLOY_USER} "${REMOTE_DIR}" || true
+          sudo systemctl daemon-reload || true
+          sudo systemctl restart santa-tracker || true
           systemctl status santa-tracker --no-pager || true
           EOF
