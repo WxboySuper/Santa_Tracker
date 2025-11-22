@@ -1,0 +1,144 @@
+name: First Deployment Setup (Santa Tracker) (password SSH)
+
+# First-deployment workflow using password-only SSH auth.
+# Required repository secrets:
+# - PROD_DEPLOY_HOST
+# - PROD_DEPLOY_USER
+# - PROD_DEPLOY_PATH
+# - PROD_SSH_PASSWORD
+# Optional:
+# - PROD_DOTENV (full .env contents)
+# - DATABASE_URL, OTHER_KEYS...
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: write
+
+env:
+  DEPLOY_HOST: ${{ secrets.PROD_DEPLOY_HOST }}
+  DEPLOY_USER: ${{ secrets.PROD_DEPLOY_USER }}
+  DEPLOY_PATH: ${{ secrets.PROD_DEPLOY_PATH }}
+
+jobs:
+  first-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install helper tools on runner
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y sshpass rsync tar
+
+      - name: Prepare deployment-package
+        run: |
+          set -euo pipefail
+          mkdir -p deployment-package
+          # Copy application files (adjust src/ path if your app is elsewhere)
+          rsync -av --exclude='*.pyc' --exclude='__pycache__' --exclude='.env' --exclude='venv/' \
+            ./src/ deployment-package/src/ || true
+          # If Santa Tracker is a static/JS site or has frontend, include root html/static
+          rsync -av --exclude='.env' --exclude='node_modules/' ./public/ deployment-package/public/ || true
+          # Copy top-level requirements.txt if present
+          cp requirements.txt deployment-package/ || true
+          if [ -d "alembic" ]; then rsync -av --delete alembic/ deployment-package/alembic/ || true; fi
+          if [ -f "alembic.ini" ]; then cp alembic.ini deployment-package/ || true; fi
+          tar -czf deployment-package.tar.gz deployment-package || true
+
+      - name: Create remote release directory
+        run: |
+          TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+          RELEASE_DIR="${{ env.DEPLOY_PATH }}/releases/release-${TIMESTAMP}"
+          echo "RELEASE_DIR=${RELEASE_DIR}" >> $GITHUB_ENV
+          sshpass -p "${{ secrets.PROD_SSH_PASSWORD }}" ssh -o StrictHostKeyChecking=no \
+            "${{ env.DEPLOY_USER }}@${{ env.DEPLOY_HOST }}" "mkdir -p '${RELEASE_DIR}' && mkdir -p '${{ env.DEPLOY_PATH }}/releases'"
+
+      - name: Upload package to remote
+        run: |
+          sshpass -p "${{ secrets.PROD_SSH_PASSWORD }}" rsync -avz -e "ssh -o StrictHostKeyChecking=no" \
+            deployment-package/ "${{ env.DEPLOY_USER }}@${{ env.DEPLOY_HOST }}:${RELEASE_DIR}/"
+          sshpass -p "${{ secrets.PROD_SSH_PASSWORD }}" scp -o StrictHostKeyChecking=no deployment-package.tar.gz \
+            "${{ env.DEPLOY_USER }}@${{ env.DEPLOY_HOST }}:${RELEASE_DIR}/"
+
+      - name: Configure remote environment (venv, pip install)
+        run: |
+          sshpass -p "${{ secrets.PROD_SSH_PASSWORD }}" ssh -o StrictHostKeyChecking=no \
+            "${{ env.DEPLOY_USER }}@${{ env.DEPLOY_HOST }}" "RELEASE_DIR='${{ env.RELEASE_DIR }}' DEPLOY_PATH='${{ env.DEPLOY_PATH }}' bash -s" <<'EOF'
+          set -euo pipefail
+          cd "$RELEASE_DIR" || exit 1
+          # Choose python3 if available
+          if command -v python3 >/dev/null 2>&1; then
+            PYTHON=python3
+          else
+            PYTHON=python
+          fi
+          $PYTHON -m venv venv
+          . venv/bin/activate
+          pip install --upgrade pip setuptools wheel || true
+          if [ -f "${RELEASE_DIR}/requirements.txt" ]; then
+            pip install -r "${RELEASE_DIR}/requirements.txt" || true
+          elif [ -f "../requirements.txt" ]; then
+            pip install -r "../requirements.txt" || true
+          fi
+          mkdir -p "${DEPLOY_PATH}"
+          EOF
+        env:
+          RELEASE_DIR: ${{ env.RELEASE_DIR }}
+          DEPLOY_PATH: ${{ env.DEPLOY_PATH }}
+
+      - name: Install systemd unit (santa-tracker)
+        run: |
+          SERVICE_NAME="santa-tracker"
+          sshpass -p "${{ secrets.PROD_SSH_PASSWORD }}" ssh -o StrictHostKeyChecking=no \
+            "${{ env.DEPLOY_USER }}@${{ env.DEPLOY_HOST }}" "DEPLOY_PATH='${{ env.DEPLOY_PATH }}' DEPLOY_USER='${{ env.DEPLOY_USER }}' bash -s" <<'EOF'
+          set -euo pipefail
+          SERVICE_FILE="/etc/systemd/system/santa-tracker.service"
+          sudo tee "${SERVICE_FILE}" > /dev/null <<'SERVICEEOF'
+          [Unit]
+          Description=Santa Tracker Web App
+          After=network.target
+
+          [Service]
+          Type=simple
+          User=${DEPLOY_USER}
+          WorkingDirectory=${DEPLOY_PATH}/current
+          # Adjust ExecStart to your app's entrypoint (see docs/DEPLOY.md)
+          ExecStart=${DEPLOY_PATH}/current/venv/bin/python -m src.app
+          Restart=on-failure
+          RestartSec=5
+          Environment=PYTHONUNBUFFERED=1
+          # If you use an env file: EnvironmentFile=${DEPLOY_PATH}/current/.env
+          [Install]
+          WantedBy=multi-user.target
+          SERVICEEOF
+          sudo systemctl daemon-reload
+          sudo systemctl enable santa-tracker || true
+          EOF
+        env:
+          DEPLOY_PATH: ${{ env.DEPLOY_PATH }}
+          DEPLOY_USER: ${{ env.DEPLOY_USER }}
+
+      - name: Atomic switch to new release and start service
+        run: |
+          sshpass -p "${{ secrets.PROD_SSH_PASSWORD }}" ssh -o StrictHostKeyChecking=no \
+            "${{ env.DEPLOY_USER }}@${{ env.DEPLOY_HOST }}" "RELEASE_DIR='${{ env.RELEASE_DIR }}' DEPLOY_PATH='${{ env.DEPLOY_PATH }}' DEPLOY_USER='${{ env.DEPLOY_USER }}' bash -s" <<'EOF'
+          set -euo pipefail
+          ln -sfn "$RELEASE_DIR" "${DEPLOY_PATH}/current"
+          if id "$DEPLOY_USER" &>/dev/null; then
+            sudo chown -R "$DEPLOY_USER:$DEPLOY_USER" "$DEPLOY_PATH" || true
+          fi
+          sudo systemctl restart santa-tracker || sudo systemctl start santa-tracker
+          sleep 3
+          sudo systemctl is-active --quiet santa-tracker && echo "Service is active" || (echo "Service failed to start"; sudo journalctl -u santa-tracker --no-pager -n 200; exit 1)
+          EOF
+        env:
+          RELEASE_DIR: ${{ env.RELEASE_DIR }}
+          DEPLOY_PATH: ${{ env.DEPLOY_PATH }}
+          DEPLOY_USER: ${{ env.DEPLOY_USER }}
+
+      - name: Verification note
+        run: |
+          echo "First-deployment completed. If the service failed, check journalctl -u santa-tracker on the remote host."
