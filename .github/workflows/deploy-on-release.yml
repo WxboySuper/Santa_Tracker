@@ -109,7 +109,8 @@ jobs:
           echo "Verifying deployment ownership and service status..."
           sshpass -p "${PROD_SSH_PASSWORD}" ssh -o StrictHostKeyChecking=no \
             ${PROD_DEPLOY_USER}@${PROD_DEPLOY_HOST} \
-            "bash -s" <<'VERIFY_EOF'
+            "PROD_DEPLOY_PATH='${PROD_DEPLOY_PATH}' PROD_DEPLOY_USER='${PROD_DEPLOY_USER}' \
+            bash -s" <<'VERIFY_EOF'
           set -euo pipefail
           PROD_DEPLOY_PATH="${PROD_DEPLOY_PATH}"
           PROD_DEPLOY_USER="${PROD_DEPLOY_USER}"
