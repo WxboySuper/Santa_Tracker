@@ -99,6 +99,11 @@ jobs:
           EOF
 
       - name: Post-deploy verification
+        env:
+          PROD_DEPLOY_PATH: ${{ secrets.PROD_DEPLOY_PATH }}
+          PROD_DEPLOY_USER: ${{ secrets.PROD_DEPLOY_USER }}
+          PROD_DEPLOY_HOST: ${{ secrets.PROD_DEPLOY_HOST }}
+          PROD_SSH_PASSWORD: ${{ secrets.PROD_SSH_PASSWORD }}
         run: |
           set -euo pipefail
           echo "Verifying deployment ownership and service status..."
