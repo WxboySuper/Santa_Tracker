@@ -45,11 +45,12 @@ jobs:
           if [ -n "${PROD_DOTENV:-}" ]; then
             printf '%s\n' "${PROD_DOTENV}" > deployment-package/.env
           else
-            cat > deployment-package/.env <<'EOF'
-          # Minimal defaults; add repository secrets for production values
-          DATA_PATH=${PROD_DEPLOY_PATH}/data
-          LOG_LEVEL=INFO
-          EOF
+            # here-doc is indented to match run: block, and uses no runner-side expansion
+            cat > deployment-package/.env <<'ENV_EOF'
+# Minimal defaults; add repository secrets for production values
+DATA_PATH=${PROD_DEPLOY_PATH}/data
+LOG_LEVEL=INFO
+ENV_EOF
           fi
           chmod 600 deployment-package/.env
 
@@ -70,21 +71,21 @@ jobs:
             deployment-package/ ${PROD_DEPLOY_USER}@${PROD_DEPLOY_HOST}:"${REMOTE_DIR}/"
 
           echo "Finalizing deploy on remote host (atomic privileged block)"
+          # Pass concrete env vars on the ssh command line; remote script is provided via a properly aligned here-doc.
           sshpass -p "${PROD_SSH_PASSWORD}" ssh -o StrictHostKeyChecking=no \
             ${PROD_DEPLOY_USER}@${PROD_DEPLOY_HOST} \
-            "PROD_DEPLOY_PATH='${PROD_DEPLOY_PATH}' PROD_DEPLOY_USER='${PROD_DEPLOY_USER}' REMOTE_DIR='${REMOTE_DIR}' bash -s" <<'EOF'
+            "PROD_DEPLOY_PATH='${PROD_DEPLOY_PATH}' PROD_DEPLOY_USER='${PROD_DEPLOY_USER}' REMOTE_DIR='${REMOTE_DIR}' bash -s" <<'REMOTE_EOF'
             set -euo pipefail
             set -x
 
-            # Remote variables provided on the ssh command line:
-            # $REMOTE_DIR, $PROD_DEPLOY_PATH, $PROD_DEPLOY_USER
+            # Remote variables available: $REMOTE_DIR, $PROD_DEPLOY_PATH, $PROD_DEPLOY_USER
 
             RELEASE_ROOT="${PROD_DEPLOY_PATH}/releases"
 
             mkdir -p "${RELEASE_ROOT}"
             mkdir -p "${PROD_DEPLOY_PATH}/data" || true
 
-            # Create venv & install requirements AS THE DEPLOY USER (not root)
+            # Create venv & install requirements as the deploy user (not root)
             sudo -u "${PROD_DEPLOY_USER}" bash -lc "\
               python3 -m venv '${REMOTE_DIR}/venv' && \
               '${REMOTE_DIR}/venv/bin/pip' install --upgrade pip setuptools wheel || true; \
@@ -106,15 +107,15 @@ jobs:
               sudo chmod 600 "${REMOTE_DIR}/.env" || true
             fi
 
-            # If current exists and is not a symlink, move it to a backup to avoid ln putting the link inside it
+            # If current exists and is not a symlink, move it to a backup
             if [ -e "${PROD_DEPLOY_PATH}/current" ] && [ ! -L "${PROD_DEPLOY_PATH}/current" ]; then
               mv "${PROD_DEPLOY_PATH}/current" "${PROD_DEPLOY_PATH}/releases/previous-current-$(date +%Y%m%d-%H%M%S)" || true
             fi
 
-            # Atomically update current to point to the new release (privileged)
+            # Atomically update current to point to the new release
             sudo ln -sfn "${REMOTE_DIR}" "${PROD_DEPLOY_PATH}/current"
 
-            # CRITICAL: Ensure the release files and symlink are owned by the deploy user (run as root)
+            # Ensure the release files and symlink are owned by the deploy user (privileged root step)
             sudo chown -R "${PROD_DEPLOY_USER}:${PROD_DEPLOY_USER}" "${REMOTE_DIR}" || true
             sudo chown -h "${PROD_DEPLOY_USER}:${PROD_DEPLOY_USER}" "${PROD_DEPLOY_PATH}/current" || true
 
@@ -131,7 +132,7 @@ jobs:
             sudo systemctl status santa-tracker --no-pager || true
 
             echo "Deployed to ${REMOTE_DIR}"
-            EOF
+REMOTE_EOF
 
       - name: Post-deploy verification (runner-side)
         env:
@@ -143,18 +144,17 @@ jobs:
           set -euo pipefail
           echo "Verifying deployment ownership and service status..."
 
+          # Provide expected values on ssh command line; verification runs remotely
           sshpass -p "${PROD_SSH_PASSWORD}" ssh -o StrictHostKeyChecking=no \
             ${PROD_DEPLOY_USER}@${PROD_DEPLOY_HOST} \
-            "PROD_DEPLOY_PATH='${PROD_DEPLOY_PATH}' PROD_DEPLOY_USER='${PROD_DEPLOY_USER}' bash -s" <<'VERIFY'
+            "PROD_DEPLOY_PATH='${PROD_DEPLOY_PATH}' PROD_DEPLOY_USER='${PROD_DEPLOY_USER}' bash -s" <<'VERIFY_EOF'
             set -euo pipefail
 
             # Remote variables: $PROD_DEPLOY_PATH, $PROD_DEPLOY_USER
 
-            # Check ownership of current symlink and .env
             CURRENT_OWNER=$(stat -c '%U:%G' "${PROD_DEPLOY_PATH}/current" 2>/dev/null || echo "missing")
             echo "Current symlink owner: ${CURRENT_OWNER}"
 
-            # Compare against the deploy user directly (avoid intermediary variables)
             EXPECTED_OWNER="${PROD_DEPLOY_USER}:${PROD_DEPLOY_USER}"
             if [ "${CURRENT_OWNER}" != "${EXPECTED_OWNER}" ]; then
               echo "ERROR: current symlink is not owned by ${EXPECTED_OWNER}"
@@ -172,7 +172,6 @@ jobs:
               fi
             fi
 
-            # Check service status
             if ! sudo systemctl is-active --quiet santa-tracker; then
               echo "ERROR: santa-tracker service is not active"
               sudo systemctl status santa-tracker --no-pager || true
@@ -181,4 +180,4 @@ jobs:
             fi
 
             echo "✓ Deployment verification passed: ownership correct and service active"
-            VERIFY
+VERIFY_EOF
