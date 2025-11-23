@@ -71,9 +71,8 @@ EOF
           echo "Finalizing deploy on remote host (atomic privileged block)"
           sshpass -p "${PROD_SSH_PASSWORD}" ssh -o StrictHostKeyChecking=no \
             ${PROD_DEPLOY_USER}@${PROD_DEPLOY_HOST} \
-            "bash -s" <<'EOF'
+            "bash -s" <<EOF
           set -euo pipefail
-          set -x
 
           REMOTE_DIR="${REMOTE_DIR}"
           PROD_DEPLOY_PATH="${PROD_DEPLOY_PATH}"
@@ -101,24 +100,24 @@ EOF
 
           # Secure uploaded .env: ensure deploy user owns it and perms are 600
           if [ -f "${REMOTE_DIR}/.env" ]; then
-            sudo chown ${PROD_DEPLOY_USER}:${PROD_DEPLOY_USER} "${REMOTE_DIR}/.env" || true
+            sudo chown "${PROD_DEPLOY_USER}:${PROD_DEPLOY_USER}" "${REMOTE_DIR}/.env" || true
             sudo chmod 600 "${REMOTE_DIR}/.env" || true
           fi
 
           # If current exists and is not a symlink, move it to a backup to avoid ln putting the link inside it
           if [ -e "${PROD_DEPLOY_PATH}/current" ] && [ ! -L "${PROD_DEPLOY_PATH}/current" ]; then
-            mv "${PROD_DEPLOY_PATH}/current" "${PROD_DEPLOY_PATH}/releases/previous-current-$(date +%Y%m%d-%H%M%S)" || true
+            mv "${PROD_DEPLOY_PATH}/current" "${PROD_DEPLOY_PATH}/releases/previous-current-\$(date +%Y%m%d-%H%M%S)" || true
           fi
 
           # Atomically update current to point to the new release (privileged)
           sudo ln -sfn "${REMOTE_DIR}" "${PROD_DEPLOY_PATH}/current"
 
           # CRITICAL: Ensure the release files and symlink are owned by the deploy user (run as root)
-          sudo chown -R ${PROD_DEPLOY_USER}:${PROD_DEPLOY_USER} "${REMOTE_DIR}" || true
-          sudo chown -h ${PROD_DEPLOY_USER}:${PROD_DEPLOY_USER} "${PROD_DEPLOY_PATH}/current" || true
+          sudo chown -R "${PROD_DEPLOY_USER}:${PROD_DEPLOY_USER}" "${REMOTE_DIR}" || true
+          sudo chown -h "${PROD_DEPLOY_USER}:${PROD_DEPLOY_USER}" "${PROD_DEPLOY_PATH}/current" || true
 
           # Ensure data dir ownership
-          sudo chown -R ${PROD_DEPLOY_USER}:${PROD_DEPLOY_USER} "${PROD_DEPLOY_PATH}/data" || true
+          sudo chown -R "${PROD_DEPLOY_USER}:${PROD_DEPLOY_USER}" "${PROD_DEPLOY_PATH}/data" || true
 
           # Cleanup older releases
           if cd "${RELEASE_ROOT}" 2>/dev/null; then
@@ -145,24 +144,24 @@ EOF
 
           sshpass -p "${PROD_SSH_PASSWORD}" ssh -o StrictHostKeyChecking=no \
             ${PROD_DEPLOY_USER}@${PROD_DEPLOY_HOST} \
-            "bash -s" <<'VERIFY'
+            "bash -s" <<VERIFY
           set -euo pipefail
           PROD_DEPLOY_PATH="${PROD_DEPLOY_PATH}"
           PROD_DEPLOY_USER="${PROD_DEPLOY_USER}"
 
           # Check ownership of current symlink and .env
-          CURRENT_OWNER=$(stat -c '%U:%G' "${PROD_DEPLOY_PATH}/current" 2>/dev/null || echo "missing")
-          echo "Current symlink owner: ${CURRENT_OWNER}"
-          if [ "${CURRENT_OWNER}" != "${PROD_DEPLOY_USER}:${PROD_DEPLOY_USER}" ]; then
+          CURRENT_OWNER=\$(stat -c '%U:%G' "${PROD_DEPLOY_PATH}/current" 2>/dev/null || echo "missing")
+          echo "Current symlink owner: \${CURRENT_OWNER}"
+          if [ "\${CURRENT_OWNER}" != "${PROD_DEPLOY_USER}:${PROD_DEPLOY_USER}" ]; then
             echo "ERROR: current symlink is not owned by ${PROD_DEPLOY_USER}"
             stat -c '%U:%G %n' "${PROD_DEPLOY_PATH}/current" || true
             exit 1
           fi
 
           if [ -f "${PROD_DEPLOY_PATH}/current/.env" ]; then
-            ENV_OWNER=$(stat -c '%U:%G %a' "${PROD_DEPLOY_PATH}/current/.env" 2>/dev/null || echo "missing")
-            echo ".env: ${ENV_OWNER}"
-            if ! echo "${ENV_OWNER}" | grep -q "^${PROD_DEPLOY_USER}:${PROD_DEPLOY_USER} 600$"; then
+            ENV_OWNER=\$(stat -c '%U:%G %a' "${PROD_DEPLOY_PATH}/current/.env" 2>/dev/null || echo "missing")
+            echo ".env: \${ENV_OWNER}"
+            if ! echo "\${ENV_OWNER}" | grep -q "^${PROD_DEPLOY_USER}:${PROD_DEPLOY_USER} 600\$"; then
               echo "ERROR: .env ownership or permissions incorrect"
               stat -c '%U:%G %a %n' "${PROD_DEPLOY_PATH}/current/.env" || true
               exit 1
