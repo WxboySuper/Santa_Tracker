@@ -23,6 +23,7 @@
   "ignorePatterns": [
     "node_modules/",
     "dist/",
-    "build/"
+    "build/",
+    "venv/"
   ]
 }
