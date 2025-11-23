@@ -7,6 +7,18 @@ from pathlib import Path
 import pytest
 
 
+@pytest.fixture
+def clean_admin_password():
+    """Fixture to manage ADMIN_PASSWORD environment variable cleanup."""
+    original_password = os.environ.get("ADMIN_PASSWORD")
+    yield
+    # Restore original password after test
+    if original_password is not None:
+        os.environ["ADMIN_PASSWORD"] = original_password
+    elif "ADMIN_PASSWORD" in os.environ:
+        del os.environ["ADMIN_PASSWORD"]
+
+
 class TestDotenvLoading:
     """Test that environment variables are loaded from .env files."""
 
@@ -31,7 +43,7 @@ class TestDotenvLoading:
             "This is required for ADMIN_PASSWORD to be loaded from .env"
         )
 
-    def test_login_with_environment_variable(self):
+    def test_login_with_environment_variable(self, clean_admin_password):
         """Test that admin login works with ADMIN_PASSWORD from environment.
 
         This test verifies the fix for the reported bug where admin password
@@ -42,45 +54,35 @@ class TestDotenvLoading:
 
         # Set password via environment variable (simulating .env file being loaded)
         test_password = "test_env_password_123"
-        original_password = os.environ.get("ADMIN_PASSWORD")
+        os.environ["ADMIN_PASSWORD"] = test_password
 
-        try:
-            os.environ["ADMIN_PASSWORD"] = test_password
+        with app.test_client() as client:
+            # Test login with correct password
+            response = client.post(
+                "/api/admin/login",
+                data=json.dumps({"password": test_password}),
+                content_type="application/json",
+            )
 
-            with app.test_client() as client:
-                # Test login with correct password
-                response = client.post(
-                    "/api/admin/login",
-                    data=json.dumps({"password": test_password}),
-                    content_type="application/json",
-                )
+            assert response.status_code == 200, (
+                f"Login should succeed with correct password. "
+                f"Got {response.status_code}: {response.get_json()}"
+            )
 
-                assert response.status_code == 200, (
-                    f"Login should succeed with correct password. "
-                    f"Got {response.status_code}: {response.get_json()}"
-                )
+            data = response.get_json()
+            assert "token" in data, "Response should contain authentication token"
+            assert len(data["token"]) > 0, "Token should not be empty"
 
-                data = response.get_json()
-                assert "token" in data, "Response should contain authentication token"
-                assert len(data["token"]) > 0, "Token should not be empty"
+            # Test login with incorrect password
+            response2 = client.post(
+                "/api/admin/login",
+                data=json.dumps({"password": "wrong_password"}),
+                content_type="application/json",
+            )
 
-                # Test login with incorrect password
-                response2 = client.post(
-                    "/api/admin/login",
-                    data=json.dumps({"password": "wrong_password"}),
-                    content_type="application/json",
-                )
-
-                assert (
-                    response2.status_code == 401
-                ), "Login should fail with incorrect password"
-
-        finally:
-            # Restore original password
-            if original_password is not None:
-                os.environ["ADMIN_PASSWORD"] = original_password
-            elif "ADMIN_PASSWORD" in os.environ:
-                del os.environ["ADMIN_PASSWORD"]
+            assert (
+                response2.status_code == 401
+            ), "Login should fail with incorrect password"
 
     def test_dotenv_loads_before_env_access(self):
         """Test that load_dotenv() is called before accessing environment variables.
