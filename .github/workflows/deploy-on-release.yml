@@ -161,7 +161,7 @@ EOF
           if [ -f "${PROD_DEPLOY_PATH}/current/.env" ]; then
             ENV_OWNER=\$(stat -c '%U:%G %a' "${PROD_DEPLOY_PATH}/current/.env" 2>/dev/null || echo "missing")
             echo ".env: \${ENV_OWNER}"
-            if ! echo "\${ENV_OWNER}" | grep -q "^${PROD_DEPLOY_USER}:${PROD_DEPLOY_USER} 600\$"; then
+            if ! echo "\${ENV_OWNER}" | grep -q "^${PROD_DEPLOY_USER}:${PROD_DEPLOY_USER} 600$"; then
               echo "ERROR: .env ownership or permissions incorrect"
               stat -c '%U:%G %a %n' "${PROD_DEPLOY_PATH}/current/.env" || true
               exit 1
