@@ -146,8 +146,8 @@ EOF
             ${PROD_DEPLOY_USER}@${PROD_DEPLOY_HOST} \
             "bash -s" <<'VERIFY'
           set -euo pipefail
-          PROD_DEPLOY_PATH='${PROD_DEPLOY_PATH}'
-          PROD_DEPLOY_USER='${PROD_DEPLOY_USER}'
+          PROD_DEPLOY_PATH="${PROD_DEPLOY_PATH}"
+          PROD_DEPLOY_USER="${PROD_DEPLOY_USER}"
 
           # Check ownership of current symlink and .env
           CURRENT_OWNER=$(stat -c '%U:%G' "${PROD_DEPLOY_PATH}/current" 2>/dev/null || echo "missing")
