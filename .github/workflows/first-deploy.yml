@@ -103,7 +103,7 @@ jobs:
 
           [Service]
           Type=simple
-          User=root
+          User=santa
           WorkingDirectory=/srv/santa-tracker/current
           # Adjust ExecStart to your app's entrypoint (see docs/DEPLOY.md)
           ExecStart=/srv/santa-tracker/current/venv/bin/python -m src.app
@@ -126,19 +126,50 @@ jobs:
           sshpass -p "${{ secrets.PROD_SSH_PASSWORD }}" ssh -o StrictHostKeyChecking=no \
             "${{ env.DEPLOY_USER }}@${{ env.DEPLOY_HOST }}" "RELEASE_DIR='${{ env.RELEASE_DIR }}' DEPLOY_PATH='${{ env.DEPLOY_PATH }}' DEPLOY_USER='${{ env.DEPLOY_USER }}' bash -s" <<'EOF'
           set -euo pipefail
-          ln -sfn "$RELEASE_DIR" "${DEPLOY_PATH}/current"
-          if id "$DEPLOY_USER" &>/dev/null; then
-            sudo chown -R "$DEPLOY_USER:$DEPLOY_USER" "$DEPLOY_PATH" || true
-          fi
+          # Switch symlink (privileged operation)
+          sudo ln -sfn "$RELEASE_DIR" "${DEPLOY_PATH}/current"
+          # Ensure the release files and symlink are owned by the deploy user
+          sudo chown -R "$DEPLOY_USER:$DEPLOY_USER" "$RELEASE_DIR" || true
+          sudo chown -h "$DEPLOY_USER:$DEPLOY_USER" "${DEPLOY_PATH}/current" || true
+          # (Optional) fix perms on data dir
+          sudo chown -R "$DEPLOY_USER:$DEPLOY_USER" "${DEPLOY_PATH}/data" || true
+          # Restart service
           sudo systemctl restart santa-tracker || sudo systemctl start santa-tracker
           sleep 3
-          sudo systemctl is-active --quiet santa-tracker && echo "Service is active" || (echo "Service failed to start"; sudo journalctl -u santa-tracker --no-pager -n 200; exit 1)
+          # Verification will be done in next step
           EOF
         env:
           RELEASE_DIR: ${{ env.RELEASE_DIR }}
           DEPLOY_PATH: ${{ env.DEPLOY_PATH }}
           DEPLOY_USER: ${{ env.DEPLOY_USER }}
 
-      - name: Verification note
+      - name: Post-deploy verification
         run: |
-          echo "First-deployment completed. If the service failed, check journalctl -u santa-tracker on the remote host."
+          set -euo pipefail
+          echo "Verifying deployment ownership and service status..."
+          sshpass -p "${{ secrets.PROD_SSH_PASSWORD }}" ssh -o StrictHostKeyChecking=no \
+            "${{ env.DEPLOY_USER }}@${{ env.DEPLOY_HOST }}" "DEPLOY_PATH='${{ env.DEPLOY_PATH }}' DEPLOY_USER='${{ env.DEPLOY_USER }}' bash -s" <<'VERIFY_EOF'
+          set -euo pipefail
+          
+          # Check ownership of current symlink
+          CURRENT_OWNER=$(stat -c '%U:%G' "${DEPLOY_PATH}/current" 2>/dev/null || echo "missing")
+          echo "Current symlink owner: ${CURRENT_OWNER}"
+          if [ "${CURRENT_OWNER}" != "${DEPLOY_USER}:${DEPLOY_USER}" ]; then
+            echo "ERROR: current symlink is not owned by ${DEPLOY_USER}"
+            stat -c '%U:%G %n' "${DEPLOY_PATH}/current" || true
+            exit 1
+          fi
+          
+          # Check service status
+          if ! sudo systemctl is-active --quiet santa-tracker; then
+            echo "ERROR: santa-tracker service is not active"
+            sudo systemctl status santa-tracker --no-pager || true
+            sudo journalctl -u santa-tracker -n 200 --no-pager || true
+            exit 1
+          fi
+          
+          echo "✓ Deployment verification passed: ownership correct and service active"
+          VERIFY_EOF
+        env:
+          DEPLOY_PATH: ${{ env.DEPLOY_PATH }}
+          DEPLOY_USER: ${{ env.DEPLOY_USER }}

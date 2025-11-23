@@ -68,21 +68,56 @@ jobs:
           set -euo pipefail
           REMOTE_DIR="${REMOTE_DIR}"
           PROD_DEPLOY_PATH="${PROD_DEPLOY_PATH}"
-          # create venv, install requirements, migrations, symlink, restart systemd
-          python3 -m venv "${REMOTE_DIR}/venv"
-          "${REMOTE_DIR}/venv/bin/pip" install --upgrade pip setuptools wheel || true
-          if [ -f "${REMOTE_DIR}/requirements.txt" ]; then
-            "${REMOTE_DIR}/venv/bin/pip" install -r "${REMOTE_DIR}/requirements.txt" || true
-          fi
+          PROD_DEPLOY_USER="${PROD_DEPLOY_USER}"
+          # create venv & install as the deploy user (not root)
+          sudo -u "\${PROD_DEPLOY_USER}" bash -lc "python3 -m venv '${REMOTE_DIR}/venv' && '${REMOTE_DIR}/venv/bin/pip' install --upgrade pip setuptools wheel; if [ -f '${REMOTE_DIR}/requirements.txt' ]; then '${REMOTE_DIR}/venv/bin/pip' install -r '${REMOTE_DIR}/requirements.txt'; fi"
+          # Run migrations as deploy user if needed
           if [ -f "${REMOTE_DIR}/alembic.ini" ]; then
             if [ -f "${REMOTE_DIR}/.env" ]; then
               set -o allexport; source "${REMOTE_DIR}/.env"; set +o allexport
             fi
-            (cd "${REMOTE_DIR}" && venv/bin/alembic upgrade head) || true
+            sudo -u "\${PROD_DEPLOY_USER}" bash -lc "cd '${REMOTE_DIR}' && './venv/bin/alembic' upgrade head" || true
           fi
-          ln -sfn "${REMOTE_DIR}" "${PROD_DEPLOY_PATH}/current"
-          sudo chown -R ${PROD_DEPLOY_USER}:${PROD_DEPLOY_USER} "${REMOTE_DIR}" || true
+          # Switch symlink (privileged operation)
+          sudo ln -sfn "${REMOTE_DIR}" "${PROD_DEPLOY_PATH}/current"
+          # Ensure the release files and symlink are owned by the deploy user
+          sudo chown -R "\${PROD_DEPLOY_USER}:\${PROD_DEPLOY_USER}" "${REMOTE_DIR}" || true
+          sudo chown -h "\${PROD_DEPLOY_USER}:\${PROD_DEPLOY_USER}" "${PROD_DEPLOY_PATH}/current" || true
+          # (Optional) fix perms on data dir
+          sudo chown -R "\${PROD_DEPLOY_USER}:\${PROD_DEPLOY_USER}" "${PROD_DEPLOY_PATH}/data" || true
+          # Reload and restart service
           sudo systemctl daemon-reload || true
           sudo systemctl restart santa-tracker || true
           systemctl status santa-tracker --no-pager || true
           EOF
+
+      - name: Post-deploy verification
+        run: |
+          set -euo pipefail
+          echo "Verifying deployment ownership and service status..."
+          sshpass -p "${PROD_SSH_PASSWORD}" ssh -o StrictHostKeyChecking=no \
+            ${PROD_DEPLOY_USER}@${PROD_DEPLOY_HOST} \
+            "bash -s" <<'VERIFY_EOF'
+          set -euo pipefail
+          PROD_DEPLOY_PATH="${PROD_DEPLOY_PATH}"
+          PROD_DEPLOY_USER="${PROD_DEPLOY_USER}"
+          
+          # Check ownership of current symlink
+          CURRENT_OWNER=$(stat -c '%U:%G' "${PROD_DEPLOY_PATH}/current" 2>/dev/null || echo "missing")
+          echo "Current symlink owner: ${CURRENT_OWNER}"
+          if [ "${CURRENT_OWNER}" != "${PROD_DEPLOY_USER}:${PROD_DEPLOY_USER}" ]; then
+            echo "ERROR: current symlink is not owned by ${PROD_DEPLOY_USER}"
+            stat -c '%U:%G %n' "${PROD_DEPLOY_PATH}/current" || true
+            exit 1
+          fi
+          
+          # Check service status
+          if ! sudo systemctl is-active --quiet santa-tracker; then
+            echo "ERROR: santa-tracker service is not active"
+            sudo systemctl status santa-tracker --no-pager || true
+            sudo journalctl -u santa-tracker -n 200 --no-pager || true
+            exit 1
+          fi
+          
+          echo "✓ Deployment verification passed: ownership correct and service active"
+          VERIFY_EOF
