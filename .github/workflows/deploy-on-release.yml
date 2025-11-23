@@ -70,7 +70,7 @@ jobs:
             deployment-package/ ${PROD_DEPLOY_USER}@${PROD_DEPLOY_HOST}:"${REMOTE_DIR}/"
 
           echo "Finalizing deploy on remote host (atomic privileged block)"
-          # IMPORTANT: use an unquoted here-doc so the runner expands REMOTE_DIR/PROD_* and the remote script gets concrete values.
+          # Use an unquoted here-doc so runner expands the REMOTE_DIR and PROD_* variables into the remote script.
           sshpass -p "${PROD_SSH_PASSWORD}" ssh -o StrictHostKeyChecking=no \
             ${PROD_DEPLOY_USER}@${PROD_DEPLOY_HOST} "bash -s" <<EOF
           REMOTE_DIR='${REMOTE_DIR}'
@@ -143,18 +143,20 @@ jobs:
           set -euo pipefail
           echo "Verifying deployment ownership and service status..."
 
+          # Use an unquoted here-doc so runner expands the expected owner string into the remote script.
           sshpass -p "${PROD_SSH_PASSWORD}" ssh -o StrictHostKeyChecking=no \
             ${PROD_DEPLOY_USER}@${PROD_DEPLOY_HOST} "bash -s" <<VERIFY
           PROD_DEPLOY_PATH='${PROD_DEPLOY_PATH}'
           PROD_DEPLOY_USER='${PROD_DEPLOY_USER}'
+          EXPECTED_OWNER='${PROD_DEPLOY_USER}:${PROD_DEPLOY_USER}'
           
           set -euo pipefail
           
           # Check ownership of current symlink and .env
           CURRENT_OWNER=\$(stat -c '%U:%G' "\${PROD_DEPLOY_PATH}/current" 2>/dev/null || echo "missing")
           echo "Current symlink owner: \${CURRENT_OWNER}"
-          if [ "\${CURRENT_OWNER}" != "\${PROD_DEPLOY_USER}:\${PROD_DEPLOY_USER}" ]; then
-            echo "ERROR: current symlink is not owned by \${PROD_DEPLOY_USER}"
+          if [ "\${CURRENT_OWNER}" != "\${EXPECTED_OWNER}" ]; then
+            echo "ERROR: current symlink is not owned by \${EXPECTED_OWNER}"
             stat -c '%U:%G %n' "\${PROD_DEPLOY_PATH}/current" || true
             exit 1
           fi
@@ -162,8 +164,9 @@ jobs:
           if [ -f "\${PROD_DEPLOY_PATH}/current/.env" ]; then
             ENV_OWNER=\$(stat -c '%U:%G %a' "\${PROD_DEPLOY_PATH}/current/.env" 2>/dev/null || echo "missing")
             echo ".env: \${ENV_OWNER}"
-            if ! echo "\${ENV_OWNER}" | grep -q "^${{ secrets.PROD_DEPLOY_USER }}:${{ secrets.PROD_DEPLOY_USER }} 6"; then
-              echo "ERROR: .env ownership or permissions incorrect"
+            # Ensure it's owned by deploy user and mode starts with 6 (600)
+            if ! echo "\${ENV_OWNER}" | grep -q "^\${EXPECTED_OWNER} 6"; then
+              echo "ERROR: .env ownership or permissions incorrect (expected \${EXPECTED_OWNER} 600)"
               stat -c '%U:%G %a %n' "\${PROD_DEPLOY_PATH}/current/.env" || true
               exit 1
             fi
