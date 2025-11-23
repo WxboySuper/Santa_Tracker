@@ -45,12 +45,8 @@ jobs:
           if [ -n "${PROD_DOTENV:-}" ]; then
             printf '%s\n' "${PROD_DOTENV}" > deployment-package/.env
           else
-            # here-doc is indented to match run: block, and uses no runner-side expansion
-            cat > deployment-package/.env <<'ENV_EOF'
-# Minimal defaults; add repository secrets for production values
-DATA_PATH=${PROD_DEPLOY_PATH}/data
-LOG_LEVEL=INFO
-ENV_EOF
+            # write .env without using an indented heredoc to avoid YAML here-doc pitfalls
+            printf '%s\n' "DATA_PATH=${PROD_DEPLOY_PATH}/data" "LOG_LEVEL=INFO" > deployment-package/.env
           fi
           chmod 600 deployment-package/.env
 
@@ -71,7 +67,7 @@ ENV_EOF
             deployment-package/ ${PROD_DEPLOY_USER}@${PROD_DEPLOY_HOST}:"${REMOTE_DIR}/"
 
           echo "Finalizing deploy on remote host (atomic privileged block)"
-          # Pass concrete env vars on the ssh command line; remote script is provided via a properly aligned here-doc.
+          # pass concrete values on the ssh command line; remote script provided via indented here-doc
           sshpass -p "${PROD_SSH_PASSWORD}" ssh -o StrictHostKeyChecking=no \
             ${PROD_DEPLOY_USER}@${PROD_DEPLOY_HOST} \
             "PROD_DEPLOY_PATH='${PROD_DEPLOY_PATH}' PROD_DEPLOY_USER='${PROD_DEPLOY_USER}' REMOTE_DIR='${REMOTE_DIR}' bash -s" <<'REMOTE_EOF'
@@ -79,13 +75,12 @@ ENV_EOF
             set -x
 
             # Remote variables available: $REMOTE_DIR, $PROD_DEPLOY_PATH, $PROD_DEPLOY_USER
-
             RELEASE_ROOT="${PROD_DEPLOY_PATH}/releases"
 
             mkdir -p "${RELEASE_ROOT}"
             mkdir -p "${PROD_DEPLOY_PATH}/data" || true
 
-            # Create venv & install requirements as the deploy user (not root)
+            # Create venv & install requirements AS THE DEPLOY USER (not root)
             sudo -u "${PROD_DEPLOY_USER}" bash -lc "\
               python3 -m venv '${REMOTE_DIR}/venv' && \
               '${REMOTE_DIR}/venv/bin/pip' install --upgrade pip setuptools wheel || true; \
@@ -107,15 +102,15 @@ ENV_EOF
               sudo chmod 600 "${REMOTE_DIR}/.env" || true
             fi
 
-            # If current exists and is not a symlink, move it to a backup
+            # If current exists and is not a symlink, move it to a backup to avoid ln putting the link inside it
             if [ -e "${PROD_DEPLOY_PATH}/current" ] && [ ! -L "${PROD_DEPLOY_PATH}/current" ]; then
               mv "${PROD_DEPLOY_PATH}/current" "${PROD_DEPLOY_PATH}/releases/previous-current-$(date +%Y%m%d-%H%M%S)" || true
             fi
 
-            # Atomically update current to point to the new release
+            # Atomically update current to point to the new release (privileged)
             sudo ln -sfn "${REMOTE_DIR}" "${PROD_DEPLOY_PATH}/current"
 
-            # Ensure the release files and symlink are owned by the deploy user (privileged root step)
+            # CRITICAL: Ensure the release files and symlink are owned by the deploy user (run as root)
             sudo chown -R "${PROD_DEPLOY_USER}:${PROD_DEPLOY_USER}" "${REMOTE_DIR}" || true
             sudo chown -h "${PROD_DEPLOY_USER}:${PROD_DEPLOY_USER}" "${PROD_DEPLOY_PATH}/current" || true
 
@@ -132,7 +127,7 @@ ENV_EOF
             sudo systemctl status santa-tracker --no-pager || true
 
             echo "Deployed to ${REMOTE_DIR}"
-REMOTE_EOF
+          REMOTE_EOF
 
       - name: Post-deploy verification (runner-side)
         env:
@@ -144,7 +139,7 @@ REMOTE_EOF
           set -euo pipefail
           echo "Verifying deployment ownership and service status..."
 
-          # Provide expected values on ssh command line; verification runs remotely
+          # Provide expected values on the ssh command line; verification runs remotely
           sshpass -p "${PROD_SSH_PASSWORD}" ssh -o StrictHostKeyChecking=no \
             ${PROD_DEPLOY_USER}@${PROD_DEPLOY_HOST} \
             "PROD_DEPLOY_PATH='${PROD_DEPLOY_PATH}' PROD_DEPLOY_USER='${PROD_DEPLOY_USER}' bash -s" <<'VERIFY_EOF'
@@ -180,4 +175,4 @@ REMOTE_EOF
             fi
 
             echo "✓ Deployment verification passed: ownership correct and service active"
-VERIFY_EOF
+          VERIFY_EOF
