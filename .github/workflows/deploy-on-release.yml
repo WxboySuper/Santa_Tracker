@@ -70,12 +70,19 @@ jobs:
           PROD_DEPLOY_PATH="${PROD_DEPLOY_PATH}"
           PROD_DEPLOY_USER="${PROD_DEPLOY_USER}"
           # create venv & install as the deploy user (not root)
-          sudo -u "\${PROD_DEPLOY_USER}" bash -lc "python3 -m venv '${REMOTE_DIR}/venv' && '${REMOTE_DIR}/venv/bin/pip' install --upgrade pip setuptools wheel; if [ -f '${REMOTE_DIR}/requirements.txt' ]; then '${REMOTE_DIR}/venv/bin/pip' install -r '${REMOTE_DIR}/requirements.txt'; fi"
+          sudo -u "\${PROD_DEPLOY_USER}" bash -lc "
+            python3 -m venv '${REMOTE_DIR}/venv' && \
+            '${REMOTE_DIR}/venv/bin/pip' install --upgrade pip setuptools wheel && \
+            if [ -f '${REMOTE_DIR}/requirements.txt' ]; then \
+              '${REMOTE_DIR}/venv/bin/pip' install -r '${REMOTE_DIR}/requirements.txt'; \
+            fi
+          "
           # Run migrations as deploy user if needed
           if [ -f "${REMOTE_DIR}/alembic.ini" ]; then
             if [ -f "${REMOTE_DIR}/.env" ]; then
               set -o allexport; source "${REMOTE_DIR}/.env"; set +o allexport
             fi
+            # Allow migration failures to not block deployment (matches original behavior)
             sudo -u "\${PROD_DEPLOY_USER}" bash -lc "cd '${REMOTE_DIR}' && './venv/bin/alembic' upgrade head" || true
           fi
           # Switch symlink (privileged operation)
