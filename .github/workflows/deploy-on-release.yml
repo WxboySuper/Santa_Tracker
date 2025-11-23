@@ -121,8 +121,9 @@ EOF
           sudo chown -R ${PROD_DEPLOY_USER}:${PROD_DEPLOY_USER} "${PROD_DEPLOY_PATH}/data" || true
 
           # Cleanup older releases
-          cd "${RELEASE_ROOT}" || exit 0
-          ls -1dt * 2>/dev/null | tail -n +6 | xargs -r rm -rf || true
+          if cd "${RELEASE_ROOT}" 2>/dev/null; then
+            ls -1dt * 2>/dev/null | tail -n +6 | xargs -r rm -rf || true
+          fi
 
           # Reload and restart service (privileged)
           sudo systemctl daemon-reload || true
