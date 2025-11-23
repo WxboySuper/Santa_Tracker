@@ -49,7 +49,7 @@ jobs:
           # Minimal defaults; add repository secrets for production values
           DATA_PATH=${PROD_DEPLOY_PATH}/data
           LOG_LEVEL=INFO
-          EOF
+EOF
           fi
           chmod 600 deployment-package/.env
 
