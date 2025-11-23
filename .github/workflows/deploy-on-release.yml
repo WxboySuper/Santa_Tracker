@@ -73,65 +73,65 @@ jobs:
           # IMPORTANT: use an unquoted here-doc so the runner expands REMOTE_DIR/PROD_* and the remote script gets concrete values.
           sshpass -p "${PROD_SSH_PASSWORD}" ssh -o StrictHostKeyChecking=no \
             ${PROD_DEPLOY_USER}@${PROD_DEPLOY_HOST} "bash -s" <<EOF
-        REMOTE_DIR='${REMOTE_DIR}'
-        PROD_DEPLOY_PATH='${PROD_DEPLOY_PATH}'
-        PROD_DEPLOY_USER='${PROD_DEPLOY_USER}'
-        RELEASE_ROOT="\${PROD_DEPLOY_PATH}/releases"
-        
-        set -euo pipefail
-        set -x
-        
-        mkdir -p "\${RELEASE_ROOT}"
-        mkdir -p "\${PROD_DEPLOY_PATH}/data" || true
-        
-        # Create venv & install requirements AS THE DEPLOY USER (not root)
-        sudo -u "\${PROD_DEPLOY_USER}" bash -lc "\
-          python3 -m venv '\${REMOTE_DIR}/venv' && \
-          '\${REMOTE_DIR}/venv/bin/pip' install --upgrade pip setuptools wheel || true; \
-          if [ -f '\${REMOTE_DIR}/requirements.txt' ]; then \
-            '\${REMOTE_DIR}/venv/bin/pip' install -r '\${REMOTE_DIR}/requirements.txt' || true; \
-          fi"
-        
-        # Run database migrations as the deploy user if present (load .env for migration env)
-        if [ -f "\${REMOTE_DIR}/alembic.ini" ]; then
-          if [ -f "\${REMOTE_DIR}/.env" ]; then
-            set -o allexport; source "\${REMOTE_DIR}/.env"; set +o allexport
+          REMOTE_DIR='${REMOTE_DIR}'
+          PROD_DEPLOY_PATH='${PROD_DEPLOY_PATH}'
+          PROD_DEPLOY_USER='${PROD_DEPLOY_USER}'
+          RELEASE_ROOT="\${PROD_DEPLOY_PATH}/releases"
+          
+          set -euo pipefail
+          set -x
+          
+          mkdir -p "\${RELEASE_ROOT}"
+          mkdir -p "\${PROD_DEPLOY_PATH}/data" || true
+          
+          # Create venv & install requirements AS THE DEPLOY USER (not root)
+          sudo -u "\${PROD_DEPLOY_USER}" bash -lc "\
+            python3 -m venv '\${REMOTE_DIR}/venv' && \
+            '\${REMOTE_DIR}/venv/bin/pip' install --upgrade pip setuptools wheel || true; \
+            if [ -f '\${REMOTE_DIR}/requirements.txt' ]; then \
+              '\${REMOTE_DIR}/venv/bin/pip' install -r '\${REMOTE_DIR}/requirements.txt' || true; \
+            fi"
+          
+          # Run database migrations as the deploy user if present (load .env for migration env)
+          if [ -f "\${REMOTE_DIR}/alembic.ini" ]; then
+            if [ -f "\${REMOTE_DIR}/.env" ]; then
+              set -o allexport; source "\${REMOTE_DIR}/.env"; set +o allexport
+            fi
+            sudo -u "\${PROD_DEPLOY_USER}" bash -lc "cd '\${REMOTE_DIR}' && ./venv/bin/alembic upgrade head" || true
           fi
-          sudo -u "\${PROD_DEPLOY_USER}" bash -lc "cd '\${REMOTE_DIR}' && ./venv/bin/alembic upgrade head" || true
-        fi
-        
-        # Secure uploaded .env: ensure deploy user owns it and perms are 600
-        if [ -f "\${REMOTE_DIR}/.env" ]; then
-          sudo chown \${PROD_DEPLOY_USER}:\${PROD_DEPLOY_USER} "\${REMOTE_DIR}/.env" || true
-          sudo chmod 600 "\${REMOTE_DIR}/.env" || true
-        fi
-        
-        # If current exists and is not a symlink, move it to a backup to avoid ln putting the link inside it
-        if [ -e "\${PROD_DEPLOY_PATH}/current" ] && [ ! -L "\${PROD_DEPLOY_PATH}/current" ]; then
-          mv "\${PROD_DEPLOY_PATH}/current" "\${PROD_DEPLOY_PATH}/releases/previous-current-\$(date +%Y%m%d-%H%M%S)" || true
-        fi
-        
-        # Atomically update current to point to the new release (privileged)
-        sudo ln -sfn "\${REMOTE_DIR}" "\${PROD_DEPLOY_PATH}/current"
-        
-        # CRITICAL: Ensure the release files and symlink are owned by the deploy user (run as root)
-        sudo chown -R \${PROD_DEPLOY_USER}:\${PROD_DEPLOY_USER} "\${REMOTE_DIR}" || true
-        sudo chown -h \${PROD_DEPLOY_USER}:\${PROD_DEPLOY_USER} "\${PROD_DEPLOY_PATH}/current" || true
-        
-        # Ensure data dir ownership
-        sudo chown -R \${PROD_DEPLOY_USER}:\${PROD_DEPLOY_USER} "\${PROD_DEPLOY_PATH}/data" || true
-        
-        # Cleanup older releases (keep 5)
-        cd "\${RELEASE_ROOT}" || exit 0
-        ls -1dt * 2>/dev/null | tail -n +6 | xargs -r rm -rf || true
-        
-        # Reload and restart service (privileged)
-        sudo systemctl daemon-reload || true
-        sudo systemctl restart santa-tracker || true
-        sudo systemctl status santa-tracker --no-pager || true
-        
-        echo "Deployed to \${REMOTE_DIR}"
-        EOF
+          
+          # Secure uploaded .env: ensure deploy user owns it and perms are 600
+          if [ -f "\${REMOTE_DIR}/.env" ]; then
+            sudo chown \${PROD_DEPLOY_USER}:\${PROD_DEPLOY_USER} "\${REMOTE_DIR}/.env" || true
+            sudo chmod 600 "\${REMOTE_DIR}/.env" || true
+          fi
+          
+          # If current exists and is not a symlink, move it to a backup to avoid ln putting the link inside it
+          if [ -e "\${PROD_DEPLOY_PATH}/current" ] && [ ! -L "\${PROD_DEPLOY_PATH}/current" ]; then
+            mv "\${PROD_DEPLOY_PATH}/current" "\${PROD_DEPLOY_PATH}/releases/previous-current-\$(date +%Y%m%d-%H%M%S)" || true
+          fi
+          
+          # Atomically update current to point to the new release (privileged)
+          sudo ln -sfn "\${REMOTE_DIR}" "\${PROD_DEPLOY_PATH}/current"
+          
+          # CRITICAL: Ensure the release files and symlink are owned by the deploy user (run as root)
+          sudo chown -R \${PROD_DEPLOY_USER}:\${PROD_DEPLOY_USER} "\${REMOTE_DIR}" || true
+          sudo chown -h \${PROD_DEPLOY_USER}:\${PROD_DEPLOY_USER} "\${PROD_DEPLOY_PATH}/current" || true
+          
+          # Ensure data dir ownership
+          sudo chown -R \${PROD_DEPLOY_USER}:\${PROD_DEPLOY_USER} "\${PROD_DEPLOY_PATH}/data" || true
+          
+          # Cleanup older releases (keep 5)
+          cd "\${RELEASE_ROOT}" || exit 0
+          ls -1dt * 2>/dev/null | tail -n +6 | xargs -r rm -rf || true
+          
+          # Reload and restart service (privileged)
+          sudo systemctl daemon-reload || true
+          sudo systemctl restart santa-tracker || true
+          sudo systemctl status santa-tracker --no-pager || true
+          
+          echo "Deployed to \${REMOTE_DIR}"
+          EOF
 
       - name: Post-deploy verification (runner-side)
         env:
