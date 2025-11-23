@@ -86,7 +86,7 @@ EOF
           # Create venv & install requirements AS THE DEPLOY USER (not root)
           sudo -u "${PROD_DEPLOY_USER}" bash -lc "\
             python3 -m venv '${REMOTE_DIR}/venv' && \
-            '${REMOTE_DIR}/venv/bin/pip' install --upgrade pip setuptools wheel || true; \
+            '${REMOTE_DIR}/venv/bin/pip' install --upgrade pip setuptools wheel; \
             if [ -f '${REMOTE_DIR}/requirements.txt' ]; then \
               '${REMOTE_DIR}/venv/bin/pip' install -r '${REMOTE_DIR}/requirements.txt' || true; \
             fi"
