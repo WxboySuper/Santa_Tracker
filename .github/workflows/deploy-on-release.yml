@@ -151,9 +151,36 @@ jobs:
             echo "Current symlink owner: ${CURRENT_OWNER}"
 
             EXPECTED_OWNER="${PROD_DEPLOY_USER}:${PROD_DEPLOY_USER}"
+            # Note: GitHub masks secrets in logs; EXPECTED_OWNER will appear masked in Action logs.
+
             if [ "${CURRENT_OWNER}" != "${EXPECTED_OWNER}" ]; then
               echo "ERROR: current symlink is not owned by ${EXPECTED_OWNER}"
-              stat -c '%U:%G %n' "${PROD_DEPLOY_PATH}/current" || true
+              echo "--- Diagnostics ---"
+              echo "Target of current symlink:"
+              readlink -f "${PROD_DEPLOY_PATH}/current" || true
+              echo ""
+              echo "Owner and mode of current symlink (and target if available):"
+              stat -c '%U:%G %a %n' "${PROD_DEPLOY_PATH}/current" 2>/dev/null || true
+              echo ""
+              echo "Listing release dir and current contents:"
+              ls -la "${PROD_DEPLOY_PATH}" || true
+              ls -la "$(readlink -f "${PROD_DEPLOY_PATH}/current")" || true
+              echo ""
+              echo ".env owner/perms (if present):"
+              stat -c '%U:%G %a %n' "${PROD_DEPLOY_PATH}/current/.env" 2>/dev/null || true
+              echo ""
+              echo "Systemd status (last 100 lines):"
+              sudo journalctl -u santa-tracker -n 100 --no-pager || true
+              echo ""
+              echo "Likely causes:"
+              echo " - The repository secret PROD_DEPLOY_USER does not match the system user that should own the release (e.g. 'santa')."
+              echo " - The deploy finalize chown failed or did not run as root."
+              echo ""
+              echo "Quick fixes (run on the server):"
+              echo " sudo chown -R ${PROD_DEPLOY_USER}:${PROD_DEPLOY_USER} ${PROD_DEPLOY_PATH}/releases/<release>"
+              echo " sudo chown -h ${PROD_DEPLOY_USER}:${PROD_DEPLOY_USER} ${PROD_DEPLOY_PATH}/current"
+              echo ""
+              echo "If the secret is wrong, update the repository secret PROD_DEPLOY_USER to the actual deploy user (e.g. 'santa')."
               exit 1
             fi
 
