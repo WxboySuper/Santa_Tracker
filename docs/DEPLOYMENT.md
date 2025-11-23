@@ -341,6 +341,16 @@ zappa update production
 
 ## 🌐 VPS Deployment (DigitalOcean, Linode, etc.)
 
+**For detailed VPS deployment guidance with systemd, including file ownership, permissions, and troubleshooting, see [DEPLOY.md](./DEPLOY.md).**
+
+### Quick Start
+
+See [DEPLOY.md](./DEPLOY.md) for comprehensive instructions on:
+- Proper file ownership for systemd services
+- Recommended systemd unit configuration
+- Deployment workflow details
+- Troubleshooting permission issues
+
 ### Server Setup
 
 ```bash
@@ -375,6 +385,8 @@ sudo nano .env
 ```
 
 ### Gunicorn Service
+
+**Note**: For production deployments using systemd, see [DEPLOY.md](./DEPLOY.md) for recommended configuration with proper user permissions.
 
 Create `/etc/supervisor/conf.d/santa-tracker.conf`:
 
