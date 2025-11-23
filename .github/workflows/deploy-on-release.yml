@@ -46,10 +46,10 @@ jobs:
             printf '%s\n' "${PROD_DOTENV}" > deployment-package/.env
           else
             cat > deployment-package/.env <<EOF
-# Minimal defaults; add repository secrets for production values
-DATA_PATH=${PROD_DEPLOY_PATH}/data
-LOG_LEVEL=INFO
-EOF
+          # Minimal defaults; add repository secrets for production values
+          DATA_PATH=${PROD_DEPLOY_PATH}/data
+          LOG_LEVEL=INFO
+          EOF
           fi
           chmod 600 deployment-package/.env
 
