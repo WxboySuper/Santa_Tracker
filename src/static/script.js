@@ -362,7 +362,8 @@ function getSantaStatus() {
         if (firstArrivalTime && now < firstArrivalTime) {
             // Find North Pole location (Santa's workshop - identified by fun_facts or as last location)
             const northPole = santaRoute.find(loc => 
-                loc.fun_facts && loc.fun_facts.toLowerCase().includes('workshop')
+                (loc.notes && loc.notes.toLowerCase().includes('workshop')) ||
+                (loc.fun_facts && loc.fun_facts.toLowerCase().includes('workshop'))
             ) || santaRoute[santaRoute.length - 1];
             
             return {
