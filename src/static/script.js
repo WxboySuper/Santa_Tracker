@@ -332,15 +332,15 @@ function adjustTimestampToCurrentYear(timestamp) {
     const now = new Date();
     const currentYear = now.getFullYear();
     
-    // Get the tour launch date for this year (Dec 24 00:00 UTC matches route data start time)
-    const tourLaunchThisYear = new Date(Date.UTC(currentYear, 11, 24, 0, 0, 0));
+    // Get the tour end date for this year (Dec 26 00:00 UTC - after journey completes)
+    const tourEndThisYear = new Date(Date.UTC(currentYear, 11, 26, 0, 0, 0));
     
     // Create adjusted date with current year
     const adjustedDate = new Date(routeDate);
     adjustedDate.setUTCFullYear(currentYear);
     
-    // If we've already passed Christmas this year, use next year
-    if (now > tourLaunchThisYear) {
+    // If we've already finished Christmas this year, use next year
+    if (now > tourEndThisYear) {
         adjustedDate.setUTCFullYear(currentYear + 1);
     }
     
