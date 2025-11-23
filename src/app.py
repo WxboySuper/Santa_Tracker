@@ -6,7 +6,11 @@ import time
 from datetime import datetime
 from functools import wraps
 
+from dotenv import load_dotenv
 from flask import Flask, jsonify, render_template, request
+
+# Load environment variables from .env file
+load_dotenv()
 
 # Add the src directory to the path to allow imports
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
