@@ -33,9 +33,9 @@ class TestDotenvLoading:
         content = app_file.read_text()
 
         # Check for dotenv import
-        assert "from dotenv import load_dotenv" in content, (
-            "app.py must import load_dotenv from dotenv to load .env files"
-        )
+        assert (
+            "from dotenv import load_dotenv" in content
+        ), "app.py must import load_dotenv from dotenv to load .env files"
 
         # Check that load_dotenv() is called
         assert "load_dotenv()" in content, (
@@ -97,9 +97,9 @@ class TestDotenvLoading:
         admin_password_pos = content.find('os.environ.get("ADMIN_PASSWORD")')
 
         assert load_dotenv_pos != -1, "load_dotenv() must be called in app.py"
-        assert admin_password_pos != -1, (
-            "os.environ.get('ADMIN_PASSWORD') must be present in app.py"
-        )
+        assert (
+            admin_password_pos != -1
+        ), "os.environ.get('ADMIN_PASSWORD') must be present in app.py"
         assert load_dotenv_pos < admin_password_pos, (
             "load_dotenv() must be called before accessing ADMIN_PASSWORD "
             "to ensure .env file is loaded first"
