@@ -360,8 +360,11 @@ function getSantaStatus() {
     if (firstLocation.arrival_time) {
         const firstArrivalTime = adjustTimestampToCurrentYear(firstLocation.arrival_time);
         if (firstArrivalTime && now < firstArrivalTime) {
-            // Santa is at the North Pole (last location in route) preparing for departure
-            const northPole = santaRoute[santaRoute.length - 1];
+            // Find North Pole location (Santa's workshop - identified by fun_facts or as last location)
+            const northPole = santaRoute.find(loc => 
+                loc.fun_facts && loc.fun_facts.toLowerCase().includes('workshop')
+            ) || santaRoute[santaRoute.length - 1];
+            
             return {
                 status: 'Preparing',
                 location: firstLocation,
