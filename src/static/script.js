@@ -279,12 +279,12 @@ function interpolatePosition(loc1, loc2, currentTime) {
             : [0, 0];
     }
 
-    const departure = new Date(loc1.departure_time);
-    const arrival = new Date(loc2.arrival_time);
+    const departure = adjustTimestampToCurrentYear(loc1.departure_time);
+    const arrival = adjustTimestampToCurrentYear(loc2.arrival_time);
     const now = currentTime ? new Date(currentTime) : new Date();
 
     // Validate parsed dates
-    if (isNaN(departure.getTime()) || isNaN(arrival.getTime())) {
+    if (!departure || !arrival) {
         console.warn('interpolatePosition: Invalid departure or arrival timestamps.', loc1.departure_time, loc2.arrival_time);
         return (typeof loc2.latitude === 'number' && typeof loc2.longitude === 'number')
             ? [loc2.latitude, loc2.longitude]
@@ -320,6 +320,33 @@ function interpolatePosition(loc1, loc2, currentTime) {
     return [lat, lng];
 }
 
+// Helper function to adjust route timestamp to current or next Christmas season
+function adjustTimestampToCurrentYear(timestamp) {
+    const routeDate = new Date(timestamp);
+    if (isNaN(routeDate.getTime())) {
+        // Return null for invalid timestamps instead of an invalid Date object
+        console.warn('adjustTimestampToCurrentYear: Invalid timestamp:', timestamp);
+        return null;
+    }
+    
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    
+    // Get the tour end date for this year (Dec 26 00:00 UTC - after journey completes)
+    const tourEndThisYear = new Date(Date.UTC(currentYear, 11, 26, 0, 0, 0));
+    
+    // Create adjusted date with current year
+    const adjustedDate = new Date(routeDate);
+    adjustedDate.setUTCFullYear(currentYear);
+    
+    // If we've already finished Christmas this year, use next year
+    if (now > tourEndThisYear) {
+        adjustedDate.setUTCFullYear(currentYear + 1);
+    }
+    
+    return adjustedDate;
+}
+
 // Determine Santa's current status and position
 function getSantaStatus() {
     if (santaRoute.length === 0) {
@@ -327,6 +354,26 @@ function getSantaStatus() {
     }
     
     const now = new Date();
+    
+    // Check if journey hasn't started yet (before first location)
+    const firstLocation = santaRoute[0];
+    if (firstLocation.arrival_time) {
+        const firstArrivalTime = adjustTimestampToCurrentYear(firstLocation.arrival_time);
+        if (firstArrivalTime && now < firstArrivalTime) {
+            // Find North Pole location (Santa's workshop - identified by fun_facts or as last location)
+            const northPole = santaRoute.find(loc => 
+                (loc.notes && loc.notes.toLowerCase().includes('workshop')) ||
+                (loc.fun_facts && loc.fun_facts.toLowerCase().includes('workshop'))
+            ) || santaRoute[santaRoute.length - 1];
+            
+            return {
+                status: 'Preparing',
+                location: firstLocation,
+                position: [northPole.latitude, northPole.longitude],
+                currentIndex: 0
+            };
+        }
+    }
     
     // Check each location to determine status
     for (let i = 0; i < santaRoute.length; i++) {
@@ -337,9 +384,9 @@ function getSantaStatus() {
             console.warn(`Location at index ${i} missing required timestamps`);
             continue;
         }
-        const arrivalTime = new Date(location.arrival_time);
-        const departureTime = new Date(location.departure_time);
-        if (isNaN(arrivalTime.getTime()) || isNaN(departureTime.getTime())) {
+        const arrivalTime = adjustTimestampToCurrentYear(location.arrival_time);
+        const departureTime = adjustTimestampToCurrentYear(location.departure_time);
+        if (!arrivalTime || !departureTime) {
             console.warn(`Location at index ${i} has invalid timestamps`);
             continue;
         }
@@ -363,8 +410,8 @@ function getSantaStatus() {
                 console.warn(`Next location at index ${i + 1} missing arrival_time`);
                 continue;
             }
-            const nextArrivalTime = new Date(nextLocation.arrival_time);
-            if (isNaN(nextArrivalTime.getTime())) {
+            const nextArrivalTime = adjustTimestampToCurrentYear(nextLocation.arrival_time);
+            if (!nextArrivalTime) {
                 console.warn(`Next location at index ${i + 1} has invalid arrival_time`);
                 continue;
             }
@@ -382,22 +429,7 @@ function getSantaStatus() {
         }
     }
     
-    // Before first location or after last location
-    const firstLocation = santaRoute[0];
-    if (firstLocation.arrival_time) {
-        const firstArrivalTime = new Date(firstLocation.arrival_time);
-        if (!isNaN(firstArrivalTime.getTime())) {
-            if (now < firstArrivalTime) {
-                return {
-                    status: 'Preparing',
-                    location: firstLocation,
-                    position: [firstLocation.latitude, firstLocation.longitude],
-                    currentIndex: 0
-                };
-            }
-        }
-    }
-    // If first arrival_time is missing or invalid, or now >= firstArrivalTime
+    // After checking all locations, journey must be complete
     const lastLocation = santaRoute[santaRoute.length - 1];
     return {
         status: 'Completed',
