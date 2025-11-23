@@ -88,7 +88,7 @@ EOF
             python3 -m venv '${REMOTE_DIR}/venv' && \
             '${REMOTE_DIR}/venv/bin/pip' install --upgrade pip setuptools wheel; \
             if [ -f '${REMOTE_DIR}/requirements.txt' ]; then \
-              '${REMOTE_DIR}/venv/bin/pip' install -r '${REMOTE_DIR}/requirements.txt' || true; \
+              '${REMOTE_DIR}/venv/bin/pip' install -r '${REMOTE_DIR}/requirements.txt'; \
             fi"
 
           # Run database migrations as the deploy user if present (load .env for migration env)
