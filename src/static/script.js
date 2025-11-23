@@ -332,8 +332,8 @@ function adjustTimestampToCurrentYear(timestamp) {
     const now = new Date();
     const currentYear = now.getFullYear();
     
-    // Get the tour launch date for this year (Dec 24 10:00 UTC = midnight UTC+14 on Dec 25)
-    const tourLaunchThisYear = new Date(Date.UTC(currentYear, 11, 24, 10, 0, 0));
+    // Get the tour launch date for this year (Dec 24 00:00 UTC matches route data start time)
+    const tourLaunchThisYear = new Date(Date.UTC(currentYear, 11, 24, 0, 0, 0));
     
     // Create adjusted date with current year
     const adjustedDate = new Date(routeDate);
@@ -360,10 +360,12 @@ function getSantaStatus() {
     if (firstLocation.arrival_time) {
         const firstArrivalTime = adjustTimestampToCurrentYear(firstLocation.arrival_time);
         if (firstArrivalTime && now < firstArrivalTime) {
+            // Santa is at the North Pole (last location in route) preparing for departure
+            const northPole = santaRoute[santaRoute.length - 1];
             return {
                 status: 'Preparing',
                 location: firstLocation,
-                position: [firstLocation.latitude, firstLocation.longitude],
+                position: [northPole.latitude, northPole.longitude],
                 currentIndex: 0
             };
         }
