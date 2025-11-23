@@ -284,7 +284,7 @@ function interpolatePosition(loc1, loc2, currentTime) {
     const now = currentTime ? new Date(currentTime) : new Date();
 
     // Validate parsed dates
-    if (isNaN(departure.getTime()) || isNaN(arrival.getTime())) {
+    if (!departure || !arrival) {
         console.warn('interpolatePosition: Invalid departure or arrival timestamps.', loc1.departure_time, loc2.arrival_time);
         return (typeof loc2.latitude === 'number' && typeof loc2.longitude === 'number')
             ? [loc2.latitude, loc2.longitude]
@@ -324,7 +324,9 @@ function interpolatePosition(loc1, loc2, currentTime) {
 function adjustTimestampToCurrentYear(timestamp) {
     const routeDate = new Date(timestamp);
     if (isNaN(routeDate.getTime())) {
-        return routeDate;
+        // Return null for invalid timestamps instead of an invalid Date object
+        console.warn('adjustTimestampToCurrentYear: Invalid timestamp:', timestamp);
+        return null;
     }
     
     const now = new Date();
@@ -357,7 +359,7 @@ function getSantaStatus() {
     const firstLocation = santaRoute[0];
     if (firstLocation.arrival_time) {
         const firstArrivalTime = adjustTimestampToCurrentYear(firstLocation.arrival_time);
-        if (!isNaN(firstArrivalTime.getTime()) && now < firstArrivalTime) {
+        if (firstArrivalTime && now < firstArrivalTime) {
             return {
                 status: 'Preparing',
                 location: firstLocation,
@@ -378,7 +380,7 @@ function getSantaStatus() {
         }
         const arrivalTime = adjustTimestampToCurrentYear(location.arrival_time);
         const departureTime = adjustTimestampToCurrentYear(location.departure_time);
-        if (isNaN(arrivalTime.getTime()) || isNaN(departureTime.getTime())) {
+        if (!arrivalTime || !departureTime) {
             console.warn(`Location at index ${i} has invalid timestamps`);
             continue;
         }
@@ -403,7 +405,7 @@ function getSantaStatus() {
                 continue;
             }
             const nextArrivalTime = adjustTimestampToCurrentYear(nextLocation.arrival_time);
-            if (isNaN(nextArrivalTime.getTime())) {
+            if (!nextArrivalTime) {
                 console.warn(`Next location at index ${i + 1} has invalid arrival_time`);
                 continue;
             }
