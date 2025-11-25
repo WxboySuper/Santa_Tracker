@@ -11,6 +11,7 @@ jobs:
       PROD_DEPLOY_USER: ${{ secrets.PROD_DEPLOY_USER }}
       PROD_DEPLOY_HOST: ${{ secrets.PROD_DEPLOY_HOST }}
       PROD_DEPLOY_PATH: ${{ secrets.PROD_DEPLOY_PATH }}
+      DEPLOY_ENV_FILE: ${{ secrets.DEPLOY_ENV_FILE }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -38,6 +39,7 @@ jobs:
           PROD_DEPLOY_USER: ${{ secrets.PROD_DEPLOY_USER }}
           PROD_DEPLOY_HOST: ${{ secrets.PROD_DEPLOY_HOST }}
           PROD_DEPLOY_PATH: ${{ secrets.PROD_DEPLOY_PATH }}
+          DEPLOY_ENV_FILE: ${{ secrets.DEPLOY_ENV_FILE }}
         run: |
           set -euo pipefail
 
@@ -52,7 +54,7 @@ jobs:
           rsync -az --delete -e "ssh -o StrictHostKeyChecking=no" deployment-package/ ${PROD_DEPLOY_USER}@${PROD_DEPLOY_HOST}:"${REMOTE_DIR}/"
 
           echo "Running remote finalize (wrappers must exist on server)"
-          ssh -o StrictHostKeyChecking=no ${PROD_DEPLOY_USER}@${PROD_DEPLOY_HOST} "PROD_DEPLOY_PATH='${PROD_DEPLOY_PATH}' PROD_DEPLOY_USER='${PROD_DEPLOY_USER}' REMOTE_DIR='${REMOTE_DIR}' RELEASE_ROOT='${RELEASE_ROOT}' bash -s" <<'REMOTE_EOF'
+          ssh -o StrictHostKeyChecking=no ${PROD_DEPLOY_USER}@${PROD_DEPLOY_HOST} "PROD_DEPLOY_PATH='${PROD_DEPLOY_PATH}' PROD_DEPLOY_USER='${PROD_DEPLOY_USER}' REMOTE_DIR='${REMOTE_DIR}' RELEASE_ROOT='${RELEASE_ROOT}' DEPLOY_ENV_FILE='${DEPLOY_ENV_FILE}' bash -s" <<'REMOTE_EOF'
             set -euo pipefail
 
             # create venv and install requirements (best-effort)
@@ -68,6 +70,11 @@ jobs:
                 set -o allexport; source "${REMOTE_DIR}/.env"; set +o allexport
               fi
               cd "${REMOTE_DIR}" && ./venv/bin/alembic upgrade head || true
+            fi
+
+            # write .env from runner secret into the release dir (create/overwrite if provided)
+            if [ -n "${DEPLOY_ENV_FILE:-}" ]; then
+              printf '%s\n' "${DEPLOY_ENV_FILE}" > "${REMOTE_DIR}/.env"
             fi
 
             # secure .env via root-owned wrapper scripts
