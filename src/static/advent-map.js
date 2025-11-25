@@ -201,8 +201,8 @@ async function handleCellClick(day) {
     // Add flip animation
     if (cell) {
         cell.classList.add('opening');
-        // Wait for animation to complete before showing modal
-        await new Promise(resolve => setTimeout(resolve, 300));
+        // Wait for animation to complete (matches CSS duration of 0.6s)
+        await new Promise(resolve => setTimeout(resolve, 600));
         cell.classList.remove('opening');
     }
     

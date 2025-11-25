@@ -279,14 +279,11 @@ body {
 .map {
     width: 100%;
     height: 100%;
-
-    /* Dark mode filter for map tiles */
-    filter: brightness(0.85) contrast(1.1) saturate(0.8);
 }
 
-/* Override Leaflet tile layer for dark mode effect */
+/* Dark mode filter for map tiles - simplified for performance */
 .leaflet-tile-pane {
-    filter: invert(100%) hue-rotate(180deg) brightness(0.95) contrast(0.9);
+    filter: invert(1) hue-rotate(180deg);
 }
 
 .map-help {
