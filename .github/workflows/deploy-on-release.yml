@@ -1,93 +1,70 @@
-name: Deploy Santa Tracker on Release (published)
+name: Deploy on release
 
-# Deploy to VPS when a GitHub Release is published.
-# Uses password SSH for immediate compatibility; swap to SSH keys later.
 on:
   release:
     types: [published]
 
-permissions:
-  contents: read
-  actions: write
-
-env:
-  PROD_DEPLOY_PATH: ${{ secrets.PROD_DEPLOY_PATH }}
-  PROD_DEPLOY_HOST: ${{ secrets.PROD_DEPLOY_HOST }}
-  PROD_DEPLOY_USER: ${{ secrets.PROD_DEPLOY_USER }}
-  PROD_SSH_PASSWORD: ${{ secrets.PROD_SSH_PASSWORD }}
-
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    env:
+      PROD_DEPLOY_USER: ${{ secrets.PROD_DEPLOY_USER }}
+      PROD_DEPLOY_HOST: ${{ secrets.PROD_DEPLOY_HOST }}
+      PROD_DEPLOY_PATH: ${{ secrets.PROD_DEPLOY_PATH }}
+      PROD_DOTENV: ${{ secrets.PROD_DOTENV }}
     steps:
-      - name: Checkout release commit
+      - name: Checkout
         uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.release.tag_name }}
 
-      - name: Install tools
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y sshpass rsync util-linux
-
-      - name: Build deployment-package
-        env:
-          PROD_DOTENV: ${{ secrets.PROD_DOTENV }}
+      - name: Prepare deployment package
         run: |
           set -euo pipefail
+          rm -rf deployment-package
           mkdir -p deployment-package
-          rsync -av --exclude='*.pyc' --exclude='__pycache__' --exclude='.env' --exclude='venv/' \
-            ./src/ deployment-package/src/ || true
-          cp requirements.txt deployment-package/ || true
-          if [ -f alembic.ini ]; then cp alembic.ini deployment-package/ || true; fi
-          if [ -d alembic ]; then rsync -av --delete alembic/ deployment-package/alembic/ || true; fi
+          # copy repo files into a clean directory (exclude git and workflow files)
+          rsync -a --exclude='.git' --exclude='.github' --exclude='deployment-package' ./ deployment-package/
 
-          if [ -n "${PROD_DOTENV:-}" ]; then
-            printf '%s\n' "${PROD_DOTENV}" > deployment-package/.env
-          else
-            # write .env using printf (avoids YAML here-doc indentation pitfalls)
-            printf '%s\n' "DATA_PATH=${PROD_DEPLOY_PATH}/data" "LOG_LEVEL=INFO" > deployment-package/.env
-          fi
-          chmod 600 deployment-package/.env
+      - name: Load SSH key
+        uses: webfactory/ssh-agent@v0.5.3
+        with:
+          ssh-private-key: ${{ secrets.DEPLOY_SSH_KEY }}
 
-      - name: Upload and finalize deploy (secure + run venv as deploy user)
+      - name: Verify remote sudo wrappers available (fail early if sudo would prompt)
+        run: |
+          set -euo pipefail
+          ssh -o StrictHostKeyChecking=no ${PROD_DEPLOY_USER}@${PROD_DEPLOY_HOST} "sudo -l"
+
+      - name: Upload files and finalize deploy on remote host
+        env:
+          PROD_DEPLOY_USER: ${{ secrets.PROD_DEPLOY_USER }}
+          PROD_DEPLOY_HOST: ${{ secrets.PROD_DEPLOY_HOST }}
+          PROD_DEPLOY_PATH: ${{ secrets.PROD_DEPLOY_PATH }}
+          PROD_DOTENV: ${{ secrets.PROD_DOTENV }}
         run: |
           set -euo pipefail
 
           RELEASE_ROOT="${PROD_DEPLOY_PATH}/releases"
-          TIMESTAMP="$(date +%Y%m%d-%H%M%S)"
+          TIMESTAMP="$(date -u +%Y%m%d-%H%M%S)"
           REMOTE_DIR="${RELEASE_ROOT}/${TIMESTAMP}"
 
           echo "Creating remote release dir: ${REMOTE_DIR}"
-          sshpass -p "${PROD_SSH_PASSWORD}" ssh -o StrictHostKeyChecking=no \
-            ${PROD_DEPLOY_USER}@${PROD_DEPLOY_HOST} "mkdir -p '${REMOTE_DIR}'"
+          ssh -o StrictHostKeyChecking=no ${PROD_DEPLOY_USER}@${PROD_DEPLOY_HOST} "mkdir -p '${REMOTE_DIR}'"
 
           echo "Uploading files to ${REMOTE_DIR}"
-          rsync -avz --delete -e "sshpass -p '${PROD_SSH_PASSWORD}' ssh -o StrictHostKeyChecking=no" \
-            deployment-package/ ${PROD_DEPLOY_USER}@${PROD_DEPLOY_HOST}:"${REMOTE_DIR}/"
+          rsync -az --delete -e "ssh -o StrictHostKeyChecking=no" deployment-package/ ${PROD_DEPLOY_USER}@${PROD_DEPLOY_HOST}:"${REMOTE_DIR}/"
 
-          echo "Finalizing deploy on remote host (atomic privileged block)"
-          # Pass concrete vars on the ssh command line. Remote script receives them.
-          sshpass -p "${PROD_SSH_PASSWORD}" ssh -o StrictHostKeyChecking=no \
-            ${PROD_DEPLOY_USER}@${PROD_DEPLOY_HOST} \
-            "PROD_DEPLOY_PATH='${PROD_DEPLOY_PATH}' PROD_DEPLOY_USER='${PROD_DEPLOY_USER}' REMOTE_DIR='${REMOTE_DIR}' bash -s" <<'REMOTE_EOF'
+          echo "Running remote finalize (wrappers must exist on server)"
+          ssh -o StrictHostKeyChecking=no ${PROD_DEPLOY_USER}@${PROD_DEPLOY_HOST} "PROD_DEPLOY_PATH='${PROD_DEPLOY_PATH}' PROD_DEPLOY_USER='${PROD_DEPLOY_USER}' REMOTE_DIR='${REMOTE_DIR}' RELEASE_ROOT='${RELEASE_ROOT}' PROD_DOTENV='${PROD_DOTENV}' bash -s" <<'REMOTE_EOF'
             set -euo pipefail
-            set -x
 
-            # Remote variables available: $REMOTE_DIR, $PROD_DEPLOY_PATH, $PROD_DEPLOY_USER
-            RELEASE_ROOT="${PROD_DEPLOY_PATH}/releases"
-
-            mkdir -p "${RELEASE_ROOT}"
-            mkdir -p "${PROD_DEPLOY_PATH}/data" || true
-
-            # Create venv & install requirements AS THE SSH USER (deploy user) - no sudo here
-            python3 -m venv "${REMOTE_DIR}/venv"
+            # create venv and install requirements (best-effort)
+            python3 -m venv "${REMOTE_DIR}/venv" || true
             "${REMOTE_DIR}/venv/bin/pip" install --upgrade pip setuptools wheel || true
             if [ -f "${REMOTE_DIR}/requirements.txt" ]; then
               "${REMOTE_DIR}/venv/bin/pip" install -r "${REMOTE_DIR}/requirements.txt" || true
             fi
 
-            # Run database migrations as the SSH user if present (load .env for migration env)
+            # run migrations if present (with .env if provided)
             if [ -f "${REMOTE_DIR}/alembic.ini" ]; then
               if [ -f "${REMOTE_DIR}/.env" ]; then
                 set -o allexport; source "${REMOTE_DIR}/.env"; set +o allexport
@@ -95,93 +72,32 @@ jobs:
               cd "${REMOTE_DIR}" && ./venv/bin/alembic upgrade head || true
             fi
 
-            # Secure uploaded .env: ensure deploy user owns it and perms are 600 (use sudo for chown/chmod)
+            # write .env from runner secret into the release dir (create/overwrite if provided)
+            if [ -n "${PROD_DOTENV:-}" ]; then
+              printf '%s\n' "${PROD_DOTENV}" > "${REMOTE_DIR}/.env"
+            fi
+
+            # secure .env via root-owned wrapper scripts
             if [ -f "${REMOTE_DIR}/.env" ]; then
-              sudo chown "${PROD_DEPLOY_USER}:${PROD_DEPLOY_USER}" "${REMOTE_DIR}/.env" || true
-              sudo chmod 600 "${REMOTE_DIR}/.env" || true
+              sudo -n /usr/local/bin/deploy_chown.sh "${PROD_DEPLOY_USER}:${PROD_DEPLOY_USER}" "${REMOTE_DIR}/.env" || true
+              sudo -n /usr/local/bin/deploy_chmod.sh 600 "${REMOTE_DIR}/.env" || true
             fi
 
-            # If current exists and is not a symlink, move it to a backup to avoid ln putting the link inside it
-            if [ -e "${PROD_DEPLOY_PATH}/current" ] && [ ! -L "${PROD_DEPLOY_PATH}/current" ]; then
-              mv "${PROD_DEPLOY_PATH}/current" "${PROD_DEPLOY_PATH}/releases/previous-current-$(date +%Y%m%d-%H%M%S)" || true
-            fi
+            # update current symlink (via wrapper) and ensure ownership
+            sudo -n /usr/local/bin/deploy_ln.sh "${REMOTE_DIR}" "${PROD_DEPLOY_PATH}/current" || true
+            sudo -n /usr/local/bin/deploy_chown.sh "${PROD_DEPLOY_USER}:${PROD_DEPLOY_USER}" "${REMOTE_DIR}" || true
 
-            # Atomically update current to point to the new release (privileged)
-            sudo ln -sfn "${REMOTE_DIR}" "${PROD_DEPLOY_PATH}/current"
+            # ensure data ownership
+            sudo -n /usr/local/bin/deploy_chown.sh "${PROD_DEPLOY_USER}:${PROD_DEPLOY_USER}" "${PROD_DEPLOY_PATH}/data" || true
 
-            # CRITICAL: Ensure the release files and symlink are owned by the deploy user (run as root)
-            sudo chown -R "${PROD_DEPLOY_USER}:${PROD_DEPLOY_USER}" "${REMOTE_DIR}" || true
-            sudo chown -h "${PROD_DEPLOY_USER}:${PROD_DEPLOY_USER}" "${PROD_DEPLOY_PATH}/current" || true
-
-            # Ensure data dir ownership
-            sudo chown -R "${PROD_DEPLOY_USER}:${PROD_DEPLOY_USER}" "${PROD_DEPLOY_PATH}/data" || true
-
-            # Cleanup older releases (keep 5)
+            # ensure releases ownership before attempting cleanup
+            sudo -n /usr/local/bin/deploy_chown.sh "${PROD_DEPLOY_USER}:${PROD_DEPLOY_USER}" "${RELEASE_ROOT}" || true
             cd "${RELEASE_ROOT}" || exit 0
             ls -1dt * 2>/dev/null | tail -n +6 | xargs -r rm -rf || true
 
-            # Reload and restart service (privileged)
-            sudo systemctl daemon-reload || true
-            sudo systemctl restart santa-tracker || true
-            sudo systemctl status santa-tracker --no-pager || true
+            # reload and restart service via safe wrapper
+            sudo -n /usr/local/bin/deploy_systemctl.sh daemon-reload santa-tracker || true
+            sudo -n /usr/local/bin/deploy_systemctl.sh restart santa-tracker || true
 
-            echo "Deployed to ${REMOTE_DIR}"
+            echo "Deployed: ${REMOTE_DIR}"
           REMOTE_EOF
-
-      - name: Post-deploy verification (runner-side, tolerant owner check)
-        env:
-          PROD_DEPLOY_PATH: ${{ secrets.PROD_DEPLOY_PATH }}
-          PROD_DEPLOY_USER: ${{ secrets.PROD_DEPLOY_USER }}
-          PROD_DEPLOY_HOST: ${{ secrets.PROD_DEPLOY_HOST }}
-          PROD_SSH_PASSWORD: ${{ secrets.PROD_SSH_PASSWORD }}
-        run: |
-          set -euo pipefail
-          echo "Verifying deployment ownership and service status..."
-
-          # Run verification remotely. If owner mismatch, print diagnostics but do NOT fail the Action.
-          sshpass -p "${PROD_SSH_PASSWORD}" ssh -o StrictHostKeyChecking=no \
-            ${PROD_DEPLOY_USER}@${PROD_DEPLOY_HOST} \
-            "PROD_DEPLOY_PATH='${PROD_DEPLOY_PATH}' PROD_DEPLOY_USER='${PROD_DEPLOY_USER}' bash -s" <<'VERIFY_EOF'
-            set -euo pipefail
-
-            # Remote variables: $PROD_DEPLOY_PATH, $PROD_DEPLOY_USER
-
-            CURRENT_OWNER=$(stat -c '%U:%G' "${PROD_DEPLOY_PATH}/current" 2>/dev/null || echo "missing")
-            echo "Current symlink owner: ${CURRENT_OWNER}"
-
-            EXPECTED_OWNER="${PROD_DEPLOY_USER}:${PROD_DEPLOY_USER}"
-
-            if [ "${CURRENT_OWNER}" != "${EXPECTED_OWNER}" ]; then
-              echo "WARNING: current symlink owner (${CURRENT_OWNER}) does not match expected (${EXPECTED_OWNER})."
-              echo "--- Diagnostics ---"
-              echo "Target of current symlink:"
-              readlink -f "${PROD_DEPLOY_PATH}/current" || true
-              echo ""
-              echo "Owner and mode of current symlink and target:"
-              stat -c '%U:%G %a %n' "${PROD_DEPLOY_PATH}/current" 2>/dev/null || true
-              echo ""
-              echo "Listing release dir and current contents:"
-              ls -la "${PROD_DEPLOY_PATH}" || true
-              ls -la "$(readlink -f "${PROD_DEPLOY_PATH}/current")" || true
-              echo ""
-              echo ".env owner/perms (if present):"
-              stat -c '%U:%G %a %n' "${PROD_DEPLOY_PATH}/current/.env" 2>/dev/null || true
-              echo ""
-              echo "Systemd status (last 100 lines):"
-              sudo journalctl -u santa-tracker -n 100 --no-pager || true
-              echo ""
-              echo "NOTE: This workflow will not fail for owner mismatch. Fix by updating the PROD_DEPLOY_USER secret or running chown on the server."
-            else
-              echo "Owner matches expected: ${EXPECTED_OWNER}"
-            fi
-
-            # Ensure service is active; fail if not
-            if ! sudo systemctl is-active --quiet santa-tracker; then
-              echo "ERROR: santa-tracker service is not active"
-              sudo systemctl status santa-tracker --no-pager || true
-              sudo journalctl -u santa-tracker -n 200 --no-pager || true
-              exit 1
-            fi
-
-            echo "✓ Deployment verification: service active"
-          VERIFY_EOF
