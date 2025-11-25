@@ -1,5 +1,8 @@
 /* Santa Tracker Landing Page - Festive Styles */
 
+/* Import Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Mountains+of+Christmas:wght@400;700&family=Nunito:wght@400;600;700;800&display=swap');
+
 * {
     margin: 0;
     padding: 0;
@@ -7,21 +10,32 @@
 }
 
 :root {
+    /* Cozy North Pole Night palette */
     --christmas-red: #c41e3a;
-    --christmas-green: #165b33;
-    --christmas-gold: #ffd700;
-    --christmas-dark-red: #8b0000;
-    --christmas-light-green: #228b22;
+    --christmas-dark-red: #7f1d1d;
+    --christmas-crimson: #991b1b;
+    --christmas-green: #166534;
+    --pine-green: #166534;
+    --holly-green: #15803d;
+    --christmas-gold: #fbbf24;
+    --warm-white: #f8fafc;
     --snow-white: #fffafa;
+    --ice-blue: #bfdbfe;
+
+    /* Night sky gradient */
+    --night-deep: #0f172a;
+    --night-mid: #1e1b4b;
     --night-blue: #0a1929;
-    --gradient-blue-start: #1a237e;
-    --gradient-blue-end: #0d47a1;
+
+    /* Fonts */
+    --font-display: 'Mountains of Christmas', cursive;
+    --font-body: 'Nunito', sans-serif;
 }
 
 body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-    background: linear-gradient(180deg, var(--gradient-blue-start) 0%, var(--night-blue) 50%, var(--gradient-blue-end) 100%);
-    color: var(--snow-white);
+    font-family: var(--font-body);
+    background: radial-gradient(ellipse at top, var(--night-mid) 0%, var(--night-deep) 60%, var(--night-deep) 100%);
+    color: var(--warm-white);
     min-height: 100vh;
     overflow-x: hidden;
     position: relative;
@@ -128,8 +142,9 @@ body {
 
 /* Hero Title */
 .hero-title {
-    font-size: 4rem;
-    font-weight: bold;
+    font-family: var(--font-display);
+    font-size: 4.5rem;
+    font-weight: 700;
     margin-bottom: 1rem;
     text-shadow: 3px 3px 6px rgb(0 0 0 / 50%);
     line-height: 1.2;
@@ -144,140 +159,182 @@ body {
 }
 
 .text-green {
-    color: var(--christmas-light-green);
+    color: var(--holly-green);
     text-shadow: 
-        0 0 10px rgb(34 139 34 / 80%),
-        0 0 20px rgb(34 139 34 / 60%),
+        0 0 10px rgb(21 128 61 / 80%),
+        0 0 20px rgb(21 128 61 / 60%),
         3px 3px 6px rgb(0 0 0 / 50%);
 }
 
 .hero-subtitle {
+    font-family: var(--font-body);
     font-size: 1.5rem;
+    font-weight: 600;
     margin-bottom: 2.5rem;
-    color: var(--snow-white);
+    color: var(--warm-white);
     text-shadow: 2px 2px 4px rgb(0 0 0 / 50%);
 }
 
-/* Countdown Box */
+/* Countdown Box - Glassmorphism Style */
 .countdown-box {
-    background: linear-gradient(135deg, var(--christmas-red) 0%, var(--christmas-dark-red) 100%);
-    border-radius: 20px;
+    background: rgb(255 255 255 / 10%);
+    backdrop-filter: blur(16px);
+    border-radius: 24px;
     padding: 2rem;
     margin-bottom: 2.5rem;
     box-shadow: 
-        0 10px 30px rgb(0 0 0 / 30%),
-        0 0 40px rgb(196 30 58 / 40%);
-    border: 3px solid var(--christmas-gold);
-    animation: pulse-glow 2s infinite;
+        0 10px 40px rgb(0 0 0 / 30%),
+        inset 0 1px 1px rgb(255 255 255 / 20%);
+    border: 1px solid rgb(255 255 255 / 20%);
 }
 
 @keyframes pulse-glow {
     0%, 100% {
         box-shadow: 
-            0 10px 30px rgb(0 0 0 / 30%),
-            0 0 40px rgb(196 30 58 / 40%);
+            0 10px 40px rgb(0 0 0 / 30%),
+            inset 0 1px 1px rgb(255 255 255 / 20%);
     }
 
     50% {
         box-shadow: 
-            0 10px 30px rgb(0 0 0 / 30%),
-            0 0 60px rgb(196 30 58 / 80%);
+            0 10px 40px rgb(0 0 0 / 30%),
+            0 0 40px rgb(251 191 36 / 30%),
+            inset 0 1px 1px rgb(255 255 255 / 20%);
     }
 }
 
 .countdown-label {
+    font-family: var(--font-body);
     font-size: 1.2rem;
-    font-weight: bold;
+    font-weight: 700;
     margin-bottom: 1rem;
+    color: var(--warm-white);
 }
 
 .countdown-display {
-    font-size: 2.5rem;
-    font-weight: bold;
+    font-family: var(--font-display);
+    font-size: 3rem;
+    font-weight: 700;
     font-variant-numeric: tabular-nums;
     color: var(--christmas-gold);
     text-shadow: 
-        0 0 10px rgb(255 215 0 / 80%),
+        0 0 20px rgb(251 191 36 / 80%),
         2px 2px 4px rgb(0 0 0 / 50%);
 }
 
-/* CTA Button */
+/* CTA Button - Signature Red Gradient with 3D effect */
 .cta-button {
-    display: inline-block;
-    background: linear-gradient(135deg, var(--christmas-green) 0%, var(--christmas-light-green) 100%);
-    color: white;
-    font-size: 1.5rem;
-    font-weight: bold;
-    padding: 1.25rem 3rem;
-    border-radius: 50px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    background: linear-gradient(180deg, var(--christmas-red) 0%, var(--christmas-dark-red) 100%);
+    color: var(--warm-white);
+    font-family: var(--font-body);
+    font-size: 1.3rem;
+    font-weight: 700;
+    padding: 1.25rem 2.5rem;
+    border-radius: 9999px;
     text-decoration: none;
     box-shadow: 
-        0 8px 25px rgb(0 0 0 / 30%),
-        0 0 30px rgb(34 139 34 / 40%);
-    transition: all 0.3s ease;
-    border: 3px solid var(--christmas-gold);
+        0 8px 0 var(--christmas-crimson),
+        0 12px 25px rgb(0 0 0 / 40%);
+    transition: all 0.2s ease;
+    border: none;
+    position: relative;
+    top: 0;
 }
 
 .cta-buttons-container {
     display: flex;
     flex-wrap: wrap;
-    gap: 1rem;
+    gap: 1.5rem;
     justify-content: center;
-    margin-bottom: 2rem;
+    margin-bottom: 3rem;
 }
 
 .cta-button-advent {
-    background: linear-gradient(135deg, #165b33, #228b22);
+    background: linear-gradient(180deg, var(--pine-green) 0%, #14532d 100%);
+    box-shadow: 
+        0 8px 0 #052e16,
+        0 12px 25px rgb(0 0 0 / 40%);
 }
 
 .cta-button:hover {
-    transform: translateY(-5px) scale(1.05);
+    transform: translateY(-3px) scale(1.03);
     box-shadow: 
-        0 12px 35px rgb(0 0 0 / 40%),
-        0 0 50px rgb(34 139 34 / 80%);
+        0 11px 0 var(--christmas-crimson),
+        0 16px 35px rgb(0 0 0 / 50%);
+}
+
+.cta-button-advent:hover {
+    box-shadow: 
+        0 11px 0 #052e16,
+        0 16px 35px rgb(0 0 0 / 50%);
 }
 
 .cta-button:active {
-    transform: translateY(-2px) scale(1.02);
+    transform: translateY(4px);
+    box-shadow: 
+        0 4px 0 var(--christmas-crimson),
+        0 8px 15px rgb(0 0 0 / 30%);
 }
 
-/* Features Section */
+.cta-button-advent:active {
+    box-shadow: 
+        0 4px 0 #052e16,
+        0 8px 15px rgb(0 0 0 / 30%);
+}
+
+/* North Pole Stats Section (replacing redundant features) */
 .features {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    display: flex;
+    flex-wrap: wrap;
     gap: 2rem;
+    justify-content: center;
     margin-top: 3rem;
 }
 
 .feature-card {
-    background: linear-gradient(135deg, rgb(196 30 58 / 90%) 0%, rgb(139 0 0 / 90%) 100%);
-    border-radius: 20px;
-    padding: 2rem;
-    box-shadow: 0 10px 25px rgb(0 0 0 / 30%);
-    border: 3px solid var(--christmas-gold);
+    background: rgb(255 255 255 / 10%);
+    backdrop-filter: blur(12px);
+    border-radius: 24px;
+    padding: 1.5rem 2rem;
+    box-shadow: 
+        0 8px 32px rgb(0 0 0 / 20%),
+        inset 0 1px 1px rgb(255 255 255 / 15%);
+    border: 1px solid rgb(255 255 255 / 15%);
     transition: all 0.3s ease;
+    min-width: 180px;
+    text-align: center;
 }
 
 .feature-card:hover {
-    transform: translateY(-10px);
-    box-shadow: 0 15px 35px rgb(0 0 0 / 40%);
+    transform: translateY(-8px);
+    box-shadow: 
+        0 16px 40px rgb(0 0 0 / 30%),
+        inset 0 1px 1px rgb(255 255 255 / 15%);
+    border-color: var(--christmas-gold);
 }
 
 .feature-icon {
-    font-size: 3rem;
+    font-size: 2.5rem;
     display: block;
-    margin-bottom: 1rem;
+    margin-bottom: 0.75rem;
 }
 
 .feature-card h3 {
-    font-size: 1.5rem;
-    margin-bottom: 0.5rem;
+    font-family: var(--font-display);
+    font-size: 1.3rem;
+    margin-bottom: 0.25rem;
     color: var(--christmas-gold);
 }
 
 .feature-card p {
+    font-family: var(--font-body);
     font-size: 1rem;
-    color: var(--snow-white);
+    color: var(--warm-white);
+    opacity: 0.9;
 }
 
 /* Decorative Elements */
@@ -310,10 +367,10 @@ body {
 
 /* Footer */
 .footer {
-    background: linear-gradient(90deg, var(--christmas-green) 0%, var(--christmas-red) 50%, var(--christmas-green) 100%);
+    background: linear-gradient(180deg, var(--christmas-red) 0%, var(--christmas-dark-red) 100%);
     padding: 2rem;
     text-align: center;
-    box-shadow: 0 -5px 20px rgb(0 0 0 / 30%);
+    box-shadow: 0 -5px 30px rgb(0 0 0 / 40%);
 }
 
 .footer-content {
@@ -347,20 +404,23 @@ body {
 }
 
 .footer p {
+    font-family: var(--font-body);
     font-size: 1rem;
     margin: 0.5rem 0;
+    color: var(--warm-white);
 }
 
 .footer-tagline {
-    font-weight: bold;
-    font-size: 1.2rem;
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 1.1rem;
     color: var(--christmas-gold);
 }
 
 /* Responsive Design */
 @media (width <= 768px) {
     .hero-title {
-        font-size: 2.5rem;
+        font-size: 2.8rem;
     }
 
     .emoji-large {
@@ -372,16 +432,21 @@ body {
     }
 
     .countdown-display {
-        font-size: 1.8rem;
+        font-size: 2rem;
     }
 
     .cta-button {
-        font-size: 1.2rem;
+        font-size: 1.1rem;
         padding: 1rem 2rem;
     }
 
     .features {
-        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+
+    .feature-card {
+        min-width: 140px;
+        padding: 1rem 1.5rem;
     }
 
     .decoration {

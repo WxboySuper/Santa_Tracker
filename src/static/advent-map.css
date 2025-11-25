@@ -1,16 +1,32 @@
 /* Advent Calendar - North Pole Map Styles */
 
+/* Import Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Mountains+of+Christmas:wght@400;700&family=Nunito:wght@400;600;700;800&display=swap');
+
 /* CSS Variables */
 :root {
+    /* Cozy North Pole Night palette */
     --christmas-red: #c41e3a;
-    --christmas-green: #165b33;
-    --christmas-gold: #ffd700;
-    --christmas-dark-red: #8b0000;
-    --christmas-light-green: #228b22;
+    --christmas-dark-red: #7f1d1d;
+    --christmas-crimson: #991b1b;
+    --christmas-green: #166534;
+    --pine-green: #166534;
+    --holly-green: #15803d;
+    --christmas-gold: #fbbf24;
+    --warm-white: #f8fafc;
     --snow-white: #fffafa;
+    --ice-blue: #bfdbfe;
+
+    /* Night sky gradient */
+    --night-deep: #0f172a;
+    --night-mid: #1e1b4b;
     --night-blue: #0a1929;
-    --gradient-blue-start: #1a237e;
-    --gradient-blue-end: #0d47a1;
+
+    /* Fonts */
+    --font-display: 'Mountains of Christmas', cursive;
+    --font-body: 'Nunito', sans-serif;
+
+    /* Shadows */
     --shadow: rgb(0 0 0 / 20%);
     --hover-shadow: rgb(0 0 0 / 40%);
 }
@@ -23,9 +39,9 @@
 }
 
 body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-    background: linear-gradient(180deg, var(--gradient-blue-start) 0%, var(--night-blue) 50%, var(--gradient-blue-end) 100%);
-    color: var(--snow-white);
+    font-family: var(--font-body);
+    background: radial-gradient(ellipse at top, var(--night-mid) 0%, var(--night-deep) 60%, var(--night-deep) 100%);
+    color: var(--warm-white);
     min-height: 100vh;
     overflow-x: hidden;
 }
@@ -46,13 +62,12 @@ body.modal-open {
 
 /* Navigation Bar */
 .nav-bar {
-    background: linear-gradient(90deg, var(--christmas-red) 0%, var(--christmas-green) 50%, var(--christmas-red) 100%);
+    background: linear-gradient(180deg, var(--christmas-red) 0%, var(--christmas-dark-red) 100%);
     padding: 1rem 2rem;
-    box-shadow: 0 4px 12px rgb(0 0 0 / 30%);
+    box-shadow: 0 4px 20px rgb(0 0 0 / 40%);
     position: sticky;
     top: 0;
     z-index: 100;
-    backdrop-filter: blur(10px);
 }
 
 .nav-container {
@@ -64,12 +79,13 @@ body.modal-open {
 }
 
 .nav-link {
-    color: var(--snow-white);
+    color: var(--warm-white);
     text-decoration: none;
+    font-family: var(--font-body);
     font-size: 1rem;
     font-weight: 600;
     padding: 0.75rem 1.5rem;
-    border-radius: 12px;
+    border-radius: 9999px;
     display: flex;
     align-items: center;
     gap: 0.5rem;
@@ -83,13 +99,12 @@ body.modal-open {
     transform: translateY(-2px);
     outline: 2px solid var(--christmas-gold);
     outline-offset: 2px;
-    box-shadow: 0 4px 8px rgb(0 0 0 / 30%);
+    box-shadow: 0 4px 12px rgb(0 0 0 / 30%);
 }
 
 .nav-link-active {
-    background: rgb(255 255 255 / 30%);
+    background: rgb(255 255 255 / 25%);
     font-weight: 700;
-    border: 2px solid var(--christmas-gold);
 }
 
 /* Header */
@@ -100,14 +115,16 @@ body.modal-open {
 }
 
 .advent-title {
-    font-size: clamp(2rem, 5vw, 3.5rem);
+    font-family: var(--font-display);
+    font-size: clamp(2.5rem, 5vw, 4rem);
     font-weight: 700;
     margin-bottom: 0.75rem;
-    color: var(--snow-white);
+    color: var(--warm-white);
     text-shadow: 3px 3px 6px rgb(0 0 0 / 50%);
 }
 
 .advent-subtitle {
+    font-family: var(--font-body);
     font-size: clamp(1rem, 2.5vw, 1.5rem);
     color: var(--christmas-gold);
     font-weight: 600;
@@ -122,17 +139,21 @@ body.modal-open {
 }
 
 .advent-container {
-    background: rgb(255 255 255 / 95%);
-    border-radius: 24px;
+    background: rgb(255 255 255 / 10%);
+    backdrop-filter: blur(16px);
+    border-radius: 32px;
     padding: 3rem;
-    box-shadow: 0 8px 32px rgb(0 0 0 / 30%), 0 0 0 2px var(--christmas-gold);
+    box-shadow: 
+        0 10px 50px rgb(0 0 0 / 30%),
+        inset 0 1px 1px rgb(255 255 255 / 10%);
+    border: 1px solid rgb(255 255 255 / 15%);
 }
 
 /* Loading State */
 .loading-state {
     text-align: center;
     padding: 4rem;
-    color: var(--night-blue);
+    color: var(--warm-white);
 }
 
 .loading-spinner {
@@ -168,26 +189,33 @@ body.modal-open {
 /* Calendar Cell Styles */
 .calendar-cell {
     aspect-ratio: 1;
-    border-radius: 16px;
+    border-radius: 20px;
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
+    font-family: var(--font-display);
     font-size: clamp(2rem, 3.5vw, 3rem);
-    font-weight: 800;
+    font-weight: 700;
     cursor: pointer;
     transition: all 0.3s ease;
     position: relative;
-    border: 3px solid transparent;
-    box-shadow: 0 4px 12px rgb(0 0 0 / 20%);
-    text-shadow: 2px 2px 4px rgb(0 0 0 / 30%);
+    border: none;
+    box-shadow: 
+        0 6px 0 rgb(0 0 0 / 30%),
+        0 8px 20px rgb(0 0 0 / 25%);
+    text-shadow: 2px 2px 4px rgb(0 0 0 / 40%);
+    color: var(--warm-white);
 }
 
 .calendar-cell:hover,
 .calendar-cell:focus {
     outline: 3px solid var(--christmas-gold);
     outline-offset: 3px;
-    transform: translateY(-6px) scale(1.05);
-    box-shadow: 0 12px 24px rgb(0 0 0 / 30%);
+    transform: translateY(-8px) scale(1.05);
+    box-shadow: 
+        0 12px 0 rgb(0 0 0 / 25%),
+        0 16px 32px rgb(0 0 0 / 35%);
     z-index: 10;
 }
 
@@ -197,21 +225,34 @@ body.modal-open {
 
 .calendar-cell.unlocked:hover,
 .calendar-cell.unlocked:focus {
-    transform: translateY(-6px) scale(1.08);
-    box-shadow: 0 16px 32px rgb(0 0 0 / 35%);
+    transform: translateY(-8px) scale(1.08);
+    box-shadow: 
+        0 14px 0 rgb(0 0 0 / 20%),
+        0 20px 40px rgb(0 0 0 / 40%);
 }
 
 .calendar-cell.locked {
-    filter: grayscale(70%) brightness(0.85);
-    opacity: 0.65;
+    filter: grayscale(30%) brightness(0.7);
+    opacity: 0.7;
     cursor: not-allowed;
 }
 
+.calendar-cell.locked::after {
+    content: '🔒';
+    position: absolute;
+    bottom: 8px;
+    right: 8px;
+    font-size: 0.8rem;
+    opacity: 0.8;
+}
+
 .calendar-cell.locked:hover {
-    transform: translateY(-2px);
+    transform: translateY(-3px);
     outline: 2px solid var(--christmas-red);
     outline-offset: 2px;
-    box-shadow: 0 6px 16px rgb(0 0 0 / 25%);
+    box-shadow: 
+        0 8px 0 rgb(0 0 0 / 25%),
+        0 10px 24px rgb(0 0 0 / 30%);
 }
 
 @keyframes unlock-pulse {
@@ -229,6 +270,25 @@ body.modal-open {
         transform: scale(1);
         filter: brightness(1);
     }
+}
+
+/* 3D Flip Animation for Calendar Doors */
+@keyframes flip-open {
+    0% {
+        transform: perspective(600px) rotateY(0deg);
+    }
+
+    50% {
+        transform: perspective(600px) rotateY(-90deg);
+    }
+
+    100% {
+        transform: perspective(600px) rotateY(-180deg);
+    }
+}
+
+.calendar-cell.opening {
+    animation: flip-open 0.6s ease-in-out;
 }
 
 /* Modal */
@@ -307,18 +367,20 @@ body.modal-open {
 .modal-header {
     padding: 2rem 2rem 1rem;
     border-bottom: 2px solid var(--christmas-gold);
-    background: linear-gradient(135deg, var(--christmas-red), var(--christmas-green));
-    color: white;
+    background: linear-gradient(180deg, var(--christmas-red) 0%, var(--christmas-dark-red) 100%);
+    color: var(--warm-white);
     border-radius: 16px 16px 0 0;
 }
 
 .modal-day-title {
+    font-family: var(--font-display);
     font-size: 1.75rem;
     font-weight: 700;
     margin-bottom: 0.5rem;
 }
 
 .modal-content-type {
+    font-family: var(--font-body);
     font-size: 1rem;
     opacity: 0.9;
     text-transform: uppercase;
@@ -327,7 +389,8 @@ body.modal-open {
 
 .modal-body {
     padding: 2rem;
-    color: var(--night-blue);
+    color: var(--night-deep);
+    font-family: var(--font-body);
 }
 
 .modal-body img {

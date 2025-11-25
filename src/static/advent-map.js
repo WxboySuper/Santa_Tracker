@@ -7,12 +7,15 @@ let shuffledDays = [];
 let modalListenersInitialized = false;
 let lastFocusedElement = null;
 
-// Color schemes for calendar cells
+// Color schemes for calendar cells - Strict Festive Palette
+// Pattern: Red, Green, Gold, Ice Blue (repeating)
 const cellColors = [
-    '#8b0000', '#165b33', '#8b4513', '#ffd700', '#ff69b4', '#4169e1',
-    '#ffffff', '#165b33', '#c71585', '#dc143c', '#b0e0e6', '#d2691e',
-    '#9370db', '#4682b4', '#ff8c00', '#708090', '#20b2aa', '#b22222',
-    '#ffffff', '#191970', '#8b4513', '#daa520', '#556b2f', '#c41e3a'
+    '#c41e3a', '#166534', '#fbbf24', '#60a5fa',  // Days 1-4
+    '#c41e3a', '#166534', '#fbbf24', '#60a5fa',  // Days 5-8
+    '#c41e3a', '#166534', '#fbbf24', '#60a5fa',  // Days 9-12
+    '#c41e3a', '#166534', '#fbbf24', '#60a5fa',  // Days 13-16
+    '#c41e3a', '#166534', '#fbbf24', '#60a5fa',  // Days 17-20
+    '#c41e3a', '#166534', '#fbbf24', '#60a5fa'   // Days 21-24
 ];
 
 // DOM Elements
@@ -187,9 +190,20 @@ async function handleCellClick(day) {
     const dayData = adventData.days.find(d => d.day === day);
     if (!dayData) return;
     
+    // Get the clicked cell element
+    const cell = document.querySelector(`[data-day="${day}"]`);
+    
     if (!dayData.is_unlocked) {
         showLockedMessage(day);
         return;
+    }
+    
+    // Add flip animation
+    if (cell) {
+        cell.classList.add('opening');
+        // Wait for animation to complete before showing modal
+        await new Promise(resolve => setTimeout(resolve, 300));
+        cell.classList.remove('opening');
     }
     
     await loadDayContent(day);

@@ -1,30 +1,44 @@
 /* Santa Tracker - Festive Inline Styles */
 
+/* Import Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Mountains+of+Christmas:wght@400;700&family=Nunito:wght@400;600;700;800&display=swap');
+
 :root {
+    /* Cozy North Pole Night palette */
     --christmas-red: #c41e3a;
-    --christmas-green: #165b33;
-    --christmas-gold: #ffd700;
-    --christmas-dark-red: #8b0000;
-    --christmas-light-green: #228b22;
+    --christmas-dark-red: #7f1d1d;
+    --christmas-crimson: #991b1b;
+    --christmas-green: #166534;
+    --pine-green: #166534;
+    --holly-green: #15803d;
+    --christmas-gold: #fbbf24;
+    --warm-white: #f8fafc;
     --snow-white: #fffafa;
+    --ice-blue: #bfdbfe;
+
+    /* Night sky gradient */
+    --night-deep: #0f172a;
+    --night-mid: #1e1b4b;
     --night-blue: #0a1929;
-    --gradient-blue-start: #1a237e;
-    --gradient-blue-end: #0d47a1;
+
+    /* Fonts */
+    --font-display: 'Mountains of Christmas', cursive;
+    --font-body: 'Nunito', sans-serif;
 }
 
 body {
     margin: 0;
     padding: 0;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-    background: linear-gradient(180deg, var(--gradient-blue-start) 0%, var(--night-blue) 50%, var(--gradient-blue-end) 100%);
+    font-family: var(--font-body);
+    background: radial-gradient(ellipse at top, var(--night-mid) 0%, var(--night-deep) 60%, var(--night-deep) 100%);
     min-height: 100vh;
 }
 
 /* Header */
 .header {
-    background: linear-gradient(90deg, var(--christmas-red) 0%, var(--christmas-green) 50%, var(--christmas-red) 100%);
-    color: white;
-    box-shadow: 0 4px 12px rgb(0 0 0 / 30%);
+    background: linear-gradient(180deg, var(--christmas-red) 0%, var(--christmas-dark-red) 100%);
+    color: var(--warm-white);
+    box-shadow: 0 4px 20px rgb(0 0 0 / 40%);
     position: sticky;
     top: 0;
     z-index: 1000;
@@ -84,31 +98,35 @@ body {
 }
 
 .header-title {
+    font-family: var(--font-display);
     font-size: 2rem;
-    font-weight: bold;
+    font-weight: 700;
     margin: 0;
     text-shadow: 2px 2px 4px rgb(0 0 0 / 50%);
 }
 
 .countdown-widget {
-    background: rgb(255 255 255 / 20%);
+    background: rgb(255 255 255 / 15%);
     backdrop-filter: blur(10px);
-    border-radius: 12px;
+    border-radius: 16px;
     padding: 0.75rem 1.5rem;
-    box-shadow: 0 4px 8px rgb(0 0 0 / 20%);
-    border: 2px solid var(--christmas-gold);
+    box-shadow: 0 4px 12px rgb(0 0 0 / 20%);
+    border: 1px solid rgb(255 255 255 / 20%);
 }
 
 .countdown-label {
+    font-family: var(--font-body);
     font-size: 0.875rem;
     font-weight: 600;
     margin: 0 0 0.25rem;
 }
 
 .countdown-value {
+    font-family: var(--font-display);
     font-size: 1.5rem;
-    font-weight: bold;
+    font-weight: 700;
     font-variant-numeric: tabular-nums;
+    color: var(--christmas-gold);
 }
 
 /* Main Container */
@@ -124,28 +142,32 @@ body {
     gap: 1.5rem;
 }
 
-/* Sidebar */
+/* Sidebar - Mission Control Panel with Glassmorphism */
 .sidebar {
     order: 2;
 }
 
 .info-card {
-    background: white;
-    border-radius: 20px;
-    box-shadow: 0 10px 30px rgb(0 0 0 / 30%);
+    background: rgb(255 255 255 / 10%);
+    backdrop-filter: blur(16px);
+    border-radius: 24px;
+    box-shadow: 
+        0 10px 40px rgb(0 0 0 / 30%),
+        inset 0 1px 1px rgb(255 255 255 / 10%);
     overflow: hidden;
-    border: 4px solid var(--christmas-gold);
+    border: 1px solid rgb(255 255 255 / 15%);
 }
 
 .card-header {
-    background: linear-gradient(135deg, var(--christmas-red) 0%, var(--christmas-dark-red) 100%);
+    background: linear-gradient(180deg, var(--christmas-red) 0%, var(--christmas-dark-red) 100%);
     padding: 1.5rem;
 }
 
 .card-title {
-    font-size: 1.75rem;
-    font-weight: bold;
-    color: white;
+    font-family: var(--font-display);
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--warm-white);
     margin: 0;
     display: flex;
     align-items: center;
@@ -165,39 +187,41 @@ body {
     padding: 1.25rem;
     border-radius: 16px;
     box-shadow: 0 4px 12px rgb(0 0 0 / 15%);
-    border: 3px solid;
+    border: none;
     transition: transform 0.3s ease, box-shadow 0.3s ease;
+    background: rgb(255 255 255 / 90%);
 }
 
 .info-box:hover {
     transform: translateY(-3px);
-    box-shadow: 0 6px 16px rgb(0 0 0 / 25%);
+    box-shadow: 0 8px 20px rgb(0 0 0 / 25%);
 }
 
 .info-box-blue {
-    background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
-    border-color: #2196f3;
+    background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%);
+    border-left: 4px solid #0284c7;
 }
 
 .info-box-green {
-    background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
-    border-color: var(--christmas-light-green);
+    background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%);
+    border-left: 4px solid var(--pine-green);
 }
 
 .info-box-red {
-    background: linear-gradient(135deg, #ffebee 0%, #ffcdd2 100%);
-    border-color: var(--christmas-red);
+    background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+    border-left: 4px solid var(--christmas-red);
 }
 
 .info-box-gold {
-    background: linear-gradient(135deg, #fff8e1 0%, #ffecb3 100%);
-    border-color: var(--christmas-gold);
+    background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+    border-left: 4px solid var(--christmas-gold);
 }
 
 .info-title {
+    font-family: var(--font-body);
     font-size: 0.875rem;
-    font-weight: 600;
-    color: #333;
+    font-weight: 700;
+    color: #374151;
     margin: 0 0 0.5rem;
     display: flex;
     align-items: center;
@@ -205,15 +229,18 @@ body {
 }
 
 .info-value {
+    font-family: var(--font-body);
     font-size: 1.125rem;
-    font-weight: bold;
-    color: #1a1a1a;
+    font-weight: 700;
+    color: #1f2937;
     margin: 0;
 }
 
 .info-value-large {
-    font-size: 1.5rem;
+    font-family: var(--font-display);
+    font-size: 1.75rem;
     font-variant-numeric: tabular-nums;
+    color: var(--christmas-red);
 }
 
 .icon {
@@ -239,37 +266,48 @@ body {
 }
 
 .map-container {
-    background: white;
-    border-radius: 20px;
-    box-shadow: 0 10px 30px rgb(0 0 0 / 30%);
+    background: var(--night-deep);
+    border-radius: 24px;
+    box-shadow: 
+        0 10px 40px rgb(0 0 0 / 40%),
+        inset 0 1px 1px rgb(255 255 255 / 5%);
     overflow: hidden;
-    border: 4px solid var(--christmas-gold);
+    border: 1px solid rgb(255 255 255 / 10%);
     height: 600px;
 }
 
 .map {
     width: 100%;
     height: 100%;
+
+    /* Dark mode filter for map tiles */
+    filter: brightness(0.85) contrast(1.1) saturate(0.8);
+}
+
+/* Override Leaflet tile layer for dark mode effect */
+.leaflet-tile-pane {
+    filter: invert(100%) hue-rotate(180deg) brightness(0.95) contrast(0.9);
 }
 
 .map-help {
-    margin-top: 0.75rem;
+    margin-top: 1rem;
     text-align: center;
-    background: rgb(0 0 0 / 30%);
+    background: rgb(255 255 255 / 10%);
     backdrop-filter: blur(10px);
-    border-radius: 12px;
-    padding: 0.75rem;
-    color: rgb(255 255 255 / 90%);
+    border-radius: 16px;
+    padding: 1rem;
+    color: var(--warm-white);
     font-size: 0.875rem;
+    border: 1px solid rgb(255 255 255 / 10%);
 }
 
 /* Footer */
 .footer {
-    background: linear-gradient(90deg, var(--christmas-green) 0%, var(--christmas-red) 50%, var(--christmas-green) 100%);
-    color: white;
+    background: linear-gradient(180deg, var(--christmas-red) 0%, var(--christmas-dark-red) 100%);
+    color: var(--warm-white);
     margin-top: 3rem;
     padding: 2rem;
-    box-shadow: 0 -5px 20px rgb(0 0 0 / 30%);
+    box-shadow: 0 -5px 30px rgb(0 0 0 / 40%);
 }
 
 .footer-content {
@@ -290,13 +328,15 @@ body {
 }
 
 .footer-text {
+    font-family: var(--font-body);
     font-size: 1rem;
     margin: 0.5rem 0;
 }
 
 .footer-tagline {
-    font-weight: bold;
-    font-size: 1.125rem;
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 1rem;
     color: var(--christmas-gold);
     margin: 0.5rem 0;
 }
