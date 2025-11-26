@@ -90,6 +90,11 @@ body {
 /* Note: Dark mode map tiles are now using CartoDB Dark Matter provider.
    CSS filter no longer needed as tiles are natively dark. */
 
+/* Set background color for unloaded map tiles to match dark theme */
+.leaflet-container {
+    background: var(--night-deep);
+}
+
 /* Mission Control Panel - Floating Left (Dark Glass Style) */
 .mission-control {
     position: fixed;
