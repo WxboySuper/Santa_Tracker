@@ -5,6 +5,16 @@
 let animationInterval = null;
 // Interval for Santa movement updates
 let santaMovementInterval = null;
+// Interval for pre-flight updates
+let preflightUpdateInterval = null;
+
+// Tracking mode state: 'preflight' or 'live'
+let currentMode = 'preflight';
+// Flag to track if liftoff transition has occurred
+let hasLiftoffOccurred = false;
+
+// North Pole coordinates
+const NORTH_POLE = { lat: 90, lng: 0 };
 
 // skipcq: JS-0241
 document.addEventListener('DOMContentLoaded', function() {
@@ -20,15 +30,18 @@ document.addEventListener('DOMContentLoaded', function() {
         return;
     }
     
-    // Initialize map with festive theme
+    // Initialize map with festive theme - start at North Pole for pre-flight
     // skipcq: JS-0125
     const map = L.map('map', {
-        center: [20, 0],
-        zoom: 2,
+        center: [NORTH_POLE.lat, NORTH_POLE.lng],
+        zoom: 3,
         zoomControl: true,
         scrollWheelZoom: true,
         attributionControl: true
     });
+    
+    // Store map reference globally for mode transitions
+    window.trackerMap = map;
     
     // Add OpenStreetMap tiles (free and open-source)
     // skipcq: JS-0125
@@ -58,16 +71,19 @@ document.addEventListener('DOMContentLoaded', function() {
         className: 'santa-marker'
     });
 
-    // Create Santa's marker with animation
+    // Create Santa's marker with animation - start at North Pole
     // skipcq: JS-0125
-    const santaMarker = L.marker([20, 0], {
+    const santaMarker = L.marker([NORTH_POLE.lat, NORTH_POLE.lng], {
         icon: santaIcon,
         title: 'Santa Claus',
         alt: 'Santa\'s current position'
     }).addTo(map);
+    
+    // Store Santa marker globally for mode transitions
+    window.santaMarker = santaMarker;
 
     // Add popup to Santa marker
-    santaMarker.bindPopup('<div class="text-center p-2"><strong>🎅 Santa is here!</strong><br><span id="popup-location">North Pole</span></div>');
+    santaMarker.bindPopup('<div class="text-center p-2"><strong>🎅 Santa is here!</strong><br><span id="popup-location">North Pole Workshop</span></div>');
 
     // Event System for handling updates
     const EventSystem = (function() {
@@ -208,19 +224,187 @@ let christmasCountdownInterval = null;
 let locationCountdownInterval = null;
 
 function initCountdowns() {
-    // Initialize main tour launch countdown using CountdownModule
+    // Initialize main tour launch countdown using CountdownModule with mode callback
     const countdownElement = document.getElementById('countdown');
     if (countdownElement) {
         christmasCountdownInterval = window.CountdownModule.createCountdown({
             targetElement: countdownElement,
-            useLocalTime: false // Use UTC+14 time to match when Santa actually starts
+            useLocalTime: false, // Use UTC+14 time to match when Santa actually starts
+            onUpdate: handleCountdownUpdate
         });
         christmasCountdownInterval.start();
+        
+        // Initial mode check
+        const timeData = christmasCountdownInterval.getTimeData();
+        updateTrackingMode(timeData.isComplete);
     }
     
-    // Initialize location-specific countdown
+    // Initialize location-specific countdown (only shown in live mode)
     updateLocationCountdown();
     locationCountdownInterval = setInterval(updateLocationCountdown, 1000);
+    
+    // Start pre-flight status updates
+    startPreflightUpdates();
+}
+
+// Handle countdown updates and trigger mode transitions
+function handleCountdownUpdate(timeData) {
+    if (timeData.isComplete && currentMode === 'preflight' && !hasLiftoffOccurred) {
+        triggerLiftoff();
+    }
+}
+
+// Update tracking mode based on countdown state
+function updateTrackingMode(isLaunched) {
+    const preflightPanel = document.getElementById('preflight-panel');
+    const livePanel = document.getElementById('live-panel');
+    
+    if (isLaunched && currentMode === 'preflight') {
+        currentMode = 'live';
+        
+        // Switch panels
+        if (preflightPanel) preflightPanel.style.display = 'none';
+        if (livePanel) livePanel.style.display = 'block';
+        
+        // Stop pre-flight updates
+        if (preflightUpdateInterval) {
+            clearInterval(preflightUpdateInterval);
+            preflightUpdateInterval = null;
+        }
+    } else if (!isLaunched && currentMode === 'live') {
+        currentMode = 'preflight';
+        
+        // Switch panels
+        if (preflightPanel) preflightPanel.style.display = 'block';
+        if (livePanel) livePanel.style.display = 'none';
+        
+        // Start pre-flight updates
+        startPreflightUpdates();
+    }
+}
+
+// Trigger liftoff sequence
+function triggerLiftoff() {
+    hasLiftoffOccurred = true;
+    
+    // Show liftoff toast
+    showLiftoffToast();
+    
+    // Update mode
+    updateTrackingMode(true);
+    
+    // Animate map to first destination
+    if (santaRoute.length > 0 && window.trackerMap) {
+        const firstStop = santaRoute[0];
+        const map = window.trackerMap;
+        
+        // Fly from North Pole to first stop
+        map.flyTo([firstStop.latitude, firstStop.longitude], 4, {
+            duration: 3,
+            easeLinearity: 0.25
+        });
+        
+        // Update Santa marker position
+        if (window.santaMarker) {
+            setTimeout(() => {
+                window.santaMarker.setLatLng([firstStop.latitude, firstStop.longitude]);
+            }, 1500);
+        }
+    }
+}
+
+// Show liftoff toast notification
+function showLiftoffToast() {
+    const toast = document.getElementById('liftoff-toast');
+    if (!toast) return;
+    
+    toast.style.display = 'block';
+    
+    // Hide toast after 4 seconds
+    setTimeout(() => {
+        toast.style.animation = 'toast-disappear 0.5s ease-out forwards';
+        setTimeout(() => {
+            toast.style.display = 'none';
+            toast.style.animation = 'toast-appear 0.5s ease-out forwards';
+        }, 500);
+    }, 4000);
+}
+
+// Start pre-flight status updates
+function startPreflightUpdates() {
+    updatePreflightStatus();
+    preflightUpdateInterval = setInterval(updatePreflightStatus, 5000);
+}
+
+// Update pre-flight panel with dynamic status
+function updatePreflightStatus() {
+    if (currentMode !== 'preflight') return;
+    
+    const reindeerStatuses = [
+        '🦌 Resting',
+        '🦌 Stretching',
+        '🦌 Eating Carrots',
+        '🦌 Getting Harnessed',
+        '🦌 Ready for Flight!'
+    ];
+    
+    const sleighStatuses = [
+        '🎁 Loading Gifts...',
+        '🛷 Checking Runners',
+        '✨ Polishing Sleigh',
+        '📦 Securing Cargo',
+        '✅ Ready for Departure!'
+    ];
+    
+    const weatherConditions = [
+        '❄️ -24°C / Heavy Snow',
+        '🌨️ -22°C / Light Snow',
+        '☁️ -20°C / Cloudy',
+        '🌬️ -26°C / Blizzard',
+        '❄️ -18°C / Clear & Cold'
+    ];
+    
+    // Get countdown to determine progress
+    const timeData = christmasCountdownInterval ? christmasCountdownInterval.getTimeData() : null;
+    let progressIndex = 0;
+    
+    if (timeData && !timeData.isComplete) {
+        // Calculate progress based on time remaining (closer to launch = higher index)
+        if (timeData.days <= 1) progressIndex = 4;
+        else if (timeData.days <= 3) progressIndex = 3;
+        else if (timeData.days <= 7) progressIndex = 2;
+        else if (timeData.days <= 14) progressIndex = 1;
+        else progressIndex = 0;
+    }
+    
+    // Update reindeer status
+    const reindeerEl = document.getElementById('preflight-reindeer');
+    if (reindeerEl) {
+        reindeerEl.textContent = reindeerStatuses[Math.min(progressIndex, reindeerStatuses.length - 1)];
+    }
+    
+    // Update sleigh status  
+    const sleighEl = document.getElementById('preflight-sleigh');
+    if (sleighEl) {
+        sleighEl.textContent = sleighStatuses[Math.min(progressIndex, sleighStatuses.length - 1)];
+    }
+    
+    // Update weather with some randomness
+    const weatherEl = document.getElementById('preflight-weather');
+    if (weatherEl) {
+        const weatherIndex = Math.floor(Math.random() * weatherConditions.length);
+        weatherEl.textContent = weatherConditions[weatherIndex];
+    }
+    
+    // Update status indicator based on progress
+    const statusEl = document.getElementById('preflight-status');
+    if (statusEl && timeData) {
+        if (timeData.days <= 1) {
+            statusEl.innerHTML = '<span class="status-indicator status-flying"></span> Preparing for Takeoff';
+        } else {
+            statusEl.innerHTML = '<span class="status-indicator status-grounded"></span> Grounded';
+        }
+    }
 }
 
 // Update location countdown timer (for next departure from current location)
@@ -253,14 +437,15 @@ async function loadSantaRoute() {
         const data = await response.json();
         santaRoute = data.route || [];
         
-        if (santaRoute.length > 0) {
+        // Only update live tracking display if in live mode
+        if (santaRoute.length > 0 && currentMode === 'live') {
             // Initialize with first location
             const firstLocation = santaRoute[0];
             updateLocationDisplay(firstLocation.name || firstLocation.location, 
                 santaRoute[1] ? (santaRoute[1].name || santaRoute[1].location) : 'Unknown');
         }
         
-        // Start real-time tracking based on timestamps
+        // Start real-time tracking based on timestamps (will respect mode)
         startRealTimeTracking();
     } catch (error) {
         console.error('Failed to load Santa route:', error);
@@ -441,15 +626,24 @@ function getSantaStatus() {
 
 // Start real-time tracking based on timestamps
 function startRealTimeTracking() {
-    // Update immediately
-    updateSantaPosition();
+    // Only update in live mode
+    if (currentMode === 'live') {
+        updateSantaPosition();
+    }
     
     // Update every 5 seconds for smooth tracking
-    santaMovementInterval = setInterval(updateSantaPosition, 5000);
+    santaMovementInterval = setInterval(() => {
+        if (currentMode === 'live') {
+            updateSantaPosition();
+        }
+    }, 5000);
 }
 
 // Update Santa's position based on current time and route data
 function updateSantaPosition() {
+    // Skip updates if in preflight mode
+    if (currentMode !== 'live') return;
+    
     const status = getSantaStatus();
     
     if (!status) return;
@@ -563,5 +757,8 @@ window.addEventListener('beforeunload', () => {
     }
     if (animationInterval) {
         clearInterval(animationInterval);
+    }
+    if (preflightUpdateInterval) {
+        clearInterval(preflightUpdateInterval);
     }
 });

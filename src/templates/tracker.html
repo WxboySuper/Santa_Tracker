@@ -30,10 +30,58 @@
         <div id="countdown" class="countdown-hud-value" aria-live="polite" aria-atomic="true"></div>
     </div>
     
-    <!-- Mission Control Panel - Floating Left -->
-    <aside class="mission-control">
+    <!-- Pre-Flight Panel - Floating Left (shown before launch) -->
+    <aside id="preflight-panel" class="mission-control preflight-panel">
+        <div class="panel-header panel-header-preflight">
+            <h2 class="panel-title">🛷 Flight Prep Status</h2>
+        </div>
+        <div class="panel-content">
+            <!-- Status -->
+            <div class="info-box info-box-status">
+                <h3 class="info-title">Status</h3>
+                <p id="preflight-status" class="info-value" aria-live="polite">
+                    <span class="status-indicator status-grounded"></span> Grounded
+                </p>
+            </div>
+
+            <!-- Location -->
+            <div class="info-box info-box-blue">
+                <h3 class="info-title">Location</h3>
+                <p id="preflight-location" class="info-value" aria-live="polite">
+                    🎅 North Pole Workshop
+                </p>
+            </div>
+
+            <!-- Weather -->
+            <div class="info-box info-box-weather">
+                <h3 class="info-title">Weather Conditions</h3>
+                <p id="preflight-weather" class="info-value" aria-live="polite">
+                    ❄️ -24°C / Heavy Snow
+                </p>
+            </div>
+
+            <!-- Reindeer Status -->
+            <div class="info-box info-box-green">
+                <h3 class="info-title">Reindeer Status</h3>
+                <p id="preflight-reindeer" class="info-value" aria-live="polite">
+                    🦌 Resting
+                </p>
+            </div>
+
+            <!-- Sleigh Status -->
+            <div class="info-box info-box-gold">
+                <h3 class="info-title">Sleigh Status</h3>
+                <p id="preflight-sleigh" class="info-value" aria-live="polite">
+                    🎁 Loading Gifts...
+                </p>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Live Tracking Panel - Floating Left (shown after launch) -->
+    <aside id="live-panel" class="mission-control live-panel" style="display: none;">
         <div class="panel-header">
-            <h2 class="panel-title">Mission Control</h2>
+            <h2 class="panel-title">🎯 Mission Control</h2>
         </div>
         <div class="panel-content">
             <!-- Current Location -->
@@ -69,6 +117,14 @@
             </div>
         </div>
     </aside>
+
+    <!-- Liftoff Toast Notification -->
+    <div id="liftoff-toast" class="liftoff-toast" role="alert" aria-live="assertive" style="display: none;">
+        <div class="toast-content">
+            <span class="toast-icon">🚀</span>
+            <span class="toast-message">Santa Has Taken Off! 🎅🎄</span>
+        </div>
+    </div>
 
     <!-- Snowfall Container -->
     <div id="snowfall" aria-hidden="true"></div>
