@@ -608,7 +608,7 @@
 
             <!-- Route Management Section -->
             <div class="actions" style="margin-top: 20px;">
-                <h3 style="margin-bottom: 15px; color: #333;">Route Management</h3>
+                <h3 style="margin-bottom: 15px; color: #ffffff;">Route Management</h3>
                 <button class="btn btn-primary" onclick="precomputeRoute()">🚀 Precompute Route</button>
                 <button class="btn btn-success" onclick="exportBackup()">💾 Export Backup</button>
                 <button class="btn btn-secondary" onclick="loadRouteStatus()">📊 View Route Status</button>
@@ -616,7 +616,7 @@
 
             <!-- Route Testing/Simulation Section -->
             <div class="actions" style="margin-top: 20px;">
-                <h3 style="margin-bottom: 15px; color: #333;">Route Testing & Simulation</h3>
+                <h3 style="margin-bottom: 15px; color: #ffffff;">Route Testing & Simulation</h3>
                 <button class="btn btn-info" onclick="showSimulateModal()">🧪 Simulate Route Data</button>
                 <button class="btn btn-primary" onclick="window.open('/admin/route-simulator', '_blank')">🗺️ Visual Route Simulator</button>
                 <button class="btn btn-secondary" onclick="clearSimulation()">🗑️ Clear Simulation</button>
@@ -624,29 +624,29 @@
 
             <!-- Trial Route Management Section -->
             <div class="actions" style="margin-top: 20px;">
-                <h3 style="margin-bottom: 15px; color: #333;">Trial Route Management</h3>
+                <h3 style="margin-bottom: 15px; color: #ffffff;">Trial Route Management</h3>
                 <button class="btn btn-success" onclick="showUploadTrialRouteModal()">📤 Upload Trial Route</button>
                 <button class="btn btn-info" onclick="simulateTrialRoute()">🧪 Simulate Trial Route</button>
                 <button class="btn btn-primary" onclick="applyTrialRoute()">✅ Apply Trial to Main</button>
                 <button class="btn btn-danger" onclick="deleteTrialRoute()">🗑️ Delete Trial Route</button>
-                <div id="trialRouteStatus" style="margin-top: 10px; font-size: 14px; color: #666;"></div>
+                <div id="trialRouteStatus" style="margin-top: 10px; font-size: 14px; color: #94a3b8;"></div>
             </div>
 
             <!-- Route Simulation Results -->
             <div id="simulationContainer" class="locations-table-container" style="margin-top: 20px; display: none;">
-                <h2 style="margin-bottom: 15px; color: #333;">Simulation Results</h2>
+                <h2 style="margin-bottom: 15px; color: #ffffff;">Simulation Results</h2>
                 <div id="simulationSummary" style="margin-bottom: 20px;"></div>
                 <div id="simulationContent"></div>
             </div>
 
             <!-- Route Status Display -->
             <div id="routeStatusContainer" class="locations-table-container" style="margin-top: 20px; display: none;">
-                <h2 style="margin-bottom: 15px; color: #333;">Route Status</h2>
+                <h2 style="margin-bottom: 15px; color: #ffffff;">Route Status</h2>
                 <div id="routeStatusContent"></div>
             </div>
 
             <div class="locations-table-container">
-                <h2 style="margin-bottom: 15px; color: #333;">Location Management</h2>
+                <h2 style="margin-bottom: 15px; color: #ffffff;">Location Management</h2>
                 <div id="loadingMessage" class="loading">Loading locations...</div>
                 <table id="locationsTable" class="locations-table" style="display: none;">
                     <thead>
@@ -676,12 +676,12 @@
 
             <!-- Advent Management Section -->
             <div class="actions" style="margin-top: 20px;">
-                <h3 style="margin-bottom: 15px; color: #333;">Calendar Management</h3>
+                <h3 style="margin-bottom: 15px; color: #ffffff;">Calendar Management</h3>
                 <button class="btn btn-success" onclick="exportAdventBackup()">💾 Export Calendar</button>
             </div>
 
             <div class="locations-table-container">
-                <h2 style="margin-bottom: 15px; color: #333;">Advent Calendar Days</h2>
+                <h2 style="margin-bottom: 15px; color: #ffffff;">Advent Calendar Days</h2>
                 <div id="adventLoadingMessage" class="loading">Loading advent days...</div>
                 <table id="adventDaysTable" class="locations-table" style="display: none;">
                     <thead>
@@ -726,7 +726,7 @@
                 <div class="form-group">
                     <label for="utcOffset" class="required">UTC Offset (-12 to +14)</label>
                     <input type="number" id="utcOffset" step="0.5" min="-12" max="14" required>
-                    <small style="color: #666; display: block; margin-top: 5px;">
+                    <small style="color: #94a3b8; display: block; margin-top: 5px;">
                         Examples: -5 (EST), 0 (UTC), 9 (JST), 5.5 (IST)
                     </small>
                 </div>
@@ -790,7 +790,7 @@
                 <button class="close-modal" onclick="closeImportModal()">&times;</button>
             </div>
             <div style="margin-bottom: 20px;">
-                <p style="color: #666; margin-bottom: 15px;">
+                <p style="color: #94a3b8; margin-bottom: 15px;">
                     Paste JSON data or upload a JSON file containing location data. 
                     Supports both single objects and arrays of locations.
                 </p>
@@ -819,12 +819,12 @@
 
                 <div class="form-group">
                     <label>Or Upload JSON File</label>
-                    <input type="file" id="importFile" accept=".json" onchange="handleFileUpload(event)" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
+                    <input type="file" id="importFile" accept=".json" onchange="handleFileUpload(event)" style="width: 100%; padding: 10px; border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 5px;">
                 </div>
 
-                <div id="importPreview" style="display: none; margin-top: 15px; padding: 10px; background: #f8f9fa; border-radius: 5px;">
+                <div id="importPreview" style="display: none; margin-top: 15px; padding: 10px; background: rgba(30, 41, 59, 0.6); border-radius: 5px;">
                     <strong>Preview:</strong>
-                    <p id="importPreviewText" style="margin-top: 5px; color: #333;"></p>
+                    <p id="importPreviewText" style="margin-top: 5px; color: #ffffff;"></p>
                 </div>
 
                 <div id="importErrors" style="display: none; margin-top: 15px;" class="alert alert-error"></div>
@@ -845,7 +845,7 @@
                 <button class="close-modal" onclick="closeSimulateModal()">&times;</button>
             </div>
             <div style="margin-bottom: 20px;">
-                <p style="color: #666; margin-bottom: 15px;">
+                <p style="color: #94a3b8; margin-bottom: 15px;">
                     Test and preview Santa's route with different timing scenarios. 
                     This will not modify the actual route data.
                 </p>
@@ -853,7 +853,7 @@
                 <div class="form-group">
                     <label for="simulateStartTime">Start Time (UTC)</label>
                     <input type="datetime-local" id="simulateStartTime" placeholder="2024-12-24T00:00:00">
-                    <small style="color: #666; display: block; margin-top: 5px;">
+                    <small style="color: #94a3b8; display: block; margin-top: 5px;">
                         Leave empty to use default (Christmas Eve midnight UTC)
                     </small>
                 </div>
@@ -869,7 +869,7 @@
                     <div class="form-group">
                         <label for="selectedLocationIds">Select Locations (comma-separated IDs)</label>
                         <input type="text" id="selectedLocationIds" placeholder="0,1,2,3">
-                        <small style="color: #666; display: block; margin-top: 5px;">
+                        <small style="color: #94a3b8; display: block; margin-top: 5px;">
                             Enter location IDs separated by commas (e.g., 0,1,2,3)
                         </small>
                     </div>
@@ -901,7 +901,7 @@
                 <div class="form-group">
                     <label for="adventUnlockTime" class="required">Unlock Time (UTC)</label>
                     <input type="datetime-local" id="adventUnlockTime" required>
-                    <small style="color: #666; display: block; margin-top: 5px;">
+                    <small style="color: #94a3b8; display: block; margin-top: 5px;">
                         Time when this day unlocks (in UTC timezone)
                     </small>
                 </div>
@@ -928,7 +928,7 @@
                         <div class="form-group">
                             <label for="payloadImageUrl">Image URL</label>
                             <input type="text" id="payloadImageUrl" placeholder="/static/images/advent/dayX.jpg">
-                            <small style="color: #666; display: block; margin-top: 5px;">
+                            <small style="color: #94a3b8; display: block; margin-top: 5px;">
                                 Path to image file or full URL
                             </small>
                         </div>
@@ -1042,12 +1042,12 @@
 
                 <div class="form-group">
                     <label>Or Upload JSON File</label>
-                    <input type="file" id="importAdventFile" accept=".json" onchange="handleAdventFileUpload(event)" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
+                    <input type="file" id="importAdventFile" accept=".json" onchange="handleAdventFileUpload(event)" style="width: 100%; padding: 10px; border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 5px;">
                 </div>
 
-                <div id="importAdventPreview" style="display: none; margin-top: 15px; padding: 10px; background: #f8f9fa; border-radius: 5px;">
+                <div id="importAdventPreview" style="display: none; margin-top: 15px; padding: 10px; background: rgba(30, 41, 59, 0.6); border-radius: 5px;">
                     <strong>Preview:</strong>
-                    <p id="importAdventPreviewText" style="margin-top: 5px; color: #333;"></p>
+                    <p id="importAdventPreviewText" style="margin-top: 5px; color: #ffffff;"></p>
                 </div>
 
                 <div id="importAdventErrors" style="display: none; margin-top: 15px;" class="alert alert-error"></div>
@@ -1068,7 +1068,7 @@
                 <button class="close-modal" onclick="closeUploadTrialRouteModal()">&times;</button>
             </div>
             <div style="margin-bottom: 20px;">
-                <p style="color: #666; margin-bottom: 15px;">
+                <p style="color: #94a3b8; margin-bottom: 15px;">
                     Upload a trial route for testing. This allows you to test routes before applying them to the main route.
                     Trial routes can be simulated and validated without affecting the live route.
                 </p>
@@ -1633,7 +1633,7 @@
             
             const completionBadge = status.route_complete 
                 ? '<span style="background: #28a745; color: white; padding: 5px 10px; border-radius: 5px; font-size: 12px;">✓ Complete</span>'
-                : '<span style="background: #ffc107; color: #333; padding: 5px 10px; border-radius: 5px; font-size: 12px;">⚠ Incomplete</span>';
+                : '<span style="background: #ffc107; color: #ffffff; padding: 5px 10px; border-radius: 5px; font-size: 12px;">⚠ Incomplete</span>';
             
             let priorityBreakdown = '';
             if (status.priority_breakdown && Object.keys(status.priority_breakdown).length > 0) {
@@ -1646,19 +1646,19 @@
             
             content.innerHTML = `
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-bottom: 20px;">
-                    <div style="background: #f8f9fa; padding: 15px; border-radius: 8px;">
+                    <div style="background: rgba(30, 41, 59, 0.6); padding: 15px; border-radius: 8px;">
                         <h4 style="margin-bottom: 10px; color: #555;">Total Locations</h4>
-                        <p style="font-size: 24px; font-weight: bold; color: #333; margin: 0;">${status.total_locations}</p>
+                        <p style="font-size: 24px; font-weight: bold; color: #ffffff; margin: 0;">${status.total_locations}</p>
                     </div>
-                    <div style="background: #f8f9fa; padding: 15px; border-radius: 8px;">
+                    <div style="background: rgba(30, 41, 59, 0.6); padding: 15px; border-radius: 8px;">
                         <h4 style="margin-bottom: 10px; color: #555;">Locations with Timing</h4>
-                        <p style="font-size: 24px; font-weight: bold; color: #333; margin: 0;">${status.locations_with_timing}</p>
+                        <p style="font-size: 24px; font-weight: bold; color: #ffffff; margin: 0;">${status.locations_with_timing}</p>
                     </div>
-                    <div style="background: #f8f9fa; padding: 15px; border-radius: 8px;">
+                    <div style="background: rgba(30, 41, 59, 0.6); padding: 15px; border-radius: 8px;">
                         <h4 style="margin-bottom: 10px; color: #555;">Route Status</h4>
                         <p style="margin: 10px 0 0 0;">${completionBadge}</p>
                     </div>
-                    <div style="background: #f8f9fa; padding: 15px; border-radius: 8px;">
+                    <div style="background: rgba(30, 41, 59, 0.6); padding: 15px; border-radius: 8px;">
                         <h4 style="margin-bottom: 10px; color: #555;">Last Modified</h4>
                         <p style="font-size: 14px; color: #555; margin: 0;">${status.last_modified}</p>
                     </div>
