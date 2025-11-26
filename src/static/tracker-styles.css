@@ -33,7 +33,7 @@ body {
     background: var(--night-deep);
     height: 100vh;
     width: 100vw;
-    overflow: auto hidden;
+    overflow: hidden;
 }
 
 /* Glass Pill Navigation - Fixed Top Center */
@@ -90,18 +90,18 @@ body {
 /* Note: Dark mode map tiles are now using CartoDB Dark Matter provider.
    CSS filter no longer needed as tiles are natively dark. */
 
-/* Mission Control Panel - Floating Left */
+/* Mission Control Panel - Floating Left (Dark Glass Style) */
 .mission-control {
     position: fixed;
     top: 6rem;
     left: 1.5rem;
     width: 320px;
     z-index: 50;
-    background: rgb(255 255 255 / 10%);
+    background: rgb(15 23 42 / 80%);
     backdrop-filter: blur(16px);
     border-radius: 24px;
     box-shadow: 0 8px 32px rgb(0 0 0 / 40%);
-    border: 1px solid rgb(255 255 255 / 15%);
+    border: 1px solid rgb(255 255 255 / 10%);
     overflow: hidden;
 }
 
@@ -128,11 +128,11 @@ body {
     gap: 0.75rem;
 }
 
-/* Info Boxes - Compact HUD Style */
+/* Info Boxes - Dark Glass HUD Style */
 .info-box {
     padding: 0.75rem 1rem;
     border-radius: 12px;
-    background: rgb(255 255 255 / 90%);
+    background: rgb(30 41 59 / 70%);
     transition: transform 0.2s ease;
 }
 
@@ -160,7 +160,7 @@ body {
     font-family: var(--font-body);
     font-size: 0.75rem;
     font-weight: 700;
-    color: #64748b;
+    color: rgb(148 163 184);
     margin: 0 0 0.25rem;
     text-transform: uppercase;
     letter-spacing: 0.5px;
@@ -170,7 +170,7 @@ body {
     font-family: var(--font-body);
     font-size: 1rem;
     font-weight: 700;
-    color: #1e293b;
+    color: rgb(248 250 252);
     margin: 0;
 }
 

@@ -7,6 +7,8 @@ let animationInterval = null;
 let santaMovementInterval = null;
 // Interval for pre-flight updates
 let preflightUpdateInterval = null;
+// Interval for weather updates (separate from other preflight updates)
+let weatherUpdateInterval = null;
 
 // Timeout variables for cleanup
 let santaMarkerTimeoutId = null;
@@ -28,6 +30,8 @@ const LIFTOFF_FLY_ZOOM = 4;
 const LIFTOFF_FLY_DURATION = 3;
 const LIFTOFF_FLY_EASE = 0.25;
 const SANTA_MARKER_UPDATE_DELAY = 1500;
+// Weather update interval (30 minutes) - realistic weather doesn't change every second
+const WEATHER_UPDATE_INTERVAL = 1800000;
 
 // skipcq: JS-0241
 document.addEventListener('DOMContentLoaded', function() {
@@ -294,6 +298,11 @@ function updateTrackingMode(isLaunched) {
             clearInterval(preflightUpdateInterval);
             preflightUpdateInterval = null;
         }
+        // Stop weather updates
+        if (weatherUpdateInterval) {
+            clearInterval(weatherUpdateInterval);
+            weatherUpdateInterval = null;
+        }
     } else if (!isLaunched && currentMode === 'live') {
         currentMode = 'preflight';
 
@@ -374,6 +383,10 @@ function clearLiftoffToastTimeouts() {
 function startPreflightUpdates() {
     updatePreflightStatus();
     preflightUpdateInterval = setInterval(updatePreflightStatus, 5000);
+
+    // Start weather updates separately (less frequent - every 30 minutes)
+    updatePreflightWeather();
+    weatherUpdateInterval = setInterval(updatePreflightWeather, WEATHER_UPDATE_INTERVAL);
 }
 
 // Update pre-flight panel with dynamic status
@@ -394,14 +407,6 @@ function updatePreflightStatus() {
         '✨ Polishing Sleigh',
         '📦 Securing Cargo',
         '✅ Ready for Departure!'
-    ];
-
-    const weatherConditions = [
-        '❄️ -24°C / Heavy Snow',
-        '🌨️ -22°C / Light Snow',
-        '☁️ -20°C / Cloudy',
-        '🌬️ -26°C / Blizzard',
-        '❄️ -18°C / Clear & Cold'
     ];
 
     // Get countdown to determine progress using helper function
@@ -429,13 +434,6 @@ function updatePreflightStatus() {
         sleighEl.textContent = sleighStatuses[Math.min(progressIndex, sleighStatuses.length - 1)];
     }
 
-    // Update weather with some randomness
-    const weatherEl = document.getElementById('preflight-weather');
-    if (weatherEl) {
-        const weatherIndex = Math.floor(Math.random() * weatherConditions.length);
-        weatherEl.textContent = weatherConditions[weatherIndex];
-    }
-
     // Update status indicator based on progress
     const statusEl = document.getElementById('preflight-status');
     if (statusEl && timeData) {
@@ -444,6 +442,25 @@ function updatePreflightStatus() {
         } else {
             statusEl.innerHTML = '<span class="status-indicator status-grounded"></span> Grounded';
         }
+    }
+}
+
+// Update pre-flight weather conditions (separate from other status updates for slower refresh)
+function updatePreflightWeather() {
+    if (currentMode !== 'preflight') return;
+
+    const weatherConditions = [
+        '❄️ -24°C / Heavy Snow',
+        '🌨️ -22°C / Light Snow',
+        '☁️ -20°C / Cloudy',
+        '🌬️ -26°C / Blizzard',
+        '❄️ -18°C / Clear & Cold'
+    ];
+
+    const weatherEl = document.getElementById('preflight-weather');
+    if (weatherEl) {
+        const weatherIndex = Math.floor(Math.random() * weatherConditions.length);
+        weatherEl.textContent = weatherConditions[weatherIndex];
     }
 }
 
@@ -796,6 +813,9 @@ window.addEventListener('beforeunload', () => {
     }
     if (preflightUpdateInterval) {
         clearInterval(preflightUpdateInterval);
+    }
+    if (weatherUpdateInterval) {
+        clearInterval(weatherUpdateInterval);
     }
     // Cleanup liftoff transition timeouts
     if (santaMarkerTimeoutId) {
