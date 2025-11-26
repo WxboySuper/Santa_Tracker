@@ -679,7 +679,7 @@ function startRealTimeTracking() {
 // Update Santa's position based on current time and route data
 // Helper to emit santa movement events (keeps main updater concise)
 function emitSantaMove(status) {
-    const EventSystem = window.EventSystem || { emit() {} };
+    const EventSystem = window.EventSystem || { emit: function() { return null; } };
     if (typeof EventSystem.emit === 'function') {
         EventSystem.emit('santaMove', {
             position: status.position,
