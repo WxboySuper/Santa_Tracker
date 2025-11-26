@@ -16,6 +16,12 @@ let hasLiftoffOccurred = false;
 // North Pole coordinates
 const NORTH_POLE = { lat: 90, lng: 0 };
 
+// Animation constants for liftoff transition
+const LIFTOFF_FLY_ZOOM = 4;
+const LIFTOFF_FLY_DURATION = 3;
+const LIFTOFF_FLY_EASE = 0.25;
+const SANTA_MARKER_UPDATE_DELAY = 1500;
+
 // skipcq: JS-0241
 document.addEventListener('DOMContentLoaded', function() {
     // Initialize snowfall effect
@@ -236,7 +242,9 @@ function initCountdowns() {
         
         // Initial mode check
         const timeData = christmasCountdownInterval.getTimeData();
-        updateTrackingMode(timeData.isComplete);
+        if (timeData) {
+            updateTrackingMode(timeData.isComplete);
+        }
     }
     
     // Initialize location-specific countdown (only shown in live mode)
@@ -249,7 +257,7 @@ function initCountdowns() {
 
 // Handle countdown updates and trigger mode transitions
 function handleCountdownUpdate(timeData) {
-    if (timeData.isComplete && currentMode === 'preflight' && !hasLiftoffOccurred) {
+    if (timeData && timeData.isComplete && currentMode === 'preflight' && !hasLiftoffOccurred) {
         triggerLiftoff();
     }
 }
@@ -299,16 +307,16 @@ function triggerLiftoff() {
         const map = window.trackerMap;
         
         // Fly from North Pole to first stop
-        map.flyTo([firstStop.latitude, firstStop.longitude], 4, {
-            duration: 3,
-            easeLinearity: 0.25
+        map.flyTo([firstStop.latitude, firstStop.longitude], LIFTOFF_FLY_ZOOM, {
+            duration: LIFTOFF_FLY_DURATION,
+            easeLinearity: LIFTOFF_FLY_EASE
         });
         
         // Update Santa marker position
         if (window.santaMarker) {
             setTimeout(() => {
                 window.santaMarker.setLatLng([firstStop.latitude, firstStop.longitude]);
-            }, 1500);
+            }, SANTA_MARKER_UPDATE_DELAY);
         }
     }
 }
