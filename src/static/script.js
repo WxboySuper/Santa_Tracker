@@ -30,12 +30,13 @@ document.addEventListener('DOMContentLoaded', function() {
         attributionControl: true
     });
     
-    // Add OpenStreetMap tiles (free and open-source)
+    // Add CartoDB Dark Matter tiles (dark theme for night sky effect)
     // skipcq: JS-0125
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
         maxZoom: 19,
-        minZoom: 2
+        minZoom: 2,
+        subdomains: 'abcd'
     }).addTo(map);
 
     // Create marker cluster group for better performance

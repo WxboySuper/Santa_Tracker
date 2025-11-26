@@ -87,10 +87,8 @@ body {
     height: 100%;
 }
 
-/* Dark mode filter for map tiles - applied to tile container to preserve markers */
-.leaflet-tile-container {
-    filter: invert(1) hue-rotate(180deg);
-}
+/* Note: Dark mode map tiles are now using CartoDB Dark Matter provider.
+   CSS filter no longer needed as tiles are natively dark. */
 
 /* Mission Control Panel - Floating Left */
 .mission-control {
