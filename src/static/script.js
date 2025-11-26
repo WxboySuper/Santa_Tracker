@@ -32,7 +32,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Add CartoDB Dark Matter tiles (dark theme for night sky effect)
     // skipcq: JS-0125
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png', {
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
         maxZoom: 19,
         minZoom: 2,
