@@ -8,6 +8,11 @@ let santaMovementInterval = null;
 // Interval for pre-flight updates
 let preflightUpdateInterval = null;
 
+// Timeout variables for cleanup
+let santaMarkerTimeoutId = null;
+let liftoffToastTimeoutId = null;
+let liftoffToastHideTimeoutId = null;
+
 // Tracking mode state: 'preflight' or 'live'
 let currentMode = 'preflight';
 // Flag to track if liftoff transition has occurred
@@ -230,6 +235,11 @@ function initSnowfall() {
 let christmasCountdownInterval = null;
 let locationCountdownInterval = null;
 
+// Helper function to safely get countdown time data
+function getCountdownTimeData() {
+    return christmasCountdownInterval ? christmasCountdownInterval.getTimeData() : null;
+}
+
 function initCountdowns() {
     // Initialize main tour launch countdown using CountdownModule with mode callback
     const countdownElement = document.getElementById('countdown');
@@ -242,7 +252,7 @@ function initCountdowns() {
         christmasCountdownInterval.start();
         
         // Initial mode check
-        const timeData = christmasCountdownInterval.getTimeData();
+        const timeData = getCountdownTimeData();
         if (timeData) {
             updateTrackingMode(timeData.isComplete);
         }
@@ -252,8 +262,10 @@ function initCountdowns() {
     updateLocationCountdown();
     locationCountdownInterval = setInterval(updateLocationCountdown, 1000);
     
-    // Start pre-flight status updates
-    startPreflightUpdates();
+    // Start pre-flight status updates only if in preflight mode
+    if (currentMode === 'preflight') {
+        startPreflightUpdates();
+    }
 }
 
 // Handle countdown updates and trigger mode transitions
@@ -313,10 +325,12 @@ function triggerLiftoff() {
             easeLinearity: LIFTOFF_FLY_EASE
         });
         
-        // Update Santa marker position
+        // Update Santa marker position (tracked for cleanup)
         if (window.santaMarker) {
-            setTimeout(() => {
-                window.santaMarker.setLatLng([firstStop.latitude, firstStop.longitude]);
+            santaMarkerTimeoutId = setTimeout(() => {
+                if (currentMode === 'live' && window.santaMarker) {
+                    window.santaMarker.setLatLng([firstStop.latitude, firstStop.longitude]);
+                }
             }, SANTA_MARKER_UPDATE_DELAY);
         }
     }
@@ -326,17 +340,32 @@ function triggerLiftoff() {
 function showLiftoffToast() {
     const toast = document.getElementById('liftoff-toast');
     if (!toast) return;
-    
+
+    // Clear any previous timeouts and reset toast state
+    clearLiftoffToastTimeouts();
     toast.style.display = 'block';
-    
+    toast.style.animation = 'toast-appear 0.5s ease-out forwards';
+
     // Hide toast after 4 seconds
-    setTimeout(() => {
+    liftoffToastTimeoutId = setTimeout(() => {
         toast.style.animation = 'toast-disappear 0.5s ease-out forwards';
-        setTimeout(() => {
+        liftoffToastHideTimeoutId = setTimeout(() => {
             toast.style.display = 'none';
             toast.style.animation = 'toast-appear 0.5s ease-out forwards';
         }, 500);
     }, 4000);
+}
+
+// Cleanup function to clear toast timeouts and reset toast state
+function clearLiftoffToastTimeouts() {
+    if (liftoffToastTimeoutId) {
+        clearTimeout(liftoffToastTimeoutId);
+        liftoffToastTimeoutId = null;
+    }
+    if (liftoffToastHideTimeoutId) {
+        clearTimeout(liftoffToastHideTimeoutId);
+        liftoffToastHideTimeoutId = null;
+    }
 }
 
 // Start pre-flight status updates
@@ -373,8 +402,8 @@ function updatePreflightStatus() {
         '❄️ -18°C / Clear & Cold'
     ];
     
-    // Get countdown to determine progress
-    const timeData = christmasCountdownInterval ? christmasCountdownInterval.getTimeData() : null;
+    // Get countdown to determine progress using helper function
+    const timeData = getCountdownTimeData();
     let progressIndex = 0;
     
     if (timeData && !timeData.isComplete) {
@@ -770,4 +799,9 @@ window.addEventListener('beforeunload', () => {
     if (preflightUpdateInterval) {
         clearInterval(preflightUpdateInterval);
     }
+    // Cleanup liftoff transition timeouts
+    if (santaMarkerTimeoutId) {
+        clearTimeout(santaMarkerTimeoutId);
+    }
+    clearLiftoffToastTimeouts();
 });

@@ -249,6 +249,7 @@ body {
     }
 }
 
+/* Focus styles for accessibility */
 *:focus {
     outline: 3px solid var(--christmas-gold);
     outline-offset: 2px;
