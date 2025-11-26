@@ -677,69 +677,68 @@ function startRealTimeTracking() {
 }
 
 // Update Santa's position based on current time and route data
-function updateSantaPosition() {
-    // Skip updates if in preflight mode
-    if (currentMode !== 'live') return;
-
-    const status = getSantaStatus();
-
-    if (!status) return;
-
-    const EventSystem = window.EventSystem || {
-        // eslint-disable-next-line no-empty-function
-        emit() {} // No-op fallback when EventSystem is not available
-    };
-
-    // Emit movement event with position
+// Helper to emit santa movement events (keeps main updater concise)
+function emitSantaMove(status) {
+    const EventSystem = window.EventSystem || { emit() {} };
     if (typeof EventSystem.emit === 'function') {
         EventSystem.emit('santaMove', {
             position: status.position,
             location: status.location ? (status.location.name || status.location.location) :
                 (status.to ? `En route to ${status.to.name || status.to.location}` : 'Unknown'),
-            animate: false  // Use smooth updates instead of discrete animation
+            animate: false
         });
     }
+}
 
-    // Update location display
+// Helper to build display texts for current location and next stop
+function buildLocationTexts(status) {
     let currentLocationText = '';
     let nextStopText = '';
 
-    if (status.status === 'Landed') {
+    switch (status.status) {
+    case 'Landed':
         if (status.location) {
             currentLocationText = `${status.location.name || status.location.location} (Landed)`;
             const nextIndex = status.currentIndex + 1;
-            if (nextIndex < santaRoute.length) {
-                nextStopText = `Next Stop: ${santaRoute[nextIndex].name || santaRoute[nextIndex].location}`;
-            } else {
-                nextStopText = 'Journey Complete!';
-            }
-
-            // Display notes/fun facts if available
-            if (status.notes) {
-                updateNotesDisplay(status.notes);
-            }
+            nextStopText = nextIndex < santaRoute.length
+                ? `Next Stop: ${santaRoute[nextIndex].name || santaRoute[nextIndex].location}`
+                : 'Journey Complete!';
+            if (status.notes) updateNotesDisplay(status.notes);
         }
-    } else if (status.status === 'In Transit') {
+        break;
+    case 'In Transit':
         currentLocationText = `In Transit (${status.progress}%)`;
         if (status.to) {
             nextStopText = `Next Stop: ${status.to.name || status.to.location}`;
-
-            // Display notes about destination
-            if (status.to.notes || status.to.fun_facts) {
-                updateNotesDisplay(status.to.notes || status.to.fun_facts);
-            }
+            if (status.to.notes || status.to.fun_facts) updateNotesDisplay(status.to.notes || status.to.fun_facts);
         }
-    } else if (status.status === 'Preparing') {
+        break;
+    case 'Preparing':
         currentLocationText = 'Preparing for departure...';
-        if (status.location) {
-            nextStopText = `First Stop: ${status.location.name || status.location.location}`;
-        }
-    } else if (status.status === 'Completed') {
+        if (status.location) nextStopText = `First Stop: ${status.location.name || status.location.location}`;
+        break;
+    case 'Completed':
         currentLocationText = `${status.location.name || status.location.location} (Journey Complete!)`;
         nextStopText = 'All deliveries complete! 🎉';
+        break;
+    default:
+        break;
     }
 
-    updateLocationDisplay(currentLocationText, nextStopText);
+    return { currentLocationText, nextStopText };
+}
+
+function updateSantaPosition() {
+    // Skip updates if not in live mode
+    if (currentMode !== 'live') return;
+
+    const status = getSantaStatus();
+    if (!status) return;
+
+    emitSantaMove(status);
+
+    const texts = buildLocationTexts(status);
+    updateLocationDisplay(texts.currentLocationText, texts.nextStopText);
 }
 
 // Update notes/fun facts display
