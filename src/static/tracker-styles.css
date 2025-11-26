@@ -249,7 +249,138 @@ body {
     }
 }
 
+/* Focus styles for accessibility */
 *:focus {
     outline: 3px solid var(--christmas-gold);
     outline-offset: 2px;
+}
+
+/* Pre-Flight Panel Styles */
+.preflight-panel .panel-header-preflight {
+    background: linear-gradient(to bottom, #991b1b, #7f1d1d);
+}
+
+/* Status indicator dots */
+.status-indicator {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    margin-right: 8px;
+    animation: pulse 2s ease-in-out infinite;
+}
+
+.status-grounded {
+    background: #fbbf24;
+    box-shadow: 0 0 8px #fbbf24;
+}
+
+.status-flying {
+    background: #22c55e;
+    box-shadow: 0 0 8px #22c55e;
+}
+
+.status-landed {
+    background: #3b82f6;
+    box-shadow: 0 0 8px #3b82f6;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+
+    50% {
+        opacity: 0.7;
+        transform: scale(1.1);
+    }
+}
+
+/* Weather info box style */
+.info-box-status {
+    border-left: 4px solid #fbbf24;
+}
+
+.info-box-weather {
+    border-left: 4px solid #60a5fa;
+}
+
+/* Liftoff Toast Notification */
+.liftoff-toast {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 1000;
+    background: linear-gradient(135deg, var(--christmas-red), var(--christmas-dark-red));
+    border-radius: 20px;
+    padding: 2rem 3rem;
+    box-shadow: 0 20px 60px rgb(0 0 0 / 60%);
+    border: 2px solid var(--christmas-gold);
+    animation: toast-appear 0.5s ease-out forwards;
+}
+
+.toast-content {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.toast-icon {
+    font-size: 3rem;
+    animation: rocket-shake 0.5s ease-in-out infinite;
+}
+
+.toast-message {
+    font-family: var(--font-display);
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--warm-white);
+    text-shadow: 0 2px 4px rgb(0 0 0 / 30%);
+}
+
+@keyframes toast-appear {
+    0% {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(0.8);
+    }
+
+    100% {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1);
+    }
+}
+
+@keyframes toast-disappear {
+    0% {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1);
+    }
+
+    100% {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(0.8);
+    }
+}
+
+@keyframes rocket-shake {
+    0%, 100% {
+        transform: translateY(0) rotate(-5deg);
+    }
+
+    50% {
+        transform: translateY(-5px) rotate(5deg);
+    }
+}
+
+/* Panel visibility styles */
+.preflight-panel,
+.live-panel {
+    transition: opacity 0.5s ease-out;
+}
+
+.panel-hidden {
+    opacity: 0;
+    pointer-events: none;
 }
