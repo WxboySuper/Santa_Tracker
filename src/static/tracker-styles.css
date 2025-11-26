@@ -17,9 +17,12 @@
     --ice-blue: #60a5fa;
 
     /* Night sky gradient */
-    --night-deep: #0f172a;
+    --night-deep: #1d1f21;
     --night-mid: #1e1b4b;
     --night-blue: #0a1929;
+    
+    /* Map background - matches CartoDB Dark Matter tiles */
+    --map-background: #1d1f21;
 
     /* Fonts - Fredoka for headings (Chunky/Toy-like), Nunito for body */
     --font-display: 'Fredoka', sans-serif;

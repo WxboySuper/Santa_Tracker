@@ -54,7 +54,9 @@ document.addEventListener('DOMContentLoaded', function() {
         zoom: 3,
         zoomControl: true,
         scrollWheelZoom: true,
-        attributionControl: true
+        attributionControl: true,
+        maxBounds: [[-90, -180], [90, 180]],
+        maxBoundsViscosity: 1.0
     });
 
     // Store map reference globally for mode transitions
