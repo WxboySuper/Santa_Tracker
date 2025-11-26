@@ -30,7 +30,7 @@ const LIFTOFF_FLY_ZOOM = 4;
 const LIFTOFF_FLY_DURATION = 3;
 const LIFTOFF_FLY_EASE = 0.25;
 const SANTA_MARKER_UPDATE_DELAY = 1500;
-// Weather update interval (30 minutes) - realistic weather doesn't change every second
+// Weather update interval (30 minutes) - realistic weather doesn't change frequently
 const WEATHER_UPDATE_INTERVAL = 1800000;
 
 // skipcq: JS-0241
