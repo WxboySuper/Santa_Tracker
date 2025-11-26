@@ -1,4 +1,7 @@
-/* Santa Tracker Landing Page - Festive Styles */
+/* Santa Tracker Landing Page - Game Menu Style */
+
+/* Import Google Fonts - Fredoka (Chunky, Toy-like) + Nunito (Readable) */
+@import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Nunito:wght@400;600;700;800&display=swap');
 
 * {
     margin: 0;
@@ -7,24 +10,75 @@
 }
 
 :root {
-    --christmas-red: #c41e3a;
-    --christmas-green: #165b33;
-    --christmas-gold: #ffd700;
-    --christmas-dark-red: #8b0000;
-    --christmas-light-green: #228b22;
+    /* Cozy North Pole Night palette */
+    --christmas-red: #dc2626;
+    --christmas-dark-red: #991b1b;
+    --christmas-crimson: #7f1d1d;
+    --christmas-green: #166534;
+    --pine-green: #166534;
+    --holly-green: #15803d;
+    --christmas-gold: #fbbf24;
+    --warm-white: #f8fafc;
     --snow-white: #fffafa;
+    --ice-blue: #60a5fa;
+
+    /* Night sky gradient */
+    --night-deep: #0f172a;
+    --night-mid: #1e1b4b;
     --night-blue: #0a1929;
-    --gradient-blue-start: #1a237e;
-    --gradient-blue-end: #0d47a1;
+
+    /* Fonts - Fredoka for headings (Chunky/Toy-like), Nunito for body */
+    --font-display: 'Fredoka', sans-serif;
+    --font-body: 'Nunito', sans-serif;
 }
 
 body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-    background: linear-gradient(180deg, var(--gradient-blue-start) 0%, var(--night-blue) 50%, var(--gradient-blue-end) 100%);
-    color: var(--snow-white);
+    font-family: var(--font-body);
+    background: radial-gradient(ellipse at center, var(--night-mid) 0%, var(--night-deep) 70%);
+    color: var(--warm-white);
     min-height: 100vh;
+    height: 100vh;
     overflow-x: hidden;
     position: relative;
+}
+
+/* Glass Pill Navigation - Fixed Top Center */
+.glass-nav {
+    position: fixed;
+    top: 1.5rem;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 50;
+    background: rgb(255 255 255 / 10%);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgb(255 255 255 / 20%);
+    border-radius: 9999px;
+    padding: 0.5rem;
+    display: flex;
+    gap: 0.5rem;
+}
+
+.nav-link {
+    color: var(--warm-white);
+    text-decoration: none;
+    font-family: var(--font-body);
+    font-size: 0.9rem;
+    font-weight: 600;
+    padding: 0.75rem 1.25rem;
+    border-radius: 9999px;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: all 0.2s ease;
+}
+
+.nav-link:hover,
+.nav-link:focus {
+    background: rgb(255 255 255 / 15%);
+}
+
+.nav-link-active {
+    background: rgb(255 255 255 / 20%);
 }
 
 /* Snowfall Animation */
@@ -35,7 +89,7 @@ body {
     width: 100%;
     height: 100%;
     pointer-events: none;
-    z-index: 1000;
+    z-index: 1;
 }
 
 .snowflake {
@@ -71,20 +125,21 @@ body {
     }
 }
 
-/* Hero Section */
+/* Hero Section - Full Screen Game Menu */
 .hero {
-    min-height: 100vh;
+    position: fixed;
+    inset: 0;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 2rem;
-    position: relative;
-    text-align: center;
+    z-index: 10;
 }
 
 .hero-content {
-    max-width: 900px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
     z-index: 10;
     animation: fade-in-up 1s ease-out;
 }
@@ -126,96 +181,95 @@ body {
     }
 }
 
-/* Hero Title */
+/* Hero Title - Fredoka Chunky Font */
 .hero-title {
-    font-size: 4rem;
-    font-weight: bold;
-    margin-bottom: 1rem;
-    text-shadow: 3px 3px 6px rgb(0 0 0 / 50%);
-    line-height: 1.2;
+    font-family: var(--font-display);
+    font-size: 4.5rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+    text-shadow: 4px 4px 8px rgb(0 0 0 / 50%);
+    line-height: 1.1;
+    text-align: center;
 }
 
 .text-red {
     color: var(--christmas-red);
-    text-shadow: 
-        0 0 10px rgb(196 30 58 / 80%),
-        0 0 20px rgb(196 30 58 / 60%),
-        3px 3px 6px rgb(0 0 0 / 50%);
 }
 
 .text-green {
-    color: var(--christmas-light-green);
-    text-shadow: 
-        0 0 10px rgb(34 139 34 / 80%),
-        0 0 20px rgb(34 139 34 / 60%),
-        3px 3px 6px rgb(0 0 0 / 50%);
+    color: var(--holly-green);
 }
 
 .hero-subtitle {
-    font-size: 1.5rem;
-    margin-bottom: 2.5rem;
-    color: var(--snow-white);
-    text-shadow: 2px 2px 4px rgb(0 0 0 / 50%);
+    font-family: var(--font-body);
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin-bottom: 2rem;
+    color: var(--warm-white);
+    opacity: 0.9;
+    text-align: center;
 }
 
-/* Countdown Box */
+/* Countdown Box - Glass Panel with Gold Border */
 .countdown-box {
-    background: linear-gradient(135deg, var(--christmas-red) 0%, var(--christmas-dark-red) 100%);
-    border-radius: 20px;
-    padding: 2rem;
-    margin-bottom: 2.5rem;
-    box-shadow: 
-        0 10px 30px rgb(0 0 0 / 30%),
-        0 0 40px rgb(196 30 58 / 40%);
-    border: 3px solid var(--christmas-gold);
-    animation: pulse-glow 2s infinite;
+    background: rgb(255 255 255 / 10%);
+    backdrop-filter: blur(16px);
+    border-radius: 24px;
+    padding: 1.5rem 3rem;
+    margin-bottom: 2rem;
+    box-shadow: 0 8px 32px rgb(0 0 0 / 30%);
+    border: 2px solid var(--christmas-gold);
+    text-align: center;
 }
 
 @keyframes pulse-glow {
     0%, 100% {
-        box-shadow: 
-            0 10px 30px rgb(0 0 0 / 30%),
-            0 0 40px rgb(196 30 58 / 40%);
+        box-shadow: 0 8px 32px rgb(0 0 0 / 30%);
     }
 
     50% {
-        box-shadow: 
-            0 10px 30px rgb(0 0 0 / 30%),
-            0 0 60px rgb(196 30 58 / 80%);
+        box-shadow: 0 8px 32px rgb(0 0 0 / 30%), 0 0 30px rgb(251 191 36 / 30%);
     }
 }
 
 .countdown-label {
-    font-size: 1.2rem;
-    font-weight: bold;
-    margin-bottom: 1rem;
+    font-family: var(--font-body);
+    font-size: 1rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    color: var(--warm-white);
+    opacity: 0.9;
 }
 
 .countdown-display {
-    font-size: 2.5rem;
-    font-weight: bold;
+    font-family: var(--font-display);
+    font-size: 4rem;
+    font-weight: 700;
     font-variant-numeric: tabular-nums;
     color: var(--christmas-gold);
-    text-shadow: 
-        0 0 10px rgb(255 215 0 / 80%),
-        2px 2px 4px rgb(0 0 0 / 50%);
+    text-shadow: 0 0 20px rgb(251 191 36 / 50%);
 }
 
-/* CTA Button */
+/* CTA Button Dock - Big Chunky Pill Buttons */
 .cta-button {
-    display: inline-block;
-    background: linear-gradient(135deg, var(--christmas-green) 0%, var(--christmas-light-green) 100%);
-    color: white;
-    font-size: 1.5rem;
-    font-weight: bold;
-    padding: 1.25rem 3rem;
-    border-radius: 50px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    background: linear-gradient(to bottom, var(--christmas-red), var(--christmas-dark-red));
+    color: var(--warm-white);
+    font-family: var(--font-display);
+    font-size: 1.25rem;
+    font-weight: 600;
+    padding: 0 2.5rem;
+    height: 4rem;
+    min-width: 200px;
+    border-radius: 9999px;
     text-decoration: none;
-    box-shadow: 
-        0 8px 25px rgb(0 0 0 / 30%),
-        0 0 30px rgb(34 139 34 / 40%);
-    transition: all 0.3s ease;
-    border: 3px solid var(--christmas-gold);
+    box-shadow: 0 6px 0 var(--christmas-crimson), 0 8px 20px rgb(0 0 0 / 40%);
+    transition: all 0.15s ease;
+    border: none;
+    position: relative;
 }
 
 .cta-buttons-container {
@@ -223,169 +277,131 @@ body {
     flex-wrap: wrap;
     gap: 1rem;
     justify-content: center;
-    margin-bottom: 2rem;
+    margin-bottom: 0;
 }
 
 .cta-button-advent {
-    background: linear-gradient(135deg, #165b33, #228b22);
+    background: linear-gradient(to bottom, var(--pine-green), #14532d);
+    box-shadow: 0 6px 0 #052e16, 0 8px 20px rgb(0 0 0 / 40%);
 }
 
 .cta-button:hover {
-    transform: translateY(-5px) scale(1.05);
-    box-shadow: 
-        0 12px 35px rgb(0 0 0 / 40%),
-        0 0 50px rgb(34 139 34 / 80%);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 0 var(--christmas-crimson), 0 12px 30px rgb(0 0 0 / 50%);
+}
+
+.cta-button-advent:hover {
+    box-shadow: 0 8px 0 #052e16, 0 12px 30px rgb(0 0 0 / 50%);
 }
 
 .cta-button:active {
-    transform: translateY(-2px) scale(1.02);
+    transform: translateY(4px);
+    box-shadow: 0 2px 0 var(--christmas-crimson), 0 4px 10px rgb(0 0 0 / 30%);
 }
 
-/* Features Section */
-.features {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+.cta-button-advent:active {
+    box-shadow: 0 2px 0 #052e16, 0 4px 10px rgb(0 0 0 / 30%);
+}
+
+/* Stats Ticker - Fixed Bottom HUD Bar */
+.stats-ticker {
+    position: fixed;
+    bottom: 3rem;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 50;
+    background: rgb(255 255 255 / 10%);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgb(255 255 255 / 20%);
+    border-radius: 9999px;
+    padding: 0.75rem 2rem;
+    display: flex;
     gap: 2rem;
-    margin-top: 3rem;
 }
 
-.feature-card {
-    background: linear-gradient(135deg, rgb(196 30 58 / 90%) 0%, rgb(139 0 0 / 90%) 100%);
-    border-radius: 20px;
-    padding: 2rem;
-    box-shadow: 0 10px 25px rgb(0 0 0 / 30%);
-    border: 3px solid var(--christmas-gold);
-    transition: all 0.3s ease;
+.stat-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--warm-white);
 }
 
-.feature-card:hover {
-    transform: translateY(-10px);
-    box-shadow: 0 15px 35px rgb(0 0 0 / 40%);
-}
-
-.feature-icon {
-    font-size: 3rem;
-    display: block;
-    margin-bottom: 1rem;
-}
-
-.feature-card h3 {
+.stat-icon {
     font-size: 1.5rem;
-    margin-bottom: 0.5rem;
+}
+
+.stat-value {
+    font-family: var(--font-display);
+    font-size: 1.1rem;
+    font-weight: 600;
     color: var(--christmas-gold);
 }
 
-.feature-card p {
-    font-size: 1rem;
-    color: var(--snow-white);
+.stat-label {
+    font-family: var(--font-body);
+    font-size: 0.8rem;
+    font-weight: 600;
+    opacity: 0.8;
 }
 
-/* Decorative Elements */
+/* Hide old features section */
+.features {
+    display: none;
+}
+
+/* Hide Decorative Elements on Game Menu */
 .decoration {
-    position: absolute;
-    font-size: 8rem;
-    opacity: 0.3;
-    animation: sway 4s ease-in-out infinite;
+    display: none;
 }
 
-.decoration-left {
-    left: 5%;
-    top: 20%;
-}
-
-.decoration-right {
-    right: 5%;
-    top: 60%;
-}
-
-@keyframes sway {
-    0%, 100% {
-        transform: rotate(-5deg);
-    }
-
-    50% {
-        transform: rotate(5deg);
-    }
-}
-
-/* Footer */
+/* Hide Footer on Game Menu - full screen experience */
 .footer {
-    background: linear-gradient(90deg, var(--christmas-green) 0%, var(--christmas-red) 50%, var(--christmas-green) 100%);
-    padding: 2rem;
-    text-align: center;
-    box-shadow: 0 -5px 20px rgb(0 0 0 / 30%);
-}
-
-.footer-content {
-    max-width: 800px;
-    margin: 0 auto;
-}
-
-.footer-santa {
-    font-size: 2rem;
-    margin-bottom: 1rem;
-}
-
-.emoji-medium {
-    font-size: 2rem;
-    margin: 0 0.5rem;
-    display: inline-block;
-    animation: bounce 2s infinite;
-    animation-delay: calc(var(--delay, 0) * 0.2s);
-}
-
-.footer-santa .emoji-medium:nth-child(1) {
-    --delay: 0;
-}
-
-.footer-santa .emoji-medium:nth-child(2) {
-    --delay: 1;
-}
-
-.footer-santa .emoji-medium:nth-child(3) {
-    --delay: 2;
-}
-
-.footer p {
-    font-size: 1rem;
-    margin: 0.5rem 0;
-}
-
-.footer-tagline {
-    font-weight: bold;
-    font-size: 1.2rem;
-    color: var(--christmas-gold);
+    display: none;
 }
 
 /* Responsive Design */
 @media (width <= 768px) {
     .hero-title {
-        font-size: 2.5rem;
-    }
-
-    .emoji-large {
-        font-size: 4rem;
-    }
-
-    .hero-subtitle {
-        font-size: 1.2rem;
+        font-size: 3rem;
     }
 
     .countdown-display {
-        font-size: 1.8rem;
+        font-size: 2.5rem;
+    }
+
+    .countdown-box {
+        padding: 1rem 1.5rem;
     }
 
     .cta-button {
-        font-size: 1.2rem;
-        padding: 1rem 2rem;
+        font-size: 1rem;
+        height: 3.5rem;
+        min-width: 160px;
+        padding: 0 1.5rem;
     }
 
-    .features {
-        grid-template-columns: 1fr;
+    .stats-ticker {
+        bottom: 1.5rem;
+        padding: 0.5rem 1rem;
+        gap: 1rem;
     }
 
-    .decoration {
-        font-size: 4rem;
+    .stat-value {
+        font-size: 0.9rem;
+    }
+
+    .stat-label {
+        display: none;
+    }
+
+    .glass-nav {
+        top: 1rem;
+        padding: 0.25rem;
+    }
+
+    .nav-link {
+        font-size: 0.8rem;
+        padding: 0.5rem 0.75rem;
     }
 }
 

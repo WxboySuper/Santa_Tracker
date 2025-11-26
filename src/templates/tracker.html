@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🎅 Santa Tracker - Live Tracking</title>
+    <title>Santa Tracker - Live Tracking</title>
     <meta name="description" content="Track Santa's magical journey around the world on Christmas Eve in real-time!">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
@@ -12,115 +12,66 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='tracker-styles.css') }}">
 </head>
 <body>
+    <!-- Full Screen Map -->
+    <div class="map-fullscreen">
+        <div id="map" class="map" aria-label="Interactive map showing Santa's current location and route" role="application" tabindex="0"></div>
+    </div>
+    
+    <!-- Glass Pill Navigation - Fixed Top Center -->
+    <nav class="glass-nav" role="navigation" aria-label="Main navigation">
+        <a href="{{ url_for('home') }}" class="nav-link">Home</a>
+        <a href="{{ url_for('tracker') }}" class="nav-link nav-link-active">Tracker</a>
+        <a href="{{ url_for('advent') }}" class="nav-link">Village</a>
+    </nav>
+    
+    <!-- Countdown HUD - Top Right -->
+    <div class="countdown-hud">
+        <p class="countdown-hud-label">Countdown to Takeoff</p>
+        <div id="countdown" class="countdown-hud-value" aria-live="polite" aria-atomic="true"></div>
+    </div>
+    
+    <!-- Mission Control Panel - Floating Left -->
+    <aside class="mission-control">
+        <div class="panel-header">
+            <h2 class="panel-title">Mission Control</h2>
+        </div>
+        <div class="panel-content">
+            <!-- Current Location -->
+            <div class="info-box info-box-blue">
+                <h3 class="info-title">Current Location</h3>
+                <p id="current-location" class="info-value" aria-live="polite">
+                    Loading...
+                </p>
+            </div>
+
+            <!-- Next Stop -->
+            <div class="info-box info-box-green">
+                <h3 class="info-title">Next Destination</h3>
+                <p id="next-stop" class="info-value" aria-live="polite">
+                    Loading...
+                </p>
+            </div>
+
+            <!-- Location Countdown -->
+            <div class="info-box info-box-red">
+                <h3 class="info-title">Departure Timer</h3>
+                <p id="location-countdown" class="info-value info-value-large" aria-live="polite">
+                    --:--
+                </p>
+            </div>
+
+            <!-- Distance -->
+            <div class="info-box info-box-gold">
+                <h3 class="info-title">Sleigh Distance</h3>
+                <p id="distance" class="info-value" aria-live="polite">
+                    Scanning...
+                </p>
+            </div>
+        </div>
+    </aside>
+
     <!-- Snowfall Container -->
     <div id="snowfall" aria-hidden="true"></div>
-    
-    <!-- Header with festive design -->
-    <header class="header">
-        <div class="container">
-            <div class="header-content">
-                <div class="header-left">
-                    <a href="{{ url_for('home') }}" class="back-button" aria-label="Back to home">🏠</a>
-                    <span class="emoji-bounce">🎅</span>
-                    <h1 class="header-title">Santa Tracker</h1>
-                    <span class="emoji-pulse">🎄</span>
-                </div>
-                <div class="countdown-widget">
-                    <p class="countdown-label">Santa's Tour Launch</p>
-                    <div id="countdown" class="countdown-value" aria-live="polite" aria-atomic="true"></div>
-                </div>
-            </div>
-        </div>
-    </header>
-
-    <main class="main-container">
-        <div class="content-grid">
-            <!-- Sidebar with Santa's Info -->
-            <aside class="sidebar">
-                <div class="info-card">
-                    <div class="card-header">
-                        <h2 class="card-title">
-                            <span class="icon">📍</span>
-                            Santa's Journey
-                        </h2>
-                    </div>
-                    
-                    <div class="card-content">
-                        <!-- Current Location -->
-                        <div class="info-box info-box-blue">
-                            <h3 class="info-title">
-                                <span class="icon">🌍</span>
-                                Current Location
-                            </h3>
-                            <p id="current-location" class="info-value" aria-live="polite">
-                                Loading current location...
-                            </p>
-                        </div>
-
-                        <!-- Next Stop -->
-                        <div class="info-box info-box-green">
-                            <h3 class="info-title">
-                                <span class="icon">⭐</span>
-                                Next Destination
-                            </h3>
-                            <p id="next-stop" class="info-value" aria-live="polite">
-                                Next Stop: Loading destination...
-                            </p>
-                        </div>
-
-                        <!-- Location Countdown -->
-                        <div class="info-box info-box-red">
-                            <h3 class="info-title">
-                                <span class="icon">⏰</span>
-                                Departure Timer
-                            </h3>
-                            <p id="location-countdown" class="info-value info-value-large" aria-live="polite">
-                                --:--:--
-                            </p>
-                        </div>
-
-                        <!-- Distance -->
-                        <div class="info-box info-box-gold">
-                            <h3 class="info-title">
-                                <span class="icon">📏</span>
-                                Distance
-                            </h3>
-                            <p id="distance" class="info-value" aria-live="polite">
-                                Distance from you: Calculating...
-                            </p>
-                        </div>
-
-                        <!-- Delivery Status -->
-                        <div id="delivery-status" class="delivery-status" aria-live="assertive"></div>
-                    </div>
-                </div>
-            </aside>
-
-            <!-- Map Container -->
-            <div class="map-section">
-                <div class="map-container">
-                    <div id="map" class="map" aria-label="Interactive map showing Santa's current location and route" role="application" tabindex="0"></div>
-                </div>
-                
-                <!-- Map Controls Helper Text -->
-                <div class="map-help">
-                    <p>🖱️ Use mouse to pan and zoom • 🎯 Click markers for details • ⌨️ Tab to navigate</p>
-                </div>
-            </div>
-        </div>
-    </main>
-
-    <!-- Festive Footer -->
-    <footer class="footer">
-        <div class="footer-content">
-            <div class="footer-icons">
-                <span class="icon">🎅</span>
-                <span class="icon">🎁</span>
-            </div>
-            <p class="footer-text">&copy; <span id="year"></span> Santa Tracker. All rights reserved.</p>
-            <p class="footer-tagline">Made with ❤️ for the holiday season. Merry Christmas! 🎄✨</p>
-        </div>
-    </footer>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/Leaflet.markercluster.js"></script>

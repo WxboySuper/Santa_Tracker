@@ -7,13 +7,18 @@ let shuffledDays = [];
 let modalListenersInitialized = false;
 let lastFocusedElement = null;
 
-// Color schemes for calendar cells
-const cellColors = [
-    '#8b0000', '#165b33', '#8b4513', '#ffd700', '#ff69b4', '#4169e1',
-    '#ffffff', '#165b33', '#c71585', '#dc143c', '#b0e0e6', '#d2691e',
-    '#9370db', '#4682b4', '#ff8c00', '#708090', '#20b2aa', '#b22222',
-    '#ffffff', '#191970', '#8b4513', '#daa520', '#556b2f', '#c41e3a'
+// Color schemes for calendar cells - Checkerboard Pattern (Red, Green, Gold)
+// Each color has a base and shadow for 3D effect
+const cellColorSchemes = [
+    { bg: '#dc2626', shadow: '#991b1b' },  // Red
+    { bg: '#166534', shadow: '#14532d' },  // Green
+    { bg: '#fbbf24', shadow: '#d97706' }   // Gold
 ];
+
+// Get color scheme based on position for checkerboard pattern
+function getCellColorScheme(index) {
+    return cellColorSchemes[index % 3];
+}
 
 // DOM Elements
 const loadingEl = document.getElementById('loading');
@@ -94,7 +99,7 @@ function generateGrid() {
     gridContainer.setAttribute('role', 'list');
     gridContainer.setAttribute('aria-label', 'Advent calendar days 1 through 24');
     
-    shuffledDays.forEach(dayNumber => {
+    shuffledDays.forEach((dayNumber, index) => {
         const dayData = dayDataMap.get(dayNumber);
         if (!dayData) return;
         
@@ -105,10 +110,11 @@ function generateGrid() {
         cell.setAttribute('tabindex', '0');
         cell.setAttribute('aria-label', `Day ${dayNumber}: ${dayData.title}`);
         
-        // Set color with bounds checking
-        const colorIndex = Math.max(0, Math.min(dayNumber - 1, cellColors.length - 1));
-        cell.style.backgroundColor = cellColors[colorIndex];
-        cell.style.color = getContrastColor(cellColors[colorIndex]);
+        // Get color scheme based on position for checkerboard pattern
+        const colorScheme = getCellColorScheme(index);
+        cell.style.backgroundColor = colorScheme.bg;
+        cell.style.boxShadow = `0 6px 0 ${colorScheme.shadow}, 0 8px 16px rgb(0 0 0 / 30%)`;
+        cell.style.color = getContrastColor(colorScheme.bg);
         
         // Add day number
         cell.textContent = dayNumber;
@@ -187,9 +193,20 @@ async function handleCellClick(day) {
     const dayData = adventData.days.find(d => d.day === day);
     if (!dayData) return;
     
+    // Get the clicked cell element
+    const cell = document.querySelector(`[data-day="${day}"]`);
+    
     if (!dayData.is_unlocked) {
         showLockedMessage(day);
         return;
+    }
+    
+    // Add flip animation
+    if (cell) {
+        cell.classList.add('opening');
+        // Wait for animation to complete (matches CSS duration of 0.6s)
+        await new Promise(resolve => setTimeout(resolve, 600));
+        cell.classList.remove('opening');
     }
     
     await loadDayContent(day);

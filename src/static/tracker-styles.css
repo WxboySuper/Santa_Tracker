@@ -1,351 +1,242 @@
-/* Santa Tracker - Festive Inline Styles */
+/* Santa Tracker - Tactical Map HUD Styles */
+
+/* Import Google Fonts - Fredoka (Chunky, Toy-like) + Nunito (Readable) */
+@import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Nunito:wght@400;600;700;800&display=swap');
 
 :root {
-    --christmas-red: #c41e3a;
-    --christmas-green: #165b33;
-    --christmas-gold: #ffd700;
-    --christmas-dark-red: #8b0000;
-    --christmas-light-green: #228b22;
+    /* Cozy North Pole Night palette */
+    --christmas-red: #dc2626;
+    --christmas-dark-red: #991b1b;
+    --christmas-crimson: #7f1d1d;
+    --christmas-green: #166534;
+    --pine-green: #166534;
+    --holly-green: #15803d;
+    --christmas-gold: #fbbf24;
+    --warm-white: #f8fafc;
     --snow-white: #fffafa;
+    --ice-blue: #60a5fa;
+
+    /* Night sky gradient */
+    --night-deep: #0f172a;
+    --night-mid: #1e1b4b;
     --night-blue: #0a1929;
-    --gradient-blue-start: #1a237e;
-    --gradient-blue-end: #0d47a1;
+
+    /* Fonts - Fredoka for headings (Chunky/Toy-like), Nunito for body */
+    --font-display: 'Fredoka', sans-serif;
+    --font-body: 'Nunito', sans-serif;
 }
 
 body {
     margin: 0;
     padding: 0;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-    background: linear-gradient(180deg, var(--gradient-blue-start) 0%, var(--night-blue) 50%, var(--gradient-blue-end) 100%);
-    min-height: 100vh;
+    font-family: var(--font-body);
+    background: var(--night-deep);
+    height: 100vh;
+    width: 100vw;
+    overflow: auto hidden;
 }
 
-/* Header */
-.header {
-    background: linear-gradient(90deg, var(--christmas-red) 0%, var(--christmas-green) 50%, var(--christmas-red) 100%);
-    color: white;
-    box-shadow: 0 4px 12px rgb(0 0 0 / 30%);
-    position: sticky;
-    top: 0;
-    z-index: 1000;
-}
-
-.container {
-    max-width: 1400px;
-    margin: 0 auto;
-    padding: 0 1rem;
-}
-
-.header-content {
+/* Glass Pill Navigation - Fixed Top Center */
+.glass-nav {
+    position: fixed;
+    top: 1.5rem;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 100;
+    background: rgb(255 255 255 / 10%);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgb(255 255 255 / 20%);
+    border-radius: 9999px;
+    padding: 0.5rem;
     display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: space-between;
-    gap: 1rem;
-    padding: 1rem 0;
+    gap: 0.5rem;
 }
 
-.header-left {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-}
-
-.back-button {
-    font-size: 2rem;
+.nav-link {
+    color: var(--warm-white);
     text-decoration: none;
-    transition: transform 0.3s ease;
-}
-
-.back-button:hover {
-    transform: scale(1.2);
-}
-
-.emoji-bounce {
-    font-size: 2.5rem;
-    animation: bounce 2s infinite;
-}
-
-.emoji-pulse {
-    font-size: 2.5rem;
-    animation: pulse 2s infinite;
-}
-
-@keyframes pulse {
-    0%, 100% {
-        opacity: 1;
-        transform: scale(1);
-    }
-
-    50% {
-        opacity: 0.7;
-        transform: scale(1.1);
-    }
-}
-
-.header-title {
-    font-size: 2rem;
-    font-weight: bold;
-    margin: 0;
-    text-shadow: 2px 2px 4px rgb(0 0 0 / 50%);
-}
-
-.countdown-widget {
-    background: rgb(255 255 255 / 20%);
-    backdrop-filter: blur(10px);
-    border-radius: 12px;
-    padding: 0.75rem 1.5rem;
-    box-shadow: 0 4px 8px rgb(0 0 0 / 20%);
-    border: 2px solid var(--christmas-gold);
-}
-
-.countdown-label {
-    font-size: 0.875rem;
+    font-family: var(--font-body);
+    font-size: 0.9rem;
     font-weight: 600;
-    margin: 0 0 0.25rem;
-}
-
-.countdown-value {
-    font-size: 1.5rem;
-    font-weight: bold;
-    font-variant-numeric: tabular-nums;
-}
-
-/* Main Container */
-.main-container {
-    max-width: 1400px;
-    margin: 0 auto;
-    padding: 1.5rem 1rem;
-}
-
-.content-grid {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 1.5rem;
-}
-
-/* Sidebar */
-.sidebar {
-    order: 2;
-}
-
-.info-card {
-    background: white;
-    border-radius: 20px;
-    box-shadow: 0 10px 30px rgb(0 0 0 / 30%);
-    overflow: hidden;
-    border: 4px solid var(--christmas-gold);
-}
-
-.card-header {
-    background: linear-gradient(135deg, var(--christmas-red) 0%, var(--christmas-dark-red) 100%);
-    padding: 1.5rem;
-}
-
-.card-title {
-    font-size: 1.75rem;
-    font-weight: bold;
-    color: white;
-    margin: 0;
+    padding: 0.75rem 1.25rem;
+    border-radius: 9999px;
     display: flex;
     align-items: center;
-    gap: 0.75rem;
-    text-shadow: 2px 2px 4px rgb(0 0 0 / 50%);
+    gap: 0.5rem;
+    transition: all 0.2s ease;
 }
 
-.card-content {
-    padding: 1.5rem;
-    display: flex;
-    flex-direction: column;
-    gap: 1.5rem;
+.nav-link:hover,
+.nav-link:focus {
+    background: rgb(255 255 255 / 15%);
 }
 
-/* Info Boxes */
-.info-box {
-    padding: 1.25rem;
-    border-radius: 16px;
-    box-shadow: 0 4px 12px rgb(0 0 0 / 15%);
-    border: 3px solid;
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
+.nav-link-active {
+    background: rgb(255 255 255 / 20%);
 }
 
-.info-box:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 6px 16px rgb(0 0 0 / 25%);
+/* Full Screen Map */
+.map-fullscreen {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
 }
 
-.info-box-blue {
-    background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
-    border-color: #2196f3;
+.map-fullscreen .map {
+    width: 100%;
+    height: 100%;
 }
 
-.info-box-green {
-    background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
-    border-color: var(--christmas-light-green);
+/* Dark mode filter for map tiles - applied to tile container to preserve markers */
+.leaflet-tile-container {
+    filter: invert(1) hue-rotate(180deg);
 }
 
-.info-box-red {
-    background: linear-gradient(135deg, #ffebee 0%, #ffcdd2 100%);
-    border-color: var(--christmas-red);
+/* Mission Control Panel - Floating Left */
+.mission-control {
+    position: fixed;
+    top: 6rem;
+    left: 1.5rem;
+    width: 320px;
+    z-index: 50;
+    background: rgb(255 255 255 / 10%);
+    backdrop-filter: blur(16px);
+    border-radius: 24px;
+    box-shadow: 0 8px 32px rgb(0 0 0 / 40%);
+    border: 1px solid rgb(255 255 255 / 15%);
+    overflow: hidden;
 }
 
-.info-box-gold {
-    background: linear-gradient(135deg, #fff8e1 0%, #ffecb3 100%);
-    border-color: var(--christmas-gold);
+.panel-header {
+    background: linear-gradient(to bottom, var(--christmas-red), var(--christmas-dark-red));
+    padding: 1rem 1.25rem;
 }
 
-.info-title {
-    font-size: 0.875rem;
+.panel-title {
+    font-family: var(--font-display);
+    font-size: 1.25rem;
     font-weight: 600;
-    color: #333;
-    margin: 0 0 0.5rem;
+    color: var(--warm-white);
+    margin: 0;
     display: flex;
     align-items: center;
     gap: 0.5rem;
 }
 
+.panel-content {
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+/* Info Boxes - Compact HUD Style */
+.info-box {
+    padding: 0.75rem 1rem;
+    border-radius: 12px;
+    background: rgb(255 255 255 / 90%);
+    transition: transform 0.2s ease;
+}
+
+.info-box:hover {
+    transform: translateX(4px);
+}
+
+.info-box-blue {
+    border-left: 4px solid var(--ice-blue);
+}
+
+.info-box-green {
+    border-left: 4px solid var(--pine-green);
+}
+
+.info-box-red {
+    border-left: 4px solid var(--christmas-red);
+}
+
+.info-box-gold {
+    border-left: 4px solid var(--christmas-gold);
+}
+
+.info-title {
+    font-family: var(--font-body);
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #64748b;
+    margin: 0 0 0.25rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
 .info-value {
-    font-size: 1.125rem;
-    font-weight: bold;
-    color: #1a1a1a;
+    font-family: var(--font-body);
+    font-size: 1rem;
+    font-weight: 700;
+    color: #1e293b;
     margin: 0;
 }
 
 .info-value-large {
+    font-family: var(--font-display);
     font-size: 1.5rem;
-    font-variant-numeric: tabular-nums;
+    color: var(--christmas-red);
 }
 
-.icon {
-    font-size: 1.25em;
-}
-
-/* Delivery Status */
-.delivery-status {
-    background: linear-gradient(135deg, var(--christmas-red) 0%, var(--christmas-dark-red) 100%);
-    color: white;
-    padding: 1.25rem;
+/* Countdown Widget - Top Right */
+.countdown-hud {
+    position: fixed;
+    top: 1.5rem;
+    right: 1.5rem;
+    z-index: 50;
+    background: rgb(255 255 255 / 10%);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgb(255 255 255 / 20%);
     border-radius: 16px;
-    text-align: center;
-    font-weight: bold;
+    padding: 0.75rem 1.25rem;
+}
+
+.countdown-hud-label {
+    font-family: var(--font-body);
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--warm-white);
+    opacity: 0.8;
+    margin: 0 0 0.25rem;
+}
+
+.countdown-hud-value {
+    font-family: var(--font-display);
     font-size: 1.25rem;
-    box-shadow: 0 4px 12px rgb(0 0 0 / 20%);
-    animation: pulse-glow 2s infinite;
-}
-
-/* Map Section */
-.map-section {
-    order: 1;
-}
-
-.map-container {
-    background: white;
-    border-radius: 20px;
-    box-shadow: 0 10px 30px rgb(0 0 0 / 30%);
-    overflow: hidden;
-    border: 4px solid var(--christmas-gold);
-    height: 600px;
-}
-
-.map {
-    width: 100%;
-    height: 100%;
-}
-
-.map-help {
-    margin-top: 0.75rem;
-    text-align: center;
-    background: rgb(0 0 0 / 30%);
-    backdrop-filter: blur(10px);
-    border-radius: 12px;
-    padding: 0.75rem;
-    color: rgb(255 255 255 / 90%);
-    font-size: 0.875rem;
-}
-
-/* Footer */
-.footer {
-    background: linear-gradient(90deg, var(--christmas-green) 0%, var(--christmas-red) 50%, var(--christmas-green) 100%);
-    color: white;
-    margin-top: 3rem;
-    padding: 2rem;
-    box-shadow: 0 -5px 20px rgb(0 0 0 / 30%);
-}
-
-.footer-content {
-    max-width: 1400px;
-    margin: 0 auto;
-    text-align: center;
-}
-
-.footer-icons {
-    font-size: 2rem;
-    margin-bottom: 1rem;
-}
-
-.footer-icons .icon {
-    margin: 0 0.5rem;
-    display: inline-block;
-    animation: bounce 2s infinite;
-}
-
-.footer-text {
-    font-size: 1rem;
-    margin: 0.5rem 0;
-}
-
-.footer-tagline {
-    font-weight: bold;
-    font-size: 1.125rem;
+    font-weight: 600;
     color: var(--christmas-gold);
-    margin: 0.5rem 0;
+}
+
+/* Hide old elements */
+.header,
+.main-container,
+.footer,
+.map-section,
+.sidebar,
+.map-help {
+    display: none;
 }
 
 /* Responsive Design */
-@media (width >= 1024px) {
-    .header-content {
-        flex-direction: row;
-    }
-
-    .content-grid {
-        grid-template-columns: 350px 1fr;
-    }
-
-    .sidebar {
-        order: 1;
-    }
-
-    .map-section {
-        order: 2;
-    }
-}
-
-@media (width >= 768px) and (width < 1024px) {
-    .header-title {
-        font-size: 2.5rem;
-    }
-
-    .countdown-value {
-        font-size: 1.75rem;
-    }
-}
-
 @media (width <= 768px) {
-    .header-title {
-        font-size: 1.5rem;
+    .mission-control {
+        inset: auto 1rem 1rem;
+        width: auto;
+        max-height: 40vh;
+        overflow-y: auto;
     }
 
-    .emoji-bounce,
-    .emoji-pulse {
-        font-size: 2rem;
+    .countdown-hud {
+        top: 1rem;
+        right: 1rem;
     }
 
-    .countdown-value {
-        font-size: 1.25rem;
-    }
-
-    .map-container {
-        height: 400px;
+    .glass-nav {
+        top: 1rem;
     }
 }
 
