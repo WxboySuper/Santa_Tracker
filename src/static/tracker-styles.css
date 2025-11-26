@@ -1,28 +1,28 @@
-/* Santa Tracker - Festive Inline Styles */
+/* Santa Tracker - Tactical Map HUD Styles */
 
-/* Import Google Fonts */
-@import url('https://fonts.googleapis.com/css2?family=Mountains+of+Christmas:wght@400;700&family=Nunito:wght@400;600;700;800&display=swap');
+/* Import Google Fonts - Fredoka (Chunky, Toy-like) + Nunito (Readable) */
+@import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Nunito:wght@400;600;700;800&display=swap');
 
 :root {
     /* Cozy North Pole Night palette */
-    --christmas-red: #c41e3a;
-    --christmas-dark-red: #7f1d1d;
-    --christmas-crimson: #991b1b;
+    --christmas-red: #dc2626;
+    --christmas-dark-red: #991b1b;
+    --christmas-crimson: #7f1d1d;
     --christmas-green: #166534;
     --pine-green: #166534;
     --holly-green: #15803d;
     --christmas-gold: #fbbf24;
     --warm-white: #f8fafc;
     --snow-white: #fffafa;
-    --ice-blue: #bfdbfe;
+    --ice-blue: #60a5fa;
 
     /* Night sky gradient */
     --night-deep: #0f172a;
     --night-mid: #1e1b4b;
     --night-blue: #0a1929;
 
-    /* Fonts */
-    --font-display: 'Mountains of Christmas', cursive;
+    /* Fonts - Fredoka for headings (Chunky/Toy-like), Nunito for body */
+    --font-display: 'Fredoka', sans-serif;
     --font-body: 'Nunito', sans-serif;
 }
 
@@ -30,359 +30,212 @@ body {
     margin: 0;
     padding: 0;
     font-family: var(--font-body);
-    background: radial-gradient(ellipse at top, var(--night-mid) 0%, var(--night-deep) 60%, var(--night-deep) 100%);
+    background: var(--night-deep);
     min-height: 100vh;
+    overflow-x: hidden;
 }
 
-/* Header */
-.header {
-    background: linear-gradient(180deg, var(--christmas-red) 0%, var(--christmas-dark-red) 100%);
-    color: var(--warm-white);
-    box-shadow: 0 4px 20px rgb(0 0 0 / 40%);
-    position: sticky;
-    top: 0;
-    z-index: 1000;
-}
-
-.container {
-    max-width: 1400px;
-    margin: 0 auto;
-    padding: 0 1rem;
-}
-
-.header-content {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: space-between;
-    gap: 1rem;
-    padding: 1rem 0;
-}
-
-.header-left {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-}
-
-.back-button {
-    font-size: 2rem;
-    text-decoration: none;
-    transition: transform 0.3s ease;
-}
-
-.back-button:hover {
-    transform: scale(1.2);
-}
-
-.emoji-bounce {
-    font-size: 2.5rem;
-    animation: bounce 2s infinite;
-}
-
-.emoji-pulse {
-    font-size: 2.5rem;
-    animation: pulse 2s infinite;
-}
-
-@keyframes pulse {
-    0%, 100% {
-        opacity: 1;
-        transform: scale(1);
-    }
-
-    50% {
-        opacity: 0.7;
-        transform: scale(1.1);
-    }
-}
-
-.header-title {
-    font-family: var(--font-display);
-    font-size: 2rem;
-    font-weight: 700;
-    margin: 0;
-    text-shadow: 2px 2px 4px rgb(0 0 0 / 50%);
-}
-
-.countdown-widget {
-    background: rgb(255 255 255 / 15%);
-    backdrop-filter: blur(10px);
-    border-radius: 16px;
-    padding: 0.75rem 1.5rem;
-    box-shadow: 0 4px 12px rgb(0 0 0 / 20%);
+/* Glass Pill Navigation - Fixed Top Center */
+.glass-nav {
+    position: fixed;
+    top: 1.5rem;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 100;
+    background: rgb(255 255 255 / 10%);
+    backdrop-filter: blur(12px);
     border: 1px solid rgb(255 255 255 / 20%);
+    border-radius: 9999px;
+    padding: 0.5rem;
+    display: flex;
+    gap: 0.5rem;
 }
 
-.countdown-label {
+.nav-link {
+    color: var(--warm-white);
+    text-decoration: none;
     font-family: var(--font-body);
-    font-size: 0.875rem;
+    font-size: 0.9rem;
     font-weight: 600;
-    margin: 0 0 0.25rem;
+    padding: 0.75rem 1.25rem;
+    border-radius: 9999px;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: all 0.2s ease;
 }
 
-.countdown-value {
-    font-family: var(--font-display);
-    font-size: 1.5rem;
-    font-weight: 700;
-    font-variant-numeric: tabular-nums;
-    color: var(--christmas-gold);
+.nav-link:hover,
+.nav-link:focus {
+    background: rgb(255 255 255 / 15%);
 }
 
-/* Main Container */
-.main-container {
-    max-width: 1400px;
-    margin: 0 auto;
-    padding: 1.5rem 1rem;
+.nav-link-active {
+    background: rgb(255 255 255 / 20%);
 }
 
-.content-grid {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 1.5rem;
+/* Full Screen Map */
+.map-fullscreen {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
 }
 
-/* Sidebar - Mission Control Panel with Glassmorphism */
-.sidebar {
-    order: 2;
+.map-fullscreen .map {
+    width: 100%;
+    height: 100%;
 }
 
-.info-card {
+/* Dark mode filter for map tiles */
+.leaflet-tile-pane {
+    filter: invert(1) hue-rotate(180deg);
+}
+
+/* Mission Control Panel - Floating Left */
+.mission-control {
+    position: fixed;
+    top: 6rem;
+    left: 1.5rem;
+    width: 320px;
+    z-index: 50;
     background: rgb(255 255 255 / 10%);
     backdrop-filter: blur(16px);
     border-radius: 24px;
-    box-shadow: 
-        0 10px 40px rgb(0 0 0 / 30%),
-        inset 0 1px 1px rgb(255 255 255 / 10%);
-    overflow: hidden;
+    box-shadow: 0 8px 32px rgb(0 0 0 / 40%);
     border: 1px solid rgb(255 255 255 / 15%);
+    overflow: hidden;
 }
 
-.card-header {
-    background: linear-gradient(180deg, var(--christmas-red) 0%, var(--christmas-dark-red) 100%);
-    padding: 1.5rem;
+.panel-header {
+    background: linear-gradient(to bottom, var(--christmas-red), var(--christmas-dark-red));
+    padding: 1rem 1.25rem;
 }
 
-.card-title {
+.panel-title {
     font-family: var(--font-display);
-    font-size: 1.5rem;
-    font-weight: 700;
+    font-size: 1.25rem;
+    font-weight: 600;
     color: var(--warm-white);
     margin: 0;
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    text-shadow: 2px 2px 4px rgb(0 0 0 / 50%);
-}
-
-.card-content {
-    padding: 1.5rem;
-    display: flex;
-    flex-direction: column;
-    gap: 1.5rem;
-}
-
-/* Info Boxes */
-.info-box {
-    padding: 1.25rem;
-    border-radius: 16px;
-    box-shadow: 0 4px 12px rgb(0 0 0 / 15%);
-    border: none;
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
-    background: rgb(255 255 255 / 90%);
-}
-
-.info-box:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 8px 20px rgb(0 0 0 / 25%);
-}
-
-.info-box-blue {
-    background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%);
-    border-left: 4px solid #0284c7;
-}
-
-.info-box-green {
-    background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%);
-    border-left: 4px solid var(--pine-green);
-}
-
-.info-box-red {
-    background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
-    border-left: 4px solid var(--christmas-red);
-}
-
-.info-box-gold {
-    background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
-    border-left: 4px solid var(--christmas-gold);
-}
-
-.info-title {
-    font-family: var(--font-body);
-    font-size: 0.875rem;
-    font-weight: 700;
-    color: #374151;
-    margin: 0 0 0.5rem;
     display: flex;
     align-items: center;
     gap: 0.5rem;
 }
 
+.panel-content {
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+/* Info Boxes - Compact HUD Style */
+.info-box {
+    padding: 0.75rem 1rem;
+    border-radius: 12px;
+    background: rgb(255 255 255 / 90%);
+    transition: transform 0.2s ease;
+}
+
+.info-box:hover {
+    transform: translateX(4px);
+}
+
+.info-box-blue {
+    border-left: 4px solid var(--ice-blue);
+}
+
+.info-box-green {
+    border-left: 4px solid var(--pine-green);
+}
+
+.info-box-red {
+    border-left: 4px solid var(--christmas-red);
+}
+
+.info-box-gold {
+    border-left: 4px solid var(--christmas-gold);
+}
+
+.info-title {
+    font-family: var(--font-body);
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #64748b;
+    margin: 0 0 0.25rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
 .info-value {
     font-family: var(--font-body);
-    font-size: 1.125rem;
+    font-size: 1rem;
     font-weight: 700;
-    color: #1f2937;
+    color: #1e293b;
     margin: 0;
 }
 
 .info-value-large {
     font-family: var(--font-display);
-    font-size: 1.75rem;
-    font-variant-numeric: tabular-nums;
+    font-size: 1.5rem;
     color: var(--christmas-red);
 }
 
-.icon {
-    font-size: 1.25em;
-}
-
-/* Delivery Status */
-.delivery-status {
-    background: linear-gradient(135deg, var(--christmas-red) 0%, var(--christmas-dark-red) 100%);
-    color: white;
-    padding: 1.25rem;
-    border-radius: 16px;
-    text-align: center;
-    font-weight: bold;
-    font-size: 1.25rem;
-    box-shadow: 0 4px 12px rgb(0 0 0 / 20%);
-    animation: pulse-glow 2s infinite;
-}
-
-/* Map Section */
-.map-section {
-    order: 1;
-}
-
-.map-container {
-    background: var(--night-deep);
-    border-radius: 24px;
-    box-shadow: 
-        0 10px 40px rgb(0 0 0 / 40%),
-        inset 0 1px 1px rgb(255 255 255 / 5%);
-    overflow: hidden;
-    border: 1px solid rgb(255 255 255 / 10%);
-    height: 600px;
-}
-
-.map {
-    width: 100%;
-    height: 100%;
-}
-
-/* Dark mode filter for map tiles - simplified for performance */
-.leaflet-tile-pane {
-    filter: invert(1) hue-rotate(180deg);
-}
-
-.map-help {
-    margin-top: 1rem;
-    text-align: center;
+/* Countdown Widget - Top Right */
+.countdown-hud {
+    position: fixed;
+    top: 1.5rem;
+    right: 1.5rem;
+    z-index: 50;
     background: rgb(255 255 255 / 10%);
-    backdrop-filter: blur(10px);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgb(255 255 255 / 20%);
     border-radius: 16px;
-    padding: 1rem;
-    color: var(--warm-white);
-    font-size: 0.875rem;
-    border: 1px solid rgb(255 255 255 / 10%);
+    padding: 0.75rem 1.25rem;
 }
 
-/* Footer */
-.footer {
-    background: linear-gradient(180deg, var(--christmas-red) 0%, var(--christmas-dark-red) 100%);
-    color: var(--warm-white);
-    margin-top: 3rem;
-    padding: 2rem;
-    box-shadow: 0 -5px 30px rgb(0 0 0 / 40%);
-}
-
-.footer-content {
-    max-width: 1400px;
-    margin: 0 auto;
-    text-align: center;
-}
-
-.footer-icons {
-    font-size: 2rem;
-    margin-bottom: 1rem;
-}
-
-.footer-icons .icon {
-    margin: 0 0.5rem;
-    display: inline-block;
-    animation: bounce 2s infinite;
-}
-
-.footer-text {
+.countdown-hud-label {
     font-family: var(--font-body);
-    font-size: 1rem;
-    margin: 0.5rem 0;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--warm-white);
+    opacity: 0.8;
+    margin: 0 0 0.25rem;
 }
 
-.footer-tagline {
+.countdown-hud-value {
     font-family: var(--font-display);
-    font-weight: 700;
-    font-size: 1rem;
+    font-size: 1.25rem;
+    font-weight: 600;
     color: var(--christmas-gold);
-    margin: 0.5rem 0;
+}
+
+/* Hide old elements */
+.header,
+.main-container,
+.footer,
+.map-section,
+.sidebar,
+.map-help {
+    display: none;
 }
 
 /* Responsive Design */
-@media (width >= 1024px) {
-    .header-content {
-        flex-direction: row;
-    }
-
-    .content-grid {
-        grid-template-columns: 350px 1fr;
-    }
-
-    .sidebar {
-        order: 1;
-    }
-
-    .map-section {
-        order: 2;
-    }
-}
-
-@media (width >= 768px) and (width < 1024px) {
-    .header-title {
-        font-size: 2.5rem;
-    }
-
-    .countdown-value {
-        font-size: 1.75rem;
-    }
-}
-
 @media (width <= 768px) {
-    .header-title {
-        font-size: 1.5rem;
+    .mission-control {
+        inset: auto 1rem 1rem;
+        width: auto;
+        max-height: 40vh;
+        overflow-y: auto;
     }
 
-    .emoji-bounce,
-    .emoji-pulse {
-        font-size: 2rem;
+    .countdown-hud {
+        top: 1rem;
+        right: 1rem;
     }
 
-    .countdown-value {
-        font-size: 1.25rem;
-    }
-
-    .map-container {
-        height: 400px;
+    .glass-nav {
+        top: 1rem;
     }
 }
 

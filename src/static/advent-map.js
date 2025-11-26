@@ -7,16 +7,18 @@ let shuffledDays = [];
 let modalListenersInitialized = false;
 let lastFocusedElement = null;
 
-// Color schemes for calendar cells - Strict Festive Palette
-// Pattern: Red, Green, Gold, Ice Blue (repeating)
-const cellColors = [
-    '#c41e3a', '#166534', '#fbbf24', '#60a5fa',  // Days 1-4
-    '#c41e3a', '#166534', '#fbbf24', '#60a5fa',  // Days 5-8
-    '#c41e3a', '#166534', '#fbbf24', '#60a5fa',  // Days 9-12
-    '#c41e3a', '#166534', '#fbbf24', '#60a5fa',  // Days 13-16
-    '#c41e3a', '#166534', '#fbbf24', '#60a5fa',  // Days 17-20
-    '#c41e3a', '#166534', '#fbbf24', '#60a5fa'   // Days 21-24
+// Color schemes for calendar cells - Checkerboard Pattern (Red, Green, Gold)
+// Each color has a base and shadow for 3D effect
+const cellColorSchemes = [
+    { bg: '#dc2626', shadow: '#991b1b' },  // Red
+    { bg: '#166534', shadow: '#14532d' },  // Green
+    { bg: '#fbbf24', shadow: '#d97706' }   // Gold
 ];
+
+// Get color scheme based on position for checkerboard pattern
+function getCellColorScheme(index) {
+    return cellColorSchemes[index % 3];
+}
 
 // DOM Elements
 const loadingEl = document.getElementById('loading');
@@ -97,7 +99,7 @@ function generateGrid() {
     gridContainer.setAttribute('role', 'list');
     gridContainer.setAttribute('aria-label', 'Advent calendar days 1 through 24');
     
-    shuffledDays.forEach(dayNumber => {
+    shuffledDays.forEach((dayNumber, index) => {
         const dayData = dayDataMap.get(dayNumber);
         if (!dayData) return;
         
@@ -108,10 +110,11 @@ function generateGrid() {
         cell.setAttribute('tabindex', '0');
         cell.setAttribute('aria-label', `Day ${dayNumber}: ${dayData.title}`);
         
-        // Set color with bounds checking
-        const colorIndex = Math.max(0, Math.min(dayNumber - 1, cellColors.length - 1));
-        cell.style.backgroundColor = cellColors[colorIndex];
-        cell.style.color = getContrastColor(cellColors[colorIndex]);
+        // Get color scheme based on position for checkerboard pattern
+        const colorScheme = getCellColorScheme(index);
+        cell.style.backgroundColor = colorScheme.bg;
+        cell.style.boxShadow = `0 6px 0 ${colorScheme.shadow}, 0 8px 16px rgb(0 0 0 / 30%)`;
+        cell.style.color = getContrastColor(colorScheme.bg);
         
         // Add day number
         cell.textContent = dayNumber;

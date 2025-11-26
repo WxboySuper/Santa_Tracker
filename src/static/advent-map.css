@@ -1,34 +1,37 @@
-/* Advent Calendar - North Pole Map Styles */
+/* Advent Calendar - North Pole Village Styles */
 
-/* Import Google Fonts */
-@import url('https://fonts.googleapis.com/css2?family=Mountains+of+Christmas:wght@400;700&family=Nunito:wght@400;600;700;800&display=swap');
+/* Import Google Fonts - Fredoka (Chunky, Toy-like) + Nunito (Readable) */
+@import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Nunito:wght@400;600;700;800&display=swap');
 
 /* CSS Variables */
 :root {
     /* Cozy North Pole Night palette */
-    --christmas-red: #c41e3a;
-    --christmas-dark-red: #7f1d1d;
-    --christmas-crimson: #991b1b;
+    --christmas-red: #dc2626;
+    --christmas-dark-red: #991b1b;
+    --christmas-crimson: #7f1d1d;
     --christmas-green: #166534;
     --pine-green: #166534;
     --holly-green: #15803d;
     --christmas-gold: #fbbf24;
     --warm-white: #f8fafc;
     --snow-white: #fffafa;
-    --ice-blue: #bfdbfe;
+    --ice-blue: #60a5fa;
 
     /* Night sky gradient */
     --night-deep: #0f172a;
     --night-mid: #1e1b4b;
     --night-blue: #0a1929;
 
-    /* Fonts */
-    --font-display: 'Mountains of Christmas', cursive;
+    /* Fonts - Fredoka for headings (Chunky/Toy-like), Nunito for body */
+    --font-display: 'Fredoka', sans-serif;
     --font-body: 'Nunito', sans-serif;
 
     /* Shadows */
     --shadow: rgb(0 0 0 / 20%);
     --hover-shadow: rgb(0 0 0 / 40%);
+
+    /* Icons - Padlock SVG for locked calendar cells */
+    --icon-padlock: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='white'%3E%3Cpath d='M12 1C8.676 1 6 3.676 6 7v2H4v14h16V9h-2V7c0-3.324-2.676-6-6-6zm0 2c2.276 0 4 1.724 4 4v2H8V7c0-2.276 1.724-4 4-4z'/%3E%3C/svg%3E");
 }
 
 /* Global Styles */
@@ -40,7 +43,7 @@
 
 body {
     font-family: var(--font-body);
-    background: radial-gradient(ellipse at top, var(--night-mid) 0%, var(--night-deep) 60%, var(--night-deep) 100%);
+    background: radial-gradient(ellipse at center, var(--night-mid) 0%, var(--night-deep) 70%);
     color: var(--warm-white);
     min-height: 100vh;
     overflow-x: hidden;
@@ -60,57 +63,54 @@ body.modal-open {
     display: block !important;
 }
 
-/* Navigation Bar */
-.nav-bar {
-    background: linear-gradient(180deg, var(--christmas-red) 0%, var(--christmas-dark-red) 100%);
-    padding: 1rem 2rem;
-    box-shadow: 0 4px 20px rgb(0 0 0 / 40%);
-    position: sticky;
-    top: 0;
+/* Glass Pill Navigation - Fixed Top Center */
+.glass-nav {
+    position: fixed;
+    top: 1.5rem;
+    left: 50%;
+    transform: translateX(-50%);
     z-index: 100;
-}
-
-.nav-container {
-    max-width: 1200px;
-    margin: 0 auto;
+    background: rgb(255 255 255 / 10%);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgb(255 255 255 / 20%);
+    border-radius: 9999px;
+    padding: 0.5rem;
     display: flex;
-    gap: 2rem;
-    justify-content: center;
+    gap: 0.5rem;
 }
 
 .nav-link {
     color: var(--warm-white);
     text-decoration: none;
     font-family: var(--font-body);
-    font-size: 1rem;
+    font-size: 0.9rem;
     font-weight: 600;
-    padding: 0.75rem 1.5rem;
+    padding: 0.75rem 1.25rem;
     border-radius: 9999px;
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    transition: all 0.3s ease;
-    text-shadow: 1px 1px 2px rgb(0 0 0 / 50%);
+    transition: all 0.2s ease;
 }
 
 .nav-link:hover,
 .nav-link:focus {
-    background: rgb(255 255 255 / 20%);
-    transform: translateY(-2px);
-    outline: 2px solid var(--christmas-gold);
-    outline-offset: 2px;
-    box-shadow: 0 4px 12px rgb(0 0 0 / 30%);
+    background: rgb(255 255 255 / 15%);
 }
 
 .nav-link-active {
-    background: rgb(255 255 255 / 25%);
-    font-weight: 700;
+    background: rgb(255 255 255 / 20%);
+}
+
+/* Hide old nav bar */
+.nav-bar {
+    display: none;
 }
 
 /* Header */
 .advent-header {
     text-align: center;
-    padding: 3rem 1rem 2rem;
+    padding: 6rem 1rem 2rem;
     animation: fade-in-down 0.8s ease-out;
 }
 
@@ -118,17 +118,15 @@ body.modal-open {
     font-family: var(--font-display);
     font-size: clamp(2.5rem, 5vw, 4rem);
     font-weight: 700;
-    margin-bottom: 0.75rem;
+    margin-bottom: 0.5rem;
     color: var(--warm-white);
-    text-shadow: 3px 3px 6px rgb(0 0 0 / 50%);
 }
 
 .advent-subtitle {
     font-family: var(--font-body);
-    font-size: clamp(1rem, 2.5vw, 1.5rem);
+    font-size: clamp(1rem, 2.5vw, 1.25rem);
     color: var(--christmas-gold);
     font-weight: 600;
-    text-shadow: 2px 2px 4px rgb(0 0 0 / 50%);
 }
 
 /* Main Content */
@@ -186,73 +184,58 @@ body.modal-open {
     gap: 1.25rem;
 }
 
-/* Calendar Cell Styles */
+/* Calendar Cell Styles - Chunky 3D Buttons */
 .calendar-cell {
     aspect-ratio: 1;
-    border-radius: 20px;
+    border-radius: 16px;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     font-family: var(--font-display);
-    font-size: clamp(2rem, 3.5vw, 3rem);
+    font-size: clamp(1.75rem, 3vw, 2.5rem);
     font-weight: 700;
     cursor: pointer;
-    transition: all 0.3s ease;
+    transition: all 0.15s ease;
     position: relative;
     border: none;
-    box-shadow: 
-        0 6px 0 rgb(0 0 0 / 30%),
-        0 8px 20px rgb(0 0 0 / 25%);
-    text-shadow: 2px 2px 4px rgb(0 0 0 / 40%);
     color: var(--warm-white);
 }
 
 .calendar-cell:hover,
 .calendar-cell:focus {
-    outline: 3px solid var(--christmas-gold);
-    outline-offset: 3px;
-    transform: translateY(-8px) scale(1.05);
-    box-shadow: 
-        0 12px 0 rgb(0 0 0 / 25%),
-        0 16px 32px rgb(0 0 0 / 35%);
-    z-index: 10;
+    transform: translateY(-4px);
+    outline: none;
+}
+
+.calendar-cell:active {
+    transform: translateY(2px);
 }
 
 .calendar-cell.unlocked {
-    animation: unlock-pulse 0.6s ease-out;
-}
-
-.calendar-cell.unlocked:hover,
-.calendar-cell.unlocked:focus {
-    transform: translateY(-8px) scale(1.08);
-    box-shadow: 
-        0 14px 0 rgb(0 0 0 / 20%),
-        0 20px 40px rgb(0 0 0 / 40%);
+    animation: none;
 }
 
 .calendar-cell.locked {
-    filter: grayscale(30%) brightness(0.7);
+    filter: brightness(0.6);
     opacity: 0.7;
     cursor: not-allowed;
 }
 
 .calendar-cell.locked::after {
-    content: '🔒';
+    content: '';
     position: absolute;
-    bottom: 8px;
-    right: 8px;
-    font-size: 0.8rem;
-    opacity: 0.8;
+    bottom: 6px;
+    right: 6px;
+    width: 16px;
+    height: 16px;
+    background-image: var(--icon-padlock);
+    background-size: contain;
+    opacity: 0.6;
 }
 
 .calendar-cell.locked:hover {
-    transform: translateY(-3px);
-    outline: 2px solid var(--christmas-red);
-    outline-offset: 2px;
-    box-shadow: 
-        0 8px 0 rgb(0 0 0 / 25%),
-        0 10px 24px rgb(0 0 0 / 30%);
+    transform: translateY(-2px);
 }
 
 @keyframes unlock-pulse {

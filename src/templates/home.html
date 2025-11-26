@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🎅 Santa Tracker - Track Santa's Magical Journey</title>
+    <title>Santa Tracker - Track Santa's Magical Journey</title>
     <meta name="description" content="Welcome to Santa Tracker! Track Santa's magical journey around the world on Christmas Eve in real-time!">
     <link rel="stylesheet" href="{{ url_for('static', filename='home-styles.css') }}">
 </head>
@@ -11,74 +11,57 @@
     <!-- Snowfall Container -->
     <div id="snowfall" aria-hidden="true"></div>
     
-    <!-- Hero Section -->
+    <!-- Glass Pill Navigation -->
+    <nav class="glass-nav" role="navigation" aria-label="Main navigation">
+        <a href="{{ url_for('home') }}" class="nav-link nav-link-active">Home</a>
+        <a href="{{ url_for('tracker') }}" class="nav-link">Tracker</a>
+        <a href="{{ url_for('advent') }}" class="nav-link">Village</a>
+    </nav>
+    
+    <!-- Hero Section - Game Menu Style -->
     <div class="hero">
         <div class="hero-content">
-            <div class="hero-santa">
-                <span class="emoji-large santa-bounce">🎅</span>
-            </div>
             <h1 class="hero-title">
                 <span class="text-red">Santa</span> <span class="text-green">Tracker</span>
             </h1>
             <p class="hero-subtitle">Track Santa's Magical Journey Around the World!</p>
             
-            <!-- Countdown Box - Glassmorphism -->
+            <!-- Countdown Box - Glass Panel with Gold Border -->
             <div class="countdown-box">
-                <p class="countdown-label">🚀 Countdown to Takeoff 🚀</p>
+                <p class="countdown-label">Countdown to Takeoff</p>
                 <div id="countdown" class="countdown-display" aria-live="polite"></div>
             </div>
             
-            <!-- CTA Buttons -->
+            <!-- CTA Button Dock -->
             <div class="cta-buttons-container">
                 <a href="{{ url_for('tracker') }}" class="cta-button">
-                    <span>🛷 Track Santa</span>
+                    Track Santa
                 </a>
                 <a href="{{ url_for('advent') }}" class="cta-button cta-button-advent">
-                    <span>🎁 North Pole Village</span>
+                    North Pole Village
                 </a>
             </div>
-            
-            <!-- Live North Pole Stats -->
-            <div class="features">
-                <div class="feature-card">
-                    <span class="feature-icon">🍪</span>
-                    <h3 id="cookies-stat">1,204,050</h3>
-                    <p>Cookies Baked</p>
-                </div>
-                <div class="feature-card">
-                    <span class="feature-icon">🦌</span>
-                    <h3>Ready</h3>
-                    <p>Reindeer Status</p>
-                </div>
-                <div class="feature-card">
-                    <span class="feature-icon">🎁</span>
-                    <h3 id="gifts-stat">2.8B</h3>
-                    <p>Gifts Wrapped</p>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Decorative Elements -->
-        <div class="decoration decoration-left">
-            <span class="emoji-large">🎄</span>
-        </div>
-        <div class="decoration decoration-right">
-            <span class="emoji-large">⛄</span>
         </div>
     </div>
     
-    <!-- Footer -->
-    <footer class="footer">
-        <div class="footer-content">
-            <div class="footer-santa">
-                <span class="emoji-medium">🎅</span>
-                <span class="emoji-medium">🦌</span>
-                <span class="emoji-medium">🎁</span>
-            </div>
-            <p>&copy; <span id="year"></span> Santa Tracker</p>
-            <p class="footer-tagline">✨ Official North Pole Engineering Dept. Est. 1823 ✨</p>
+    <!-- Stats Ticker - Fixed Bottom HUD -->
+    <div class="stats-ticker">
+        <div class="stat-item">
+            <span class="stat-icon">🍪</span>
+            <span class="stat-value" id="cookies-stat">1.2M</span>
+            <span class="stat-label">Cookies</span>
         </div>
-    </footer>
+        <div class="stat-item">
+            <span class="stat-icon">🦌</span>
+            <span class="stat-value">Ready</span>
+            <span class="stat-label">Reindeer</span>
+        </div>
+        <div class="stat-item">
+            <span class="stat-icon">🎁</span>
+            <span class="stat-value" id="gifts-stat">2.8B</span>
+            <span class="stat-label">Gifts</span>
+        </div>
+    </div>
 
     <script src="{{ url_for('static', filename='countdown.js') }}"></script>
     <script src="{{ url_for('static', filename='home-script.js') }}"></script>

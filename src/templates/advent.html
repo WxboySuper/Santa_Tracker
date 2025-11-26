@@ -3,36 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🎄 Advent Calendar - Santa Tracker</title>
+    <title>North Pole Village - Santa Tracker</title>
     <meta name="description" content="Unlock daily surprises on our interactive North Pole Advent Calendar! New content each day from December 1st to 24th.">
     <link rel="stylesheet" href="{{ url_for('static', filename='advent-map.css') }}">
 </head>
 <body>
-    <!-- Navigation -->
-    <nav class="nav-bar" role="navigation" aria-label="Main navigation">
-        <div class="nav-container">
-            <a href="{{ url_for('home') }}" class="nav-link">
-                <span aria-hidden="true">🏠</span>
-                <span>Home</span>
-            </a>
-            <a href="{{ url_for('tracker') }}" class="nav-link">
-                <span aria-hidden="true">🗺️</span>
-                <span>Tracker</span>
-            </a>
-            <a href="{{ url_for('advent') }}" class="nav-link nav-link-active">
-                <span aria-hidden="true">🎁</span>
-                <span>Village</span>
-            </a>
-        </div>
+    <!-- Glass Pill Navigation - Fixed Top Center -->
+    <nav class="glass-nav" role="navigation" aria-label="Main navigation">
+        <a href="{{ url_for('home') }}" class="nav-link">Home</a>
+        <a href="{{ url_for('tracker') }}" class="nav-link">Tracker</a>
+        <a href="{{ url_for('advent') }}" class="nav-link nav-link-active">Village</a>
     </nav>
 
     <!-- Header -->
     <header class="advent-header">
-        <h1 class="advent-title">
-            <span aria-hidden="true">🎁</span>
-            North Pole Village
-            <span aria-hidden="true">🎁</span>
-        </h1>
+        <h1 class="advent-title">North Pole Village</h1>
         <p class="advent-subtitle">Discover daily surprises from December 1st to 24th!</p>
     </header>
 
