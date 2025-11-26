@@ -33,7 +33,8 @@ body {
     background: var(--night-deep);
     height: 100vh;
     width: 100vw;
-    overflow: hidden;
+    overflow-x: hidden;
+    overflow-y: auto;
 }
 
 /* Glass Pill Navigation - Fixed Top Center */
@@ -87,8 +88,8 @@ body {
     height: 100%;
 }
 
-/* Dark mode filter for map tiles */
-.leaflet-tile-pane {
+/* Dark mode filter for map tiles - applied to tile container to preserve markers */
+.leaflet-tile-container {
     filter: invert(1) hue-rotate(180deg);
 }
 
