@@ -1943,7 +1943,25 @@
             }
 
             try {
-                const data = JSON.parse(jsonText);
+                const parsedData = JSON.parse(jsonText);
+                
+                // Normalize the data to ensure it has the required {route: [...]} structure
+                let payload;
+                if (Array.isArray(parsedData)) {
+                    // User pasted a raw array of locations
+                    payload = { route: parsedData };
+                } else if (parsedData.route && Array.isArray(parsedData.route)) {
+                    // Already in the correct format
+                    payload = parsedData;
+                } else if (parsedData.locations && Array.isArray(parsedData.locations)) {
+                    // Backup export format - use locations as route
+                    payload = { route: parsedData.locations };
+                } else {
+                    // Unrecognized format - not an array or object with route/locations key
+                    errorsDiv.textContent = 'Invalid format: Expected an array of locations, or an object with "route" or "locations" array';
+                    errorsDiv.style.display = 'block';
+                    return;
+                }
                 
                 const response = await fetch('/api/admin/route/trial', {
                     method: 'POST',
@@ -1951,7 +1969,7 @@
                         'Content-Type': 'application/json',
                         'Authorization': `Bearer ${getAuthToken()}`
                     },
-                    body: JSON.stringify(data)
+                    body: JSON.stringify(payload)
                 });
 
                 const result = await response.json();
