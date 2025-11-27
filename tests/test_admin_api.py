@@ -160,6 +160,80 @@ class TestAdminAuthentication:
         assert response.status_code == 200
 
 
+class TestStatelessTokenAuthentication:
+    """Test stateless signed token authentication for Gunicorn multi-worker support."""
+
+    def test_signed_token_is_returned_on_login(self, client):
+        """Test that login returns a signed token (not random UUID)."""
+        os.environ["ADMIN_PASSWORD"] = "test_password"
+
+        response = client.post(
+            "/api/admin/login",
+            data=json.dumps({"password": "test_password"}),
+            content_type="application/json",
+        )
+        assert response.status_code == 200
+        token = response.get_json()["token"]
+
+        # Signed tokens from itsdangerous contain dots (base64 encoded parts)
+        assert len(token) > 0
+        assert "." in token  # Signed tokens have format: payload.timestamp.signature
+
+    def test_signed_token_can_be_verified_without_shared_state(self, client):
+        """Test that signed tokens can be verified by any worker (stateless)."""
+        os.environ["ADMIN_PASSWORD"] = "test_password"
+
+        # Login to get a signed token
+        login_response = client.post(
+            "/api/admin/login",
+            data=json.dumps({"password": "test_password"}),
+            content_type="application/json",
+        )
+        token = login_response.get_json()["token"]
+
+        # The token should work immediately (no shared state needed)
+        headers = {"Authorization": f"Bearer {token}"}
+        response = client.get("/api/admin/locations", headers=headers)
+        assert response.status_code == 200
+
+    def test_tampered_token_is_rejected(self, client):
+        """Test that tampered tokens are rejected."""
+        os.environ["ADMIN_PASSWORD"] = "test_password"
+
+        # Login to get a valid token
+        login_response = client.post(
+            "/api/admin/login",
+            data=json.dumps({"password": "test_password"}),
+            content_type="application/json",
+        )
+        token = login_response.get_json()["token"]
+
+        # Tamper with the token by modifying a character
+        tampered_token = token[:-1] + ("a" if token[-1] != "a" else "b")
+
+        headers = {"Authorization": f"Bearer {tampered_token}"}
+        response = client.get("/api/admin/locations", headers=headers)
+        assert response.status_code == 403
+
+    def test_random_token_is_rejected(self, client):
+        """Test that random tokens (not signed) are rejected."""
+        os.environ["ADMIN_PASSWORD"] = "test_password"
+
+        # Use a random string that is not a valid signed token
+        headers = {"Authorization": "Bearer random_invalid_token_12345"}
+        response = client.get("/api/admin/locations", headers=headers)
+        assert response.status_code == 403
+
+    def test_direct_password_fallback_still_works(self, client):
+        """Test that direct admin password still works as a fallback."""
+        os.environ["ADMIN_PASSWORD"] = "my_secure_password_123"
+
+        # Use the password directly as the token
+        headers = {"Authorization": "Bearer my_secure_password_123"}
+        response = client.get("/api/admin/locations", headers=headers)
+        assert response.status_code == 200
+
+
 class TestMaskToken:
     """Test token masking utility function."""
 
