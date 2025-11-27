@@ -38,7 +38,8 @@ class TestDotenvLoading:
         ), "app.py must import load_dotenv from dotenv to load .env files"
 
         # Check that load_dotenv() is called with explicit path
-        assert "load_dotenv(dotenv_path=" in content, (
+        # Handle both single-line and multi-line formatting
+        assert "load_dotenv(" in content and "dotenv_path=" in content, (
             "app.py must call load_dotenv(dotenv_path=...) to load .env files. "
             "This is required for ADMIN_PASSWORD to be loaded from .env"
         )
@@ -92,13 +93,13 @@ class TestDotenvLoading:
         app_file = Path(__file__).parent.parent / "src" / "app.py"
         content = app_file.read_text()
 
-        # Find positions in the file
-        load_dotenv_pos = content.find("load_dotenv(dotenv_path=")
+        # Find positions in the file (handle multi-line formatting)
+        load_dotenv_pos = content.find("load_dotenv(")
+        dotenv_path_pos = content.find("dotenv_path=")
         admin_password_pos = content.find('os.environ.get("ADMIN_PASSWORD")')
 
-        assert load_dotenv_pos != -1, (
-            "load_dotenv(dotenv_path=...) must be called in app.py"
-        )
+        assert load_dotenv_pos != -1, "load_dotenv() must be called in app.py"
+        assert dotenv_path_pos != -1, "dotenv_path= must be specified in app.py"
         assert (
             admin_password_pos != -1
         ), "os.environ.get('ADMIN_PASSWORD') must be present in app.py"
@@ -126,8 +127,8 @@ class TestDotenvLoading:
             'os.path.join' in content and '".env"' in content
         ), "app.py must construct .env path using os.path.join"
 
-        # Check that load_dotenv is called with dotenv_path
-        assert "load_dotenv(dotenv_path=" in content, (
+        # Check that load_dotenv is called with dotenv_path (handle multi-line)
+        assert "load_dotenv(" in content and "dotenv_path=" in content, (
             "app.py must call load_dotenv with explicit dotenv_path "
             "to ensure .env is found regardless of working directory"
         )

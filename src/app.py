@@ -12,10 +12,12 @@ from flask import Flask, jsonify, render_template, request
 # Load environment variables from .env file using absolute path
 # This ensures .env is found regardless of current working directory
 # (e.g., when run via Systemd/Gunicorn from a different directory)
-_app_dir = os.path.dirname(os.path.abspath(__file__))
-_project_root = os.path.dirname(_app_dir)
-_env_path = os.path.join(_project_root, ".env")
-load_dotenv(dotenv_path=_env_path, verbose=True)
+load_dotenv(
+    dotenv_path=os.path.join(
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__))), ".env"
+    ),
+    verbose=True,
+)
 
 # Add the src directory to the path to allow imports
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -58,10 +60,9 @@ if app.config["SECRET_KEY"] == "dev-secret-key":
     )
 
 # Verify ADMIN_PASSWORD environment variable loading status
-_admin_password_loaded = bool(os.environ.get("ADMIN_PASSWORD"))
 logger.info(
     "ADMIN_PASSWORD environment variable loaded: %s",
-    "Loaded" if _admin_password_loaded else "Not Loaded",
+    "Loaded" if os.environ.get("ADMIN_PASSWORD") else "Not Loaded",
 )
 
 # Simple in-memory session store (in production, use Redis or database)
