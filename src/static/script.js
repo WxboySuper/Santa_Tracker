@@ -383,6 +383,16 @@ function clearLiftoffToastTimeouts() {
 
 // Start pre-flight status updates
 function startPreflightUpdates() {
+    // Clear any existing intervals first to prevent duplicates
+    if (preflightUpdateInterval) {
+        clearInterval(preflightUpdateInterval);
+        preflightUpdateInterval = null;
+    }
+    if (weatherUpdateInterval) {
+        clearInterval(weatherUpdateInterval);
+        weatherUpdateInterval = null;
+    }
+
     updatePreflightStatus();
     preflightUpdateInterval = setInterval(updatePreflightStatus, 5000);
 
