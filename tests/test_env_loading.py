@@ -118,9 +118,13 @@ class TestDotenvLoading:
         content = app_file.read_text()
 
         # Check for the absolute path calculation pattern
+        # Uses double dirname to navigate from src/app.py to project root
         assert (
-            "os.path.dirname(os.path.abspath(__file__))" in content
-        ), "app.py must get the directory of the current file using __file__"
+            "os.path.dirname(os.path.dirname(os.path.abspath(__file__)))" in content
+        ), (
+            "app.py must navigate to project root using double dirname "
+            "to locate .env at root"
+        )
 
         # Check that .env path is constructed from project root
         assert (
