@@ -193,6 +193,17 @@ class TestMaskToken:
 class TestAuthenticationLogging:
     """Test authentication logging scenarios."""
 
+    @pytest.fixture(autouse=True)
+    def clean_admin_password(self):
+        """Fixture to manage ADMIN_PASSWORD environment variable cleanup."""
+        original_password = os.environ.get("ADMIN_PASSWORD")
+        yield
+        # Restore original password after test
+        if original_password is not None:
+            os.environ["ADMIN_PASSWORD"] = original_password
+        elif "ADMIN_PASSWORD" in os.environ:
+            del os.environ["ADMIN_PASSWORD"]
+
     def test_auth_missing_header_returns_401(self, client):
         """Test that missing Authorization header returns 401."""
         os.environ["ADMIN_PASSWORD"] = "test_password"
