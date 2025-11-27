@@ -9,6 +9,7 @@ from typing import Optional
 
 from dotenv import load_dotenv
 from flask import Flask, jsonify, render_template, request
+from itsdangerous import BadSignature, SignatureExpired, URLSafeTimedSerializer
 
 # Load environment variables from .env file using absolute path
 # This ensures .env is found regardless of current working directory
@@ -66,8 +67,9 @@ logger.info(
     "Loaded" if os.environ.get("ADMIN_PASSWORD") else "Not Loaded",
 )
 
-# Simple in-memory session store (in production, use Redis or database)
-active_sessions = {}
+# Create serializer for stateless session tokens
+# This allows any Gunicorn worker to validate tokens without shared memory
+_token_serializer = URLSafeTimedSerializer(app.config["SECRET_KEY"])
 
 
 def _mask_token(token: Optional[str]) -> str:
@@ -80,7 +82,7 @@ def _mask_token(token: Optional[str]) -> str:
 
 
 def require_admin_auth(f):
-    """Decorator to require admin authentication via session token."""
+    """Decorator to require admin authentication via stateless signed token."""
 
     @wraps(f)
     def decorated_function(*args, **kwargs):
@@ -124,24 +126,44 @@ def require_admin_auth(f):
             os.getpid(),
         )
 
-        # Check if token is valid session token
-        if token in active_sessions:
-            logger.info(
-                "Auth success: Valid session token %s for request to %s "
+        # Verify stateless signed token
+        try:
+            # Token expires after 24 hours (86400 seconds)
+            data = _token_serializer.loads(token, max_age=86400)
+            if data.get("admin") is True:
+                logger.info(
+                    "Auth success: Valid signed token %s for request to %s "
+                    "(worker PID: %d)",
+                    masked_token,
+                    request.path,
+                    os.getpid(),
+                )
+                return f(*args, **kwargs)
+            else:
+                logger.warning(
+                    "Auth failed: Valid signature but invalid payload for token %s "
+                    "for request to %s (worker PID: %d)",
+                    masked_token,
+                    request.path,
+                    os.getpid(),
+                )
+                return jsonify({"error": "Invalid credentials"}), 403
+        except SignatureExpired:
+            logger.warning(
+                "Auth failed: Token %s has expired for request to %s "
                 "(worker PID: %d)",
                 masked_token,
                 request.path,
                 os.getpid(),
             )
-            return f(*args, **kwargs)
-
-        logger.debug(
-            "Auth check: Token %s not found in active_sessions "
-            "(contains %d sessions, worker PID: %d)",
-            masked_token,
-            len(active_sessions),
-            os.getpid(),
-        )
+            return jsonify({"error": "Token expired"}), 403
+        except BadSignature:
+            logger.debug(
+                "Auth check: Token %s is not a valid signed token (worker PID: %d)",
+                masked_token,
+                os.getpid(),
+            )
+            # Fall through to check if it's a direct password
 
         # Fallback: check if token matches admin password (for backward compatibility)
         admin_password = os.environ.get("ADMIN_PASSWORD")
@@ -163,8 +185,7 @@ def require_admin_auth(f):
             return f(*args, **kwargs)
 
         logger.warning(
-            "Auth failed: Token %s not in active_sessions and does not match "
-            "ADMIN_PASSWORD for request to %s (worker PID: %d)",
+            "Auth failed: Token %s is invalid for request to %s (worker PID: %d)",
             masked_token,
             request.path,
             os.getpid(),
@@ -200,7 +221,7 @@ def route_simulator():
 
 @app.route("/api/admin/login", methods=["POST"])
 def admin_login():
-    """Admin login endpoint that returns a session token."""
+    """Admin login endpoint that returns a stateless signed session token."""
     try:
         data = request.get_json(force=True, silent=True)
         if not data or "password" not in data:
@@ -216,18 +237,13 @@ def admin_login():
             logger.warning("Login failed: Invalid password provided")
             return jsonify({"error": "Invalid password"}), 401
 
-        # Generate a secure session token
-        session_token = secrets.token_urlsafe(32)
-        active_sessions[session_token] = {
-            "created_at": datetime.now().isoformat(),
-            "last_used": datetime.now().isoformat(),
-        }
+        # Generate a stateless signed token that any Gunicorn worker can verify
+        session_token = _token_serializer.dumps({"admin": True})
 
         logger.info(
-            "Login success: Session token generated (token: %s, "
-            "active_sessions count: %d, worker PID: %d)",
+            "Login success: Signed session token generated (token: %s, "
+            "worker PID: %d)",
             _mask_token(session_token),
-            len(active_sessions),
             os.getpid(),
         )
 
