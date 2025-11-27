@@ -389,7 +389,19 @@
                 }
 
                 const data = await response.json();
+                if (data.simulated_route === undefined || data.simulated_route === null) {
+                    showAlert('Route data is missing from the API response. Please check the backend or try again later.', 'error');
+                    return false;
+                }
                 simulatedRoute = data.simulated_route;
+                if (!Array.isArray(simulatedRoute)) {
+                    showAlert('Route data format is invalid. Please contact support.', 'error');
+                    return false;
+                }
+                if (simulatedRoute.length === 0) {
+                    showAlert('Route exists but contains no locations. Please check the route data.', 'warning');
+                    return false;
+                }
                 
                 // Update summary
                 const routeLabel = data.is_trial ? ' (Trial)' : '';
@@ -422,7 +434,7 @@
             visitedMarkers = [];
             if (routeLine) map.removeLayer(routeLine);
 
-            if (simulatedRoute.length === 0) return;
+            if (!simulatedRoute || simulatedRoute.length === 0) return;
 
             // Create route line
             const routeCoords = simulatedRoute.map(loc => [loc.latitude, loc.longitude]);
@@ -470,6 +482,12 @@
         // Update upcoming locations list
         function updateUpcomingLocations() {
             const container = document.getElementById('upcomingLocations');
+            if (!simulatedRoute || simulatedRoute.length === 0) {
+                console.warn('updateUpcomingLocations: No route data available.');
+                container.innerHTML = '<div style="padding:10px;color:#888;text-align:center;">No upcoming locations</div>';
+                return;
+            }
+            
             const upcoming = simulatedRoute.slice(currentLocationIndex, currentLocationIndex + 5);
             
             // Clear container
@@ -498,7 +516,7 @@
 
         // Run simulation
         async function runSimulation() {
-            if (simulatedRoute.length === 0) {
+            if (!simulatedRoute || simulatedRoute.length === 0) {
                 const loaded = await loadSimulatedRoute();
                 if (!loaded) return;
             }
@@ -717,7 +735,7 @@
             document.getElementById('simulationTime').textContent = '-';
             document.getElementById('progress').textContent = '0%';
             
-            if (simulatedRoute.length > 0) {
+            if (simulatedRoute && simulatedRoute.length > 0) {
                 map.fitBounds(routeLine.getBounds(), { padding: [50, 50] });
                 updateUpcomingLocations();
             }
