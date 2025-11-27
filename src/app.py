@@ -150,8 +150,7 @@ def require_admin_auth(f):
             return jsonify({"error": "Token expired"}), 403
         except BadSignature:
             logger.debug(
-                "Auth check: Token %s is not a valid signed token "
-                "(worker PID: %d)",
+                "Auth check: Token %s is not a valid signed token (worker PID: %d)",
                 masked_token,
                 os.getpid(),
             )
