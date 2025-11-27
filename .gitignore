@@ -36,5 +36,8 @@ coverage.xml
 .env.test.local
 .env.production.local
 
+# Runtime data files
+src/static/data/trial_route.json
+
 # Personal Docs
 docs/personal/*
