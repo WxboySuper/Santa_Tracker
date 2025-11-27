@@ -234,6 +234,14 @@ class TestAuthenticationLogging:
         assert response.status_code == 403
         assert "Invalid credentials" in response.get_json()["error"]
 
+    def test_auth_malformed_bearer_header_returns_401(self, client):
+        """Test that malformed Bearer header (no token after 'Bearer ') returns 401."""
+        os.environ["ADMIN_PASSWORD"] = "test_password"
+        headers = {"Authorization": "Bearer "}
+        response = client.get("/api/admin/locations", headers=headers)
+        assert response.status_code == 401
+        assert "Authentication required" in response.get_json()["error"]
+
 
 class TestGetLocations:
     """Test GET /api/admin/locations endpoint."""

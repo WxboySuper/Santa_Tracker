@@ -5,6 +5,7 @@ import sys
 import time
 from datetime import datetime
 from functools import wraps
+from typing import Optional
 
 from dotenv import load_dotenv
 from flask import Flask, jsonify, render_template, request
@@ -69,9 +70,9 @@ logger.info(
 active_sessions = {}
 
 
-def _mask_token(token: str) -> str:
+def _mask_token(token: Optional[str]) -> str:
     """Mask a token for secure logging, showing only first 4 and last 4 characters."""
-    if not token:
+    if token is None or token == "":
         return "<empty>"
     if len(token) <= 8:
         return "*" * len(token)
@@ -104,7 +105,16 @@ def require_admin_auth(f):
             )
             return jsonify({"error": "Authentication required"}), 401
 
-        token = auth_header.split(" ")[1]
+        parts = auth_header.split(" ", 1)  # limit to 2 parts
+        if len(parts) != 2 or not parts[1]:
+            logger.warning(
+                "Auth failed: Malformed Authorization header for request to %s "
+                "(worker PID: %d)",
+                request.path,
+                os.getpid(),
+            )
+            return jsonify({"error": "Authentication required"}), 401
+        token = parts[1]
         masked_token = _mask_token(token)
 
         logger.debug(
