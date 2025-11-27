@@ -139,6 +139,15 @@ def require_admin_auth(f):
                     os.getpid(),
                 )
                 return f(*args, **kwargs)
+            else:
+                logger.warning(
+                    "Auth failed: Valid signature but invalid payload for token %s "
+                    "for request to %s (worker PID: %d)",
+                    masked_token,
+                    request.path,
+                    os.getpid(),
+                )
+                return jsonify({"error": "Invalid credentials"}), 403
         except SignatureExpired:
             logger.warning(
                 "Auth failed: Token %s has expired for request to %s "

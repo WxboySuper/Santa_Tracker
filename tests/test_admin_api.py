@@ -233,6 +233,55 @@ class TestStatelessTokenAuthentication:
         response = client.get("/api/admin/locations", headers=headers)
         assert response.status_code == 200
 
+    def test_valid_token_with_invalid_payload_is_rejected(self, client):
+        """Test that a properly signed token with wrong payload is rejected."""
+        from src.app import _token_serializer
+
+        os.environ["ADMIN_PASSWORD"] = "test_password"
+
+        # Create a valid signed token but with admin=False
+        invalid_payload_token = _token_serializer.dumps({"admin": False})
+
+        headers = {"Authorization": f"Bearer {invalid_payload_token}"}
+        response = client.get("/api/admin/locations", headers=headers)
+        assert response.status_code == 403
+
+    def test_valid_token_with_missing_admin_field_is_rejected(self, client):
+        """Test that a properly signed token without admin field is rejected."""
+        from src.app import _token_serializer
+
+        os.environ["ADMIN_PASSWORD"] = "test_password"
+
+        # Create a valid signed token but without admin field
+        invalid_payload_token = _token_serializer.dumps({"other": "data"})
+
+        headers = {"Authorization": f"Bearer {invalid_payload_token}"}
+        response = client.get("/api/admin/locations", headers=headers)
+        assert response.status_code == 403
+
+    def test_expired_token_is_rejected(self, client):
+        """Test that expired tokens are properly rejected with 403 status."""
+        from unittest.mock import patch
+        from src.app import _token_serializer
+
+        os.environ["ADMIN_PASSWORD"] = "test_password"
+
+        # Create a valid token
+        token = _token_serializer.dumps({"admin": True})
+
+        # Mock the serializer to raise SignatureExpired
+        from itsdangerous import SignatureExpired
+
+        with patch.object(
+            _token_serializer,
+            "loads",
+            side_effect=SignatureExpired("Token expired"),
+        ):
+            headers = {"Authorization": f"Bearer {token}"}
+            response = client.get("/api/admin/locations", headers=headers)
+            assert response.status_code == 403
+            assert "Token expired" in response.get_json()["error"]
+
 
 class TestMaskToken:
     """Test token masking utility function."""
