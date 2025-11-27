@@ -9,8 +9,15 @@ from functools import wraps
 from dotenv import load_dotenv
 from flask import Flask, jsonify, render_template, request
 
-# Load environment variables from .env file
-load_dotenv()
+# Load environment variables from .env file using absolute path
+# This ensures .env is found regardless of current working directory
+# (e.g., when run via Systemd/Gunicorn from a different directory)
+load_dotenv(
+    dotenv_path=os.path.join(
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__))), ".env"
+    ),
+    verbose=True,
+)
 
 # Add the src directory to the path to allow imports
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -51,6 +58,12 @@ if app.config["SECRET_KEY"] == "dev-secret-key":
         "This is insecure for production. "
         "Set SECRET_KEY environment variable to a secure random value."
     )
+
+# Verify ADMIN_PASSWORD environment variable loading status
+logger.info(
+    "ADMIN_PASSWORD environment variable loaded: %s",
+    "Loaded" if os.environ.get("ADMIN_PASSWORD") else "Not Loaded",
+)
 
 # Simple in-memory session store (in production, use Redis or database)
 active_sessions = {}
