@@ -128,7 +128,7 @@ class TestDotenvLoading:
 
         # Check that .env path is constructed from project root
         assert (
-            'os.path.join' in content and '".env"' in content
+            "os.path.join" in content and '".env"' in content
         ), "app.py must construct .env path using os.path.join"
 
         # Check that load_dotenv is called with dotenv_path (handle multi-line)
