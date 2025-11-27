@@ -37,9 +37,9 @@ class TestDotenvLoading:
             "from dotenv import load_dotenv" in content
         ), "app.py must import load_dotenv from dotenv to load .env files"
 
-        # Check that load_dotenv() is called
-        assert "load_dotenv()" in content, (
-            "app.py must call load_dotenv() to load .env files. "
+        # Check that load_dotenv() is called with explicit path
+        assert "load_dotenv(dotenv_path=" in content, (
+            "app.py must call load_dotenv(dotenv_path=...) to load .env files. "
             "This is required for ADMIN_PASSWORD to be loaded from .env"
         )
 
@@ -93,14 +93,41 @@ class TestDotenvLoading:
         content = app_file.read_text()
 
         # Find positions in the file
-        load_dotenv_pos = content.find("load_dotenv()")
+        load_dotenv_pos = content.find("load_dotenv(dotenv_path=")
         admin_password_pos = content.find('os.environ.get("ADMIN_PASSWORD")')
 
-        assert load_dotenv_pos != -1, "load_dotenv() must be called in app.py"
+        assert load_dotenv_pos != -1, (
+            "load_dotenv(dotenv_path=...) must be called in app.py"
+        )
         assert (
             admin_password_pos != -1
         ), "os.environ.get('ADMIN_PASSWORD') must be present in app.py"
         assert load_dotenv_pos < admin_password_pos, (
             "load_dotenv() must be called before accessing ADMIN_PASSWORD "
             "to ensure .env file is loaded first"
+        )
+
+    def test_dotenv_uses_absolute_path(self):
+        """Test that load_dotenv uses an absolute path relative to app.py.
+
+        This ensures the .env file is found regardless of the current working
+        directory (e.g., when run via Systemd/Gunicorn from a different directory).
+        """
+        app_file = Path(__file__).parent.parent / "src" / "app.py"
+        content = app_file.read_text()
+
+        # Check for the absolute path calculation pattern
+        assert (
+            "os.path.dirname(os.path.abspath(__file__))" in content
+        ), "app.py must get the directory of the current file using __file__"
+
+        # Check that .env path is constructed from project root
+        assert (
+            'os.path.join' in content and '".env"' in content
+        ), "app.py must construct .env path using os.path.join"
+
+        # Check that load_dotenv is called with dotenv_path
+        assert "load_dotenv(dotenv_path=" in content, (
+            "app.py must call load_dotenv with explicit dotenv_path "
+            "to ensure .env is found regardless of working directory"
         )
