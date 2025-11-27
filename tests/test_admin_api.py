@@ -262,6 +262,7 @@ class TestStatelessTokenAuthentication:
     def test_expired_token_is_rejected(self, client):
         """Test that expired tokens are properly rejected with 403 status."""
         from unittest.mock import patch
+
         from src.app import _token_serializer
 
         os.environ["ADMIN_PASSWORD"] = "test_password"
