@@ -389,10 +389,17 @@
                 }
 
                 const data = await response.json();
-                simulatedRoute = data.simulated_route || [];
-                
+                if (data.simulated_route === undefined || data.simulated_route === null) {
+                    showAlert('Route data is missing from the API response. Please check the backend or try again later.', 'error');
+                    return false;
+                }
+                simulatedRoute = data.simulated_route;
+                if (!Array.isArray(simulatedRoute)) {
+                    showAlert('Route data format is invalid. Please contact support.', 'error');
+                    return false;
+                }
                 if (simulatedRoute.length === 0) {
-                    showAlert('No route data available. Please check that a route exists.', 'warning');
+                    showAlert('Route exists but contains no locations. Please check the route data.', 'warning');
                     return false;
                 }
                 
@@ -475,7 +482,11 @@
         // Update upcoming locations list
         function updateUpcomingLocations() {
             const container = document.getElementById('upcomingLocations');
-            if (!simulatedRoute || simulatedRoute.length === 0) return;
+            if (!simulatedRoute || simulatedRoute.length === 0) {
+                console.warn('updateUpcomingLocations: No route data available.');
+                container.innerHTML = '<div style="padding:10px;color:#888;text-align:center;">No upcoming locations</div>';
+                return;
+            }
             
             const upcoming = simulatedRoute.slice(currentLocationIndex, currentLocationIndex + 5);
             
