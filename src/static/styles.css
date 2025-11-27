@@ -35,6 +35,15 @@
     animation-iteration-count: infinite;
 }
 
+/* Snowfall container - prevent horizontal overflow */
+#snowfall {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 1;
+    overflow: hidden;
+}
+
 /* Map marker bounce animation */
 @keyframes marker-bounce {
     0%, 100% {
