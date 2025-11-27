@@ -5,6 +5,7 @@ import sys
 import time
 from datetime import datetime
 from functools import wraps
+from typing import Optional
 
 from dotenv import load_dotenv
 from flask import Flask, jsonify, render_template, request
@@ -69,6 +70,15 @@ logger.info(
 active_sessions = {}
 
 
+def _mask_token(token: Optional[str]) -> str:
+    """Mask a token for secure logging, showing only first 4 and last 4 characters."""
+    if token is None or token == "":
+        return "<empty>"
+    if len(token) <= 8:
+        return "*" * len(token)
+    return f"{token[:4]}...{token[-4:]}"
+
+
 def require_admin_auth(f):
     """Decorator to require admin authentication via session token."""
 
@@ -76,23 +86,89 @@ def require_admin_auth(f):
     def decorated_function(*args, **kwargs):
         auth_header = request.headers.get("Authorization")
 
-        if not auth_header or not auth_header.startswith("Bearer "):
+        # Log whether Authorization header was found
+        if not auth_header:
+            logger.warning(
+                "Auth failed: No Authorization header present in request to %s "
+                "(worker PID: %d)",
+                request.path,
+                os.getpid(),
+            )
             return jsonify({"error": "Authentication required"}), 401
 
-        token = auth_header.split(" ")[1]
+        if not auth_header.startswith("Bearer "):
+            logger.warning(
+                "Auth failed: Authorization header does not start with 'Bearer ' "
+                "for request to %s (worker PID: %d)",
+                request.path,
+                os.getpid(),
+            )
+            return jsonify({"error": "Authentication required"}), 401
+
+        parts = auth_header.split(" ", 1)  # limit to 2 parts
+        if len(parts) != 2 or not parts[1]:
+            logger.warning(
+                "Auth failed: Malformed Authorization header for request to %s "
+                "(worker PID: %d)",
+                request.path,
+                os.getpid(),
+            )
+            return jsonify({"error": "Authentication required"}), 401
+        token = parts[1]
+        masked_token = _mask_token(token)
+
+        logger.debug(
+            "Auth attempt: Received token %s for request to %s (worker PID: %d)",
+            masked_token,
+            request.path,
+            os.getpid(),
+        )
 
         # Check if token is valid session token
         if token in active_sessions:
+            logger.info(
+                "Auth success: Valid session token %s for request to %s "
+                "(worker PID: %d)",
+                masked_token,
+                request.path,
+                os.getpid(),
+            )
             return f(*args, **kwargs)
+
+        logger.debug(
+            "Auth check: Token %s not found in active_sessions "
+            "(contains %d sessions, worker PID: %d)",
+            masked_token,
+            len(active_sessions),
+            os.getpid(),
+        )
 
         # Fallback: check if token matches admin password (for backward compatibility)
         admin_password = os.environ.get("ADMIN_PASSWORD")
         if not admin_password:
+            logger.error(
+                "Auth failed: ADMIN_PASSWORD environment variable not configured "
+                "(worker PID: %d)",
+                os.getpid(),
+            )
             return jsonify({"error": "Admin access not configured"}), 500
 
         if secrets.compare_digest(token, admin_password):
+            logger.info(
+                "Auth success: Token matches ADMIN_PASSWORD (fallback auth) "
+                "for request to %s (worker PID: %d)",
+                request.path,
+                os.getpid(),
+            )
             return f(*args, **kwargs)
 
+        logger.warning(
+            "Auth failed: Token %s not in active_sessions and does not match "
+            "ADMIN_PASSWORD for request to %s (worker PID: %d)",
+            masked_token,
+            request.path,
+            os.getpid(),
+        )
         return jsonify({"error": "Invalid credentials"}), 403
 
     return decorated_function
@@ -128,13 +204,16 @@ def admin_login():
     try:
         data = request.get_json(force=True, silent=True)
         if not data or "password" not in data:
+            logger.warning("Login failed: No password provided in request")
             return jsonify({"error": "Password required"}), 400
 
         admin_password = os.environ.get("ADMIN_PASSWORD")
         if not admin_password:
+            logger.error("Login failed: ADMIN_PASSWORD environment variable not set")
             return jsonify({"error": "Admin access not configured"}), 500
 
         if not secrets.compare_digest(data["password"], admin_password):
+            logger.warning("Login failed: Invalid password provided")
             return jsonify({"error": "Invalid password"}), 401
 
         # Generate a secure session token
@@ -144,8 +223,17 @@ def admin_login():
             "last_used": datetime.now().isoformat(),
         }
 
+        logger.info(
+            "Login success: Session token generated (token: %s, "
+            "active_sessions count: %d, worker PID: %d)",
+            _mask_token(session_token),
+            len(active_sessions),
+            os.getpid(),
+        )
+
         return jsonify({"token": session_token}), 200
     except Exception:
+        logger.exception("Login failed: Unexpected error during login")
         return jsonify({"error": "Internal server error"}), 500
 
 

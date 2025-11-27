@@ -160,6 +160,89 @@ class TestAdminAuthentication:
         assert response.status_code == 200
 
 
+class TestMaskToken:
+    """Test token masking utility function."""
+
+    def test_mask_empty_token(self):
+        """Test masking empty token."""
+        from src.app import _mask_token
+
+        assert _mask_token("") == "<empty>"
+        assert _mask_token(None) == "<empty>"
+
+    def test_mask_short_token(self):
+        """Test masking short tokens (8 chars or less)."""
+        from src.app import _mask_token
+
+        assert _mask_token("abc") == "***"
+        assert _mask_token("12345678") == "********"
+
+    def test_mask_long_token(self):
+        """Test masking tokens longer than 8 characters."""
+        from src.app import _mask_token
+
+        # 9 characters - should show first 4 and last 4
+        result = _mask_token("123456789")
+        assert result == "1234...6789"
+
+        # Longer token
+        result = _mask_token("abcdefghijklmnop")
+        assert result == "abcd...mnop"
+
+
+class TestAuthenticationLogging:
+    """Test authentication logging scenarios."""
+
+    @pytest.fixture(autouse=True)
+    def clean_admin_password(self):
+        """Fixture to manage ADMIN_PASSWORD environment variable cleanup."""
+        original_password = os.environ.get("ADMIN_PASSWORD")
+        yield
+        # Restore original password after test
+        if original_password is not None:
+            os.environ["ADMIN_PASSWORD"] = original_password
+        elif "ADMIN_PASSWORD" in os.environ:
+            del os.environ["ADMIN_PASSWORD"]
+
+    def test_auth_missing_header_returns_401(self, client):
+        """Test that missing Authorization header returns 401."""
+        os.environ["ADMIN_PASSWORD"] = "test_password"
+        response = client.get("/api/admin/locations")
+        assert response.status_code == 401
+        assert "Authentication required" in response.get_json()["error"]
+
+    def test_auth_non_bearer_header_returns_401(self, client):
+        """Test that non-Bearer Authorization header returns 401."""
+        os.environ["ADMIN_PASSWORD"] = "test_password"
+        headers = {"Authorization": "Basic test_password"}
+        response = client.get("/api/admin/locations", headers=headers)
+        assert response.status_code == 401
+        assert "Authentication required" in response.get_json()["error"]
+
+    def test_auth_direct_password_fallback_works(self, client):
+        """Test that direct password as Bearer token works (fallback auth)."""
+        os.environ["ADMIN_PASSWORD"] = "my_direct_password_test"
+        headers = {"Authorization": "Bearer my_direct_password_test"}
+        response = client.get("/api/admin/locations", headers=headers)
+        assert response.status_code == 200
+
+    def test_auth_invalid_token_returns_403(self, client):
+        """Test that invalid token returns 403."""
+        os.environ["ADMIN_PASSWORD"] = "correct_password"
+        headers = {"Authorization": "Bearer wrong_token_entirely"}
+        response = client.get("/api/admin/locations", headers=headers)
+        assert response.status_code == 403
+        assert "Invalid credentials" in response.get_json()["error"]
+
+    def test_auth_malformed_bearer_header_returns_401(self, client):
+        """Test that malformed Bearer header (no token after 'Bearer ') returns 401."""
+        os.environ["ADMIN_PASSWORD"] = "test_password"
+        headers = {"Authorization": "Bearer "}
+        response = client.get("/api/admin/locations", headers=headers)
+        assert response.status_code == 401
+        assert "Authentication required" in response.get_json()["error"]
+
+
 class TestGetLocations:
     """Test GET /api/admin/locations endpoint."""
 
