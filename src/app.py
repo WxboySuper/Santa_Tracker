@@ -778,6 +778,27 @@ def precompute_route():
         return jsonify({"error": "Internal server error"}), 500
 
 
+def _calculate_total_duration_minutes(start_time, end_time):
+    """
+    Calculate total duration in minutes between two ISO 8601 timestamps.
+
+    Args:
+        start_time: Start time string in ISO 8601 format
+        end_time: End time string in ISO 8601 format
+
+    Returns:
+        int: Total duration in minutes, or 0 if calculation fails
+    """
+    if not start_time or not end_time:
+        return 0
+    try:
+        start_dt = datetime.fromisoformat(start_time.replace("Z", "+00:00"))
+        end_dt = datetime.fromisoformat(end_time.replace("Z", "+00:00"))
+        return int((end_dt - start_dt).total_seconds() / 60)
+    except (ValueError, AttributeError):
+        return 0
+
+
 def _filter_locations_by_ids(all_locations, location_ids):
     """
     Filter locations by provided IDs.
@@ -864,13 +885,9 @@ def simulate_route():
         if len(locations_with_times) > 0:
             start_time = locations_with_times[0]["arrival_time"]
             end_time = locations_with_times[-1]["departure_time"]
-            # Calculate total duration in minutes
-            try:
-                start_dt = datetime.fromisoformat(start_time.replace("Z", "+00:00"))
-                end_dt = datetime.fromisoformat(end_time.replace("Z", "+00:00"))
-                total_duration_minutes = int((end_dt - start_dt).total_seconds() / 60)
-            except (ValueError, AttributeError):
-                total_duration_minutes = 0
+            total_duration_minutes = _calculate_total_duration_minutes(
+                start_time, end_time
+            )
         else:
             start_time = None
             end_time = None
@@ -1117,13 +1134,9 @@ def simulate_trial_route():
         if len(locations_with_times) > 0:
             start_time = locations_with_times[0]["arrival_time"]
             end_time = locations_with_times[-1]["departure_time"]
-            # Calculate total duration in minutes
-            try:
-                start_dt = datetime.fromisoformat(start_time.replace("Z", "+00:00"))
-                end_dt = datetime.fromisoformat(end_time.replace("Z", "+00:00"))
-                total_duration_minutes = int((end_dt - start_dt).total_seconds() / 60)
-            except (ValueError, AttributeError):
-                total_duration_minutes = 0
+            total_duration_minutes = _calculate_total_duration_minutes(
+                start_time, end_time
+            )
         else:
             start_time = None
             end_time = None
