@@ -964,15 +964,16 @@ class TestRouteSimulation:
         assert response.status_code == 200
 
         data = response.get_json()
-        assert "route_preview" in data
+        assert "simulated_route" in data
         assert "summary" in data
-        assert isinstance(data["route_preview"], list)
+        assert isinstance(data["simulated_route"], list)
 
         summary = data["summary"]
         assert "total_locations" in summary
         assert "start_time" in summary
         assert "end_time" in summary
         assert "locations_with_timing" in summary
+        assert "total_duration_minutes" in summary
 
     def test_simulate_route_with_custom_start_time(self, client, auth_headers):
         """Test that custom start time is ignored."""
@@ -1002,7 +1003,7 @@ class TestRouteSimulation:
 
         data = response.get_json()
         # Should only preview the specified locations
-        assert len(data["route_preview"]) <= 2
+        assert len(data["simulated_route"]) <= 2
 
     def test_simulate_route_invalid_start_time(self, client, auth_headers):
         """Test that invalid start time parameter is ignored (no longer used)."""
@@ -1025,8 +1026,8 @@ class TestRouteSimulation:
         response = client.post("/api/admin/route/simulate", headers=auth_headers)
         data = response.get_json()
 
-        if len(data["route_preview"]) > 0:
-            location = data["route_preview"][0]
+        if len(data["simulated_route"]) > 0:
+            location = data["simulated_route"][0]
             required_fields = [
                 "name",
                 "latitude",
@@ -1035,6 +1036,7 @@ class TestRouteSimulation:
                 "arrival_time",
                 "departure_time",
                 "is_stop",
+                "stop_duration",
             ]
             for field in required_fields:
                 assert field in location
