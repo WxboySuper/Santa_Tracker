@@ -26,6 +26,8 @@ function App() {
     const mapRef = useRef(null);
     const isPausedRef = useRef(false);
     const shouldStopRef = useRef(false);
+    const isRunningRef = useRef(false);
+    const timeoutIdsRef = useRef([]);
 
     const addLocation = useCallback((location) => {
         setLocations(prevLocations => [...prevLocations, { ...location, id: crypto.randomUUID() }]);
@@ -54,44 +56,61 @@ function App() {
         mapRef.current = map;
     }, []);
 
-    // Helper function to create a delay that can be interrupted
-    const delay = (ms) => {
-        return new Promise((resolve) => {
-            const checkInterval = 100; // Check every 100ms for pause/stop
-            let elapsed = 0;
-            
-            const check = () => {
-                if (shouldStopRef.current) {
-                    resolve();
-                    return;
-                }
-                
-                if (isPausedRef.current) {
-                    // While paused, keep checking but don't count time
-                    setTimeout(check, checkInterval);
-                    return;
-                }
-                
-                elapsed += checkInterval;
-                if (elapsed >= ms) {
-                    resolve();
-                } else {
-                    setTimeout(check, checkInterval);
-                }
-            };
-            
-            setTimeout(check, checkInterval);
-        });
-    };
+    // Clear all pending timeouts
+    const clearAllTimeouts = useCallback(() => {
+        timeoutIdsRef.current.forEach(id => clearTimeout(id));
+        timeoutIdsRef.current = [];
+    }, []);
 
     // Run simulation - async function that moves through locations
     const runSimulation = useCallback(async () => {
+        // Guard against concurrent simulations (race condition fix)
+        if (isRunningRef.current) {
+            console.warn('Simulation already running');
+            return;
+        }
+
         if (!mapRef.current || !locations || locations.length < 2) {
             console.warn('Cannot start simulation: map not ready or insufficient locations');
             return;
         }
 
+        // Helper function to create a delay that can be interrupted
+        // Moved inside runSimulation to avoid stale closures
+        const delay = (ms) => {
+            return new Promise((resolve) => {
+                const checkInterval = 100; // Check every 100ms for pause/stop
+                let elapsed = 0;
+                
+                const check = () => {
+                    if (shouldStopRef.current) {
+                        resolve();
+                        return;
+                    }
+                    
+                    if (isPausedRef.current) {
+                        // While paused, keep checking but don't count time
+                        const timeoutId = setTimeout(check, checkInterval);
+                        timeoutIdsRef.current.push(timeoutId);
+                        return;
+                    }
+                    
+                    elapsed += checkInterval;
+                    if (elapsed >= ms) {
+                        resolve();
+                    } else {
+                        const timeoutId = setTimeout(check, checkInterval);
+                        timeoutIdsRef.current.push(timeoutId);
+                    }
+                };
+                
+                const timeoutId = setTimeout(check, checkInterval);
+                timeoutIdsRef.current.push(timeoutId);
+            });
+        };
+
         const map = mapRef.current;
+        isRunningRef.current = true;
         shouldStopRef.current = false;
         isPausedRef.current = false;
 
@@ -173,6 +192,7 @@ function App() {
                 progress: 100
             }));
         }
+        isRunningRef.current = false;
     }, [locations, playbackSpeed, simulationState.status, simulationState.currentIndex]);
 
     // Start/Resume simulation
@@ -203,6 +223,8 @@ function App() {
     const handleStopSimulation = useCallback(() => {
         shouldStopRef.current = true;
         isPausedRef.current = false;
+        isRunningRef.current = false;
+        clearAllTimeouts();
         setSimulationState({
             status: 'stopped',
             currentIndex: 0,
@@ -215,7 +237,7 @@ function App() {
         if (mapRef.current && locations.length > 0) {
             mapRef.current.setView([20, 0], 2);
         }
-    }, [locations]);
+    }, [locations, clearAllTimeouts]);
 
     // Handle speed change
     const handleSpeedChange = useCallback((speed) => {
@@ -226,8 +248,9 @@ function App() {
     useEffect(() => {
         return () => {
             shouldStopRef.current = true;
+            clearAllTimeouts();
         };
-    }, []);
+    }, [clearAllTimeouts]);
 
     return (
         <div className="flex h-screen w-screen">

@@ -303,6 +303,14 @@ function MapEditor({ locations, onAddLocation, setSelectedLocation, simulationSt
         if (simulationState.currentPosition) {
             santaMarkerRef.current.setLatLng(simulationState.currentPosition);
         }
+
+        // Cleanup function to remove Santa marker on unmount
+        return () => {
+            if (santaMarkerRef.current && mapRef.current) {
+                mapRef.current.removeLayer(santaMarkerRef.current);
+                santaMarkerRef.current = null;
+            }
+        };
     }, [simulationState]);
 
     // This ensures that when panning across the dateline, the timezone layer continues uninterrupted.
