@@ -1,9 +1,17 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { MapContainer, TileLayer, Marker, Polyline, Popup, useMap, useMapEvents, GeoJSON } from 'react-leaflet';
 import L from 'leaflet';
 import { Search } from 'lucide-react';
 import { getTimezoneOffset } from '../utils/exportUtils';
 import timezones from '../data/ne_10m_time_zones.json';
+
+// Custom Santa icon for simulation
+const santaIcon = L.divIcon({
+    html: '<div style="font-size: 32px; filter: drop-shadow(2px 2px 2px rgba(0,0,0,0.3));">🎅</div>',
+    className: 'santa-simulation-marker',
+    iconSize: [32, 32],
+    iconAnchor: [16, 32]
+});
 
 // Fix Leaflet default marker icons
 delete L.Icon.Default.prototype._getIconUrl;
@@ -246,8 +254,56 @@ function MapCenter({ center }) {
     return null;
 }
 
-function MapEditor({ locations, onAddLocation, setSelectedLocation }) {
+// Component to expose map reference for simulation control
+function MapController({ onMapReady }) {
+    const map = useMap();
+    
+    useEffect(() => {
+        if (map && onMapReady) {
+            onMapReady(map);
+        }
+    }, [map, onMapReady]);
+    
+    return null;
+}
+
+function MapEditor({ locations, onAddLocation, setSelectedLocation, simulationState, currentSimulationIndex, onMapReady }) {
     const [mapCenter, setMapCenter] = useState(null);
+    const santaMarkerRef = useRef(null);
+    const mapRef = useRef(null);
+
+    // Handle map ready callback
+    const handleMapReady = useCallback((map) => {
+        mapRef.current = map;
+        if (onMapReady) {
+            onMapReady(map);
+        }
+    }, [onMapReady]);
+
+    // Update Santa marker position during simulation
+    useEffect(() => {
+        if (!mapRef.current || !simulationState || simulationState.status === 'stopped') {
+            // Remove Santa marker when not simulating
+            if (santaMarkerRef.current) {
+                mapRef.current?.removeLayer(santaMarkerRef.current);
+                santaMarkerRef.current = null;
+            }
+            return;
+        }
+
+        const map = mapRef.current;
+        
+        // Create Santa marker if it doesn't exist
+        if (!santaMarkerRef.current) {
+            santaMarkerRef.current = L.marker([0, 0], { icon: santaIcon, zIndexOffset: 1000 });
+            santaMarkerRef.current.addTo(map);
+        }
+
+        // Update Santa position based on simulation state
+        if (simulationState.currentPosition) {
+            santaMarkerRef.current.setLatLng(simulationState.currentPosition);
+        }
+    }, [simulationState]);
 
     // This ensures that when panning across the dateline, the timezone layer continues uninterrupted.
     const extendedTimezones = useMemo(() => {
@@ -353,11 +409,12 @@ function MapEditor({ locations, onAddLocation, setSelectedLocation }) {
     const polylinePositions = locations.map(loc => [loc.latitude, loc.longitude]);
 
     return (
-        <div className="flex-1 relative">
+        <div className="flex-1 relative" style={{ minHeight: '100vh' }}>
             <MapContainer
                 center={[20, 0]}
                 zoom={2}
                 className="h-full w-full"
+                style={{ height: '100%', width: '100%', minHeight: '100vh' }}
                 worldCopyJump
             >
                 <TileLayer
@@ -376,6 +433,7 @@ function MapEditor({ locations, onAddLocation, setSelectedLocation }) {
         
                 <MapEventHandler onMapClick={handleMapClick} />
                 <MapCenter center={mapCenter} />
+                <MapController onMapReady={handleMapReady} />
         
                 {/* Render markers */}
                 {locations.map((location, index) => (

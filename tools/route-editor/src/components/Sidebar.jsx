@@ -15,7 +15,7 @@ import {
     verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { GripVertical, Trash2, ChevronDown, ChevronUp, Download } from 'lucide-react';
+import { GripVertical, Trash2, ChevronDown, ChevronUp, Download, Play, Pause, Square } from 'lucide-react';
 
 // Sortable location card
 function SortableLocationCard({ location, index, total, onUpdate, onDelete, isSelected, onSelect }) {
@@ -283,7 +283,22 @@ function SortableLocationCard({ location, index, total, onUpdate, onDelete, isSe
     );
 }
 
-function Sidebar({ locations, onUpdateLocation, onDeleteLocation, onReorder, onExport, selectedLocation, setSelectedLocation }) {
+function Sidebar({ 
+    locations, 
+    onUpdateLocation, 
+    onDeleteLocation, 
+    onReorder, 
+    onExport, 
+    selectedLocation, 
+    setSelectedLocation,
+    // Simulation props
+    simulationState,
+    playbackSpeed,
+    onSpeedChange,
+    onStartSimulation,
+    onPauseSimulation,
+    onStopSimulation 
+}) {
     const [isCollapsed, setIsCollapsed] = useState(false);
   
     const sensors = useSensors(
@@ -306,6 +321,15 @@ function Sidebar({ locations, onUpdateLocation, onDeleteLocation, onReorder, onE
     const handleCollapseToggle = useCallback(() => {
         setIsCollapsed(!isCollapsed);
     }, [isCollapsed]);
+
+    const handleSpeedChange = useCallback((e) => {
+        onSpeedChange(Number(e.target.value));
+    }, [onSpeedChange]);
+
+    const isSimulating = simulationState && simulationState.status !== 'stopped';
+    const isPaused = simulationState && simulationState.status === 'paused';
+    const currentLocationName = simulationState?.currentLocationName || '';
+    const progress = simulationState?.progress || 0;
 
     if (isCollapsed) {
         return (
@@ -339,6 +363,100 @@ function Sidebar({ locations, onUpdateLocation, onDeleteLocation, onReorder, onE
                 <p className="text-sm text-gray-600">
                     Right-click on map to add locations. Drag to reorder.
                 </p>
+            </div>
+
+            {/* Simulation Controls */}
+            <div className="p-4 bg-gradient-to-r from-red-50 to-green-50 border-b border-gray-300">
+                <h2 className="text-sm font-semibold text-gray-700 mb-3">🎬 Route Simulation</h2>
+                
+                {/* Speed Control */}
+                <div className="mb-3">
+                    <label htmlFor="speed-slider" className="block text-xs font-medium text-gray-600 mb-1">
+                        Speed: {playbackSpeed}x
+                    </label>
+                    <input
+                        id="speed-slider"
+                        type="range"
+                        min="1"
+                        max="10"
+                        value={playbackSpeed}
+                        onChange={handleSpeedChange}
+                        className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                        disabled={isSimulating && !isPaused}
+                    />
+                    <div className="flex justify-between text-xs text-gray-500">
+                        <span>1x (Slow)</span>
+                        <span>10x (Fast)</span>
+                    </div>
+                </div>
+
+                {/* Control Buttons */}
+                <div className="flex gap-2">
+                    {!isSimulating ? (
+                        <button
+                            type="button"
+                            onClick={onStartSimulation}
+                            disabled={locations.length < 2}
+                            className="flex-1 px-3 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-colors"
+                        >
+                            <Play size={16} />
+                            Start Simulation
+                        </button>
+                    ) : (
+                        <>
+                            <button
+                                type="button"
+                                onClick={isPaused ? onStartSimulation : onPauseSimulation}
+                                className="flex-1 px-3 py-2 bg-yellow-500 text-white rounded-lg font-medium hover:bg-yellow-600 flex items-center justify-center gap-2 transition-colors"
+                            >
+                                {isPaused ? <Play size={16} /> : <Pause size={16} />}
+                                {isPaused ? 'Resume' : 'Pause'}
+                            </button>
+                            <button
+                                type="button"
+                                onClick={onStopSimulation}
+                                className="px-3 py-2 bg-red-500 text-white rounded-lg font-medium hover:bg-red-600 flex items-center justify-center gap-2 transition-colors"
+                            >
+                                <Square size={16} />
+                                Stop
+                            </button>
+                        </>
+                    )}
+                </div>
+
+                {/* Simulation Status */}
+                {isSimulating && (
+                    <div className="mt-3 p-2 bg-white rounded-lg border border-gray-200">
+                        <div className="text-xs text-gray-600">
+                            <div className="flex justify-between mb-1">
+                                <span>Status:</span>
+                                <span className="font-medium">{isPaused ? '⏸️ Paused' : '▶️ Running'}</span>
+                            </div>
+                            {currentLocationName && (
+                                <div className="flex justify-between mb-1">
+                                    <span>Current:</span>
+                                    <span className="font-medium truncate ml-2">{currentLocationName}</span>
+                                </div>
+                            )}
+                            <div className="flex justify-between">
+                                <span>Progress:</span>
+                                <span className="font-medium">{Math.round(progress)}%</span>
+                            </div>
+                        </div>
+                        <div className="mt-2 w-full bg-gray-200 rounded-full h-2">
+                            <div 
+                                className="bg-green-600 h-2 rounded-full transition-all duration-300"
+                                style={{ width: `${progress}%` }}
+                            />
+                        </div>
+                    </div>
+                )}
+
+                {locations.length < 2 && (
+                    <p className="text-xs text-gray-500 mt-2 text-center">
+                        Add at least 2 locations to run simulation
+                    </p>
+                )}
             </div>
 
             <div className="flex-1 overflow-y-auto p-4">
