@@ -382,7 +382,7 @@ function Sidebar({
                         value={playbackSpeed}
                         onChange={handleSpeedChange}
                         className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
-                        disabled={isSimulating && !isPaused}
+                        disabled={simulationState?.status === 'running'}
                     />
                     <div className="flex justify-between text-xs text-gray-500">
                         <span>1x (Slow)</span>

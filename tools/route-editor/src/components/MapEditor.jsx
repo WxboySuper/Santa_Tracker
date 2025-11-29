@@ -267,7 +267,7 @@ function MapController({ onMapReady }) {
     return null;
 }
 
-function MapEditor({ locations, onAddLocation, setSelectedLocation, simulationState, currentSimulationIndex, onMapReady }) {
+function MapEditor({ locations, onAddLocation, setSelectedLocation, simulationState, onMapReady }) {
     const [mapCenter, setMapCenter] = useState(null);
     const santaMarkerRef = useRef(null);
     const mapRef = useRef(null);

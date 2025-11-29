@@ -24,7 +24,6 @@ function App() {
     
     // Refs for simulation control
     const mapRef = useRef(null);
-    const simulationRef = useRef(null);
     const isPausedRef = useRef(false);
     const shouldStopRef = useRef(false);
 
@@ -253,7 +252,6 @@ function App() {
                 onAddLocation={addLocation}
                 setSelectedLocation={setSelectedLocation}
                 simulationState={simulationState}
-                currentSimulationIndex={simulationState.currentIndex}
                 onMapReady={handleMapReady}
             />
         </div>
