@@ -27,7 +27,7 @@ function App() {
     const isPausedRef = useRef(false);
     const shouldStopRef = useRef(false);
     const isRunningRef = useRef(false);
-    const timeoutIdsRef = useRef([]);
+    const timeoutIdsRef = useRef(new Set());
 
     const addLocation = useCallback((location) => {
         setLocations(prevLocations => [...prevLocations, { ...location, id: crypto.randomUUID() }]);
@@ -59,7 +59,7 @@ function App() {
     // Clear all pending timeouts
     const clearAllTimeouts = useCallback(() => {
         timeoutIdsRef.current.forEach(id => clearTimeout(id));
-        timeoutIdsRef.current = [];
+        timeoutIdsRef.current = new Set();
     }, []);
 
     // Run simulation - async function that moves through locations
@@ -91,7 +91,7 @@ function App() {
                     if (isPausedRef.current) {
                         // While paused, keep checking but don't count time
                         const timeoutId = setTimeout(check, checkInterval);
-                        timeoutIdsRef.current.push(timeoutId);
+                        timeoutIdsRef.current.add(timeoutId);
                         return;
                     }
                     
@@ -100,12 +100,12 @@ function App() {
                         resolve();
                     } else {
                         const timeoutId = setTimeout(check, checkInterval);
-                        timeoutIdsRef.current.push(timeoutId);
+                        timeoutIdsRef.current.add(timeoutId);
                     }
                 };
                 
                 const timeoutId = setTimeout(check, checkInterval);
-                timeoutIdsRef.current.push(timeoutId);
+                timeoutIdsRef.current.add(timeoutId);
             });
         };
 
