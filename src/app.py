@@ -835,9 +835,9 @@ def simulate_route():
         )
 
         # Build response from existing timing data
-        route_preview = []
+        simulated_route = []
         for loc in sorted_locations:
-            route_preview.append(
+            simulated_route.append(
                 {
                     "name": loc.name,
                     "latitude": loc.latitude,
@@ -850,31 +850,41 @@ def simulate_route():
                     "priority": loc.priority,
                     "notes": loc.notes if loc.notes is not None else loc.fun_facts,
                     "is_stop": loc.is_stop,
+                    "stop_duration": loc.stop_duration,
                 }
             )
 
         # Calculate summary from existing timestamps
         locations_with_times = [
             loc
-            for loc in route_preview
+            for loc in simulated_route
             if loc["arrival_time"] and loc["departure_time"]
         ]
 
         if len(locations_with_times) > 0:
             start_time = locations_with_times[0]["arrival_time"]
             end_time = locations_with_times[-1]["departure_time"]
+            # Calculate total duration in minutes
+            try:
+                start_dt = datetime.fromisoformat(start_time.replace("Z", "+00:00"))
+                end_dt = datetime.fromisoformat(end_time.replace("Z", "+00:00"))
+                total_duration_minutes = int((end_dt - start_dt).total_seconds() / 60)
+            except (ValueError, AttributeError):
+                total_duration_minutes = 0
         else:
             start_time = None
             end_time = None
+            total_duration_minutes = 0
 
         summary = {
-            "total_locations": len(route_preview),
+            "total_locations": len(simulated_route),
             "locations_with_timing": len(locations_with_times),
             "start_time": start_time,
             "end_time": end_time,
+            "total_duration_minutes": total_duration_minutes,
         }
 
-        return jsonify({"route_preview": route_preview, "summary": summary}), 200
+        return jsonify({"simulated_route": simulated_route, "summary": summary}), 200
 
     except FileNotFoundError:
         return jsonify({"error": "Route data not found"}), 404
@@ -1078,9 +1088,9 @@ def simulate_trial_route():
         )
 
         # Build response from existing timing data
-        route_preview = []
+        simulated_route = []
         for loc in sorted_locations:
-            route_preview.append(
+            simulated_route.append(
                 {
                     "name": loc.name,
                     "latitude": loc.latitude,
@@ -1093,34 +1103,44 @@ def simulate_trial_route():
                     "priority": loc.priority,
                     "notes": loc.notes if loc.notes is not None else loc.fun_facts,
                     "is_stop": loc.is_stop,
+                    "stop_duration": loc.stop_duration,
                 }
             )
 
         # Calculate summary from existing timestamps
         locations_with_times = [
             loc
-            for loc in route_preview
+            for loc in simulated_route
             if loc["arrival_time"] and loc["departure_time"]
         ]
 
         if len(locations_with_times) > 0:
             start_time = locations_with_times[0]["arrival_time"]
             end_time = locations_with_times[-1]["departure_time"]
+            # Calculate total duration in minutes
+            try:
+                start_dt = datetime.fromisoformat(start_time.replace("Z", "+00:00"))
+                end_dt = datetime.fromisoformat(end_time.replace("Z", "+00:00"))
+                total_duration_minutes = int((end_dt - start_dt).total_seconds() / 60)
+            except (ValueError, AttributeError):
+                total_duration_minutes = 0
         else:
             start_time = None
             end_time = None
+            total_duration_minutes = 0
 
         summary = {
-            "total_locations": len(route_preview),
+            "total_locations": len(simulated_route),
             "locations_with_timing": len(locations_with_times),
             "start_time": start_time,
             "end_time": end_time,
+            "total_duration_minutes": total_duration_minutes,
         }
 
         return (
             jsonify(
                 {
-                    "route_preview": route_preview,
+                    "simulated_route": simulated_route,
                     "summary": summary,
                     "is_trial": True,
                 }
