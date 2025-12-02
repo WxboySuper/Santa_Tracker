@@ -15,6 +15,7 @@ def client():
     app.config["ADVENT_ENABLED"] = True  # Enable advent for these tests
     with app.test_client() as client:
         yield client
+    app.config["ADVENT_ENABLED"] = False  # Restore to default
 
 
 @pytest.fixture
