@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, memo } from 'react';
 import { MapContainer, TileLayer, Marker, Polyline, Popup, useMap, useMapEvents, GeoJSON } from 'react-leaflet';
 import L from 'leaflet';
 import { Search } from 'lucide-react';
@@ -102,6 +102,40 @@ const waitForRateLimit = async () => {
     lastRequestTime = Date.now();
 };
 
+// Search result item component to avoid inline functions in JSX props
+// Memoized to prevent unnecessary re-renders
+// Uses primitive props for stable memoization
+const SearchResultItem = memo(function SearchResultItem({ 
+    displayName, 
+    lat, 
+    lon, 
+    country, 
+    onSelect 
+}) {
+    const handleClick = useCallback(() => {
+        onSelect(displayName, lat, lon, country);
+    }, [onSelect, displayName, lat, lon, country]);
+
+    const handleKeyDown = useCallback((e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            onSelect(displayName, lat, lon, country);
+        }
+    }, [onSelect, displayName, lat, lon, country]);
+
+    return (
+        <div
+            onClick={handleClick}
+            onKeyDown={handleKeyDown}
+            role="button"
+            tabIndex={0}
+            className="p-2 hover:bg-gray-100 cursor-pointer border-b border-gray-200 text-sm"
+        >
+            {displayName}
+        </div>
+    );
+});
+
 // Search bar component
 function SearchBar({ onLocationSelect }) {
     const [query, setQuery] = useState('');
@@ -149,32 +183,25 @@ function SearchBar({ onLocationSelect }) {
         setQuery(e.target.value);
     }, []);
 
-    const handleSelectResult = useCallback((result) => {
-        const lat = parseFloat(result.lat);
-        const lng = parseFloat(result.lon);
+    const handleSelectResult = useCallback((displayName, lat, lon, country) => {
+        const latitude = parseFloat(lat);
+        const longitude = parseFloat(lon);
     
         onLocationSelect({
-            name: result.display_name.split(',')[0],
-            latitude: lat,
-            longitude: lng,
-            country: result.address?.country || '',
-            utc_offset: getTimezoneOffset(lat, lng),
+            name: displayName.split(',')[0],
+            latitude,
+            longitude,
+            country: country || '',
+            utc_offset: getTimezoneOffset(latitude, longitude),
             priority: 1,
             notes: '',
             population: 0
-        }, { lat, lng });
+        }, { lat: latitude, lng: longitude });
     
         setQuery('');
         setResults([]);
         setError('');
     }, [onLocationSelect]);
-
-    const handleResultKeyDown = useCallback((e, result) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault();
-            handleSelectResult(result);
-        }
-    }, [handleSelectResult]);
 
     return (
         <div className="absolute top-4 left-4 z-[1000] bg-white rounded-lg shadow-lg p-2 w-80">
@@ -205,16 +232,14 @@ function SearchBar({ onLocationSelect }) {
             {results.length > 0 && (
                 <div className="mt-2 max-h-64 overflow-y-auto">
                     {results.map((result) => (
-                        <div
+                        <SearchResultItem
                             key={result.place_id}
-                            onClick={() => handleSelectResult(result)}  // skipcq: JS-0417
-                            onKeyDown={(e) => handleResultKeyDown(e, result)}  // skipcq: JS-0417
-                            role="button"
-                            tabIndex={0}
-                            className="p-2 hover:bg-gray-100 cursor-pointer border-b border-gray-200 text-sm"
-                        >
-                            {result.display_name}
-                        </div>
+                            displayName={result.display_name}
+                            lat={result.lat}
+                            lon={result.lon}
+                            country={result.address?.country}
+                            onSelect={handleSelectResult}
+                        />
                     ))}
                 </div>
             )}
