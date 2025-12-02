@@ -189,8 +189,8 @@ function SearchBar({ onLocationSelect }) {
     
         onLocationSelect({
             name: displayName.split(',')[0],
-            latitude: latitude,
-            longitude: longitude,
+            latitude,
+            longitude,
             country: country || '',
             utc_offset: getTimezoneOffset(latitude, longitude),
             priority: 1,
