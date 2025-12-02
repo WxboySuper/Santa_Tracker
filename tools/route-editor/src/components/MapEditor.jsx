@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, memo } from 'react';
 import { MapContainer, TileLayer, Marker, Polyline, Popup, useMap, useMapEvents, GeoJSON } from 'react-leaflet';
 import L from 'leaflet';
 import { Search } from 'lucide-react';
@@ -103,7 +103,8 @@ const waitForRateLimit = async () => {
 };
 
 // Search result item component to avoid inline functions in JSX props
-function SearchResultItem({ result, onSelect }) {
+// Memoized to prevent unnecessary re-renders
+const SearchResultItem = memo(function SearchResultItem({ result, onSelect }) {
     const handleClick = useCallback(() => {
         onSelect(result);
     }, [onSelect, result]);
@@ -126,7 +127,7 @@ function SearchResultItem({ result, onSelect }) {
             {result.display_name}
         </div>
     );
-}
+});
 
 // Search bar component
 function SearchBar({ onLocationSelect }) {
