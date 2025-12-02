@@ -13,7 +13,7 @@ Track Santa's magical journey around the world on Christmas Eve! This interactiv
 - 📍 **Location Tracking** - Current location, next destination, and route visualization
 - 📏 **Distance Calculator** - Calculate distance from Santa to your location
 - ⏱️ **Countdown Timer** - Live countdown to Christmas (UTC+14 timezone-aware)
-- 🎄 **Advent Calendar** - Daily unlockable Christmas content (facts, games, stories, videos)
+- 🎄 **Advent Calendar** - Daily unlockable Christmas content (facts, games, stories, videos) *(requires `ADVENT_ENABLED=True`)*
 - 🔐 **Admin Dashboard** - Comprehensive route and location management
 - 📱 **Progressive Web App** - Installable with offline support
 - ♿ **Accessible** - Full ARIA support, keyboard navigation, screen reader compatible
@@ -47,9 +47,29 @@ python src/app.py
 
 # Development mode with debug enabled
 FLASK_DEBUG=True python src/app.py
+
+# Enable advent calendar feature
+ADVENT_ENABLED=True python src/app.py
 ```
 
 Navigate to `http://localhost:5000` to start tracking Santa!
+
+## 🚩 Feature Flags
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `ADVENT_ENABLED` | `False` | Enables the advent calendar feature. When disabled, the advent calendar UI, navigation links, and API endpoints are hidden/inaccessible. |
+
+To enable a feature flag, set the corresponding environment variable:
+
+```bash
+# Via environment variable
+export ADVENT_ENABLED=True
+python src/app.py
+
+# Or in your .env file
+ADVENT_ENABLED=True
+```
 
 ## 📁 Project Structure
 
