@@ -102,6 +102,32 @@ const waitForRateLimit = async () => {
     lastRequestTime = Date.now();
 };
 
+// Search result item component to avoid inline functions in JSX props
+function SearchResultItem({ result, onSelect }) {
+    const handleClick = useCallback(() => {
+        onSelect(result);
+    }, [onSelect, result]);
+
+    const handleKeyDown = useCallback((e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            onSelect(result);
+        }
+    }, [onSelect, result]);
+
+    return (
+        <div
+            onClick={handleClick}
+            onKeyDown={handleKeyDown}
+            role="button"
+            tabIndex={0}
+            className="p-2 hover:bg-gray-100 cursor-pointer border-b border-gray-200 text-sm"
+        >
+            {result.display_name}
+        </div>
+    );
+}
+
 // Search bar component
 function SearchBar({ onLocationSelect }) {
     const [query, setQuery] = useState('');
@@ -169,13 +195,6 @@ function SearchBar({ onLocationSelect }) {
         setError('');
     }, [onLocationSelect]);
 
-    const handleResultKeyDown = useCallback((e, result) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault();
-            handleSelectResult(result);
-        }
-    }, [handleSelectResult]);
-
     return (
         <div className="absolute top-4 left-4 z-[1000] bg-white rounded-lg shadow-lg p-2 w-80">
             <form onSubmit={handleSearch} className="flex gap-2">
@@ -205,16 +224,11 @@ function SearchBar({ onLocationSelect }) {
             {results.length > 0 && (
                 <div className="mt-2 max-h-64 overflow-y-auto">
                     {results.map((result) => (
-                        <div
+                        <SearchResultItem
                             key={result.place_id}
-                            onClick={() => handleSelectResult(result)}  // skipcq: JS-0417
-                            onKeyDown={(e) => handleResultKeyDown(e, result)}  // skipcq: JS-0417
-                            role="button"
-                            tabIndex={0}
-                            className="p-2 hover:bg-gray-100 cursor-pointer border-b border-gray-200 text-sm"
-                        >
-                            {result.display_name}
-                        </div>
+                            result={result}
+                            onSelect={handleSelectResult}
+                        />
                     ))}
                 </div>
             )}
