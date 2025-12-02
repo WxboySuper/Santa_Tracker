@@ -1,0 +1,42 @@
+[
+  {
+    "name": "Poland",
+    "latitude": 1.8659725506567215,
+    "longitude": -157.55218505859378,
+    "utc_offset": 14,
+    "country": "Kiribati",
+    "population": 0,
+    "priority": 1,
+    "notes": ""
+  },
+  {
+    "name": "Tabwakea",
+    "latitude": 2.0208935641666326,
+    "longitude": -157.48867034912112,
+    "utc_offset": 14,
+    "country": "Kiribati",
+    "population": 0,
+    "priority": 1,
+    "notes": ""
+  },
+  {
+    "name": "Kiritimati",
+    "latitude": 1.9833226727400715,
+    "longitude": -157.36438751220706,
+    "utc_offset": 14,
+    "country": "Kiribati",
+    "population": 0,
+    "priority": 1,
+    "notes": ""
+  },
+  {
+    "name": "Tabuaeran",
+    "latitude": 3.8574037437582342,
+    "longitude": -159.36029434204104,
+    "utc_offset": 14,
+    "country": "Kiribati",
+    "population": 0,
+    "priority": 1,
+    "notes": ""
+  }
+]
