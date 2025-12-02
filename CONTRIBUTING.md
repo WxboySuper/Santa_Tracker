@@ -169,15 +169,19 @@ We recommend setting up pre-commit hooks to automatically check your code before
 
 ### Manual Linting
 
-If you prefer to run linters manually:
+If you prefer to run linters manually (configurations are in `.flake8` and `pyproject.toml`):
 
 ```bash
-# Python linting
+# Python formatting (config in pyproject.toml)
 black --check .
+
+# Python import sorting (config in pyproject.toml)
 isort --check-only .
+
+# Python style checking (config in .flake8)
 flake8 .
 
-# Frontend linting
+# Frontend linting (JS, CSS, HTML)
 npm run lint
 ```
 
