@@ -8,7 +8,7 @@ from functools import wraps
 from typing import Optional
 
 from dotenv import load_dotenv
-from flask import Flask, jsonify, render_template, request
+from flask import Flask, abort, jsonify, render_template, request
 from itsdangerous import BadSignature, SignatureExpired, URLSafeTimedSerializer
 
 # Load environment variables from .env file using absolute path
@@ -24,6 +24,10 @@ load_dotenv(
 # Add the src directory to the path to allow imports
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
+# Add parent directory for config import
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from config import Config  # noqa: E402
 from utils.advent import (  # noqa: E402
     AdventDay,
     get_day_content,
@@ -52,6 +56,7 @@ logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "dev-secret-key")
+app.config["ADVENT_ENABLED"] = Config.ADVENT_ENABLED
 
 # Warn if using default SECRET_KEY (security risk in production)
 if app.config["SECRET_KEY"] == "dev-secret-key":
@@ -60,6 +65,12 @@ if app.config["SECRET_KEY"] == "dev-secret-key":
         "This is insecure for production. "
         "Set SECRET_KEY environment variable to a secure random value."
     )
+
+# Log advent calendar feature flag status
+logger.info(
+    "ADVENT_ENABLED feature flag: %s",
+    "Enabled" if app.config["ADVENT_ENABLED"] else "Disabled",
+)
 
 # Verify ADMIN_PASSWORD environment variable loading status
 logger.info(
@@ -195,6 +206,18 @@ def require_admin_auth(f):
     return decorated_function
 
 
+def require_advent_enabled(f):
+    """Decorator to require advent feature to be enabled."""
+
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not app.config.get("ADVENT_ENABLED", False):
+            abort(404)
+        return f(*args, **kwargs)
+
+    return decorated_function
+
+
 @app.route("/")
 def home():
     """Landing page with festive design."""
@@ -208,6 +231,7 @@ def tracker():
 
 
 @app.route("/advent")
+@require_advent_enabled
 def advent():
     """Advent calendar page with North Pole map."""
     return render_template("advent.html")
@@ -266,6 +290,7 @@ def admin():
 
 
 @app.route("/api/advent/manifest")
+@require_advent_enabled
 def advent_manifest():
     """
     Get the Advent calendar manifest with unlock status for all days.
@@ -283,6 +308,7 @@ def advent_manifest():
 
 
 @app.route("/api/advent/day/<int:day_number>")
+@require_advent_enabled
 def advent_day(day_number):
     """
     Get content for a specific day if it's unlocked.
@@ -1210,6 +1236,7 @@ def export_backup():
 
 
 @app.route("/api/admin/advent/days", methods=["GET"])
+@require_advent_enabled
 @require_admin_auth
 def get_advent_days():
     """Get all advent calendar days with admin access (bypass unlock)."""
@@ -1238,6 +1265,7 @@ def get_advent_days():
 
 
 @app.route("/api/admin/advent/day/<int:day_number>", methods=["GET"])
+@require_advent_enabled
 @require_admin_auth
 def get_advent_day_admin(day_number):
     """Get a specific advent day with admin access (bypass unlock)."""
@@ -1273,6 +1301,7 @@ def get_advent_day_admin(day_number):
 
 
 @app.route("/api/admin/advent/day/<int:day_number>", methods=["PUT"])
+@require_advent_enabled
 @require_admin_auth
 def update_advent_day(day_number):
     """Update a specific advent day's content."""
@@ -1320,6 +1349,7 @@ def update_advent_day(day_number):
 
 
 @app.route("/api/admin/advent/day/<int:day_number>/toggle-unlock", methods=["POST"])
+@require_advent_enabled
 @require_admin_auth
 def toggle_advent_day_unlock(day_number):
     """Toggle unlock override for a specific advent day."""
@@ -1373,6 +1403,7 @@ def toggle_advent_day_unlock(day_number):
 
 
 @app.route("/api/admin/advent/validate", methods=["POST"])
+@require_advent_enabled
 @require_admin_auth
 def validate_advent_calendar_endpoint():
     """Validate advent calendar data for completeness and correctness."""
@@ -1388,6 +1419,7 @@ def validate_advent_calendar_endpoint():
 
 
 @app.route("/api/admin/advent/export", methods=["GET"])
+@require_advent_enabled
 @require_admin_auth
 def export_advent_backup():
     """Export advent calendar data as JSON backup."""
@@ -1419,6 +1451,7 @@ def export_advent_backup():
 
 
 @app.route("/api/admin/advent/import", methods=["POST"])
+@require_advent_enabled
 @require_admin_auth
 def import_advent_calendar():
     """Import advent calendar data from JSON."""

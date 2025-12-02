@@ -13,6 +13,7 @@ class TestAdventAPIEndpoints(unittest.TestCase):
         """Set up test client."""
         self.app = app
         self.app.config["TESTING"] = True
+        self.app.config["ADVENT_ENABLED"] = True  # Enable advent for these tests
         self.client = self.app.test_client()
 
     def test_advent_manifest_endpoint(self):
@@ -103,6 +104,36 @@ class TestAdventAPIEndpoints(unittest.TestCase):
         """Test day endpoint returns JSON content type."""
         response = self.client.get("/api/advent/day/1")
         self.assertEqual(response.content_type, "application/json")
+
+
+class TestAdventFeatureFlag(unittest.TestCase):
+    """Test cases for Advent Calendar feature flag."""
+
+    def setUp(self):
+        """Set up test client with advent disabled."""
+        self.app = app
+        self.app.config["TESTING"] = True
+        self.app.config["ADVENT_ENABLED"] = False  # Disable advent for these tests
+        self.client = self.app.test_client()
+
+    def tearDown(self):
+        """Restore advent enabled state."""
+        self.app.config["ADVENT_ENABLED"] = True
+
+    def test_advent_manifest_returns_404_when_disabled(self):
+        """Test GET /api/advent/manifest returns 404 when feature is disabled."""
+        response = self.client.get("/api/advent/manifest")
+        self.assertEqual(response.status_code, 404)
+
+    def test_advent_day_returns_404_when_disabled(self):
+        """Test GET /api/advent/day/<id> returns 404 when feature is disabled."""
+        response = self.client.get("/api/advent/day/1")
+        self.assertEqual(response.status_code, 404)
+
+    def test_advent_page_returns_404_when_disabled(self):
+        """Test GET /advent returns 404 when feature is disabled."""
+        response = self.client.get("/advent")
+        self.assertEqual(response.status_code, 404)
 
 
 if __name__ == "__main__":

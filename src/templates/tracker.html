@@ -21,7 +21,9 @@
     <nav class="glass-nav" role="navigation" aria-label="Main navigation">
         <a href="{{ url_for('home') }}" class="nav-link">Home</a>
         <a href="{{ url_for('tracker') }}" class="nav-link nav-link-active">Tracker</a>
+        {% if config.ADVENT_ENABLED %}
         <a href="{{ url_for('advent') }}" class="nav-link">Village</a>
+        {% endif %}
     </nav>
     
     <!-- Countdown HUD - Top Right -->
