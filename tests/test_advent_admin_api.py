@@ -404,8 +404,8 @@ class TestAdventAdminFeatureFlag:
         app.config["ADVENT_ENABLED"] = False
         with app.test_client() as client:
             yield client
-        # Restore after test
-        app.config["ADVENT_ENABLED"] = True
+        # Restore to documented config default after test
+        app.config["ADVENT_ENABLED"] = False
 
     def test_get_advent_days_returns_404_when_disabled(
         self, disabled_advent_client, auth_headers

@@ -117,8 +117,8 @@ class TestAdventFeatureFlag(unittest.TestCase):
         self.client = self.app.test_client()
 
     def tearDown(self):
-        """Restore advent enabled state."""
-        self.app.config["ADVENT_ENABLED"] = True
+        """Restore advent enabled state to config default."""
+        self.app.config["ADVENT_ENABLED"] = False  # Restore to documented default
 
     def test_advent_manifest_returns_404_when_disabled(self):
         """Test GET /api/advent/manifest returns 404 when feature is disabled."""
