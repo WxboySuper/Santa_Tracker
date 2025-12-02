@@ -104,17 +104,24 @@ const waitForRateLimit = async () => {
 
 // Search result item component to avoid inline functions in JSX props
 // Memoized to prevent unnecessary re-renders
-const SearchResultItem = memo(function SearchResultItem({ result, onSelect }) {
+// Uses primitive props for stable memoization
+const SearchResultItem = memo(function SearchResultItem({ 
+    displayName, 
+    lat, 
+    lon, 
+    country, 
+    onSelect 
+}) {
     const handleClick = useCallback(() => {
-        onSelect(result);
-    }, [onSelect, result]);
+        onSelect(displayName, lat, lon, country);
+    }, [onSelect, displayName, lat, lon, country]);
 
     const handleKeyDown = useCallback((e) => {
         if (e.key === 'Enter' || e.key === ' ') {
             e.preventDefault();
-            onSelect(result);
+            onSelect(displayName, lat, lon, country);
         }
-    }, [onSelect, result]);
+    }, [onSelect, displayName, lat, lon, country]);
 
     return (
         <div
@@ -124,7 +131,7 @@ const SearchResultItem = memo(function SearchResultItem({ result, onSelect }) {
             tabIndex={0}
             className="p-2 hover:bg-gray-100 cursor-pointer border-b border-gray-200 text-sm"
         >
-            {result.display_name}
+            {displayName}
         </div>
     );
 });
@@ -176,20 +183,20 @@ function SearchBar({ onLocationSelect }) {
         setQuery(e.target.value);
     }, []);
 
-    const handleSelectResult = useCallback((result) => {
-        const lat = parseFloat(result.lat);
-        const lng = parseFloat(result.lon);
+    const handleSelectResult = useCallback((displayName, lat, lon, country) => {
+        const latitude = parseFloat(lat);
+        const longitude = parseFloat(lon);
     
         onLocationSelect({
-            name: result.display_name.split(',')[0],
-            latitude: lat,
-            longitude: lng,
-            country: result.address?.country || '',
-            utc_offset: getTimezoneOffset(lat, lng),
+            name: displayName.split(',')[0],
+            latitude: latitude,
+            longitude: longitude,
+            country: country || '',
+            utc_offset: getTimezoneOffset(latitude, longitude),
             priority: 1,
             notes: '',
             population: 0
-        }, { lat, lng });
+        }, { lat: latitude, lng: longitude });
     
         setQuery('');
         setResults([]);
@@ -227,7 +234,10 @@ function SearchBar({ onLocationSelect }) {
                     {results.map((result) => (
                         <SearchResultItem
                             key={result.place_id}
-                            result={result}
+                            displayName={result.display_name}
+                            lat={result.lat}
+                            lon={result.lon}
+                            country={result.address?.country}
                             onSelect={handleSelectResult}
                         />
                     ))}
