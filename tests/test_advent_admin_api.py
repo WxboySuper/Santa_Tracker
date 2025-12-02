@@ -12,8 +12,10 @@ from src.app import app
 def client():
     """Create a test client."""
     app.config["TESTING"] = True
+    app.config["ADVENT_ENABLED"] = True  # Enable advent for these tests
     with app.test_client() as client:
         yield client
+    app.config["ADVENT_ENABLED"] = False  # Restore to default
 
 
 @pytest.fixture
@@ -391,3 +393,90 @@ class TestImportAdventCalendar:
 
         data = response.get_json()
         assert "details" in data
+
+
+class TestAdventAdminFeatureFlag:
+    """Test that advent admin endpoints return 404 when feature is disabled."""
+
+    @pytest.fixture
+    def disabled_advent_client(self):
+        """Create a test client with advent disabled."""
+        app.config["TESTING"] = True
+        app.config["ADVENT_ENABLED"] = False
+        with app.test_client() as client:
+            yield client
+        # Restore to documented config default after test
+        app.config["ADVENT_ENABLED"] = False
+
+    def test_get_advent_days_returns_404_when_disabled(
+        self, disabled_advent_client, auth_headers
+    ):
+        """Test GET /api/admin/advent/days returns 404 when feature is disabled."""
+        response = disabled_advent_client.get(
+            "/api/admin/advent/days", headers=auth_headers
+        )
+        assert response.status_code == 404
+
+    def test_get_advent_day_returns_404_when_disabled(
+        self, disabled_advent_client, auth_headers
+    ):
+        """Test GET /api/admin/advent/day/1 returns 404 when feature is disabled."""
+        response = disabled_advent_client.get(
+            "/api/admin/advent/day/1", headers=auth_headers
+        )
+        assert response.status_code == 404
+
+    def test_update_advent_day_returns_404_when_disabled(
+        self, disabled_advent_client, auth_headers
+    ):
+        """Test PUT /api/admin/advent/day/1 returns 404 when feature is disabled."""
+        response = disabled_advent_client.put(
+            "/api/admin/advent/day/1",
+            data=json.dumps({"title": "Test"}),
+            content_type="application/json",
+            headers=auth_headers,
+        )
+        assert response.status_code == 404
+
+    def test_toggle_unlock_returns_404_when_disabled(
+        self, disabled_advent_client, auth_headers
+    ):
+        """Test POST /api/admin/advent/day/1/toggle-unlock returns 404."""
+        response = disabled_advent_client.post(
+            "/api/admin/advent/day/1/toggle-unlock",
+            data=json.dumps({"is_unlocked_override": True}),
+            content_type="application/json",
+            headers=auth_headers,
+        )
+        assert response.status_code == 404
+
+    def test_validate_calendar_returns_404_when_disabled(
+        self, disabled_advent_client, auth_headers
+    ):
+        """Test POST /api/admin/advent/validate returns 404 when disabled."""
+        response = disabled_advent_client.post(
+            "/api/admin/advent/validate", headers=auth_headers
+        )
+        assert response.status_code == 404
+
+    def test_export_calendar_returns_404_when_disabled(
+        self, disabled_advent_client, auth_headers
+    ):
+        """Test GET /api/admin/advent/export returns 404 when disabled."""
+        response = disabled_advent_client.get(
+            "/api/admin/advent/export", headers=auth_headers
+        )
+        assert response.status_code == 404
+
+    def test_import_calendar_returns_404_when_disabled(
+        self, disabled_advent_client, auth_headers
+    ):
+        """Test POST /api/admin/advent/import returns 404 when disabled."""
+        import_data = {"days": []}
+        response = disabled_advent_client.post(
+            "/api/admin/advent/import",
+            data=json.dumps(import_data),
+            content_type="application/json",
+            headers=auth_headers,
+        )
+        assert response.status_code == 404

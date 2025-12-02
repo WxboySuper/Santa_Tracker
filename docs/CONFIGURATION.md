@@ -97,6 +97,35 @@ export FLASK_RUN_HOST="0.0.0.0"  # Listen on all interfaces
 
 ---
 
+## 🚩 Feature Flags
+
+Feature flags allow you to enable or disable specific functionality without code changes.
+
+#### ADVENT_ENABLED
+Controls visibility and accessibility of the advent calendar feature.
+
+```bash
+export ADVENT_ENABLED="True"  # or "False"
+```
+
+**Behavior when disabled (default):**
+- Advent calendar navigation links are hidden from the UI
+- `/advent` page returns 404 Not Found
+- All `/api/advent/*` endpoints return 404 Not Found
+- All `/api/admin/advent/*` endpoints return 404 Not Found
+- Advent-related JavaScript and CSS are not loaded
+
+**Behavior when enabled:**
+- Full advent calendar functionality is available
+- Navigation links appear in the header
+- All advent API endpoints are accessible
+
+**Default:** `False`
+
+**Use case:** Keep disabled until the advent calendar feature is complete and ready for production.
+
+---
+
 ## 📄 .env File
 
 ### Creating .env File
@@ -113,6 +142,9 @@ FLASK_RUN_HOST=127.0.0.1
 # Security
 SECRET_KEY=your-secret-key-here-change-in-production
 ADMIN_PASSWORD=your-secure-admin-password
+
+# Feature Flags
+ADVENT_ENABLED=False  # Set to True when advent calendar is ready
 
 # Optional: Database (if using external DB)
 # DATABASE_URL=postgresql://user:pass@localhost/dbname
