@@ -7,7 +7,11 @@ import unittest
 
 from src.utils.locations import (
     Location,
+    delete_trial_route,
+    has_trial_route,
     load_santa_route_from_json,
+    load_trial_route_from_json,
+    save_trial_route_to_json,
     update_santa_location,
 )
 
@@ -244,6 +248,120 @@ class TestLoadSantaRouteFromJson(unittest.TestCase):
             self.assertIsInstance(location.latitude, float)
             self.assertIsInstance(location.longitude, float)
             self.assertIsInstance(location.utc_offset, float)
+
+    def test_load_from_json_missing_name(self):
+        """Test loading route with missing location name raises ValueError."""
+        test_data = {
+            "route": [
+                {
+                    "latitude": 40.0,
+                    "longitude": -74.0,
+                    "utc_offset": -5.0,
+                }
+            ]
+        }
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
+            json.dump(test_data, f)
+            temp_file = f.name
+
+        try:
+            with self.assertRaises(ValueError) as context:
+                load_santa_route_from_json(temp_file)
+            self.assertIn("Missing location name", str(context.exception))
+        finally:
+            os.unlink(temp_file)
+
+    def test_load_from_json_missing_required_field(self):
+        """Test loading route with missing required field raises ValueError."""
+        test_data = {
+            "route": [
+                {
+                    "name": "Test City",
+                    "latitude": 40.0,
+                    # Missing longitude and utc_offset
+                }
+            ]
+        }
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
+            json.dump(test_data, f)
+            temp_file = f.name
+
+        try:
+            with self.assertRaises(ValueError) as context:
+                load_santa_route_from_json(temp_file)
+            self.assertIn("Missing required field", str(context.exception))
+        finally:
+            os.unlink(temp_file)
+
+
+class TestTrialRoute(unittest.TestCase):
+    """Test cases for trial route functions."""
+
+    def setUp(self):
+        """Set up test fixtures."""
+        # Get the trial route path for cleanup
+        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        self.trial_route_path = os.path.join(
+            base_dir, "src", "static", "data", "trial_route.json"
+        )
+        # Clean up any existing trial route before each test
+        if os.path.exists(self.trial_route_path):
+            os.remove(self.trial_route_path)
+
+    def tearDown(self):
+        """Clean up after each test."""
+        if os.path.exists(self.trial_route_path):
+            os.remove(self.trial_route_path)
+
+    def test_has_trial_route_when_not_exists(self):
+        """Test has_trial_route returns False when no trial route exists."""
+        self.assertFalse(has_trial_route())
+
+    def test_save_and_load_trial_route(self):
+        """Test saving and loading a trial route."""
+        locations = [
+            Location(
+                name="Trial City",
+                latitude=40.0,
+                longitude=-74.0,
+                utc_offset=-5.0,
+            )
+        ]
+        save_trial_route_to_json(locations)
+
+        self.assertTrue(has_trial_route())
+
+        loaded = load_trial_route_from_json()
+        self.assertIsNotNone(loaded)
+        self.assertEqual(len(loaded), 1)
+        self.assertEqual(loaded[0].name, "Trial City")
+
+    def test_load_trial_route_when_not_exists(self):
+        """Test load_trial_route_from_json returns None when file doesn't exist."""
+        result = load_trial_route_from_json()
+        self.assertIsNone(result)
+
+    def test_delete_trial_route(self):
+        """Test deleting a trial route."""
+        locations = [
+            Location(
+                name="Trial City",
+                latitude=40.0,
+                longitude=-74.0,
+                utc_offset=-5.0,
+            )
+        ]
+        save_trial_route_to_json(locations)
+        self.assertTrue(has_trial_route())
+
+        result = delete_trial_route()
+        self.assertTrue(result)
+        self.assertFalse(has_trial_route())
+
+    def test_delete_trial_route_when_not_exists(self):
+        """Test deleting trial route when it doesn't exist returns False."""
+        result = delete_trial_route()
+        self.assertFalse(result)
 
 
 if __name__ == "__main__":
