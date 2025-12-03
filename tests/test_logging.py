@@ -92,28 +92,48 @@ class TestLoggingConfig(unittest.TestCase):
 
     def test_configure_logging_json_format_via_env(self):
         """Test JSON_LOGS environment variable enables JSON format."""
+        import io
+
         os.environ["JSON_LOGS"] = "true"
         configure_logging()
 
-        root_logger = logging.getLogger()
-        # We can verify the handler format contains JSON-like structure
-        for handler in root_logger.handlers:
-            if isinstance(handler, logging.StreamHandler):
-                format_str = handler.formatter._fmt
-                self.assertIn("timestamp", format_str)
-                self.assertIn("level", format_str)
-                break
+        # Capture actual log output to verify JSON format
+        test_logger = get_logger("json_test")
+        captured_output = io.StringIO()
+        handler = logging.StreamHandler(captured_output)
+        handler.setFormatter(logging.getLogger().handlers[0].formatter)
+        test_logger.addHandler(handler)
+
+        test_logger.info("test message")
+        output = captured_output.getvalue()
+
+        # Verify JSON structure in output
+        self.assertIn('"timestamp":', output)
+        self.assertIn('"level":', output)
+        self.assertIn('"message":', output)
+
+        test_logger.removeHandler(handler)
 
     def test_configure_logging_json_format_explicit(self):
         """Test configure_logging with explicit json_format parameter."""
+        import io
+
         configure_logging(json_format=True)
 
-        root_logger = logging.getLogger()
-        for handler in root_logger.handlers:
-            if isinstance(handler, logging.StreamHandler):
-                format_str = handler.formatter._fmt
-                self.assertIn("timestamp", format_str)
-                break
+        # Capture actual log output to verify JSON format
+        test_logger = get_logger("json_explicit_test")
+        captured_output = io.StringIO()
+        handler = logging.StreamHandler(captured_output)
+        handler.setFormatter(logging.getLogger().handlers[0].formatter)
+        test_logger.addHandler(handler)
+
+        test_logger.info("test message")
+        output = captured_output.getvalue()
+
+        # Verify JSON structure in output
+        self.assertIn('"timestamp":', output)
+
+        test_logger.removeHandler(handler)
 
 
 class TestNoPrintInProductionModules(unittest.TestCase):
