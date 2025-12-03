@@ -3,6 +3,7 @@
 import os
 import shutil
 from pathlib import Path
+from unittest.mock import patch
 
 import pytest
 
@@ -1027,3 +1028,400 @@ class TestAdventErrorHandling:
         assert response.status_code == 400
         data = response.get_json()
         assert data["error"] == "Invalid data provided"
+
+
+class TestOSErrorHandling:
+    """Tests for OSError handling in API endpoints using mocking."""
+
+    def test_add_location_oserror(self, client, auth_headers):
+        """Test that add location OSError returns 500 error."""
+        with patch(
+            "src.app.save_santa_route_to_json", side_effect=OSError("Disk full")
+        ):
+            response = client.post(
+                "/api/admin/locations",
+                headers=auth_headers,
+                json={
+                    "name": "Test City",
+                    "latitude": 0.0,
+                    "longitude": 0.0,
+                    "utc_offset": 0.0,
+                },
+            )
+            assert response.status_code == 500
+            data = response.get_json()
+            assert data["error"] == "Internal server error"
+
+    def test_update_location_oserror(self, client, auth_headers):
+        """Test that update location OSError returns 500 error."""
+        with patch(
+            "src.app.save_santa_route_to_json", side_effect=OSError("Disk full")
+        ):
+            response = client.put(
+                "/api/admin/locations/0",
+                headers=auth_headers,
+                json={"name": "Updated City"},
+            )
+            assert response.status_code == 500
+            data = response.get_json()
+            assert data["error"] == "Internal server error"
+
+    def test_delete_location_oserror(self, client, auth_headers):
+        """Test that delete location OSError returns 500 error."""
+        with patch(
+            "src.app.save_santa_route_to_json", side_effect=OSError("Disk full")
+        ):
+            response = client.delete(
+                "/api/admin/locations/0",
+                headers=auth_headers,
+            )
+            assert response.status_code == 500
+            data = response.get_json()
+            assert data["error"] == "Internal server error"
+
+    def test_import_locations_oserror(self, client, auth_headers):
+        """Test that import locations OSError returns 500 error."""
+        with patch(
+            "src.app.save_santa_route_to_json", side_effect=OSError("Disk full")
+        ):
+            response = client.post(
+                "/api/admin/locations/import",
+                headers=auth_headers,
+                json={
+                    "mode": "replace",
+                    "locations": [
+                        {
+                            "name": "Test City",
+                            "latitude": 0.0,
+                            "longitude": 0.0,
+                            "utc_offset": 0.0,
+                        }
+                    ],
+                },
+            )
+            assert response.status_code == 500
+            data = response.get_json()
+            assert data["error"] == "Internal server error"
+
+    def test_get_route_status_oserror(self, client, auth_headers):
+        """Test that get route status OSError returns 500 error."""
+        with patch(
+            "src.app.load_santa_route_from_json",
+            side_effect=OSError("Permission denied"),
+        ):
+            response = client.get(
+                "/api/admin/route/status",
+                headers=auth_headers,
+            )
+            assert response.status_code == 500
+            data = response.get_json()
+            assert data["error"] == "Internal server error"
+
+    def test_upload_trial_route_oserror(self, client, auth_headers):
+        """Test that upload trial route OSError returns 500 error."""
+        with patch(
+            "src.app.save_trial_route_to_json", side_effect=OSError("Disk full")
+        ):
+            response = client.post(
+                "/api/admin/route/trial",
+                headers=auth_headers,
+                json={
+                    "route": [
+                        {
+                            "name": "Test City",
+                            "latitude": 0.0,
+                            "longitude": 0.0,
+                            "utc_offset": 0.0,
+                        }
+                    ]
+                },
+            )
+            assert response.status_code == 500
+            data = response.get_json()
+            assert data["error"] == "Internal server error"
+
+    def test_delete_trial_route_oserror(self, client, auth_headers):
+        """Test that delete trial route OSError returns 500 error."""
+        # First create a trial route, then mock the deletion to fail
+        trial_file = (
+            Path(__file__).parent.parent
+            / "src"
+            / "static"
+            / "data"
+            / "trial_route.json"
+        )
+        try:
+            # Create a trial route
+            trial_file.write_text('{"route": []}')
+            with patch(
+                "src.app.delete_trial_route",
+                side_effect=OSError("Permission denied"),
+            ):
+                response = client.delete(
+                    "/api/admin/route/trial",
+                    headers=auth_headers,
+                )
+                assert response.status_code == 500
+                data = response.get_json()
+                assert data["error"] == "Internal server error"
+        finally:
+            if trial_file.exists():
+                trial_file.unlink()
+
+    def test_apply_trial_route_oserror(self, client, auth_headers):
+        """Test that apply trial route OSError returns 500 error."""
+        trial_file = (
+            Path(__file__).parent.parent
+            / "src"
+            / "static"
+            / "data"
+            / "trial_route.json"
+        )
+        try:
+            # Create a valid trial route
+            trial_file.write_text(
+                '{"route": [{"name": "Test", "latitude": 0.0, '
+                '"longitude": 0.0, "utc_offset": 0.0}]}'
+            )
+            with patch(
+                "src.app.save_santa_route_to_json", side_effect=OSError("Disk full")
+            ):
+                response = client.post(
+                    "/api/admin/route/trial/apply",
+                    headers=auth_headers,
+                )
+                assert response.status_code == 500
+                data = response.get_json()
+                assert data["error"] == "Internal server error"
+        finally:
+            if trial_file.exists():
+                trial_file.unlink()
+
+    def test_update_advent_day_oserror(
+        self, client, auth_headers, backup_advent_file
+    ):
+        """Test that update advent day OSError returns 500 error."""
+        with patch(
+            "src.app.save_advent_calendar", side_effect=OSError("Disk full")
+        ):
+            response = client.put(
+                "/api/admin/advent/day/1",
+                headers=auth_headers,
+                json={"title": "Updated Title"},
+            )
+            assert response.status_code == 500
+            data = response.get_json()
+            assert data["error"] == "Internal server error"
+
+    def test_toggle_advent_unlock_oserror(
+        self, client, auth_headers, backup_advent_file
+    ):
+        """Test that toggle advent unlock OSError returns 500 error."""
+        with patch(
+            "src.app.save_advent_calendar", side_effect=OSError("Disk full")
+        ):
+            response = client.post(
+                "/api/admin/advent/day/1/toggle-unlock",
+                headers=auth_headers,
+                json={"is_unlocked_override": True},
+            )
+            assert response.status_code == 500
+            data = response.get_json()
+            assert data["error"] == "Internal server error"
+
+    def test_import_advent_calendar_oserror(
+        self, client, auth_headers, backup_advent_file
+    ):
+        """Test that import advent calendar OSError returns 500 error."""
+        with patch(
+            "src.app.save_advent_calendar", side_effect=OSError("Disk full")
+        ):
+            response = client.post(
+                "/api/admin/advent/import",
+                headers=auth_headers,
+                json={
+                    "days": [
+                        {
+                            "day": 1,
+                            "title": "Test Day",
+                            "unlock_time": "2024-12-01T00:00:00Z",
+                            "content_type": "fact",
+                            "payload": {"text": "Test content"},
+                        }
+                    ]
+                },
+            )
+            assert response.status_code == 500
+            data = response.get_json()
+            assert data["error"] == "Internal server error"
+
+
+class TestValueErrorHandling:
+    """Tests for ValueError/KeyError handling in API endpoints using mocking."""
+
+    def test_validate_locations_value_error(self, client, auth_headers):
+        """Test that validate locations ValueError returns 500 error."""
+        with patch(
+            "src.app.validate_locations", side_effect=ValueError("Invalid data")
+        ):
+            response = client.post(
+                "/api/admin/locations/validate",
+                headers=auth_headers,
+            )
+            assert response.status_code == 500
+            data = response.get_json()
+            assert data["error"] == "Internal server error"
+
+    def test_precompute_route_value_error(self, client, auth_headers):
+        """Test that precompute route ValueError returns 500 error."""
+        with patch(
+            "src.app.load_santa_route_from_json",
+            side_effect=ValueError("Invalid route data"),
+        ):
+            response = client.post(
+                "/api/admin/route/precompute",
+                headers=auth_headers,
+            )
+            assert response.status_code == 500
+            data = response.get_json()
+            assert data["error"] == "Internal server error"
+
+    def test_simulate_route_value_error(self, client, auth_headers):
+        """Test that simulate route ValueError returns 500 error."""
+        with patch(
+            "src.app.load_santa_route_from_json",
+            side_effect=ValueError("Invalid route data"),
+        ):
+            response = client.post(
+                "/api/admin/route/simulate",
+                headers=auth_headers,
+                json={},
+            )
+            assert response.status_code == 500
+            data = response.get_json()
+            assert data["error"] == "Internal server error"
+
+    def test_simulate_trial_route_value_error(self, client, auth_headers):
+        """Test that simulate trial route ValueError returns 500 error."""
+        trial_file = (
+            Path(__file__).parent.parent
+            / "src"
+            / "static"
+            / "data"
+            / "trial_route.json"
+        )
+        try:
+            # Create a valid trial route
+            trial_file.write_text(
+                '{"route": [{"name": "Test", "latitude": 0.0, '
+                '"longitude": 0.0, "utc_offset": 0.0}]}'
+            )
+            with patch(
+                "src.app.load_trial_route_from_json",
+                side_effect=ValueError("Invalid route data"),
+            ):
+                response = client.post(
+                    "/api/admin/route/trial/simulate",
+                    headers=auth_headers,
+                    json={},
+                )
+                assert response.status_code == 500
+                data = response.get_json()
+                assert data["error"] == "Internal server error"
+        finally:
+            if trial_file.exists():
+                trial_file.unlink()
+
+    def test_get_advent_days_admin_value_error(
+        self, client, auth_headers, backup_advent_file
+    ):
+        """Test that get advent days admin ValueError returns 500 error."""
+        with patch(
+            "src.app.load_advent_calendar", side_effect=ValueError("Invalid data")
+        ):
+            response = client.get(
+                "/api/admin/advent/days",
+                headers=auth_headers,
+            )
+            assert response.status_code == 500
+            data = response.get_json()
+            assert data["error"] == "Internal server error"
+
+    def test_get_advent_day_admin_value_error(
+        self, client, auth_headers, backup_advent_file
+    ):
+        """Test that get advent day admin ValueError returns 500 error."""
+        with patch(
+            "src.app.load_advent_calendar", side_effect=ValueError("Invalid data")
+        ):
+            response = client.get(
+                "/api/admin/advent/day/1",
+                headers=auth_headers,
+            )
+            assert response.status_code == 500
+            data = response.get_json()
+            assert data["error"] == "Internal server error"
+
+    def test_validate_advent_calendar_value_error(
+        self, client, auth_headers, backup_advent_file
+    ):
+        """Test that validate advent calendar ValueError returns 500 error."""
+        with patch(
+            "src.app.validate_advent_calendar", side_effect=ValueError("Invalid data")
+        ):
+            response = client.post(
+                "/api/admin/advent/validate",
+                headers=auth_headers,
+            )
+            assert response.status_code == 500
+            data = response.get_json()
+            assert data["error"] == "Internal server error"
+
+    def test_export_advent_backup_value_error(
+        self, client, auth_headers, backup_advent_file
+    ):
+        """Test that export advent backup ValueError returns 500 error."""
+        with patch(
+            "src.app.load_advent_calendar", side_effect=ValueError("Invalid data")
+        ):
+            response = client.get(
+                "/api/admin/advent/export",
+                headers=auth_headers,
+            )
+            assert response.status_code == 500
+            data = response.get_json()
+            assert data["error"] == "Internal server error"
+
+    def test_export_backup_value_error(self, client, auth_headers):
+        """Test that export backup ValueError returns 500 error."""
+        with patch(
+            "src.app.load_santa_route_from_json",
+            side_effect=ValueError("Invalid route data"),
+        ):
+            response = client.get(
+                "/api/admin/backup/export",
+                headers=auth_headers,
+            )
+            assert response.status_code == 500
+            data = response.get_json()
+            assert data["error"] == "Internal server error"
+
+    def test_advent_manifest_value_error(self, client, backup_advent_file):
+        """Test that advent manifest ValueError returns 500 error."""
+        with patch(
+            "src.app.get_manifest", side_effect=ValueError("Invalid data")
+        ):
+            response = client.get("/api/advent/manifest")
+            assert response.status_code == 500
+            data = response.get_json()
+            assert data["error"] == "Internal server error"
+
+    def test_advent_day_value_error(self, client, backup_advent_file):
+        """Test that advent day ValueError returns 500 error."""
+        with patch(
+            "src.app.get_day_content", side_effect=ValueError("Invalid data")
+        ):
+            response = client.get("/api/advent/day/1")
+            assert response.status_code == 500
+            data = response.get_json()
+            assert data["error"] == "Internal server error"
