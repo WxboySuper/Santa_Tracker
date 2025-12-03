@@ -1413,3 +1413,189 @@ class TestValueErrorHandling:
             assert response.status_code == 500
             data = response.get_json()
             assert data["error"] == "Internal server error"
+
+
+class TestAdditionalMissingCoverage:
+    """Tests for remaining uncovered exception handlers."""
+
+    def test_get_locations_value_error(self, client, auth_headers):
+        """Test that get locations ValueError returns 500 error."""
+        with patch(
+            "src.app.load_santa_route_from_json",
+            side_effect=ValueError("Invalid data"),
+        ):
+            response = client.get("/api/admin/locations", headers=auth_headers)
+            assert response.status_code == 500
+            data = response.get_json()
+            assert data["error"] == "Internal server error"
+
+    def test_add_location_file_not_found(self, client, auth_headers):
+        """Test that add location FileNotFoundError returns 404 error."""
+        route_file = (
+            Path(__file__).parent.parent
+            / "src"
+            / "static"
+            / "data"
+            / "santa_route.json"
+        )
+        temp_file = route_file.with_suffix(".json.temp_add")
+        try:
+            if route_file.exists():
+                route_file.rename(temp_file)
+            response = client.post(
+                "/api/admin/locations",
+                headers=auth_headers,
+                json={
+                    "name": "Test City",
+                    "latitude": 0.0,
+                    "longitude": 0.0,
+                    "utc_offset": 0.0,
+                },
+            )
+            assert response.status_code == 404
+            data = response.get_json()
+            assert data["error"] == "Location data not found"
+        finally:
+            if temp_file.exists():
+                temp_file.rename(route_file)
+
+    def test_update_location_file_not_found(self, client, auth_headers):
+        """Test that update location FileNotFoundError returns 404 error."""
+        route_file = (
+            Path(__file__).parent.parent
+            / "src"
+            / "static"
+            / "data"
+            / "santa_route.json"
+        )
+        temp_file = route_file.with_suffix(".json.temp_update")
+        try:
+            if route_file.exists():
+                route_file.rename(temp_file)
+            response = client.put(
+                "/api/admin/locations/0",
+                headers=auth_headers,
+                json={"name": "Updated City"},
+            )
+            assert response.status_code == 404
+            data = response.get_json()
+            assert data["error"] == "Location data not found"
+        finally:
+            if temp_file.exists():
+                temp_file.rename(route_file)
+
+    def test_delete_location_success(self, client, auth_headers):
+        """Test that delete location succeeds and returns 200."""
+        # First, make sure we have at least one location
+        response = client.get("/api/admin/locations", headers=auth_headers)
+        if response.status_code == 200:
+            data = response.get_json()
+            if data.get("locations") and len(data["locations"]) > 0:
+                # Delete the first location
+                response = client.delete(
+                    "/api/admin/locations/0",
+                    headers=auth_headers,
+                )
+                assert response.status_code == 200
+                result = response.get_json()
+                assert result["message"] == "Location deleted successfully"
+
+    def test_get_advent_day_admin_day_not_found(
+        self, client, auth_headers, backup_advent_file
+    ):
+        """Test that get advent day admin returns 404 for non-existent day."""
+        # Mock load_advent_calendar to return a list that doesn't have day 1
+        from src.utils.advent import AdventDay
+
+        mock_days = [
+            AdventDay(
+                day=2,
+                title="Day 2",
+                unlock_time="2024-12-02T00:00:00Z",
+                content_type="fact",
+                payload={"text": "Test"},
+            )
+        ]
+        with patch("src.app.load_advent_calendar", return_value=mock_days):
+            response = client.get("/api/admin/advent/day/1", headers=auth_headers)
+            # Day 1 is in valid range but doesn't exist in the mocked data
+            assert response.status_code == 404
+            data = response.get_json()
+            assert data["error"] == "Day not found"
+
+    def test_update_advent_day_day_not_found(
+        self, client, auth_headers, backup_advent_file
+    ):
+        """Test that update advent day returns 404 for non-existent day."""
+        from src.utils.advent import AdventDay
+
+        mock_days = [
+            AdventDay(
+                day=2,
+                title="Day 2",
+                unlock_time="2024-12-02T00:00:00Z",
+                content_type="fact",
+                payload={"text": "Test"},
+            )
+        ]
+        with patch("src.app.load_advent_calendar", return_value=mock_days):
+            response = client.put(
+                "/api/admin/advent/day/1",
+                headers=auth_headers,
+                json={"title": "Test"},
+            )
+            # Day 1 is in valid range but doesn't exist in the mocked data
+            assert response.status_code == 404
+            data = response.get_json()
+            assert data["error"] == "Day not found"
+
+    def test_toggle_advent_unlock_day_not_found(
+        self, client, auth_headers, backup_advent_file
+    ):
+        """Test that toggle advent unlock returns 404 for non-existent day."""
+        from src.utils.advent import AdventDay
+
+        mock_days = [
+            AdventDay(
+                day=2,
+                title="Day 2",
+                unlock_time="2024-12-02T00:00:00Z",
+                content_type="fact",
+                payload={"text": "Test"},
+            )
+        ]
+        with patch("src.app.load_advent_calendar", return_value=mock_days):
+            response = client.post(
+                "/api/admin/advent/day/1/toggle-unlock",
+                headers=auth_headers,
+                json={"is_unlocked_override": True},
+            )
+            # Day 1 is in valid range but doesn't exist in the mocked data
+            assert response.status_code == 404
+            data = response.get_json()
+            assert data["error"] == "Day not found"
+
+    def test_toggle_advent_unlock_file_not_found(self, client, auth_headers):
+        """Test that toggle advent unlock returns 404 for missing file."""
+        advent_file = (
+            Path(__file__).parent.parent
+            / "src"
+            / "static"
+            / "data"
+            / "advent_calendar.json"
+        )
+        temp_file = advent_file.with_suffix(".json.temp_toggle")
+        try:
+            if advent_file.exists():
+                advent_file.rename(temp_file)
+            response = client.post(
+                "/api/admin/advent/day/1/toggle-unlock",
+                headers=auth_headers,
+                json={"is_unlocked_override": True},
+            )
+            assert response.status_code == 404
+            data = response.get_json()
+            assert data["error"] == "Advent calendar data not found"
+        finally:
+            if temp_file.exists():
+                temp_file.rename(advent_file)
