@@ -186,17 +186,40 @@ npm run lint
 
 ## Logging Configuration
 
-The application uses Python's built-in logging module. For development:
+The application uses Python's built-in logging module with centralized configuration in `src/logging_config.py`.
+
+### Setting Up Logging in Your Module
 
 ```python
 import logging
-logging.basicConfig(level=logging.DEBUG)
 
-# Use Flask's logger in the app
-app.logger.debug("Debug message")
-app.logger.info("Info message")
-app.logger.error("Error message")
+# Get a module-specific logger
+logger = logging.getLogger(__name__)
+
+# Use the logger
+logger.debug("Debug message with %s", variable)
+logger.info("Info message")
+logger.warning("Warning message")
+logger.error("Error message")
+logger.exception("Error with stack trace")  # Use in except blocks
 ```
+
+### Environment Variables
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `LOG_LEVEL` | `INFO` | Log level: DEBUG, INFO, WARNING, ERROR, CRITICAL |
+| `JSON_LOGS` | `False` | Enable JSON structured logging for production |
+
+### Important Notes
+
+- **Do not use `print()` in `src/` modules.** CI will fail if print statements are detected.
+- Use appropriate log levels:
+  - `DEBUG`: Detailed diagnostic information
+  - `INFO`: General operational information  
+  - `WARNING`: Something unexpected but not an error
+  - `ERROR`: A more serious problem
+  - `CRITICAL`: A very serious error
 
 For production logging configuration, see [docs/CONFIGURATION.md](docs/CONFIGURATION.md#logging-configuration).
 
