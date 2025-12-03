@@ -92,7 +92,18 @@ self.addEventListener('fetch', (event) => {
 
                 // For navigation requests, serve the offline page
                 if (isNavigationRequest(request)) {
-                    return caches.match(OFFLINE_PAGE);
+                    return caches.match(OFFLINE_PAGE).then(offlineResponse => {
+                        // Return offline page if cached, otherwise return a basic offline response
+                        return offlineResponse || new Response(
+                            '<!DOCTYPE html><html><head><title>Offline</title></head>' +
+                            '<body><h1>You are offline</h1><p>Please check your connection.</p></body></html>',
+                            {
+                                status: 503,
+                                statusText: 'Service Unavailable',
+                                headers: { 'Content-Type': 'text/html' }
+                            }
+                        );
+                    });
                 }
 
                 // For other requests, return 503 Service Unavailable
