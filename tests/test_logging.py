@@ -1,6 +1,7 @@
 """Tests for logging configuration and print statement detection."""
 
 import ast
+import io
 import logging
 import os
 import unittest
@@ -92,8 +93,6 @@ class TestLoggingConfig(unittest.TestCase):
 
     def test_configure_logging_json_format_via_env(self):
         """Test JSON_LOGS environment variable enables JSON format."""
-        import io
-
         os.environ["JSON_LOGS"] = "true"
         configure_logging()
 
@@ -116,8 +115,6 @@ class TestLoggingConfig(unittest.TestCase):
 
     def test_configure_logging_json_format_explicit(self):
         """Test configure_logging with explicit json_format parameter."""
-        import io
-
         configure_logging(json_format=True)
 
         # Capture actual log output to verify JSON format

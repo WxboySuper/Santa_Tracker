@@ -6,10 +6,25 @@ with support for environment-driven log level configuration and optional
 JSON/structured formatting for production use.
 """
 
+import json
 import logging
 import os
 import sys
 from typing import Optional
+
+
+class JsonFormatter(logging.Formatter):
+    """Custom JSON formatter for structured logging."""
+
+    def format(self, record: logging.LogRecord) -> str:
+        """Format the log record as a JSON string."""
+        log_data = {
+            "timestamp": self.formatTime(record),
+            "name": record.name,
+            "level": record.levelname,
+            "message": record.getMessage(),
+        }
+        return json.dumps(log_data)
 
 
 def get_log_level() -> int:
@@ -51,23 +66,22 @@ def configure_logging(
     if not json_format:
         json_format = os.environ.get("JSON_LOGS", "").lower() in ("true", "1", "yes")
 
+    # Configure root logger
+    handler = logging.StreamHandler(sys.stdout)
+
     if json_format:
-        # Structured JSON format for production/log aggregators
-        log_format = (
-            '{"timestamp": "%(asctime)s", "name": "%(name)s", '
-            '"level": "%(levelname)s", "message": "%(message)s"}'
-        )
+        # Use custom JSON formatter for production/log aggregators
+        handler.setFormatter(JsonFormatter())
     else:
         # Human-readable format for development
         log_format = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+        handler.setFormatter(logging.Formatter(log_format))
 
-    # Configure root logger
-    logging.basicConfig(
-        level=level,
-        format=log_format,
-        handlers=[logging.StreamHandler(sys.stdout)],
-        force=True,  # Override any existing configuration
-    )
+    # Clear existing handlers and set new configuration
+    root_logger = logging.getLogger()
+    root_logger.handlers.clear()
+    root_logger.addHandler(handler)
+    root_logger.setLevel(level)
 
 
 def get_logger(name: str) -> logging.Logger:
