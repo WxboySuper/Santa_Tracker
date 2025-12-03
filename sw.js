@@ -72,10 +72,7 @@ self.addEventListener('fetch', (event) => {
         event.respondWith(
             fetch(request).catch(error => {
                 console.error('External fetch failed:', error);
-                return new Response('Service Unavailable', {
-                    status: 503,
-                    statusText: 'Service Unavailable'
-                });
+                return Response.error();
             })
         );
         return;
