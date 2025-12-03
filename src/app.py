@@ -274,8 +274,8 @@ def admin_login():
 
         return jsonify({"token": session_token}), 200
     except (TypeError, ValueError) as e:
-        logger.exception("Login failed: Data validation error - %s", str(e))
-        return jsonify({"error": "Internal server error"}), 500
+        logger.warning("Login failed: Invalid data format - %s", str(e))
+        return jsonify({"error": "Invalid data format"}), 400
 
 
 @app.route("/index")
@@ -437,7 +437,7 @@ def add_location():
                 stop_duration=data.get("stop_duration"),
                 is_stop=data.get("is_stop", True),
             )
-        except (ValueError, TypeError):
+        except (ValueError, TypeError, KeyError):
             return jsonify({"error": "Invalid data format or values"}), 400
 
         # Load existing locations and append
@@ -522,7 +522,7 @@ def update_location(location_id):
                 is_stop=data.get("is_stop", locations[location_id].is_stop),
                 fun_facts=notes,
             )
-        except (ValueError, TypeError):
+        except (ValueError, TypeError, KeyError):
             return jsonify({"error": "Invalid data format or values"}), 400
 
         locations[location_id] = updated_location

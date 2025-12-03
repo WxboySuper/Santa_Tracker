@@ -253,6 +253,19 @@ class TestSpecificExceptionTypes:
         # Should return 400 because get_json with silent=True returns None
         assert response.status_code == 400
 
+    def test_login_handles_non_string_password(self, client):
+        """Test that login handles non-string password (TypeError)."""
+        os.environ["ADMIN_PASSWORD"] = "test_password"
+        # Send password as integer which will cause TypeError in compare_digest
+        response = client.post(
+            "/api/admin/login",
+            json={"password": 12345},  # Integer instead of string
+        )
+        # Should return 400 for invalid data format
+        assert response.status_code == 400
+        data = response.get_json()
+        assert data["error"] == "Invalid data format"
+
     def test_update_location_not_found(self, client, auth_headers):
         """Test that updating non-existent location returns 404."""
         response = client.put(
