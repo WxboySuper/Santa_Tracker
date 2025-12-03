@@ -96,3 +96,26 @@ jobs:
       
       - name: Run HTMLHint
         run: npm run lint:html
+
+  lockfile-check:
+    runs-on: ubuntu-latest
+    name: Lockfile Validation
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Check root package-lock.json exists
+        run: |
+          if [ ! -f "package-lock.json" ]; then
+            echo "Error: package-lock.json is missing in the root directory"
+            exit 1
+          fi
+          echo "✓ Root package-lock.json found"
+      
+      - name: Check tools/route-editor package-lock.json exists
+        run: |
+          if [ ! -f "tools/route-editor/package-lock.json" ]; then
+            echo "Error: package-lock.json is missing in tools/route-editor"
+            exit 1
+          fi
+          echo "✓ tools/route-editor/package-lock.json found"
