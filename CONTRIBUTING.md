@@ -143,15 +143,15 @@ We recommend setting up pre-commit hooks to automatically check your code before
    ```yaml
    repos:
      - repo: https://github.com/psf/black
-       rev: 24.4.2
+       rev: 25.11.0
        hooks:
          - id: black
      - repo: https://github.com/pycqa/isort
-       rev: 5.13.2
+       rev: 7.0.0
        hooks:
          - id: isort
      - repo: https://github.com/pycqa/flake8
-       rev: 7.0.0
+       rev: 7.3.0
        hooks:
          - id: flake8
    ```
