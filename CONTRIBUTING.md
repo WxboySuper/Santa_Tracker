@@ -199,7 +199,7 @@ app.logger.info("Info message")
 app.logger.error("Error message")
 ```
 
-For production logging configuration, see [docs/CONFIGURATION.md](docs/CONFIGURATION.md#-logging-configuration).
+For production logging configuration, see [docs/CONFIGURATION.md](docs/CONFIGURATION.md#logging-configuration).
 
 ## Making Changes
 
