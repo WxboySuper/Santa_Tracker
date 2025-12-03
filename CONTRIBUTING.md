@@ -85,7 +85,6 @@ Copy `.env.example` to `.env` and configure the following variables:
 | `ADMIN_PASSWORD` | Yes | - | Password for admin dashboard access |
 | `SECRET_KEY` | No | Auto-generated | Flask session encryption key |
 | `FLASK_DEBUG` | No | `False` | Enable debug mode (development only) |
-| `FLASK_RUN_PORT` | No | `5000` | Port for development server |
 | `ADVENT_ENABLED` | No | `False` | Enable advent calendar feature |
 
 **Security Note:** Never commit `.env` to version control. The `.gitignore` already excludes this file.
