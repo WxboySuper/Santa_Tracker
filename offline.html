@@ -111,9 +111,19 @@
         <p>
             Please check your connection and try again.
         </p>
-        <button class="retry-btn" onclick="window.location.reload()">
+        <button class="retry-btn">
             🔄 Try Again
         </button>
     </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            var retryBtn = document.querySelector('.retry-btn');
+            if (retryBtn) {
+                retryBtn.addEventListener('click', function() {
+                    window.location.reload();
+                });
+            }
+        });
+    </script>
 </body>
 </html>
