@@ -1197,13 +1197,9 @@ class TestOSErrorHandling:
             if trial_file.exists():
                 trial_file.unlink()
 
-    def test_update_advent_day_oserror(
-        self, client, auth_headers, backup_advent_file
-    ):
+    def test_update_advent_day_oserror(self, client, auth_headers, backup_advent_file):
         """Test that update advent day OSError returns 500 error."""
-        with patch(
-            "src.app.save_advent_calendar", side_effect=OSError("Disk full")
-        ):
+        with patch("src.app.save_advent_calendar", side_effect=OSError("Disk full")):
             response = client.put(
                 "/api/admin/advent/day/1",
                 headers=auth_headers,
@@ -1217,9 +1213,7 @@ class TestOSErrorHandling:
         self, client, auth_headers, backup_advent_file
     ):
         """Test that toggle advent unlock OSError returns 500 error."""
-        with patch(
-            "src.app.save_advent_calendar", side_effect=OSError("Disk full")
-        ):
+        with patch("src.app.save_advent_calendar", side_effect=OSError("Disk full")):
             response = client.post(
                 "/api/admin/advent/day/1/toggle-unlock",
                 headers=auth_headers,
@@ -1233,9 +1227,7 @@ class TestOSErrorHandling:
         self, client, auth_headers, backup_advent_file
     ):
         """Test that import advent calendar OSError returns 500 error."""
-        with patch(
-            "src.app.save_advent_calendar", side_effect=OSError("Disk full")
-        ):
+        with patch("src.app.save_advent_calendar", side_effect=OSError("Disk full")):
             response = client.post(
                 "/api/admin/advent/import",
                 headers=auth_headers,
@@ -1408,9 +1400,7 @@ class TestValueErrorHandling:
 
     def test_advent_manifest_value_error(self, client, backup_advent_file):
         """Test that advent manifest ValueError returns 500 error."""
-        with patch(
-            "src.app.get_manifest", side_effect=ValueError("Invalid data")
-        ):
+        with patch("src.app.get_manifest", side_effect=ValueError("Invalid data")):
             response = client.get("/api/advent/manifest")
             assert response.status_code == 500
             data = response.get_json()
@@ -1418,9 +1408,7 @@ class TestValueErrorHandling:
 
     def test_advent_day_value_error(self, client, backup_advent_file):
         """Test that advent day ValueError returns 500 error."""
-        with patch(
-            "src.app.get_day_content", side_effect=ValueError("Invalid data")
-        ):
+        with patch("src.app.get_day_content", side_effect=ValueError("Invalid data")):
             response = client.get("/api/advent/day/1")
             assert response.status_code == 500
             data = response.get_json()
