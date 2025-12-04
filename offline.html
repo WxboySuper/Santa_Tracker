@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Offline - Santa Tracker</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 20px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #1e3a5f 0%, #2d5a87 50%, #1e3a5f 100%);
+            color: #fff;
+        }
+        .container {
+            max-width: 500px;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .emoji {
+            font-size: 80px;
+            margin-bottom: 20px;
+            animation: bounce 2s ease-in-out infinite;
+        }
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+        h1 {
+            color: #c41e3a;
+            font-size: 2rem;
+            margin-bottom: 16px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+        p {
+            font-size: 1.1rem;
+            line-height: 1.6;
+            margin-bottom: 24px;
+            opacity: 0.9;
+        }
+        .retry-btn {
+            display: inline-block;
+            padding: 12px 32px;
+            background: linear-gradient(135deg, #c41e3a 0%, #165b33 100%);
+            color: #fff;
+            text-decoration: none;
+            border-radius: 30px;
+            font-weight: bold;
+            font-size: 1rem;
+            transition: transform 0.2s, box-shadow 0.2s;
+            border: none;
+            cursor: pointer;
+        }
+        .retry-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 20px rgba(196, 30, 58, 0.4);
+        }
+        .snowflakes {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            overflow: hidden;
+            z-index: -1;
+        }
+        .snowflake {
+            position: absolute;
+            color: #fff;
+            font-size: 1.5rem;
+            opacity: 0.7;
+            animation: fall linear infinite;
+        }
+        @keyframes fall {
+            0% { transform: translateY(-10vh) rotate(0deg); }
+            100% { transform: translateY(110vh) rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="snowflakes" aria-hidden="true">
+        <div class="snowflake" style="left: 10%; animation-duration: 10s; animation-delay: 0s;">❄</div>
+        <div class="snowflake" style="left: 20%; animation-duration: 12s; animation-delay: 2s;">❅</div>
+        <div class="snowflake" style="left: 30%; animation-duration: 8s; animation-delay: 4s;">❆</div>
+        <div class="snowflake" style="left: 50%; animation-duration: 15s; animation-delay: 1s;">❄</div>
+        <div class="snowflake" style="left: 70%; animation-duration: 9s; animation-delay: 3s;">❅</div>
+        <div class="snowflake" style="left: 85%; animation-duration: 11s; animation-delay: 5s;">❆</div>
+    </div>
+    <div class="container">
+        <div class="emoji" role="img" aria-label="Santa">🎅</div>
+        <h1>Ho Ho Ho! You're Offline!</h1>
+        <p>
+            It looks like you've lost your internet connection. 
+            Santa needs the network to share his magical journey with you!
+        </p>
+        <p>
+            Please check your connection and try again.
+        </p>
+        <button class="retry-btn">
+            🔄 Try Again
+        </button>
+    </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            var retryBtn = document.querySelector('.retry-btn');
+            if (retryBtn) {
+                retryBtn.addEventListener('click', function() {
+                    window.location.reload();
+                });
+            }
+        });
+    </script>
+</body>
+</html>
