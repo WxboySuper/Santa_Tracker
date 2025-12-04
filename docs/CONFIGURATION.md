@@ -97,6 +97,44 @@ export FLASK_RUN_HOST="0.0.0.0"  # Listen on all interfaces
 
 ---
 
+#### LOG_LEVEL
+Application logging level. Controls the verbosity of log output.
+
+```bash
+export LOG_LEVEL="INFO"  # DEBUG, INFO, WARNING, ERROR, CRITICAL
+```
+
+**Values:**
+- `DEBUG`: Detailed diagnostic information
+- `INFO`: General operational information (default)
+- `WARNING`: Something unexpected but not an error
+- `ERROR`: A more serious problem
+- `CRITICAL`: A very serious error
+
+**Default:** `INFO`
+
+---
+
+#### JSON_LOGS
+Enable JSON structured logging format for production log aggregators.
+
+```bash
+export JSON_LOGS="True"  # or "False"
+```
+
+**When enabled:**
+- Log output is formatted as JSON objects
+- Each log entry includes: timestamp, name, level, message
+- Compatible with log aggregators like ELK, Splunk, CloudWatch
+
+**When disabled (default):**
+- Human-readable log format
+- Format: `YYYY-MM-DD HH:MM:SS - module_name - LEVEL - message`
+
+**Default:** `False`
+
+---
+
 ## 🚩 Feature Flags
 
 Feature flags allow you to enable or disable specific functionality without code changes.
@@ -428,30 +466,64 @@ os.environ['ADMIN_PASSWORD'] = 'test-password'
 
 ## 📊 Logging Configuration
 
-### Basic Logging
+### Centralized Logging Module
+
+The application uses a centralized logging configuration in `src/logging_config.py`:
+
+```python
+from src.logging_config import configure_logging, get_logger
+
+# Configure logging at application startup (optional, called automatically)
+configure_logging()
+
+# Get a module-specific logger
+logger = get_logger(__name__)
+
+# Use the logger
+logger.info('Application started')
+logger.debug('Debug information: %s', variable)
+logger.warning('Warning message')
+logger.error('Error occurred')
+logger.exception('Error with traceback')  # Use in except blocks
+```
+
+### Environment-Based Configuration
+
+Control logging via environment variables:
+
+```bash
+# Set log level
+export LOG_LEVEL="DEBUG"  # DEBUG, INFO, WARNING, ERROR, CRITICAL
+
+# Enable JSON structured logs for production
+export JSON_LOGS="True"
+```
+
+### Basic Module Logging
 
 ```python
 import logging
 
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.FileHandler('santa-tracker.log'),
-        logging.StreamHandler()
-    ]
-)
+# Get a module-specific logger
+logger = logging.getLogger(__name__)
 
-# Use in app
-app.logger.info('Application started')
+# Log messages at appropriate levels
+logger.debug('Detailed diagnostic info')
+logger.info('General operational info')
+logger.warning('Something unexpected')
+logger.error('A serious problem')
+logger.critical('Application cannot continue')
 ```
 
 ### Production Logging
 
+For production with file rotation:
+
 ```python
+from logging.handlers import RotatingFileHandler
+
 if not app.debug:
-    # File handler
+    # File handler with rotation
     file_handler = RotatingFileHandler(
         'santa-tracker.log',
         maxBytes=10240000,
@@ -466,6 +538,12 @@ if not app.debug:
     app.logger.setLevel(logging.INFO)
     app.logger.info('Santa Tracker startup')
 ```
+
+### Important: No print() in Production Code
+
+**Do not use `print()` statements in `src/` modules.** The CI pipeline will fail if print statements are detected.
+
+Use `logger.info()` or other appropriate log levels instead.
 
 ---
 

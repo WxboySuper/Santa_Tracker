@@ -1,7 +1,10 @@
 import json
+import logging
 import os
 from dataclasses import dataclass
 from typing import Optional
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -136,7 +139,7 @@ def update_santa_location(location):
     else:
         location_name = str(location)
 
-    print(f"Santa's current location updated to: {location_name}")
+    logger.info("Santa's current location updated to: %s", location_name)
 
 
 def load_trial_route_from_json():
