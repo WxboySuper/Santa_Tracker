@@ -1,0 +1,1553 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎅 Route Simulator v2 - Admin Testing</title>
+    <meta name="description" content="Visual route simulation for testing Santa's journey">
+    
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
+    <style>
+        /* ===== CSS RESET & BASE ===== */
+        *, *::before, *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        :root {
+            --primary: #c41e3a;
+            --primary-dark: #a01830;
+            --secondary: #228b22;
+            --secondary-dark: #1a6b1a;
+            --accent: #ffd700;
+            --bg-dark: #1a1a2e;
+            --bg-card: #ffffff;
+            --text-primary: #333333;
+            --text-secondary: #666666;
+            --text-light: #999999;
+            --border: #e0e0e0;
+            --success: #28a745;
+            --warning: #ffc107;
+            --danger: #dc3545;
+            --info: #17a2b8;
+        }
+        
+        html, body {
+            height: 100%;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            font-size: 14px;
+            line-height: 1.5;
+            color: var(--text-primary);
+            background: #f5f5f5;
+        }
+        
+        /* ===== LAYOUT ===== */
+        .app-container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+        
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+            padding: 10px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+        }
+        
+        .header h1 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .header-badge {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 0.7rem;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+        }
+        
+        .header-nav {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .header-nav a {
+            color: white;
+            text-decoration: none;
+            font-size: 0.85rem;
+            opacity: 0.9;
+            transition: opacity 0.2s;
+        }
+        
+        .header-nav a:hover {
+            opacity: 1;
+        }
+        
+        /* Control Bar */
+        .control-bar {
+            background: var(--bg-card);
+            border-bottom: 1px solid var(--border);
+            padding: 12px 20px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            align-items: center;
+            flex-shrink: 0;
+        }
+        
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .control-group label {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            white-space: nowrap;
+        }
+        
+        .control-group select,
+        .control-group input {
+            padding: 6px 10px;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            font-size: 0.85rem;
+            background: white;
+        }
+        
+        .control-group select:focus,
+        .control-group input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 2px rgba(196, 30, 58, 0.1);
+        }
+        
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 14px;
+            border: none;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+        
+        .btn-primary {
+            background: var(--secondary);
+            color: white;
+        }
+        .btn-primary:hover { background: var(--secondary-dark); }
+        .btn-primary:disabled { background: #ccc; cursor: not-allowed; }
+        
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+        .btn-secondary:hover { background: #5a6268; }
+        
+        .btn-danger {
+            background: var(--danger);
+            color: white;
+        }
+        .btn-danger:hover { background: #c82333; }
+        
+        .btn-outline {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+        }
+        .btn-outline:hover { background: #f8f9fa; }
+        
+        .control-divider {
+            width: 1px;
+            height: 24px;
+            background: var(--border);
+            margin: 0 4px;
+        }
+        
+        /* Main Content Area */
+        .main-content {
+            flex: 1;
+            display: flex;
+            overflow: hidden;
+            min-height: 0;
+        }
+        
+        /* Sidebar */
+        .sidebar {
+            width: 320px;
+            background: var(--bg-card);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+        
+        .sidebar-section {
+            border-bottom: 1px solid var(--border);
+        }
+        
+        .sidebar-section:last-child {
+            border-bottom: none;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+        }
+        
+        .sidebar-header {
+            padding: 10px 15px;
+            background: #f8f9fa;
+            font-weight: 600;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .sidebar-content {
+            padding: 12px 15px;
+        }
+        
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+        
+        .stat-item {
+            background: #f8f9fa;
+            padding: 10px 12px;
+            border-radius: 6px;
+            border-left: 3px solid var(--primary);
+        }
+        
+        .stat-item.green { border-left-color: var(--secondary); }
+        .stat-item.blue { border-left-color: var(--info); }
+        .stat-item.gold { border-left-color: var(--accent); }
+        
+        .stat-label {
+            font-size: 0.7rem;
+            color: var(--text-light);
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+            margin-bottom: 2px;
+        }
+        
+        .stat-value {
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+        
+        .stat-value.large {
+            font-size: 1.25rem;
+        }
+        
+        /* Current Status */
+        .current-status {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 12px;
+        }
+        
+        .current-status .status-label {
+            font-size: 0.7rem;
+            opacity: 0.8;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .current-status .status-location {
+            font-size: 1.1rem;
+            font-weight: 700;
+            margin: 4px 0;
+        }
+        
+        .current-status .status-detail {
+            font-size: 0.8rem;
+            opacity: 0.9;
+        }
+        
+        /* Location List */
+        .location-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 0;
+        }
+        
+        .location-item {
+            padding: 10px 15px;
+            border-bottom: 1px solid #f0f0f0;
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            transition: background 0.2s;
+        }
+        
+        .location-item:hover {
+            background: #f8f9fa;
+            cursor: pointer;
+        }
+        
+        .location-item.active {
+            background: #fff3cd;
+            border-left: 3px solid var(--warning);
+        }
+        
+        .location-item.visited {
+            opacity: 0.6;
+        }
+        
+        .location-item.visited .location-icon {
+            color: var(--success);
+        }
+        
+        .location-icon {
+            font-size: 1.2rem;
+            width: 24px;
+            text-align: center;
+            flex-shrink: 0;
+        }
+        
+        .location-info {
+            flex: 1;
+            min-width: 0;
+        }
+        
+        .location-name {
+            font-weight: 600;
+            font-size: 0.9rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .location-time {
+            font-size: 0.75rem;
+            color: var(--text-light);
+        }
+        
+        .location-duration {
+            font-size: 0.7rem;
+            color: var(--info);
+            background: #e3f2fd;
+            padding: 2px 6px;
+            border-radius: 10px;
+            white-space: nowrap;
+        }
+        
+        /* Map Area */
+        .map-container {
+            flex: 1;
+            position: relative;
+            background: #e5e5e5;
+        }
+        
+        #map {
+            width: 100%;
+            height: 100%;
+        }
+        
+        /* Map Overlays */
+        .map-overlay {
+            position: absolute;
+            z-index: 1000;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 10px 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
+        }
+        
+        .map-overlay-time {
+            top: 10px;
+            left: 10px;
+        }
+        
+        .map-overlay-time .sim-time {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary);
+        }
+        
+        .map-overlay-time .sim-date {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+        
+        .map-overlay-progress {
+            bottom: 10px;
+            left: 10px;
+            right: 10px;
+            max-width: 400px;
+        }
+        
+        .progress-bar {
+            height: 8px;
+            background: #e0e0e0;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 6px;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--secondary), var(--primary));
+            border-radius: 4px;
+            transition: width 0.3s ease;
+        }
+        
+        .progress-text {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            display: flex;
+            justify-content: space-between;
+        }
+        
+        /* Status Indicator */
+        .status-indicator {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 8px 14px;
+            border-radius: 20px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
+        }
+        
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #ccc;
+        }
+        
+        .status-dot.stopped { background: #6c757d; }
+        .status-dot.running { background: var(--success); animation: pulse 1.5s infinite; }
+        .status-dot.paused { background: var(--warning); }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .status-text {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+        }
+        
+        /* Toast Notifications */
+        .toast-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .toast {
+            padding: 12px 20px;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            animation: slideIn 0.3s ease;
+        }
+        
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        
+        .toast.success { background: #d4edda; color: #155724; border-left: 4px solid var(--success); }
+        .toast.warning { background: #fff3cd; color: #856404; border-left: 4px solid var(--warning); }
+        .toast.error { background: #f8d7da; color: #721c24; border-left: 4px solid var(--danger); }
+        .toast.info { background: #d1ecf1; color: #0c5460; border-left: 4px solid var(--info); }
+        
+        /* Loading State */
+        .loading-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255, 255, 255, 0.9);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 1001;
+        }
+        
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 15px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* Custom Leaflet Styles */
+        .santa-icon {
+            font-size: 32px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+        
+        .location-popup {
+            min-width: 200px;
+        }
+        
+        .location-popup h4 {
+            margin: 0 0 8px 0;
+            color: var(--primary);
+        }
+        
+        .location-popup p {
+            margin: 4px 0;
+            font-size: 0.85rem;
+        }
+        
+        /* Empty State */
+        .empty-state {
+            padding: 40px 20px;
+            text-align: center;
+            color: var(--text-light);
+        }
+        
+        .empty-state-icon {
+            font-size: 3rem;
+            margin-bottom: 15px;
+        }
+        
+        .empty-state h3 {
+            color: var(--text-secondary);
+            margin-bottom: 10px;
+        }
+        
+        /* Responsive */
+        @media (max-width: 900px) {
+            .sidebar {
+                width: 280px;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .main-content {
+                flex-direction: column;
+            }
+            
+            .sidebar {
+                width: 100%;
+                max-height: 40vh;
+            }
+            
+            .control-bar {
+                padding: 10px;
+            }
+            
+            .control-group label {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="header">
+            <h1>🎅 Route Simulator v2</h1>
+            <nav class="header-nav">
+                <span class="header-badge">ADMIN</span>
+                <a href="{{ url_for('admin') }}">← Back to Dashboard</a>
+            </nav>
+        </header>
+        
+        <!-- Control Bar -->
+        <div class="control-bar">
+            <div class="control-group">
+                <label for="routeSelect">Route:</label>
+                <select id="routeSelect">
+                    <option value="main">Main Route</option>
+                    <option value="trial">Trial Route</option>
+                </select>
+            </div>
+            
+            <div class="control-group">
+                <label for="startTimeInput">Start:</label>
+                <input type="datetime-local" id="startTimeInput" value="2024-12-24T00:00">
+            </div>
+            
+            <div class="control-group">
+                <label for="speedSelect">Speed:</label>
+                <select id="speedSelect">
+                    <option value="1">1× Real-time</option>
+                    <option value="60">60× (1 min = 1 sec)</option>
+                    <option value="300">300× (5 min = 1 sec)</option>
+                    <option value="600">600× (10 min = 1 sec)</option>
+                    <option value="1800">1800× (30 min = 1 sec)</option>
+                    <option value="3600" selected>3600× (1 hr = 1 sec)</option>
+                </select>
+            </div>
+            
+            <div class="control-divider"></div>
+            
+            <button class="btn btn-primary" id="btnLoad" onclick="loadRoute()">
+                📥 Load Route
+            </button>
+            
+            <button class="btn btn-primary" id="btnPlay" onclick="playSimulation()" disabled>
+                ▶️ Play
+            </button>
+            
+            <button class="btn btn-secondary" id="btnPause" onclick="pauseSimulation()" disabled>
+                ⏸️ Pause
+            </button>
+            
+            <button class="btn btn-danger" id="btnStop" onclick="stopSimulation()" disabled>
+                ⏹️ Stop
+            </button>
+            
+            <div class="control-divider"></div>
+            
+            <button class="btn btn-outline" onclick="jumpToLocation()">
+                🎯 Jump to Location
+            </button>
+        </div>
+        
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Sidebar -->
+            <aside class="sidebar">
+                <!-- Route Summary -->
+                <div class="sidebar-section">
+                    <div class="sidebar-header">
+                        📊 Route Summary
+                    </div>
+                    <div class="sidebar-content">
+                        <div class="stats-grid">
+                            <div class="stat-item">
+                                <div class="stat-label">Total Stops</div>
+                                <div class="stat-value" id="statTotalStops">--</div>
+                            </div>
+                            <div class="stat-item green">
+                                <div class="stat-label">Visited</div>
+                                <div class="stat-value" id="statVisited">0</div>
+                            </div>
+                            <div class="stat-item blue">
+                                <div class="stat-label">Duration</div>
+                                <div class="stat-value" id="statDuration">--</div>
+                            </div>
+                            <div class="stat-item gold">
+                                <div class="stat-label">Progress</div>
+                                <div class="stat-value" id="statProgress">0%</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Current Status -->
+                <div class="sidebar-section">
+                    <div class="sidebar-header">
+                        📍 Current Status
+                    </div>
+                    <div class="sidebar-content">
+                        <div class="current-status" id="currentStatusBox">
+                            <div class="status-label">Santa is at</div>
+                            <div class="status-location" id="currentLocationName">Not Started</div>
+                            <div class="status-detail" id="currentLocationDetail">Load a route to begin</div>
+                        </div>
+                        <div class="stats-grid">
+                            <div class="stat-item">
+                                <div class="stat-label">Arrival</div>
+                                <div class="stat-value" id="currentArrival">--:--</div>
+                            </div>
+                            <div class="stat-item green">
+                                <div class="stat-label">Departure</div>
+                                <div class="stat-value" id="currentDeparture">--:--</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Location List -->
+                <div class="sidebar-section">
+                    <div class="sidebar-header">
+                        🗺️ All Locations (<span id="locationCount">0</span>)
+                    </div>
+                    <div class="location-list" id="locationList">
+                        <div class="empty-state">
+                            <div class="empty-state-icon">🎄</div>
+                            <h3>No Route Loaded</h3>
+                            <p>Click "Load Route" to begin</p>
+                        </div>
+                    </div>
+                </div>
+            </aside>
+            
+            <!-- Map -->
+            <div class="map-container">
+                <div id="map"></div>
+                
+                <!-- Time Overlay -->
+                <div class="map-overlay map-overlay-time" id="timeOverlay" style="display: none;">
+                    <div class="sim-time" id="simTimeDisplay">00:00:00</div>
+                    <div class="sim-date" id="simDateDisplay">Dec 24, 2024</div>
+                </div>
+                
+                <!-- Status Indicator -->
+                <div class="status-indicator">
+                    <div class="status-dot stopped" id="statusDot"></div>
+                    <span class="status-text" id="statusText">Stopped</span>
+                </div>
+                
+                <!-- Progress Overlay -->
+                <div class="map-overlay map-overlay-progress" id="progressOverlay" style="display: none;">
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progressFill" style="width: 0%"></div>
+                    </div>
+                    <div class="progress-text">
+                        <span id="progressStops">0 / 0 stops</span>
+                        <span id="progressPercent">0%</span>
+                    </div>
+                </div>
+                
+                <!-- Loading Overlay -->
+                <div class="loading-overlay" id="loadingOverlay" style="display: none;">
+                    <div class="spinner"></div>
+                    <p>Loading route data...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Toast Container -->
+    <div class="toast-container" id="toastContainer"></div>
+    
+    <!-- Scripts -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
+    <script>
+        // ===== GLOBAL STATE =====
+        const state = {
+            route: [],                    // Array of location objects from API
+            normalizedCoords: [],         // Coordinates normalized to avoid date line splits
+            map: null,                    // Leaflet map instance
+            markers: [],                  // Array of location markers
+            routeLine: null,              // Polyline for route (kept for compatibility)
+            routeLines: [],               // Array of polylines (split at antimeridian)
+            santaMarker: null,            // Santa's marker
+            
+            // Simulation state
+            simulationStatus: 'stopped',  // 'stopped', 'running', 'paused'
+            simulationTime: null,         // Current simulation time (Date object)
+            lastRealTime: null,           // Last real timestamp for delta calculation
+            animationFrame: null,         // requestAnimationFrame ID
+            
+            // Current position tracking
+            currentIndex: -1,             // Current location index (-1 = not started)
+            visitedIndices: new Set(),    // Set of visited location indices
+        };
+        
+        // ===== INITIALIZATION =====
+        document.addEventListener('DOMContentLoaded', () => {
+            initMap();
+            checkAdminAuth();
+        });
+        
+        function initMap() {
+            // Center on Pacific Ocean (180° longitude) since Santa's route starts there
+            state.map = L.map('map', {
+                center: [0, -170],  // Center on Pacific near the date line
+                zoom: 2,
+                zoomControl: true,
+                attributionControl: true,
+                worldCopyJump: false,  // Disable to prevent jumping between world copies
+                maxBounds: [[-90, -360], [90, 360]],  // Allow extended longitude range
+                maxBoundsViscosity: 0.5
+            });
+            
+            // Use a cleaner map style
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+                subdomains: 'abcd',
+                maxZoom: 19,
+                noWrap: false  // Allow tile wrapping for continuous map
+            }).addTo(state.map);
+            
+            // Create Santa marker (hidden initially)
+            const santaIcon = L.divIcon({
+                html: '<span class="santa-icon">🎅</span>',
+                className: 'santa-marker-wrapper',
+                iconSize: [40, 40],
+                iconAnchor: [20, 40]
+            });
+            
+            state.santaMarker = L.marker([0, 0], { 
+                icon: santaIcon,
+                zIndexOffset: 1000
+            });
+        }
+        
+        function checkAdminAuth() {
+            const token = sessionStorage.getItem('adminAuthToken');
+            if (!token) {
+                showToast('Admin authentication required. Redirecting...', 'warning');
+                setTimeout(() => {
+                    window.location.href = '/admin';
+                }, 2000);
+            }
+        }
+        
+        // ===== API FUNCTIONS =====
+        async function loadRoute() {
+            const routeType = document.getElementById('routeSelect').value;
+            const startTime = document.getElementById('startTimeInput').value;
+            const token = sessionStorage.getItem('adminAuthToken');
+            
+            if (!token) {
+                showToast('Not authenticated. Please login first.', 'error');
+                return;
+            }
+            
+            showLoading(true);
+            
+            try {
+                const endpoint = routeType === 'trial' 
+                    ? '/api/admin/route/trial/simulate'
+                    : '/api/admin/route/simulate';
+                
+                const response = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ 
+                        start_time: startTime + ':00Z'
+                    })
+                });
+                
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({}));
+                    throw new Error(errorData.error || `HTTP ${response.status}`);
+                }
+                
+                const data = await response.json();
+                
+                if (!data.simulated_route || !Array.isArray(data.simulated_route)) {
+                    throw new Error('Invalid route data received');
+                }
+                
+                if (data.simulated_route.length === 0) {
+                    throw new Error('Route is empty');
+                }
+                
+                // Store route data
+                state.route = data.simulated_route;
+                
+                // Reset simulation state
+                resetSimulationState();
+                
+                // Update UI
+                updateRouteSummary(data.summary);
+                renderLocationList();
+                drawRouteOnMap();
+                
+                // Enable controls
+                document.getElementById('btnPlay').disabled = false;
+                document.getElementById('timeOverlay').style.display = 'block';
+                document.getElementById('progressOverlay').style.display = 'block';
+                
+                // Initialize simulation time to route start
+                state.simulationTime = new Date(state.route[0].arrival_time);
+                updateTimeDisplay();
+                
+                const routeLabel = routeType === 'trial' ? 'Trial route' : 'Main route';
+                showToast(`${routeLabel} loaded: ${state.route.length} locations`, 'success');
+                
+            } catch (error) {
+                console.error('Load route error:', error);
+                showToast(`Failed to load route: ${error.message}`, 'error');
+            } finally {
+                showLoading(false);
+            }
+        }
+        
+        // ===== ROUTE RENDERING =====
+        function drawRouteOnMap() {
+            // Clear existing markers and lines
+            state.markers.forEach(m => state.map.removeLayer(m));
+            state.markers = [];
+            // Remove all route line segments
+            if (state.routeLines) {
+                state.routeLines.forEach(line => state.map.removeLayer(line));
+                state.routeLines = [];
+            }
+            if (state.routeLine) state.map.removeLayer(state.routeLine);
+            state.santaMarker.remove();
+            
+            if (state.route.length === 0) return;
+            
+            // Normalize coordinates to keep them contiguous
+            // This handles the Pacific region where locations can be on either side of -180/180
+            const normalizedCoords = normalizeRouteCoordinates(state.route);
+            
+            // Create single route line with normalized coordinates
+            state.routeLine = L.polyline(normalizedCoords, {
+                color: '#c41e3a',
+                weight: 2,
+                opacity: 0.6,
+                dashArray: '5, 10'
+            }).addTo(state.map);
+            state.routeLines = [state.routeLine];
+            
+            // Create markers for each location using normalized coordinates
+            normalizedCoords.forEach((coord, idx) => {
+                const loc = state.route[idx];
+                const isFirst = idx === 0;
+                const isLast = idx === state.route.length - 1;
+                
+                const marker = L.circleMarker(coord, {
+                    radius: isFirst || isLast ? 8 : 5,
+                    fillColor: isFirst ? '#28a745' : isLast ? '#c41e3a' : '#3498db',
+                    color: '#ffffff',
+                    weight: 2,
+                    fillOpacity: 0.8
+                }).addTo(state.map);
+                
+                // Store normalized longitude for later use
+                marker._normalizedLng = coord[1];
+                
+                // Create popup content
+                const arrivalTime = new Date(loc.arrival_time);
+                const departureTime = new Date(loc.departure_time);
+                
+                marker.bindPopup(`
+                    <div class="location-popup">
+                        <h4>${escapeHtml(loc.location || loc.name)}</h4>
+                        <p><strong>Stop #${idx + 1}</strong></p>
+                        <p>📍 ${loc.latitude.toFixed(4)}, ${loc.longitude.toFixed(4)}</p>
+                        <p>🕐 Arrival: ${arrivalTime.toLocaleTimeString()}</p>
+                        <p>🕐 Departure: ${departureTime.toLocaleTimeString()}</p>
+                        <p>⏱️ Duration: ${loc.stop_duration || calculateDuration(arrivalTime, departureTime)} min</p>
+                        ${loc.fun_facts ? `<p>💡 ${escapeHtml(loc.fun_facts)}</p>` : ''}
+                    </div>
+                `);
+                
+                // Click to jump to this location
+                marker.on('click', () => {
+                    if (state.simulationStatus === 'stopped') {
+                        jumpToLocationIndex(idx);
+                    }
+                });
+                
+                state.markers.push(marker);
+            });
+            
+            // Fit map to route bounds
+            state.map.fitBounds(state.routeLine.getBounds(), { padding: [50, 50] });
+        }
+        
+        function renderLocationList() {
+            const container = document.getElementById('locationList');
+            document.getElementById('locationCount').textContent = state.route.length;
+            
+            if (state.route.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">🎄</div>
+                        <h3>No Route Loaded</h3>
+                        <p>Click "Load Route" to begin</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            container.innerHTML = state.route.map((loc, idx) => {
+                const arrivalTime = new Date(loc.arrival_time);
+                const departureTime = new Date(loc.departure_time);
+                const duration = loc.stop_duration || calculateDuration(arrivalTime, departureTime);
+                const isVisited = state.visitedIndices.has(idx);
+                const isActive = state.currentIndex === idx;
+                
+                return `
+                    <div class="location-item ${isVisited ? 'visited' : ''} ${isActive ? 'active' : ''}" 
+                         data-index="${idx}" onclick="jumpToLocationIndex(${idx})">
+                        <span class="location-icon">${isVisited ? '✅' : isActive ? '🎅' : '📍'}</span>
+                        <div class="location-info">
+                            <div class="location-name">${escapeHtml(loc.location || loc.name)}</div>
+                            <div class="location-time">${arrivalTime.toLocaleTimeString()} - ${departureTime.toLocaleTimeString()}</div>
+                        </div>
+                        <span class="location-duration">${duration}m</span>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        function updateRouteSummary(summary) {
+            if (!summary) return;
+            
+            document.getElementById('statTotalStops').textContent = summary.total_locations || state.route.length;
+            
+            const totalMinutes = summary.total_duration_minutes || 0;
+            const hours = Math.floor(totalMinutes / 60);
+            const minutes = totalMinutes % 60;
+            document.getElementById('statDuration').textContent = `${hours}h ${minutes}m`;
+        }
+        
+        // ===== SIMULATION ENGINE =====
+        function playSimulation() {
+            if (state.route.length === 0) {
+                showToast('No route loaded', 'warning');
+                return;
+            }
+            
+            if (state.simulationStatus === 'paused') {
+                // Resume from pause
+                state.simulationStatus = 'running';
+                state.lastRealTime = performance.now();
+                showToast('Simulation resumed', 'info');
+            } else {
+                // Start fresh
+                state.simulationStatus = 'running';
+                state.simulationTime = new Date(state.route[0].arrival_time);
+                state.lastRealTime = performance.now();
+                state.currentIndex = -1;
+                state.visitedIndices.clear();
+                
+                // Add Santa to map
+                state.santaMarker.addTo(state.map);
+                
+                showToast('Simulation started', 'success');
+            }
+            
+            // Update UI
+            updateStatusIndicator('running');
+            document.getElementById('btnPlay').disabled = true;
+            document.getElementById('btnPause').disabled = false;
+            document.getElementById('btnStop').disabled = false;
+            
+            // Start animation loop
+            runSimulationLoop();
+        }
+        
+        function pauseSimulation() {
+            if (state.simulationStatus !== 'running') return;
+            
+            state.simulationStatus = 'paused';
+            if (state.animationFrame) {
+                cancelAnimationFrame(state.animationFrame);
+                state.animationFrame = null;
+            }
+            
+            updateStatusIndicator('paused');
+            document.getElementById('btnPlay').disabled = false;
+            document.getElementById('btnPause').disabled = true;
+            
+            showToast('Simulation paused', 'info');
+        }
+        
+        function stopSimulation() {
+            state.simulationStatus = 'stopped';
+            if (state.animationFrame) {
+                cancelAnimationFrame(state.animationFrame);
+                state.animationFrame = null;
+            }
+            
+            resetSimulationState();
+            
+            updateStatusIndicator('stopped');
+            document.getElementById('btnPlay').disabled = false;
+            document.getElementById('btnPause').disabled = true;
+            document.getElementById('btnStop').disabled = true;
+            
+            // Reset time display
+            if (state.route.length > 0) {
+                state.simulationTime = new Date(state.route[0].arrival_time);
+                updateTimeDisplay();
+            }
+            
+            showToast('Simulation stopped', 'warning');
+        }
+        
+        function resetSimulationState() {
+            state.currentIndex = -1;
+            state.visitedIndices.clear();
+            state.lastRealTime = null;
+            
+            // Reset marker colors
+            state.markers.forEach((marker, idx) => {
+                const isFirst = idx === 0;
+                const isLast = idx === state.route.length - 1;
+                marker.setStyle({
+                    fillColor: isFirst ? '#28a745' : isLast ? '#c41e3a' : '#3498db',
+                    fillOpacity: 0.8
+                });
+            });
+            
+            // Remove Santa marker
+            state.santaMarker.remove();
+            
+            // Update UI
+            updateCurrentStatus(null);
+            updateProgress();
+            renderLocationList();
+        }
+        
+        function runSimulationLoop() {
+            if (state.simulationStatus !== 'running') return;
+            
+            const now = performance.now();
+            const realDeltaMs = now - state.lastRealTime;
+            state.lastRealTime = now;
+            
+            // Get speed multiplier
+            const speedMultiplier = parseInt(document.getElementById('speedSelect').value);
+            
+            // Advance simulation time
+            // At 1x speed: 1 real second = 1 simulation second
+            // At 60x speed: 1 real second = 60 simulation seconds (1 minute)
+            const simDeltaMs = realDeltaMs * speedMultiplier;
+            state.simulationTime = new Date(state.simulationTime.getTime() + simDeltaMs);
+            
+            // Find current position based on simulation time
+            updateSantaPosition();
+            
+            // Update displays
+            updateTimeDisplay();
+            updateProgress();
+            
+            // Check if simulation is complete
+            const lastLoc = state.route[state.route.length - 1];
+            const endTime = new Date(lastLoc.departure_time);
+            
+            if (state.simulationTime >= endTime) {
+                completeSimulation();
+                return;
+            }
+            
+            // Continue loop
+            state.animationFrame = requestAnimationFrame(runSimulationLoop);
+        }
+        
+        function updateSantaPosition() {
+            const simTime = state.simulationTime.getTime();
+            
+            // Find where Santa should be
+            let santaLat, santaLng;
+            let newCurrentIndex = -1;
+            let santaStatus = 'traveling';
+            
+            for (let i = 0; i < state.route.length; i++) {
+                const loc = state.route[i];
+                const arrivalTime = new Date(loc.arrival_time).getTime();
+                const departureTime = new Date(loc.departure_time).getTime();
+                
+                // Get normalized coordinates for this location
+                const normalizedLng = getNormalizedLng(i);
+                
+                if (simTime < arrivalTime) {
+                    // Santa is traveling TO this location
+                    if (i === 0) {
+                        // Before first stop - place at first location
+                        santaLat = loc.latitude;
+                        santaLng = normalizedLng;
+                        santaStatus = 'waiting';
+                    } else {
+                        // Interpolate between previous location and this one
+                        const prevLoc = state.route[i - 1];
+                        const prevNormalizedLng = getNormalizedLng(i - 1);
+                        const prevDeparture = new Date(prevLoc.departure_time).getTime();
+                        const travelDuration = arrivalTime - prevDeparture;
+                        const elapsed = simTime - prevDeparture;
+                        const progress = Math.max(0, Math.min(1, elapsed / travelDuration));
+                        
+                        // Interpolate using normalized coordinates (already contiguous)
+                        santaLat = prevLoc.latitude + (loc.latitude - prevLoc.latitude) * progress;
+                        santaLng = prevNormalizedLng + (normalizedLng - prevNormalizedLng) * progress;
+                        
+                        santaStatus = 'traveling';
+                        
+                        // Mark previous as visited
+                        if (!state.visitedIndices.has(i - 1)) {
+                            state.visitedIndices.add(i - 1);
+                            markLocationVisited(i - 1);
+                        }
+                    }
+                    newCurrentIndex = i;
+                    break;
+                } else if (simTime >= arrivalTime && simTime <= departureTime) {
+                    // Santa is AT this location
+                    santaLat = loc.latitude;
+                    santaLng = normalizedLng;
+                    santaStatus = 'at_stop';
+                    newCurrentIndex = i;
+                    
+                    // Mark as visited
+                    if (!state.visitedIndices.has(i)) {
+                        state.visitedIndices.add(i);
+                        markLocationVisited(i);
+                    }
+                    break;
+                }
+            }
+            
+            // If we didn't find a position, Santa is past the last stop
+            if (newCurrentIndex === -1) {
+                const lastLoc = state.route[state.route.length - 1];
+                santaLat = lastLoc.latitude;
+                santaLng = getNormalizedLng(state.route.length - 1);
+                newCurrentIndex = state.route.length - 1;
+                santaStatus = 'completed';
+                
+                // Mark last as visited
+                if (!state.visitedIndices.has(state.route.length - 1)) {
+                    state.visitedIndices.add(state.route.length - 1);
+                    markLocationVisited(state.route.length - 1);
+                }
+            }
+            
+            // Update Santa marker position using normalized coordinates
+            if (santaLat !== undefined && santaLng !== undefined) {
+                state.santaMarker.setLatLng([santaLat, santaLng]);
+                
+                // Pan map to follow Santa (smoothly)
+                state.map.panTo([santaLat, santaLng], { animate: true, duration: 0.5 });
+            }
+            
+            // Update current status if changed
+            if (newCurrentIndex !== state.currentIndex) {
+                state.currentIndex = newCurrentIndex;
+                updateCurrentStatus(state.route[newCurrentIndex], santaStatus);
+                updateLocationListHighlight();
+            }
+        }
+        
+        function markLocationVisited(index) {
+            if (index >= 0 && index < state.markers.length) {
+                state.markers[index].setStyle({
+                    fillColor: '#28a745',
+                    fillOpacity: 1
+                });
+            }
+        }
+        
+        function completeSimulation() {
+            state.simulationStatus = 'stopped';
+            if (state.animationFrame) {
+                cancelAnimationFrame(state.animationFrame);
+                state.animationFrame = null;
+            }
+            
+            // Mark all as visited
+            state.route.forEach((_, idx) => {
+                state.visitedIndices.add(idx);
+                markLocationVisited(idx);
+            });
+            
+            updateStatusIndicator('stopped');
+            document.getElementById('btnPlay').disabled = false;
+            document.getElementById('btnPause').disabled = true;
+            document.getElementById('btnStop').disabled = true;
+            
+            updateProgress();
+            renderLocationList();
+            
+            showToast('🎉 Simulation complete! Santa visited all locations.', 'success');
+        }
+        
+        // ===== UI UPDATE FUNCTIONS =====
+        function updateTimeDisplay() {
+            if (!state.simulationTime) return;
+            
+            const timeStr = state.simulationTime.toLocaleTimeString('en-US', {
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: false
+            });
+            
+            const dateStr = state.simulationTime.toLocaleDateString('en-US', {
+                month: 'short',
+                day: 'numeric',
+                year: 'numeric'
+            });
+            
+            document.getElementById('simTimeDisplay').textContent = timeStr;
+            document.getElementById('simDateDisplay').textContent = dateStr;
+        }
+        
+        function updateCurrentStatus(location, status = 'at_stop') {
+            const nameEl = document.getElementById('currentLocationName');
+            const detailEl = document.getElementById('currentLocationDetail');
+            const arrivalEl = document.getElementById('currentArrival');
+            const departureEl = document.getElementById('currentDeparture');
+            
+            if (!location) {
+                nameEl.textContent = 'Not Started';
+                detailEl.textContent = 'Load a route to begin';
+                arrivalEl.textContent = '--:--';
+                departureEl.textContent = '--:--';
+                return;
+            }
+            
+            nameEl.textContent = location.location || location.name;
+            
+            if (status === 'traveling') {
+                detailEl.textContent = `🛷 Traveling to this location...`;
+            } else if (status === 'at_stop') {
+                detailEl.textContent = `✨ Delivering presents!`;
+            } else if (status === 'waiting') {
+                detailEl.textContent = `⏳ Waiting to start journey`;
+            } else if (status === 'completed') {
+                detailEl.textContent = `🎉 Journey complete!`;
+            }
+            
+            const arrivalTime = new Date(location.arrival_time);
+            const departureTime = new Date(location.departure_time);
+            
+            arrivalEl.textContent = arrivalTime.toLocaleTimeString('en-US', {
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: false
+            });
+            
+            departureEl.textContent = departureTime.toLocaleTimeString('en-US', {
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: false
+            });
+        }
+        
+        function updateProgress() {
+            const total = state.route.length;
+            const visited = state.visitedIndices.size;
+            const percent = total > 0 ? Math.round((visited / total) * 100) : 0;
+            
+            document.getElementById('statVisited').textContent = visited;
+            document.getElementById('statProgress').textContent = `${percent}%`;
+            document.getElementById('progressFill').style.width = `${percent}%`;
+            document.getElementById('progressStops').textContent = `${visited} / ${total} stops`;
+            document.getElementById('progressPercent').textContent = `${percent}%`;
+        }
+        
+        function updateStatusIndicator(status) {
+            const dot = document.getElementById('statusDot');
+            const text = document.getElementById('statusText');
+            
+            dot.className = 'status-dot ' + status;
+            
+            switch (status) {
+                case 'running':
+                    text.textContent = 'Running';
+                    break;
+                case 'paused':
+                    text.textContent = 'Paused';
+                    break;
+                default:
+                    text.textContent = 'Stopped';
+            }
+        }
+        
+        function updateLocationListHighlight() {
+            const items = document.querySelectorAll('.location-item');
+            items.forEach((item, idx) => {
+                const isVisited = state.visitedIndices.has(idx);
+                const isActive = state.currentIndex === idx;
+                
+                item.classList.toggle('visited', isVisited);
+                item.classList.toggle('active', isActive);
+                
+                const icon = item.querySelector('.location-icon');
+                if (icon) {
+                    icon.textContent = isVisited ? '✅' : isActive ? '🎅' : '📍';
+                }
+            });
+            
+            // Scroll active item into view
+            const activeItem = document.querySelector('.location-item.active');
+            if (activeItem) {
+                activeItem.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
+        }
+        
+        // ===== UTILITY FUNCTIONS =====
+        function jumpToLocation() {
+            if (state.route.length === 0) {
+                showToast('No route loaded', 'warning');
+                return;
+            }
+            
+            const locationName = prompt('Enter location name or number (1-' + state.route.length + '):');
+            if (!locationName) return;
+            
+            // Try to parse as number
+            const num = parseInt(locationName);
+            if (!isNaN(num) && num >= 1 && num <= state.route.length) {
+                jumpToLocationIndex(num - 1);
+                return;
+            }
+            
+            // Search by name
+            const searchLower = locationName.toLowerCase();
+            const idx = state.route.findIndex(loc => 
+                (loc.location || loc.name).toLowerCase().includes(searchLower)
+            );
+            
+            if (idx !== -1) {
+                jumpToLocationIndex(idx);
+            } else {
+                showToast('Location not found', 'warning');
+            }
+        }
+        
+        function jumpToLocationIndex(index) {
+            if (index < 0 || index >= state.route.length) return;
+            
+            const loc = state.route[index];
+            const normalizedLng = getNormalizedLng(index);
+            
+            // Center map on location using normalized coordinates
+            state.map.flyTo([loc.latitude, normalizedLng], 10, { duration: 1 });
+            
+            // Open popup
+            state.markers[index].openPopup();
+            
+            // If simulation is stopped, set time to this location's arrival
+            if (state.simulationStatus === 'stopped') {
+                state.simulationTime = new Date(loc.arrival_time);
+                updateTimeDisplay();
+                updateCurrentStatus(loc, 'at_stop');
+                
+                // Highlight in list
+                state.currentIndex = index;
+                updateLocationListHighlight();
+            }
+        }
+        
+        function showLoading(show) {
+            document.getElementById('loadingOverlay').style.display = show ? 'flex' : 'none';
+        }
+        
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.textContent = message;
+            container.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.style.animation = 'slideIn 0.3s ease reverse';
+                setTimeout(() => toast.remove(), 300);
+            }, 4000);
+        }
+        
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        function calculateDuration(start, end) {
+            return Math.round((end - start) / 60000);
+        }
+        
+        /**
+         * Normalize route coordinates so they're all contiguous on the map.
+         * This handles the International Date Line issue where locations can be
+         * on either side of -180/180 but should appear together.
+         * 
+         * The algorithm shifts longitudes to minimize jumps between consecutive points.
+         */
+        function normalizeRouteCoordinates(route) {
+            if (!route || route.length === 0) return [];
+            
+            const normalized = [];
+            let prevLng = null;
+            
+            for (let i = 0; i < route.length; i++) {
+                const loc = route[i];
+                let lng = loc.longitude;
+                
+                if (prevLng !== null) {
+                    // Calculate the shortest path to this longitude
+                    let diff = lng - prevLng;
+                    
+                    // If the difference is more than 180, we're going the long way
+                    // Adjust to go the short way instead
+                    while (diff > 180) {
+                        lng -= 360;
+                        diff = lng - prevLng;
+                    }
+                    while (diff < -180) {
+                        lng += 360;
+                        diff = lng - prevLng;
+                    }
+                }
+                
+                normalized.push([loc.latitude, lng]);
+                prevLng = lng;
+            }
+            
+            // Store the normalized coordinates for use in animation
+            state.normalizedCoords = normalized;
+            
+            return normalized;
+        }
+        
+        /**
+         * Get the normalized longitude for a location index.
+         * Falls back to original longitude if normalization hasn't been done.
+         */
+        function getNormalizedLng(index) {
+            if (state.normalizedCoords && state.normalizedCoords[index]) {
+                return state.normalizedCoords[index][1];
+            }
+            return state.route[index].longitude;
+        }
+    </script>
+</body>
+</html>

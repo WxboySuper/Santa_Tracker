@@ -331,11 +331,10 @@
             
             <label for="speedMultiplier">Speed:</label>
             <select id="speedMultiplier">
-                <option value="1">1x (Slowest - Watch every stop)</option>
-                <option value="60" selected>60x (Recommended - Smooth preview)</option>
-                <option value="120">120x (Fast preview)</option>
-                <option value="300">300x (Very fast)</option>
-                <option value="600">600x (Ultra fast)</option>
+                <option value="1" selected>1x (Recommended)</option>
+                <option value="2">2x</option>
+                <option value="5">5x</option>
+                <option value="10">10x</option>
             </select>
             
             <button class="btn btn-primary" onclick="runSimulation()">▶️ Run Simulation</button>
@@ -442,14 +441,21 @@
     <!-- Scripts -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/Leaflet.markercluster.js"></script>
+    <script src="https://unpkg.com/leaflet-moving-marker/MovingMarker.min.js"></script>
     <script>
         // Global variables
         let map;
         let simulatedRoute = [];
+        // currentLocationIndex tracks which location to use for "Upcoming Stops" display
+        // When at_stop: set to current stop index
+        // When traveling: set to destination index (so upcoming shows where Santa is headed)
         let currentLocationIndex = 0;
         let simulationInterval;
         let isPaused = false;
         let santaMarker;
+        let santaIcon;
+        let movingMarker = null;
+        let lastTravelSegment = { fromIndex: null, toIndex: null };
         let routeLine;
         let markers = [];
         let visitedMarkers = [];
@@ -472,8 +478,8 @@
                 maxZoom: 18
             }).addTo(map);
 
-            // Create custom Santa icon
-            const santaIcon = L.divIcon({
+            // Create custom Santa icon (exposed globally so MovingMarker can reuse it)
+            santaIcon = L.divIcon({
                 html: '<div style="font-size: 32px;">🎅</div>',
                 className: 'santa-marker',
                 iconSize: [32, 32],
@@ -482,6 +488,54 @@
 
             santaMarker = L.marker([0, 0], { icon: santaIcon }).addTo(map);
             santaMarker.setOpacity(0);
+        }
+
+        // Stop and remove any active MovingMarker
+        function stopMovingMarker() {
+            if (movingMarker) {
+                try { movingMarker.stop(); } catch (e) { /* ignore */ }
+                try { map.removeLayer(movingMarker); } catch (e) { /* ignore */ }
+                movingMarker = null;
+            }
+        }
+
+        // Start a MovingMarker from `fromLatLng` to `toLatLng` over `realDurationMs` milliseconds
+        function startMovingMarker(fromLatLng, toLatLng, realDurationMs) {
+            stopMovingMarker();
+            // Ensure at least a minimal duration so plugin doesn't instantly place marker
+            const dur = Math.max(20, Math.round(realDurationMs));
+            try {
+                movingMarker = L.Marker.movingMarker([
+                    [fromLatLng.lat || fromLatLng[0], fromLatLng.lng || fromLatLng[1]],
+                    [toLatLng.lat || toLatLng[0], toLatLng.lng || toLatLng[1]]
+                ], [dur], { icon: santaIcon, autostart: true });
+                movingMarker.addTo(map);
+
+                // Hide stationary marker while moving
+                if (santaMarker) santaMarker.setOpacity(0);
+
+                // Keep the map centered on the moving marker with a short animated pan for smoothness
+                // Pan duration is intentionally short so the camera tracks smoothly without stuttering.
+                movingMarker.on('move', function (e) {
+                    if (e && e.latlng) map.panTo(e.latlng, { animate: true });
+                });
+
+                movingMarker.on('end', function () {
+                    if (!movingMarker) return;
+                    const lastLatLng = movingMarker.getLatLng();
+                    stopMovingMarker();
+                    if (santaMarker) {
+                        santaMarker.setLatLng(lastLatLng);
+                        santaMarker.setOpacity(1);
+                    }
+                });
+            } catch (err) {
+                // Fallback: directly set position if MovingMarker fails for any reason
+                if (santaMarker) {
+                    santaMarker.setLatLng([toLatLng.lat || toLatLng[0], toLatLng.lng || toLatLng[1]]);
+                    santaMarker.setOpacity(1);
+                }
+            }
         }
 
         // Show alert
@@ -700,26 +754,132 @@
                     });
                 });
                 
+                // Auto-zoom to Santa's starting location
+                const firstLoc = simulatedRoute[0];
+                santaMarker.setLatLng([firstLoc.latitude, firstLoc.longitude]);
+                santaMarker.setOpacity(1);
+                // Use animate:true and a named duration so we can wait for the animation to finish
+                const flyDuration = 1.5; // seconds
+                map.flyTo([firstLoc.latitude, firstLoc.longitude], 12, {
+                    animate: true,
+                    duration: flyDuration,
+                    easeLinearity: 0.25
+                });
+                
                 showAlert('Starting simulation...', 'success');
             }
 
             document.getElementById('simulationStatus').style.display = 'block';
-            
+
+            // Start the update loop. If this is a fresh start, delay starting until after the
+            // flyTo animation completes so the zoom change is not interrupted by frequent panTo calls.
+            if (isPaused) {
+                // resumed from pause -> start immediately
+                startSimulationUpdates();
+            } else {
+                // fresh start -> wait for flyDuration then begin updates
+                setTimeout(() => startSimulationUpdates(), Math.round((typeof flyDuration !== 'undefined' ? flyDuration : 1.5) * 1000) + 50);
+            }
+        }
+
+        // Helper to start the update interval
+        function startSimulationUpdates() {
+            if (simulationInterval) clearInterval(simulationInterval);
             // Update at 30 FPS for smooth animation
             const updateInterval = 1000 / 30; // 33.3ms per frame
-            
+            lastUpdateTime = Date.now();
             simulationInterval = setInterval(() => {
                 updateSimulation();
             }, updateInterval);
+        }
+
+        // Find the correct segment based on simulation time
+        // Returns { fromIndex, toIndex, progress, status } where status is 'traveling', 'at_stop', or 'completed'
+        function findCurrentSegment() {
+            const simTime = currentSimulationTime.getTime();
+            
+            // Check if before first location
+            const firstArrival = new Date(simulatedRoute[0].arrival_time).getTime();
+            if (simTime < firstArrival) {
+                return {
+                    fromIndex: -1,
+                    toIndex: 0,
+                    progress: 0,
+                    status: 'traveling'
+                };
+            }
+            
+            // Find which segment we're in
+            for (let i = 0; i < simulatedRoute.length; i++) {
+                const loc = simulatedRoute[i];
+                const arrivalTime = new Date(loc.arrival_time).getTime();
+                const departureTime = new Date(loc.departure_time).getTime();
+                
+                // At this stop
+                if (simTime >= arrivalTime && simTime < departureTime) {
+                    return {
+                        fromIndex: i,
+                        toIndex: i,
+                        progress: 1,
+                        status: 'at_stop',
+                        stopProgress: (simTime - arrivalTime) / (departureTime - arrivalTime)
+                    };
+                }
+                
+                // Traveling to next location
+                if (i < simulatedRoute.length - 1) {
+                    const nextLoc = simulatedRoute[i + 1];
+                    const nextArrival = new Date(nextLoc.arrival_time).getTime();
+                    
+                    if (simTime >= departureTime && simTime < nextArrival) {
+                        const travelDuration = nextArrival - departureTime;
+                        const elapsed = simTime - departureTime;
+                        const progress = travelDuration > 0 ? Math.min(1, elapsed / travelDuration) : 1;
+                        
+                        return {
+                            fromIndex: i,
+                            toIndex: i + 1,
+                            progress: progress,
+                            status: 'traveling'
+                        };
+                    }
+                }
+            }
+            
+            // Past the last location - journey complete
+            const lastLoc = simulatedRoute[simulatedRoute.length - 1];
+            const lastDeparture = new Date(lastLoc.departure_time).getTime();
+            
+            if (simTime >= lastDeparture) {
+                return {
+                    fromIndex: simulatedRoute.length - 1,
+                    toIndex: simulatedRoute.length - 1,
+                    progress: 1,
+                    status: 'completed'
+                };
+            }
+            
+            // Fallback - shouldn't reach here, log for debugging
+            console.warn('findCurrentSegment: Unexpected state - simulation time does not match any segment', {
+                simTime: new Date(simTime).toISOString(),
+                routeLength: simulatedRoute.length
+            });
+            return {
+                fromIndex: 0,
+                toIndex: 0,
+                progress: 0,
+                status: 'at_stop',
+                stopProgress: 0
+            };
         }
 
         // Main simulation update function
         function updateSimulation() {
             const speedMultiplier = parseInt(document.getElementById('speedMultiplier').value);
             
-            // Apply fantasy speed: multiply by an additional base speed factor
-            // This makes travel visible but not too slow
-            // Base speed of 120x means even at "1x" setting, it runs at 2 hours per minute (enjoyable pace)
+            // baseFantasySpeed represents Santa's magical travel speed in the fantasy world
+            // This is the speed Santa must travel at to visit all locations in ~24 hours
+            // speedMultiplier allows users to speed up/slow down the simulator view
             const baseFantasySpeed = 120;
             const effectiveSpeed = speedMultiplier * baseFantasySpeed;
             
@@ -730,112 +890,139 @@
             lastUpdateTime = now;
             currentSimulationTime = new Date(currentSimulationTime.getTime() + simTimeDelta);
             
-            // Check if simulation is complete
-            if (currentLocationIndex >= simulatedRoute.length) {
+            // Find where Santa should be based on current simulation time
+            const segment = findCurrentSegment();
+            
+            // Handle completion
+            if (segment.status === 'completed') {
+                const lastLoc = simulatedRoute[simulatedRoute.length - 1];
+                // Stop any in-progress MovingMarker and ensure stationary marker is shown
+                stopMovingMarker();
+                // Make sure Santa is at the final destination
+                santaMarker.setLatLng([lastLoc.latitude, lastLoc.longitude]);
+                santaMarker.setOpacity(1);
+                map.panTo([lastLoc.latitude, lastLoc.longitude]);
+                
+                // Mark all locations as visited
+                markers.forEach((marker, idx) => {
+                    marker.setStyle({
+                        fillColor: '#27ae60',
+                        color: '#229954'
+                    });
+                });
+                
+                // Update display
+                document.getElementById('currentLocation').textContent = `Journey Complete! 🎄`;
+                document.getElementById('locationsVisited').textContent = simulatedRoute.length;
+                document.getElementById('simulationTime').textContent = currentSimulationTime.toLocaleString();
+                document.getElementById('progress').textContent = '100%';
+                
                 stopSimulation();
-                showAlert('Simulation completed!', 'success');
+                showAlert('Simulation completed! Santa has finished his journey! 🎅', 'success');
                 return;
             }
             
-            const currentLoc = simulatedRoute[currentLocationIndex];
-            const arrivalTime = new Date(currentLoc.arrival_time);
-            const departureTime = new Date(currentLoc.departure_time);
+            // Mark visited locations (only update markers that haven't been marked yet)
+            for (let i = 0; i <= segment.fromIndex && i < markers.length; i++) {
+                if (!visitedMarkers[i]) {
+                    markers[i].setStyle({
+                        fillColor: '#27ae60',
+                        color: '#229954'
+                    });
+                    visitedMarkers[i] = true;
+                }
+            }
             
-            // Determine current state
-            if (currentSimulationTime < arrivalTime) {
-                // Traveling to location
-                if (simulationState !== 'traveling') {
-                    simulationState = 'traveling';
-                    // Calculate travel start location
-                    if (currentLocationIndex > 0) {
-                        const prevLoc = simulatedRoute[currentLocationIndex - 1];
-                        travelStartLocation = {
-                            latitude: prevLoc.latitude,
-                            longitude: prevLoc.longitude
-                        };
-                    } else {
-                        travelStartLocation = {
-                            latitude: currentLoc.latitude,
-                            longitude: currentLoc.longitude
-                        };
-                    }
-                }
-                
-                // Calculate travel progress (0 to 1)
-                const travelStartTime = currentLocationIndex > 0 
-                    ? new Date(simulatedRoute[currentLocationIndex - 1].departure_time)
-                    : new Date(arrivalTime.getTime() - 10 * 60 * 1000); // 10 min before if first location
-                
-                const totalTravelTime = arrivalTime - travelStartTime;
-                const elapsedTravelTime = currentSimulationTime - travelStartTime;
-                travelProgress = Math.max(0, Math.min(1, elapsedTravelTime / totalTravelTime));
-                
-                // Interpolate Santa's position
-                const startLat = travelStartLocation.latitude;
-                const startLng = travelStartLocation.longitude;
-                const endLat = currentLoc.latitude;
-                const endLng = currentLoc.longitude;
-                
-                const currentLat = startLat + (endLat - startLat) * travelProgress;
-                const currentLng = startLng + (endLng - startLng) * travelProgress;
-                
-                santaMarker.setLatLng([currentLat, currentLng]);
+            if (segment.status === 'at_stop') {
+                // Santa is at a location
+                const loc = simulatedRoute[segment.fromIndex];
+                // Ensure any moving marker is stopped before showing stationary Santa
+                stopMovingMarker();
+
+                santaMarker.setLatLng([loc.latitude, loc.longitude]);
                 santaMarker.setOpacity(1);
-                map.panTo([currentLat, currentLng]);
-                
-                // Update status
-                document.getElementById('currentLocation').textContent = `Traveling to ${currentLoc.name}`;
-                document.getElementById('locationsVisited').textContent = currentLocationIndex;
-                
-            } else if (currentSimulationTime >= arrivalTime && currentSimulationTime < departureTime) {
-                // At stop
-                if (simulationState !== 'at_stop') {
-                    simulationState = 'at_stop';
-                    
-                    // Santa has arrived - update marker
-                    santaMarker.setLatLng([currentLoc.latitude, currentLoc.longitude]);
-                    santaMarker.setOpacity(1);
-                    map.panTo([currentLoc.latitude, currentLoc.longitude]);
-                    
-                    // Mark location as visited
-                    if (markers[currentLocationIndex]) {
-                        markers[currentLocationIndex].setStyle({
-                            fillColor: '#27ae60',
-                            color: '#229954'
-                        });
-                    }
-                }
+                map.panTo([loc.latitude, loc.longitude]);
                 
                 // Update status showing stop duration
-                const stopDuration = currentLoc.stop_duration || 0;
-                const timeAtStop = (currentSimulationTime - arrivalTime) / 1000 / 60; // minutes
-                const remainingStopTime = Math.max(0, stopDuration - timeAtStop);
+                const stopDuration = loc.stop_duration || 0;
+                const remainingStopTime = Math.max(0, stopDuration * (1 - segment.stopProgress));
                 
                 if (stopDuration > 0) {
                     document.getElementById('currentLocation').textContent = 
-                        `At ${currentLoc.name} (${Math.ceil(remainingStopTime)} min remaining)`;
+                        `At ${loc.name} (${Math.ceil(remainingStopTime)} min remaining)`;
                 } else {
-                    document.getElementById('currentLocation').textContent = `At ${currentLoc.name} (Touch and go)`;
+                    document.getElementById('currentLocation').textContent = `At ${loc.name} (Touch and go)`;
                 }
-                document.getElementById('locationsVisited').textContent = currentLocationIndex + 1;
+                document.getElementById('locationsVisited').textContent = segment.fromIndex + 1;
+                currentLocationIndex = segment.fromIndex;
                 
-            } else {
-                // Departed - move to next location
-                currentLocationIndex++;
-                if (currentLocationIndex < simulatedRoute.length) {
-                    simulationState = 'traveling';
-                    travelStartLocation = {
-                        latitude: currentLoc.latitude,
-                        longitude: currentLoc.longitude
-                    };
-                    currentTargetLocation = simulatedRoute[currentLocationIndex];
+            } else if (segment.status === 'traveling') {
+                // Santa is traveling between locations — use MovingMarker for smooth, framerate-adaptive motion
+
+                if (segment.fromIndex < 0) {
+                    // Before first location - Santa is preparing at the first stop
+                    const firstLoc = simulatedRoute[0];
+                    stopMovingMarker();
+                    santaMarker.setLatLng([firstLoc.latitude, firstLoc.longitude]);
+                    santaMarker.setOpacity(1);
+                    map.panTo([firstLoc.latitude, firstLoc.longitude]);
+
+                    document.getElementById('currentLocation').textContent = `Preparing at ${firstLoc.name}`;
+                    document.getElementById('locationsVisited').textContent = '0';
+                    currentLocationIndex = 0;
+                    lastTravelSegment = { fromIndex: null, toIndex: null };
+                } else {
+                    // Traveling between two locations
+                    const fromIdx = segment.fromIndex;
+                    const toIdx = segment.toIndex;
+                    const fromLoc = simulatedRoute[fromIdx];
+                    const toLoc = simulatedRoute[toIdx];
+
+                    // If this is a new travel leg, start a MovingMarker for the remaining travel time
+                    if (lastTravelSegment.fromIndex !== fromIdx || lastTravelSegment.toIndex !== toIdx) {
+                        lastTravelSegment.fromIndex = fromIdx;
+                        lastTravelSegment.toIndex = toIdx;
+
+                        // Compute current start position (may be partway between from->to)
+                        const t = Math.max(0, Math.min(1, segment.progress || 0));
+                        const startLat = fromLoc.latitude + (toLoc.latitude - fromLoc.latitude) * t;
+                        const startLng = fromLoc.longitude + (toLoc.longitude - fromLoc.longitude) * t;
+                        const startLatLng = L.latLng(startLat, startLng);
+                        const endLatLng = L.latLng(toLoc.latitude, toLoc.longitude);
+
+                        // Remaining simulated milliseconds until arrival
+                        const remainingSimMs = new Date(toLoc.arrival_time).getTime() - currentSimulationTime.getTime();
+                        const remainingRealMs = Math.max(20, remainingSimMs / effectiveSpeed);
+
+                        // Pan the map to the current start position smoothly, then start moving marker
+                        try { map.panTo(startLatLng, { animate: true }); } catch (e) { /* ignore */ }
+                        startMovingMarker(startLatLng, endLatLng, remainingRealMs);
+                    }
+
+                    // Update status UI while MovingMarker handles the visual movement
+                    const progressPct = Math.round(segment.progress * 100);
+                    document.getElementById('currentLocation').textContent = `Traveling to ${toLoc.name} (${progressPct}%)`;
+                    document.getElementById('locationsVisited').textContent = Math.max(0, fromIdx + 1);
+                    currentLocationIndex = toIdx;
                 }
             }
             
             // Update common UI elements
             document.getElementById('simulationTime').textContent = currentSimulationTime.toLocaleString();
-            document.getElementById('progress').textContent = 
-                Math.round((currentLocationIndex / simulatedRoute.length) * 100) + '%';
+            
+            // Calculate progress including partial travel between locations
+            let overallProgress;
+            if (segment.status === 'completed') {
+                overallProgress = 100;
+            } else if (segment.status === 'at_stop') {
+                overallProgress = ((segment.fromIndex + 1) / simulatedRoute.length) * 100;
+            } else {
+                // Traveling: interpolate between fromIndex and toIndex based on segment.progress
+                const baseProgress = (segment.fromIndex + 1) / simulatedRoute.length;
+                const nextProgress = (segment.toIndex + 1) / simulatedRoute.length;
+                overallProgress = (baseProgress + (nextProgress - baseProgress) * segment.progress) * 100;
+            }
+            document.getElementById('progress').textContent = Math.round(overallProgress) + '%';
             
             updateUpcomingLocations();
         }
@@ -855,6 +1042,8 @@
                 clearInterval(simulationInterval);
                 simulationInterval = null;
             }
+            // stop marker animation if running
+            stopMovingMarker();
             isPaused = false;
             document.getElementById('simulationStatus').style.display = 'none';
             showAlert('Simulation stopped', 'warning');
@@ -872,13 +1061,14 @@
             
             santaMarker.setOpacity(0);
             
-            // Reset marker colors
+            // Reset marker colors and visited tracking
             markers.forEach(m => {
                 m.setStyle({
                     fillColor: '#3498db',
                     color: '#2980b9'
                 });
             });
+            visitedMarkers = [];
             
             // Reset status display
             document.getElementById('currentLocation').textContent = '-';
@@ -890,6 +1080,9 @@
                 map.fitBounds(routeLine.getBounds(), { padding: [50, 50] });
                 updateUpcomingLocations();
             }
+
+            // make sure any moving marker is removed
+            stopMovingMarker();
             
             showAlert('Simulation reset', 'success');
         }
