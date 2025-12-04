@@ -241,6 +241,12 @@ def advent():
 @app.route("/admin/route-simulator")
 def route_simulator():
     """Admin-only visual route simulator for testing (auth checked in JavaScript)."""
+    return render_template("route_simulator_v2.html")
+
+
+@app.route("/admin/route-simulator-legacy")
+def route_simulator_legacy():
+    """Legacy route simulator (deprecated)."""
     return render_template("route_simulator.html")
 
 
