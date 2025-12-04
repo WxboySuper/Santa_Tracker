@@ -5,9 +5,11 @@ on:
     types:
       - labeled
       - unlabeled
+      - ready_for_review
 
 permissions:
   pull-requests: write
+  issues: write
 
 jobs:
   label_actions:
@@ -16,6 +18,13 @@ jobs:
     steps:
     - name: Check out repository
       uses: actions/checkout@v4
+
+    - name: Add "review" label when PR marked ready for review
+      if: github.event.action == 'ready_for_review'
+      uses: actions-ecosystem/action-add-labels@v1
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        labels: review
 
     - name: Send message on label addition
       if: github.event.action == 'labeled' && github.event.label.name == 'halt-rabbit-review'
