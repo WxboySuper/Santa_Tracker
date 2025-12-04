@@ -706,8 +706,11 @@
                 const firstLoc = simulatedRoute[0];
                 santaMarker.setLatLng([firstLoc.latitude, firstLoc.longitude]);
                 santaMarker.setOpacity(1);
-                map.flyTo([firstLoc.latitude, firstLoc.longitude], 6, {
-                    duration: 1.5,
+                // Use animate:true and a named duration so we can wait for the animation to finish
+                const flyDuration = 1.5; // seconds
+                map.flyTo([firstLoc.latitude, firstLoc.longitude], 12, {
+                    animate: true,
+                    duration: flyDuration,
                     easeLinearity: 0.25
                 });
                 
@@ -715,10 +718,24 @@
             }
 
             document.getElementById('simulationStatus').style.display = 'block';
-            
+
+            // Start the update loop. If this is a fresh start, delay starting until after the
+            // flyTo animation completes so the zoom change is not interrupted by frequent panTo calls.
+            if (isPaused) {
+                // resumed from pause -> start immediately
+                startSimulationUpdates();
+            } else {
+                // fresh start -> wait for flyDuration then begin updates
+                setTimeout(() => startSimulationUpdates(), Math.round((typeof flyDuration !== 'undefined' ? flyDuration : 1.5) * 1000) + 50);
+            }
+        }
+
+        // Helper to start the update interval
+        function startSimulationUpdates() {
+            if (simulationInterval) clearInterval(simulationInterval);
             // Update at 30 FPS for smooth animation
             const updateInterval = 1000 / 30; // 33.3ms per frame
-            
+            lastUpdateTime = Date.now();
             simulationInterval = setInterval(() => {
                 updateSimulation();
             }, updateInterval);
