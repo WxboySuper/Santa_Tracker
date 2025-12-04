@@ -929,9 +929,13 @@
                     const currentLat = startLat + (endLat - startLat) * segment.progress;
                     const currentLng = startLng + (endLng - startLng) * segment.progress;
                     
+                    // Update Santa marker position
                     santaMarker.setLatLng([currentLat, currentLng]);
                     santaMarker.setOpacity(1);
-                    map.panTo([currentLat, currentLng]);
+                    
+                    // Use setView without animation to keep camera synchronized with Santa
+                    // panTo has animation that gets out of sync with frequent marker updates
+                    map.setView([currentLat, currentLng], map.getZoom(), { animate: false });
                 
                     // Update status
                     const progressPct = Math.round(segment.progress * 100);
