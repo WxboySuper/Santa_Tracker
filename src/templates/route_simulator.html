@@ -331,7 +331,7 @@
             
             <label for="speedMultiplier">Speed:</label>
             <select id="speedMultiplier">
-                <option value="1" selected>1x</option>
+                <option value="1" selected>1x (Recommended)</option>
                 <option value="2">2x</option>
                 <option value="5">5x</option>
                 <option value="10">10x</option>
@@ -851,12 +851,15 @@
                 return;
             }
             
-            // Mark all visited locations
+            // Mark visited locations (only update markers that haven't been marked yet)
             for (let i = 0; i <= segment.fromIndex && i < markers.length; i++) {
-                markers[i].setStyle({
-                    fillColor: '#27ae60',
-                    color: '#229954'
-                });
+                if (!visitedMarkers[i]) {
+                    markers[i].setStyle({
+                        fillColor: '#27ae60',
+                        color: '#229954'
+                    });
+                    visitedMarkers[i] = true;
+                }
             }
             
             if (segment.status === 'at_stop') {
@@ -922,8 +925,20 @@
             
             // Update common UI elements
             document.getElementById('simulationTime').textContent = currentSimulationTime.toLocaleString();
-            document.getElementById('progress').textContent = 
-                Math.round(((segment.fromIndex + 1) / simulatedRoute.length) * 100) + '%';
+            
+            // Calculate progress including partial travel between locations
+            let overallProgress;
+            if (segment.status === 'completed') {
+                overallProgress = 100;
+            } else if (segment.status === 'at_stop') {
+                overallProgress = ((segment.fromIndex + 1) / simulatedRoute.length) * 100;
+            } else {
+                // Traveling: interpolate between fromIndex and toIndex based on segment.progress
+                const baseProgress = (segment.fromIndex + 1) / simulatedRoute.length;
+                const nextProgress = (segment.toIndex + 1) / simulatedRoute.length;
+                overallProgress = (baseProgress + (nextProgress - baseProgress) * segment.progress) * 100;
+            }
+            document.getElementById('progress').textContent = Math.round(overallProgress) + '%';
             
             updateUpcomingLocations();
         }
@@ -960,13 +975,14 @@
             
             santaMarker.setOpacity(0);
             
-            // Reset marker colors
+            // Reset marker colors and visited tracking
             markers.forEach(m => {
                 m.setStyle({
                     fillColor: '#3498db',
                     color: '#2980b9'
                 });
             });
+            visitedMarkers = [];
             
             // Reset status display
             document.getElementById('currentLocation').textContent = '-';
