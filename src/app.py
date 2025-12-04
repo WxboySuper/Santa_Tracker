@@ -1,3 +1,4 @@
+import json
 import logging
 import os
 import secrets
@@ -272,9 +273,9 @@ def admin_login():
         )
 
         return jsonify({"token": session_token}), 200
-    except Exception:
-        logger.exception("Login failed: Unexpected error during login")
-        return jsonify({"error": "Internal server error"}), 500
+    except (TypeError, ValueError) as e:
+        logger.warning("Login failed: Invalid data format - %s", str(e))
+        return jsonify({"error": "Invalid data format"}), 400
 
 
 @app.route("/index")
@@ -303,7 +304,11 @@ def advent_manifest():
         return jsonify(manifest), 200
     except FileNotFoundError:
         return jsonify({"error": "Advent calendar data not found"}), 404
-    except Exception:
+    except json.JSONDecodeError as e:
+        logger.exception("Advent manifest: JSON parsing error - %s", str(e))
+        return jsonify({"error": "Internal server error"}), 500
+    except (ValueError, KeyError) as e:
+        logger.exception("Advent manifest: Data validation error - %s", str(e))
         return jsonify({"error": "Internal server error"}), 500
 
 
@@ -341,7 +346,13 @@ def advent_day(day_number):
         return jsonify(day_content), 200
     except FileNotFoundError:
         return jsonify({"error": "Advent calendar data not found"}), 404
-    except Exception:
+    except json.JSONDecodeError as e:
+        logger.exception("Advent day %d: JSON parsing error - %s", day_number, str(e))
+        return jsonify({"error": "Internal server error"}), 500
+    except (ValueError, KeyError) as e:
+        logger.exception(
+            "Advent day %d: Data validation error - %s", day_number, str(e)
+        )
         return jsonify({"error": "Internal server error"}), 500
 
 
@@ -380,7 +391,11 @@ def get_locations():
         )
     except FileNotFoundError:
         return jsonify({"error": "Location data not found"}), 404
-    except Exception:
+    except json.JSONDecodeError as e:
+        logger.exception("Get locations: JSON parsing error - %s", str(e))
+        return jsonify({"error": "Internal server error"}), 500
+    except (ValueError, KeyError) as e:
+        logger.exception("Get locations: Data validation error - %s", str(e))
         return jsonify({"error": "Internal server error"}), 500
 
 
@@ -422,7 +437,7 @@ def add_location():
                 stop_duration=data.get("stop_duration"),
                 is_stop=data.get("is_stop", True),
             )
-        except (ValueError, TypeError):
+        except (ValueError, TypeError, KeyError):
             return jsonify({"error": "Invalid data format or values"}), 400
 
         # Load existing locations and append
@@ -449,7 +464,11 @@ def add_location():
         )
     except FileNotFoundError:
         return jsonify({"error": "Location data not found"}), 404
-    except Exception:
+    except json.JSONDecodeError as e:
+        logger.exception("Add location: JSON parsing error - %s", str(e))
+        return jsonify({"error": "Internal server error"}), 500
+    except OSError as e:
+        logger.exception("Add location: File I/O error - %s", str(e))
         return jsonify({"error": "Internal server error"}), 500
 
 
@@ -503,7 +522,7 @@ def update_location(location_id):
                 is_stop=data.get("is_stop", locations[location_id].is_stop),
                 fun_facts=notes,
             )
-        except (ValueError, TypeError):
+        except (ValueError, TypeError, KeyError):
             return jsonify({"error": "Invalid data format or values"}), 400
 
         locations[location_id] = updated_location
@@ -512,7 +531,11 @@ def update_location(location_id):
         return jsonify({"message": "Location updated successfully"}), 200
     except FileNotFoundError:
         return jsonify({"error": "Location data not found"}), 404
-    except Exception:
+    except json.JSONDecodeError as e:
+        logger.exception("Update location: JSON parsing error - %s", str(e))
+        return jsonify({"error": "Internal server error"}), 500
+    except OSError as e:
+        logger.exception("Update location: File I/O error - %s", str(e))
         return jsonify({"error": "Internal server error"}), 500
 
 
@@ -540,7 +563,11 @@ def delete_location(location_id):
         )
     except FileNotFoundError:
         return jsonify({"error": "Location data not found"}), 404
-    except Exception:
+    except json.JSONDecodeError as e:
+        logger.exception("Delete location: JSON parsing error - %s", str(e))
+        return jsonify({"error": "Internal server error"}), 500
+    except OSError as e:
+        logger.exception("Delete location: File I/O error - %s", str(e))
         return jsonify({"error": "Internal server error"}), 500
 
 
@@ -555,7 +582,11 @@ def validate_location_data():
         return jsonify(validation_results), 200
     except FileNotFoundError:
         return jsonify({"error": "Location data not found"}), 404
-    except Exception:
+    except json.JSONDecodeError as e:
+        logger.exception("Validate locations: JSON parsing error - %s", str(e))
+        return jsonify({"error": "Internal server error"}), 500
+    except (ValueError, KeyError) as e:
+        logger.exception("Validate locations: Data validation error - %s", str(e))
         return jsonify({"error": "Internal server error"}), 500
 
 
@@ -674,8 +705,11 @@ def import_locations():
         )
     except FileNotFoundError:
         return jsonify({"error": "Location data not found"}), 404
-    except Exception as e:
-        logger.exception("Error importing locations: %s", str(e))
+    except json.JSONDecodeError as e:
+        logger.exception("Import locations: JSON parsing error - %s", str(e))
+        return jsonify({"error": "Internal server error"}), 500
+    except OSError as e:
+        logger.exception("Import locations: File I/O error - %s", str(e))
         return jsonify({"error": "Internal server error"}), 500
 
 
@@ -720,7 +754,11 @@ def get_route_status():
         )
     except FileNotFoundError:
         return jsonify({"error": "Route data not found"}), 404
-    except Exception:
+    except json.JSONDecodeError as e:
+        logger.exception("Get route status: JSON parsing error - %s", str(e))
+        return jsonify({"error": "Internal server error"}), 500
+    except OSError as e:
+        logger.exception("Get route status: File I/O error - %s", str(e))
         return jsonify({"error": "Internal server error"}), 500
 
 
@@ -799,8 +837,11 @@ def precompute_route():
         )
     except FileNotFoundError:
         return jsonify({"error": "Route data not found"}), 404
-    except Exception as e:
-        logger.exception("Error validating route: %s", str(e))
+    except json.JSONDecodeError as e:
+        logger.exception("Precompute route: JSON parsing error - %s", str(e))
+        return jsonify({"error": "Internal server error"}), 500
+    except (ValueError, KeyError) as e:
+        logger.exception("Precompute route: Data validation error - %s", str(e))
         return jsonify({"error": "Internal server error"}), 500
 
 
@@ -931,8 +972,11 @@ def simulate_route():
 
     except FileNotFoundError:
         return jsonify({"error": "Route data not found"}), 404
-    except Exception as e:
-        logger.exception("Error previewing route: %s", str(e))
+    except json.JSONDecodeError as e:
+        logger.exception("Simulate route: JSON parsing error - %s", str(e))
+        return jsonify({"error": "Internal server error"}), 500
+    except (ValueError, KeyError) as e:
+        logger.exception("Simulate route: Data validation error - %s", str(e))
         return jsonify({"error": "Internal server error"}), 500
 
 
@@ -959,8 +1003,11 @@ def get_trial_route_status():
             )
         else:
             return jsonify({"exists": False, "location_count": 0}), 200
-    except Exception as e:
-        logger.exception("Error getting trial route status: %s", str(e))
+    except json.JSONDecodeError as e:
+        logger.exception("Get trial route status: JSON parsing error - %s", str(e))
+        return jsonify({"error": "Internal server error"}), 500
+    except OSError as e:
+        logger.exception("Get trial route status: File I/O error - %s", str(e))
         return jsonify({"error": "Internal server error"}), 500
 
 
@@ -1038,8 +1085,11 @@ def upload_trial_route():
         )
     except FileNotFoundError:
         return jsonify({"error": "Route file not found"}), 404
-    except Exception as e:
-        logger.exception("Error uploading trial route: %s", str(e))
+    except json.JSONDecodeError as e:
+        logger.exception("Upload trial route: JSON parsing error - %s", str(e))
+        return jsonify({"error": "Internal server error"}), 500
+    except OSError as e:
+        logger.exception("Upload trial route: File I/O error - %s", str(e))
         return jsonify({"error": "Internal server error"}), 500
 
 
@@ -1058,8 +1108,8 @@ def delete_trial_route_endpoint():
                 jsonify({"success": False, "message": "No trial route to delete"}),
                 404,
             )
-    except Exception as e:
-        logger.exception("Error deleting trial route: %s", str(e))
+    except OSError as e:
+        logger.exception("Delete trial route: File I/O error - %s", str(e))
         return jsonify({"error": "Internal server error"}), 500
 
 
@@ -1091,8 +1141,11 @@ def apply_trial_route():
             200,
         )
 
-    except Exception as e:
-        logger.exception("Error applying trial route: %s", str(e))
+    except json.JSONDecodeError as e:
+        logger.exception("Apply trial route: JSON parsing error - %s", str(e))
+        return jsonify({"error": "Internal server error"}), 500
+    except OSError as e:
+        logger.exception("Apply trial route: File I/O error - %s", str(e))
         return jsonify({"error": "Internal server error"}), 500
 
 
@@ -1189,8 +1242,11 @@ def simulate_trial_route():
 
     except FileNotFoundError:
         return jsonify({"error": "Trial route not found"}), 404
-    except Exception as e:
-        logger.exception("Error previewing trial route: %s", str(e))
+    except json.JSONDecodeError as e:
+        logger.exception("Simulate trial route: JSON parsing error - %s", str(e))
+        return jsonify({"error": "Internal server error"}), 500
+    except (ValueError, KeyError) as e:
+        logger.exception("Simulate trial route: Data validation error - %s", str(e))
         return jsonify({"error": "Internal server error"}), 500
 
 
@@ -1228,7 +1284,11 @@ def export_backup():
         return jsonify(backup_data), 200
     except FileNotFoundError:
         return jsonify({"error": "Route data not found"}), 404
-    except Exception:
+    except json.JSONDecodeError as e:
+        logger.exception("Export backup: JSON parsing error - %s", str(e))
+        return jsonify({"error": "Internal server error"}), 500
+    except (ValueError, KeyError) as e:
+        logger.exception("Export backup: Data validation error - %s", str(e))
         return jsonify({"error": "Internal server error"}), 500
 
 
@@ -1260,7 +1320,11 @@ def get_advent_days():
         return jsonify({"days": days_data, "total_days": len(days)}), 200
     except FileNotFoundError:
         return jsonify({"error": "Advent calendar data not found"}), 404
-    except Exception:
+    except json.JSONDecodeError as e:
+        logger.exception("Get advent days: JSON parsing error - %s", str(e))
+        return jsonify({"error": "Internal server error"}), 500
+    except (ValueError, KeyError) as e:
+        logger.exception("Get advent days: Data validation error - %s", str(e))
         return jsonify({"error": "Internal server error"}), 500
 
 
@@ -1296,7 +1360,11 @@ def get_advent_day_admin(day_number):
         return jsonify({"error": "Day not found"}), 404
     except FileNotFoundError:
         return jsonify({"error": "Advent calendar data not found"}), 404
-    except Exception:
+    except json.JSONDecodeError as e:
+        logger.exception("Get advent day admin: JSON parsing error - %s", str(e))
+        return jsonify({"error": "Internal server error"}), 500
+    except (ValueError, KeyError) as e:
+        logger.exception("Get advent day admin: Data validation error - %s", str(e))
         return jsonify({"error": "Internal server error"}), 500
 
 
@@ -1344,7 +1412,11 @@ def update_advent_day(day_number):
 
     except FileNotFoundError:
         return jsonify({"error": "Advent calendar data not found"}), 404
-    except Exception:
+    except json.JSONDecodeError as e:
+        logger.exception("Update advent day: JSON parsing error - %s", str(e))
+        return jsonify({"error": "Internal server error"}), 500
+    except OSError as e:
+        logger.exception("Update advent day: File I/O error - %s", str(e))
         return jsonify({"error": "Internal server error"}), 500
 
 
@@ -1398,7 +1470,11 @@ def toggle_advent_day_unlock(day_number):
 
     except FileNotFoundError:
         return jsonify({"error": "Advent calendar data not found"}), 404
-    except Exception:
+    except json.JSONDecodeError as e:
+        logger.exception("Toggle advent day unlock: JSON parsing error - %s", str(e))
+        return jsonify({"error": "Internal server error"}), 500
+    except OSError as e:
+        logger.exception("Toggle advent day unlock: File I/O error - %s", str(e))
         return jsonify({"error": "Internal server error"}), 500
 
 
@@ -1414,7 +1490,11 @@ def validate_advent_calendar_endpoint():
         return jsonify(validation_results), 200
     except FileNotFoundError:
         return jsonify({"error": "Advent calendar data not found"}), 404
-    except Exception:
+    except json.JSONDecodeError as e:
+        logger.exception("Validate advent calendar: JSON parsing error - %s", str(e))
+        return jsonify({"error": "Internal server error"}), 500
+    except (ValueError, KeyError) as e:
+        logger.exception("Validate advent calendar: Data validation error - %s", str(e))
         return jsonify({"error": "Internal server error"}), 500
 
 
@@ -1446,7 +1526,11 @@ def export_advent_backup():
         return jsonify(backup_data), 200
     except FileNotFoundError:
         return jsonify({"error": "Advent calendar data not found"}), 404
-    except Exception:
+    except json.JSONDecodeError as e:
+        logger.exception("Export advent backup: JSON parsing error - %s", str(e))
+        return jsonify({"error": "Internal server error"}), 500
+    except (ValueError, KeyError) as e:
+        logger.exception("Export advent backup: Data validation error - %s", str(e))
         return jsonify({"error": "Internal server error"}), 500
 
 
@@ -1530,7 +1614,11 @@ def import_advent_calendar():
 
     except FileNotFoundError:
         return jsonify({"error": "Advent calendar data file not found"}), 404
-    except Exception:
+    except json.JSONDecodeError as e:
+        logger.exception("Import advent calendar: JSON parsing error - %s", str(e))
+        return jsonify({"error": "Internal server error"}), 500
+    except OSError as e:
+        logger.exception("Import advent calendar: File I/O error - %s", str(e))
         return jsonify({"error": "Internal server error"}), 500
 
 
