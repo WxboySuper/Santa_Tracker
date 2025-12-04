@@ -9,7 +9,6 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='tracker-styles.css') }}">
     <style>
         .admin-header {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -150,6 +149,158 @@
             background: #f8d7da;
             color: #721c24;
             border: 1px solid #f5c6cb;
+        }
+
+        /* Override styles for route simulator layout */
+        .main-container,
+        .map-section,
+        .sidebar,
+        .map-help {
+            display: block;
+        }
+
+        /* Main layout grid */
+        .main-container {
+            padding: 10px;
+        }
+
+        .content-grid {
+            display: grid;
+            grid-template-columns: 320px 1fr;
+            gap: 20px;
+            height: calc(100vh - 280px);
+            min-height: 500px;
+        }
+
+        /* Sidebar styles for route simulator */
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            overflow-y: auto;
+        }
+
+        .info-card {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .card-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 12px 15px;
+        }
+
+        .card-title {
+            margin: 0;
+            font-size: 16px;
+            color: white;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .card-content {
+            padding: 15px;
+        }
+
+        .info-box {
+            background: #f8f9fa;
+            border-radius: 6px;
+            padding: 10px 12px;
+            margin-bottom: 10px;
+        }
+
+        .info-box:last-child {
+            margin-bottom: 0;
+        }
+
+        .info-box-blue {
+            border-left: 4px solid #2196F3;
+        }
+
+        .info-box-green {
+            border-left: 4px solid #4CAF50;
+        }
+
+        .info-box-purple {
+            border-left: 4px solid #9C27B0;
+        }
+
+        .info-box-orange {
+            border-left: 4px solid #FF9800;
+        }
+
+        .info-label {
+            font-size: 12px;
+            color: #666;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .info-value {
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .locations-list {
+            max-height: 250px;
+            overflow-y: auto;
+        }
+
+        /* Map section styles */
+        .map-section {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .map-container {
+            flex: 1;
+            background: #e5e5e5;
+            border-radius: 8px;
+            overflow: hidden;
+            min-height: 400px;
+        }
+
+        .map {
+            width: 100%;
+            height: 100%;
+            min-height: 400px;
+        }
+
+        .map-help {
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            border-radius: 8px;
+            padding: 12px 15px;
+            margin-top: 10px;
+        }
+
+        .map-help-text {
+            margin: 0;
+            font-size: 14px;
+            color: #856404;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* Responsive design */
+        @media (max-width: 900px) {
+            .content-grid {
+                grid-template-columns: 1fr;
+                height: auto;
+            }
+
+            .sidebar {
+                order: 2;
+            }
+
+            .map-section {
+                order: 1;
+            }
         }
     </style>
 </head>
