@@ -331,11 +331,13 @@
             
             <label for="speedMultiplier">Speed:</label>
             <select id="speedMultiplier">
-                <option value="60">60x (~24 min for full journey)</option>
-                <option value="120" selected>120x (~12 min - Recommended)</option>
-                <option value="300">300x (~5 min - Fast)</option>
-                <option value="600">600x (~2.5 min - Very fast)</option>
-                <option value="1200">1200x (~1.2 min - Ultra fast)</option>
+                <option value="1">1x (Real-time)</option>
+                <option value="2">2x</option>
+                <option value="5">5x</option>
+                <option value="10" selected>10x (Recommended)</option>
+                <option value="20">20x</option>
+                <option value="50">50x</option>
+                <option value="100">100x</option>
             </select>
             
             <button class="btn btn-primary" onclick="runSimulation()">▶️ Run Simulation</button>
@@ -788,7 +790,11 @@
                 };
             }
             
-            // Fallback - shouldn't reach here
+            // Fallback - shouldn't reach here, log for debugging
+            console.warn('findCurrentSegment: Unexpected state - simulation time does not match any segment', {
+                simTime: new Date(simTime).toISOString(),
+                routeLength: simulatedRoute.length
+            });
             return {
                 fromIndex: 0,
                 toIndex: 0,
@@ -802,8 +808,8 @@
             const speedMultiplier = parseInt(document.getElementById('speedMultiplier').value);
             
             // Speed multiplier directly controls simulation speed
-            // At 60x: 1 real second = 1 simulated minute, so 24-hour journey takes ~24 minutes
-            // At 600x: 1 real second = 10 simulated minutes, so 24-hour journey takes ~2.5 minutes
+            // 1x = real-time (1 second of real time = 1 second of simulation time)
+            // 10x = 10 seconds of simulation time per 1 second of real time
             const effectiveSpeed = speedMultiplier;
             
             const now = Date.now();
@@ -875,40 +881,42 @@
                 
             } else if (segment.status === 'traveling') {
                 // Santa is traveling between locations
-                let startLat, startLng, endLat, endLng, destName;
                 
                 if (segment.fromIndex < 0) {
-                    // Traveling to first location
+                    // Before first location - Santa is preparing at the first stop
+                    // This case occurs if simulation time is before first arrival
                     const firstLoc = simulatedRoute[0];
-                    startLat = firstLoc.latitude;
-                    startLng = firstLoc.longitude;
-                    endLat = firstLoc.latitude;
-                    endLng = firstLoc.longitude;
-                    destName = firstLoc.name;
+                    santaMarker.setLatLng([firstLoc.latitude, firstLoc.longitude]);
+                    santaMarker.setOpacity(1);
+                    map.panTo([firstLoc.latitude, firstLoc.longitude]);
+                    
+                    document.getElementById('currentLocation').textContent = `Preparing at ${firstLoc.name}`;
+                    document.getElementById('locationsVisited').textContent = '0';
+                    currentLocationIndex = 0;
                 } else {
                     // Traveling between two locations
                     const fromLoc = simulatedRoute[segment.fromIndex];
                     const toLoc = simulatedRoute[segment.toIndex];
-                    startLat = fromLoc.latitude;
-                    startLng = fromLoc.longitude;
-                    endLat = toLoc.latitude;
-                    endLng = toLoc.longitude;
-                    destName = toLoc.name;
+                    const startLat = fromLoc.latitude;
+                    const startLng = fromLoc.longitude;
+                    const endLat = toLoc.latitude;
+                    const endLng = toLoc.longitude;
+                    const destName = toLoc.name;
+                
+                    // Interpolate position
+                    const currentLat = startLat + (endLat - startLat) * segment.progress;
+                    const currentLng = startLng + (endLng - startLng) * segment.progress;
+                    
+                    santaMarker.setLatLng([currentLat, currentLng]);
+                    santaMarker.setOpacity(1);
+                    map.panTo([currentLat, currentLng]);
+                
+                    // Update status
+                    const progressPct = Math.round(segment.progress * 100);
+                    document.getElementById('currentLocation').textContent = `Traveling to ${destName} (${progressPct}%)`;
+                    document.getElementById('locationsVisited').textContent = Math.max(0, segment.fromIndex + 1);
+                    currentLocationIndex = segment.toIndex;
                 }
-                
-                // Interpolate position
-                const currentLat = startLat + (endLat - startLat) * segment.progress;
-                const currentLng = startLng + (endLng - startLng) * segment.progress;
-                
-                santaMarker.setLatLng([currentLat, currentLng]);
-                santaMarker.setOpacity(1);
-                map.panTo([currentLat, currentLng]);
-                
-                // Update status
-                const progressPct = Math.round(segment.progress * 100);
-                document.getElementById('currentLocation').textContent = `Traveling to ${destName} (${progressPct}%)`;
-                document.getElementById('locationsVisited').textContent = Math.max(0, segment.fromIndex + 1);
-                currentLocationIndex = segment.toIndex;
             }
             
             // Update common UI elements
