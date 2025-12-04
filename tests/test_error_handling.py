@@ -1599,3 +1599,679 @@ class TestAdditionalMissingCoverage:
         finally:
             if temp_file.exists():
                 temp_file.rename(advent_file)
+
+
+class TestPageRoutes:
+    """Tests for HTML page routes to increase coverage."""
+
+    def test_home_page(self, client):
+        """Test home page renders."""
+        response = client.get("/")
+        assert response.status_code == 200
+
+    def test_tracker_page(self, client):
+        """Test tracker page renders."""
+        response = client.get("/tracker")
+        assert response.status_code == 200
+
+    def test_advent_page(self, client):
+        """Test advent page renders."""
+        response = client.get("/advent")
+        assert response.status_code == 200
+
+    def test_route_simulator_page(self, client):
+        """Test route simulator page renders."""
+        response = client.get("/admin/route-simulator")
+        assert response.status_code == 200
+
+    def test_index_page(self, client):
+        """Test index page renders (legacy route)."""
+        response = client.get("/index")
+        assert response.status_code == 200
+
+    def test_admin_page(self, client):
+        """Test admin page renders."""
+        response = client.get("/admin")
+        assert response.status_code == 200
+
+
+class TestAdminPasswordNotSet:
+    """Tests for scenarios when ADMIN_PASSWORD is not set."""
+
+    def test_login_admin_password_not_set(self, client):
+        """Test login when ADMIN_PASSWORD is not set returns 500."""
+        # Save and remove ADMIN_PASSWORD
+        orig_password = os.environ.get("ADMIN_PASSWORD")
+        if "ADMIN_PASSWORD" in os.environ:
+            del os.environ["ADMIN_PASSWORD"]
+
+        try:
+            response = client.post(
+                "/api/admin/login",
+                json={"password": "test"},
+            )
+            assert response.status_code == 500
+            data = response.get_json()
+            assert data["error"] == "Admin access not configured"
+        finally:
+            # Restore ADMIN_PASSWORD
+            if orig_password:
+                os.environ["ADMIN_PASSWORD"] = orig_password
+
+
+class TestAdventDayLocked:
+    """Tests for advent day locked scenarios."""
+
+    def test_advent_day_locked(self, client, backup_advent_file):
+        """Test that a locked advent day returns appropriate message."""
+        # Mock get_day_content to return a locked day
+        with patch(
+            "src.app.get_day_content",
+            return_value={
+                "day": 25,
+                "title": "Christmas Day",
+                "is_unlocked": False,
+                "unlock_time": "2099-12-25T00:00:00Z",
+            },
+        ):
+            response = client.get("/api/advent/day/25")
+            assert response.status_code == 403
+            data = response.get_json()
+            assert data["error"] == "Day is locked"
+            assert data["day"] == 25
+
+
+class TestUpdateLocationNotesFunFacts:
+    """Tests for update_location notes/fun_facts handling."""
+
+    def test_update_location_with_notes(self, client, auth_headers):
+        """Test update location with notes field."""
+        response = client.put(
+            "/api/admin/locations/0",
+            headers=auth_headers,
+            json={"notes": ["Test note 1", "Test note 2"]},
+        )
+        # Should succeed if location exists
+        assert response.status_code in [200, 404]
+
+    def test_update_location_with_fun_facts(self, client, auth_headers):
+        """Test update location with fun_facts field (backward compatibility)."""
+        response = client.put(
+            "/api/admin/locations/0",
+            headers=auth_headers,
+            json={"fun_facts": ["Fun fact 1", "Fun fact 2"]},
+        )
+        # Should succeed if location exists
+        assert response.status_code in [200, 404]
+
+
+class TestPrecomputeRouteScenarios:
+    """Tests for precompute_route various scenarios."""
+
+    def test_precompute_route_empty_locations(self, client, auth_headers):
+        """Test precompute route with empty locations returns 400."""
+        with patch("src.app.load_santa_route_from_json", return_value=[]):
+            response = client.post(
+                "/api/admin/route/precompute",
+                headers=auth_headers,
+            )
+            assert response.status_code == 400
+            data = response.get_json()
+            assert data["error"] == "No locations to validate"
+
+    def test_precompute_route_missing_arrival_time(self, client, auth_headers):
+        """Test precompute route with missing arrival_time."""
+        from src.utils.locations import Location
+
+        mock_location = Location(
+            name="Test",
+            latitude=0.0,
+            longitude=0.0,
+            utc_offset=0.0,
+            arrival_time=None,  # Missing
+            departure_time="2024-12-25T01:00:00Z",
+        )
+        with patch("src.app.load_santa_route_from_json", return_value=[mock_location]):
+            response = client.post(
+                "/api/admin/route/precompute",
+                headers=auth_headers,
+            )
+            assert response.status_code == 400
+            data = response.get_json()
+            assert "missing/invalid timing" in data["error"]
+
+    def test_precompute_route_invalid_arrival_time_format(self, client, auth_headers):
+        """Test precompute route with invalid arrival_time format."""
+        from src.utils.locations import Location
+
+        mock_location = Location(
+            name="Test",
+            latitude=0.0,
+            longitude=0.0,
+            utc_offset=0.0,
+            arrival_time="not-a-date",  # Invalid format
+            departure_time="2024-12-25T01:00:00Z",
+        )
+        with patch("src.app.load_santa_route_from_json", return_value=[mock_location]):
+            response = client.post(
+                "/api/admin/route/precompute",
+                headers=auth_headers,
+            )
+            assert response.status_code == 400
+            data = response.get_json()
+            assert "missing/invalid timing" in data["error"]
+
+    def test_precompute_route_missing_departure_time(self, client, auth_headers):
+        """Test precompute route with missing departure_time."""
+        from src.utils.locations import Location
+
+        mock_location = Location(
+            name="Test",
+            latitude=0.0,
+            longitude=0.0,
+            utc_offset=0.0,
+            arrival_time="2024-12-25T00:00:00Z",
+            departure_time=None,  # Missing
+        )
+        with patch("src.app.load_santa_route_from_json", return_value=[mock_location]):
+            response = client.post(
+                "/api/admin/route/precompute",
+                headers=auth_headers,
+            )
+            assert response.status_code == 400
+            data = response.get_json()
+            assert "missing/invalid timing" in data["error"]
+
+    def test_precompute_route_invalid_departure_time_format(self, client, auth_headers):
+        """Test precompute route with invalid departure_time format."""
+        from src.utils.locations import Location
+
+        mock_location = Location(
+            name="Test",
+            latitude=0.0,
+            longitude=0.0,
+            utc_offset=0.0,
+            arrival_time="2024-12-25T00:00:00Z",
+            departure_time="not-a-date",  # Invalid format
+        )
+        with patch("src.app.load_santa_route_from_json", return_value=[mock_location]):
+            response = client.post(
+                "/api/admin/route/precompute",
+                headers=auth_headers,
+            )
+            assert response.status_code == 400
+            data = response.get_json()
+            assert "missing/invalid timing" in data["error"]
+
+
+class TestSimulateRouteScenarios:
+    """Tests for simulate_route various scenarios."""
+
+    def test_simulate_route_empty_locations(self, client, auth_headers):
+        """Test simulate route with empty locations returns 400."""
+        with patch("src.app.load_santa_route_from_json", return_value=[]):
+            response = client.post(
+                "/api/admin/route/simulate",
+                headers=auth_headers,
+                json={},
+            )
+            assert response.status_code == 400
+            data = response.get_json()
+            assert data["error"] == "No locations to simulate"
+
+    def test_simulate_route_with_invalid_location_ids_type(self, client, auth_headers):
+        """Test simulate route with invalid location_ids type returns 400."""
+        from src.utils.locations import Location
+
+        mock_location = Location(
+            name="Test",
+            latitude=0.0,
+            longitude=0.0,
+            utc_offset=0.0,
+            arrival_time="2024-12-25T00:00:00Z",
+            departure_time="2024-12-25T01:00:00Z",
+        )
+        with patch("src.app.load_santa_route_from_json", return_value=[mock_location]):
+            response = client.post(
+                "/api/admin/route/simulate",
+                headers=auth_headers,
+                json={"location_ids": "not-a-list"},  # Invalid type
+            )
+            assert response.status_code == 400
+            data = response.get_json()
+            assert "location_ids must be a list" in data["error"]
+
+    def test_simulate_route_with_location_ids(self, client, auth_headers):
+        """Test simulate route with valid location_ids."""
+        from src.utils.locations import Location
+
+        mock_locations = [
+            Location(
+                name="Test1",
+                latitude=0.0,
+                longitude=0.0,
+                utc_offset=0.0,
+                arrival_time="2024-12-25T00:00:00Z",
+                departure_time="2024-12-25T01:00:00Z",
+            ),
+            Location(
+                name="Test2",
+                latitude=1.0,
+                longitude=1.0,
+                utc_offset=1.0,
+                arrival_time="2024-12-25T02:00:00Z",
+                departure_time="2024-12-25T03:00:00Z",
+            ),
+        ]
+        with patch("src.app.load_santa_route_from_json", return_value=mock_locations):
+            response = client.post(
+                "/api/admin/route/simulate",
+                headers=auth_headers,
+                json={"location_ids": [0]},  # Only first location
+            )
+            assert response.status_code == 200
+
+    def test_simulate_route_no_timing_info(self, client, auth_headers):
+        """Test simulate route with locations without timing info."""
+        from src.utils.locations import Location
+
+        mock_location = Location(
+            name="Test",
+            latitude=0.0,
+            longitude=0.0,
+            utc_offset=0.0,
+            arrival_time=None,
+            departure_time=None,
+        )
+        with patch("src.app.load_santa_route_from_json", return_value=[mock_location]):
+            response = client.post(
+                "/api/admin/route/simulate",
+                headers=auth_headers,
+                json={},
+            )
+            assert response.status_code == 200
+            data = response.get_json()
+            assert data["summary"]["start_time"] is None
+            assert data["summary"]["end_time"] is None
+            assert data["summary"]["total_duration_minutes"] == 0
+
+
+class TestTrialRouteScenarios:
+    """Tests for trial route various scenarios."""
+
+    def test_get_trial_route_status_exists(self, client, auth_headers):
+        """Test get trial route status when trial route exists."""
+        from src.utils.locations import Location
+
+        mock_locations = [
+            Location(
+                name="Test",
+                latitude=0.0,
+                longitude=0.0,
+                utc_offset=0.0,
+            )
+        ]
+        with patch("src.app.has_trial_route", return_value=True):
+            with patch(
+                "src.app.load_trial_route_from_json", return_value=mock_locations
+            ):
+                response = client.get(
+                    "/api/admin/route/trial",
+                    headers=auth_headers,
+                )
+                assert response.status_code == 200
+                data = response.get_json()
+                assert data["exists"] is True
+                assert data["location_count"] == 1
+
+    def test_get_trial_route_status_not_exists(self, client, auth_headers):
+        """Test get trial route status when trial route does not exist."""
+        with patch("src.app.has_trial_route", return_value=False):
+            response = client.get(
+                "/api/admin/route/trial",
+                headers=auth_headers,
+            )
+            assert response.status_code == 200
+            data = response.get_json()
+            assert data["exists"] is False
+            assert data["location_count"] == 0
+
+    def test_upload_trial_route_success(self, client, auth_headers):
+        """Test successful trial route upload."""
+        with patch(
+            "src.app.validate_locations", return_value={"errors": [], "warnings": []}
+        ):
+            with patch("src.app.save_trial_route_to_json"):
+                response = client.post(
+                    "/api/admin/route/trial",
+                    headers=auth_headers,
+                    json={
+                        "route": [
+                            {
+                                "name": "Test City",
+                                "latitude": 0.0,
+                                "longitude": 0.0,
+                                "utc_offset": 0.0,
+                            }
+                        ]
+                    },
+                )
+                assert response.status_code == 200
+                data = response.get_json()
+                assert data["success"] is True
+
+    def test_upload_trial_route_validation_errors(self, client, auth_headers):
+        """Test trial route upload with validation errors."""
+        with patch(
+            "src.app.validate_locations",
+            return_value={"errors": ["Test error"], "warnings": []},
+        ):
+            response = client.post(
+                "/api/admin/route/trial",
+                headers=auth_headers,
+                json={
+                    "route": [
+                        {
+                            "name": "Test City",
+                            "latitude": 0.0,
+                            "longitude": 0.0,
+                            "utc_offset": 0.0,
+                        }
+                    ]
+                },
+            )
+            assert response.status_code == 400
+            data = response.get_json()
+            assert data["error"] == "Validation failed"
+
+    def test_delete_trial_route_success(self, client, auth_headers):
+        """Test successful trial route deletion."""
+        with patch("src.app.delete_trial_route", return_value=True):
+            response = client.delete(
+                "/api/admin/route/trial",
+                headers=auth_headers,
+            )
+            assert response.status_code == 200
+            data = response.get_json()
+            assert data["success"] is True
+
+    def test_apply_trial_route_success(self, client, auth_headers):
+        """Test successful trial route application."""
+        from src.utils.locations import Location
+
+        mock_locations = [
+            Location(
+                name="Test",
+                latitude=0.0,
+                longitude=0.0,
+                utc_offset=0.0,
+            )
+        ]
+        with patch("src.app.has_trial_route", return_value=True):
+            with patch(
+                "src.app.load_trial_route_from_json", return_value=mock_locations
+            ):
+                with patch("src.app.save_santa_route_to_json"):
+                    response = client.post(
+                        "/api/admin/route/trial/apply",
+                        headers=auth_headers,
+                    )
+                    assert response.status_code == 200
+                    data = response.get_json()
+                    assert data["success"] is True
+
+    def test_apply_trial_route_empty(self, client, auth_headers):
+        """Test apply trial route when trial route is empty."""
+        with patch("src.app.has_trial_route", return_value=True):
+            with patch("src.app.load_trial_route_from_json", return_value=[]):
+                response = client.post(
+                    "/api/admin/route/trial/apply",
+                    headers=auth_headers,
+                )
+                assert response.status_code == 400
+                data = response.get_json()
+                assert data["error"] == "Trial route is empty"
+
+    def test_simulate_trial_route_success(self, client, auth_headers):
+        """Test successful trial route simulation."""
+        from src.utils.locations import Location
+
+        mock_locations = [
+            Location(
+                name="Test",
+                latitude=0.0,
+                longitude=0.0,
+                utc_offset=0.0,
+                arrival_time="2024-12-25T00:00:00Z",
+                departure_time="2024-12-25T01:00:00Z",
+            )
+        ]
+        with patch("src.app.has_trial_route", return_value=True):
+            with patch(
+                "src.app.load_trial_route_from_json", return_value=mock_locations
+            ):
+                response = client.post(
+                    "/api/admin/route/trial/simulate",
+                    headers=auth_headers,
+                    json={},
+                )
+                assert response.status_code == 200
+                data = response.get_json()
+                assert data["is_trial"] is True
+
+    def test_simulate_trial_route_empty(self, client, auth_headers):
+        """Test simulate trial route when trial route is empty."""
+        with patch("src.app.has_trial_route", return_value=True):
+            with patch("src.app.load_trial_route_from_json", return_value=[]):
+                response = client.post(
+                    "/api/admin/route/trial/simulate",
+                    headers=auth_headers,
+                    json={},
+                )
+                assert response.status_code == 400
+                data = response.get_json()
+                assert data["error"] == "Trial route is empty"
+
+    def test_simulate_trial_route_no_timing(self, client, auth_headers):
+        """Test simulate trial route with locations without timing."""
+        from src.utils.locations import Location
+
+        mock_locations = [
+            Location(
+                name="Test",
+                latitude=0.0,
+                longitude=0.0,
+                utc_offset=0.0,
+                arrival_time=None,
+                departure_time=None,
+            )
+        ]
+        with patch("src.app.has_trial_route", return_value=True):
+            with patch(
+                "src.app.load_trial_route_from_json", return_value=mock_locations
+            ):
+                response = client.post(
+                    "/api/admin/route/trial/simulate",
+                    headers=auth_headers,
+                    json={},
+                )
+                assert response.status_code == 200
+                data = response.get_json()
+                assert data["summary"]["start_time"] is None
+                assert data["summary"]["end_time"] is None
+
+    def test_simulate_trial_route_with_location_ids(self, client, auth_headers):
+        """Test simulate trial route with location_ids filter."""
+        from src.utils.locations import Location
+
+        mock_locations = [
+            Location(
+                name="Test1",
+                latitude=0.0,
+                longitude=0.0,
+                utc_offset=0.0,
+            ),
+            Location(
+                name="Test2",
+                latitude=1.0,
+                longitude=1.0,
+                utc_offset=1.0,
+            ),
+        ]
+        with patch("src.app.has_trial_route", return_value=True):
+            with patch(
+                "src.app.load_trial_route_from_json", return_value=mock_locations
+            ):
+                response = client.post(
+                    "/api/admin/route/trial/simulate",
+                    headers=auth_headers,
+                    json={"location_ids": [0]},
+                )
+                assert response.status_code == 200
+
+
+class TestDurationCalculation:
+    """Tests for _calculate_total_duration_minutes edge cases."""
+
+    def test_calculate_duration_empty_times(self, client, auth_headers):
+        """Test duration calculation with empty times via simulate route."""
+        from src.utils.locations import Location
+
+        mock_location = Location(
+            name="Test",
+            latitude=0.0,
+            longitude=0.0,
+            utc_offset=0.0,
+            arrival_time=None,
+            departure_time=None,
+        )
+        with patch("src.app.load_santa_route_from_json", return_value=[mock_location]):
+            response = client.post(
+                "/api/admin/route/simulate",
+                headers=auth_headers,
+                json={},
+            )
+            assert response.status_code == 200
+            data = response.get_json()
+            assert data["summary"]["total_duration_minutes"] == 0
+
+    def test_calculate_duration_invalid_format(self, client, auth_headers):
+        """Test duration calculation with invalid time format."""
+        from src.utils.locations import Location
+
+        mock_location = Location(
+            name="Test",
+            latitude=0.0,
+            longitude=0.0,
+            utc_offset=0.0,
+            arrival_time="invalid",
+            departure_time="invalid",
+        )
+        with patch("src.app.load_santa_route_from_json", return_value=[mock_location]):
+            response = client.post(
+                "/api/admin/route/simulate",
+                headers=auth_headers,
+                json={},
+            )
+            # Should still return 200 but with 0 duration
+            assert response.status_code == 200
+
+
+class TestImportLocationsScenarios:
+    """Tests for import_locations various scenarios."""
+
+    def test_import_locations_all_errors(self, client, auth_headers):
+        """Test import locations when all locations have errors."""
+        response = client.post(
+            "/api/admin/locations/import",
+            headers=auth_headers,
+            json={
+                "mode": "append",
+                "locations": [
+                    {"name": "Invalid"},  # Missing required fields
+                ],
+            },
+        )
+        assert response.status_code == 400
+        data = response.get_json()
+        assert "No valid locations to import" in data["error"]
+
+    def test_import_locations_parse_error(self, client, auth_headers):
+        """Test import locations with parse error (ValueError/TypeError)."""
+        with patch(
+            "src.app._parse_location_from_data",
+            return_value=(None, "Test error"),
+        ):
+            response = client.post(
+                "/api/admin/locations/import",
+                headers=auth_headers,
+                json={
+                    "mode": "append",
+                    "locations": [
+                        {
+                            "name": "Test",
+                            "latitude": 0.0,
+                            "longitude": 0.0,
+                            "utc_offset": 0.0,
+                        }
+                    ],
+                },
+            )
+            assert response.status_code == 400
+
+
+class TestGetAdventDayAdminFileNotFound:
+    """Tests for get_advent_day_admin FileNotFoundError."""
+
+    def test_get_advent_day_admin_file_not_found(self, client, auth_headers):
+        """Test get advent day admin when file is missing."""
+        advent_file = (
+            Path(__file__).parent.parent
+            / "src"
+            / "static"
+            / "data"
+            / "advent_calendar.json"
+        )
+        temp_file = advent_file.with_suffix(".json.temp_admin_day")
+        try:
+            if advent_file.exists():
+                advent_file.rename(temp_file)
+            response = client.get(
+                "/api/admin/advent/day/1",
+                headers=auth_headers,
+            )
+            assert response.status_code == 404
+            data = response.get_json()
+            assert data["error"] == "Advent calendar data not found"
+        finally:
+            if temp_file.exists():
+                temp_file.rename(advent_file)
+
+
+class TestUpdateAdventDayFileNotFound:
+    """Tests for update_advent_day FileNotFoundError."""
+
+    def test_update_advent_day_file_not_found(self, client, auth_headers):
+        """Test update advent day when file is missing."""
+        advent_file = (
+            Path(__file__).parent.parent
+            / "src"
+            / "static"
+            / "data"
+            / "advent_calendar.json"
+        )
+        temp_file = advent_file.with_suffix(".json.temp_update_day")
+        try:
+            if advent_file.exists():
+                advent_file.rename(temp_file)
+            response = client.put(
+                "/api/admin/advent/day/1",
+                headers=auth_headers,
+                json={"title": "Test"},
+            )
+            assert response.status_code == 404
+            data = response.get_json()
+            assert data["error"] == "Advent calendar data not found"
+        finally:
+            if temp_file.exists():
+                temp_file.rename(advent_file)
