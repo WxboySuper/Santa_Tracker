@@ -1,0 +1,111 @@
+{
+  "meta": {
+    "year": 2024,
+    "route_version": "1.0",
+    "generated_at": "2024-12-04T12:00:00Z"
+  },
+  "route_nodes": [
+    {
+      "comment": "--- NODE 0: THE ANCHOR (HARD LOCKED) ---",
+      "id": "node_000_north_pole",
+      "type": "START",
+      
+      "location": {
+        "name": "North Pole",
+        "region": "Arctic",
+        "lat": 90.0,
+        "lng": 0.0,
+        "timezone_offset": 0
+      },
+
+      "stop_experience": {
+        "duration_seconds": 0,
+        "camera_zoom": 4, 
+        "weather_condition": "blizzard",
+        "presents_delivered_at_stop": 0
+      },
+
+      "schedule": {
+        "arrival_utc": null,
+        "departure_utc": "2024-12-24T09:51:00Z"
+      },
+
+      "transit_to_here": null
+    },
+    {
+      "comment": "--- NODE 1: THE FIRST DELIVERY ---",
+      "id": "node_001_kiritimati",
+      "type": "DELIVERY",
+
+      "location": {
+        "name": "Kiritimati",
+        "region": "Christmas Island",
+        "lat": 1.872,
+        "lng": -157.36,
+        "timezone_offset": 14
+      },
+
+      "stop_experience": {
+        "duration_seconds": 60,
+        "camera_zoom": 14,
+        "weather_condition": "clear",
+        "presents_delivered_at_stop": 500000,
+        "population": 6500,
+        "fun_fact": "Kiritimati is the first place on Earth to welcome each new day! It's also known as Christmas Island.",
+        "landmark": "Captain Cook Hotel"
+      },
+
+      "transit_to_here": {
+        "description": "The Launch",
+        "duration_seconds": 540,
+        "distance_km": 9800,
+        "speed_curve": "HYPERSONIC_LONG",
+        "camera_zoom": 3
+      },
+
+      "schedule": {
+        "arrival_utc": "2024-12-24T10:00:00Z",
+        "departure_utc": "2024-12-24T10:01:00Z",
+        "local_arrival_time": "00:00",
+        "time_window_status": "GREEN"
+      }
+    },
+    {
+      "comment": "--- NODE 2: A SHORT HOP (FLYBY) ---",
+      "id": "node_002_tabuaeran",
+      "type": "FLYBY",
+
+      "location": {
+        "name": "Tabuaeran",
+        "region": "Kiribati",
+        "lat": 3.86,
+        "lng": -159.32,
+        "timezone_offset": 14
+      },
+
+      "stop_experience": {
+        "duration_seconds": 0,
+        "camera_zoom": 12,
+        "weather_condition": "clear",
+        "presents_delivered_at_stop": 12000,
+        "population": 2500,
+        "fun_fact": "Also known as Fanning Island, this atoll was once an important cable station for trans-Pacific telegraph lines."
+      },
+
+      "transit_to_here": {
+        "description": "Short Island Hop",
+        "duration_seconds": 180,
+        "distance_km": 300,
+        "speed_curve": "CRUISING",
+        "camera_zoom": 9
+      },
+
+      "schedule": {
+        "arrival_utc": "2024-12-24T10:04:00Z",
+        "departure_utc": "2024-12-24T10:04:00Z",
+        "local_arrival_time": "00:04",
+        "time_window_status": "GREEN"
+      }
+    }
+  ]
+}
