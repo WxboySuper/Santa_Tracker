@@ -797,23 +797,23 @@
         });
         
         function initMap() {
-            // Center on Pacific Ocean (180° longitude) since Santa's route starts there
+            // Center on Pacific Ocean near date line since Santa's route starts at North Pole (179.9°)
             state.map = L.map('map', {
-                center: [0, -170],  // Center on Pacific near the date line
+                center: [45, 170],  // Center higher up to see North Pole, near date line
                 zoom: 2,
                 zoomControl: true,
                 attributionControl: true,
                 worldCopyJump: false,  // Disable to prevent jumping between world copies
-                maxBounds: [[-90, -360], [90, 360]],  // Allow extended longitude range
-                maxBoundsViscosity: 0.5
+                minZoom: 2,  // Prevent zooming out too far
+                // No maxBounds - allow free panning for routes crossing date line
             });
             
-            // Use a cleaner map style
+            // Use a cleaner map style - tiles wrap for continuous scrolling
             L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
                 attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
                 subdomains: 'abcd',
-                maxZoom: 19,
-                noWrap: false  // Allow tile wrapping for continuous map
+                maxZoom: 19
+                // noWrap defaults to false - tiles wrap for continuous map
             }).addTo(state.map);
             
             // Create Santa marker (hidden initially)
