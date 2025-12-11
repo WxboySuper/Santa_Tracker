@@ -13,13 +13,13 @@
 export type NodeType = 'START' | 'DELIVERY' | 'FLYBY';
 
 /** Speed curve types for transit segments */
-export type SpeedCurve = 'HYPERSONIC' | 'CRUISING';
+export type SpeedCurve = 'HYPERSONIC' | 'CRUISING' | 'HYPERSONIC_LONG' | 'REGIONAL';
 
 /** Traffic light status for time window validation */
 export type TimeWindowStatus = 'GREEN' | 'YELLOW' | 'RED';
 
 /** Weather conditions for stop experience */
-export type WeatherCondition = 'clear' | 'blizzard' | 'snow' | 'cloudy' | 'rain';
+export type WeatherCondition = 'clear' | 'blizzard' | 'snow' | 'cloudy' | 'rain' | 'fog' | 'thunderstorm';
 
 // ============================================================================
 // Location Data

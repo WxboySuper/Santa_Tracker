@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { MapContainer, TileLayer, Marker, Polyline, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import { Play, Pause, Square, SkipBack, SkipForward, Clock, MapPin, Video, VideoOff } from 'lucide-react';
@@ -127,7 +127,6 @@ function CameraController({ position, shouldFollow, autoZoom, phase, speedCurve 
             const isZoomingIn = targetZoom > (lastZoomRef.current || map.getZoom());
             const duration = isZoomingIn ? 2.0 : 1.5;
 
-            console.log(`Camera zoom: ${lastZoomRef.current} -> ${targetZoom} (${speedCurve}, ${phase})`);
 
             map.flyTo(position, targetZoom, {
                 animate: true,
@@ -143,7 +142,7 @@ function CameraController({ position, shouldFollow, autoZoom, phase, speedCurve 
                 isAnimatingRef.current = false;
             }, duration * 1000 + 100); // Add small buffer
 
-        } else if (!isAnimatingRef.current && shouldFollow) {
+        } else if (!isAnimatingRef.current) {
             // Only pan if we're not currently animating a zoom change
             map.panTo(position, { animate: true, duration: 0.3 });
         }
@@ -220,6 +219,13 @@ function getLocationIcon(index, total, isVisited, isCurrent, nodeType) {
 // ============================================================================
 // Format Helpers
 // ============================================================================
+function normalizeLng(lng) {
+    // Normalize any longitude to the range [-180, 180)
+    if (lng === undefined || lng === null || Number.isNaN(Number(lng))) return 0;
+    const n = Number(lng);
+    return ((n + 180) % 360 + 360) % 360 - 180;
+}
+
 function formatTime(date) {
     if (!date) return '--:--:--';
     return date.toLocaleTimeString('en-US', {
@@ -268,8 +274,6 @@ export default function SimulatorPage() {
     const [followSanta, setFollowSanta] = useState(true);
     const [autoZoom, setAutoZoom] = useState(true); // Cinematic auto-zoom
     const [currentPhase, setCurrentPhase] = useState('waiting');
-    const [currentTransitDuration, setCurrentTransitDuration] = useState(0);
-    const [isLaunchSegment, setIsLaunchSegment] = useState(false);
     const [currentSpeedCurve, setCurrentSpeedCurve] = useState('CRUISING');
 
     // Animation refs
@@ -316,13 +320,17 @@ export default function SimulatorPage() {
                 const speedCurve = node.transit_to_here?.speed_curve || 'CRUISING';
                 const distanceKm = node.transit_to_here?.distance_km || 0;
 
+                const rawLng = Number(node.location.lng);
+                const normLng = normalizeLng(rawLng);
+
                 return {
                     index,
                     id: node.id,
                     name: node.location?.name || `Stop ${index}`,
                     region: node.location?.region || '',
-                    lat: node.location.lat,
-                    lng: node.location.lng,
+                    lat: Number(node.location.lat),
+                    lng: rawLng, // keep raw for reference
+                    normLng,      // normalized into [-180, 180)
                     arrivalTime: arrivalUTC,
                     departureTime: departureUTC,
                     type: node.type || 'DELIVERY',
@@ -338,21 +346,43 @@ export default function SimulatorPage() {
             });
     }, [routeData]);
 
-    // Route timing
-    const routeStartTime = useMemo(() => {
-        const firstWithTime = simulatedRoute.find(s => s.departureTime);
-        return firstWithTime?.departureTime || null;
-    }, [simulatedRoute]);
-
-    const routeEndTime = useMemo(() => {
-        const lastWithTime = [...simulatedRoute].reverse().find(s => s.departureTime || s.arrivalTime);
-        return lastWithTime?.departureTime || lastWithTime?.arrivalTime || null;
+    // Compute adjusted longitudes that follow the shortest path between consecutive points
+    const adjustedLongitudes = useMemo(() => {
+        if (!simulatedRoute || simulatedRoute.length === 0) return [];
+        const out = [];
+        for (let i = 0; i < simulatedRoute.length; i++) {
+            const norm = simulatedRoute[i].normLng;
+            if (i === 0) {
+                out.push(norm);
+            } else {
+                const prev = out[i - 1];
+                // shortest-angle delta from prev to norm
+                const delta = ((norm - prev + 540) % 360) - 180;
+                out.push(prev + delta);
+            }
+        }
+        return out;
     }, [simulatedRoute]);
 
     // Polyline positions
     const polylinePositions = useMemo(() => {
-        return simulatedRoute.map(stop => [stop.lat, stop.lng]);
-    }, [simulatedRoute]);
+        if (!simulatedRoute || simulatedRoute.length === 0) return [];
+
+        const positions = [];
+
+        for (let i = 0; i < simulatedRoute.length; i++) {
+            const stop = simulatedRoute[i];
+            const lat = stop.lat;
+            const adjLng = adjustedLongitudes[i];
+
+            // Skip invalid points
+            if (lat === undefined || adjLng === undefined || lat === null || adjLng === null) continue;
+
+            positions.push([lat, adjLng]);
+        }
+
+        return positions;
+    }, [simulatedRoute, adjustedLongitudes]);
 
     // ========================================================================
     // Simulation Logic
@@ -366,13 +396,13 @@ export default function SimulatorPage() {
 
             // Before first departure
             if (i === 0 && stop.departureTime && time < stop.departureTime) {
-                return { lat: stop.lat, lng: stop.lng, index: 0, phase: 'waiting', transitDuration: 0, isLaunch: false };
+                return { lat: stop.lat, lng: adjustedLongitudes[0] ?? stop.lng, index: 0, phase: 'waiting', transitDuration: 0, isLaunch: false };
             }
 
             // At this stop
             if (stop.arrivalTime && stop.departureTime) {
                 if (time >= stop.arrivalTime && time <= stop.departureTime) {
-                    return { lat: stop.lat, lng: stop.lng, index: i, phase: 'stopped', transitDuration: 0, isLaunch: false };
+                    return { lat: stop.lat, lng: adjustedLongitudes[i] ?? stop.lng, index: i, phase: 'stopped', transitDuration: 0, isLaunch: false };
                 }
             }
 
@@ -385,7 +415,13 @@ export default function SimulatorPage() {
                 if (departTime && arriveTime && time >= departTime && time < arriveTime) {
                     const progress = (time - departTime) / (arriveTime - departTime);
                     const lat = stop.lat + (nextStop.lat - stop.lat) * progress;
-                    const lng = stop.lng + (nextStop.lng - stop.lng) * progress;
+
+                    // Use adjusted longitudes and compute the shortest-angle delta for interpolation
+                    const lngA = adjustedLongitudes[i] ?? normalizeLng(stop.lng);
+                    const lngB = adjustedLongitudes[i + 1] ?? normalizeLng(nextStop.lng);
+                    const delta = ((lngB - lngA + 540) % 360) - 180;
+                    const lng = lngA + delta * progress;
+
                     return {
                         lat,
                         lng,
@@ -403,8 +439,8 @@ export default function SimulatorPage() {
 
         // After last arrival
         const lastStop = simulatedRoute[simulatedRoute.length - 1];
-        return { lat: lastStop.lat, lng: lastStop.lng, index: simulatedRoute.length - 1, phase: 'finished', transitDuration: 0, isLaunch: false };
-    }, [simulatedRoute]);
+        return { lat: lastStop.lat, lng: adjustedLongitudes[simulatedRoute.length - 1] ?? lastStop.lng, index: simulatedRoute.length - 1, phase: 'finished', transitDuration: 0, isLaunch: false };
+    }, [simulatedRoute, adjustedLongitudes]);
 
     const updateSimulation = useCallback(() => {
         if (status !== 'running') return;
@@ -672,7 +708,7 @@ export default function SimulatorPage() {
                         {simulatedRoute.map((stop, idx) => (
                             <Marker
                                 key={stop.id || idx}
-                                position={[stop.lat, stop.lng]}
+                                position={[stop.lat, adjustedLongitudes[idx] ?? stop.lng]}
                                 icon={getLocationIcon(idx, simulatedRoute.length, visitedIndices.has(idx), idx === currentIndex, stop.type)}
                                 eventHandlers={{
                                     click: () => handleJumpToStop(idx)

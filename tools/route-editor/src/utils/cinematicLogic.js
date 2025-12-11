@@ -98,7 +98,7 @@ export function calculateDistance(lat1, lng1, lat2, lng2) {
  * - Between 500-2000km: Interpolated speed for smooth transitions
  * 
  * @param {number} distanceKm - Distance to travel in kilometers
- * @returns {{ durationSeconds: number, speedKmh: number, speedCurve: 'HYPERSONIC' | 'CRUISING' | 'INTERPOLATED' }}
+ * @returns {{ durationSeconds: number, speedKmh: number, speedCurve: 'HYPERSONIC' | 'CRUISING' | 'HYPERSONIC_LONG' | 'REGIONAL' }} Travel time details
  *
  * @example
  * // Extreme long haul (hypersonic_long) - like North Pole to Kiritimati
@@ -276,8 +276,14 @@ export function getStatusMessage(status, localHourDecimal) {
 export function decimalHoursToTimeString(decimalHours) {
     // Normalize to 0-24 range
     const normalized = ((decimalHours % 24) + 24) % 24;
-    const hours = Math.floor(normalized);
-    const minutes = Math.round((normalized - hours) * 60);
+    let hours = Math.floor(normalized);
+    let minutes = Math.round((normalized - hours) * 60);
+
+    // Handle rounding edge-case where minutes === 60 (e.g., 23.999 -> 24:00)
+    if (minutes === 60) {
+        minutes = 0;
+        hours = (hours + 1) % 24; // wrap to 0..23
+    }
 
     return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
 }

@@ -174,7 +174,7 @@ export function recalculateRoute(nodes, options = {}) {
  * @param {number} year - Target year for the route
  * @returns {Object} The anchor node
  */
-function createAnchorNode(year) {
+function createAnchorNode() {
     return {
         ...NORTH_POLE_ANCHOR,
         comment: '--- NODE 0: THE ANCHOR (HARD LOCKED) ---',

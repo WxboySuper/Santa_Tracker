@@ -5,8 +5,7 @@ import { exportToJSON, writeToFileHandle, pickFileForLinking, pickFileToOpen } f
 import { 
     recalculateRoute, 
     validateRoute, 
-    canDeleteNode, 
-    canMoveNode,
+    canDeleteNode,
     NORTH_POLE_ANCHOR 
 } from './utils/routeCalculations';
 
@@ -40,7 +39,6 @@ function App() {
 
     // Legacy alias for backwards compatibility with existing components
     const locations = routeNodes;
-    const setLocations = setRouteNodes;
 
     /**
      * Recalculates the entire route schedule.
@@ -96,7 +94,7 @@ function App() {
                 setRouteNodes(recalculated);
             }
         }
-    }, [routeNodes.length]); // Only re-run when node count changes
+    }, [routeNodes]); // Only re-run when node count changes
 
     // Auto-save to linked file when route changes
     useEffect(() => {
@@ -165,6 +163,12 @@ function App() {
                     await writeToFileHandle(result.handle, routeData);
                     setLastSaveTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
                     setIsSaving(false);
+                    try{
+                        await writeToFileHandle(result.handle, routeData);
+                        setLastSaveTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+                    } finally {
+                        setIsSaving(false);
+                    }
                 }
             }
         } catch (error) {
