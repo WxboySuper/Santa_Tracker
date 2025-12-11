@@ -96,17 +96,17 @@ function CameraController({ position, shouldFollow, autoZoom, phase, speedCurve 
             } else if (phase === 'transit') {
                 // Zoom based on speed curve (travel mode)
                 switch (speedCurve) {
-                    case 'HYPERSONIC_LONG':
-                        targetZoom = CAMERA_ZOOM.LAUNCH;
-                        break;
-                    case 'HYPERSONIC':
-                        targetZoom = CAMERA_ZOOM.LONG_HAUL;
-                        break;
-                    case 'REGIONAL':
-                    case 'CRUISING':
-                    default:
-                        targetZoom = CAMERA_ZOOM.SHORT_HOP;
-                        break;
+                case 'HYPERSONIC_LONG':
+                    targetZoom = CAMERA_ZOOM.LAUNCH;
+                    break;
+                case 'HYPERSONIC':
+                    targetZoom = CAMERA_ZOOM.LONG_HAUL;
+                    break;
+                case 'REGIONAL':
+                case 'CRUISING':
+                default:
+                    targetZoom = CAMERA_ZOOM.SHORT_HOP;
+                    break;
                 }
             }
         }
@@ -279,12 +279,14 @@ export default function SimulatorPage() {
     // Animation refs
     const animationRef = useRef(null);
     const lastRealTimeRef = useRef(null);
+    const updateSimulationRef = useRef(null);
 
     // Load route data from localStorage on mount
     useEffect(() => {
         try {
             const stored = localStorage.getItem('routeEditorSimulatorData');
             if (!stored) {
+                // eslint-disable-next-line
                 setLoadError('No route data found. Please go back to the Route Editor and click "Test Route" again.');
                 return;
             }
@@ -384,6 +386,17 @@ export default function SimulatorPage() {
         return positions;
     }, [simulatedRoute, adjustedLongitudes]);
 
+    // Route start and end times
+    const routeStartTime = useMemo(() => {
+        const firstWithTime = simulatedRoute.find(s => s.departureTime);
+        return firstWithTime?.departureTime || null;
+    }, [simulatedRoute]);
+
+    const routeEndTime = useMemo(() => {
+        const lastWithTime = [...simulatedRoute].reverse().find(s => s.departureTime || s.arrivalTime);
+        return lastWithTime?.departureTime || lastWithTime?.arrivalTime || null;
+    }, [simulatedRoute]);
+
     // ========================================================================
     // Simulation Logic
     // ========================================================================
@@ -462,8 +475,13 @@ export default function SimulatorPage() {
             return newTime;
         });
 
-        animationRef.current = requestAnimationFrame(updateSimulation);
+        animationRef.current = requestAnimationFrame(updateSimulationRef.current);
     }, [status, speed, routeEndTime]);
+
+    // Keep ref updated with latest callback
+    useEffect(() => {
+        updateSimulationRef.current = updateSimulation;
+    }, [updateSimulation]);
 
     // Update Santa position and camera state when time changes
     useEffect(() => {
@@ -471,10 +489,9 @@ export default function SimulatorPage() {
 
         const pos = interpolatePosition(currentTime);
         if (pos) {
+            // eslint-disable-next-line
             setSantaPosition([pos.lat, pos.lng]);
             setCurrentPhase(pos.phase);
-            setCurrentTransitDuration(pos.transitDuration || 0);
-            setIsLaunchSegment(pos.isLaunch || false);
             setCurrentSpeedCurve(pos.speedCurve || 'CRUISING');
 
             if (pos.index !== currentIndex) {
@@ -535,8 +552,6 @@ export default function SimulatorPage() {
         setVisitedIndices(new Set());
         setSantaPosition(null);
         setCurrentPhase('waiting');
-        setCurrentTransitDuration(0);
-        setIsLaunchSegment(false);
     }, []);
 
     const handleSkipBack = useCallback(() => {
@@ -663,8 +678,8 @@ export default function SimulatorPage() {
                 <div className="flex items-center gap-2">
                     <span className={`px-2 py-1 rounded text-xs font-bold ${
                         status === 'running' ? 'bg-green-500' :
-                        status === 'paused' ? 'bg-yellow-500' :
-                        'bg-gray-500'
+                            status === 'paused' ? 'bg-yellow-500' :
+                                'bg-gray-500'
                     }`}>
                         {status.toUpperCase()}
                     </span>
@@ -729,8 +744,8 @@ export default function SimulatorPage() {
                                             {stop.timeWindowStatus && (
                                                 <div className={`font-bold ${
                                                     stop.timeWindowStatus === 'GREEN' ? 'text-green-600' :
-                                                    stop.timeWindowStatus === 'YELLOW' ? 'text-yellow-600' :
-                                                    'text-red-600'
+                                                        stop.timeWindowStatus === 'YELLOW' ? 'text-yellow-600' :
+                                                            'text-red-600'
                                                 }`}>
                                                     Status: {stop.timeWindowStatus}
                                                 </div>
@@ -799,8 +814,8 @@ export default function SimulatorPage() {
                                             {stop.timeWindowStatus && (
                                                 <span className={`px-1 rounded text-[10px] font-bold ${
                                                     stop.timeWindowStatus === 'GREEN' ? 'bg-green-100 text-green-700' :
-                                                    stop.timeWindowStatus === 'YELLOW' ? 'bg-yellow-100 text-yellow-700' :
-                                                    'bg-red-100 text-red-700'
+                                                        stop.timeWindowStatus === 'YELLOW' ? 'bg-yellow-100 text-yellow-700' :
+                                                            'bg-red-100 text-red-700'
                                                 }`}>
                                                     {stop.timeWindowStatus}
                                                 </span>
@@ -920,14 +935,14 @@ export default function SimulatorPage() {
                     {currentPhase === 'transit' && (
                         <span className={`px-2 py-0.5 rounded text-xs font-bold ${
                             currentSpeedCurve === 'HYPERSONIC_LONG' ? 'bg-purple-500' :
-                            currentSpeedCurve === 'HYPERSONIC' ? 'bg-blue-500' :
-                            currentSpeedCurve === 'REGIONAL' ? 'bg-cyan-500' :
-                            'bg-green-500'
+                                currentSpeedCurve === 'HYPERSONIC' ? 'bg-blue-500' :
+                                    currentSpeedCurve === 'REGIONAL' ? 'bg-cyan-500' :
+                                        'bg-green-500'
                         }`}>
                             {currentSpeedCurve === 'HYPERSONIC_LONG' ? '🚀 LAUNCH' :
-                             currentSpeedCurve === 'HYPERSONIC' ? '✈️ LONG HAUL' :
-                             currentSpeedCurve === 'REGIONAL' ? '🛩️ REGIONAL' :
-                             '🎿 CRUISING'}
+                                currentSpeedCurve === 'HYPERSONIC' ? '✈️ LONG HAUL' :
+                                    currentSpeedCurve === 'REGIONAL' ? '🛩️ REGIONAL' :
+                                        '🎿 CRUISING'}
                         </span>
                     )}
                     {currentPhase === 'stopped' && (
