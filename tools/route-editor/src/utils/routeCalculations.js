@@ -74,7 +74,7 @@ export function recalculateRoute(nodes, options = {}) {
 
     // If no nodes or only the anchor, return as-is with anchor ensured
     if (!nodes || nodes.length === 0) {
-        return [createAnchorNode(targetYear)];
+        return [createAnchorNode()];
     }
 
     // Create a working copy of nodes
@@ -201,7 +201,7 @@ function ensureAnchorNode(nodes, year) {
 
     if (!isAnchor) {
         // Insert the anchor at position 0
-        nodes.unshift(createAnchorNode(year));
+        nodes.unshift(createAnchorNode());
     } else {
         // Ensure anchor has correct locked properties
         nodes[0] = {
