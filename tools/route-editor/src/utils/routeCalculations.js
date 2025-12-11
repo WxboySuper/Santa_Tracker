@@ -81,7 +81,7 @@ export function recalculateRoute(nodes, options = {}) {
     const updatedNodes = nodes.map(node => ({ ...node }));
 
     // Step 0: Ensure Node[0] is ALWAYS the North Pole anchor
-    ensureAnchorNode(updatedNodes, targetYear);
+    ensureAnchorNode(updatedNodes);
 
     // If only the anchor exists, nothing more to calculate
     if (updatedNodes.length === 1) {
@@ -190,9 +190,8 @@ function createAnchorNode() {
  * Ensures Node[0] is the North Pole anchor. If not, inserts it.
  * 
  * @param {Array} nodes - Array of nodes (modified in place)
- * @param {number} year - Target year
  */
-function ensureAnchorNode(nodes, year) {
+function ensureAnchorNode(nodes) {
     const firstNode = nodes[0];
   
     // Check if first node is the anchor by ID or type (not lat, which may vary)
