@@ -323,9 +323,9 @@ function getStopDuration(node) {
     case'DELIVERY':
     default:
         if (node.priority === 1 || node.is_major_stop) {
-            return MAJOR_STOP_DURATION
+            return MAJOR_STOP_DURATION;
         }
-        return DEFAULT_STOP_DURATION
+        return DEFAULT_STOP_DURATION;
     }
 }
 
