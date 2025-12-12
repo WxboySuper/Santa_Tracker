@@ -1,6 +1,6 @@
 version = 1
 
-exclude_patterns = ["tests/**"]
+exclude_patterns = ["tests/**", "tools/route-editor/**"]
 
 [[analyzers]]
 name = "javascript"

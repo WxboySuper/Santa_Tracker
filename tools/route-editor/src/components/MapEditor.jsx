@@ -204,7 +204,7 @@ function SearchBar({ onLocationSelect }) {
     }, [onLocationSelect]);
 
     return (
-        <div className="absolute top-4 left-4 z-[1000] bg-white rounded-lg shadow-lg p-2 w-80">
+        <div className="absolute top-4 left-14 z-[1000] bg-white rounded-lg shadow-lg p-2 w-80">
             <form onSubmit={handleSearch} className="flex gap-2">
                 <input
                     type="text"
@@ -330,9 +330,6 @@ function MapEditor({ locations, onAddLocation, setSelectedLocation }) {
                 throw new Error(`Reverse geocoding failed: ${response.status}`);
             }
 
-            if (!response.ok) {
-                throw new Error(`Reverse geocoding failed: ${response.status}`);
-            }
             const data = await response.json();
             onAddLocation({
                 name: data.address?.city || data.address?.town || data.address?.village || 'Unknown Location',
@@ -364,9 +361,10 @@ function MapEditor({ locations, onAddLocation, setSelectedLocation }) {
         setMapCenter(center);
     }, [onAddLocation]);
 
-    const getMarkerIcon = useCallback((index, total) => {
+    const getMarkerIcon = useCallback((index, total, nodeType) => {
+        // Special handling for START (North Pole) node
+        if (nodeType === 'START' || index === 0) return greenIcon;
         if (total === 1) return blueIcon;
-        if (index === 0) return greenIcon;
         if (index === total - 1) return redIcon;
         return blueIcon;
     }, []);
@@ -375,15 +373,26 @@ function MapEditor({ locations, onAddLocation, setSelectedLocation }) {
         setSelectedLocation(locationId);
     }, [setSelectedLocation]);
 
-    const polylinePositions = locations.map(loc => [loc.latitude, loc.longitude]);
+    // Support both old and new schema for polyline positions
+    const polylinePositions = locations
+        .map(loc => {
+            const lat = loc.location?.lat ?? loc.latitude;
+            const lng = loc.location?.lng ?? loc.longitude;
+            if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+            return [lat, lng];
+        })
+        .filter(Boolean);
 
     return (
         <div className="flex-1 relative">
             <MapContainer
-                center={[20, 0]}
+                center={[45, 170]}
                 zoom={2}
                 className="h-full w-full"
-                worldCopyJump
+                worldCopyJump={false}
+                minZoom={2}
+                maxBounds={[[-120, -Infinity], [120, Infinity]]}
+                maxBoundsViscosity={1.0}
             >
                 <TileLayer
                     attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
@@ -402,35 +411,64 @@ function MapEditor({ locations, onAddLocation, setSelectedLocation }) {
                 <MapEventHandler onMapClick={handleMapClick} />
                 <MapCenter center={mapCenter} />
         
-                {/* Render markers */}
-                {locations.map((location, index) => (
-                    <Marker
-                        key={location.id}
-                        position={[location.latitude, location.longitude]}
-                        icon={getMarkerIcon(index, locations.length)}
-                        eventHandlers={{
-                            click: () => handleMarkerClick(location.id)
-                        }}
-                    >
-                        <Popup>
-                            <div className="text-sm">
-                                <strong>{location.name}</strong>
-                                <br />
-                                {location.country && `${location.country}`}
-                                <br />
-                                Priority: {location.priority}
-                            </div>
-                        </Popup>
-                    </Marker>
-                ))}
+                {/* Render markers - support both old and new schema */}
+                {locations.map((location, index) => {
+                    const lat = location.location?.lat ?? location.latitude;
+                    const lng = location.location?.lng ?? location.longitude;
+
+                    // Skip markers with invalid coordinates
+                    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+
+                    const name = location.location?.name ?? location.name ?? 'Unknown';
+                    const region = location.location?.region ?? location.country ?? '';
+                    const nodeType = location.type || 'DELIVERY';
+                    
+                    return (
+                        <Marker
+                            key={location.id ?? `${index}-${lat}-${lng}`}
+                            position={[lat, lng]}
+                            icon={getMarkerIcon(index, locations.length, nodeType)}
+                            eventHandlers={{
+                                click: () => handleMarkerClick(location.id)
+                            }}
+                        >
+                            <Popup>
+                                <div className="text-sm">
+                                    <strong>{name}</strong>
+                                    {region && (
+                                        <>
+                                            <br />
+                                            {region}
+                                        </>
+                                    )}
+                                    <br />
+                                    <span className="text-gray-500">
+                                        {nodeType === 'START' ? '🎅 Start Point' : 
+                                            nodeType === 'FLYBY' ? '✈️ Flyby' : 
+                                                '🎁 Delivery'}
+                                    </span>
+                                    {location.schedule?.local_arrival_time && (
+                                        <>
+                                            <br />
+                                            <span className="text-blue-600">
+                                                Local: {location.schedule.local_arrival_time}
+                                            </span>
+                                        </>
+                                    )}
+                                </div>
+                            </Popup>
+                        </Marker>
+                    );
+                })}
         
                 {/* Render polyline connecting locations */}
                 {polylinePositions.length > 1 && (
                     <Polyline
                         positions={polylinePositions}
-                        color="#3b82f6"
+                        color="#c41e3a"
                         weight={3}
                         opacity={0.7}
+                        dashArray="10, 5"
                     />
                 )}
             </MapContainer>
