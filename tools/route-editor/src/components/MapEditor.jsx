@@ -305,7 +305,7 @@ function MapEditor({ locations, onAddLocation, setSelectedLocation }) {
         const right = createFeatures(360, 'right');
 
         return {
-            type: 'FeatureCollection',
+            type: "FeatureCollection",
             features: [...left, ...center, ...right]
         };
     }, []);

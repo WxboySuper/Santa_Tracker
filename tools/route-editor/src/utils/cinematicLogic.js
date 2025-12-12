@@ -18,9 +18,9 @@ const EARTH_RADIUS_KM = 6371;
  * Speed thresholds and values (km/h)
  *
  * Speed tiers from fastest to slowest:
- * - HYPERSONIC_LONG: ~65,000 km/h - For extreme distances like North Pole to first stop (~9800km in ~9min)
- * - HYPERSONIC: 10,000 km/h - For long-haul ocean crossings (>2000km)
- * - CRUISING: 1,500 km/h - For short regional hops (<500km)
+ * - HYPERSONIC_LONG: 60,000 km/h - For extreme distances like North Pole to first stop (~9800km in ~9min)
+ * - HYPERSONIC: 14,000 km/h - For long-haul ocean crossings (>2000km)
+ * - CRUISING: 2,050 km/h - For short regional hops (<500km)
  */
 const SPEED = {
     HYPERSONIC_LONG: 60000, // For extreme long-haul (>5000km) - "The Launch"

@@ -99,7 +99,7 @@ function App() {
             }
             isRecalculatingRef.current = false;
         }
-    }, [routeNodes, recalculate]); // Only re-run when node count changes
+    }, [routeNodes.length, recalculate]); // Only re-run when node count changes
 
     // Auto-save to linked file when route changes
     useEffect(() => {
@@ -165,7 +165,7 @@ function App() {
                         },
                         route_nodes: routeNodes,
                     };
-                    try{
+                    try {
                         await writeToFileHandle(result.handle, routeData);
                         setLastSaveTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
                     } finally {

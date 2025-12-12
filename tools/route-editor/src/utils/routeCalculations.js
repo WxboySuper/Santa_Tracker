@@ -78,7 +78,7 @@ export function recalculateRoute(nodes, options = {}) {
     }
 
     // Create a working copy of nodes
-    const updatedNodes = nodes.map(node => ({ ...node }));
+    const updatedNodes = sanitizeNodes(nodes);
 
     // Step 0: Ensure Node[0] is ALWAYS the North Pole anchor
     ensureAnchorNode(updatedNodes);
@@ -112,7 +112,10 @@ export function recalculateRoute(nodes, options = {}) {
     };
 
     // Step 4: Update Node[1] with calculated values
-    const node1LocalHour = utcToLocalDecimalHours(node1ArrivalUTC, node1.location.timezone_offset);
+    const node1LocalHour = utcToLocalDecimalHours(
+        node1ArrivalUTC,
+        node1.location?.timezone_offset ?? 0
+    );
     const node1Status = validateArrivalWindow(node1LocalHour);
     const node1StopDuration = getStopDuration(node1);
     const node1DepartureUTC = new Date(node1ArrivalUTC.getTime() + (node1StopDuration * 1000));
@@ -141,7 +144,10 @@ export function recalculateRoute(nodes, options = {}) {
         const arrivalUTC = new Date(prevDepartureUTC.getTime() + (transitInfo.duration_seconds * 1000));
 
         // Calculate local time and validate
-        const localHour = utcToLocalDecimalHours(arrivalUTC, currentNode.location.timezone_offset);
+        const localHour = utcToLocalDecimalHours(
+            arrivalUTC,
+            currentNode.location?.timezone_offset ?? 0,
+        )
         const status = validateArrivalWindow(localHour);
 
         // Calculate departure based on stop duration
@@ -169,9 +175,55 @@ export function recalculateRoute(nodes, options = {}) {
 // ============================================================================
 
 /**
+ * Sanitizes route nodes and ensures safe defaults for missing fields.
+ *
+ * - Ensures `nodes` is an array and returns at least the anchor node.
+ * - Replaces `null`/`undefined` entries with safe minimal nodes.
+ * - Guarantees every node has a `location` object with numeric `lat`, `lng`
+ *   and `timezone_offset` (defaults to 0).
+ * - Preserves existing safe fields where present.
+ *
+ * @param {Array} nodes
+ * @returns {Array} sanitized nodes
+ */
+function sanitizeNodes(nodes) {
+    if (!Array.isArray(nodes) || nodes.length === 0) {
+        return [createAnchorNode()];
+    }
+
+    return nodes.map((node, idx) => {
+        const src = node || {};
+        const locSrc = src.location || {};
+
+        const timezone_offset = (typeof locSrc.timezone_offset === 'number' && Number.isFinite(locSrc.timezone_offset))
+            ? locSrc.timezone_offset
+            : 0;
+
+        const location = {
+            name: locSrc.name || 'Unknown',
+            region: locSrc.region || '',
+            lat: Number(locSrc.lat) || 0,
+            lng: Number(locSrc.lng) || 0,
+            timezone_offset,
+        };
+
+        return {
+            id: src.id || `node_${String(idx).padStart(3, '0')}_sanitized`,
+            type: src.type || 'DELIVERY',
+            location,
+            stop_experience: { ...(src.stop_experience || {}) },
+            priority: src.priority ?? 0,
+            is_major_stop: !!src.is_major_stop,
+            schedule: src.schedule ? { ...src.schedule } : { arrival_utc: null, departure_utc: null },
+            transit_to_here: src.transit_to_here || null,
+            comment: src.comment,
+        };
+    });
+}
+
+/**
  * Creates the North Pole anchor node with default values.
- * 
- * @param {number} year - Target year for the route
+ *
  * @returns {Object} The anchor node
  */
 function createAnchorNode() {
@@ -320,7 +372,7 @@ function getStopDuration(node) {
         return FLYBY_DURATION;
     case 'START':
         return 0;
-    case'DELIVERY':
+    case 'DELIVERY':
     default:
         if (node.priority === 1 || node.is_major_stop) {
             return MAJOR_STOP_DURATION;
@@ -341,11 +393,26 @@ function getStopDuration(node) {
  */
 export function validateRoute(nodes) {
     if (!Array.isArray(nodes)) return [];
+
     return nodes.map((node, index) => {
-        if (index === 0) {
-            // Anchor node is always valid
+        // Handle nullish entries in the array
+        if (!node) {
+            const missingId = `node_${String(index).padStart(3, '0')}_missing`;
             return {
-                nodeId: node.id,
+                nodeId: missingId,
+                index,
+                status: 'RED',
+                localArrivalTime: 'Unknown',
+                message: index === 0
+                    ? 'Missing North Pole Anchor (node is nullish)'
+                    : 'Node is missing or invalid',
+            };
+        }
+
+        // Anchor node (index 0) is always valid
+        if (index === 0) {
+            return {
+                nodeId: node.id ?? 'node_000_north_pole',
                 index,
                 status: 'GREEN',
                 message: 'North Pole Anchor (locked)',
@@ -356,7 +423,7 @@ export function validateRoute(nodes) {
         const localTime = node.schedule?.local_arrival_time || 'Unknown';
 
         return {
-            nodeId: node.id,
+            nodeId: node.id ?? `node_${String(index).padStart(3, '0')}_sanitized`,
             index,
             status,
             localArrivalTime: localTime,

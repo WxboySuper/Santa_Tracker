@@ -288,54 +288,59 @@ export default function SimulatorPage() {
 
             setRouteData(data);
         } catch (err) {
-            setLoadError(`Failed to load route data: ${err.message}`);
+            const msg = err instanceof Error ? err.message : String(err);
+            setLoadError('Failed to load route data: ${msg}');
         }
     }, []);
 
+    // Memoize filtered route nodes to avoid redundant filtering
+    const filteredRouteNodes = useMemo(() => {
+        if (!routeData?.route_nodes) return [];
+        return routeData.route_nodes.filter(
+            node => node.location?.lat !== undefined && node.location?.lng !== undefined
+        );
+    }, [routeData]);
+
     // Build simulated route with arrival/departure times and transit info
     const simulatedRoute = useMemo(() => {
-        if (!routeData?.route_nodes) return [];
+        return filteredRouteNodes.map((node, index) => {
+            const arrivalUTC = node.schedule?.arrival_utc
+                ? new Date(node.schedule.arrival_utc)
+                : null;
+            const departureUTC = node.schedule?.departure_utc
+                ? new Date(node.schedule.departure_utc)
+                : null;
 
-        return routeData.route_nodes
-            .filter(node => node.location?.lat !== undefined && node.location?.lng !== undefined)
-            .map((node, index) => {
-                const arrivalUTC = node.schedule?.arrival_utc
-                    ? new Date(node.schedule.arrival_utc)
-                    : null;
-                const departureUTC = node.schedule?.departure_utc
-                    ? new Date(node.schedule.departure_utc)
-                    : null;
+            // Extract transit info for camera zoom decisions
+            const transitDuration = node.transit_to_here?.duration_seconds || 0;
+            const speedCurve = node.transit_to_here?.speed_curve || 'CRUISING';
+            const distanceKm = node.transit_to_here?.distance_km || 0;
 
-                // Extract transit info for camera zoom decisions
-                const transitDuration = node.transit_to_here?.duration_seconds || 0;
-                const speedCurve = node.transit_to_here?.speed_curve || 'CRUISING';
-                const distanceKm = node.transit_to_here?.distance_km || 0;
+            const rawLng = Number(node.location.lng);
+            const normLng = normalizeLng(rawLng);
 
-                const rawLng = Number(node.location.lng);
-                const normLng = normalizeLng(rawLng);
-
-                return {
-                    index,
-                    id: node.id,
-                    name: node.location?.name || `Stop ${index}`,
-                    region: node.location?.region || '',
-                    lat: Number(node.location.lat),
-                    lng: rawLng, // keep raw for reference
-                    normLng,      // normalized into [-180, 180)
-                    arrivalTime: arrivalUTC,
-                    departureTime: departureUTC,
-                    type: node.type || 'DELIVERY',
-                    stopDuration: node.stop_experience?.duration_seconds || 60,
-                    localArrivalTime: node.schedule?.local_arrival_time,
-                    timeWindowStatus: node.schedule?.time_window_status,
-                    // Transit info for camera
-                    transitDuration,
-                    speedCurve,
-                    distanceKm,
-                    isLaunch: speedCurve === 'HYPERSONIC_LONG', // Launch uses the fastest speed
-                };
-            });
-    }, [routeData]);
+            return {
+                index,
+                id: node.id,
+                name: node.location?.name || `Stop ${index}`,
+                region: node.location?.region || '',
+                lat: Number(node.location.lat),
+                lng: rawLng, // keep raw for reference
+                normLng,      // normalized into [-180, 180)
+                arrivalTime: arrivalUTC,
+                departureTime: departureUTC,
+                type: node.type || 'DELIVERY',
+                stopDuration: node.stop_experience?.duration_seconds || 60,
+                localArrivalTime: node.schedule?.local_arrival_time,
+                timeWindowStatus: node.schedule?.time_window_status,
+                // Transit info for camera
+                transitDuration,
+                speedCurve,
+                distanceKm,
+                isLaunch: speedCurve === 'HYPERSONIC_LONG', // Launch uses the fastest speed
+            };
+        });
+    }, [filteredRouteNodes]);
 
     // Compute adjusted longitudes that follow the shortest path between consecutive points
     const adjustedLongitudes = useMemo(() => {
@@ -377,13 +382,15 @@ export default function SimulatorPage() {
 
     // Route start and end times
     const routeStartTime = useMemo(() => {
-        const firstWithTime = simulatedRoute.find(s => s.departureTime);
-        return firstWithTime?.departureTime || null;
+        if (!simulatedRoute.length) return null;
+        const firstWithTime = simulatedRoute.find(s => s.departureTime || s.arrivalTime);
+        return firstWithTime?.departureTime ?? firstWithTime?.arrivalTime ?? null;
     }, [simulatedRoute]);
 
     const routeEndTime = useMemo(() => {
         const lastWithTime = [...simulatedRoute].reverse().find(s => s.departureTime || s.arrivalTime);
-        return lastWithTime?.departureTime || lastWithTime?.arrivalTime || null;
+        // prefer arrival at end if present
+        return lastWithTime?.arrivalTime ?? lastWithTime?.departureTime ?? null;
     }, [simulatedRoute]);
 
     // ========================================================================
@@ -694,7 +701,7 @@ export default function SimulatorPage() {
                         className="h-full w-full"
                         worldCopyJump={false}
                         minZoom={2}
-                        maxBounds={[[ -85, -180 ], [ 85, 180 ]]}
+                        maxBounds={[[ -85, -540 ], [ 85, 540 ]]}
                     >
                         <TileLayer
                             attribution='&copy; OpenStreetMap &copy; CARTO'
