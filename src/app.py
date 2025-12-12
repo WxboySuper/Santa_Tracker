@@ -222,7 +222,8 @@ def require_advent_enabled(f):
 @app.route("/")
 def home():
     """Landing page with festive design."""
-    return render_template("home.html")
+    tracker_enabled = False
+    return render_template("home.html", tracker_enabled=tracker_enabled)
 
 
 @app.route("/tracker")
