@@ -98,8 +98,13 @@ export const writeToFileHandle = async (fileHandle, data) => {
         
         // Create a writable stream and write the data
         const writable = await fileHandle.createWritable();
-        await writable.write(dataStr);
-        await writable.close();
+        try {
+            await writable.write(dataStr);
+            await writable.close();
+        } catch (err) {
+            try { await writable.abort(); } catch { /* ignore */ }
+            throw err;
+        }
         
         return true;
     } catch (error) {

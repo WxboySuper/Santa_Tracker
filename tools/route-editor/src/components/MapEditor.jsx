@@ -377,11 +377,14 @@ function MapEditor({ locations, onAddLocation, setSelectedLocation }) {
     }, [setSelectedLocation]);
 
     // Support both old and new schema for polyline positions
-    const polylinePositions = locations.map(loc => {
-        const lat = loc.location?.lat ?? loc.latitude ?? 0;
-        const lng = loc.location?.lng ?? loc.longitude ?? 0;
-        return [lat, lng];
-    });
+    const polylinePositions = locations
+        .map(loc => {
+            const lat = loc.location?.lat ?? loc.latitude;
+            const lng = loc.location?.lng ?? loc.longitude;
+            if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+            return [lat, lng];
+        })
+        .filter(Boolean);
 
     return (
         <div className="flex-1 relative">
@@ -421,7 +424,7 @@ function MapEditor({ locations, onAddLocation, setSelectedLocation }) {
                     
                     return (
                         <Marker
-                            key={location.id}
+                            key={location.id ?? `${index}-${lat}-${lng}`}
                             position={[lat, lng]}
                             icon={getMarkerIcon(index, locations.length, nodeType)}
                             eventHandlers={{
