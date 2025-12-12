@@ -289,7 +289,7 @@ export default function SimulatorPage() {
             setRouteData(data);
         } catch (err) {
             const msg = err instanceof Error ? err.message : String(err);
-            setLoadError('Failed to load route data: ${msg}');
+            setLoadError(`Failed to load route data: ${msg}`);
         }
     }, []);
 

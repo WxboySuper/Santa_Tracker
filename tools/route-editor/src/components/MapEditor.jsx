@@ -330,9 +330,6 @@ function MapEditor({ locations, onAddLocation, setSelectedLocation }) {
                 throw new Error(`Reverse geocoding failed: ${response.status}`);
             }
 
-            if (!response.ok) {
-                throw new Error(`Reverse geocoding failed: ${response.status}`);
-            }
             const data = await response.json();
             onAddLocation({
                 name: data.address?.city || data.address?.town || data.address?.village || 'Unknown Location',
@@ -416,8 +413,12 @@ function MapEditor({ locations, onAddLocation, setSelectedLocation }) {
         
                 {/* Render markers - support both old and new schema */}
                 {locations.map((location, index) => {
-                    const lat = location.location?.lat ?? location.latitude ?? 0;
-                    const lng = location.location?.lng ?? location.longitude ?? 0;
+                    const lat = location.location?.lat ?? location.latitude;
+                    const lng = location.location?.lng ?? location.longitude;
+
+                    // Skip markers with invalid coordinates
+                    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+
                     const name = location.location?.name ?? location.name ?? 'Unknown';
                     const region = location.location?.region ?? location.country ?? '';
                     const nodeType = location.type || 'DELIVERY';

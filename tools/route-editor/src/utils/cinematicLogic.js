@@ -37,7 +37,7 @@ const DISTANCE_THRESHOLD = {
 
 /** Time window boundaries (in decimal hours, where 24 = midnight, 25 = 1am, etc.) */
 const TIME_WINDOW = {
-    GREEN_START: 22.68,   // 10:45 PM
+    GREEN_START: 22.75,   // 10:45 PM
     GREEN_END: 27.25,     // 2:30 AM (next day)
     YELLOW_EARLY: 22.5,  // 10:30 PM (early warning)
     YELLOW_LATE: 28.0,   // 3:30 AM (late warning)

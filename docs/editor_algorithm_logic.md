@@ -68,7 +68,7 @@ Time window constants (decimal hours) from cinematicLogic.js:
 - GREEN_START: 22.68 (approx. 22:40:48 — developer-commented as ~10:45 PM)
 - GREEN_END: 27.25 (27.25 decimal hours)
 - YELLOW_EARLY: 22.5 (10:30 PM)
-- YELLOW_LATE: 28.0 (3:00 AM of the next+ day boundary used in code comments as 3:30)
+- YELLOW_LATE: 28.0 (3:00 AM of the next day boundary used in code comments as 3:30)
 
 Evaluate the local arrival time against the target window (using the numeric constants above):
 

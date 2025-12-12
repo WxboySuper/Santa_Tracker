@@ -191,7 +191,12 @@ function SortableLocationCard({
                 isSelected ? 'border-blue-500 ring-2 ring-blue-200' : 'border-transparent'
             } ${isLocked ? 'node-locked' : ''}`}
             onClick={handleCardClick}
-            onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && handleCardClick()}
+            onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    handleCardClick();
+                }
+            }}
             role="button"
             tabIndex={0}
         >

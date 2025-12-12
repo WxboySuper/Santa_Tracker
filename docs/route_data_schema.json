@@ -13,8 +13,8 @@
       "location": {
         "name": "North Pole",
         "region": "Arctic",
-        "lat": 90.0,
-        "lng": 0.0,
+        "lat": 80.0,
+        "lng": 180.0,
         "timezone_offset": 0
       },
 

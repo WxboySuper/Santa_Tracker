@@ -131,7 +131,7 @@ export const pickFileForLinking = async () => {
     try {
         // Check if File System Access API is supported
         if (!('showSaveFilePicker' in window)) {
-            throw new Error('File System Access API is not supported in this browser. Try Chrome or Edge.');
+            throw new Error('File System Access API is not supported in this browser. Try a Chromium-based browser (Chrome, Edge, Brave, etc.).');
         }
         
         const handle = await window.showSaveFilePicker({
