@@ -109,10 +109,10 @@ export const writeToFileHandle = async (fileHandle, data) => {
         const userError = new Error('Unable to save the route file. Check permissions and available storage.');
         // Attach the original error for diagnostics without exposing it in the message
         try {
-          userError.cause = error;
+            userError.cause = error;
         } catch (e) {
-          // ignore if environment doesn't support setting cause
-          (userError).originalError = error;
+            // ignore if environment doesn't support setting cause
+            (userError).originalError = error;
         }
         throw userError;
     }

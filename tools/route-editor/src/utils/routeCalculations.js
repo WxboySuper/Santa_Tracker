@@ -147,7 +147,7 @@ export function recalculateRoute(nodes, options = {}) {
         const localHour = utcToLocalDecimalHours(
             arrivalUTC,
             currentNode.location?.timezone_offset ?? 0,
-        )
+        );
         const status = validateArrivalWindow(localHour);
 
         // Calculate departure based on stop duration
