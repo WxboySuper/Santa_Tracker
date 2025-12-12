@@ -305,7 +305,7 @@ function MapEditor({ locations, onAddLocation, setSelectedLocation }) {
         const right = createFeatures(360, 'right');
 
         return {
-            type: "FeatureCollection",
+            type: 'FeatureCollection',
             features: [...left, ...center, ...right]
         };
     }, []);
@@ -440,8 +440,8 @@ function MapEditor({ locations, onAddLocation, setSelectedLocation }) {
                                     <br />
                                     <span className="text-gray-500">
                                         {nodeType === 'START' ? '🎅 Start Point' : 
-                                         nodeType === 'FLYBY' ? '✈️ Flyby' : 
-                                         '🎁 Delivery'}
+                                            nodeType === 'FLYBY' ? '✈️ Flyby' : 
+                                                '🎁 Delivery'}
                                     </span>
                                     {location.schedule?.local_arrival_time && (
                                         <>
