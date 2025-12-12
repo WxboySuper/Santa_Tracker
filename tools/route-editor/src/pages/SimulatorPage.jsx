@@ -276,7 +276,6 @@ export default function SimulatorPage() {
         try {
             const stored = localStorage.getItem('routeEditorSimulatorData');
             if (!stored) {
-                // eslint-disable-next-line
                 setLoadError('No route data found. Please go back to the Route Editor and click "Test Route" again.');
                 return;
             }
@@ -479,7 +478,6 @@ export default function SimulatorPage() {
 
         const pos = interpolatePosition(currentTime);
         if (pos) {
-            // eslint-disable-next-line
             setSantaPosition([pos.lat, pos.lng]);
             setCurrentPhase(pos.phase);
             setCurrentSpeedCurve(pos.speedCurve || 'CRUISING');
@@ -528,7 +526,7 @@ export default function SimulatorPage() {
             setVisitedIndices(new Set());
             setSantaPosition([
                 simulatedRoute[0].lat,
-                adjustedLongitudes[0] ?? simulatedRoute?.lng,
+                adjustedLongitudes[0] ?? simulatedRoute[0]?.lng,
             ]);
             setStatus('running');
         }

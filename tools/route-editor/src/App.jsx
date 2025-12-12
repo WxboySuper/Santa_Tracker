@@ -82,9 +82,13 @@ function App() {
         return updatedNodes;
     }, []);
 
+    const isRecalculatingRef = useRef(false);
+
     // Recalculate route whenever nodes change (after initial render)
     useEffect(() => {
+        if (isRecalculatingRef.current) return;
         if (routeNodes.length > 1) {
+            isRecalculatingRef.current = true;
             const recalculated = recalculate(routeNodes);
             // Only update if schedules changed to avoid infinite loop
             const hasChanges = recalculated.some((node, i) => 
@@ -93,8 +97,9 @@ function App() {
             if (hasChanges) {
                 setRouteNodes(recalculated);
             }
+            isRecalculatingRef.current = false;
         }
-    }, [routeNodes]); // Only re-run when node count changes
+    }, [routeNodes, recalculate]); // Only re-run when node count changes
 
     // Auto-save to linked file when route changes
     useEffect(() => {

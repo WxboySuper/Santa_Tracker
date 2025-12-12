@@ -316,17 +316,16 @@ function getStopDuration(node) {
 
     // Determine based on node type
     switch (node.type) {
-    case 'FLYBY':
-        return FLYBY_DURATION;
-    case 'START':
-        return 0;
-    case 'DELIVERY':
-    default:
-        // Check if it's a major city (could be enhanced with a priority/importance field)
-        if (node.priority === 1 || node.is_major_stop) {
-            return MAJOR_STOP_DURATION;
-        }
-        return DEFAULT_STOP_DURATION;
+        case 'FLYBY':
+            return FLYBY_DURATION;
+        case 'START':
+            return 0;
+        case'DELIVERY':
+        default:
+            if (node.priority === 1 || node.is_major_stop) {
+                return MAJOR_STOP_DURATION
+            }
+            return DEFAULT_STOP_DURATION
     }
 }
 
