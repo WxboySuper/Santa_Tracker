@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
+import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { MapContainer, TileLayer, Marker, Polyline, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import { Play, Pause, Square, SkipBack, SkipForward, Clock, MapPin, Video, VideoOff } from 'lucide-react';
@@ -130,7 +130,6 @@ function CameraController({ position, shouldFollow, autoZoom, phase, speedCurve 
 
             map.flyTo(position, targetZoom, {
                 animate: true,
-                duration: duration,
                 easeLinearity: 0.25
             });
 
@@ -585,6 +584,22 @@ export default function SimulatorPage() {
         }
     }, [simulatedRoute, status]);
 
+    const toggleAutoZoom = useCallback(() => {
+        setAutoZoom(v => !v);
+    }, [setAutoZoom]);
+
+    const handleFollowChange = useCallback((e) => {
+        setFollowSanta(e.target.checked);
+    }, [setFollowSanta]);
+
+    const handleSpeedChange = useCallback((e) => {
+        setSpeed(Number(e.target.value));
+    }, [setSpeed]);
+
+    const jumpHandlers = useMemo(() => {
+        return simulatedRoute.map((_, i) => () => handleJumpToStop(i));
+    }, [simulatedRoute, handleJumpToStop]);
+
     // Progress calculation
     const progress = useMemo(() => {
         if (!currentTime || !routeStartTime || !routeEndTime) return 0;
@@ -796,7 +811,7 @@ export default function SimulatorPage() {
                             return (
                                 <button
                                     key={stop.id || idx}
-                                    onClick={() => handleJumpToStop(idx)}
+                                    onClick={jumpHandlers[idx]}
                                     className={`w-full text-left px-3 py-2 border-b border-gray-100 hover:bg-gray-50 flex items-center gap-2 transition-colors ${
                                         isCurrent ? 'bg-green-50 border-l-4 border-l-green-500' : ''
                                     } ${isVisited && !isCurrent ? 'bg-gray-50' : ''}`}
@@ -890,7 +905,7 @@ export default function SimulatorPage() {
                     <span className="text-sm text-gray-400">Speed:</span>
                     <select
                         value={speed}
-                        onChange={(e) => setSpeed(Number(e.target.value))}
+                        onChange={handleSpeedChange}
                         className="bg-gray-700 text-white px-3 py-1.5 rounded text-sm border border-gray-600 focus:outline-none focus:border-blue-500"
                     >
                         {SPEED_OPTIONS.map(opt => (
@@ -907,14 +922,14 @@ export default function SimulatorPage() {
                         <input
                             type="checkbox"
                             checked={followSanta}
-                            onChange={(e) => setFollowSanta(e.target.checked)}
+                            onChange={handleFollowChange}
                             className="rounded border-gray-500"
                         />
                         <span className="text-sm">Follow</span>
                     </label>
 
                     <button
-                        onClick={() => setAutoZoom(!autoZoom)}
+                        onClick={toggleAutoZoom}
                         className={`flex items-center gap-1 px-2 py-1 rounded text-sm transition-colors ${
                             autoZoom
                                 ? 'bg-blue-500 hover:bg-blue-600'
