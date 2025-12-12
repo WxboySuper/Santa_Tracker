@@ -93,7 +93,7 @@ export function recalculateRoute(nodes, options = {}) {
     const node1ArrivalUTC = calculateFirstNodeArrival(node1, targetYear, firstArrivalHour);
   
     // Step 2: Calculate travel time from North Pole to Node[1]
-    // For very long distances (>5000km), uses HYPERSONIC_LONG speed (~65,000 km/h)
+    // For very long distances (>5000km), uses HYPERSONIC_LONG speed (60,000 km/h)
     const anchorNode = updatedNodes[0];
     const transitToNode1 = calculateTransitInfo(anchorNode, node1);
   
@@ -262,10 +262,10 @@ function calculateTransitInfo(fromNode, toNode) {
     );
 
     // Speed is automatically determined by distance:
-    // - >5000km: HYPERSONIC_LONG (~65,000 km/h)
-    // - 2000-5000km: HYPERSONIC (10,000 km/h)  
+    // - >5000km: HYPERSONIC_LONG (60,000 km/h)
+    // - 2000-5000km: HYPERSONIC (14,000 km/h)
     // - 500-2000km: REGIONAL (interpolated)
-    // - <500km: CRUISING (1,500 km/h)
+    // - <500km: CRUISING (2,050 km/h)
     const travelTime = calculateCinematicTravelTime(distance);
     const cameraZoom = getCameraZoomForTransit(travelTime.durationSeconds);
 
@@ -342,6 +342,7 @@ function getStopDuration(node) {
  * @returns {Array} Array of validation results
  */
 export function validateRoute(nodes) {
+    if (!Array.isArray(nodes)) return [];
     return nodes.map((node, index) => {
         if (index === 0) {
             // Anchor node is always valid

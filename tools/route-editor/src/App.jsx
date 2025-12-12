@@ -160,9 +160,6 @@ function App() {
                         },
                         route_nodes: routeNodes,
                     };
-                    await writeToFileHandle(result.handle, routeData);
-                    setLastSaveTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
-                    setIsSaving(false);
                     try{
                         await writeToFileHandle(result.handle, routeData);
                         setLastSaveTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));

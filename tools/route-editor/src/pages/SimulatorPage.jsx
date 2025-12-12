@@ -519,10 +519,13 @@ export default function SimulatorPage() {
             setCurrentTime(routeStartTime);
             setCurrentIndex(-1);
             setVisitedIndices(new Set());
-            setSantaPosition([simulatedRoute[0]?.lat, simulatedRoute[0]?.lng]);
+            setSantaPosition([
+                simulatedRoute[0].lat,
+                adjustedLongitudes[0] ?? simulatedRoute?.lng,
+            ]);
             setStatus('running');
         }
-    }, [status, routeStartTime, simulatedRoute]);
+    }, [status, routeStartTime, simulatedRoute, adjustedLongitudes]);
 
     const handlePause = useCallback(() => {
         setStatus('paused');
@@ -576,6 +579,7 @@ export default function SimulatorPage() {
     const progress = useMemo(() => {
         if (!currentTime || !routeStartTime || !routeEndTime) return 0;
         const total = routeEndTime - routeStartTime;
+        if (total <= 0) return 0;
         const elapsed = currentTime - routeStartTime;
         return Math.min(100, Math.max(0, (elapsed / total) * 100));
     }, [currentTime, routeStartTime, routeEndTime]);
@@ -687,7 +691,7 @@ export default function SimulatorPage() {
                         className="h-full w-full"
                         worldCopyJump={false}
                         minZoom={2}
-                        maxBounds={[[-120, -Infinity], [120, Infinity]]}
+                        maxBounds={[[ -85, -180 ], [ 85, 180 ]]}
                     >
                         <TileLayer
                             attribution='&copy; OpenStreetMap &copy; CARTO'
