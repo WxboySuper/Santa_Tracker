@@ -246,16 +246,6 @@ function formatDate(date) {
     });
 }
 
-function formatDuration(seconds) {
-    if (!seconds || seconds < 0) return '--';
-    const hours = Math.floor(seconds / 3600);
-    const mins = Math.floor((seconds % 3600) / 60);
-    if (hours > 0) {
-        return `${hours}h ${mins}m`;
-    }
-    return `${mins}m`;
-}
-
 // ============================================================================
 // Main Simulator Page Component
 // ============================================================================
