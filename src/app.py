@@ -618,67 +618,81 @@ def validate_location_data():
         return jsonify({"error": "Internal server error"}), 500
 
 
+def _extract_location_name(loc_data):
+    """Return the canonical name/location value or None."""
+    return loc_data.get("name") or loc_data.get("location")
+
+
+def _find_missing_required_fields(loc_data, required_fields):
+    """Return list of required fields that are missing or None."""
+    return [f for f in required_fields if f not in loc_data or loc_data[f] is None]
+
+
+def _parse_numeric_fields(loc_data):
+    """Parse latitude, longitude, utc_offset as floats or raise ValueError/TypeError.
+
+    Returns (lat, lon, tz)
+    """
+    lat = loc_data.get("latitude")
+    lon = loc_data.get("longitude")
+    tz = loc_data.get("utc_offset")
+    if lat is None or lon is None or tz is None:
+        raise ValueError("Missing required field(s)")
+    return float(lat), float(lon), float(tz)
+
+
+def _make_location_from_parsed(name, loc_data, lat, lon, tz, notes):
+    """Construct and return a Location instance from validated pieces."""
+    return Location(
+        name=name,
+        latitude=lat,
+        longitude=lon,
+        utc_offset=tz,
+        arrival_time=loc_data.get("arrival_time"),
+        departure_time=loc_data.get("departure_time"),
+        country=loc_data.get("country"),
+        population=loc_data.get("population"),
+        priority=loc_data.get("priority"),
+        notes=notes,
+        stop_duration=loc_data.get("stop_duration"),
+        is_stop=loc_data.get("is_stop", True),
+    )
+
+
 def _parse_location_from_data(loc_data, idx):
     """Parse a single location from import data.
 
     Returns:
         tuple: (Location object or None, error message or None)
     """
-    # Support both "name" and "location" fields
-    name = loc_data.get("name") or loc_data.get("location")
+    # Compose using small helpers to reduce branching within this function
+    name = _extract_location_name(loc_data)
     if not name:
-        return (
-            None,
-            f"Location at index {idx}: Missing required field 'name' or 'location'",
-        )
+        return None, f"Location at index {idx}: Missing required field 'name' or 'location'"
 
-    # Check for required fields
-    missing_fields = [
-        field
-        for field in ["latitude", "longitude", "utc_offset"]
-        if field not in loc_data or loc_data[field] is None
-    ]
-    if missing_fields:
-        # Don't include user-provided name in error message to prevent XSS
-        safe_fields = ", ".join(str(f) for f in missing_fields)
-        return None, (
-            f"Location at index {idx}: Missing required field(s): {safe_fields}"
-        )
+    required = ["latitude", "longitude", "utc_offset"]
+    missing = _find_missing_required_fields(loc_data, required)
+    if missing:
+        safe_fields = ", ".join(str(f) for f in missing)
+        return None, f"Location at index {idx}: Missing required field(s): {safe_fields}"
 
+    # parse numeric fields and validate ranges
     try:
-        # Support both 'notes' and 'fun_facts' for backward compatibility
-        notes = (
-            loc_data.get("notes") if "notes" in loc_data else loc_data.get("fun_facts")
-        )
+        lat_val, lon_val, tz_val = _parse_numeric_fields(loc_data)
+    except (ValueError, TypeError):
+        return None, f"Location at index {idx}: Invalid data"
 
-        # validate numeric ranges before constructing Location
-        lat_val = float(loc_data["latitude"]) if loc_data.get("latitude") is not None else None
-        lon_val = float(loc_data["longitude"]) if loc_data.get("longitude") is not None else None
-        tz_val = float(loc_data["utc_offset"]) if loc_data.get("utc_offset") is not None else None
-        if lat_val is None or lon_val is None or tz_val is None:
-            return None, f"Location at index {idx}: Missing required field(s)"
-        if not (-90.0 <= lat_val <= 90.0):
-            return None, f"Location at index {idx}: Invalid latitude"
-        if not (-180.0 <= lon_val <= 180.0):
-            return None, f"Location at index {idx}: Invalid longitude"
-        if not (-12.0 <= tz_val <= 14.0):
-            return None, f"Location at index {idx}: Invalid utc_offset"
+    if not (-90.0 <= lat_val <= 90.0):
+        return None, f"Location at index {idx}: Invalid latitude"
+    if not (-180.0 <= lon_val <= 180.0):
+        return None, f"Location at index {idx}: Invalid longitude"
+    if not (-12.0 <= tz_val <= 14.0):
+        return None, f"Location at index {idx}: Invalid utc_offset"
 
-        location = Location(
-            name=name,
-            latitude=lat_val,
-            longitude=lon_val,
-            utc_offset=tz_val,
-            arrival_time=loc_data.get("arrival_time"),
-            departure_time=loc_data.get("departure_time"),
-            country=loc_data.get("country"),
-            population=loc_data.get("population"),
-            priority=loc_data.get("priority"),
-            notes=notes,
-            # Deprecated fields
-            stop_duration=loc_data.get("stop_duration"),
-            is_stop=loc_data.get("is_stop", True),
-        )
+    # build the Location using the helper; keep notes backward-compat
+    notes = loc_data.get("notes") if "notes" in loc_data else loc_data.get("fun_facts")
+    try:
+        location = _make_location_from_parsed(name, loc_data, lat_val, lon_val, tz_val, notes)
         return location, None
     except (ValueError, TypeError):
         return None, f"Location at index {idx}: Invalid data"
@@ -772,8 +786,8 @@ def get_route_status():
                 priority_counts[loc.priority] = priority_counts.get(loc.priority, 0) + 1
 
         # Get file modification time for last update info
-        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        route_file = os.path.join(base_dir, "static", "data", "santa_route.json")
+        base_dir_1 = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        route_file = os.path.join(base_dir_1, "static", "data", "santa_route.json")
         last_modified = (
             time.ctime(os.path.getmtime(route_file))
             if os.path.exists(route_file)
@@ -1669,8 +1683,10 @@ def import_advent_calendar():
 
 
 def _normalize_loc_item(loc_item):
-    """Normalize a location item (either a parsed node dict or a Location object)
-    into a SimpleNamespace with attributes expected by the app code.
+    """Normalize a location item into a SimpleNamespace expected by app code.
+
+    This function is now a small dispatcher that delegates to focused helpers
+    to reduce cyclomatic complexity.
     """
     if loc_item is None:
         return SimpleNamespace(
@@ -1687,56 +1703,118 @@ def _normalize_loc_item(loc_item):
             stop_duration=None,
             is_stop=None,
         )
-    # dict (normalized node dict or legacy flat dict)
+
     if isinstance(loc_item, dict):
-        # nested new schema: node -> {'location': {name, lat, lng, timezone_offset}, 'schedule': {...}, ...}
-        if isinstance(loc_item.get("location"), dict):
-            loc = loc_item.get("location", {})
-            sched = loc_item.get("schedule") or {}
-            se = loc_item.get("stop_experience") or {}
-            return SimpleNamespace(
-                name=loc.get("name") or loc_item.get("name") or loc_item.get("id"),
-                latitude=loc.get("lat") if loc.get("lat") is not None else loc_item.get("latitude"),
-                longitude=loc.get("lng") if loc.get("lng") is not None else loc_item.get("longitude"),
-                utc_offset=loc.get("timezone_offset") if loc.get("timezone_offset") is not None else loc_item.get("utc_offset"),
-                arrival_time=(sched or {}).get("arrival_utc") if sched else loc_item.get("arrival_time"),
-                departure_time=(sched or {}).get("departure_utc") if sched else loc_item.get("departure_time"),
-                country=loc.get("region") or loc_item.get("country"),
-                population=loc_item.get("population"),
-                priority=loc_item.get("priority"),
-                notes=loc_item.get("notes") or loc_item.get("fun_facts"),
-                stop_duration=(int(se.get("duration_seconds")/60) if se and se.get("duration_seconds") is not None else loc_item.get("stop_duration")),
-                is_stop=loc_item.get("is_stop", True),
-            )
-        # flat legacy dict with keys name, latitude, longitude, utc_offset
-        return SimpleNamespace(
-            name=loc_item.get("name"),
-            latitude=loc_item.get("latitude"),
-            longitude=loc_item.get("longitude"),
-            utc_offset=loc_item.get("utc_offset"),
-            arrival_time=loc_item.get("arrival_time"),
-            departure_time=loc_item.get("departure_time"),
-            country=loc_item.get("country"),
-            population=loc_item.get("population"),
-            priority=loc_item.get("priority"),
-            notes=loc_item.get("notes") or loc_item.get("fun_facts"),
-            stop_duration=loc_item.get("stop_duration"),
-            is_stop=loc_item.get("is_stop", True),
-        )
-    # assume Location-like object
+        return _normalize_loc_item_from_dict(loc_item)
+
+    return _normalize_loc_item_from_object(loc_item)
+
+
+def _normalize_loc_item_from_dict(d: dict) -> SimpleNamespace:
+    """Normalize when input is a dict (either new schema node or legacy flat dict).
+
+    The nested/node normalization is delegated to helpers to keep this function
+    small and reduce cyclomatic complexity.
+    """
+    if isinstance(d.get("location"), dict):
+        return _normalize_from_nested_dict(d)
+
+    # Legacy flat dict: preserve original simple mapping
     return SimpleNamespace(
-        name=getattr(loc_item, "name", None),
-        latitude=getattr(loc_item, "latitude", None) or getattr(loc_item, "lat", None),
-        longitude=getattr(loc_item, "longitude", None) or getattr(loc_item, "lng", None),
-        utc_offset=getattr(loc_item, "utc_offset", None) or getattr(loc_item, "timezone_offset", None),
-        arrival_time=getattr(loc_item, "arrival_time", None),
-        departure_time=getattr(loc_item, "departure_time", None),
-        country=getattr(loc_item, "country", None) or getattr(loc_item, "region", None),
-        population=getattr(loc_item, "population", None),
-        priority=getattr(loc_item, "priority", None),
-        notes=getattr(loc_item, "notes", None) or getattr(loc_item, "fun_facts", None),
-        stop_duration=getattr(loc_item, "stop_duration", None),
-        is_stop=getattr(loc_item, "is_stop", True),
+        name=d.get("name"),
+        latitude=d.get("latitude"),
+        longitude=d.get("longitude"),
+        utc_offset=d.get("utc_offset"),
+        arrival_time=d.get("arrival_time"),
+        departure_time=d.get("departure_time"),
+        country=d.get("country"),
+        population=d.get("population"),
+        priority=d.get("priority"),
+        notes=d.get("notes") or d.get("fun_facts"),
+        stop_duration=d.get("stop_duration"),
+        is_stop=d.get("is_stop", True),
+    )
+
+
+def _normalize_from_nested_dict(d: dict) -> SimpleNamespace:
+    """Handle normalization for the nested/new schema node format.
+
+    This helper keeps the parsing steps small and robust.
+    """
+    loc = d.get("location") or {}
+    sched = d.get("schedule") or {}
+    se = d.get("stop_experience") or {}
+
+    name = loc.get("name") or d.get("name") or d.get("id")
+
+    # lat/lng/timezone fallbacks
+    lat = loc.get("lat") if loc.get("lat") is not None else d.get("latitude")
+    lng = loc.get("lng") if loc.get("lng") is not None else d.get("longitude")
+    tz = (
+        loc.get("timezone_offset")
+        if loc.get("timezone_offset") is not None
+        else d.get("utc_offset")
+    )
+
+    arrival = sched.get("arrival_utc") if sched else d.get("arrival_time")
+    departure = sched.get("departure_utc") if sched else d.get("departure_time")
+
+    stop_duration = _compute_stop_duration_from_stop_experience(se, d)
+
+    country = loc.get("region") or d.get("country")
+    population = d.get("population")
+    priority = d.get("priority")
+    notes = d.get("notes") or d.get("fun_facts")
+    is_stop = d.get("is_stop", True)
+
+    return SimpleNamespace(
+        name=name,
+        latitude=lat,
+        longitude=lng,
+        utc_offset=tz,
+        arrival_time=arrival,
+        departure_time=departure,
+        country=country,
+        population=population,
+        priority=priority,
+        notes=notes,
+        stop_duration=stop_duration,
+        is_stop=is_stop,
+    )
+
+
+def _compute_stop_duration_from_stop_experience(se: dict, d: dict):
+    """Compute stop_duration in minutes from stop_experience.duration_seconds,
+    falling back to legacy d.get('stop_duration') on errors or absence.
+    """
+    if se and se.get("duration_seconds") is not None:
+        try:
+            # ensure numeric handling is robust
+            return int(int(se.get("duration_seconds")) / 60)
+        except Exception:
+            return d.get("stop_duration")
+    return d.get("stop_duration")
+
+
+def _normalize_loc_item_from_object(obj) -> SimpleNamespace:
+    """Normalize when input is an object (Location/Node-like) via getattr fallbacks.
+
+    Restores behavior for Location instances and other objects with similar
+    attributes (lat/lng vs latitude/longitude, timezone_offset vs utc_offset).
+    """
+    return SimpleNamespace(
+        name=getattr(obj, "name", None),
+        latitude=(getattr(obj, "latitude", None) or getattr(obj, "lat", None)),
+        longitude=(getattr(obj, "longitude", None) or getattr(obj, "lng", None)),
+        utc_offset=(getattr(obj, "utc_offset", None) or getattr(obj, "timezone_offset", None)),
+        arrival_time=getattr(obj, "arrival_time", None),
+        departure_time=getattr(obj, "departure_time", None),
+        country=(getattr(obj, "country", None) or getattr(obj, "region", None)),
+        population=getattr(obj, "population", None),
+        priority=getattr(obj, "priority", None),
+        notes=(getattr(obj, "notes", None) or getattr(obj, "fun_facts", None)),
+        stop_duration=getattr(obj, "stop_duration", None),
+        is_stop=getattr(obj, "is_stop", True),
     )
 
 
@@ -1759,7 +1837,7 @@ def load_santa_route_from_json_normalized(source=None):
 
     if _orig is None:
         # Fallback: try importing directly
-        from utils.locations import load_santa_route_from_json as _orig  # type: ignore
+        from utils.locations import load_santa_route_from_json as _orig  # type: ignore skipcq:PYL-W0404
 
     # If explicit source provided, return raw parsed nodes (dicts)
     if source is not None:
