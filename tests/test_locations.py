@@ -22,7 +22,11 @@ class TestLocation(unittest.TestCase):
     def test_location_creation(self):
         """Test creating a valid Location object."""
         location = Location(
-            name="New York", region=None, lat=40.7128, lng=-74.0060, timezone_offset=-5.0
+            name="New York",
+            region=None,
+            lat=40.7128,
+            lng=-74.0060,
+            timezone_offset=-5.0,
         )
         self.assertEqual(location.name, "New York")
         self.assertEqual(location.lat, 40.7128)
@@ -32,38 +36,54 @@ class TestLocation(unittest.TestCase):
     def test_location_with_new_fields(self):
         """Test creating a Location object with new optional fields."""
         # The new Location dataclass only stores the canonical core fields.
-        location = Location(name="Tokyo", region=None, lat=35.6762, lng=139.6503, timezone_offset=9.0)
+        location = Location(
+            name="Tokyo", region=None, lat=35.6762, lng=139.6503, timezone_offset=9.0
+        )
         self.assertAlmostEqual(location.lat, 35.6762, places=6)
         self.assertAlmostEqual(location.lng, 139.6503, places=6)
         self.assertEqual(location.timezone_offset, 9.0)
 
     def test_location_coordinates_property(self):
         """Test the coordinates property returns tuple."""
-        location = Location(name="Tokyo", region=None, lat=35.6762, lng=139.6503, timezone_offset=9.0)
+        location = Location(
+            name="Tokyo", region=None, lat=35.6762, lng=139.6503, timezone_offset=9.0
+        )
         self.assertAlmostEqual(location.coordinates[0], 35.6762, places=6)
         self.assertAlmostEqual(location.coordinates[1], 139.6503, places=6)
 
     def test_invalid_latitude(self):
         """Test that invalid latitude raises ValueError."""
         with self.assertRaises(ValueError):
-            Location(name="Invalid", region=None, lat=91.0, lng=0.0, timezone_offset=0.0)
+            Location(
+                name="Invalid", region=None, lat=91.0, lng=0.0, timezone_offset=0.0
+            )
         with self.assertRaises(ValueError):
-            Location(name="Invalid", region=None, lat=-91.0, lng=0.0, timezone_offset=0.0)
+            Location(
+                name="Invalid", region=None, lat=-91.0, lng=0.0, timezone_offset=0.0
+            )
 
     def test_invalid_longitude(self):
         """Test that invalid longitude raises ValueError."""
         # The Location class normalizes longitudes into [-180, 180). Verify normalization.
-        loc1 = Location(name="Invalid", region=None, lat=0.0, lng=181.0, timezone_offset=0.0)
+        loc1 = Location(
+            name="Invalid", region=None, lat=0.0, lng=181.0, timezone_offset=0.0
+        )
         self.assertAlmostEqual(loc1.lng, -179.0, places=6)
-        loc2 = Location(name="Invalid", region=None, lat=0.0, lng=-181.0, timezone_offset=0.0)
+        loc2 = Location(
+            name="Invalid", region=None, lat=0.0, lng=-181.0, timezone_offset=0.0
+        )
         self.assertAlmostEqual(loc2.lng, 179.0, places=6)
 
     def test_invalid_utc_offset(self):
         """Test that invalid UTC offset raises ValueError."""
         with self.assertRaises(ValueError):
-            Location(name="Invalid", region=None, lat=0.0, lng=0.0, timezone_offset=15.0)
+            Location(
+                name="Invalid", region=None, lat=0.0, lng=0.0, timezone_offset=15.0
+            )
         with self.assertRaises(ValueError):
-            Location(name="Invalid", region=None, lat=0.0, lng=0.0, timezone_offset=-13.0)
+            Location(
+                name="Invalid", region=None, lat=0.0, lng=0.0, timezone_offset=-13.0
+            )
 
     def test_invalid_priority(self):
         """Test that invalid priority raises ValueError."""
@@ -87,25 +107,28 @@ class TestLocation(unittest.TestCase):
                 priority=4,
             )
 
-    def test_valid_priority_values(self):
-        """Test that priority values 1, 2, and 3 are valid."""
-        # priority is not part of Location; nothing to assert here
-        self.assertTrue(True)
-
     def test_boundary_values(self):
         """Test boundary values for coordinates and UTC offset."""
         # Valid boundary values
-        location1 = Location(name="North Pole", region=None, lat=90.0, lng=0.0, timezone_offset=0.0)
+        location1 = Location(
+            name="North Pole", region=None, lat=90.0, lng=0.0, timezone_offset=0.0
+        )
         self.assertEqual(location1.lat, 90.0)
 
-        location2 = Location(name="South Pole", region=None, lat=-90.0, lng=0.0, timezone_offset=0.0)
+        location2 = Location(
+            name="South Pole", region=None, lat=-90.0, lng=0.0, timezone_offset=0.0
+        )
         self.assertEqual(location2.lat, -90.0)
 
         # longitude 180 normalizes to -180 in implementation
-        location3 = Location(name="East", region=None, lat=0.0, lng=180.0, timezone_offset=12.0)
+        location3 = Location(
+            name="East", region=None, lat=0.0, lng=180.0, timezone_offset=12.0
+        )
         self.assertAlmostEqual(location3.lng, -180.0, places=6)
 
-        location4 = Location(name="West", region=None, lat=0.0, lng=-180.0, timezone_offset=-12.0)
+        location4 = Location(
+            name="West", region=None, lat=0.0, lng=-180.0, timezone_offset=-12.0
+        )
         self.assertAlmostEqual(location4.lng, -180.0, places=6)
 
 
@@ -147,7 +170,9 @@ class TestLoadSantaRouteFromJson(unittest.TestCase):
     def test_load_from_default_json(self):
         """Test loading Santa's route from the default JSON file."""
         # call loader with the default santa_route.json path
-        base_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "src")
+        base_dir = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "src"
+        )
         default_path = os.path.join(base_dir, "static", "data", "santa_route.json")
         locations = load_santa_route_from_json(default_path)
         self.assertIsInstance(locations, list)
@@ -163,7 +188,12 @@ class TestLoadSantaRouteFromJson(unittest.TestCase):
             "route": [
                 {
                     "id": "test-1",
-                    "location": {"name": "Test City", "lat": 40.0, "lng": -74.0, "timezone_offset": -5.0}
+                    "location": {
+                        "name": "Test City",
+                        "lat": 40.0,
+                        "lng": -74.0,
+                        "timezone_offset": -5.0,
+                    },
                 }
             ]
         }
@@ -189,8 +219,16 @@ class TestLoadSantaRouteFromJson(unittest.TestCase):
             "route": [
                 {
                     "id": "1",
-                    "location": {"name": "Test City", "lat": 40.0, "lng": -74.0, "timezone_offset": -5.0},
-                    "schedule": {"arrival_utc": "2024-12-24T10:00:00Z", "departure_utc": "2024-12-24T10:15:00Z"},
+                    "location": {
+                        "name": "Test City",
+                        "lat": 40.0,
+                        "lng": -74.0,
+                        "timezone_offset": -5.0,
+                    },
+                    "schedule": {
+                        "arrival_utc": "2024-12-24T10:00:00Z",
+                        "departure_utc": "2024-12-24T10:15:00Z",
+                    },
                     "stop_experience": {"duration_seconds": 900},
                     "type": "DELIVERY",
                     "notes": "Test fun fact!",
@@ -207,9 +245,15 @@ class TestLoadSantaRouteFromJson(unittest.TestCase):
             self.assertEqual(len(locations), 1)
             node = locations[0]
             # schedule and stop_experience are preserved in the parsed node dict
-            self.assertEqual(node.get("schedule", {}).get("arrival_utc"), "2024-12-24T10:00:00Z")
-            self.assertEqual(node.get("schedule", {}).get("departure_utc"), "2024-12-24T10:15:00Z")
-            self.assertEqual(node.get("stop_experience", {}).get("duration_seconds"), 900)
+            self.assertEqual(
+                node.get("schedule", {}).get("arrival_utc"), "2024-12-24T10:00:00Z"
+            )
+            self.assertEqual(
+                node.get("schedule", {}).get("departure_utc"), "2024-12-24T10:15:00Z"
+            )
+            self.assertEqual(
+                node.get("stop_experience", {}).get("duration_seconds"), 900
+            )
             self.assertEqual(node.get("type"), "DELIVERY")
             # notes/priority are not preserved by the canonical parser; they should be absent
             self.assertIsNone(node.get("notes"))
@@ -219,7 +263,9 @@ class TestLoadSantaRouteFromJson(unittest.TestCase):
 
     def test_loaded_locations_have_required_fields(self):
         """Test that all loaded locations have required fields."""
-        base_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "src")
+        base_dir = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "src"
+        )
         default_path = os.path.join(base_dir, "static", "data", "santa_route.json")
         locations = load_santa_route_from_json(default_path)
         for node in locations:
@@ -236,7 +282,7 @@ class TestLoadSantaRouteFromJson(unittest.TestCase):
             "route": [
                 {
                     "id": "no-name",
-                    "location": {"lat": 40.0, "lng": -74.0, "timezone_offset": -5.0}
+                    "location": {"lat": 40.0, "lng": -74.0, "timezone_offset": -5.0},
                 }
             ]
         }
@@ -256,10 +302,7 @@ class TestLoadSantaRouteFromJson(unittest.TestCase):
         """Test loading route with missing required field raises ValueError."""
         test_data = {
             "route": [
-                {
-                    "id": "missing-lng",
-                    "location": {"name": "Test City", "lat": 40.0}
-                }
+                {"id": "missing-lng", "location": {"name": "Test City", "lat": 40.0}}
             ]
         }
         with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:

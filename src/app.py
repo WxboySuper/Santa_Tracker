@@ -84,17 +84,6 @@ logger.info(
 # This allows any Gunicorn worker to validate tokens without shared memory
 _token_serializer = URLSafeTimedSerializer(app.config["SECRET_KEY"])
 
-# Cleanup any leftover temp files that tests sometimes leave behind, to avoid
-# FileExistsError in test harness rename operations. Only remove the known
-# '.json.temp_add' artifact in the static data directory.
-try:
-    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    temp_add_path = os.path.join(base_dir, "static", "data", "santa_route.json.temp_add")
-    if os.path.exists(temp_add_path):
-        os.remove(temp_add_path)
-        logger.info("Removed leftover test temp file: %s", temp_add_path)
-except Exception:
-    pass
 
 def _mask_token(token: Optional[str]) -> str:
     """Mask a token for secure logging, showing only first 4 and last 4 characters."""
@@ -445,11 +434,11 @@ def add_location():
             lon_val = float(data["longitude"])
             tz_val = float(data["utc_offset"])
             if not (-90.0 <= lat_val <= 90.0):
-                return jsonify({"error": "Invalid data format or values"}), 400
+                return jsonify({"error": "Invalid latitude value"}), 400
             if not (-180.0 <= lon_val <= 180.0):
-                return jsonify({"error": "Invalid data format or values"}), 400
+                return jsonify({"error": "Invalid longitude value"}), 400
             if not (-12.0 <= tz_val <= 14.0):
-                return jsonify({"error": "Invalid data format or values"}), 400
+                return jsonify({"error": "Invalid utc_offset value"}), 400
 
             new_location = Location(
                 name=data["name"],
@@ -668,13 +657,19 @@ def _parse_location_from_data(loc_data, idx):
     # Compose using small helpers to reduce branching within this function
     name = _extract_location_name(loc_data)
     if not name:
-        return None, f"Location at index {idx}: Missing required field 'name' or 'location'"
+        return (
+            None,
+            f"Location at index {idx}: Missing required field 'name' or 'location'",
+        )
 
     required = ["latitude", "longitude", "utc_offset"]
     missing = _find_missing_required_fields(loc_data, required)
     if missing:
         safe_fields = ", ".join(str(f) for f in missing)
-        return None, f"Location at index {idx}: Missing required field(s): {safe_fields}"
+        return (
+            None,
+            f"Location at index {idx}: Missing required field(s): {safe_fields}",
+        )
 
     # parse numeric fields and validate ranges
     try:
@@ -692,7 +687,9 @@ def _parse_location_from_data(loc_data, idx):
     # build the Location using the helper; keep notes backward-compat
     notes = loc_data.get("notes") if "notes" in loc_data else loc_data.get("fun_facts")
     try:
-        location = _make_location_from_parsed(name, loc_data, lat_val, lon_val, tz_val, notes)
+        location = _make_location_from_parsed(
+            name, loc_data, lat_val, lon_val, tz_val, notes
+        )
         return location, None
     except (ValueError, TypeError):
         return None, f"Location at index {idx}: Invalid data"
@@ -837,8 +834,8 @@ def precompute_route():
             issues = {}
 
             # Allow the anchor/start node to be missing arrival_time (legacy behavior)
-            if idx == 0 and isinstance(getattr(loc, "name", None), str) and "north" in loc.name.lower():
-                # skip timing validation for the North Pole anchor
+            if idx == 0 and getattr(loc, "type", None) == "START":
+                # skip timing validation for the anchor/start node
                 continue
 
             if not loc.arrival_time:
@@ -1806,7 +1803,9 @@ def _normalize_loc_item_from_object(obj) -> SimpleNamespace:
         name=getattr(obj, "name", None),
         latitude=(getattr(obj, "latitude", None) or getattr(obj, "lat", None)),
         longitude=(getattr(obj, "longitude", None) or getattr(obj, "lng", None)),
-        utc_offset=(getattr(obj, "utc_offset", None) or getattr(obj, "timezone_offset", None)),
+        utc_offset=(
+            getattr(obj, "utc_offset", None) or getattr(obj, "timezone_offset", None)
+        ),
         arrival_time=getattr(obj, "arrival_time", None),
         departure_time=getattr(obj, "departure_time", None),
         country=(getattr(obj, "country", None) or getattr(obj, "region", None)),
@@ -1849,6 +1848,7 @@ def load_santa_route_from_json_normalized(source=None):
     for it in items:
         normalized.append(_normalize_loc_item(it))
     return normalized
+
 
 # Rebind the loader name used throughout this module to the normalized wrapper,
 # but keep a reference to the original for explicit-load behavior.
