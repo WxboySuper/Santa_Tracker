@@ -115,12 +115,17 @@ def load_advent_calendar(json_file_path: Optional[str] = None) -> List[AdventDay
     Returns:
         List of AdventDay objects representing the complete Advent calendar
     """
+    # Allow tests or deployments to override calendar path via environment
+    env_path = os.environ.get("ADVENT_CALENDAR_PATH")
     if json_file_path is None:
-        # Use default path relative to this file
-        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        json_file_path = os.path.join(
-            base_dir, "static", "data", "advent_calendar.json"
-        )
+        if env_path:
+            json_file_path = env_path
+        else:
+            # Use default path relative to this file
+            base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            json_file_path = os.path.join(
+                base_dir, "static", "data", "advent_calendar.json"
+            )
 
     with open(json_file_path, "r") as f:
         data = json.load(f)
@@ -210,12 +215,17 @@ def save_advent_calendar(
         days: List of AdventDay objects to save
         json_file_path: Path to the JSON file. If None, uses the default calendar file.
     """
+    # Allow override via environment variable for tests
+    env_path = os.environ.get("ADVENT_CALENDAR_PATH")
     if json_file_path is None:
-        # Use default path relative to this file
-        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        json_file_path = os.path.join(
-            base_dir, "static", "data", "advent_calendar.json"
-        )
+        if env_path:
+            json_file_path = env_path
+        else:
+            # Use default path relative to this file
+            base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            json_file_path = os.path.join(
+                base_dir, "static", "data", "advent_calendar.json"
+            )
 
     # Convert days to dictionary format
     days_data = []

@@ -13,9 +13,31 @@ def client():
     """Create a test client."""
     app.config["TESTING"] = True
     app.config["ADVENT_ENABLED"] = True  # Enable advent for these tests
-    with app.test_client() as client:
-        yield client
-    app.config["ADVENT_ENABLED"] = False  # Restore to default
+    import tempfile, shutil
+
+    # Create a temp copy of the advent calendar so tests can mutate it safely
+    base_calendar = os.path.join("src", "static", "data", "advent_calendar.json")
+    tmpf = tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False)
+    tmpf.close()
+    try:
+        if os.path.exists(base_calendar):
+            shutil.copy(base_calendar, tmpf.name)
+        # Point the advent loader to the temp file
+        os.environ["ADVENT_CALENDAR_PATH"] = tmpf.name
+
+        with app.test_client() as client:
+            yield client
+
+    finally:
+        # Cleanup: remove temp file and restore env var
+        try:
+            if os.path.exists(tmpf.name):
+                os.remove(tmpf.name)
+        except Exception:
+            pass
+        if "ADVENT_CALENDAR_PATH" in os.environ:
+            del os.environ["ADVENT_CALENDAR_PATH"]
+        app.config["ADVENT_ENABLED"] = False  # Restore to default
 
 
 @pytest.fixture
