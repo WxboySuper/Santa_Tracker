@@ -438,7 +438,7 @@ def add_location():
                 or not (-180.0 <= lon_val <= 180.0)
                 or not (-12.0 <= tz_val <= 14.0)
             ):
-                return jsonify({"error": "Invalid latitude, longitude, or utc_offset"}), 400
+                return jsonify({"error": "Invalid data format or values"}), 400
 
             new_location = Location(
                 name=data["name"],
@@ -1820,41 +1820,20 @@ def _normalize_loc_item_from_object(obj) -> SimpleNamespace:
     )
 
 
-# Apply normalization after each load_santa_route_from_json call
-# This ensures all location objects have consistent attributes for the rest of the app
-def load_santa_route_from_json_normalized(source=None):
-    """Wrapper around the locations loader that normalizes returned items for app code.
-
-    - If `source` is provided (path or JSON), return the loader's raw result (dicts/list).
-    - If no source provided, return a list of SimpleNamespace objects with attributes expected
-      by the rest of the application (name, latitude, longitude, utc_offset, arrival_time, ...).
-    """
-    # Capture original loader (imported at module top)
-    try:
-        _orig = globals().get("_orig_load_santa_route")
-        if _orig is None:
-            _orig = globals().get("load_santa_route_from_json")
-    except Exception:
-        _orig = None
-
-    if _orig is None:
-        # Fallback: try importing directly
-        from utils.locations import load_santa_route_from_json as _orig  # type: ignore skipcq:PYL-W0404
-
-    # If explicit source provided, return raw parsed nodes (dicts)
-    if source is not None:
-        return _orig(source)
-
-    # No source: load default route and normalize each item to SimpleNamespace
-    items = _orig()
-    normalized = []
-    for it in items:
-        normalized.append(_normalize_loc_item(it))
-    return normalized
-
-
-# Rebind the loader name used throughout this module to the normalized wrapper,
-# but keep a reference to the original for explicit-load behavior.
 if "_orig_load_santa_route" not in globals():
-    globals()["_orig_load_santa_route"] = load_santa_route_from_json
-globals()["load_santa_route_from_json"] = load_santa_route_from_json_normalized
+    _orig_load_santa_route = load_santa_route_from_json
+
+def load_santa_route_from_json_normalized(source=None):
+    """
+    Wrapper around the original loader:
+    - if `source` is provided, return the loader's raw result.
+    - Otherwise return a list of normalized SimpleNamespace items.
+    """
+    if source is not None:
+        return _orig_load_santa_route(source)
+
+    items = _orig_load_santa_route()
+    return [_normalize_loc_item(it) for it in (items or [])]
+
+# Explicit, easy-to-find rebinding used by the rest of this module
+load_santa_route_from_json = load_santa_route_from_json_normalized()

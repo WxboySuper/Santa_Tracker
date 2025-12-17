@@ -127,7 +127,7 @@ def _second_to_minutes(seconds: Any) -> Optional[int]:
         return None
     try:
         s = int(seconds)
-        return int(round(s / 60.0))
+        return round(s / 60.0)
     except (TypeError, ValueError):
         return None
 
@@ -214,7 +214,7 @@ def load_santa_route_from_json(
     an already-parsed dict/list passed programmatically, it returns the
     normalized node dicts.
     """
-    obj, loaded_from_file = _load_source_to_obj(source)
+    obj, _loaded_from_file = _load_source_to_obj(source)
 
     nodes = _get_nodes_from_obj(obj)
     parsed_nodes = _parse_and_normalize_nodes(nodes)
@@ -477,7 +477,7 @@ def validate_locations(
             errors.extend(sub_errors)
             warnings.extend(sub_warnings)
 
-        except Exception as exc:
+        except (TypeError, ValueError, KeyError, AttributeError) as exc:
             errors.append(f"error processing location at index {idx}: {exc}")
 
     return {
@@ -663,7 +663,7 @@ def _location_validate_and_normalize_coords(loc: Location) -> None:
 
     try:
         frac = abs(loc.timezone_offset - int(loc.timezone_offset))
-        if frac not in (0.0, 0.5):
+        if frac not in (0.0, 0.25, 0.5, 0.75):
             logger.warning(
                 "Unusual UTC offset for location '%s': %s",
                 loc.name,
