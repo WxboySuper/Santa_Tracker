@@ -132,7 +132,7 @@ def load_advent_calendar(json_file_path: Optional[str] = None) -> List[AdventDay
     if not os.path.exists(json_file_path):
         raise FileNotFoundError(f"Advent calendar file not found: {json_file_path}")
 
-    with open(json_file_path, "r") as f:  # skipcq: PTC-W6004
+    with open(json_file_path, "r", encoding="utf-8") as f:  # skipcq: PTC-W6004
         content = f.read()
 
     if not content.strip():
@@ -251,7 +251,7 @@ def save_advent_calendar(
         days_data.append(day_dict)
 
     # Save to file
-    with open(json_file_path, "w") as f:  # skipcq: PTC-W6004
+    with open(json_file_path, "w", encoding="utf-8") as f:  # skipcq: PTC-W6004
         json.dump({"days": days_data}, f, indent=2)
 
 

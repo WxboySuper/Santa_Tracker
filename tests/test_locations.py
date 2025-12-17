@@ -152,28 +152,19 @@ class TestUpdateSantaLocation(unittest.TestCase):
         location = Location(
             name="Tokyo", region=None, lat=35.6762, lng=139.6503, timezone_offset=9.0
         )
-        # Should not raise an error - asserting the call completes
-        try:
-            update_santa_location(location)
-        except Exception as e:
-            self.fail("update_santa_location raised %s unexpectedly" % type(e).__name__)
+        # Should not raise an error
+        update_santa_location(location)
 
     def test_update_santa_location_with_dict(self):
         """Test updating Santa's location with a dictionary."""
         location_dict = {"name": "London", "coordinates": (51.5074, -0.1278)}
-        # Should not raise an error - asserting the call completes
-        try:
-            update_santa_location(location_dict)
-        except Exception as e:
-            self.fail("update_santa_location raised %s unexpectedly" % type(e).__name__)
+        # Should not raise an error
+        update_santa_location(location_dict)
 
     def test_update_santa_location_with_invalid_input(self):
         """Test updating Santa's location with invalid input."""
-        # Should not raise an error, just convert to string
-        try:
-            update_santa_location("Some string")
-        except Exception as e:
-            self.fail("update_santa_location raised %s unexpectedly" % type(e).__name__)
+        # Should not raise an error
+        update_santa_location("Invalid Input")
 
 
 class TestLoadSantaRouteFromJson(unittest.TestCase):
