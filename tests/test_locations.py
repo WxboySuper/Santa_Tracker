@@ -37,7 +37,11 @@ class TestLocation(unittest.TestCase):
         """Test creating a Location object with new optional fields."""
         # The new Location dataclass only stores the canonical core fields.
         location = Location(
-            name="Tokyo", region=None, lat=35.6762, lng=139.6503, timezone_offset=9.0
+            name="Tokyo",
+            region=None,
+            lat=35.6762,
+            lng=139.6503,
+            timezone_offset=9.0,
         )
         self.assertAlmostEqual(location.lat, 35.6762, places=6)
         self.assertAlmostEqual(location.lng, 139.6503, places=6)
@@ -64,13 +68,21 @@ class TestLocation(unittest.TestCase):
 
     def test_invalid_longitude(self):
         """Test that invalid longitude raises ValueError."""
-        # The Location class normalizes longitudes into [-180, 180). Verify normalization.
+        # The Location class normalizes longitudes into [-180, 180).
         loc1 = Location(
-            name="Invalid", region=None, lat=0.0, lng=181.0, timezone_offset=0.0
+            name="Invalid",
+            region=None,
+            lat=0.0,
+            lng=181.0,
+            timezone_offset=0.0,
         )
         self.assertAlmostEqual(loc1.lng, -179.0, places=6)
         loc2 = Location(
-            name="Invalid", region=None, lat=0.0, lng=-181.0, timezone_offset=0.0
+            name="Invalid",
+            region=None,
+            lat=0.0,
+            lng=-181.0,
+            timezone_offset=0.0,
         )
         self.assertAlmostEqual(loc2.lng, 179.0, places=6)
 
@@ -144,7 +156,9 @@ class TestUpdateSantaLocation(unittest.TestCase):
         try:
             update_santa_location(location)
         except Exception as e:
-            self.fail(f"update_santa_location raised {type(e).__name__} unexpectedly")
+            self.fail(
+                "update_santa_location raised %s unexpectedly" % type(e).__name__
+            )
 
     def test_update_santa_location_with_dict(self):
         """Test updating Santa's location with a dictionary."""
@@ -153,7 +167,9 @@ class TestUpdateSantaLocation(unittest.TestCase):
         try:
             update_santa_location(location_dict)
         except Exception as e:
-            self.fail(f"update_santa_location raised {type(e).__name__} unexpectedly")
+            self.fail(
+                "update_santa_location raised %s unexpectedly" % type(e).__name__
+            )
 
     def test_update_santa_location_with_invalid_input(self):
         """Test updating Santa's location with invalid input."""
@@ -161,7 +177,9 @@ class TestUpdateSantaLocation(unittest.TestCase):
         try:
             update_santa_location("Some string")
         except Exception as e:
-            self.fail(f"update_santa_location raised {type(e).__name__} unexpectedly")
+            self.fail(
+                "update_santa_location raised %s unexpectedly" % type(e).__name__
+            )
 
 
 class TestLoadSantaRouteFromJson(unittest.TestCase):
@@ -176,7 +194,7 @@ class TestLoadSantaRouteFromJson(unittest.TestCase):
         default_path = os.path.join(base_dir, "static", "data", "santa_route.json")
         locations = load_santa_route_from_json(default_path)
         self.assertIsInstance(locations, list)
-        # default file may be empty in some environments; just verify returned items are normalized
+        # default file may be empty in some environments
         for node in locations:
             self.assertIsInstance(node, dict)
             self.assertIn("location", node)
@@ -245,17 +263,15 @@ class TestLoadSantaRouteFromJson(unittest.TestCase):
             self.assertEqual(len(locations), 1)
             node = locations[0]
             # schedule and stop_experience are preserved in the parsed node dict
+            schedule = node.get("schedule", {})
+            self.assertEqual(schedule.get("arrival_utc"), "2024-12-24T10:00:00Z")
             self.assertEqual(
-                node.get("schedule", {}).get("arrival_utc"), "2024-12-24T10:00:00Z"
+                schedule.get("departure_utc"), "2024-12-24T10:15:00Z"
             )
-            self.assertEqual(
-                node.get("schedule", {}).get("departure_utc"), "2024-12-24T10:15:00Z"
-            )
-            self.assertEqual(
-                node.get("stop_experience", {}).get("duration_seconds"), 900
-            )
+            stop_ex = node.get("stop_experience", {})
+            self.assertEqual(stop_ex.get("duration_seconds"), 900)
             self.assertEqual(node.get("type"), "DELIVERY")
-            # notes/priority are not preserved by the canonical parser; they should be absent
+            # notes/priority are not preserved by the canonical parser
             self.assertIsNone(node.get("notes"))
             self.assertIsNone(node.get("priority"))
         finally:
@@ -291,7 +307,7 @@ class TestLoadSantaRouteFromJson(unittest.TestCase):
             temp_file = f.name
 
         try:
-            # Missing name is tolerated by the parser; the parsed node will have location.name == None
+            # Missing name is tolerated by the parser
             locations = load_santa_route_from_json(temp_file)
             self.assertEqual(len(locations), 1)
             self.assertIsNone(locations[0]["location"].get("name"))

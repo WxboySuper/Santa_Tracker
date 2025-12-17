@@ -1,9 +1,9 @@
 import json
 import logging
-import os
 import math
+import os
 from dataclasses import dataclass, field
-from typing import Optional, Any, Dict, List, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 logger = logging.getLogger(__name__)
 
@@ -68,9 +68,9 @@ class Location:
     def coordinates(self) -> Tuple[float, float]:
         return self.lat, self.lng
 
-    # legacy attribute names are stored as dataclass fields (latitude, longitude, utc_offset)
-    # and are synchronized to canonical fields (lat/lng/timezone_offset) in __post_init__.
-    # Avoid defining properties that shadow these field names.
+    # Legacy attribute names are stored as dataclass fields (latitude, longitude,
+    # utc_offset) and synchronized to canonical fields (lat/lng/timezone_offset)
+    # in __post_init__. Avoid defining properties that shadow these field names.
 
 
 @dataclass
@@ -103,7 +103,9 @@ def _safe_get_float(d: Dict[str, Any], key: str) -> Optional[float]:
         try:
             return float(value.replace(",", "").strip())
         except ValueError:
-            raise ValueError(f"expected numeric string for key '{key}', got: {value}") from None
+            raise ValueError(
+                f"expected numeric string for key '{key}', got: {value}"
+            ) from None
     raise TypeError(f"unsupported type for key '{key}': {type(value).__name__}")
 
 
@@ -266,37 +268,22 @@ def _coerce_node_from_node(n: Node) -> Dict[str, Any]:
 
 
 def _coerce_node_from_dict(n: Dict[str, Any]) -> Dict[str, Any]:
-    flat: Dict[str, Any] = {}
     loc = n.get("location") if isinstance(n.get("location"), dict) else {}
-    # only set keys when values are present
-    name = loc.get("name") or n.get("id") or n.get("name")
-    if name is not None:
-        flat["name"] = name
-    lat = loc.get("lat")
-    if lat is not None:
-        flat["latitude"] = float(lat)
-    lng = loc.get("lng")
-    if lng is not None:
-        flat["longitude"] = float(lng)
-    tz = loc.get("timezone_offset")
-    if tz is not None:
-        flat["utc_offset"] = float(tz)
-    arrival = ((n.get("schedule") or {}).get("arrival_utc")) if (n.get("schedule")) else None
-    if arrival is not None:
-        flat["arrival_time"] = arrival
-    departure = ((n.get("schedule") or {}).get("departure_utc")) if (n.get("schedule")) else None
-    if departure is not None:
-        flat["departure_time"] = departure
-    se = n.get("stop_experience") or {}
-    if se and se.get("duration_seconds") is not None:
-        try:
-            val = se.get("duration_seconds")
-            if val is not None:
-                # allows numeric strings and floats; convert to minutes
-                flat["stop_duration"] = int(float(val) / 60)
-        except (TypeError, ValueError):
-            logger.debug("ignored invalid stop_experience.duration_seconds=%r for node=%r", se.get("duration_seconds"), n.get("id"))
-    flat["is_stop"] = True
+    flat: Dict[str, Any] = {}
+
+    # Basic fields
+    flat.update(_coerce_node_basic_from_dict(n, loc))
+
+    # Coordinate fields
+    flat.update(_coerce_node_coords_from_dict(n, loc))
+
+    # Schedule fields
+    flat.update(_coerce_node_schedule_from_dict(n))
+
+    # Stop experience
+    flat.update(_coerce_node_stop_experience_from_dict(n))
+
+    # Optional fields: priority, notes, country, population
     if n.get("priority") is not None:
         flat["priority"] = n.get("priority")
     if n.get("notes") is not None:
@@ -306,46 +293,165 @@ def _coerce_node_from_dict(n: Dict[str, Any]) -> Dict[str, Any]:
         flat["country"] = loc.get("region")
     if n.get("population") is not None:
         flat["population"] = n.get("population")
+
+    # defaults
+    flat.setdefault("is_stop", True)
+
     return flat
+
+
+def _coerce_node_basic_from_dict(
+    n: Dict[str, Any], loc: Dict[str, Any]
+) -> Dict[str, Any]:
+    """Extract basic non-numeric fields like name."""
+    out: Dict[str, Any] = {}
+    name = loc.get("name") or n.get("id") or n.get("name")
+    if name is not None:
+        out["name"] = name
+    return out
+
+
+def _coerce_node_coords_from_dict(
+    n: Dict[str, Any], loc: Dict[str, Any]
+) -> Dict[str, Any]:
+    """Extract and convert numeric coordinate fields; keep errors local."""
+    out: Dict[str, Any] = {}
+    lat_cand = loc.get("lat") if loc.get("lat") is not None else n.get("latitude")
+    lng_cand = loc.get("lng") if loc.get("lng") is not None else n.get("longitude")
+    tz_cand = (
+        loc.get("timezone_offset")
+        if loc.get("timezone_offset") is not None
+        else n.get("utc_offset")
+    )
+
+    if lat_cand is not None:
+        try:
+            out["latitude"] = float(lat_cand)
+        except (TypeError, ValueError):
+            logger.debug(
+                "ignored invalid latitude=%r for node=%r", lat_cand, n.get("id")
+            )
+    if lng_cand is not None:
+        try:
+            out["longitude"] = float(lng_cand)
+        except (TypeError, ValueError):
+            logger.debug(
+                "ignored invalid longitude=%r for node=%r", lng_cand, n.get("id")
+            )
+    if tz_cand is not None:
+        try:
+            out["utc_offset"] = float(tz_cand)
+        except (TypeError, ValueError):
+            logger.debug(
+                "ignored invalid timezone_offset=%r for node=%r", tz_cand, n.get("id")
+            )
+    return out
+
+
+def _coerce_node_schedule_from_dict(n: Dict[str, Any]) -> Dict[str, Any]:
+    out: Dict[str, Any] = {}
+    schedule = n.get("schedule") or {}
+    arrival = schedule.get("arrival_utc") if schedule else n.get("arrival_time")
+    departure = schedule.get("departure_utc") if schedule else n.get("departure_time")
+    if arrival is not None:
+        out["arrival_time"] = arrival
+    if departure is not None:
+        out["departure_time"] = departure
+    return out
+
+
+def _coerce_node_stop_experience_from_dict(n: Dict[str, Any]) -> Dict[str, Any]:
+    out: Dict[str, Any] = {}
+    se = n.get("stop_experience") or {}
+    if se and se.get("duration_seconds") is not None:
+        try:
+            val = se.get("duration_seconds")
+            if val is not None:
+                out["stop_duration"] = int(float(val) / 60)
+        except (TypeError, ValueError):
+            logger.debug(
+                "ignored invalid stop_experience.duration_seconds=%r for node=%r",
+                se.get("duration_seconds"),
+                n.get("id"),
+            )
+    return out
 
 
 def _coerce_node_from_legacy_obj(n) -> Dict[str, Any]:
     flat: Dict[str, Any] = {}
-    name = getattr(n, "name", None)
-    if name is not None:
-        flat["name"] = name
-    latv = getattr(n, "lat", None) or getattr(n, "latitude", None)
-    if latv is not None:
-        flat["latitude"] = float(latv)
-    lngv = getattr(n, "lng", None) or getattr(n, "longitude", None)
-    if lngv is not None:
-        flat["longitude"] = float(lngv)
-    tzv = getattr(n, "timezone_offset", None) or getattr(n, "utc_offset", None)
-    if tzv is not None:
-        flat["utc_offset"] = float(tzv)
-    arrival = getattr(n, "arrival_time", None)
-    if arrival is not None:
-        flat["arrival_time"] = arrival
-    departure = getattr(n, "departure_time", None)
-    if departure is not None:
-        flat["departure_time"] = departure
+
+    # Basic and optional fields
+    flat.update(_coerce_node_basic_from_legacy_obj(n))
+    flat.update(_coerce_node_coords_from_legacy_obj(n))
+    flat.update(_coerce_node_schedule_from_legacy_obj(n))
+
     sd = getattr(n, "stop_duration", None)
     if sd is not None:
         flat["stop_duration"] = sd
-    is_stop_val = getattr(n, "is_stop", None)
-    flat["is_stop"] = True if is_stop_val is None else is_stop_val
-    if getattr(n, "priority", None) is not None:
-        flat["priority"] = getattr(n, "priority", None)
-    notesv = getattr(n, "notes", None) or getattr(n, "fun_facts", None)
-    if notesv is not None:
-        flat["notes"] = notesv
-        flat["fun_facts"] = notesv
-    countryv = getattr(n, "country", None) or getattr(n, "region", None)
-    if countryv is not None:
-        flat["country"] = countryv
-    if getattr(n, "population", None) is not None:
-        flat["population"] = getattr(n, "population", None)
+
+    candidate_is_stop = getattr(n, "is_stop", None)
+    flat["is_stop"] = True if candidate_is_stop is None else candidate_is_stop
+
+    candidate_priority = getattr(n, "priority", None)
+    if candidate_priority is not None:
+        flat["priority"] = candidate_priority
+
+    candidate_notes = getattr(n, "notes", None) or getattr(n, "fun_facts", None)
+    if candidate_notes is not None:
+        flat["notes"] = candidate_notes
+        flat["fun_facts"] = candidate_notes
+
+    candidate_country = getattr(n, "country", None) or getattr(n, "region", None)
+    if candidate_country is not None:
+        flat["country"] = candidate_country
+
+    candidate_population = getattr(n, "population", None)
+    if candidate_population is not None:
+        flat["population"] = candidate_population
+
     return flat
+
+
+def _coerce_node_basic_from_legacy_obj(n) -> Dict[str, Any]:
+    out: Dict[str, Any] = {}
+    name = getattr(n, "name", None)
+    if name is not None:
+        out["name"] = name
+    return out
+
+
+def _coerce_node_coords_from_legacy_obj(n) -> Dict[str, Any]:
+    out: Dict[str, Any] = {}
+    latv = getattr(n, "lat", None) or getattr(n, "latitude", None)
+    if latv is not None:
+        try:
+            out["latitude"] = float(latv)
+        except (TypeError, ValueError):
+            logger.debug("ignored invalid latitude=%r for legacy obj", latv)
+    lngv = getattr(n, "lng", None) or getattr(n, "longitude", None)
+    if lngv is not None:
+        try:
+            out["longitude"] = float(lngv)
+        except (TypeError, ValueError):
+            logger.debug("ignored invalid longitude=%r for legacy obj", lngv)
+    tzv = getattr(n, "timezone_offset", None) or getattr(n, "utc_offset", None)
+    if tzv is not None:
+        try:
+            out["utc_offset"] = float(tzv)
+        except (TypeError, ValueError):
+            logger.debug("ignored invalid utc_offset=%r for legacy obj", tzv)
+    return out
+
+
+def _coerce_node_schedule_from_legacy_obj(n) -> Dict[str, Any]:
+    out: Dict[str, Any] = {}
+    arrival = getattr(n, "arrival_time", None)
+    if arrival is not None:
+        out["arrival_time"] = arrival
+    departure = getattr(n, "departure_time", None)
+    if departure is not None:
+        out["departure_time"] = departure
+    return out
 
 
 def _coerce_node(n: Union[Dict[str, Any], Node, Location]) -> Dict[str, Any]:
@@ -363,8 +469,10 @@ def save_santa_route_to_json(
     """Write a list of locations to disk using the legacy-compatible flat 'route' array.
 
     Accepts either dicts (normalized node dicts) or legacy Location-like objects.
-    Produces a top-level JSON with key 'route' containing flat per-location dicts
-    with fields like name, latitude, longitude, utc_offset, arrival_time, departure_time, stop_duration, is_stop, priority, notes, country, population.
+    Produces a top-level JSON with key 'route' containing flat per-location
+    dicts with legacy fields (for example: name, latitude, longitude,
+    utc_offset, arrival_time, departure_time, stop_duration, is_stop,
+    priority, notes, country, population).
     """
     if json_file_path is None:
         base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -443,7 +551,8 @@ def validate_locations(
 ) -> Dict[str, Any]:
     """Validate a list of normalized node dicts or legacy Location-like objects.
 
-    Returns a dict with keys: valid (bool), total_locations (int), errors (list), warnings (list).
+    Returns a dict with keys:
+    valid (bool), total_locations (int), errors (list), warnings (list).
     """
     errors: List[str] = []
     warnings: List[str] = []
@@ -463,7 +572,9 @@ def validate_locations(
             # check for duplicate names
             if name in seen_names:
                 errors.append(
-                    f"Duplicate location name '{name}' at indices {seen_names[name]} and {idx}"
+                    "Duplicate location name '{}' at indices {} and {}".format(
+                        name, seen_names[name], idx
+                    )
                 )
             else:
                 seen_names[name] = idx
@@ -549,17 +660,23 @@ def _convert_to_numeric(
     try:
         latf = float(lat)
     except (TypeError, ValueError):
-        errors.append(f"Invalid latitude for '{name}' (index {idx}): {lat}")
+        errors.append(
+            "Invalid latitude for '{}' (index {}): {}".format(name, idx, lat)
+        )
         latf = None
     try:
         lngf = float(lng)
     except (TypeError, ValueError):
-        errors.append(f"Invalid longitude for '{name}' (index {idx}): {lng}")
+        errors.append(
+            "Invalid longitude for '{}' (index {}): {}".format(name, idx, lng)
+        )
         lngf = None
     try:
         tzf = float(tz) if tz is not None else None
     except (TypeError, ValueError):
-        errors.append(f"Invalid UTC offset for '{name}' (index {idx}): {tz}")
+        errors.append(
+            "Invalid UTC offset for '{}' (index {}): {}".format(name, idx, tz)
+        )
         tzf = None
     return latf, lngf, tzf, errors
 
@@ -589,7 +706,9 @@ def _check_duplicate_coords(
                 getattr(other, "name", None) or getattr(other, "id", None) or None
             )
         warnings.append(
-            f"Very close coordinates for '{name}' (index {idx}) and '{other_name}' (index {other_idx})"
+            "Very close coordinates for '{}' (index {}) and '{}' (index {})".format(
+                name, idx, other_name, other_idx
+            )
         )
     else:
         seen_coords[coord_key] = idx
@@ -603,35 +722,48 @@ def _range_and_tz_checks(
     name: str,
     idx: int,
 ) -> Tuple[List[str], List[str]]:
-    """Validate numeric ranges for coordinates and timezone; also warn on unusual tz fractions."""
+    """
+    Validate numeric ranges for coordinates and timezone;
+    also warn on unusual tz fractions.
+    """
     errors: List[str] = []
     warnings: List[str] = []
     if latf is not None and not -90.0 <= latf <= 90.0:
-        errors.append(f"Invalid latitude for '{name}' (index {idx}): {latf}")
+        errors.append(
+            "Invalid latitude for '{}' (index {}): {}".format(name, idx, latf)
+        )
     if lngf is not None and not -180.0 <= lngf <= 180.0:
-        errors.append(f"Invalid longitude for '{name}' (index {idx}): {lngf}")
+        errors.append(
+            "Invalid longitude for '{}' (index {}): {}".format(name, idx, lngf)
+        )
     if tzf is not None and not -12.0 <= tzf <= 14.0:
-        errors.append(f"Invalid UTC offset for '{name}' (index {idx}): {tzf}")
+        errors.append(
+            "Invalid UTC offset for '{}' (index {}): {}".format(name, idx, tzf)
+        )
     if tzf is not None:
         try:
             tzf_val = float(tzf)
         except (TypeError, ValueError):
             # keep behavior explicit instead of silently ignoring unexpected types
-            warnings.append(f"Unusual UTC offset for '{name}' (index {idx}): {tzf}")
+            warnings.append(
+                "Unusual UTC offset for '{}' (index {}): {}".format(name, idx, tzf)
+            )
         else:
             # fractional part robust for negatives and floating imprecision
             frac = abs(tzf_val % 1)
             allowed = {0.0, 0.25, 0.5, 0.75}
             if not any(math.isclose(frac, a, abs_tol=1e-9) for a in allowed):
-                warnings.append(f"Unusual UTC offset for '{name}': {tzf_val}")
+                warnings.append(
+                    "Unusual UTC offset for '{}': {}".format(name, tzf_val)
+                )
     return errors, warnings
 
 
 def _location_coerce_legacy_fields(loc: Location) -> None:
-    """Coerce legacy field names into canonical numeric fields (lat/lng/timezone_offset).
+    """Coerce legacy field names into canonical numeric fields (lat/lng/tmz_offset).
 
-    Raises ValueError/TypeError with the same messages as previous implementation so callers/tests
-    observe identical behavior.
+    Raises ValueError/TypeError with the same messages as previous implementation so
+    callers/tests observe identical behavior.
     """
     if loc.lat is None and loc.latitude is not None:
         try:
@@ -651,7 +783,10 @@ def _location_coerce_legacy_fields(loc: Location) -> None:
 
 
 def _location_validate_and_normalize_coords(loc: Location) -> None:
-    """Validate presence and ranges of coordinates and normalize longitude to [-180,180]."""
+    """
+    Validate presence and ranges of coordinates
+    and normalize longitude to [-180,180].
+    """
     if loc.lat is None or loc.lng is None:
         raise ValueError("lat and lng are required for Location")
     if loc.timezone_offset is None:
@@ -673,7 +808,9 @@ def _location_validate_and_normalize_coords(loc: Location) -> None:
     try:
         tzf = float(loc.timezone_offset)
     except (TypeError, ValueError):
-        logger.warning("Unusual UTC offset for location '%s': %s", loc.name, loc.timezone_offset)
+        logger.warning(
+            "Unusual UTC offset for location '%s': %s", loc.name, loc.timezone_offset
+        )
     else:
         frac = abs(tzf % 1)
         allowed = {0.0, 0.25, 0.5, 0.75}
@@ -701,7 +838,10 @@ def _location_validate_priority(loc: Location) -> None:
 
 
 def _load_source_to_obj(source):
-    """Load the incoming source into a Python object and indicate if it came from file."""
+    """
+    Load the incoming source into a Python object
+    and indicate if it came from file.
+    """
     loaded_from_file = False
     if source is None:
         base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -757,7 +897,9 @@ def _parse_and_normalize_nodes(nodes: List[Any]) -> List[Dict[str, Any]]:
             parsed = _parse_location_entry(n)
             parsed_nodes.append(parsed)
         except (TypeError, ValueError, KeyError) as exc:
-            logger.warning("skipping node at index %d due to %s", idx, exc.__class__.__name__)
+            logger.warning(
+                "skipping node at index %d due to %s", idx, exc.__class__.__name__
+            )
             logger.debug("node parse failure details", exc_info=True)
         except Exception as exc:
             logger.warning("skipping node at index %d: %s", idx, exc)
@@ -802,16 +944,15 @@ def _parsed_nodes_to_locations(parsed_nodes: List[Dict[str, Any]]) -> List[Locat
             except (TypeError, ValueError):
                 stop_duration_minutes = None
         try:
+            utc_off = loc.get("timezone_offset")
+            if utc_off is None:
+                utc_off = 0.0
             location_obj = Location(
                 name=loc.get("name") or p.get("id"),
                 region=loc.get("region"),
                 latitude=loc.get("lat"),
                 longitude=loc.get("lng"),
-                utc_offset=(
-                    loc.get("timezone_offset")
-                    if loc.get("timezone_offset") is not None
-                    else 0.0
-                ),
+                utc_offset=utc_off,
                 arrival_time=sched.get("arrival_utc"),
                 departure_time=sched.get("departure_utc"),
                 stop_duration=stop_duration_minutes,
@@ -822,8 +963,56 @@ def _parsed_nodes_to_locations(parsed_nodes: List[Dict[str, Any]]) -> List[Locat
                 country=loc.get("region"),
             )
         except (TypeError, ValueError) as exc:
-            logger.warning("skipping node while constructing Location %s", exc.__class__.__name__)
+            logger.warning(
+                "skipping node while constructing Location %s", exc.__class__.__name__
+            )
             logger.debug("Location construction failure details", exc_info=True)
             continue
         locations.append(location_obj)
     return locations
+
+
+def create_location_from_payload(data: Dict[str, Any]) -> Location:
+    """Create a `Location` instance from a flat payload dict (admin API payload).
+
+    This centralizes parsing/validation for incoming admin payloads. It raises
+    `ValueError` or `TypeError` on invalid/missing fields to mirror previous
+    validation behavior.
+    """
+    if not isinstance(data, dict):
+        raise TypeError("payload must be a dict")
+
+    # Support both 'name' and 'location' keys for backward compatibility
+    name = data.get("name") or data.get("location")
+    if not name:
+        raise ValueError("Missing required field: name")
+
+    # Notes/back-compat
+    notes = data.get("notes") if "notes" in data else data.get("fun_facts")
+
+    try:
+        # Use legacy field names so Location.__post_init__ can coerce
+        latitude = data.get("latitude")
+        longitude = data.get("longitude")
+        utc_offset = data.get("utc_offset")
+
+        loc = Location(
+            name=name,
+            latitude=latitude,
+            longitude=longitude,
+            utc_offset=utc_offset,
+            arrival_time=data.get("arrival_time"),
+            departure_time=data.get("departure_time"),
+            country=data.get("country"),
+            population=data.get("population"),
+            priority=data.get("priority"),
+            notes=notes,
+            fun_facts=data.get("fun_facts"),
+            stop_duration=data.get("stop_duration"),
+            is_stop=data.get("is_stop", True),
+        )
+    except (TypeError, ValueError):
+        # re-raise to allow callers to map to HTTP 400
+        raise
+
+    return loc

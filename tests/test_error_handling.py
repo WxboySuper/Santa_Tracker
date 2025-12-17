@@ -1739,7 +1739,10 @@ class TestPrecomputeRouteScenarios:
             arrival_time=None,
             departure_time="2024-12-25T01:00:00Z",
         )
-        with patch("src.app.load_santa_route_from_json", return_value=[mock_location_1, mock_location_2]):
+        with patch(
+            "src.app.load_santa_route_from_json",
+            return_value=[mock_location_1, mock_location_2],
+        ):
             response = client.post(
                 "/api/admin/route/precompute",
                 headers=auth_headers,
@@ -1773,7 +1776,7 @@ class TestPrecomputeRouteScenarios:
         )
         with patch(
             "src.app.load_santa_route_from_json",
-            return_value=[mock_location_1, mock_location_2]
+            return_value=[mock_location_1, mock_location_2],
         ):
             response = client.post(
                 "/api/admin/route/precompute",
@@ -1784,7 +1787,9 @@ class TestPrecomputeRouteScenarios:
             assert "invalid_times" in data
             assert len(data["invalid_times"]) == 1
             assert data["invalid_times"][0]["index"] == 1
-            assert data["invalid_times"][0]["issues"]["arrival_time"] == "invalid format"
+            assert (
+                data["invalid_times"][0]["issues"]["arrival_time"] == "invalid format"
+            )
 
     def test_precompute_route_missing_departure_time(self, client, auth_headers):
         """Test precompute route with missing departure_time."""
@@ -1807,8 +1812,9 @@ class TestPrecomputeRouteScenarios:
             departure_time=None,  # Missing
         )
         with patch(
-                   "src.app.load_santa_route_from_json",
-                   return_value=[mock_location_1, mock_location_2]):
+            "src.app.load_santa_route_from_json",
+            return_value=[mock_location_1, mock_location_2],
+        ):
             response = client.post(
                 "/api/admin/route/precompute",
                 headers=auth_headers,
@@ -1841,8 +1847,9 @@ class TestPrecomputeRouteScenarios:
             departure_time="not-a-date",  # Invalid format
         )
         with patch(
-                   "src.app.load_santa_route_from_json",
-                   return_value=[mock_location_1, mock_location_2]):
+            "src.app.load_santa_route_from_json",
+            return_value=[mock_location_1, mock_location_2],
+        ):
             response = client.post(
                 "/api/admin/route/precompute",
                 headers=auth_headers,
@@ -1852,7 +1859,9 @@ class TestPrecomputeRouteScenarios:
             assert "invalid_times" in data
             assert len(data["invalid_times"]) == 1
             assert data["invalid_times"][0]["index"] == 1
-            assert data["invalid_times"][0]["issues"]["departure_time"] == "invalid format"
+            assert (
+                data["invalid_times"][0]["issues"]["departure_time"] == "invalid format"
+            )
 
 
 class TestSimulateRouteScenarios:
