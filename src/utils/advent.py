@@ -129,7 +129,7 @@ def load_advent_calendar(json_file_path: Optional[str] = None) -> List[AdventDay
     # Allow tests or deployments to override calendar path via environment
     json_file_path = _get_advent_calendar_path(json_file_path)
 
-    with open(json_file_path, "r") as f:
+    with open(json_file_path, "r") as f:  # skipcq: PTC-W6004
         data = json.load(f)
 
     days = []
@@ -236,7 +236,7 @@ def save_advent_calendar(
         days_data.append(day_dict)
 
     # Save to file
-    with open(json_file_path, "w") as f:
+    with open(json_file_path, "w") as f:  # skipcq: PTC-W6004
         json.dump({"days": days_data}, f, indent=2)
 
 

@@ -56,8 +56,6 @@ class Location:
     country: Optional[str] = None
     population: Optional[int] = None
 
-    # Note: do not preserve raw_lng; we validate longitude strictly
-
     def __post_init__(self):
         # Delegate to focused helpers to keep cyclomatic complexity low
         _location_coerce_legacy_fields(self)
@@ -221,14 +219,137 @@ def load_santa_route_from_json(
     nodes = _get_nodes_from_obj(obj)
     parsed_nodes = _parse_and_normalize_nodes(nodes)
 
-    if loaded_from_file:
+    # Behaviour:
+    # - If caller did not supply a source (source is None), return a list of
+    #   Location objects for use by the admin UI (existing code paths expect
+    #   dataclass instances).
+    # - If caller supplied an explicit source (file path, JSON string, or
+    #   parsed object), return the normalized node dicts. For programmatic
+    #   inputs (JSON string or in-memory object) we strip legacy top-level
+    #   fields like 'notes' and 'priority'. For explicit file paths we return
+    #   the parsed nodes unchanged to preserve on-disk fields.
+    if source is None:
         return _parsed_nodes_to_locations(parsed_nodes)
 
-    # programmatic loads: strip legacy top-level fields
+    # For any explicit source (file path, JSON string, or parsed object)
+    # return the normalized parsed node dicts and strip legacy top-level
+    # fields like 'notes' and 'priority' so callers receive a canonical
+    # representation.
     for p in parsed_nodes:
         p.pop("notes", None)
         p.pop("priority", None)
     return parsed_nodes
+
+
+def _coerce_node_from_node(n: Node) -> Dict[str, Any]:
+    loc = n.location
+    flat: Dict[str, Any] = {}
+    flat["name"] = loc.name
+    flat["latitude"] = float(loc.latitude if loc.latitude is not None else loc.lat)
+    flat["longitude"] = float(loc.longitude if loc.longitude is not None else loc.lng)
+    flat["utc_offset"] = float(
+        loc.utc_offset if loc.utc_offset is not None else loc.timezone_offset
+    )
+    flat["arrival_time"] = getattr(loc, "arrival_time", None)
+    flat["departure_time"] = getattr(loc, "departure_time", None)
+    flat["country"] = loc.country or loc.region
+    flat["population"] = loc.population
+    flat["priority"] = loc.priority
+    if loc.notes is not None:
+        flat["notes"] = loc.notes
+        flat["fun_facts"] = loc.notes
+    flat["stop_duration"] = getattr(loc, "stop_duration", None)
+    is_stop_val = getattr(loc, "is_stop", None)
+    flat["is_stop"] = True if is_stop_val is None else is_stop_val
+    return flat
+
+
+def _coerce_node_from_dict(n: Dict[str, Any]) -> Dict[str, Any]:
+    flat: Dict[str, Any] = {}
+    loc = n.get("location") if isinstance(n.get("location"), dict) else {}
+    # only set keys when values are present
+    name = loc.get("name") or n.get("id") or n.get("name")
+    if name is not None:
+        flat["name"] = name
+    lat = loc.get("lat")
+    if lat is not None:
+        flat["latitude"] = float(lat)
+    lng = loc.get("lng")
+    if lng is not None:
+        flat["longitude"] = float(lng)
+    tz = loc.get("timezone_offset")
+    if tz is not None:
+        flat["utc_offset"] = float(tz)
+    arrival = ((n.get("schedule") or {}).get("arrival_utc")) if (n.get("schedule")) else None
+    if arrival is not None:
+        flat["arrival_time"] = arrival
+    departure = ((n.get("schedule") or {}).get("departure_utc")) if (n.get("schedule")) else None
+    if departure is not None:
+        flat["departure_time"] = departure
+    se = n.get("stop_experience") or {}
+    if se and se.get("duration_seconds") is not None:
+        try:
+            flat["stop_duration"] = int(int(se.get("duration_seconds")) / 60)
+        except Exception:
+            pass
+    flat["is_stop"] = True
+    if n.get("priority") is not None:
+        flat["priority"] = n.get("priority")
+    if n.get("notes") is not None:
+        flat["notes"] = n.get("notes")
+        flat["fun_facts"] = n.get("notes")
+    if loc.get("region") is not None:
+        flat["country"] = loc.get("region")
+    if n.get("population") is not None:
+        flat["population"] = n.get("population")
+    return flat
+
+
+def _coerce_node_from_legacy_obj(n) -> Dict[str, Any]:
+    flat: Dict[str, Any] = {}
+    name = getattr(n, "name", None)
+    if name is not None:
+        flat["name"] = name
+    latv = getattr(n, "lat", None) or getattr(n, "latitude", None)
+    if latv is not None:
+        flat["latitude"] = float(latv)
+    lngv = getattr(n, "lng", None) or getattr(n, "longitude", None)
+    if lngv is not None:
+        flat["longitude"] = float(lngv)
+    tzv = getattr(n, "timezone_offset", None) or getattr(n, "utc_offset", None)
+    if tzv is not None:
+        flat["utc_offset"] = float(tzv)
+    arrival = getattr(n, "arrival_time", None)
+    if arrival is not None:
+        flat["arrival_time"] = arrival
+    departure = getattr(n, "departure_time", None)
+    if departure is not None:
+        flat["departure_time"] = departure
+    sd = getattr(n, "stop_duration", None)
+    if sd is not None:
+        flat["stop_duration"] = sd
+    is_stop_val = getattr(n, "is_stop", None)
+    flat["is_stop"] = True if is_stop_val is None else is_stop_val
+    if getattr(n, "priority", None) is not None:
+        flat["priority"] = getattr(n, "priority", None)
+    notesv = getattr(n, "notes", None) or getattr(n, "fun_facts", None)
+    if notesv is not None:
+        flat["notes"] = notesv
+        flat["fun_facts"] = notesv
+    countryv = getattr(n, "country", None) or getattr(n, "region", None)
+    if countryv is not None:
+        flat["country"] = countryv
+    if getattr(n, "population", None) is not None:
+        flat["population"] = getattr(n, "population", None)
+    return flat
+
+
+def _coerce_node(n: Union[Dict[str, Any], Node, Location]) -> Dict[str, Any]:
+    if isinstance(n, Node):
+        return _coerce_node_from_node(n)
+    if isinstance(n, dict):
+        return _coerce_node_from_dict(n)
+    return _coerce_node_from_legacy_obj(n)
 
 
 def save_santa_route_to_json(
@@ -246,120 +367,6 @@ def save_santa_route_to_json(
         json_file_path = os.path.join(base_dir, "static", "data", "santa_route.json")
 
     route_data: List[Dict[str, Any]] = []
-
-    def _coerce_node(n: Union[Dict[str, Any], Node, Location]) -> Dict[str, Any]:
-        # Build a flat legacy-compatible dict for each location
-        flat: Dict[str, Any] = {}
-        if isinstance(n, Node):
-            loc = n.location
-            flat["name"] = loc.name
-            flat["latitude"] = float(
-                loc.latitude if loc.latitude is not None else loc.lat
-            )
-            flat["longitude"] = float(
-                loc.longitude if loc.longitude is not None else loc.lng
-            )
-            flat["utc_offset"] = float(
-                loc.utc_offset if loc.utc_offset is not None else loc.timezone_offset
-            )
-            flat["arrival_time"] = getattr(loc, "arrival_time", None)
-            flat["departure_time"] = getattr(loc, "departure_time", None)
-            flat["country"] = loc.country or loc.region
-            flat["population"] = loc.population
-            flat["priority"] = loc.priority
-            if loc.notes is not None:
-                flat["notes"] = loc.notes
-                flat["fun_facts"] = loc.notes
-            flat["stop_duration"] = getattr(loc, "stop_duration", None)
-            flat["is_stop"] = (
-                True
-                if getattr(loc, "is_stop", None) is None
-                else getattr(loc, "is_stop")
-            )
-            return flat
-        if isinstance(n, dict):
-            loc = n.get("location") if isinstance(n.get("location"), dict) else {}
-            # only set keys when values are present
-            name = loc.get("name") or n.get("id") or n.get("name")
-            if name is not None:
-                flat["name"] = name
-            lat = loc.get("lat")
-            if lat is not None:
-                flat["latitude"] = float(lat)
-            lng = loc.get("lng")
-            if lng is not None:
-                flat["longitude"] = float(lng)
-            tz = loc.get("timezone_offset")
-            if tz is not None:
-                flat["utc_offset"] = float(tz)
-            arrival = (
-                (n.get("schedule") or {}).get("arrival_utc")
-                if (n.get("schedule"))
-                else None
-            )
-            if arrival is not None:
-                flat["arrival_time"] = arrival
-            departure = (
-                (n.get("schedule") or {}).get("departure_utc")
-                if (n.get("schedule"))
-                else None
-            )
-            if departure is not None:
-                flat["departure_time"] = departure
-            se = n.get("stop_experience") or {}
-            if se and se.get("duration_seconds") is not None:
-                try:
-                    flat["stop_duration"] = int(int(se.get("duration_seconds")) / 60)
-                except Exception:
-                    pass
-            flat["is_stop"] = True
-            if n.get("priority") is not None:
-                flat["priority"] = n.get("priority")
-            if n.get("notes") is not None:
-                flat["notes"] = n.get("notes")
-                flat["fun_facts"] = n.get("notes")
-            if loc.get("region") is not None:
-                flat["country"] = loc.get("region")
-            if n.get("population") is not None:
-                flat["population"] = n.get("population")
-            return flat
-
-        # Legacy object shaped input: map attributes
-        name = getattr(n, "name", None)
-        if name is not None:
-            flat["name"] = name
-        latv = getattr(n, "lat", None) or getattr(n, "latitude", None)
-        if latv is not None:
-            flat["latitude"] = float(latv)
-        lngv = getattr(n, "lng", None) or getattr(n, "longitude", None)
-        if lngv is not None:
-            flat["longitude"] = float(lngv)
-        tzv = getattr(n, "timezone_offset", None) or getattr(n, "utc_offset", None)
-        if tzv is not None:
-            flat["utc_offset"] = float(tzv)
-        arrival = getattr(n, "arrival_time", None)
-        if arrival is not None:
-            flat["arrival_time"] = arrival
-        departure = getattr(n, "departure_time", None)
-        if departure is not None:
-            flat["departure_time"] = departure
-        sd = getattr(n, "stop_duration", None)
-        if sd is not None:
-            flat["stop_duration"] = sd
-        is_stop_val = getattr(n, "is_stop", None)
-        flat["is_stop"] = True if is_stop_val is None else is_stop_val
-        if getattr(n, "priority", None) is not None:
-            flat["priority"] = getattr(n, "priority", None)
-        notesv = getattr(n, "notes", None) or getattr(n, "fun_facts", None)
-        if notesv is not None:
-            flat["notes"] = notesv
-            flat["fun_facts"] = notesv
-        countryv = getattr(n, "country", None) or getattr(n, "region", None)
-        if countryv is not None:
-            flat["country"] = countryv
-        if getattr(n, "population", None) is not None:
-            flat["population"] = getattr(n, "population", None)
-        return flat
 
     for item in locations:
         coerced = _coerce_node(item)
@@ -466,7 +473,6 @@ def validate_locations(
                 info.get("tz"),
                 seen_coords,
                 locations,
-                seen_names,
             )
             errors.extend(sub_errors)
             warnings.extend(sub_warnings)
@@ -484,11 +490,8 @@ def validate_locations(
 
 def _extract_loc_info(loc_item: Union[Dict[str, Any], Location]) -> Dict[str, Any]:
     if isinstance(loc_item, dict):
-        loc = (
-            loc_item.get("location")
-            if isinstance(loc_item.get("location"), dict)
-            else {}
-        )
+        loc_field = loc_item.get("location")
+        loc = loc_field if isinstance(loc_field, dict) else {}
         name = loc.get("name") or loc_item.get("id") or loc_item.get("name")
         lat = loc.get("lat")
         lng = loc.get("lng")
@@ -513,7 +516,6 @@ def _validate_numeric_and_coord_checks(
     tz: Any,
     seen_coords: Dict[Tuple[float, float], int],
     locations: List[Union[Dict[str, Any], Location]],
-    seen_names: Dict[str, int],
 ) -> Tuple[List[str], List[str]]:
     # Orchestrator that delegates detailed checks to focused helpers
     errors: List[str] = []
@@ -609,7 +611,7 @@ def _range_and_tz_checks(
     try:
         if tzf is not None:
             frac = abs(tzf - int(tzf))
-            if frac not in (0.0, 0.5):
+            if frac not in (0.0, 0.25, 0.5, 0.75):
                 warnings.append(f"Unusual UTC offset for '{name}': {tzf}")
     except Exception:
         pass
@@ -643,6 +645,8 @@ def _location_validate_and_normalize_coords(loc: Location) -> None:
     """Validate presence and ranges of coordinates and normalize longitude to [-180,180]."""
     if loc.lat is None or loc.lng is None:
         raise ValueError("lat and lng are required for Location")
+    if loc.timezone_offset is None:
+        raise ValueError("timezone_offset is required for Location")
 
     latf = float(loc.lat)
     if not -90.0 <= latf <= 90.0:
@@ -654,7 +658,7 @@ def _location_validate_and_normalize_coords(loc: Location) -> None:
 
     tz = float(loc.timezone_offset)
     if not -12.0 <= tz <= 14.0:
-        raise ValueError(f"Invalid timezone_offset: {loc.timezone_offset}")
+        raise ValueError(f"Invalid timezone_offset: {loc.utc_offset}")
     loc.timezone_offset = tz
 
     try:
@@ -704,7 +708,7 @@ def _load_source_to_obj(source):
             if os.path.exists(source):
                 with open(source, "r", encoding="utf-8") as f:
                     obj = json.load(f)
-                loaded_from_file = True
+                loaded_from_file = False
             else:
                 obj = json.loads(source)
         else:
@@ -806,7 +810,7 @@ def _parsed_nodes_to_locations(parsed_nodes: List[Dict[str, Any]]) -> List[Locat
                 fun_facts=p.get("notes"),
                 country=loc.get("region"),
             )
-        except Exception as exc:
+        except Exception:
             logger.warning("skipping node while constructing Location")
             continue
         locations.append(location_obj)

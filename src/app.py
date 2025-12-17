@@ -6,8 +6,8 @@ import sys
 import time
 from datetime import datetime
 from functools import wraps
-from typing import Optional
 from types import SimpleNamespace
+from typing import Optional
 
 from dotenv import load_dotenv
 from flask import Flask, abort, jsonify, render_template, request
@@ -433,12 +433,12 @@ def add_location():
             lat_val = float(data["latitude"])
             lon_val = float(data["longitude"])
             tz_val = float(data["utc_offset"])
-            if not (-90.0 <= lat_val <= 90.0):
-                return jsonify({"error": "Invalid latitude value"}), 400
-            if not (-180.0 <= lon_val <= 180.0):
-                return jsonify({"error": "Invalid longitude value"}), 400
-            if not (-12.0 <= tz_val <= 14.0):
-                return jsonify({"error": "Invalid utc_offset value"}), 400
+            if (
+                not (-90.0 <= lat_val <= 90.0)
+                or not (-180.0 <= lon_val <= 180.0)
+                or not (-12.0 <= tz_val <= 14.0)
+            ):
+                return jsonify({"error": "Invalid latitude, longitude, or utc_offset"}), 400
 
             new_location = Location(
                 name=data["name"],
@@ -783,8 +783,8 @@ def get_route_status():
                 priority_counts[loc.priority] = priority_counts.get(loc.priority, 0) + 1
 
         # Get file modification time for last update info
-        base_dir_1 = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        route_file = os.path.join(base_dir_1, "static", "data", "santa_route.json")
+        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        route_file = os.path.join(base_dir, "static", "data", "santa_route.json")
         last_modified = (
             time.ctime(os.path.getmtime(route_file))
             if os.path.exists(route_file)
@@ -834,7 +834,7 @@ def precompute_route():
             issues = {}
 
             # Allow the anchor/start node to be missing arrival_time (legacy behavior)
-            if idx == 0 and getattr(loc, "type", None) == "START":
+            if idx == 0:
                 # skip timing validation for the anchor/start node
                 continue
 
@@ -1046,7 +1046,8 @@ def get_trial_route_status():
     try:
         exists = has_trial_route()
         if exists:
-            trial_locations = load_trial_route_from_json()
+            raw = load_trial_route_from_json()
+            trial_locations = [_normalize_loc_item(it) for it in (raw or [])]
             return (
                 jsonify(
                     {
@@ -1183,7 +1184,8 @@ def apply_trial_route():
             return jsonify({"error": "No trial route to apply"}), 404
 
         # Load trial route
-        trial_locations = load_trial_route_from_json()
+        raw = load_trial_route_from_json()
+        trial_locations = [_normalize_loc_item(it) for it in (raw or [])]
         if not trial_locations:
             return jsonify({"error": "Trial route is empty"}), 400
 
@@ -1221,7 +1223,8 @@ def simulate_trial_route():
         data = request.get_json(force=True, silent=True) or {}
 
         # Load trial locations
-        all_locations = load_trial_route_from_json()
+        raw = load_trial_route_from_json()
+        all_locations = [_normalize_loc_item(it) for it in (raw or [])]
         if not all_locations:
             return jsonify({"error": "Trial route is empty"}), 400
 
@@ -1787,8 +1790,8 @@ def _compute_stop_duration_from_stop_experience(se: dict, d: dict):
     if se and se.get("duration_seconds") is not None:
         try:
             # ensure numeric handling is robust
-            return int(int(se.get("duration_seconds")) / 60)
-        except Exception:
+            return int(float(se.get("duration_seconds")) / 60)
+        except (TypeError, ValueError):
             return d.get("stop_duration")
     return d.get("stop_duration")
 
