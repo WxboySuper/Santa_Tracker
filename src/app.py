@@ -1781,3 +1781,14 @@ def load_santa_route_from_json_normalized(source=None):
 
 # Explicit, easy-to-find rebinding used by the rest of this module
 load_santa_route_from_json = load_santa_route_from_json_normalized
+
+if __name__ == "__main__":
+    # Start a local development server when this module is run directly.
+    host = os.environ.get("FLASK_RUN_HOST", "127.0.0.1")
+    port = int(os.environ.get("FLASK_RUN_PORT", "5001"))
+    debug = os.environ.get("FLASK_DEBUG", "0") in ("1", "true", "True")
+    logger.info(
+        "Starting Flask development server on %s:%d (debug=%s)",
+        host, port, debug
+    )
+    app.run(host=host, port=port, debug=debug)
