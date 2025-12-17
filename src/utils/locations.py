@@ -121,7 +121,8 @@ def _safe_get_int(d: Dict[str, Any], key: str) -> Optional[int]:
         try:
             return int(float(v.replace(",", "").strip()))
         except ValueError:
-            raise ValueError(f"expected integer-like string for '{key}', got: {v!r}")
+            msg = f"expected integer-like string for '{key}', got: {v!r}"
+            raise ValueError(msg) from None
     raise TypeError(f"unsupported type for '{key}': {type(v).__name__}")
 
 
@@ -572,9 +573,8 @@ def validate_locations(
             # check for duplicate names
             if name in seen_names:
                 errors.append(
-                    "Duplicate location name '{}' at indices {} and {}".format(
-                        name, seen_names[name], idx
-                    )
+                    f"Duplicate location name '{name}' at indices {seen_names[name]} "
+                    f"and {idx}"
                 )
             else:
                 seen_names[name] = idx
@@ -660,23 +660,17 @@ def _convert_to_numeric(
     try:
         latf = float(lat)
     except (TypeError, ValueError):
-        errors.append(
-            "Invalid latitude for '{}' (index {}): {}".format(name, idx, lat)
-        )
+        errors.append(f"Invalid latitude for '{name}' (index {idx}): {lat}")
         latf = None
     try:
         lngf = float(lng)
     except (TypeError, ValueError):
-        errors.append(
-            "Invalid longitude for '{}' (index {}): {}".format(name, idx, lng)
-        )
+        errors.append(f"Invalid longitude for '{name}' (index {idx}): {lng}")
         lngf = None
     try:
         tzf = float(tz) if tz is not None else None
     except (TypeError, ValueError):
-        errors.append(
-            "Invalid UTC offset for '{}' (index {}): {}".format(name, idx, tz)
-        )
+        errors.append(f"Invalid UTC offset for '{name}' (index {idx}): {tz}")
         tzf = None
     return latf, lngf, tzf, errors
 
@@ -706,9 +700,8 @@ def _check_duplicate_coords(
                 getattr(other, "name", None) or getattr(other, "id", None) or None
             )
         warnings.append(
-            "Very close coordinates for '{}' (index {}) and '{}' (index {})".format(
-                name, idx, other_name, other_idx
-            )
+            f"Very close coordinates for '{name}' (index {idx}) and "
+            f"'{other_name}' (index {other_idx})"
         )
     else:
         seen_coords[coord_key] = idx
@@ -729,33 +722,23 @@ def _range_and_tz_checks(
     errors: List[str] = []
     warnings: List[str] = []
     if latf is not None and not -90.0 <= latf <= 90.0:
-        errors.append(
-            "Invalid latitude for '{}' (index {}): {}".format(name, idx, latf)
-        )
+        errors.append(f"Invalid latitude for '{name}' (index {idx}): {latf}")
     if lngf is not None and not -180.0 <= lngf <= 180.0:
-        errors.append(
-            "Invalid longitude for '{}' (index {}): {}".format(name, idx, lngf)
-        )
+        errors.append(f"Invalid longitude for '{name}' (index {idx}): {lngf}")
     if tzf is not None and not -12.0 <= tzf <= 14.0:
-        errors.append(
-            "Invalid UTC offset for '{}' (index {}): {}".format(name, idx, tzf)
-        )
+        errors.append(f"Invalid UTC offset for '{name}' (index {idx}): {tzf}")
     if tzf is not None:
         try:
             tzf_val = float(tzf)
         except (TypeError, ValueError):
             # keep behavior explicit instead of silently ignoring unexpected types
-            warnings.append(
-                "Unusual UTC offset for '{}' (index {}): {}".format(name, idx, tzf)
-            )
+            warnings.append(f"Unusual UTC offset for '{name}' (index {idx}): {tzf}")
         else:
             # fractional part robust for negatives and floating imprecision
             frac = abs(tzf_val % 1)
             allowed = {0.0, 0.25, 0.5, 0.75}
             if not any(math.isclose(frac, a, abs_tol=1e-9) for a in allowed):
-                warnings.append(
-                    "Unusual UTC offset for '{}': {}".format(name, tzf_val)
-                )
+                warnings.append(f"Unusual UTC offset for '{name}': {tzf_val}")
     return errors, warnings
 
 
@@ -769,17 +752,17 @@ def _location_coerce_legacy_fields(loc: Location) -> None:
         try:
             loc.lat = float(loc.latitude)
         except (TypeError, ValueError):
-            raise ValueError(f"Invalid latitude: {loc.latitude}")
+            raise ValueError(f"Invalid latitude: {loc.latitude}") from None
     if loc.lng is None and loc.longitude is not None:
         try:
             loc.lng = float(loc.longitude)
         except (TypeError, ValueError):
-            raise ValueError(f"Invalid longitude: {loc.longitude}")
+            raise ValueError(f"Invalid longitude: {loc.longitude}") from None
     if loc.timezone_offset is None and loc.utc_offset is not None:
         try:
             loc.timezone_offset = float(loc.utc_offset)
         except (TypeError, ValueError):
-            raise ValueError(f"Invalid timezone_offset: {loc.utc_offset}")
+            raise ValueError(f"Invalid timezone_offset: {loc.utc_offset}") from None
 
 
 def _location_validate_and_normalize_coords(loc: Location) -> None:
@@ -901,7 +884,7 @@ def _parse_and_normalize_nodes(nodes: List[Any]) -> List[Dict[str, Any]]:
                 "skipping node at index %d due to %s", idx, exc.__class__.__name__
             )
             logger.debug("node parse failure details", exc_info=True)
-        except Exception as exc:
+        except AttributeError as exc:
             logger.warning("skipping node at index %d: %s", idx, exc)
     return parsed_nodes
 
@@ -990,29 +973,25 @@ def create_location_from_payload(data: Dict[str, Any]) -> Location:
     # Notes/back-compat
     notes = data.get("notes") if "notes" in data else data.get("fun_facts")
 
-    try:
-        # Use legacy field names so Location.__post_init__ can coerce
-        latitude = data.get("latitude")
-        longitude = data.get("longitude")
-        utc_offset = data.get("utc_offset")
+    # Use legacy field names so Location.__post_init__ can coerce
+    latitude = data.get("latitude")
+    longitude = data.get("longitude")
+    utc_offset = data.get("utc_offset")
 
-        loc = Location(
-            name=name,
-            latitude=latitude,
-            longitude=longitude,
-            utc_offset=utc_offset,
-            arrival_time=data.get("arrival_time"),
-            departure_time=data.get("departure_time"),
-            country=data.get("country"),
-            population=data.get("population"),
-            priority=data.get("priority"),
-            notes=notes,
-            fun_facts=data.get("fun_facts"),
-            stop_duration=data.get("stop_duration"),
-            is_stop=data.get("is_stop", True),
-        )
-    except (TypeError, ValueError):
-        # re-raise to allow callers to map to HTTP 400
-        raise
+    loc = Location(
+        name=name,
+        latitude=latitude,
+        longitude=longitude,
+        utc_offset=utc_offset,
+        arrival_time=data.get("arrival_time"),
+        departure_time=data.get("departure_time"),
+        country=data.get("country"),
+        population=data.get("population"),
+        priority=data.get("priority"),
+        notes=notes,
+        fun_facts=data.get("fun_facts"),
+        stop_duration=data.get("stop_duration"),
+        is_stop=data.get("is_stop", True),
+    )
 
     return loc

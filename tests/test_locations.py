@@ -156,9 +156,7 @@ class TestUpdateSantaLocation(unittest.TestCase):
         try:
             update_santa_location(location)
         except Exception as e:
-            self.fail(
-                "update_santa_location raised %s unexpectedly" % type(e).__name__
-            )
+            self.fail("update_santa_location raised %s unexpectedly" % type(e).__name__)
 
     def test_update_santa_location_with_dict(self):
         """Test updating Santa's location with a dictionary."""
@@ -167,9 +165,7 @@ class TestUpdateSantaLocation(unittest.TestCase):
         try:
             update_santa_location(location_dict)
         except Exception as e:
-            self.fail(
-                "update_santa_location raised %s unexpectedly" % type(e).__name__
-            )
+            self.fail("update_santa_location raised %s unexpectedly" % type(e).__name__)
 
     def test_update_santa_location_with_invalid_input(self):
         """Test updating Santa's location with invalid input."""
@@ -177,9 +173,7 @@ class TestUpdateSantaLocation(unittest.TestCase):
         try:
             update_santa_location("Some string")
         except Exception as e:
-            self.fail(
-                "update_santa_location raised %s unexpectedly" % type(e).__name__
-            )
+            self.fail("update_santa_location raised %s unexpectedly" % type(e).__name__)
 
 
 class TestLoadSantaRouteFromJson(unittest.TestCase):
@@ -265,9 +259,7 @@ class TestLoadSantaRouteFromJson(unittest.TestCase):
             # schedule and stop_experience are preserved in the parsed node dict
             schedule = node.get("schedule", {})
             self.assertEqual(schedule.get("arrival_utc"), "2024-12-24T10:00:00Z")
-            self.assertEqual(
-                schedule.get("departure_utc"), "2024-12-24T10:15:00Z"
-            )
+            self.assertEqual(schedule.get("departure_utc"), "2024-12-24T10:15:00Z")
             stop_ex = node.get("stop_experience", {})
             self.assertEqual(stop_ex.get("duration_seconds"), 900)
             self.assertEqual(node.get("type"), "DELIVERY")

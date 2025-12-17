@@ -143,7 +143,8 @@ def load_advent_calendar(json_file_path: Optional[str] = None) -> List[AdventDay
     except json.JSONDecodeError as e:
         sample = repr(content[:200])
         raise ValueError(
-            f"JSON decode error in {json_file_path}: {e.msg} as pos {e.pos}. sample={sample}"  # noqa: E501
+            f"JSON decode error in {json_file_path}: {e.msg} "
+            f"as pos {e.pos}. sample={sample}"
         ) from e
 
     days = []
