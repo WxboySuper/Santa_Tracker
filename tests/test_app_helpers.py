@@ -32,6 +32,7 @@ def test_parse_numeric_fields_valid_strings_and_numbers():
 def test_make_location_from_parsed_constructs_location():
     """_make_location_from_parsed should build a Location with given fields."""
     from src.app import _make_location_from_parsed
+
     # `src.app` imports `Location` from `utils.locations` (no `src.` prefix),
     # so import the same symbol to ensure isinstance checks succeed.
     from utils.locations import Location
@@ -79,8 +80,9 @@ def test_make_location_from_parsed_is_stop_default_and_override():
 
 def test_parse_location_from_data_create_location_value_error():
     """If `create_location_from_payload` raises ValueError, return error tuple."""
-    from src.app import _parse_location_from_data
     from unittest.mock import patch
+
+    from src.app import _parse_location_from_data
 
     loc = {
         "name": "X",
@@ -97,8 +99,9 @@ def test_parse_location_from_data_create_location_value_error():
 
 def test_parse_location_from_data_create_location_type_error():
     """If `create_location_from_payload` raises TypeError, return error tuple."""
-    from src.app import _parse_location_from_data
     from unittest.mock import patch
+
+    from src.app import _parse_location_from_data
 
     loc = {
         "name": "Y",
@@ -197,9 +200,11 @@ def test_simulate_route_propagates_build_error():
     """
     If _build_simulated_from_locations returns an error, simulate_route returns it.
     """
-    from src.app import app, simulate_route
     from unittest.mock import patch
+
     from flask import jsonify
+
+    from src.app import app, simulate_route
 
     # Use a request context so `request` is available to the view.
     with app.test_request_context("/api/admin/route/simulate", method="POST", json={}):
@@ -218,8 +223,9 @@ def test_simulate_route_propagates_build_error():
 def test_simulate_route_propagates_build_error_via_client():
     """Calling the endpoint via test client returns the error from the builder."""
     import os
-    from src.app import app as appmod
     from unittest.mock import patch
+
+    from src.app import app as appmod
 
     os.environ["ADMIN_PASSWORD"] = "testpass"
 
@@ -242,8 +248,9 @@ def test_normalize_loc_item_none_returns_namespace():
     """
     Passing None to _normalize_loc_item returns a SimpleNamespace with None fields.
     """
-    from src.app import _normalize_loc_item
     from types import SimpleNamespace
+
+    from src.app import _normalize_loc_item
 
     ns = _normalize_loc_item(None)
     assert isinstance(ns, SimpleNamespace)
@@ -409,8 +416,9 @@ def test_load_santa_route_from_json_with_source_calls_original_loader():
     """
     When `source` is provided, wrapper should return the original loader's raw result.
     """
-    from src.app import load_santa_route_from_json
     from unittest.mock import patch
+
+    from src.app import load_santa_route_from_json
 
     sentinel = [{"raw": True}]
     with patch("src.app._orig_load_santa_route", return_value=sentinel) as mock_orig:
