@@ -1,4 +1,5 @@
 import pytest
+
 from src.utils.locations import create_location_from_payload
 
 

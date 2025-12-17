@@ -1,4 +1,3 @@
-import pytest
 from src.utils.locations import _range_and_tz_checks
 
 

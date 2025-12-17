@@ -16,4 +16,7 @@ def test_missing_timezone_offset_defaults_to_zero():
     locations = _parsed_nodes_to_locations(parsed_nodes)
     assert len(locations) == 1
     loc = locations[0]
-    assert getattr(loc, "utc_offset", None) == 0.0 or getattr(loc, "timezone_offset", None) == 0.0
+    assert (
+        getattr(loc, "utc_offset", None) == 0.0
+        or getattr(loc, "timezone_offset", None) == 0.0
+    )

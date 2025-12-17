@@ -9,25 +9,25 @@ from unittest.mock import patch
 from src.utils.locations import (
     Location,
     Node,
+    _check_duplicate_coords,
+    _coerce_node,
+    _coerce_node_from_dict,
+    _coerce_node_from_node,
+    _coerce_node_schedule_from_dict,
+    _convert_to_numeric,
+    _extract_loc_info,
+    _parse_location_entry,
+    _range_and_tz_checks,
     _safe_get_float,
     _safe_get_int,
     _second_to_minutes,
-    _parse_location_entry,
-    _coerce_node_from_node,
-    _coerce_node_from_dict,
-    _coerce_node,
     delete_trial_route,
     has_trial_route,
     load_santa_route_from_json,
-    _coerce_node_schedule_from_dict,
     load_trial_route_from_json,
     save_trial_route_to_json,
     update_santa_location,
     validate_locations,
-    _extract_loc_info,
-    _convert_to_numeric,
-    _check_duplicate_coords,
-    _range_and_tz_checks,
 )
 
 
@@ -249,7 +249,7 @@ class TestCoerceNodeFromDict(unittest.TestCase):
             "location": {"lat": 10.0, "lng": 20.0},
             "schedule": {
                 "arrival_utc": "2025-12-24T12:00:00Z",
-                "departure_utc": "2025-12-24T12:15:00Z"
+                "departure_utc": "2025-12-24T12:15:00Z",
             },
         }
         out = _coerce_node_schedule_from_dict(n)
@@ -312,6 +312,7 @@ class TestCoerceNodeFromDict(unittest.TestCase):
 
     def test_ignored_invalid_latitude_legacy_obj_logs_and_omits_field(self):
         """Legacy objects: invalid latitude should be ignored and logged."""
+
         class Obj:
             pass
 
@@ -327,6 +328,7 @@ class TestCoerceNodeFromDict(unittest.TestCase):
 
     def test_ignored_invalid_longitude_legacy_obj_logs_and_omits_field(self):
         """Legacy objects: invalid longitude should be ignored and logged."""
+
         class Obj:
             pass
 
@@ -342,6 +344,7 @@ class TestCoerceNodeFromDict(unittest.TestCase):
 
     def test_ignored_invalid_utc_offset_legacy_obj_logs_and_omits_field(self):
         """Legacy objects: invalid utc_offset should be ignored and logged."""
+
         class Obj:
             pass
 
@@ -865,9 +868,8 @@ class TestValidateLocationsExceptions(unittest.TestCase):
         self.assertEqual(res["total_locations"], 1)
         self.assertTrue(
             any(
-                "error processing location at index 0: broken get" in e for e in res[
-                    "errors"
-                    ]
+                "error processing location at index 0: broken get" in e
+                for e in res["errors"]
             )
         )
 
@@ -879,7 +881,10 @@ class TestExtractLocInfo(unittest.TestCase):
         node = {
             "id": "x1",
             "location": {
-                "name": "Inner", "lat": 10.0, "lng": 20.0, "timezone_offset": 2.5
+                "name": "Inner",
+                "lat": 10.0,
+                "lng": 20.0,
+                "timezone_offset": 2.5,
             },
         }
         out = _extract_loc_info(node)

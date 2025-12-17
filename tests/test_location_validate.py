@@ -1,4 +1,5 @@
 import pytest
+
 from src.utils.locations import _location_validate_and_normalize_coords
 
 

@@ -1,4 +1,5 @@
 import json
+
 from src.utils.locations import _load_source_to_obj
 
 
