@@ -2,11 +2,11 @@
 
 import json
 import os
-
 import pytest
-
+import logging
 from src.app import app
 
+logger = logging.getLogger(__name__)
 
 @pytest.fixture
 def client():
@@ -31,10 +31,18 @@ def client():
     finally:
         # Cleanup: remove temp file and restore env var
         try:
-            if os.path.exists(tmpf.name):
-                os.remove(tmpf.name)
-        except Exception:
+            os.remove(tmpf.name)
+        except FileNotFoundError:
+            # already removed by another process/threat - nothing to do
             pass
+        except PermissionError:
+            logger.warning(
+                f"Permission denied when trying to remove temp advent calendar file: {tmpf.name}"
+            )
+        except OSError as exc:
+            logger.error(
+                f"Error removing temp advent calendar file {tmpf.name}: {exc}"
+            )
         if "ADVENT_CALENDAR_PATH" in os.environ:
             del os.environ["ADVENT_CALENDAR_PATH"]
         app.config["ADVENT_ENABLED"] = False  # Restore to default

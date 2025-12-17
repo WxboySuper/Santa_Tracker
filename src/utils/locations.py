@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+import math
 from dataclasses import dataclass, field
 from typing import Optional, Any, Dict, List, Tuple, Union
 
@@ -289,9 +290,12 @@ def _coerce_node_from_dict(n: Dict[str, Any]) -> Dict[str, Any]:
     se = n.get("stop_experience") or {}
     if se and se.get("duration_seconds") is not None:
         try:
-            flat["stop_duration"] = int(int(se.get("duration_seconds")) / 60)
-        except Exception:
-            pass
+            val = se.get("duration_seconds")
+            if val is not None:
+                # allows numeric strings and floats; convert to minutes
+                flat["stop_duration"] = int(float(val) / 60)
+        except (TypeError, ValueError):
+            logger.debug("ignored invalid stop_experience.duration_seconds=%r for node=%r", se.get("duration_seconds"), n.get("id"))
     flat["is_stop"] = True
     if n.get("priority") is not None:
         flat["priority"] = n.get("priority")
@@ -608,13 +612,18 @@ def _range_and_tz_checks(
         errors.append(f"Invalid longitude for '{name}' (index {idx}): {lngf}")
     if tzf is not None and not -12.0 <= tzf <= 14.0:
         errors.append(f"Invalid UTC offset for '{name}' (index {idx}): {tzf}")
-    try:
-        if tzf is not None:
-            frac = abs(tzf - int(tzf))
-            if frac not in (0.0, 0.25, 0.5, 0.75):
-                warnings.append(f"Unusual UTC offset for '{name}': {tzf}")
-    except Exception:
-        pass
+    if tzf is not None:
+        try:
+            tzf_val = float(tzf)
+        except (TypeError, ValueError):
+            # keep behavior explicit instead of silently ignoring unexpected types
+            warnings.append(f"Unusual UTC offset for '{name}' (index {idx}): {tzf}")
+        else:
+            # fractional part robust for negatives and floating imprecision
+            frac = abs(tzf_val % 1)
+            allowed = {0.0, 0.25, 0.5, 0.75}
+            if not any(math.isclose(frac, a, abs_tol=1e-9) for a in allowed):
+                warnings.append(f"Unusual UTC offset for '{name}': {tzf_val}")
     return errors, warnings
 
 
@@ -658,19 +667,18 @@ def _location_validate_and_normalize_coords(loc: Location) -> None:
 
     tz = float(loc.timezone_offset)
     if not -12.0 <= tz <= 14.0:
-        raise ValueError(f"Invalid timezone_offset: {loc.utc_offset}")
+        raise ValueError(f"Invalid timezone_offset: {loc.timezone_offset}")
     loc.timezone_offset = tz
 
     try:
-        frac = abs(loc.timezone_offset - int(loc.timezone_offset))
-        if frac not in (0.0, 0.25, 0.5, 0.75):
-            logger.warning(
-                "Unusual UTC offset for location '%s': %s",
-                loc.name,
-                loc.timezone_offset,
-            )
-    except Exception:
-        pass
+        tzf = float(loc.timezone_offset)
+    except (TypeError, ValueError):
+        logger.warning("Unusual UTC offset for location '%s': %s", loc.name, loc.timezone_offset)
+    else:
+        frac = abs(tzf % 1)
+        allowed = {0.0, 0.25, 0.5, 0.75}
+        if not any(math.isclose(frac, a, abs_tol=1e-9) for a in allowed):
+            logger.warning("Unusual UTC offset for location '%s': %s", loc.name, tzf)
 
 
 def _location_sync_legacy_fields_and_notes(loc: Location) -> None:
@@ -750,6 +758,9 @@ def _parse_and_normalize_nodes(nodes: List[Any]) -> List[Dict[str, Any]]:
             parsed_nodes.append(parsed)
         except Exception as exc:
             logger.warning("skipping node at index %d: %s", idx, exc)
+        except (TypeError, ValueError, KeyError) as exc:
+            logger.warning("skipping node at index %d due to %s", idx, exc.__class__.__name__)
+            logger.debug("node parse failure details", exc_info=True)
     return parsed_nodes
 
 

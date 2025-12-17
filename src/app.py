@@ -834,8 +834,9 @@ def precompute_route():
             issues = {}
 
             # Allow the anchor/start node to be missing arrival_time (legacy behavior)
-            if idx == 0:
-                # skip timing validation for the anchor/start node
+            # Prefer explicit `type == "anchor" (case-insensitive) but keep idx==0 as fallback.
+            node_type = getattr(loc, "type", None)
+            if (isinstance(node_type, str) and node_type.lower() == "anchor") or idx == 0:
                 continue
 
             if not loc.arrival_time:
@@ -1683,11 +1684,7 @@ def import_advent_calendar():
 
 
 def _normalize_loc_item(loc_item):
-    """Normalize a location item into a SimpleNamespace expected by app code.
-
-    This function is now a small dispatcher that delegates to focused helpers
-    to reduce cyclomatic complexity.
-    """
+    """Normalize a location item into a SimpleNamespace expected by app code."""
     if loc_item is None:
         return SimpleNamespace(
             name=None,
@@ -1702,6 +1699,7 @@ def _normalize_loc_item(loc_item):
             notes=None,
             stop_duration=None,
             is_stop=None,
+            type=None,
         )
 
     if isinstance(loc_item, dict):
@@ -1711,15 +1709,11 @@ def _normalize_loc_item(loc_item):
 
 
 def _normalize_loc_item_from_dict(d: dict) -> SimpleNamespace:
-    """Normalize when input is a dict (either new schema node or legacy flat dict).
-
-    The nested/node normalization is delegated to helpers to keep this function
-    small and reduce cyclomatic complexity.
-    """
+    """Normalize when input is a dict (either new schema node or legacy flat dict)."""
     if isinstance(d.get("location"), dict):
         return _normalize_from_nested_dict(d)
 
-    # Legacy flat dict: preserve original simple mapping
+    # Legacy flat dict: preserve original simple mapping, include `type` if present
     return SimpleNamespace(
         name=d.get("name"),
         latitude=d.get("latitude"),
@@ -1733,14 +1727,12 @@ def _normalize_loc_item_from_dict(d: dict) -> SimpleNamespace:
         notes=d.get("notes") or d.get("fun_facts"),
         stop_duration=d.get("stop_duration"),
         is_stop=d.get("is_stop", True),
+        type=d.get("type") or d.get("node_type"),
     )
 
 
 def _normalize_from_nested_dict(d: dict) -> SimpleNamespace:
-    """Handle normalization for the nested/new schema node format.
-
-    This helper keeps the parsing steps small and robust.
-    """
+    """Handle normalization for the nested/new schema node format."""
     loc = d.get("location") or {}
     sched = d.get("schedule") or {}
     se = d.get("stop_experience") or {}
@@ -1767,6 +1759,9 @@ def _normalize_from_nested_dict(d: dict) -> SimpleNamespace:
     notes = d.get("notes") or d.get("fun_facts")
     is_stop = d.get("is_stop", True)
 
+    # preserve node type from nested location or top-level keys
+    node_type = loc.get("type") or loc.get("node_type") or d.get("type") or d.get("node_type")
+
     return SimpleNamespace(
         name=name,
         latitude=lat,
@@ -1780,6 +1775,7 @@ def _normalize_from_nested_dict(d: dict) -> SimpleNamespace:
         notes=notes,
         stop_duration=stop_duration,
         is_stop=is_stop,
+        type=node_type,
     )
 
 
@@ -1797,11 +1793,7 @@ def _compute_stop_duration_from_stop_experience(se: dict, d: dict):
 
 
 def _normalize_loc_item_from_object(obj) -> SimpleNamespace:
-    """Normalize when input is an object (Location/Node-like) via getattr fallbacks.
-
-    Restores behavior for Location instances and other objects with similar
-    attributes (lat/lng vs latitude/longitude, timezone_offset vs utc_offset).
-    """
+    """Normalize when input is an object (Location/Node-like) via getattr fallbacks."""
     return SimpleNamespace(
         name=getattr(obj, "name", None),
         latitude=(getattr(obj, "latitude", None) or getattr(obj, "lat", None)),
@@ -1817,6 +1809,7 @@ def _normalize_loc_item_from_object(obj) -> SimpleNamespace:
         notes=(getattr(obj, "notes", None) or getattr(obj, "fun_facts", None)),
         stop_duration=getattr(obj, "stop_duration", None),
         is_stop=getattr(obj, "is_stop", True),
+        type=(getattr(obj, "type", None) or getattr(obj, "node_type", None)),
     )
 
 
@@ -1836,4 +1829,4 @@ def load_santa_route_from_json_normalized(source=None):
     return [_normalize_loc_item(it) for it in (items or [])]
 
 # Explicit, easy-to-find rebinding used by the rest of this module
-load_santa_route_from_json = load_santa_route_from_json_normalized()
+load_santa_route_from_json = load_santa_route_from_json_normalized
