@@ -198,6 +198,38 @@ class TestValidDataErrorHandling:
         data = response.get_json()
         assert data["error"] == "Invalid data format or values"
 
+    def test_add_location_non_numeric_values(self, client, auth_headers):
+        """Test that non-numeric latitude/longitude/utc_offset return 400."""
+        response = client.post(
+            "/api/admin/locations",
+            headers=auth_headers,
+            json={
+                "name": "Test City",
+                "latitude": "not-a-number",
+                "longitude": "also-not-a-number",
+                "utc_offset": "tz",
+            },
+        )
+        assert response.status_code == 400
+        data = response.get_json()
+        assert data["error"] == "Invalid data format or values"
+
+    def test_add_location_null_values(self, client, auth_headers):
+        """Test that null numeric fields return 400 (TypeError path)."""
+        response = client.post(
+            "/api/admin/locations",
+            headers=auth_headers,
+            json={
+                "name": "Test City",
+                "latitude": None,
+                "longitude": None,
+                "utc_offset": None,
+            },
+        )
+        assert response.status_code == 400
+        data = response.get_json()
+        assert data["error"] == "Invalid data format or values"
+
 
 class TestImportLocationsErrorHandling:
     """Tests for error handling in import_locations endpoint."""
@@ -344,6 +376,28 @@ class TestUpdateLocationErrorHandling:
             "/api/admin/locations/0",
             headers=auth_headers,
             json={"latitude": 100.0},  # Invalid: > 90
+        )
+        assert response.status_code == 400
+        data = response.get_json()
+        assert data["error"] == "Invalid data format or values"
+
+    def test_update_location_non_numeric_values(self, client, auth_headers):
+        """Test that non-numeric latitude in update returns 400."""
+        response = client.put(
+            "/api/admin/locations/0",
+            headers=auth_headers,
+            json={"latitude": "not-a-number"},
+        )
+        assert response.status_code == 400
+        data = response.get_json()
+        assert data["error"] == "Invalid data format or values"
+
+    def test_update_location_null_value(self, client, auth_headers):
+        """Test that null latitude in update returns 400 (TypeError path)."""
+        response = client.put(
+            "/api/admin/locations/0",
+            headers=auth_headers,
+            json={"latitude": None},
         )
         assert response.status_code == 400
         data = response.get_json()
