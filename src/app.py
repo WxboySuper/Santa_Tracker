@@ -1476,6 +1476,9 @@ def update_advent_day(day_number):
     except json.JSONDecodeError as e:
         logger.exception("Update advent day: JSON parsing error - %s", str(e))
         return jsonify({"error": "Internal server error"}), 500
+    except (ValueError, KeyError) as e:
+        logger.exception("Update advent day: Data validation error - %s", str(e))
+        return jsonify({"error": "Internal server error"}), 500
     except OSError as e:
         logger.exception("Update advent day: File I/O error - %s", str(e))
         return jsonify({"error": "Internal server error"}), 500
@@ -1533,6 +1536,9 @@ def toggle_advent_day_unlock(day_number):
         return jsonify({"error": "Advent calendar data not found"}), 404
     except json.JSONDecodeError as e:
         logger.exception("Toggle advent day unlock: JSON parsing error - %s", str(e))
+        return jsonify({"error": "Internal server error"}), 500
+    except (ValueError, KeyError) as e:
+        logger.exception("Toggle advent day unlock: Data validation error - %s", str(e))
         return jsonify({"error": "Internal server error"}), 500
     except OSError as e:
         logger.exception("Toggle advent day unlock: File I/O error - %s", str(e))

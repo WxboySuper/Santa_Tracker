@@ -1723,49 +1723,82 @@ class TestPrecomputeRouteScenarios:
         """Test precompute route with missing arrival_time."""
         from src.utils.locations import Location
 
-        mock_location = Location(
-            name="Test",
+        mock_location_1 = Location(
+            name="Anchor",
             latitude=0.0,
             longitude=0.0,
             utc_offset=0.0,
             arrival_time=None,  # Missing
             departure_time="2024-12-25T01:00:00Z",
         )
-        with patch("src.app.load_santa_route_from_json", return_value=[mock_location]):
+        mock_location_2 = Location(
+            name="Test",
+            latitude=10.0,
+            longitude=10.0,
+            utc_offset=0.0,
+            arrival_time=None,
+            departure_time="2024-12-25T01:00:00Z",
+        )
+        with patch("src.app.load_santa_route_from_json", return_value=[mock_location_1, mock_location_2]):
             response = client.post(
                 "/api/admin/route/precompute",
                 headers=auth_headers,
             )
             assert response.status_code == 400
             data = response.get_json()
-            assert "missing/invalid timing" in data["error"]
+            assert "invalid_times" in data
+            assert len(data["invalid_times"]) == 1
+            assert data["invalid_times"][0]["index"] == 1
+            assert "arrival_time" in data["invalid_times"][0]["issues"]
 
     def test_precompute_route_invalid_arrival_time_format(self, client, auth_headers):
         """Test precompute route with invalid arrival_time format."""
         from src.utils.locations import Location
 
-        mock_location = Location(
-            name="Test",
+        mock_location_1 = Location(
+            name="Anchor",
             latitude=0.0,
             longitude=0.0,
+            utc_offset=0.0,
+            arrival_time="2024-12-25T00:00:00Z",
+            departure_time="2024-12-25T00:30:00Z",
+        )
+        mock_location_2 = Location(
+            name="Test",
+            latitude=10.0,
+            longitude=10.0,
             utc_offset=0.0,
             arrival_time="not-a-date",  # Invalid format
             departure_time="2024-12-25T01:00:00Z",
         )
-        with patch("src.app.load_santa_route_from_json", return_value=[mock_location]):
+        with patch(
+            "src.app.load_santa_route_from_json",
+            return_value=[mock_location_1, mock_location_2]
+        ):
             response = client.post(
                 "/api/admin/route/precompute",
                 headers=auth_headers,
             )
             assert response.status_code == 400
             data = response.get_json()
-            assert "missing/invalid timing" in data["error"]
+            assert "invalid_times" in data
+            assert len(data["invalid_times"]) == 1
+            assert data["invalid_times"][0]["index"] == 1
+            assert data["invalid_times"][0]["issues"]["arrival_time"] == "invalid format"
 
     def test_precompute_route_missing_departure_time(self, client, auth_headers):
         """Test precompute route with missing departure_time."""
         from src.utils.locations import Location
 
-        mock_location = Location(
+        mock_location_1 = Location(
+            name="Anchor",
+            latitude=0.0,
+            longitude=0.0,
+            utc_offset=0.0,
+            arrival_time="2024-12-25T00:00:00Z",
+            departure_time="2024-12-25T00:30:00Z",
+        )
+        mock_location_2 = Location(
             name="Test",
             latitude=0.0,
             longitude=0.0,
@@ -1773,20 +1806,33 @@ class TestPrecomputeRouteScenarios:
             arrival_time="2024-12-25T00:00:00Z",
             departure_time=None,  # Missing
         )
-        with patch("src.app.load_santa_route_from_json", return_value=[mock_location]):
+        with patch(
+                   "src.app.load_santa_route_from_json",
+                   return_value=[mock_location_1, mock_location_2]):
             response = client.post(
                 "/api/admin/route/precompute",
                 headers=auth_headers,
             )
             assert response.status_code == 400
             data = response.get_json()
-            assert "missing/invalid timing" in data["error"]
+            assert "invalid_times" in data
+            assert len(data["invalid_times"]) == 1
+            assert data["invalid_times"][0]["index"] == 1
+            assert "departure_time" in data["invalid_times"][0]["issues"]
 
     def test_precompute_route_invalid_departure_time_format(self, client, auth_headers):
         """Test precompute route with invalid departure_time format."""
         from src.utils.locations import Location
 
-        mock_location = Location(
+        mock_location_1 = Location(
+            name="Anchor",
+            latitude=0.0,
+            longitude=0.0,
+            utc_offset=0.0,
+            arrival_time="2024-12-25T00:00:00Z",
+            departure_time="2024-12-25T00:30:00Z",
+        )
+        mock_location_2 = Location(
             name="Test",
             latitude=0.0,
             longitude=0.0,
@@ -1794,14 +1840,19 @@ class TestPrecomputeRouteScenarios:
             arrival_time="2024-12-25T00:00:00Z",
             departure_time="not-a-date",  # Invalid format
         )
-        with patch("src.app.load_santa_route_from_json", return_value=[mock_location]):
+        with patch(
+                   "src.app.load_santa_route_from_json",
+                   return_value=[mock_location_1, mock_location_2]):
             response = client.post(
                 "/api/admin/route/precompute",
                 headers=auth_headers,
             )
             assert response.status_code == 400
             data = response.get_json()
-            assert "missing/invalid timing" in data["error"]
+            assert "invalid_times" in data
+            assert len(data["invalid_times"]) == 1
+            assert data["invalid_times"][0]["index"] == 1
+            assert data["invalid_times"][0]["issues"]["departure_time"] == "invalid format"
 
 
 class TestSimulateRouteScenarios:

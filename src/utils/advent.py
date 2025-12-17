@@ -129,8 +129,22 @@ def load_advent_calendar(json_file_path: Optional[str] = None) -> List[AdventDay
     # Allow tests or deployments to override calendar path via environment
     json_file_path = _get_advent_calendar_path(json_file_path)
 
+    if not os.path.exists(json_file_path):
+        raise FileNotFoundError(f"Advent calendar file not found: {json_file_path}")
+
     with open(json_file_path, "r") as f:  # skipcq: PTC-W6004
-        data = json.load(f)
+        content = f.read()
+
+    if not content.strip():
+        raise ValueError(f"Advent calendar file is empty: {json_file_path}")
+
+    try:
+        data = json.loads(content)
+    except json.JSONDecodeError as e:
+        sample = repr(content[:200])
+        raise ValueError(
+            f"JSON decode error in {json_file_path}: {e.msg} as pos {e.pos}. sample={sample}"
+        ) from e
 
     days = []
     for day_data in data.get("days", []):

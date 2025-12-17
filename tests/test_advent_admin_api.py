@@ -40,7 +40,7 @@ def client():
                 f"Permission denied when trying to remove temp advent calendar file: {tmpf.name}"
             )
         except OSError as exc:
-            logger.error(
+            logger.exception(
                 f"Error removing temp advent calendar file {tmpf.name}: {exc}"
             )
         if "ADVENT_CALENDAR_PATH" in os.environ:

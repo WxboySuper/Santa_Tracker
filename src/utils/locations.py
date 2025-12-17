@@ -103,7 +103,7 @@ def _safe_get_float(d: Dict[str, Any], key: str) -> Optional[float]:
         try:
             return float(value.replace(",", "").strip())
         except ValueError:
-            raise ValueError(f"expected numeric string for key '{key}', got: {value}")
+            raise ValueError(f"expected numeric string for key '{key}', got: {value}") from None
     raise TypeError(f"unsupported type for key '{key}': {type(value).__name__}")
 
 
@@ -756,11 +756,11 @@ def _parse_and_normalize_nodes(nodes: List[Any]) -> List[Dict[str, Any]]:
                 n = _convert_flat_to_node_equiv(n, idx)
             parsed = _parse_location_entry(n)
             parsed_nodes.append(parsed)
-        except Exception as exc:
-            logger.warning("skipping node at index %d: %s", idx, exc)
         except (TypeError, ValueError, KeyError) as exc:
             logger.warning("skipping node at index %d due to %s", idx, exc.__class__.__name__)
             logger.debug("node parse failure details", exc_info=True)
+        except Exception as exc:
+            logger.warning("skipping node at index %d: %s", idx, exc)
     return parsed_nodes
 
 
@@ -798,8 +798,8 @@ def _parsed_nodes_to_locations(parsed_nodes: List[Dict[str, Any]]) -> List[Locat
         stop_duration_minutes = None
         if stop.get("duration_seconds") is not None:
             try:
-                stop_duration_minutes = int(int(stop.get("duration_seconds")) / 60)
-            except Exception:
+                stop_duration_minutes = int(float(stop.get("duration_seconds")) / 60)
+            except (TypeError, ValueError):
                 stop_duration_minutes = None
         try:
             location_obj = Location(
@@ -821,8 +821,9 @@ def _parsed_nodes_to_locations(parsed_nodes: List[Dict[str, Any]]) -> List[Locat
                 fun_facts=p.get("notes"),
                 country=loc.get("region"),
             )
-        except Exception:
-            logger.warning("skipping node while constructing Location")
+        except (TypeError, ValueError) as exc:
+            logger.warning("skipping node while constructing Location %s", exc.__class__.__name__)
+            logger.debug("Location construction failure details", exc_info=True)
             continue
         locations.append(location_obj)
     return locations
