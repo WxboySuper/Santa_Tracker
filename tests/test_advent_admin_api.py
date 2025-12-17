@@ -1,11 +1,14 @@
 """Tests for Advent Calendar Admin API endpoints."""
 
 import json
+import logging
 import os
 
 import pytest
 
 from src.app import app
+
+logger = logging.getLogger(__name__)
 
 
 @pytest.fixture
@@ -13,9 +16,41 @@ def client():
     """Create a test client."""
     app.config["TESTING"] = True
     app.config["ADVENT_ENABLED"] = True  # Enable advent for these tests
-    with app.test_client() as client:
-        yield client
-    app.config["ADVENT_ENABLED"] = False  # Restore to default
+    import shutil
+    import tempfile
+
+    # Create a temp copy of the advent calendar so tests can mutate it safely
+    base_calendar = os.path.join("src", "static", "data", "advent_calendar.json")
+    tmpf = tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False)
+    tmpf.close()
+    try:
+        if os.path.exists(base_calendar):
+            shutil.copy(base_calendar, tmpf.name)
+        # Point the advent loader to the temp file
+        os.environ["ADVENT_CALENDAR_PATH"] = tmpf.name
+
+        with app.test_client() as client:
+            yield client
+
+    finally:
+        # Cleanup: remove temp file and restore env var
+        try:
+            os.remove(tmpf.name)
+        except FileNotFoundError:
+            # already removed by another process/thread - nothing to do
+            pass
+        except PermissionError:
+            logger.warning(
+                "Permission denied when trying to remove temp advent calendar file: %s",
+                tmpf.name,
+            )
+        except OSError as exc:
+            logger.exception(
+                "Error removing temp advent calendar file %s: %s", tmpf.name, exc
+            )
+        if "ADVENT_CALENDAR_PATH" in os.environ:
+            del os.environ["ADVENT_CALENDAR_PATH"]
+        app.config["ADVENT_ENABLED"] = False  # Restore to default
 
 
 @pytest.fixture
