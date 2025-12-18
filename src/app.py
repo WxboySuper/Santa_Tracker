@@ -224,7 +224,8 @@ def require_advent_enabled(f):
 @app.route("/")
 def home():
     """Landing page with festive design."""
-    return render_template("home.html")
+    tracker_enabled = False
+    return render_template("home.html", tracker_enabled=tracker_enabled)
 
 
 @app.route("/tracker")
@@ -1788,7 +1789,6 @@ if __name__ == "__main__":
     port = int(os.environ.get("FLASK_RUN_PORT", "5001"))
     debug = os.environ.get("FLASK_DEBUG", "0") in ("1", "true", "True")
     logger.info(
-        "Starting Flask development server on %s:%d (debug=%s)",
-        host, port, debug
+        "Starting Flask development server on %s:%d (debug=%s)", host, port, debug
     )
     app.run(host=host, port=port, debug=debug)

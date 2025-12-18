@@ -10,15 +10,17 @@
 <body>
     <!-- Snowfall Container -->
     <div id="snowfall" aria-hidden="true"></div>
-    
+
     <!-- Glass Pill Navigation -->
-    <nav class="glass-nav" role="navigation" aria-label="Main navigation">
+    {% if tracker_enabled %}
+    <nav id="glass-nav" class="glass-nav" role="navigation" aria-label="Main navigation">
         <a href="{{ url_for('home') }}" class="nav-link nav-link-active">Home</a>
         <a href="{{ url_for('tracker') }}" class="nav-link">Tracker</a>
         {% if config.ADVENT_ENABLED %}
         <a href="{{ url_for('advent') }}" class="nav-link">Village</a>
         {% endif %}
     </nav>
+    {% endif %}
     
     <!-- Hero Section - Game Menu Style -->
     <div class="hero">
@@ -36,9 +38,21 @@
             
             <!-- CTA Button Dock -->
             <div class="cta-buttons-container">
-                <a href="{{ url_for('tracker') }}" class="cta-button">
-                    Track Santa
-                </a>
+                {% if tracker_enabled %}
+                    <a href="{{ url_for('tracker') }}" class="cta-button">
+                        Track Santa
+                    </a>
+                {% else %}
+                    <button
+                        class="cta-button cta-button-disabled"
+                        type="button"
+                        disabled
+                        aria-disabled="true"
+                        tabindex="-1"
+                        title="Tracker locked until 24 before launch">
+                        Track Santa on Christmas Eve!
+                    </button>
+                {% endif %}
                 {% if config.ADVENT_ENABLED %}
                 <a href="{{ url_for('advent') }}" class="cta-button cta-button-advent">
                     North Pole Village
