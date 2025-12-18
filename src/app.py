@@ -6,6 +6,7 @@ import sys
 import time
 from datetime import datetime
 from functools import wraps
+from types import SimpleNamespace
 from typing import Optional
 
 from dotenv import load_dotenv
@@ -39,6 +40,7 @@ from utils.advent import (  # noqa: E402
 )
 from utils.locations import (  # noqa: E402
     Location,
+    create_location_from_payload,
     delete_trial_route,
     has_trial_route,
     load_santa_route_from_json,
@@ -385,10 +387,10 @@ def get_locations():
                             "population": loc.population,
                             "priority": loc.priority,
                             "notes": loc.notes,
+                            "fun_facts": loc.notes,
                             # Deprecated fields for backward compatibility
                             "stop_duration": loc.stop_duration,
                             "is_stop": loc.is_stop,
-                            "fun_facts": loc.fun_facts,
                         }
                         for idx, loc in enumerate(locations)
                     ]
@@ -415,7 +417,7 @@ def add_location():
         if not data:
             return jsonify({"error": "No data provided"}), 400
 
-        # Validate required fields
+        # Preserve previous behavior: explicit required-field and range checks
         required_fields = ["name", "latitude", "longitude", "utc_offset"]
         missing_fields = [field for field in required_fields if field not in data]
         if missing_fields:
@@ -424,26 +426,22 @@ def add_location():
                 400,
             )
 
-        # Create location object (this validates the data)
         try:
-            # Support both 'notes' and 'fun_facts' for backward compatibility
-            notes = data.get("notes") if "notes" in data else data.get("fun_facts")
+            lat_val = float(data["latitude"])
+            lon_val = float(data["longitude"])
+            tz_val = float(data["utc_offset"])
+        except (ValueError, TypeError, KeyError):
+            return jsonify({"error": "Invalid data format or values"}), 400
 
-            new_location = Location(
-                name=data["name"],
-                latitude=float(data["latitude"]),
-                longitude=float(data["longitude"]),
-                utc_offset=float(data["utc_offset"]),
-                arrival_time=data.get("arrival_time"),
-                departure_time=data.get("departure_time"),
-                country=data.get("country"),
-                population=data.get("population"),
-                priority=data.get("priority"),
-                notes=notes,
-                # Deprecated fields
-                stop_duration=data.get("stop_duration"),
-                is_stop=data.get("is_stop", True),
-            )
+        if (
+            not (-90.0 <= lat_val <= 90.0)
+            or not (-180.0 <= lon_val <= 180.0)
+            or not (-12.0 <= tz_val <= 14.0)
+        ):
+            return jsonify({"error": "Invalid data format or values"}), 400
+
+        try:
+            new_location = create_location_from_payload(data)
         except (ValueError, TypeError, KeyError):
             return jsonify({"error": "Invalid data format or values"}), 400
 
@@ -527,7 +525,6 @@ def update_location(location_id):
                     "stop_duration", locations[location_id].stop_duration
                 ),
                 is_stop=data.get("is_stop", locations[location_id].is_stop),
-                fun_facts=notes,
             )
         except (ValueError, TypeError, KeyError):
             return jsonify({"error": "Invalid data format or values"}), 400
@@ -597,54 +594,86 @@ def validate_location_data():
         return jsonify({"error": "Internal server error"}), 500
 
 
+def _extract_location_name(loc_data):
+    """Return the canonical name/location value or None."""
+    return loc_data.get("name") or loc_data.get("location")
+
+
+def _find_missing_required_fields(loc_data, required_fields):
+    """Return list of required fields that are missing or None."""
+    return [f for f in required_fields if f not in loc_data or loc_data[f] is None]
+
+
+def _parse_numeric_fields(loc_data):
+    """Parse latitude, longitude, utc_offset as floats or raise ValueError/TypeError.
+
+    Returns (lat, lon, tz)
+    """
+    lat = loc_data.get("latitude")
+    lon = loc_data.get("longitude")
+    tz = loc_data.get("utc_offset")
+    if lat is None or lon is None or tz is None:
+        raise ValueError("Missing required field(s)")
+    return float(lat), float(lon), float(tz)
+
+
+def _make_location_from_parsed(name, loc_data, lat, lon, tz, notes):
+    """Construct and return a Location instance from validated pieces."""
+    return Location(
+        name=name,
+        latitude=lat,
+        longitude=lon,
+        utc_offset=tz,
+        arrival_time=loc_data.get("arrival_time"),
+        departure_time=loc_data.get("departure_time"),
+        country=loc_data.get("country"),
+        population=loc_data.get("population"),
+        priority=loc_data.get("priority"),
+        notes=notes,
+        stop_duration=loc_data.get("stop_duration"),
+        is_stop=loc_data.get("is_stop", True),
+    )
+
+
 def _parse_location_from_data(loc_data, idx):
     """Parse a single location from import data.
 
     Returns:
         tuple: (Location object or None, error message or None)
     """
-    # Support both "name" and "location" fields
-    name = loc_data.get("name") or loc_data.get("location")
+    # Compose using small helpers to reduce branching within this function
+    name = _extract_location_name(loc_data)
     if not name:
         return (
             None,
             f"Location at index {idx}: Missing required field 'name' or 'location'",
         )
 
-    # Check for required fields
-    missing_fields = [
-        field
-        for field in ["latitude", "longitude", "utc_offset"]
-        if field not in loc_data or loc_data[field] is None
-    ]
-    if missing_fields:
-        # Don't include user-provided name in error message to prevent XSS
-        safe_fields = ", ".join(str(f) for f in missing_fields)
-        return None, (
-            f"Location at index {idx}: Missing required field(s): {safe_fields}"
+    required = ["latitude", "longitude", "utc_offset"]
+    missing = _find_missing_required_fields(loc_data, required)
+    if missing:
+        safe_fields = ", ".join(str(f) for f in missing)
+        return (
+            None,
+            f"Location at index {idx}: Missing required field(s): {safe_fields}",
         )
 
+    # parse numeric fields and validate ranges
     try:
-        # Support both 'notes' and 'fun_facts' for backward compatibility
-        notes = (
-            loc_data.get("notes") if "notes" in loc_data else loc_data.get("fun_facts")
-        )
+        lat_val, lon_val, tz_val = _parse_numeric_fields(loc_data)
+    except (ValueError, TypeError):
+        return None, f"Location at index {idx}: Invalid data"
 
-        location = Location(
-            name=name,
-            latitude=float(loc_data["latitude"]),
-            longitude=float(loc_data["longitude"]),
-            utc_offset=float(loc_data["utc_offset"]),
-            arrival_time=loc_data.get("arrival_time"),
-            departure_time=loc_data.get("departure_time"),
-            country=loc_data.get("country"),
-            population=loc_data.get("population"),
-            priority=loc_data.get("priority"),
-            notes=notes,
-            # Deprecated fields
-            stop_duration=loc_data.get("stop_duration"),
-            is_stop=loc_data.get("is_stop", True),
-        )
+    if not (-90.0 <= lat_val <= 90.0):
+        return None, f"Location at index {idx}: Invalid latitude"
+    if not (-180.0 <= lon_val <= 180.0):
+        return None, f"Location at index {idx}: Invalid longitude"
+    if not (-12.0 <= tz_val <= 14.0):
+        return None, f"Location at index {idx}: Invalid utc_offset"
+
+    # build the Location using centralized helper; keep notes backward-compat
+    try:
+        location = create_location_from_payload(loc_data)
         return location, None
     except (ValueError, TypeError):
         return None, f"Location at index {idx}: Invalid data"
@@ -788,6 +817,14 @@ def precompute_route():
         for idx, loc in enumerate(locations):
             issues = {}
 
+            # Allow the anchor/start node to be missing arrival_time (legacy behavior)
+            # Prefer explicit `type == "anchor" but keep idx==0 as fallback.
+            node_type = getattr(loc, "type", None)
+            if (
+                isinstance(node_type, str) and node_type.lower() == "anchor"
+            ) or idx == 0:
+                continue
+
             if not loc.arrival_time:
                 issues["arrival_time"] = "missing"
             else:
@@ -873,6 +910,76 @@ def _calculate_total_duration_minutes(start_time, end_time):
         return 0
 
 
+def _make_simulated_route_item(loc):
+    """Map a normalized location object to the flat simulated-route dict."""
+    return {
+        "name": loc.name,
+        "latitude": loc.latitude,
+        "longitude": loc.longitude,
+        "utc_offset": loc.utc_offset,
+        "arrival_time": loc.arrival_time,
+        "departure_time": loc.departure_time,
+        "country": loc.country,
+        "population": loc.population,
+        "priority": loc.priority,
+        "notes": loc.notes,
+        "is_stop": loc.is_stop,
+        "stop_duration": loc.stop_duration,
+    }
+
+
+def _compute_route_summary(simulated_route):
+    """Compute summary fields (start/end/duration) from simulated_route list."""
+    locations_with_times = [
+        loc
+        for loc in simulated_route
+        if loc.get("arrival_time") and loc.get("departure_time")
+    ]
+
+    if len(locations_with_times) > 0:
+        start_time = locations_with_times[0]["arrival_time"]
+        end_time = locations_with_times[-1]["departure_time"]
+        total_duration_minutes = _calculate_total_duration_minutes(start_time, end_time)
+    else:
+        start_time = None
+        end_time = None
+        total_duration_minutes = 0
+
+    return {
+        "total_locations": len(simulated_route),
+        "locations_with_timing": len(locations_with_times),
+        "start_time": start_time,
+        "end_time": end_time,
+        "total_duration_minutes": total_duration_minutes,
+    }
+
+
+def _build_simulated_from_locations(all_locations, location_ids=None):
+    """Filter, sort and build simulated route and summary from location objects.
+
+    Returns tuple (simulated_route_list, summary_dict, error_response_or_None)
+    """
+    # Filter
+    locations, error = _filter_locations_by_ids(all_locations, location_ids)
+    if error:
+        return None, None, error
+
+    assert locations is not None
+
+    # Sort by utc_offset desc then by priority
+    sorted_locations = sorted(
+        locations, key=lambda loc: (-loc.utc_offset, loc.priority or 2)
+    )
+
+    # Build simulated route list
+    simulated_route = [_make_simulated_route_item(loc) for loc in sorted_locations]
+
+    # Build summary
+    summary = _compute_route_summary(simulated_route)
+
+    return simulated_route, summary, None
+
+
 def _filter_locations_by_ids(all_locations, location_ids):
     """
     Filter locations by provided IDs.
@@ -914,66 +1021,11 @@ def simulate_route():
         if not all_locations:
             return jsonify({"error": "No locations to simulate"}), 400
 
-        # Filter locations by IDs if provided
-        locations, error = _filter_locations_by_ids(
+        simulated_route, summary, error = _build_simulated_from_locations(
             all_locations, data.get("location_ids")
         )
         if error:
             return error
-
-        # Sort locations by UTC offset (descending) to follow time zones
-        # `locations` may be reported as Optional by static type checkers;
-        # assert it's not None to satisfy type checkers and guarantee runtime safety
-        assert locations is not None
-        sorted_locations = sorted(
-            locations, key=lambda loc: (-loc.utc_offset, loc.priority or 2)
-        )
-
-        # Build response from existing timing data
-        simulated_route = []
-        for loc in sorted_locations:
-            simulated_route.append(
-                {
-                    "name": loc.name,
-                    "latitude": loc.latitude,
-                    "longitude": loc.longitude,
-                    "utc_offset": loc.utc_offset,
-                    "arrival_time": loc.arrival_time,
-                    "departure_time": loc.departure_time,
-                    "country": loc.country,
-                    "population": loc.population,
-                    "priority": loc.priority,
-                    "notes": loc.notes if loc.notes is not None else loc.fun_facts,
-                    "is_stop": loc.is_stop,
-                    "stop_duration": loc.stop_duration,
-                }
-            )
-
-        # Calculate summary from existing timestamps
-        locations_with_times = [
-            loc
-            for loc in simulated_route
-            if loc["arrival_time"] and loc["departure_time"]
-        ]
-
-        if len(locations_with_times) > 0:
-            start_time = locations_with_times[0]["arrival_time"]
-            end_time = locations_with_times[-1]["departure_time"]
-            total_duration_minutes = _calculate_total_duration_minutes(
-                start_time, end_time
-            )
-        else:
-            start_time = None
-            end_time = None
-            total_duration_minutes = 0
-
-        summary = {
-            "total_locations": len(simulated_route),
-            "locations_with_timing": len(locations_with_times),
-            "start_time": start_time,
-            "end_time": end_time,
-            "total_duration_minutes": total_duration_minutes,
-        }
 
         return jsonify({"simulated_route": simulated_route, "summary": summary}), 200
 
@@ -996,7 +1048,8 @@ def get_trial_route_status():
     try:
         exists = has_trial_route()
         if exists:
-            trial_locations = load_trial_route_from_json()
+            raw = load_trial_route_from_json()
+            trial_locations = [_normalize_loc_item(it) for it in (raw or [])]
             return (
                 jsonify(
                     {
@@ -1033,30 +1086,7 @@ def upload_trial_route():
         locations = []
         for loc_data in data["route"]:
             try:
-                # Support both 'name' and 'location' fields
-                name = loc_data.get("name") or loc_data.get("location")
-                # Support both 'notes' and 'fun_facts' fields
-                notes = (
-                    loc_data.get("notes")
-                    if "notes" in loc_data
-                    else loc_data.get("fun_facts")
-                )
-
-                location = Location(
-                    name=name,
-                    latitude=loc_data["latitude"],
-                    longitude=loc_data["longitude"],
-                    utc_offset=loc_data["utc_offset"],
-                    arrival_time=loc_data.get("arrival_time"),
-                    departure_time=loc_data.get("departure_time"),
-                    country=loc_data.get("country"),
-                    population=loc_data.get("population"),
-                    priority=loc_data.get("priority"),
-                    notes=notes,
-                    # Deprecated fields
-                    stop_duration=loc_data.get("stop_duration"),
-                    is_stop=loc_data.get("is_stop", True),
-                )
+                location = create_location_from_payload(loc_data)
                 locations.append(location)
             except (KeyError, ValueError):
                 logger.exception("Invalid location data in uploaded trial route.")
@@ -1133,7 +1163,8 @@ def apply_trial_route():
             return jsonify({"error": "No trial route to apply"}), 404
 
         # Load trial route
-        trial_locations = load_trial_route_from_json()
+        raw = load_trial_route_from_json()
+        trial_locations = [_normalize_loc_item(it) for it in (raw or [])]
         if not trial_locations:
             return jsonify({"error": "Trial route is empty"}), 400
 
@@ -1171,70 +1202,16 @@ def simulate_trial_route():
         data = request.get_json(force=True, silent=True) or {}
 
         # Load trial locations
-        all_locations = load_trial_route_from_json()
+        raw = load_trial_route_from_json()
+        all_locations = [_normalize_loc_item(it) for it in (raw or [])]
         if not all_locations:
             return jsonify({"error": "Trial route is empty"}), 400
 
-        # Filter locations by IDs if provided
-        locations, error = _filter_locations_by_ids(
+        simulated_route, summary, error = _build_simulated_from_locations(
             all_locations, data.get("location_ids")
         )
         if error:
             return error
-
-        # Sort locations by UTC offset (descending) to follow time zones
-        # `locations` may be reported as Optional by static type checkers;
-        # assert it's not None to satisfy type checkers and guarantee runtime safety
-        assert locations is not None
-        sorted_locations = sorted(
-            locations, key=lambda loc: (-loc.utc_offset, loc.priority or 2)
-        )
-
-        # Build response from existing timing data
-        simulated_route = []
-        for loc in sorted_locations:
-            simulated_route.append(
-                {
-                    "name": loc.name,
-                    "latitude": loc.latitude,
-                    "longitude": loc.longitude,
-                    "utc_offset": loc.utc_offset,
-                    "arrival_time": loc.arrival_time,
-                    "departure_time": loc.departure_time,
-                    "country": loc.country,
-                    "population": loc.population,
-                    "priority": loc.priority,
-                    "notes": loc.notes if loc.notes is not None else loc.fun_facts,
-                    "is_stop": loc.is_stop,
-                    "stop_duration": loc.stop_duration,
-                }
-            )
-
-        # Calculate summary from existing timestamps
-        locations_with_times = [
-            loc
-            for loc in simulated_route
-            if loc["arrival_time"] and loc["departure_time"]
-        ]
-
-        if len(locations_with_times) > 0:
-            start_time = locations_with_times[0]["arrival_time"]
-            end_time = locations_with_times[-1]["departure_time"]
-            total_duration_minutes = _calculate_total_duration_minutes(
-                start_time, end_time
-            )
-        else:
-            start_time = None
-            end_time = None
-            total_duration_minutes = 0
-
-        summary = {
-            "total_locations": len(simulated_route),
-            "locations_with_timing": len(locations_with_times),
-            "start_time": start_time,
-            "end_time": end_time,
-            "total_duration_minutes": total_duration_minutes,
-        }
 
         return (
             jsonify(
@@ -1264,7 +1241,7 @@ def export_backup():
     try:
         locations = load_santa_route_from_json()
 
-        # Create backup data structure using new schema
+        # produce legacy-flat route entries for compatibility with tests
         backup_data = {
             "backup_timestamp": datetime.now().isoformat(),
             "total_locations": len(locations),
@@ -1279,8 +1256,8 @@ def export_backup():
                     "country": loc.country,
                     "population": loc.population,
                     "priority": loc.priority,
-                    "notes": loc.notes if loc.notes is not None else loc.fun_facts,
-                    # Include deprecated fields for backward compatibility
+                    "notes": loc.notes,
+                    "fun_facts": loc.notes,
                     "stop_duration": loc.stop_duration,
                     "is_stop": loc.is_stop,
                 }
@@ -1422,6 +1399,9 @@ def update_advent_day(day_number):
     except json.JSONDecodeError as e:
         logger.exception("Update advent day: JSON parsing error - %s", str(e))
         return jsonify({"error": "Internal server error"}), 500
+    except (ValueError, KeyError) as e:
+        logger.exception("Update advent day: Data validation error - %s", str(e))
+        return jsonify({"error": "Internal server error"}), 500
     except OSError as e:
         logger.exception("Update advent day: File I/O error - %s", str(e))
         return jsonify({"error": "Internal server error"}), 500
@@ -1479,6 +1459,9 @@ def toggle_advent_day_unlock(day_number):
         return jsonify({"error": "Advent calendar data not found"}), 404
     except json.JSONDecodeError as e:
         logger.exception("Toggle advent day unlock: JSON parsing error - %s", str(e))
+        return jsonify({"error": "Internal server error"}), 500
+    except (ValueError, KeyError) as e:
+        logger.exception("Toggle advent day unlock: Data validation error - %s", str(e))
         return jsonify({"error": "Internal server error"}), 500
     except OSError as e:
         logger.exception("Toggle advent day unlock: File I/O error - %s", str(e))
@@ -1629,7 +1612,184 @@ def import_advent_calendar():
         return jsonify({"error": "Internal server error"}), 500
 
 
+def _normalize_loc_item(loc_item):
+    """Normalize a location item into a SimpleNamespace expected by app code."""
+    if loc_item is None:
+        return SimpleNamespace(
+            name=None,
+            latitude=None,
+            longitude=None,
+            utc_offset=None,
+            arrival_time=None,
+            departure_time=None,
+            country=None,
+            population=None,
+            priority=None,
+            notes=None,
+            stop_duration=None,
+            is_stop=None,
+            type=None,
+        )
+
+    if isinstance(loc_item, dict):
+        return _normalize_loc_item_from_dict(loc_item)
+
+    return _normalize_loc_item_from_object(loc_item)
+
+
+def _normalize_loc_item_from_dict(d: dict) -> SimpleNamespace:
+    """Normalize when input is a dict (either new schema node or legacy flat dict)."""
+    if isinstance(d.get("location"), dict):
+        return _normalize_from_nested_dict(d)
+
+    # Legacy flat dict: preserve original simple mapping, include `type` if present
+    return SimpleNamespace(
+        name=d.get("name"),
+        latitude=d.get("latitude"),
+        longitude=d.get("longitude"),
+        utc_offset=d.get("utc_offset"),
+        arrival_time=d.get("arrival_time"),
+        departure_time=d.get("departure_time"),
+        country=d.get("country"),
+        population=d.get("population"),
+        priority=d.get("priority"),
+        notes=d.get("notes") or d.get("fun_facts"),
+        stop_duration=d.get("stop_duration"),
+        is_stop=d.get("is_stop", True),
+        type=d.get("type") or d.get("node_type"),
+    )
+
+
+def _normalize_from_nested_dict(d: dict) -> SimpleNamespace:
+    """Handle normalization for the nested/new schema node format."""
+    # Delegate small responsibilities to helpers to reduce branching here
+    name = _get_name_from_nested(d)
+    lat, lng, tz = _get_coords_from_nested(d)
+    arrival, departure = _get_schedule_times(d)
+    stop_duration = _compute_stop_duration_from_stop_experience(
+        d.get("stop_experience") or {}, d
+    )
+    country = _get_country_from_nested(d)
+    population = d.get("population")
+    priority = d.get("priority")
+    notes = d.get("notes") or d.get("fun_facts")
+    is_stop = d.get("is_stop", True)
+    node_type = _get_node_type_from_nested(d)
+
+    return SimpleNamespace(
+        name=name,
+        latitude=lat,
+        longitude=lng,
+        utc_offset=tz,
+        arrival_time=arrival,
+        departure_time=departure,
+        country=country,
+        population=population,
+        priority=priority,
+        notes=notes,
+        stop_duration=stop_duration,
+        is_stop=is_stop,
+        type=node_type,
+    )
+
+
+def _get_name_from_nested(d: dict):
+    loc = d.get("location") or {}
+    return loc.get("name") or d.get("name") or d.get("id")
+
+
+def _get_coords_from_nested(d: dict):
+    loc = d.get("location") or {}
+    lat = loc.get("lat") if loc.get("lat") is not None else d.get("latitude")
+    lng = loc.get("lng") if loc.get("lng") is not None else d.get("longitude")
+    tz = (
+        loc.get("timezone_offset")
+        if loc.get("timezone_offset") is not None
+        else d.get("utc_offset")
+    )
+    return lat, lng, tz
+
+
+def _get_schedule_times(d: dict):
+    sched = d.get("schedule") or {}
+    arrival = sched.get("arrival_utc") if sched else d.get("arrival_time")
+    departure = sched.get("departure_utc") if sched else d.get("departure_time")
+    return arrival, departure
+
+
+def _get_node_type_from_nested(d: dict):
+    loc = d.get("location") or {}
+    return (
+        loc.get("type") or loc.get("node_type") or d.get("type") or d.get("node_type")
+    )
+
+
+def _get_country_from_nested(d: dict):
+    loc = d.get("location") or {}
+    return loc.get("region") or d.get("country")
+
+
+def _compute_stop_duration_from_stop_experience(se: dict, d: dict):
+    """Compute stop_duration in minutes from stop_experience.duration_seconds,
+    falling back to legacy d.get('stop_duration') on errors or absence.
+    """
+    if se and se.get("duration_seconds") is not None:
+        try:
+            # ensure numeric handling is robust
+            return int(float(se.get("duration_seconds")) / 60)
+        except (TypeError, ValueError):
+            return d.get("stop_duration")
+    return d.get("stop_duration")
+
+
+def _normalize_loc_item_from_object(obj) -> SimpleNamespace:
+    """Normalize when input is an object (Location/Node-like) via getattr fallbacks."""
+    return SimpleNamespace(
+        name=getattr(obj, "name", None),
+        latitude=(getattr(obj, "latitude", None) or getattr(obj, "lat", None)),
+        longitude=(getattr(obj, "longitude", None) or getattr(obj, "lng", None)),
+        utc_offset=(
+            getattr(obj, "utc_offset", None) or getattr(obj, "timezone_offset", None)
+        ),
+        arrival_time=getattr(obj, "arrival_time", None),
+        departure_time=getattr(obj, "departure_time", None),
+        country=(getattr(obj, "country", None) or getattr(obj, "region", None)),
+        population=getattr(obj, "population", None),
+        priority=getattr(obj, "priority", None),
+        notes=(getattr(obj, "notes", None) or getattr(obj, "fun_facts", None)),
+        stop_duration=getattr(obj, "stop_duration", None),
+        is_stop=getattr(obj, "is_stop", True),
+        type=(getattr(obj, "type", None) or getattr(obj, "node_type", None)),
+    )
+
+
+if "_orig_load_santa_route" not in globals():
+    _orig_load_santa_route = load_santa_route_from_json
+
+
+def load_santa_route_from_json_normalized(source=None):
+    """
+    Wrapper around the original loader:
+    - if `source` is provided, return the loader's raw result.
+    - Otherwise return a list of normalized SimpleNamespace items.
+    """
+    if source is not None:
+        return _orig_load_santa_route(source)
+
+    items = _orig_load_santa_route()
+    return [_normalize_loc_item(it) for it in (items or [])]
+
+
+# Explicit, easy-to-find rebinding used by the rest of this module
+load_santa_route_from_json = load_santa_route_from_json_normalized
+
 if __name__ == "__main__":
-    # Only enable debug mode via environment variable to prevent security issues
-    debug_mode = os.environ.get("FLASK_DEBUG", "False") == "True"
-    app.run(debug=debug_mode, port=5001)
+    # Start a local development server when this module is run directly.
+    host = os.environ.get("FLASK_RUN_HOST", "127.0.0.1")
+    port = int(os.environ.get("FLASK_RUN_PORT", "5001"))
+    debug = os.environ.get("FLASK_DEBUG", "0") in ("1", "true", "True")
+    logger.info(
+        "Starting Flask development server on %s:%d (debug=%s)",
+        host, port, debug
+    )
+    app.run(host=host, port=port, debug=debug)

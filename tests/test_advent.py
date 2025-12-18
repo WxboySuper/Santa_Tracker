@@ -228,6 +228,21 @@ class TestLoadAdventCalendar(unittest.TestCase):
         finally:
             os.unlink(temp_file)
 
+    def test_load_empty_file_raises_value_error(self):
+        """Test that loading an empty advent file raises ValueError."""
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
+            temp_file = f.name
+
+        try:
+            with self.assertRaises(ValueError) as cm:
+                load_advent_calendar(temp_file)
+
+            msg = str(cm.exception)
+            self.assertIn("Advent calendar file is empty", msg)
+            self.assertIn(temp_file, msg)
+        finally:
+            os.unlink(temp_file)
+
     def test_loaded_days_have_required_fields(self):
         """Test that all loaded days have required fields."""
         days = load_advent_calendar()

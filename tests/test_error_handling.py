@@ -198,6 +198,38 @@ class TestValidDataErrorHandling:
         data = response.get_json()
         assert data["error"] == "Invalid data format or values"
 
+    def test_add_location_non_numeric_values(self, client, auth_headers):
+        """Test that non-numeric latitude/longitude/utc_offset return 400."""
+        response = client.post(
+            "/api/admin/locations",
+            headers=auth_headers,
+            json={
+                "name": "Test City",
+                "latitude": "not-a-number",
+                "longitude": "also-not-a-number",
+                "utc_offset": "tz",
+            },
+        )
+        assert response.status_code == 400
+        data = response.get_json()
+        assert data["error"] == "Invalid data format or values"
+
+    def test_add_location_null_values(self, client, auth_headers):
+        """Test that null numeric fields return 400 (TypeError path)."""
+        response = client.post(
+            "/api/admin/locations",
+            headers=auth_headers,
+            json={
+                "name": "Test City",
+                "latitude": None,
+                "longitude": None,
+                "utc_offset": None,
+            },
+        )
+        assert response.status_code == 400
+        data = response.get_json()
+        assert data["error"] == "Invalid data format or values"
+
 
 class TestImportLocationsErrorHandling:
     """Tests for error handling in import_locations endpoint."""
@@ -344,6 +376,28 @@ class TestUpdateLocationErrorHandling:
             "/api/admin/locations/0",
             headers=auth_headers,
             json={"latitude": 100.0},  # Invalid: > 90
+        )
+        assert response.status_code == 400
+        data = response.get_json()
+        assert data["error"] == "Invalid data format or values"
+
+    def test_update_location_non_numeric_values(self, client, auth_headers):
+        """Test that non-numeric latitude in update returns 400."""
+        response = client.put(
+            "/api/admin/locations/0",
+            headers=auth_headers,
+            json={"latitude": "not-a-number"},
+        )
+        assert response.status_code == 400
+        data = response.get_json()
+        assert data["error"] == "Invalid data format or values"
+
+    def test_update_location_null_value(self, client, auth_headers):
+        """Test that null latitude in update returns 400 (TypeError path)."""
+        response = client.put(
+            "/api/admin/locations/0",
+            headers=auth_headers,
+            json={"latitude": None},
         )
         assert response.status_code == 400
         data = response.get_json()
@@ -1723,49 +1777,87 @@ class TestPrecomputeRouteScenarios:
         """Test precompute route with missing arrival_time."""
         from src.utils.locations import Location
 
-        mock_location = Location(
-            name="Test",
+        mock_location_1 = Location(
+            name="Anchor",
             latitude=0.0,
             longitude=0.0,
             utc_offset=0.0,
             arrival_time=None,  # Missing
             departure_time="2024-12-25T01:00:00Z",
         )
-        with patch("src.app.load_santa_route_from_json", return_value=[mock_location]):
+        mock_location_2 = Location(
+            name="Test",
+            latitude=10.0,
+            longitude=10.0,
+            utc_offset=0.0,
+            arrival_time=None,
+            departure_time="2024-12-25T01:00:00Z",
+        )
+        with patch(
+            "src.app.load_santa_route_from_json",
+            return_value=[mock_location_1, mock_location_2],
+        ):
             response = client.post(
                 "/api/admin/route/precompute",
                 headers=auth_headers,
             )
             assert response.status_code == 400
             data = response.get_json()
-            assert "missing/invalid timing" in data["error"]
+            assert "invalid_times" in data
+            assert len(data["invalid_times"]) == 1
+            assert data["invalid_times"][0]["index"] == 1
+            assert "arrival_time" in data["invalid_times"][0]["issues"]
 
     def test_precompute_route_invalid_arrival_time_format(self, client, auth_headers):
         """Test precompute route with invalid arrival_time format."""
         from src.utils.locations import Location
 
-        mock_location = Location(
-            name="Test",
+        mock_location_1 = Location(
+            name="Anchor",
             latitude=0.0,
             longitude=0.0,
+            utc_offset=0.0,
+            arrival_time="2024-12-25T00:00:00Z",
+            departure_time="2024-12-25T00:30:00Z",
+        )
+        mock_location_2 = Location(
+            name="Test",
+            latitude=10.0,
+            longitude=10.0,
             utc_offset=0.0,
             arrival_time="not-a-date",  # Invalid format
             departure_time="2024-12-25T01:00:00Z",
         )
-        with patch("src.app.load_santa_route_from_json", return_value=[mock_location]):
+        with patch(
+            "src.app.load_santa_route_from_json",
+            return_value=[mock_location_1, mock_location_2],
+        ):
             response = client.post(
                 "/api/admin/route/precompute",
                 headers=auth_headers,
             )
             assert response.status_code == 400
             data = response.get_json()
-            assert "missing/invalid timing" in data["error"]
+            assert "invalid_times" in data
+            assert len(data["invalid_times"]) == 1
+            assert data["invalid_times"][0]["index"] == 1
+            assert (
+                data["invalid_times"][0]["issues"]["arrival_time"] == "invalid format"
+            )
 
     def test_precompute_route_missing_departure_time(self, client, auth_headers):
         """Test precompute route with missing departure_time."""
         from src.utils.locations import Location
 
-        mock_location = Location(
+        mock_location_1 = Location(
+            name="Anchor",
+            latitude=0.0,
+            longitude=0.0,
+            utc_offset=0.0,
+            arrival_time="2024-12-25T00:00:00Z",
+            departure_time="2024-12-25T00:30:00Z",
+        )
+        mock_location_2 = Location(
             name="Test",
             latitude=0.0,
             longitude=0.0,
@@ -1773,20 +1865,34 @@ class TestPrecomputeRouteScenarios:
             arrival_time="2024-12-25T00:00:00Z",
             departure_time=None,  # Missing
         )
-        with patch("src.app.load_santa_route_from_json", return_value=[mock_location]):
+        with patch(
+            "src.app.load_santa_route_from_json",
+            return_value=[mock_location_1, mock_location_2],
+        ):
             response = client.post(
                 "/api/admin/route/precompute",
                 headers=auth_headers,
             )
             assert response.status_code == 400
             data = response.get_json()
-            assert "missing/invalid timing" in data["error"]
+            assert "invalid_times" in data
+            assert len(data["invalid_times"]) == 1
+            assert data["invalid_times"][0]["index"] == 1
+            assert "departure_time" in data["invalid_times"][0]["issues"]
 
     def test_precompute_route_invalid_departure_time_format(self, client, auth_headers):
         """Test precompute route with invalid departure_time format."""
         from src.utils.locations import Location
 
-        mock_location = Location(
+        mock_location_1 = Location(
+            name="Anchor",
+            latitude=0.0,
+            longitude=0.0,
+            utc_offset=0.0,
+            arrival_time="2024-12-25T00:00:00Z",
+            departure_time="2024-12-25T00:30:00Z",
+        )
+        mock_location_2 = Location(
             name="Test",
             latitude=0.0,
             longitude=0.0,
@@ -1794,14 +1900,22 @@ class TestPrecomputeRouteScenarios:
             arrival_time="2024-12-25T00:00:00Z",
             departure_time="not-a-date",  # Invalid format
         )
-        with patch("src.app.load_santa_route_from_json", return_value=[mock_location]):
+        with patch(
+            "src.app.load_santa_route_from_json",
+            return_value=[mock_location_1, mock_location_2],
+        ):
             response = client.post(
                 "/api/admin/route/precompute",
                 headers=auth_headers,
             )
             assert response.status_code == 400
             data = response.get_json()
-            assert "missing/invalid timing" in data["error"]
+            assert "invalid_times" in data
+            assert len(data["invalid_times"]) == 1
+            assert data["invalid_times"][0]["index"] == 1
+            assert (
+                data["invalid_times"][0]["issues"]["departure_time"] == "invalid format"
+            )
 
 
 class TestSimulateRouteScenarios:

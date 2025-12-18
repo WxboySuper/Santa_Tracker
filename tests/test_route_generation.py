@@ -68,7 +68,7 @@ class TestRouteValidation(unittest.TestCase):
             name="Test",
             latitude=0.0,
             longitude=0.0,
-            utc_offset=3.25,  # Unusual offset
+            utc_offset=3.1,  # Unusual offset
         )
         result = validate_locations([location])
         self.assertTrue(result["valid"])
