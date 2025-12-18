@@ -1789,7 +1789,6 @@ if __name__ == "__main__":
     port = int(os.environ.get("FLASK_RUN_PORT", "5001"))
     debug = os.environ.get("FLASK_DEBUG", "0") in ("1", "true", "True")
     logger.info(
-        "Starting Flask development server on %s:%d (debug=%s)",
-        host, port, debug
+        "Starting Flask development server on %s:%d (debug=%s)", host, port, debug
     )
     app.run(host=host, port=port, debug=debug)
