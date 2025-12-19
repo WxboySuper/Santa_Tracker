@@ -863,6 +863,7 @@ async function loadSantaRoute() {
         const nodes = data.route_nodes || data.route || [];
 
         // Map upstream node schema into the flat shape used by the tracker functions
+        // skipcq: JS-R1005
         santaRoute = nodes.map(n => {
             const loc = n.location || {};
             const sched = n.schedule || {};
@@ -1031,7 +1032,6 @@ function getNow() {
 }
 
 // Determine Santa's current status and position
-// skipcq: JS-R1005
 function getSantaStatus() {
     if (santaRoute.length === 0) {
         return null;
