@@ -961,6 +961,7 @@ function updateLocationCountdown() {
     countdownElement.innerHTML = formatted;
 }
 
+// skipcq: JS-R1005
 async function loadSantaRoute() {
     try {
         const response = await fetch('/static/data/santa_route.json');
@@ -1026,8 +1027,8 @@ async function loadSantaRoute() {
             for (let i = 0; i < santaRoute.length; i++) {
                 const item = santaRoute[i];
                 if (item.arrival_time) {
-                    const d = new Date(item.arrival_time);
-                    if (isNaN(d.getTime())) {
+                    const arrivalDate = new Date(item.arrival_time);
+                    if (isNaN(arrivalDate.getTime())) {
                         console.warn(`santaRoute[${i}] has invalid arrival_time:`, item.arrival_time);
                         item.arrival_time = null;
                         sawInvalidTimestamp = true;

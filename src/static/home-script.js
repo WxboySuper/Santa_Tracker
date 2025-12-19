@@ -76,7 +76,7 @@ function initCountdown() {
                 // Adjust to current season year similar to tracker logic
                 const now = new Date();
                 const currentYear = now.getFullYear();
-                let adjusted = new Date(targetDate);
+                const adjusted = new Date(targetDate);
                 adjusted.setUTCFullYear(currentYear);
                 const tourEndThisYear = new Date(Date.UTC(currentYear, 11, 26, 0, 0, 0));
                 if (now > tourEndThisYear) adjusted.setUTCFullYear(currentYear + 1);
@@ -96,8 +96,8 @@ function initCountdown() {
                 };
 
                 const tick = () => {
-                    const now = new Date();
-                    const diff = adjusted - now;
+                    const nowTick = new Date();
+                    const diff = adjusted - nowTick;
                     if (diff <= 0) {
                         countdownElement.textContent = '00:00:00';
                         clearInterval(enforcerId);
