@@ -138,7 +138,7 @@ document.addEventListener('DOMContentLoaded', function() {
     try {
         pastTrail.addLatLng([NORTH_POLE.lat, NORTH_POLE.lng]);
     } catch (e) {
-        console.debug('pastTrail initialization failed', e);
+        console.error('pastTrail initialization failed', e);
     }
 
     // Store Santa marker globally for mode transitions
@@ -166,10 +166,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Make EventSystem globally accessible
     window.EventSystem = EventSystem;
-
-    // Cinematic Camera Constants are declared at module scope
-
-    // Camera controller refs (already declared at module scope)
 
     // Temporarily disable maxBounds so camera can follow across world copies
     function disableMapBoundsTemporarily(durationMs) {
@@ -231,9 +227,8 @@ document.addEventListener('DOMContentLoaded', function() {
         } else if (status.status === 'Preparing') {
             targetZoom = CAMERA_ZOOM.SHORT_HOP;
         } else if (status.status === 'In Transit') {
-            // prefer the `to` transit info if available
-            const to = status.to ?? status.location ?? null;
-            const nextTransit = to?.transit?.speed_curve ?? null;
+            // use the destination (`status.to`) transit info only
+            const nextTransit = status.to?.transit?.speed_curve ?? null;
 
             switch (nextTransit) {
             case 'HYPERSONIC_LONG':
@@ -316,8 +311,32 @@ document.addEventListener('DOMContentLoaded', function() {
             try {
                 const latlngs = pastTrail.getLatLngs();
                 const last = latlngs.length ? latlngs[latlngs.length - 1] : null;
-                if (!last || last.lat !== displayPosition[0] || last.lng !== displayPosition[1]) {
+                // Use a small distance threshold to avoid adding duplicate points caused by
+                // floating-point noise in coordinates.
+                const DUPLICATE_POINT_THRESHOLD_METERS = 5;
+
+                if (!last) {
                     pastTrail.addLatLng(displayPosition);
+                } else {
+                    const toRad = Math.PI / 180;
+                    const lat1 = last.lat;
+                    const lng1 = last.lng;
+                    const lat2 = displayPosition[0];
+                    const lng2 = displayPosition[1];
+
+                    const dLat = (lat2 - lat1) * toRad;
+                    const dLng = (lng2 - lng1) * toRad;
+                    const a =
+                        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                        Math.cos(lat1 * toRad) * Math.cos(lat2 * toRad) *
+                        Math.sin(dLng / 2) * Math.sin(dLng / 2);
+                    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+                    const R = 6371000; // Earth radius in meters
+                    const distance = R * c;
+
+                    if (distance > DUPLICATE_POINT_THRESHOLD_METERS) {
+                        pastTrail.addLatLng(displayPosition);
+                    }
                 }
             } catch (e) {
                 console.debug('pastTrail addLatLng failed', e);
@@ -377,7 +396,13 @@ document.addEventListener('DOMContentLoaded', function() {
                     try {
                         const latlngs = pastTrail.getLatLngs();
                         const last = latlngs.length ? latlngs[latlngs.length - 1] : null;
-                        if (!last || last.lat !== targetPosition[0] || last.lng !== targetPosition[1]) {
+                        const COORD_EPSILON = 0.001;  //degrees; avoids adding near-duplicate points
+
+                        const isNewPoint =
+                            !last ||
+                            Math.abs(last.lat - targetPosition[0]) > COORD_EPSILON ||
+                            Math.abs(last.lng - targetPosition[1]) > COORD_EPSILON;
+                        if (isNewPoint) {
                             pastTrail.addLatLng([targetPosition[0], targetPosition[1]]);
                         }
                     } catch (e) {
@@ -390,8 +415,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Load and display route with real tracking logic
     loadSantaRoute();
-
-    // dev simulation removed in production build
 
     // Make map keyboard accessible
     map.getContainer().addEventListener('keydown', (e) => {
@@ -822,7 +845,11 @@ function updateLocationCountdown() {
     // Update the label to indicate whether this is an Arrival or Departure timer
     const labelEl = document.getElementById('location-countdown-label');
     if (labelEl) {
-        labelEl.textContent = headerText || (label || (status && status.status === 'In Transit' ? 'ETA to Destination' : 'Time to Departure'));
+        const fallbackStatusLabel = status && status.status === 'In Transit'
+            ? 'ETA to Destination'
+            : 'Time to Departure';
+        const labelText = headerText ? headerText : (label || fallbackStatusLabel);
+        labelEl.textContent = labelText;
     }
 
     countdownElement.innerHTML = formatted;
@@ -845,8 +872,28 @@ async function loadSantaRoute() {
             const lng = normalizeLng(Number(loc.lng ?? loc.longitude ?? 0));
 
             // Ensure we have at least one timestamp field to work with
-            const arrival = sched.arrival_utc || sched.arrival_time || sched.departure_utc || sched.departure_time || null;
-            const departure = sched.departure_utc || sched.departure_time || sched.arrival_utc || sched.arrival_time || null;
+            // manufacturing identical arrival/departure times from the same source.
+            let arrival = sched.arrival_utc || sched.arrival_time || sched.departure_utc || sched.departure_time || null;
+            let departure = sched.departure_utc || sched.departure_time || sched.arrival_utc || sched.arrival_time || null;
+
+            // If arrival and departure resolve to the same non-null value, prefer to keep
+            // the side that was explicitly set on the schedule and null out the other.
+            if (arrival && departure && arrival === departure) {
+                const hasExplicitArrival = !!(sched.arrival_utc || sched.arrival_time);
+                const hasExplicitDeparture = !!(sched.departure_utc || sched.departure_time);
+
+                if (hasExplicitArrival && !hasExplicitDeparture) {
+                    // Arrival was explicit, departure came from fallback; drop departure
+                    departure = null;
+                } else if (!hasExplicitArrival && hasExplicitDeparture) {
+                    // Departure was explicit, arrival came from fallback; drop arrival
+                    arrival = null;
+                } else {
+                    // Both explicit or both ambiguous; default to clearing departure to
+                    // keep at most one timestamp per location from a single value.
+                    departure = null;
+                }
+            }
 
             return {
                 id: n.id,
