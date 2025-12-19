@@ -54,21 +54,85 @@ function initCountdown() {
     const countdownElement = document.getElementById('countdown');
     if (!countdownElement) return;
     
-    // Create countdown instance using the CountdownModule
-    const countdown = window.CountdownModule.createCountdown({
-        targetElement: countdownElement,
-        useLocalTime: false, // Use UTC+14 time to match when Santa actually starts
-        onUpdate: (timeData) => {
-            // Optional: Add custom behavior on each update
-            // For example, change styling when close to launch
-            if (timeData.days === 0 && timeData.hours < 1) {
-                countdownElement.classList.add('countdown-urgent');
+    // Prefer the route's anchor departure if available; otherwise fall back
+    // to the CountdownModule's default tour launch target.
+    fetch('/static/data/santa_route.json').then(r => r.json()).then(data => {
+        const nodes = data.route_nodes || data.route || [];
+        const anchor = nodes.find(n => {
+            try {
+                const nid = String(n.id || '').toLowerCase();
+                const ntype = String(n.type || '').toLowerCase();
+                return nid === 'node_000_north_pole' || nid.includes('north_pole') || ntype === 'start';
+            } catch (e) {
+                return false;
+            }
+        }) || nodes[0];
+
+        const targetRaw = anchor ? (anchor.schedule?.departure_utc || anchor.schedule?.departure_time || anchor.schedule?.arrival_utc || anchor.schedule?.arrival_time || null) : null;
+
+        if (targetRaw) {
+            const targetDate = new Date(targetRaw);
+            if (!isNaN(targetDate.getTime())) {
+                // Adjust to current season year similar to tracker logic
+                const now = new Date();
+                const currentYear = now.getFullYear();
+                let adjusted = new Date(targetDate);
+                adjusted.setUTCFullYear(currentYear);
+                const tourEndThisYear = new Date(Date.UTC(currentYear, 11, 26, 0, 0, 0));
+                if (now > tourEndThisYear) adjusted.setUTCFullYear(currentYear + 1);
+
+                // Local enforcer: update the DOM every second using human-friendly format
+                let enforcerId = null;
+                const formatDurationMs = (diff) => {
+                    if (diff <= 0) return '00:00:00';
+                    const totalSeconds = Math.floor(diff / 1000);
+                    const days = Math.floor(totalSeconds / (24 * 3600));
+                    const hours = Math.floor((totalSeconds % (24 * 3600)) / 3600);
+                    const minutes = Math.floor((totalSeconds % 3600) / 60);
+                    const seconds = totalSeconds % 60;
+                    if (days > 0) return `${days}d ${hours}h ${String(minutes).padStart(2,'0')}m ${String(seconds).padStart(2,'0')}s`;
+                    if (hours > 0) return `${hours}h ${String(minutes).padStart(2,'0')}m ${String(seconds).padStart(2,'0')}s`;
+                    return `${String(minutes).padStart(2,'0')}m ${String(seconds).padStart(2,'0')}s`;
+                };
+
+                const tick = () => {
+                    const now = new Date();
+                    const diff = adjusted - now;
+                    if (diff <= 0) {
+                        countdownElement.textContent = '00:00:00';
+                        clearInterval(enforcerId);
+                        enforcerId = null;
+                        return;
+                    }
+                    countdownElement.textContent = formatDurationMs(diff);
+                };
+
+                tick();
+                enforcerId = setInterval(tick, 1000);
+                // store for cleanup
+                countdownInterval = { stop: () => { if (enforcerId) clearInterval(enforcerId); } };
+                return;
             }
         }
+
+        // If anchor not usable, fall back to CountdownModule
+        if (window.CountdownModule && typeof window.CountdownModule.createCountdown === 'function') {
+            const countdown = window.CountdownModule.createCountdown({
+                targetElement: countdownElement,
+                useLocalTime: false,
+                onUpdate: (timeData) => {
+                    if (timeData.days === 0 && timeData.hours < 1) countdownElement.classList.add('countdown-urgent');
+                }
+            });
+            countdown.start();
+            countdownInterval = countdown;
+        }
+    }).catch(err => {
+        console.debug('Home countdown: failed to fetch route; falling back to module', err);
+        if (window.CountdownModule && typeof window.CountdownModule.createCountdown === 'function') {
+            const countdown = window.CountdownModule.createCountdown({ targetElement: countdownElement, useLocalTime: false });
+            countdown.start();
+            countdownInterval = countdown;
+        }
     });
-    
-    countdown.start();
-    
-    // Store countdown instance for cleanup
-    countdownInterval = countdown;
 }
