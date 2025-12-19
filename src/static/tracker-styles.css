@@ -46,6 +46,7 @@ body {
     left: 50%;
     transform: translateX(-50%);
     z-index: 100;
+
     /* Dark glass to contrast colorful Voyager tiles */
     background: rgb(15 23 42 / 75%);
     backdrop-filter: blur(12px);
@@ -195,6 +196,7 @@ body {
     top: 1.5rem;
     right: 1.5rem;
     z-index: 50;
+
     /* Dark glass to improve contrast on bright basemap */
     background: rgb(15 23 42 / 80%);
     backdrop-filter: blur(14px);
@@ -332,13 +334,7 @@ body {
 }
 
 /* Santa traveled trail */
-.santa-trail {
-    stroke: #fbbf24;
-    stroke-width: 4px;
-    stroke-linecap: round;
-    opacity: 0.95;
-}
-/* Ensure SVG path is visible above map tiles */
+.santa-trail,
 .leaflet-overlay-pane path.santa-trail {
     stroke: #fbbf24;
     stroke-width: 4px;
