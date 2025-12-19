@@ -326,13 +326,13 @@ document.addEventListener('DOMContentLoaded', function() {
 
                     const dLat = (lat2 - lat1) * toRad;
                     const dLng = (lng2 - lng1) * toRad;
-                    const a =
+                    const haversineA =
                         Math.sin(dLat / 2) * Math.sin(dLat / 2) +
                         Math.cos(lat1 * toRad) * Math.cos(lat2 * toRad) *
                         Math.sin(dLng / 2) * Math.sin(dLng / 2);
-                    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-                    const R = 6371000; // Earth radius in meters
-                    const distance = R * c;
+                    const haversineC = 2 * Math.atan2(Math.sqrt(haversineA), Math.sqrt(1 - haversineA));
+                    const earthRadiusMeters = 6371000; // Earth radius in meters
+                    const distance = earthRadiusMeters * haversineC;
 
                     if (distance > DUPLICATE_POINT_THRESHOLD_METERS) {
                         pastTrail.addLatLng(displayPosition);
@@ -879,8 +879,8 @@ async function loadSantaRoute() {
             // If arrival and departure resolve to the same non-null value, prefer to keep
             // the side that was explicitly set on the schedule and null out the other.
             if (arrival && departure && arrival === departure) {
-                const hasExplicitArrival = !!(sched.arrival_utc || sched.arrival_time);
-                const hasExplicitDeparture = !!(sched.departure_utc || sched.departure_time);
+                const hasExplicitArrival = Boolean(sched.arrival_utc || sched.arrival_time);
+                const hasExplicitDeparture = Boolean(sched.departure_utc || sched.departure_time);
 
                 if (hasExplicitArrival && !hasExplicitDeparture) {
                     // Arrival was explicit, departure came from fallback; drop departure
@@ -1031,6 +1031,7 @@ function getNow() {
 }
 
 // Determine Santa's current status and position
+// skipcq: JS-R1005
 function getSantaStatus() {
     if (santaRoute.length === 0) {
         return null;
