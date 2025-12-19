@@ -934,8 +934,8 @@ function interpolatePosition(loc1, loc2, currentTime) {
     let lngB = lng2;
 
     try {
-        const idxA = santaRoute.findIndex(r => r.id === lat1 && loc1.id);
-        const idxB = santaRoute.findIndex(r => r.id === lat2 && loc2.id);
+        const idxA = santaRoute.findIndex(r => r.id === loc1.id);
+        const idxB = santaRoute.findIndex(r => r.id === loc2.id);
         if (idxA !== -1 && idxB !== -1 && adjustedLongitudes.length === santaRoute.length) {
             lngA = adjustedLongitudes[idxA];
             lngB = adjustedLongitudes[idxB];
