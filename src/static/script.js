@@ -1341,8 +1341,8 @@ function getSantaStatus() {
 
     // Check if journey hasn't started yet (before first location)
     const firstLocation = santaRoute[0];
-    // Prefer arrival_time but fall back to departure_time for the anchor node
-    const firstTimeRaw = firstLocation.arrival_time || firstLocation.departure_time || null;
+    // Prefer departure_time byt fall back to arrival_time for consistency with countdown logic
+    const firstTimeRaw = firstLocation.departure_time || firstLocation.arrival_time || null;
     if (firstTimeRaw) {
         const firstArrivalTime = adjustTimestampToCurrentYear(firstTimeRaw);
         if (firstArrivalTime && now < firstArrivalTime) {
