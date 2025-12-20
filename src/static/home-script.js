@@ -59,11 +59,23 @@ function initCountdown() {
     fetch('/static/data/santa_route.json')
         .then(r => {
             if (!r.ok) {
-                // Read body for diagnostics when possible, then surface structured error
-                return r.text().then(text => Promise.reject({ type: 'http', status: r.status, statusText: r.statusText, body: text }));
+                // Read body for diagnostics when possible, then surface structured Error
+                return r.text().then(text => {
+                    const httpErr = new Error(`HTTP ${r.status} ${r.statusText}`);
+                    httpErr.type = 'http';
+                    httpErr.status = r.status;
+                    httpErr.statusText = r.statusText;
+                    httpErr.body = text;
+                    return Promise.reject(httpErr);
+                });
             }
-            // Parse JSON and convert parse errors into structured rejection
-            return r.json().catch(err => Promise.reject({ type: 'parse', err }));
+            // Parse JSON and convert parse errors into structured Error
+            return r.json().catch(err => {
+                const parseErr = new Error('Failed to parse JSON response');
+                parseErr.type = 'parse';
+                parseErr.cause = err;
+                return Promise.reject(parseErr);
+            });
         })
         .then(data => {
             const nodes = data.route_nodes || data.route || [];

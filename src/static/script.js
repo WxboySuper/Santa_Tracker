@@ -1071,12 +1071,12 @@ async function loadSantaRoute() {
 
             const validate = (raw) => {
                 if (!raw && raw !== 0) return { valid: false, date: null, reason: 'missing' };
-                const d = new Date(raw);
-                if (isNaN(d.getTime())) return { valid: false, date: null, reason: 'unparseable' };
-                const t = d.getTime();
-                if (t < EARLIEST_TS) return { valid: false, date: d, reason: 'too_old' };
-                if (t > LATEST_TS) return { valid: false, date: d, reason: 'too_far_in_future' };
-                return { valid: true, date: d, reason: null };
+                const parsedDate = new Date(raw);
+                if (isNaN(parsedDate.getTime())) return { valid: false, date: null, reason: 'unparseable' };
+                const timeMs = parsedDate.getTime();
+                if (timeMs < EARLIEST_TS) return { valid: false, date: parsedDate, reason: 'too_old' };
+                if (timeMs > LATEST_TS) return { valid: false, date: parsedDate, reason: 'too_far_in_future' };
+                return { valid: true, date: parsedDate, reason: null };
             };
 
             for (let i = 0; i < santaRoute.length; i++) {
@@ -1095,7 +1095,7 @@ async function loadSantaRoute() {
 
                 if (item.arrival_time) {
                     const res = validate(item.arrival_time);
-                    item._arrival_time_valid = !!res.valid;
+                    item._arrival_time_valid = Boolean(res.valid);
                     if (!res.valid) {
                         console.warn(`santaRoute[${i}] has invalid arrival_time (${res.reason}):`, item.arrival_time, 'Expected ISO-8601 UTC-ish timestamp.');
                         sawInvalidTimestamp = true;
@@ -1106,7 +1106,7 @@ async function loadSantaRoute() {
 
                 if (item.departure_time) {
                     const res2 = validate(item.departure_time);
-                    item._departure_time_valid = !!res2.valid;
+                    item._departure_time_valid = Boolean(res2.valid);
                     if (!res2.valid) {
                         console.warn(`santaRoute[${i}] has invalid departure_time (${res2.reason}):`, item.departure_time, 'Expected ISO-8601 UTC-ish timestamp.');
                         sawInvalidTimestamp = true;
@@ -1393,7 +1393,7 @@ function getSantaStatus() {
 
     // Check if journey hasn't started yet (before first location)
     const firstLocation = santaRoute[0];
-    // Prefer departure_time byt fall back to arrival_time for consistency with countdown logic
+    // Prefer departure_time but fall back to arrival_time for consistency with countdown logic
     const firstTimeRaw = firstLocation.departure_time || firstLocation.arrival_time || null;
     if (firstTimeRaw) {
         const firstArrivalTime = adjustTimestampToCurrentYear(firstTimeRaw);
