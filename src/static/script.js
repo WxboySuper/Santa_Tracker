@@ -22,8 +22,10 @@ let hasLiftoffOccurred = false;
 
 let santaRoute = [];
 
-// North Pole coordinates
-const NORTH_POLE = { lat: 90, lng: 0 };
+// North Pole coordinates (clamped to Leaflet-safe latitude range)
+// Santa's North Pole latitude is 80 degrees in src/static/data/santa_route.json; use that directly.
+// Place North Pole on the dateline (180/-180) to show it at the International Date Line.
+const NORTH_POLE = { lat: 80, lng: 180 };
 
 // Camera controller refs (declare at module scope so other functions can access)
 let _lastZoom = null;
@@ -304,7 +306,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
         if (animate) {
             // Animate using display coordinates so interpolation stays on the same world copy
-            animateSantaMovement(displayPosition);
+            // Pass refLng into the animator so the cinematic camera can reference the same world copy
+            animateSantaMovement(displayPosition, refLng);
         } else {
             santaMarker.setLatLng(displayPosition);
             // Add to traveled trail if this is a new point (use display coords)
@@ -356,7 +359,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Smooth animation for Santa's movement along route
     // `targetPosition` is in display coordinates (already converted to the chosen world copy)
-    function animateSantaMovement(targetPosition) {
+    function animateSantaMovement(targetPosition, refLng) {
         if (isAnimating) return;
 
         isAnimating = true;
@@ -407,6 +410,12 @@ document.addEventListener('DOMContentLoaded', function() {
                         }
                     } catch (e) {
                         console.debug('Failed to add point to pastTrail in animateSantaMovement', e);
+                    }
+                    // Call cinematic camera to allow zooming/flyTo based on new status
+                    try {
+                        applyCinematicCamera([targetPosition[0], targetLngRaw], refLng);
+                    } catch (e) {
+                        console.debug('animateSantaMovement: applyCinematicCamera failed', e);
                     }
                 }
             }
@@ -481,6 +490,14 @@ function initSnowfall() {
 // Initialize countdown timers
 let christmasCountdownInterval = null;
 let locationCountdownInterval = null;
+let christmasCountdownFallbackInterval = null;
+// Shared version used to avoid race conditions between multiple countdown sources.
+// Incrementing this value invalidates older fallback instances so they stop updating the DOM.
+let countdownSharedVersion = 0;
+// Enforcer to force visible countdown to anchor node departure (overrides other countdown modules)
+let forceCountdownToAnchorInterval = null;
+// Whether a CountdownModule is available (do not start it until route anchor is checked)
+let countdownModuleAvailable = false;
 
 // Adjusted longitudes for shortest-path interpolation (populated after route load)
 let adjustedLongitudes = [];
@@ -490,6 +507,25 @@ function normalizeLng(lng) {
     if (lng === undefined || lng === null || Number.isNaN(Number(lng))) return 0;
     const n = Number(lng);
     return ((n + 180) % 360 + 360) % 360 - 180;
+}
+
+// Format a millisecond duration into a human-friendly string like
+// "4d 17h 39m 40s" or "17h 39m 40s" or "39m 40s".
+function formatDurationMs(diff) {
+    if (diff <= 0) return '00:00:00';
+    const totalSeconds = Math.floor(diff / 1000);
+    const days = Math.floor(totalSeconds / (24 * 3600));
+    const hours = Math.floor((totalSeconds % (24 * 3600)) / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+
+    if (days > 0) {
+        return `${days}d ${hours}h ${String(minutes).padStart(2, '0')}m ${String(seconds).padStart(2, '0')}s`;
+    }
+    if (hours > 0) {
+        return `${hours}h ${String(minutes).padStart(2, '0')}m ${String(seconds).padStart(2, '0')}s`;
+    }
+    return `${String(minutes).padStart(2, '0')}m ${String(seconds).padStart(2, '0')}s`;
 }
 
 // Return a longitude adjusted so it is the nearest copy relative to a reference longitude.
@@ -528,17 +564,105 @@ function initCountdowns() {
     // Initialize main tour launch countdown using CountdownModule with mode callback
     const countdownElement = document.getElementById('countdown');
     if (countdownElement) {
-        christmasCountdownInterval = window.CountdownModule.createCountdown({
-            targetElement: countdownElement,
-            useLocalTime: false, // Use UTC+14 time to match when Santa actually starts
-            onUpdate: handleCountdownUpdate
-        });
-        christmasCountdownInterval.start();
+        // Guard: CountdownModule may be missing in some builds or if a dependency failed to load.
+        if (window.CountdownModule && typeof window.CountdownModule.createCountdown === 'function') {
+            // Don't start the module here — prefer the route anchor when it becomes available.
+            countdownModuleAvailable = true;
+        } else {
+            console.warn('CountdownModule not available; using route-based fallback countdown');
+        }
 
-        // Initial mode check
-        const timeData = getCountdownTimeData();
-        if (timeData) {
-            updateTrackingMode(timeData.isComplete);
+        // Fallback: when CountdownModule isn't available, derive a simple countdown
+        // from the route's anchor node departure time. The route may not be loaded
+        // yet when this runs (DOMContentLoaded), so retry a few times before
+        // showing a placeholder to avoid briefly showing `--:--`.
+        if (!countdownModuleAvailable) {
+            if (christmasCountdownFallbackInterval) {
+                clearInterval(christmasCountdownFallbackInterval);
+                christmasCountdownFallbackInterval = null;
+            }
+
+            // Capture the current shared version for this fallback instance. If the
+            // shared version is incremented (by the anchor enforcer), this fallback
+            // instance will stop updating the DOM to avoid races.
+            const fallbackInstanceVersion = countdownSharedVersion;
+
+            const MAX_RETRIES = 10;
+            const RETRY_DELAY_MS = 300;
+            let retries = 0;
+
+            const updateMainCountdownFallback = () => {
+                // If another countdown source (enforcer/module) has taken over,
+                // stop this fallback from updating the DOM.
+                if (fallbackInstanceVersion !== countdownSharedVersion) return;
+
+                const el = countdownElement;
+                if (!el) return;
+
+                // If route not loaded yet, retry a few times before showing placeholder
+                if (!Array.isArray(santaRoute) || santaRoute.length === 0) {
+                    retries += 1;
+                    if (retries <= MAX_RETRIES) {
+                        // schedule a retry sooner than the main interval
+                        setTimeout(updateMainCountdownFallback, RETRY_DELAY_MS);
+                        return;
+                    }
+                    // exhausted retries: show placeholder until route arrives
+                    el.textContent = '--:--';
+                    return;
+                }
+
+                // Prefer an explicit North Pole anchor node (by id or START type),
+                // otherwise fall back to the first node in the route.
+                let first = null;
+                first = santaRoute.find(n => {
+                    try {
+                        const nid = String(n.id || '').toLowerCase();
+                        const ntype = String(n.type || '').toLowerCase();
+                        return nid === 'node_000_north_pole' || nid.includes('north_pole') || ntype === 'start';
+                    } catch (e) {
+                        console.debug('Failed to check for North Pole anchor node', e);
+                        return false;
+                    }
+                }) || santaRoute[0];
+
+                let target = null;
+                if (first) {
+                    // For takeoff anchor prefer the departure_time over arrival_time
+                    target = first.departure_time || first.arrival_time || null;
+                }
+
+                if (!target) {
+                    el.textContent = '--:--';
+                    return;
+                }
+
+                const targetDate = adjustTimestampToCurrentYear(target);
+                if (!targetDate || isNaN(targetDate.getTime())) {
+                    el.textContent = '--:--';
+                    return;
+                }
+
+                const now = getNow();
+                const diff = targetDate - now;
+                if (diff <= 0) {
+                    el.textContent = '00:00:00';
+                    // trigger liftoff once - log if handler errors
+                    try {
+                        handleCountdownUpdate({ isComplete: true });
+                    } catch (err) {
+                        console.debug('handleCountdownUpdate invocation failed', err);
+                    }
+                    return;
+                }
+
+                // Use human-friendly days/hours/minutes/seconds formatting
+                el.textContent = formatDurationMs(diff);
+            };
+
+            // Update immediately and then every second
+            updateMainCountdownFallback();
+            christmasCountdownFallbackInterval = setInterval(updateMainCountdownFallback, 1000);
         }
     }
 
@@ -647,6 +771,26 @@ function triggerLiftoff() {
                 }
             }, SANTA_MARKER_UPDATE_DELAY);
         }
+    }
+
+    // Clear fallback countdown if it was running
+    if (christmasCountdownFallbackInterval) {
+        clearInterval(christmasCountdownFallbackInterval);
+        christmasCountdownFallbackInterval = null;
+    }
+    // Clear anchor countdown enforcer if present
+    if (forceCountdownToAnchorInterval) {
+        clearInterval(forceCountdownToAnchorInterval);
+        forceCountdownToAnchorInterval = null;
+    }
+    // Stop any active countdown module so it doesn't continue updating the DOM after liftoff
+    if (christmasCountdownInterval) {
+        if (typeof christmasCountdownInterval.stop === 'function') {
+            try { christmasCountdownInterval.stop(); } catch (e) { console.debug('Failed to stop christmasCountdownInterval on liftoff', e); }
+        } else {
+            try { clearInterval(christmasCountdownInterval); } catch (e) { /* ignore */ }
+        }
+        // Do not clear the reference so preflight logic can still use getTimeData()
     }
 }
 
@@ -855,6 +999,7 @@ function updateLocationCountdown() {
     countdownElement.innerHTML = formatted;
 }
 
+// skipcq: JS-R1005
 async function loadSantaRoute() {
     try {
         const response = await fetch('/static/data/santa_route.json');
@@ -913,12 +1058,129 @@ async function loadSantaRoute() {
         // Compute adjusted longitudes for smooth interpolation across dateline
         computeAdjustedLongitudes();
 
+        // Lightweight validation: ensure timestamps parse to valid Dates where present.
+        // Do not mutate original timestamp strings (other code may expect them).
+        // Instead, attach non-destructive validation flags and warn. Also check
+        // that parsed dates are in a reasonable range (not before Unix epoch
+        // and not too far in the future).
+        try {
+            let sawInvalidTimestamp = false;
+            const nowTs = getNow().getTime();
+            const EARLIEST_TS = Date.UTC(1970, 0, 1); // 1970-01-01 UTC
+            const LATEST_TS = nowTs + (2 * 365 * 24 * 60 * 60 * 1000); // ~2 years in future
+
+            const validate = (raw) => {
+                if (!raw && raw !== 0) return { valid: false, date: null, reason: 'missing' };
+                const parsedDate = new Date(raw);
+                if (isNaN(parsedDate.getTime())) return { valid: false, date: null, reason: 'unparseable' };
+                const timeMs = parsedDate.getTime();
+                if (timeMs < EARLIEST_TS) return { valid: false, date: parsedDate, reason: 'too_old' };
+                if (timeMs > LATEST_TS) return { valid: false, date: parsedDate, reason: 'too_far_in_future' };
+                return { valid: true, date: parsedDate, reason: null };
+            };
+
+            for (let i = 0; i < santaRoute.length; i++) {
+                const item = santaRoute[i];
+                // Clear any previous validation metadata added by earlier runs
+                try {
+                    delete item._arrival_time_valid;
+                } catch (e) {
+                    console.debug('Failed to delete _arrival_time_valid from item', e);
+                }
+                try {
+                    delete item._departure_time_valid;
+                } catch (e) {
+                    console.debug('Failed to delete _departure_time_valid from item', e);
+                }
+
+                if (item.arrival_time) {
+                    const res = validate(item.arrival_time);
+                    item._arrival_time_valid = Boolean(res.valid);
+                    if (!res.valid) {
+                        console.warn(`santaRoute[${i}] has invalid arrival_time (${res.reason}):`, item.arrival_time, 'Expected ISO-8601 UTC-ish timestamp.');
+                        sawInvalidTimestamp = true;
+                    }
+                } else {
+                    item._arrival_time_valid = false;
+                }
+
+                if (item.departure_time) {
+                    const res2 = validate(item.departure_time);
+                    item._departure_time_valid = Boolean(res2.valid);
+                    if (!res2.valid) {
+                        console.warn(`santaRoute[${i}] has invalid departure_time (${res2.reason}):`, item.departure_time, 'Expected ISO-8601 UTC-ish timestamp.');
+                        sawInvalidTimestamp = true;
+                    }
+                } else {
+                    item._departure_time_valid = false;
+                }
+            }
+
+            if (sawInvalidTimestamp) {
+                console.warn('One or more route timestamps appear invalid or out-of-range — tracker will attempt best-effort fallbacks. Timestamps are expected to be ISO-8601 or parsable by Date constructor and within a reasonable range (>=1970, <= now+2y).');
+            }
+        } catch (e) {
+            console.debug('Timestamp validation failed unexpectedly', e);
+        }
+
         // Only update live tracking display if in live mode
         if (santaRoute.length > 0 && currentMode === 'live') {
             // Initialize with first location
             const firstLocation = santaRoute[0];
             updateLocationDisplay(firstLocation.name || firstLocation.location,
                 santaRoute[1] ? (santaRoute[1].name || santaRoute[1].location) : 'Unknown');
+        }
+
+        // Ensure the visible countdown matches the route anchor departure exactly.
+        try {
+            // Find anchor node (explicit North Pole node id or START type)
+            const anchor = santaRoute.find(n => {
+                try {
+                    const nid = String(n.id || '').toLowerCase();
+                    const ntype = String(n.type || '').toLowerCase();
+                    return nid === 'node_000_north_pole' || nid.includes('north_pole') || ntype === 'start';
+                } catch (e) {
+                    return false;
+                }
+            }) || (santaRoute.length ? santaRoute[0] : null);
+
+            if (anchor) {
+                const targetRaw = anchor.departure_time || anchor.arrival_time || null;
+                const targetDate = targetRaw ? adjustTimestampToCurrentYear(targetRaw) : null;
+                if (targetDate && !isNaN(targetDate.getTime())) {
+                    startAnchorCountdownEnforcer(targetDate);
+                } else {
+                    // If anchor present but timestamp invalid, fall back to module if available
+                    if (countdownModuleAvailable) {
+                        try {
+                            christmasCountdownInterval = window.CountdownModule.createCountdown({
+                                targetElement: document.getElementById('countdown'),
+                                useLocalTime: false,
+                                onUpdate: handleCountdownUpdate
+                            });
+                            christmasCountdownInterval.start();
+                        } catch (e) {
+                            console.debug('Failed to start CountdownModule fallback', e);
+                        }
+                    }
+                }
+            } else {
+                // No anchor node found: start module if available
+                if (countdownModuleAvailable) {
+                    try {
+                        christmasCountdownInterval = window.CountdownModule.createCountdown({
+                            targetElement: document.getElementById('countdown'),
+                            useLocalTime: false,
+                            onUpdate: handleCountdownUpdate
+                        });
+                        christmasCountdownInterval.start();
+                    } catch (e) {
+                        console.debug('Failed to start CountdownModule fallback', e);
+                    }
+                }
+            }
+        } catch (e) {
+            console.debug('Anchor countdown enforcer failed to start', e);
         }
 
         // Start real-time tracking based on timestamps (will respect mode)
@@ -928,6 +1190,96 @@ async function loadSantaRoute() {
         // Fallback to simulation if route data fails to load
         simulateSantaMovement();
     }
+}
+
+// Force the visible countdown element to show the provided UTC targetDate (updates every second).
+function startAnchorCountdownEnforcer(targetDate) {
+    // Clear any existing enforcer
+    if (forceCountdownToAnchorInterval) {
+        clearInterval(forceCountdownToAnchorInterval);
+        forceCountdownToAnchorInterval = null;
+    }
+
+    // Increment the shared version immediately so that any running/queued fallback
+    // callbacks detect they are stale and stop updating the DOM.
+    countdownSharedVersion++;
+
+    const el = document.getElementById('countdown');
+    if (!el || !targetDate) return;
+
+    // Stop other countdown sources to avoid conflicts
+    if (christmasCountdownFallbackInterval) {
+        clearInterval(christmasCountdownFallbackInterval);
+        christmasCountdownFallbackInterval = null;
+    }
+    if (christmasCountdownInterval && typeof christmasCountdownInterval.stop === 'function') {
+        try { christmasCountdownInterval.stop(); } catch (e) { console.debug('Failed to stop christmasCountdownInterval', e); }
+        christmasCountdownInterval = null;
+    }
+
+    // Expose a minimal Countdown-like interface so other helpers (e.g. preflight)
+    // can query current countdown state via `getCountdownTimeData()`.
+    const makeEnforcerCountdown = (target) => {
+        let stopped = false;
+        return {
+            stop() {
+                stopped = true;
+                if (forceCountdownToAnchorInterval) {
+                    clearInterval(forceCountdownToAnchorInterval);
+                    forceCountdownToAnchorInterval = null;
+                }
+            },
+            getTimeData() {
+                if (stopped || !target) return null;
+                const now = getNow();
+                const diff = target - now;
+                const isComplete = diff <= 0;
+                if (isComplete) {
+                    return { isComplete: true, days: 0, hours: 0, minutes: 0, seconds: 0 };
+                }
+                const totalSeconds = Math.floor(diff / 1000);
+                const days = Math.floor(totalSeconds / (24 * 3600));
+                const hours = Math.floor((totalSeconds % (24 * 3600)) / 3600);
+                const minutes = Math.floor((totalSeconds % 3600) / 60);
+                const seconds = totalSeconds % 60;
+                return { isComplete: false, days, hours, minutes, seconds };
+            }
+        };
+    };
+
+    // Install the enforcer countdown object so callers can query its time data.
+    christmasCountdownInterval = makeEnforcerCountdown(targetDate);
+
+    const tick = () => {
+        const now = getNow();
+        const diff = targetDate - now;
+        if (diff <= 0) {
+            el.textContent = '00:00:00';
+            // Notify the existing handler so liftoff will trigger if applicable
+            try {
+                handleCountdownUpdate({ isComplete: true });
+            } catch (e) {
+                console.debug('handleCountdownUpdate failed in enforcer', e);
+            }
+            // cleanup enforcer interval and stop exposed countdown
+            if (forceCountdownToAnchorInterval) {
+                clearInterval(forceCountdownToAnchorInterval);
+                forceCountdownToAnchorInterval = null;
+            }
+            if (christmasCountdownInterval && typeof christmasCountdownInterval.stop === 'function') {
+                try { christmasCountdownInterval.stop(); } catch (e) { /* ignore */ }
+            }
+            christmasCountdownInterval = null;
+            return;
+        }
+
+        // Use human-friendly days/hours/minutes/seconds formatting
+        el.textContent = formatDurationMs(diff);
+    };
+
+    // Run immediately and then every second
+    tick();
+    forceCountdownToAnchorInterval = setInterval(tick, 1000);
 }
 
 // Interpolate Santa's position between two locations based on timestamps
@@ -1041,8 +1393,10 @@ function getSantaStatus() {
 
     // Check if journey hasn't started yet (before first location)
     const firstLocation = santaRoute[0];
-    if (firstLocation.arrival_time) {
-        const firstArrivalTime = adjustTimestampToCurrentYear(firstLocation.arrival_time);
+    // Prefer departure_time but fall back to arrival_time for consistency with countdown logic
+    const firstTimeRaw = firstLocation.departure_time || firstLocation.arrival_time || null;
+    if (firstTimeRaw) {
+        const firstArrivalTime = adjustTimestampToCurrentYear(firstTimeRaw);
         if (firstArrivalTime && now < firstArrivalTime) {
             // Find North Pole location (Santa's workshop - identified by fun_facts or as last location)
             const northPole = santaRoute.find(loc =>
@@ -1166,7 +1520,8 @@ function emitSantaMove(status) {
             position: emitPosition,
             location: status.location ? (status.location.name || status.location.location) :
                 (status.to ? `En route to ${status.to.name || status.to.location}` : 'Unknown'),
-            animate: false,
+            // Animate movements when Santa is in transit so cinematic camera can run
+            animate: status && status.status === 'In Transit',
             refLng
         });
     }
@@ -1268,7 +1623,27 @@ window.addEventListener('beforeunload', () => {
         clearInterval(santaMovementInterval);
     }
     if (christmasCountdownInterval) {
-        clearInterval(christmasCountdownInterval);
+        // `christmasCountdownInterval` may be a CountdownModule instance (with `stop()`),
+        // or in older/fallback cases an interval id. Prefer calling `stop()` when available.
+        if (typeof christmasCountdownInterval.stop === 'function') {
+            try {
+                christmasCountdownInterval.stop();
+            } catch (e) {
+                console.debug('Failed to stop christmasCountdownInterval on unload', e);
+            }
+        } else {
+            try {
+                clearInterval(christmasCountdownInterval);
+            } catch (e) {
+                console.debug('Failed to clear christmasCountdownInterval on unload', e);
+            }
+        }
+    }
+    if (christmasCountdownFallbackInterval) {
+        clearInterval(christmasCountdownFallbackInterval);
+    }
+    if (forceCountdownToAnchorInterval) {
+        clearInterval(forceCountdownToAnchorInterval);
     }
     if (locationCountdownInterval) {
         clearInterval(locationCountdownInterval);
@@ -1288,3 +1663,4 @@ window.addEventListener('beforeunload', () => {
     }
     clearLiftoffToastTimeouts();
 });
+
