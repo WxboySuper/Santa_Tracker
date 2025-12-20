@@ -56,84 +56,107 @@ function initCountdown() {
     
     // Prefer the route's anchor departure if available; otherwise fall back
     // to the CountdownModule's default tour launch target.
-    fetch('/static/data/santa_route.json').then(r => r.json()).then(data => {
-        const nodes = data.route_nodes || data.route || [];
-        const anchor = nodes.find(n => {
-            try {
-                const nid = String(n.id || '').toLowerCase();
-                const ntype = String(n.type || '').toLowerCase();
-                return nid === 'node_000_north_pole' || nid.includes('north_pole') || ntype === 'start';
-            } catch (e) {
-                console.debug('Error parsing route node for countdown anchor', e);
-                return false;
+    fetch('/static/data/santa_route.json')
+        .then(r => {
+            if (!r.ok) {
+                // Read body for diagnostics when possible, then surface structured error
+                return r.text().then(text => Promise.reject({ type: 'http', status: r.status, statusText: r.statusText, body: text }));
             }
-        }) || nodes[0];
-
-        const targetRaw = anchor ? (anchor.schedule?.departure_time || anchor.schedule?.arrival_time || anchor.schedule?.departure_utc || anchor.schedule?.arrival_utc || null) : null;
-
-        if (targetRaw) {
-            const targetDate = new Date(targetRaw);
-            if (!isNaN(targetDate.getTime())) {
-                // Adjust to current season year similar to tracker logic
-                const now = new Date();
-                const currentYear = now.getFullYear();
-                const adjusted = new Date(targetDate);
-                adjusted.setUTCFullYear(currentYear);
-                const tourEndThisYear = new Date(Date.UTC(currentYear, 11, 26, 0, 0, 0));
-                if (now > tourEndThisYear) adjusted.setUTCFullYear(currentYear + 1);
-
-                // Local enforcer: update the DOM every second using human-friendly format
-                let enforcerId = null;
-                const formatDurationMs = (diff) => {
-                    if (diff <= 0) return '00:00:00';
-                    const totalSeconds = Math.floor(diff / 1000);
-                    const days = Math.floor(totalSeconds / (24 * 3600));
-                    const hours = Math.floor((totalSeconds % (24 * 3600)) / 3600);
-                    const minutes = Math.floor((totalSeconds % 3600) / 60);
-                    const seconds = totalSeconds % 60;
-                    if (days > 0) return `${days}d ${hours}h ${String(minutes).padStart(2,'0')}m ${String(seconds).padStart(2,'0')}s`;
-                    if (hours > 0) return `${hours}h ${String(minutes).padStart(2,'0')}m ${String(seconds).padStart(2,'0')}s`;
-                    return `${String(minutes).padStart(2,'0')}m ${String(seconds).padStart(2,'0')}s`;
-                };
-
-                const tick = () => {
-                    const nowTick = new Date();
-                    const diff = adjusted - nowTick;
-                    if (diff <= 0) {
-                        countdownElement.textContent = '00:00:00';
-                        clearInterval(enforcerId);
-                        enforcerId = null;
-                        return;
-                    }
-                    countdownElement.textContent = formatDurationMs(diff);
-                };
-
-                tick();
-                enforcerId = setInterval(tick, 1000);
-                // store for cleanup
-                countdownInterval = { stop: () => { if (enforcerId) clearInterval(enforcerId); } };
-                return;
-            }
-        }
-
-        // If anchor not usable, fall back to CountdownModule
-        if (window.CountdownModule && typeof window.CountdownModule.createCountdown === 'function') {
-            const countdown = window.CountdownModule.createCountdown({
-                targetElement: countdownElement,
-                useLocalTime: false,
-                onUpdate: (timeData) => {
-                    if (timeData.days === 0 && timeData.hours < 1) countdownElement.classList.add('countdown-urgent');
+            // Parse JSON and convert parse errors into structured rejection
+            return r.json().catch(err => Promise.reject({ type: 'parse', err }));
+        })
+        .then(data => {
+            const nodes = data.route_nodes || data.route || [];
+            const anchor = nodes.find(n => {
+                try {
+                    const nid = String(n.id || '').toLowerCase();
+                    const ntype = String(n.type || '').toLowerCase();
+                    return nid === 'node_000_north_pole' || nid.includes('north_pole') || ntype === 'start';
+                } catch (e) {
+                    console.debug('Error parsing route node for countdown anchor', e);
+                    return false;
                 }
-            });
-            countdown.start();
-            countdownInterval = countdown;
-        }
-    }).catch(err => {
-        console.debug('Home countdown: failed to fetch route; falling back to module', err);
-        if (window.CountdownModule && typeof window.CountdownModule.createCountdown === 'function') {
-            const countdown = window.CountdownModule.createCountdown({ targetElement: countdownElement, useLocalTime: false });
-            countdown.start();
-            countdownInterval = countdown;
-        }
-    });
+            }) || nodes[0];
+
+            const targetRaw = anchor ? (anchor.schedule?.departure_utc || anchor.schedule?.arrival_utc || anchor.schedule?.departure_time || anchor.schedule?.arrival_time || null) : null;
+
+            if (targetRaw) {
+                const targetDate = new Date(targetRaw);
+                if (!isNaN(targetDate.getTime())) {
+                    // Adjust to current season year similar to tracker logic
+                    const now = new Date();
+                    const currentYear = now.getFullYear();
+                    const adjusted = new Date(targetDate);
+                    adjusted.setUTCFullYear(currentYear);
+                    const tourEndThisYear = new Date(Date.UTC(currentYear, 11, 26, 0, 0, 0));
+                    if (now > tourEndThisYear) adjusted.setUTCFullYear(currentYear + 1);
+
+                    // Local enforcer: update the DOM every second using human-friendly format
+                    let enforcerId = null;
+                    const formatDurationMs = (diff) => {
+                        if (diff <= 0) return '00:00:00';
+                        const totalSeconds = Math.floor(diff / 1000);
+                        const days = Math.floor(totalSeconds / (24 * 3600));
+                        const hours = Math.floor((totalSeconds % (24 * 3600)) / 3600);
+                        const minutes = Math.floor((totalSeconds % 3600) / 60);
+                        const seconds = totalSeconds % 60;
+                        if (days > 0) return `${days}d ${hours}h ${String(minutes).padStart(2,'0')}m ${String(seconds).padStart(2,'0')}s`;
+                        if (hours > 0) return `${hours}h ${String(minutes).padStart(2,'0')}m ${String(seconds).padStart(2,'0')}s`;
+                        return `${String(minutes).padStart(2,'0')}m ${String(seconds).padStart(2,'0')}s`;
+                    };
+
+                    const tick = () => {
+                        const nowTick = new Date();
+                        const diff = adjusted - nowTick;
+                        if (diff <= 0) {
+                            countdownElement.textContent = '00:00:00';
+                            clearInterval(enforcerId);
+                            enforcerId = null;
+                            return;
+                        }
+                        countdownElement.textContent = formatDurationMs(diff);
+                    };
+
+                    tick();
+                    enforcerId = setInterval(tick, 1000);
+                    // store for cleanup
+                    countdownInterval = { stop: () => { if (enforcerId) clearInterval(enforcerId); } };
+                    return;
+                }
+            }
+
+            // If anchor not usable, fall back to CountdownModule
+            if (window.CountdownModule && typeof window.CountdownModule.createCountdown === 'function') {
+                const countdown = window.CountdownModule.createCountdown({
+                    targetElement: countdownElement,
+                    useLocalTime: false,
+                    onUpdate: (timeData) => {
+                        if (timeData.days === 0 && timeData.hours < 1) countdownElement.classList.add('countdown-urgent');
+                    }
+                });
+                countdown.start();
+                countdownInterval = countdown;
+            }
+        })
+        .catch(err => {
+            // Distinguish between HTTP errors, parse errors, and network/other failures to aid debugging
+            if (err && err.type === 'http') {
+                console.error('Home countdown: HTTP error fetching route:', err.status, err.statusText, err.body || '');
+            } else if (err && err.type === 'parse') {
+                console.error('Home countdown: Failed to parse route JSON:', err.err);
+            } else {
+                console.error('Home countdown: Network or fetch error:', err);
+            }
+
+            // Fallback to CountdownModule if available
+            if (window.CountdownModule && typeof window.CountdownModule.createCountdown === 'function') {
+                try {
+                    const countdown = window.CountdownModule.createCountdown({ targetElement: countdownElement, useLocalTime: false });
+                    countdown.start();
+                    countdownInterval = countdown;
+                } catch (e) {
+                    console.debug('Home countdown: CountdownModule fallback failed to start', e);
+                }
+            }
+        });
 }

@@ -573,7 +573,9 @@ function initCountdowns() {
         }
 
         // Fallback: when CountdownModule isn't available, derive a simple countdown
-        // from the route's anchor node departure time.
+        // from the route's anchor node departure time. The route may not be loaded
+        // yet when this runs (DOMContentLoaded), so retry a few times before
+        // showing a placeholder to avoid briefly showing `--:--`.
         if (!countdownModuleAvailable) {
             if (christmasCountdownFallbackInterval) {
                 clearInterval(christmasCountdownFallbackInterval);
@@ -585,6 +587,10 @@ function initCountdowns() {
             // instance will stop updating the DOM to avoid races.
             const fallbackInstanceVersion = countdownSharedVersion;
 
+            const MAX_RETRIES = 10;
+            const RETRY_DELAY_MS = 300;
+            let retries = 0;
+
             const updateMainCountdownFallback = () => {
                 // If another countdown source (enforcer/module) has taken over,
                 // stop this fallback from updating the DOM.
@@ -593,21 +599,32 @@ function initCountdowns() {
                 const el = countdownElement;
                 if (!el) return;
 
+                // If route not loaded yet, retry a few times before showing placeholder
+                if (!Array.isArray(santaRoute) || santaRoute.length === 0) {
+                    retries += 1;
+                    if (retries <= MAX_RETRIES) {
+                        // schedule a retry sooner than the main interval
+                        setTimeout(updateMainCountdownFallback, RETRY_DELAY_MS);
+                        return;
+                    }
+                    // exhausted retries: show placeholder until route arrives
+                    el.textContent = '--:--';
+                    return;
+                }
+
                 // Prefer an explicit North Pole anchor node (by id or START type),
                 // otherwise fall back to the first node in the route.
                 let first = null;
-                if (santaRoute && santaRoute.length > 0) {
-                    first = santaRoute.find(n => {
-                        try {
-                            const nid = String(n.id || '').toLowerCase();
-                            const ntype = String(n.type || '').toLowerCase();
-                            return nid === 'node_000_north_pole' || nid.includes('north_pole') || ntype === 'start';
-                        } catch (e) {
-                            console.debug('Failed to check for North Pole anchor node', e);
-                            return false;
-                        }
-                    }) || santaRoute[0];
-                }
+                first = santaRoute.find(n => {
+                    try {
+                        const nid = String(n.id || '').toLowerCase();
+                        const ntype = String(n.type || '').toLowerCase();
+                        return nid === 'node_000_north_pole' || nid.includes('north_pole') || ntype === 'start';
+                    } catch (e) {
+                        console.debug('Failed to check for North Pole anchor node', e);
+                        return false;
+                    }
+                }) || santaRoute[0];
 
                 let target = null;
                 if (first) {
@@ -1042,30 +1059,65 @@ async function loadSantaRoute() {
         computeAdjustedLongitudes();
 
         // Lightweight validation: ensure timestamps parse to valid Dates where present.
-        // Invalid timestamps should not throw — coerce to null and warn so tracking can continue.
+        // Do not mutate original timestamp strings (other code may expect them).
+        // Instead, attach non-destructive validation flags and warn. Also check
+        // that parsed dates are in a reasonable range (not before Unix epoch
+        // and not too far in the future).
         try {
             let sawInvalidTimestamp = false;
+            const nowTs = getNow().getTime();
+            const EARLIEST_TS = Date.UTC(1970, 0, 1); // 1970-01-01 UTC
+            const LATEST_TS = nowTs + (2 * 365 * 24 * 60 * 60 * 1000); // ~2 years in future
+
+            const validate = (raw) => {
+                if (!raw && raw !== 0) return { valid: false, date: null, reason: 'missing' };
+                const d = new Date(raw);
+                if (isNaN(d.getTime())) return { valid: false, date: null, reason: 'unparseable' };
+                const t = d.getTime();
+                if (t < EARLIEST_TS) return { valid: false, date: d, reason: 'too_old' };
+                if (t > LATEST_TS) return { valid: false, date: d, reason: 'too_far_in_future' };
+                return { valid: true, date: d, reason: null };
+            };
+
             for (let i = 0; i < santaRoute.length; i++) {
                 const item = santaRoute[i];
-                if (item.arrival_time) {
-                    const arrivalDate = new Date(item.arrival_time);
-                    if (isNaN(arrivalDate.getTime())) {
-                        console.warn(`santaRoute[${i}] has invalid arrival_time:`, item.arrival_time);
-                        item.arrival_time = null;
-                        sawInvalidTimestamp = true;
-                    }
+                // Clear any previous validation metadata added by earlier runs
+                try {
+                    delete item._arrival_time_valid;
+                } catch (e) {
+                    console.debug('Failed to delete _arrival_time_valid from item', e);
                 }
-                if (item.departure_time) {
-                    const d2 = new Date(item.departure_time);
-                    if (isNaN(d2.getTime())) {
-                        console.warn(`santaRoute[${i}] has invalid departure_time:`, item.departure_time);
-                        item.departure_time = null;
+                try {
+                    delete item._departure_time_valid;
+                } catch (e) {
+                    console.debug('Failed to delete _departure_time_valid from item', e);
+                }
+
+                if (item.arrival_time) {
+                    const res = validate(item.arrival_time);
+                    item._arrival_time_valid = !!res.valid;
+                    if (!res.valid) {
+                        console.warn(`santaRoute[${i}] has invalid arrival_time (${res.reason}):`, item.arrival_time, 'Expected ISO-8601 UTC-ish timestamp.');
                         sawInvalidTimestamp = true;
                     }
+                } else {
+                    item._arrival_time_valid = false;
+                }
+
+                if (item.departure_time) {
+                    const res2 = validate(item.departure_time);
+                    item._departure_time_valid = !!res2.valid;
+                    if (!res2.valid) {
+                        console.warn(`santaRoute[${i}] has invalid departure_time (${res2.reason}):`, item.departure_time, 'Expected ISO-8601 UTC-ish timestamp.');
+                        sawInvalidTimestamp = true;
+                    }
+                } else {
+                    item._departure_time_valid = false;
                 }
             }
+
             if (sawInvalidTimestamp) {
-                console.warn('One or more route timestamps were invalid — tracker will use best-effort fallbacks.');
+                console.warn('One or more route timestamps appear invalid or out-of-range — tracker will attempt best-effort fallbacks. Timestamps are expected to be ISO-8601 or parsable by Date constructor and within a reasonable range (>=1970, <= now+2y).');
             }
         } catch (e) {
             console.debug('Timestamp validation failed unexpectedly', e);
