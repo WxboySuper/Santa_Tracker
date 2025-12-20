@@ -22,7 +22,7 @@ let hasLiftoffOccurred = false;
 
 let santaRoute = [];
 
-// North Pole corrdinates (clamped to Leaflet-safe latitude range)
+// North Pole coordinates (clamped to Leaflet-safe latitude range)
 // Santa's North Pole latitude is 80 degrees in src/static/data/santa_route.json; use that directly.
 // Place North Pole on the dateline (180/-180) to show it at the International Date Line.
 const NORTH_POLE = { lat: 80, lng: 180 };
