@@ -64,11 +64,12 @@ function initCountdown() {
                 const ntype = String(n.type || '').toLowerCase();
                 return nid === 'node_000_north_pole' || nid.includes('north_pole') || ntype === 'start';
             } catch (e) {
+                console.debug('Error parsing route node for countdown anchor', e);
                 return false;
             }
         }) || nodes[0];
 
-        const targetRaw = anchor ? (anchor.schedule?.departure_utc || anchor.schedule?.departure_time || anchor.schedule?.arrival_utc || anchor.schedule?.arrival_time || null) : null;
+        const targetRaw = anchor ? (anchor.schedule?.departure_time || anchor.schedule?.arrival_time || anchor.schedule?.departure_utc || anchor.schedule?.arrival_utc || null) : null;
 
         if (targetRaw) {
             const targetDate = new Date(targetRaw);

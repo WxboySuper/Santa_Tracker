@@ -22,11 +22,10 @@ let hasLiftoffOccurred = false;
 
 let santaRoute = [];
 
-// North Pole coordinates (clamped to Leaflet-safe latitude range)
-// Some route data or legacy code may use extreme values; clamp to avoid Leaflet centering issues.
-const _RAW_NORTH_POLE_LAT = 90; // keep as original semantic source if needed
-// Place North Pole on the dateline (180/-180) to show it at the International Date Line
-const NORTH_POLE = { lat: Math.max(Math.min(_RAW_NORTH_POLE_LAT, 80), -80), lng: 180 };
+// North Pole corrdinates (clamped to Leaflet-safe latitude range)
+// Santa's North Pole latitude is 80 degrees in src/static/data/santa_route.json; use that directly.
+// Place North Pole on the dateline (180/-180) to show it at the International Date Line.
+const NORTH_POLE = { lat: 80, lng: 180 };
 
 // Camera controller refs (declare at module scope so other functions can access)
 let _lastZoom = null;
@@ -492,6 +491,9 @@ function initSnowfall() {
 let christmasCountdownInterval = null;
 let locationCountdownInterval = null;
 let christmasCountdownFallbackInterval = null;
+// Shared version used to avoid race conditions between multiple countdown sources.
+// Incrementing this value invalidates older fallback instances so they stop updating the DOM.
+let countdownSharedVersion = 0;
 // Enforcer to force visible countdown to anchor node departure (overrides other countdown modules)
 let forceCountdownToAnchorInterval = null;
 // Whether a CountdownModule is available (do not start it until route anchor is checked)
@@ -578,7 +580,16 @@ function initCountdowns() {
                 christmasCountdownFallbackInterval = null;
             }
 
+            // Capture the current shared version for this fallback instance. If the
+            // shared version is incremented (by the anchor enforcer), this fallback
+            // instance will stop updating the DOM to avoid races.
+            const fallbackInstanceVersion = countdownSharedVersion;
+
             const updateMainCountdownFallback = () => {
+                // If another countdown source (enforcer/module) has taken over,
+                // stop this fallback from updating the DOM.
+                if (fallbackInstanceVersion !== countdownSharedVersion) return;
+
                 const el = countdownElement;
                 if (!el) return;
 
@@ -592,6 +603,7 @@ function initCountdowns() {
                             const ntype = String(n.type || '').toLowerCase();
                             return nid === 'node_000_north_pole' || nid.includes('north_pole') || ntype === 'start';
                         } catch (e) {
+                            console.debug('Failed to check for North Pole anchor node', e);
                             return false;
                         }
                     }) || santaRoute[0];
@@ -753,6 +765,15 @@ function triggerLiftoff() {
     if (forceCountdownToAnchorInterval) {
         clearInterval(forceCountdownToAnchorInterval);
         forceCountdownToAnchorInterval = null;
+    }
+    // Stop any active countdown module so it doesn't continue updating the DOM after liftoff
+    if (christmasCountdownInterval) {
+        if (typeof christmasCountdownInterval.stop === 'function') {
+            try { christmasCountdownInterval.stop(); } catch (e) { console.debug('Failed to stop christmasCountdownInterval on liftoff', e); }
+        } else {
+            try { clearInterval(christmasCountdownInterval); } catch (e) { /* ignore */ }
+        }
+        // Do not clear the reference so preflight logic can still use getTimeData()
     }
 }
 
@@ -1127,17 +1148,55 @@ function startAnchorCountdownEnforcer(targetDate) {
         forceCountdownToAnchorInterval = null;
     }
 
+    // Increment the shared version immediately so that any running/queued fallback
+    // callbacks detect they are stale and stop updating the DOM.
+    countdownSharedVersion++;
+
     const el = document.getElementById('countdown');
     if (!el || !targetDate) return;
+
     // Stop other countdown sources to avoid conflicts
     if (christmasCountdownFallbackInterval) {
         clearInterval(christmasCountdownFallbackInterval);
         christmasCountdownFallbackInterval = null;
     }
     if (christmasCountdownInterval && typeof christmasCountdownInterval.stop === 'function') {
-        try { christmasCountdownInterval.stop(); } catch (e) { /* ignore */ }
+        try { christmasCountdownInterval.stop(); } catch (e) { console.debug('Failed to stop christmasCountdownInterval', e); }
         christmasCountdownInterval = null;
     }
+
+    // Expose a minimal Countdown-like interface so other helpers (e.g. preflight)
+    // can query current countdown state via `getCountdownTimeData()`.
+    const makeEnforcerCountdown = (target) => {
+        let stopped = false;
+        return {
+            stop() {
+                stopped = true;
+                if (forceCountdownToAnchorInterval) {
+                    clearInterval(forceCountdownToAnchorInterval);
+                    forceCountdownToAnchorInterval = null;
+                }
+            },
+            getTimeData() {
+                if (stopped || !target) return null;
+                const now = getNow();
+                const diff = target - now;
+                const isComplete = diff <= 0;
+                if (isComplete) {
+                    return { isComplete: true, days: 0, hours: 0, minutes: 0, seconds: 0 };
+                }
+                const totalSeconds = Math.floor(diff / 1000);
+                const days = Math.floor(totalSeconds / (24 * 3600));
+                const hours = Math.floor((totalSeconds % (24 * 3600)) / 3600);
+                const minutes = Math.floor((totalSeconds % 3600) / 60);
+                const seconds = totalSeconds % 60;
+                return { isComplete: false, days, hours, minutes, seconds };
+            }
+        };
+    };
+
+    // Install the enforcer countdown object so callers can query its time data.
+    christmasCountdownInterval = makeEnforcerCountdown(targetDate);
 
     const tick = () => {
         const now = getNow();
@@ -1150,8 +1209,15 @@ function startAnchorCountdownEnforcer(targetDate) {
             } catch (e) {
                 console.debug('handleCountdownUpdate failed in enforcer', e);
             }
-            clearInterval(forceCountdownToAnchorInterval);
-            forceCountdownToAnchorInterval = null;
+            // cleanup enforcer interval and stop exposed countdown
+            if (forceCountdownToAnchorInterval) {
+                clearInterval(forceCountdownToAnchorInterval);
+                forceCountdownToAnchorInterval = null;
+            }
+            if (christmasCountdownInterval && typeof christmasCountdownInterval.stop === 'function') {
+                try { christmasCountdownInterval.stop(); } catch (e) { /* ignore */ }
+            }
+            christmasCountdownInterval = null;
             return;
         }
 
@@ -1508,9 +1574,17 @@ window.addEventListener('beforeunload', () => {
         // `christmasCountdownInterval` may be a CountdownModule instance (with `stop()`),
         // or in older/fallback cases an interval id. Prefer calling `stop()` when available.
         if (typeof christmasCountdownInterval.stop === 'function') {
-            try { christmasCountdownInterval.stop(); } catch (e) { /* ignore */ }
+            try {
+                christmasCountdownInterval.stop();
+            } catch (e) {
+                console.debug('Failed to stop christmasCountdownInterval on unload', e);
+            }
         } else {
-            try { clearInterval(christmasCountdownInterval); } catch (e) { /* ignore */ }
+            try {
+                clearInterval(christmasCountdownInterval);
+            } catch (e) {
+                console.debug('Failed to clear christmasCountdownInterval on unload', e);
+            }
         }
     }
     if (christmasCountdownFallbackInterval) {
