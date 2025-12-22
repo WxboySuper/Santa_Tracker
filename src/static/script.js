@@ -5,6 +5,10 @@
 let animationInterval = null;
 // Interval for Santa movement updates
 let santaMovementInterval = null;
+// Whether the current santaMovement loop is a requestAnimationFrame (vs setInterval)
+let santaMovementIsRAF = false;
+// RAF id for real-time tracking loop
+let _realTimeRAFId = null;
 // Interval for pre-flight updates
 let preflightUpdateInterval = null;
 // Interval for weather updates (separate from other preflight updates)
@@ -38,20 +42,29 @@ let _cameraSuppressedUntil = 0;
 let pastTrail = null;
 
 // Animation constants for liftoff transition
-const LIFTOFF_FLY_ZOOM = 7;
 const LIFTOFF_FLY_DURATION = 3;
 const LIFTOFF_FLY_EASE = 0.25;
 const SANTA_MARKER_UPDATE_DELAY = 1500;
 // Weather update interval (30 minutes) - realistic weather doesn't change frequently
 const WEATHER_UPDATE_INTERVAL = 1800000;
 
+// Preflight UX tuning
+// Seconds before the anchor countdown that we switch the UI into 'live' mode
+// (show live panel / hide top-right countdown). Choose 30-60s; default 45s.
+const PRELIVE_SWITCH_SECONDS = 45;
+// Minutes before launch to mark 'Preparing for Takeoff' in the preflight panel.
+const PREPARE_WARNING_MINUTES = 30;
+// Whether to hide the main countdown in the top-right when entering live mode early
+const HIDE_COUNTDOWN_ON_LIVE = true;
+// Internal flag to avoid repeated early switches
+let _preliveSwitched = false;
+
 // Cinematic Camera Constants (shared at module scope so functions outside
 // DOMContentLoaded can reference them, e.g. liftoff logic)
 const CAMERA_ZOOM = {
     DELIVERY: 13,
     SHORT_HOP: 10,
-    LONG_HAUL: 5,
-    LAUNCH: 3
+    LONG_HAUL: 7,
 };
 
 // skipcq: JS-0241
@@ -230,20 +243,13 @@ document.addEventListener('DOMContentLoaded', function() {
             targetZoom = CAMERA_ZOOM.SHORT_HOP;
         } else if (status.status === 'In Transit') {
             // use the destination (`status.to`) transit info only
-            const nextTransit = status.to?.transit?.speed_curve ?? null;
-
-            switch (nextTransit) {
-            case 'HYPERSONIC_LONG':
-                targetZoom = CAMERA_ZOOM.LAUNCH;
-                break;
-            case 'HYPERSONIC':
-                targetZoom = CAMERA_ZOOM.LONG_HAUL;
-                break;
-            case 'REGIONAL':
-            case 'CRUISING':
-            default:
+            // Prefer explicit transit.speed_curve on the destination; otherwise
+            // estimate based on transit metadata or distance. Use computeTravelZoom
+            // to centralize this logic and ensure we don't pick a stop-level camera_zoom.
+            try {
+                targetZoom = computeTravelZoom(status.from, status.to);
+            } catch (e) {
                 targetZoom = CAMERA_ZOOM.SHORT_HOP;
-                break;
             }
         } else if (status.status === 'Completed') {
             targetZoom = CAMERA_ZOOM.DELIVERY;
@@ -288,6 +294,41 @@ document.addEventListener('DOMContentLoaded', function() {
             disableMapBoundsTemporarily(700);
             mapRef.panTo([targetPosition[0], displayLng], { animate: true, duration: 0.5 });
         }
+    }
+
+    // Compute travel zoom based on transit metadata or distance between nodes.
+    function computeTravelZoom(fromNode, toNode) {
+        // Prefer explicit speed_curve if present
+        const speedCurve = (toNode && (toNode.transit && toNode.transit.speed_curve))
+            ? String(toNode.transit.speed_curve).toUpperCase()
+            : (toNode && toNode.transit_to_here && toNode.transit_to_here.speed_curve)
+                ? String(toNode.transit_to_here.speed_curve).toUpperCase()
+                : null;
+
+        if (speedCurve === 'HYPERSONIC_LONG') return CAMERA_ZOOM.LONG_HAUL;
+        if (speedCurve === 'HYPERSONIC') return CAMERA_ZOOM.LONG_HAUL;
+        if (speedCurve === 'REGIONAL' || speedCurve === 'CRUISING') return CAMERA_ZOOM.SHORT_HOP;
+
+        // Fallback: estimate by great-circle distance
+        try {
+            if (fromNode && toNode) {
+                const R = 6371; // km
+                const lat1 = fromNode.latitude * Math.PI / 180;
+                const lat2 = toNode.latitude * Math.PI / 180;
+                const dLat = lat2 - lat1;
+                const dLng = (toNode.longitude - fromNode.longitude) * Math.PI / 180;
+                const a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng/2) * Math.sin(dLng/2);
+                const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+                const km = R * c;
+                if (km > 2000) return CAMERA_ZOOM.LONG_HAUL;
+                if (km > 500) return CAMERA_ZOOM.LONG_HAUL;
+                return CAMERA_ZOOM.SHORT_HOP;
+            }
+        } catch (e) {
+            // ignore and fall back
+        }
+
+        return CAMERA_ZOOM.SHORT_HOP;
     }
 
     // Track Santa's route for smooth animation
@@ -354,6 +395,24 @@ document.addEventListener('DOMContentLoaded', function() {
         const popupLocation = document.getElementById('popup-location');
         if (popupLocation && location) {
             popupLocation.textContent = location;
+        }
+
+        // Debug: log the current map zoom whenever Santa moves
+        try {
+            const mapRefForLog = window.trackerMap;
+            if (mapRefForLog) {
+                if (animate && typeof mapRefForLog.once === 'function') {
+                    // For animated movement, wait until the map finishes moving
+                    mapRefForLog.once('moveend', () => {
+                        try { console.log('Map zoom after santaMove (post-anim):', mapRefForLog.getZoom()); } catch (e) { /* ignore */ }
+                    });
+                } else {
+                    // Instant move — log immediately
+                    try { console.log('Map zoom after santaMove:', mapRefForLog.getZoom()); } catch (e) { /* ignore */ }
+                }
+            }
+        } catch (e) {
+            console.debug('santaMove zoom logging failed', e);
         }
     });
 
@@ -555,6 +614,42 @@ function computeAdjustedLongitudes() {
     }
 }
 
+// Compute travel zoom based on transit metadata or distance between nodes.
+// Moved to module scope so it is available to all runtime code.
+function computeTravelZoom(fromNode, toNode) {
+    // Prefer explicit speed_curve if present
+    const speedCurve = (toNode && (toNode.transit && toNode.transit.speed_curve))
+        ? String(toNode.transit.speed_curve).toUpperCase()
+        : (toNode && toNode.transit_to_here && toNode.transit_to_here.speed_curve)
+            ? String(toNode.transit_to_here.speed_curve).toUpperCase()
+            : null;
+
+    if (speedCurve === 'HYPERSONIC_LONG') return CAMERA_ZOOM.LONG_HAUL;
+    if (speedCurve === 'HYPERSONIC') return CAMERA_ZOOM.LONG_HAUL;
+    if (speedCurve === 'REGIONAL' || speedCurve === 'CRUISING') return CAMERA_ZOOM.SHORT_HOP;
+
+    // Fallback: estimate by great-circle distance
+    try {
+            if (fromNode && toNode) {
+                const R = 6371; // km
+                const lat1 = fromNode.latitude * Math.PI / 180;
+                const lat2 = toNode.latitude * Math.PI / 180;
+                const dLat = lat2 - lat1;
+                const dLng = (toNode.longitude - fromNode.longitude) * Math.PI / 180;
+                const a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng/2) * Math.sin(dLng/2);
+                const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+                const km = R * c;
+                if (km > 2000) return CAMERA_ZOOM.LONG_HAUL;
+                if (km > 500) return CAMERA_ZOOM.LONG_HAUL;
+                return CAMERA_ZOOM.SHORT_HOP;
+            }
+    } catch (e) {
+        // ignore and fall back
+    }
+
+    return CAMERA_ZOOM.SHORT_HOP;
+}
+
 // Helper function to safely get countdown time data
 function getCountdownTimeData() {
     return christmasCountdownInterval ? christmasCountdownInterval.getTimeData() : null;
@@ -678,7 +773,26 @@ function initCountdowns() {
 
 // Handle countdown updates and trigger mode transitions
 function handleCountdownUpdate(timeData) {
-    if (timeData?.isComplete && currentMode === 'preflight' && !hasLiftoffOccurred) {
+    if (!timeData) return;
+
+    // Compute remaining seconds from the Countdown-like timeData structure
+    const totalSeconds = (timeData.days || 0) * 86400 + (timeData.hours || 0) * 3600 + (timeData.minutes || 0) * 60 + (timeData.seconds || 0);
+
+    // Early UI switch: move to live panel shortly before liftoff so the page can
+    // prepare cinematic animations while still waiting for the exact timestamp.
+    if (!hasLiftoffOccurred && currentMode === 'preflight' && !_preliveSwitched) {
+        if (totalSeconds <= PRELIVE_SWITCH_SECONDS) {
+            _preliveSwitched = true;
+            updateTrackingMode(true);
+            if (HIDE_COUNTDOWN_ON_LIVE) {
+                const el = document.getElementById('countdown');
+                if (el) el.style.display = 'none';
+            }
+        }
+    }
+
+    // When the countdown reaches zero, trigger the full liftoff sequence.
+    if (timeData?.isComplete && !hasLiftoffOccurred) {
         triggerLiftoff();
     }
 }
@@ -705,6 +819,13 @@ function updateTrackingMode(isLaunched) {
             clearInterval(weatherUpdateInterval);
             weatherUpdateInterval = null;
         }
+        // Hide top-right countdown when entering live mode early
+        try {
+            const countdownEl = document.getElementById('countdown');
+            if (countdownEl && HIDE_COUNTDOWN_ON_LIVE) countdownEl.style.display = 'none';
+        } catch (e) {
+            console.debug('Failed to hide countdown on live switch', e);
+        }
     } else if (!isLaunched && currentMode === 'live') {
         currentMode = 'preflight';
 
@@ -714,6 +835,13 @@ function updateTrackingMode(isLaunched) {
 
         // Start pre-flight updates
         startPreflightUpdates();
+        // Restore countdown visibility when returning to preflight
+        try {
+            const countdownEl = document.getElementById('countdown');
+            if (countdownEl) countdownEl.style.display = 'block';
+        } catch (e) {
+            console.debug('Failed to restore countdown on preflight switch', e);
+        }
     }
 }
 
@@ -727,23 +855,55 @@ function triggerLiftoff() {
     // Update mode
     updateTrackingMode(true);
 
-    // Animate map to first destination
+    // Ensure real-time tracking loop starts immediately after switching to live
+    try { startRealTimeTracking(); } catch (e) { console.debug('startRealTimeTracking failed', e); }
+
+    // Animate map to the first real destination (node after anchor)
     if (santaRoute.length > 0 && window.trackerMap) {
-        const firstStop = santaRoute[0];
         const mapRef = window.trackerMap;
 
-        // Fly from North Pole to first stop using display-adjusted longitude
-        const displayLng = getDisplayLng(firstStop.longitude);
-        // Use cinematic LAUNCH zoom (if available) to start more zoomed-out for liftoff
-        const launchZoom = (typeof CAMERA_ZOOM !== 'undefined' && CAMERA_ZOOM.LAUNCH) ? CAMERA_ZOOM.LAUNCH : LIFTOFF_FLY_ZOOM;
-        mapRef.flyTo([firstStop.latitude, displayLng], launchZoom, {
+        // Find anchor index (START or north pole node). Prefer explicit START type.
+        const anchorIndex = santaRoute.findIndex(n => {
+            try {
+                const nid = String(n.id || '').toLowerCase();
+                const ntype = String(n.type || '').toLowerCase();
+                return ntype === 'start' || nid === 'node_000_north_pole' || nid.includes('north_pole');
+            } catch (e) { return false; }
+        });
+
+        // Destination should be the node after the anchor when available, otherwise the first non-anchor node.
+        let destNode = null;
+        if (anchorIndex !== -1 && anchorIndex + 1 < santaRoute.length) destNode = santaRoute[anchorIndex + 1];
+        if (!destNode) destNode = santaRoute.find((_, i) => i !== anchorIndex) || santaRoute[0];
+
+        // Compute display longitude and use the same travel-based zoom logic
+        // as during normal in-transit updates. This removes any special-case
+        // "launch" zoom and keeps liftoff framing consistent with long-haul.
+        const displayLng = getDisplayLng(destNode.longitude);
+        let travelZoom = null;
+        try {
+            const anchorNode = (anchorIndex !== -1) ? santaRoute[anchorIndex] : null;
+            travelZoom = computeTravelZoom(anchorNode, destNode);
+        } catch (e) {
+            travelZoom = CAMERA_ZOOM.LONG_HAUL || 7;
+        }
+        try { console.log('Liftoff travel zoom:', travelZoom); } catch (e) { /* ignore */ }
+
+        mapRef.flyTo([destNode.latitude, displayLng], travelZoom, {
             duration: LIFTOFF_FLY_DURATION,
             easeLinearity: LIFTOFF_FLY_EASE
         });
 
-        // Mark camera as animating to prevent the cinematic controller from fighting the liftoff flyTo
+        // Ensure cinematic controller doesn't immediately override the requested zoom
+        _lastZoom = travelZoom;
+
+        try {
+            mapRef.once && mapRef.once('moveend', function() {
+                try { console.log('Map zoom after flyTo:', mapRef.getZoom()); } catch (e) { /* ignore */ }
+            });
+        } catch (e) { /* ignore */ }
+
         _isCameraAnimating = true;
-        _lastZoom = (typeof CAMERA_ZOOM !== 'undefined' && CAMERA_ZOOM.LAUNCH) ? CAMERA_ZOOM.LAUNCH : LIFTOFF_FLY_ZOOM;
         if (_cameraAnimationTimeout) {
             clearTimeout(_cameraAnimationTimeout);
             _cameraAnimationTimeout = null;
@@ -753,24 +913,11 @@ function triggerLiftoff() {
             _cameraAnimationTimeout = null;
         }, LIFTOFF_FLY_DURATION * 1000 + 150);
 
-        // Suppress cinematic zooms for a short time after liftoff
         _cameraSuppressedUntil = Date.now() + (LIFTOFF_FLY_DURATION * 1000 + 1000);
 
-        // Update Santa marker position (tracked for cleanup)
-        if (window.santaMarker) {
-            santaMarkerTimeoutId = setTimeout(() => {
-                if (currentMode === 'live' && window.santaMarker) {
-                    window.santaMarker.setLatLng([firstStop.latitude, displayLng]);
-                    // also add liftoff first stop to the trail using display-adjusted longitude
-                    try {
-                        const displayLngForTrail = getDisplayLng(firstStop.longitude);
-                        if (pastTrail) pastTrail.addLatLng([firstStop.latitude, displayLngForTrail]);
-                    } catch (e) {
-                        // ignore
-                    }
-                }
-            }, SANTA_MARKER_UPDATE_DELAY);
-        }
+        // Do not force the Santa marker to the destination here. Let the
+        // real-time tracking loop and regular animation pipeline move the
+        // marker smoothly along the transit path to avoid teleportation.
     }
 
     // Clear fallback countdown if it was running
@@ -793,6 +940,8 @@ function triggerLiftoff() {
         // Do not clear the reference so preflight logic can still use getTimeData()
     }
 }
+
+// removed computeLaunchZoom: liftoff uses travel-based zoom (LONG_HAUL) exclusively
 
 // Show liftoff toast notification
 function showLiftoffToast() {
@@ -871,11 +1020,14 @@ function updatePreflightStatus() {
     let progressIndex = 0;
 
     if (timeData && !timeData.isComplete) {
-        // Calculate progress based on time remaining (closer to launch = higher index)
-        if (timeData.days <= 1) progressIndex = 4;
-        else if (timeData.days <= 3) progressIndex = 3;
-        else if (timeData.days <= 7) progressIndex = 2;
-        else if (timeData.days <= 14) progressIndex = 1;
+        // Calculate progress based on time remaining (closer to launch = higher index).
+        // Use minute-based thresholds so the 'Preparing' state occurs closer to launch
+        // (e.g., within PREPARE_WARNING_MINUTES).
+        const totalMinutes = (timeData.days || 0) * 1440 + (timeData.hours || 0) * 60 + (timeData.minutes || 0);
+        if (totalMinutes <= PREPARE_WARNING_MINUTES) progressIndex = 4;
+        else if (totalMinutes <= PREPARE_WARNING_MINUTES * 2) progressIndex = 3;
+        else if (totalMinutes <= 60 * 24 * 7) progressIndex = 2;
+        else if (totalMinutes <= 60 * 24 * 14) progressIndex = 1;
         else progressIndex = 0;
     }
 
@@ -892,9 +1044,11 @@ function updatePreflightStatus() {
     }
 
     // Update status indicator based on progress
+    // TODO: Make the "Preparing for Takeoff" occur closer to launch (e.g., 10-30 minutes before)
     const statusEl = document.getElementById('preflight-status');
     if (statusEl && timeData) {
-        if (timeData.days <= 1) {
+        const totalMinutes = (timeData.days || 0) * 1440 + (timeData.hours || 0) * 60 + (timeData.minutes || 0);
+        if (totalMinutes <= PREPARE_WARNING_MINUTES) {
             statusEl.innerHTML = '<span class="status-indicator status-flying"></span> Preparing for Takeoff';
         } else {
             statusEl.innerHTML = '<span class="status-indicator status-grounded"></span> Grounded';
@@ -1253,14 +1407,40 @@ function startAnchorCountdownEnforcer(targetDate) {
     const tick = () => {
         const now = getNow();
         const diff = targetDate - now;
+        // Build timeData via the exposed enforcer interface when available so
+        // caller-side handlers (e.g. handleCountdownUpdate) receive regular
+        // updates and can perform early live-switch logic.
+        const timeDataObj = (christmasCountdownInterval && typeof christmasCountdownInterval.getTimeData === 'function')
+            ? christmasCountdownInterval.getTimeData()
+            : null;
+
+        if (timeDataObj) {
+            try { handleCountdownUpdate(timeDataObj); } catch (e) { console.debug('handleCountdownUpdate failed in enforcer', e); }
+        }
+
+        // Debug: log planned liftoff zoom/source each tick so we can observe changes
+        try {
+            // Determine destination after anchor
+            const anchorIndex = santaRoute.findIndex(n => {
+                try {
+                    const nid = String(n.id || '').toLowerCase();
+                    const ntype = String(n.type || '').toLowerCase();
+                    return nid === 'node_000_north_pole' || nid.includes('north_pole') || ntype === 'start';
+                } catch (e) { return false; }
+            });
+            const dest = (anchorIndex !== -1 && anchorIndex + 1 < santaRoute.length) ? santaRoute[anchorIndex + 1] : (santaRoute.length > 1 ? santaRoute[1] : santaRoute[0]);
+            let plannedZoom = CAMERA_ZOOM.LONG_HAUL;
+            try {
+                const anchorNode = (anchorIndex !== -1) ? santaRoute[anchorIndex] : null;
+                plannedZoom = computeTravelZoom(anchorNode, dest);
+            } catch (e) { /* ignore */ }
+            console.log('Planned liftoff zoom (tick):', plannedZoom, 'source:travel');
+        } catch (e) {
+            // ignore
+        }
+
         if (diff <= 0) {
             el.textContent = '00:00:00';
-            // Notify the existing handler so liftoff will trigger if applicable
-            try {
-                handleCountdownUpdate({ isComplete: true });
-            } catch (e) {
-                console.debug('handleCountdownUpdate failed in enforcer', e);
-            }
             // cleanup enforcer interval and stop exposed countdown
             if (forceCountdownToAnchorInterval) {
                 clearInterval(forceCountdownToAnchorInterval);
@@ -1306,12 +1486,17 @@ function interpolatePosition(loc1, loc2, currentTime) {
 
     // Calculate progress between 0 and 1
     const totalDuration = arrival - departure;
-    if (totalDuration <= 0) {
-        // Instant transition or invalid timestamps
-        return [loc2.latitude, loc2.longitude];
+    // Guard against malformed schedules where arrival <= departure which causes
+    // instant teleport jumps. Use a small fallback duration so interpolation
+    // produces a short smooth transit rather than a teleport.
+    let adjustedTotalDuration = totalDuration;
+    if (adjustedTotalDuration <= 0) {
+        // 1s fallback
+        adjustedTotalDuration = 1000;
+        console.warn('interpolatePosition: non-positive totalDuration, using fallback 1000ms', { departure, arrival, loc1, loc2 });
     }
     const elapsed = now - departure;
-    const progress = Math.max(0, Math.min(1, elapsed / totalDuration));
+    const progress = Math.max(0, Math.min(1, elapsed / adjustedTotalDuration));
 
     // Ensure numeric coordinates
     const lat1 = Number(loc1.latitude);
@@ -1417,16 +1602,38 @@ function getSantaStatus() {
     for (let i = 0; i < santaRoute.length; i++) {
         const location = santaRoute[i];
 
-        // Validate arrival_time and departure_time
-        if (!location.arrival_time || !location.departure_time) {
-            console.warn(`Location at index ${i} missing required timestamps`);
-            continue;
+        // Validate timestamps. The first location (anchor/North Pole) is allowed
+        // to omit `arrival_time` (it represents Santa already at the workshop).
+        // For index 0 require at minimum a valid `departure_time`; other
+        // locations require both arrival and departure times.
+        const hasArrival = Boolean(location.arrival_time);
+        const hasDeparture = Boolean(location.departure_time);
+
+        if (i === 0) {
+            if (!hasDeparture) {
+                console.warn(`Location at index ${i} missing required departure_time`);
+                continue;
+            }
+        } else {
+            if (!hasArrival || !hasDeparture) {
+                console.warn(`Location at index ${i} missing required timestamps`);
+                continue;
+            }
         }
-        const arrivalTime = adjustTimestampToCurrentYear(location.arrival_time);
-        const departureTime = adjustTimestampToCurrentYear(location.departure_time);
-        if (!arrivalTime || !departureTime) {
-            console.warn(`Location at index ${i} has invalid timestamps`);
-            continue;
+
+        const arrivalTime = hasArrival ? adjustTimestampToCurrentYear(location.arrival_time) : null;
+        const departureTime = hasDeparture ? adjustTimestampToCurrentYear(location.departure_time) : null;
+
+        if (i === 0) {
+            if (!departureTime) {
+                console.warn(`Location at index ${i} has invalid departure_time`);
+                continue;
+            }
+        } else {
+            if (!arrivalTime || !departureTime) {
+                console.warn(`Location at index ${i} has invalid timestamps`);
+                continue;
+            }
         }
 
         // Santa is "Landed" if current time is between arrival and departure
@@ -1480,16 +1687,42 @@ function getSantaStatus() {
 // Start real-time tracking based on timestamps
 function startRealTimeTracking() {
     // Only update in live mode
-    if (currentMode === 'live') {
-        updateSantaPosition();
+    if (currentMode !== 'live') return;
+
+    // Cancel any existing loop (interval or RAF)
+    if (santaMovementInterval) {
+        if (santaMovementIsRAF) {
+            cancelAnimationFrame(santaMovementInterval);
+        } else {
+            clearInterval(santaMovementInterval);
+        }
+        santaMovementInterval = null;
+        santaMovementIsRAF = false;
     }
 
-    // Update every 5 seconds for smooth tracking
-    santaMovementInterval = setInterval(() => {
-        if (currentMode === 'live') {
-            updateSantaPosition();
+    // Use requestAnimationFrame for smooth, frame-synced updates.
+    // Throttle to ~30fps to reduce work while still being smooth.
+    const FRAME_MS = 33;
+    let lastFrame = performance.now();
+
+    function step(ts) {
+        const elapsed = ts - lastFrame;
+        if (elapsed >= FRAME_MS) {
+            lastFrame = ts;
+            try {
+                updateSantaPosition();
+            } catch (e) {
+                console.error('Error in real-time tracking step', e);
+            }
         }
-    }, 5000);
+        const rafId = requestAnimationFrame(step);
+        santaMovementInterval = rafId;
+        santaMovementIsRAF = true;
+    }
+
+    const rafId = requestAnimationFrame(step);
+    santaMovementInterval = rafId;
+    santaMovementIsRAF = true;
 }
 
 // Update Santa's position based on current time and route data
@@ -1620,7 +1853,13 @@ function simulateSantaMovement() {
 // Cleanup function for page unload
 window.addEventListener('beforeunload', () => {
     if (santaMovementInterval) {
-        clearInterval(santaMovementInterval);
+        if (santaMovementIsRAF) {
+            try { cancelAnimationFrame(santaMovementInterval); } catch (e) { /* ignore */ }
+        } else {
+            try { clearInterval(santaMovementInterval); } catch (e) { /* ignore */ }
+        }
+        santaMovementInterval = null;
+        santaMovementIsRAF = false;
     }
     if (christmasCountdownInterval) {
         // `christmasCountdownInterval` may be a CountdownModule instance (with `stop()`),
