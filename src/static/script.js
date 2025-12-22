@@ -82,626 +82,626 @@ document.addEventListener('DOMContentLoaded', function() {
     console.debug && console.debug('Tracker DOMContentLoaded start');
     try {
     // Initialize snowfall effect
-    initSnowfall();
+        initSnowfall();
 
-    // Initialize countdown timers first (independent of map)
-    initCountdowns();
+        // Initialize countdown timers first (independent of map)
+        initCountdowns();
 
-    // Create and show a full-screen loading overlay while map and route initialize
-    function createFullScreenOverlay() {
-        let ov = document.getElementById('global-map-loading-overlay');
-        if (ov) return ov;
-        ov = document.createElement('div');
-        ov.id = 'global-map-loading-overlay';
-        Object.assign(ov.style, {
-            position: 'fixed',
-            left: '0',
-            top: '0',
-            width: '100vw',
-            height: '100vh',
-            background: '#08101a',
-            color: '#fff',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 2147483647,
-            pointerEvents: 'auto'
-        });
-        ov.innerHTML = '<div style="text-align:center;"><div style="font-size:18px;margin-bottom:8px">Preparing Santa Tracker…</div><div style="width:40px;height:40px;border:4px solid #fff;border-top-color:transparent;border-radius:50%;animation:spin 1s linear infinite"></div></div>';
-        const styleEl = document.createElement('style');
-        // mark the style block so we can remove it when hiding the overlay
-        styleEl.id = 'global-map-loading-overlay-style';
-        // enforce full opacity, stacking and pointer behavior via CSS !important
-        styleEl.textContent = '\n@keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}\n#global-map-loading-overlay{position:fixed!important;inset:0!important;width:100vw!important;height:100vh!important;background:#08101a!important;color:#fff!important;display:flex!important;align-items:center;justify-content:center!important;z-index:2147483647!important;pointer-events:auto!important;opacity:1!important;mix-blend-mode:normal!important}\n#global-map-loading-overlay .loader{width:40px;height:40px;border:4px solid #fff;border-top-color:transparent;border-radius:50%;animation:spin 1s linear infinite}\n';
-        document.head.appendChild(styleEl);
-        // remember the style id on the element for easier cleanup
-        try { ov.__styleElId = styleEl.id; } catch (e) { /* ignore */ }
-        // Always append to body as last child so fixed overlay sits above map panes
-        document.body.appendChild(ov);
-        try { console.debug && console.debug('createFullScreenOverlay: appended overlay to body'); } catch (e) {}
-        return ov;
-    }
+        // Create and show a full-screen loading overlay while map and route initialize
+        const createFullScreenOverlay = () => {
+            let ov = document.getElementById('global-map-loading-overlay');
+            if (ov) return ov;
+            ov = document.createElement('div');
+            ov.id = 'global-map-loading-overlay';
+            Object.assign(ov.style, {
+                position: 'fixed',
+                left: '0',
+                top: '0',
+                width: '100vw',
+                height: '100vh',
+                background: '#08101a',
+                color: '#fff',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                zIndex: 2147483647,
+                pointerEvents: 'auto'
+            });
+            ov.innerHTML = '<div style="text-align:center;"><div style="font-size:18px;margin-bottom:8px">Preparing Santa Tracker…</div><div style="width:40px;height:40px;border:4px solid #fff;border-top-color:transparent;border-radius:50%;animation:spin 1s linear infinite"></div></div>';
+            const styleEl = document.createElement('style');
+            // mark the style block so we can remove it when hiding the overlay
+            styleEl.id = 'global-map-loading-overlay-style';
+            // enforce full opacity, stacking and pointer behavior via CSS !important
+            styleEl.textContent = '\n@keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}\n#global-map-loading-overlay{position:fixed!important;inset:0!important;width:100vw!important;height:100vh!important;background:#08101a!important;color:#fff!important;display:flex!important;align-items:center;justify-content:center!important;z-index:2147483647!important;pointer-events:auto!important;opacity:1!important;mix-blend-mode:normal!important}\n#global-map-loading-overlay .loader{width:40px;height:40px;border:4px solid #fff;border-top-color:transparent;border-radius:50%;animation:spin 1s linear infinite}\n';
+            document.head.appendChild(styleEl);
+            // remember the style id on the element for easier cleanup
+            try { ov.__styleElId = styleEl.id; } catch (e) { /* ignore */ void 0; }
+            // Always append to body as last child so fixed overlay sits above map panes
+            document.body.appendChild(ov);
+            try { console.debug && console.debug('createFullScreenOverlay: appended overlay to body'); } catch (e) { void 0; }
+            return ov;
+        };
 
-    function showFullScreenOverlay() {
-        if (typeof _overlayHidden !== 'undefined' && _overlayHidden) return; // do not re-show after we've hidden once
-        const ov = createFullScreenOverlay();
-        if (ov) {
+        const showFullScreenOverlay = () => {
+            if (typeof _overlayHidden !== 'undefined' && _overlayHidden) return; // do not re-show after we've hidden once
+            const ov = createFullScreenOverlay();
+            if (ov) {
             // move to end of body to ensure top stacking
-            try { document.body.appendChild(ov); } catch (e) { /* ignore */ }
-            ov.style.display = 'flex';
-            // record show time so we can enforce minimum display duration
-            try { ov.__shownAt = Date.now(); } catch (e) { /* ignore */ }
-            try { console.debug && console.debug('showFullScreenOverlay: shown'); } catch (e) {}
-            // Watchdog: ensure overlay doesn't block the UI indefinitely
-            setTimeout(() => {
-                try {
-                    const stillVisible = (document.getElementById('global-map-loading-overlay') && document.getElementById('global-map-loading-overlay').style.display !== 'none');
-                    if (stillVisible && !(_overlayHidden)) {
-                        console.warn && console.warn('global-map-loading-overlay still visible after 10s — forcing hide to avoid blocking UI');
-                        try { 
+                try { document.body.appendChild(ov); } catch (e) { /* ignore */ void 0; }
+                ov.style.display = 'flex';
+                // record show time so we can enforce minimum display duration
+                try { ov.__shownAt = Date.now(); } catch (e) { /* ignore */ void 0; }
+                try { console.debug && console.debug('showFullScreenOverlay: shown'); } catch (e) { void 0; }
+                // Watchdog: ensure overlay doesn't block the UI indefinitely
+                setTimeout(() => {
+                    try {
+                        const stillVisible = (document.getElementById('global-map-loading-overlay') && document.getElementById('global-map-loading-overlay').style.display !== 'none');
+                        if (stillVisible && !(_overlayHidden)) {
+                            console.warn && console.warn('global-map-loading-overlay still visible after 10s — forcing hide to avoid blocking UI');
+                            try { 
                             // Force hide both overlays and mark overlay as hidden to avoid re-showing
-                            if (typeof _overlayHidden === 'undefined' || !_overlayHidden) _overlayHidden = true;
-                            try { hideFullScreenOverlay(); } catch (e) { /* ignore */ }
-                            try { hideMapLoadingOverlay(); } catch (e) { /* ignore */ }
-                        } catch (e) { /* ignore */ }
-                    }
-                } catch (e) { /* ignore */ }
-            }, 10000);
-        }
-    }
-
-    function hideFullScreenOverlay() {
-        const ov = document.getElementById('global-map-loading-overlay');
-        if (!ov) return;
-        const MIN_MS = 1200; // ensure overlay visible at least this long
-        try {
-            const shownAt = ov.__shownAt || 0;
-            const elapsed = Date.now() - shownAt;
-            if (elapsed < MIN_MS) {
-                setTimeout(() => { try { ov.style.display = 'none'; } catch (e) {} }, MIN_MS - elapsed);
-                return;
+                                if (typeof _overlayHidden === 'undefined' || !_overlayHidden) _overlayHidden = true;
+                                try { hideFullScreenOverlay(); } catch (e) { /* ignore */ void 0; }
+                                try { hideMapLoadingOverlay(); } catch (e) { /* ignore */ void 0; }
+                            } catch (e) { /* ignore */ void 0; }
+                        }
+                    } catch (e) { /* ignore */ void 0; }
+                }, 10000);
             }
-        } catch (e) { /* ignore */ }
-        try {
+        };
+
+        const hideFullScreenOverlay = () => {
+            const ov = document.getElementById('global-map-loading-overlay');
+            if (!ov) return;
+            const MIN_MS = 1200; // ensure overlay visible at least this long
+            try {
+                const shownAt = ov.__shownAt || 0;
+                const elapsed = Date.now() - shownAt;
+                if (elapsed < MIN_MS) {
+                    setTimeout(() => { try { ov.style.display = 'none'; } catch (e) { void 0; } }, MIN_MS - elapsed);
+                    return;
+                }
+            } catch (e) { /* ignore */ void 0; }
+            try {
             // Some stylesheet rules use `display: flex !important` which can
             // override normal inline styles. Use setProperty with `important`
             // to ensure the overlay actually hides.
-            ov.style.setProperty('display', 'none', 'important');
-        } catch (e) {
-            try { ov.style.display = 'none'; } catch (e) { /* ignore */ }
-        }
-        // As a final fallback, remove the element from DOM so it cannot block UI.
-        try { if (ov.parentNode) ov.parentNode.removeChild(ov); } catch (e) { /* ignore */ }
+                ov.style.setProperty('display', 'none', 'important');
+            } catch (e) {
+                try { ov.style.display = 'none'; } catch (e) { /* ignore */ void 0; }
+            }
+            // As a final fallback, remove the element from DOM so it cannot block UI.
+            try { if (ov.parentNode) ov.parentNode.removeChild(ov); } catch (e) { /* ignore */ void 0; }
 
-        // Remove any style blocks we added for the overlay (old pages may have
-        // appended multiple). Prefer the named style id when available.
-        try {
-            const named = document.getElementById('global-map-loading-overlay-style');
-            if (named && named.parentNode) named.parentNode.removeChild(named);
-        } catch (e) { /* ignore */ }
-        try {
-            // Fallback: remove any <style> that contains the overlay rule.
-            const styles = Array.from(document.head.querySelectorAll('style'));
-            styles.forEach(s => {
-                try {
-                    if (s.textContent && s.textContent.indexOf('#global-map-loading-overlay') !== -1) {
-                        if (s.parentNode) s.parentNode.removeChild(s);
-                    }
-                } catch (e) { /* ignore */ }
-            });
-        } catch (e) { /* ignore */ }
-
-        // Mark overlay hidden so other logic won't re-show it.
-        try { _overlayHidden = true; } catch (e) { /* ignore */ }
-
-        try { console.debug && console.debug('hideFullScreenOverlay: hidden', { mapTilesReady: _mapTilesReady, routeReady: _routeReady, overlayHiddenFlag: _overlayHidden }); } catch (e) {}
-    }
-
-    // Immediately show global overlay to block UI while initializing
-    showFullScreenOverlay();
-
-    // Check if Leaflet is loaded before initializing map
-    if (typeof L === 'undefined') {
-        console.error('Leaflet library not loaded. Map functionality will be disabled.');
-        try { hideFullScreenOverlay(); } catch (e) { /* ignore */ }
-        return;
-    }
-
-    // Initialize map with festive theme - start at North Pole for pre-flight
-    // skipcq: JS-0125
-    const map = L.map('map', {
-        center: [NORTH_POLE.lat, NORTH_POLE.lng],
-        zoom: 3,
-        zoomControl: true,
-        scrollWheelZoom: true,
-        attributionControl: true,
-        // prefer canvas for better compositing when animating
-        preferCanvas: true,
-        // Match route-editor: allow multiple world copies horizontally and keep stable coords
-        worldCopyJump: false,
-        // Wide longitudinal bounds to allow smooth wrapping without snapping
-        maxBounds: [[-85, -540], [85, 540]],
-        maxBoundsViscosity: 0.9
-    });
-
-    // Store map reference globally for mode transitions
-    window.trackerMap = map;
-
-    // Debug instrumentation: log zoom/move events and wrap common camera methods
-    try {
-        // Log major map events with zoom and center for tracing unexpected changes
-        // map event logging removed in production to reduce console noise
-        map.on && map.on('zoomstart zoomend movestart moveend', function (e) { /* instrumentation removed */ });
-
-        // Monkey-patch flyTo / panTo / setView to log requested zooms and centers
-            if (typeof map.flyTo === 'function') {
-            const _origFlyTo = map.flyTo.bind(map);
-            map.flyTo = function (center, zoom, options) {
-                return _origFlyTo(center, zoom, options);
-            };
-        }
-        if (typeof map.panTo === 'function') {
-            const _origPanTo = map.panTo.bind(map);
-            map.panTo = function (center, options) {
-                return _origPanTo(center, options);
-            };
-        }
-        if (typeof map.setView === 'function') {
-            const _origSetView = map.setView.bind(map);
-            map.setView = function (center, zoom, options) {
-                return _origSetView(center, zoom, options);
-            };
-        }
-    } catch (e) {
-        console.debug('Map instrumentation failed', e);
-    }
-
-    // Add Carto Voyager tiles (colorful, readable)
-    // skipcq: JS-0125
-    const tileLayerUrl = 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
-    const tileLayerOpts = {
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
-        maxZoom: 19,
-        minZoom: 2,
-        subdomains: 'abcd',
-        // allow tiles to repeat horizontally for world copies
-        noWrap: false
-    };
-    // Improve tile rendering stability to reduce seam flicker and keep some buffer
-    tileLayerOpts.keepBuffer = tileLayerOpts.keepBuffer || 2;
-    tileLayerOpts.detectRetina = tileLayerOpts.detectRetina || (window.devicePixelRatio > 1);
-    // Prefer updating tiles when idle to avoid continuous reloads during animations/pans
-    tileLayerOpts.updateWhenIdle = true;
-
-    const tileLayer = L.tileLayer(tileLayerUrl, tileLayerOpts).addTo(map);
-
-    // Map loading overlay helpers (use module-scope flags declared above)
-    _mapTilesReady = false;
-    _routeReady = false;
-    _routeLoadedEmitted = false;
-    _overlayHidden = false;
-    // Ensure we only run the aggressive leftover cleanup once
-    let _leftoverOverlayCleanupDone = false;
-
-    function createMapLoadingOverlay() {
-        const container = map.getContainer();
-        if (!container) return null;
-        let overlay = container.querySelector('#map-loading-overlay');
-        if (overlay) return overlay;
-        overlay = document.createElement('div');
-        overlay.id = 'map-loading-overlay';
-        Object.assign(overlay.style, {
-            position: 'absolute',
-            left: '0',
-            top: '0',
-            right: '0',
-            bottom: '0',
-            background: 'rgba(8,12,20,0.75)',
-            color: '#fff',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 650,
-            fontSize: '1.1rem'
-        });
-        overlay.innerHTML = '<div style="text-align:center;"><div style="margin-bottom:8px">Loading map…</div><div class="loader" style="width:36px;height:36px;border:4px solid #fff;border-top-color:transparent;border-radius:50%;animation:spin 1s linear infinite"></div></div>';
-        // minimal spinner keyframes + tile rendering helper CSS to reduce seams
-        const styleEl = document.createElement('style');
-        styleEl.id = 'map-loading-overlay-style';
-        styleEl.textContent = '@keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}} .leaflet-container .leaflet-tile { background-color: transparent; } .leaflet-container { -webkit-backface-visibility: hidden; backface-visibility: hidden; } .leaflet-tile { image-rendering: -webkit-optimize-contrast; image-rendering: optimizeQuality; }';
-        document.head.appendChild(styleEl);
-        try { overlay.__mapStyleElId = styleEl.id; } catch (e) { /* ignore */ }
-        container.style.position = container.style.position || 'relative';
-        container.appendChild(overlay);
-        return overlay;
-    }
-
-    function showMapLoadingOverlay() {
-        // Prefer global full-screen overlay for blocking; keep map-local overlay as fallback
-        try { showFullScreenOverlay(); } catch (e) { /* ignore */ }
-        const ov = createMapLoadingOverlay();
-        if (ov) ov.style.display = 'flex';
-    }
-
-    function hideMapLoadingOverlay() {
-        try { console.debug && console.debug('hideMapLoadingOverlay: entering', { mapTilesReady: _mapTilesReady, routeReady: _routeReady, overlayHiddenFlag: _overlayHidden }); } catch (e) {}
-        try { hideFullScreenOverlay(); } catch (e) { /* ignore */ }
-        const container = map.getContainer();
-        if (!container) return;
-        const ov = container.querySelector('#map-loading-overlay');
-        if (ov) {
-            try { ov.style.setProperty('display', 'none', 'important'); } catch (e) { try { ov.style.display = 'none'; } catch (e) {} }
-            try { if (ov.__mapStyleElId) { const s = document.getElementById(ov.__mapStyleElId); if (s && s.parentNode) s.parentNode.removeChild(s); } } catch (e) { /* ignore */ }
+            // Remove any style blocks we added for the overlay (old pages may have
+            // appended multiple). Prefer the named style id when available.
             try {
-                // Fallback: remove any style that mentions .leaflet-tile (our injected helper)
+                const named = document.getElementById('global-map-loading-overlay-style');
+                if (named && named.parentNode) named.parentNode.removeChild(named);
+            } catch (e) { /* ignore */ void 0; }
+            try {
+            // Fallback: remove any <style> that contains the overlay rule.
                 const styles = Array.from(document.head.querySelectorAll('style'));
                 styles.forEach(s => {
-                    try { if (s.textContent && s.textContent.indexOf('.leaflet-tile') !== -1) { if (s.parentNode) s.parentNode.removeChild(s); } } catch (e) {}
-                });
-            } catch (e) { /* ignore */ }
-        }
-        try { console.debug && console.debug('hideMapLoadingOverlay: hid map-local overlay and requested full-screen hide'); } catch (e) {}
-        // Run aggressive cleanup after a short delay to catch any reinjected styles/elements
-        try {
-            if (!_leftoverOverlayCleanupDone) {
-                setTimeout(() => { try { removeLeftoverOverlays(); } catch (e) {} }, 80);
-                // also run slightly later in case other scripts re-insert overlays
-                setTimeout(() => { try { removeLeftoverOverlays(); } catch (e) {} }, 450);
-            }
-        } catch (e) { /* ignore */ }
-    }
-
-    // Aggressive removal of any leftover overlay elements or style blocks that
-    // might have been missed by the normal hide logic. This is a safe, one-time
-    // cleanup to ensure the UI is unblocked even if another script re-inserts
-    // a blocking overlay element.
-    function removeLeftoverOverlays() {
-        try {
-            if (_leftoverOverlayCleanupDone) return;
-            _leftoverOverlayCleanupDone = true;
-
-            try {
-                ['global-map-loading-overlay', 'map-loading-overlay'].forEach(id => {
-                    const el = document.getElementById(id);
-                    if (el && el.parentNode) {
-                        try { el.parentNode.removeChild(el); } catch (e) { /* ignore */ }
-                    }
-                });
-            } catch (e) { /* ignore */ }
-
-            // Remove named style elements we created earlier
-            try {
-                const ids = ['global-map-loading-overlay-style', 'map-loading-overlay-style'];
-                ids.forEach(sid => {
                     try {
-                        const s = document.getElementById(sid);
-                        if (s && s.parentNode) s.parentNode.removeChild(s);
-                    } catch (e) { /* ignore */ }
-                });
-            } catch (e) { /* ignore */ }
-
-            // Fallback: remove any full-viewport fixed element that contains our
-            // overlay text or spinner markup to be conservative.
-            try {
-                const candidates = Array.from(document.body.querySelectorAll('div'));
-                candidates.forEach(d => {
-                    try {
-                        const cs = window.getComputedStyle(d);
-                        const isFull = (cs.position === 'fixed' || cs.position === 'absolute') && (Math.abs(d.offsetWidth - window.innerWidth) <= 2) && (Math.abs(d.offsetHeight - window.innerHeight) <= 2);
-                        if (!isFull) return;
-                        const text = (d.textContent || '').toLowerCase();
-                        if (text.includes('preparing santa tracker') || text.includes('loading map')) {
-                            if (d.parentNode) d.parentNode.removeChild(d);
+                        if (s.textContent && s.textContent.indexOf('#global-map-loading-overlay') !== -1) {
+                            if (s.parentNode) s.parentNode.removeChild(s);
                         }
-                    } catch (e) { /* ignore */ }
+                    } catch (e) { /* ignore */ void 0; }
                 });
-            } catch (e) { /* ignore */ }
+            } catch (e) { /* ignore */ void 0; }
 
-            try { console.debug && console.debug('removeLeftoverOverlays: completed cleanup'); } catch (e) {}
-        } catch (e) { /* ignore */ }
-    }
+            // Mark overlay hidden so other logic won't re-show it.
+            try { _overlayHidden = true; } catch (e) { /* ignore */ void 0; }
 
-    // Show overlay initially until tiles + route finish loading
-    showMapLoadingOverlay();
-
-    // Tile layer events: hide overlay only after both tiles and route are ready
-    try {
-        // Only listen for the tile 'load' event to know when the base layer finished
-        // loading initially. Do NOT show the overlay on each tilestart (removes
-        // the transient transparent overlay when users zoom/pan).
-        tileLayer.on('load', function() {
-            try { console.debug && console.debug('tileLayer: load event'); } catch (e) {}
-            if (_mapTilesReady) {
-                try { console.debug && console.debug('tileLayer: load event ignored (already ready)'); } catch (e) {}
-                return; // only handle first load
-            }
-            _mapTilesReady = true;
-            try { console.debug && console.debug('tileLayer: setting _mapTilesReady = true', { mapTilesReady: _mapTilesReady, routeReady: _routeReady }); } catch (e) {}
-            // If route already ready and we've aligned the initial view, hide overlays
-            if (_routeReady && _initialViewAligned) {
-                try { console.debug && console.debug('tileLayer: both ready and aligned -> scheduling hideMapLoadingOverlay'); } catch (e) {}
-                setTimeout(() => { hideMapLoadingOverlay(); }, 200);
-            }
-        });
-        tileLayer.on('tileerror', function(err) {
-            try { console.warn && console.warn('tileLayer: tileerror', err); } catch (e) {}
-            // mark tiles ready to avoid sticking overlay indefinitely; do not show overlay
-            _mapTilesReady = true;
-            try { console.debug && console.debug('tileLayer: setting _mapTilesReady = true due to tileerror', { mapTilesReady: _mapTilesReady, routeReady: _routeReady }); } catch (e) {}
-            if (_routeReady && _initialViewAligned) {
-                try { console.debug && console.debug('tileLayer: tileerror and route ready & aligned -> scheduling hideMapLoadingOverlay'); } catch (e) {}
-                setTimeout(() => { hideMapLoadingOverlay(); }, 200);
-            }
-        });
-    } catch (e) {
-        console.debug('Tile layer instrumentation failed', e);
-    }
-
-    // Create marker cluster group for better performance
-    // Note: Currently not used but ready for when route points are added
-    // skipcq: JS-0125
-    // const markers = L.markerClusterGroup({
-    //     spiderfyOnMaxZoom: true,
-    //     showCoverageOnHover: false,
-    //     zoomToBoundsOnClick: true,
-    //     maxClusterRadius: 50
-    // });
-
-    // Custom Santa icon with animation
-    // skipcq: JS-0125
-    const santaIcon = L.icon({
-        iconUrl: '/static/images/santa-icon.png',
-        iconSize: [48, 48],
-        iconAnchor: [24, 24],
-        popupAnchor: [0, -24],
-        className: 'santa-marker'
-    });
-
-    // Create Santa's marker with animation - start at North Pole
-    // skipcq: JS-0125
-    const santaMarker = L.marker([NORTH_POLE.lat, NORTH_POLE.lng], {
-        icon: santaIcon,
-        title: 'Santa Claus',
-        alt: 'Santa\'s current position'
-    }).addTo(map);
-
-    // Trail polyline showing where Santa has traveled
-    pastTrail = L.polyline([], {
-        color: '#fbbf24', // warm gold
-        weight: 4,
-        opacity: 0.95,
-        lineCap: 'round',
-        className: 'santa-trail',
-        interactive: false
-    }).addTo(map);
-    // Initialize trail with North Pole start
-    try {
-        pastTrail.addLatLng([NORTH_POLE.lat, NORTH_POLE.lng]);
-    } catch (e) {
-        console.error('pastTrail initialization failed', e);
-    }
-
-    // Store Santa marker globally for mode transitions
-    window.santaMarker = santaMarker;
-
-    // Add popup to Santa marker
-    santaMarker.bindPopup('<div class="text-center p-2"><strong>🎅 Santa is here!</strong><br><span id="popup-location">North Pole Workshop</span></div>');
-
-    // Event System for handling updates
-    const EventSystem = (function() {
-        const events = {};
-
-        return {
-            subscribe(event, callback) {
-                if (!events[event]) events[event] = [];
-                events[event].push(callback);
-            },
-            emit(event, data) {
-                if (events[event]) {
-                    events[event].forEach(callback => callback(data));
-                }
-            }
+            try { console.debug && console.debug('hideFullScreenOverlay: hidden', { mapTilesReady: _mapTilesReady, routeReady: _routeReady, overlayHiddenFlag: _overlayHidden }); } catch (e) { void 0; }
         };
-    })();
 
-    // Make EventSystem globally accessible
-    window.EventSystem = EventSystem;
-    try { console.debug && console.debug('EventSystem: created and assigned to window.EventSystem'); } catch (e) {}
+        // Immediately show global overlay to block UI while initializing
+        showFullScreenOverlay();
 
-    // Listen for route load events so the map overlay can hide when ready
-    try {
-        EventSystem.subscribe('routeLoaded', function() {
-            try { console.debug && console.debug('EventSystem: routeLoaded event received'); } catch (e) {}
-            try {
-                if (_routeReady) {
-                    try { console.debug && console.debug('EventSystem: routeLoaded ignored (already _routeReady)'); } catch (e) {}
-                    return; // ignore duplicate events
-                }
-                _routeReady = true;
-                try { console.debug && console.debug('EventSystem: setting _routeReady = true', { mapTilesReady: _mapTilesReady, routeReady: _routeReady }); } catch (e) {}
-                if (_mapTilesReady && _initialViewAligned) {
-                    try { console.debug && console.debug('EventSystem: both ready and aligned -> hideMapLoadingOverlay'); } catch (e) {}
-                    hideMapLoadingOverlay();
-                } else {
-                    try { console.debug && console.debug('EventSystem: routeLoaded but waiting for mapTiles or initial alignment', { mapTilesReady: _mapTilesReady, initialViewAligned: _initialViewAligned }); } catch (e) {}
-                }
-            } catch (e) { /* ignore */ }
-        });
-    } catch (e) {
-        // ignore if instrumentation not installed yet
-    }
-
-    // Temporarily disable maxBounds so camera can follow across world copies
-    function disableMapBoundsTemporarily(durationMs) {
-        const mapRef = window.trackerMap;
-        if (!mapRef) return;
-        if (_savedMaxBounds === null) {
-            _savedMaxBounds = mapRef.options.maxBounds || null;
-            _savedMaxBoundsViscosity = mapRef.options.maxBoundsViscosity || 0;
-            try {
-                mapRef.setMaxBounds(null);
-            } catch (e) {
-                console.debug('disableMapBoundsTemporarily: could not clear maxBounds', e);
-            }
-        }
-        // Restore after timeout
-        setTimeout(() => {
-            try {
-                if (_savedMaxBounds !== null) {
-                    mapRef.setMaxBounds(_savedMaxBounds);
-                    mapRef.options.maxBoundsViscosity = _savedMaxBoundsViscosity;
-                }
-            } catch (e) {
-                console.debug('disableMapBoundsTemporarily: could not restore maxBounds', e);
-            }
-            _savedMaxBounds = null;
-            _savedMaxBoundsViscosity = null;
-        }, durationMs || 800);
-    }
-
-    // Camera controller: decide zoom based on Santa status and transit speed_curve
-    // `refLng` is an optional longitude used as the reference for display-wrapping calculations
-    function applyCinematicCamera(targetPosition, refLng) {
-        if (!window.trackerMap || !targetPosition) return;
-
-        // Only auto-zoom when in live mode
-        if (currentMode !== 'live') {
-            // when preflight, keep to North Pole view
-            if (!_isCameraAnimating) {
-                window.trackerMap.panTo(targetPosition, { animate: true, duration: 0.5 });
-            }
+        // Check if Leaflet is loaded before initializing map
+        if (typeof L === 'undefined') {
+            console.error('Leaflet library not loaded. Map functionality will be disabled.');
+            try { hideFullScreenOverlay(); } catch (e) { /* ignore */ void 0; }
             return;
         }
 
-        // If camera changes are temporarily suppressed (e.g., right after switching to live), skip all camera changes
-        if (Date.now() < _cameraSuppressedUntil) {
-            try { console.debug && console.debug('applyCinematicCamera: suppression active, skipping camera changes', { until: _cameraSuppressedUntil }); } catch (e) {}
-            return; // do nothing while liftoff/flyTo is in progress
+        // Initialize map with festive theme - start at North Pole for pre-flight
+        // skipcq: JS-0125
+        const map = L.map('map', {
+            center: [NORTH_POLE.lat, NORTH_POLE.lng],
+            zoom: 3,
+            zoomControl: true,
+            scrollWheelZoom: true,
+            attributionControl: true,
+            // prefer canvas for better compositing when animating
+            preferCanvas: true,
+            // Match route-editor: allow multiple world copies horizontally and keep stable coords
+            worldCopyJump: false,
+            // Wide longitudinal bounds to allow smooth wrapping without snapping
+            maxBounds: [[-85, -540], [85, 540]],
+            maxBoundsViscosity: 0.9
+        });
+
+        // Store map reference globally for mode transitions
+        window.trackerMap = map;
+
+        // Debug instrumentation: log zoom/move events and wrap common camera methods
+        try {
+        // Log major map events with zoom and center for tracing unexpected changes
+        // map event logging removed in production to reduce console noise
+            map.on && map.on('zoomstart zoomend movestart moveend', function (e) { /* instrumentation removed */ return; });
+
+            // Monkey-patch flyTo / panTo / setView to log requested zooms and centers
+            if (typeof map.flyTo === 'function') {
+                const _origFlyTo = map.flyTo.bind(map);
+                map.flyTo = function (center, zoom, options) {
+                    return _origFlyTo(center, zoom, options);
+                };
+            }
+            if (typeof map.panTo === 'function') {
+                const _origPanTo = map.panTo.bind(map);
+                map.panTo = function (center, options) {
+                    return _origPanTo(center, options);
+                };
+            }
+            if (typeof map.setView === 'function') {
+                const _origSetView = map.setView.bind(map);
+                map.setView = function (center, zoom, options) {
+                    return _origSetView(center, zoom, options);
+                };
+            }
+        } catch (e) {
+            console.debug('Map instrumentation failed', e);
         }
 
-        const status = getSantaStatus();
-        if (!status) return;
+        // Add Carto Voyager tiles (colorful, readable)
+        // skipcq: JS-0125
+        const tileLayerUrl = 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
+        const tileLayerOpts = {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+            maxZoom: 19,
+            minZoom: 2,
+            subdomains: 'abcd',
+            // allow tiles to repeat horizontally for world copies
+            noWrap: false
+        };
+        // Improve tile rendering stability to reduce seam flicker and keep some buffer
+        tileLayerOpts.keepBuffer = tileLayerOpts.keepBuffer || 2;
+        tileLayerOpts.detectRetina = tileLayerOpts.detectRetina || (window.devicePixelRatio > 1);
+        // Prefer updating tiles when idle to avoid continuous reloads during animations/pans
+        tileLayerOpts.updateWhenIdle = true;
 
-        let targetZoom = null;
+        const tileLayer = L.tileLayer(tileLayerUrl, tileLayerOpts).addTo(map);
 
-        if (status.status === 'Landed') {
-            targetZoom = CAMERA_ZOOM.DELIVERY;
-        } else if (status.status === 'Preparing') {
-            targetZoom = CAMERA_ZOOM.SHORT_HOP;
-        } else if (status.status === 'In Transit') {
+        // Map loading overlay helpers (use module-scope flags declared above)
+        _mapTilesReady = false;
+        _routeReady = false;
+        _routeLoadedEmitted = false;
+        _overlayHidden = false;
+        // Ensure we only run the aggressive leftover cleanup once
+        let _leftoverOverlayCleanupDone = false;
+
+        const createMapLoadingOverlay = () => {
+            const container = map.getContainer();
+            if (!container) return null;
+            let overlay = container.querySelector('#map-loading-overlay');
+            if (overlay) return overlay;
+            overlay = document.createElement('div');
+            overlay.id = 'map-loading-overlay';
+            Object.assign(overlay.style, {
+                position: 'absolute',
+                left: '0',
+                top: '0',
+                right: '0',
+                bottom: '0',
+                background: 'rgba(8,12,20,0.75)',
+                color: '#fff',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                zIndex: 650,
+                fontSize: '1.1rem'
+            });
+            overlay.innerHTML = '<div style="text-align:center;"><div style="margin-bottom:8px">Loading map…</div><div class="loader" style="width:36px;height:36px;border:4px solid #fff;border-top-color:transparent;border-radius:50%;animation:spin 1s linear infinite"></div></div>';
+            // minimal spinner keyframes + tile rendering helper CSS to reduce seams
+            const styleEl = document.createElement('style');
+            styleEl.id = 'map-loading-overlay-style';
+            styleEl.textContent = '@keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}} .leaflet-container .leaflet-tile { background-color: transparent; } .leaflet-container { -webkit-backface-visibility: hidden; backface-visibility: hidden; } .leaflet-tile { image-rendering: -webkit-optimize-contrast; image-rendering: optimizeQuality; }';
+            document.head.appendChild(styleEl);
+            try { overlay.__mapStyleElId = styleEl.id; } catch (e) { /* ignore */ void 0; }
+            container.style.position = container.style.position || 'relative';
+            container.appendChild(overlay);
+            return overlay;
+        };
+
+        const showMapLoadingOverlay = () => {
+        // Prefer global full-screen overlay for blocking; keep map-local overlay as fallback
+            try { showFullScreenOverlay(); } catch (e) { /* ignore */ void 0; }
+            const ov = createMapLoadingOverlay();
+            if (ov) ov.style.display = 'flex';
+        };
+
+        const hideMapLoadingOverlay = () => {
+            try { console.debug && console.debug('hideMapLoadingOverlay: entering', { mapTilesReady: _mapTilesReady, routeReady: _routeReady, overlayHiddenFlag: _overlayHidden }); } catch (e) { void 0; }
+            try { hideFullScreenOverlay(); } catch (e) { /* ignore */ void 0; }
+            const container = map.getContainer();
+            if (!container) return;
+            const ov = container.querySelector('#map-loading-overlay');
+            if (ov) {
+                try { ov.style.setProperty('display', 'none', 'important'); } catch (e) { try { ov.style.display = 'none'; } catch (e) { void 0; } }
+                try { if (ov.__mapStyleElId) { const s = document.getElementById(ov.__mapStyleElId); if (s && s.parentNode) s.parentNode.removeChild(s); } } catch (e) { /* ignore */ void 0; }
+                try {
+                // Fallback: remove any style that mentions .leaflet-tile (our injected helper)
+                    const styles = Array.from(document.head.querySelectorAll('style'));
+                    styles.forEach(s => {
+                        try { if (s.textContent && s.textContent.indexOf('.leaflet-tile') !== -1) { if (s.parentNode) s.parentNode.removeChild(s); } } catch (e) { void 0; }
+                    });
+                } catch (e) { /* ignore */ void 0; }
+            }
+            try { console.debug && console.debug('hideMapLoadingOverlay: hid map-local overlay and requested full-screen hide'); } catch (e) { void 0; }
+            // Run aggressive cleanup after a short delay to catch any reinjected styles/elements
+            try {
+                if (!_leftoverOverlayCleanupDone) {
+                    setTimeout(() => { try { removeLeftoverOverlays(); } catch (e) { void 0; } }, 80);
+                    // also run slightly later in case other scripts re-insert overlays
+                    setTimeout(() => { try { removeLeftoverOverlays(); } catch (e) { void 0; } }, 450);
+                }
+            } catch (e) { /* ignore */ void 0; }
+        };
+
+        // Aggressive removal of any leftover overlay elements or style blocks that
+        // might have been missed by the normal hide logic. This is a safe, one-time
+        // cleanup to ensure the UI is unblocked even if another script re-inserts
+        // a blocking overlay element.
+        const removeLeftoverOverlays = () => {
+            try {
+                if (_leftoverOverlayCleanupDone) return;
+                _leftoverOverlayCleanupDone = true;
+
+                try {
+                    ['global-map-loading-overlay', 'map-loading-overlay'].forEach(id => {
+                        const el = document.getElementById(id);
+                        if (el && el.parentNode) {
+                            try { el.parentNode.removeChild(el); } catch (e) { /* ignore */ void 0; }
+                        }
+                    });
+                } catch (e) { /* ignore */ void 0; }
+
+                // Remove named style elements we created earlier
+                try {
+                    const ids = ['global-map-loading-overlay-style', 'map-loading-overlay-style'];
+                    ids.forEach(sid => {
+                        try {
+                            const s = document.getElementById(sid);
+                            if (s && s.parentNode) s.parentNode.removeChild(s);
+                        } catch (e) { /* ignore */ void 0; }
+                    });
+                } catch (e) { /* ignore */ void 0; }
+
+                // Fallback: remove any full-viewport fixed element that contains our
+                // overlay text or spinner markup to be conservative.
+                try {
+                    const candidates = Array.from(document.body.querySelectorAll('div'));
+                    candidates.forEach(d => {
+                        try {
+                            const cs = window.getComputedStyle(d);
+                            const isFull = (cs.position === 'fixed' || cs.position === 'absolute') && (Math.abs(d.offsetWidth - window.innerWidth) <= 2) && (Math.abs(d.offsetHeight - window.innerHeight) <= 2);
+                            if (!isFull) return;
+                            const text = (d.textContent || '').toLowerCase();
+                            if (text.includes('preparing santa tracker') || text.includes('loading map')) {
+                                if (d.parentNode) d.parentNode.removeChild(d);
+                            }
+                        } catch (e) { /* ignore */ void 0; }
+                    });
+                } catch (e) { /* ignore */ void 0; }
+
+                try { console.debug && console.debug('removeLeftoverOverlays: completed cleanup'); } catch (e) { void 0; }
+            } catch (e) { /* ignore */ void 0; }
+        };
+
+        // Show overlay initially until tiles + route finish loading
+        showMapLoadingOverlay();
+
+        // Tile layer events: hide overlay only after both tiles and route are ready
+        try {
+        // Only listen for the tile 'load' event to know when the base layer finished
+        // loading initially. Do NOT show the overlay on each tilestart (removes
+        // the transient transparent overlay when users zoom/pan).
+            tileLayer.on('load', function() {
+                try { console.debug && console.debug('tileLayer: load event'); } catch (e) { void 0; }
+                if (_mapTilesReady) {
+                    try { console.debug && console.debug('tileLayer: load event ignored (already ready)'); } catch (e) { void 0; }
+                    return; // only handle first load
+                }
+                _mapTilesReady = true;
+                try { console.debug && console.debug('tileLayer: setting _mapTilesReady = true', { mapTilesReady: _mapTilesReady, routeReady: _routeReady }); } catch (e) { void 0; }
+                // If route already ready and we've aligned the initial view, hide overlays
+                if (_routeReady && _initialViewAligned) {
+                    try { console.debug && console.debug('tileLayer: both ready and aligned -> scheduling hideMapLoadingOverlay'); } catch (e) { void 0; }
+                    setTimeout(() => { hideMapLoadingOverlay(); }, 200);
+                }
+            });
+            tileLayer.on('tileerror', function(err) {
+                try { console.warn && console.warn('tileLayer: tileerror', err); } catch (e) { void 0; }
+                // mark tiles ready to avoid sticking overlay indefinitely; do not show overlay
+                _mapTilesReady = true;
+                try { console.debug && console.debug('tileLayer: setting _mapTilesReady = true due to tileerror', { mapTilesReady: _mapTilesReady, routeReady: _routeReady }); } catch (e) { void 0; }
+                if (_routeReady && _initialViewAligned) {
+                    try { console.debug && console.debug('tileLayer: tileerror and route ready & aligned -> scheduling hideMapLoadingOverlay'); } catch (e) { void 0; }
+                    setTimeout(() => { hideMapLoadingOverlay(); }, 200);
+                }
+            });
+        } catch (e) {
+            console.debug('Tile layer instrumentation failed', e);
+        }
+
+        // Create marker cluster group for better performance
+        // Note: Currently not used but ready for when route points are added
+        // skipcq: JS-0125
+        // const markers = L.markerClusterGroup({
+        //     spiderfyOnMaxZoom: true,
+        //     showCoverageOnHover: false,
+        //     zoomToBoundsOnClick: true,
+        //     maxClusterRadius: 50
+        // });
+
+        // Custom Santa icon with animation
+        // skipcq: JS-0125
+        const santaIcon = L.icon({
+            iconUrl: '/static/images/santa-icon.png',
+            iconSize: [48, 48],
+            iconAnchor: [24, 24],
+            popupAnchor: [0, -24],
+            className: 'santa-marker'
+        });
+
+        // Create Santa's marker with animation - start at North Pole
+        // skipcq: JS-0125
+        const santaMarker = L.marker([NORTH_POLE.lat, NORTH_POLE.lng], {
+            icon: santaIcon,
+            title: 'Santa Claus',
+            alt: 'Santa\'s current position'
+        }).addTo(map);
+
+        // Trail polyline showing where Santa has traveled
+        pastTrail = L.polyline([], {
+            color: '#fbbf24', // warm gold
+            weight: 4,
+            opacity: 0.95,
+            lineCap: 'round',
+            className: 'santa-trail',
+            interactive: false
+        }).addTo(map);
+        // Initialize trail with North Pole start
+        try {
+            pastTrail.addLatLng([NORTH_POLE.lat, NORTH_POLE.lng]);
+        } catch (e) {
+            console.error('pastTrail initialization failed', e);
+        }
+
+        // Store Santa marker globally for mode transitions
+        window.santaMarker = santaMarker;
+
+        // Add popup to Santa marker
+        santaMarker.bindPopup('<div class="text-center p-2"><strong>🎅 Santa is here!</strong><br><span id="popup-location">North Pole Workshop</span></div>');
+
+        // Event System for handling updates
+        const EventSystem = (function() {
+            const events = {};
+
+            return {
+                subscribe(event, callback) {
+                    if (!events[event]) events[event] = [];
+                    events[event].push(callback);
+                },
+                emit(event, data) {
+                    if (events[event]) {
+                        events[event].forEach(callback => callback(data));
+                    }
+                }
+            };
+        })();
+
+        // Make EventSystem globally accessible
+        window.EventSystem = EventSystem;
+        try { console.debug && console.debug('EventSystem: created and assigned to window.EventSystem'); } catch (e) { void 0; }
+
+        // Listen for route load events so the map overlay can hide when ready
+        try {
+            EventSystem.subscribe('routeLoaded', function() {
+                try { console.debug && console.debug('EventSystem: routeLoaded event received'); } catch (e) { void 0; }
+                try {
+                    if (_routeReady) {
+                        try { console.debug && console.debug('EventSystem: routeLoaded ignored (already _routeReady)'); } catch (e) { void 0; }
+                        return; // ignore duplicate events
+                    }
+                    _routeReady = true;
+                    try { console.debug && console.debug('EventSystem: setting _routeReady = true', { mapTilesReady: _mapTilesReady, routeReady: _routeReady }); } catch (e) { void 0; }
+                    if (_mapTilesReady && _initialViewAligned) {
+                        try { console.debug && console.debug('EventSystem: both ready and aligned -> hideMapLoadingOverlay'); } catch (e) { void 0; }
+                        hideMapLoadingOverlay();
+                    } else {
+                        try { console.debug && console.debug('EventSystem: routeLoaded but waiting for mapTiles or initial alignment', { mapTilesReady: _mapTilesReady, initialViewAligned: _initialViewAligned }); } catch (e) { void 0; }
+                    }
+                } catch (e) { /* ignore */ void 0; }
+            });
+        } catch (e) {
+        // ignore if instrumentation not installed yet
+        }
+
+        // Temporarily disable maxBounds so camera can follow across world copies
+        const disableMapBoundsTemporarily = (durationMs) => {
+            const mapRef = window.trackerMap;
+            if (!mapRef) return;
+            if (_savedMaxBounds === null) {
+                _savedMaxBounds = mapRef.options.maxBounds || null;
+                _savedMaxBoundsViscosity = mapRef.options.maxBoundsViscosity || 0;
+                try {
+                    mapRef.setMaxBounds(null);
+                } catch (e) {
+                    console.debug('disableMapBoundsTemporarily: could not clear maxBounds', e);
+                }
+            }
+            // Restore after timeout
+            setTimeout(() => {
+                try {
+                    if (_savedMaxBounds !== null) {
+                        mapRef.setMaxBounds(_savedMaxBounds);
+                        mapRef.options.maxBoundsViscosity = _savedMaxBoundsViscosity;
+                    }
+                } catch (e) {
+                    console.debug('disableMapBoundsTemporarily: could not restore maxBounds', e);
+                }
+                _savedMaxBounds = null;
+                _savedMaxBoundsViscosity = null;
+            }, durationMs || 800);
+        };
+
+        // Camera controller: decide zoom based on Santa status and transit speed_curve
+        // `refLng` is an optional longitude used as the reference for display-wrapping calculations
+        const applyCinematicCamera = (targetPosition, refLng) => {
+            if (!window.trackerMap || !targetPosition) return;
+
+            // Only auto-zoom when in live mode
+            if (currentMode !== 'live') {
+            // when preflight, keep to North Pole view
+                if (!_isCameraAnimating) {
+                    window.trackerMap.panTo(targetPosition, { animate: true, duration: 0.5 });
+                }
+                return;
+            }
+
+            // If camera changes are temporarily suppressed (e.g., right after switching to live), skip all camera changes
+            if (Date.now() < _cameraSuppressedUntil) {
+                try { console.debug && console.debug('applyCinematicCamera: suppression active, skipping camera changes', { until: _cameraSuppressedUntil }); } catch (e) { void 0; }
+                return; // do nothing while liftoff/flyTo is in progress
+            }
+
+            const status = getSantaStatus();
+            if (!status) return;
+
+            let targetZoom = null;
+
+            if (status.status === 'Landed') {
+                targetZoom = CAMERA_ZOOM.DELIVERY;
+            } else if (status.status === 'Preparing') {
+                targetZoom = CAMERA_ZOOM.SHORT_HOP;
+            } else if (status.status === 'In Transit') {
             // use the destination (`status.to`) transit info only
             // Prefer explicit transit.speed_curve on the destination; otherwise
             // estimate based on transit metadata or distance. Use computeTravelZoom
             // to centralize this logic and ensure we don't pick a stop-level camera_zoom.
-            try {
-                targetZoom = computeTravelZoom(status.from, status.to);
-            } catch (e) {
-                targetZoom = CAMERA_ZOOM.SHORT_HOP;
+                try {
+                    targetZoom = computeTravelZoom(status.from, status.to);
+                } catch (e) {
+                    targetZoom = CAMERA_ZOOM.SHORT_HOP;
+                }
+            } else if (status.status === 'Completed') {
+                targetZoom = CAMERA_ZOOM.DELIVERY;
             }
-        } else if (status.status === 'Completed') {
-            targetZoom = CAMERA_ZOOM.DELIVERY;
-        }
 
-        const mapRef = window.trackerMap;
+            const mapRef = window.trackerMap;
 
-        const zoomChanged = targetZoom !== null && targetZoom !== _lastZoom;
+            const zoomChanged = targetZoom !== null && targetZoom !== _lastZoom;
 
-        if (zoomChanged && !_isCameraAnimating) {
+            if (zoomChanged && !_isCameraAnimating) {
             // clear pending timeout
-            if (_cameraAnimationTimeout) {
-                clearTimeout(_cameraAnimationTimeout);
-                _cameraAnimationTimeout = null;
+                if (_cameraAnimationTimeout) {
+                    clearTimeout(_cameraAnimationTimeout);
+                    _cameraAnimationTimeout = null;
+                }
+
+                _isCameraAnimating = true;
+
+                // choose duration (longer when zooming in)
+                const isZoomingIn = targetZoom > (mapRef.getZoom() || 0);
+                const duration = isZoomingIn ? 2.0 : 1.5;
+
+                // Use display longitude to fly to the nearest world copy
+                const displayLng = getDisplayLng(targetPosition[1], refLng);
+                // temporarily disable bounds while flying so the map can recenter across dateline
+                disableMapBoundsTemporarily(duration * 1000 + 250);
+                mapRef.flyTo([targetPosition[0], displayLng], targetZoom, {
+                    animate: true,
+                    duration,
+                    easeLinearity: 0.25
+                });
+
+                _lastZoom = targetZoom;
+
+                _cameraAnimationTimeout = setTimeout(() => {
+                    _isCameraAnimating = false;
+                    _cameraAnimationTimeout = null;
+                }, duration * 1000 + 150);
+            } else if (!_isCameraAnimating) {
+                const displayLng = getDisplayLng(targetPosition[1], refLng);
+                // allow a short bounds-disable for pan so it centers fully
+                disableMapBoundsTemporarily(700);
+                mapRef.panTo([targetPosition[0], displayLng], { animate: true, duration: 0.5 });
             }
+        };
 
-            _isCameraAnimating = true;
-
-            // choose duration (longer when zooming in)
-            const isZoomingIn = targetZoom > (mapRef.getZoom() || 0);
-            const duration = isZoomingIn ? 2.0 : 1.5;
-
-            // Use display longitude to fly to the nearest world copy
-            const displayLng = getDisplayLng(targetPosition[1], refLng);
-            // temporarily disable bounds while flying so the map can recenter across dateline
-            disableMapBoundsTemporarily(duration * 1000 + 250);
-            mapRef.flyTo([targetPosition[0], displayLng], targetZoom, {
-                animate: true,
-                duration,
-                easeLinearity: 0.25
-            });
-
-            _lastZoom = targetZoom;
-
-            _cameraAnimationTimeout = setTimeout(() => {
-                _isCameraAnimating = false;
-                _cameraAnimationTimeout = null;
-            }, duration * 1000 + 150);
-        } else if (!_isCameraAnimating) {
-            const displayLng = getDisplayLng(targetPosition[1], refLng);
-            // allow a short bounds-disable for pan so it centers fully
-            disableMapBoundsTemporarily(700);
-            mapRef.panTo([targetPosition[0], displayLng], { animate: true, duration: 0.5 });
-        }
-    }
-
-    // Compute travel zoom based on transit metadata or distance between nodes.
-    function computeTravelZoom(fromNode, toNode) {
+        // Compute travel zoom based on transit metadata or distance between nodes.
+        const computeTravelZoom = (fromNode, toNode) => {
         // Prefer explicit speed_curve if present
-        const speedCurve = (toNode && (toNode.transit && toNode.transit.speed_curve))
-            ? String(toNode.transit.speed_curve).toUpperCase()
-            : (toNode && toNode.transit_to_here && toNode.transit_to_here.speed_curve)
-                ? String(toNode.transit_to_here.speed_curve).toUpperCase()
-                : null;
+            const speedCurve = (toNode && (toNode.transit && toNode.transit.speed_curve))
+                ? String(toNode.transit.speed_curve).toUpperCase()
+                : (toNode && toNode.transit_to_here && toNode.transit_to_here.speed_curve)
+                    ? String(toNode.transit_to_here.speed_curve).toUpperCase()
+                    : null;
 
-        if (speedCurve === 'HYPERSONIC_LONG') return CAMERA_ZOOM.LONG_HAUL;
-        if (speedCurve === 'HYPERSONIC') return CAMERA_ZOOM.LONG_HAUL;
-        if (speedCurve === 'REGIONAL' || speedCurve === 'CRUISING') return CAMERA_ZOOM.SHORT_HOP;
+            if (speedCurve === 'HYPERSONIC_LONG') return CAMERA_ZOOM.LONG_HAUL;
+            if (speedCurve === 'HYPERSONIC') return CAMERA_ZOOM.LONG_HAUL;
+            if (speedCurve === 'REGIONAL' || speedCurve === 'CRUISING') return CAMERA_ZOOM.SHORT_HOP;
 
-        // Fallback: estimate by great-circle distance
-        try {
-            if (fromNode && toNode) {
-                const R = 6371; // km
-                const lat1 = fromNode.latitude * Math.PI / 180;
-                const lat2 = toNode.latitude * Math.PI / 180;
-                const dLat = lat2 - lat1;
-                const dLng = (toNode.longitude - fromNode.longitude) * Math.PI / 180;
-                const a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng/2) * Math.sin(dLng/2);
-                const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-                const km = R * c;
-                if (km > 2000) return CAMERA_ZOOM.LONG_HAUL;
-                if (km > 500) return CAMERA_ZOOM.LONG_HAUL;
-                return CAMERA_ZOOM.SHORT_HOP;
-            }
-        } catch (e) {
+            // Fallback: estimate by great-circle distance
+            try {
+                if (fromNode && toNode) {
+                    const R = 6371; // km
+                    const lat1 = fromNode.latitude * Math.PI / 180;
+                    const lat2 = toNode.latitude * Math.PI / 180;
+                    const dLat = lat2 - lat1;
+                    const dLng = (toNode.longitude - fromNode.longitude) * Math.PI / 180;
+                    const a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng/2) * Math.sin(dLng/2);
+                    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+                    const km = R * c;
+                    if (km > 2000) return CAMERA_ZOOM.LONG_HAUL;
+                    if (km > 500) return CAMERA_ZOOM.LONG_HAUL;
+                    return CAMERA_ZOOM.SHORT_HOP;
+                }
+            } catch (e) {
             // ignore and fall back
-        }
+            }
 
-        return CAMERA_ZOOM.SHORT_HOP;
-    }
+            return CAMERA_ZOOM.SHORT_HOP;
+        };
 
-    // Track Santa's route for smooth animation
-    let isAnimating = false;
+        // Track Santa's route for smooth animation
+        let isAnimating = false;
 
-    // Subscribe to Santa location updates with smooth movement
-    EventSystem.subscribe('santaMove', (data) => {
-        const { position, location, animate, refLng } = data;
+        // Subscribe to Santa location updates with smooth movement
+        EventSystem.subscribe('santaMove', (data) => {
+            const { position, location, animate, refLng } = data;
 
-        // `position` is in canonical/adjusted longitude domain. Convert to display longitude
-        // relative to the provided reference longitude so marker, trail and camera use the same world copy.
-        const lat = Number(position[0]);
-        const canonicalLng = Number(position[1]);
-        // Prefer explicit refLng, then any initial locked refLng chosen during alignment,
-        // otherwise fall back to current map center.
-        const effectiveRef = (typeof refLng !== 'undefined' && refLng !== null)
-            ? refLng
-            : (_initialRefLng !== null ? _initialRefLng : (window.trackerMap ? window.trackerMap.getCenter().lng : null));
-        const displayLng = getDisplayLng(canonicalLng, effectiveRef);
-        const displayPosition = [lat, displayLng];
+            // `position` is in canonical/adjusted longitude domain. Convert to display longitude
+            // relative to the provided reference longitude so marker, trail and camera use the same world copy.
+            const lat = Number(position[0]);
+            const canonicalLng = Number(position[1]);
+            // Prefer explicit refLng, then any initial locked refLng chosen during alignment,
+            // otherwise fall back to current map center.
+            const effectiveRef = (typeof refLng !== 'undefined' && refLng !== null)
+                ? refLng
+                : (_initialRefLng !== null ? _initialRefLng : (window.trackerMap ? window.trackerMap.getCenter().lng : null));
+            const displayLng = getDisplayLng(canonicalLng, effectiveRef);
+            const displayPosition = [lat, displayLng];
 
-        if (window.SANTA_TRACE) {
-            try { console.debug && console.debug('santaMove: pos', { canonicalLng, effectiveRef, displayLng, animate }); } catch (e) {}
-        }
+            if (window.SANTA_TRACE) {
+                try { console.debug && console.debug('santaMove: pos', { canonicalLng, effectiveRef, displayLng, animate }); } catch (e) { void 0; }
+            }
 
-        if (animate) {
+            if (animate) {
             // Animate using display coordinates so interpolation stays on the same world copy
             // Pass refLng into the animator so the cinematic camera can reference the same world copy
                 // When animating, pass the effectiveRef so the animator and camera use the same world copy.
@@ -711,173 +711,173 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (_initialRefLng !== null) {
                         _initialRefLng = null;
                         if (window.SANTA_TRACE) {
-                            try { console.debug && console.debug('santaMove: cleared initialRefLng due to animate movement'); } catch (e) {}
+                            try { console.debug && console.debug('santaMove: cleared initialRefLng due to animate movement'); } catch (e) { void 0; }
                         }
                     }
-                } catch (e) {}
-        } else {
-            santaMarker.setLatLng(displayPosition);
-            // Add to traveled trail if this is a new point (use display coords)
-            try {
-                const latlngs = pastTrail.getLatLngs();
-                const last = latlngs.length ? latlngs[latlngs.length - 1] : null;
-                // Use a small distance threshold to avoid adding duplicate points caused by
-                // floating-point noise in coordinates.
-                const DUPLICATE_POINT_THRESHOLD_METERS = 5;
+                } catch (e) { void 0; }
+            } else {
+                santaMarker.setLatLng(displayPosition);
+                // Add to traveled trail if this is a new point (use display coords)
+                try {
+                    const latlngs = pastTrail.getLatLngs();
+                    const last = latlngs.length ? latlngs[latlngs.length - 1] : null;
+                    // Use a small distance threshold to avoid adding duplicate points caused by
+                    // floating-point noise in coordinates.
+                    const DUPLICATE_POINT_THRESHOLD_METERS = 5;
 
-                if (!last) {
-                    pastTrail.addLatLng(displayPosition);
-                } else {
-                    const toRad = Math.PI / 180;
-                    const lat1 = last.lat;
-                    const lng1 = last.lng;
-                    const lat2 = displayPosition[0];
-                    const lng2 = displayPosition[1];
+                    if (!last) {
+                        pastTrail.addLatLng(displayPosition);
+                    } else {
+                        const toRad = Math.PI / 180;
+                        const lat1 = last.lat;
+                        const lng1 = last.lng;
+                        const lat2 = displayPosition[0];
+                        const lng2 = displayPosition[1];
 
-                    const dLat = (lat2 - lat1) * toRad;
-                    const dLng = (lng2 - lng1) * toRad;
-                    const haversineA =
+                        const dLat = (lat2 - lat1) * toRad;
+                        const dLng = (lng2 - lng1) * toRad;
+                        const haversineA =
                         Math.sin(dLat / 2) * Math.sin(dLat / 2) +
                         Math.cos(lat1 * toRad) * Math.cos(lat2 * toRad) *
                         Math.sin(dLng / 2) * Math.sin(dLng / 2);
-                    const haversineC = 2 * Math.atan2(Math.sqrt(haversineA), Math.sqrt(1 - haversineA));
-                    const earthRadiusMeters = 6371000; // Earth radius in meters
-                    const distance = earthRadiusMeters * haversineC;
+                        const haversineC = 2 * Math.atan2(Math.sqrt(haversineA), Math.sqrt(1 - haversineA));
+                        const earthRadiusMeters = 6371000; // Earth radius in meters
+                        const distance = earthRadiusMeters * haversineC;
 
-                    if (distance > DUPLICATE_POINT_THRESHOLD_METERS) {
-                        pastTrail.addLatLng(displayPosition);
+                        if (distance > DUPLICATE_POINT_THRESHOLD_METERS) {
+                            pastTrail.addLatLng(displayPosition);
+                        }
+                    }
+                } catch (e) {
+                    console.debug('pastTrail addLatLng failed', e);
+                }
+                // Avoid changing camera while a marker animation is in progress
+                if (!isAnimating) {
+                    applyCinematicCamera(displayPosition, effectiveRef);
+                }
+            }
+
+            // Update popup
+            const popupLocation = document.getElementById('popup-location');
+            if (popupLocation && location) {
+                popupLocation.textContent = location;
+            }
+
+            // Debug: log the current map zoom whenever Santa moves
+            try {
+                const mapRefForLog = window.trackerMap;
+                if (mapRefForLog) {
+                    if (animate && typeof mapRefForLog.once === 'function') {
+                    // For animated movement, wait until the map finishes moving
+                        mapRefForLog.once('moveend', () => { /* zoom debug removed */ return; });
+                    } else {
+                    // Instant move — no debug log
                     }
                 }
             } catch (e) {
-                console.debug('pastTrail addLatLng failed', e);
+                console.debug('santaMove zoom logging failed', e);
             }
-            // Avoid changing camera while a marker animation is in progress
-            if (!isAnimating) {
-                applyCinematicCamera(displayPosition, effectiveRef);
-            }
-        }
+        });
 
-        // Update popup
-        const popupLocation = document.getElementById('popup-location');
-        if (popupLocation && location) {
-            popupLocation.textContent = location;
-        }
+        // Smooth animation for Santa's movement along route
+        // `targetPosition` is in display coordinates (already converted to the chosen world copy)
+        const animateSantaMovement = (targetPosition, refLng) => {
+            if (isAnimating) return;
 
-        // Debug: log the current map zoom whenever Santa moves
-        try {
-            const mapRefForLog = window.trackerMap;
-            if (mapRefForLog) {
-                    if (animate && typeof mapRefForLog.once === 'function') {
-                    // For animated movement, wait until the map finishes moving
-                    mapRefForLog.once('moveend', () => { /* zoom debug removed */ });
-                } else {
-                    // Instant move — no debug log
-                }
-            }
-        } catch (e) {
-            console.debug('santaMove zoom logging failed', e);
-        }
-    });
+            isAnimating = true;
+            const startPosition = santaMarker.getLatLng();
+            const steps = 30; // Number of animation steps
+            let currentStep = 0;
 
-    // Smooth animation for Santa's movement along route
-    // `targetPosition` is in display coordinates (already converted to the chosen world copy)
-    function animateSantaMovement(targetPosition, refLng) {
-        if (isAnimating) return;
+            // Align start longitude to the target copy so interpolation takes the shortest path.
+            // Both startPosition and targetPosition are expected to be in display coordinates (same world copy).
+            const startLngRaw = startPosition.lng;
+            const targetLngRaw = targetPosition[1];
+            const delta = ((targetLngRaw - startLngRaw + 540) % 360) - 180;
+            // Compute target on the nearest world copy to start
+            const alignedTargetLng = startLngRaw + delta;
 
-        isAnimating = true;
-        const startPosition = santaMarker.getLatLng();
-        const steps = 30; // Number of animation steps
-        let currentStep = 0;
+            animationInterval = setInterval(() => {
+                currentStep++;
+                const progress = currentStep / steps;
 
-        // Align start longitude to the target copy so interpolation takes the shortest path.
-        // Both startPosition and targetPosition are expected to be in display coordinates (same world copy).
-        const startLngRaw = startPosition.lng;
-        const targetLngRaw = targetPosition[1];
-        const delta = ((targetLngRaw - startLngRaw + 540) % 360) - 180;
-        // Compute target on the nearest world copy to start
-        const alignedTargetLng = startLngRaw + delta;
+                // Linear interpolation between positions
+                const lat = startPosition.lat + (targetPosition[0] - startPosition.lat) * progress;
+                const lng = startLngRaw + (alignedTargetLng - startLngRaw) * progress;
 
-        animationInterval = setInterval(() => {
-            currentStep++;
-            const progress = currentStep / steps;
+                santaMarker.setLatLng([lat, lng]);
 
-            // Linear interpolation between positions
-            const lat = startPosition.lat + (targetPosition[0] - startPosition.lat) * progress;
-            const lng = startLngRaw + (alignedTargetLng - startLngRaw) * progress;
-
-            santaMarker.setLatLng([lat, lng]);
-
-            if (currentStep >= steps) {
-                clearInterval(animationInterval);
-                animationInterval = null;
-                isAnimating = false;
-                const mapRef = window.trackerMap;
-                if (mapRef) {
+                if (currentStep >= steps) {
+                    clearInterval(animationInterval);
+                    animationInterval = null;
+                    isAnimating = false;
+                    const mapRef = window.trackerMap;
+                    if (mapRef) {
                     // ensure pan isn't constrained by bounds when finishing animation
-                    disableMapBoundsTemporarily(700);
-                    // targetPosition already uses display coords; pan directly to it
-                    mapRef.panTo([targetPosition[0], targetLngRaw], { animate: true, duration: 0.5 });
-                    // Add final position to traveled trail
-                    try {
-                        const latlngs = pastTrail.getLatLngs();
-                        const last = latlngs.length ? latlngs[latlngs.length - 1] : null;
-                        const COORD_EPSILON = 0.001;  //degrees; avoids adding near-duplicate points
+                        disableMapBoundsTemporarily(700);
+                        // targetPosition already uses display coords; pan directly to it
+                        mapRef.panTo([targetPosition[0], targetLngRaw], { animate: true, duration: 0.5 });
+                        // Add final position to traveled trail
+                        try {
+                            const latlngs = pastTrail.getLatLngs();
+                            const last = latlngs.length ? latlngs[latlngs.length - 1] : null;
+                            const COORD_EPSILON = 0.001;  //degrees; avoids adding near-duplicate points
 
-                        const isNewPoint =
+                            const isNewPoint =
                             !last ||
                             Math.abs(last.lat - targetPosition[0]) > COORD_EPSILON ||
                             Math.abs(last.lng - targetPosition[1]) > COORD_EPSILON;
-                        if (isNewPoint) {
-                            pastTrail.addLatLng([targetPosition[0], targetPosition[1]]);
+                            if (isNewPoint) {
+                                pastTrail.addLatLng([targetPosition[0], targetPosition[1]]);
+                            }
+                        } catch (e) {
+                            console.debug('Failed to add point to pastTrail in animateSantaMovement', e);
                         }
-                    } catch (e) {
-                        console.debug('Failed to add point to pastTrail in animateSantaMovement', e);
-                    }
-                    // Call cinematic camera to allow zooming/flyTo based on new status
-                    try {
-                        applyCinematicCamera([targetPosition[0], targetLngRaw], refLng);
-                    } catch (e) {
-                        console.debug('animateSantaMovement: applyCinematicCamera failed', e);
+                        // Call cinematic camera to allow zooming/flyTo based on new status
+                        try {
+                            applyCinematicCamera([targetPosition[0], targetLngRaw], refLng);
+                        } catch (e) {
+                            console.debug('animateSantaMovement: applyCinematicCamera failed', e);
+                        }
                     }
                 }
-            }
-        }, 50); // 50ms per step = 1.5s total animation
-    }
+            }, 50); // 50ms per step = 1.5s total animation
+        };
 
-    // Load and display route with real tracking logic
-    loadSantaRoute();
+        // Load and display route with real tracking logic
+        loadSantaRoute();
 
-    // Make map keyboard accessible
-    map.getContainer().addEventListener('keydown', (e) => {
-        const step = 0.1;
-        const center = map.getCenter();
+        // Make map keyboard accessible
+        map.getContainer().addEventListener('keydown', (e) => {
+            const step = 0.1;
+            const center = map.getCenter();
 
-        switch(e.key) {
-        case 'ArrowUp':
-            map.panTo([center.lat + step, center.lng]);
-            break;
-        case 'ArrowDown':
-            map.panTo([center.lat - step, center.lng]);
-            break;
-        case 'ArrowLeft':
-            map.panTo([center.lat, center.lng - step]);
-            break;
-        case 'ArrowRight':
-            map.panTo([center.lat, center.lng + step]);
-            break;
-        case '+':
-        case '=':
-            map.zoomIn();
-            break;
-        case '-':
-        case '_':
-            map.zoomOut();
-            break;
-        default:
+            switch(e.key) {
+            case 'ArrowUp':
+                map.panTo([center.lat + step, center.lng]);
+                break;
+            case 'ArrowDown':
+                map.panTo([center.lat - step, center.lng]);
+                break;
+            case 'ArrowLeft':
+                map.panTo([center.lat, center.lng - step]);
+                break;
+            case 'ArrowRight':
+                map.panTo([center.lat, center.lng + step]);
+                break;
+            case '+':
+            case '=':
+                map.zoomIn();
+                break;
+            case '-':
+            case '_':
+                map.zoomOut();
+                break;
+            default:
             // No action for other keys
-            break;
-        }
-    });
+                break;
+            }
+        });
     } catch (err) {
         console.error('Tracker initialization error', err);
         try { hideFullScreenOverlay(); } catch (e) { /* ignore */ }
@@ -1141,11 +1141,11 @@ function alignInitialView(retries) {
             // Lock the reference longitude to the chosen world copy so marker/trail use the same copy
             try {
                 _initialRefLng = mapRef.getCenter().lng;
-                try { console.debug && console.debug('alignInitialView: set _initialRefLng', _initialRefLng); } catch (e) {}
+                try { console.debug && console.debug('alignInitialView: set _initialRefLng', _initialRefLng); } catch (e) { void 0; }
                 // Clear the lock after a short grace period in case no animated movement occurs
-                setTimeout(() => { try { if (_initialRefLng !== null) { _initialRefLng = null; try { console.debug && console.debug('alignInitialView: cleared _initialRefLng after grace period'); } catch (e) {} } } catch (e) {} }, 3000);
+                setTimeout(() => { try { if (_initialRefLng !== null) { _initialRefLng = null; try { console.debug && console.debug('alignInitialView: cleared _initialRefLng after grace period'); } catch (e) { void 0; } } } catch (e) { void 0; } }, 3000);
             } catch (e) { /* ignore */ }
-            try { console.debug && console.debug('alignInitialView: aligned map to', { center: centerPoint, zoom: desiredZoom }); } catch (e) {}
+            try { console.debug && console.debug('alignInitialView: aligned map to', { center: centerPoint, zoom: desiredZoom }); } catch (e) { void 0; }
         } catch (e) {
             // If setView fails (map not ready), try again shortly
             if (retries < 5) setTimeout(() => alignInitialView(retries + 1), 120);
@@ -1171,19 +1171,19 @@ function computeTravelZoom(fromNode, toNode) {
 
     // Fallback: estimate by great-circle distance
     try {
-            if (fromNode && toNode) {
-                const R = 6371; // km
-                const lat1 = fromNode.latitude * Math.PI / 180;
-                const lat2 = toNode.latitude * Math.PI / 180;
-                const dLat = lat2 - lat1;
-                const dLng = (toNode.longitude - fromNode.longitude) * Math.PI / 180;
-                const a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng/2) * Math.sin(dLng/2);
-                const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-                const km = R * c;
-                if (km > 2000) return CAMERA_ZOOM.LONG_HAUL;
-                if (km > 500) return CAMERA_ZOOM.LONG_HAUL;
-                return CAMERA_ZOOM.SHORT_HOP;
-            }
+        if (fromNode && toNode) {
+            const R = 6371; // km
+            const lat1 = fromNode.latitude * Math.PI / 180;
+            const lat2 = toNode.latitude * Math.PI / 180;
+            const dLat = lat2 - lat1;
+            const dLng = (toNode.longitude - fromNode.longitude) * Math.PI / 180;
+            const a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng/2) * Math.sin(dLng/2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            const km = R * c;
+            if (km > 2000) return CAMERA_ZOOM.LONG_HAUL;
+            if (km > 500) return CAMERA_ZOOM.LONG_HAUL;
+            return CAMERA_ZOOM.SHORT_HOP;
+        }
     } catch (e) {
         // ignore and fall back
     }
@@ -1697,7 +1697,7 @@ function updateLocationCountdown() {
 // skipcq: JS-R1005
 async function loadSantaRoute() {
     try {
-        try { console.debug && console.debug('loadSantaRoute: starting fetch /static/data/santa_route.json'); } catch (e) {}
+        try { console.debug && console.debug('loadSantaRoute: starting fetch /static/data/santa_route.json'); } catch (e) { void 0; }
         const response = await fetch('/static/data/santa_route.json');
         const data = await response.json();
         // Normalize route data: support both legacy `route` and new `route_nodes` shape
@@ -1753,20 +1753,20 @@ async function loadSantaRoute() {
 
         // Compute adjusted longitudes for smooth interpolation across dateline
         computeAdjustedLongitudes();
-        try { console.debug && console.debug('loadSantaRoute: computed adjusted longitudes, nodes=', santaRoute.length); } catch (e) {}
+        try { console.debug && console.debug('loadSantaRoute: computed adjusted longitudes, nodes=', santaRoute.length); } catch (e) { void 0; }
 
         // Emit routeLoaded early so UI can hide overlays even if later steps error.
         try {
             if (!(_routeLoadedEmitted)) {
                 _routeLoadedEmitted = true;
                 window.EventSystem && typeof window.EventSystem.emit === 'function' && window.EventSystem.emit('routeLoaded');
-                try { console.debug && console.debug('loadSantaRoute: early emit routeLoaded to ensure UI unblocks'); } catch (e) {}
+                        try { console.debug && console.debug('loadSantaRoute: early emit routeLoaded to ensure UI unblocks'); } catch (e) { void 0; }
                 // Also mark route as ready locally so overlay logic doesn't race with event handlers
                 try { 
                     _routeReady = true; 
-                    try { console.debug && console.debug('loadSantaRoute: set _routeReady = true (early emit)', { mapTilesReady: _mapTilesReady, routeReady: _routeReady }); } catch (e) {}
+                    try { console.debug && console.debug('loadSantaRoute: set _routeReady = true (early emit)', { mapTilesReady: _mapTilesReady, routeReady: _routeReady }); } catch (e) { void 0; }
                     if (_mapTilesReady && _initialViewAligned) {
-                        try { console.debug && console.debug('loadSantaRoute: both ready & aligned -> hiding overlays'); } catch (e) {}
+                        try { console.debug && console.debug('loadSantaRoute: both ready & aligned -> hiding overlays'); } catch (e) { void 0; }
                         setTimeout(() => {
                             try {
                                 if (typeof window.hideMapLoadingOverlay === 'function') window.hideMapLoadingOverlay();
@@ -1775,7 +1775,7 @@ async function loadSantaRoute() {
                         }, 120);
                     } else {
                         // If not yet aligned, schedule a re-check shortly so overlays hide once alignment completes
-                        try { console.debug && console.debug('loadSantaRoute: waiting for initial alignment or tiles before hiding overlays', { mapTilesReady: _mapTilesReady, initialViewAligned: _initialViewAligned }); } catch (e) {}
+                        try { console.debug && console.debug('loadSantaRoute: waiting for initial alignment or tiles before hiding overlays', { mapTilesReady: _mapTilesReady, initialViewAligned: _initialViewAligned }); } catch (e) { void 0; }
                         setTimeout(() => {
                             try {
                                 if (_mapTilesReady && _initialViewAligned) {
@@ -1792,11 +1792,11 @@ async function loadSantaRoute() {
         // Populate the trail up to the current time so mid-route refreshes show full path
         try {
             populateInitialTrail();
-                // Align the map view to the populated trail/marker before we allow hides
-                try { alignInitialView(); } catch (e) { /* ignore */ }
-                // Re-populate the trail now that the map has been aligned so display
-                // longitudes match the chosen world copy and marker/trail align.
-                try { populateInitialTrail(); } catch (e) { /* ignore */ }
+            // Align the map view to the populated trail/marker before we allow hides
+            try { alignInitialView(); } catch (e) { /* ignore */ }
+            // Re-populate the trail now that the map has been aligned so display
+            // longitudes match the chosen world copy and marker/trail align.
+            try { populateInitialTrail(); } catch (e) { /* ignore */ }
         } catch (e) {
             console.debug('populateInitialTrail invocation failed', e);
         }
@@ -1930,28 +1930,28 @@ async function loadSantaRoute() {
         startRealTimeTracking();
         // Notify any listeners that the route has been loaded so UI can hide loading overlays
         try {
-                if (!(_routeLoadedEmitted)) {
-                    _routeLoadedEmitted = true;
-                    window.EventSystem && typeof window.EventSystem.emit === 'function' && window.EventSystem.emit('routeLoaded');
-                    try { console.debug && console.debug('loadSantaRoute: emitted routeLoaded'); } catch (e) {}
-                    try { if (!_routeReady) { _routeReady = true; try { console.debug && console.debug('loadSantaRoute: set _routeReady = true (final emit)', { mapTilesReady: _mapTilesReady, routeReady: _routeReady }); } catch (e) {} } } catch (e) {}
-                    try {
-                        if (_mapTilesReady && _routeReady && _initialViewAligned) {
-                            try { console.debug && console.debug('loadSantaRoute: both ready & aligned after final emit -> hiding overlays'); } catch (e) {}
-                            try { if (typeof window.hideMapLoadingOverlay === 'function') window.hideMapLoadingOverlay(); else if (typeof hideMapLoadingOverlay === 'function') hideMapLoadingOverlay(); } catch (e) {}
-                        } else {
-                            try { console.debug && console.debug('loadSantaRoute: final emit but waiting for tiles/alignment', { mapTilesReady: _mapTilesReady, routeReady: _routeReady, initialViewAligned: _initialViewAligned }); } catch (e) {}
-                            setTimeout(() => {
-                                try {
-                                    if (_mapTilesReady && _routeReady && _initialViewAligned) {
-                                        if (typeof window.hideMapLoadingOverlay === 'function') window.hideMapLoadingOverlay(); else if (typeof hideMapLoadingOverlay === 'function') hideMapLoadingOverlay();
-                                    }
-                                } catch (e) { /* ignore */ }
-                            }, 220);
-                        }
-                    } catch (e) {}
-                }
-            } catch (e) { /* ignore */ }
+            if (!(_routeLoadedEmitted)) {
+                _routeLoadedEmitted = true;
+                window.EventSystem && typeof window.EventSystem.emit === 'function' && window.EventSystem.emit('routeLoaded');
+                try { console.debug && console.debug('loadSantaRoute: emitted routeLoaded'); } catch (e) { void 0; }
+                try { if (!_routeReady) { _routeReady = true; try { console.debug && console.debug('loadSantaRoute: set _routeReady = true (final emit)', { mapTilesReady: _mapTilesReady, routeReady: _routeReady }); } catch (e) { void 0; } } } catch (e) { void 0; }
+                try {
+                    if (_mapTilesReady && _routeReady && _initialViewAligned) {
+                        try { console.debug && console.debug('loadSantaRoute: both ready & aligned after final emit -> hiding overlays'); } catch (e) { void 0; }
+                        try { if (typeof window.hideMapLoadingOverlay === 'function') window.hideMapLoadingOverlay(); else if (typeof hideMapLoadingOverlay === 'function') hideMapLoadingOverlay(); } catch (e) { void 0; }
+                    } else {
+                        try { console.debug && console.debug('loadSantaRoute: final emit but waiting for tiles/alignment', { mapTilesReady: _mapTilesReady, routeReady: _routeReady, initialViewAligned: _initialViewAligned }); } catch (e) { void 0; }
+                        setTimeout(() => {
+                            try {
+                                if (_mapTilesReady && _routeReady && _initialViewAligned) {
+                                    if (typeof window.hideMapLoadingOverlay === 'function') window.hideMapLoadingOverlay(); else if (typeof hideMapLoadingOverlay === 'function') hideMapLoadingOverlay();
+                                }
+                            } catch (e) { /* ignore */ }
+                        }, 220);
+                    }
+                } catch (e) { void 0; }
+            }
+        } catch (e) { void 0; }
     } catch (error) {
         console.error('Failed to load Santa route:', error);
         // Ensure UI doesn't remain blocked: mark route ready and emit routeLoaded
@@ -1964,7 +1964,7 @@ async function loadSantaRoute() {
         } catch (e) { /* ignore */ }
         try { if (typeof window.hideMapLoadingOverlay === 'function') window.hideMapLoadingOverlay(); else if (typeof hideMapLoadingOverlay === 'function') hideMapLoadingOverlay(); } catch (e) { /* ignore */ }
         // Fallback to simulation if route data fails to load
-        try { console.warn && console.warn('loadSantaRoute: falling back to simulateSantaMovement'); } catch (e) {}
+        try { console.warn && console.warn('loadSantaRoute: falling back to simulateSantaMovement'); } catch (e) { void 0; }
         simulateSantaMovement();
     }
 }
@@ -2042,11 +2042,11 @@ function startAnchorCountdownEnforcer(targetDate) {
         }
 
         // Debug: log planned liftoff zoom/source each tick so we can observe changes
-            try {
-                // Planned liftoff zoom logging removed
-            } catch (e) {
-                // ignore
-            }
+        try {
+            // Planned liftoff zoom logging removed
+        } catch (e) {
+            // ignore
+        }
 
         if (diff <= 0) {
             el.textContent = '00:00:00';
