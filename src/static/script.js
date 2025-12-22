@@ -99,6 +99,39 @@ document.addEventListener('DOMContentLoaded', function() {
     // Store map reference globally for mode transitions
     window.trackerMap = map;
 
+    // Debug instrumentation: log zoom/move events and wrap common camera methods
+    try {
+        // Log major map events with zoom and center for tracing unexpected changes
+        map.on && map.on('zoomstart zoomend movestart moveend', function (e) {
+            try { console.log('Map event:', e.type, 'zoom=', map.getZoom(), 'center=', map.getCenter()); } catch (err) { /* ignore */ }
+        });
+
+        // Monkey-patch flyTo / panTo / setView to log requested zooms and centers
+        if (typeof map.flyTo === 'function') {
+            const _origFlyTo = map.flyTo.bind(map);
+            map.flyTo = function (center, zoom, options) {
+                try { console.log('flyTo requested:', { center, zoom, options }); } catch (err) { /* ignore */ }
+                return _origFlyTo(center, zoom, options);
+            };
+        }
+        if (typeof map.panTo === 'function') {
+            const _origPanTo = map.panTo.bind(map);
+            map.panTo = function (center, options) {
+                try { console.log('panTo requested:', { center, options, currentZoom: map.getZoom() }); } catch (err) { /* ignore */ }
+                return _origPanTo(center, options);
+            };
+        }
+        if (typeof map.setView === 'function') {
+            const _origSetView = map.setView.bind(map);
+            map.setView = function (center, zoom, options) {
+                try { console.log('setView requested:', { center, zoom, options }); } catch (err) { /* ignore */ }
+                return _origSetView(center, zoom, options);
+            };
+        }
+    } catch (e) {
+        console.debug('Map instrumentation failed', e);
+    }
+
     // Add Carto Voyager tiles (colorful, readable)
     // skipcq: JS-0125
     const tileLayerUrl = 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
@@ -785,7 +818,7 @@ function handleCountdownUpdate(timeData) {
             _preliveSwitched = true;
             updateTrackingMode(true);
             if (HIDE_COUNTDOWN_ON_LIVE) {
-                const el = document.getElementById('countdown');
+                const el = document.getElementById('countdown-hud');
                 if (el) el.style.display = 'none';
             }
         }
