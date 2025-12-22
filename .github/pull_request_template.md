@@ -108,8 +108,8 @@ Provide environment details so reviewers can reproduce tests:
 - [ ] I have updated the documentation (if applicable)
 - [ ] My code follows the project's style guidelines
 
-## Additional notes
+## Additional Notes
 <!-- Any other context, deployment notes, or caveats reviewers should know about. -->
 
-## Reviewer notes (optional)
+## Reviewer Notes (optional)
 <!-- Anything you want reviewers to focus on (safety, correctness, design choices, edge cases). -->
