@@ -8,7 +8,6 @@ let santaMovementInterval = null;
 // Whether the current santaMovement loop is a requestAnimationFrame (vs setInterval)
 let santaMovementIsRAF = false;
 // RAF id for real-time tracking loop
-// (legacy) RAF id for real-time tracking loop — removed (unused)
 // Interval for pre-flight updates
 let preflightUpdateInterval = null;
 // Interval for weather updates (separate from other preflight updates)
@@ -41,7 +40,9 @@ let _cameraSuppressedUntil = 0;
 // Past trail polyline reference (module scope so other functions can append points)
 let pastTrail = null;
 // Whether the global/fullscreen overlay has already been hidden (avoid re-showing)
-let _overlayHidden;
+let _overlayHidden = false;
+// Ensure we only run the aggressive leftover cleanup once (module scope)
+let _leftoverOverlayCleanupDone = false;
 // Flags shared between map init and route loader so overlay logic can coordinate
 let _mapTilesReady = false;
 let _routeReady = false;
@@ -77,6 +78,15 @@ const CAMERA_ZOOM = {
     LONG_HAUL: 7,
 };
 
+// Longitude wrapping constants
+// `MAX_LONGITUDE_BOUND` represents 1.5 × 360° (one and a half world copies)
+// used for map maxBounds and wrapping calculations to allow smooth world-copy
+// transitions without snapping. Use a named constant to make the intent clear.
+const MAX_LONGITUDE_BOUND = 540; // degrees (1.5 × 360)
+// Reasonable z-index for overlays. Avoid using extremely large values which
+// can cause stacking context surprises. 9999 is high enough to sit above
+// normal UI but avoids using the 32-bit integer max value.
+const OVERLAY_Z_INDEX = 9999;
 // Compute travel zoom based on transit metadata or distance between nodes.
 // Module-scope implementation so it is available to callers across the file.
 function computeTravelZoom(fromNode, toNode) {
@@ -102,7 +112,6 @@ function computeTravelZoom(fromNode, toNode) {
             const a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng/2) * Math.sin(dLng/2);
             const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
             const km = R * c;
-            if (km > 2000) return CAMERA_ZOOM.LONG_HAUL;
             if (km > 500) return CAMERA_ZOOM.LONG_HAUL;
             return CAMERA_ZOOM.SHORT_HOP;
         }
@@ -146,7 +155,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                zIndex: 2147483647,
+                zIndex: OVERLAY_Z_INDEX,
                 pointerEvents: 'auto'
             });
             ov.innerHTML = '<div style="text-align:center;"><div style="font-size:18px;margin-bottom:8px">Preparing Santa Tracker…</div><div style="width:40px;height:40px;border:4px solid #fff;border-top-color:transparent;border-radius:50%;animation:spin 1s linear infinite"></div></div>';
@@ -154,7 +163,39 @@ document.addEventListener('DOMContentLoaded', function() {
             // mark the style block so we can remove it when hiding the overlay
             styleEl.id = 'global-map-loading-overlay-style';
             // enforce full opacity, stacking and pointer behavior via CSS !important
-            styleEl.textContent = '\n@keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}\n#global-map-loading-overlay{position:fixed!important;inset:0!important;width:100vw!important;height:100vh!important;background:#08101a!important;color:#fff!important;display:flex!important;align-items:center;justify-content:center!important;z-index:2147483647!important;pointer-events:auto!important;opacity:1!important;mix-blend-mode:normal!important}\n#global-map-loading-overlay .loader{width:40px;height:40px;border:4px solid #fff;border-top-color:transparent;border-radius:50%;animation:spin 1s linear infinite}\n';
+            styleEl.textContent = `
+                @keyframes spin {
+                    from {
+                        transform: rotate(0);
+                    }
+                    to {
+                        transform: rotate(360deg);
+                    }
+                }
+                #global-map-loading-overlay {
+                    position: fixed !important;
+                    inset: 0 !important;
+                    width: 100vw !important;
+                    height: 100vh !important;
+                    background: #08101a !important;
+                    color: #fff !important;
+                    display: flex !important;
+                    align-items: center;
+                    justify-content: center !important;
+                    z-index: ${OVERLAY_Z_INDEX} !important;
+                    pointer-events: auto !important;
+                    opacity: 1 !important;
+                    mix-blend-mode: normal !important;
+                }
+                #global-map-loading-overlay .loader {
+                    width: 40px;
+                    height: 40px;
+                    border: 4px solid #fff;
+                    border-top-color: transparent;
+                    border-radius: 50%;
+                    animation: spin 1s linear infinite;
+                }
+                `;
             document.head.appendChild(styleEl);
             // remember the style id on the element for easier cleanup
             try { ov.__styleElId = styleEl.id; } catch (e) { /* ignore */ void 0; }
@@ -262,7 +303,7 @@ document.addEventListener('DOMContentLoaded', function() {
             // Match route-editor: allow multiple world copies horizontally and keep stable coords
             worldCopyJump: false,
             // Wide longitudinal bounds to allow smooth wrapping without snapping
-            maxBounds: [[-85, -540], [85, 540]],
+            maxBounds: [[-85, -MAX_LONGITUDE_BOUND], [85, MAX_LONGITUDE_BOUND]],
             maxBoundsViscosity: 0.9
         });
 
@@ -322,8 +363,6 @@ document.addEventListener('DOMContentLoaded', function() {
         _routeReady = false;
         _routeLoadedEmitted = false;
         _overlayHidden = false;
-        // Ensure we only run the aggressive leftover cleanup once
-        let _leftoverOverlayCleanupDone = false;
 
         const createMapLoadingOverlay = () => {
             const container = map.getContainer();
@@ -692,43 +731,77 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         };
 
-        // Compute travel zoom based on transit metadata or distance between nodes.
-        const computeTravelZoom = (fromNode, toNode) => {
-        // Prefer explicit speed_curve if present
-            const speedCurve = (toNode && (toNode.transit && toNode.transit.speed_curve))
-                ? String(toNode.transit.speed_curve).toUpperCase()
-                : (toNode && toNode.transit_to_here && toNode.transit_to_here.speed_curve)
-                    ? String(toNode.transit_to_here.speed_curve).toUpperCase()
-                    : null;
-
-            if (speedCurve === 'HYPERSONIC_LONG') return CAMERA_ZOOM.LONG_HAUL;
-            if (speedCurve === 'HYPERSONIC') return CAMERA_ZOOM.LONG_HAUL;
-            if (speedCurve === 'REGIONAL' || speedCurve === 'CRUISING') return CAMERA_ZOOM.SHORT_HOP;
-
-            // Fallback: estimate by great-circle distance
-            try {
-                if (fromNode && toNode) {
-                    const R = 6371; // km
-                    const lat1 = fromNode.latitude * Math.PI / 180;
-                    const lat2 = toNode.latitude * Math.PI / 180;
-                    const dLat = lat2 - lat1;
-                    const dLng = (toNode.longitude - fromNode.longitude) * Math.PI / 180;
-                    const a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng/2) * Math.sin(dLng/2);
-                    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-                    const km = R * c;
-                    if (km > 2000) return CAMERA_ZOOM.LONG_HAUL;
-                    if (km > 500) return CAMERA_ZOOM.LONG_HAUL;
-                    return CAMERA_ZOOM.SHORT_HOP;
-                }
-            } catch (e) {
-            // ignore and fall back
-            }
-
-            return CAMERA_ZOOM.SHORT_HOP;
-        };
+        // Use the module-scope `computeTravelZoom` implementation declared at
+        // file top-level to avoid shadowing and ensure availability when
+        // called earlier in this scope.
 
         // Track Santa's route for smooth animation
         let isAnimating = false;
+
+        // Smooth animation for Santa's movement along route
+        // `targetPosition` is in display coordinates (already converted to the chosen world copy)
+        const animateSantaMovement = (targetPosition, refLng) => {
+            if (isAnimating) return;
+
+            isAnimating = true;
+            const startPosition = santaMarker.getLatLng();
+            const steps = 30; // Number of animation steps
+            let currentStep = 0;
+
+            // Align start longitude to the target copy so interpolation takes the shortest path.
+            // Both startPosition and targetPosition are expected to be in display coordinates (same world copy).
+            const startLngRaw = startPosition.lng;
+            const targetLngRaw = targetPosition[1];
+            const delta = ((targetLngRaw - startLngRaw + MAX_LONGITUDE_BOUND) % 360) - 180;
+            // Compute target on the nearest world copy to start
+            const alignedTargetLng = startLngRaw + delta;
+
+            animationInterval = setInterval(() => {
+                currentStep++;
+                const progress = currentStep / steps;
+
+                // Linear interpolation between positions
+                const lat = startPosition.lat + (targetPosition[0] - startPosition.lat) * progress;
+                const lng = startLngRaw + (alignedTargetLng - startLngRaw) * progress;
+
+                santaMarker.setLatLng([lat, lng]);
+
+                if (currentStep >= steps) {
+                    clearInterval(animationInterval);
+                    animationInterval = null;
+                    isAnimating = false;
+                    const mapRef = window.trackerMap;
+                    if (mapRef) {
+                    // ensure pan isn't constrained by bounds when finishing animation
+                        disableMapBoundsTemporarily(700);
+                        // targetPosition already uses display coords; pan directly to it
+                        mapRef.panTo([targetPosition[0], targetLngRaw], { animate: true, duration: 0.5 });
+                        // Add final position to traveled trail
+                        try {
+                            const latlngs = pastTrail.getLatLngs();
+                            const last = latlngs.length ? latlngs[latlngs.length - 1] : null;
+                            const COORD_EPSILON = 0.001;  //degrees; avoids adding near-duplicate points
+
+                            const isNewPoint =
+                            !last ||
+                            Math.abs(last.lat - targetPosition[0]) > COORD_EPSILON ||
+                            Math.abs(last.lng - targetPosition[1]) > COORD_EPSILON;
+                            if (isNewPoint) {
+                                pastTrail.addLatLng([targetPosition[0], targetPosition[1]]);
+                            }
+                        } catch (e) {
+                            console.debug('Failed to add point to pastTrail in animateSantaMovement', e);
+                        }
+                        // Call cinematic camera to allow zooming/flyTo based on new status
+                        try {
+                            applyCinematicCamera([targetPosition[0], targetLngRaw], refLng);
+                        } catch (e) {
+                            console.debug('animateSantaMovement: applyCinematicCamera failed', e);
+                        }
+                    }
+                }
+            }, 50); // 50ms per step = 1.5s total animation
+        };
 
         // Subscribe to Santa location updates with smooth movement
         EventSystem.subscribe('santaMove', (data) => {
@@ -830,68 +903,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Smooth animation for Santa's movement along route
         // `targetPosition` is in display coordinates (already converted to the chosen world copy)
-        const animateSantaMovement = (targetPosition, refLng) => {
-            if (isAnimating) return;
-
-            isAnimating = true;
-            const startPosition = santaMarker.getLatLng();
-            const steps = 30; // Number of animation steps
-            let currentStep = 0;
-
-            // Align start longitude to the target copy so interpolation takes the shortest path.
-            // Both startPosition and targetPosition are expected to be in display coordinates (same world copy).
-            const startLngRaw = startPosition.lng;
-            const targetLngRaw = targetPosition[1];
-            const delta = ((targetLngRaw - startLngRaw + 540) % 360) - 180;
-            // Compute target on the nearest world copy to start
-            const alignedTargetLng = startLngRaw + delta;
-
-            animationInterval = setInterval(() => {
-                currentStep++;
-                const progress = currentStep / steps;
-
-                // Linear interpolation between positions
-                const lat = startPosition.lat + (targetPosition[0] - startPosition.lat) * progress;
-                const lng = startLngRaw + (alignedTargetLng - startLngRaw) * progress;
-
-                santaMarker.setLatLng([lat, lng]);
-
-                if (currentStep >= steps) {
-                    clearInterval(animationInterval);
-                    animationInterval = null;
-                    isAnimating = false;
-                    const mapRef = window.trackerMap;
-                    if (mapRef) {
-                    // ensure pan isn't constrained by bounds when finishing animation
-                        disableMapBoundsTemporarily(700);
-                        // targetPosition already uses display coords; pan directly to it
-                        mapRef.panTo([targetPosition[0], targetLngRaw], { animate: true, duration: 0.5 });
-                        // Add final position to traveled trail
-                        try {
-                            const latlngs = pastTrail.getLatLngs();
-                            const last = latlngs.length ? latlngs[latlngs.length - 1] : null;
-                            const COORD_EPSILON = 0.001;  //degrees; avoids adding near-duplicate points
-
-                            const isNewPoint =
-                            !last ||
-                            Math.abs(last.lat - targetPosition[0]) > COORD_EPSILON ||
-                            Math.abs(last.lng - targetPosition[1]) > COORD_EPSILON;
-                            if (isNewPoint) {
-                                pastTrail.addLatLng([targetPosition[0], targetPosition[1]]);
-                            }
-                        } catch (e) {
-                            console.debug('Failed to add point to pastTrail in animateSantaMovement', e);
-                        }
-                        // Call cinematic camera to allow zooming/flyTo based on new status
-                        try {
-                            applyCinematicCamera([targetPosition[0], targetLngRaw], refLng);
-                        } catch (e) {
-                            console.debug('animateSantaMovement: applyCinematicCamera failed', e);
-                        }
-                    }
-                }
-            }, 50); // 50ms per step = 1.5s total animation
-        };
+        // (moved above) animateSantaMovement is defined earlier as an arrow function
 
         // Load and display route with real tracking logic
         loadSantaRoute();
@@ -1009,7 +1021,7 @@ function getDisplayLng(lng, refLng) {
     const norm = normalizeLng(lng);
     if (!window.trackerMap && (refLng === undefined || refLng === null)) return norm;
     const centerLng = (refLng === undefined || refLng === null) ? window.trackerMap.getCenter().lng : refLng;
-    const delta = ((norm - centerLng + 540) % 360) - 180;
+    const delta = ((norm - centerLng + MAX_LONGITUDE_BOUND) % 360) - 180;
     return centerLng + delta;
 }
 
@@ -1024,7 +1036,7 @@ function computeAdjustedLongitudes() {
             adjustedLongitudes.push(norm);
         } else {
             const prev = adjustedLongitudes[i - 1];
-            const delta = ((norm - prev + 540) % 360) - 180;
+            const delta = ((norm - prev + MAX_LONGITUDE_BOUND) % 360) - 180;
             adjustedLongitudes.push(prev + delta);
         }
     }
@@ -1190,9 +1202,18 @@ function alignInitialView(retries) {
             // Lock the reference longitude to the chosen world copy so marker/trail use the same copy
             try {
                 _initialRefLng = mapRef.getCenter().lng;
+                const initialRefLngAtLock = _initialRefLng;
                 try { console.debug && console.debug('alignInitialView: set _initialRefLng', _initialRefLng); } catch (e) { void 0; }
-                // Clear the lock after a short grace period in case no animated movement occurs
-                setTimeout(() => { try { if (_initialRefLng !== null) { _initialRefLng = null; try { console.debug && console.debug('alignInitialView: cleared _initialRefLng after grace period'); } catch (e) { void 0; } } } catch (e) { void 0; } }, 3000);
+                // Clear the lock after a short grace period, but only if we're still in live mode
+                // and the reference longitude hasn't been changed by other logic.
+                setTimeout(() => {
+                    try {
+                        if (currentMode === 'live' && _initialRefLng !== null && _initialRefLng === initialRefLngAtLock) {
+                            _initialRefLng = null;
+                            try { console.debug && console.debug('alignInitialView: cleared _initialRefLng after grace period'); } catch (e) { void 0; }
+                        }
+                    } catch (e) { void 0; }
+                }, 3000);
             } catch (e) { /* ignore */ }
             try { console.debug && console.debug('alignInitialView: aligned map to', { center: centerPoint, zoom: desiredZoom }); } catch (e) { void 0; }
         } catch (e) {
@@ -2141,13 +2162,17 @@ function interpolatePosition(loc1, loc2, currentTime) {
                 const FALLBACK_SPEED_KMH = 900; // fast cruising speed; purely visual
                 let durationMs = (km / FALLBACK_SPEED_KMH) * 3600 * 1000;
 
-                // Clamp to sensible bounds so long distances don't create very long animations
-                const MIN_FALLBACK_MS = 3000; // 3s minimum so the motion is perceivable
-                const MAX_FALLBACK_MS = 120000; // 2 minutes max for very long hops
+                // Clamp to sensible bounds so long distances don't create very long animations.
+                // This is a visual fallback, not a physically realistic simulation: we cap the
+                // duration so Santa never appears stationary for too long on very long hops.
+                const MIN_FALLBACK_MS = 3000;  // 3s minimum so the motion is perceivable
+                const MAX_FALLBACK_MS = 60000; // 60s max to keep the animation feeling responsive
                 durationMs = Math.max(MIN_FALLBACK_MS, Math.min(MAX_FALLBACK_MS, Math.round(durationMs)));
-
                 adjustedTotalDuration = durationMs;
-                console.warn('interpolatePosition: non-positive totalDuration — using distance-based fallback', { km: Math.round(km), adjustedTotalDuration });
+                console.warn(
+                    'interpolatePosition: non-positive totalDuration — using distance-based visual fallback with capped duration',
+                    { km: Math.round(km), adjustedTotalDuration }
+                );
             } else {
                 adjustedTotalDuration = 3000;
                 console.warn('interpolatePosition: non-positive totalDuration and invalid coordinates — using minimal fallback 3000ms', { departure, arrival, loc1, loc2 });
@@ -2191,7 +2216,7 @@ function interpolatePosition(loc1, loc2, currentTime) {
         console.debug('computeAdjustedLongitudes lookup failed, falling back to raw longitudes', e);
     }
 
-    const delta = ((lngB - lngA + 540) % 360) - 180;
+    const delta = ((lngB - lngA + MAX_LONGITUDE_BOUND) % 360) - 180;
     const lng = lngA + delta * progress;
 
     return [lat, lng];
@@ -2391,6 +2416,13 @@ function startRealTimeTracking() {
         // If page is hidden, stop scheduling further frames to save CPU/battery.
         try {
             if (typeof document !== 'undefined' && document.hidden) {
+                // Cancel pending RAF to avoid accumulating multiple RAF loops
+                // when the page visibility toggles repeatedly.
+                try {
+                    if (santaMovementIsRAF && santaMovementInterval) {
+                        cancelAnimationFrame(santaMovementInterval);
+                    }
+                } catch (ee) { /* ignore */ }
                 santaMovementIsRAF = false;
                 santaMovementInterval = null;
                 return;
