@@ -14,7 +14,7 @@ let preflightUpdateInterval = null;
 let weatherUpdateInterval = null;
 
 // Timeout variables for cleanup
-let santaMarkerTimeoutId = null;
+const santaMarkerTimeoutId = null;
 let liftoffToastTimeoutId = null;
 let liftoffToastHideTimeoutId = null;
 
@@ -90,10 +90,10 @@ const OVERLAY_Z_INDEX = 9999;
 // Compute travel zoom based on transit metadata or distance between nodes.
 // Module-scope implementation so it is available to callers across the file.
 function computeTravelZoom(fromNode, toNode) {
-    // Prefer explicit speed_curve if present
-    const speedCurve = (toNode && (toNode.transit && toNode.transit.speed_curve))
+    // Prefer explicit speed_curve if present (use optional chaining)
+    const speedCurve = toNode?.transit?.speed_curve
         ? String(toNode.transit.speed_curve).toUpperCase()
-        : (toNode && toNode.transit_to_here && toNode.transit_to_here.speed_curve)
+        : toNode?.transit_to_here?.speed_curve
             ? String(toNode.transit_to_here.speed_curve).toUpperCase()
             : null;
 
@@ -104,15 +104,15 @@ function computeTravelZoom(fromNode, toNode) {
     // Fallback: estimate by great-circle distance
     try {
         if (fromNode && toNode) {
-            const R = 6371; // km
+            const earthRadiusKm = 6371; // km
             const lat1 = fromNode.latitude * Math.PI / 180;
             const lat2 = toNode.latitude * Math.PI / 180;
             const dLat = lat2 - lat1;
             const dLng = (toNode.longitude - fromNode.longitude) * Math.PI / 180;
-            const a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng/2) * Math.sin(dLng/2);
-            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-            const km = R * c;
-            if (km > 500) return CAMERA_ZOOM.LONG_HAUL;
+            const haversineA = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng/2) * Math.sin(dLng/2);
+            const haversineC = 2 * Math.atan2(Math.sqrt(haversineA), Math.sqrt(1 - haversineA));
+            const distanceKm = earthRadiusKm * haversineC;
+            if (distanceKm > 500) return CAMERA_ZOOM.LONG_HAUL;
             return CAMERA_ZOOM.SHORT_HOP;
         }
     } catch (e) {
@@ -125,8 +125,57 @@ function computeTravelZoom(fromNode, toNode) {
 // Module-scope overlay helper stubs. Real implementations are assigned
 // inside DOMContentLoaded so module-level helpers (e.g. loadSantaRoute)
 // can safely reference them without triggering `no-undef`.
-let hideFullScreenOverlay = () => { void 0; };
-let hideMapLoadingOverlay = () => { void 0; };
+let hideFullScreenOverlay = () => {};
+let hideMapLoadingOverlay = () => {};
+
+// Aggressive removal of any leftover overlay elements or style blocks that
+// might have been missed by the normal hide logic. Placed at module scope to
+// avoid declaring functions inside blocks (ESLint `no-inner-declarations`).
+function removeLeftoverOverlays() {
+    try {
+        if (_leftoverOverlayCleanupDone) return;
+        _leftoverOverlayCleanupDone = true;
+
+        try {
+            ['global-map-loading-overlay', 'map-loading-overlay'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el?.parentNode) {
+                    try { el.parentNode.removeChild(el); } catch (e) { /* ignore */ }
+                }
+            });
+        } catch (e) { /* ignore */ }
+
+        // Remove named style elements we created earlier
+        try {
+            const ids = ['global-map-loading-overlay-style', 'map-loading-overlay-style'];
+            ids.forEach(sid => {
+                try {
+                    const styleNode = document.getElementById(sid);
+                    if (styleNode?.parentNode) styleNode.parentNode.removeChild(styleNode);
+                } catch (e) { /* ignore */ }
+            });
+        } catch (e) { /* ignore */ }
+
+        // Fallback: remove any full-viewport fixed element that contains our
+        // overlay text or spinner markup to be conservative.
+        try {
+            const candidates = Array.from(document.body.querySelectorAll('div'));
+            candidates.forEach(d => {
+                try {
+                    const cs = window.getComputedStyle(d);
+                    const isFull = (cs.position === 'fixed' || cs.position === 'absolute') && (Math.abs(d.offsetWidth - window.innerWidth) <= 2) && (Math.abs(d.offsetHeight - window.innerHeight) <= 2);
+                    if (!isFull) return;
+                    const text = d.textContent?.toLowerCase() ?? '';
+                    if (text.includes('preparing santa tracker') || text.includes('loading map')) {
+                        d.parentNode?.removeChild(d);
+                    }
+                } catch (e) { /* ignore */ }
+            });
+        } catch (e) { /* ignore */ }
+
+        try { console.debug && console.debug('removeLeftoverOverlays: completed cleanup'); } catch (e) { /* ignore */ }
+    } catch (e) { /* ignore */ }
+}
 
 // skipcq: JS-0241
 document.addEventListener('DOMContentLoaded', function() {
@@ -198,10 +247,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 `;
             document.head.appendChild(styleEl);
             // remember the style id on the element for easier cleanup
-            try { ov.__styleElId = styleEl.id; } catch (e) { /* ignore */ void 0; }
+            try { ov.__styleElId = styleEl.id; } catch (e) { /* ignore */ }
             // Always append to body as last child so fixed overlay sits above map panes
             document.body.appendChild(ov);
-            try { console.debug && console.debug('createFullScreenOverlay: appended overlay to body'); } catch (e) { void 0; }
+            try { console.debug && console.debug('createFullScreenOverlay: appended overlay to body'); } catch (e) { /* ignore */ }
             return ov;
         };
 
@@ -210,11 +259,11 @@ document.addEventListener('DOMContentLoaded', function() {
             const ov = createFullScreenOverlay();
             if (ov) {
             // move to end of body to ensure top stacking
-                try { document.body.appendChild(ov); } catch (e) { /* ignore */ void 0; }
+                try { document.body.appendChild(ov); } catch (e) { /* ignore */ }
                 ov.style.display = 'flex';
                 // record show time so we can enforce minimum display duration
-                try { ov.__shownAt = Date.now(); } catch (e) { /* ignore */ void 0; }
-                try { console.debug && console.debug('showFullScreenOverlay: shown'); } catch (e) { void 0; }
+                try { ov.__shownAt = Date.now(); } catch (e) { /* ignore */ }
+                try { console.debug && console.debug('showFullScreenOverlay: shown'); } catch (e) { /* ignore */ }
                 // Watchdog: ensure overlay doesn't block the UI indefinitely
                 setTimeout(() => {
                     try {
@@ -224,11 +273,11 @@ document.addEventListener('DOMContentLoaded', function() {
                             try { 
                             // Force hide both overlays and mark overlay as hidden to avoid re-showing
                                 if (typeof _overlayHidden === 'undefined' || !_overlayHidden) _overlayHidden = true;
-                                try { hideFullScreenOverlay(); } catch (e) { /* ignore */ void 0; }
-                                try { hideMapLoadingOverlay(); } catch (e) { /* ignore */ void 0; }
-                            } catch (e) { /* ignore */ void 0; }
+                                try { hideFullScreenOverlay(); } catch (e) { /* ignore */ }
+                                try { hideMapLoadingOverlay(); } catch (e) { /* ignore */ }
+                            } catch (e) { /* ignore */ }
                         }
-                    } catch (e) { /* ignore */ void 0; }
+                    } catch (e) { /* ignore */ }
                 }, 10000);
             }
         };
@@ -241,43 +290,43 @@ document.addEventListener('DOMContentLoaded', function() {
                 const shownAt = ov.__shownAt || 0;
                 const elapsed = Date.now() - shownAt;
                 if (elapsed < MIN_MS) {
-                    setTimeout(() => { try { ov.style.display = 'none'; } catch (e) { void 0; } }, MIN_MS - elapsed);
+                    setTimeout(() => { try { ov.style.display = 'none'; } catch (err) { /* ignore */ } }, MIN_MS - elapsed);
                     return;
                 }
-            } catch (e) { /* ignore */ void 0; }
+            } catch (e) { /* ignore */ }
             try {
             // Some stylesheet rules use `display: flex !important` which can
             // override normal inline styles. Use setProperty with `important`
             // to ensure the overlay actually hides.
                 ov.style.setProperty('display', 'none', 'important');
             } catch (e) {
-                try { ov.style.display = 'none'; } catch (e) { /* ignore */ void 0; }
+                try { ov.style.display = 'none'; } catch (e) { /* ignore */ }
             }
             // As a final fallback, remove the element from DOM so it cannot block UI.
-            try { if (ov.parentNode) ov.parentNode.removeChild(ov); } catch (e) { /* ignore */ void 0; }
+            try { ov.parentNode?.removeChild(ov); } catch (e) { /* ignore */ }
 
             // Remove any style blocks we added for the overlay (old pages may have
             // appended multiple). Prefer the named style id when available.
             try {
                 const named = document.getElementById('global-map-loading-overlay-style');
-                if (named && named.parentNode) named.parentNode.removeChild(named);
-            } catch (e) { /* ignore */ void 0; }
+                named?.parentNode?.removeChild(named);
+            } catch (e) { /* ignore */ }
             try {
-            // Fallback: remove any <style> that contains the overlay rule.
+                // Fallback: remove any <style> that contains the overlay rule.
                 const styles = Array.from(document.head.querySelectorAll('style'));
                 styles.forEach(s => {
                     try {
-                        if (s.textContent && s.textContent.indexOf('#global-map-loading-overlay') !== -1) {
-                            if (s.parentNode) s.parentNode.removeChild(s);
+                        if (s.textContent?.indexOf('#global-map-loading-overlay') !== -1) {
+                            s.parentNode?.removeChild(s);
                         }
-                    } catch (e) { /* ignore */ void 0; }
+                    } catch (e) { /* ignore */ }
                 });
-            } catch (e) { /* ignore */ void 0; }
+            } catch (e) { /* ignore */ }
 
             // Mark overlay hidden so other logic won't re-show it.
-            try { _overlayHidden = true; } catch (e) { /* ignore */ void 0; }
+            try { _overlayHidden = true; } catch (e) { /* ignore */ }
 
-            try { console.debug && console.debug('hideFullScreenOverlay: hidden', { mapTilesReady: _mapTilesReady, routeReady: _routeReady, overlayHiddenFlag: _overlayHidden }); } catch (e) { void 0; }
+            try { console.debug && console.debug('hideFullScreenOverlay: hidden', { mapTilesReady: _mapTilesReady, routeReady: _routeReady, overlayHiddenFlag: _overlayHidden }); } catch (e) { /* ignore */ }
         };
 
         // Immediately show global overlay to block UI while initializing
@@ -286,7 +335,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // Check if Leaflet is loaded before initializing map
         if (typeof L === 'undefined') {
             console.error('Leaflet library not loaded. Map functionality will be disabled.');
-            try { hideFullScreenOverlay(); } catch (e) { /* ignore */ void 0; }
+            try { hideFullScreenOverlay(); } catch (e) { /* ignore */ }
             return;
         }
 
@@ -314,7 +363,7 @@ document.addEventListener('DOMContentLoaded', function() {
         try {
         // Log major map events with zoom and center for tracing unexpected changes
         // map event logging removed in production to reduce console noise
-            map.on && map.on('zoomstart zoomend movestart moveend', function () { /* instrumentation removed */ return; });
+            map.on && map.on('zoomstart zoomend movestart moveend', () => { /* instrumentation removed */ return; });
 
             // Monkey-patch flyTo / panTo / setView to log requested zooms and centers
             if (typeof map.flyTo === 'function') {
@@ -391,7 +440,7 @@ document.addEventListener('DOMContentLoaded', function() {
             styleEl.id = 'map-loading-overlay-style';
             styleEl.textContent = '@keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}} .leaflet-container .leaflet-tile { background-color: transparent; } .leaflet-container { -webkit-backface-visibility: hidden; backface-visibility: hidden; } .leaflet-tile { image-rendering: -webkit-optimize-contrast; image-rendering: optimizeQuality; }';
             document.head.appendChild(styleEl);
-            try { overlay.__mapStyleElId = styleEl.id; } catch (e) { /* ignore */ void 0; }
+            try { overlay.__mapStyleElId = styleEl.id; } catch (err) { /* ignore */ }
             container.style.position = container.style.position || 'relative';
             container.appendChild(overlay);
             return overlay;
@@ -399,95 +448,47 @@ document.addEventListener('DOMContentLoaded', function() {
 
         const showMapLoadingOverlay = () => {
         // Prefer global full-screen overlay for blocking; keep map-local overlay as fallback
-            try { showFullScreenOverlay(); } catch (e) { /* ignore */ void 0; }
+            try { showFullScreenOverlay(); } catch (e) { /* ignore */ }
             const ov = createMapLoadingOverlay();
             if (ov) ov.style.display = 'flex';
         };
 
         hideMapLoadingOverlay = () => {
-            try { console.debug && console.debug('hideMapLoadingOverlay: entering', { mapTilesReady: _mapTilesReady, routeReady: _routeReady, overlayHiddenFlag: _overlayHidden }); } catch (e) { void 0; }
-            try { hideFullScreenOverlay(); } catch (e) { /* ignore */ void 0; }
+            try { console.debug && console.debug('hideMapLoadingOverlay: entering', { mapTilesReady: _mapTilesReady, routeReady: _routeReady, overlayHiddenFlag: _overlayHidden }); } catch (e) { /* ignore */ }
+            try { hideFullScreenOverlay(); } catch (e) { /* ignore */ }
             const container = map.getContainer();
             if (!container) return;
             const ov = container.querySelector('#map-loading-overlay');
             if (ov) {
-                try { ov.style.setProperty('display', 'none', 'important'); } catch (e) { try { ov.style.display = 'none'; } catch (e) { void 0; } }
-                try { if (ov.__mapStyleElId) { const s = document.getElementById(ov.__mapStyleElId); if (s && s.parentNode) s.parentNode.removeChild(s); } } catch (e) { /* ignore */ void 0; }
+                try { ov.style.setProperty('display', 'none', 'important'); } catch (e) { try { ov.style.display = 'none'; } catch (e) { /* ignore */ } }
+                try { if (ov.__mapStyleElId) { const mapStyleEl = document.getElementById(ov.__mapStyleElId); mapStyleEl?.parentNode?.removeChild(mapStyleEl); } } catch (e) { /* ignore */ }
                 try {
                 // Fallback: remove any style that mentions .leaflet-tile (our injected helper)
                     const styles = Array.from(document.head.querySelectorAll('style'));
                     styles.forEach(s => {
-                        try { if (s.textContent && s.textContent.indexOf('.leaflet-tile') !== -1) { if (s.parentNode) s.parentNode.removeChild(s); } } catch (e) { void 0; }
+                        try { if (s.textContent?.indexOf('.leaflet-tile') !== -1) { s.parentNode?.removeChild(s); } } catch (e) { /* ignore */ }
                     });
-                } catch (e) { /* ignore */ void 0; }
+                } catch (e) { /* ignore */ }
             }
-            try { console.debug && console.debug('hideMapLoadingOverlay: hid map-local overlay and requested full-screen hide'); } catch (e) { void 0; }
+            try { console.debug && console.debug('hideMapLoadingOverlay: hid map-local overlay and requested full-screen hide'); } catch (e) { /* ignore */ }
             // Run aggressive cleanup after a short delay to catch any reinjected styles/elements
             try {
                 if (!_leftoverOverlayCleanupDone) {
-                    setTimeout(() => { try { removeLeftoverOverlays(); } catch (e) { void 0; } }, 80);
+                    setTimeout(() => { try { removeLeftoverOverlays(); } catch (e) { /* ignore */ } }, 80);
                     // also run slightly later in case other scripts re-insert overlays
-                    setTimeout(() => { try { removeLeftoverOverlays(); } catch (e) { void 0; } }, 450);
+                    setTimeout(() => { try { removeLeftoverOverlays(); } catch (e) { /* ignore */ } }, 450);
                 }
-            } catch (e) { /* ignore */ void 0; }
+            } catch (e) { /* ignore */ }
         };
 
-        // Aggressive removal of any leftover overlay elements or style blocks that
-        // might have been missed by the normal hide logic. This is a safe, one-time
-        // cleanup to ensure the UI is unblocked even if another script re-inserts
-        // a blocking overlay element.
-        const removeLeftoverOverlays = () => {
-            try {
-                if (_leftoverOverlayCleanupDone) return;
-                _leftoverOverlayCleanupDone = true;
-
-                try {
-                    ['global-map-loading-overlay', 'map-loading-overlay'].forEach(id => {
-                        const el = document.getElementById(id);
-                        if (el && el.parentNode) {
-                            try { el.parentNode.removeChild(el); } catch (e) { /* ignore */ void 0; }
-                        }
-                    });
-                } catch (e) { /* ignore */ void 0; }
-
-                // Remove named style elements we created earlier
-                try {
-                    const ids = ['global-map-loading-overlay-style', 'map-loading-overlay-style'];
-                    ids.forEach(sid => {
-                        try {
-                            const s = document.getElementById(sid);
-                            if (s && s.parentNode) s.parentNode.removeChild(s);
-                        } catch (e) { /* ignore */ void 0; }
-                    });
-                } catch (e) { /* ignore */ void 0; }
-
-                // Fallback: remove any full-viewport fixed element that contains our
-                // overlay text or spinner markup to be conservative.
-                try {
-                    const candidates = Array.from(document.body.querySelectorAll('div'));
-                    candidates.forEach(d => {
-                        try {
-                            const cs = window.getComputedStyle(d);
-                            const isFull = (cs.position === 'fixed' || cs.position === 'absolute') && (Math.abs(d.offsetWidth - window.innerWidth) <= 2) && (Math.abs(d.offsetHeight - window.innerHeight) <= 2);
-                            if (!isFull) return;
-                            const text = (d.textContent || '').toLowerCase();
-                            if (text.includes('preparing santa tracker') || text.includes('loading map')) {
-                                if (d.parentNode) d.parentNode.removeChild(d);
-                            }
-                        } catch (e) { /* ignore */ void 0; }
-                    });
-                } catch (e) { /* ignore */ void 0; }
-
-                try { console.debug && console.debug('removeLeftoverOverlays: completed cleanup'); } catch (e) { void 0; }
-            } catch (e) { /* ignore */ void 0; }
-        };
+        
 
         // Make overlay helpers accessible to module-scope logic (some callers use
         // `window.hideMapLoadingOverlay` / `window.showMapLoadingOverlay`).
         try {
             window.hideMapLoadingOverlay = hideMapLoadingOverlay;
             window.showMapLoadingOverlay = showMapLoadingOverlay;
-        } catch (e) { /* ignore */ void 0; }
+        } catch (e) { /* ignore */ }
 
         // Show overlay initially until tiles + route finish loading
         showMapLoadingOverlay();
@@ -497,27 +498,27 @@ document.addEventListener('DOMContentLoaded', function() {
         // Only listen for the tile 'load' event to know when the base layer finished
         // loading initially. Do NOT show the overlay on each tilestart (removes
         // the transient transparent overlay when users zoom/pan).
-            tileLayer.on('load', function() {
-                try { console.debug && console.debug('tileLayer: load event'); } catch (e) { void 0; }
+            tileLayer.on('load', () => {
+                try { console.debug && console.debug('tileLayer: load event'); } catch (e) { /* ignore */ }
                 if (_mapTilesReady) {
-                    try { console.debug && console.debug('tileLayer: load event ignored (already ready)'); } catch (e) { void 0; }
+                    try { console.debug && console.debug('tileLayer: load event ignored (already ready)'); } catch (e) { /* ignore */ }
                     return; // only handle first load
                 }
                 _mapTilesReady = true;
-                try { console.debug && console.debug('tileLayer: setting _mapTilesReady = true', { mapTilesReady: _mapTilesReady, routeReady: _routeReady }); } catch (e) { void 0; }
+                try { console.debug && console.debug('tileLayer: setting _mapTilesReady = true', { mapTilesReady: _mapTilesReady, routeReady: _routeReady }); } catch (e) { /* ignore */ }
                 // If route already ready and we've aligned the initial view, hide overlays
                 if (_routeReady && _initialViewAligned) {
-                    try { console.debug && console.debug('tileLayer: both ready and aligned -> scheduling hideMapLoadingOverlay'); } catch (e) { void 0; }
+                    try { console.debug && console.debug('tileLayer: both ready and aligned -> scheduling hideMapLoadingOverlay'); } catch (e) { /* ignore */ }
                     setTimeout(() => { hideMapLoadingOverlay(); }, 200);
                 }
             });
-            tileLayer.on('tileerror', function(err) {
-                try { console.warn && console.warn('tileLayer: tileerror', err); } catch (e) { void 0; }
+            tileLayer.on('tileerror', (err) => {
+                try { console.warn && console.warn('tileLayer: tileerror', err); } catch (e) { /* ignore */ }
                 // mark tiles ready to avoid sticking overlay indefinitely; do not show overlay
                 _mapTilesReady = true;
-                try { console.debug && console.debug('tileLayer: setting _mapTilesReady = true due to tileerror', { mapTilesReady: _mapTilesReady, routeReady: _routeReady }); } catch (e) { void 0; }
+                try { console.debug && console.debug('tileLayer: setting _mapTilesReady = true due to tileerror', { mapTilesReady: _mapTilesReady, routeReady: _routeReady }); } catch (e) { /* ignore */ }
                 if (_routeReady && _initialViewAligned) {
-                    try { console.debug && console.debug('tileLayer: tileerror and route ready & aligned -> scheduling hideMapLoadingOverlay'); } catch (e) { void 0; }
+                    try { console.debug && console.debug('tileLayer: tileerror and route ready & aligned -> scheduling hideMapLoadingOverlay'); } catch (e) { /* ignore */ }
                     setTimeout(() => { hideMapLoadingOverlay(); }, 200);
                 }
             });
@@ -594,26 +595,26 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Make EventSystem globally accessible
         window.EventSystem = EventSystem;
-        try { console.debug && console.debug('EventSystem: created and assigned to window.EventSystem'); } catch (e) { void 0; }
+        try { console.debug && console.debug('EventSystem: created and assigned to window.EventSystem'); } catch (e) { /* ignore */ }
 
         // Listen for route load events so the map overlay can hide when ready
         try {
-            EventSystem.subscribe('routeLoaded', function() {
-                try { console.debug && console.debug('EventSystem: routeLoaded event received'); } catch (e) { void 0; }
+            EventSystem.subscribe('routeLoaded', () => {
+                try { console.debug && console.debug('EventSystem: routeLoaded event received'); } catch (e) { /* ignore */ }
                 try {
                     if (_routeReady) {
-                        try { console.debug && console.debug('EventSystem: routeLoaded ignored (already _routeReady)'); } catch (e) { void 0; }
+                        try { console.debug && console.debug('EventSystem: routeLoaded ignored (already _routeReady)'); } catch (e) { /* ignore */ }
                         return; // ignore duplicate events
                     }
                     _routeReady = true;
-                    try { console.debug && console.debug('EventSystem: setting _routeReady = true', { mapTilesReady: _mapTilesReady, routeReady: _routeReady }); } catch (e) { void 0; }
+                    try { console.debug && console.debug('EventSystem: setting _routeReady = true', { mapTilesReady: _mapTilesReady, routeReady: _routeReady }); } catch (e) { /* ignore */ }
                     if (_mapTilesReady && _initialViewAligned) {
-                        try { console.debug && console.debug('EventSystem: both ready and aligned -> hideMapLoadingOverlay'); } catch (e) { void 0; }
+                        try { console.debug && console.debug('EventSystem: both ready and aligned -> hideMapLoadingOverlay'); } catch (e) { /* ignore */ }
                         hideMapLoadingOverlay();
                     } else {
-                        try { console.debug && console.debug('EventSystem: routeLoaded but waiting for mapTiles or initial alignment', { mapTilesReady: _mapTilesReady, initialViewAligned: _initialViewAligned }); } catch (e) { void 0; }
+                        try { console.debug && console.debug('EventSystem: routeLoaded but waiting for mapTiles or initial alignment', { mapTilesReady: _mapTilesReady, initialViewAligned: _initialViewAligned }); } catch (e) { /* ignore */ }
                     }
-                } catch (e) { /* ignore */ void 0; }
+                } catch (e) { /* ignore */ }
             });
         } catch (e) {
         // ignore if instrumentation not installed yet
@@ -663,7 +664,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
             // If camera changes are temporarily suppressed (e.g., right after switching to live), skip all camera changes
             if (Date.now() < _cameraSuppressedUntil) {
-                try { console.debug && console.debug('applyCinematicCamera: suppression active, skipping camera changes', { until: _cameraSuppressedUntil }); } catch (e) { void 0; }
+                try { console.debug && console.debug('applyCinematicCamera: suppression active, skipping camera changes', { until: _cameraSuppressedUntil }); } catch (e) { /* ignore */ }
                 return; // do nothing while liftoff/flyTo is in progress
             }
 
@@ -820,7 +821,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const displayPosition = [lat, displayLng];
 
             if (window.SANTA_TRACE) {
-                try { console.debug && console.debug('santaMove: pos', { canonicalLng, effectiveRef, displayLng, animate }); } catch (e) { void 0; }
+                try { console.debug && console.debug('santaMove: pos', { canonicalLng, effectiveRef, displayLng, animate }); } catch (e) { /* ignore */ }
             }
 
             if (animate) {
@@ -833,10 +834,10 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (_initialRefLng !== null) {
                         _initialRefLng = null;
                         if (window.SANTA_TRACE) {
-                            try { console.debug && console.debug('santaMove: cleared initialRefLng due to animate movement'); } catch (e) { void 0; }
+                            try { console.debug && console.debug('santaMove: cleared initialRefLng due to animate movement'); } catch (e) { /* ignore */ }
                         }
                     }
-                } catch (e) { void 0; }
+                } catch (e) { /* ignore */ }
             } else {
                 santaMarker.setLatLng(displayPosition);
                 // Add to traveled trail if this is a new point (use display coords)
@@ -1149,24 +1150,24 @@ function alignInitialView(retries) {
         // Prefer status.position, then the last point of the populated trail; fallback to marker or santaRoute nodes
         let centerPoint = null;
         // Prefer live status position when available (gives accurate current in-transit position)
-        let status = null;
-        try { status = getSantaStatus(); } catch (e) { status = null; }
-        if (status && status.position) {
-            try { centerPoint = [Number(status.position[0]), Number(status.position[1])]; } catch (e) { centerPoint = null; }
+        let foundStatus = null;
+        try { foundStatus = getSantaStatus(); } catch (err) { foundStatus = null; }
+        if (foundStatus && foundStatus.position) {
+            try { centerPoint = [Number(foundStatus.position[0]), Number(foundStatus.position[1])]; } catch (err) { centerPoint = null; }
         }
         try {
-            if (pastTrail && typeof pastTrail.getLatLngs === 'function') {
+            if (typeof pastTrail?.getLatLngs === 'function') {
                 const latlngs = pastTrail.getLatLngs();
                 if (latlngs && latlngs.length) {
-                    const l = latlngs[latlngs.length - 1];
-                    centerPoint = [l.lat, l.lng];
+                    const lastPoint = latlngs[latlngs.length - 1];
+                    centerPoint = [lastPoint.lat, lastPoint.lng];
                 }
             }
         } catch (e) { /* ignore */ }
 
-        if (!centerPoint && window.santaMarker && typeof window.santaMarker.getLatLng === 'function') {
-            const p = window.santaMarker.getLatLng();
-            if (p) centerPoint = [p.lat, p.lng];
+        if (!centerPoint && typeof window.santaMarker?.getLatLng === 'function') {
+            const markerLatLng = window.santaMarker.getLatLng();
+            if (markerLatLng) centerPoint = [markerLatLng.lat, markerLatLng.lng];
         }
 
         // Fallback: derive from santaRoute + adjustedLongitudes if still missing
@@ -1203,19 +1204,19 @@ function alignInitialView(retries) {
             try {
                 _initialRefLng = mapRef.getCenter().lng;
                 const initialRefLngAtLock = _initialRefLng;
-                try { console.debug && console.debug('alignInitialView: set _initialRefLng', _initialRefLng); } catch (e) { void 0; }
+                try { console.debug && console.debug('alignInitialView: set _initialRefLng', _initialRefLng); } catch (e) { /* ignore */ }
                 // Clear the lock after a short grace period, but only if we're still in live mode
                 // and the reference longitude hasn't been changed by other logic.
                 setTimeout(() => {
                     try {
                         if (currentMode === 'live' && _initialRefLng !== null && _initialRefLng === initialRefLngAtLock) {
                             _initialRefLng = null;
-                            try { console.debug && console.debug('alignInitialView: cleared _initialRefLng after grace period'); } catch (e) { void 0; }
+                            try { console.debug && console.debug('alignInitialView: cleared _initialRefLng after grace period'); } catch (e) { /* ignore */ }
                         }
-                    } catch (e) { void 0; }
+                    } catch (e) { /* ignore */ }
                 }, 3000);
             } catch (e) { /* ignore */ }
-            try { console.debug && console.debug('alignInitialView: aligned map to', { center: centerPoint, zoom: desiredZoom }); } catch (e) { void 0; }
+            try { console.debug && console.debug('alignInitialView: aligned map to', { center: centerPoint, zoom: desiredZoom }); } catch (e) { /* ignore */ }
         } catch (e) {
             // If setView fails (map not ready), try again shortly
             if (retries < 5) setTimeout(() => alignInitialView(retries + 1), 120);
@@ -1476,7 +1477,7 @@ function triggerLiftoff() {
         _lastZoom = travelZoom;
 
         try {
-            mapRef.once && mapRef.once('moveend', function() {
+            mapRef.once && mapRef.once('moveend', () => {
                 // map zoom after flyTo debug removed
             });
         } catch (e) { /* ignore */ }
@@ -1733,7 +1734,7 @@ function updateLocationCountdown() {
 // skipcq: JS-R1005
 async function loadSantaRoute() {
     try {
-        try { console.debug && console.debug('loadSantaRoute: starting fetch /static/data/santa_route.json'); } catch (e) { void 0; }
+        try { console.debug && console.debug('loadSantaRoute: starting fetch /static/data/santa_route.json'); } catch (e) { /* ignore */ }
         const response = await fetch('/static/data/santa_route.json');
         const data = await response.json();
         // Normalize route data: support both legacy `route` and new `route_nodes` shape
@@ -1794,20 +1795,20 @@ async function loadSantaRoute() {
 
         // Compute adjusted longitudes for smooth interpolation across dateline
         computeAdjustedLongitudes();
-        try { console.debug && console.debug('loadSantaRoute: computed adjusted longitudes, nodes=', santaRoute.length); } catch (e) { void 0; }
+        try { console.debug && console.debug('loadSantaRoute: computed adjusted longitudes, nodes=', santaRoute.length); } catch (e) { /* ignore */ }
 
         // Emit routeLoaded early so UI can hide overlays even if later steps error.
         try {
             if (!(_routeLoadedEmitted)) {
                 _routeLoadedEmitted = true;
                 window.EventSystem && typeof window.EventSystem.emit === 'function' && window.EventSystem.emit('routeLoaded');
-                try { console.debug && console.debug('loadSantaRoute: early emit routeLoaded to ensure UI unblocks'); } catch (e) { void 0; }
+                try { console.debug && console.debug('loadSantaRoute: early emit routeLoaded to ensure UI unblocks'); } catch (e) { /* ignore */ }
                 // Also mark route as ready locally so overlay logic doesn't race with event handlers
                 try { 
                     _routeReady = true; 
-                    try { console.debug && console.debug('loadSantaRoute: set _routeReady = true (early emit)', { mapTilesReady: _mapTilesReady, routeReady: _routeReady }); } catch (e) { void 0; }
+                    try { console.debug && console.debug('loadSantaRoute: set _routeReady = true (early emit)', { mapTilesReady: _mapTilesReady, routeReady: _routeReady }); } catch (e) { /* ignore */ }
                     if (_mapTilesReady && _initialViewAligned) {
-                        try { console.debug && console.debug('loadSantaRoute: both ready & aligned -> hiding overlays'); } catch (e) { void 0; }
+                        try { console.debug && console.debug('loadSantaRoute: both ready & aligned -> hiding overlays'); } catch (e) { /* ignore */ }
                         setTimeout(() => {
                             try {
                                 if (typeof window.hideMapLoadingOverlay === 'function') window.hideMapLoadingOverlay();
@@ -1816,7 +1817,7 @@ async function loadSantaRoute() {
                         }, 120);
                     } else {
                         // If not yet aligned, schedule a re-check shortly so overlays hide once alignment completes
-                        try { console.debug && console.debug('loadSantaRoute: waiting for initial alignment or tiles before hiding overlays', { mapTilesReady: _mapTilesReady, initialViewAligned: _initialViewAligned }); } catch (e) { void 0; }
+                        try { console.debug && console.debug('loadSantaRoute: waiting for initial alignment or tiles before hiding overlays', { mapTilesReady: _mapTilesReady, initialViewAligned: _initialViewAligned }); } catch (e) { /* ignore */ }
                         setTimeout(() => {
                             try {
                                 if (_mapTilesReady && _initialViewAligned) {
@@ -1974,14 +1975,14 @@ async function loadSantaRoute() {
             if (!(_routeLoadedEmitted)) {
                 _routeLoadedEmitted = true;
                 window.EventSystem && typeof window.EventSystem.emit === 'function' && window.EventSystem.emit('routeLoaded');
-                try { console.debug && console.debug('loadSantaRoute: emitted routeLoaded'); } catch (e) { void 0; }
-                try { if (!_routeReady) { _routeReady = true; try { console.debug && console.debug('loadSantaRoute: set _routeReady = true (final emit)', { mapTilesReady: _mapTilesReady, routeReady: _routeReady }); } catch (e) { void 0; } } } catch (e) { void 0; }
+                try { console.debug && console.debug('loadSantaRoute: emitted routeLoaded'); } catch (e) { /* ignore */ }
+                try { if (!_routeReady) { _routeReady = true; try { console.debug && console.debug('loadSantaRoute: set _routeReady = true (final emit)', { mapTilesReady: _mapTilesReady, routeReady: _routeReady }); } catch (e) { /* ignore */ } } } catch (e) { /* ignore */ }
                 try {
                     if (_mapTilesReady && _routeReady && _initialViewAligned) {
-                        try { console.debug && console.debug('loadSantaRoute: both ready & aligned after final emit -> hiding overlays'); } catch (e) { void 0; }
-                        try { if (typeof window.hideMapLoadingOverlay === 'function') window.hideMapLoadingOverlay(); else if (typeof hideMapLoadingOverlay === 'function') hideMapLoadingOverlay(); } catch (e) { void 0; }
+                        try { console.debug && console.debug('loadSantaRoute: both ready & aligned after final emit -> hiding overlays'); } catch (e) { /* ignore */ }
+                        try { if (typeof window.hideMapLoadingOverlay === 'function') window.hideMapLoadingOverlay(); else if (typeof hideMapLoadingOverlay === 'function') hideMapLoadingOverlay(); } catch (e) { /* ignore */ }
                     } else {
-                        try { console.debug && console.debug('loadSantaRoute: final emit but waiting for tiles/alignment', { mapTilesReady: _mapTilesReady, routeReady: _routeReady, initialViewAligned: _initialViewAligned }); } catch (e) { void 0; }
+                        try { console.debug && console.debug('loadSantaRoute: final emit but waiting for tiles/alignment', { mapTilesReady: _mapTilesReady, routeReady: _routeReady, initialViewAligned: _initialViewAligned }); } catch (e) { /* ignore */ }
                         setTimeout(() => {
                             try {
                                 if (_mapTilesReady && _routeReady && _initialViewAligned) {
@@ -1990,9 +1991,9 @@ async function loadSantaRoute() {
                             } catch (e) { /* ignore */ }
                         }, 220);
                     }
-                } catch (e) { void 0; }
+                } catch (e) { /* ignore */ }
             }
-        } catch (e) { void 0; }
+        } catch (e) { /* ignore */ }
     } catch (error) {
         console.error('Failed to load Santa route:', error);
         // Ensure UI doesn't remain blocked: mark route ready and emit routeLoaded
@@ -2005,7 +2006,7 @@ async function loadSantaRoute() {
         } catch (e) { /* ignore */ }
         try { if (typeof window.hideMapLoadingOverlay === 'function') window.hideMapLoadingOverlay(); else if (typeof hideMapLoadingOverlay === 'function') hideMapLoadingOverlay(); } catch (e) { /* ignore */ }
         // Fallback to simulation if route data fails to load
-        try { console.warn && console.warn('loadSantaRoute: falling back to simulateSantaMovement'); } catch (e) { void 0; }
+        try { console.warn && console.warn('loadSantaRoute: falling back to simulateSantaMovement'); } catch (e) { /* ignore */ }
         simulateSantaMovement();
     }
 }
@@ -2151,16 +2152,16 @@ function interpolatePosition(loc1, loc2, currentTime) {
             if (![lat1, lng1, lat2, lng2].some(v => Number.isNaN(v))) {
                 // Haversine distance (km)
                 const toRad = (d) => d * Math.PI / 180;
-                const R = 6371; // km
+                const earthRadiusKm = 6371; // km
                 const dLat = toRad(lat2 - lat1);
                 const dLng = toRad(lng2 - lng1);
-                const a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng/2) * Math.sin(dLng/2);
-                const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-                const km = R * c;
+                const haversineA = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng/2) * Math.sin(dLng/2);
+                const haversineC = 2 * Math.atan2(Math.sqrt(haversineA), Math.sqrt(1 - haversineA));
+                const distanceKm = earthRadiusKm * haversineC;
 
                 // Assume a reasonable visual transit speed for fallback (km/h).
                 const FALLBACK_SPEED_KMH = 900; // fast cruising speed; purely visual
-                let durationMs = (km / FALLBACK_SPEED_KMH) * 3600 * 1000;
+                let durationMs = (distanceKm / FALLBACK_SPEED_KMH) * 3600 * 1000;
 
                 // Clamp to sensible bounds so long distances don't create very long animations.
                 // This is a visual fallback, not a physically realistic simulation: we cap the
@@ -2171,7 +2172,7 @@ function interpolatePosition(loc1, loc2, currentTime) {
                 adjustedTotalDuration = durationMs;
                 console.warn(
                     'interpolatePosition: non-positive totalDuration — using distance-based visual fallback with capped duration',
-                    { km: Math.round(km), adjustedTotalDuration }
+                    { distanceKm: Math.round(distanceKm), adjustedTotalDuration }
                 );
             } else {
                 adjustedTotalDuration = 3000;
