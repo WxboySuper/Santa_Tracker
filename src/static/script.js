@@ -8,7 +8,7 @@ let santaMovementInterval = null;
 // Whether the current santaMovement loop is a requestAnimationFrame (vs setInterval)
 let santaMovementIsRAF = false;
 // RAF id for real-time tracking loop
-let _realTimeRAFId = null;
+// (legacy) RAF id for real-time tracking loop — removed (unused)
 // Interval for pre-flight updates
 let preflightUpdateInterval = null;
 // Interval for weather updates (separate from other preflight updates)
@@ -54,7 +54,7 @@ let _initialRefLng = null;
 // Animation constants for liftoff transition
 const LIFTOFF_FLY_DURATION = 3;
 const LIFTOFF_FLY_EASE = 0.25;
-const SANTA_MARKER_UPDATE_DELAY = 1500;
+// const SANTA_MARKER_UPDATE_DELAY = 1500; // unused, removed to satisfy linter
 // Weather update interval (30 minutes) - realistic weather doesn't change frequently
 const WEATHER_UPDATE_INTERVAL = 1800000;
 
@@ -67,7 +67,7 @@ const PREPARE_WARNING_MINUTES = 30;
 // Whether to hide the main countdown in the top-right when entering live mode early
 const HIDE_COUNTDOWN_ON_LIVE = true;
 // Internal flag to avoid repeated early switches
-let _preliveSwitched = false;
+let _hasPreliveSwitchOccurred = false;
 
 // Cinematic Camera Constants (shared at module scope so functions outside
 // DOMContentLoaded can reference them, e.g. liftoff logic)
@@ -76,6 +76,48 @@ const CAMERA_ZOOM = {
     SHORT_HOP: 10,
     LONG_HAUL: 7,
 };
+
+// Compute travel zoom based on transit metadata or distance between nodes.
+// Module-scope implementation so it is available to callers across the file.
+function computeTravelZoom(fromNode, toNode) {
+    // Prefer explicit speed_curve if present
+    const speedCurve = (toNode && (toNode.transit && toNode.transit.speed_curve))
+        ? String(toNode.transit.speed_curve).toUpperCase()
+        : (toNode && toNode.transit_to_here && toNode.transit_to_here.speed_curve)
+            ? String(toNode.transit_to_here.speed_curve).toUpperCase()
+            : null;
+
+    if (speedCurve === 'HYPERSONIC_LONG') return CAMERA_ZOOM.LONG_HAUL;
+    if (speedCurve === 'HYPERSONIC') return CAMERA_ZOOM.LONG_HAUL;
+    if (speedCurve === 'REGIONAL' || speedCurve === 'CRUISING') return CAMERA_ZOOM.SHORT_HOP;
+
+    // Fallback: estimate by great-circle distance
+    try {
+        if (fromNode && toNode) {
+            const R = 6371; // km
+            const lat1 = fromNode.latitude * Math.PI / 180;
+            const lat2 = toNode.latitude * Math.PI / 180;
+            const dLat = lat2 - lat1;
+            const dLng = (toNode.longitude - fromNode.longitude) * Math.PI / 180;
+            const a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng/2) * Math.sin(dLng/2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            const km = R * c;
+            if (km > 2000) return CAMERA_ZOOM.LONG_HAUL;
+            if (km > 500) return CAMERA_ZOOM.LONG_HAUL;
+            return CAMERA_ZOOM.SHORT_HOP;
+        }
+    } catch (e) {
+        // ignore and fall back
+    }
+
+    return CAMERA_ZOOM.SHORT_HOP;
+}
+
+// Module-scope overlay helper stubs. Real implementations are assigned
+// inside DOMContentLoaded so module-level helpers (e.g. loadSantaRoute)
+// can safely reference them without triggering `no-undef`.
+let hideFullScreenOverlay = () => { void 0; };
+let hideMapLoadingOverlay = () => { void 0; };
 
 // skipcq: JS-0241
 document.addEventListener('DOMContentLoaded', function() {
@@ -150,7 +192,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         };
 
-        const hideFullScreenOverlay = () => {
+        hideFullScreenOverlay = () => {
             const ov = document.getElementById('global-map-loading-overlay');
             if (!ov) return;
             const MIN_MS = 1200; // ensure overlay visible at least this long
@@ -231,7 +273,7 @@ document.addEventListener('DOMContentLoaded', function() {
         try {
         // Log major map events with zoom and center for tracing unexpected changes
         // map event logging removed in production to reduce console noise
-            map.on && map.on('zoomstart zoomend movestart moveend', function (e) { /* instrumentation removed */ return; });
+            map.on && map.on('zoomstart zoomend movestart moveend', function () { /* instrumentation removed */ return; });
 
             // Monkey-patch flyTo / panTo / setView to log requested zooms and centers
             if (typeof map.flyTo === 'function') {
@@ -323,7 +365,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (ov) ov.style.display = 'flex';
         };
 
-        const hideMapLoadingOverlay = () => {
+        hideMapLoadingOverlay = () => {
             try { console.debug && console.debug('hideMapLoadingOverlay: entering', { mapTilesReady: _mapTilesReady, routeReady: _routeReady, overlayHiddenFlag: _overlayHidden }); } catch (e) { void 0; }
             try { hideFullScreenOverlay(); } catch (e) { /* ignore */ void 0; }
             const container = map.getContainer();
@@ -400,6 +442,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 try { console.debug && console.debug('removeLeftoverOverlays: completed cleanup'); } catch (e) { void 0; }
             } catch (e) { /* ignore */ void 0; }
         };
+
+        // Make overlay helpers accessible to module-scope logic (some callers use
+        // `window.hideMapLoadingOverlay` / `window.showMapLoadingOverlay`).
+        try {
+            window.hideMapLoadingOverlay = hideMapLoadingOverlay;
+            window.showMapLoadingOverlay = showMapLoadingOverlay;
+        } catch (e) { /* ignore */ void 0; }
 
         // Show overlay initially until tiles + route finish loading
         showMapLoadingOverlay();
@@ -1155,41 +1204,8 @@ function alignInitialView(retries) {
     }
 }
 
-// Compute travel zoom based on transit metadata or distance between nodes.
-// Moved to module scope so it is available to all runtime code.
-function computeTravelZoom(fromNode, toNode) {
-    // Prefer explicit speed_curve if present
-    const speedCurve = (toNode && (toNode.transit && toNode.transit.speed_curve))
-        ? String(toNode.transit.speed_curve).toUpperCase()
-        : (toNode && toNode.transit_to_here && toNode.transit_to_here.speed_curve)
-            ? String(toNode.transit_to_here.speed_curve).toUpperCase()
-            : null;
-
-    if (speedCurve === 'HYPERSONIC_LONG') return CAMERA_ZOOM.LONG_HAUL;
-    if (speedCurve === 'HYPERSONIC') return CAMERA_ZOOM.LONG_HAUL;
-    if (speedCurve === 'REGIONAL' || speedCurve === 'CRUISING') return CAMERA_ZOOM.SHORT_HOP;
-
-    // Fallback: estimate by great-circle distance
-    try {
-        if (fromNode && toNode) {
-            const R = 6371; // km
-            const lat1 = fromNode.latitude * Math.PI / 180;
-            const lat2 = toNode.latitude * Math.PI / 180;
-            const dLat = lat2 - lat1;
-            const dLng = (toNode.longitude - fromNode.longitude) * Math.PI / 180;
-            const a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng/2) * Math.sin(dLng/2);
-            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-            const km = R * c;
-            if (km > 2000) return CAMERA_ZOOM.LONG_HAUL;
-            if (km > 500) return CAMERA_ZOOM.LONG_HAUL;
-            return CAMERA_ZOOM.SHORT_HOP;
-        }
-    } catch (e) {
-        // ignore and fall back
-    }
-
-    return CAMERA_ZOOM.SHORT_HOP;
-}
+// Duplicate inner definition removed; use the module-scope `computeTravelZoom`
+// declared earlier to avoid divergence between copies.
 
 // Helper function to safely get countdown time data
 function getCountdownTimeData() {
@@ -1321,9 +1337,9 @@ function handleCountdownUpdate(timeData) {
 
     // Early UI switch: move to live panel shortly before liftoff so the page can
     // prepare cinematic animations while still waiting for the exact timestamp.
-    if (!hasLiftoffOccurred && currentMode === 'preflight' && !_preliveSwitched) {
+    if (!hasLiftoffOccurred && currentMode === 'preflight' && !_hasPreliveSwitchOccurred) {
         if (totalSeconds <= PRELIVE_SWITCH_SECONDS) {
-            _preliveSwitched = true;
+            _hasPreliveSwitchOccurred = true;
             updateTrackingMode(true);
             if (HIDE_COUNTDOWN_ON_LIVE) {
                 const el = document.getElementById('countdown-hud');
@@ -1585,7 +1601,6 @@ function updatePreflightStatus() {
     }
 
     // Update status indicator based on progress
-    // TODO: Make the "Preparing for Takeoff" occur closer to launch (e.g., 10-30 minutes before)
     const statusEl = document.getElementById('preflight-status');
     if (statusEl && timeData) {
         const totalMinutes = (timeData.days || 0) * 1440 + (timeData.hours || 0) * 60 + (timeData.minutes || 0);
@@ -1731,9 +1746,14 @@ async function loadSantaRoute() {
                     // Departure was explicit, arrival came from fallback; drop arrival
                     arrival = null;
                 } else {
-                    // Both explicit or both ambiguous; default to clearing departure to
-                    // keep at most one timestamp per location from a single value.
-                    departure = null;
+                    // Both explicit or both ambiguous.
+                    // If both sides were explicitly provided (e.g. a 0-second stop),
+                    // keep both timestamps so downstream status logic sees a valid
+                    // [arrival, departure] window. Only clear departure when the
+                    // values were synthesized from a single source (ambiguous case).
+                    if (!hasExplicitArrival && !hasExplicitDeparture) {
+                        departure = null;
+                    }
                 }
             }
 
@@ -1760,7 +1780,7 @@ async function loadSantaRoute() {
             if (!(_routeLoadedEmitted)) {
                 _routeLoadedEmitted = true;
                 window.EventSystem && typeof window.EventSystem.emit === 'function' && window.EventSystem.emit('routeLoaded');
-                        try { console.debug && console.debug('loadSantaRoute: early emit routeLoaded to ensure UI unblocks'); } catch (e) { void 0; }
+                try { console.debug && console.debug('loadSantaRoute: early emit routeLoaded to ensure UI unblocks'); } catch (e) { void 0; }
                 // Also mark route as ready locally so overlay logic doesn't race with event handlers
                 try { 
                     _routeReady = true; 
@@ -2100,9 +2120,42 @@ function interpolatePosition(loc1, loc2, currentTime) {
     // produces a short smooth transit rather than a teleport.
     let adjustedTotalDuration = totalDuration;
     if (adjustedTotalDuration <= 0) {
-        // 1s fallback
-        adjustedTotalDuration = 1000;
-        console.warn('interpolatePosition: non-positive totalDuration, using fallback 1000ms', { departure, arrival, loc1, loc2 });
+        // Fallback: estimate a reasonable visual transit duration from geographic distance
+        // rather than using an arbitrarily short 1s value which can look like a teleport.
+        try {
+            const lat1 = Number(loc1.latitude);
+            const lng1 = Number(loc1.longitude);
+            const lat2 = Number(loc2.latitude);
+            const lng2 = Number(loc2.longitude);
+            if (![lat1, lng1, lat2, lng2].some(v => Number.isNaN(v))) {
+                // Haversine distance (km)
+                const toRad = (d) => d * Math.PI / 180;
+                const R = 6371; // km
+                const dLat = toRad(lat2 - lat1);
+                const dLng = toRad(lng2 - lng1);
+                const a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng/2) * Math.sin(dLng/2);
+                const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+                const km = R * c;
+
+                // Assume a reasonable visual transit speed for fallback (km/h).
+                const FALLBACK_SPEED_KMH = 900; // fast cruising speed; purely visual
+                let durationMs = (km / FALLBACK_SPEED_KMH) * 3600 * 1000;
+
+                // Clamp to sensible bounds so long distances don't create very long animations
+                const MIN_FALLBACK_MS = 3000; // 3s minimum so the motion is perceivable
+                const MAX_FALLBACK_MS = 120000; // 2 minutes max for very long hops
+                durationMs = Math.max(MIN_FALLBACK_MS, Math.min(MAX_FALLBACK_MS, Math.round(durationMs)));
+
+                adjustedTotalDuration = durationMs;
+                console.warn('interpolatePosition: non-positive totalDuration — using distance-based fallback', { km: Math.round(km), adjustedTotalDuration });
+            } else {
+                adjustedTotalDuration = 3000;
+                console.warn('interpolatePosition: non-positive totalDuration and invalid coordinates — using minimal fallback 3000ms', { departure, arrival, loc1, loc2 });
+            }
+        } catch (e) {
+            adjustedTotalDuration = 3000;
+            console.warn('interpolatePosition: failed to compute distance fallback, using 3000ms', e);
+        }
     }
     const elapsed = now - departure;
     const progress = Math.max(0, Math.min(1, elapsed / adjustedTotalDuration));
@@ -2301,12 +2354,22 @@ function startRealTimeTracking() {
     // Cancel any existing loop (interval or RAF)
     if (santaMovementInterval) {
         if (santaMovementIsRAF) {
-            cancelAnimationFrame(santaMovementInterval);
+            try { cancelAnimationFrame(santaMovementInterval); } catch (e) { /* ignore */ }
         } else {
-            clearInterval(santaMovementInterval);
+            try { clearInterval(santaMovementInterval); } catch (e) { /* ignore */ }
         }
         santaMovementInterval = null;
         santaMovementIsRAF = false;
+    }
+
+    // If the page is currently hidden, defer starting until it becomes visible.
+    if (typeof document !== 'undefined' && document.hidden) {
+        const onVisible = function onVisible() {
+            try { document.removeEventListener('visibilitychange', onVisible); } catch (e) { /* ignore */ }
+            if (currentMode === 'live') startRealTimeTracking();
+        };
+        try { document.addEventListener('visibilitychange', onVisible); } catch (e) { /* ignore */ }
+        return;
     }
 
     // Use requestAnimationFrame for smooth, frame-synced updates.
@@ -2324,6 +2387,16 @@ function startRealTimeTracking() {
                 console.error('Error in real-time tracking step', e);
             }
         }
+
+        // If page is hidden, stop scheduling further frames to save CPU/battery.
+        try {
+            if (typeof document !== 'undefined' && document.hidden) {
+                santaMovementIsRAF = false;
+                santaMovementInterval = null;
+                return;
+            }
+        } catch (e) { /* ignore */ }
+
         const rafId = requestAnimationFrame(step);
         santaMovementInterval = rafId;
         santaMovementIsRAF = true;
