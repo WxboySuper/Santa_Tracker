@@ -2,7 +2,7 @@
   "meta": {
     "year": 2025,
     "route_version": "1.0",
-    "generated_at": "2025-12-05T06:48:47.247Z"
+    "generated_at": "2025-12-20T21:42:19.778Z"
   },
   "route_nodes": [
     {
@@ -90,8 +90,7 @@
         "speed_curve": "HYPERSONIC",
         "speed_kmh": 14000,
         "camera_zoom": 9
-      },
-      "acknowledged_off_peak": true
+      }
     },
     {
       "comment": "--- NODE 3: Tabwakea ---",
@@ -123,8 +122,7 @@
         "speed_curve": "HYPERSONIC_LONG",
         "speed_kmh": 60000,
         "camera_zoom": 9
-      },
-      "acknowledged_off_peak": false
+      }
     },
     {
       "comment": "--- NODE 4: Nukunonu ---",
@@ -819,7 +817,7 @@
         "arrival_utc": "2025-12-24T13:41:55.000Z",
         "departure_utc": "2025-12-24T13:42:55.000Z",
         "local_arrival_time": "22:42",
-        "time_window_status": "GREEN"
+        "time_window_status": "YELLOW"
       },
       "transit_to_here": {
         "description": "Flight to Ambon",
@@ -956,8 +954,7 @@
         "speed_curve": "HYPERSONIC",
         "speed_kmh": 14000,
         "camera_zoom": 9
-      },
-      "acknowledged_off_peak": true
+      }
     },
     {
       "comment": "--- NODE 30: Vladivostok ---",
@@ -1012,7 +1009,7 @@
         "arrival_utc": "2025-12-24T14:43:33.000Z",
         "departure_utc": "2025-12-24T14:44:33.000Z",
         "local_arrival_time": "22:44",
-        "time_window_status": "GREEN"
+        "time_window_status": "YELLOW"
       },
       "transit_to_here": {
         "description": "Long Haul to Mongolia",
@@ -1309,8 +1306,7 @@
         "speed_curve": "HYPERSONIC",
         "speed_kmh": 14000,
         "camera_zoom": 3
-      },
-      "acknowledged_off_peak": true
+      }
     },
     {
       "comment": "--- NODE 41: Jakarta ---",
@@ -1525,7 +1521,7 @@
         "arrival_utc": "2025-12-24T16:41:17.000Z",
         "departure_utc": "2025-12-24T16:42:17.000Z",
         "local_arrival_time": "22:41",
-        "time_window_status": "GREEN"
+        "time_window_status": "YELLOW"
       },
       "transit_to_here": {
         "description": "Flight to Thimphu",
@@ -2325,7 +2321,7 @@
         "arrival_utc": "2025-12-24T19:43:15.000Z",
         "departure_utc": "2025-12-24T19:44:15.000Z",
         "local_arrival_time": "22:43",
-        "time_window_status": "GREEN"
+        "time_window_status": "YELLOW"
       },
       "transit_to_here": {
         "description": "Flight to Baghdad",
@@ -4884,7 +4880,7 @@
       "schedule": {
         "arrival_utc": "2025-12-25T06:59:31.000Z",
         "departure_utc": "2025-12-25T07:01:31.000Z",
-        "local_arrival_time": "01:60",
+        "local_arrival_time": "02:00",
         "time_window_status": "GREEN"
       },
       "transit_to_here": {
