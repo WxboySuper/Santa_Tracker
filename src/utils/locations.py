@@ -73,6 +73,12 @@ class Location:
     # in __post_init__. Avoid defining properties that shadow these field names.
 
 
+# Cache for route data to avoid re-parsing on every request
+# Keys are (source, absolute_path_or_none)
+# Values are (mtime, data)
+_SANTA_ROUTE_CACHE: Dict[Tuple[Any, Optional[str]], Tuple[float, Any]] = {}
+
+
 @dataclass
 class Node:
     comment: Optional[str]
@@ -218,10 +224,40 @@ def load_santa_route_from_json(
     an already-parsed dict/list passed programmatically, it returns the
     normalized node dicts.
     """
+    # Determine if we can cache this request
+    cache_key = None
+    file_path = None
+    current_mtime = 0.0
+
+    if source is None:
+        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        file_path = os.path.join(base_dir, "static", "data", "santa_route.json")
+        if os.path.exists(file_path):
+            cache_key = (None, os.path.abspath(file_path))
+            current_mtime = os.path.getmtime(file_path)
+    elif isinstance(source, str) and os.path.exists(source):
+        file_path = source
+        cache_key = (source, os.path.abspath(file_path))
+        current_mtime = os.path.getmtime(file_path)
+
+    # Check cache
+    if cache_key:
+        cached_entry = _SANTA_ROUTE_CACHE.get(cache_key)
+        if cached_entry:
+            cached_mtime, cached_data = cached_entry
+            # If file hasn't changed, return cached data
+            # NOTE: We return a list copy so the caller can modify the list (e.g. append)
+            # without affecting the cache. However, the items inside are shared.
+            # Location objects should be treated as immutable.
+            if cached_mtime == current_mtime:
+                return list(cached_data)
+
     obj, _loaded_from_file = _load_source_to_obj(source)
 
     nodes = _get_nodes_from_obj(obj)
     parsed_nodes = _parse_and_normalize_nodes(nodes)
+
+    result = None
 
     # Behaviour:
     # - If caller did not supply a source (source is None), return a list of
@@ -233,16 +269,23 @@ def load_santa_route_from_json(
     #   fields like 'notes' and 'priority'. For explicit file paths we return
     #   the parsed nodes unchanged to preserve on-disk fields.
     if source is None:
-        return _parsed_nodes_to_locations(parsed_nodes)
+        result = _parsed_nodes_to_locations(parsed_nodes)
+    else:
+        # For any explicit source (file path, JSON string, or parsed object)
+        # return the normalized parsed node dicts and strip legacy top-level
+        # fields like 'notes' and 'priority' so callers receive a canonical
+        # representation.
+        for p in parsed_nodes:
+            p.pop("notes", None)
+            p.pop("priority", None)
+        result = parsed_nodes
 
-    # For any explicit source (file path, JSON string, or parsed object)
-    # return the normalized parsed node dicts and strip legacy top-level
-    # fields like 'notes' and 'priority' so callers receive a canonical
-    # representation.
-    for p in parsed_nodes:
-        p.pop("notes", None)
-        p.pop("priority", None)
-    return parsed_nodes
+    # Update cache if applicable
+    if cache_key:
+        _SANTA_ROUTE_CACHE[cache_key] = (current_mtime, result)
+        return list(result)
+
+    return result
 
 
 def _coerce_node_from_node(n: Node) -> Dict[str, Any]:
@@ -488,6 +531,12 @@ def save_santa_route_to_json(
     # write to disk using legacy-compatible top-level key "route"
     with open(json_file_path, "w", encoding="utf-8") as f:
         json.dump({"route": route_data}, f, indent=2, ensure_ascii=False)
+
+    # Invalidate cache for this file
+    abs_path = os.path.abspath(json_file_path)
+    keys_to_remove = [k for k in _SANTA_ROUTE_CACHE.keys() if k[1] == abs_path]
+    for k in keys_to_remove:
+        _SANTA_ROUTE_CACHE.pop(k, None)
 
 
 def update_santa_location(location):
