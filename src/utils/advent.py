@@ -292,6 +292,11 @@ def save_advent_calendar(
     with open(json_file_path, "w", encoding="utf-8") as f:  # skipcq: PTC-W6004
         json.dump({"days": days_data}, f, indent=2)
 
+    # Invalidate cache for this file to ensure subsequent loads get fresh data
+    # (Handling potential race conditions with mtime resolution)
+    normalized_path = os.path.abspath(json_file_path)
+    _ADVENT_CALENDAR_CACHE.pop(normalized_path, None)
+
 
 def validate_advent_calendar(days: List[AdventDay]) -> dict:
     """
