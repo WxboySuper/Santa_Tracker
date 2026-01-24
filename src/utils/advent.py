@@ -6,6 +6,7 @@ daily Advent content for December 1-24. It includes server-authoritative
 unlock logic and admin override support.
 """
 
+import copy
 import json
 import os
 from dataclasses import dataclass
@@ -181,10 +182,6 @@ def load_advent_calendar(json_file_path: Optional[str] = None) -> List[AdventDay
     """
     Load Advent calendar data from a JSON file.
 
-    Warning:
-        Returns cached objects. Do not modify the payload in place.
-        Treat the returned data as immutable.
-
     Args:
         json_file_path: Path to the JSON file. If None, uses the default calendar file.
 
@@ -203,21 +200,24 @@ def load_advent_calendar(json_file_path: Optional[str] = None) -> List[AdventDay
 
     # Use nanosecond precision and file size for robust cache invalidation
     file_stat = os.stat(json_file_path)
-    current_mtime_ns = getattr(file_stat, 'st_mtime_ns', int(file_stat.st_mtime * 1e9))
+    current_mtime_ns = getattr(
+        file_stat, "st_mtime_ns", int(file_stat.st_mtime * 1_000_000_000)
+    )
     current_size = file_stat.st_size
 
     cached_entry = _ADVENT_CALENDAR_CACHE.get(json_file_path)
 
     if _is_cache_valid(cached_entry, current_mtime_ns, current_size):
-        # Return a shallow copy of the list.
-        # This protects the list itself (append/remove) but shares the underlying AdventDay objects.
-        # This provides significant performance benefits (~3000x faster) over deep copying.
-        # CALLERS MUST NOT MUTATE THE RETURNED OBJECTS.
-        return list(cached_entry["data"])
+        # Return a deep copy to ensure thread safety and mutability isolation.
+        # While slower than shallow copy, it prevents critical bugs where
+        # shared payload references could be accidentally mutated or leaked
+        # (e.g., in admin updates), corrupting the cache.
+        return copy.deepcopy(cached_entry["data"])
 
     # Load and parse file
-    # Note: Benign race condition. Multiple workers/threads might parse simultaneously here.
-    # The last writer to cache wins, which is safe as the data is identical.
+    # Note: Benign race condition. Multiple workers/threads might parse
+    # simultaneously here. The last writer to cache wins, which is safe as
+    # the data is identical.
     days = _parse_advent_calendar_file(json_file_path)
 
     # Update cache
@@ -227,8 +227,8 @@ def load_advent_calendar(json_file_path: Optional[str] = None) -> List[AdventDay
         "data": days,
     }
 
-    # Return shallow copy of the newly created data
-    return list(days)
+    # Return the newly created data (freshly parsed, so no copy needed)
+    return days
 
 
 def get_manifest(
