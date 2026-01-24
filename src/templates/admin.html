@@ -1851,7 +1851,7 @@
                 const departureLocal = new Date(loc.departure_time).toLocaleString();
                 tableHTML += `
                     <tr>
-                        <td><strong>${loc.name}</strong></td>
+                        <td><strong>${escapeHtml(loc.name)}</strong></td>
                         <td>${arrivalLocal}</td>
                         <td>${departureLocal}</td>
                         <td>${loc.stop_duration} min</td>
@@ -2092,7 +2092,7 @@
                     const departureLocal = new Date(loc.departure_time).toLocaleString();
                     tableHTML += `
                         <tr>
-                            <td><strong>${loc.name}</strong></td>
+                            <td><strong>${escapeHtml(loc.name)}</strong></td>
                             <td>${arrivalLocal}</td>
                             <td>${departureLocal}</td>
                             <td>${loc.stop_duration} min</td>

@@ -139,6 +139,22 @@ class TestAdventDay(unittest.TestCase):
         test_time = datetime(2024, 12, 1, 0, 0, 0, tzinfo=timezone.utc)
         self.assertFalse(day.is_unlocked(test_time))
 
+    def test_is_unlocked_fallback_parsing(self):
+        """Test that is_unlocked parses the unlock time if not already parsed."""
+        day = AdventDay(
+            day=1,
+            title="Test",
+            unlock_time="2024-12-01T00:00:00Z",
+            content_type="fact",
+            payload={},
+        )
+        # Manually set the private attribute to None to simulate it not being parsed
+        day._unlocked_dt = None
+        test_time = datetime(2024, 12, 2, 0, 0, 0, tzinfo=timezone.utc)
+        self.assertTrue(day.is_unlocked(test_time))
+        # Check that the fallback parsing correctly populated the private attribute
+        self.assertIsNotNone(day._unlocked_dt)
+
     def test_to_dict_unlocked_with_payload(self):
         """Test to_dict returns payload when unlocked."""
         day = AdventDay(
