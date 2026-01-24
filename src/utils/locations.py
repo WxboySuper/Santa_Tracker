@@ -211,22 +211,11 @@ def _parse_location_entry(entry: Dict[str, Any]) -> Dict[str, Any]:
     return parsed
 
 
-def load_santa_route_from_json(
-    source: Optional[Union[str, Dict[str, Any], List[Any]]] = None,
-) -> List[Union[Dict[str, Any], Location]]:
-    """
-    Accepts a JSON string, a parsed dict, a list, or a file path. If `source` is None
-    it will attempt to read the default `static/data/santa_route.json` file.
-    If the input is loaded from a file path (default or explicit path), this
-    function returns a list of legacy-compatible `Location` instances so the
-    rest of the application can continue to access attributes like
-    `latitude`/`longitude`/`utc_offset`. If the input is a raw JSON string or
-    an already-parsed dict/list passed programmatically, it returns the
-    normalized node dicts.
-    """
-    # Determine if we can cache this request
+def _resolve_cache_key(
+    source: Optional[Union[str, Dict[str, Any], List[Any]]],
+) -> Tuple[Optional[Tuple[Any, str]], float]:
+    """Determine cache key and current mtime for the source if it is a file."""
     cache_key = None
-    file_path = None
     current_mtime = 0.0
 
     if source is None:
@@ -240,17 +229,53 @@ def load_santa_route_from_json(
         cache_key = (source, os.path.abspath(file_path))
         current_mtime = os.path.getmtime(file_path)
 
-    # Check cache
+    return cache_key, current_mtime
+
+
+def _try_get_from_cache(
+    cache_key: Optional[Tuple[Any, str]], current_mtime: float
+) -> Optional[List[Any]]:
+    """Try to retrieve data from cache if mtime matches."""
+    if not cache_key:
+        return None
+
+    cached_entry = _SANTA_ROUTE_CACHE.get(cache_key)
+    if cached_entry:
+        cached_mtime, cached_data = cached_entry
+        # If file hasn't changed, return cached data
+        # NOTE: We return a list copy so the caller can modify the list (e.g. append)
+        # without affecting the cache. However, the items inside are shared.
+        # Location objects should be treated as immutable.
+        if cached_mtime == current_mtime:
+            return list(cached_data)
+    return None
+
+
+def _update_cache(
+    cache_key: Optional[Tuple[Any, str]], current_mtime: float, data: List[Any]
+) -> None:
+    """Update the cache with new data."""
     if cache_key:
-        cached_entry = _SANTA_ROUTE_CACHE.get(cache_key)
-        if cached_entry:
-            cached_mtime, cached_data = cached_entry
-            # If file hasn't changed, return cached data
-            # NOTE: We return a list copy so the caller can modify the list (e.g. append)
-            # without affecting the cache. However, the items inside are shared.
-            # Location objects should be treated as immutable.
-            if cached_mtime == current_mtime:
-                return list(cached_data)
+        _SANTA_ROUTE_CACHE[cache_key] = (current_mtime, data)
+
+
+def load_santa_route_from_json(
+    source: Optional[Union[str, Dict[str, Any], List[Any]]] = None,
+) -> List[Union[Dict[str, Any], Location]]:
+    """
+    Accepts a JSON string, a parsed dict, a list, or a file path. If `source` is None
+    it will attempt to read the default `static/data/santa_route.json` file.
+    If the input is loaded from a file path (default or explicit path), this
+    function returns a list of legacy-compatible `Location` instances so the
+    rest of the application can continue to access attributes like
+    `latitude`/`longitude`/`utc_offset`. If the input is a raw JSON string or
+    an already-parsed dict/list passed programmatically, it returns the
+    normalized node dicts.
+    """
+    cache_key, current_mtime = _resolve_cache_key(source)
+    cached_result = _try_get_from_cache(cache_key, current_mtime)
+    if cached_result is not None:
+        return cached_result
 
     obj, _loaded_from_file = _load_source_to_obj(source)
 
@@ -280,12 +305,8 @@ def load_santa_route_from_json(
             p.pop("priority", None)
         result = parsed_nodes
 
-    # Update cache if applicable
-    if cache_key:
-        _SANTA_ROUTE_CACHE[cache_key] = (current_mtime, result)
-        return list(result)
-
-    return result
+    _update_cache(cache_key, current_mtime, result)
+    return list(result)
 
 
 def _coerce_node_from_node(n: Node) -> Dict[str, Any]:
@@ -534,7 +555,7 @@ def save_santa_route_to_json(
 
     # Invalidate cache for this file
     abs_path = os.path.abspath(json_file_path)
-    keys_to_remove = [k for k in _SANTA_ROUTE_CACHE.keys() if k[1] == abs_path]
+    keys_to_remove = [k for k in _SANTA_ROUTE_CACHE if k[1] == abs_path]
     for k in keys_to_remove:
         _SANTA_ROUTE_CACHE.pop(k, None)
 
