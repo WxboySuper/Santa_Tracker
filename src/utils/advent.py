@@ -14,7 +14,7 @@ from datetime import datetime, timezone
 from typing import List, Optional
 
 # Module-level cache:
-# {file_path: {'mtime_ns': int, 'size': int, 'data': List[AdventDay]}}
+# {file_path: {'mtime_ns': int, 'size': int, 'inode': int, 'data': List[AdventDay]}}
 # Note: In Gunicorn with fork workers, this cache is per-process.
 _ADVENT_CALENDAR_CACHE = {}
 
@@ -167,7 +167,10 @@ def _parse_advent_calendar_file(json_file_path: str) -> List[AdventDay]:
 
 
 def _is_cache_valid(
-    cached_entry: Optional[dict], current_mtime_ns: int, current_size: int
+    cached_entry: Optional[dict],
+    current_mtime_ns: int,
+    current_size: int,
+    current_inode: int,
 ) -> bool:
     """Check if the cached entry is valid."""
     if not cached_entry:
@@ -175,6 +178,7 @@ def _is_cache_valid(
     return (
         cached_entry["mtime_ns"] == current_mtime_ns
         and cached_entry["size"] == current_size
+        and cached_entry.get("inode") == current_inode
     )
 
 
@@ -198,16 +202,19 @@ def load_advent_calendar(json_file_path: Optional[str] = None) -> List[AdventDay
     # Normalize path to prevent duplicate cache entries
     json_file_path = os.path.abspath(json_file_path)
 
-    # Use nanosecond precision and file size for robust cache invalidation
+    # Use nanosecond precision, file size, and inode for robust cache invalidation
     file_stat = os.stat(json_file_path)
     current_mtime_ns = getattr(
         file_stat, "st_mtime_ns", int(file_stat.st_mtime * 1_000_000_000)
     )
     current_size = file_stat.st_size
+    current_inode = file_stat.st_ino
 
     cached_entry = _ADVENT_CALENDAR_CACHE.get(json_file_path)
 
-    if _is_cache_valid(cached_entry, current_mtime_ns, current_size):
+    if _is_cache_valid(
+        cached_entry, current_mtime_ns, current_size, current_inode
+    ):
         # Return a deep copy to ensure thread safety and mutability isolation.
         # While slower than shallow copy, it prevents critical bugs where
         # shared payload references could be accidentally mutated or leaked
@@ -224,6 +231,7 @@ def load_advent_calendar(json_file_path: Optional[str] = None) -> List[AdventDay
     _ADVENT_CALENDAR_CACHE[json_file_path] = {
         "mtime_ns": current_mtime_ns,
         "size": current_size,
+        "inode": current_inode,
         "data": days,
     }
 
