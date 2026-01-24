@@ -120,32 +120,16 @@ def _get_advent_calendar_path(json_file_path: Optional[str] = None) -> str:
     return os.path.join(base_dir, "static", "data", "advent_calendar.json")
 
 
-def load_advent_calendar(json_file_path: Optional[str] = None) -> List[AdventDay]:
+def _parse_advent_calendar_file(json_file_path: str) -> List[AdventDay]:
     """
-    Load Advent calendar data from a JSON file.
+    Read and parse the advent calendar JSON file.
 
     Args:
-        json_file_path: Path to the JSON file. If None, uses the default calendar file.
+        json_file_path: Absolute path to the JSON file.
 
     Returns:
-        List of AdventDay objects representing the complete Advent calendar
+        List of AdventDay objects.
     """
-    # Allow tests or deployments to override calendar path via environment
-    json_file_path = _get_advent_calendar_path(json_file_path)
-
-    if not os.path.exists(json_file_path):
-        raise FileNotFoundError(f"Advent calendar file not found: {json_file_path}")
-
-    # Check cache
-    # Normalize path to prevent duplicate cache entries
-    json_file_path = os.path.abspath(json_file_path)
-    current_mtime = os.path.getmtime(json_file_path)
-    cached_entry = _ADVENT_CALENDAR_CACHE.get(json_file_path)
-
-    if cached_entry and cached_entry["mtime"] == current_mtime:
-        # Return a deep copy to ensure thread safety and mutability isolation
-        return copy.deepcopy(cached_entry["data"])
-
     with open(json_file_path, "r", encoding="utf-8") as f:  # skipcq: PTC-W6004
         content = f.read()
 
@@ -177,6 +161,37 @@ def load_advent_calendar(json_file_path: Optional[str] = None) -> List[AdventDay
                 f"Missing required field in advent day data: {e} (data: {day_data})"
             )
         days.append(day)
+    return days
+
+
+def load_advent_calendar(json_file_path: Optional[str] = None) -> List[AdventDay]:
+    """
+    Load Advent calendar data from a JSON file.
+
+    Args:
+        json_file_path: Path to the JSON file. If None, uses the default calendar file.
+
+    Returns:
+        List of AdventDay objects representing the complete Advent calendar
+    """
+    # Allow tests or deployments to override calendar path via environment
+    json_file_path = _get_advent_calendar_path(json_file_path)
+
+    if not os.path.exists(json_file_path):
+        raise FileNotFoundError(f"Advent calendar file not found: {json_file_path}")
+
+    # Check cache
+    # Normalize path to prevent duplicate cache entries
+    json_file_path = os.path.abspath(json_file_path)
+    current_mtime = os.path.getmtime(json_file_path)
+    cached_entry = _ADVENT_CALENDAR_CACHE.get(json_file_path)
+
+    if cached_entry and cached_entry["mtime"] == current_mtime:
+        # Return a deep copy to ensure thread safety and mutability isolation
+        return copy.deepcopy(cached_entry["data"])
+
+    # Load and parse file
+    days = _parse_advent_calendar_file(json_file_path)
 
     # Update cache
     _ADVENT_CALENDAR_CACHE[json_file_path] = {
@@ -185,7 +200,8 @@ def load_advent_calendar(json_file_path: Optional[str] = None) -> List[AdventDay
     }
 
     # Return deep copy of the newly created data
-    # (though 'days' is technically fresh, we store it in cache and return a copy to maintain consistency)
+    # (though 'days' is technically fresh, we store it in cache and return a copy
+    # to maintain consistency)
     return copy.deepcopy(days)
 
 
