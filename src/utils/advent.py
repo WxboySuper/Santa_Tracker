@@ -12,7 +12,8 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import List, Optional
 
-# Module-level cache: {file_path: {'mtime_ns': int, 'size': int, 'data': List[AdventDay]}}
+# Module-level cache:
+# {file_path: {'mtime_ns': int, 'size': int, 'data': List[AdventDay]}}
 # Note: In Gunicorn with fork workers, this cache is per-process.
 _ADVENT_CALENDAR_CACHE = {}
 
@@ -164,6 +165,18 @@ def _parse_advent_calendar_file(json_file_path: str) -> List[AdventDay]:
     return days
 
 
+def _is_cache_valid(
+    cached_entry: Optional[dict], current_mtime_ns: int, current_size: int
+) -> bool:
+    """Check if the cached entry is valid."""
+    if not cached_entry:
+        return False
+    return (
+        cached_entry["mtime_ns"] == current_mtime_ns
+        and cached_entry["size"] == current_size
+    )
+
+
 def load_advent_calendar(json_file_path: Optional[str] = None) -> List[AdventDay]:
     """
     Load Advent calendar data from a JSON file.
@@ -195,11 +208,7 @@ def load_advent_calendar(json_file_path: Optional[str] = None) -> List[AdventDay
 
     cached_entry = _ADVENT_CALENDAR_CACHE.get(json_file_path)
 
-    if (
-        cached_entry
-        and cached_entry["mtime_ns"] == current_mtime_ns
-        and cached_entry["size"] == current_size
-    ):
+    if _is_cache_valid(cached_entry, current_mtime_ns, current_size):
         # Return a shallow copy of the list.
         # This protects the list itself (append/remove) but shares the underlying AdventDay objects.
         # This provides significant performance benefits (~3000x faster) over deep copying.
