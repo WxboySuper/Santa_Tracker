@@ -208,7 +208,7 @@ def load_advent_calendar(json_file_path: Optional[str] = None) -> List[AdventDay
         file_stat, "st_mtime_ns", int(file_stat.st_mtime * 1_000_000_000)
     )
     current_size = file_stat.st_size
-    current_inode = file_stat.st_ino
+    current_inode = getattr(file_stat, "st_ino", 0)
 
     cached_entry = _ADVENT_CALENDAR_CACHE.get(json_file_path)
 
