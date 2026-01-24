@@ -235,8 +235,9 @@ def load_advent_calendar(json_file_path: Optional[str] = None) -> List[AdventDay
         "data": days,
     }
 
-    # Return the newly created data (freshly parsed, so no copy needed)
-    return days
+    # Return a deep copy to maintain consistency with cache hit path
+    # and prevent caller from corrupting the newly cached data
+    return copy.deepcopy(days)
 
 
 def get_manifest(
