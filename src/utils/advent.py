@@ -6,11 +6,17 @@ daily Advent content for December 1-24. It includes server-authoritative
 unlock logic and admin override support.
 """
 
+import copy
 import json
 import os
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import List, Optional
+
+# Module-level cache:
+# {file_path: {'mtime_ns': int, 'size': int, 'inode': int, 'data': List[AdventDay]}}
+# Note: In Gunicorn with fork workers, this cache is per-process.
+_ADVENT_CALENDAR_CACHE = {}
 
 
 @dataclass
@@ -125,22 +131,16 @@ def _get_advent_calendar_path(json_file_path: Optional[str] = None) -> str:
     return os.path.join(base_dir, "static", "data", "advent_calendar.json")
 
 
-def load_advent_calendar(json_file_path: Optional[str] = None) -> List[AdventDay]:
+def _parse_advent_calendar_file(json_file_path: str) -> List[AdventDay]:
     """
-    Load Advent calendar data from a JSON file.
+    Read and parse the advent calendar JSON file.
 
     Args:
-        json_file_path: Path to the JSON file. If None, uses the default calendar file.
+        json_file_path: Absolute path to the JSON file.
 
     Returns:
-        List of AdventDay objects representing the complete Advent calendar
+        List of AdventDay objects.
     """
-    # Allow tests or deployments to override calendar path via environment
-    json_file_path = _get_advent_calendar_path(json_file_path)
-
-    if not os.path.exists(json_file_path):
-        raise FileNotFoundError(f"Advent calendar file not found: {json_file_path}")
-
     with open(json_file_path, "r", encoding="utf-8") as f:  # skipcq: PTC-W6004
         content = f.read()
 
@@ -172,8 +172,79 @@ def load_advent_calendar(json_file_path: Optional[str] = None) -> List[AdventDay
                 f"Missing required field in advent day data: {e} (data: {day_data})"
             )
         days.append(day)
-
     return days
+
+
+def _is_cache_valid(
+    cached_entry: Optional[dict],
+    current_mtime_ns: int,
+    current_size: int,
+    current_inode: int,
+) -> bool:
+    """Check if the cached entry is valid."""
+    if not cached_entry:
+        return False
+    return (
+        cached_entry["mtime_ns"] == current_mtime_ns
+        and cached_entry["size"] == current_size
+        and cached_entry.get("inode") == current_inode
+    )
+
+
+def load_advent_calendar(json_file_path: Optional[str] = None) -> List[AdventDay]:
+    """
+    Load Advent calendar data from a JSON file.
+
+    Args:
+        json_file_path: Path to the JSON file. If None, uses the default calendar file.
+
+    Returns:
+        List of AdventDay objects representing the complete Advent calendar
+    """
+    # Allow tests or deployments to override calendar path via environment
+    json_file_path = _get_advent_calendar_path(json_file_path)
+
+    if not os.path.exists(json_file_path):
+        raise FileNotFoundError(f"Advent calendar file not found: {json_file_path}")
+
+    # Check cache
+    # Normalize path to prevent duplicate cache entries
+    json_file_path = os.path.abspath(json_file_path)
+
+    # Use nanosecond precision, file size, and inode for robust cache invalidation
+    file_stat = os.stat(json_file_path)
+    current_mtime_ns = getattr(
+        file_stat, "st_mtime_ns", int(file_stat.st_mtime * 1_000_000_000)
+    )
+    current_size = file_stat.st_size
+    current_inode = getattr(file_stat, "st_ino", 0)
+
+    cached_entry = _ADVENT_CALENDAR_CACHE.get(json_file_path)
+
+    if _is_cache_valid(cached_entry, current_mtime_ns, current_size, current_inode):
+        # Return a deep copy to ensure thread safety and mutability isolation.
+        # While slower than shallow copy, it prevents critical bugs where
+        # shared payload references could be accidentally mutated or leaked
+        # (e.g., in admin updates), corrupting the cache.
+        return copy.deepcopy(cached_entry["data"])
+
+    # Load and parse file
+    # Note: Benign race condition. Multiple workers/threads might parse
+    # simultaneously here. The last writer to cache wins, which is safe as
+    # the data is identical.
+    days = _parse_advent_calendar_file(json_file_path)
+
+    # Update cache
+    _ADVENT_CALENDAR_CACHE[json_file_path] = {
+        "mtime_ns": current_mtime_ns,
+        "size": current_size,
+        "inode": current_inode,
+        "data": days,
+    }
+
+    # Return a deep copy to maintain consistency with cache hit path
+    # and prevent caller from corrupting the newly cached data
+    return copy.deepcopy(days)
 
 
 def get_manifest(
@@ -266,6 +337,11 @@ def save_advent_calendar(
     # Save to file
     with open(json_file_path, "w", encoding="utf-8") as f:  # skipcq: PTC-W6004
         json.dump({"days": days_data}, f, indent=2)
+
+    # Invalidate cache for this file to ensure subsequent loads get fresh data
+    # (Handling potential race conditions with mtime resolution)
+    normalized_path = os.path.abspath(json_file_path)
+    _ADVENT_CALENDAR_CACHE.pop(normalized_path, None)
 
 
 def validate_advent_calendar(days: List[AdventDay]) -> dict:
