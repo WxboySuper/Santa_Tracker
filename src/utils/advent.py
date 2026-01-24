@@ -6,11 +6,15 @@ daily Advent content for December 1-24. It includes server-authoritative
 unlock logic and admin override support.
 """
 
+import copy
 import json
 import os
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import List, Optional
+
+# Module-level cache: {file_path: {'mtime': float, 'data': List[AdventDay]}}
+_ADVENT_CALENDAR_CACHE = {}
 
 
 @dataclass
@@ -132,6 +136,16 @@ def load_advent_calendar(json_file_path: Optional[str] = None) -> List[AdventDay
     if not os.path.exists(json_file_path):
         raise FileNotFoundError(f"Advent calendar file not found: {json_file_path}")
 
+    # Check cache
+    # Normalize path to prevent duplicate cache entries
+    json_file_path = os.path.abspath(json_file_path)
+    current_mtime = os.path.getmtime(json_file_path)
+    cached_entry = _ADVENT_CALENDAR_CACHE.get(json_file_path)
+
+    if cached_entry and cached_entry["mtime"] == current_mtime:
+        # Return a deep copy to ensure thread safety and mutability isolation
+        return copy.deepcopy(cached_entry["data"])
+
     with open(json_file_path, "r", encoding="utf-8") as f:  # skipcq: PTC-W6004
         content = f.read()
 
@@ -164,7 +178,15 @@ def load_advent_calendar(json_file_path: Optional[str] = None) -> List[AdventDay
             )
         days.append(day)
 
-    return days
+    # Update cache
+    _ADVENT_CALENDAR_CACHE[json_file_path] = {
+        "mtime": current_mtime,
+        "data": days,
+    }
+
+    # Return deep copy of the newly created data
+    # (though 'days' is technically fresh, we store it in cache and return a copy to maintain consistency)
+    return copy.deepcopy(days)
 
 
 def get_manifest(
