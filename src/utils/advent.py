@@ -212,9 +212,7 @@ def load_advent_calendar(json_file_path: Optional[str] = None) -> List[AdventDay
 
     cached_entry = _ADVENT_CALENDAR_CACHE.get(json_file_path)
 
-    if _is_cache_valid(
-        cached_entry, current_mtime_ns, current_size, current_inode
-    ):
+    if _is_cache_valid(cached_entry, current_mtime_ns, current_size, current_inode):
         # Return a deep copy to ensure thread safety and mutability isolation.
         # While slower than shallow copy, it prevents critical bugs where
         # shared payload references could be accidentally mutated or leaked
