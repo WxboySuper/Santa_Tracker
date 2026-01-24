@@ -191,6 +191,10 @@ def get_manifest(
     """
     days = load_advent_calendar(json_file_path)
 
+    # Use a consistent time for all days to avoid repeated system calls
+    if current_time is None:
+        current_time = datetime.now(timezone.utc)
+
     # Get unlock status for each day (without payload for locked days)
     days_data = [
         day.to_dict(include_payload=False, current_time=current_time) for day in days
