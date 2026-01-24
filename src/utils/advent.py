@@ -8,7 +8,7 @@ unlock logic and admin override support.
 
 import json
 import os
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import List, Optional
 
@@ -34,6 +34,9 @@ class AdventDay:
     payload: dict
     is_unlocked_override: Optional[bool] = None
 
+    # Private field for caching the parsed unlock_time
+    _unlocked_dt: Optional[datetime] = field(init=False, repr=False, default=None)
+
     def __post_init__(self):
         """Validate advent day data."""
         if not 1 <= self.day <= 24:
@@ -48,7 +51,9 @@ class AdventDay:
 
         # Validate unlock_time is valid ISO format
         try:
-            datetime.fromisoformat(self.unlock_time.replace("Z", "+00:00"))
+            self._unlocked_dt = datetime.fromisoformat(
+                self.unlock_time.replace("Z", "+00:00")
+            )
         except (ValueError, AttributeError) as e:
             raise ValueError(f"Invalid unlock_time format: {e}")
 
@@ -70,11 +75,15 @@ class AdventDay:
         if current_time is None:
             current_time = datetime.now(timezone.utc)
 
-        # Parse unlock time
-        unlock_dt = datetime.fromisoformat(self.unlock_time.replace("Z", "+00:00"))
+        # Use cached parsed unlock time
+        if self._unlocked_dt is None:
+            # This should not happen due to __post_init__, but as a fallback
+            self._unlocked_dt = datetime.fromisoformat(
+                self.unlock_time.replace("Z", "+00:00")
+            )
 
         # Unlock if current time is past unlock time
-        return current_time >= unlock_dt
+        return current_time >= self._unlocked_dt
 
     def to_dict(
         self, include_payload: bool = True, current_time: Optional[datetime] = None
