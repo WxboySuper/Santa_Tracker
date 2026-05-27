@@ -1398,7 +1398,7 @@ class TestValueErrorHandling:
     ):
         """Test that get advent day admin ValueError returns 500 error."""
         with patch(
-            "src.app.load_advent_calendar", side_effect=ValueError("Invalid data")
+            "src.app.load_advent_calendar_dict", side_effect=ValueError("Invalid data")
         ):
             response = client.get(
                 "/api/admin/advent/day/1",
@@ -1570,7 +1570,8 @@ class TestAdditionalMissingCoverage:
                 payload={"text": "Test"},
             )
         ]
-        with patch("src.app.load_advent_calendar", return_value=mock_days):
+        mock_days_dict = {d.day: d for d in mock_days}
+        with patch("src.app.load_advent_calendar_dict", return_value=mock_days_dict):
             response = client.get("/api/admin/advent/day/1", headers=auth_headers)
             # Day 1 is in valid range but doesn't exist in the mocked data
             assert response.status_code == 404
@@ -1592,7 +1593,8 @@ class TestAdditionalMissingCoverage:
                 payload={"text": "Test"},
             )
         ]
-        with patch("src.app.load_advent_calendar", return_value=mock_days):
+        mock_days_dict = {d.day: d for d in mock_days}
+        with patch("src.app.load_advent_calendar_dict", return_value=mock_days_dict):
             response = client.put(
                 "/api/admin/advent/day/1",
                 headers=auth_headers,
@@ -1618,7 +1620,8 @@ class TestAdditionalMissingCoverage:
                 payload={"text": "Test"},
             )
         ]
-        with patch("src.app.load_advent_calendar", return_value=mock_days):
+        mock_days_dict = {d.day: d for d in mock_days}
+        with patch("src.app.load_advent_calendar_dict", return_value=mock_days_dict):
             response = client.post(
                 "/api/admin/advent/day/1/toggle-unlock",
                 headers=auth_headers,
