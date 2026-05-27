@@ -11,10 +11,12 @@ import json
 import os
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
-from typing import List, Optional
+from typing import Dict, List, Optional, Union
 
 # Module-level cache:
-# {file_path: {'mtime_ns': int, 'size': int, 'inode': int, 'data': List[AdventDay]}}
+# {file_path: {'mtime_ns': int, 'size': int, 'inode': int,
+#              'data_list': List[AdventDay],
+#              'data_dict': Dict[int, AdventDay]}}
 # Note: In Gunicorn with fork workers, this cache is per-process.
 _ADVENT_CALENDAR_CACHE = {}
 
@@ -226,25 +228,75 @@ def load_advent_calendar(json_file_path: Optional[str] = None) -> List[AdventDay
         # While slower than shallow copy, it prevents critical bugs where
         # shared payload references could be accidentally mutated or leaked
         # (e.g., in admin updates), corrupting the cache.
-        return copy.deepcopy(cached_entry["data"])
+        return copy.deepcopy(cached_entry["data_list"])
 
     # Load and parse file
     # Note: Benign race condition. Multiple workers/threads might parse
     # simultaneously here. The last writer to cache wins, which is safe as
     # the data is identical.
-    days = _parse_advent_calendar_file(json_file_path)
+    days_list = _parse_advent_calendar_file(json_file_path)
+    days_dict = {day.day: day for day in days_list}
 
     # Update cache
     _ADVENT_CALENDAR_CACHE[json_file_path] = {
         "mtime_ns": current_mtime_ns,
         "size": current_size,
         "inode": current_inode,
-        "data": days,
+        "data_list": days_list,
+        "data_dict": days_dict,
     }
 
     # Return a deep copy to maintain consistency with cache hit path
     # and prevent caller from corrupting the newly cached data
-    return copy.deepcopy(days)
+    return copy.deepcopy(days_list)
+
+
+def load_advent_calendar_dict(
+    json_file_path: Optional[str] = None,
+) -> Dict[int, AdventDay]:
+    """
+    Load Advent calendar data from a JSON file as a dictionary mapping day to AdventDay.
+
+    Args:
+        json_file_path: Path to the JSON file. If None, uses default.
+
+    Returns:
+        Dictionary of {day_number: AdventDay} representing the complete calendar.
+    """
+    json_file_path = _get_advent_calendar_path(json_file_path)
+
+    if not os.path.exists(json_file_path):
+        raise FileNotFoundError(f"Advent calendar file not found: {json_file_path}")
+
+    # Check cache
+    json_file_path = os.path.abspath(json_file_path)
+
+    file_stat = os.stat(json_file_path)
+    current_mtime_ns = getattr(
+        file_stat, "st_mtime_ns", int(file_stat.st_mtime * 1_000_000_000)
+    )
+    current_size = file_stat.st_size
+    current_inode = getattr(file_stat, "st_ino", 0)
+
+    cached_entry = _ADVENT_CALENDAR_CACHE.get(json_file_path)
+
+    if _is_cache_valid(cached_entry, current_mtime_ns, current_size, current_inode):
+        return copy.deepcopy(cached_entry["data_dict"])
+
+    # Load and parse file
+    days_list = _parse_advent_calendar_file(json_file_path)
+    days_dict = {day.day: day for day in days_list}
+
+    # Update cache
+    _ADVENT_CALENDAR_CACHE[json_file_path] = {
+        "mtime_ns": current_mtime_ns,
+        "size": current_size,
+        "inode": current_inode,
+        "data_list": days_list,
+        "data_dict": days_dict,
+    }
+
+    return copy.deepcopy(days_dict)
 
 
 def get_manifest(
@@ -296,31 +348,37 @@ def get_day_content(
     if not 1 <= day_number <= 24:
         return None
 
-    days = load_advent_calendar(json_file_path)
+    days = load_advent_calendar_dict(json_file_path)
 
     # Find the requested day
-    for day in days:
-        if day.day == day_number:
-            return day.to_dict(include_payload=True, current_time=current_time)
+    day = days.get(day_number)
+    if day:
+        return day.to_dict(include_payload=True, current_time=current_time)
 
     return None
 
 
 def save_advent_calendar(
-    days: List[AdventDay], json_file_path: Optional[str] = None
+    days: Union[List[AdventDay], Dict[int, AdventDay]],
+    json_file_path: Optional[str] = None,
 ) -> None:
     """
     Save Advent calendar data to a JSON file.
 
     Args:
-        days: List of AdventDay objects to save
+        days: List or Dictionary of AdventDay objects to save
         json_file_path: Path to the JSON file. If None, uses the default calendar file.
     """
     json_file_path = _get_advent_calendar_path(json_file_path)
 
+    if isinstance(days, dict):
+        days_list = list(days.values())
+    else:
+        days_list = days
+
     # Convert days to dictionary format
     days_data = []
-    for day in days:
+    for day in days_list:
         day_dict = {
             "day": day.day,
             "title": day.title,
