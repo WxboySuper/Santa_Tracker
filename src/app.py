@@ -3,6 +3,7 @@ import logging
 import os
 import secrets
 import sys
+import threading
 import time
 from datetime import datetime
 from functools import wraps
@@ -56,6 +57,9 @@ logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
 )
 logger = logging.getLogger(__name__)
+
+_simulated_route_cache_lock = threading.Lock()
+_simulated_route_cache = {}
 
 app = Flask(__name__)
 app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "dev-secret-key")
@@ -959,6 +963,15 @@ def _build_simulated_from_locations(all_locations, location_ids=None):
 
     Returns tuple (simulated_route_list, summary_dict, error_response_or_None)
     """
+
+    cache_key = id(all_locations)
+    if location_ids is not None:
+        cache_key = (cache_key, tuple(location_ids))
+
+    with _simulated_route_cache_lock:
+        if cache_key in _simulated_route_cache:
+            return _simulated_route_cache[cache_key]
+
     # Filter
     locations, error = _filter_locations_by_ids(all_locations, location_ids)
     if error:
@@ -977,7 +990,14 @@ def _build_simulated_from_locations(all_locations, location_ids=None):
     # Build summary
     summary = _compute_route_summary(simulated_route)
 
-    return simulated_route, summary, None
+    res = (simulated_route, summary, None)
+
+    with _simulated_route_cache_lock:
+        if len(_simulated_route_cache) > 10:
+            _simulated_route_cache.clear()
+        _simulated_route_cache[cache_key] = res
+
+    return res
 
 
 def _filter_locations_by_ids(all_locations, location_ids):
