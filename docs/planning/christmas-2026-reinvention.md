@@ -1,7 +1,7 @@
 # Christmas 2026 Reinvention — Living Draft
 
-> Status: planning-complete draft; ready for GitHub execution after final review  
-> Started: June 20, 2026  
+> Status: planning-complete draft; ready for GitHub execution after final review
+> Started: June 20, 2026
 > This document is intentionally not final. Decisions, tracker breakdowns, and implementation details will be refined through continued discussion before the GitHub planning environment is created.
 
 ## Purpose
