@@ -76,6 +76,7 @@ Additional rules:
 - `database` owns Drizzle, SQL migrations, transactions, and repositories. Drizzle types must not leak into public snapshot contracts.
 - `ui` contains shared presentational and accessible interaction primitives. It does not fetch data or import the database.
 - `activity-sdk` owns common activity infrastructure without forcing games to share mechanics or renderer implementations.
+- `test-fixtures` is a development-only dependency. Any package's test suite may import its cross-cutting clocks, routes, snapshots, and content fixtures, but production source and runtime dependency graphs must not import it.
 - `apps/web` is the composition root. Only it wires authentication, repositories, route handlers, server actions, caching, and rendering together.
 - Server-only modules use explicit server-only guards and are never re-exported through client-safe entry points.
 - Cyclic package dependencies are prohibited and checked in CI.
