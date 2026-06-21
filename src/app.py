@@ -3,6 +3,7 @@ import logging
 import os
 import secrets
 import sys
+import threading
 import time
 from datetime import datetime
 from functools import wraps
@@ -35,6 +36,7 @@ from utils.advent import (  # noqa: E402
     get_day_content,
     get_manifest,
     load_advent_calendar,
+    load_advent_calendar_dict,
     save_advent_calendar,
     validate_advent_calendar,
 )
@@ -56,6 +58,9 @@ logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
 )
 logger = logging.getLogger(__name__)
+
+_simulated_route_cache_lock = threading.Lock()
+_simulated_route_cache = {}
 
 app = Flask(__name__)
 app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "dev-secret-key")
@@ -959,6 +964,15 @@ def _build_simulated_from_locations(all_locations, location_ids=None):
 
     Returns tuple (simulated_route_list, summary_dict, error_response_or_None)
     """
+
+    cache_key = id(all_locations)
+    if location_ids is not None:
+        cache_key = (cache_key, tuple(location_ids))
+
+    with _simulated_route_cache_lock:
+        if cache_key in _simulated_route_cache:
+            return _simulated_route_cache[cache_key]
+
     # Filter
     locations, error = _filter_locations_by_ids(all_locations, location_ids)
     if error:
@@ -977,7 +991,14 @@ def _build_simulated_from_locations(all_locations, location_ids=None):
     # Build summary
     summary = _compute_route_summary(simulated_route)
 
-    return simulated_route, summary, None
+    res = (simulated_route, summary, None)
+
+    with _simulated_route_cache_lock:
+        if len(_simulated_route_cache) > 10:
+            _simulated_route_cache.clear()
+        _simulated_route_cache[cache_key] = res
+
+    return res
 
 
 def _filter_locations_by_ids(all_locations, location_ids):
@@ -1321,25 +1342,24 @@ def get_advent_day_admin(day_number):
         if not 1 <= day_number <= 24:
             return jsonify({"error": "Day number must be between 1 and 24"}), 400
 
-        days = load_advent_calendar()
+        days = load_advent_calendar_dict()
+        day = days.get(day_number)
 
-        # Find the requested day
-        for day in days:
-            if day.day == day_number:
-                return (
-                    jsonify(
-                        {
-                            "day": day.day,
-                            "title": day.title,
-                            "unlock_time": day.unlock_time,
-                            "content_type": day.content_type,
-                            "payload": day.payload,
-                            "is_unlocked_override": day.is_unlocked_override,
-                            "is_currently_unlocked": day.is_unlocked(),
-                        }
-                    ),
-                    200,
-                )
+        if day:
+            return (
+                jsonify(
+                    {
+                        "day": day.day,
+                        "title": day.title,
+                        "unlock_time": day.unlock_time,
+                        "content_type": day.content_type,
+                        "payload": day.payload,
+                        "is_unlocked_override": day.is_unlocked_override,
+                        "is_currently_unlocked": day.is_unlocked(),
+                    }
+                ),
+                200,
+            )
 
         return jsonify({"error": "Day not found"}), 404
     except FileNotFoundError:
@@ -1365,31 +1385,30 @@ def update_advent_day(day_number):
         if not data:
             return jsonify({"error": "No data provided"}), 400
 
-        days = load_advent_calendar()
+        days = load_advent_calendar_dict()
+        day = days.get(day_number)
 
-        # Find and update the day
-        for i, day in enumerate(days):
-            if day.day == day_number:
-                # Create updated day object with validation
-                try:
-                    updated_day = AdventDay(
-                        day=day_number,
-                        title=data.get("title", day.title),
-                        unlock_time=data.get("unlock_time", day.unlock_time),
-                        content_type=data.get("content_type", day.content_type),
-                        payload=data.get("payload", day.payload),
-                        is_unlocked_override=data.get(
-                            "is_unlocked_override", day.is_unlocked_override
-                        ),
-                    )
-                except (ValueError, KeyError, TypeError):
-                    logging.exception("Invalid advent day data provided by user.")
-                    return jsonify({"error": "Invalid data provided"}), 400
+        if day:
+            # Create updated day object with validation
+            try:
+                updated_day = AdventDay(
+                    day=day_number,
+                    title=data.get("title", day.title),
+                    unlock_time=data.get("unlock_time", day.unlock_time),
+                    content_type=data.get("content_type", day.content_type),
+                    payload=data.get("payload", day.payload),
+                    is_unlocked_override=data.get(
+                        "is_unlocked_override", day.is_unlocked_override
+                    ),
+                )
+            except (ValueError, KeyError, TypeError):
+                logging.exception("Invalid advent day data provided by user.")
+                return jsonify({"error": "Invalid data provided"}), 400
 
-                days[i] = updated_day
-                save_advent_calendar(days)
+            days[day_number] = updated_day
+            save_advent_calendar(days)
 
-                return jsonify({"message": "Day updated successfully"}), 200
+            return jsonify({"message": "Day updated successfully"}), 200
 
         # If we get here, the day was not found
         return jsonify({"error": "Day not found"}), 404
@@ -1423,34 +1442,33 @@ def toggle_advent_day_unlock(day_number):
         # Get the desired override state (can be true, false, or null to clear override)
         override_state = data.get("is_unlocked_override")
 
-        days = load_advent_calendar()
+        days = load_advent_calendar_dict()
+        day = days.get(day_number)
 
-        # Find and update the day
-        for i, day in enumerate(days):
-            if day.day == day_number:
-                # Create updated day with new override state
-                updated_day = AdventDay(
-                    day=day.day,
-                    title=day.title,
-                    unlock_time=day.unlock_time,
-                    content_type=day.content_type,
-                    payload=day.payload,
-                    is_unlocked_override=override_state,
-                )
+        if day:
+            # Create updated day with new override state
+            updated_day = AdventDay(
+                day=day.day,
+                title=day.title,
+                unlock_time=day.unlock_time,
+                content_type=day.content_type,
+                payload=day.payload,
+                is_unlocked_override=override_state,
+            )
 
-                days[i] = updated_day
-                save_advent_calendar(days)
+            days[day_number] = updated_day
+            save_advent_calendar(days)
 
-                return (
-                    jsonify(
-                        {
-                            "message": "Unlock override toggled successfully",
-                            "is_unlocked_override": override_state,
-                            "is_currently_unlocked": updated_day.is_unlocked(),
-                        }
-                    ),
-                    200,
-                )
+            return (
+                jsonify(
+                    {
+                        "message": "Unlock override toggled successfully",
+                        "is_unlocked_override": override_state,
+                        "is_currently_unlocked": updated_day.is_unlocked(),
+                    }
+                ),
+                200,
+            )
 
         # If we get here, the day was not found
         return jsonify({"error": "Day not found"}), 404
