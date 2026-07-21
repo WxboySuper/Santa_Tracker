@@ -12,6 +12,7 @@ import {
   resolveAccountTier,
   tierHasHistory,
   tierHasSnapshots,
+  toArchiveDate,
 } from './sources';
 import { gradeForecast } from './gradeForecast';
 import { circleContour, scatterReports, tornadoOutlook } from './testFixtures';
@@ -48,6 +49,11 @@ describe('account tiers and sources', () => {
     expect(availablePackageSources('signed-out')).toEqual(['file']);
     expect(availablePackageSources('free')).toEqual(['file']);
     expect(availablePackageSources('premium')).toEqual(['file', 'cloud']);
+  });
+
+  test('converts ISO date input to SPC archive YYMMDD', () => {
+    expect(toArchiveDate('2024-05-06')).toBe('240506');
+    expect(toArchiveDate('240506')).toBe('240506');
   });
 
   test('history and snapshot capability by tier', () => {

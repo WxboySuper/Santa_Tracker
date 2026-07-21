@@ -65,10 +65,19 @@ export const loadForecastFromFile = async (file: File): Promise<ForecastCycle> =
   }
 };
 
+/**
+ * Converts an ISO `YYYY-MM-DD` date (from a native date input) into the SPC
+ * archive `YYMMDD` format. Values already in `YYMMDD` are returned unchanged.
+ */
+export const toArchiveDate = (reportDate: string): string => {
+  const match = reportDate.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  return match ? `${match[1].slice(2)}${match[2]}${match[3]}` : reportDate;
+};
+
 /** Loads SPC storm reports for a date (or today when null), or blocks. */
 export const loadReportsForDate = async (reportDate: string | null): Promise<StormReport[]> => {
   try {
-    return reportDate ? await fetchStormReports(reportDate) : await fetchTodayStormReports();
+    return reportDate ? await fetchStormReports(toArchiveDate(reportDate)) : await fetchTodayStormReports();
   } catch (error) {
     const detail = error instanceof Error ? error.message : 'Unknown error';
     throw new SourceLoadError(`Storm reports could not be loaded (${detail}).`);
