@@ -28,7 +28,10 @@ describe('v1.7 workstream adoption contract', () => {
   });
 
   test.each(
-    V17_WORKSTREAM_KEYS.filter((feature) => !['autoTstm', 'forecastWorkflowV2', 'customProducts'].includes(feature))
+    V17_WORKSTREAM_KEYS.filter(
+      (feature) =>
+        !['autoTstm', 'forecastWorkflowV2', 'customProducts', 'verificationRelaunch'].includes(feature)
+    )
   )(
     '%s stays disabled on every build target',
     (feature) => {
@@ -38,6 +41,14 @@ describe('v1.7 workstream adoption contract', () => {
       }
     }
   );
+
+  test('verificationRelaunch dogfoods on local only', () => {
+    for (const target of BUILD_TARGETS) {
+      const expected = target === 'local';
+      expect(isFeatureExposedOnTarget('verificationRelaunch', target)).toBe(expected);
+      expect(FEATURE_EXPOSURE_REGISTRY.verificationRelaunch.exposure[target]).toBe(expected);
+    }
+  });
 
   test('customProducts is enabled for local development and beta testing only', () => {
     for (const target of BUILD_TARGETS) {
