@@ -78,31 +78,36 @@ const isValidCalendarDate = (year: number, month: number, day: number): boolean 
   );
 };
 
-export const toArchiveDate = (reportDate: string): string | null => {
+const parseIsoArchiveDate = (reportDate: string): string | null => {
   const iso = reportDate.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-  if (iso) {
-    const year = Number(iso[1]);
-    const month = Number(iso[2]);
-    const day = Number(iso[3]);
-    if (!isValidCalendarDate(year, month, day)) {
-      return null;
-    }
-    return `${iso[1].slice(2)}${iso[2]}${iso[3]}`;
+  if (!iso) {
+    return null;
   }
-
-  const archive = reportDate.match(/^(\d{2})(\d{2})(\d{2})$/);
-  if (archive) {
-    const year = 2000 + Number(archive[1]);
-    const month = Number(archive[2]);
-    const day = Number(archive[3]);
-    if (!isValidCalendarDate(year, month, day)) {
-      return null;
-    }
-    return reportDate;
+  const year = Number(iso[1]);
+  const month = Number(iso[2]);
+  const day = Number(iso[3]);
+  if (!isValidCalendarDate(year, month, day)) {
+    return null;
   }
-
-  return null;
+  return `${iso[1].slice(2)}${iso[2]}${iso[3]}`;
 };
+
+const parseYyMmDdArchiveDate = (reportDate: string): string | null => {
+  const archive = reportDate.match(/^(\d{2})(\d{2})(\d{2})$/);
+  if (!archive) {
+    return null;
+  }
+  const year = 2000 + Number(archive[1]);
+  const month = Number(archive[2]);
+  const day = Number(archive[3]);
+  if (!isValidCalendarDate(year, month, day)) {
+    return null;
+  }
+  return reportDate;
+};
+
+export const toArchiveDate = (reportDate: string): string | null =>
+  parseIsoArchiveDate(reportDate) ?? parseYyMmDdArchiveDate(reportDate);
 
 /** Loads SPC storm reports for a date (or today when null), or blocks. */
 export const loadReportsForDate = async (reportDate: string | null): Promise<StormReport[]> => {
