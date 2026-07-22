@@ -82,9 +82,19 @@
 
 /* Landscape phone: keep the mobile interaction model when height is constrained. */
 @media (max-height: 520px) and (orientation: landscape) {
+  .fg-dashboard {
+    overflow-y: auto;
+  }
+
   .fg-workspace {
     grid-template-columns: 1fr;
-    grid-template-rows: minmax(56vh, 1fr) auto;
+    grid-template-rows: minmax(0, 45vh) minmax(0, 1fr);
+  }
+
+  .fg-results-pane {
+    max-height: none;
+    min-height: 0;
+    overflow-y: auto;
   }
 
   .fg-grade-overlay {

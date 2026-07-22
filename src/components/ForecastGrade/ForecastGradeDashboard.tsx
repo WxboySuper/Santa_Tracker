@@ -22,6 +22,7 @@ const MAP_PRODUCTS: ProductKind[] = ['categorical', 'tornado', 'wind', 'hail'];
 
 /** Premium cloud package picker rendered inside the source panel. */
 const CloudSourcePicker: React.FC<{ onLoad: (id: string, label: string) => void }> = ({ onLoad }) => {
+  const { addToast } = useAppLayout();
   const { cycles, loading } = useCloudCycles();
   if (loading) {
     return <p className="text-sm text-slate-500">Loading cloud packages…</p>;
@@ -36,9 +37,15 @@ const CloudSourcePicker: React.FC<{ onLoad: (id: string, label: string) => void 
         className="fg-touch mt-1 w-full rounded border border-slate-300/40 bg-transparent px-2 py-1"
         defaultValue=""
         onChange={(event) => {
-          const cycle = cycles.find((item) => item.id === event.target.value);
+          const value = event.target.value;
+          const cycle = cycles.find((item) => item.id === value);
           if (cycle) {
             onLoad(cycle.id, cycle.label ?? 'Cloud package');
+            return;
+          }
+          if (value) {
+            addToast('That cloud package is no longer available. Choose another package.', 'error');
+            event.target.value = '';
           }
         }}
       >
@@ -73,13 +80,18 @@ const ForecastGradeDashboard: React.FC = () => {
 
   const mapRef = useRef<VerificationMapHandle>(null);
   const mapPaneRef = useRef<HTMLDivElement>(null);
+  const cloudLoadSeqRef = useRef(0);
   const reportsVisible = useSelector((state: RootState) => state.stormReports.visible);
 
   const availableSources = availablePackageSources(grade.tier);
 
   const handleCloudLoad = useCallback(
     async (id: string, label: string) => {
+      const loadSeq = ++cloudLoadSeqRef.current;
       const payload = await loadCycle(id);
+      if (loadSeq !== cloudLoadSeqRef.current) {
+        return;
+      }
       if (!payload) {
         addToast('That cloud package could not be loaded.', 'error');
         return;
