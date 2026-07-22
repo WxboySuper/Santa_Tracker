@@ -145,7 +145,8 @@ export const useForecastGrade = (addToast: (message: string, type?: 'info' | 'su
     setPhase('idle');
   }, []);
 
-  const canRun = Boolean(forecast) && phase !== 'running';
+  const canRun =
+    Boolean(forecast) && phase !== 'running' && (useToday || reportDate.trim().length > 0);
 
   const run = useCallback(async () => {
     if (!forecast) {
@@ -205,7 +206,7 @@ export const useForecastGrade = (addToast: (message: string, type?: 'info' | 'su
           snapshot = {
             card,
             package: pkg,
-            forecast: serializeForecast(forecast),
+            forecast: serializeForecast(forecast, { center: [-98, 39], zoom: 4 }),
             reportDate: effectiveDate,
           };
         } catch {
