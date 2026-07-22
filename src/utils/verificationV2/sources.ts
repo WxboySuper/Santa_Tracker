@@ -11,7 +11,10 @@ import {
   validateForecastData,
 } from '../fileUtils';
 import { fetchStormReports, fetchTodayStormReports } from '../stormReportParser';
+import { toArchiveDate } from './archiveDate';
 import type { PackageGrade, ProductKind } from './gradeContract';
+
+export { toArchiveDate } from './archiveDate';
 
 /**
  * Source adapters for the Forecast Grade dashboard (PR 05 — sources-history).
@@ -63,61 +66,6 @@ export const loadForecastFromFile = async (file: File): Promise<ForecastCycle> =
   } catch {
     throw new SourceLoadError('That forecast package could not be parsed.');
   }
-};
-
-/**
- * Converts an ISO `YYYY-MM-DD` date (from a native date input) into the SPC
- * archive `YYMMDD` format. Values already in `YYMMDD` are returned unchanged.
- */
-const isValidCalendarDate = (year: number, month: number, day: number): boolean => {
-  const date = new Date(Date.UTC(year, month - 1, day));
-  return (
-    date.getUTCFullYear() === year &&
-    date.getUTCMonth() === month - 1 &&
-    date.getUTCDate() === day
-  );
-};
-
-const toArchiveYyMmDd = (
-  year: number,
-  month: number,
-  day: number,
-  yy: string,
-  mm: string,
-  dd: string
-): string | null => {
-  if (!isValidCalendarDate(year, month, day)) {
-    return null;
-  }
-  return `${yy}${mm}${dd}`;
-};
-
-export const toArchiveDate = (reportDate: string): string | null => {
-  const iso = reportDate.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-  if (iso) {
-    return toArchiveYyMmDd(
-      Number(iso[1]),
-      Number(iso[2]),
-      Number(iso[3]),
-      iso[1].slice(2),
-      iso[2],
-      iso[3]
-    );
-  }
-
-  const archive = reportDate.match(/^(\d{2})(\d{2})(\d{2})$/);
-  if (archive) {
-    return toArchiveYyMmDd(
-      2000 + Number(archive[1]),
-      Number(archive[2]),
-      Number(archive[3]),
-      archive[1],
-      archive[2],
-      archive[3]
-    );
-  }
-
-  return null;
 };
 
 /** Loads SPC storm reports for a date (or today when null), or blocks. */
