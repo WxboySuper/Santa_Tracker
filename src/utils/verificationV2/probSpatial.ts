@@ -69,6 +69,21 @@ const roundTo = (value: number, digits = 3): number => {
   return Math.round(value * factor) / factor;
 };
 
+const isGradableEvaluation = (evaluation: GridEvaluation): boolean => {
+  if (evaluation.cellCount <= 0) {
+    return false;
+  }
+  return evaluation.forecastCellCount > 0 || evaluation.observedFrequency > 0;
+};
+
+const brierSkillScore = (brier: number, observedFrequency: number): number => {
+  if (observedFrequency <= 0 || observedFrequency >= 1) {
+    return 0;
+  }
+  const referenceBrier = observedFrequency * (1 - observedFrequency);
+  return referenceBrier > 0 ? clamp(1 - brier / referenceBrier) : 0;
+};
+
 /**
  * Probability skill via the spatial Brier Skill Score over the grid. Higher-`f`
  * empty cells hurt more (larger squared error). Quiet overforecast days still
@@ -76,9 +91,8 @@ const roundTo = (value: number, digits = 3): number => {
  */
 export const scoreProbabilitySkill = (evaluation: GridEvaluation): ComponentScore => {
   const { forecast, observed, observedFrequency, cellCount } = evaluation;
-  const hasForecast = evaluation.forecastCellCount > 0;
 
-  if (cellCount === 0 || (!hasForecast && observedFrequency === 0)) {
+  if (!isGradableEvaluation(evaluation)) {
     return notEvaluatedComponent('probabilitySkill', 'No forecast probability field and no reports on the grid.');
   }
 
@@ -98,18 +112,15 @@ export const scoreProbabilitySkill = (evaluation: GridEvaluation): ComponentScor
     );
   }
 
-  const referenceBrier = observedFrequency * (1 - observedFrequency);
-  const skill = referenceBrier > 0 ? clamp(1 - brier / referenceBrier) : 0;
+  const bss = brierSkillScore(brier, observedFrequency);
 
   return scoredComponent(
     'probabilitySkill',
-    skill,
-    `Brier ${roundTo(brier)}, BSS ${roundTo(1 - brier / referenceBrier)} vs climatology ${roundTo(
-      observedFrequency
-    )}.`,
+    bss,
+    `Brier ${roundTo(brier)}, BSS ${roundTo(bss)} vs climatology ${roundTo(observedFrequency)}.`,
     {
       brier: roundTo(brier),
-      bss: roundTo(1 - brier / referenceBrier),
+      bss: roundTo(bss),
       observedFrequency: roundTo(observedFrequency),
       cells: cellCount,
     }
