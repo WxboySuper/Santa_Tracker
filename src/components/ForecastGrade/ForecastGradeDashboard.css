@@ -1,0 +1,139 @@
+.fg-dashboard {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.fg-topbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.fg-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+/* Desktop: equal-weight map and dashboard. */
+.fg-workspace {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.fg-map-pane {
+  position: relative;
+  min-height: 0;
+  border-radius: 0.75rem;
+  overflow: hidden;
+  border: 1px solid var(--fg-border, rgba(148, 163, 184, 0.35));
+}
+
+.fg-results-pane {
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 0.25rem;
+}
+
+.fg-grade-overlay {
+  display: none;
+}
+
+/* Mobile: map-first with a compact grade overlay/drawer. */
+@media (max-width: 820px) {
+  .fg-workspace {
+    grid-template-columns: 1fr;
+    grid-template-rows: minmax(45vh, 1fr) auto;
+  }
+
+  .fg-results-pane {
+    max-height: 48vh;
+  }
+
+  .fg-grade-overlay {
+    display: flex;
+    position: absolute;
+    left: 0.5rem;
+    right: 0.5rem;
+    bottom: 0.5rem;
+    z-index: 5;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    border-radius: 0.75rem;
+    background: rgba(15, 23, 42, 0.82);
+    color: #fff;
+    backdrop-filter: blur(6px);
+  }
+}
+
+/* Landscape phone: keep the mobile interaction model when height is constrained. */
+@media (max-height: 520px) and (orientation: landscape) {
+  .fg-workspace {
+    grid-template-columns: 1fr;
+    grid-template-rows: minmax(56vh, 1fr) auto;
+  }
+
+  .fg-grade-overlay {
+    display: flex;
+    position: absolute;
+    left: 0.5rem;
+    bottom: 0.5rem;
+    z-index: 5;
+    padding: 0.4rem 0.6rem;
+    border-radius: 0.6rem;
+    background: rgba(15, 23, 42, 0.82);
+    color: #fff;
+  }
+}
+
+.fg-section {
+  border: 1px solid var(--fg-border, rgba(148, 163, 184, 0.35));
+  border-radius: 0.75rem;
+  margin-bottom: 0.75rem;
+  background: var(--fg-surface, rgba(255, 255, 255, 0.02));
+}
+
+.fg-section > summary {
+  cursor: pointer;
+  padding: 0.75rem 1rem;
+  font-weight: 600;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.fg-section > summary::-webkit-details-marker {
+  display: none;
+}
+
+.fg-section-body {
+  padding: 0 1rem 1rem;
+}
+
+.fg-report-row {
+  cursor: pointer;
+}
+
+.fg-report-row[aria-selected='true'] {
+  outline: 2px solid #2563eb;
+  outline-offset: -2px;
+}
+
+.fg-touch {
+  min-height: 44px;
+}
