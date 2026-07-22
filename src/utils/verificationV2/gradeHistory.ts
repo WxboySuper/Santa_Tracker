@@ -16,10 +16,10 @@ const SNAPSHOT_PREFIX = 'gfc-forecast-grade-snapshot-v1';
 
 /** Stable per-account storage scope. Signed-out sessions are not persisted. */
 export const accountScope = (tier: GradeAccountTier, userId?: string): string | null => {
-  if (tier === 'signed-out') {
+  if (tier === 'signed-out' || !userId) {
     return null;
   }
-  return userId ? `user:${userId}` : `local:${tier}`;
+  return `user:${userId}`;
 };
 
 const cardsKey = (scope: string): string => `${CARDS_PREFIX}:${scope}`;

@@ -69,15 +69,52 @@ export const loadForecastFromFile = async (file: File): Promise<ForecastCycle> =
  * Converts an ISO `YYYY-MM-DD` date (from a native date input) into the SPC
  * archive `YYMMDD` format. Values already in `YYMMDD` are returned unchanged.
  */
-export const toArchiveDate = (reportDate: string): string => {
-  const match = reportDate.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-  return match ? `${match[1].slice(2)}${match[2]}${match[3]}` : reportDate;
+const isValidCalendarDate = (year: number, month: number, day: number): boolean => {
+  const date = new Date(Date.UTC(year, month - 1, day));
+  return (
+    date.getUTCFullYear() === year &&
+    date.getUTCMonth() === month - 1 &&
+    date.getUTCDate() === day
+  );
+};
+
+export const toArchiveDate = (reportDate: string): string | null => {
+  const iso = reportDate.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (iso) {
+    const year = Number(iso[1]);
+    const month = Number(iso[2]);
+    const day = Number(iso[3]);
+    if (!isValidCalendarDate(year, month, day)) {
+      return null;
+    }
+    return `${iso[1].slice(2)}${iso[2]}${iso[3]}`;
+  }
+
+  const archive = reportDate.match(/^(\d{2})(\d{2})(\d{2})$/);
+  if (archive) {
+    const year = 2000 + Number(archive[1]);
+    const month = Number(archive[2]);
+    const day = Number(archive[3]);
+    if (!isValidCalendarDate(year, month, day)) {
+      return null;
+    }
+    return reportDate;
+  }
+
+  return null;
 };
 
 /** Loads SPC storm reports for a date (or today when null), or blocks. */
 export const loadReportsForDate = async (reportDate: string | null): Promise<StormReport[]> => {
   try {
-    return reportDate ? await fetchStormReports(toArchiveDate(reportDate)) : await fetchTodayStormReports();
+    if (reportDate) {
+      const archiveDate = toArchiveDate(reportDate);
+      if (!archiveDate) {
+        throw new SourceLoadError('Choose a valid report date.');
+      }
+      return await fetchStormReports(archiveDate);
+    }
+    return await fetchTodayStormReports();
   } catch (error) {
     const detail = error instanceof Error ? error.message : 'Unknown error';
     throw new SourceLoadError(`Storm reports could not be loaded (${detail}).`);

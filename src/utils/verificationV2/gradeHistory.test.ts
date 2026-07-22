@@ -54,6 +54,8 @@ describe('account tiers and sources', () => {
   test('converts ISO date input to SPC archive YYMMDD', () => {
     expect(toArchiveDate('2024-05-06')).toBe('240506');
     expect(toArchiveDate('240506')).toBe('240506');
+    expect(toArchiveDate('2024-99-99')).toBeNull();
+    expect(toArchiveDate('2024-5-6')).toBeNull();
   });
 
   test('history and snapshot capability by tier', () => {
@@ -68,7 +70,7 @@ describe('account scope', () => {
   test('signed-out sessions are never persisted', () => {
     expect(accountScope('signed-out')).toBeNull();
     expect(accountScope('free', 'abc')).toBe('user:abc');
-    expect(accountScope('free')).toBe('local:free');
+    expect(accountScope('free')).toBeNull();
   });
 });
 
