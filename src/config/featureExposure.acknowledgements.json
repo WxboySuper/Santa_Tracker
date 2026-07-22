@@ -19,8 +19,9 @@
     "betaEnablementApproved": true
   },
   "verificationRelaunch": {
-    "reason": "Registry-only until verification relaunch surfaces merge; core /verification is separate; adoption contract in src/config/v17WorkstreamAdoption.exposure.test.ts",
-    "trackingIssue": 530
+    "reason": "Forecast Grade v2 dashboard dogfoods on local only; classic /verification remains the default when the flag is off. Disabled-side-effect coverage in src/pages/verificationRelaunch.exposure.test.tsx (lazy route + FEATURE_SIDE_EFFECT_MODULES), gate coverage in src/pages/VerificationPage.test.tsx, and the adoption contract is in src/config/v17WorkstreamAdoption.exposure.test.ts. Beta/staging/production stay disabled.",
+    "trackingIssue": 430,
+    "localDevelopmentApproved": true
   },
   "customProducts": {
     "reason": "Custom Products completed local implementation, UI review, and regression/E2E coverage under #431. Owner approval enables the beta tester rollout; staging and production remain disabled. Adoption contract is in src/config/v17WorkstreamAdoption.exposure.test.ts and end-to-end coverage is in e2e/custom-products.spec.ts.",
