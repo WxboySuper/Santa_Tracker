@@ -157,8 +157,9 @@ export const buildPackageGrade = ({
   reports,
   reportsError = false,
   generatedAt,
-}: BuildPackageOptions): PackageGrade => {
-  const products = PRODUCT_KINDS.map((product) => gradeProduct(product, outlooks, reports));
+  products: providedProducts,
+}: BuildPackageOptions & { products?: ProductGrade[] }): PackageGrade => {
+  const products = providedProducts ?? PRODUCT_KINDS.map((product) => gradeProduct(product, outlooks, reports));
   const hasGeometry = PRODUCT_KINDS.some(
     (product) => extractProductContours(outlooks, product).length > 0
   );

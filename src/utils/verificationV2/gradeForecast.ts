@@ -112,6 +112,7 @@ export const runForecastGrade = async (
     reports,
     reportsError,
     generatedAt,
+    products,
   });
 
   onProgress?.({ fraction: 1, label: 'Complete' });
