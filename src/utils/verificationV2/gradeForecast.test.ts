@@ -32,9 +32,19 @@ describe('gfc-ver-1 letter bands', () => {
 });
 
 describe('gfc-ver-1 input validation', () => {
-  test('blocks a package with no geometry', () => {
+  test('blocks a package with no severe hazard geometry', () => {
     const empty: OutlookData = { tornado: new Map(), wind: new Map(), hail: new Map(), categorical: new Map() };
     expect(validateGradeInputs({ outlooks: empty, reports: [] }).valid).toBe(false);
+  });
+
+  test('blocks categorical-only packages without severe hazard contours', () => {
+    const categoricalOnly: OutlookData = {
+      tornado: new Map(),
+      wind: new Map(),
+      hail: new Map(),
+      categorical: new Map([['SLGT', circleContour(CENTER[0], CENTER[1], 120)]]),
+    };
+    expect(validateGradeInputs({ outlooks: categoricalOnly, reports: [] }).valid).toBe(false);
   });
 
   test('blocks when the report fetch failed', () => {

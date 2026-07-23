@@ -45,7 +45,10 @@ export const validateGradeInputs = (input: Partial<GradeForecastInput>): GradeIn
     (product) => extractProductContours(input.outlooks as OutlookData, product).length > 0
   );
   if (!hasGeometry) {
-    return { valid: false, reason: 'The forecast package has no outlook geometry to grade.' };
+    return {
+      valid: false,
+      reason: 'The forecast package has no severe hazard geometry to grade.',
+    };
   }
   return { valid: true };
 };
@@ -112,7 +115,6 @@ export const runForecastGrade = async (
     reports,
     reportsError,
     generatedAt,
-    products,
   });
 
   onProgress?.({ fraction: 1, label: 'Complete' });

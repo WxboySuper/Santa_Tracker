@@ -127,7 +127,7 @@ export const assessDataQuality = (
     return { quality: 'Blocked', reason: 'Storm reports could not be loaded.', withholdPackageGrade: true };
   }
   if (!hasGeometry) {
-    return { quality: 'Blocked', reason: 'No forecast geometry to grade.', withholdPackageGrade: true };
+    return { quality: 'Blocked', reason: 'No severe hazard geometry to grade.', withholdPackageGrade: true };
   }
   if (reportCount === 0) {
     return { quality: 'Good', reason: 'No reports', withholdPackageGrade: false };
@@ -157,9 +157,8 @@ export const buildPackageGrade = ({
   reports,
   reportsError = false,
   generatedAt,
-  products: providedProducts,
-}: BuildPackageOptions & { products?: ProductGrade[] }): PackageGrade => {
-  const products = providedProducts ?? PRODUCT_KINDS.map((product) => gradeProduct(product, outlooks, reports));
+}: BuildPackageOptions): PackageGrade => {
+  const products = PRODUCT_KINDS.map((product) => gradeProduct(product, outlooks, reports));
   const hasGeometry = PRODUCT_KINDS.some(
     (product) => extractProductContours(outlooks, product).length > 0
   );
