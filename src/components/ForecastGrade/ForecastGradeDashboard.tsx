@@ -1,4 +1,4 @@
-import React, { useCallback, useRef } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import type { VerificationMapHandle } from '../Map/VerificationMap';
 import { useAppLayout } from '../Layout/AppLayout';
@@ -6,153 +6,29 @@ import { useCloudCycles } from '../../hooks/useCloudCycles';
 import { deserializeForecast } from '../../utils/fileUtils';
 import { setVisibility } from '../../store/stormReportsSlice';
 import type { RootState } from '../../store';
-import type { MapOutlookLayer, ProductKind } from '../../utils/verificationV2';
+import type { StormReport } from '../../types/stormReports';
+import type { GradeCard } from '../../types/forecastGrade';
+import type { ComponentKey, MapOutlookLayer, ProductKind } from '../../utils/verificationV2';
 import { availablePackageSources } from '../../utils/verificationV2/sources';
-import { useForecastGrade, type UseForecastGrade } from './useForecastGrade';
-import SourcePanel from './SourcePanel';
-import RunProgress from './RunProgress';
-import GradeHeadline from './GradeHeadline';
-import DataQualityPanel from './DataQualityPanel';
+import { useForecastGrade } from './useForecastGrade';
+import CloudSourcePicker from './CloudSourcePicker';
 import ForecastGradeMapPane from './ForecastGradeMapPane';
+import ForecastGradeResultsPane from './ForecastGradeResultsPane';
+import ShareCard from './ShareCard';
+import { useCaptureGradeMap } from './useCaptureGradeMap';
 import { METHODOLOGY_DOC_PATH } from './methodology';
 import './ForecastGradeDashboard.css';
 
-/** Premium cloud package picker rendered inside the source panel. */
-const CloudSourcePicker: React.FC<{ onLoad: (id: string, label: string) => void }> = ({ onLoad }) => {
-  const { addToast } = useAppLayout();
-  const { cycles, loading } = useCloudCycles();
-  if (loading) {
-    return <p className="text-sm text-slate-500">Loading cloud packages…</p>;
-  }
-  if (cycles.length === 0) {
-    return <p className="text-sm text-slate-500">No cloud packages saved yet.</p>;
-  }
-  return (
-    <label className="block text-sm">
-      <span className="font-medium">Cloud package</span>
-      <select
-        className="fg-touch mt-1 w-full rounded border border-slate-300/40 bg-transparent px-2 py-1"
-        defaultValue=""
-        onChange={(event) => {
-          const value = event.target.value;
-          const cycle = cycles.find((item) => item.id === value);
-          if (cycle) {
-            onLoad(cycle.id, cycle.label ?? 'Cloud package');
-            return;
-          }
-          if (value) {
-            addToast('That cloud package is no longer available. Choose another package.', 'error');
-            event.target.value = '';
-          }
-        }}
-      >
-        <option value="" disabled>
-          Choose a saved package…
-        </option>
-        {cycles.map((cycle) => (
-          <option key={cycle.id} value={cycle.id}>
-            {cycle.label ?? cycle.id}
-          </option>
-        ))}
-      </select>
-    </label>
-  );
-};
 
-interface ForecastGradeTopbarProps {
-  methodologyPath: string;
-}
 
-/** Title row with the formula version and methodology link. */
-const ForecastGradeTopbar: React.FC<ForecastGradeTopbarProps> = ({ methodologyPath }) => (
-  <div className="fg-topbar">
-    <div>
-      <h2 className="text-lg font-semibold">Forecast Grade</h2>
-      <p className="text-xs text-slate-500">
-        Map-first verification · formula gfc-ver-1 ·{' '}
-        <a className="text-blue-500 hover:underline" href={methodologyPath} target="_blank" rel="noreferrer">
-          Methodology
-        </a>
-      </p>
-    </div>
-  </div>
-);
-
-interface ForecastGradeResultsPaneProps {
-  grade: UseForecastGrade;
-  availableSources: ReturnType<typeof availablePackageSources>;
-  reportsVisible: boolean;
-  onToggleEvidence: () => void;
-  onFile: (file: File) => void;
-  onCloudLoad: (id: string, label: string) => void;
-  onReset: () => void;
-  onSelectProduct: (product: ProductKind) => void;
-}
-
-/** Right rail: source panel, run progress, and grade results. */
-const ForecastGradeResultsPane: React.FC<ForecastGradeResultsPaneProps> = ({
-  grade,
-  availableSources,
-  onFile,
-  onCloudLoad,
-  onReset,
-  onSelectProduct,
-  onToggleEvidence,
-}) => (
-  <div className="fg-results-pane">
-    <SourcePanel
-      tier={grade.tier}
-      availableSources={availableSources}
-      hasForecast={Boolean(grade.forecast)}
-      sourceLabel={grade.sourceLabel}
-      useToday={grade.useToday}
-      reportDate={grade.reportDate}
-      canRun={grade.canRun}
-      isRunning={grade.phase === 'running'}
-      error={grade.error}
-      onFile={onFile}
-      onUseTodayChange={grade.setUseToday}
-      onReportDateChange={grade.setReportDate}
-      onRun={grade.run}
-      onReset={onReset}
-      renderCloudSource={
-        availableSources.includes('cloud')
-          ? () => <CloudSourcePicker onLoad={onCloudLoad} />
-          : undefined
-      }
-    />
-
-    {grade.phase === 'running' && (
-      <div className="mt-3">
-        <RunProgress progress={grade.progress} />
-      </div>
-    )}
-
-    {grade.result && (
-      <div className="mt-3">
-        <GradeHeadline
-          pkg={grade.result}
-          activeProduct={grade.activeProduct}
-          onSelectProduct={onSelectProduct}
-        />
-        <DataQualityPanel pkg={grade.result} />
-      </div>
-    )}
-  </div>
-);
-
-/**
- * Forecast Grade dashboard shell (PR 06 — dashboard-shell).
- *
- * Map-first evidence surface with graded severe-hazard products only. Categorical
- * remains the default map layer for context but is not scored.
- */
 const ForecastGradeDashboard: React.FC = () => {
   const { addToast } = useAppLayout();
   const dispatch = useDispatch();
   const grade = useForecastGrade(addToast);
   const { loadCycle } = useCloudCycles();
 
+  const [activeComponent, setActiveComponent] = useState<ComponentKey | null>(null);
+  const [selectedReportId, setSelectedReportId] = useState<string | null>(null);
   const mapRef = useRef<VerificationMapHandle>(null);
   const mapPaneRef = useRef<HTMLDivElement>(null);
   // Shared sequence bumped by every package-loading and reset path so an in-flight
@@ -161,6 +37,7 @@ const ForecastGradeDashboard: React.FC = () => {
   const reportsVisible = useSelector((state: RootState) => state.stormReports.visible);
 
   const availableSources = availablePackageSources(grade.tier);
+  const activeProductGrade = grade.result?.products.find((product) => product.product === grade.activeProduct);
 
   const handleCloudLoad = useCallback(
     async (id: string, label: string) => {
@@ -200,6 +77,7 @@ const ForecastGradeDashboard: React.FC = () => {
     (product: ProductKind) => {
       grade.setActiveProduct(product);
       grade.setActiveMapLayer(product);
+      setActiveComponent(null);
     },
     [grade]
   );
@@ -209,6 +87,7 @@ const ForecastGradeDashboard: React.FC = () => {
       grade.setActiveMapLayer(layer);
       if (layer !== 'categorical') {
         grade.setActiveProduct(layer);
+        setActiveComponent(null);
       }
     },
     [grade]
@@ -218,6 +97,32 @@ const ForecastGradeDashboard: React.FC = () => {
     () => dispatch(setVisibility(!reportsVisible)),
     [dispatch, reportsVisible]
   );
+
+  const handleSelectReport = useCallback((report: StormReport | null) => {
+    setSelectedReportId(report?.id ?? null);
+  }, []);
+
+  const handleSelectReportId = useCallback((reportId: string | null) => {
+    setSelectedReportId(reportId);
+  }, []);
+
+  const handleSelectHistoryCard = useCallback(
+    (card: GradeCard) => {
+      const snapshot = grade.restoreCard(card);
+      if (snapshot) {
+        grade.applyGradeSnapshot(snapshot);
+        addToast('Restored grade package from history.', 'success');
+      }
+    },
+    [addToast, grade]
+  );
+
+  const captureMap = useCaptureGradeMap(mapRef);
+
+  const renderCloudSource = availableSources.includes('cloud')
+    ? () => <CloudSourcePicker onLoad={handleCloudLoad} />
+    : undefined;
+
 
   return (
     <div className="fg-dashboard">
@@ -229,11 +134,15 @@ const ForecastGradeDashboard: React.FC = () => {
           activeMapLayer={grade.activeMapLayer}
           selectedDay={grade.selectedDay}
           availableDays={grade.availableDays}
+          reports={grade.reports}
+          selectedReportId={selectedReportId}
+          activeComponent={activeComponent}
           result={grade.result}
           reportsVisible={reportsVisible}
           onSelectMapLayer={handleSelectMapLayer}
           onSelectDay={grade.setSelectedDay}
           onToggleEvidence={handleToggleEvidence}
+          onSelectReportId={handleSelectReportId}
           mapPaneRef={mapPaneRef}
           mapRef={mapRef}
         />
@@ -241,12 +150,18 @@ const ForecastGradeDashboard: React.FC = () => {
         <ForecastGradeResultsPane
           grade={grade}
           availableSources={availableSources}
-          reportsVisible={reportsVisible}
-          onToggleEvidence={handleToggleEvidence}
-          onFile={handleFileLoad}
-          onCloudLoad={handleCloudLoad}
-          onReset={handleReset}
+          renderCloudSource={renderCloudSource}
+          activeProductGrade={activeProductGrade}
+          activeComponent={activeComponent}
+          onSelectComponent={setActiveComponent}
+          selectedReportId={selectedReportId}
+          onSelectReport={handleSelectReport}
           onSelectProduct={handleSelectProduct}
+          onSelectHistoryCard={handleSelectHistoryCard}
+          result={grade.result}
+          afterResult={
+            grade.result ? <ShareCard pkg={grade.result} captureMap={captureMap} addToast={addToast} /> : null
+          }
         />
       </div>
     </div>
