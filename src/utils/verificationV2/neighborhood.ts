@@ -3,7 +3,6 @@ import type { Feature, MultiPolygon, Polygon, Position } from 'geojson';
 import type { OutlookData } from '../../types/outlooks';
 import type { StormReport } from '../../types/stormReports';
 import {
-  CATEGORICAL_PROBABILITY,
   GRID_SPACING_KM,
   MAX_GRID_CELLS,
   SIGNIFICANT_THRESHOLD,
@@ -33,17 +32,11 @@ export interface ProductContour {
 export const isSignificantKey = (key: string): boolean => key.includes('#');
 
 /**
- * Resolves the probability fraction (0–1) a contour key represents for a
- * product. Categorical keys map through the versioned categorical table; hazard
- * keys parse their leading percent value.
+ * Resolves the probability fraction (0–1) a hazard contour key represents by
+ * parsing its leading percent value.
  */
-export const probabilityFromKey = (product: ProductKind, key: string): number => {
-  const clean = key.replace('#', '').trim().toUpperCase();
-
-  if (product === 'categorical') {
-    return CATEGORICAL_PROBABILITY[clean] ?? 0;
-  }
-
+export const probabilityFromKey = (_product: ProductKind, key: string): number => {
+  const clean = key.replace('#', '').trim();
   const match = clean.match(/([\d.]+)/);
   if (!match) {
     return 0;
@@ -52,8 +45,7 @@ export const probabilityFromKey = (product: ProductKind, key: string): number =>
 };
 
 /** Report types that count toward a product's verification. */
-export const relevantReportTypes = (product: ProductKind): HazardKind[] =>
-  product === 'categorical' ? ['tornado', 'wind', 'hail'] : [product];
+export const relevantReportTypes = (product: ProductKind): HazardKind[] => [product];
 
 /** Selects the reports relevant to a product. */
 export const reportsForProduct = (reports: StormReport[], product: ProductKind): StormReport[] => {
