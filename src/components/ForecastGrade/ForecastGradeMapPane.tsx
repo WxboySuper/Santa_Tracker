@@ -9,8 +9,8 @@ import { formatGrade, letterColorClass } from './gradeFormat';
 interface ForecastGradeMapPaneProps {
   forecastLoaded: boolean;
   activeMapLayer: MapOutlookLayer;
-  selectedDay: number;
-  availableDays: number[];
+  selectedDay: DayType;
+  availableDays: DayType[];
   reports: StormReport[];
   selectedReportId: string | null;
   activeComponent: ComponentKey | null;
@@ -20,8 +20,8 @@ interface ForecastGradeMapPaneProps {
   onSelectDay: (day: never) => void;
   onToggleEvidence: () => void;
   onSelectReportId?: (reportId: string | null) => void;
-  mapPaneRef: React.RefObject<HTMLDivElement>;
-  mapRef: React.RefObject<VerificationMapHandle>;
+  mapPaneRef: React.RefObject<HTMLDivElement | null>;
+  mapRef: React.RefObject<VerificationMapHandle | null>;
 }
 
 const ForecastGradeMapPane: React.FC<ForecastGradeMapPaneProps> = ({
