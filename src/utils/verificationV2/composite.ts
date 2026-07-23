@@ -28,6 +28,7 @@ import {
   scoreProbabilitySkill,
   scoreSpatialContingency,
 } from './probSpatial';
+import { FORECAST_GRADE_FORMULA_VERSION } from './formulaVersion';
 import { scoreEventYield, scoreSeverity } from './yieldSeverity';
 
 /**
@@ -143,7 +144,7 @@ export const assessDataQuality = (
 };
 
 export interface BuildPackageOptions {
-  formulaVersion: string;
+  formulaVersion: typeof FORECAST_GRADE_FORMULA_VERSION;
   outlooks: OutlookData;
   reports: StormReport[];
   reportsError?: boolean;
