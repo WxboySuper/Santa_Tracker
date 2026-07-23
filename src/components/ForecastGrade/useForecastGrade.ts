@@ -7,12 +7,12 @@ import { setReports, clearReports, setDate } from '../../store/stormReportsSlice
 import type { ForecastCycle, DayType } from '../../types/outlooks';
 import type { StormReport } from '../../types/stormReports';
 import type { GradeAccountTier, GradeCard, GradeSnapshot, PackageSourceKind } from '../../types/forecastGrade';
-import { serializeForecast } from '../../utils/fileUtils';
+import { serializeForecast, deserializeForecast } from '../../utils/fileUtils';
 import {
   FORECAST_GRADE_FORMULA_VERSION,
-  isReachedArchiveDate,
   runForecastGrade,
   validateGradeInputs,
+  type MapOutlookLayer,
   type PackageGrade,
   type ProductKind,
   type GradeProgress,
@@ -41,9 +41,6 @@ import {
 
 type RunPhase = 'idle' | 'running' | 'complete';
 
-const hasReachedReportDate = (useToday: boolean, reportDate: string): boolean =>
-  useToday || isReachedArchiveDate(reportDate);
-
 const daysWithData = (forecast: ForecastCycle | null): DayType[] => {
   if (!forecast?.days) {
     return [];
@@ -62,6 +59,7 @@ export interface ForecastGradeState {
   selectedDay: DayType;
   reportDate: string;
   useToday: boolean;
+  activeMapLayer: MapOutlookLayer;
   activeProduct: ProductKind;
   phase: RunPhase;
   progress: GradeProgress | null;
@@ -77,10 +75,12 @@ export interface UseForecastGrade extends ForecastGradeState {
   setReportDate: (value: string) => void;
   setUseToday: (value: boolean) => void;
   setSelectedDay: (day: DayType) => void;
+  setActiveMapLayer: (layer: MapOutlookLayer) => void;
   setActiveProduct: (product: ProductKind) => void;
   run: () => Promise<void>;
   reset: () => void;
   restoreCard: (card: GradeCard) => GradeSnapshot | null;
+  applyGradeSnapshot: (snapshot: GradeSnapshot) => void;
   canRun: boolean;
 }
 
@@ -99,6 +99,7 @@ export const useForecastGrade = (addToast: (message: string, type?: 'info' | 'su
   const [selectedDay, setSelectedDayState] = useState<DayType>(1);
   const [reportDate, setReportDateState] = useState('');
   const [useToday, setUseToday] = useState(true);
+  const [activeMapLayer, setActiveMapLayer] = useState<MapOutlookLayer>('categorical');
   const [activeProduct, setActiveProduct] = useState<ProductKind>('tornado');
   const [phase, setPhase] = useState<RunPhase>('idle');
   const [progress, setProgress] = useState<GradeProgress | null>(null);
@@ -106,8 +107,7 @@ export const useForecastGrade = (addToast: (message: string, type?: 'info' | 'su
   const [error, setError] = useState<string | null>(null);
   const [cards, setCards] = useState<GradeCard[]>([]);
   const [reports, setReportsState] = useState<StormReport[]>([]);
-
-  const runGeneration = useRef(0);
+  const restoreSeqRef = useRef(0);
 
   useEffect(() => {
     setCards(loadGradeCards(scope));
@@ -115,7 +115,6 @@ export const useForecastGrade = (addToast: (message: string, type?: 'info' | 'su
 
   const setForecastPackage = useCallback(
     (nextForecast: ForecastCycle, source: PackageSourceKind, label: string) => {
-      runGeneration.current += 1;
       const days = daysWithData(nextForecast);
       setForecast(nextForecast);
       setPackageSource(source);
@@ -153,28 +152,17 @@ export const useForecastGrade = (addToast: (message: string, type?: 'info' | 'su
   }, []);
 
   const canRun =
-    Boolean(forecast) &&
-    phase !== 'running' &&
-    hasReachedReportDate(useToday, reportDate);
+    Boolean(forecast) && phase !== 'running' && (useToday || reportDate.trim().length > 0);
 
   const run = useCallback(async () => {
     if (!forecast) {
       addToast('Load a forecast package first.', 'error');
       return;
     }
-    if (!hasReachedReportDate(useToday, reportDate)) {
-      const message = useToday
-        ? 'Choose a report date or enable "use today" before grading.'
-        : 'Choose a real, reached report date before grading.';
-      setError(message);
-      addToast(message, 'error');
-      return;
-    }
     const day = forecast.days[selectedDay];
     const outlooks = day?.data ?? { tornado: new Map(), wind: new Map(), hail: new Map(), categorical: new Map() };
     const effectiveDate = useToday ? null : reportDate;
 
-    const generation = ++runGeneration.current;
     setPhase('running');
     setError(null);
     setProgress({ fraction: 0, label: 'Loading storm reports…' });
@@ -183,18 +171,11 @@ export const useForecastGrade = (addToast: (message: string, type?: 'info' | 'su
     try {
       loadedReports = await loadReportsForDate(effectiveDate);
     } catch (loadError) {
-      if (generation !== runGeneration.current) {
-        return;
-      }
       const message = loadError instanceof SourceLoadError ? loadError.message : 'Reports could not be loaded.';
       setError(message);
       setPhase('idle');
       setProgress(null);
       addToast(message, 'error');
-      return;
-    }
-
-    if (generation !== runGeneration.current) {
       return;
     }
 
@@ -204,9 +185,6 @@ export const useForecastGrade = (addToast: (message: string, type?: 'info' | 'su
 
     const validation = validateGradeInputs({ outlooks, reports: loadedReports });
     if (!validation.valid) {
-      if (generation !== runGeneration.current) {
-        return;
-      }
       setError(validation.reason ?? 'Inputs are invalid.');
       setPhase('idle');
       setProgress(null);
@@ -215,14 +193,12 @@ export const useForecastGrade = (addToast: (message: string, type?: 'info' | 'su
     }
 
     const pkg = await runForecastGrade({ outlooks, reports: loadedReports }, setProgress);
-    if (generation !== runGeneration.current) {
-      return;
-    }
     setResult(pkg);
     setPhase('complete');
 
     const firstProduct = pkg.products.find((product) => product.applicable)?.product ?? 'tornado';
     setActiveProduct(firstProduct);
+    setActiveMapLayer('categorical');
 
     if (scope) {
       const hasSnapshot = tierHasSnapshots(tier);
@@ -249,7 +225,7 @@ export const useForecastGrade = (addToast: (message: string, type?: 'info' | 'su
   }, [addToast, dispatch, forecast, packageSource, reportDate, scope, selectedDay, sourceLabel, tier, useToday]);
 
   const reset = useCallback(() => {
-    runGeneration.current += 1;
+    restoreSeqRef.current += 1;
     setForecast(null);
     setPackageSource(null);
     setSourceLabel('');
@@ -266,13 +242,59 @@ export const useForecastGrade = (addToast: (message: string, type?: 'info' | 'su
 
   const restoreCard = useCallback(
     (card: GradeCard): GradeSnapshot | null => {
-      const snapshot = loadGradeSnapshot({ scope, cardId: card.id });
+      const snapshot = loadGradeSnapshot(scope, card.id);
       if (!snapshot) {
         addToast('This grade card is trend-only and cannot reopen a full package.', 'info');
       }
       return snapshot;
     },
     [addToast, scope]
+  );
+
+  const applyGradeSnapshot = useCallback(
+    (snapshot: GradeSnapshot) => {
+      const restoreSeq = ++restoreSeqRef.current;
+      const restoredForecast = deserializeForecast(snapshot.forecast);
+      const days = daysWithData(restoredForecast);
+      setForecast(restoredForecast);
+      setPackageSource('file');
+      setSourceLabel(snapshot.card.sourceLabel);
+      setAvailableDays(days);
+      setSelectedDayState(days[0] ?? 1);
+      setResult(snapshot.package);
+      setPhase('complete');
+      setError(null);
+      setProgress(null);
+      if (snapshot.reportDate) {
+        setUseToday(false);
+        setReportDateState(snapshot.reportDate);
+      } else {
+        setUseToday(true);
+        setReportDateState('');
+      }
+      const firstProduct =
+        snapshot.package.products.find((product) => product.applicable)?.product ?? 'tornado';
+      setActiveProduct(firstProduct);
+      setActiveMapLayer('categorical');
+      dispatch(loadVerificationForecast(restoredForecast));
+      void loadReportsForDate(snapshot.reportDate)
+        .then((loadedReports) => {
+          if (restoreSeq !== restoreSeqRef.current) {
+            return;
+          }
+          setReportsState(loadedReports);
+          dispatch(setReports(loadedReports));
+          dispatch(setDate(snapshot.reportDate ?? 'today'));
+        })
+        .catch(() => {
+          if (restoreSeq !== restoreSeqRef.current) {
+            return;
+          }
+          setReportsState([]);
+          dispatch(clearReports());
+        });
+    },
+    [dispatch]
   );
 
   return {
@@ -284,6 +306,7 @@ export const useForecastGrade = (addToast: (message: string, type?: 'info' | 'su
     selectedDay,
     reportDate,
     useToday,
+    activeMapLayer,
     activeProduct,
     phase,
     progress,
@@ -296,10 +319,12 @@ export const useForecastGrade = (addToast: (message: string, type?: 'info' | 'su
     setReportDate,
     setUseToday,
     setSelectedDay,
+    setActiveMapLayer,
     setActiveProduct,
     run,
     reset,
     restoreCard,
+    applyGradeSnapshot,
     canRun,
   };
 };

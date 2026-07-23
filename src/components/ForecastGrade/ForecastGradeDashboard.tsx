@@ -1,24 +1,21 @@
 import React, { useCallback, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { Eye, EyeOff } from 'lucide-react';
-import VerificationMap, { type VerificationMapHandle } from '../Map/VerificationMap';
+import type { VerificationMapHandle } from '../Map/VerificationMap';
 import { useAppLayout } from '../Layout/AppLayout';
 import { useCloudCycles } from '../../hooks/useCloudCycles';
 import { deserializeForecast } from '../../utils/fileUtils';
 import { setVisibility } from '../../store/stormReportsSlice';
 import type { RootState } from '../../store';
-import type { ProductKind } from '../../utils/verificationV2';
+import type { MapOutlookLayer, ProductKind } from '../../utils/verificationV2';
 import { availablePackageSources } from '../../utils/verificationV2/sources';
 import { useForecastGrade } from './useForecastGrade';
 import SourcePanel from './SourcePanel';
 import RunProgress from './RunProgress';
 import GradeHeadline from './GradeHeadline';
 import DataQualityPanel from './DataQualityPanel';
-import { formatGrade, letterColorClass } from './gradeFormat';
+import ForecastGradeMapPane from './ForecastGradeMapPane';
 import { METHODOLOGY_DOC_PATH } from './methodology';
 import './ForecastGradeDashboard.css';
-
-const MAP_PRODUCTS: ProductKind[] = ['categorical', 'tornado', 'wind', 'hail'];
 
 /** Premium cloud package picker rendered inside the source panel. */
 const CloudSourcePicker: React.FC<{ onLoad: (id: string, label: string) => void }> = ({ onLoad }) => {
@@ -65,12 +62,8 @@ const CloudSourcePicker: React.FC<{ onLoad: (id: string, label: string) => void 
 /**
  * Forecast Grade dashboard shell (PR 06 — dashboard-shell).
  *
- * Map-first evidence surface with an equal-weight results dashboard on desktop
- * and a map-first compact overlay on mobile/landscape. Owns explicit source
- * selection, staged run progress, the learn-fast grade headline, and the data
- * quality gate. The detailed result workspace (breakdown, report table, trend,
- * share) is layered on top in later PRs. Only mounts when verificationRelaunch
- * is exposed; classic VerificationMode remains the default when the flag is off.
+ * Map-first evidence surface with graded severe-hazard products only. Categorical
+ * remains the default map layer for context but is not scored.
  */
 const ForecastGradeDashboard: React.FC = () => {
   const { addToast } = useAppLayout();
@@ -106,7 +99,23 @@ const ForecastGradeDashboard: React.FC = () => {
     [addToast, grade, loadCycle]
   );
 
-  const showMap = Boolean(grade.forecast);
+  const handleSelectProduct = useCallback(
+    (product: ProductKind) => {
+      grade.setActiveProduct(product);
+      grade.setActiveMapLayer(product);
+    },
+    [grade]
+  );
+
+  const handleSelectMapLayer = useCallback(
+    (layer: MapOutlookLayer) => {
+      grade.setActiveMapLayer(layer);
+      if (layer !== 'categorical') {
+        grade.setActiveProduct(layer);
+      }
+    },
+    [grade]
+  );
 
   return (
     <div className="fg-dashboard">
@@ -123,38 +132,22 @@ const ForecastGradeDashboard: React.FC = () => {
       </div>
 
       <div className="fg-workspace">
-        <div className="fg-map-pane" ref={mapPaneRef}>
-          {showMap ? (
-            <>
-              <VerificationMap
-                ref={mapRef}
-                activeOutlookType={grade.activeProduct as 'categorical' | 'tornado' | 'wind' | 'hail'}
-                selectedDay={grade.selectedDay}
-              />
-              <MapControls
-                activeProduct={grade.activeProduct}
-                onSelectProduct={grade.setActiveProduct}
-                availableDays={grade.availableDays}
-                selectedDay={grade.selectedDay}
-                onSelectDay={grade.setSelectedDay}
-                reportsVisible={reportsVisible}
-                onToggleEvidence={() => dispatch(setVisibility(!reportsVisible))}
-              />
-              {grade.result && (
-                <div className="fg-grade-overlay">
-                  <span className="text-2xl font-bold tabular-nums">{formatGrade(grade.result.grade)}</span>
-                  <span className={`text-xl font-bold ${letterColorClass(grade.result.letter)}`}>
-                    {grade.result.letter ?? '—'}
-                  </span>
-                </div>
-              )}
-            </>
-          ) : (
-            <div className="flex h-full items-center justify-center p-6 text-center text-sm text-slate-500">
-              The map becomes the evidence surface once you load a package and grade a date.
-            </div>
-          )}
-        </div>
+        <ForecastGradeMapPane
+          forecastLoaded={Boolean(grade.forecast)}
+          activeMapLayer={grade.activeMapLayer}
+          selectedDay={grade.selectedDay}
+          availableDays={grade.availableDays}
+          reports={grade.reports}
+          selectedReportId={null}
+          activeComponent={null}
+          result={grade.result}
+          reportsVisible={reportsVisible}
+          onSelectMapLayer={handleSelectMapLayer}
+          onSelectDay={grade.setSelectedDay}
+          onToggleEvidence={() => dispatch(setVisibility(!reportsVisible))}
+          mapPaneRef={mapPaneRef}
+          mapRef={mapRef}
+        />
 
         <div className="fg-results-pane">
           <SourcePanel
@@ -190,7 +183,7 @@ const ForecastGradeDashboard: React.FC = () => {
               <GradeHeadline
                 pkg={grade.result}
                 activeProduct={grade.activeProduct}
-                onSelectProduct={grade.setActiveProduct}
+                onSelectProduct={handleSelectProduct}
               />
               <DataQualityPanel pkg={grade.result} />
             </div>
@@ -200,66 +193,5 @@ const ForecastGradeDashboard: React.FC = () => {
     </div>
   );
 };
-
-interface MapControlsProps {
-  activeProduct: ProductKind;
-  onSelectProduct: (product: ProductKind) => void;
-  availableDays: number[];
-  selectedDay: number;
-  onSelectDay: (day: never) => void;
-  reportsVisible: boolean;
-  onToggleEvidence: () => void;
-}
-
-/** Always-reachable map controls: hazard, day, and evidence. */
-const MapControls: React.FC<MapControlsProps> = ({
-  activeProduct,
-  onSelectProduct,
-  availableDays,
-  selectedDay,
-  onSelectDay,
-  reportsVisible,
-  onToggleEvidence,
-}) => (
-  <div className="absolute left-2 top-2 z-[5] flex flex-wrap items-center gap-1 rounded-lg bg-slate-900/75 p-1 text-xs text-white">
-    <div className="flex gap-1" role="group" aria-label="Hazard">
-      {MAP_PRODUCTS.map((product) => (
-        <button
-          key={product}
-          type="button"
-          className={`fg-touch rounded px-2 py-1 capitalize ${
-            activeProduct === product ? 'bg-blue-500' : 'bg-white/10'
-          }`}
-          onClick={() => onSelectProduct(product)}
-        >
-          {product === 'categorical' ? 'Cat' : product}
-        </button>
-      ))}
-    </div>
-    {availableDays.length > 1 && (
-      <select
-        className="fg-touch rounded bg-white/10 px-2 py-1"
-        value={selectedDay}
-        aria-label="Forecast day"
-        onChange={(event) => onSelectDay(Number(event.target.value) as never)}
-      >
-        {availableDays.map((day) => (
-          <option key={day} value={day} className="text-black">
-            Day {day}
-          </option>
-        ))}
-      </select>
-    )}
-    <button
-      type="button"
-      className="fg-touch inline-flex items-center gap-1 rounded bg-white/10 px-2 py-1"
-      onClick={onToggleEvidence}
-      aria-pressed={reportsVisible}
-    >
-      {reportsVisible ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
-      Evidence
-    </button>
-  </div>
-);
 
 export default ForecastGradeDashboard;

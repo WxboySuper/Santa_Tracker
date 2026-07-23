@@ -40,7 +40,7 @@ const DataQualityPanel: React.FC<DataQualityPanelProps> = ({ pkg, defaultOpen = 
               ))}
             </ul>
             <p className="mt-1 text-xs text-amber-600/80">
-              A complete package (categorical + hazards) grades every product.
+              A complete severe-hazard package (tornado, wind, hail) grades every product.
             </p>
           </div>
         )}
