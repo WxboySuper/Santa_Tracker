@@ -137,9 +137,6 @@ const ForecastGradeDashboard: React.FC = () => {
           activeMapLayer={grade.activeMapLayer}
           selectedDay={grade.selectedDay}
           availableDays={grade.availableDays}
-          reports={grade.reports}
-          selectedReportId={null}
-          activeComponent={null}
           result={grade.result}
           reportsVisible={reportsVisible}
           onSelectMapLayer={handleSelectMapLayer}
