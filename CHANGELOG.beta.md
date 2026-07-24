@@ -4,6 +4,13 @@ Development entries for pull requests targeting `beta`. These notes are consolid
 
 ## Unreleased
 
+### PR #774
+
+#### Added
+
+- Wire the `verificationRelaunch` local-only dogfood gate behind the existing classic `/verification` route so signed-in users keep the legacy workspace until the relaunched surface is ready to roll out. The flag stays disabled for beta, staging, and production.
+- Land a temporary `ForecastGradeDashboard` stub so the lazy import resolves before the real shell lands in the next stacked PR.
+
 ### PR #773
 
 #### Added
