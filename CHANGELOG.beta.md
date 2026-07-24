@@ -4,6 +4,9 @@ Development entries for pull requests targeting `beta`. These notes are consolid
 
 ## Unreleased
 
+### PR #776
+
+- Add Forecast Grade dashboard shell layout and map-first workspace chrome.
 ### PR #775
 
 #### Added
