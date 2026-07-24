@@ -4,6 +4,9 @@ Development entries for pull requests targeting `beta`. These notes are consolid
 
 ## Unreleased
 
+### PR #777
+
+- Add Forecast Grade result workspace with score breakdown, report table, and grade trend.
 ### PR #776
 
 #### Added
