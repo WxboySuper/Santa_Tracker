@@ -4,6 +4,9 @@ Development entries for pull requests targeting `beta`. These notes are consolid
 
 ## Unreleased
 
+### PR #771
+
+- Add event yield and severity intent-layer component scorers for Forecast Grade.
 ### PR #770
 
 - Add probability skill (Brier/BSS), spatial contingency, and false-alarm discipline component scorers.
