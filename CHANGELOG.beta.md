@@ -25,6 +25,10 @@ Development entries for pull requests targeting `beta`. These notes are consolid
 - Dependency: @sentry/node ^10.67.0 → ^10.68.0 (`server`)
 - Dependency: express-rate-limit ^8.6.0 → ^8.6.1 (`server`)
 
+### PR #772
+
+- Add composite rollup, the `runForecastGrade` orchestrator, and the public `verificationV2` engine entry point. Address the CodeRabbit review on `runForecastGrade` (reuse staged product grades), `gradeProduct` (handle report-only products), and the data-quality gate (count per-product reports).
+
 ### PR #771
 
 - Add event yield and severity intent-layer component scorers for Forecast Grade. `scoreEventYield` filters reports to the supplied hazard product before scoring so reports for other hazards never influence the product's yield.
