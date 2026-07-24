@@ -4,6 +4,11 @@ Development entries for pull requests targeting `beta`. These notes are consolid
 
 ## Unreleased
 
+### PR #775
+
+#### Added
+
+- Add Forecast Grade dashboard supporting components (`SourcePanel`, `DataQualityPanel`, `GradeHeadline`, `RunProgress`, grade formatters, methodology copy) and the `useForecastGrade` run hook that turns the verified report date, source panel selection, and source entitlements into a `runForecastGrade` invocation gated until the report date is reached. Source panel is split into `SourcePanel` + `sourcePanelParts` for code health.
 ### PR #774
 
 #### Added
