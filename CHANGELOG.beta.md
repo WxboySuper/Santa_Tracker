@@ -6,6 +6,8 @@ Development entries for pull requests targeting `beta`. These notes are consolid
 
 ### PR #769
 
+#### Added
+
 - Add SPC 25-mile neighborhood and Armchair-style area geometry helpers for Forecast Grade spatial scoring.
 ### PR #768
 

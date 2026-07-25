@@ -266,6 +266,62 @@ const combinedBbox = (features: AreaPolygon[]): [number, number, number, number]
   }
 };
 
+/** Integer endpoint count along one axis (matches Turf pointGrid semantics). */
+export const gridEndpointCount = (spanKm: number, spacingKm: number): number => {
+  if (spacingKm <= 0 || !Number.isFinite(spanKm)) {
+    return 1;
+  }
+  return Math.max(1, Math.floor(spanKm / spacingKm) + 1);
+};
+
+/** Estimated grid point count before calling Turf pointGrid. */
+export const estimateGridCellCount = (
+  widthKm: number,
+  heightKm: number,
+  spacingKm: number
+): number => gridEndpointCount(widthKm, spacingKm) * gridEndpointCount(heightKm, spacingKm);
+
+const spacingForCellCeiling = (
+  widthKm: number,
+  heightKm: number,
+  baseSpacingKm: number,
+  maxCells: number
+): number => {
+  if (estimateGridCellCount(widthKm, heightKm, baseSpacingKm) <= maxCells) {
+    return baseSpacingKm;
+  }
+
+  let low = baseSpacingKm;
+  let high = baseSpacingKm;
+  while (estimateGridCellCount(widthKm, heightKm, high) > maxCells) {
+    high *= 2;
+  }
+
+  for (let index = 0; index < 64; index += 1) {
+    const mid = (low + high) / 2;
+    if (estimateGridCellCount(widthKm, heightKm, mid) > maxCells) {
+      low = mid;
+    } else {
+      high = mid;
+    }
+  }
+  return high;
+};
+
+const collectGridPoints = (
+  bbox: [number, number, number, number],
+  spacingKm: number
+): Position[] => {
+  try {
+    const grid = turf.pointGrid(bbox, spacingKm, { units: 'kilometers' });
+    return grid.features
+      .map((feature) => feature.geometry?.coordinates)
+      .filter((coordinates): coordinates is Position => Array.isArray(coordinates));
+  } catch {
+    return [];
+  }
+};
+
 /**
  * Builds the evaluation grid over the forecast envelope plus the observed
  * footprint. Spacing coarsens automatically to stay under the cell ceiling so a
@@ -285,23 +341,13 @@ export const buildVerificationGrid = (
   const widthKm = turf.distance([minX, minY], [maxX, minY], { units: 'kilometers' });
   const heightKm = turf.distance([minX, minY], [minX, maxY], { units: 'kilometers' });
 
-  let spacingKm = GRID_SPACING_KM;
-  const estimatedCells = (widthKm / spacingKm + 1) * (heightKm / spacingKm + 1);
-  if (estimatedCells > MAX_GRID_CELLS) {
-    const areaKm = Math.max(widthKm * heightKm, 1);
-    spacingKm = Math.sqrt(areaKm / MAX_GRID_CELLS);
-  }
+  let spacingKm = spacingForCellCeiling(widthKm, heightKm, GRID_SPACING_KM, MAX_GRID_CELLS);
+  let points = collectGridPoints(bbox, spacingKm);
 
-  let grid;
-  try {
-    grid = turf.pointGrid(bbox, spacingKm, { units: 'kilometers' });
-  } catch {
-    return { points: [], spacingKm };
+  for (let attempt = 0; attempt < 16 && points.length > MAX_GRID_CELLS; attempt += 1) {
+    spacingKm *= Math.sqrt(points.length / MAX_GRID_CELLS);
+    points = collectGridPoints(bbox, spacingKm);
   }
-
-  const points = grid.features
-    .map((feature) => feature.geometry?.coordinates)
-    .filter((coordinates): coordinates is Position => Array.isArray(coordinates));
 
   return { points, spacingKm };
 };
