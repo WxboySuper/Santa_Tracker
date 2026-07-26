@@ -4,6 +4,11 @@ Development entries for pull requests targeting `beta`. These notes are consolid
 
 ## Unreleased
 
+### PR #769
+
+#### Added
+
+- Add SPC 25-mile neighborhood and Armchair-style area geometry helpers for Forecast Grade spatial scoring.
 ### PR #768
 
 - Start Verification v2 / Forecast Grade (`gfc-ver-1`) with the versioned formula contract (constants, bands, and component weight scaffolding) behind upcoming `verificationRelaunch` work. Follow-up stacked PRs add the engine, sources, gated dashboard, share card, and docs (#769–#780; umbrella index #766).
