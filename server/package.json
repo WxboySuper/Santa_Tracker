@@ -9,9 +9,9 @@
     "test": "node --test account-lifecycle.test.js billing-account-lifecycle.test.js billing-stripe-period.test.js billing-webhook-state.test.js billing-webhook.test.js metrics.test.js qs-dos.test.js lib/serverTarget.test.js lib/featureCapabilities.test.js server-stack.test.js tstm.test.js tstm-ingestion.test.js testing/featureExposureHarness.test.js testing/autoTstm.exposure.test.js lib/capabilityStatus.test.js"
   },
   "dependencies": {
-    "@sentry/node": "^10.67.0",
+    "@sentry/node": "^10.68.0",
     "express": "^5.2.1",
-    "express-rate-limit": "^8.6.0",
+    "express-rate-limit": "^8.6.1",
     "firebase-admin": "^14.2.0",
     "stripe": "^22.3.2"
   },
