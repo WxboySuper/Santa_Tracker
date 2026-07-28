@@ -24,6 +24,17 @@ Development entries for pull requests targeting `beta`. These notes are consolid
 - Dependency: @vitejs/plugin-react ^6.0.3 → ^6.0.4
 - Dependency: @sentry/node ^10.67.0 → ^10.68.0 (`server`)
 - Dependency: express-rate-limit ^8.6.0 → ^8.6.1 (`server`)
+
+### PR #771
+
+- Add event yield and severity intent-layer component scorers for Forecast Grade. `scoreEventYield` filters reports to the supplied hazard product before scoring so reports for other hazards never influence the product's yield.
+
+### PR #770
+
+#### Added
+
+- Add probability skill (Brier/BSS), spatial contingency, and false-alarm discipline component scorers.
+
 ### PR #769
 
 #### Added
