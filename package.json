@@ -1,6 +1,6 @@
 {
   "name": "graphical-forecast-creator",
-  "version": "1.7.0-beta.88",
+  "version": "1.7.0-beta.89",
   "private": true,
   "packageManager": "pnpm@10.30.3",
   "engines": {
