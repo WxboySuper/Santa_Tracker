@@ -77,7 +77,7 @@ export const gradeProduct = (
     scoreProbabilitySkill(evaluation),
     scoreSpatialContingency(contours, productReports),
     scoreFalseAlarmDiscipline(evaluation),
-    scoreEventYield(contours, productReports),
+    scoreEventYield(product, contours, reports),
     scoreSeverity(product, contours, productReports),
   ]);
 

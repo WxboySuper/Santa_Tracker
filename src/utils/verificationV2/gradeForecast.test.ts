@@ -42,7 +42,7 @@ describe('gfc-ver-1 input validation', () => {
       tornado: new Map(),
       wind: new Map(),
       hail: new Map(),
-      categorical: new Map([['SLGT', circleContour(CENTER[0], CENTER[1], 120)]]),
+      categorical: new Map([['SLGT', [circleContour(CENTER[0], CENTER[1], 120)]]]),
     };
     expect(validateGradeInputs({ outlooks: categoricalOnly, reports: [] }).valid).toBe(false);
   });
