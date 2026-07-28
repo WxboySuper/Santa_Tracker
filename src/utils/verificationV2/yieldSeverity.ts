@@ -127,16 +127,14 @@ const scoreSigObservedOnly = (sigReports: StormReport[]): ComponentScore =>
  * Severity. Compares significant contours to significant reports within the
  * 25-mile neighborhood. Not evaluated when neither a sig contour nor a sig report
  * exists; a soft ~70 penalty applies when sig is drawn but nothing sig verifies.
+ * `ProductKind` is hazard-only, so the categorical layer is already excluded
+ * by the type system before this function is reached.
  */
 export const scoreSeverity = (
   product: ProductKind,
   contours: ProductContour[],
   reports: StormReport[]
 ): ComponentScore => {
-  if (product === 'categorical') {
-    return notEvaluatedComponent('severity', 'Significant contours are hazard-specific; not scored for categorical.');
-  }
-
   const sigContours = contours.filter((contour) => contour.isSignificant);
   const sigReports = reportsForProduct(product, reports).filter(isSignificantReport);
   const sigDrawn = sigContours.length > 0;
