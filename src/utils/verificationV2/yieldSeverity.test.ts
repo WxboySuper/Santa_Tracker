@@ -7,8 +7,9 @@ import {
   SEVERITY_SIG_MISSED,
   SEVERITY_SIG_OUT_OF_AREA,
 } from './constants';
-import { scoreEventYield, scoreSeverity } from './yieldSeverity';
+import type { ComponentScore } from './gradeContract';
 import type { ProductContour } from './neighborhood';
+import { scoreEventYield, scoreSeverity } from './yieldSeverity';
 
 const squarePolygon = (sizeDeg: number): Feature<Polygon> => {
   const half = sizeDeg / 2;
@@ -29,9 +30,15 @@ const contour = (probability: number, isSignificant: boolean, sizeDeg: number): 
   polygon: squarePolygon(sizeDeg),
 });
 
-const tornadoReport = (id: string, longitude: number, latitude: number, magnitude = '0'): StormReport => ({
+const report = (
+  id: string,
+  type: StormReport['type'],
+  longitude: number,
+  latitude: number,
+  magnitude: string
+): StormReport => ({
   id,
-  type: 'tornado',
+  type,
   longitude,
   latitude,
   time: '2026-05-01T00:00:00Z',
@@ -41,17 +48,18 @@ const tornadoReport = (id: string, longitude: number, latitude: number, magnitud
   state: 'OK',
 });
 
-const windReport = (id: string, longitude: number, latitude: number): StormReport => ({
-  id,
-  type: 'wind',
-  longitude,
-  latitude,
-  time: '2026-05-01T00:00:00Z',
-  magnitude: '60',
-  location: 'Test',
-  county: 'Test',
-  state: 'OK',
-});
+const tinyCores = (sizeDeg: number): ProductContour[] => [
+  contour(0.15, false, sizeDeg),
+  contour(0.3, false, sizeDeg),
+  contour(0.45, false, sizeDeg),
+];
+
+const finiteScore = (component: ComponentScore): number => {
+  if (component.score === null) {
+    throw new Error(`expected a finite score, got null (${component.detail})`);
+  }
+  return component.score;
+};
 
 describe('yieldSeverity', () => {
   it('exports callable scorers', () => {
@@ -69,128 +77,117 @@ describe('scoreEventYield', () => {
   });
 
   it('softens a tiny high-probability core with a single report (yield well under 1)', () => {
-    const contours = [
-      contour(0.15, false, 0.1),
-      contour(0.3, false, 0.1),
-      contour(0.45, false, 0.1),
-    ];
-    const result = scoreEventYield('tornado', contours, [tornadoReport('a', 0, 0, '0')]);
-
-    expect(result.applicable).toBe(true);
-    if (result.score === null) {
-      throw new Error('expected a finite score');
-    }
-    expect(result.score).toBeLessThan(1);
-    expect(result.score).toBeGreaterThan(0.4);
+    const score = finiteScore(scoreEventYield('tornado', tinyCores(0.1), [report('a', 'tornado', 0, 0, '0')]));
+    expect(score).toBeLessThan(1);
+    expect(score).toBeGreaterThan(0.4);
   });
 
   it('punishes a huge 30% core with a single report (yield near zero)', () => {
-    const contours = [
-      contour(0.15, false, 1),
-      contour(0.3, false, 1),
-      contour(0.45, false, 1),
-    ];
-    const result = scoreEventYield('tornado', contours, [tornadoReport('a', 0, 0, '0')]);
-
-    expect(result.applicable).toBe(true);
-    if (result.score === null) {
-      throw new Error('expected a finite score');
-    }
-    expect(result.score).toBeLessThan(0.4);
+    const score = finiteScore(scoreEventYield('tornado', tinyCores(1), [report('a', 'tornado', 0, 0, '0')]));
+    expect(score).toBeLessThan(0.4);
   });
 
   it('averages yield across present cores', () => {
-    const tinyContours = [
-      contour(0.15, false, 0.1),
-      contour(0.3, false, 0.1),
-      contour(0.45, false, 0.1),
-    ];
-    const expectedTinyAverage = 0.816;
-    const actual = scoreEventYield('tornado', tinyContours, [tornadoReport('a', 0, 0, '0')]);
-    if (actual.score === null) {
-      throw new Error('expected a finite score');
-    }
-    expect(actual.score).toBeCloseTo(expectedTinyAverage, 2);
+    const score = finiteScore(scoreEventYield('tornado', tinyCores(0.1), [report('a', 'tornado', 0, 0, '0')]));
+    expect(score).toBeCloseTo(0.816, 2);
   });
 
   it('zeroes yield when no reports observe the drawn core', () => {
-    const contours = [
-      contour(0.15, false, 0.1),
-      contour(0.3, false, 0.1),
-      contour(0.45, false, 0.1),
-    ];
-    const result = scoreEventYield('tornado', contours, []);
+    const result = scoreEventYield('tornado', tinyCores(0.1), []);
     expect(result.applicable).toBe(true);
     expect(result.score).toBe(0);
   });
 
   it('filters reports to the supplied product so other hazards do not count', () => {
-    const contours = [
-      contour(0.15, false, 0.1),
-      contour(0.3, false, 0.1),
-      contour(0.45, false, 0.1),
-    ];
-    const windOnly = scoreEventYield('tornado', contours, [windReport('w1', 0, 0)]);
-    const tornadoInside = scoreEventYield('tornado', contours, [tornadoReport('t1', 0, 0, '0')]);
-    const mixed = scoreEventYield(
-      'tornado',
-      contours,
-      [tornadoReport('t1', 0, 0, '0'), windReport('w1', 0, 0)]
-    );
+    const contours = tinyCores(0.1);
+    const windOnly = scoreEventYield('tornado', contours, [report('w1', 'wind', 0, 0, '60')]);
+    const tornadoInside = scoreEventYield('tornado', contours, [report('t1', 'tornado', 0, 0, '0')]);
+    const mixed = scoreEventYield('tornado', contours, [
+      report('t1', 'tornado', 0, 0, '0'),
+      report('w1', 'wind', 0, 0, '60'),
+    ]);
 
-    if (windOnly.score === null || tornadoInside.score === null || mixed.score === null) {
-      throw new Error('expected finite scores');
-    }
     expect(windOnly.score).toBe(0);
-    expect(mixed.score).toBeCloseTo(tornadoInside.score, 6);
+    expect(finiteScore(mixed)).toBeCloseTo(finiteScore(tornadoInside), 6);
   });
 });
 
 describe('scoreSeverity', () => {
   const sigContour = contour(0.6, true, 0.5);
-  const nonSigReportInside = tornadoReport('tornado-ef0', 0, 0, '0');
-  const nonSigReportOutside = tornadoReport('tornado-ef0-far', 10, 10, '0');
-  const sigReportInside = tornadoReport('tornado-ef2', 0, 0, '2');
-  const sigReportOutside = tornadoReport('tornado-ef2-far', 10, 10, '2');
+  const nonSigContour = contour(0.3, false, 0.5);
+  const sigReportInside = report('tornado-ef2', 'tornado', 0, 0, '2');
+  const sigReportOutside = report('tornado-ef2-far', 'tornado', 10, 10, '2');
+  const nonSigReportOutside = report('tornado-ef0-far', 'tornado', 10, 10, '0');
+  const windReportInside = report('w1', 'wind', 0, 0, '60');
 
-  it('returns a hit when a significant report falls within the significant contour', () => {
-    const result = scoreSeverity('tornado', [sigContour], [sigReportInside]);
-    expect(result.applicable).toBe(true);
-    expect(result.score).toBe(SEVERITY_SIG_HIT);
-    expect(result.metrics).toEqual({ sigReports: 1, sigInArea: 1 });
+  const cases: ReadonlyArray<{
+    name: string;
+    contours: ProductContour[];
+    reports: StormReport[];
+    applicable: boolean;
+    score: number | null;
+    metrics?: Record<string, number>;
+  }> = [
+    {
+      name: 'hit',
+      contours: [sigContour],
+      reports: [sigReportInside],
+      applicable: true,
+      score: SEVERITY_SIG_HIT,
+      metrics: { sigReports: 1, sigInArea: 1 },
+    },
+    {
+      name: 'out-of-area',
+      contours: [sigContour],
+      reports: [sigReportOutside],
+      applicable: true,
+      score: SEVERITY_SIG_OUT_OF_AREA,
+      metrics: { sigReports: 1, sigInArea: 0 },
+    },
+    {
+      name: 'drawn-only',
+      contours: [sigContour],
+      reports: [nonSigReportOutside],
+      applicable: true,
+      score: SEVERITY_SIG_DRAWN_NONE_OBSERVED,
+      metrics: { sigReports: 0, sigInArea: 0 },
+    },
+    {
+      name: 'observed-only',
+      contours: [nonSigContour],
+      reports: [sigReportInside],
+      applicable: true,
+      score: SEVERITY_SIG_MISSED,
+      metrics: { sigReports: 1, sigInArea: 0 },
+    },
+    {
+      name: 'not-evaluated',
+      contours: [nonSigContour],
+      reports: [nonSigReportOutside],
+      applicable: false,
+      score: null,
+    },
+    {
+      name: 'product-filter-drops-other-hazard',
+      contours: [sigContour],
+      reports: [windReportInside],
+      applicable: true,
+      score: SEVERITY_SIG_DRAWN_NONE_OBSERVED,
+      metrics: { sigReports: 0, sigInArea: 0 },
+    },
+  ];
+
+  it.each(cases)('returns the $name outcome', ({ contours, reports, applicable, score, metrics }) => {
+    const result = scoreSeverity('tornado', contours, reports);
+    expect(result.applicable).toBe(applicable);
+    expect(result.score).toBe(score);
+    if (metrics) {
+      expect(result.metrics).toEqual(metrics);
+    }
   });
 
-  it('returns out-of-area when sig reports exist but none fall inside the significant contour', () => {
-    const result = scoreSeverity('tornado', [sigContour], [sigReportOutside]);
-    expect(result.applicable).toBe(true);
-    expect(result.score).toBe(SEVERITY_SIG_OUT_OF_AREA);
-    expect(result.metrics).toEqual({ sigReports: 1, sigInArea: 0 });
-  });
-
-  it('soft-penalizes when a significant contour is drawn but no significant report is observed', () => {
-    const result = scoreSeverity('tornado', [sigContour], [nonSigReportOutside]);
-    expect(result.applicable).toBe(true);
-    expect(result.score).toBe(SEVERITY_SIG_DRAWN_NONE_OBSERVED);
-    expect(result.metrics).toEqual({ sigReports: 0, sigInArea: 0 });
-  });
-
-  it('returns missed when a significant report is observed but no significant contour was drawn', () => {
-    const result = scoreSeverity('tornado', [contour(0.3, false, 0.5)], [sigReportInside]);
-    expect(result.applicable).toBe(true);
-    expect(result.score).toBe(SEVERITY_SIG_MISSED);
-    expect(result.metrics).toEqual({ sigReports: 1, sigInArea: 0 });
-  });
-
-  it('returns not evaluated when neither significant contour nor significant report is present', () => {
-    const result = scoreSeverity('tornado', [contour(0.3, false, 0.5)], [nonSigReportOutside]);
-    expect(result.applicable).toBe(false);
-    expect(result.score).toBeNull();
+  it('surfaces a not-evaluated detail when no significant contour or report is present', () => {
+    const result = scoreSeverity('tornado', [nonSigContour], [nonSigReportOutside]);
     expect(result.detail).toMatch(/no significant contour drawn/i);
-  });
-
-  it('filters reports to the supplied product so other hazards do not count', () => {
-    const result = scoreSeverity('tornado', [sigContour], [windReport('w1', 0, 0)]);
-    expect(result.applicable).toBe(true);
-    expect(result.score).toBe(SEVERITY_SIG_DRAWN_NONE_OBSERVED);
   });
 });
