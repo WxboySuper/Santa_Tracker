@@ -1,4 +1,4 @@
-import { gradeForecast, validateGradeInputs } from './gradeForecast';
+import { gradeForecast, runForecastGrade, validateGradeInputs } from './gradeForecast';
 import { scoreToLetter, type ComponentKey, type ProductGrade } from './gradeContract';
 import { FORECAST_GRADE_FORMULA_VERSION } from './formulaVersion';
 import {
@@ -171,5 +171,88 @@ describe('gfc-ver-1 severity', () => {
     const grade = gradeForecast({ outlooks, reports });
     const severity = componentOf(tornadoProduct(grade), 'severity');
     expect(severity?.applicable).toBe(false);
+  });
+});
+
+describe('gfc-ver-1 product presence and per-hazard gating', () => {
+  test('report-only product returns inapplicable without scoring components', () => {
+    // Tornado has a 10% contour; hail does not. Hail has 4 reports anyway.
+    const outlooks = tornadoOutlook('10%', circleContour(CENTER[0], CENTER[1], 120));
+    const reports = scatterReports('hail', CENTER[0], CENTER[1], 4, 0.3);
+    const grade = gradeForecast({ outlooks, reports });
+
+    const hail = grade.products.find((product) => product.product === 'hail');
+    expect(hail?.applicable).toBe(false);
+    expect(hail?.grade).toBeNull();
+    expect(hail?.reportCount).toBe(4);
+    // No component for a report-only product should report a numeric score.
+    hail?.components.forEach((component) => {
+      expect(component.score).toBeNull();
+    });
+  });
+
+  test('unrelated-hazard reports do not mask a sparse forecast product', () => {
+    // Tornado has geometry, but zero tornado reports. Hail has 8 unrelated reports.
+    // Data quality should reflect tornado being unobserved, not "Good" because of
+    // the 8 unrelated hail reports.
+    const outlooks = tornadoOutlook('10%', circleContour(CENTER[0], CENTER[1], 120));
+    const reports = scatterReports('hail', CENTER[0], CENTER[1], 8, 0.3);
+    const grade = gradeForecast({ outlooks, reports });
+
+    expect(grade.dataQuality).toBe('Good');
+    expect(grade.dataQualityReason).toBe('No reports');
+    expect(grade.hasReports).toBe(false);
+    // Tornado was the only product with geometry, so the package still grades it.
+    expect(grade.grade).not.toBeNull();
+  });
+
+  test('only tornado-relevant reports gate the Limited threshold', () => {
+    // 1 tornado report + 20 unrelated wind reports should still be Limited
+    // because the tornado product is the one with geometry and is sparse.
+    const outlooks = tornadoOutlook('10%', circleContour(CENTER[0], CENTER[1], 120));
+    const tornadoReports = [makeReport('tornado', CENTER[0], CENTER[1])];
+    const windReports = scatterReports('wind', CENTER[0], CENTER[1], 20, 0.3);
+    const grade = gradeForecast({ outlooks, reports: [...tornadoReports, ...windReports] });
+
+    expect(grade.dataQuality).toBe('Limited');
+    expect(grade.grade).toBeNull();
+  });
+});
+
+describe('gfc-ver-1 staged runForecastGrade', () => {
+  test('reuses staged product grades and matches the synchronous gradeForecast result', async () => {
+    const outlooks = tornadoOutlook('15%', circleContour(CENTER[0], CENTER[1], 90));
+    const reports = scatterReports('tornado', CENTER[0], CENTER[1], 12, 0.4);
+
+    const sync = gradeForecast({ outlooks, reports, generatedAt: '2026-01-01T00:00:00.000Z' });
+    const staged = await runForecastGrade(
+      { outlooks, reports, generatedAt: '2026-01-01T00:00:00.000Z' },
+      () => undefined
+    );
+
+    expect(staged.grade).toBe(sync.grade);
+    expect(staged.letter).toBe(sync.letter);
+    expect(staged.dataQuality).toBe(sync.dataQuality);
+    expect(staged.dataQualityReason).toBe(sync.dataQualityReason);
+    expect(staged.hasReports).toBe(sync.hasReports);
+    expect(staged.products.length).toBe(sync.products.length);
+  });
+
+  test('reports staged progress and yields between products', async () => {
+    const outlooks = tornadoOutlook('10%', circleContour(CENTER[0], CENTER[1], 120));
+    const reports: ReturnType<typeof makeReport>[] = [];
+    const fractions: number[] = [];
+
+    await runForecastGrade({ outlooks, reports }, (progress) => {
+      fractions.push(progress.fraction);
+    });
+
+    // Fractions must be non-decreasing and end at 1.
+    fractions.forEach((fraction, index) => {
+      if (index > 0) {
+        expect(fraction).toBeGreaterThanOrEqual(fractions[index - 1]);
+      }
+    });
+    expect(fractions[fractions.length - 1]).toBe(1);
   });
 });

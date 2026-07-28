@@ -56,15 +56,18 @@ export const gradeProduct = (
   const productReports = reportsForProduct(reports, product);
   const hasForecast = contours.length > 0;
 
-  if (!hasForecast && productReports.length === 0) {
+  if (!hasForecast) {
+    const reason = productReports.length === 0
+      ? 'Product not present in this package.'
+      : 'No forecast issued for this product; reports cannot be evaluated.';
     return {
       product,
       label: PRODUCT_LABELS[product],
       grade: null,
       letter: null,
       applicable: false,
-      reportCount: 0,
-      components: COMPONENT_ORDER.map((key) => notEvaluatedComponent(key, 'Product not present in this package.')),
+      reportCount: productReports.length,
+      components: COMPONENT_ORDER.map((key) => notEvaluatedComponent(key, reason)),
     };
   }
 
@@ -151,6 +154,18 @@ export interface BuildPackageOptions {
   generatedAt?: string;
 }
 
+/**
+ * Counts reports relevant to the products that actually have geometry, so
+ * unrelated hazard reports can't mask a sparse product. Returns 0 if no
+ * forecast was issued for any hazard product.
+ */
+const relevantReportCount = (outlooks: OutlookData, reports: StormReport[]): number => {
+  const counts = PRODUCT_KINDS
+    .filter((product) => extractProductContours(outlooks, product).length > 0)
+    .map((product) => reportsForProduct(reports, product).length);
+  return counts.length === 0 ? 0 : Math.max(...counts);
+};
+
 /** Builds the full package grade across every product with the quality gate applied. */
 export const buildPackageGrade = ({
   formulaVersion,
@@ -164,7 +179,8 @@ export const buildPackageGrade = ({
     (product) => extractProductContours(outlooks, product).length > 0
   );
 
-  const quality = assessDataQuality(hasGeometry, reports.length, reportsError);
+  const relevantCount = relevantReportCount(outlooks, reports);
+  const quality = assessDataQuality(hasGeometry, relevantCount, reportsError);
   const rolledGrade = rollUpPackageGrade(products);
   const grade = quality.withholdPackageGrade ? null : rolledGrade;
 
@@ -175,7 +191,7 @@ export const buildPackageGrade = ({
     products,
     dataQuality: quality.quality,
     dataQualityReason: quality.reason,
-    hasReports: reports.length > 0,
+    hasReports: relevantCount > 0,
     generatedAt: generatedAt ?? new Date().toISOString(),
   };
 };

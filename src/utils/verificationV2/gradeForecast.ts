@@ -1,9 +1,19 @@
 import type { OutlookData } from '../../types/outlooks';
 import type { StormReport } from '../../types/stormReports';
-import { buildPackageGrade, gradeProduct } from './composite';
+import {
+  assessDataQuality,
+  buildPackageGrade,
+  gradeProduct,
+  rollUpPackageGrade,
+} from './composite';
 import { FORECAST_GRADE_FORMULA_VERSION } from './formulaVersion';
-import { PRODUCT_KINDS, type PackageGrade } from './gradeContract';
-import { extractProductContours } from './neighborhood';
+import {
+  PRODUCT_KINDS,
+  scoreToLetter,
+  type PackageGrade,
+  type ProductGrade,
+} from './gradeContract';
+import { extractProductContours, reportsForProduct } from './neighborhood';
 
 /**
  * Top-level Forecast Grade orchestrator (PR 04 — yield-composite).
@@ -83,8 +93,23 @@ const nextFrame = (): Promise<void> =>
   });
 
 /**
+ * Counts reports relevant to the products that actually have geometry, so
+ * unrelated hazard reports can't mask a sparse product in the staged runner
+ * either. Mirrors `buildPackageGrade` so `runForecastGrade` produces the
+ * same data-quality assessment without re-deriving it.
+ */
+const relevantReportCount = (outlooks: OutlookData, reports: StormReport[]): number => {
+  const counts = PRODUCT_KINDS
+    .filter((product) => extractProductContours(outlooks, product).length > 0)
+    .map((product) => reportsForProduct(reports, product).length);
+  return counts.length === 0 ? 0 : Math.max(...counts);
+};
+
+/**
  * Runs the grade product-by-product, reporting staged foreground progress and
- * yielding between products so the UI can paint. Completes automatically.
+ * yielding between products so the UI can paint. Reuses the already-computed
+ * `products` array for the package rollup instead of recomputing every product
+ * synchronously after the staged loop.
  */
 export const runForecastGrade = async (
   input: GradeForecastInput,
@@ -95,7 +120,7 @@ export const runForecastGrade = async (
   onProgress?.({ fraction: 0.02, label: 'Preparing package and reports…' });
   await nextFrame();
 
-  const products = [];
+  const products: ProductGrade[] = [];
   for (let index = 0; index < PRODUCT_KINDS.length; index += 1) {
     const product = PRODUCT_KINDS[index];
     onProgress?.({
@@ -109,13 +134,22 @@ export const runForecastGrade = async (
   onProgress?.({ fraction: 0.95, label: 'Rolling up package grade…' });
   await nextFrame();
 
-  const snapshot = buildPackageGrade({
+  const hasGeometry = PRODUCT_KINDS.some(
+    (product) => extractProductContours(outlooks, product).length > 0
+  );
+  const relevantCount = relevantReportCount(outlooks, reports);
+  const quality = assessDataQuality(hasGeometry, relevantCount, reportsError);
+  const rolledGrade = quality.withholdPackageGrade ? null : rollUpPackageGrade(products);
+  const snapshot: PackageGrade = {
     formulaVersion: FORECAST_GRADE_FORMULA_VERSION,
-    outlooks,
-    reports,
-    reportsError,
-    generatedAt,
-  });
+    grade: rolledGrade,
+    letter: scoreToLetter(rolledGrade),
+    products,
+    dataQuality: quality.quality,
+    dataQualityReason: quality.reason,
+    hasReports: relevantCount > 0,
+    generatedAt: generatedAt ?? new Date().toISOString(),
+  };
 
   onProgress?.({ fraction: 1, label: 'Complete' });
   return snapshot;
