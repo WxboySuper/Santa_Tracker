@@ -6,6 +6,8 @@ Development entries for pull requests targeting `beta`. These notes are consolid
 
 ### PR #770
 
+#### Added
+
 - Add probability skill (Brier/BSS), spatial contingency, and false-alarm discipline component scorers.
 ### PR #769
 

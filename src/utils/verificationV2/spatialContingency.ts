@@ -19,7 +19,8 @@ export const scoreSpatialContingency = (
   contours: ProductContour[],
   reports: StormReport[]
 ): ComponentScore => {
-  const forecastUnion = unionAll(contours.map((contour) => contour.polygon));
+  const paintableContours = contours.filter((contour) => contour.probability > 0);
+  const forecastUnion = unionAll(paintableContours.map((contour) => contour.polygon));
   const observed = observedFootprint(reports);
 
   if (!forecastUnion && !observed) {
