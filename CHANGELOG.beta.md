@@ -6,7 +6,7 @@ Development entries for pull requests targeting `beta`. These notes are consolid
 
 ### PR #771
 
-- Add event yield and severity intent-layer component scorers for Forecast Grade.
+- Add event yield and severity intent-layer component scorers for Forecast Grade. `scoreEventYield` filters reports to the supplied hazard product before scoring so reports for other hazards never influence the product's yield.
 ### PR #770
 
 - Add probability skill (Brier/BSS), spatial contingency, and false-alarm discipline component scorers.

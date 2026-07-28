@@ -37,16 +37,26 @@ const roundTo = (value: number, digits = 3): number => {
   return Math.round(value * factor) / factor;
 };
 
+/** Selects the reports relevant to a single hazard product. */
+const reportsForProduct = (product: ProductKind, reports: StormReport[]): StormReport[] =>
+  reports.filter((report) => report.type === product);
+
 /**
  * Event yield / concentration. For each drawn core (f ≥ 0.15 / 0.30 / 0.45) the
  * expected report count is `baseline + area × density(f)`, and yield is
  * `min(1, observed / max(expected, ε))`. Present cores are averaged. This makes a
  * huge 30% + 1 report fail on yield while softening a tiny 45% + 1 report.
+ *
+ * Reports are filtered to the supplied `product` before scoring so reports for
+ * other hazards never influence this product's yield — call sites that already
+ * pre-filter may pass the same reports array they would pass to `scoreSeverity`.
  */
 export const scoreEventYield = (
+  product: ProductKind,
   contours: ProductContour[],
   reports: StormReport[]
 ): ComponentScore => {
+  const relevantReports = reportsForProduct(product, reports);
   const coreYields: number[] = [];
   const metrics: Record<string, number> = {};
   const details: string[] = [];
@@ -63,7 +73,7 @@ export const scoreEventYield = (
     const density = YIELD_DENSITY_PER_10K_KM2[threshold as YieldCoreThreshold];
     const baseline = YIELD_BASELINE_EXPECTED[threshold as YieldCoreThreshold];
     const expected = baseline + (coreArea / 10_000) * density;
-    const observed = reportsNearRegion(coreUnion, reports);
+    const observed = reportsNearRegion(coreUnion, relevantReports);
     const yieldValue = Math.min(1, observed / Math.max(expected, YIELD_EPSILON));
 
     coreYields.push(yieldValue);
@@ -81,9 +91,6 @@ export const scoreEventYield = (
   const score = coreYields.reduce((sum, value) => sum + value, 0) / coreYields.length;
   return scoredComponent('eventYield', score, `Core yield ${details.join('; ')}.`, metrics);
 };
-
-const reportsForProduct = (product: ProductKind, reports: StormReport[]): StormReport[] =>
-  reports.filter((report) => report.type === product);
 
 const scoreSigDrawnAndObserved = (
   sigContours: ProductContour[],
