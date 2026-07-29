@@ -3,7 +3,6 @@ import { useDispatch, useSelector } from 'react-redux';
 import type { VerificationMapHandle } from '../Map/VerificationMap';
 import { useAppLayout } from '../Layout/AppLayout';
 import { useCloudCycles } from '../../hooks/useCloudCycles';
-import { deserializeForecast } from '../../utils/fileUtils';
 import { setVisibility } from '../../store/stormReportsSlice';
 import type { RootState } from '../../store';
 import type { StormReport } from '../../types/stormReports';
@@ -11,13 +10,12 @@ import type { GradeCard } from '../../types/forecastGrade';
 import type { ComponentKey, MapOutlookLayer, ProductKind } from '../../utils/verificationV2';
 import { availablePackageSources } from '../../utils/verificationV2/sources';
 import { useForecastGrade } from './useForecastGrade';
+import { useCloudLoadHandler } from './useCloudLoadHandler';
 import CloudSourcePicker from './CloudSourcePicker';
 import ForecastGradeMapPane from './ForecastGradeMapPane';
 import ForecastGradeResultsPane from './ForecastGradeResultsPane';
 import { METHODOLOGY_DOC_PATH } from './methodology';
 import './ForecastGradeDashboard.css';
-
-
 
 interface ForecastGradeTopbarProps {
   methodologyPath: string;
@@ -56,26 +54,7 @@ const ForecastGradeDashboard: React.FC = () => {
   const availableSources = availablePackageSources(grade.tier);
   const activeProductGrade = grade.result?.products.find((product) => product.product === grade.activeProduct);
 
-  const handleCloudLoad = useCallback(
-    async (id: string, label: string) => {
-      const loadSeq = ++packageLoadSeqRef.current;
-      const payload = await loadCycle(id);
-      if (loadSeq !== packageLoadSeqRef.current) {
-        return;
-      }
-      if (!payload) {
-        addToast('That cloud package could not be loaded.', 'error');
-        return;
-      }
-      try {
-        grade.setForecastPackage(deserializeForecast(payload), 'cloud', `${label} (cloud)`);
-        addToast('Cloud package loaded. Choose a report date and grade.', 'success');
-      } catch {
-        addToast('That cloud package could not be parsed.', 'error');
-      }
-    },
-    [addToast, grade, loadCycle]
-  );
+  const handleCloudLoad = useCloudLoadHandler(packageLoadSeqRef, addToast, grade, loadCycle);
 
   const handleFileLoad = useCallback(
     (file: File) => {
@@ -89,7 +68,6 @@ const ForecastGradeDashboard: React.FC = () => {
     packageLoadSeqRef.current += 1;
     grade.reset();
   }, [grade]);
-
   const handleSelectProduct = useCallback(
     (product: ProductKind) => {
       grade.setActiveProduct(product);
@@ -137,7 +115,6 @@ const ForecastGradeDashboard: React.FC = () => {
   const renderCloudSource = availableSources.includes('cloud')
     ? () => <CloudSourcePicker onLoad={handleCloudLoad} />
     : undefined;
-
 
   return (
     <div className="fg-dashboard">
