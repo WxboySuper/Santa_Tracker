@@ -6,7 +6,6 @@ interface ScoreBreakdownProps {
   product: ProductGrade;
   activeComponent: ComponentKey | null;
   onSelectComponent: (key: ComponentKey | null) => void;
-  defaultOpen?: boolean;
 }
 
 /**
@@ -18,9 +17,8 @@ const ScoreBreakdown: React.FC<ScoreBreakdownProps> = ({
   product,
   activeComponent,
   onSelectComponent,
-  defaultOpen = true,
 }) => (
-  <details className="fg-section" open={defaultOpen}>
+  <details className="fg-section">
     <summary>
       <span>Score breakdown</span>
       <span className="text-sm text-slate-500">

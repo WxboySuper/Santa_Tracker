@@ -21,7 +21,16 @@ export const useCloudLoadHandler = (
   useCallback(
     async (id: string, label: string) => {
       const loadSeq = ++packageLoadSeqRef.current;
-      const payload = await loadCycle(id);
+      let payload: Awaited<ReturnType<LoadCycle>>;
+      try {
+        payload = await loadCycle(id);
+      } catch {
+        if (loadSeq !== packageLoadSeqRef.current) {
+          return;
+        }
+        addToast('A network error prevented loading the cloud package.', 'error');
+        return;
+      }
       if (loadSeq !== packageLoadSeqRef.current) {
         return;
       }

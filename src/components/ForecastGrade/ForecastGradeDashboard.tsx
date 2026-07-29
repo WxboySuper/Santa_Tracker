@@ -96,30 +96,27 @@ const ForecastGradeDashboard: React.FC = () => {
   const handleSelectReport = useCallback((report: StormReport | null) => {
     setSelectedReportId(report?.id ?? null);
   }, []);
-
   const handleSelectReportId = useCallback((reportId: string | null) => {
     setSelectedReportId(reportId);
   }, []);
-
   const handleSelectHistoryCard = useCallback(
     (card: GradeCard) => {
       const snapshot = grade.restoreCard(card);
       if (snapshot) {
         grade.applyGradeSnapshot(snapshot);
         addToast('Restored grade package from history.', 'success');
+      } else {
+        addToast('This grade card is trend-only and cannot reopen a full package.', 'info');
       }
     },
     [addToast, grade]
   );
-
   const renderCloudSource = availableSources.includes('cloud')
     ? () => <CloudSourcePicker onLoad={handleCloudLoad} />
     : undefined;
-
   return (
     <div className="fg-dashboard">
       <ForecastGradeTopbar methodologyPath={METHODOLOGY_DOC_PATH} />
-
       <div className="fg-workspace">
         <ForecastGradeMapPane
           forecastLoaded={Boolean(grade.forecast)}
@@ -143,6 +140,7 @@ const ForecastGradeDashboard: React.FC = () => {
           grade={grade}
           availableSources={availableSources}
           renderCloudSource={renderCloudSource}
+          onFile={handleFileLoad}
           activeProductGrade={activeProductGrade}
           activeComponent={activeComponent}
           onSelectComponent={setActiveComponent}

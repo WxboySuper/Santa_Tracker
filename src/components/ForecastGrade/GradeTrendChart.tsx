@@ -11,8 +11,12 @@ interface GradeTrendChartProps {
 
 type TrendFilter = 'package' | ProductKind;
 
-const valueForFilter = (card: GradeCard, filter: TrendFilter): number | null =>
-  filter === 'package' ? card.grade : card.productGrades[filter] ?? null;
+const MAX_TREND_CARDS = 25;
+
+const valueForFilter = (card: GradeCard, filter: TrendFilter): number | null => {
+  const raw = filter === 'package' ? card.grade : card.productGrades[filter] ?? null;
+  return typeof raw === 'number' && Number.isFinite(raw) ? raw : null;
+};
 
 /**
  * Grade trend for the latest 25 cards, filterable by hazard. Cards are
@@ -21,17 +25,18 @@ const valueForFilter = (card: GradeCard, filter: TrendFilter): number | null =>
 const GradeTrendChart: React.FC<GradeTrendChartProps> = ({ cards, onSelectCard }) => {
   const [filter, setFilter] = useState<TrendFilter>('package');
 
+  const recentCards = useMemo(() => cards.slice(0, MAX_TREND_CARDS), [cards]);
+
   const points = useMemo(() => {
-    const ordered = [...cards].reverse();
+    const ordered = [...recentCards].reverse();
     return ordered
       .map((card) => ({ card, value: valueForFilter(card, filter) }))
       .filter(
-        (entry): entry is { card: GradeCard; value: number } =>
-          entry.value !== null && Number.isFinite(entry.value)
+        (entry): entry is { card: GradeCard; value: number } => entry.value !== null,
       );
-  }, [cards, filter]);
+  }, [recentCards, filter]);
 
-  if (cards.length === 0) {
+  if (recentCards.length === 0) {
     return (
       <div className="rounded-xl border border-slate-300/40 p-4 text-sm text-slate-500">
         Your graded runs will appear here as a trend.
@@ -64,7 +69,7 @@ const GradeTrendChart: React.FC<GradeTrendChartProps> = ({ cards, onSelectCard }
         <GradeTrendSvg points={points} onSelectCard={onSelectCard} />
       )}
 
-      <GradeTrendHistory cards={cards} onSelectCard={onSelectCard} />
+      <GradeTrendHistory cards={recentCards} onSelectCard={onSelectCard} />
     </div>
   );
 };

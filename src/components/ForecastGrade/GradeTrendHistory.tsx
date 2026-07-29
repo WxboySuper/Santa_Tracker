@@ -17,8 +17,9 @@ const GradeTrendHistory: React.FC<GradeTrendHistoryProps> = ({ cards, onSelectCa
         <li key={card.id}>
           <button
             type="button"
-            className="w-full text-left hover:underline"
+            className="w-full text-left rounded px-1 py-0.5 hover:underline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-blue-500"
             onClick={() => onSelectCard?.(card)}
+            aria-label={`Restore grade ${card.letter ?? ''} from ${card.reportDate ?? 'today'}`}
           >
             {formatGrade(card.grade)} {card.letter ?? ''} · {card.reportDate ?? 'today'} · {card.dataQuality}
           </button>

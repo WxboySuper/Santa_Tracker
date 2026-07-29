@@ -5,7 +5,10 @@ import { useCloudCycles } from '../../hooks/useCloudCycles';
 /** Premium cloud package picker rendered inside the source panel. */
 const CloudSourcePicker: React.FC<{ onLoad: (id: string, label: string) => void }> = ({ onLoad }) => {
   const { addToast } = useAppLayout();
-  const { cycles, loading } = useCloudCycles();
+  const { cycles, loading, error } = useCloudCycles();
+  if (error) {
+    return <p className="text-sm text-amber-600">{error}</p>;
+  }
   if (loading) {
     return <p className="text-sm text-slate-500">Loading cloud packages…</p>;
   }

@@ -17,6 +17,7 @@ interface ForecastGradeResultsPaneProps {
   grade: GradeState;
   availableSources: PackageSourceKind[];
   renderCloudSource?: () => React.ReactNode;
+  onFile: (file: File) => void;
   activeProductGrade?: ProductGrade;
   activeComponent: ComponentKey | null;
   onSelectComponent: (key: ComponentKey | null) => void;
@@ -32,6 +33,7 @@ const ForecastGradeResultsPane: React.FC<ForecastGradeResultsPaneProps> = ({
   grade,
   availableSources,
   renderCloudSource,
+  onFile,
   activeProductGrade,
   activeComponent,
   onSelectComponent,
@@ -53,7 +55,7 @@ const ForecastGradeResultsPane: React.FC<ForecastGradeResultsPaneProps> = ({
       canRun={grade.canRun}
       isRunning={grade.phase === 'running'}
       error={grade.error}
-      onFile={grade.loadFromFile}
+      onFile={onFile}
       onUseTodayChange={grade.setUseToday}
       onReportDateChange={grade.setReportDate}
       onRun={grade.run}
