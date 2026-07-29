@@ -73,16 +73,18 @@ const ForecastGradeDashboard: React.FC = () => {
 
   const mapRef = useRef<VerificationMapHandle>(null);
   const mapPaneRef = useRef<HTMLDivElement>(null);
-  const cloudLoadSeqRef = useRef(0);
+  // Shared sequence bumped by every package-loading and reset path so an in-flight
+  // cloud load cannot overwrite a newer file (or vice versa).
+  const packageLoadSeqRef = useRef(0);
   const reportsVisible = useSelector((state: RootState) => state.stormReports.visible);
 
   const availableSources = availablePackageSources(grade.tier);
 
   const handleCloudLoad = useCallback(
     async (id: string, label: string) => {
-      const loadSeq = ++cloudLoadSeqRef.current;
+      const loadSeq = ++packageLoadSeqRef.current;
       const payload = await loadCycle(id);
-      if (loadSeq !== cloudLoadSeqRef.current) {
+      if (loadSeq !== packageLoadSeqRef.current) {
         return;
       }
       if (!payload) {
@@ -98,6 +100,19 @@ const ForecastGradeDashboard: React.FC = () => {
     },
     [addToast, grade, loadCycle]
   );
+
+  const handleFileLoad = useCallback(
+    (file: File) => {
+      packageLoadSeqRef.current += 1;
+      void grade.loadFromFile(file);
+    },
+    [grade]
+  );
+
+  const handleReset = useCallback(() => {
+    packageLoadSeqRef.current += 1;
+    grade.reset();
+  }, [grade]);
 
   const handleSelectProduct = useCallback(
     (product: ProductKind) => {
@@ -157,11 +172,11 @@ const ForecastGradeDashboard: React.FC = () => {
             canRun={grade.canRun}
             isRunning={grade.phase === 'running'}
             error={grade.error}
-            onFile={grade.loadFromFile}
+            onFile={handleFileLoad}
             onUseTodayChange={grade.setUseToday}
             onReportDateChange={grade.setReportDate}
             onRun={grade.run}
-            onReset={grade.reset}
+            onReset={handleReset}
             renderCloudSource={
               availableSources.includes('cloud')
                 ? () => <CloudSourcePicker onLoad={handleCloudLoad} />

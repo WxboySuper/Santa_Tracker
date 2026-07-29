@@ -181,6 +181,7 @@ export const useForecastGrade = (addToast: (message: string, type?: 'info' | 'su
     const effectiveDate = useToday ? null : reportDate;
 
     const generation = ++runGeneration.current;
+    restoreSeqRef.current += 1; // invalidate any in-flight snapshot restore
     setPhase('running');
     setError(null);
     setProgress({ fraction: 0, label: 'Loading storm reports…' });
@@ -286,6 +287,7 @@ export const useForecastGrade = (addToast: (message: string, type?: 'info' | 'su
   const applyGradeSnapshot = useCallback(
     (snapshot: GradeSnapshot) => {
       const restoreSeq = ++restoreSeqRef.current;
+      runGeneration.current += 1; // invalidate any in-flight run()
       const restoredForecast = deserializeForecast(snapshot.forecast);
       const days = daysWithData(restoredForecast);
       setForecast(restoredForecast);

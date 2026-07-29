@@ -15,6 +15,7 @@ jest.mock('../../billing/EntitlementProvider', () => ({
 
 jest.mock('../../utils/fileUtils', () => ({
   serializeForecast: jest.fn(() => ({ kind: 'serialized' })),
+  deserializeForecast: jest.fn((payload: unknown) => payload),
 }));
 
 jest.mock('../../utils/verificationV2/sources', () => ({
@@ -57,7 +58,7 @@ jest.mock('../../utils/verificationV2', () => {
 
 import { useAuth } from '../../auth/AuthProvider';
 import { useEntitlement } from '../../billing/EntitlementProvider';
-import { serializeForecast } from '../../utils/fileUtils';
+import { deserializeForecast, serializeForecast } from '../../utils/fileUtils';
 import {
   buildGradeCard,
   loadForecastFromFile,
@@ -84,6 +85,7 @@ const mockRecordGradeResult = recordGradeResult as jest.MockedFunction<typeof re
 const mockBuildGradeCard = buildGradeCard as jest.MockedFunction<typeof buildGradeCard>;
 const mockTierHasSnapshots = tierHasSnapshots as jest.MockedFunction<typeof tierHasSnapshots>;
 const mockSerializeForecast = serializeForecast as jest.MockedFunction<typeof serializeForecast>;
+const mockDeserializeForecast = deserializeForecast as jest.MockedFunction<typeof deserializeForecast>;
 const mockLoadReportsForDate = loadReportsForDate as jest.MockedFunction<typeof loadReportsForDate>;
 const mockLoadForecastFromFile = loadForecastFromFile as jest.MockedFunction<typeof loadForecastFromFile>;
 
@@ -505,6 +507,71 @@ describe('useForecastGrade', () => {
       expect(result.current.phase).toBe('idle');
       expect(result.current.result).toBeNull();
       expect(result.current.forecast).toEqual(secondCycle);
+    });
+
+    test('applyGradeSnapshot during an in-flight run ignores the late completion', async () => {
+      const resolveLoad = beginInFlightReportLoad();
+      const { result } = renderWithPackage();
+
+      let runPromise: Promise<void> | undefined;
+      act(() => {
+        runPromise = result.current.run();
+      });
+
+      const snapshot = {
+        card: { id: 'card-snap', sourceLabel: 'Cloud snapshot' },
+        package: samplePackage,
+        forecast: { kind: 'serialized-snap' },
+        reportDate: '2026-07-28',
+      } as never;
+      act(() => {
+        result.current.applyGradeSnapshot(snapshot);
+      });
+
+      await act(async () => {
+        resolveLoad();
+        await runPromise;
+      });
+
+      expect(result.current.phase).toBe('complete');
+      expect(result.current.result).not.toBeNull();
+    });
+
+    test('run during an in-flight applyGradeSnapshot ignores the late report load', async () => {
+      let resolveReports: ((value: typeof sampleReports) => void) | null = null;
+      mockLoadReportsForDate.mockImplementationOnce(
+        () => new Promise<typeof sampleReports>((resolve) => {
+          resolveReports = resolve;
+        })
+      );
+      // Make the snapshot deserialize to a real cycle so run() can read forecast.days.
+      mockDeserializeForecast.mockReturnValueOnce(sampleCycle);
+      const { result, store } = renderWithPackage();
+
+      const snapshot = {
+        card: { id: 'card-snap', sourceLabel: 'Cloud snapshot' },
+        package: samplePackage,
+        forecast: { kind: 'serialized-snap' },
+        reportDate: '2026-07-28',
+      } as never;
+      act(() => {
+        result.current.applyGradeSnapshot(snapshot);
+      });
+
+      const reportsBeforeRun = store.getState().stormReports.reports;
+      expect(result.current.reports).toEqual(reportsBeforeRun);
+
+      let runPromise: Promise<void> | undefined;
+      act(() => {
+        runPromise = result.current.run();
+      });
+
+      await act(async () => {
+        resolveReports?.(sampleReports);
+        await runPromise;
+      });
+
+      expect(result.current.reports).toEqual(sampleReports);
     });
   });
 
