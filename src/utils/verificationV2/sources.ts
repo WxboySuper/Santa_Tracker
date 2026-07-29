@@ -15,7 +15,7 @@ import { fetchStormReports, fetchTodayStormReports } from '../stormReportParser'
 import { toArchiveDate } from './archiveDate';
 import type { PackageGrade, ProductKind } from './gradeContract';
 
-export { toArchiveDate } from './archiveDate';
+export { isReachedArchiveDate, toArchiveDate } from './archiveDate';
 
 /**
  * Source adapters for the Forecast Grade dashboard (PR 05 — sources-history).

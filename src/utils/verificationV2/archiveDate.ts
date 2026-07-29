@@ -55,3 +55,28 @@ export const toArchiveDate = (reportDate: string): string | null => {
 
   return null;
 };
+
+/**
+ * True when the report date parses as a real calendar date and is on-or-before
+ * the supplied reference (default: today, UTC). Returns false for empty,
+ * malformed, or future dates so callers can gate work that should never run
+ * against an archive that does not exist yet.
+ */
+export const isReachedArchiveDate = (reportDate: string, now: Date = new Date()): boolean => {
+  for (const pattern of ARCHIVE_PATTERNS) {
+    const match = reportDate.match(pattern.regex);
+    if (!match) {
+      continue;
+    }
+    const year = pattern.year(match);
+    const month = pattern.month(match);
+    const day = pattern.day(match);
+    if (!isValidCalendarDate(year, month, day)) {
+      return false;
+    }
+    const archiveUtc = Date.UTC(year, month - 1, day);
+    const todayUtc = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+    return archiveUtc <= todayUtc;
+  }
+  return false;
+};

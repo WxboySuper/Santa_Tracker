@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { useAuth } from '../../auth/AuthProvider';
 import { useEntitlement } from '../../billing/EntitlementProvider';
@@ -10,6 +10,7 @@ import type { GradeAccountTier, GradeCard, GradeSnapshot, PackageSourceKind } fr
 import { serializeForecast } from '../../utils/fileUtils';
 import {
   FORECAST_GRADE_FORMULA_VERSION,
+  isReachedArchiveDate,
   runForecastGrade,
   validateGradeInputs,
   type PackageGrade,
@@ -39,6 +40,9 @@ import {
  */
 
 type RunPhase = 'idle' | 'running' | 'complete';
+
+const hasReachedReportDate = (useToday: boolean, reportDate: string): boolean =>
+  useToday || isReachedArchiveDate(reportDate);
 
 const daysWithData = (forecast: ForecastCycle | null): DayType[] => {
   if (!forecast?.days) {
@@ -103,12 +107,15 @@ export const useForecastGrade = (addToast: (message: string, type?: 'info' | 'su
   const [cards, setCards] = useState<GradeCard[]>([]);
   const [reports, setReportsState] = useState<StormReport[]>([]);
 
+  const runGeneration = useRef(0);
+
   useEffect(() => {
     setCards(loadGradeCards(scope));
   }, [scope]);
 
   const setForecastPackage = useCallback(
     (nextForecast: ForecastCycle, source: PackageSourceKind, label: string) => {
+      runGeneration.current += 1;
       const days = daysWithData(nextForecast);
       setForecast(nextForecast);
       setPackageSource(source);
@@ -146,17 +153,28 @@ export const useForecastGrade = (addToast: (message: string, type?: 'info' | 'su
   }, []);
 
   const canRun =
-    Boolean(forecast) && phase !== 'running' && (useToday || reportDate.trim().length > 0);
+    Boolean(forecast) &&
+    phase !== 'running' &&
+    hasReachedReportDate(useToday, reportDate);
 
   const run = useCallback(async () => {
     if (!forecast) {
       addToast('Load a forecast package first.', 'error');
       return;
     }
+    if (!hasReachedReportDate(useToday, reportDate)) {
+      const message = useToday
+        ? 'Choose a report date or enable "use today" before grading.'
+        : 'Choose a real, reached report date before grading.';
+      setError(message);
+      addToast(message, 'error');
+      return;
+    }
     const day = forecast.days[selectedDay];
     const outlooks = day?.data ?? { tornado: new Map(), wind: new Map(), hail: new Map(), categorical: new Map() };
     const effectiveDate = useToday ? null : reportDate;
 
+    const generation = ++runGeneration.current;
     setPhase('running');
     setError(null);
     setProgress({ fraction: 0, label: 'Loading storm reports…' });
@@ -165,11 +183,18 @@ export const useForecastGrade = (addToast: (message: string, type?: 'info' | 'su
     try {
       loadedReports = await loadReportsForDate(effectiveDate);
     } catch (loadError) {
+      if (generation !== runGeneration.current) {
+        return;
+      }
       const message = loadError instanceof SourceLoadError ? loadError.message : 'Reports could not be loaded.';
       setError(message);
       setPhase('idle');
       setProgress(null);
       addToast(message, 'error');
+      return;
+    }
+
+    if (generation !== runGeneration.current) {
       return;
     }
 
@@ -179,6 +204,9 @@ export const useForecastGrade = (addToast: (message: string, type?: 'info' | 'su
 
     const validation = validateGradeInputs({ outlooks, reports: loadedReports });
     if (!validation.valid) {
+      if (generation !== runGeneration.current) {
+        return;
+      }
       setError(validation.reason ?? 'Inputs are invalid.');
       setPhase('idle');
       setProgress(null);
@@ -187,6 +215,9 @@ export const useForecastGrade = (addToast: (message: string, type?: 'info' | 'su
     }
 
     const pkg = await runForecastGrade({ outlooks, reports: loadedReports }, setProgress);
+    if (generation !== runGeneration.current) {
+      return;
+    }
     setResult(pkg);
     setPhase('complete');
 
@@ -218,6 +249,7 @@ export const useForecastGrade = (addToast: (message: string, type?: 'info' | 'su
   }, [addToast, dispatch, forecast, packageSource, reportDate, scope, selectedDay, sourceLabel, tier, useToday]);
 
   const reset = useCallback(() => {
+    runGeneration.current += 1;
     setForecast(null);
     setPackageSource(null);
     setSourceLabel('');
