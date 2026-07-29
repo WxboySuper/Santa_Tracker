@@ -55,16 +55,52 @@ export const loadGradeCards = (scope: string | null): GradeCard[] => {
   }
 };
 
-/** Persists a card list (trimmed to the limit) for a scope. */
-const persistCards = (scope: string, cards: GradeCard[]): void => {
+/**
+ * Persists a card list (trimmed to the limit) for a scope. Returns whether
+ * `setItem` completed successfully so the caller can defer side effects that
+ * should only happen once history is durably updated.
+ */
+const persistCards = (scope: string, cards: GradeCard[]): boolean => {
+  const storage = safeStorage();
+  if (!storage) {
+    return false;
+  }
+  try {
+    storage.setItem(cardsKey(scope), JSON.stringify(cards.slice(0, GRADE_HISTORY_LIMIT)));
+    return true;
+  } catch {
+    // Ignore quota / serialization failures; history is best-effort.
+    return false;
+  }
+};
+
+/** Persists a snapshot under the card id, returning whether the write succeeded. */
+const persistSnapshot = (scope: string, cardId: string, snapshot: GradeSnapshot): boolean => {
+  const storage = safeStorage();
+  if (!storage) {
+    return false;
+  }
+  try {
+    storage.setItem(snapshotKey(scope, cardId), JSON.stringify(snapshot));
+    return true;
+  } catch {
+    // Snapshot persistence is best-effort.
+    return false;
+  }
+};
+
+/** Removes snapshots for the supplied card ids. Best-effort. */
+const evictSnapshots = (scope: string, cardIds: string[]): void => {
   const storage = safeStorage();
   if (!storage) {
     return;
   }
-  try {
-    storage.setItem(cardsKey(scope), JSON.stringify(cards.slice(0, GRADE_HISTORY_LIMIT)));
-  } catch {
-    // Ignore quota / serialization failures; history is best-effort.
+  for (const id of cardIds) {
+    try {
+      storage.removeItem(snapshotKey(scope, id));
+    } catch {
+      // Ignore.
+    }
   }
 };
 
@@ -78,7 +114,11 @@ export interface RecordGradeOptions {
 /**
  * Records a completed run: prepends the card and trims to the limit. When a
  * snapshot is supplied (premium), it is written under the card id for restore.
- * Cards evicted past the limit have their snapshots removed to bound storage.
+ * Cards evicted past the limit have their snapshots removed to bound storage,
+ * but only after the new card list is durably persisted — otherwise a failed
+ * write would orphan the live snapshots. The returned card list reflects
+ * the actual snapshot write so `hasSnapshot` never claims a snapshot that
+ * was not stored.
  */
 export const recordGradeResult = ({ scope, card, snapshot }: RecordGradeOptions): GradeCard[] => {
   if (!scope) {
@@ -87,27 +127,19 @@ export const recordGradeResult = ({ scope, card, snapshot }: RecordGradeOptions)
   const existing = loadGradeCards(scope);
   const next = [card, ...existing];
   const trimmed = next.slice(0, GRADE_HISTORY_LIMIT);
+  const evicted = next.slice(GRADE_HISTORY_LIMIT);
 
-  const storage = safeStorage();
-  if (storage && snapshot) {
-    try {
-      storage.setItem(snapshotKey(scope, card.id), JSON.stringify(snapshot));
-    } catch {
-      // Snapshot persistence is best-effort.
-    }
+  const snapshotPersisted = snapshot ? persistSnapshot(scope, card.id, snapshot) : false;
+  const cardsPersisted = persistCards(scope, trimmed);
+
+  if (cardsPersisted) {
+    evictSnapshots(scope, evicted.map((c) => c.id));
   }
 
-  if (storage) {
-    for (const evicted of next.slice(GRADE_HISTORY_LIMIT)) {
-      try {
-        storage.removeItem(snapshotKey(scope, evicted.id));
-      } catch {
-        // Ignore.
-      }
-    }
+  if (snapshot && !snapshotPersisted) {
+    const corrected: GradeCard = { ...trimmed[0], hasSnapshot: false };
+    return [corrected, ...trimmed.slice(1)];
   }
-
-  persistCards(scope, trimmed);
   return trimmed;
 };
 

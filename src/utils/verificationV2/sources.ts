@@ -5,6 +5,7 @@ import type {
   GradeCard,
   PackageSourceKind,
 } from '../../types/forecastGrade';
+import { loadCloudCycle } from '../../lib/cloudCyclesService';
 import {
   deserializeForecast,
   readForecastImportFile,
@@ -68,10 +69,36 @@ export const loadForecastFromFile = async (file: File): Promise<ForecastCycle> =
   }
 };
 
+export interface LoadForecastFromCloudParams {
+  userId: string;
+  cycleId: string;
+}
+
+/**
+ * Loads a saved forecast from the premium cloud library and deserializes it,
+ * or blocks. Routes to the existing `loadCloudCycle` so the cloud source stays
+ * wired to the same Firestore read path the rest of the app uses.
+ */
+export const loadForecastFromCloud = async (
+  params: LoadForecastFromCloudParams
+): Promise<ForecastCycle> => {
+  const result = await loadCloudCycle(params);
+  if (!result.success || !result.data) {
+    throw new SourceLoadError(
+      result.error ?? 'That cloud cycle could not be loaded. Choose a saved cycle from your library.'
+    );
+  }
+  try {
+    return deserializeForecast(result.data.payload);
+  } catch {
+    throw new SourceLoadError('That cloud cycle could not be parsed.');
+  }
+};
+
 /** Loads SPC storm reports for a date (or today when null), or blocks. */
 export const loadReportsForDate = async (reportDate: string | null): Promise<StormReport[]> => {
   try {
-    if (reportDate) {
+    if (reportDate !== null) {
       const archiveDate = toArchiveDate(reportDate);
       if (!archiveDate) {
         throw new SourceLoadError('Choose a valid report date.');
@@ -80,6 +107,9 @@ export const loadReportsForDate = async (reportDate: string | null): Promise<Sto
     }
     return await fetchTodayStormReports();
   } catch (error) {
+    if (error instanceof SourceLoadError) {
+      throw error;
+    }
     const detail = error instanceof Error ? error.message : 'Unknown error';
     throw new SourceLoadError(`Storm reports could not be loaded (${detail}).`);
   }

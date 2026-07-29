@@ -102,6 +102,50 @@ describe('grade history persistence', () => {
     expect(loadGradeSnapshot(scope, 'snap')).toBeNull();
   });
 
+  test('flips hasSnapshot to false on the returned card when the snapshot write fails', () => {
+    const card = sampleCard({ id: 'quota', hasSnapshot: true });
+    const snapshot = { card, package: { grade: 82.4 }, forecast: {}, reportDate: '2026-05-01' } as unknown as GradeSnapshot;
+    const setItemSpy = jest
+      .spyOn(Storage.prototype, 'setItem')
+      .mockImplementation((key: string) => {
+        if (key.startsWith('gfc-forecast-grade-snapshot-v1:')) {
+          throw new Error('Quota exceeded');
+        }
+        return undefined;
+      });
+
+    try {
+      const returned = recordGradeResult({ scope, card, snapshot });
+      expect(returned[0].hasSnapshot).toBe(false);
+    } finally {
+      setItemSpy.mockRestore();
+    }
+  });
+
+  test('does not evict snapshots when the card-list write fails', () => {
+    const card = sampleCard({ id: 'a', hasSnapshot: true });
+    const snapshot = { card, package: { grade: 1 }, forecast: {}, reportDate: '2026-05-01' } as unknown as GradeSnapshot;
+    recordGradeResult({ scope, card, snapshot });
+    expect(loadGradeSnapshot(scope, 'a')).not.toBeNull();
+
+    const setItemSpy = jest
+      .spyOn(Storage.prototype, 'setItem')
+      .mockImplementation((key: string) => {
+        if (key.startsWith('gfc-forecast-grade-cards-v1:')) {
+          throw new Error('Quota exceeded');
+        }
+        return undefined;
+      });
+
+    try {
+      // First filler run fails to persist its card list, so the prior snapshot must remain.
+      recordGradeResult({ scope, card: sampleCard({ id: 'b' }) });
+      expect(loadGradeSnapshot(scope, 'a')).not.toBeNull();
+    } finally {
+      setItemSpy.mockRestore();
+    }
+  });
+
   test('clears history', () => {
     recordGradeResult({ scope, card: sampleCard({ id: 'x' }) });
     clearGradeHistory(scope);

@@ -6,6 +6,8 @@ Development entries for pull requests targeting `beta`. These notes are consolid
 
 ### PR #773
 
+#### Added
+
 - Add explicit package source adapters (`loadForecastFromFile`, `loadReportsForDate`) and capability-aware `resolveAccountTier` / `availablePackageSources` for the Forecast Grade dashboard. Signed-in tiers keep 25-card trend history; premium also stores restorable immutable snapshots, scoped per user id.
 - Convert ISO `YYYY-MM-DD` report dates to SPC `YYMMDD` before archive fetch so the file-based source works with native date inputs. Move the converter into a dedicated `archiveDate` module and validate against a real calendar.
 
