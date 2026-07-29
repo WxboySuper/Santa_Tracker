@@ -87,6 +87,20 @@ describe('deployment config', () => {
     assert.ok(lines.every((line) => /^[A-Z][A-Z0-9_]*=.+$/.test(line)));
   });
 
+  it('renders the beta Auto-TSTM worker interpreter override', () => {
+    const output = execFileSync(process.execPath, [
+      WRITE_DEPLOYMENT_ENV_SCRIPT,
+      'deploy/beta-deployment-config.json',
+    ], {
+      cwd: ROOT,
+      encoding: 'utf8',
+    });
+
+    assert.match(output, /^PYTHON_BIN=\/opt\/gfc-beta-analytics\/\.venv\/bin\/python$/m);
+    assert.match(output, /^TSTM_GENERATION_ENABLED=true$/m);
+    assert.match(output, /^TSTM_INGESTION_ENABLED=true$/m);
+  });
+
   it('rejects config paths outside deploy', () => {
     const outsideConfig = resolve(tmpdir(), `gfc-deploy-config-${Date.now()}.json`);
     writeFileSync(outsideConfig, '{"serverEnv":{"TSTM_GENERATION_ENABLED":"true"}}');

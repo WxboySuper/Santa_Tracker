@@ -171,6 +171,25 @@ describe('Auto-TSTM server foundation', () => {
     await new Promise((r) => setTimeout(r, 10));
     assert.ok(spawnedArgs.includes('--ingestion-mode'));
   });
+
+  it('uses the configured Python interpreter for the generator', async () => {
+    const child = createFakeChild();
+    let spawnedCommand;
+    runTstmGenerator(
+      { day: 1, cycleDate: '2026-06-13' },
+      {
+        env: { PYTHON_BIN: '/opt/gfc-beta-analytics/.venv/bin/python' },
+        spawnProcess: (command) => {
+          spawnedCommand = command;
+          return child;
+        },
+      }
+    );
+    child.stdout.end('{}');
+    child.emit('close', 0);
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    assert.equal(spawnedCommand, '/opt/gfc-beta-analytics/.venv/bin/python');
+  });
 });
 
 describe('GET /api/tstm/latest', () => {
