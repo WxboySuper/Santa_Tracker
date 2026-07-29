@@ -6,7 +6,10 @@ Development entries for pull requests targeting `beta`. These notes are consolid
 
 ### PR #776
 
-- Add Forecast Grade dashboard shell layout and map-first workspace chrome.
+#### Added
+
+- Forecast Grade dashboard shell: replace the 06b stub with the map-first workspace chrome (`ForecastGradeDashboard` plus dedicated `ForecastGradeMapPane` / `ForecastGradeMapControls`), categorical map layer as a display-only toggle, and `applyGradeSnapshot` to reopen premium cards through the shared verification map.
+- `useForecastGrade` gains `activeMapLayer` state, `deserializeForecast` import, and the `applyGradeSnapshot` callback alongside the 06b `runGeneration` / `hasReachedReportDate` stale-run and future-date guards that the rebase would otherwise drop.
 ### PR #775
 
 #### Added
