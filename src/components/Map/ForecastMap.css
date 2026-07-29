@@ -437,7 +437,8 @@
   }
 
   .map-history-button {
-    min-width: 36px;
+    min-width: 44px;
+    min-height: 44px;
     padding: 8px 7px;
   }
 

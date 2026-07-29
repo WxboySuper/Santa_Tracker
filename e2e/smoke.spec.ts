@@ -66,7 +66,8 @@ test.describe('App smoke tests', () => {
         if (element.classList.contains('mode-key')) return 'key';
         if (element.classList.contains('mode-delete')) return 'delete';
         if (element.classList.contains('mode-draw')) return 'draw';
-        return 'pan';
+        if (element.classList.contains('mode-pan')) return 'pan';
+        throw new Error(`Unexpected map toolbar child: ${element.className}`);
       })
     );
     expect(mapToolbarOrder).toEqual(['pan', 'draw', 'delete', 'divider', 'key', 'spacer', 'history']);
