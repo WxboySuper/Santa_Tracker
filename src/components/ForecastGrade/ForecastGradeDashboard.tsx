@@ -8,7 +8,7 @@ import { setVisibility } from '../../store/stormReportsSlice';
 import type { RootState } from '../../store';
 import type { MapOutlookLayer, ProductKind } from '../../utils/verificationV2';
 import { availablePackageSources } from '../../utils/verificationV2/sources';
-import { useForecastGrade } from './useForecastGrade';
+import { useForecastGrade, type UseForecastGrade } from './useForecastGrade';
 import SourcePanel from './SourcePanel';
 import RunProgress from './RunProgress';
 import GradeHeadline from './GradeHeadline';
@@ -58,6 +58,88 @@ const CloudSourcePicker: React.FC<{ onLoad: (id: string, label: string) => void 
     </label>
   );
 };
+
+interface ForecastGradeTopbarProps {
+  methodologyPath: string;
+}
+
+/** Title row with the formula version and methodology link. */
+const ForecastGradeTopbar: React.FC<ForecastGradeTopbarProps> = ({ methodologyPath }) => (
+  <div className="fg-topbar">
+    <div>
+      <h2 className="text-lg font-semibold">Forecast Grade</h2>
+      <p className="text-xs text-slate-500">
+        Map-first verification · formula gfc-ver-1 ·{' '}
+        <a className="text-blue-500 hover:underline" href={methodologyPath} target="_blank" rel="noreferrer">
+          Methodology
+        </a>
+      </p>
+    </div>
+  </div>
+);
+
+interface ForecastGradeResultsPaneProps {
+  grade: UseForecastGrade;
+  availableSources: ReturnType<typeof availablePackageSources>;
+  reportsVisible: boolean;
+  onToggleEvidence: () => void;
+  onFile: (file: File) => void;
+  onCloudLoad: (id: string, label: string) => void;
+  onReset: () => void;
+  onSelectProduct: (product: ProductKind) => void;
+}
+
+/** Right rail: source panel, run progress, and grade results. */
+const ForecastGradeResultsPane: React.FC<ForecastGradeResultsPaneProps> = ({
+  grade,
+  availableSources,
+  onFile,
+  onCloudLoad,
+  onReset,
+  onSelectProduct,
+  onToggleEvidence,
+}) => (
+  <div className="fg-results-pane">
+    <SourcePanel
+      tier={grade.tier}
+      availableSources={availableSources}
+      hasForecast={Boolean(grade.forecast)}
+      sourceLabel={grade.sourceLabel}
+      useToday={grade.useToday}
+      reportDate={grade.reportDate}
+      canRun={grade.canRun}
+      isRunning={grade.phase === 'running'}
+      error={grade.error}
+      onFile={onFile}
+      onUseTodayChange={grade.setUseToday}
+      onReportDateChange={grade.setReportDate}
+      onRun={grade.run}
+      onReset={onReset}
+      renderCloudSource={
+        availableSources.includes('cloud')
+          ? () => <CloudSourcePicker onLoad={onCloudLoad} />
+          : undefined
+      }
+    />
+
+    {grade.phase === 'running' && (
+      <div className="mt-3">
+        <RunProgress progress={grade.progress} />
+      </div>
+    )}
+
+    {grade.result && (
+      <div className="mt-3">
+        <GradeHeadline
+          pkg={grade.result}
+          activeProduct={grade.activeProduct}
+          onSelectProduct={onSelectProduct}
+        />
+        <DataQualityPanel pkg={grade.result} />
+      </div>
+    )}
+  </div>
+);
 
 /**
  * Forecast Grade dashboard shell (PR 06 — dashboard-shell).
@@ -132,19 +214,14 @@ const ForecastGradeDashboard: React.FC = () => {
     [grade]
   );
 
+  const handleToggleEvidence = useCallback(
+    () => dispatch(setVisibility(!reportsVisible)),
+    [dispatch, reportsVisible]
+  );
+
   return (
     <div className="fg-dashboard">
-      <div className="fg-topbar">
-        <div>
-          <h2 className="text-lg font-semibold">Forecast Grade</h2>
-          <p className="text-xs text-slate-500">
-            Map-first verification · formula gfc-ver-1 ·{' '}
-            <a className="text-blue-500 hover:underline" href={METHODOLOGY_DOC_PATH} target="_blank" rel="noreferrer">
-              Methodology
-            </a>
-          </p>
-        </div>
-      </div>
+      <ForecastGradeTopbar methodologyPath={METHODOLOGY_DOC_PATH} />
 
       <div className="fg-workspace">
         <ForecastGradeMapPane
@@ -156,51 +233,21 @@ const ForecastGradeDashboard: React.FC = () => {
           reportsVisible={reportsVisible}
           onSelectMapLayer={handleSelectMapLayer}
           onSelectDay={grade.setSelectedDay}
-          onToggleEvidence={() => dispatch(setVisibility(!reportsVisible))}
+          onToggleEvidence={handleToggleEvidence}
           mapPaneRef={mapPaneRef}
           mapRef={mapRef}
         />
 
-        <div className="fg-results-pane">
-          <SourcePanel
-            tier={grade.tier}
-            availableSources={availableSources}
-            hasForecast={Boolean(grade.forecast)}
-            sourceLabel={grade.sourceLabel}
-            useToday={grade.useToday}
-            reportDate={grade.reportDate}
-            canRun={grade.canRun}
-            isRunning={grade.phase === 'running'}
-            error={grade.error}
-            onFile={handleFileLoad}
-            onUseTodayChange={grade.setUseToday}
-            onReportDateChange={grade.setReportDate}
-            onRun={grade.run}
-            onReset={handleReset}
-            renderCloudSource={
-              availableSources.includes('cloud')
-                ? () => <CloudSourcePicker onLoad={handleCloudLoad} />
-                : undefined
-            }
-          />
-
-          {grade.phase === 'running' && (
-            <div className="mt-3">
-              <RunProgress progress={grade.progress} />
-            </div>
-          )}
-
-          {grade.result && (
-            <div className="mt-3">
-              <GradeHeadline
-                pkg={grade.result}
-                activeProduct={grade.activeProduct}
-                onSelectProduct={handleSelectProduct}
-              />
-              <DataQualityPanel pkg={grade.result} />
-            </div>
-          )}
-        </div>
+        <ForecastGradeResultsPane
+          grade={grade}
+          availableSources={availableSources}
+          reportsVisible={reportsVisible}
+          onToggleEvidence={handleToggleEvidence}
+          onFile={handleFileLoad}
+          onCloudLoad={handleCloudLoad}
+          onReset={handleReset}
+          onSelectProduct={handleSelectProduct}
+        />
       </div>
     </div>
   );
