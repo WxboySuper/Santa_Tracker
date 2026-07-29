@@ -60,11 +60,11 @@ describe('verificationRelaunch route gate', () => {
     expect(mockV2Load).toHaveBeenCalled();
   });
 
-  test('keeps verificationRelaunch off for every non-local build target in the registry', () => {
+  test('keeps verificationRelaunch off for every build target until the dashboard shell lands', () => {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { isFeatureExposedOnTarget } = require('../config/featureExposure');
     for (const target of BUILD_TARGETS) {
-      expect(isFeatureExposedOnTarget('verificationRelaunch', target)).toBe(target === 'local');
+      expect(isFeatureExposedOnTarget('verificationRelaunch', target)).toBe(false);
     }
   });
 });

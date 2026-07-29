@@ -8,8 +8,8 @@ Development entries for pull requests targeting `beta`. These notes are consolid
 
 #### Added
 
-- Wire the `verificationRelaunch` local-only dogfood gate behind the existing classic `/verification` route so signed-in users keep the legacy workspace until the relaunched surface is ready to roll out. The flag stays disabled for beta, staging, and production.
-- Land a temporary `ForecastGradeDashboard` stub so the lazy import resolves before the real shell lands in the next stacked PR.
+- Wire the `verificationRelaunch` gate, surfaces, and classic `/verification` coexistence routing so the Forecast Grade dashboard shell can land in the next stacked PR (06b/06c/07). The flag stays off on every build target until that shell flips it; classic `/verification` is the default in the meantime.
+- Land a temporary `ForecastGradeDashboard` stub so the lazy import resolves before the real shell lands.
 
 ### PR #773
 

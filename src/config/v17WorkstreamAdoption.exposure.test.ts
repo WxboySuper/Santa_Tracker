@@ -30,7 +30,7 @@ describe('v1.7 workstream adoption contract', () => {
   test.each(
     V17_WORKSTREAM_KEYS.filter(
       (feature) =>
-        !['autoTstm', 'forecastWorkflowV2', 'customProducts', 'verificationRelaunch'].includes(feature)
+        !['autoTstm', 'forecastWorkflowV2', 'customProducts'].includes(feature)
     )
   )(
     '%s stays disabled on every build target',
@@ -42,11 +42,10 @@ describe('v1.7 workstream adoption contract', () => {
     }
   );
 
-  test('verificationRelaunch dogfoods on local only', () => {
+  test('verificationRelaunch stays disabled until the dashboard shell lands', () => {
     for (const target of BUILD_TARGETS) {
-      const expected = target === 'local';
-      expect(isFeatureExposedOnTarget('verificationRelaunch', target)).toBe(expected);
-      expect(FEATURE_EXPOSURE_REGISTRY.verificationRelaunch.exposure[target]).toBe(expected);
+      expect(isFeatureExposedOnTarget('verificationRelaunch', target)).toBe(false);
+      expect(FEATURE_EXPOSURE_REGISTRY.verificationRelaunch.exposure[target]).toBe(false);
     }
   });
 

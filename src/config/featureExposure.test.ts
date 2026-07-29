@@ -122,16 +122,15 @@ describe('featureExposure registry', () => {
     ] as const;
 
     for (const feature of workstreamKeys.filter(
-      (feature) => !['forecastWorkflowV2', 'customProducts', 'verificationRelaunch'].includes(feature)
+      (feature) => !['forecastWorkflowV2', 'customProducts'].includes(feature)
     )) {
       for (const target of ['local', 'beta', 'staging', 'production'] as const) {
         expect(isFeatureExposedOnTarget(feature, target)).toBe(false);
       }
     }
 
-    // verificationRelaunch dogfoods on local only; beta/staging/production stay off.
-    expect(isFeatureExposedOnTarget('verificationRelaunch', 'local')).toBe(true);
-    for (const target of ['beta', 'staging', 'production'] as const) {
+    // verificationRelaunch stays off on every target until the dashboard shell lands in 06b/06c/07.
+    for (const target of ['local', 'beta', 'staging', 'production'] as const) {
       expect(isFeatureExposedOnTarget('verificationRelaunch', target)).toBe(false);
     }
 
