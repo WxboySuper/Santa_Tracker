@@ -58,17 +58,23 @@ test.describe('App smoke tests', () => {
     await expect(page.locator('.map-history-button[aria-label="Undo"]')).toBeDisabled();
     await expect(page.locator('.map-history-button[aria-label="Redo"]')).toBeDisabled();
     await expect(page.locator('.map-toolbar-surface > *')).toHaveCount(7);
-    const mapToolbarOrder = await page.locator('.map-toolbar-surface > *').evaluateAll((elements) =>
-      elements.map((element) => {
-        if (element.classList.contains('map-history-group')) return 'history';
-        if (element.classList.contains('map-toolbar-spacer')) return 'spacer';
-        if (element.classList.contains('map-toolbar-divider')) return 'divider';
-        if (element.classList.contains('mode-key')) return 'key';
-        if (element.classList.contains('mode-delete')) return 'delete';
-        if (element.classList.contains('mode-draw')) return 'draw';
-        if (element.classList.contains('mode-pan')) return 'pan';
-        throw new Error(`Unexpected map toolbar child: ${element.className}`);
-      })
+    const toolbarClassifications = [
+      ['map-history-group', 'history'],
+      ['map-toolbar-spacer', 'spacer'],
+      ['map-toolbar-divider', 'divider'],
+      ['mode-key', 'key'],
+      ['mode-delete', 'delete'],
+      ['mode-draw', 'draw'],
+      ['mode-pan', 'pan'],
+    ] as const;
+    const mapToolbarOrder = await page.locator('.map-toolbar-surface > *').evaluateAll(
+      (elements, classifications) =>
+        elements.map((element) => {
+          const classification = classifications.find(([className]) => element.classList.contains(className));
+          if (classification) return classification[1];
+          throw new Error(`Unexpected map toolbar child: ${element.className}`);
+        }),
+      toolbarClassifications
     );
     expect(mapToolbarOrder).toEqual(['pan', 'draw', 'delete', 'divider', 'key', 'spacer', 'history']);
     await expect(page.getByRole('complementary', { name: /map legend/i })).not.toBeVisible();
