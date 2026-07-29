@@ -146,7 +146,7 @@ describe('useShareCardActions', () => {
       const mockShare = jest.fn().mockRejectedValue(new Error('Not supported'));
       const { result } = render({ share: mockShare, canShare: jest.fn().mockReturnValue(true) });
       await act(async () => { await result.current.handleShare(); });
-      expect(addToast).toHaveBeenCalledWith('Share failed; try download.', 'error');
+      expect(addToast).toHaveBeenCalledWith('An action failed; try download.', 'error');
     });
 
     test('resets busy state after share', async () => {
