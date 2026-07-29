@@ -6,6 +6,8 @@ Development entries for pull requests targeting `beta`. These notes are consolid
 
 ### PR #778
 
+#### Added
+
 - Add anonymous Forecast Grade share card with download, share, and copy actions.
 ### PR #777
 

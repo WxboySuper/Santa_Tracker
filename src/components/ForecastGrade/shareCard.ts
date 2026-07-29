@@ -110,7 +110,7 @@ export const composeShareCard = (
   ctx.fillText(
     `${pkg.dataQuality} · formula ${pkg.formulaVersion}`,
     48,
-    CARD_HEIGHT - 4
+    CARD_HEIGHT - 16
   );
 
   return canvas;
