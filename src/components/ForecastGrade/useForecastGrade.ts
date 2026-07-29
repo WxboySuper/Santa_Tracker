@@ -95,7 +95,7 @@ export const useForecastGrade = (addToast: (message: string, type?: 'info' | 'su
   const [selectedDay, setSelectedDayState] = useState<DayType>(1);
   const [reportDate, setReportDateState] = useState('');
   const [useToday, setUseToday] = useState(true);
-  const [activeProduct, setActiveProduct] = useState<ProductKind>('categorical');
+  const [activeProduct, setActiveProduct] = useState<ProductKind>('tornado');
   const [phase, setPhase] = useState<RunPhase>('idle');
   const [progress, setProgress] = useState<GradeProgress | null>(null);
   const [result, setResult] = useState<PackageGrade | null>(null);
@@ -190,7 +190,7 @@ export const useForecastGrade = (addToast: (message: string, type?: 'info' | 'su
     setResult(pkg);
     setPhase('complete');
 
-    const firstProduct = pkg.products.find((product) => product.applicable)?.product ?? 'categorical';
+    const firstProduct = pkg.products.find((product) => product.applicable)?.product ?? 'tornado';
     setActiveProduct(firstProduct);
 
     if (scope) {
@@ -234,7 +234,7 @@ export const useForecastGrade = (addToast: (message: string, type?: 'info' | 'su
 
   const restoreCard = useCallback(
     (card: GradeCard): GradeSnapshot | null => {
-      const snapshot = loadGradeSnapshot(scope, card.id);
+      const snapshot = loadGradeSnapshot({ scope, cardId: card.id });
       if (!snapshot) {
         addToast('This grade card is trend-only and cannot reopen a full package.', 'info');
       }
