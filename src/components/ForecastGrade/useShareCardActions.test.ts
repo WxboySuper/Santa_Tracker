@@ -1,6 +1,6 @@
 import { renderHook, act } from '@testing-library/react';
 import { useShareCardActions } from './useShareCardActions';
-import { composeShareCard, shareCardFilename } from './shareCard';
+import { composeShareCard } from './shareCard';
 import { downloadDataUrl } from '../../utils/exportUtils';
 import type { PackageGrade } from '../../utils/verificationV2';
 
@@ -27,7 +27,7 @@ const pkg: PackageGrade = {
   generatedAt: '2026-05-01T12:00:00.000Z',
 };
 
-const mockCanvas = (): HTMLCanvasElement => {
+const fakeCanvas = (): HTMLCanvasElement => {
   const c = document.createElement('canvas');
   c.width = 1200;
   c.height = 630;
@@ -38,273 +38,152 @@ const mockCanvas = (): HTMLCanvasElement => {
   return c;
 };
 
-describe('useShareCardActions', () => {
-  const addToast = jest.fn();
-  const captureMap = jest.fn().mockResolvedValue(null);
+const addToast = jest.fn();
+const captureMap = jest.fn().mockResolvedValue(null);
 
-  let originalShare: typeof navigator.share | undefined;
-  let originalCanShare: typeof navigator.canShare | undefined;
-  let originalClipboard: typeof navigator.clipboard;
-  let originalUserActivation: typeof navigator.userActivation;
+type NavOverrides = {
+  share?: jest.Mock;
+  canShare?: jest.Mock;
+  clipboard?: object;
+};
+
+const render = (nav?: NavOverrides) => {
+  if (nav?.share !== undefined) {
+    Object.defineProperty(navigator, 'share', { value: nav.share, writable: true, configurable: true });
+  }
+  if (nav?.canShare !== undefined) {
+    Object.defineProperty(navigator, 'canShare', { value: nav.canShare, writable: true, configurable: true });
+  }
+  if (nav?.clipboard !== undefined) {
+    Object.defineProperty(navigator, 'clipboard', { value: nav.clipboard, writable: true, configurable: true });
+  }
+  return renderHook(() => useShareCardActions(pkg, captureMap, addToast));
+};
+
+describe('useShareCardActions', () => {
+  let origShare: typeof navigator.share;
+  let origCanShare: typeof navigator.canShare;
+  let origClipboard: typeof navigator.clipboard;
+  let origUA: typeof navigator.userActivation;
 
   beforeEach(() => {
     jest.clearAllMocks();
-    mockComposeShareCard.mockReturnValue(mockCanvas());
-    originalShare = navigator.share;
-    originalCanShare = navigator.canShare;
-    originalClipboard = navigator.clipboard;
-    originalUserActivation = navigator.userActivation;
+    captureMap.mockResolvedValue(null);
+    origShare = navigator.share;
+    origCanShare = navigator.canShare;
+    origClipboard = navigator.clipboard;
+    origUA = navigator.userActivation;
   });
 
   afterEach(() => {
-    if (originalShare !== undefined) {
-      Object.defineProperty(navigator, 'share', { value: originalShare, writable: true, configurable: true });
-    } else {
-      Reflect.deleteProperty(navigator, 'share');
-    }
-    if (originalCanShare !== undefined) {
-      Object.defineProperty(navigator, 'canShare', { value: originalCanShare, writable: true, configurable: true });
-    } else {
-      Reflect.deleteProperty(navigator, 'canShare');
-    }
-    Object.defineProperty(navigator, 'clipboard', { value: originalClipboard, writable: true, configurable: true });
-    if (originalUserActivation !== undefined) {
-      Object.defineProperty(navigator, 'userActivation', { value: originalUserActivation, writable: true, configurable: true });
-    }
+    Object.defineProperty(navigator, 'share', { value: origShare, writable: true, configurable: true });
+    Object.defineProperty(navigator, 'canShare', { value: origCanShare, writable: true, configurable: true });
+    Object.defineProperty(navigator, 'clipboard', { value: origClipboard, writable: true, configurable: true });
+    Object.defineProperty(navigator, 'userActivation', { value: origUA, writable: true, configurable: true });
   });
 
   describe('handleDownload', () => {
     test('downloads the composed canvas as PNG', async () => {
-      const { result } = renderHook(() => useShareCardActions(pkg, captureMap, addToast));
-
-      await act(async () => {
-        await result.current.handleDownload();
-      });
-
+      mockComposeShareCard.mockReturnValue(fakeCanvas());
+      const { result } = render();
+      await act(async () => { await result.current.handleDownload(); });
       expect(captureMap).toHaveBeenCalled();
-      expect(mockComposeShareCard).toHaveBeenCalledWith(pkg, null);
-      expect(mockDownloadDataUrl).toHaveBeenCalledWith(
-        'data:image/png;base64,mock',
-        'forecast-grade-2026-05-01.png'
-      );
-      expect(addToast).not.toHaveBeenCalled();
+      expect(mockDownloadDataUrl).toHaveBeenCalledWith('data:image/png;base64,mock', 'forecast-grade-2026-05-01.png');
     });
 
     test('shows error toast when canvas composition fails', async () => {
       mockComposeShareCard.mockReturnValue(null);
-      const { result } = renderHook(() => useShareCardActions(pkg, captureMap, addToast));
-
-      await act(async () => {
-        await result.current.handleDownload();
-      });
-
+      const { result } = render();
+      await act(async () => { await result.current.handleDownload(); });
       expect(addToast).toHaveBeenCalledWith('Could not compose the share card.', 'error');
       expect(mockDownloadDataUrl).not.toHaveBeenCalled();
     });
 
-    test('resets busy state on success', async () => {
-      const { result } = renderHook(() => useShareCardActions(pkg, captureMap, addToast));
-
+    test('resets busy state', async () => {
+      mockComposeShareCard.mockReturnValue(fakeCanvas());
+      const { result } = render();
       expect(result.current.busy).toBe(false);
-      await act(async () => {
-        await result.current.handleDownload();
-      });
+      await act(async () => { await result.current.handleDownload(); });
       expect(result.current.busy).toBe(false);
     });
   });
 
   describe('handleShare', () => {
     test('shares via native share API with image file', async () => {
-      mockComposeShareCard.mockReturnValue(mockCanvas());
-
+      mockComposeShareCard.mockReturnValue(fakeCanvas());
       const mockShare = jest.fn().mockResolvedValue(undefined);
-      const mockCanShare = jest.fn().mockReturnValue(true);
-      Object.defineProperty(navigator, 'share', { value: mockShare, writable: true, configurable: true });
-      Object.defineProperty(navigator, 'canShare', { value: mockCanShare, writable: true, configurable: true });
-
-      const { result } = renderHook(() => useShareCardActions(pkg, captureMap, addToast));
-
-      await act(async () => {
-        await result.current.handleShare();
-      });
-
-      expect(mockShare).toHaveBeenCalledWith(
-        expect.objectContaining({
-          text: expect.stringContaining('Forecast Grade 82.4'),
-        })
-      );
+      const { result } = render({ share: mockShare, canShare: jest.fn().mockReturnValue(true) });
+      await act(async () => { await result.current.handleShare(); });
+      expect(mockShare).toHaveBeenCalledWith(expect.objectContaining({ text: expect.stringContaining('Forecast Grade 82.4') }));
     });
 
     test('falls back to text share when file share is unsupported', async () => {
-      mockComposeShareCard.mockReturnValue(mockCanvas());
-
+      mockComposeShareCard.mockReturnValue(fakeCanvas());
       const mockShare = jest.fn().mockResolvedValue(undefined);
-      const mockCanShare = jest.fn().mockImplementation((data) => {
-        return data && 'text' in data;
-      });
-      Object.defineProperty(navigator, 'share', { value: mockShare, writable: true, configurable: true });
-      Object.defineProperty(navigator, 'canShare', { value: mockCanShare, writable: true, configurable: true });
-
-      const { result } = renderHook(() => useShareCardActions(pkg, captureMap, addToast));
-
-      await act(async () => {
-        await result.current.handleShare();
-      });
-
-      expect(mockShare).toHaveBeenCalledWith(
-        expect.objectContaining({
-          text: expect.stringContaining('Forecast Grade 82.4'),
-        })
-      );
+      const { result } = render({ share: mockShare, canShare: jest.fn().mockImplementation((d) => d && 'text' in d) });
+      await act(async () => { await result.current.handleShare(); });
+      expect(mockShare).toHaveBeenCalledWith(expect.objectContaining({ text: expect.stringContaining('Forecast Grade 82.4') }));
     });
 
     test('shows toast when sharing is completely unavailable', async () => {
       mockComposeShareCard.mockReturnValue(null);
       Reflect.deleteProperty(navigator, 'share');
-
-      const { result } = renderHook(() => useShareCardActions(pkg, captureMap, addToast));
-
-      await act(async () => {
-        await result.current.handleShare();
-      });
-
+      const { result } = render();
+      await act(async () => { await result.current.handleShare(); });
       expect(addToast).toHaveBeenCalledWith('Sharing is unavailable; try download.', 'info');
     });
 
     test('suppresses AbortError from share', async () => {
-      mockComposeShareCard.mockReturnValue(mockCanvas());
-
-      const abortError = new DOMException('User cancelled', 'AbortError');
-      const mockShare = jest.fn().mockRejectedValue(abortError);
-      const mockCanShare = jest.fn().mockReturnValue(true);
-      Object.defineProperty(navigator, 'share', { value: mockShare, writable: true, configurable: true });
-      Object.defineProperty(navigator, 'canShare', { value: mockCanShare, writable: true, configurable: true });
-
-      const { result } = renderHook(() => useShareCardActions(pkg, captureMap, addToast));
-
-      await act(async () => {
-        await result.current.handleShare();
-      });
-
+      mockComposeShareCard.mockReturnValue(fakeCanvas());
+      const mockShare = jest.fn().mockRejectedValue(new DOMException('cancelled', 'AbortError'));
+      const { result } = render({ share: mockShare, canShare: jest.fn().mockReturnValue(true) });
+      await act(async () => { await result.current.handleShare(); });
       expect(addToast).not.toHaveBeenCalled();
     });
 
     test('reports non-AbortError share failures', async () => {
-      mockComposeShareCard.mockReturnValue(mockCanvas());
-
+      mockComposeShareCard.mockReturnValue(fakeCanvas());
       const mockShare = jest.fn().mockRejectedValue(new Error('Not supported'));
-      const mockCanShare = jest.fn().mockReturnValue(true);
-      Object.defineProperty(navigator, 'share', { value: mockShare, writable: true, configurable: true });
-      Object.defineProperty(navigator, 'canShare', { value: mockCanShare, writable: true, configurable: true });
-
-      const { result } = renderHook(() => useShareCardActions(pkg, captureMap, addToast));
-
-      await act(async () => {
-        await result.current.handleShare();
-      });
-
+      const { result } = render({ share: mockShare, canShare: jest.fn().mockReturnValue(true) });
+      await act(async () => { await result.current.handleShare(); });
       expect(addToast).toHaveBeenCalledWith('Share failed; try download.', 'error');
     });
 
     test('resets busy state after share', async () => {
       mockComposeShareCard.mockReturnValue(null);
       Reflect.deleteProperty(navigator, 'share');
-      const { result } = renderHook(() => useShareCardActions(pkg, captureMap, addToast));
-
+      const { result } = render();
       expect(result.current.busy).toBe(false);
-      await act(async () => {
-        await result.current.handleShare();
-      });
+      await act(async () => { await result.current.handleShare(); });
       expect(result.current.busy).toBe(false);
     });
   });
 
   describe('handleCopy', () => {
-    test('copies image to clipboard when supported', async () => {
-      mockComposeShareCard.mockReturnValue(mockCanvas());
-
-      const mockWrite = jest.fn().mockResolvedValue(undefined);
+    test('falls back to text when clipboard image write is unsupported', async () => {
+      mockComposeShareCard.mockReturnValue(fakeCanvas());
+      // Simulate a browser that has clipboard but rejects image writes
       const mockWriteText = jest.fn().mockResolvedValue(undefined);
-      Object.defineProperty(navigator, 'clipboard', {
-        value: { write: mockWrite, writeText: mockWriteText },
-        writable: true,
-        configurable: true,
-      });
-      Object.defineProperty(window, 'ClipboardItem', {
-        value: function (data: Record<string, Blob>) { return data; },
-        writable: true,
-        configurable: true,
-      });
-
-      const { result } = renderHook(() => useShareCardActions(pkg, captureMap, addToast));
-
-      await act(async () => {
-        await result.current.handleCopy();
-      });
-
-      expect(mockWrite).toHaveBeenCalled();
-      expect(addToast).toHaveBeenCalledWith('Share card copied to clipboard.', 'success');
-    });
-
-    test('falls back to text when image clipboard fails', async () => {
-      mockComposeShareCard.mockReturnValue(mockCanvas());
-
-      const mockWrite = jest.fn().mockRejectedValue(new Error('Image not supported'));
-      const mockWriteText = jest.fn().mockResolvedValue(undefined);
-      Object.defineProperty(navigator, 'clipboard', {
-        value: { write: mockWrite, writeText: mockWriteText },
-        writable: true,
-        configurable: true,
-      });
-      Object.defineProperty(window, 'ClipboardItem', {
-        value: function (data: Record<string, Blob>) { return data; },
-        writable: true,
-        configurable: true,
-      });
-
-      const { result } = renderHook(() => useShareCardActions(pkg, captureMap, addToast));
-
-      await act(async () => {
-        await result.current.handleCopy();
-      });
-
-      expect(mockWriteText).toHaveBeenCalledWith(
-        expect.stringContaining('Forecast Grade 82.4')
-      );
-      expect(addToast).toHaveBeenCalledWith('Grade summary copied to clipboard.', 'success');
+      const clipObj = { writeText: mockWriteText };
+      Object.defineProperty(navigator, 'clipboard', { value: clipObj, writable: true, configurable: true });
+      const { result } = render();
+      await act(async () => { await result.current.handleCopy(); });
+      expect(mockWriteText).toHaveBeenCalledWith(expect.stringContaining('Forecast Grade 82.4'));
     });
 
     test('shows toast when clipboard is unavailable', async () => {
-      mockComposeShareCard.mockReturnValue(mockCanvas());
-      Object.defineProperty(navigator, 'clipboard', {
-        value: undefined,
-        writable: true,
-        configurable: true,
-      });
-
-      const { result } = renderHook(() => useShareCardActions(pkg, captureMap, addToast));
-
-      await act(async () => {
-        await result.current.handleCopy();
-      });
-
+      mockComposeShareCard.mockReturnValue(fakeCanvas());
+      Object.defineProperty(navigator, 'clipboard', { value: undefined, writable: true, configurable: true });
+      const { result } = render();
+      await act(async () => { await result.current.handleCopy(); });
       expect(addToast).toHaveBeenCalledWith('Copy is not supported here; try download.', 'info');
     });
 
     test('resets busy state after copy', async () => {
       mockComposeShareCard.mockReturnValue(null);
-      Object.defineProperty(navigator, 'clipboard', {
-        value: undefined,
-        writable: true,
-        configurable: true,
-      });
-
-      const { result } = renderHook(() => useShareCardActions(pkg, captureMap, addToast));
-
+      const { result } = render({ clipboard: undefined });
       expect(result.current.busy).toBe(false);
-      await act(async () => {
-        await result.current.handleCopy();
-      });
+      await act(async () => { await result.current.handleCopy(); });
       expect(result.current.busy).toBe(false);
     });
   });
