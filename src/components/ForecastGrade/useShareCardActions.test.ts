@@ -48,13 +48,13 @@ type NavOverrides = {
 };
 
 const render = (nav?: NavOverrides) => {
-  if (nav?.share !== undefined) {
+  if (nav && 'share' in nav) {
     Object.defineProperty(navigator, 'share', { value: nav.share, writable: true, configurable: true });
   }
-  if (nav?.canShare !== undefined) {
+  if (nav && 'canShare' in nav) {
     Object.defineProperty(navigator, 'canShare', { value: nav.canShare, writable: true, configurable: true });
   }
-  if (nav?.clipboard !== undefined) {
+  if (nav && 'clipboard' in nav) {
     Object.defineProperty(navigator, 'clipboard', { value: nav.clipboard, writable: true, configurable: true });
   }
   return renderHook(() => useShareCardActions(pkg, captureMap, addToast));
@@ -114,7 +114,10 @@ describe('useShareCardActions', () => {
       const mockShare = jest.fn().mockResolvedValue(undefined);
       const { result } = render({ share: mockShare, canShare: jest.fn().mockReturnValue(true) });
       await act(async () => { await result.current.handleShare(); });
-      expect(mockShare).toHaveBeenCalledWith(expect.objectContaining({ text: expect.stringContaining('Forecast Grade 82.4') }));
+      expect(mockShare).toHaveBeenCalledWith(expect.objectContaining({
+        files: [expect.any(File)],
+        text: expect.stringContaining('Forecast Grade 82.4'),
+      }));
     });
 
     test('falls back to text share when file share is unsupported', async () => {
@@ -122,7 +125,12 @@ describe('useShareCardActions', () => {
       const mockShare = jest.fn().mockResolvedValue(undefined);
       const { result } = render({ share: mockShare, canShare: jest.fn().mockImplementation((d) => d && 'text' in d) });
       await act(async () => { await result.current.handleShare(); });
-      expect(mockShare).toHaveBeenCalledWith(expect.objectContaining({ text: expect.stringContaining('Forecast Grade 82.4') }));
+      expect(mockShare).toHaveBeenCalledWith(expect.objectContaining({
+        text: expect.stringContaining('Forecast Grade 82.4'),
+      }));
+      expect(mockShare).toHaveBeenCalledWith(expect.not.objectContaining({
+        files: expect.anything(),
+      }));
     });
 
     test('shows toast when sharing is completely unavailable', async () => {
