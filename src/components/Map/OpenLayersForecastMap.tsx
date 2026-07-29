@@ -1763,6 +1763,18 @@ const OpenLayersForecastMap = forwardRef<MapAdapterHandle<OLMap> | null, OpenLay
             >
               Delete
             </button>
+            <span className="map-toolbar-divider" aria-hidden="true" />
+            <button
+              type="button"
+              className={`map-toolbar-button mode-key ${showDesktopLegend ? "active" : ""}`}
+              onClick={() => setShowDesktopLegend((isVisible) => !isVisible)}
+              title={showDesktopLegend ? "Hide map key" : "Show map key"}
+              aria-label={showDesktopLegend ? "Hide map key" : "Show map key"}
+              aria-expanded={showDesktopLegend}
+            >
+              Key
+            </button>
+            <span className="map-toolbar-spacer" aria-hidden="true" />
             <div className="map-history-group" aria-label="Map edit history">
               <button
                 type="button"
@@ -1787,16 +1799,6 @@ const OpenLayersForecastMap = forwardRef<MapAdapterHandle<OLMap> | null, OpenLay
                 <span className="map-history-label">Redo</span>
               </button>
             </div>
-            <button
-              type="button"
-              className={`map-toolbar-button mode-key ${showDesktopLegend ? "active" : ""}`}
-              onClick={() => setShowDesktopLegend((isVisible) => !isVisible)}
-              title={showDesktopLegend ? "Hide map key" : "Show map key"}
-              aria-label={showDesktopLegend ? "Hide map key" : "Show map key"}
-              aria-expanded={showDesktopLegend}
-            >
-              Key
-            </button>
           </div>
           <div className="map-toolbar-help-surface">
             {interactionMode === "draw" &&

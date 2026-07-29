@@ -191,6 +191,7 @@
   display: flex;
   align-items: center;
   gap: 4px;
+  width: min(440px, calc(100vw - 16px));
   border-radius: 18px;
   padding: 6px;
 }
@@ -221,22 +222,35 @@
   transition: background-color 0.2s, color 0.2s, transform 0.2s;
 }
 
-.map-toolbar-surface .map-toolbar-button:last-child {
-  padding-left: 16px;
-  padding-right: 16px;
+.map-toolbar-surface .map-toolbar-button.mode-delete,
+.map-toolbar-surface .map-toolbar-button.mode-key {
+  padding-left: 12px;
+  padding-right: 12px;
+}
+
+.map-toolbar-divider {
+  width: 1px;
+  height: 30px;
+  flex: 0 0 1px;
+  margin: 0 4px;
+  background: rgba(148, 163, 184, 0.4);
+}
+
+.map-toolbar-spacer {
+  min-width: 20px;
+  flex: 1 1 auto;
 }
 
 .map-history-group {
   display: flex;
   align-items: center;
   gap: 2px;
-  margin-left: 2px;
-  padding-left: 6px;
-  border-left: 1px solid rgba(148, 163, 184, 0.35);
 }
 
 .map-history-button {
+  min-width: 38px;
   gap: 5px;
+  padding: 10px 9px;
   color: #9a650e;
 }
 
@@ -251,9 +265,18 @@
 }
 
 .map-history-icon {
-  display: none;
+  display: block;
   width: 17px;
   height: 17px;
+}
+
+.map-history-label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
 }
 
 .map-toolbar-button:hover {
@@ -309,10 +332,6 @@
 
 .dark-mode .map-toolbar-button:hover {
   background-color: rgba(148, 163, 184, 0.2);
-}
-
-.dark-mode .map-history-group {
-  border-left-color: rgba(148, 163, 184, 0.32);
 }
 
 .dark-mode .map-history-button {
@@ -389,12 +408,27 @@
     border-radius: 12px;
   }
 
+  .map-toolbar-divider {
+    height: 28px;
+    margin: 0 3px;
+  }
+
+  .map-toolbar-spacer {
+    min-width: 16px;
+  }
+
   .map-toolbar-button {
     min-width: 44px;
     min-height: 36px;
     padding: 8px 8px;
     border-radius: 9px;
     font-size: 0.74rem;
+  }
+
+  .map-toolbar-surface .map-toolbar-button.mode-delete,
+  .map-toolbar-surface .map-toolbar-button.mode-key {
+    padding-left: 8px;
+    padding-right: 8px;
   }
 
   .map-history-group {
@@ -405,19 +439,6 @@
   .map-history-button {
     min-width: 36px;
     padding: 8px 7px;
-  }
-
-  .map-history-icon {
-    display: block;
-  }
-
-  .map-history-label {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    overflow: hidden;
-    clip: rect(0 0 0 0);
-    white-space: nowrap;
   }
 
   .map-toolbar-button.mode-key {
