@@ -175,7 +175,7 @@ describe('Auto-TSTM server foundation', () => {
   it('uses the configured Python interpreter for the generator', async () => {
     const child = createFakeChild();
     let spawnedCommand;
-    runTstmGenerator(
+    const result = runTstmGenerator(
       { day: 1, cycleDate: '2026-06-13' },
       {
         env: { PYTHON_BIN: '/opt/gfc-beta-analytics/.venv/bin/python' },
@@ -187,7 +187,7 @@ describe('Auto-TSTM server foundation', () => {
     );
     child.stdout.end('{}');
     child.emit('close', 0);
-    await new Promise((resolve) => setTimeout(resolve, 10));
+    await result;
     assert.equal(spawnedCommand, '/opt/gfc-beta-analytics/.venv/bin/python');
   });
 });
