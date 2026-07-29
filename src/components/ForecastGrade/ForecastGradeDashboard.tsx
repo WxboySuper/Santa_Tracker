@@ -14,12 +14,29 @@ import { useForecastGrade } from './useForecastGrade';
 import CloudSourcePicker from './CloudSourcePicker';
 import ForecastGradeMapPane from './ForecastGradeMapPane';
 import ForecastGradeResultsPane from './ForecastGradeResultsPane';
-import ShareCard from './ShareCard';
-import { useCaptureGradeMap } from './useCaptureGradeMap';
 import { METHODOLOGY_DOC_PATH } from './methodology';
 import './ForecastGradeDashboard.css';
 
 
+
+interface ForecastGradeTopbarProps {
+  methodologyPath: string;
+}
+
+/** Title row with the formula version and methodology link. */
+const ForecastGradeTopbar: React.FC<ForecastGradeTopbarProps> = ({ methodologyPath }) => (
+  <div className="fg-topbar">
+    <div>
+      <h2 className="text-lg font-semibold">Forecast Grade</h2>
+      <p className="text-xs text-slate-500">
+        Map-first verification · formula gfc-ver-1 ·{' '}
+        <a className="text-blue-500 hover:underline" href={methodologyPath} target="_blank" rel="noreferrer">
+          Methodology
+        </a>
+      </p>
+    </div>
+  </div>
+);
 
 const ForecastGradeDashboard: React.FC = () => {
   const { addToast } = useAppLayout();
@@ -117,8 +134,6 @@ const ForecastGradeDashboard: React.FC = () => {
     [addToast, grade]
   );
 
-  const captureMap = useCaptureGradeMap(mapRef);
-
   const renderCloudSource = availableSources.includes('cloud')
     ? () => <CloudSourcePicker onLoad={handleCloudLoad} />
     : undefined;
@@ -159,9 +174,6 @@ const ForecastGradeDashboard: React.FC = () => {
           onSelectProduct={handleSelectProduct}
           onSelectHistoryCard={handleSelectHistoryCard}
           result={grade.result}
-          afterResult={
-            grade.result ? <ShareCard pkg={grade.result} captureMap={captureMap} addToast={addToast} /> : null
-          }
         />
       </div>
     </div>

@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import { fromLonLat } from 'ol/proj';
 import VerificationMap, { type VerificationMapHandle } from '../Map/VerificationMap';
 import type { StormReport } from '../../types/stormReports';
+import type { DayType } from '../../types/outlooks';
 import type { ComponentKey, MapOutlookLayer, PackageGrade } from '../../utils/verificationV2';
 import ForecastGradeMapControls from './ForecastGradeMapControls';
 import { formatGrade, letterColorClass } from './gradeFormat';
@@ -64,9 +65,6 @@ const ForecastGradeMapPane: React.FC<ForecastGradeMapPaneProps> = ({
             ref={mapRef}
             activeOutlookType={activeMapLayer}
             selectedDay={selectedDay}
-            highlightedReportId={selectedReportId}
-            emphasisComponent={activeComponent}
-            onSelectReportId={onSelectReportId}
           />
           <ForecastGradeMapControls
             activeMapLayer={activeMapLayer}

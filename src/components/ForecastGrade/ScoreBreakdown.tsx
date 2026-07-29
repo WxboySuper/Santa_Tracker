@@ -20,7 +20,7 @@ const ScoreBreakdown: React.FC<ScoreBreakdownProps> = ({
   onSelectComponent,
   defaultOpen = true,
 }) => (
-  <details className="fg-section" defaultOpen={defaultOpen}>
+  <details className="fg-section" open={defaultOpen}>
     <summary>
       <span>Score breakdown</span>
       <span className="text-sm text-slate-500">
