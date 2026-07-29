@@ -226,6 +226,36 @@
   padding-right: 16px;
 }
 
+.map-history-group {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin-left: 2px;
+  padding-left: 6px;
+  border-left: 1px solid rgba(148, 163, 184, 0.35);
+}
+
+.map-history-button {
+  gap: 5px;
+  color: #9a650e;
+}
+
+.map-history-button:hover:not(:disabled) {
+  color: #704a08;
+  background-color: rgba(245, 158, 11, 0.14);
+}
+
+.map-history-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.38;
+}
+
+.map-history-icon {
+  display: none;
+  width: 17px;
+  height: 17px;
+}
+
 .map-toolbar-button:hover {
   background-color: rgba(148, 163, 184, 0.18);
 }
@@ -279,6 +309,19 @@
 
 .dark-mode .map-toolbar-button:hover {
   background-color: rgba(148, 163, 184, 0.2);
+}
+
+.dark-mode .map-history-group {
+  border-left-color: rgba(148, 163, 184, 0.32);
+}
+
+.dark-mode .map-history-button {
+  color: #f6c453;
+}
+
+.dark-mode .map-history-button:hover:not(:disabled) {
+  color: #ffe3a0;
+  background-color: rgba(245, 158, 11, 0.18);
 }
 
 .dark-mode .map-toolbar-surface,
@@ -352,6 +395,29 @@
     padding: 8px 8px;
     border-radius: 9px;
     font-size: 0.74rem;
+  }
+
+  .map-history-group {
+    margin-left: 0;
+    padding-left: 2px;
+  }
+
+  .map-history-button {
+    min-width: 36px;
+    padding: 8px 7px;
+  }
+
+  .map-history-icon {
+    display: block;
+  }
+
+  .map-history-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
   }
 
   .map-toolbar-button.mode-key {

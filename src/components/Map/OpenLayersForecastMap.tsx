@@ -26,15 +26,20 @@ import type OLFeature from "ol/Feature";
 import type Geometry from "ol/geom/Geometry";
 import { click } from "ol/events/condition";
 import { v4 as uuidv4 } from "uuid";
+import { Redo2, Undo2 } from "lucide-react";
 import { RootState } from "../../store";
 import {
   addFeature,
   addCustomFeature,
   removeFeature,
   removeCustomFeature,
+  redoLastEdit,
+  selectCanRedo,
+  selectCanUndo,
   selectCurrentCustomLayers,
   selectCurrentOutlooks,
   setMapView,
+  undoLastEdit,
   updateFeature,
   updateCustomFeature,
 } from "../../store/forecastSlice";
@@ -734,6 +739,8 @@ const OpenLayersForecastMap = forwardRef<MapAdapterHandle<OLMap> | null, OpenLay
     const drawingState = useSelector(
       (state: RootState) => state.forecast.drawingState,
     );
+    const canUndo = useSelector(selectCanUndo);
+    const canRedo = useSelector(selectCanRedo);
     const customEditor = useSelector((state: RootState) => state.forecast.customEditor);
     const customLayers = useSelector(selectCurrentCustomLayers);
     const customMode = isFeatureExposed("customProducts") && customEditor.mode === "custom";
@@ -1756,6 +1763,30 @@ const OpenLayersForecastMap = forwardRef<MapAdapterHandle<OLMap> | null, OpenLay
             >
               Delete
             </button>
+            <div className="map-history-group" aria-label="Map edit history">
+              <button
+                type="button"
+                className="map-toolbar-button map-history-button"
+                onClick={() => dispatch(undoLastEdit())}
+                disabled={!canUndo}
+                title="Undo last map edit (Ctrl/Cmd+Z)"
+                aria-label="Undo"
+              >
+                <Undo2 className="map-history-icon" aria-hidden="true" />
+                <span className="map-history-label">Undo</span>
+              </button>
+              <button
+                type="button"
+                className="map-toolbar-button map-history-button"
+                onClick={() => dispatch(redoLastEdit())}
+                disabled={!canRedo}
+                title="Redo last map edit (Ctrl/Cmd+Y)"
+                aria-label="Redo"
+              >
+                <Redo2 className="map-history-icon" aria-hidden="true" />
+                <span className="map-history-label">Redo</span>
+              </button>
+            </div>
             <button
               type="button"
               className={`map-toolbar-button mode-key ${showDesktopLegend ? "active" : ""}`}

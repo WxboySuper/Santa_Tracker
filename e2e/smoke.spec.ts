@@ -54,6 +54,9 @@ test.describe('App smoke tests', () => {
 
     await expect(page.locator('.map-container')).toBeVisible({ timeout: 10000 });
     await expect(page.locator('.tabbed-integrated-toolbar')).toBeVisible();
+    await expect(page.locator('.map-history-button[aria-label="Undo"]')).toBeVisible();
+    await expect(page.locator('.map-history-button[aria-label="Undo"]')).toBeDisabled();
+    await expect(page.locator('.map-history-button[aria-label="Redo"]')).toBeDisabled();
     await expect(page.getByRole('complementary', { name: /map legend/i })).not.toBeVisible();
     await page.getByRole('button', { name: /show map key/i }).click();
     await expect(page.getByRole('complementary', { name: /map legend/i })).toBeVisible();
@@ -92,6 +95,7 @@ test.describe('App smoke tests', () => {
     await expect(page.locator('.map-container')).toBeVisible({ timeout: 10000 });
     await expect(page.locator('.tabbed-integrated-toolbar__status-bar')).not.toBeVisible();
     await expect(page.locator('.map-toolbar-help-surface')).not.toBeVisible();
+    await expect(page.locator('.map-history-button[aria-label="Undo"]')).toBeVisible();
     await expect(page.getByRole('button', { name: /show map key/i })).toBeVisible();
 
     await page.getByRole('button', { name: /show map key/i }).click();

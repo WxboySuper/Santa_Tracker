@@ -66,9 +66,10 @@ test.describe('local-only custom layers', () => {
 
     await page.getByRole('button', { name: 'Delete polygons' }).click();
     await page.mouse.click(box.x + box.width * .51, box.y + box.height * .46);
-    await page.getByRole('tab', { name: 'Tools' }).click();
-    await page.getByRole('button', { name: 'Undo' }).first().click();
-    await expect(page.getByRole('button', { name: 'Redo' }).first()).toBeEnabled();
+    await page.locator('.map-history-button[aria-label="Undo"]').click();
+    await expect(page.locator('.map-history-button[aria-label="Redo"]')).toBeEnabled();
+    await page.locator('.map-history-button[aria-label="Redo"]').click();
+    await expect(page.locator('.map-history-button[aria-label="Undo"]')).toBeEnabled();
   });
 
   for (const viewport of [
