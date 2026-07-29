@@ -46,3 +46,4 @@ export {
   type GradeProgress,
   type GradeProgressHandler,
 } from './gradeForecast';
+export { isReachedArchiveDate, toArchiveDate } from './archiveDate';
