@@ -12,10 +12,50 @@ const canvasToBlob = (canvas: HTMLCanvasElement): Promise<Blob | null> =>
     }
   });
 
+type ToastFn = (message: string, type?: 'info' | 'success' | 'error') => void;
+
+const tryShareImage = async (
+  blob: Blob,
+  pkg: PackageGrade,
+  nav: Navigator & { canShare?: (data?: ShareData) => boolean },
+  summary: string
+): Promise<boolean> => {
+  if (!nav.share) return false;
+  const file = new File([blob], shareCardFilename(pkg), { type: 'image/png' });
+  if (!nav.canShare?.({ files: [file] })) return false;
+  await nav.share({ files: [file], text: summary });
+  return true;
+};
+
+const tryShareText = async (
+  nav: Navigator & { canShare?: (data?: ShareData) => boolean },
+  summary: string,
+  addToast: ToastFn
+): Promise<boolean> => {
+  if (!nav.share || !nav.canShare?.({ text: summary })) return false;
+  await nav.share({ text: summary });
+  addToast('Shared grade summary; download the image card if needed.', 'info');
+  return true;
+};
+
+const tryCopyImage = async (
+  blob: Blob,
+  clip: Clipboard,
+  activationLive: boolean
+): Promise<boolean> => {
+  if (!activationLive || !blob || typeof ClipboardItem === 'undefined' || !clip.write) return false;
+  try {
+    await clip.write([new ClipboardItem({ 'image/png': blob })]);
+    return true;
+  } catch {
+    return false;
+  }
+};
+
 export const useShareCardActions = (
   pkg: PackageGrade,
   captureMap: () => Promise<HTMLImageElement | null>,
-  addToast: (message: string, type?: 'info' | 'success' | 'error') => void
+  addToast: ToastFn
 ) => {
   const [busy, setBusy] = useState(false);
 
@@ -47,19 +87,8 @@ export const useShareCardActions = (
       const summary = shareSummaryText(pkg);
       const activationLive = !navigator.userActivation || navigator.userActivation.isActive;
 
-      if (blob && activationLive && nav.share) {
-        const file = new File([blob], shareCardFilename(pkg), { type: 'image/png' });
-        if (nav.canShare?.({ files: [file] })) {
-          await nav.share({ files: [file], text: summary });
-          return;
-        }
-      }
-
-      if (nav.share && nav.canShare?.({ text: summary })) {
-        await nav.share({ text: summary });
-        addToast('Shared grade summary; download the image card if needed.', 'info');
-        return;
-      }
+      if (blob && activationLive && (await tryShareImage(blob, pkg, nav, summary))) return;
+      if (await tryShareText(nav, summary, addToast)) return;
 
       addToast('Sharing is unavailable; try download.', 'info');
     } catch (error) {
@@ -82,14 +111,9 @@ export const useShareCardActions = (
         return;
       }
       const activationLive = !navigator.userActivation || navigator.userActivation.isActive;
-      if (activationLive && blob && typeof ClipboardItem !== 'undefined' && clip.write) {
-        try {
-          await clip.write([new ClipboardItem({ 'image/png': blob })]);
-          addToast('Share card copied to clipboard.', 'success');
-          return;
-        } catch {
-          // Fall back to text when image clipboard is unsupported.
-        }
+      if (await tryCopyImage(blob!, clip, activationLive)) {
+        addToast('Share card copied to clipboard.', 'success');
+        return;
       }
       if (clip.writeText) {
         await clip.writeText(shareSummaryText(pkg));

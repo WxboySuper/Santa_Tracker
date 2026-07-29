@@ -70,6 +70,30 @@ const drawMapHero = (
   }
 };
 
+const drawGradeOverlay = (
+  ctx: CanvasRenderingContext2D,
+  pkg: PackageGrade,
+  width: number,
+  height: number
+): void => {
+  ctx.fillStyle = '#e2e8f0';
+  ctx.font = '600 34px system-ui, sans-serif';
+  ctx.fillText('Forecast Grade', 48, height - 140);
+
+  ctx.font = '800 120px system-ui, sans-serif';
+  ctx.fillStyle = '#f8fafc';
+  ctx.fillText(formatGrade(pkg.grade), 48, height - 40);
+
+  const gradeWidth = ctx.measureText(formatGrade(pkg.grade)).width;
+  ctx.fillStyle = letterColor(pkg.letter);
+  ctx.font = '800 90px system-ui, sans-serif';
+  ctx.fillText(pkg.letter ?? '—', 48 + gradeWidth + 24, height - 48);
+
+  ctx.fillStyle = '#cbd5e1';
+  ctx.font = '400 26px system-ui, sans-serif';
+  ctx.fillText(`${pkg.dataQuality} · formula ${pkg.formulaVersion}`, 48, height - 16);
+};
+
 /**
  * Composes the map-led share card onto a canvas. The captured map image (when
  * available) fills the hero; the grade and letter are overlaid. Returns null
@@ -89,29 +113,7 @@ export const composeShareCard = (
 
   ctx.fillStyle = '#0f172a';
   ctx.fillRect(0, 0, CARD_WIDTH, CARD_HEIGHT);
-
   drawMapHero(ctx, mapImage, CARD_WIDTH, CARD_HEIGHT);
-
-  ctx.fillStyle = '#e2e8f0';
-  ctx.font = '600 34px system-ui, sans-serif';
-  ctx.fillText('Forecast Grade', 48, CARD_HEIGHT - 140);
-
-  ctx.font = '800 120px system-ui, sans-serif';
-  ctx.fillStyle = '#f8fafc';
-  ctx.fillText(formatGrade(pkg.grade), 48, CARD_HEIGHT - 40);
-
-  const gradeWidth = ctx.measureText(formatGrade(pkg.grade)).width;
-  ctx.fillStyle = letterColor(pkg.letter);
-  ctx.font = '800 90px system-ui, sans-serif';
-  ctx.fillText(pkg.letter ?? '—', 48 + gradeWidth + 24, CARD_HEIGHT - 48);
-
-  ctx.fillStyle = '#cbd5e1';
-  ctx.font = '400 26px system-ui, sans-serif';
-  ctx.fillText(
-    `${pkg.dataQuality} · formula ${pkg.formulaVersion}`,
-    48,
-    CARD_HEIGHT - 16
-  );
-
+  drawGradeOverlay(ctx, pkg, CARD_WIDTH, CARD_HEIGHT);
   return canvas;
 };
