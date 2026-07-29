@@ -65,7 +65,64 @@ const copyImageToClipboard = async (
   }
 };
 
-const runBusy = async (
+const download = async (
+  pkg: PackageGrade,
+  captureMap: () => Promise<HTMLImageElement | null>,
+  addToast: ToastFn
+) => {
+  const result = await buildShareCard(pkg, captureMap);
+  if (!result) {
+    addToast('Could not compose the share card.', 'error');
+    return;
+  }
+  downloadDataUrl(result.canvas.toDataURL('image/png'), shareCardFilename(pkg));
+};
+
+const share = async (
+  pkg: PackageGrade,
+  captureMap: () => Promise<HTMLImageElement | null>,
+  addToast: ToastFn
+) => {
+  const result = await buildShareCard(pkg, captureMap);
+  if (!result || !result.blob) {
+    addToast('Sharing is unavailable; try download.', 'info');
+    return;
+  }
+  const nav = navigator as Navigator & { canShare?: (data?: ShareData) => boolean };
+  const summary = shareSummaryText(pkg);
+  const activationLive = !navigator.userActivation || navigator.userActivation.isActive;
+
+  if (activationLive && (await shareWithImage(result.blob, pkg, nav, summary))) return;
+  if (await shareWithText(nav, summary, addToast)) return;
+
+  addToast('Sharing is unavailable; try download.', 'info');
+};
+
+const copy = async (
+  pkg: PackageGrade,
+  captureMap: () => Promise<HTMLImageElement | null>,
+  addToast: ToastFn
+) => {
+  const result = await buildShareCard(pkg, captureMap);
+  const clip = navigator.clipboard;
+  if (!clip) {
+    addToast('Copy is not supported here; try download.', 'info');
+    return;
+  }
+  const activationLive = !navigator.userActivation || navigator.userActivation.isActive;
+  if (result?.blob && (await copyImageToClipboard(result.blob, clip, activationLive))) {
+    addToast('Share card copied to clipboard.', 'success');
+    return;
+  }
+  if (clip.writeText) {
+    await clip.writeText(shareSummaryText(pkg));
+    addToast('Grade summary copied to clipboard.', 'success');
+  } else {
+    addToast('Copy is not supported here; try download.', 'info');
+  }
+};
+
+const withBusy = async (
   setBusy: (v: boolean) => void,
   fn: () => Promise<void>,
   addToast: ToastFn
@@ -90,59 +147,17 @@ export const useShareCardActions = (
   const [busy, setBusy] = useState(false);
 
   const handleDownload = useCallback(
-    () =>
-      runBusy(setBusy, async () => {
-        const result = await buildShareCard(pkg, captureMap);
-        if (!result) {
-          addToast('Could not compose the share card.', 'error');
-          return;
-        }
-        downloadDataUrl(result.canvas.toDataURL('image/png'), shareCardFilename(pkg));
-      }, addToast),
+    () => withBusy(setBusy, () => download(pkg, captureMap, addToast), addToast),
     [addToast, captureMap, pkg]
   );
 
   const handleShare = useCallback(
-    () =>
-      runBusy(setBusy, async () => {
-        const result = await buildShareCard(pkg, captureMap);
-        if (!result || !result.blob) {
-          addToast('Sharing is unavailable; try download.', 'info');
-          return;
-        }
-        const nav = navigator as Navigator & { canShare?: (data?: ShareData) => boolean };
-        const summary = shareSummaryText(pkg);
-        const activationLive = !navigator.userActivation || navigator.userActivation.isActive;
-
-        if (activationLive && (await shareWithImage(result.blob, pkg, nav, summary))) return;
-        if (await shareWithText(nav, summary, addToast)) return;
-
-        addToast('Sharing is unavailable; try download.', 'info');
-      }, addToast),
+    () => withBusy(setBusy, () => share(pkg, captureMap, addToast), addToast),
     [addToast, captureMap, pkg]
   );
 
   const handleCopy = useCallback(
-    () =>
-      runBusy(setBusy, async () => {
-        const result = await buildShareCard(pkg, captureMap);
-        const clip = navigator.clipboard;
-        if (!clip) {
-          addToast('Copy is not supported here; try download.', 'info');
-          return;
-        }
-        const activationLive = !navigator.userActivation || navigator.userActivation.isActive;
-        if (result?.blob && (await copyImageToClipboard(result.blob, clip, activationLive))) {
-          addToast('Share card copied to clipboard.', 'success');
-          return;
-        }
-        if (clip.writeText) {
-          await clip.writeText(shareSummaryText(pkg));
-          addToast('Grade summary copied to clipboard.', 'success');
-        } else {
-          addToast('Copy is not supported here; try download.', 'info');
-        }
-      }, addToast),
+    () => withBusy(setBusy, () => copy(pkg, captureMap, addToast), addToast),
     [addToast, captureMap, pkg]
   );
 
