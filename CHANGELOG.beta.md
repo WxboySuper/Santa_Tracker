@@ -4,6 +4,13 @@ Development entries for pull requests targeting `beta`. These notes are consolid
 
 ## Unreleased
 
+### PR #774
+
+#### Added
+
+- Wire the `verificationRelaunch` gate, surfaces, and classic `/verification` coexistence routing so the Forecast Grade dashboard shell can land in the next stacked PR (06b/06c/07). The flag stays off on every build target until that shell flips it; classic `/verification` is the default in the meantime.
+- Land a temporary `ForecastGradeDashboard` stub so the lazy import resolves before the real shell lands.
+
 ### PR #773
 
 #### Added

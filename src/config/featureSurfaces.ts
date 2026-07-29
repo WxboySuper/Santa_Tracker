@@ -30,4 +30,8 @@ export const GATED_ROUTE_DEFINITIONS = [
 export const FEATURE_SIDE_EFFECT_MODULES = {
   autoTstm: ['../utils/tstmGeneration'],
   customProducts: ['../lib/customProductsRepository'],
+  verificationRelaunch: [
+    '../components/ForecastGrade/ForecastGradeDashboard',
+    '../utils/verificationV2',
+  ],
 } as const satisfies Partial<Record<FeatureKey, readonly string[]>>;
