@@ -4,14 +4,37 @@ Development entries for pull requests targeting `beta`. These notes are consolid
 
 ## Unreleased
 
+### PR #787
+
+- Dependency: @radix-ui/react-dialog ^1.1.20 → ^1.1.23
+- Dependency: @radix-ui/react-dropdown-menu ^2.1.21 → ^2.1.24
+- Dependency: @radix-ui/react-popover ^1.1.20 → ^1.1.23
+- Dependency: @radix-ui/react-slot ^1.3.0 → ^1.3.3
+- Dependency: @radix-ui/react-tabs ^1.1.18 → ^1.1.21
+- Dependency: @radix-ui/react-tooltip ^1.2.13 → ^1.2.16
+- Dependency: @sentry/react ^10.67.0 → ^10.68.0
+- Dependency: @testing-library/jest-dom ^6.6.3 → ^7.0.0
+- Dependency: lucide-react ^1.25.0 → ^1.27.0
+- Dependency: ol-mapbox-style ^13.4.1 → ^13.4.2
+- Dependency: react ^19.2.7 → ^19.2.8
+- Dependency: react-dom ^19.2.7 → ^19.2.8
+- Dependency: rollup >=4.62.2 → >=4.62.3
+- Dependency: web-vitals ^5.3.0 → ^6.0.1
+- Dependency: @playwright/test ^1.61.1 → ^1.62.0
+- Dependency: @vitejs/plugin-react ^6.0.3 → ^6.0.4
+- Dependency: @sentry/node ^10.67.0 → ^10.68.0 (`server`)
+- Dependency: express-rate-limit ^8.6.0 → ^8.6.1 (`server`)
+
 ### PR #771
 
 - Add event yield and severity intent-layer component scorers for Forecast Grade. `scoreEventYield` filters reports to the supplied hazard product before scoring so reports for other hazards never influence the product's yield.
+
 ### PR #770
 
 #### Added
 
 - Add probability skill (Brier/BSS), spatial contingency, and false-alarm discipline component scorers.
+
 ### PR #769
 
 #### Added
