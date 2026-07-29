@@ -75,13 +75,13 @@ const persistCards = (scope: string, cards: GradeCard[]): boolean => {
 };
 
 /** Persists a snapshot under the card id, returning whether the write succeeded. */
-const persistSnapshot = (scope: string, cardId: string, snapshot: GradeSnapshot): boolean => {
+const persistSnapshot = (params: { scope: string; cardId: string; snapshot: GradeSnapshot }): boolean => {
   const storage = safeStorage();
   if (!storage) {
     return false;
   }
   try {
-    storage.setItem(snapshotKey(scope, cardId), JSON.stringify(snapshot));
+    storage.setItem(snapshotKey(params.scope, params.cardId), JSON.stringify(params.snapshot));
     return true;
   } catch {
     // Snapshot persistence is best-effort.
@@ -90,14 +90,14 @@ const persistSnapshot = (scope: string, cardId: string, snapshot: GradeSnapshot)
 };
 
 /** Removes snapshots for the supplied card ids. Best-effort. */
-const evictSnapshots = (scope: string, cardIds: string[]): void => {
+const evictSnapshots = (params: { scope: string; cardIds: string[] }): void => {
   const storage = safeStorage();
   if (!storage) {
     return;
   }
-  for (const id of cardIds) {
+  for (const id of params.cardIds) {
     try {
-      storage.removeItem(snapshotKey(scope, id));
+      storage.removeItem(snapshotKey(params.scope, id));
     } catch {
       // Ignore.
     }
@@ -129,11 +129,13 @@ export const recordGradeResult = ({ scope, card, snapshot }: RecordGradeOptions)
   const trimmed = next.slice(0, GRADE_HISTORY_LIMIT);
   const evicted = next.slice(GRADE_HISTORY_LIMIT);
 
-  const snapshotPersisted = snapshot ? persistSnapshot(scope, card.id, snapshot) : false;
+  const snapshotPersisted = snapshot
+    ? persistSnapshot({ scope, cardId: card.id, snapshot })
+    : false;
   const cardsPersisted = persistCards(scope, trimmed);
 
   if (cardsPersisted) {
-    evictSnapshots(scope, evicted.map((c) => c.id));
+    evictSnapshots({ scope, cardIds: evicted.map((c) => c.id) });
   }
 
   if (snapshot && !snapshotPersisted) {
@@ -143,8 +145,13 @@ export const recordGradeResult = ({ scope, card, snapshot }: RecordGradeOptions)
   return trimmed;
 };
 
+export interface LoadGradeSnapshotParams {
+  scope: string | null;
+  cardId: string;
+}
+
 /** Loads the immutable full snapshot for a card, if one was stored (premium). */
-export const loadGradeSnapshot = (scope: string | null, cardId: string): GradeSnapshot | null => {
+export const loadGradeSnapshot = ({ scope, cardId }: LoadGradeSnapshotParams): GradeSnapshot | null => {
   if (!scope) {
     return null;
   }

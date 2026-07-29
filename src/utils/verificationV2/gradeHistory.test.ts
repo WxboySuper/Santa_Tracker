@@ -94,12 +94,12 @@ describe('grade history persistence', () => {
     const card = sampleCard({ id: 'snap', hasSnapshot: true });
     const snapshot = { card, package: { grade: 82.4 }, forecast: {}, reportDate: '2026-05-01' } as unknown as GradeSnapshot;
     recordGradeResult({ scope, card, snapshot });
-    expect(loadGradeSnapshot(scope, 'snap')).not.toBeNull();
+    expect(loadGradeSnapshot({ scope, cardId: 'snap' })).not.toBeNull();
 
     for (let index = 0; index < GRADE_HISTORY_LIMIT; index += 1) {
       recordGradeResult({ scope, card: sampleCard({ id: `filler-${index}` }) });
     }
-    expect(loadGradeSnapshot(scope, 'snap')).toBeNull();
+    expect(loadGradeSnapshot({ scope, cardId: 'snap' })).toBeNull();
   });
 
   test('flips hasSnapshot to false on the returned card when the snapshot write fails', () => {
@@ -126,7 +126,7 @@ describe('grade history persistence', () => {
     const card = sampleCard({ id: 'a', hasSnapshot: true });
     const snapshot = { card, package: { grade: 1 }, forecast: {}, reportDate: '2026-05-01' } as unknown as GradeSnapshot;
     recordGradeResult({ scope, card, snapshot });
-    expect(loadGradeSnapshot(scope, 'a')).not.toBeNull();
+    expect(loadGradeSnapshot({ scope, cardId: 'a' })).not.toBeNull();
 
     const setItemSpy = jest
       .spyOn(Storage.prototype, 'setItem')
@@ -140,7 +140,7 @@ describe('grade history persistence', () => {
     try {
       // First filler run fails to persist its card list, so the prior snapshot must remain.
       recordGradeResult({ scope, card: sampleCard({ id: 'b' }) });
-      expect(loadGradeSnapshot(scope, 'a')).not.toBeNull();
+      expect(loadGradeSnapshot({ scope, cardId: 'a' })).not.toBeNull();
     } finally {
       setItemSpy.mockRestore();
     }

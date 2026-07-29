@@ -49,6 +49,15 @@ export const tierHasSnapshots = (tier: GradeAccountTier): boolean => tier === 'p
 
 export class SourceLoadError extends Error {}
 
+/** Deserializes a saved forecast payload and surfaces a blocking error. */
+const deserializeCycle = (payload: unknown, parseErrorMessage: string): ForecastCycle => {
+  try {
+    return deserializeForecast(payload);
+  } catch {
+    throw new SourceLoadError(parseErrorMessage);
+  }
+};
+
 /** Loads and validates a forecast package from an uploaded file, or blocks. */
 export const loadForecastFromFile = async (file: File): Promise<ForecastCycle> => {
   let raw: unknown;
@@ -62,11 +71,7 @@ export const loadForecastFromFile = async (file: File): Promise<ForecastCycle> =
     throw new SourceLoadError('That file is not a valid GFC forecast package.');
   }
 
-  try {
-    return deserializeForecast(raw);
-  } catch {
-    throw new SourceLoadError('That forecast package could not be parsed.');
-  }
+  return deserializeCycle(raw, 'That forecast package could not be parsed.');
 };
 
 export interface LoadForecastFromCloudParams {
@@ -88,22 +93,22 @@ export const loadForecastFromCloud = async (
       result.error ?? 'That cloud cycle could not be loaded. Choose a saved cycle from your library.'
     );
   }
-  try {
-    return deserializeForecast(result.data.payload);
-  } catch {
-    throw new SourceLoadError('That cloud cycle could not be parsed.');
+  return deserializeCycle(result.data.payload, 'That cloud cycle could not be parsed.');
+};
+
+const resolveArchiveDate = (reportDate: string): string => {
+  const archiveDate = toArchiveDate(reportDate);
+  if (!archiveDate) {
+    throw new SourceLoadError('Choose a valid report date.');
   }
+  return archiveDate;
 };
 
 /** Loads SPC storm reports for a date (or today when null), or blocks. */
 export const loadReportsForDate = async (reportDate: string | null): Promise<StormReport[]> => {
   try {
     if (reportDate !== null) {
-      const archiveDate = toArchiveDate(reportDate);
-      if (!archiveDate) {
-        throw new SourceLoadError('Choose a valid report date.');
-      }
-      return await fetchStormReports(archiveDate);
+      return await fetchStormReports(resolveArchiveDate(reportDate));
     }
     return await fetchTodayStormReports();
   } catch (error) {
