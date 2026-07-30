@@ -73,7 +73,7 @@ import {
   loadGradeSnapshot,
   recordGradeResult,
 } from '../../utils/verificationV2/gradeHistory';
-import { useForecastGrade } from './useForecastGrade';
+import { resolvePackageReportDate, useForecastGrade } from './useForecastGrade';
 
 const mockUseAuth = useAuth as jest.MockedFunction<typeof useAuth>;
 const mockUseEntitlement = useEntitlement as jest.MockedFunction<typeof useEntitlement>;
@@ -205,6 +205,23 @@ beforeEach(() => {
 });
 
 describe('useForecastGrade', () => {
+  describe('package report date', () => {
+    test('prefers the selected outlook valid date over the cycle date', () => {
+      const cycle = {
+        cycleDate: '2026-07-28',
+        days: { 1: { metadata: { validDate: '2026-07-29T12:00:00Z' } } },
+      } as never;
+
+      expect(resolvePackageReportDate(cycle, 1)).toBe('2026-07-29');
+    });
+
+    test('falls back to the package cycle date when day metadata is absent', () => {
+      const cycle = { cycleDate: '2026-07-28', days: {} } as never;
+
+      expect(resolvePackageReportDate(cycle, 1)).toBe('2026-07-28');
+    });
+  });
+
   describe('tier and entitlements', () => {
     test('signed-out users see signed-out tier and null scope', () => {
       const store = createStore();
@@ -281,6 +298,26 @@ describe('useForecastGrade', () => {
 
       expect(result.current.canRun).toBe(true);
     });
+  });
+
+  test('defaults a loaded package to its documented outlook date', () => {
+    const datedCycle = {
+      cycleDate: '2026-07-27',
+      days: {
+        1: {
+          data: { tornado: new Map(), wind: new Map(), hail: new Map(), categorical: new Map() },
+          metadata: { validDate: '2026-07-28T12:00:00Z' },
+        },
+      },
+    } as never;
+    const { result } = renderGradeHook(createStore());
+
+    act(() => {
+      result.current.setForecastPackage(datedCycle, 'file', 'forecast.json');
+    });
+
+    expect(result.current.reportDate).toBe('2026-07-28');
+    expect(result.current.useToday).toBe(false);
   });
 
   describe('run validation', () => {
@@ -620,7 +657,7 @@ describe('useForecastGrade', () => {
       expect(result.current.forecast).toEqual(sampleCycle);
       expect(result.current.packageSource).toBe('file');
       expect(addToast).toHaveBeenCalledWith(
-        'Forecast package loaded. Choose a report date and grade.',
+        'Forecast package loaded. Its outlook date is ready for grading.',
         'success'
       );
     });

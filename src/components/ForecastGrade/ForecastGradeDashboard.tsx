@@ -25,9 +25,10 @@ interface ForecastGradeTopbarProps {
 const ForecastGradeTopbar: React.FC<ForecastGradeTopbarProps> = ({ methodologyPath }) => (
   <div className="fg-topbar">
     <div>
-      <h2 className="text-lg font-semibold">Forecast Grade</h2>
-      <p className="text-xs text-slate-500">
-        Map-first verification · formula gfc-ver-1 ·{' '}
+      <div className="fg-kicker">Verification workspace</div>
+      <h2>Forecast Grade</h2>
+      <p>
+        Compare the outlook against SPC evidence · formula gfc-ver-1 ·{' '}
         <a className="text-blue-500 hover:underline" href={methodologyPath} target="_blank" rel="noreferrer">
           Methodology
         </a>
@@ -128,6 +129,8 @@ const ForecastGradeDashboard: React.FC = () => {
           activeComponent={activeComponent}
           result={grade.result}
           reportsVisible={reportsVisible}
+          isRunning={grade.phase === 'running'}
+          progress={grade.progress}
           onSelectMapLayer={handleSelectMapLayer}
           onSelectDay={grade.setSelectedDay}
           onToggleEvidence={handleToggleEvidence}
