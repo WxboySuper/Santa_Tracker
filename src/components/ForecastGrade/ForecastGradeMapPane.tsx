@@ -85,6 +85,11 @@ const ForecastGradeMapPane: React.FC<ForecastGradeMapPaneProps> = ({
             legendOpen={legendOpen}
             onToggleLegend={() => setLegendOpen((open) => !open)}
           />
+          <div className="fg-map-telemetry" aria-hidden="true">
+            <span>SPC / EVIDENCE</span>
+            <span>DAY {selectedDay}</span>
+            <span>{reports.length} REPORTS</span>
+          </div>
           {isRunning && (
             <div className="fg-map-progress">
               <div className="fg-map-progress__label">Scoring in progress</div>
