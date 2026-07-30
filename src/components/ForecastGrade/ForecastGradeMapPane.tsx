@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { fromLonLat } from 'ol/proj';
 import VerificationMap, { type VerificationMapHandle } from '../Map/VerificationMap';
 import type { StormReport } from '../../types/stormReports';
@@ -48,6 +48,7 @@ const ForecastGradeMapPane: React.FC<ForecastGradeMapPaneProps> = ({
   mapPaneRef,
   mapRef,
 }) => {
+  const [legendOpen, setLegendOpen] = useState(false);
   useEffect(() => {
     if (!selectedReportId) {
       return;
@@ -71,6 +72,7 @@ const ForecastGradeMapPane: React.FC<ForecastGradeMapPaneProps> = ({
             ref={mapRef}
             activeOutlookType={activeMapLayer}
             selectedDay={selectedDay}
+            legendOpen={legendOpen}
           />
           <ForecastGradeMapControls
             activeMapLayer={activeMapLayer}
@@ -80,6 +82,8 @@ const ForecastGradeMapPane: React.FC<ForecastGradeMapPaneProps> = ({
             onSelectDay={onSelectDay}
             reportsVisible={reportsVisible}
             onToggleEvidence={onToggleEvidence}
+            legendOpen={legendOpen}
+            onToggleLegend={() => setLegendOpen((open) => !open)}
           />
           {isRunning && (
             <div className="fg-map-progress">

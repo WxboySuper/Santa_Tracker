@@ -84,7 +84,7 @@ describe('OpenLayersVerificationMap helpers', () => {
   });
 
   test('resolveFill/Stroke opacity and width defaults', () => {
-    expect(resolveFillOpacity('categorical', 0.6)).toBe(0.6);
+    expect(resolveFillOpacity('categorical', 0.6)).toBe(0.42);
     expect(resolveFillOpacity('categorical', 'x' as unknown)).toBe(0.25);
     expect(resolveStrokeOpacity(0.7)).toBe(0.7);
     expect(resolveStrokeOpacity('y' as unknown)).toBe(1);

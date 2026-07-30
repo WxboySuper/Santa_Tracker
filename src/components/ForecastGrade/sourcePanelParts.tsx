@@ -84,18 +84,21 @@ interface GradeRunFooterProps {
 }
 
 export const GradeRunFooter: React.FC<GradeRunFooterProps> = ({ tier, canRun, isRunning, error, onRun }) => (
-  <>
-    {error && <p className="mt-3 text-sm text-red-500">{error}</p>}
+  <div className="fg-grade-footer" aria-live="polite">
+    <div className={`fg-run-status ${error ? 'fg-run-status--error' : ''}`}>
+      {error ? 'Grading needs attention — update the date or retry.' : canRun ? '1 of 1 package ready to grade' : 'Choose a reached SPC report date to grade'}
+    </div>
+    {error && <p className="fg-grade-error">{error}</p>}
     <button
       type="button"
-      className="fg-touch mt-4 w-full rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
+      className="fg-touch fg-grade-button"
       disabled={!canRun}
       onClick={onRun}
     >
-      {isRunning ? 'Grading…' : 'Grade forecast'}
+      {isRunning ? 'Grading forecast…' : error ? 'Retry grading' : 'Grade forecast'}
     </button>
     {tier === 'signed-out' && (
-      <p className="mt-2 text-xs text-slate-400">Sign in to keep a grade history trend.</p>
+      <p className="fg-grade-note">Sign in to keep a grade history trend.</p>
     )}
-  </>
+  </div>
 );

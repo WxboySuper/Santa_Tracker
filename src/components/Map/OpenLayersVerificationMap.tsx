@@ -50,6 +50,7 @@ import { ReportType } from "../../types/stormReports";
 interface OpenLayersVerificationMapProps {
   activeOutlookType?: "categorical" | "tornado" | "wind" | "hail";
   selectedDay?: DayType;
+  legendOpen?: boolean;
 }
 
 type VerificationOutlookType = NonNullable<
@@ -281,7 +282,9 @@ export const resolveFillOpacity = (
   _outlookType: VerificationOutlookType,
   fillOpacity: unknown,
 ): number => {
-  return coerceNumber(fillOpacity, 0.25);
+  // Verification is an evidence view: forecast paint must never obscure the
+  // basemap, state/county lines, or the SPC points being evaluated.
+  return Math.min(coerceNumber(fillOpacity, 0.25), 0.42);
 };
 
 /** Returns the stroke opacity as a number, defaulting to 1 if the value is not numeric. */
@@ -468,7 +471,7 @@ const VerifMapStylePickerButton: React.FC<{
 const OpenLayersVerificationMap = forwardRef<
   MapAdapterHandle<OLMap> | null,
   OpenLayersVerificationMapProps
->(({ activeOutlookType = CATEGORICAL_OUTLOOK, selectedDay = 1 }, ref) => {
+>(({ activeOutlookType = CATEGORICAL_OUTLOOK, selectedDay = 1, legendOpen = false }, ref) => {
   const dispatch = useDispatch();
   const [showStylePicker, setShowStylePicker] = useState(false);
   const mapElementRef = useRef<HTMLDivElement>(null);
@@ -936,7 +939,7 @@ const OpenLayersVerificationMap = forwardRef<
           />
         </div>
       </div>
-      <Legend activeOutlookType={activeOutlookType} />
+      <Legend activeOutlookType={activeOutlookType} desktopOpen={legendOpen} />
       <UnofficialBadge />
     </div>
   );
