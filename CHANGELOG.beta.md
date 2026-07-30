@@ -4,6 +4,11 @@ Development entries for pull requests targeting `beta`. These notes are consolid
 
 ## Unreleased
 
+### PR #778
+
+#### Added
+
+- Add anonymous Forecast Grade share card with download, share, and copy actions.
 ### PR #777
 
 - Add Forecast Grade result workspace with score breakdown, report table, and grade trend.
