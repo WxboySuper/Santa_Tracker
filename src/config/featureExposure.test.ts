@@ -122,16 +122,16 @@ describe('featureExposure registry', () => {
     ] as const;
 
     for (const feature of workstreamKeys.filter(
-      (feature) => !['forecastWorkflowV2', 'customProducts'].includes(feature)
+      (feature) => !['forecastWorkflowV2', 'verificationRelaunch', 'customProducts'].includes(feature)
     )) {
       for (const target of ['local', 'beta', 'staging', 'production'] as const) {
         expect(isFeatureExposedOnTarget(feature, target)).toBe(false);
       }
     }
 
-    // verificationRelaunch stays off on every target until the dashboard shell lands in 06b/06c/07.
+    // verificationRelaunch is approved for beta while staging and production remain disabled.
     for (const target of ['local', 'beta', 'staging', 'production'] as const) {
-      expect(isFeatureExposedOnTarget('verificationRelaunch', target)).toBe(false);
+      expect(isFeatureExposedOnTarget('verificationRelaunch', target)).toBe(target === 'beta');
     }
 
     expect(isFeatureExposedOnTarget('forecastWorkflowV2', 'local')).toBe(true);
