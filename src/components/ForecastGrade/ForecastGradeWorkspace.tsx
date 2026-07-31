@@ -2,7 +2,7 @@ import React from 'react';
 import type { MutableRefObject } from 'react';
 import type { VerificationMapHandle } from '../Map/VerificationMap';
 import type { StormReport } from '../../types/stormReports';
-import type { ComponentKey, MapOutlookLayer, ProductKind } from '../../utils/verificationV2';
+import type { ComponentKey, MapOutlookLayer, ProductGrade, ProductKind } from '../../utils/verificationV2';
 import type { useForecastGrade } from './useForecastGrade';
 import type { availablePackageSources } from '../../utils/verificationV2/sources';
 import CloudSourcePicker from './CloudSourcePicker';
@@ -19,9 +19,7 @@ interface ForecastGradeWorkspaceProps {
   availableSources: AvailableSources;
   grade: GradeController;
   activeComponent: ComponentKey | null;
-  activeProductGrade: GradeController['result'] extends infer Result
-    ? Result extends { products: (infer Product)[] } ? Product | undefined : never
-    : never;
+  activeProductGrade?: ProductGrade;
   reportsVisible: boolean;
   selectedReportId: string | null;
   mapRef: MutableRefObject<VerificationMapHandle | null>;

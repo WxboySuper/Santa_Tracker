@@ -22,7 +22,7 @@ interface ForecastGradeMapPaneProps {
   isRunning: boolean;
   progress: GradeProgress | null;
   onSelectMapLayer: (layer: MapOutlookLayer) => void;
-  onSelectDay: (day: never) => void;
+  onSelectDay: (day: DayType) => void;
   onToggleEvidence: () => void;
   onSelectReportId?: (reportId: string | null) => void;
   mapPaneRef: React.RefObject<HTMLDivElement | null>;

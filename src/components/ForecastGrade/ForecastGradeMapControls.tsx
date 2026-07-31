@@ -1,5 +1,6 @@
 import React from 'react';
 import { Eye, EyeOff, MapPinned } from 'lucide-react';
+import type { DayType } from '../../types/outlooks';
 import { MAP_OUTLOOK_LAYERS, type MapOutlookLayer } from '../../utils/verificationV2';
 
 interface ForecastGradeMapControlsProps {
@@ -7,7 +8,7 @@ interface ForecastGradeMapControlsProps {
   onSelectMapLayer: (layer: MapOutlookLayer) => void;
   availableDays: number[];
   selectedDay: number;
-  onSelectDay: (day: never) => void;
+  onSelectDay: (day: DayType) => void;
   reportsVisible: boolean;
   legendOpen: boolean;
   onToggleEvidence: () => void;
@@ -46,7 +47,7 @@ const ForecastGradeMapControls: React.FC<ForecastGradeMapControlsProps> = ({
         className="fg-touch rounded bg-white/10 px-2 py-1"
         value={selectedDay}
         aria-label="Forecast day"
-        onChange={(event) => onSelectDay(Number(event.target.value) as never)}
+        onChange={(event) => onSelectDay(Number(event.target.value) as DayType)}
       >
         {availableDays.map((day) => (
           <option key={day} value={day} className="text-black">

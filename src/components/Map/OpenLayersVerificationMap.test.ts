@@ -154,6 +154,8 @@ describe('verification map legend toggle', () => {
     const button = screen.getByRole('button', { name: 'Show map key' });
 
     expect(button).toHaveAttribute('aria-expanded', 'false');
+    expect(button).toHaveAttribute('aria-controls', 'map-legend');
+    expect(button).toHaveClass('map-legend-toggle-button');
     await user.click(button);
     expect(onToggle).toHaveBeenCalledTimes(1);
 
