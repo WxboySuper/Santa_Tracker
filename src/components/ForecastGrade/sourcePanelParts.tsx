@@ -15,7 +15,7 @@ export const PackageChooser: React.FC<PackageChooserProps> = ({ availableSources
   return (
     <div className="mt-2 space-y-3">
       <div>
-        <label className="fg-touch inline-flex cursor-pointer items-center gap-2 rounded-lg border border-slate-300/50 px-3 py-2 text-sm">
+        <label className="fg-upload-control fg-touch inline-flex cursor-pointer items-center gap-2 rounded-md px-3 py-2 text-sm">
           <FileUp className="h-4 w-4" />
           <span>Upload forecast file</span>
           <input
@@ -57,15 +57,15 @@ export const ReportDatePicker: React.FC<ReportDatePickerProps> = ({
       <div className="fg-panel-eyebrow">2 · Observation date</div>
       <div className="text-sm font-semibold">SPC storm reports</div>
     </div>
-    <div className="mt-2 flex flex-wrap items-center gap-3 text-sm">
-      <label className="fg-touch inline-flex items-center gap-2 px-2">
+    <div className="fg-date-controls mt-2 flex flex-wrap items-center gap-3 text-sm">
+       <label className="fg-touch inline-flex items-center gap-2 px-2">
         <input type="checkbox" checked={useToday} onChange={(event) => onUseTodayChange(event.target.checked)} />
         Use today instead
       </label>
       {!useToday && (
         <input
           type="date"
-          className="fg-touch rounded border border-slate-300/40 bg-transparent px-2 py-1"
+          className="fg-date-input fg-touch rounded-md px-3 py-2"
           value={reportDate}
           onChange={(event) => onReportDateChange(event.target.value)}
           aria-label="Report date"
@@ -84,18 +84,21 @@ interface GradeRunFooterProps {
 }
 
 export const GradeRunFooter: React.FC<GradeRunFooterProps> = ({ tier, canRun, isRunning, error, onRun }) => (
-  <>
-    {error && <p className="mt-3 text-sm text-red-500">{error}</p>}
+  <div className="fg-grade-footer" aria-live="polite">
+    <div className={`fg-run-status ${error ? 'fg-run-status--error' : ''}`}>
+      {error ? 'Grading needs attention — update the date or retry.' : canRun ? '1 of 1 package ready to grade' : 'Choose a reached SPC report date to grade'}
+    </div>
+    {error && <p className="fg-grade-error">{error}</p>}
     <button
       type="button"
-      className="fg-touch mt-4 w-full rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
+      className="fg-touch fg-grade-button"
       disabled={!canRun}
       onClick={onRun}
     >
-      {isRunning ? 'Grading…' : 'Grade forecast'}
+      {isRunning ? 'Grading forecast…' : error ? 'Retry grading' : 'Grade forecast'}
     </button>
     {tier === 'signed-out' && (
-      <p className="mt-2 text-xs text-slate-400">Sign in to keep a grade history trend.</p>
+      <p className="fg-grade-note">Sign in to keep a grade history trend.</p>
     )}
-  </>
+  </div>
 );

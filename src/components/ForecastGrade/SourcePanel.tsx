@@ -55,6 +55,12 @@ const SourcePanel: React.FC<SourcePanelProps> = ({
       )}
     </div>
 
+    <div className="fg-metric-strip" aria-label="Verification package status">
+      <span><b>PACKAGE</b>{hasForecast ? ' READY' : ' AWAITING INPUT'}</span>
+      <span><b>ENGINE</b> GFC-VER-1</span>
+      <span><b>DATE</b> {useToday ? 'TODAY' : reportDate || 'UNSET'}</span>
+    </div>
+
     {hasForecast ? (
       <p className="fg-loaded-package">
         <span>Loaded</span> {sourceLabel}

@@ -14,11 +14,27 @@ const RunProgress: React.FC<RunProgressProps> = ({ progress }) => {
     return null;
   }
   const percent = Math.round(progress.fraction * 100);
+  const stages = ['Evidence', 'Score', 'Complete'];
+  const activeStage = Math.min(stages.length - 1, Math.floor(progress.fraction * stages.length));
   return (
     <div className="rounded-xl border border-slate-300/40 p-4" role="status" aria-live="polite">
       <div className="mb-2 flex items-center justify-between text-sm">
         <span>{progress.label}</span>
         <span className="tabular-nums">{percent}%</span>
+      </div>
+      <div className="mb-3 grid grid-cols-3 gap-1" aria-label={`${progress.label}: ${percent}% complete`}>
+        {stages.map((stage, index) => (
+          <span
+            key={stage}
+            className={`h-1.5 rounded-full transition-colors ${
+              index < activeStage
+                ? 'bg-emerald-500'
+                : index === activeStage
+                  ? 'bg-sky-500'
+                  : 'bg-slate-300/50'
+            }`}
+          />
+        ))}
       </div>
       <div className="h-2 w-full overflow-hidden rounded-full bg-slate-300/30">
         <div className="h-full rounded-full bg-blue-500 transition-all" style={{ width: `${percent}%` }} />

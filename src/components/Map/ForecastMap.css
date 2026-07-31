@@ -222,6 +222,10 @@
   transition: background-color 0.2s, color 0.2s, transform 0.2s;
 }
 
+.map-legend-toggle-button {
+  display: none;
+}
+
 .map-toolbar-surface .map-toolbar-button.mode-delete,
 .map-toolbar-surface .map-toolbar-button.mode-key {
   padding-left: 12px;
@@ -423,6 +427,10 @@
     padding: 8px 8px;
     border-radius: 9px;
     font-size: 0.74rem;
+  }
+
+  .map-legend-toggle-button {
+    display: flex;
   }
 
   .map-toolbar-surface .map-toolbar-button.mode-delete,

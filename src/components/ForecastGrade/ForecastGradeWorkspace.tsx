@@ -1,0 +1,115 @@
+import React from 'react';
+import type { MutableRefObject } from 'react';
+import type { VerificationMapHandle } from '../Map/VerificationMap';
+import type { StormReport } from '../../types/stormReports';
+import type { ComponentKey, MapOutlookLayer, ProductGrade, ProductKind } from '../../utils/verificationV2';
+import type { useForecastGrade } from './useForecastGrade';
+import type { availablePackageSources } from '../../utils/verificationV2/sources';
+import CloudSourcePicker from './CloudSourcePicker';
+import ForecastGradeMapPane from './ForecastGradeMapPane';
+import ForecastGradeResultsPane from './ForecastGradeResultsPane';
+import SourcePanel from './SourcePanel';
+
+type GradeController = ReturnType<typeof useForecastGrade>;
+type AvailableSources = ReturnType<typeof availablePackageSources>;
+type Toast = (message: string, tone: 'success' | 'error' | 'info' | 'warning') => void;
+
+interface ForecastGradeWorkspaceProps {
+  addToast: Toast;
+  availableSources: AvailableSources;
+  grade: GradeController;
+  activeComponent: ComponentKey | null;
+  activeProductGrade?: ProductGrade;
+  reportsVisible: boolean;
+  selectedReportId: string | null;
+  mapRef: MutableRefObject<VerificationMapHandle | null>;
+  mapPaneRef: MutableRefObject<HTMLDivElement | null>;
+  onFile: (file: File) => void;
+  onCloudLoad: (id: string, label: string) => void;
+  onReset: () => void;
+  onSelectComponent: React.Dispatch<React.SetStateAction<ComponentKey | null>>;
+  onSelectMapLayer: (layer: MapOutlookLayer) => void;
+  onSelectProduct: (product: ProductKind) => void;
+  onSelectReport: (report: StormReport | null) => void;
+  onSelectReportId: (reportId: string | null) => void;
+  onSelectHistoryCard: (card: Parameters<GradeController['restoreCard']>[0]) => void;
+  onToggleEvidence: () => void;
+}
+
+const ForecastGradeWorkspace: React.FC<ForecastGradeWorkspaceProps> = ({
+  addToast,
+  availableSources,
+  grade,
+  activeComponent,
+  activeProductGrade,
+  reportsVisible,
+  selectedReportId,
+  mapRef,
+  mapPaneRef,
+  onFile,
+  onCloudLoad,
+  onReset,
+  onSelectComponent,
+  onSelectMapLayer,
+  onSelectProduct,
+  onSelectReport,
+  onSelectReportId,
+  onSelectHistoryCard,
+  onToggleEvidence,
+}) => (
+  <div className="fg-workspace">
+    <aside className="fg-source-rail">
+      <SourcePanel
+        tier={grade.tier}
+        availableSources={availableSources}
+        hasForecast={Boolean(grade.forecast)}
+        sourceLabel={grade.sourceLabel}
+        useToday={grade.useToday}
+        reportDate={grade.reportDate}
+        canRun={grade.canRun}
+        isRunning={grade.phase === 'running'}
+        error={grade.error}
+        onFile={onFile}
+        onUseTodayChange={grade.setUseToday}
+        onReportDateChange={grade.setReportDate}
+        onRun={grade.run}
+        onReset={onReset}
+        renderCloudSource={availableSources.includes('cloud') ? () => <CloudSourcePicker onLoad={onCloudLoad} /> : undefined}
+      />
+    </aside>
+    <main className="fg-analysis-column">
+      <ForecastGradeMapPane
+        forecastLoaded={Boolean(grade.forecast)}
+        activeMapLayer={grade.activeMapLayer}
+        selectedDay={grade.selectedDay}
+        availableDays={grade.availableDays}
+        reports={grade.reports}
+        selectedReportId={selectedReportId}
+        activeComponent={activeComponent}
+        result={grade.result}
+        reportsVisible={reportsVisible}
+        isRunning={grade.phase === 'running'}
+        progress={grade.progress}
+        onSelectMapLayer={onSelectMapLayer}
+        onSelectDay={grade.setSelectedDay}
+        onToggleEvidence={onToggleEvidence}
+        onSelectReportId={onSelectReportId}
+        mapPaneRef={mapPaneRef}
+        mapRef={mapRef}
+      />
+    </main>
+    <ForecastGradeResultsPane
+      grade={grade}
+      activeProductGrade={activeProductGrade}
+      activeComponent={activeComponent}
+      onSelectComponent={onSelectComponent}
+      selectedReportId={selectedReportId}
+      onSelectReport={onSelectReport}
+      onSelectProduct={onSelectProduct}
+      onSelectHistoryCard={onSelectHistoryCard}
+      result={grade.result}
+    />
+  </div>
+);
+
+export default ForecastGradeWorkspace;

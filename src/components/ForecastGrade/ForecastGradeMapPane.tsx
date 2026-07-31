@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { fromLonLat } from 'ol/proj';
 import VerificationMap, { type VerificationMapHandle } from '../Map/VerificationMap';
 import type { StormReport } from '../../types/stormReports';
@@ -22,7 +22,7 @@ interface ForecastGradeMapPaneProps {
   isRunning: boolean;
   progress: GradeProgress | null;
   onSelectMapLayer: (layer: MapOutlookLayer) => void;
-  onSelectDay: (day: never) => void;
+  onSelectDay: (day: DayType) => void;
   onToggleEvidence: () => void;
   onSelectReportId?: (reportId: string | null) => void;
   mapPaneRef: React.RefObject<HTMLDivElement | null>;
@@ -48,6 +48,7 @@ const ForecastGradeMapPane: React.FC<ForecastGradeMapPaneProps> = ({
   mapPaneRef,
   mapRef,
 }) => {
+  const [legendOpen, setLegendOpen] = useState(false);
   useEffect(() => {
     if (!selectedReportId) {
       return;
@@ -65,22 +66,33 @@ const ForecastGradeMapPane: React.FC<ForecastGradeMapPaneProps> = ({
 
   return (
     <div className="fg-map-pane" ref={mapPaneRef} data-emphasis-component={activeComponent ?? undefined}>
-      {forecastLoaded ? (
-        <>
+      <div className="fg-map-toolbar">
+        <ForecastGradeMapControls
+          activeMapLayer={activeMapLayer}
+          onSelectMapLayer={onSelectMapLayer}
+          availableDays={availableDays}
+          selectedDay={selectedDay}
+          onSelectDay={onSelectDay}
+          reportsVisible={reportsVisible}
+          onToggleEvidence={onToggleEvidence}
+          legendOpen={legendOpen}
+          onToggleLegend={() => setLegendOpen((open) => !open)}
+        />
+      </div>
+      <div className="fg-map-canvas">
+        {forecastLoaded ? (
+          <>
           <VerificationMap
             ref={mapRef}
             activeOutlookType={activeMapLayer}
             selectedDay={selectedDay}
+            legendOpen={legendOpen}
           />
-          <ForecastGradeMapControls
-            activeMapLayer={activeMapLayer}
-            onSelectMapLayer={onSelectMapLayer}
-            availableDays={availableDays}
-            selectedDay={selectedDay}
-            onSelectDay={onSelectDay}
-            reportsVisible={reportsVisible}
-            onToggleEvidence={onToggleEvidence}
-          />
+          <div className="fg-map-telemetry" aria-hidden="true">
+            <span>SPC / EVIDENCE</span>
+            <span>DAY {selectedDay}</span>
+            <span>{reports.length} REPORTS</span>
+          </div>
           {isRunning && (
             <div className="fg-map-progress">
               <div className="fg-map-progress__label">Scoring in progress</div>
@@ -95,14 +107,15 @@ const ForecastGradeMapPane: React.FC<ForecastGradeMapPaneProps> = ({
               </span>
             </div>
           )}
-        </>
-      ) : (
-        <div className="fg-map-empty">
+          </>
+        ) : (
+          <div className="fg-map-empty">
           <span className="fg-map-empty__eyebrow">Evidence surface</span>
           <strong>Load a forecast package to begin.</strong>
           <p>The map will show your outlook and the SPC storm reports used to score it.</p>
-        </div>
-      )}
+          </div>
+        )}
+      </div>
     </div>
   );
 };

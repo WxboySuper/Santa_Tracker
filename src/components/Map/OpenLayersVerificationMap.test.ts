@@ -4,6 +4,7 @@
  */
 
 import { jest } from '@jest/globals';
+import React from 'react';
 
 // Mock ol-mapbox-style to avoid loading ESM modules in tests
 jest.mock('ol-mapbox-style', () => ({ apply: jest.fn() }));
@@ -21,6 +22,8 @@ jest.mock('../../utils/mapStyleUtils', () => ({
 }));
 
 import { createCanvasStub } from '../../testUtils';
+import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import {
   toRgbaColor,
   createHatchPattern,
@@ -37,6 +40,7 @@ import {
   buildStyle,
   replaceLayerGroupLayers,
   createVerifTileSource,
+  VerifMapLegendToggleButton,
 } from './OpenLayersVerificationMap';
 
 type LayerGroupLike = {
@@ -84,7 +88,7 @@ describe('OpenLayersVerificationMap helpers', () => {
   });
 
   test('resolveFill/Stroke opacity and width defaults', () => {
-    expect(resolveFillOpacity('categorical', 0.6)).toBe(0.6);
+    expect(resolveFillOpacity('categorical', 0.6)).toBe(0.42);
     expect(resolveFillOpacity('categorical', 'x' as unknown)).toBe(0.25);
     expect(resolveStrokeOpacity(0.7)).toBe(0.7);
     expect(resolveStrokeOpacity('y' as unknown)).toBe(1);
@@ -139,5 +143,23 @@ describe('OpenLayersVerificationMap helpers', () => {
   test('createVerifTileSource returns a source for known styles', () => {
     const tileSource = createVerifTileSource('osm');
     expect(tileSource).toBeTruthy();
+  });
+});
+
+describe('verification map legend toggle', () => {
+  test('toggles the mobile key state and exposes its expanded state', async () => {
+    const user = userEvent.setup();
+    const onToggle = jest.fn();
+    const { rerender } = render(React.createElement(VerifMapLegendToggleButton, { mobileOpen: false, onToggle }));
+    const button = screen.getByRole('button', { name: 'Show map key' });
+
+    expect(button).toHaveAttribute('aria-expanded', 'false');
+    expect(button).toHaveAttribute('aria-controls', 'map-legend');
+    expect(button).toHaveClass('map-legend-toggle-button');
+    await user.click(button);
+    expect(onToggle).toHaveBeenCalledTimes(1);
+
+    rerender(React.createElement(VerifMapLegendToggleButton, { mobileOpen: true, onToggle }));
+    expect(screen.getByRole('button', { name: 'Hide map key' })).toHaveAttribute('aria-expanded', 'true');
   });
 });

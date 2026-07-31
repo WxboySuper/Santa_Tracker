@@ -172,6 +172,7 @@ const Legend: React.FC<LegendProps> = React.memo(({
 
   return (
     <div
+      id="map-legend"
       className={`map-legend ${desktopOpen ? '' : 'map-legend--desktop-hidden'} ${mobileOpen ? 'map-legend--mobile-open' : ''}`}
       role="complementary"
       aria-label="Map Legend"

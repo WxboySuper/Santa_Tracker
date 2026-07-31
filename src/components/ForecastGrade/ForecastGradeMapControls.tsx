@@ -1,5 +1,6 @@
 import React from 'react';
-import { Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff, MapPinned } from 'lucide-react';
+import type { DayType } from '../../types/outlooks';
 import { MAP_OUTLOOK_LAYERS, type MapOutlookLayer } from '../../utils/verificationV2';
 
 interface ForecastGradeMapControlsProps {
@@ -7,9 +8,11 @@ interface ForecastGradeMapControlsProps {
   onSelectMapLayer: (layer: MapOutlookLayer) => void;
   availableDays: number[];
   selectedDay: number;
-  onSelectDay: (day: never) => void;
+  onSelectDay: (day: DayType) => void;
   reportsVisible: boolean;
+  legendOpen: boolean;
   onToggleEvidence: () => void;
+  onToggleLegend: () => void;
 }
 
 /** Always-reachable map controls: outlook layer, day, and evidence. */
@@ -20,7 +23,9 @@ const ForecastGradeMapControls: React.FC<ForecastGradeMapControlsProps> = ({
   selectedDay,
   onSelectDay,
   reportsVisible,
+  legendOpen,
   onToggleEvidence,
+  onToggleLegend,
 }) => (
   <div className="absolute left-2 top-2 z-[5] flex flex-wrap items-center gap-1 rounded-lg bg-slate-900/75 p-1 text-xs text-white">
     <div className="flex gap-1" role="group" aria-label="Outlook layer">
@@ -42,7 +47,7 @@ const ForecastGradeMapControls: React.FC<ForecastGradeMapControlsProps> = ({
         className="fg-touch rounded bg-white/10 px-2 py-1"
         value={selectedDay}
         aria-label="Forecast day"
-        onChange={(event) => onSelectDay(Number(event.target.value) as never)}
+        onChange={(event) => onSelectDay(Number(event.target.value) as DayType)}
       >
         {availableDays.map((day) => (
           <option key={day} value={day} className="text-black">
@@ -59,6 +64,15 @@ const ForecastGradeMapControls: React.FC<ForecastGradeMapControlsProps> = ({
     >
       {reportsVisible ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
       Evidence
+    </button>
+    <button
+      type="button"
+      className="fg-touch inline-flex items-center gap-1 rounded bg-white/10 px-2 py-1"
+      onClick={onToggleLegend}
+      aria-pressed={legendOpen}
+    >
+      <MapPinned className="h-3.5 w-3.5" />
+      Legend
     </button>
   </div>
 );
