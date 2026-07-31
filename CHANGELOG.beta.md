@@ -10,6 +10,8 @@ Development entries for pull requests targeting `beta`. These notes are consolid
 
 ### PR #793
 
+#### Added
+
 - Add the foundational Forecast Grade verification workspace structure and grading workflow needed by the stacked verification v2 rollout.
 
 ### PR #790

@@ -54,15 +54,24 @@ const daysWithData = (forecast: ForecastCycle | null): DayType[] => {
     .sort((a, b) => a - b);
 };
 
+const parseReportDate = (candidate?: string): string | null => {
+  const match = candidate?.match(/^\d{4}-\d{2}-\d{2}(?=T|$)/);
+  if (!match) {
+    return null;
+  }
+
+  const value = match[0];
+  const parsed = new Date(`${value}T00:00:00.000Z`);
+  return Number.isNaN(parsed.valueOf()) || parsed.toISOString().slice(0, 10) !== value ? null : value;
+};
+
 /**
  * Use the outlook's documented verification date before falling back to its
  * cycle date. This deliberately avoids treating an imported historic outlook
  * as though it were issued today.
  */
 export const resolvePackageReportDate = (forecast: ForecastCycle, day: DayType): string | null => {
-  const candidate = forecast.days[day]?.metadata?.validDate ?? forecast.cycleDate;
-  const match = candidate?.match(/^\d{4}-\d{2}-\d{2}/);
-  return match ? match[0] : null;
+  return parseReportDate(forecast.days[day]?.metadata?.validDate) ?? parseReportDate(forecast.cycleDate);
 };
 
 export interface ForecastGradeState {

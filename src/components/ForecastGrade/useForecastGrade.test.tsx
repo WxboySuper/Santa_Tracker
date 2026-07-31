@@ -220,6 +220,15 @@ describe('useForecastGrade', () => {
 
       expect(resolvePackageReportDate(cycle, 1)).toBe('2026-07-28');
     });
+
+    test('falls back when day metadata contains an impossible calendar date', () => {
+      const cycle = {
+        cycleDate: '2026-07-28',
+        days: { 1: { metadata: { validDate: '2026-02-30T12:00:00Z' } } },
+      } as never;
+
+      expect(resolvePackageReportDate(cycle, 1)).toBe('2026-07-28');
+    });
   });
 
   describe('tier and entitlements', () => {
