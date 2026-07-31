@@ -7,7 +7,7 @@ const card = (id: string, reportDate: string | null, createdAt: string): GradeCa
   createdAt,
   formulaVersion: 'gfc-ver-1',
   grade: 37.7,
-  letter: 'Good',
+  letter: 'B',
   dataQuality: 'Good',
   productGrades: {},
   sourceLabel: 'SPC',
