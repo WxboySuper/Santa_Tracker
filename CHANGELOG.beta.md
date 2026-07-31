@@ -4,6 +4,10 @@ Development entries for pull requests targeting `beta`. These notes are consolid
 
 ## Unreleased
 
+### PR #792
+
+- Refresh `AGENTS.md` with durable GFC project context for modern coding agents.
+
 ### PR #790
 
 - Enable the new Forecast Grade verification page for beta testers while keeping staging and production disabled.
