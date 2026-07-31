@@ -65,7 +65,7 @@ const ForecastGradeMapPane: React.FC<ForecastGradeMapPaneProps> = ({
   }, [mapRef, reports, selectedReportId]);
 
   return (
-    <div className="fg-map-pane" ref={mapPaneRef} data-emphasis-component={activeComponent ?? undefined}>
+    <div className="fg-map-region">
       <div className="fg-map-toolbar">
         <ForecastGradeMapControls
           activeMapLayer={activeMapLayer}
@@ -79,6 +79,7 @@ const ForecastGradeMapPane: React.FC<ForecastGradeMapPaneProps> = ({
           onToggleLegend={() => setLegendOpen((open) => !open)}
         />
       </div>
+      <div className="fg-map-pane" ref={mapPaneRef} data-emphasis-component={activeComponent ?? undefined}>
       <div className="fg-map-canvas">
         {forecastLoaded ? (
           <>
@@ -115,6 +116,7 @@ const ForecastGradeMapPane: React.FC<ForecastGradeMapPaneProps> = ({
           <p>The map will show your outlook and the SPC storm reports used to score it.</p>
           </div>
         )}
+      </div>
       </div>
     </div>
   );

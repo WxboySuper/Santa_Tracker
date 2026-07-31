@@ -17,13 +17,14 @@ const GradeHeadline: React.FC<GradeHeadlineProps> = ({ pkg, activeProduct, onSel
   <div className="mb-3 rounded-xl border border-slate-300/40 p-4">
     <div className="flex items-baseline justify-between gap-3">
       <div>
-        <div className="text-xs uppercase tracking-wide text-slate-500">Forecast Grade</div>
+        <div className="fg-grade-eyebrow">Overall Grade</div>
         <div className="flex items-baseline gap-2">
-          <span className="text-5xl font-bold tabular-nums" data-testid="forecast-grade-value">
+          <span className="fg-grade-value text-5xl font-bold tabular-nums" data-testid="forecast-grade-value">
             {formatGrade(pkg.grade)}
           </span>
-          <span className={`text-3xl font-bold ${letterColorClass(pkg.letter)}`}>{pkg.letter ?? '—'}</span>
+          <span className="fg-grade-out-of">/ 100</span>
         </div>
+        <div className={`fg-grade-letter ${letterColorClass(pkg.letter)}`}>{pkg.letter ?? '—'} <span>|</span> {pkg.dataQuality}</div>
       </div>
       <div className="text-right text-xs text-slate-500">
         <div>Formula {pkg.formulaVersion}</div>
@@ -31,6 +32,10 @@ const GradeHeadline: React.FC<GradeHeadlineProps> = ({ pkg, activeProduct, onSel
       </div>
     </div>
 
+    <div className="fg-grade-summary">
+      <div><strong>Hazard Scores</strong>{pkg.products.map((product) => <span key={product.product}><i className={`fg-hazard-dot fg-hazard-dot--${product.product}`} />{product.label}<b>{product.applicable ? formatGrade(product.grade) : '—'}</b></span>)}</div>
+      <div><strong>Summary</strong><span>Reports used <b>{pkg.products.reduce((total, product) => total + product.reportCount, 0)}</b></span><span>Data quality <b>{pkg.dataQuality}</b></span><span>Formula <b>{pkg.formulaVersion}</b></span></div>
+    </div>
     <div className="mt-3 flex flex-wrap gap-2" role="tablist" aria-label="Product grades">
       {pkg.products.map((product) => {
         const selected = product.product === activeProduct;

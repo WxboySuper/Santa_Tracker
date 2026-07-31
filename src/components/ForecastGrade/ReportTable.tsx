@@ -8,6 +8,8 @@ interface ReportTableProps {
   product: ProductKind;
   selectedId: string | null;
   onSelect: (report: StormReport | null) => void;
+  open?: boolean;
+  onToggle?: () => void;
 }
 
 /**
@@ -15,7 +17,7 @@ interface ReportTableProps {
  * highlights. The map stays primary; selecting a row here emphasizes the same
  * report on the map and vice versa.
  */
-const ReportTable: React.FC<ReportTableProps> = ({ reports, product, selectedId, onSelect }) => {
+const ReportTable: React.FC<ReportTableProps> = ({ reports, product, selectedId, onSelect, open, onToggle }) => {
   const types = relevantReportTypes(product);
   const filtered = useMemo(
     () => reports.filter((report) => types.includes(report.type as never)),
@@ -23,8 +25,8 @@ const ReportTable: React.FC<ReportTableProps> = ({ reports, product, selectedId,
   );
 
   return (
-    <details className="fg-section">
-      <summary>
+    <details className="fg-section" open={open}>
+      <summary onClick={onToggle ? (event) => { event.preventDefault(); onToggle(); } : undefined}>
         <span>Storm reports</span>
         <span className="text-sm text-slate-500">{filtered.length}</span>
       </summary>

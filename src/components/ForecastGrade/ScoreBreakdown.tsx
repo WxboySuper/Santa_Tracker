@@ -6,6 +6,8 @@ interface ScoreBreakdownProps {
   product: ProductGrade;
   activeComponent: ComponentKey | null;
   onSelectComponent: (key: ComponentKey | null) => void;
+  open?: boolean;
+  onToggle?: () => void;
 }
 
 /**
@@ -17,9 +19,11 @@ const ScoreBreakdown: React.FC<ScoreBreakdownProps> = ({
   product,
   activeComponent,
   onSelectComponent,
+  open,
+  onToggle,
 }) => (
-  <details className="fg-section">
-    <summary>
+  <details className="fg-section" open={open}>
+    <summary onClick={onToggle ? (event) => { event.preventDefault(); onToggle(); } : undefined}>
       <span>Score breakdown</span>
       <span className="text-sm text-slate-500">
         {product.label} {product.applicable ? formatGrade(product.grade) : 'Not evaluated'}
