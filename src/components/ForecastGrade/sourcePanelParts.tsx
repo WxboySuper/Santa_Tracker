@@ -58,7 +58,7 @@ export const ReportDatePicker: React.FC<ReportDatePickerProps> = ({
       <div className="text-sm font-semibold">SPC storm reports</div>
     </div>
     <div className="fg-date-controls mt-2 flex flex-wrap items-center gap-3 text-sm">
-      <label className="inline-flex items-center gap-2">
+       <label className="fg-touch inline-flex items-center gap-2 px-2">
         <input type="checkbox" checked={useToday} onChange={(event) => onUseTodayChange(event.target.checked)} />
         Use today instead
       </label>
