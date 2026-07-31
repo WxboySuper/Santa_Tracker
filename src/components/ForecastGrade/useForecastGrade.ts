@@ -3,7 +3,7 @@ import { useDispatch } from 'react-redux';
 import { useAuth } from '../../auth/AuthProvider';
 import { useEntitlement } from '../../billing/EntitlementProvider';
 import { loadVerificationForecast, clearVerificationForecast } from '../../store/verificationSlice';
-import { setReports, clearReports, setDate } from '../../store/stormReportsSlice';
+import { setReports, clearReports, setDate, setVisibility } from '../../store/stormReportsSlice';
 import type { ForecastCycle, DayType } from '../../types/outlooks';
 import type { StormReport } from '../../types/stormReports';
 import type { GradeAccountTier, GradeCard, GradeSnapshot, PackageSourceKind } from '../../types/forecastGrade';
@@ -54,6 +54,26 @@ const daysWithData = (forecast: ForecastCycle | null): DayType[] => {
     .sort((a, b) => a - b);
 };
 
+const parseReportDate = (candidate?: string): string | null => {
+  const match = candidate?.match(/^\d{4}-\d{2}-\d{2}(?=T|$)/);
+  if (!match) {
+    return null;
+  }
+
+  const value = match[0];
+  const parsed = new Date(`${value}T00:00:00.000Z`);
+  return Number.isNaN(parsed.valueOf()) || parsed.toISOString().slice(0, 10) !== value ? null : value;
+};
+
+/**
+ * Use the outlook's documented verification date before falling back to its
+ * cycle date. This deliberately avoids treating an imported historic outlook
+ * as though it were issued today.
+ */
+export const resolvePackageReportDate = (forecast: ForecastCycle, day: DayType): string | null => {
+  return parseReportDate(forecast.days[day]?.metadata?.validDate) ?? parseReportDate(forecast.cycleDate);
+};
+
 export interface ForecastGradeState {
   tier: GradeAccountTier;
   forecast: ForecastCycle | null;
@@ -102,7 +122,7 @@ export const useForecastGrade = (addToast: (message: string, type?: 'info' | 'su
   const [availableDays, setAvailableDays] = useState<DayType[]>([]);
   const [selectedDay, setSelectedDayState] = useState<DayType>(1);
   const [reportDate, setReportDateState] = useState('');
-  const [useToday, setUseToday] = useState(true);
+  const [useToday, setUseTodayState] = useState(true);
   const [activeMapLayer, setActiveMapLayer] = useState<MapOutlookLayer>('categorical');
   const [activeProduct, setActiveProduct] = useState<ProductKind>('tornado');
   const [phase, setPhase] = useState<RunPhase>('idle');
@@ -112,6 +132,7 @@ export const useForecastGrade = (addToast: (message: string, type?: 'info' | 'su
   const [cards, setCards] = useState<GradeCard[]>([]);
   const [reports, setReportsState] = useState<StormReport[]>([]);
   const restoreSeqRef = useRef(0);
+  const reportDateWasEditedRef = useRef(false);
 
   const runGeneration = useRef(0);
 
@@ -127,7 +148,12 @@ export const useForecastGrade = (addToast: (message: string, type?: 'info' | 'su
       setPackageSource(source);
       setSourceLabel(label);
       setAvailableDays(days);
-      setSelectedDayState(days[0] ?? 1);
+      const initialDay = days[0] ?? 1;
+      const packageDate = resolvePackageReportDate(nextForecast, initialDay);
+      reportDateWasEditedRef.current = false;
+      setSelectedDayState(initialDay);
+      setReportDateState(packageDate ?? '');
+      setUseTodayState(!packageDate);
       setResult(null);
       setPhase('idle');
       setError(null);
@@ -141,7 +167,7 @@ export const useForecastGrade = (addToast: (message: string, type?: 'info' | 'su
       try {
         const loaded = await loadForecastFromFile(file);
         setForecastPackage(loaded, 'file', file.name);
-        addToast('Forecast package loaded. Choose a report date and grade.', 'success');
+        addToast('Forecast package loaded. Its outlook date is ready for grading.', 'success');
       } catch (loadError) {
         const message = loadError instanceof SourceLoadError ? loadError.message : 'Failed to load that file.';
         setError(message);
@@ -151,12 +177,24 @@ export const useForecastGrade = (addToast: (message: string, type?: 'info' | 'su
     [addToast, setForecastPackage]
   );
 
-  const setReportDate = useCallback((value: string) => setReportDateState(value), []);
+  const setReportDate = useCallback((value: string) => {
+    reportDateWasEditedRef.current = true;
+    setReportDateState(value);
+  }, []);
+  const setUseToday = useCallback((value: boolean) => {
+    reportDateWasEditedRef.current = true;
+    setUseTodayState(value);
+  }, []);
   const setSelectedDay = useCallback((day: DayType) => {
     setSelectedDayState(day);
+    if (forecast && !reportDateWasEditedRef.current) {
+      const packageDate = resolvePackageReportDate(forecast, day);
+      setReportDateState(packageDate ?? '');
+      setUseTodayState(!packageDate);
+    }
     setResult(null);
     setPhase('idle');
-  }, []);
+  }, [forecast]);
 
   const canRun =
     Boolean(forecast) &&
@@ -207,6 +245,7 @@ export const useForecastGrade = (addToast: (message: string, type?: 'info' | 'su
 
     setReportsState(loadedReports);
     dispatch(setReports(loadedReports));
+    dispatch(setVisibility(true));
     dispatch(setDate(effectiveDate ?? 'today'));
 
     const validation = validateGradeInputs({ outlooks, reports: loadedReports });
@@ -300,10 +339,10 @@ export const useForecastGrade = (addToast: (message: string, type?: 'info' | 'su
       setError(null);
       setProgress(null);
       if (snapshot.reportDate) {
-        setUseToday(false);
+        setUseTodayState(false);
         setReportDateState(snapshot.reportDate);
       } else {
-        setUseToday(true);
+        setUseTodayState(true);
         setReportDateState('');
       }
       const firstProduct =

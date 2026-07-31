@@ -52,12 +52,15 @@ export const ReportDatePicker: React.FC<ReportDatePickerProps> = ({
   onUseTodayChange,
   onReportDateChange,
 }) => (
-  <div className="mt-4 border-t border-slate-200/30 pt-3">
-    <div className="text-sm font-semibold">SPC storm reports</div>
+  <div className="fg-report-date">
+    <div>
+      <div className="fg-panel-eyebrow">2 · Observation date</div>
+      <div className="text-sm font-semibold">SPC storm reports</div>
+    </div>
     <div className="mt-2 flex flex-wrap items-center gap-3 text-sm">
-      <label className="inline-flex items-center gap-2">
+      <label className="fg-touch inline-flex items-center gap-2 px-2">
         <input type="checkbox" checked={useToday} onChange={(event) => onUseTodayChange(event.target.checked)} />
-        Today
+        Use today instead
       </label>
       {!useToday && (
         <input

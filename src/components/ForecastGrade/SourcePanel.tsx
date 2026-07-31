@@ -42,9 +42,12 @@ const SourcePanel: React.FC<SourcePanelProps> = ({
   onReset,
   renderCloudSource,
 }) => (
-  <div className="rounded-xl border border-slate-300/40 p-4">
-    <div className="flex items-center justify-between">
-      <h3 className="text-sm font-semibold">Choose a package</h3>
+  <section className="fg-source-panel" aria-label="Forecast package and storm report source">
+    <div className="fg-source-panel__heading">
+      <div>
+        <span className="fg-panel-eyebrow">1 · Package and evidence</span>
+        <h3>Choose a forecast package</h3>
+      </div>
       {hasForecast && (
         <button type="button" className="text-xs text-blue-500 hover:underline" onClick={onReset}>
           Change source
@@ -53,8 +56,8 @@ const SourcePanel: React.FC<SourcePanelProps> = ({
     </div>
 
     {hasForecast ? (
-      <p className="mt-2 text-sm text-slate-500">
-        <span className="font-medium text-slate-600">Loaded:</span> {sourceLabel}
+      <p className="fg-loaded-package">
+        <span>Loaded</span> {sourceLabel}
       </p>
     ) : (
       <PackageChooser availableSources={availableSources} onFile={onFile} renderCloudSource={renderCloudSource} />
@@ -68,7 +71,7 @@ const SourcePanel: React.FC<SourcePanelProps> = ({
     />
 
     <GradeRunFooter tier={tier} canRun={canRun} isRunning={isRunning} error={error} onRun={onRun} />
-  </div>
+  </section>
 );
 
 export default SourcePanel;

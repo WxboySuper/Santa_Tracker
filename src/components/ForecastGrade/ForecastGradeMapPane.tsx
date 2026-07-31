@@ -6,6 +6,8 @@ import type { DayType } from '../../types/outlooks';
 import type { ComponentKey, MapOutlookLayer, PackageGrade } from '../../utils/verificationV2';
 import ForecastGradeMapControls from './ForecastGradeMapControls';
 import { formatGrade, letterColorClass } from './gradeFormat';
+import RunProgress from './RunProgress';
+import type { GradeProgress } from '../../utils/verificationV2';
 
 interface ForecastGradeMapPaneProps {
   forecastLoaded: boolean;
@@ -17,6 +19,8 @@ interface ForecastGradeMapPaneProps {
   activeComponent: ComponentKey | null;
   result: PackageGrade | null;
   reportsVisible: boolean;
+  isRunning: boolean;
+  progress: GradeProgress | null;
   onSelectMapLayer: (layer: MapOutlookLayer) => void;
   onSelectDay: (day: never) => void;
   onToggleEvidence: () => void;
@@ -35,6 +39,8 @@ const ForecastGradeMapPane: React.FC<ForecastGradeMapPaneProps> = ({
   activeComponent,
   result,
   reportsVisible,
+  isRunning,
+  progress,
   onSelectMapLayer,
   onSelectDay,
   onToggleEvidence,
@@ -75,6 +81,12 @@ const ForecastGradeMapPane: React.FC<ForecastGradeMapPaneProps> = ({
             reportsVisible={reportsVisible}
             onToggleEvidence={onToggleEvidence}
           />
+          {isRunning && (
+            <div className="fg-map-progress">
+              <div className="fg-map-progress__label">Scoring in progress</div>
+              <RunProgress progress={progress} />
+            </div>
+          )}
           {result && (
             <div className="fg-grade-overlay">
               <span className="text-2xl font-bold tabular-nums">{formatGrade(result.grade)}</span>
@@ -85,8 +97,10 @@ const ForecastGradeMapPane: React.FC<ForecastGradeMapPaneProps> = ({
           )}
         </>
       ) : (
-        <div className="flex h-full items-center justify-center p-6 text-center text-sm text-slate-500">
-          The map becomes the evidence surface once you load a package and grade a date.
+        <div className="fg-map-empty">
+          <span className="fg-map-empty__eyebrow">Evidence surface</span>
+          <strong>Load a forecast package to begin.</strong>
+          <p>The map will show your outlook and the SPC storm reports used to score it.</p>
         </div>
       )}
     </div>
