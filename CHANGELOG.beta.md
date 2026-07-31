@@ -16,9 +16,13 @@ Development entries for pull requests targeting `beta`. These notes are consolid
 
 ### PR #794
 
+#### Changed
+
 - Refine the Forecast Grade verification workspace into the analysis-deck layout and align its visual language with the product UI.
 
 ### PR #791
+
+#### Changed
 
 - Make Forecast Grade actionable after a package is loaded: preserve the outlook’s valid report date, keep the grading action and status visible, expose retry state, and keep SPC evidence readable over a softened verification map with an on-demand legend.
 

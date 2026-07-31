@@ -70,6 +70,7 @@ export const useForecastGradeDashboardActions = ({
   }, [setSelectedReportId]);
 
   const handleSelectHistoryCard = useCallback((card: GradeCard) => {
+    packageLoadSeqRef.current += 1;
     const snapshot = grade.restoreCard(card);
     if (snapshot) {
       grade.applyGradeSnapshot(snapshot);
@@ -77,7 +78,7 @@ export const useForecastGradeDashboardActions = ({
     } else {
       addToast('This grade card is trend-only and cannot reopen a full package.', 'info');
     }
-  }, [addToast, grade]);
+  }, [addToast, grade, packageLoadSeqRef]);
 
   return {
     handleCloudLoad,

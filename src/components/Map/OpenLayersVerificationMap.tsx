@@ -466,6 +466,23 @@ const VerifMapStylePickerButton: React.FC<{
   </div>
 );
 
+export const VerifMapLegendToggleButton: React.FC<{
+  mobileOpen: boolean;
+  onToggle: () => void;
+}> = ({ mobileOpen, onToggle }) => (
+  <button
+    type="button"
+    className="map-toolbar-button map-legend-toggle-button"
+    onClick={onToggle}
+    title={mobileOpen ? 'Hide map key' : 'Show map key'}
+    aria-label={mobileOpen ? 'Hide map key' : 'Show map key'}
+    aria-controls="map-legend"
+    aria-expanded={mobileOpen}
+  >
+    Key
+  </button>
+);
+
 // OpenLayers map component for verification view,
 // supporting categorical and probabilistic outlooks with storm report overlays and base map style switching.
 const OpenLayersVerificationMap = forwardRef<
@@ -474,6 +491,7 @@ const OpenLayersVerificationMap = forwardRef<
 >(({ activeOutlookType = CATEGORICAL_OUTLOOK, selectedDay = 1, legendOpen = false }, ref) => {
   const dispatch = useDispatch();
   const [showStylePicker, setShowStylePicker] = useState(false);
+  const [mobileLegendOpen, setMobileLegendOpen] = useState(false);
   const mapElementRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<OLMap | null>(null);
   const tileLayerRef = useRef<TileLayer<OSM | XYZ> | null>(null);
@@ -937,9 +955,13 @@ const OpenLayersVerificationMap = forwardRef<
             onToggle={handleToggleStylePicker}
             onSelect={handleBaseMapStyleSelect}
           />
+          <VerifMapLegendToggleButton
+            mobileOpen={mobileLegendOpen}
+            onToggle={() => setMobileLegendOpen((open) => !open)}
+          />
         </div>
       </div>
-      <Legend activeOutlookType={activeOutlookType} desktopOpen={legendOpen} />
+      <Legend activeOutlookType={activeOutlookType} desktopOpen={legendOpen} mobileOpen={mobileLegendOpen} />
       <UnofficialBadge />
     </div>
   );
