@@ -14,6 +14,7 @@ import { useCloudLoadHandler } from './useCloudLoadHandler';
 import CloudSourcePicker from './CloudSourcePicker';
 import ForecastGradeMapPane from './ForecastGradeMapPane';
 import ForecastGradeResultsPane from './ForecastGradeResultsPane';
+import SourcePanel from './SourcePanel';
 import { METHODOLOGY_DOC_PATH } from './methodology';
 import './ForecastGradeDashboard.css';
 
@@ -119,7 +120,27 @@ const ForecastGradeDashboard: React.FC = () => {
     <div className="fg-dashboard">
       <ForecastGradeTopbar methodologyPath={METHODOLOGY_DOC_PATH} />
       <div className="fg-workspace">
-        <ForecastGradeMapPane
+        <aside className="fg-source-rail">
+          <SourcePanel
+            tier={grade.tier}
+            availableSources={availableSources}
+            hasForecast={Boolean(grade.forecast)}
+            sourceLabel={grade.sourceLabel}
+            useToday={grade.useToday}
+            reportDate={grade.reportDate}
+            canRun={grade.canRun}
+            isRunning={grade.phase === 'running'}
+            error={grade.error}
+            onFile={handleFileLoad}
+            onUseTodayChange={grade.setUseToday}
+            onReportDateChange={grade.setReportDate}
+            onRun={grade.run}
+            onReset={grade.reset}
+            renderCloudSource={renderCloudSource}
+          />
+        </aside>
+        <main className="fg-analysis-column">
+          <ForecastGradeMapPane
           forecastLoaded={Boolean(grade.forecast)}
           activeMapLayer={grade.activeMapLayer}
           selectedDay={grade.selectedDay}
@@ -137,13 +158,11 @@ const ForecastGradeDashboard: React.FC = () => {
           onSelectReportId={handleSelectReportId}
           mapPaneRef={mapPaneRef}
           mapRef={mapRef}
-        />
+          />
+        </main>
 
         <ForecastGradeResultsPane
           grade={grade}
-          availableSources={availableSources}
-          renderCloudSource={renderCloudSource}
-          onFile={handleFileLoad}
           activeProductGrade={activeProductGrade}
           activeComponent={activeComponent}
           onSelectComponent={setActiveComponent}

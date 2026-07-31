@@ -1,6 +1,6 @@
 import React from 'react';
 import type { StormReport } from '../../types/stormReports';
-import type { GradeCard, PackageSourceKind } from '../../types/forecastGrade';
+import type { GradeCard } from '../../types/forecastGrade';
 import type { ComponentKey, PackageGrade, ProductGrade, ProductKind } from '../../utils/verificationV2';
 import GradeHeadline from './GradeHeadline';
 import ScoreBreakdown from './ScoreBreakdown';
@@ -8,16 +8,12 @@ import DataQualityPanel from './DataQualityPanel';
 import ReportTable from './ReportTable';
 import GradeTrendChart from './GradeTrendChart';
 import RunProgress from './RunProgress';
-import SourcePanel from './SourcePanel';
 import type { useForecastGrade } from './useForecastGrade';
 
 type GradeState = ReturnType<typeof useForecastGrade>;
 
 interface ForecastGradeResultsPaneProps {
   grade: GradeState;
-  availableSources: PackageSourceKind[];
-  renderCloudSource?: () => React.ReactNode;
-  onFile: (file: File) => void;
   activeProductGrade?: ProductGrade;
   activeComponent: ComponentKey | null;
   onSelectComponent: (key: ComponentKey | null) => void;
@@ -31,9 +27,6 @@ interface ForecastGradeResultsPaneProps {
 
 const ForecastGradeResultsPane: React.FC<ForecastGradeResultsPaneProps> = ({
   grade,
-  availableSources,
-  renderCloudSource,
-  onFile,
   activeProductGrade,
   activeComponent,
   onSelectComponent,
@@ -45,24 +38,6 @@ const ForecastGradeResultsPane: React.FC<ForecastGradeResultsPaneProps> = ({
   afterResult,
 }) => (
   <div className="fg-results-pane">
-    <SourcePanel
-      tier={grade.tier}
-      availableSources={availableSources}
-      hasForecast={Boolean(grade.forecast)}
-      sourceLabel={grade.sourceLabel}
-      useToday={grade.useToday}
-      reportDate={grade.reportDate}
-      canRun={grade.canRun}
-      isRunning={grade.phase === 'running'}
-      error={grade.error}
-      onFile={onFile}
-      onUseTodayChange={grade.setUseToday}
-      onReportDateChange={grade.setReportDate}
-      onRun={grade.run}
-      onReset={grade.reset}
-      renderCloudSource={renderCloudSource}
-    />
-
     {grade.phase === 'running' && (
       <div className="mt-3">
         <RunProgress progress={grade.progress} />

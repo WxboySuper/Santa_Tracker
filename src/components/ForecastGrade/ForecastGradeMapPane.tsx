@@ -66,24 +66,27 @@ const ForecastGradeMapPane: React.FC<ForecastGradeMapPaneProps> = ({
 
   return (
     <div className="fg-map-pane" ref={mapPaneRef} data-emphasis-component={activeComponent ?? undefined}>
-      {forecastLoaded ? (
-        <>
+      <div className="fg-map-toolbar">
+        <ForecastGradeMapControls
+          activeMapLayer={activeMapLayer}
+          onSelectMapLayer={onSelectMapLayer}
+          availableDays={availableDays}
+          selectedDay={selectedDay}
+          onSelectDay={onSelectDay}
+          reportsVisible={reportsVisible}
+          onToggleEvidence={onToggleEvidence}
+          legendOpen={legendOpen}
+          onToggleLegend={() => setLegendOpen((open) => !open)}
+        />
+      </div>
+      <div className="fg-map-canvas">
+        {forecastLoaded ? (
+          <>
           <VerificationMap
             ref={mapRef}
             activeOutlookType={activeMapLayer}
             selectedDay={selectedDay}
             legendOpen={legendOpen}
-          />
-          <ForecastGradeMapControls
-            activeMapLayer={activeMapLayer}
-            onSelectMapLayer={onSelectMapLayer}
-            availableDays={availableDays}
-            selectedDay={selectedDay}
-            onSelectDay={onSelectDay}
-            reportsVisible={reportsVisible}
-            onToggleEvidence={onToggleEvidence}
-            legendOpen={legendOpen}
-            onToggleLegend={() => setLegendOpen((open) => !open)}
           />
           <div className="fg-map-telemetry" aria-hidden="true">
             <span>SPC / EVIDENCE</span>
@@ -104,14 +107,15 @@ const ForecastGradeMapPane: React.FC<ForecastGradeMapPaneProps> = ({
               </span>
             </div>
           )}
-        </>
-      ) : (
-        <div className="fg-map-empty">
+          </>
+        ) : (
+          <div className="fg-map-empty">
           <span className="fg-map-empty__eyebrow">Evidence surface</span>
           <strong>Load a forecast package to begin.</strong>
           <p>The map will show your outlook and the SPC storm reports used to score it.</p>
-        </div>
-      )}
+          </div>
+        )}
+      </div>
     </div>
   );
 };
