@@ -33,6 +33,12 @@ Currently there are 4 modes within GFC all serving a purpose:
 - **Monitor**: Once a user finishes their forecast they can monitor their forecast, this allows them to watch the latest radar, satellite, reports, and alerts while also viewing their forecast.
 - **Verification**: This allows the user to view their forecast and reflect on it's performance and find ways to learn and grow in their skills
 
+## Premium Model
+
+GFC does have a premium tier powered by Stripe. The idea behind premium is premium features are behind premium. Meaning if a feature will cost me money to operate that feature (ex. cloud storage) then that is a premium feature. No, running on a VPS doesn't count, that's a expected expense in operating the app, premium is built to try to bite some of that VPS cost out.
+
+If a feature is core, it's always free, no questions asked. If a feature is bonus and could cost money in just operating that feature, then it's in major premium conversations. Otherwise, default to free unless those conditions warrent.
+
 ## Message from the creator
 
 GFC is an important product. In a sense it is my "baby" project where it is extremely important to me. It may not have a ton of users but in the users it has it leaves an impact in the knowledge and skill growth of the user. It's important that those things stay freely available always.
