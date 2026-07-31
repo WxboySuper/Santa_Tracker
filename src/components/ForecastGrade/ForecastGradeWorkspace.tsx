@@ -83,8 +83,6 @@ const ForecastGradeWorkspace: React.FC<ForecastGradeWorkspaceProps> = ({
         activeComponent={activeComponent}
         result={grade.result}
         reportsVisible={reportsVisible}
-        isRunning={grade.phase === 'running'}
-        progress={grade.progress}
         onSelectMapLayer={onSelectMapLayer}
         onSelectDay={grade.setSelectedDay}
         onToggleEvidence={onToggleEvidence}
