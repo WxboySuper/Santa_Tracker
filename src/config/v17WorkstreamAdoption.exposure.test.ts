@@ -42,9 +42,9 @@ describe('v1.7 workstream adoption contract', () => {
     }
   );
 
-  test('verificationRelaunch is enabled for beta testers only', () => {
+  test('verificationRelaunch is enabled for local development and beta testers', () => {
     for (const target of BUILD_TARGETS) {
-      const expected = target === 'beta';
+      const expected = target === 'beta' || target === 'local';
       expect(isFeatureExposedOnTarget('verificationRelaunch', target)).toBe(expected);
       expect(FEATURE_EXPOSURE_REGISTRY.verificationRelaunch.exposure[target]).toBe(expected);
     }

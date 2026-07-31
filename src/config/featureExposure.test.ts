@@ -129,9 +129,9 @@ describe('featureExposure registry', () => {
       }
     }
 
-    // verificationRelaunch is approved for beta while staging and production remain disabled.
+    // verificationRelaunch is approved for local development and beta while staging and production remain disabled.
     for (const target of ['local', 'beta', 'staging', 'production'] as const) {
-      expect(isFeatureExposedOnTarget('verificationRelaunch', target)).toBe(target === 'beta');
+      expect(isFeatureExposedOnTarget('verificationRelaunch', target)).toBe(target === 'beta' || target === 'local');
     }
 
     expect(isFeatureExposedOnTarget('forecastWorkflowV2', 'local')).toBe(true);
