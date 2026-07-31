@@ -8,6 +8,10 @@ Development entries for pull requests targeting `beta`. These notes are consolid
 
 - Refresh `AGENTS.md` with durable GFC project context for modern coding agents.
 
+### PR #793
+
+- Add the foundational Forecast Grade verification workspace structure and grading workflow needed by the stacked verification v2 rollout.
+
 ### PR #790
 
 - Enable the new Forecast Grade verification page for beta testers while keeping staging and production disabled.
