@@ -4,38 +4,43 @@ const SOURCE_PATTERN = /(?:port|backport|forward[- ]port|inherited)\s+(?:of\s+)?
 
 /** @typedef {'beta' | 'hotfix' | 'none' | 'inherited'} ChangelogImpact */
 
+const declarationError = (reason) => ({ ok: false, reason });
+
+const impactMatches = (body) => [...body.matchAll(IMPACT_PATTERN)].map((match) => match[1].toLowerCase());
+
+const parseDeclarationValues = (body, impact) => ({
+  impact,
+  reason: body.match(REASON_PATTERN)?.[1]?.trim(),
+  sourcePr: Number(body.match(SOURCE_PATTERN)?.[1] ?? 0) || undefined,
+});
+
+const validateDeclarationValues = ({ impact, reason, sourcePr }) => {
+  if (impact === 'none' && !reason) {
+    return declarationError('Changelog-Impact: none requires a non-empty Changelog-Reason declaration.');
+  }
+  if (impact === 'inherited' && !sourcePr) {
+    return declarationError(
+      'Changelog-Impact: inherited requires a port/backport/forward-port reference such as "Port of #123".',
+    );
+  }
+  return null;
+};
+
 /**
  * @param {string} body
  * @returns {{ ok: true; impact: ChangelogImpact; reason?: string; sourcePr?: number } | { ok: false; reason: string }}
  */
 export const parseChangelogDeclaration = (body = '') => {
-  const matches = [...body.matchAll(IMPACT_PATTERN)].map((match) => match[1].toLowerCase());
+  const matches = impactMatches(body);
   if (matches.length !== 1) {
-    return {
-      ok: false,
-      reason: 'PR body must contain exactly one Changelog-Impact: beta|hotfix|none|inherited declaration.',
-    };
+    return declarationError(
+      'PR body must contain exactly one Changelog-Impact: beta|hotfix|none|inherited declaration.',
+    );
   }
 
-  const impact = /** @type {ChangelogImpact} */ (matches[0]);
-  const reason = body.match(REASON_PATTERN)?.[1]?.trim();
-  const sourcePr = Number(body.match(SOURCE_PATTERN)?.[1] ?? 0) || undefined;
-
-  if (impact === 'none' && !reason) {
-    return {
-      ok: false,
-      reason: 'Changelog-Impact: none requires a non-empty Changelog-Reason declaration.',
-    };
-  }
-
-  if (impact === 'inherited' && !sourcePr) {
-    return {
-      ok: false,
-      reason: 'Changelog-Impact: inherited requires a port/backport/forward-port reference such as "Port of #123".',
-    };
-  }
-
-  return { ok: true, impact, reason, sourcePr };
+  const values = parseDeclarationValues(body, /** @type {ChangelogImpact} */ (matches[0]));
+  const error = validateDeclarationValues(values);
+  return error ?? { ok: true, ...values };
 };
 
 /**
