@@ -1,57 +1,21 @@
-name: PR Porting System
+name: PR porting (disabled during delivery migration)
 
-# Automates porting merged PR commits from main to beta via reviewable port PRs.
-#
-# Scope: main → beta only (hotfix/* and other merges not owned by post-merge-automation).
-# post-merge-automation.yml still owns direct beta sync for beta promotion, release/*,
-# and feature/release-* merges.
-#
-# Skips when the source PR has porting/manual or an open manual beta port PR exists.
-# On conflicts: auto-resolves version-policy files when possible; otherwise opens a
-# draft port PR (no tracking issues).
-#
-# Required secrets: GH_PAT (repo scope)
+# MIGRATION FREEZE:
+# The old workflow ported main → beta. That direction is no longer authoritative
+# once main becomes the next-major line. A stable → main forward-port workflow will
+# be added after the stable release line and cutover rules are in place.
 
 on:
-  pull_request:
-    types: [closed]
-    branches:
-      - main
-      - beta
+  workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
-  port-changes:
-    if: github.event.pull_request.merged == true
+  migration-freeze-notice:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      pull-requests: write
-      issues: write
-
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          token: ${{ secrets.GH_PAT }}
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '24.x'
-
-      - name: Configure Git Identity
+      - name: Explain the freeze
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-
-      - name: Discovery and Porting
-        env:
-          GH_TOKEN: ${{ secrets.GH_PAT }}
-          SOURCE_BRANCH: ${{ github.event.pull_request.head.ref }}
-          BASE_BRANCH: ${{ github.event.pull_request.base.ref }}
-          PR_TITLE: ${{ github.event.pull_request.title }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
-          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
-          REPO: ${{ github.repository }}
-        run: bash .github/scripts/port-changes.sh
+          echo "The legacy main-to-beta porting workflow is disabled during migration."
+          echo "No automatic branch port was performed."
