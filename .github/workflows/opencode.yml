@@ -104,8 +104,9 @@ jobs:
           model: opencode/deepseek-v4-flash-free
           use_github_token: true
           mentions: /oc,/opencode
+          token: ${{ secrets.GH_PAT }}
 
-      - name: Push a rebased trusted PR branch
+      - name: Push a rebased trusted PR
         id: push-rebased-pr
         if: always() && needs.classify-request.outputs.mode == 'trusted-pr'
         env:
