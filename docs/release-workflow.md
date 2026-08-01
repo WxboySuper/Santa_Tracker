@@ -14,8 +14,10 @@ there is no beta source branch.
 
 `main` is never merged back into `stable/X.Y.x`. A stable line can contain
 patches that are absent from main, so every merged stable PR is forward-ported
-as its own reviewable PR. If the rewrite makes the patch unsafe to apply, the
-port PR stays draft and is resolved by a human.
+as its own reviewable PR when it applies cleanly. If the rewrite makes the
+patch unsafe to apply, automation opens one `porting/conflicts` issue with the
+conflicting files and a human-resolution checklist instead of creating a
+conflict PR.
 
 ## Stable fixes forward-port into main
 
@@ -60,8 +62,10 @@ No merge, push, or PR automatically deploys the hosted beta.
 3. Run **Deploy Staging** against the exact hotfix branch or commit.
 4. Review the staging smoke test, then merge the stable PR.
 5. Run **Create Stable Release** manually. The release event deploys it.
-6. The stable merge creates a draft `port/<pr>-to-main` PR. Review that PR
-   separately because main may have diverged substantially.
+6. The stable merge attempts to create a draft `port/<pr>-to-main` PR. Review
+   that PR separately because main may have diverged substantially. If the
+   attempt conflicts, automation opens a `porting/conflicts` issue instead;
+   resolve the behavior in a normal PR into `main`.
 
 ## Changelog gate
 
