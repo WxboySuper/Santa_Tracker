@@ -1,4 +1,7 @@
 import { deriveStableVersion, hasBetaPrerelease } from './package-version.mjs';
+import { extractChangelogLane, extractLaneReleaseNotes } from './changelog-lanes.mjs';
+
+export { extractChangelogLane } from './changelog-lanes.mjs';
 
 const BETA_RELEASE_LANES = new Set(['', 'next-major']);
 
@@ -49,31 +52,6 @@ export const extractChangelogSection = (changelog, stableVersion) => {
   return null;
 };
 
-/**
- * Extracts one unreleased lane. Lane headings are level-three headings and
- * their category headings are level four, so the next sibling ### ends it.
- * @param {string} changelog
- * @param {'next-major' | 'stable-hotfix'} lane
- * @returns {string | null}
- */
-export const extractChangelogLane = (changelog, lane) => {
-  const heading = lane === 'stable-hotfix' ? '### Stable 1.6.x hotfixes' : '### Next major / beta';
-  const start = changelog.indexOf(heading);
-  if (start === -1) return null;
-  const rest = changelog.slice(start + heading.length);
-  const nextLane = rest.search(/\n### (?!#)/);
-  const body = (nextLane === -1 ? rest : rest.slice(0, nextLane)).trim();
-  return body ? `${heading}\n\n${body}`.trim() : null;
-};
-
-const laneReleaseNotes = (changelog, version, lane) => {
-  const laneSection = extractChangelogLane(changelog, lane);
-  if (!laneSection) return null;
-  const heading = laneSection.split('\n', 1)[0];
-  const body = laneSection.slice(heading.length).trim();
-  return body ? `## v${version}\n\n${body}`.trim() : null;
-};
-
 const legacyReleaseNotes = (changelog, version) => {
   const stable = deriveStableVersion(version) ?? version;
   const section = extractChangelogSection(changelog, stable);
@@ -94,7 +72,7 @@ const legacyReleaseNotes = (changelog, version) => {
  */
 export const extractReleaseNotes = (changelog, version, lane = '') => {
   const laneNotes = lane === 'next-major' || lane === 'stable-hotfix'
-    ? laneReleaseNotes(changelog, version, lane)
+    ? extractLaneReleaseNotes(changelog, version, lane)
     : null;
   return laneNotes ?? legacyReleaseNotes(changelog, version);
 };
