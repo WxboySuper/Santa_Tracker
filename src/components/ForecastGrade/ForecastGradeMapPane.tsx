@@ -3,10 +3,9 @@ import { fromLonLat } from 'ol/proj';
 import VerificationMap, { type VerificationMapHandle } from '../Map/VerificationMap';
 import type { StormReport } from '../../types/stormReports';
 import type { DayType } from '../../types/outlooks';
-import type { ComponentKey, GradeProgress, MapOutlookLayer, PackageGrade } from '../../utils/verificationV2';
+import type { ComponentKey, MapOutlookLayer, PackageGrade } from '../../utils/verificationV2';
 import ForecastGradeMapControls from './ForecastGradeMapControls';
 import { formatGrade, letterColorClass } from './gradeFormat';
-import RunProgress from './RunProgress';
 
 interface ForecastGradeMapPaneProps {
   forecastLoaded: boolean;
@@ -18,8 +17,6 @@ interface ForecastGradeMapPaneProps {
   activeComponent: ComponentKey | null;
   result: PackageGrade | null;
   reportsVisible: boolean;
-  isRunning: boolean;
-  progress: GradeProgress | null;
   onSelectMapLayer: (layer: MapOutlookLayer) => void;
   onSelectDay: (day: DayType) => void;
   onToggleEvidence: () => void;
@@ -38,8 +35,6 @@ const ForecastGradeMapPane: React.FC<ForecastGradeMapPaneProps> = ({
   activeComponent,
   result,
   reportsVisible,
-  isRunning,
-  progress,
   onSelectMapLayer,
   onSelectDay,
   onToggleEvidence,
@@ -92,12 +87,6 @@ const ForecastGradeMapPane: React.FC<ForecastGradeMapPaneProps> = ({
             <span>DAY {selectedDay}</span>
             <span>{reports.length} REPORTS</span>
           </div>
-          {isRunning && (
-            <div className="fg-map-progress">
-              <div className="fg-map-progress__label">Scoring in progress</div>
-              <RunProgress progress={progress} />
-            </div>
-          )}
           {result && (
             <div className="fg-grade-overlay">
               <span className="text-2xl font-bold tabular-nums">{formatGrade(result.grade)}</span>

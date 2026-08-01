@@ -3,6 +3,7 @@ import type { GradeCard } from '../../types/forecastGrade';
 import { PRODUCT_KINDS, PRODUCT_LABELS, type ProductKind } from '../../utils/verificationV2';
 import GradeTrendHistory from './GradeTrendHistory';
 import GradeTrendSvg from './GradeTrendSvg';
+import ForecastGradeSelect from './ForecastGradeSelect';
 
 interface GradeTrendChartProps {
   cards: GradeCard[];
@@ -13,9 +14,23 @@ type TrendFilter = 'package' | ProductKind;
 
 const MAX_TREND_CARDS = 25;
 
+/** Returns the finite grade value represented by the selected trend filter. */
 const valueForFilter = (card: GradeCard, filter: TrendFilter): number | null => {
   const raw = filter === 'package' ? card.grade : card.productGrades[filter] ?? null;
   return typeof raw === 'number' && Number.isFinite(raw) ? raw : null;
+};
+
+/** Keeps the latest grade card for each forecast report day. */
+export const dedupeGradeCardsByDay = (cards: GradeCard[]): GradeCard[] => {
+  const latestByDay = new Map<string, GradeCard>();
+  cards.forEach((card) => {
+    const day = card.reportDate ?? 'today';
+    const current = latestByDay.get(day);
+    if (!current || new Date(card.createdAt).getTime() >= new Date(current.createdAt).getTime()) {
+      latestByDay.set(day, card);
+    }
+  });
+  return [...latestByDay.values()].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 };
 
 /**
@@ -25,7 +40,7 @@ const valueForFilter = (card: GradeCard, filter: TrendFilter): number | null => 
 const GradeTrendChart: React.FC<GradeTrendChartProps> = ({ cards, onSelectCard }) => {
   const [filter, setFilter] = useState<TrendFilter>('package');
 
-  const recentCards = useMemo(() => cards.slice(0, MAX_TREND_CARDS), [cards]);
+  const recentCards = useMemo(() => dedupeGradeCardsByDay(cards).slice(0, MAX_TREND_CARDS), [cards]);
 
   const points = useMemo(() => {
     const ordered = [...recentCards].reverse();
@@ -48,19 +63,12 @@ const GradeTrendChart: React.FC<GradeTrendChartProps> = ({ cards, onSelectCard }
     <div className="rounded-xl border border-slate-300/40 p-4">
       <div className="mb-2 flex items-center justify-between">
         <h3 className="text-sm font-semibold">Grade trend</h3>
-        <select
-          className="fg-touch rounded border border-slate-300/40 bg-transparent px-2 py-1 text-sm"
+        <ForecastGradeSelect
           value={filter}
-          aria-label="Filter trend by hazard"
-          onChange={(event) => setFilter(event.target.value as TrendFilter)}
-        >
-          <option value="package">Package</option>
-          {PRODUCT_KINDS.map((product) => (
-            <option key={product} value={product}>
-              {PRODUCT_LABELS[product]}
-            </option>
-          ))}
-        </select>
+          ariaLabel="Filter trend by hazard"
+          options={[{ value: 'package', label: 'Package' }, ...PRODUCT_KINDS.map((product) => ({ value: product, label: PRODUCT_LABELS[product] }))]}
+          onChange={(value) => setFilter(value as TrendFilter)}
+        />
       </div>
 
       {points.length === 0 ? (

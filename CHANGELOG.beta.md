@@ -28,7 +28,7 @@ Development entries for pull requests targeting `beta`. These notes are consolid
 
 #### Changed
 
-- Make Forecast Grade actionable after a package is loaded: preserve the outlook’s valid report date, keep the grading action and status visible, expose retry state, and keep SPC evidence readable over a softened verification map with an on-demand legend.
+- Make Forecast Grade actionable after a package is loaded: preserve the outlook’s valid report date, keep the grading action and status visible, expose retry state, and keep SPC evidence readable over a softened verification map with an on-demand legend. Complete the desktop viewport fit, grading progress state, custom selectors, report legend, score breakdown, and one-entry-per-day trend presentation.
 
 ### PR #790
 

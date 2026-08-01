@@ -26,12 +26,15 @@ const Legend: React.FC<LegendProps> = React.memo(({
   // Optimized: Select only activeOutlookType to avoid re-rendering on other drawing state changes (like activeProbability)
   const storeActiveOutlookType = useSelector((state: RootState) => state.forecast.drawingState.activeOutlookType);
   const darkMode = useSelector((state: RootState) => state.theme.darkMode);
+  const reportsVisible = useSelector((state: RootState) => state.stormReports?.visible ?? false);
+  const reportFilters = useSelector((state: RootState) => state.stormReports?.filterByType ?? { tornado: true, wind: true, hail: true });
   const customEditor = useSelector((state: RootState) => state.forecast.customEditor) ?? { mode: 'severe' as const, activeLayerId: null, activeCategoryId: null };
   const customLayers = useSelector(selectCurrentCustomLayers);
   const activeOutlookType = activeOutlookTypeOverride || storeActiveOutlookType;
   const customMode = !activeOutlookTypeOverride && isFeatureExposed('customProducts') && customEditor.mode === 'custom';
   const activeCustomLayer = customLayers.layers.find(({ id }) => id === customEditor.activeLayerId) ?? customLayers.layers[0];
 
+  /** Builds the fill and hatch styles for a custom category swatch. */
   const customSwatchBackground = (category: CustomCategoryTemplate): React.CSSProperties => {
     const angle = category.style.hatch === 'reverse-diagonal' ? '-45deg' : '45deg';
     const diagonal = `repeating-linear-gradient(${angle}, transparent 0 6px, ${category.style.strokeColor} 6px 8px)`;
@@ -45,6 +48,7 @@ const Legend: React.FC<LegendProps> = React.memo(({
     };
   };
 
+  /** Renders the categories for the active custom layer. */
   const renderCustomLegend = () => (
     <>
       <h4 id="legend-title">{activeCustomLayer?.label ?? 'Custom Layers'}</h4>
@@ -170,6 +174,31 @@ const Legend: React.FC<LegendProps> = React.memo(({
     );
   };
 
+  /** Renders the visible SPC report types in the map legend. */
+  const renderReportLegend = () => {
+    if (!reportsVisible) {
+      return null;
+    }
+    const reports = [
+      ['tornado', 'Tornado', '#8b5cf6'],
+      ['wind', 'Wind', '#2563eb'],
+      ['hail', 'Hail', '#16a34a'],
+    ] as const;
+    return (
+      <div className="legend-reports" aria-labelledby="reports-legend-title">
+        <h4 id="reports-legend-title">Reports visible</h4>
+        <div className="legend-items" role="list">
+          {reports.filter(([type]) => reportFilters[type]).map(([type, label, color]) => (
+            <div key={type} className="legend-item" role="listitem">
+              <span className="legend-report-dot" style={{ backgroundColor: color }} aria-hidden="true" />
+              <span>{label}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div
       id="map-legend"
@@ -179,6 +208,7 @@ const Legend: React.FC<LegendProps> = React.memo(({
       translate="no"
     >
       {customMode ? renderCustomLegend() : activeOutlookType === 'categorical' ? renderCategoricalLegend() : renderProbabilisticLegend()}
+      {renderReportLegend()}
     </div>
   );
 });

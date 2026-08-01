@@ -43,9 +43,11 @@ const ForecastGradeResultsPane: React.FC<ForecastGradeResultsPaneProps> = ({
   const toggleSection = (section: 'breakdown' | 'quality' | 'reports') =>
     setOpenSection((current) => (current === section ? null : section));
 
+  const isRunning = grade.phase === 'running';
+
   return (
   <div className="fg-results-pane">
-    {!result && (
+    {!result && !isRunning && (
       <section className="fg-empty-results" aria-label="Verification result summary">
         <div className="fg-grade-eyebrow">Overall Grade</div>
         <div className="fg-empty-grade">— <span>/ 100</span></div>
@@ -54,10 +56,18 @@ const ForecastGradeResultsPane: React.FC<ForecastGradeResultsPaneProps> = ({
         <p>Hazard scores and the verification summary will appear here after the package and SPC report date are ready.</p>
       </section>
     )}
-    {grade.phase === 'running' && (
-      <div className="mt-3">
+    {isRunning && (
+      <section className="fg-grading-state" aria-label="Verification in progress" aria-live="polite">
+        <div className="fg-grading-state__eyebrow">Verification in progress</div>
+        <div className="fg-grading-state__heading">
+          <div>
+            <h3>Building your grade</h3>
+            <p>Comparing the forecast with SPC evidence. This panel will update when the score is ready.</p>
+          </div>
+          <span className="fg-grading-state__spinner" aria-hidden="true" />
+        </div>
         <RunProgress progress={grade.progress} />
-      </div>
+      </section>
     )}
 
     {result && (
