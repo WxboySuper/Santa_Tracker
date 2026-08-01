@@ -47,7 +47,7 @@ const mockValidateGradeInputs = jest.fn(() => ({ valid: true as boolean })) as u
 jest.mock('../../utils/verificationV2', () => {
   const actual = jest.requireActual('../../utils/verificationV2/gradeForecast');
   return {
-    FORECAST_GRADE_FORMULA_VERSION: 'gfc-ver-1',
+    FORECAST_GRADE_FORMULA_VERSION: 'gfc-ver-3',
     isReachedArchiveDate: (arg: string) => mockIsReachedArchiveDate(arg),
     runForecastGrade: (input: unknown, onProgress?: unknown) =>
       mockRunForecastGrade(input, onProgress),
@@ -105,7 +105,7 @@ const sampleCycle = {
 } as never;
 
 const samplePackage = {
-  formulaVersion: 'gfc-ver-1',
+  formulaVersion: 'gfc-ver-3',
   grade: 80,
   letter: 'B',
   products: [

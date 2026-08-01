@@ -107,36 +107,31 @@ const ScoreBreakdownDiagnosticRow: React.FC<ScoreBreakdownDiagnosticRowProps> = 
   </tr>
 );
 
-/** Renders technical diagnostics separately from the headline score components. */
-const ScoreBreakdownDiagnostics: React.FC<ScoreBreakdownDiagnosticsProps> = ({
+/** Renders the technical diagnostic table separately from headline components. */
+const ScoreBreakdownDiagnosticsTable: React.FC<ScoreBreakdownDiagnosticsProps> = ({
   diagnostics,
   activeComponent,
   onSelectComponent,
 }) => (
-  <>
-    <h4 className="mt-4 text-xs font-semibold uppercase tracking-wide text-slate-500">
-      Technical diagnostics
-    </h4>
-    <table className="w-full text-sm">
-      <thead>
-        <tr className="text-left text-xs uppercase text-slate-500">
-          <th className="py-1">Diagnostic</th>
-          <th className="py-1">Score</th>
-          <th className="py-1">Detail</th>
-        </tr>
-      </thead>
-      <tbody>
-        {diagnostics.map((diagnostic) => (
-          <ScoreBreakdownDiagnosticRow
-            key={diagnostic.key}
-            diagnostic={diagnostic}
-            selected={diagnostic.key === activeComponent}
-            onSelect={onSelectComponent}
-          />
-        ))}
-      </tbody>
-    </table>
-  </>
+  <table className="w-full text-sm">
+    <thead>
+      <tr className="text-left text-xs uppercase text-slate-500">
+        <th className="py-1">Diagnostic</th>
+        <th className="py-1">Score</th>
+        <th className="py-1">Detail</th>
+      </tr>
+    </thead>
+    <tbody>
+      {diagnostics.map((diagnostic) => (
+        <ScoreBreakdownDiagnosticRow
+          key={diagnostic.key}
+          diagnostic={diagnostic}
+          selected={diagnostic.key === activeComponent}
+          onSelect={onSelectComponent}
+        />
+      ))}
+    </tbody>
+  </table>
 );
 
 /** Renders the score table and its explanatory note. */
@@ -144,11 +139,16 @@ const ScoreBreakdownBody: React.FC<ScoreBreakdownTableProps> = (props) => (
   <div className="fg-section-body">
     <ScoreBreakdownTable {...props} />
     {props.product.diagnostics && props.product.diagnostics.length > 0 ? (
-      <ScoreBreakdownDiagnostics
-        diagnostics={props.product.diagnostics}
-        activeComponent={props.activeComponent}
-        onSelectComponent={props.onSelectComponent}
-      />
+      <>
+        <h4 className="mt-4 text-xs font-semibold uppercase tracking-wide text-slate-500">
+          Technical diagnostics
+        </h4>
+        <ScoreBreakdownDiagnosticsTable
+          diagnostics={props.product.diagnostics}
+          activeComponent={props.activeComponent}
+          onSelectComponent={props.onSelectComponent}
+        />
+      </>
     ) : null}
     <p className="mt-2 text-xs text-slate-400">
       Not-evaluated components are renormalized out of the grade. Technical diagnostics are shown

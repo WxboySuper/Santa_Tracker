@@ -17,7 +17,7 @@ const mockComposeShareCard = composeShareCard as jest.MockedFunction<typeof comp
 const mockDownloadDataUrl = downloadDataUrl as jest.MockedFunction<typeof downloadDataUrl>;
 
 const pkg: PackageGrade = {
-  formulaVersion: 'gfc-ver-1',
+  formulaVersion: 'gfc-ver-3',
   grade: 82.4,
   letter: 'B',
   products: [],

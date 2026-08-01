@@ -24,7 +24,7 @@ const sampleCard = (overrides: Partial<GradeCard> = {}): GradeCard => ({
   id: `card-${Math.random().toString(36).slice(2)}`,
   createdAt: new Date().toISOString(),
   reportDate: '2026-05-01',
-  formulaVersion: 'gfc-ver-1',
+  formulaVersion: 'gfc-ver-3',
   grade: 82.4,
   letter: 'B',
   dataQuality: 'Good',
