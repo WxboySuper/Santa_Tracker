@@ -25,6 +25,7 @@ interface ForecastGradeResultsPaneProps {
   afterResult?: React.ReactNode;
 }
 
+/** Presents empty, in-progress, and completed verification results. */
 const ForecastGradeResultsPane: React.FC<ForecastGradeResultsPaneProps> = ({
   grade,
   activeProductGrade,
@@ -38,6 +39,7 @@ const ForecastGradeResultsPane: React.FC<ForecastGradeResultsPaneProps> = ({
   afterResult,
 }) => {
   const [openSection, setOpenSection] = useState<'breakdown' | 'quality' | 'reports' | null>(null);
+  /** Keeps only one results disclosure open at a time. */
   const toggleSection = (section: 'breakdown' | 'quality' | 'reports') =>
     setOpenSection((current) => (current === section ? null : section));
 

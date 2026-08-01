@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { fromLonLat } from 'ol/proj';
 import VerificationMap, { type VerificationMapHandle } from '../Map/VerificationMap';
 import type { StormReport } from '../../types/stormReports';
@@ -24,11 +24,11 @@ interface ForecastGradeMapPaneProps {
   onSelectMapLayer: (layer: MapOutlookLayer) => void;
   onSelectDay: (day: DayType) => void;
   onToggleEvidence: () => void;
-  onSelectReportId?: (reportId: string | null) => void;
   mapPaneRef: React.RefObject<HTMLDivElement | null>;
   mapRef: React.RefObject<VerificationMapHandle | null>;
 }
 
+/** Renders the verification map, its controls, and grading overlays. */
 const ForecastGradeMapPane: React.FC<ForecastGradeMapPaneProps> = ({
   forecastLoaded,
   activeMapLayer,
@@ -44,7 +44,6 @@ const ForecastGradeMapPane: React.FC<ForecastGradeMapPaneProps> = ({
   onSelectMapLayer,
   onSelectDay,
   onToggleEvidence,
-  onSelectReportId,
   mapPaneRef,
   mapRef,
 }) => {

@@ -65,10 +65,6 @@ export const useForecastGradeDashboardActions = ({
     setSelectedReportId(report?.id ?? null);
   }, [setSelectedReportId]);
 
-  const handleSelectReportId = useCallback((reportId: string | null) => {
-    setSelectedReportId(reportId);
-  }, [setSelectedReportId]);
-
   const handleSelectHistoryCard = useCallback((card: GradeCard) => {
     packageLoadSeqRef.current += 1;
     const snapshot = grade.restoreCard(card);
@@ -88,7 +84,6 @@ export const useForecastGradeDashboardActions = ({
     handleSelectMapLayer,
     handleToggleEvidence,
     handleSelectReport,
-    handleSelectReportId,
     handleSelectHistoryCard,
   };
 };

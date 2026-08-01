@@ -73,7 +73,6 @@ const ForecastGradeDashboard: React.FC = () => {
         onSelectMapLayer={actions.handleSelectMapLayer}
         onSelectProduct={actions.handleSelectProduct}
         onSelectReport={actions.handleSelectReport}
-        onSelectReportId={actions.handleSelectReportId}
         onSelectHistoryCard={actions.handleSelectHistoryCard}
         onToggleEvidence={actions.handleToggleEvidence}
       />

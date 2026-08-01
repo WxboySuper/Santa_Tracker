@@ -31,7 +31,6 @@ interface ForecastGradeWorkspaceProps {
   onSelectMapLayer: (layer: MapOutlookLayer) => void;
   onSelectProduct: (product: ProductKind) => void;
   onSelectReport: (report: StormReport | null) => void;
-  onSelectReportId: (reportId: string | null) => void;
   onSelectHistoryCard: (card: Parameters<GradeController['restoreCard']>[0]) => void;
   onToggleEvidence: () => void;
 }
@@ -53,7 +52,6 @@ const ForecastGradeWorkspace: React.FC<ForecastGradeWorkspaceProps> = ({
   onSelectMapLayer,
   onSelectProduct,
   onSelectReport,
-  onSelectReportId,
   onSelectHistoryCard,
   onToggleEvidence,
 }) => (
@@ -93,7 +91,6 @@ const ForecastGradeWorkspace: React.FC<ForecastGradeWorkspaceProps> = ({
         onSelectMapLayer={onSelectMapLayer}
         onSelectDay={grade.setSelectedDay}
         onToggleEvidence={onToggleEvidence}
-        onSelectReportId={onSelectReportId}
         mapPaneRef={mapPaneRef}
         mapRef={mapRef}
       />
