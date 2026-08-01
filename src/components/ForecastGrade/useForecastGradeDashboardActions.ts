@@ -73,8 +73,6 @@ export const useForecastGradeDashboardActions = ({
     if (snapshot) {
       grade.applyGradeSnapshot(snapshot);
       addToast('Restored grade package from history.', 'success');
-    } else {
-      addToast('This grade card is trend-only and cannot reopen a full package.', 'info');
     }
   }, [addToast, grade, packageLoadSeqRef]);
 

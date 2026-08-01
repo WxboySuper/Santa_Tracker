@@ -370,7 +370,7 @@ export const useForecastGrade = (addToast: (message: string, type?: 'info' | 'su
     [dispatch]
   );
 
-  return {
+  return useMemo<UseForecastGrade>(() => ({
     tier,
     forecast,
     packageSource,
@@ -399,7 +399,36 @@ export const useForecastGrade = (addToast: (message: string, type?: 'info' | 'su
     restoreCard,
     applyGradeSnapshot,
     canRun,
-  };
+  }), [
+    tier,
+    forecast,
+    packageSource,
+    sourceLabel,
+    availableDays,
+    selectedDay,
+    reportDate,
+    useToday,
+    activeMapLayer,
+    activeProduct,
+    phase,
+    progress,
+    result,
+    error,
+    cards,
+    reports,
+    setForecastPackage,
+    loadFromFile,
+    setReportDate,
+    setUseToday,
+    setSelectedDay,
+    setActiveMapLayer,
+    setActiveProduct,
+    run,
+    reset,
+    restoreCard,
+    applyGradeSnapshot,
+    canRun,
+  ]);
 };
 
 export { FORECAST_GRADE_FORMULA_VERSION };
