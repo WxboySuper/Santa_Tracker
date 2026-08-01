@@ -1,9 +1,25 @@
 import { listChangedFilesBetweenRefs } from './lib/git-changed-files.mjs';
 import { evaluateChangelogPolicy } from './lib/changelog-policy.mjs';
+import { execFileSync } from 'node:child_process';
 
 const baseRef = process.env.GITHUB_BASE_REF ?? '';
 const headRef = process.env.GITHUB_HEAD_REF ?? '';
-const prBody = process.env.PR_BODY ?? '';
+const eventBody = process.env.PR_BODY ?? '';
+
+const livePrBody = () => {
+  const repository = process.env.GITHUB_REPOSITORY ?? '';
+  const prNumber = Number(process.env.PR_NUMBER ?? 0);
+  if (!repository || !prNumber || !process.env.GH_TOKEN) return eventBody;
+  try {
+    return execFileSync(
+      'gh',
+      ['api', `repos/${repository}/pulls/${prNumber}`, '--jq', '.body'],
+      { encoding: 'utf8' },
+    );
+  } catch {
+    return eventBody;
+  }
+};
 
 if (!baseRef || !headRef) {
   console.log('No PR base/head branch; skipping changelog check.');
@@ -11,7 +27,7 @@ if (!baseRef || !headRef) {
 }
 
 const changedFiles = listChangedFilesBetweenRefs(baseRef, headRef);
-const result = evaluateChangelogPolicy({ baseRef, changedFiles, body: prBody });
+const result = evaluateChangelogPolicy({ baseRef, changedFiles, body: livePrBody() });
 
 if (!result.ok) {
   console.error(result.reason);
