@@ -4,16 +4,20 @@ const SOURCE_PATTERN = /(?:port|backport|forward[- ]port|inherited)\s+(?:of\s+)?
 
 /** @typedef {'beta' | 'hotfix' | 'none' | 'inherited'} ChangelogImpact */
 
+/** @param {string} reason */
 const declarationError = (reason) => ({ ok: false, reason });
 
+/** @param {string} body @returns {string[]} */
 const impactMatches = (body) => [...body.matchAll(IMPACT_PATTERN)].map((match) => match[1].toLowerCase());
 
+/** @param {string} body @param {ChangelogImpact} impact */
 const parseDeclarationValues = (body, impact) => ({
   impact,
   reason: body.match(REASON_PATTERN)?.[1]?.trim(),
   sourcePr: Number(body.match(SOURCE_PATTERN)?.[1] ?? 0) || undefined,
 });
 
+/** @param {{ impact: ChangelogImpact; reason?: string; sourcePr?: number }} values */
 const validateDeclarationValues = ({ impact, reason, sourcePr }) => {
   if (impact === 'none' && !reason) {
     return declarationError('Changelog-Impact: none requires a non-empty Changelog-Reason declaration.');
