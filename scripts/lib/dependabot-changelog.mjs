@@ -58,8 +58,7 @@ export const findDependabotChangelogSection = (changelog) => {
  */
 export const extractDependenciesSubsection = (changelog, section) => {
   const body = changelog.slice(section.start, section.end);
-  const escapedHeading = DEPENDENCIES_HEADING.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  const match = body.match(new RegExp(`#{3,4} Dependencies[\\s\\S]*?(?=\\n### (?!#)|\\n## |$)`));
+  const match = body.match(/#{3,4} Dependencies[\s\S]*?(?=\n### (?!#)|\n## |$)/);
   if (!match) return null;
 
   return match[0].replace(/^#{3,4} Dependencies/, '').replace(DEPENDENCIES_MARKER, '').trim();
@@ -247,8 +246,10 @@ const applyDependencyBumpsToSection = (changelog, bumps) => {
   return changelog.slice(0, section.start) + sectionBody + changelog.slice(section.end);
 };
 
+/** @param {string} lane @returns {string} */
 const laneHeading = (lane) => lane === 'stable-hotfix' ? '### Stable 1.6.x hotfixes' : '### Next major / beta';
 
+/** @param {string} changelog @param {string} lane */
 const laneBounds = (changelog, lane) => {
   const heading = laneHeading(lane);
   const start = changelog.indexOf(heading);

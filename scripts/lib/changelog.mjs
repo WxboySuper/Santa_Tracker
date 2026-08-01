@@ -1,5 +1,5 @@
 import { deriveStableVersion, hasBetaPrerelease } from './package-version.mjs';
-import { extractChangelogLane, extractLaneReleaseNotes } from './changelog-lanes.mjs';
+import { extractLaneReleaseNotes } from './changelog-lanes.mjs';
 
 export { extractChangelogLane } from './changelog-lanes.mjs';
 

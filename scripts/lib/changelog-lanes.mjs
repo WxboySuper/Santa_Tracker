@@ -1,3 +1,4 @@
+/** @param {string} lane @returns {string} */
 const laneHeading = (lane) =>
   lane === 'stable-hotfix' ? '### Stable 1.6.x hotfixes' : '### Next major / beta';
 
