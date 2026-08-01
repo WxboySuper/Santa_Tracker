@@ -1,0 +1,41 @@
+import assert from 'node:assert/strict';
+import test from 'node:test';
+import { evaluateChangelogPolicy, parseChangelogDeclaration } from './changelog-policy.mjs';
+
+test('requires exactly one changelog impact declaration', () => {
+  assert.equal(parseChangelogDeclaration('## Changelog').ok, false);
+  assert.equal(parseChangelogDeclaration('Changelog-Impact: beta\nChangelog-Impact: none').ok, false);
+});
+
+test('requires a reason for no changelog impact', () => {
+  assert.equal(parseChangelogDeclaration('Changelog-Impact: none').ok, false);
+  assert.equal(parseChangelogDeclaration('Changelog-Impact: none\nChangelog-Reason: workflow-only').ok, true);
+});
+
+test('requires the production changelog for hotfix impact', () => {
+  const result = evaluateChangelogPolicy({
+    baseRef: 'stable/1.6.x',
+    changedFiles: ['src/App.tsx'],
+    body: 'Changelog-Impact: hotfix',
+  });
+  assert.equal(result.ok, false);
+  assert.match(result.reason, /CHANGELOG\.md/);
+});
+
+test('allows beta impact on the legacy beta changelog', () => {
+  const result = evaluateChangelogPolicy({
+    baseRef: 'beta',
+    changedFiles: ['CHANGELOG.beta.md'],
+    body: 'Changelog-Impact: beta',
+  });
+  assert.equal(result.ok, true);
+});
+
+test('allows a forward port to inherit its source changelog entry', () => {
+  const result = evaluateChangelogPolicy({
+    baseRef: 'main',
+    changedFiles: ['src/App.tsx'],
+    body: 'Changelog-Impact: inherited\nPort of #123',
+  });
+  assert.equal(result.ok, true);
+});

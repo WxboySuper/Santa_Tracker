@@ -70,7 +70,7 @@ jobs:
           node-version: '24.x'
 
       - name: Validate release automation unit tests
-        run: node --test scripts/lib/package-version.test.mjs scripts/lib/bump-beta-after-main-release.test.mjs scripts/lib/deployment-config.test.mjs scripts/lib/branch-policy.test.mjs scripts/lib/port-pr-policy.test.mjs scripts/lib/port-targets.test.mjs scripts/lib/port-conflicts.test.mjs scripts/lib/version-bump.test.mjs scripts/lib/glob-match.test.mjs scripts/lib/pr-labels.test.mjs scripts/lib/pr-ci-label-state.test.mjs scripts/lib/github-paginate.test.mjs scripts/lib/changelog.test.mjs scripts/lib/beta-changelog.test.mjs scripts/lib/dependabot-changelog.test.mjs scripts/lib/production-release.test.mjs
+        run: node --test scripts/lib/package-version.test.mjs scripts/lib/bump-beta-after-main-release.test.mjs scripts/lib/deployment-config.test.mjs scripts/lib/branch-policy.test.mjs scripts/lib/changelog-policy.test.mjs scripts/lib/port-pr-policy.test.mjs scripts/lib/port-targets.test.mjs scripts/lib/port-conflicts.test.mjs scripts/lib/version-bump.test.mjs scripts/lib/glob-match.test.mjs scripts/lib/pr-labels.test.mjs scripts/lib/pr-ci-label-state.test.mjs scripts/lib/github-paginate.test.mjs scripts/lib/changelog.test.mjs scripts/lib/beta-changelog.test.mjs scripts/lib/dependabot-changelog.test.mjs scripts/lib/production-release.test.mjs
 
       - name: Validate package version for target branch
         env:

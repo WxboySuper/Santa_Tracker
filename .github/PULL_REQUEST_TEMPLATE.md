@@ -6,6 +6,16 @@
 
 - 
 
+## Changelog decision
+
+<!-- Replace the placeholder with exactly one value. The required CI check blocks merging without it. -->
+
+Changelog-Impact: [beta|hotfix|none|inherited]
+
+<!-- Required for none; required for inherited. Remove unused lines. -->
+Changelog-Reason:
+Port of #
+
 ## Feature exposure
 
 <!-- Does this PR change feature exposure? If so, describe the target state change. -->
