@@ -4,6 +4,8 @@ name: Post-merge automation (disabled during delivery migration)
 # The previous workflow created GitHub Releases after merges. Those releases
 # triggered deployment workflows, so leaving it active would make the migration
 # unsafe. The replacement release workflows will be added in later stack layers.
+# Each migration PR must still declare its changelog impact explicitly; the
+# required CI check is intentionally independent of this delivery freeze.
 
 on:
   workflow_dispatch:
