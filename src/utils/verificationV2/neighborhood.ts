@@ -1,4 +1,15 @@
-import * as turf from '@turf/turf';
+import {
+  area,
+  bbox,
+  booleanPointInPolygon,
+  buffer,
+  distance,
+  featureCollection,
+  intersect,
+  point,
+  pointGrid,
+  union,
+} from '@turf/turf';
 import type { Feature, MultiPolygon, Polygon, Position } from 'geojson';
 import type { OutlookData } from '../../types/outlooks';
 import type { StormReport } from '../../types/stormReports';
@@ -11,7 +22,7 @@ import {
 import type { HazardKind, ProductKind } from './gradeContract';
 
 /**
- * Neighborhood + area geometry for the gfc-ver-1 engine (PR 02 — neighborhood-area).
+ * Neighborhood + area geometry for the Forecast Grade engine (PR 02 — neighborhood-area).
  *
  * Implements the SPC spatial contract: severe within 25 miles of any point in a
  * contour, with reports buffered by 25 miles. There is intentionally no
@@ -28,14 +39,20 @@ export interface ProductContour {
   polygon: AreaPolygon;
 }
 
-/** Returns true when an outlook map key encodes a significant (hatched) threat. */
+/** Returns true when an outlook map key is a legacy significant marker. */
 export const isSignificantKey = (key: string): boolean => key.includes('#');
+
+/** Returns true when an outlook map key is a standalone CIG hatching overlay. */
+export const isCigKey = (key: string): boolean => key.trim().toUpperCase().startsWith('CIG');
 
 /**
  * Resolves the probability fraction (0–1) a hazard contour key represents by
  * parsing its leading percent value.
  */
 export const probabilityFromKey = (_product: ProductKind, key: string): number => {
+  if (isCigKey(key)) {
+    return 0;
+  }
   const clean = key.replace('#', '').trim();
   const match = clean.match(/([\d.]+)/);
   if (!match) {
@@ -71,6 +88,7 @@ export const isSignificantReport = (report: StormReport): boolean => {
   return parseMagnitude(report) >= threshold;
 };
 
+/** Narrows a GeoJSON feature to the polygon shape used by verification. */
 const asAreaPolygon = (feature: Feature): AreaPolygon | null => {
   if (feature.geometry?.type === 'Polygon' || feature.geometry?.type === 'MultiPolygon') {
     return feature as AreaPolygon;
@@ -94,10 +112,12 @@ export const extractProductContours = (
   const contours: ProductContour[] = [];
   for (const [key, features] of map.entries()) {
     const probability = probabilityFromKey(product, key);
-    const isSignificant = isSignificantKey(key);
     for (const feature of features) {
       const polygon = asAreaPolygon(feature);
       if (polygon) {
+        const isSignificant = isSignificantKey(key)
+          || isCigKey(key)
+          || feature.properties?.isSignificant === true;
         contours.push({ probability, isSignificant, polygon });
       }
     }
@@ -119,8 +139,8 @@ export const unionAll = (polygons: AreaPolygon[]): AreaPolygon | null => {
       continue;
     }
     try {
-      const merged = turf.union(
-        turf.featureCollection([accumulator, valid[index]])
+      const merged = union(
+        featureCollection([accumulator, valid[index]])
       ) as AreaPolygon | null;
       if (merged) {
         accumulator = merged;
@@ -138,7 +158,7 @@ export const areaKm2 = (polygon: AreaPolygon | null): number => {
     return 0;
   }
   try {
-    return turf.area(polygon) / 1_000_000;
+    return area(polygon) / 1_000_000;
   } catch {
     return 0;
   }
@@ -150,7 +170,7 @@ export const intersectionAreaKm2 = (a: AreaPolygon | null, b: AreaPolygon | null
     return 0;
   }
   try {
-    const intersection = turf.intersect(turf.featureCollection([a, b])) as AreaPolygon | null;
+    const intersection = intersect(featureCollection([a, b])) as AreaPolygon | null;
     return areaKm2(intersection);
   } catch {
     return 0;
@@ -160,8 +180,8 @@ export const intersectionAreaKm2 = (a: AreaPolygon | null, b: AreaPolygon | null
 /** Buffers a report point by the SPC neighborhood radius (25 miles). */
 export const bufferReport = (report: StormReport): AreaPolygon | null => {
   try {
-    const point = turf.point([report.longitude, report.latitude]);
-    return turf.buffer(point, SPC_NEIGHBORHOOD_MILES, { units: 'miles' }) as AreaPolygon | null;
+    const reportPoint = point([report.longitude, report.latitude]);
+    return buffer(reportPoint, SPC_NEIGHBORHOOD_MILES, { units: 'miles' }) as AreaPolygon | null;
   } catch {
     return null;
   }
@@ -181,17 +201,17 @@ export const observedFootprint = (reports: StormReport[]): AreaPolygon | null =>
 
 /** Highest forecast probability whose contour contains the point (0 if none). */
 export const forecastProbabilityAt = (
-  point: Position,
+  position: Position,
   contours: ProductContour[]
 ): number => {
-  const turfPoint = turf.point(point);
+  const turfPoint = point(position);
   let best = 0;
   for (const contour of contours) {
     if (contour.probability <= best) {
       continue;
     }
     try {
-      if (turf.booleanPointInPolygon(turfPoint, contour.polygon)) {
+      if (booleanPointInPolygon(turfPoint, contour.polygon)) {
         best = contour.probability;
       }
     } catch {
@@ -202,14 +222,14 @@ export const forecastProbabilityAt = (
 };
 
 /** True when a point lies within 25 miles of any of the supplied reports. */
-export const isWithinNeighborhood = (point: Position, reports: StormReport[]): boolean => {
-  const turfPoint = turf.point(point);
+export const isWithinNeighborhood = (position: Position, reports: StormReport[]): boolean => {
+  const turfPoint = point(position);
   for (const report of reports) {
     try {
-      const distance = turf.distance(turfPoint, turf.point([report.longitude, report.latitude]), {
+      const reportDistance = distance(turfPoint, point([report.longitude, report.latitude]), {
         units: 'miles',
       });
-      if (distance <= SPC_NEIGHBORHOOD_MILES) {
+      if (reportDistance <= SPC_NEIGHBORHOOD_MILES) {
         return true;
       }
     } catch {
@@ -226,7 +246,7 @@ export const reportsNearRegion = (region: AreaPolygon | null, reports: StormRepo
   }
   let buffered: AreaPolygon | null = region;
   try {
-    buffered = turf.buffer(region, SPC_NEIGHBORHOOD_MILES, { units: 'miles' }) as AreaPolygon | null;
+    buffered = buffer(region, SPC_NEIGHBORHOOD_MILES, { units: 'miles' }) as AreaPolygon | null;
   } catch {
     buffered = region;
   }
@@ -237,7 +257,7 @@ export const reportsNearRegion = (region: AreaPolygon | null, reports: StormRepo
   let count = 0;
   for (const report of reports) {
     try {
-      if (turf.booleanPointInPolygon(turf.point([report.longitude, report.latitude]), buffered)) {
+      if (booleanPointInPolygon(point([report.longitude, report.latitude]), buffered)) {
         count += 1;
       }
     } catch {
@@ -260,7 +280,7 @@ const combinedBbox = (features: AreaPolygon[]): [number, number, number, number]
     return null;
   }
   try {
-    return turf.bbox(turf.featureCollection(features)) as [number, number, number, number];
+    return bbox(featureCollection(features)) as [number, number, number, number];
   } catch {
     return null;
   }
@@ -281,6 +301,7 @@ export const estimateGridCellCount = (
   spacingKm: number
 ): number => gridEndpointCount(widthKm, spacingKm) * gridEndpointCount(heightKm, spacingKm);
 
+/** Selects the coarsest grid spacing that stays within the cell-count ceiling. */
 const spacingForCellCeiling = (
   widthKm: number,
   heightKm: number,
@@ -308,12 +329,13 @@ const spacingForCellCeiling = (
   return high;
 };
 
+/** Collects verification-grid points across the forecast bounding box. */
 const collectGridPoints = (
   bbox: [number, number, number, number],
   spacingKm: number
 ): Position[] => {
   try {
-    const grid = turf.pointGrid(bbox, spacingKm, { units: 'kilometers' });
+    const grid = pointGrid(bbox, spacingKm, { units: 'kilometers' });
     return grid.features
       .map((feature) => feature.geometry?.coordinates)
       .filter((coordinates): coordinates is Position => Array.isArray(coordinates));
@@ -338,8 +360,8 @@ export const buildVerificationGrid = (
   }
 
   const [minX, minY, maxX, maxY] = bbox;
-  const widthKm = turf.distance([minX, minY], [maxX, minY], { units: 'kilometers' });
-  const heightKm = turf.distance([minX, minY], [minX, maxY], { units: 'kilometers' });
+  const widthKm = distance([minX, minY], [maxX, minY], { units: 'kilometers' });
+  const heightKm = distance([minX, minY], [minX, maxY], { units: 'kilometers' });
 
   let spacingKm = spacingForCellCeiling(widthKm, heightKm, GRID_SPACING_KM, MAX_GRID_CELLS);
   let points = collectGridPoints(bbox, spacingKm);

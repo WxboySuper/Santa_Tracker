@@ -12,12 +12,13 @@ import type { OutlookData } from '../../types/outlooks';
 const CENTER: [number, number] = [-97, 37];
 
 const componentOf = (product: ProductGrade | undefined, key: ComponentKey) =>
-  product?.components.find((component) => component.key === key);
+  [...(product?.components ?? []), ...(product?.diagnostics ?? [])]
+    .find((component) => component.key === key);
 
 const tornadoProduct = (grade: ReturnType<typeof gradeForecast>) =>
   grade.products.find((product) => product.product === 'tornado');
 
-describe('gfc-ver-1 letter bands', () => {
+describe('gfc-ver-3 letter bands', () => {
   test.each([
     [95, 'A'],
     [90, 'A'],
@@ -31,7 +32,7 @@ describe('gfc-ver-1 letter bands', () => {
   });
 });
 
-describe('gfc-ver-1 input validation', () => {
+describe('gfc-ver-3 input validation', () => {
   test('blocks a package with no severe hazard geometry', () => {
     const empty: OutlookData = { tornado: new Map(), wind: new Map(), hail: new Map(), categorical: new Map() };
     expect(validateGradeInputs({ outlooks: empty, reports: [] }).valid).toBe(false);
@@ -58,17 +59,16 @@ describe('gfc-ver-1 input validation', () => {
   });
 });
 
-describe('gfc-ver-1 data quality gate', () => {
-  test('quiet day is Good with a No reports label and still produces a grade', () => {
+describe('gfc-ver-3 data quality gate', () => {
+  test('quiet day is Good with a No reports label and is not evaluated', () => {
     const outlooks = tornadoOutlook('10%', circleContour(CENTER[0], CENTER[1], 120));
     const grade = gradeForecast({ outlooks, reports: [], generatedAt: '2026-01-01T00:00:00.000Z' });
 
     expect(grade.dataQuality).toBe('Good');
     expect(grade.dataQualityReason).toBe('No reports');
     expect(grade.hasReports).toBe(false);
-    expect(grade.grade).not.toBeNull();
-    // Overforecast quiet day should score poorly.
-    expect(grade.grade as number).toBeLessThan(60);
+    expect(grade.grade).toBeNull();
+    expect(grade.products.find((product) => product.product === 'tornado')?.grade).toBeNull();
     expect(grade.formulaVersion).toBe(FORECAST_GRADE_FORMULA_VERSION);
   });
 
@@ -92,7 +92,19 @@ describe('gfc-ver-1 data quality gate', () => {
   });
 });
 
-describe('gfc-ver-1 event yield intent', () => {
+describe('gfc-ver-3 event yield intent', () => {
+  test('broad 2% coverage that captures events passes without approaching perfect', () => {
+    const outlooks = tornadoOutlook('2%', circleContour(CENTER[0], CENTER[1], 160));
+    const reports = scatterReports('tornado', CENTER[0], CENTER[1], 3, 0.1);
+    const grade = gradeForecast({ outlooks, reports });
+    const product = tornadoProduct(grade);
+
+    expect(product?.grade as number).toBeGreaterThanOrEqual(80);
+    expect(product?.grade as number).toBeLessThan(90);
+    expect(product?.components.find((component) => component.key === 'tierPlacement')?.score)
+      .toBeCloseTo(0.65, 5);
+  });
+
   test('huge 30% core with a single report fails yield', () => {
     const outlooks = tornadoOutlook('30%', circleContour(CENTER[0], CENTER[1], 160));
     const reports = [makeReport('tornado', CENTER[0], CENTER[1])];
@@ -101,6 +113,7 @@ describe('gfc-ver-1 event yield intent', () => {
 
     expect(yieldComponent?.applicable).toBe(true);
     expect(yieldComponent?.score as number).toBeLessThan(0.3);
+    expect(tornadoProduct(grade)?.grade as number).toBeLessThan(60);
   });
 
   test('tiny 45% core with one report is softened below full yield', () => {
@@ -123,7 +136,7 @@ describe('gfc-ver-1 event yield intent', () => {
   });
 });
 
-describe('gfc-ver-1 false-alarm discipline and skill', () => {
+describe('gfc-ver-3 diagnostics and skill', () => {
   test('dense congestion scenario grades well across components', () => {
     const outlooks = tornadoOutlook('15%', circleContour(CENTER[0], CENTER[1], 90));
     const reports = scatterReports('tornado', CENTER[0], CENTER[1], 12, 0.4);
@@ -147,7 +160,7 @@ describe('gfc-ver-1 false-alarm discipline and skill', () => {
   });
 });
 
-describe('gfc-ver-1 severity', () => {
+describe('gfc-ver-3 severity', () => {
   test('significant contour with no significant report applies the soft penalty', () => {
     const outlooks = tornadoOutlook('15%#', circleContour(CENTER[0], CENTER[1], 90));
     const reports = scatterReports('tornado', CENTER[0], CENTER[1], 6, 0.3);
@@ -174,7 +187,7 @@ describe('gfc-ver-1 severity', () => {
   });
 });
 
-describe('gfc-ver-1 product presence and per-hazard gating', () => {
+describe('gfc-ver-3 product presence and per-hazard gating', () => {
   test('report-only product returns inapplicable without scoring components', () => {
     // Tornado has a 10% contour; hail does not. Hail has 4 reports anyway.
     const outlooks = tornadoOutlook('10%', circleContour(CENTER[0], CENTER[1], 120));
@@ -202,8 +215,9 @@ describe('gfc-ver-1 product presence and per-hazard gating', () => {
     expect(grade.dataQuality).toBe('Good');
     expect(grade.dataQualityReason).toBe('No reports');
     expect(grade.hasReports).toBe(false);
-    // Tornado was the only product with geometry, so the package still grades it.
-    expect(grade.grade).not.toBeNull();
+    // Tornado was the only product with geometry, but no tornado event was
+    // observed, so there is no single-run outcome grade to calculate.
+    expect(grade.grade).toBeNull();
   });
 
   test('only tornado-relevant reports gate the Limited threshold', () => {
@@ -219,7 +233,7 @@ describe('gfc-ver-1 product presence and per-hazard gating', () => {
   });
 });
 
-describe('gfc-ver-1 staged runForecastGrade', () => {
+describe('gfc-ver-3 staged runForecastGrade', () => {
   test('reuses staged product grades and matches the synchronous gradeForecast result', async () => {
     const outlooks = tornadoOutlook('15%', circleContour(CENTER[0], CENTER[1], 90));
     const reports = scatterReports('tornado', CENTER[0], CENTER[1], 12, 0.4);

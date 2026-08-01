@@ -41,11 +41,12 @@ describe('gradeScoring', () => {
   describe('composeComponents', () => {
     it('renormalizes applicable component weights', () => {
       const grade = composeComponents([
-        scoredComponent('probabilitySkill', 0.8, 'ok'),
-        notEvaluatedComponent('spatialContingency', 'n/a'),
-        scoredComponent('farDiscipline', 0.6, 'ok'),
+        scoredComponent('eventCapture', 0.8, 'ok'),
+        scoredComponent('tierPlacement', 0.6, 'ok'),
+        notEvaluatedComponent('eventYield', 'n/a'),
+        scoredComponent('severity', 0.6, 'ok'),
       ]);
-      expect(grade).toBe(roundGrade(((25 * 0.8 + 15 * 0.6) / 40) * 100));
+      expect(grade).toBe(roundGrade(((35 * 0.8 + 30 * 0.6 + 15 * 0.6) / 80) * 100));
     });
 
     it('returns null when no scorable components remain', () => {

@@ -1,10 +1,10 @@
-import * as turf from '@turf/turf';
+import { circle } from '@turf/turf';
 import type { Feature, Polygon } from 'geojson';
 import type { OutlookData } from '../../types/outlooks';
 import type { ReportType, StormReport } from '../../types/stormReports';
 
 /**
- * Shared scenario fixtures for the gfc-ver-1 engine tests. Kept outside a
+ * Shared scenario fixtures for the Forecast Grade engine tests. Kept outside a
  * *.test file so both the unit suite and the hardening suite can reuse them.
  */
 
@@ -13,7 +13,7 @@ export const circleContour = (
   lon: number,
   lat: number,
   radiusKm: number
-): Feature<Polygon> => turf.circle([lon, lat], radiusKm, { units: 'kilometers', steps: 64 }) as Feature<Polygon>;
+): Feature<Polygon> => circle([lon, lat], radiusKm, { units: 'kilometers', steps: 64 }) as Feature<Polygon>;
 
 let reportCounter = 0;
 

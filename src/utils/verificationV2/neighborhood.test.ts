@@ -15,6 +15,7 @@ import {
   forecastProbabilityAt,
   gridEndpointCount,
   intersectionAreaKm2,
+  isCigKey,
   isSignificantKey,
   isSignificantReport,
   isWithinNeighborhood,
@@ -61,6 +62,10 @@ describe('neighborhood', () => {
       expect(probabilityFromKey('tornado', '15%')).toBe(0.15);
       expect(probabilityFromKey('wind', '30%#')).toBe(0.3);
       expect(probabilityFromKey('hail', 'not-a-probability')).toBe(0);
+      expect(probabilityFromKey('tornado', 'CIG2')).toBe(0);
+      expect(isCigKey('CIG1')).toBe(true);
+      expect(isCigKey('CIG2')).toBe(true);
+      expect(isCigKey('15%')).toBe(false);
       expect(isSignificantKey('15%#')).toBe(true);
       expect(isSignificantKey('15%')).toBe(false);
     });
@@ -97,6 +102,30 @@ describe('neighborhood', () => {
 
     it('returns an empty list when the product map is missing', () => {
       expect(extractProductContours({}, 'wind')).toEqual([]);
+    });
+
+    it('recognizes serialized CIG keys and feature significance metadata', () => {
+      const outlooks: OutlookData = {
+        wind: new Map([
+          ['CIG2', [
+            squarePolygon(-98, 34, -96, 36),
+          ]],
+          ['15%', [
+            {
+              type: 'Feature',
+              properties: { isSignificant: true },
+              geometry: squarePolygon(-97.5, 34.5, -96.5, 35.5).geometry,
+            } as AreaPolygon,
+          ]],
+        ]),
+      };
+
+      const contours = extractProductContours(outlooks, 'wind');
+      expect(contours).toHaveLength(2);
+      expect(contours.find((contour) => contour.probability === 0))
+        .toEqual(expect.objectContaining({ isSignificant: true }));
+      expect(contours.find((contour) => contour.probability === 0.15))
+        .toEqual(expect.objectContaining({ isSignificant: true }));
     });
   });
 

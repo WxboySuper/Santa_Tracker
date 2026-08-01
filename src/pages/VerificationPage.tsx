@@ -2,7 +2,7 @@ import React, { lazy, Suspense } from 'react';
 import { isFeatureExposed } from '../config/featureExposure';
 import VerificationMode from '../components/VerificationMode/VerificationMode';
 
-// Lazily loaded so the Verification v2 dashboard and its gfc-ver-1 engine never
+// Lazily loaded so the Verification v2 dashboard and its grading engine never
 // import as a side effect while verificationRelaunch is disabled.
 const ForecastGradeDashboard = lazy(() => import('../components/ForecastGrade/ForecastGradeDashboard'));
 

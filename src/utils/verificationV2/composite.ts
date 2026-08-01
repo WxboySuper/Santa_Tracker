@@ -3,6 +3,7 @@ import type { StormReport } from '../../types/stormReports';
 import { LIMITED_REPORT_CEILING } from './constants';
 import {
   COMPONENT_ORDER,
+  DIAGNOSTIC_ORDER,
   PRODUCT_KINDS,
   PRODUCT_LABELS,
   composeComponents,
@@ -30,11 +31,14 @@ import {
 } from './probSpatial';
 import { FORECAST_GRADE_FORMULA_VERSION } from './formulaVersion';
 import { scoreEventYield, scoreSeverity } from './yieldSeverity';
+import { scoreEventCapture } from './eventCapture';
+import { scoreTierPlacement } from './tierPlacement';
 
 /**
- * Composite rollup for the gfc-ver-1 engine (PR 04 — yield-composite).
+ * Composite rollup for the versioned Forecast Grade engine (PR 04 — yield-composite).
  *
- * Combines the five components into a product grade (renormalizing N/A out),
+ * Combines event capture, tier-aware placement, event yield, and
+ * significant-threat placement into a product grade (renormalizing N/A out),
  * rolls present products into an equal-weight package grade, and derives the
  * Good / Limited / Blocked data-quality gate.
  */
@@ -43,6 +47,14 @@ const orderedComponents = (components: ComponentScore[]): ComponentScore[] => {
   const byKey = new Map(components.map((component) => [component.key, component]));
   return COMPONENT_ORDER.map(
     (key) => byKey.get(key) ?? notEvaluatedComponent(key, 'Component not evaluated.')
+  );
+};
+
+/** Orders technical diagnostics and supplies explicit N/A entries when needed. */
+const orderedDiagnostics = (components: ComponentScore[]): ComponentScore[] => {
+  const byKey = new Map(components.map((component) => [component.key, component]));
+  return DIAGNOSTIC_ORDER.map(
+    (key) => byKey.get(key) ?? notEvaluatedComponent(key, 'Diagnostic not evaluated.')
   );
 };
 
@@ -68,6 +80,7 @@ export const gradeProduct = (
       applicable: false,
       reportCount: productReports.length,
       components: COMPONENT_ORDER.map((key) => notEvaluatedComponent(key, reason)),
+      diagnostics: DIAGNOSTIC_ORDER.map((key) => notEvaluatedComponent(key, reason)),
     };
   }
 
@@ -76,10 +89,14 @@ export const gradeProduct = (
   const grid = buildVerificationGrid(forecastUnion, observed);
   const evaluation = evaluateGrid(grid, contours, productReports);
 
-  const components = orderedComponents([
+  const diagnostics = orderedDiagnostics([
     scoreProbabilitySkill(evaluation),
     scoreSpatialContingency(contours, productReports),
     scoreFalseAlarmDiscipline(evaluation),
+  ]);
+  const components = orderedComponents([
+    scoreEventCapture(product, contours, reports),
+    scoreTierPlacement(product, contours, reports),
     scoreEventYield(product, contours, reports),
     scoreSeverity(product, contours, productReports),
   ]);
@@ -94,6 +111,7 @@ export const gradeProduct = (
     applicable: components.some((component) => component.applicable),
     reportCount: productReports.length,
     components,
+    diagnostics,
   };
 };
 

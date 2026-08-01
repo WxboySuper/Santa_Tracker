@@ -1,5 +1,5 @@
 /**
- * Public surface of the gfc-ver-1 Forecast Grade engine.
+ * Public surface of the versioned Forecast Grade engine.
  *
  * The engine is pure (no React, no Redux) so it can be unit-tested in isolation
  * and imported by UI, history persistence, share/export, and docs tooling.
@@ -13,6 +13,7 @@ export {
   relevantReportTypes,
   isSignificantReport,
   isSignificantKey,
+  isCigKey,
   probabilityFromKey,
   parseMagnitude,
   observedFootprint,
@@ -29,6 +30,8 @@ export {
   type GridEvaluation,
 } from './probSpatial';
 export { scoreEventYield, scoreSeverity } from './yieldSeverity';
+export { scoreEventCapture } from './eventCapture';
+export { scoreTierPlacement } from './tierPlacement';
 export {
   gradeProduct,
   rollUpPackageGrade,
