@@ -70,7 +70,60 @@ jobs:
           if [ "$APPLY_STATUS" -ne 0 ]; then
             CONFLICTS=$(git diff --name-only --diff-filter=U | paste -sd ', ' -)
             git reset --merge
-            gh pr comment "$SOURCE_PR" --body "Automatic forward-port to \\`main\\` needs manual resolution. Conflicting files: ${CONFLICTS:-unknown}. No port PR was opened."
+
+            ISSUE_TITLE="Production fix #${SOURCE_PR} needs a manual path into main"
+            SOURCE_TITLE=$(gh pr view "$SOURCE_PR" --repo "$REPOSITORY" --json title --jq '.title')
+            SOURCE_URL="https://github.com/${REPOSITORY}/pull/${SOURCE_PR}"
+            ISSUE_BODY=$(cat <<EOF
+## What happened
+
+The production fix in [PR #${SOURCE_PR}](${SOURCE_URL}) — **${SOURCE_TITLE}** — is safely merged into \`${SOURCE_BRANCH}\`. When automation tried to carry that same fix into \`main\`, the surrounding code had moved enough that it could not apply the change safely.
+
+Nothing is wrong with production. The fix is already on the stable line. This issue tracks the follow-up needed to make sure the next-major \`main\` line keeps the same behavior.
+
+## Why this needs a human
+
+\`main\` may contain a substantially different architecture. The right resolution may be a small rewrite rather than a mechanical copy of the stable diff.
+
+### Details
+
+- Stable branch: \`${SOURCE_BRANCH}\`
+- Stable merge commit: \`${MERGE_SHA}\`
+- Intended destination: \`main\`
+- Files that need attention: ${CONFLICTS:-Git could not identify the conflicting files}
+
+### Suggested next steps
+
+1. Start from the current \`main\` branch.
+2. Re-express the stable fix in the current main architecture; do not force old conflict markers into the branch.
+3. Add \`Changelog-Impact: inherited\` and \`Port of #${SOURCE_PR}\` to the PR body when the stable changelog entry is being carried forward.
+4. Run the normal checks and open a reviewed PR into \`main\`.
+
+Close this issue after the reviewed port lands, or explain why the behavior is already present or no longer applies.
+EOF
+)
+
+            gh label create "porting/conflicts" --repo "$REPOSITORY" --color "B60205" --description "A stable fix needs a human-owned forward-port" 2>/dev/null || true
+            EXISTING_ISSUE=$(gh issue list \
+              --repo "$REPOSITORY" \
+              --state open \
+              --label "porting/conflicts" \
+              --limit 100 \
+              --json number,url,title | \
+              jq -r --arg title "$ISSUE_TITLE" '.[] | select(.title == $title) | "\(.number)\t\(.url)"' | \
+              head -n 1)
+
+            if [ -n "$EXISTING_ISSUE" ]; then
+              ISSUE_URL=$(printf '%s' "$EXISTING_ISSUE" | cut -f2)
+            else
+              ISSUE_URL=$(gh issue create \
+                --repo "$REPOSITORY" \
+                --title "$ISSUE_TITLE" \
+                --body "$ISSUE_BODY" \
+                --label "porting/conflicts")
+            fi
+
+            gh pr comment "$SOURCE_PR" --body "The production fix is safe on \`${SOURCE_BRANCH}\`, but carrying it into \`main\` needs a human decision because the branches have diverged. I opened [a tracking issue](${ISSUE_URL}) with the conflicting files and next steps."
             gh pr edit "$SOURCE_PR" --add-label "porting/conflicts"
             echo "conflict=true" >> "$GITHUB_OUTPUT"
             exit 0
