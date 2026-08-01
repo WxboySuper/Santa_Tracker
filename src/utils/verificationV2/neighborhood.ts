@@ -77,6 +77,7 @@ export const isSignificantReport = (report: StormReport): boolean => {
   return parseMagnitude(report) >= threshold;
 };
 
+/** Narrows a GeoJSON feature to the polygon shape used by verification. */
 const asAreaPolygon = (feature: Feature): AreaPolygon | null => {
   if (feature.geometry?.type === 'Polygon' || feature.geometry?.type === 'MultiPolygon') {
     return feature as AreaPolygon;
@@ -289,6 +290,7 @@ export const estimateGridCellCount = (
   spacingKm: number
 ): number => gridEndpointCount(widthKm, spacingKm) * gridEndpointCount(heightKm, spacingKm);
 
+/** Selects the coarsest grid spacing that stays within the cell-count ceiling. */
 const spacingForCellCeiling = (
   widthKm: number,
   heightKm: number,
@@ -316,6 +318,7 @@ const spacingForCellCeiling = (
   return high;
 };
 
+/** Collects verification-grid points across the forecast bounding box. */
 const collectGridPoints = (
   bbox: [number, number, number, number],
   spacingKm: number

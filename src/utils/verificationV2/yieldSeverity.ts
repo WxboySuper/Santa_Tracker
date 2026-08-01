@@ -92,6 +92,7 @@ export const scoreEventYield = (
   return scoredComponent('eventYield', score, `Core yield ${details.join('; ')}.`, metrics);
 };
 
+/** Scores significant reports that occur inside the significant forecast tier. */
 const scoreSigDrawnAndObserved = (
   sigContours: ProductContour[],
   sigReports: StormReport[]
@@ -117,6 +118,7 @@ const scoreSigDrawnAndObserved = (
   );
 };
 
+/** Scores a significant forecast tier with no significant reports observed. */
 const scoreSigDrawnOnly = (): ComponentScore =>
   scoredComponent(
     'severity',
@@ -125,6 +127,7 @@ const scoreSigDrawnOnly = (): ComponentScore =>
     { sigReports: 0, sigInArea: 0 }
   );
 
+/** Scores significant reports that occurred without a significant forecast tier. */
 const scoreSigObservedOnly = (sigReports: StormReport[]): ComponentScore =>
   scoredComponent(
     'severity',
