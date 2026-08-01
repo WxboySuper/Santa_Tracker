@@ -52,6 +52,7 @@ export const extractChangelogSection = (changelog, stableVersion) => {
   return null;
 };
 
+/** @param {string} changelog @param {string} version @returns {string | null} */
 const legacyReleaseNotes = (changelog, version) => {
   const stable = deriveStableVersion(version) ?? version;
   const section = extractChangelogSection(changelog, stable);

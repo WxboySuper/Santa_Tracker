@@ -210,9 +210,11 @@ const formatDependenciesBlock = (lines) =>
  */
 /** @param {string} sectionBody @param {string} dependenciesBlock @param {string} [lane] */
 const replaceDependenciesBlock = (sectionBody, dependenciesBlock, lane = '') => {
-  const escapedHeading = DEPENDENCIES_HEADING.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   const depsHeading = lane ? '#### Dependencies' : DEPENDENCIES_HEADING;
-  const depsPattern = new RegExp(`${depsHeading.replace(/[.*+?^${}()|[\\]\\]/g, '\\$&')}[\\s\\S]*?(?=\\n### (?!#)|\\n## |$)`);
+  const depsPattern = new RegExp([
+    depsHeading.replace(/[.*+?^${}()|[\\]\\]/g, '\\$&'),
+    '[\\s\\S]*?(?=\\n### (?!#)|\\n## |$)',
+  ].join(''));
   const stripped = sectionBody.replace(depsPattern, '').trimEnd();
   const headingEnd = stripped.indexOf('\n');
   const insertPos = headingEnd === -1 ? stripped.length : headingEnd + 1;
