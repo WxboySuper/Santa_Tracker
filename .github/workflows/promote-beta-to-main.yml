@@ -1,62 +1,19 @@
-name: (Legacy) Direct promote beta → main
+name: Legacy Direct Beta to Main Promotion (disabled)
+
+# Direct beta → main promotion is unsafe once main becomes the next-major line
+# and production is maintained on stable/X.Y.x. Keep this visible as a disabled
+# workflow so old Actions links explain the new process instead of merging refs.
+on:
+  workflow_dispatch:
 
 permissions:
   contents: read
 
-# DEPRECATED — do not use for normal releases.
-#
-# Normal promotion path:
-#   1. Actions → "Prepare Beta → Main Release PR" (prepare-beta-main-release-pr.yml)
-#   2. Review and merge the release/vX.Y.Z → main pull request
-#   3. Optional: "Bump beta for next development cycle"
-#
-# This workflow bypasses the release PR, final review, and conflict resolution in GitHub.
-# It remains only for documented emergency recovery when a PAT push to main is required.
-#
-# Required secrets:
-#   GH_PAT — Personal Access Token with `repo` scope.
-on:
-  workflow_dispatch:
-    inputs:
-      confirm_legacy:
-        description: 'Type LEGACY-DIRECT-PROMOTE to confirm (bypasses release PR process)'
-        required: true
-        default: ''
-
 jobs:
-  promote:
+  migration-freeze-notice:
     runs-on: ubuntu-latest
-    if: ${{ github.event.inputs.confirm_legacy == 'LEGACY-DIRECT-PROMOTE' }}
-
     steps:
-      - name: Checkout with full history
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          token: ${{ secrets.GH_PAT }}
-
-      - name: Configure git identity
+      - name: Explain the replacement
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-
-      - name: Merge beta into main
-        run: |
-          git fetch origin beta main
-          git checkout main
-          git merge --no-ff origin/beta -m "chore: promote beta → main [legacy direct]"
-
-      - name: Strip beta prerelease from package version on main
-        run: node scripts/strip-beta-prerelease-version.mjs
-
-      - name: Commit stable version on main when changed
-        run: |
-          if git diff --quiet package.json; then
-            echo "package.json version already stable on main."
-          else
-            git add package.json
-            git commit -m "chore: set stable package version for main promotion [legacy]"
-          fi
-
-      - name: Push main
-        run: git push origin main
+          echo "Direct beta-to-main promotion is disabled."
+          echo "Production releases must use stable/* and the manual stable release workflow."

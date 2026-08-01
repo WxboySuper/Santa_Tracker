@@ -5,6 +5,7 @@
 const BETA_PRERELEASE_PATTERN = /-beta(\.|$)/i;
 const STABLE_VERSION_PATTERN = /^[0-9]+\.[0-9]+\.[0-9]+$/;
 const RELEASE_BRANCH_PATTERN = /^release\/v[0-9]+\.[0-9]+\.[0-9]+$/;
+const STABLE_LINE_PATTERN = /^stable\/[0-9]+\.[0-9]+\.x$/;
 
 /**
  * @param {string} message
@@ -60,29 +61,6 @@ const validateBetaTargetVersion = (version, targetBranch) => {
  * @param {boolean} isPullRequest
  * @returns {VersionPolicyResult}
  */
-const validateMainTargetVersion = (version, headRef, isPullRequest) => {
-  const hasBeta = hasBetaPrerelease(version);
-  const isBetaPromotionPr = isPullRequest && headRef === 'beta';
-
-  if (hasBeta && !isBetaPromotionPr) {
-    const promotionHint = isPullRequest
-      ? 'Open a beta → main promotion PR (head branch beta) or hotfix/* with a stable version.'
-      : 'main must only receive stable semver versions.';
-    return policyFail(
-      `package.json version "${version}" must not include a -beta prerelease on "main". ${promotionHint}`,
-    );
-  }
-
-  if (isBetaPromotionPr && !hasBeta) {
-    return policyFail(
-      `Beta → main promotion PRs should carry a -beta prerelease on beta (got "${version}"). ` +
-        'CI will strip to stable on merge automatically.',
-    );
-  }
-
-  return { ok: true };
-};
-
 /**
  * @param {{
  *   version: string;
@@ -98,8 +76,18 @@ export const evaluateVersionPolicy = ({ version, targetBranch, headRef = '', eve
     return betaResult;
   }
 
+  if (STABLE_LINE_PATTERN.test(targetBranch)) {
+    if (hasBetaPrerelease(version) || !STABLE_VERSION_PATTERN.test(version)) {
+      return policyFail(
+        `Stable line "${targetBranch}" requires a stable semver package version, got "${version}".`,
+      );
+    }
+  }
+
   if (targetBranch === 'main') {
-    return validateMainTargetVersion(version, headRef, eventName === 'pull_request');
+    // main is the next-major integration line. It may temporarily contain a
+    // stable version during cutover and beta prerelease versions afterward.
+    return { ok: true };
   }
 
   return { ok: true };

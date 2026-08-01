@@ -5,12 +5,12 @@
 2. **Pnpm First**: This project uses `pnpm`. Never use `npm` or `yarn` for dependency management.
 
 ## 🌿 Branching & Workflow
-*   **Main Branch**: Production-ready code. Only merged from `beta`.
-*   **Beta Branch**: Staging and integration. All features and bugfixes must pass through `beta` before `main`.
-*   **Feature Branches**: `feature/[name-of-feature]` (e.g., `feature/discussion-editor-v2`).
+*   **Main Branch**: Next-major integration line. Any source branch may open a PR to `main`; required checks and review determine readiness.
+*   **Stable Branches**: Production maintenance lines use `stable/X.Y.x` (for example, `stable/1.6.x`). Production hotfixes start here, release here, and are forward-ported to `main`.
+*   **Feature Branches**: Branch names are descriptive conventions, not merge gates.
 *   **Bugfix Branches**: `fix/[bug-description]` (e.g., `fix/map-flicker`).
-*   **Hotfix Branches**: `hotfix/[critical-fix]` (targeted at `main`).
-*   **Automated Porting**: After a merge into `main`, automation may open a single port PR into `beta` (for example hotfix merges). Use the `porting/manual` label or an open manual beta PR to skip automation. See `AGENTS.md` and `docs/release-workflow.md`.
+*   **Hotfix Branches**: `hotfix/[critical-fix]` from the current stable line.
+*   **Forward Porting**: After a stable-line merge, automation may open a draft port PR into `main`. Review and resolve rewrite-specific differences there; never merge `main` back into a stable line.
 
 ## 📝 Commit Message Conventions
 Use [Conventional Commits](https://www.conventionalcommits.org/):
@@ -25,7 +25,7 @@ Use [Conventional Commits](https://www.conventionalcommits.org/):
 
 ## 📖 Change Documentation
 ### 1. Changelogs
-PRs targeting `beta` add one concise entry to [CHANGELOG.beta.md](../CHANGELOG.beta.md) under `## Unreleased` using a `### PR #123` heading. PRs targeting `main` update [CHANGELOG.md](../CHANGELOG.md) under the current production version.
+Every PR must declare exactly one `Changelog-Impact: beta|hotfix|none|inherited` value. The required CI check blocks merging when the declaration is missing or inconsistent with the changed files. Beta and hotfix entries use their separate unreleased lanes in [CHANGELOG.md](../CHANGELOG.md); forward ports inherit the source entry.
 *   `Added`: For new features.
 *   `Changed`: For changes in existing functionality.
 *   `Deprecated`: For soon-to-be removed features.

@@ -42,14 +42,14 @@ describe('package-version policy', () => {
     assert.equal(result.ok, true);
   });
 
-  it('rejects feature branches targeting main with beta version', () => {
+  it('allows feature branches targeting main with beta version', () => {
     const result = evaluateVersionPolicy({
       version: '1.6.0-beta.1',
       targetBranch: 'main',
       headRef: 'feature/foo',
       eventName: 'pull_request',
     });
-    assert.equal(result.ok, false);
+    assert.equal(result.ok, true);
   });
 
   it('allows release branch PR to main with stable version', () => {
@@ -60,5 +60,15 @@ describe('package-version policy', () => {
       eventName: 'pull_request',
     });
     assert.equal(result.ok, true);
+  });
+
+  it('requires stable versions on a stable release line', () => {
+    const result = evaluateVersionPolicy({
+      version: '1.7.0-beta.1',
+      targetBranch: 'stable/1.6.x',
+      headRef: 'hotfix/urgent',
+      eventName: 'pull_request',
+    });
+    assert.equal(result.ok, false);
   });
 });
