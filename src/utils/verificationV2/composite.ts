@@ -50,6 +50,7 @@ const orderedComponents = (components: ComponentScore[]): ComponentScore[] => {
   );
 };
 
+/** Orders technical diagnostics and supplies explicit N/A entries when needed. */
 const orderedDiagnostics = (components: ComponentScore[]): ComponentScore[] => {
   const byKey = new Map(components.map((component) => [component.key, component]));
   return DIAGNOSTIC_ORDER.map(

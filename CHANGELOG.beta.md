@@ -4,6 +4,12 @@ Development entries for pull requests targeting `beta`. These notes are consolid
 
 ## Unreleased
 
+### PR #806
+
+#### Changed
+
+- Recalibrate Forecast Grade as `gfc-ver-3`: prioritize event capture, tier-aware placement, proportional event yield, and significant-threat placement while retaining probability and false-alarm metrics as transparent diagnostics.
+
 ### PR #792
 
 - Refresh `AGENTS.md` with durable GFC project context for modern coding agents.
