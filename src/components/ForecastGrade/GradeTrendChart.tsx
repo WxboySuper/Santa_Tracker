@@ -14,6 +14,7 @@ type TrendFilter = 'package' | ProductKind;
 
 const MAX_TREND_CARDS = 25;
 
+/** Returns the finite grade value represented by the selected trend filter. */
 const valueForFilter = (card: GradeCard, filter: TrendFilter): number | null => {
   const raw = filter === 'package' ? card.grade : card.productGrades[filter] ?? null;
   return typeof raw === 'number' && Number.isFinite(raw) ? raw : null;

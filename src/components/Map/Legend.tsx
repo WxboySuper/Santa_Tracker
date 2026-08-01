@@ -34,6 +34,7 @@ const Legend: React.FC<LegendProps> = React.memo(({
   const customMode = !activeOutlookTypeOverride && isFeatureExposed('customProducts') && customEditor.mode === 'custom';
   const activeCustomLayer = customLayers.layers.find(({ id }) => id === customEditor.activeLayerId) ?? customLayers.layers[0];
 
+  /** Builds the fill and hatch styles for a custom category swatch. */
   const customSwatchBackground = (category: CustomCategoryTemplate): React.CSSProperties => {
     const angle = category.style.hatch === 'reverse-diagonal' ? '-45deg' : '45deg';
     const diagonal = `repeating-linear-gradient(${angle}, transparent 0 6px, ${category.style.strokeColor} 6px 8px)`;
@@ -47,6 +48,7 @@ const Legend: React.FC<LegendProps> = React.memo(({
     };
   };
 
+  /** Renders the categories for the active custom layer. */
   const renderCustomLegend = () => (
     <>
       <h4 id="legend-title">{activeCustomLayer?.label ?? 'Custom Layers'}</h4>
