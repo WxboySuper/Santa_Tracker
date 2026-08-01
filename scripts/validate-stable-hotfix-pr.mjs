@@ -13,10 +13,13 @@ if (!/^stable\/\d+\.\d+\.x$/.test(baseRef)) {
   process.exit(0);
 }
 
-/** @param {string} ref @param {string} path @returns {Record<string, unknown>} */
-const readJsonAtRef = (ref, path) => JSON.parse(
-  execFileSync('git', ['show', `origin/${ref}:${path}`], { encoding: 'utf8' }),
-);
+const readJsonAtRef = (ref, path) => {
+  const output = execFileSync('git', ['show', 'origin/' + ref + ':' + path], {
+    encoding: 'utf8',
+  });
+  return JSON.parse(output);
+};
+
 const packageJson = JSON.parse(readFileSync('package.json', 'utf8'));
 const basePackage = readJsonAtRef(baseRef, 'package.json');
 const versionPattern = /^(\d+)\.(\d+)\.(\d+)$/;
@@ -24,7 +27,9 @@ const current = String(packageJson.version).match(versionPattern);
 const previous = String(basePackage.version).match(versionPattern);
 
 if (!current || !previous) {
-  console.error('Stable hotfixes require stable semver in package.json; got ' + packageJson.version + '.');
+  console.error(
+    'Stable hotfixes require stable semver in package.json; got ' + packageJson.version + '.',
+  );
   process.exit(1);
 }
 
@@ -38,7 +43,11 @@ if (!sameStableLine || !advancesPatch) {
   process.exit(1);
 }
 
-const changedFiles = execFileSync('git', ['diff', '--name-only', `origin/${baseRef}...HEAD'], { encoding: 'utf8' })
+const changedFiles = execFileSync(
+  'git',
+  ['diff', '--name-only', 'origin/' + baseRef + '...HEAD'],
+  { encoding: 'utf8' },
+)
   .split(/\r?\n/)
   .filter(Boolean);
 
@@ -67,7 +76,9 @@ const validation = validateProductionReleaseForDeploy({
 });
 if (!validation.ok) {
   console.error('Stable hotfix release manifest is invalid:');
-  for (const error of validation.errors) console.error('  - ' + error);
+  for (const error of validation.errors) {
+    console.error('  - ' + error);
+  }
   process.exit(1);
 }
 
