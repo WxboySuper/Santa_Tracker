@@ -11,16 +11,16 @@ const baseRef = process.env.GITHUB_BASE_REF ?? '';
 const headRef = process.env.GITHUB_HEAD_REF ?? '';
 const eventName = process.env.GITHUB_EVENT_NAME ?? '';
 
-const isPromotionToMain =
-  eventName === 'pull_request' && baseRef === 'main' && headRef === 'beta';
+const isStableHotfix =
+  eventName === 'pull_request' && /^stable\/\d+\.\d+\.x$/.test(baseRef);
 
-if (!isPromotionToMain) {
+if (!isStableHotfix) {
   process.exit(0);
 }
 
 if (!existsSync(manifestPath)) {
   console.error(
-    'beta → main promotion PRs must include deploy/production-release.json (timed rollout manifest).',
+    'Stable hotfix PRs must include deploy/production-release.json with the release metadata.',
   );
   process.exit(1);
 }
@@ -44,4 +44,4 @@ if (!result.ok) {
   process.exit(1);
 }
 
-console.log(`Promotion manifest ok (releaseId=${config.releaseId}, action=${config.action}).`);
+console.log(`Stable hotfix manifest ok (releaseId=${config.releaseId}, action=${config.action}).`);

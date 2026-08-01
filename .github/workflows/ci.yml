@@ -84,12 +84,19 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: node scripts/check-changelog-pr.mjs
 
-      - name: Production release manifest (beta → main)
+      - name: Stable release-line policy
         env:
           GITHUB_BASE_REF: ${{ github.base_ref }}
           GITHUB_HEAD_REF: ${{ github.head_ref }}
           GITHUB_EVENT_NAME: ${{ github.event_name }}
         run: node scripts/validate-production-release-pr.mjs
+
+      - name: Stable hotfix version and file policy
+        if: startsWith(github.base_ref, 'stable/')
+        env:
+          GITHUB_BASE_REF: ${{ github.base_ref }}
+          GITHUB_HEAD_REF: ${{ github.head_ref }}
+        run: node scripts/validate-stable-hotfix-pr.mjs
 
   package-version-policy:
     runs-on: ubuntu-latest
