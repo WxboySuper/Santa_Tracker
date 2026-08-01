@@ -19,7 +19,7 @@ if (!/^stable\/\d+\.\d+\.x$/.test(baseRef)) {
  * @returns {Record<string, unknown>}
  */
 const readJsonAtRef = (ref, path) => {
-  const output = execFileSync('git', ['show', 'origin/' + ref + ':' + path], {
+  const output = execFileSync('git', ['show', ['origin/', ref, ':', path].join('')], {
     encoding: 'utf8',
   });
   return JSON.parse(output);
@@ -33,7 +33,7 @@ const previous = String(basePackage.version).match(versionPattern);
 
 if (!current || !previous) {
   console.error(
-    'Stable hotfixes require stable semver in package.json; got ' + packageJson.version + '.',
+    ['Stable hotfixes require stable semver in package.json; got ', packageJson.version, '.'].join(''),
   );
   process.exit(1);
 }
@@ -42,15 +42,22 @@ const sameStableLine = current[1] === previous[1] && current[2] === previous[2];
 const advancesPatch = Number(current[3]) > Number(previous[3]);
 if (!sameStableLine || !advancesPatch) {
   console.error(
-    'Stable hotfix PRs must advance the patch version from ' + basePackage.version +
-      ' to a newer ' + current[1] + '.' + current[2] + '.Y version.',
+    [
+      'Stable hotfix PRs must advance the patch version from ',
+      basePackage.version,
+      ' to a newer ',
+      current[1],
+      '.',
+      current[2],
+      '.Y version.',
+    ].join(''),
   );
   process.exit(1);
 }
 
 const changedFiles = execFileSync(
   'git',
-  ['diff', '--name-only', 'origin/' + baseRef + '...HEAD'],
+  ['diff', '--name-only', ['origin/', baseRef, '...HEAD'].join('')],
   { encoding: 'utf8' },
 )
   .split(/\r?\n/)
@@ -58,7 +65,7 @@ const changedFiles = execFileSync(
 
 for (const required of ['package.json', 'deploy/production-release.json', 'CHANGELOG.md']) {
   if (!changedFiles.includes(required)) {
-    console.error('Stable hotfix PRs must update ' + required + '.');
+    console.error(['Stable hotfix PRs must update ', required, '.'].join(''));
     process.exit(1);
   }
 }
@@ -66,10 +73,15 @@ for (const required of ['package.json', 'deploy/production-release.json', 'CHANG
 const manifest = normalizeProductionReleaseConfig(
   JSON.parse(readFileSync('deploy/production-release.json', 'utf8')),
 );
-if (manifest.releaseId !== 'v' + packageJson.version) {
+if (manifest.releaseId !== ['v', packageJson.version].join('')) {
   console.error(
-    'deploy/production-release.json releaseId must be v' + packageJson.version +
-      ', got ' + manifest.releaseId + '.',
+    [
+      'deploy/production-release.json releaseId must be v',
+      packageJson.version,
+      ', got ',
+      manifest.releaseId,
+      '.',
+    ].join(''),
   );
   process.exit(1);
 }
@@ -82,12 +94,19 @@ const validation = validateProductionReleaseForDeploy({
 if (!validation.ok) {
   console.error('Stable hotfix release manifest is invalid:');
   for (const error of validation.errors) {
-    console.error('  - ' + error);
+    console.error(['  - ', error].join(''));
   }
   process.exit(1);
 }
 
 console.log(
-  'Stable hotfix policy OK: ' + (headRef || 'head') + ' advances ' +
-    basePackage.version + ' -> ' + packageJson.version + '.',
+  [
+    'Stable hotfix policy OK: ',
+    headRef || 'head',
+    ' advances ',
+    basePackage.version,
+    ' -> ',
+    packageJson.version,
+    '.',
+  ].join(''),
 );
