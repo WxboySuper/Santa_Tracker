@@ -3,19 +3,20 @@ name: Deploy Production to VPS
 permissions:
   contents: read
 
-# MIGRATION FREEZE: production deployment is manual-only while the release architecture
-# is being migrated. The future release workflow may dispatch this workflow explicitly
-# after an approved stable release; never restore an implicit release trigger here.
+# Production deployment is activated by a manually created stable release, or can
+# be run manually for an intentional operator deployment.
 # Queue overlapping production deploys; release dirs are versioned but symlink swap and
 # pm2 restart are not safe to run concurrently across SSH sessions.
 concurrency:
   group: deploy-production
 
 on:
+  release:
+    types: [released]
   workflow_dispatch:
     inputs:
       ref:
-        description: 'Git tag or branch to deploy (default: main HEAD during migration)'
+        description: 'Git tag or branch to deploy (default: stable/1.6.x)'
         required: false
         type: string
       deploy_action:
@@ -36,7 +37,9 @@ on:
 
 jobs:
   deploy:
-    if: github.event_name == 'workflow_dispatch'
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      startsWith(github.event.release.target_commitish, 'stable/')
     runs-on: ubuntu-latest
     env:
       RSYNC_RSH: ssh -o StrictHostKeyChecking=yes
@@ -46,18 +49,37 @@ jobs:
         id: checkout_ref
         env:
           GHA_EVENT_NAME: ${{ github.event_name }}
+          GHA_TAG_NAME: ${{ github.event.release.tag_name }}
           GHA_INPUT_REF: ${{ inputs.ref }}
         run: |
-          if [ -n "$GHA_INPUT_REF" ]; then
+          if [ "$GHA_EVENT_NAME" = "release" ]; then
+            echo "ref=${GHA_TAG_NAME}" >> "$GITHUB_OUTPUT"
+          elif [ -n "$GHA_INPUT_REF" ]; then
             echo "ref=${GHA_INPUT_REF}" >> "$GITHUB_OUTPUT"
           else
-            echo "ref=main" >> "$GITHUB_OUTPUT"
+            echo "ref=stable/1.6.x" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Checkout
         uses: actions/checkout@v4
         with:
           ref: ${{ steps.checkout_ref.outputs.ref }}
+
+      - name: Verify stable release tag matches package.json
+        if: github.event_name == 'release'
+        env:
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: |
+          set -euo pipefail
+          PKG=$(node -p "require('./package.json').version")
+          if [ "v${PKG}" != "$RELEASE_TAG" ]; then
+            echo "::error::Release tag ${RELEASE_TAG} does not match package.json version ${PKG}" >&2
+            exit 1
+          fi
+          if printf '%s' "$PKG" | grep -q '-beta'; then
+            echo "::error::Deploy Production requires a stable package.json version, got ${PKG}" >&2
+            exit 1
+          fi
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4

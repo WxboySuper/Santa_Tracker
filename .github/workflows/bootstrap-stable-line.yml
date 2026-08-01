@@ -1,0 +1,61 @@
+name: Bootstrap Stable Release Line
+
+# This creates the first stable branch before main is converted into the
+# next-major integration line. It has no effect until manually dispatched.
+on:
+  workflow_dispatch:
+    inputs:
+      source_ref:
+        description: 'Current production-compatible ref to preserve'
+        required: true
+        default: main
+        type: string
+      stable_branch:
+        description: 'New stable branch name'
+        required: true
+        default: stable/1.6.x
+        type: string
+      confirmation:
+        description: 'Type CREATE-STABLE-LINE to create the branch'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  bootstrap:
+    runs-on: ubuntu-latest
+    env:
+      SOURCE_REF: ${{ inputs.source_ref }}
+      STABLE_BRANCH: ${{ inputs.stable_branch }}
+      CONFIRMATION: ${{ inputs.confirmation }}
+    steps:
+      - name: Require explicit confirmation
+        run: |
+          if [ "$CONFIRMATION" != "CREATE-STABLE-LINE" ]; then
+            echo "::error::Type CREATE-STABLE-LINE to create the stable branch."
+            exit 1
+          fi
+          if ! printf '%s' "$STABLE_BRANCH" | grep -Eq '^stable/[0-9]+\.[0-9]+\.x$'; then
+            echo "::error::Stable branch must match stable/X.Y.x, got $STABLE_BRANCH" >&2
+            exit 1
+          fi
+
+      - name: Checkout repository
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          fetch-depth: 0
+
+      - name: Create stable branch if absent
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          if git ls-remote --exit-code origin "refs/heads/$STABLE_BRANCH" >/dev/null 2>&1; then
+            echo "::error::Stable branch $STABLE_BRANCH already exists; refusing to move it." >&2
+            exit 1
+          fi
+          SOURCE_SHA=$(git rev-parse "origin/$SOURCE_REF^{commit}")
+          git push origin "$SOURCE_SHA:refs/heads/$STABLE_BRANCH"
+          echo "Created $STABLE_BRANCH at $SOURCE_SHA from $SOURCE_REF"

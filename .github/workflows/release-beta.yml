@@ -1,0 +1,61 @@
+name: Create Beta Release
+
+# Beta releases are intentional snapshots of the next-major main line. Merging
+# into main never creates a release automatically.
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: 'Commit, tag, or branch to release (default: main)'
+        required: false
+        default: main
+        type: string
+      confirmation:
+        description: 'Type RELEASE-BETA to create the prerelease'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    env:
+      RELEASE_REF: ${{ inputs.ref || 'main' }}
+      CONFIRMATION: ${{ inputs.confirmation }}
+    steps:
+      - name: Require explicit confirmation
+        run: |
+          if [ "$CONFIRMATION" != "RELEASE-BETA" ]; then
+            echo "::error::Type RELEASE-BETA to create a beta release."
+            exit 1
+          fi
+
+      - name: Checkout release ref
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          ref: ${{ inputs.ref || 'main' }}
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24.x'
+
+      - name: Validate beta package version
+        run: |
+          set -euo pipefail
+          VERSION=$(node -p "require('./package.json').version")
+          if ! printf '%s' "$VERSION" | grep -Eq -- '^[0-9]+\.[0-9]+\.[0-9]+-beta\.[0-9]+$'; then
+            echo "::error::Beta release requires a -beta.N package version, got $VERSION" >&2
+            exit 1
+          fi
+          echo "Releasing beta version $VERSION from $RELEASE_REF"
+
+      - name: Create GitHub prerelease
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CHANGELOG_FILE: CHANGELOG.md
+          NOTES_FILE: beta-release-notes.md
+        run: node scripts/create-github-release.mjs "$(node -p "require('./package.json').version")" "$RELEASE_REF"
