@@ -1,8 +1,10 @@
-## Release to main
+## Main → stable promotion
 
-- [ ] Prepared via **Prepare Beta → Main Release PR** (`release/v*` → `main`)
-- [ ] CHANGELOG.md updated for this stable version
+- [ ] Prepared via **Prepare Main Stable Promotion** (`promotion/v*` → `main`)
+- [ ] `main` is the reviewed next-major source; no unreleased main work is being deployed directly
+- [ ] `CHANGELOG.md` next-major lane was converted into the stable release section
+- [ ] `deploy/production-release.json` matches the promoted stable version
 - [ ] CI, Greptile, and Kilo are green
-- [ ] Merge conflicts with `main` resolved in this PR
-- [ ] Beta deployment smoke-tested
-- [ ] After merge: confirm production deploy and GitHub Release for this version; optionally run **Bump beta for next development cycle**
+- [ ] Hosted beta snapshot was smoke-tested from the same source
+- [ ] After merge: bootstrap `stable/X.Y.x` from the exact merged `main` commit
+- [ ] After the stable line is reviewed: manually run **Create Stable Release**

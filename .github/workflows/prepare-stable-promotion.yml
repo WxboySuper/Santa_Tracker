@@ -1,0 +1,91 @@
+name: Prepare Main Stable Promotion
+
+# This prepares a reviewed promotion PR on main. It does not create a release,
+# deploy production, create a stable branch, or merge anything.
+on:
+  workflow_dispatch:
+    inputs:
+      source_ref:
+        description: 'Reviewed main commit or branch to promote'
+        required: true
+        default: main
+        type: string
+      version:
+        description: 'Stable major release version, for example 2.0.0'
+        required: true
+        type: string
+      confirmation:
+        description: 'Type PREPARE-STABLE-PROMOTION to open the review PR'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  prepare:
+    if: inputs.confirmation == 'PREPARE-STABLE-PROMOTION'
+    runs-on: ubuntu-latest
+    env:
+      SOURCE_REF: ${{ inputs.source_ref }}
+      TARGET_VERSION: ${{ inputs.version }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Checkout source main ref
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          ref: ${{ inputs.source_ref }}
+          fetch-depth: 0
+
+      - name: Configure Git identity
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Create promotion branch
+        id: branch
+        run: |
+          set -euo pipefail
+          if ! printf '%s' "$SOURCE_REF" | grep -Eq '^(main|[0-9a-f]{7,40})$'; then
+            echo "::error::Stable promotion source must be main or an immutable commit SHA."
+            exit 1
+          fi
+          BRANCH="promotion/v${TARGET_VERSION}"
+          if git ls-remote --exit-code --heads origin "$BRANCH" >/dev/null 2>&1; then
+            echo "::error::Promotion branch $BRANCH already exists; refusing to overwrite it."
+            exit 1
+          fi
+          git switch --create "$BRANCH"
+          echo "branch=$BRANCH" >> "$GITHUB_OUTPUT"
+
+      - name: Prepare reviewed stable promotion files
+        run: node scripts/prepare-stable-promotion.mjs "$TARGET_VERSION"
+
+      - name: Commit and push promotion branch
+        run: |
+          set -euo pipefail
+          git add package.json deploy/production-release.json CHANGELOG.md
+          git commit -m "release: prepare v${TARGET_VERSION} stable promotion"
+          git push --set-upstream origin "${{ steps.branch.outputs.branch }}"
+
+      - name: Open draft promotion PR
+        env:
+          PR_BODY: |-
+            ## Main → stable promotion
+
+            Prepare the reviewed `main` next-major line for stable release `v${{ inputs.version }}`.
+
+            Source ref: `${{ inputs.source_ref }}`
+
+            This PR only prepares version, production release metadata, and release notes. It does not deploy. After this merges into `main`, bootstrap `stable/${{ inputs.version }}.x` from that exact main commit, then use the manual stable release workflow.
+
+            Changelog-Impact: beta
+        run: |
+          gh pr create \
+            --repo "$GITHUB_REPOSITORY" \
+            --base main \
+            --head "${{ steps.branch.outputs.branch }}" \
+            --draft \
+            --title "release: prepare v${{ inputs.version }} stable promotion" \
+            --body "$PR_BODY"
