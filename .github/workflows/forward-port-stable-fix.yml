@@ -114,7 +114,9 @@ EOF
               head -n 1)
 
             if [ -n "$EXISTING_ISSUE" ]; then
+              ISSUE_NUMBER=$(printf '%s' "$EXISTING_ISSUE" | cut -f1)
               ISSUE_URL=$(printf '%s' "$EXISTING_ISSUE" | cut -f2)
+              gh issue edit "$ISSUE_NUMBER" --repo "$REPOSITORY" --body "$ISSUE_BODY"
             else
               ISSUE_URL=$(gh issue create \
                 --repo "$REPOSITORY" \
