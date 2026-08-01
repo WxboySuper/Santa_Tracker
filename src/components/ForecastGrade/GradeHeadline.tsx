@@ -14,6 +14,20 @@ interface ProductGradeTabProps {
   onSelect: (product: ProductKind) => void;
 }
 
+interface GradeMetaProps {
+  pkg: PackageGrade;
+}
+
+interface GradeSummaryProps {
+  pkg: PackageGrade;
+}
+
+interface ProductGradeTabsProps {
+  products: ProductGrade[];
+  activeProduct: ProductKind;
+  onSelectProduct: (product: ProductKind) => void;
+}
+
 /** Renders one selectable product grade tab. */
 const ProductGradeTab: React.FC<ProductGradeTabProps> = ({ product, selected, onSelect }) => (
   <button
@@ -32,6 +46,62 @@ const ProductGradeTab: React.FC<ProductGradeTabProps> = ({ product, selected, on
   </button>
 );
 
+/** Renders the package score, letter, formula, and withheld-state metadata. */
+const GradeMeta: React.FC<GradeMetaProps> = ({ pkg }) => (
+  <div className="flex items-baseline justify-between gap-3">
+    <div>
+      <div className="fg-grade-eyebrow">Overall Grade</div>
+      <div className="flex items-baseline gap-2">
+        <span className="fg-grade-value text-5xl font-bold tabular-nums" data-testid="forecast-grade-value">
+          {formatGrade(pkg.grade)}
+        </span>
+        <span className="fg-grade-out-of">/ 100</span>
+      </div>
+      <div className={`fg-grade-letter ${letterColorClass(pkg.letter)}`}>{pkg.letter ?? '—'} <span>|</span> {pkg.dataQuality}</div>
+    </div>
+    <div className="text-right text-xs text-slate-500">
+      <div>Formula {pkg.formulaVersion}</div>
+      {pkg.grade === null && <div className="mt-1 text-amber-600">Package grade withheld</div>}
+    </div>
+  </div>
+);
+
+/** Renders the hazard scores and package-level verification summary. */
+const GradeSummary: React.FC<GradeSummaryProps> = ({ pkg }) => (
+  <div className="fg-grade-summary">
+    <div>
+      <strong>Hazard Scores</strong>
+      {pkg.products.map((product) => (
+        <span key={product.product}>
+          <i className={`fg-hazard-dot fg-hazard-dot--${product.product}`} />
+          {product.label}
+          <b>{product.applicable ? formatGrade(product.grade) : '—'}</b>
+        </span>
+      ))}
+    </div>
+    <div>
+      <strong>Summary</strong>
+      <span>Reports used <b>{pkg.products.reduce((total, product) => total + product.reportCount, 0)}</b></span>
+      <span>Data quality <b>{pkg.dataQuality}</b></span>
+      <span>Formula <b>{pkg.formulaVersion}</b></span>
+    </div>
+  </div>
+);
+
+/** Renders the selectable per-product grade tabs. */
+const ProductGradeTabs: React.FC<ProductGradeTabsProps> = ({ products, activeProduct, onSelectProduct }) => (
+  <div className="mt-3 flex flex-wrap gap-2" role="tablist" aria-label="Product grades">
+    {products.map((product) => (
+      <ProductGradeTab
+        key={product.product}
+        product={product}
+        selected={product.product === activeProduct}
+        onSelect={onSelectProduct}
+      />
+    ))}
+  </div>
+);
+
 /**
  * Learn-fast headline: the package Forecast Grade (0–100 + letter, one decimal)
  * with a row of per-product grades. Selecting a product emphasizes its geometry
@@ -39,51 +109,9 @@ const ProductGradeTab: React.FC<ProductGradeTabProps> = ({ product, selected, on
  */
 const GradeHeadline: React.FC<GradeHeadlineProps> = ({ pkg, activeProduct, onSelectProduct }) => (
   <div className="mb-3 rounded-xl border border-slate-300/40 p-4">
-    <div className="flex items-baseline justify-between gap-3">
-      <div>
-        <div className="fg-grade-eyebrow">Overall Grade</div>
-        <div className="flex items-baseline gap-2">
-          <span className="fg-grade-value text-5xl font-bold tabular-nums" data-testid="forecast-grade-value">
-            {formatGrade(pkg.grade)}
-          </span>
-          <span className="fg-grade-out-of">/ 100</span>
-        </div>
-        <div className={`fg-grade-letter ${letterColorClass(pkg.letter)}`}>{pkg.letter ?? '—'} <span>|</span> {pkg.dataQuality}</div>
-      </div>
-      <div className="text-right text-xs text-slate-500">
-        <div>Formula {pkg.formulaVersion}</div>
-        {pkg.grade === null && <div className="mt-1 text-amber-600">Package grade withheld</div>}
-      </div>
-    </div>
-
-    <div className="fg-grade-summary">
-      <div>
-        <strong>Hazard Scores</strong>
-        {pkg.products.map((product) => (
-          <span key={product.product}>
-            <i className={`fg-hazard-dot fg-hazard-dot--${product.product}`} />
-            {product.label}
-            <b>{product.applicable ? formatGrade(product.grade) : '—'}</b>
-          </span>
-        ))}
-      </div>
-      <div>
-        <strong>Summary</strong>
-        <span>Reports used <b>{pkg.products.reduce((total, product) => total + product.reportCount, 0)}</b></span>
-        <span>Data quality <b>{pkg.dataQuality}</b></span>
-        <span>Formula <b>{pkg.formulaVersion}</b></span>
-      </div>
-    </div>
-    <div className="mt-3 flex flex-wrap gap-2" role="tablist" aria-label="Product grades">
-      {pkg.products.map((product) => (
-        <ProductGradeTab
-          key={product.product}
-          product={product}
-          selected={product.product === activeProduct}
-          onSelect={onSelectProduct}
-        />
-      ))}
-    </div>
+    <GradeMeta pkg={pkg} />
+    <GradeSummary pkg={pkg} />
+    <ProductGradeTabs products={pkg.products} activeProduct={activeProduct} onSelectProduct={onSelectProduct} />
   </div>
 );
 
