@@ -1,0 +1,120 @@
+name: Forward-port Stable Fix
+
+# Electron-style: a stable-line merge creates one normal, reviewable PR on the
+# next-major main line. The workflow never merges the port automatically.
+# It operates on the trusted repository merge commit and never checks out or
+# executes code from an untrusted pull-request head.
+on:
+  pull_request_target:
+    types: [closed]
+    branches:
+      - 'stable/**'
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+jobs:
+  forward-port:
+    if: >-
+      github.event.pull_request.merged == true &&
+      !startsWith(github.event.pull_request.head.ref, 'port/')
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      REPOSITORY: ${{ github.repository }}
+      SOURCE_PR: ${{ github.event.pull_request.number }}
+      SOURCE_BRANCH: ${{ github.event.pull_request.base.ref }}
+      MERGE_SHA: ${{ github.event.pull_request.merge_commit_sha }}
+      PORT_BRANCH: port/${{ github.event.pull_request.number }}-to-main
+    steps:
+      - name: Checkout trusted repository history
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          ref: main
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Configure Git identity
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Apply stable merge as a forward-port
+        id: port
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin main "$SOURCE_BRANCH"
+          git switch --create "$PORT_BRANCH" origin/main
+
+          if [ -z "$MERGE_SHA" ] || [ "$MERGE_SHA" = "null" ]; then
+            echo "::error::The merged stable PR did not provide a merge commit SHA." >&2
+            exit 1
+          fi
+
+          PARENT_SHA=$(git rev-parse "$MERGE_SHA^1")
+          git diff --binary "$PARENT_SHA" "$MERGE_SHA" > /tmp/stable-forward-port.patch
+
+          if [ ! -s /tmp/stable-forward-port.patch ]; then
+            echo "empty=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          set +e
+          git apply --3way --index /tmp/stable-forward-port.patch
+          APPLY_STATUS=$?
+          set -e
+
+          if [ "$APPLY_STATUS" -ne 0 ]; then
+            CONFLICTS=$(git diff --name-only --diff-filter=U | paste -sd ', ' -)
+            git reset --merge
+            gh pr comment "$SOURCE_PR" --body "Automatic forward-port to \\`main\\` needs manual resolution. Conflicting files: ${CONFLICTS:-unknown}. No port PR was opened."
+            gh pr edit "$SOURCE_PR" --add-label "porting/conflicts"
+            echo "conflict=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          if git diff --cached --quiet; then
+            echo "empty=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          git commit -m "port: forward stable PR #$SOURCE_PR to main"
+          git push --set-upstream origin "$PORT_BRANCH"
+          echo "created=true" >> "$GITHUB_OUTPUT"
+
+      - name: Report an empty port
+        if: steps.port.outputs.empty == 'true'
+        run: gh pr comment "$SOURCE_PR" --body "No source diff needed to forward-port stable PR #$SOURCE_PR to \\`main\\`."
+
+      - name: Open draft forward-port PR
+        if: steps.port.outputs.created == 'true'
+        env:
+          PR_BODY: |-
+            ## Summary
+
+            Forward-port the production/stable change from PR #${{ github.event.pull_request.number }} into `main`.
+
+            Source stable branch: `${{ github.event.pull_request.base.ref }}`
+            Source merge commit: `${{ github.event.pull_request.merge_commit_sha }}`
+
+            This PR was created automatically and requires normal review. Resolve any rewrite-specific differences here; do not merge `main` back into the stable line.
+
+            Changelog-Impact: inherited
+            Port of #${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+          gh pr create \
+            --repo "$REPOSITORY" \
+            --base main \
+            --head "$PORT_BRANCH" \
+            --draft \
+            --title "port: stable PR #$SOURCE_PR to main" \
+            --body "$PR_BODY"
+
+      - name: Label the new forward-port PR
+        if: steps.port.outputs.created == 'true'
+        run: |
+          gh pr edit "$PORT_BRANCH" --add-label "port,porting"
