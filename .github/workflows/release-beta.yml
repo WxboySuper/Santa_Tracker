@@ -14,6 +14,11 @@ on:
         description: 'Type RELEASE-BETA to create the prerelease'
         required: true
         type: string
+      previous_tag:
+        description: 'Optional previous beta tag; leave blank to detect it'
+        required: false
+        default: ''
+        type: string
 
 permissions:
   contents: write
@@ -56,6 +61,10 @@ jobs:
       - name: Create GitHub prerelease
         env:
           GH_TOKEN: ${{ github.token }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
           CHANGELOG_FILE: CHANGELOG.md
+          CHANGELOG_LANE: next-major
+          RELEASE_NOTES_MODE: prs
+          PREVIOUS_TAG: ${{ inputs.previous_tag }}
           NOTES_FILE: beta-release-notes.md
         run: node scripts/create-github-release.mjs "$(node -p "require('./package.json').version")" "$RELEASE_REF"

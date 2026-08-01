@@ -2,6 +2,12 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { extractReleaseNotes } from './lib/changelog.mjs';
 import { hasBetaPrerelease } from './lib/package-version.mjs';
+import {
+  composeReleaseNotes,
+  generateGitHubReleaseNotes,
+  listGitHubReleases,
+  selectPreviousReleaseTag,
+} from './lib/release-notes.mjs';
 
 const VERSION_PATTERN = /^\d+\.\d+\.\d+(?:-beta\.\d+)?$/;
 const BRANCH_PATTERN = /^[\w./-]+$/;
@@ -21,14 +27,50 @@ if (!BRANCH_PATTERN.test(targetBranch)) {
 
 const changelogPath = process.env.CHANGELOG_FILE ?? 'CHANGELOG.md';
 const changelog = readFileSync(changelogPath, 'utf8');
-const section =
-  extractReleaseNotes(changelog, version) ??
+const curatedNotes =
+  extractReleaseNotes(changelog, version, process.env.CHANGELOG_LANE ?? '') ??
   `## v${version}\n\nRelease for package version ${version}.`;
+
+const mode = process.env.RELEASE_NOTES_MODE ?? 'changelog';
+if (!['changelog', 'prs', 'changelog-and-prs'].includes(mode)) {
+  console.error(`Invalid RELEASE_NOTES_MODE: ${mode}`);
+  process.exit(1);
+}
+
+const repository = process.env.GITHUB_REPOSITORY ?? execFileSync(
+  'gh',
+  ['repo', 'view', '--json', 'nameWithOwner', '--jq', '.nameWithOwner'],
+  { encoding: 'utf8' },
+).trim();
+const tag = `v${version}`;
+const previousTag = process.env.PREVIOUS_TAG?.trim() || selectPreviousReleaseTag({
+  version,
+  releases: listGitHubReleases(repository),
+});
+let generatedNotes = '';
+
+if (mode !== 'changelog') {
+  try {
+    generatedNotes = generateGitHubReleaseNotes({
+      repository,
+      tag,
+      targetBranch,
+      previousTag,
+      configurationPath: '.github/release.yml',
+    });
+    console.log(`Generated GitHub PR notes from ${previousTag ?? 'repository history'}.`);
+  } catch (error) {
+    if (mode === 'prs') throw error;
+    console.warn(`GitHub PR note generation failed; continuing with curated notes: ${error.message}`);
+  }
+}
+
+const changelogUrl = `https://github.com/${repository}/blob/${targetBranch}/${changelogPath}`;
+const section = composeReleaseNotes({ mode, curatedNotes, generatedNotes, changelogUrl });
 
 const notesFile = process.env.NOTES_FILE ?? 'release-notes.md';
 writeFileSync(notesFile, `${section}\n`);
 
-const tag = `v${version}`;
 const prerelease = hasBetaPrerelease(version);
 
 const ghReleaseExists = () => {
