@@ -148,5 +148,3 @@ export {
   scoreToLetter,
   scoredComponent,
 } from './gradeScoring';
-
-export { FORECAST_GRADE_FORMULA_VERSION };
