@@ -35,6 +35,7 @@ interface ForecastGradeWorkspaceProps {
   onToggleEvidence: () => void;
 }
 
+/** Composes the source rail, evidence map, and verification results rail. */
 const ForecastGradeWorkspace: React.FC<ForecastGradeWorkspaceProps> = ({
   addToast,
   availableSources,

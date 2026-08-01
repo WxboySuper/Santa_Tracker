@@ -21,6 +21,7 @@ interface UseForecastGradeDashboardActionsArgs {
   setSelectedReportId: React.Dispatch<React.SetStateAction<string | null>>;
 }
 
+/** Provides dashboard actions while coordinating package-load sequencing. */
 export const useForecastGradeDashboardActions = ({
   addToast,
   grade,

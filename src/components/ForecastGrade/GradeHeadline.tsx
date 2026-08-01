@@ -1,5 +1,5 @@
 import React from 'react';
-import type { PackageGrade, ProductKind } from '../../utils/verificationV2';
+import type { PackageGrade, ProductGrade, ProductKind } from '../../utils/verificationV2';
 import { formatGrade, letterColorClass } from './gradeFormat';
 
 interface GradeHeadlineProps {
@@ -7,6 +7,30 @@ interface GradeHeadlineProps {
   activeProduct: ProductKind;
   onSelectProduct: (product: ProductKind) => void;
 }
+
+interface ProductGradeTabProps {
+  product: ProductGrade;
+  selected: boolean;
+  onSelect: (product: ProductKind) => void;
+}
+
+/** Renders one selectable product grade tab. */
+const ProductGradeTab: React.FC<ProductGradeTabProps> = ({ product, selected, onSelect }) => (
+  <button
+    type="button"
+    role="tab"
+    aria-selected={selected}
+    onClick={() => onSelect(product.product)}
+    className={`fg-touch rounded-lg border px-3 py-1 text-sm ${
+      selected ? 'border-blue-500 bg-blue-500/10' : 'border-slate-300/40'
+    } ${product.applicable ? '' : 'opacity-60'}`}
+  >
+    <span className="font-medium">{product.label}</span>{' '}
+    <span className={`font-semibold ${letterColorClass(product.letter)}`}>
+      {product.applicable ? `${formatGrade(product.grade)} ${product.letter ?? ''}` : 'Not evaluated'}
+    </span>
+  </button>
+);
 
 /**
  * Learn-fast headline: the package Forecast Grade (0–100 + letter, one decimal)
@@ -33,30 +57,32 @@ const GradeHeadline: React.FC<GradeHeadlineProps> = ({ pkg, activeProduct, onSel
     </div>
 
     <div className="fg-grade-summary">
-      <div><strong>Hazard Scores</strong>{pkg.products.map((product) => <span key={product.product}><i className={`fg-hazard-dot fg-hazard-dot--${product.product}`} />{product.label}<b>{product.applicable ? formatGrade(product.grade) : '—'}</b></span>)}</div>
-      <div><strong>Summary</strong><span>Reports used <b>{pkg.products.reduce((total, product) => total + product.reportCount, 0)}</b></span><span>Data quality <b>{pkg.dataQuality}</b></span><span>Formula <b>{pkg.formulaVersion}</b></span></div>
+      <div>
+        <strong>Hazard Scores</strong>
+        {pkg.products.map((product) => (
+          <span key={product.product}>
+            <i className={`fg-hazard-dot fg-hazard-dot--${product.product}`} />
+            {product.label}
+            <b>{product.applicable ? formatGrade(product.grade) : '—'}</b>
+          </span>
+        ))}
+      </div>
+      <div>
+        <strong>Summary</strong>
+        <span>Reports used <b>{pkg.products.reduce((total, product) => total + product.reportCount, 0)}</b></span>
+        <span>Data quality <b>{pkg.dataQuality}</b></span>
+        <span>Formula <b>{pkg.formulaVersion}</b></span>
+      </div>
     </div>
     <div className="mt-3 flex flex-wrap gap-2" role="tablist" aria-label="Product grades">
-      {pkg.products.map((product) => {
-        const selected = product.product === activeProduct;
-        return (
-          <button
-            key={product.product}
-            type="button"
-            role="tab"
-            aria-selected={selected}
-            onClick={() => onSelectProduct(product.product)}
-            className={`fg-touch rounded-lg border px-3 py-1 text-sm ${
-              selected ? 'border-blue-500 bg-blue-500/10' : 'border-slate-300/40'
-            } ${product.applicable ? '' : 'opacity-60'}`}
-          >
-            <span className="font-medium">{product.label}</span>{' '}
-            <span className={`font-semibold ${letterColorClass(product.letter)}`}>
-              {product.applicable ? `${formatGrade(product.grade)} ${product.letter ?? ''}` : 'Not evaluated'}
-            </span>
-          </button>
-        );
-      })}
+      {pkg.products.map((product) => (
+        <ProductGradeTab
+          key={product.product}
+          product={product}
+          selected={product.product === activeProduct}
+          onSelect={onSelectProduct}
+        />
+      ))}
     </div>
   </div>
 );

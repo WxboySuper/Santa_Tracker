@@ -1,5 +1,5 @@
 import React from 'react';
-import type { ComponentKey, ProductGrade } from '../../utils/verificationV2';
+import type { ComponentKey, ComponentScore, ProductGrade } from '../../utils/verificationV2';
 import { formatGrade, formatScore } from './gradeFormat';
 
 interface ScoreBreakdownProps {
@@ -9,6 +9,35 @@ interface ScoreBreakdownProps {
   open?: boolean;
   onToggle?: () => void;
 }
+
+interface ScoreBreakdownRowProps {
+  component: ComponentScore;
+  selected: boolean;
+  onSelect: (key: ComponentKey | null) => void;
+}
+
+/** Renders one keyboard-selectable score component row. */
+const ScoreBreakdownRow: React.FC<ScoreBreakdownRowProps> = ({ component, selected, onSelect }) => (
+  <tr
+    aria-selected={selected}
+    className={`fg-report-row border-t border-slate-200/30 align-top ${component.applicable ? '' : 'opacity-60'}`}
+    onClick={() => onSelect(selected ? null : component.key)}
+    tabIndex={0}
+    onKeyDown={(event) => {
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        onSelect(selected ? null : component.key);
+      }
+    }}
+  >
+    <td className="py-1.5 font-medium">{component.label}</td>
+    <td className="py-1.5 tabular-nums">{component.weight}%</td>
+    <td className="py-1.5 tabular-nums">
+      {component.applicable ? formatScore(component.score) : <span className="text-amber-600">N/A</span>}
+    </td>
+    <td className="py-1.5 text-xs text-slate-500">{component.detail}</td>
+  </tr>
+);
 
 /**
  * The exactly-titled "Score breakdown" section. Progressive disclosure via a
@@ -40,33 +69,14 @@ const ScoreBreakdown: React.FC<ScoreBreakdownProps> = ({
           </tr>
         </thead>
         <tbody>
-          {product.components.map((component) => {
-            const selected = component.key === activeComponent;
-            return (
-              <tr
-                key={component.key}
-                aria-selected={selected}
-                className={`fg-report-row border-t border-slate-200/30 align-top ${
-                  component.applicable ? '' : 'opacity-60'
-                }`}
-                onClick={() => onSelectComponent(selected ? null : component.key)}
-                tabIndex={0}
-                onKeyDown={(event) => {
-                  if (event.key === 'Enter' || event.key === ' ') {
-                    event.preventDefault();
-                    onSelectComponent(selected ? null : component.key);
-                  }
-                }}
-              >
-                <td className="py-1.5 font-medium">{component.label}</td>
-                <td className="py-1.5 tabular-nums">{component.weight}%</td>
-                <td className="py-1.5 tabular-nums">
-                  {component.applicable ? formatScore(component.score) : <span className="text-amber-600">N/A</span>}
-                </td>
-                <td className="py-1.5 text-xs text-slate-500">{component.detail}</td>
-              </tr>
-            );
-          })}
+          {product.components.map((component) => (
+            <ScoreBreakdownRow
+              key={component.key}
+              component={component}
+              selected={component.key === activeComponent}
+              onSelect={onSelectComponent}
+            />
+          ))}
         </tbody>
       </table>
       <p className="mt-2 text-xs text-slate-400">

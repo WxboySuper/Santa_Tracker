@@ -16,6 +16,7 @@ interface ForecastGradeTopbarProps {
   methodologyPath: string;
 }
 
+/** Provides the methodology context for the verification workspace. */
 const ForecastGradeTopbar: React.FC<ForecastGradeTopbarProps> = ({ methodologyPath }) => (
   <div className="fg-topbar">
     <div>
@@ -31,6 +32,7 @@ const ForecastGradeTopbar: React.FC<ForecastGradeTopbarProps> = ({ methodologyPa
   </div>
 );
 
+/** Coordinates the Forecast Grade source, map, and results workspace. */
 const ForecastGradeDashboard: React.FC = () => {
   const { addToast } = useAppLayout();
   const { loadCycle } = useCloudCycles();
