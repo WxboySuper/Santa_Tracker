@@ -81,6 +81,17 @@ interface ScoreBreakdownDiagnosticRowProps {
   onSelect: (key: ComponentKey | null) => void;
 }
 
+/** Renders the compact header for the technical diagnostic table. */
+const ScoreBreakdownDiagnosticsHeader: React.FC = () => (
+  <thead>
+    <tr className="text-left text-xs uppercase text-slate-500">
+      <th className="py-1">Diagnostic</th>
+      <th className="py-1">Score</th>
+      <th className="py-1">Detail</th>
+    </tr>
+  </thead>
+);
+
 /** Renders one keyboard-selectable technical diagnostic row. */
 const ScoreBreakdownDiagnosticRow: React.FC<ScoreBreakdownDiagnosticRowProps> = ({
   diagnostic,
@@ -114,13 +125,7 @@ const ScoreBreakdownDiagnosticsTable: React.FC<ScoreBreakdownDiagnosticsProps> =
   onSelectComponent,
 }) => (
   <table className="w-full text-sm">
-    <thead>
-      <tr className="text-left text-xs uppercase text-slate-500">
-        <th className="py-1">Diagnostic</th>
-        <th className="py-1">Score</th>
-        <th className="py-1">Detail</th>
-      </tr>
-    </thead>
+    <ScoreBreakdownDiagnosticsHeader />
     <tbody>
       {diagnostics.map((diagnostic) => (
         <ScoreBreakdownDiagnosticRow
