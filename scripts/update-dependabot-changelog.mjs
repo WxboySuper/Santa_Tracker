@@ -6,7 +6,6 @@ import {
 
 const baseRef = process.env.GITHUB_BASE_REF ?? '';
 const headRef = process.env.GITHUB_HEAD_REF ?? '';
-const prNumber = Number(process.env.PR_NUMBER ?? 0);
 const changelogPath = process.env.CHANGELOG_FILE ?? 'CHANGELOG.md';
 const changelogLane = /^stable\/\d+\.\d+\.x$/.test(baseRef) ? 'stable-hotfix' : 'next-major';
 

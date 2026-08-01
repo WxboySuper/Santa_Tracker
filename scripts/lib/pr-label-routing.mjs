@@ -22,6 +22,7 @@ const branchKindLabels = (head) => {
   return labels;
 };
 
+/** @param {string} head @returns {boolean} */
 const isPromotionBranch = (head) => head.startsWith('release/') || head.startsWith('promotion/');
 
 /** @param {string} base @param {string} head @returns {Set<string>} */

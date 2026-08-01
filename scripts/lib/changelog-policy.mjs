@@ -12,9 +12,7 @@ export { CHANGELOG_LANE_HEADINGS };
 export const changelogLaneForBase = (baseRef) =>
   /^stable\/\d+\.\d+\.x$/.test(baseRef) ? 'stable-hotfix' : 'next-major';
 
-/** @param {string} baseRef */
-export const changelogPathForBase = (baseRef) =>
-  'CHANGELOG.md';
+export const changelogPathForBase = () => 'CHANGELOG.md';
 
 /** @param {ChangelogImpact} impact */
 const laneHeadingForImpact = (impact) =>
@@ -103,12 +101,12 @@ export const parseChangelogDeclaration = (body = '') => {
 };
 
 /**
- * @param {{ baseRef: string; changedFiles: string[]; body: string }} context
+ * @param {{ changedFiles: string[]; body: string }} context
  */
-export const evaluateChangelogPolicy = ({ baseRef, changedFiles, body, changelog = '' }) => {
+export const evaluateChangelogPolicy = ({ changedFiles, body, changelog = '' }) => {
   const declaration = parseChangelogDeclaration(body);
   if (!declaration.ok) return declaration;
 
-  const changelogPath = changelogPathForBase(baseRef);
+  const changelogPath = changelogPathForBase();
   return validateImpactFile({ declaration, changedFiles, changelog, path: changelogPath });
 };
