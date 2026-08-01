@@ -66,6 +66,25 @@ export const extractChangelogLane = (changelog, lane) => {
   return body ? `${heading}\n\n${body}`.trim() : null;
 };
 
+const laneReleaseNotes = (changelog, version, lane) => {
+  const laneSection = extractChangelogLane(changelog, lane);
+  if (!laneSection) return null;
+  const heading = laneSection.split('\n', 1)[0];
+  const body = laneSection.slice(heading.length).trim();
+  return body ? `## v${version}\n\n${body}`.trim() : null;
+};
+
+const legacyReleaseNotes = (changelog, version) => {
+  const stable = deriveStableVersion(version) ?? version;
+  const section = extractChangelogSection(changelog, stable);
+  if (section) return section;
+  if (!hasBetaPrerelease(version)) return null;
+  const unreleased = extractUnreleasedSection(changelog);
+  if (!unreleased) return null;
+  const body = unreleased.replace(/^## \[Unreleased\]\s*\n*/i, '').trim();
+  return `## v${version}\n\n${body}`.trim();
+};
+
 /**
  * Notes body for a GitHub Release tag (stable or beta prerelease).
  * @param {string} changelog
@@ -74,28 +93,10 @@ export const extractChangelogLane = (changelog, lane) => {
  * @returns {string | null}
  */
 export const extractReleaseNotes = (changelog, version, lane = '') => {
-  if (lane === 'next-major' || lane === 'stable-hotfix') {
-    const laneSection = extractChangelogLane(changelog, lane);
-    if (laneSection) {
-      const heading = laneSection.split('\n', 1)[0];
-      const body = laneSection.slice(heading.length).trim();
-      if (body) return `## v${version}\n\n${body}`.trim();
-    }
-  }
-
-  const stable = deriveStableVersion(version) ?? version;
-  const section = extractChangelogSection(changelog, stable);
-  if (section) return section;
-
-  if (hasBetaPrerelease(version) && BETA_RELEASE_LANES.has(lane)) {
-    const unreleased = extractUnreleasedSection(changelog);
-    if (unreleased) {
-      const body = unreleased.replace(/^## \[Unreleased\]\s*\n*/i, '').trim();
-      return `## v${version}\n\n${body}`.trim();
-    }
-  }
-
-  return null;
+  const laneNotes = lane === 'next-major' || lane === 'stable-hotfix'
+    ? laneReleaseNotes(changelog, version, lane)
+    : null;
+  return laneNotes ?? legacyReleaseNotes(changelog, version);
 };
 
 /**

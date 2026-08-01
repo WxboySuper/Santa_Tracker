@@ -21,6 +21,45 @@ export const changelogPathForBase = (baseRef) =>
 const laneHeadingForImpact = (impact) =>
   impact === 'hotfix' ? CHANGELOG_LANE_HEADINGS['stable-hotfix'] : CHANGELOG_LANE_HEADINGS['next-major'];
 
+/** @param {string[]} changedFiles @param {string} path @returns {boolean} */
+const hasChangedChangelog = (changedFiles, path) => changedFiles.includes(path);
+
+/** @param {{ impact: ChangelogImpact }} declaration @param {string} changelog @param {string} path */
+const validateLane = (declaration, changelog, path) => {
+  if (!changelog || path === 'CHANGELOG.beta.md') return null;
+  const expectedLane = laneHeadingForImpact(declaration.impact);
+  if (changelog.includes(expectedLane)) return null;
+  return {
+    ok: false,
+    reason: `Changelog-Impact: ${declaration.impact} must update the ${expectedLane} lane in ${path}.`,
+  };
+};
+
+/** @param {{ declaration: object; changedFiles: string[]; changelog: string; path: string }} context */
+const validateImpactFile = ({ declaration, changedFiles, changelog, path }) => {
+  if (declaration.impact === 'none') {
+    return hasChangedChangelog(changedFiles, path)
+      ? { ok: false, reason: `Changelog-Impact: none cannot modify ${path}; choose beta or hotfix instead.` }
+      : { ok: true, reason: `Changelog impact explicitly waived: ${declaration.reason}` };
+  }
+
+  if (declaration.impact === 'inherited') {
+    return { ok: true, reason: `Changelog entry inherited from PR #${declaration.sourcePr}.` };
+  }
+
+  if (!hasChangedChangelog(changedFiles, path)) {
+    return {
+      ok: false,
+      reason: `Changelog-Impact: ${declaration.impact} requires ${path} to be modified in this PR.`,
+    };
+  }
+
+  return validateLane(declaration, changelog, path) ?? {
+    ok: true,
+    reason: `${path} documents ${declaration.impact} impact.`,
+  };
+};
+
 /** @param {string} reason */
 const declarationError = (reason) => ({ ok: false, reason });
 
@@ -72,38 +111,5 @@ export const evaluateChangelogPolicy = ({ baseRef, changedFiles, body, changelog
   if (!declaration.ok) return declaration;
 
   const changelogPath = changelogPathForBase(baseRef);
-  const changedChangelog = changedFiles.includes(changelogPath);
-
-  if (declaration.impact === 'none') {
-    if (changedChangelog) {
-      return {
-        ok: false,
-        reason: `Changelog-Impact: none cannot modify ${changelogPath}; choose beta or hotfix instead.`,
-      };
-    }
-    return { ok: true, reason: `Changelog impact explicitly waived: ${declaration.reason}` };
-  }
-
-  if (declaration.impact === 'inherited') {
-    return { ok: true, reason: `Changelog entry inherited from PR #${declaration.sourcePr}.` };
-  }
-
-  if (!changedChangelog) {
-    return {
-      ok: false,
-      reason: `Changelog-Impact: ${declaration.impact} requires ${changelogPath} to be modified in this PR.`,
-    };
-  }
-
-  if (changelog && baseRef !== 'beta') {
-    const expectedLane = laneHeadingForImpact(declaration.impact);
-    if (!changelog.includes(expectedLane)) {
-      return {
-        ok: false,
-        reason: `Changelog-Impact: ${declaration.impact} must update the ${expectedLane} lane in ${changelogPath}.`,
-      };
-    }
-  }
-
-  return { ok: true, reason: `${changelogPath} documents ${declaration.impact} impact.` };
+  return validateImpactFile({ declaration, changedFiles, changelog, path: changelogPath });
 };
