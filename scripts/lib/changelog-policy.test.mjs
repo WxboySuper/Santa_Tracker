@@ -2,9 +2,8 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { evaluateChangelogPolicy, parseChangelogDeclaration } from './changelog-policy.mjs';
 
-/** @param {string} baseRef @param {'beta' | 'hotfix'} impact @param {string} changelog */
-const evaluateLane = (baseRef, impact, changelog) => evaluateChangelogPolicy({
-  baseRef,
+/** @param {'beta' | 'hotfix'} impact @param {string} changelog */
+const evaluateLane = (impact, changelog) => evaluateChangelogPolicy({
   changedFiles: ['CHANGELOG.md'],
   body: `Changelog-Impact: ${impact}`,
   changelog,
