@@ -56,21 +56,13 @@ const validateBetaTargetVersion = (version, targetBranch) => {
 };
 
 /**
- * @param {string} version
- * @param {string} headRef
- * @param {boolean} isPullRequest
- * @returns {VersionPolicyResult}
- */
-/**
  * @param {{
  *   version: string;
  *   targetBranch: string;
- *   headRef?: string;
- *   eventName?: string;
  * }} context
  * @returns {VersionPolicyResult}
  */
-export const evaluateVersionPolicy = ({ version, targetBranch, headRef = '', eventName = '' }) => {
+export const evaluateVersionPolicy = ({ version, targetBranch }) => {
   const betaResult = validateBetaTargetVersion(version, targetBranch);
   if (!betaResult.ok) {
     return betaResult;
