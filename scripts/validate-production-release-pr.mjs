@@ -8,7 +8,6 @@ import {
 
 const manifestPath = resolve('deploy/production-release.json');
 const baseRef = process.env.GITHUB_BASE_REF ?? '';
-const headRef = process.env.GITHUB_HEAD_REF ?? '';
 const eventName = process.env.GITHUB_EVENT_NAME ?? '';
 
 const isStableHotfix =

@@ -24,6 +24,7 @@ export const parseOpenBetaPrsJson = parseOpenPortPrsJson;
 export const resolvePortTargets = ({ baseBranch }) =>
   /^stable\/\d+\.\d+\.x$/.test(baseBranch) ? ['main'] : [];
 
+/** @param {string} text @param {number} sourcePrNumber @returns {boolean} */
 const referencesSourcePr = (text, sourcePrNumber) =>
   new RegExp(`\\b(?:port|backport|forward[- ]port)\\s+(?:of\\s+)?(?:PR\\s*)?#${sourcePrNumber}(?!\\d)`, 'i').test(text ?? '');
 
