@@ -12,6 +12,7 @@ export { CHANGELOG_LANE_HEADINGS };
 export const changelogLaneForBase = (baseRef) =>
   /^stable\/\d+\.\d+\.x$/.test(baseRef) ? 'stable-hotfix' : 'next-major';
 
+/** @returns {string} */
 export const changelogPathForBase = () => 'CHANGELOG.md';
 
 /** @param {ChangelogImpact} impact */
