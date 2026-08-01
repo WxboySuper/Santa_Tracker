@@ -69,21 +69,6 @@ const validateMainVersion = (version) => {
 };
 
 /**
- * @param {string} version
- * @param {string} targetBranch
- * @returns {VersionPolicyResult}
- */
-const validateBetaTargetVersion = (version, targetBranch) => {
-  if (targetBranch !== 'beta' || hasBetaPrerelease(version)) {
-    return { ok: true };
-  }
-  return policyFail(
-    `package.json version "${version}" must include a -beta prerelease on branch "${targetBranch}" ` +
-      '(for example 1.6.0-beta.1).',
-  );
-};
-
-/**
  * @param {{
  *   version: string;
  *   targetBranch: string;
@@ -91,11 +76,6 @@ const validateBetaTargetVersion = (version, targetBranch) => {
  * @returns {VersionPolicyResult}
  */
 export const evaluateVersionPolicy = ({ version, targetBranch }) => {
-  const betaResult = validateBetaTargetVersion(version, targetBranch);
-  if (!betaResult.ok) {
-    return betaResult;
-  }
-
   const stableLineResult = validateStableLineVersion(version, targetBranch);
   if (stableLineResult) return stableLineResult;
 

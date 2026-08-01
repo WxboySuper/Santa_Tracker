@@ -30,11 +30,12 @@ test('requires the production changelog for hotfix impact', () => {
   assert.match(result.reason, /CHANGELOG\.md/);
 });
 
-test('allows beta impact on the legacy beta changelog', () => {
+test('allows beta impact on the next-major main changelog lane', () => {
   const result = evaluateChangelogPolicy({
-    baseRef: 'beta',
-    changedFiles: ['CHANGELOG.beta.md'],
+    baseRef: 'main',
+    changedFiles: ['CHANGELOG.md'],
     body: 'Changelog-Impact: beta',
+    changelog: '# Changelog\n\n### Next major / beta\n',
   });
   assert.equal(result.ok, true);
 });

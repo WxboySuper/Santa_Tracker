@@ -389,7 +389,7 @@ for TARGET in "${TARGETS[@]}"; do
   git branch -D "${PORT_BRANCH}" || true
 done
 
-if [[ "${SOURCE_BRANCH}" != "main" && "${SOURCE_BRANCH}" != "beta" ]]; then
+if [[ "${SOURCE_BRANCH}" != "main" ]]; then
   echo "--- Cleaning up original source branch ${SOURCE_BRANCH} ---"
   if git ls-remote --exit-code --heads origin "${SOURCE_BRANCH}" > /dev/null; then
     gh api -X DELETE repos/"${REPO}"/git/refs/heads/"${SOURCE_BRANCH}" || echo "Note: Source branch ${SOURCE_BRANCH} was already deleted or is protected."

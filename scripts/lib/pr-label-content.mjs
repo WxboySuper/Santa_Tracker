@@ -54,7 +54,7 @@ const CONTENT_LABEL_RULES = [
   { label: 'javascript', patterns: ['src/**', 'server/**', 'vite.config.*', 'tsconfig*.json', 'playwright.config.*'] },
 ];
 
-const DOC_ONLY_PATTERNS = ['docs/**', '**/*.md', '.github/**/*.md', 'CHANGELOG.md', 'CHANGELOG.beta.md'];
+const DOC_ONLY_PATTERNS = ['docs/**', '**/*.md', '.github/**/*.md', 'CHANGELOG.md'];
 
 /**
  * @param {string} head

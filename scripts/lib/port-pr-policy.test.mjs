@@ -19,7 +19,7 @@ describe('port PR policy', () => {
   });
 
   it('decodes target slugs', () => {
-    assert.equal(targetBranchFromSlug('beta'), 'beta');
+    assert.equal(targetBranchFromSlug('main'), 'main');
     assert.equal(
       targetBranchFromSlug('feature-dependabot-changelog-skip'),
       'feature/dependabot-changelog-skip',

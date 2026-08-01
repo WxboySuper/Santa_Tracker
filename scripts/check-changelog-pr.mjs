@@ -30,7 +30,7 @@ if (!baseRef || !headRef) {
 }
 
 const changedFiles = listChangedFilesBetweenRefs(baseRef, headRef);
-const changelogPath = baseRef === 'beta' ? 'CHANGELOG.beta.md' : 'CHANGELOG.md';
+const changelogPath = 'CHANGELOG.md';
 const changelog = existsSync(changelogPath) ? readFileSync(changelogPath, 'utf8') : '';
 const result = evaluateChangelogPolicy({ baseRef, changedFiles, body: livePrBody(), changelog });
 

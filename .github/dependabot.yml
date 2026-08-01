@@ -1,11 +1,11 @@
-# Dependabot version updates target beta. Group root + server npm into one PR via multi-ecosystem-groups.
+# Dependabot version updates target main, the next-major integration line.
 # https://docs.github.com/en/code-security/tutorials/secure-your-dependencies/configuring-multi-ecosystem-updates
 
 version: 2
 
 multi-ecosystem-groups:
-  npm-beta:
-    target-branch: beta
+  npm-main:
+    target-branch: main
     schedule:
       interval: weekly
 
@@ -14,10 +14,10 @@ updates:
     directory: /
     patterns:
       - "*"
-    multi-ecosystem-group: npm-beta
+    multi-ecosystem-group: npm-main
 
   - package-ecosystem: npm
     directory: /server
     patterns:
       - "*"
-    multi-ecosystem-group: npm-beta
+    multi-ecosystem-group: npm-main

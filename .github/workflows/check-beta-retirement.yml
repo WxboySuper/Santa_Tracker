@@ -1,0 +1,37 @@
+name: Check Beta Branch Retirement
+
+# Readiness only. This workflow never deletes refs or changes GitHub rulesets.
+on:
+  workflow_dispatch:
+    inputs:
+      confirmation:
+        description: 'Type CHECK-BETA-RETIREMENT to run the readiness check'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  readiness:
+    if: inputs.confirmation == 'CHECK-BETA-RETIREMENT'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+
+      - name: Validate repository architecture
+        run: node scripts/validate-beta-retirement.mjs
+
+      - name: Check for open PRs targeting beta
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          COUNT=$(gh pr list --repo "$GITHUB_REPOSITORY" --base beta --state open --json number --jq 'length')
+          if [ "$COUNT" -ne 0 ]; then
+            echo "::error::$COUNT open PR(s) still target beta."
+            exit 1
+          fi
+          echo "No open PRs target beta."

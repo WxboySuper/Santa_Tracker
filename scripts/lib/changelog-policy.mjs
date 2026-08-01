@@ -14,7 +14,7 @@ export const changelogLaneForBase = (baseRef) =>
 
 /** @param {string} baseRef */
 export const changelogPathForBase = (baseRef) =>
-  baseRef === 'beta' ? 'CHANGELOG.beta.md' : 'CHANGELOG.md';
+  'CHANGELOG.md';
 
 /** @param {ChangelogImpact} impact */
 const laneHeadingForImpact = (impact) =>

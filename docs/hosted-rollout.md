@@ -1,4 +1,8 @@
-# Hosted production rollout (timed stage + promote)
+# Hosted staging and production deployment
+
+> The active procedure is [GFC delivery architecture](release-workflow.md).
+> This page documents the VPS layout only; it no longer defines a beta → main
+> promotion.
 
 Ops companion to [timed-production-rollout.md](./timed-production-rollout.md).
 
@@ -34,7 +38,7 @@ Ops companion to [timed-production-rollout.md](./timed-production-rollout.md).
 3. Enable `server/nginx-staging.conf` for `staging-gfc.weatherboysuper.com`.
 4. Ensure GitHub secrets: `PROD_SSH_*`, `BETA_INVITE_PATH`, `BETA_INVITE_TOKEN` (staging uses same invite gate as beta).
 
-## Cron promote
+## Optional timed rollout
 
 `/etc/cron.d/gfc-rollout` runs every minute:
 
@@ -49,16 +53,11 @@ bash /opt/gfc-analytics/current/release/promote-release.sh
 # or --force to ignore rolloutAt / already-live guard
 ```
 
-## Release author flow
+## Current release author flow
 
-1. Promotion PR (`beta` → `main`) updates `deploy/production-release.json`:
-   - `action`: `"stage"`
-   - `rolloutAt`: ISO UTC instant
-   - `releaseId`: unique per attempt
-   - `banner.phases`: pre-rollout + post-rollout
-2. Merge → post-merge publishes a stable GitHub Release → **Deploy Production to VPS** stages the build from that release tag; **live site stays on previous `current`**.
-3. Smoke **staging-gfc** (beta access guard, same as beta-gfc).
-4. At `rolloutAt`, cron promotes; live banner switches via `write-live-alert-banner.mjs`.
+1. Run **Deploy Staging** against the exact `main`, stable, or hotfix ref.
+2. For production, merge the reviewed stable-line PR and run **Create Stable Release**.
+3. The release event activates **Deploy Production to VPS**.
 
 ## Deployment feature config
 

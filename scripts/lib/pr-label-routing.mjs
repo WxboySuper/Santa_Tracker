@@ -26,19 +26,6 @@ const branchKindLabels = (head) => {
  * @param {string} head
  * @returns {Set<string>}
  */
-const betaIntegrationLabels = (head) => {
-  const labels = new Set();
-  if (head.startsWith('hotfix/')) return labels;
-  if (head.startsWith('feature/') || head.startsWith('fix/')) {
-    labels.add('integration:primary');
-    return labels;
-  }
-  if (head !== 'beta' && !head.startsWith('port/')) {
-    labels.add('integration:other');
-  }
-  return labels;
-};
-
 /**
  * Branch routing and integration priority labels.
  *
@@ -47,9 +34,6 @@ const betaIntegrationLabels = (head) => {
  */
 export const routingLabels = ({ head, base }) => {
   const labels = branchKindLabels(head);
-  if (head === 'beta' && base === 'main') labels.add('promotion');
-  if (base === 'beta') {
-    for (const label of betaIntegrationLabels(head)) labels.add(label);
-  }
+  if (base === 'main' && (head.startsWith('release/') || head.startsWith('promotion/'))) labels.add('promotion');
   return labels;
 };
