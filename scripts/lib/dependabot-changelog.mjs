@@ -208,6 +208,7 @@ const formatDependenciesBlock = (lines) =>
  * @param {string} sectionBody
  * @param {string} dependenciesBlock
  */
+/** @param {string} sectionBody @param {string} dependenciesBlock @param {string} [lane] */
 const replaceDependenciesBlock = (sectionBody, dependenciesBlock, lane = '') => {
   const escapedHeading = DEPENDENCIES_HEADING.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   const depsHeading = lane ? '#### Dependencies' : DEPENDENCIES_HEADING;
