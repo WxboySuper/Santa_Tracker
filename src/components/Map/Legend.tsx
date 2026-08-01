@@ -172,6 +172,7 @@ const Legend: React.FC<LegendProps> = React.memo(({
     );
   };
 
+  /** Renders the visible SPC report types in the map legend. */
   const renderReportLegend = () => {
     if (!reportsVisible) {
       return null;

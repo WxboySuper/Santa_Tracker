@@ -19,6 +19,7 @@ const valueForFilter = (card: GradeCard, filter: TrendFilter): number | null => 
   return typeof raw === 'number' && Number.isFinite(raw) ? raw : null;
 };
 
+/** Keeps the latest grade card for each forecast report day. */
 export const dedupeGradeCardsByDay = (cards: GradeCard[]): GradeCard[] => {
   const latestByDay = new Map<string, GradeCard>();
   cards.forEach((card) => {

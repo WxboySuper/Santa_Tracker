@@ -30,16 +30,19 @@ const ForecastGradeSelect: React.FC<ForecastGradeSelectProps> = ({
   const selected = options.find((option) => option.value === value) ?? options[0];
 
   useEffect(() => {
+    /** Closes this menu when another verification select opens. */
     const closeWhenAnotherOpens = (event: Event) => {
       if ((event as CustomEvent<string>).detail !== id) {
         setOpen(false);
       }
     };
+    /** Closes this menu when the pointer is pressed outside its root. */
     const closeOnPointerDown = (event: PointerEvent) => {
       if (!rootRef.current?.contains(event.target as Node)) {
         setOpen(false);
       }
     };
+    /** Closes this menu when the user presses Escape. */
     const closeOnEscape = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         setOpen(false);
@@ -55,6 +58,7 @@ const ForecastGradeSelect: React.FC<ForecastGradeSelectProps> = ({
     };
   }, [id]);
 
+  /** Toggles the menu and announces its opening to sibling selects. */
   const toggle = () => {
     if (!open) {
       document.dispatchEvent(new CustomEvent(SELECT_OPEN_EVENT, { detail: id }));
