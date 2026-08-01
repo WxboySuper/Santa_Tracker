@@ -5,6 +5,8 @@ import { dataQualityClass } from './gradeFormat';
 interface DataQualityPanelProps {
   pkg: PackageGrade;
   defaultOpen?: boolean;
+  open?: boolean;
+  onToggle?: () => void;
 }
 
 /**
@@ -12,12 +14,12 @@ interface DataQualityPanelProps {
  * a "No reports" label on quiet days (never a fake confidence label), and a
  * Not-evaluated row per missing product with classic warning treatment.
  */
-const DataQualityPanel: React.FC<DataQualityPanelProps> = ({ pkg, defaultOpen = false }) => {
+const DataQualityPanel: React.FC<DataQualityPanelProps> = ({ pkg, defaultOpen = false, open, onToggle }) => {
   const missing = pkg.products.filter((product) => !product.applicable);
 
   return (
-    <details className="fg-section" open={defaultOpen}>
-      <summary>
+    <details className="fg-section" open={open ?? defaultOpen}>
+      <summary onClick={onToggle ? (event) => { event.preventDefault(); onToggle(); } : undefined}>
         <span>Data quality</span>
         <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${dataQualityClass(pkg.dataQuality)}`}>
           {pkg.dataQuality}

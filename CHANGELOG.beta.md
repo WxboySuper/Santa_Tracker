@@ -20,6 +20,10 @@ Development entries for pull requests targeting `beta`. These notes are consolid
 
 - Refine the Forecast Grade verification workspace into the analysis-deck layout and align its visual language with the product UI.
 
+### PR #795
+
+- Complete the Forecast Grade verification workspace viewport, grading-state, sidebar, and control polish.
+
 ### PR #791
 
 #### Changed

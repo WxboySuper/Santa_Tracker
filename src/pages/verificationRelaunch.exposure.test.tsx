@@ -60,11 +60,11 @@ describe('verificationRelaunch route gate', () => {
     expect(mockV2Load).toHaveBeenCalled();
   });
 
-  test('exposes verificationRelaunch only on beta', () => {
+  test('exposes verificationRelaunch on local and beta', () => {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { isFeatureExposedOnTarget } = require('../config/featureExposure');
     for (const target of BUILD_TARGETS) {
-      expect(isFeatureExposedOnTarget('verificationRelaunch', target)).toBe(target === 'beta');
+      expect(isFeatureExposedOnTarget('verificationRelaunch', target)).toBe(target === 'beta' || target === 'local');
     }
   });
 });

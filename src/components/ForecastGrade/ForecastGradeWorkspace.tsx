@@ -12,10 +12,7 @@ import SourcePanel from './SourcePanel';
 
 type GradeController = ReturnType<typeof useForecastGrade>;
 type AvailableSources = ReturnType<typeof availablePackageSources>;
-type Toast = (message: string, tone: 'success' | 'error' | 'info' | 'warning') => void;
-
 interface ForecastGradeWorkspaceProps {
-  addToast: Toast;
   availableSources: AvailableSources;
   grade: GradeController;
   activeComponent: ComponentKey | null;
@@ -31,13 +28,12 @@ interface ForecastGradeWorkspaceProps {
   onSelectMapLayer: (layer: MapOutlookLayer) => void;
   onSelectProduct: (product: ProductKind) => void;
   onSelectReport: (report: StormReport | null) => void;
-  onSelectReportId: (reportId: string | null) => void;
   onSelectHistoryCard: (card: Parameters<GradeController['restoreCard']>[0]) => void;
   onToggleEvidence: () => void;
 }
 
+/** Composes the source rail, evidence map, and verification results rail. */
 const ForecastGradeWorkspace: React.FC<ForecastGradeWorkspaceProps> = ({
-  addToast,
   availableSources,
   grade,
   activeComponent,
@@ -53,7 +49,6 @@ const ForecastGradeWorkspace: React.FC<ForecastGradeWorkspaceProps> = ({
   onSelectMapLayer,
   onSelectProduct,
   onSelectReport,
-  onSelectReportId,
   onSelectHistoryCard,
   onToggleEvidence,
 }) => (
@@ -93,7 +88,6 @@ const ForecastGradeWorkspace: React.FC<ForecastGradeWorkspaceProps> = ({
         onSelectMapLayer={onSelectMapLayer}
         onSelectDay={grade.setSelectedDay}
         onToggleEvidence={onToggleEvidence}
-        onSelectReportId={onSelectReportId}
         mapPaneRef={mapPaneRef}
         mapRef={mapRef}
       />

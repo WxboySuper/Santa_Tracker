@@ -1,13 +1,12 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { fromLonLat } from 'ol/proj';
 import VerificationMap, { type VerificationMapHandle } from '../Map/VerificationMap';
 import type { StormReport } from '../../types/stormReports';
 import type { DayType } from '../../types/outlooks';
-import type { ComponentKey, MapOutlookLayer, PackageGrade } from '../../utils/verificationV2';
+import type { ComponentKey, GradeProgress, MapOutlookLayer, PackageGrade } from '../../utils/verificationV2';
 import ForecastGradeMapControls from './ForecastGradeMapControls';
 import { formatGrade, letterColorClass } from './gradeFormat';
 import RunProgress from './RunProgress';
-import type { GradeProgress } from '../../utils/verificationV2';
 
 interface ForecastGradeMapPaneProps {
   forecastLoaded: boolean;
@@ -24,11 +23,11 @@ interface ForecastGradeMapPaneProps {
   onSelectMapLayer: (layer: MapOutlookLayer) => void;
   onSelectDay: (day: DayType) => void;
   onToggleEvidence: () => void;
-  onSelectReportId?: (reportId: string | null) => void;
   mapPaneRef: React.RefObject<HTMLDivElement | null>;
   mapRef: React.RefObject<VerificationMapHandle | null>;
 }
 
+/** Renders the verification map, its controls, and grading overlays. */
 const ForecastGradeMapPane: React.FC<ForecastGradeMapPaneProps> = ({
   forecastLoaded,
   activeMapLayer,
@@ -44,7 +43,6 @@ const ForecastGradeMapPane: React.FC<ForecastGradeMapPaneProps> = ({
   onSelectMapLayer,
   onSelectDay,
   onToggleEvidence,
-  onSelectReportId,
   mapPaneRef,
   mapRef,
 }) => {
@@ -65,7 +63,7 @@ const ForecastGradeMapPane: React.FC<ForecastGradeMapPaneProps> = ({
   }, [mapRef, reports, selectedReportId]);
 
   return (
-    <div className="fg-map-pane" ref={mapPaneRef} data-emphasis-component={activeComponent ?? undefined}>
+    <div className="fg-map-region">
       <div className="fg-map-toolbar">
         <ForecastGradeMapControls
           activeMapLayer={activeMapLayer}
@@ -79,6 +77,7 @@ const ForecastGradeMapPane: React.FC<ForecastGradeMapPaneProps> = ({
           onToggleLegend={() => setLegendOpen((open) => !open)}
         />
       </div>
+      <div className="fg-map-pane" ref={mapPaneRef} data-emphasis-component={activeComponent ?? undefined}>
       <div className="fg-map-canvas">
         {forecastLoaded ? (
           <>
@@ -115,6 +114,7 @@ const ForecastGradeMapPane: React.FC<ForecastGradeMapPaneProps> = ({
           <p>The map will show your outlook and the SPC storm reports used to score it.</p>
           </div>
         )}
+      </div>
       </div>
     </div>
   );

@@ -21,6 +21,7 @@
   "verificationRelaunch": {
     "reason": "The Forecast Grade dashboard shell and classic coexistence routing are complete for the beta tester rollout. Disabled-side-effect coverage is in src/pages/verificationRelaunch.exposure.test.tsx, gate coverage is in src/pages/VerificationPage.test.tsx, and the adoption contract is in src/config/v17WorkstreamAdoption.exposure.test.ts.",
     "trackingIssue": 430,
+    "localDevelopmentApproved": true,
     "betaEnablementApproved": true
   },
   "customProducts": {
