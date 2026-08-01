@@ -38,8 +38,16 @@ const extractLaneBody = (changelog, heading) => {
   return (next === -1 ? rest : rest.slice(0, next)).trim();
 };
 
-/** @param {{ impact: ChangelogImpact }} declaration @param {string} changelog @param {string} path @param {string} baseRef @param {string} baseChangelog */
-const validateLane = (declaration, changelog, path, baseRef, baseChangelog) => {
+/**
+ * @param {{
+ *   declaration: { impact: ChangelogImpact };
+ *   changelog: string;
+ *   path: string;
+ *   baseRef: string;
+ *   baseChangelog: string;
+ * }} context
+ */
+const validateLane = ({ declaration, changelog, path, baseRef, baseChangelog }) => {
   if (!changelog || path === 'CHANGELOG.beta.md') return null;
   const expectedLane = declaration.impact === 'hotfix' && /^stable\//.test(baseRef)
     ? changelogLaneHeadingForBase(baseRef)
@@ -72,7 +80,7 @@ const validateImpactFile = ({ declaration, changedFiles, changelog, baseChangelo
     };
   }
 
-  const laneResult = validateLane(declaration, changelog, path, baseRef, baseChangelog);
+  const laneResult = validateLane({ declaration, changelog, path, baseRef, baseChangelog });
   if (!laneResult.ok) return laneResult;
   return {
     ok: true,
