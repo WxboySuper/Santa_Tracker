@@ -8,5 +8,6 @@ export const classifyForwardPortConflicts = (conflictPaths) => ({
   needsHuman: [...conflictPaths],
 });
 
+/** @returns {boolean} */
 export const canAutoResolveAllForwardPortConflicts = () => false;
 

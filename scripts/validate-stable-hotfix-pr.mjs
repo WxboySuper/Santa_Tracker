@@ -13,6 +13,11 @@ if (!/^stable\/\d+\.\d+\.x$/.test(baseRef)) {
   process.exit(0);
 }
 
+/**
+ * @param {string} ref
+ * @param {string} path
+ * @returns {Record<string, unknown>}
+ */
 const readJsonAtRef = (ref, path) => {
   const output = execFileSync('git', ['show', 'origin/' + ref + ':' + path], {
     encoding: 'utf8',
