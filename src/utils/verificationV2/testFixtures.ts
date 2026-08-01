@@ -1,4 +1,4 @@
-import * as turf from '@turf/turf';
+import { circle } from '@turf/turf';
 import type { Feature, Polygon } from 'geojson';
 import type { OutlookData } from '../../types/outlooks';
 import type { ReportType, StormReport } from '../../types/stormReports';
@@ -13,7 +13,7 @@ export const circleContour = (
   lon: number,
   lat: number,
   radiusKm: number
-): Feature<Polygon> => turf.circle([lon, lat], radiusKm, { units: 'kilometers', steps: 64 }) as Feature<Polygon>;
+): Feature<Polygon> => circle([lon, lat], radiusKm, { units: 'kilometers', steps: 64 }) as Feature<Polygon>;
 
 let reportCounter = 0;
 
