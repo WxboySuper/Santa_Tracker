@@ -42,9 +42,11 @@ import {
 
 type RunPhase = 'idle' | 'running' | 'complete';
 
+/** Returns whether the selected report date is valid for grading. */
 const hasReachedReportDate = (useToday: boolean, reportDate: string): boolean =>
   useToday || isReachedArchiveDate(reportDate);
 
+/** Returns the available forecast days in ascending order. */
 const daysWithData = (forecast: ForecastCycle | null): DayType[] => {
   if (!forecast?.days) {
     return [];
@@ -54,6 +56,7 @@ const daysWithData = (forecast: ForecastCycle | null): DayType[] => {
     .sort((a, b) => a - b);
 };
 
+/** Parses a valid ISO calendar date prefix from an outlook metadata value. */
 const parseReportDate = (candidate?: string): string | null => {
   const match = candidate?.match(/^\d{4}-\d{2}-\d{2}(?=T|$)/);
   if (!match) {
@@ -108,6 +111,7 @@ export interface UseForecastGrade extends ForecastGradeState {
   canRun: boolean;
 }
 
+/** Provides state and actions for the Forecast Grade verification workflow. */
 export const useForecastGrade = (addToast: (message: string, type?: 'info' | 'success' | 'error') => void): UseForecastGrade => {
   const dispatch = useDispatch();
   const { user } = useAuth();
@@ -350,7 +354,7 @@ export const useForecastGrade = (addToast: (message: string, type?: 'info' | 'su
       setActiveProduct(firstProduct);
       setActiveMapLayer('categorical');
       dispatch(loadVerificationForecast(restoredForecast));
-      void loadReportsForDate(snapshot.reportDate)
+      loadReportsForDate(snapshot.reportDate)
         .then((loadedReports) => {
           if (restoreSeq !== restoreSeqRef.current) {
             return;
@@ -366,6 +370,7 @@ export const useForecastGrade = (addToast: (message: string, type?: 'info' | 'su
           setReportsState([]);
           dispatch(clearReports());
         });
+      return undefined;
     },
     [dispatch]
   );
