@@ -81,19 +81,3 @@ export const extractReleaseNotes = (changelog, version, lane = '') => {
  * @param {string[]} changedFiles
  * @param {string} prBody
  */
-export const changelogTouchesPr = (changedFiles, prBody) => {
-  if (changedFiles.some((file) => file === 'CHANGELOG.md' || file.endsWith('/CHANGELOG.md'))) {
-    return { ok: true, reason: 'CHANGELOG.md modified in this PR.' };
-  }
-
-  const body = prBody ?? '';
-  if (/##\s*changelog/i.test(body) && /^\s*[-*]/m.test(body)) {
-    return { ok: true, reason: 'PR description includes a Changelog section with bullets.' };
-  }
-
-  return {
-    ok: false,
-    reason:
-      'Update CHANGELOG.md in this PR or add a "## Changelog" section with bullet points in the PR description.',
-  };
-};

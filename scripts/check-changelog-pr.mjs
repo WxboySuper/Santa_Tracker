@@ -31,8 +31,20 @@ if (!baseRef || !headRef) {
 
 const changedFiles = listChangedFilesBetweenRefs(baseRef, headRef);
 const changelogPath = 'CHANGELOG.md';
-const changelog = existsSync(changelogPath) ? readFileSync(changelogPath, 'utf8') : '';
-const result = evaluateChangelogPolicy({ baseRef, changedFiles, body: livePrBody(), changelog });
+const readRefChangelog = (ref) => {
+  try {
+    return execFileSync('git', ['show', `origin/${ref}:${changelogPath}`], { encoding: 'utf8' });
+  } catch {
+    return existsSync(changelogPath) ? readFileSync(changelogPath, 'utf8') : '';
+  }
+};
+const result = evaluateChangelogPolicy({
+  baseRef,
+  changedFiles,
+  body: livePrBody(),
+  changelog: readRefChangelog(headRef),
+  baseChangelog: readRefChangelog(baseRef),
+});
 
 if (!result.ok) {
   console.error(result.reason);

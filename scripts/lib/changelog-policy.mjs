@@ -12,6 +12,12 @@ export { CHANGELOG_LANE_HEADINGS };
 export const changelogLaneForBase = (baseRef) =>
   /^stable\/\d+\.\d+\.x$/.test(baseRef) ? 'stable-hotfix' : 'next-major';
 
+/** @param {string} baseRef */
+export const changelogLaneHeadingForBase = (baseRef) => {
+  const match = baseRef.match(/^stable\/(\d+\.\d+)\.x$/);
+  return match ? `### Stable ${match[1]}.x hotfixes` : CHANGELOG_LANE_HEADINGS['next-major'];
+};
+
 /** @returns {string} */
 export const changelogPathForBase = () => 'CHANGELOG.md';
 
@@ -22,19 +28,33 @@ const laneHeadingForImpact = (impact) =>
 /** @param {string[]} changedFiles @param {string} path @returns {boolean} */
 const hasChangedChangelog = (changedFiles, path) => changedFiles.includes(path);
 
-/** @param {{ impact: ChangelogImpact }} declaration @param {string} changelog @param {string} path */
-const validateLane = (declaration, changelog, path) => {
+/** @param {string} changelog @param {string} heading */
+const extractLaneBody = (changelog, heading) => {
+  const start = changelog.indexOf(heading);
+  if (start === -1) return null;
+  const afterHeading = start + heading.length;
+  const rest = changelog.slice(afterHeading);
+  const next = rest.search(/\n### (?!#)|\n## /);
+  return (next === -1 ? rest : rest.slice(0, next)).trim();
+};
+
+/** @param {{ impact: ChangelogImpact }} declaration @param {string} changelog @param {string} path @param {string} baseRef @param {string} baseChangelog */
+const validateLane = (declaration, changelog, path, baseRef, baseChangelog) => {
   if (!changelog || path === 'CHANGELOG.beta.md') return null;
-  const expectedLane = laneHeadingForImpact(declaration.impact);
-  if (changelog.includes(expectedLane)) return null;
+  const expectedLane = declaration.impact === 'hotfix' && /^stable\//.test(baseRef)
+    ? changelogLaneHeadingForBase(baseRef)
+    : laneHeadingForImpact(declaration.impact);
   return {
-    ok: false,
-    reason: `Changelog-Impact: ${declaration.impact} must update the ${expectedLane} lane in ${path}.`,
+    ok: changelog.includes(expectedLane) &&
+      (!baseChangelog || extractLaneBody(changelog, expectedLane) !== extractLaneBody(baseChangelog, expectedLane)),
+    reason: changelog.includes(expectedLane)
+      ? `Changelog-Impact: ${declaration.impact} must add or change an entry in the ${expectedLane} lane.`
+      : `Changelog-Impact: ${declaration.impact} must update the ${expectedLane} lane in ${path}.`,
   };
 };
 
-/** @param {{ declaration: object; changedFiles: string[]; changelog: string; path: string }} context */
-const validateImpactFile = ({ declaration, changedFiles, changelog, path }) => {
+/** @param {{ declaration: object; changedFiles: string[]; changelog: string; baseChangelog: string; baseRef: string; path: string }} context */
+const validateImpactFile = ({ declaration, changedFiles, changelog, baseChangelog, baseRef, path }) => {
   if (declaration.impact === 'none') {
     return hasChangedChangelog(changedFiles, path)
       ? { ok: false, reason: `Changelog-Impact: none cannot modify ${path}; choose beta or hotfix instead.` }
@@ -52,7 +72,9 @@ const validateImpactFile = ({ declaration, changedFiles, changelog, path }) => {
     };
   }
 
-  return validateLane(declaration, changelog, path) ?? {
+  const laneResult = validateLane(declaration, changelog, path, baseRef, baseChangelog);
+  if (!laneResult.ok) return laneResult;
+  return {
     ok: true,
     reason: `${path} documents ${declaration.impact} impact.`,
   };
@@ -102,12 +124,12 @@ export const parseChangelogDeclaration = (body = '') => {
 };
 
 /**
- * @param {{ changedFiles: string[]; body: string }} context
+ * @param {{ baseRef?: string; changedFiles: string[]; body: string; changelog?: string; baseChangelog?: string }} context
  */
-export const evaluateChangelogPolicy = ({ changedFiles, body, changelog = '' }) => {
+export const evaluateChangelogPolicy = ({ baseRef = '', changedFiles, body, changelog = '', baseChangelog = '' }) => {
   const declaration = parseChangelogDeclaration(body);
   if (!declaration.ok) return declaration;
 
   const changelogPath = changelogPathForBase();
-  return validateImpactFile({ declaration, changedFiles, changelog, path: changelogPath });
+  return validateImpactFile({ declaration, changedFiles, changelog, baseChangelog, baseRef, path: changelogPath });
 };

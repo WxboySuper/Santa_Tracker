@@ -58,3 +58,27 @@ test('requires hotfix entries in the stable lane', () => {
   assert.equal(result.ok, false);
   assert.match(result.reason, /Stable 1.6.x hotfixes/);
 });
+
+test('requires the declared lane to change, not merely exist', () => {
+  const changelog = '# Changelog\n\n### Next major / beta\n\n- Existing\n';
+  const result = evaluateChangelogPolicy({
+    baseRef: 'main',
+    changedFiles: ['CHANGELOG.md'],
+    body: 'Changelog-Impact: beta',
+    changelog,
+    baseChangelog: changelog,
+  });
+  assert.equal(result.ok, false);
+  assert.match(result.reason, /must add or change/);
+});
+
+test('derives the stable changelog lane from the stable branch name', () => {
+  const result = evaluateChangelogPolicy({
+    baseRef: 'stable/1.7.x',
+    changedFiles: ['CHANGELOG.md'],
+    body: 'Changelog-Impact: hotfix',
+    changelog: '# Changelog\n\n### Stable 1.7.x hotfixes\n\n- Fixed\n',
+    baseChangelog: '# Changelog\n\n### Stable 1.7.x hotfixes\n',
+  });
+  assert.equal(result.ok, true);
+});

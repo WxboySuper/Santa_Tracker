@@ -1,7 +1,6 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { listDependencyBumpsBetweenRefs, applyDependencyBumpsToChangelog } from './lib/dependabot-changelog.mjs';
-import { upsertBetaChangelogEntry } from './lib/beta-changelog.mjs';
 import { parsePortBranch } from './lib/port-pr-policy.mjs';
 import { upsertManagedChangelogDeclaration } from './lib/changelog-automation.mjs';
 
@@ -11,7 +10,7 @@ const repository = process.env.GITHUB_REPOSITORY ?? '';
 const prNumber = Number(process.env.PR_NUMBER ?? 0);
 const authorLogin = process.env.PR_AUTHOR_LOGIN ?? '';
 const body = process.env.PR_BODY ?? '';
-const changelogPath = baseRef === 'beta' ? 'CHANGELOG.beta.md' : 'CHANGELOG.md';
+const changelogPath = 'CHANGELOG.md';
 const isDependabot = authorLogin === 'dependabot[bot]' && headRef.startsWith('dependabot/');
 const port = parsePortBranch(headRef);
 
@@ -40,16 +39,8 @@ if (isDependabot) {
     declaration = { impact: stableLine ? 'hotfix' : 'beta' };
     execFileSync('git', ['checkout', '--detach', `origin/${headRef}`], { stdio: 'inherit' });
     const changelog = readFileSync(changelogPath, 'utf8');
-    if (baseRef === 'beta') {
-      nextChangelog = upsertBetaChangelogEntry(
-        changelog,
-        prNumber,
-        bumps.map((bump) => `Dependency: ${bump.name} ${bump.from} → ${bump.to}${bump.directory === 'root' ? '' : ` (\`${bump.directory}\`)`}`),
-      );
-    } else {
-      const lane = stableLine ? 'stable-hotfix' : 'next-major';
-      nextChangelog = applyDependencyBumpsToChangelog(changelog, bumps, lane);
-    }
+    const lane = stableLine ? 'stable-hotfix' : 'next-major';
+    nextChangelog = applyDependencyBumpsToChangelog(changelog, bumps, lane);
   }
 } else {
   declaration = {
