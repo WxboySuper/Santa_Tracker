@@ -12,10 +12,7 @@ import SourcePanel from './SourcePanel';
 
 type GradeController = ReturnType<typeof useForecastGrade>;
 type AvailableSources = ReturnType<typeof availablePackageSources>;
-type Toast = (message: string, tone: 'success' | 'error' | 'info' | 'warning') => void;
-
 interface ForecastGradeWorkspaceProps {
-  addToast: Toast;
   availableSources: AvailableSources;
   grade: GradeController;
   activeComponent: ComponentKey | null;
@@ -37,7 +34,6 @@ interface ForecastGradeWorkspaceProps {
 
 /** Composes the source rail, evidence map, and verification results rail. */
 const ForecastGradeWorkspace: React.FC<ForecastGradeWorkspaceProps> = ({
-  addToast,
   availableSources,
   grade,
   activeComponent,

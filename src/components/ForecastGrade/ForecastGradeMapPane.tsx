@@ -3,11 +3,10 @@ import { fromLonLat } from 'ol/proj';
 import VerificationMap, { type VerificationMapHandle } from '../Map/VerificationMap';
 import type { StormReport } from '../../types/stormReports';
 import type { DayType } from '../../types/outlooks';
-import type { ComponentKey, MapOutlookLayer, PackageGrade } from '../../utils/verificationV2';
+import type { ComponentKey, GradeProgress, MapOutlookLayer, PackageGrade } from '../../utils/verificationV2';
 import ForecastGradeMapControls from './ForecastGradeMapControls';
 import { formatGrade, letterColorClass } from './gradeFormat';
 import RunProgress from './RunProgress';
-import type { GradeProgress } from '../../utils/verificationV2';
 
 interface ForecastGradeMapPaneProps {
   forecastLoaded: boolean;

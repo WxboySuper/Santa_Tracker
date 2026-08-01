@@ -59,7 +59,6 @@ const ForecastGradeDashboard: React.FC = () => {
     <div className="fg-dashboard">
       <ForecastGradeTopbar methodologyPath={METHODOLOGY_DOC_PATH} />
       <ForecastGradeWorkspace
-        addToast={addToast}
         availableSources={availableSources}
         grade={grade}
         activeComponent={activeComponent}

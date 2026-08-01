@@ -36,7 +36,8 @@ export const useForecastGradeDashboardActions = ({
 
   const handleFileLoad = useCallback((file: File) => {
     packageLoadSeqRef.current += 1;
-    void grade.loadFromFile(file);
+    grade.loadFromFile(file);
+    return undefined;
   }, [grade, packageLoadSeqRef]);
 
   const handleReset = useCallback(() => {
