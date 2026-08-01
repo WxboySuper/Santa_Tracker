@@ -2,6 +2,7 @@ name: Prepare Main Next-Major Cutover
 
 # This creates a reviewable beta → main cutover PR only after the stable
 # production line exists. It does not merge, delete beta, or deploy anything.
+# The generated PR must still pass the repository-wide changelog decision gate.
 on:
   workflow_dispatch:
     inputs:
