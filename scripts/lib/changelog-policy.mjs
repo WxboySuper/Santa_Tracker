@@ -18,7 +18,7 @@ export const changelogLaneHeadingForBase = (baseRef) => {
   return match ? `### Stable ${match[1]}.x hotfixes` : CHANGELOG_LANE_HEADINGS['next-major'];
 };
 
-/** @returns {string} */
+/** Return the single curated changelog file used by every release line. @returns {string} */
 export const changelogPathForBase = () => 'CHANGELOG.md';
 
 /** @param {ChangelogImpact} impact */

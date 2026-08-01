@@ -31,6 +31,7 @@ if (!baseRef || !headRef) {
 
 const changedFiles = listChangedFilesBetweenRefs(baseRef, headRef);
 const changelogPath = 'CHANGELOG.md';
+/** Read the changelog from a remote branch, falling back to the checked-out file. */
 const readRefChangelog = (ref) => {
   try {
     return execFileSync('git', ['show', `origin/${ref}:${changelogPath}`], { encoding: 'utf8' });
