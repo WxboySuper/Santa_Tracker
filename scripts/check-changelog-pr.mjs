@@ -1,6 +1,8 @@
-import { listChangedFilesBetweenRefs } from './lib/git-changed-files.mjs';
-import { evaluateChangelogPolicy } from './lib/changelog-policy.mjs';
 import { execFileSync } from 'node:child_process';
+import { existsSync, readFileSync } from 'node:fs';
+import { evaluateBranchPolicy } from './lib/branch-policy.mjs';
+import { evaluateChangelogPolicy } from './lib/changelog-policy.mjs';
+import { listChangedFilesBetweenRefs } from './lib/git-changed-files.mjs';
 
 const baseRef = process.env.GITHUB_BASE_REF ?? '';
 const headRef = process.env.GITHUB_HEAD_REF ?? '';
@@ -29,7 +31,9 @@ if (!baseRef || !headRef) {
 }
 
 const changedFiles = listChangedFilesBetweenRefs(baseRef, headRef);
-const result = evaluateChangelogPolicy({ baseRef, changedFiles, body: livePrBody() });
+const changelogPath = baseRef === 'beta' ? 'CHANGELOG.beta.md' : 'CHANGELOG.md';
+const changelog = existsSync(changelogPath) ? readFileSync(changelogPath, 'utf8') : '';
+const result = evaluateChangelogPolicy({ baseRef, changedFiles, body: livePrBody(), changelog });
 
 if (!result.ok) {
   console.error(result.reason);

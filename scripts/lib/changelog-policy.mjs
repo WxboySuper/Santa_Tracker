@@ -4,6 +4,23 @@ const SOURCE_PATTERN = /(?:port|backport|forward[- ]port|inherited)\s+(?:of\s+)?
 
 /** @typedef {'beta' | 'hotfix' | 'none' | 'inherited'} ChangelogImpact */
 
+export const CHANGELOG_LANE_HEADINGS = {
+  'next-major': '### Next major / beta',
+  'stable-hotfix': '### Stable 1.6.x hotfixes',
+};
+
+/** @param {string} baseRef */
+export const changelogLaneForBase = (baseRef) =>
+  /^stable\/\d+\.\d+\.x$/.test(baseRef) ? 'stable-hotfix' : 'next-major';
+
+/** @param {string} baseRef */
+export const changelogPathForBase = (baseRef) =>
+  baseRef === 'beta' ? 'CHANGELOG.beta.md' : 'CHANGELOG.md';
+
+/** @param {ChangelogImpact} impact */
+const laneHeadingForImpact = (impact) =>
+  impact === 'hotfix' ? CHANGELOG_LANE_HEADINGS['stable-hotfix'] : CHANGELOG_LANE_HEADINGS['next-major'];
+
 /** @param {string} reason */
 const declarationError = (reason) => ({ ok: false, reason });
 
@@ -50,11 +67,11 @@ export const parseChangelogDeclaration = (body = '') => {
 /**
  * @param {{ baseRef: string; changedFiles: string[]; body: string }} context
  */
-export const evaluateChangelogPolicy = ({ baseRef, changedFiles, body }) => {
+export const evaluateChangelogPolicy = ({ baseRef, changedFiles, body, changelog = '' }) => {
   const declaration = parseChangelogDeclaration(body);
   if (!declaration.ok) return declaration;
 
-  const changelogPath = baseRef === 'beta' ? 'CHANGELOG.beta.md' : 'CHANGELOG.md';
+  const changelogPath = changelogPathForBase(baseRef);
   const changedChangelog = changedFiles.includes(changelogPath);
 
   if (declaration.impact === 'none') {
@@ -76,6 +93,16 @@ export const evaluateChangelogPolicy = ({ baseRef, changedFiles, body }) => {
       ok: false,
       reason: `Changelog-Impact: ${declaration.impact} requires ${changelogPath} to be modified in this PR.`,
     };
+  }
+
+  if (changelog && baseRef !== 'beta') {
+    const expectedLane = laneHeadingForImpact(declaration.impact);
+    if (!changelog.includes(expectedLane)) {
+      return {
+        ok: false,
+        reason: `Changelog-Impact: ${declaration.impact} must update the ${expectedLane} lane in ${changelogPath}.`,
+      };
+    }
   }
 
   return { ok: true, reason: `${changelogPath} documents ${declaration.impact} impact.` };

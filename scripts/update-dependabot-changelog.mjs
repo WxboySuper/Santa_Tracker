@@ -9,6 +9,7 @@ const baseRef = process.env.GITHUB_BASE_REF ?? '';
 const headRef = process.env.GITHUB_HEAD_REF ?? '';
 const prNumber = Number(process.env.PR_NUMBER ?? 0);
 const changelogPath = process.env.CHANGELOG_FILE ?? (baseRef === 'beta' ? 'CHANGELOG.beta.md' : 'CHANGELOG.md');
+const changelogLane = /^stable\/\d+\.\d+\.x$/.test(baseRef) ? 'stable-hotfix' : 'next-major';
 
 if (!baseRef || !headRef) {
   console.error('Set GITHUB_BASE_REF and GITHUB_HEAD_REF.');
@@ -33,7 +34,7 @@ const next = baseRef === 'beta'
       prNumber,
       bumps.map((bump) => `Dependency: ${bump.name} ${bump.from} → ${bump.to}${bump.directory === 'root' ? '' : ` (\`${bump.directory}\`)`}`),
     )
-  : applyDependencyBumpsToChangelog(changelog, bumps);
+  : applyDependencyBumpsToChangelog(changelog, bumps, changelogLane);
 
 if (next === changelog) {
   console.log(`${changelogPath} already up to date for dependency bumps.`);

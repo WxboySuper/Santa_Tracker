@@ -50,13 +50,39 @@ export const extractChangelogSection = (changelog, stableVersion) => {
 };
 
 /**
+ * Extracts one unreleased lane. Lane headings are level-three headings and
+ * their category headings are level four, so the next sibling ### ends it.
+ * @param {string} changelog
+ * @param {'next-major' | 'stable-hotfix'} lane
+ * @returns {string | null}
+ */
+export const extractChangelogLane = (changelog, lane) => {
+  const heading = lane === 'stable-hotfix' ? '### Stable 1.6.x hotfixes' : '### Next major / beta';
+  const start = changelog.indexOf(heading);
+  if (start === -1) return null;
+  const rest = changelog.slice(start + heading.length);
+  const nextLane = rest.search(/\n### (?!#)/);
+  const body = (nextLane === -1 ? rest : rest.slice(0, nextLane)).trim();
+  return body ? `${heading}\n\n${body}`.trim() : null;
+};
+
+/**
  * Notes body for a GitHub Release tag (stable or beta prerelease).
  * @param {string} changelog
  * @param {string} version e.g. 1.6.0 or 1.6.0-beta.2
- * @param {'' | 'next-major' | 'stable-hotfix'} lane
+ * @param {string} [lane] next-major or stable-hotfix
  * @returns {string | null}
  */
 export const extractReleaseNotes = (changelog, version, lane = '') => {
+  if (lane === 'next-major' || lane === 'stable-hotfix') {
+    const laneSection = extractChangelogLane(changelog, lane);
+    if (laneSection) {
+      const heading = laneSection.split('\n', 1)[0];
+      const body = laneSection.slice(heading.length).trim();
+      if (body) return `## v${version}\n\n${body}`.trim();
+    }
+  }
+
   const stable = deriveStableVersion(version) ?? version;
   const section = extractChangelogSection(changelog, stable);
   if (section) return section;

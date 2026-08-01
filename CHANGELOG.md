@@ -3,31 +3,41 @@
 
 All notable changes to this project will be documented in this file.
 
-## Unreleased
+## [Unreleased]
 
-### Security
+### Next major / beta
+
+#### Security
 - **Hosted authorization boundaries:** Add source-controlled Firestore rules, hostile-client emulator coverage, reserved profile-field protection, trusted premium enforcement for cloud writes, and bounded cloud-cycle documents while retaining owner export/delete access after downgrade.
 - **CI shell injection:** Pass PR branch refs through `env` in `ci.yml` and `pr-governance.yml` `git fetch` steps so branch names cannot break out of the shell command.
 - **Dependabot changelog workflow:** Require Dependabot PR provenance before checking out PR head code with `GH_PAT`; pass base ref through env in shell steps; pin `actions/checkout` to an immutable SHA.
 - **Beta deploy supply chain:** Use `pnpm install --frozen-lockfile` in the beta deploy workflow so builds cannot silently resolve new dependency versions at deploy time.
 - **Production deploy supply chain:** Use `pnpm install --frozen-lockfile` in the production deploy workflow so builds cannot silently resolve new dependency versions at deploy time.
 
-### Changed
+#### Changed
 - **Deploy feature config:** Move server-backed feature switches into `deploy/beta-deployment-config.json` and `deploy/production-deployment-config.json`, with deploy workflows appending the target config into analytics env files.
 - **Deploy env:** Add explicit `SERVER_TARGET` values to beta, staging, and production analytics server deploy env files.
 - **Deploy triggers:** Run **Deploy Beta** on beta prerelease publish and **Deploy Production** on stable release publish (one deploy per version bump; merge pushes no longer trigger VPS deploys).
 
-### Fixed
+#### Fixed
 - **Favicon branding:** Replace `public/favicon.ico` with the cloud icon so apps that request `/favicon.ico` directly show the correct branding instead of the React logo.
 - **Deploy reliability:** Harden beta and production VPS deploy workflows against flaky `ssh-keyscan` host-key discovery with pinned known-host secrets, retries, deploy concurrency, and explicit `StrictHostKeyChecking` on SSH/rsync.
 - **GFC-WEB-H/J Sentry noise:** Filter the known OpenLayers canvas renderer `requestAnimationFrame` noise before it reaches Sentry while preserving actionable application TypeErrors.
 - **GFC-WEB-K/F/E Sentry noise:** Filter no-stack browser `NetworkError`/`AbortError` promise-rejection noise before it reaches Sentry while preserving actionable exceptions.
 
-### Added
+#### Added
 - **Account lifecycle:** Add recently authenticated self-service account deletion that ends linked subscriptions, removes hosted account data, and preserves local/offline saves.
 - **OpenCode GitHub Actions workflow:** Trigger `/oc` or `/opencode` comments on issues and PR review threads to run the pinned OpenCode GitHub action with repository `GITHUB_TOKEN` auth.
 - **Explicit build targets:** Define and validate local, beta, staging, and production frontend build targets while preserving the existing beta access gate.
 - **PR governance:** Add feature exposure labels (`exposure:production`, `exposure:server-backed`, `exposure:registry-change`) to automatically tag PRs that change feature exposure configuration.
+
+### Stable 1.6.x hotfixes
+
+<!-- Production hotfix entries only. Do not put next-major work in this lane. -->
+
+#### Fixed
+
+<!-- No unreleased stable hotfixes. -->
 
 ## v1.6.6
 

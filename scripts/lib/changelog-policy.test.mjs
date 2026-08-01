@@ -39,3 +39,24 @@ test('allows a forward port to inherit its source changelog entry', () => {
   });
   assert.equal(result.ok, true);
 });
+test('requires beta entries in the next-major lane on main', () => {
+  const result = evaluateChangelogPolicy({
+    baseRef: 'main',
+    changedFiles: ['CHANGELOG.md'],
+    body: 'Changelog-Impact: beta',
+    changelog: '# Changelog\n\n### Stable 1.6.x hotfixes\n',
+  });
+  assert.equal(result.ok, false);
+  assert.match(result.reason, /Next major \/ beta/);
+});
+
+test('requires hotfix entries in the stable lane', () => {
+  const result = evaluateChangelogPolicy({
+    baseRef: 'stable/1.6.x',
+    changedFiles: ['CHANGELOG.md'],
+    body: 'Changelog-Impact: hotfix',
+    changelog: '# Changelog\n\n### Next major / beta\n',
+  });
+  assert.equal(result.ok, false);
+  assert.match(result.reason, /Stable 1.6.x hotfixes/);
+});

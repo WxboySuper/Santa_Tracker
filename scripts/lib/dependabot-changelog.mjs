@@ -59,10 +59,10 @@ export const findDependabotChangelogSection = (changelog) => {
 export const extractDependenciesSubsection = (changelog, section) => {
   const body = changelog.slice(section.start, section.end);
   const escapedHeading = DEPENDENCIES_HEADING.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  const match = body.match(new RegExp(`${escapedHeading}[\\s\\S]*?(?=\\n### |\\n## |$)`));
+  const match = body.match(new RegExp(`#{3,4} Dependencies[\\s\\S]*?(?=\\n### (?!#)|\\n## |$)`));
   if (!match) return null;
 
-  return match[0].slice(DEPENDENCIES_HEADING.length).replace(DEPENDENCIES_MARKER, '').trim();
+  return match[0].replace(/^#{3,4} Dependencies/, '').replace(DEPENDENCIES_MARKER, '').trim();
 };
 
 /**
@@ -209,9 +209,10 @@ const formatDependenciesBlock = (lines) =>
  * @param {string} sectionBody
  * @param {string} dependenciesBlock
  */
-const replaceDependenciesBlock = (sectionBody, dependenciesBlock) => {
+const replaceDependenciesBlock = (sectionBody, dependenciesBlock, lane = '') => {
   const escapedHeading = DEPENDENCIES_HEADING.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  const depsPattern = new RegExp(`${escapedHeading}[\\s\\S]*?(?=\\n### |\\n## |$)`);
+  const depsHeading = lane ? '#### Dependencies' : DEPENDENCIES_HEADING;
+  const depsPattern = new RegExp(`${depsHeading.replace(/[.*+?^${}()|[\\]\\]/g, '\\$&')}[\\s\\S]*?(?=\\n### (?!#)|\\n## |$)`);
   const stripped = sectionBody.replace(depsPattern, '').trimEnd();
   const headingEnd = stripped.indexOf('\n');
   const insertPos = headingEnd === -1 ? stripped.length : headingEnd + 1;
@@ -222,7 +223,7 @@ const replaceDependenciesBlock = (sectionBody, dependenciesBlock) => {
  * @param {string} changelog
  * @param {Array<{ name: string; from: string; to: string; directory: string }>} bumps
  */
-export const applyDependencyBumpsToChangelog = (changelog, bumps) => {
+const applyDependencyBumpsToSection = (changelog, bumps) => {
   if (bumps.length === 0) return changelog;
 
   const section = findDependabotChangelogSection(changelog);
@@ -246,12 +247,41 @@ export const applyDependencyBumpsToChangelog = (changelog, bumps) => {
   return changelog.slice(0, section.start) + sectionBody + changelog.slice(section.end);
 };
 
+const laneHeading = (lane) => lane === 'stable-hotfix' ? '### Stable 1.6.x hotfixes' : '### Next major / beta';
+
+const laneBounds = (changelog, lane) => {
+  const heading = laneHeading(lane);
+  const start = changelog.indexOf(heading);
+  if (start === -1) return null;
+  const rest = changelog.slice(start + heading.length);
+  const next = rest.search(/\n### (?!#)|\n## /);
+  return {
+    heading,
+    start,
+    end: next === -1 ? changelog.length : start + heading.length + next,
+  };
+};
+
+/** Applies dependency automation to the selected unreleased lane. */
+export const applyDependencyBumpsToChangelog = (changelog, bumps, lane = '') => {
+  if (!lane) return applyDependencyBumpsToSection(changelog, bumps);
+  const bounds = laneBounds(changelog, lane);
+  if (!bounds) return applyDependencyBumpsToSection(changelog, bumps);
+  const body = changelog.slice(bounds.start + bounds.heading.length, bounds.end);
+  const synthetic = `## [Unreleased]\n${body}\n## [Lane end]`;
+  const updated = applyDependencyBumpsToSection(synthetic, bumps);
+  const innerStart = updated.indexOf('\n') + 1;
+  const innerEnd = updated.indexOf('\n## [Lane end]');
+  const updatedBody = updated.slice(innerStart, innerEnd).replace(/\n### Dependencies\n/g, '\n#### Dependencies\n');
+  return changelog.slice(0, bounds.start + bounds.heading.length) + updatedBody + changelog.slice(bounds.end);
+};
+
 /**
  * @param {string[]} changedFiles
  * @param {string} changelogAtHead
  * @param {Array<{ name: string; from: string; to: string; directory: string }>} bumps
  */
-export const dependabotChangelogTouchesPr = (changedFiles, changelogAtHead, bumps) => {
+const evaluateDependabotChangelogTouchesPr = (changedFiles, changelogAtHead, bumps) => {
   const touchesChangelog = changedFiles.some(
     (file) => file === 'CHANGELOG.md' || file.endsWith('/CHANGELOG.md'),
   );
@@ -293,4 +323,14 @@ export const dependabotChangelogTouchesPr = (changedFiles, changelogAtHead, bump
     ok: true,
     reason: 'CHANGELOG.md ### Dependencies documents this dependency bump.',
   };
+};
+
+/** Validates that Dependabot documented bumps in the selected lane. */
+export const dependabotChangelogTouchesPr = (changedFiles, changelogAtHead, bumps, lane = '') => {
+  if (!lane) return evaluateDependabotChangelogTouchesPr(changedFiles, changelogAtHead, bumps);
+  const bounds = laneBounds(changelogAtHead, lane);
+  if (!bounds) return evaluateDependabotChangelogTouchesPr(changedFiles, changelogAtHead, bumps);
+  const body = changelogAtHead.slice(bounds.start + bounds.heading.length, bounds.end);
+  const synthetic = `## [Unreleased]\n${body}\n## [Lane end]`;
+  return evaluateDependabotChangelogTouchesPr(changedFiles, synthetic, bumps);
 };

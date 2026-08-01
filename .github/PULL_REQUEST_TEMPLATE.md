@@ -12,6 +12,8 @@
 
 Changelog-Impact: [beta|hotfix|none|inherited]
 
+<!-- beta means the Next major / beta lane; hotfix means the Stable X.Y.x lane. -->
+
 <!-- Required for none; required for inherited. Remove unused lines. -->
 Changelog-Reason:
 Port of #
