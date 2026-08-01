@@ -4,7 +4,7 @@ import type { OutlookData } from '../../types/outlooks';
 import type { ReportType, StormReport } from '../../types/stormReports';
 
 /**
- * Shared scenario fixtures for the gfc-ver-1 engine tests. Kept outside a
+ * Shared scenario fixtures for the Forecast Grade engine tests. Kept outside a
  * *.test file so both the unit suite and the hardening suite can reuse them.
  */
 

@@ -73,9 +73,51 @@ const ScoreBreakdownTable: React.FC<ScoreBreakdownTableProps> = ({ product, acti
 const ScoreBreakdownBody: React.FC<ScoreBreakdownTableProps> = (props) => (
   <div className="fg-section-body">
     <ScoreBreakdownTable {...props} />
+    {props.product.diagnostics && props.product.diagnostics.length > 0 && (
+      <>
+        <h4 className="mt-4 text-xs font-semibold uppercase tracking-wide text-slate-500">
+          Technical diagnostics
+        </h4>
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="text-left text-xs uppercase text-slate-500">
+              <th className="py-1">Diagnostic</th>
+              <th className="py-1">Score</th>
+              <th className="py-1">Detail</th>
+            </tr>
+          </thead>
+          <tbody>
+            {props.product.diagnostics.map((diagnostic) => {
+              const selected = diagnostic.key === props.activeComponent;
+              return (
+                <tr
+                  key={diagnostic.key}
+                  aria-selected={selected}
+                  className={`fg-report-row border-t border-slate-200/30 align-top ${diagnostic.applicable ? '' : 'opacity-60'}`}
+                  onClick={() => props.onSelectComponent(selected ? null : diagnostic.key)}
+                  tabIndex={0}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter' || event.key === ' ') {
+                      event.preventDefault();
+                      props.onSelectComponent(selected ? null : diagnostic.key);
+                    }
+                  }}
+                >
+                  <td className="py-1.5 font-medium">{diagnostic.label}</td>
+                  <td className="py-1.5 tabular-nums">
+                    {diagnostic.applicable ? formatScore(diagnostic.score) : <span className="text-amber-600">N/A</span>}
+                  </td>
+                  <td className="py-1.5 text-xs text-slate-500">{diagnostic.detail}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </>
+    )}
     <p className="mt-2 text-xs text-slate-400">
-      Not-evaluated components are renormalized out of the grade. Diagnostics do not by themselves
-      determine the grade.
+      Not-evaluated components are renormalized out of the grade. Technical diagnostics are shown
+      for context and do not determine the headline grade.
     </p>
   </div>
 );

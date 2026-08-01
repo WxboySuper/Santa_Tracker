@@ -11,7 +11,7 @@ import {
 import type { HazardKind, ProductKind } from './gradeContract';
 
 /**
- * Neighborhood + area geometry for the gfc-ver-1 engine (PR 02 — neighborhood-area).
+ * Neighborhood + area geometry for the Forecast Grade engine (PR 02 — neighborhood-area).
  *
  * Implements the SPC spatial contract: severe within 25 miles of any point in a
  * contour, with reports buffered by 25 miles. There is intentionally no
@@ -28,14 +28,20 @@ export interface ProductContour {
   polygon: AreaPolygon;
 }
 
-/** Returns true when an outlook map key encodes a significant (hatched) threat. */
+/** Returns true when an outlook map key is a legacy significant marker. */
 export const isSignificantKey = (key: string): boolean => key.includes('#');
+
+/** Returns true when an outlook map key is a standalone CIG hatching overlay. */
+export const isCigKey = (key: string): boolean => key.trim().toUpperCase().startsWith('CIG');
 
 /**
  * Resolves the probability fraction (0–1) a hazard contour key represents by
  * parsing its leading percent value.
  */
 export const probabilityFromKey = (_product: ProductKind, key: string): number => {
+  if (isCigKey(key)) {
+    return 0;
+  }
   const clean = key.replace('#', '').trim();
   const match = clean.match(/([\d.]+)/);
   if (!match) {
@@ -94,10 +100,12 @@ export const extractProductContours = (
   const contours: ProductContour[] = [];
   for (const [key, features] of map.entries()) {
     const probability = probabilityFromKey(product, key);
-    const isSignificant = isSignificantKey(key);
     for (const feature of features) {
       const polygon = asAreaPolygon(feature);
       if (polygon) {
+        const isSignificant = isSignificantKey(key)
+          || isCigKey(key)
+          || feature.properties?.isSignificant === true;
         contours.push({ probability, isSignificant, polygon });
       }
     }

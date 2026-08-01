@@ -3,7 +3,7 @@ import { FORECAST_GRADE_FORMULA_VERSION } from './formulaVersion';
 /**
  * Forecast Grade contract (PR 01 — formula-contract).
  *
- * Pure types and scalar helpers shared by every stage of the gfc-ver-1 engine.
+ * Pure types and scalar helpers shared by every stage of the versioned engine.
  * No geometry or report parsing lives here so the contract can be imported by
  * UI, tests, and history persistence without pulling in turf.
  */
@@ -37,13 +37,15 @@ export const MAP_OUTLOOK_LAYERS: readonly MapOutlookLayer[] = [
   'hail',
 ] as const;
 
-/** The five composite components of a single-product Forecast Grade. */
+/** Primary components of a single-product Forecast Grade plus technical diagnostics. */
 export type ComponentKey =
+  | 'eventCapture'
+  | 'tierPlacement'
+  | 'eventYield'
+  | 'severity'
   | 'probabilitySkill'
   | 'spatialContingency'
-  | 'farDiscipline'
-  | 'eventYield'
-  | 'severity';
+  | 'farDiscipline';
 
 export type LetterGrade = 'A' | 'B' | 'C' | 'D' | 'F';
 
@@ -55,31 +57,41 @@ export type LetterGrade = 'A' | 'B' | 'C' | 'D' | 'F';
  */
 export type DataQuality = 'Good' | 'Limited' | 'Blocked';
 
-/** Composite weights (percent). Renormalized over applicable components. */
+/** Headline Forecast Grade weights (percent). Renormalized over applicable components. */
 export const COMPONENT_WEIGHTS: Record<ComponentKey, number> = {
-  probabilitySkill: 25,
-  spatialContingency: 25,
-  farDiscipline: 15,
-  eventYield: 25,
-  severity: 10,
+  eventCapture: 35,
+  tierPlacement: 30,
+  eventYield: 20,
+  severity: 15,
+  probabilitySkill: 0,
+  spatialContingency: 0,
+  farDiscipline: 0,
 };
 
 /** Human-readable component labels used by the dashboard and exports. */
 export const COMPONENT_LABELS: Record<ComponentKey, string> = {
+  eventCapture: 'Event capture',
+  tierPlacement: 'Tier-aware placement',
+  eventYield: 'Tier-aware event yield',
+  severity: 'Significant-threat placement',
   probabilitySkill: 'Probability skill',
   spatialContingency: 'Spatial contingency',
   farDiscipline: 'False-alarm discipline',
-  eventYield: 'Event yield',
-  severity: 'Severity',
 };
 
 export const COMPONENT_ORDER: readonly ComponentKey[] = [
+  'eventCapture',
+  'tierPlacement',
+  'eventYield',
+  'severity',
+] as const;
+
+/** Technical diagnostics retained for transparency but excluded from the headline grade. */
+export const DIAGNOSTIC_ORDER: readonly ComponentKey[] = [
   'probabilitySkill',
   'spatialContingency',
   'farDiscipline',
-  'eventYield',
-  'severity',
-];
+] as const;
 
 interface ComponentScoreBase {
   key: ComponentKey;
@@ -107,6 +119,8 @@ export interface ProductGrade {
   grade: number | null;
   letter: LetterGrade | null;
   components: ComponentScore[];
+  /** Technical diagnostics shown separately; these do not contribute to grade. */
+  diagnostics?: ComponentScore[];
   /** False when nothing was forecast and nothing observed for this product. */
   applicable: boolean;
   reportCount: number;
@@ -115,7 +129,7 @@ export interface ProductGrade {
 /** Package grade across every present hazard product. */
 export interface PackageGrade {
   formulaVersion: typeof FORECAST_GRADE_FORMULA_VERSION;
-  /** Equal-weight mean of present product grades; null when Blocked. */
+  /** Equal-weight mean of present product grades; null when withheld or not evaluated. */
   grade: number | null;
   letter: LetterGrade | null;
   products: ProductGrade[];

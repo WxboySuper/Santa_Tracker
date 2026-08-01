@@ -134,7 +134,7 @@ describe('scoreSeverity', () => {
       reports: [sigReportInside],
       applicable: true,
       score: SEVERITY_SIG_HIT,
-      metrics: { sigReports: 1, sigInArea: 1 },
+      metrics: { sigReports: 1, sigInArea: 1, sigCoverage: 1 },
     },
     {
       name: 'out-of-area',

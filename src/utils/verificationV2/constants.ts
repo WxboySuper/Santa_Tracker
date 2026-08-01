@@ -1,7 +1,7 @@
 import type { HazardKind } from './gradeContract';
 
 /**
- * Versioned tuning tables for the gfc-ver-1 Forecast Grade (PR 01/02).
+ * Versioned tuning tables for the Forecast Grade engine (PR 01/02).
  *
  * Every magic number the engine relies on lives here so official grades change
  * only via GFC releases (no per-user sliders) and so the calibration can be

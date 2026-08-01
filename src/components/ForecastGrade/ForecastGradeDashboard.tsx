@@ -4,7 +4,7 @@ import type { VerificationMapHandle } from '../Map/VerificationMap';
 import { useAppLayout } from '../Layout/AppLayout';
 import { useCloudCycles } from '../../hooks/useCloudCycles';
 import type { RootState } from '../../store';
-import type { ComponentKey } from '../../utils/verificationV2';
+import { FORECAST_GRADE_FORMULA_VERSION, type ComponentKey } from '../../utils/verificationV2';
 import { availablePackageSources } from '../../utils/verificationV2/sources';
 import { useForecastGrade } from './useForecastGrade';
 import { useForecastGradeDashboardActions } from './useForecastGradeDashboardActions';
@@ -23,7 +23,7 @@ const ForecastGradeTopbar: React.FC<ForecastGradeTopbarProps> = ({ methodologyPa
       <div className="fg-kicker">Verification workspace</div>
       <h2>Forecast Grade</h2>
       <p>
-        Compare the outlook against SPC evidence · formula gfc-ver-1 ·{' '}
+        Compare the outlook against SPC evidence · formula {FORECAST_GRADE_FORMULA_VERSION} ·{' '}
         <a className="text-blue-500 hover:underline" href={methodologyPath} target="_blank" rel="noreferrer">
           Methodology
         </a>

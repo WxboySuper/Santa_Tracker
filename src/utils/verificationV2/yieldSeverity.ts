@@ -99,11 +99,14 @@ const scoreSigDrawnAndObserved = (
   const sigUnion = unionAll(sigContours.map((contour) => contour.polygon));
   const inArea = reportsNearRegion(sigUnion, sigReports);
   if (inArea > 0) {
+    const coverage = inArea / Math.max(sigReports.length, 1);
+    const score = SEVERITY_SIG_OUT_OF_AREA +
+      (SEVERITY_SIG_HIT - SEVERITY_SIG_OUT_OF_AREA) * coverage;
     return scoredComponent(
       'severity',
-      SEVERITY_SIG_HIT,
-      `${inArea} significant report(s) within the significant contour.`,
-      { sigReports: sigReports.length, sigInArea: inArea }
+      score,
+      `${inArea} of ${sigReports.length} significant report(s) within the significant contour.`,
+      { sigReports: sigReports.length, sigInArea: inArea, sigCoverage: coverage }
     );
   }
   return scoredComponent(
