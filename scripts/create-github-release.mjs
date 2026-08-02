@@ -44,6 +44,7 @@ export const buildCuratedNotes = ({ changelog, version, lane }) =>
 export const buildReleaseNotes = ({ mode, curatedNotes, generatedNotes, changelogUrl }) =>
   composeReleaseNotes({ mode, curatedNotes, generatedNotes, changelogUrl });
 
+/** Execute the release workflow using the current process arguments and environment. */
 const run = () => {
   const version = process.argv[2];
   const targetBranch = process.argv[3] ?? 'main';
@@ -102,6 +103,7 @@ const run = () => {
   writeFileSync(notesFile, `${section}\n`);
 
   const prerelease = hasBetaPrerelease(version);
+  /** Check whether the requested GitHub release already exists. */
   const ghReleaseExists = () => {
     try {
       execFileSync('gh', ['release', 'view', tag], { stdio: 'ignore' });
@@ -111,6 +113,7 @@ const run = () => {
     }
   };
 
+  /** Create the requested GitHub release from the prepared notes file. */
   const createGhRelease = () => {
     const args = [
       'release',

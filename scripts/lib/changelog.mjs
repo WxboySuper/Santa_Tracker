@@ -1,5 +1,7 @@
 import { deriveStableVersion, hasBetaPrerelease } from './package-version.mjs';
 
+const BETA_RELEASE_LANES = new Set(['', 'next-major']);
+
 /**
  * @param {string} changelog
  * @returns {string | null}
@@ -59,7 +61,7 @@ export const extractReleaseNotes = (changelog, version, lane = '') => {
   const section = extractChangelogSection(changelog, stable);
   if (section) return section;
 
-  if (hasBetaPrerelease(version) && (!lane || lane === 'next-major')) {
+  if (hasBetaPrerelease(version) && BETA_RELEASE_LANES.has(lane)) {
     const unreleased = extractUnreleasedSection(changelog);
     if (unreleased) {
       const body = unreleased.replace(/^## \[Unreleased\]\s*\n*/i, '').trim();
