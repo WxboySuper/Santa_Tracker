@@ -56,6 +56,13 @@ jobs:
             echo "::error::Stable branch $STABLE_BRANCH already exists; refusing to move it." >&2
             exit 1
           fi
-          SOURCE_SHA=$(git rev-parse "origin/$SOURCE_REF^{commit}")
+          if SOURCE_SHA=$(git rev-parse "origin/$SOURCE_REF^{commit}" 2>/dev/null); then
+            :
+          elif SOURCE_SHA=$(git rev-parse "$SOURCE_REF^{commit}" 2>/dev/null); then
+            :
+          else
+            echo "::error::Could not resolve source ref $SOURCE_REF as a branch or tag." >&2
+            exit 1
+          fi
           git push origin "$SOURCE_SHA:refs/heads/$STABLE_BRANCH"
           echo "Created $STABLE_BRANCH at $SOURCE_SHA from $SOURCE_REF"

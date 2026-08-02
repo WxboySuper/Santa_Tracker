@@ -51,14 +51,15 @@ export const extractChangelogSection = (changelog, stableVersion) => {
  * Notes body for a GitHub Release tag (stable or beta prerelease).
  * @param {string} changelog
  * @param {string} version e.g. 1.6.0 or 1.6.0-beta.2
+ * @param {'' | 'next-major' | 'stable-hotfix'} lane
  * @returns {string | null}
  */
-export const extractReleaseNotes = (changelog, version) => {
+export const extractReleaseNotes = (changelog, version, lane = '') => {
   const stable = deriveStableVersion(version) ?? version;
   const section = extractChangelogSection(changelog, stable);
   if (section) return section;
 
-  if (hasBetaPrerelease(version)) {
+  if (hasBetaPrerelease(version) && (!lane || lane === 'next-major')) {
     const unreleased = extractUnreleasedSection(changelog);
     if (unreleased) {
       const body = unreleased.replace(/^## \[Unreleased\]\s*\n*/i, '').trim();
