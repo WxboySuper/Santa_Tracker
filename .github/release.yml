@@ -1,0 +1,22 @@
+changelog:
+  categories:
+    - title: Product changes
+      labels:
+        - feature
+        - Enhancement
+        - refactor
+    - title: Fixes and maintenance
+      labels:
+        - fix
+        - hotfix
+        - Bug
+        - quality
+    - title: Dependencies
+      labels:
+        - dependencies
+    - title: Other changes
+      labels:
+        - '*'
+  exclude:
+    labels:
+      - skip-changelog
