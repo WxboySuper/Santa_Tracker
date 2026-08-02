@@ -3,6 +3,7 @@ import { extractLaneReleaseNotes } from './changelog-lanes.mjs';
 
 export { extractChangelogLane } from './changelog-lanes.mjs';
 
+const RELEASE_LANES = new Set(['next-major', 'stable-hotfix']);
 
 /**
  * @param {string} changelog
@@ -71,7 +72,7 @@ const legacyReleaseNotes = (changelog, version) => {
  * @returns {string | null}
  */
 export const extractReleaseNotes = (changelog, version, lane = '') => {
-  const laneNotes = lane === 'next-major' || lane === 'stable-hotfix'
+  const laneNotes = RELEASE_LANES.has(lane)
     ? extractLaneReleaseNotes(changelog, version, lane)
     : null;
   return laneNotes ?? legacyReleaseNotes(changelog, version);
