@@ -75,33 +75,33 @@ jobs:
             SOURCE_TITLE=$(gh pr view "$SOURCE_PR" --repo "$REPOSITORY" --json title --jq '.title')
             SOURCE_URL="https://github.com/${REPOSITORY}/pull/${SOURCE_PR}"
             ISSUE_BODY=$(cat <<EOF
-## What happened
+          ## What happened
 
-The production fix in [PR #${SOURCE_PR}](${SOURCE_URL}) — **${SOURCE_TITLE}** — is safely merged into \`${SOURCE_BRANCH}\`. When automation tried to carry that same fix into \`main\`, the surrounding code had moved enough that it could not apply the change safely.
+          The production fix in [PR #${SOURCE_PR}](${SOURCE_URL}) — **${SOURCE_TITLE}** — is safely merged into \`${SOURCE_BRANCH}\`. When automation tried to carry that same fix into \`main\`, the surrounding code had moved enough that it could not apply the change safely.
 
-Nothing is wrong with production. The fix is already on the stable line. This issue tracks the follow-up needed to make sure the next-major \`main\` line keeps the same behavior.
+          Nothing is wrong with production. The fix is already on the stable line. This issue tracks the follow-up needed to make sure the next-major \`main\` line keeps the same behavior.
 
-## Why this needs a human
+          ## Why this needs a human
 
-\`main\` may contain a substantially different architecture. The right resolution may be a small rewrite rather than a mechanical copy of the stable diff.
+          \`main\` may contain a substantially different architecture. The right resolution may be a small rewrite rather than a mechanical copy of the stable diff.
 
-### Details
+          ### Details
 
-- Stable branch: \`${SOURCE_BRANCH}\`
-- Stable merge commit: \`${MERGE_SHA}\`
-- Intended destination: \`main\`
-- Files that need attention: ${CONFLICTS:-Git could not identify the conflicting files}
+          - Stable branch: \`${SOURCE_BRANCH}\`
+          - Stable merge commit: \`${MERGE_SHA}\`
+          - Intended destination: \`main\`
+          - Files that need attention: ${CONFLICTS:-Git could not identify the conflicting files}
 
-### Suggested next steps
+          ### Suggested next steps
 
-1. Start from the current \`main\` branch.
-2. Re-express the stable fix in the current main architecture; do not force old conflict markers into the branch.
-3. Add \`Changelog-Impact: inherited\` and \`Port of #${SOURCE_PR}\` to the PR body when the stable changelog entry is being carried forward.
-4. Run the normal checks and open a reviewed PR into \`main\`.
+          1. Start from the current \`main\` branch.
+          2. Re-express the stable fix in the current main architecture; do not force old conflict markers into the branch.
+          3. Add \`Changelog-Impact: inherited\` and \`Port of #${SOURCE_PR}\` to the PR body when the stable changelog entry is being carried forward.
+          4. Run the normal checks and open a reviewed PR into \`main\`.
 
-Close this issue after the reviewed port lands, or explain why the behavior is already present or no longer applies.
-EOF
-)
+          Close this issue after the reviewed port lands, or explain why the behavior is already present or no longer applies.
+          EOF
+          )
 
             gh label create "porting/conflicts" --repo "$REPOSITORY" --color "B60205" --description "A stable fix needs a human-owned forward-port" 2>/dev/null || true
             EXISTING_ISSUE=$(gh issue list \
