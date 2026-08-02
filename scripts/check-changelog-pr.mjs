@@ -6,10 +6,12 @@ const baseRef = process.env.GITHUB_BASE_REF ?? '';
 const headRef = process.env.GITHUB_HEAD_REF ?? '';
 const eventBody = process.env.PR_BODY ?? '';
 
+/** Fetch the current PR body so automated changelog edits are validated immediately. */
 const livePrBody = () => {
   const repository = process.env.GITHUB_REPOSITORY ?? '';
   const prNumber = Number(process.env.PR_NUMBER ?? 0);
-  if (!repository || !prNumber || !process.env.GH_TOKEN) return eventBody;
+  const canReadLiveBody = [repository, prNumber, process.env.GH_TOKEN].every(Boolean);
+  if (!canReadLiveBody) return eventBody;
   try {
     return execFileSync(
       'gh',

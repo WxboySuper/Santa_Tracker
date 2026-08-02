@@ -26,7 +26,7 @@ if (!isDependabot && !port) {
 }
 
 const stableLine = /^stable\/\d+\.\d+\.x$/.test(baseRef);
-let declaration;
+let declaration = null;
 let nextChangelog = null;
 
 if (isDependabot) {
