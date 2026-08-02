@@ -12,6 +12,20 @@ Your normal flow stays simple: **open a PR, review it, click merge**. Automation
 
 After merge, **Post-merge automation** runs on its own (no Actions button).
 
+## Stable fixes forward-port into main
+
+When a reviewed PR merges into a `stable/X.Y.x` branch, the
+`Forward-port Stable Fix` workflow prepares a normal draft PR from the stable
+merge into `main`. It applies the trusted merge commit's diff to the current
+`main` branch; it never checks out or executes code from the original PR head,
+and it never merges the port automatically.
+
+If the diff applies cleanly, review the generated `port/<pr>-to-main` PR like
+any other change. If the architectures have diverged, the workflow creates a
+`porting/conflicts` issue instead. Re-express the stable behavior manually on
+`main`, then include `Changelog-Impact: inherited` and `Port of #<stable-pr>`
+when the stable changelog entry is carried forward.
+
 ## Porting vs post-merge (do not double up)
 
 Two automations run on merged PRs; they are split on purpose:

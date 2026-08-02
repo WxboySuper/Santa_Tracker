@@ -21,6 +21,7 @@ jobs:
       github.event.pull_request.merged == true &&
       !startsWith(github.event.pull_request.head.ref, 'port/')
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     env:
       GH_TOKEN: ${{ github.token }}
       REPOSITORY: ${{ github.repository }}
@@ -47,6 +48,23 @@ jobs:
         run: |
           set -euo pipefail
           git fetch origin main "$SOURCE_BRANCH"
+
+          if git ls-remote --exit-code --heads origin "$PORT_BRANCH" >/dev/null 2>&1; then
+            EXISTING_PORT=$(gh pr list \
+              --repo "$REPOSITORY" \
+              --base main \
+              --head "$PORT_BRANCH" \
+              --state all \
+              --json number,url \
+              --jq '.[0] | if . then "#\(.number) \(.url)" else empty end')
+            if [ -n "$EXISTING_PORT" ]; then
+              echo "::notice::Forward-port branch $PORT_BRANCH already has $EXISTING_PORT; leaving it unchanged."
+              exit 0
+            fi
+            echo "::error::Port branch $PORT_BRANCH already exists without a matching PR; refusing to overwrite it." >&2
+            exit 1
+          fi
+
           git switch --create "$PORT_BRANCH" origin/main
 
           if [ -z "$MERGE_SHA" ] || [ "$MERGE_SHA" = "null" ]; then
@@ -103,6 +121,8 @@ jobs:
           EOF
           )
 
+            gh label create "port" --repo "$REPOSITORY" --color "1D76DB" --description "Automated or manual forward-port" 2>/dev/null || true
+            gh label create "porting" --repo "$REPOSITORY" --color "5319E7" --description "Porting workflow" 2>/dev/null || true
             gh label create "porting/conflicts" --repo "$REPOSITORY" --color "B60205" --description "A stable fix needs a human-owned forward-port" 2>/dev/null || true
             EXISTING_ISSUE=$(gh issue list \
               --repo "$REPOSITORY" \
@@ -127,7 +147,6 @@ jobs:
 
             gh pr comment "$SOURCE_PR" --body "The production fix is safe on \`${SOURCE_BRANCH}\`, but carrying it into \`main\` needs a human decision because the branches have diverged. I opened [a tracking issue](${ISSUE_URL}) with the conflicting files and next steps."
             gh pr edit "$SOURCE_PR" --add-label "porting/conflicts"
-            echo "conflict=true" >> "$GITHUB_OUTPUT"
             exit 0
           fi
 
@@ -142,7 +161,8 @@ jobs:
 
       - name: Report an empty port
         if: steps.port.outputs.empty == 'true'
-        run: gh pr comment "$SOURCE_PR" --body "No source diff needed to forward-port stable PR #$SOURCE_PR to \\`main\\`."
+        run: |
+          gh pr comment "$SOURCE_PR" --body "No source diff needed to forward-port stable PR #$SOURCE_PR to \\`main\\`."
 
       - name: Open draft forward-port PR
         if: steps.port.outputs.created == 'true'
@@ -172,4 +192,6 @@ jobs:
       - name: Label the new forward-port PR
         if: steps.port.outputs.created == 'true'
         run: |
+          gh label create "port" --repo "$REPOSITORY" --color "1D76DB" --description "Automated or manual forward-port" 2>/dev/null || true
+          gh label create "porting" --repo "$REPOSITORY" --color "5319E7" --description "Porting workflow" 2>/dev/null || true
           gh pr edit "$PORT_BRANCH" --add-label "port,porting"
