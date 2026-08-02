@@ -43,6 +43,34 @@ export const isReleasePromotionBranch = (headRef) => RELEASE_BRANCH_PATTERN.test
 /**
  * @param {string} version
  * @param {string} targetBranch
+ * @returns {VersionPolicyResult | null}
+ */
+const validateStableLineVersion = (version, targetBranch) => {
+  if (!STABLE_LINE_PATTERN.test(targetBranch)) {
+    return null;
+  }
+  if (hasBetaPrerelease(version) || !STABLE_VERSION_PATTERN.test(version)) {
+    return policyFail(
+      `Stable line "${targetBranch}" requires a stable semver package version, got "${version}".`,
+    );
+  }
+  return null;
+};
+
+/**
+ * @param {string} version
+ * @returns {VersionPolicyResult}
+ */
+const validateMainVersion = (version) => {
+  if (STABLE_VERSION_PATTERN.test(version) || hasBetaPrerelease(version)) {
+    return { ok: true };
+  }
+  return policyFail(`Main requires a stable semver or beta prerelease package version, got "${version}".`);
+};
+
+/**
+ * @param {string} version
+ * @param {string} targetBranch
  * @returns {VersionPolicyResult}
  */
 const validateBetaTargetVersion = (version, targetBranch) => {
@@ -68,23 +96,13 @@ export const evaluateVersionPolicy = ({ version, targetBranch }) => {
     return betaResult;
   }
 
-  if (STABLE_LINE_PATTERN.test(targetBranch)) {
-    if (hasBetaPrerelease(version) || !STABLE_VERSION_PATTERN.test(version)) {
-      return policyFail(
-        `Stable line "${targetBranch}" requires a stable semver package version, got "${version}".`,
-      );
-    }
-  }
+  const stableLineResult = validateStableLineVersion(version, targetBranch);
+  if (stableLineResult) return stableLineResult;
 
   if (targetBranch === 'main') {
-    // main is the next-major integration line. It may contain either the
-    // stable version prepared for promotion or a valid beta prerelease.
-    if (!STABLE_VERSION_PATTERN.test(version) && !hasBetaPrerelease(version)) {
-      return policyFail(
-        `Main requires a stable semver or beta prerelease package version, got "${version}".`,
-      );
-    }
-    return { ok: true };
+    // main is the next-major integration line. It may contain either a stable
+    // version during promotion or a beta prerelease between snapshots.
+    return validateMainVersion(version);
   }
 
   return { ok: true };
