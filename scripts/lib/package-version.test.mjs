@@ -36,8 +36,6 @@ describe('package-version policy', () => {
     const result = evaluateVersionPolicy({
       version: '1.6.0-beta.1',
       targetBranch: 'main',
-      headRef: 'beta',
-      eventName: 'pull_request',
     });
     assert.equal(result.ok, true);
   });
@@ -46,8 +44,6 @@ describe('package-version policy', () => {
     const result = evaluateVersionPolicy({
       version: '1.6.0-beta.1',
       targetBranch: 'main',
-      headRef: 'feature/foo',
-      eventName: 'pull_request',
     });
     assert.equal(result.ok, true);
   });
@@ -56,18 +52,22 @@ describe('package-version policy', () => {
     const result = evaluateVersionPolicy({
       version: '1.6.0',
       targetBranch: 'main',
-      headRef: 'release/v1.6.0',
-      eventName: 'pull_request',
     });
     assert.equal(result.ok, true);
+  });
+
+  it('rejects arbitrary versions on main', () => {
+    const result = evaluateVersionPolicy({
+      version: '1.6.0.0',
+      targetBranch: 'main',
+    });
+    assert.equal(result.ok, false);
   });
 
   it('requires stable versions on a stable release line', () => {
     const result = evaluateVersionPolicy({
       version: '1.7.0-beta.1',
       targetBranch: 'stable/1.6.x',
-      headRef: 'hotfix/urgent',
-      eventName: 'pull_request',
     });
     assert.equal(result.ok, false);
   });

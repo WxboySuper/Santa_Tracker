@@ -2,7 +2,7 @@
 /** @typedef {{ ok: false, message: string }} VersionPolicyFail */
 /** @typedef {VersionPolicyOk | VersionPolicyFail} VersionPolicyResult */
 
-const BETA_PRERELEASE_PATTERN = /-beta(\.|$)/i;
+const BETA_PRERELEASE_PATTERN = /^[0-9]+\.[0-9]+\.[0-9]+-beta\.[0-9]+$/i;
 const STABLE_VERSION_PATTERN = /^[0-9]+\.[0-9]+\.[0-9]+$/;
 const RELEASE_BRANCH_PATTERN = /^release\/v[0-9]+\.[0-9]+\.[0-9]+$/;
 const STABLE_LINE_PATTERN = /^stable\/[0-9]+\.[0-9]+\.x$/;
@@ -77,8 +77,13 @@ export const evaluateVersionPolicy = ({ version, targetBranch }) => {
   }
 
   if (targetBranch === 'main') {
-    // main is the next-major integration line. It may temporarily contain a
-    // stable version during cutover and beta prerelease versions afterward.
+    // main is the next-major integration line. It may contain either the
+    // stable version prepared for promotion or a valid beta prerelease.
+    if (!STABLE_VERSION_PATTERN.test(version) && !hasBetaPrerelease(version)) {
+      return policyFail(
+        `Main requires a stable semver or beta prerelease package version, got "${version}".`,
+      );
+    }
     return { ok: true };
   }
 

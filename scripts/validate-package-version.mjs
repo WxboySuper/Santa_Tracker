@@ -17,8 +17,6 @@ if (!targetBranch) {
 const result = evaluateVersionPolicy({
   version,
   targetBranch,
-  headRef,
-  eventName,
 });
 
 if (!result.ok) {
