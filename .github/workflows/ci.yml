@@ -5,6 +5,10 @@ on:
     branches: [main, beta]
   pull_request:
 
+concurrency:
+  group: changelog-governance-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: false
+
 permissions:
   contents: read
   pull-requests: read
@@ -12,6 +16,9 @@ permissions:
 jobs:
   pr-governance:
     if: github.event_name == 'pull_request'
+    permissions:
+      contents: write
+      pull-requests: write
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -25,6 +32,32 @@ jobs:
           GITHUB_BASE_REF: ${{ github.base_ref }}
           GITHUB_HEAD_REF: ${{ github.head_ref }}
         run: git fetch origin "$GITHUB_BASE_REF" "$GITHUB_HEAD_REF"
+
+      - name: Prepare automated changelog metadata
+        if: >-
+          (github.event.pull_request.user.login == 'dependabot[bot]' &&
+          github.event.pull_request.head.repo.full_name == github.repository &&
+          startsWith(github.head_ref, 'dependabot/')) ||
+          startsWith(github.head_ref, 'port/')
+        env:
+          GITHUB_BASE_REF: ${{ github.base_ref }}
+          GITHUB_HEAD_REF: ${{ github.head_ref }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_AUTHOR_LOGIN: ${{ github.event.pull_request.user.login }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+          GH_TOKEN: ${{ github.token }}
+        run: node scripts/prepare-changelog-governance.mjs
+
+      - name: Refresh PR head after automated preparation
+        if: >-
+          (github.event.pull_request.user.login == 'dependabot[bot]' &&
+          github.event.pull_request.head.repo.full_name == github.repository &&
+          startsWith(github.head_ref, 'dependabot/')) ||
+          startsWith(github.head_ref, 'port/')
+        env:
+          GITHUB_HEAD_REF: ${{ github.head_ref }}
+        run: git fetch origin "$GITHUB_HEAD_REF"
 
       - name: Branch policy
         env:
@@ -47,6 +80,8 @@ jobs:
           GITHUB_HEAD_REF: ${{ github.head_ref }}
           PR_BODY: ${{ github.event.pull_request.body }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GH_TOKEN: ${{ github.token }}
         run: node scripts/check-changelog-pr.mjs
 
       - name: Production release manifest (beta → main)
@@ -70,7 +105,7 @@ jobs:
           node-version: '24.x'
 
       - name: Validate release automation unit tests
-        run: node --test scripts/lib/package-version.test.mjs scripts/lib/bump-beta-after-main-release.test.mjs scripts/lib/deployment-config.test.mjs scripts/lib/branch-policy.test.mjs scripts/lib/port-pr-policy.test.mjs scripts/lib/port-targets.test.mjs scripts/lib/port-conflicts.test.mjs scripts/lib/version-bump.test.mjs scripts/lib/glob-match.test.mjs scripts/lib/pr-labels.test.mjs scripts/lib/pr-ci-label-state.test.mjs scripts/lib/github-paginate.test.mjs scripts/lib/changelog.test.mjs scripts/lib/beta-changelog.test.mjs scripts/lib/dependabot-changelog.test.mjs scripts/lib/production-release.test.mjs
+        run: node --test scripts/lib/package-version.test.mjs scripts/lib/bump-beta-after-main-release.test.mjs scripts/lib/deployment-config.test.mjs scripts/lib/branch-policy.test.mjs scripts/lib/changelog-policy.test.mjs scripts/lib/changelog-automation.test.mjs scripts/lib/port-pr-policy.test.mjs scripts/lib/port-targets.test.mjs scripts/lib/port-conflicts.test.mjs scripts/lib/version-bump.test.mjs scripts/lib/glob-match.test.mjs scripts/lib/pr-labels.test.mjs scripts/lib/pr-ci-label-state.test.mjs scripts/lib/github-paginate.test.mjs scripts/lib/changelog.test.mjs scripts/lib/beta-changelog.test.mjs scripts/lib/dependabot-changelog.test.mjs scripts/lib/production-release.test.mjs
 
       - name: Validate package version for target branch
         env:

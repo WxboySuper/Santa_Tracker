@@ -4,7 +4,7 @@
 
 const PORT_BRANCH_PATTERN = /^port\/\d+-to-/;
 const RELEASE_INFRA_BRANCH_PATTERN = /^feature\/release-/;
-const MAIN_DIRECT_FIX_BRANCHES = new Set(['fix/deployment-config', 'add-opencode-workflow']);
+const STABLE_BRANCH_PATTERN = /^stable\/\d+\.\d+\.x$/;
 
 /**
  * @param {string} headRef
@@ -43,16 +43,12 @@ const evaluateMainTarget = (headRef) => {
   if (RELEASE_INFRA_BRANCH_PATTERN.test(headRef)) {
     return { ok: true, kind: 'release-infrastructure' };
   }
-  if (MAIN_DIRECT_FIX_BRANCHES.has(headRef)) {
-    return { ok: true, kind: 'main-direct-fix' };
+  if (isPortBranch(headRef)) {
+    return { ok: true, kind: 'port' };
   }
-  if (isFeatureBranch(headRef)) {
-    return { ok: false, message: 'feature/* branches must merge into beta, not main.' };
-  }
-  return {
-    ok: false,
-    message: `Branch "${headRef}" cannot target main. Use beta (promotion), hotfix/*, or release/*.`,
-  };
+  // main is the next-major integration line. Source branch naming is not a
+  // merge gate; required checks and review determine whether a PR is ready.
+  return { ok: true, kind: 'main-integration' };
 };
 
 /**
@@ -87,6 +83,12 @@ const evaluateBetaTarget = (headRef) => {
 export const evaluateBranchPolicy = ({ baseRef, headRef }) => {
   if (baseRef === 'main') {
     return evaluateMainTarget(headRef);
+  }
+  if (STABLE_BRANCH_PATTERN.test(baseRef)) {
+    if (isPortBranch(headRef)) return { ok: true, kind: 'port' };
+    if (isHotfixBranch(headRef)) return { ok: true, kind: 'hotfix' };
+    if (headRef.startsWith('release/')) return { ok: true, kind: 'release' };
+    return { ok: true, kind: 'stable-maintenance' };
   }
   if (baseRef === 'beta') {
     return evaluateBetaTarget(headRef);
