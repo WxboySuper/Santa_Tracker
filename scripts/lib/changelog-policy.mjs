@@ -1,8 +1,63 @@
+import { CHANGELOG_LANE_HEADINGS } from './changelog-lanes.mjs';
+
 const IMPACT_PATTERN = /^Changelog-Impact:\s*(beta|hotfix|none|inherited)\s*$/gim;
 const REASON_PATTERN = /^Changelog-Reason:\s*(\S.*)$/im;
 const SOURCE_PATTERN = /(?:port|backport|forward[- ]port|inherited)\s+(?:of\s+)?#(\d+)/i;
 
 /** @typedef {'beta' | 'hotfix' | 'none' | 'inherited'} ChangelogImpact */
+
+export { CHANGELOG_LANE_HEADINGS };
+
+/** @param {string} baseRef */
+export const changelogLaneForBase = (baseRef) =>
+  /^stable\/\d+\.\d+\.x$/.test(baseRef) ? 'stable-hotfix' : 'next-major';
+
+/** @param {string} baseRef */
+export const changelogPathForBase = (baseRef) =>
+  baseRef === 'beta' ? 'CHANGELOG.beta.md' : 'CHANGELOG.md';
+
+/** @param {ChangelogImpact} impact */
+const laneHeadingForImpact = (impact) =>
+  impact === 'hotfix' ? CHANGELOG_LANE_HEADINGS['stable-hotfix'] : CHANGELOG_LANE_HEADINGS['next-major'];
+
+/** @param {string[]} changedFiles @param {string} path @returns {boolean} */
+const hasChangedChangelog = (changedFiles, path) => changedFiles.includes(path);
+
+/** @param {{ impact: ChangelogImpact }} declaration @param {string} changelog @param {string} path */
+const validateLane = (declaration, changelog, path) => {
+  if (!changelog || path === 'CHANGELOG.beta.md') return null;
+  const expectedLane = laneHeadingForImpact(declaration.impact);
+  if (changelog.includes(expectedLane)) return null;
+  return {
+    ok: false,
+    reason: `Changelog-Impact: ${declaration.impact} must update the ${expectedLane} lane in ${path}.`,
+  };
+};
+
+/** @param {{ declaration: object; changedFiles: string[]; changelog: string; path: string }} context */
+const validateImpactFile = ({ declaration, changedFiles, changelog, path }) => {
+  if (declaration.impact === 'none') {
+    return hasChangedChangelog(changedFiles, path)
+      ? { ok: false, reason: `Changelog-Impact: none cannot modify ${path}; choose beta or hotfix instead.` }
+      : { ok: true, reason: `Changelog impact explicitly waived: ${declaration.reason}` };
+  }
+
+  if (declaration.impact === 'inherited') {
+    return { ok: true, reason: `Changelog entry inherited from PR #${declaration.sourcePr}.` };
+  }
+
+  if (!hasChangedChangelog(changedFiles, path)) {
+    return {
+      ok: false,
+      reason: `Changelog-Impact: ${declaration.impact} requires ${path} to be modified in this PR.`,
+    };
+  }
+
+  return validateLane(declaration, changelog, path) ?? {
+    ok: true,
+    reason: `${path} documents ${declaration.impact} impact.`,
+  };
+};
 
 /** @param {string} reason */
 const declarationError = (reason) => ({ ok: false, reason });
@@ -50,33 +105,10 @@ export const parseChangelogDeclaration = (body = '') => {
 /**
  * @param {{ baseRef: string; changedFiles: string[]; body: string }} context
  */
-export const evaluateChangelogPolicy = ({ baseRef, changedFiles, body }) => {
+export const evaluateChangelogPolicy = ({ baseRef, changedFiles, body, changelog = '' }) => {
   const declaration = parseChangelogDeclaration(body);
   if (!declaration.ok) return declaration;
 
-  const changelogPath = baseRef === 'beta' ? 'CHANGELOG.beta.md' : 'CHANGELOG.md';
-  const changedChangelog = changedFiles.includes(changelogPath);
-
-  if (declaration.impact === 'none') {
-    if (changedChangelog) {
-      return {
-        ok: false,
-        reason: `Changelog-Impact: none cannot modify ${changelogPath}; choose beta or hotfix instead.`,
-      };
-    }
-    return { ok: true, reason: `Changelog impact explicitly waived: ${declaration.reason}` };
-  }
-
-  if (declaration.impact === 'inherited') {
-    return { ok: true, reason: `Changelog entry inherited from PR #${declaration.sourcePr}.` };
-  }
-
-  if (!changedChangelog) {
-    return {
-      ok: false,
-      reason: `Changelog-Impact: ${declaration.impact} requires ${changelogPath} to be modified in this PR.`,
-    };
-  }
-
-  return { ok: true, reason: `${changelogPath} documents ${declaration.impact} impact.` };
+  const changelogPath = changelogPathForBase(baseRef);
+  return validateImpactFile({ declaration, changedFiles, changelog, path: changelogPath });
 };

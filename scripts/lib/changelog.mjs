@@ -1,6 +1,8 @@
 import { deriveStableVersion, hasBetaPrerelease } from './package-version.mjs';
+import { extractLaneReleaseNotes } from './changelog-lanes.mjs';
 
-const BETA_RELEASE_LANES = new Set(['', 'next-major']);
+export { extractChangelogLane } from './changelog-lanes.mjs';
+
 
 /**
  * @param {string} changelog
@@ -49,27 +51,30 @@ export const extractChangelogSection = (changelog, stableVersion) => {
   return null;
 };
 
+/** @param {string} changelog @param {string} version @returns {string | null} */
+const legacyReleaseNotes = (changelog, version) => {
+  const stable = deriveStableVersion(version) ?? version;
+  const section = extractChangelogSection(changelog, stable);
+  if (section) return section;
+  if (!hasBetaPrerelease(version)) return null;
+  const unreleased = extractUnreleasedSection(changelog);
+  if (!unreleased) return null;
+  const body = unreleased.replace(/^## \[Unreleased\]\s*\n*/i, '').trim();
+  return `## v${version}\n\n${body}`.trim();
+};
+
 /**
  * Notes body for a GitHub Release tag (stable or beta prerelease).
  * @param {string} changelog
  * @param {string} version e.g. 1.6.0 or 1.6.0-beta.2
- * @param {'' | 'next-major' | 'stable-hotfix'} lane
+ * @param {string} [lane] next-major or stable-hotfix
  * @returns {string | null}
  */
 export const extractReleaseNotes = (changelog, version, lane = '') => {
-  const stable = deriveStableVersion(version) ?? version;
-  const section = extractChangelogSection(changelog, stable);
-  if (section) return section;
-
-  if (hasBetaPrerelease(version) && BETA_RELEASE_LANES.has(lane)) {
-    const unreleased = extractUnreleasedSection(changelog);
-    if (unreleased) {
-      const body = unreleased.replace(/^## \[Unreleased\]\s*\n*/i, '').trim();
-      return `## v${version}\n\n${body}`.trim();
-    }
-  }
-
-  return null;
+  const laneNotes = lane === 'next-major' || lane === 'stable-hotfix'
+    ? extractLaneReleaseNotes(changelog, version, lane)
+    : null;
+  return laneNotes ?? legacyReleaseNotes(changelog, version);
 };
 
 /**

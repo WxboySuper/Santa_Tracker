@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   extractChangelogSection,
+  extractChangelogLane,
   extractReleaseNotes,
   extractUnreleasedSection,
 } from './changelog.mjs';
@@ -50,4 +51,23 @@ test('extractReleaseNotes falls back to Unreleased for beta without line section
   const notes = extractReleaseNotes(changelog, '2.0.0-beta.1');
   assert.match(notes ?? '', /v2\.0\.0-beta\.1/);
   assert.match(notes ?? '', /WIP only/);
+});
+
+test('extracts the next-major lane for beta releases', () => {
+  const notes = extractReleaseNotes(
+    '# Changelog\n\n### Next major / beta\n\n#### Added\n- New map\n\n### Stable 1.6.x hotfixes\n\n#### Fixed\n- Production fix\n',
+    '2.0.0-beta.1',
+    'next-major',
+  );
+  assert.match(notes ?? '', /New map/);
+  assert.doesNotMatch(notes ?? '', /Production fix/);
+});
+
+test('extracts the stable hotfix lane for production releases', () => {
+  const lane = extractChangelogLane(
+    '# Changelog\n\n### Next major / beta\n\n#### Added\n- New map\n\n### Stable 1.6.x hotfixes\n\n#### Fixed\n- Production fix\n',
+    'stable-hotfix',
+  );
+  assert.match(lane ?? '', /Production fix/);
+  assert.doesNotMatch(lane ?? '', /New map/);
 });
