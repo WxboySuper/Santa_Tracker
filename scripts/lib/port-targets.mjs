@@ -1,12 +1,9 @@
-import { postMergeOwnsMainToBetaSync } from './port-pr-policy.mjs';
+import { PORTING_MANUAL_LABEL } from './porting-constants.mjs';
 
-export const PORTING_MANUAL_LABEL = 'porting/manual';
+export { PORTING_MANUAL_LABEL } from './porting-constants.mjs';
 
-/**
- * @param {string | undefined} json
- * @returns {Array<{ number: number; headRefName: string; title?: string; body?: string; url?: string }>}
- */
-export const parseOpenBetaPrsJson = (json) => {
+/** @param {string | undefined} json */
+export const parseOpenPortPrsJson = (json) => {
   if (!json) return [];
   try {
     const parsed = JSON.parse(json);
@@ -16,89 +13,34 @@ export const parseOpenBetaPrsJson = (json) => {
   }
 };
 
-/**
- * @param {string} baseBranch
- * @param {string} sourceBranch
- * @returns {string[]}
- */
-export const resolvePortTargets = ({ baseBranch, sourceBranch }) => {
-  if (baseBranch !== 'main') {
-    return [];
-  }
-
-  if (postMergeOwnsMainToBetaSync(sourceBranch)) {
-    return [];
-  }
-
-  return ['beta'];
-};
+/** @deprecated Use parseOpenPortPrsJson. */
+export const parseOpenBetaPrsJson = parseOpenPortPrsJson;
 
 /**
- * @param {string} text
- * @param {number} sourcePrNumber
+ * Stable merges are the only merges that need a forward-port target. Main
+ * merges intentionally have no reverse target because main contains work that
+ * is not approved for the current production line.
  */
-const referencesSourcePr = (text, sourcePrNumber) => {
-  if (!text) return false;
-  const patterns = [
-    new RegExp(`\\bports?\\s+(?:PR\\s*)?#${sourcePrNumber}(?!\\d)`, 'i'),
-    new RegExp(`\\bcherry.picks?\\s+#?${sourcePrNumber}(?!\\d)`, 'i'),
-    new RegExp(`\\bport\\s+of\\s+#?${sourcePrNumber}(?!\\d)`, 'i'),
-  ];
-  return patterns.some((pattern) => pattern.test(text));
-};
+export const resolvePortTargets = ({ baseBranch }) =>
+  /^stable\/\d+\.\d+\.x$/.test(baseBranch) ? ['main'] : [];
 
-/**
- * @param {{
- *   headRefName: string;
- *   title?: string;
- *   body?: string;
- * }} pr
- * @param {number} sourcePrNumber
- * @param {string} sourceBranch
- */
-export const isManualBetaPortPr = (pr, sourcePrNumber, sourceBranch) => {
-  if (pr.headRefName.startsWith('port/')) {
-    return false;
-  }
+/** @param {string} text @param {number} sourcePrNumber @returns {boolean} */
+const referencesSourcePr = (text, sourcePrNumber) =>
+  new RegExp(`\\b(?:port|backport|forward[- ]port)\\s+(?:of\\s+)?(?:PR\\s*)?#${sourcePrNumber}(?!\\d)`, 'i').test(text ?? '');
 
-  return (
-    pr.headRefName === sourceBranch ||
-    referencesSourcePr(pr.title ?? '', sourcePrNumber) ||
-    referencesSourcePr(pr.body ?? '', sourcePrNumber)
-  );
-};
+/** @param {{ headRefName: string; title?: string; body?: string }} pr @param {number} sourcePrNumber */
+export const isManualForwardPortPr = (pr, sourcePrNumber) =>
+  !pr.headRefName.startsWith('port/') &&
+  (referencesSourcePr(pr.title ?? '', sourcePrNumber) || referencesSourcePr(pr.body ?? '', sourcePrNumber));
 
-/**
- * @param {{
- *   labels?: string[];
- *   openBetaPrs?: Array<{ number: number; headRefName: string; title?: string; body?: string; url?: string }>;
- *   sourcePrNumber: number;
- *   sourceBranch: string;
- * }} context
- * @returns {{ skip: boolean; reason?: string; manualPr?: { number: number; url?: string; headRefName: string } }}
- */
-export const shouldSkipPorting = ({
-  labels = [],
-  openBetaPrs = [],
-  sourcePrNumber,
-  sourceBranch,
-}) => {
+/** @param {{ labels?: string[]; openPortPrs?: Array<{ number: number; headRefName: string; title?: string; body?: string; url?: string }>; sourcePrNumber: number }} context */
+export const shouldSkipPorting = ({ labels = [], openPortPrs = [], sourcePrNumber }) => {
   if (labels.includes(PORTING_MANUAL_LABEL)) {
-    return {
-      skip: true,
-      reason: `Source PR has \`${PORTING_MANUAL_LABEL}\` label; automated porting skipped.`,
-    };
+    return { skip: true, reason: `Source PR has \`${PORTING_MANUAL_LABEL}\` label; automated porting skipped.` };
   }
-
-  for (const pr of openBetaPrs) {
-    if (isManualBetaPortPr(pr, sourcePrNumber, sourceBranch)) {
-      return {
-        skip: true,
-        reason: `Open manual port PR #${pr.number} (${pr.headRefName} → beta) already exists.`,
-        manualPr: pr,
-      };
-    }
+  const manualPr = openPortPrs.find((pr) => isManualForwardPortPr(pr, sourcePrNumber));
+  if (manualPr) {
+    return { skip: true, reason: `Open manual forward-port PR #${manualPr.number} already exists.`, manualPr };
   }
-
   return { skip: false };
 };

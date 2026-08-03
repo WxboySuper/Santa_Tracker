@@ -1,7 +1,7 @@
-import { classifyBetaPortConflicts } from './lib/port-conflicts.mjs';
+import { classifyForwardPortConflicts } from './lib/port-conflicts.mjs';
 
 const conflictPaths = process.argv.slice(2).filter(Boolean);
-const { autoResolvable, needsHuman } = classifyBetaPortConflicts(conflictPaths);
+const { autoResolvable, needsHuman } = classifyForwardPortConflicts(conflictPaths);
 
 process.stdout.write(
   JSON.stringify({

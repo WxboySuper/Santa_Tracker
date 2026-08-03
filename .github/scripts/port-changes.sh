@@ -1,9 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Ports merged PR commits to beta only (main merges not owned by post-merge-automation).
-# Skips when porting/manual is set or an open manual beta port PR exists.
-# Auto-resolves version-policy file conflicts on beta ports before opening draft PRs.
+# Legacy helper for the stable-line → main forward-port path.
+# Main is never copied back to stable because it can contain unreleased work.
 
 echo "Merged ${SOURCE_BRANCH} into ${BASE_BRANCH}. Evaluating port targets..."
 
@@ -21,10 +20,10 @@ WORK_DIR="${RUNNER_TEMP:-/tmp}/gfc-port-${GITHUB_RUN_ID:-$$}"
 mkdir -p "${WORK_DIR}"
 
 PR_LABELS="$(gh pr view "${PR_NUMBER}" --repo "${REPO}" --json labels -q '.labels[].name' 2>/dev/null | paste -sd, - || true)"
-OPEN_BETA_PRS_JSON="$(gh pr list --repo "${REPO}" --base beta --state open \
+OPEN_PORT_PRS_JSON="$(gh pr list --repo "${REPO}" --base main --state open \
   --json number,headRefName,title,body,url 2>/dev/null || echo '[]')"
 
-export BASE_BRANCH SOURCE_BRANCH PR_NUMBER PR_LABELS OPEN_BETA_PRS_JSON
+export BASE_BRANCH SOURCE_BRANCH PR_NUMBER PR_LABELS OPEN_PORT_PRS_JSON
 PORT_DECISION="$(node scripts/porting-decision.mjs)"
 SKIP_PORTING="$(echo "${PORT_DECISION}" | jq -r '.skip')"
 SKIP_REASON="$(echo "${PORT_DECISION}" | jq -r '.skipReason // empty')"
@@ -54,8 +53,8 @@ fi
 
 if [[ ${#TARGETS[@]} -eq 0 ]]; then
   if [[ "${BASE_BRANCH}" == "main" ]]; then
-    echo "No port targets for ${SOURCE_BRANCH} → main (post-merge-automation may own beta sync)."
-    append_summary "_No automated port targets. Beta sync may be handled by **Post-merge automation**._"
+    echo "No forward-port targets for ${SOURCE_BRANCH} → main."
+    append_summary "_No automated forward-port target for this merge._"
   else
     echo "No port targets for merge into ${BASE_BRANCH}."
     append_summary "_No automated port targets for this merge._"
@@ -110,7 +109,7 @@ has_unmerged_conflicts() {
   [[ -n "$(git diff --name-only --diff-filter=U)" ]]
 }
 
-try_auto_resolve_beta_conflicts() {
+try_auto_resolve_forward_port_conflicts() {
   mapfile -t conflict_paths < <(git diff --name-only --diff-filter=U)
   if [[ ${#conflict_paths[@]} -eq 0 ]]; then
     return 1
@@ -294,13 +293,6 @@ handle_port_conflicts() {
   local target="$1"
   local port_branch="$2"
   local port_method="$3"
-
-  if try_auto_resolve_beta_conflicts; then
-    echo "Auto-resolved version-policy conflicts for ${target}."
-    PORTED=true
-    PORT_METHOD="${port_method} (auto-resolved policy files)"
-    return 0
-  fi
 
   echo "Unresolved conflicts remain for ${target}; publishing draft port PR."
   commit_conflict_wip "${target}" "${port_branch}" "${port_method}" || true

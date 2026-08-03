@@ -1,0 +1,6 @@
+{
+  "serverEnv": {
+    "TSTM_GENERATION_ENABLED": "false",
+    "TSTM_INGESTION_ENABLED": "false"
+  }
+}

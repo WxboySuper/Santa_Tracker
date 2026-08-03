@@ -1,4 +1,4 @@
-import { parseOpenBetaPrsJson, resolvePortTargets, shouldSkipPorting } from './lib/port-targets.mjs';
+import { parseOpenPortPrsJson, resolvePortTargets, shouldSkipPorting } from './lib/port-targets.mjs';
 
 const baseBranch = process.env.BASE_BRANCH ?? '';
 const sourceBranch = process.env.SOURCE_BRANCH ?? '';
@@ -8,11 +8,11 @@ const labels = (process.env.PR_LABELS ?? '')
   .map((label) => label.trim())
   .filter(Boolean);
 
-const openBetaPrs = parseOpenBetaPrsJson(process.env.OPEN_BETA_PRS_JSON);
+const openPortPrs = parseOpenPortPrsJson(process.env.OPEN_PORT_PRS_JSON);
 
 const skip = shouldSkipPorting({
   labels,
-  openBetaPrs,
+  openPortPrs,
   sourcePrNumber,
   sourceBranch,
 });

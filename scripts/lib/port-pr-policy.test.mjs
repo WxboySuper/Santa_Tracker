@@ -2,17 +2,15 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import {
   evaluatePortPrPolicy,
-  isRedundantBetaPortPr,
   parsePortBranch,
-  postMergeOwnsMainToBetaSync,
   targetBranchFromSlug,
 } from './port-pr-policy.mjs';
 
 describe('port PR policy', () => {
   it('parses port branch names', () => {
-    assert.deepEqual(parsePortBranch('port/346-to-beta'), {
+    assert.deepEqual(parsePortBranch('port/346-to-main'), {
       sourcePrNumber: 346,
-      targetSlug: 'beta',
+      targetSlug: 'main',
     });
     assert.deepEqual(parsePortBranch('port/346-to-feature-dependabot-changelog-skip'), {
       sourcePrNumber: 346,
@@ -28,55 +26,27 @@ describe('port PR policy', () => {
     );
   });
 
-  it('knows which main merges post-merge syncs to beta', () => {
-    assert.equal(postMergeOwnsMainToBetaSync('beta'), true);
-    assert.equal(postMergeOwnsMainToBetaSync('release/v1.0.0'), true);
-    assert.equal(postMergeOwnsMainToBetaSync('feature/release-post-merge-github-release'), true);
-    assert.equal(postMergeOwnsMainToBetaSync('hotfix/urgent'), false);
-  });
-
-  it('detects redundant beta port PRs', () => {
-    assert.equal(
-      isRedundantBetaPortPr({
-        targetBranch: 'beta',
-        baseRef: 'beta',
-        sourcePrBaseRef: 'main',
-        sourcePrHeadRef: 'feature/release-post-merge-github-release',
-      }),
-      true,
-    );
-    assert.equal(
-      isRedundantBetaPortPr({
-        targetBranch: 'beta',
-        baseRef: 'beta',
-        sourcePrBaseRef: 'main',
-        sourcePrHeadRef: 'hotfix/patch',
-      }),
-      false,
-    );
-  });
-
-  it('blocks redundant port PR into beta after release infrastructure merge', () => {
+  it('allows a stable forward-port into main', () => {
     const result = evaluatePortPrPolicy({
-      headRef: 'port/346-to-beta',
-      baseRef: 'beta',
-      targetBranch: 'beta',
-      sourcePrHeadRef: 'feature/release-post-merge-github-release',
-      sourcePrBaseRef: 'main',
+      headRef: 'port/346-to-main',
+      baseRef: 'main',
+      targetBranch: 'main',
+      sourcePrHeadRef: 'hotfix/patch',
+      sourcePrBaseRef: 'stable/1.6.x',
       sourcePrNumber: 346,
     });
-    assert.equal(result.ok, false);
+    assert.equal(result.ok, true);
   });
 
-  it('allows hotfix ports into beta', () => {
+  it('rejects a port from the next-major line', () => {
     const result = evaluatePortPrPolicy({
-      headRef: 'port/99-to-beta',
-      baseRef: 'beta',
-      targetBranch: 'beta',
+      headRef: 'port/99-to-main',
+      baseRef: 'main',
+      targetBranch: 'main',
       sourcePrHeadRef: 'hotfix/patch',
       sourcePrBaseRef: 'main',
       sourcePrNumber: 99,
     });
-    assert.equal(result.ok, true);
+    assert.equal(result.ok, false);
   });
 });

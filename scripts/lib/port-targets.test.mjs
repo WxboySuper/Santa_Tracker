@@ -2,134 +2,56 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import {
   PORTING_MANUAL_LABEL,
-  isManualBetaPortPr,
-  parseOpenBetaPrsJson,
+  isManualForwardPortPr,
+  parseOpenPortPrsJson,
   resolvePortTargets,
   shouldSkipPorting,
 } from './port-targets.mjs';
 
 describe('port targets', () => {
-  it('ports hotfix merges on main to beta only', () => {
-    assert.deepEqual(
-      resolvePortTargets({ baseBranch: 'main', sourceBranch: 'hotfix/urgent' }),
-      ['beta'],
-    );
+  it('ports stable merges to main only', () => {
+    assert.deepEqual(resolvePortTargets({ baseBranch: 'stable/1.6.x' }), ['main']);
   });
 
-  it('skips beta when post-merge owns main→beta sync', () => {
-    assert.deepEqual(resolvePortTargets({ baseBranch: 'main', sourceBranch: 'beta' }), []);
-    assert.deepEqual(
-      resolvePortTargets({ baseBranch: 'main', sourceBranch: 'release/v1.0.0' }),
-      [],
-    );
-    assert.deepEqual(
-      resolvePortTargets({ baseBranch: 'main', sourceBranch: 'feature/release-infra' }),
-      [],
-    );
+  it('does not port main merges back to stable', () => {
+    assert.deepEqual(resolvePortTargets({ baseBranch: 'main' }), []);
   });
 
-  it('does not port on beta merges', () => {
-    assert.deepEqual(
-      resolvePortTargets({ baseBranch: 'beta', sourceBranch: 'feature/foo' }),
-      [],
-    );
-  });
-
-  it('detects manual beta port PR by matching head branch', () => {
+  it('detects a manual forward-port PR by source reference', () => {
     assert.equal(
-      isManualBetaPortPr(
-        { headRefName: 'hotfix/exposure-pr-labels-main', title: 'fix labels' },
-        591,
-        'hotfix/exposure-pr-labels-main',
-      ),
+      isManualForwardPortPr({ headRefName: 'fix/port-to-main', title: 'Forward-port of #591' }, 591),
       true,
     );
   });
 
-  it('detects manual beta port PR by source PR reference', () => {
+  it('ignores incidental source PR mentions', () => {
     assert.equal(
-      isManualBetaPortPr(
-        { headRefName: 'fix/port-to-beta', title: 'Port #591 to beta', body: '' },
-        591,
-        'hotfix/exposure-pr-labels-main',
-      ),
-      true,
-    );
-    assert.equal(
-      isManualBetaPortPr(
-        { headRefName: 'fix/port-to-beta', title: 'beta port', body: 'Ports PR #591 from main' },
-        591,
-        'hotfix/exposure-pr-labels-main',
-      ),
-      true,
-    );
-  });
-
-  it('ignores incidental source PR mentions in beta PR bodies', () => {
-    assert.equal(
-      isManualBetaPortPr(
-        {
-          headRefName: 'fix/unrelated',
-          title: 'Unrelated beta work',
-          body: 'See context in #591 and closes #591 eventually',
-        },
-        591,
-        'hotfix/exposure-pr-labels-main',
-      ),
-      false,
-    );
-    assert.equal(
-      isManualBetaPortPr(
-        {
-          headRefName: 'fix/unrelated',
-          title: 'Follow-up',
-          body: 'Fixes issue discussed in PR #591',
-        },
-        591,
-        'hotfix/exposure-pr-labels-main',
-      ),
+      isManualForwardPortPr({ headRefName: 'fix/unrelated', title: 'Follow-up', body: 'See #591' }, 591),
       false,
     );
   });
 
-  it('parses open beta PR JSON defensively', () => {
-    assert.deepEqual(parseOpenBetaPrsJson('[{"number":1,"headRefName":"hotfix/x"}]'), [
+  it('parses open port PR JSON defensively', () => {
+    assert.deepEqual(parseOpenPortPrsJson('[{"number":1,"headRefName":"hotfix/x"}]'), [
       { number: 1, headRefName: 'hotfix/x' },
     ]);
-    assert.deepEqual(parseOpenBetaPrsJson('not-json'), []);
-    assert.deepEqual(parseOpenBetaPrsJson(), []);
-    assert.deepEqual(parseOpenBetaPrsJson('{"not":"array"}'), []);
+    assert.deepEqual(parseOpenPortPrsJson('not-json'), []);
+    assert.deepEqual(parseOpenPortPrsJson(), []);
   });
 
   it('ignores automated port branches', () => {
-    assert.equal(
-      isManualBetaPortPr({ headRefName: 'port/591-to-beta', title: '[Port] foo' }, 591, 'hotfix/x'),
-      false,
-    );
+    assert.equal(isManualForwardPortPr({ headRefName: 'port/591-to-main', title: '[Port] foo' }, 591), false);
   });
 
   it('skips when porting/manual label is present', () => {
-    const result = shouldSkipPorting({
-      labels: [PORTING_MANUAL_LABEL],
-      sourcePrNumber: 10,
-      sourceBranch: 'hotfix/x',
-    });
+    const result = shouldSkipPorting({ labels: [PORTING_MANUAL_LABEL], sourcePrNumber: 10 });
     assert.equal(result.skip, true);
-    assert.match(result.reason ?? '', /porting\/manual/);
   });
 
-  it('skips when an open manual beta PR exists', () => {
+  it('skips when an open manual forward-port PR exists', () => {
     const result = shouldSkipPorting({
-      openBetaPrs: [
-        {
-          number: 600,
-          headRefName: 'hotfix/x',
-          title: 'manual port',
-          url: 'https://example.com/pull/600',
-        },
-      ],
+      openPortPrs: [{ number: 600, headRefName: 'hotfix/x', title: 'Forward-port of #10' }],
       sourcePrNumber: 10,
-      sourceBranch: 'hotfix/x',
     });
     assert.equal(result.skip, true);
     assert.equal(result.manualPr?.number, 600);

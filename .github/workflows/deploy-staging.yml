@@ -1,0 +1,151 @@
+name: Deploy Staging
+
+# Staging is an explicit rehearsal surface for both next-major main changes
+# and stable-line hotfixes. It never runs on push, merge, or release events.
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: 'Branch, tag, or commit to test on staging'
+        required: true
+        default: main
+        type: string
+      confirmation:
+        description: 'Type DEPLOY-STAGING to deploy the selected ref'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-staging
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: inputs.confirmation == 'DEPLOY-STAGING'
+    runs-on: ubuntu-latest
+    env:
+      RSYNC_RSH: ssh -o StrictHostKeyChecking=yes
+      DEPLOY_REF: ${{ inputs.ref }}
+      STAGING_HOST: ${{ secrets.PROD_SSH_HOST }}
+    steps:
+      - name: Reject an empty ref
+        run: test -n "$DEPLOY_REF"
+
+      - name: Checkout selected ref
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          ref: ${{ inputs.ref }}
+          fetch-depth: 0
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24.x'
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Read app version
+        id: app_version
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          RELEASE_DIR=$(node -e "console.log(process.argv[1].replace(/[^0-9A-Za-z.-]+/g, '_'))" "$VERSION")
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "release_dir=$RELEASE_DIR" >> "$GITHUB_OUTPUT"
+
+      - name: Build staging frontend
+        run: pnpm run build
+        env:
+          PUBLIC_URL: https://staging-gfc.weatherboysuper.com
+          VITE_BUILD_TARGET: staging
+          VITE_FIREBASE_API_KEY: ${{ secrets.VITE_FIREBASE_API_KEY }}
+          VITE_FIREBASE_AUTH_DOMAIN: ${{ secrets.VITE_FIREBASE_AUTH_DOMAIN }}
+          VITE_FIREBASE_PROJECT_ID: ${{ secrets.VITE_FIREBASE_PROJECT_ID }}
+          VITE_FIREBASE_APP_ID: ${{ secrets.VITE_FIREBASE_APP_ID }}
+          VITE_BETA_MODE: false
+          VITE_BETA_INVITE_PATH: ''
+          VITE_SENTRY_DSN: ${{ secrets.VITE_SENTRY_DSN }}
+          VITE_SENTRY_ENVIRONMENT: staging
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
+          SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
+          CI: false
+
+      - name: Setup SSH agent
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.PROD_SSH_KEY }}
+
+      - name: Trust VPS host key
+        env:
+          SSH_KNOWN_HOSTS: ${{ secrets.PROD_SSH_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          if [ -z "$SSH_KNOWN_HOSTS" ]; then
+            echo '::error::PROD_SSH_KNOWN_HOSTS is required for staging deployments.'
+            exit 1
+          fi
+          printf '%s\n' "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+
+      - name: Write staging analytics environment
+        run: |
+          cat > staging-server.env <<EOF
+          PORT=3008
+          LOG_DIR=/opt/gfc-staging-analytics/logs
+          APP_BASE_URL=https://staging-gfc.weatherboysuper.com
+          SERVER_TARGET=staging
+          BETA_MODE=false
+          BETA_INVITE_TOKEN=
+          BETA_INVITE_PATH=
+          ADMIN_UID_ALLOWLIST=${{ secrets.ADMIN_UID_ALLOWLIST }}
+          METRICS_HASH_SALT=${{ secrets.METRICS_HASH_SALT }}
+          STRIPE_SECRET_KEY=${{ secrets.STRIPE_SECRET_KEY }}
+          STRIPE_WEBHOOK_SECRET=${{ secrets.PROD_STRIPE_WEBHOOK_SECRET }}
+          STRIPE_PRICE_MONTHLY=${{ secrets.STRIPE_PRICE_MONTHLY }}
+          STRIPE_PRICE_ANNUAL_STANDARD=${{ secrets.STRIPE_PRICE_ANNUAL_STANDARD }}
+          FIREBASE_ADMIN_PROJECT_ID=${{ secrets.FIREBASE_ADMIN_PROJECT_ID }}
+          FIREBASE_ADMIN_CLIENT_EMAIL=${{ secrets.FIREBASE_ADMIN_CLIENT_EMAIL }}
+          FIREBASE_ADMIN_PRIVATE_KEY=${{ secrets.FIREBASE_ADMIN_PRIVATE_KEY }}
+          SENTRY_DSN=${{ secrets.SENTRY_DSN }}
+          SENTRY_BROWSER_DSN=${{ secrets.VITE_SENTRY_DSN }}
+          SENTRY_ENVIRONMENT=staging
+          SENTRY_RELEASE=graphical-forecast-creator@${{ steps.app_version.outputs.version }}
+          EOF
+          node scripts/write-deployment-env.mjs deploy/staging-deployment-config.json >> staging-server.env
+
+      - name: Deploy staging release
+        env:
+          RELEASE_DIR: ${{ steps.app_version.outputs.release_dir }}
+        run: |
+          set -euo pipefail
+          HOST="root@${STAGING_HOST}"
+          ssh "$HOST" "mkdir -p /var/www/gfc-staging/releases /opt/gfc-staging-analytics/releases /opt/gfc-staging-analytics/config /opt/gfc-staging-analytics/logs"
+          rsync -avz --delete build/ "$HOST:/var/www/gfc-staging/releases/$RELEASE_DIR/"
+          rsync -avz --exclude='node_modules' --exclude='logs' server/ "$HOST:/opt/gfc-staging-analytics/releases/$RELEASE_DIR/"
+          rsync -avz staging-server.env "$HOST:/opt/gfc-staging-analytics/config/.env"
+          ssh "$HOST" "RELEASE_DIR='$RELEASE_DIR' bash -s" <<'REMOTE'
+          set -euo pipefail
+          ROOT=/opt/gfc-staging-analytics
+          ln -sfn "/var/www/gfc-staging/releases/$RELEASE_DIR" /var/www/gfc-staging/current
+          ln -sfn "$ROOT/releases/$RELEASE_DIR" "$ROOT/current"
+          cd "$ROOT/current"
+          npm install --omit=dev --quiet
+          cp "$ROOT/config/.env" "$ROOT/current/.env"
+          if pm2 describe gfc-staging-analytics > /dev/null 2>&1; then
+            pm2 restart gfc-staging-analytics --update-env
+          else
+            pm2 start "$ROOT/current/analytics.js" --name gfc-staging-analytics
+          fi
+          pm2 save
+          REMOTE
