@@ -61,7 +61,12 @@ const extractLaneBody = (changelog, heading) => {
  * }} context
  */
 const validateLane = ({ declaration, changelog, path, baseRef, baseChangelog }) => {
-  if (!changelog) return null;
+  if (!changelog) {
+    return {
+      ok: false,
+      reason: `${path} could not be read for changelog impact validation.`,
+    };
+  }
   const expectedLane = declaration.impact === 'hotfix' && /^stable\//.test(baseRef)
     ? changelogLaneHeadingForBase(baseRef)
     : laneHeadingForImpact(declaration.impact);
