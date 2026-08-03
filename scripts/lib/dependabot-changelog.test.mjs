@@ -53,18 +53,6 @@ describe('dependabot changelog', () => {
     assert.match(deps ?? '', /- \*\*axios:\*\* \^1\.7\.0 → \^1\.7\.9 \(`server`\)/);
   });
 
-  it('does not treat another package line as documenting a different bump', () => {
-    const changelog = applyDependencyBumpsToChangelog(sampleChangelog, [
-      { name: 'postcss', from: '8.5.14', to: '8.5.15', directory: 'root' },
-    ]);
-    const undocumented = {
-      name: 'express-rate-limit',
-      from: '^8.5.1',
-      to: '^8.5.2',
-      directory: 'server',
-    };
-  });
-
   it('formats bullets with optional directory scope', () => {
     assert.equal(
       formatDependencyChangelogBullet({
