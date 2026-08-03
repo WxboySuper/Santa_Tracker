@@ -8,10 +8,12 @@ const OUTPUT = path.join(ROOT, 'docs', 'personal', 'site');
 const SKIP = new Set(['node_modules', '.git', 'build', 'coverage', 'site']);
 const ROOT_MARKDOWN = ['README.md', 'ROADMAP.md', 'CHANGELOG.md'];
 
+/** Escape text before placing it in generated HTML. */
 function escapeHtml(value) {
   return value.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;');
 }
 
+/** Render inline Markdown emphasis, code, images, and links. */
 function inlineMarkdown(value) {
   let html = escapeHtml(value);
   html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
@@ -22,9 +24,13 @@ function inlineMarkdown(value) {
   return html;
 }
 
+/** Identify a Markdown table row. */
 function isTableRow(line) { return line.trim().startsWith('|') && line.trim().endsWith('|'); }
+
+/** Identify a Markdown table separator row. */
 function isTableDivider(line) { return isTableRow(line) && /^\|(?:\s*:?-+:?\s*\|)+$/.test(line.trim()); }
 
+/** Render a Markdown table block. */
 function renderTable(lines) {
   const rows = lines.filter((line) => !isTableDivider(line)).map((line) => line.trim().slice(1, -1).split('|').map((cell) => cell.trim()));
   if (!rows.length) return '';
@@ -32,45 +38,59 @@ function renderTable(lines) {
   return `<table><thead><tr>${header.map((cell) => `<th>${inlineMarkdown(cell)}</th>`).join('')}</tr></thead><tbody>${body.map((row) => `<tr>${row.map((cell) => `<td>${inlineMarkdown(cell)}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
 }
 
-/** Render the Markdown subset used by repository documentation. */
-export function renderMarkdown(markdown) {
-  const lines = markdown.replaceAll('\r\n', '\n').split('\n');
-  const html = [];
-  let paragraph = [];
-  let list = null;
-  let fence = null;
-  let fenceLines = [];
-  const flushParagraph = () => { if (paragraph.length) { html.push(`<p>${paragraph.map(inlineMarkdown).join(' ')}</p>`); paragraph = []; } };
-  const flushList = () => { if (list) { html.push(`<${list.type}>${list.items.join('')}</${list.type}>`); list = null; } };
-  const flushFence = () => { if (fence) { const content = escapeHtml(fenceLines.join('\n')); html.push(fence === 'mermaid' ? `<pre class="mermaid">${content}</pre>` : `<pre><code class="language-${escapeHtml(fence)}">${content}</code></pre>`); fence = null; fenceLines = []; } };
-  for (let index = 0; index < lines.length; index += 1) {
-    const line = lines[index];
-    const fenceStart = line.match(/^```(.*)$/);
-    if (fenceStart) { if (fence) flushFence(); else { flushParagraph(); flushList(); fence = fenceStart[1].trim() || 'text'; } continue; }
-    if (fence) { fenceLines.push(line); continue; }
-    if (isTableRow(line) && index + 1 < lines.length && isTableDivider(lines[index + 1])) {
-      flushParagraph(); flushList(); const tableLines = [line]; index += 1;
-      while (index + 1 < lines.length && isTableRow(lines[index + 1])) { index += 1; tableLines.push(lines[index]); }
-      html.push(renderTable(tableLines)); continue;
-    }
-    const heading = line.match(/^(#{1,6})\s+(.+)$/);
-    if (heading) { flushParagraph(); flushList(); const level = heading[1].length; html.push(`<h${level}>${inlineMarkdown(heading[2])}</h${level}>`); continue; }
-    const task = line.match(/^\s*[-*]\s+\[([ xX])\]\s+(.+)$/);
-    const bullet = line.match(/^\s*[-*]\s+(.+)$/);
-    const numbered = line.match(/^\s*\d+\.\s+(.+)$/);
-    if (task || bullet || numbered) {
-      flushParagraph(); const type = numbered ? 'ol' : 'ul'; if (!list || list.type !== type) { flushList(); list = { type, items: [] }; }
-      if (task) list.items.push(`<li><input type="checkbox" disabled ${task[1].toLowerCase() === 'x' ? 'checked' : ''}> ${inlineMarkdown(task[2])}</li>`);
-      else list.items.push(`<li>${inlineMarkdown((bullet || numbered)[1])}</li>`);
-      continue;
-    }
-    if (!line.trim()) { flushParagraph(); flushList(); continue; }
-    paragraph.push(line.trim());
-  }
-  flushFence(); flushParagraph(); flushList();
-  return html.join('\n');
+/** Create mutable state for one Markdown document. */
+function createRenderState() { return { html: [], paragraph: [], list: null, fence: null, fenceLines: [] }; }
+
+/** Flush the current paragraph into rendered output. */
+function flushParagraph(state) { if (state.paragraph.length) { state.html.push(`<p>${state.paragraph.map(inlineMarkdown).join(' ')}</p>`); state.paragraph = []; } }
+
+/** Flush the current list into rendered output. */
+function flushList(state) { if (state.list) { state.html.push(`<${state.list.type}>${state.list.items.join('')}</${state.list.type}>`); state.list = null; } }
+
+/** Flush the current fenced code block into rendered output. */
+function flushFence(state) { if (state.fence) { const content = escapeHtml(state.fenceLines.join('\n')); const rendered = state.fence === 'mermaid' ? `<pre class="mermaid">${content}</pre>` : `<pre><code class="language-${escapeHtml(state.fence)}">${content}</code></pre>`; state.html.push(rendered); state.fence = null; state.fenceLines = []; } }
+
+/** Consume a fence line and return whether the parser is inside a fence. */
+function consumeFence(state, line) {
+  if (state.fence) { if (line.startsWith('```')) flushFence(state); else state.fenceLines.push(line); return true; }
+  const fenceStart = line.match(/^```(.*)$/);
+  if (!fenceStart) return false;
+  flushParagraph(state); flushList(state); state.fence = fenceStart[1].trim() || 'text'; return true;
 }
 
+/** Consume a table starting at the given line, returning the next index. */
+function consumeTable(state, lines, index) {
+  if (!isTableRow(lines[index]) || index + 1 >= lines.length || !isTableDivider(lines[index + 1])) return null;
+  flushParagraph(state); flushList(state); const tableLines = [lines[index]]; let nextIndex = index + 2;
+  while (nextIndex < lines.length && isTableRow(lines[nextIndex])) { tableLines.push(lines[nextIndex]); nextIndex += 1; }
+  state.html.push(renderTable(tableLines)); return nextIndex;
+}
+
+/** Consume a heading, list item, blank, or paragraph line. */
+function consumeText(state, line) {
+  const heading = line.match(/^(#{1,6})\s+(.+)$/);
+  if (heading) { flushParagraph(state); flushList(state); const level = heading[1].length; state.html.push(`<h${level}>${inlineMarkdown(heading[2])}</h${level}>`); return; }
+  const task = line.match(/^\s*[-*]\s+\[([ xX])\]\s+(.+)$/);
+  const bullet = line.match(/^\s*[-*]\s+(.+)$/);
+  const numbered = line.match(/^\s*\d+\.\s+(.+)$/);
+  if (task || bullet || numbered) { flushParagraph(state); const type = numbered ? 'ol' : 'ul'; if (!state.list || state.list.type !== type) { flushList(state); state.list = { type, items: [] }; } const content = task ? `<input type="checkbox" disabled ${task[1].toLowerCase() === 'x' ? 'checked' : ''}> ${inlineMarkdown(task[2])}` : inlineMarkdown((bullet || numbered)[1]); state.list.items.push(`<li>${content}</li>`); return; }
+  if (!line.trim()) { flushParagraph(state); flushList(state); return; }
+  state.paragraph.push(line.trim());
+}
+
+/** Render the Markdown subset used by repository documentation. */
+export function renderMarkdown(markdown) {
+  const lines = markdown.replaceAll('\r\n', '\n').split('\n'); const state = createRenderState(); let index = 0;
+  while (index < lines.length) {
+    if (consumeFence(state, lines[index])) { index += 1; continue; }
+    const nextIndex = consumeTable(state, lines, index);
+    if (nextIndex !== null) { index = nextIndex; continue; }
+    consumeText(state, lines[index]); index += 1;
+  }
+  flushFence(state); flushParagraph(state); flushList(state); return state.html.join('\n');
+}
+
+/** Walk a documentation directory and return Markdown source files. */
 async function walkMarkdown(directory, relative = '') {
   const entries = await fs.readdir(directory, { withFileTypes: true });
   const files = [];
@@ -84,6 +104,7 @@ async function walkMarkdown(directory, relative = '') {
   return files;
 }
 
+/** Collect root and docs Markdown, including ignored local planning files. */
 async function sourceFiles() {
   const files = [];
   for (const file of ROOT_MARKDOWN) {
@@ -92,15 +113,18 @@ async function sourceFiles() {
   files.push(...await walkMarkdown(path.join(ROOT, 'docs'), 'docs'));
   const unique = new Map();
   for (const file of files) if (!unique.has(file.relative)) unique.set(file.relative, file);
-  return [...unique.values()].filter(async (file) => (await fs.stat(file.absolute)).isFile());
+  return [...unique.values()];
 }
 
+/** Convert a source path into a stable output filename. */
 function pageSlug(relativePath) { return `${relativePath.replace(/\.md$/i, '').replaceAll('/', '__').replaceAll(/[^a-zA-Z0-9_-]/g, '-')}.html`; }
 
+/** Wrap rendered Markdown in a standalone HTML page. */
 function pageHtml(title, relativePath, body) {
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escapeHtml(title)} · GFC docs</title><link rel="stylesheet" href="site.css"></head><body><header><a href="index.html">GFC local docs</a><span>${escapeHtml(relativePath)}</span></header><main><article>${body}</article></main><script type="module">import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs'; mermaid.initialize({startOnLoad:true,securityLevel:'strict'});</script></body></html>`;
 }
 
+/** Build the ignored local documentation site. */
 async function main() {
   const files = await sourceFiles();
   await fs.rm(OUTPUT, { recursive: true, force: true });
