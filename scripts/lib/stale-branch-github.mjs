@@ -7,7 +7,6 @@ import {
   isStaleBranch,
   isTrackedBranch,
   REPORT_ISSUE_LABELS,
-  REPORT_ISSUE_MARKER,
   REPORT_ISSUE_TITLE,
   toBranchRow,
 } from './stale-branch-report.mjs';
