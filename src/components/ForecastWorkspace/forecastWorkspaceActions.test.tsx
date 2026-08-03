@@ -31,6 +31,7 @@ const setup = (overrides: Partial<Parameters<typeof useForecastWorkspaceActionHa
     mapRef: { current: { getView: jest.fn(() => ({ center: [1, 2], zoom: 7 })) } },
     addToast,
     forecastCycle,
+    cycleMetadata: undefined,
     currentDay: 3,
     canUndo: true,
     canRedo: false,
@@ -95,8 +96,8 @@ describe('useForecastWorkspaceActionHandlers', () => {
       await Promise.resolve();
     });
 
-    expect(downloadGfcPackage).toHaveBeenCalledWith(forecastCycle, { center: [1, 2], zoom: 7 });
-    expect(first.addToast).toHaveBeenCalledWith('Package downloaded!', 'success');
+    expect(downloadGfcPackage).toHaveBeenCalledWith(forecastCycle, { center: [1, 2], zoom: 7 }, undefined, 'cycle');
+    expect(first.addToast).toHaveBeenCalledWith('Cycle package downloaded!', 'success');
     expect(first.setIsPackageDownloading).toHaveBeenLastCalledWith(false);
 
     (downloadGfcPackage as jest.Mock).mockRejectedValueOnce(new Error('zip failed'));
@@ -107,7 +108,16 @@ describe('useForecastWorkspaceActionHandlers', () => {
       await Promise.resolve();
     });
 
-    expect(downloadGfcPackage).toHaveBeenLastCalledWith(forecastCycle, { center: [39.8283, -98.5795], zoom: 4 });
+    expect(downloadGfcPackage).toHaveBeenLastCalledWith(forecastCycle, { center: [39.8283, -98.5795], zoom: 4 }, undefined, 'cycle');
     expect(second.addToast).toHaveBeenCalledWith('Failed to create package.', 'error');
+  });
+
+  test('exports the active workflow as a scoped package', async () => {
+    const { result } = setup();
+    await act(async () => {
+      result.current.onWorkflowPackageDownload();
+      await Promise.resolve();
+    });
+    expect(downloadGfcPackage).toHaveBeenCalledWith(forecastCycle, { center: [1, 2], zoom: 7 }, undefined, 'workflow');
   });
 });

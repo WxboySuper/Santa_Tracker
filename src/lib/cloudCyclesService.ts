@@ -3,6 +3,8 @@ import { v4 as uuidv4 } from 'uuid';
 import { db } from './firebase';
 import { CloudCycleMetadata, CloudCycle, CloudOperationResult } from '../types/cloudCycles';
 import { GFCForecastSaveData } from '../types/outlooks';
+import type { CycleMetadata } from '../types/workflow';
+import { boundWorkflowMetadataForPersistence, isValidWorkflowMetadata } from './workflowMetadataContract';
 import { SavedCycleStats } from '../store/forecastSlice';
 import { validateForecastData } from '../utils/fileUtils';
 
@@ -12,6 +14,8 @@ const CLOUD_CYCLES_COLLECTION = 'cloudCycles';
 interface CloudCycleDocument extends CloudCycleMetadata {
   payloadJson: string;
   payloadBytes: number;
+  /** v2 workflow metadata serialized as JSON in the Firestore document. */
+  workflowMetadata?: CycleMetadata;
 }
 
 interface NormalizeMetadataParams {
@@ -62,6 +66,7 @@ interface SaveCloudCycleParams {
   cycleDate: string;
   stats: SavedCycleStats;
   payload: GFCForecastSaveData;
+  workflowMetadata?: CycleMetadata;
   isReadOnly?: boolean;
   existingId?: string;
 }
@@ -97,7 +102,7 @@ const isPlainObject = (value: unknown): value is Record<string, unknown> =>
   Boolean(value && typeof value === 'object' && !Array.isArray(value));
 
 /** Reads a stored cloud payload from either a JSON string or already-parsed object value. */
-const parseStoredPayload = (value: unknown): GFCForecastSaveData | null => {
+export const parseCloudCyclePayload = (value: unknown): GFCForecastSaveData | null => {
   if (typeof value === 'string') {
     try {
       const parsed = JSON.parse(value) as unknown;
@@ -150,7 +155,7 @@ const readRequiredText = (value: unknown): string | null =>
 const readStoredCount = (value: unknown): number => (typeof value === 'number' ? value : 0);
 
 /** Returns the serialized cloud payload plus its UTF-8 byte length for storage-safe writes. */
-const createPayloadStorageStats = (payload: GFCForecastSaveData): Pick<CloudCycleDocument, 'payloadJson' | 'payloadBytes'> => {
+export const createCloudCyclePayloadStorage = (payload: GFCForecastSaveData): Pick<CloudCycleDocument, 'payloadJson' | 'payloadBytes'> => {
   const payloadJson = JSON.stringify(payload);
   return {
     payloadJson,
@@ -201,16 +206,24 @@ const normalizeCloudCycleRecord = ({
   }
 
   const metadataSource = isPlainObject(rawRecord.metadata) ? (rawRecord.metadata as Record<string, unknown>) : rawRecord;
-  const payload = parseStoredPayload(rawRecord.payloadJson ?? rawRecord.payload);
+  const payload = parseCloudCyclePayload(rawRecord.payloadJson ?? rawRecord.payload);
 
   const metadata = normalizeStoredMetadata({ cycleId, rawMetadata: metadataSource, fallbackUserId });
   if (!metadata || !payload) {
     return null;
   }
 
+  // Keep the Firestore contract strict on the client too: invalid nested
+  // metadata is ignored rather than trusted as workflow state.
+  const workflowMetadata = isValidWorkflowMetadata(rawRecord.workflowMetadata) &&
+    rawRecord.workflowMetadata.cycleDate === metadata.cycleDate
+    ? rawRecord.workflowMetadata
+    : undefined;
+
   return {
     ...metadata,
     payload,
+    ...(workflowMetadata ? { workflowMetadata } : {}),
   };
 };
 
@@ -228,19 +241,31 @@ const normalizeCloudCycleMetadataRecord = ({
   return normalizeStoredMetadata({ cycleId, rawMetadata: metadataSource, fallbackUserId });
 };
 
+/** Keeps workflow metadata only when it belongs to the same cycle date. */
+const getCompatibleWorkflowMetadata = (workflowMetadata: unknown, cycleDate: string): CycleMetadata | undefined => {
+  if (!isPlainObject(workflowMetadata)) return undefined;
+  if (workflowMetadata.cycleDate !== cycleDate) return undefined;
+  if (!isValidWorkflowMetadata(workflowMetadata)) return undefined;
+
+  const bounded = boundWorkflowMetadataForPersistence(workflowMetadata);
+  return isValidWorkflowMetadata(bounded) ? bounded : undefined;
+};
+
 /** Serializes a runtime cloud cycle back into the Firestore storage format. */
 const serializeCloudCycleDocument = (cycle: CloudCycle): CloudCycleDocument => {
-  const { payload, ...metadata } = cycle;
-  const payloadStats = createPayloadStorageStats(payload);
+  const { payload, workflowMetadata, ...metadata } = cycle;
+  const payloadStats = createCloudCyclePayloadStorage(payload);
+  const validWorkflowMetadata = getCompatibleWorkflowMetadata(workflowMetadata, metadata.cycleDate);
 
   return {
     ...metadata,
     ...payloadStats,
+    ...(validWorkflowMetadata ? { workflowMetadata: validWorkflowMetadata } : {}),
   };
 };
 
 /** Strips the saved payload from a cloud cycle so library APIs can expose metadata-only objects. */
-const toCloudCycleMetadata = ({ payload: _payload, ...cycleMetadata }: CloudCycle): CloudCycleMetadata => cycleMetadata;
+const toCloudCycleMetadata = ({ payload: _payload, workflowMetadata: _wm, ...cycleMetadata }: CloudCycle): CloudCycleMetadata => cycleMetadata;
 
 /** Sorts cloud-cycle metadata from newest to oldest update time. */
 const sortCloudCycleMetadata = (cycles: CloudCycleMetadata[]): CloudCycleMetadata[] =>
@@ -407,7 +432,16 @@ export const saveCloudCycle = async (
   params: SaveCloudCycleParams
 ): Promise<CloudOperationResult<string>> => {
   try {
-    const { userId, label, cycleDate, stats, payload, isReadOnly = false, existingId } = params;
+    const {
+      userId,
+      label,
+      cycleDate,
+      stats,
+      payload,
+      workflowMetadata: requestedWorkflowMetadata,
+      isReadOnly = false,
+      existingId,
+    } = params;
     const cycleId = existingId || createCloudCycleId(userId, cycleDate);
     const now = new Date().toISOString();
     const existingCycle = existingId ? await getOwnedCloudCycle({ userId, cycleId: existingId }) : null;
@@ -432,11 +466,13 @@ export const saveCloudCycle = async (
       isReadOnly,
       payloadHash: computePayloadHash(payload),
     };
-    const payloadStats = createPayloadStorageStats(payload);
+    const payloadStats = createCloudCyclePayloadStorage(payload);
+    const validWorkflowMetadata = getCompatibleWorkflowMetadata(requestedWorkflowMetadata, cycleDate);
 
     await setDoc(getCloudCycleDocRef(cycleId), {
       ...metadata,
       ...payloadStats,
+      ...(validWorkflowMetadata ? { workflowMetadata: validWorkflowMetadata } : {}),
     });
 
     return { success: true, data: cycleId };
@@ -449,9 +485,7 @@ export const saveCloudCycle = async (
   }
 };
 
-/**
- * Loads a specific cloud cycle
- */
+/** Loads a specific cloud cycle for the requested user. */
 export const loadCloudCycle = async (
   params: UserCycleLookupParams
 ): Promise<CloudOperationResult<CloudCycle>> => {
@@ -478,9 +512,7 @@ export const loadCloudCycle = async (
   }
 };
 
-/**
- * Deletes a cloud cycle
- */
+/** Deletes a cloud cycle only when it belongs to the requested user. */
 export const deleteCloudCycle = async (
   params: UserCycleLookupParams
 ): Promise<CloudOperationResult> => {
@@ -502,9 +534,7 @@ export const deleteCloudCycle = async (
   }
 };
 
-/**
- * Renames a cloud cycle
- */
+/** Renames a cloud cycle only when it belongs to the requested user. */
 export const renameCloudCycle = async (
   params: RenameCloudCycleParams
 ): Promise<CloudOperationResult> => {

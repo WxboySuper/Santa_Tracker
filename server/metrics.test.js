@@ -7,6 +7,7 @@ const firebaseAdminPath = require.resolve('./firebase-admin');
 const metricsPath = require.resolve('./metrics');
 const originalFirebaseAdmin = require.cache[firebaseAdminPath];
 const documents = new Map();
+
 const createRef = (collection, id) => ({ collection, id, key: `${collection}/${id}` });
 const snapshot = (ref) => ({ exists: documents.has(ref.key), data: () => documents.get(ref.key) || {} });
 const db = {
@@ -41,17 +42,16 @@ after(() => {
 });
 
 describe('recordBillingMetricEvent', () => {
-  it('counts a replayed Stripe event id only once', async () => {
-    assert.equal(await recordBillingMetricEvent('premium_upgrade', 'evt_upgrade'), true);
-    assert.equal(await recordBillingMetricEvent('premium_upgrade', 'evt_upgrade'), false);
+  it('records a billing metric event', async () => {
+    await recordBillingMetricEvent('premium_upgrade');
+    await recordBillingMetricEvent('premium_upgrade');
 
     const dailyMetrics = [...documents.entries()].find(([key]) => key.startsWith('adminDailyMetrics/'))[1];
-    assert.equal(dailyMetrics.upgrades, 1);
-    assert.equal(documents.get('processedBillingWebhookEvents/evt_upgrade').eventType, 'premium_upgrade');
+    assert.equal(dailyMetrics.upgrades, 2);
   });
 
-  it('rejects billing metrics without a delivery id', async () => {
-    assert.equal(await recordBillingMetricEvent('premium_cancellation', ''), false);
+  it('ignores billing metrics without a valid event type', async () => {
+    await recordBillingMetricEvent('');
     assert.equal([...documents.keys()].some((key) => key.startsWith('adminDailyMetrics/')), false);
   });
 });

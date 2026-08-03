@@ -54,6 +54,29 @@ test.describe('App smoke tests', () => {
 
     await expect(page.locator('.map-container')).toBeVisible({ timeout: 10000 });
     await expect(page.locator('.tabbed-integrated-toolbar')).toBeVisible();
+    await expect(page.locator('.map-history-button[aria-label="Undo"]')).toBeVisible();
+    await expect(page.locator('.map-history-button[aria-label="Undo"]')).toBeDisabled();
+    await expect(page.locator('.map-history-button[aria-label="Redo"]')).toBeDisabled();
+    await expect(page.locator('.map-toolbar-surface > *')).toHaveCount(7);
+    const toolbarClassifications = [
+      ['map-history-group', 'history'],
+      ['map-toolbar-spacer', 'spacer'],
+      ['map-toolbar-divider', 'divider'],
+      ['mode-key', 'key'],
+      ['mode-delete', 'delete'],
+      ['mode-draw', 'draw'],
+      ['mode-pan', 'pan'],
+    ] as const;
+    const mapToolbarOrder = await page.locator('.map-toolbar-surface > *').evaluateAll(
+      (elements, classifications) =>
+        elements.map((element) => {
+          const classification = classifications.find(([className]) => element.classList.contains(className));
+          if (classification) return classification[1];
+          throw new Error(`Unexpected map toolbar child: ${element.className}`);
+        }),
+      toolbarClassifications
+    );
+    expect(mapToolbarOrder).toEqual(['pan', 'draw', 'delete', 'divider', 'key', 'spacer', 'history']);
     await expect(page.getByRole('complementary', { name: /map legend/i })).not.toBeVisible();
     await page.getByRole('button', { name: /show map key/i }).click();
     await expect(page.getByRole('complementary', { name: /map legend/i })).toBeVisible();
@@ -92,6 +115,7 @@ test.describe('App smoke tests', () => {
     await expect(page.locator('.map-container')).toBeVisible({ timeout: 10000 });
     await expect(page.locator('.tabbed-integrated-toolbar__status-bar')).not.toBeVisible();
     await expect(page.locator('.map-toolbar-help-surface')).not.toBeVisible();
+    await expect(page.locator('.map-history-button[aria-label="Undo"]')).toBeVisible();
     await expect(page.getByRole('button', { name: /show map key/i })).toBeVisible();
 
     await page.getByRole('button', { name: /show map key/i }).click();
@@ -144,5 +168,19 @@ test.describe('App smoke tests', () => {
     await page.goto('/does-not-exist');
     // App shell (navbar) should still render — not a blank page
     await expect(page.locator('body')).not.toBeEmpty();
+  });
+
+  test('gated workstream routes stay unreachable while disabled', async ({ page }) => {
+    await bypassLocalBeta(page);
+
+    await page.goto('/tropical?localBetaBypass=true');
+    await acceptAgreementsIfPresent(page);
+    await expect(page).not.toHaveURL(/\/tropical(?:\?|$)/);
+    await expect(page.getByRole('heading', { name: /Tropical Workspace/i })).not.toBeVisible({ timeout: 5000 });
+
+    await page.goto('/collaborate?localBetaBypass=true');
+    await acceptAgreementsIfPresent(page);
+    await expect(page).not.toHaveURL(/\/collaborate(?:\?|$)/);
+    await expect(page.getByRole('heading', { name: /Collaboration Room/i })).not.toBeVisible({ timeout: 5000 });
   });
 });

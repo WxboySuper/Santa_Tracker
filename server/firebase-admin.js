@@ -1,6 +1,8 @@
 'use strict';
 
-const admin = require('firebase-admin');
+const { initializeApp, getApps, getApp, cert } = require('firebase-admin/app');
+const { getAuth } = require('firebase-admin/auth');
+const { getFirestore } = require('firebase-admin/firestore');
 
 let firebaseAdminApp = null;
 
@@ -22,10 +24,10 @@ const getFirebaseAdminApp = () => {
     return firebaseAdminApp;
   }
 
-  firebaseAdminApp = admin.apps.length
-    ? admin.app()
-    : admin.initializeApp({
-        credential: admin.credential.cert({
+  firebaseAdminApp = getApps().length
+    ? getApp()
+    : initializeApp({
+        credential: cert({
           projectId: process.env.FIREBASE_ADMIN_PROJECT_ID,
           clientEmail: process.env.FIREBASE_ADMIN_CLIENT_EMAIL,
           privateKey: process.env.FIREBASE_ADMIN_PRIVATE_KEY.replace(/\\n/g, '\n'),
@@ -38,13 +40,13 @@ const getFirebaseAdminApp = () => {
 /** Returns the Admin auth instance when configured. */
 const getAdminAuth = () => {
   const app = getFirebaseAdminApp();
-  return app ? admin.auth(app) : null;
+  return app ? getAuth(app) : null;
 };
 
 /** Returns the Admin Firestore instance when configured. */
 const getAdminDb = () => {
   const app = getFirebaseAdminApp();
-  return app ? admin.firestore(app) : null;
+  return app ? getFirestore(app) : null;
 };
 
 module.exports = {

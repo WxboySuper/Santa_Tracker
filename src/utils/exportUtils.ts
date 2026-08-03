@@ -268,6 +268,7 @@ export const renderOutlooksToMap = (mapInstance: L.Map, outlooks: OutlookData) =
 };
 
 // Helper: add title/footer/status and unofficial overlays
+// @codescene(disable:"Complex Method", disable:"Overall Code Complexity")
 export const addOverlays = (container: HTMLElement, title?: string, statusText?: string, unofficialText?: string) => {
   const doc = container.ownerDocument;
   const isDarkMode = store.getState().theme.darkMode;
@@ -615,13 +616,20 @@ const cleanupTempMapResources = (tempContainer: HTMLDivElement | null, tempMap: 
 };
 
 // Helper: perform capture flow on the prepared temp map
-const captureFromTempMap = async (
-  tempContainer: HTMLDivElement,
-  tempMap: L.Map,
-  sourceMap: L.Map,
-  outlooks: OutlookData,
-  options: ExportImageOptions
-): Promise<string> => {
+// @codescene(disable:"Complex Method")
+const captureFromTempMap = async ({
+  tempContainer,
+  tempMap,
+  sourceMap,
+  outlooks,
+  options,
+}: {
+  tempContainer: HTMLDivElement;
+  tempMap: L.Map;
+  sourceMap: L.Map;
+  outlooks: OutlookData;
+  options: ExportImageOptions;
+}): Promise<string> => {
   const { title, format = 'png', quality = 0.92, includeLegendAndStatus = false } = options;
 
   // Wait for map settle, add tiles, and render outlooks (returns tile wait result)
@@ -669,7 +677,7 @@ const exportViaTempMapAsImage = async (
     const prepared = prepareTempMapAndContainer(map);
     tempContainer = prepared.tempContainer;
     tempMap = prepared.tempMap;
-    return await captureFromTempMap(tempContainer, tempMap, map, outlooks, options);
+    return await captureFromTempMap({ tempContainer, tempMap, sourceMap: map, outlooks, options });
   } finally {
     cleanupTempMapResources(tempContainer, tempMap);
   }
@@ -713,8 +721,12 @@ export function getExportRootAndSize(map: ExportMapLike) {
   }
 
   const exportRoot = (mapContainer.closest('.map-container, .forecast-map-container') as HTMLElement | null) || mapContainer;
-  const width = exportRoot.clientWidth;
-  const height = exportRoot.clientHeight;
+  // OpenLayers renders into this viewport, while the export root also contains
+  // map controls and status overlays. Capture using the viewport dimensions so
+  // html2canvas does not extend the JPEG into unused wrapper space below the map.
+  const viewport = mapContainer.querySelector<HTMLElement>('.ol-viewport');
+  const width = viewport?.clientWidth || mapContainer.clientWidth;
+  const height = viewport?.clientHeight || mapContainer.clientHeight;
   return { mapContainer, exportRoot, width, height };
 }
 

@@ -2,6 +2,7 @@ import React, { createContext, useCallback, useContext, useEffect, useMemo, useS
 import { doc, onSnapshot, type Timestamp } from 'firebase/firestore';
 import { db, requireDb } from '../lib/firebase';
 import { useAuth } from '../auth/AuthProvider';
+import { readLocalTestAccount } from '../lib/localTestAccount';
 
 export type EntitlementStatus = 'disabled' | 'loading' | 'free' | 'premium' | 'error';
 export type PlanInterval = 'monthly' | 'annual' | null;
@@ -247,6 +248,28 @@ const startSignedInEntitlementSubscription = (
   return subscribeToEntitlements(userId, handlers);
 };
 
+/** Applies deterministic entitlement state for a local account fixture. */
+const applyLocalTestEntitlementState = (
+  tier: 'free' | 'premium',
+  handlers: {
+    setEntitlement: React.Dispatch<React.SetStateAction<UserEntitlementDocument>>;
+    setEntitlementStatus: React.Dispatch<React.SetStateAction<EntitlementStatus>>;
+    setError: React.Dispatch<React.SetStateAction<string | null>>;
+  },
+): void => {
+  const premium = tier === 'premium';
+  handlers.setEntitlement({
+    ...DEFAULT_ENTITLEMENT,
+    uid: `local-test-${tier}`,
+    premiumActive: premium,
+    effectiveSource: premium ? 'stripe' : 'none',
+    planInterval: premium ? 'monthly' : null,
+    billingStatus: premium ? 'active' : 'inactive',
+  });
+  handlers.setEntitlementStatus(premium ? 'premium' : 'free');
+  handlers.setError(null);
+};
+
 /** Resolves the next entitlement effect outcome for the current auth snapshot. */
 const resolveEntitlementEffect = (
   args: {
@@ -260,6 +283,12 @@ const resolveEntitlementEffect = (
     setError: React.Dispatch<React.SetStateAction<string | null>>;
   }
 ) => {
+  const localTestAccount = readLocalTestAccount();
+  if (localTestAccount) {
+    applyLocalTestEntitlementState(localTestAccount, handlers);
+    return null;
+  }
+
   if (!isHostedEntitlementMode(args.hostedAuthEnabled)) {
     applyDisabledEntitlementState(handlers.setEntitlement, handlers.setEntitlementStatus, handlers.setError);
     return null;
@@ -301,7 +330,7 @@ const createEntitlementContextValue = (args: {
   currentPeriodEnd: args.entitlement.currentPeriodEnd?.toDate?.() ?? null,
   stripeCustomerId: args.entitlement.stripeCustomerId,
   betaOverrideActive: args.entitlement.betaOverrideActive,
-  checkoutEnabled: args.billingConfig.checkoutEnabled && args.hostedAuthEnabled,
+  checkoutEnabled: args.billingConfig.checkoutEnabled && args.hostedAuthEnabled && !readLocalTestAccount(),
   billingEnabled: args.billingConfig.billingEnabled,
   annualPromoActive: args.billingConfig.annualPromoActive,
   monthlyDisplayPrice: args.billingConfig.monthlyDisplayPrice,
@@ -332,16 +361,20 @@ const fetchBillingAction = async (
 /** Creates the billing action callbacks used by the entitlement provider. */
 const useBillingActions = (
   user: ReturnType<typeof useAuth>['user'],
-  checkoutEnabled: boolean
+  checkoutEnabled: boolean,
+  localFixtureActive: boolean,
 ) => {
   /** Returns the current signed-in user or throws a user-facing error for billing actions. */
   const requireBillingUser = useCallback(() => {
+    if (localFixtureActive) {
+      throw new Error('Billing is unavailable for local test accounts.');
+    }
     if (!user) {
       throw new Error('Sign in before starting billing actions.');
     }
 
     return user;
-  }, [user]);
+  }, [localFixtureActive, user]);
 
   /** Returns billing availability or throws a user-facing error for checkout attempts. */
   const requireCheckoutEnabled = useCallback(() => {
@@ -405,7 +438,11 @@ export const EntitlementProvider: React.FC<{ children: React.ReactNode }> = ({ c
       unsubscribe();
     };
   }, [hostedAuthEnabled, status, user]);
-  const { openCheckout, openBillingPortal } = useBillingActions(user, billingConfig.checkoutEnabled);
+  const { openCheckout, openBillingPortal } = useBillingActions(
+    user,
+    billingConfig.checkoutEnabled,
+    Boolean(readLocalTestAccount()),
+  );
 
   const value = useMemo<EntitlementContextValue>(
     () =>

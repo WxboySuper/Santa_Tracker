@@ -40,6 +40,19 @@ export const coerceOutlookProbabilityMap = (
   return null;
 };
 
+/** Coerces a single raw outlook entry into a Map, applying format-specific rules. */
+const coerceOutlookEntry = (
+  raw: Map<string, GeoJsonFeature[]> | unknown[] | Record<string, GeoJsonFeature[]> | unknown,
+): Map<string, GeoJsonFeature[]> | null => {
+  if (raw instanceof Map) return raw;
+  if (Array.isArray(raw)) {
+    const coerced = coerceOutlookProbabilityMap(raw);
+    return coerced && (raw.length === 0 || coerced.size > 0) ? coerced : null;
+  }
+  const coerced = coerceOutlookProbabilityMap(raw);
+  return coerced && coerced.size > 0 ? coerced : null;
+};
+
 /** Ensures every outlook probability map on a day is a Map instance. */
 export const normalizeOutlookData = (data: OutlookData): OutlookData => {
   const normalized: OutlookData = {};
@@ -47,24 +60,9 @@ export const normalizeOutlookData = (data: OutlookData): OutlookData => {
 
   outlookKeys.forEach((key) => {
     const raw = data[key];
-    if (raw === undefined || raw === null) {
-      return;
-    }
-
-    if (raw instanceof Map) {
-      normalized[key] = raw;
-      return;
-    }
-
-    if (Array.isArray(raw) && raw.length === 0) {
-      normalized[key] = new Map();
-      return;
-    }
-
-    const coerced = coerceOutlookProbabilityMap(raw);
-    if (coerced && coerced.size > 0) {
-      normalized[key] = coerced;
-    }
+    if (raw == null) return;
+    const coerced = coerceOutlookEntry(raw);
+    if (coerced) normalized[key] = coerced;
   });
 
   return normalized;

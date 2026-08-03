@@ -75,7 +75,7 @@ module.exports = {
       zIndex: {
         panel: '100',
         dropdown: '200',
-        modal: '300',
+        modal: '1500',
         toast: '400',
         tooltip: '500',
       },

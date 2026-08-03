@@ -2,7 +2,7 @@ import type { Feature } from 'geojson';
 
 /**
  * Defines the types for GFC's severe weather outlook system
- * Based on the specifications in Outlook_Info.md
+ * Based on the specifications in docs/product/outlook-info.md
  */
 
 // Categorical risk levels
@@ -160,19 +160,29 @@ export interface DiscussionData {
   validStart: string; // ISO date-time
   validEnd: string; // ISO date-time
   forecasterName: string;
-  
+
   // DIY mode - simple text editor
   diyContent?: string;
-  
+
   // Guided mode - structured questions
   guidedContent?: GuidedDiscussionData;
-  
+
   lastModified: string;
+}
+
+/** A discussion scope. Content remains canonical on one legacy day slot. */
+export interface DiscussionGrouping {
+  id: string;
+  label: string;
+  days: DayType[];
+  discussionDay: DayType;
 }
 
 export interface OutlookDay {
   day: DayType;
   data: OutlookData; // The actual polygon data
+  /** Self-contained custom layers kept outside severe-weather outlook maps. */
+  customLayers?: import('./customProducts').CustomLayerCollection;
   metadata: {
     issueDate: string;
     validDate: string;
@@ -188,6 +198,14 @@ export interface ForecastCycle {
   days: Partial<Record<DayType, OutlookDay>>;
   currentDay: DayType;
   cycleDate: string;
+  /** Optional workflow discussion scopes; legacy content stays on OutlookDay.discussion. */
+  discussionGroupings?: DiscussionGrouping[];
+  /** ISO timestamp when the forecaster acknowledged completion with omissions. */
+  completionAcknowledgedAt?: string;
+  /** User-provided reasons for omitted forecast days at completion time. */
+  omittedDayReasons?: Partial<Record<DayType, string>>;
+  /** Active same-day workflow update version that has not been reviewed yet. */
+  updateInProgressVersion?: number;
 }
 
 // Updated Save Data Interface
@@ -208,6 +226,7 @@ export interface GFCForecastSaveData {
     days: Partial<Record<DayType, {
       day: DayType;
       data: SerializedOutlookData;
+      customLayers?: import('./customProducts').CustomLayerCollection;
       metadata: {
         issueDate: string;
         validDate: string;
@@ -217,5 +236,40 @@ export interface GFCForecastSaveData {
     }>>;
     currentDay: DayType;
     cycleDate: string;
+    discussionGroupings?: DiscussionGrouping[];
+    completionAcknowledgedAt?: string;
+    omittedDayReasons?: Partial<Record<DayType, string>>;
+    updateInProgressVersion?: number;
   };
+
+  /** Optional v2 workflow cycle metadata embedded in v1.0.0 saves. Null clears an active workflow on load. */
+  cycleMetadata?: import('./workflow').CycleMetadata | null;
 }
+
+// ---------------------------------------------------------------------------
+// Workflow v2 re-exports (issue #451 / WF-01)
+// ---------------------------------------------------------------------------
+
+export type {
+  WorkflowId,
+  CycleId,
+  CycleStatus,
+  OutlookStatus,
+  OutlookVersion,
+  StandardGrouping,
+  CustomGrouping,
+  Grouping,
+  WorkflowMetadata,
+  CycleMetadata,
+  WorkflowPackageMetadata,
+  Package,
+  SerializedOutlookVersionData,
+  SerializedCycle,
+  SerializedWorkflowPackage,
+  ValidationOutlookType,
+  ValidationSeverity,
+  ValidationIssue,
+  CycleValidationResult,
+} from './workflow';
+
+export { WORKFLOW_SCHEMA_VERSION, createCustomGrouping } from './workflow';

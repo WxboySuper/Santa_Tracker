@@ -1,5 +1,5 @@
 import * as Sentry from '@sentry/react';
-import type { Event, EventHint } from '@sentry/react';
+import type { ErrorEvent, Event, EventHint } from '@sentry/react';
 import React from 'react';
 import {
   useLocation,
@@ -14,8 +14,10 @@ declare const __GFC_APP_VERSION__: string;
 
 type SentryExceptionValue = NonNullable<NonNullable<Event['exception']>['values']>[number];
 
-const OPENLAYERS_CANVAS_MESSAGE = /^null is not an object \(evaluating '[a-z]\.canvas'\)$/i;
+const OPENLAYERS_CANVAS_MESSAGE = /^null is not an object \(evaluating '[a-z]{1,2}\.canvas'\)$/i;
 const REQUEST_ANIMATION_FRAME_MECHANISM = 'auto.browser.browserapierrors.requestAnimationFrame';
+const OPAQUE_GLOBAL_ERROR_MESSAGE = /^uncaught exception: undefined$/i;
+const GLOBAL_ERROR_MECHANISM = 'auto.browser.global_handlers.onerror';
 
 const REQUEST_LIFECYCLE_MESSAGES = [
   /^(NetworkError: )?A network error occurred\.?$/i,
@@ -59,16 +61,51 @@ function isOpenLayersCanvasNoise(value: SentryExceptionValue): boolean {
   );
 }
 
-/** Drops no-stack request lifecycle noise while preserving actionable stacked errors. */
-export function beforeSend(event: Event, _hint: EventHint): Event | null {
+/** True for the opaque Firefox global error with no exception value or stack. */
+function isOpaqueGlobalError(value: SentryExceptionValue): boolean {
+  return (
+    OPAQUE_GLOBAL_ERROR_MESSAGE.test(value.value ?? '') &&
+    value.mechanism?.type === GLOBAL_ERROR_MECHANISM &&
+    value.mechanism.handled === false
+  );
+}
+
+/** True when an exception value matches known request-lifecycle browser noise. */
+function isRequestLifecycleNoise(values: SentryExceptionValue[], message: string): boolean {
+  return (
+    values.length > 0 &&
+    REQUEST_LIFECYCLE_MESSAGES.some((pattern) => pattern.test(message))
+  );
+}
+
+/** True when the event contains any stack or breadcrumb context worth retaining. */
+function hasActionableContext(event: Event, values: SentryExceptionValue[]): boolean {
+  return values.some(hasStackFrames) || Boolean(event.breadcrumbs?.length);
+}
+
+/** True when the event is known browser noise that is safe to drop. */
+function isKnownBrowserNoise(event: Event): boolean {
   const values = event.exception?.values ?? [];
   const message = values[0]?.value ?? event.message ?? '';
-  const hasAnyStackFrames = values.some(hasStackFrames);
-  const isIgnoredRequestNoise = REQUEST_LIFECYCLE_MESSAGES.some((pattern) => pattern.test(message));
+  const normalizedMessage = message.replace(/\s+/g, ' ').trim();
 
-  return (isIgnoredRequestNoise && !hasAnyStackFrames) || values.some(isOpenLayersCanvasNoise)
-    ? null
-    : event;
+  if (values.some(isOpenLayersCanvasNoise)) {
+    return true;
+  }
+
+  if (hasActionableContext(event, values)) {
+    return false;
+  }
+
+  return (
+    isRequestLifecycleNoise(values, normalizedMessage) ||
+    values.some(isOpaqueGlobalError)
+  );
+}
+
+/** Drops known no-stack browser noise while preserving actionable stacked errors. */
+export function beforeSend(event: ErrorEvent, _hint: EventHint): ErrorEvent | null {
+  return isKnownBrowserNoise(event) ? null : event;
 }
 
 /** Initializes Sentry when a DSN is present. No-op in local dev without a DSN. */

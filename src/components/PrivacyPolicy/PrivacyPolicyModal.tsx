@@ -1,17 +1,42 @@
 import React, { useState } from 'react';
 import './PrivacyPolicyModal.css';
+import { isProductAnalyticsEnabled, setProductAnalyticsEnabled, trackProductPageView } from '../../lib/productAnalytics';
 
 // Bump this version string whenever the Privacy Policy changes materially.
 // Users who accepted an older version will be asked to re-accept.
-const PRIVACY_POLICY_VERSION = '1.2.0';
-const PRIVACY_POLICY_LAST_UPDATED = 'May 22, 2026';
+const PRIVACY_POLICY_VERSION = '1.7.0';
+const PRIVACY_POLICY_LAST_UPDATED = 'July 21, 2026';
 const STORAGE_KEY = 'gfc-privacy-policy-accepted';
 
-const PRIVACY_POLICY_WHATS_NEW: string[] = [
-  'We added a disclosure for hosted error monitoring (Sentry) on production and beta deployments.',
-  'Error monitoring does not use session replay and does not send IP addresses or cookies by default.',
-  'Forecast map data is not attached to error reports; only limited diagnostic data is collected to fix bugs.',
-];
+// Changelog of material privacy-policy changes, keyed by the version that introduced them.
+// When building the "What's New" list, only entries after the user's last-accepted version are shown.
+const PRIVACY_POLICY_CHANGELOG: Record<string, string[]> = {
+  '1.2.0': [
+    'We added a disclosure for hosted error monitoring (Sentry) on production and beta deployments.',
+    'Error monitoring does not use session replay and does not send IP addresses or cookies by default.',
+    'Forecast map data is not attached to error reports; only limited diagnostic data is collected to fix bugs.',
+  ],
+  '1.3.0': [
+    'We now use Google Analytics (GA4) to measure aggregate traffic on the production site.',
+    'GA4 is loaded only on the hosted production domain, not on localhost development builds.',
+  ],
+  '1.4.0': [
+    'We replaced Google Analytics and the previous hosted metrics collector with self-hosted Umami product analytics.',
+    'Production and beta analytics are kept in separate reporting zones, and the same local preference can disable non-essential analytics for both.',
+  ],
+  '1.5.0': [
+    'We clarified that cookie-free product analytics use a pseudonymous visitor/session identifier, not account identity.',
+    'We added a clearer description of the coarse technical and IP-derived location information visible in our self-hosted analytics.',
+  ],
+  '1.6.0': [
+    'Non-essential product analytics are now disabled by default and require a separate, optional opt-in.',
+    'You can withdraw that telemetry permission at any time without affecting access to GFC.',
+  ],
+  '1.7.0': [
+    'We minimized new product-analytics location collection and documented how to request access or deletion help for pseudonymous telemetry.',
+    'We clarified that a fixed event-level telemetry retention period is still an unresolved operational decision.',
+  ],
+};
 
 /** Returns true if the user has accepted the current version of the Privacy Policy. */
 export function hasAcceptedPrivacyPolicy(): boolean {
@@ -32,6 +57,26 @@ export function isPrivacyPolicyUpgrade(): boolean {
   }
 }
 
+/** Returns the version string the user last accepted, or null if never accepted. */
+export function getStoredVersion(): string | null {
+  try {
+    return localStorage.getItem(STORAGE_KEY);
+  } catch {
+    return null;
+  }
+}
+
+/** Returns the ordered list of changelog entries newer than `lastAcceptedVersion`. */
+export function getWhatsNewItems(lastAcceptedVersion: string | null): string[] {
+  const items: string[] = [];
+  for (const [version, entries] of Object.entries(PRIVACY_POLICY_CHANGELOG)) {
+    if (lastAcceptedVersion == null || version > lastAcceptedVersion) {
+      items.push(...entries);
+    }
+  }
+  return items;
+}
+
 // Records acceptance of the current Privacy Policy version in localStorage.
 function acceptPrivacyPolicy(): void {
   try {
@@ -48,25 +93,56 @@ interface PrivacyPolicyModalProps {
 }
 
 /** Highlights material changes in the current policy version for users who must re-accept. */
-const PrivacyPolicyWhatsNew: React.FC = () => (
+const PrivacyPolicyWhatsNew: React.FC<{ items: string[] }> = ({ items }) => (
   <aside className="privacy-whats-new" aria-labelledby="privacy-whats-new-title" role="note">
     <h3 id="privacy-whats-new-title">What&apos;s new in version {PRIVACY_POLICY_VERSION}</h3>
     <ul>
-      {PRIVACY_POLICY_WHATS_NEW.map((item) => (
+      {items.map((item) => (
         <li key={item}>{item}</li>
       ))}
     </ul>
   </aside>
 );
 
+/** Lets people change the local, non-essential telemetry preference without creating an account. */
+const ProductAnalyticsPreference: React.FC = () => {
+  const [enabled, setEnabled] = useState(() => isProductAnalyticsEnabled());
+  const handleChange = () => {
+    const nextEnabled = !enabled;
+    const effectiveEnabled = setProductAnalyticsEnabled(nextEnabled);
+    // A consent action is the earliest permitted point to initialize analytics.
+    // Record the page the person explicitly chose from; nothing is injected or queued beforehand.
+    if (effectiveEnabled) trackProductPageView();
+    setEnabled(effectiveEnabled);
+  };
+
+  return (
+    <button type="button" role="switch" aria-checked={enabled} className="privacy-analytics-preference" onClick={handleChange}>
+      <strong>Non-essential product analytics: {enabled ? 'Enabled' : 'Disabled'}</strong>
+      <span>{enabled ? 'Withdraw telemetry permission' : 'Enable optional pseudonymous telemetry'}</span>
+    </button>
+  );
+};
+
 /** Renders the current in-app Privacy Policy content for both acceptance and view-only modes. */
-const PrivacyPolicyContent: React.FC<{ showWhatsNew?: boolean }> = ({ showWhatsNew = false }) => (
+const PrivacyPolicyContent: React.FC<{ whatsNewItems?: string[] }> = ({ whatsNewItems }) => (
   <>
-    {showWhatsNew && <PrivacyPolicyWhatsNew />}
+    {whatsNewItems && whatsNewItems.length > 0 && <PrivacyPolicyWhatsNew items={whatsNewItems} />}
     <p>
       <strong>TL;DR:</strong> Your local forecasts stay on your device. If you choose to make an account, we only
       collect what is strictly necessary to sync your work and securely manage your subscription.
     </p>
+
+    <section className="privacy-analytics-choice" aria-labelledby="privacy-analytics-choice-title">
+      <div>
+        <h3 id="privacy-analytics-choice-title">Optional product analytics</h3>
+        <p>
+          Help us understand which parts of GFC are useful. This is disabled by default and is a separate choice from
+          accepting this Privacy Policy. It never affects access to GFC and can be changed here at any time.
+        </p>
+      </div>
+      <ProductAnalyticsPreference />
+    </section>
 
     <h3>1. Local-First by Default</h3>
     <p>
@@ -103,10 +179,16 @@ const PrivacyPolicyContent: React.FC<{ showWhatsNew?: boolean }> = ({ showWhatsN
 
     <h3>5. Product Analytics &amp; Progress Metrics</h3>
     <p>
-      To monitor the health of the hosted service, we collect privacy-conscious product telemetry such as signups,
-      sign-ins, cloud saves/loads, verification runs, and aggregate storage usage.{' '}
-      <strong>We do not log raw IP addresses for product analytics</strong>, and your forecast payload contents are
-      never exposed to our metrics dashboard.
+      To understand which hosted GFC workflows need improvement, we use self-hosted, cookie-free Umami product
+      analytics on the production and beta deployments in separate reporting zones. It uses a pseudonymous
+      visitor/session identifier to group activity from the same browser without attaching it to your GFC account. We
+      collect page views, selected milestone events such as completed exports, cloud-save outcomes, workflow outcomes,
+      and custom-layer creation, plus route/page activity, timestamps, and coarse technical information (browser,
+      operating system, and device type). The Umami service can derive approximate location from an IP address, but GFC
+      currently removes visitor IP addresses before they reach Umami, so new GFC telemetry does not include country,
+      region, or city. <strong>We do not use account identity,
+      Firebase UID, email address, forecast contents, coordinates, layer text, filenames, or export contents for
+      product analytics.</strong>
     </p>
     <p>
       If you are signed in, we also store limited progress metrics tied to your account so we can show you your own
@@ -115,14 +197,15 @@ const PrivacyPolicyContent: React.FC<{ showWhatsNew?: boolean }> = ({ showWhatsN
       your account view.
     </p>
     <p>
-      We also generate a browser-scoped anonymous installation identifier to help estimate daily active devices without
-      relying on long-term raw IP storage. Where possible, admin metrics are aggregated by day and shown only in
-      aggregate form.
-    </p>
-    <p>
-      Separately from product metrics, the hosted service may keep short operational request logs such as page path,
-      referrer, timestamp, and user-agent for maintenance and debugging. These logs are not used to inspect forecast
-      contents and are kept separate from the product metrics dashboard.
+      Non-essential product analytics are disabled by default. You may optionally enable them using the local telemetry
+      preference at the top of this policy; choosing not to enable them does not affect access to GFC. You can withdraw that permission at
+      any time from the same control. When disabled, GFC does not load the Umami tracker or send product-analytics
+      events. Analytics are hosted by GFC on our VPS and are not used for advertising, cross-site tracking, or sale of
+      personal data. Beta and production are separate analytics zones. Because this telemetry is not linked to a
+      Firebase account, Firebase account deletion does not identify a matching telemetry record. A fixed event-level
+      telemetry retention period has not yet been adopted; we will publish and implement one before representing a
+      fixed deletion schedule. For a telemetry access or deletion request, or any privacy question, contact us at the
+      address in section 9 with the approximate date, browser/device, and route or event details you want us to locate.
     </p>
     <p>
       On production and beta hosted deployments, we use Sentry (a third-party error monitoring service) to capture
@@ -256,7 +339,9 @@ const PrivacyPolicyModal: React.FC<PrivacyPolicyModalProps> = ({ onAccept, viewO
       <div className="privacy-modal">
         <PrivacyPolicyHeader viewOnly={viewOnly} onClose={onClose} />
         <div className="privacy-modal-body">
-          <PrivacyPolicyContent showWhatsNew={!viewOnly && isPrivacyPolicyUpgrade()} />
+          <PrivacyPolicyContent
+            whatsNewItems={!viewOnly && isPrivacyPolicyUpgrade() ? getWhatsNewItems(getStoredVersion()) : undefined}
+          />
         </div>
 
         {viewOnly ? (

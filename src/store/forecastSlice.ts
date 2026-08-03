@@ -1,12 +1,21 @@
 import '../immerSetup';
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
-import { OutlookData, OutlookType, DrawingState, ForecastCycle, DayType, OutlookDay, DiscussionData, Probability } from '../types/outlooks';
+import { OutlookData, OutlookType, DrawingState, ForecastCycle, DayType, OutlookDay, DiscussionData, DiscussionGrouping, Probability } from '../types/outlooks';
+import type { CycleMetadata, WorkflowMetadata, Package, CycleValidationResult, StandardGrouping } from '../types/workflow';
 import { normalizeForecastCycle } from '../utils/outlookMapCoercion';
 import type { Feature } from 'geojson';
+import type { CustomLayerCollection } from '../types/customProducts';
 import { RootState } from './index'; // Need RootState for selectors
 import { cloneForecastCycle } from '../utils/fileUtils';
 import { countForecastMetrics } from '../utils/forecastMetrics';
+import { createCustomLayerReducers } from './customLayerReducers';
+import { createCustomCategoryReducers } from './customCategoryReducers';
+import { createCustomFeatureReducers } from './customFeatureReducers';
 import { getLocalCalendarDate } from '../utils/localDate';
+import { areTstmFeaturesEqual } from '../utils/tstmGeneration';
+import { validateCycleCompletion } from '../utils/completionValidation';
+import { getWorkflowTemplateById } from '../components/ForecastWorkflow/workflowTemplates';
+import { isValidDiscussionGroupings, mergeDiscussionDrafts, normalizeDiscussionGroupings } from '../utils/discussionGrouping';
 
 export interface SavedCycleStats {
   forecastDays: number;
@@ -21,11 +30,18 @@ export interface SavedCycle {
   label?: string;
   forecastCycle: ForecastCycle;
   stats: SavedCycleStats;
+  /** v2 workflow metadata for the cycle (optional, present for workflow-imported cycles). */
+  workflowMetadata?: CycleMetadata;
 }
 
 export interface ForecastState {
   forecastCycle: ForecastCycle;
   drawingState: DrawingState;
+  customEditor: {
+    mode: 'severe' | 'custom';
+    activeLayerId: string | null;
+    activeCategoryId: string | null;
+  };
   currentMapView: {
     center: [number, number]; // [latitude, longitude]
     zoom: number;
@@ -34,12 +50,28 @@ export interface ForecastState {
   emergencyMode: boolean;
   savedCycles: SavedCycle[];
   historyByDay: Partial<Record<DayType, ForecastHistoryStacks>>;
+  /** Unsaved discussion editor drafts, keyed by grouping id so shared owner days cannot collide. */
+  discussionDraftsByScope: Record<string, DiscussionData>;
+  /** v2 workflow metadata for the active cycle (optional, present when loaded from a workflow package). */
+  workflowMetadata?: CycleMetadata;
+  /** v2 workflow template metadata (optional, present when the editor is in workflow mode). */
+  workflowTemplate?: WorkflowMetadata;
+  /** Whether the forecast workflow shell should be active across routes. */
+  isWorkflowActive: boolean;
+  completionValidation: {
+    lastResult: CycleValidationResult | null;
+    showCompletionModal: boolean;
+    omittedDays: Partial<Record<DayType, string>>;
+  };
+  /** v2 outlook version snapshots for the active cycle (used for same-cycle updates). */
+  outlookVersionSnapshots: OutlookVersionSnapshot[];
 }
 
 interface ForecastDaySnapshot {
   day: DayType;
   data: OutlookData;
   lowProbabilityOutlooks: OutlookType[];
+  customLayers?: CustomLayerCollection;
 }
 
 interface ForecastHistoryEntry {
@@ -52,6 +84,16 @@ interface ForecastHistoryStacks {
   redoStack: ForecastHistoryEntry[];
 }
 
+/** Stores a snapshot of outlook data for a specific version within a cycle. */
+interface OutlookVersionSnapshot {
+  /** Version number within the cycle. */
+  version: number;
+  /** Snapshot of day data for this version. */
+  days: Partial<Record<DayType, OutlookDay>>;
+  /** ISO-8601 creation timestamp. */
+  createdAt: string;
+}
+
 type DayBucket = 'day12' | 'day3' | 'day48';
 
 interface CopyFeatureRule {
@@ -60,6 +102,7 @@ interface CopyFeatureRule {
 }
 
 const HISTORY_LIMIT = 50;
+const WORKFLOW_ACTIVE_STORAGE_KEY = 'gfc-active-forecast-workflow';
 const ALL_OUTLOOK_TYPES: OutlookType[] = [
   'tornado',
   'wind',
@@ -69,6 +112,71 @@ const ALL_OUTLOOK_TYPES: OutlookType[] = [
   'day4-8',
 ];
 const DIRECT_DAY12_COPY_TYPES: OutlookType[] = ['tornado', 'wind', 'hail', 'categorical'];
+
+/** Reads the persisted workflow-active flag from localStorage, returning false when storage is blocked or unset. */
+const readStoredWorkflowActive = (): boolean => {
+  try {
+    return localStorage.getItem(WORKFLOW_ACTIVE_STORAGE_KEY) === 'true';
+  } catch {
+    return false;
+  }
+};
+
+/** Persists or clears the workflow-active flag in localStorage, swallowing storage errors to keep the workflow usable. */
+const writeStoredWorkflowActive = (isActive: boolean) => {
+  try {
+    if (isActive) {
+      localStorage.setItem(WORKFLOW_ACTIVE_STORAGE_KEY, 'true');
+      return;
+    }
+    localStorage.removeItem(WORKFLOW_ACTIVE_STORAGE_KEY);
+  } catch {
+    // Keep workflow state usable when storage is blocked.
+  }
+};
+
+/** Resolves the starting forecast day implied by a workflow template's first grouping, defaulting to day 1. */
+const getWorkflowStartDay = (template?: WorkflowMetadata): DayType => {
+  const firstGrouping = template?.groupings[0];
+  if (firstGrouping === 'day2') return 2;
+  if (firstGrouping === 'day3') return 3;
+  if (firstGrouping === 'day4-8') return 4;
+  return 1;
+};
+
+/** Filters a template's groupings to the standard set used by completion validation, returning undefined when none qualify. */
+const getWorkflowValidationGroupings = (template?: WorkflowMetadata): StandardGrouping[] | undefined => {
+  const standardGroupings = (template?.groupings ?? []).filter(
+    (grouping): grouping is StandardGrouping =>
+      grouping === 'day1' || grouping === 'day2' || grouping === 'day3' || grouping === 'day4-8',
+  );
+  return standardGroupings.length > 0 ? standardGroupings : undefined;
+};
+
+/** Resolves the workflow ID from template or cycle metadata, falling back to 'default'. */
+const resolveWorkflowId = (
+  template?: WorkflowMetadata,
+  cycleMetadata?: CycleMetadata,
+): string => template?.id || cycleMetadata?.workflowId || 'default';
+
+/** Creates initial CycleMetadata for a new cycle. */
+const createInitialCycleMetadata = (
+  workflowId: string,
+  cycleDate: string,
+  now: string,
+): CycleMetadata => ({
+  id: `WF-${workflowId}-${cycleDate}`,
+  workflowId,
+  cycleDate,
+  status: 'in-progress',
+  outlookVersions: [{
+    version: 1,
+    status: 'in-progress',
+    createdAt: now,
+  }],
+  createdAt: now,
+  updatedAt: now,
+});
 const COPY_FEATURE_RULES: Record<DayBucket, Record<DayBucket, CopyFeatureRule[]>> = {
   day12: {
     day12: DIRECT_DAY12_COPY_TYPES.map((type) => ({ sourceType: type, targetType: type })),
@@ -155,6 +263,11 @@ const initialState: ForecastState = {
     activeProbability: '2%',
     isSignificant: false
   },
+  customEditor: {
+    mode: 'severe',
+    activeLayerId: null,
+    activeCategoryId: null,
+  },
   currentMapView: {
     center: [39.8283, -98.5795],
     zoom: 4
@@ -162,7 +275,15 @@ const initialState: ForecastState = {
   isSaved: true,
   emergencyMode: false,
   savedCycles: [],
-  historyByDay: {}
+  historyByDay: {},
+  discussionDraftsByScope: {},
+  completionValidation: {
+    lastResult: null,
+    showCompletionModal: false,
+    omittedDays: {},
+  },
+  isWorkflowActive: readStoredWorkflowActive(),
+  outlookVersionSnapshots: [],
 };
 
 // Helpers to keep reducers small and testable
@@ -291,6 +412,13 @@ const cloneOutlookData = (data: OutlookData): OutlookData => {
   };
 };
 
+const cloneCustomLayers = (customLayers?: CustomLayerCollection): CustomLayerCollection | undefined =>
+  customLayers ? cloneJsonValue(customLayers) : undefined;
+
+/** Lifecycle transitions preserve stored custom content even while its editor is hidden. */
+const cloneIntegratedCustomLayers = (customLayers?: CustomLayerCollection): CustomLayerCollection | undefined =>
+  cloneCustomLayers(customLayers);
+
 /** Captures the current day's drawable outlook data and low-probability metadata for history. */
 const getCurrentDaySnapshot = (state: ForecastState): ForecastDaySnapshot | null => {
   const currentDay = state.forecastCycle.currentDay;
@@ -301,6 +429,7 @@ const getCurrentDaySnapshot = (state: ForecastState): ForecastDaySnapshot | null
     day: currentDay,
     data: cloneOutlookData(dayData.data),
     lowProbabilityOutlooks: [...(dayData.metadata.lowProbabilityOutlooks || [])],
+    customLayers: cloneCustomLayers(dayData.customLayers),
   };
 };
 
@@ -315,6 +444,7 @@ const applyDaySnapshot = (state: ForecastState, snapshot: ForecastDaySnapshot) =
   if (!targetDay) return;
 
   targetDay.data = cloneOutlookData(snapshot.data);
+  targetDay.customLayers = cloneCustomLayers(snapshot.customLayers);
   targetDay.metadata.lowProbabilityOutlooks = [...snapshot.lowProbabilityOutlooks];
   targetDay.metadata.lastModified = new Date().toISOString();
 };
@@ -346,6 +476,78 @@ const pushUndoSnapshot = (state: ForecastState) => {
 /** Clears all per-day history stacks when the editing context changes to a new document. */
 const clearHistory = (state: ForecastState) => {
   state.historyByDay = {};
+};
+
+/** Clears stale package completion when forecast package content changes. */
+const invalidateCompletionAcknowledgement = (state: ForecastState) => {
+  if (state.forecastCycle.completionAcknowledgedAt || state.forecastCycle.omittedDayReasons) {
+    delete state.forecastCycle.completionAcknowledgedAt;
+    delete state.forecastCycle.omittedDayReasons;
+  }
+  state.completionValidation.lastResult = null;
+};
+
+interface ApplyRolloverArgs {
+  sourceCycle: ForecastState['savedCycles'][number];
+  sourceDayData: NonNullable<ReturnType<typeof normalizeForecastCycle>['days'][DayType]>;
+  sourceDayNumber: DayType;
+  targetDay: DayType;
+  targetDate: string;
+  workflowTemplate?: WorkflowMetadata;
+}
+
+/** Builds the fresh rollover cycle and copies the requested day into it. */
+const buildRolloverCycle = ({
+  sourceDayData,
+  sourceDayNumber,
+  targetDay,
+  targetDate,
+}: Omit<ApplyRolloverArgs, 'sourceCycle' | 'workflowTemplate'>): ForecastCycle => {
+  const newCycle: ForecastCycle = {
+    days: { [targetDay]: createEmptyOutlook(targetDay) },
+    currentDay: targetDay,
+    cycleDate: targetDate,
+  };
+  const targetDayData = newCycle.days[targetDay];
+  if (targetDayData) {
+    copyCompatibleOutlooks(sourceDayData.data, targetDayData.data, sourceDayNumber, targetDay);
+    targetDayData.customLayers = cloneIntegratedCustomLayers(sourceDayData.customLayers);
+  }
+  return newCycle;
+};
+
+/**
+ * Attaches workflow metadata to the rollover only when a template was passed
+ * or the source cycle was already a workflow cycle. Plain rollovers stay plain.
+ */
+const applyRolloverWorkflowState = (
+  state: ForecastState,
+  { sourceCycle, targetDate, workflowTemplate }: Pick<ApplyRolloverArgs, 'sourceCycle' | 'targetDate' | 'workflowTemplate'>,
+  now: string
+) => {
+  const sourceHadWorkflow = Boolean(sourceCycle.workflowMetadata);
+  if (workflowTemplate || sourceHadWorkflow) {
+    const workflowId = resolveWorkflowId(workflowTemplate, sourceCycle.workflowMetadata);
+    state.workflowMetadata = createInitialCycleMetadata(workflowId, targetDate, now);
+    state.isWorkflowActive = true;
+    writeStoredWorkflowActive(true);
+    state.workflowTemplate = workflowTemplate || getWorkflowTemplateById(workflowId) || undefined;
+    return;
+  }
+  state.workflowMetadata = undefined;
+  state.isWorkflowActive = false;
+  writeStoredWorkflowActive(false);
+  state.workflowTemplate = undefined;
+};
+
+/** Resets the in-memory cycle to a fresh rollover derived from the requested source. */
+const applyRolloverFromPreviousCycle = (state: ForecastState, args: ApplyRolloverArgs) => {
+  clearHistory(state);
+  state.discussionDraftsByScope = {};
+  state.forecastCycle = buildRolloverCycle(args);
+  state.isSaved = false;
+  state.outlookVersionSnapshots = [];
+  applyRolloverWorkflowState(state, args, new Date().toISOString());
 };
 
 /** Ensures low-probability metadata exists before mutating it in reducers. */
@@ -391,6 +593,7 @@ const applyLowProbabilityState = (
     dayData.metadata.lowProbabilityOutlooks = lowProbabilityOutlooks.filter((type) => type !== outlookType);
   }
 
+  invalidateCompletionAcknowledgement(state);
   state.isSaved = false;
 };
 
@@ -469,6 +672,10 @@ export const forecastSlice = createSlice({
       state.drawingState.isSignificant = false;
     },
 
+    ...createCustomLayerReducers(pushUndoSnapshot),
+    ...createCustomCategoryReducers(pushUndoSnapshot),
+    ...createCustomFeatureReducers(pushUndoSnapshot),
+
     addFeature: (state, action: PayloadAction<{ feature: Feature }>) => {
       const feature = action.payload.feature;
       const outlookType = computeOutlookType(feature, state);
@@ -501,6 +708,7 @@ export const forecastSlice = createSlice({
       );
 
       outlookMap.set(probability, [...existingFeatures, featureWithProps]);
+      invalidateCompletionAcknowledgement(state);
       state.isSaved = false;
     },
 
@@ -530,6 +738,7 @@ export const forecastSlice = createSlice({
               ...feature.properties
             }
           };
+          invalidateCompletionAcknowledgement(state);
           state.isSaved = false;
         }
       }
@@ -567,6 +776,7 @@ export const forecastSlice = createSlice({
           outlookMap.delete(probability);
         }
 
+        invalidateCompletionAcknowledgement(state);
         state.isSaved = false;
       }
     },
@@ -587,6 +797,7 @@ export const forecastSlice = createSlice({
       if (tstmFeatures.length > 0) {
         outlooks.categorical.set('TSTM', tstmFeatures);
       }
+      invalidateCompletionAcknowledgement(state);
       state.isSaved = false;
     },
 
@@ -608,6 +819,7 @@ export const forecastSlice = createSlice({
         pushUndoSnapshot(state);
         // @ts-ignore - Dynamic property assignment
         outlookData[outlookType] = map;
+        invalidateCompletionAcknowledgement(state);
         state.isSaved = false;
       }
     },
@@ -619,6 +831,34 @@ export const forecastSlice = createSlice({
       }
 
       outlookData.categorical = action.payload.map;
+      invalidateCompletionAcknowledgement(state);
+      state.isSaved = false;
+    },
+
+    replaceTstmFeatures: (state, action: PayloadAction<{ features: Feature[] }>) => {
+      const outlookData = getCurrentOutlook(state);
+      if (!outlookData.categorical) {
+        return;
+      }
+
+      const normalizedFeatures = action.payload.features.map((feature) =>
+        buildFeatureWithProps(feature, 'categorical', 'TSTM', false)
+      );
+      const existingTstm = outlookData.categorical.get('TSTM') || [];
+
+      if (areTstmFeaturesEqual(existingTstm, normalizedFeatures)) {
+        return;
+      }
+
+      pushUndoSnapshot(state);
+
+      if (normalizedFeatures.length > 0) {
+        outlookData.categorical.set('TSTM', normalizedFeatures);
+      } else {
+        outlookData.categorical.delete('TSTM');
+      }
+
+      invalidateCompletionAcknowledgement(state);
       state.isSaved = false;
     },
 
@@ -628,6 +868,7 @@ export const forecastSlice = createSlice({
 
     resetForecasts: (state) => {
       clearHistory(state);
+      state.discussionDraftsByScope = {};
       // Clear localStorage first
       try {
         localStorage.removeItem('forecastData');
@@ -649,17 +890,49 @@ export const forecastSlice = createSlice({
 
       state.forecastCycle = newCycle;
       state.isSaved = false;
+      state.outlookVersionSnapshots = [];
+      state.workflowMetadata = undefined;
+      state.workflowTemplate = undefined;
+      state.isWorkflowActive = false;
+      writeStoredWorkflowActive(false);
     },
 
     markAsSaved: (state) => {
       state.isSaved = true;
     },
 
+    // Restores the local auto-save snapshot. Same-session restores may retain unpublished drafts.
+    restoreForecastCycle: {
+      reducer: (state, action: PayloadAction<{ cycle: ForecastCycle; preserveDiscussionDrafts?: boolean }>) => {
+        state.forecastCycle = action.payload.cycle;
+        if (!action.payload.preserveDiscussionDrafts) {
+          state.discussionDraftsByScope = {};
+        }
+        clearHistory(state);
+        state.isSaved = true;
+        state.outlookVersionSnapshots = [];
+        state.workflowMetadata = undefined;
+        state.workflowTemplate = undefined;
+        state.isWorkflowActive = false;
+        writeStoredWorkflowActive(false);
+      },
+      prepare: (cycle: ForecastCycle, preserveDiscussionDrafts = false) => ({
+        payload: { cycle, preserveDiscussionDrafts },
+      }),
+    },
+
     // Import forecast data: Now handles Cycle
     importForecastCycle: (state, action: PayloadAction<ForecastCycle>) => {
       state.forecastCycle = action.payload;
+      state.discussionDraftsByScope = {};
       clearHistory(state);
       state.isSaved = true;
+      state.outlookVersionSnapshots = [];
+      // Clear workflow state when importing a plain forecast cycle
+      state.workflowMetadata = undefined;
+      state.workflowTemplate = undefined;
+      state.isWorkflowActive = false;
+      writeStoredWorkflowActive(false);
     },
 
     // Legacy import support (Single day) -> Import into CURRENT day
@@ -700,15 +973,67 @@ export const forecastSlice = createSlice({
       state.isSaved = true;
     },
 
+    // Update an unsaved discussion draft without coupling it to the mounted page.
+    updateDiscussionDraft: (state, action: PayloadAction<{ scopeId: string; draft: DiscussionData }>) => {
+      state.discussionDraftsByScope[action.payload.scopeId] = action.payload.draft;
+    },
+
+    /** Moves unpublished drafts when discussion scopes are combined or reset. */
+    migrateDiscussionDrafts: (state, action: PayloadAction<{ migrations: Record<string, string>; preferScopeId?: string }>) => {
+      const { migrations, preferScopeId } = action.payload;
+      const preferredDraft = preferScopeId ? state.discussionDraftsByScope[preferScopeId] : undefined;
+      const nextDrafts = { ...state.discussionDraftsByScope };
+      const targetsToSources = new Map<string, string[]>();
+
+      Object.entries(migrations).forEach(([fromScopeId, toScopeId]) => {
+        const sources = targetsToSources.get(toScopeId) ?? [];
+        sources.push(fromScopeId);
+        targetsToSources.set(toScopeId, sources);
+      });
+
+      targetsToSources.forEach((fromScopeIds, toScopeId) => {
+        const sourceDrafts = fromScopeIds
+          .map((scopeId) => nextDrafts[scopeId])
+          .filter(Boolean) as DiscussionData[];
+        const mergedDraft = mergeDiscussionDrafts(sourceDrafts, preferredDraft);
+        if (mergedDraft) nextDrafts[toScopeId] = mergedDraft;
+      });
+
+      const removedScopeIds = new Set(Object.keys(migrations));
+      state.discussionDraftsByScope = Object.fromEntries(
+        Object.entries(nextDrafts).filter(([scopeId]) => !removedScopeIds.has(scopeId)),
+      ) as Record<string, DiscussionData>;
+    },
+
     // Update discussion for a specific day
-    updateDiscussion: (state, action: PayloadAction<{ day: DayType; discussion: DiscussionData }>) => {
-      const { day, discussion } = action.payload;
+    updateDiscussion: (state, action: PayloadAction<{ day: DayType; discussion: DiscussionData; scopeId?: string }>) => {
+      const { day, discussion, scopeId } = action.payload;
       const dayData = state.forecastCycle.days[day];
       if (dayData) {
         dayData.discussion = discussion;
         dayData.metadata.lastModified = new Date().toISOString();
+        if (scopeId) {
+          const { [scopeId]: _removed, ...remainingDrafts } = state.discussionDraftsByScope;
+          state.discussionDraftsByScope = remainingDrafts;
+        }
+        invalidateCompletionAcknowledgement(state);
         state.isSaved = false;
       }
+    },
+
+    /** Persists discussion scopes without copying discussion content into each covered day. */
+    setDiscussionGroupings: (state, action: PayloadAction<DiscussionGrouping[]>) => {
+      if (!isValidDiscussionGroupings(action.payload)) return;
+      state.forecastCycle.discussionGroupings = normalizeDiscussionGroupings(action.payload);
+      invalidateCompletionAcknowledgement(state);
+      state.isSaved = false;
+    },
+
+    /** Clears custom discussion scopes and restores workflow or day defaults. */
+    resetDiscussionGroupings: (state) => {
+      state.forecastCycle.discussionGroupings = undefined;
+      invalidateCompletionAcknowledgement(state);
+      state.isSaved = false;
     },
 
     // Cycle History Management
@@ -721,6 +1046,7 @@ export const forecastSlice = createSlice({
         label: action.payload.label,
         forecastCycle: forecastCycleSnapshot,
         stats: countForecastMetrics(forecastCycleSnapshot),
+        workflowMetadata: state.workflowMetadata ? { ...state.workflowMetadata } : undefined,
       };
       state.savedCycles.push(savedCycle);
       state.isSaved = true;
@@ -732,7 +1058,27 @@ export const forecastSlice = createSlice({
       if (savedCycle) {
         state.forecastCycle = cloneForecastCycle(normalizeForecastCycle(savedCycle.forecastCycle));
         clearHistory(state);
+      state.discussionDraftsByScope = {};
         state.isSaved = true;
+        state.outlookVersionSnapshots = [];
+        
+        // Restore or clear workflow metadata
+        if (savedCycle.workflowMetadata) {
+          state.workflowMetadata = savedCycle.workflowMetadata;
+          // Restore the workflow template from the workflowId
+          state.workflowTemplate = getWorkflowTemplateById(savedCycle.workflowMetadata.workflowId) || {
+            id: savedCycle.workflowMetadata.workflowId,
+            label: savedCycle.workflowMetadata.workflowId,
+            groupings: [],
+          };
+          state.isWorkflowActive = true;
+          writeStoredWorkflowActive(true);
+        } else {
+          state.workflowMetadata = undefined;
+          state.workflowTemplate = undefined;
+          state.isWorkflowActive = false;
+          writeStoredWorkflowActive(false);
+        }
       }
     },
 
@@ -767,6 +1113,9 @@ export const forecastSlice = createSlice({
 
       clearOutlookMaps(targetDayData.data);
       copyCompatibleOutlooks(sourceDayData.data, targetDayData.data, sourceDay, targetDay);
+      // Custom layers are grouping-agnostic. Copy replaces the target
+      // collection with a detached clone, just like severe outlook data.
+      targetDayData.customLayers = cloneIntegratedCustomLayers(sourceDayData.customLayers);
 
       targetDayData.metadata.lastModified = new Date().toISOString();
       clearHistory(state);
@@ -804,7 +1153,280 @@ export const forecastSlice = createSlice({
     redoLastEdit: (state) => {
       const dayHistory = getOrCreateDayHistory(state);
       restoreHistoryEntry(dayHistory.redoStack, dayHistory.undoStack, state);
-    }
+    },
+
+    // v2 workflow metadata reducers
+    setWorkflowMetadata: (state, action: PayloadAction<CycleMetadata>) => {
+      state.workflowMetadata = action.payload;
+      state.workflowTemplate = getWorkflowTemplateById(action.payload.workflowId) || state.workflowTemplate;
+      state.isWorkflowActive = true;
+      writeStoredWorkflowActive(true);
+    },
+
+    clearWorkflowMetadata: (state) => {
+      state.workflowMetadata = undefined;
+      state.workflowTemplate = undefined;
+      state.isWorkflowActive = false;
+      writeStoredWorkflowActive(false);
+    },
+
+    setWorkflowTemplate: (state, action: PayloadAction<WorkflowMetadata>) => {
+      state.workflowTemplate = action.payload;
+    },
+
+    importWorkflowPackage: (state, action: PayloadAction<Package>) => {
+      const pkg = action.payload;
+      // Import the first cycle's metadata (packages typically have one cycle)
+      if (pkg.cycles.length > 0) {
+        state.workflowMetadata = pkg.cycles[0];
+        state.isWorkflowActive = true;
+        writeStoredWorkflowActive(true);
+      }
+      if (pkg.metadata) {
+        state.workflowTemplate = getWorkflowTemplateById(pkg.metadata.workflowId) || {
+          id: pkg.metadata.workflowId,
+          label: pkg.metadata.workflowId,
+          groupings: [],
+        };
+      }
+      state.discussionDraftsByScope = {};
+      clearHistory(state);
+      state.isSaved = true;
+      state.outlookVersionSnapshots = [];
+    },
+
+    // Completion validation (WF-03)
+    validateCompletion: (state) => {
+      const result = validateCycleCompletion(
+        state.forecastCycle,
+        getWorkflowValidationGroupings(state.workflowTemplate),
+      );
+      state.completionValidation.lastResult = result;
+      state.completionValidation.omittedDays = {};
+      state.completionValidation.showCompletionModal = true;
+    },
+
+    dismissCompletionModal: (state) => {
+      state.completionValidation.showCompletionModal = false;
+    },
+
+    omitDay: (state, action: PayloadAction<{ day: DayType; reason: string }>) => {
+      const { day, reason } = action.payload;
+      state.completionValidation.omittedDays[day] = reason;
+    },
+
+    completeCycle: (state) => {
+      const completedAt = new Date().toISOString();
+      state.forecastCycle.completionAcknowledgedAt = completedAt;
+      if (state.workflowMetadata) {
+        state.workflowMetadata.status = 'completed';
+        state.workflowMetadata.updatedAt = completedAt;
+        const currentVersion = state.workflowMetadata.outlookVersions[state.workflowMetadata.outlookVersions.length - 1];
+        if (currentVersion?.status === 'in-progress') currentVersion.status = 'completed';
+      }
+      delete state.forecastCycle.omittedDayReasons;
+      delete state.forecastCycle.updateInProgressVersion;
+      state.completionValidation.showCompletionModal = false;
+      state.completionValidation.lastResult = null;
+      state.completionValidation.omittedDays = {};
+      state.isSaved = false;
+    },
+
+    completeWithOmissions: (state) => {
+      const completedAt = new Date().toISOString();
+      state.forecastCycle.completionAcknowledgedAt = completedAt;
+      if (state.workflowMetadata) {
+        state.workflowMetadata.status = 'completed-with-omissions';
+        state.workflowMetadata.updatedAt = completedAt;
+        const currentVersion = state.workflowMetadata.outlookVersions[state.workflowMetadata.outlookVersions.length - 1];
+        if (currentVersion?.status === 'in-progress') currentVersion.status = 'omitted';
+      }
+      state.forecastCycle.omittedDayReasons = { ...state.completionValidation.omittedDays };
+      delete state.forecastCycle.updateInProgressVersion;
+      state.completionValidation.showCompletionModal = false;
+      state.completionValidation.lastResult = null;
+      state.completionValidation.omittedDays = {};
+      state.isSaved = false;
+    },
+
+    clearOmittedDays: (state) => {
+      state.completionValidation.omittedDays = {};
+    },
+
+    // WF-04: Workflow entry, resume, update, and base-cycle actions
+
+    /** Start a new blank cycle with optional workflow metadata. */
+    startBlankCycle: (state, action: PayloadAction<{
+      workflowTemplate?: WorkflowMetadata;
+      cycleDate?: string;
+    }>) => {
+      const { workflowTemplate, cycleDate } = action.payload;
+      clearHistory(state);
+      state.discussionDraftsByScope = {};
+      try {
+        localStorage.removeItem('forecastData');
+      } catch {
+        // Ignore localStorage errors
+      }
+      const today = cycleDate || getLocalCalendarDate();
+      const startDay = getWorkflowStartDay(workflowTemplate);
+      const newCycle: ForecastCycle = {
+        days: { [startDay]: createEmptyOutlook(startDay) },
+        currentDay: startDay,
+        cycleDate: today
+      };
+      state.forecastCycle = newCycle;
+      state.isSaved = false;
+      state.outlookVersionSnapshots = [];
+      
+      if (workflowTemplate) {
+        state.workflowTemplate = workflowTemplate;
+        // Create initial cycle metadata
+        const now = new Date().toISOString();
+        state.workflowMetadata = {
+          id: `WF-${workflowTemplate.id}-${today}`,
+          workflowId: workflowTemplate.id,
+          cycleDate: today,
+          status: 'in-progress',
+          outlookVersions: [{
+            version: 1,
+            status: 'in-progress',
+            createdAt: now,
+          }],
+          createdAt: now,
+          updatedAt: now,
+        };
+        state.isWorkflowActive = true;
+        writeStoredWorkflowActive(true);
+      } else {
+        // Clear stale workflow state when starting without a template
+        state.workflowTemplate = undefined;
+        state.workflowMetadata = undefined;
+        state.isWorkflowActive = false;
+        writeStoredWorkflowActive(false);
+      }
+    },
+
+    /** Resume an incomplete cycle from a saved snapshot, restoring workflow metadata. */
+    resumeIncompleteCycle: (state, action: PayloadAction<{ cycleId: string }>) => {
+      const { cycleId } = action.payload;
+      const savedCycle = state.savedCycles.find((c) => c.id === cycleId);
+      if (!savedCycle) return;
+
+      clearHistory(state);
+      state.discussionDraftsByScope = {};
+      state.forecastCycle = cloneForecastCycle(normalizeForecastCycle(savedCycle.forecastCycle));
+      state.isSaved = true;
+      state.outlookVersionSnapshots = [];
+      
+      // Restore or clear workflow metadata
+      if (savedCycle.workflowMetadata) {
+        state.workflowMetadata = savedCycle.workflowMetadata;
+        // Restore the workflow template from the workflowId
+        state.workflowTemplate = getWorkflowTemplateById(savedCycle.workflowMetadata.workflowId) || {
+          id: savedCycle.workflowMetadata.workflowId,
+          label: savedCycle.workflowMetadata.workflowId,
+          groupings: [],
+        };
+        state.isWorkflowActive = true;
+        writeStoredWorkflowActive(true);
+      } else {
+        state.workflowMetadata = undefined;
+        state.workflowTemplate = undefined;
+        state.isWorkflowActive = false;
+        writeStoredWorkflowActive(false);
+      }
+    },
+
+    /** Create a new outlook version within the current cycle (same-cycle update). */
+    createOutlookUpdate: (state) => {
+      const now = new Date().toISOString();
+
+      // Determine the next version number
+      const currentVersions = state.workflowMetadata?.outlookVersions || [];
+      const nextVersion = currentVersions.length > 0
+        ? Math.max(...currentVersions.map(v => v.version)) + 1
+        : 1;
+
+      // Snapshot every day that has data so full-outlook workflows keep
+      // the whole version side-by-side with the next iteration, not just
+      // the currently selected day.
+      const snapshotDays: typeof state.forecastCycle.days = {};
+      let hasSnapshot = false;
+      (Object.entries(state.forecastCycle.days) as unknown as [DayType, typeof state.forecastCycle.days[DayType]][]).forEach(
+        ([day, dayData]) => {
+          if (!dayData) return;
+          snapshotDays[day] = {
+            ...dayData,
+            data: cloneOutlookData(dayData.data),
+            // Version history must retain the exact geometry and appearance
+            // that existed before the update, not a live reference.
+            customLayers: cloneIntegratedCustomLayers(dayData.customLayers),
+          };
+          hasSnapshot = true;
+        },
+      );
+
+      if (hasSnapshot) {
+        state.outlookVersionSnapshots.push({
+          version: nextVersion - 1, // Snapshot the previous version
+          days: snapshotDays,
+          createdAt: now,
+        });
+      }
+      
+      // Mark previous versions as completed
+      if (state.workflowMetadata) {
+        state.workflowMetadata.outlookVersions.forEach(v => {
+          if (v.status === 'in-progress') {
+            v.status = 'completed';
+          }
+        });
+        
+        // Add new version
+        state.workflowMetadata.outlookVersions.push({
+          version: nextVersion,
+          status: 'in-progress',
+          derivedFrom: nextVersion - 1,
+          createdAt: now,
+        });
+        
+        state.workflowMetadata.status = 'in-progress';
+        state.workflowMetadata.updatedAt = now;
+      }
+      
+      state.forecastCycle.updateInProgressVersion = nextVersion;
+      invalidateCompletionAcknowledgement(state);
+      state.isSaved = false;
+    },
+
+    /** Start a new cycle derived from a previous cycle. */
+    startFromPreviousCycle: (state, action: PayloadAction<{
+      sourceCycleId: string;
+      newCycleDate?: string;
+      sourceDay?: DayType;
+      targetDay?: DayType;
+      workflowTemplate?: WorkflowMetadata;
+    }>) => {
+      const { sourceCycleId, newCycleDate, sourceDay, targetDay = 1, workflowTemplate } = action.payload;
+
+      const sourceCycle = state.savedCycles.find(c => c.id === sourceCycleId);
+      if (!sourceCycle) return;
+
+      const sourceForecastCycle = normalizeForecastCycle(sourceCycle.forecastCycle);
+      const sourceDayNumber = sourceDay ?? sourceForecastCycle.currentDay;
+      const sourceDayData = sourceForecastCycle.days[sourceDayNumber];
+      if (!sourceDayData) return;
+
+      applyRolloverFromPreviousCycle(state, {
+        sourceCycle,
+        sourceDayData,
+        sourceDayNumber,
+        targetDay,
+        targetDate: newCycleDate || getLocalCalendarDate(),
+        workflowTemplate,
+      });
+    },
   }
 });
 
@@ -812,21 +1434,41 @@ export const {
   setActiveOutlookType,
   setActiveProbability,
   toggleSignificant,
+  setCustomEditorMode,
+  selectCustomLayer,
+  selectCustomCategory,
+  addCustomLayer,
+  updateCustomLayerLabel,
+  removeCustomLayer,
+  moveCustomLayer,
+  addCustomCategory,
+  updateCustomCategory,
+  removeCustomCategory,
+  moveCustomCategory,
+  addCustomFeature,
+  updateCustomFeature,
+  removeCustomFeature,
   addFeature,
   updateFeature,
   removeFeature,
   resetCategorical,
   setOutlookMap,
   applyAutoCategoricalSync,
+  replaceTstmFeatures,
   setMapView,
   resetForecasts,
   markAsSaved,
   importForecasts,
+  restoreForecastCycle,
   importForecastCycle,
   setForecastDay,
   setCycleDate,
   setEmergencyMode,
+  updateDiscussionDraft,
+  migrateDiscussionDrafts,
   updateDiscussion,
+  setDiscussionGroupings,
+  resetDiscussionGroupings,
   saveCurrentCycle,
   loadSavedCycle,
   deleteSavedCycle,
@@ -835,7 +1477,21 @@ export const {
   setLowProbability,
   toggleLowProbability,
   undoLastEdit,
-  redoLastEdit
+  redoLastEdit,
+  setWorkflowMetadata,
+  clearWorkflowMetadata,
+  setWorkflowTemplate,
+  importWorkflowPackage,
+  validateCompletion,
+  dismissCompletionModal,
+  omitDay,
+  completeCycle,
+  completeWithOmissions,
+  clearOmittedDays,
+  startBlankCycle,
+  resumeIncompleteCycle,
+  createOutlookUpdate,
+  startFromPreviousCycle,
 } = forecastSlice.actions;
 
 /** Selects the full forecast slice. */
@@ -844,10 +1500,20 @@ export const selectForecast = (state: RootState) => state.forecast;
 export const selectForecastCycle = (state: RootState) => state.forecast.forecastCycle;
 /** Selects the currently active forecast day number. */
 export const selectCurrentDay = (state: RootState) => state.forecast.forecastCycle.currentDay;
+/** Selects one day's unsaved discussion draft, if the editor has changed it. */
+export const selectDiscussionDraftForScope = (state: RootState, scopeId: string) => state.forecast.discussionDraftsByScope[scopeId];
 /** Selects the outlook maps for the active day, falling back to an empty day shape when needed. */
 export const selectCurrentOutlooks = (state: RootState) => {
   const cycle = state.forecast.forecastCycle;
   return cycle.days[cycle.currentDay]?.data || createEmptyOutlook(cycle.currentDay).data;
+};
+const EMPTY_CUSTOM_LAYERS: CustomLayerCollection = {
+  schemaVersion: '1.0.0',
+  layers: [],
+};
+export const selectCurrentCustomLayers = (state: RootState): CustomLayerCollection => {
+  const cycle = state.forecast.forecastCycle;
+  return cycle?.days?.[cycle.currentDay]?.customLayers || EMPTY_CUSTOM_LAYERS;
 };
 /** Selects the outlook maps for a specific day, falling back to an empty day shape when absent. */
 export const selectOutlooksForDay = (state: RootState, day: DayType) => {
@@ -873,6 +1539,45 @@ export const selectIsLowProbability = (state: RootState) => {
   const day = cycle.days[cycle.currentDay];
   const activeType = state.forecast.drawingState.activeOutlookType;
   return day?.metadata?.lowProbabilityOutlooks?.includes(activeType) || false;
+};
+
+/** Selects the last completion validation result. */
+export const selectCompletionValidationResult = (state: RootState) =>
+  state.forecast.completionValidation.lastResult;
+
+/** Selects whether the completion modal is visible. */
+export const selectShowCompletionModal = (state: RootState) =>
+  state.forecast.completionValidation.showCompletionModal;
+
+/** Selects the omitted days map. */
+export const selectOmittedDays = (state: RootState) =>
+  state.forecast.completionValidation.omittedDays;
+
+/** Selects the workflow metadata for the active cycle. */
+export const selectWorkflowMetadata = (state: RootState) =>
+  state.forecast.workflowMetadata;
+
+/** Selects whether a forecast workflow is active across app routes. */
+export const selectIsWorkflowActive = (state: RootState) =>
+  state.forecast.isWorkflowActive;
+
+/** Selects whether the current route should render workflow-specific UI. */
+export const selectHasActiveWorkflow = (state: RootState) =>
+  state.forecast.isWorkflowActive && Boolean(state.forecast.workflowMetadata);
+
+/** Selects the workflow template metadata. */
+export const selectWorkflowTemplate = (state: RootState) =>
+  state.forecast.workflowTemplate;
+
+/** Selects the outlook version snapshots for the active cycle. */
+export const selectOutlookVersionSnapshots = (state: RootState) =>
+  state.forecast.outlookVersionSnapshots;
+
+/** Selects the current version number for the active cycle. */
+export const selectCurrentVersionNumber = (state: RootState) => {
+  const metadata = state.forecast.workflowMetadata;
+  if (!metadata || metadata.outlookVersions.length === 0) return 1;
+  return Math.max(...metadata.outlookVersions.map(v => v.version));
 };
 
 export default forecastSlice.reducer;

@@ -15,16 +15,16 @@ const SelectionSwatch: React.FC<{ controller: ForecastWorkspaceController }> = (
   return (
     <div
       className={cn(
-        'tabbed-integrated-toolbar__selection-swatch flex min-w-[124px] items-center justify-between gap-3 rounded-xl px-3 py-2 shadow-sm transition-opacity',
+        'tabbed-integrated-toolbar__selection-swatch flex min-w-[162px] items-center justify-between gap-4 rounded-xl px-4 py-2 shadow-sm transition-opacity',
         controller.isLowProb && 'opacity-45 grayscale'
       )}
       style={{ backgroundColor: controller.currentColor }}
     >
       <div className="flex min-w-0 flex-row items-center gap-2">
-        <div className={cn('truncate text-base font-semibold leading-tight', isDarkText ? 'text-black' : 'text-white')}>
+        <div className={cn('truncate text-base font-bold leading-tight', isDarkText ? 'text-black' : 'text-white')}>
           {outlookLabels[controller.activeOutlookType]}
         </div>
-        <div className={cn('truncate text-lg font-black leading-tight', isDarkText ? 'text-black' : 'text-white')}>
+        <div className={cn('truncate text-lg font-black leading-tight tabular-nums', isDarkText ? 'text-black' : 'text-white')}>
           {controller.activeProbability}
           {sigSuffix}
         </div>

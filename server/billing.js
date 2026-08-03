@@ -3,10 +3,12 @@
 const Stripe = require('stripe');
 const rateLimit = require('express-rate-limit');
 const { getSubscriptionPeriodEndUnix } = require('./billing-stripe-period');
+const { applyEntitlementWebhookEvent } = require('./billing-webhook-state');
 const { getAdminAuth, getAdminDb, hasFirebaseAdminConfig } = require('./firebase-admin');
 const { getBaseUrl, getBillingRuntimeConfig, getPublicBillingConfig } = require('./billing-config');
 const { recordBillingMetricEvent } = require('./metrics');
-const { deleteStripeCustomer, isAccountDeletionBlocked } = require('./account-lifecycle');
+const { deleteStripeCustomer, isAccountDeletionBlocked, isStripeCustomerDeletionBlocked } = require('./account-lifecycle');
+const { getStripeObjectId, refundDeletedAccountInvoice } = require('./billing-cleanup');
 
 let stripeClient = null;
 const RATE_LIMIT_WINDOW_MS = 60 * 1000;
@@ -89,18 +91,6 @@ const logSkippedEntitlementWrite = ({ uid, stripeCustomerId, stripeSubscriptionI
   });
 };
 
-/** Logs a Firestore entitlement write failure with redacted Stripe identifiers. */
-const logEntitlementWriteError = ({ uid, stripeCustomerId, stripeSubscriptionId, nextPayload, error }) => {
-  console.error('[billing] writeEntitlement:error', {
-    uid: nextPayload.uid || uid,
-    stripeCustomerId: redactIdentifier(stripeCustomerId),
-    stripeSubscriptionId: redactIdentifier(stripeSubscriptionId),
-    billingStatus: nextPayload.billingStatus,
-    planInterval: nextPayload.planInterval,
-    error: error instanceof Error ? error.message : 'Unknown Firestore write failure',
-  });
-};
-
 /** Fetches one entitlement document by UID. */
 const getEntitlementDocByUid = (uid) => {
   const db = getAdminDb();
@@ -174,8 +164,8 @@ const getExistingEntitlementData = async (uid, stripeIds = {}) => {
   return createNewEntitlementTarget(uid);
 };
 
-/** Writes the merged entitlement payload into Firestore. */
-const writeEntitlement = async ({ uid, stripeCustomerId, stripeSubscriptionId, payload }) => {
+/** Writes the merged entitlement payload into Firestore once for the verified webhook event. */
+const writeEntitlement = async ({ uid, stripeCustomerId, stripeSubscriptionId, payload }, event) => {
   console.log('[billing] writeEntitlement:start', {
     uid,
     stripeCustomerId: redactIdentifier(stripeCustomerId),
@@ -187,35 +177,38 @@ const writeEntitlement = async ({ uid, stripeCustomerId, stripeSubscriptionId, p
   const existing = await getExistingEntitlementData(uid, { stripeCustomerId, stripeSubscriptionId });
   if (!existing) {
     logSkippedEntitlementWrite({ uid, stripeCustomerId, stripeSubscriptionId });
-    return { written: false };
+    return { applied: false, reason: 'missing-target' };
   }
 
   const targetUid = uid || existing.data.uid;
   if (!(await canWriteEntitlementForUid(targetUid))) {
     console.warn('[billing] writeEntitlement:skipped-deleted-user', { uid: targetUid });
-    return { written: false };
+    return { applied: false, reason: 'deleted-user' };
   }
 
-  const nextPayload = computeEffectiveEntitlement({
-    ...createBaseEntitlementPayload(uid, existing.data),
-    ...payload,
+  const result = await applyEntitlementWebhookEvent({
+    db: getAdminDb(),
+    entitlementRef: existing.ref,
+    event,
+    buildNextPayload: (currentData) =>
+      computeEffectiveEntitlement({
+        ...createBaseEntitlementPayload(uid, currentData),
+        ...payload,
+      }),
   });
 
-  try {
-    await existing.ref.set(nextPayload, { merge: true });
-  } catch (error) {
-    logEntitlementWriteError({ uid, stripeCustomerId, stripeSubscriptionId, nextPayload, error });
-    throw error;
+  if (!result.applied) {
+    console.log('[billing] writeEntitlement:skipped', { eventId: event.id, reason: result.reason });
+    return result;
   }
 
   console.log('[billing] writeEntitlement:success', {
-    uid: nextPayload.uid,
-    premiumActive: nextPayload.premiumActive,
-    effectiveSource: nextPayload.effectiveSource,
-    billingStatus: nextPayload.billingStatus,
+    uid: result.nextPayload.uid,
+    premiumActive: result.nextPayload.premiumActive,
+    effectiveSource: result.nextPayload.effectiveSource,
+    billingStatus: result.nextPayload.billingStatus,
   });
-
-  return { written: true };
+  return result;
 };
 
 /** Extracts a verified Firebase user from the Authorization header. */
@@ -245,6 +238,7 @@ const verifyRequestUser = async (req, res) => {
 /** Creates the plan-specific Stripe checkout session for the verified user. */
 const isCheckoutAvailable = (stripe, billingConfig) => Boolean(stripe && billingConfig.checkoutEnabled);
 
+/** Checks whether the Stripe customer portal is configured for this site. */
 const isPortalAvailable = (stripe, billingConfig) => Boolean(stripe && billingConfig.hasBaseUrl);
 
 /** Resolves the Stripe price id for the selected billing plan. */
@@ -339,10 +333,6 @@ const handleBillingPortal = async (req, res) => {
 /** Maps Stripe recurring intervals into the entitlement interval shape. */
 const getPlanInterval = (interval) => (interval === 'year' ? 'annual' : 'monthly');
 
-/** Extracts the most reliable UID from an invoice payload. */
-const getInvoiceUid = (invoice) =>
-  invoice.parent?.subscription_details?.metadata?.uid || invoice.subscription_details?.metadata?.uid || '';
-
 /** Normalizes a Stripe API customer id into a nullable string. */
 const getStripeCustomerId = (value) => (typeof value === 'string' ? value : null);
 
@@ -400,41 +390,6 @@ const createSubscriptionEntitlementWrite = (subscription) => {
     payload: createSubscriptionEntitlementPayload(subscription, uid, stripeCustomerId),
   };
 };
-
-/** Builds the entitlement payload for invoice payment events. */
-const createInvoiceEntitlementWrite = (eventType, invoice) => {
-  const uid = getInvoiceUid(invoice);
-  const stripeCustomerId = getStripeCustomerId(invoice.customer);
-  const stripeSubscriptionId = getStripeSubscriptionId(invoice.subscription);
-
-  return {
-    uid,
-    stripeCustomerId,
-    stripeSubscriptionId,
-    payload: {
-      uid,
-      planInterval: getPlanInterval(invoice.lines?.data?.[0]?.price?.recurring?.interval),
-      billingStatus: eventType === 'invoice.paid' ? 'active' : 'past_due',
-      stripeCustomerId,
-      stripeSubscriptionId,
-    },
-  };
-};
-
-/** Applies the checkout-complete event to the entitlement document. */
-const recordBillingMetricEventSafely = async (eventType) => {
-  try {
-    await recordBillingMetricEvent(eventType);
-  } catch (error) {
-    console.warn('[billing] metrics:nonfatal', {
-      eventType,
-      error: error instanceof Error ? error.message : 'Unknown billing metrics failure',
-    });
-  }
-};
-
-/** Returns the Stripe object ID for either an expanded object or a plain ID. */
-const getStripeObjectId = (value) => (typeof value === 'string' ? value : value?.id || '');
 
 /** Returns the first usable Stripe ID from a list of expanded objects or plain IDs. */
 const getFirstStripeObjectId = (values) => values.map(getStripeObjectId).find(Boolean) || '';
@@ -523,9 +478,6 @@ const cleanupBlockedCheckoutSession = async (
   if (!uid) return false;
   if (!stripe) throw new Error('Stripe is not configured for late Checkout cleanup.');
 
-  // Wait for async payment methods to settle before cleaning up. If the
-  // payment is still unpaid, the Checkout session may later complete with a
-  // settled payment reference that we need for the refund.
   if (session.payment_status === 'unpaid') return false;
 
   const subscription = await getCheckoutSubscription(stripe, session);
@@ -541,63 +493,134 @@ const cleanupBlockedCheckoutSession = async (
   return true;
 };
 
-/** Applies the checkout-complete event to the entitlement document. */
-const handleCheckoutSessionCompleted = async (session) => {
-  if (await cleanupBlockedCheckoutSession(session)) return;
-  const result = await writeEntitlement(createCheckoutEntitlementWrite(session));
-  // If the entitlement write was skipped (account deleted between our initial
-  // cleanup check and the write), route through cleanup to refund and remove
-  // the late-created Stripe customer.
-  if (!result?.written && await cleanupBlockedCheckoutSession(session)) return;
-  await recordBillingMetricEventSafely('premium_upgrade');
+/** Records billing metric events with safe error handling. */
+const recordBillingMetricEventSafely = async (eventType) => {
+  try {
+    await recordBillingMetricEvent(eventType);
+  } catch (error) {
+    console.warn('[billing] metrics:nonfatal', {
+      eventType,
+      error: error instanceof Error ? error.message : 'Unknown billing metrics failure',
+    });
+  }
+};
+
+/** Resolves a subscription id or expanded object from a supported webhook payload. */
+const getInvoiceSubscription = (invoice) =>
+  invoice.subscription || invoice.parent?.subscription_details?.subscription || null;
+
+/** Resolves a subscription id or expanded object from a supported webhook payload. */
+const getWebhookSubscription = (event) => {
+  const object = event.data.object;
+  if (event.type.startsWith('customer.subscription.')) {
+    return object;
+  }
+  if (event.type === 'checkout.session.completed') {
+    return object.subscription || null;
+  }
+  return getInvoiceSubscription(object);
+};
+
+/** Retrieves current Stripe lifecycle state for convenience events such as invoices. */
+const resolveAuthoritativeSubscription = async (stripe, event) => {
+  const subscription = getWebhookSubscription(event);
+  if (!subscription) {
+    return null;
+  }
+  if (typeof subscription === 'object') {
+    return subscription;
+  }
+  return stripe.subscriptions.retrieve(subscription);
+};
+
+/** Preserves the checkout UID if Stripe has not copied metadata onto the subscription yet. */
+const withFallbackSubscriptionUid = (subscription, fallbackUid) => ({
+  ...subscription,
+  metadata: {
+    ...(subscription.metadata || {}),
+    ...(subscription.metadata?.uid || !fallbackUid ? {} : { uid: fallbackUid }),
+  },
+});
+
+/** Builds the entitlement write from the checkout session's subscription or session data. */
+const buildCheckoutEntitlementWrite = async (stripe, event, session) => {
+  const subscription = await resolveAuthoritativeSubscription(stripe, event);
+  return subscription
+    ? createSubscriptionEntitlementWrite(withFallbackSubscriptionUid(subscription, session.metadata?.uid))
+    : createCheckoutEntitlementWrite(session);
+};
+
+/** Applies checkout completion using current subscription state when available. */
+const handleCheckoutSessionCompleted = async (event, stripe) => {
+  const session = event.data.object;
+  const cleanupDeps = { stripe: stripe || getStripeClient(), canWrite: canWriteEntitlementForUid, redactIdentifier };
+  if (await cleanupBlockedCheckoutSession(session, cleanupDeps)) return;
+  const entitlementWrite = await buildCheckoutEntitlementWrite(stripe, event, session);
+  const result = await writeEntitlement(entitlementWrite, event);
+  if (!result?.applied && await cleanupBlockedCheckoutSession(session, cleanupDeps)) return;
+  if (result?.applied) await recordBillingMetricEventSafely('premium_upgrade');
 };
 
 /** Applies the subscription lifecycle event to the entitlement document. */
-const handleSubscriptionEvent = async (subscription, eventType) => {
-  const result = await writeEntitlement(createSubscriptionEntitlementWrite(subscription));
-  if (!result?.written) {
+const handleSubscriptionEvent = async (event) => {
+  const result = await writeEntitlement(createSubscriptionEntitlementWrite(event.data.object), event);
+  if (!result?.applied) {
     console.warn('[billing] subscription-event:skipped-deleted-user', {
-      subscriptionId: redactIdentifier(subscription.id),
-      eventType,
+      subscriptionId: redactIdentifier(event.data.object.id),
+      eventType: event.type,
     });
   }
-  if (eventType === 'customer.subscription.deleted') {
+  if (event.type === 'customer.subscription.deleted') {
     await recordBillingMetricEventSafely('premium_cancellation');
   }
 };
 
-/** Applies invoice payment results to the entitlement document. */
-const handleInvoiceEvent = async (eventType, invoice) => {
-  const result = await writeEntitlement(createInvoiceEntitlementWrite(eventType, invoice));
-  // If the entitlement write was blocked by deletion, try to refund the
-  // payment from the invoice and clean up the customer. Errors propagate so
-  // Stripe retries the webhook; the refund uses an idempotency key and
-  // customer deletion already handles resource_missing.
-  if (!result?.written && invoice.payment_intent) {
-    const stripe = getStripeClient();
-    if (stripe) {
-      await stripe.refunds.create(
-        { payment_intent: getStripeObjectId(invoice.payment_intent) },
-        { idempotencyKey: `account-deletion-invoice-refund:${getStripeObjectId(invoice.id)}` },
-      );
-      await deleteStripeCustomer({ stripe, customerId: getStripeObjectId(invoice.customer) });
-    }
+/** Returns the UID from the subscription or invoice metadata. */
+const resolveInvoiceUid = (subscription, invoice) =>
+  getSubscriptionUid(subscription) ||
+  invoice.parent?.subscription_details?.metadata?.uid ||
+  invoice.subscription_details?.metadata?.uid ||
+  '';
+
+/** Checks whether an invoice belongs to a deleted account. */
+const isInvoiceForDeletedAccount = async (subscription, invoice, customerId) => {
+  const uid = resolveInvoiceUid(subscription, invoice);
+  return uid
+    ? isAccountDeletionBlocked(getAdminDb(), uid)
+    : isStripeCustomerDeletionBlocked(getAdminDb(), customerId);
+};
+
+/** Applies invoice notifications from the current authoritative subscription state. */
+const handleInvoiceEvent = async (event, stripe) => {
+  const subscription = await resolveAuthoritativeSubscription(stripe, event);
+  if (!subscription) {
+    console.warn('[billing] invoice:skipped-no-subscription', { eventId: event.id, eventType: event.type });
+    return;
+  }
+  const result = await writeEntitlement(createSubscriptionEntitlementWrite(subscription), event);
+  const invoice = event.data.object;
+  const invoiceStripe = stripe || getStripeClient();
+  const invoiceCustomerId = getStripeObjectId(invoice.customer);
+  const shouldRefund = result?.reason === 'deleted-user' ||
+    (result?.reason === 'missing-target' && await isInvoiceForDeletedAccount(subscription, invoice, invoiceCustomerId));
+  if (shouldRefund) {
+    await refundDeletedAccountInvoice(invoice, { stripe: invoiceStripe, customerId: invoiceCustomerId });
   }
 };
 
 const webhookHandlers = {
-  'checkout.session.completed': (event) => handleCheckoutSessionCompleted(event.data.object),
-  'customer.subscription.updated': (event) => handleSubscriptionEvent(event.data.object, event.type),
-  'customer.subscription.deleted': (event) => handleSubscriptionEvent(event.data.object, event.type),
-  'invoice.paid': (event) => handleInvoiceEvent(event.type, event.data.object),
-  'invoice.payment_failed': (event) => handleInvoiceEvent(event.type, event.data.object),
+  'checkout.session.completed': handleCheckoutSessionCompleted,
+  'customer.subscription.updated': handleSubscriptionEvent,
+  'customer.subscription.deleted': handleSubscriptionEvent,
+  'invoice.paid': handleInvoiceEvent,
+  'invoice.payment_failed': handleInvoiceEvent,
 };
 
 /** Returns the event handler for a Stripe webhook type, if the app cares about it. */
 const getWebhookHandler = (eventType) => webhookHandlers[eventType] || null;
 
 /** Handles checkout completion and subscription lifecycle events from Stripe. */
-const handleWebhookEvent = async (event) => {
+const handleWebhookEvent = async (event, stripe) => {
   console.log('[billing] webhook:event', event.type);
 
   const handler = getWebhookHandler(event.type);
@@ -606,7 +629,7 @@ const handleWebhookEvent = async (event) => {
     return;
   }
 
-  await handler(event);
+  await handler(event, stripe);
 };
 
 /** Writes the public billing config response used by the client. */
@@ -625,7 +648,7 @@ const handleBillingConfig = (_req, res) => {
 const processWebhookRequest = async (req, res, stripe, webhookSecret) => {
   try {
     const event = stripe.webhooks.constructEvent(req.body, req.headers['stripe-signature'], webhookSecret);
-    await handleWebhookEvent(event);
+    await handleWebhookEvent(event, stripe);
     res.status(200).json({ received: true });
   } catch (error) {
     console.error('[billing] webhook:error', error);
@@ -688,4 +711,8 @@ module.exports = {
   cleanupBlockedCheckoutSession,
   getCheckoutRefundTarget,
   registerBillingRoutes,
+  __testing: {
+    handleWebhookEvent,
+    resolveAuthoritativeSubscription,
+  },
 };

@@ -11,15 +11,25 @@ import {
   subscribeToCloudCycles,
 } from '../lib/cloudCyclesService';
 import { GFCForecastSaveData } from '../types/outlooks';
+import type { CycleMetadata } from '../types/workflow';
 import { SavedCycleStats } from '../store/forecastSlice';
 import { queueProductMetric } from '../utils/productMetrics';
+import { readLocalTestAccount } from '../lib/localTestAccount';
+import { trackProductEvent } from '../lib/productAnalytics';
 
 export interface UseCloudCyclesResult {
   cycles: CloudCycleMetadata[];
   currentCloud: CloudCycleContext | null;
   loading: boolean;
   error: string | null;
-  saveCycle: (label: string, cycleDate: string, stats: SavedCycleStats, payload: GFCForecastSaveData) => Promise<boolean>;
+  saveCycle: (
+    label: string,
+    cycleDate: string,
+    stats: SavedCycleStats,
+    payload: GFCForecastSaveData,
+    workflowMetadata?: CycleMetadata,
+    options?: { saveAsNew?: boolean },
+  ) => Promise<boolean>;
   loadCycle: (cycleId: string) => Promise<GFCForecastSaveData | null>;
   deleteCycle: (cycleId: string) => Promise<boolean>;
   renameCycle: (cycleId: string, newLabel: string) => Promise<boolean>;
@@ -32,6 +42,7 @@ export interface UseCloudCyclesResult {
 interface CloudAccessContext {
   userId?: string;
   canWrite: boolean;
+  localFixtureActive: boolean;
 }
 
 interface CloudStateContext {
@@ -45,12 +56,20 @@ interface CloudStateContext {
 }
 
 /** Returns the shared error message for cloud write actions when the user cannot save. */
-function getCloudWriteBlockedMessage({ userId, canWrite }: CloudAccessContext): string {
+function getCloudWriteBlockedMessage({ userId, canWrite, localFixtureActive }: CloudAccessContext): string {
+  if (localFixtureActive) {
+    return 'Cloud cycles are unavailable for local test accounts';
+  }
   if (!userId) {
     return 'Not signed in';
   }
 
   return canWrite ? 'Action not allowed' : 'Premium subscription required to save cloud cycles';
+}
+
+/** Returns whether a hosted cloud mutation is allowed for the current access context. */
+function isCloudMutationAllowed({ userId, canWrite, localFixtureActive }: CloudAccessContext): boolean {
+  return Boolean(userId && canWrite && !localFixtureActive);
 }
 
 /** Returns true when the requested sync state already matches the current cloud context. */
@@ -189,6 +208,17 @@ function useCloudCycleSubscription({
   unsubscribeRef: MutableRefObject<(() => void) | null>;
 }): void {
   useEffect(() => {
+    // Local account fixtures exercise entitlement and UI access without touching
+    // a developer's Firebase project or requiring seeded cloud data.
+    if (readLocalTestAccount()) {
+      setCycles([]);
+      setLoading(false);
+      setError(null);
+      unsubscribeRef.current?.();
+      unsubscribeRef.current = null;
+      return;
+    }
+
     if (!userId) {
       setCycles([]);
       setLoading(false);
@@ -220,6 +250,7 @@ function useCloudCycleSubscription({
 function useCloudCycleMutation<TArgs extends unknown[]>({
   userId,
   canWrite,
+  localFixtureActive,
   setError,
   action,
   onSuccess,
@@ -233,7 +264,7 @@ function useCloudCycleMutation<TArgs extends unknown[]>({
 }) {
   return useCallback(
     async (...args: TArgs): Promise<boolean> => {
-      if (!userId || !canWrite) {
+      if (!isCloudMutationAllowed({ userId, canWrite, localFixtureActive })) {
         setError(blockedMessage);
         return false;
       }
@@ -248,14 +279,43 @@ function useCloudCycleMutation<TArgs extends unknown[]>({
       onSuccess?.(...args);
       return true;
     },
-    [action, blockedMessage, canWrite, fallbackError, onSuccess, setError, userId]
+    [action, blockedMessage, canWrite, fallbackError, localFixtureActive, onSuccess, setError, userId]
   );
+}
+
+/** Returns true when a cloud save can proceed for the current access context. */
+function canSaveCloudCycle({ userId, canWrite, localFixtureActive }: CloudAccessContext): boolean {
+  return Boolean(userId && canWrite && !localFixtureActive);
+}
+
+/** Handles a failed cloud save and updates the active sync state. */
+function handleCloudSaveFailure<T>({
+  result,
+  setError,
+  updateSyncState,
+}: {
+  result: CloudOperationResult<T>;
+  setError: Dispatch<SetStateAction<string | null>>;
+  updateSyncState: (state: CloudSyncState, error?: string) => void;
+}): false {
+  setError(result.error || 'Failed to save cloud cycle');
+  updateSyncState('error', result.error);
+  return false;
+}
+
+/** Marks an existing cloud cycle as saving without adding branching to the save callback. */
+function markExistingCloudCycleSaving(
+  currentCloudRef: CloudStateContext['currentCloudRef'],
+  updateSyncState: CloudStateContext['updateSyncState'],
+): void {
+  if (currentCloudRef.current) updateSyncState('saving');
 }
 
 /** Returns the save callback for hosted cloud cycles. */
 function useCloudSaveCycle({
   userId,
   canWrite,
+  localFixtureActive,
   user,
   currentCloudRef,
   setCurrentCloud,
@@ -270,60 +330,78 @@ function useCloudSaveCycle({
       label: string,
       cycleDate: string,
       stats: SavedCycleStats,
-      payload: GFCForecastSaveData
+      payload: GFCForecastSaveData,
+      workflowMetadata?: CycleMetadata,
+      options?: { saveAsNew?: boolean },
     ): Promise<boolean> => {
-      if (!userId || !canWrite) {
-        setError(getCloudWriteBlockedMessage({ userId, canWrite }));
+      if (!canSaveCloudCycle({ userId, canWrite, localFixtureActive })) {
+        setError(getCloudWriteBlockedMessage({ userId, canWrite, localFixtureActive }));
         return false;
       }
+      const authenticatedUserId = userId as string;
 
       setError(null);
-      if (currentCloudRef.current) {
-        updateSyncState('saving');
-      }
+      markExistingCloudCycleSaving(currentCloudRef, updateSyncState);
 
       const result = await saveCloudCycle({
-        userId,
+        userId: authenticatedUserId,
         label,
         cycleDate,
         stats,
         payload,
-        existingId: currentCloudRef.current?.id,
+        workflowMetadata,
+        existingId: options?.saveAsNew ? undefined : currentCloudRef.current?.id,
       });
 
       if (!result.success) {
-        setError(result.error || 'Failed to save cloud cycle');
-        updateSyncState('error', result.error);
-        return false;
+        return handleCloudSaveFailure({ result, setError, updateSyncState });
       }
 
       if (result.data) {
         setCurrentCloud(createCurrentCloudContext({ id: result.data, label, syncState: 'saved' }));
       }
       queueProductMetric({ event: 'cloud_cycle_saved', user });
+      trackProductEvent('cloud_save_completed');
       updateSyncState('saved');
       return true;
     },
-    [canWrite, currentCloudRef, setCurrentCloud, setError, updateSyncState, user, userId]
+    [canWrite, currentCloudRef, localFixtureActive, setCurrentCloud, setError, updateSyncState, user, userId]
   );
 }
+
+/** Builds the forecast payload handed to the editor after a cloud load. */
+export const buildLoadedCloudForecastPayload = (
+  record: Pick<import('../types/cloudCycles').CloudCycle, 'payload' | 'workflowMetadata'>,
+): GFCForecastSaveData => {
+  if (record.workflowMetadata) {
+    return { ...record.payload, cycleMetadata: record.workflowMetadata };
+  }
+
+  const { cycleMetadata: _staleEmbedded, ...plainPayload } = record.payload;
+  return { ...plainPayload, cycleMetadata: null };
+};
 
 /** Returns the load callback for hosted cloud cycles. */
 function useCloudLoadCycle({
   userId,
+  localFixtureActive,
   user,
   cycles,
   setCurrentCloud,
   setError,
   updateSyncState,
 }: Pick<CloudStateContext, 'cycles' | 'setCurrentCloud' | 'setError' | 'updateSyncState'> &
-  Pick<CloudAccessContext, 'userId'> & {
+  Pick<CloudAccessContext, 'userId' | 'localFixtureActive'> & {
     user: ReturnType<typeof useAuth>['user'];
   }) {
   return useCallback(
     async (cycleId: string): Promise<GFCForecastSaveData | null> => {
       if (!userId) {
         setError('Not signed in');
+        return null;
+      }
+      if (localFixtureActive) {
+        setError('Cloud cycles are unavailable for local test accounts');
         return null;
       }
 
@@ -340,9 +418,9 @@ function useCloudLoadCycle({
       syncLoadedCloudSelection({ cycles, cycleId, setCurrentCloud });
       queueProductMetric({ event: 'cloud_cycle_loaded', user });
       updateSyncState('saved');
-      return result.data.payload;
+      return buildLoadedCloudForecastPayload(result.data);
     },
-    [cycles, setCurrentCloud, setError, updateSyncState, user, userId]
+    [cycles, localFixtureActive, setCurrentCloud, setError, updateSyncState, user, userId]
   );
 }
 
@@ -350,6 +428,7 @@ function useCloudLoadCycle({
 function useCloudDeleteCycle({
   userId,
   canWrite,
+  localFixtureActive,
   currentCloudRef,
   setCurrentCloud,
   setError,
@@ -357,6 +436,7 @@ function useCloudDeleteCycle({
   return useCloudCycleMutation<[string]>({
     userId,
     canWrite,
+    localFixtureActive,
     setError,
     fallbackError: 'Failed to delete cloud cycle',
     action: (cycleId) => {
@@ -376,6 +456,7 @@ function useCloudDeleteCycle({
 function useCloudRenameCycle({
   userId,
   canWrite,
+  localFixtureActive,
   currentCloudRef,
   setCurrentCloud,
   setError,
@@ -383,6 +464,7 @@ function useCloudRenameCycle({
   return useCloudCycleMutation<[string, string]>({
     userId,
     canWrite,
+    localFixtureActive,
     setError,
     fallbackError: 'Failed to rename cloud cycle',
     action: (cycleId, newLabel) => {
@@ -401,12 +483,13 @@ function useCloudRenameCycle({
 /** Returns the explicit refresh callback for cloud-cycle metadata. */
 function useCloudRefreshCycles({
   userId,
+  localFixtureActive,
   setCycles,
   setError,
   setLoading,
-}: Pick<CloudStateContext, 'setCycles' | 'setError' | 'setLoading'> & Pick<CloudAccessContext, 'userId'>) {
+}: Pick<CloudStateContext, 'setCycles' | 'setError' | 'setLoading'> & Pick<CloudAccessContext, 'userId' | 'localFixtureActive'>) {
   return useCallback(async (): Promise<void> => {
-    if (!userId) {
+    if (!userId || localFixtureActive) {
       return;
     }
 
@@ -418,7 +501,7 @@ function useCloudRefreshCycles({
       setError(result.error || 'Failed to refresh cloud cycles');
     }
     setLoading(false);
-  }, [setCycles, setError, setLoading, userId]);
+  }, [localFixtureActive, setCycles, setError, setLoading, userId]);
 }
 
 /** Creates the hosted cloud-cycle CRUD callbacks used by the forecast and library pages. */
@@ -514,6 +597,7 @@ export const useCloudCycles = (): UseCloudCyclesResult => {
   const unsubscribeRef = useRef<(() => void) | null>(null);
   const currentCloudRef = useCurrentCloudRef(currentCloud);
   const canWrite = premiumActive;
+  const localFixtureActive = Boolean(readLocalTestAccount());
 
   useResetCloudStateOnSignOut({
     userId: user?.uid,
@@ -538,6 +622,7 @@ export const useCloudCycles = (): UseCloudCyclesResult => {
   const operations = useCloudCycleOperations({
     userId: user?.uid,
     canWrite,
+    localFixtureActive,
     user,
     cycles,
     currentCloudRef,

@@ -3,7 +3,7 @@ import { Provider } from 'react-redux';
 import { act, render, waitFor } from '@testing-library/react';
 import { configureStore } from '@reduxjs/toolkit';
 import forecastReducer, { setMapView, setCycleDate } from '../store/forecastSlice';
-import { useAutoSave } from './useAutoSave';
+import { clearAutoSave, migrateLegacyAutoSave, pickNewestAutoSaveValue, selectPreferredAutoSaveValue, useAutoSave } from './useAutoSave';
 import { serializeForecast } from '../utils/fileUtils';
 
 jest.mock('../utils/fileUtils', () => ({
@@ -31,6 +31,63 @@ describe('useAutoSave', () => {
 
   afterEach(() => {
     jest.useRealTimers();
+  });
+
+  test('migrates the legacy anonymous autosave into a signed-in scope', () => {
+    localStorage.setItem('forecastData', JSON.stringify({ legacy: true }));
+
+    migrateLegacyAutoSave('user/1');
+
+    expect(localStorage.getItem('forecastData')).toBeNull();
+    expect(localStorage.getItem('forecastData:user-user%2F1')).toBe(JSON.stringify({ legacy: true }));
+  });
+
+  test('persists live in-memory edits instead of migrating a stale legacy snapshot', () => {
+    localStorage.setItem('forecastData', JSON.stringify({ legacy: true, timestamp: '2026-07-13T00:00:00.000Z' }));
+
+    migrateLegacyAutoSave('user-1', { live: true, unsaved: 'edit', timestamp: '2026-07-14T00:00:00.000Z' });
+
+    expect(localStorage.getItem('forecastData')).toBeNull();
+    expect(localStorage.getItem('forecastData:user-user-1')).toBe(JSON.stringify({ live: true, unsaved: 'edit', timestamp: '2026-07-14T00:00:00.000Z' }));
+  });
+
+  test('does not promote anonymous live state over an existing account autosave on sign-in', () => {
+    localStorage.setItem('forecastData', JSON.stringify({ legacy: true, timestamp: '2026-07-14T12:00:00.000Z' }));
+    localStorage.setItem('forecastData:user-user-1', JSON.stringify({ account: true, timestamp: '2026-07-13T12:00:00.000Z' }));
+
+    migrateLegacyAutoSave('user-1', { live: true, timestamp: '2026-07-14T11:00:00.000Z' });
+
+    expect(localStorage.getItem('forecastData')).toBe(JSON.stringify({ legacy: true, timestamp: '2026-07-14T12:00:00.000Z' }));
+    expect(localStorage.getItem('forecastData:user-user-1')).toBe(JSON.stringify({ account: true, timestamp: '2026-07-13T12:00:00.000Z' }));
+  });
+
+  test('selectPreferredAutoSaveValue keeps account autosave over legacy copies', () => {
+    const scoped = JSON.stringify({ account: true, timestamp: '2026-07-13T12:00:00.000Z' });
+    const legacy = JSON.stringify({ legacy: true, timestamp: '2026-07-14T12:00:00.000Z' });
+
+    expect(selectPreferredAutoSaveValue(scoped, legacy)).toBe(scoped);
+    expect(selectPreferredAutoSaveValue(null, legacy)).toBe(legacy);
+    expect(pickNewestAutoSaveValue(scoped, legacy, JSON.stringify({ live: true, timestamp: '2026-07-14T11:00:00.000Z' }))).toBe(legacy);
+  });
+
+  test('clears the active account autosave and legacy fallback for a fresh workflow', () => {
+    localStorage.setItem('forecastData:user-user-1', JSON.stringify({ account: true }));
+    localStorage.setItem('forecastData', JSON.stringify({ legacy: true }));
+
+    clearAutoSave('user-1');
+
+    expect(localStorage.getItem('forecastData:user-user-1')).toBeNull();
+    expect(localStorage.getItem('forecastData')).toBeNull();
+  });
+
+  test('does not overwrite an existing signed-in autosave during migration', () => {
+    localStorage.setItem('forecastData', JSON.stringify({ legacy: true }));
+    localStorage.setItem('forecastData:user-user-1', JSON.stringify({ account: true }));
+
+    migrateLegacyAutoSave('user-1');
+
+    expect(localStorage.getItem('forecastData')).toBe(JSON.stringify({ legacy: true }));
+    expect(localStorage.getItem('forecastData:user-user-1')).toBe(JSON.stringify({ account: true }));
   });
 
   test('skips initial render, then debounces forecast saves to localStorage', async () => {

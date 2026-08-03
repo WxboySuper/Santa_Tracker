@@ -9,6 +9,7 @@ import { useAuth } from '../auth/AuthProvider';
 import { useEntitlement } from '../billing/EntitlementProvider';
 import { useCloudCycles } from '../hooks/useCloudCycles';
 import { CloudCycleMetadata } from '../types/cloudCycles';
+import { getScopedStorageKey, getStorageScope } from '../utils/storageScope';
 import './CloudLibraryPage.css';
 
 /** Formats cloud-cycle timestamps for the library surface. */
@@ -620,6 +621,7 @@ const useCloudLibraryActions = ({
   renameCycle,
   refreshCycles,
   navigate,
+  userId,
 }: {
   cycles: CloudCycleMetadata[];
   loadCycle: ReturnType<typeof useCloudCycles>['loadCycle'];
@@ -627,15 +629,18 @@ const useCloudLibraryActions = ({
   renameCycle: ReturnType<typeof useCloudCycles>['renameCycle'];
   refreshCycles: ReturnType<typeof useCloudCycles>['refreshCycles'];
   navigate: ReturnType<typeof useNavigate>;
+  userId?: string;
 }): CloudLibraryActions => {
+  const payloadKey = getScopedStorageKey('cloudCyclePayload', getStorageScope(userId));
+  const metaKey = getScopedStorageKey('cloudCycleMeta', getStorageScope(userId));
   const [message, setMessage] = useState<string | null>(null);
 
   const persistCloudCycleToSession = useCallback(
     (cycleId: string, label: string, payload: unknown): boolean => {
       try {
-        sessionStorage.setItem('cloudCyclePayload', JSON.stringify(payload));
+        sessionStorage.setItem(payloadKey, JSON.stringify(payload));
         sessionStorage.setItem(
-          'cloudCycleMeta',
+          metaKey,
           JSON.stringify({
             id: cycleId,
             label,
@@ -647,7 +652,7 @@ const useCloudLibraryActions = ({
         return false;
       }
     },
-    []
+    [metaKey, payloadKey]
   );
 
   /** Loads one hosted cycle into the forecast editor and preserves its cloud metadata in session storage. */
@@ -712,6 +717,7 @@ const CloudLibraryPage: React.FC = () => {
     renameCycle,
     refreshCycles,
     navigate,
+    userId: user?.uid,
   });
 
   const canWrite = premiumActive;

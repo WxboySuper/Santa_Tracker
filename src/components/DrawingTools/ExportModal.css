@@ -11,6 +11,10 @@
   z-index: 1000;
 }
 
+.export-modal-overlay--stacked {
+  z-index: 10000;
+}
+
 .export-modal {
   background-color: white;
   padding: 20px;

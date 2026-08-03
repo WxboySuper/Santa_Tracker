@@ -49,6 +49,7 @@ greptile-comment.txt
 .vscode
 
 .playwright-mcp
+.playwright-cli/
 
 # Playwright
 /playwright-report/
@@ -66,6 +67,9 @@ night-watch.config.json
 /instructions
 
 .env
+
+# Local security scan artifacts (never commit)
+/.deepsec/
 
 # Development server files (dev-only, never commit)
 /server/local-auth.js

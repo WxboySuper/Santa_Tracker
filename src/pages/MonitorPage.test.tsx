@@ -6,7 +6,6 @@ import MonitorPage from './MonitorPage';
 import monitorReducer from '../store/monitorSlice';
 import forecastReducer from '../store/forecastSlice';
 import themeReducer from '../store/themeSlice';
-import featureFlagsReducer from '../store/featureFlagsSlice';
 import { DEFAULT_MONITOR_SETTINGS } from '../monitor/types';
 
 const addToast = jest.fn();
@@ -64,7 +63,7 @@ jest.mock('../monitor/useRadarSiteOptions', () => ({
   }),
 }));
 
-jest.mock('../components/Monitor/MonitorMap', () => () => <div data-testid="monitor-map-stub" />);
+jest.mock('../monitor/components/MonitorMap', () => () => <div data-testid="monitor-map-stub" />);
 
 const renderMonitorPage = () => {
   const store = configureStore({
@@ -72,7 +71,6 @@ const renderMonitorPage = () => {
       monitor: monitorReducer,
       forecast: forecastReducer,
       theme: themeReducer,
-      featureFlags: featureFlagsReducer,
     },
     preloadedState: {
       monitor: {

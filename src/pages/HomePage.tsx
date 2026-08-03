@@ -9,6 +9,11 @@ import HomeConceptPage from './home/HomeConceptPage';
 import './HomePage.css';
 import useHomePageLogic from './home/useHomePageLogic';
 import AIDisclosure from './home/AIDisclosure';
+import { useWorkflowAwareness } from '../hooks/useWorkflowAwarenessSync';
+import type { WorkflowAwarenessRecommendation } from '../types/workflowAwareness';
+import { isFeatureExposed } from '../config/featureExposure';
+
+const FORECAST_IMPORT_ACCEPT = isFeatureExposed('customProducts') ? '.json,.zip' : '.json';
 
 type HomeLogic = ReturnType<typeof useHomePageLogic>;
 
@@ -19,6 +24,8 @@ type HomeSectionProps = Pick<
   | 'formattedDate'
   | 'savedCycles'
   | 'forecastCycle'
+  | 'workflowMetadata'
+  | 'hasActiveWorkflow'
   | 'isSaved'
   | 'handleNavigateForecast'
   | 'handleNavigateDiscussion'
@@ -26,6 +33,8 @@ type HomeSectionProps = Pick<
   | 'handleOpenHistoryModal'
   | 'handleQuickStartClick'
   | 'handleNewCycle'
+  | 'handleStartWorkflow'
+  | 'handleCreateWorkflowUpdate'
   | 'handleSave'
   | 'openFilePicker'
   | 'handleLoadRecentCycleClick'
@@ -38,6 +47,8 @@ const HomeSignedInSection: React.FC<HomeSectionProps> = ({
   formattedDate,
   savedCycles,
   forecastCycle,
+  workflowMetadata,
+  hasActiveWorkflow,
   isSaved,
   handleNavigateForecast,
   handleNavigateDiscussion,
@@ -45,6 +56,8 @@ const HomeSignedInSection: React.FC<HomeSectionProps> = ({
   handleOpenHistoryModal,
   handleQuickStartClick,
   handleNewCycle,
+  handleStartWorkflow,
+  handleCreateWorkflowUpdate,
   handleSave,
   openFilePicker,
   handleLoadRecentCycleClick,
@@ -69,9 +82,13 @@ const HomeSignedInSection: React.FC<HomeSectionProps> = ({
           formattedDate={formattedDate}
           isSaved={isSaved}
           forecastCycle={forecastCycle}
+          workflowMetadata={workflowMetadata}
+          hasActiveWorkflow={hasActiveWorkflow}
           stats={stats}
           onQuickStartClick={handleQuickStartClick}
           onNewCycle={handleNewCycle}
+          onStartWorkflow={handleStartWorkflow}
+          onCreateWorkflowUpdate={handleCreateWorkflowUpdate}
           onSave={handleSave}
           onOpenFile={openFilePicker}
           onOpenHistory={handleOpenHistoryModal}
@@ -104,6 +121,8 @@ const HomeSignedOutSection: React.FC<HomeSectionProps> = ({
   formattedDate,
   savedCycles,
   forecastCycle,
+  workflowMetadata,
+  hasActiveWorkflow,
   isSaved,
   handleNavigateForecast,
   handleNavigateDiscussion,
@@ -111,6 +130,8 @@ const HomeSignedOutSection: React.FC<HomeSectionProps> = ({
   handleOpenHistoryModal,
   handleQuickStartClick,
   handleNewCycle,
+  handleStartWorkflow,
+  handleCreateWorkflowUpdate,
   handleSave,
   openFilePicker,
   handleLoadRecentCycleClick,
@@ -134,9 +155,13 @@ const HomeSignedOutSection: React.FC<HomeSectionProps> = ({
           formattedDate={formattedDate}
           isSaved={isSaved}
           forecastCycle={forecastCycle}
+          workflowMetadata={workflowMetadata}
+          hasActiveWorkflow={hasActiveWorkflow}
           stats={stats}
           onQuickStartClick={handleQuickStartClick}
           onNewCycle={handleNewCycle}
+          onStartWorkflow={handleStartWorkflow}
+          onCreateWorkflowUpdate={handleCreateWorkflowUpdate}
           onSave={handleSave}
           onOpenFile={openFilePicker}
           onOpenHistory={handleOpenHistoryModal}
@@ -179,6 +204,8 @@ const LegacyHomePage: React.FC<{ logic: HomeLogic }> = ({ logic }) => {
     handleNewCycle,
     savedCycles,
     forecastCycle,
+    workflowMetadata,
+    hasActiveWorkflow,
     isSaved,
   } = logic;
 
@@ -192,6 +219,8 @@ const LegacyHomePage: React.FC<{ logic: HomeLogic }> = ({ logic }) => {
             formattedDate={formattedDate}
             savedCycles={savedCycles}
             forecastCycle={forecastCycle}
+            workflowMetadata={workflowMetadata}
+            hasActiveWorkflow={hasActiveWorkflow}
             isSaved={isSaved}
             handleNavigateForecast={handleNavigateForecast}
             handleNavigateDiscussion={handleNavigateDiscussion}
@@ -199,6 +228,8 @@ const LegacyHomePage: React.FC<{ logic: HomeLogic }> = ({ logic }) => {
             handleOpenHistoryModal={handleOpenHistoryModal}
             handleQuickStartClick={handleQuickStartClick}
             handleNewCycle={handleNewCycle}
+            handleStartWorkflow={logic.handleStartWorkflow}
+            handleCreateWorkflowUpdate={logic.handleCreateWorkflowUpdate}
             handleSave={handleSave}
             openFilePicker={openFilePicker}
             handleLoadRecentCycleClick={handleLoadRecentCycleClick}
@@ -210,6 +241,8 @@ const LegacyHomePage: React.FC<{ logic: HomeLogic }> = ({ logic }) => {
             formattedDate={formattedDate}
             savedCycles={savedCycles}
             forecastCycle={forecastCycle}
+            workflowMetadata={workflowMetadata}
+            hasActiveWorkflow={hasActiveWorkflow}
             isSaved={isSaved}
             handleNavigateForecast={handleNavigateForecast}
             handleNavigateDiscussion={handleNavigateDiscussion}
@@ -217,6 +250,8 @@ const LegacyHomePage: React.FC<{ logic: HomeLogic }> = ({ logic }) => {
             handleOpenHistoryModal={handleOpenHistoryModal}
             handleQuickStartClick={handleQuickStartClick}
             handleNewCycle={handleNewCycle}
+            handleStartWorkflow={logic.handleStartWorkflow}
+            handleCreateWorkflowUpdate={logic.handleCreateWorkflowUpdate}
             handleSave={handleSave}
             openFilePicker={openFilePicker}
             handleLoadRecentCycleClick={handleLoadRecentCycleClick}
@@ -226,24 +261,68 @@ const LegacyHomePage: React.FC<{ logic: HomeLogic }> = ({ logic }) => {
         <AIDisclosure />
       </div>
 
-      <input ref={fileInputRef} type="file" accept=".json" onChange={handleFileSelect} className="hidden" />
+      <input ref={fileInputRef} type="file" accept={FORECAST_IMPORT_ACCEPT} onChange={handleFileSelect} className="hidden" />
 
       <CycleHistoryModal isOpen={showHistoryModal} onClose={handleCloseHistoryModal} />
       <ConfirmationModal
         isOpen={confirmNewCycle}
-        title="Start New Cycle"
-        message="You have unsaved changes. Start a new cycle anyway?"
+        title={logic.pendingWorkflow ? 'Start Workflow' : 'Start Blank Cycle'}
+        message={logic.pendingWorkflow
+          ? `You have unsaved changes. Start the ${logic.pendingWorkflow.label} workflow and discard the current changes?`
+          : 'You have unsaved changes. Start a blank forecast cycle and discard the current changes?'}
         onConfirm={handleConfirmNewCycle}
         onCancel={handleCancelNewCycle}
-        confirmLabel="Start New Cycle"
+        confirmLabel={logic.pendingWorkflow ? 'Start Workflow' : 'Start Blank Cycle'}
       />
     </div>
+  );
+};
+
+/** Shows metadata-only awareness recommendations only when a local cycle can restore them. */
+const AwarenessRecommendations: React.FC<{
+  recommendations: WorkflowAwarenessRecommendation[];
+  savedCycles: HomeLogic['savedCycles'];
+  activeWorkflowId?: string;
+  onRestore: (savedCycleId?: string) => void;
+}> = ({ recommendations, savedCycles, activeWorkflowId, onRestore }) => {
+  const visibleRecommendations = recommendations.filter((recommendation) =>
+    recommendation.cycleId === activeWorkflowId
+    || savedCycles.some((cycle) => cycle.workflowMetadata?.id === recommendation.cycleId),
+  );
+
+  if (visibleRecommendations.length === 0) return null;
+
+  return (
+    <section className="home-surface-card p-4" aria-labelledby="workflow-awareness-recommendations">
+      <h2 id="workflow-awareness-recommendations" className="text-lg font-semibold">Continue a workflow</h2>
+      <p className="mt-1 text-sm text-muted-foreground">Metadata awareness found unfinished work. Nothing was downloaded from the cloud.</p>
+      <div className="mt-3 grid gap-2">
+        {visibleRecommendations.slice(0, 3).map((recommendation) => {
+          const localCycle = savedCycles.find((cycle) => cycle.workflowMetadata?.id === recommendation.cycleId);
+          return (
+            <button
+              type="button"
+              key={recommendation.cycleId}
+              className="flex items-center justify-between rounded-md border p-3 text-left hover:bg-muted/40"
+              onClick={() => onRestore(localCycle?.id)}
+            >
+              <span>
+                <strong>{recommendation.workflowId}</strong>
+                <small className="block text-muted-foreground">Cycle {recommendation.cycleDate}</small>
+              </span>
+              <span className="text-sm text-primary">{localCycle ? 'Restore local cycle' : 'Open editor'}</span>
+            </button>
+          );
+        })}
+      </div>
+    </section>
   );
 };
 
 /** Home route that can render either the current concept or classic fallback. */
 const HomePage: React.FC = () => {
   const logic = useHomePageLogic();
+  const { recommendations } = useWorkflowAwareness();
   const {
     variant,
     formattedDate,
@@ -261,8 +340,25 @@ const HomePage: React.FC = () => {
     handleNewCycle,
     savedCycles,
     forecastCycle,
+    workflowMetadata,
+    hasActiveWorkflow,
     isSaved,
   } = logic;
+
+  /** Restores a matching local cycle, or opens the editor when none is available. */
+  const handleAwarenessRestore = (savedCycleId?: string) => {
+    if (savedCycleId) {
+      if (logic.handleRestoreSavedCycle) {
+        logic.handleRestoreSavedCycle(savedCycleId);
+        return;
+      }
+      logic.handleLoadRecentCycleClick({
+        currentTarget: { dataset: { cycleId: savedCycleId } },
+      } as unknown as React.MouseEvent<HTMLButtonElement>);
+      return;
+    }
+    logic.handleNavigateForecast();
+  };
 
   const isClassicHome = typeof window !== 'undefined'
     && new URLSearchParams(window.location.search).get('home') === 'classic';
@@ -273,28 +369,44 @@ const HomePage: React.FC = () => {
 
   return (
     <div className="h-full overflow-auto bg-background">
+      <div className="mx-auto grid max-w-6xl gap-4 px-4 pt-4">
+        <AwarenessRecommendations
+          recommendations={recommendations}
+          savedCycles={savedCycles}
+          activeWorkflowId={workflowMetadata?.id}
+          onRestore={handleAwarenessRestore}
+        />
+      </div>
       <HomeConceptPage
         variant={variant}
         formattedDate={formattedDate}
         savedCycles={savedCycles}
         forecastCycle={forecastCycle}
+        workflowMetadata={workflowMetadata}
+        workflowEnabled={logic.workflowEnabled ?? true}
+        hasActiveWorkflow={hasActiveWorkflow}
         isSaved={isSaved}
         onResumeForecast={handleNavigateForecast}
+        onWriteDiscussion={logic.handleNavigateDiscussion}
         onOpenHistory={logic.handleOpenHistoryModal}
         onOpenFile={openFilePicker}
         onNewCycle={handleNewCycle}
+        onStartWorkflow={logic.handleStartWorkflow}
+        onCreateWorkflowUpdate={logic.handleCreateWorkflowUpdate}
         onLoadRecentCycle={handleLoadRecentCycleClick}
         onNavigateAccount={handleNavigateAccount}
       />
-      <input ref={fileInputRef} type="file" accept=".json" onChange={handleFileSelect} className="hidden" />
+      <input ref={fileInputRef} type="file" accept={FORECAST_IMPORT_ACCEPT} onChange={handleFileSelect} className="hidden" />
       <CycleHistoryModal isOpen={showHistoryModal} onClose={handleCloseHistoryModal} />
       <ConfirmationModal
         isOpen={confirmNewCycle}
-        title="Start New Cycle"
-        message="You have unsaved changes. Start a new cycle anyway?"
+        title={logic.pendingWorkflow ? 'Start Workflow' : 'Start Blank Cycle'}
+        message={logic.pendingWorkflow
+          ? `You have unsaved changes. Start the ${logic.pendingWorkflow.label} workflow and discard the current changes?`
+          : 'You have unsaved changes. Start a blank forecast cycle and discard the current changes?'}
         onConfirm={handleConfirmNewCycle}
         onCancel={handleCancelNewCycle}
-        confirmLabel="Start New Cycle"
+        confirmLabel={logic.pendingWorkflow ? 'Start Workflow' : 'Start Blank Cycle'}
       />
     </div>
   );

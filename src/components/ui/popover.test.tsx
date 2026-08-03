@@ -6,7 +6,7 @@ import {
   type ReactNode,
 } from 'react';
 import { render, screen } from '@testing-library/react';
-import { Popover, PopoverAnchor, PopoverContent, PopoverTrigger } from './popover';
+import { POPOVER_Z_INDEX, Popover, PopoverAnchor, PopoverContent, PopoverTrigger } from './popover';
 
 jest.mock('@radix-ui/react-popover', () => {
   return {
@@ -46,14 +46,17 @@ describe('Popover components', () => {
     expect(screen.getByText('Content')).toHaveAttribute('data-align', 'center');
     expect(screen.getByText('Content')).toHaveAttribute('data-side-offset', '4');
     expect(screen.getByText('Content')).toHaveClass('z-dropdown', 'w-72');
+    expect(screen.getByText('Content')).toHaveStyle({ zIndex: String(POPOVER_Z_INDEX) });
+    expect(POPOVER_Z_INDEX).toBeGreaterThan(1400);
     expect(ref.current).toBe(screen.getByText('Content'));
   });
 
   it('allows custom alignment, offset, and classes', () => {
-    render(<PopoverContent align="start" sideOffset={12} className="extra">Menu</PopoverContent>);
+    render(<PopoverContent align="start" sideOffset={12} className="extra" style={{ width: 300, zIndex: 1 }}>Menu</PopoverContent>);
 
     expect(screen.getByText('Menu')).toHaveAttribute('data-align', 'start');
     expect(screen.getByText('Menu')).toHaveAttribute('data-side-offset', '12');
     expect(screen.getByText('Menu')).toHaveClass('extra');
+    expect(screen.getByText('Menu')).toHaveStyle({ width: '300px', zIndex: String(POPOVER_Z_INDEX) });
   });
 });

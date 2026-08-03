@@ -4,7 +4,6 @@ import { configureStore } from '@reduxjs/toolkit';
 import { AuthProvider, useAuth } from './AuthProvider';
 import themeReducer from '../store/themeSlice';
 import overlaysReducer from '../store/overlaysSlice';
-import featureFlagsReducer from '../store/featureFlagsSlice';
 
 // Mock firebase auth completely - starts as signed_out when no user
 jest.mock('../lib/firebase', () => ({
@@ -30,7 +29,6 @@ const createMockStore = () => configureStore({
   reducer: {
     theme: themeReducer,
     overlays: overlaysReducer,
-    featureFlags: featureFlagsReducer,
   },
 });
 

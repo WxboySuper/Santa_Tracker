@@ -1,0 +1,40 @@
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      POSTGRES_DB: umami
+      POSTGRES_USER: umami
+      TZ: UTC
+    volumes:
+      - umami-db:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U umami -d umami']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks: [umami]
+
+  umami:
+    image: docker.umami.is/umami-software/umami:postgresql-latest
+    restart: unless-stopped
+    env_file: .env
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DISABLE_TELEMETRY: '1'
+      PRIVATE_MODE: '1'
+      FORCE_SSL: '1'
+      REMOVE_TRAILING_SLASH: '1'
+    ports:
+      - '127.0.0.1:3009:3000'
+    networks: [umami]
+
+volumes:
+  umami-db:
+
+networks:
+  umami:
+    driver: bridge

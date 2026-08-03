@@ -26,30 +26,68 @@ const DialogOverlay = React.forwardRef<
 ));
 DialogOverlay.displayName = DialogPrimitive.Overlay.displayName;
 
+const DIALOG_FOOTER_DISPLAY_NAME = 'DialogFooter';
+
+/** Returns true when a dialog child is the shared footer shell. */
+const isDialogFooter = (child: React.ReactNode): boolean => (
+  React.isValidElement(child)
+  && (child.type as { displayName?: string }).displayName === DIALOG_FOOTER_DISPLAY_NAME
+);
+
+/** Splits dialog body content from footers so action buttons stay pinned while body scrolls. */
+const partitionDialogChildren = (children: React.ReactNode) => {
+  const body: React.ReactNode[] = [];
+  const footers: React.ReactNode[] = [];
+
+  React.Children.forEach(children, (child) => {
+    if (isDialogFooter(child)) {
+      footers.push(child);
+      return;
+    }
+    body.push(child);
+  });
+
+  return { body, footers };
+};
+
+type DialogContentProps = React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content> & {
+  overlayClassName?: string;
+};
+
 const DialogContent = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Content>,
-  React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content>
->(({ className, children, ...props }, ref) => (
+  DialogContentProps
+>(({ className, children, overlayClassName, ...props }, ref) => {
+  const { body, footers } = partitionDialogChildren(children);
+
+  return (
   <DialogPortal>
-    <DialogOverlay />
+    <DialogOverlay className={overlayClassName} />
     <DialogPrimitive.Content
       ref={ref}
       className={cn(
-        'fixed left-[50%] top-[50%] z-modal max-h-[90vh] w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border border-border bg-background p-6 shadow-lg duration-200 data-[state=open]:animate-scale-in overflow-auto rounded-lg',
+        'fixed left-[50%] top-[50%] z-modal flex w-[calc(100%-1.5rem)] max-w-lg translate-x-[-50%] translate-y-[-50%] flex-col gap-4 overflow-hidden rounded-lg border border-border bg-background p-4 shadow-lg duration-200 data-[state=open]:animate-scale-in sm:p-6',
+        'max-h-[min(90dvh,calc(100%-1.5rem))]',
+        overlayClassName && 'z-[10001]',
         className
       )}
       {...props}
     >
-      {children}
-      <DialogPrimitive.Close className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground">
+      <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto overscroll-contain pr-1">
+        {body}
+      </div>
+      {footers}
+      <DialogPrimitive.Close className="absolute right-3 top-3 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground sm:right-4 sm:top-4">
         <X className="h-4 w-4" />
         <span className="sr-only">Close</span>
       </DialogPrimitive.Close>
     </DialogPrimitive.Content>
   </DialogPortal>
-));
+  );
+});
 DialogContent.displayName = DialogPrimitive.Content.displayName;
 
+/** Renders the title and supporting content area for a dialog. */
 const DialogHeader = ({
   className,
   ...props
@@ -64,6 +102,7 @@ const DialogHeader = ({
 );
 DialogHeader.displayName = 'DialogHeader';
 
+/** Renders the action area for a dialog. */
 const DialogFooter = ({
   className,
   ...props

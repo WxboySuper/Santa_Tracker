@@ -31,6 +31,15 @@ describe('useCloudSync', () => {
   const forecastCycle = { cycleDate: '2026-04-24', days: [] };
   const mapView = { center: [1, 2], zoom: 5 };
   const payload = { forecastCycle, mapView, savedAt: 'volatile' };
+  const workflowMetadata = {
+    id: 'WF-severe-day1-2026-04-24',
+    workflowId: 'severe-day1',
+    cycleDate: '2026-04-24',
+    status: 'in-progress' as const,
+    outlookVersions: [{ version: 1, status: 'in-progress' as const, createdAt: '2026-04-24T00:00:00.000Z' }],
+    createdAt: '2026-04-24T00:00:00.000Z',
+    updatedAt: '2026-04-24T00:00:00.000Z',
+  };
   const saveCycle = jest.fn();
   const updateSyncState = jest.fn();
 
@@ -44,6 +53,7 @@ describe('useCloudSync', () => {
       forecast: {
         forecastCycle,
         currentMapView: mapView,
+        workflowMetadata,
       },
     } as RootState));
     saveCycle.mockResolvedValue(true);
@@ -74,8 +84,38 @@ describe('useCloudSync', () => {
       forecastDays: 1,
       totalOutlooks: 2,
       totalFeatures: 3,
-    }, payload);
+    }, payload, workflowMetadata);
     expect(updateSyncState).toHaveBeenCalledWith('saved');
+  });
+
+  it('syncs metadata-only changes after the initial state is synced', async () => {
+    let currentWorkflowMetadata = workflowMetadata;
+    mockSerializeForecast.mockImplementation((_forecastCycle, _mapView, metadata) => ({
+      ...payload,
+      cycleMetadata: metadata,
+    } as never));
+    mockUseSelector.mockImplementation((selector: (state: RootState) => unknown) => selector({
+      forecast: {
+        forecastCycle,
+        currentMapView: mapView,
+        workflowMetadata: currentWorkflowMetadata,
+      },
+    } as RootState));
+
+    const { result, rerender } = renderHook(() => useCloudSync(cloud()));
+    await act(async () => {
+      await result.current.syncNow();
+    });
+    expect(saveCycle).toHaveBeenCalledTimes(1);
+
+    currentWorkflowMetadata = { ...workflowMetadata, status: 'completed' };
+    rerender();
+    await act(async () => {
+      await result.current.syncNow();
+    });
+
+    expect(saveCycle).toHaveBeenCalledTimes(2);
+    expect(saveCycle.mock.calls[1][4]).toEqual(currentWorkflowMetadata);
   });
 
   it('syncs immediately, exposes synced state, and skips repeated identical state', async () => {

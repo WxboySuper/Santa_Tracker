@@ -45,6 +45,28 @@ describe('exportUtils', () => {
     expect(() => getExportRootAndSize({} as never)).toThrow('Map container not available for export.');
   });
 
+  test('getExportRootAndSize uses the OpenLayers viewport dimensions within the map export root', () => {
+    const exportRoot = document.createElement('div');
+    exportRoot.className = 'map-container';
+    const mapContainer = document.createElement('div');
+    const viewport = document.createElement('div');
+    viewport.className = 'ol-viewport';
+    Object.defineProperties(mapContainer, { clientWidth: { value: 960 }, clientHeight: { value: 680 } });
+    Object.defineProperties(viewport, { clientWidth: { value: 960 }, clientHeight: { value: 640 } });
+    mapContainer.appendChild(viewport);
+    exportRoot.appendChild(mapContainer);
+    document.body.appendChild(exportRoot);
+
+    expect(getExportRootAndSize({ getTargetElement: () => mapContainer })).toMatchObject({
+      mapContainer,
+      exportRoot,
+      width: 960,
+      height: 640,
+    });
+
+    exportRoot.remove();
+  });
+
   test('createTempContainer appends and sets size', () => {
     const temp = createTempContainer(120, 80);
     expect(document.body.contains(temp)).toBe(true);

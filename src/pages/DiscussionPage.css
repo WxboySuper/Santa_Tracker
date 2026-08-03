@@ -2,6 +2,102 @@
   gap: 0;
 }
 
+.discussion-header-bar > div {
+  flex-wrap: wrap;
+}
+
+.discussion-header-bar > div > div:last-child {
+  margin-left: auto;
+}
+
+
+.discussion-scope-section {
+  display: grid;
+  gap: 0.65rem;
+  padding: 0.75rem 1.5rem;
+  border-bottom: 1px solid var(--border-color);
+  background: color-mix(in srgb, var(--bg-secondary) 72%, var(--bg-primary));
+}
+
+.discussion-scope-main {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.discussion-scope-eyebrow {
+  margin: 0;
+  color: var(--text-primary);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.discussion-scope-help {
+  margin: 0.2rem 0 0;
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+}
+
+.discussion-scope-select,
+.discussion-scope-combine input {
+  min-height: 2.2rem;
+  border: 1px solid var(--border-color);
+  border-radius: 0.5rem;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  padding: 0.4rem 0.6rem;
+}
+
+.discussion-scope-select {
+  min-width: 12rem;
+}
+
+.discussion-scope-combine summary {
+  cursor: pointer;
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  font-weight: 650;
+}
+
+.discussion-scope-combine-body {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.65rem;
+  padding-top: 0.55rem;
+}
+
+.discussion-scope-checkboxes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+}
+
+.discussion-scope-checkboxes label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.discussion-scope-combine button {
+  min-height: 2.2rem;
+  border: 0;
+  border-radius: 0.5rem;
+  background: var(--accent-color, #2563eb);
+  color: white;
+  padding: 0.4rem 0.7rem;
+  font-size: 0.75rem;
+  font-weight: 650;
+}
+
+.discussion-scope-combine button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
 .discussion-editor-pane {
   flex: 3 1 0%;
   min-width: 0;
@@ -114,6 +210,17 @@
   color: rgb(248, 250, 252) !important;
 }
 
+
+@media (max-width: 640px) {
+  .discussion-scope-main {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .discussion-scope-select {
+    width: 100%;
+  }
+}
 
 @media (min-width: 768px) {
   .discussion-metadata-grid {

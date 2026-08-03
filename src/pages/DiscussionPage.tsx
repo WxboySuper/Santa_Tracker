@@ -1,6 +1,6 @@
-import React, { useState, useMemo, useCallback, useEffect } from 'react';
+import React, { useMemo, useCallback, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import { useOutletContext } from 'react-router-dom';
+import { useNavigate, useOutletContext, useSearchParams } from 'react-router-dom';
 import { 
   FileText, 
   Eye, 
@@ -12,14 +12,33 @@ import {
   User,
   AlertTriangle
 } from 'lucide-react';
-import { RootState } from '../store';
-import { updateDiscussion } from '../store/forecastSlice';
+import {
+  selectDiscussionDraftForScope,
+  selectForecastCycle,
+  selectHasActiveWorkflow,
+  selectWorkflowTemplate,
+  setForecastDay,
+  updateDiscussion,
+  updateDiscussionDraft,
+} from '../store/forecastSlice';
+import type { RootState } from '../store';
 import { DiscussionMode, DiscussionData, DayType } from '../types/outlooks';
 import { compileDiscussionToText, exportDiscussionToFile } from '../utils/discussionUtils';
+import useDiscussionFormState, { GuidedContentState, buildDiscussionDataFrom } from './useDiscussionFormState';
 import { useAuth } from '../auth/AuthProvider';
 import { queueProductMetric } from '../utils/productMetrics';
+import {
+  getDefaultDiscussionGroupings,
+  getDiscussionForGrouping,
+  getDiscussionGroupings,
+  getDiscussionOwnerDay,
+  resolveDiscussionGrouping,
+} from '../utils/discussionGrouping';
 import DIYDiscussionEditor from '../components/DiscussionEditor/DIYDiscussionEditor';
 import GuidedDiscussionEditor from '../components/DiscussionEditor/GuidedDiscussionEditor';
+import ForecastWorkflowPanel from '../components/ForecastWorkflow/ForecastWorkflowPanel';
+import DiscussionScopeSection from './DiscussionScopeSection';
+import { useDiscussionGroupingActions } from './useDiscussionGroupingActions';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../components/ui/tabs';
@@ -32,70 +51,6 @@ interface PageContext {
 }
 
 const DISCUSSION_AUTOSAVE_DELAY_MS = 1500;
-
-type GuidedContentState = NonNullable<DiscussionData['guidedContent']>;
-
-interface DiscussionFormDefaults {
-  mode: DiscussionMode;
-  validStart: string;
-  validEnd: string;
-  forecasterName: string;
-  diyContent: string;
-  guidedContent: GuidedContentState;
-}
-
-interface DiscussionEditorState {
-  mode: DiscussionMode;
-  validStart: string;
-  validEnd: string;
-  forecasterName: string;
-  diyContent: string;
-  guidedContent: GuidedContentState;
-  hasUnsavedChanges: boolean;
-  compiledText: string;
-  wordCount: number;
-  setValidStart: (value: string) => void;
-  setValidEnd: (value: string) => void;
-  setForecasterName: (value: string) => void;
-  handleModeChange: (value: string) => void;
-  handleContentChange: (newContent: string) => void;
-  handleGuidedChange: (newContent: GuidedContentState) => void;
-  handleSave: () => void;
-  handleExport: () => void;
-}
-
-// Creates a default empty state for the guided discussion content when starting fresh or if no existing guided content is found.
-const createDefaultGuidedContent = (): GuidedContentState => ({
-  synopsis: '',
-  meteorologicalSetup: '',
-  severeWeatherExpectations: '',
-  timing: '',
-  regionalBreakdown: '',
-  additionalConsiderations: ''
-});
-
-// Determines the initial valid end time for the discussion.
-// If an existing discussion has a valid end time, it uses that.
-// Otherwise, it defaults to 24 hours from the current time.
-const getInitialValidEnd = (existingDiscussion?: DiscussionData): string => {
-  if (existingDiscussion?.validEnd) {
-    return existingDiscussion.validEnd;
-  }
-
-  const end = new Date();
-  end.setHours(end.getHours() + 24);
-  return end.toISOString().slice(0, 16);
-};
-
-/** Returns default form field values for the Discussion editor, seeded from an existing discussion or blank defaults. */
-const getDiscussionFormDefaults = (existingDiscussion?: DiscussionData): DiscussionFormDefaults => ({
-  mode: existingDiscussion?.mode ?? 'diy',
-  validStart: existingDiscussion?.validStart ?? new Date().toISOString().slice(0, 16),
-  validEnd: getInitialValidEnd(existingDiscussion),
-  forecasterName: existingDiscussion?.forecasterName ?? '',
-  diyContent: existingDiscussion?.diyContent ?? '',
-  guidedContent: existingDiscussion?.guidedContent ?? createDefaultGuidedContent()
-});
 
 // Formats an ISO datetime string into a more human-readable format for display in the metadata section of the discussion editor.
 const formatDateTime = (isoString: string): string => {
@@ -114,18 +69,19 @@ const formatDateTime = (isoString: string): string => {
 // unsaved changes indicator, and action buttons for exporting and saving the discussion.
 const DiscussionHeaderBar: React.FC<{
   currentDay: DayType;
+  groupingLabel?: string;
   hasUnsavedChanges: boolean;
   onExport: () => void;
   onSave: () => void;
-}> = ({ currentDay, hasUnsavedChanges, onExport, onSave }) => (
-  <div className="flex-shrink-0 border-b border-border bg-card px-6 py-4">
+}> = ({ currentDay, groupingLabel, hasUnsavedChanges, onExport, onSave }) => (
+  <div className="discussion-header-bar flex-shrink-0 border-b border-border bg-card px-6 py-4">
     <div className="flex items-center justify-between">
       <div className="flex items-center gap-4">
         <h1 className="text-xl font-semibold text-foreground flex items-center gap-2">
           <FileText className="h-5 w-5" />
           Forecast Discussion
         </h1>
-        <Badge variant="secondary">Day {currentDay}</Badge>
+        <Badge variant="secondary">{groupingLabel ?? `Day ${currentDay}`}</Badge>
         {hasUnsavedChanges && (
           <Badge variant="warning" className="animate-pulse">Unsaved</Badge>
         )}
@@ -313,92 +269,34 @@ const DiscussionPreviewPane: React.FC<{ compiledText: string }> = ({ compiledTex
   </div>
 );
 
-// The useDiscussionEditorState hook encapsulates all the state management logic for the discussion editor,
-// Lightweight helper: build DiscussionData from form fields
-const buildDiscussionDataFrom = (fields: {
-  mode: DiscussionMode;
-  validStart: string;
-  validEnd: string;
-  forecasterName: string;
-  diyContent: string;
-  guidedContent: GuidedContentState;
-}): DiscussionData => ({
-  mode: fields.mode,
-  validStart: fields.validStart,
-  validEnd: fields.validEnd,
-  forecasterName: fields.forecasterName,
-  diyContent: fields.mode === 'diy' ? fields.diyContent : undefined,
-  guidedContent: fields.mode === 'guided' ? fields.guidedContent : undefined,
-  lastModified: new Date().toISOString()
-});
-
-// Manages the editable form state and unsaved flag; keeps setters small and focused.
-const useDiscussionFormState = (existingDiscussion: DiscussionData | undefined, defaultForecasterName: string) => {
-  const defaults = getDiscussionFormDefaults(existingDiscussion);
-  const mergedDefaults = {
-    ...defaults,
-    forecasterName: existingDiscussion?.forecasterName ?? defaultForecasterName,
-  };
-
-  const [mode, setMode] = useState<DiscussionMode>(mergedDefaults.mode);
-  const [validStart, setValidStart] = useState(mergedDefaults.validStart);
-  const [validEnd, setValidEnd] = useState(mergedDefaults.validEnd);
-  const [forecasterName, setForecasterName] = useState(mergedDefaults.forecasterName);
-  const [diyContent, setDiyContent] = useState(mergedDefaults.diyContent);
-  const [guidedContent, setGuidedContent] = useState<GuidedContentState>(mergedDefaults.guidedContent);
-  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
-
-  const markUnsaved = useCallback(() => setHasUnsavedChanges(true), []);
-
-  const handleModeChange = useCallback((value: string) => { setMode(value as DiscussionMode); markUnsaved(); }, [markUnsaved]);
-  const handleValidStart = useCallback((v: string) => { setValidStart(v); markUnsaved(); }, [markUnsaved]);
-  const handleValidEnd = useCallback((v: string) => { setValidEnd(v); markUnsaved(); }, [markUnsaved]);
-  const handleForecasterName = useCallback((v: string) => { setForecasterName(v); markUnsaved(); }, [markUnsaved]);
-  const handleDiy = useCallback((c: string) => { setDiyContent(c); markUnsaved(); }, [markUnsaved]);
-  const handleGuided = useCallback((c: GuidedContentState) => { setGuidedContent(c); markUnsaved(); }, [markUnsaved]);
-
-  return {
-    mode,
-    validStart,
-    validEnd,
-    forecasterName,
-    diyContent,
-    guidedContent,
-    hasUnsavedChanges,
-    setHasUnsavedChanges,
-    handleModeChange,
-    handleValidStart,
-    handleValidEnd,
-    handleForecasterName,
-    handleDiy,
-    handleGuided
-  } as const;
-};
-
+// Discussion form state lives in useDiscussionFormState to keep the page focused on composition.
 // Auto-save hook keeps the effect isolated and simple. Accepts a single options object
+/** Persists edited discussion data after the configured idle delay. */
 const useDiscussionAutoSave = (opts: {
   hasUnsavedChanges: boolean;
   buildDiscussionData: () => DiscussionData;
   currentDay: DayType;
+  scopeId: string;
   dispatch: ReturnType<typeof useDispatch>;
   clearUnsaved: (v: boolean) => void;
 }) => {
-  const { hasUnsavedChanges, buildDiscussionData, currentDay, dispatch, clearUnsaved } = opts;
+  const { hasUnsavedChanges, buildDiscussionData, currentDay, scopeId, dispatch, clearUnsaved } = opts;
 
   useEffect(() => {
     let timer: ReturnType<typeof setTimeout> | null = null;
     if (hasUnsavedChanges) {
       timer = setTimeout(() => {
-        dispatch(updateDiscussion({ day: currentDay, discussion: buildDiscussionData() }));
+        dispatch(updateDiscussion({ day: currentDay, scopeId, discussion: buildDiscussionData() }));
         clearUnsaved(false);
       }, DISCUSSION_AUTOSAVE_DELAY_MS);
     }
 
     return () => { if (timer !== null) clearTimeout(timer); };
-  }, [hasUnsavedChanges, buildDiscussionData, currentDay, dispatch, clearUnsaved]);
+  }, [hasUnsavedChanges, buildDiscussionData, currentDay, dispatch, clearUnsaved, scopeId]);
 };
 
 // Computes derived values (compiled text and word count) in a focused hook.
+/** Derives the compiled preview text and active editor word count. */
 const useDiscussionComputed = (
   opts: {
     buildDiscussionData: () => DiscussionData;
@@ -424,19 +322,22 @@ const useDiscussionComputed = (
 const useDiscussionActions = (opts: {
   dispatch: ReturnType<typeof useDispatch>;
   currentDay: DayType;
+  scopeId: string;
   buildDiscussionData: () => DiscussionData;
   clearUnsaved: (v: boolean) => void;
   addToast: AddToastFn;
   user: ReturnType<typeof useAuth>['user'];
+  onSaved: () => void;
 }) => {
-  const { dispatch, currentDay, buildDiscussionData, clearUnsaved, addToast, user } = opts;
+  const { dispatch, currentDay, scopeId, buildDiscussionData, clearUnsaved, addToast, user, onSaved } = opts;
 
   const handleSave = useCallback(() => {
-    dispatch(updateDiscussion({ day: currentDay, discussion: buildDiscussionData() }));
+    dispatch(updateDiscussion({ day: currentDay, scopeId, discussion: buildDiscussionData() }));
     clearUnsaved(false);
     queueProductMetric({ event: 'discussion_saved', user });
     addToast('Discussion saved!', 'success');
-  }, [dispatch, currentDay, buildDiscussionData, clearUnsaved, addToast, user]);
+    onSaved();
+  }, [dispatch, currentDay, scopeId, buildDiscussionData, clearUnsaved, addToast, user, onSaved]);
 
   const handleExport = useCallback(() => {
     exportDiscussionToFile(buildDiscussionData(), currentDay);
@@ -450,9 +351,11 @@ interface DiscussionEditorStateOptions {
   existingDiscussion: DiscussionData | undefined;
   defaultForecasterName: string;
   currentDay: DayType;
+  discussionKey: string;
   dispatch: ReturnType<typeof useDispatch>;
   addToast: AddToastFn;
   user: ReturnType<typeof useAuth>['user'];
+  onSaved: () => void;
 }
 
 /** Composes all discussion editor state — form fields, computed text, auto-save, and actions — into a single hook return value. */
@@ -460,11 +363,18 @@ const useDiscussionEditorState = ({
   existingDiscussion,
   defaultForecasterName,
   currentDay,
+  discussionKey,
   dispatch,
   addToast,
   user,
-}: DiscussionEditorStateOptions): DiscussionEditorState => {
-  const form = useDiscussionFormState(existingDiscussion, defaultForecasterName);
+  onSaved,
+}: DiscussionEditorStateOptions) => {
+  const form = useDiscussionFormState({
+    existingDiscussion,
+    defaultForecasterName,
+    discussionKey,
+    dispatch,
+  });
 
   const buildDiscussionData = useCallback(() => buildDiscussionDataFrom({
     mode: form.mode,
@@ -475,10 +385,18 @@ const useDiscussionEditorState = ({
     guidedContent: form.guidedContent
   }), [form.mode, form.validStart, form.validEnd, form.forecasterName, form.diyContent, form.guidedContent]);
 
+  const persistDraft = useCallback(() => {
+    if (!form.hasUnsavedChanges) return;
+    // Scope changes preserve edits as drafts; only explicit save/autosave publishes them.
+    dispatch(updateDiscussionDraft({ scopeId: discussionKey, draft: buildDiscussionData() }));
+    form.setHasUnsavedChanges(false);
+  }, [buildDiscussionData, discussionKey, dispatch, form.hasUnsavedChanges, form.setHasUnsavedChanges]);
+
   useDiscussionAutoSave({
     hasUnsavedChanges: form.hasUnsavedChanges,
     buildDiscussionData,
     currentDay,
+    scopeId: discussionKey,
     dispatch,
     clearUnsaved: form.setHasUnsavedChanges
   });
@@ -494,10 +412,12 @@ const useDiscussionEditorState = ({
   const { handleSave, handleExport } = useDiscussionActions({
     dispatch,
     currentDay,
+    scopeId: discussionKey,
     buildDiscussionData,
     clearUnsaved: form.setHasUnsavedChanges,
     addToast,
     user,
+    onSaved,
   });
 
   return {
@@ -517,37 +437,117 @@ const useDiscussionEditorState = ({
     handleContentChange: form.handleDiy,
     handleGuidedChange: form.handleGuided,
     handleSave,
-    handleExport
+    handleExport,
+    persistDraft,
   };
 };
 
-// The DiscussionPage component is the main component for the forecast discussion page,
-// which integrates all the subcomponents and manages the overall state of the discussion editor through the useDiscussionEditorState hook.
+
+/** Synchronizes the selected discussion scope with the forecast day and URL query. */
+const useDiscussionScopeSync = (options: {
+  currentDay: DayType;
+  discussionDay: DayType;
+  dispatch: ReturnType<typeof useDispatch>;
+  hasActiveWorkflow: boolean;
+  selectedGroupingId: string;
+  searchParams: URLSearchParams;
+  setSearchParams: ReturnType<typeof useSearchParams>[1];
+}) => {
+  const { currentDay, discussionDay, dispatch, hasActiveWorkflow, selectedGroupingId, searchParams, setSearchParams } = options;
+  useEffect(() => {
+    if (currentDay !== discussionDay) dispatch(setForecastDay(discussionDay));
+  }, [currentDay, discussionDay, dispatch]);
+  useEffect(() => {
+    if (hasActiveWorkflow && searchParams.get('group') !== selectedGroupingId) {
+      setSearchParams({ group: selectedGroupingId }, { replace: true });
+    }
+  }, [hasActiveWorkflow, searchParams, selectedGroupingId, setSearchParams]);
+};
+
+/** The DiscussionPage component is the main forecast discussion workflow surface. */
 export const DiscussionPage: React.FC = () => {
   const dispatch = useDispatch();
+  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { addToast } = useOutletContext<PageContext>();
   const { syncedSettings, user } = useAuth();
-  
-  const currentDay = useSelector((state: RootState) => state.forecast.forecastCycle.currentDay);
-  const outlookDay = useSelector((state: RootState) => state.forecast.forecastCycle.days[currentDay]);
-  const existingDiscussion = outlookDay?.discussion;
+  const forecastCycle = useSelector(selectForecastCycle);
+  const hasActiveWorkflow = useSelector(selectHasActiveWorkflow);
+  const workflowTemplate = useSelector(selectWorkflowTemplate);
+  const currentDay = forecastCycle.currentDay;
+
+  const groupings = useMemo(
+    () => getDiscussionGroupings(forecastCycle, hasActiveWorkflow ? workflowTemplate : undefined, currentDay),
+    [forecastCycle, hasActiveWorkflow, workflowTemplate, currentDay],
+  );
+  const defaultGroupings = useMemo(
+    () => getDefaultDiscussionGroupings(hasActiveWorkflow ? workflowTemplate : undefined, currentDay),
+    [currentDay, hasActiveWorkflow, workflowTemplate],
+  );
+  const selectedGrouping = useMemo(
+    () => resolveDiscussionGrouping(groupings, searchParams.get('group'), currentDay),
+    [groupings, searchParams, currentDay],
+  );
+  const discussionDay = getDiscussionOwnerDay(forecastCycle, selectedGrouping);
+  const outlookDay = forecastCycle.days[discussionDay];
+  const discussionDraft = useSelector((state: RootState) => selectDiscussionDraftForScope(state, selectedGrouping.id));
+  const existingDiscussion = discussionDraft ?? getDiscussionForGrouping(forecastCycle, selectedGrouping);
   const defaultForecasterName = syncedSettings?.defaultForecasterName ?? user?.displayName ?? '';
+
+  useDiscussionScopeSync({
+    currentDay: forecastCycle.currentDay,
+    discussionDay,
+    dispatch,
+    hasActiveWorkflow,
+    selectedGroupingId: selectedGrouping.id,
+    searchParams,
+    setSearchParams,
+  });
+
   const editorState = useDiscussionEditorState({
     existingDiscussion,
     defaultForecasterName,
-    currentDay,
+    currentDay: discussionDay,
+    discussionKey: selectedGrouping.id,
     dispatch,
     addToast,
     user,
+    onSaved: () => navigate('/forecast'),
   });
+
+  const { handleCombine: handleCombineGroupings, handleReset: handleResetGroupings } = useDiscussionGroupingActions({
+    forecastCycle,
+    groupings,
+    defaultGroupings,
+    currentDay,
+    selectedGroupingId: selectedGrouping.id,
+    persistDraft: editorState.persistDraft,
+  });
+
+  const handleSelectGrouping = useCallback((groupingId: string) => {
+    const nextGrouping = groupings.find((grouping) => grouping.id === groupingId);
+    if (!nextGrouping) return;
+    editorState.persistDraft();
+    dispatch(setForecastDay(getDiscussionOwnerDay(forecastCycle, nextGrouping)));
+    if (hasActiveWorkflow) setSearchParams({ group: groupingId });
+  }, [dispatch, editorState, forecastCycle, groupings, hasActiveWorkflow, setSearchParams]);
 
   return (
     <div className="h-full flex flex-col bg-background">
+      <ForecastWorkflowPanel context="discussion" />
       <DiscussionHeaderBar
-        currentDay={currentDay}
+        currentDay={discussionDay}
+        groupingLabel={selectedGrouping.label}
         hasUnsavedChanges={editorState.hasUnsavedChanges}
         onExport={editorState.handleExport}
         onSave={editorState.handleSave}
+      />
+      <DiscussionScopeSection
+        groupings={groupings}
+        selectedGrouping={selectedGrouping}
+        onSelect={handleSelectGrouping}
+        onCombine={handleCombineGroupings}
+        onReset={handleResetGroupings}
       />
 
       <div className="discussion-layout flex-1 flex overflow-hidden">
@@ -572,7 +572,7 @@ export const DiscussionPage: React.FC = () => {
 
           <DiscussionStatusBar
             wordCount={editorState.wordCount}
-            lastModified={existingDiscussion?.lastModified}
+            lastModified={outlookDay?.discussion?.lastModified}
           />
         </div>
 

@@ -1,9 +1,19 @@
 import { test, expect } from '@playwright/test';
+import { prepareAppState } from './testSetup';
 
 /**
  * UI interaction tests — verifies dark mode, help modal, and
  * confirmation modals work correctly without crashing.
  */
+
+test.beforeEach(async ({ page }) => {
+  await prepareAppState(page);
+});
+
+const openDocumentation = async (page: import('@playwright/test').Page) => {
+  await page.getByRole('button', { name: 'More actions' }).click();
+  await page.getByRole('menuitem', { name: 'Documentation' }).click();
+};
 
 test.describe('Dark mode', () => {
   test('toggles dark mode class on body', async ({ page }) => {
@@ -41,26 +51,23 @@ test.describe('Dark mode', () => {
 test.describe('Help / Documentation modal', () => {
   test('opens documentation panel from help button', async ({ page }) => {
     await page.goto('/forecast');
-    // Navbar button aria-label: "Toggle documentation"
-    await page.getByRole('button', { name: 'Toggle documentation' }).click();
+    await openDocumentation(page);
     // Documentation component renders with class .documentation
     await expect(page.locator('.documentation')).toBeVisible({ timeout: 5000 });
   });
 
   test('documentation panel can be closed', async ({ page }) => {
     await page.goto('/forecast');
-    const toggleBtn = page.getByRole('button', { name: 'Toggle documentation' });
-    await toggleBtn.click();
+    await openDocumentation(page);
     await expect(page.locator('.documentation')).toBeVisible({ timeout: 5000 });
 
-    // Toggle again to close — there is no separate close button inside the panel
-    await toggleBtn.click();
+    await page.locator('[class*="z-[900]"]').click({ position: { x: 4, y: 4 } });
     await expect(page.locator('.documentation')).not.toBeVisible({ timeout: 5000 });
   });
 
   test('documentation panel closes on Escape', async ({ page }) => {
     await page.goto('/forecast');
-    await page.getByRole('button', { name: 'Toggle documentation' }).click();
+    await openDocumentation(page);
     await expect(page.locator('.documentation')).toBeVisible({ timeout: 5000 });
     await page.keyboard.press('Escape');
     await expect(page.locator('.documentation')).not.toBeVisible({ timeout: 5000 });
@@ -75,7 +82,7 @@ test.describe('Confirmation modals', () => {
     await expect(page.locator('nav')).toBeVisible();
 
     // Click the button — either navigates or shows a confirmation modal; either way no crash
-    const newCycleBtn = page.getByRole('button', { name: /New Forecast Cycle/i });
+    const newCycleBtn = page.getByRole('button', { name: /Start a new forecast/i });
     await expect(newCycleBtn).toBeVisible();
     await newCycleBtn.click();
     await expect(page.locator('nav')).toBeVisible();

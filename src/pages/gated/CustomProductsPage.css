@@ -1,0 +1,33 @@
+.custom-products-page { height: 100%; overflow: auto; padding: 2rem; background: radial-gradient(circle at top left, color-mix(in srgb, var(--primary) 12%, transparent), transparent 34%), var(--background); }
+.custom-products-hero { max-width: 1200px; margin: 0 auto 1.5rem; display: flex; align-items: end; justify-content: space-between; gap: 1.5rem; }
+.custom-products-hero h1 { margin: .35rem 0; font-size: clamp(2rem, 4vw, 3.5rem); letter-spacing: -.04em; }
+.custom-products-hero p { max-width: 720px; color: var(--muted-foreground); }
+.custom-product-eyebrow { color: var(--primary); font-size: .72rem; font-weight: 800; letter-spacing: .16em; text-transform: uppercase; }
+.custom-products-hero__actions { display: flex; flex-direction: column; align-items: flex-end; gap: .65rem; color: var(--muted-foreground); font-size: .8rem; }
+.custom-products-grid, .custom-product-editor-card, .custom-product-notice, .custom-product-error, .custom-products-empty { max-width: 1200px; margin-left: auto; margin-right: auto; }
+.custom-products-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 360px), 1fr)); gap: 1rem; }
+.custom-product-card__heading { display: flex; justify-content: space-between; gap: 1rem; }
+.custom-product-status { align-self: start; border: 1px solid var(--border); border-radius: 999px; padding: .25rem .55rem; font-size: .68rem; font-weight: 800; text-transform: uppercase; }
+.custom-product-status.is-active { color: #15803d; background: rgba(34,197,94,.12); }
+.custom-product-status.is-archived { color: var(--muted-foreground); background: var(--muted); }
+.custom-product-preview { display: grid; gap: .45rem; }
+.custom-product-preview__item { display: flex; align-items: center; gap: .65rem; font-size: .86rem; }
+.custom-product-preview__swatch { width: 2.8rem; height: 1.3rem; flex: 0 0 auto; border-style: solid; border-radius: .35rem; }
+.custom-product-card__meta { margin-top: 1rem; color: var(--muted-foreground); font-size: .75rem; }
+.custom-product-card__actions { margin-top: 1rem; display: flex; flex-wrap: wrap; gap: .5rem; }
+.custom-product-delete-confirm { width: 100%; display: flex; align-items: center; justify-content: flex-end; gap: .5rem; font-size: .8rem; }
+.custom-product-editor-card { margin-bottom: 1.5rem; }
+.custom-product-editor-layout { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(240px, .8fr); gap: 1.25rem; }
+.custom-product-editor-fields, .custom-product-category-list { display: grid; gap: .85rem; }
+.custom-product-editor-fields label { display: grid; gap: .35rem; font-size: .78rem; font-weight: 700; }
+.custom-product-category-editor { border: 1px solid var(--border); border-radius: .8rem; padding: .8rem; display: grid; gap: .65rem; background: color-mix(in srgb, var(--muted) 45%, transparent); }
+.custom-product-category-editor__topline, .custom-product-category-editor__actions { display: flex; justify-content: space-between; align-items: center; gap: .25rem; }
+.custom-product-category-editor__style-grid { display: grid; grid-template-columns: repeat(3, minmax(120px, 1fr)); gap: .7rem; }
+.custom-product-category-editor__style-grid select { height: 2.5rem; border: 1px solid var(--border); border-radius: .45rem; background: var(--background); padding: 0 .5rem; }
+.custom-product-editor-preview { border: 1px solid var(--border); border-radius: .9rem; padding: 1rem; background: var(--background); }
+.custom-product-editor-preview h3 { margin: .35rem 0 1rem; font-size: 1.35rem; }
+.custom-product-editor-footer { grid-column: 1 / -1; display: flex; justify-content: flex-end; gap: .5rem; }
+.custom-product-error { margin-top: .75rem; color: var(--destructive); }
+.custom-product-notice { margin-bottom: 1rem; }
+.custom-products-empty { min-height: 280px; display: grid; place-items: center; align-content: center; gap: .5rem; text-align: center; color: var(--muted-foreground); }
+@media (max-width: 720px) { .custom-products-page { padding: 1rem; } .custom-products-hero { align-items: stretch; flex-direction: column; } .custom-products-hero__actions { align-items: stretch; } .custom-product-editor-layout { grid-template-columns: 1fr; } .custom-product-editor-preview { grid-row: 1; } .custom-product-category-editor__style-grid { grid-template-columns: 1fr; } }

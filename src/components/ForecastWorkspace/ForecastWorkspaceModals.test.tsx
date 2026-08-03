@@ -1,4 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/react';
+import { Provider } from 'react-redux';
+import { configureStore } from '@reduxjs/toolkit';
 import ForecastWorkspaceModals from './ForecastWorkspaceModals';
 import type { ForecastWorkspaceController } from './useForecastWorkspaceController';
 
@@ -58,10 +60,25 @@ const createController = (): ForecastWorkspaceController =>
     onReset: jest.fn(),
   }) as unknown as ForecastWorkspaceController;
 
+const renderWithProvider = (ui: React.ReactElement) => {
+  const store = configureStore({
+    reducer: {
+      forecast: () => ({
+        completionValidation: {
+          lastResult: null,
+          showCompletionModal: false,
+          omittedDays: {},
+        },
+      }),
+    },
+  });
+  return render(<Provider store={store}>{ui}</Provider>);
+};
+
 describe('ForecastWorkspaceModals', () => {
   test('wires hidden file input and modal callbacks', () => {
     const controller = createController();
-    const { container } = render(<ForecastWorkspaceModals controller={controller} />);
+    const { container } = renderWithProvider(<ForecastWorkspaceModals controller={controller} />);
 
     const input = container.querySelector('input[type="file"]') as HTMLInputElement;
     expect(input).toHaveAttribute('accept', '.json');

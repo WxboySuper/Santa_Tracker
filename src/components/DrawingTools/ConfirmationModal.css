@@ -1,0 +1,4 @@
+/* Keep confirmations above the cycle history dialog even when ExportModal.css is not loaded. */
+.export-modal-overlay--stacked {
+  z-index: 10000;
+}

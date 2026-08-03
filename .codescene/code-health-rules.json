@@ -1,0 +1,86 @@
+{
+  "usage": "Policy validation tests intentionally repeat declarative fixtures so each failure remains independently readable.",
+  "rule_sets": [
+    {
+      "matching_content_path": "scripts/lib/feature-exposure-policy.test.mjs",
+      "rules": [
+        {
+          "name": "Code Duplication",
+          "weight": 0.0
+        }
+      ]
+    },
+    {
+      "matching_content_path": "scripts/validate-feature-exposure.integration.test.mjs",
+      "rules": [
+        {
+          "name": "Code Duplication",
+          "weight": 0.0
+        }
+      ]
+    },
+    {
+      "matching_content_path": "scripts/lib/feature-exposure-report.test.mjs",
+      "rules": [
+        {
+          "name": "Code Duplication",
+          "weight": 0.0
+        }
+      ]
+    },
+    {
+      "matching_content_path": "scripts/generate-exposure-report.integration.test.mjs",
+      "rules": [
+        {
+          "name": "Code Duplication",
+          "weight": 0.0
+        }
+      ]
+    },
+    {
+      "matching_content_path": "scripts/lib/port-pr-policy.test.mjs",
+      "rules": [
+        {
+          "name": "Code Duplication",
+          "weight": 0.0
+        }
+      ]
+    },
+    {
+      "matching_content_path": "scripts/lib/stale-branch-report.test.mjs",
+      "rules": [
+        {
+          "name": "Code Duplication",
+          "weight": 0.0
+        }
+      ]
+    },
+    {
+      "matching_content_path": "src/config/featureExposureDiagnostics.test.ts",
+      "rules": [
+        {
+          "name": "Code Duplication",
+          "weight": 0.0
+        }
+      ]
+    },
+    {
+      "matching_content_path": "scripts/lib/feature-exposure-diagnostics.test.mjs",
+      "rules": [
+        {
+          "name": "Code Duplication",
+          "weight": 0.0
+        }
+      ]
+    },
+    {
+      "matching_content_path": "scripts/generate-exposure-diagnostics.integration.test.mjs",
+      "rules": [
+        {
+          "name": "Code Duplication",
+          "weight": 0.0
+        }
+      ]
+    }
+  ]
+}

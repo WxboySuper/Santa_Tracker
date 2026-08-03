@@ -1,5 +1,5 @@
 # Privacy Policy
-**Last Updated: May 22, 2026**
+**Last Updated: June 9, 2026**
 
 **TL;DR:** Your local forecasts stay on your device. If you choose to make an account, we only collect what is strictly necessary to sync your work and securely manage your subscription. 
 
@@ -27,6 +27,8 @@ If you are signed in, we also store limited progress metrics tied to your accoun
 We also generate a browser-scoped anonymous installation identifier to help estimate daily active devices without relying on long-term raw IP storage. Where possible, admin metrics are aggregated by day and shown only in aggregate form.
 
 Separately from product metrics, the hosted service may keep short operational request logs such as page path, referrer, timestamp, and user-agent for maintenance and debugging. These logs are not used to inspect forecast contents and are kept separate from the product metrics dashboard.
+
+On the public production site (gfc.weatherboysuper.com), we use Google Analytics (GA4) to measure aggregate traffic and navigation patterns in a separate property from other Weatherboy Super sites. GA is loaded only on the hosted production domain, not on localhost development builds. Google's processing is governed by [Google's privacy policy](https://policies.google.com/privacy).
 
 On production and beta hosted deployments, we use Sentry (a third-party error monitoring service) to capture application errors and limited performance data so we can fix bugs quickly. This is separate from product analytics above. We do not use Sentry for advertising or the sale of personal data. Error reports are designed to exclude forecast map payloads, do not use session replay, and are configured without sending IP addresses or cookies by default. Events are tagged by environment (production or beta) so staging issues stay separate from production.
 

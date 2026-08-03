@@ -5,7 +5,7 @@ import { Provider } from 'react-redux';
 import { configureStore } from '@reduxjs/toolkit';
 import DrawingTools from './DrawingTools';
 import forecastReducer from '../../store/forecastSlice';
-import featureFlagsReducer from '../../store/featureFlagsSlice';
+import * as featureExposure from '../../config/featureExposure';
 import type { ForecastMapHandle } from '../Map/ForecastMap';
 import type { RootState } from '../../store';
 
@@ -26,18 +26,15 @@ let initiateExportMock: jest.Mock;
 let confirmExportMock: jest.Mock;
 let cancelExportMock: jest.Mock;
 
-const buildStore = (overrides?: Partial<RootState['forecast']>, featureOverrides?: Partial<RootState['featureFlags']>) => {
+const buildStore = (overrides?: Partial<RootState['forecast']>) => {
   const forecastState = { ...forecastReducer(undefined, { type: '@@INIT' }), ...(overrides ?? {}) };
-  const featureFlagsState = { ...featureFlagsReducer(undefined, { type: '@@INIT' }), ...(featureOverrides ?? {}) };
 
   return configureStore({
     reducer: {
       forecast: forecastReducer,
-      featureFlags: featureFlagsReducer,
     },
     preloadedState: {
       forecast: forecastState,
-      featureFlags: featureFlagsState,
     },
     middleware: (getDefaultMiddleware) =>
       getDefaultMiddleware({ serializableCheck: false, immutableCheck: false }),
@@ -94,6 +91,7 @@ describe('DrawingTools', () => {
   afterEach(() => {
     clickSpy?.mockRestore();
     clickSpy = undefined;
+    jest.restoreAllMocks();
   });
 
   test('wires the primary toolbar actions and reset flow', async () => {
@@ -145,10 +143,11 @@ describe('DrawingTools', () => {
   });
 
   test('shows disabled helper text when feature flags are off', () => {
-    const store = buildStore(
-      { isSaved: true },
-      { exportMapEnabled: false, saveLoadEnabled: false }
-    );
+    jest.spyOn(featureExposure, 'isFeatureExposedOnTarget').mockImplementation((feature) => {
+      return feature !== 'exportMap' && feature !== 'saveLoad';
+    });
+
+    const store = buildStore({ isSaved: true });
 
     renderDrawingTools(store);
 

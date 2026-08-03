@@ -19,8 +19,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from '../ui/dialog';
-import { RootState } from '../../store';
+import type { RootState } from '../../store';
 import { resetForecasts, selectCurrentOutlooks } from '../../store/forecastSlice';
+import { isExportMapExposed } from '../../config/productExposureSelectors';
 import { ForecastMapHandle } from '../Map/ForecastMap';
 import CycleHistoryModal from '../CycleManager/CycleHistoryModal';
 import CopyFromPreviousModal from '../CycleManager/CopyFromPreviousModal';
@@ -36,7 +37,7 @@ interface ToolbarPanelProps {
 }
 
 interface ToolbarActionsProps {
-  fileInputRef: React.RefObject<HTMLInputElement>;
+  fileInputRef: React.RefObject<HTMLInputElement | null>;
   isSaved: boolean;
   onSave: () => void;
   onLoadClick: () => void;
@@ -231,7 +232,7 @@ export const ToolbarPanel: React.FC<ToolbarPanelProps> = ({
 
   const isSaved = useSelector((state: RootState) => state.forecast.isSaved);
   const outlooks = useSelector(selectCurrentOutlooks);
-  const isExportDisabled = useSelector((state: RootState) => state.featureFlags.exportMapEnabled === false);
+  const isExportDisabled = !isExportMapExposed();
 
   // Export hook
   const { isModalOpen, initiateExport, confirmExport, cancelExport } = useExportMap({

@@ -12,6 +12,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { cn } from '../../lib/utils';
 import { NAVBAR_HEIGHT } from '../../lib/uiConstants';
 import { keyboardShortcutKey } from '../../utils/keyboardShortcutKey';
+import { getNavigationKeyboardShortcuts } from '../../config/featureNavigation';
 
 export interface ToastItem {
   id: string;
@@ -121,17 +122,7 @@ export const AppLayout: React.FC = () => {
         const key = keyboardShortcutKey(e);
         if (!key) return;
 
-        // Define Ctrl/Cmd+key shortcuts for navigation and actions
-        const shortcuts: Record<string, () => void> = {
-          h: () => navigate('/'),
-          '1': () => navigate('/forecast'),
-          '2': () => navigate('/discussion'),
-          '3': () => navigate('/verification'),
-          '4': () => navigate('/monitor'),
-          d: () => document.documentElement.classList.toggle('dark-mode'),
-        };
-
-        // Ctrl+H home, Ctrl+1 forecast, Ctrl+2 discussion, Ctrl+3 verification, Ctrl+4 monitor, Ctrl+D dark mode
+        const shortcuts = getNavigationKeyboardShortcuts(navigate);
         const action = shortcuts[key];
         if (action) {
           e.preventDefault();

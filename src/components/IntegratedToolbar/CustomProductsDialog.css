@@ -1,0 +1,25 @@
+/* The Saved products dialog is shared by desktop and phone forecast workspaces. */
+.custom-products-dialog-content .custom-products-page--dialog .custom-products-hero__actions {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-start;
+  column-gap: 18px;
+}
+
+@media (max-width: 768px) {
+  .custom-products-dialog-content .custom-products-page--dialog .custom-products-hero__actions {
+    flex-direction: column;
+    align-items: stretch;
+    row-gap: 16px;
+  }
+
+  .custom-products-dialog-content .custom-products-page--dialog .custom-products-hero__actions span {
+    align-self: flex-start;
+  }
+
+  .custom-products-dialog-content .custom-products-page--dialog .custom-products-hero__actions button {
+    width: 100%;
+    min-height: 42px;
+  }
+}

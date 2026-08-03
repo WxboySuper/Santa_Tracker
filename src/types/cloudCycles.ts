@@ -1,4 +1,5 @@
 import { GFCForecastSaveData } from './outlooks';
+import type { CycleMetadata } from './workflow';
 
 /**
  * Cloud-backed cycle metadata stored in Firestore
@@ -25,6 +26,8 @@ export interface CloudCycleMetadata {
  */
 export interface CloudCycle extends CloudCycleMetadata {
   payload: GFCForecastSaveData;
+  /** v2 workflow metadata for the cycle (optional, present for workflow-imported cycles). */
+  workflowMetadata?: CycleMetadata;
 }
 
 /**

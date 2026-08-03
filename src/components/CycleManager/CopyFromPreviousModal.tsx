@@ -33,7 +33,7 @@ const shouldWrapForward = (focusable: HTMLElement[], isInModal: boolean): boolea
   !isInModal || document.activeElement === focusable[focusable.length - 1];
 
 // Separate function to handle tab navigation for better readability and maintainability. It checks if the currently focused element is the first or last focusable element in the modal and cycles focus accordingly when the Tab key is pressed, ensuring that keyboard users can navigate through the modal without losing focus outside of it.
-const handleTabNavigation = (event: KeyboardEvent, modalRef: React.RefObject<HTMLDivElement>) => {
+const handleTabNavigation = (event: KeyboardEvent, modalRef: React.RefObject<HTMLDivElement | null>) => {
   if (!modalRef.current) return;
   const focusable = getFocusableElements(modalRef.current);
   if (focusable.length === 0) return;
@@ -51,7 +51,7 @@ const handleTabNavigation = (event: KeyboardEvent, modalRef: React.RefObject<HTM
 // Handler for keyboard events in the modal, which implements focus trapping and allows closing the modal with the Escape key. It checks for Tab key presses to cycle focus within the modal and ensures that focus does not escape to elements outside the modal while it is open. It also listens for the Escape key to trigger the onClose function, allowing users to easily close the modal using the keyboard. This enhances accessibility for users who rely on keyboard navigation.
 const handleModalKeyDown = (
   event: KeyboardEvent,
-  modalRef: React.RefObject<HTMLDivElement>,
+  modalRef: React.RefObject<HTMLDivElement | null>,
   onClose: () => void
 ) => {
   if (event.key === 'Escape') {
@@ -93,7 +93,7 @@ const CopyModalHeader: React.FC<CopyModalHeaderProps> = ({ onClose }) => (
 );
 
 type CopyFileSectionProps = {
-  fileInputRef: React.RefObject<HTMLInputElement>;
+  fileInputRef: React.RefObject<HTMLInputElement | null>;
   loadedCycle: ForecastCycle | null;
   loadedFileName: string;
   onFileLoad: (event: React.ChangeEvent<HTMLInputElement>) => void;

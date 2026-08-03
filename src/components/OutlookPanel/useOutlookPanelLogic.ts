@@ -16,16 +16,19 @@ import {
 } from '../../types/outlooks';
 import { getAvailableProbabilities } from './outlookPanelUtils';
 import { getOutlookConstraints } from '../../utils/outlookUtils';
+import {
+  isOutlookTypeExposed,
+  isSignificantThreatsExposed,
+} from '../../config/productExposureSelectors';
 
 export function useOutlookPanelLogic() {
   const dispatch = useDispatch();
   const drawingState = useSelector((s: RootState) => s.forecast.drawingState);
   const emergencyMode = useSelector((s: RootState) => s.forecast.emergencyMode);
-  const featureFlags = useSelector((s: RootState) => s.featureFlags);
   const currentDay = useSelector(selectCurrentDay);
   const { activeOutlookType, activeProbability, isSignificant } = drawingState;
 
-  const significantThreatsEnabled = featureFlags.significantThreatsEnabled;
+  const significantThreatsEnabled = isSignificantThreatsExposed();
 
   const getOutlookTypeEnabled = useCallback((type: OutlookType) => {
     // Check against current day's constraints
@@ -36,18 +39,8 @@ export function useOutlookPanelLogic() {
       return false;
     }
     
-    // Check feature flags for Day 1/2 outlook types
-    const featureFlagMap: Record<string, boolean> = {
-      tornado: featureFlags.tornadoOutlookEnabled,
-      wind: featureFlags.windOutlookEnabled,
-      hail: featureFlags.hailOutlookEnabled,
-      categorical: featureFlags.categoricalOutlookEnabled,
-      totalSevere: true, // Day 3 - always enabled
-      'day4-8': true, // Day 4-8 - always enabled
-    };
-    
-    return featureFlagMap[type] ?? false;
-  }, [featureFlags, currentDay]);
+    return isOutlookTypeExposed(type);
+  }, [currentDay]);
 
   const handleOutlookTypeChange = useCallback(
     (type: OutlookType) => {
@@ -92,7 +85,6 @@ export function useOutlookPanelLogic() {
   );
 
   return {
-    featureFlags,
     emergencyMode,
     activeOutlookType,
     activeProbability,

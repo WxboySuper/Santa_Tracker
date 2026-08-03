@@ -9,6 +9,7 @@ import {
   LoaderCircle,
   LogOut,
   Mail,
+  Palette,
   Trash2,
 } from "lucide-react";
 import { Badge, type BadgeProps } from "../components/ui/badge";
@@ -24,9 +25,11 @@ import { Input } from "../components/ui/input";
 import { useAuth } from "../auth/AuthProvider";
 import { useEntitlement } from "../billing/EntitlementProvider";
 import { useUserMetrics } from "../metrics/useUserMetrics";
+import { useWorkflowAwareness } from "../hooks/useWorkflowAwarenessSync";
 import type { RootState } from "../store";
 import { selectForecastCycle, selectSavedCycles } from "../store/forecastSlice";
 import { computeHomeStats } from "./homeUtils";
+import { isFeatureExposed } from "../config/featureExposure";
 import "./AccountPage.css";
 
 type AuthMode = "sign_in" | "sign_up";
@@ -290,6 +293,33 @@ const DiscussionDefaultsSection: React.FC<{
 );
 
 /** Bottom action row for saving defaults and ending the current session. */
+/** Opt-in disclosure for the metadata-only workflow awareness feature. */
+const WorkflowAwarenessSection: React.FC<{
+  enabled: boolean;
+  onEnabledChange: (enabled: boolean) => void;
+}> = ({ enabled, onEnabledChange }) => (
+  <div className="account-subsection-card">
+    <div className="account-subsection-header">
+      <h2>Workflow awareness</h2>
+      <p>
+        Share only cycle IDs, workflow status, dates, and version relationships to help Home surface unfinished work.
+        Forecast maps, geometry, discussions, package content, and map views never upload here.
+      </p>
+    </div>
+    <button
+      type="button"
+      role="switch"
+      aria-checked={enabled}
+      className="account-button-row"
+      onClick={() => onEnabledChange(!enabled)}
+    >
+      <Badge variant={enabled ? "success" : "outline"}>{enabled ? "Enabled" : "Disabled"}</Badge>
+      <span className="text-sm text-muted-foreground">{enabled ? "Disable and delete shared awareness metadata" : "Enable metadata-only awareness sync"}</span>
+    </button>
+  </div>
+);
+
+/** Renders one account action row for an authenticated user. */
 const SignedInActionRow: React.FC<{
   savingDefaults: boolean;
   saveMessage: string | null;
@@ -374,6 +404,27 @@ const CloudLibraryCard: React.FC = () => {
     <Card>
       <CloudLibraryCardHeader />
       <CloudLibraryCardContent />
+    </Card>
+  );
+};
+
+/** Local-only entry to the reusable product library; absent from every hosted build. */
+const CustomProductsCard: React.FC = () => {
+  const { premiumActive } = useEntitlement();
+  if (!isFeatureExposed('customProducts') || !premiumActive) return null;
+
+  return (
+    <Card>
+      <CardHeader className="account-section-header">
+        <CardTitle className="flex items-center gap-2 text-2xl">
+          <Palette className="h-6 w-6" />
+          Reusable custom products
+        </CardTitle>
+        <CardDescription>Build ordered category templates and snapshot them into future forecasts.</CardDescription>
+      </CardHeader>
+      <CardContent className="account-section-content">
+        <Button asChild><Link to="/custom-products">Manage Custom Products</Link></Button>
+      </CardContent>
     </Card>
   );
 };
@@ -838,6 +889,8 @@ const SignedInPrimaryCard: React.FC<{
   providerLabels: string[];
   defaultForecasterName: string;
   setDefaultForecasterName: React.Dispatch<React.SetStateAction<string>>;
+  awarenessEnabled: boolean;
+  onAwarenessEnabledChange: (enabled: boolean) => void;
   forecastUiMessage: string | null;
   savingDefaults: boolean;
   saveMessage: string | null;
@@ -849,6 +902,8 @@ const SignedInPrimaryCard: React.FC<{
   providerLabels,
   defaultForecasterName,
   setDefaultForecasterName,
+  awarenessEnabled,
+  onAwarenessEnabledChange,
   savingDefaults,
   saveMessage,
   onSaveDefaults,
@@ -869,6 +924,10 @@ const SignedInPrimaryCard: React.FC<{
       <DiscussionDefaultsSection
         defaultForecasterName={defaultForecasterName}
         setDefaultForecasterName={setDefaultForecasterName}
+      />
+      <WorkflowAwarenessSection
+        enabled={awarenessEnabled}
+        onEnabledChange={onAwarenessEnabledChange}
       />
       <SignedInActionRow
         savingDefaults={savingDefaults}
@@ -898,6 +957,7 @@ const SignedInAccountView: React.FC = () => {
   );
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [savingDefaults, setSavingDefaults] = useState(false);
+  const { enabled: awarenessEnabled, setEnabled: setAwarenessEnabled } = useWorkflowAwareness();
 
   const providerLabels = useMemo(
     () =>
@@ -969,6 +1029,8 @@ const SignedInAccountView: React.FC = () => {
             providerLabels={providerLabels}
             defaultForecasterName={defaultForecasterName}
             setDefaultForecasterName={setDefaultForecasterName}
+            awarenessEnabled={awarenessEnabled}
+            onAwarenessEnabledChange={setAwarenessEnabled}
             forecastUiMessage={forecastUiMessage}
             savingDefaults={savingDefaults}
             saveMessage={saveMessage}
@@ -977,6 +1039,7 @@ const SignedInAccountView: React.FC = () => {
             onSignOut={handleSignOutClick}
           />
           <CloudLibraryCard />
+          <CustomProductsCard />
         </div>
         <div className="account-side-stack">
           <MetricsCard />

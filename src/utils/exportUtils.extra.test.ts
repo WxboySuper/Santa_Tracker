@@ -110,8 +110,8 @@ describe('exportUtils additional unit tests', () => {
     document.body.appendChild(outer);
 
     // jsdom doesn't compute layout; fake clientWidth/Height
-    Object.defineProperty(outer, 'clientWidth', { value: 200, configurable: true });
-    Object.defineProperty(outer, 'clientHeight', { value: 150, configurable: true });
+    Object.defineProperty(mapContainer, 'clientWidth', { value: 200, configurable: true });
+    Object.defineProperty(mapContainer, 'clientHeight', { value: 150, configurable: true });
 
     const mapLike = { getContainer: () => mapContainer };
     const res = getExportRootAndSize(mapLike as never);

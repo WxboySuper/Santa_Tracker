@@ -4,8 +4,7 @@ module.exports = {
   setupFilesAfterEnv: ['<rootDir>/src/setupTests.ts'],
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json'],
   transform: {
-    '^.+\\.(ts|tsx)$': 'ts-jest',
-    '^.+\\.(js|jsx)$': 'babel-jest',
+    '^.+\\.[jt]sx?$': 'babel-jest',
   },
   transformIgnorePatterns: [
     '<rootDir>/node_modules/.pnpm/(?!(react-router|react-router-dom|@remix-run\\+router|uuid|@turf\\+.*|kdbush|geokdbush|tinyqueue|concaveman|point-in-polygon-hao|robust-predicates|rbush|quickselect|skmeans|marchingsquares|sweepline-intersections|d3-array|d3-geo|d3-voronoi|topojson-client|earcut|tslib|ol|firebase|@firebase\\+.*)@)',

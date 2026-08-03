@@ -22,7 +22,7 @@ export default defineConfig({
     },
   ],
   webServer: skipWebServer ? undefined : {
-    command: 'npm start',
+    command: process.env.PLAYWRIGHT_WEBSERVER_COMMAND ?? 'npm start',
     url: baseURL,
     reuseExistingServer: !process.env.CI,
     timeout: 120000,

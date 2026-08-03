@@ -2,9 +2,9 @@ import React, { useRef } from 'react';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Provider } from 'react-redux';
+import { MemoryRouter } from 'react-router-dom';
 import { configureStore } from '@reduxjs/toolkit';
 import forecastReducer from '../../store/forecastSlice';
-import featureFlagsReducer from '../../store/featureFlagsSlice';
 import overlaysReducer from '../../store/overlaysSlice';
 import ForecastTabbedToolbarLayout from './ForecastWorkspaceLayouts';
 import { useForecastWorkspaceController } from './useForecastWorkspaceController';
@@ -31,7 +31,6 @@ jest.mock('../DrawingTools/useExportMap', () => ({
 const createStore = () => configureStore({
   reducer: {
     forecast: forecastReducer,
-    featureFlags: featureFlagsReducer,
     overlays: overlaysReducer,
   },
   middleware: (getDefaultMiddleware) => getDefaultMiddleware({
@@ -65,9 +64,11 @@ describe('Tabbed toolbar layout', () => {
     const store = createStore();
 
     render(
-      <Provider store={store}>
-        <LayoutHarness />
-      </Provider>
+      <MemoryRouter>
+        <Provider store={store}>
+          <LayoutHarness />
+        </Provider>
+      </MemoryRouter>
     );
 
     await user.click(screen.getByRole('tab', { name: /days/i }));
