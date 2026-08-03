@@ -176,23 +176,6 @@ const getExistingEntitlementData = async (uid, stripeIds = {}) => {
   return createNewEntitlementTarget(uid);
 };
 
-/** Prevents delayed Stripe events from recreating state for a deleted Firebase identity. */
-const canWriteEntitlementForUid = async (
-  uid,
-  { adminAuth = getAdminAuth(), db = getAdminDb() } = {}
-) => {
-  if (!uid) return true;
-  if (await isAccountDeletionBlocked(db, uid)) return false;
-  if (!adminAuth) return true;
-  try {
-    await adminAuth.getUser(uid);
-    return true;
-  } catch (error) {
-    if (error?.code === 'auth/user-not-found') return false;
-    throw error;
-  }
-};
-
 /** Writes the merged entitlement payload into Firestore once for the verified webhook event. */
 const writeEntitlement = async ({ uid, stripeCustomerId, stripeSubscriptionId, payload }, event) => {
   console.log('[billing] writeEntitlement:start', {
