@@ -11,6 +11,6 @@ describe('repository inventory helpers', () => {
   });
 
   test('extracts and sorts relative imports without package imports', () => {
-    assert.deepEqual(extractRelativeImports(`import x from './x';\nconst y = require('../y');\nimport 'react';`), ['../y', './x']);
+    assert.deepEqual(extractRelativeImports("import x from './x';\nconst y = require('../y');\nimport 'react';"), ['../y', './x']);
   });
 });
