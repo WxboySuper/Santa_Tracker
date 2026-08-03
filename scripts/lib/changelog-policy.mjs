@@ -30,7 +30,9 @@ export const changelogLaneHeadingForBase = (baseRef) => {
  * Returns the single curated changelog file used by every release line.
  * @returns {string}
  */
-export const changelogPathForBase = () => 'CHANGELOG.md';
+export function changelogPathForBase() {
+  return 'CHANGELOG.md';
+}
 
 /** @param {ChangelogImpact} impact */
 const laneHeadingForImpact = (impact) =>

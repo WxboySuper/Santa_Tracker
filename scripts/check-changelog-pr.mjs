@@ -36,13 +36,13 @@ const changelogPath = 'CHANGELOG.md';
  * @param {string} ref
  * @returns {string}
  */
-const readRefChangelog = (ref) => {
+function readRefChangelog(ref) {
   try {
     return execFileSync('git', ['show', `origin/${ref}:${changelogPath}`], { encoding: 'utf8' });
   } catch {
     return existsSync(changelogPath) ? readFileSync(changelogPath, 'utf8') : '';
   }
-};
+}
 const result = evaluateChangelogPolicy({
   baseRef,
   changedFiles,
