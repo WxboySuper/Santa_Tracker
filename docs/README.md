@@ -1,16 +1,18 @@
 # Documentation
 
-Use this page as the starting point for repo docs. Operational docs are grouped by workflow, architecture docs explain code ownership and boundaries, and stale planning material is archived for review before deletion.
+Use this page as the starting point for repository documentation. Architecture
+docs explain code ownership and boundaries, while operational docs explain
+repeatable workflows.
 
 ## Architecture
 
-- [Codebase inventory](./architecture/codebase-inventory.md) - issue #445 audit of folders, entry points, import risks, and reviewable move batches.
+- [Repository map and architecture overview](./architecture/codebase-inventory.md) - product surfaces, boundaries, entry points, and safe future move direction.
 
 ## Operations
 
-- [Release workflow](./operations/release-workflow.md) - beta/main release, porting, changelog, and stale-branch automation.
-- [Hosted rollout](./operations/hosted-rollout.md) - VPS layout, timed stage/promote flow, staging preview, and troubleshooting.
-- [Timed production rollout](./operations/timed-production-rollout.md) - implementation plan for scheduled production promotion.
+- [Release workflow](./release-workflow.md) - release and deployment procedures.
+- [Hosted rollout](./operations/hosted-rollout.md) - VPS rollout and troubleshooting.
+- [Timed production rollout](./operations/timed-production-rollout.md) - scheduled promotion design.
 - [Alert banner](./operations/alert-banner.md) - runtime banner shape and timed-release banner behavior.
 - [Emergency feature disable](./operations/emergency-feature-disable.md) - server-side emergency shutoff for server-backed beta capabilities.
 - [Feature exposure workstreams](./operations/feature-exposure-workstreams.md) - v1.7 rollout registry adoption manifest.
@@ -22,7 +24,7 @@ Use this page as the starting point for repo docs. Operational docs are grouped 
 
 ## Product
 
-- [Outlook information](./product/outlook-info.md) - risk levels, probability values, and categorical conversion rules.
+- [Outlook information](./product/Outlook_Info.md) - risk levels, probability values, and categorical conversion rules.
 
 ## Releases
 
@@ -33,3 +35,7 @@ Use this page as the starting point for repo docs. Operational docs are grouped 
 ## Archive Review
 
 - [Review-removal manifest](./archive/review-removal/README.md) - stale docs moved out of the active docs path for deletion review.
+
+Generated inventories and the local HTML site belong under ignored
+`docs/personal`; regenerate them with the commands documented in the
+architecture overview.

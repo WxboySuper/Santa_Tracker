@@ -1,122 +1,156 @@
-# Codebase Inventory
+# Repository map and architecture overview
 
-Issue: [#445](https://github.com/WxboySuper/Graphical-Forecast-Creator/issues/445)
-Parent tracker: [#428](https://github.com/WxboySuper/Graphical-Forecast-Creator/issues/428)
-Snapshot branch: `docs/issue-445-codebase-audit` from `origin/beta` on 2026-07-02.
+Issue: [#486](https://github.com/WxboySuper/Graphical-Forecast-Creator/issues/486)  
+Parent tracker: [#434](https://github.com/WxboySuper/Graphical-Forecast-Creator/issues/434)
 
-## Purpose
+This is the current-state guide for contributors. It explains where behavior
+lives, how the application is assembled, and which boundaries are intentional.
+The [generated local inventory](../personal/repository-inventory.md) is the
+exhaustive file-level companion; this document stays curated and human-sized.
 
-This is the current-state audit for repository organization. It documents folder purpose, entry points, shared dependencies, import risks, and reviewable move batches. It does not move product code or change runtime behavior.
+## Product shape
 
-## Major Folders
+GFC is a browser application for creating, discussing, monitoring, and
+verifying graphical weather forecasts. The frontend is a Vite-built React
+application. Hosted support code runs as an Express server on the VPS and
+uses Firebase, Stripe, Sentry, and upstream weather services where enabled.
 
-| Folder | Purpose | Current owner |
-|--------|---------|---------------|
-| `src/root` | App bootstrap, app shell routing, global test setup, Sentry instrumentation, styles. | Application shell |
-| `src/pages` | Route-level page composition for home, forecast, discussion, verification, monitor, beta, account, pricing, admin, updates, and diagnostics. | Application shell with feature page owners |
-| `src/components` | UI components plus substantial feature implementation for forecast editor, map, monitor UI, verification UI, cycle manager, Auto-TSTM, beta guard, and shared UI primitives. | Mixed; largest migration target |
-| `src/store` | Redux store and slices for forecast, overlays, storm reports, app mode, theme, verification, and monitor state. | Shared state |
-| `src/hooks` | Cross-page workflow hooks for auto-save, categorical derivation, Firestore recovery, Auto-TSTM apply/generation, cloud cycles, keyboard shortcuts, and monitor data loading. | Shared workflow logic |
-| `src/utils` | Serialization, export/import, geometry, forecast metrics, Auto-TSTM request helpers, analytics, keyboard labels, and persistence helpers. | Shared utilities, with some feature-owned logic |
-| `src/monitor` | Monitor domain data, WMS/radar/satellite configs, NWS alerts, storm reports, outlook layers, settings normalization, and live layer hooks. | Monitor feature |
-| `src/config` | Build target, feature exposure registry, feature surfaces/navigation, product exposure selectors, Firebase/Sentry/GA config, and runtime capability status. | Platform/config |
-| `src/features` | Feature boundary wrappers for exposure-gated and server-backed features. | Platform/config |
-| `src/auth` and `src/billing` | Hosted auth provider, entitlement provider, and hosted-mode tests. | Hosted account/billing |
-| `src/types` and `src/maps` | Shared type contracts and map adapter contracts. | Shared contracts |
-| `server/root` | Express analytics app, beta/auth/billing/capability/metrics/Sentry/Auto-TSTM route registration, config loading, and server tests. | Analytics/API server |
-| `server/lib` | Server-side capability, production release, deployment target, emergency disable, and shared server helpers. | Server platform |
-| `server/release` | VPS rollout cron and live-promotion helpers. | Release operations |
-| `server/weather` | Weather generation and Auto-TSTM support files. | Weather/Auto-TSTM |
-| `scripts/root` and `scripts/lib` | Version, changelog, PR governance, feature-exposure, release, stale-branch, and porting automation. | Repository automation |
-| `.github` | Workflows, PR templates, Copilot instructions, and porting shell automation. | CI/release automation |
-| `deploy` | Deployment target and production release configuration. | Release operations |
-| `e2e` | Playwright smoke tests and fixtures. | End-to-end validation |
-| `docs` | Active architecture, operations, product, release, and review-removal documentation. | Documentation |
+The product surfaces are:
 
-## Public Entry Points
+| Surface | Primary entry point | Supporting areas |
+| --- | --- | --- |
+| Forecast | `src/pages/ForecastPage.tsx` | `src/components/ForecastWorkspace`, `src/components/Map`, `src/components/DrawingTools`, `src/store`, `src/utils` |
+| Discussion | `src/pages/DiscussionPage.tsx` | `src/components/DiscussionEditor`, `src/pages/useDiscussion*` |
+| Monitor | `src/pages/MonitorPage.tsx` | `src/components/Monitor`, `src/monitor`, `src/store` |
+| Verification | `src/pages/VerificationPage.tsx` | `src/components/Verification`, `src/utils`, `src/store` |
+| Hosted account and billing | `src/pages/AccountPage.tsx` | `src/auth`, `src/billing`, `server/account-lifecycle.js`, `server/billing.js` |
+| Local documentation | `scripts/build-local-docs.mjs` | `docs`, `docs/personal`, `scripts` |
 
-- Frontend bootstrap: `src/index.tsx` creates the React root, wires Sentry React handlers when enabled, initializes cycle history persistence, renders `App`, and records a page view.
-- App shell and route table: `src/App.tsx` owns provider composition, launch/coming-soon gate, beta access guard, route registration, and feature-gated lazy routes.
-- Feature exposure: `src/config/featureExposure.ts`, `src/config/featureSurfaces.ts`, `src/config/featureNavigation.ts`, `src/routing/buildFeatureGatedRoutes.tsx`, and `src/features/*Boundary.tsx`.
-- Redux state: `src/store/index.ts` exports the configured store, `RootState`, and `AppDispatch`; slices remain the practical write surface for feature state.
-- Forecast editor surface: `src/pages/ForecastPage.tsx` composes the editor workflow from `components/ForecastWorkspace`, `components/Map`, `components/DrawingTools`, `components/CycleManager`, hooks, store, and utils.
-- Monitor surface: `src/pages/MonitorPage.tsx`, `src/components/Monitor/*`, and `src/monitor/*` jointly own monitor data, controls, OpenLayers sync, and popup rendering.
-- Server API: `server/analytics.js` boots the analytics server; `server/analytics-app.js` composes beta, billing, capability, metrics, Sentry tunnel, and Auto-TSTM routes.
-- Deployment/release automation: `.github/workflows/ci.yml`, `.github/workflows/deploy-main-to-vps.yml`, `.github/workflows/pr-governance.yml`, `scripts/*`, and `server/release/*`.
+## Frontend flow
 
-## Static Analysis Snapshot
+1. `src/index.tsx` creates the React root, initializes instrumentation, and
+   renders `App`.
+2. `src/App.tsx` composes providers and registers the route table.
+3. Route pages compose feature components. Pages should coordinate a surface,
+   not become a second home for domain logic.
+4. Components use hooks, selectors, and utilities to read or update state.
+5. `src/store/index.ts` configures Redux. Feature slices own durable client
+   state; `src/types` owns contracts shared across state and UI.
+6. `src/config` and `src/features` apply build-target, exposure, and
+   server-capability policy before gated surfaces are rendered.
 
-Read-only scan scope: `src`, `server`, `scripts`, `.github`, `deploy`, and `e2e`. It found 591 files in scope. Code/import files were scanned for relative `import`, dynamic `import()`, and `require()` edges.
+The normal dependency direction is:
 
-Largest owner/file counts:
+```mermaid
+flowchart LR
+  bootstrap[src/index.tsx] --> app[src/App.tsx]
+  app --> pages[src/pages]
+  pages --> components[src/components]
+  components --> hooks[src/hooks]
+  components --> store[src/store]
+  components --> utils[src/utils]
+  pages --> config[src/config and src/features]
+  store --> types[src/types]
+  hooks --> types
+  utils --> types
+```
 
-| Owner | Files |
-|-------|------:|
-| `src/components` | 155 |
-| `src/utils` | 57 |
-| `scripts/lib` | 50 |
-| `src/pages` | 44 |
-| `scripts/root` | 33 |
-| `src/monitor` | 31 |
-| `server/root` | 21 |
-| `src/hooks` | 20 |
-| `server/lib` | 19 |
-| `src/config` | 15 |
-| `src/store` | 13 |
-| `.github/workflows` | 12 |
+The graph is a guide, not a ban on every reverse edge. Existing cross-feature
+edges are recorded by the inventory generator so future move work can reduce
+coupling deliberately rather than guessing.
 
-Highest cross-owner import edges:
+## Frontend boundaries
 
-| Edge | Count | What it means |
-|------|------:|---------------|
-| `src/components -> src/store` | 55 | Feature components mutate/read global state directly instead of through feature APIs. |
-| `src/pages -> src/components` | 49 | Route pages are thin composition surfaces, but they depend on many component internals. |
-| `src/components -> src/monitor` | 47 | Monitor UI and monitor domain logic are split across two owners. |
-| `scripts/root -> scripts/lib` | 45 | Healthy automation entrypoint-to-library pattern. |
-| `src/components -> src/types` | 36 | Shared outlook/cloud/TSTM types are consumed broadly. |
-| `src/pages -> src/store` | 31 | Pages still reach directly into slices/selectors. |
-| `src/components -> src/utils` | 26 | Utilities are a shared dependency and include feature-specific helpers. |
-| `src/components -> src/lib` | 24 | Shared UI/helpers are used from feature components. |
-| `src/hooks -> src/utils` | 19 | Hooks wrap utility/domain helpers, especially Auto-TSTM and persistence. |
-| `src/hooks -> src/types` | 17 | Hooks depend on shared contracts. |
+| Boundary | Responsibility | Keep out |
+| --- | --- | --- |
+| `src/pages` | Route-level composition and surface coordination | Reusable domain algorithms and large presentational primitives |
+| `src/components` | Feature UI and shared UI primitives | New global state ownership hidden inside leaf components |
+| `src/hooks` | Stateful browser workflows and reusable React orchestration | Route registration and server-only logic |
+| `src/store` | Redux configuration, slices, selectors, and client state transitions | Network calls that can live in service modules |
+| `src/utils` | Pure transformations, persistence, geometry, export, and compatibility helpers | React rendering and undocumented feature-specific state |
+| `src/monitor` | Monitor data contracts, upstream adapters, and layer synchronization | Generic UI primitives |
+| `src/config` / `src/features` | Exposure, navigation, build target, and capability policy | Product behavior unrelated to access policy |
+| `src/auth` / `src/billing` | Hosted identity and entitlement client integration | General forecast state |
+| `src/types` / `src/maps` | Shared contracts and map adapter interfaces | Feature implementation |
 
-Mutual owner edges worth untangling before moves:
+## Server flow
 
-- `src/components <-> src/monitor`
-- `src/components <-> src/pages`
-- `src/components <-> src/hooks`
-- `src/monitor <-> src/store`
-- `src/store <-> src/utils`
-- `src/root <-> src/pages`
-- `src/root <-> src/store`
-- `src/config <-> src/features`
-- `src/config <-> src/pages`
-- `src/lib <-> src/utils`
-- server test helpers have expected mutual edges with `server/root` and `server/lib`.
+`server/analytics.js` is the process entry point. It loads environment
+configuration, creates the Express application through `server/analytics-app.js`,
+and starts the HTTP listener. The app composes route modules for metrics,
+Sentry tunneling, billing, account lifecycle, capability status, and Auto-TSTM.
 
-## Risks And Cycles
+| Server area | Responsibility |
+| --- | --- |
+| `server/*.js` | HTTP entry points, route registration, service-facing modules, and colocated tests |
+| `server/lib` | Reusable capability, release, deployment-target, and emergency-disable helpers |
+| `server/release` | VPS rollout and promotion helpers |
+| `server/weather` | Weather-generation and Auto-TSTM support code |
+| `server/testing` | Server test fixtures and exposure harnesses |
 
-- `src/components` is both a shared UI library and a feature implementation bucket. Moving anything out of it needs owner-by-owner batches, not broad folder shuffles.
-- Monitor ownership is split between `src/monitor` domain modules and `src/components/Monitor` OpenLayers/UI modules. `src/monitor` also imports layout context from components, which creates a feature-to-UI back edge.
-- App routes live directly in `src/App.tsx`; this keeps route behavior visible but makes the app root depend on pages, beta guard, layout, config, store, and feature routing at once.
-- `src/store` imports `src/utils` for normalization and persistence-adjacent helpers, while utilities import shared types and sometimes store-facing shapes. Keep reducers pure before extracting feature packages.
-- `src/utils` mixes stable shared primitives with feature-specific behavior. Treat every utility as either feature-owned or platform-owned before moving it into a shared destination.
-- Tests are interleaved with source files and often create reverse edges in the owner graph. Ignore test-only edges when deciding runtime boundaries, but keep them in mind for move PR blast radius.
+Server modules must fail closed for hosted capability checks, validate external
+input at the route boundary, and keep secrets/configuration out of client
+bundles. Tests are colocated with the code they protect.
 
-## Reviewable Move Batches
+## Storage and hosted services
 
-These are proposed follow-up batches for #428. Each batch should be a behavior-preserving PR with compatibility exports only when needed.
+- Browser-only forecast and preference state uses Redux plus local storage.
+- Firebase Auth and Firestore back hosted identity and cloud-cycle features.
+- Stripe is the source of truth for premium subscription state; the server
+  validates webhook transitions before updating entitlements.
+- Sentry is optional by environment and configured through deployment secrets.
+- Weather and alert data comes from upstream services and is normalized before
+  reaching UI components.
 
-1. Application shell and routing: move route table and launch/beta gates behind an app-shell boundary, leaving `src/App.tsx` as provider composition.
-2. Forecast feature: group `ForecastPage`, forecast workspace, drawing tools, cycle manager, day/outlook controls, forecast-specific hooks, and forecast utilities behind a feature API.
-3. Monitor feature: merge `src/monitor` and `src/components/Monitor` ownership, then expose route/page-level APIs instead of cross-importing domain and component internals.
-4. Verification feature: group verification page, verification map/panel components, verification slice selectors, and storm-report utilities.
-5. Platform/config: keep feature exposure, build target, runtime capability status, and feature boundaries together with explicit public exports.
-6. Shared contracts: keep `src/types`, `src/maps/contracts.ts`, and truly generic `src/lib`/`src/utils` helpers small; do not create a dumping-ground `shared` folder.
-7. Hosted client/server: isolate auth, billing, metrics, capability status, and analytics API surfaces after feature boundaries stop importing them directly.
-8. Automation/release docs: keep `scripts/lib` as the library layer and root scripts as entry points; continue documenting release and porting behavior under `docs/operations`.
+These services are optional from the local developer experience. A local build
+must remain useful without hosted credentials, while hosted-only capabilities
+must be visibly gated and server-checked.
 
-## Verification Notes
+## Build, test, and deployment
 
-- The audit used a read-only Node import scan plus direct inspection of app bootstrap, route composition, feature exposure, store setup, and server route composition.
-- This document intentionally proposes move order only; it does not authorize deleting compatibility exports or moving runtime code in the #445 PR.
+| Concern | Location / command |
+| --- | --- |
+| Dependency source of truth | `package.json`, `pnpm-lock.yaml` |
+| Type checking | `pnpm run typecheck` |
+| Unit/component tests | `pnpm test` |
+| Browser tests | `pnpm run test:e2e` |
+| Production frontend bundle | `pnpm run build` |
+| CI policy and checks | `.github/workflows/ci.yml`, `.github/workflows/pr-governance.yml` |
+| Main deployment | `.github/workflows/deploy-main-to-vps.yml` |
+| Release automation | `.github/workflows/release-stable.yml`, `scripts`, `server/release` |
+
+`VITE_BUILD_TARGET` selects `local`, `beta`, `staging`, or `production` and is
+separate from the beta access gate. CI and deployment workflows set the target
+explicitly; local development defaults to `local`.
+
+## Current structure versus target direction
+
+The current layout is intentionally incremental. The largest remaining
+boundary pressure is `src/components`, which contains both feature-owned UI
+and shared primitives. `src/monitor` and `src/components/Monitor` also split
+one product surface between domain and UI folders. These are not reasons for a
+wide move now: each future extraction should be a behavior-preserving PR with
+tests and compatibility exports where needed.
+
+The preferred move order is:
+
+1. Establish feature APIs for Forecast, Monitor, Verification, and Discussion.
+2. Move feature-owned components, hooks, and utilities behind those APIs.
+3. Keep genuinely shared contracts in `src/types` and map interfaces in
+   `src/maps` rather than creating a catch-all `shared` folder.
+4. Separate hosted client/server concerns after feature boundaries stabilize.
+
+This ordering is a target plan, not current-state documentation. It does not
+authorize runtime moves as part of this documentation issue.
+
+## Contributor navigation
+
+- Start with the boundary README beside the folder you will change.
+- Trace from the route page to its feature components, then to hooks/store/
+  utilities before changing a shared contract.
+- Update documentation in the same PR when a path or ownership boundary moves.
+- Use `pnpm run docs:inventory` to regenerate ignored local inventory data.
+- Use `pnpm run docs:site` to render a local, searchable documentation site.
+
+Generated files belong under `docs/personal` and are ignored by design. Do not
+commit local planning or generated HTML artifacts.
