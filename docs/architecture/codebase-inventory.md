@@ -111,7 +111,7 @@ must be visibly gated and server-checked.
 | Concern | Location / command |
 | --- | --- |
 | Dependency source of truth | `package.json`, `pnpm-lock.yaml` |
-| Type checking | `pnpm run typecheck` |
+| Type checking | `pnpm exec tsc --noEmit` |
 | Unit/component tests | `pnpm test` |
 | Browser tests | `pnpm run test:e2e` |
 | Production frontend bundle | `pnpm run build` |
