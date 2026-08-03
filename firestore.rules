@@ -18,6 +18,116 @@ service cloud.firestore {
         get(/databases/$(database)/documents/userEntitlements/$(request.auth.uid)).data.premiumActive == true;
     }
 
+    // Hosted custom products remain fail-closed until a trusted server process
+    // explicitly enables the capability. Clients cannot read or mutate this
+    // rollout document.
+    function isCustomProductsHostedEnabled() {
+      return exists(/databases/$(database)/documents/serverFeatureCapabilities/customProducts) &&
+        get(/databases/$(database)/documents/serverFeatureCapabilities/customProducts).data.enabled == true;
+    }
+
+    function isAllowedCustomProductSlot(slotId) {
+      return [
+        'product-01', 'product-02', 'product-03', 'product-04', 'product-05',
+        'product-06', 'product-07', 'product-08', 'product-09', 'product-10',
+        'product-11', 'product-12', 'product-13', 'product-14', 'product-15',
+        'product-16', 'product-17', 'product-18', 'product-19', 'product-20'
+      ].hasAny([slotId]);
+    }
+
+    function isValidCustomCategoryStyle(style) {
+      return style is map &&
+        style.keys().hasOnly(['fillColor', 'fillOpacity', 'strokeColor', 'strokeOpacity', 'strokeWidth', 'hatch']) &&
+        style.keys().hasAll(['fillColor', 'fillOpacity', 'strokeColor', 'strokeOpacity', 'strokeWidth', 'hatch']) &&
+        style.fillColor is string && style.fillColor.matches('^#[0-9A-Fa-f]{6}$') &&
+        isNumeric(style.fillOpacity) && style.fillOpacity >= 0 && style.fillOpacity <= 1 &&
+        style.strokeColor is string && style.strokeColor.matches('^#[0-9A-Fa-f]{6}$') &&
+        isNumeric(style.strokeOpacity) && style.strokeOpacity >= 0 && style.strokeOpacity <= 1 &&
+        isNumeric(style.strokeWidth) && style.strokeWidth >= 0 && style.strokeWidth <= 8 &&
+        ['none', 'diagonal', 'reverse-diagonal', 'crosshatch'].hasAny([style.hatch]);
+    }
+
+    function isValidCustomCategory(category, expectedOrder) {
+      return category is map &&
+        category.keys().hasOnly(['id', 'label', 'order', 'style']) &&
+        category.keys().hasAll(['id', 'label', 'order', 'style']) &&
+        category.id is string && category.id.size() > 0 && category.id.size() <= 128 &&
+        category.label is string && category.label.size() > 0 && category.label.size() <= 64 &&
+        category.order is int && category.order == expectedOrder &&
+        isValidCustomCategoryStyle(category.style);
+    }
+
+    function isValidCustomCategories(value) {
+      return value is list && value.size() > 0 && value.size() <= 12 &&
+        (value.size() <= 0 || isValidCustomCategory(value[0], 0)) &&
+        (value.size() <= 1 || isValidCustomCategory(value[1], 1)) &&
+        (value.size() <= 2 || isValidCustomCategory(value[2], 2)) &&
+        (value.size() <= 3 || isValidCustomCategory(value[3], 3)) &&
+        (value.size() <= 4 || isValidCustomCategory(value[4], 4)) &&
+        (value.size() <= 5 || isValidCustomCategory(value[5], 5)) &&
+        (value.size() <= 6 || isValidCustomCategory(value[6], 6)) &&
+        (value.size() <= 7 || isValidCustomCategory(value[7], 7)) &&
+        (value.size() <= 8 || isValidCustomCategory(value[8], 8)) &&
+        (value.size() <= 9 || isValidCustomCategory(value[9], 9)) &&
+        (value.size() <= 10 || isValidCustomCategory(value[10], 10)) &&
+        (value.size() <= 11 || isValidCustomCategory(value[11], 11));
+    }
+
+    function customCategoryIds(value) {
+      return value.size() == 1 ? [value[0].id] :
+        value.size() == 2 ? [value[0].id, value[1].id] :
+        value.size() == 3 ? [value[0].id, value[1].id, value[2].id] :
+        value.size() == 4 ? [value[0].id, value[1].id, value[2].id, value[3].id] :
+        value.size() == 5 ? [value[0].id, value[1].id, value[2].id, value[3].id, value[4].id] :
+        value.size() == 6 ? [value[0].id, value[1].id, value[2].id, value[3].id, value[4].id, value[5].id] :
+        value.size() == 7 ? [value[0].id, value[1].id, value[2].id, value[3].id, value[4].id, value[5].id, value[6].id] :
+        value.size() == 8 ? [value[0].id, value[1].id, value[2].id, value[3].id, value[4].id, value[5].id, value[6].id, value[7].id] :
+        value.size() == 9 ? [value[0].id, value[1].id, value[2].id, value[3].id, value[4].id, value[5].id, value[6].id, value[7].id, value[8].id] :
+        value.size() == 10 ? [value[0].id, value[1].id, value[2].id, value[3].id, value[4].id, value[5].id, value[6].id, value[7].id, value[8].id, value[9].id] :
+        value.size() == 11 ? [value[0].id, value[1].id, value[2].id, value[3].id, value[4].id, value[5].id, value[6].id, value[7].id, value[8].id, value[9].id, value[10].id] :
+        [value[0].id, value[1].id, value[2].id, value[3].id, value[4].id, value[5].id, value[6].id, value[7].id, value[8].id, value[9].id, value[10].id, value[11].id];
+    }
+
+    function hasUniqueCustomCategoryIds(value) {
+      return customCategoryIds(value).toSet().size() == value.size();
+    }
+
+    function isValidCustomProductTimestamp(value) {
+      return value is string &&
+        value.matches('^([0-9]{4}-((0[13578]|1[02])-(0[1-9]|[12][0-9]|3[01])|(0[469]|11)-(0[1-9]|[12][0-9]|30)|02-(0[1-9]|1[0-9]|2[0-8]))|([0-9]{2}(0[48]|[2468][048]|[13579][26])|(0[48]|[2468][048]|[13579][26])00)-02-29)T([01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9]\\.[0-9]{3}Z$');
+    }
+
+    function isValidCustomProduct(data, userId) {
+      return data is map &&
+        data.keys().hasOnly(['schemaVersion', 'id', 'userId', 'label', 'description', 'version', 'status', 'categories', 'createdAt', 'updatedAt']) &&
+        data.keys().hasAll(['schemaVersion', 'id', 'userId', 'label', 'version', 'status', 'categories', 'createdAt', 'updatedAt']) &&
+        data.schemaVersion == '1.0.0' &&
+        data.id is string && data.id.size() > 0 && data.id.size() <= 128 &&
+        data.userId == userId &&
+        data.label is string && data.label.size() > 0 && data.label.size() <= 64 &&
+        (!('description' in data) || (data.description is string && data.description.size() <= 500)) &&
+        data.version is int && data.version >= 1 &&
+        ['active', 'archived'].hasAny([data.status]) &&
+        isValidCustomCategories(data.categories) && hasUniqueCustomCategoryIds(data.categories) &&
+        isValidCustomProductTimestamp(data.createdAt) &&
+        isValidCustomProductTimestamp(data.updatedAt);
+    }
+
+    function isValidCustomProductUpdate(userId) {
+      return isValidCustomProduct(request.resource.data, userId) &&
+        request.resource.data.schemaVersion == resource.data.schemaVersion &&
+        request.resource.data.id == resource.data.id &&
+        request.resource.data.userId == resource.data.userId &&
+        request.resource.data.createdAt == resource.data.createdAt &&
+        request.resource.data.version == resource.data.version + 1 &&
+        request.resource.data.updatedAt > resource.data.updatedAt &&
+        (
+          (resource.data.status == 'active' && request.resource.data.status == 'active') ||
+          (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'version', 'updatedAt']) &&
+            resource.data.status != request.resource.data.status)
+        );
+    }
+
     function isValidProviders(value) {
       return value is list && value.size() <= 20 &&
         (value.size() <= 0 || (value[0] is string && value[0].size() <= 128)) &&
@@ -166,12 +276,120 @@ service cloud.firestore {
         );
     }
 
+    function hasOnlyKeys(value, allowed) {
+      return value is map && value.keys().hasOnly(allowed);
+    }
+
+    function isValidOutlookVersion(value) {
+      return value is map &&
+        value.keys().hasOnly(['version', 'status', 'derivedFrom', 'createdAt']) &&
+        value.keys().hasAll(['version', 'status', 'createdAt']) &&
+        value.version is int &&
+        value.version >= 1 &&
+        value.version <= 32 &&
+        value.status is string &&
+        ['in-progress', 'completed', 'skipped', 'omitted'].hasAny([value.status]) &&
+        value.createdAt is string &&
+        value.createdAt.size() > 0 && value.createdAt.size() <= 64 &&
+        (!('derivedFrom' in value) ||
+          (value.derivedFrom is int && value.derivedFrom >= 1 && value.derivedFrom <= 32));
+    }
+
+    // Rules language has no collection-wide every() operation. Validate each
+    // possible list slot explicitly so no arbitrary nested data can be stored.
+    function isValidOutlookVersions(value) {
+      return value is list &&
+        value.size() <= 32 &&
+        (value.size() <= 0 || isValidOutlookVersion(value[0])) &&
+        (value.size() <= 1 || isValidOutlookVersion(value[1])) &&
+        (value.size() <= 2 || isValidOutlookVersion(value[2])) &&
+        (value.size() <= 3 || isValidOutlookVersion(value[3])) &&
+        (value.size() <= 4 || isValidOutlookVersion(value[4])) &&
+        (value.size() <= 5 || isValidOutlookVersion(value[5])) &&
+        (value.size() <= 6 || isValidOutlookVersion(value[6])) &&
+        (value.size() <= 7 || isValidOutlookVersion(value[7])) &&
+        (value.size() <= 8 || isValidOutlookVersion(value[8])) &&
+        (value.size() <= 9 || isValidOutlookVersion(value[9])) &&
+        (value.size() <= 10 || isValidOutlookVersion(value[10])) &&
+        (value.size() <= 11 || isValidOutlookVersion(value[11])) &&
+        (value.size() <= 12 || isValidOutlookVersion(value[12])) &&
+        (value.size() <= 13 || isValidOutlookVersion(value[13])) &&
+        (value.size() <= 14 || isValidOutlookVersion(value[14])) &&
+        (value.size() <= 15 || isValidOutlookVersion(value[15])) &&
+        (value.size() <= 16 || isValidOutlookVersion(value[16])) &&
+        (value.size() <= 17 || isValidOutlookVersion(value[17])) &&
+        (value.size() <= 18 || isValidOutlookVersion(value[18])) &&
+        (value.size() <= 19 || isValidOutlookVersion(value[19])) &&
+        (value.size() <= 20 || isValidOutlookVersion(value[20])) &&
+        (value.size() <= 21 || isValidOutlookVersion(value[21])) &&
+        (value.size() <= 22 || isValidOutlookVersion(value[22])) &&
+        (value.size() <= 23 || isValidOutlookVersion(value[23])) &&
+        (value.size() <= 24 || isValidOutlookVersion(value[24])) &&
+        (value.size() <= 25 || isValidOutlookVersion(value[25])) &&
+        (value.size() <= 26 || isValidOutlookVersion(value[26])) &&
+        (value.size() <= 27 || isValidOutlookVersion(value[27])) &&
+        (value.size() <= 28 || isValidOutlookVersion(value[28])) &&
+        (value.size() <= 29 || isValidOutlookVersion(value[29])) &&
+        (value.size() <= 30 || isValidOutlookVersion(value[30])) &&
+        (value.size() <= 31 || isValidOutlookVersion(value[31]));
+    }
+
+    function isValidWorkflowMetadata(value) {
+      return value is map &&
+        value.keys().hasOnly([
+          'id', 'workflowId', 'cycleDate', 'status',
+          'outlookVersions', 'createdAt', 'updatedAt'
+        ]) &&
+        value.keys().hasAll([
+          'id', 'workflowId', 'cycleDate', 'status',
+          'outlookVersions', 'createdAt', 'updatedAt'
+        ]) &&
+        value.id is string && value.id.size() > 0 && value.id.size() <= 128 &&
+        value.workflowId is string && value.workflowId.size() > 0 && value.workflowId.size() <= 128 &&
+        value.cycleDate is string && value.cycleDate.size() > 0 && value.cycleDate.size() <= 32 &&
+        value.status is string &&
+        ['in-progress', 'completed', 'completed-with-omissions'].hasAny([value.status]) &&
+        isValidOutlookVersions(value.outlookVersions) &&
+        value.createdAt is string && value.createdAt.size() > 0 && value.createdAt.size() <= 64 &&
+        value.updatedAt is string && value.updatedAt.size() > 0 && value.updatedAt.size() <= 64;
+    }
+
+    function isValidWorkflowAwarenessMetadata(value, cycleId) {
+      return value is map &&
+        value.keys().hasOnly([
+          'cycleId', 'workflowId', 'cycleDate', 'status',
+          'outlookVersions', 'createdAt', 'updatedAt'
+        ]) &&
+        value.keys().hasAll([
+          'cycleId', 'workflowId', 'cycleDate', 'status',
+          'outlookVersions', 'createdAt', 'updatedAt'
+        ]) &&
+        value.cycleId == cycleId &&
+        value.cycleId is string && value.cycleId.size() > 0 && value.cycleId.size() <= 128 &&
+        value.workflowId is string && value.workflowId.size() > 0 && value.workflowId.size() <= 128 &&
+        value.cycleDate is string && value.cycleDate.size() > 0 && value.cycleDate.size() <= 32 &&
+        value.status is string &&
+        ['in-progress', 'completed', 'completed-with-omissions'].hasAny([value.status]) &&
+        isValidOutlookVersions(value.outlookVersions) &&
+        value.createdAt is string && value.createdAt.size() > 0 && value.createdAt.size() <= 64 &&
+        value.updatedAt is string && value.updatedAt.size() > 0 && value.updatedAt.size() <= 64;
+    }
+
+    function isValidWorkflowAwarenessDocument(data, cycleId) {
+      return data is map &&
+        data.keys().hasOnly(['consentVersion', 'schemaVersion', 'metadata']) &&
+        data.keys().hasAll(['consentVersion', 'schemaVersion', 'metadata']) &&
+        data.consentVersion == 1 &&
+        data.schemaVersion == 1 &&
+        isValidWorkflowAwarenessMetadata(data.metadata, cycleId);
+    }
+
     function isValidCloudCycle(data, cycleId) {
       return data is map &&
         data.keys().hasOnly([
           'id', 'userId', 'label', 'cycleDate', 'createdAt', 'updatedAt',
           'forecastDays', 'totalOutlooks', 'totalFeatures', 'isReadOnly',
-          'payloadHash', 'payloadJson', 'payloadBytes'
+          'payloadHash', 'payloadJson', 'payloadBytes', 'workflowMetadata'
         ]) &&
         data.keys().hasAll([
           'id', 'userId', 'label', 'cycleDate', 'createdAt', 'updatedAt',
@@ -192,7 +410,10 @@ service cloud.firestore {
         data.payloadJson is string && data.payloadJson.toUtf8().size() <= 750000 &&
         data.payloadBytes is int && data.payloadBytes == data.payloadJson.toUtf8().size() &&
         (!('payloadHash' in data) ||
-          (data.payloadHash is string && data.payloadHash.size() <= 128));
+          (data.payloadHash is string && data.payloadHash.size() <= 128)) &&
+        (!('workflowMetadata' in data) ||
+          (isValidWorkflowMetadata(data.workflowMetadata) &&
+            data.workflowMetadata.cycleDate == data.cycleDate));
     }
 
     match /userProfiles/{userId} {
@@ -218,9 +439,35 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    match /serverFeatureCapabilities/{capabilityId} {
+      allow read, write: if false;
+    }
+
     match /userMetrics/{userId} {
       allow read: if isOwner(userId);
       allow write: if false;
+    }
+
+    match /users/{userId}/workflowAwareness/{cycleId} {
+      allow read: if isOwner(userId);
+      allow create: if isOwner(userId) &&
+        isValidWorkflowAwarenessDocument(request.resource.data, cycleId);
+      allow update: if isOwner(userId) &&
+        isValidWorkflowAwarenessDocument(request.resource.data, cycleId);
+      allow delete: if isOwner(userId);
+    }
+
+    match /users/{userId}/customProducts/{slotId} {
+      // Existing owner data stays readable and deletable after expiration or a
+      // rollout shutdown. New use/edit paths require both server gates.
+      allow read, delete: if isOwner(userId);
+      allow create: if isOwner(userId) && hasPremiumAccess() &&
+        isCustomProductsHostedEnabled() && isAllowedCustomProductSlot(slotId) &&
+        request.resource.data.status == 'active' &&
+        isValidCustomProduct(request.resource.data, userId);
+      allow update: if isOwner(userId) && hasPremiumAccess() &&
+        isCustomProductsHostedEnabled() && isAllowedCustomProductSlot(slotId) &&
+        isValidCustomProductUpdate(userId);
     }
 
     match /cloudCycles/{cycleId} {

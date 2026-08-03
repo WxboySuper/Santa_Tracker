@@ -9,6 +9,7 @@ import useAutoCategorical, {
 } from '../useAutoCategorical';
 import { OutlookData } from '../../types/outlooks';
 import { Feature, Polygon } from 'geojson';
+import * as turf from '@turf/turf';
 import forecastReducer, { addFeature, undoLastEdit, updateFeature } from '../../store/forecastSlice';
 
 const mockUuid = jest.fn(() => 'mock-uuid');
@@ -16,6 +17,15 @@ const mockUuid = jest.fn(() => 'mock-uuid');
 jest.mock('uuid', () => ({
   v4: () => mockUuid(),
 }));
+
+jest.mock('@turf/turf', () => {
+  const actual = jest.requireActual<typeof import('@turf/turf')>('@turf/turf');
+  return {
+    ...actual,
+    featureCollection: jest.fn((...args: Parameters<typeof actual.featureCollection>) =>
+      actual.featureCollection(...args)),
+  };
+});
 
 const makeFeature = (id: string): Feature<Polygon> => ({
   type: 'Feature',
@@ -42,6 +52,22 @@ const makeProbabilisticFeature = (id: string, offset: number): Feature<Polygon> 
     probability: '30%',
     isSignificant: false
   }
+});
+
+const makeSquare = (id: string, offset: number, size = 2): Feature<Polygon> => ({
+  type: 'Feature',
+  id,
+  geometry: {
+    type: 'Polygon',
+    coordinates: [[
+      [offset, offset],
+      [offset + size, offset],
+      [offset + size, offset + size],
+      [offset, offset + size],
+      [offset, offset],
+    ]],
+  },
+  properties: {},
 });
 
 const createStore = () => configureStore({
@@ -165,6 +191,84 @@ describe('processOutlooksToCategorical', () => {
 
     expect(processDay12OutlooksToCategorical(outlooks).length).toBeGreaterThan(0);
     expect(processOutlooksToCategorical(outlooks, 2).length).toBeGreaterThan(0);
+  });
+
+  test('maps hatching intersections to expected categorical risk levels', () => {
+    const outlooks: OutlookData = {
+      tornado: new Map(),
+      wind: new Map([
+        ['30%', [makeSquare('wind-prob', 0)]],
+        ['CIG1', [makeSquare('wind-hatch', 0)]],
+      ]),
+      hail: new Map(),
+      categorical: new Map(),
+    };
+
+    const result = processDay12OutlooksToCategorical(outlooks);
+    expect(result.some((feature) => feature.properties?.probability === 'ENH')).toBe(true);
+  });
+
+  test('builds cumulative categorical rings that include lower-tier geometry', () => {
+    const outlooks: OutlookData = {
+      tornado: new Map(),
+      wind: new Map([
+        ['5%', [makeSquare('wind-mrgl', 0)]],
+        ['30%', [makeSquare('wind-slgt', 4)]],
+      ]),
+      hail: new Map(),
+      categorical: new Map(),
+    };
+
+    const result = processDay12OutlooksToCategorical(outlooks);
+    const marginal = result.find((feature) => feature.properties?.probability === 'MRGL');
+    const slight = result.find((feature) => feature.properties?.probability === 'SLGT');
+
+    expect(marginal).toBeDefined();
+    expect(slight).toBeDefined();
+    expect(turf.booleanContains(marginal as Feature<Polygon>, slight as Feature<Polygon>)).toBe(true);
+  });
+
+  test('avoids redundant turf.featureCollection calls in hatching loops', () => {
+    const outlooks: OutlookData = {
+      tornado: new Map(),
+      wind: new Map([
+        ['30%', [makeSquare('wind-prob', 0)]],
+        ['CIG3', [makeSquare('wind-cig3', 0)]],
+        ['CIG2', [makeSquare('wind-cig2', 0)]],
+        ['CIG1', [makeSquare('wind-cig1', 0)]],
+      ]),
+      hail: new Map(),
+      categorical: new Map(),
+    };
+
+    const featureCollectionMock = turf.featureCollection as jest.MockedFunction<typeof turf.featureCollection>;
+    featureCollectionMock.mockClear();
+    processDay12OutlooksToCategorical(outlooks);
+
+    // Hatching unions may still allocate collections; intersect/difference should not per CIG iteration.
+    expect(featureCollectionMock.mock.calls.length).toBeLessThanOrEqual(3);
+  });
+
+  test('applies day 3 hatching and cumulative risk generation', () => {
+    const outlooks: OutlookData = {
+      tornado: new Map(),
+      wind: new Map(),
+      hail: new Map(),
+      categorical: new Map(),
+      totalSevere: new Map([
+        ['15%', [makeSquare('severe-prob', 0)]],
+        ['CIG1', [makeSquare('severe-hatch', 0)]],
+        ['5%', [makeSquare('severe-mrgl', 5)]],
+      ]),
+    };
+
+    const result = processDay3OutlooksToCategorical(outlooks);
+    expect(result.some((feature) => feature.properties?.probability === 'SLGT')).toBe(true);
+    expect(result.some((feature) => feature.properties?.probability === 'MRGL')).toBe(true);
+
+    const marginal = result.find((feature) => feature.properties?.probability === 'MRGL');
+    const slight = result.find((feature) => feature.properties?.probability === 'SLGT');
+    expect(turf.booleanContains(marginal as Feature<Polygon>, slight as Feature<Polygon>)).toBe(true);
   });
 
   // Since we use turf intersection, robust testing requires valid geometries and turf mocking or integration.

@@ -1,5 +1,14 @@
 import React from 'react';
-import './ExportModal.css'; // Reuse modal styles
+import './ConfirmationModal.css';
+import { Button } from '../ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '../ui/dialog';
 
 interface ConfirmationModalProps {
   isOpen: boolean;
@@ -9,8 +18,11 @@ interface ConfirmationModalProps {
   onCancel: () => void;
   confirmLabel?: string;
   cancelLabel?: string;
+  /** Optional overlay class for stacking above other modals (e.g. cycle history). */
+  overlayClassName?: string;
 }
 
+/** Renders a confirmation dialog, optionally stacked above another modal. */
 const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
   isOpen,
   title,
@@ -18,33 +30,32 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
   onConfirm,
   onCancel,
   confirmLabel = "Confirm",
-  cancelLabel = "Cancel"
+  cancelLabel = "Cancel",
+  overlayClassName,
 }) => {
-  if (!isOpen) return null;
-
   return (
-    <div className="export-modal-overlay">
-      <div className="export-modal" role="dialog" aria-modal="true" aria-labelledby="confirm-title" aria-describedby="confirm-desc">
-        <h3 id="confirm-title">{title}</h3>
-        <p id="confirm-desc">{message}</p>
-        <div className="export-modal-actions">
-          <button
-            type="button"
-            className="export-modal-btn export-modal-cancel"
-            onClick={onCancel}
-          >
+    <Dialog open={isOpen} onOpenChange={(open) => {
+      if (!open) onCancel();
+    }}>
+      <DialogContent
+        className="confirmation-dialog"
+        overlayClassName={overlayClassName}
+        aria-describedby="confirm-desc"
+      >
+        <DialogHeader>
+          <DialogTitle>{title}</DialogTitle>
+          <DialogDescription id="confirm-desc">{message}</DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <Button type="button" variant="outline" onClick={onCancel}>
             {cancelLabel}
-          </button>
-          <button
-            type="button"
-            className="export-modal-btn export-modal-confirm"
-            onClick={onConfirm}
-          >
+          </Button>
+          <Button type="button" onClick={onConfirm}>
             {confirmLabel}
-          </button>
-        </div>
-      </div>
-    </div>
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 };
 

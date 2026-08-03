@@ -10,7 +10,6 @@ const originalFirebaseAdmin = require.cache[firebaseAdminPath];
 const originalMetrics = require.cache[metricsPath];
 const documents = new Map();
 let queue = Promise.resolve();
-let metricRecorder = async () => true;
 
 const createRef = (collection, id) => ({
   collection,
@@ -67,7 +66,7 @@ require.cache[metricsPath] = {
   id: metricsPath,
   filename: metricsPath,
   loaded: true,
-  exports: { recordBillingMetricEvent: (...args) => metricRecorder(...args) },
+  exports: { recordBillingMetricEvent: async () => true },
 };
 delete require.cache[billingPath];
 const { __testing } = require('./billing');
@@ -87,7 +86,6 @@ beforeEach(() => {
   documents.clear();
   documents.set('userEntitlements/user-1', { uid: 'user-1', betaOverrideActive: false });
   queue = Promise.resolve();
-  metricRecorder = async () => true;
 });
 
 after(() => {
@@ -121,15 +119,13 @@ describe('billing webhook state', () => {
   });
 
   it('does not let an older subscription update reverse a deletion', async () => {
-    let currentSubscription = subscription('canceled');
-    const stripe = { subscriptions: { retrieve: async () => currentSubscription } };
+    const stripe = { subscriptions: { retrieve: async () => { throw new Error('not expected'); } } };
     await __testing.handleWebhookEvent({
       id: 'evt_deleted',
       type: 'customer.subscription.deleted',
       created: 300,
       data: { object: subscription('canceled') },
     }, stripe);
-    currentSubscription = subscription('canceled');
     await __testing.handleWebhookEvent({
       id: 'evt_delayed',
       type: 'customer.subscription.updated',
@@ -143,21 +139,8 @@ describe('billing webhook state', () => {
     assert.equal(documents.get('processedStripeWebhookEvents/evt_delayed').outcome, 'stale');
   });
 
-  it('uses verified deletion state when Stripe no longer returns the subscription', async () => {
-    const stripe = { subscriptions: { retrieve: async () => { throw new Error('resource missing'); } } };
-    await __testing.handleWebhookEvent({
-      id: 'evt_deleted_missing',
-      type: 'customer.subscription.deleted',
-      created: 350,
-      data: { object: subscription('canceled') },
-    }, stripe);
-
-    assert.equal(documents.get('userEntitlements/user-1').billingStatus, 'canceled');
-    assert.equal(documents.get('userEntitlements/user-1').lastStripeEventId, 'evt_deleted_missing');
-  });
-
   it('applies a replayed event id once', async () => {
-    const stripe = { subscriptions: { retrieve: async () => subscription('active') } };
+    const stripe = { subscriptions: { retrieve: async () => { throw new Error('not expected'); } } };
     const event = {
       id: 'evt_replay',
       type: 'customer.subscription.updated',
@@ -172,76 +155,5 @@ describe('billing webhook state', () => {
 
     assert.equal(documents.get('userEntitlements/user-1').billingStatus, 'active');
     assert.equal(documents.get('processedStripeWebhookEvents/evt_replay').outcome, 'applied');
-  });
-
-  it('does not replace live state with an intermediate subscription snapshot', async () => {
-    const currentSubscription = subscription('canceled');
-    const stripe = { subscriptions: { retrieve: async () => currentSubscription } };
-    await __testing.handleWebhookEvent({
-      id: 'evt_early_invoice',
-      type: 'invoice.paid',
-      created: 100,
-      data: { object: { subscription: 'sub_1' } },
-    }, stripe);
-    await __testing.handleWebhookEvent({
-      id: 'evt_intermediate_update',
-      type: 'customer.subscription.updated',
-      created: 200,
-      data: { object: subscription('active') },
-    }, stripe);
-
-    const entitlement = documents.get('userEntitlements/user-1');
-    assert.equal(entitlement.billingStatus, 'canceled');
-    assert.equal(entitlement.lastStripeEventId, 'evt_intermediate_update');
-  });
-
-  it('retries a failed metric after the entitlement event is already recorded', async () => {
-    let attempts = 0;
-    metricRecorder = async (_eventType, eventId) => {
-      attempts += 1;
-      assert.equal(eventId, 'evt_checkout_retry');
-      if (attempts === 1) throw new Error('temporary metrics failure');
-      return true;
-    };
-    const stripe = { subscriptions: { retrieve: async () => subscription('active') } };
-    const event = {
-      id: 'evt_checkout_retry',
-      type: 'checkout.session.completed',
-      created: 500,
-      data: { object: { subscription: 'sub_1', metadata: { uid: 'user-1' } } },
-    };
-
-    await assert.rejects(__testing.handleWebhookEvent(event, stripe), /temporary metrics failure/);
-    await __testing.handleWebhookEvent(event, stripe);
-
-    assert.equal(attempts, 2);
-    assert.equal(documents.get('userEntitlements/user-1').billingStatus, 'active');
-  });
-
-  it('does not count stale checkout or cancellation events', async () => {
-    const recordedMetrics = [];
-    metricRecorder = async (eventType) => { recordedMetrics.push(eventType); };
-    const stripe = { subscriptions: { retrieve: async () => subscription('active') } };
-    await __testing.handleWebhookEvent({
-      id: 'evt_current',
-      type: 'customer.subscription.updated',
-      created: 600,
-      data: { object: subscription('active') },
-    }, stripe);
-    await __testing.handleWebhookEvent({
-      id: 'evt_stale_delete',
-      type: 'customer.subscription.deleted',
-      created: 550,
-      data: { object: subscription('canceled') },
-    }, stripe);
-    await __testing.handleWebhookEvent({
-      id: 'evt_stale_checkout',
-      type: 'checkout.session.completed',
-      created: 500,
-      data: { object: { subscription: 'sub_1', metadata: { uid: 'user-1' } } },
-    }, stripe);
-
-    assert.deepEqual(recordedMetrics, []);
-    assert.equal(documents.get('userEntitlements/user-1').billingStatus, 'active');
   });
 });

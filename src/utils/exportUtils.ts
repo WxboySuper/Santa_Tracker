@@ -713,8 +713,12 @@ export function getExportRootAndSize(map: ExportMapLike) {
   }
 
   const exportRoot = (mapContainer.closest('.map-container, .forecast-map-container') as HTMLElement | null) || mapContainer;
-  const width = exportRoot.clientWidth;
-  const height = exportRoot.clientHeight;
+  // OpenLayers renders into this viewport, while the export root also contains
+  // map controls and status overlays. Capture using the viewport dimensions so
+  // html2canvas does not extend the JPEG into unused wrapper space below the map.
+  const viewport = mapContainer.querySelector<HTMLElement>('.ol-viewport');
+  const width = viewport?.clientWidth || mapContainer.clientWidth;
+  const height = viewport?.clientHeight || mapContainer.clientHeight;
   return { mapContainer, exportRoot, width, height };
 }
 

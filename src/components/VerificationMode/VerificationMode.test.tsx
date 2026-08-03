@@ -1,4 +1,4 @@
-import { forwardRef } from 'react';
+import { forwardRef as mockForwardRef } from 'react';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Provider } from 'react-redux';
@@ -6,19 +6,19 @@ import { configureStore } from '@reduxjs/toolkit';
 import VerificationMode from './VerificationMode';
 import verificationReducer from '../../store/verificationSlice';
 
-const addToast = jest.fn();
-const queueProductMetric = jest.fn();
+const mockAddToast = jest.fn();
+const mockQueueProductMetric = jest.fn();
 
 jest.mock('../../auth/AuthProvider', () => ({
   useAuth: jest.fn(),
 }));
 
 jest.mock('../Layout/AppLayout', () => ({
-  useAppLayout: jest.fn(() => ({ addToast })),
+  useAppLayout: jest.fn(() => ({ addToast: mockAddToast })),
 }));
 
 jest.mock('../../utils/productMetrics', () => ({
-  queueProductMetric: (...args: unknown[]) => queueProductMetric(...args),
+  queueProductMetric: (...args: unknown[]) => mockQueueProductMetric(...args),
 }));
 
 jest.mock('../../utils/fileUtils', () => ({
@@ -29,7 +29,7 @@ jest.mock('../../utils/fileUtils', () => ({
 jest.mock('../Map/VerificationMap', () => {
   return {
     __esModule: true,
-    default: forwardRef(
+    default: mockForwardRef(
       ({ activeOutlookType, selectedDay }: { activeOutlookType: string; selectedDay: number }, _ref) => (
         <div data-testid="verification-map">{`${activeOutlookType}:${selectedDay}`}</div>
       )
@@ -129,7 +129,7 @@ describe('VerificationMode', () => {
     expect(screen.getByTestId('verification-map')).toHaveTextContent('categorical:1');
     expect(screen.getByRole('button', { name: /Day 1/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Day 4/i })).toBeInTheDocument();
-    expect(queueProductMetric).toHaveBeenCalledWith({ event: 'verification_run', user: { uid: 'user-1' } });
+    expect(mockQueueProductMetric).toHaveBeenCalledWith({ event: 'verification_run', user: { uid: 'user-1' } });
 
     await user.click(screen.getByRole('button', { name: /Day 4/i }));
     expect(screen.getByTestId('verification-map')).toHaveTextContent('categorical:4');
@@ -159,7 +159,7 @@ describe('VerificationMode', () => {
     await user.upload(fileInput, new File(['{}'], 'invalid.json', { type: 'application/json' }));
 
     await waitFor(() =>
-      expect(addToast).toHaveBeenCalledWith(
+      expect(mockAddToast).toHaveBeenCalledWith(
         expect.stringContaining('Invalid forecast file format'),
         'error'
       )
@@ -173,7 +173,7 @@ describe('VerificationMode', () => {
 
     const fileInput = screen.getByLabelText(/Choose Forecast File/i) as HTMLInputElement;
     fireEvent.change(fileInput, { target: { files: [] } });
-    expect(addToast).not.toHaveBeenCalled();
+    expect(mockAddToast).not.toHaveBeenCalled();
 
     await user.upload(fileInput, new File(['{}'], 'forecast.json', { type: 'application/json' }));
     await waitFor(() => expect(screen.getByText(/Forecast Loaded/i)).toBeInTheDocument());

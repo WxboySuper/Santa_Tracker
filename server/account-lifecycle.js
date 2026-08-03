@@ -7,6 +7,7 @@ const { getAdminAuth, getAdminDb, hasFirebaseAdminConfig } = require('./firebase
 
 const RECENT_AUTH_SECONDS = 5 * 60;
 const DIRECT_USER_COLLECTIONS = ['userProfiles', 'userSettings', 'userEntitlements', 'userMetrics'];
+const NESTED_USER_SUBCOLLECTIONS = ['workflowAwareness', 'customProducts'];
 
 /** Derives a non-reversible document key for the durable deletion safety marker. */
 const getDeletionTombstoneId = (uid) => crypto.createHash('sha256').update(uid).digest('hex');
@@ -19,6 +20,19 @@ const isAccountDeletionBlocked = async (db, uid) => {
     db.collection('accountDeletionTombstones').doc(getDeletionTombstoneId(uid)).get(),
   ]);
   return requestSnapshot.exists || tombstoneSnapshot.exists;
+};
+
+/** True when a Stripe customer ID belongs to an account with an active or completed deletion. */
+const isStripeCustomerDeletionBlocked = async (db, customerId) => {
+  if (!db || !customerId) return false;
+  const [requestQuery, tombstoneQuery] = await Promise.all([
+    db.collection('accountDeletionRequests').where('stripeCustomerId', '==', customerId).limit(1).get(),
+    db.collection('accountDeletionTombstones').where('stripeCustomerIds', 'array-contains', customerId).limit(1).get(),
+  ]);
+  if (!requestQuery.empty || !tombstoneQuery.empty) return true;
+
+  const singleQuery = await db.collection('accountDeletionTombstones').where('stripeCustomerId', '==', customerId).limit(1).get();
+  return !singleQuery.empty;
 };
 
 const deletionRateLimit = rateLimit({
@@ -64,16 +78,29 @@ const deleteDocumentRefs = async (db, refs) => {
   }
 };
 
-/** Finds every top-level document associated with the account. */
+/** Queries all documents in named first-level subcollections of a parent document. */
+const findNestedSubcollectionRefs = async (db, parentDocPath, subcollectionNames) => {
+  const refs = [];
+  for (const name of subcollectionNames) {
+    const snapshot = await db.collection(`${parentDocPath}/${name}`).get();
+    snapshot.docs.forEach((doc) => {
+      refs.push(doc.ref);
+    });
+  }
+  return refs;
+};
+
+/** Finds every document associated with the account across top-level and nested collections. */
 const findAccountDocumentRefs = async (db, uid) => {
   const directRefs = DIRECT_USER_COLLECTIONS.map((name) => db.collection(name).doc(uid));
-  const [cloudSnapshot, accountDedupeSnapshot] = await Promise.all([
+  const [cloudSnapshot, accountDedupeSnapshot, nestedSubcollectionRefs] = await Promise.all([
     db.collection('cloudCycles').where('userId', '==', uid).get(),
     db.collection('adminMetricDedupes').where('uid', '==', uid).get(),
+    findNestedSubcollectionRefs(db, `users/${uid}`, NESTED_USER_SUBCOLLECTIONS),
   ]);
   const accountDedupeRefs = accountDedupeSnapshot.docs.map((document) => document.ref);
 
-  return [...directRefs, ...cloudSnapshot.docs.map((document) => document.ref), ...accountDedupeRefs];
+  return [...directRefs, ...cloudSnapshot.docs.map((document) => document.ref), ...accountDedupeRefs, ...nestedSubcollectionRefs];
 };
 
 /** Removes all Firestore records that can identify or contain content for this account. */
@@ -144,48 +171,83 @@ const deleteLinkedStripeCustomers = ({ db, uid, stripe }) => {
 const isIdentityGone = async (adminAuth, uid) =>
   adminAuth.getUser(uid).then(() => false).catch((e) => e?.code === 'auth/user-not-found');
 
-/** Runs the idempotent destructive sequence while preserving the auth identity until cleanup succeeds. */
-const deleteAccount = async ({ uid, db, adminAuth, stripe }) => {
+/** Deletes the current linked Stripe customer if it differs from the known set. */
+const reconcileCurrentCustomer = async ({ db, uid, stripe, seenCustomerIds }) => {
+  const entitlement = await db.collection('userEntitlements').doc(uid).get();
+  const customerId = entitlement.data()?.stripeCustomerId;
+  if (customerId && !seenCustomerIds.has(customerId)) {
+    seenCustomerIds.add(customerId);
+    await deleteStripeCustomer({ stripe, customerId });
+  }
+};
+
+/** Sweeps any late entitlement document that appeared during reconciliation. */
+const sweepLateEntitlement = async (db, uid, seenCustomerIds) => {
+  const lateRef = db.collection('userEntitlements').doc(uid);
+  const lateSnapshot = await lateRef.get();
+  if (!lateSnapshot.exists) return;
+  const lateCustomerId = lateSnapshot.data()?.stripeCustomerId;
+  if (lateCustomerId) seenCustomerIds.add(lateCustomerId);
+  await lateRef.delete();
+};
+
+/** Reconciles billing linkage that changed during the Firestore data sweep. */
+const reconcilePostSweepBilling = async ({ db, uid, stripe, tombstoneRef, stripeCustomerId }) => {
+  const seenCustomerIds = new Set(stripeCustomerId ? [stripeCustomerId] : []);
+
+  await reconcileCurrentCustomer({ db, uid, stripe, seenCustomerIds });
+  await reconcileCurrentCustomer({ db, uid, stripe, seenCustomerIds });
+  await sweepLateEntitlement(db, uid, seenCustomerIds);
+
+  if (tombstoneRef && seenCustomerIds.size > 1) {
+    await tombstoneRef.set({ stripeCustomerIds: [...seenCustomerIds] }, { merge: true });
+  }
+};
+
+/** Writes the tombstone, removes the Firebase identity, and cleans up the request marker. */
+const finalizeDeletion = async ({ uid, db, adminAuth, requestRef, tombstoneRef }) => {
+  await tombstoneRef.set({ completedAt: new Date() }, { merge: true });
+
+  try {
+    await adminAuth.deleteUser(uid);
+  } catch (error) {
+    if (error?.code !== 'auth/user-not-found') throw error;
+  }
+
+  await requestRef.delete();
+};
+
+/** Handles a deletion failure when the identity was already removed or the request marker is gone. */
+const handleDeletionFailure = async ({ adminAuth, uid, requestRef, error }) => {
+  if (await isIdentityGone(adminAuth, uid)) return;
+
+  await requestRef.set({ status: 'failed', updatedAt: new Date() }, { merge: true });
+  throw error;
+};
+
+/** Creates the request marker and hashed tombstone references for the deletion lifecycle. */
+const initDeletionRefs = async (db, uid) => {
   const requestRef = db.collection('accountDeletionRequests').doc(uid);
   const tombstoneRef = db.collection('accountDeletionTombstones').doc(getDeletionTombstoneId(uid));
-  await requestRef.set({ status: 'in_progress', updatedAt: new Date() }, { merge: true });
+
+  const entitlementSnapshot = await db.collection('userEntitlements').doc(uid).get();
+  const stripeCustomerId = entitlementSnapshot.data()?.stripeCustomerId || null;
+
+  await requestRef.set({ status: 'in_progress', stripeCustomerId, updatedAt: new Date() }, { merge: true });
+  return { requestRef, tombstoneRef, stripeCustomerId };
+};
+
+/** Runs the idempotent destructive sequence while preserving the auth identity until cleanup succeeds. */
+const deleteAccount = async ({ uid, db, adminAuth, stripe }) => {
+  const { requestRef, tombstoneRef, stripeCustomerId } = await initDeletionRefs(db, uid);
 
   try {
     await deleteLinkedStripeCustomers({ db, uid, stripe });
     await deleteAccountFirestoreData(db, uid);
-
-    // Re-reconcile billing linkage after the data sweep: a concurrent webhook
-    // that passed canWriteEntitlementForUid before the deletion marker existed
-    // may have written a new stripeCustomerId while the sweep was running.
-    await deleteLinkedStripeCustomers({ db, uid, stripe });
-
-    // Write the tombstone before identity removal. Both the request marker and
-    // tombstone must remain until after deleteUser so a concurrent webhook that
-    // passed canWriteEntitlementForUid before the markers existed cannot slip
-    // through and recreate entitlement state during the final cleanup window.
-    await tombstoneRef.set({ completedAt: new Date() });
-
-    // The identity is intentionally last: until this succeeds, the caller can
-    // authenticate again and safely retry any idempotent cleanup above.
-    try {
-      await adminAuth.deleteUser(uid);
-    } catch (error) {
-      if (error?.code !== 'auth/user-not-found') throw error;
-    }
-
-    // Clean up the request marker only after the identity is gone — a concurrent
-    // webhook can no longer authenticate to write a new entitlement.
-    await requestRef.delete();
+    await reconcilePostSweepBilling({ db, uid, stripe, tombstoneRef, stripeCustomerId });
+    await finalizeDeletion({ uid, db, adminAuth, requestRef, tombstoneRef });
   } catch (error) {
-    // If the identity was already deleted, orphaned Firestore data is a
-    // non-retryable trade-off — the caller can no longer authenticate to
-    // drive a retry, and the tombstone already blocks billing writes.
-    if (await isIdentityGone(adminAuth, uid)) return;
-
-    // If the request marker was already removed, the tombstone still blocks
-    // billing writes while the surviving identity can authenticate and retry.
-    await requestRef.set({ status: 'failed', updatedAt: new Date() }, { merge: true });
-    throw error;
+    await handleDeletionFailure({ adminAuth, uid, requestRef, error });
   }
 };
 
@@ -282,5 +344,6 @@ module.exports = {
   getDeletionTombstoneId,
   hasRecentAuthentication,
   isAccountDeletionBlocked,
+  isStripeCustomerDeletionBlocked,
   registerAccountLifecycleRoutes,
 };

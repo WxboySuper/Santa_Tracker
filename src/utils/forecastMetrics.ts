@@ -7,7 +7,10 @@ export interface ForecastMetrics {
   totalFeatures: number;
 }
 
-/** Counts the saved-day and outlook totals for a forecast cycle without relying on page-level helpers. */
+/**
+ * Counts severe-weather analytics only. Custom layers intentionally remain
+ * outside these totals until a dedicated custom analytics contract exists.
+ */
 export const countForecastMetrics = (forecastCycle: ForecastCycle): ForecastMetrics => {
   let forecastDays = 0;
   let totalOutlooks = 0;

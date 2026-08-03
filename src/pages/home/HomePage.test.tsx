@@ -65,7 +65,11 @@ describe('HomePage', () => {
       confirmNewCycle: false,
       savedCycles: [],
       forecastCycle: baseForecastCycle,
+      workflowMetadata: undefined,
+      hasActiveWorkflow: false,
       isSaved: false,
+      handleStartWorkflow: jest.fn(),
+      handleCreateWorkflowUpdate: jest.fn(),
       ...handlers,
     });
 
@@ -98,6 +102,7 @@ describe('HomePage', () => {
     const save = jest.fn();
     const loadFile = jest.fn();
     const navigateForecast = jest.fn();
+    const startWorkflow = jest.fn();
 
     mockUseHomePageLogic.mockReturnValue({
       variant: 'signed_in',
@@ -149,6 +154,9 @@ describe('HomePage', () => {
         },
       ],
       forecastCycle: baseForecastCycle,
+      workflowMetadata: undefined,
+      hasActiveWorkflow: false,
+      workflowEnabled: true,
       isSaved: true,
       handleNavigateForecast: navigateForecast,
       handleNavigateDiscussion: jest.fn(),
@@ -156,6 +164,8 @@ describe('HomePage', () => {
       handleOpenHistoryModal: openHistory,
       handleQuickStartClick: quickStart,
       handleNewCycle: jest.fn(),
+      handleStartWorkflow: startWorkflow,
+      handleCreateWorkflowUpdate: jest.fn(),
       handleSave: save,
       openFilePicker,
       handleLoadRecentCycleClick: loadRecent,
@@ -177,8 +187,10 @@ describe('HomePage', () => {
     expect(screen.getByText(/Confirm start new cycle modal open/i)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /View full history/i })).toBeInTheDocument();
 
-    fireEvent.click(screen.getAllByRole('button', { name: /Resume Forecast/i })[0]);
-    expect(navigateForecast).toHaveBeenCalled();
+    const dayOneButton = screen.getByRole('button', { name: /Day 1/i });
+    expect(dayOneButton).toBeEnabled();
+    fireEvent.click(dayOneButton);
+    expect(startWorkflow).toHaveBeenCalled();
 
     fireEvent.click(screen.getByRole('button', { name: /2026-03-25/i }));
     expect(loadRecent).toHaveBeenCalled();
@@ -199,6 +211,74 @@ describe('HomePage', () => {
     expect(quickStart).not.toHaveBeenCalled();
     expect(save).not.toHaveBeenCalled();
     expect(openFilePicker).not.toHaveBeenCalled();
+  });
+
+  test('renders active workflow status and create update on the signed-in home', () => {
+    const createUpdate = jest.fn();
+    const navigateForecast = jest.fn();
+    const startWorkflow = jest.fn();
+
+    mockUseHomePageLogic.mockReturnValue({
+      variant: 'signed_in',
+      stats: baseStats,
+      formattedDate: 'Friday, March 27, 2026',
+      fileInputRef: { current: null },
+      showHistoryModal: false,
+      confirmNewCycle: false,
+      savedCycles: [],
+      forecastCycle: {
+        ...baseForecastCycle,
+        days: {
+          4: {
+            day: 4,
+            data: {},
+            metadata: {},
+          },
+        },
+      },
+      workflowMetadata: {
+        workflowId: 'severe-day4-8',
+        status: 'draft',
+        createdAt: '2026-03-27T12:00:00Z',
+        updatedAt: '2026-03-27T12:00:00Z',
+        outlookVersions: [{ version: 1, label: 'Initial outlook', createdAt: '2026-03-27T12:00:00Z' }],
+      },
+      hasActiveWorkflow: true,
+      isSaved: true,
+      handleNavigateForecast: navigateForecast,
+      handleNavigateDiscussion: jest.fn(),
+      handleNavigateAccount: jest.fn(),
+      handleOpenHistoryModal: jest.fn(),
+      handleQuickStartClick: jest.fn(),
+      handleNewCycle: jest.fn(),
+      handleStartWorkflow: startWorkflow,
+      handleCreateWorkflowUpdate: createUpdate,
+      handleSave: jest.fn(),
+      openFilePicker: jest.fn(),
+      handleLoadRecentCycleClick: jest.fn(),
+      handleConfirmNewCycle: jest.fn(),
+      handleCancelNewCycle: jest.fn(),
+      handleFileSelect: jest.fn(),
+    });
+
+    render(
+      <MemoryRouter>
+        <HomePage />
+      </MemoryRouter>
+    );
+
+    expect(screen.getByRole('heading', { name: /Continue your forecast/i })).toBeInTheDocument();
+    expect(screen.getByText(/Severe Convective Days 4-8 is draft/i)).toBeInTheDocument();
+    expect(screen.getByText(/draft/i)).toBeInTheDocument();
+
+    fireEvent.click(screen.getAllByRole('button', { name: /Continue Map/i })[0]);
+    expect(navigateForecast).toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole('button', { name: /Create update/i }));
+    expect(createUpdate).toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole('button', { name: /Day 1/i }));
+    expect(startWorkflow).toHaveBeenCalled();
   });
 
   test('keeps the classic home page available with a query switch', () => {
@@ -227,7 +307,11 @@ describe('HomePage', () => {
       confirmNewCycle: false,
       savedCycles: [],
       forecastCycle: baseForecastCycle,
+      workflowMetadata: undefined,
+      hasActiveWorkflow: false,
       isSaved: false,
+      handleStartWorkflow: jest.fn(),
+      handleCreateWorkflowUpdate: jest.fn(),
       ...handlers,
     });
 
@@ -277,7 +361,11 @@ describe('HomePage', () => {
         },
       ],
       forecastCycle: baseForecastCycle,
+      workflowMetadata: undefined,
+      hasActiveWorkflow: false,
       isSaved: false,
+      handleStartWorkflow: jest.fn(),
+      handleCreateWorkflowUpdate: jest.fn(),
       ...handlers,
     });
 

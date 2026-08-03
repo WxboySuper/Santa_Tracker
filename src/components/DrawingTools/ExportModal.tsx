@@ -5,7 +5,7 @@ interface ExportFormProps {
   title: string;
   onTitleChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onCancel: () => void;
-  inputRef: React.RefObject<HTMLInputElement>;
+  inputRef: React.RefObject<HTMLInputElement | null>;
 }
 
 const ExportForm: React.FC<ExportFormProps> = ({ title, onTitleChange, onCancel, inputRef }) => (

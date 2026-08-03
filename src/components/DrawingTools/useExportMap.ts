@@ -89,6 +89,7 @@ export const useExportMap = ({ mapRef, outlooks, isExportDisabled, addToast }: U
 
     const current = mapRef.current;
     if (!validateExportPreconditions(current, isExportDisabled, addToast)) return;
+    if (!current) return;
 
     const map = current.getMap();
     if (!map) return;

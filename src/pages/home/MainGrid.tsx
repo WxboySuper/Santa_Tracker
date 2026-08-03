@@ -1,6 +1,7 @@
 import React from 'react';
 import { AlertTriangle, Calendar, CheckCircle2, Clock3, History, Layers3, Map, Save, Upload } from 'lucide-react';
 import type { DayType, ForecastCycle } from '../../types/outlooks';
+import type { CycleMetadata, WorkflowMetadata } from '../../types/workflow';
 import { Button } from '../../components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
 import { cn } from '../../lib/utils';
@@ -21,9 +22,13 @@ interface Props {
   formattedDate: string;
   isSaved: boolean;
   forecastCycle: ForecastCycle;
+  workflowMetadata?: CycleMetadata;
+  hasActiveWorkflow: boolean;
   stats: HomeStats;
   onQuickStartClick: (e: React.MouseEvent<HTMLButtonElement>) => void;
   onNewCycle: () => void;
+  onStartWorkflow: (workflowTemplate: WorkflowMetadata) => void;
+  onCreateWorkflowUpdate: () => void;
   onSave: () => void;
   onOpenFile: () => void;
   onOpenHistory: () => void;

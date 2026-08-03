@@ -134,6 +134,52 @@
   color: var(--text-primary);
 }
 
+.privacy-analytics-preference {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.8rem 0.9rem;
+  margin: 0.75rem 0 1rem;
+  border: 1px solid var(--border-color);
+  border-radius: 0.45rem;
+  background: var(--surface-secondary);
+  color: var(--text-primary);
+  text-align: left;
+  cursor: pointer;
+}
+
+.privacy-analytics-choice {
+  margin: 14px 0 18px;
+  padding: 14px;
+  border: 1px solid var(--accent-color);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--surface-secondary) 82%, var(--accent-color) 18%);
+}
+
+.privacy-analytics-choice h3 {
+  margin: 0 0 4px;
+}
+
+.privacy-analytics-choice p {
+  margin-bottom: 0;
+}
+
+.privacy-analytics-choice .privacy-analytics-preference {
+  margin: 12px 0 0;
+  background: var(--bg-primary);
+}
+
+.privacy-analytics-preference span {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}
+
+.privacy-analytics-preference:hover {
+  border-color: var(--accent-color);
+}
+
 .privacy-modal-footer {
   padding: 16px 24px;
   border-top: 1px solid var(--border-color);

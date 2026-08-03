@@ -57,6 +57,11 @@ class FakeCollection {
     assert.equal(operator, '==');
     return new FakeQuery(this.db, this.name, field, value);
   }
+  async get() {
+    const docs = [...this.db.collectionData(this.name).entries()]
+      .map(([id]) => ({ id, ref: new FakeDocumentRef(this.db, this.name, id) }));
+    return { docs };
+  }
 }
 
 class FakeDb {
@@ -120,7 +125,7 @@ test('deletion removes billing, account records, owned cycles, dedupes, and auth
     },
   });
   const stripe = { customers: { del: async (id) => events.push(`stripe:${id}`) } };
-  const adminAuth = { deleteUser: async (id) => events.push(`auth:${id}`) };
+  const adminAuth = { deleteUser: async (id) => events.push(`auth:${id}`), getUser: async () => ({ uid }) };
 
   await deleteAccount({ uid, db, adminAuth, stripe });
 

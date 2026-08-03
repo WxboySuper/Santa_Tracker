@@ -26,6 +26,7 @@ import { applyOverlaySettings } from '../store/overlaysSlice';
 import type { OverlaysState } from '../store/overlaysSlice';
 import { applyMonitorSettings } from '../store/monitorSlice';
 import { auth, db, googleAuthProvider, isHostedAuthEnabled, requireAuth, requireDb } from '../lib/firebase';
+import { clearLocalTestAccount, createLocalTestUser, readLocalTestAccount } from '../lib/localTestAccount';
 import { queueProductMetric } from '../utils/productMetrics';
 import type { MonitorSettings } from '../monitor/types';
 import { DEFAULT_MONITOR_SETTINGS, areMonitorSettingsEqual } from '../monitor/types';
@@ -372,7 +373,7 @@ interface PersistHostedSettingsContext {
   monitorSettings: MonitorSettings;
   lastSyncedSettingsRef: React.MutableRefObject<UserSettingsDocument | null>;
   setSyncedSettings: React.Dispatch<React.SetStateAction<UserSettingsDocument | null>>;
-  setSettingsSyncStatus: React.Dispatch<React.SetStateAction<'synced' | 'syncing' | 'error'>>;
+  setSettingsSyncStatus: React.Dispatch<React.SetStateAction<SettingsSyncStatus>>;
   setError: React.Dispatch<React.SetStateAction<string | null>>;
 }
 
@@ -661,6 +662,27 @@ export const initLocalAuthState = async (opts: {
   } = opts;
 
   try {
+    const localTestAccount = readLocalTestAccount();
+    if (localTestAccount) {
+      applyLocalAuthData({
+        ...createLocalTestUser(localTestAccount),
+        betaAccess: true,
+      }, {
+        dispatch,
+        currentDarkModeRef,
+        currentOverlaysRef,
+        setUser,
+        setStatus,
+        setSyncedSettings,
+        setSettingsSyncStatus,
+        lastSyncedSettingsRef,
+        setBetaAccess,
+        setBetaAccessLoading,
+        setError,
+      });
+      return;
+    }
+
     const resp = await fetch('/api/local/profile', { method: 'GET', credentials: 'include' });
     if (!isActive()) return;
 
@@ -920,6 +942,14 @@ export const localSignOutUser = async (deps: {
   setBetaAccess: React.Dispatch<React.SetStateAction<boolean>>;
 }) => {
   const { setUser, setStatus, setSyncedSettings, setSettingsSyncStatus, setBetaAccess } = deps;
+  const fixtureActive = Boolean(readLocalTestAccount());
+  if (fixtureActive && auth) {
+    try {
+      await signOut(auth);
+    } catch {
+      // Fixture sign-out must still clear the local session if hosted auth is unavailable.
+    }
+  }
   try {
     await postLocalJson('/api/local/signout', { failureMessage: 'Unable to sign out right now.' });
   } catch {
@@ -927,6 +957,7 @@ export const localSignOutUser = async (deps: {
   }
 
   setUser(null);
+  clearLocalTestAccount();
   setStatus('signed_out');
   setSyncedSettings(null);
   setSettingsSyncStatus('idle');
@@ -1508,13 +1539,26 @@ const useHostedAuthState = (): AuthContextValue => {
 };
 
 /** Provides hosted-auth state and actions while gracefully falling back to local-only mode. */
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+const LocalAuthContextProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const value = useLocalAuthState();
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+};
+
+/** Provides hosted auth state and listeners when no local fixture is active. */
+const HostedAuthContextProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const hostedValue = useHostedAuthState();
   const localValue = useLocalAuthState();
   const value = isHostedAuthEnabled ? hostedValue : localValue;
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
+
+/** Exposes exactly one auth implementation so fixture sessions never run hosted listeners. */
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+  readLocalTestAccount()
+    ? <LocalAuthContextProvider>{children}</LocalAuthContextProvider>
+    : <HostedAuthContextProvider>{children}</HostedAuthContextProvider>
+);
 
 /** Reads the current hosted-auth state and actions for the app. */
 export const useAuth = (): AuthContextValue => {

@@ -4,7 +4,6 @@ import { Provider } from 'react-redux';
 import { configureStore, EnhancedStore } from '@reduxjs/toolkit';
 import { BrowserRouter } from 'react-router-dom';
 import forecastReducer, { setMapView } from './store/forecastSlice';
-import featureFlagsReducer from './store/featureFlagsSlice';
 import themeReducer from './store/themeSlice';
 import appModeReducer from './store/appModeSlice';
 import overlaysReducer from './store/overlaysSlice';
@@ -79,7 +78,6 @@ describe('ForecastPage Performance', () => {
     store = configureStore({
       reducer: {
         forecast: forecastReducer,
-        featureFlags: featureFlagsReducer,
         theme: themeReducer,
         appMode: appModeReducer,
         overlays: overlaysReducer,

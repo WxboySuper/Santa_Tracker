@@ -10,12 +10,14 @@ const globalScope = globalThis as typeof globalThis & {
   __GFC_BETA_MODE__?: boolean;
   __GFC_BETA_INVITE_PATH__?: string;
   __GFC_BUILD_TARGET__?: import('./config/buildTarget').BuildTarget;
+  __GFC_DEV_MODE__?: boolean;
   __GFC_FIREBASE_API_KEY__?: string;
   __GFC_FIREBASE_AUTH_DOMAIN__?: string;
   __GFC_FIREBASE_PROJECT_ID__?: string;
   __GFC_FIREBASE_APP_ID__?: string;
   __GFC_SENTRY_DSN__?: string;
   __GFC_SENTRY_ENVIRONMENT__?: string;
+  __GFC_GA_MEASUREMENT_ID__?: string;
   __GFC_APP_VERSION__?: string;
   Headers?: typeof Headers;
   Request?: typeof Request;
@@ -46,12 +48,17 @@ if (typeof globalScope.__GFC_BUILD_TARGET__ === 'undefined') {
   globalScope.__GFC_BUILD_TARGET__ = 'local';
 }
 
+if (typeof globalScope.__GFC_DEV_MODE__ === 'undefined') {
+  globalScope.__GFC_DEV_MODE__ = false;
+}
+
 if (typeof globalScope.__GFC_FIREBASE_API_KEY__ === 'undefined') globalScope.__GFC_FIREBASE_API_KEY__ = '';
 if (typeof globalScope.__GFC_FIREBASE_AUTH_DOMAIN__ === 'undefined') globalScope.__GFC_FIREBASE_AUTH_DOMAIN__ = '';
 if (typeof globalScope.__GFC_FIREBASE_PROJECT_ID__ === 'undefined') globalScope.__GFC_FIREBASE_PROJECT_ID__ = '';
 if (typeof globalScope.__GFC_FIREBASE_APP_ID__ === 'undefined') globalScope.__GFC_FIREBASE_APP_ID__ = '';
 if (typeof globalScope.__GFC_SENTRY_DSN__ === 'undefined') globalScope.__GFC_SENTRY_DSN__ = '';
 if (typeof globalScope.__GFC_SENTRY_ENVIRONMENT__ === 'undefined') globalScope.__GFC_SENTRY_ENVIRONMENT__ = '';
+if (typeof globalScope.__GFC_GA_MEASUREMENT_ID__ === 'undefined') globalScope.__GFC_GA_MEASUREMENT_ID__ = '';
 if (typeof globalScope.__GFC_APP_VERSION__ === 'undefined') globalScope.__GFC_APP_VERSION__ = 'test';
 
 if (typeof globalScope.Headers === 'undefined') {

@@ -35,6 +35,10 @@ import {
   toOlStyle,
   toGhostOlStyle,
   removeDrawInteraction,
+  getCustomFeatureIdentity,
+  toUpdatedCustomFeature,
+  createCustomFill,
+  toCustomOlStyle,
 } from './OpenLayersForecastMap';
 
 type FeatureStub = {
@@ -178,6 +182,53 @@ describe('OpenLayersForecastMap helpers', () => {
     const s2 = toGhostOlStyle({ outlookType: 'categorical', probability: 'P10', isCategorical: true });
     expect(s1).toBeTruthy();
     expect(s2).toBeTruthy();
+  });
+
+  test('custom feature identity and geometry round-trip stay separate from severe metadata', () => {
+    const values = { featureId: 'custom-1', customLayerId: 'layer-1', categoryId: 'cat-1', title: 'Heavy snow' };
+    const feature: FeatureStub = { get: (key) => values[key as keyof typeof values], getGeometry: () => ({ type: 'Polygon' }) };
+    expect(getCustomFeatureIdentity(feature)).toEqual(values);
+    const format: GeometryFormatStub = { writeGeometryObject: () => ({ type: 'Polygon', coordinates: [] }) };
+    expect(toUpdatedCustomFeature(feature, format as never)?.properties).toEqual({ customLayerId: 'layer-1', categoryId: 'cat-1', title: 'Heavy snow' });
+    expect(getFeatureIdentity(feature)).toBeNull();
+  });
+
+  test('custom solid style preserves color, opacity, stroke, and category order', () => {
+    const style = toCustomOlStyle({
+      id: 'cat-1' as never, label: 'Heavy snow', order: 4,
+      style: { fillColor: '#3b82f6', fillOpacity: .45, strokeColor: '#ffffff', strokeOpacity: .9, strokeWidth: 2, hatch: 'none' },
+    });
+    expect(style.getFill()?.getColor()).toBe('rgba(59, 130, 246, 0.45)');
+    expect(style.getStroke()?.getColor()).toBe('rgba(255, 255, 255, 0.9)');
+    expect(style.getZIndex()).toBe(704);
+  });
+
+  test.each([
+    ['diagonal', [[-12, 12, 12, -12], [-12, 24, 24, -12], [0, 24, 24, 0]]],
+    ['reverse-diagonal', [[-12, 0, 12, 24], [-12, -12, 24, 24], [0, -12, 24, 12]]],
+    ['crosshatch', [[-12, 12, 12, -12], [-12, 24, 24, -12], [0, 24, 24, 0], [-12, 0, 12, 24], [-12, -12, 24, 24], [0, -12, 24, 12]]],
+  ] as const)('custom %s hatch lines continue at every repeated tile edge', (hatch, expectedLines) => {
+    const calls: number[][] = [];
+    const createElementSpy = jest.spyOn(document, 'createElement').mockImplementation(((tag: string) => {
+      if (tag !== 'canvas') return originalCreateElement.call(document, tag);
+      const context = {
+        fillStyle: '', strokeStyle: '', lineWidth: 0,
+        fillRect: jest.fn(),
+        beginPath: jest.fn(),
+        moveTo: jest.fn((x: number, y: number) => calls.push([x, y])),
+        lineTo: jest.fn((x: number, y: number) => calls[calls.length - 1].push(x, y)),
+        stroke: jest.fn(),
+        createPattern: jest.fn(() => 'custom-pattern'),
+      };
+      return { width: 0, height: 0, getContext: () => context } as unknown as HTMLElement;
+    }) as typeof document.createElement);
+
+    try {
+      createCustomFill({ fillColor: '#3b82f6', fillOpacity: .45, strokeColor: '#ffffff', strokeOpacity: .9, strokeWidth: 2, hatch });
+      expect(calls).toEqual(expectedLines);
+    } finally {
+      createElementSpy.mockRestore();
+    }
   });
 
   test('toOlStyle transparencyScale reduces fill and stroke alpha', () => {

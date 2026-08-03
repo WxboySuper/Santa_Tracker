@@ -11,6 +11,9 @@ import { Button } from '../ui/button';
 import CycleHistoryModal from '../CycleManager/CycleHistoryModal';
 import CopyFromPreviousModal from '../CycleManager/CopyFromPreviousModal';
 import ExportModal from '../DrawingTools/ExportModal';
+import CompletionValidationModal from '../CompletionValidation/CompletionValidationModal';
+import { useSelector } from 'react-redux';
+import type { RootState } from '../../store';
 import type { ForecastWorkspaceController } from './useForecastWorkspaceController';
 
 /** Confirmation dialog for the destructive "reset all drawings" action. */
@@ -34,28 +37,45 @@ const ResetConfirmDialog: React.FC<{
 );
 
 /** Shared hidden file input plus modals used by every Forecast workspace layout. */
-export const ForecastWorkspaceModals: React.FC<{ controller: ForecastWorkspaceController }> = ({ controller }) => (
-  <>
-    <input
-      ref={controller.fileInputRef as unknown as React.Ref<HTMLInputElement>}
-      type="file"
-      accept=".json"
-      onChange={controller.onFileSelect}
-      className="hidden"
-    />
-    <CycleHistoryModal isOpen={controller.showHistoryModal} onClose={controller.onCloseHistoryModal} />
-    <CopyFromPreviousModal isOpen={controller.showCopyModal} onClose={controller.onCloseCopyModal} />
-    <ExportModal
-      isOpen={controller.isExportModalOpen}
-      onConfirm={controller.onConfirmExport}
-      onCancel={controller.onCancelExport}
-    />
-    <ResetConfirmDialog
-      open={controller.showResetConfirm}
-      onCancel={controller.onCancelReset}
-      onReset={controller.onReset}
-    />
-  </>
-);
+export const ForecastWorkspaceModals: React.FC<{ controller: ForecastWorkspaceController }> = ({ controller }) => {
+  const completionValidationResult = useSelector(
+    (state: RootState) => state.forecast.completionValidation.lastResult
+  );
+
+  return (
+    <>
+      <input
+        ref={controller.fileInputRef as unknown as React.Ref<HTMLInputElement>}
+        type="file"
+        accept=".json"
+        onChange={controller.onFileSelect}
+        className="hidden"
+      />
+      <CycleHistoryModal isOpen={controller.showHistoryModal} onClose={controller.onCloseHistoryModal} />
+      <CopyFromPreviousModal isOpen={controller.showCopyModal} onClose={controller.onCloseCopyModal} />
+      <ExportModal
+        isOpen={controller.isExportModalOpen}
+        onConfirm={controller.onConfirmExport}
+        onCancel={controller.onCancelExport}
+      />
+      <ResetConfirmDialog
+        open={controller.showResetConfirm}
+        onCancel={controller.onCancelReset}
+        onReset={controller.onReset}
+      />
+      <CompletionValidationModal
+        isOpen={controller.showCompletionModal}
+        validationResult={completionValidationResult}
+        omittedDays={controller.omittedDays}
+        onClose={controller.onCloseCompletionModal}
+        onComplete={controller.onCompleteCycle}
+        onCompleteWithOmissions={controller.onCompleteWithOmissions}
+        onOmitDay={controller.onOmitDay}
+        onNavigateToIssue={controller.onNavigateToIssue}
+        onExport={controller.onInitiateExport}
+      />
+    </>
+  );
+};
 
 export default ForecastWorkspaceModals;

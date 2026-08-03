@@ -1,0 +1,139 @@
+{
+  "now": "2026-06-29T12:00:00.000Z",
+  "baseBranch": "beta",
+  "branches": [
+    {
+      "name": "feature/old-work",
+      "commit": {
+        "sha": "abc1234567890abcdef1234567890abcdef12345678",
+        "commit": {
+          "author": {
+            "name": "Alice Example",
+            "date": "2026-06-01T12:00:00.000Z"
+          },
+          "committer": {
+            "date": "2026-06-01T12:00:00.000Z"
+          }
+        },
+        "author": {
+          "login": "alice"
+        }
+      },
+      "behindBy": 42
+    },
+    {
+      "name": "fix/active-fix",
+      "commit": {
+        "sha": "def1234567890abcdef1234567890abcdef12345678",
+        "commit": {
+          "author": {
+            "name": "Bob Example",
+            "date": "2026-06-20T12:00:00.000Z"
+          },
+          "committer": {
+            "date": "2026-06-20T12:00:00.000Z"
+          }
+        },
+        "author": {
+          "login": "bob"
+        }
+      },
+      "behindBy": 3
+    },
+    {
+      "name": "fix/recent-fix",
+      "commit": {
+        "sha": "fed1234567890abcdef1234567890abcdef12345678",
+        "commit": {
+          "author": {
+            "name": "Carol Example",
+            "date": "2026-06-18T12:00:00.000Z"
+          },
+          "committer": {
+            "date": "2026-06-18T12:00:00.000Z"
+          }
+        },
+        "author": {
+          "login": "carol"
+        }
+      },
+      "behindBy": 1
+    },
+    {
+      "name": "research/abandoned-spike",
+      "commit": {
+        "sha": "aaa1234567890abcdef1234567890abcdef12345678",
+        "commit": {
+          "author": {
+            "name": "Dana Example",
+            "date": "2026-05-01T12:00:00.000Z"
+          },
+          "committer": {
+            "date": "2026-05-01T12:00:00.000Z"
+          }
+        },
+        "author": {
+          "login": "dana"
+        }
+      },
+      "behindBy": null
+    },
+    {
+      "name": "feature/release-prep",
+      "commit": {
+        "sha": "bbb1234567890abcdef1234567890abcdef12345678",
+        "commit": {
+          "author": {
+            "name": "Excluded",
+            "date": "2026-01-01T12:00:00.000Z"
+          },
+          "committer": {
+            "date": "2026-01-01T12:00:00.000Z"
+          }
+        }
+      },
+      "behindBy": 99
+    },
+    {
+      "name": "port/123-to-beta",
+      "commit": {
+        "sha": "ccc1234567890abcdef1234567890abcdef12345678",
+        "commit": {
+          "author": {
+            "name": "Excluded",
+            "date": "2026-01-01T12:00:00.000Z"
+          },
+          "committer": {
+            "date": "2026-01-01T12:00:00.000Z"
+          }
+        }
+      },
+      "behindBy": 10
+    },
+    {
+      "name": "beta",
+      "commit": {
+        "sha": "ddd1234567890abcdef1234567890abcdef12345678",
+        "commit": {
+          "author": {
+            "name": "Protected",
+            "date": "2026-01-01T12:00:00.000Z"
+          },
+          "committer": {
+            "date": "2026-01-01T12:00:00.000Z"
+          }
+        }
+      },
+      "behindBy": 0
+    }
+  ],
+  "openPulls": [
+    {
+      "number": 501,
+      "head": {
+        "ref": "fix/active-fix"
+      }
+    }
+  ],
+  "errors": []
+}

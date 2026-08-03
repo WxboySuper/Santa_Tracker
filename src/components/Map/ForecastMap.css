@@ -191,6 +191,7 @@
   display: flex;
   align-items: center;
   gap: 4px;
+  width: min(440px, calc(100vw - 16px));
   border-radius: 18px;
   padding: 6px;
 }
@@ -221,9 +222,65 @@
   transition: background-color 0.2s, color 0.2s, transform 0.2s;
 }
 
-.map-toolbar-surface .map-toolbar-button:last-child {
-  padding-left: 16px;
-  padding-right: 16px;
+.map-legend-toggle-button {
+  display: none;
+}
+
+.map-toolbar-surface .map-toolbar-button.mode-delete,
+.map-toolbar-surface .map-toolbar-button.mode-key {
+  padding-left: 12px;
+  padding-right: 12px;
+}
+
+.map-toolbar-divider {
+  width: 1px;
+  height: 30px;
+  flex: 0 0 1px;
+  margin: 0 4px;
+  background: rgba(148, 163, 184, 0.4);
+}
+
+.map-toolbar-spacer {
+  min-width: 20px;
+  flex: 1 1 auto;
+}
+
+.map-history-group {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.map-history-button {
+  min-width: 38px;
+  gap: 5px;
+  padding: 10px 9px;
+  color: #9a650e;
+}
+
+.map-history-button:hover:not(:disabled) {
+  color: #704a08;
+  background-color: rgba(245, 158, 11, 0.14);
+}
+
+.map-history-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.38;
+}
+
+.map-history-icon {
+  display: block;
+  width: 17px;
+  height: 17px;
+}
+
+.map-history-label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
 }
 
 .map-toolbar-button:hover {
@@ -279,6 +336,15 @@
 
 .dark-mode .map-toolbar-button:hover {
   background-color: rgba(148, 163, 184, 0.2);
+}
+
+.dark-mode .map-history-button {
+  color: #f6c453;
+}
+
+.dark-mode .map-history-button:hover:not(:disabled) {
+  color: #ffe3a0;
+  background-color: rgba(245, 158, 11, 0.18);
 }
 
 .dark-mode .map-toolbar-surface,
@@ -346,12 +412,42 @@
     border-radius: 12px;
   }
 
+  .map-toolbar-divider {
+    height: 28px;
+    margin: 0 3px;
+  }
+
+  .map-toolbar-spacer {
+    min-width: 16px;
+  }
+
   .map-toolbar-button {
     min-width: 44px;
     min-height: 36px;
     padding: 8px 8px;
     border-radius: 9px;
     font-size: 0.74rem;
+  }
+
+  .map-legend-toggle-button {
+    display: flex;
+  }
+
+  .map-toolbar-surface .map-toolbar-button.mode-delete,
+  .map-toolbar-surface .map-toolbar-button.mode-key {
+    padding-left: 8px;
+    padding-right: 8px;
+  }
+
+  .map-history-group {
+    margin-left: 0;
+    padding-left: 2px;
+  }
+
+  .map-history-button {
+    min-width: 44px;
+    min-height: 44px;
+    padding: 8px 7px;
   }
 
   .map-toolbar-button.mode-key {

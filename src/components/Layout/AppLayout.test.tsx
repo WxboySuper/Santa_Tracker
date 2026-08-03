@@ -1,4 +1,4 @@
-import React from 'react';
+import mockReact from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { Provider } from 'react-redux';
 import { configureStore } from '@reduxjs/toolkit';
@@ -19,7 +19,7 @@ const createMockStore = () =>
       getDefaultMiddleware({ serializableCheck: false, immutableCheck: false }),
   });
 
-const renderWithRouter = (ui: React.ReactElement) => {
+const renderWithRouter = (ui: mockReact.ReactElement) => {
   return render(
     <BrowserRouter>
       <Provider store={createMockStore()}>
@@ -31,13 +31,13 @@ const renderWithRouter = (ui: React.ReactElement) => {
 
 jest.mock('react-router-dom', () => ({
   ...jest.requireActual('react-router-dom'),
-  Outlet: () => React.createElement('div', { 'data-testid': 'test-content' }),
+  Outlet: () => mockReact.createElement('div', { 'data-testid': 'test-content' }),
   useNavigate: () => jest.fn(),
-  Link: ({ children }: { children: React.ReactNode }) => React.createElement('a', null, children),
+  Link: ({ children }: { children: mockReact.ReactNode }) => mockReact.createElement('a', null, children),
 }));
 
 jest.mock('../AlertBanner', () => ({
-  AlertBanner: () => React.createElement('div', { 'data-testid': 'alert-banner' }),
+  AlertBanner: () => mockReact.createElement('div', { 'data-testid': 'alert-banner' }),
 }));
 
 jest.mock('./Navbar', () => ({
@@ -50,39 +50,39 @@ jest.mock('./Navbar', () => ({
     onViewTerms: () => void;
     onViewPrivacyPolicy: () => void;
   }) =>
-    React.createElement('nav', { 'data-testid': 'navbar' }, [
-      React.createElement('button', { key: 'docs', onClick: onToggleDocumentation }, 'Docs'),
-      React.createElement('button', { key: 'terms', onClick: onViewTerms }, 'Terms'),
-      React.createElement('button', { key: 'privacy', onClick: onViewPrivacyPolicy }, 'Privacy'),
+    mockReact.createElement('nav', { 'data-testid': 'navbar' }, [
+      mockReact.createElement('button', { key: 'docs', onClick: onToggleDocumentation }, 'Docs'),
+      mockReact.createElement('button', { key: 'terms', onClick: onViewTerms }, 'Terms'),
+      mockReact.createElement('button', { key: 'privacy', onClick: onViewPrivacyPolicy }, 'Privacy'),
     ]),
 }));
 
 jest.mock('../Documentation/Documentation', () => ({
   __esModule: true,
   default: ({ onClose }: { onClose: () => void }) =>
-    React.createElement('div', { 'data-testid': 'docs' }, [
-      React.createElement('span', { key: 'label' }, 'Docs panel'),
-      React.createElement('button', { key: 'close', onClick: onClose }, 'Close Docs'),
+    mockReact.createElement('div', { 'data-testid': 'docs' }, [
+      mockReact.createElement('span', { key: 'label' }, 'Docs panel'),
+      mockReact.createElement('button', { key: 'close', onClick: onClose }, 'Close Docs'),
     ]),
 }));
 
 jest.mock('../Toast/Toast', () => ({
   ToastManager: ({ toasts, onDismiss }: { toasts: Array<{ id: string; message: string }>; onDismiss: (id: string) => void }) =>
-    React.createElement('div', { 'data-testid': 'toast' }, toasts.map((toast) =>
-      React.createElement('button', { key: toast.id, onClick: () => onDismiss(toast.id) }, toast.message)
+    mockReact.createElement('div', { 'data-testid': 'toast' }, toasts.map((toast) =>
+      mockReact.createElement('button', { key: toast.id, onClick: () => onDismiss(toast.id) }, toast.message)
     )),
 }));
 
 jest.mock('../ToS/ToSModal', () => ({
   __esModule: true,
   default: ({ onClose }: { onClose: () => void }) =>
-    React.createElement('div', { 'data-testid': 'tos' }, React.createElement('button', { onClick: onClose }, 'Close Terms')),
+    mockReact.createElement('div', { 'data-testid': 'tos' }, mockReact.createElement('button', { onClick: onClose }, 'Close Terms')),
 }));
 
 jest.mock('../PrivacyPolicy/PrivacyPolicyModal', () => ({
   __esModule: true,
   default: ({ onClose }: { onClose: () => void }) =>
-    React.createElement('div', { 'data-testid': 'privacy' }, React.createElement('button', { onClick: onClose }, 'Close Privacy')),
+    mockReact.createElement('div', { 'data-testid': 'privacy' }, mockReact.createElement('button', { onClick: onClose }, 'Close Privacy')),
 }));
 
 describe('AppLayout', () => {

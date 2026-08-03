@@ -14,14 +14,16 @@ import {
   MessageSquare,
   MoreVertical,
   PlayCircle,
-  PlusCircle,
+  RefreshCw,
   ShieldCheck,
   Sparkles,
   Upload,
   Zap,
 } from 'lucide-react';
 import type { SavedCycle } from '../../store/forecastSlice';
-import type { ForecastCycle } from '../../types/outlooks';
+import type { ForecastCycle, OutlookDay } from '../../types/outlooks';
+import { DEFAULT_WORKFLOW_TEMPLATES } from '../../components/ForecastWorkflow/workflowTemplates';
+import type { CycleMetadata, WorkflowMetadata } from '../../types/workflow';
 
 type HomeConceptVariant = 'signed_in' | 'signed_out';
 
@@ -30,11 +32,17 @@ interface HomeConceptPageProps {
   formattedDate: string;
   savedCycles: SavedCycle[];
   forecastCycle: ForecastCycle;
+  workflowMetadata?: CycleMetadata;
+  workflowEnabled: boolean;
+  hasActiveWorkflow: boolean;
   isSaved: boolean;
   onResumeForecast: () => void;
+  onWriteDiscussion: () => void;
   onOpenHistory: () => void;
   onOpenFile: () => void;
   onNewCycle: () => void;
+  onStartWorkflow: (workflowTemplate: WorkflowMetadata) => void;
+  onCreateWorkflowUpdate: () => void;
   onLoadRecentCycle: (event: React.MouseEvent<HTMLButtonElement>) => void;
   onNavigateAccount: () => void;
 }
@@ -56,6 +64,36 @@ const featureItems = [
     body: 'Use built-in verification tools to improve accuracy and consistency.',
   },
 ];
+
+/** Returns whether a forecast day contains any map work. */
+function dayHasMapWork(day?: OutlookDay): boolean {
+  if (!day) return false;
+  const hasOutlookFeatures = Object.values(day.data).some((outlookMap) => (outlookMap?.size ?? 0) > 0);
+  return hasOutlookFeatures || (day.metadata.lowProbabilityOutlooks?.length ?? 0) > 0;
+}
+
+/** Returns whether a forecast day contains any discussion content. */
+function dayHasDiscussion(day?: OutlookDay): boolean {
+  const discussion = day?.discussion;
+  if (!discussion) return false;
+  if (discussion.mode === 'diy') return Boolean(discussion.diyContent?.trim());
+  return Boolean(discussion.guidedContent && Object.values(discussion.guidedContent).some((value) => value.trim()));
+}
+
+/** Returns the readable label for the active workflow template. */
+function getWorkflowLabel(workflowMetadata?: CycleMetadata, currentDay?: number): string {
+  return DEFAULT_WORKFLOW_TEMPLATES.find((template) => template.id === workflowMetadata?.workflowId)?.label
+    ?? workflowMetadata?.workflowId
+    ?? `Day ${currentDay ?? 1} workflow`;
+}
+
+const workflowStartLabels: Record<string, string> = {
+  'severe-day1': 'Day 1',
+  'severe-day2': 'Day 2',
+  'severe-day3': 'Day 3',
+  'severe-day4-8': 'Days 4-8',
+  'convective-outlook': 'Full Outlook',
+};
 
 const accountBenefits = [
   {
@@ -246,34 +284,145 @@ const SignedInCycleBar: React.FC<{
   </section>
 );
 
-/** Main signed-in hero panel with resume, history, and new-cycle actions. */
-const SignedInContinuePanel: React.FC<{
+interface SignedInWorkflowPanelProps {
+  forecastCycle: ForecastCycle;
+  workflowMetadata?: CycleMetadata;
+  workflowEnabled: boolean;
+  hasActiveWorkflow: boolean;
   onResumeForecast: () => void;
-  onOpenHistory: () => void;
-  onNewCycle: () => void;
-}> = ({ onResumeForecast, onOpenHistory, onNewCycle }) => (
+  onWriteDiscussion: () => void;
+  onOpenFile: () => void;
+  onStartWorkflow: (workflowTemplate: WorkflowMetadata) => void;
+  onCreateWorkflowUpdate: () => void;
+}
+
+interface WorkflowNextAction {
+  icon: React.ElementType;
+  label: string;
+  onClick: () => void;
+}
+
+/** Chooses the next editor action for the active workflow state. */
+function getWorkflowNextAction(
+  mapStarted: boolean,
+  discussionStarted: boolean,
+  onWriteDiscussion: () => void,
+  onResumeForecast: () => void,
+): WorkflowNextAction {
+  if (mapStarted && !discussionStarted) {
+    return { icon: MessageSquare, label: 'Write Discussion', onClick: onWriteDiscussion };
+  }
+  return { icon: PlayCircle, label: 'Continue Map', onClick: onResumeForecast };
+}
+
+/** Renders workflow scope buttons when no workflow is active. */
+const SignedInWorkflowStartPanel: React.FC<Pick<SignedInWorkflowPanelProps, 'workflowEnabled' | 'onOpenFile' | 'onStartWorkflow'>> = ({
+  workflowEnabled,
+  onOpenFile,
+  onStartWorkflow,
+}) => (
   <section className="home-concept-continue">
     <h2>
       <span>Continue your</span>
       <span className="home-concept-heading-line">forecast <Zap className="h-10 w-10" /></span>
     </h2>
-    <p>Pick up right where you left off. Continue editing, verify your work, and publish with confidence.</p>
-    <div className="home-concept-continue-actions">
-      <HeroActionButton icon={PlayCircle} label="Resume Forecast" onClick={onResumeForecast} primary />
-      <HeroActionButton icon={Folder} label="Open another saved cycle" onClick={onOpenHistory} />
-      <HeroActionButton icon={PlusCircle} label="Start a new forecast cycle" onClick={onNewCycle} />
+    <p>Start a forecast workflow by scope, or upload a workflow package from your device.</p>
+    <div className="home-concept-workflow-start-grid" aria-label="Start workflow">
+      {DEFAULT_WORKFLOW_TEMPLATES.map((template) => (
+        <button type="button" key={template.id} className="home-concept-workflow-start" onClick={() => onStartWorkflow(template)} disabled={!workflowEnabled}>
+          {workflowStartLabels[template.id] ?? template.label}
+        </button>
+      ))}
+    </div>
+    <div className="home-concept-workflow-inline-actions">
+      <button type="button" onClick={onOpenFile}>
+        <Upload className="h-4 w-4" />
+        Upload workflow
+      </button>
     </div>
   </section>
 );
+
+/** Renders status and actions when a workflow is active. */
+const SignedInWorkflowActivePanel: React.FC<SignedInWorkflowPanelProps> = ({
+  forecastCycle,
+  workflowMetadata,
+  workflowEnabled,
+  onResumeForecast,
+  onWriteDiscussion,
+  onOpenFile,
+  onStartWorkflow,
+  onCreateWorkflowUpdate,
+}) => {
+  const activeDay = forecastCycle.days[forecastCycle.currentDay];
+  const mapStarted = dayHasMapWork(activeDay);
+  const discussionStarted = dayHasDiscussion(activeDay);
+  const nextAction = getWorkflowNextAction(mapStarted, discussionStarted, onWriteDiscussion, onResumeForecast);
+  const NextActionIcon = nextAction.icon;
+
+  return (
+    <section className="home-concept-continue">
+      <h2>
+        <span>Continue your</span>
+        <span className="home-concept-heading-line">forecast <Zap className="h-10 w-10" /></span>
+      </h2>
+      <p>
+        {getWorkflowLabel(workflowMetadata, forecastCycle.currentDay)} is {workflowMetadata?.status ?? 'draft'}.
+        {' '}Day {forecastCycle.currentDay}: map {mapStarted ? 'started' : 'not started'}, discussion {discussionStarted ? 'started' : 'not started'}.
+      </p>
+      <div className="home-concept-workflow-status" aria-label="Workflow status">
+        <span className={mapStarted ? 'is-complete' : 'is-active'}>Map</span>
+        <span className={discussionStarted ? 'is-complete' : mapStarted ? 'is-active' : ''}>Discussion</span>
+        <span className={mapStarted && discussionStarted ? 'is-complete' : ''}>Complete</span>
+      </div>
+      <div className="home-concept-workflow-active-actions">
+        <button type="button" className="is-primary" onClick={nextAction.onClick}>
+          <NextActionIcon className="h-4 w-4" />
+          {nextAction.label}
+        </button>
+        <button type="button" onClick={onCreateWorkflowUpdate} disabled={!workflowEnabled}>
+          <RefreshCw className="h-4 w-4" />
+          Create update
+        </button>
+        <button type="button" onClick={onOpenFile}>
+          <Upload className="h-4 w-4" />
+          Upload workflow
+        </button>
+      </div>
+      <div className="home-concept-workflow-new-row" aria-label="Start new workflow">
+        {DEFAULT_WORKFLOW_TEMPLATES.map((template) => (
+          <button type="button" key={template.id} onClick={() => onStartWorkflow(template)} disabled={!workflowEnabled}>
+            {workflowStartLabels[template.id] ?? template.label}
+          </button>
+        ))}
+      </div>
+    </section>
+  );
+};
+
+/** Main signed-in hero panel with resume, history, and new-cycle actions. */
+const SignedInContinuePanel: React.FC<SignedInWorkflowPanelProps> = (props) => {
+  if (!props.hasActiveWorkflow) {
+    return <SignedInWorkflowStartPanel {...props} />;
+  }
+  return <SignedInWorkflowActivePanel {...props} />;
+};
 
 /** Signed-in concept home screen. */
 const SignedInConcept: React.FC<HomeConceptPageProps> = ({
   formattedDate,
   savedCycles,
+  forecastCycle,
+  workflowMetadata,
+  workflowEnabled,
+  hasActiveWorkflow,
   isSaved,
   onResumeForecast,
+  onWriteDiscussion,
   onOpenHistory,
-  onNewCycle,
+  onOpenFile,
+  onStartWorkflow,
+  onCreateWorkflowUpdate,
   onLoadRecentCycle,
 }) => (
   <main className="home-concept-shell home-concept-shell-signed-in">
@@ -287,9 +436,15 @@ const SignedInConcept: React.FC<HomeConceptPageProps> = ({
 
     <div className="home-concept-signed-in-grid">
       <SignedInContinuePanel
+        forecastCycle={forecastCycle}
+        workflowMetadata={workflowMetadata}
+        workflowEnabled={workflowEnabled}
+        hasActiveWorkflow={hasActiveWorkflow}
         onResumeForecast={onResumeForecast}
-        onOpenHistory={onOpenHistory}
-        onNewCycle={onNewCycle}
+        onWriteDiscussion={onWriteDiscussion}
+        onOpenFile={onOpenFile}
+        onStartWorkflow={onStartWorkflow}
+        onCreateWorkflowUpdate={onCreateWorkflowUpdate}
       />
       <aside className="home-concept-side-rail">
         <AtAGlance

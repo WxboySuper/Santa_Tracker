@@ -10,7 +10,7 @@ import {
 } from '../types/outlooks';
 
 /**
- * Color mappings for all outlook types based on specifications in Outlook_Info.md
+ * Color mappings for all outlook types based on specifications in docs/product/outlook-info.md
  */
 export const colorMappings: ColorMappings = {
   categorical: {

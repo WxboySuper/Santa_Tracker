@@ -35,6 +35,7 @@ export default defineConfig(({ mode }) => {
     define: {
       __GFC_APP_VERSION__: JSON.stringify(pkg.version),
       __GFC_BUILD_TARGET__: JSON.stringify(buildTarget),
+      __GFC_DEV_MODE__: JSON.stringify(mode === 'development'),
       __GFC_COMING_SOON__: JSON.stringify(env.VITE_COMING_SOON === 'true'),
       __GFC_BETA_MODE__: JSON.stringify(env.VITE_BETA_MODE === 'true'),
       __GFC_BETA_INVITE_PATH__: JSON.stringify(env.VITE_BETA_INVITE_PATH ?? ''),
@@ -44,6 +45,9 @@ export default defineConfig(({ mode }) => {
       __GFC_FIREBASE_APP_ID__: JSON.stringify(env.VITE_FIREBASE_APP_ID ?? ''),
       __GFC_SENTRY_DSN__: JSON.stringify(env.VITE_SENTRY_DSN ?? ''),
       __GFC_SENTRY_ENVIRONMENT__: JSON.stringify(env.VITE_SENTRY_ENVIRONMENT ?? ''),
+      __GFC_UMAMI_HOST__: JSON.stringify(env.VITE_UMAMI_HOST ?? ''),
+      __GFC_UMAMI_PRODUCTION_WEBSITE_ID__: JSON.stringify(env.VITE_UMAMI_PRODUCTION_WEBSITE_ID ?? ''),
+      __GFC_UMAMI_BETA_WEBSITE_ID__: JSON.stringify(env.VITE_UMAMI_BETA_WEBSITE_ID ?? ''),
     },
     plugins: [react(), ...sentryPlugins],
     resolve: {

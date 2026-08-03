@@ -26,13 +26,22 @@ import type OLFeature from "ol/Feature";
 import type Geometry from "ol/geom/Geometry";
 import { click } from "ol/events/condition";
 import { v4 as uuidv4 } from "uuid";
+import { Redo2, Undo2 } from "lucide-react";
 import { RootState } from "../../store";
 import {
   addFeature,
+  addCustomFeature,
   removeFeature,
+  removeCustomFeature,
+  redoLastEdit,
+  selectCanRedo,
+  selectCanUndo,
+  selectCurrentCustomLayers,
   selectCurrentOutlooks,
   setMapView,
+  undoLastEdit,
   updateFeature,
+  updateCustomFeature,
 } from "../../store/forecastSlice";
 
 import type { BaseMapStyle } from "../../store/overlaysSlice";
@@ -52,6 +61,8 @@ import {
   isOpenFreeMapStyle,
 } from "../../lib/openFreeMap";
 import "./ForecastMap.css";
+import { isFeatureExposed } from "../../config/featureExposure";
+import type { CustomCategoryStyle, CustomCategoryTemplate, CustomPolygonFeature, OneOffCustomLayer } from "../../types/customProducts";
 
 type OutlookMapLike = Record<string, globalThis.Map<string, GeoJsonFeature[]>>;
 type EditableOutlookType =
@@ -66,6 +77,13 @@ interface FeatureIdentity {
   featureId: string;
   outlookType: string;
   probability: string;
+}
+
+interface CustomFeatureIdentity {
+  featureId: string;
+  customLayerId: string;
+  categoryId: string;
+  title: string;
 }
 
 interface BlankLayerConfig {
@@ -135,7 +153,7 @@ const DRAWABLE_OUTLOOK_TYPES = new Set<EditableOutlookType>([
 // https://github.com/openlayers/openlayers/blob/v10.9.0/src/ol/interaction/Draw.js#L740-L751
 // Recheck this workaround whenever `ol` is upgraded; remove it once upstream
 // guarantees that detaching Draw cancels the pending callback.
-type DrawWithPendingPointerMove = Draw & {
+type DrawWithPendingPointerMove = {
   downTimeout_?: ReturnType<typeof setTimeout>;
 };
 
@@ -144,7 +162,7 @@ type DrawWithPendingPointerMove = Draw & {
  * Cancel it before detaching so it cannot read map pixels after map teardown.
  */
 export const removeDrawInteraction = (map: OLMap, interaction: Draw): void => {
-  const draw = interaction as DrawWithPendingPointerMove;
+  const draw = interaction as unknown as DrawWithPendingPointerMove;
   if (draw.downTimeout_ !== undefined) {
     clearTimeout(draw.downTimeout_);
     draw.downTimeout_ = undefined;
@@ -405,6 +423,106 @@ export const toOlStyle = (
   });
 };
 
+/** Builds an exact custom category fill, including all supported hatch directions. */
+export const createCustomFill = (style: CustomCategoryStyle): Fill => {
+  if (style.hatch === "none") {
+    return new Fill({ color: toRgbaColor({ color: style.fillColor, alpha: style.fillOpacity }) });
+  }
+  const canvas = document.createElement("canvas");
+  canvas.width = 12;
+  canvas.height = 12;
+  const context = canvas.getContext("2d");
+  if (!context) return new Fill({ color: toRgbaColor({ color: style.fillColor, alpha: style.fillOpacity }) });
+  context.fillStyle = toRgbaColor({ color: style.fillColor, alpha: style.fillOpacity });
+  context.fillRect(0, 0, 12, 12);
+  context.strokeStyle = toRgbaColor({ color: style.strokeColor, alpha: style.strokeOpacity });
+  context.lineWidth = Math.max(1, style.strokeWidth / 2);
+  const line = (x1: number, y1: number, x2: number, y2: number) => {
+    context.beginPath(); context.moveTo(x1, y1); context.lineTo(x2, y2); context.stroke();
+  };
+  // Extend strokes beyond the 12px tile boundaries so canvas clipping produces
+  // continuous joins without anti-aliasing seams in the repeated pattern.
+  if (style.hatch === "diagonal" || style.hatch === "crosshatch") {
+    line(-12, 12, 12, -12); line(-12, 24, 24, -12); line(0, 24, 24, 0);
+  }
+  if (style.hatch === "reverse-diagonal" || style.hatch === "crosshatch") {
+    line(-12, 0, 12, 24); line(-12, -12, 24, 24); line(0, -12, 24, 12);
+  }
+  const pattern = context.createPattern(canvas, "repeat");
+  return new Fill({ color: pattern ?? toRgbaColor({ color: style.fillColor, alpha: style.fillOpacity }) });
+};
+
+export const toCustomOlStyle = (category: CustomCategoryTemplate, isTopLayer = false, zIndex = 700 + category.order): Style => new Style({
+  fill: createCustomFill(category.style),
+  stroke: new Stroke({
+    color: toRgbaColor({ color: category.style.strokeColor, alpha: category.style.strokeOpacity }),
+    width: isTopLayer ? Math.max(3, category.style.strokeWidth) : category.style.strokeWidth,
+  }),
+  zIndex,
+});
+
+export const getCustomFeatureIdentity = (feature: FeatureLike): CustomFeatureIdentity | null => {
+  const featureId = feature.get("featureId") as string | undefined;
+  const customLayerId = feature.get("customLayerId") as string | undefined;
+  const categoryId = feature.get("categoryId") as string | undefined;
+  const title = feature.get("title") as string | undefined;
+  return featureId && customLayerId && categoryId && title ? { featureId, customLayerId, categoryId, title } : null;
+};
+
+export const toUpdatedCustomFeature = (feature: FeatureLike, format: GeoJSON): CustomPolygonFeature | null => {
+  const identity = getCustomFeatureIdentity(feature);
+  const geometry = feature.getGeometry();
+  if (!identity || !geometry) return null;
+  return {
+    type: "Feature",
+    id: identity.featureId,
+    geometry: format.writeGeometryObject(geometry as Geometry, { dataProjection: "EPSG:4326", featureProjection: "EPSG:3857" }) as Polygon,
+    properties: { customLayerId: identity.customLayerId as CustomPolygonFeature['properties']['customLayerId'], categoryId: identity.categoryId as CustomPolygonFeature['properties']['categoryId'], title: identity.title },
+  };
+};
+
+/** Converts a completed draw geometry when an active custom draw target exists. */
+export const toDrawnCustomFeature = (
+  geometry: Geometry,
+  layer: OneOffCustomLayer | undefined,
+  category: CustomCategoryTemplate | undefined,
+  enabled: boolean,
+): CustomPolygonFeature | null => {
+  if (!enabled) return null;
+  if (!layer) return null;
+  if (!category) return null;
+  return {
+    type: "Feature",
+    id: uuidv4(),
+    geometry: geometry as unknown as Polygon,
+    properties: {
+      customLayerId: layer.id,
+      categoryId: category.id,
+      title: category.label,
+    },
+  };
+};
+
+/** Creates a dashed preview style for uncommitted Auto-TSTM guidance. */
+export const toTstmPreviewOlStyle = () => {
+  const style = getFeatureStyle("categorical", "TSTM");
+  const strokeColor = String(style.color || "#1f7a1f");
+
+  return new Style({
+    fill: createOutlookFill({
+      probability: "TSTM",
+      fillColor: String(style.fillColor || "#C1E9C1"),
+      fillOpacity: 0.18,
+    }),
+    stroke: new Stroke({
+      color: toRgbaColor({ color: strokeColor, alpha: 0.95 }),
+      width: 3,
+      lineDash: [10, 6],
+    }),
+    zIndex: computeZIndex("categorical", "TSTM") + 650,
+  });
+};
+
 /** Creates a faded style variant for non-active outlooks shown as ghost overlays. */
 export const toGhostOlStyle = ({
   outlookType,
@@ -559,9 +677,53 @@ export const hideOverlay = (overlay: Overlay): void => {
   overlay.setPosition(OVERLAY_HIDDEN_POSITION);
 };
 
+/** Applies preview styling and metadata before adding one OL feature to the preview source. */
+const addTstmPreviewOlFeature = (
+  item: OLFeature<Geometry>,
+  previewSource: VectorSource,
+  previewStyle: ReturnType<typeof toTstmPreviewOlStyle>,
+  featureId: string,
+): void => {
+  item.setStyle(previewStyle);
+  item.set("featureId", featureId);
+  item.set("outlookType", "categorical");
+  item.set("probability", "TSTM");
+  previewSource.addFeature(item);
+};
+
+/** Replaces Auto-TSTM preview features on a dedicated map source. */
+const syncTstmPreviewSource = (
+  previewSource: VectorSource,
+  tstmPreviewFeatures: GeoJsonFeature[],
+) => {
+  previewSource.clear();
+  const format = new GeoJSON();
+  const previewStyle = toTstmPreviewOlStyle();
+
+  tstmPreviewFeatures.forEach((feature) => {
+    const olFeature = format.readFeature(feature, {
+      dataProjection: "EPSG:4326",
+      featureProjection: "EPSG:3857",
+    });
+    const featureId = String(feature.id ?? "tstm-preview");
+
+    if (Array.isArray(olFeature)) {
+      olFeature.forEach((item: FeatureLike) =>
+        addTstmPreviewOlFeature(item as OLFeature<Geometry>, previewSource, previewStyle, featureId),
+      );
+    } else {
+      addTstmPreviewOlFeature(olFeature as OLFeature<Geometry>, previewSource, previewStyle, featureId);
+    }
+  });
+};
+
+type OpenLayersForecastMapProps = {
+  tstmPreviewFeatures?: GeoJsonFeature[];
+};
+
 // Main map component using OpenLayers, implementing the MapAdapterHandle interface for integration with the rest of the app.
-const OpenLayersForecastMap = forwardRef<MapAdapterHandle<OLMap> | null>(
-  (_, ref) => {
+const OpenLayersForecastMap = forwardRef<MapAdapterHandle<OLMap> | null, OpenLayersForecastMapProps>(
+  ({ tstmPreviewFeatures = [] }, ref) => {
     const dispatch = useDispatch();
     const [interactionMode, setInteractionMode] = useState<
       "pan" | "draw" | "delete"
@@ -577,6 +739,13 @@ const OpenLayersForecastMap = forwardRef<MapAdapterHandle<OLMap> | null>(
     const drawingState = useSelector(
       (state: RootState) => state.forecast.drawingState,
     );
+    const canUndo = useSelector(selectCanUndo);
+    const canRedo = useSelector(selectCanRedo);
+    const customEditor = useSelector((state: RootState) => state.forecast.customEditor);
+    const customLayers = useSelector(selectCurrentCustomLayers);
+    const customMode = isFeatureExposed("customProducts") && customEditor.mode === "custom";
+    const activeCustomLayer = customLayers.layers.find(({ id }) => id === customEditor.activeLayerId) ?? customLayers.layers[0];
+    const activeCustomCategory = activeCustomLayer?.categories.find(({ id }) => id === customEditor.activeCategoryId) ?? activeCustomLayer?.categories[0];
     const currentMapView = useSelector(
       (state: RootState) => state.forecast.currentMapView,
     );
@@ -592,10 +761,13 @@ const OpenLayersForecastMap = forwardRef<MapAdapterHandle<OLMap> | null>(
     const popupRef = useRef<HTMLDivElement>(null);
     const overlayRef = useRef<Overlay | null>(null);
     const interactionModeRef = useRef(interactionMode);
+    const customModeRef = useRef(customMode);
 
     useEffect(() => {
       interactionModeRef.current = interactionMode;
     }, [interactionMode]);
+
+    useEffect(() => { customModeRef.current = customMode; }, [customMode]);
 
     useEffect(() => {
       currentMapViewRef.current = currentMapView;
@@ -618,8 +790,10 @@ const OpenLayersForecastMap = forwardRef<MapAdapterHandle<OLMap> | null>(
     const vectorSourceRef = useRef<VectorSource>(new VectorSource());
     const catSourceRef = useRef<VectorSource>(new VectorSource());
     const ghostSourceRef = useRef<VectorSource>(new VectorSource());
+    const tstmPreviewSourceRef = useRef<VectorSource>(new VectorSource());
     const catLayerRef = useRef<VectorLayer<VectorSource> | null>(null);
     const ghostLayerRef = useRef<VectorLayer<VectorSource> | null>(null);
+    const tstmPreviewLayerRef = useRef<VectorLayer<VectorSource> | null>(null);
     const vectorLayerRef = useRef<VectorLayer<VectorSource> | null>(null);
     const drawRef = useRef<Draw | null>(null);
     const modifyRef = useRef<Modify | null>(null);
@@ -637,6 +811,7 @@ const OpenLayersForecastMap = forwardRef<MapAdapterHandle<OLMap> | null>(
         probability: string;
         feature: GeoJsonFeature;
       }> = [];
+      if (customMode) return items;
       Object.entries(outlooks).forEach(([outlookType, probs]) => {
         if (outlookType !== drawingState.activeOutlookType) {
           return;
@@ -650,7 +825,18 @@ const OpenLayersForecastMap = forwardRef<MapAdapterHandle<OLMap> | null>(
         });
       });
       return items;
-    }, [outlooks, drawingState.activeOutlookType]);
+    }, [outlooks, drawingState.activeOutlookType, customMode]);
+
+    const serializedCustomFeatures = useMemo(() => {
+      if (!customMode) return [];
+      return customLayers.layers.flatMap((layer) => {
+        const categories = new Map(layer.categories.map((category) => [category.id, category]));
+        return layer.features.flatMap((feature) => {
+          const category = categories.get(feature.properties.categoryId);
+          return category ? [{ feature, category, layer }] : [];
+        });
+      });
+    }, [customLayers.layers, customMode]);
 
     useImperativeHandle(
       ref,
@@ -734,6 +920,11 @@ const OpenLayersForecastMap = forwardRef<MapAdapterHandle<OLMap> | null>(
         zIndex: GHOST_REFERENCE_LAYER_Z_INDEX,
       });
       ghostLayerRef.current = ghostLayer;
+      const tstmPreviewLayer = new VectorLayer({
+        source: tstmPreviewSourceRef.current,
+        zIndex: TOP_OUTLINE_LAYER_Z_INDEX + 5,
+      });
+      tstmPreviewLayerRef.current = tstmPreviewLayer;
       // Probabilistic/other features layer: separate source, normal per-feature opacity
       const vectorLayer = new VectorLayer({
         source: vectorSourceRef.current,
@@ -762,6 +953,7 @@ const OpenLayersForecastMap = forwardRef<MapAdapterHandle<OLMap> | null>(
           landLayer,
           ghostLayer,
           catLayer,
+          tstmPreviewLayer,
           vectorLayer,
           landOutlineLayer,
           vectorReferenceGroup,
@@ -856,8 +1048,11 @@ const OpenLayersForecastMap = forwardRef<MapAdapterHandle<OLMap> | null>(
             layer === vectorLayerRef.current || layer === catLayerRef.current,
         });
         if (feature && overlayRef.current) {
-          const outlookType = feature.get("outlookType") as string;
-          const probability = feature.get("probability") as string;
+          const customIdentity = getCustomFeatureIdentity(feature);
+          const outlookType = customIdentity
+            ? (feature.get("customLayerTitle") as string || "Custom layer")
+            : feature.get("outlookType") as string;
+          const probability = customIdentity?.title ?? feature.get("probability") as string;
           const isSignificant = feature.get("isSignificant") as boolean;
 
           setPopupInfo({ outlookType, probability, isSignificant });
@@ -873,6 +1068,11 @@ const OpenLayersForecastMap = forwardRef<MapAdapterHandle<OLMap> | null>(
       modify.on("modifyend", (event) => {
         const format = new GeoJSON();
         event.features.forEach((feature) => {
+          const customFeature = toUpdatedCustomFeature(feature, format);
+          if (customFeature) {
+            dispatch(updateCustomFeature(customFeature));
+            return;
+          }
           const updatedFeature = toUpdatedGeoJsonFeature(
             feature,
             format,
@@ -940,6 +1140,13 @@ const OpenLayersForecastMap = forwardRef<MapAdapterHandle<OLMap> | null>(
         // Keep them read-only here; users should edit tornado/wind/hail/totalSevere
         // (or draw/delete TSTM manually) and let auto-categorical regenerate.
         if (outlookType === "categorical" && derivedFrom === "auto-generated") {
+          select.getFeatures().clear();
+          return;
+        }
+
+        const customIdentity = getCustomFeatureIdentity(selected);
+        if (customIdentity) {
+          dispatch(removeCustomFeature({ layerId: customIdentity.customLayerId, featureId: customIdentity.featureId }));
           select.getFeatures().clear();
           return;
         }
@@ -1299,10 +1506,12 @@ const OpenLayersForecastMap = forwardRef<MapAdapterHandle<OLMap> | null>(
       }
 
       if (
-        !isDrawableOutlookType({ outlookType: drawingState.activeOutlookType })
+        !customMode && !isDrawableOutlookType({ outlookType: drawingState.activeOutlookType })
       ) {
         return;
       }
+
+      if (customMode && (!activeCustomLayer || !activeCustomCategory)) return;
 
       const drawSource =
         drawingState.activeOutlookType === "categorical"
@@ -1323,6 +1532,17 @@ const OpenLayersForecastMap = forwardRef<MapAdapterHandle<OLMap> | null>(
         });
         // Create a new feature object with the drawn geometry and current drawing state properties,
         // then dispatch an action to add it to the Redux store.
+        const customFeature = toDrawnCustomFeature(
+          geometry as unknown as Geometry,
+          activeCustomLayer,
+          activeCustomCategory,
+          customMode,
+        );
+        if (customFeature) {
+          dispatch(addCustomFeature(customFeature));
+          return;
+        }
+
         const feature: GeoJsonFeature<Polygon, GeoJsonProperties> = {
           type: "Feature",
           id: uuidv4(),
@@ -1358,6 +1578,9 @@ const OpenLayersForecastMap = forwardRef<MapAdapterHandle<OLMap> | null>(
       drawingState.activeOutlookType,
       drawingState.activeProbability,
       drawingState.isSignificant,
+      customMode,
+      activeCustomLayer,
+      activeCustomCategory,
       interactionMode,
     ]);
 
@@ -1369,6 +1592,25 @@ const OpenLayersForecastMap = forwardRef<MapAdapterHandle<OLMap> | null>(
       catSource.clear();
       ghostSource.clear();
       const format = new GeoJSON();
+
+      if (customMode) {
+        const highestZIndex = Math.max(...serializedCustomFeatures.map(({ layer, category }) => 700 + layer.order * 20 + category.order), 700);
+        serializedCustomFeatures.forEach(({ feature, category, layer }) => {
+          const zIndex = 700 + layer.order * 20 + category.order;
+          const olFeature = format.readFeature(feature, { dataProjection: "EPSG:4326", featureProjection: "EPSG:3857" });
+          const applyCustomProps = (item: OLFeature<Geometry>) => {
+            item.setStyle(toCustomOlStyle(category, zIndex === highestZIndex, zIndex));
+            item.set("featureId", feature.id as string);
+            item.set("customLayerId", layer.id);
+            item.set("customLayerTitle", layer.label);
+            item.set("categoryId", category.id);
+            item.set("title", category.label);
+            source.addFeature(item);
+          };
+          if (Array.isArray(olFeature)) olFeature.forEach((item) => applyCustomProps(item as OLFeature<Geometry>));
+          else applyCustomProps(olFeature as OLFeature<Geometry>);
+        });
+      }
 
       // Find the maximum z-index for bold styling
       let maxZIndex = -Infinity;
@@ -1417,6 +1659,7 @@ const OpenLayersForecastMap = forwardRef<MapAdapterHandle<OLMap> | null>(
 
       Object.entries(outlooks).forEach(([outlookType, probs]) => {
         if (
+          customMode ||
           outlookType === drawingState.activeOutlookType ||
           !ghostOutlooks[outlookType as EditableOutlookType]
         ) {
@@ -1462,10 +1705,16 @@ const OpenLayersForecastMap = forwardRef<MapAdapterHandle<OLMap> | null>(
       });
     }, [
       serializedFeatures,
+      serializedCustomFeatures,
+      customMode,
       outlooks,
       drawingState.activeOutlookType,
       ghostOutlooks,
     ]);
+
+    useEffect(() => {
+      syncTstmPreviewSource(tstmPreviewSourceRef.current, tstmPreviewFeatures);
+    }, [tstmPreviewFeatures]);
 
     // Handlers for toolbar buttons to switch interaction modes and toggle style picker.
     const handleSetModePan = () => {
@@ -1514,6 +1763,7 @@ const OpenLayersForecastMap = forwardRef<MapAdapterHandle<OLMap> | null>(
             >
               Delete
             </button>
+            <span className="map-toolbar-divider" aria-hidden="true" />
             <button
               type="button"
               className={`map-toolbar-button mode-key ${showDesktopLegend ? "active" : ""}`}
@@ -1524,6 +1774,31 @@ const OpenLayersForecastMap = forwardRef<MapAdapterHandle<OLMap> | null>(
             >
               Key
             </button>
+            <span className="map-toolbar-spacer" aria-hidden="true" />
+            <div className="map-history-group" aria-label="Map edit history">
+              <button
+                type="button"
+                className="map-toolbar-button map-history-button"
+                onClick={() => dispatch(undoLastEdit())}
+                disabled={!canUndo}
+                title="Undo last map edit (Ctrl/Cmd+Z)"
+                aria-label="Undo"
+              >
+                <Undo2 className="map-history-icon" aria-hidden="true" />
+                <span className="map-history-label">Undo</span>
+              </button>
+              <button
+                type="button"
+                className="map-toolbar-button map-history-button"
+                onClick={() => dispatch(redoLastEdit())}
+                disabled={!canRedo}
+                title="Redo last map edit (Ctrl/Cmd+Y)"
+                aria-label="Redo"
+              >
+                <Redo2 className="map-history-icon" aria-hidden="true" />
+                <span className="map-history-label">Redo</span>
+              </button>
+            </div>
           </div>
           <div className="map-toolbar-help-surface">
             {interactionMode === "draw" &&

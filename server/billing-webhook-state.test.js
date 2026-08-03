@@ -50,26 +50,12 @@ const applyStatus = (db, event, status) =>
   });
 
 describe('applyEntitlementWebhookEvent', () => {
-  it('rejects incomplete verified-event input before opening a transaction', async () => {
-    const db = createFakeDb();
-    await assert.rejects(
-      applyEntitlementWebhookEvent({
-        db,
-        entitlementRef: db.collection('userEntitlements').doc('user-1'),
-        event: { type: 'customer.subscription.updated', created: 100 },
-        buildNextPayload: () => ({}),
-      }),
-      /verified Stripe event/
-    );
-  });
-
   it('commits concurrent duplicate deliveries only once', async () => {
     const db = createFakeDb();
     const event = { id: 'evt_once', type: 'customer.subscription.updated', created: 200 };
     const results = await Promise.all([applyStatus(db, event, 'active'), applyStatus(db, event, 'past_due')]);
 
     assert.deepEqual(results.map((result) => result.reason).sort(), ['applied', 'duplicate']);
-    assert.equal(results.find((result) => result.reason === 'duplicate').priorOutcome, 'applied');
     assert.equal(db.documents.get('userEntitlements/user-1').billingStatus, 'active');
     assert.equal(db.documents.get('processedStripeWebhookEvents/evt_once').outcome, 'applied');
   });

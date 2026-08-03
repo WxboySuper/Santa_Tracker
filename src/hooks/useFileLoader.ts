@@ -1,26 +1,38 @@
-import { exportForecastToJson, deserializeForecast, validateForecastData } from '../utils/fileUtils';
-import { markAsSaved, importForecastCycle } from '../store/forecastSlice';
+import { exportForecastToJson, deserializeForecast, readForecastImportFile, validateForecastData } from '../utils/fileUtils';
+import { isWorkflowExportPackage } from '../utils/workflowPackage';
+import {
+  markAsSaved,
+  importForecastCycle,
+  setWorkflowMetadata,
+  clearWorkflowMetadata,
+} from '../store/forecastSlice';
 import type { AddToastFn } from '../components/Layout';
 import type { Dispatch } from 'redux';
-import type { ForecastCycle } from '../types/outlooks';
+import type { CycleMetadata, ForecastCycle } from '../types/outlooks';
 
 /** Creates save and load file handler functions bound to the given toast notifier, Redux dispatch, and current forecast state. */
-export function createFileHandlers({ addToast, dispatch, forecastCycle }: {
+export function createFileHandlers({ addToast, dispatch, forecastCycle, cycleMetadata }: {
   addToast: AddToastFn;
   dispatch: Dispatch;
   forecastCycle: ForecastCycle;
+  cycleMetadata?: CycleMetadata;
 }) {
   const fileInputRef = { current: null as HTMLInputElement | null } as React.MutableRefObject<HTMLInputElement | null>;
 
   /** Reads a File object, validates the JSON content, deserializes it, and imports it as the active forecast cycle. */
   const handleLoad = async (file: File) => {
     try {
-      const text = await file.text();
       let data: unknown;
       try {
-        data = JSON.parse(text);
-      } catch {
-        addToast('File is not valid JSON.', 'error');
+        data = await readForecastImportFile(file);
+      } catch (error) {
+        if (file.name.toLowerCase().endsWith('.zip')) {
+          addToast('File is not a valid GFC package.', 'error');
+        } else if (error instanceof SyntaxError) {
+          addToast('File is not valid JSON.', 'error');
+        } else {
+          addToast('Error reading file.', 'error');
+        }
         return;
       }
 
@@ -31,6 +43,12 @@ export function createFileHandlers({ addToast, dispatch, forecastCycle }: {
 
       const deserializedCycle = deserializeForecast(data);
       dispatch(importForecastCycle(deserializedCycle));
+      const packageMetadata = isWorkflowExportPackage(data) ? data.metadata : data.cycleMetadata;
+      if (packageMetadata) {
+        dispatch(setWorkflowMetadata(packageMetadata));
+      } else if (data.cycleMetadata === null) {
+        dispatch(clearWorkflowMetadata());
+      }
       addToast('Forecast loaded successfully!', 'success');
     } catch {
       addToast('Error reading file.', 'error');
@@ -54,10 +72,14 @@ export function createFileHandlers({ addToast, dispatch, forecastCycle }: {
   /** Serializes the current forecast cycle to a JSON file and downloads it, then marks the store as saved. */
   const handleSave = () => {
     try {
-      exportForecastToJson(forecastCycle, {
-        center: [39.8283, -98.5795],
-        zoom: 4,
-      });
+      exportForecastToJson(
+        forecastCycle,
+        {
+          center: [39.8283, -98.5795],
+          zoom: 4,
+        },
+        cycleMetadata,
+      );
       dispatch(markAsSaved());
       addToast('Forecast exported to JSON!', 'success');
     } catch {

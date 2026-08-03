@@ -4,7 +4,6 @@ import { Provider } from 'react-redux';
 import { configureStore } from '@reduxjs/toolkit';
 import ToolbarPanel from './ToolbarPanel';
 import forecastReducer from '../../store/forecastSlice';
-import featureFlagsReducer from '../../store/featureFlagsSlice';
 
 jest.mock('lucide-react', () => ({
   Save: () => <div data-testid="icon-save" />,
@@ -36,7 +35,6 @@ jest.mock('../Layout', () => ({
 const buildStore = () => configureStore({
   reducer: {
     forecast: forecastReducer,
-    featureFlags: featureFlagsReducer,
   },
   middleware: (gdm) => gdm({ serializableCheck: false, immutableCheck: false }),
 });

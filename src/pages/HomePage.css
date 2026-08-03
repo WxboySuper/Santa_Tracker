@@ -943,6 +943,128 @@
     margin-top: 2.5rem;
 }
 
+.home-concept-workflow-start-grid {
+    display: grid;
+    gap: 0.55rem;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    margin-top: 1.25rem;
+    max-width: 34rem;
+}
+
+.home-concept-workflow-start {
+    display: inline-flex;
+    min-height: 2.55rem;
+    align-items: center;
+    justify-content: center;
+    padding: 0 0.75rem;
+    border: 1px solid var(--border-color);
+    border-radius: 0.5rem;
+    background: color-mix(in srgb, var(--bg-primary) 92%, transparent);
+    color: var(--text-primary);
+    font-weight: 800;
+    text-align: center;
+    transition:
+        transform 160ms ease,
+        border-color 160ms ease,
+        background-color 160ms ease;
+}
+
+.home-concept-workflow-inline-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.home-concept-workflow-inline-actions button {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    border: 0;
+    background: transparent;
+    padding: 0;
+    color: var(--button-bg);
+    font-weight: 800;
+}
+
+.home-concept-workflow-active-actions,
+.home-concept-workflow-new-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.65rem;
+    margin-top: 1rem;
+}
+
+.home-concept-workflow-active-actions button,
+.home-concept-workflow-new-row button {
+    display: inline-flex;
+    min-height: 2.4rem;
+    align-items: center;
+    justify-content: center;
+    gap: 0.45rem;
+    border: 1px solid var(--border-color);
+    border-radius: 0.5rem;
+    background: color-mix(in srgb, var(--bg-primary) 92%, transparent);
+    padding: 0 0.8rem;
+    color: var(--text-primary);
+    font-weight: 800;
+}
+
+.home-concept-workflow-active-actions button.is-primary {
+    border-color: var(--button-bg);
+    background: linear-gradient(135deg, #7b61ff, var(--button-bg));
+    color: #fff;
+}
+
+.home-concept-workflow-new-row {
+    margin-top: 0.7rem;
+}
+
+.home-concept-workflow-new-row button {
+    min-height: 2rem;
+    padding: 0 0.65rem;
+    color: var(--button-bg);
+    font-size: 0.85rem;
+}
+
+.home-concept-workflow-start:hover {
+    transform: translateY(-1px);
+    border-color: color-mix(in srgb, var(--button-bg) 35%, var(--border-color));
+    background: color-mix(in srgb, var(--button-bg) 6%, var(--bg-primary));
+}
+
+.home-concept-workflow-status {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.65rem;
+    margin-top: 1.35rem;
+}
+
+.home-concept-workflow-status span {
+    display: inline-flex;
+    min-height: 2.1rem;
+    align-items: center;
+    border: 1px solid var(--border-color);
+    border-radius: 999px;
+    padding: 0.35rem 0.75rem;
+    background: var(--bg-primary);
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    font-weight: 700;
+}
+
+.home-concept-workflow-status span.is-active {
+    border-color: color-mix(in srgb, var(--button-bg) 35%, var(--border-color));
+    background: color-mix(in srgb, var(--button-bg) 8%, var(--bg-primary));
+    color: var(--button-bg);
+}
+
+.home-concept-workflow-status span.is-complete {
+    border-color: rgba(39, 174, 96, 0.32);
+    background: rgba(39, 174, 96, 0.1);
+    color: rgb(39, 174, 96);
+}
+
 .home-concept-action {
     justify-content: flex-start;
     gap: 1rem;

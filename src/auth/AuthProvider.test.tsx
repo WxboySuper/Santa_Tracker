@@ -36,7 +36,6 @@ import {
 } from './AuthProvider';
 import themeReducer from '../store/themeSlice';
 import overlaysReducer from '../store/overlaysSlice';
-import featureFlagsReducer from '../store/featureFlagsSlice';
 import monitorReducer from '../store/monitorSlice';
 import { DEFAULT_MONITOR_SETTINGS } from '../monitor/types';
 
@@ -73,7 +72,6 @@ const createMockStore = () => configureStore({
   reducer: {
     theme: themeReducer,
     overlays: overlaysReducer,
-    featureFlags: featureFlagsReducer,
     monitor: monitorReducer,
   },
 });

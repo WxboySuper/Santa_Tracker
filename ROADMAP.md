@@ -152,7 +152,7 @@ The roadmap below reflects the product as it actually evolved after the stable `
 
 **Goal:** Make GFC sustainable and more user-friendly without violating the promise that the app stays open source and that core features remain free.
 
-Detailed planning lives in [docs/releases/v1.4.0-plan.md](docs/releases/v1.4.0-plan.md) and the linked phase PRDs under `docs/prds/`.
+Detailed planning lives in [docs/releases/v1.4.0-plan.md](docs/releases/v1.4.0-plan.md). The original phase PRDs are archived for deletion review under `docs/archive/review-removal/prds/`.
 
 - [ ] Add optional accounts using Firebase Auth.
 - [ ] Support Google, GitHub, and email/password sign-in.

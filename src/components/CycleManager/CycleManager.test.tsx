@@ -159,6 +159,14 @@ describe('CycleManager Components', () => {
         </Provider>
       );
       expect(container.firstChild).toBeNull();
+      expect(document.body.querySelector('.history-modal-root')).toBeNull();
+    });
+
+    it('GFC-WEB-G: portals the modal shell to document.body with notranslate', () => {
+      renderCycleHistoryModal();
+      const root = document.body.querySelector('.history-modal-root');
+      expect(root).toBeInTheDocument();
+      expect(root).toHaveClass('notranslate');
     });
 
     it('renders header and empty state when open with no cycles', () => {
@@ -194,7 +202,7 @@ describe('CycleManager Components', () => {
       expect(screen.queryByPlaceholderText(/Optional label/i)).not.toBeInTheDocument();
     });
 
-    it('renders saved cycles and allows loading', () => {
+    it('renders saved cycles and allows loading', async () => {
       const savedCycles = [
         {
           id: 'cycle-1',
@@ -216,7 +224,7 @@ describe('CycleManager Components', () => {
       expect(screen.getByTestId('confirmation-modal')).toBeInTheDocument();
       fireEvent.click(screen.getByText('Confirm'));
       expect(mockAddToast).toHaveBeenCalledWith('Cycle loaded!', 'success');
-      expect(onClose).toHaveBeenCalled();
+      await waitFor(() => expect(onClose).toHaveBeenCalled());
     });
 
     it('renders cycle with single day summary', () => {

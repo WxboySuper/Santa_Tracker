@@ -1,0 +1,33 @@
+{
+  "autoTstm": {
+    "reason": "Disabled-side-effect coverage in src/testing/featureExposure/exemplar.exposure.test.tsx and server/testing/autoTstm.exposure.test.js",
+    "trackingIssue": 529,
+    "betaEnablementApproved": true
+  },
+  "tropicalWorkspace": {
+    "reason": "Route and navigation gating covered by src/testing/featureExposure/exemplar.exposure.test.tsx and src/routing/buildFeatureGatedRoutes.test.tsx",
+    "trackingIssue": 529
+  },
+  "collaborationRoom": {
+    "reason": "Route and navigation gating covered by src/testing/featureExposure/exemplar.exposure.test.tsx and src/routing/buildFeatureGatedRoutes.test.tsx",
+    "trackingIssue": 529
+  },
+  "forecastWorkflowV2": {
+    "reason": "WF-05 workflow surfaces are enabled on local and beta for the beta tester pilot; signed-in home interaction coverage is in src/pages/home/HomePage.test.tsx, workflow continuity E2E coverage is in e2e/workflows.spec.ts, and the adoption contract is in src/config/v17WorkstreamAdoption.exposure.test.ts",
+    "trackingIssue": 530,
+    "localDevelopmentApproved": true,
+    "betaEnablementApproved": true
+  },
+  "verificationRelaunch": {
+    "reason": "The Forecast Grade dashboard shell and classic coexistence routing are complete for the beta tester rollout. Disabled-side-effect coverage is in src/pages/verificationRelaunch.exposure.test.tsx, gate coverage is in src/pages/VerificationPage.test.tsx, and the adoption contract is in src/config/v17WorkstreamAdoption.exposure.test.ts.",
+    "trackingIssue": 430,
+    "localDevelopmentApproved": true,
+    "betaEnablementApproved": true
+  },
+  "customProducts": {
+    "reason": "Custom Products completed local implementation, UI review, and regression/E2E coverage under #431. Owner approval enables the beta tester rollout; staging and production remain disabled. Adoption contract is in src/config/v17WorkstreamAdoption.exposure.test.ts and end-to-end coverage is in e2e/custom-products.spec.ts.",
+    "trackingIssue": 431,
+    "localDevelopmentApproved": true,
+    "betaEnablementApproved": true
+  }
+}

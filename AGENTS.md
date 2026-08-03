@@ -174,5 +174,5 @@ issue after the reviewed port lands or the behavior is confirmed unnecessary.
 Never push directly to `main` or `stable/X.Y.x`; all production and forward-port
 changes go through reviewed PRs.
 
-Full release policy: [`docs/release-workflow.md`](docs/release-workflow.md). Key automation: [`.github/workflows/forward-port-stable-fix.yml`](.github/workflows/forward-port-stable-fix.yml), [`scripts/lib/port-targets.mjs`](scripts/lib/port-targets.mjs), [`scripts/lib/port-conflicts.mjs`](scripts/lib/port-conflicts.mjs).
+Full release policy: [`docs/operations/release-workflow.md`](docs/operations/release-workflow.md). Key automation: [`.github/workflows/forward-port-stable-fix.yml`](.github/workflows/forward-port-stable-fix.yml), [`scripts/lib/port-targets.mjs`](scripts/lib/port-targets.mjs), [`scripts/lib/port-conflicts.mjs`](scripts/lib/port-conflicts.mjs).
 

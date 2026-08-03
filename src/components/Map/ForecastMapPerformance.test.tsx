@@ -6,7 +6,6 @@ import { configureStore, EnhancedStore } from '@reduxjs/toolkit';
 import forecastReducer, { setMapView, setActiveProbability } from '../../store/forecastSlice';
 import themeReducer from '../../store/themeSlice';
 import overlaysReducer from '../../store/overlaysSlice';
-import featureFlagsReducer from '../../store/featureFlagsSlice';
 import appModeReducer from '../../store/appModeSlice';
 
 // Mock OpenLayersForecastMap so we can track renders without needing a real OL environment
@@ -37,7 +36,6 @@ describe('ForecastMap Performance', () => {
         forecast: forecastReducer,
         theme: themeReducer,
         overlays: overlaysReducer,
-        featureFlags: featureFlagsReducer,
         appMode: appModeReducer,
       },
       middleware: (getDefaultMiddleware) =>

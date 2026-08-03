@@ -1,6 +1,6 @@
 import { render, screen, act } from '@testing-library/react';
 import App from './App';
-import { Outlet } from 'react-router-dom';
+import { Outlet as MockOutlet } from 'react-router-dom';
 
 // Mock pages to avoid heavy modules
 jest.mock('./pages', () => ({
@@ -23,7 +23,7 @@ jest.mock('./components/Layout', () => ({
   AppLayout: () => (
     <div>
       <div>AppLayout Mock</div>
-      <Outlet />
+      <MockOutlet />
     </div>
   ),
 }));
@@ -31,7 +31,7 @@ jest.mock('./components/Layout', () => ({
 jest.mock('./components/Map/ForecastMap', () => () => <div>ForecastMap Mock</div>);
 jest.mock('./components/DrawingTools/DrawingTools', () => () => <div>DrawingTools Mock</div>);
 jest.mock('./components/Documentation/Documentation', () => () => <div>Documentation Mock</div>);
-jest.mock('./components/Beta/BetaAccessGuard', () => () => <Outlet />);
+jest.mock('./components/Beta/BetaAccessGuard', () => () => <MockOutlet />);
 jest.mock('./components/ToS/ToSModal', () => ({
   __esModule: true,
   hasAcceptedToS: () => true,

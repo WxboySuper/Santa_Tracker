@@ -5,6 +5,9 @@ import { RootState } from '../../store';
 import { colorMappings, getCategoricalRiskDisplayName } from '../../utils/outlookUtils';
 import { CategoricalRiskLevel } from '../../types/outlooks';
 import './Legend.css';
+import { isFeatureExposed } from '../../config/featureExposure';
+import { selectCurrentCustomLayers } from '../../store/forecastSlice';
+import type { CustomCategoryTemplate } from '../../types/customProducts';
 
 type LegendOutlookType = 'categorical' | 'tornado' | 'wind' | 'hail' | 'totalSevere' | 'day4-8';
 
@@ -23,7 +26,42 @@ const Legend: React.FC<LegendProps> = React.memo(({
   // Optimized: Select only activeOutlookType to avoid re-rendering on other drawing state changes (like activeProbability)
   const storeActiveOutlookType = useSelector((state: RootState) => state.forecast.drawingState.activeOutlookType);
   const darkMode = useSelector((state: RootState) => state.theme.darkMode);
+  const reportsVisible = useSelector((state: RootState) => state.stormReports?.visible ?? false);
+  const reportFilters = useSelector((state: RootState) => state.stormReports?.filterByType ?? { tornado: true, wind: true, hail: true });
+  const customEditor = useSelector((state: RootState) => state.forecast.customEditor) ?? { mode: 'severe' as const, activeLayerId: null, activeCategoryId: null };
+  const customLayers = useSelector(selectCurrentCustomLayers);
   const activeOutlookType = activeOutlookTypeOverride || storeActiveOutlookType;
+  const customMode = !activeOutlookTypeOverride && isFeatureExposed('customProducts') && customEditor.mode === 'custom';
+  const activeCustomLayer = customLayers.layers.find(({ id }) => id === customEditor.activeLayerId) ?? customLayers.layers[0];
+
+  /** Builds the fill and hatch styles for a custom category swatch. */
+  const customSwatchBackground = (category: CustomCategoryTemplate): React.CSSProperties => {
+    const angle = category.style.hatch === 'reverse-diagonal' ? '-45deg' : '45deg';
+    const diagonal = `repeating-linear-gradient(${angle}, transparent 0 6px, ${category.style.strokeColor} 6px 8px)`;
+    const reverse = `repeating-linear-gradient(-45deg, transparent 0 6px, ${category.style.strokeColor} 6px 8px)`;
+    return {
+      backgroundColor: category.style.fillColor,
+      opacity: 1,
+      backgroundImage: category.style.hatch === 'none' ? undefined : category.style.hatch === 'crosshatch' ? `${diagonal}, ${reverse}` : diagonal,
+      borderColor: category.style.strokeColor,
+      borderWidth: category.style.strokeWidth,
+    };
+  };
+
+  /** Renders the categories for the active custom layer. */
+  const renderCustomLegend = () => (
+    <>
+      <h4 id="legend-title">{activeCustomLayer?.label ?? 'Custom Layers'}</h4>
+      <div className="legend-items" role="list" aria-labelledby="legend-title">
+        {activeCustomLayer ? [...activeCustomLayer.categories].sort((a, b) => a.order - b.order).map((category) => (
+          <div key={category.id} className="legend-item" role="listitem">
+            <div className="legend-color" style={customSwatchBackground(category)} role="img" aria-label={`${category.label} custom style`} />
+            <span>{category.label}</span>
+          </div>
+        )) : <span>No custom layer selected</span>}
+      </div>
+    </>
+  );
 
   /** Renders the categorical legend swatches using the released opaque map treatment. */
   const renderCategoricalLegend = () => (
@@ -136,14 +174,41 @@ const Legend: React.FC<LegendProps> = React.memo(({
     );
   };
 
+  /** Renders the visible SPC report types in the map legend. */
+  const renderReportLegend = () => {
+    if (!reportsVisible) {
+      return null;
+    }
+    const reports = [
+      ['tornado', 'Tornado', '#8b5cf6'],
+      ['wind', 'Wind', '#2563eb'],
+      ['hail', 'Hail', '#16a34a'],
+    ] as const;
+    return (
+      <div className="legend-reports" aria-labelledby="reports-legend-title">
+        <h4 id="reports-legend-title">Reports visible</h4>
+        <div className="legend-items" role="list">
+          {reports.filter(([type]) => reportFilters[type]).map(([type, label, color]) => (
+            <div key={type} className="legend-item" role="listitem">
+              <span className="legend-report-dot" style={{ backgroundColor: color }} aria-hidden="true" />
+              <span>{label}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div
+      id="map-legend"
       className={`map-legend ${desktopOpen ? '' : 'map-legend--desktop-hidden'} ${mobileOpen ? 'map-legend--mobile-open' : ''}`}
       role="complementary"
       aria-label="Map Legend"
       translate="no"
     >
-      {activeOutlookType === 'categorical' ? renderCategoricalLegend() : renderProbabilisticLegend()}
+      {customMode ? renderCustomLegend() : activeOutlookType === 'categorical' ? renderCategoricalLegend() : renderProbabilisticLegend()}
+      {renderReportLegend()}
     </div>
   );
 });

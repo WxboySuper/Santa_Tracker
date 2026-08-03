@@ -1,15 +1,18 @@
 import { createFileHandlers } from './useFileLoader';
-import { deserializeForecast, exportForecastToJson, validateForecastData } from '../utils/fileUtils';
+import { waitFor } from '@testing-library/react';
+import { deserializeForecast, exportForecastToJson, readForecastImportFile, validateForecastData } from '../utils/fileUtils';
 
 jest.mock('../utils/fileUtils', () => ({
   deserializeForecast: jest.fn(),
   exportForecastToJson: jest.fn(),
+  readForecastImportFile: jest.fn(),
   validateForecastData: jest.fn(),
 }));
 
 const mockValidateForecastData = validateForecastData as jest.MockedFunction<typeof validateForecastData>;
 const mockDeserializeForecast = deserializeForecast as jest.MockedFunction<typeof deserializeForecast>;
 const mockExportForecastToJson = exportForecastToJson as jest.MockedFunction<typeof exportForecastToJson>;
+const mockReadForecastImportFile = readForecastImportFile as jest.MockedFunction<typeof readForecastImportFile>;
 
 describe('createFileHandlers', () => {
   const forecastCycle = { id: 'cycle-1' };
@@ -22,9 +25,11 @@ describe('createFileHandlers', () => {
     dispatch = jest.fn();
     mockValidateForecastData.mockReturnValue(true);
     mockDeserializeForecast.mockReturnValue({ id: 'loaded-cycle' } as never);
+    mockReadForecastImportFile.mockImplementation(async (file) => JSON.parse(await file.text()) as unknown);
   });
 
   const createTextFile = (text: string, shouldReject = false): File => ({
+    name: 'forecast.json',
     text: shouldReject ? jest.fn().mockRejectedValue(new Error('read failed')) : jest.fn().mockResolvedValue(text),
   } as unknown as File);
 
@@ -68,7 +73,7 @@ describe('createFileHandlers', () => {
     await Promise.resolve();
 
     expect(input.value).toBe('');
-    expect(addToast).toHaveBeenCalledWith('Forecast loaded successfully!', 'success');
+    await waitFor(() => expect(addToast).toHaveBeenCalledWith('Forecast loaded successfully!', 'success'));
   });
 
   it('opens the hidden file picker when available', () => {
@@ -89,7 +94,7 @@ describe('createFileHandlers', () => {
     expect(mockExportForecastToJson).toHaveBeenCalledWith(forecastCycle, {
       center: [39.8283, -98.5795],
       zoom: 4,
-    });
+    }, undefined);
     expect(dispatch).toHaveBeenCalledWith(expect.objectContaining({ type: 'forecast/markAsSaved' }));
     expect(addToast).toHaveBeenCalledWith('Forecast exported to JSON!', 'success');
 

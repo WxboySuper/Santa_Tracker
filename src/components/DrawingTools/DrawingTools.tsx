@@ -2,7 +2,8 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { resetForecasts, selectCurrentOutlooks } from '../../store/forecastSlice';
-import { RootState } from '../../store';
+import type { RootState } from '../../store';
+import { isExportMapExposed, isSaveLoadExposed } from '../../config/productExposureSelectors';
 import { ForecastMapHandle } from '../Map/ForecastMap';
 import './DrawingTools.css';
 import { useExportMap } from './useExportMap';
@@ -25,12 +26,10 @@ const DrawingTools: React.FC<DrawingToolsProps> = ({ onSave, onLoad, onOpenDiscu
   const dispatch = useDispatch();
   const outlooks = useSelector(selectCurrentOutlooks);
   const isSaved = useSelector((state: RootState) => state.forecast.isSaved);
-  const featureFlags = useSelector((state: RootState) => state.featureFlags);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   
-  // Use feature flags instead of hardcoded disabled state
-  const isExportDisabled = !featureFlags.exportMapEnabled;
-  const isSaveLoadDisabled = !featureFlags.saveLoadEnabled;
+  const isExportDisabled = !isExportMapExposed();
+  const isSaveLoadDisabled = !isSaveLoadExposed();
 
   // Reset confirmation state
   const [isResetModalOpen, setIsResetModalOpen] = useState(false);

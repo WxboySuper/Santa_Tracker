@@ -1,6 +1,6 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { useOutletContext } from 'react-router-dom';
+import { useOutletContext, useSearchParams } from 'react-router-dom';
 import type { RootState, AppDispatch } from '../store';
 import {
   setAnimationEnabled,
@@ -28,7 +28,7 @@ import { selectForecastCycle, selectSavedCycles } from '../store/forecastSlice';
 import { useEntitlement } from '../billing/EntitlementProvider';
 import { useCloudCycles } from '../hooks/useCloudCycles';
 import type { AddToastFn } from '../components/Layout';
-import { MonitorControls, MonitorMap } from '../components/Monitor';
+import { MonitorControls, MonitorMap } from '../monitor/components';
 import { buildMonitorOutlookOptions, resolveSelectedOutlookOption } from '../monitor/outlookSources';
 import type { MonitorOutlookSourceOption } from '../monitor/outlookSources';
 import type { MonitorSettings } from '../monitor/types';
@@ -46,6 +46,22 @@ import './MonitorPage.css';
 interface PageContext {
   addToast: AddToastFn;
 }
+
+/** Resolves a handoff source only when its kind and ID match a real Monitor option. */
+const resolveHandoffSource = (
+  searchParams: URLSearchParams,
+  options: MonitorOutlookSourceOption[],
+): MonitorOutlookSourceOption | undefined => {
+  const sourceKind = searchParams.get('sourceKind');
+  const sourceId = searchParams.get('sourceId');
+  if (sourceKind && sourceId) {
+    return options.find((option) => option.kind === sourceKind && option.id === sourceId);
+  }
+  if (searchParams.get('workflowId')) {
+    return options.find((option) => option.kind === 'current' && option.id === 'current');
+  }
+  return undefined;
+};
 
 interface MonitorPageWorkspaceProps {
   settings: MonitorSettings;
@@ -144,6 +160,8 @@ const MonitorPageWorkspace: React.FC<MonitorPageWorkspaceProps> = ({
 export const MonitorPage: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
   const { addToast } = useOutletContext<PageContext>();
+  const [searchParams] = useSearchParams();
+  const didApplyHandoffSource = useRef(false);
   const settings = useSelector((state: RootState) => state.monitor);
   const currentCycle = useSelector(selectForecastCycle);
   const savedCycles = useSelector(selectSavedCycles);
@@ -166,6 +184,15 @@ export const MonitorPage: React.FC = () => {
     () => resolveSelectedOutlookOption(outlookOptions, settings.outlookSource),
     [outlookOptions, settings.outlookSource]
   );
+
+  useEffect(() => {
+    if (didApplyHandoffSource.current) return;
+    const matchingSource = resolveHandoffSource(searchParams, outlookOptions);
+    if (matchingSource) {
+      dispatch(setMonitorOutlookSource({ kind: matchingSource.kind, id: matchingSource.id }));
+      didApplyHandoffSource.current = true;
+    }
+  }, [dispatch, outlookOptions, searchParams]);
   const selectedOutlook = useMonitorCloudOutlook({ selectedOption, today, addToast });
 
   const radarConfig = useMemo(() => buildRadarLayerConfig(settings), [settings]);
