@@ -617,13 +617,19 @@ const cleanupTempMapResources = (tempContainer: HTMLDivElement | null, tempMap: 
 
 // Helper: perform capture flow on the prepared temp map
 // @codescene(disable:"Complex Method")
-const captureFromTempMap = async (
-  tempContainer: HTMLDivElement,
-  tempMap: L.Map,
-  sourceMap: L.Map,
-  outlooks: OutlookData,
-  options: ExportImageOptions
-): Promise<string> => {
+const captureFromTempMap = async ({
+  tempContainer,
+  tempMap,
+  sourceMap,
+  outlooks,
+  options,
+}: {
+  tempContainer: HTMLDivElement;
+  tempMap: L.Map;
+  sourceMap: L.Map;
+  outlooks: OutlookData;
+  options: ExportImageOptions;
+}): Promise<string> => {
   const { title, format = 'png', quality = 0.92, includeLegendAndStatus = false } = options;
 
   // Wait for map settle, add tiles, and render outlooks (returns tile wait result)
@@ -671,7 +677,7 @@ const exportViaTempMapAsImage = async (
     const prepared = prepareTempMapAndContainer(map);
     tempContainer = prepared.tempContainer;
     tempMap = prepared.tempMap;
-    return await captureFromTempMap(tempContainer, tempMap, map, outlooks, options);
+    return await captureFromTempMap({ tempContainer, tempMap, sourceMap: map, outlooks, options });
   } finally {
     cleanupTempMapResources(tempContainer, tempMap);
   }

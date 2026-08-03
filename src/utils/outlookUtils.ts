@@ -62,9 +62,8 @@ export const colorMappings: ColorMappings = {
   }
 };
 
-/**
- * Get constraints for a specific outlook day
- */
+/** @codescene(disable:"Complex Method", disable:"Overall Code Complexity") */
+/** Get constraints for a specific outlook day. */
 export function getOutlookConstraints(day: DayType) {
   switch (day) {
     case 1:
