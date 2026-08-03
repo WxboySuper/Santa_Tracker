@@ -19,10 +19,10 @@ Agents should act like senior collaborators, not script runners. Prefer concrete
 
 ## Git Rules
 
-- Make code changes on a branch based on `beta` unless the user specifies another base or the workspace is already on a fresh task branch.
-- If the current branch is not suitable for the requested change, create a new branch from `beta` before editing.
-- Do not implement on `beta` (or `main`) in place when the work is a discrete fix or feature—check out a new task branch first (for example `fix/sentry-gfc-web-7-short-description`).
-- For production bug fixes, Sentry investigations, and other shippable repairs: use a dedicated branch, commit there, push, and open a pull request targeting `beta` when the fix is complete and verified—unless the user explicitly asks to stay local-only.
+- Make normal code changes on a branch based on `main`, the next-major integration line.
+- If the current branch is not suitable for the requested change, create a new task branch from `main` before editing.
+- Do not implement on protected `main` or `stable/X.Y.x` in place; use a dedicated task branch (for example `fix/sentry-gfc-web-7-short-description`).
+- Production fixes start from the current `stable/X.Y.x` line and target that stable branch. After a stable fix merges, review the generated forward-port PR into `main`.
 - Do not commit unless the user asks.
 - Do not push unless the user asks.
 - Do not open a pull request unless the user asks.
@@ -149,54 +149,30 @@ When writing or updating PR descriptions, issue comments, or `gh pr create` / `g
 - Use normal Markdown structure: `##` headings, `- [ ]` checklists, and fenced code blocks only for multi-line snippets.
 - File paths and branch names belong in backticks; issue/PR references use `#123` without backticks.
 
-## Porting main → beta
+## Stable hotfix forward-porting
 
-Use this when you need to land a **main** change on **beta** yourself, or when automated porting opened a draft conflict PR.
+Production fixes begin on the current `stable/X.Y.x` branch. The stable branch is
+the source of truth for that production family; `main` is never merged back into
+the stable line.
 
-### When automation runs
+When a stable PR merges, `forward-port-stable-fix.yml` creates a normal,
+reviewable `port/<pr>-to-main` PR using the trusted stable merge commit.
 
-| Merge | What happens |
-|-------|----------------|
-| `hotfix/*` → `main` | Automation opens a `[Port] … to beta` PR after merge |
-| `beta` → `main`, `release/*` → `main`, `feature/release-*` → `main` | Post-merge automation syncs beta directly (no port PR) |
-| Anything → `beta` | No downstream porting |
+### Clean forward-port
 
-### When to port manually
+1. Review the generated `port/<pr>-to-main` PR like any other PR.
+2. Keep `Changelog-Impact: inherited` and `Port of #<stable-pr>` when the stable entry is carried forward.
+3. Merge it only after the normal `main` checks pass.
 
-- The user asks you to port before or instead of waiting on automation.
-- A `[Port][Conflicts]` draft PR has real code conflicts (not just version files).
-- You want the beta change reviewed and merged on your timeline.
+### Conflicting forward-port
 
-### Block duplicate automated ports
+If the stable diff no longer applies cleanly, automation opens a
+`porting/conflicts` issue instead of forcing a misleading PR. Re-express the
+behavior manually on current `main`, reference the stable PR, and close the
+issue after the reviewed port lands or the behavior is confirmed unnecessary.
 
-Before merging the source PR on `main`, either:
-
-- Add the **`porting/manual`** label to that PR, or
-- Open a non-`port/*` PR to `beta` first (same head branch as the main PR, or title/body referencing `#<sourcePr>`).
-
-Automation detects both and skips creating a duplicate `port/*` PR.
-
-### Manual port workflow
-
-1. Branch from **`beta`** (not `main`).
-2. Cherry-pick or merge only the commits you need from the main PR.
-3. **Keep beta's versions** of `package.json`, lockfiles, `CHANGELOG.md`, and `deploy/production-release.json` unless the port intentionally changes dependencies.
-4. Open a PR **`your-branch → beta`**; include `Ports #<sourcePr>` in the title or body.
-5. Run targeted tests. Beta PRs follow normal changelog policy.
-6. Use a `port/*` branch only when finishing an automated draft port PR.
-
-### Resolving an automated draft port PR
-
-1. Check out `port/<n>-to-beta`.
-2. Fix remaining conflict markers (version-policy files are usually auto-resolved now).
-3. Mark the draft PR ready for review and merge when CI passes.
-4. Close any duplicate manual PR if automation already opened the port PR.
-
-### Do not
-
-- Fan out to `feature/*` branches (removed; not supported).
-- Open redundant `port/* → beta` PRs for merges post-merge already synced (CI blocks these via `scripts/lib/port-pr-policy.mjs`).
-- Push directly to `beta` for port work — always use a PR.
+Never push directly to `main` or `stable/X.Y.x`; all production and forward-port
+changes go through reviewed PRs.
 
 Full release policy: [`docs/release-workflow.md`](docs/release-workflow.md). Key automation: [`.github/workflows/forward-port-stable-fix.yml`](.github/workflows/forward-port-stable-fix.yml), [`scripts/lib/port-targets.mjs`](scripts/lib/port-targets.mjs), [`scripts/lib/port-conflicts.mjs`](scripts/lib/port-conflicts.mjs).
 

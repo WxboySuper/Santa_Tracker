@@ -4,7 +4,6 @@ exclude_patterns = [
   "build/**",
   "server/release/**",
   "scripts/lib/production-release.test.mjs",
-  "scripts/lib/bump-beta-after-main-release.test.mjs",
   "scripts/lib/github-paginate.test.mjs",
   "scripts/lib/pr-ci-label-state.test.mjs",
   "server/**/*.test.js",

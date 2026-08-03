@@ -124,7 +124,7 @@ Run the app with beta-only features locally (useful for testing forecast redesig
 
 ### Hosted error monitoring (Sentry)
 
-Sentry is enabled on **production** (`main` → gfc.weatherboysuper.com) and **beta** (`beta` → beta-gfc.weatherboysuper.com) when deploy secrets provide a DSN. Local dev builds without `VITE_SENTRY_DSN` stay inert. Events are separated in Sentry by environment (`production` vs `beta`).
+Sentry is enabled on **production** (`stable/X.Y.x` → gfc.weatherboysuper.com) and **beta** (a prerelease from `main` → beta-gfc.weatherboysuper.com) when deploy secrets provide a DSN. Local dev builds without `VITE_SENTRY_DSN` stay inert. Events are separated in Sentry by environment (`production` vs `beta`).
 
 Hosted monitoring includes:
 

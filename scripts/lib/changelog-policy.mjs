@@ -61,7 +61,7 @@ const extractLaneBody = (changelog, heading) => {
  * }} context
  */
 const validateLane = ({ declaration, changelog, path, baseRef, baseChangelog }) => {
-  if (!changelog || path === 'CHANGELOG.beta.md') return null;
+  if (!changelog) return null;
   const expectedLane = declaration.impact === 'hotfix' && /^stable\//.test(baseRef)
     ? changelogLaneHeadingForBase(baseRef)
     : laneHeadingForImpact(declaration.impact);
