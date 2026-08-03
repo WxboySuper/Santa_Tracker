@@ -7,255 +7,38 @@ All notable changes to this project will be documented in this file.
 
 ### Next major / beta
 
-#### Beta development notes
-
-<!-- Consolidated beta development history. -->
-- **PR #806 (Changed):** Recalibrate Forecast Grade as `gfc-ver-3`: prioritize event capture, tier-aware placement, proportional event yield, and significant-threat placement while retaining probability and false-alarm metrics as transparent diagnostics.
-- **PR #792 (Changed):** Refresh `AGENTS.md` with durable GFC project context for modern coding agents.
-- **PR #793 (Added):** Add the foundational Forecast Grade verification workspace structure and grading workflow needed by the stacked verification v2 rollout.
-- **PR #794 (Changed):** Refine the Forecast Grade verification workspace into the analysis-deck layout and align its visual language with the product UI.
-- **PR #795 (Changed):** Complete the Forecast Grade verification workspace viewport, grading-state, sidebar, and control polish.
-- **PR #791 (Changed):** Make Forecast Grade actionable after a package is loaded: preserve the outlook’s valid report date, keep the grading action and status visible, expose retry state, and keep SPC evidence readable over a softened verification map with an on-demand legend. Complete the desktop viewport fit, grading progress state, custom selectors, report legend, score breakdown, and one-entry-per-day trend presentation.
-- **PR #790 (Changed):** Enable the new Forecast Grade verification page for beta testers while keeping staging and production disabled.
-- **PR #778 (Added):** Add anonymous Forecast Grade share card with download, share, and copy actions.
-- **PR #777 (Changed):** Add Forecast Grade result workspace with score breakdown, report table, and grade trend.
-- **PR #776 (Added):** Forecast Grade dashboard shell: replace the 06b stub with the map-first workspace chrome (`ForecastGradeDashboard` plus dedicated `ForecastGradeMapPane` / `ForecastGradeMapControls`), categorical map layer as a display-only toggle, and `applyGradeSnapshot` to reopen premium cards through the shared verification map.
-- **PR #776 (Added):** `useForecastGrade` gains `activeMapLayer` state, `deserializeForecast` import, and the `applyGradeSnapshot` callback alongside the 06b `runGeneration` / `hasReachedReportDate` stale-run and future-date guards that the rebase would otherwise drop.
-- **PR #789 (Added):** Add icon-based Undo and Redo controls to the map tools panel, aligned to the right of the Pan, Draw, Delete, and Key controls on desktop and mobile.
-- **PR #775 (Added):** Add Forecast Grade dashboard supporting components (`SourcePanel`, `DataQualityPanel`, `GradeHeadline`, `RunProgress`, grade formatters, methodology copy) and the `useForecastGrade` run hook that turns the verified report date, source panel selection, and source entitlements into a `runForecastGrade` invocation gated until the report date is reached. Source panel is split into `SourcePanel` + `sourcePanelParts` for code health.
-- **PR #774 (Added):** Wire the `verificationRelaunch` gate, surfaces, and classic `/verification` coexistence routing so the Forecast Grade dashboard shell can land in the next stacked PR (06b/06c/07). The flag stays off on every build target until that shell flips it; classic `/verification` is the default in the meantime.
-- **PR #774 (Added):** Land a temporary `ForecastGradeDashboard` stub so the lazy import resolves before the real shell lands.
-- **PR #773 (Added):** Add explicit package source adapters (`loadForecastFromFile`, `loadReportsForDate`) and capability-aware `resolveAccountTier` / `availablePackageSources` for the Forecast Grade dashboard. Signed-in tiers keep 25-card trend history; premium also stores restorable immutable snapshots, scoped per user id.
-- **PR #773 (Added):** Convert ISO `YYYY-MM-DD` report dates to SPC `YYMMDD` before archive fetch so the file-based source works with native date inputs. Move the converter into a dedicated `archiveDate` module and validate against a real calendar.
-- **PR #787 (Changed):** Dependency: @radix-ui/react-dialog ^1.1.20 → ^1.1.23
-- **PR #787 (Changed):** Dependency: @radix-ui/react-dropdown-menu ^2.1.21 → ^2.1.24
-- **PR #787 (Changed):** Dependency: @radix-ui/react-popover ^1.1.20 → ^1.1.23
-- **PR #787 (Changed):** Dependency: @radix-ui/react-slot ^1.3.0 → ^1.3.3
-- **PR #787 (Changed):** Dependency: @radix-ui/react-tabs ^1.1.18 → ^1.1.21
-- **PR #787 (Changed):** Dependency: @radix-ui/react-tooltip ^1.2.13 → ^1.2.16
-- **PR #787 (Changed):** Dependency: @sentry/react ^10.67.0 → ^10.68.0
-- **PR #787 (Changed):** Dependency: @testing-library/jest-dom ^6.6.3 → ^7.0.0
-- **PR #787 (Changed):** Dependency: lucide-react ^1.25.0 → ^1.27.0
-- **PR #787 (Changed):** Dependency: ol-mapbox-style ^13.4.1 → ^13.4.2
-- **PR #787 (Changed):** Dependency: react ^19.2.7 → ^19.2.8
-- **PR #787 (Changed):** Dependency: react-dom ^19.2.7 → ^19.2.8
-- **PR #787 (Changed):** Dependency: rollup >=4.62.2 → >=4.62.3
-- **PR #787 (Changed):** Dependency: web-vitals ^5.3.0 → ^6.0.1
-- **PR #787 (Changed):** Dependency: @playwright/test ^1.61.1 → ^1.62.0
-- **PR #787 (Changed):** Dependency: @vitejs/plugin-react ^6.0.3 → ^6.0.4
-- **PR #787 (Changed):** Dependency: @sentry/node ^10.67.0 → ^10.68.0 (`server`)
-- **PR #787 (Changed):** Dependency: express-rate-limit ^8.6.0 → ^8.6.1 (`server`)
-- **PR #772 (Changed):** Add composite rollup, the `runForecastGrade` orchestrator, and the public `verificationV2` engine entry point. Address the CodeRabbit review on `runForecastGrade` (reuse staged product grades), `gradeProduct` (handle report-only products), and the data-quality gate (count per-product reports).
-- **PR #771 (Changed):** Add event yield and severity intent-layer component scorers for Forecast Grade. `scoreEventYield` filters reports to the supplied hazard product before scoring so reports for other hazards never influence the product's yield.
-- **PR #770 (Added):** Add probability skill (Brier/BSS), spatial contingency, and false-alarm discipline component scorers.
-- **PR #769 (Added):** Add SPC 25-mile neighborhood and Armchair-style area geometry helpers for Forecast Grade spatial scoring.
-- **PR #768 (Changed):** Start Verification v2 / Forecast Grade (`gfc-ver-1`) with the versioned formula contract (constants, bands, and component weight scaffolding) behind upcoming `verificationRelaunch` work. Follow-up stacked PRs add the engine, sources, gated dashboard, share card, and docs (#769–#780; umbrella index #766).
-- **PR #765 (Changed):** Upgrade the compiler to TypeScript 7, replace the incompatible `ts-jest` bridge with Babel/Jest tooling, and enforce production plus test-regression typechecking in CI.
-- **PR #784 (Changed):** Replace `public/favicon.ico` with the cloud icon so apps that request `/favicon.ico` directly show the correct branding instead of the React logo.
-- **PR #763 (Changed):** Route Auto-TSTM previews exclusively through scheduled cached guidance and retire the direct generation API.
-- **PR #760 (Changed):** Restore native Umami page views for accurate traffic metrics, make non-essential telemetry an explicit opt-in, minimize tracker URL data, and clarify GFC's cookie-free pseudonymous telemetry disclosure.
-- **PR #759 (Changed):** Replace GA4 and the legacy collector with privacy-gated, self-hosted Umami telemetry that keeps beta and production reporting separate.
-- **PR #758 (Changed):** Dependency: @radix-ui/react-dialog ^1.1.19 → ^1.1.20
-- **PR #758 (Changed):** Dependency: @radix-ui/react-dropdown-menu ^2.1.20 → ^2.1.21
-- **PR #758 (Changed):** Dependency: @radix-ui/react-popover ^1.1.19 → ^1.1.20
-- **PR #758 (Changed):** Dependency: @radix-ui/react-tabs ^1.1.17 → ^1.1.18
-- **PR #758 (Changed):** Dependency: @radix-ui/react-tooltip ^1.2.12 → ^1.2.13
-- **PR #758 (Changed):** Dependency: @sentry/react ^10.65.0 → ^10.67.0
-- **PR #758 (Changed):** Dependency: immer ^11.1.11 → ^11.1.15
-- **PR #758 (Changed):** Dependency: lucide-react ^1.24.0 → ^1.25.0
-- **PR #758 (Changed):** Dependency: @tailwindcss/postcss ^4.3.2 → ^4.3.3
-- **PR #758 (Changed):** Dependency: autoprefixer ^10.5.2 → ^10.5.4
-- **PR #758 (Changed):** Dependency: tailwindcss ^4.3.2 → ^4.3.3
-- **PR #758 (Changed):** Dependency: vite ^8.1.4 → ^8.1.5
-- **PR #758 (Changed):** Dependency: @sentry/node ^10.65.0 → ^10.67.0 (`server`)
-- **PR #758 (Changed):** Dependency: express-rate-limit ^8.5.2 → ^8.6.0 (`server`)
-- **PR #758 (Changed):** Dependency: firebase-admin ^14.1.0 → ^14.2.0 (`server`)
-- **PR #758 (Changed):** Dependency: stripe ^22.3.1 → ^22.3.2 (`server`)
-- **PR #752 (Changed):** Enable the approved Custom Products workspace for beta testers while keeping staging and production disabled.
-- **PR #751 (Changed):** Refine the local-only Saved products experience with a responsive library layout, a respectful free-user Premium path, and a simple local-preview tester checklist.
-- **PR #746 (Changed):** Integrate local custom layers with forecast workflows, exports, imports, map legends, and workflow disclosures.
-- **PR #744 (Changed):** Add reusable custom product creation, editing, lifecycle management, and snapshot-based use in local forecasts.
-- **PR #757 (Changed):** Keep custom layer and category picker popovers above forecast safety and status overlays.
-- **PR #743 (Changed):** Add local-only custom forecast layers with category styling, polygon drawing, map legend support, and regression coverage while hosted environments remain unchanged.
-- **PR #755 (Changed):** Repair custom diagonal, reverse-diagonal, and crosshatch map fills so their repeated canvas tiles align cleanly.
-- **PR #745 (Changed):** Secure reusable custom products with owner-scoped Firestore rules, premium enforcement, and hostile-client coverage.
-- **PR #756 (Changed):** Match exported forecast JPEG bounds to the OpenLayers viewport to remove unused white space below the map.
-- **PR #750 (Changed):** Polish the local custom-product forecast workspace with an animated mode switch, compact controls, saved-product modal, and cohesive color picker.
-- **PR #742 (Changed):** Define versioned one-off custom layer, reusable hosted product, embedded snapshot, and expiration/read-only contracts with strict validation and local-only exposure.
-- **PR #740 (Changed):** Require protected reviewer approval and pre-promotion build/test validation for the legacy direct beta-to-main emergency workflow.
-- **PR #741 (Changed):** Prevent replayed Stripe webhook deliveries from double-counting premium upgrade and cancellation metrics.
-- **PR #729 (Changed):** Enable the validated forecast workflow v2 surfaces for beta testers while keeping staging and production disabled.
-- **PR #720 (Changed):** Add authenticated workflow continuity E2E coverage across all built-in scopes, discussion grouping, package transfer, and second-page restore paths.
-- **PR #711 (Changed):** Clear scoped autosaves when users confirm a fresh blank or workflow start, restore workflow metadata from saved cycles, and keep workflow confirmation and completion dialogs usable on small screens.
-- **PR #712 (Changed):** Add guarded localhost free and premium account fixtures for authenticated workflow E2E testing without hosted Firebase sessions or cloud writes.
-- **PR #723 (Changed):** Add hostile-client hosted authorization coverage, protect server-managed account fields, enforce trusted premium eligibility for cloud writes, and preserve bounded beta workflow data plus owner export/delete access after downgrade.
-- **PR #788 (Changed):** Fix beta Auto-TSTM ingestion by configuring the analytics worker to use the project virtual-environment Python interpreter.
-- **PR #699 (Changed):** Add post-completion handoff guidance for workflow and complete-cycle exports, eligible Monitor navigation, return-to-map, and duplicate-prompt suppression.
-- **PR #698 (Changed):** Add distinct workflow-scoped and complete-cycle package exports with compatibility-preserving manifests.
-- **PR #697 (Changed):** Add privacy-safe, allowlisted workflow lifecycle analytics with failure isolation.
-- **PR #696 (Changed):** Preserve forecast sessions and cloud handoffs across day rollover choices.
-- **PR #695 (Changed):** Add consented, metadata-only workflow awareness synchronization with strict persistence safeguards.
-- **PR #694 (Changed):** Preserve discussions and drafts across workflow grouping, scope, and route changes.
-- **PR #693 (Changed):** Dependency: @radix-ui/react-dialog ^1.1.18 → ^1.1.19
-- **PR #693 (Changed):** Dependency: @radix-ui/react-dropdown-menu ^2.1.19 → ^2.1.20
-- **PR #693 (Changed):** Dependency: @radix-ui/react-popover ^1.1.18 → ^1.1.19
-- **PR #693 (Changed):** Dependency: @radix-ui/react-tabs ^1.1.16 → ^1.1.17
-- **PR #693 (Changed):** Dependency: @radix-ui/react-tooltip ^1.2.11 → ^1.2.12
-- **PR #693 (Changed):** Dependency: @sentry/react ^10.63.0 → ^10.65.0
-- **PR #693 (Changed):** Dependency: @types/node ^26.1.0 → ^26.1.1
-- **PR #693 (Changed):** Dependency: firebase ^12.15.0 → ^12.16.0
-- **PR #693 (Changed):** Dependency: lucide-react ^1.23.0 → ^1.24.0
-- **PR #693 (Changed):** Dependency: @sentry/vite-plugin ^5.3.0 → ^5.4.0
-- **PR #693 (Changed):** Dependency: vite ^8.1.3 → ^8.1.4
-- **PR #693 (Changed):** Dependency: @sentry/node ^10.63.0 → ^10.65.0 (`server`)
-- **PR #693 (Changed):** Dependency: stripe ^22.3.0 → ^22.3.1 (`server`)
-- **PR #692 (Changed):** Preserve the exact forecast day and outlook section when navigating from a workflow completion missing-item prompt.
-- **PR #685 (Changed):** Add Home workflow entry points for starting, resuming, updating, and uploading workflow packages.
-- **PR #685 (Changed):** Protect workflow starts from disabled exposure targets and unsaved-cycle loss.
-- **PR #684 (Changed):** Add a persistent workflow banner across the Forecast and Discussion routes with map, discussion, review, update, and export actions.
-- **PR #684 (Changed):** Keep the workflow feature gated by the existing exposure policy until rollout adoption is updated.
-- **PR #682 (Changed):** Add reusable workflow templates for Day 1, Day 2, Day 3, Days 4-8, and Full Outlook workflows with persistent activation in localStorage.
-- **PR #682 (Changed):** Start workflow templates on the correct forecast day and support same-cycle updates plus start-from-previous-cycle behavior.
-- **PR #682 (Changed):** Preserve workflow metadata when loading workflow-ready `forecast_cycle.json` files.
-- **PR #682 (Changed):** Fix completion validation to respect the active workflow groupings and invalidate stale package completion when map or discussion content changes.
-- **PR #682 (Changed):** Prevent local session restore from overwriting in-progress unsaved forecast or discussion state.
-- **PR #688 (Changed):** Add the sliding active-tab background indicator and a touch of top breathing room around toolbar tabs.
-- **PR #688 (Changed):** Slow and smooth the tab, panel, and button motion for a calmer feel.
-- **PR #688 (Changed):** Make horizontal toolbar scrolling easier to use and styles Days as a segmented control.
-- **PR #688 (Changed):** Separate Tools groups with compact tags.
-- **PR #687 (Changed):** Replace the repeated header selection/status pill with compact context text and tighten the Days tab width.
-- **PR #687 (Changed):** Add structure for grouped Tools actions and breathing room between ghost-layer icons and labels.
-- **PR #686 (Changed):** Add horizontal breathing room to the forecast toolbar selection swatch (wider min width, larger padding and gap) and switch the probability digits to tabular-nums so the chip stays balanced with longer outlook names.
-- **PR #686 (Changed):** Widen the Current Selection toolbar section to 360px so the swatch and toggle fit without crowding.
-- **PR #683 (Changed):** Modernize the package review and completion dialogs with shared dialog primitives and review/export actions.
-- **PR #691 (Changed):** Filter known no-stack browser telemetry noise tracked by GFC-WEB-K and GFC-WEB-M while preserving actionable errors.
-- **PR #681 (Changed):** Dependency: @radix-ui/react-dialog ^1.1.17 → ^1.1.18
-- **PR #681 (Changed):** Dependency: @radix-ui/react-dropdown-menu ^2.1.18 → ^2.1.19
-- **PR #681 (Changed):** Dependency: @radix-ui/react-popover ^1.1.17 → ^1.1.18
-- **PR #681 (Changed):** Dependency: @radix-ui/react-tabs ^1.1.15 → ^1.1.16
-- **PR #681 (Changed):** Dependency: @radix-ui/react-tooltip ^1.2.10 → ^1.2.11
-- **PR #681 (Changed):** Dependency: @sentry/react ^10.62.0 → ^10.63.0
-- **PR #681 (Changed):** Dependency: @types/node ^26.0.1 → ^26.1.0
-- **PR #681 (Changed):** Dependency: immer ^11.1.8 → ^11.1.11
-- **PR #681 (Changed):** Dependency: lucide-react ^1.22.0 → ^1.23.0
-- **PR #681 (Changed):** Dependency: react-router-dom ^7.18.0 → ^7.18.1
-- **PR #681 (Changed):** Dependency: vite ^8.1.0 → ^8.1.3
-- **PR #681 (Changed):** Dependency: @sentry/node ^10.62.0 → ^10.63.0 (`server`)
-- **PR #670 (Changed):** Address Greptile and CodeScene review feedback from prematurely merged #664: preserve legacy grouping data via `migrateLegacyForecastToSerializedPackage`, remove dead helpers, add typed `cycleMetadata` on `GFCForecastSaveData`, and reduce serialization complexity.
-- **PR #676 (Changed):** Added 8-step agentic development workflow to AGENTS.md
-- **PR #664 (Changed):** Added backward-compatible cycle and workflow serialization with v2 metadata support
-- **PR #666 (Changed):** Added workflow completion validation with actionable missing item navigation and omission acknowledgement
-- **PR #660 (Changed):** Define workflow v2 schema types: stable cycle/workflow IDs, cycle and outlook status enums, outlook versioning with derivation tracking, standard and custom groupings, workflow/cycle/package metadata, and schema version constant (WF-01, #451).
-- **PR #660 (Changed):** Add 27 focused unit tests covering all type definitions and acceptance criteria.
-- **PR #660 (Changed):** Re-export new types from `outlooks.ts` for backward compatibility.
-- **PR #655 (Changed):** Move Monitor UI and map components under `src/monitor/components` so Monitor domain logic and implementation components share one feature-owned area.
-- **PR #654 (Changed):** Add the #445 codebase inventory and reorganize docs into architecture, operations, product, releases, and review-removal archive areas.
-- **PR #653 (Changed):** Port deployment feature-switch config from #651: add per-target config files under `deploy/` and wire beta, staging, and production analytics env generation through the checked-out deploy ref.
-- **PR #653 (Changed):** Harden deployment config validation for newline injection, path traversal, and readable CLI errors.
-- **PR #650 (Changed):** Add Auto-TSTM beta tester plans, including a short step-by-step test, a full forecast test, and copy-ready report templates.
-- **PR #650 (Changed):** Document that beta deployment enables Auto-TSTM generation and ingestion through `deploy/beta-deployment-config.json`.
-- **PR #649 (Changed):** Integrate Auto-TSTM preview, apply, cancel, and stale-result protection in the forecast editor (TSTM-05, #476).
-- **PR #649 (Changed):** Fetch cached guidance via `requestLatestTstmData`, render ephemeral map preview with run/source/validity metadata, and apply through one undoable `replaceTstmFeatures` replacement.
-- **PR #649 (Changed):** Reject late cycle/day responses using `isCurrentTstmRequest`; preserve existing polygons on failure or cancel.
-- **PR #649 (Changed):** Enable `autoTstm` on beta behind `ServerBackedFeatureBoundary` when server capability is available.
-- **PR #648 (Changed):** Harden cached Auto-TSTM API: public read policy, rate limits on `GET /api/tstm/latest` and `GET /api/tstm/status`, structured stale/unavailable/corrupt error reasons, and operational cache health (TSTM-04, #475).
-- **PR #648 (Changed):** Align ingestion cache schema with client response validation (`forecastHours`, `warnings`).
-- **PR #648 (Changed):** Extend Auto-TSTM server/client tests and exposure contracts for the latest and status routes.
-- **PR #648 (Changed):** Document Auto-TSTM operational behavior in `docs/auto-tstm-operations.md`.
-- **PR #647 (Changed):** Reduce redundant Turf feature collection allocation in Auto-Categorical hatching and cumulative risk generation (PERF-04, #589).
-- **PR #647 (Changed):** Extend Auto-Categorical tests for hatching splits, cumulative risk rings, and allocation regression coverage.
-- **PR #646 (Changed):** Add scheduled TSTM ingestion: periodic server-side discovery of new HREF runs with golden-copy caching that only replaces confirmed data (TSTM-03, #474).
-- **PR #646 (Changed):** Add `GET /api/tstm/latest` endpoint for pre-cached TSTM data.
-- **PR #646 (Changed):** Add `--ingestion-mode` flag to Python generator for completeness metadata.
-- **PR #646 (Changed):** Add `requestLatestTstmData()` client utility.
-- **PR #645 (Changed):** Fix Sentry GFC-WEB-G by portaling the Forecast Cycle History modal to `document.body`, unifying its overlay/dialog shell with `notranslate`, deferring parent close after nested confirm actions, and stacking confirm overlays above the history dialog.
-- **PR #644 (Changed):** Adopt the feature exposure registry across all six v1.7 workstreams: adoption manifest, registry-only acknowledgements, v1.7 adoption policy rule, adoption exposure tests, gated-route smoke checks, and tracker cross-links (FND-14, #530).
-- **PR #643 (Changed):** Add reusable feature exposure test fixtures and harness for client/server disabled-side-effect contracts, exemplar coverage for `tropicalWorkspace` and `autoTstm`, `pnpm test:exposure`, and documentation (FND-13, #529).
-- **PR #637 (Changed):** Dependency: @sentry/react ^10.59.0 → ^10.62.0
-- **PR #637 (Changed):** Dependency: @types/node ^26.0.0 → ^26.0.1
-- **PR #637 (Changed):** Dependency: lucide-react ^1.21.0 → ^1.22.0
-- **PR #637 (Changed):** Dependency: @playwright/test ^1.61.0 → ^1.61.1
-- **PR #637 (Changed):** Dependency: @tailwindcss/postcss ^4.3.1 → ^4.3.2
-- **PR #637 (Changed):** Dependency: @vitejs/plugin-react ^6.0.2 → ^6.0.3
-- **PR #637 (Changed):** Dependency: autoprefixer ^10.4.27 → ^10.5.2
-- **PR #637 (Changed):** Dependency: tailwindcss ^4.3.1 → ^4.3.2
-- **PR #637 (Changed):** Dependency: vite ^8.0.16 → ^8.1.0
-- **PR #637 (Changed):** Dependency: @sentry/node ^10.59.0 → ^10.62.0 (`server`)
-- **PR #637 (Changed):** Dependency: firebase-admin ^14.0.0 → ^14.1.0 (`server`)
-- **PR #637 (Changed):** Dependency: stripe ^22.2.2 → ^22.3.0 (`server`)
-- **PR #635 (Changed):** Add feature exposure diagnostics for maintainers: typed resolution helpers, `pnpm exposure:diagnostics` CLI, and a local-only dev page showing why each feature is enabled or disabled (FND-12).
-- **PR #636 (Changed):** Document Cursor Cloud development environment setup in `AGENTS.md` (dependency install flow, frontend/backend run commands, and non-obvious lint/typecheck/test caveats).
-- **PR #632 (Changed):** Add server-authoritative emergency capability disable via `EMERGENCY_DISABLED_CAPABILITIES`, including fail-closed parsing, `/api/capabilities/status`, and client runtime fallback for already-mounted server-backed features (FND-11, #527).
-- **PR #631 (Changed):** Add weekly/manual stale branch reporting for `feature/*`, `fix/*`, and `research/*` branches with a 14-day grace period, orphaned vs open-PR grouping, and commits-behind-`beta` metadata (#494).
-- **PR #630 (Changed):** Harden `cleanup-port-branches` workflow: replace `pull_request_target` with `pull_request`, validate port branch names against the automation allowlist before ref deletion, and document security-critical guards (#606).
-- **PR #629 (Changed):** Pin all third-party workflow actions to immutable commit SHAs; enable Dependabot `github-actions` updates (#604).
-- **PR #616 (Changed):** Complete PR #612 porting on beta: hotfix merges into `main` use reviewable port PRs instead of direct post-merge beta sync. Preserves `betaContainsMain` port PR policy checks from earlier beta work.
-- **PR #610 (Changed):** Add beta-to-main production exposure report (\`pnpm exposure:report\`), promotion CI gate, and single upserted PR comment with pass/fail status tables for promotion PRs (FND-07).
-- **PR #609 (Changed):** Complete FND-06 feature exposure CI policy with bidirectional client/server registry alignment, side-effect key validation, and acknowledgement manifest enforcement for gated features.
-- **PR #590 (Changed):** Add feature exposure labels (`exposure:production`, `exposure:server-backed`, `exposure:registry-change`) to automatically tag PRs that change feature exposure configuration.
-- **PR #582 (Changed):** Dependency: @radix-ui/react-dialog ^1.1.16 → ^1.1.17
-- **PR #582 (Changed):** Dependency: @radix-ui/react-dropdown-menu ^2.1.17 → ^2.1.18
-- **PR #582 (Changed):** Dependency: @radix-ui/react-popover ^1.1.16 → ^1.1.17
-- **PR #582 (Changed):** Dependency: @radix-ui/react-slot ^1.2.5 → ^1.3.0
-- **PR #582 (Changed):** Dependency: @radix-ui/react-tabs ^1.1.14 → ^1.1.15
-- **PR #582 (Changed):** Dependency: @radix-ui/react-tooltip ^1.2.9 → ^1.2.10
-- **PR #582 (Changed):** Dependency: @sentry/react ^10.58.0 → ^10.59.0
-- **PR #582 (Changed):** Dependency: @types/node ^25.9.3 → ^26.0.0
-- **PR #582 (Changed):** Dependency: firebase ^12.14.0 → ^12.15.0
-- **PR #582 (Changed):** Dependency: lucide-react ^1.18.0 → ^1.21.0
-- **PR #582 (Changed):** Dependency: react-router-dom ^7.17.0 → ^7.18.0
-- **PR #582 (Changed):** Dependency: rollup >=4.62.0 → >=4.62.2
-- **PR #582 (Changed):** Dependency: uuid ^14.0.0 → ^14.0.1
-- **PR #582 (Changed):** Dependency: @babel/core ^7.29.7 → ^8.0.1
-- **PR #582 (Changed):** Dependency: @babel/preset-env ^7.29.7 → ^8.0.2
-- **PR #582 (Changed):** Dependency: @babel/preset-react ^7.29.7 → ^8.0.1
-- **PR #582 (Changed):** Dependency: @babel/preset-typescript ^7.29.7 → ^8.0.1
-- **PR #582 (Changed):** Dependency: @sentry/node ^10.58.0 → ^10.59.0 (`server`)
-- **PR #582 (Changed):** Dependency: stripe ^22.2.1 → ^22.2.2 (`server`)
-- **PR #579 (Changed):** Add CI policy validation for feature exposure metadata, gated routes, navigation, and matching server capabilities.
-- **PR #577 (Changed):** Replace mutable Redux product flags with typed build-target exposure selectors so core forecast capabilities read from the feature registry instead of browser state.
-- **PR #573 (Changed):** Add centralized server capability lookup, route gates, and `SERVER_TARGET` deploy env wiring so experimental APIs reject before expensive work and stay aligned with the client feature exposure registry.
-- **PR #572 (Changed):** Gate client routes, navigation, lazy modules, and mount boundaries through the feature exposure registry so disabled v1.7 work never registers paths, shows nav links, or initializes effects.
-- **PR #571 (Changed):** Add the typed feature exposure registry with per-target matrices, lifecycle metadata, and `isFeatureExposed` helpers for v1.7 workstreams.
-- **PR #568 (Changed):** Add explicit, validated local, beta, staging, and production frontend build targets while preserving the existing beta access gate.
-- **PR #548 (Changed):** Document Auto-TSTM SPC calibrated thunder inputs, thresholds, and Day 1/2 window definitions; add fixture tests for period hours and thresholds.
-- **PR #547 (Changed):** Dependency: @sentry/react ^10.56.0 → ^10.58.0
-- **PR #547 (Changed):** Dependency: @types/node ^25.9.2 → ^25.9.3
-- **PR #547 (Changed):** Dependency: lucide-react ^1.17.0 → ^1.18.0
-- **PR #547 (Changed):** Dependency: rollup >=4.61.1 → >=4.62.0
-- **PR #547 (Changed):** Dependency: @playwright/test ^1.59.1 → ^1.61.0
-- **PR #547 (Changed):** Dependency: @tailwindcss/postcss ^4.2.4 → ^4.3.1
-- **PR #547 (Changed):** Dependency: tailwindcss ^4.2.2 → ^4.3.1
-- **PR #547 (Changed):** Dependency: @sentry/node ^10.56.0 → ^10.58.0 (`server`)
-- **PR #547 (Changed):** Dependency: firebase-admin ^13.8.0 → ^14.0.0 (`server`)
-- **PR #547 (Changed):** Dependency: stripe ^22.2.0 → ^22.2.1 (`server`)
-- **PR #526 (Changed):** Preserve the hidden Auto-TSTM client API boundary, response validation, and stale-request identity without mounting unfinished controls.
-- **PR #525 (Changed):** Preserve the Auto-TSTM Python GRIB2 generator and server adapter behind a default-off deployment capability with focused tests; retire the obsolete generic HREF inventory probe.
-
-
-#### Security
-- **Hosted authorization boundaries:** Add source-controlled Firestore rules, hostile-client emulator coverage, reserved profile-field protection, trusted premium enforcement for cloud writes, and bounded cloud-cycle documents while retaining owner export/delete access after downgrade.
-- **CI shell injection:** Pass PR branch refs through `env` in `ci.yml` and `pr-governance.yml` `git fetch` steps so branch names cannot break out of the shell command.
-- **Dependabot changelog workflow:** Require Dependabot PR provenance before checking out PR head code with `GH_PAT`; pass base ref through env in shell steps; pin `actions/checkout` to an immutable SHA.
-- **Beta deploy supply chain:** Use `pnpm install --frozen-lockfile` in the beta deploy workflow so builds cannot silently resolve new dependency versions at deploy time.
-- **Production deploy supply chain:** Use `pnpm install --frozen-lockfile` in the production deploy workflow so builds cannot silently resolve new dependency versions at deploy time.
-
-#### Changed
-- **Deploy feature config:** Move server-backed feature switches into `deploy/beta-deployment-config.json` and `deploy/production-deployment-config.json`, with deploy workflows appending the target config into analytics env files.
-- **Deploy env:** Add explicit `SERVER_TARGET` values to beta, staging, and production analytics server deploy env files.
-- **Deploy triggers:** Run **Deploy Beta** on beta prerelease publish and **Deploy Production** on stable release publish (one deploy per version bump; merge pushes no longer trigger VPS deploys).
-
-#### Fixed
-- **Favicon branding:** Replace `public/favicon.ico` with the cloud icon so apps that request `/favicon.ico` directly show the correct branding instead of the React logo.
-- **Deploy reliability:** Harden beta and production VPS deploy workflows against flaky `ssh-keyscan` host-key discovery with pinned known-host secrets, retries, deploy concurrency, and explicit `StrictHostKeyChecking` on SSH/rsync.
-- **GFC-WEB-H/J Sentry noise:** Filter the known OpenLayers canvas renderer `requestAnimationFrame` noise before it reaches Sentry while preserving actionable application TypeErrors.
-- **GFC-WEB-K/F/E Sentry noise:** Filter no-stack browser `NetworkError`/`AbortError` promise-rejection noise before it reaches Sentry while preserving actionable exceptions.
+Work toward the next major release continues in the beta channel while the final stable release is prepared.
 
 #### Added
-- **Account lifecycle:** Add recently authenticated self-service account deletion that ends linked subscriptions, removes hosted account data, and preserves local/offline saves.
-- **OpenCode GitHub Actions workflow:** Trigger `/oc` or `/opencode` comments on issues and PR review threads to run the pinned OpenCode GitHub action with repository `GITHUB_TOKEN` auth.
-- **Explicit build targets:** Define and validate local, beta, staging, and production frontend build targets while preserving the existing beta access gate.
-- **PR governance:** Add feature exposure labels (`exposure:production`, `exposure:server-backed`, `exposure:registry-change`) to automatically tag PRs that change feature exposure configuration.
+
+- **Forecast Grade:** Add the verification workspace, source adapters, score breakdowns, report-quality checks, share cards, trend views, and premium snapshot support.
+- **Workflow continuity:** Add reusable workflow templates, persistent workflow metadata, scoped discussion/draft persistence, package review and completion flows, lifecycle analytics, and handoff guidance.
+- **Custom products:** Add local custom layers and reusable hosted products with category styling, snapshots, exports/imports, owner-scoped storage, and premium enforcement.
+- **Auto-TSTM:** Add cached SPC guidance, scheduled ingestion, preview/apply/cancel flows, cache health reporting, and stale-result protection.
+- **Feature exposure controls:** Add typed local/beta/staging/production target matrices, server capability gates, emergency disable controls, exposure diagnostics, and rollout validation.
+- **Account management:** Add recent-authentication account deletion with subscription cleanup, hosted-data removal, and local/offline-save preservation.
+- **Operations and delivery:** Add manual release workflows, staging support, release manifests, OpenCode review automation, and maintenance reports.
+
+#### Changed
+
+- **Forecast and verification:** Rework the forecast and verification experience around versioned workflow data, report-aware grading, event capture, severity intent, spatial scoring, probability skill, and false-alarm discipline.
+- **Telemetry and privacy:** Replace legacy analytics with privacy-gated self-hosted Umami while preserving native page views and minimizing tracker data.
+- **Server platform:** Move the analytics service to Express 5 and Stripe Node 22, harden billing/webhook handling, and add shared capability boundaries.
+- **Build and test tooling:** Upgrade to TypeScript 7, modernize the Jest/Babel toolchain, add production/test type checks, expand E2E coverage, and align dependency lockfiles.
+- **Deployment configuration:** Separate beta, staging, and production feature configuration and make release publication the only automatic deployment trigger.
+- **Maintenance dependencies:** Keep frontend, server, test, and build dependencies current through regular automated updates.
+
+#### Fixed
+
+- **Forecast reliability:** Repair legacy serialized map shapes, auto-categorical restoration, export sizing, map popup teardown, keyboard shortcuts, and Safari Firestore sleep/reconnect behavior.
+- **Monitoring and data products:** Stabilize radar/satellite refresh, alert and storm-report display, cached TSTM readiness, and source metadata handling.
+- **Hosted safety:** Harden Firestore authorization, premium entitlement writes, Stripe replay handling, account deletion races, deployment configuration validation, and rate limits.
+- **Error reporting:** Filter known browser telemetry noise while preserving actionable application errors.
+- **Accessibility and polish:** Improve toolbar organization, responsive controls, package dialogs, custom-product editing, and forecast map controls.
+
+#### Security and operations
+
+- Use immutable action references, protected reviewer gates, shell-safe branch handling, frozen dependency installs, pinned deployment host keys, concurrency controls, and explicit release validation.
 
 ### Stable 1.6.x hotfixes
 
