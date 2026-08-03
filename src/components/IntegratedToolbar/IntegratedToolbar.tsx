@@ -43,6 +43,11 @@ import {
   outlookLabels,
   outlookShortcuts,
 } from '../ForecastWorkspace/workspaceMeta';
+
+const getGhostLayerColor = (type: OutlookType) => getOutlookColor({
+  outlookType: type,
+  probability: type === 'categorical' ? 'SLGT' : type === 'day4-8' ? '15%' : '15%',
+});
 import TabbedToolbarSelectionStrip from './TabbedToolbarSelectionStrip';
 import CustomDrawPanel from './CustomDrawPanel';
 import CustomProductsDialog from './CustomProductsDialog';
@@ -283,10 +288,7 @@ const ToolbarGhostLayersSection: React.FC<{ controller: ForecastWorkspaceControl
       <div className="grid grid-cols-2 gap-2 min-w-[220px]">
         {controller.ghostTypes.length > 0 ? controller.ghostTypes.map((type) => {
           const isVisible = controller.ghostVisibility[type];
-          const ghostColor = getOutlookColor({
-            outlookType: type,
-            probability: type === 'categorical' ? 'SLGT' : type === 'day4-8' ? '15%' : '15%',
-          });
+          const ghostColor = getGhostLayerColor(type);
           return (
             <Tooltip key={type}>
               <TooltipTrigger asChild>
@@ -746,10 +748,7 @@ const TabbedToolbarLayersTab: React.FC<{ controller: ForecastWorkspaceController
         <div className="flex flex-wrap items-center gap-2">
           {controller.ghostTypes.map((type) => {
             const isVisible = controller.ghostVisibility[type];
-            const ghostColor = getOutlookColor({
-              outlookType: type,
-              probability: type === 'categorical' ? 'SLGT' : type === 'day4-8' ? '15%' : '15%',
-            });
+            const ghostColor = getGhostLayerColor(type);
 
             return (
               <button
