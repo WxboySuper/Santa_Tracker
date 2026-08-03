@@ -63,7 +63,7 @@ export const OutlookSelectorPanel: React.FC = memo(() => {
     .filter(type => getOutlookTypeEnabled(type));
 
   // Get current color for preview
-  const currentColor = getOutlookColor(activeOutlookType, activeProbability);
+  const currentColor = getOutlookColor({ outlookType: activeOutlookType, probability: activeProbability });
 
   return (
     <TooltipProvider>
@@ -107,7 +107,7 @@ export const OutlookSelectorPanel: React.FC = memo(() => {
             }}>
               {probabilities.map((prob, index) => {
                 const isActive = activeProbability === prob;
-                const color = getOutlookColor(activeOutlookType, prob);
+                const color = getOutlookColor({ outlookType: activeOutlookType, probability: prob });
                 // Alternate between row 1 and row 2
                 const row = (index % 2) + 1;
                 const col = Math.floor(index / 2) + 1;

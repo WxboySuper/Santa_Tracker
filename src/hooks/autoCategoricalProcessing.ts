@@ -254,9 +254,9 @@ function addPieceToRiskMap(
   riskMap: Map<CategoricalRiskLevel, PolygonOutlookFeature[]>,
 ) {
   let risk: CategoricalRiskLevel = 'TSTM';
-  if (type === 'tornado') risk = tornadoToCategorical(prob, cig);
-  if (type === 'wind') risk = windToCategorical(prob, cig);
-  if (type === 'hail') risk = hailToCategorical(prob, cig);
+  if (type === 'tornado') risk = tornadoToCategorical({ probability: prob, cig });
+  if (type === 'wind') risk = windToCategorical({ probability: prob, cig });
+  if (type === 'hail') risk = hailToCategorical({ probability: prob, cig });
 
   appendRiskPolygon(riskMap, risk, poly);
 }
@@ -278,7 +278,7 @@ export function processDay3OutlooksToCategorical(outlooks: OutlookData): GeoJSON
     hatchingRegions,
     cigLevels,
     (probStr, cig, piece) => {
-      appendRiskPolygon(riskPolygons, totalSevereToCategorical(probStr, cig), piece);
+      appendRiskPolygon(riskPolygons, totalSevereToCategorical({ probability: probStr, cig }), piece);
     },
   );
 

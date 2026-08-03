@@ -283,7 +283,10 @@ const ToolbarGhostLayersSection: React.FC<{ controller: ForecastWorkspaceControl
       <div className="grid grid-cols-2 gap-2 min-w-[220px]">
         {controller.ghostTypes.length > 0 ? controller.ghostTypes.map((type) => {
           const isVisible = controller.ghostVisibility[type];
-          const ghostColor = getOutlookColor(type, type === 'categorical' ? 'SLGT' : type === 'day4-8' ? '15%' : '15%');
+          const ghostColor = getOutlookColor({
+            outlookType: type,
+            probability: type === 'categorical' ? 'SLGT' : type === 'day4-8' ? '15%' : '15%',
+          });
           return (
             <Tooltip key={type}>
               <TooltipTrigger asChild>
@@ -329,7 +332,7 @@ const ToolbarProbabilitySection: React.FC<{ controller: ForecastWorkspaceControl
       >
         {controller.probabilities.map((prob, index) => {
           const isActive = controller.activeProbability === prob;
-          const color = getOutlookColor(controller.activeOutlookType, prob);
+          const color = getOutlookColor({ outlookType: controller.activeOutlookType, probability: prob });
           return (
             <Tooltip key={prob}>
               <TooltipTrigger asChild>
@@ -483,7 +486,7 @@ const TabbedToolbarProbabilityButton: React.FC<{
   probability: string;
 }> = ({ controller, probability }) => {
   const isActive = controller.activeProbability === probability;
-  const color = getOutlookColor(controller.activeOutlookType, probability);
+  const color = getOutlookColor({ outlookType: controller.activeOutlookType, probability });
   const isLightCategorical =
     controller.activeOutlookType === 'categorical' && ['TSTM', 'MRGL', 'SLGT'].includes(probability);
   const tooltipLabel =
@@ -743,10 +746,10 @@ const TabbedToolbarLayersTab: React.FC<{ controller: ForecastWorkspaceController
         <div className="flex flex-wrap items-center gap-2">
           {controller.ghostTypes.map((type) => {
             const isVisible = controller.ghostVisibility[type];
-            const ghostColor = getOutlookColor(
-              type,
-              type === 'categorical' ? 'SLGT' : type === 'day4-8' ? '15%' : '15%'
-            );
+            const ghostColor = getOutlookColor({
+              outlookType: type,
+              probability: type === 'categorical' ? 'SLGT' : type === 'day4-8' ? '15%' : '15%',
+            });
 
             return (
               <button

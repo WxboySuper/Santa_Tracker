@@ -271,7 +271,7 @@ function buildForecastWorkspaceController(args: BuildForecastWorkspaceController
     handleNavigateToIssue,
   } = args;
 
-  const currentColor = getOutlookColor(panel.activeOutlookType, panel.activeProbability);
+  const currentColor = getOutlookColor({ outlookType: panel.activeOutlookType, probability: panel.activeProbability });
   const isLowProb = lowProbabilityOutlooks.includes(panel.activeOutlookType);
 
   return {

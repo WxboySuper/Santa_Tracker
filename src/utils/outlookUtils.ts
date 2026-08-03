@@ -68,15 +68,22 @@ type CategoricalRule = {
   risk: CategoricalRiskLevel;
 };
 
-const categorizeProbability = (
-  probability: string,
-  cig: CIGLevel,
-  rules: readonly CategoricalRule[],
-): CategoricalRiskLevel => {
+type CategoricalConversion = {
+  probability: string;
+  cig: CIGLevel;
+  rules: readonly CategoricalRule[];
+};
+
+const categorizeProbability = ({ probability, cig, rules }: CategoricalConversion): CategoricalRiskLevel => {
   const normalizedProbability = probability.replace(/[#]/g, '%');
   return rules.find((rule) =>
     rule.probabilities.includes(normalizedProbability) && rule.cigs.includes(cig)
   )?.risk ?? 'TSTM';
+};
+
+type CategoricalInput = {
+  probability: string;
+  cig?: CIGLevel;
 };
 
 const CIG_01 = ['CIG0', 'CIG1'] as const;
@@ -128,46 +135,50 @@ const HAIL_RULES: readonly CategoricalRule[] = [
 ];
 
 /** Convert tornado probability to categorical risk level. */
-export function tornadoToCategorical(probability: string, cig: CIGLevel = 'CIG0'): CategoricalRiskLevel {
-  return categorizeProbability(probability, cig, TORNADO_RULES);
+export function tornadoToCategorical({ probability, cig = 'CIG0' }: CategoricalInput): CategoricalRiskLevel {
+  return categorizeProbability({ probability, cig, rules: TORNADO_RULES });
 }
 
 /** Convert wind probability to categorical risk level. */
-export function windToCategorical(probability: string, cig: CIGLevel = 'CIG0'): CategoricalRiskLevel {
-  return categorizeProbability(probability, cig, WIND_RULES);
+export function windToCategorical({ probability, cig = 'CIG0' }: CategoricalInput): CategoricalRiskLevel {
+  return categorizeProbability({ probability, cig, rules: WIND_RULES });
 }
 
 /** Convert hail probability to categorical risk level. */
-export function hailToCategorical(probability: string, cig: CIGLevel = 'CIG0'): CategoricalRiskLevel {
-  return categorizeProbability(probability, cig, HAIL_RULES);
+export function hailToCategorical({ probability, cig = 'CIG0' }: CategoricalInput): CategoricalRiskLevel {
+  return categorizeProbability({ probability, cig, rules: HAIL_RULES });
 }
 
 /** Convert Day 3 total severe probability to categorical risk level. */
-export function totalSevereToCategorical(probability: string, cig: CIGLevel = 'CIG0'): CategoricalRiskLevel {
-  return categorizeProbability(probability, cig, HAIL_RULES);
+export function totalSevereToCategorical({ probability, cig = 'CIG0' }: CategoricalInput): CategoricalRiskLevel {
+  return categorizeProbability({ probability, cig, rules: HAIL_RULES });
 }
 
 /**
  * Determines if a probability string represents a significant threat
- * @param probability The probability string to check
+ * @param input The probability string to check
  * @returns True if it's a significant threat (contains #), false otherwise
  */
-export function isSignificantThreat(probability: string): boolean {
+export function isSignificantThreat({ probability }: Pick<CategoricalInput, 'probability'>): boolean {
   return probability.includes('#');
 }
 
 /**
  * Get the highest categorical risk level from multiple probabilistic outlooks
- * @param tornadoProb Tornado probability or undefined if not set
- * @param windProb Wind probability or undefined if not set
- * @param hailProb Hail probability or undefined if not set
+ * @param probabilities Available tornado, wind, and hail probabilities
  * @returns The highest categorical risk level from the three probabilistic outlooks
  */
-export function getHighestCategoricalRisk(
-  tornadoProb?: TornadoProbability,
-  windProb?: WindProbability,
-  hailProb?: HailProbability
-): CategoricalRiskLevel {
+type AvailableProbabilities = {
+  tornado?: TornadoProbability;
+  wind?: WindProbability;
+  hail?: HailProbability;
+};
+
+export function getHighestCategoricalRisk({
+  tornado: tornadoProb,
+  wind: windProb,
+  hail: hailProb,
+}: AvailableProbabilities = {}): CategoricalRiskLevel {
   const riskValues: { [key in CategoricalRiskLevel]: number } = {
     TSTM: 0,
     MRGL: 1,
@@ -178,9 +189,9 @@ export function getHighestCategoricalRisk(
   };
 
   const candidates: CategoricalRiskLevel[] = [];
-  if (tornadoProb) candidates.push(tornadoToCategorical(tornadoProb));
-  if (windProb) candidates.push(windToCategorical(windProb));
-  if (hailProb) candidates.push(hailToCategorical(hailProb));
+  if (tornadoProb) candidates.push(tornadoToCategorical({ probability: tornadoProb }));
+  if (windProb) candidates.push(windToCategorical({ probability: windProb }));
+  if (hailProb) candidates.push(hailToCategorical({ probability: hailProb }));
 
   if (candidates.length === 0) return 'TSTM';
 
@@ -215,11 +226,15 @@ export function getCategoricalRiskDisplayName(risk: CategoricalRiskLevel): strin
 
 /**
  * Gets the color for an outlook type and probability/risk level
- * @param outlookType The type of outlook (tornado, wind, hail, categorical, etc.)
- * @param probability The probability or risk level
+ * @param input The outlook type and probability or risk level
  * @returns The hex color code
  */
-export function getOutlookColor(outlookType: string, probability: string): string {
+type OutlookColorInput = {
+  outlookType: string;
+  probability: string;
+};
+
+export function getOutlookColor({ outlookType, probability }: OutlookColorInput): string {
   if (outlookType in colorMappings) {
     const typeColors = colorMappings[outlookType as keyof typeof colorMappings];
     if (typeof typeColors === 'object' && probability in typeColors) {

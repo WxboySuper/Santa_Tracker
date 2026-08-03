@@ -2,16 +2,16 @@ import { tornadoToCategorical, isSignificantThreat, getOutlookColor, getCategori
 
 describe('outlookUtils', () => {
   test('tornadoToCategorical simple mapping', () => {
-    expect(tornadoToCategorical('2%', 'CIG0')).toBe('MRGL');
+    expect(tornadoToCategorical({ probability: '2%', cig: 'CIG0' })).toBe('MRGL');
   });
 
   test('isSignificantThreat detects #', () => {
-    expect(isSignificantThreat('5%#')).toBe(true);
-    expect(isSignificantThreat('5%')).toBe(false);
+    expect(isSignificantThreat({ probability: '5%#' })).toBe(true);
+    expect(isSignificantThreat({ probability: '5%' })).toBe(false);
   });
 
   test('getOutlookColor returns mapped color', () => {
-    expect(getOutlookColor('tornado', '2%')).toBe('#79BA7A');
+    expect(getOutlookColor({ outlookType: 'tornado', probability: '2%' })).toBe('#79BA7A');
   });
 
   test('getCategoricalRiskDisplayName', () => {
@@ -19,7 +19,7 @@ describe('outlookUtils', () => {
   });
 
   test('getHighestCategoricalRisk picks highest', () => {
-    const highest = getHighestCategoricalRisk('2%', '5%', '5%');
+    const highest = getHighestCategoricalRisk({ tornado: '2%', wind: '5%', hail: '5%' });
     expect(highest).toBe('MRGL');
   });
 });

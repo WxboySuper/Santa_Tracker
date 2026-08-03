@@ -23,46 +23,46 @@ describe('outlookUtils extra', () => {
   });
 
   test('tornadoToCategorical maps probabilities properly', () => {
-    expect(tornadoToCategorical('2%', 'CIG0')).toBe('MRGL');
-    expect(tornadoToCategorical('2%', 'CIG2')).toBe('SLGT');
-    expect(tornadoToCategorical('5%', 'CIG0')).toBe('SLGT');
-    expect(tornadoToCategorical('5%', 'CIG2')).toBe('ENH');
-    expect(tornadoToCategorical('15%', 'CIG2')).toBe('MDT');
-    expect(tornadoToCategorical('30%', 'CIG2')).toBe('HIGH');
-    expect(tornadoToCategorical('60%', 'CIG1')).toBe('HIGH');
-    expect(tornadoToCategorical('1%', 'CIG0')).toBe('TSTM');
+    expect(tornadoToCategorical({ probability: '2%', cig: 'CIG0' })).toBe('MRGL');
+    expect(tornadoToCategorical({ probability: '2%', cig: 'CIG2' })).toBe('SLGT');
+    expect(tornadoToCategorical({ probability: '5%', cig: 'CIG0' })).toBe('SLGT');
+    expect(tornadoToCategorical({ probability: '5%', cig: 'CIG2' })).toBe('ENH');
+    expect(tornadoToCategorical({ probability: '15%', cig: 'CIG2' })).toBe('MDT');
+    expect(tornadoToCategorical({ probability: '30%', cig: 'CIG2' })).toBe('HIGH');
+    expect(tornadoToCategorical({ probability: '60%', cig: 'CIG1' })).toBe('HIGH');
+    expect(tornadoToCategorical({ probability: '1%', cig: 'CIG0' })).toBe('TSTM');
   });
 
   test('windToCategorical maps probabilities properly', () => {
-    expect(windToCategorical('5%', 'CIG0')).toBe('MRGL');
-    expect(windToCategorical('5%', 'CIG2')).toBe('SLGT');
-    expect(windToCategorical('15%', 'CIG0')).toBe('SLGT');
-    expect(windToCategorical('15%', 'CIG2')).toBe('ENH');
-    expect(windToCategorical('45%', 'CIG2')).toBe('MDT');
-    expect(windToCategorical('45%', 'CIG3')).toBe('HIGH');
+    expect(windToCategorical({ probability: '5%', cig: 'CIG0' })).toBe('MRGL');
+    expect(windToCategorical({ probability: '5%', cig: 'CIG2' })).toBe('SLGT');
+    expect(windToCategorical({ probability: '15%', cig: 'CIG0' })).toBe('SLGT');
+    expect(windToCategorical({ probability: '15%', cig: 'CIG2' })).toBe('ENH');
+    expect(windToCategorical({ probability: '45%', cig: 'CIG2' })).toBe('MDT');
+    expect(windToCategorical({ probability: '45%', cig: 'CIG3' })).toBe('HIGH');
   });
 
   test('hailToCategorical maps probabilities properly', () => {
-    expect(hailToCategorical('5%', 'CIG0')).toBe('MRGL');
-    expect(hailToCategorical('15%', 'CIG0')).toBe('SLGT');
-    expect(hailToCategorical('60%', 'CIG0')).toBe('ENH');
-    expect(hailToCategorical('45%', 'CIG2')).toBe('MDT');
+    expect(hailToCategorical({ probability: '5%', cig: 'CIG0' })).toBe('MRGL');
+    expect(hailToCategorical({ probability: '15%', cig: 'CIG0' })).toBe('SLGT');
+    expect(hailToCategorical({ probability: '60%', cig: 'CIG0' })).toBe('ENH');
+    expect(hailToCategorical({ probability: '45%', cig: 'CIG2' })).toBe('MDT');
   });
 
   test('totalSevereToCategorical maps probabilities for day3', () => {
-    expect(totalSevereToCategorical('5%', 'CIG0')).toBe('MRGL');
-    expect(totalSevereToCategorical('5%', 'CIG2')).toBe('SLGT');
-    expect(totalSevereToCategorical('15%', 'CIG2')).toBe('ENH');
-    expect(totalSevereToCategorical('45%', 'CIG2')).toBe('MDT');
+    expect(totalSevereToCategorical({ probability: '5%', cig: 'CIG0' })).toBe('MRGL');
+    expect(totalSevereToCategorical({ probability: '5%', cig: 'CIG2' })).toBe('SLGT');
+    expect(totalSevereToCategorical({ probability: '15%', cig: 'CIG2' })).toBe('ENH');
+    expect(totalSevereToCategorical({ probability: '45%', cig: 'CIG2' })).toBe('MDT');
   });
 
   test('isSignificantThreat detects # marker', () => {
-    expect(isSignificantThreat('#15%')).toBe(true);
-    expect(isSignificantThreat('15%')).toBe(false);
+    expect(isSignificantThreat({ probability: '#15%' })).toBe(true);
+    expect(isSignificantThreat({ probability: '15%' })).toBe(false);
   });
 
   test('getHighestCategoricalRisk returns the worst of available', () => {
-    const best = getHighestCategoricalRisk('60%', '5%');
+    const best = getHighestCategoricalRisk({ tornado: '60%', wind: '5%' });
     expect(best).toBe('ENH');
     const none = getHighestCategoricalRisk();
     expect(none).toBe('TSTM');
@@ -73,10 +73,10 @@ describe('outlookUtils extra', () => {
     expect(getCategoricalRiskDisplayName('HIGH')).toContain('High');
 
     // categorical mapping color
-    expect(getOutlookColor('categorical', 'TSTM')).toBe('#C1E9C1');
+    expect(getOutlookColor({ outlookType: 'categorical', probability: 'TSTM' })).toBe('#C1E9C1');
     // tornado 15% mapping exists
-    expect(getOutlookColor('tornado', '15%')).toBe('#FF8080');
+    expect(getOutlookColor({ outlookType: 'tornado', probability: '15%' })).toBe('#FF8080');
     // unknown type returns default gray
-    expect(getOutlookColor('unknown-type', '5%')).toBe('#808080');
+    expect(getOutlookColor({ outlookType: 'unknown-type', probability: '5%' })).toBe('#808080');
   });
 });
