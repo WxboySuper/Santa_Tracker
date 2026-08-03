@@ -7,29 +7,38 @@ All notable changes to this project will be documented in this file.
 
 ### Next major / beta
 
-#### Security
-- **Hosted authorization boundaries:** Add source-controlled Firestore rules, hostile-client emulator coverage, reserved profile-field protection, trusted premium enforcement for cloud writes, and bounded cloud-cycle documents while retaining owner export/delete access after downgrade.
-- **CI shell injection:** Pass PR branch refs through `env` in `ci.yml` and `pr-governance.yml` `git fetch` steps so branch names cannot break out of the shell command.
-- **Dependabot changelog workflow:** Require Dependabot PR provenance before checking out PR head code with `GH_PAT`; pass base ref through env in shell steps; pin `actions/checkout` to an immutable SHA.
-- **Beta deploy supply chain:** Use `pnpm install --frozen-lockfile` in the beta deploy workflow so builds cannot silently resolve new dependency versions at deploy time.
-- **Production deploy supply chain:** Use `pnpm install --frozen-lockfile` in the production deploy workflow so builds cannot silently resolve new dependency versions at deploy time.
-
-#### Changed
-- **Deploy feature config:** Move server-backed feature switches into `deploy/beta-deployment-config.json` and `deploy/production-deployment-config.json`, with deploy workflows appending the target config into analytics env files.
-- **Deploy env:** Add explicit `SERVER_TARGET` values to beta, staging, and production analytics server deploy env files.
-- **Deploy triggers:** Run **Deploy Beta** on beta prerelease publish and **Deploy Production** on stable release publish (one deploy per version bump; merge pushes no longer trigger VPS deploys).
-
-#### Fixed
-- **Favicon branding:** Replace `public/favicon.ico` with the cloud icon so apps that request `/favicon.ico` directly show the correct branding instead of the React logo.
-- **Deploy reliability:** Harden beta and production VPS deploy workflows against flaky `ssh-keyscan` host-key discovery with pinned known-host secrets, retries, deploy concurrency, and explicit `StrictHostKeyChecking` on SSH/rsync.
-- **GFC-WEB-H/J Sentry noise:** Filter the known OpenLayers canvas renderer `requestAnimationFrame` noise before it reaches Sentry while preserving actionable application TypeErrors.
-- **GFC-WEB-K/F/E Sentry noise:** Filter no-stack browser `NetworkError`/`AbortError` promise-rejection noise before it reaches Sentry while preserving actionable exceptions.
+Work toward the next major release continues in the beta channel while the final stable release is prepared.
 
 #### Added
-- **Account lifecycle:** Add recently authenticated self-service account deletion that ends linked subscriptions, removes hosted account data, and preserves local/offline saves.
-- **OpenCode GitHub Actions workflow:** Trigger `/oc` or `/opencode` comments on issues and PR review threads to run the pinned OpenCode GitHub action with repository `GITHUB_TOKEN` auth.
-- **Explicit build targets:** Define and validate local, beta, staging, and production frontend build targets while preserving the existing beta access gate.
-- **PR governance:** Add feature exposure labels (`exposure:production`, `exposure:server-backed`, `exposure:registry-change`) to automatically tag PRs that change feature exposure configuration.
+
+- **Forecast Grade:** Add the verification workspace, source adapters, score breakdowns, report-quality checks, share cards, trend views, and premium snapshot support.
+- **Workflow continuity:** Add reusable workflow templates, persistent workflow metadata, scoped discussion/draft persistence, package review and completion flows, lifecycle analytics, and handoff guidance.
+- **Custom products:** Add local custom layers and reusable hosted products with category styling, snapshots, exports/imports, owner-scoped storage, and premium enforcement.
+- **Auto-TSTM:** Add cached SPC guidance, scheduled ingestion, preview/apply/cancel flows, cache health reporting, and stale-result protection.
+- **Feature exposure controls:** Add typed local/beta/staging/production target matrices, server capability gates, emergency disable controls, exposure diagnostics, and rollout validation.
+- **Account management:** Add recent-authentication account deletion with subscription cleanup, hosted-data removal, and local/offline-save preservation.
+- **Operations and delivery:** Add manual release workflows, staging support, release manifests, OpenCode review automation, and maintenance reports.
+
+#### Changed
+
+- **Forecast and verification:** Rework the forecast and verification experience around versioned workflow data, report-aware grading, event capture, severity intent, spatial scoring, probability skill, and false-alarm discipline.
+- **Telemetry and privacy:** Replace legacy analytics with privacy-gated self-hosted Umami while preserving native page views and minimizing tracker data.
+- **Server platform:** Move the analytics service to Express 5 and Stripe Node 22, harden billing/webhook handling, and add shared capability boundaries.
+- **Build and test tooling:** Upgrade to TypeScript 7, modernize the Jest/Babel toolchain, add production/test type checks, expand E2E coverage, and align dependency lockfiles.
+- **Deployment configuration:** Separate beta, staging, and production feature configuration and make release publication the only automatic deployment trigger.
+- **Maintenance dependencies:** Keep frontend, server, test, and build dependencies current through regular automated updates.
+
+#### Fixed
+
+- **Forecast reliability:** Repair legacy serialized map shapes, auto-categorical restoration, export sizing, map popup teardown, keyboard shortcuts, and Safari Firestore sleep/reconnect behavior.
+- **Monitoring and data products:** Stabilize radar/satellite refresh, alert and storm-report display, cached TSTM readiness, and source metadata handling.
+- **Hosted safety:** Harden Firestore authorization, premium entitlement writes, Stripe replay handling, account deletion races, deployment configuration validation, and rate limits.
+- **Error reporting:** Filter known browser telemetry noise while preserving actionable application errors.
+- **Accessibility and polish:** Improve toolbar organization, responsive controls, package dialogs, custom-product editing, and forecast map controls.
+
+#### Security and operations
+
+- Use immutable action references, protected reviewer gates, shell-safe branch handling, frozen dependency installs, pinned deployment host keys, concurrency controls, and explicit release validation.
 
 ### Stable 1.6.x hotfixes
 
