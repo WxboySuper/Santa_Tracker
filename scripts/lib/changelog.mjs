@@ -3,7 +3,6 @@ import { extractLaneReleaseNotes } from './changelog-lanes.mjs';
 
 export { extractChangelogLane } from './changelog-lanes.mjs';
 
-const BETA_RELEASE_LANES = new Set(['', 'next-major']);
 
 /**
  * @param {string} changelog

@@ -1,6 +1,5 @@
 import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
-import { evaluateBranchPolicy } from './lib/branch-policy.mjs';
 import { evaluateChangelogPolicy } from './lib/changelog-policy.mjs';
 import { listChangedFilesBetweenRefs } from './lib/git-changed-files.mjs';
 
