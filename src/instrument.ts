@@ -66,6 +66,19 @@ function isOpaqueGlobalError(value: SentryExceptionValue): boolean {
   );
 }
 
+/** True for a no-stack AbortError DOMException rejection (SDK/browser noise). */
+function isNoStackAbortError(value: SentryExceptionValue): boolean {
+  return (
+    (value.stacktrace?.frames?.length ?? 0) === 0 &&
+    /^AbortError(: .*)?$/i.test(value.value ?? '')
+  );
+}
+
+/** True when any exception value is SDK/browser noise safe to drop unconditionally. */
+function isUnconditionalSdkNoise(values: SentryExceptionValue[]): boolean {
+  return values.some((value) => isOpenLayersCanvasNoise(value) || isNoStackAbortError(value));
+}
+
 /** True when an exception value matches known request-lifecycle browser noise. */
 function isRequestLifecycleNoise(values: SentryExceptionValue[], message: string): boolean {
   return (
@@ -100,7 +113,7 @@ function isKnownBrowserNoise(event: Event): boolean {
   const message = values[0]?.value ?? event.message ?? '';
   const normalizedMessage = message.replace(/\s+/g, ' ').trim();
 
-  if (values.some(isOpenLayersCanvasNoise)) {
+  if (isUnconditionalSdkNoise(values)) {
     return true;
   }
 
