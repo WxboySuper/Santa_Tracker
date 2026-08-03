@@ -1,15 +1,16 @@
-import { describe, expect, test } from '@jest/globals';
+import assert from 'node:assert/strict';
+import { describe, test } from 'node:test';
 import { classifyPath, extractRelativeImports } from './generate-repository-inventory.mjs';
 
 describe('repository inventory helpers', () => {
   test('classifies the major repository boundaries', () => {
-    expect(classifyPath('src/pages/ForecastPage.tsx')).toBe('frontend');
-    expect(classifyPath('server/lib/capability.js')).toBe('server');
-    expect(classifyPath('scripts/lib/changelog.mjs')).toBe('automation');
-    expect(classifyPath('docs/README.md')).toBe('documentation');
+    assert.equal(classifyPath('src/pages/ForecastPage.tsx'), 'frontend');
+    assert.equal(classifyPath('server/lib/capability.js'), 'server');
+    assert.equal(classifyPath('scripts/lib/changelog.mjs'), 'automation');
+    assert.equal(classifyPath('docs/README.md'), 'documentation');
   });
 
   test('extracts and sorts relative imports without package imports', () => {
-    expect(extractRelativeImports(`import x from './x';\nconst y = require('../y');\nimport 'react';`)).toEqual(['../y', './x']);
+    assert.deepEqual(extractRelativeImports(`import x from './x';\nconst y = require('../y');\nimport 'react';`), ['../y', './x']);
   });
 });
