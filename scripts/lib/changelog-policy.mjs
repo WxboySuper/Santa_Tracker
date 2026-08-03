@@ -8,17 +8,28 @@ const SOURCE_PATTERN = /(?:port|backport|forward[- ]port|inherited)\s+(?:of\s+)?
 
 export { CHANGELOG_LANE_HEADINGS };
 
-/** @param {string} baseRef */
+/**
+ * Selects the changelog lane for a target base branch.
+ * @param {string} baseRef
+ * @returns {'stable-hotfix' | 'next-major'}
+ */
 export const changelogLaneForBase = (baseRef) =>
   /^stable\/\d+\.\d+\.x$/.test(baseRef) ? 'stable-hotfix' : 'next-major';
 
-/** @param {string} baseRef */
+/**
+ * Builds the stable-line heading for a target base branch.
+ * @param {string} baseRef
+ * @returns {string}
+ */
 export const changelogLaneHeadingForBase = (baseRef) => {
   const match = baseRef.match(/^stable\/(\d+\.\d+)\.x$/);
   return match ? `### Stable ${match[1]}.x hotfixes` : CHANGELOG_LANE_HEADINGS['next-major'];
 };
 
-/** Return the single curated changelog file used by every release line. @returns {string} */
+/**
+ * Returns the single curated changelog file used by every release line.
+ * @returns {string}
+ */
 export const changelogPathForBase = () => 'CHANGELOG.md';
 
 /** @param {ChangelogImpact} impact */
