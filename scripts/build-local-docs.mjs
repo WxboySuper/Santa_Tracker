@@ -66,14 +66,31 @@ function consumeTable(state, lines, index) {
   state.html.push(renderTable(tableLines)); return nextIndex;
 }
 
-/** Consume a heading, list item, blank, or paragraph line. */
-function consumeText(state, line) {
+/** Consume a heading line. */
+function consumeHeading(state, line) {
   const heading = line.match(/^(#{1,6})\s+(.+)$/);
-  if (heading) { flushParagraph(state); flushList(state); const level = heading[1].length; state.html.push(`<h${level}>${inlineMarkdown(heading[2])}</h${level}>`); return; }
+  if (!heading) return false;
+  flushParagraph(state); flushList(state); const level = heading[1].length; state.html.push(`<h${level}>${inlineMarkdown(heading[2])}</h${level}>`); return true;
+}
+
+/** Append a parsed list item to the current list state. */
+function appendListItem(state, task, bullet, numbered) {
+  flushParagraph(state); const type = numbered ? 'ol' : 'ul'; if (!state.list || state.list.type !== type) { flushList(state); state.list = { type, items: [] }; }
+  const content = task ? `<input type="checkbox" disabled ${task[1].toLowerCase() === 'x' ? 'checked' : ''}> ${inlineMarkdown(task[2])}` : inlineMarkdown((bullet || numbered)[1]); state.list.items.push(`<li>${content}</li>`);
+}
+
+/** Consume a bullet, numbered, or task list line. */
+function consumeListItem(state, line) {
   const task = line.match(/^\s*[-*]\s+\[([ xX])\]\s+(.+)$/);
   const bullet = line.match(/^\s*[-*]\s+(.+)$/);
   const numbered = line.match(/^\s*\d+\.\s+(.+)$/);
-  if (task || bullet || numbered) { flushParagraph(state); const type = numbered ? 'ol' : 'ul'; if (!state.list || state.list.type !== type) { flushList(state); state.list = { type, items: [] }; } const content = task ? `<input type="checkbox" disabled ${task[1].toLowerCase() === 'x' ? 'checked' : ''}> ${inlineMarkdown(task[2])}` : inlineMarkdown((bullet || numbered)[1]); state.list.items.push(`<li>${content}</li>`); return; }
+  if (!task && !bullet && !numbered) return false;
+  appendListItem(state, task, bullet, numbered); return true;
+}
+
+/** Consume a blank or paragraph line. */
+function consumeText(state, line) {
+  if (consumeHeading(state, line) || consumeListItem(state, line)) return;
   if (!line.trim()) { flushParagraph(state); flushList(state); return; }
   state.paragraph.push(line.trim());
 }
