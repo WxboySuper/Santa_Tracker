@@ -134,7 +134,7 @@ export async function loadFixtureInputs() {
   return {
     branches: fixture.branches,
     openPulls: fixture.openPulls,
-    baseBranch: fixture.baseBranch ?? 'beta',
+    baseBranch: fixture.baseBranch ?? 'main',
     now: new Date(fixture.now),
     errors: fixture.errors ?? [],
   };
@@ -147,7 +147,7 @@ export async function loadFixtureInputs() {
  *   baseBranch?: string,
  * }} context
  */
-export async function fetchStaleBranchInputs({ repository, token, baseBranch = 'beta' }) {
+export async function fetchStaleBranchInputs({ repository, token, baseBranch = 'main' }) {
   const errors = [];
   const now = new Date();
   const [branchSummaries, openPulls] = await Promise.all([

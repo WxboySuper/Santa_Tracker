@@ -1,6 +1,6 @@
 {
   "now": "2026-06-29T12:00:00.000Z",
-  "baseBranch": "beta",
+  "baseBranch": "main",
   "branches": [
     {
       "name": "feature/old-work",
@@ -95,7 +95,7 @@
       "behindBy": 99
     },
     {
-      "name": "port/123-to-beta",
+      "name": "port/123-to-main",
       "commit": {
         "sha": "ccc1234567890abcdef1234567890abcdef12345678",
         "commit": {
@@ -111,7 +111,7 @@
       "behindBy": 10
     },
     {
-      "name": "beta",
+      "name": "stable/1.6.x",
       "commit": {
         "sha": "ddd1234567890abcdef1234567890abcdef12345678",
         "commit": {
