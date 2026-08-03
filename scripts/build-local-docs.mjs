@@ -57,7 +57,8 @@ function consumeFence(state, line) {
 
 /** Consume a table starting at the given line, returning the next index. */
 function consumeTable(state, lines, index) {
-  if (!isTableRow(lines[index]) || index + 1 >= lines.length || !isTableDivider(lines[index + 1])) return null;
+  if (!isTableRow(lines[index])) return null;
+  if (!isTableDivider(lines[index + 1] ?? '')) return null;
   flushParagraph(state); flushList(state); const tableLines = [lines[index]]; let nextIndex = index + 2;
   while (nextIndex < lines.length && isTableRow(lines[nextIndex])) { tableLines.push(lines[nextIndex]); nextIndex += 1; }
   state.html.push(renderTable(tableLines)); return nextIndex;
@@ -81,7 +82,8 @@ function consumeListItem(state, line) {
   const task = line.match(/^\s*[-*]\s+\[([ xX])\]\s+(.+)$/);
   const bullet = line.match(/^\s*[-*]\s+(.+)$/);
   const numbered = line.match(/^\s*\d+\.\s+(.+)$/);
-  if (!task && !bullet && !numbered) return false;
+  const match = task ?? bullet ?? numbered;
+  if (!match) return false;
   appendListItem(state, task, bullet, numbered); return true;
 }
 
