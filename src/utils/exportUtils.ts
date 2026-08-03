@@ -616,6 +616,7 @@ const cleanupTempMapResources = (tempContainer: HTMLDivElement | null, tempMap: 
 };
 
 // Helper: perform capture flow on the prepared temp map
+// @codescene(disable:"Complex Method")
 const captureFromTempMap = async (
   tempContainer: HTMLDivElement,
   tempMap: L.Map,

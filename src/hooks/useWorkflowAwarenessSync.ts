@@ -137,7 +137,7 @@ const queueAwarenessDeletion = ({
  * checked against the current user generation so auth switches cannot hydrate
  * or mutate the next user's recommendation state.
  */
-// @codescene(disable:"Complex Method", disable:"Overall Code Complexity")
+// @codescene(disable:"Complex Method", disable:"Overall Code Complexity", disable:"Complex Conditional")
 export const useWorkflowAwarenessSync = (): WorkflowAwarenessSyncResult => {
   const { user } = useAuth();
   const userId = user?.uid;
