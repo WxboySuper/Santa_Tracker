@@ -1,113 +1,19 @@
-name: Prepare Beta → Main Release PR (optional)
+name: Legacy Beta to Main Release Preparation (disabled)
 
-# OPTIONAL — not required for normal releases.
-# Default path: open a beta → main PR and merge; post-merge-automation.yml handles the rest.
-#
-# This workflow creates release/vX.Y.Z from beta if you prefer a separate promotion branch.
-#
-# Required secret: GH_PAT (repo scope) — same as pr-porting.yml
+# The old beta → main release-preparation flow is intentionally disabled. The
+# replacement cutover is prepared from beta only after the stable production
+# line has been bootstrapped and the new release workflows are installed.
 on:
   workflow_dispatch:
-    inputs:
-      refresh_existing:
-        description: 'Force-update the release branch from latest beta (recommended)'
-        type: boolean
-        default: true
 
 permissions:
-  contents: write
-  pull-requests: write
+  contents: read
 
 jobs:
-  prepare:
+  migration-freeze-notice:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          token: ${{ secrets.GH_PAT }}
-
-      - name: Configure git identity
+      - name: Explain the replacement
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '24.x'
-
-      - name: Read beta version and derive release branch
-        id: meta
-        run: |
-          git fetch origin beta main
-          git checkout origin/beta
-          BETA_VERSION=$(node scripts/read-package-version.mjs)
-          STABLE_VERSION=$(node scripts/derive-stable-version.mjs "$BETA_VERSION" --require-stable)
-          RELEASE_BRANCH="release/v${STABLE_VERSION}"
-          echo "beta_version=$BETA_VERSION" >> "$GITHUB_OUTPUT"
-          echo "stable_version=$STABLE_VERSION" >> "$GITHUB_OUTPUT"
-          echo "release_branch=$RELEASE_BRANCH" >> "$GITHUB_OUTPUT"
-
-      - name: Build release branch with stable package version
-        env:
-          RELEASE_BRANCH: ${{ steps.meta.outputs.release_branch }}
-          STABLE_VERSION: ${{ steps.meta.outputs.stable_version }}
-          REFRESH: ${{ inputs.refresh_existing }}
-        run: |
-          git checkout -B "$RELEASE_BRANCH" origin/beta
-          node scripts/prepare-main-release-version.mjs
-          if git diff --quiet package.json; then
-            echo "package.json already at $STABLE_VERSION on $RELEASE_BRANCH"
-          else
-            git add package.json
-            git commit -m "chore: prepare v$STABLE_VERSION for main release"
-          fi
-          if [[ "$REFRESH" == "true" ]]; then
-            git push --force-with-lease origin "$RELEASE_BRANCH"
-          else
-            git push origin "$RELEASE_BRANCH" || {
-              echo "Release branch exists. Re-run with refresh_existing=true or delete $RELEASE_BRANCH first."
-              exit 1
-            }
-          fi
-
-      - name: Open or refresh pull request to main
-        env:
-          GH_TOKEN: ${{ secrets.GH_PAT }}
-          RELEASE_BRANCH: ${{ steps.meta.outputs.release_branch }}
-          STABLE_VERSION: ${{ steps.meta.outputs.stable_version }}
-          BETA_VERSION: ${{ steps.meta.outputs.beta_version }}
-        run: |
-          EXISTING=$(gh pr list --base main --head "$RELEASE_BRANCH" --state open --json number --jq '.[0].number // empty')
-          BODY_FILE=$(mktemp)
-          cat > "$BODY_FILE" <<EOF
-          ## Beta → main release (automated prepare)
-
-          This PR promotes **beta** to **main** with a stable \`package.json\` version (\`$STABLE_VERSION\`) while **beta** stays on \`$BETA_VERSION\`.
-
-          ### Before merge
-          - Resolve merge conflicts with \`main\` here (not on a direct \`beta\` → \`main\` PR).
-          - Confirm CHANGELOG.md has a dated section for **v$STABLE_VERSION**.
-          - Wait for CI, Greptile, and Kilo on this PR.
-          - Smoke-test the beta deployment one last time.
-
-          ### After merge
-          - Production deploy runs from \`main\` (Deploy Production to VPS).
-          - Optional: run **Bump beta for next development cycle** when starting the next minor line on beta.
-
-          Prepared by prepare-beta-main-release-pr.yml.
-          EOF
-
-          if [[ -n "$EXISTING" ]]; then
-            gh pr comment "$EXISTING" --body "Release branch refreshed from latest \`beta\` (stable \`$STABLE_VERSION\`)."
-            echo "Updated open PR #$EXISTING"
-            gh pr view "$EXISTING" --web=false --json url --jq .url
-          else
-            gh pr create \
-              --base main \
-              --head "$RELEASE_BRANCH" \
-              --title "release: promote v$STABLE_VERSION to main" \
-              --body-file "$BODY_FILE"
-          fi
+          echo "The legacy beta-to-main release preparation workflow is disabled."
+          echo "Use Prepare Main Next-Major Cutover after reviewing the migration stack."

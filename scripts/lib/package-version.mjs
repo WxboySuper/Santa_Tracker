@@ -2,9 +2,10 @@
 /** @typedef {{ ok: false, message: string }} VersionPolicyFail */
 /** @typedef {VersionPolicyOk | VersionPolicyFail} VersionPolicyResult */
 
-const BETA_PRERELEASE_PATTERN = /-beta(\.|$)/i;
+const BETA_PRERELEASE_PATTERN = /^[0-9]+\.[0-9]+\.[0-9]+-beta\.[0-9]+$/i;
 const STABLE_VERSION_PATTERN = /^[0-9]+\.[0-9]+\.[0-9]+$/;
 const RELEASE_BRANCH_PATTERN = /^release\/v[0-9]+\.[0-9]+\.[0-9]+$/;
+const STABLE_LINE_PATTERN = /^stable\/[0-9]+\.[0-9]+\.x$/;
 
 /**
  * @param {string} message
@@ -42,6 +43,34 @@ export const isReleasePromotionBranch = (headRef) => RELEASE_BRANCH_PATTERN.test
 /**
  * @param {string} version
  * @param {string} targetBranch
+ * @returns {VersionPolicyResult | null}
+ */
+const validateStableLineVersion = (version, targetBranch) => {
+  if (!STABLE_LINE_PATTERN.test(targetBranch)) {
+    return null;
+  }
+  if (hasBetaPrerelease(version) || !STABLE_VERSION_PATTERN.test(version)) {
+    return policyFail(
+      `Stable line "${targetBranch}" requires a stable semver package version, got "${version}".`,
+    );
+  }
+  return null;
+};
+
+/**
+ * @param {string} version
+ * @returns {VersionPolicyResult}
+ */
+const validateMainVersion = (version) => {
+  if (STABLE_VERSION_PATTERN.test(version) || hasBetaPrerelease(version)) {
+    return { ok: true };
+  }
+  return policyFail(`Main requires a stable semver or beta prerelease package version, got "${version}".`);
+};
+
+/**
+ * @param {string} version
+ * @param {string} targetBranch
  * @returns {VersionPolicyResult}
  */
 const validateBetaTargetVersion = (version, targetBranch) => {
@@ -55,51 +84,25 @@ const validateBetaTargetVersion = (version, targetBranch) => {
 };
 
 /**
- * @param {string} version
- * @param {string} headRef
- * @param {boolean} isPullRequest
- * @returns {VersionPolicyResult}
- */
-const validateMainTargetVersion = (version, headRef, isPullRequest) => {
-  const hasBeta = hasBetaPrerelease(version);
-  const isBetaPromotionPr = isPullRequest && headRef === 'beta';
-
-  if (hasBeta && !isBetaPromotionPr) {
-    const promotionHint = isPullRequest
-      ? 'Open a beta → main promotion PR (head branch beta) or hotfix/* with a stable version.'
-      : 'main must only receive stable semver versions.';
-    return policyFail(
-      `package.json version "${version}" must not include a -beta prerelease on "main". ${promotionHint}`,
-    );
-  }
-
-  if (isBetaPromotionPr && !hasBeta) {
-    return policyFail(
-      `Beta → main promotion PRs should carry a -beta prerelease on beta (got "${version}"). ` +
-        'CI will strip to stable on merge automatically.',
-    );
-  }
-
-  return { ok: true };
-};
-
-/**
  * @param {{
  *   version: string;
  *   targetBranch: string;
- *   headRef?: string;
- *   eventName?: string;
  * }} context
  * @returns {VersionPolicyResult}
  */
-export const evaluateVersionPolicy = ({ version, targetBranch, headRef = '', eventName = '' }) => {
+export const evaluateVersionPolicy = ({ version, targetBranch }) => {
   const betaResult = validateBetaTargetVersion(version, targetBranch);
   if (!betaResult.ok) {
     return betaResult;
   }
 
+  const stableLineResult = validateStableLineVersion(version, targetBranch);
+  if (stableLineResult) return stableLineResult;
+
   if (targetBranch === 'main') {
-    return validateMainTargetVersion(version, headRef, eventName === 'pull_request');
+    // main is the next-major integration line. It may contain either a stable
+    // version during promotion or a beta prerelease between snapshots.
+    return validateMainVersion(version);
   }
 
   return { ok: true };

@@ -1,46 +1,29 @@
-## Beta → main promotion
+## Main next-major cutover
 
-This PR promotes **beta** to **production** (`main`).
+This PR intentionally makes `main` the next-major integration line from the
+current `beta` source. It is not a production deployment and must not delete
+the stable production branch.
 
 ### Before merge
 
-- [ ] CHANGELOG.md has an up-to-date section for this release (e.g. `## v1.6`)
-- [ ] **`deploy/production-release.json`** updated:
-  - [ ] `version` matches stable after merge (e.g. `1.6.0`)
-  - [ ] `releaseId` unique for this rollout attempt
-  - [ ] `action` is `"stage"` for timed rollout (or `"live"` for immediate full deploy)
-  - [ ] `rolloutAt` set (UTC ISO) when using `stage`
-  - [ ] `banner.phases`: pre-rollout warning + post-rollout info with `linkUrl` `/updates`
+- [ ] A versioned stable branch (for example `stable/1.6.x`) exists and is protected
+- [ ] Production hotfixes have been forward-ported to `main` or marked not applicable with a reason
+- [ ] Workflow conflicts preserve manual release, stable-line deployment, and stable-to-main porting
 - [ ] CI and reviews are green
-- [ ] Conflicts with `main` resolved here
-- [ ] Beta deployment smoke-tested
-- [ ] Plan to verify **staging-gfc.weatherboysuper.com** after merge (beta-gated build)
+- [ ] Staging rehearsal completed from the intended next-major source
+
+### Changelog decision
+
+Changelog-Impact: beta
 
 ### Feature exposure
 
-- [ ] Exposure report generated and reviewed (see `pnpm run exposure:report`)
-- [ ] All newly production-visible features are listed below
-- [ ] No beta-only or experimental features leak into production exposure
-- [ ] Server-backed features have matching server capability configuration
-- [ ] Temporary features approaching removal have removal condition metadata confirmed
+- [ ] Exposure report generated and reviewed
+- [ ] Newly production-visible features are explicitly listed in this PR
+- [ ] No beta-only or experimental features are accidentally exposed in production
 
-#### Newly production-visible features in this release
+### After merge
 
-| Feature | Target state | Server-backed | Removal condition |
-|---|---|---|---|
-| (list features promoted to production here, or write "None") | | | |
-
-### Review requests
-
-- [ ] Server-backed feature changes reviewed by server owner
-- [ ] Security-sensitive feature changes flagged for security review
-
-### After merge (automatic)
-
-- Stable version committed on `main`
-- GitHub Release created from CHANGELOG
-- Beta bumped to the next development prerelease
-- **Deploy Production to VPS** runs (`stage` stages release; live site unchanged until `rolloutAt`)
-- VPS cron promotes at `rolloutAt` (see [docs/hosted-rollout.md](../docs/hosted-rollout.md))
-
-You only need to click **Merge** — no manual Actions steps unless promoting early (`bash /opt/gfc-analytics/current/release/promote-release.sh --force` on VPS).
+- [ ] Keep `beta` read-only during the observation window
+- [ ] Use the manual beta release workflow for hosted beta snapshots
+- [ ] Delete or archive `beta` only after the cutover smoke test and rollback window
