@@ -135,7 +135,9 @@ test.describe('Workflow continuity', () => {
     if (downloadPath === null) throw new Error('Workflow export did not produce a readable file');
 
     const zip = await JSZip.loadAsync(await readFile(downloadPath));
-    const manifest = JSON.parse(await zip.file('workflow_package.json')!.async('string'));
+    const manifestFile = zip.file('workflow_package.json');
+    if (manifestFile === null) throw new Error('Workflow package manifest is missing');
+    const manifest = JSON.parse(await manifestFile.async('string'));
     const exportedLayer = manifest.forecast.forecastCycle.days['2'].customLayers.layers[0];
     expect(exportedLayer.label).toBe('Package fire layer');
     expect(exportedLayer.categories[0].style.hatch).toBe('crosshatch');
