@@ -10,7 +10,7 @@ import {
   buildStaleBranchReport,
   findExistingReportIssue,
   formatAuthor,
-  formatBehindBeta,
+  formatBehindMain,
   formatOpenPr,
   formatStaleBranchReport,
   isStaleBranch,
@@ -32,8 +32,8 @@ describe('stale branch report', () => {
 
   it('excludes protected and automation-managed branches', () => {
     assert.equal(isTrackedBranch('main'), false);
-    assert.equal(isTrackedBranch('beta'), false);
-    assert.equal(isTrackedBranch('port/123-to-beta'), false);
+    assert.equal(isTrackedBranch('stable/1.6.x'), false);
+    assert.equal(isTrackedBranch('port/123-to-main'), false);
     assert.equal(isTrackedBranch('dependabot/npm_foo'), false);
     assert.equal(isTrackedBranch('release/1.7'), false);
     assert.equal(isTrackedBranch('hotfix/urgent'), false);
@@ -76,9 +76,9 @@ describe('stale branch report', () => {
     );
   });
 
-  it('formats behind-beta and open PR values deterministically', () => {
-    assert.equal(formatBehindBeta(12), '12');
-    assert.equal(formatBehindBeta(null), 'unknown');
+  it('formats behind-main and open PR values deterministically', () => {
+    assert.equal(formatBehindMain(12), '12');
+    assert.equal(formatBehindMain(null), 'unknown');
     assert.equal(formatOpenPr(null), 'orphaned');
     assert.equal(formatAuthor('alice', 'Alice Example'), '`alice`');
     assert.equal(formatAuthor(null, 'Alice Example'), 'Alice Example');

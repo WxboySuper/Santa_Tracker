@@ -10,7 +10,7 @@
  * }} StaleBranchRow */
 
 export const STALE_BRANCH_PREFIXES = ['feature/', 'fix/', 'research/'];
-export const PROTECTED_BRANCHES = new Set(['main', 'beta']);
+export const PROTECTED_BRANCHES = new Set(['main']);
 export const EXCLUDED_PREFIXES = ['port/', 'dependabot/', 'release/', 'hotfix/'];
 export const EXCLUDED_BRANCH_PATTERNS = [/^feature\/release-/];
 export const GRACE_PERIOD_DAYS = 14;
@@ -65,7 +65,7 @@ export function escapeMarkdownTableCell(value) {
 /**
  * @param {number | null} behindBy
  */
-export function formatBehindBeta(behindBy) {
+export function formatBehindMain(behindBy) {
   if (behindBy === null || behindBy === undefined) {
     return 'unknown';
   }
@@ -151,12 +151,12 @@ function formatBranchTable(rows, repository) {
   }
 
   const lines = [
-    '| Branch | Age (days) | Last commit | Author | Open PR | Behind beta |',
+    '| Branch | Age (days) | Last commit | Author | Open PR | Behind main |',
     '|---|---:|---|---|---|---:|',
     ...rows.map((row) => {
       const author = formatAuthor(row.authorLogin, row.authorName);
       const lastCommit = `${row.sha} (${row.committedAt.slice(0, 10)})`;
-      return `| \`${escapeMarkdownTableCell(row.name)}\` | ${row.ageDays} | ${escapeMarkdownTableCell(lastCommit)} | ${escapeMarkdownTableCell(author)} | ${formatOpenPr(row.openPrNumber, repository)} | ${formatBehindBeta(row.behindBy)} |`;
+      return `| \`${escapeMarkdownTableCell(row.name)}\` | ${row.ageDays} | ${escapeMarkdownTableCell(lastCommit)} | ${escapeMarkdownTableCell(author)} | ${formatOpenPr(row.openPrNumber, repository)} | ${formatBehindMain(row.behindBy)} |`;
     }),
   ];
 
@@ -243,7 +243,7 @@ export function buildStaleBranchReport(input) {
 
   return {
     generatedAt: now.toISOString(),
-    baseBranch: input.baseBranch ?? 'beta',
+    baseBranch: input.baseBranch ?? 'main',
     staleRows,
     activeWithinGraceCount,
   };
