@@ -34,10 +34,8 @@ const PreviewTitle = ({ label }: { label: string }) => <h3>{label || 'Untitled p
 const ValidationMessage = ({ validation }: { validation: string | null }) =>
   validation ? <p className="custom-product-error">{validation}</p> : null;
 
-const SaveLabel = ({ saving, product }: { saving: boolean; product?: HostedCustomProduct }) => {
-  if (saving) return <>Saving…</>;
-  return <>{product ? 'Save changes' : 'Create product'}</>;
-};
+const SaveLabel = ({ saving, product }: { saving: boolean; product?: HostedCustomProduct }) =>
+  saving ? 'Saving…' : product ? 'Save changes' : 'Create product';
 
 const moveCategory = (categories: CustomCategoryTemplate[], index: number, direction: -1 | 1) => {
   const reordered = [...categories];

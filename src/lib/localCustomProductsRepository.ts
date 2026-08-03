@@ -55,6 +55,11 @@ interface MutationResult<T> {
   value: T;
 }
 
+function emitProducts(userId: string): void {
+  const products = readProducts(userId);
+  localSubscribers.get(userId)?.forEach((subscriber) => subscriber(products));
+}
+
 const mutateProducts = <T>(
   userId: string,
   mutation: (products: HostedCustomProduct[]) => MutationResult<T>,
@@ -81,11 +86,6 @@ const replaceProduct = (
   products: HostedCustomProduct[],
   replacement: HostedCustomProduct,
 ): HostedCustomProduct[] => products.map((product) => product.id === replacement.id ? replacement : product);
-
-const emitProducts = (userId: string): void => {
-  const products = readProducts(userId);
-  localSubscribers.get(userId)?.forEach((subscriber) => subscriber(products));
-};
 
 const subscribeToLocalProducts: CustomProductsRepository['subscribe'] = (userId, onUpdate) => {
   const subscribers = localSubscribers.get(userId) ?? new Set();

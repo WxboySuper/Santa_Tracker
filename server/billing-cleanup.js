@@ -2,15 +2,6 @@
 
 const { deleteStripeCustomer } = require('./account-lifecycle');
 
-/** Redacts identifiers in logs so server output stays useful without exposing full values. */
-const redactIdentifier = (value) => {
-  if (typeof value !== 'string' || value.length <= 4) {
-    return value || null;
-  }
-
-  return `...${value.slice(-4)}`;
-};
-
 /** Returns the Stripe object ID for either an expanded object or a plain ID. */
 const getStripeObjectId = (value) => (typeof value === 'string' ? value : value?.id || '');
 

@@ -91,18 +91,6 @@ const logSkippedEntitlementWrite = ({ uid, stripeCustomerId, stripeSubscriptionI
   });
 };
 
-/** Logs a Firestore entitlement write failure with redacted Stripe identifiers. */
-const logEntitlementWriteError = ({ uid, stripeCustomerId, stripeSubscriptionId, nextPayload, error }) => {
-  console.error('[billing] writeEntitlement:error', {
-    uid: nextPayload.uid || uid,
-    stripeCustomerId: redactIdentifier(stripeCustomerId),
-    stripeSubscriptionId: redactIdentifier(stripeSubscriptionId),
-    billingStatus: nextPayload.billingStatus,
-    planInterval: nextPayload.planInterval,
-    error: error instanceof Error ? error.message : 'Unknown Firestore write failure',
-  });
-};
-
 /** Fetches one entitlement document by UID. */
 const getEntitlementDocByUid = (uid) => {
   const db = getAdminDb();

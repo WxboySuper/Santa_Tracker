@@ -42,11 +42,9 @@ export const createEmbeddedCustomProductSnapshot = (
   capturedAt,
 });
 
-const hasValidSnapshotReferences = (value: Record<string, unknown>): boolean => {
-  if (value.sourceProductId !== undefined && !isBoundedText(value.sourceProductId)) return false;
-  if (value.sourceProductVersion !== undefined && !isPositiveInteger(value.sourceProductVersion)) return false;
-  return true;
-};
+const hasValidSnapshotReferences = (value: Record<string, unknown>): boolean =>
+  (value.sourceProductId === undefined || isBoundedText(value.sourceProductId))
+  && (value.sourceProductVersion === undefined || isPositiveInteger(value.sourceProductVersion));
 
 const hasValidSnapshotContent = (value: Record<string, unknown>): boolean =>
   isBoundedText(value.label)

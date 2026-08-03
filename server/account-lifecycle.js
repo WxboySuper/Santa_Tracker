@@ -205,7 +205,7 @@ const reconcilePostSweepBilling = async ({ db, uid, stripe, tombstoneRef, stripe
 };
 
 /** Writes the tombstone, removes the Firebase identity, and cleans up the request marker. */
-const finalizeDeletion = async ({ uid, db, adminAuth, requestRef, tombstoneRef }) => {
+const finalizeDeletion = async ({ uid, adminAuth, requestRef, tombstoneRef }) => {
   await tombstoneRef.set({ completedAt: new Date() }, { merge: true });
 
   try {
@@ -245,7 +245,7 @@ const deleteAccount = async ({ uid, db, adminAuth, stripe }) => {
     await deleteLinkedStripeCustomers({ db, uid, stripe });
     await deleteAccountFirestoreData(db, uid);
     await reconcilePostSweepBilling({ db, uid, stripe, tombstoneRef, stripeCustomerId });
-    await finalizeDeletion({ uid, db, adminAuth, requestRef, tombstoneRef });
+    await finalizeDeletion({ uid, adminAuth, requestRef, tombstoneRef });
   } catch (error) {
     await handleDeletionFailure({ adminAuth, uid, requestRef, error });
   }

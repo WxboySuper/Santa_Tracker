@@ -1,4 +1,5 @@
 import { BUILD_TARGETS, type BuildTarget } from '../../config/buildTarget';
+import * as featureExposureModule from '../../config/featureExposure';
 import {
   FEATURE_EXPOSURE_REGISTRY,
   type FeatureExposureMatrix,
@@ -56,7 +57,7 @@ export const mockFeatureExposureOnTarget = (
   matrix: FeatureExposureMatrix
 ): jest.SpyInstance => {
   return jest.spyOn(
-    require('../../config/featureExposure'),
+    featureExposureModule,
     'isFeatureExposedOnTarget'
   ).mockImplementation((requestedFeature: FeatureKey, target: BuildTarget) => {
     if (requestedFeature === feature) {
@@ -73,7 +74,7 @@ export const mockFeatureExposure = (
   matrix: FeatureExposureMatrix
 ): { onTarget: jest.SpyInstance; exposed: jest.SpyInstance } => {
   const onTarget = mockFeatureExposureOnTarget(feature, matrix);
-  const exposed = jest.spyOn(require('../../config/featureExposure'), 'isFeatureExposed').mockImplementation(
+  const exposed = jest.spyOn(featureExposureModule, 'isFeatureExposed').mockImplementation(
     (requestedFeature: FeatureKey) => {
       if (requestedFeature === feature) {
         return matrix[globalThis.__GFC_BUILD_TARGET__ ?? 'local'];
