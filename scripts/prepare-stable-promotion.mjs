@@ -1,4 +1,5 @@
 import { readFileSync, writeFileSync } from 'node:fs';
+import { CHANGELOG_LANE_HEADINGS, findChangelogLaneBounds } from './lib/changelog-lanes.mjs';
 import { deriveStableVersion } from './lib/package-version.mjs';
 
 const targetVersion = process.argv[2] ?? '';
@@ -28,16 +29,14 @@ writeFileSync('deploy/production-release.json', `${JSON.stringify(manifest, null
 
 const changelogPath = 'CHANGELOG.md';
 const changelog = readFileSync(changelogPath, 'utf8');
-const laneHeading = '### Next major / beta';
-const laneStart = changelog.indexOf(laneHeading);
-if (laneStart === -1) {
+const lane = 'next-major';
+const laneHeading = CHANGELOG_LANE_HEADINGS[lane];
+const laneBounds = findChangelogLaneBounds(changelog, lane);
+if (!laneBounds) {
   console.error(`CHANGELOG.md must include ${laneHeading}.`);
   process.exit(1);
 }
-const rest = changelog.slice(laneStart + laneHeading.length);
-const nextLane = rest.search(/\n### (?!#)|\n## /);
-const laneEnd = nextLane === -1 ? changelog.length : laneStart + laneHeading.length + nextLane;
-const laneBody = changelog.slice(laneStart + laneHeading.length, laneEnd).trim();
+const laneBody = changelog.slice(laneBounds.start + laneBounds.heading.length, laneBounds.end).trim();
 if (!laneBody || /No unreleased next-major changes/i.test(laneBody)) {
   console.error('The next-major changelog lane is empty; promotion requires release notes.');
   process.exit(1);
@@ -45,7 +44,7 @@ if (!laneBody || /No unreleased next-major changes/i.test(laneBody)) {
 
 const releaseSection = `## v${targetVersion}\n\n${laneBody}\n\n`;
 const nextLaneReset = `${laneHeading}\n\n#### Added\n\n<!-- Continue next-major work here after this stable line is cut. -->\n`;
-const nextChangelog = `${changelog.slice(0, laneStart)}${releaseSection}${nextLaneReset}${changelog.slice(laneEnd).replace(/^\s*/, '')}`;
+const nextChangelog = `${changelog.slice(0, laneBounds.start)}${releaseSection}${nextLaneReset}${changelog.slice(laneBounds.end).replace(/^\s*/, '')}`;
 writeFileSync(changelogPath, nextChangelog);
 
 console.log(`Prepared stable promotion ${targetVersion}: package, production manifest, and changelog.`);

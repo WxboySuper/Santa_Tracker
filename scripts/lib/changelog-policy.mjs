@@ -1,13 +1,12 @@
+import { CHANGELOG_LANE_HEADINGS } from './changelog-lanes.mjs';
+
 const IMPACT_PATTERN = /^Changelog-Impact:\s*(beta|hotfix|none|inherited)\s*$/gim;
 const REASON_PATTERN = /^Changelog-Reason:\s*(\S.*)$/im;
 const SOURCE_PATTERN = /(?:port|backport|forward[- ]port|inherited)\s+(?:of\s+)?#(\d+)/i;
 
 /** @typedef {'beta' | 'hotfix' | 'none' | 'inherited'} ChangelogImpact */
 
-export const CHANGELOG_LANE_HEADINGS = {
-  'next-major': '### Next major / beta',
-  'stable-hotfix': '### Stable 1.6.x hotfixes',
-};
+export { CHANGELOG_LANE_HEADINGS };
 
 /** @param {string} baseRef */
 export const changelogLaneForBase = (baseRef) =>

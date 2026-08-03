@@ -1,4 +1,5 @@
 import { execFileSync } from 'node:child_process';
+import { findChangelogLaneBounds } from './changelog-lanes.mjs';
 
 export const DEPENDENCIES_HEADING = '### Dependencies';
 export const DEPENDENCIES_MARKER = '<!-- dependabot-automation -->';
@@ -211,10 +212,9 @@ const formatDependenciesBlock = (lines) =>
 /** @param {string} sectionBody @param {string} dependenciesBlock @param {string} [lane] */
 const replaceDependenciesBlock = (sectionBody, dependenciesBlock, lane = '') => {
   const depsHeading = lane ? '#### Dependencies' : DEPENDENCIES_HEADING;
-  const depsPattern = new RegExp([
-    depsHeading.replace(/[.*+?^${}()|[\\]\\]/g, '\\$&'),
-    '[\\s\\S]*?(?=\\n### (?!#)|\\n## |$)',
-  ].join(''));
+  const depsPattern = new RegExp(
+    `${escapeRegExp(depsHeading)}[\\s\\S]*?(?=\\n### (?!#)|\\n## |$)`,
+  );
   const stripped = sectionBody.replace(depsPattern, '').trimEnd();
   const headingEnd = stripped.indexOf('\n');
   const insertPos = headingEnd === -1 ? stripped.length : headingEnd + 1;
@@ -249,27 +249,10 @@ const applyDependencyBumpsToSection = (changelog, bumps) => {
   return changelog.slice(0, section.start) + sectionBody + changelog.slice(section.end);
 };
 
-/** @param {string} lane @returns {string} */
-const laneHeading = (lane) => lane === 'stable-hotfix' ? '### Stable 1.6.x hotfixes' : '### Next major / beta';
-
-/** @param {string} changelog @param {string} lane */
-const laneBounds = (changelog, lane) => {
-  const heading = laneHeading(lane);
-  const start = changelog.indexOf(heading);
-  if (start === -1) return null;
-  const rest = changelog.slice(start + heading.length);
-  const next = rest.search(/\n### (?!#)|\n## /);
-  return {
-    heading,
-    start,
-    end: next === -1 ? changelog.length : start + heading.length + next,
-  };
-};
-
 /** Applies dependency automation to the selected unreleased lane. */
 export const applyDependencyBumpsToChangelog = (changelog, bumps, lane = '') => {
   if (!lane) return applyDependencyBumpsToSection(changelog, bumps);
-  const bounds = laneBounds(changelog, lane);
+  const bounds = findChangelogLaneBounds(changelog, lane);
   if (!bounds) return applyDependencyBumpsToSection(changelog, bumps);
   const body = changelog.slice(bounds.start + bounds.heading.length, bounds.end);
   const synthetic = `## [Unreleased]\n${body}\n## [Lane end]`;
@@ -332,7 +315,7 @@ const evaluateDependabotChangelogTouchesPr = (changedFiles, changelogAtHead, bum
 /** Validates that Dependabot documented bumps in the selected lane. */
 export const dependabotChangelogTouchesPr = (changedFiles, changelogAtHead, bumps, lane = '') => {
   if (!lane) return evaluateDependabotChangelogTouchesPr(changedFiles, changelogAtHead, bumps);
-  const bounds = laneBounds(changelogAtHead, lane);
+  const bounds = findChangelogLaneBounds(changelogAtHead, lane);
   if (!bounds) return evaluateDependabotChangelogTouchesPr(changedFiles, changelogAtHead, bumps);
   const body = changelogAtHead.slice(bounds.start + bounds.heading.length, bounds.end);
   const synthetic = `## [Unreleased]\n${body}\n## [Lane end]`;
