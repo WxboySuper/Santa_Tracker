@@ -1,9 +1,9 @@
 import {
   CategoricalRiskLevel, 
   ColorMappings, 
-  CIGLevel,
-  DayType
+  CIGLevel
 } from '../types/outlooks';
+export { getOutlookConstraints } from './outlookConstraints';
 
 /**
  * Color mappings for all outlook types based on specifications in docs/product/outlook-info.md
@@ -61,63 +61,6 @@ export const colorMappings: ColorMappings = {
     'CIG3': 'url(#pattern-cig3)'
   }
 };
-
-/** @codescene(disable:"Complex Method", disable:"Overall Code Complexity") */
-/** Get constraints for a specific outlook day. */
-export function getOutlookConstraints(day: DayType) {
-  switch (day) {
-    case 1:
-    case 2:
-      return {
-        outlookTypes: ['tornado', 'wind', 'hail', 'categorical'] as const,
-        allowsProbabilities: true,
-        allowedCIG: ['CIG1', 'CIG2', 'CIG3'],
-        allowedCategorical: ['TSTM', 'MRGL', 'SLGT', 'ENH', 'MDT', 'HIGH'],
-        requiresConversion: true,
-        probabilities: {
-          tornado: ['2%', '5%', '10%', '15%', '30%', '45%', '60%'],
-          wind: ['5%', '15%', '30%', '45%', '60%', '75%', '90%'],
-          hail: ['5%', '15%', '30%', '45%', '60%']
-        }
-      };
-    case 3:
-      return {
-        outlookTypes: ['totalSevere', 'categorical'] as const,
-        allowsProbabilities: true,
-        allowedCIG: ['CIG1', 'CIG2'],
-        allowedCategorical: ['TSTM', 'MRGL', 'SLGT', 'ENH', 'MDT'], // No HIGH
-        requiresConversion: true,
-        probabilities: {
-          totalSevere: ['5%', '15%', '30%', '45%', '60%']
-        }
-      };
-    case 4:
-    case 5:
-    case 6:
-    case 7:
-    case 8:
-      return {
-        outlookTypes: ['day4-8'] as const,
-        allowsProbabilities: true, // Day 4-8 is probabilistic, not categorical
-        allowedCIG: [],
-        allowedCategorical: [], // No categorical conversion
-        requiresConversion: false,
-        probabilities: {
-          'day4-8': ['15%', '30%']
-        }
-      };
-    default:
-      // Fallback for unexpected values
-      return {
-        outlookTypes: [] as const,
-        allowsProbabilities: false,
-        allowedCIG: [],
-        allowedCategorical: [],
-        requiresConversion: false,
-        probabilities: {}
-      };
-  }
-}
 
 type CategoricalRule = {
   probabilities: readonly string[];
