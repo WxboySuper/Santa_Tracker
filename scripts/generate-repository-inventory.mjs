@@ -77,24 +77,40 @@ function resolveImport(importerPath, specifier, knownFiles) {
   return firstKnownPath(candidates, knownFiles);
 }
 
+/** Inspect one source file for cross-boundary imports and unresolved paths. */
+async function inspectFile(file, knownFiles) {
+  if (!CODE_EXTENSIONS.has(path.extname(file.path))) return { edges: [], unresolved: [] };
+  const imports = extractRelativeImports(await fs.readFile(file.absolutePath, 'utf8'));
+  const edges = new Set();
+  const unresolved = [];
+  for (const specifier of imports) {
+    const target = resolveImport(file.path, specifier, knownFiles);
+    if (!target) { unresolved.push({ from: file.path, specifier }); continue; }
+    const fromBoundary = boundaryFor(file.path);
+    const toBoundary = boundaryFor(target);
+    if (fromBoundary !== toBoundary) edges.add(`${fromBoundary}|${toBoundary}`);
+  }
+  return { edges: [...edges], unresolved };
+}
+
+/** Collect cross-boundary dependency edges and unresolved import notices. */
+async function collectDependencies(files, knownFiles) {
+  const dependencyEdges = new Set();
+  const unresolvedImports = [];
+  for (const file of files) {
+    const result = await inspectFile(file, knownFiles);
+    result.edges.forEach((edge) => dependencyEdges.add(edge));
+    unresolvedImports.push(...result.unresolved);
+  }
+  return { dependencyEdges, unresolvedImports };
+}
+
 /** Build deterministic inventory data from the current checkout. */
 export async function buildInventory(root = REPOSITORY_ROOT) {
   const files = await walk(root, root);
   const knownFiles = new Set(files.map((file) => file.path));
   const entries = files.map(({ path: filePath }) => ({ path: filePath, category: classifyPath(filePath), boundary: boundaryFor(filePath) }));
-  const dependencyEdges = new Set();
-  const unresolvedImports = [];
-  for (const file of files) {
-    if (!CODE_EXTENSIONS.has(path.extname(file.path))) continue;
-    const imports = extractRelativeImports(await fs.readFile(file.absolutePath, 'utf8'));
-    for (const specifier of imports) {
-      const target = await resolveImport(file.path, specifier, knownFiles);
-      if (!target) { unresolvedImports.push({ from: file.path, specifier }); continue; }
-      const fromBoundary = boundaryFor(file.path);
-      const toBoundary = boundaryFor(target);
-      if (fromBoundary !== toBoundary) dependencyEdges.add(`${fromBoundary}|${toBoundary}`);
-    }
-  }
+  const { dependencyEdges, unresolvedImports } = await collectDependencies(files, knownFiles);
   const edges = [...dependencyEdges].sort().map((edge) => { const [from, to] = edge.split('|'); return { from, to }; });
   const edgePairs = new Set(edges.map(({ from, to }) => `${to}|${from}`));
   return {
