@@ -1,12 +1,13 @@
 # Repository map and architecture overview
 
-Issue: [#486](https://github.com/WxboySuper/Graphical-Forecast-Creator/issues/486)  
+Issue: [#486](https://github.com/WxboySuper/Graphical-Forecast-Creator/issues/486)
 Parent tracker: [#434](https://github.com/WxboySuper/Graphical-Forecast-Creator/issues/434)
 
 This is the current-state guide for contributors. It explains where behavior
 lives, how the application is assembled, and which boundaries are intentional.
-The [generated local inventory](../personal/repository-inventory.md) is the
-exhaustive file-level companion; this document stays curated and human-sized.
+DOC-03 (#488) supplies the generated local inventory as the exhaustive
+file-level companion; this document stays curated and human-sized so it is
+useful on its own before the later stack layer is present.
 
 ## Product shape
 
@@ -21,10 +22,9 @@ The product surfaces are:
 | --- | --- | --- |
 | Forecast | `src/pages/ForecastPage.tsx` | `src/components/ForecastWorkspace`, `src/components/Map`, `src/components/DrawingTools`, `src/store`, `src/utils` |
 | Discussion | `src/pages/DiscussionPage.tsx` | `src/components/DiscussionEditor`, `src/pages/useDiscussion*` |
-| Monitor | `src/pages/MonitorPage.tsx` | `src/components/Monitor`, `src/monitor`, `src/store` |
+| Monitor | `src/pages/MonitorPage.tsx` | `src/monitor/components`, `src/monitor`, `src/store` |
 | Verification | `src/pages/VerificationPage.tsx` | `src/components/Verification`, `src/utils`, `src/store` |
 | Hosted account and billing | `src/pages/AccountPage.tsx` | `src/auth`, `src/billing`, `server/account-lifecycle.js`, `server/billing.js` |
-| Local documentation | `scripts/build-local-docs.mjs` | `docs`, `docs/personal`, `scripts` |
 
 ## Frontend flow
 
@@ -55,9 +55,9 @@ flowchart LR
   utils --> types
 ```
 
-The graph is a guide, not a ban on every reverse edge. Existing cross-feature
-edges are recorded by the inventory generator so future move work can reduce
-coupling deliberately rather than guessing.
+The graph is a guide, not a ban on every reverse edge. DOC-03 records existing
+cross-feature edges so future move work can reduce coupling deliberately
+rather than guessing.
 
 ## Frontend boundaries
 
@@ -106,6 +106,46 @@ These services are optional from the local developer experience. A local build
 must remain useful without hosted credentials, while hosted-only capabilities
 must be visibly gated and server-checked.
 
+## Baseline inventory snapshot
+
+The prior read-only audit indexed **591 files**, recorded **11 mutual owner
+edges**, and retained the following highest-volume owners and cross-owner
+imports. This snapshot keeps the reviewable baseline in committed
+documentation; DOC-03 adds a deterministic generator for current checkout
+data rather than silently replacing these facts with ignored output.
+
+Largest owner/file counts:
+
+| Owner | Files |
+| --- | ---: |
+| `src/components` | 155 |
+| `src/utils` | 57 |
+| `scripts/lib` | 50 |
+| `src/pages` | 44 |
+| `scripts/root` | 33 |
+| `src/monitor` | 31 |
+| `server/root` | 21 |
+| `src/hooks` | 20 |
+| `server/lib` | 19 |
+| `src/config` | 15 |
+| `src/store` | 13 |
+| `.github/workflows` | 12 |
+
+Highest cross-owner import edges:
+
+| Edge | Count |
+| --- | ---: |
+| `src/components -> src/store` | 55 |
+| `src/pages -> src/components` | 49 |
+| `src/components -> src/monitor` | 47 |
+| `scripts/root -> scripts/lib` | 45 |
+| `src/components -> src/types` | 36 |
+| `src/pages -> src/store` | 31 |
+| `src/components -> src/utils` | 26 |
+| `src/components -> src/lib` | 24 |
+| `src/hooks -> src/utils` | 19 |
+| `src/hooks -> src/types` | 17 |
+
 ## Build, test, and deployment
 
 | Concern | Location / command |
@@ -127,7 +167,7 @@ explicitly; local development defaults to `local`.
 
 The current layout is intentionally incremental. The largest remaining
 boundary pressure is `src/components`, which contains both feature-owned UI
-and shared primitives. `src/monitor` and `src/components/Monitor` also split
+and shared primitives. `src/monitor` and `src/monitor/components` also split
 one product surface between domain and UI folders. These are not reasons for a
 wide move now: each future extraction should be a behavior-preserving PR with
 tests and compatibility exports where needed.
@@ -149,8 +189,8 @@ authorize runtime moves as part of this documentation issue.
 - Trace from the route page to its feature components, then to hooks/store/
   utilities before changing a shared contract.
 - Update documentation in the same PR when a path or ownership boundary moves.
-- Use `pnpm run docs:inventory` to regenerate ignored local inventory data.
-- Use `pnpm run docs:site` to render a local, searchable documentation site.
+- DOC-03 adds `pnpm run docs:inventory` to regenerate ignored local inventory data.
+- DOC-04 adds `pnpm run docs:site` to render a local, searchable documentation site.
 
 Generated files belong under `docs/personal` and are ignored by design. Do not
 commit local planning or generated HTML artifacts.

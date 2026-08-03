@@ -10,7 +10,7 @@ repeatable workflows.
 
 ## Operations
 
-- [Release workflow](./release-workflow.md) - release and deployment procedures.
+- [Release workflow](./operations/release-workflow.md) - release and deployment procedures.
 - [Hosted rollout](./operations/hosted-rollout.md) - VPS rollout and troubleshooting.
 - [Timed production rollout](./operations/timed-production-rollout.md) - scheduled promotion design.
 - [Alert banner](./operations/alert-banner.md) - runtime banner shape and timed-release banner behavior.
@@ -24,7 +24,7 @@ repeatable workflows.
 
 ## Product
 
-- [Outlook information](./product/Outlook_Info.md) - risk levels, probability values, and categorical conversion rules.
+- [Outlook information](./product/outlook-info.md) - risk levels, probability values, and categorical conversion rules.
 
 ## Releases
 
