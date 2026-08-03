@@ -30,9 +30,26 @@ if (!baseRef || !headRef) {
 }
 
 const changedFiles = listChangedFilesBetweenRefs(baseRef, headRef);
-const changelogPath = baseRef === 'beta' ? 'CHANGELOG.beta.md' : 'CHANGELOG.md';
-const changelog = existsSync(changelogPath) ? readFileSync(changelogPath, 'utf8') : '';
-const result = evaluateChangelogPolicy({ baseRef, changedFiles, body: livePrBody(), changelog });
+const changelogPath = 'CHANGELOG.md';
+/**
+ * Reads the changelog from a remote branch, falling back to the checked-out file.
+ * @param {string} ref
+ * @returns {string}
+ */
+function readRefChangelog(ref) {
+  try {
+    return execFileSync('git', ['show', `origin/${ref}:${changelogPath}`], { encoding: 'utf8' });
+  } catch {
+    return existsSync(changelogPath) ? readFileSync(changelogPath, 'utf8') : '';
+  }
+}
+const result = evaluateChangelogPolicy({
+  baseRef,
+  changedFiles,
+  body: livePrBody(),
+  changelog: readRefChangelog(headRef),
+  baseChangelog: readRefChangelog(baseRef),
+});
 
 if (!result.ok) {
   console.error(result.reason);

@@ -2,7 +2,6 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import {
   applyDependencyBumpsToChangelog,
-  dependabotChangelogTouchesPr,
   extractDependenciesSubsection,
   findDependabotChangelogSection,
   formatDependencyChangelogBullet,
@@ -42,18 +41,6 @@ describe('dependabot changelog', () => {
     assert.equal(updatedAgain, updated);
   });
 
-  it('validates dependabot changelog policy', () => {
-    const bump = {
-      name: 'postcss',
-      from: '8.5.14',
-      to: '8.5.15',
-      directory: 'root',
-    };
-    const changelog = applyDependencyBumpsToChangelog(sampleChangelog, [bump]);
-    const result = dependabotChangelogTouchesPr(['CHANGELOG.md'], changelog, [bump]);
-    assert.equal(result.ok, true);
-  });
-
   it('keeps separate bullets when the same package bumps in root and server', () => {
     const bumps = [
       { name: 'axios', from: '^1.7.0', to: '^1.7.9', directory: 'root' },
@@ -64,21 +51,6 @@ describe('dependabot changelog', () => {
     const deps = extractDependenciesSubsection(updated, section);
     assert.match(deps ?? '', /- \*\*axios:\*\* \^1\.7\.0 → \^1\.7\.9\n/);
     assert.match(deps ?? '', /- \*\*axios:\*\* \^1\.7\.0 → \^1\.7\.9 \(`server`\)/);
-    assert.equal(dependabotChangelogTouchesPr(['CHANGELOG.md'], updated, bumps).ok, true);
-  });
-
-  it('does not treat another package line as documenting a different bump', () => {
-    const changelog = applyDependencyBumpsToChangelog(sampleChangelog, [
-      { name: 'postcss', from: '8.5.14', to: '8.5.15', directory: 'root' },
-    ]);
-    const undocumented = {
-      name: 'express-rate-limit',
-      from: '^8.5.1',
-      to: '^8.5.2',
-      directory: 'server',
-    };
-    const result = dependabotChangelogTouchesPr(['CHANGELOG.md'], changelog, [undocumented]);
-    assert.equal(result.ok, false);
   });
 
   it('formats bullets with optional directory scope', () => {

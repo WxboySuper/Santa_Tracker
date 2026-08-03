@@ -14,7 +14,7 @@ on:
   workflow_dispatch:
     inputs:
       ref:
-        description: 'Git tag or branch to deploy (default: beta HEAD)'
+        description: 'Git tag or branch to deploy (default: main HEAD)'
         required: false
         type: string
 
@@ -22,7 +22,7 @@ jobs:
   deploy:
     if: >-
       github.event_name == 'workflow_dispatch' ||
-      (github.event.release.target_commitish == 'main' || github.event.release.target_commitish == 'beta')
+      github.event.release.target_commitish == 'main'
     runs-on: ubuntu-latest
     env:
       RSYNC_RSH: ssh -o StrictHostKeyChecking=yes
@@ -40,7 +40,7 @@ jobs:
           elif [ -n "$GHA_INPUT_REF" ]; then
             echo "ref=${GHA_INPUT_REF}" >> "$GITHUB_OUTPUT"
           else
-            echo "ref=beta" >> "$GITHUB_OUTPUT"
+            echo "ref=main" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Checkout

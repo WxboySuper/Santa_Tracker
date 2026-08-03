@@ -2,9 +2,8 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { evaluateChangelogPolicy, parseChangelogDeclaration } from './changelog-policy.mjs';
 
-/** @param {string} baseRef @param {'beta' | 'hotfix'} impact @param {string} changelog */
-const evaluateLane = (baseRef, impact, changelog) => evaluateChangelogPolicy({
-  baseRef,
+/** @param {'beta' | 'hotfix'} impact @param {string} changelog */
+const evaluateLane = (impact, changelog) => evaluateChangelogPolicy({
   changedFiles: ['CHANGELOG.md'],
   body: `Changelog-Impact: ${impact}`,
   changelog,
@@ -30,11 +29,12 @@ test('requires the production changelog for hotfix impact', () => {
   assert.match(result.reason, /CHANGELOG\.md/);
 });
 
-test('allows beta impact on the legacy beta changelog', () => {
+test('allows beta impact on the next-major main changelog lane', () => {
   const result = evaluateChangelogPolicy({
-    baseRef: 'beta',
-    changedFiles: ['CHANGELOG.beta.md'],
+    baseRef: 'main',
+    changedFiles: ['CHANGELOG.md'],
     body: 'Changelog-Impact: beta',
+    changelog: '# Changelog\n\n### Next major / beta\n',
   });
   assert.equal(result.ok, true);
 });
@@ -48,13 +48,37 @@ test('allows a forward port to inherit its source changelog entry', () => {
   assert.equal(result.ok, true);
 });
 test('requires beta entries in the next-major lane on main', () => {
-  const result = evaluateLane('main', 'beta', '# Changelog\n\n### Stable 1.6.x hotfixes\n');
+  const result = evaluateLane('beta', '# Changelog\n\n### Stable 1.6.x hotfixes\n');
   assert.equal(result.ok, false);
   assert.match(result.reason, /Next major \/ beta/);
 });
 
 test('requires hotfix entries in the stable lane', () => {
-  const result = evaluateLane('stable/1.6.x', 'hotfix', '# Changelog\n\n### Next major / beta\n');
+  const result = evaluateLane('hotfix', '# Changelog\n\n### Next major / beta\n');
   assert.equal(result.ok, false);
   assert.match(result.reason, /Stable 1.6.x hotfixes/);
+});
+
+test('requires the declared lane to change, not merely exist', () => {
+  const changelog = '# Changelog\n\n### Next major / beta\n\n- Existing\n';
+  const result = evaluateChangelogPolicy({
+    baseRef: 'main',
+    changedFiles: ['CHANGELOG.md'],
+    body: 'Changelog-Impact: beta',
+    changelog,
+    baseChangelog: changelog,
+  });
+  assert.equal(result.ok, false);
+  assert.match(result.reason, /must add or change/);
+});
+
+test('derives the stable changelog lane from the stable branch name', () => {
+  const result = evaluateChangelogPolicy({
+    baseRef: 'stable/1.7.x',
+    changedFiles: ['CHANGELOG.md'],
+    body: 'Changelog-Impact: hotfix',
+    changelog: '# Changelog\n\n### Stable 1.7.x hotfixes\n\n- Fixed\n',
+    baseChangelog: '# Changelog\n\n### Stable 1.7.x hotfixes\n',
+  });
+  assert.equal(result.ok, true);
 });

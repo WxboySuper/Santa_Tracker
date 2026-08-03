@@ -83,7 +83,6 @@
     "test:firestore-rules": "pnpm exec firebase emulators:exec --only firestore --project gfc-rules-test \"node --test tests/firestore.rules.test.mjs\"",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
-    "changelog:consolidate-beta": "node scripts/consolidate-beta-changelog.mjs",
     "predeploy": "pnpm run build",
     "deploy": "gh-pages -d build"
   },

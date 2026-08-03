@@ -3,6 +3,7 @@ import { extractLaneReleaseNotes } from './changelog-lanes.mjs';
 
 export { extractChangelogLane } from './changelog-lanes.mjs';
 
+const RELEASE_LANES = new Set(['next-major', 'stable-hotfix']);
 
 /**
  * @param {string} changelog
@@ -71,7 +72,7 @@ const legacyReleaseNotes = (changelog, version) => {
  * @returns {string | null}
  */
 export const extractReleaseNotes = (changelog, version, lane = '') => {
-  const laneNotes = lane === 'next-major' || lane === 'stable-hotfix'
+  const laneNotes = RELEASE_LANES.has(lane)
     ? extractLaneReleaseNotes(changelog, version, lane)
     : null;
   return laneNotes ?? legacyReleaseNotes(changelog, version);
@@ -81,19 +82,3 @@ export const extractReleaseNotes = (changelog, version, lane = '') => {
  * @param {string[]} changedFiles
  * @param {string} prBody
  */
-export const changelogTouchesPr = (changedFiles, prBody) => {
-  if (changedFiles.some((file) => file === 'CHANGELOG.md' || file.endsWith('/CHANGELOG.md'))) {
-    return { ok: true, reason: 'CHANGELOG.md modified in this PR.' };
-  }
-
-  const body = prBody ?? '';
-  if (/##\s*changelog/i.test(body) && /^\s*[-*]/m.test(body)) {
-    return { ok: true, reason: 'PR description includes a Changelog section with bullets.' };
-  }
-
-  return {
-    ok: false,
-    reason:
-      'Update CHANGELOG.md in this PR or add a "## Changelog" section with bullet points in the PR description.',
-  };
-};

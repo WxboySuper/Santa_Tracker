@@ -24,15 +24,15 @@ describe('package-version policy', () => {
     assert.equal(isReleasePromotionBranch('release/v1.6.0'), true);
   });
 
-  it('requires beta prerelease on beta branch', () => {
+  it('allows stable and beta versions on the main integration line', () => {
     const result = evaluateVersionPolicy({
       version: '1.6.0',
-      targetBranch: 'beta',
+      targetBranch: 'main',
     });
-    assert.equal(result.ok, false);
+    assert.equal(result.ok, true);
   });
 
-  it('allows beta to main promotion pull requests with beta version', () => {
+  it('allows beta prereleases on the main integration line', () => {
     const result = evaluateVersionPolicy({
       version: '1.6.0-beta.1',
       targetBranch: 'main',

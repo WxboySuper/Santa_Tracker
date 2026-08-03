@@ -3,12 +3,6 @@ import { describe, it } from 'node:test';
 import { evaluateBranchPolicy } from './branch-policy.mjs';
 
 describe('branch policy', () => {
-  it('allows beta promotion to main', () => {
-    const result = evaluateBranchPolicy({ baseRef: 'main', headRef: 'beta' });
-    assert.equal(result.ok, true);
-    assert.equal(result.kind, 'beta-promotion');
-  });
-
   it('allows feature branches to the next-major main line', () => {
     const result = evaluateBranchPolicy({ baseRef: 'main', headRef: 'feature/foo' });
     assert.equal(result.ok, true);
@@ -38,26 +32,9 @@ describe('branch policy', () => {
     assert.equal(result.kind, 'hotfix');
   });
 
-  it('prioritizes feature to beta', () => {
-    const result = evaluateBranchPolicy({ baseRef: 'beta', headRef: 'feature/foo' });
+  it('allows arbitrary source branch names to main', () => {
+    const result = evaluateBranchPolicy({ baseRef: 'main', headRef: 'anything-at-all' });
     assert.equal(result.ok, true);
-    assert.equal(result.kind, 'beta-integration-feature');
-  });
-
-  it('prioritizes fix to beta', () => {
-    const result = evaluateBranchPolicy({ baseRef: 'beta', headRef: 'fix/foo' });
-    assert.equal(result.ok, true);
-    assert.equal(result.kind, 'beta-integration-fix');
-  });
-
-  it('allows other branch names to beta', () => {
-    const result = evaluateBranchPolicy({ baseRef: 'beta', headRef: 'chore/docs' });
-    assert.equal(result.ok, true);
-    assert.equal(result.kind, 'beta-integration-other');
-  });
-
-  it('blocks hotfix to beta', () => {
-    const result = evaluateBranchPolicy({ baseRef: 'beta', headRef: 'hotfix/urgent' });
-    assert.equal(result.ok, false);
+    assert.equal(result.kind, 'main-integration');
   });
 });

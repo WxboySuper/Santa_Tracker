@@ -10,7 +10,7 @@ export const parsePortBranch = (headRef) => {
 
 /** @param {string} slug */
 export const targetBranchFromSlug = (slug) => {
-  if (slug === 'main' || slug === 'beta') return slug;
+  if (slug === 'main') return slug;
   for (const prefix of ['feature', 'hotfix', 'release', 'stable']) {
     const marker = `${prefix}-`;
     if (slug.startsWith(marker)) return `${prefix}/${slug.slice(marker.length)}`;

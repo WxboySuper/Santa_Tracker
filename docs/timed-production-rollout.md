@@ -1,7 +1,11 @@
-# Timed production rollout — implementation plan
+# Timed production rollout — legacy implementation plan
+
+> Superseded by [GFC delivery architecture](release-workflow.md). This file
+> remains as historical context for the optional timed rollout implementation;
+> it is not the branch or release procedure.
 
 **Status:** Planned (not implemented)  
-**Goal:** After `beta` → `main`, production keeps serving the **current live version** until `rolloutAt`, then atomically promotes a **staged** build. One repo config drives deploy target, schedule validation, VPS promote, and in-app alert banner.
+**Historical goal:** After a reviewed promotion, production kept serving the **current live version** until `rolloutAt`, then atomically promoted a **staged** build.
 
 **Out of scope (v1):** Gradual % rollout, extra deploy Discord bots, delaying the git merge until `rolloutAt`.
 

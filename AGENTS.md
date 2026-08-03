@@ -198,5 +198,5 @@ Automation detects both and skips creating a duplicate `port/*` PR.
 - Open redundant `port/* → beta` PRs for merges post-merge already synced (CI blocks these via `scripts/lib/port-pr-policy.mjs`).
 - Push directly to `beta` for port work — always use a PR.
 
-Full release policy: [`docs/release-workflow.md`](docs/release-workflow.md). Key automation: [`.github/scripts/port-changes.sh`](.github/scripts/port-changes.sh), [`scripts/lib/port-targets.mjs`](scripts/lib/port-targets.mjs), [`scripts/lib/port-conflicts.mjs`](scripts/lib/port-conflicts.mjs).
+Full release policy: [`docs/release-workflow.md`](docs/release-workflow.md). Key automation: [`.github/workflows/forward-port-stable-fix.yml`](.github/workflows/forward-port-stable-fix.yml), [`scripts/lib/port-targets.mjs`](scripts/lib/port-targets.mjs), [`scripts/lib/port-conflicts.mjs`](scripts/lib/port-conflicts.mjs).
 

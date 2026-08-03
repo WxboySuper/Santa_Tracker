@@ -1,17 +1,128 @@
 # Release workflow
 
-Your normal flow stays simple: **open a PR, review it, click merge**. Automation handles versions, changelog gates, labels, and **GitHub Releases for every `package.json` version change** (stable tags on `main`, prerelease tags on `beta`).
+GFC has one integration branch and separate stable production lines:
 
-## Your day-to-day (short answer)
+- `main` is the next-major integration line. It is the normal PR target and has no branch-title restriction.
+- `stable/X.Y.x` is the production line for the `X.Y` release family.
+- `beta` is no longer an integration branch. It is retired after the cutover is complete.
 
-| Goal | What you do |
-|------|-------------|
-| Feature work | Prefer `feature/*` or `fix/*` → PR into **beta** → merge (other branch names are allowed except `hotfix/*`) |
-| Promote to production | PR **beta → main** → merge (nothing else required) |
-| Production hotfix | Branch `hotfix/*` → PR into **main** → merge (GitHub Release created automatically) |
+Nothing deploys merely because a PR merges. Releases and deployments are intentional manual actions.
 
-After merge, **Post-merge automation** runs on its own (no Actions button).
+## Normal development
 
+Open a PR from any suitable source branch into `main`, review it, pass CI, and merge it. Large next-major work can live on `main` even while production remains on a stable line.
+
+The required changelog check asks every PR to declare exactly one decision:
+
+```md
+Changelog-Impact: beta
+```
+
+or:
+
+```md
+Changelog-Impact: hotfix
+```
+
+For changes with no public product impact:
+
+```md
+Changelog-Impact: none
+Changelog-Reason: CI/tooling-only change.
+```
+
+The PR must change the matching lane in `CHANGELOG.md` when the impact is `beta` or `hotfix`:
+
+- `### Next major / beta` for work landing on `main`.
+- `### Stable X.Y.x hotfixes` for work landing on `stable/X.Y.x`.
+
+The check compares the lane before and after the PR. Merely touching the changelog or changing a different lane does not satisfy the gate.
+
+## Dependabot updates
+
+Dependabot is handled by the required CI workflow before changelog validation runs.
+
+1. The workflow identifies the dependency update.
+2. It updates the PR description with a managed changelog declaration.
+3. Runtime or security dependency changes receive a generated `Dependencies` entry in the correct changelog lane.
+4. Tooling-only updates receive `Changelog-Impact: none` and an automated reason.
+5. The workflow commits the changelog update, refreshes the PR ref, and only then runs the required governance check.
+
+The automation is idempotent, so retries replace the managed declaration instead of adding duplicates.
+
+## Beta releases
+
+Beta is now a release channel, not a branch. To create a beta:
+
+1. Merge the desired work into `main`.
+2. Open **Create Beta Release** under Actions.
+3. Select the `main` ref or an immutable commit and type `RELEASE-BETA`.
+4. Optionally provide the previous beta tag when automatic detection should be overridden.
+
+The workflow creates a prerelease. Its GitHub Release uses GitHub's native generated notes to show merged PRs between the previous beta tag and the selected ref, with categories from [`.github/release.yml`](../.github/release.yml). The curated changelog remains the public product record and is linked from the release.
+
+Publishing the prerelease activates the beta deployment workflow. A beta deployment can also be manually dispatched when an operator needs to deploy a selected ref.
+
+## Stable major promotion
+
+To promote the next-major line to production:
+
+1. Run **Prepare Main Stable Promotion** with the reviewed `main` ref and target version.
+2. Review and merge the generated promotion PR into `main`.
+3. Run **Bootstrap Stable Release Line** to create `stable/X.Y.x` at that exact approved main commit.
+4. Run **Create Stable Release** manually from the stable branch.
+
+The stable GitHub Release starts with the curated changelog entry and may include GitHub's generated merged-PR notes afterward. Production deployment is activated by the published stable release.
+
+The stable branch is now the immutable production family. New work can continue on `main` without changing what production runs.
+
+## Production hotfixes
+
+For an urgent production fix:
+
+1. Create a `hotfix/*` branch from the current `stable/X.Y.x` line.
+2. Open a reviewed PR into that stable branch.
+3. Add the fix to the `Stable X.Y.x hotfixes` changelog lane.
+4. Run **Deploy Staging** with the hotfix branch, commit, or PR ref.
+5. After staging verification, merge the hotfix PR.
+6. Run **Create Stable Release** for the stable line.
+
+The hotfix release uses the curated hotfix entry first, followed by the merged-PR traceability notes. Publishing it activates production deployment.
+
+## Stable fix forward-porting
+
+When a stable PR merges, **Forward-port Stable Fix** attempts to express the production fix on `main` using the stable merge diff. It creates a normal reviewed `port/<pr>-to-main` PR and never merges it automatically.
+
+If the diff cannot be applied safely because `main` has moved substantially, the workflow opens a tracking issue instead of forcing a misleading PR. The issue explains the stable source, merge commit, affected files, and the need to re-express the behavior in the next-major architecture.
+
+A successful manual forward-port uses:
+
+```md
+Changelog-Impact: inherited
+Port of #123
+```
+
+The forward-port does not create a second public changelog entry.
+
+## Staging
+
+**Deploy Staging** is manual and accepts a branch, tag, or commit. It is the rehearsal surface for both `main` next-major work and stable hotfixes. It never runs on ordinary pushes, merges, or release creation.
+
+## Release-note audience
+
+`CHANGELOG.md` is written for GFC users and is the source used for the website and social announcements.
+
+GitHub Release notes are for people who want repository-level traceability:
+
+| Release type | Primary notes | Additional notes |
+| --- | --- | --- |
+| Beta | Native merged-PR list | Link to curated changelog |
+| Stable major | Curated changelog | Native merged-PR list |
+| Stable hotfix | Curated hotfix entry | Short native merged-PR list |
+
+The release script resolves the previous tag from the same release history, or accepts an operator-provided override. GitHub's generated notes therefore describe the exact release range rather than a time window.
+
+<<<<<<< HEAD
 ## Stable fixes forward-port into main
 
 When a reviewed PR merges into a `stable/X.Y.x` branch, the
@@ -26,144 +137,15 @@ any other change. If the architectures have diverged, the workflow creates a
 `main`, then include `Changelog-Impact: inherited` and `Port of #<stable-pr>`
 when the stable changelog entry is carried forward.
 
-## Porting vs post-merge (do not double up)
+## Manual workflows
 
-Two automations run on merged PRs; they are split on purpose:
-
-| Responsibility | Workflow | Mechanism |
-|----------------|----------|-----------|
-| **Versions and GitHub Releases** on `main` / `beta` | `post-merge-automation.yml` | Direct commits to `main` or `beta` |
-| **main → beta sync** after promotion, `release/*`, or `feature/release-*` | `post-merge-automation.yml` | Merge/bump on `beta` (no port PR) |
-| **hotfix → beta** (and other main merges not owned by post-merge) | `pr-porting.yml` | Single port PR into `beta` |
-
-If both tried to port the same merge into `beta`, you would get a port PR and a CI push fighting each other. **PR porting skips `beta`** when post-merge already owns that sync. CI **fails** redundant `port/* → beta` PRs that duplicate that path.
-
-### Skipping automated ports
-
-- Add **`porting/manual`** to the source PR on `main` before merge to block automation entirely.
-- Or open a manual **`your-branch → beta`** PR first (same head branch or body referencing `#<sourcePr>`); automation detects it and skips.
-
-### Conflicts
-
-Automation auto-resolves version-policy file conflicts on beta ports (`package.json`, lockfiles, `CHANGELOG.md`, `deploy/production-release.json`). Remaining code conflicts open a **draft** `[Port][Conflicts]` PR — no tracking issue. See [`AGENTS.md`](../AGENTS.md) for manual port steps.
-
-## What happens when you merge
-
-### beta → main (promotion)
-
-1. You merge the **beta → main** PR (same as today).
-2. **Post-merge automation** (`post-merge-automation.yml`):
-   - Strips `-beta` from `package.json` on `main` (e.g. `1.6.0-beta.3` → `1.6.0`) and pushes.
-   - Creates a **GitHub Release** `v1.6.0` using the matching section in `CHANGELOG.md`.
-   - Bumps **beta** to the next line (e.g. `1.7.0-beta.1`) and creates a **prerelease** `v1.7.0-beta.1`.
-3. **Deploy Production to VPS** runs when the stable GitHub Release is published (checks out tag `v1.6.0`, so the build matches the released version).
-4. **Deploy Beta** runs when the new beta prerelease is published (e.g. `v1.7.0-beta.1`).
-
-### release/* → main (optional prepare workflow)
-
-Same outcome as direct **beta → main**, but via a `release/vX.Y.Z` branch from **Prepare Beta → Main Release PR**:
-
-1. Merge the release PR to `main`.
-2. **Post-merge automation** merges **main** into **beta** (so beta always has the same code), creates the **stable GitHub Release**, and bumps **beta** using the **pre-merge** beta version (merge must not overwrite `package.json` before the bump script runs). When `main` is still on an older stable line, beta keeps its current prerelease; otherwise beta moves to the next line and publishes a **prerelease**.
-
-Infrastructure fixes that land via `release/*` → `main` (not only `feature/release-*`) use the same **main → beta** merge; version-only bumps are not enough.
-
-### Integrations → beta
-
-- Preferred: `feature/*` and `fix/*` (labeled `integration:primary`).
-- Other branch names are allowed into beta except `hotfix/*` (labeled `integration:other`).
-- Automation increments the beta prerelease on each merge: `1.6.0-beta.1` → `1.6.0-beta.2`, etc.
-- Each bump creates a **GitHub prerelease** (`v1.6.0-beta.2`) from the matching `CHANGELOG.md` line section, or from **\[Unreleased\]** when no line section exists yet.
-- **Deploy Beta** runs when that prerelease is published (not on the merge or version-bump pushes).
-- Port branches (`port/*`) skip the version bump.
-
-### hotfix/* → main
-
-- Automation bumps the **patch** on `main` after merge (e.g. `1.6.0` → `1.6.1`).
-- Creates a **GitHub Release** for the new patch version from `CHANGELOG.md`.
-- **Deploy Production to VPS** runs when that stable release is published.
-
-### `feature/release-*` → main (release infrastructure)
-
-- Merges **main** into **beta** so beta gets workflows/scripts.
-- Creates the **stable GitHub Release** for the version on `main` (e.g. `v1.5.3`) if it is missing.
-- **Does not reset** an in-progress beta line when `main` is still on an older stable (e.g. main `1.5.3` while beta is `1.6.0-beta.N` stays on `1.6.0-beta.N`).
-- Only starts a **new** `X.Y.0-beta.1` line after a **beta → main** promotion (or when `main` stable matches the line beta was building).
-- Does **not** change `main` again (the PR already set the stable version).
-
-If you merged release automation before this step existed, run **Post-merge automation** manually (`workflow_dispatch`, enable **sync beta from main**) to backfill the stable release and start the beta line.
-
-## Branch rules (enforced in CI)
-
-| Head branch | Base branch | Allowed |
-|-------------|-------------|---------|
-| `feature/*` | `beta` | Yes (preferred) |
-| `fix/*` | `beta` | Yes (preferred) |
-| Other names (not `hotfix/*`) | `beta` | Yes |
-| `hotfix/*` | `main` | Yes |
-| `beta` | `main` | Yes (promotion) |
-| `feature/release-*` | `main` | Yes (release infrastructure) |
-| `feature/*`, `fix/*`, other | `main` | **Blocked** |
-| `hotfix/*` | `beta` | **Blocked** |
-
-`main` and `beta` are protected; direct pushes are already restricted.
-
-## Version policy
-
-| Branch | `package.json` |
-|--------|----------------|
-| `beta` | Must include `-beta.N` (e.g. `1.6.0-beta.2`) |
-| `main` | Stable semver only (e.g. `1.6.0`) |
-| PR **beta → main** | May show `-beta` on the PR; stripped automatically after merge |
-
-## Dependabot
-
-Version update PRs from `.github/dependabot.yml` open against **beta** (root and `server/`). They ride the normal integration and **beta → main** promotion path. For an urgent CVE on production before the next promotion, use **hotfix/* → main** (or merge the dependency fix to `main` manually) instead of waiting on Dependabot alone.
-
-### Dependabot changelog automation
-
-- **Dependabot changelog** workflow (`dependabot-changelog.yml`) lives on **`main`** (required for GitHub Actions to run it). After it ships, it runs on each Dependabot PR targeting `beta` and commits bullets under **`### Dependencies`** in the active changelog section (`## [Unreleased]` on `main`, or the top `## vX.Y` line on `beta` once synced).
-- CI requires `CHANGELOG.md` to include those entries (not a generic changelog skip). Entries use the form `- **package:** old → new` with `(\`server\`)` when the bump is under `server/package.json`.
-- Dependency notes accumulate under **Dependencies** until the next **beta → main** promotion ships them in the stable GitHub Release for that line.
-
-## Changelog
-
-For PRs into **beta** (feature/fix) and **hotfix → main**:
-
-- Edit `CHANGELOG.md` in the PR, **or**
-- Add a `## Changelog` section with bullets in the PR description.
-
-**beta → main** promotion PRs skip the file check (verify the release section in CHANGELOG before merge).
-
-## PR labels (automatic)
-
-`pr-governance.yml` applies labels on every PR update:
-
-**Routing / integration:** `promotion`, `feature`, `fix`, `hotfix`, `release`, `port`, `integration:primary`, `integration:other`
-
-**What changed:** `Documentation`, `Enhancement`, `Bug`, `javascript`, `dependencies`, `quality`, `e2e-validated`, `porting`, and `Component: Map|Outlooks|Drawing-Tools|Export|UI|Storage` (from the file diff)
-
-**Status:** `has conflicts`, `draft`, `ci:pending`, `ci:passing`, `ci:failing`, `changelog:ok`, `changelog:missing`
-
-Labels are created in the repo if missing; only automation-managed labels are refreshed each run (manual labels you add are left alone).
-
-## Optional / legacy workflows
-
-| Workflow | When to use |
-|----------|-------------|
-| **Prepare Beta → Main Release PR** | Optional alternate path using `release/v*` branches (not required if you use beta → main PR). |
-| **Bump beta for next development cycle** | Manual override if post-merge bump did not run. |
-| **(Legacy) Direct promote beta → main** | Emergency only (`LEGACY-DIRECT-PROMOTE`); bypasses PR review. |
-
-## Required secret
-
-- **GH_PAT** — same token as PR porting (`repo` scope), used for post-merge commits and releases.
-
-## Local scripts
-
-| Script | Purpose |
-|--------|---------|
-| `node scripts/validate-branch-policy.mjs` | Branch routing check |
-| `node scripts/validate-package-version.mjs` | Version policy check |
-| `node scripts/check-changelog-pr.mjs` | Changelog check |
-| `node --test scripts/lib/package-version.test.mjs` | Policy unit tests |
+| Workflow | Purpose |
+| --- | --- |
+| `release-beta.yml` | Create a beta prerelease from `main` |
+| `prepare-stable-promotion.yml` | Create a reviewed main promotion PR |
+| `bootstrap-stable-line.yml` | Create a stable production branch once |
+| `release-stable.yml` | Create a stable or hotfix release |
+| `deploy-staging.yml` | Manually deploy a rehearsal ref |
+| `deploy-beta.yml` | Deploy a beta release or selected ref |
+| `deploy-main-to-vps.yml` | Deploy a published stable release or selected ref |
+| `forward-port-stable-fix.yml` | Carry stable fixes forward into `main` |

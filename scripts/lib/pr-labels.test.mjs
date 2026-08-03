@@ -5,7 +5,7 @@ import { computePrLabels, descriptiveLabels, routingLabels } from './pr-labels.m
 /** Helper to build default computePrLabels arguments with optional overrides. */
 const makeComputeArgs = (overrides) => ({
   head: 'feature/test',
-  base: 'beta',
+  base: 'main',
   changedFiles: ['src/App.tsx'],
   mergeable: null,
   draft: false,
@@ -14,20 +14,14 @@ const makeComputeArgs = (overrides) => ({
 });
 
 describe('pr routing labels', () => {
-  it('tags beta promotion', () => {
-    const labels = routingLabels({ head: 'beta', base: 'main' });
+  it('tags stable promotion preparation', () => {
+    const labels = routingLabels({ head: 'promotion/v2.0.0', base: 'main' });
     assert.ok(labels.has('promotion'));
   });
 
-  it('prioritizes feature integration to beta', () => {
-    const labels = routingLabels({ head: 'feature/foo', base: 'beta' });
-    assert.ok(labels.has('feature'));
-    assert.ok(labels.has('integration:primary'));
-  });
-
-  it('allows other branch names to beta', () => {
-    const labels = routingLabels({ head: 'chore/docs', base: 'beta' });
-    assert.ok(labels.has('integration:other'));
+  it('keeps ordinary main source branches free of beta routing labels', () => {
+    const labels = routingLabels({ head: 'chore/docs', base: 'main' });
+    assert.equal(labels.has('promotion'), false);
   });
 });
 
@@ -44,9 +38,8 @@ describe('pr descriptive labels', () => {
   });
 
   it('tags refactor branches with routing and Refactor', () => {
-    const routing = routingLabels({ head: 'refactor/labels', base: 'beta' });
+    const routing = routingLabels({ head: 'refactor/labels', base: 'main' });
     assert.ok(routing.has('refactor'));
-    assert.ok(routing.has('integration:other'));
 
     const labels = descriptiveLabels({ head: 'refactor/labels', changedFiles: ['src/App.tsx'] });
     assert.ok(labels.has('Refactor'));
