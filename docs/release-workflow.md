@@ -122,7 +122,6 @@ GitHub Release notes are for people who want repository-level traceability:
 
 The release script resolves the previous tag from the same release history, or accepts an operator-provided override. GitHub's generated notes therefore describe the exact release range rather than a time window.
 
-<<<<<<< HEAD
 ## Stable fixes forward-port into main
 
 When a reviewed PR merges into a `stable/X.Y.x` branch, the
