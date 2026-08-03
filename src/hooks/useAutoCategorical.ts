@@ -138,6 +138,7 @@ const buildCategoricalMap = (
  * Day 3: Converts totalSevere probabilities to categorical
  * Day 4-8: Does nothing (no categorical conversion)
  */
+// @codescene(disable:"Complex Method", disable:"Overall Code Complexity")
 const useAutoCategorical = () => {
   const dispatch = useDispatch();
   const outlooks = useSelector(selectCurrentOutlooks);

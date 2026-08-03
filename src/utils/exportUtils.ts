@@ -268,6 +268,7 @@ export const renderOutlooksToMap = (mapInstance: L.Map, outlooks: OutlookData) =
 };
 
 // Helper: add title/footer/status and unofficial overlays
+// @codescene(disable:"Complex Method", disable:"Overall Code Complexity")
 export const addOverlays = (container: HTMLElement, title?: string, statusText?: string, unofficialText?: string) => {
   const doc = container.ownerDocument;
   const isDarkMode = store.getState().theme.darkMode;

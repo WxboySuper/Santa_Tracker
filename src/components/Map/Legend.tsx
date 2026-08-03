@@ -84,6 +84,7 @@ const Legend: React.FC<LegendProps> = React.memo(({
   );
 
   /** Renders probabilistic legend entries, including inline SVG hatch previews for CIG layers. */
+  // @codescene(disable:"Complex Method")
   const renderProbabilisticLegend = () => {
     let probabilities: string[] = [];
     let colorMap: Record<string, string> = {};

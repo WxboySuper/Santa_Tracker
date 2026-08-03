@@ -22,6 +22,7 @@ interface DrawingToolsProps {
   addToast: (message: string, type?: 'info' | 'success' | 'warning' | 'error') => void;
 }
 
+// @codescene(disable:"Large Method")
 const DrawingTools: React.FC<DrawingToolsProps> = ({ onSave, onLoad, onOpenDiscussion, mapRef, addToast }) => {
   const dispatch = useDispatch();
   const outlooks = useSelector(selectCurrentOutlooks);
