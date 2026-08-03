@@ -176,6 +176,69 @@ describe('instrument', () => {
   });
 
   it.each([
+    ['raw Failed to fetch', 'Failed to fetch'],
+    ['TypeError-prefixed Failed to fetch', 'TypeError: Failed to fetch'],
+    ['NetworkError-prefixed Failed to fetch', 'NetworkError: Failed to fetch'],
+  ])('drops no-stack fetch-failure lifecycle noise (GFC-WEB-Q): %s', (_label, message) => {
+    jest.isolateModules(() => {
+      globalScope.__GFC_SENTRY_DSN__ = 'https://example@o0.ingest.sentry.io/0';
+      // skipcq: JS-C1003, JS-0359 — isolateModules needs require for fresh module load
+      const { beforeSend } = require('./instrument');
+
+      expect(beforeSend(createRequestLifecycleEvent(message), {})).toBeNull();
+    });
+  });
+
+  it('drops fetch-failure noise even when breadcrumbs provide context (GFC-WEB-Q)', () => {
+    jest.isolateModules(() => {
+      globalScope.__GFC_SENTRY_DSN__ = 'https://example@o0.ingest.sentry.io/0';
+      // skipcq: JS-C1003, JS-0359 — isolateModules needs require for fresh module load
+      const { beforeSend } = require('./instrument');
+      const event = {
+        ...createRequestLifecycleEvent('Failed to fetch'),
+        breadcrumbs: [
+          { category: 'redux.action', message: 'forecast/applyAutoCategoricalSync' },
+          { category: 'ui.click' },
+          { category: 'http', message: 'firestore.googleapis.com', data: { status_code: 200 } },
+        ],
+      };
+
+      expect(beforeSend(event, {})).toBeNull();
+    });
+  });
+
+  it('drops fetch-failure noise when only third-party SDK frames are present (GFC-WEB-Q)', () => {
+    jest.isolateModules(() => {
+      globalScope.__GFC_SENTRY_DSN__ = 'https://example@o0.ingest.sentry.io/0';
+      // skipcq: JS-C1003, JS-0359 — isolateModules needs require for fresh module load
+      const { beforeSend } = require('./instrument');
+      const event = {
+        ...createRequestLifecycleEvent('Failed to fetch', true),
+        breadcrumbs: [{ category: 'ui.click' }],
+      };
+      event.exception.values[0].stacktrace = {
+        frames: [
+          { filename: 'node_modules/@firebase/webchannel-wrapper/dist/index.js', function: 'a' },
+          { filename: 'node_modules/@firebase/firestore/dist/index.js', function: 'b' },
+        ],
+      };
+
+      expect(beforeSend(event, {})).toBeNull();
+    });
+  });
+
+  it('keeps fetch-failure errors when they carry application stack frames', () => {
+    jest.isolateModules(() => {
+      globalScope.__GFC_SENTRY_DSN__ = 'https://example@o0.ingest.sentry.io/0';
+      // skipcq: JS-C1003, JS-0359 — isolateModules needs require for fresh module load
+      const { beforeSend } = require('./instrument');
+      const event = createRequestLifecycleEvent('Failed to fetch', true);
+
+      expect(beforeSend(event, {})).toBe(event);
+    });
+  });
+
+  it.each([
     ['double-space NetworkError', 'NetworkError:  A network error occurred.'],
     ['leading/trailing whitespace', '  AbortError:   The user aborted a request.  '],
   ])('drops whitespace variants of request lifecycle noise: %s', (_label, message) => {
