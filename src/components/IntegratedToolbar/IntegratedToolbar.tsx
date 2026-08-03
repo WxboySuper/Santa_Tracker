@@ -44,10 +44,7 @@ import {
   outlookShortcuts,
 } from '../ForecastWorkspace/workspaceMeta';
 
-const getGhostLayerColor = (type: OutlookType) => getOutlookColor({
-  outlookType: type,
-  probability: type === 'categorical' ? 'SLGT' : type === 'day4-8' ? '15%' : '15%',
-});
+const getGhostLayerColor = (type: OutlookType) => getOutlookColor({ outlookType: type, probability: type === 'categorical' ? 'SLGT' : '15%' });
 import TabbedToolbarSelectionStrip from './TabbedToolbarSelectionStrip';
 import CustomDrawPanel from './CustomDrawPanel';
 import CustomProductsDialog from './CustomProductsDialog';
