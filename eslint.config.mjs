@@ -93,6 +93,7 @@ export default [
         assertFunctionNames: [
           'expect',
           'expectRegistryValidationError',
+          'expectBeforeSendToDrop',
           'expectBeforeSendToKeep',
           'expectCopyVerification',
           'expectCopyResult',
