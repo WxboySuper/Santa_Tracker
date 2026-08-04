@@ -1,4 +1,30 @@
-import type { DayType } from '../types/outlooks';
+import type {
+  CategoricalRiskLevel,
+  CIGLevel,
+  Day48Probability,
+  DayType,
+  HailProbability,
+  OutlookType,
+  TornadoProbability,
+  TotalSevereProbability,
+  WindProbability,
+} from '../types/outlooks';
+
+/** Probability options available for each outlook type across a forecast day. */
+export interface OutlookConstraints {
+  outlookTypes: readonly OutlookType[];
+  allowsProbabilities: boolean;
+  allowedCIG: readonly CIGLevel[];
+  allowedCategorical: readonly CategoricalRiskLevel[];
+  requiresConversion: boolean;
+  probabilities: {
+    tornado?: readonly TornadoProbability[];
+    wind?: readonly WindProbability[];
+    hail?: readonly HailProbability[];
+    totalSevere?: readonly TotalSevereProbability[];
+    'day4-8'?: readonly Day48Probability[];
+  };
+}
 
 const CONSTRAINTS_BY_DAY = {
   1: {
@@ -87,6 +113,6 @@ const FALLBACK_CONSTRAINTS = {
 } as const;
 
 /** Get constraints for a specific outlook day, including a safe runtime fallback. */
-export function getOutlookConstraints(day: DayType | number) {
+export function getOutlookConstraints(day: DayType | number): OutlookConstraints {
   return CONSTRAINTS_BY_DAY[day as DayType] ?? FALLBACK_CONSTRAINTS;
 }
