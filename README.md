@@ -94,8 +94,14 @@ Use `pnpm` consistently for this repo so the checked-in `pnpm-lock.yaml` remains
 | `pnpm start` | Vite dev server at http://localhost:3000 |
 | `pnpm run dev` | Vite dev server at http://localhost:3000 |
 | `pnpm test` | Run Jest unit test suite |
+| `pnpm run lint` | Run ESLint over the codebase |
 | `pnpm run test:e2e` | Run Playwright end-to-end tests |
 | `pnpm run build` | Production build to `/build` via Vite |
+
+The `typescript` dependency is the TypeScript 6 compatibility package
+(`@typescript/typescript6`) so `typescript-eslint` has the compiler API it
+needs; `@typescript/native` provides the fast native `tsc` used by
+`pnpm run typecheck`. Both install side-by-side.
 
 ### Build targets
 
