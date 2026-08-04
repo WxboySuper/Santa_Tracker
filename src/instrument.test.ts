@@ -110,7 +110,7 @@ describe('instrument', () => {
     },
   });
 
-  const createRequestLifecycleEventWithFrames = (value: string, frames: unknown[]): any => ({
+  const createRequestLifecycleEventWithFrames = (value: string, frames: unknown[]) => ({
     exception: {
       values: [{ value, stacktrace: { frames } }],
     },
