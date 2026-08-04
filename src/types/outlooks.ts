@@ -80,7 +80,7 @@ export interface RiskArea extends Feature {
     isSignificant: boolean;
     derivedFrom?: string;
     originalProbability?: string;
-    [key: string]: any;
+    [key: string]: unknown;
   };
   id?: string | number;
 }

@@ -8,11 +8,7 @@ import {
 } from '../../store/forecastSlice';
 import {
   OutlookType,
-  CategoricalRiskLevel,
-  TornadoProbability,
-  WindProbability,
-  HailProbability,
-  CIGLevel
+  Probability
 } from '../../types/outlooks';
 import { getAvailableProbabilities } from './outlookPanelUtils';
 import { getOutlookConstraints } from '../../utils/outlookUtils';
@@ -53,8 +49,8 @@ export function useOutlookPanelLogic() {
   );
 
   const handleProbabilityChange = useCallback(
-    (probability: TornadoProbability | WindProbability | HailProbability | CategoricalRiskLevel | CIGLevel | any) => {
-      dispatch(setActiveProbability(probability));
+    (probability: string) => {
+      dispatch(setActiveProbability(probability as Probability));
     },
     [dispatch]
   );

@@ -1,4 +1,4 @@
-import { OutlookType, CategoricalRiskLevel, TornadoProbability, WindProbability, HailProbability, TotalSevereProbability, CIGLevel, DayType } from '../../types/outlooks';
+import { OutlookType, CategoricalRiskLevel, TornadoProbability, WindProbability, HailProbability, TotalSevereProbability, Day48Probability, CIGLevel, DayType } from '../../types/outlooks';
 import { colorMappings, getOutlookConstraints } from '../../utils/outlookUtils';
 
 /**
@@ -7,7 +7,8 @@ import { colorMappings, getOutlookConstraints } from '../../utils/outlookUtils';
  */
 export const getAvailableProbabilities = (activeOutlookType: OutlookType, currentDay: DayType = 1) => {
   const constraints = getOutlookConstraints(currentDay);
-  const cigs = [...constraints.allowedCIG]; // Available hatching options based on day
+  const cigs = constraints.allowedCIG as readonly CIGLevel[]; // Available hatching options based on day
+  const probabilities = constraints.probabilities as Partial<Record<OutlookType, readonly string[]>>;
   
   switch (activeOutlookType) {
     case 'categorical':
@@ -21,33 +22,33 @@ export const getAvailableProbabilities = (activeOutlookType: OutlookType, curren
       }
     case 'tornado':
       // Day 1/2 only
-      if (constraints.probabilities.tornado) {
-        return [...constraints.probabilities.tornado, ...cigs] as (TornadoProbability | CIGLevel)[];
+      if (probabilities.tornado) {
+        return [...probabilities.tornado, ...cigs] as (TornadoProbability | CIGLevel)[];
       }
       return [];
     case 'wind':
       // Day 1/2 only
-      if (constraints.probabilities.wind) {
-        return [...constraints.probabilities.wind, ...cigs] as (WindProbability | CIGLevel)[];
+      if (probabilities.wind) {
+        return [...probabilities.wind, ...cigs] as (WindProbability | CIGLevel)[];
       }
       return [];
     case 'hail':
       // Day 1/2 only; CIG3 (crosshatch) is not a valid hail hatching style
-      if (constraints.probabilities.hail) {
+      if (probabilities.hail) {
         const hailCigs = cigs.filter(c => c !== 'CIG3');
-        return [...constraints.probabilities.hail, ...hailCigs] as (HailProbability | CIGLevel)[];
+        return [...probabilities.hail, ...hailCigs] as (HailProbability | CIGLevel)[];
       }
       return [];
     case 'totalSevere':
       // Day 3 only
-      if (constraints.probabilities.totalSevere) {
-        return [...constraints.probabilities.totalSevere, ...cigs] as (TotalSevereProbability | CIGLevel)[];
+      if (probabilities.totalSevere) {
+        return [...probabilities.totalSevere, ...cigs] as (TotalSevereProbability | CIGLevel)[];
       }
       return [];
     case 'day4-8':
       // Day 4-8 only (no CIG)
-      if (constraints.probabilities['day4-8']) {
-        return [...constraints.probabilities['day4-8']];
+      if (probabilities['day4-8']) {
+        return probabilities['day4-8'] as Day48Probability[];
       }
       return [];
     default:

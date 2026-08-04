@@ -13,7 +13,6 @@ const reportWebVitals = (onPerfEntry?: ReportCallback) => {
       })
       .catch((err) => {
         // Dynamic import failed; log for diagnostics.
-        // eslint-disable-next-line no-console
         console.error('Failed to load web-vitals', err);
       });
   }
