@@ -85,14 +85,7 @@ describe('instrument', () => {
     ["Safari/WebKit alternate minified name", "null is not an object (evaluating 'b.canvas')"],
     ["Safari/WebKit two-character minified name", "null is not an object (evaluating 'ab.canvas')"],
   ])('drops OpenLayers canvas render-frame noise: %s', (_label, message) => {
-    jest.isolateModules(() => {
-      globalScope.__GFC_SENTRY_DSN__ = 'https://example@o0.ingest.sentry.io/0';
-      // skipcq: JS-C1003, JS-0359 — isolateModules needs require for fresh module load
-      const { beforeSend } = require('./instrument');
-      const event = createOpenLayersCanvasEvent(message);
-
-      expect(beforeSend(event, {})).toBeNull();
-    });
+    expectBeforeSendToDrop(() => createOpenLayersCanvasEvent(message));
   });
 
   it('keeps matching canvas TypeErrors when they come from application frames', () => {
@@ -114,6 +107,12 @@ describe('instrument', () => {
             : undefined,
         },
       ],
+    },
+  });
+
+  const createRequestLifecycleEventWithFrames = (value: string, frames: unknown[]): any => ({
+    exception: {
+      values: [{ value, stacktrace: { frames } }],
     },
   });
 
@@ -140,6 +139,14 @@ describe('instrument', () => {
     return require('./instrument').beforeSend;
   };
 
+  const expectBeforeSendToDrop = (createEvent: () => any) => {
+    jest.isolateModules(() => {
+      const beforeSend = loadBeforeSend();
+
+      expect(beforeSend(createEvent(), {})).toBeNull();
+    });
+  };
+
   const expectBeforeSendToKeep = (createEvent: () => any) => {
     jest.isolateModules(() => {
       const beforeSend = loadBeforeSend();
@@ -155,58 +162,72 @@ describe('instrument', () => {
     ['GFC-WEB-E wrapped AbortError', 'AbortError: The user aborted a request.'],
     ['bare AbortError variant', 'The user aborted a request.'],
   ])('drops no-stack request lifecycle noise: %s', (_label, message) => {
-    jest.isolateModules(() => {
-      globalScope.__GFC_SENTRY_DSN__ = 'https://example@o0.ingest.sentry.io/0';
-      // skipcq: JS-C1003, JS-0359 — isolateModules needs require for fresh module load
-      const { beforeSend } = require('./instrument');
-
-      expect(beforeSend(createRequestLifecycleEvent(message), {})).toBeNull();
-    });
+    expectBeforeSendToDrop(() => createRequestLifecycleEvent(message));
   });
 
   it('keeps matching request lifecycle errors with stack frames', () => {
-    jest.isolateModules(() => {
-      globalScope.__GFC_SENTRY_DSN__ = 'https://example@o0.ingest.sentry.io/0';
-      // skipcq: JS-C1003, JS-0359 — isolateModules needs require for fresh module load
-      const { beforeSend } = require('./instrument');
-      const event = createRequestLifecycleEvent('A network error occurred.', true);
+    expectBeforeSendToKeep(() => createRequestLifecycleEvent('A network error occurred.', true));
+  });
 
-      expect(beforeSend(event, {})).toBe(event);
-    });
+  it.each([
+    ['raw Failed to fetch', 'Failed to fetch'],
+    ['TypeError-prefixed Failed to fetch', 'TypeError: Failed to fetch'],
+    ['NetworkError-prefixed Failed to fetch', 'NetworkError: Failed to fetch'],
+  ])('drops no-stack fetch-failure lifecycle noise (GFC-WEB-Q): %s', (_label, message) => {
+    expectBeforeSendToDrop(() => createRequestLifecycleEvent(message));
+  });
+
+  it('drops fetch-failure noise even when breadcrumbs provide context (GFC-WEB-Q)', () => {
+    expectBeforeSendToDrop(() => ({
+      ...createRequestLifecycleEvent('Failed to fetch'),
+      breadcrumbs: [
+        { category: 'redux.action', message: 'forecast/applyAutoCategoricalSync' },
+        { category: 'ui.click' },
+        { category: 'http', message: 'firestore.googleapis.com', data: { status_code: 200 } },
+      ],
+    }));
+  });
+
+  it('drops fetch-failure noise when only third-party SDK frames are present (GFC-WEB-Q)', () => {
+    expectBeforeSendToDrop(() =>
+      createRequestLifecycleEventWithFrames('Failed to fetch', [
+        { filename: 'node_modules/@firebase/webchannel-wrapper/dist/index.js', function: 'a' },
+        { filename: 'node_modules/@firebase/firestore/dist/index.js', function: 'b' },
+      ])
+    );
+  });
+
+  it('keeps fetch-failure errors when they carry application stack frames', () => {
+    expectBeforeSendToKeep(() => createRequestLifecycleEvent('Failed to fetch', true));
+  });
+
+  it('drops fetch-failure noise when frames point into the bare firebase package', () => {
+    expectBeforeSendToDrop(() =>
+      createRequestLifecycleEventWithFrames('Failed to fetch', [
+        { filename: 'firebase/firestore/dist/index.mjs', function: 'n' },
+      ])
+    );
+  });
+
+  it('keeps fetch-failure noise when a frame has no filename (conservative)', () => {
+    expectBeforeSendToKeep(() =>
+      createRequestLifecycleEventWithFrames('Failed to fetch', [{ filename: '', function: 'n' }])
+    );
   });
 
   it.each([
     ['double-space NetworkError', 'NetworkError:  A network error occurred.'],
     ['leading/trailing whitespace', '  AbortError:   The user aborted a request.  '],
   ])('drops whitespace variants of request lifecycle noise: %s', (_label, message) => {
-    jest.isolateModules(() => {
-      globalScope.__GFC_SENTRY_DSN__ = 'https://example@o0.ingest.sentry.io/0';
-      // skipcq: JS-C1003, JS-0359 — isolateModules needs require for fresh module load
-      const { beforeSend } = require('./instrument');
-
-      expect(beforeSend(createRequestLifecycleEvent(message), {})).toBeNull();
-    });
+    expectBeforeSendToDrop(() => createRequestLifecycleEvent(message));
   });
 
   it('drops no-stack opaque global error noise from Firefox', () => {
-    jest.isolateModules(() => {
-      globalScope.__GFC_SENTRY_DSN__ = 'https://example@o0.ingest.sentry.io/0';
-      // skipcq: JS-C1003, JS-0359 — isolateModules needs require for fresh module load
-      const { beforeSend } = require('./instrument');
-
-      expect(beforeSend(createOpaqueGlobalError(), {})).toBeNull();
-    });
+    expectBeforeSendToDrop(() => createOpaqueGlobalError());
   });
 
   it('keeps opaque global errors when they have application stack frames', () => {
-    jest.isolateModules(() => {
-      globalScope.__GFC_SENTRY_DSN__ = 'https://example@o0.ingest.sentry.io/0';
-      // skipcq: JS-C1003, JS-0359 — isolateModules needs require for fresh module load
-      const { beforeSend } = require('./instrument');
-      const event = createOpaqueGlobalError(undefined, true);
-
-      expect(beforeSend(event, {})).toBe(event);
-    });
+    expectBeforeSendToKeep(() => createOpaqueGlobalError(undefined, true));
   });
 
   it('keeps opaque global errors when breadcrumbs provide context', () => {
@@ -228,25 +249,10 @@ describe('instrument', () => {
   });
 
   it('keeps matching request lifecycle messages without exception values', () => {
-    jest.isolateModules(() => {
-      globalScope.__GFC_SENTRY_DSN__ = 'https://example@o0.ingest.sentry.io/0';
-      // skipcq: JS-C1003, JS-0359 — isolateModules needs require for fresh module load
-      const { beforeSend } = require('./instrument');
-      const event = { message: 'A network error occurred.' };
-
-      expect(beforeSend(event, {})).toBe(event);
-    });
+    expectBeforeSendToKeep(() => ({ message: 'A network error occurred.' }));
   });
 
-
   it('keeps unrelated application errors', () => {
-    jest.isolateModules(() => {
-      globalScope.__GFC_SENTRY_DSN__ = 'https://example@o0.ingest.sentry.io/0';
-      // skipcq: JS-C1003, JS-0359 — isolateModules needs require for fresh module load
-      const { beforeSend } = require('./instrument');
-      const event = createRequestLifecycleEvent('Cannot read properties of undefined');
-
-      expect(beforeSend(event, {})).toBe(event);
-    });
+    expectBeforeSendToKeep(() => createRequestLifecycleEvent('Cannot read properties of undefined'));
   });
 });
