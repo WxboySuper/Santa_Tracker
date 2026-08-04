@@ -18,11 +18,16 @@ function isSafeDestination(destination) {
   return trimmed.startsWith('#') || (trimmed.startsWith('/') && !trimmed.startsWith('//')) || /^(?:https?:|mailto:)/i.test(trimmed) || !/^[a-z][a-z\d+.-]*:/i.test(trimmed);
 }
 
+/** Return whether the destination should remain unchanged during rendering. */
+function shouldPreserveDestination(destination, context, resolveMarkdownLink) {
+  return !resolveMarkdownLink || !context?.sourcePath || !context.pageMap || destination.startsWith('#') || /^(?:https?:|mailto:)/i.test(destination) || destination.startsWith('/');
+}
+
 /** Resolve a local Markdown link to its generated page, preserving fragments. */
 function resolveDestination(destination, context, resolveMarkdownLink) {
   const trimmed = destination.trim();
   if (!isSafeDestination(trimmed)) return '#';
-  if (!resolveMarkdownLink || !context?.sourcePath || !context.pageMap || trimmed.startsWith('#') || /^(?:https?:|mailto:)/i.test(trimmed) || trimmed.startsWith('/')) return trimmed;
+  if (shouldPreserveDestination(trimmed, context, resolveMarkdownLink)) return trimmed;
   const [target, fragment] = trimmed.split('#', 2);
   if (!target.toLowerCase().endsWith('.md')) return trimmed;
   const normalized = path.posix.normalize(path.posix.join(path.posix.dirname(context.sourcePath), target));
@@ -33,11 +38,11 @@ function resolveDestination(destination, context, resolveMarkdownLink) {
 /** Render inline Markdown emphasis, code, images, and links. */
 function inlineMarkdown(value, context = {}) {
   const tokens = [];
-  const protect = (html) => { const token = `\u0000${tokens.length}\u0000`; tokens.push(html); return token; };
+  const protect = (html) => { const token = `__GFC_LINK_${tokens.length}__`; tokens.push(html); return token; };
   let source = value.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (_, alt, destination) => protect(`<img alt="${escapeHtml(alt)}" src="${escapeHtml(resolveDestination(destination, context, false))}">`));
   source = source.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_, label, destination) => protect(`<a href="${escapeHtml(resolveDestination(destination, context, true))}">${escapeHtml(label)}</a>`));
-  let html = escapeHtml(source).replace(/`([^`]+)`/g, '<code>$1</code>').replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>').replace(/\*([^*]+)\*/g, '<em>$1</em>');
-  return html.replace(/\u0000(\d+)\u0000/g, (_, index) => tokens[Number(index)]);
+  const html = escapeHtml(source).replace(/`([^`]+)`/g, '<code>$1</code>').replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>').replace(/\*([^*]+)\*/g, '<em>$1</em>');
+  return html.replace(/__GFC_LINK_(\d+)__/gu, (_, index) => tokens[Number(index)]);
 }
 
 /** Identify a Markdown table row. */
