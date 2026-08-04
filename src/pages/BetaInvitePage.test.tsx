@@ -1,4 +1,3 @@
-import React from 'react';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import BetaInvitePage from './BetaInvitePage';

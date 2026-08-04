@@ -1,4 +1,4 @@
-import { render, screen, act } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import App from './App';
 import { Outlet as MockOutlet } from 'react-router-dom';
 
@@ -45,9 +45,7 @@ jest.mock('./components/PrivacyPolicy/PrivacyPolicyModal', () => ({
 
 describe('App Simple', () => {
   test('renders HomePage by default', () => {
-    act(() => {
-      render(<App />);
-    });
+    render(<App />);
     expect(screen.getByText(/HomePage Mock/i)).toBeInTheDocument();
   });
 });

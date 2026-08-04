@@ -129,7 +129,7 @@ describe('VerificationPanel', () => {
     });
     renderPanel(store, { activeOutlookType: 'categorical', selectedDay: 1, activePanel: 'analysis' });
 
-    await waitFor(() => expect(screen.getByText(/Report Summary/i)).toBeInTheDocument());
+    expect(await screen.findByText(/Report Summary/i)).toBeInTheDocument();
     expect(screen.getByText(/2026-04-20/)).toBeInTheDocument();
     expect(screen.getAllByText(/Total Reports:/i).length).toBeGreaterThan(0);
     expect(screen.getByText(/Tornado: 1/i)).toBeInTheDocument();
@@ -175,7 +175,7 @@ describe('VerificationPanel', () => {
       fireEvent.change(screen.getByLabelText(/Select Date/i), { target: { value: '2026-04-19' } });
       fireEvent.click(screen.getByRole('button', { name: /Load Reports/i }));
 
-      await waitFor(() => expect(screen.getByText(/Service unavailable/i)).toBeInTheDocument());
+      expect(await screen.findByText(/Service unavailable/i)).toBeInTheDocument();
     } finally {
       jest.useRealTimers();
     }

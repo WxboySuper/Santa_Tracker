@@ -139,18 +139,18 @@ describe('instrument', () => {
     return require('./instrument').beforeSend;
   };
 
-  const expectBeforeSendToDrop = (createEvent: () => any) => {
+  const expectBeforeSendToDrop = <T extends object>(createEvent: () => T) => {
     jest.isolateModules(() => {
       const beforeSend = loadBeforeSend();
 
-      expect(beforeSend(createEvent(), {})).toBeNull();
+      expect(beforeSend(createEvent() as Parameters<typeof beforeSend>[0], {})).toBeNull();
     });
   };
 
-  const expectBeforeSendToKeep = (createEvent: () => any) => {
+  const expectBeforeSendToKeep = <T extends object>(createEvent: () => T) => {
     jest.isolateModules(() => {
       const beforeSend = loadBeforeSend();
-      const event = createEvent();
+      const event = createEvent() as Parameters<typeof beforeSend>[0];
 
       expect(beforeSend(event, {})).toBe(event);
     });

@@ -413,7 +413,7 @@ describe('ForecastPage layout selection', () => {
 
     renderForecastPage(createStore());
 
-    await waitFor(() => expect(screen.getByText('New day detected')).toBeInTheDocument());
+    expect(await screen.findByText('New day detected')).toBeInTheDocument();
     expect(localStorage.getItem('gfc-last-active-local-day:anonymous')).toBe(today);
     expect(screen.getByRole('button', { name: 'Download a copy & start new day' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Replace without saving' })).toBeInTheDocument();

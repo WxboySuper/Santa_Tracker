@@ -124,7 +124,7 @@ describe('VerificationMode', () => {
     const fileInput = screen.getByLabelText(/Choose Forecast File/i) as HTMLInputElement;
     await user.upload(fileInput, new File(['{}'], 'forecast.json', { type: 'application/json' }));
 
-    await waitFor(() => expect(screen.getByText(/Forecast Loaded/i)).toBeInTheDocument());
+    expect(await screen.findByText(/Forecast Loaded/i)).toBeInTheDocument();
     await waitFor(() => expect(screen.getByTestId('verification-panel')).toHaveTextContent('setup:categorical:1'));
     expect(screen.getByTestId('verification-map')).toHaveTextContent('categorical:1');
     expect(screen.getByRole('button', { name: /Day 1/i })).toBeInTheDocument();
@@ -145,7 +145,7 @@ describe('VerificationMode', () => {
     expect(screen.getByRole('dialog')).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: /Clear/i }));
 
-    await waitFor(() => expect(screen.getByText(/Choose Forecast File/i)).toBeInTheDocument());
+    expect(await screen.findByText(/Choose Forecast File/i)).toBeInTheDocument();
     expect(screen.queryByText(/Forecast Loaded/i)).not.toBeInTheDocument();
   });
 
@@ -176,7 +176,7 @@ describe('VerificationMode', () => {
     expect(mockAddToast).not.toHaveBeenCalled();
 
     await user.upload(fileInput, new File(['{}'], 'forecast.json', { type: 'application/json' }));
-    await waitFor(() => expect(screen.getByText(/Forecast Loaded/i)).toBeInTheDocument());
+    expect(await screen.findByText(/Forecast Loaded/i)).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: /Load Different Forecast/i }));
     expect(screen.getByRole('dialog')).toBeInTheDocument();

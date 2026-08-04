@@ -186,11 +186,9 @@ test('orphaned data after identity deletion does not report failure', async () =
     userEntitlements: { [uid]: { stripeCustomerId: 'cus_123' } },
   });
   let authDeleted = false;
-  let authGetCount = 0;
   const adminAuth = {
     deleteUser: async () => { authDeleted = true; },
     getUser: async () => {
-      authGetCount++;
       // After deleteUser, identity is gone
       if (authDeleted) {
         const error = new Error('not found');

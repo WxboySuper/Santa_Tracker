@@ -78,9 +78,9 @@ const renderWithProvider = (ui: React.ReactElement) => {
 describe('ForecastWorkspaceModals', () => {
   test('wires hidden file input and modal callbacks', () => {
     const controller = createController();
-    const { container } = renderWithProvider(<ForecastWorkspaceModals controller={controller} />);
+    renderWithProvider(<ForecastWorkspaceModals controller={controller} />);
 
-    const input = container.querySelector('input[type="file"]') as HTMLInputElement;
+    const input = screen.getByText('', { selector: 'input[type="file"]' }) as HTMLInputElement;
     expect(input).toHaveAttribute('accept', '.json');
     fireEvent.change(input);
     expect(controller.onFileSelect).toHaveBeenCalled();

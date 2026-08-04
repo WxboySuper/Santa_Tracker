@@ -68,7 +68,7 @@ describe('CustomProductsPage', () => {
     fireEvent.change(screen.getByLabelText('Category 1 stroke opacity'), { target: { value: '0.4' } });
     fireEvent.change(screen.getByLabelText('Category 1 stroke width'), { target: { value: '4' } });
     await user.selectOptions(screen.getByLabelText('Category 1 hatch'), 'crosshatch');
-    const swatch = screen.getByLabelText('Product preview').querySelector<HTMLElement>('.custom-product-preview__swatch');
+    const swatch = screen.getByText('', { selector: 'span.custom-product-preview__swatch' }) as HTMLElement;
     expect(swatch).toHaveStyle({ borderColor: 'rgba(18, 52, 86, 0.4)', borderWidth: '4px' });
     expect(swatch?.style.backgroundImage).toContain('rgba(18, 52, 86, 0.4)');
     await user.click(screen.getByRole('button', { name: /Add category/i }));

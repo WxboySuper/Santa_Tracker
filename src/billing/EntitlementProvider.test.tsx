@@ -1,5 +1,4 @@
 import { renderHook, act } from '@testing-library/react';
-import React from 'react';
 import { EntitlementProvider, useEntitlement } from './EntitlementProvider';
 import { useAuth } from '../auth/AuthProvider';
 import { onSnapshot } from 'firebase/firestore';

@@ -123,7 +123,7 @@ describe('CloudLoadModal', () => {
     expect(screen.getByText('Cycle 1')).toBeInTheDocument();
     expect(screen.getByText('Cycle 2')).toBeInTheDocument();
 
-    const cycle1Button = screen.getByText('Cycle 1').closest('button');
+    const cycle1Button = screen.getByRole('button', { name: /Cycle 1/i });
     fireEvent.click(cycle1Button);
 
     const loadButton = screen.getByRole('button', { name: 'Load' });
@@ -147,10 +147,9 @@ describe('CloudLoadModal', () => {
       />
     );
 
-    if (expected === 'loader-icon') {
-      expect(screen.getByTestId('loader-icon')).toBeInTheDocument();
-    } else {
-      expect(screen.getByText(expected)).toBeInTheDocument();
-    }
+    const indicator = expected === 'loader-icon'
+      ? screen.queryByTestId('loader-icon')
+      : screen.queryByText(expected);
+    expect(indicator).toBeInTheDocument();
   });
 });

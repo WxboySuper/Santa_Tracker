@@ -666,7 +666,7 @@ describe('forecastSlice undo/redo', () => {
   });
 
   it('marks workflow metadata completed so awareness does not recommend it again', () => {
-    let state = reducer(undefined, startBlankCycle({
+    const state = reducer(undefined, startBlankCycle({
       workflowTemplate: { id: 'severe-day1', label: 'Severe Convective Day 1', groupings: ['day1'] },
       cycleDate: '2026-07-13',
     }));
