@@ -1,5 +1,5 @@
 import type { FC, ReactNode } from 'react';
-import { NavLink, useLocation } from 'react-router-dom';
+import { NavLink, useLocation } from 'react-router';
 import {
   Map,
   MessageSquare,

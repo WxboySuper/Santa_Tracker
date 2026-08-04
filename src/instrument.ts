@@ -6,7 +6,7 @@ import {
   useNavigationType,
   createRoutesFromChildren,
   matchRoutes,
-} from 'react-router-dom';
+} from 'react-router';
 
 declare const __GFC_SENTRY_DSN__: string;
 declare const __GFC_SENTRY_ENVIRONMENT__: string;

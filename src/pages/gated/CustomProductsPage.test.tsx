@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter } from 'react-router';
 import type { CustomCategoryId, HostedCustomProduct } from '../../types/customProducts';
 import CustomProductsPage from './CustomProductsPage';
 
@@ -10,8 +10,8 @@ const mockNavigate = jest.fn();
 
 jest.mock('../../auth/AuthProvider', () => ({ useAuth: () => mockUseAuth() }));
 jest.mock('../../hooks/useCustomProducts', () => ({ useCustomProducts: () => mockUseCustomProducts() }));
-jest.mock('react-router-dom', () => ({
-  ...jest.requireActual('react-router-dom'),
+jest.mock('react-router', () => ({
+  ...jest.requireActual('react-router'),
   useNavigate: () => mockNavigate,
 }));
 

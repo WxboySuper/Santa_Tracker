@@ -12,8 +12,8 @@ const mockHandleFileSelect = jest.fn();
 const mockHandleOpenFilePicker = jest.fn();
 const mockHandleSave = jest.fn();
 
-jest.mock('react-router-dom', () => ({
-  ...jest.requireActual('react-router-dom'),
+jest.mock('react-router', () => ({
+  ...jest.requireActual('react-router'),
   useNavigate: () => mockNavigate,
   useOutletContext: () => ({ addToast: mockAddToast }),
 }));

@@ -2,7 +2,7 @@ import React, { useRef } from 'react';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Provider } from 'react-redux';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter } from 'react-router';
 import { configureStore } from '@reduxjs/toolkit';
 import forecastReducer from '../../store/forecastSlice';
 import overlaysReducer from '../../store/overlaysSlice';

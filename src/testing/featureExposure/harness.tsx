@@ -1,5 +1,5 @@
 import { render, screen, waitFor, type RenderResult } from '@testing-library/react';
-import { MemoryRouter, Routes } from 'react-router-dom';
+import { MemoryRouter, Routes } from 'react-router';
 import type { ReactElement } from 'react';
 import { BUILD_TARGETS, type BuildTarget } from '../../config/buildTarget';
 import type { FeatureKey } from '../../config/featureExposure';

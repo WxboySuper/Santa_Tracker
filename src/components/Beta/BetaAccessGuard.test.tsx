@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter, Routes, Route, Outlet, useOutletContext } from 'react-router-dom';
+import { MemoryRouter, Routes, Route, Outlet, useOutletContext } from 'react-router';
 import BetaAccessGuard from './BetaAccessGuard';
 import { useAuth } from '../../auth/AuthProvider';
 import { isBetaModeEnabled, isLocalBetaBypassEnabled } from '../../lib/betaAccess';

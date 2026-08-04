@@ -1,7 +1,7 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { Provider } from 'react-redux';
 import { configureStore } from '@reduxjs/toolkit';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter } from 'react-router';
 import { DiscussionPage } from './DiscussionPage';
 import forecastReducer, { setDiscussionGroupings, setForecastDay } from '../store/forecastSlice';
 import overlaysReducer from '../store/overlaysSlice';
@@ -14,8 +14,8 @@ jest.mock('../auth/AuthProvider', () => ({
   useAuth: jest.fn(),
 }));
 
-jest.mock('react-router-dom', () => ({
-  ...jest.requireActual('react-router-dom'),
+jest.mock('react-router', () => ({
+  ...jest.requireActual('react-router'),
   useOutletContext: () => ({
     addToast: jest.fn(),
   }),

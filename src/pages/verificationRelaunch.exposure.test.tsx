@@ -1,5 +1,5 @@
 import { render, screen } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter } from 'react-router';
 import { BUILD_TARGETS } from '../config/buildTarget';
 import { assertNoFetchTo, withNoAsyncSideEffects } from '../testing/featureExposure/harness';
 

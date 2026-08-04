@@ -1,5 +1,5 @@
 import React from 'react';
-import { Navigate } from 'react-router-dom';
+import { Navigate } from 'react-router';
 import { Lock, LogOut } from 'lucide-react';
 import BetaAuthCard from '../components/Beta/BetaAuthCard';
 import { BetaHero, BetaInfoCard, BetaPageShell, BetaStatusPanel } from '../components/Beta/BetaPageLayout';

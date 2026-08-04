@@ -2,7 +2,7 @@ import mockReact from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { Provider } from 'react-redux';
 import { configureStore } from '@reduxjs/toolkit';
-import { BrowserRouter } from 'react-router-dom';
+import { BrowserRouter } from 'react-router';
 import appModeReducer from '../../store/appModeSlice';
 import forecastReducer from '../../store/forecastSlice';
 import themeReducer from '../../store/themeSlice';
@@ -29,8 +29,8 @@ const renderWithRouter = (ui: mockReact.ReactElement) => {
   );
 };
 
-jest.mock('react-router-dom', () => ({
-  ...jest.requireActual('react-router-dom'),
+jest.mock('react-router', () => ({
+  ...jest.requireActual('react-router'),
   Outlet: () => mockReact.createElement('div', { 'data-testid': 'test-content' }),
   useNavigate: () => jest.fn(),
   Link: ({ children }: { children: mockReact.ReactNode }) => mockReact.createElement('a', null, children),

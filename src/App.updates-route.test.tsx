@@ -1,5 +1,5 @@
 import { render, screen } from '@testing-library/react';
-import { MemoryRouter, Routes, Route } from 'react-router-dom';
+import { MemoryRouter, Routes, Route } from 'react-router';
 import BetaAccessGuard from './components/Beta/BetaAccessGuard';
 import UpdatesPage from './pages/UpdatesPage';
 
