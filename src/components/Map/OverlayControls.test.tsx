@@ -1,5 +1,4 @@
-import React from 'react';
-import { render, fireEvent } from '@testing-library/react';
+import { render, fireEvent, screen } from '@testing-library/react';
 import OverlayControls from './OverlayControls';
 
 const mockDispatch = jest.fn();
@@ -18,20 +17,20 @@ beforeEach(() => mockDispatch.mockClear());
 
 describe('OverlayControls', () => {
   it('renders state borders and counties checkboxes', () => {
-    const { getByLabelText } = render(<OverlayControls />);
-    expect(getByLabelText(/state borders/i)).toBeInTheDocument();
-    expect(getByLabelText(/counties/i)).toBeInTheDocument();
+    render(<OverlayControls />);
+    expect(screen.getByLabelText(/state borders/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/counties/i)).toBeInTheDocument();
   });
 
   it('dispatches toggleStateBorders when checkbox is clicked', () => {
-    const { getByLabelText } = render(<OverlayControls />);
-    fireEvent.click(getByLabelText(/state borders/i));
+    render(<OverlayControls />);
+    fireEvent.click(screen.getByLabelText(/state borders/i));
     expect(mockDispatch).toHaveBeenCalledWith({ type: 'overlays/toggleStateBorders' });
   });
 
   it('dispatches toggleCounties when checkbox is clicked', () => {
-    const { getByLabelText } = render(<OverlayControls />);
-    fireEvent.click(getByLabelText(/counties/i));
+    render(<OverlayControls />);
+    fireEvent.click(screen.getByLabelText(/counties/i));
     expect(mockDispatch).toHaveBeenCalledWith({ type: 'overlays/toggleCounties' });
   });
 });

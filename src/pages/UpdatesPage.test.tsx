@@ -24,8 +24,10 @@ describe('UpdatesPage', () => {
     expect(screen.getByText(/What's new · v1\.6/i)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /View larger: Monitor in light mode/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /View larger: Monitor in dark mode/i })).toBeInTheDocument();
-    expect(document.querySelector('img[src="/updates/v1.6/v1.6-promo-image-light-mrms-visible.png"]')).toBeTruthy();
-    expect(document.querySelector('img[src="/updates/v1.6/v1.6-promo-image-dark-single-site-shortwave-ir.png"]')).toBeTruthy();
+    const promos = screen.getAllByTestId('updates-promo-image');
+    expect(promos).toHaveLength(2);
+    expect(promos[0]).toHaveAttribute('src', '/updates/v1.6/v1.6-promo-image-light-mrms-visible.png');
+    expect(promos[1]).toHaveAttribute('src', '/updates/v1.6/v1.6-promo-image-dark-single-site-shortwave-ir.png');
     expect(screen.getByRole('heading', { name: /Monitor workspace/i })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: /v1\.6 Hotfixes/i })).toBeInTheDocument();
     expect(screen.getByText(/OpenLayers and React disagreed about popup DOM ownership/i)).toBeInTheDocument();
@@ -42,7 +44,7 @@ describe('UpdatesPage', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /View larger:.*light mode/i }));
 
-    const dialog = await waitFor(() => screen.getByRole('dialog'));
+    const dialog = await screen.findByRole('dialog');
     expect(dialog).toBeInTheDocument();
     expect(screen.getByRole('img', { name: /light mode with MRMS reflectivity/i })).toBeInTheDocument();
 

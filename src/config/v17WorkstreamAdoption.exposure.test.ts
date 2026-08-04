@@ -7,7 +7,7 @@ import {
 } from './featureExposure';
 
 /** Canonical v1.7 workstream keys — keep aligned with featureExposure.test.ts and CI policy. */
-export const V17_WORKSTREAM_KEYS = [
+const V17_WORKSTREAM_KEYS = [
   'autoTstm',
   'forecastWorkflowV2',
   'verificationRelaunch',
@@ -15,8 +15,6 @@ export const V17_WORKSTREAM_KEYS = [
   'tropicalWorkspace',
   'collaborationRoom',
 ] as const satisfies readonly FeatureKey[];
-
-type V17WorkstreamKey = (typeof V17_WORKSTREAM_KEYS)[number];
 
 describe('v1.7 workstream adoption contract', () => {
   test('forecastWorkflowV2 is enabled for local development and beta testers', () => {
@@ -89,6 +87,3 @@ describe('v1.7 workstream adoption contract', () => {
     }
   });
 });
-
-/** Exported for policy alignment tests that import the canonical key list. */
-export type { V17WorkstreamKey };

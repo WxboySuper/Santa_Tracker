@@ -8,6 +8,7 @@ const CustomProductPreview = ({ categories }: { categories: CustomCategoryTempla
         <span
           className={`custom-product-preview__swatch hatch-${category.style.hatch}`}
           style={categoryPreviewStyle(category)}
+          data-testid="product-preview-swatch"
         />
         <span>{category.label || 'Untitled category'}</span>
       </div>

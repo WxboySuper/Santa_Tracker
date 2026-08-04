@@ -47,8 +47,8 @@ describe('NavbarSections', () => {
 
     expect(screen.getByText('Graphical Forecast Creator')).toBeInTheDocument();
     expect(screen.getByText('GFC')).toBeInTheDocument();
-    expect(screen.getAllByText('Forecast')[0].closest('a')).toHaveClass('is-active');
-    expect(screen.getAllByText('Monitor')[0].closest('a')).toHaveAttribute('href', '/monitor');
+    expect(screen.getByRole('link', { name: 'Forecast' })).toHaveClass('is-active');
+    expect(screen.getByRole('link', { name: 'Monitor' })).toHaveAttribute('href', '/monitor');
   });
 
   test('wires account state, theme toggle, legal/docs actions, and external links', () => {

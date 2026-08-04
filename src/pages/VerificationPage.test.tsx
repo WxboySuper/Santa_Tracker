@@ -11,7 +11,6 @@ jest.mock('../components/ForecastGrade/ForecastGradeDashboard', () => ({
 }));
 
 const renderPage = () => {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
   const VerificationPage = require('./VerificationPage').default;
   return render(<VerificationPage />);
 };

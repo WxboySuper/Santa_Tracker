@@ -261,7 +261,7 @@ const LegacyHomePage: React.FC<{ logic: HomeLogic }> = ({ logic }) => {
         <AIDisclosure />
       </div>
 
-      <input ref={fileInputRef} type="file" accept={FORECAST_IMPORT_ACCEPT} onChange={handleFileSelect} className="hidden" />
+      <input ref={fileInputRef} type="file" accept={FORECAST_IMPORT_ACCEPT} onChange={handleFileSelect} className="hidden" data-testid="home-file-input" />
 
       <CycleHistoryModal isOpen={showHistoryModal} onClose={handleCloseHistoryModal} />
       <ConfirmationModal
@@ -396,7 +396,7 @@ const HomePage: React.FC = () => {
         onLoadRecentCycle={handleLoadRecentCycleClick}
         onNavigateAccount={handleNavigateAccount}
       />
-      <input ref={fileInputRef} type="file" accept={FORECAST_IMPORT_ACCEPT} onChange={handleFileSelect} className="hidden" />
+      <input ref={fileInputRef} type="file" accept={FORECAST_IMPORT_ACCEPT} onChange={handleFileSelect} className="hidden" data-testid="home-file-input" />
       <CycleHistoryModal isOpen={showHistoryModal} onClose={handleCloseHistoryModal} />
       <ConfirmationModal
         isOpen={confirmNewCycle}

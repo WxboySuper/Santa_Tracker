@@ -45,6 +45,7 @@ jest.mock('./components/PrivacyPolicy/PrivacyPolicyModal', () => ({
 
 describe('App Simple', () => {
   test('renders HomePage by default', () => {
+    // eslint-disable-next-line testing-library/no-unnecessary-act -- explicit act keeps the render async-safe if App gains effect-driven updates
     act(() => {
       render(<App />);
     });

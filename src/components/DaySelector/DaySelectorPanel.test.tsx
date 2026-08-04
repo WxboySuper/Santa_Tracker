@@ -66,7 +66,7 @@ describe('DaySelectorPanel', () => {
   test('shows the active day, date and data markers', () => {
     const store = buildStore(2);
 
-    const { container } = render(
+    render(
       <Provider store={store}>
         <DaySelectorPanel />
       </Provider>
@@ -74,21 +74,21 @@ describe('DaySelectorPanel', () => {
 
     expect(screen.getByText(new Date('2026-03-27').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }))).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '2' })).toHaveClass('bg-primary');
-    expect(container.querySelector('.text-center')).toHaveTextContent('Tornado, Wind, Hail, Categorical');
-    expect(container.querySelectorAll('.bg-success')).toHaveLength(3);
+    expect(screen.getByTestId('day-description')).toHaveTextContent('Tornado, Wind, Hail, Categorical');
+    expect(screen.getAllByTestId('day-has-data-marker')).toHaveLength(3);
   });
 
   test('supports day changes, date editing and keyboard shortcuts', () => {
     const store = buildStore(1);
-    const { container } = render(
+    render(
       <Provider store={store}>
         <DaySelectorPanel />
       </Provider>
     );
 
-    const buttons = container.querySelectorAll('button');
+    const buttons = screen.getAllByRole('button');
     fireEvent.click(buttons[0]);
-    const dateInput = container.querySelector('input[type="date"]') as HTMLInputElement;
+    const dateInput = screen.getByDisplayValue('2026-03-27') as HTMLInputElement;
     expect(dateInput).toHaveValue('2026-03-27');
 
     fireEvent.change(dateInput, { target: { value: '2026-04-01' } });
@@ -104,11 +104,11 @@ describe('DaySelectorPanel', () => {
 
     fireEvent.click(buttons[1]);
     expect(store.getState().forecast.forecastCycle.currentDay).toBe(3);
-    expect(container.querySelector('.text-center')).toHaveTextContent('Total Severe, Categorical');
+    expect(screen.getByTestId('day-description')).toHaveTextContent('Total Severe, Categorical');
 
     fireEvent.click(buttons[buttons.length - 1]);
     expect(store.getState().forecast.forecastCycle.currentDay).toBe(4);
-    expect(container.querySelector('.text-center')).toHaveTextContent('15% and 30% only');
+    expect(screen.getByTestId('day-description')).toHaveTextContent('15% and 30% only');
   });
 });
 

@@ -165,7 +165,6 @@ describe('featureExposure registry', () => {
   });
 
   test('keeps server capability metadata aligned with the analytics registry', () => {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const {
       KNOWN_SERVER_CAPABILITY_KEYS,
       SERVER_FEATURE_EXPOSURE_REGISTRY,

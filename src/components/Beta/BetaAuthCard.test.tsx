@@ -60,7 +60,7 @@ describe('BetaAuthCard', () => {
 
     fireEvent.click(googleButton);
 
-    await waitFor(() => expect(screen.getByText('Google failed')).toBeInTheDocument());
+    expect(await screen.findByText('Google failed')).toBeInTheDocument();
   });
 
   test('handles email sign-in success', async () => {
@@ -84,7 +84,7 @@ describe('BetaAuthCard', () => {
     fireEvent.click(screen.getByRole('button', { name: /Create Beta Account/i }));
 
     if (expectedError) {
-      await waitFor(() => expect(screen.getByText(expectedError)).toBeInTheDocument());
+      expect(await screen.findByText(expectedError)).toBeInTheDocument();
       expect(signUpWithEmail).not.toHaveBeenCalled();
       return;
     }
@@ -100,7 +100,7 @@ describe('BetaAuthCard', () => {
     
     fireEvent.click(screen.getByRole('button', { name: /Sign In with Email/i }));
 
-    await waitFor(() => expect(screen.getByText('Unable to complete that request right now.')).toBeInTheDocument());
+    expect(await screen.findByText('Unable to complete that request right now.')).toBeInTheDocument();
   });
 
   test('shows loading state when busy', () => {

@@ -7,7 +7,6 @@ import {
 } from './workflowSerialization';
 import type {
   Package,
-  SerializedWorkflowPackage,
   CycleMetadata,
 } from '../types/workflow';
 import type { GFCForecastSaveData } from '../types/outlooks';

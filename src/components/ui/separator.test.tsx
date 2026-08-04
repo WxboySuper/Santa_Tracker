@@ -1,4 +1,3 @@
-import React from 'react';
 import { render, screen } from '@testing-library/react';
 import { Separator } from './separator';
 
@@ -10,6 +9,7 @@ describe('Separator', () => {
     expect(separator).toHaveAttribute('role', 'none');
     expect(separator).not.toHaveAttribute('aria-orientation');
     expect(separator).toHaveClass('h-[1px]', 'w-full');
+    // eslint-disable-next-line testing-library/no-node-access -- verifying Separator renders as the root element
     expect(container.firstChild).toBe(separator);
   });
 

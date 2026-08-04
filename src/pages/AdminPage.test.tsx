@@ -1,5 +1,4 @@
-import React from 'react';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router';
 import { AdminPage } from './AdminPage';
 
@@ -124,7 +123,7 @@ describe('AdminPage', () => {
 
     renderAdminPage();
 
-    await waitFor(() => expect(screen.getByText(/1(\.0)? KB/)).toBeInTheDocument());
+    expect(await screen.findByText(/1(\.0)? KB/)).toBeInTheDocument();
     expect(screen.getByText('Total accounts')).toBeInTheDocument();
     expect(screen.getByText('Premium subscriptions')).toBeInTheDocument();
     expect(screen.getByText('Hosted data footprint')).toBeInTheDocument();
