@@ -1,7 +1,7 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import { Provider } from 'react-redux';
 import { configureStore } from '@reduxjs/toolkit';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter } from 'react-router';
 import ForecastPage, {
   buildMapView,
   buildRolloverSaveLabel,
@@ -91,8 +91,8 @@ jest.mock('../hooks/useCloudSync', () => ({
   }),
 }));
 
-jest.mock('react-router-dom', () => ({
-  ...jest.requireActual('react-router-dom'),
+jest.mock('react-router', () => ({
+  ...jest.requireActual('react-router'),
   useOutletContext: () => ({
     addToast: mockAddToast,
   }),

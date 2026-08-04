@@ -1,6 +1,6 @@
 // skipcq: JS-W1028
 import { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import { getBuildTarget } from '../config/buildTarget';
 import {
   isFeatureExposureDiagnosticsEnabled,

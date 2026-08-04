@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import { Provider } from 'react-redux';
 import { configureStore } from '@reduxjs/toolkit';
-import { MemoryRouter, Outlet, Route, Routes } from 'react-router-dom';
+import { MemoryRouter, Outlet, Route, Routes } from 'react-router';
 import MonitorPage from './MonitorPage';
 import monitorReducer from '../store/monitorSlice';
 import forecastReducer from '../store/forecastSlice';

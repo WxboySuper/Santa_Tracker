@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { Link, Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { Link, Navigate, useNavigate, useParams, useSearchParams } from 'react-router';
 import { CheckCircle2, KeyRound, LoaderCircle, LockKeyhole } from 'lucide-react';
 import BetaAuthCard from '../components/Beta/BetaAuthCard';
 import { BetaHero, BetaInfoCard, BetaPageShell } from '../components/Beta/BetaPageLayout';

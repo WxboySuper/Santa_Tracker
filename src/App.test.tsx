@@ -1,6 +1,6 @@
 import { render, screen, act } from '@testing-library/react';
 import App from './App';
-import { Outlet as MockOutlet } from 'react-router-dom';
+import { Outlet as MockOutlet } from 'react-router';
 
 // Mock pages to avoid heavy modules
 jest.mock('./pages', () => ({

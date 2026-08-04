@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import { v16Update, type UpdateScreenshot } from '../content/updates/v1.6';
 import './UpdatesPage.css';
 

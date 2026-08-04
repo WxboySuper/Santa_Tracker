@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback, lazy, Suspense } from 'react';
 import { Provider, useDispatch } from 'react-redux';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router';
 import { store } from './store';
 import { setActiveOutlookType, setEmergencyMode } from './store/forecastSlice';
 import useAutoCategorical from './hooks/useAutoCategorical';
