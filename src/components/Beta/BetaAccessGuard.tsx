@@ -1,5 +1,5 @@
 import React from 'react';
-import { Navigate, Outlet, useLocation, useOutletContext } from 'react-router-dom';
+import { Navigate, Outlet, useLocation, useOutletContext } from 'react-router';
 import type { AddToastFn } from '../Layout/AppLayout';
 import { useAuth } from '../../auth/AuthProvider';
 import { isBetaModeEnabled, isLocalBetaBypassEnabled } from '../../lib/betaAccess';

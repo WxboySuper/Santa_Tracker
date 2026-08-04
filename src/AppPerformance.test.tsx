@@ -2,7 +2,7 @@ import React from 'react';
 import { render, act } from '@testing-library/react';
 import { Provider } from 'react-redux';
 import { configureStore, EnhancedStore } from '@reduxjs/toolkit';
-import { BrowserRouter } from 'react-router-dom';
+import { BrowserRouter } from 'react-router';
 import forecastReducer, { setMapView } from './store/forecastSlice';
 import themeReducer from './store/themeSlice';
 import appModeReducer from './store/appModeSlice';
@@ -62,8 +62,8 @@ jest.mock('./hooks/useCloudSync', () => ({
 }));
 
 // Mock router outlet context
-jest.mock('react-router-dom', () => ({
-  ...jest.requireActual('react-router-dom'),
+jest.mock('react-router', () => ({
+  ...jest.requireActual('react-router'),
   useOutletContext: () => ({ addToast: jest.fn() }),
 }));
 

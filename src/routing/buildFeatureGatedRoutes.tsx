@@ -1,5 +1,5 @@
 import { lazy, Suspense, type ComponentType, type LazyExoticComponent, type ReactElement } from 'react';
-import { Route } from 'react-router-dom';
+import { Route } from 'react-router';
 import type { BuildTarget } from '../config/buildTarget';
 import { getBuildTarget } from '../config/buildTarget';
 import { isFeatureExposedOnTarget } from '../config/featureExposure';

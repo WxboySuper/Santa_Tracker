@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { useNavigate, useOutletContext } from 'react-router-dom';
+import { useNavigate, useOutletContext } from 'react-router';
 import type { AddToastFn } from '../../components/Layout';
 import { RootState } from '../../store';
 import {

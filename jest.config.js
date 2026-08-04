@@ -5,10 +5,11 @@ module.exports = {
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json'],
   transform: {
     '^.+\\.[jt]sx?$': 'babel-jest',
+    '^.+\\.mjs$': 'babel-jest',
   },
   transformIgnorePatterns: [
-    '<rootDir>/node_modules/.pnpm/(?!(react-router|react-router-dom|@remix-run\\+router|uuid|@turf\\+.*|kdbush|geokdbush|tinyqueue|concaveman|point-in-polygon-hao|robust-predicates|rbush|quickselect|skmeans|marchingsquares|sweepline-intersections|d3-array|d3-geo|d3-voronoi|topojson-client|earcut|tslib|ol|firebase|@firebase\\+.*)@)',
-    'node_modules/(?!.pnpm|react-router|react-router-dom|@remix-run/router|uuid|@turf|kdbush|geokdbush|tinyqueue|concaveman|point-in-polygon-hao|robust-predicates|rbush|quickselect|skmeans|marchingsquares|sweepline-intersections|d3-array|d3-geo|d3-voronoi|topojson-client|earcut|tslib|ol|firebase|@firebase)',
+    '<rootDir>/node_modules/.pnpm/(?!(react-router|cookie-es|uuid|@turf\\+.*|kdbush|geokdbush|tinyqueue|concaveman|point-in-polygon-hao|robust-predicates|rbush|quickselect|skmeans|marchingsquares|sweepline-intersections|d3-array|d3-geo|d3-voronoi|topojson-client|earcut|tslib|ol|firebase|@firebase\\+.*)@)',
+    'node_modules/(?!.pnpm|react-router|cookie-es|uuid|@turf|kdbush|geokdbush|tinyqueue|concaveman|point-in-polygon-hao|robust-predicates|rbush|quickselect|skmeans|marchingsquares|sweepline-intersections|d3-array|d3-geo|d3-voronoi|topojson-client|earcut|tslib|ol|firebase|@firebase)',
   ],
   moduleNameMapper: {
     '\\.(css|less|sass|scss)$': 'identity-obj-proxy',

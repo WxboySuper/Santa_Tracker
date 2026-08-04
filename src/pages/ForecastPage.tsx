@@ -1,6 +1,6 @@
 import React, { useRef, useCallback, useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { useLocation, useNavigate, useOutletContext } from 'react-router-dom';
+import { useLocation, useNavigate, useOutletContext } from 'react-router';
 import type { Dispatch, UnknownAction } from 'redux';
 import { ForecastMapHandle } from '../components/Map/ForecastMap';
 import { Button } from '../components/ui/button';

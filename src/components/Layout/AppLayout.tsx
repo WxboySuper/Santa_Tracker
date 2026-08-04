@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { Outlet, useNavigate } from 'react-router-dom';
+import { Outlet, useNavigate } from 'react-router';
 import { useSelector } from 'react-redux';
 import { Navbar } from './Navbar';
 import Documentation from '../Documentation/Documentation';
