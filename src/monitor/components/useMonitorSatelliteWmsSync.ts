@@ -16,13 +16,12 @@ export const useMonitorSatelliteWmsSync = (
     if (refs.satelliteLayerRef.current) {
       applyWmsLayer(refs.satelliteLayerRef.current, satelliteLayer, satelliteOpacity, refs.satelliteLayerKeyRef);
     }
-    // refs omitted: useMonitorMapRefs() returns a new object each render; only darkMode should re-apply.
-  }, [darkMode, satelliteLayer, satelliteOpacity]);
+  }, [darkMode, satelliteLayer, satelliteOpacity, refs.satelliteLayerKeyRef, refs.satelliteLayerRef]);
 
   useEffect(() => {
     const source = refs.satelliteLayerRef.current?.getSource();
     if (source && satelliteLayer) {
       source.updateParams(buildWmsParams(satelliteLayer));
     }
-  }, [satelliteLayer?.latestTime]);
+  }, [satelliteLayer, satelliteLayer?.latestTime, refs.satelliteLayerRef]);
 };

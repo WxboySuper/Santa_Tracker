@@ -16,13 +16,12 @@ export const useMonitorRadarWmsSync = (
     if (refs.radarLayerRef.current) {
       applyWmsLayer(refs.radarLayerRef.current, radarLayer, radarOpacity, refs.radarLayerKeyRef);
     }
-    // refs omitted: useMonitorMapRefs() returns a new object each render; only darkMode should re-apply.
-  }, [darkMode, radarLayer, radarOpacity]);
+  }, [darkMode, radarLayer, radarOpacity, refs.radarLayerKeyRef, refs.radarLayerRef]);
 
   useEffect(() => {
     const source = refs.radarLayerRef.current?.getSource();
     if (source && radarLayer) {
       source.updateParams(buildWmsParams(radarLayer));
     }
-  }, [radarLayer?.latestTime]);
+  }, [radarLayer, radarLayer?.latestTime, refs.radarLayerRef]);
 };

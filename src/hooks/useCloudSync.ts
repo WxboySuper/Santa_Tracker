@@ -123,7 +123,7 @@ export const useCloudSync = (
       },
       currentHash,
     });
-  }, [canSync, currentCloud, currentHash, forecastCycle.cycleDate, forecastCycle, saveCycle, serializedPayload, updateSyncState, workflowMetadata]);
+  }, [canSync, currentCloud, currentHash, forecastCycle, saveCycle, serializedPayload, updateSyncState, workflowMetadata]);
 
   useEffect(() => {
     if (!canSync) {

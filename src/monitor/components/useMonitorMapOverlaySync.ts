@@ -39,7 +39,7 @@ export const useMonitorMapOverlaySync = ({
   useEffect(() => {
     const style = createStateOutlineStyle(darkMode);
     refs.stateOutlineSourceRef.current.getFeatures().forEach((feature) => feature.setStyle(style));
-  }, [darkMode]);
+  }, [darkMode, refs.stateOutlineSourceRef]);
 
   useEffect(() => {
     const map = refs.mapRef.current;
@@ -54,19 +54,19 @@ export const useMonitorMapOverlaySync = ({
     window.setTimeout(() => {
       refs.applyingExternalViewRef.current = false;
     }, 0);
-  }, [mapView.center, mapView.zoom]);
+  }, [mapView.center, mapView.zoom, refs.applyingExternalViewRef, refs.mapRef]);
 
   useEffect(() => {
     syncOutlookFeatures(refs.outlookSourceRef.current, serializedFeatures);
-  }, [serializedFeatures]);
+  }, [serializedFeatures, refs.outlookSourceRef]);
 
   useEffect(() => {
     refs.alertsLayerRef.current?.setOpacity(alertsOpacity);
-  }, [alertsOpacity]);
+  }, [alertsOpacity, refs.alertsLayerRef]);
 
   useEffect(() => {
     syncAlertFeatures(refs.alertsSourceRef.current, alertsCollection);
-  }, [alertsCollection]);
+  }, [alertsCollection, refs.alertsSourceRef]);
 
   useEffect(() => {
     onClearSelectedAlert();
@@ -74,5 +74,5 @@ export const useMonitorMapOverlaySync = ({
 
   useEffect(() => {
     syncStormReportFeatures(refs.stormReportsSourceRef.current, stormReports);
-  }, [stormReports]);
+  }, [stormReports, refs.stormReportsSourceRef]);
 };

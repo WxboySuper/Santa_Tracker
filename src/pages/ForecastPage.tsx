@@ -1135,7 +1135,7 @@ const useDayRolloverPrompt = ({ restoreComplete, restoredSession, dispatch, addT
       setPromptState,
       setActionError,
     });
-  }, [restoreComplete, restoredSession, userId]);
+  }, [restoreComplete, userId]);
 
   useEffect(() => {
     detectDayRollover();
