@@ -85,5 +85,5 @@ export const useLoadWmsLayerFrames = ({
     return () => {
       active = false;
     };
-  }, [addToast, config, configKey, refreshToken, unavailableMessage]);
+  }, [addToast, config, configKey, refreshToken, setPlayback, unavailableMessage]);
 };

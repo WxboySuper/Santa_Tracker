@@ -390,7 +390,7 @@ const useDiscussionEditorState = ({
     // Scope changes preserve edits as drafts; only explicit save/autosave publishes them.
     dispatch(updateDiscussionDraft({ scopeId: discussionKey, draft: buildDiscussionData() }));
     form.setHasUnsavedChanges(false);
-  }, [buildDiscussionData, discussionKey, dispatch, form.hasUnsavedChanges, form.setHasUnsavedChanges]);
+  }, [buildDiscussionData, discussionKey, dispatch, form]);
 
   useDiscussionAutoSave({
     hasUnsavedChanges: form.hasUnsavedChanges,

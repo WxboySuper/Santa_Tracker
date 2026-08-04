@@ -235,6 +235,9 @@ export const useMonitorMapBootstrap = ({
       refs.radarLayerKeyRef.current = null;
       refs.satelliteLayerKeyRef.current = null;
     };
+    // Mount-only: rebuilding the map when any captured prop changes would tear down
+    // and recreate the OpenLayers instance. Dedicated effects handle darkMode and view updates.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dispatch]);
 
   useEffect(() => {
@@ -244,7 +247,6 @@ export const useMonitorMapBootstrap = ({
     }
 
     baseLayer.setSource(createBaseSource(darkMode));
-    // refs omitted: wrapper object from useMonitorMapRefs() is new each render.
     return undefined;
-  }, [darkMode]);
+  }, [darkMode, refs.baseLayerRef]);
 };

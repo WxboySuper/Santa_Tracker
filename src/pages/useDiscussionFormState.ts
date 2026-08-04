@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { updateDiscussionDraft } from '../store/forecastSlice';
 import type { DiscussionData, DiscussionMode } from '../types/outlooks';
 
@@ -96,7 +96,10 @@ const useDiscussionFormState = ({ existingDiscussion, defaultForecasterName, dis
   const [diyContent, setDiyContent] = useState(initial.diyContent);
   const [guidedContent, setGuidedContent] = useState<GuidedContentState>(initial.guidedContent);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
-  const fields = { mode, validStart, validEnd, forecasterName, diyContent, guidedContent };
+  const fields = useMemo(
+    () => ({ mode, validStart, validEnd, forecasterName, diyContent, guidedContent }),
+    [mode, validStart, validEnd, forecasterName, diyContent, guidedContent],
+  );
   const applyFields = useCallback((next: DiscussionFormDefaults, hasChanges: boolean) => {
     setMode(next.mode); setValidStart(next.validStart); setValidEnd(next.validEnd);
     setForecasterName(next.forecasterName); setDiyContent(next.diyContent); setGuidedContent(next.guidedContent);
