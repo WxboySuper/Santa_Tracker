@@ -38,6 +38,7 @@ function resolveDestination(destination, context, resolveMarkdownLink) {
 /** Render inline Markdown emphasis, code, images, and links. */
 function inlineMarkdown(value, context = {}) {
   const tokens = [];
+  /** Protect rendered links while escaping the surrounding Markdown text. */
   const protect = (html) => { const token = `__GFC_LINK_${tokens.length}__`; tokens.push(html); return token; };
   let source = value.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (_, alt, destination) => protect(`<img alt="${escapeHtml(alt)}" src="${escapeHtml(resolveDestination(destination, context, false))}">`));
   source = source.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_, label, destination) => protect(`<a href="${escapeHtml(resolveDestination(destination, context, true))}">${escapeHtml(label)}</a>`));
