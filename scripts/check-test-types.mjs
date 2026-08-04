@@ -1,11 +1,15 @@
 import { spawnSync } from 'node:child_process';
-import { readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const baselinePath = path.join(root, 'scripts', 'test-type-errors-baseline.json');
-const tscPath = path.join(root, 'node_modules', 'typescript', 'lib', 'tsc.js');
+// The repo runs the native TypeScript 7 compiler alongside TypeScript 6 (used by
+// typescript-eslint). Keep the baseline consistent by checking with the same native tsc.
+const nativeTscPath = path.join(root, 'node_modules', '@typescript', 'native', 'lib', 'tsc.js');
+const fallbackTscPath = path.join(root, 'node_modules', 'typescript', 'lib', 'tsc.js');
+const tscPath = existsSync(nativeTscPath) ? nativeTscPath : fallbackTscPath;
 
 /** Reduces diagnostics to stable per-file error-code counts so line movement does not churn the baseline. */
 function collectDiagnostics(output) {
