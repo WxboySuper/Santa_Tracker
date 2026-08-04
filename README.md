@@ -98,6 +98,11 @@ Use `pnpm` consistently for this repo so the checked-in `pnpm-lock.yaml` remains
 | `pnpm run test:e2e` | Run Playwright end-to-end tests |
 | `pnpm run build` | Production build to `/build` via Vite |
 
+The `typescript` dependency is the TypeScript 6 compatibility package
+(`@typescript/typescript6`) so `typescript-eslint` has the compiler API it
+needs; `@typescript/native` provides the fast native `tsc` used by
+`pnpm run typecheck`. Both install side-by-side.
+
 ### Build targets
 
 Every frontend build resolves one deployment target through `VITE_BUILD_TARGET`: `local`, `beta`, `staging`, or `production`. Local development and builds default to `local`; hosted deployment workflows set their target explicitly and invalid values stop the build. This target identifies the deployment surface and is separate from Vite's bundling mode and the existing beta access gate.
