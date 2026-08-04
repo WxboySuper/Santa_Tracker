@@ -151,7 +151,7 @@ export const UsageSection: React.FC = () => (
     <h4>Tips</h4>
     <ul>
       <li>Work outward from the highest risk areas to lower risk, not the reverse</li>
-      <li>Copy yesterday's Day 2 into today's Day 1 via Cycle Manager → Copy from Previous</li>
+      <li>Copy yesterday&apos;s Day 2 into today&apos;s Day 1 via Cycle Manager → Copy from Previous</li>
       <li>Categorical risk is read-only — to change it, modify the underlying probabilistic outlooks</li>
       <li>Auto-save runs every 60 seconds to local storage as a backup</li>
     </ul>

@@ -1,10 +1,10 @@
 import {
-  CategoricalRiskLevel, 
-  ColorMappings, 
+  CategoricalRiskLevel,
+  ColorMappings,
   CIGLevel,
-  HailProbability,
   TornadoProbability,
-  WindProbability
+  WindProbability,
+  HailProbability
 } from '../types/outlooks';
 export { getOutlookConstraints } from './outlookConstraints';
 

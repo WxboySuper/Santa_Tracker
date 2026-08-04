@@ -817,7 +817,6 @@ export const forecastSlice = createSlice({
         }
 
         pushUndoSnapshot(state);
-        // @ts-ignore - Dynamic property assignment
         outlookData[outlookType] = map;
         invalidateCompletionAcknowledgement(state);
         state.isSaved = false;
