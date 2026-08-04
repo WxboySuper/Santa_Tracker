@@ -3,13 +3,14 @@ import { Separator } from './separator';
 
 describe('Separator', () => {
   it('renders a decorative horizontal separator by default', () => {
-    render(<Separator data-testid="separator" />);
+    const { container } = render(<Separator data-testid="separator" />);
 
     const separator = screen.getByTestId('separator');
     expect(separator).toHaveAttribute('role', 'none');
     expect(separator).not.toHaveAttribute('aria-orientation');
     expect(separator).toHaveClass('h-[1px]', 'w-full');
-    expect(separator).toBeInTheDocument();
+    // eslint-disable-next-line testing-library/no-node-access -- verifying Separator renders as the root element
+    expect(container.firstChild).toBe(separator);
   });
 
   it('renders an accessible vertical separator when not decorative', () => {

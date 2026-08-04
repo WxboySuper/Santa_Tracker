@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, act } from '@testing-library/react';
 import App from './App';
 import { Outlet as MockOutlet } from 'react-router-dom';
 
@@ -45,7 +45,10 @@ jest.mock('./components/PrivacyPolicy/PrivacyPolicyModal', () => ({
 
 describe('App Simple', () => {
   test('renders HomePage by default', () => {
-    render(<App />);
+    // eslint-disable-next-line testing-library/no-unnecessary-act -- explicit act keeps the render async-safe if App gains effect-driven updates
+    act(() => {
+      render(<App />);
+    });
     expect(screen.getByText(/HomePage Mock/i)).toBeInTheDocument();
   });
 });

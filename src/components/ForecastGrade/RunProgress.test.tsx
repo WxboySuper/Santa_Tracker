@@ -7,7 +7,8 @@ describe('RunProgress', () => {
 
     expect(screen.getByRole('status')).toHaveTextContent('Grading tornado product…');
     expect(screen.getByText('5%')).toBeInTheDocument();
-    expect(screen.getByLabelText('Grading tornado product…: 5% complete')).toBeInTheDocument();
+    const track = screen.getByLabelText('Grading tornado product…: 5% complete');
+    expect(track).toHaveClass('fg-run-progress__track');
     expect(screen.getAllByLabelText('Grading tornado product…: 5% complete')).toHaveLength(1);
   });
 

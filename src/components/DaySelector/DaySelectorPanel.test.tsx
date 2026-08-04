@@ -74,8 +74,8 @@ describe('DaySelectorPanel', () => {
 
     expect(screen.getByText(new Date('2026-03-27').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }))).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '2' })).toHaveClass('bg-primary');
-    expect(screen.getByText('Tornado, Wind, Hail, Categorical', { selector: 'div.text-center' })).toHaveTextContent('Tornado, Wind, Hail, Categorical');
-    expect(screen.getAllByText('', { selector: 'span.bg-success' })).toHaveLength(3);
+    expect(screen.getByTestId('day-description')).toHaveTextContent('Tornado, Wind, Hail, Categorical');
+    expect(screen.getAllByTestId('day-has-data-marker')).toHaveLength(3);
   });
 
   test('supports day changes, date editing and keyboard shortcuts', () => {
@@ -104,11 +104,11 @@ describe('DaySelectorPanel', () => {
 
     fireEvent.click(buttons[1]);
     expect(store.getState().forecast.forecastCycle.currentDay).toBe(3);
-    expect(screen.getByText('Total Severe, Categorical', { selector: 'div.text-center' })).toHaveTextContent('Total Severe, Categorical');
+    expect(screen.getByTestId('day-description')).toHaveTextContent('Total Severe, Categorical');
 
     fireEvent.click(buttons[buttons.length - 1]);
     expect(store.getState().forecast.forecastCycle.currentDay).toBe(4);
-    expect(screen.getByText('15% and 30% only', { selector: 'div.text-center' })).toHaveTextContent('15% and 30% only');
+    expect(screen.getByTestId('day-description')).toHaveTextContent('15% and 30% only');
   });
 });
 

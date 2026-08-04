@@ -34,7 +34,7 @@ const CycleHistoryModalDialog: React.FC<CycleHistoryModalDialogProps> = ({
   onClose,
   ...panelProps
 }) => (
-  <div className="history-modal-root notranslate">
+  <div className="history-modal-root notranslate" data-testid="cycle-history-modal">
     {/* skipcq: JS-0415 */}
     <div className="history-modal-overlay" onClick={onClose} aria-hidden="true" />
     <CycleHistoryModalPanel onClose={onClose} {...panelProps} />

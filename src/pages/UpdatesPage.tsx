@@ -80,10 +80,12 @@ function UpdateImageLightbox({ shot, onClose }: UpdateImageLightboxProps) {
 interface UpdateScreenshotFigureProps {
   shot: UpdateScreenshot;
   onExpand: (shot: UpdateScreenshot) => void;
+  /** Optional test hook; passed for hero promo images only. */
+  testid?: string;
 }
 
 /** Renders a release screenshot when the asset exists under public/updates. */
-function UpdateScreenshotFigure({ shot, onExpand }: UpdateScreenshotFigureProps) {
+function UpdateScreenshotFigure({ shot, onExpand, testid }: UpdateScreenshotFigureProps) {
   const [visible, setVisible] = useState(true);
 
   if (!visible) {
@@ -98,7 +100,7 @@ function UpdateScreenshotFigure({ shot, onExpand }: UpdateScreenshotFigureProps)
         onClick={() => onExpand(shot)}
         aria-label={`View larger: ${shot.alt}`}
       >
-        <img src={shot.src} alt="" loading="lazy" onError={() => setVisible(false)} />
+        <img src={shot.src} alt="" loading="lazy" onError={() => setVisible(false)} data-testid={testid} />
         <span className="updates-page__figure-hint" aria-hidden="true">
           Click to enlarge
         </span>
@@ -123,7 +125,7 @@ export const UpdatesPage: React.FC = () => {
         {v16Update.promoImages?.length ? (
           <div className="updates-page__promo">
             {v16Update.promoImages.map((shot) => (
-              <UpdateScreenshotFigure key={shot.src} shot={shot} onExpand={setExpandedShot} />
+              <UpdateScreenshotFigure key={shot.src} shot={shot} onExpand={setExpandedShot} testid="updates-promo-image" />
             ))}
           </div>
         ) : null}

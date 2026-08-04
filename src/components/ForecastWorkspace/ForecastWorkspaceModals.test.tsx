@@ -80,7 +80,7 @@ describe('ForecastWorkspaceModals', () => {
     const controller = createController();
     renderWithProvider(<ForecastWorkspaceModals controller={controller} />);
 
-    const input = screen.getByText('', { selector: 'input[type="file"]' }) as HTMLInputElement;
+    const input = screen.getByTestId('forecast-workspace-file-input') as HTMLInputElement;
     expect(input).toHaveAttribute('accept', '.json');
     fireEvent.change(input);
     expect(controller.onFileSelect).toHaveBeenCalled();

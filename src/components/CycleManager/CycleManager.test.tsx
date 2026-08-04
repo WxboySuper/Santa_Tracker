@@ -159,12 +159,12 @@ describe('CycleManager Components', () => {
         </Provider>
       );
       expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
-      expect(screen.queryByText('', { selector: 'div.history-modal-root' })).not.toBeInTheDocument();
+      expect(screen.queryByTestId('cycle-history-modal')).not.toBeInTheDocument();
     });
 
     it('GFC-WEB-G: portals the modal shell to document.body with notranslate', () => {
       renderCycleHistoryModal();
-      const root = screen.getByText('', { selector: 'div.history-modal-root' });
+      const root = screen.getByTestId('cycle-history-modal');
       expect(root).toBeInTheDocument();
       expect(root).toHaveClass('notranslate');
     });

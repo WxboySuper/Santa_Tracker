@@ -117,7 +117,7 @@ describe('DrawingTools', () => {
     await user.click(screen.getByRole('button', { name: /Load Forecast/i }));
     expect(clickSpy).toHaveBeenCalled();
 
-    const fileInput = screen.getByText('', { selector: 'input[type="file"]' }) as HTMLInputElement;
+    const fileInput = screen.getByTestId('drawing-tools-file-input') as HTMLInputElement;
     const file = new File(['{}'], 'forecast.json', { type: 'application/json' });
     fireEvent.change(fileInput, { target: { files: [file] } });
     expect(onLoad).toHaveBeenCalledWith(file);

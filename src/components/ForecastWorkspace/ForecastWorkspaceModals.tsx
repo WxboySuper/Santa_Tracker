@@ -50,6 +50,7 @@ export const ForecastWorkspaceModals: React.FC<{ controller: ForecastWorkspaceCo
         accept=".json"
         onChange={controller.onFileSelect}
         className="hidden"
+        data-testid="forecast-workspace-file-input"
       />
       <CycleHistoryModal isOpen={controller.showHistoryModal} onClose={controller.onCloseHistoryModal} />
       <CopyFromPreviousModal isOpen={controller.showCopyModal} onClose={controller.onCloseCopyModal} />
