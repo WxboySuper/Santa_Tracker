@@ -1,4 +1,4 @@
-import { OutlookType, CategoricalRiskLevel, TornadoProbability, WindProbability, HailProbability, TotalSevereProbability,Day48Probability, CIGLevel, DayType } from '../../types/outlooks';
+import { OutlookType, CategoricalRiskLevel, TornadoProbability, WindProbability, HailProbability, TotalSevereProbability, CIGLevel, DayType } from '../../types/outlooks';
 import { colorMappings, getOutlookConstraints } from '../../utils/outlookUtils';
 
 /**
@@ -7,7 +7,7 @@ import { colorMappings, getOutlookConstraints } from '../../utils/outlookUtils';
  */
 export const getAvailableProbabilities = (activeOutlookType: OutlookType, currentDay: DayType = 1) => {
   const constraints = getOutlookConstraints(currentDay);
-  const cigs = constraints.allowedCIG as CIGLevel[]; // Available hatching options based on day
+  const cigs = [...constraints.allowedCIG]; // Available hatching options based on day
   
   switch (activeOutlookType) {
     case 'categorical':
@@ -47,7 +47,7 @@ export const getAvailableProbabilities = (activeOutlookType: OutlookType, curren
     case 'day4-8':
       // Day 4-8 only (no CIG)
       if (constraints.probabilities['day4-8']) {
-        return constraints.probabilities['day4-8'] as Day48Probability[];
+        return [...constraints.probabilities['day4-8']];
       }
       return [];
     default:
