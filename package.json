@@ -59,6 +59,8 @@
     "typecheck:test": "node scripts/check-test-types.mjs",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
+    "docs:inventory": "node scripts/generate-repository-inventory.mjs",
+    "docs:site": "node scripts/build-local-docs.mjs",
     "test": "jest",
     "test:firestore-rules": "pnpm exec firebase emulators:exec --only firestore --project gfc-rules-test \"node --test tests/firestore.rules.test.mjs\"",
     "test:e2e": "playwright test",

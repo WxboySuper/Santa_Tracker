@@ -22,6 +22,7 @@ const GLOBAL_ERROR_MECHANISM = 'auto.browser.global_handlers.onerror';
 const REQUEST_LIFECYCLE_MESSAGES = [
   /^(NetworkError: )?A network error occurred\.?$/i,
   /^(AbortError: )?The user aborted a request\.?$/i,
+  /^(TypeError: |NetworkError: )?Failed to fetch\.?$/i,
 ];
 
 /** Returns the Sentry DSN baked in at build time, or an empty string when monitoring is off. */
@@ -45,11 +46,6 @@ function getEnvironment(): string {
   const configured =
     typeof __GFC_SENTRY_ENVIRONMENT__ !== 'undefined' ? __GFC_SENTRY_ENVIRONMENT__ : '';
   return configured.trim() || 'production';
-}
-
-/** True when Sentry captured stack frames for an exception value. */
-function hasStackFrames(value: SentryExceptionValue): boolean {
-  return (value.stacktrace?.frames?.length ?? 0) > 0;
 }
 
 /** True for the OpenLayers Safari canvas renderer noise from requestAnimationFrame. */
@@ -78,9 +74,24 @@ function isRequestLifecycleNoise(values: SentryExceptionValue[], message: string
   );
 }
 
-/** True when the event contains any stack or breadcrumb context worth retaining. */
-function hasActionableContext(event: Event, values: SentryExceptionValue[]): boolean {
-  return values.some(hasStackFrames) || Boolean(event.breadcrumbs?.length);
+/** True when a stack frame originates from the application rather than a bundled SDK. */
+function isApplicationStackFrame(frame: { filename?: string }): boolean {
+  const filename = frame.filename ?? '';
+  if (!filename) {
+    return true;
+  }
+  return (
+    !/node_modules\//.test(filename) &&
+    !/@firebase\//.test(filename) &&
+    !/^firebase\//.test(filename)
+  );
+}
+
+/** True when any exception value carries an application stack frame. */
+function hasApplicationStackFrame(values: SentryExceptionValue[]): boolean {
+  return values.some((value) =>
+    (value.stacktrace?.frames ?? []).some(isApplicationStackFrame)
+  );
 }
 
 /** True when the event is known browser noise that is safe to drop. */
@@ -93,14 +104,20 @@ function isKnownBrowserNoise(event: Event): boolean {
     return true;
   }
 
-  if (hasActionableContext(event, values)) {
-    return false;
+  // Request-lifecycle noise (network failures, aborts, failed fetches) is safe to
+  // drop unless the exception carries an application stack frame. Breadcrumbs from
+  // ordinary user activity do not make a transport failure actionable (GFC-WEB-Q).
+  if (isRequestLifecycleNoise(values, normalizedMessage)) {
+    return !hasApplicationStackFrame(values);
   }
 
-  return (
-    isRequestLifecycleNoise(values, normalizedMessage) ||
-    values.some(isOpaqueGlobalError)
-  );
+  // The opaque global error is only noise when it has neither an application stack
+  // frame nor breadcrumbs that could explain what was happening.
+  if (values.some(isOpaqueGlobalError)) {
+    return !(hasApplicationStackFrame(values) || Boolean(event.breadcrumbs?.length));
+  }
+
+  return false;
 }
 
 /** Drops known no-stack browser noise while preserving actionable stacked errors. */
