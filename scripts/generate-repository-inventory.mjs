@@ -49,25 +49,46 @@ function skipTemplate(source, start) {
   return source.length;
 }
 
+/** Return the end offset for a comment or whitespace token. */
+function skipTrivia(source, start) {
+  if (/\s/.test(source[start])) return start + 1;
+  if (source.startsWith('//', start)) { const end = source.indexOf('\n', start + 2); return end === -1 ? source.length : end; }
+  if (source.startsWith('/*', start)) { const end = source.indexOf('*/', start + 2); return end === -1 ? source.length : end + 2; }
+  return null;
+}
+
+/** Read one lexical token, excluding comments and string/template contents. */
+function readToken(source, start) {
+  const triviaEnd = skipTrivia(source, start);
+  if (triviaEnd !== null) return { end: triviaEnd };
+  if (['"', "'"].includes(source[start])) { const string = readString(source, start); return { type: 'string', value: string.value, end: string.end }; }
+  if (source[start] === '`') return { end: skipTemplate(source, start) };
+  const identifier = source.slice(start).match(/^[A-Za-z_$][\w$]*/);
+  if (identifier) return { type: 'identifier', value: identifier[0], end: start + identifier[0].length };
+  return { type: 'punctuation', value: source[start], end: start + 1 };
+}
+
 /** Tokenize code while ignoring comments and string/template contents. */
 function tokenize(source) {
   const tokens = [];
   for (let index = 0; index < source.length;) {
-    if (/\s/.test(source[index])) { index += 1; continue; }
-    if (source.startsWith('//', index)) { const end = source.indexOf('\n', index + 2); index = end === -1 ? source.length : end; continue; }
-    if (source.startsWith('/*', index)) { const end = source.indexOf('*/', index + 2); index = end === -1 ? source.length : end + 2; continue; }
-    if (['"', "'"].includes(source[index])) { const string = readString(source, index); tokens.push({ type: 'string', value: string.value }); index = string.end; continue; }
-    if (source[index] === '`') { index = skipTemplate(source, index); continue; }
-    const identifier = source.slice(index).match(/^[A-Za-z_$][\w$]*/);
-    if (identifier) { tokens.push({ type: 'identifier', value: identifier[0] }); index += identifier[0].length; continue; }
-    tokens.push({ type: 'punctuation', value: source[index] }); index += 1;
+    const token = readToken(source, index);
+    if (token.type) tokens.push({ type: token.type, value: token.value });
+    index = token.end;
   }
   return tokens;
 }
 
+/** Return whether a module specifier is relative. */
+function isRelativeSpecifier(specifier) { return specifier.startsWith('./') || specifier.startsWith('../'); }
+
+/** Return whether a module specifier has no query or fragment suffix. */
+function hasNoSpecifierSuffix(specifier) { return !/[?#]/.test(specifier); }
+
 /** Return whether a module specifier points to a code file we can resolve. */
 function isCodeSpecifier(specifier) {
-  if (!(specifier.startsWith('./') || specifier.startsWith('../')) || /[?#]/.test(specifier)) return false;
+  if (!isRelativeSpecifier(specifier)) return false;
+  if (!hasNoSpecifierSuffix(specifier)) return false;
   const extension = path.extname(specifier);
   return !extension || CODE_EXTENSIONS.has(extension);
 }
@@ -83,20 +104,32 @@ function addFromSpecifier(imports, tokens, start) {
   }
 }
 
+/** Collect a CommonJS require specifier at a token position. */
+function collectRequireSpecifier(imports, tokens, index) {
+  if (tokens[index + 1]?.value === '(') addSpecifier(imports, tokens[index + 2]);
+}
+
+/** Collect a static or dynamic import specifier at a token position. */
+function collectImportSpecifier(imports, tokens, index) {
+  if (tokens[index + 1]?.value === '(') { addSpecifier(imports, tokens[index + 2]); return; }
+  if (tokens[index + 1]?.type === 'string') { addSpecifier(imports, tokens[index + 1]); return; }
+  addFromSpecifier(imports, tokens, index + 1);
+}
+
+/** Collect a module specifier introduced by an import-like keyword. */
+function collectKeywordSpecifier(imports, tokens, index) {
+  const keyword = tokens[index].value;
+  if (keyword === 'require') collectRequireSpecifier(imports, tokens, index);
+  if (keyword === 'import') collectImportSpecifier(imports, tokens, index);
+  if (keyword === 'export') addFromSpecifier(imports, tokens, index + 1);
+}
+
 /** Extract relative module specifiers without matching comments or fixture strings. */
 export function extractRelativeImports(source) {
   const imports = new Set();
   const tokens = tokenize(source);
   for (let index = 0; index < tokens.length; index += 1) {
-    const token = tokens[index];
-    if (token.type !== 'identifier') continue;
-    if (token.value === 'require' && tokens[index + 1]?.value === '(') addSpecifier(imports, tokens[index + 2]);
-    if (token.value === 'import') {
-      if (tokens[index + 1]?.value === '(') addSpecifier(imports, tokens[index + 2]);
-      else if (tokens[index + 1]?.type === 'string') addSpecifier(imports, tokens[index + 1]);
-      else addFromSpecifier(imports, tokens, index + 1);
-    }
-    if (token.value === 'export') addFromSpecifier(imports, tokens, index + 1);
+    if (tokens[index].type === 'identifier') collectKeywordSpecifier(imports, tokens, index);
   }
   return [...imports].sort();
 }
@@ -144,6 +177,16 @@ export function resolveImport(importerPath, specifier, knownFiles, root = REPOSI
   return firstKnownPath(candidates, knownFiles, root);
 }
 
+/** Add a cross-boundary edge when both files belong to meaningful boundaries. */
+function addBoundaryEdge(edges, fromPath, toPath) {
+  const fromBoundary = boundaryFor(fromPath);
+  const toBoundary = boundaryFor(toPath);
+  if (!fromBoundary) return;
+  if (!toBoundary) return;
+  if (fromBoundary === toBoundary) return;
+  edges.add(`${fromBoundary}|${toBoundary}`);
+}
+
 /** Inspect one source file for cross-boundary imports and unresolved paths. */
 async function inspectFile(file, knownFiles, root) {
   if (!CODE_EXTENSIONS.has(path.extname(file.path))) return { edges: [], unresolved: [] };
@@ -153,9 +196,7 @@ async function inspectFile(file, knownFiles, root) {
   for (const specifier of imports) {
     const target = resolveImport(file.path, specifier, knownFiles, root);
     if (!target) { unresolved.push({ from: file.path, specifier }); continue; }
-    const fromBoundary = boundaryFor(file.path);
-    const toBoundary = boundaryFor(target);
-    if (fromBoundary && toBoundary && fromBoundary !== toBoundary) edges.add(`${fromBoundary}|${toBoundary}`);
+    addBoundaryEdge(edges, file.path, target);
   }
   return { edges: [...edges], unresolved };
 }
