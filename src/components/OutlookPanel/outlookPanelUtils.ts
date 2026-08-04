@@ -1,4 +1,4 @@
-import { OutlookType, CategoricalRiskLevel, TornadoProbability, WindProbability, HailProbability, TotalSevereProbability, CIGLevel, DayType } from '../../types/outlooks';
+import { OutlookType, CategoricalRiskLevel, TornadoProbability, WindProbability, HailProbability, TotalSevereProbability, Day48Probability, CIGLevel, DayType } from '../../types/outlooks';
 import { colorMappings, getOutlookConstraints } from '../../utils/outlookUtils';
 
 /**
