@@ -106,7 +106,7 @@ Empirical confirmation (jest test against `beforeSend`):
 ## Plan
 
 > Status: implementation complete. The filter fix (step 1) ships in this worktree
-> (`investigate/gfc-web-q`) with unit tests. Steps 2–3 remain follow-up.
+> (`fix/gfc-web-q-sentry-noise`) with unit tests. Steps 2–3 remain follow-up.
 
 ### 1. Fix the reporting gap (implemented)
 
