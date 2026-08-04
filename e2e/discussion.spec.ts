@@ -28,9 +28,8 @@ test.describe('Discussion workflow', () => {
     await page.goto('/?localTestAccount=premium');
     await page.getByRole('button', { name: 'Full Outlook' }).first().click();
     const startWorkflow = page.getByRole('button', { name: 'Start Workflow', exact: true });
-    if (await startWorkflow.isVisible().catch(() => false)) {
-      await startWorkflow.click();
-    }
+    await expect(startWorkflow).toBeVisible();
+    await startWorkflow.click();
     await expect(page).toHaveURL('/forecast');
 
     await page.getByRole('link', { name: 'Discussion' }).click();
