@@ -161,12 +161,25 @@ describe('instrument', () => {
     ['GFC-WEB-F wrapped NetworkError', 'NetworkError: A network error occurred.'],
     ['GFC-WEB-E wrapped AbortError', 'AbortError: The user aborted a request.'],
     ['bare AbortError variant', 'The user aborted a request.'],
+    ['GFC-WEB-P idb AbortError DOMException', 'AbortError: AbortError'],
+    ['bare GFC-WEB-P idb AbortError value', 'AbortError'],
   ])('drops no-stack request lifecycle noise: %s', (_label, message) => {
     expectBeforeSendToDrop(() => createRequestLifecycleEvent(message));
   });
 
+  it('drops no-stack AbortError rejections even when breadcrumbs provide context', () => {
+    expectBeforeSendToDrop(() => ({
+      ...createRequestLifecycleEvent('AbortError: AbortError'),
+      breadcrumbs: [{ message: '@firebase/app: Error thrown when reading from IndexedDB.' }],
+    }));
+  });
+
   it('keeps matching request lifecycle errors with stack frames', () => {
     expectBeforeSendToKeep(() => createRequestLifecycleEvent('A network error occurred.', true));
+  });
+
+  it('keeps AbortError rejections with stack frames', () => {
+    expectBeforeSendToKeep(() => createRequestLifecycleEvent('AbortError: AbortError', true));
   });
 
   it.each([
