@@ -99,4 +99,4 @@ pnpm validate:feature-exposure
 node scripts/run-exposure-suite.mjs
 ```
 
-The exposure suite also runs in CI inside the `feature-exposure-policy` job.
+The static feature-exposure policy check (`pnpm validate:feature-exposure`) runs in CI inside the `feature-exposure-policy` job. The exposure tests themselves run as part of the main `build-and-test` job.
