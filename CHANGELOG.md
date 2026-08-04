@@ -47,7 +47,7 @@ Work toward the next major release continues in the beta channel while the final
 
 #### Fixed
 
-<!-- No unreleased stable hotfixes. -->
+- **GFC-WEB-P Sentry noise:** Filter no-stack `AbortError` DOMException promise-rejection noise from the Firebase SDK's IndexedDB heartbeat storage before it reaches Sentry, even when breadcrumbs are present, while preserving actionable exceptions.
 
 ## v1.6.6
 
