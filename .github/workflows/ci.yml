@@ -129,6 +129,72 @@ jobs:
           GITHUB_HEAD_REF: ${{ github.head_ref }}
         run: node scripts/validate-package-version.mjs
 
+  typecheck:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24.x'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck application source
+        run: pnpm run typecheck
+
+      - name: Typecheck regression check for test sources
+        run: pnpm run typecheck:test
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24.x'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint application source and tests
+        run: pnpm run lint
+
+  feature-exposure-policy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24.x'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Validate feature exposure policy
+        run: pnpm run validate:feature-exposure
+
   firestore-rules:
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -205,3 +271,34 @@ jobs:
           else
             echo "Skipping server tests: no test script in server/package.json on this branch."
           fi
+
+  e2e:
+    needs: [typecheck, feature-exposure-policy, lint]
+    if: >-
+      always() &&
+      needs.typecheck.result == 'success' &&
+      needs.feature-exposure-policy.result == 'success' &&
+      needs.lint.result == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24.x'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright browsers
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Run end-to-end tests
+        run: pnpm run test:e2e
