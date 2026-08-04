@@ -25,9 +25,11 @@ test.describe('Discussion workflow', () => {
         body: JSON.stringify({ uid: 'e2e-user', email: 'e2e@example.test', displayName: 'E2E Forecaster', betaAccess: true }),
       });
     });
-    await page.goto('/');
+    await page.goto('/?localTestAccount=premium');
     await page.getByRole('button', { name: 'Full Outlook' }).first().click();
-    await page.getByRole('button', { name: 'Start Blank Cycle' }).click();
+    const startWorkflow = page.getByRole('button', { name: 'Start Workflow', exact: true });
+    await expect(startWorkflow).toBeVisible();
+    await startWorkflow.click();
     await expect(page).toHaveURL('/forecast');
 
     await page.getByRole('link', { name: 'Discussion' }).click();

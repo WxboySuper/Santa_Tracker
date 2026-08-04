@@ -147,7 +147,7 @@ test.describe('App smoke tests', () => {
     await page.goto('/verification?localBetaBypass=true');
     await acceptAgreementsIfPresent(page);
 
-    await expect(page.getByRole('heading', { name: /Verification/i })).toBeVisible({ timeout: 10000 });
+    await expect(page.getByRole('heading', { name: /Forecast Grade/i })).toBeVisible({ timeout: 10000 });
   });
 
   test('monitor page loads with live controls and no horizontal overflow', async ({ page }) => {
