@@ -167,22 +167,33 @@ const validateOutlookMap = (value: unknown, path: string): ImportValidationResul
 
   let featureCount = 0;
   for (const [probability, features] of entries) {
-    if (!Array.isArray(features)) {
-      return fail(`${path} entry "${probability}" is missing its feature list.`);
-    }
-    if (features.length > MAX_FEATURES_PER_MAP) {
-      return fail(`${path} entry "${probability}" contains too many features.`);
-    }
-    featureCount += features.length;
+    const entryResult = validateProbabilityEntry(probability, features, path);
+    if (entryResult) return entryResult;
+    featureCount += Array.isArray(features) ? features.length : 0;
     if (featureCount > MAX_FEATURES_PER_MAP) {
       return fail(`${path} contains too many total features.`);
     }
-    for (const feature of features) {
-      const featureResult = validateFeature(feature);
-      if (featureResult) return featureResult;
-    }
   }
 
+  return null;
+};
+
+/** Validates one probability entry and its features, returning a failure or null. */
+const validateProbabilityEntry = (
+  probability: string,
+  features: unknown,
+  path: string,
+): ImportValidationResult | null => {
+  if (!Array.isArray(features)) {
+    return fail(`${path} entry "${probability}" is missing its feature list.`);
+  }
+  if (features.length > MAX_FEATURES_PER_MAP) {
+    return fail(`${path} entry "${probability}" contains too many features.`);
+  }
+  for (const feature of features) {
+    const featureResult = validateFeature(feature);
+    if (featureResult) return featureResult;
+  }
   return null;
 };
 
