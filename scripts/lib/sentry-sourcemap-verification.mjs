@@ -46,6 +46,19 @@ export const buildReleaseName = (pkg) => `${SENTRY_RELEASE_PREFIX}${pkg.version}
  * @returns {VerificationResult}
  */
 export const verifyReleaseFilesResponse = ({ release, status, body }) => {
+  const transportError = transportErrorForStatus(status, release);
+  if (transportError) return transportError;
+
+  const files = extractFiles(body);
+  if (!files || files.length === 0) {
+    return emptyArtifactsResult(status, release);
+  }
+
+  return coverageResult(files, status, release);
+};
+
+/** Maps non-2xx transport statuses to a verification failure, or null when the request succeeded. */
+const transportErrorForStatus = (status, release) => {
   if (status === 401 || status === 403) {
     return {
       ok: false,
@@ -70,15 +83,18 @@ export const verifyReleaseFilesResponse = ({ release, status, body }) => {
     };
   }
 
-  const files = extractFiles(body);
-  if (!files || files.length === 0) {
-    return {
-      ok: false,
-      status,
-      reason: `Sentry release ${release} exists but has no uploaded artifacts.`,
-    };
-  }
+  return null;
+};
 
+/** Returns a failure when a release exists but has no uploaded artifacts. */
+const emptyArtifactsResult = (status, release) => ({
+  ok: false,
+  status,
+  reason: `Sentry release ${release} exists but has no uploaded artifacts.`,
+});
+
+/** Verifies a 2xx response published both bundles and sourcemaps. */
+const coverageResult = (files, status, release) => {
   const mapFiles = files.filter((file) => typeof file.name === 'string' && file.name.endsWith('.map'));
   const jsFiles = files.filter((file) => typeof file.name === 'string' && file.name.endsWith('.js'));
 
