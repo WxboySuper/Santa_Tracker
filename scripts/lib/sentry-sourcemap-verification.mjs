@@ -93,10 +93,14 @@ const emptyArtifactsResult = (status, release) => ({
   reason: `Sentry release ${release} exists but has no uploaded artifacts.`,
 });
 
-/** Verifies a 2xx response published both bundles and sourcemaps. */
+/** Verifies a 2xx response published both bundles and sourcemaps for the same files. */
 const coverageResult = (files, status, release) => {
-  const mapFiles = files.filter((file) => typeof file.name === 'string' && file.name.endsWith('.map'));
-  const jsFiles = files.filter((file) => typeof file.name === 'string' && file.name.endsWith('.js'));
+  const names = files
+    .map((file) => (typeof file.name === 'string' ? file.name : null))
+    .filter((name) => name !== null);
+
+  const mapFiles = names.filter((name) => name.endsWith('.map'));
+  const jsFiles = names.filter((name) => name.endsWith('.js'));
 
   if (mapFiles.length === 0 || jsFiles.length === 0) {
     return {
@@ -104,6 +108,20 @@ const coverageResult = (files, status, release) => {
       status,
       reason:
         `Sentry release ${release} is missing sourcemap coverage ` +
+        `(maps=${mapFiles.length}, bundles=${jsFiles.length}).`,
+    };
+  }
+
+  // Require at least one bundle to have a matching .map artifact so a stale
+  // release that only contains older, unrelated files cannot satisfy the gate.
+  const mapBases = new Set(mapFiles.map((name) => name.replace(/\.map$/, '')));
+  const hasMatchingPair = jsFiles.some((name) => mapBases.has(name));
+  if (!hasMatchingPair) {
+    return {
+      ok: false,
+      status,
+      reason:
+        `Sentry release ${release} has no bundle with a matching sourcemap artifact ` +
         `(maps=${mapFiles.length}, bundles=${jsFiles.length}).`,
     };
   }

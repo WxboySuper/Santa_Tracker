@@ -103,6 +103,21 @@ describe('sentry sourcemap verification', () => {
       assert.equal(onlyBundles.ok, false);
       assert.match(onlyBundles.reason, /missing sourcemap coverage/);
     });
+
+    it('rejects artifacts from a stale release with no matching bundle/map pair', () => {
+      const result = verifyReleaseFilesResponse({
+        release,
+        status: 200,
+        body: {
+          files: [
+            { name: 'assets/index-old.js' },
+            { name: 'assets/index-new.js.map' },
+          ],
+        },
+      });
+      assert.equal(result.ok, false);
+      assert.match(result.reason, /no bundle with a matching sourcemap/);
+    });
   });
 
   describe('extractFiles', () => {
