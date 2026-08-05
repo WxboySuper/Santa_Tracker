@@ -104,6 +104,26 @@ const resolveArchiveDate = (reportDate: string): string => {
   return archiveDate;
 };
 
+/** Resolves which SPC feed a report date maps to, matching the publication window. */
+const reportFeedForDate = (reportDate: string | null): 'today' | 'yesterday' | 'archive' => {
+  if (reportDate === null || isTodayReportDate(reportDate)) {
+    return 'today';
+  }
+  if (isYesterdayReportDate(reportDate)) {
+    return 'yesterday';
+  }
+  return 'archive';
+};
+
+/** Fetches reports from the SPC feed resolved for a report date. */
+const fetchReportFeed = (reportDate: string | null): Promise<StormReport[]> => {
+  const feed = reportFeedForDate(reportDate);
+  if (feed === 'archive') {
+    return fetchStormReports(resolveArchiveDate(reportDate as string));
+  }
+  return feed === 'yesterday' ? fetchYesterdayStormReports() : fetchTodayStormReports();
+};
+
 /**
  * Loads SPC storm reports for a date (or today when null), or blocks.
  *
@@ -115,13 +135,7 @@ const resolveArchiveDate = (reportDate: string): string => {
  */
 export const loadReportsForDate = async (reportDate: string | null): Promise<StormReport[]> => {
   try {
-    if (reportDate === null || isTodayReportDate(reportDate)) {
-      return await fetchTodayStormReports();
-    }
-    if (isYesterdayReportDate(reportDate)) {
-      return await fetchYesterdayStormReports();
-    }
-    return await fetchStormReports(resolveArchiveDate(reportDate));
+    return await fetchReportFeed(reportDate);
   } catch (error) {
     if (error instanceof SourceLoadError) {
       throw error;
