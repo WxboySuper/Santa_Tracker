@@ -55,47 +55,49 @@ const readDatasetSidecar = (name) => {
   }
 };
 
+/** Scans the typed boundary-source registry for dataset provenance when present. */
+const readRegistryProvenance = () => {
+  const registryPath = resolve(ROOT, 'src/config/geoBoundarySources.ts');
+  if (!existsSync(registryPath)) return [];
+  try {
+    const content = readFileSync(registryPath, 'utf8');
+    const pattern = /key:\s*'([A-Za-z]+)',[\s\S]*?origin:\s*'([^']+)',[\s\S]*?license:\s*'([^']+)',[\s\S]*?retrievedAt:\s*'([^']+)'/g;
+    return [...content.matchAll(pattern)].map((match) => ({
+      name: match[1],
+      origin: match[2],
+      license: match[3],
+      retrievedAt: match[4],
+    }));
+  } catch {
+    return [];
+  }
+};
+
+/** Scans vendored GeoJSON files for per-file provenance sidecars. */
+const readGeodataProvenance = () => {
+  const geodataDir = resolve(ROOT, 'public/geodata');
+  if (!existsSync(geodataDir)) return [];
+  try {
+    return readdirSync(geodataDir)
+      .filter((name) => name.endsWith('.json') && !name.endsWith('.source.json'))
+      .map((name) => ({ key: name.replace(/\.json$/, ''), meta: readDatasetSidecar(name.replace(/\.json$/, '')) }))
+      .filter(({ meta }) => meta !== null)
+      .map(({ key, meta }) => ({
+        name: key,
+        origin: meta.origin || '',
+        license: meta.license || 'unknown',
+        retrievedAt: meta.retrievedAt || '',
+      }));
+  } catch {
+    return [];
+  }
+};
+
 /** Collects dataset provenance from the vendored boundary datasets and their registry. */
 const readDatasetProvenance = () => {
-  const registryPath = resolve(ROOT, 'src/config/geoBoundarySources.ts');
-  const datasets = [];
-
-  // Preferred source: the typed registry introduced by the vendored-assets work.
-  if (existsSync(registryPath)) {
-    try {
-      const content = readFileSync(registryPath, 'utf8');
-      const pattern = /key:\s*'([A-Za-z]+)',[\s\S]*?origin:\s*'([^']+)',[\s\S]*?license:\s*'([^']+)',[\s\S]*?retrievedAt:\s*'([^']+)'/g;
-      for (const match of content.matchAll(pattern)) {
-        datasets.push({ name: match[1], origin: match[2], license: match[3], retrievedAt: match[4] });
-      }
-    } catch {
-      // Registry unreadable; fall back to the vendored files below.
-    }
-  }
-
-  // Fallback: any vendored GeoJSON dataset with a per-file provenance sidecar.
-  const geodataDir = resolve(ROOT, 'public/geodata');
-  if (datasets.length === 0 && existsSync(geodataDir)) {
-    try {
-      for (const name of readdirSync(geodataDir)) {
-        if (!name.endsWith('.json') || name.endsWith('.source.json')) continue;
-        const key = name.replace(/\.json$/, '');
-        const meta = readDatasetSidecar(key);
-        if (meta) {
-          datasets.push({
-            name: key,
-            origin: meta.origin || '',
-            license: meta.license || 'unknown',
-            retrievedAt: meta.retrievedAt || '',
-          });
-        }
-      }
-    } catch {
-      // Geodata directory unreadable; leave provenance empty.
-    }
-  }
-
-  return datasets;
+  const fromRegistry = readRegistryProvenance();
+  if (fromRegistry.length > 0) return fromRegistry;
+  return readGeodataProvenance();
 };
 
 /** Aggregates all third-party dependencies into a normalized report. */
