@@ -1,52 +1,9 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { applyAutoCategoricalSync, selectCurrentOutlooks, selectCurrentDay } from '../store/forecastSlice';
 import { OutlookData } from '../types/outlooks';
-import { processDay12OutlooksToCategorical, processDay3OutlooksToCategorical } from './autoCategoricalProcessing';
+import { createDerivationController } from './categoricalWorker';
 export { processDay12OutlooksToCategorical, processDay3OutlooksToCategorical, processOutlooksToCategorical } from './autoCategoricalProcessing';
-
-/**
- * Builds a stable geometry signature for a list of features so we can detect
- * probabilistic changes without relying on generated IDs.
- */
-const signatureFromFeatures = (features: GeoJSON.Feature[]): string => {
-  return features
-    .map((feature) => {
-      const probability = String(feature.properties?.probability || '');
-      return `${probability}:${JSON.stringify(feature.geometry)}`;
-    })
-    .sort()
-    .join('|');
-};
-
-/**
- * Builds a comparable signature for the current categorical outlook map while
- * ignoring manually managed TSTM polygons.
- */
-const signatureFromCategoricalMap = (categoricalMap: OutlookData['categorical']): string => {
-  if (!(categoricalMap instanceof Map)) {
-    return '';
-  }
-
-  const items: GeoJSON.Feature[] = [];
-  categoricalMap.forEach((features, probability) => {
-    if (probability === 'TSTM') {
-      return;
-    }
-
-    features.forEach((feature) => {
-      items.push({
-        ...feature,
-        properties: {
-          ...feature.properties,
-          probability
-        }
-      });
-    });
-  });
-
-  return signatureFromFeatures(items);
-};
 
 /**
  * Serializes one probabilistic outlook map into a stable string that includes
@@ -142,6 +99,8 @@ const useAutoCategorical = () => {
   const currentDay = useSelector(selectCurrentDay);
   const processingRef = useRef(false);
   const lastProcessedRef = useRef<string>('');
+  const requestIdRef = useRef(0);
+  const [controller] = useState(() => createDerivationController());
 
   // Process probabilistic outlooks to generate categorical outlooks
   useEffect(() => {
@@ -167,46 +126,46 @@ const useAutoCategorical = () => {
     } else if (currentDay === 3) {
       hasChanges = outlooks.totalSevere instanceof Map ? outlooks.totalSevere.size > 0 : false;
     }
-    
-    // Build the categorical geometry that *should* exist for current probabilistic data
-    // and compare to what is currently present. This catches imported stale/ring
-    // categorical geometry even when probabilistic IDs/hash are unchanged.
-    let generatedFeatures: GeoJSON.Feature[] = [];
-    if (currentDay === 1 || currentDay === 2) {
-      generatedFeatures = processDay12OutlooksToCategorical(outlooks);
-    } else if (currentDay === 3) {
-      generatedFeatures = processDay3OutlooksToCategorical(outlooks);
+
+    // Fast path: same probabilistic state and no changes worth processing.
+    if (currentHash === lastProcessedRef.current && !hasChanges) {
+      return;
     }
 
-    const expectedSignature = signatureFromFeatures(generatedFeatures);
-    const currentSignature = signatureFromCategoricalMap(outlooks.categorical);
-    const categoricalOutOfSync = expectedSignature !== currentSignature;
-
+    // With nothing to process, record the baseline and skip derivation so an
+    // empty mount does not spawn work that races with a follow-up edit.
     if (!hasChanges) {
       lastProcessedRef.current = currentHash;
-      if (!categoricalOutOfSync) {
-        return;
-      }
-    }
-
-    // Fast path: same probabilistic state and categorical already matches expected output.
-    if (currentHash === lastProcessedRef.current && !categoricalOutOfSync) {
       return;
     }
 
     processingRef.current = true;
     lastProcessedRef.current = currentHash;
+    const requestId = ++requestIdRef.current;
 
-    try {
-      // Store existing TSTM areas before clearing categoricals
-      const tstmFeatures = (outlooks.categorical instanceof Map) ? (outlooks.categorical.get('TSTM') || []) : [];
-      const categoricalMap = buildCategoricalMap(tstmFeatures, generatedFeatures);
+    // Store existing TSTM areas before clearing categoricals
+    const tstmFeatures = (outlooks.categorical instanceof Map) ? (outlooks.categorical.get('TSTM') || []) : [];
 
-      dispatch(applyAutoCategoricalSync({ map: categoricalMap }));
-    } finally {
-      processingRef.current = false;
-    }
-  }, [dispatch, outlooks, currentDay]);
+    controller.derive(requestId, currentDay, outlooks)
+      .then((result) => {
+        // Discard stale responses: only the newest request may commit.
+        if (requestId !== requestIdRef.current) {
+          return;
+        }
+        if (!result.ok || !result.features) {
+          return;
+        }
+        const categoricalMap = buildCategoricalMap(tstmFeatures, result.features);
+        dispatch(applyAutoCategoricalSync({ map: categoricalMap }));
+      })
+      .finally(() => {
+        if (requestId === requestIdRef.current) {
+          processingRef.current = false;
+        }
+      });
+  }, [controller, dispatch, outlooks, currentDay]);
+
+  useEffect(() => () => controller.dispose(), [controller]);
 
   return null;
 };

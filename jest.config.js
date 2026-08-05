@@ -16,6 +16,7 @@ module.exports = {
     '\\.(gif|ttf|eot|svg|png)$': '<rootDir>/src/__mocks__/fileMock.js',
     '^@/(.*)$': '<rootDir>/src/$1',
     '^@turf/turf$': '<rootDir>/node_modules/.pnpm/@turf+turf@7.3.5/node_modules/@turf/turf/dist/cjs/index.cjs',
+    '\\?worker$': '<rootDir>/src/__mocks__/workerMock.js',
   },
   collectCoverageFrom: [
     'src/**/*.{ts,tsx,js,jsx}',
