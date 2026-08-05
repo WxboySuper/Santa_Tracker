@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useModalFocusTrap } from '../../hooks/useModalFocusTrap';
 import './ExportModal.css';
 
@@ -6,14 +6,12 @@ interface ExportFormProps {
   title: string;
   onTitleChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onCancel: () => void;
-  inputRef: React.RefObject<HTMLInputElement | null>;
 }
 
-const ExportForm: React.FC<ExportFormProps> = ({ title, onTitleChange, onCancel, inputRef }) => (
+const ExportForm: React.FC<ExportFormProps> = ({ title, onTitleChange, onCancel }) => (
   <>
     <label htmlFor="export-filename" className="sr-only">Image Title (optional)</label>
     <input
-      ref={inputRef}
       id="export-filename"
       type="text"
       className="export-modal-input"
@@ -47,16 +45,12 @@ interface ExportModalProps {
 
 const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onConfirm, onCancel }) => {
   const [title, setTitle] = useState('');
-  const inputRef = useRef<HTMLInputElement>(null);
   const { setModalRef } = useModalFocusTrap({ active: isOpen, onClose: onCancel });
 
+  // Reset the title when opened; the focus trap moves focus into the modal.
   useEffect(() => {
     if (isOpen) {
-      setTitle(''); // Reset title when opened
-      // Focus input on open
-      setTimeout(() => {
-        inputRef.current?.focus();
-      }, 50);
+      setTitle('');
     }
   }, [isOpen]);
 
@@ -80,7 +74,6 @@ const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onConfirm, onCancel }
             title={title}
             onTitleChange={handleTitleChange}
             onCancel={onCancel}
-            inputRef={inputRef}
           />
         </form>
       </div>
