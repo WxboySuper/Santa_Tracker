@@ -1,5 +1,5 @@
 import { resolve } from 'node:path';
-import { collectThirdPartyDependencies, renderNotices, writeNoticesFile } from './generate-third-party-notices.mjs';
+import { collectThirdPartyDependencies, writeNoticesFile } from './generate-third-party-notices.mjs';
 import { classifyLicense } from './lib/license-policy.mjs';
 
 const ROOT = resolve(import.meta.dirname, '..');
@@ -39,8 +39,7 @@ const main = () => {
     }
   }
 
-  // Regenerate and compare against the committed artifact.
-  const generated = renderNotices(entries);
+  // Regenerate the committed artifact.
   writeNoticesFile(entries, resolve(ROOT, 'THIRD_PARTY_NOTICES.md'));
   console.log(`License policy OK for ${entries.length} dependencies; THIRD_PARTY_NOTICES.md regenerated.`);
 };
