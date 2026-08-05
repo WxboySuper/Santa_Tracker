@@ -43,6 +43,10 @@ Work toward the next major release continues in the beta channel while the final
 
 - Use immutable action references, protected reviewer gates, shell-safe branch handling, frozen dependency installs, pinned deployment host keys, concurrency controls, and explicit release validation.
 
+#### Architecture
+
+- **Deterministic Redux transitions:** Remove clock, storage, and DOM reads from forecast/theme/custom-product reducers. Timestamps are stamped onto action meta by a store middleware, and theme/workflow-active persistence moved into store subscriptions. Replaying the same action sequence from the same state now produces deeply equal output.
+
 ### Stable 1.6.x hotfixes
 
 <!-- Production hotfix entries only. Do not put next-major work in this lane. -->

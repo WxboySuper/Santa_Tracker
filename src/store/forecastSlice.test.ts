@@ -782,7 +782,7 @@ describe('forecastSlice undo/redo', () => {
         expect(state.workflowMetadata?.outlookVersions[0].version).toBe(1);
         expect(state.workflowMetadata?.outlookVersions[0].status).toBe('in-progress');
         expect(state.isWorkflowActive).toBe(true);
-        expect(localStorage.getItem('gfc-active-forecast-workflow')).toBe('true');
+        expect(localStorage.getItem('gfc-active-forecast-workflow')).toBeNull();
       });
 
       it('starts workflow templates on their matching forecast day', () => {

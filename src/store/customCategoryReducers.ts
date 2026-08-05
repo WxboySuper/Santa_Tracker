@@ -1,6 +1,7 @@
 import type { PayloadAction } from '@reduxjs/toolkit';
 import { CUSTOM_PRODUCT_LIMITS, type CustomCategoryTemplate } from '../types/customProducts';
 import type { ForecastState } from './forecastSlice';
+import { readActionTimestamp } from './timestampMiddleware';
 import { canMoveCustomItem, cloneCustomValue, getCurrentCustomLayers, normalizeCustomOrder, touchCustomLayer } from './customLayerReducerUtils';
 
 /** Category reducers that share the parent forecast day's undo history. */
@@ -11,7 +12,7 @@ export const createCustomCategoryReducers = (pushUndoSnapshot: (state: ForecastS
     pushUndoSnapshot(state);
     layer.categories.push(cloneCustomValue(action.payload.category));
     normalizeCustomOrder(layer.categories);
-    touchCustomLayer(layer);
+    touchCustomLayer(layer, readActionTimestamp(action));
     state.customEditor.activeCategoryId = action.payload.category.id;
     state.isSaved = false;
   },
@@ -24,7 +25,7 @@ export const createCustomCategoryReducers = (pushUndoSnapshot: (state: ForecastS
     layer.features.forEach((feature) => {
       if (feature.properties.categoryId === action.payload.category.id) feature.properties.title = action.payload.category.label;
     });
-    touchCustomLayer(layer);
+    touchCustomLayer(layer, readActionTimestamp(action));
     state.isSaved = false;
   },
   removeCustomCategory: (state: ForecastState, action: PayloadAction<{ layerId: string; categoryId: string }>) => {
@@ -37,7 +38,7 @@ export const createCustomCategoryReducers = (pushUndoSnapshot: (state: ForecastS
     layer.features = layer.features.filter(({ properties }) => properties.categoryId !== action.payload.categoryId);
     normalizeCustomOrder(layer.categories);
     state.customEditor.activeCategoryId = layer.categories[Math.min(index, layer.categories.length - 1)]?.id ?? null;
-    touchCustomLayer(layer);
+    touchCustomLayer(layer, readActionTimestamp(action));
     state.isSaved = false;
   },
   moveCustomCategory: (state: ForecastState, action: PayloadAction<{ layerId: string; categoryId: string; direction: -1 | 1 }>) => {
@@ -49,7 +50,7 @@ export const createCustomCategoryReducers = (pushUndoSnapshot: (state: ForecastS
     pushUndoSnapshot(state);
     [layer.categories[index], layer.categories[target]] = [layer.categories[target], layer.categories[index]];
     normalizeCustomOrder(layer.categories);
-    touchCustomLayer(layer);
+    touchCustomLayer(layer, readActionTimestamp(action));
     state.isSaved = false;
   },
 });

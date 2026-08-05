@@ -1,5 +1,5 @@
 import '../immerSetup';
-import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+import { createSlice, PayloadAction, type UnknownAction } from '@reduxjs/toolkit';
 import { OutlookData, OutlookType, DrawingState, ForecastCycle, DayType, OutlookDay, DiscussionData, DiscussionGrouping, Probability } from '../types/outlooks';
 import type { CycleMetadata, WorkflowMetadata, Package, CycleValidationResult, StandardGrouping } from '../types/workflow';
 import { normalizeForecastCycle } from '../utils/outlookMapCoercion';
@@ -11,6 +11,7 @@ import { countForecastMetrics } from '../utils/forecastMetrics';
 import { createCustomLayerReducers } from './customLayerReducers';
 import { createCustomCategoryReducers } from './customCategoryReducers';
 import { createCustomFeatureReducers } from './customFeatureReducers';
+import { readActionTimestamp } from './timestampMiddleware';
 import { getLocalCalendarDate } from '../utils/localDate';
 import { areTstmFeaturesEqual } from '../utils/tstmGeneration';
 import { validateCycleCompletion } from '../utils/completionValidation';
@@ -104,7 +105,12 @@ interface CopyFeatureRule {
 }
 
 const HISTORY_LIMIT = 50;
-const WORKFLOW_ACTIVE_STORAGE_KEY = 'gfc-active-forecast-workflow';
+/** Storage key for the workflow-active flag; persisted by the store subscription, not by reducers. */
+export const WORKFLOW_ACTIVE_STORAGE_KEY = 'gfc-active-forecast-workflow';
+/** Deterministic timestamp used for the module-level initial state so no clock read happens at import time. */
+const INITIAL_TIMESTAMP = '2026-01-01T00:00:00.000Z';
+/** Deterministic cycle date for the module-level initial state, overridden on first user action. */
+const INITIAL_CYCLE_DATE = '2026-01-01';
 const ALL_OUTLOOK_TYPES: OutlookType[] = [
   'tornado',
   'wind',
@@ -114,28 +120,6 @@ const ALL_OUTLOOK_TYPES: OutlookType[] = [
   'day4-8',
 ];
 const DIRECT_DAY12_COPY_TYPES: OutlookType[] = ['tornado', 'wind', 'hail', 'categorical'];
-
-/** Reads the persisted workflow-active flag from localStorage, returning false when storage is blocked or unset. */
-const readStoredWorkflowActive = (): boolean => {
-  try {
-    return localStorage.getItem(WORKFLOW_ACTIVE_STORAGE_KEY) === 'true';
-  } catch {
-    return false;
-  }
-};
-
-/** Persists or clears the workflow-active flag in localStorage, swallowing storage errors to keep the workflow usable. */
-const writeStoredWorkflowActive = (isActive: boolean) => {
-  try {
-    if (isActive) {
-      localStorage.setItem(WORKFLOW_ACTIVE_STORAGE_KEY, 'true');
-      return;
-    }
-    localStorage.removeItem(WORKFLOW_ACTIVE_STORAGE_KEY);
-  } catch {
-    // Keep workflow state usable when storage is blocked.
-  }
-};
 
 /** Resolves the starting forecast day implied by a workflow template's first grouping, defaulting to day 1. */
 const getWorkflowStartDay = (template?: WorkflowMetadata): DayType => {
@@ -219,7 +203,7 @@ const clearOutlookMaps = (data: OutlookData) => {
 };
 
 /** Creates an empty forecast day with the outlook maps supported for that day number. */
-const createEmptyOutlook = (day: DayType): OutlookDay => {
+const createEmptyOutlook = (day: DayType, now: string): OutlookDay => {
   const baseData: OutlookData = {};
 
   if (day === 1 || day === 2) {
@@ -241,11 +225,11 @@ const createEmptyOutlook = (day: DayType): OutlookDay => {
     day,
     data: baseData,
     metadata: {
-      issueDate: new Date().toISOString(),
-      validDate: new Date().toISOString(),
+      issueDate: now,
+      validDate: now,
       issuanceTime: '0600',
-      createdAt: new Date().toISOString(),
-      lastModified: new Date().toISOString(),
+      createdAt: now,
+      lastModified: now,
       lowProbabilityOutlooks: []
     }
   };
@@ -254,10 +238,10 @@ const createEmptyOutlook = (day: DayType): OutlookDay => {
 const initialState: ForecastState = {
   forecastCycle: {
     days: {
-      1: createEmptyOutlook(1)
+      1: createEmptyOutlook(1, INITIAL_TIMESTAMP)
     },
     currentDay: 1,
-    cycleDate: getLocalCalendarDate()
+    cycleDate: INITIAL_CYCLE_DATE
   },
   drawingState: {
     // Start with tornado for Day 1/2 (default day)
@@ -284,7 +268,7 @@ const initialState: ForecastState = {
     showCompletionModal: false,
     omittedDays: {},
   },
-  isWorkflowActive: readStoredWorkflowActive(),
+  isWorkflowActive: false,
   outlookVersionSnapshots: [],
   autoCategoricalError: null,
 };
@@ -339,7 +323,7 @@ const getCurrentOutlook = (state: ForecastState): OutlookData => {
   const day = state.forecastCycle.days[state.forecastCycle.currentDay];
   if (!day) {
     // Should not happen if logic is correct, but safe fallback
-    return createEmptyOutlook(state.forecastCycle.currentDay).data;
+    return createEmptyOutlook(state.forecastCycle.currentDay, INITIAL_TIMESTAMP).data;
   }
   return day.data;
 };
@@ -437,10 +421,10 @@ const getCurrentDaySnapshot = (state: ForecastState): ForecastDaySnapshot | null
 };
 
 /** Applies a stored day snapshot back into Redux state during undo/redo restoration. */
-const applyDaySnapshot = (state: ForecastState, snapshot: ForecastDaySnapshot) => {
+const applyDaySnapshot = (state: ForecastState, snapshot: ForecastDaySnapshot, now: string) => {
   const dayData = state.forecastCycle.days[snapshot.day];
   if (!dayData) {
-    state.forecastCycle.days[snapshot.day] = createEmptyOutlook(snapshot.day);
+    state.forecastCycle.days[snapshot.day] = createEmptyOutlook(snapshot.day, now);
   }
 
   const targetDay = state.forecastCycle.days[snapshot.day];
@@ -449,7 +433,7 @@ const applyDaySnapshot = (state: ForecastState, snapshot: ForecastDaySnapshot) =
   targetDay.data = cloneOutlookData(snapshot.data);
   targetDay.customLayers = cloneCustomLayers(snapshot.customLayers);
   targetDay.metadata.lowProbabilityOutlooks = [...snapshot.lowProbabilityOutlooks];
-  targetDay.metadata.lastModified = new Date().toISOString();
+  targetDay.metadata.lastModified = now;
 };
 
 /** Moves the current day snapshot onto the provided history stack before a reversible edit. */
@@ -505,9 +489,10 @@ const buildRolloverCycle = ({
   sourceDayNumber,
   targetDay,
   targetDate,
-}: Omit<ApplyRolloverArgs, 'sourceCycle' | 'workflowTemplate'>): ForecastCycle => {
+  now,
+}: Omit<ApplyRolloverArgs, 'sourceCycle' | 'workflowTemplate'> & { now: string }): ForecastCycle => {
   const newCycle: ForecastCycle = {
-    days: { [targetDay]: createEmptyOutlook(targetDay) },
+    days: { [targetDay]: createEmptyOutlook(targetDay, now) },
     currentDay: targetDay,
     cycleDate: targetDate,
   };
@@ -533,24 +518,22 @@ const applyRolloverWorkflowState = (
     const workflowId = resolveWorkflowId(workflowTemplate, sourceCycle.workflowMetadata);
     state.workflowMetadata = createInitialCycleMetadata(workflowId, targetDate, now);
     state.isWorkflowActive = true;
-    writeStoredWorkflowActive(true);
     state.workflowTemplate = workflowTemplate || getWorkflowTemplateById(workflowId) || undefined;
     return;
   }
   state.workflowMetadata = undefined;
   state.isWorkflowActive = false;
-  writeStoredWorkflowActive(false);
   state.workflowTemplate = undefined;
 };
 
 /** Resets the in-memory cycle to a fresh rollover derived from the requested source. */
-const applyRolloverFromPreviousCycle = (state: ForecastState, args: ApplyRolloverArgs) => {
+const applyRolloverFromPreviousCycle = (state: ForecastState, args: ApplyRolloverArgs, now: string) => {
   clearHistory(state);
   state.discussionDraftsByScope = {};
-  state.forecastCycle = buildRolloverCycle(args);
+  state.forecastCycle = buildRolloverCycle({ ...args, now });
   state.isSaved = false;
   state.outlookVersionSnapshots = [];
-  applyRolloverWorkflowState(state, args, new Date().toISOString());
+  applyRolloverWorkflowState(state, args, now);
 };
 
 /** Ensures low-probability metadata exists before mutating it in reducers. */
@@ -604,7 +587,8 @@ const applyLowProbabilityState = (
 const restoreHistoryEntry = (
   sourceStack: ForecastHistoryEntry[],
   targetStack: ForecastHistoryEntry[],
-  state: ForecastState
+  state: ForecastState,
+  now: string
 ) => {
   const nextEntry = sourceStack.pop();
   if (!nextEntry) return;
@@ -614,7 +598,7 @@ const restoreHistoryEntry = (
     pushHistoryEntry(targetStack, currentSnapshot);
   }
 
-  applyDaySnapshot(state, nextEntry.snapshot);
+  applyDaySnapshot(state, nextEntry.snapshot, now);
   state.forecastCycle.currentDay = nextEntry.day;
   state.isSaved = false;
 };
@@ -627,7 +611,7 @@ export const forecastSlice = createSlice({
     setForecastDay: (state, action: PayloadAction<DayType>) => {
       const newDay = action.payload;
       if (!state.forecastCycle.days[newDay]) {
-        state.forecastCycle.days[newDay] = createEmptyOutlook(newDay);
+        state.forecastCycle.days[newDay] = createEmptyOutlook(newDay, readActionTimestamp(action));
       }
       state.forecastCycle.currentDay = newDay;
       state.isSaved = false;
@@ -868,15 +852,9 @@ export const forecastSlice = createSlice({
       state.currentMapView = action.payload;
     },
 
-    resetForecasts: (state) => {
+    resetForecasts: (state, action: UnknownAction) => {
       clearHistory(state);
       state.discussionDraftsByScope = {};
-      // Clear localStorage first
-      try {
-        localStorage.removeItem('forecastData');
-      } catch {
-        // Ignore localStorage clear errors
-      }
 
       // Generate today's local date so rollover prompts and resets stay aligned.
       const today = getLocalCalendarDate();
@@ -884,7 +862,7 @@ export const forecastSlice = createSlice({
       // Completely replace forecastCycle to force re-render
       const newCycle: ForecastCycle = {
         days: {
-          1: createEmptyOutlook(1)
+          1: createEmptyOutlook(1, readActionTimestamp(action))
         },
         currentDay: 1,
         cycleDate: today
@@ -896,7 +874,6 @@ export const forecastSlice = createSlice({
       state.workflowMetadata = undefined;
       state.workflowTemplate = undefined;
       state.isWorkflowActive = false;
-      writeStoredWorkflowActive(false);
     },
 
     markAsSaved: (state) => {
@@ -916,7 +893,6 @@ export const forecastSlice = createSlice({
         state.workflowMetadata = undefined;
         state.workflowTemplate = undefined;
         state.isWorkflowActive = false;
-        writeStoredWorkflowActive(false);
       },
       prepare: (cycle: ForecastCycle, preserveDiscussionDrafts = false) => ({
         payload: { cycle, preserveDiscussionDrafts },
@@ -934,7 +910,6 @@ export const forecastSlice = createSlice({
       state.workflowMetadata = undefined;
       state.workflowTemplate = undefined;
       state.isWorkflowActive = false;
-      writeStoredWorkflowActive(false);
     },
 
     // Legacy import support (Single day) -> Import into CURRENT day
@@ -970,7 +945,7 @@ export const forecastSlice = createSlice({
         }
 
         // Update metadata
-        dayData.metadata.lastModified = new Date().toISOString();
+        dayData.metadata.lastModified = readActionTimestamp(action);
       }
       state.isSaved = true;
     },
@@ -1013,7 +988,7 @@ export const forecastSlice = createSlice({
       const dayData = state.forecastCycle.days[day];
       if (dayData) {
         dayData.discussion = discussion;
-        dayData.metadata.lastModified = new Date().toISOString();
+        dayData.metadata.lastModified = readActionTimestamp(action);
         if (scopeId) {
           const { [scopeId]: _removed, ...remainingDrafts } = state.discussionDraftsByScope;
           state.discussionDraftsByScope = remainingDrafts;
@@ -1041,9 +1016,10 @@ export const forecastSlice = createSlice({
     // Cycle History Management
     saveCurrentCycle: (state, action: PayloadAction<{ label?: string }>) => {
       const forecastCycleSnapshot = cloneForecastCycle(state.forecastCycle);
+      const now = readActionTimestamp(action);
       const savedCycle: SavedCycle = {
-        id: `${Date.now()}-${Math.random()}`,
-        timestamp: new Date().toISOString(),
+        id: `cycle-${now}-${state.savedCycles.length}`,
+        timestamp: now,
         cycleDate: state.forecastCycle.cycleDate,
         label: action.payload.label,
         forecastCycle: forecastCycleSnapshot,
@@ -1074,12 +1050,10 @@ export const forecastSlice = createSlice({
             groupings: [],
           };
           state.isWorkflowActive = true;
-          writeStoredWorkflowActive(true);
         } else {
           state.workflowMetadata = undefined;
           state.workflowTemplate = undefined;
           state.isWorkflowActive = false;
-          writeStoredWorkflowActive(false);
         }
       }
     },
@@ -1105,7 +1079,7 @@ export const forecastSlice = createSlice({
 
       // Ensure target day exists
       if (!state.forecastCycle.days[targetDay]) {
-        state.forecastCycle.days[targetDay] = createEmptyOutlook(targetDay);
+        state.forecastCycle.days[targetDay] = createEmptyOutlook(targetDay, readActionTimestamp(action));
       }
 
       const targetDayData = state.forecastCycle.days[targetDay];
@@ -1119,7 +1093,7 @@ export const forecastSlice = createSlice({
       // collection with a detached clone, just like severe outlook data.
       targetDayData.customLayers = cloneIntegratedCustomLayers(sourceDayData.customLayers);
 
-      targetDayData.metadata.lastModified = new Date().toISOString();
+      targetDayData.metadata.lastModified = readActionTimestamp(action);
       clearHistory(state);
       state.isSaved = false;
     },
@@ -1147,14 +1121,14 @@ export const forecastSlice = createSlice({
       }
     },
 
-    undoLastEdit: (state) => {
+    undoLastEdit: (state, action: UnknownAction) => {
       const dayHistory = getOrCreateDayHistory(state);
-      restoreHistoryEntry(dayHistory.undoStack, dayHistory.redoStack, state);
+      restoreHistoryEntry(dayHistory.undoStack, dayHistory.redoStack, state, readActionTimestamp(action));
     },
 
-    redoLastEdit: (state) => {
+    redoLastEdit: (state, action: UnknownAction) => {
       const dayHistory = getOrCreateDayHistory(state);
-      restoreHistoryEntry(dayHistory.redoStack, dayHistory.undoStack, state);
+      restoreHistoryEntry(dayHistory.redoStack, dayHistory.undoStack, state, readActionTimestamp(action));
     },
 
     // v2 workflow metadata reducers
@@ -1162,14 +1136,12 @@ export const forecastSlice = createSlice({
       state.workflowMetadata = action.payload;
       state.workflowTemplate = getWorkflowTemplateById(action.payload.workflowId) || state.workflowTemplate;
       state.isWorkflowActive = true;
-      writeStoredWorkflowActive(true);
     },
 
     clearWorkflowMetadata: (state) => {
       state.workflowMetadata = undefined;
       state.workflowTemplate = undefined;
       state.isWorkflowActive = false;
-      writeStoredWorkflowActive(false);
     },
 
     setWorkflowTemplate: (state, action: PayloadAction<WorkflowMetadata>) => {
@@ -1182,7 +1154,6 @@ export const forecastSlice = createSlice({
       if (pkg.cycles.length > 0) {
         state.workflowMetadata = pkg.cycles[0];
         state.isWorkflowActive = true;
-        writeStoredWorkflowActive(true);
       }
       if (pkg.metadata) {
         state.workflowTemplate = getWorkflowTemplateById(pkg.metadata.workflowId) || {
@@ -1217,8 +1188,8 @@ export const forecastSlice = createSlice({
       state.completionValidation.omittedDays[day] = reason;
     },
 
-    completeCycle: (state) => {
-      const completedAt = new Date().toISOString();
+    completeCycle: (state, action: UnknownAction) => {
+      const completedAt = readActionTimestamp(action);
       state.forecastCycle.completionAcknowledgedAt = completedAt;
       if (state.workflowMetadata) {
         state.workflowMetadata.status = 'completed';
@@ -1234,8 +1205,8 @@ export const forecastSlice = createSlice({
       state.isSaved = false;
     },
 
-    completeWithOmissions: (state) => {
-      const completedAt = new Date().toISOString();
+    completeWithOmissions: (state, action: UnknownAction) => {
+      const completedAt = readActionTimestamp(action);
       state.forecastCycle.completionAcknowledgedAt = completedAt;
       if (state.workflowMetadata) {
         state.workflowMetadata.status = 'completed-with-omissions';
@@ -1265,15 +1236,11 @@ export const forecastSlice = createSlice({
       const { workflowTemplate, cycleDate } = action.payload;
       clearHistory(state);
       state.discussionDraftsByScope = {};
-      try {
-        localStorage.removeItem('forecastData');
-      } catch {
-        // Ignore localStorage errors
-      }
+      const now = readActionTimestamp(action);
       const today = cycleDate || getLocalCalendarDate();
       const startDay = getWorkflowStartDay(workflowTemplate);
       const newCycle: ForecastCycle = {
-        days: { [startDay]: createEmptyOutlook(startDay) },
+        days: { [startDay]: createEmptyOutlook(startDay, now) },
         currentDay: startDay,
         cycleDate: today
       };
@@ -1284,7 +1251,6 @@ export const forecastSlice = createSlice({
       if (workflowTemplate) {
         state.workflowTemplate = workflowTemplate;
         // Create initial cycle metadata
-        const now = new Date().toISOString();
         state.workflowMetadata = {
           id: `WF-${workflowTemplate.id}-${today}`,
           workflowId: workflowTemplate.id,
@@ -1299,13 +1265,11 @@ export const forecastSlice = createSlice({
           updatedAt: now,
         };
         state.isWorkflowActive = true;
-        writeStoredWorkflowActive(true);
       } else {
         // Clear stale workflow state when starting without a template
         state.workflowTemplate = undefined;
         state.workflowMetadata = undefined;
         state.isWorkflowActive = false;
-        writeStoredWorkflowActive(false);
       }
     },
 
@@ -1331,18 +1295,16 @@ export const forecastSlice = createSlice({
           groupings: [],
         };
         state.isWorkflowActive = true;
-        writeStoredWorkflowActive(true);
       } else {
         state.workflowMetadata = undefined;
         state.workflowTemplate = undefined;
         state.isWorkflowActive = false;
-        writeStoredWorkflowActive(false);
       }
     },
 
     /** Create a new outlook version within the current cycle (same-cycle update). */
-    createOutlookUpdate: (state) => {
-      const now = new Date().toISOString();
+    createOutlookUpdate: (state, action: UnknownAction) => {
+      const now = readActionTimestamp(action);
 
       // Determine the next version number
       const currentVersions = state.workflowMetadata?.outlookVersions || [];
@@ -1427,12 +1389,17 @@ export const forecastSlice = createSlice({
         targetDay,
         targetDate: newCycleDate || getLocalCalendarDate(),
         workflowTemplate,
-      });
+      }, readActionTimestamp(action));
     },
 
     /** Sets the editor-visible auto-categorical derivation error (null clears it). */
     setAutoCategoricalError: (state, action: PayloadAction<string | null>) => {
       state.autoCategoricalError = action.payload;
+    },
+
+    /** Hydrates the workflow-active flag from storage via the store subscription. */
+    setWorkflowActive: (state, action: PayloadAction<boolean>) => {
+      state.isWorkflowActive = action.payload;
     },
   }
 });
@@ -1500,6 +1467,7 @@ export const {
   createOutlookUpdate,
   startFromPreviousCycle,
   setAutoCategoricalError,
+  setWorkflowActive,
 } = forecastSlice.actions;
 
 /** Selects the full forecast slice. */
@@ -1513,7 +1481,7 @@ export const selectDiscussionDraftForScope = (state: RootState, scopeId: string)
 /** Selects the outlook maps for the active day, falling back to an empty day shape when needed. */
 export const selectCurrentOutlooks = (state: RootState) => {
   const cycle = state.forecast.forecastCycle;
-  return cycle.days[cycle.currentDay]?.data || createEmptyOutlook(cycle.currentDay).data;
+  return cycle.days[cycle.currentDay]?.data || createEmptyOutlook(cycle.currentDay, INITIAL_TIMESTAMP).data;
 };
 const EMPTY_CUSTOM_LAYERS: CustomLayerCollection = {
   schemaVersion: '1.0.0',
@@ -1526,7 +1494,7 @@ export const selectCurrentCustomLayers = (state: RootState): CustomLayerCollecti
 /** Selects the outlook maps for a specific day, falling back to an empty day shape when absent. */
 export const selectOutlooksForDay = (state: RootState, day: DayType) => {
   const cycle = state.forecast.forecastCycle;
-  return cycle.days[day]?.data || createEmptyOutlook(day).data;
+  return cycle.days[day]?.data || createEmptyOutlook(day, INITIAL_TIMESTAMP).data;
 };
 /** Selects the saved forecast cycle snapshots shown in cycle history. */
 export const selectSavedCycles = (state: RootState) => state.forecast.savedCycles;

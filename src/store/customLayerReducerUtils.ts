@@ -6,8 +6,8 @@ export const cloneCustomValue = <T>(value: T): T => JSON.parse(JSON.stringify(va
 export const getCurrentCustomLayers = (state: ForecastState) =>
   state.forecastCycle.days[state.forecastCycle.currentDay]?.customLayers;
 
-export const touchCustomLayer = (layer: OneOffCustomLayer) => {
-  layer.updatedAt = new Date().toISOString();
+export const touchCustomLayer = (layer: OneOffCustomLayer, updatedAt: string) => {
+  layer.updatedAt = updatedAt;
 };
 
 export const normalizeCustomOrder = <T extends { order: number }>(items: T[]) => {
