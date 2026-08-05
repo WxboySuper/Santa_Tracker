@@ -1,0 +1,36 @@
+name: PR CI label
+
+# GitHub Actions' own check suites never emit check_suite events, so the
+# ci:pending/ci:passing/ci:failing label could only ever reflect an in-flight
+# state. This workflow reacts to the CI workflow itself completing so the label
+# settles on the final result. It never checks out a pull request head: the sync
+# script only talks to the GitHub API and runs from the default branch.
+on:
+  workflow_run:
+    workflows: ['CI']
+    types: [completed]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  refresh-ci-label:
+    if: >-
+      github.event.workflow_run.head_repository.full_name == github.repository &&
+      github.event.workflow_run.pull_requests[0] != null
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24.x'
+
+      - name: Update CI labels from all check runs on PR head
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.workflow_run.pull_requests[0].number }}
+        run: node scripts/sync-pr-ci-label.mjs
