@@ -1,4 +1,12 @@
-import type { Feature, Geometry } from 'geojson';
+import {
+  MAX_ARRAY_ITEMS,
+  MAX_IMPORT_BYTES,
+  MAX_NESTING_DEPTH,
+  MAX_STRING_LENGTH,
+  fail,
+  type ImportValidationResult,
+} from './forecastValidationTypes';
+import { validateForecastCycle, validateLegacyOutlooks } from './forecastOutlookValidation';
 
 /**
  * Bounded, schema-aware validation for imported forecast files.
@@ -17,44 +25,7 @@ import type { Feature, Geometry } from 'geojson';
  * can never partially mutate the active forecast.
  */
 
-export interface ImportValidationResult {
-  ok: boolean;
-  /** Human-readable, safe reason suitable for a toast. */
-  reason?: string;
-}
-
-/** Maximum accepted import file size (25 MB). */
-export const MAX_IMPORT_BYTES = 25 * 1024 * 1024;
-/** Maximum allowed object nesting depth. */
-export const MAX_NESTING_DEPTH = 32;
-/** Maximum number of items in any single array (protects against extreme collections). */
-export const MAX_ARRAY_ITEMS = 100_000;
-/** Maximum features per outlook probability map. */
-export const MAX_FEATURES_PER_MAP = 5_000;
-/** Maximum string length anywhere in the document. */
-export const MAX_STRING_LENGTH = 100_000;
-/** Maximum coordinate positions per geometry. */
-export const MAX_COORDINATE_POSITIONS = 500_000;
-
-const SUPPORTED_GEOMETRY_TYPES = new Set<string>([
-  'Point',
-  'MultiPoint',
-  'LineString',
-  'MultiLineString',
-  'Polygon',
-  'MultiPolygon',
-  'GeometryCollection',
-]);
-
-const OUTLOOK_MAP_FIELDS = new Set(['tornado', 'wind', 'hail', 'totalSevere', 'day4-8', 'categorical']);
-
-/** Returns a structured validation failure with an actionable message. */
-const fail = (reason: string): ImportValidationResult => ({ ok: false, reason });
-
-/**
- * Bounds-check the raw import file bytes before parsing.
- * @returns {ImportValidationResult}
- */
+/** Bounds-check the raw import file bytes before parsing. */
 export const validateImportFileBytes = (bytes: Uint8Array | ArrayBuffer | undefined | null): ImportValidationResult => {
   if (bytes == null) return { ok: true };
   const byteLength = bytes instanceof Uint8Array ? bytes.byteLength : bytes.byteLength;
@@ -62,164 +33,6 @@ export const validateImportFileBytes = (bytes: Uint8Array | ArrayBuffer | undefi
     return fail(`File is too large (${(byteLength / 1024 / 1024).toFixed(1)} MB); the maximum supported size is ${MAX_IMPORT_BYTES / 1024 / 1024} MB.`);
   }
   return { ok: true };
-};
-
-/**
- * Counts coordinate positions inside a GeoJSON geometry, bounding work early
- * when the limit is exceeded.
- */
-const countCoordinatePositions = (geometry: Geometry, limit: number): number => {
-  let count = 0;
-  const visit = (value: unknown): void => {
-    if (count >= limit) return;
-    if (Array.isArray(value)) {
-      if (value.length > 0 && Array.isArray(value[0])) {
-        value.forEach(visit);
-      } else {
-        count += value.length;
-      }
-    }
-  };
-  if (geometry.type === 'GeometryCollection') {
-    return 0;
-  }
-  visit((geometry as { coordinates?: unknown }).coordinates);
-  return count;
-};
-
-/** Validates the child geometries of a GeometryCollection. */
-const validateGeometryCollection = (geometries: unknown): ImportValidationResult | null => {
-  if (!Array.isArray(geometries) || geometries.length > MAX_ARRAY_ITEMS) {
-    return fail('Forecast geometry collection is invalid or too large.');
-  }
-  for (const child of geometries) {
-    const childResult = validateGeometry(child);
-    if (childResult) return childResult;
-  }
-  return null;
-};
-
-/** Validates a non-collection geometry's coordinates and size. */
-const validateGeometryCoordinates = (geometry: { type?: unknown; coordinates?: unknown }): ImportValidationResult | null => {
-  if (!Array.isArray(geometry.coordinates)) {
-    return fail(`Forecast geometry "${geometry.type}" is missing coordinates.`);
-  }
-  if (countCoordinatePositions(geometry as Geometry, MAX_COORDINATE_POSITIONS) >= MAX_COORDINATE_POSITIONS) {
-    return fail('Forecast geometry contains too many coordinates.');
-  }
-  return null;
-};
-
-/** Validates one GeoJSON geometry object against supported types and coordinate bounds. */
-const validateGeometry = (value: unknown): ImportValidationResult | null => {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) {
-    return fail('Forecast geometry is not a valid object.');
-  }
-
-  const geometry = value as { type?: unknown; coordinates?: unknown; geometries?: unknown };
-  if (typeof geometry.type !== 'string' || !SUPPORTED_GEOMETRY_TYPES.has(geometry.type)) {
-    return fail(`Forecast geometry uses unsupported type "${String(geometry.type)}".`);
-  }
-
-  if (geometry.type === 'GeometryCollection') {
-    return validateGeometryCollection(geometry.geometries);
-  }
-
-  return validateGeometryCoordinates(geometry);
-};
-
-/** Validates one serialized outlook feature and its geometry. */
-// @codescene(disable:"Complex Method", disable:"Complex Conditional")
-const validateFeature = (value: unknown): ImportValidationResult | null => {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) {
-    return fail('Forecast feature is not a valid object.');
-  }
-
-  const feature = value as Feature;
-  if (feature.type !== 'Feature') {
-    return fail('Forecast geometry entry is missing "type": "Feature".');
-  }
-
-  const geometryResult = validateGeometry(feature.geometry);
-  if (geometryResult) return geometryResult;
-
-  const properties = feature.properties;
-  if (properties !== null && properties !== undefined && (typeof properties !== 'object' || Array.isArray(properties))) {
-    return fail('Forecast feature properties are invalid.');
-  }
-
-  return null;
-};
-
-/**
- * Validates one serialized outlook map (probability -> feature array) with a
- * per-map feature bound. Supports the canonical `[probability, features][]`
- * serialization plus legacy plain-object maps.
- */
-const validateOutlookMap = (value: unknown, path: string): ImportValidationResult | null => {
-  const entries = outlookMapEntries(value);
-  if (entries === null) {
-    return fail(`${path} must be an array of probability entries or a map object.`);
-  }
-
-  if (entries.length > MAX_ARRAY_ITEMS) {
-    return fail(`${path} contains too many probability entries.`);
-  }
-
-  let featureCount = 0;
-  for (const [probability, features] of entries) {
-    const entryResult = validateProbabilityEntry(probability, features, path);
-    if (entryResult) return entryResult;
-    featureCount += Array.isArray(features) ? features.length : 0;
-    if (featureCount > MAX_FEATURES_PER_MAP) {
-      return fail(`${path} contains too many total features.`);
-    }
-  }
-
-  return null;
-};
-
-/** Validates one probability entry and its features, returning a failure or null. */
-const validateProbabilityEntry = (
-  probability: string,
-  features: unknown,
-  path: string,
-): ImportValidationResult | null => {
-  if (!Array.isArray(features)) {
-    return fail(`${path} entry "${probability}" is missing its feature list.`);
-  }
-  if (features.length > MAX_FEATURES_PER_MAP) {
-    return fail(`${path} entry "${probability}" contains too many features.`);
-  }
-  for (const feature of features) {
-    const featureResult = validateFeature(feature);
-    if (featureResult) return featureResult;
-  }
-  return null;
-};
-
-/**
- * Normalizes a serialized outlook map into `[probability, features][]` entries,
- * returning null when the value is neither the canonical array form nor a
- * legacy plain object.
- */
-const outlookMapEntries = (value: unknown): Array<[string, unknown]> | null => {
-  if (Array.isArray(value)) {
-    const entries: Array<[string, unknown]> = [];
-    for (const entry of value) {
-      if (!Array.isArray(entry) || entry.length !== 2 || typeof entry[0] !== 'string') {
-        return null;
-      }
-      entries.push([entry[0], entry[1]]);
-    }
-    return entries;
-  }
-
-  if (value && typeof value === 'object') {
-    return Object.entries(value as Record<string, unknown>);
-  }
-
-  return null;
 };
 
 /**
@@ -281,6 +94,7 @@ const isWorkflowWrapper = (candidate: { forecast?: unknown }): boolean =>
  * @param {unknown} data
  * @returns {ImportValidationResult}
  */
+// @codescene(disable:"Complex Conditional")
 export const validateForecastImport = (data: unknown): ImportValidationResult => {
   if (typeof data !== 'object' || data === null || Array.isArray(data)) {
     return fail('Forecast file is not a valid object.');
@@ -312,83 +126,5 @@ export const validateForecastImport = (data: unknown): ImportValidationResult =>
   return fail('Forecast file is missing forecastCycle or outlooks data.');
 };
 
-/** Validates the legacy single-day outlooks section. */
-const validateLegacyOutlooks = (outlooks: unknown): ImportValidationResult => {
-  if (typeof outlooks !== 'object' || outlooks === null || Array.isArray(outlooks)) {
-    return fail('Forecast outlooks are not a valid object.');
-  }
-  for (const field of OUTLOOK_MAP_FIELDS) {
-    const map = (outlooks as Record<string, unknown>)[field];
-    if (map === undefined) continue;
-    const result = validateOutlookMap(map, `outlooks.${field}`);
-    if (result) return result;
-  }
-  return { ok: true };
-};
-
-/** Validates the multi-day forecastCycle section of a saved document. */
-// @codescene(disable:"Complex Method", disable:"Overall Code Complexity")
-const validateForecastCycle = (value: unknown): ImportValidationResult => {
-  if (typeof value !== 'object' || value === null || Array.isArray(value)) {
-    return fail('forecastCycle is not a valid object.');
-  }
-
-  const cycle = value as { days?: unknown };
-  if (cycle.days === undefined) {
-    return fail('forecastCycle is missing its days map.');
-  }
-
-  if (typeof cycle.days !== 'object' || cycle.days === null || Array.isArray(cycle.days)) {
-    return fail('forecastCycle.days is not a valid object.');
-  }
-
-  const days = cycle.days as Record<string, unknown>;
-  const dayKeys = Object.keys(days);
-  if (dayKeys.length > 8) {
-    return fail('forecastCycle contains more than the supported forecast days.');
-  }
-
-  for (const dayKey of dayKeys) {
-    const dayResult = validateForecastDay(dayKey, days[dayKey]);
-    if (dayResult) return dayResult;
-  }
-
-  return { ok: true };
-};
-
-/** Validates one saved forecast day and its outlook maps. */
-const validateForecastDay = (dayKey: string, day: unknown): ImportValidationResult | null => {
-  const invalidDay = invalidDayKey(dayKey);
-  if (invalidDay) return invalidDay;
-
-  if (!day || typeof day !== 'object' || Array.isArray(day)) {
-    return fail(`forecastCycle day "${dayKey}" is not a valid object.`);
-  }
-
-  const dayData = (day as { data?: unknown }).data;
-  if (!dayData || typeof dayData !== 'object' || Array.isArray(dayData)) {
-    return fail(`forecastCycle day "${dayKey}" is missing valid outlook data.`);
-  }
-
-  return validateDayOutlookMaps(dayKey, dayData);
-};
-
-/** Returns a failure when a day key is not an integer in the 1-8 range. */
-const invalidDayKey = (dayKey: string): ImportValidationResult | null => {
-  const dayNumber = Number(dayKey);
-  if (!Number.isInteger(dayNumber) || dayNumber < 1 || dayNumber > 8) {
-    return fail(`forecastCycle contains an invalid day "${dayKey}".`);
-  }
-  return null;
-};
-
-/** Validates every outlook map on one saved day. */
-const validateDayOutlookMaps = (dayKey: string, dayData: unknown): ImportValidationResult | null => {
-  for (const field of OUTLOOK_MAP_FIELDS) {
-    const map = (dayData as Record<string, unknown>)[field];
-    if (map === undefined) continue;
-    const result = validateOutlookMap(map, `forecastCycle.days.${dayKey}.data.${field}`);
-    if (result) return result;
-  }
-  return null;
-};
+export type { ImportValidationResult };
+export { MAX_IMPORT_BYTES };

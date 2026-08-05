@@ -1,0 +1,103 @@
+import type { Feature, Geometry } from 'geojson';
+import type { ImportValidationResult } from './forecastValidationTypes';
+import { MAX_ARRAY_ITEMS, fail } from './forecastValidationTypes';
+
+/** Maximum coordinate positions per geometry. */
+export const MAX_COORDINATE_POSITIONS = 500_000;
+
+const SUPPORTED_GEOMETRY_TYPES = new Set<string>([
+  'Point',
+  'MultiPoint',
+  'LineString',
+  'MultiLineString',
+  'Polygon',
+  'MultiPolygon',
+  'GeometryCollection',
+]);
+
+/**
+ * Counts coordinate positions inside a GeoJSON geometry, bounding work early
+ * when the limit is exceeded.
+ */
+const countCoordinatePositions = (geometry: Geometry, limit: number): number => {
+  let count = 0;
+  const visit = (value: unknown): void => {
+    if (count >= limit) return;
+    if (Array.isArray(value)) {
+      if (value.length > 0 && Array.isArray(value[0])) {
+        value.forEach(visit);
+      } else {
+        count += value.length;
+      }
+    }
+  };
+  if (geometry.type === 'GeometryCollection') {
+    return 0;
+  }
+  visit((geometry as { coordinates?: unknown }).coordinates);
+  return count;
+};
+
+/** Validates the child geometries of a GeometryCollection. */
+const validateGeometryCollection = (geometries: unknown): ImportValidationResult | null => {
+  if (!Array.isArray(geometries) || geometries.length > MAX_ARRAY_ITEMS) {
+    return fail('Forecast geometry collection is invalid or too large.');
+  }
+  for (const child of geometries) {
+    const childResult = validateGeometry(child);
+    if (childResult) return childResult;
+  }
+  return null;
+};
+
+/** Validates a non-collection geometry's coordinates and size. */
+const validateGeometryCoordinates = (geometry: { type?: unknown; coordinates?: unknown }): ImportValidationResult | null => {
+  if (!Array.isArray(geometry.coordinates)) {
+    return fail(`Forecast geometry "${geometry.type}" is missing coordinates.`);
+  }
+  if (countCoordinatePositions(geometry as Geometry, MAX_COORDINATE_POSITIONS) >= MAX_COORDINATE_POSITIONS) {
+    return fail('Forecast geometry contains too many coordinates.');
+  }
+  return null;
+};
+
+/** Validates one GeoJSON geometry object against supported types and coordinate bounds. */
+// @codescene(disable:"Complex Conditional")
+export const validateGeometry = (value: unknown): ImportValidationResult | null => {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return fail('Forecast geometry is not a valid object.');
+  }
+
+  const geometry = value as { type?: unknown; coordinates?: unknown; geometries?: unknown };
+  if (typeof geometry.type !== 'string' || !SUPPORTED_GEOMETRY_TYPES.has(geometry.type)) {
+    return fail(`Forecast geometry uses unsupported type "${String(geometry.type)}".`);
+  }
+
+  if (geometry.type === 'GeometryCollection') {
+    return validateGeometryCollection(geometry.geometries);
+  }
+
+  return validateGeometryCoordinates(geometry);
+};
+
+/** Validates one serialized outlook feature and its geometry. */
+export const validateFeature = (value: unknown): ImportValidationResult | null => {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return fail('Forecast feature is not a valid object.');
+  }
+
+  const feature = value as Feature;
+  if (feature.type !== 'Feature') {
+    return fail('Forecast geometry entry is missing "type": "Feature".');
+  }
+
+  const geometryResult = validateGeometry(feature.geometry);
+  if (geometryResult) return geometryResult;
+
+  const properties = feature.properties;
+  if (properties !== null && properties !== undefined && (typeof properties !== 'object' || Array.isArray(properties))) {
+    return fail('Forecast feature properties are invalid.');
+  }
+
+  return null;
+};
