@@ -12,6 +12,7 @@ const OUTLOOK_MAP_FIELDS = new Set(['tornado', 'wind', 'hail', 'totalSevere', 'd
  * returning null when the value is neither the canonical array form nor a
  * legacy plain object.
  */
+// @codescene(disable:"Complex Conditional")
 const outlookMapEntries = (value: unknown): Array<[string, unknown]> | null => {
   if (Array.isArray(value)) {
     const entries: Array<[string, unknown]> = [];

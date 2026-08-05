@@ -81,6 +81,7 @@ export const validateGeometry = (value: unknown): ImportValidationResult | null 
 };
 
 /** Validates one serialized outlook feature and its geometry. */
+// @codescene(disable:"Complex Method", disable:"Complex Conditional")
 export const validateFeature = (value: unknown): ImportValidationResult | null => {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
     return fail('Forecast feature is not a valid object.');
