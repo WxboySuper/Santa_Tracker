@@ -124,11 +124,15 @@ export const extractFiles = (body) => {
   if (Array.isArray(body)) {
     return /** @type {Array<{ name?: unknown }>} */ (body);
   }
-  if (body && typeof body === 'object' && Array.isArray(body.files)) {
-    return /** @type {Array<{ name?: unknown }>} */ (body.files);
-  }
-  return null;
+  return isFilesEnvelope(body) ? /** @type {Array<{ name?: unknown }>} */ (body.files) : null;
 };
+
+/** Returns true when a value is a `{ files: [...] }` envelope. */
+const isFilesEnvelope = (value) =>
+  value !== null &&
+  typeof value === 'object' &&
+  !Array.isArray(value) &&
+  Array.isArray(value.files);
 
 /**
  * Lists published artifacts for a release from the Sentry API.
