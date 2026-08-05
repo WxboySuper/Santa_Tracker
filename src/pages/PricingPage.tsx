@@ -93,7 +93,7 @@ const getPremiumSummary = (
   planInterval: ReturnType<typeof useEntitlement>['planInterval']
 ): string => {
   if (!premiumActive) {
-    return 'Premium adds the hosted layer. If it lapses later, local work remains available and only new cloud writes are disabled.';
+    return `${PRICING_COPY.premiumSummary} If it lapses later, local work remains available and only new cloud writes are disabled.`;
   }
 
   if (planInterval === 'monthly') {
