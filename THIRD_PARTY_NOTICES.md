@@ -1,0 +1,94 @@
+# Third-Party Notices
+
+GFC is built on open-source software and datasets. This document lists the
+packages and datasets used by the shipped application, their licenses, and
+the policy category applied to each.
+
+- **@babel/core** ^7.29.7 (root (pnpm)) — MIT — allowed
+- **@babel/parser** ^7.29.7 (root (pnpm)) — MIT — allowed
+- **@babel/preset-env** ^7.29.7 (root (pnpm)) — MIT — allowed
+- **@babel/preset-react** ^7.29.7 (root (pnpm)) — MIT — allowed
+- **@babel/preset-typescript** ^7.29.7 (root (pnpm)) — MIT — allowed
+- **@eslint/js** ^9.39.5 (root (pnpm)) — MIT — allowed
+- **@firebase/rules-unit-testing** ^5.0.1 (root (pnpm)) — MIT — allowed
+- **@playwright/test** ^1.62.0 (root (pnpm)) — MIT — allowed
+- **@radix-ui/react-dialog** ^1.1.23 (root (pnpm)) — MIT — allowed
+- **@radix-ui/react-dropdown-menu** ^2.1.24 (root (pnpm)) — MIT — allowed
+- **@radix-ui/react-popover** ^1.1.23 (root (pnpm)) — MIT — allowed
+- **@radix-ui/react-slot** ^1.3.3 (root (pnpm)) — MIT — allowed
+- **@radix-ui/react-tabs** ^1.1.21 (root (pnpm)) — MIT — allowed
+- **@radix-ui/react-tooltip** ^1.2.16 (root (pnpm)) — MIT — allowed
+- **@reduxjs/toolkit** ^2.12.0 (root (pnpm)) — MIT — allowed
+- **@sentry/react** ^10.68.0 (root (pnpm)) — MIT — allowed
+- **@sentry/vite-plugin** ^5.4.0 (root (pnpm)) — MIT — allowed
+- **@tailwindcss/postcss** ^4.3.3 (root (pnpm)) — MIT — allowed
+- **@testing-library/dom** ^10.4.0 (root (pnpm)) — MIT — allowed
+- **@testing-library/jest-dom** ^7.0.0 (root (pnpm)) — MIT — allowed
+- **@testing-library/react** ^16.2.0 (root (pnpm)) — MIT — allowed
+- **@testing-library/user-event** ^14.6.1 (root (pnpm)) — MIT — allowed
+- **@turf/difference** ^7.3.4 (root (pnpm)) — MIT — allowed
+- **@turf/helpers** ^7.3.5 (root (pnpm)) — MIT — allowed
+- **@turf/turf** ^7.3.4 (root (pnpm)) — MIT — allowed
+- **@types/geojson** ^7946.0.16 (root (pnpm)) — MIT — allowed
+- **@types/jest** ^30.0.0 (root (pnpm)) — MIT — allowed
+- **@types/leaflet** ^1.9.16 (root (pnpm)) — MIT — allowed
+- **@types/node** ^26.1.1 (root (pnpm)) — MIT — allowed
+- **@types/react** 19.2.17 (root (pnpm)) — MIT — allowed
+- **@types/react-dom** 19.2.3 (root (pnpm)) — MIT — allowed
+- **@types/uuid** ^11.0.0 (root (pnpm)) — MIT — allowed
+- **@types/xml2js** ^0.4.14 (root (pnpm)) — MIT — allowed
+- **@typescript/native** npm:typescript@^7.0.2 (root (pnpm)) — MIT — allowed
+- **@vitejs/plugin-react** ^6.0.4 (root (pnpm)) — MIT — allowed
+- **autoprefixer** ^10.5.4 (root (pnpm)) — MIT — allowed
+- **babel-jest** ^30.2.0 (root (pnpm)) — MIT — allowed
+- **babel-plugin-istanbul** ^8.0.0 (root (pnpm)) — MIT — allowed
+- **class-variance-authority** ^0.7.1 (root (pnpm)) — MIT — allowed
+- **clsx** ^2.1.1 (root (pnpm)) — MIT — allowed
+- **cross-env** ^10.1.0 (root (pnpm)) — MIT — allowed
+- **esbuild** ^0.28.1 (root (pnpm)) — MIT — allowed
+- **eslint** ^9.39.5 (root (pnpm)) — MIT — allowed
+- **eslint-plugin-jest** ^29.16.0 (root (pnpm)) — MIT — allowed
+- **eslint-plugin-react** ^7.37.5 (root (pnpm)) — MIT — allowed
+- **eslint-plugin-react-hooks** ^7.1.1 (root (pnpm)) — MIT — allowed
+- **eslint-plugin-testing-library** ^7.16.2 (root (pnpm)) — MIT — allowed
+- **firebase** ^12.16.0 (root (pnpm)) — MIT — allowed
+- **firebase-tools** 15.24.0 (root (pnpm)) — MIT — allowed
+- **gh-pages** ^6.3.0 (root (pnpm)) — MIT — allowed
+- **globals** ^17.9.0 (root (pnpm)) — MIT — allowed
+- **html2canvas** ^1.4.1 (root (pnpm)) — MIT — allowed
+- **identity-obj-proxy** ^3.0.0 (root (pnpm)) — MIT — allowed
+- **immer** ^11.1.15 (root (pnpm)) — MIT — allowed
+- **jest** ^30.2.0 (root (pnpm)) — MIT — allowed
+- **jest-environment-jsdom** ^30.2.0 (root (pnpm)) — MIT — allowed
+- **jszip** ^3.10.1 (root (pnpm)) — MIT — allowed
+- **leaflet** ^1.9.4 (root (pnpm)) — MIT — allowed
+- **lucide-react** ^1.27.0 (root (pnpm)) — MIT — allowed
+- **ol** ^10.9.0 (root (pnpm)) — MIT — allowed
+- **ol-mapbox-style** ^13.4.2 (root (pnpm)) — MIT — allowed
+- **postcss** 8 (root (pnpm)) — MIT — allowed
+- **react** ^19.2.8 (root (pnpm)) — MIT — allowed
+- **react-dom** ^19.2.8 (root (pnpm)) — MIT — allowed
+- **react-redux** ^9.3.0 (root (pnpm)) — MIT — allowed
+- **react-router** ^8.3.0 (root (pnpm)) — MIT — allowed
+- **redux** ^5.0.1 (root (pnpm)) — MIT — allowed
+- **rollup** >=4.62.3 (root (pnpm)) — MIT — allowed
+- **tailwind-merge** ^3.5.0 (root (pnpm)) — MIT — allowed
+- **tailwindcss** ^4.3.3 (root (pnpm)) — MIT — allowed
+- **typescript** npm:@typescript/typescript6@^6.0.2 (root (pnpm)) — MIT — allowed
+- **typescript-eslint** ^8.66.0 (root (pnpm)) — MIT — allowed
+- **uuid** ^14.0.1 (root (pnpm)) — MIT — allowed
+- **vite** ^8.1.5 (root (pnpm)) — MIT — allowed
+- **web-vitals** ^6.0.1 (root (pnpm)) — MIT — allowed
+- **xml2js** ^0.6.2 (root (pnpm)) — MIT — allowed
+- **@sentry/node** ^10.68.0 (server (npm)) — MIT — allowed
+- **express** ^5.2.1 (server (npm)) — MIT — allowed
+- **express-rate-limit** ^8.6.1 (server (npm)) — MIT — allowed
+- **firebase-admin** ^14.2.0 (server (npm)) — MIT — allowed
+- **stripe** ^22.3.2 (server (npm)) — MIT — allowed
+- **cfgrib** 0.9.15.1 (server (python)) — MIT — allowed
+- **numpy** 2.4.1 (server (python)) — MIT — allowed
+- **scikit-image** 0.26.0 (server (python)) — MIT — allowed
+- **shapely** 2.1.2 (server (python)) — MIT — allowed
+- **xarray** 2026.2.0 (server (python)) — MIT — allowed
+
+License categories: allowed, review-required, prohibited, unknown.
