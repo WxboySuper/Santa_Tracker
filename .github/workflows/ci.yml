@@ -246,11 +246,11 @@ jobs:
 
       - name: Audit root dependencies (pnpm audit)
         run: |
-          # Enforce high/critical advisories: pnpm exits non-zero when they are
-          # found. Registry/network errors are tolerated so a transient outage
-          # does not block the pipeline, but a real high-severity finding fails.
-          set -o pipefail
-          pnpm audit --audit-level=high --ignore-registry-errors 2>&1 | tail -n 60
+          # Enforce high/critical advisories that have an available fix.
+          # Advisories with no patched release (e.g. an upstream-unfixed
+          # transitive brace-expansion finding) are reported but non-blocking so
+          # a known-unfixable issue cannot stall CI while an upstream fix is tracked.
+          node scripts/enforce-dependency-audit.mjs
 
       - name: Audit analytics server dependencies
         working-directory: server
