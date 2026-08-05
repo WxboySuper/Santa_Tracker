@@ -22,31 +22,37 @@ const isNonFinitePosition = (item: unknown): boolean =>
 /** Returns true when any item in a coordinate leaf is non-finite. */
 const leafHasNonFinite = (leaf: unknown[]): boolean => leaf.some(isNonFinitePosition);
 
+/** Recursively walks a nested coordinate tree, counting positions and non-finite values. */
+const walkCoordinates = (
+  value: unknown,
+  limit: number,
+  state: { count: number; hasNonFinite: boolean },
+): void => {
+  if (state.count >= limit) return;
+  if (!Array.isArray(value)) return;
+
+  if (value.length > 0 && Array.isArray(value[0])) {
+    value.forEach((child) => walkCoordinates(child, limit, state));
+    return;
+  }
+
+  if (!state.hasNonFinite && leafHasNonFinite(value)) {
+    state.hasNonFinite = true;
+  }
+  state.count += value.length;
+};
+
 /**
  * Counts coordinate positions inside a GeoJSON geometry, bounding work early
  * when the limit is exceeded, and reports whether any position is non-finite.
  */
 const countCoordinatePositions = (geometry: Geometry, limit: number): { count: number; hasNonFinite: boolean } => {
-  let count = 0;
-  let hasNonFinite = false;
-  const visit = (value: unknown): void => {
-    if (count >= limit) return;
-    if (Array.isArray(value)) {
-      if (value.length > 0 && Array.isArray(value[0])) {
-        value.forEach(visit);
-      } else {
-        if (!hasNonFinite && leafHasNonFinite(value)) {
-          hasNonFinite = true;
-        }
-        count += value.length;
-      }
-    }
-  };
   if (geometry.type === 'GeometryCollection') {
     return { count: 0, hasNonFinite: false };
   }
-  visit((geometry as { coordinates?: unknown }).coordinates);
-  return { count, hasNonFinite };
+  const state = { count: 0, hasNonFinite: false };
+  walkCoordinates((geometry as { coordinates?: unknown }).coordinates, limit, state);
+  return state;
 };
 
 /** Validates the child geometries of a GeometryCollection. */
