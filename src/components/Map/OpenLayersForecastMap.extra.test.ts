@@ -20,7 +20,7 @@ import {
   createTileSource,
   hideOverlay,
   ensureBlankLayerLoaded,
-} from './OpenLayersForecastMap';
+} from './openLayersMapStyles';
 
 type OverlayStub = {
   setPosition: (position: unknown) => void;

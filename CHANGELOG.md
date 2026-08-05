@@ -42,6 +42,10 @@ Work toward the next major release continues in the beta channel while the final
 
 - Use immutable action references, protected reviewer gates, shell-safe branch handling, frozen dependency installs, pinned deployment host keys, concurrency controls, and explicit release validation.
 
+#### Architecture
+
+- **Forecast map styling seam:** Extract the pure OpenLayers styling, feature identity, and base-map source helpers out of `OpenLayersForecastMap.tsx` into `src/components/Map/openLayersMapStyles.ts`, with focused unit tests and documented ownership/dependency direction.
+
 ### Stable 1.6.x hotfixes
 
 <!-- Production hotfix entries only. Do not put next-major work in this lane. -->
