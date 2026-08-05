@@ -253,16 +253,27 @@ const createEmptyOutlook = (day: DayType, now: string): OutlookDay => {
   };
 };
 
+/** Deeply freezes a value (and its nested Maps) so shared fallbacks cannot be mutated. */
+const deepFreezeOutlookData = (data: OutlookData): OutlookData => {
+  for (const map of Object.values(data)) {
+    if (map instanceof Map) {
+      Object.freeze(map);
+    }
+  }
+  return Object.freeze(data);
+};
+
 /**
  * Shared, immutable fallback outlook data keyed by day category. Returning the
  * same reference for a given day shape keeps selectors referentially stable so
  * unrelated renders do not trigger avoidable state changes or selector-stability
- * warnings. Consumers must treat these as read-only.
+ * warnings. Consumers must treat these as read-only; the nested Maps are frozen
+ * so accidental writes throw in strict mode instead of corrupting the singleton.
  */
 const EMPTY_OUTLOOK_DATA_BY_DAY: Record<string, OutlookData> = {
-  day12: createEmptyOutlook(1, INITIAL_TIMESTAMP).data,
-  day3: createEmptyOutlook(3, INITIAL_TIMESTAMP).data,
-  day48: createEmptyOutlook(4, INITIAL_TIMESTAMP).data,
+  day12: deepFreezeOutlookData(createEmptyOutlook(1, INITIAL_TIMESTAMP).data),
+  day3: deepFreezeOutlookData(createEmptyOutlook(3, INITIAL_TIMESTAMP).data),
+  day48: deepFreezeOutlookData(createEmptyOutlook(4, INITIAL_TIMESTAMP).data),
 };
 
 /** Returns the shared empty outlook data for a day, or null when the day is unknown. */

@@ -1016,8 +1016,15 @@ describe('forecastSlice undo/redo', () => {
   describe('selector referential stability', () => {
     const withForecast = (forecastState: ReturnType<typeof reducer>) => ({ forecast: forecastState } as Parameters<typeof selectCurrentOutlooks>[0]);
 
-    it('selectCurrentOutlooks returns the same fallback reference for an absent day', () => {
-      const state = withForecast(reducer(undefined, setForecastDay(5)));
+    it('selectCurrentOutlooks returns the same fallback reference for an absent current day', () => {
+      // Point currentDay at a day that has no entry so the selector must fall
+      // back to the shared empty reference rather than real day data.
+      const base = reducer(undefined, setForecastDay(1));
+      const absentDayState = {
+        ...base,
+        forecastCycle: { ...base.forecastCycle, currentDay: 5 as DayType },
+      };
+      const state = withForecast(absentDayState);
       const first = selectCurrentOutlooks(state);
       const second = selectCurrentOutlooks(state);
       expect(first).toBe(second);
