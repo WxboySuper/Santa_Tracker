@@ -1,7 +1,8 @@
 {
   "autoTstm": {
-    "reason": "Disabled-side-effect coverage in src/testing/featureExposure/exemplar.exposure.test.tsx and server/testing/autoTstm.exposure.test.js",
+    "reason": "Disabled-side-effect coverage in src/testing/featureExposure/exemplar.exposure.test.tsx and server/testing/autoTstm.exposure.test.js. Local and beta exposure enabled so the feature stays runnable in development and the CI e2e job; staging and production remain disabled until the #427 rollout.",
     "trackingIssue": 529,
+    "localDevelopmentApproved": true,
     "betaEnablementApproved": true
   },
   "tropicalWorkspace": {
