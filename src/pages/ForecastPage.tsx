@@ -802,7 +802,6 @@ const restoreAvailableSession = (
 
 /** Returns a stable identity for one session-restore attempt keyed by the signed-in scope. */
 export const buildRestoreKey = (userId?: string | null): string => userId || 'anonymous';
-
 /** Attempts to restore the last auto-saved forecast session from localStorage on mount. */
 const useSessionRestore = (
   dispatch: ShortcutDispatch,
@@ -842,9 +841,10 @@ const useSessionRestore = (
       migrateLegacyAutoSave(userId, liveSession);
       previousUserIdRef.current = userId;
 
-      // Key restoration by user + payload so React Strict Mode's double effect
-      // invocation, or an unrelated remount, cannot reapply the same payload or
-      // fire duplicate restore notifications.
+      // Key restoration by the signed-in user scope so React Strict Mode's
+      // double effect invocation cannot reapply the same payload or fire
+      // duplicate restore notifications. A fresh mount creates a new hook
+      // instance, so restoration will run again for that mount by design.
       const restoreKey = buildRestoreKey(userId);
       if (appliedRestoreKeyRef.current === restoreKey) {
         setRestoreAttempted(true);
