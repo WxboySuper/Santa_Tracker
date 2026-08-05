@@ -431,7 +431,7 @@ describe('processOutlooksToCategorical', () => {
 
     const result = processDay12OutlooksToCategorical(outlooks);
     const inputArea = turf.area(turf.featureCollection([makeSquare('t1', 0, 2), makeSquare('t2', 3, 2)]));
-    const outputUnion = turf.union(turf.featureCollection(result)) as GeoJSON.Feature;
+    const outputUnion = turf.union(turf.featureCollection(result as Feature<Polygon>[])) as GeoJSON.Feature;
     const outputArea = turf.area(outputUnion);
     expect(outputArea).toBeGreaterThan(0);
     expect(outputArea).toBeCloseTo(inputArea, 6);

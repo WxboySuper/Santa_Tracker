@@ -159,40 +159,35 @@ const isFinitePosition = (position: Position | number[]): boolean =>
   position.length >= 2 &&
   position.slice(0, 2).every((value) => typeof value === 'number' && Number.isFinite(value));
 
+/** Throws when a ring is not an array with at least four positions. */
+const assertValidRing = (ring: Position[]): void => {
+  if (!Array.isArray(ring) || ring.length < 4) {
+    throw new CategoricalDerivationError('Outlook geometry contains an invalid polygon ring.');
+  }
+  for (const position of ring) {
+    if (!isFinitePosition(position)) {
+      throw new CategoricalDerivationError(
+        'Outlook geometry contains non-finite coordinates and cannot be processed.'
+      );
+    }
+  }
+};
+
+/** Validates every ring in a Polygon or MultiPolygon geometry. */
+const assertFinitePolygonGeometry = (geometry: Polygon | MultiPolygon): void => {
+  const rings = geometry.type === 'Polygon'
+    ? geometry.coordinates
+    : geometry.coordinates.flatMap((polygon) => polygon);
+  rings.forEach(assertValidRing);
+};
+
 /**
  * Normalizes a polygon feature before Turf boolean operations so that
  * pathological but recoverable geometry does not cause topology errors.
  * Non-finite coordinates fail loudly instead of silently dropping geometry.
  */
 const normalizePolygonFeature = (feature: PolygonOutlookFeature): PolygonOutlookFeature => {
-  const validatePosition = (position: Position | number[]): void => {
-    if (!isFinitePosition(position)) {
-      throw new CategoricalDerivationError(
-        'Outlook geometry contains non-finite coordinates and cannot be processed.'
-      );
-    }
-  };
-
-  const validateRing = (ring: Position[]): void => {
-    if (!Array.isArray(ring) || ring.length < 4) {
-      throw new CategoricalDerivationError('Outlook geometry contains an invalid polygon ring.');
-    }
-    ring.forEach(validatePosition);
-  };
-
-  const validatePolygon = (polygon: Polygon): void => {
-    polygon.coordinates.forEach(validateRing);
-  };
-
-  const validateMultiPolygon = (multi: MultiPolygon): void => {
-    multi.coordinates.forEach((polygon) => polygon.forEach(validateRing));
-  };
-
-  if (feature.geometry.type === 'Polygon') {
-    validatePolygon(feature.geometry);
-  } else if (feature.geometry.type === 'MultiPolygon') {
-    validateMultiPolygon(feature.geometry);
-  }
+  assertFinitePolygonGeometry(feature.geometry);
 
   try {
     const cleaned = turf.cleanCoords(feature) as PolygonOutlookFeature;
