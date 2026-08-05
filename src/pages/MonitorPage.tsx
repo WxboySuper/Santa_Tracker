@@ -256,29 +256,26 @@ export const MonitorPage: React.FC = () => {
     : 'Live radar, satellite, SPC reports, and NWS alerts refresh with Playback or Refresh.';
 
   return (
-    <>
-      <h1 className="sr-only">Forecast Monitor</h1>
-      <MonitorPageWorkspace
-        settings={settings}
-        outlookOptions={outlookOptions}
-        selectedOutlook={selectedOutlook}
-        radarSiteOptions={radarSiteOptions}
-        radarSitesLoading={radarSitesLoading}
-        radarSitesError={radarSitesError}
-        radarDisplayTime={radarDisplayTime}
-        satelliteDisplayTime={satelliteDisplayTime}
-        radarLayer={radarLayer}
-        satelliteLayer={satelliteLayer}
-        statusMessage={statusMessage}
-        syncLabel={syncLabel}
-        stormReportState={stormReportState}
-        alertState={alertState}
-        onRefresh={handleRefreshLiveLayers}
-        onOutlookSourceChange={handleOutlookSourceChange}
-        onOutlookTypeChange={handleOutlookTypeChange}
-        dispatch={dispatch}
-      />
-    </>
+    <MonitorPageWorkspace
+      settings={settings}
+      outlookOptions={outlookOptions}
+      selectedOutlook={selectedOutlook}
+      radarSiteOptions={radarSiteOptions}
+      radarSitesLoading={radarSitesLoading}
+      radarSitesError={radarSitesError}
+      radarDisplayTime={radarDisplayTime}
+      satelliteDisplayTime={satelliteDisplayTime}
+      radarLayer={radarLayer}
+      satelliteLayer={satelliteLayer}
+      statusMessage={statusMessage}
+      syncLabel={syncLabel}
+      stormReportState={stormReportState}
+      alertState={alertState}
+      onRefresh={handleRefreshLiveLayers}
+      onOutlookSourceChange={handleOutlookSourceChange}
+      onOutlookTypeChange={handleOutlookTypeChange}
+      dispatch={dispatch}
+    />
   );
 };
 
