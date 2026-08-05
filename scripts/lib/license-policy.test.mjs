@@ -37,4 +37,13 @@ describe('license policy', () => {
     assert.equal(classifyLicense('(MIT)').category, 'allowed');
     assert.equal(classifyLicense('(Apache-2.0)').category, 'allowed');
   });
+
+  it('accepts an SPDX dual license when any alternative is allowed', () => {
+    assert.equal(classifyLicense('(MIT OR GPL-3.0-or-later)').category, 'allowed');
+    assert.equal(classifyLicense('MIT OR Apache-2.0').category, 'allowed');
+  });
+
+  it('flags a dual license to review when the best alternative is copyleft', () => {
+    assert.equal(classifyLicense('(MPL-2.0 OR GPL-3.0-only)').category, 'review-required');
+  });
 });

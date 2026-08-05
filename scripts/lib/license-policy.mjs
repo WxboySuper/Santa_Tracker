@@ -57,11 +57,15 @@ const matchesSet = (normalized, identifiers) =>
 const matchesPublicDomain = (normalized) =>
   PUBLIC_DOMAIN_MARKERS.some((marker) => normalized === marker.toLowerCase() || normalized.includes(marker));
 
-/** Categorizes a license identifier string into a policy outcome. */
-// @codescene(disable:"Complex Conditional", disable:"Bumpy Road Ahead")
-export const classifyLicense = (license = '') => {
-  const normalized = normalizeLicense(license);
+/** Splits an SPDX `A OR B` dual-license expression into its alternatives. */
+const splitDualLicense = (normalized) =>
+  normalized
+    .split(/\s+or\s+/)
+    .map((part) => part.trim())
+    .filter(Boolean);
 
+/** Categorizes a single normalized license identifier into a policy outcome. */
+const classifySingleLicense = (normalized) => {
   if (!normalized) {
     return { category: 'unknown', ok: false };
   }
@@ -79,4 +83,30 @@ export const classifyLicense = (license = '') => {
   }
 
   return { category: 'unknown', ok: false };
+};
+
+/** Categorizes a license identifier string into a policy outcome. */
+// @codescene(disable:"Complex Conditional", disable:"Bumpy Road Ahead")
+export const classifyLicense = (license = '') => {
+  const normalized = normalizeLicense(license);
+
+  // SPDX dual-license expressions (e.g. `(MIT OR GPL-3.0-or-later)`) let the
+  // consumer choose any listed license; accept when at least one alternative
+  // is allowed, and flag review when the best alternative is copyleft.
+  const alternatives = splitDualLicense(normalized);
+  if (alternatives.length > 1) {
+    const outcomes = alternatives.map(classifySingleLicense);
+    if (outcomes.some((outcome) => outcome.category === 'allowed')) {
+      return { category: 'allowed', ok: true };
+    }
+    if (outcomes.some((outcome) => outcome.category === 'review-required')) {
+      return { category: 'review-required', ok: true };
+    }
+    if (outcomes.some((outcome) => outcome.category === 'prohibited')) {
+      return { category: 'prohibited', ok: false };
+    }
+    return { category: 'unknown', ok: false };
+  }
+
+  return classifySingleLicense(normalized);
 };

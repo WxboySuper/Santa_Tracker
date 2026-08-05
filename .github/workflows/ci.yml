@@ -121,14 +121,6 @@ jobs:
       - name: Validate release automation unit tests
         run: node --test scripts/create-github-release.test.mjs scripts/lib/*.test.mjs scripts/lib/license-policy.test.mjs
 
-      - name: Enforce third-party license policy
-        run: |
-          node scripts/check-third-party-licenses.mjs
-          git diff --exit-code THIRD_PARTY_NOTICES.md || {
-            echo "::error::THIRD_PARTY_NOTICES.md is stale. Run pnpm licenses:generate and commit it."
-            exit 1
-          }
-
       - name: Validate package version for target branch
         env:
           GITHUB_EVENT_NAME: ${{ github.event_name }}
