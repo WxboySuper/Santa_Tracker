@@ -1342,7 +1342,7 @@ const OpenLayersForecastMap = forwardRef<MapAdapterHandle<OLMap> | null, OpenLay
         const landLoader: BlankLayerConfig = {
           source: landSourceRef.current,
           isLoaded: () => landSourceRef.current.getFeatures().length > 0,
-            url: getGeoBoundarySource("usStates").url,
+          url: getGeoBoundarySource("usStates").url,
           getCache: () => cachedUsStatesGeoJSON,
           setCache: (data) => {
             cachedUsStatesGeoJSON = data;
@@ -1399,7 +1399,7 @@ const OpenLayersForecastMap = forwardRef<MapAdapterHandle<OLMap> | null, OpenLay
           {
             source: landSourceRef.current,
             isLoaded: () => landSourceRef.current.getFeatures().length > 0,
-          url: getGeoBoundarySource("usStates").url,
+            url: getGeoBoundarySource("usStates").url,
             getCache: () => cachedUsStatesGeoJSON,
             setCache: (data) => {
               cachedUsStatesGeoJSON = data;
@@ -1408,8 +1408,8 @@ const OpenLayersForecastMap = forwardRef<MapAdapterHandle<OLMap> | null, OpenLay
         ];
 
         loaders.forEach((loader) => {
-          ensureBlankLayerLoaded(loader).catch(() => {
-            /* blank map layer fetch failed — non-fatal */
+          ensureBlankLayerLoaded(loader).catch((loadError) => {
+            console.error(`Blank map layer failed to load from ${loader.url}`, loadError);
           });
         });
         return;
