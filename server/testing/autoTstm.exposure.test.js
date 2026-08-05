@@ -57,9 +57,9 @@ describe('autoTstm exposure contract', () => {
     });
   });
 
-  it('rejects latest requests when only deployment env is enabled', async () => {
+  it('rejects latest requests when only deployment env is enabled on a disabled target', async () => {
     await assertLatestRouteRejectsWithoutWork({
-      env: { TSTM_GENERATION_ENABLED: 'true', SERVER_TARGET: 'local' },
+      env: { TSTM_GENERATION_ENABLED: 'true', SERVER_TARGET: 'staging' },
     });
   });
 
