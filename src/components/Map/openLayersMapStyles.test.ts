@@ -75,20 +75,24 @@ describe('openLayersMapStyles', () => {
     expect((styled.setStyle as jest.Mock)).toHaveBeenCalledTimes(1);
   });
 
-  test('toOlStyle produces a style for a numeric outlook', () => {
+  test('toOlStyle produces a style with the expected z-index for a numeric outlook', () => {
     const style = toOlStyle({ outlookType: 'tornado', probability: '30%' });
-    expect(style).toBeTruthy();
+    expect(style.getZIndex()).toBe(42); // matches computeZIndex mock
+    expect(style.getStroke()?.getWidth()).toBe(4); // matches getFeatureStyle mock weight
+    expect(style.getFill()).toBeTruthy();
   });
 
-  test('toCustomOlStyle and createCustomFill work for plain fills', () => {
+  test('toCustomOlStyle applies the category stroke width and z-index', () => {
     const category = {
       id: 'cat-1',
       label: 'Critical',
       order: 0,
       style: { fillColor: '#ef4444', fillOpacity: 0.6, strokeColor: '#123456', strokeOpacity: 0.8, strokeWidth: 2, hatch: 'none' as const },
     };
-    expect(createCustomFill(category.style)).toBeTruthy();
-    expect(toCustomOlStyle(category as never)).toBeTruthy();
+    const style = toCustomOlStyle(category as never);
+    expect(style.getZIndex()).toBe(700 + category.order);
+    expect(style.getStroke()?.getWidth()).toBe(2);
+    expect(createCustomFill(category.style).getColor?.()).toBeTruthy();
   });
 
   test('getCustomFeatureIdentity extracts custom identity', () => {
@@ -98,8 +102,8 @@ describe('openLayersMapStyles', () => {
   });
 
   test('toTstmPreviewOlStyle and toGhostOlStyle build styles', () => {
-    expect(toTstmPreviewOlStyle()).toBeTruthy();
-    expect(toGhostOlStyle({ outlookType: 'categorical', probability: 'TSTM', isCategorical: true })).toBeTruthy();
+    expect(toTstmPreviewOlStyle().getZIndex()).toBe(42 + 650);
+    expect(toGhostOlStyle({ outlookType: 'categorical', probability: 'TSTM', isCategorical: true }).getZIndex()).toBe(42 + 500);
   });
 
   test('createLabelOverlaySource and createTileSource return sources for known styles', () => {
@@ -107,6 +111,7 @@ describe('openLayersMapStyles', () => {
     expect(createLabelOverlaySource('carto-dark')).toBeTruthy();
     expect(createTileSource('osm')).toBeTruthy();
     expect(createTileSource('esri-satellite')).toBeTruthy();
+    expect(createTileSource('unknown' as never)).toBeTruthy(); // falls back to OSM
   });
 
   test('hideOverlay clears the overlay position', () => {

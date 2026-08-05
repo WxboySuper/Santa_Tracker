@@ -63,7 +63,6 @@ import {
 import "./ForecastMap.css";
 import { isFeatureExposed } from "../../config/featureExposure";
 
-
 import {
   getFeatureIdentity,
   toUpdatedGeoJsonFeature,
