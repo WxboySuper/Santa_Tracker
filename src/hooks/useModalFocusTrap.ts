@@ -49,10 +49,15 @@ const handleTabKey = (event: KeyboardEvent, modal: HTMLElement): void => {
   const activeEl = document.activeElement as HTMLElement | null;
   const focusIsOutside = !modal.contains(activeEl);
 
-  if (event.shiftKey && (activeEl === first || focusIsOutside)) {
-    event.preventDefault();
-    last.focus();
-  } else if (!event.shiftKey && (activeEl === last || focusIsOutside)) {
+  if (event.shiftKey) {
+    if (activeEl === first || focusIsOutside) {
+      event.preventDefault();
+      last.focus();
+    }
+    return;
+  }
+
+  if (activeEl === last || focusIsOutside) {
     event.preventDefault();
     first.focus();
   }
