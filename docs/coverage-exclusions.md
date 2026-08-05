@@ -30,6 +30,7 @@ behavioral coverage and are therefore included in the coverage report:
 | `src/components/Map/OpenLayersVerificationMap.tsx` | `OpenLayersVerificationMap.test.ts`, `VerificationMap.test.ts` |
 | `src/hooks/useCloudCycles.ts` | `useCloudCycles.test.ts` |
 | `src/lib/cloudCyclesService.ts` | `cloudCyclesService.custom.test.ts` |
+| `src/pages/CloudLibraryPage.tsx` | `CloudLibraryPage.test.tsx` |
 
 Any new exclusion must be added here with a justification and owner before it
 is accepted in a PR.
