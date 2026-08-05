@@ -6,7 +6,7 @@ import { Button } from '../components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { useAuth } from '../auth/AuthProvider';
 import { useEntitlement } from '../billing/EntitlementProvider';
-import { PRICING_COPY, getBoundaryCopy } from '../billing/pricingCopy';
+import { PRICING_COPY } from '../billing/pricingCopy';
 import './PricingPage.css';
 
 interface ComparisonRow {
@@ -386,7 +386,6 @@ const PricingPage: React.FC = () => {
   const premiumPrice = getPremiumPrice(premiumActive, planInterval, monthlyDisplayPrice, annualDisplayPrice);
   const premiumPriceNote = getPremiumPriceNote(premiumActive, planInterval, monthlyDisplayPrice);
   const premiumSummary = getPremiumSummary(premiumActive, planInterval);
-  const boundaryCopy = getBoundaryCopy({ signedIn: isSignedIn, premiumActive });
   const premiumCtas = renderPremiumCtas({
     premiumActive,
     isSignedIn,
@@ -408,7 +407,7 @@ const PricingPage: React.FC = () => {
               price="$0"
               priceNote="always available"
               description="Everything needed to build, write, save, export, and verify forecasts locally."
-              summary={boundaryCopy}
+              summary={PRICING_COPY.freeSummary}
               features={[
                 'Forecast workspace, map editor, and day-to-day cycle management',
                 'Discussion editor, verification mode, and package exports',
