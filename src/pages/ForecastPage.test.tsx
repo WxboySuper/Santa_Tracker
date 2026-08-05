@@ -4,6 +4,7 @@ import { configureStore } from '@reduxjs/toolkit';
 import { MemoryRouter } from 'react-router';
 import ForecastPage, {
   buildMapView,
+  buildRestoreKey,
   buildRolloverSaveLabel,
   canToggleSignificantForState,
   clearStoredCloudSession,
@@ -636,5 +637,14 @@ describe('ForecastPage helpers', () => {
     expect(handleSave).not.toHaveBeenCalled();
     expect(dispatch).not.toHaveBeenCalled();
     expect(addToast).not.toHaveBeenCalled();
+  });
+
+  test('buildRestoreKey is stable per user scope', () => {
+    expect(buildRestoreKey('user-1')).toBe('user-1');
+    expect(buildRestoreKey('user-1')).toBe('user-1');
+    expect(buildRestoreKey(null)).toBe('anonymous');
+    expect(buildRestoreKey(undefined)).toBe('anonymous');
+    expect(buildRestoreKey('')).toBe('anonymous');
+    expect(buildRestoreKey('user-2')).toBe('user-2');
   });
 });

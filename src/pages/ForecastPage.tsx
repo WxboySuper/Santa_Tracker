@@ -800,6 +800,9 @@ const restoreAvailableSession = (
   return restoreLocalSession(dispatch, addToast, currentSession, userId);
 };
 
+/** Returns a stable identity for one session-restore attempt keyed by the signed-in scope. */
+export const buildRestoreKey = (userId?: string | null): string => userId || 'anonymous';
+
 /** Attempts to restore the last auto-saved forecast session from localStorage on mount. */
 const useSessionRestore = (
   dispatch: ShortcutDispatch,
@@ -819,6 +822,7 @@ const useSessionRestore = (
   const currentMapViewRef = useRef(currentSession.currentMapView);
   const workflowMetadataRef = useRef(currentSession.workflowMetadata);
   const previousUserIdRef = useRef(userId);
+  const appliedRestoreKeyRef = useRef<string | null>(null);
   const [restoreComplete, setRestoreComplete] = useState(false);
   const [restoredSession, setRestoredSession] = useState(false);
   const [restoreAttempted, setRestoreAttempted] = useState(false);
@@ -837,6 +841,17 @@ const useSessionRestore = (
         : undefined;
       migrateLegacyAutoSave(userId, liveSession);
       previousUserIdRef.current = userId;
+
+      // Key restoration by user + payload so React Strict Mode's double effect
+      // invocation, or an unrelated remount, cannot reapply the same payload or
+      // fire duplicate restore notifications.
+      const restoreKey = buildRestoreKey(userId);
+      if (appliedRestoreKeyRef.current === restoreKey) {
+        setRestoreAttempted(true);
+        return;
+      }
+      appliedRestoreKeyRef.current = restoreKey;
+
       setRestoredSession(restoreAvailableSession(dispatch, addToast, {
         forecastCycle: forecastCycleRef.current,
         discussionDraftsByScope: initialDraftsRef.current,
