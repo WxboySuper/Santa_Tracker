@@ -63,21 +63,64 @@ const handleTabKey = (event: KeyboardEvent, modal: HTMLElement): void => {
   }
 };
 
-/** Toggles background content out of the accessibility tree and restores it later. */
-const isolateBackground = (): (() => void) => {
-  const mainLandmark = document.querySelector('main');
-  const previousAriaHidden = mainLandmark?.getAttribute('aria-hidden');
-  if (mainLandmark) {
-    mainLandmark.setAttribute('aria-hidden', 'true');
+/**
+ * Isolates background content from assistive technology while a modal is open.
+ *
+ * Instead of hiding a landmark like `<main>` (which may itself contain the
+ * modal), it walks from the modal up to `<body>` and hides the siblings of each
+ * ancestor, plus any direct body child that is not on the modal's ancestor
+ * path. That keeps the modal's own subtree visible while background content is
+ * removed from the accessibility tree. For modals that portal to `<body>`,
+ * only the other direct children of `<body>` are hidden.
+ */
+const isolateBackground = (modal: HTMLElement): (() => void) => {
+  const hidden: Array<{ element: Element; previousValue: string | null }> = [];
+  const ancestorChain = new Set<Element>();
+  let ancestor: HTMLElement | null = modal.parentElement;
+  while (ancestor) {
+    ancestorChain.add(ancestor);
+    ancestor = ancestor.parentElement;
   }
-  return () => {
-    if (!mainLandmark) {
+
+  const hideElement = (element: Element) => {
+    const previousValue = element.getAttribute('aria-hidden');
+    if (previousValue === 'true') {
       return;
     }
-    if (previousAriaHidden === undefined || previousAriaHidden === null) {
-      mainLandmark.removeAttribute('aria-hidden');
-    } else {
-      mainLandmark.setAttribute('aria-hidden', previousAriaHidden);
+    element.setAttribute('aria-hidden', 'true');
+    hidden.push({ element, previousValue });
+  };
+
+  // Hide the modal's siblings within its own container first.
+  const container = modal.parentElement;
+  if (container) {
+    for (const sibling of Array.from(container.children)) {
+      if (sibling === modal) {
+        continue;
+      }
+      hideElement(sibling);
+    }
+  }
+
+  // Then hide the siblings of every ancestor up to (but not including) body.
+  ancestor = modal.parentElement;
+  while (ancestor && ancestor !== document.body) {
+    for (const sibling of Array.from(ancestor.parentElement?.children ?? [])) {
+      if (sibling === ancestor || ancestorChain.has(sibling)) {
+        continue;
+      }
+      hideElement(sibling);
+    }
+    ancestor = ancestor.parentElement;
+  }
+
+  return () => {
+    for (const { element, previousValue } of hidden) {
+      if (previousValue === undefined || previousValue === null) {
+        element.removeAttribute('aria-hidden');
+      } else {
+        element.setAttribute('aria-hidden', previousValue);
+      }
     }
   };
 };
@@ -125,7 +168,7 @@ export const useModalFocusTrap = ({
       }
     };
 
-    const restoreBackground = isolateBackground();
+    const restoreBackground = isolateBackground(modal);
     window.addEventListener('keydown', handleKeyDown, true);
 
     return () => {
