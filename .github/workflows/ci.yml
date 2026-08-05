@@ -150,6 +150,9 @@ jobs:
       - name: Typecheck application source
         run: pnpm run typecheck
 
+      - name: Typecheck tooling (Vite config and scripts)
+        run: pnpm run typecheck:tooling
+
       - name: Typecheck regression check for test sources
         run: pnpm run typecheck:test
 
@@ -223,6 +226,49 @@ jobs:
       - name: Run hostile-client Firestore rules tests
         run: pnpm test:firestore-rules
 
+  dependency-maintenance:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24.x'
+          cache: 'pnpm'
+
+      - name: Install root dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Audit root dependencies (pnpm audit)
+        run: |
+          set +e
+          pnpm audit --audit-level=high 2>&1 | tail -n 60
+          # pnpm audit exits non-zero when vulnerabilities are found. Treat only
+          # actionable findings as failures; the retired advisory registry may
+          # make the tool exit non-zero without a usable report.
+          if [ -z "$(pnpm audit --audit-level=high 2>/dev/null | grep -E 'High|Critical|Severity')" ]; then
+            echo "No actionable audit findings; continuing."
+            exit 0
+          fi
+          exit 1
+
+      - name: Audit analytics server dependencies
+        working-directory: server
+        run: |
+          npm ci
+          set +e
+          npm audit --audit-level=high 2>&1 | tail -n 40
+          if [ -z "$(npm audit --audit-level=high 2>/dev/null | grep -E 'High|Critical|Severity')" ]; then
+            echo "No actionable server audit findings; continuing."
+            exit 0
+          fi
+          exit 1
+
   build-and-test:
     needs: [package-version-policy, pr-governance]
     if: >-
@@ -259,6 +305,11 @@ jobs:
 
       - name: Run tests
         run: pnpm test --silent
+        env:
+          CI: true
+
+      - name: Produce coverage summary
+        run: pnpm test --coverage --silent 2>&1 | tail -n 40 || true
         env:
           CI: true
 
