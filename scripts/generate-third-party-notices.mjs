@@ -14,10 +14,10 @@ const readManifest = (pkgPath) => {
   }
 };
 
-/** Normalizes a license field that may be a string or an SPDX object. */
+/** Returns the license string from a string or SPDX-object field, or 'unknown'. */
 const normalizeLicenseField = (license) => {
   if (typeof license === 'string') return license;
-  if (license && typeof license === 'object' && typeof license.type === 'string') return license.type;
+  if (license && typeof license === 'object') return typeof license.type === 'string' ? license.type : 'unknown';
   return 'unknown';
 };
 
