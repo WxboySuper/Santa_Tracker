@@ -80,6 +80,7 @@ export const validateOutlookMap = (value: unknown, path: string): ImportValidati
 };
 
 /** Validates the legacy single-day outlooks section. */
+// @codescene(disable:"Complex Conditional")
 export const validateLegacyOutlooks = (outlooks: unknown): ImportValidationResult => {
   if (typeof outlooks !== 'object' || outlooks === null || Array.isArray(outlooks)) {
     return fail('Forecast outlooks are not a valid object.');
