@@ -1043,5 +1043,18 @@ describe('forecastSlice undo/redo', () => {
       expect(real).toBeDefined();
       expect(selectCurrentOutlooks(withForecast(forecastState))).toBe(real);
     });
+
+    it('throws when a consumer tries to mutate the shared fallback map', () => {
+      const base = reducer(undefined, setForecastDay(1));
+      const absentDayState = {
+        ...base,
+        forecastCycle: { ...base.forecastCycle, currentDay: 5 as DayType },
+      };
+      const fallback = selectCurrentOutlooks(withForecast(absentDayState));
+      const day48Map = fallback['day4-8']!;
+      expect(day48Map).toBeInstanceOf(Map);
+      expect(() => day48Map.set('30%', [])).toThrow(/read-only outlook map/);
+      expect(() => day48Map.clear()).toThrow(/read-only outlook map/);
+    });
   });
 });

@@ -253,22 +253,41 @@ const createEmptyOutlook = (day: DayType, now: string): OutlookDay => {
   };
 };
 
-/** Deeply freezes a value (and its nested Maps) so shared fallbacks cannot be mutated. */
+/** Returns a read-only Map proxy that throws if a consumer tries to mutate it. */
+const freezeMap = <K, V>(map: Map<K, V>): Map<K, V> =>
+  new Proxy(map, {
+    set: () => {
+      throw new Error('Attempted to mutate a shared read-only outlook map.');
+    },
+    deleteProperty: () => {
+      throw new Error('Attempted to mutate a shared read-only outlook map.');
+    },
+    get: (target, property, receiver) => {
+      if (property === 'set' || property === 'delete' || property === 'clear') {
+        return () => {
+          throw new Error('Attempted to mutate a shared read-only outlook map.');
+        };
+      }
+      return Reflect.get(target, property, receiver);
+    },
+  });
+
+/** Deeply guards a value so shared fallbacks cannot be mutated. */
 const deepFreezeOutlookData = (data: OutlookData): OutlookData => {
-  for (const map of Object.values(data)) {
-    if (map instanceof Map) {
-      Object.freeze(map);
-    }
+  const guarded: OutlookData = {};
+  for (const [type, map] of Object.entries(data)) {
+    guarded[type as OutlookType] = map instanceof Map ? freezeMap(map) : map;
   }
-  return Object.freeze(data);
+  return Object.freeze(guarded);
 };
 
 /**
  * Shared, immutable fallback outlook data keyed by day category. Returning the
  * same reference for a given day shape keeps selectors referentially stable so
  * unrelated renders do not trigger avoidable state changes or selector-stability
- * warnings. Consumers must treat these as read-only; the nested Maps are frozen
- * so accidental writes throw in strict mode instead of corrupting the singleton.
+ * warnings. Consumers must treat these as read-only; the nested Maps are wrapped
+ * in a proxy that throws on set/delete/clear so accidental writes fail loudly
+ * instead of silently corrupting the shared singleton.
  */
 const EMPTY_OUTLOOK_DATA_BY_DAY: Record<string, OutlookData> = {
   day12: deepFreezeOutlookData(createEmptyOutlook(1, INITIAL_TIMESTAMP).data),
