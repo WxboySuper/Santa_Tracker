@@ -140,7 +140,6 @@ const useAutoCategorical = () => {
     }
 
     processingRef.current = true;
-    lastProcessedRef.current = currentHash;
     const requestId = ++requestIdRef.current;
 
     // Store existing TSTM areas before clearing categoricals
@@ -155,6 +154,9 @@ const useAutoCategorical = () => {
         if (!result.ok || !result.features) {
           return;
         }
+        // Advance the baseline only after a successful derivation so a failure
+        // or timeout can be retried on the next effect run.
+        lastProcessedRef.current = currentHash;
         const categoricalMap = buildCategoricalMap(tstmFeatures, result.features);
         dispatch(applyAutoCategoricalSync({ map: categoricalMap }));
       })

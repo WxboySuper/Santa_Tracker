@@ -21,7 +21,7 @@ const createFakeWorkerController = (): { controller: DerivationController; worke
 };
 
 describe('createDerivationController worker path', () => {
-  it('discards stale responses so an older request cannot overwrite a newer edit', async () => {
+  it('resolves each request with its own worker response; the hook discards stale ones', async () => {
     const { controller, worker } = createFakeWorkerController();
 
     const first = controller.derive(1, 1, emptyOutlooks());
@@ -34,6 +34,8 @@ describe('createDerivationController worker path', () => {
     const secondResult = await second;
     expect(secondResult.ok).toBe(true);
     expect(secondResult.features?.[0].id).toBe('fresh');
+    // The controller resolves every pending request independently; the caller
+    // (useAutoCategorical) compares requestId to discard an out-of-date one.
     expect(firstResult.features?.[0].id).toBe('stale');
     expect(worker.postMessage).toHaveBeenCalledTimes(2);
     controller.dispose();
