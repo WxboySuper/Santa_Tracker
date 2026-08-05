@@ -1,9 +1,32 @@
 import * as turf from '@turf/turf';
 import { v4 as uuidv4 } from 'uuid';
-import type { Feature, FeatureCollection, Polygon, MultiPolygon } from 'geojson';
+import type { Feature, FeatureCollection, Polygon, MultiPolygon, Position } from 'geojson';
 import { tornadoToCategorical, windToCategorical, hailToCategorical, totalSevereToCategorical } from '../utils/outlookUtils';
 import { OutlookData, CIGLevel, CategoricalRiskLevel } from '../types/outlooks';
 import { coerceOutlookProbabilityMap } from '../utils/outlookMapCoercion';
+
+/**
+ * Raised when automatic categorical derivation cannot produce a complete,
+ * valid result. Callers must preserve the last known-good categorical
+ * geometry instead of publishing a partial result.
+ */
+export class CategoricalDerivationError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'CategoricalDerivationError';
+  }
+}
+
+/** Returns a stable, actionable message for an unknown derivation failure. */
+export const toDerivationErrorMessage = (error: unknown, fallback: string): string => {
+  if (error instanceof CategoricalDerivationError) {
+    return error.message;
+  }
+  if (error instanceof Error) {
+    return error.message;
+  }
+  return fallback;
+};
 
 export function processOutlooksToCategorical(outlooks: OutlookData, day: number = 1): GeoJSON.Feature[] {
   if (day === 1 || day === 2) {
@@ -37,7 +60,8 @@ const setPairFeatures = (
 
 const pairFeatureCollection = createPairFeatureCollection();
 
-// Helper to safely union a list of polygons
+// Helper to safely union a list of polygons. On a Turf topology error this
+// throws instead of silently publishing partial geometry.
 const safeUnion = (features: Feature<Polygon | MultiPolygon>[]): Feature<Polygon | MultiPolygon> | null => {
   if (features.length === 0) return null;
   if (features.length === 1) return features[0];
@@ -52,9 +76,17 @@ const safeUnion = (features: Feature<Polygon | MultiPolygon>[]): Feature<Polygon
       fc = turf.featureCollection(features);
     }
     const result = turf.union(fc);
+    if (!result) {
+      throw new CategoricalDerivationError('Turf union returned no geometry.');
+    }
     return result as Feature<Polygon | MultiPolygon>;
-  } catch {
-    return features[0]; // Fallback on Turf union error
+  } catch (error) {
+    if (error instanceof CategoricalDerivationError) {
+      throw error;
+    }
+    throw new CategoricalDerivationError(
+      `Turf union failed for ${features.length} polygon(s): ${error instanceof Error ? error.message : String(error)}`
+    );
   }
 };
 
@@ -118,13 +150,69 @@ const buildCumulativeCategoricalFeatures = (
 const isPolygonOutlookFeature = (feature: GeoJSON.Feature): feature is PolygonOutlookFeature =>
   feature.geometry.type === 'Polygon' || feature.geometry.type === 'MultiPolygon';
 
+/**
+ * Validates that a position contains only finite coordinates.
+ * @returns {true} when the position is a finite [lon, lat] pair.
+ */
+const isFinitePosition = (position: Position | number[]): boolean =>
+  Array.isArray(position) &&
+  position.length >= 2 &&
+  position.slice(0, 2).every((value) => typeof value === 'number' && Number.isFinite(value));
+
+/**
+ * Normalizes a polygon feature before Turf boolean operations so that
+ * pathological but recoverable geometry does not cause topology errors.
+ * Non-finite coordinates fail loudly instead of silently dropping geometry.
+ */
+const normalizePolygonFeature = (feature: PolygonOutlookFeature): PolygonOutlookFeature => {
+  const validatePosition = (position: Position | number[]): void => {
+    if (!isFinitePosition(position)) {
+      throw new CategoricalDerivationError(
+        'Outlook geometry contains non-finite coordinates and cannot be processed.'
+      );
+    }
+  };
+
+  const validateRing = (ring: Position[]): void => {
+    if (!Array.isArray(ring) || ring.length < 4) {
+      throw new CategoricalDerivationError('Outlook geometry contains an invalid polygon ring.');
+    }
+    ring.forEach(validatePosition);
+  };
+
+  const validatePolygon = (polygon: Polygon): void => {
+    polygon.coordinates.forEach(validateRing);
+  };
+
+  const validateMultiPolygon = (multi: MultiPolygon): void => {
+    multi.coordinates.forEach((polygon) => polygon.forEach(validateRing));
+  };
+
+  if (feature.geometry.type === 'Polygon') {
+    validatePolygon(feature.geometry);
+  } else if (feature.geometry.type === 'MultiPolygon') {
+    validateMultiPolygon(feature.geometry);
+  }
+
+  try {
+    const cleaned = turf.cleanCoords(feature) as PolygonOutlookFeature;
+    return cleaned;
+  } catch (error) {
+    throw new CategoricalDerivationError(
+      `Outlook geometry normalization failed: ${error instanceof Error ? error.message : String(error)}`
+    );
+  }
+};
+
 /** Separates probability keys from CIG hatching keys inside one outlook probability map. */
 const partitionProbabilityMap = (probMap: Map<string, GeoJSON.Feature[]>) => {
   const probabilityFeatures = new Map<string, PolygonOutlookFeature[]>();
   const hatchingFeatures = new Map<CIGLevel, PolygonOutlookFeature[]>();
 
   probMap.forEach((features, key) => {
-    const validFeatures = features.filter(isPolygonOutlookFeature);
+    const validFeatures = features
+      .filter(isPolygonOutlookFeature)
+      .map(normalizePolygonFeature);
     if (validFeatures.length === 0) {
       return;
     }
@@ -189,8 +277,11 @@ const applyProbabilityFeaturesWithHatching = (
             setPairFeatures(pairCollection, remainingPoly, intersection as PolygonOutlookFeature);
             remainingPoly = turf.difference(pairCollection) as PolygonOutlookFeature | null;
           }
-        } catch {
-          // Ignore topology errors
+        } catch (error) {
+          // Hatching topology errors must not discard prior valid geometry.
+          throw new CategoricalDerivationError(
+            `Hatching intersection failed for ${probStr}/${cig}: ${error instanceof Error ? error.message : String(error)}`
+          );
         }
       });
 

@@ -6,6 +6,7 @@ import useAutoCategorical, {
   processDay12OutlooksToCategorical,
   processDay3OutlooksToCategorical,
   processOutlooksToCategorical,
+  CategoricalDerivationError,
 } from '../useAutoCategorical';
 import { OutlookData } from '../../types/outlooks';
 import { Feature, Polygon } from 'geojson';
@@ -24,6 +25,8 @@ jest.mock('@turf/turf', () => {
     ...actual,
     featureCollection: jest.fn((...args: Parameters<typeof actual.featureCollection>) =>
       actual.featureCollection(...args)),
+    union: jest.fn((...args: Parameters<typeof actual.union>) => actual.union(...args)),
+    intersect: jest.fn((...args: Parameters<typeof actual.intersect>) => actual.intersect(...args)),
   };
 });
 
@@ -92,6 +95,13 @@ describe('processOutlooksToCategorical', () => {
   beforeEach(() => {
     mockUuid.mockReset();
     mockUuid.mockImplementation(() => 'mock-uuid');
+    const actual = jest.requireActual<typeof import('@turf/turf')>('@turf/turf');
+    const unionMock = turf.union as jest.MockedFunction<typeof turf.union>;
+    unionMock.mockReset();
+    unionMock.mockImplementation((...args) => actual.union(...args));
+    const intersectMock = turf.intersect as jest.MockedFunction<typeof turf.intersect>;
+    intersectMock.mockReset();
+    intersectMock.mockImplementation((...args) => actual.intersect(...args));
   });
 
   test('returns empty array for empty outlooks', () => {
@@ -328,5 +338,161 @@ describe('processOutlooksToCategorical', () => {
       expect(categorical?.get('TSTM')?.[0].id).toBe('manual-tstm');
       expect(categorical?.get('ENH')?.length).toBeGreaterThan(0);
     });
+  });
+
+  test('union failure throws a CategoricalDerivationError instead of publishing partial geometry', () => {
+    const outlooks: OutlookData = {
+      tornado: new Map([['30%', [makeFeature('t1'), makeFeature('t2')]]]),
+      wind: new Map(),
+      hail: new Map(),
+      categorical: new Map(),
+    };
+
+    const unionMock = turf.union as jest.MockedFunction<typeof turf.union>;
+    unionMock.mockImplementationOnce(() => {
+      throw new Error('turf union exploded');
+    });
+    unionMock.mockImplementationOnce(() => {
+      throw new Error('turf union exploded');
+    });
+
+    expect(() => processDay12OutlooksToCategorical(outlooks)).toThrow(CategoricalDerivationError);
+    expect(() => processDay12OutlooksToCategorical(outlooks)).toThrow(/union/i);
+  });
+
+  test('single-feature union never throws and returns the feature unchanged', () => {
+    const unionMock = turf.union as jest.MockedFunction<typeof turf.union>;
+    unionMock.mockImplementationOnce(() => {
+      throw new Error('turf union exploded');
+    });
+
+    const outlooks: OutlookData = {
+      tornado: new Map([['30%', [makeFeature('t1')]]]),
+      wind: new Map(),
+      hail: new Map(),
+      categorical: new Map(),
+    };
+    const result = processDay12OutlooksToCategorical(outlooks);
+    expect(result.length).toBeGreaterThan(0);
+  });
+
+  test('hatching intersection failure throws instead of discarding prior geometry', () => {
+    const outlooks: OutlookData = {
+      tornado: new Map(),
+      wind: new Map([
+        ['30%', [makeSquare('wind-prob', 0)]],
+        ['CIG1', [makeSquare('wind-hatch', 0)]],
+      ]),
+      hail: new Map(),
+      categorical: new Map(),
+    };
+
+    const intersectMock = turf.intersect as jest.MockedFunction<typeof turf.intersect>;
+    intersectMock.mockImplementationOnce(() => {
+      throw new Error('turf intersect exploded');
+    });
+    intersectMock.mockImplementationOnce(() => {
+      throw new Error('turf intersect exploded');
+    });
+
+    expect(() => processDay12OutlooksToCategorical(outlooks)).toThrow(CategoricalDerivationError);
+    expect(() => processDay12OutlooksToCategorical(outlooks)).toThrow(/intersection failed/i);
+  });
+
+  test('non-finite coordinates fail loudly with CategoricalDerivationError', () => {
+    const badFeature: Feature<Polygon> = {
+      type: 'Feature',
+      id: 'bad',
+      geometry: {
+        type: 'Polygon',
+        coordinates: [[[0, 0], [NaN, 0], [1, 1], [0, 1], [0, 0]]],
+      },
+      properties: {},
+    };
+
+    const outlooks: OutlookData = {
+      tornado: new Map([['30%', [badFeature]]]),
+      wind: new Map(),
+      hail: new Map(),
+      categorical: new Map(),
+    };
+
+    expect(() => processDay12OutlooksToCategorical(outlooks)).toThrow(CategoricalDerivationError);
+    expect(() => processDay12OutlooksToCategorical(outlooks)).toThrow(/non-finite/i);
+  });
+
+  test('successful derivation covers exactly the input area for a single probability', () => {
+    const outlooks: OutlookData = {
+      tornado: new Map([['30%', [makeSquare('t1', 0, 2), makeSquare('t2', 3, 2)]]]),
+      wind: new Map(),
+      hail: new Map(),
+      categorical: new Map(),
+    };
+
+    const result = processDay12OutlooksToCategorical(outlooks);
+    const inputArea = turf.area(turf.featureCollection([makeSquare('t1', 0, 2), makeSquare('t2', 3, 2)]));
+    const outputUnion = turf.union(turf.featureCollection(result)) as GeoJSON.Feature;
+    const outputArea = turf.area(outputUnion);
+    expect(outputArea).toBeGreaterThan(0);
+    expect(outputArea).toBeCloseTo(inputArea, 6);
+  });
+
+  test('derivation failure preserves the last known-good categorical result and sets an error', async () => {
+    const store = createStore();
+    type ProviderProps = { store: ReturnType<typeof createStore>; children?: React.ReactNode };
+    const ProviderComponent = Provider as unknown as React.ComponentType<ProviderProps>;
+    render(React.createElement(ProviderComponent, { store }, React.createElement(HookHarness)));
+
+    act(() => {
+      store.dispatch(addFeature({ feature: makeProbabilisticFeature('feature-1', 0) }));
+      store.dispatch(addFeature({ feature: makeProbabilisticFeature('feature-2', 3) }));
+    });
+
+    await waitFor(() => {
+      expect(getCategoricalFeatures(store).length).toBeGreaterThan(0);
+    });
+
+    const unionMock = turf.union as jest.MockedFunction<typeof turf.union>;
+    unionMock.mockImplementationOnce(() => {
+      throw new Error('turf union exploded');
+    });
+    unionMock.mockImplementationOnce(() => {
+      throw new Error('turf union exploded');
+    });
+
+    act(() => {
+      store.dispatch(updateFeature({ feature: makeProbabilisticFeature('feature-1', 5) }));
+    });
+
+    await waitFor(() => {
+      expect(store.getState().forecast.autoCategoricalError).toMatch(/union/i);
+    });
+
+    expect(getCategoricalFeatures(store).length).toBeGreaterThan(0);
+  });
+
+  test('successful derivation clears a previous error', async () => {
+    const store = createStore();
+    type ProviderProps = { store: ReturnType<typeof createStore>; children?: React.ReactNode };
+    const ProviderComponent = Provider as unknown as React.ComponentType<ProviderProps>;
+    render(React.createElement(ProviderComponent, { store }, React.createElement(HookHarness)));
+
+    act(() => {
+      store.dispatch(addFeature({ feature: makeProbabilisticFeature('feature-1', 0) }));
+    });
+
+    await waitFor(() => {
+      expect(getCategoricalFeatures(store).length).toBeGreaterThan(0);
+    });
+
+    act(() => {
+      store.dispatch(updateFeature({ feature: makeProbabilisticFeature('feature-1', 3) }));
+    });
+
+    await waitFor(() => {
+      expect((getCategoricalFeatures(store)[0].geometry as Polygon).coordinates[0][0]).toEqual([3, 3]);
+    });
+
+    expect(store.getState().forecast.autoCategoricalError).toBeNull();
   });
 });
