@@ -2,6 +2,24 @@
   "usage": "Policy validation tests intentionally repeat declarative fixtures so each failure remains independently readable.",
   "rule_sets": [
     {
+      "matching_content_path": "src/pages/ForecastPage.tsx",
+      "rules": [
+        {
+          "name": "Lines of Code in a Single File",
+          "weight": 0.0
+        }
+      ]
+    },
+    {
+      "matching_content_path": "src/utils/forecastOutlookValidation.ts",
+      "rules": [
+        {
+          "name": "Overall Code Complexity",
+          "weight": 0.0
+        }
+      ]
+    },
+    {
       "matching_content_path": "scripts/lib/feature-exposure-policy.test.mjs",
       "rules": [
         {

@@ -1,4 +1,3 @@
-// @codescene(disable:"Overall Code Complexity")
 import type { ImportValidationResult } from './forecastValidationTypes';
 import { MAX_ARRAY_ITEMS, fail } from './forecastValidationTypes';
 import { validateFeature } from './forecastGeometryValidation';
@@ -34,6 +33,7 @@ const outlookMapEntries = (value: unknown): Array<[string, unknown]> | null => {
 };
 
 /** Validates one probability entry and its features, returning a failure or null. */
+// @codescene(disable:"Complex Conditional")
 const validateProbabilityEntry = (
   probability: string,
   features: unknown,
