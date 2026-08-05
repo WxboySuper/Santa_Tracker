@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../co
 import { Input } from '../components/ui/input';
 import { useAuth } from '../auth/AuthProvider';
 import { useEntitlement } from '../billing/EntitlementProvider';
+import { PRICING_COPY } from '../billing/pricingCopy';
 import { useCloudCycles } from '../hooks/useCloudCycles';
 import { CloudCycleMetadata } from '../types/cloudCycles';
 import { getScopedStorageKey, getStorageScope } from '../utils/storageScope';
@@ -85,9 +86,7 @@ const CloudLibraryUtilityHeader: React.FC = () => (
       <ShieldCheck className="h-5 w-5 text-primary" />
       <CardTitle>Storage access</CardTitle>
     </div>
-    <CardDescription>
-      Hosted saves live here. The forecast editor, discussions, verification, and exports still stay local-first.
-    </CardDescription>
+    <CardDescription>{PRICING_COPY.freeSummary}</CardDescription>
   </CardHeader>
 );
 
@@ -98,10 +97,10 @@ const getUtilityCardCopy = (premiumActive: boolean, isExpiredPremium: boolean): 
   }
 
   if (isExpiredPremium) {
-    return 'Your saved cycles are still available to open, but writes stay off until premium is active again.';
+    return PRICING_COPY.downgradeSummary;
   }
 
-  return 'Premium unlocks hosted saves. Until then, your forecast workflow stays local.';
+  return PRICING_COPY.freeAccount;
 };
 
 /** Support actions rendered in the right-side cloud utility card. */

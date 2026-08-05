@@ -6,6 +6,7 @@ import { Button } from '../components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { useAuth } from '../auth/AuthProvider';
 import { useEntitlement } from '../billing/EntitlementProvider';
+import { PRICING_COPY, getBoundaryCopy } from '../billing/pricingCopy';
 import './PricingPage.css';
 
 interface ComparisonRow {
@@ -169,11 +170,11 @@ const PricingHero: React.FC<{ annualPromoActive: boolean }> = ({ annualPromoActi
         Compare Plans
       </div>
       <div className="pricing-hero-text">
-        <h1>Forecasting stays free. Premium covers the hosted layer.</h1>
+        <h1>{PRICING_COPY.coreBoundary}</h1>
         <p>
-          GFC is still built around the local workflow. Premium exists for the official hosted service, including
-          cloud storage, cross-device continuity, and the infrastructure needed to run it. Forecast building,
-          discussions, verification, exports, and local cycle history stay available on the free plan.
+          GFC is built around the local workflow. Premium exists for the official hosted service, including
+          cloud storage and cross-device continuity. Forecast building, discussions, verification, exports,
+          and local cycle history stay available on the free plan.
         </p>
       </div>
     </div>
@@ -182,13 +183,7 @@ const PricingHero: React.FC<{ annualPromoActive: boolean }> = ({ annualPromoActi
       <div className="pricing-panel-header">
         <h2>Hosted features</h2>
       </div>
-      <p>
-        Premium pays for hosted storage, sync between devices, and the service behind those features. It does not put
-        the forecasting workflow itself behind a paywall.
-      </p>
-      <p>
-        If a subscription ends later, local work stays available and only new cloud writes are turned off.
-      </p>
+      <p>{PRICING_COPY.downgradeSummary}</p>
       <div className="pricing-panel-badges">
         <Badge variant="outline">Core workflow stays free</Badge>
         {annualPromoActive ? <Badge variant="success">Annual intro pricing active</Badge> : null}
@@ -240,9 +235,8 @@ const PricingPlanPriceBlock: React.FC<{
 const PricingPlanBody: React.FC<{
   summary: string;
   features: string[];
-  highlighted: boolean;
   cta: React.ReactNode;
-}> = ({ summary, features, highlighted, cta }) => (
+}> = ({ summary, features, cta }) => (
   <CardContent className="pricing-plan-content">
     <p className="pricing-plan-summary">{summary}</p>
 
@@ -251,8 +245,6 @@ const PricingPlanBody: React.FC<{
         <PlanFeatureItem key={feature}>{feature}</PlanFeatureItem>
       ))}
     </ul>
-
-    <div className={highlighted ? 'pricing-plan-note pricing-plan-note-highlighted' : 'pricing-plan-note'}>{summary}</div>
 
     <div className="pricing-plan-cta">{cta}</div>
   </CardContent>
@@ -283,7 +275,7 @@ const PricingPlanCard: React.FC<PricingPlanCardProps> = ({
       />
       <PricingPlanPriceBlock price={price} priceNote={priceNote} description={description} />
     </CardHeader>
-    <PricingPlanBody summary={summary} features={features} highlighted={highlighted} cta={cta} />
+    <PricingPlanBody summary={summary} features={features} cta={cta} />
   </Card>
 );
 
@@ -347,11 +339,10 @@ const PricingNotesCard: React.FC<{
         <ShieldCheck className="h-5 w-5 text-primary" />
         <CardTitle>Good to know</CardTitle>
       </div>
-      <CardDescription>Premium supports the hosted service. The local forecasting workflow stays open.</CardDescription>
+      <CardDescription>{PRICING_COPY.coreBoundary}</CardDescription>
     </CardHeader>
     <CardContent className="pricing-notes-content">
-      <p>Billing can stay disabled on some deployments while setup is still being finished.</p>
-      <p>Premium is for hosted sync and storage, while the core local product remains fully usable for free.</p>
+      <p>{PRICING_COPY.downgradeSummary}</p>
       {premiumActive ? <p className="pricing-notes-emphasis">Your account currently has premium access.</p> : null}
       {!billingEnabled ? <p>Billing is not available on this deployment yet.</p> : null}
       {error || billingMessage ? <p className="pricing-notes-error">{billingMessage ?? error}</p> : null}
@@ -395,6 +386,7 @@ const PricingPage: React.FC = () => {
   const premiumPrice = getPremiumPrice(premiumActive, planInterval, monthlyDisplayPrice, annualDisplayPrice);
   const premiumPriceNote = getPremiumPriceNote(premiumActive, planInterval, monthlyDisplayPrice);
   const premiumSummary = getPremiumSummary(premiumActive, planInterval);
+  const boundaryCopy = getBoundaryCopy({ signedIn: isSignedIn, premiumActive });
   const premiumCtas = renderPremiumCtas({
     premiumActive,
     isSignedIn,
@@ -416,7 +408,7 @@ const PricingPage: React.FC = () => {
               price="$0"
               priceNote="always available"
               description="Everything needed to build, write, save, export, and verify forecasts locally."
-              summary="Free is the full local forecasting product. It does not become a trial just because premium exists."
+              summary={boundaryCopy}
               features={[
                 'Forecast workspace, map editor, and day-to-day cycle management',
                 'Discussion editor, verification mode, and package exports',
