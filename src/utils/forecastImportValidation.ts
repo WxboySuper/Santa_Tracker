@@ -28,7 +28,7 @@ import { validateForecastCycle, validateLegacyOutlooks } from './forecastOutlook
 /** Bounds-check the raw import file bytes before parsing. */
 export const validateImportFileBytes = (bytes: Uint8Array | ArrayBuffer | undefined | null): ImportValidationResult => {
   if (bytes == null) return { ok: true };
-  const byteLength = bytes instanceof Uint8Array ? bytes.byteLength : bytes.byteLength;
+  const byteLength = bytes.byteLength;
   if (byteLength > MAX_IMPORT_BYTES) {
     return fail(`File is too large (${(byteLength / 1024 / 1024).toFixed(1)} MB); the maximum supported size is ${MAX_IMPORT_BYTES / 1024 / 1024} MB.`);
   }

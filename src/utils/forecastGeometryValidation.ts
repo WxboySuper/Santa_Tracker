@@ -17,25 +17,31 @@ const SUPPORTED_GEOMETRY_TYPES = new Set<string>([
 
 /**
  * Counts coordinate positions inside a GeoJSON geometry, bounding work early
- * when the limit is exceeded.
+ * when the limit is exceeded, and reports whether any position is non-finite.
  */
-const countCoordinatePositions = (geometry: Geometry, limit: number): number => {
+const countCoordinatePositions = (geometry: Geometry, limit: number): { count: number; hasNonFinite: boolean } => {
   let count = 0;
+  let hasNonFinite = false;
   const visit = (value: unknown): void => {
     if (count >= limit) return;
     if (Array.isArray(value)) {
       if (value.length > 0 && Array.isArray(value[0])) {
         value.forEach(visit);
       } else {
+        for (const item of value) {
+          if (typeof item === 'number' && !Number.isFinite(item)) {
+            hasNonFinite = true;
+          }
+        }
         count += value.length;
       }
     }
   };
   if (geometry.type === 'GeometryCollection') {
-    return 0;
+    return { count: 0, hasNonFinite: false };
   }
   visit((geometry as { coordinates?: unknown }).coordinates);
-  return count;
+  return { count, hasNonFinite };
 };
 
 /** Validates the child geometries of a GeometryCollection. */
@@ -55,8 +61,12 @@ const validateGeometryCoordinates = (geometry: { type?: unknown; coordinates?: u
   if (!Array.isArray(geometry.coordinates)) {
     return fail(`Forecast geometry "${geometry.type}" is missing coordinates.`);
   }
-  if (countCoordinatePositions(geometry as Geometry, MAX_COORDINATE_POSITIONS) >= MAX_COORDINATE_POSITIONS) {
+  const { count, hasNonFinite } = countCoordinatePositions(geometry as Geometry, MAX_COORDINATE_POSITIONS);
+  if (count >= MAX_COORDINATE_POSITIONS) {
     return fail('Forecast geometry contains too many coordinates.');
+  }
+  if (hasNonFinite) {
+    return fail('Forecast geometry contains a non-finite coordinate.');
   }
   return null;
 };

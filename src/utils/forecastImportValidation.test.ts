@@ -206,9 +206,7 @@ describe('validateForecastData compatibility', () => {
   });
 
   it('rejects pathological geometry through the shared validator', () => {
-    const save = validSave();
-    const day = (save.forecastCycle?.days as Record<string, { data: Record<string, unknown> }>)[1];
-    day.data.tornado = [['30%', [{ type: 'Feature', geometry: { type: 'Point', coordinates: [0] }, properties: {} }]]];
-    expect(validateForecastData(save)).toBe(true);
+    const save = withTornado([['30%', [{ type: 'Feature', geometry: { type: 'Point', coordinates: [NaN, NaN] }, properties: {} }]]]);
+    expect(validateForecastData(save)).toBe(false);
   });
 });
