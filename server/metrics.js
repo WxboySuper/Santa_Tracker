@@ -380,16 +380,21 @@ const readCloudCyclePayloadBytes = async (db) => {
     const total = snapshot.data?.()?.payloadBytes;
     return typeof total === 'number' && total > 0 ? total : 0;
   } catch {
-    if (!db.collection('cloudCycles').limit) {
-      return 0;
-    }
-    const capped = await db.collection('cloudCycles').limit(1001).get();
-    const docs = capped.docs || [];
-    return docs.reduce(
-      (total, docSnapshot) => total + (Number(docSnapshot.data?.()?.payloadBytes) || 0),
-      0
-    );
+    return sumCappedPayloadBytes(db);
   }
+};
+
+/** Sums payloadBytes from a capped scan when the emulator or test double lacks aggregate support. */
+const sumCappedPayloadBytes = async (db) => {
+  if (!db.collection('cloudCycles').limit) {
+    return 0;
+  }
+  const capped = await db.collection('cloudCycles').limit(1001).get();
+  const docs = capped.docs || [];
+  return docs.reduce(
+    (total, docSnapshot) => total + (Number(docSnapshot.data?.()?.payloadBytes) || 0),
+    0
+  );
 };
 
 /** Estimates the current hosted Firestore storage footprint using bounded server-side aggregation. */
