@@ -36,6 +36,7 @@ Work toward the next major release continues in the beta channel while the final
 - **Error reporting:** Filter known browser telemetry noise while preserving actionable application errors, including `TypeError: Failed to fetch` promise-rejection noise from the Firestore realtime transport (GFC-WEB-Q).
 - **Build and tooling:** Fix pre-existing TypeScript errors in the outlook constraints and outlook panel probability utilities so `pnpm typecheck` passes on `main`.
 - **Accessibility and polish:** Improve toolbar organization, responsive controls, package dialogs, custom-product editing, and forecast map controls.
+- **Dialog accessibility:** Consolidate custom dialogs on one hardened focus-trap behavior (trapped Tab/Shift+Tab, initial focus, focus restore, Escape, background isolation), associate discussion validity/forecaster fields with accessible labels, and add primary `h1` landmarks to forecast, verification, and monitor routes.
 
 #### Security and operations
 

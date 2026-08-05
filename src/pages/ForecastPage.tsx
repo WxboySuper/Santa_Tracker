@@ -1472,6 +1472,7 @@ export const ForecastPage: React.FC = () => {
 
   return (
     <div className="forecast-page-shell">
+      <h1 className="sr-only">Forecast Editor</h1>
       {renderForecastWorkspaceLayout(forecastUiVariant, {
         mapRef,
         controller: workspaceController,

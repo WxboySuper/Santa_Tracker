@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { useModalFocusTrap } from '../../hooks/useModalFocusTrap';
 import './ExportModal.css';
 
 interface ExportFormProps {
@@ -47,6 +48,7 @@ interface ExportModalProps {
 const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onConfirm, onCancel }) => {
   const [title, setTitle] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
+  const { setModalRef } = useModalFocusTrap({ active: isOpen, onClose: onCancel });
 
   useEffect(() => {
     if (isOpen) {
@@ -71,7 +73,7 @@ const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onConfirm, onCancel }
 
   return (
     <div className="export-modal-overlay">
-      <div className="export-modal" role="dialog" aria-modal="true" aria-labelledby="export-title">
+      <div className="export-modal" role="dialog" aria-modal="true" aria-labelledby="export-title" ref={setModalRef}>
         <h3 id="export-title">Export Forecast Image</h3>
         <form onSubmit={handleSubmit}>
           <ExportForm
