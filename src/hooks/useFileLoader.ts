@@ -1,4 +1,4 @@
-import { exportForecastToJson, deserializeForecast, readForecastImportFile, validateForecastData } from '../utils/fileUtils';
+import { exportForecastToJson, deserializeForecast, readForecastImportFile, validateForecastDataReason } from '../utils/fileUtils';
 import { isWorkflowExportPackage } from '../utils/workflowPackage';
 import {
   markAsSaved,
@@ -30,23 +30,30 @@ export function createFileHandlers({ addToast, dispatch, forecastCycle, cycleMet
           addToast('File is not a valid GFC package.', 'error');
         } else if (error instanceof SyntaxError) {
           addToast('File is not valid JSON.', 'error');
+        } else if (error instanceof Error && error.message.includes('too large')) {
+          addToast(error.message, 'error');
         } else {
           addToast('Error reading file.', 'error');
         }
         return;
       }
 
-      if (!validateForecastData(data)) {
-        addToast('Invalid forecast data format.', 'error');
+      const validationError = validateForecastDataReason(data);
+      if (validationError) {
+        addToast(validationError, 'error');
         return;
       }
 
+      const validatedData = data as {
+        metadata?: CycleMetadata;
+        cycleMetadata?: CycleMetadata | null;
+      };
       const deserializedCycle = deserializeForecast(data);
       dispatch(importForecastCycle(deserializedCycle));
-      const packageMetadata = isWorkflowExportPackage(data) ? data.metadata : data.cycleMetadata;
+      const packageMetadata = isWorkflowExportPackage(data) ? validatedData.metadata : validatedData.cycleMetadata;
       if (packageMetadata) {
         dispatch(setWorkflowMetadata(packageMetadata));
-      } else if (data.cycleMetadata === null) {
+      } else if (validatedData.cycleMetadata === null) {
         dispatch(clearWorkflowMetadata());
       }
       addToast('Forecast loaded successfully!', 'success');
