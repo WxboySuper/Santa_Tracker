@@ -4,7 +4,6 @@ import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
 import { sentryVitePlugin } from '@sentry/vite-plugin';
 import { resolveBuildTarget } from './src/config/buildTarget';
-
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
   const buildTarget = resolveBuildTarget(env.VITE_BUILD_TARGET);
@@ -59,6 +58,33 @@ export default defineConfig(({ mode }) => {
       outDir: 'build',
       emptyOutDir: true,
       sourcemap: uploadSourceMaps ? 'hidden' : false,
+      // Separate the heaviest third-party families into their own chunks so the
+      // application shell stays independent of map/editor and utility bundles.
+      rollupOptions: {
+        output: {
+          manualChunks(id) {
+            if (id.includes('node_modules/ol/') || id.includes('node_modules/ol-mapbox-style/')) {
+              return 'openlayers';
+            }
+            if (id.includes('node_modules/leaflet/')) {
+              return 'leaflet';
+            }
+            if (id.includes('node_modules/@turf/')) {
+              return 'turf';
+            }
+            if (id.includes('node_modules/firebase/') || id.includes('node_modules/@firebase/')) {
+              return 'firebase';
+            }
+            if (id.includes('node_modules/react/') || id.includes('node_modules/react-dom/')) {
+              return 'react';
+            }
+            if (id.includes('node_modules/@reduxjs/') || id.includes('node_modules/redux/')) {
+              return 'redux';
+            }
+            return undefined;
+          },
+        },
+      },
     },
     server: {
       host: '0.0.0.0',

@@ -36,6 +36,7 @@ Work toward the next major release continues in the beta channel while the final
 - **Error reporting:** Filter known browser telemetry noise while preserving actionable application errors, including `TypeError: Failed to fetch` promise-rejection noise from the Firestore realtime transport (GFC-WEB-Q).
 - **Build and tooling:** Fix pre-existing TypeScript errors in the outlook constraints and outlook panel probability utilities so `pnpm typecheck` passes on `main`.
 - **Accessibility and polish:** Improve toolbar organization, responsive controls, package dialogs, custom-product editing, and forecast map controls.
+- **Bundle size:** Lazy-load heavy feature routes so the application shell loads independently from the map/editor and secondary workflow chunks, split vendor families into separate chunks, and enforce an entry-chunk budget in CI.
 
 #### Security and operations
 
