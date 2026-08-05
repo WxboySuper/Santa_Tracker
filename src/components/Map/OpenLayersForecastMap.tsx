@@ -47,6 +47,7 @@ import {
 import type { BaseMapStyle } from "../../store/overlaysSlice";
 import { getFeatureStyle, computeZIndex } from "../../utils/mapStyleUtils";
 import type { MapAdapterHandle } from "../../maps/contracts";
+import { getGeoBoundarySource } from "../../config/geoBoundarySources";
 import type {
   Feature as GeoJsonFeature,
   GeoJsonProperties,
@@ -360,6 +361,9 @@ export const ensureBlankLayerLoaded = async (config: BlankLayerConfig) => {
   let geoJson = config.getCache();
   if (!geoJson) {
     const response = await fetch(config.url);
+    if (!response.ok) {
+      throw new Error(`Failed to load boundary dataset: HTTP ${response.status} for ${config.url}`);
+    }
     geoJson = (await response.json()) as object;
     config.setCache(geoJson);
   }
@@ -1338,7 +1342,7 @@ const OpenLayersForecastMap = forwardRef<MapAdapterHandle<OLMap> | null, OpenLay
         const landLoader: BlankLayerConfig = {
           source: landSourceRef.current,
           isLoaded: () => landSourceRef.current.getFeatures().length > 0,
-          url: "https://raw.githubusercontent.com/PublicaMundi/MappingAPI/master/data/geojson/us-states.json",
+            url: getGeoBoundarySource("usStates").url,
           getCache: () => cachedUsStatesGeoJSON,
           setCache: (data) => {
             cachedUsStatesGeoJSON = data;
@@ -1375,7 +1379,7 @@ const OpenLayersForecastMap = forwardRef<MapAdapterHandle<OLMap> | null, OpenLay
           {
             source: worldSourceRef.current,
             isLoaded: () => worldSourceRef.current.getFeatures().length > 0,
-            url: "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_110m_admin_0_countries.geojson",
+            url: getGeoBoundarySource("worldCountries").url,
             getCache: () => cachedWorldCountriesGeoJSON,
             setCache: (data) => {
               cachedWorldCountriesGeoJSON = data;
@@ -1385,7 +1389,7 @@ const OpenLayersForecastMap = forwardRef<MapAdapterHandle<OLMap> | null, OpenLay
           {
             source: lakesSourceRef.current,
             isLoaded: () => lakesSourceRef.current.getFeatures().length > 0,
-            url: "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_110m_lakes.geojson",
+            url: getGeoBoundarySource("lakes").url,
             getCache: () => cachedLakesGeoJSON,
             setCache: (data) => {
               cachedLakesGeoJSON = data;
@@ -1395,7 +1399,7 @@ const OpenLayersForecastMap = forwardRef<MapAdapterHandle<OLMap> | null, OpenLay
           {
             source: landSourceRef.current,
             isLoaded: () => landSourceRef.current.getFeatures().length > 0,
-            url: "https://raw.githubusercontent.com/PublicaMundi/MappingAPI/master/data/geojson/us-states.json",
+          url: getGeoBoundarySource("usStates").url,
             getCache: () => cachedUsStatesGeoJSON,
             setCache: (data) => {
               cachedUsStatesGeoJSON = data;
