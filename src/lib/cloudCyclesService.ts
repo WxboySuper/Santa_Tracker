@@ -1,4 +1,4 @@
-import { collection, deleteField, deleteDoc, doc, getDoc, getDocs, onSnapshot, query, setDoc, where } from 'firebase/firestore';
+import { collection, deleteField, deleteDoc, doc, getDoc, getDocs, onSnapshot, query, setDoc, where, writeBatch } from 'firebase/firestore';
 import { v4 as uuidv4 } from 'uuid';
 import { db } from './firebase';
 import { CloudCycleMetadata, CloudCycle, CloudOperationResult } from '../types/cloudCycles';
@@ -377,12 +377,12 @@ const migrateLegacyCloudCycles = async (userId: string, cycles: CloudCycle[]): P
     return;
   }
 
-  await Promise.all(
-    cycles.map(async (cycle) => {
-      await setDoc(getCloudCycleDocRef(cycle.id), serializeCloudCycleDocument(cycle));
-      await setDoc(getCloudCyclePayloadDocRef(cycle.id), serializeCloudCyclePayloadDocument(cycle.payload));
-    })
-  );
+  const migrationBatch = writeBatch(getCloudCyclesCollectionRef().firestore);
+  cycles.forEach((cycle) => {
+    migrationBatch.set(getCloudCycleDocRef(cycle.id), serializeCloudCycleDocument(cycle));
+    migrationBatch.set(getCloudCyclePayloadDocRef(cycle.id), serializeCloudCyclePayloadDocument(cycle.payload));
+  });
+  await migrationBatch.commit();
 
   await setDoc(
     getLegacyUserSettingsRef(userId),
@@ -510,12 +510,14 @@ export const saveCloudCycle = async (
     const payloadStats = createCloudCyclePayloadStorage(payload);
     const validWorkflowMetadata = getCompatibleWorkflowMetadata(requestedWorkflowMetadata, cycleDate);
 
-    await setDoc(getCloudCycleDocRef(cycleId), {
+    const saveBatch = writeBatch(getCloudCyclesCollectionRef().firestore);
+    saveBatch.set(getCloudCycleDocRef(cycleId), {
       ...metadata,
       payloadBytes: payloadStats.payloadBytes,
       ...(validWorkflowMetadata ? { workflowMetadata: validWorkflowMetadata } : {}),
     });
-    await setDoc(getCloudCyclePayloadDocRef(cycleId), payloadStats);
+    saveBatch.set(getCloudCyclePayloadDocRef(cycleId), payloadStats);
+    await saveBatch.commit();
 
     return { success: true, data: cycleId };
   } catch (error) {

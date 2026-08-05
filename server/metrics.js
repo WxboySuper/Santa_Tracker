@@ -363,7 +363,8 @@ const countCollectionDocuments = async (db, collectionName) => {
   try {
     const snapshot = await db.collection(collectionName).count().get();
     return typeof snapshot.data?.()?.count === 'number' ? snapshot.data().count : 0;
-  } catch {
+  } catch (error) {
+    console.error(`Storage metrics: aggregate count unavailable for "${collectionName}", using capped fallback.`, error);
     if (!db.collection(collectionName).limit) {
       return 0;
     }
@@ -379,7 +380,8 @@ const readCloudCyclePayloadBytes = async (db) => {
     const snapshot = await db.collection('cloudCycles').aggregate({ payloadBytes: 'sum' }).get();
     const total = snapshot.data?.()?.payloadBytes;
     return typeof total === 'number' && total > 0 ? total : 0;
-  } catch {
+  } catch (error) {
+    console.error('Storage metrics: aggregate payload-byte sum unavailable, using capped fallback.', error);
     return sumCappedPayloadBytes(db);
   }
 };
