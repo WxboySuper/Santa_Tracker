@@ -106,6 +106,36 @@ describe('source loaders', () => {
       expect(global.fetch).toHaveBeenCalledWith('https://www.spc.noaa.gov/climo/reports/today.csv');
     });
 
+    test('routes a date matching the previous calendar day to yesterday\'s SPC reports feed', async () => {
+      const now = new Date();
+      const yesterday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
+      const iso = [
+        yesterday.getFullYear(),
+        String(yesterday.getMonth() + 1).padStart(2, '0'),
+        String(yesterday.getDate()).padStart(2, '0'),
+      ].join('-');
+
+      mockFetch('');
+      const reports = await loadReportsForDate(iso);
+      expect(reports).toEqual([]);
+      expect(global.fetch).toHaveBeenCalledWith('https://www.spc.noaa.gov/climo/reports/yesterday.csv');
+    });
+
+    test('routes a YYMMDD date matching the previous calendar day to yesterday\'s SPC reports feed', async () => {
+      const now = new Date();
+      const yesterday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
+      const yymmdd = [
+        String(yesterday.getFullYear()).slice(-2),
+        String(yesterday.getMonth() + 1).padStart(2, '0'),
+        String(yesterday.getDate()).padStart(2, '0'),
+      ].join('');
+
+      mockFetch('');
+      const reports = await loadReportsForDate(yymmdd);
+      expect(reports).toEqual([]);
+      expect(global.fetch).toHaveBeenCalledWith('https://www.spc.noaa.gov/climo/reports/yesterday.csv');
+    });
+
     test('keeps archived dates on the dated archive feed', async () => {
       const now = new Date();
       const past = new Date(now.getFullYear() - 1, now.getMonth(), now.getDate());

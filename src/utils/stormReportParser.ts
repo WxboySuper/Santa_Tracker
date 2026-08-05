@@ -6,6 +6,8 @@ export { parseTodayStormReportCsv } from './stormReportTodayCsv';
 
 export const SPC_TODAY_STORM_REPORTS_URL = 'https://www.spc.noaa.gov/climo/reports/today.csv';
 
+export const SPC_YESTERDAY_STORM_REPORTS_URL = 'https://www.spc.noaa.gov/climo/reports/yesterday.csv';
+
 const archiveUrlForDate = (date: string): string =>
   `https://www.spc.noaa.gov/climo/reports/${date}_rpts_raw.csv`;
 
@@ -82,6 +84,17 @@ export async function fetchTodayStormReports(): Promise<StormReport[]> {
 
   if (!response.ok) {
     throw new Error(`Failed to fetch today's storm reports: ${response.statusText}`);
+  }
+
+  return parseTodayStormReportCsv(await response.text());
+}
+
+/** Fetches the previous report day's SPC storm reports (yesterday.csv). */
+export async function fetchYesterdayStormReports(): Promise<StormReport[]> {
+  const response = await fetch(SPC_YESTERDAY_STORM_REPORTS_URL);
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch yesterday's storm reports: ${response.statusText}`);
   }
 
   return parseTodayStormReportCsv(await response.text());

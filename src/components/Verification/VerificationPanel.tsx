@@ -11,7 +11,7 @@ import {
   clearReports
 } from '../../store/stormReportsSlice';
 import { selectVerificationOutlooksForDay } from '../../store/verificationSlice';
-import { fetchStormReports, fetchTodayStormReports, formatReportDate } from '../../utils/stormReportParser';
+import { fetchStormReports, fetchTodayStormReports, fetchYesterdayStormReports, formatReportDate } from '../../utils/stormReportParser';
 import { analyzeVerification, formatVerificationSummary } from '../../utils/verificationUtils';
 import type { OutlookTypeVerification, VerificationResult } from '../../utils/verificationUtils';
 import { DayType } from '../../types/outlooks';
@@ -311,7 +311,7 @@ const VerificationPanel: React.FC<VerificationPanelProps> = ({
       const [year, month, day] = selectedDate.split('-').map(Number);
       const dateObj = new Date(year, month - 1, day); // month is 0-indexed
 
-      // Check if the selected date is today in local time
+      // Check if the selected date is today or yesterday in local time
       const today = new Date();
       // Compare year, month, and day to determine if the selected date is the same as today's date
       const isToday = 
@@ -319,10 +319,18 @@ const VerificationPanel: React.FC<VerificationPanelProps> = ({
         dateObj.getMonth() === today.getMonth() && 
         dateObj.getDate() === today.getDate();
 
+      const yesterday = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 1);
+      const isYesterday =
+        dateObj.getFullYear() === yesterday.getFullYear() &&
+        dateObj.getMonth() === yesterday.getMonth() &&
+        dateObj.getDate() === yesterday.getDate();
+
       const reportDate = formatReportDate(dateObj);
       const fetchedReports = isToday
         ? await fetchTodayStormReports()
-        : await fetchStormReports(reportDate);
+        : isYesterday
+          ? await fetchYesterdayStormReports()
+          : await fetchStormReports(reportDate);
 
       dispatch(setReports(fetchedReports));
       dispatch(setDate(reportDate));
