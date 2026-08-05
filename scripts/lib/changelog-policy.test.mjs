@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { evaluateChangelogPolicy, parseChangelogDeclaration } from './changelog-policy.mjs';
+import { evaluateChangelogPolicy, isChangelogSkip, parseChangelogDeclaration } from './changelog-policy.mjs';
 
 /** @param {'beta' | 'hotfix'} impact @param {string} changelog */
 const evaluateLane = (impact, changelog) => evaluateChangelogPolicy({
@@ -81,4 +81,24 @@ test('derives the stable changelog lane from the stable branch name', () => {
     baseChangelog: '# Changelog\n\n### Stable 1.7.x hotfixes\n',
   });
   assert.equal(result.ok, true);
+});
+
+test('exposes the impact on a successful evaluation', () => {
+  const result = evaluateChangelogPolicy({
+    baseRef: 'main',
+    changedFiles: ['CHANGELOG.md'],
+    body: 'Changelog-Impact: beta',
+    changelog: '# Changelog\n\n### Next major / beta\n',
+  });
+  assert.equal(result.ok, true);
+  assert.equal(result.impact, 'beta');
+  assert.equal(isChangelogSkip(result.impact), false);
+});
+
+test('classifies waived and inherited impacts as changelog skips', () => {
+  assert.equal(isChangelogSkip('none'), true);
+  assert.equal(isChangelogSkip('inherited'), true);
+  assert.equal(isChangelogSkip('beta'), false);
+  assert.equal(isChangelogSkip('hotfix'), false);
+  assert.equal(isChangelogSkip(undefined), false);
 });

@@ -16,6 +16,7 @@ export const CONTENT_MANAGED_LABELS = [
   'draft',
   'changelog:ok',
   'changelog:missing',
+  'changelog:skip',
   'Documentation',
   'Enhancement',
   'Bug',

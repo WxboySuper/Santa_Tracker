@@ -44,6 +44,8 @@ jobs:
           GITHUB_HEAD_REF: ${{ github.head_ref }}
           PR_BODY: ${{ github.event.pull_request.body }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GH_TOKEN: ${{ github.token }}
         run: node scripts/compute-pr-labels.mjs > pr-labels.json
 
       - name: Apply PR labels
@@ -72,6 +74,7 @@ jobs:
               ['integration:other', 'c2e0c6'],
               ['changelog:ok', '0e8a16'],
               ['changelog:missing', 'd73a4a'],
+              ['changelog:skip', '9d9d9d'],
               ['Documentation', '0075ca'],
               ['Enhancement', 'a2eeef'],
               ['Bug', 'd73a4a'],
