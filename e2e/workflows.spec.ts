@@ -22,18 +22,23 @@ const prepareWorkflowSession = async (page: Page): Promise<void> => {
 
 /** Starts one of the user-facing workflow templates from Home. */
 const startWorkflow = async (page: Page, scope: string, expectedLabel: string): Promise<void> => {
-  await page.goto('/?localTestAccount=premium');
+  // waitUntil domcontentloaded (not load): the app is a React SPA and full
+  // navigations can stall on external subresources (fonts, analytics), which
+  // used to blow the default 30s test timeout under CI load.
+  await page.goto('/?localTestAccount=premium', { waitUntil: 'domcontentloaded' });
   await page.getByRole('button', { name: scope, exact: true }).click();
   await page.getByRole('button', { name: 'Start Workflow', exact: true }).click();
-  await expect(page).toHaveURL(/\/forecast$/);
+  // Route and content assertions use explicit generous timeouts because the
+  // forecast editor mounts a heavy OpenLayers map and can be slow under CI load.
+  await expect(page).toHaveURL(/\/forecast$/, { timeout: 15000 });
   await homeNav(page).click();
-  await expect(page.locator('main').last()).toContainText(expectedLabel);
+  await expect(page.locator('main').last()).toContainText(expectedLabel, { timeout: 15000 });
   await forecastNav(page).click();
-  await expect(workflowPanel(page)).toBeVisible();
+  await expect(workflowPanel(page)).toBeVisible({ timeout: 15000 });
 };
 
 test.describe('Workflow continuity', () => {
-  test.describe.configure({ mode: 'serial' });
+  test.describe.configure({ mode: 'serial', timeout: 180000 });
 
   test.beforeEach(async ({ page }) => {
     await prepareWorkflowSession(page);
@@ -49,15 +54,8 @@ test.describe('Workflow continuity', () => {
     ];
 
     for (const workflowCase of cases) {
-      await page.goto('/?localTestAccount=premium');
-      await page.getByRole('button', { name: workflowCase.scope, exact: true }).click();
-      await page.getByRole('button', { name: 'Start Workflow', exact: true }).click();
-      await expect(page).toHaveURL(/\/forecast$/);
-      await homeNav(page).click();
-      await expect(page.locator('main').last()).toContainText(workflowCase.label);
-      await forecastNav(page).click();
-      await expect(workflowPanel(page)).toBeVisible();
-      await expect(workflowPanel(page)).toContainText(workflowCase.day);
+      await startWorkflow(page, workflowCase.scope, workflowCase.label);
+      await expect(workflowPanel(page)).toContainText(workflowCase.day, { timeout: 15000 });
     }
   });
 
@@ -144,7 +142,7 @@ test.describe('Workflow continuity', () => {
     expect(exportedLayer.features[0].geometry.type).toBe('Polygon');
     expect(manifest.customContent).toEqual({ included: true, severeAnalytics: 'excluded', autoCategorical: 'excluded' });
 
-    await page.goto('/');
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
     const chooserPromise = page.waitForEvent('filechooser');
     await page.getByRole('button', { name: 'Upload workflow', exact: true }).click();
     const chooser = await chooserPromise;
@@ -182,10 +180,25 @@ test.describe('Workflow continuity', () => {
     await discussionNav(page).click();
     await page.getByPlaceholder(/Write your forecast discussion here/i).fill('Cross-page continuity sentinel.');
     await page.getByRole('button', { name: 'Save', exact: true }).click();
-    await page.waitForTimeout(5500);
+    // Save dispatches to Redux immediately, but the snapshot is persisted to
+    // localStorage only after the 5s autosave debounce (src/hooks/useAutoSave.ts).
+    // Wait for the persisted blob to contain the discussion instead of sleeping a
+    // fixed duration, so the second page can never load before the write lands.
+    await expect.poll(async () => {
+      const persisted = await page.evaluate(() => {
+        for (let i = 0; i < localStorage.length; i += 1) {
+          const key = localStorage.key(i);
+          if (key?.startsWith('forecastData') && localStorage.getItem(key)?.includes('Cross-page continuity sentinel.')) {
+            return true;
+          }
+        }
+        return false;
+      });
+      return persisted;
+    }, { timeout: 15000 }).toBe(true);
 
     const secondPage = await context.newPage();
-    await secondPage.goto('/forecast?localTestAccount=premium');
+    await secondPage.goto('/forecast?localTestAccount=premium', { waitUntil: 'domcontentloaded' });
     await expect(workflowPanel(secondPage)).toContainText('Day 3 package', { timeout: 15000 });
     await discussionNav(secondPage).click();
     await expect(secondPage.getByPlaceholder(/Write your forecast discussion here/i)).toHaveValue('Cross-page continuity sentinel.');
