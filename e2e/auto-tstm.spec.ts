@@ -64,11 +64,10 @@ const mockCachedTstmLatest = async (page: import('@playwright/test').Page) => {
   });
 };
 
-// Auto-TSTM is exposed only on the beta build target (see src/config/featureExposure.ts).
-// The CI e2e suite runs against the local dev target, so this suite stays skipped until a
-// beta-targeted e2e job exists or exposure includes the target under test.
-// Re-enablement is tracked in https://github.com/WxboySuper/Graphical-Forecast-Creator/issues/840
-test.describe.skip('Auto-TSTM workspace tools', () => {
+// Auto-TSTM is exposed on the local and beta build targets (see src/config/featureExposure.ts)
+// so the feature stays runnable in development and testable in the standard CI e2e job.
+// Re-enablement tracked in https://github.com/WxboySuper/Graphical-Forecast-Creator/issues/840
+test.describe('Auto-TSTM workspace tools', () => {
   test.beforeEach(async ({ page }) => {
     await bypassLocalBeta(page);
     await mockAutoTstmCapabilities(page);
