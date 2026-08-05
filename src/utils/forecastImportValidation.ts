@@ -87,6 +87,29 @@ const countCoordinatePositions = (geometry: Geometry, limit: number): number => 
   return count;
 };
 
+/** Validates the child geometries of a GeometryCollection. */
+const validateGeometryCollection = (geometries: unknown): ImportValidationResult | null => {
+  if (!Array.isArray(geometries) || geometries.length > MAX_ARRAY_ITEMS) {
+    return fail('Forecast geometry collection is invalid or too large.');
+  }
+  for (const child of geometries) {
+    const childResult = validateGeometry(child);
+    if (childResult) return childResult;
+  }
+  return null;
+};
+
+/** Validates a non-collection geometry's coordinates and size. */
+const validateGeometryCoordinates = (geometry: { type?: unknown; coordinates?: unknown }): ImportValidationResult | null => {
+  if (!Array.isArray(geometry.coordinates)) {
+    return fail(`Forecast geometry "${geometry.type}" is missing coordinates.`);
+  }
+  if (countCoordinatePositions(geometry as Geometry, MAX_COORDINATE_POSITIONS) >= MAX_COORDINATE_POSITIONS) {
+    return fail('Forecast geometry contains too many coordinates.');
+  }
+  return null;
+};
+
 /** Validates one GeoJSON geometry object against supported types and coordinate bounds. */
 const validateGeometry = (value: unknown): ImportValidationResult | null => {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
@@ -99,25 +122,10 @@ const validateGeometry = (value: unknown): ImportValidationResult | null => {
   }
 
   if (geometry.type === 'GeometryCollection') {
-    if (!Array.isArray(geometry.geometries) || geometry.geometries.length > MAX_ARRAY_ITEMS) {
-      return fail('Forecast geometry collection is invalid or too large.');
-    }
-    for (const child of geometry.geometries) {
-      const childResult = validateGeometry(child);
-      if (childResult) return childResult;
-    }
-    return null;
+    return validateGeometryCollection(geometry.geometries);
   }
 
-  if (!Array.isArray(geometry.coordinates)) {
-    return fail(`Forecast geometry "${geometry.type}" is missing coordinates.`);
-  }
-
-  if (countCoordinatePositions(geometry as Geometry, MAX_COORDINATE_POSITIONS) >= MAX_COORDINATE_POSITIONS) {
-    return fail('Forecast geometry contains too many coordinates.');
-  }
-
-  return null;
+  return validateGeometryCoordinates(geometry);
 };
 
 /** Validates one serialized outlook feature and its geometry. */
@@ -337,10 +345,8 @@ const validateForecastCycle = (value: unknown): ImportValidationResult => {
 
 /** Validates one saved forecast day and its outlook maps. */
 const validateForecastDay = (dayKey: string, day: unknown): ImportValidationResult | null => {
-  const dayNumber = Number(dayKey);
-  if (!Number.isInteger(dayNumber) || dayNumber < 1 || dayNumber > 8) {
-    return fail(`forecastCycle contains an invalid day "${dayKey}".`);
-  }
+  const invalidDay = invalidDayKey(dayKey);
+  if (invalidDay) return invalidDay;
 
   if (!day || typeof day !== 'object' || Array.isArray(day)) {
     return fail(`forecastCycle day "${dayKey}" is not a valid object.`);
@@ -351,12 +357,25 @@ const validateForecastDay = (dayKey: string, day: unknown): ImportValidationResu
     return fail(`forecastCycle day "${dayKey}" is missing valid outlook data.`);
   }
 
+  return validateDayOutlookMaps(dayKey, dayData);
+};
+
+/** Returns a failure when a day key is not an integer in the 1-8 range. */
+const invalidDayKey = (dayKey: string): ImportValidationResult | null => {
+  const dayNumber = Number(dayKey);
+  if (!Number.isInteger(dayNumber) || dayNumber < 1 || dayNumber > 8) {
+    return fail(`forecastCycle contains an invalid day "${dayKey}".`);
+  }
+  return null;
+};
+
+/** Validates every outlook map on one saved day. */
+const validateDayOutlookMaps = (dayKey: string, dayData: unknown): ImportValidationResult | null => {
   for (const field of OUTLOOK_MAP_FIELDS) {
     const map = (dayData as Record<string, unknown>)[field];
     if (map === undefined) continue;
     const result = validateOutlookMap(map, `forecastCycle.days.${dayKey}.data.${field}`);
     if (result) return result;
   }
-
   return null;
 };
