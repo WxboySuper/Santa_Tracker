@@ -2,7 +2,7 @@ import '../immerSetup';
 import { configureStore } from '@reduxjs/toolkit';
 import { createSentryReduxEnhancer } from './sentryEnhancer';
 import { createTimestampMiddleware } from './timestampMiddleware';
-import forecastReducer, { WORKFLOW_ACTIVE_STORAGE_KEY } from './forecastSlice';
+import forecastReducer, { setWorkflowActive, WORKFLOW_ACTIVE_STORAGE_KEY } from './forecastSlice';
 import overlaysReducer from './overlaysSlice';
 import stormReportsReducer from './stormReportsSlice';
 import appModeReducer from './appModeSlice';
@@ -83,8 +83,9 @@ const applyDarkModeClass = (darkMode: boolean) => {
   }
 };
 
-store.dispatch(setDarkMode(readStoredDarkMode()));
-applyDarkModeClass(readStoredDarkMode());
+const storedDarkMode = readStoredDarkMode();
+store.dispatch(setDarkMode(storedDarkMode));
+applyDarkModeClass(storedDarkMode);
 
 let previousDarkMode = store.getState().theme.darkMode;
 store.subscribe(() => {
@@ -126,7 +127,6 @@ const writeStoredWorkflowActive = (isActive: boolean) => {
   }
 };
 
-import { setWorkflowActive } from './forecastSlice';
 store.dispatch(setWorkflowActive(readStoredWorkflowActive()));
 let previousWorkflowActive = store.getState().forecast.isWorkflowActive;
 store.subscribe(() => {

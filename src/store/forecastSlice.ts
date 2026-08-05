@@ -121,9 +121,27 @@ const ALL_OUTLOOK_TYPES: OutlookType[] = [
 ];
 const DIRECT_DAY12_COPY_TYPES: OutlookType[] = ['tornado', 'wind', 'hail', 'categorical'];
 
+/** Resolves the local calendar date from an action's stamped timestamp instead of the clock. */
+const getActionLocalCalendarDate = (action: UnknownAction): string =>
+  getLocalCalendarDate(new Date(readActionTimestamp(action)));
+
+/**
+ * Builds a collision-free, deterministic saved-cycle id. The sequence is the
+ * highest trailing number already used among saved cycles, plus one, so
+ * replaying the same action sequence from the same state produces the same ids
+ * while deleting a cycle can never cause a later id to collide.
+ */
+const createSavedCycleId = (state: ForecastState, now: string): string => {
+  const highest = state.savedCycles.reduce((max, cycle) => {
+    const match = /-(\d+)$/.exec(cycle.id);
+    const sequence = match ? Number(match[1]) : 0;
+    return Number.isFinite(sequence) && sequence > max ? sequence : max;
+  }, 0);
+  return `cycle-${now}-${highest + 1}`;
+};
+
 /** Resolves the starting forecast day implied by a workflow template's first grouping, defaulting to day 1. */
-const getWorkflowStartDay = (template?: WorkflowMetadata): DayType => {
-  const firstGrouping = template?.groupings[0];
+const getWorkflowStartDay = (template?: WorkflowMetadata): DayType => {  const firstGrouping = template?.groupings[0];
   if (firstGrouping === 'day2') return 2;
   if (firstGrouping === 'day3') return 3;
   if (firstGrouping === 'day4-8') return 4;
@@ -857,7 +875,7 @@ export const forecastSlice = createSlice({
       state.discussionDraftsByScope = {};
 
       // Generate today's local date so rollover prompts and resets stay aligned.
-      const today = getLocalCalendarDate();
+      const today = getActionLocalCalendarDate(action);
 
       // Completely replace forecastCycle to force re-render
       const newCycle: ForecastCycle = {
@@ -1018,7 +1036,7 @@ export const forecastSlice = createSlice({
       const forecastCycleSnapshot = cloneForecastCycle(state.forecastCycle);
       const now = readActionTimestamp(action);
       const savedCycle: SavedCycle = {
-        id: `cycle-${now}-${state.savedCycles.length}`,
+        id: createSavedCycleId(state, now),
         timestamp: now,
         cycleDate: state.forecastCycle.cycleDate,
         label: action.payload.label,
@@ -1237,7 +1255,7 @@ export const forecastSlice = createSlice({
       clearHistory(state);
       state.discussionDraftsByScope = {};
       const now = readActionTimestamp(action);
-      const today = cycleDate || getLocalCalendarDate();
+      const today = cycleDate || getActionLocalCalendarDate(action);
       const startDay = getWorkflowStartDay(workflowTemplate);
       const newCycle: ForecastCycle = {
         days: { [startDay]: createEmptyOutlook(startDay, now) },
@@ -1387,7 +1405,7 @@ export const forecastSlice = createSlice({
         sourceDayData,
         sourceDayNumber,
         targetDay,
-        targetDate: newCycleDate || getLocalCalendarDate(),
+        targetDate: newCycleDate || getActionLocalCalendarDate(action),
         workflowTemplate,
       }, readActionTimestamp(action));
     },
