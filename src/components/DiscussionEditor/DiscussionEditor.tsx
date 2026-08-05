@@ -4,6 +4,7 @@ import { RootState } from '../../store';
 import { updateDiscussion } from '../../store/forecastSlice';
 import { DiscussionMode, DiscussionData } from '../../types/outlooks';
 import { compileDiscussionToText, exportDiscussionToFile } from '../../utils/discussionUtils';
+import { toDatetimeLocal } from '../../utils/datetimeLocal';
 import DIYDiscussionEditor from './DIYDiscussionEditor';
 import GuidedDiscussionEditor from './GuidedDiscussionEditor';
 import './DiscussionEditor.css';
@@ -39,12 +40,12 @@ const getInitialValidEnd = (existingValidEnd?: string): string => {
   if (existingValidEnd) return existingValidEnd;
   const end = new Date();
   end.setHours(end.getHours() + 24);
-  return end.toISOString().slice(0, 16);
+  return toDatetimeLocal(end);
 };
 
 // Returns an initial valid-start timestamp, defaulting to current local time.
 const getInitialValidStart = (existingValidStart?: string): string => {
-  return existingValidStart ?? new Date().toISOString().slice(0, 16);
+  return existingValidStart ?? toDatetimeLocal(new Date());
 };
 
 // Returns initial guided content with fallback to an empty template.
