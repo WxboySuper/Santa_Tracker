@@ -253,6 +253,26 @@ const createEmptyOutlook = (day: DayType, now: string): OutlookDay => {
   };
 };
 
+/**
+ * Shared, immutable fallback outlook data keyed by day category. Returning the
+ * same reference for a given day shape keeps selectors referentially stable so
+ * unrelated renders do not trigger avoidable state changes or selector-stability
+ * warnings. Consumers must treat these as read-only.
+ */
+const EMPTY_OUTLOOK_DATA_BY_DAY: Record<string, OutlookData> = {
+  day12: createEmptyOutlook(1, INITIAL_TIMESTAMP).data,
+  day3: createEmptyOutlook(3, INITIAL_TIMESTAMP).data,
+  day48: createEmptyOutlook(4, INITIAL_TIMESTAMP).data,
+};
+
+/** Returns the shared empty outlook data for a day, or null when the day is unknown. */
+const sharedEmptyOutlookData = (day: DayType): OutlookData | null => {
+  if (day === 1 || day === 2) return EMPTY_OUTLOOK_DATA_BY_DAY.day12;
+  if (day === 3) return EMPTY_OUTLOOK_DATA_BY_DAY.day3;
+  if (day >= 4 && day <= 8) return EMPTY_OUTLOOK_DATA_BY_DAY.day48;
+  return null;
+};
+
 const initialState: ForecastState = {
   forecastCycle: {
     days: {
@@ -1499,8 +1519,8 @@ export const selectDiscussionDraftForScope = (state: RootState, scopeId: string)
 /** Selects the outlook maps for the active day, falling back to an empty day shape when needed. */
 export const selectCurrentOutlooks = (state: RootState) => {
   const cycle = state.forecast.forecastCycle;
-  return cycle.days[cycle.currentDay]?.data || createEmptyOutlook(cycle.currentDay, INITIAL_TIMESTAMP).data;
-};
+  return cycle.days[cycle.currentDay]?.data || sharedEmptyOutlookData(cycle.currentDay)!;
+  };
 const EMPTY_CUSTOM_LAYERS: CustomLayerCollection = {
   schemaVersion: '1.0.0',
   layers: [],
@@ -1509,11 +1529,11 @@ export const selectCurrentCustomLayers = (state: RootState): CustomLayerCollecti
   const cycle = state.forecast.forecastCycle;
   return cycle?.days?.[cycle.currentDay]?.customLayers || EMPTY_CUSTOM_LAYERS;
 };
-/** Selects the outlook maps for a specific day, falling back to an empty day shape when absent. */
+/** Selects the outlook maps for a specific day, falling back to a shared empty day shape when absent. */
 export const selectOutlooksForDay = (state: RootState, day: DayType) => {
   const cycle = state.forecast.forecastCycle;
-  return cycle.days[day]?.data || createEmptyOutlook(day, INITIAL_TIMESTAMP).data;
-};
+  return cycle.days[day]?.data || sharedEmptyOutlookData(day)!;
+  };
 /** Selects the saved forecast cycle snapshots shown in cycle history. */
 export const selectSavedCycles = (state: RootState) => state.forecast.savedCycles;
 /** Returns whether there is at least one reversible edit available. */

@@ -38,6 +38,7 @@ Work toward the next major release continues in the beta channel while the final
 - **Build and tooling:** Fix pre-existing TypeScript errors in the outlook constraints and outlook panel probability utilities so `pnpm typecheck` passes on `main`.
 - **Accessibility and polish:** Improve toolbar organization, responsive controls, package dialogs, custom-product editing, and forecast map controls.
 - **Same-day verification:** Route current-day SPC storm reports to the live `today.csv` feed instead of the not-yet-published dated archive, so in-event grading no longer fails for forecasts dated today.
+- **Selector stability:** Return shared immutable empty outlook data from forecast selectors so repeated selection against unchanged state yields the same reference and avoids avoidable renders and selector-stability warnings.
 
 #### Security and operations
 
