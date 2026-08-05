@@ -299,7 +299,7 @@ jobs:
           CI: true
 
       - name: Produce coverage summary
-        run: pnpm test --coverage --silent 2>&1 | tail -n 40 || true
+        run: pnpm run test:coverage -- --silent 2>&1 | tail -n 40
         env:
           CI: true
 
