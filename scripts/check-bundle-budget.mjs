@@ -7,6 +7,9 @@ const BUILD_DIR = resolve(ROOT, 'build', 'assets');
 /** Maximum accepted size (in bytes) for the initial entry chunk. */
 const ENTRY_CHUNK_BUDGET_BYTES = 450 * 1024; // 450 kB
 
+/** Maximum accepted total (in bytes) for all JS chunks. */
+const TOTAL_JS_BUDGET_BYTES = 3.5 * 1024 * 1024; // 3.5 MB
+
 /** Reads the built index.html to find the entry script chunk. */
 const findEntryChunk = () => {
   const html = readFileSync(resolve(ROOT, 'build', 'index.html'), 'utf8');
@@ -21,7 +24,6 @@ const assetSize = (relativePath) => {
 };
 
 const main = () => {
-  if (!['js'].every(() => true)) return; // no-op guard to keep intent explicit
   const entryPath = findEntryChunk();
   if (!entryPath) {
     console.error('Could not locate the entry JS chunk in build/index.html.');
@@ -40,10 +42,19 @@ const main = () => {
     process.exit(1);
   }
 
-  console.log(`Entry chunk OK: ${entryPath} (${entryKb} kB / ${budgetKb} kB budget).`);
   const jsFiles = readdirSync(BUILD_DIR).filter((name) => name.endsWith('.js'));
   const totalJs = jsFiles.reduce((sum, name) => sum + readFileSync(resolve(BUILD_DIR, name)).byteLength, 0);
-  console.log(`Total JS across ${jsFiles.length} chunks: ${(totalJs / 1024).toFixed(0)} kB.`);
+  const totalKb = (totalJs / 1024).toFixed(0);
+
+  if (totalJs > TOTAL_JS_BUDGET_BYTES) {
+    console.error(
+      `Total JS budget exceeded: ${totalKb} kB across ${jsFiles.length} chunks (budget ${(TOTAL_JS_BUDGET_BYTES / 1024).toFixed(0)} kB).`
+    );
+    process.exit(1);
+  }
+
+  console.log(`Entry chunk OK: ${entryPath} (${entryKb} kB / ${budgetKb} kB budget).`);
+  console.log(`Total JS OK: ${totalKb} kB across ${jsFiles.length} chunks (budget ${(TOTAL_JS_BUDGET_BYTES / 1024).toFixed(0)} kB).`);
 };
 
 main();
