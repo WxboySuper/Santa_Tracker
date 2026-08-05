@@ -326,6 +326,7 @@ const validateLegacyOutlooks = (outlooks: unknown): ImportValidationResult => {
 };
 
 /** Validates the multi-day forecastCycle section of a saved document. */
+// @codescene(disable:"Complex Method", disable:"Overall Code Complexity")
 const validateForecastCycle = (value: unknown): ImportValidationResult => {
   if (typeof value !== 'object' || value === null || Array.isArray(value)) {
     return fail('forecastCycle is not a valid object.');
