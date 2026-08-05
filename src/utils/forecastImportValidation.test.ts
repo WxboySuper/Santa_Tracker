@@ -32,6 +32,13 @@ const validSave = () => ({
   },
 });
 
+const withTornado = (tornado: unknown) => {
+  const save = validSave();
+  const day = (save.forecastCycle?.days as Record<string, { data: Record<string, unknown> }>)[1];
+  day.data.tornado = tornado;
+  return save;
+};
+
 describe('validateImportFileBytes', () => {
   it('accepts empty and small files', () => {
     expect(validateImportFileBytes(null)).toEqual({ ok: true });
@@ -70,7 +77,7 @@ describe('validateForecastImport', () => {
   });
 
   it('rejects deep nesting', () => {
-    const save = validSave();
+    const save = withTornado([]);
     const days = save.forecastCycle?.days as Record<string, { data: Record<string, unknown> }>;
     const day = days[1];
     let deeplyNested: Record<string, unknown> = {};
@@ -84,9 +91,7 @@ describe('validateForecastImport', () => {
   });
 
   it('rejects oversized arrays', () => {
-    const save = validSave();
-    const day = (save.forecastCycle?.days as Record<string, { data: Record<string, unknown> }>)[1];
-    day.data.tornado = [['30%', Array.from({ length: 200000 }, validFeature)]];
+    const save = withTornado([['30%', Array.from({ length: 200000 }, validFeature)]]);
     const result = validateForecastImport(save);
     expect(result.ok).toBe(false);
     expect(result.reason).toMatch(/excessively large array|too many/i);
@@ -101,46 +106,32 @@ describe('validateForecastImport', () => {
   });
 
   it('rejects unsupported geometry types', () => {
-    const save = validSave();
-    const day = (save.forecastCycle?.days as Record<string, { data: Record<string, unknown> }>)[1];
-    day.data.tornado = [[
-      '30%',
-      [{ type: 'Feature', geometry: { type: 'Bogus', coordinates: [] }, properties: {} }],
-    ]];
+    const save = withTornado([['30%', [{ type: 'Feature', geometry: { type: 'Bogus', coordinates: [] }, properties: {} }]]]);
     const result = validateForecastImport(save);
     expect(result.ok).toBe(false);
     expect(result.reason).toMatch(/unsupported type/i);
   });
 
   it('rejects invalid geometry types at the top level', () => {
-    const save = validSave();
-    const day = (save.forecastCycle?.days as Record<string, { data: Record<string, unknown> }>)[1];
-    day.data.tornado = [['30%', [{ type: 'Feature', geometry: { type: 42 }, properties: {} }]]];
+    const save = withTornado([['30%', [{ type: 'Feature', geometry: { type: 42 }, properties: {} }]]]);
     const result = validateForecastImport(save);
     expect(result.ok).toBe(false);
     expect(result.reason).toMatch(/unsupported type/i);
   });
 
   it('rejects missing geometry coordinates', () => {
-    const save = validSave();
-    const day = (save.forecastCycle?.days as Record<string, { data: Record<string, unknown> }>)[1];
-    day.data.tornado = [['30%', [{ type: 'Feature', geometry: { type: 'Polygon' }, properties: {} }]]];
+    const save = withTornado([['30%', [{ type: 'Feature', geometry: { type: 'Polygon' }, properties: {} }]]]);
     const result = validateForecastImport(save);
     expect(result.ok).toBe(false);
     expect(result.reason).toMatch(/missing coordinates/i);
   });
 
   it('rejects coordinate counts over the geometry budget', () => {
-    const save = validSave();
     const ring: number[][] = [];
     for (let i = 0; i < 90000; i++) {
       ring.push([i, i]);
     }
-    const day = (save.forecastCycle?.days as Record<string, { data: Record<string, unknown> }>)[1];
-    day.data.tornado = [[
-      '30%',
-      [{ type: 'Feature', geometry: { type: 'Polygon', coordinates: [ring, ring, ring, ring, ring, ring, ring] }, properties: {} }],
-    ]];
+    const save = withTornado([['30%', [{ type: 'Feature', geometry: { type: 'Polygon', coordinates: [ring, ring, ring, ring, ring, ring, ring] }, properties: {} }]]]);
     const result = validateForecastImport(save);
     expect(result.ok).toBe(false);
     expect(result.reason).toMatch(/too many coordinates/i);
@@ -190,17 +181,13 @@ describe('validateForecastImport', () => {
   });
 
   it('rejects malformed outlook map entries', () => {
-    const save = validSave();
-    const day = (save.forecastCycle?.days as Record<string, { data: Record<string, unknown> }>)[1];
-    day.data.tornado = [['30%', 'not-an-array']];
+    const save = withTornado([['30%', 'not-an-array']]);
     const result = validateForecastImport(save);
     expect(result.ok).toBe(false);
   });
 
   it('rejects features that are not Feature objects', () => {
-    const save = validSave();
-    const day = (save.forecastCycle?.days as Record<string, { data: Record<string, unknown> }>)[1];
-    day.data.tornado = [['30%', [{ type: 'NotFeature', properties: {} }]]];
+    const save = withTornado([['30%', [{ type: 'NotFeature', properties: {} }]]]);
     const result = validateForecastImport(save);
     expect(result.ok).toBe(false);
     expect(result.reason).toMatch(/Feature/i);
