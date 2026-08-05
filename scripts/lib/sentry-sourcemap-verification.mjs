@@ -152,8 +152,22 @@ const isFilesEnvelope = (value) =>
   !Array.isArray(value) &&
   Array.isArray(value.files);
 
+/** Parses a Link header's next-page URL when present. */
+const nextLinkFromHeader = (linkHeader) => {
+  if (typeof linkHeader !== 'string' || !linkHeader) return null;
+  for (const part of linkHeader.split(',')) {
+    const [url, ...rels] = part.split(';').map((chunk) => chunk.trim());
+    if (rels.some((rel) => /rel="?next"?/.test(rel))) {
+      const match = url.match(/^<([^>]+)>$/);
+      return match ? match[1] : null;
+    }
+  }
+  return null;
+};
+
 /**
- * Lists published artifacts for a release from the Sentry API.
+ * Lists published artifacts for a release from the Sentry API, following
+ * pagination Link headers so a multi-page artifact set is fully verified.
  * @param {{
  *   token: string;
  *   org: string;
@@ -164,15 +178,29 @@ const isFilesEnvelope = (value) =>
  * @returns {Promise<{ status: number; body: unknown }>}
  */
 export const fetchReleaseFiles = async ({ token, org, project, release, fetchFn = fetch }) => {
-  const url = `https://sentry.io/api/0/projects/${encodeURIComponent(org)}/${encodeURIComponent(project)}/releases/${encodeURIComponent(release)}/files/`;
-  const response = await fetchFn(url, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-      Accept: 'application/json',
-    },
-  });
-  const body = await response.json().catch(() => null);
-  return { status: response.status, body };
+  let url = `https://sentry.io/api/0/projects/${encodeURIComponent(org)}/${encodeURIComponent(project)}/releases/${encodeURIComponent(release)}/files/`;
+  let allFiles = [];
+  let status = 200;
+
+  while (url) {
+    const response = await fetchFn(url, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: 'application/json',
+      },
+    });
+    status = response.status;
+    const body = await response.json().catch(() => null);
+
+    const pageFiles = extractFiles(body);
+    if (!pageFiles) {
+      return { status, body };
+    }
+    allFiles = allFiles.concat(pageFiles);
+    url = status < 200 || status >= 300 ? null : nextLinkFromHeader(response.headers?.get?.('link'));
+  }
+
+  return { status, body: { files: allFiles } };
 };
 
 /**
@@ -189,4 +217,24 @@ export const fetchReleaseFiles = async ({ token, org, project, release, fetchFn 
 export const verifySentryRelease = async ({ token, org, project, release, fetchFn }) => {
   const { status, body } = await fetchReleaseFiles({ token, org, project, release, fetchFn });
   return verifyReleaseFilesResponse({ release, status, body });
+};
+
+/**
+ * Checks that every local sourcemap basename exists among the remotely
+ * published artifacts, so a build whose maps were partially uploaded cannot
+ * be deleted as "verified".
+ * @param {{
+ *   remoteFiles: Array<{ name?: unknown }>;
+ *   localMapBasenames: string[];
+ * }} context
+ * @returns {{ missing: string[] }}
+ */
+export const findMissingLocalMaps = ({ remoteFiles, localMapBasenames }) => {
+  const remoteBasenames = new Set(
+    remoteFiles
+      .map((file) => (typeof file.name === 'string' ? file.name.split('/').pop() : null))
+      .filter((name) => name !== null)
+  );
+  const missing = localMapBasenames.filter((basename) => !remoteBasenames.has(basename));
+  return { missing };
 };

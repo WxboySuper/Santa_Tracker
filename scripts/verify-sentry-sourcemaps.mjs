@@ -3,7 +3,9 @@ import { resolve } from 'node:path';
 import {
   buildReleaseName,
   evaluateSentryConfig,
-  verifySentryRelease,
+  fetchReleaseFiles,
+  findMissingLocalMaps,
+  verifyReleaseFilesResponse,
 } from './lib/sentry-sourcemap-verification.mjs';
 
 const ROOT = resolve(import.meta.dirname, '..');
@@ -70,13 +72,28 @@ const main = async () => {
   const project = process.env.SENTRY_PROJECT;
 
   try {
-    const result = await verifySentryRelease({ token, org, project, release });
-    if (!result.ok) {
-      console.error(`::error::${result.reason}`);
+    const localMaps = collectSourcemaps(BUILD_DIR);
+    const localMapBasenames = localMaps.map((path) => path.split(/[\\/]/).pop());
+
+    const { status, body } = await fetchReleaseFiles({ token, org, project, release });
+    const releaseResult = verifyReleaseFilesResponse({ release, status, body });
+    if (!releaseResult.ok) {
+      console.error(`::error::${releaseResult.reason}`);
       console.error('Local sourcemaps were preserved as recovery artifacts.');
       process.exit(1);
     }
-    console.log(result.reason);
+
+    const remoteFiles = Array.isArray(body) ? body : body?.files ?? [];
+    const { missing } = findMissingLocalMaps({ remoteFiles, localMapBasenames });
+    if (missing.length > 0) {
+      console.error(
+        `::error::Local sourcemaps missing from Sentry release ${release}: ${missing.join(', ')}. ` +
+          'Not all maps were published; preserving local artifacts.'
+      );
+      process.exit(1);
+    }
+
+    console.log(releaseResult.reason);
     const deleted = deleteLocalSourcemaps(BUILD_DIR);
     console.log(`Deleted ${deleted} local sourcemap file(s) after verified publication.`);
   } catch (error) {
