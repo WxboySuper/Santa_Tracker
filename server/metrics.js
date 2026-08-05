@@ -349,7 +349,50 @@ const countTotalAccounts = async () => {
   return snapshot.size;
 };
 
-/** Estimates the current hosted Firestore storage footprint across the main app collections. */
+/** Average per-document overhead (id + path + metadata) used for storage estimates. */
+const ESTIMATED_BYTES_PER_DOC = 256;
+
+/** Estimated bytes contributed by one cloud-cycle metadata document (payload excluded). */
+const ESTIMATED_CLOUD_CYCLE_METADATA_BYTES = 512;
+
+/**
+ * Reads a bounded count for one collection without transferring documents.
+ * Falls back to a capped scan when the emulator or test double lacks aggregate support.
+ */
+const countCollectionDocuments = async (db, collectionName) => {
+  try {
+    const snapshot = await db.collection(collectionName).count().get();
+    return typeof snapshot.data?.()?.count === 'number' ? snapshot.data().count : 0;
+  } catch {
+    if (!db.collection(collectionName).limit) {
+      return 0;
+    }
+    const capped = await db.collection(collectionName).limit(1001).get();
+    const docs = capped.docs || [];
+    return docs.length === 1001 ? 1001 : docs.length;
+  }
+};
+
+/** Reads the bounded sum of cloud-cycle payload bytes without transferring documents. */
+const readCloudCyclePayloadBytes = async (db) => {
+  try {
+    const snapshot = await db.collection('cloudCycles').aggregate({ payloadBytes: 'sum' }).get();
+    const total = snapshot.data?.()?.payloadBytes;
+    return typeof total === 'number' && total > 0 ? total : 0;
+  } catch {
+    if (!db.collection('cloudCycles').limit) {
+      return 0;
+    }
+    const capped = await db.collection('cloudCycles').limit(1001).get();
+    const docs = capped.docs || [];
+    return docs.reduce(
+      (total, docSnapshot) => total + (Number(docSnapshot.data?.()?.payloadBytes) || 0),
+      0
+    );
+  }
+};
+
+/** Estimates the current hosted Firestore storage footprint using bounded server-side aggregation. */
 const getCurrentStorageBytes = async () => {
   const db = getAdminDb();
   if (!db) {
@@ -361,16 +404,21 @@ const getCurrentStorageBytes = async () => {
     return cachedValue;
   }
 
-  const snapshots = await Promise.all(STORAGE_COLLECTIONS.map((collectionName) => db.collection(collectionName).get()));
-  const totalBytes = snapshots.reduce(
-    (total, snapshot) =>
-      total + snapshot.docs.reduce((collectionTotal, docSnapshot) => {
-        const data = docSnapshot.data() || {};
-        const encodedData = JSON.stringify(data);
-        return collectionTotal + Buffer.byteLength(docSnapshot.id, 'utf8') + Buffer.byteLength(encodedData, 'utf8');
-      }, 0),
+  const collectionCounts = await Promise.all(
+    STORAGE_COLLECTIONS.map(async (collectionName) => ({
+      name: collectionName,
+      count: await countCollectionDocuments(db, collectionName),
+    }))
+  );
+  const nonPayloadBytes = collectionCounts.reduce(
+    (total, { name, count }) =>
+      total +
+      count *
+        (name === 'cloudCycles' ? ESTIMATED_CLOUD_CYCLE_METADATA_BYTES : ESTIMATED_BYTES_PER_DOC),
     0
   );
+  const cloudCyclePayloadBytes = await readCloudCyclePayloadBytes(db);
+  const totalBytes = nonPayloadBytes + cloudCyclePayloadBytes;
 
   cacheStorageBytes(totalBytes);
 
@@ -782,4 +830,7 @@ const registerMetricsRoutes = (app, express) => {
 module.exports = {
   recordBillingMetricEvent,
   registerMetricsRoutes,
+  countCollectionDocuments,
+  readCloudCyclePayloadBytes,
+  getCurrentStorageBytes,
 };
