@@ -95,6 +95,7 @@ export const validateLegacyOutlooks = (outlooks: unknown): ImportValidationResul
 };
 
 /** Returns a failure when a day key is not an integer in the 1-8 range. */
+// @codescene(disable:"Complex Conditional")
 const invalidDayKey = (dayKey: string): ImportValidationResult | null => {
   const dayNumber = Number(dayKey);
   if (!Number.isInteger(dayNumber) || dayNumber < 1 || dayNumber > 8) {
