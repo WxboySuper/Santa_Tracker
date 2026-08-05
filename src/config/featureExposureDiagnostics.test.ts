@@ -75,12 +75,12 @@ describe('featureExposureDiagnostics', () => {
 
   test('resolves target_policy when the registry keeps a feature off', () => {
     const diagnostic = resolveFeatureExposureDiagnostic('autoTstm', {
-      buildTarget: 'local',
+      buildTarget: 'staging',
     });
 
     expect(diagnostic).toMatchObject({
       featureKey: 'autoTstm',
-      buildTarget: 'local',
+      buildTarget: 'staging',
       registryExposed: false,
       resolvedExposed: false,
       reason: 'target_policy',

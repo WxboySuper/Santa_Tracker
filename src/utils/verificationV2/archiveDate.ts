@@ -80,3 +80,21 @@ export const isReachedArchiveDate = (reportDate: string, now: Date = new Date())
   }
   return false;
 };
+
+/**
+ * True when the report date resolves to the current calendar day (local time).
+ * SPC serves the current day's reports from today.csv instead of the dated
+ * archive file (which is not published until the report day is complete), so
+ * callers route same-day requests to the live feed. Returns false for empty,
+ * malformed, or non-current dates.
+ */
+export const isTodayReportDate = (reportDate: string, now: Date = new Date()): boolean => {
+  const archiveDate = toArchiveDate(reportDate);
+  if (!archiveDate) {
+    return false;
+  }
+  const year = String(now.getFullYear()).slice(-2);
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  return archiveDate === `${year}${month}${day}`;
+};

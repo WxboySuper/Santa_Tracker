@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { applyAutoCategoricalSync, selectCurrentOutlooks, selectCurrentDay } from '../store/forecastSlice';
+import { applyAutoCategoricalSync, selectCurrentOutlooks, selectCurrentDay, setAutoCategoricalError } from '../store/forecastSlice';
 import { OutlookData } from '../types/outlooks';
 import { createDerivationController } from './categoricalWorker';
-export { processDay12OutlooksToCategorical, processDay3OutlooksToCategorical, processOutlooksToCategorical } from './autoCategoricalProcessing';
+import { toDerivationErrorMessage } from './autoCategoricalProcessing';
+export { processDay12OutlooksToCategorical, processDay3OutlooksToCategorical, processOutlooksToCategorical, CategoricalDerivationError } from './autoCategoricalProcessing';
 
 /**
  * Serializes one probabilistic outlook map into a stable string that includes
@@ -152,6 +153,13 @@ const useAutoCategorical = () => {
           return;
         }
         if (!result.ok || !result.features) {
+          // Derivation failed. Never publish a partial result: preserve the last
+          // known-good categorical geometry and surface an actionable message.
+          const message = toDerivationErrorMessage(
+            result.error,
+            'Automatic categorical generation failed. Previous categorical geometry was preserved.'
+          );
+          dispatch(setAutoCategoricalError(message));
           return;
         }
         // Advance the baseline only after a successful derivation so a failure
@@ -159,6 +167,7 @@ const useAutoCategorical = () => {
         lastProcessedRef.current = currentHash;
         const categoricalMap = buildCategoricalMap(tstmFeatures, result.features);
         dispatch(applyAutoCategoricalSync({ map: categoricalMap }));
+        dispatch(setAutoCategoricalError(null));
       })
       .finally(() => {
         if (requestId === requestIdRef.current) {
