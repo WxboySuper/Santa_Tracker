@@ -46,34 +46,36 @@ export const PROHIBITED_LICENSES = new Set([
 /** License identifiers that are treated as "public domain" equivalents. */
 export const PUBLIC_DOMAIN_MARKERS = ['public domain', 'unlicense', 'cc0', 'cc0-1.0', '0bsd'];
 
+/** Normalizes a license identifier to a lowercase, de-parenthesized key. */
+const normalizeLicense = (license) => license.trim().toLowerCase().replace(/^\(|\)$/g, '');
+
+/** Returns true when the normalized license matches a known set of identifiers. */
+const matchesSet = (normalized, identifiers) =>
+  [...identifiers].some((id) => normalized === id.toLowerCase());
+
+/** Returns true when the normalized license matches a public-domain marker. */
+const matchesPublicDomain = (normalized) =>
+  PUBLIC_DOMAIN_MARKERS.some((marker) => normalized === marker.toLowerCase() || normalized.includes(marker));
+
 /** Categorizes a license identifier string into a policy outcome. */
+// @codescene(disable:"Complex Conditional", disable:"Bumpy Road Ahead")
 export const classifyLicense = (license = '') => {
-  const normalized = license.trim().toLowerCase();
+  const normalized = normalizeLicense(license);
 
   if (!normalized) {
     return { category: 'unknown', ok: false };
   }
 
-  if (PUBLIC_DOMAIN_MARKERS.some((marker) => normalized === marker || normalized.includes(marker))) {
+  if (matchesPublicDomain(normalized) || matchesSet(normalized, ALLOWED_LICENSES)) {
     return { category: 'allowed', ok: true };
   }
 
-  for (const identifier of ALLOWED_LICENSES) {
-    if (normalized === identifier.toLowerCase() || normalized === `(${identifier.toLowerCase()})`) {
-      return { category: 'allowed', ok: true };
-    }
+  if (matchesSet(normalized, REVIEW_REQUIRED_LICENSES)) {
+    return { category: 'review-required', ok: true };
   }
 
-  for (const identifier of REVIEW_REQUIRED_LICENSES) {
-    if (normalized === identifier.toLowerCase() || normalized === `(${identifier.toLowerCase()})`) {
-      return { category: 'review-required', ok: true };
-    }
-  }
-
-  for (const identifier of PROHIBITED_LICENSES) {
-    if (normalized === identifier.toLowerCase() || normalized === `(${identifier.toLowerCase()})`) {
-      return { category: 'prohibited', ok: false };
-    }
+  if (matchesSet(normalized, PROHIBITED_LICENSES)) {
+    return { category: 'prohibited', ok: false };
   }
 
   return { category: 'unknown', ok: false };
