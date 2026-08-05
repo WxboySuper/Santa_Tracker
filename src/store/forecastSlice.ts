@@ -65,6 +65,8 @@ export interface ForecastState {
   };
   /** v2 outlook version snapshots for the active cycle (used for same-cycle updates). */
   outlookVersionSnapshots: OutlookVersionSnapshot[];
+  /** Editor-visible auto-categorical derivation error, or null when derivation is healthy. */
+  autoCategoricalError: string | null;
 }
 
 interface ForecastDaySnapshot {
@@ -284,6 +286,7 @@ const initialState: ForecastState = {
   },
   isWorkflowActive: readStoredWorkflowActive(),
   outlookVersionSnapshots: [],
+  autoCategoricalError: null,
 };
 
 // Helpers to keep reducers small and testable
@@ -1426,6 +1429,11 @@ export const forecastSlice = createSlice({
         workflowTemplate,
       });
     },
+
+    /** Sets the editor-visible auto-categorical derivation error (null clears it). */
+    setAutoCategoricalError: (state, action: PayloadAction<string | null>) => {
+      state.autoCategoricalError = action.payload;
+    },
   }
 });
 
@@ -1491,6 +1499,7 @@ export const {
   resumeIncompleteCycle,
   createOutlookUpdate,
   startFromPreviousCycle,
+  setAutoCategoricalError,
 } = forecastSlice.actions;
 
 /** Selects the full forecast slice. */
@@ -1578,5 +1587,9 @@ export const selectCurrentVersionNumber = (state: RootState) => {
   if (!metadata || metadata.outlookVersions.length === 0) return 1;
   return Math.max(...metadata.outlookVersions.map(v => v.version));
 };
+
+/** Selects the editor-visible auto-categorical derivation error, or null. */
+export const selectAutoCategoricalError = (state: RootState): string | null =>
+  state.forecast.autoCategoricalError;
 
 export default forecastSlice.reducer;

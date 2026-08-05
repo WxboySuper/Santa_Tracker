@@ -14,7 +14,7 @@ const ALL_TARGETS_OFF = {
 const SERVER_FEATURE_EXPOSURE_REGISTRY = {
   autoTstm: {
     serverCapabilityKey: 'TSTM_GENERATION_ENABLED',
-    exposure: { ...ALL_TARGETS_OFF, beta: true },
+    exposure: { ...ALL_TARGETS_OFF, local: true, beta: true },
     label: 'Auto-TSTM',
   },
 };

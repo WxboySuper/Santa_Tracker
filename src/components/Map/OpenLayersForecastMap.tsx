@@ -55,6 +55,7 @@ import type {
 import { apply } from "ol-mapbox-style";
 import Legend from "./Legend";
 import StatusOverlay from "./StatusOverlay";
+import CategoricalErrorBanner from "./CategoricalErrorBanner";
 import UnofficialBadge from "./UnofficialBadge";
 import {
   getOpenFreeMapStyleSet,
@@ -1822,6 +1823,7 @@ const OpenLayersForecastMap = forwardRef<MapAdapterHandle<OLMap> | null, OpenLay
           Key
         </button>
         <StatusOverlay />
+        <CategoricalErrorBanner />
         <UnofficialBadge />
       </div>
     );

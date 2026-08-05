@@ -1,9 +1,9 @@
 import { useEffect, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { applyAutoCategoricalSync, selectCurrentOutlooks, selectCurrentDay } from '../store/forecastSlice';
+import { applyAutoCategoricalSync, selectCurrentOutlooks, selectCurrentDay, setAutoCategoricalError } from '../store/forecastSlice';
 import { OutlookData } from '../types/outlooks';
-import { processDay12OutlooksToCategorical, processDay3OutlooksToCategorical } from './autoCategoricalProcessing';
-export { processDay12OutlooksToCategorical, processDay3OutlooksToCategorical, processOutlooksToCategorical } from './autoCategoricalProcessing';
+import { toDerivationErrorMessage, processDay12OutlooksToCategorical, processDay3OutlooksToCategorical } from './autoCategoricalProcessing';
+export { processDay12OutlooksToCategorical, processDay3OutlooksToCategorical, processOutlooksToCategorical, CategoricalDerivationError } from './autoCategoricalProcessing';
 
 /**
  * Builds a stable geometry signature for a list of features so we can detect
@@ -172,10 +172,21 @@ const useAutoCategorical = () => {
     // and compare to what is currently present. This catches imported stale/ring
     // categorical geometry even when probabilistic IDs/hash are unchanged.
     let generatedFeatures: GeoJSON.Feature[] = [];
-    if (currentDay === 1 || currentDay === 2) {
-      generatedFeatures = processDay12OutlooksToCategorical(outlooks);
-    } else if (currentDay === 3) {
-      generatedFeatures = processDay3OutlooksToCategorical(outlooks);
+    try {
+      if (currentDay === 1 || currentDay === 2) {
+        generatedFeatures = processDay12OutlooksToCategorical(outlooks);
+      } else if (currentDay === 3) {
+        generatedFeatures = processDay3OutlooksToCategorical(outlooks);
+      }
+    } catch (error) {
+      // Derivation failed. Never publish a partial result: preserve the last
+      // known-good categorical geometry and surface an actionable message.
+      const message = toDerivationErrorMessage(
+        error,
+        'Automatic categorical generation failed. Previous categorical geometry was preserved.'
+      );
+      dispatch(setAutoCategoricalError(message));
+      return;
     }
 
     const expectedSignature = signatureFromFeatures(generatedFeatures);
@@ -203,6 +214,7 @@ const useAutoCategorical = () => {
       const categoricalMap = buildCategoricalMap(tstmFeatures, generatedFeatures);
 
       dispatch(applyAutoCategoricalSync({ map: categoricalMap }));
+      dispatch(setAutoCategoricalError(null));
     } finally {
       processingRef.current = false;
     }

@@ -74,6 +74,7 @@ const baseForecastState: ForecastState = {
   emergencyMode: false,
   savedCycles: [],
   historyByDay: {},
+  autoCategoricalError: null,
 };
 
 const buildStore = (overrides: ForecastStateOverrides = {}) => {
