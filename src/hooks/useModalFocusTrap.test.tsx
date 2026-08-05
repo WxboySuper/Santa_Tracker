@@ -66,15 +66,12 @@ describe('useModalFocusTrap', () => {
 
   it('does not move focus to elements outside the modal', () => {
     render(<FocusTrapHarness />);
-    const dialog = screen.getByRole('dialog');
-    const buttons = Array.from(dialog.parentElement?.querySelectorAll('button') ?? []);
-    const after = buttons.find((b) => b.textContent === 'After');
-    const before = buttons.find((b) => b.textContent === 'Before');
-    const last = buttons.find((b) => b.textContent === 'Last');
-    last?.focus();
+    const last = screen.getByRole('button', { name: 'Last' });
+    const first = screen.getByRole('button', { name: 'First' });
+    last.focus();
     fireEvent.keyDown(window, { key: 'Tab' });
-    expect(after).not.toHaveFocus();
-    expect(before).not.toHaveFocus();
+    // Background buttons are aria-hidden, so focus must wrap back into the modal.
+    expect(first).toHaveFocus();
   });
 
   it('calls onClose when Escape is pressed', () => {
@@ -87,6 +84,9 @@ describe('useModalFocusTrap', () => {
   it('hides background siblings but never the modal subtree', () => {
     render(<FocusTrapHarness />);
     const dialog = screen.getByRole('dialog');
+    // Asserting the aria-hidden attribute requires direct node access; the
+    // buttons are hidden from role/text queries by design.
+    // eslint-disable-next-line testing-library/no-node-access
     const buttons = Array.from(dialog.parentElement?.querySelectorAll('button') ?? []);
     const beforeButton = buttons.find((b) => b.textContent === 'Before');
     const afterButton = buttons.find((b) => b.textContent === 'After');
@@ -97,16 +97,17 @@ describe('useModalFocusTrap', () => {
   });
 
   it('restores background aria-hidden on close', () => {
-    const { getByRole, queryByRole, container } = render(<ToggleFocusTrapHarness />);
-    const openButton = getByRole('button', { name: 'Open' });
+    render(<ToggleFocusTrapHarness />);
+    const openButton = screen.getByRole('button', { name: 'Open' });
     fireEvent.click(openButton);
-    const dialog = getByRole('dialog');
+    const dialog = screen.getByRole('dialog');
+    // eslint-disable-next-line testing-library/no-node-access
     const containerEl = dialog.parentElement as HTMLElement;
     expect(dialog).not.toHaveAttribute('aria-hidden');
 
     fireEvent.keyDown(window, { key: 'Escape' });
-    expect(queryByRole('dialog')).toBeNull();
+    expect(screen.queryByRole('dialog')).toBeNull();
+    // eslint-disable-next-line testing-library/no-node-access
     expect(containerEl.querySelector('button')).not.toHaveAttribute('aria-hidden');
-    expect(container).toBeTruthy();
   });
 });
