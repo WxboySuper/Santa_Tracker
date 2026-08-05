@@ -12,10 +12,10 @@ import {
   validateForecastData,
 } from '../fileUtils';
 import { fetchStormReports, fetchTodayStormReports } from '../stormReportParser';
-import { toArchiveDate } from './archiveDate';
+import { isTodayReportDate, toArchiveDate } from './archiveDate';
 import type { PackageGrade, ProductKind } from './gradeContract';
 
-export { isReachedArchiveDate, toArchiveDate } from './archiveDate';
+export { isReachedArchiveDate, isTodayReportDate, toArchiveDate } from './archiveDate';
 
 /**
  * Source adapters for the Forecast Grade dashboard (PR 05 — sources-history).
@@ -104,10 +104,17 @@ const resolveArchiveDate = (reportDate: string): string => {
   return archiveDate;
 };
 
-/** Loads SPC storm reports for a date (or today when null), or blocks. */
+/**
+ * Loads SPC storm reports for a date (or today when null), or blocks.
+ *
+ * A date that resolves to the current calendar day is routed to the live
+ * today.csv feed, matching SPC's publication window: the dated archive file
+ * only exists after the report day completes. Any other valid date goes to the
+ * SPC archive.
+ */
 export const loadReportsForDate = async (reportDate: string | null): Promise<StormReport[]> => {
   try {
-    if (reportDate !== null) {
+    if (reportDate !== null && !isTodayReportDate(reportDate)) {
       return await fetchStormReports(resolveArchiveDate(reportDate));
     }
     return await fetchTodayStormReports();

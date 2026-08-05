@@ -56,11 +56,11 @@ describe('v1.7 workstream adoption contract', () => {
     }
   });
 
-  test('autoTstm is enabled only on beta', () => {
+  test('autoTstm is enabled for local development and beta testers', () => {
     for (const target of BUILD_TARGETS) {
-      const exposed = isFeatureExposedOnTarget('autoTstm', target);
-      expect(exposed).toBe(target === 'beta');
-      expect(FEATURE_EXPOSURE_REGISTRY.autoTstm.exposure[target]).toBe(target === 'beta');
+      const expected = target === 'beta' || target === 'local';
+      expect(isFeatureExposedOnTarget('autoTstm', target)).toBe(expected);
+      expect(FEATURE_EXPOSURE_REGISTRY.autoTstm.exposure[target]).toBe(expected);
     }
   });
 
