@@ -31,6 +31,7 @@ import reducer, {
   updateDiscussion,
   updateDiscussionDraft,
   migrateDiscussionDrafts,
+  setAutoCategoricalError,
 } from './forecastSlice';
 
 const createPolygon = (offset: number): Polygon => ({
@@ -996,6 +997,16 @@ describe('forecastSlice undo/redo', () => {
         expect(snapshot).toBeDefined();
         expect(snapshot.days[1]?.data.tornado?.get('2%')?.[0].id).toBe('day-1-feature');
         expect(snapshot.days[2]?.data.tornado?.get('2%')?.[0].id).toBe('day-2-feature');
+      });
+    });
+
+    describe('autoCategoricalError', () => {
+      it('starts null and can be set and cleared', () => {
+        let state = reducer(undefined, setAutoCategoricalError('union failed'));
+        expect(state.autoCategoricalError).toBe('union failed');
+
+        state = reducer(state, setAutoCategoricalError(null));
+        expect(state.autoCategoricalError).toBeNull();
       });
     });
   });

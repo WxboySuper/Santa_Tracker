@@ -104,12 +104,12 @@ export const FEATURE_EXPOSURE_REGISTRY = {
     trackingIssue: 440,
   },
   autoTstm: {
-    exposure: { ...ALL_TARGETS_OFF, beta: true },
+    exposure: { ...ALL_TARGETS_OFF, local: true, beta: true },
     owner: 'WxboySuper',
     addedDate: '2026-06-20',
     temporary: true,
     removalCondition:
-      'Enable on beta when Auto-TSTM client and server gates ship (#427); remove after stable production rollout.',
+      'Remove after Auto-TSTM client and server gates ship and the stable production rollout completes (#427). Local and beta exposure keep the feature testable in development and CI.',
     serverBacked: true,
     serverCapabilityKey: 'TSTM_GENERATION_ENABLED',
     trackingIssue: 427,
