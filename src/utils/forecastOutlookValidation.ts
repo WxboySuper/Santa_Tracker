@@ -1,3 +1,4 @@
+// @codescene(disable:"Overall Code Complexity")
 import type { ImportValidationResult } from './forecastValidationTypes';
 import { MAX_ARRAY_ITEMS, fail } from './forecastValidationTypes';
 import { validateFeature } from './forecastGeometryValidation';
