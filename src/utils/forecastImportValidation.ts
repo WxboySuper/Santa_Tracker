@@ -148,60 +148,58 @@ const validateFeature = (value: unknown): ImportValidationResult | null => {
  * serialization plus legacy plain-object maps.
  */
 const validateOutlookMap = (value: unknown, path: string): ImportValidationResult | null => {
-  if (Array.isArray(value)) {
-    if (value.length > MAX_ARRAY_ITEMS) {
-      return fail(`${path} contains too many probability entries.`);
-    }
+  const entries = outlookMapEntries(value);
+  if (entries === null) {
+    return fail(`${path} must be an array of probability entries or a map object.`);
+  }
 
-    let featureCount = 0;
+  if (entries.length > MAX_ARRAY_ITEMS) {
+    return fail(`${path} contains too many probability entries.`);
+  }
+
+  let featureCount = 0;
+  for (const [probability, features] of entries) {
+    if (!Array.isArray(features)) {
+      return fail(`${path} entry "${probability}" is missing its feature list.`);
+    }
+    if (features.length > MAX_FEATURES_PER_MAP) {
+      return fail(`${path} entry "${probability}" contains too many features.`);
+    }
+    featureCount += features.length;
+    if (featureCount > MAX_FEATURES_PER_MAP) {
+      return fail(`${path} contains too many total features.`);
+    }
+    for (const feature of features) {
+      const featureResult = validateFeature(feature);
+      if (featureResult) return featureResult;
+    }
+  }
+
+  return null;
+};
+
+/**
+ * Normalizes a serialized outlook map into `[probability, features][]` entries,
+ * returning null when the value is neither the canonical array form nor a
+ * legacy plain object.
+ */
+const outlookMapEntries = (value: unknown): Array<[string, unknown]> | null => {
+  if (Array.isArray(value)) {
+    const entries: Array<[string, unknown]> = [];
     for (const entry of value) {
       if (!Array.isArray(entry) || entry.length !== 2 || typeof entry[0] !== 'string') {
-        return fail(`${path} contains an invalid probability entry.`);
+        return null;
       }
-      if (!Array.isArray(entry[1])) {
-        return fail(`${path} entry "${entry[0]}" is missing its feature list.`);
-      }
-      if (entry[1].length > MAX_FEATURES_PER_MAP) {
-        return fail(`${path} entry "${entry[0]}" contains too many features.`);
-      }
-      featureCount += entry[1].length;
-      if (featureCount > MAX_FEATURES_PER_MAP) {
-        return fail(`${path} contains too many total features.`);
-      }
-      for (const feature of entry[1]) {
-        const featureResult = validateFeature(feature);
-        if (featureResult) return featureResult;
-      }
+      entries.push([entry[0], entry[1]]);
     }
-    return null;
+    return entries;
   }
 
   if (value && typeof value === 'object') {
-    const entries = Object.entries(value as Record<string, unknown>);
-    if (entries.length > MAX_ARRAY_ITEMS) {
-      return fail(`${path} contains too many probability entries.`);
-    }
-    let featureCount = 0;
-    for (const [probability, features] of entries) {
-      if (!Array.isArray(features)) {
-        return fail(`${path} entry "${probability}" is missing its feature list.`);
-      }
-      if (features.length > MAX_FEATURES_PER_MAP) {
-        return fail(`${path} entry "${probability}" contains too many features.`);
-      }
-      featureCount += features.length;
-      if (featureCount > MAX_FEATURES_PER_MAP) {
-        return fail(`${path} contains too many total features.`);
-      }
-      for (const feature of features) {
-        const featureResult = validateFeature(feature);
-        if (featureResult) return featureResult;
-      }
-    }
-    return null;
+    return Object.entries(value as Record<string, unknown>);
   }
 
-  return fail(`${path} must be an array of probability entries or a map object.`);
+  return null;
 };
 
 /**
@@ -306,34 +304,42 @@ const validateForecastCycle = (value: unknown): ImportValidationResult => {
     return fail('forecastCycle.days is not a valid object.');
   }
 
-  const dayKeys = Object.keys(cycle.days as Record<string, unknown>);
+  const days = cycle.days as Record<string, unknown>;
+  const dayKeys = Object.keys(days);
   if (dayKeys.length > 8) {
     return fail('forecastCycle contains more than the supported forecast days.');
   }
 
   for (const dayKey of dayKeys) {
-    const dayNumber = Number(dayKey);
-    if (!Number.isInteger(dayNumber) || dayNumber < 1 || dayNumber > 8) {
-      return fail(`forecastCycle contains an invalid day "${dayKey}".`);
-    }
-
-    const day = (cycle.days as Record<string, unknown>)[dayKey];
-    if (!day || typeof day !== 'object' || Array.isArray(day)) {
-      return fail(`forecastCycle day "${dayKey}" is not a valid object.`);
-    }
-
-    const dayData = (day as { data?: unknown }).data;
-    if (!dayData || typeof dayData !== 'object' || Array.isArray(dayData)) {
-      return fail(`forecastCycle day "${dayKey}" is missing valid outlook data.`);
-    }
-
-    for (const field of OUTLOOK_MAP_FIELDS) {
-      const map = (dayData as Record<string, unknown>)[field];
-      if (map === undefined) continue;
-      const result = validateOutlookMap(map, `forecastCycle.days.${dayKey}.data.${field}`);
-      if (result) return result;
-    }
+    const dayResult = validateForecastDay(dayKey, days[dayKey]);
+    if (dayResult) return dayResult;
   }
 
   return { ok: true };
+};
+
+/** Validates one saved forecast day and its outlook maps. */
+const validateForecastDay = (dayKey: string, day: unknown): ImportValidationResult | null => {
+  const dayNumber = Number(dayKey);
+  if (!Number.isInteger(dayNumber) || dayNumber < 1 || dayNumber > 8) {
+    return fail(`forecastCycle contains an invalid day "${dayKey}".`);
+  }
+
+  if (!day || typeof day !== 'object' || Array.isArray(day)) {
+    return fail(`forecastCycle day "${dayKey}" is not a valid object.`);
+  }
+
+  const dayData = (day as { data?: unknown }).data;
+  if (!dayData || typeof dayData !== 'object' || Array.isArray(dayData)) {
+    return fail(`forecastCycle day "${dayKey}" is missing valid outlook data.`);
+  }
+
+  for (const field of OUTLOOK_MAP_FIELDS) {
+    const map = (dayData as Record<string, unknown>)[field];
+    if (map === undefined) continue;
+    const result = validateOutlookMap(map, `forecastCycle.days.${dayKey}.data.${field}`);
+    if (result) return result;
+  }
+
+  return null;
 };

@@ -19,6 +19,33 @@ export function createFileHandlers({ addToast, dispatch, forecastCycle, cycleMet
 }) {
   const fileInputRef = { current: null as HTMLInputElement | null } as React.MutableRefObject<HTMLInputElement | null>;
 
+  /** Maps a read/parse failure to an actionable toast message. */
+  const notifyReadFailure = (file: File, error: unknown): void => {
+    if (file.name.toLowerCase().endsWith('.zip')) {
+      addToast('File is not a valid GFC package.', 'error');
+    } else if (error instanceof SyntaxError) {
+      addToast('File is not valid JSON.', 'error');
+    } else if (error instanceof Error && error.message.includes('too large')) {
+      addToast(error.message, 'error');
+    } else {
+      addToast('Error reading file.', 'error');
+    }
+  };
+
+  /** Restores the workflow metadata embedded in a loaded forecast, if any. */
+  const syncWorkflowMetadata = (data: unknown): void => {
+    const validatedData = data as {
+      metadata?: CycleMetadata;
+      cycleMetadata?: CycleMetadata | null;
+    };
+    const packageMetadata = isWorkflowExportPackage(data) ? validatedData.metadata : validatedData.cycleMetadata;
+    if (packageMetadata) {
+      dispatch(setWorkflowMetadata(packageMetadata));
+    } else if (validatedData.cycleMetadata === null) {
+      dispatch(clearWorkflowMetadata());
+    }
+  };
+
   /** Reads a File object, validates the JSON content, deserializes it, and imports it as the active forecast cycle. */
   const handleLoad = async (file: File) => {
     try {
@@ -26,15 +53,7 @@ export function createFileHandlers({ addToast, dispatch, forecastCycle, cycleMet
       try {
         data = await readForecastImportFile(file);
       } catch (error) {
-        if (file.name.toLowerCase().endsWith('.zip')) {
-          addToast('File is not a valid GFC package.', 'error');
-        } else if (error instanceof SyntaxError) {
-          addToast('File is not valid JSON.', 'error');
-        } else if (error instanceof Error && error.message.includes('too large')) {
-          addToast(error.message, 'error');
-        } else {
-          addToast('Error reading file.', 'error');
-        }
+        notifyReadFailure(file, error);
         return;
       }
 
@@ -44,18 +63,9 @@ export function createFileHandlers({ addToast, dispatch, forecastCycle, cycleMet
         return;
       }
 
-      const validatedData = data as {
-        metadata?: CycleMetadata;
-        cycleMetadata?: CycleMetadata | null;
-      };
       const deserializedCycle = deserializeForecast(data);
       dispatch(importForecastCycle(deserializedCycle));
-      const packageMetadata = isWorkflowExportPackage(data) ? validatedData.metadata : validatedData.cycleMetadata;
-      if (packageMetadata) {
-        dispatch(setWorkflowMetadata(packageMetadata));
-      } else if (validatedData.cycleMetadata === null) {
-        dispatch(clearWorkflowMetadata());
-      }
+      syncWorkflowMetadata(data);
       addToast('Forecast loaded successfully!', 'success');
     } catch {
       addToast('Error reading file.', 'error');
