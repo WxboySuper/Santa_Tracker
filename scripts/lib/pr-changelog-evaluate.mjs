@@ -24,7 +24,7 @@ export const readRefFile = (ref, path) => {
  * @returns {string}
  */
 const fetchLivePrBody = ({ repository, prNumber, ghToken, fallbackBody }) => {
-  if (!repository || !prNumber || !ghToken) return fallbackBody;
+  if (!ghToken) return fallbackBody;
   try {
     return execFileSync(
       'gh',
