@@ -1,3 +1,4 @@
+import React from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
 import { Provider } from 'react-redux';
 import { configureStore } from '@reduxjs/toolkit';
@@ -339,6 +340,38 @@ describe('ForecastPage layout selection', () => {
     renderForecastPage(store);
 
     expect(store.getState().forecast.forecastCycle.days[1]?.data.tornado?.get('10%')?.[0].id).toBe('autosave-outlook');
+  });
+
+  test('restores the autosave only once under React StrictMode double effects', () => {
+    const store = createStore();
+    const cycleWithOutlook = { ...store.getState().forecast.forecastCycle };
+    const features = new Map<string, Feature[]>();
+    features.set('10%', [{
+      type: 'Feature',
+      id: 'strictmode-outlook',
+      geometry: { type: 'Polygon', coordinates: [[[0, 0], [1, 0], [1, 1], [0, 0]]] },
+      properties: { outlookType: 'tornado', probability: '10%', isSignificant: false },
+    } as Feature]);
+    cycleWithOutlook.days = {
+      1: {
+        data: { tornado: features, wind: new Map(), hail: new Map(), categorical: new Map(), totalSevere: new Map() } as never,
+        metadata: { lowProbabilityOutlooks: [] },
+      },
+    } as typeof cycleWithOutlook.days;
+    const autosavePayload = serializeForecast(cycleWithOutlook, { center: [0, 0], zoom: 0 });
+    localStorage.setItem('forecastData', JSON.stringify(autosavePayload));
+
+    render(
+      <React.StrictMode>
+        <MemoryRouter>
+          <Provider store={store}>
+            <ForecastPage />
+          </Provider>
+        </MemoryRouter>
+      </React.StrictMode>
+    );
+
+    expect(store.getState().forecast.forecastCycle.days[1]?.data.tornado?.get('10%')?.[0].id).toBe('strictmode-outlook');
   });
 
   test('keeps in-memory anonymous edits on sign-in without overwriting account autosave', async () => {
