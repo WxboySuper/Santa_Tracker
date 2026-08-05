@@ -15,6 +15,13 @@ const SUPPORTED_GEOMETRY_TYPES = new Set<string>([
   'GeometryCollection',
 ]);
 
+/** Returns true when a numeric coordinate position is non-finite (NaN or Infinity). */
+const isNonFinitePosition = (item: unknown): boolean =>
+  typeof item === 'number' && !Number.isFinite(item);
+
+/** Returns true when any item in a coordinate leaf is non-finite. */
+const leafHasNonFinite = (leaf: unknown[]): boolean => leaf.some(isNonFinitePosition);
+
 /**
  * Counts coordinate positions inside a GeoJSON geometry, bounding work early
  * when the limit is exceeded, and reports whether any position is non-finite.
@@ -28,10 +35,8 @@ const countCoordinatePositions = (geometry: Geometry, limit: number): { count: n
       if (value.length > 0 && Array.isArray(value[0])) {
         value.forEach(visit);
       } else {
-        for (const item of value) {
-          if (typeof item === 'number' && !Number.isFinite(item)) {
-            hasNonFinite = true;
-          }
+        if (!hasNonFinite && leafHasNonFinite(value)) {
+          hasNonFinite = true;
         }
         count += value.length;
       }
