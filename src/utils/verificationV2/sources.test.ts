@@ -78,6 +78,52 @@ describe('source loaders', () => {
       expect(global.fetch).toHaveBeenCalledWith('https://www.spc.noaa.gov/climo/reports/today.csv');
     });
 
+    test('routes a date matching the current calendar day to today\'s SPC reports feed', async () => {
+      const now = new Date();
+      const iso = [
+        now.getFullYear(),
+        String(now.getMonth() + 1).padStart(2, '0'),
+        String(now.getDate()).padStart(2, '0'),
+      ].join('-');
+
+      mockFetch('');
+      const reports = await loadReportsForDate(iso);
+      expect(reports).toEqual([]);
+      expect(global.fetch).toHaveBeenCalledWith('https://www.spc.noaa.gov/climo/reports/today.csv');
+    });
+
+    test('routes a YYMMDD date matching the current calendar day to today\'s SPC reports feed', async () => {
+      const now = new Date();
+      const yymmdd = [
+        String(now.getFullYear()).slice(-2),
+        String(now.getMonth() + 1).padStart(2, '0'),
+        String(now.getDate()).padStart(2, '0'),
+      ].join('');
+
+      mockFetch('');
+      const reports = await loadReportsForDate(yymmdd);
+      expect(reports).toEqual([]);
+      expect(global.fetch).toHaveBeenCalledWith('https://www.spc.noaa.gov/climo/reports/today.csv');
+    });
+
+    test('keeps archived dates on the dated archive feed', async () => {
+      const now = new Date();
+      const past = new Date(now.getFullYear() - 1, now.getMonth(), now.getDate());
+      const iso = [
+        past.getFullYear(),
+        String(past.getMonth() + 1).padStart(2, '0'),
+        String(past.getDate()).padStart(2, '0'),
+      ].join('-');
+
+      mockFetch('');
+      const reports = await loadReportsForDate(iso);
+      expect(reports).toEqual([]);
+      const archiveDate = iso.slice(2).replace(/-/g, '');
+      expect(global.fetch).toHaveBeenCalledWith(
+        `https://www.spc.noaa.gov/climo/reports/${archiveDate}_rpts_raw.csv`
+      );
+    });
+
     test('treats blank strings as invalid dates, not as today', async () => {
       await expect(loadReportsForDate('')).rejects.toBeInstanceOf(SourceLoadError);
       await expect(loadReportsForDate('not-a-date')).rejects.toBeInstanceOf(SourceLoadError);
