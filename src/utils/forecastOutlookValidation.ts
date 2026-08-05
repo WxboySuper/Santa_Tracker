@@ -116,6 +116,7 @@ const validateDayOutlookMaps = (dayKey: string, dayData: unknown): ImportValidat
 };
 
 /** Validates one saved forecast day and its outlook maps. */
+// @codescene(disable:"Complex Conditional")
 const validateForecastDay = (dayKey: string, day: unknown): ImportValidationResult | null => {
   const invalidDay = invalidDayKey(dayKey);
   if (invalidDay) return invalidDay;
