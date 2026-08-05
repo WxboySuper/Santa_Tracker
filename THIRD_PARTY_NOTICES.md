@@ -1,8 +1,8 @@
 # Third-Party Notices
 
-GFC is built on open-source software and datasets. This document lists the
-packages and datasets used by the shipped application, their licenses, and
-the policy category applied to each.
+GFC is built on open-source software. This document lists the packages used
+by the shipped application, their licenses, and the policy category applied
+to each.
 
 - **@babel/core** ^7.29.7 (root (pnpm)) — MIT — allowed
 - **@babel/parser** ^7.29.7 (root (pnpm)) — MIT — allowed
@@ -85,10 +85,10 @@ the policy category applied to each.
 - **express-rate-limit** ^8.6.1 (server (npm)) — MIT — allowed
 - **firebase-admin** ^14.2.0 (server (npm)) — Apache-2.0 — allowed
 - **stripe** ^22.3.2 (server (npm)) — MIT — allowed
-- **cfgrib** 0.9.15.1 (server (python)) — Python-2.0 — allowed
-- **numpy** 2.4.1 (server (python)) — Python-2.0 — allowed
-- **scikit-image** 0.26.0 (server (python)) — Python-2.0 — allowed
-- **shapely** 2.1.2 (server (python)) — Python-2.0 — allowed
-- **xarray** 2026.2.0 (server (python)) — Python-2.0 — allowed
+- **cfgrib** 0.9.15.1 (server (python)) — Apache-2.0 — allowed
+- **numpy** 2.4.1 (server (python)) — BSD-3-Clause — allowed
+- **scikit-image** 0.26.0 (server (python)) — BSD-3-Clause — allowed
+- **shapely** 2.1.2 (server (python)) — BSD-3-Clause — allowed
+- **xarray** 2026.2.0 (server (python)) — Apache-2.0 — allowed
 
 License categories: allowed, review-required, prohibited, unknown.

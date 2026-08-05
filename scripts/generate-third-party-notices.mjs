@@ -1,9 +1,24 @@
-import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { classifyLicense } from './lib/license-policy.mjs';
 
 const ROOT = resolve(import.meta.dirname, '..');
+
+/**
+ * Curated licenses for the pinned analytics-server Python dependencies.
+ * The Python packages are not installed in this repository, so their declared
+ * licenses cannot be read from local manifests; this map keeps the notices
+ * accurate. Any unpinned or unknown dependency defaults to 'unknown' so the
+ * policy check surfaces it for review instead of mislabeling it.
+ */
+const PYTHON_LICENSE_MAP = {
+  cfgrib: 'Apache-2.0',
+  numpy: 'BSD-3-Clause',
+  'scikit-image': 'BSD-3-Clause',
+  shapely: 'BSD-3-Clause',
+  xarray: 'Apache-2.0',
+};
 
 /** Reads and parses a package.json manifest, returning null when absent or invalid. */
 const readManifest = (pkgPath) => {
@@ -44,63 +59,31 @@ const readPackageDeps = (pkgPath) => {
   return Object.entries(combined).map(([name, version]) => ({ name, version }));
 };
 
-/** Reads a dataset's per-file provenance sidecar when present. */
-const readDatasetSidecar = (name) => {
-  const sidecar = resolve(ROOT, 'public/geodata', `${name}.source.json`);
-  if (!existsSync(sidecar)) return null;
+/** Reads pinned Python requirements and their curated license declarations. */
+const readPythonRequirements = () => {
+  const path = resolve(ROOT, 'server/requirements.txt');
+  if (!existsSync(path)) return [];
   try {
-    return JSON.parse(readFileSync(sidecar, 'utf8'));
-  } catch {
-    return null;
-  }
-};
-
-/** Scans the typed boundary-source registry for dataset provenance when present. */
-const readRegistryProvenance = () => {
-  const registryPath = resolve(ROOT, 'src/config/geoBoundarySources.ts');
-  if (!existsSync(registryPath)) return [];
-  try {
-    const content = readFileSync(registryPath, 'utf8');
-    const pattern = /key:\s*'([A-Za-z]+)',[\s\S]*?origin:\s*'([^']+)',[\s\S]*?license:\s*'([^']+)',[\s\S]*?retrievedAt:\s*'([^']+)'/g;
-    return [...content.matchAll(pattern)].map((match) => ({
-      name: match[1],
-      origin: match[2],
-      license: match[3],
-      retrievedAt: match[4],
-    }));
+    return readFileSync(path, 'utf8')
+      .split('\n')
+      .map((line) => line.trim())
+      .filter((line) => line && !line.startsWith('#'))
+      .map((line) => {
+        const [name, version = ''] = line.split('==');
+        return { name, version, license: PYTHON_LICENSE_MAP[name] ?? 'unknown' };
+      });
   } catch {
     return [];
   }
 };
 
-/** Scans vendored GeoJSON files for per-file provenance sidecars. */
-const readGeodataProvenance = () => {
-  const geodataDir = resolve(ROOT, 'public/geodata');
-  if (!existsSync(geodataDir)) return [];
-  try {
-    return readdirSync(geodataDir)
-      .filter((name) => name.endsWith('.json') && !name.endsWith('.source.json'))
-      .map((name) => ({ key: name.replace(/\.json$/, ''), meta: readDatasetSidecar(name.replace(/\.json$/, '')) }))
-      .filter(({ meta }) => meta !== null)
-      .map(({ key, meta }) => ({
-        name: key,
-        origin: meta.origin || '',
-        license: meta.license || 'unknown',
-        retrievedAt: meta.retrievedAt || '',
-      }));
-  } catch {
-    return [];
-  }
-};
-
-/** Collects dataset provenance from the vendored boundary datasets and their registry. */
-const readDatasetProvenance = () => {
-  const fromRegistry = readRegistryProvenance();
-  if (fromRegistry.length > 0) return fromRegistry;
-  return readGeodataProvenance();
-};
-
-/** Aggregates all third-party dependencies into a normalized report. */
+/**
+ * Aggregates all third-party dependencies into a normalized report.
+ *
+ * Note: vendored runtime datasets are intentionally out of scope for this
+ * report until the boundary-asset vendoring work lands (they live on the
+ * geodata branch). Only package dependencies are listed here.
+ */
 export const collectThirdPartyDependencies = () => {
   const entries = [];
 
@@ -115,27 +98,8 @@ export const collectThirdPartyDependencies = () => {
   }
 
   // Python requirements.
-  try {
-    const python = readFileSync(resolve(ROOT, 'server/requirements.txt'), 'utf8');
-    for (const line of python.split('\n')) {
-      const trimmed = line.trim();
-      if (!trimmed || trimmed.startsWith('#')) continue;
-      const [name, version = ''] = trimmed.split('==');
-      entries.push({ source: 'server (python)', name, version, license: 'Python-2.0' });
-    }
-  } catch {
-    // requirements.txt absent; skip.
-  }
-
-  // Vendored runtime datasets.
-  for (const dataset of readDatasetProvenance()) {
-    entries.push({
-      source: 'vendored dataset',
-      name: dataset.name,
-      version: dataset.retrievedAt,
-      license: dataset.license,
-      origin: dataset.origin,
-    });
+  for (const dep of readPythonRequirements()) {
+    entries.push({ source: 'server (python)', name: dep.name, version: dep.version, license: dep.license });
   }
 
   return entries;
@@ -146,16 +110,16 @@ export const renderNotices = (entries) => {
   const lines = [
     '# Third-Party Notices',
     '',
-    'GFC is built on open-source software and datasets. This document lists the',
-    'packages and datasets used by the shipped application, their licenses, and',
-    'the policy category applied to each.',
+    'GFC is built on open-source software. This document lists the packages used',
+    'by the shipped application, their licenses, and the policy category applied',
+    'to each.',
     '',
   ];
 
   const sorted = [...entries].sort((a, b) => `${a.source}|${a.name}`.localeCompare(`${b.source}|${b.name}`));
   for (const entry of sorted) {
     const policy = classifyLicense(entry.license);
-    lines.push(`- **${entry.name}**${entry.version ? ` ${entry.version}` : ''} (${entry.source}) — ${entry.license} — ${policy.category}${entry.origin ? ` — ${entry.origin}` : ''}`);
+    lines.push(`- **${entry.name}**${entry.version ? ` ${entry.version}` : ''} (${entry.source}) — ${entry.license} — ${policy.category}`);
   }
 
   lines.push('', 'License categories: allowed, review-required, prohibited, unknown.');

@@ -15,7 +15,17 @@ describe('third-party notice generation', () => {
     const entries = collectThirdPartyDependencies();
     const notices = renderNotices(entries);
     assert.match(notices, /# Third-Party Notices/);
-    assert.ok(notices.split('\n').filter((line) => line.startsWith('- **')).length >= entries.length - 1);
+    const renderedLines = notices.split('\n').filter((line) => line.startsWith('- **'));
+    assert.equal(renderedLines.length, entries.length);
+  });
+
+  it('reports a real license for every python dependency', () => {
+    const entries = collectThirdPartyDependencies().filter((entry) => entry.source === 'server (python)');
+    for (const entry of entries) {
+      assert.notEqual(entry.license, 'Python-2.0', `${entry.name} should not be labeled Python-2.0`);
+    }
+    assert.ok(entries.some((entry) => entry.license === 'BSD-3-Clause'));
+    assert.ok(entries.some((entry) => entry.license === 'Apache-2.0'));
   });
 
   it('reports a license category for every collected dependency', async () => {
