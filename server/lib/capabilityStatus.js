@@ -91,18 +91,33 @@ const getPublicCapabilityStatus = (options = {}) => {
     }
 
     const capabilityKey = definition.serverCapabilityKey;
-    const status = resolveCapabilityAvailability(capabilityKey, options);
-    capabilities[capabilityKey] = {
-      available: status.available,
-      reason: status.reason,
-    };
+    capabilities[capabilityKey] = buildPublicCapabilityEntry(capabilityKey, options);
   }
 
   return { capabilities };
 };
 
+/**
+ * Builds the public, allowlisted shape for one capability status entry.
+ *
+ * This is the ONLY serialized form served on the unauthenticated status route.
+ * It intentionally exposes no implementation detail, deployment path, provider,
+ * cache state, or exception text. Internal diagnostics (feature key, exposure
+ * matrix, env names, emergency override state) stay server-side.
+ *
+ * @returns {{ available: boolean, reason: string }}
+ */
+const buildPublicCapabilityEntry = (capabilityKey, options) => {
+  const status = resolveCapabilityAvailability(capabilityKey, options);
+  return {
+    available: status.available,
+    reason: status.reason,
+  };
+};
+
 module.exports = {
   CAPABILITY_REASON,
+  buildPublicCapabilityEntry,
   findFeatureByCapabilityKey,
   getPublicCapabilityStatus,
   isDeploymentCapabilityEnabled,

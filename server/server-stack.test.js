@@ -40,6 +40,20 @@ describe('analytics server stack (express 5)', () => {
     assert.equal(response.status, 200);
     const body = await response.json();
     assert.equal(typeof body.billingEnabled, 'boolean');
+
+    // Schema snapshot: the public billing config exposes only the allowlisted
+    // client-facing fields; price IDs and provider internals never serialize.
+    assert.deepEqual(Object.keys(body).sort(), [
+      'annualDisplayPrice',
+      'annualPromoActive',
+      'billingEnabled',
+      'checkoutEnabled',
+      'monthlyDisplayPrice',
+    ]);
+    const serialized = JSON.stringify(body);
+    assert.equal(serialized.includes('priceId'), false);
+    assert.equal(serialized.includes('secret'), false);
+    assert.equal(serialized.includes('baseUrl'), false);
   });
 
   it('serves capability status on GET /api/capabilities/status', async () => {
@@ -49,6 +63,17 @@ describe('analytics server stack (express 5)', () => {
     assert.equal(response.status, 200);
     const body = await response.json();
     assert.equal(typeof body.capabilities, 'object');
+
+    // Schema snapshot: the public envelope and every capability entry must stay
+    // exactly { capabilities: { key: { available, reason } } }. Adding fields here
+    // intentionally fails so the public schema cannot grow through incidental
+    // internal serialization.
+    assert.deepEqual(Object.keys(body).sort(), ['capabilities']);
+    for (const entry of Object.values(body.capabilities)) {
+      assert.deepEqual(Object.keys(entry).sort(), ['available', 'reason']);
+      assert.equal(typeof entry.available, 'boolean');
+      assert.equal(typeof entry.reason, 'string');
+    }
   });
 
   it('does not expose the retired POST /collect telemetry endpoint', async () => {
