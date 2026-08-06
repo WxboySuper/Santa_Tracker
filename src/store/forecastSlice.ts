@@ -253,6 +253,56 @@ const createEmptyOutlook = (day: DayType, now: string): OutlookDay => {
   };
 };
 
+/** Returns a read-only Map proxy that throws if a consumer tries to mutate it. */
+const freezeMap = <K, V>(map: Map<K, V>): Map<K, V> =>
+  new Proxy(map, {
+    set: () => {
+      throw new Error('Attempted to mutate a shared read-only outlook map.');
+    },
+    deleteProperty: () => {
+      throw new Error('Attempted to mutate a shared read-only outlook map.');
+    },
+    get: (target, property, receiver) => {
+      if (property === 'set' || property === 'delete' || property === 'clear') {
+        return () => {
+          throw new Error('Attempted to mutate a shared read-only outlook map.');
+        };
+      }
+      return Reflect.get(target, property, receiver);
+    },
+  });
+
+/** Deeply guards a value so shared fallbacks cannot be mutated. */
+const deepFreezeOutlookData = (data: OutlookData): OutlookData => {
+  const guarded: OutlookData = {};
+  for (const [type, map] of Object.entries(data)) {
+    guarded[type as OutlookType] = map instanceof Map ? freezeMap(map) : map;
+  }
+  return Object.freeze(guarded);
+};
+
+/**
+ * Shared, immutable fallback outlook data keyed by day category. Returning the
+ * same reference for a given day shape keeps selectors referentially stable so
+ * unrelated renders do not trigger avoidable state changes or selector-stability
+ * warnings. Consumers must treat these as read-only; the nested Maps are wrapped
+ * in a proxy that throws on set/delete/clear so accidental writes fail loudly
+ * instead of silently corrupting the shared singleton.
+ */
+const EMPTY_OUTLOOK_DATA_BY_DAY: Record<string, OutlookData> = {
+  day12: deepFreezeOutlookData(createEmptyOutlook(1, INITIAL_TIMESTAMP).data),
+  day3: deepFreezeOutlookData(createEmptyOutlook(3, INITIAL_TIMESTAMP).data),
+  day48: deepFreezeOutlookData(createEmptyOutlook(4, INITIAL_TIMESTAMP).data),
+};
+
+/** Returns the shared empty outlook data for a day, or null when the day is unknown. */
+const sharedEmptyOutlookData = (day: DayType): OutlookData | null => {
+  if (day === 1 || day === 2) return EMPTY_OUTLOOK_DATA_BY_DAY.day12;
+  if (day === 3) return EMPTY_OUTLOOK_DATA_BY_DAY.day3;
+  if (day >= 4 && day <= 8) return EMPTY_OUTLOOK_DATA_BY_DAY.day48;
+  return null;
+};
+
 const initialState: ForecastState = {
   forecastCycle: {
     days: {
@@ -1499,8 +1549,8 @@ export const selectDiscussionDraftForScope = (state: RootState, scopeId: string)
 /** Selects the outlook maps for the active day, falling back to an empty day shape when needed. */
 export const selectCurrentOutlooks = (state: RootState) => {
   const cycle = state.forecast.forecastCycle;
-  return cycle.days[cycle.currentDay]?.data || createEmptyOutlook(cycle.currentDay, INITIAL_TIMESTAMP).data;
-};
+  return cycle.days[cycle.currentDay]?.data || sharedEmptyOutlookData(cycle.currentDay)!;
+  };
 const EMPTY_CUSTOM_LAYERS: CustomLayerCollection = {
   schemaVersion: '1.0.0',
   layers: [],
@@ -1509,11 +1559,11 @@ export const selectCurrentCustomLayers = (state: RootState): CustomLayerCollecti
   const cycle = state.forecast.forecastCycle;
   return cycle?.days?.[cycle.currentDay]?.customLayers || EMPTY_CUSTOM_LAYERS;
 };
-/** Selects the outlook maps for a specific day, falling back to an empty day shape when absent. */
+/** Selects the outlook maps for a specific day, falling back to a shared empty day shape when absent. */
 export const selectOutlooksForDay = (state: RootState, day: DayType) => {
   const cycle = state.forecast.forecastCycle;
-  return cycle.days[day]?.data || createEmptyOutlook(day, INITIAL_TIMESTAMP).data;
-};
+  return cycle.days[day]?.data || sharedEmptyOutlookData(day)!;
+  };
 /** Selects the saved forecast cycle snapshots shown in cycle history. */
 export const selectSavedCycles = (state: RootState) => state.forecast.savedCycles;
 /** Returns whether there is at least one reversible edit available. */

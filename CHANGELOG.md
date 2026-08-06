@@ -42,6 +42,7 @@ Work toward the next major release continues in the beta channel while the final
 - **Accessibility and polish:** Improve toolbar organization, responsive controls, package dialogs, custom-product editing, and forecast map controls.
 - **Dialog accessibility:** Consolidate custom dialogs on one hardened focus-trap behavior (trapped Tab/Shift+Tab, initial focus, focus restore, Escape, background isolation), associate discussion validity/forecaster fields with accessible labels, and add primary `h1` landmarks to forecast, verification, and monitor routes.
 - **Same-day verification:** Route current-day SPC storm reports to the live `today.csv` feed instead of the not-yet-published dated archive, so in-event grading no longer fails for forecasts dated today.
+- **Selector stability:** Return shared immutable empty outlook data from forecast selectors so repeated selection against unchanged state yields the same reference and avoids avoidable renders and selector-stability warnings.
 
 #### Security and operations
 
