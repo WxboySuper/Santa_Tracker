@@ -78,26 +78,25 @@ export async function fetchStormReports(date: string): Promise<StormReport[]> {
   return parseArchiveStormReportCsv(await response.text());
 }
 
-/** Fetches same-day SPC storm reports (today.csv). */
-export async function fetchTodayStormReports(): Promise<StormReport[]> {
-  const response = await fetch(SPC_TODAY_STORM_REPORTS_URL);
+/** Fetches a rolling report-day feed (today.csv / yesterday.csv). */
+const fetchRollingStormReports = async (url: string, label: string): Promise<StormReport[]> => {
+  const response = await fetch(url);
 
   if (!response.ok) {
-    throw new Error(`Failed to fetch today's storm reports: ${response.statusText}`);
+    throw new Error(`Failed to fetch ${label}: ${response.statusText}`);
   }
 
   return parseTodayStormReportCsv(await response.text());
+};
+
+/** Fetches same-day SPC storm reports (today.csv). */
+export function fetchTodayStormReports(): Promise<StormReport[]> {
+  return fetchRollingStormReports(SPC_TODAY_STORM_REPORTS_URL, "today's storm reports");
 }
 
 /** Fetches the previous report day's SPC storm reports (yesterday.csv). */
-export async function fetchYesterdayStormReports(): Promise<StormReport[]> {
-  const response = await fetch(SPC_YESTERDAY_STORM_REPORTS_URL);
-
-  if (!response.ok) {
-    throw new Error(`Failed to fetch yesterday's storm reports: ${response.statusText}`);
-  }
-
-  return parseTodayStormReportCsv(await response.text());
+export function fetchYesterdayStormReports(): Promise<StormReport[]> {
+  return fetchRollingStormReports(SPC_YESTERDAY_STORM_REPORTS_URL, "yesterday's storm reports");
 }
 
 /**

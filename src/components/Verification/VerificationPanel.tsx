@@ -12,25 +12,22 @@ import {
 } from '../../store/stormReportsSlice';
 import { selectVerificationOutlooksForDay } from '../../store/verificationSlice';
 import { fetchStormReports, fetchTodayStormReports, fetchYesterdayStormReports, formatReportDate } from '../../utils/stormReportParser';
+import { isTodayReportDate, isYesterdayReportDate } from '../../utils/verificationV2/archiveDate';
 import { analyzeVerification, formatVerificationSummary } from '../../utils/verificationUtils';
 import type { OutlookTypeVerification, VerificationResult } from '../../utils/verificationUtils';
 import type { StormReport } from '../../types/stormReports';
 import { DayType } from '../../types/outlooks';
 import './VerificationPanel.css';
 
-/** True when two dates fall on the same local calendar day. */
-const isSameLocalDay = (left: Date, right: Date): boolean =>
-  left.getFullYear() === right.getFullYear() &&
-  left.getMonth() === right.getMonth() &&
-  left.getDate() === right.getDate();
-
 /** Resolves the report source for a selected date relative to today. */
-const reportSourceForDate = (dateObj: Date, today: Date): 'today' | 'yesterday' | 'archive' => {
-  if (isSameLocalDay(dateObj, today)) {
+const reportSourceForDate = (reportDate: string, now: Date): 'today' | 'yesterday' | 'archive' => {
+  if (isTodayReportDate(reportDate, now)) {
     return 'today';
   }
-  const yesterday = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 1);
-  return isSameLocalDay(dateObj, yesterday) ? 'yesterday' : 'archive';
+  if (isYesterdayReportDate(reportDate, now)) {
+    return 'yesterday';
+  }
+  return 'archive';
 };
 
 /** Fetches reports from the SPC source resolved for a date. */
@@ -342,7 +339,7 @@ const VerificationPanel: React.FC<VerificationPanelProps> = ({
       const dateObj = new Date(year, month - 1, day); // month is 0-indexed
 
       const reportDate = formatReportDate(dateObj);
-      const source = reportSourceForDate(dateObj, new Date());
+      const source = reportSourceForDate(reportDate, new Date());
       const fetchedReports = await fetchReportsForSource(source, reportDate);
 
       dispatch(setReports(fetchedReports));
