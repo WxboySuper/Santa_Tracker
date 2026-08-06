@@ -11,7 +11,7 @@ import { apply } from 'ol-mapbox-style';
 import { buildNwsAlertStyle } from '../nwsAlerts';
 import { parseNwsAlertFromOlProperties } from '../nwsAlertDetails';
 import type { NwsAlertDetails } from '../nwsAlertDetails';
-import { hideOverlay } from '../../components/Map/OpenLayersForecastMap';
+import { hideOverlay } from '../../components/Map/openLayersMapStyles';
 import { clearMonitorAlertPopup } from './renderMonitorAlertPopup';
 import { useDispatch } from 'react-redux';
 import type { AppDispatch } from '../../store';

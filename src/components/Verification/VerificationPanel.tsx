@@ -11,11 +11,38 @@ import {
   clearReports
 } from '../../store/stormReportsSlice';
 import { selectVerificationOutlooksForDay } from '../../store/verificationSlice';
-import { fetchStormReports, fetchTodayStormReports, formatReportDate } from '../../utils/stormReportParser';
+import { fetchStormReports, fetchTodayStormReports, fetchYesterdayStormReports, formatReportDate } from '../../utils/stormReportParser';
+import { isTodayReportDate, isYesterdayReportDate } from '../../utils/verificationV2/archiveDate';
 import { analyzeVerification, formatVerificationSummary } from '../../utils/verificationUtils';
 import type { OutlookTypeVerification, VerificationResult } from '../../utils/verificationUtils';
+import type { StormReport } from '../../types/stormReports';
 import { DayType } from '../../types/outlooks';
 import './VerificationPanel.css';
+
+/** Resolves the report source for a selected date relative to today. */
+const reportSourceForDate = (reportDate: string, now: Date): 'today' | 'yesterday' | 'archive' => {
+  if (isTodayReportDate(reportDate, now)) {
+    return 'today';
+  }
+  if (isYesterdayReportDate(reportDate, now)) {
+    return 'yesterday';
+  }
+  return 'archive';
+};
+
+/** Fetches reports from the SPC source resolved for a date. */
+const fetchReportsForSource = (
+  source: 'today' | 'yesterday' | 'archive',
+  reportDate: string,
+): Promise<StormReport[]> => {
+  if (source === 'today') {
+    return fetchTodayStormReports();
+  }
+  if (source === 'yesterday') {
+    return fetchYesterdayStormReports();
+  }
+  return fetchStormReports(reportDate);
+};
 
 interface VerificationPanelProps {
   activeOutlookType?: 'categorical' | 'tornado' | 'wind' | 'hail';
@@ -311,18 +338,9 @@ const VerificationPanel: React.FC<VerificationPanelProps> = ({
       const [year, month, day] = selectedDate.split('-').map(Number);
       const dateObj = new Date(year, month - 1, day); // month is 0-indexed
 
-      // Check if the selected date is today in local time
-      const today = new Date();
-      // Compare year, month, and day to determine if the selected date is the same as today's date
-      const isToday = 
-        dateObj.getFullYear() === today.getFullYear() && 
-        dateObj.getMonth() === today.getMonth() && 
-        dateObj.getDate() === today.getDate();
-
       const reportDate = formatReportDate(dateObj);
-      const fetchedReports = isToday
-        ? await fetchTodayStormReports()
-        : await fetchStormReports(reportDate);
+      const source = reportSourceForDate(reportDate, new Date());
+      const fetchedReports = await fetchReportsForSource(source, reportDate);
 
       dispatch(setReports(fetchedReports));
       dispatch(setDate(reportDate));
