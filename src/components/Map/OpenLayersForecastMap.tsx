@@ -47,6 +47,7 @@ import {
 import type { BaseMapStyle } from "../../store/overlaysSlice";
 import { computeZIndex } from "../../utils/mapStyleUtils";
 import type { MapAdapterHandle } from "../../maps/contracts";
+import { getGeoBoundarySource } from "../../config/geoBoundarySources";
 import type {
   Feature as GeoJsonFeature,
   GeoJsonProperties,
@@ -55,6 +56,7 @@ import type {
 import { apply } from "ol-mapbox-style";
 import Legend from "./Legend";
 import StatusOverlay from "./StatusOverlay";
+import CategoricalErrorBanner from "./CategoricalErrorBanner";
 import UnofficialBadge from "./UnofficialBadge";
 import {
   getOpenFreeMapStyleSet,
@@ -797,7 +799,7 @@ const OpenLayersForecastMap = forwardRef<MapAdapterHandle<OLMap> | null, OpenLay
         const landLoader: BlankLayerConfig = {
           source: landSourceRef.current,
           isLoaded: () => landSourceRef.current.getFeatures().length > 0,
-          url: "https://raw.githubusercontent.com/PublicaMundi/MappingAPI/master/data/geojson/us-states.json",
+          url: getGeoBoundarySource("usStates").url,
           getCache: () => cachedUsStatesGeoJSON,
           setCache: (data) => {
             cachedUsStatesGeoJSON = data;
@@ -834,7 +836,7 @@ const OpenLayersForecastMap = forwardRef<MapAdapterHandle<OLMap> | null, OpenLay
           {
             source: worldSourceRef.current,
             isLoaded: () => worldSourceRef.current.getFeatures().length > 0,
-            url: "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_110m_admin_0_countries.geojson",
+            url: getGeoBoundarySource("worldCountries").url,
             getCache: () => cachedWorldCountriesGeoJSON,
             setCache: (data) => {
               cachedWorldCountriesGeoJSON = data;
@@ -844,7 +846,7 @@ const OpenLayersForecastMap = forwardRef<MapAdapterHandle<OLMap> | null, OpenLay
           {
             source: lakesSourceRef.current,
             isLoaded: () => lakesSourceRef.current.getFeatures().length > 0,
-            url: "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_110m_lakes.geojson",
+            url: getGeoBoundarySource("lakes").url,
             getCache: () => cachedLakesGeoJSON,
             setCache: (data) => {
               cachedLakesGeoJSON = data;
@@ -854,7 +856,7 @@ const OpenLayersForecastMap = forwardRef<MapAdapterHandle<OLMap> | null, OpenLay
           {
             source: landSourceRef.current,
             isLoaded: () => landSourceRef.current.getFeatures().length > 0,
-            url: "https://raw.githubusercontent.com/PublicaMundi/MappingAPI/master/data/geojson/us-states.json",
+            url: getGeoBoundarySource("usStates").url,
             getCache: () => cachedUsStatesGeoJSON,
             setCache: (data) => {
               cachedUsStatesGeoJSON = data;
@@ -863,8 +865,8 @@ const OpenLayersForecastMap = forwardRef<MapAdapterHandle<OLMap> | null, OpenLay
         ];
 
         loaders.forEach((loader) => {
-          ensureBlankLayerLoaded(loader).catch(() => {
-            /* blank map layer fetch failed — non-fatal */
+          ensureBlankLayerLoaded(loader).catch((loadError) => {
+            console.error(`Blank map layer failed to load from ${loader.url}`, loadError);
           });
         });
         return;
@@ -1281,6 +1283,7 @@ const OpenLayersForecastMap = forwardRef<MapAdapterHandle<OLMap> | null, OpenLay
           Key
         </button>
         <StatusOverlay />
+        <CategoricalErrorBanner />
         <UnofficialBadge />
       </div>
     );
