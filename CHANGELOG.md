@@ -31,18 +31,26 @@ Work toward the next major release continues in the beta channel while the final
 #### Fixed
 
 - **Forecast reliability:** Repair legacy serialized map shapes, auto-categorical restoration, export sizing, map popup teardown, keyboard shortcuts, and Safari Firestore sleep/reconnect behavior.
+- **Import hardening:** Bound and schema-validate imported forecast files (size, nesting, arrays, features, strings, and coordinates) before any state mutation, with supported geometry types and finite coordinates enforced at every import entry point.
 - **Auto-categorical integrity:** Prevent silent geometry loss during categorical derivation by replacing partial union/hatching fallbacks with explicit failures that preserve the last known-good result and surface an editor-visible recovery banner.
 - **Monitoring and data products:** Stabilize radar/satellite refresh, alert and storm-report display, cached TSTM readiness, and source metadata handling.
 - **Hosted safety:** Harden Firestore authorization, premium entitlement writes, Stripe replay handling, account deletion races, deployment configuration validation, and rate limits.
+- **Map reliability:** Vendor runtime boundary datasets (US states, countries, lakes) under `public/geodata` with pinned checksums and single-source routing so mutable upstream branch URLs can no longer alter the product without a release.
 - **Error reporting:** Filter known browser telemetry noise while preserving actionable application errors, including `TypeError: Failed to fetch` promise-rejection noise from the Firestore realtime transport (GFC-WEB-Q).
+- **Deployment safety:** Fail production, beta, and staging deployments when Sentry sourcemap publication is configured but cannot be verified against the Sentry API, and delete local maps only after confirmed success so failed uploads retain recovery artifacts.
 - **Build and tooling:** Fix pre-existing TypeScript errors in the outlook constraints and outlook panel probability utilities so `pnpm typecheck` passes on `main`.
 - **Accessibility and polish:** Improve toolbar organization, responsive controls, package dialogs, custom-product editing, and forecast map controls.
 - **Status schema hardening:** Make public capability/status responses explicit allowlisted DTOs with schema-snapshot tests that fail on accidental field additions, and document which fields are monitoring-safe versus authenticated diagnostics.
+- **Dialog accessibility:** Consolidate custom dialogs on one hardened focus-trap behavior (trapped Tab/Shift+Tab, initial focus, focus restore, Escape, background isolation), associate discussion validity/forecaster fields with accessible labels, and add primary `h1` landmarks to forecast, verification, and monitor routes.
 - **Same-day verification:** Route current-day SPC storm reports to the live `today.csv` feed instead of the not-yet-published dated archive, so in-event grading no longer fails for forecasts dated today.
 
 #### Security and operations
 
 - Use immutable action references, protected reviewer gates, shell-safe branch handling, frozen dependency installs, pinned deployment host keys, concurrency controls, and explicit release validation.
+
+#### Performance
+
+- **Cloud library efficiency:** Store forecast payloads in a dedicated `cloudCycles/{id}/payload` subcollection so library listings and realtime subscriptions never download payload content, and replace the tenancy-wide Firestore storage scan with bounded server-side aggregate queries.
 
 ### Stable 1.6.x hotfixes
 

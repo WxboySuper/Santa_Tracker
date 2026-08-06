@@ -1,4 +1,5 @@
 import React from 'react';
+import { useModalFocusTrap } from '../../hooks/useModalFocusTrap';
 import './CompletionHandoff.css';
 
 interface CompletionHandoffProps {
@@ -23,9 +24,10 @@ export const CompletionHandoff: React.FC<CompletionHandoffProps> = ({
   onReturnToMap,
   onDismiss,
 }) => {
+  const { setModalRef } = useModalFocusTrap({ active: open, onClose: onDismiss });
   if (!open) return null;
   return (
-    <div className="completion-handoff" role="dialog" aria-modal="true" aria-labelledby="completion-handoff-title" aria-describedby="completion-handoff-description">
+    <div className="completion-handoff" role="dialog" aria-modal="true" aria-labelledby="completion-handoff-title" aria-describedby="completion-handoff-description" ref={setModalRef}>
       <div>
         <h2 id="completion-handoff-title">Workflow complete</h2>
         <p id="completion-handoff-description">

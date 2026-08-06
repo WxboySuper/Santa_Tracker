@@ -189,6 +189,14 @@ jobs:
           SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
           CI: false
 
+      - name: Verify Sentry sourcemap publication (production)
+        if: steps.manifest.outputs.skip != 'true'
+        run: node scripts/verify-sentry-sourcemaps.mjs
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
+          SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
+
       - name: Build staging preview frontend (beta access gate)
         if: steps.manifest.outputs.skip != 'true' && steps.manifest.outputs.action == 'stage'
         run: |
@@ -211,6 +219,14 @@ jobs:
           SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
           SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
           CI: false
+
+      - name: Verify Sentry sourcemap publication (staging preview)
+        if: steps.manifest.outputs.skip != 'true' && steps.manifest.outputs.action == 'stage'
+        run: node scripts/verify-sentry-sourcemaps.mjs build-staging
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
+          SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
 
       - name: Write derived live alert banner
         if: steps.manifest.outputs.skip != 'true' && steps.manifest.outputs.action == 'stage'
