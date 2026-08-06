@@ -9,6 +9,17 @@
   pointer-events: none;
 }
 
+/* On phones and compact landscapes, keep toasts above the forecast toolbar
+   safe area so they never obscure the editor's primary controls. */
+@media (max-width: 640px), (max-height: 500px) and (orientation: landscape) {
+  .toast-container {
+    right: 12px;
+    left: 12px;
+    bottom: calc(88px + env(safe-area-inset-bottom, 0px));
+    align-items: center;
+  }
+}
+
 .toast {
   padding: 12px 20px;
   border-radius: 4px;

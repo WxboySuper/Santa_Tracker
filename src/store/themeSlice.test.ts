@@ -16,29 +16,25 @@ describe('themeSlice', () => {
     jest.resetModules();
   });
 
-  test('initializes from localStorage and applies the dark class', async () => {
-    localStorage.setItem('darkMode', 'true');
-
+  test('starts with a deterministic default state and applies no DOM side effects', async () => {
     const themeModule = await loadSlice();
     const reducer = themeModule.default;
 
-    expect(reducer(undefined, { type: 'unknown' })).toEqual({ darkMode: true });
-    expect(document.documentElement).toHaveClass('dark-mode');
+    expect(reducer(undefined, { type: 'unknown' })).toEqual({ darkMode: false });
+    expect(document.documentElement).not.toHaveClass('dark-mode');
   });
 
-  test('toggles and sets dark mode while syncing localStorage and document class', async () => {
+  test('toggleDarkMode and setDarkMode are pure state transitions', async () => {
     const themeModule = await loadSlice();
     const reducer = themeModule.default;
     const { setDarkMode, toggleDarkMode } = themeModule;
 
     const toggled = reducer(undefined, toggleDarkMode());
     expect(toggled.darkMode).toBe(true);
-    expect(localStorage.getItem('darkMode')).toBe('true');
-    expect(document.documentElement).toHaveClass('dark-mode');
+    expect(localStorage.getItem('darkMode')).toBeNull();
 
     const light = reducer(toggled, setDarkMode(false));
     expect(light.darkMode).toBe(false);
-    expect(localStorage.getItem('darkMode')).toBe('false');
-    expect(document.documentElement).not.toHaveClass('dark-mode');
+    expect(localStorage.getItem('darkMode')).toBeNull();
   });
 });

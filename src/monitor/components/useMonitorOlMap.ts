@@ -3,7 +3,7 @@ import { useSelector } from 'react-redux';
 import type { StormReport } from '../../types/stormReports';
 import type { NwsAlertFeatureCollection } from '../nwsAlerts';
 import type { NwsAlertDetails } from '../nwsAlertDetails';
-import { hideOverlay } from '../../components/Map/OpenLayersForecastMap';
+import { hideOverlay } from '../../components/Map/openLayersMapStyles';
 import type { RootState } from '../../store';
 import type { MonitorMapView } from '../types';
 import type { WmsLayerConfig } from '../wms';
