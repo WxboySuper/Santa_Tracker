@@ -32,5 +32,7 @@ jobs:
       - name: Update CI labels from all check runs on PR head
         env:
           GITHUB_TOKEN: ${{ github.token }}
-          PR_NUMBER: ${{ github.event.workflow_run.pull_requests[0].number }}
-        run: node scripts/sync-pr-ci-label.mjs
+          PRS_JSON: ${{ toJSON(github.event.workflow_run.pull_requests) }}
+        run: |
+          PR_NUMBERS="$(printf '%s' "$PRS_JSON" | jq -r '.[].number' | paste -sd, -)"
+          PR_NUMBERS="$PR_NUMBERS" node scripts/sync-pr-ci-label.mjs
