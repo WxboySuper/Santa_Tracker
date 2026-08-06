@@ -38,7 +38,7 @@ const profile = (overrides = {}) => ({
   ...overrides,
 });
 
-/** Build a valid hosted cloud-cycle document. */
+/** Build a valid hosted cloud-cycle metadata document (payload lives in the payload subcollection). */
 const cloudCycle = (overrides = {}) => ({
   id: 'cycle-1',
   userId: ALICE,
@@ -50,6 +50,12 @@ const cloudCycle = (overrides = {}) => ({
   totalOutlooks: 1,
   totalFeatures: 1,
   isReadOnly: false,
+  payloadBytes: 2,
+  ...overrides,
+});
+
+/** Build a valid hosted cloud-cycle payload subcollection document. */
+const cloudCyclePayload = (overrides = {}) => ({
   payloadJson: '{}',
   payloadBytes: 2,
   ...overrides,
@@ -425,7 +431,7 @@ describe('cloudCycles entitlement boundary', () => {
 
     await assertFails(updateDoc(ref, { userId: BOB }));
     await assertFails(updateDoc(ref, { internalRole: 'admin' }));
-    await assertFails(updateDoc(ref, { payloadJson: 'x'.repeat(750001) }));
+    await assertFails(updateDoc(ref, { payloadBytes: -1 }));
   });
 
   test('rejects malformed and oversized documents for active owners', async () => {
@@ -443,15 +449,58 @@ describe('cloudCycles entitlement boundary', () => {
     await assertFails(
       setDoc(
         doc(dbFor(ALICE), 'cloudCycles', 'cycle-1'),
-        cloudCycle({ payloadJson: 'x'.repeat(750001), payloadBytes: 750001 })
+        cloudCycle({ payloadBytes: -1 })
       )
     );
     await assertFails(
       setDoc(
         doc(dbFor(ALICE), 'cloudCycles', 'cycle-1'),
-        cloudCycle({ payloadJson: '€'.repeat(250001), payloadBytes: 250001 })
+        { ...cloudCycle(), payloadJson: '{}' }
       )
     );
+  });
+
+  test('enforces premium and ownership on the payload subcollection', async () => {
+    await seed(async (db) => {
+      await setEntitlement(db, ALICE, true);
+      await setDoc(doc(db, 'cloudCycles', 'cycle-1'), cloudCycle());
+    });
+    const payloadRef = doc(dbFor(ALICE), 'cloudCycles', 'cycle-1', 'payload', 'payload');
+
+    await assertSucceeds(setDoc(payloadRef, cloudCyclePayload()));
+    await assertSucceeds(updateDoc(payloadRef, { payloadJson: '{"a":1}', payloadBytes: 7 }));
+    await assertFails(
+      setDoc(payloadRef, cloudCyclePayload({ payloadJson: 'x'.repeat(750001), payloadBytes: 750001 }))
+    );
+    await assertFails(
+      setDoc(payloadRef, cloudCyclePayload({ payloadJson: '{}', payloadBytes: 2, extra: true }))
+    );
+  });
+
+  test('lets a downgraded owner read but not write the payload subcollection', async () => {
+    await seed(async (db) => {
+      await setEntitlement(db, ALICE, false);
+      await setDoc(doc(db, 'cloudCycles', 'cycle-1'), cloudCycle());
+      await setDoc(doc(db, 'cloudCycles', 'cycle-1', 'payload', 'payload'), cloudCyclePayload());
+    });
+    const payloadRef = doc(dbFor(ALICE), 'cloudCycles', 'cycle-1', 'payload', 'payload');
+
+    await assertSucceeds(getDoc(payloadRef));
+    await assertFails(setDoc(payloadRef, cloudCyclePayload({ payloadJson: '{}', payloadBytes: 3 })));
+  });
+
+  test('rejects anonymous and wrong-owner access to the payload subcollection', async () => {
+    await seed(async (db) => {
+      await setEntitlement(db, BOB, true);
+      await setDoc(doc(db, 'cloudCycles', 'cycle-1'), cloudCycle());
+      await setDoc(doc(db, 'cloudCycles', 'cycle-1', 'payload', 'payload'), cloudCyclePayload());
+    });
+    const payloadRef = doc(dbFor(BOB), 'cloudCycles', 'cycle-1', 'payload', 'payload');
+
+    await assertFails(getDoc(doc(anonymousDb(), 'cloudCycles', 'cycle-1', 'payload', 'payload')));
+    await assertFails(getDoc(payloadRef));
+    await assertFails(setDoc(payloadRef, cloudCyclePayload({ payloadJson: '{}', payloadBytes: 4 })));
+    await assertFails(deleteDoc(payloadRef));
   });
 });
 

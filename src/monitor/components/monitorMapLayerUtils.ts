@@ -7,6 +7,7 @@ import XYZ from 'ol/source/XYZ';
 import GeoJSON from 'ol/format/GeoJSON';
 import { Fill, Stroke, Style } from 'ol/style';
 import type { WmsLayerConfig } from '../wms';
+import { getGeoBoundarySource } from '../../config/geoBoundarySources';
 
 export const BASE_LAYER_Z_INDEX = 0;
 export const SATELLITE_LAYER_Z_INDEX = 15;
@@ -18,8 +19,7 @@ export const OUTLOOK_LAYER_Z_INDEX = 1040;
 export const STORM_REPORTS_LAYER_Z_INDEX = 1048;
 export const TOP_VECTOR_REFERENCE_LAYER_Z_INDEX = 1050;
 
-const US_STATES_GEOJSON_URL =
-  'https://raw.githubusercontent.com/PublicaMundi/MappingAPI/master/data/geojson/us-states.json';
+const US_STATES_GEOJSON_URL = getGeoBoundarySource('usStates').url;
 
 let cachedUsStatesGeoJSON: object | null = null;
 

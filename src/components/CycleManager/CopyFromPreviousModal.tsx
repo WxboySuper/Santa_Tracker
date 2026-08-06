@@ -1,9 +1,10 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { selectCurrentDay, copyFeaturesFromPrevious } from '../../store/forecastSlice';
 import { DayType, ForecastCycle } from '../../types/outlooks';
 import { deserializeForecast } from '../../utils/fileUtils';
 import { useAppLayout } from '../Layout/AppLayout';
+import { useModalFocusTrap } from '../../hooks/useModalFocusTrap';
 import './CopyFromPreviousModal.css';
 
 interface CopyFromPreviousModalProps {
@@ -12,57 +13,6 @@ interface CopyFromPreviousModalProps {
 }
 
 const DAYS: DayType[] = [1, 2, 3, 4, 5, 6, 7, 8];
-
-// Accessibility helpers for modals: focusable elements and keyboard handling
-const getFocusableElements = (root: HTMLElement | null): HTMLElement[] => {
-  if (!root) return [];
-  return Array.from(root.querySelectorAll<HTMLElement>(
-    'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
-  )).filter(el => {
-    const style = window.getComputedStyle(el);
-    return style.display !== 'none' && style.visibility !== 'hidden';
-  });
-};
-
-// Returns true when Shift+Tab should wrap focus back to the last element.
-const shouldWrapBackward = (focusable: HTMLElement[], isInModal: boolean): boolean =>
-  !isInModal || document.activeElement === focusable[0];
-
-// Returns true when Tab should wrap focus forward to the first element.
-const shouldWrapForward = (focusable: HTMLElement[], isInModal: boolean): boolean =>
-  !isInModal || document.activeElement === focusable[focusable.length - 1];
-
-// Separate function to handle tab navigation for better readability and maintainability. It checks if the currently focused element is the first or last focusable element in the modal and cycles focus accordingly when the Tab key is pressed, ensuring that keyboard users can navigate through the modal without losing focus outside of it.
-const handleTabNavigation = (event: KeyboardEvent, modalRef: React.RefObject<HTMLDivElement | null>) => {
-  if (!modalRef.current) return;
-  const focusable = getFocusableElements(modalRef.current);
-  if (focusable.length === 0) return;
-  const isInModal = focusable.includes(document.activeElement as HTMLElement);
-
-  if (event.shiftKey && shouldWrapBackward(focusable, isInModal)) {
-    event.preventDefault();
-    focusable[focusable.length - 1].focus();
-  } else if (!event.shiftKey && shouldWrapForward(focusable, isInModal)) {
-    event.preventDefault();
-    focusable[0].focus();
-  }
-};
-
-// Handler for keyboard events in the modal, which implements focus trapping and allows closing the modal with the Escape key. It checks for Tab key presses to cycle focus within the modal and ensures that focus does not escape to elements outside the modal while it is open. It also listens for the Escape key to trigger the onClose function, allowing users to easily close the modal using the keyboard. This enhances accessibility for users who rely on keyboard navigation.
-const handleModalKeyDown = (
-  event: KeyboardEvent,
-  modalRef: React.RefObject<HTMLDivElement | null>,
-  onClose: () => void
-) => {
-  if (event.key === 'Escape') {
-    onClose();
-    return;
-  }
-
-  if (event.key === 'Tab') {
-    handleTabNavigation(event, modalRef);
-  }
-};
 
 // Read a file as text (Promise wrapper) and deserialize into ForecastCycle
 const readFileAsText = (file: File): Promise<string> =>
@@ -204,30 +154,12 @@ const CopyFromPreviousModal: React.FC<CopyFromPreviousModalProps> = ({ isOpen, o
   const { addToast } = useAppLayout();
   const currentDay = useSelector(selectCurrentDay);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const modalRef = useRef<HTMLDivElement>(null);
+  const { setModalRef } = useModalFocusTrap({ active: isOpen, onClose });
 
   const [loadedCycle, setLoadedCycle] = useState<ForecastCycle | null>(null);
   const [loadedFileName, setLoadedFileName] = useState<string>('');
   const [sourceDay, setSourceDay] = useState<DayType>(1);
   const [targetDay, setTargetDay] = useState<DayType>(currentDay);
-
-  useEffect(() => {
-    if (!isOpen) return;
-
-    /** Keyboard event handler that traps focus and allows Escape to close the modal. */
-    const handler = (event: KeyboardEvent) => handleModalKeyDown(event, modalRef, onClose);
-
-    window.addEventListener('keydown', handler);
-    return () => {
-      window.removeEventListener('keydown', handler);
-    };
-  }, [isOpen, onClose]);
-
-  useEffect(() => {
-    if (!isOpen || !modalRef.current) return;
-    const first = getFocusableElements(modalRef.current)[0];
-    first?.focus();
-  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -283,7 +215,7 @@ const CopyFromPreviousModal: React.FC<CopyFromPreviousModalProps> = ({ isOpen, o
         role="dialog"
         aria-modal="true"
         aria-labelledby="copy-previous-title"
-        ref={modalRef}
+        ref={setModalRef}
       >
         <CopyModalHeader onClose={onClose} />
         <div className="copy-modal-body">

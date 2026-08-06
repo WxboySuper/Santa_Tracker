@@ -36,8 +36,12 @@ export default defineConfig(({ mode }) => {
             project: env.SENTRY_PROJECT,
             authToken: env.SENTRY_AUTH_TOKEN,
             release: { name: releaseName },
+            // Local sourcemaps are deliberately NOT deleted here. The
+            // verify-sentry-sourcemaps script confirms publication against the
+            // Sentry API first, then deletes maps only on verified success so a
+            // failed upload preserves recovery artifacts and fails the deploy.
             sourcemaps: {
-              filesToDeleteAfterUpload: ['**/*.map'],
+              assets: ['**/*.js', '**/*.map'],
             },
           }),
         ]
