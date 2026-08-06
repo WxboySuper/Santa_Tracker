@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import './PrivacyPolicyModal.css';
+import { useModalFocusTrap } from '../../hooks/useModalFocusTrap';
 import { isProductAnalyticsEnabled, setProductAnalyticsEnabled, trackProductPageView } from '../../lib/productAnalytics';
 
 // Bump this version string whenever the Privacy Policy changes materially.
@@ -316,6 +317,7 @@ const PrivacyPolicyHeader: React.FC<{ viewOnly: boolean; onClose?: () => void }>
 /** Displays the GFC Privacy Policy in either acceptance or read-only mode. */
 const PrivacyPolicyModal: React.FC<PrivacyPolicyModalProps> = ({ onAccept, viewOnly = false, onClose }) => {
   const [checked, setChecked] = useState(false);
+  const { setModalRef } = useModalFocusTrap({ active: true, onClose: viewOnly ? onClose : undefined });
 
   /** Accepts the current policy version and lets the user continue into the app. */
   const handleAccept = () => {
@@ -335,7 +337,7 @@ const PrivacyPolicyModal: React.FC<PrivacyPolicyModalProps> = ({ onAccept, viewO
   };
 
   return (
-    <div className="privacy-backdrop" role="dialog" aria-modal="true" aria-labelledby="privacy-title">
+    <div className="privacy-backdrop" role="dialog" aria-modal="true" aria-labelledby="privacy-title" ref={setModalRef}>
       <div className="privacy-modal">
         <PrivacyPolicyHeader viewOnly={viewOnly} onClose={onClose} />
         <div className="privacy-modal-body">

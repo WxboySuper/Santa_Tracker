@@ -20,6 +20,7 @@ import GeoJSON from "ol/format/GeoJSON";
 import { fromLonLat } from "ol/proj";
 import { RootState } from "../../store";
 import { selectVerificationOutlooksForDay } from "../../store/verificationSlice";
+import { getGeoBoundarySource } from "../../config/geoBoundarySources";
 import { setBaseMapStyle } from "../../store/overlaysSlice";
 import type { BaseMapStyle } from "../../store/overlaysSlice";
 import { computeZIndex, getFeatureStyle } from "../../utils/mapStyleUtils";
@@ -718,8 +719,11 @@ const OpenLayersVerificationMap = forwardRef<
         let geoData = cachedUsStatesGeoJSONVerif;
         if (!geoData) {
           const res = await fetch(
-            "https://raw.githubusercontent.com/PublicaMundi/MappingAPI/master/data/geojson/us-states.json",
+            getGeoBoundarySource("usStates").url,
           );
+          if (!res.ok) {
+            throw new Error(`Failed to load US states boundaries: HTTP ${res.status}`);
+          }
           geoData = await res.json();
           cachedUsStatesGeoJSONVerif = geoData;
         }
