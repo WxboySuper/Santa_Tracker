@@ -4,6 +4,7 @@ import {
   type OneOffCustomLayer,
 } from '../types/customProducts';
 import type { ForecastState } from './forecastSlice';
+import { readActionTimestamp } from './timestampMiddleware';
 import { canMoveCustomItem, cloneCustomValue, getCurrentCustomLayers, normalizeCustomOrder, touchCustomLayer } from './customLayerReducerUtils';
 
 /** Builds the custom-layer reducer group while reusing forecast day history. */
@@ -39,7 +40,7 @@ export const createCustomLayerReducers = (pushUndoSnapshot: (state: ForecastStat
     if (!layer || !action.payload.label.trim()) return;
     pushUndoSnapshot(state);
     layer.label = action.payload.label.trim().slice(0, 64);
-    touchCustomLayer(layer);
+    touchCustomLayer(layer, readActionTimestamp(action));
     state.isSaved = false;
   },
 

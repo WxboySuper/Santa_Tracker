@@ -27,6 +27,7 @@ Work toward the next major release continues in the beta channel while the final
 - **Build and test tooling:** Upgrade to TypeScript 7, modernize the Jest/Babel toolchain, add production/test type checks, expand E2E coverage, and align dependency lockfiles.
 - **Deployment configuration:** Separate beta, staging, and production feature configuration and make release publication the only automatic deployment trigger.
 - **Maintenance dependencies:** Keep frontend, server, test, and build dependencies current through regular automated updates.
+- **Pricing copy:** Consolidate the free/premium boundary into one shared copy contract used by Pricing, Account, and Cloud Library, and remove repeated explanatory sentences and duplicated plan-card summaries.
 
 #### Fixed
 
@@ -39,14 +40,27 @@ Work toward the next major release continues in the beta channel while the final
 - **Error reporting:** Filter known browser telemetry noise while preserving actionable application errors, including `TypeError: Failed to fetch` promise-rejection noise from the Firestore realtime transport (GFC-WEB-Q).
 - **Deployment safety:** Fail production, beta, and staging deployments when Sentry sourcemap publication is configured but cannot be verified against the Sentry API, and delete local maps only after confirmed success so failed uploads retain recovery artifacts.
 - **Build and tooling:** Fix pre-existing TypeScript errors in the outlook constraints and outlook panel probability utilities so `pnpm typecheck` passes on `main`.
+- **Tooling:** Split application and tooling TypeScript configs so `typecheck` runs cleanly from a fresh checkout, add a coverage summary and dependency-audit gate to CI, remove blanket coverage exclusions for covered map and hosted-cloud files, and document the coverage-exclusion inventory.
 - **Accessibility and polish:** Improve toolbar organization, responsive controls, package dialogs, custom-product editing, and forecast map controls.
 - **License compliance:** Define an allowed/review-required/prohibited dependency-license policy, generate a reproducible `THIRD_PARTY_NOTICES.md` from root, server, and Python dependencies, and enforce it in CI.
+- **Status schema hardening:** Make public capability/status responses explicit allowlisted DTOs with schema-snapshot tests that fail on accidental field additions, and document which fields are monitoring-safe versus authenticated diagnostics.
+- **Editor responsiveness:** Move auto-categorical geometry derivation behind a cancellable Web Worker with request/version tracking so stale responses cannot overwrite newer edits, the editor stays responsive during expensive geometry work, and the last known-good result is preserved on failure or timeout.
+- **Bundle size:** Lazy-load heavy feature routes so the application shell loads independently from the map/editor and secondary workflow chunks, split vendor families into separate chunks, and enforce an entry-chunk budget in CI.
+- **Session restore:** Make restore idempotent by keying it to the user scope so React Strict Mode and remounts cannot reapply the same payload or fire duplicate notifications, bound the toast queue, keep mobile toasts clear of the forecast toolbar, and preserve live-region semantics.
+- **Discussion editing:** Introduce a local `datetime-local` formatter/parser pair so validity times are displayed and persisted in the user's local wall-clock time instead of being shifted through UTC.
 - **Dialog accessibility:** Consolidate custom dialogs on one hardened focus-trap behavior (trapped Tab/Shift+Tab, initial focus, focus restore, Escape, background isolation), associate discussion validity/forecaster fields with accessible labels, and add primary `h1` landmarks to forecast, verification, and monitor routes.
 - **Same-day verification:** Route current-day SPC storm reports to the live `today.csv` feed instead of the not-yet-published dated archive, so in-event grading no longer fails for forecasts dated today.
+- **Selector stability:** Return shared immutable empty outlook data from forecast selectors so repeated selection against unchanged state yields the same reference and avoids avoidable renders and selector-stability warnings.
+- **Previous-day verification:** Route the previous calendar day's SPC storm reports to the live `yesterday.csv` feed, closing the same publication-window gap for forecasts dated the day before today.
 
 #### Security and operations
 
 - Use immutable action references, protected reviewer gates, shell-safe branch handling, frozen dependency installs, pinned deployment host keys, concurrency controls, and explicit release validation.
+
+#### Architecture
+
+- **Deterministic Redux transitions:** Remove clock, storage, and DOM reads from forecast/theme/custom-product reducers. Timestamps are stamped onto action meta by a store middleware, and theme/workflow-active persistence moved into store subscriptions. Replaying the same action sequence from the same state now produces deeply equal output.
+- **Forecast map styling seam:** Extract the pure OpenLayers styling, feature identity, and base-map source helpers out of `OpenLayersForecastMap.tsx` into `src/components/Map/openLayersMapStyles.ts`, with focused unit tests and documented ownership/dependency direction.
 
 #### Performance
 

@@ -24,6 +24,7 @@ import {
 import { Input } from "../components/ui/input";
 import { useAuth } from "../auth/AuthProvider";
 import { useEntitlement } from "../billing/EntitlementProvider";
+import { PRICING_COPY } from "../billing/pricingCopy";
 import { useUserMetrics } from "../metrics/useUserMetrics";
 import { useWorkflowAwareness } from "../hooks/useWorkflowAwarenessSync";
 import type { RootState } from "../store";
@@ -115,7 +116,7 @@ const getBillingSupportCopy = (
   }
 
   if (!premiumActive) {
-    return "If premium lapses later, cloud writes and background sync will be disabled while local work remains fully available.";
+    return PRICING_COPY.downgradeSummary;
   }
 
   if (annualPromoActive) {

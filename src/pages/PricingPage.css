@@ -252,21 +252,6 @@
   flex-shrink: 0;
 }
 
-.pricing-plan-note {
-  padding: 1.35rem 1.4rem;
-  border: 1px solid var(--border-color);
-  border-radius: 1.25rem;
-  background: var(--bg-secondary);
-  font-size: 0.98rem;
-  line-height: 1.8;
-  color: var(--text-secondary);
-}
-
-.pricing-plan-note-highlighted {
-  background: color-mix(in srgb, var(--button-bg) 7%, var(--bg-primary));
-  border-color: color-mix(in srgb, var(--button-bg) 30%, var(--border-color));
-}
-
 .pricing-plan-cta {
   margin-top: auto;
 }

@@ -97,7 +97,7 @@ describe('PricingPage', () => {
     );
 
     expect(screen.getByText(/Current: Monthly/i)).toBeInTheDocument();
-    expect(screen.getAllByText(/You are currently on Premium Monthly/i)).toHaveLength(2);
+    expect(screen.getByText(/You are currently on Premium Monthly/i)).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /View Billing Details/i })).toBeInTheDocument();
   });
 });
