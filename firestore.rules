@@ -389,12 +389,12 @@ service cloud.firestore {
         data.keys().hasOnly([
           'id', 'userId', 'label', 'cycleDate', 'createdAt', 'updatedAt',
           'forecastDays', 'totalOutlooks', 'totalFeatures', 'isReadOnly',
-          'payloadHash', 'payloadJson', 'payloadBytes', 'workflowMetadata'
+          'payloadHash', 'payloadBytes', 'workflowMetadata'
         ]) &&
         data.keys().hasAll([
           'id', 'userId', 'label', 'cycleDate', 'createdAt', 'updatedAt',
           'forecastDays', 'totalOutlooks', 'totalFeatures', 'isReadOnly',
-          'payloadJson', 'payloadBytes'
+          'payloadBytes'
         ]) &&
         data.id == cycleId &&
         data.id is string && data.id.size() > 0 && data.id.size() <= 128 &&
@@ -407,13 +407,19 @@ service cloud.firestore {
         data.totalOutlooks is int && data.totalOutlooks >= 0 && data.totalOutlooks <= 100000 &&
         data.totalFeatures is int && data.totalFeatures >= 0 && data.totalFeatures <= 100000 &&
         data.isReadOnly is bool &&
-        data.payloadJson is string && data.payloadJson.toUtf8().size() <= 750000 &&
-        data.payloadBytes is int && data.payloadBytes == data.payloadJson.toUtf8().size() &&
+        data.payloadBytes is int && data.payloadBytes >= 0 &&
         (!('payloadHash' in data) ||
           (data.payloadHash is string && data.payloadHash.size() <= 128)) &&
         (!('workflowMetadata' in data) ||
           (isValidWorkflowMetadata(data.workflowMetadata) &&
             data.workflowMetadata.cycleDate == data.cycleDate));
+    }
+
+    function isValidCloudCyclePayload(data) {
+      return data is map &&
+        data.keys().hasOnly(['payloadJson', 'payloadBytes']) &&
+        data.payloadJson is string && data.payloadJson.toUtf8().size() <= 750000 &&
+        data.payloadBytes is int && data.payloadBytes == data.payloadJson.toUtf8().size();
     }
 
     match /userProfiles/{userId} {
@@ -482,6 +488,17 @@ service cloud.firestore {
         request.resource.data.userId == resource.data.userId &&
         isValidCloudCycle(request.resource.data, cycleId);
       allow delete: if isSignedIn() && resource.data.userId == request.auth.uid;
+
+      match /payload/{payloadId} {
+        allow read: if isSignedIn() &&
+          get(/databases/$(database)/documents/cloudCycles/$(cycleId)).data.userId == request.auth.uid;
+        allow create, update: if hasPremiumAccess() &&
+          get(/databases/$(database)/documents/cloudCycles/$(cycleId)).data.userId == request.auth.uid &&
+          payloadId == 'payload' &&
+          isValidCloudCyclePayload(request.resource.data);
+        allow delete: if isSignedIn() &&
+          get(/databases/$(database)/documents/cloudCycles/$(cycleId)).data.userId == request.auth.uid;
+      }
     }
 
     match /adminDailyMetrics/{documentId} {
