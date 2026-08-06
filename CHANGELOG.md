@@ -35,6 +35,7 @@ Work toward the next major release continues in the beta channel while the final
 - **Auto-categorical integrity:** Prevent silent geometry loss during categorical derivation by replacing partial union/hatching fallbacks with explicit failures that preserve the last known-good result and surface an editor-visible recovery banner.
 - **Monitoring and data products:** Stabilize radar/satellite refresh, alert and storm-report display, cached TSTM readiness, and source metadata handling.
 - **Hosted safety:** Harden Firestore authorization, premium entitlement writes, Stripe replay handling, account deletion races, deployment configuration validation, and rate limits.
+- **Map reliability:** Vendor runtime boundary datasets (US states, countries, lakes) under `public/geodata` with pinned checksums and single-source routing so mutable upstream branch URLs can no longer alter the product without a release.
 - **Error reporting:** Filter known browser telemetry noise while preserving actionable application errors, including `TypeError: Failed to fetch` promise-rejection noise from the Firestore realtime transport (GFC-WEB-Q).
 - **Deployment safety:** Fail production, beta, and staging deployments when Sentry sourcemap publication is configured but cannot be verified against the Sentry API, and delete local maps only after confirmed success so failed uploads retain recovery artifacts.
 - **Build and tooling:** Fix pre-existing TypeScript errors in the outlook constraints and outlook panel probability utilities so `pnpm typecheck` passes on `main`.
