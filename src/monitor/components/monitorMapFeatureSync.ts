@@ -7,7 +7,7 @@ import { fromLonLat } from 'ol/proj';
 import type { StormReport } from '../../types/stormReports';
 import type { NwsAlertFeatureCollection } from '../nwsAlerts';
 import { buildStormReportStyle } from '../stormReportMapStyle';
-import { toOlStyle } from '../../components/Map/OpenLayersForecastMap';
+import { toOlStyle } from '../../components/Map/openLayersMapStyles';
 import { MONITOR_OUTLOOK_TRANSPARENCY_SCALE } from './monitorMapLayerUtils';
 
 export interface SerializedMonitorOutlookFeature {

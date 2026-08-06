@@ -81,6 +81,20 @@ export const isReachedArchiveDate = (reportDate: string, now: Date = new Date())
   return false;
 };
 
+/** Formats a date as the SPC archive YYMMDD key for the local calendar day. */
+const localArchiveKey = (date: Date): string => {
+  const year = String(date.getFullYear()).slice(-2);
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}${month}${day}`;
+};
+
+/** True when the report date parses to the same archive key as the reference day. */
+const isArchiveDateOn = (reportDate: string, date: Date): boolean => {
+  const archiveDate = toArchiveDate(reportDate);
+  return archiveDate !== null && archiveDate === localArchiveKey(date);
+};
+
 /**
  * True when the report date resolves to the current calendar day (local time).
  * SPC serves the current day's reports from today.csv instead of the dated
@@ -88,13 +102,14 @@ export const isReachedArchiveDate = (reportDate: string, now: Date = new Date())
  * callers route same-day requests to the live feed. Returns false for empty,
  * malformed, or non-current dates.
  */
-export const isTodayReportDate = (reportDate: string, now: Date = new Date()): boolean => {
-  const archiveDate = toArchiveDate(reportDate);
-  if (!archiveDate) {
-    return false;
-  }
-  const year = String(now.getFullYear()).slice(-2);
-  const month = String(now.getMonth() + 1).padStart(2, '0');
-  const day = String(now.getDate()).padStart(2, '0');
-  return archiveDate === `${year}${month}${day}`;
-};
+export const isTodayReportDate = (reportDate: string, now: Date = new Date()): boolean =>
+  isArchiveDateOn(reportDate, now);
+
+/**
+ * True when the report date resolves to the previous calendar day (local time).
+ * SPC withholds the dated archive file for the previous day too, serving those
+ * reports from yesterday.csv instead, so callers route them to the live feed.
+ * Returns false for empty, malformed, or non-previous dates.
+ */
+export const isYesterdayReportDate = (reportDate: string, now: Date = new Date()): boolean =>
+  isArchiveDateOn(reportDate, new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1));

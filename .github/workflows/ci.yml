@@ -150,6 +150,9 @@ jobs:
       - name: Typecheck application source
         run: pnpm run typecheck
 
+      - name: Typecheck tooling (Vite config and scripts)
+        run: pnpm run typecheck:tooling
+
       - name: Typecheck regression check for test sources
         run: pnpm run typecheck:test
 
@@ -223,6 +226,39 @@ jobs:
       - name: Run hostile-client Firestore rules tests
         run: pnpm test:firestore-rules
 
+  dependency-maintenance:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24.x'
+          cache: 'pnpm'
+
+      - name: Install root dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Audit root dependencies (pnpm audit)
+        run: |
+          # Enforce high/critical advisories that have an available fix.
+          # Advisories with no patched release (e.g. an upstream-unfixed
+          # transitive brace-expansion finding) are reported but non-blocking so
+          # a known-unfixable issue cannot stall CI while an upstream fix is tracked.
+          node scripts/enforce-dependency-audit.mjs
+
+      - name: Audit analytics server dependencies
+        working-directory: server
+        run: |
+          set -o pipefail
+          npm ci
+          npm audit --audit-level=high 2>&1 | tail -n 40
+
   build-and-test:
     needs: [package-version-policy, pr-governance]
     if: >-
@@ -262,6 +298,11 @@ jobs:
 
       - name: Run tests
         run: pnpm test --silent
+        env:
+          CI: true
+
+      - name: Produce coverage summary
+        run: pnpm run test:coverage -- --silent 2>&1 | tail -n 40
         env:
           CI: true
 
