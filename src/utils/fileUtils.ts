@@ -15,6 +15,9 @@ import { deserializeForecastCycleDays } from './forecastCycleDeserialize';
 import { getWorkflowTemplateById } from '../components/ForecastWorkflow/workflowTemplates';
 import { buildWorkflowExportPackage, isWorkflowExportPackage, type WorkflowExportScope } from './workflowPackage';
 import { isFeatureExposed } from '../config/featureExposure';
+import { validateForecastImport, validateImportFileBytes } from './forecastImportValidation';
+
+export { MAX_IMPORT_BYTES } from './forecastImportValidation';
 
 const CURRENT_VERSION = '1.0.0';
 
@@ -48,6 +51,10 @@ const readForecastJson = async (file: File, bytes?: Uint8Array): Promise<unknown
 /** Reads either a plain forecast JSON file or a GFC workflow ZIP package. */
 export const readForecastImportFile = async (file: File): Promise<unknown> => {
   const bytes = await readFileBytes(file);
+  const byteGate = validateImportFileBytes(bytes);
+  if (!byteGate.ok) {
+    throw new Error(byteGate.reason);
+  }
   if (isFeatureExposed('customProducts') && isZipImport(file, bytes)) return readForecastPackage(file, bytes);
   return readForecastJson(file, bytes);
 };
@@ -230,14 +237,26 @@ export const cloneForecastCycle = (forecastCycle: ForecastCycle): ForecastCycle 
 
 /**
  * Validates that the input data conforms to the GFCForecastSaveData schema.
+ *
+ * The check is bounded and schema-aware: oversized files, excessive nesting,
+ * oversized arrays/strings, unsupported geometry types, and non-finite or
+ * excessive coordinates are rejected before any state mutation. The boolean
+ * return preserves the existing call contract.
  */
 export const validateForecastData = (data: unknown): data is GFCForecastSaveData => {
   if (isWorkflowExportPackage(data)) return validateForecastData(data.forecast);
-  if (typeof data !== 'object' || data === null) return false;
-  const candidate = data as Partial<GFCForecastSaveData>;
+  return validateForecastImport(data).ok;
+};
 
-  // Check valid structure (either new or old)
-  return Boolean(candidate.forecastCycle || candidate.outlooks);
+/**
+ * Validates imported forecast data and returns an actionable failure reason
+ * when it is rejected. Returns null for valid documents, and narrows the input
+ * type so callers can deserialize safely after validation.
+ */
+export const validateForecastDataReason = (data: unknown): string | null => {
+  if (isWorkflowExportPackage(data)) return validateForecastDataReason(data.forecast);
+  const result = validateForecastImport(data);
+  return result.ok ? null : (result.reason ?? 'Invalid forecast data format.');
 };
 
 /**
