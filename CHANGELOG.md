@@ -44,6 +44,7 @@ Work toward the next major release continues in the beta channel while the final
 - **Discussion editing:** Introduce a local `datetime-local` formatter/parser pair so validity times are displayed and persisted in the user's local wall-clock time instead of being shifted through UTC.
 - **Dialog accessibility:** Consolidate custom dialogs on one hardened focus-trap behavior (trapped Tab/Shift+Tab, initial focus, focus restore, Escape, background isolation), associate discussion validity/forecaster fields with accessible labels, and add primary `h1` landmarks to forecast, verification, and monitor routes.
 - **Same-day verification:** Route current-day SPC storm reports to the live `today.csv` feed instead of the not-yet-published dated archive, so in-event grading no longer fails for forecasts dated today.
+- **Previous-day verification:** Route the previous calendar day's SPC storm reports to the live `yesterday.csv` feed, closing the same publication-window gap for forecasts dated the day before today.
 
 #### Security and operations
 
