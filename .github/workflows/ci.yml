@@ -119,7 +119,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Validate release automation unit tests
-        run: node --test scripts/create-github-release.test.mjs scripts/lib/*.test.mjs scripts/lib/license-policy.test.mjs
+        run: node --test scripts/create-github-release.test.mjs scripts/lib/*.test.mjs scripts/lib/license-policy.test.mjs scripts/validate-geo-assets.test.mjs
 
       - name: Validate package version for target branch
         env:
@@ -276,6 +276,9 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+
+      - name: Validate vendored boundary dataset integrity
+        run: node scripts/validate-geo-assets.mjs
 
       - name: Build
         run: pnpm run build

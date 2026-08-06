@@ -2,8 +2,9 @@ import { GFCForecastSaveData } from './outlooks';
 import type { CycleMetadata } from './workflow';
 
 /**
- * Cloud-backed cycle metadata stored in Firestore
- * Exposed separately in app code even though the current Firestore document also stores payloadJson.
+ * Cloud-backed cycle metadata stored in Firestore.
+ * The forecast payload is stored separately in the `cloudCycles/{id}/payload` subcollection
+ * so library listings never download payload content.
  */
 export interface CloudCycleMetadata {
   id: string;
