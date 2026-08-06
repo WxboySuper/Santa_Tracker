@@ -100,7 +100,22 @@ const findAccountDocumentRefs = async (db, uid) => {
   ]);
   const accountDedupeRefs = accountDedupeSnapshot.docs.map((document) => document.ref);
 
-  return [...directRefs, ...cloudSnapshot.docs.map((document) => document.ref), ...accountDedupeRefs, ...nestedSubcollectionRefs];
+  const cloudCycleRefs = cloudSnapshot.docs.map((document) => document.ref);
+  const cloudCyclePayloadRefs = (
+    await Promise.all(
+      cloudSnapshot.docs.map((document) =>
+        db.collection(`cloudCycles/${document.id}/payload`).get()
+      )
+    )
+  ).flatMap((snapshot) => snapshot.docs.map((document) => document.ref));
+
+  return [
+    ...directRefs,
+    ...cloudCycleRefs,
+    ...cloudCyclePayloadRefs,
+    ...accountDedupeRefs,
+    ...nestedSubcollectionRefs,
+  ];
 };
 
 /** Removes all Firestore records that can identify or contain content for this account. */
