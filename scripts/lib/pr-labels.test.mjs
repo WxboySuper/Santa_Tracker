@@ -103,6 +103,15 @@ describe('computePrLabels', () => {
     assert.ok(!labels.includes('changelog:missing'));
   });
 
+  it('prefers changelog:missing over changelog:skip when the check fails', () => {
+    const labels = computePrLabels(makeComputeArgs({
+      changelog: { ok: false, skipped: true },
+    }));
+    assert.ok(labels.includes('changelog:missing'));
+    assert.ok(!labels.includes('changelog:skip'));
+    assert.ok(!labels.includes('changelog:ok'));
+  });
+
   it('includes exposure labels when exposure files are changed', () => {
     const labels = computePrLabels(makeComputeArgs({
       head: 'feature/exposure',

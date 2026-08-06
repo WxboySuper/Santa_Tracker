@@ -2,6 +2,10 @@ name: PR governance
 
 # PR routing labels, descriptive content labels, changelog status, and CI labels.
 # Branch/changelog policy enforcement lives in ci.yml (required status checks).
+# CI labels are additionally settled by pr-ci-label.yml when the CI workflow
+# completes (GitHub Actions' own suites never emit check_suite events). This
+# check_suite path stays for third-party suites, which do emit events, so
+# failures surface early and stragglers that finish after CI are reconciled.
 on:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review, edited]

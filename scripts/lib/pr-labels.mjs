@@ -27,10 +27,12 @@ export const computePrLabels = ({ head, base, changedFiles, mergeable, draft, ch
 
   if (mergeable === false) labels.add('has conflicts');
   if (draft) labels.add('draft');
-  if (changelog.skipped) {
+  if (!changelog.ok) {
+    labels.add('changelog:missing');
+  } else if (changelog.skipped) {
     labels.add('changelog:skip');
   } else {
-    labels.add(changelog.ok ? 'changelog:ok' : 'changelog:missing');
+    labels.add('changelog:ok');
   }
 
   return [...labels].sort();

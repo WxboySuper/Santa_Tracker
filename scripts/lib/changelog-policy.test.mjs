@@ -102,3 +102,14 @@ test('classifies waived and inherited impacts as changelog skips', () => {
   assert.equal(isChangelogSkip('hotfix'), false);
   assert.equal(isChangelogSkip(undefined), false);
 });
+
+test('a waived impact that still modifies the changelog fails the check', () => {
+  const result = evaluateChangelogPolicy({
+    baseRef: 'main',
+    changedFiles: ['CHANGELOG.md'],
+    body: 'Changelog-Impact: none\nChangelog-Reason: workflow-only',
+    changelog: '# Changelog\n',
+  });
+  assert.equal(result.ok, false);
+  assert.equal(result.impact, 'none');
+});

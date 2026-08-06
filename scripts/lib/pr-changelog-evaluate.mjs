@@ -67,5 +67,5 @@ export const evaluatePrChangelog = ({
     changelog: readRefFile(headRef, CHANGELOG_PATH),
     baseChangelog: readRefFile(baseRef, CHANGELOG_PATH),
   });
-  return { ...result, skipped: isChangelogSkip(result.impact) };
+  return { ...result, skipped: result.ok && isChangelogSkip(result.impact) };
 };
