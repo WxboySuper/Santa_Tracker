@@ -1,5 +1,5 @@
 import { act, renderHook } from '@testing-library/react';
-import useDiscussionFormState from './useDiscussionFormState';
+import useDiscussionFormState, { getDiscussionFormDefaults } from './useDiscussionFormState';
 import type { DiscussionData } from '../types/outlooks';
 
 const loadedDiscussion: DiscussionData = {
@@ -37,5 +37,40 @@ describe('useDiscussionFormState', () => {
     expect(result.current.hasUnsavedChanges).toBe(true);
     expect(dispatch).toHaveBeenCalledTimes(1);
     jest.useRealTimers();
+  });
+
+  test('new discussions default to local wall-clock times with a 24-hour window', () => {
+    jest.useFakeTimers();
+    jest.setSystemTime(new Date(2026, 6, 13, 9, 5));
+
+    const defaults = getDiscussionFormDefaults();
+
+    expect(defaults.validStart).toBe('2026-07-13T09:05');
+    // 24 hours later in local wall-clock.
+    expect(defaults.validEnd).toBe('2026-07-14T09:05');
+    jest.useRealTimers();
+  });
+
+  test('existing discussions load with preserved local wall-clock times', () => {
+    const defaults = getDiscussionFormDefaults(loadedDiscussion);
+    expect(defaults.validStart).toBe('2026-07-13T00:00');
+    expect(defaults.validEnd).toBe('2026-07-14T00:00');
+  });
+
+  test('existing discussions stored as UTC timestamps convert to local wall-clock', () => {
+    const utcDiscussion: DiscussionData = {
+      ...loadedDiscussion,
+      validStart: '2026-07-13T12:00:00.000Z',
+      validEnd: '2026-07-14T12:00:00.000Z',
+    };
+    const defaults = getDiscussionFormDefaults(utcDiscussion);
+    const expectedStart = new Date('2026-07-13T12:00:00.000Z');
+    const expectedEnd = new Date('2026-07-14T12:00:00.000Z');
+    expect(defaults.validStart).toBe(
+      `${expectedStart.getFullYear()}-${String(expectedStart.getMonth() + 1).padStart(2, '0')}-${String(expectedStart.getDate()).padStart(2, '0')}T${String(expectedStart.getHours()).padStart(2, '0')}:${String(expectedStart.getMinutes()).padStart(2, '0')}`
+    );
+    expect(defaults.validEnd).toBe(
+      `${expectedEnd.getFullYear()}-${String(expectedEnd.getMonth() + 1).padStart(2, '0')}-${String(expectedEnd.getDate()).padStart(2, '0')}T${String(expectedEnd.getHours()).padStart(2, '0')}:${String(expectedEnd.getMinutes()).padStart(2, '0')}`
+    );
   });
 });
