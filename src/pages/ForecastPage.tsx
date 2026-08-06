@@ -33,7 +33,7 @@ import {
   clearWorkflowMetadata,
 } from '../store/forecastSlice';
 import { OutlookType, Probability, DayType, GFCForecastSaveData } from '../types/outlooks';
-import { deserializeForecast, validateForecastData, exportForecastToJson, serializeForecast } from '../utils/fileUtils';
+import { deserializeForecast, validateForecastData, validateForecastDataReason, exportForecastToJson, serializeForecast, MAX_IMPORT_BYTES } from '../utils/fileUtils';
 import {
   getFirstExposedOutlookType,
   shouldActivateEmergencyMode,
@@ -270,6 +270,11 @@ export const parseLoadedForecast = async (
   file: File,
   addToast: AddToastFn
 ): Promise<LoadedForecastPayload | null> => {
+  if (file.size > MAX_IMPORT_BYTES) {
+    addToast(`File is too large (${(file.size / 1024 / 1024).toFixed(1)} MB); the maximum supported size is ${MAX_IMPORT_BYTES / 1024 / 1024} MB.`, 'error');
+    return null;
+  }
+
   const text = await file.text();
   let data: unknown;
 
@@ -280,8 +285,9 @@ export const parseLoadedForecast = async (
     return null;
   }
 
-  if (!validateForecastData(data)) {
-    addToast('Invalid forecast data format.', 'error');
+  const validationError = validateForecastDataReason(data);
+  if (validationError) {
+    addToast(validationError, 'error');
     return null;
   }
 

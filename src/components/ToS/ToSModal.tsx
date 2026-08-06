@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useModalFocusTrap } from '../../hooks/useModalFocusTrap';
 import './ToSModal.css';
 
 // Bump this version string whenever the ToS changes materially.
@@ -198,6 +199,7 @@ const ToSAcceptanceFooter: React.FC<{
 // Modal component that displays the Terms of Service (ToS) for the Graphical Forecast Creator app. It requires users to read and accept the ToS before using the app, and it can also be used in a view-only mode where users can only read the ToS without accepting. The modal includes sections outlining the unofficial nature of the app, user responsibilities, license terms, limitations of liability, and contact information. It manages state for whether the user has checked the acceptance box and handles acceptance or decline actions accordingly.
 const ToSModal: React.FC<ToSModalProps> = ({ onAccept, viewOnly = false, onClose }) => {
   const [checked, setChecked] = useState(false);
+  const { setModalRef } = useModalFocusTrap({ active: true, onClose: viewOnly ? onClose : undefined });
 
   // Handler for when the user clicks the accept button, which checks if the acceptance checkbox is checked, records the acceptance in localStorage, and calls the onAccept callback to allow the user to proceed into the app. If the checkbox is not checked, it does nothing, preventing acceptance until the user confirms they have read and agreed to the ToS.
   const handleAccept = () => {
@@ -218,7 +220,7 @@ const ToSModal: React.FC<ToSModalProps> = ({ onAccept, viewOnly = false, onClose
   };
 
   return (
-    <div className="tos-backdrop" role="dialog" aria-modal="true" aria-labelledby="tos-title">
+    <div className="tos-backdrop" role="dialog" aria-modal="true" aria-labelledby="tos-title" ref={setModalRef}>
       <div className="tos-modal">
         <div className="tos-modal-header">
           <div className="tos-modal-header-row">

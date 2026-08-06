@@ -25,7 +25,12 @@ export const VerificationPage: React.FC = () => {
     );
   }
 
-  return <VerificationMode />;
+  return (
+    <>
+      <h1 className="sr-only">Forecast Verification</h1>
+      <VerificationMode />
+    </>
+  );
 };
 
 export default VerificationPage;

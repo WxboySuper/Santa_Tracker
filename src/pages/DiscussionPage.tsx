@@ -136,11 +136,12 @@ const MetadataSection: React.FC<{
     <div className="discussion-top-rail">
     <div className="discussion-metadata-grid">
       <div className="space-y-1">
-        <label className="text-sm font-medium text-muted-foreground flex items-center gap-1">
+        <label htmlFor="discussion-valid-start" className="text-sm font-medium text-muted-foreground flex items-center gap-1">
           <Calendar className="h-3 w-3" />
           Valid From
         </label>
         <Input
+          id="discussion-valid-start"
           type="datetime-local"
           value={validStart}
           onChange={handleValidStartInputChange}
@@ -150,11 +151,12 @@ const MetadataSection: React.FC<{
       </div>
 
       <div className="space-y-1">
-        <label className="text-sm font-medium text-muted-foreground flex items-center gap-1">
+        <label htmlFor="discussion-valid-end" className="text-sm font-medium text-muted-foreground flex items-center gap-1">
           <Calendar className="h-3 w-3" />
           Valid To
         </label>
         <Input
+          id="discussion-valid-end"
           type="datetime-local"
           value={validEnd}
           onChange={handleValidEndInputChange}
@@ -164,11 +166,12 @@ const MetadataSection: React.FC<{
       </div>
 
       <div className="space-y-1">
-        <label className="text-sm font-medium text-muted-foreground flex items-center gap-1">
+        <label htmlFor="discussion-forecaster" className="text-sm font-medium text-muted-foreground flex items-center gap-1">
           <User className="h-3 w-3" />
           Forecaster
         </label>
         <Input
+          id="discussion-forecaster"
           type="text"
           value={forecasterName}
           onChange={handleForecasterNameInputChange}
