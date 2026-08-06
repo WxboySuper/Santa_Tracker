@@ -14,6 +14,9 @@ import { NAVBAR_HEIGHT } from '../../lib/uiConstants';
 import { keyboardShortcutKey } from '../../utils/keyboardShortcutKey';
 import { getNavigationKeyboardShortcuts } from '../../config/featureNavigation';
 
+/** Maximum number of toasts kept in the queue; older entries are dropped first. */
+const MAX_TOASTS = 4;
+
 export interface ToastItem {
   id: string;
   message: string;
@@ -50,7 +53,7 @@ export const AppLayout: React.FC = () => {
   // Toast management
   const addToast = useCallback<AddToastFn>((message, type = 'info') => {
     const id = uuidv4();
-    setToasts(prev => [...prev, { id, message, type }]);
+    setToasts(prev => [...prev.slice(-(MAX_TOASTS - 1)), { id, message, type }]);
   }, []);
 
   // Handler to remove a toast by ID, which is passed to the ToastManager component to allow it to dismiss individual toast notifications when they expire or when the user manually dismisses them.
