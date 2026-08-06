@@ -3,12 +3,20 @@
 ## What is checked in
 
 `firestore.rules` is the source of truth for the hosted Firestore rules. The
-client writes `cloudCycles/{cycleId}` documents with these top-level fields:
+client writes `cloudCycles/{cycleId}` metadata documents with these top-level
+fields:
 
 - Required: `id`, `userId`, `label`, `cycleDate`, `createdAt`, `updatedAt`,
-  `forecastDays`, `totalOutlooks`, `totalFeatures`, `isReadOnly`, `payloadJson`,
+  `forecastDays`, `totalOutlooks`, `totalFeatures`, `isReadOnly`,
   `payloadBytes`.
 - Optional: `payloadHash`, `workflowMetadata`.
+
+Forecast payloads are stored separately in the
+`cloudCycles/{cycleId}/payload/payload` subcollection document. That document
+contains exactly `payloadJson` (UTF-8 size capped at 750,000 bytes) and
+`payloadBytes` (equal to the encoded size). This separation keeps library
+listings and subscriptions metadata-only: listing queries download neither the
+payload document nor the embedded payload string.
 
 `workflowMetadata` is optional, but when present it is an exact metadata map.
 Its `outlookVersions` list is at most 32 entries. Each entry can contain only
@@ -65,7 +73,6 @@ valid cloud-cycle document is:
   "totalOutlooks": 1,
   "totalFeatures": 0,
   "isReadOnly": false,
-  "payloadJson": "{}",
   "payloadBytes": 2,
   "workflowMetadata": {
     "id": "WF-severe-day1-2026-07-13",
@@ -78,6 +85,16 @@ valid cloud-cycle document is:
     "createdAt": "2026-07-13T00:00:00.000Z",
     "updatedAt": "2026-07-13T00:00:00.000Z"
   }
+}
+```
+
+The forecast payload is stored separately at
+`cloudCycles/cycle-a/payload/payload`:
+
+```json
+{
+  "payloadJson": "{}",
+  "payloadBytes": 2
 }
 ```
 
@@ -118,6 +135,10 @@ Run the following matrix and record the result before promoting rules:
 | Alice creates with `outlookVersions` containing `payloadJson` or `geometry` | Deny |
 | Alice creates with 33 `outlookVersions` entries | Deny |
 | Alice creates with a top-level unknown field | Deny |
+| Alice creates, reads, updates, or deletes the payload subcollection document | Allow |
+| Alice writes a payload document with a non-`payload` ID | Deny |
+| Alice writes a payload document over the 750,000-byte cap | Deny |
+| Bob reads or writes `cycle-a`'s payload subcollection | Deny |
 | Alice creates, reads, updates, or deletes her awareness document | Allow |
 | Bob reads, updates, or deletes Alice's awareness document | Deny |
 | Alice creates awareness metadata containing `payloadJson`, `geometry`, or another nested unknown field | Deny |

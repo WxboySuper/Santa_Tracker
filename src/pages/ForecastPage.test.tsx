@@ -549,7 +549,7 @@ describe('ForecastPage helpers', () => {
     expect(addToast).toHaveBeenCalledWith('File is not valid JSON.', 'error');
 
     await expect(parseLoadedForecast(makeTextFile(JSON.stringify({ nope: true })), addToast)).resolves.toBeNull();
-    expect(addToast).toHaveBeenCalledWith('Invalid forecast data format.', 'error');
+    expect(addToast).toHaveBeenCalledWith('Forecast file is missing forecastCycle or outlooks data.', 'error');
   });
 
   test('routes keyboard shortcuts through command and standard handlers', () => {

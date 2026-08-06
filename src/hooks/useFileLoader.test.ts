@@ -1,15 +1,17 @@
 import { createFileHandlers } from './useFileLoader';
 import { waitFor } from '@testing-library/react';
-import { deserializeForecast, exportForecastToJson, readForecastImportFile, validateForecastData } from '../utils/fileUtils';
+import { deserializeForecast, exportForecastToJson, readForecastImportFile, validateForecastData, validateForecastDataReason } from '../utils/fileUtils';
 
 jest.mock('../utils/fileUtils', () => ({
   deserializeForecast: jest.fn(),
   exportForecastToJson: jest.fn(),
   readForecastImportFile: jest.fn(),
   validateForecastData: jest.fn(),
+  validateForecastDataReason: jest.fn(),
 }));
 
 const mockValidateForecastData = validateForecastData as jest.MockedFunction<typeof validateForecastData>;
+const mockValidateForecastDataReason = validateForecastDataReason as jest.MockedFunction<typeof validateForecastDataReason>;
 const mockDeserializeForecast = deserializeForecast as jest.MockedFunction<typeof deserializeForecast>;
 const mockExportForecastToJson = exportForecastToJson as jest.MockedFunction<typeof exportForecastToJson>;
 const mockReadForecastImportFile = readForecastImportFile as jest.MockedFunction<typeof readForecastImportFile>;
@@ -24,6 +26,7 @@ describe('createFileHandlers', () => {
     addToast = jest.fn();
     dispatch = jest.fn();
     mockValidateForecastData.mockReturnValue(true);
+    mockValidateForecastDataReason.mockReturnValue(null);
     mockDeserializeForecast.mockReturnValue({ id: 'loaded-cycle' } as never);
     mockReadForecastImportFile.mockImplementation(async (file) => JSON.parse(await file.text()) as unknown);
   });
@@ -39,7 +42,7 @@ describe('createFileHandlers', () => {
 
     await handlers.handleLoad(file);
 
-    expect(mockValidateForecastData).toHaveBeenCalledWith({ version: 1 });
+    expect(mockValidateForecastDataReason).toHaveBeenCalledWith({ version: 1 });
     expect(mockDeserializeForecast).toHaveBeenCalledWith({ version: 1 });
     expect(dispatch).toHaveBeenCalledWith(expect.objectContaining({
       type: 'forecast/importForecastCycle',
@@ -54,7 +57,7 @@ describe('createFileHandlers', () => {
     await handlers.handleLoad(createTextFile('{nope'));
     expect(addToast).toHaveBeenLastCalledWith('File is not valid JSON.', 'error');
 
-    mockValidateForecastData.mockReturnValue(false);
+    mockValidateForecastDataReason.mockReturnValueOnce('Invalid forecast data format.');
     await handlers.handleLoad(createTextFile('{}'));
     expect(addToast).toHaveBeenLastCalledWith('Invalid forecast data format.', 'error');
 
