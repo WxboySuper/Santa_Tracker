@@ -40,6 +40,7 @@ Work toward the next major release continues in the beta channel while the final
 - **Deployment safety:** Fail production, beta, and staging deployments when Sentry sourcemap publication is configured but cannot be verified against the Sentry API, and delete local maps only after confirmed success so failed uploads retain recovery artifacts.
 - **Build and tooling:** Fix pre-existing TypeScript errors in the outlook constraints and outlook panel probability utilities so `pnpm typecheck` passes on `main`.
 - **Accessibility and polish:** Improve toolbar organization, responsive controls, package dialogs, custom-product editing, and forecast map controls.
+- **Dialog accessibility:** Consolidate custom dialogs on one hardened focus-trap behavior (trapped Tab/Shift+Tab, initial focus, focus restore, Escape, background isolation), associate discussion validity/forecaster fields with accessible labels, and add primary `h1` landmarks to forecast, verification, and monitor routes.
 - **Same-day verification:** Route current-day SPC storm reports to the live `today.csv` feed instead of the not-yet-published dated archive, so in-event grading no longer fails for forecasts dated today.
 
 #### Security and operations
