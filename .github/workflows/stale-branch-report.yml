@@ -1,4 +1,4 @@
-name: Stale branch report
+name: Maintenance | Stale Branch Report
 
 # Informational maintainer report for drifting feature/fix/research branches.
 # Does not delete branches or block PR checks.

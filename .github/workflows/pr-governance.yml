@@ -1,4 +1,4 @@
-name: PR governance
+name: Checks | PR Governance
 
 # PR routing labels, descriptive content labels, changelog status, and CI labels.
 # Branch/changelog policy enforcement lives in ci.yml (required status checks).

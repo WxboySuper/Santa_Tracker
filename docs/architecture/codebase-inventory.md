@@ -129,7 +129,7 @@ Largest owner/file counts:
 | `server/lib` | 19 |
 | `src/config` | 15 |
 | `src/store` | 13 |
-| `.github/workflows` | 12 |
+| `.github/workflows` | 11 |
 
 Highest cross-owner import edges:
 
@@ -157,7 +157,7 @@ Highest cross-owner import edges:
 | Production frontend bundle | `pnpm run build` |
 | CI policy and checks | `.github/workflows/ci.yml`, `.github/workflows/pr-governance.yml` |
 | Main deployment | `.github/workflows/deploy-main-to-vps.yml` |
-| Release automation | `.github/workflows/release-stable.yml`, `scripts`, `server/release` |
+| Release automation | `.github/workflows/release-beta.yml`, `.github/workflows/release-stable.yml`, `scripts`, `server/release` |
 
 `VITE_BUILD_TARGET` selects `local`, `beta`, `staging`, or `production` and is
 separate from the beta access gate. CI and deployment workflows set the target

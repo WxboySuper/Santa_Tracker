@@ -1,24 +1,18 @@
-name: Create Beta Release
+name: Release | Beta
 
 # Beta releases are intentional snapshots of the next-major main line. Merging
-# into main never creates a release automatically.
+# into main never creates a release automatically; this workflow owns the monotonically increasing beta version and release tag.
 on:
   workflow_dispatch:
     inputs:
-      ref:
-        description: 'Commit, tag, or branch to release (default: main)'
-        required: false
-        default: main
-        type: string
       confirmation:
         description: 'Type RELEASE-BETA to create the prerelease'
         required: true
         type: string
-      previous_tag:
-        description: 'Optional previous beta tag; leave blank to detect it'
-        required: false
-        default: ''
-        type: string
+
+concurrency:
+  group: beta-release
+  cancel-in-progress: false
 
 permissions:
   contents: write
@@ -26,8 +20,9 @@ permissions:
 jobs:
   release:
     runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
     env:
-      RELEASE_REF: ${{ inputs.ref || 'main' }}
       CONFIRMATION: ${{ inputs.confirmation }}
     steps:
       - name: Require explicit confirmation
@@ -37,16 +32,41 @@ jobs:
             exit 1
           fi
 
-      - name: Checkout release ref
+      - name: Checkout main
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
         with:
-          ref: ${{ inputs.ref || 'main' }}
+          ref: main
           fetch-depth: 0
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '24.x'
+
+      - name: Calculate and commit next beta version
+        id: version
+        run: |
+          set -euo pipefail
+          CURRENT=$(node -p "require('./package.json').version")
+          if [[ "$CURRENT" =~ ^([0-9]+\.[0-9]+\.[0-9]+)-beta\.([0-9]+)$ ]]; then
+            BASE="${BASH_REMATCH[1]}"
+          elif [[ "$CURRENT" =~ ^([0-9]+\.[0-9]+\.[0-9]+)$ ]]; then
+            BASE="$CURRENT"
+          else
+            echo "::error::Unsupported main package version: $CURRENT" >&2
+            exit 1
+          fi
+          git fetch --tags --force
+          LAST=$(git tag --list "v${BASE}-beta.*" | sed -E "s/^v${BASE}-beta\.([0-9]+)$/\1/" | sort -n | tail -1)
+          NEXT=$(( ${LAST:-0} + 1 ))
+          VERSION="${BASE}-beta.${NEXT}"
+          npm version "$VERSION" --no-git-tag-version
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add package.json
+          git commit -m "chore(release): prepare ${VERSION}"
+          git push origin HEAD:main
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Validate beta package version
         run: |
@@ -56,7 +76,7 @@ jobs:
             echo "::error::Beta release requires a -beta.N package version, got $VERSION" >&2
             exit 1
           fi
-          echo "Releasing beta version $VERSION from $RELEASE_REF"
+          echo "Releasing beta version $VERSION from main"
 
       - name: Create GitHub prerelease
         env:
@@ -65,6 +85,153 @@ jobs:
           CHANGELOG_FILE: CHANGELOG.md
           CHANGELOG_LANE: next-major
           RELEASE_NOTES_MODE: prs
-          PREVIOUS_TAG: ${{ inputs.previous_tag }}
+          PREVIOUS_TAG: ''
           NOTES_FILE: beta-release-notes.md
-        run: node scripts/create-github-release.mjs "$(node -p "require('./package.json').version")" "$RELEASE_REF"
+        run: node scripts/create-github-release.mjs "${{ steps.version.outputs.version }}" main
+
+  deploy:
+    needs: release
+    concurrency:
+      group: deploy-beta
+      cancel-in-progress: false
+    runs-on: ubuntu-latest
+    env:
+      RSYNC_RSH: ssh -o StrictHostKeyChecking=yes
+
+    steps:
+      - name: Checkout release tag
+        uses: actions/checkout@v4
+        with:
+          ref: v${{ needs.release.outputs.version }}
+
+      - name: Verify beta release tag and package version
+        env:
+          RELEASE_TAG: v${{ needs.release.outputs.version }}
+        run: |
+          set -euo pipefail
+          PKG=$(node -p "require('./package.json').version")
+          if ! printf '%s' "$PKG" | grep -Eq -- '-beta\.[0-9]+$'; then
+            echo "::error::Deploy Beta requires a -beta.N package.json version, got ${PKG}" >&2
+            exit 1
+          fi
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24.x'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Read app version
+        id: app_version
+        run: echo "value=$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
+
+      - name: Build
+        run: pnpm run build
+        env:
+          # Override the homepage so asset paths target the beta domain
+          PUBLIC_URL: https://beta-gfc.weatherboysuper.com
+          VITE_BUILD_TARGET: beta
+          VITE_FIREBASE_API_KEY: ${{ secrets.VITE_FIREBASE_API_KEY }}
+          VITE_FIREBASE_AUTH_DOMAIN: ${{ secrets.VITE_FIREBASE_AUTH_DOMAIN }}
+          VITE_FIREBASE_PROJECT_ID: ${{ secrets.VITE_FIREBASE_PROJECT_ID }}
+          VITE_FIREBASE_APP_ID: ${{ secrets.VITE_FIREBASE_APP_ID }}
+          VITE_BETA_MODE: true
+          VITE_BETA_INVITE_PATH: ${{ secrets.BETA_INVITE_PATH }}
+          VITE_SENTRY_DSN: ${{ secrets.VITE_SENTRY_DSN }}
+          VITE_SENTRY_ENVIRONMENT: beta
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
+          SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
+          # Prevent ESLint warnings from failing the build (arc source-map noise etc.)
+          CI: false
+
+      - name: Setup SSH agent
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.BETA_SSH_KEY }}
+
+      - name: Trust VPS host key
+        env:
+          SSH_HOST: ${{ secrets.BETA_SSH_HOST }}
+          SSH_KNOWN_HOSTS: ${{ secrets.BETA_SSH_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          if [ -n "$SSH_KNOWN_HOSTS" ]; then
+            printf '%s\n' "$SSH_KNOWN_HOSTS" >> ~/.ssh/known_hosts
+          else
+            for attempt in 1 2 3 4 5; do
+              if scan_output=$(ssh-keyscan -T 15 -p 22 -H "$SSH_HOST" 2>/tmp/ssh-keyscan.err) && [ -n "$scan_output" ]; then
+                printf '%s\n' "$scan_output" >> ~/.ssh/known_hosts
+                exit 0
+              fi
+              cat /tmp/ssh-keyscan.err >&2 || true
+              if [ "$attempt" -lt 5 ]; then
+                echo "ssh-keyscan attempt $attempt failed; retrying..." >&2
+                sleep $((attempt * 5))
+              fi
+            done
+            echo "ssh-keyscan failed after 5 attempts" >&2
+            exit 1
+          fi
+
+      - name: Deploy via rsync
+        run: |
+          rsync -avz --delete \
+            build/ root@${{ secrets.BETA_SSH_HOST }}:/var/www/gfc-beta/
+
+      - name: Deploy analytics server via rsync
+        run: |
+          rsync -avz --exclude='node_modules' --exclude='logs' \
+            server/ root@${{ secrets.BETA_SSH_HOST }}:/opt/gfc-beta-analytics/
+
+      - name: Write beta analytics env file
+        run: |
+          cat > beta-server.env <<EOF
+          PORT=3007
+          LOG_DIR=/opt/gfc-beta-analytics/logs
+          APP_BASE_URL=https://beta-gfc.weatherboysuper.com
+          SERVER_TARGET=beta
+          BETA_MODE=true
+          BETA_INVITE_TOKEN=${{ secrets.BETA_INVITE_TOKEN }}
+          BETA_INVITE_PATH=${{ secrets.BETA_INVITE_PATH }}
+          ADMIN_UID_ALLOWLIST=${{ secrets.ADMIN_UID_ALLOWLIST }}
+          METRICS_HASH_SALT=${{ secrets.METRICS_HASH_SALT }}
+          STRIPE_SECRET_KEY=${{ secrets.STRIPE_SECRET_KEY }}
+          STRIPE_WEBHOOK_SECRET=${{ secrets.BETA_STRIPE_WEBHOOK_SECRET }}
+          STRIPE_PRICE_MONTHLY=${{ secrets.STRIPE_PRICE_MONTHLY }}
+          STRIPE_PRICE_ANNUAL_STANDARD=${{ secrets.STRIPE_PRICE_ANNUAL_STANDARD }}
+          STRIPE_PRICE_ANNUAL_PROMO=
+          STRIPE_PROMO_START=
+          STRIPE_PROMO_END=
+          FIREBASE_ADMIN_PROJECT_ID=${{ secrets.FIREBASE_ADMIN_PROJECT_ID }}
+          FIREBASE_ADMIN_CLIENT_EMAIL=${{ secrets.FIREBASE_ADMIN_CLIENT_EMAIL }}
+          FIREBASE_ADMIN_PRIVATE_KEY=${{ secrets.FIREBASE_ADMIN_PRIVATE_KEY }}
+          SENTRY_DSN=${{ secrets.SENTRY_DSN }}
+          SENTRY_BROWSER_DSN=${{ secrets.VITE_SENTRY_DSN }}
+          SENTRY_ENVIRONMENT=beta
+          SENTRY_RELEASE=graphical-forecast-creator@${{ steps.app_version.outputs.value }}
+          EOF
+          node scripts/write-deployment-env.mjs deploy/beta-deployment-config.json >> beta-server.env
+          rsync -avz beta-server.env root@${{ secrets.BETA_SSH_HOST }}:/opt/gfc-beta-analytics/.env
+
+      - name: Install analytics dependencies and restart
+        run: |
+          ssh -o StrictHostKeyChecking=yes root@${{ secrets.BETA_SSH_HOST }} '
+            cd /opt/gfc-beta-analytics
+            npm install --omit=dev --quiet
+            mkdir -p /opt/gfc-beta-analytics/logs
+            if pm2 describe gfc-beta-analytics > /dev/null 2>&1; then
+              pm2 restart gfc-beta-analytics
+            else
+              pm2 start analytics.js --name gfc-beta-analytics
+            fi
+            pm2 save
+          '

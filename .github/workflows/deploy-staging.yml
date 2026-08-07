@@ -1,4 +1,4 @@
-name: Deploy Staging
+name: Deploy | Staging
 
 # Staging is an explicit rehearsal surface for both next-major main changes
 # and stable-line hotfixes. It never runs on push, merge, or release events.

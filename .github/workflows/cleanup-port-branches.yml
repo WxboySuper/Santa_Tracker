@@ -1,4 +1,4 @@
-name: Cleanup Port Branches
+name: Maintenance | Cleanup Port Branches
 
 on:
   pull_request_target:

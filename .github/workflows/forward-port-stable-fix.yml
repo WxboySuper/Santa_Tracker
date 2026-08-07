@@ -1,4 +1,4 @@
-name: Forward-port Stable Fix
+name: Maintenance | Forward-port Stable Fix
 
 # Electron-style: a stable-line merge creates one normal, reviewable PR on the
 # next-major main line. The workflow never merges the port automatically.
