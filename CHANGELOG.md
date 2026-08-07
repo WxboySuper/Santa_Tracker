@@ -44,6 +44,7 @@ Work toward the next major release continues in the beta channel while the final
 - **Discussion editing:** Introduce a local `datetime-local` formatter/parser pair so validity times are displayed and persisted in the user's local wall-clock time instead of being shifted through UTC.
 - **Dialog accessibility:** Consolidate custom dialogs on one hardened focus-trap behavior (trapped Tab/Shift+Tab, initial focus, focus restore, Escape, background isolation), associate discussion validity/forecaster fields with accessible labels, and add primary `h1` landmarks to forecast, verification, and monitor routes.
 - **Same-day verification:** Route current-day SPC storm reports to the live `today.csv` feed instead of the not-yet-published dated archive, so in-event grading no longer fails for forecasts dated today.
+- **Selector stability:** Return shared immutable empty outlook data from forecast selectors so repeated selection against unchanged state yields the same reference and avoids avoidable renders and selector-stability warnings.
 - **Previous-day verification:** Route the previous calendar day's SPC storm reports to the live `yesterday.csv` feed, closing the same publication-window gap for forecasts dated the day before today.
 
 #### Security and operations
@@ -52,6 +53,7 @@ Work toward the next major release continues in the beta channel while the final
 
 #### Architecture
 
+- **Deterministic Redux transitions:** Remove clock, storage, and DOM reads from forecast/theme/custom-product reducers. Timestamps are stamped onto action meta by a store middleware, and theme/workflow-active persistence moved into store subscriptions. Replaying the same action sequence from the same state now produces deeply equal output.
 - **Forecast map styling seam:** Extract the pure OpenLayers styling, feature identity, and base-map source helpers out of `OpenLayersForecastMap.tsx` into `src/components/Map/openLayersMapStyles.ts`, with focused unit tests and documented ownership/dependency direction.
 
 #### Performance
