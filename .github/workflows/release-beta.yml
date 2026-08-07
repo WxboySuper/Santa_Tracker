@@ -106,7 +106,7 @@ jobs:
           ref: v${{ needs.release.outputs.version }}
 
       - name: Apply release version to deployment artifact
-        run: npm version "${{ needs.release.outputs.version }}" --no-git-tag-version
+        run: npm version "${{ needs.release.outputs.version }}" --no-git-tag-version --allow-same-version
 
       - name: Verify beta release tag and package version
         env:
