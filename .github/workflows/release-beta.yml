@@ -37,6 +37,7 @@ jobs:
         with:
           ref: main
           fetch-depth: 0
+          token: ${{ secrets.GH_PAT }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -65,7 +66,7 @@ jobs:
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
           git add package.json
           git commit -m "chore(release): prepare ${VERSION}"
-          git push origin HEAD:main
+          git push --force-with-lease="refs/heads/main:${GITHUB_SHA}" origin HEAD:main
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Validate beta package version
@@ -104,12 +105,19 @@ jobs:
         with:
           ref: v${{ needs.release.outputs.version }}
 
+      - name: Apply release version to deployment artifact
+        run: npm version "${{ needs.release.outputs.version }}" --no-git-tag-version
+
       - name: Verify beta release tag and package version
         env:
           RELEASE_TAG: v${{ needs.release.outputs.version }}
         run: |
           set -euo pipefail
           PKG=$(node -p "require('./package.json').version")
+          if [ "v${PKG}" != "$RELEASE_TAG" ]; then
+            echo "::error::Release artifact version ${PKG} does not match ${RELEASE_TAG}" >&2
+            exit 1
+          fi
           if ! printf '%s' "$PKG" | grep -Eq -- '-beta\.[0-9]+$'; then
             echo "::error::Deploy Beta requires a -beta.N package.json version, got ${PKG}" >&2
             exit 1
