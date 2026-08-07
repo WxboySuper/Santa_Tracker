@@ -20,7 +20,7 @@ import {
   createTileSource,
   hideOverlay,
   ensureBlankLayerLoaded,
-} from './OpenLayersForecastMap';
+} from './openLayersMapStyles';
 
 type OverlayStub = {
   setPosition: (position: unknown) => void;
@@ -88,7 +88,7 @@ describe('OpenLayersForecastMap additional helpers', () => {
 
   test('ensureBlankLayerLoaded fetches, caches and adds features when not loaded', async () => {
     const fakeGeo = { type: 'FeatureCollection', features: [] };
-    global.fetch = jest.fn().mockResolvedValue({ json: () => Promise.resolve(fakeGeo) });
+    global.fetch = jest.fn().mockResolvedValue({ ok: true, json: () => Promise.resolve(fakeGeo) });
 
     const added: unknown[] = [];
     const config: BlankLayerConfigStub = {

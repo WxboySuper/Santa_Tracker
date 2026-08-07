@@ -9,7 +9,7 @@ const makeComputeArgs = (overrides) => ({
   changedFiles: ['src/App.tsx'],
   mergeable: null,
   draft: false,
-  changelogOk: true,
+  changelog: { ok: true, skipped: false },
   ...overrides,
 });
 
@@ -83,6 +83,33 @@ describe('computePrLabels', () => {
     assert.ok(labels.includes('Bug'));
     assert.ok(labels.includes('Component: Map'));
     assert.ok(labels.includes('changelog:ok'));
+  });
+
+  it('labels a missing changelog entry as changelog:missing', () => {
+    const labels = computePrLabels(makeComputeArgs({
+      changelog: { ok: false, skipped: false },
+    }));
+    assert.ok(labels.includes('changelog:missing'));
+    assert.ok(!labels.includes('changelog:ok'));
+    assert.ok(!labels.includes('changelog:skip'));
+  });
+
+  it('labels a waived changelog impact as changelog:skip', () => {
+    const labels = computePrLabels(makeComputeArgs({
+      changelog: { ok: true, skipped: true },
+    }));
+    assert.ok(labels.includes('changelog:skip'));
+    assert.ok(!labels.includes('changelog:ok'));
+    assert.ok(!labels.includes('changelog:missing'));
+  });
+
+  it('prefers changelog:missing over changelog:skip when the check fails', () => {
+    const labels = computePrLabels(makeComputeArgs({
+      changelog: { ok: false, skipped: true },
+    }));
+    assert.ok(labels.includes('changelog:missing'));
+    assert.ok(!labels.includes('changelog:skip'));
+    assert.ok(!labels.includes('changelog:ok'));
   });
 
   it('includes exposure labels when exposure files are changed', () => {

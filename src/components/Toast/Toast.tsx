@@ -39,7 +39,7 @@ const ToastItem: React.FC<{ toast: { id: string; message: string; type?: 'info' 
 
 export const ToastManager: React.FC<ToastManagerProps> = ({ toasts, onDismiss }) => {
   return (
-    <div className="toast-container">
+    <div className="toast-container" role="status" aria-live="polite" aria-atomic="false">
       {toasts.map(toast => (
         <ToastItem key={toast.id} toast={toast} onDismiss={onDismiss} />
       ))}

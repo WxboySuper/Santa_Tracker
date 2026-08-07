@@ -1,4 +1,3 @@
-import React from 'react';
 import { Provider } from 'react-redux';
 import { act, render, waitFor } from '@testing-library/react';
 import { configureStore } from '@reduxjs/toolkit';

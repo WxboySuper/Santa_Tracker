@@ -1,19 +1,11 @@
-import { createSlice } from '@reduxjs/toolkit';
+import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
 
 interface ThemeState {
   darkMode: boolean;
 }
 
-// Initialize dark mode from localStorage
-const isDarkMode = localStorage.getItem('darkMode') === 'true';
-
-// Apply dark mode class immediately on load
-if (isDarkMode) {
-  document.documentElement.classList.add('dark-mode');
-}
-
 const initialState: ThemeState = {
-  darkMode: isDarkMode,
+  darkMode: false,
 };
 
 const themeSlice = createSlice({
@@ -22,22 +14,9 @@ const themeSlice = createSlice({
   reducers: {
     toggleDarkMode: (state) => {
       state.darkMode = !state.darkMode;
-      localStorage.setItem('darkMode', String(state.darkMode));
-      // Update document class for CSS
-      if (state.darkMode) {
-        document.documentElement.classList.add('dark-mode');
-      } else {
-        document.documentElement.classList.remove('dark-mode');
-      }
     },
-    setDarkMode: (state, action) => {
+    setDarkMode: (state, action: PayloadAction<boolean>) => {
       state.darkMode = action.payload;
-      localStorage.setItem('darkMode', String(state.darkMode));
-      if (state.darkMode) {
-        document.documentElement.classList.add('dark-mode');
-      } else {
-        document.documentElement.classList.remove('dark-mode');
-      }
     },
   },
 });

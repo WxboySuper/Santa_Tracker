@@ -5,6 +5,19 @@ import react from '@vitejs/plugin-react';
 import { sentryVitePlugin } from '@sentry/vite-plugin';
 import { resolveBuildTarget } from './src/config/buildTarget';
 
+/** Vendor chunk families matched by package substrings, in priority order. */
+const VENDOR_CHUNK_RULES: Array<{ family: string; markers: string[] }> = [
+  { family: 'openlayers', markers: ['node_modules/ol/', 'node_modules/ol-mapbox-style/'] },
+  { family: 'leaflet', markers: ['node_modules/leaflet/'] },
+  { family: 'turf', markers: ['node_modules/@turf/'] },
+  { family: 'firebase', markers: ['node_modules/firebase/', 'node_modules/@firebase/'] },
+  { family: 'react', markers: ['node_modules/react/', 'node_modules/react-dom/'] },
+  { family: 'redux', markers: ['node_modules/@reduxjs/', 'node_modules/redux/'] },
+];
+
+/** Maps an import module id to a named vendor chunk family, or undefined to leave it in the default chunk. */
+const vendorChunkFor = (id: string): string | undefined =>
+  VENDOR_CHUNK_RULES.find(({ markers }) => markers.some((marker) => id.includes(marker)))?.family;
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
   const buildTarget = resolveBuildTarget(env.VITE_BUILD_TARGET);
@@ -23,8 +36,12 @@ export default defineConfig(({ mode }) => {
             project: env.SENTRY_PROJECT,
             authToken: env.SENTRY_AUTH_TOKEN,
             release: { name: releaseName },
+            // Local sourcemaps are deliberately NOT deleted here. The
+            // verify-sentry-sourcemaps script confirms publication against the
+            // Sentry API first, then deletes maps only on verified success so a
+            // failed upload preserves recovery artifacts and fails the deploy.
             sourcemaps: {
-              filesToDeleteAfterUpload: ['**/*.map'],
+              assets: ['**/*.js', '**/*.map'],
             },
           }),
         ]
@@ -59,6 +76,13 @@ export default defineConfig(({ mode }) => {
       outDir: 'build',
       emptyOutDir: true,
       sourcemap: uploadSourceMaps ? 'hidden' : false,
+      // Separate the heaviest third-party families into their own chunks so the
+      // application shell stays independent of map/editor and utility bundles.
+      rollupOptions: {
+        output: {
+          manualChunks: (id: string) => vendorChunkFor(id),
+        },
+      },
     },
     server: {
       host: '0.0.0.0',

@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { updateDiscussionDraft } from '../store/forecastSlice';
 import type { DiscussionData, DiscussionMode } from '../types/outlooks';
+import { isoToDatetimeLocal, toDatetimeLocal } from '../utils/datetimeLocal';
 
 export type GuidedContentState = NonNullable<DiscussionData['guidedContent']>;
 
@@ -26,18 +27,20 @@ const createDefaultGuidedContent = (): GuidedContentState => ({
   regionalBreakdown: '', additionalConsiderations: '',
 });
 
-/** Returns the existing valid-end time or a default 24-hour discussion window. */
+/** Returns the existing valid-end time or a default 24-hour discussion window in local wall-clock. */
 const getInitialValidEnd = (existingDiscussion?: DiscussionData): string => {
-  if (existingDiscussion?.validEnd) return existingDiscussion.validEnd;
+  if (existingDiscussion?.validEnd) return isoToDatetimeLocal(existingDiscussion.validEnd);
   const end = new Date();
   end.setHours(end.getHours() + 24);
-  return end.toISOString().slice(0, 16);
+  return toDatetimeLocal(end);
 };
 
-/** Builds initial form values from saved discussion data and editor defaults. */
+/** Builds initial form values from saved discussion data and editor defaults, using local wall-clock times. */
 export const getDiscussionFormDefaults = (existingDiscussion?: DiscussionData): DiscussionFormDefaults => ({
   mode: existingDiscussion?.mode ?? 'diy',
-  validStart: existingDiscussion?.validStart ?? new Date().toISOString().slice(0, 16),
+  validStart: existingDiscussion?.validStart
+    ? isoToDatetimeLocal(existingDiscussion.validStart)
+    : toDatetimeLocal(new Date()),
   validEnd: getInitialValidEnd(existingDiscussion),
   forecasterName: existingDiscussion?.forecasterName ?? '',
   diyContent: existingDiscussion?.diyContent ?? '',
@@ -96,7 +99,10 @@ const useDiscussionFormState = ({ existingDiscussion, defaultForecasterName, dis
   const [diyContent, setDiyContent] = useState(initial.diyContent);
   const [guidedContent, setGuidedContent] = useState<GuidedContentState>(initial.guidedContent);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
-  const fields = { mode, validStart, validEnd, forecasterName, diyContent, guidedContent };
+  const fields = useMemo(
+    () => ({ mode, validStart, validEnd, forecasterName, diyContent, guidedContent }),
+    [mode, validStart, validEnd, forecasterName, diyContent, guidedContent],
+  );
   const applyFields = useCallback((next: DiscussionFormDefaults, hasChanges: boolean) => {
     setMode(next.mode); setValidStart(next.validStart); setValidEnd(next.validEnd);
     setForecasterName(next.forecasterName); setDiyContent(next.diyContent); setGuidedContent(next.guidedContent);

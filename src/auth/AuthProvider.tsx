@@ -1132,7 +1132,7 @@ const useLocalAuthState = (): AuthContextValue => {
     };
   }, [dispatch]);
 
-  const deps: LocalAuthDeps = {
+  const localActions = useMemo(() => buildLocalActions({
     dispatch,
     currentDarkModeRef,
     currentOverlaysRef,
@@ -1144,9 +1144,7 @@ const useLocalAuthState = (): AuthContextValue => {
     setBetaAccess,
     setBetaAccessLoading,
     setError,
-  };
-
-  const localActions = useMemo(() => buildLocalActions(deps), [
+  }), [
     dispatch,
     currentDarkModeRef,
     currentOverlaysRef,
@@ -1461,24 +1459,27 @@ const useHostedAuthState = (): AuthContextValue => {
         pendingSettingsWriteRef.current = null;
       }
     };
-  }, [darkMode, overlays, settingsSyncStatus, status, syncedSettings?.defaultForecasterName, user]);
+  }, [darkMode, monitorSettings, overlays, settingsSyncStatus, status, syncedSettings?.defaultForecasterName, syncedSettings?.forecastUiVariant, syncedSettings?.monitorSettings, user]);
 
   /** Persists explicit account settings changes made from the account page. */
-  const updateSyncedSettings = (settings: Partial<UserSettingsDocument>): Promise<void> =>
-    persistHostedSettingsUpdate(
-      {
-        user: user as User,
-        darkMode,
-        overlays,
-        syncedSettings,
-        monitorSettings,
-        lastSyncedSettingsRef,
-        setSyncedSettings,
-        setSettingsSyncStatus,
-        setError,
-      },
-      settings,
-    );
+  const updateSyncedSettings = useCallback(
+    (settings: Partial<UserSettingsDocument>): Promise<void> =>
+      persistHostedSettingsUpdate(
+        {
+          user: user as User,
+          darkMode,
+          overlays,
+          syncedSettings,
+          monitorSettings,
+          lastSyncedSettingsRef,
+          setSyncedSettings,
+          setSettingsSyncStatus,
+          setError,
+        },
+        settings,
+      ),
+    [darkMode, lastSyncedSettingsRef, monitorSettings, overlays, setError, setSettingsSyncStatus, setSyncedSettings, syncedSettings, user],
+  );
 
   const value = useMemo<AuthContextValue>(() => {
     if (!isHostedAuthEnabled || !auth) {
@@ -1533,7 +1534,7 @@ const useHostedAuthState = (): AuthContextValue => {
       updateSyncedSettings,
       refreshBetaAccess,
     };
-  }, [betaAccess, betaAccessLoading, error, refreshBetaAccess, settingsSyncStatus, status, syncedSettings, user]);
+  }, [betaAccess, betaAccessLoading, error, refreshBetaAccess, settingsSyncStatus, status, syncedSettings, updateSyncedSettings, user]);
 
   return value;
 };

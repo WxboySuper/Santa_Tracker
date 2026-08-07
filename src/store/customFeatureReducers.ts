@@ -1,6 +1,7 @@
 import type { PayloadAction } from '@reduxjs/toolkit';
 import { CUSTOM_PRODUCT_LIMITS, type CustomPolygonFeature } from '../types/customProducts';
 import type { ForecastState } from './forecastSlice';
+import { readActionTimestamp } from './timestampMiddleware';
 import { cloneCustomValue, getCurrentCustomLayers, touchCustomLayer } from './customLayerReducerUtils';
 
 /** Polygon reducers that share the parent forecast day's undo history. */
@@ -12,7 +13,7 @@ export const createCustomFeatureReducers = (pushUndoSnapshot: (state: ForecastSt
     if (!layer.categories.some(({ id }) => id === action.payload.properties.categoryId)) return;
     pushUndoSnapshot(state);
     layer.features.push(cloneCustomValue(action.payload));
-    touchCustomLayer(layer);
+    touchCustomLayer(layer, readActionTimestamp(action));
     state.isSaved = false;
   },
   updateCustomFeature: (state: ForecastState, action: PayloadAction<CustomPolygonFeature>) => {
@@ -21,7 +22,7 @@ export const createCustomFeatureReducers = (pushUndoSnapshot: (state: ForecastSt
     if (!layer || index < 0) return;
     pushUndoSnapshot(state);
     layer.features[index] = cloneCustomValue(action.payload);
-    touchCustomLayer(layer);
+    touchCustomLayer(layer, readActionTimestamp(action));
     state.isSaved = false;
   },
   removeCustomFeature: (state: ForecastState, action: PayloadAction<{ layerId: string; featureId: string }>) => {
@@ -30,7 +31,7 @@ export const createCustomFeatureReducers = (pushUndoSnapshot: (state: ForecastSt
     if (!layer || index < 0) return;
     pushUndoSnapshot(state);
     layer.features.splice(index, 1);
-    touchCustomLayer(layer);
+    touchCustomLayer(layer, readActionTimestamp(action));
     state.isSaved = false;
   },
 });

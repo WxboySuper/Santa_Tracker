@@ -85,4 +85,43 @@ describe('capability status', () => {
       },
     });
   });
+
+  it('public status exposes only allowlisted fields (schema snapshot)', () => {
+    const status = getPublicCapabilityStatus({
+      env: {
+        SERVER_TARGET: 'beta',
+        TSTM_GENERATION_ENABLED: 'true',
+      },
+      exposureOverride: { beta: true },
+    });
+
+    // Every serialized capability entry must be exactly { available, reason }.
+    for (const entry of Object.values(status.capabilities)) {
+      assert.deepEqual(Object.keys(entry).sort(), ['available', 'reason']);
+      assert.equal(typeof entry.available, 'boolean');
+      assert.equal(typeof entry.reason, 'string');
+    }
+
+    // The public envelope is exactly { capabilities: {...} }.
+    assert.deepEqual(Object.keys(status).sort(), ['capabilities']);
+  });
+
+  it('never leaks internal fields into the public status', () => {
+    const status = getPublicCapabilityStatus({
+      env: {
+        SERVER_TARGET: 'beta',
+        TSTM_GENERATION_ENABLED: 'true',
+        EMERGENCY_DISABLED_CAPABILITIES: 'TSTM_GENERATION_ENABLED',
+      },
+      exposureOverride: { beta: true },
+    });
+
+    // The public envelope is exactly { capabilities: { key: { available, reason } } }.
+    // Internal implementation details must not appear as serialized keys or values.
+    const serialized = JSON.stringify(status);
+    assert.equal(serialized.includes('featureKey'), false);
+    assert.equal(serialized.includes('exposureOverride'), false);
+    assert.equal(serialized.includes('EMERGENCY_DISABLED_CAPABILITIES'), false);
+    assert.equal(serialized.includes('serverCapabilityKey'), false);
+  });
 });

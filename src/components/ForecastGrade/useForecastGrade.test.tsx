@@ -44,17 +44,14 @@ const mockValidateGradeInputs = jest.fn(() => ({ valid: true as boolean })) as u
   (input: unknown) => { valid: boolean; reason?: string }
 >;
 
-jest.mock('../../utils/verificationV2', () => {
-  const actual = jest.requireActual('../../utils/verificationV2/gradeForecast');
-  return {
-    FORECAST_GRADE_FORMULA_VERSION: 'gfc-ver-3',
-    isReachedArchiveDate: (arg: string) => mockIsReachedArchiveDate(arg),
-    runForecastGrade: (input: unknown, onProgress?: unknown) =>
-      mockRunForecastGrade(input, onProgress),
-    validateGradeInputs: (input: unknown) => mockValidateGradeInputs(input),
-    __esModule: true,
-  };
-});
+jest.mock('../../utils/verificationV2', () => ({
+  FORECAST_GRADE_FORMULA_VERSION: 'gfc-ver-3',
+  isReachedArchiveDate: (arg: string) => mockIsReachedArchiveDate(arg),
+  runForecastGrade: (input: unknown, onProgress?: unknown) =>
+    mockRunForecastGrade(input, onProgress),
+  validateGradeInputs: (input: unknown) => mockValidateGradeInputs(input),
+  __esModule: true,
+}));
 
 import { useAuth } from '../../auth/AuthProvider';
 import { useEntitlement } from '../../billing/EntitlementProvider';

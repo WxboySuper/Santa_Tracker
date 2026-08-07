@@ -1,9 +1,11 @@
+import React from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
 import { Provider } from 'react-redux';
 import { configureStore } from '@reduxjs/toolkit';
 import { MemoryRouter } from 'react-router';
 import ForecastPage, {
   buildMapView,
+  buildRestoreKey,
   buildRolloverSaveLabel,
   canToggleSignificantForState,
   clearStoredCloudSession,
@@ -340,6 +342,38 @@ describe('ForecastPage layout selection', () => {
     expect(store.getState().forecast.forecastCycle.days[1]?.data.tornado?.get('10%')?.[0].id).toBe('autosave-outlook');
   });
 
+  test('restores the autosave only once under React StrictMode double effects', () => {
+    const store = createStore();
+    const cycleWithOutlook = { ...store.getState().forecast.forecastCycle };
+    const features = new Map<string, Feature[]>();
+    features.set('10%', [{
+      type: 'Feature',
+      id: 'strictmode-outlook',
+      geometry: { type: 'Polygon', coordinates: [[[0, 0], [1, 0], [1, 1], [0, 0]]] },
+      properties: { outlookType: 'tornado', probability: '10%', isSignificant: false },
+    } as Feature]);
+    cycleWithOutlook.days = {
+      1: {
+        data: { tornado: features, wind: new Map(), hail: new Map(), categorical: new Map(), totalSevere: new Map() } as never,
+        metadata: { lowProbabilityOutlooks: [] },
+      },
+    } as typeof cycleWithOutlook.days;
+    const autosavePayload = serializeForecast(cycleWithOutlook, { center: [0, 0], zoom: 0 });
+    localStorage.setItem('forecastData', JSON.stringify(autosavePayload));
+
+    render(
+      <React.StrictMode>
+        <MemoryRouter>
+          <Provider store={store}>
+            <ForecastPage />
+          </Provider>
+        </MemoryRouter>
+      </React.StrictMode>
+    );
+
+    expect(store.getState().forecast.forecastCycle.days[1]?.data.tornado?.get('10%')?.[0].id).toBe('strictmode-outlook');
+  });
+
   test('keeps in-memory anonymous edits on sign-in without overwriting account autosave', async () => {
     const store = createStore();
     const stalePayload = serializeForecast(store.getState().forecast.forecastCycle, { center: [0, 0], zoom: 0 });
@@ -358,7 +392,7 @@ describe('ForecastPage layout selection', () => {
         data: { tornado: features, wind: new Map(), hail: new Map(), categorical: new Map(), totalSevere: new Map() } as never,
         metadata: { lowProbabilityOutlooks: [] },
       },
-    } as typeof anonymousCycle.days;
+    } as unknown as typeof anonymousCycle.days;
     const anonymousPayload = serializeForecast(anonymousCycle, { center: [0, 0], zoom: 0 });
     anonymousPayload.timestamp = '2026-07-14T12:00:00.000Z';
 
@@ -413,7 +447,7 @@ describe('ForecastPage layout selection', () => {
 
     renderForecastPage(createStore());
 
-    await waitFor(() => expect(screen.getByText('New day detected')).toBeInTheDocument());
+    expect(await screen.findByText('New day detected')).toBeInTheDocument();
     expect(localStorage.getItem('gfc-last-active-local-day:anonymous')).toBe(today);
     expect(screen.getByRole('button', { name: 'Download a copy & start new day' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Replace without saving' })).toBeInTheDocument();
@@ -549,7 +583,7 @@ describe('ForecastPage helpers', () => {
     expect(addToast).toHaveBeenCalledWith('File is not valid JSON.', 'error');
 
     await expect(parseLoadedForecast(makeTextFile(JSON.stringify({ nope: true })), addToast)).resolves.toBeNull();
-    expect(addToast).toHaveBeenCalledWith('Invalid forecast data format.', 'error');
+    expect(addToast).toHaveBeenCalledWith('Forecast file is missing forecastCycle or outlooks data.', 'error');
   });
 
   test('routes keyboard shortcuts through command and standard handlers', () => {
@@ -636,5 +670,14 @@ describe('ForecastPage helpers', () => {
     expect(handleSave).not.toHaveBeenCalled();
     expect(dispatch).not.toHaveBeenCalled();
     expect(addToast).not.toHaveBeenCalled();
+  });
+
+  test('buildRestoreKey is stable per user scope', () => {
+    expect(buildRestoreKey('user-1')).toBe('user-1');
+    expect(buildRestoreKey('user-1')).toBe('user-1');
+    expect(buildRestoreKey(null)).toBe('anonymous');
+    expect(buildRestoreKey(undefined)).toBe('anonymous');
+    expect(buildRestoreKey('')).toBe('anonymous');
+    expect(buildRestoreKey('user-2')).toBe('user-2');
   });
 });

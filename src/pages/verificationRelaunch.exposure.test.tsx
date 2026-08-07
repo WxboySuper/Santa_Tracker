@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import { BUILD_TARGETS } from '../config/buildTarget';
 import { assertNoFetchTo, withNoAsyncSideEffects } from '../testing/featureExposure/harness';
@@ -22,7 +22,6 @@ jest.mock('../components/ForecastGrade/ForecastGradeDashboard', () => {
 
 const renderPage = () => {
   // Import after mocks/spies are installed so the gate reads the mocked exposure.
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
   const VerificationPage = require('./VerificationPage').default;
   return render(
     <MemoryRouter>
@@ -61,7 +60,6 @@ describe('verificationRelaunch route gate', () => {
   });
 
   test('exposes verificationRelaunch on local and beta', () => {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { isFeatureExposedOnTarget } = require('../config/featureExposure');
     for (const target of BUILD_TARGETS) {
       expect(isFeatureExposedOnTarget('verificationRelaunch', target)).toBe(target === 'beta' || target === 'local');

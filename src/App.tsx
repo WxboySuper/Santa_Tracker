@@ -22,8 +22,15 @@ import { EntitlementProvider } from './billing/EntitlementProvider';
 
 // New UI components
 import { AppLayout } from './components/Layout';
-import { HomePage, ForecastPage, DiscussionPage, VerificationPage, MonitorPage, ComingSoonPage, AccountPage, PricingPage, UpdatesPage, AdminPage, BetaLandingPage, BetaInvitePage } from './pages';
-import CloudLibraryPage from './pages/CloudLibraryPage';
+import {
+  HomePage,
+  ComingSoonPage,
+  AccountPage,
+  PricingPage,
+  UpdatesPage,
+  BetaLandingPage,
+  BetaInvitePage,
+} from './pages';
 import BetaAccessGuard from './components/Beta/BetaAccessGuard';
 import { ProductAnalyticsRouteTracker } from './components/ProductAnalyticsRouteTracker';
 import ToSModal, { hasAcceptedToS } from './components/ToS/ToSModal';
@@ -32,6 +39,15 @@ import { initProductAnalytics } from './lib/productAnalytics';
 import { buildFeatureGatedRoutes } from './routing/buildFeatureGatedRoutes';
 import { isFeatureExposureDiagnosticsEnabled } from './config/featureExposureDiagnostics';
 
+// Heavy feature routes are lazy-loaded so the application shell stays small and
+// independent of the map/editor and secondary workflow chunks.
+const ForecastPage = lazy(() => import('./pages/ForecastPage').then((module) => ({ default: module.ForecastPage })));
+const DiscussionPage = lazy(() => import('./pages/DiscussionPage').then((module) => ({ default: module.DiscussionPage })));
+const VerificationPage = lazy(() => import('./pages/VerificationPage').then((module) => ({ default: module.VerificationPage })));
+const MonitorPage = lazy(() => import('./pages/MonitorPage').then((module) => ({ default: module.MonitorPage })));
+const CloudLibraryPage = lazy(() => import('./pages/CloudLibraryPage'));
+const AdminPage = lazy(() => import('./pages/AdminPage').then((module) => ({ default: module.AdminPage })));
+
 const FeatureExposureDiagnosticsPage = __GFC_DEV_MODE__
   ? lazy(() =>
       import('./pages/FeatureExposureDiagnosticsPage').then((module) => ({
@@ -39,6 +55,13 @@ const FeatureExposureDiagnosticsPage = __GFC_DEV_MODE__
       }))
     )
   : null;
+
+/** Accessible loading placeholder shown while a lazy route chunk downloads. */
+const RouteFallback = () => (
+  <div className="flex h-full items-center justify-center p-6" role="status" aria-busy="true" aria-label="Loading page">
+    <span className="text-sm text-muted-foreground">Loading…</span>
+  </div>
+);
 
 // Launch gate: set VITE_COMING_SOON=true in the public build to enable pre-launch mode.
 // The app auto-unlocks at the launch date/time regardless of the env var.
@@ -164,12 +187,12 @@ const AppRoutes: React.FC<AppRoutesProps> = ({ showComingSoon }) => {
         <Route index element={<HomePage />} />
         <Route path="account" element={<AccountPage />} />
         <Route path="pricing" element={<PricingPage />} />
-        <Route path="admin" element={<AdminPage />} />
-        <Route path="cloud" element={<CloudLibraryPage />} />
-        <Route path="forecast" element={<ForecastPage />} />
-        <Route path="discussion" element={<DiscussionPage />} />
-        <Route path="verification" element={<VerificationPage />} />
-        <Route path="monitor" element={<MonitorPage />} />
+        <Route path="admin" element={<Suspense fallback={<RouteFallback />}><AdminPage /></Suspense>} />
+        <Route path="cloud" element={<Suspense fallback={<RouteFallback />}><CloudLibraryPage /></Suspense>} />
+        <Route path="forecast" element={<Suspense fallback={<RouteFallback />}><ForecastPage /></Suspense>} />
+        <Route path="discussion" element={<Suspense fallback={<RouteFallback />}><DiscussionPage /></Suspense>} />
+        <Route path="verification" element={<Suspense fallback={<RouteFallback />}><VerificationPage /></Suspense>} />
+        <Route path="monitor" element={<Suspense fallback={<RouteFallback />}><MonitorPage /></Suspense>} />
         {__GFC_DEV_MODE__ && isFeatureExposureDiagnosticsEnabled() && FeatureExposureDiagnosticsPage ? (
           <Route
             path="dev/feature-exposure"

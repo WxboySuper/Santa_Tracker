@@ -118,6 +118,7 @@ test('deletion removes billing, account records, owned cycles, dedupes, and auth
     userEntitlements: { [uid]: { stripeCustomerId: 'cus_123' } },
     userMetrics: { [uid]: { uid } },
     cloudCycles: { owned: { userId: uid }, other: { userId: 'user-2' } },
+    'cloudCycles/owned/payload': { payload: { payloadJson: '{}', payloadBytes: 2 } },
     adminMetricDedupes: {
       [`account:2026-07-21:${uid}`]: { kind: 'account', uid },
       'account:2026-07-21:user-2': { kind: 'account', uid: 'user-2' },
@@ -134,6 +135,7 @@ test('deletion removes billing, account records, owned cycles, dedupes, and auth
     assert.equal(db.read(collection, uid), undefined);
   }
   assert.equal(db.read('cloudCycles', 'owned'), undefined);
+  assert.equal(db.read('cloudCycles/owned/payload', 'payload'), undefined);
   assert.deepEqual(db.read('cloudCycles', 'other'), { userId: 'user-2' });
   assert.equal(db.read('adminMetricDedupes', `account:2026-07-21:${uid}`), undefined);
   assert.ok(db.read('adminMetricDedupes', 'account:2026-07-21:user-2'));
@@ -186,11 +188,9 @@ test('orphaned data after identity deletion does not report failure', async () =
     userEntitlements: { [uid]: { stripeCustomerId: 'cus_123' } },
   });
   let authDeleted = false;
-  let authGetCount = 0;
   const adminAuth = {
     deleteUser: async () => { authDeleted = true; },
     getUser: async () => {
-      authGetCount++;
       // After deleteUser, identity is gone
       if (authDeleted) {
         const error = new Error('not found');

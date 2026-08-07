@@ -32,7 +32,7 @@ describe('AlertBanner', () => {
 
     renderBanner();
 
-    await waitFor(() => expect(screen.getByText('Test Alert')).toBeInTheDocument());
+    expect(await screen.findByText('Test Alert')).toBeInTheDocument();
     expect(screen.getByRole('status')).toHaveClass('alert-banner--warning');
   });
 
@@ -96,7 +96,7 @@ describe('AlertBanner', () => {
 
     renderBanner();
 
-    await waitFor(() => expect(screen.getByText('Dismiss me')).toBeInTheDocument());
+    expect(await screen.findByText('Dismiss me')).toBeInTheDocument();
     fireEvent.click(screen.getByLabelText('Dismiss alert'));
     expect(screen.queryByText('Dismiss me')).not.toBeInTheDocument();
   });
@@ -113,7 +113,7 @@ describe('AlertBanner', () => {
 
     renderBanner();
 
-    await waitFor(() => expect(screen.getByText('Click me')).toBeInTheDocument());
+    expect(await screen.findByText('Click me')).toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'Bad link' })).not.toBeInTheDocument();
   });
 
@@ -127,7 +127,7 @@ describe('AlertBanner', () => {
 
     renderBanner();
 
-    await waitFor(() => expect(screen.getByText('Permanent')).toBeInTheDocument());
+    expect(await screen.findByText('Permanent')).toBeInTheDocument();
     expect(screen.queryByLabelText('Dismiss alert')).not.toBeInTheDocument();
   });
 });

@@ -111,6 +111,7 @@ const DrawingTools: React.FC<DrawingToolsProps> = ({ onSave, onLoad, onOpenDiscu
         accept=".json"
         onChange={handleFileChange}
         aria-hidden="true"
+        data-testid="drawing-tools-file-input"
       />
       <DrawingToolsToolbar
         onSave={onSave}

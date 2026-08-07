@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../co
 import { Input } from '../components/ui/input';
 import { useAuth } from '../auth/AuthProvider';
 import { useEntitlement } from '../billing/EntitlementProvider';
+import { PRICING_COPY } from '../billing/pricingCopy';
 import { useCloudCycles } from '../hooks/useCloudCycles';
 import { CloudCycleMetadata } from '../types/cloudCycles';
 import { getScopedStorageKey, getStorageScope } from '../utils/storageScope';
@@ -79,15 +80,13 @@ const ExpiredPremiumNotice: React.FC = () => (
 );
 
 /** Header block used by the combined cloud-library utility card. */
-const CloudLibraryUtilityHeader: React.FC = () => (
+const CloudLibraryUtilityHeader: React.FC<{ boundaryCopy: string }> = ({ boundaryCopy }) => (
   <CardHeader className="cloud-library-section-header">
     <div className="cloud-library-support-title">
       <ShieldCheck className="h-5 w-5 text-primary" />
       <CardTitle>Storage access</CardTitle>
     </div>
-    <CardDescription>
-      Hosted saves live here. The forecast editor, discussions, verification, and exports still stay local-first.
-    </CardDescription>
+    <CardDescription>{boundaryCopy}</CardDescription>
   </CardHeader>
 );
 
@@ -98,10 +97,10 @@ const getUtilityCardCopy = (premiumActive: boolean, isExpiredPremium: boolean): 
   }
 
   if (isExpiredPremium) {
-    return 'Your saved cycles are still available to open, but writes stay off until premium is active again.';
+    return 'Your previously saved cycles remain available to open and export.';
   }
 
-  return 'Premium unlocks hosted saves. Until then, your forecast workflow stays local.';
+  return 'Your library stays readable locally; signing in restores access to hosted cycles.';
 };
 
 /** Support actions rendered in the right-side cloud utility card. */
@@ -128,7 +127,9 @@ const CloudLibraryUtilityCard: React.FC<{
   isExpiredPremium: boolean;
 }> = ({ premiumActive, isExpiredPremium }) => (
   <Card className="cloud-library-support-card">
-    <CloudLibraryUtilityHeader />
+    <CloudLibraryUtilityHeader
+      boundaryCopy={premiumActive ? PRICING_COPY.premiumAccount : isExpiredPremium ? PRICING_COPY.downgradeSummary : PRICING_COPY.freeAccount}
+    />
     <CardContent className="cloud-library-support-content">
       <div className="cloud-library-support-grid">
         <CloudLibraryStat label="Mode" value={premiumActive ? 'Full access' : isExpiredPremium ? 'Read-only' : 'Locked'} />

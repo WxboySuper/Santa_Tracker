@@ -11,7 +11,10 @@ import type { ForecastCycle } from '../../types/outlooks';
 jest.mock('../../utils/stormReportParser', () => ({
   fetchStormReports: jest.fn(),
   fetchTodayStormReports: jest.fn(),
-  formatReportDate: jest.fn(() => '2026-04-20'),
+  fetchYesterdayStormReports: jest.fn(),
+  formatReportDate: jest.fn((date: Date) =>
+    `${String(date.getFullYear()).slice(-2)}${String(date.getMonth() + 1).padStart(2, '0')}${String(date.getDate()).padStart(2, '0')}`
+  ),
 }));
 
 jest.mock('../../utils/verificationUtils', () => ({
@@ -21,7 +24,7 @@ jest.mock('../../utils/verificationUtils', () => ({
 
 const mockFetchStormReports = jest.requireMock('../../utils/stormReportParser').fetchStormReports as jest.Mock;
 const mockFetchTodayStormReports = jest.requireMock('../../utils/stormReportParser').fetchTodayStormReports as jest.Mock;
-const mockFormatReportDate = jest.requireMock('../../utils/stormReportParser').formatReportDate as jest.Mock;
+const mockFetchYesterdayStormReports = jest.requireMock('../../utils/stormReportParser').fetchYesterdayStormReports as jest.Mock;
 const mockAnalyzeVerification = jest.requireMock('../../utils/verificationUtils').analyzeVerification as jest.Mock;
 const mockFormatVerificationSummary = jest.requireMock('../../utils/verificationUtils').formatVerificationSummary as jest.Mock;
 
@@ -116,7 +119,9 @@ describe('VerificationPanel', () => {
     mockFetchTodayStormReports.mockResolvedValue([
       { type: 'hail' },
     ]);
-    mockFormatReportDate.mockReturnValue('2026-04-20');
+    mockFetchYesterdayStormReports.mockResolvedValue([
+      { type: 'hail' },
+    ]);
   });
 
   test('loads reports, shows analysis and clears state', async () => {
@@ -129,7 +134,7 @@ describe('VerificationPanel', () => {
     });
     renderPanel(store, { activeOutlookType: 'categorical', selectedDay: 1, activePanel: 'analysis' });
 
-    await waitFor(() => expect(screen.getByText(/Report Summary/i)).toBeInTheDocument());
+    expect(await screen.findByText(/Report Summary/i)).toBeInTheDocument();
     expect(screen.getByText(/2026-04-20/)).toBeInTheDocument();
     expect(screen.getAllByText(/Total Reports:/i).length).toBeGreaterThan(0);
     expect(screen.getByText(/Tornado: 1/i)).toBeInTheDocument();
@@ -168,14 +173,16 @@ describe('VerificationPanel', () => {
       fireEvent.click(screen.getByRole('button', { name: /Load Reports/i }));
 
       await waitFor(() => expect(mockFetchTodayStormReports).toHaveBeenCalled());
+      expect(mockFetchYesterdayStormReports).not.toHaveBeenCalled();
       expect(mockFetchStormReports).not.toHaveBeenCalled();
       await waitFor(() => expect(store.getState().stormReports.reports).toHaveLength(1));
 
-      mockFetchStormReports.mockRejectedValueOnce(new Error('Service unavailable'));
+      mockFetchYesterdayStormReports.mockRejectedValueOnce(new Error('Service unavailable'));
       fireEvent.change(screen.getByLabelText(/Select Date/i), { target: { value: '2026-04-19' } });
       fireEvent.click(screen.getByRole('button', { name: /Load Reports/i }));
 
-      await waitFor(() => expect(screen.getByText(/Service unavailable/i)).toBeInTheDocument());
+      expect(mockFetchYesterdayStormReports).toHaveBeenCalled();
+      expect(await screen.findByText(/Service unavailable/i)).toBeInTheDocument();
     } finally {
       jest.useRealTimers();
     }

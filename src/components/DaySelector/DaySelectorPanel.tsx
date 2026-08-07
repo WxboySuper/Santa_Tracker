@@ -96,7 +96,7 @@ const DayTabs: React.FC<{ currentDay: DayType; days: ForecastDays; onDayButtonCl
               )}
             >
               {day}
-              {hasData && <span className="absolute -top-1 -right-1 h-2 w-2 bg-success rounded-full" />}
+              {hasData && <span data-testid="day-has-data-marker" className="absolute -top-1 -right-1 h-2 w-2 bg-success rounded-full" />}
             </button>
           </TooltipTrigger>
           <TooltipContent>
@@ -245,7 +245,7 @@ export const DaySelectorPanel: React.FC = () => {
           </div>
 
           {/* Day Info */}
-          <div className="text-xs text-muted-foreground text-center">
+          <div data-testid="day-description" className="text-xs text-muted-foreground text-center">
             {getDayDescription(currentDay)}
           </div>
         </div>

@@ -104,7 +104,7 @@ describe('DrawingTools', () => {
 
     clickSpy = jest.spyOn(HTMLInputElement.prototype, 'click').mockImplementation(() => undefined);
 
-    const { container } = renderDrawingTools(store, { onSave, onLoad, onOpenDiscussion, addToast });
+    renderDrawingTools(store, { onSave, onLoad, onOpenDiscussion, addToast });
 
     expect(screen.getByText(/Drawing Instructions/i)).toBeInTheDocument();
     expect(screen.getByText(/You have unsaved changes/i)).toBeInTheDocument();
@@ -117,7 +117,7 @@ describe('DrawingTools', () => {
     await user.click(screen.getByRole('button', { name: /Load Forecast/i }));
     expect(clickSpy).toHaveBeenCalled();
 
-    const fileInput = container.querySelector('input[type="file"]') as HTMLInputElement;
+    const fileInput = screen.getByTestId('drawing-tools-file-input') as HTMLInputElement;
     const file = new File(['{}'], 'forecast.json', { type: 'application/json' });
     fireEvent.change(fileInput, { target: { files: [file] } });
     expect(onLoad).toHaveBeenCalledWith(file);

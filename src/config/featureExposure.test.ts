@@ -145,10 +145,12 @@ describe('featureExposure registry', () => {
       expect(isFeatureExposedOnTarget('customProducts', target)).toBe(false);
     }
 
-    for (const target of ['local', 'staging', 'production'] as const) {
+    for (const target of ['local', 'beta'] as const) {
+      expect(isFeatureExposedOnTarget('autoTstm', target)).toBe(true);
+    }
+    for (const target of ['staging', 'production'] as const) {
       expect(isFeatureExposedOnTarget('autoTstm', target)).toBe(false);
     }
-    expect(isFeatureExposedOnTarget('autoTstm', 'beta')).toBe(true);
   });
 
   test('only autoTstm is server-backed in the initial registry', () => {
@@ -165,7 +167,6 @@ describe('featureExposure registry', () => {
   });
 
   test('keeps server capability metadata aligned with the analytics registry', () => {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const {
       KNOWN_SERVER_CAPABILITY_KEYS,
       SERVER_FEATURE_EXPOSURE_REGISTRY,

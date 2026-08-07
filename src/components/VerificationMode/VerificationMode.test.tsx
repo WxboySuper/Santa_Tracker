@@ -23,7 +23,9 @@ jest.mock('../../utils/productMetrics', () => ({
 
 jest.mock('../../utils/fileUtils', () => ({
   validateForecastData: jest.fn(),
+  validateForecastDataReason: jest.fn(),
   deserializeForecast: jest.fn(),
+  MAX_IMPORT_BYTES: 25 * 1024 * 1024,
 }));
 
 jest.mock('../Map/VerificationMap', () => {
@@ -46,6 +48,7 @@ jest.mock('../Verification/VerificationPanel', () => ({
 
 const mockUseAuth = jest.requireMock('../../auth/AuthProvider').useAuth as jest.Mock;
 const mockValidateForecastData = jest.requireMock('../../utils/fileUtils').validateForecastData as jest.Mock;
+const mockValidateForecastDataReason = jest.requireMock('../../utils/fileUtils').validateForecastDataReason as jest.Mock;
 const mockDeserializeForecast = jest.requireMock('../../utils/fileUtils').deserializeForecast as jest.Mock;
 
 class MockFileReader {
@@ -76,6 +79,7 @@ describe('VerificationMode', () => {
     jest.clearAllMocks();
     mockUseAuth.mockReturnValue({ user: { uid: 'user-1' }, status: 'signed_in' });
     mockValidateForecastData.mockReturnValue(true);
+    mockValidateForecastDataReason.mockReturnValue(null);
     mockDeserializeForecast.mockReturnValue({
       currentDay: 1,
       cycleDate: '2026-04-20',
@@ -124,7 +128,7 @@ describe('VerificationMode', () => {
     const fileInput = screen.getByLabelText(/Choose Forecast File/i) as HTMLInputElement;
     await user.upload(fileInput, new File(['{}'], 'forecast.json', { type: 'application/json' }));
 
-    await waitFor(() => expect(screen.getByText(/Forecast Loaded/i)).toBeInTheDocument());
+    expect(await screen.findByText(/Forecast Loaded/i)).toBeInTheDocument();
     await waitFor(() => expect(screen.getByTestId('verification-panel')).toHaveTextContent('setup:categorical:1'));
     expect(screen.getByTestId('verification-map')).toHaveTextContent('categorical:1');
     expect(screen.getByRole('button', { name: /Day 1/i })).toBeInTheDocument();
@@ -145,13 +149,13 @@ describe('VerificationMode', () => {
     expect(screen.getByRole('dialog')).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: /Clear/i }));
 
-    await waitFor(() => expect(screen.getByText(/Choose Forecast File/i)).toBeInTheDocument());
+    expect(await screen.findByText(/Choose Forecast File/i)).toBeInTheDocument();
     expect(screen.queryByText(/Forecast Loaded/i)).not.toBeInTheDocument();
   });
 
   test('surfaces file validation errors', async () => {
     const user = userEvent.setup();
-    mockValidateForecastData.mockReturnValue(false);
+    mockValidateForecastDataReason.mockReturnValue('Invalid forecast file format. Please ensure it\'s a valid GFC forecast JSON.');
 
     renderWithStore();
 
@@ -176,7 +180,7 @@ describe('VerificationMode', () => {
     expect(mockAddToast).not.toHaveBeenCalled();
 
     await user.upload(fileInput, new File(['{}'], 'forecast.json', { type: 'application/json' }));
-    await waitFor(() => expect(screen.getByText(/Forecast Loaded/i)).toBeInTheDocument());
+    expect(await screen.findByText(/Forecast Loaded/i)).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: /Load Different Forecast/i }));
     expect(screen.getByRole('dialog')).toBeInTheDocument();

@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import ModalPortal from './ModalPortal';
 
 describe('ModalPortal', () => {
@@ -9,8 +9,8 @@ describe('ModalPortal', () => {
       </ModalPortal>,
     );
 
-    expect(container.querySelector('[data-testid="portal-child"]')).toBeNull();
-    expect(document.body.querySelector('[data-testid="portal-child"]')).toBeInTheDocument();
+    expect(within(container).queryByTestId('portal-child')).not.toBeInTheDocument();
+    expect(screen.getByTestId('portal-child')).toBeInTheDocument();
     expect(screen.getByTestId('portal-child')).toHaveTextContent('Modal content');
   });
 });

@@ -34,12 +34,12 @@ import {
   isDrawableOutlookType,
   toOlStyle,
   toGhostOlStyle,
-  removeDrawInteraction,
   getCustomFeatureIdentity,
   toUpdatedCustomFeature,
   createCustomFill,
   toCustomOlStyle,
-} from './OpenLayersForecastMap';
+} from './openLayersMapStyles';
+import { removeDrawInteraction } from './OpenLayersForecastMap';
 
 type FeatureStub = {
   get: (key: string) => unknown;

@@ -74,6 +74,7 @@ const baseForecastState: ForecastState = {
   emergencyMode: false,
   savedCycles: [],
   historyByDay: {},
+  autoCategoricalError: null,
 };
 
 const buildStore = (overrides: ForecastStateOverrides = {}) => {
@@ -151,20 +152,20 @@ describe('CycleManager Components', () => {
 
   describe('CycleHistoryModal', () => {
     it('renders nothing when closed', () => {
-      const { container } = render(
+      render(
         <Provider store={buildStore()}>
           <AppLayoutContext.Provider value={mockAppLayoutValue}>
             <CycleHistoryModal isOpen={false} onClose={jest.fn()} />
           </AppLayoutContext.Provider>
         </Provider>
       );
-      expect(container.firstChild).toBeNull();
-      expect(document.body.querySelector('.history-modal-root')).toBeNull();
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('cycle-history-modal')).not.toBeInTheDocument();
     });
 
     it('GFC-WEB-G: portals the modal shell to document.body with notranslate', () => {
       renderCycleHistoryModal();
-      const root = document.body.querySelector('.history-modal-root');
+      const root = screen.getByTestId('cycle-history-modal');
       expect(root).toBeInTheDocument();
       expect(root).toHaveClass('notranslate');
     });
@@ -270,11 +271,11 @@ describe('CycleManager Components', () => {
 
       last.focus();
       fireEvent.keyDown(window, { key: 'Tab' });
-      expect(document.activeElement).toBe(first);
+      expect(first).toHaveFocus();
 
       first.focus();
       fireEvent.keyDown(window, { key: 'Tab', shiftKey: true });
-      expect(document.activeElement).toBe(last);
+      expect(last).toHaveFocus();
     });
   });
 
@@ -322,9 +323,9 @@ describe('CycleManager Components', () => {
       const cancelBtn = screen.getByRole('button', { name: /cancel/i });
       cancelBtn.focus();
       fireEvent.keyDown(window, { key: 'Tab' });
-      expect(document.activeElement).not.toBe(cancelBtn);
+      expect(cancelBtn).not.toHaveFocus();
       fireEvent.keyDown(window, { key: 'Tab', shiftKey: true });
-      expect(document.activeElement).toBe(cancelBtn);
+      expect(cancelBtn).toHaveFocus();
     });
 
 

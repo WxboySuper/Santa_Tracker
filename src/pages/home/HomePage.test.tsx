@@ -1,4 +1,3 @@
-import React from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import HomePage from '../HomePage';
@@ -174,7 +173,7 @@ describe('HomePage', () => {
       handleFileSelect: loadFile,
     });
 
-    const { container } = render(
+    render(
       <MemoryRouter>
         <HomePage />
       </MemoryRouter>
@@ -198,7 +197,7 @@ describe('HomePage', () => {
     fireEvent.click(screen.getByRole('button', { name: /Switch Day/i }));
     expect(openHistory).toHaveBeenCalled();
 
-    const fileInput = container.querySelector('input[type="file"]');
+    const fileInput = screen.getAllByTestId('home-file-input')[0];
     expect(fileInput).toBeInTheDocument();
     if (fileInput) {
       fireEvent.change(fileInput, {
@@ -369,7 +368,7 @@ describe('HomePage', () => {
       ...handlers,
     });
 
-    const { container } = render(
+    render(
       <MemoryRouter>
         <HomePage />
       </MemoryRouter>
@@ -401,7 +400,7 @@ describe('HomePage', () => {
     fireEvent.click(screen.getByRole('button', { name: /Cycle 1/i }));
     expect(handlers.handleLoadRecentCycleClick).toHaveBeenCalled();
 
-    const fileInput = container.querySelector('input[type="file"]');
+    const fileInput = screen.getAllByTestId('home-file-input')[0];
     expect(fileInput).toBeInTheDocument();
     if (fileInput) {
       fireEvent.change(fileInput, {

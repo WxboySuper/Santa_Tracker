@@ -33,7 +33,7 @@ import {
   clearWorkflowMetadata,
 } from '../store/forecastSlice';
 import { OutlookType, Probability, DayType, GFCForecastSaveData } from '../types/outlooks';
-import { deserializeForecast, validateForecastData, exportForecastToJson, serializeForecast } from '../utils/fileUtils';
+import { deserializeForecast, validateForecastData, validateForecastDataReason, exportForecastToJson, serializeForecast, MAX_IMPORT_BYTES } from '../utils/fileUtils';
 import {
   getFirstExposedOutlookType,
   shouldActivateEmergencyMode,
@@ -270,6 +270,11 @@ export const parseLoadedForecast = async (
   file: File,
   addToast: AddToastFn
 ): Promise<LoadedForecastPayload | null> => {
+  if (file.size > MAX_IMPORT_BYTES) {
+    addToast(`File is too large (${(file.size / 1024 / 1024).toFixed(1)} MB); the maximum supported size is ${MAX_IMPORT_BYTES / 1024 / 1024} MB.`, 'error');
+    return null;
+  }
+
   const text = await file.text();
   let data: unknown;
 
@@ -280,8 +285,9 @@ export const parseLoadedForecast = async (
     return null;
   }
 
-  if (!validateForecastData(data)) {
-    addToast('Invalid forecast data format.', 'error');
+  const validationError = validateForecastDataReason(data);
+  if (validationError) {
+    addToast(validationError, 'error');
     return null;
   }
 
@@ -800,6 +806,8 @@ const restoreAvailableSession = (
   return restoreLocalSession(dispatch, addToast, currentSession, userId);
 };
 
+/** Returns a stable identity for one session-restore attempt keyed by the signed-in scope. */
+export const buildRestoreKey = (userId?: string | null): string => userId || 'anonymous';
 /** Attempts to restore the last auto-saved forecast session from localStorage on mount. */
 const useSessionRestore = (
   dispatch: ShortcutDispatch,
@@ -819,6 +827,7 @@ const useSessionRestore = (
   const currentMapViewRef = useRef(currentSession.currentMapView);
   const workflowMetadataRef = useRef(currentSession.workflowMetadata);
   const previousUserIdRef = useRef(userId);
+  const appliedRestoreKeyRef = useRef<string | null>(null);
   const [restoreComplete, setRestoreComplete] = useState(false);
   const [restoredSession, setRestoredSession] = useState(false);
   const [restoreAttempted, setRestoreAttempted] = useState(false);
@@ -837,6 +846,18 @@ const useSessionRestore = (
         : undefined;
       migrateLegacyAutoSave(userId, liveSession);
       previousUserIdRef.current = userId;
+
+      // Key restoration by the signed-in user scope so React Strict Mode's
+      // double effect invocation cannot reapply the same payload or fire
+      // duplicate restore notifications. A fresh mount creates a new hook
+      // instance, so restoration will run again for that mount by design.
+      const restoreKey = buildRestoreKey(userId);
+      if (appliedRestoreKeyRef.current === restoreKey) {
+        setRestoreAttempted(true);
+        return;
+      }
+      appliedRestoreKeyRef.current = restoreKey;
+
       setRestoredSession(restoreAvailableSession(dispatch, addToast, {
         forecastCycle: forecastCycleRef.current,
         discussionDraftsByScope: initialDraftsRef.current,
@@ -1135,7 +1156,7 @@ const useDayRolloverPrompt = ({ restoreComplete, restoredSession, dispatch, addT
       setPromptState,
       setActionError,
     });
-  }, [restoreComplete, restoredSession, userId]);
+  }, [restoreComplete, userId]);
 
   useEffect(() => {
     detectDayRollover();

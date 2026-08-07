@@ -1,4 +1,3 @@
-import React from 'react';
 import { render, screen } from '@testing-library/react';
 import RunProgress from './RunProgress';
 
@@ -8,8 +7,9 @@ describe('RunProgress', () => {
 
     expect(screen.getByRole('status')).toHaveTextContent('Grading tornado product…');
     expect(screen.getByText('5%')).toBeInTheDocument();
-    expect(screen.getByLabelText('Grading tornado product…: 5% complete')).toBeInTheDocument();
-    expect(document.querySelectorAll('.fg-run-progress__track')).toHaveLength(1);
+    const track = screen.getByLabelText('Grading tornado product…: 5% complete');
+    expect(track).toHaveClass('fg-run-progress__track');
+    expect(screen.getAllByLabelText('Grading tornado product…: 5% complete')).toHaveLength(1);
   });
 
   it('does not render when no run is active', () => {

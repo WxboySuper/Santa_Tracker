@@ -3,7 +3,7 @@ import { useSelector } from 'react-redux';
 import type { StormReport } from '../../types/stormReports';
 import type { NwsAlertFeatureCollection } from '../nwsAlerts';
 import type { NwsAlertDetails } from '../nwsAlertDetails';
-import { hideOverlay } from '../../components/Map/OpenLayersForecastMap';
+import { hideOverlay } from '../../components/Map/openLayersMapStyles';
 import type { RootState } from '../../store';
 import type { MonitorMapView } from '../types';
 import type { WmsLayerConfig } from '../wms';
@@ -40,9 +40,7 @@ export const useMonitorOlMap = (args: UseMonitorOlMapArgs) => {
       hideOverlay(refs.overlayRef.current);
     }
     setSelectedAlert(null);
-    // refs omitted: wrapper object from useMonitorMapRefs() is new each render,
-    // but all inner refs are stable across renders.
-  }, []);
+  }, [refs.overlayRef]);
 
   useMonitorMapBootstrap({
     mapView: args.mapView,
@@ -67,8 +65,7 @@ export const useMonitorOlMap = (args: UseMonitorOlMapArgs) => {
     }
 
     return renderMonitorAlertPopup(container, selectedAlert, clearSelectedAlert);
-    // refs omitted: wrapper object from useMonitorMapRefs() is new each render.
-  }, [clearSelectedAlert, selectedAlert]);
+  }, [clearSelectedAlert, refs.popupElRef, selectedAlert]);
 
   useMonitorMapLayerSync({
     mapView: args.mapView,
