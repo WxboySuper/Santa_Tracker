@@ -140,11 +140,9 @@ when the stable changelog entry is carried forward.
 
 | Workflow | Purpose |
 | --- | --- |
-| `release-beta.yml` | Create a beta prerelease from `main` |
+| `release-beta.yml` | Version, release, build, and deploy a beta prerelease from `main` |
 | `prepare-stable-promotion.yml` | Create a reviewed main promotion PR |
-| `bootstrap-stable-line.yml` | Create a stable production branch once |
 | `release-stable.yml` | Create a stable or hotfix release |
 | `deploy-staging.yml` | Manually deploy a rehearsal ref |
-| `deploy-beta.yml` | Deploy a beta release or selected ref |
 | `deploy-main-to-vps.yml` | Deploy a published stable release or selected ref |
 | `forward-port-stable-fix.yml` | Carry stable fixes forward into `main` |

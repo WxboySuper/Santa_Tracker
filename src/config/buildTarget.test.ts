@@ -24,7 +24,7 @@ describe('getBuildTarget', () => {
 
   test('hosted workflow builds declare their target explicitly', () => {
     const repoRoot = path.resolve(__dirname, '../..');
-    const betaWorkflow = fs.readFileSync(path.join(repoRoot, '.github/workflows/deploy-beta.yml'), 'utf8');
+    const betaWorkflow = fs.readFileSync(path.join(repoRoot, '.github/workflows/release-beta.yml'), 'utf8');
     const productionWorkflow = fs.readFileSync(
       path.join(repoRoot, '.github/workflows/deploy-main-to-vps.yml'),
       'utf8'

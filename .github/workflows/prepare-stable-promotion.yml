@@ -1,4 +1,4 @@
-name: Prepare Main Stable Promotion
+name: Release | Prepare Stable Promotion
 
 # This prepares a reviewed promotion PR on main. It does not create a release,
 # deploy production, create a stable branch, or merge anything.

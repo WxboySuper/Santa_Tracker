@@ -1,4 +1,4 @@
-name: Create Stable Release
+name: Release | Stable
 
 # Stable releases are created only from an approved stable/* release line.
 # The published release then activates the production deployment workflow.
