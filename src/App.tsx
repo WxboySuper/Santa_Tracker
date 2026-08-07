@@ -125,11 +125,24 @@ interface AgreementGateProps {
   showComingSoon: boolean;
 }
 
+const getAgreementState = (localBetaBypass: boolean) => ({
+  tosAccepted: localBetaBypass || hasAcceptedToS(),
+  privacyAccepted: localBetaBypass || hasAcceptedPrivacyPolicy(),
+});
+
+const AcceptedApplication: React.FC<{ showComingSoon: boolean }> = ({ showComingSoon }) => (
+  <AppProviders>
+    <AppHooks />
+    <ProductAnalyticsRouteTracker />
+    <AppRoutes showComingSoon={showComingSoon} />
+  </AppProviders>
+);
+
 /** Handles the launch-dependent agreement flow before the main app is allowed to initialize. */
 const AgreementGate: React.FC<AgreementGateProps> = ({ showComingSoon }) => {
   const localBetaBypass = __GFC_DEV_MODE__ && new URLSearchParams(window.location.search).get('localBetaBypass') === 'true';
-  const [tosAccepted, setTosAccepted] = useState(() => localBetaBypass || hasAcceptedToS());
-  const [privacyAccepted, setPrivacyAccepted] = useState(() => localBetaBypass || hasAcceptedPrivacyPolicy());
+  const [tosAccepted, setTosAccepted] = useState(() => getAgreementState(localBetaBypass).tosAccepted);
+  const [privacyAccepted, setPrivacyAccepted] = useState(() => getAgreementState(localBetaBypass).privacyAccepted);
 
   const handleAcceptToS = useCallback(() => {
     setTosAccepted(true);
@@ -163,13 +176,7 @@ const AgreementGate: React.FC<AgreementGateProps> = ({ showComingSoon }) => {
   // Keep the routed product tree behind the agreement boundary. Previously the
   // modal was rendered beside AppRoutes, so pages, providers, and global hooks
   // were live in the DOM before the user accepted the policies.
-  return (
-    <AppProviders>
-      <AppHooks />
-      <ProductAnalyticsRouteTracker />
-      <AppRoutes showComingSoon={showComingSoon} />
-    </AppProviders>
-  );
+  return <AcceptedApplication showComingSoon={showComingSoon} />;
 };
 
 interface AppRoutesProps {
