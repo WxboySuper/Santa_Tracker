@@ -127,8 +127,9 @@ interface AgreementGateProps {
 
 /** Handles the launch-dependent agreement flow before the main app is allowed to initialize. */
 const AgreementGate: React.FC<AgreementGateProps> = ({ showComingSoon }) => {
-  const [tosAccepted, setTosAccepted] = useState(() => hasAcceptedToS());
-  const [privacyAccepted, setPrivacyAccepted] = useState(() => hasAcceptedPrivacyPolicy());
+  const localBetaBypass = __GFC_DEV_MODE__ && new URLSearchParams(window.location.search).get('localBetaBypass') === 'true';
+  const [tosAccepted, setTosAccepted] = useState(() => localBetaBypass || hasAcceptedToS());
+  const [privacyAccepted, setPrivacyAccepted] = useState(() => localBetaBypass || hasAcceptedPrivacyPolicy());
 
   const handleAcceptToS = useCallback(() => {
     setTosAccepted(true);
@@ -147,9 +148,9 @@ const AgreementGate: React.FC<AgreementGateProps> = ({ showComingSoon }) => {
       return;
     }
 
-    setTosAccepted(hasAcceptedToS());
-    setPrivacyAccepted(hasAcceptedPrivacyPolicy());
-  }, [showComingSoon]);
+    setTosAccepted(localBetaBypass || hasAcceptedToS());
+    setPrivacyAccepted(localBetaBypass || hasAcceptedPrivacyPolicy());
+  }, [localBetaBypass, showComingSoon]);
 
   if (showComingSoon || !tosAccepted) {
     return showComingSoon ? <AppRoutes showComingSoon /> : <ToSModal onAccept={handleAcceptToS} />;
