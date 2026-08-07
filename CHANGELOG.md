@@ -27,6 +27,7 @@ Work toward the next major release continues in the beta channel while the final
 - **Build and test tooling:** Upgrade to TypeScript 7, modernize the Jest/Babel toolchain, add production/test type checks, expand E2E coverage, and align dependency lockfiles.
 - **Deployment configuration:** Separate beta, staging, and production feature configuration and make release publication the only automatic deployment trigger.
 - **Maintenance dependencies:** Keep frontend, server, test, and build dependencies current through regular automated updates.
+- **Pricing copy:** Consolidate the free/premium boundary into one shared copy contract used by Pricing, Account, and Cloud Library, and remove repeated explanatory sentences and duplicated plan-card summaries.
 
 #### Fixed
 
@@ -41,6 +42,7 @@ Work toward the next major release continues in the beta channel while the final
 - **Build and tooling:** Fix pre-existing TypeScript errors in the outlook constraints and outlook panel probability utilities so `pnpm typecheck` passes on `main`.
 - **Tooling:** Split application and tooling TypeScript configs so `typecheck` runs cleanly from a fresh checkout, add a coverage summary and dependency-audit gate to CI, remove blanket coverage exclusions for covered map and hosted-cloud files, and document the coverage-exclusion inventory.
 - **Accessibility and polish:** Improve toolbar organization, responsive controls, package dialogs, custom-product editing, and forecast map controls.
+- **Status schema hardening:** Make public capability/status responses explicit allowlisted DTOs with schema-snapshot tests that fail on accidental field additions, and document which fields are monitoring-safe versus authenticated diagnostics.
 - **Editor responsiveness:** Move auto-categorical geometry derivation behind a cancellable Web Worker with request/version tracking so stale responses cannot overwrite newer edits, the editor stays responsive during expensive geometry work, and the last known-good result is preserved on failure or timeout.
 - **Bundle size:** Lazy-load heavy feature routes so the application shell loads independently from the map/editor and secondary workflow chunks, split vendor families into separate chunks, and enforce an entry-chunk budget in CI.
 - **Session restore:** Make restore idempotent by keying it to the user scope so React Strict Mode and remounts cannot reapply the same payload or fire duplicate notifications, bound the toast queue, keep mobile toasts clear of the forecast toolbar, and preserve live-region semantics.
