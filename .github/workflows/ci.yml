@@ -119,7 +119,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Validate release automation unit tests
-        run: node --test scripts/create-github-release.test.mjs scripts/lib/*.test.mjs scripts/validate-geo-assets.test.mjs
+        run: node --test scripts/create-github-release.test.mjs scripts/lib/*.test.mjs scripts/lib/license-policy.test.mjs scripts/validate-geo-assets.test.mjs
 
       - name: Validate package version for target branch
         env:
@@ -225,6 +225,36 @@ jobs:
 
       - name: Run hostile-client Firestore rules tests
         run: pnpm test:firestore-rules
+
+  license-policy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24.x'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install analytics server dependencies
+        working-directory: server
+        run: npm ci
+
+      - name: Enforce third-party license policy
+        run: |
+          node scripts/check-third-party-licenses.mjs
+          git diff --exit-code THIRD_PARTY_NOTICES.md || {
+            echo "::error::THIRD_PARTY_NOTICES.md is stale. Run pnpm licenses:generate and commit it."
+            exit 1
+          }
 
   dependency-maintenance:
     runs-on: ubuntu-latest
