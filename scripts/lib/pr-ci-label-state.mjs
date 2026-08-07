@@ -1,6 +1,9 @@
+import { LABEL_DEFS } from './pr-label-defs.mjs';
+
 /** @typedef {{ status: string; conclusion: string | null }} CheckRun */
 
-const CI_LABELS = ['ci:pending', 'ci:passing', 'ci:failing'];
+/** CI status labels, single-sourced from the canonical label palette. */
+const CI_LABELS = LABEL_DEFS.filter(([name]) => name.startsWith('ci:')).map(([name]) => name);
 
 const ACTIVE_STATUSES = new Set(['queued', 'in_progress', 'pending', 'waiting']);
 
@@ -11,6 +14,21 @@ const FAILED_CONCLUSIONS = new Set([
   'action_required',
   'stale',
 ]);
+
+/**
+ * Parses a comma-separated PR number list from an env value, dropping empties
+ * and non-positive integers so a malformed value degrades to an empty list.
+ * @param {string} value
+ * @returns {number[]}
+ */
+export function parsePrNumbers(value) {
+  return (value ?? '')
+    .split(',')
+    .map((part) => part.trim())
+    .filter(Boolean)
+    .map(Number)
+    .filter((n) => Number.isInteger(n) && n > 0);
+}
 
 /**
  * Derive the CI status label from the latest check runs on a commit.
