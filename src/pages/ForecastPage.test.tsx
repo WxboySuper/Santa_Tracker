@@ -392,7 +392,7 @@ describe('ForecastPage layout selection', () => {
         data: { tornado: features, wind: new Map(), hail: new Map(), categorical: new Map(), totalSevere: new Map() } as never,
         metadata: { lowProbabilityOutlooks: [] },
       },
-    } as typeof anonymousCycle.days;
+    } as unknown as typeof anonymousCycle.days;
     const anonymousPayload = serializeForecast(anonymousCycle, { center: [0, 0], zoom: 0 });
     anonymousPayload.timestamp = '2026-07-14T12:00:00.000Z';
 
