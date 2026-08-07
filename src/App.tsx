@@ -159,7 +159,16 @@ const AgreementGate: React.FC<AgreementGateProps> = ({ showComingSoon }) => {
     return <PrivacyPolicyModal onAccept={handleAcceptPrivacyPolicy} />;
   }
 
-  return <><AppHooks /><ProductAnalyticsRouteTracker /></>;
+  // Keep the routed product tree behind the agreement boundary. Previously the
+  // modal was rendered beside AppRoutes, so pages, providers, and global hooks
+  // were live in the DOM before the user accepted the policies.
+  return (
+    <>
+      <AppHooks />
+      <ProductAnalyticsRouteTracker />
+      <AppRoutes showComingSoon={showComingSoon} />
+    </>
+  );
 };
 
 interface AppRoutesProps {
@@ -220,7 +229,6 @@ interface AppContentProps {
 const AppContent: React.FC<AppContentProps> = ({ showComingSoon }) => (
   <BrowserRouter>
     <AgreementGate showComingSoon={showComingSoon} />
-    <AppRoutes showComingSoon={showComingSoon} />
   </BrowserRouter>
 );
 
