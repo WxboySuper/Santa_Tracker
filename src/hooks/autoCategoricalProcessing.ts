@@ -25,6 +25,9 @@ export const toDerivationErrorMessage = (error: unknown, fallback: string): stri
   if (error instanceof Error) {
     return error.message;
   }
+  if (typeof error === 'string' && error.trim().length > 0) {
+    return error;
+  }
   return fallback;
 };
 
