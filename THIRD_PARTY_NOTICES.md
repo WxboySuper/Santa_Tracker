@@ -19,7 +19,7 @@ to each.
 - **@radix-ui/react-tabs** ^1.1.21 (root (pnpm)) — MIT — allowed
 - **@radix-ui/react-tooltip** ^1.2.16 (root (pnpm)) — MIT — allowed
 - **@reduxjs/toolkit** ^2.12.0 (root (pnpm)) — MIT — allowed
-- **@sentry/react** ^10.68.0 (root (pnpm)) — MIT — allowed
+- **@sentry/react** ^10.69.0 (root (pnpm)) — MIT — allowed
 - **@sentry/vite-plugin** ^5.4.0 (root (pnpm)) — MIT — allowed
 - **@tailwindcss/postcss** ^4.3.3 (root (pnpm)) — MIT — allowed
 - **@testing-library/dom** ^10.4.0 (root (pnpm)) — MIT — allowed
@@ -52,7 +52,7 @@ to each.
 - **eslint-plugin-react-hooks** ^7.1.1 (root (pnpm)) — MIT — allowed
 - **eslint-plugin-testing-library** ^7.16.2 (root (pnpm)) — MIT — allowed
 - **firebase** ^12.16.0 (root (pnpm)) — Apache-2.0 — allowed
-- **firebase-tools** 15.24.0 (root (pnpm)) — MIT — allowed
+- **firebase-tools** 15.25.1 (root (pnpm)) — MIT — allowed
 - **gh-pages** ^6.3.0 (root (pnpm)) — MIT — allowed
 - **globals** ^17.9.0 (root (pnpm)) — MIT — allowed
 - **html2canvas** ^1.4.1 (root (pnpm)) — MIT — allowed
@@ -80,7 +80,7 @@ to each.
 - **vite** ^8.1.5 (root (pnpm)) — MIT — allowed
 - **web-vitals** ^6.0.1 (root (pnpm)) — Apache-2.0 — allowed
 - **xml2js** ^0.6.2 (root (pnpm)) — MIT — allowed
-- **@sentry/node** ^10.68.0 (server (npm)) — MIT — allowed
+- **@sentry/node** ^10.69.0 (server (npm)) — MIT — allowed
 - **express** ^5.2.1 (server (npm)) — MIT — allowed
 - **express-rate-limit** ^8.6.1 (server (npm)) — MIT — allowed
 - **firebase-admin** ^14.2.0 (server (npm)) — Apache-2.0 — allowed

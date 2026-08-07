@@ -244,6 +244,10 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Install analytics server dependencies
+        working-directory: server
+        run: npm ci
+
       - name: Enforce third-party license policy
         run: |
           node scripts/check-third-party-licenses.mjs
