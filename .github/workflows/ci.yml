@@ -296,6 +296,9 @@ jobs:
           CI: false
           VITE_BUILD_TARGET: local
 
+      - name: Enforce entry-chunk budget
+        run: node scripts/check-bundle-budget.mjs
+
       - name: Run tests
         run: pnpm test --silent
         env:
