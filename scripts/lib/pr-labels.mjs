@@ -14,11 +14,11 @@ export { exposureLabels } from './pr-label-exposure.mjs';
  *   changedFiles: string[];
  *   mergeable: boolean | null;
  *   draft: boolean;
- *   changelogOk: boolean;
+ *   changelog: { ok: boolean; skipped?: boolean };
  * }} context
  * @returns {string[]}
  */
-export const computePrLabels = ({ head, base, changedFiles, mergeable, draft, changelogOk }) => {
+export const computePrLabels = ({ head, base, changedFiles, mergeable, draft, changelog }) => {
   const labels = new Set([
     ...routingLabels({ head, base }),
     ...descriptiveLabels({ changedFiles, head }),
@@ -27,7 +27,13 @@ export const computePrLabels = ({ head, base, changedFiles, mergeable, draft, ch
 
   if (mergeable === false) labels.add('has conflicts');
   if (draft) labels.add('draft');
-  labels.add(changelogOk ? 'changelog:ok' : 'changelog:missing');
+  if (!changelog.ok) {
+    labels.add('changelog:missing');
+  } else if (changelog.skipped) {
+    labels.add('changelog:skip');
+  } else {
+    labels.add('changelog:ok');
+  }
 
   return [...labels].sort();
 };

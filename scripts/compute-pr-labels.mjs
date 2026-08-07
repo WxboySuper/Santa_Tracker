@@ -1,6 +1,6 @@
 import { listChangedFilesBetweenRefs } from './lib/git-changed-files.mjs';
 import { CONTENT_MANAGED_LABELS, computePrLabels } from './lib/pr-labels.mjs';
-import { evaluateChangelogPolicy } from './lib/changelog-policy.mjs';
+import { evaluatePrChangelog } from './lib/pr-changelog-evaluate.mjs';
 
 const baseRef = process.env.GITHUB_BASE_REF ?? '';
 const headRef = process.env.GITHUB_HEAD_REF ?? '';
@@ -13,11 +13,15 @@ if (!baseRef || !headRef) {
 
 const changedFiles = listChangedFilesBetweenRefs(baseRef, headRef);
 
-const changelogOk = evaluateChangelogPolicy({
+const changelog = evaluatePrChangelog({
   baseRef,
+  headRef,
   changedFiles,
   body: prBody,
-}).ok;
+  repository: process.env.GITHUB_REPOSITORY ?? '',
+  prNumber: Number(process.env.PR_NUMBER ?? 0),
+  ghToken: process.env.GH_TOKEN ?? '',
+});
 
 const labels = computePrLabels({
   head: headRef,
@@ -25,7 +29,7 @@ const labels = computePrLabels({
   changedFiles,
   mergeable: null,
   draft: false,
-  changelogOk,
+  changelog: { ok: changelog.ok, skipped: changelog.skipped },
 });
 
 console.log(JSON.stringify({ labels, contentManaged: CONTENT_MANAGED_LABELS }));
