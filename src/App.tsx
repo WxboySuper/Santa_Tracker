@@ -152,7 +152,7 @@ const AgreementGate: React.FC<AgreementGateProps> = ({ showComingSoon }) => {
   }, [showComingSoon]);
 
   if (showComingSoon || !tosAccepted) {
-    return showComingSoon ? null : <ToSModal onAccept={handleAcceptToS} />;
+    return showComingSoon ? <AppRoutes showComingSoon /> : <ToSModal onAccept={handleAcceptToS} />;
   }
 
   if (!privacyAccepted) {
@@ -163,11 +163,11 @@ const AgreementGate: React.FC<AgreementGateProps> = ({ showComingSoon }) => {
   // modal was rendered beside AppRoutes, so pages, providers, and global hooks
   // were live in the DOM before the user accepted the policies.
   return (
-    <>
+    <AppProviders>
       <AppHooks />
       <ProductAnalyticsRouteTracker />
       <AppRoutes showComingSoon={showComingSoon} />
-    </>
+    </AppProviders>
   );
 };
 
@@ -248,11 +248,7 @@ function App() {
   const isLaunched = useLaunchGate();
   const showComingSoon = COMING_SOON_MODE && !isLaunched;
 
-  return (
-    <AppProviders>
-      <AppContent showComingSoon={showComingSoon} />
-    </AppProviders>
-  );
+  return <AppContent showComingSoon={showComingSoon} />;
 }
 
 export default App;
