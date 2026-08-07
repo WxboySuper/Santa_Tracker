@@ -157,5 +157,15 @@ export const evaluateChangelogPolicy = ({ baseRef = '', changedFiles, body, chan
   if (!declaration.ok) return declaration;
 
   const changelogPath = changelogPathForBase();
-  return validateImpactFile({ declaration, changedFiles, changelog, baseChangelog, baseRef, path: changelogPath });
+  return {
+    ...validateImpactFile({ declaration, changedFiles, changelog, baseChangelog, baseRef, path: changelogPath }),
+    impact: declaration.impact,
+  };
 };
+
+/**
+ * Whether a successful policy result waives a new changelog entry in this PR.
+ * @param {ChangelogImpact | undefined} impact
+ * @returns {boolean}
+ */
+export const isChangelogSkip = (impact) => impact === 'none' || impact === 'inherited';

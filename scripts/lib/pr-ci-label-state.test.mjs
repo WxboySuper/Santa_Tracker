@@ -1,6 +1,33 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { ciLabelFromCheckRuns, diffCiLabels } from './pr-ci-label-state.mjs';
+import { LABEL_DEFS } from './pr-label-defs.mjs';
+import { CI_LABELS, ciLabelFromCheckRuns, diffCiLabels, parsePrNumbers } from './pr-ci-label-state.mjs';
+
+describe('parsePrNumbers', () => {
+  it('parses a comma-separated PR number list', () => {
+    assert.deepEqual(parsePrNumbers('863, 22, 7'), [863, 22, 7]);
+  });
+
+  it('returns an empty list for empty, blank, or malformed input', () => {
+    assert.deepEqual(parsePrNumbers(''), []);
+    assert.deepEqual(parsePrNumbers('   '), []);
+    assert.deepEqual(parsePrNumbers('abc, -3, 0'), []);
+  });
+
+  it('falls back to a single PR_NUMBER value', () => {
+    assert.deepEqual(parsePrNumbers('863'), [863]);
+  });
+});
+
+describe('CI_LABELS palette contract', () => {
+  it('derives the CI labels from the canonical palette', () => {
+    assert.deepEqual(
+      CI_LABELS,
+      LABEL_DEFS.filter(([name]) => name.startsWith('ci:')).map(([name]) => name),
+    );
+    assert.deepEqual(CI_LABELS, ['ci:pending', 'ci:passing', 'ci:failing']);
+  });
+});
 
 describe('ciLabelFromCheckRuns', () => {
   it('returns pending when there are no check runs', () => {

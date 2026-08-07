@@ -2,6 +2,10 @@ name: PR governance
 
 # PR routing labels, descriptive content labels, changelog status, and CI labels.
 # Branch/changelog policy enforcement lives in ci.yml (required status checks).
+# CI labels are additionally settled by pr-ci-label.yml when the CI workflow
+# completes (GitHub Actions' own suites never emit check_suite events). This
+# check_suite path stays for third-party suites, which do emit events, so
+# failures surface early and stragglers that finish after CI are reconciled.
 on:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review, edited]
@@ -44,6 +48,8 @@ jobs:
           GITHUB_HEAD_REF: ${{ github.head_ref }}
           PR_BODY: ${{ github.event.pull_request.body }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GH_TOKEN: ${{ github.token }}
         run: node scripts/compute-pr-labels.mjs > pr-labels.json
 
       - name: Apply PR labels
@@ -53,46 +59,15 @@ jobs:
         with:
           script: |
             const fs = require('fs');
+            const path = require('path');
+            const { pathToFileURL } = require('url');
             const owner = context.repo.owner;
             const repo = context.repo.repo;
-            const labelDefs = [
-              ['promotion', '1d76db'],
-              ['feature', '0e8a16'],
-              ['fix', 'd4c5f9'],
-              ['hotfix', 'b60205'],
-              ['release', '5319e7'],
-              ['port', 'c5def5'],
-              ['refactor', 'bfdadc'],
-              ['has conflicts', 'e11d21'],
-              ['draft', 'ededed'],
-              ['ci:pending', 'fbca04'],
-              ['ci:passing', '0e8a16'],
-              ['ci:failing', 'd73a4a'],
-              ['integration:primary', '1f6feb'],
-              ['integration:other', 'c2e0c6'],
-              ['changelog:ok', '0e8a16'],
-              ['changelog:missing', 'd73a4a'],
-              ['Documentation', '0075ca'],
-              ['Enhancement', 'a2eeef'],
-              ['Bug', 'd73a4a'],
-              ['Refactor', 'bfdadc'],
-              ['javascript', '168700'],
-              ['dependencies', '0366d6'],
-              ['quality', 'fbca04'],
-              ['e2e-validated', '0e8a16'],
-              ['porting', 'FBCA04'],
-              ['porting/manual', 'd876e3'],
-              ['porting/conflicts', 'B60205'],
-              ['Component: Map', '1d76db'],
-              ['Component: Outlooks', 'fbca04'],
-              ['Component: Drawing-Tools', '0e8a16'],
-              ['Component: Export', '5319e7'],
-              ['Component: UI', 'd4c5f9'],
-              ['Component: Storage', 'fef2c0'],
-              ['exposure:production', '0e8a16'],
-              ['exposure:server-backed', 'd73a4a'],
-              ['exposure:registry-change', '1f6feb'],
-            ];
+            const defsUrl = pathToFileURL(
+              path.join(process.env.GITHUB_WORKSPACE, 'scripts/lib/pr-label-defs.mjs'),
+            ).href;
+            const { LABEL_DEFS } = await import(defsUrl);
+            const labelDefs = LABEL_DEFS;
             for (const [name, color] of labelDefs) {
               try {
                 await github.rest.issues.getLabel({ owner, repo, name });
@@ -166,5 +141,7 @@ jobs:
       - name: Update CI labels from all check runs on PR head
         env:
           GITHUB_TOKEN: ${{ github.token }}
-          PR_NUMBER: ${{ github.event.check_suite.pull_requests[0].number }}
-        run: node scripts/sync-pr-ci-label.mjs
+          PRS_JSON: ${{ toJSON(github.event.check_suite.pull_requests) }}
+        run: |
+          PR_NUMBERS="$(printf '%s' "$PRS_JSON" | jq -r '.[].number' | paste -sd, -)"
+          PR_NUMBERS="$PR_NUMBERS" node scripts/sync-pr-ci-label.mjs
