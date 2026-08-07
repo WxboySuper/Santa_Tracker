@@ -9,6 +9,7 @@ function configureApp(app, express) {
   const { registerAccountLifecycleRoutes } = require('./account-lifecycle');
   const { registerBillingRoutes } = require('./billing');
   const { registerCapabilityRoutes } = require('./capabilities');
+  const { registerCloudCycleRoutes } = require('./cloud-cycles');
   const { registerMetricsRoutes } = require('./metrics');
   const { registerSentryTunnelRoutes } = require('./sentry-tunnel');
   const { registerTstmIngestion, registerTstmRoutes } = require('./tstm');
@@ -20,6 +21,7 @@ function configureApp(app, express) {
   registerMetricsRoutes(app, express);
   registerBetaRoutes(app, express);
   registerCapabilityRoutes(app);
+  registerCloudCycleRoutes(app, express);
   registerTstmRoutes(app, express);
   registerTstmIngestion(app, express);
   registerAccountLifecycleRoutes(app, express);

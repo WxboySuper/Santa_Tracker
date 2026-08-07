@@ -1,6 +1,6 @@
-import { collection, deleteField, deleteDoc, doc, getDoc, getDocs, onSnapshot, query, setDoc, where, writeBatch } from 'firebase/firestore';
+import { collection, deleteField, deleteDoc, doc, getDoc, getDocs, onSnapshot, query, setDoc, where } from 'firebase/firestore';
 import { v4 as uuidv4 } from 'uuid';
-import { db } from './firebase';
+import { auth, db } from './firebase';
 import { CloudCycleMetadata, CloudCycle, CloudOperationResult } from '../types/cloudCycles';
 import { GFCForecastSaveData } from '../types/outlooks';
 import type { CycleMetadata } from '../types/workflow';
@@ -510,14 +510,15 @@ export const saveCloudCycle = async (
     const payloadStats = createCloudCyclePayloadStorage(payload);
     const validWorkflowMetadata = getCompatibleWorkflowMetadata(requestedWorkflowMetadata, cycleDate);
 
-    const saveBatch = writeBatch(getCloudCyclesCollectionRef().firestore);
-    saveBatch.set(getCloudCycleDocRef(cycleId), {
-      ...metadata,
-      payloadBytes: payloadStats.payloadBytes,
-      ...(validWorkflowMetadata ? { workflowMetadata: validWorkflowMetadata } : {}),
+    const currentUser = auth?.currentUser;
+    const token = currentUser ? await currentUser.getIdToken() : null;
+    if (!token) return { success: false, error: 'Authentication required' };
+    const response = await fetch('/api/cloud-cycles', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ id: cycleId, userId, label, cycleDate, payloadJson: JSON.stringify(payload), payloadBytes: payloadStats.payloadBytes, metadata: { ...metadata, ...(validWorkflowMetadata ? { workflowMetadata: validWorkflowMetadata } : {}) } }),
     });
-    saveBatch.set(getCloudCyclePayloadDocRef(cycleId), payloadStats);
-    await saveBatch.commit();
+    if (!response.ok) return { success: false, error: (await response.json().catch(() => ({}))).error || 'Unable to save cloud cycle' };
 
     return { success: true, data: cycleId };
   } catch (error) {
