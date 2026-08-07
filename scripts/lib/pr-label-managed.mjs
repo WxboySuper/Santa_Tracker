@@ -1,5 +1,7 @@
+import { CI_LABELS } from './pr-ci-label-state.mjs';
+
 /** CI labels owned by check-run aggregation (not touched on pull_request sync). */
-export const CI_MANAGED_LABELS = ['ci:pending', 'ci:passing', 'ci:failing'];
+export const CI_MANAGED_LABELS = CI_LABELS;
 
 /** Labels recomputed on pull_request events (routing, changelog, descriptive). */
 export const CONTENT_MANAGED_LABELS = [
@@ -16,6 +18,7 @@ export const CONTENT_MANAGED_LABELS = [
   'draft',
   'changelog:ok',
   'changelog:missing',
+  'changelog:skip',
   'Documentation',
   'Enhancement',
   'Bug',

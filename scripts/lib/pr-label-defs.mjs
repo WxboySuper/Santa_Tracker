@@ -1,0 +1,45 @@
+/**
+ * Canonical PR label palette (name, color). Used by pr-governance.yml to create
+ * missing labels and by the CI label sync to know which labels it owns. Keep the
+ * workflow's label creation in sync by importing from here.
+ * @type {Array<[name: string, color: string]>}
+ */
+export const LABEL_DEFS = [
+  ['promotion', '1d76db'],
+  ['feature', '0e8a16'],
+  ['fix', 'd4c5f9'],
+  ['hotfix', 'b60205'],
+  ['release', '5319e7'],
+  ['port', 'c5def5'],
+  ['refactor', 'bfdadc'],
+  ['has conflicts', 'e11d21'],
+  ['draft', 'ededed'],
+  ['ci:pending', 'fbca04'],
+  ['ci:passing', '0e8a16'],
+  ['ci:failing', 'd73a4a'],
+  ['integration:primary', '1f6feb'],
+  ['integration:other', 'c2e0c6'],
+  ['changelog:ok', '0e8a16'],
+  ['changelog:missing', 'd73a4a'],
+  ['changelog:skip', '9d9d9d'],
+  ['Documentation', '0075ca'],
+  ['Enhancement', 'a2eeef'],
+  ['Bug', 'd73a4a'],
+  ['Refactor', 'bfdadc'],
+  ['javascript', '168700'],
+  ['dependencies', '0366d6'],
+  ['quality', 'fbca04'],
+  ['e2e-validated', '0e8a16'],
+  ['porting', 'FBCA04'],
+  ['porting/manual', 'd876e3'],
+  ['porting/conflicts', 'B60205'],
+  ['Component: Map', '1d76db'],
+  ['Component: Outlooks', 'fbca04'],
+  ['Component: Drawing-Tools', '0e8a16'],
+  ['Component: Export', '5319e7'],
+  ['Component: UI', 'd4c5f9'],
+  ['Component: Storage', 'fef2c0'],
+  ['exposure:production', '0e8a16'],
+  ['exposure:server-backed', 'd73a4a'],
+  ['exposure:registry-change', '1f6feb'],
+];
