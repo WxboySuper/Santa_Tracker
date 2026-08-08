@@ -125,41 +125,61 @@ interface AgreementGateProps {
   showComingSoon: boolean;
 }
 
-/** Handles the launch-dependent agreement flow before the main app is allowed to initialize. */
-const AgreementGate: React.FC<AgreementGateProps> = ({ showComingSoon }) => {
-  const [tosAccepted, setTosAccepted] = useState(() => hasAcceptedToS());
-  const [privacyAccepted, setPrivacyAccepted] = useState(() => hasAcceptedPrivacyPolicy());
+const getAgreementState = (localBetaBypass: boolean) => ({
+  tosAccepted: localBetaBypass || hasAcceptedToS(),
+  privacyAccepted: localBetaBypass || hasAcceptedPrivacyPolicy(),
+});
 
-  const handleAcceptToS = useCallback(() => {
-    setTosAccepted(true);
-  }, []);
+const AcceptedApplication: React.FC<{ showComingSoon: boolean }> = ({ showComingSoon }) => (
+  <AppProviders>
+    <AppHooks />
+    <ProductAnalyticsRouteTracker />
+    <AppRoutes showComingSoon={showComingSoon} />
+  </AppProviders>
+);
 
-  const handleAcceptPrivacyPolicy = useCallback(() => {
-    setPrivacyAccepted(true);
-  }, []);
-
+const useAgreementState = (showComingSoon: boolean) => {
+  const localBetaBypass = __GFC_DEV_MODE__ && new URLSearchParams(window.location.search).get('localBetaBypass') === 'true';
+  const initial = getAgreementState(localBetaBypass);
+  const [tosAccepted, setTosAccepted] = useState(initial.tosAccepted);
+  const [privacyAccepted, setPrivacyAccepted] = useState(initial.privacyAccepted);
   useEffect(() => {
     if (privacyAccepted && !showComingSoon) initProductAnalytics();
   }, [privacyAccepted, showComingSoon]);
-
   useEffect(() => {
-    if (showComingSoon) {
-      return;
+    if (!showComingSoon) {
+      const next = getAgreementState(localBetaBypass);
+      setTosAccepted(next.tosAccepted);
+      setPrivacyAccepted(next.privacyAccepted);
     }
+  }, [localBetaBypass, showComingSoon]);
+  return { tosAccepted, privacyAccepted, setTosAccepted, setPrivacyAccepted };
+};
 
-    setTosAccepted(hasAcceptedToS());
-    setPrivacyAccepted(hasAcceptedPrivacyPolicy());
-  }, [showComingSoon]);
+/** Handles the launch-dependent agreement flow before the main app is allowed to initialize. */
+const AgreementGate: React.FC<AgreementGateProps> = ({ showComingSoon }) => {
+  const { tosAccepted, privacyAccepted, setTosAccepted, setPrivacyAccepted } = useAgreementState(showComingSoon);
+
+  const handleAcceptToS = useCallback(() => {
+    setTosAccepted(true);
+  }, [setTosAccepted]);
+
+  const handleAcceptPrivacyPolicy = useCallback(() => {
+    setPrivacyAccepted(true);
+  }, [setPrivacyAccepted]);
 
   if (showComingSoon || !tosAccepted) {
-    return showComingSoon ? null : <ToSModal onAccept={handleAcceptToS} />;
+    return showComingSoon ? <AppRoutes showComingSoon /> : <ToSModal onAccept={handleAcceptToS} />;
   }
 
   if (!privacyAccepted) {
     return <PrivacyPolicyModal onAccept={handleAcceptPrivacyPolicy} />;
   }
 
-  return <><AppHooks /><ProductAnalyticsRouteTracker /></>;
+  // Keep the routed product tree behind the agreement boundary. Previously the
+  // modal was rendered beside AppRoutes, so pages, providers, and global hooks
+  // were live in the DOM before the user accepted the policies.
+  return <AcceptedApplication showComingSoon={showComingSoon} />;
 };
 
 interface AppRoutesProps {
@@ -220,7 +240,6 @@ interface AppContentProps {
 const AppContent: React.FC<AppContentProps> = ({ showComingSoon }) => (
   <BrowserRouter>
     <AgreementGate showComingSoon={showComingSoon} />
-    <AppRoutes showComingSoon={showComingSoon} />
   </BrowserRouter>
 );
 
@@ -240,11 +259,7 @@ function App() {
   const isLaunched = useLaunchGate();
   const showComingSoon = COMING_SOON_MODE && !isLaunched;
 
-  return (
-    <AppProviders>
-      <AppContent showComingSoon={showComingSoon} />
-    </AppProviders>
-  );
+  return <AppContent showComingSoon={showComingSoon} />;
 }
 
 export default App;
