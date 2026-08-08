@@ -91,6 +91,16 @@ const postCloudCycle = async (token: string, body: Record<string, unknown>) => {
   return { success: true };
 };
 
+const buildCloudCycleRequest = (cycleId: string, params: SaveCloudCycleParams, metadata: CloudCycleMetadata, payloadStats: { payloadBytes: number }, workflowMetadata?: CycleMetadata) => ({
+  id: cycleId,
+  userId: params.userId,
+  label: params.label,
+  cycleDate: params.cycleDate,
+  payloadJson: JSON.stringify(params.payload),
+  payloadBytes: payloadStats.payloadBytes,
+  metadata: { ...metadata, ...(workflowMetadata ? { workflowMetadata } : {}) },
+});
+
 type LegacyCloudCyclesValue = string | Record<string, unknown> | undefined;
 
 type LegacyUserSettingsDocument = {
@@ -523,7 +533,7 @@ export const saveCloudCycle = async (
     const currentUser = auth?.currentUser;
     const token = currentUser ? await currentUser.getIdToken() : null;
     if (!token) return { success: false, error: 'Authentication required' };
-    const result = await postCloudCycle(token, { id: cycleId, userId, label, cycleDate, payloadJson: JSON.stringify(payload), payloadBytes: payloadStats.payloadBytes, metadata: { ...metadata, ...(validWorkflowMetadata ? { workflowMetadata: validWorkflowMetadata } : {}) } });
+    const result = await postCloudCycle(token, buildCloudCycleRequest(cycleId, params, metadata, payloadStats, validWorkflowMetadata));
     if (!result.success) return result;
 
     return { success: true, data: cycleId };

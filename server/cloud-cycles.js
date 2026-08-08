@@ -11,12 +11,14 @@ const verifyUser = async (req) => {
   try { return await auth.verifyIdToken(token); } catch { return null; }
 };
 
+const hasValidCycleIdentity = ({ userId, id, label }, uid) => userId === uid && typeof id === 'string' && id.length <= 128 && typeof label === 'string' && label.length > 0 && label.length <= 200;
+const hasValidCyclePayload = ({ cycleDate, payloadJson, payloadBytes }) => {
+  const bytes = typeof payloadJson === 'string' ? Buffer.byteLength(payloadJson, 'utf8') : -1;
+  return typeof cycleDate === 'string' && cycleDate.length <= 32 && typeof payloadJson === 'string' && bytes <= MAX_PAYLOAD_BYTES && payloadBytes === bytes;
+};
 const readCloudCycleRequest = (body, uid) => {
   const { id, userId, label, cycleDate, payloadJson, payloadBytes, metadata } = body || {};
-  const bytes = typeof payloadJson === 'string' ? Buffer.byteLength(payloadJson, 'utf8') : -1;
-  const validIdentity = userId === uid && typeof id === 'string' && id.length <= 128 && typeof label === 'string' && label.length > 0 && label.length <= 200;
-  const validPayload = typeof cycleDate === 'string' && cycleDate.length <= 32 && typeof payloadJson === 'string' && bytes <= MAX_PAYLOAD_BYTES && payloadBytes === bytes;
-  if (!validIdentity || !validPayload || !metadata || typeof metadata !== 'object') return null;
+  if (!hasValidCycleIdentity({ userId, id, label }, uid) || !hasValidCyclePayload({ cycleDate, payloadJson, payloadBytes }) || !metadata || typeof metadata !== 'object') return null;
   return { id, label, cycleDate, payloadJson, payloadBytes, metadata };
 };
 
