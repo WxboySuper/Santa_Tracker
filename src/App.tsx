@@ -162,11 +162,11 @@ const AgreementGate: React.FC<AgreementGateProps> = ({ showComingSoon }) => {
 
   const handleAcceptToS = useCallback(() => {
     setTosAccepted(true);
-  }, []);
+  }, [setTosAccepted]);
 
   const handleAcceptPrivacyPolicy = useCallback(() => {
     setPrivacyAccepted(true);
-  }, []);
+  }, [setPrivacyAccepted]);
 
   if (showComingSoon || !tosAccepted) {
     return showComingSoon ? <AppRoutes showComingSoon /> : <ToSModal onAccept={handleAcceptToS} />;
