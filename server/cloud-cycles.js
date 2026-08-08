@@ -14,7 +14,9 @@ const verifyUser = async (req) => {
 const readCloudCycleRequest = (body, uid) => {
   const { id, userId, label, cycleDate, payloadJson, payloadBytes, metadata } = body || {};
   const bytes = typeof payloadJson === 'string' ? Buffer.byteLength(payloadJson, 'utf8') : -1;
-  if (userId !== uid || typeof id !== 'string' || id.length > 128 || typeof label !== 'string' || !label || label.length > 200 || typeof cycleDate !== 'string' || cycleDate.length > 32 || typeof payloadJson !== 'string' || bytes > MAX_PAYLOAD_BYTES || payloadBytes !== bytes || !metadata || typeof metadata !== 'object') return null;
+  const validIdentity = userId === uid && typeof id === 'string' && id.length <= 128 && typeof label === 'string' && label.length > 0 && label.length <= 200;
+  const validPayload = typeof cycleDate === 'string' && cycleDate.length <= 32 && typeof payloadJson === 'string' && bytes <= MAX_PAYLOAD_BYTES && payloadBytes === bytes;
+  if (!validIdentity || !validPayload || !metadata || typeof metadata !== 'object') return null;
   return { id, label, cycleDate, payloadJson, payloadBytes, metadata };
 };
 

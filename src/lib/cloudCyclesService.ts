@@ -81,6 +81,16 @@ interface SaveCloudCycleParams {
   existingId?: string;
 }
 
+const postCloudCycle = async (token: string, body: Record<string, unknown>) => {
+  const response = await fetch('/api/cloud-cycles', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+    body: JSON.stringify(body),
+  });
+  if (!response.ok) return { success: false, error: (await response.json().catch(() => ({}))).error || 'Unable to save cloud cycle' };
+  return { success: true };
+};
+
 type LegacyCloudCyclesValue = string | Record<string, unknown> | undefined;
 
 type LegacyUserSettingsDocument = {
@@ -513,12 +523,8 @@ export const saveCloudCycle = async (
     const currentUser = auth?.currentUser;
     const token = currentUser ? await currentUser.getIdToken() : null;
     if (!token) return { success: false, error: 'Authentication required' };
-    const response = await fetch('/api/cloud-cycles', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ id: cycleId, userId, label, cycleDate, payloadJson: JSON.stringify(payload), payloadBytes: payloadStats.payloadBytes, metadata: { ...metadata, ...(validWorkflowMetadata ? { workflowMetadata: validWorkflowMetadata } : {}) } }),
-    });
-    if (!response.ok) return { success: false, error: (await response.json().catch(() => ({}))).error || 'Unable to save cloud cycle' };
+    const result = await postCloudCycle(token, { id: cycleId, userId, label, cycleDate, payloadJson: JSON.stringify(payload), payloadBytes: payloadStats.payloadBytes, metadata: { ...metadata, ...(validWorkflowMetadata ? { workflowMetadata: validWorkflowMetadata } : {}) } });
+    if (!result.success) return result;
 
     return { success: true, data: cycleId };
   } catch (error) {
