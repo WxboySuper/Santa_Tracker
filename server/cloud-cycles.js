@@ -16,9 +16,12 @@ const hasValidCyclePayload = ({ cycleDate, payloadJson, payloadBytes }) => {
   const bytes = typeof payloadJson === 'string' ? Buffer.byteLength(payloadJson, 'utf8') : -1;
   return typeof cycleDate === 'string' && cycleDate.length <= 32 && typeof payloadJson === 'string' && bytes <= MAX_PAYLOAD_BYTES && payloadBytes === bytes;
 };
+const hasValidMetadata = (metadata) => Boolean(metadata) && typeof metadata === 'object' && !Array.isArray(metadata);
 const readCloudCycleRequest = (body, uid) => {
   const { id, userId, label, cycleDate, payloadJson, payloadBytes, metadata } = body || {};
-  if (!hasValidCycleIdentity({ userId, id, label }, uid) || !hasValidCyclePayload({ cycleDate, payloadJson, payloadBytes }) || !metadata || typeof metadata !== 'object') return null;
+  if (!hasValidCycleIdentity({ userId, id, label }, uid)) return null;
+  if (!hasValidCyclePayload({ cycleDate, payloadJson, payloadBytes })) return null;
+  if (!hasValidMetadata(metadata)) return null;
   return { id, label, cycleDate, payloadJson, payloadBytes, metadata };
 };
 

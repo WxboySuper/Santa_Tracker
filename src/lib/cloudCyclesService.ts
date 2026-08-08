@@ -101,6 +101,11 @@ const buildCloudCycleRequest = (cycleId: string, params: SaveCloudCycleParams, m
   metadata: { ...metadata, ...(workflowMetadata ? { workflowMetadata } : {}) },
 });
 
+const getCloudSaveToken = async (): Promise<string | null> => {
+  const currentUser = auth?.currentUser;
+  return currentUser ? currentUser.getIdToken() : null;
+};
+
 type LegacyCloudCyclesValue = string | Record<string, unknown> | undefined;
 
 type LegacyUserSettingsDocument = {
@@ -530,8 +535,7 @@ const saveCloudCycleInternal = async (
     const payloadStats = createCloudCyclePayloadStorage(payload);
     const validWorkflowMetadata = getCompatibleWorkflowMetadata(requestedWorkflowMetadata, cycleDate);
 
-    const currentUser = auth?.currentUser;
-    const token = currentUser ? await currentUser.getIdToken() : null;
+    const token = await getCloudSaveToken();
     if (!token) return { success: false, error: 'Authentication required' };
     const result = await postCloudCycle(token, buildCloudCycleRequest(cycleId, params, metadata, payloadStats, validWorkflowMetadata));
     if (!result.success) return result;
