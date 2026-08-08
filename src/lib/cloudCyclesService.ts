@@ -1,6 +1,6 @@
 import { collection, deleteField, deleteDoc, doc, getDoc, getDocs, onSnapshot, query, setDoc, where, writeBatch } from 'firebase/firestore';
 import { v4 as uuidv4 } from 'uuid';
-import { db } from './firebase';
+import { auth, db } from './firebase';
 import { CloudCycleMetadata, CloudCycle, CloudOperationResult } from '../types/cloudCycles';
 import { GFCForecastSaveData } from '../types/outlooks';
 import type { CycleMetadata } from '../types/workflow';
@@ -80,6 +80,31 @@ interface SaveCloudCycleParams {
   isReadOnly?: boolean;
   existingId?: string;
 }
+
+const postCloudCycle = async (token: string, body: Record<string, unknown>) => {
+  const response = await fetch('/api/cloud-cycles', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+    body: JSON.stringify(body),
+  });
+  if (!response.ok) return { success: false, error: (await response.json().catch(() => ({}))).error || 'Unable to save cloud cycle' };
+  return { success: true };
+};
+
+const buildCloudCycleRequest = ({ cycleId, params, metadata, payloadStats, workflowMetadata }: { cycleId: string; params: SaveCloudCycleParams; metadata: CloudCycleMetadata; payloadStats: { payloadBytes: number }; workflowMetadata?: CycleMetadata }) => ({
+  id: cycleId,
+  userId: params.userId,
+  label: params.label,
+  cycleDate: params.cycleDate,
+  payloadJson: JSON.stringify(params.payload),
+  payloadBytes: payloadStats.payloadBytes,
+  metadata: { ...metadata, ...(workflowMetadata ? { workflowMetadata } : {}) },
+});
+
+const getCloudSaveToken = async (): Promise<string | null> => {
+  const currentUser = auth?.currentUser;
+  return currentUser ? currentUser.getIdToken() : null;
+};
 
 type LegacyCloudCyclesValue = string | Record<string, unknown> | undefined;
 
@@ -469,57 +494,30 @@ const getOwnedCloudCycle = async ({ userId, cycleId }: UserCycleLookupParams): P
 /**
  * Saves a new cloud cycle or updates an existing one
  */
-export const saveCloudCycle = async (
-  params: SaveCloudCycleParams
-): Promise<CloudOperationResult<string>> => {
+const buildCloudCycleSaveContext = async (params: SaveCloudCycleParams) => {
+  const cycleId = params.existingId || createCloudCycleId(params.userId, params.cycleDate);
+  const existingCycle = params.existingId ? await getOwnedCloudCycle({ userId: params.userId, cycleId: params.existingId }) : null;
+  if (params.existingId && !existingCycle) return { error: 'Cloud cycle not found' as const };
+  const now = new Date().toISOString();
+  const metadata: CloudCycleMetadata = {
+    id: cycleId, userId: params.userId, label: params.label, cycleDate: params.cycleDate,
+    createdAt: existingCycle?.createdAt ?? now, updatedAt: now,
+    forecastDays: params.stats.forecastDays, totalOutlooks: params.stats.totalOutlooks,
+    totalFeatures: params.stats.totalFeatures, isReadOnly: params.isReadOnly ?? false,
+    payloadHash: computePayloadHash(params.payload),
+  };
+  return { cycleId, metadata, payloadStats: createCloudCyclePayloadStorage(params.payload), workflowMetadata: getCompatibleWorkflowMetadata(params.workflowMetadata, params.cycleDate) };
+};
+
+const saveCloudCycleInternal = async (params: SaveCloudCycleParams): Promise<CloudOperationResult<string>> => {
   try {
-    const {
-      userId,
-      label,
-      cycleDate,
-      stats,
-      payload,
-      workflowMetadata: requestedWorkflowMetadata,
-      isReadOnly = false,
-      existingId,
-    } = params;
-    const cycleId = existingId || createCloudCycleId(userId, cycleDate);
-    const now = new Date().toISOString();
-    const existingCycle = existingId ? await getOwnedCloudCycle({ userId, cycleId: existingId }) : null;
-
-    if (existingId && !existingCycle) {
-      return {
-        success: false,
-        error: 'Cloud cycle not found',
-      };
-    }
-
-    const metadata: CloudCycleMetadata = {
-      id: cycleId,
-      userId,
-      label,
-      cycleDate,
-      createdAt: existingCycle?.createdAt ?? now,
-      updatedAt: now,
-      forecastDays: stats.forecastDays,
-      totalOutlooks: stats.totalOutlooks,
-      totalFeatures: stats.totalFeatures,
-      isReadOnly,
-      payloadHash: computePayloadHash(payload),
-    };
-    const payloadStats = createCloudCyclePayloadStorage(payload);
-    const validWorkflowMetadata = getCompatibleWorkflowMetadata(requestedWorkflowMetadata, cycleDate);
-
-    const saveBatch = writeBatch(getCloudCyclesCollectionRef().firestore);
-    saveBatch.set(getCloudCycleDocRef(cycleId), {
-      ...metadata,
-      payloadBytes: payloadStats.payloadBytes,
-      ...(validWorkflowMetadata ? { workflowMetadata: validWorkflowMetadata } : {}),
-    });
-    saveBatch.set(getCloudCyclePayloadDocRef(cycleId), payloadStats);
-    await saveBatch.commit();
-
-    return { success: true, data: cycleId };
+    const context = await buildCloudCycleSaveContext(params);
+    if ('error' in context) return { success: false, error: context.error };
+    const token = await getCloudSaveToken();
+    if (!token) return { success: false, error: 'Authentication required' };
+    const result = await postCloudCycle(token, buildCloudCycleRequest({ cycleId: context.cycleId, params, metadata: context.metadata, payloadStats: context.payloadStats, workflowMetadata: context.workflowMetadata }));
+    if (!result.success) return result;
+    return { success: true, data: context.cycleId };
   } catch (error) {
     console.error('Error saving cloud cycle:', error);
     return {
@@ -528,6 +526,9 @@ export const saveCloudCycle = async (
     };
   }
 };
+
+export const saveCloudCycle = (params: SaveCloudCycleParams): Promise<CloudOperationResult<string>> =>
+  saveCloudCycleInternal(params);
 
 /** Loads a specific cloud cycle for the requested user. */
 export const loadCloudCycle = async (
