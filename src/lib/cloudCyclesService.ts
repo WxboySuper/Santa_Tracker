@@ -91,7 +91,7 @@ const postCloudCycle = async (token: string, body: Record<string, unknown>) => {
   return { success: true };
 };
 
-const buildCloudCycleRequest = (cycleId: string, params: SaveCloudCycleParams, metadata: CloudCycleMetadata, payloadStats: { payloadBytes: number }, workflowMetadata?: CycleMetadata) => ({
+const buildCloudCycleRequest = ({ cycleId, params, metadata, payloadStats, workflowMetadata }: { cycleId: string; params: SaveCloudCycleParams; metadata: CloudCycleMetadata; payloadStats: { payloadBytes: number }; workflowMetadata?: CycleMetadata }) => ({
   id: cycleId,
   userId: params.userId,
   label: params.label,
@@ -515,7 +515,7 @@ const saveCloudCycleInternal = async (params: SaveCloudCycleParams): Promise<Clo
     if ('error' in context) return { success: false, error: context.error };
     const token = await getCloudSaveToken();
     if (!token) return { success: false, error: 'Authentication required' };
-    const result = await postCloudCycle(token, buildCloudCycleRequest(context.cycleId, params, context.metadata, context.payloadStats, context.workflowMetadata));
+    const result = await postCloudCycle(token, buildCloudCycleRequest({ cycleId: context.cycleId, params, metadata: context.metadata, payloadStats: context.payloadStats, workflowMetadata: context.workflowMetadata }));
     if (!result.success) return result;
     return { success: true, data: context.cycleId };
   } catch (error) {
