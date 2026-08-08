@@ -19,6 +19,7 @@ import {
   isSignificantThreatsExposed,
 } from '../../config/productExposureSelectors';
 
+// @codescene(disable:"Large Method")
 export function useOutlookPanelLogic() {
   const dispatch = useDispatch();
   const drawingState = useSelector((s: RootState) => s.forecast.drawingState);

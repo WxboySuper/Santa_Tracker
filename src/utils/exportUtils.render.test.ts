@@ -50,11 +50,11 @@ describe('renderOutlooksToMap', () => {
 
     const outlooks = { categorical: new Map([['5%', [feature]]]) };
 
-    renderOutlooksToMap(mapInstance, outlooks);
+    renderOutlooksToMap(mapInstance as never, outlooks as never);
 
     expect(mapInstance.added).toBeTruthy();
-    expect(mapInstance.added.length).toBeGreaterThan(0);
-    expect((mapInstance.added[0] as { feature: typeof feature }).feature).toBe(feature);
+    expect(mapInstance.added!.length).toBeGreaterThan(0);
+    expect((mapInstance.added![0] as { feature: typeof feature }).feature).toBe(feature);
   });
 
   test('applies the selected built-in outlook opacity to export styles', async () => {
@@ -71,7 +71,7 @@ describe('renderOutlooksToMap', () => {
     const { renderOutlooksToMap } = await import('./exportUtils');
     const mapInstance: { added?: unknown[] } = {};
     const feature = { type: 'Feature', properties: {}, geometry: { type: 'Polygon', coordinates: [] } };
-    renderOutlooksToMap(mapInstance, { tornado: new Map([['30%', [feature]]]) }, { tornado: 0.35 });
-    expect((mapInstance.added?.[0] as { fillOpacity: number }).fillOpacity).toBeCloseTo(0.14);
+    renderOutlooksToMap(mapInstance as never, { tornado: new Map([['30%', [feature]]]) } as never, { tornado: 0.35 });
+    expect((mapInstance.added![0] as { fillOpacity: number }).fillOpacity).toBeCloseTo(0.14);
   });
 });

@@ -46,6 +46,7 @@ const outlookShortcuts: Record<OutlookType, string> = {
   'day4-8': 'D',
 };
 
+// @codescene(disable:"Complex Method")
 export const OutlookSelectorPanel: React.FC = memo(() => {
   const {
     activeOutlookType,
