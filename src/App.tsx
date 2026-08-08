@@ -138,11 +138,27 @@ const AcceptedApplication: React.FC<{ showComingSoon: boolean }> = ({ showComing
   </AppProviders>
 );
 
+const useAgreementState = (showComingSoon: boolean) => {
+  const localBetaBypass = __GFC_DEV_MODE__ && new URLSearchParams(window.location.search).get('localBetaBypass') === 'true';
+  const initial = getAgreementState(localBetaBypass);
+  const [tosAccepted, setTosAccepted] = useState(initial.tosAccepted);
+  const [privacyAccepted, setPrivacyAccepted] = useState(initial.privacyAccepted);
+  useEffect(() => {
+    if (privacyAccepted && !showComingSoon) initProductAnalytics();
+  }, [privacyAccepted, showComingSoon]);
+  useEffect(() => {
+    if (!showComingSoon) {
+      const next = getAgreementState(localBetaBypass);
+      setTosAccepted(next.tosAccepted);
+      setPrivacyAccepted(next.privacyAccepted);
+    }
+  }, [localBetaBypass, showComingSoon]);
+  return { tosAccepted, privacyAccepted, setTosAccepted, setPrivacyAccepted };
+};
+
 /** Handles the launch-dependent agreement flow before the main app is allowed to initialize. */
 const AgreementGate: React.FC<AgreementGateProps> = ({ showComingSoon }) => {
-  const localBetaBypass = __GFC_DEV_MODE__ && new URLSearchParams(window.location.search).get('localBetaBypass') === 'true';
-  const [tosAccepted, setTosAccepted] = useState(() => getAgreementState(localBetaBypass).tosAccepted);
-  const [privacyAccepted, setPrivacyAccepted] = useState(() => getAgreementState(localBetaBypass).privacyAccepted);
+  const { tosAccepted, privacyAccepted, setTosAccepted, setPrivacyAccepted } = useAgreementState(showComingSoon);
 
   const handleAcceptToS = useCallback(() => {
     setTosAccepted(true);
@@ -151,19 +167,6 @@ const AgreementGate: React.FC<AgreementGateProps> = ({ showComingSoon }) => {
   const handleAcceptPrivacyPolicy = useCallback(() => {
     setPrivacyAccepted(true);
   }, []);
-
-  useEffect(() => {
-    if (privacyAccepted && !showComingSoon) initProductAnalytics();
-  }, [privacyAccepted, showComingSoon]);
-
-  useEffect(() => {
-    if (showComingSoon) {
-      return;
-    }
-
-    setTosAccepted(localBetaBypass || hasAcceptedToS());
-    setPrivacyAccepted(localBetaBypass || hasAcceptedPrivacyPolicy());
-  }, [localBetaBypass, showComingSoon]);
 
   if (showComingSoon || !tosAccepted) {
     return showComingSoon ? <AppRoutes showComingSoon /> : <ToSModal onAccept={handleAcceptToS} />;
