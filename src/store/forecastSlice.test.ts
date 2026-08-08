@@ -34,6 +34,8 @@ import reducer, {
   setAutoCategoricalError,
   selectCurrentOutlooks,
   selectOutlooksForDay,
+  setOutlookOpacity,
+  selectCurrentOutlookOpacity,
 } from './forecastSlice';
 
 const createPolygon = (offset: number): Polygon => ({
@@ -232,6 +234,15 @@ const getRedoStack = (state: ReturnType<typeof reducer>, day: DayType) =>
   state.historyByDay[day]?.redoStack || [];
 
 describe('forecastSlice undo/redo', () => {
+  test('stores per-outlook opacity with a legacy-compatible default', () => {
+    const base = reducer(undefined, setForecastDay(1));
+    const state = (forecastState: ReturnType<typeof reducer>) => ({ forecast: forecastState } as Parameters<typeof selectCurrentOutlookOpacity>[0]);
+    expect(selectCurrentOutlookOpacity(state(base), 'tornado')).toBe(1);
+    const updated = reducer(base, setOutlookOpacity({ outlookType: 'tornado', opacity: 0.35 }));
+    expect(selectCurrentOutlookOpacity(state(updated), 'tornado')).toBe(0.35);
+    const undone = reducer(updated, undoLastEdit());
+    expect(selectCurrentOutlookOpacity(state(undone), 'tornado')).toBe(1);
+  });
   test('undoes and redoes added features', () => {
     let state = reducer(undefined, addFeature({ feature: createFeature('one', 0) }));
 

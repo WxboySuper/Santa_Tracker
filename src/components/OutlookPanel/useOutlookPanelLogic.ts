@@ -4,6 +4,8 @@ import { RootState } from '../../store';
 import {
   setActiveOutlookType,
   setActiveProbability,
+  setOutlookOpacity,
+  selectCurrentOutlookOpacity,
   selectCurrentDay,
 } from '../../store/forecastSlice';
 import {
@@ -23,6 +25,7 @@ export function useOutlookPanelLogic() {
   const emergencyMode = useSelector((s: RootState) => s.forecast.emergencyMode);
   const currentDay = useSelector(selectCurrentDay);
   const { activeOutlookType, activeProbability, isSignificant } = drawingState;
+  const outlookOpacity = useSelector((s: RootState) => selectCurrentOutlookOpacity(s, activeOutlookType));
 
   const significantThreatsEnabled = isSignificantThreatsExposed();
 
@@ -59,6 +62,10 @@ export function useOutlookPanelLogic() {
     // Legacy support removed/disabled
   }, []);
 
+  const handleOutlookOpacityChange = useCallback((opacity: number) => {
+    dispatch(setOutlookOpacity({ outlookType: activeOutlookType, opacity }));
+  }, [activeOutlookType, dispatch]);
+
   const probabilities = getAvailableProbabilities(activeOutlookType, currentDay);
 
   const probabilityHandlers = useMemo(
@@ -93,6 +100,8 @@ export function useOutlookPanelLogic() {
     handleToggleSignificant,
     probabilities,
     probabilityHandlers,
+    outlookOpacity,
+    handleOutlookOpacityChange,
   } as const;
 }
 

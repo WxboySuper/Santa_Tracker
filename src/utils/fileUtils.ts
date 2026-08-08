@@ -124,7 +124,7 @@ const serializeOutlookDay = (outlookDay: OutlookDay): SerializedDay => {
   });
   return {
     day: outlookDay.day,
-    metadata: { ...outlookDay.metadata, lowProbabilityOutlooks: outlookDay.metadata.lowProbabilityOutlooks || [] },
+    metadata: { ...outlookDay.metadata, lowProbabilityOutlooks: outlookDay.metadata.lowProbabilityOutlooks || [], ...(outlookDay.metadata.outlookOpacities ? { outlookOpacities: outlookDay.metadata.outlookOpacities } : {}) },
     data: serializedData,
     ...(outlookDay.customLayers ? { customLayers: JSON.parse(JSON.stringify(outlookDay.customLayers)) as OutlookDay['customLayers'] } : {}),
     discussion: outlookDay.discussion,
