@@ -489,7 +489,7 @@ const getOwnedCloudCycle = async ({ userId, cycleId }: UserCycleLookupParams): P
 /**
  * Saves a new cloud cycle or updates an existing one
  */
-export const saveCloudCycle = async (
+const saveCloudCycleInternal = async (
   params: SaveCloudCycleParams
 ): Promise<CloudOperationResult<string>> => {
   try {
@@ -545,6 +545,9 @@ export const saveCloudCycle = async (
     };
   }
 };
+
+export const saveCloudCycle = (params: SaveCloudCycleParams): Promise<CloudOperationResult<string>> =>
+  saveCloudCycleInternal(params);
 
 /** Loads a specific cloud cycle for the requested user. */
 export const loadCloudCycle = async (
