@@ -21,7 +21,7 @@ function configureApp(app, express) {
   registerMetricsRoutes(app, express);
   registerBetaRoutes(app, express);
   registerCapabilityRoutes(app);
-  registerCloudCycleRoutes(app, express);
+  registerCloudCycleRoutes(app, express, rateLimit);
   registerTstmRoutes(app, express);
   registerTstmIngestion(app, express);
   registerAccountLifecycleRoutes(app, express);

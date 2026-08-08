@@ -36,8 +36,9 @@ const saveCloudCycle = async (db, uid, cycle) => {
   });
 };
 
-const registerCloudCycleRoutes = (app, express) => {
-  app.post('/api/cloud-cycles', express.json({ limit: '800kb' }), async (req, res) => {
+const registerCloudCycleRoutes = (app, express, rateLimit) => {
+  const saveRateLimit = rateLimit({ windowMs: 60 * 1000, max: 30, standardHeaders: true, legacyHeaders: false });
+  app.post('/api/cloud-cycles', saveRateLimit, express.json({ limit: '800kb' }), async (req, res) => {
     try {
       if (!hasFirebaseAdminConfig()) return res.status(503).json({ error: 'Cloud storage is unavailable.' });
       const user = await verifyUser(req);
