@@ -187,4 +187,20 @@ describe('VerificationPanel', () => {
       jest.useRealTimers();
     }
   });
+
+  test('uses the current SPC report day before the 12Z boundary', () => {
+    jest.useFakeTimers();
+    jest.setSystemTime(new Date('2026-04-20T11:00:00.000Z'));
+
+    try {
+      const store = buildStore();
+      renderPanel(store, { activePanel: 'setup' });
+
+      const dateInput = screen.getByLabelText(/Select Date/i);
+      expect(dateInput).toHaveValue('2026-04-19');
+      expect(dateInput).toHaveAttribute('max', '2026-04-19');
+    } finally {
+      jest.useRealTimers();
+    }
+  });
 });

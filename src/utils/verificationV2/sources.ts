@@ -15,7 +15,13 @@ import { fetchStormReports, fetchTodayStormReports, fetchYesterdayStormReports }
 import { isTodayReportDate, isYesterdayReportDate, toArchiveDate } from './archiveDate';
 import type { PackageGrade, ProductKind } from './gradeContract';
 
-export { isReachedArchiveDate, isTodayReportDate, isYesterdayReportDate, toArchiveDate } from './archiveDate';
+export {
+  getCurrentSpcReportDate,
+  isReachedArchiveDate,
+  isTodayReportDate,
+  isYesterdayReportDate,
+  toArchiveDate,
+} from './archiveDate';
 
 /**
  * Source adapters for the Forecast Grade dashboard (PR 05 — sources-history).
@@ -121,8 +127,8 @@ const reportFeedForDate = (reportDate: string | null, now: Date = new Date()): R
 };
 
 /** Fetches reports from the SPC feed resolved for a report date. */
-const fetchReportFeed = (reportDate: string | null): Promise<StormReport[]> => {
-  const feed = reportFeedForDate(reportDate);
+const fetchReportFeed = (reportDate: string | null, now: Date): Promise<StormReport[]> => {
+  const feed = reportFeedForDate(reportDate, now);
   if (feed.source === 'archive') {
     return fetchStormReports(feed.archiveDate);
   }
@@ -132,15 +138,16 @@ const fetchReportFeed = (reportDate: string | null): Promise<StormReport[]> => {
 /**
  * Loads SPC storm reports for a date (or today when null), or blocks.
  *
- * The current calendar day is routed to the live today.csv feed, and the
- * previous calendar day to the live yesterday.csv feed, matching SPC's
- * publication window: the dated archive file only exists once a report day has
- * fully rolled off those rolling feeds. Any other valid date goes to the SPC
- * archive.
+ * The current SPC report day is routed to the live today.csv feed, and the
+ * previous SPC report day to the live yesterday.csv feed, matching SPC's
+ * 12Z–11:59Z publication window. Any other valid date goes to the SPC archive.
  */
-export const loadReportsForDate = async (reportDate: string | null): Promise<StormReport[]> => {
+export const loadReportsForDate = async (
+  reportDate: string | null,
+  now: Date = new Date()
+): Promise<StormReport[]> => {
   try {
-    return await fetchReportFeed(reportDate);
+    return await fetchReportFeed(reportDate, now);
   } catch (error) {
     if (error instanceof SourceLoadError) {
       throw error;

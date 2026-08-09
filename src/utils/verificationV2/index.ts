@@ -49,4 +49,4 @@ export {
   type GradeProgress,
   type GradeProgressHandler,
 } from './gradeForecast';
-export { isReachedArchiveDate, toArchiveDate } from './archiveDate';
+export { getCurrentSpcReportDate, isReachedArchiveDate, toArchiveDate } from './archiveDate';

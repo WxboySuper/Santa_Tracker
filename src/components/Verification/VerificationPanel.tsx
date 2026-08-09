@@ -12,7 +12,11 @@ import {
 } from '../../store/stormReportsSlice';
 import { selectVerificationOutlooksForDay } from '../../store/verificationSlice';
 import { fetchStormReports, fetchTodayStormReports, fetchYesterdayStormReports, formatReportDate } from '../../utils/stormReportParser';
-import { isTodayReportDate, isYesterdayReportDate } from '../../utils/verificationV2/archiveDate';
+import {
+  getCurrentSpcReportDate,
+  isTodayReportDate,
+  isYesterdayReportDate,
+} from '../../utils/verificationV2/archiveDate';
 import { analyzeVerification, formatVerificationSummary } from '../../utils/verificationUtils';
 import type { OutlookTypeVerification, VerificationResult } from '../../utils/verificationUtils';
 import type { StormReport } from '../../types/stormReports';
@@ -323,9 +327,7 @@ const VerificationPanel: React.FC<VerificationPanelProps> = ({
 
   // Local state for managing the selected date for loading storm reports.
   const [selectedDate, setSelectedDate] = useState<string>(() => {
-    // Default to today's date
-    const today = new Date();
-    return today.toISOString().split('T')[0];
+    return getCurrentSpcReportDate();
   });
   
   // Handler for loading storm reports based on the selected date.
@@ -398,7 +400,7 @@ const VerificationPanel: React.FC<VerificationPanelProps> = ({
                 value={selectedDate}
                 onChange={handleSelectedDateChange}
                 disabled={loading}
-                max={new Date().toISOString().split('T')[0]}
+                max={getCurrentSpcReportDate()}
               />
             </label>
             <button
