@@ -65,9 +65,9 @@ const parseTodayStormReportCsvLegacy = (csvText: string): StormReport[] => {
   });
 };
 
-const createTodayCsv = (): string => {
+const createTodayCsv = (rowsPerSection = 100): string => {
   const sections = TODAY_SECTION_HEADERS.map(({ header, type }) => {
-    const rows = Array.from({ length: 100 }, (_, index) => {
+    const rows = Array.from({ length: rowsPerSection }, (_, index) => {
       const values = type === 'tornado'
         ? [index.toString().padStart(4, '0'), '1', 'Ada', 'OK', 'OK', '34.77', '-96.67', `Tornado ${index}`]
         : type === 'wind'
@@ -111,12 +111,17 @@ describe('storm report parser performance', () => {
       reportComparison(`storm CSV split (${label})`, splitBaseline, splitOptimized);
     });
 
-    const parserBaseline = measure(() => {
-      parseTodayStormReportCsvLegacy(todayCsv);
-    }, { iterations: 50, samples: 5, warmup: 2 });
-    const parserOptimized = measure(() => {
-      parseTodayStormReportCsv(todayCsv);
-    }, { iterations: 50, samples: 5, warmup: 2 });
-    reportComparison('today.csv parser (300 reports)', parserBaseline, parserOptimized);
+    [
+      { label: '300 reports', csv: todayCsv, iterations: 50 },
+      { label: '3,000 reports', csv: createTodayCsv(1000), iterations: 10 },
+    ].forEach(({ label, csv, iterations }) => {
+      const parserBaseline = measure(() => {
+        parseTodayStormReportCsvLegacy(csv);
+      }, { iterations, samples: 5, warmup: 2 });
+      const parserOptimized = measure(() => {
+        parseTodayStormReportCsv(csv);
+      }, { iterations, samples: 5, warmup: 2 });
+      reportComparison(`today.csv parser (${label})`, parserBaseline, parserOptimized);
+    });
   });
 });
