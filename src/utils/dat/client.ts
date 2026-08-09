@@ -253,7 +253,13 @@ export const buildDatQueryParams = (
 };
 
 const toErrorMessage = (payload: unknown): string | null => {
-  if (!payload || typeof payload !== 'object' || !('error' in payload)) {
+  if (!payload) {
+    return null;
+  }
+  if (typeof payload !== 'object') {
+    return null;
+  }
+  if (!('error' in payload)) {
     return null;
   }
   const error = (payload as { error?: DatArcGisError }).error;
