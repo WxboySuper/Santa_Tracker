@@ -70,6 +70,12 @@ test.describe('local-only custom layers', () => {
     await expect(page.locator('.map-history-button[aria-label="Redo"]')).toBeEnabled();
     await page.locator('.map-history-button[aria-label="Redo"]').click();
     await expect(page.locator('.map-history-button[aria-label="Undo"]')).toBeEnabled();
+
+    await page.getByRole('radio', { name: 'Severe' }).click();
+    await expect(page.getByRole('button', { name: 'Add custom layer' })).not.toBeVisible();
+    await expect(page.locator('.map-container')).toBeVisible();
+    await page.getByRole('button', { name: 'Cat', exact: true }).click();
+    await expect(page.getByRole('heading', { name: 'Categorical Risk Levels' })).toBeVisible();
   });
 
   for (const viewport of [

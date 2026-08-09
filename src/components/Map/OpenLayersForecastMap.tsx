@@ -65,6 +65,11 @@ import {
 } from "../../lib/openFreeMap";
 import "./ForecastMap.css";
 import { isFeatureExposed } from "../../config/featureExposure";
+import {
+  getForecastSourceDescriptorPlan,
+  reconcileFeatureSource,
+  type FeatureSyncDescriptor,
+} from "./openLayersFeatureSync";
 
 import {
   getFeatureIdentity,
@@ -273,6 +278,7 @@ const OpenLayersForecastMap = forwardRef<MapAdapterHandle<OLMap> | null, OpenLay
         outlookType: string;
         probability: string;
         feature: GeoJsonFeature;
+        zIndex: number;
       }> = [];
       if (customMode) return items;
       Object.entries(outlooks).forEach(([outlookType, probs]) => {
@@ -283,7 +289,12 @@ const OpenLayersForecastMap = forwardRef<MapAdapterHandle<OLMap> | null, OpenLay
         if (!(probs instanceof Map)) return;
         probs.forEach((features: GeoJsonFeature[], probability: string) => {
           features.forEach((feature: GeoJsonFeature) => {
-            items.push({ outlookType, probability, feature });
+            items.push({
+              outlookType,
+              probability,
+              feature,
+              zIndex: computeZIndex(outlookType as EditableOutlookType, probability),
+            });
           });
         });
       });
@@ -1051,75 +1062,103 @@ const OpenLayersForecastMap = forwardRef<MapAdapterHandle<OLMap> | null, OpenLay
       const source = vectorSourceRef.current;
       const catSource = catSourceRef.current;
       const ghostSource = ghostSourceRef.current;
-      source.clear();
-      catSource.clear();
-      ghostSource.clear();
       const format = new GeoJSON();
+      const maxZIndex = serializedFeatures.reduce(
+        (max, { zIndex }) => Math.max(max, zIndex),
+        -Infinity,
+      );
 
-      if (customMode) {
-        const highestZIndex = Math.max(...serializedCustomFeatures.map(({ layer, category }) => 700 + layer.order * 20 + category.order), 700);
-        serializedCustomFeatures.forEach(({ feature, category, layer }) => {
-          const zIndex = 700 + layer.order * 20 + category.order;
-          const olFeature = format.readFeature(feature, { dataProjection: "EPSG:4326", featureProjection: "EPSG:3857" });
-          const applyCustomProps = (item: OLFeature<Geometry>) => {
-            item.setStyle(toCustomOlStyle(category, zIndex === highestZIndex, zIndex));
-            item.set("featureId", feature.id as string);
-            item.set("customLayerId", layer.id);
-            item.set("customLayerTitle", layer.label);
-            item.set("categoryId", category.id);
-            item.set("title", category.label);
-            source.addFeature(item);
+      const normalDescriptors: FeatureSyncDescriptor[] = serializedFeatures.map(
+        ({ outlookType, probability, feature, zIndex }, index) => {
+          const stableId = feature.id == null ? `legacy-index-${index}` : String(feature.id);
+          const isCategorical = outlookType === "categorical";
+          const isTopLayer = zIndex === maxZIndex;
+          const targetSource = isCategorical ? catSource : source;
+
+          return {
+            // Legacy serialized forecasts may omit feature ids; position is the
+            // only stable identity available for those entries.
+            key: `normal:${outlookType}:${probability}:${stableId}`,
+            feature,
+            stableId,
+            signature: [
+              outlookType,
+              probability,
+              isTopLayer,
+              outlookOpacity,
+              Boolean(feature.properties?.isSignificant),
+              String(feature.properties?.derivedFrom),
+            ].join("|"),
+            read: () => format.readFeature(feature, {
+              dataProjection: "EPSG:4326",
+              featureProjection: "EPSG:3857",
+            }),
+            apply: (item: OLFeature<Geometry>) => {
+              item.setStyle(
+                toOlStyle(
+                  { outlookType, probability },
+                  { isTopLayer, outlookOpacity },
+                ),
+              );
+              item.set("featureId", stableId);
+              item.set("outlookType", outlookType);
+              item.set("probability", probability);
+              item.set("isSignificant", Boolean(feature.properties?.isSignificant));
+              item.set("derivedFrom", feature.properties?.derivedFrom);
+            },
+            targetSource,
           };
-          if (Array.isArray(olFeature)) olFeature.forEach((item) => applyCustomProps(item as OLFeature<Geometry>));
-          else applyCustomProps(olFeature as OLFeature<Geometry>);
-        });
-      }
+        },
+      );
 
-      // Find the maximum z-index for bold styling
-      let maxZIndex = -Infinity;
-      serializedFeatures.forEach(({ outlookType, probability }) => {
-        const zIndex = computeZIndex(
-          outlookType as EditableOutlookType,
-          probability,
-        );
-        if (zIndex > maxZIndex) maxZIndex = zIndex;
-      });
+      const highestCustomZIndex = Math.max(
+        ...serializedCustomFeatures.map(({ layer, category }) =>
+          700 + layer.order * 20 + category.order,
+        ),
+        700,
+      );
+      const customDescriptors: FeatureSyncDescriptor[] = customMode
+        ? serializedCustomFeatures.map(({ feature, category, layer }, index) => {
+            const stableId = feature.id == null ? `legacy-index-${index}` : String(feature.id);
+            const zIndex = 700 + layer.order * 20 + category.order;
+            return {
+              key: `custom:${layer.id}:${stableId}`,
+              feature,
+              stableId,
+              signature: [
+                layer.id,
+                layer.label,
+                layer.order,
+                category.id,
+                category.label,
+                category.order,
+                JSON.stringify(category.style),
+                zIndex === highestCustomZIndex,
+              ].join("|"),
+              read: () => format.readFeature(feature, {
+                dataProjection: "EPSG:4326",
+                featureProjection: "EPSG:3857",
+              }),
+              apply: (item: OLFeature<Geometry>) => {
+                item.setStyle(
+                  toCustomOlStyle(
+                    category,
+                    zIndex === highestCustomZIndex,
+                    zIndex,
+                  ),
+                );
+                item.set("featureId", stableId);
+                item.set("customLayerId", layer.id);
+                item.set("customLayerTitle", layer.label);
+                item.set("categoryId", category.id);
+                item.set("title", category.label);
+              },
+              targetSource: source,
+            };
+          })
+        : [];
 
-      serializedFeatures.forEach(({ outlookType, probability, feature }) => {
-        const isCategorical = outlookType === "categorical";
-        const targetSource = isCategorical ? catSource : source;
-
-        const olFeature = format.readFeature(feature, {
-          dataProjection: "EPSG:4326",
-          featureProjection: "EPSG:3857",
-        });
-
-        const zIndex = computeZIndex(
-          outlookType as EditableOutlookType,
-          probability,
-        );
-        const isTopLayer = zIndex === maxZIndex;
-
-        // Apply styles and properties to the feature, then add it to the appropriate source.
-        const applyProps = (f: OLFeature<Geometry>) => {
-          f.setStyle(toOlStyle({ outlookType, probability }, { isTopLayer, outlookOpacity }));
-          f.set("featureId", feature.id as string);
-          f.set("outlookType", outlookType);
-          f.set("probability", probability);
-          f.set("isSignificant", Boolean(feature.properties?.isSignificant));
-          f.set("derivedFrom", feature.properties?.derivedFrom);
-          targetSource.addFeature(f);
-        };
-
-        if (Array.isArray(olFeature)) {
-          olFeature.forEach((item: FeatureLike) =>
-            applyProps(item as OLFeature<Geometry>),
-          );
-        } else {
-          applyProps(olFeature as OLFeature<Geometry>);
-        }
-      });
-
+      const ghostDescriptors: FeatureSyncDescriptor[] = [];
       Object.entries(outlooks).forEach(([outlookType, probs]) => {
         if (
           customMode ||
@@ -1133,39 +1172,49 @@ const OpenLayersForecastMap = forwardRef<MapAdapterHandle<OLMap> | null, OpenLay
 
         probs.forEach((features: GeoJsonFeature[], probability: string) => {
           const isCategorical = outlookType === "categorical";
-
-          features.forEach((feature) => {
-            const olFeature = format.readFeature(feature, {
-              dataProjection: "EPSG:4326",
-              featureProjection: "EPSG:3857",
-            });
-
-            /** Apply ghost styling/metadata and add the feature to the ghost source. */
-            const applyGhostProps = (f: OLFeature<Geometry>) => {
-              f.setStyle(
-                toGhostOlStyle({ outlookType, probability, isCategorical }),
-              );
-              f.set("featureId", feature.id as string);
-              f.set("outlookType", outlookType);
-              f.set("probability", probability);
-              f.set(
-                "isSignificant",
+          features.forEach((feature, index) => {
+            const stableId = feature.id == null ? `legacy-index-${index}` : String(feature.id);
+            ghostDescriptors.push({
+              key: `ghost:${outlookType}:${probability}:${stableId}`,
+              feature,
+              stableId,
+              signature: [
+                outlookType,
+                probability,
+                isCategorical,
                 Boolean(feature.properties?.isSignificant),
-              );
-              f.set("derivedFrom", feature.properties?.derivedFrom);
-              ghostSource.addFeature(f);
-            };
-
-            if (Array.isArray(olFeature)) {
-              olFeature.forEach((item: FeatureLike) =>
-                applyGhostProps(item as OLFeature<Geometry>),
-              );
-            } else {
-              applyGhostProps(olFeature as OLFeature<Geometry>);
-            }
+                String(feature.properties?.derivedFrom),
+              ].join("|"),
+              read: () => format.readFeature(feature, {
+                dataProjection: "EPSG:4326",
+                featureProjection: "EPSG:3857",
+              }),
+              apply: (item: OLFeature<Geometry>) => {
+                item.setStyle(
+                  toGhostOlStyle({ outlookType, probability, isCategorical }),
+                );
+                item.set("featureId", stableId);
+                item.set("outlookType", outlookType);
+                item.set("probability", probability);
+                item.set("isSignificant", Boolean(feature.properties?.isSignificant));
+                item.set("derivedFrom", feature.properties?.derivedFrom);
+              },
+              targetSource: ghostSource,
+            });
           });
         });
       });
+
+      const sourceDescriptorPlan = getForecastSourceDescriptorPlan({
+        normalDescriptors,
+        customMode,
+        customDescriptors,
+        source,
+        categoricalSource: catSource,
+      });
+      reconcileFeatureSource(source, sourceDescriptorPlan.source);
+      reconcileFeatureSource(catSource, sourceDescriptorPlan.categorical);
+      reconcileFeatureSource(ghostSource, ghostDescriptors);
     }, [
       serializedFeatures,
       outlookOpacity,
