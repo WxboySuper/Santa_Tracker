@@ -67,6 +67,7 @@ Work toward the next major release continues in the beta channel while the final
 #### Performance
 
 - **Forecast snapshot cloning:** Reduce recursive forecast feature clone allocations used by history snapshots while preserving deep-copy behavior.
+- **Forecast map synchronization:** Reconcile OpenLayers forecast layers incrementally by stable feature ID, preserving unchanged feature identity and avoiding full rehydration.
 - **Cloud library efficiency:** Store forecast payloads in a dedicated `cloudCycles/{id}/payload` subcollection so library listings and realtime subscriptions never download payload content, and replace the tenancy-wide Firestore storage scan with bounded server-side aggregate queries.
 
 ### Stable 1.6.x hotfixes
