@@ -23,6 +23,8 @@ const livePrBaseRef = () => {
   }
 };
 
+// GitHub merge refs for stacked PRs can report the default branch as the event base;
+// the live PR base is authoritative for the diff this check is meant to govern.
 const baseRef = livePrBaseRef() || eventBaseRef;
 
 if (!baseRef || !headRef) {
