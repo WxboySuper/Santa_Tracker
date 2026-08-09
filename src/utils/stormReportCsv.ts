@@ -11,21 +11,25 @@ export interface StormReportRowFieldMap {
 
 export const splitCsvLine = (line: string): string[] => {
   const values: string[] = [];
-  let currentValue: string[] = [];
   let inQuotes = false;
+  let fieldStart = 0;
 
-  for (const char of line) {
+  const pushField = (fieldEnd: number): void => {
+    const field = line.slice(fieldStart, fieldEnd);
+    values.push(field.includes('"') ? field.replaceAll('"', '') : field);
+  };
+
+  for (let index = 0; index < line.length; index += 1) {
+    const char = line[index];
     if (char === '"') {
       inQuotes = !inQuotes;
     } else if (char === ',' && !inQuotes) {
-      values.push(currentValue.join(''));
-      currentValue = [];
-    } else {
-      currentValue.push(char);
+      pushField(index);
+      fieldStart = index + 1;
     }
   }
 
-  values.push(currentValue.join(''));
+  pushField(line.length);
   return values;
 };
 

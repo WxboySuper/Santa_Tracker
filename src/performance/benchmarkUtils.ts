@@ -44,9 +44,12 @@ export const reportComparison = (
 ): void => {
   const improvement = ((baseline.medianMs - optimized.medianMs) / baseline.medianMs) * 100;
   const speedup = baseline.medianMs / optimized.medianMs;
+  const direction = improvement >= 0
+    ? `${improvement.toFixed(1)}% faster`
+    : `${Math.abs(improvement).toFixed(1)}% slower`;
   console.log(
     `${label}: baseline ${baseline.medianMs.toFixed(2)} ms, `
       + `optimized ${optimized.medianMs.toFixed(2)} ms, `
-      + `${improvement.toFixed(1)}% faster (${speedup.toFixed(2)}x)`,
+      + `${direction} (${speedup.toFixed(2)}x baseline)`,
   );
 };
