@@ -1,0 +1,23 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "id": 1,
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[-98, 35], [-96, 35], [-96, 37], [-98, 37], [-98, 35]]]
+      },
+      "properties": {
+        "objectid": 1,
+        "name": "MD 0001",
+        "folderpath": "MD 0001 Active Till 2100 UTC",
+        "popupinfo": "http://www.spc.noaa.gov/products/md/md0001.html",
+        "idp_filedate": 1786287600000,
+        "idp_ingestdate": 1786287660000,
+        "st_area(shape)": 4,
+        "st_perimeter(shape)": 8
+      }
+    }
+  ]
+}

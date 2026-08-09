@@ -1,0 +1,30 @@
+{
+  "type": "Feature",
+  "geometry": null,
+  "properties": {
+    "units": "us",
+    "forecastGenerator": "BaselineForecastGenerator",
+    "generatedAt": "2026-08-09T18:31:49-05:00",
+    "updateTime": "2026-08-09T18:11:52-05:00",
+    "validTimes": "2026-08-09T17:00:00+00:00/P7DT8H",
+    "elevation": {
+      "unitCode": "wmoUnit:m",
+      "value": 441.96
+    },
+    "periods": [
+      {
+        "number": 1,
+        "name": "Today",
+        "startTime": "2026-08-09T08:00:00-05:00",
+        "endTime": "2026-08-09T18:00:00-05:00",
+        "isDaytime": true,
+        "temperature": 88,
+        "temperatureUnit": "F",
+        "windSpeed": "10 mph",
+        "windDirection": "S",
+        "shortForecast": "Mostly Sunny",
+        "detailedForecast": "Mostly sunny, with a high near 88."
+      }
+    ]
+  }
+}
