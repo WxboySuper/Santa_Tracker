@@ -197,7 +197,7 @@ const Legend: React.FC<LegendProps> = React.memo(({
         <div className="legend-items" role="list">
           {reports.filter(([type]) => reportFilters[type]).map(([type, label, color]) => (
             <div key={type} className="legend-item" role="listitem">
-              <span className="legend-report-dot" style={{ backgroundColor: color }} aria-hidden="true" />
+              <span className="legend-report-dot" data-testid={`report-${type}-color`} style={{ backgroundColor: color }} aria-hidden="true" />
               <span>{label}</span>
             </div>
           ))}
