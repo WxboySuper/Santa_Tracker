@@ -53,6 +53,8 @@ export interface EmbeddedCustomProductSnapshot {
   schemaVersion: typeof CUSTOM_PRODUCTS_SCHEMA_VERSION;
   sourceProductId?: CustomProductId;
   sourceProductVersion?: number;
+  /** True when the snapshot came from a product supplied by GFC, not the owner. */
+  builtIn?: boolean;
   label: string;
   categories: CustomCategoryTemplate[];
   capturedAt: string;
@@ -79,6 +81,8 @@ export interface HostedCustomProduct {
   schemaVersion: typeof CUSTOM_PRODUCTS_SCHEMA_VERSION;
   id: CustomProductId;
   userId: string;
+  /** Built-in products are catalog entries and never consume the owner's product quota. */
+  builtIn?: boolean;
   label: string;
   description?: string;
   version: number;

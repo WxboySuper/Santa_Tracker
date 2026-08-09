@@ -109,11 +109,33 @@ describe('CustomProductsPage', () => {
     expect(screen.getByRole('button', { name: /New product/i })).toBeDisabled();
     expect(screen.getByRole('button', { name: /Use in Forecast/i })).toBeDisabled();
     expect(screen.getByRole('button', { name: /Edit/i })).toBeDisabled();
-    expect(screen.getByText(/remain visible and can be deleted/i)).toBeInTheDocument();
+    expect(screen.getByText(/Rainfall and Tropical AOI are built-in products/i)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /^Delete$/i })).toBeEnabled();
     await user.click(screen.getByRole('button', { name: /^Delete$/i }));
     await user.click(screen.getByRole('button', { name: /^Delete$/i }));
     expect(customProducts.deleteProduct).toHaveBeenCalledWith(product);
+  });
+
+  test('keeps built-in products usable for free users without personal-product actions', async () => {
+    const user = userEvent.setup();
+    const builtInProduct: HostedCustomProduct = {
+      ...product,
+      id: 'builtin-rainfall' as HostedCustomProduct['id'],
+      userId: 'gfc-built-in',
+      builtIn: true,
+      label: 'Rainfall',
+    };
+    const customProducts = result({ products: [builtInProduct], builtInProducts: [builtInProduct], userProducts: [], premiumActive: false, useProduct: jest.fn().mockReturnValue({ id: 'layer-1' }) });
+    mockUseCustomProducts.mockReturnValue(customProducts);
+    render(<MemoryRouter><CustomProductsPage /></MemoryRouter>);
+
+    expect(screen.getByText('Built-in · Free')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Use in Forecast/i })).toBeEnabled();
+    expect(screen.queryByRole('button', { name: /Edit/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Duplicate/i })).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: /Use in Forecast/i }));
+    expect(customProducts.useProduct).toHaveBeenCalledWith(builtInProduct);
+    expect(mockNavigate).toHaveBeenCalledWith('/forecast');
   });
 
   test('disables every product mutation while an action is pending', () => {

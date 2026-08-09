@@ -32,6 +32,11 @@ const DeleteAction = ({ pending, onDelete }: { pending: boolean; onDelete(): voi
 
 const ProductActions = ({ product, premiumActive, pending, onEdit, onDuplicate, onStatus, onDelete, onUse }: Props) => {
   const active = product.status === 'active';
+  if (product.builtIn) {
+    return <div className="custom-product-card__actions">
+      <Button onClick={onUse} disabled={pending || !active}>Use in Forecast</Button>
+    </div>;
+  }
   const mutationsDisabled = pending || !premiumActive;
   return (
     <div className="custom-product-card__actions">
@@ -57,12 +62,12 @@ const CustomProductCard = (props: Props) => {
             <CardTitle>{product.label}</CardTitle>
             <CardDescription>{product.description || `${product.categories.length} ordered categories`}</CardDescription>
           </div>
-          <span className={`custom-product-status is-${product.status}`}>{product.status}</span>
+          <span className={`custom-product-status is-${product.builtIn ? 'builtin' : product.status}`}>{product.builtIn ? 'Built-in · Free' : product.status}</span>
         </div>
       </CardHeader>
       <CardContent>
         <CustomProductPreview categories={product.categories} />
-        <div className="custom-product-card__meta">Version {product.version} · Updated {new Date(product.updatedAt).toLocaleDateString()}</div>
+        <div className="custom-product-card__meta">{product.builtIn ? 'Available to everyone · Does not count toward your personal product limit' : `Version ${product.version} · Updated ${new Date(product.updatedAt).toLocaleDateString()}`}</div>
         <ProductActions {...props} />
       </CardContent>
     </Card>

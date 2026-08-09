@@ -3,11 +3,14 @@ import { useAuth } from '../auth/AuthProvider';
 import { useEntitlement } from '../billing/EntitlementProvider';
 import type { HostedCustomProduct, HostedCustomProductStatus, OneOffCustomLayer } from '../types/customProducts';
 import { getCustomProductsRepository, type CustomProductDraft } from '../lib/customProductsRepository';
+import { listBuiltInCustomProducts } from '../lib/builtInCustomProducts';
 import { useCustomProductActions } from './useCustomProductActions';
 import { useCustomProductSubscription } from './useCustomProductSubscription';
 
 export interface UseCustomProductsResult {
   products: HostedCustomProduct[];
+  builtInProducts: HostedCustomProduct[];
+  userProducts: HostedCustomProduct[];
   loading: boolean;
   error: string | null;
   premiumActive: boolean;
@@ -26,11 +29,20 @@ export const useCustomProducts = (): UseCustomProductsResult => {
   const { premiumActive } = useEntitlement();
   const repository = useMemo(getCustomProductsRepository, []);
   const subscription = useCustomProductSubscription(repository, user?.uid);
+  const builtInProducts = useMemo(listBuiltInCustomProducts, []);
   const actions = useCustomProductActions({
     repository,
     userId: user?.uid,
     premiumActive,
     setError: subscription.setError,
   });
-  return { ...subscription.state, ...actions, premiumActive };
+  const userProducts = subscription.state.products;
+  return {
+    ...subscription.state,
+    products: [...builtInProducts, ...userProducts],
+    builtInProducts,
+    userProducts,
+    ...actions,
+    premiumActive,
+  };
 };

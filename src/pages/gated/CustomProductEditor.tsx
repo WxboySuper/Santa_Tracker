@@ -5,7 +5,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../..
 import { Input } from '../../components/ui/input';
 import { Textarea } from '../../components/ui/textarea';
 import type { CustomProductDraft } from '../../lib/customProductsRepository';
-import { listCustomStylePresets, getCustomStylePreset } from '../../lib/customStylePresets';
 import { CUSTOM_PRODUCT_LIMITS, type CustomCategoryTemplate, type HostedCustomProduct } from '../../types/customProducts';
 import CustomProductCategoryEditor from './CustomProductCategoryEditor';
 import CustomProductPreview from './CustomProductPreview';
@@ -14,7 +13,6 @@ import {
   newCategory,
   normalizeDraftOrder,
   productDraft,
-  productDraftFromPreset,
   validateProductDraft,
 } from './customProductEditorModel';
 
@@ -62,8 +60,6 @@ const CustomProductEditor = ({ product, onCancel, onSave }: Props) => {
     ...current,
     categories: [...current.categories, newCategory(current.categories.length)],
   }));
-  const presets = listCustomStylePresets();
-
   const submit = async () => {
     const error = validateProductDraft(draft);
     if (error) {
@@ -87,15 +83,6 @@ const CustomProductEditor = ({ product, onCancel, onSave }: Props) => {
         <div className="custom-product-editor-fields">
           <label><span>Product name</span><Input aria-label="Product name" maxLength={CUSTOM_PRODUCT_LIMITS.labelLength} value={draft.label} onChange={(event) => setDraft({ ...draft, label: event.target.value })} /></label>
           <label><span>Description</span><Textarea aria-label="Product description" maxLength={500} value={draft.description ?? ''} onChange={(event) => setDraft({ ...draft, description: event.target.value })} /></label>
-          {!product ? (
-            <label><span>Start from preset</span><select aria-label="Start from preset" defaultValue="" onChange={(event) => {
-              const preset = getCustomStylePreset(event.target.value);
-              if (preset) setDraft(productDraftFromPreset(preset));
-            }}>
-              <option value="">Blank product</option>
-              {presets.map((preset) => <option key={preset.id} value={preset.id}>{preset.label}</option>)}
-            </select></label>
-          ) : null}
           <div className="custom-product-category-list">
             {draft.categories.map((category, index) => (
               <CustomProductCategoryEditor

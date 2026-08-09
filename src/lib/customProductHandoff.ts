@@ -18,7 +18,7 @@ export const stageCustomProductForForecast = (
   product: HostedCustomProduct,
   premiumActive: boolean,
 ): OneOffCustomLayer => {
-  if (!premiumActive) throw new Error('Premium is required to use a reusable product in a new map.');
+  if (!premiumActive && !product.builtIn) throw new Error('Premium is required to use a reusable product in a new map.');
   if (product.status !== 'active') throw new Error('Archived products cannot be loaded into a new map.');
   const nonce = globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`;
   const layer = createLayerFromHostedProduct({
@@ -35,10 +35,10 @@ export const consumeCustomProductForecastHandoff = (premiumActive: boolean): One
   const serialized = sessionStorage.getItem(CUSTOM_PRODUCT_HANDOFF_KEY);
   if (!serialized) return null;
   sessionStorage.removeItem(CUSTOM_PRODUCT_HANDOFF_KEY);
-  if (!premiumActive) return null;
   try {
     const parsed = JSON.parse(serialized) as unknown;
-    return isOneOffCustomLayer(parsed) ? parsed : null;
+    if (!isOneOffCustomLayer(parsed)) return null;
+    return premiumActive || parsed.productSnapshot?.builtIn ? parsed : null;
   } catch {
     return null;
   }

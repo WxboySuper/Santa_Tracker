@@ -10,6 +10,7 @@
 .custom-product-status { align-self: start; border: 1px solid var(--border); border-radius: 999px; padding: .25rem .55rem; font-size: .68rem; font-weight: 800; text-transform: uppercase; }
 .custom-product-status.is-active { color: #15803d; background: rgba(34,197,94,.12); }
 .custom-product-status.is-archived { color: var(--muted-foreground); background: var(--muted); }
+.custom-product-status.is-builtin { color: #1d4ed8; background: rgba(59,130,246,.12); }
 .custom-product-preview { display: grid; gap: .45rem; }
 .custom-product-preview__item { display: flex; align-items: center; gap: .65rem; font-size: .86rem; }
 .custom-product-preview__swatch { width: 2.8rem; height: 1.3rem; flex: 0 0 auto; border-style: solid; border-radius: .35rem; }

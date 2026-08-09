@@ -122,6 +122,7 @@ const hasValidHostedProductFields = (value: Record<string, unknown>): boolean =>
   value.schemaVersion === CUSTOM_PRODUCTS_SCHEMA_VERSION,
   isBoundedText(value.id),
   isBoundedText(value.userId, 128),
+  value.builtIn === undefined || typeof value.builtIn === 'boolean',
   isBoundedText(value.label),
   isOptionalDescription(value.description),
   isPositiveInteger(value.version),
@@ -134,7 +135,7 @@ const hasValidHostedProductFields = (value: Record<string, unknown>): boolean =>
 export const isHostedCustomProduct = (value: unknown): value is HostedCustomProduct => {
   if (!isRecord(value)) return false;
   if (!hasOnlyKeys(value, [
-    'schemaVersion', 'id', 'userId', 'label', 'description', 'version', 'status', 'categories', 'createdAt', 'updatedAt',
+    'schemaVersion', 'id', 'userId', 'builtIn', 'label', 'description', 'version', 'status', 'categories', 'createdAt', 'updatedAt',
   ])) return false;
   return hasValidHostedProductFields(value);
 };

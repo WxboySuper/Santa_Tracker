@@ -18,7 +18,6 @@ import {
 } from '../../store/forecastSlice';
 import { CUSTOM_PRODUCT_LIMITS, CUSTOM_PRODUCTS_SCHEMA_VERSION, type CustomCategoryTemplate, type CustomHatchPattern, type OneOffCustomLayer } from '../../types/customProducts';
 import { asCustomLayerId } from '../../lib/customProducts';
-import { listCustomStylePresets, type CustomStylePreset } from '../../lib/customStylePresets';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { trackProductEvent } from '../../lib/productAnalytics';
 
@@ -51,14 +50,14 @@ const makeCategory = (order: number): CustomCategoryTemplate => ({
   },
 });
 
-const makeLayer = (order: number, preset?: CustomStylePreset): OneOffCustomLayer => {
+const makeLayer = (order: number): OneOffCustomLayer => {
   const now = new Date().toISOString();
   return {
     schemaVersion: CUSTOM_PRODUCTS_SCHEMA_VERSION,
     id: asCustomLayerId(`layer-${uuidv4()}`),
-    label: preset?.label ?? `Custom Layer ${order + 1}`,
+    label: `Custom Layer ${order + 1}`,
     order,
-    categories: preset?.categories.map((category) => ({ ...category, style: { ...category.style } })) ?? [makeCategory(0)],
+    categories: [makeCategory(0)],
     features: [],
     createdAt: now,
     updatedAt: now,
@@ -163,9 +162,8 @@ const CustomLayerActionRow: React.FC<{
 }> = ({ layers, activeLayer }) => {
   const dispatch = useDispatch();
   const layerOptions = layers.map((layer) => ({ id: layer.id, label: layer.label }));
-  const presets = listCustomStylePresets();
-  const addLayer = (preset?: CustomStylePreset) => {
-    dispatch(addCustomLayer(makeLayer(layers.length, preset)));
+  const addLayer = () => {
+    dispatch(addCustomLayer(makeLayer(layers.length)));
     trackProductEvent('custom_layer_created', { layer_count: layers.length + 1 });
   };
   return <div className="custom-draw-panel__row custom-draw-panel__layer-row">
@@ -174,24 +172,6 @@ const CustomLayerActionRow: React.FC<{
       <MenuPicker label="Select custom layer" testId="custom-layer-picker" value={activeLayer.id} options={layerOptions} compact onChange={(id) => dispatch(selectCustomLayer(id))} />
     </div> : <MenuPicker label="Select custom layer" testId="custom-layer-picker" value={undefined} options={layerOptions} onChange={(id) => dispatch(selectCustomLayer(id))} />}
     <IconButton label="Add custom layer" disabled={layers.length >= CUSTOM_PRODUCT_LIMITS.layersPerCollection} onClick={() => addLayer()}><Plus /></IconButton>
-    <Popover>
-      <PopoverTrigger asChild>
-        <button type="button" className="custom-draw-panel__picker custom-draw-panel__picker--compact custom-draw-panel__preset-trigger" aria-label="Choose a custom style preset" disabled={layers.length >= CUSTOM_PRODUCT_LIMITS.layersPerCollection}>
-          <span className="sr-only">Choose a custom style preset</span><ChevronDown aria-hidden="true" />
-        </button>
-      </PopoverTrigger>
-      <PopoverContent className="custom-draw-panel__picker-menu" align="start">
-        <p className="custom-draw-panel__picker-heading">Start layer from</p>
-        <button type="button" className="custom-draw-panel__picker-option" onClick={() => addLayer()}>
-          <span>Blank custom layer</span>
-        </button>
-        {presets.map((preset) => (
-          <button key={preset.id} type="button" className="custom-draw-panel__picker-option" onClick={() => addLayer(preset)}>
-            <span>{preset.label}</span>
-          </button>
-        ))}
-      </PopoverContent>
-    </Popover>
     <IconButton label="Move layer up" disabled={!activeLayer || activeLayer.order === 0} onClick={() => activeLayer && dispatch(moveCustomLayer({ layerId: activeLayer.id, direction: -1 }))}><ArrowUp /></IconButton>
     <IconButton label="Move layer down" disabled={!activeLayer || activeLayer.order === layers.length - 1} onClick={() => activeLayer && dispatch(moveCustomLayer({ layerId: activeLayer.id, direction: 1 }))}><ArrowDown /></IconButton>
     <IconButton label="Delete custom layer" disabled={!activeLayer} onClick={() => activeLayer && dispatch(removeCustomLayer(activeLayer.id))}><Trash2 /></IconButton>
