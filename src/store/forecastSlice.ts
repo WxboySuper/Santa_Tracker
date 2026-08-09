@@ -17,6 +17,7 @@ import { areTstmFeaturesEqual } from '../utils/tstmGeneration';
 import { validateCycleCompletion } from '../utils/completionValidation';
 import { getWorkflowTemplateById } from '../components/ForecastWorkflow/workflowTemplates';
 import { isValidDiscussionGroupings, mergeDiscussionDrafts, normalizeDiscussionGroupings } from '../utils/discussionGrouping';
+import { cloneJsonValue } from './cloneJsonValue';
 
 export interface SavedCycleStats {
   forecastDays: number;
@@ -395,29 +396,6 @@ const getCurrentOutlook = (state: ForecastState): OutlookData => {
     return createEmptyOutlook(state.forecastCycle.currentDay, INITIAL_TIMESTAMP).data;
   }
   return day.data;
-};
-
-/**
- * Recursively clones plain JSON-like values used inside GeoJSON features.
- * Keep this explicit instead of using structuredClone so history snapshots
- * retain the existing plain-object and array semantics of this helper.
- */
-/** @internal Exported for the opt-in performance benchmark. */
-export const cloneJsonValue = <T>(value: T): T => {
-  if (Array.isArray(value)) {
-    return value.map((item) => cloneJsonValue(item)) as T;
-  }
-
-  if (value && typeof value === 'object') {
-    const objectValue = value as Record<string, unknown>;
-    const clonedObject: Record<string, unknown> = {};
-    for (const key of Object.keys(objectValue)) {
-      clonedObject[key] = cloneJsonValue(objectValue[key]);
-    }
-    return clonedObject as T;
-  }
-
-  return value;
 };
 
 /** Clones one GeoJSON feature without JSON serialization so history snapshots are cheaper. */

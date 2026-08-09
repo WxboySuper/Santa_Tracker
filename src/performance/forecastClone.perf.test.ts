@@ -1,7 +1,13 @@
 import type { Feature } from 'geojson';
-import { cloneJsonValue } from '../store/forecastSlice';
+import { cloneJsonValue } from '../store/cloneJsonValue';
 import { measure, reportComparison } from './benchmarkUtils';
 
+/**
+ * Pinned copy of the pre-PERF-01 algorithm used as the benchmark baseline.
+ * Keep it local to the performance fixture so production code cannot use the
+ * slower path accidentally; update it only when the historical baseline
+ * contract changes.
+ */
 const cloneLegacyJsonValue = <T>(value: T): T => {
   if (Array.isArray(value)) {
     return value.map((item) => cloneLegacyJsonValue(item)) as T;

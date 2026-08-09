@@ -13,7 +13,7 @@ export interface BenchmarkResult {
 
 const median = (values: number[]): number => {
   const sorted = [...values].sort((left, right) => left - right);
-  return sorted[Math.floor(sorted.length / 2)] || 0;
+  return sorted[Math.floor(sorted.length / 2)] ?? 0;
 };
 
 export const measure = (
