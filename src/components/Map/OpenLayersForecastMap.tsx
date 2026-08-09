@@ -65,7 +65,11 @@ import {
 } from "../../lib/openFreeMap";
 import "./ForecastMap.css";
 import { isFeatureExposed } from "../../config/featureExposure";
-import { reconcileFeatureSource, type FeatureSyncDescriptor } from "./openLayersFeatureSync";
+import {
+  getForecastSourceDescriptorPlan,
+  reconcileFeatureSource,
+  type FeatureSyncDescriptor,
+} from "./openLayersFeatureSync";
 
 import {
   getFeatureIdentity,
@@ -1201,18 +1205,15 @@ const OpenLayersForecastMap = forwardRef<MapAdapterHandle<OLMap> | null, OpenLay
         });
       });
 
-      reconcileFeatureSource(
+      const sourceDescriptorPlan = getForecastSourceDescriptorPlan(
+        normalDescriptors,
+        customMode,
+        customDescriptors,
         source,
-        customMode
-          ? customDescriptors
-          : normalDescriptors.filter(({ targetSource }) => targetSource === source),
-      );
-      reconcileFeatureSource(
         catSource,
-        customMode
-          ? []
-          : normalDescriptors.filter(({ targetSource }) => targetSource === catSource),
       );
+      reconcileFeatureSource(source, sourceDescriptorPlan.source);
+      reconcileFeatureSource(catSource, sourceDescriptorPlan.categorical);
       reconcileFeatureSource(ghostSource, ghostDescriptors);
     }, [
       serializedFeatures,

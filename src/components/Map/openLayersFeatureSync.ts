@@ -26,6 +26,11 @@ export type FeatureSyncStats = {
   reused: number;
 };
 
+export type ForecastSourceDescriptorPlan = {
+  source: FeatureSyncDescriptor[];
+  categorical: FeatureSyncDescriptor[];
+};
+
 const increment = (
   stats: FeatureSyncStats | undefined,
   property: keyof FeatureSyncStats,
@@ -56,6 +61,22 @@ const requireUniqueKey = (key: string, keys: Set<string>): void => {
   }
   keys.add(key);
 };
+
+/** Selects the descriptors that feed the normal and categorical map sources. */
+export const getForecastSourceDescriptorPlan = (
+  normalDescriptors: FeatureSyncDescriptor[],
+  customMode: boolean,
+  customDescriptors: FeatureSyncDescriptor[],
+  source: VectorSource,
+  categoricalSource: VectorSource,
+): ForecastSourceDescriptorPlan => ({
+  source: customMode
+    ? customDescriptors
+    : normalDescriptors.filter(({ targetSource }) => targetSource === source),
+  categorical: customMode
+    ? []
+    : normalDescriptors.filter(({ targetSource }) => targetSource === categoricalSource),
+});
 
 const validateDescriptors = (descriptors: FeatureSyncDescriptor[]): void => {
   const keys = new Set<string>();

@@ -1,9 +1,16 @@
 import GeoJSON from "ol/format/GeoJSON";
+import Feature from "ol/Feature";
+import Point from "ol/geom/Point";
 import VectorSource from "ol/source/Vector";
 import type OLFeature from "ol/Feature";
 import type Geometry from "ol/geom/Geometry";
 import type { Feature as GeoJsonFeature, Polygon } from "geojson";
-import { reconcileFeatureSource, type FeatureSyncDescriptor, type FeatureSyncStats } from "./openLayersFeatureSync";
+import {
+  getForecastSourceDescriptorPlan,
+  reconcileFeatureSource,
+  type FeatureSyncDescriptor,
+  type FeatureSyncStats,
+} from "./openLayersFeatureSync";
 
 const createFeature = (id: string, offset: number): GeoJsonFeature<Polygon> => ({
   type: "Feature",
@@ -132,6 +139,45 @@ describe("reconcileFeatureSource", () => {
     expect(source.getFeatures()[0]?.get("featureId")).toBe("second");
   });
 
+  test("removes unmanaged transient features like the former clear path", () => {
+    const source = new VectorSource();
+    const transient = new Feature({ geometry: new Point([0, 0]) });
+    source.addFeature(transient);
+    const stats = createStats();
+
+    reconcileFeatureSource(source, [], stats);
+
+    expect(stats).toEqual({ parsed: 0, added: 0, updated: 0, removed: 1, reused: 0 });
+    expect(source.getFeatures()).toEqual([]);
+  });
+
+  test("partitions normal and categorical descriptors by map mode", () => {
+    const source = new VectorSource();
+    const categoricalSource = new VectorSource();
+    const format = new GeoJSON();
+    const normal = { ...createDescriptor(createFeature("normal", 0), format), targetSource: source };
+    const categorical = {
+      ...createDescriptor(createFeature("categorical", 2), format),
+      targetSource: categoricalSource,
+    };
+    const custom = { ...createDescriptor(createFeature("custom", 4), format), targetSource: source };
+
+    expect(getForecastSourceDescriptorPlan(
+      [normal, categorical],
+      false,
+      [custom],
+      source,
+      categoricalSource,
+    )).toEqual({ source: [normal], categorical: [categorical] });
+    expect(getForecastSourceDescriptorPlan(
+      [normal, categorical],
+      true,
+      [custom],
+      source,
+      categoricalSource,
+    )).toEqual({ source: [custom], categorical: [] });
+  });
+
   test("preserves feature identity when descriptors are reordered", () => {
     const source = new VectorSource();
     const format = new GeoJSON();
@@ -182,6 +228,17 @@ describe("reconcileFeatureSource", () => {
 
     expect(() => reconcileFeatureSource(source, [createDescriptor(feature, format)])).toThrow(
       "requires a feature id",
+    );
+  });
+
+  test("rejects duplicate descriptor keys to protect feature identity", () => {
+    const source = new VectorSource();
+    const format = new GeoJSON();
+    const first = createDescriptor(createFeature("first", 0), format);
+    const duplicate = { ...createDescriptor(createFeature("second", 2), format), key: first.key };
+
+    expect(() => reconcileFeatureSource(source, [first, duplicate])).toThrow(
+      "unique non-empty keys",
     );
   });
 
