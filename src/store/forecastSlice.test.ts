@@ -230,6 +230,11 @@ const getTornadoFeatures = (state: ReturnType<typeof reducer>) =>
 const getUndoStack = (state: ReturnType<typeof reducer>, day: DayType) =>
   state.historyByDay[day]?.undoStack || [];
 
+const getLatestUndoEntry = (state: ReturnType<typeof reducer>, day: DayType) => {
+  const undoStack = getUndoStack(state, day);
+  return undoStack[undoStack.length - 1];
+};
+
 const getRedoStack = (state: ReturnType<typeof reducer>, day: DayType) =>
   state.historyByDay[day]?.redoStack || [];
 
@@ -278,6 +283,38 @@ describe('forecastSlice undo/redo', () => {
 
     state = reducer(state, redoLastEdit());
     expect((getTornadoFeatures(state)[0].geometry as Polygon).coordinates[0][0]).toEqual([3, 3]);
+  });
+
+  test('deep-clones nested feature properties in history snapshots', () => {
+    let state = reducer(undefined, addFeature({
+      feature: createBaseFeature('nested-feature', 0, {
+        outlookType: 'tornado',
+        probability: '2%',
+        extras: {
+          source: {
+            name: 'SPC',
+            tags: ['initial'],
+          },
+        },
+      }),
+    }));
+    const liveFeature = getTornadoFeatures(state)[0];
+
+    state = reducer(state, updateFeature({
+      feature: {
+        ...liveFeature,
+        geometry: createPolygon(3),
+      },
+    }));
+
+    const snapshotFeature = getLatestUndoEntry(state, 1)?.snapshot.data.tornado?.get('2%')?.[0];
+    const liveSource = liveFeature?.properties?.source as { name: string; tags: string[] };
+    const snapshotSource = snapshotFeature?.properties?.source as { name: string; tags: string[] };
+
+    expect(snapshotFeature).not.toBe(liveFeature);
+    expect(snapshotSource).not.toBe(liveSource);
+    expect(snapshotSource.tags).not.toBe(liveSource.tags);
+    expect(snapshotSource).toEqual({ name: 'SPC', tags: ['initial'] });
   });
 
   test('undo restores deleted features', () => {

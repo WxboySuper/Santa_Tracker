@@ -66,6 +66,7 @@
     "licenses:check": "node scripts/check-third-party-licenses.mjs",
     "test": "jest",
     "test:coverage": "jest --coverage",
+    "perf": "cross-env GFC_PERF=1 jest --runInBand src/performance",
     "test:firestore-rules": "pnpm exec firebase emulators:exec --only firestore --project gfc-rules-test \"node --test tests/firestore.rules.test.mjs\"",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
