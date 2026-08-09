@@ -79,9 +79,7 @@ describe('forecastSlice determinism', () => {
     expect(state.workflowMetadata?.createdAt ?? state.forecastCycle.days[1]?.metadata.createdAt).toBe(fixedTimestamp);
   });
 
-  test('readActionTimestamp falls back to a live timestamp for direct reducer calls', () => {
-    const now = readActionTimestamp({ type: 'forecast/test' });
-    expect(typeof now).toBe('string');
-    expect(now.length).toBeGreaterThan(0);
+  test('readActionTimestamp falls back to a stable timestamp for direct reducer calls', () => {
+    expect(readActionTimestamp({ type: 'forecast/test' })).toBe('1970-01-01T00:00:00.000Z');
   });
 });

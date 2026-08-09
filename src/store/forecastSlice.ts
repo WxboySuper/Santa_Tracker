@@ -5,7 +5,7 @@ import type { CycleMetadata, WorkflowMetadata, Package, CycleValidationResult, S
 import { normalizeForecastCycle } from '../utils/outlookMapCoercion';
 import type { Feature } from 'geojson';
 import type { CustomLayerCollection } from '../types/customProducts';
-import { RootState } from './index'; // Need RootState for selectors
+import type { RootState } from './index'; // Need RootState for selectors
 import { cloneForecastCycle } from '../utils/fileUtils';
 import { countForecastMetrics } from '../utils/forecastMetrics';
 import { createCustomLayerReducers } from './customLayerReducers';

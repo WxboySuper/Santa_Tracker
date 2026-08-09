@@ -1,12 +1,14 @@
 import type { Middleware, UnknownAction } from '@reduxjs/toolkit';
 
+const DIRECT_REDUCER_TIMESTAMP = '1970-01-01T00:00:00.000Z';
+
 /**
  * Reads the timestamp stamped on an action by the timestamp middleware, or
- * falls back to a live timestamp for direct reducer invocations in tests.
+ * falls back to a stable timestamp for direct reducer invocations in tests.
  */
 export const readActionTimestamp = (action: UnknownAction): string => {
   const metaTimestamp = (action as { meta?: { timestamp?: string } }).meta?.timestamp;
-  return metaTimestamp ?? new Date().toISOString();
+  return metaTimestamp ?? DIRECT_REDUCER_TIMESTAMP;
 };
 
 /**
