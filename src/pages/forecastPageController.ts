@@ -553,8 +553,7 @@ export const runDayRolloverCloudSaveAction = async ({ forecastCycle, currentMapV
   }
 };
 
-/** Owns day-rollover detection and the save/download/replace actions for the page. */
-export const useDayRolloverPrompt = ({ restoreComplete, restoredSession, dispatch, addToast, forecastCycle, currentMapView, isSaved, userId, canSaveToCloud, saveCycle, clearCurrent }: {
+interface DayRolloverPromptArgs {
   restoreComplete: boolean;
   restoredSession: boolean;
   dispatch: ShortcutDispatch;
@@ -566,21 +565,65 @@ export const useDayRolloverPrompt = ({ restoreComplete, restoredSession, dispatc
   canSaveToCloud: boolean;
   saveCycle: UseCloudCyclesResult['saveCycle'];
   clearCurrent: UseCloudCyclesResult['clearCurrent'];
-}) => {
-  const [promptState, setPromptState] = useState<DayRolloverPromptState | null>(null);
-  const [actionError, setActionError] = useState<string | null>(null);
-  const [isBusy, setIsBusy] = useState(false);
+}
+
+type PromptStateSetter = (value: DayRolloverPromptState | null) => void;
+type ActionErrorSetter = (value: string | null) => void;
+type BusyStateSetter = (value: boolean) => void;
+
+interface DayRolloverRuntimeRefs {
+  forecastCycleRef: React.MutableRefObject<ReturnType<typeof selectForecastCycle>>;
+  isSavedRef: React.MutableRefObject<boolean>;
+  restoredSessionRef: React.MutableRefObject<boolean>;
+  promptStateRef: React.MutableRefObject<DayRolloverPromptState | null>;
+}
+
+const useDayRolloverRuntimeRefs = ({ forecastCycle, isSaved, restoredSession, promptState, userId, setPromptState, setActionError }: {
+  forecastCycle: ReturnType<typeof selectForecastCycle>;
+  isSaved: boolean;
+  restoredSession: boolean;
+  promptState: DayRolloverPromptState | null;
+  userId?: string;
+  setPromptState: PromptStateSetter;
+  setActionError: ActionErrorSetter;
+}): DayRolloverRuntimeRefs => {
   const forecastCycleRef = useRef(forecastCycle);
   const isSavedRef = useRef(isSaved);
   const restoredSessionRef = useRef(restoredSession);
   const promptStateRef = useRef(promptState);
   const previousUserIdRef = useRef(userId);
 
-  useEffect(() => { if (previousUserIdRef.current !== userId) { previousUserIdRef.current = userId; setPromptState(null); setActionError(null); } }, [userId]);
-  useEffect(() => { forecastCycleRef.current = forecastCycle; }, [forecastCycle]);
-  useEffect(() => { isSavedRef.current = isSaved; }, [isSaved]);
-  useEffect(() => { restoredSessionRef.current = restoredSession; }, [restoredSession]);
-  useEffect(() => { promptStateRef.current = promptState; }, [promptState]);
+  useEffect(() => {
+    if (previousUserIdRef.current === userId) return;
+    previousUserIdRef.current = userId;
+    setPromptState(null);
+    setActionError(null);
+  }, [setActionError, setPromptState, userId]);
+
+  useEffect(() => {
+    forecastCycleRef.current = forecastCycle;
+    isSavedRef.current = isSaved;
+    restoredSessionRef.current = restoredSession;
+    promptStateRef.current = promptState;
+  }, [forecastCycle, isSaved, promptState, restoredSession]);
+
+  return { forecastCycleRef, isSavedRef, restoredSessionRef, promptStateRef };
+};
+
+const persistDetectedRolloverPrompt = (userId: string | undefined, today: string, nextPromptState: DayRolloverPromptState): void => {
+  writeStoredDayValue(getRolloverStorageKey(DAY_ROLLOVER_PROMPTED_KEY, userId), today);
+  writeStoredDayValue(getRolloverStorageKey(DAY_ROLLOVER_LAST_ACTIVE_KEY, userId), today);
+  writeStoredRolloverPrompt(nextPromptState, userId);
+};
+
+const useDayRolloverDetection = ({ restoreComplete, userId, runtimeRefs, setPromptState, setActionError }: {
+  restoreComplete: boolean;
+  userId?: string;
+  runtimeRefs: DayRolloverRuntimeRefs;
+  setPromptState: PromptStateSetter;
+  setActionError: ActionErrorSetter;
+}): void => {
+  const { forecastCycleRef, isSavedRef, restoredSessionRef, promptStateRef } = runtimeRefs;
 
   const detectDayRollover = useCallback(() => {
     const { today, lastActiveDay, alreadyPromptedToday, pendingPrompt } = getDayRolloverSnapshot(userId);
@@ -589,12 +632,10 @@ export const useDayRolloverPrompt = ({ restoreComplete, restoredSession, dispatc
       if (restoreComplete) writeStoredDayValue(getRolloverStorageKey(DAY_ROLLOVER_LAST_ACTIVE_KEY, userId), today);
       return;
     }
-    writeStoredDayValue(getRolloverStorageKey(DAY_ROLLOVER_PROMPTED_KEY, userId), today);
-    writeStoredDayValue(getRolloverStorageKey(DAY_ROLLOVER_LAST_ACTIVE_KEY, userId), today);
-    writeStoredRolloverPrompt(nextPromptState, userId);
+    persistDetectedRolloverPrompt(userId, today, nextPromptState);
     setActionError(null);
     setPromptState(nextPromptState);
-  }, [restoreComplete, userId]);
+  }, [forecastCycleRef, isSavedRef, promptStateRef, restoreComplete, restoredSessionRef, setActionError, setPromptState, userId]);
 
   useEffect(() => {
     detectDayRollover();
@@ -603,8 +644,13 @@ export const useDayRolloverPrompt = ({ restoreComplete, restoredSession, dispatc
     document.addEventListener('visibilitychange', handleVisibilityChange);
     return () => { window.clearInterval(intervalId); document.removeEventListener('visibilitychange', handleVisibilityChange); };
   }, [detectDayRollover]);
+};
 
-  const completeRollover = useCallback(() => { clearStoredRolloverPrompt(userId); setPromptState(null); setActionError(null); }, [userId]);
+const useDayRolloverActions = ({ addToast, clearCurrent, completeRollover, currentMapView, dispatch, forecastCycle, setActionError, setIsBusy, saveCycle }: Pick<DayRolloverPromptArgs, 'addToast' | 'clearCurrent' | 'currentMapView' | 'dispatch' | 'forecastCycle' | 'saveCycle'> & {
+  completeRollover: () => void;
+  setActionError: ActionErrorSetter;
+  setIsBusy: BusyStateSetter;
+}) => {
   const handleKeepCurrentSession = useCallback(() => completeRollover(), [completeRollover]);
   const handleDownloadAndStartNewDay = useCallback(() => {
     if (!runDayRolloverDownloadAction({ forecastCycle, mapView: currentMapView, dispatch, clearCurrent })) {
@@ -613,7 +659,7 @@ export const useDayRolloverPrompt = ({ restoreComplete, restoredSession, dispatc
     }
     addToast('Forecast downloaded and a new day started.', 'success');
     completeRollover();
-  }, [addToast, clearCurrent, completeRollover, currentMapView, dispatch, forecastCycle]);
+  }, [addToast, clearCurrent, completeRollover, currentMapView, dispatch, forecastCycle, setActionError]);
   const handleSaveToCloudAndStartNewDay = useCallback(async () => {
     setIsBusy(true);
     setActionError(null);
@@ -628,7 +674,7 @@ export const useDayRolloverPrompt = ({ restoreComplete, restoredSession, dispatc
     } finally {
       setIsBusy(false);
     }
-  }, [addToast, clearCurrent, completeRollover, currentMapView, dispatch, forecastCycle, saveCycle]);
+  }, [addToast, clearCurrent, completeRollover, currentMapView, dispatch, forecastCycle, saveCycle, setActionError, setIsBusy]);
   const handleReplaceWithoutSaving = useCallback(() => {
     clearCurrent();
     dispatch(resetForecasts());
@@ -636,5 +682,23 @@ export const useDayRolloverPrompt = ({ restoreComplete, restoredSession, dispatc
     completeRollover();
   }, [addToast, clearCurrent, completeRollover, dispatch]);
 
-  return { promptState, canSaveToCloud, isBusy, error: actionError, handleKeepCurrentSession, handleDownloadAndStartNewDay, handleSaveToCloudAndStartNewDay, handleReplaceWithoutSaving };
+  return { handleKeepCurrentSession, handleDownloadAndStartNewDay, handleSaveToCloudAndStartNewDay, handleReplaceWithoutSaving };
+};
+
+/** Owns day-rollover detection and the save/download/replace actions for the page. */
+export const useDayRolloverPrompt = ({ restoreComplete, restoredSession, dispatch, addToast, forecastCycle, currentMapView, isSaved, userId, canSaveToCloud, saveCycle, clearCurrent }: DayRolloverPromptArgs) => {
+  const [promptState, setPromptState] = useState<DayRolloverPromptState | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [isBusy, setIsBusy] = useState(false);
+  const runtimeRefs = useDayRolloverRuntimeRefs({ forecastCycle, isSaved, restoredSession, promptState, userId, setPromptState, setActionError });
+  useDayRolloverDetection({ restoreComplete, userId, runtimeRefs, setPromptState, setActionError });
+
+  const completeRollover = useCallback(() => {
+    clearStoredRolloverPrompt(userId);
+    setPromptState(null);
+    setActionError(null);
+  }, [setActionError, setPromptState, userId]);
+  const actions = useDayRolloverActions({ addToast, clearCurrent, completeRollover, currentMapView, dispatch, forecastCycle, saveCycle, setActionError, setIsBusy });
+
+  return { promptState, canSaveToCloud, isBusy, error: actionError, ...actions };
 };
