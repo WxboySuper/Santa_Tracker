@@ -260,9 +260,9 @@ const toErrorMessage = (payload: unknown): string | null => {
   if (!error) {
     return 'NOAA DAT returned an unknown ArcGIS error.';
   }
-  const errorDetails = Array.isArray(error.details) ? error.details : [];
-  const details = errorDetails.length > 0 ? ` ${errorDetails.join(' ')}` : '';
-  return `${error.message || 'NOAA DAT returned an ArcGIS error.'}${details}`;
+  const message = error.message || 'NOAA DAT returned an ArcGIS error.';
+  const details = error.details?.join(' ') ?? '';
+  return [message, details].filter(Boolean).join(' ');
 };
 
 export interface DatClientOptions {
