@@ -11,6 +11,8 @@ import type { CustomCategoryTemplate } from '../../types/customProducts';
 
 type LegendOutlookType = 'categorical' | 'tornado' | 'wind' | 'hail' | 'totalSevere' | 'day4-8';
 
+const DEFAULT_REPORT_FILTERS = { tornado: true, wind: true, hail: true };
+
 interface LegendProps {
   activeOutlookType?: LegendOutlookType;
   desktopOpen?: boolean;
@@ -30,8 +32,8 @@ const Legend: React.FC<LegendProps> = React.memo(({
   const darkMode = useSelector((state: RootState) => state.theme.darkMode);
   const reportsVisible = useSelector((state: RootState) => showReportLegend && (state.stormReports?.visible ?? false));
   const reportFilters = useSelector((state: RootState) => showReportLegend
-    ? state.stormReports?.filterByType ?? { tornado: true, wind: true, hail: true }
-    : { tornado: true, wind: true, hail: true });
+    ? state.stormReports?.filterByType ?? DEFAULT_REPORT_FILTERS
+    : DEFAULT_REPORT_FILTERS);
   const customEditor = useSelector((state: RootState) => state.forecast.customEditor) ?? { mode: 'severe' as const, activeLayerId: null, activeCategoryId: null };
   const customLayers = useSelector(selectCurrentCustomLayers);
   const activeOutlookType = activeOutlookTypeOverride || storeActiveOutlookType;
