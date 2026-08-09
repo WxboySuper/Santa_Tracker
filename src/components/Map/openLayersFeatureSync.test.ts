@@ -37,6 +37,21 @@ const createDescriptor = (
   },
 });
 
+const createMultiPartDescriptor = (
+  feature: GeoJsonFeature<Polygon>,
+  format: GeoJSON,
+  offsets: number[],
+): FeatureSyncDescriptor => ({
+  ...createDescriptor(feature, format),
+  read: () => offsets.map((offset, partIndex) => format.readFeature(
+    createFeature(`${String(feature.id)}-part-${partIndex}`, offset),
+    {
+      dataProjection: "EPSG:4326",
+      featureProjection: "EPSG:3857",
+    },
+  )),
+});
+
 const createStats = (): FeatureSyncStats => ({
   parsed: 0,
   added: 0,
@@ -113,5 +128,58 @@ describe("reconcileFeatureSource", () => {
     expect(stats).toEqual({ parsed: 1, added: 1, updated: 0, removed: 1, reused: 0 });
     expect(source.getFeatures()).toHaveLength(1);
     expect(source.getFeatures()[0]?.get("featureId")).toBe("second");
+  });
+
+  test("preserves feature identity when descriptors are reordered", () => {
+    const source = new VectorSource();
+    const format = new GeoJSON();
+    const first = createFeature("first", 0);
+    const second = createFeature("second", 2);
+    reconcileFeatureSource(source, [
+      createDescriptor(first, format),
+      createDescriptor(second, format),
+    ]);
+
+    const firstOlFeature = source.getFeatureById("first");
+    const secondOlFeature = source.getFeatureById("second");
+    const stats = createStats();
+    reconcileFeatureSource(source, [
+      createDescriptor(second, format),
+      createDescriptor(first, format),
+    ], stats);
+
+    expect(stats).toEqual({ parsed: 0, added: 0, updated: 0, removed: 0, reused: 2 });
+    expect(source.getFeatureById("first")).toBe(firstOlFeature);
+    expect(source.getFeatureById("second")).toBe(secondOlFeature);
+  });
+
+  test("removes stale parts when a feature changes geometry part count", () => {
+    const source = new VectorSource();
+    const format = new GeoJSON();
+    const initialFeature = createFeature("multi", 0);
+    reconcileFeatureSource(source, [
+      createMultiPartDescriptor(initialFeature, format, [0, 2]),
+    ]);
+
+    const initialParts = source.getFeatures();
+    const stats = createStats();
+    reconcileFeatureSource(source, [
+      createMultiPartDescriptor(createFeature("multi", 10), format, [10]),
+    ], stats);
+
+    expect(stats).toEqual({ parsed: 1, added: 0, updated: 1, removed: 1, reused: 0 });
+    expect(source.getFeatures()).toHaveLength(1);
+    expect(source.getFeatures()[0]).toBe(initialParts[0]);
+    expect(source.getFeatures()[0]?.getGeometry()?.getExtent()[0]).toBeGreaterThan(0);
+  });
+
+  test("rejects descriptors without stable feature ids", () => {
+    const source = new VectorSource();
+    const format = new GeoJSON();
+    const feature = { ...createFeature("missing-id", 0), id: undefined };
+
+    expect(() => reconcileFeatureSource(source, [createDescriptor(feature, format)])).toThrow(
+      "requires a feature id",
+    );
   });
 });

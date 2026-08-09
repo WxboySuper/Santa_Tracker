@@ -38,6 +38,19 @@ const normalizeReadResult = (
   result: Feature<Geometry> | Feature<Geometry>[],
 ): Feature<Geometry>[] => (Array.isArray(result) ? result : [result]);
 
+const validateDescriptors = (descriptors: FeatureSyncDescriptor[]): void => {
+  const keys = new Set<string>();
+  descriptors.forEach((descriptor) => {
+    if (descriptor.feature.id === undefined || descriptor.feature.id === null) {
+      throw new Error(`Feature sync descriptor "${descriptor.key}" requires a feature id.`);
+    }
+    if (!descriptor.key.trim() || keys.has(descriptor.key)) {
+      throw new Error(`Feature sync descriptors require unique non-empty keys: "${descriptor.key}".`);
+    }
+    keys.add(descriptor.key);
+  });
+};
+
 const trackFeature = (
   feature: Feature<Geometry>,
   descriptor: FeatureSyncDescriptor,
@@ -80,6 +93,8 @@ const canReuseFeatures = (
   descriptor: FeatureSyncDescriptor,
 ): boolean => features.length > 0 && features.every(
   (feature) =>
+    // Redux feature objects are immutable, so a new source reference signals
+    // that geometry or properties may need to be applied again.
     feature.get(SOURCE_FEATURE) === descriptor.feature &&
     feature.get(RENDER_SIGNATURE) === descriptor.signature,
 );
@@ -90,6 +105,8 @@ const updateSharedFeatures = (
   descriptor: FeatureSyncDescriptor,
   stats: FeatureSyncStats | undefined,
 ): number => {
+  // A descriptor key identifies the source feature. Its OpenLayers parts are
+  // matched by read order; a part-count change is handled by add/remove below.
   const sharedFeatureCount = Math.min(sourceFeatures.length, parsedFeatures.length);
   for (let index = 0; index < sharedFeatureCount; index += 1) {
     const currentFeature = sourceFeatures[index];
@@ -160,6 +177,8 @@ const removeStaleFeatures = (
   desiredKeys: Set<string>,
   stats: FeatureSyncStats | undefined,
 ): void => {
+  // Keep the former clear() behavior explicit: transient features without a
+  // reconciliation key are not part of the desired rendered feature set.
   existing.byKey.forEach((features, key) => {
     if (!desiredKeys.has(key)) {
       removeFeatures(source, features, 0, stats);
@@ -174,6 +193,7 @@ export const reconcileFeatureSource = (
   descriptors: FeatureSyncDescriptor[],
   stats?: FeatureSyncStats,
 ): void => {
+  validateDescriptors(descriptors);
   const existing = collectExistingFeatures(source);
   const desiredKeys = new Set(descriptors.map(({ key }) => key));
   descriptors.forEach((descriptor) => {
