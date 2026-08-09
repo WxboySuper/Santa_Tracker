@@ -7,7 +7,9 @@ export const getCurrentCustomLayers = (state: ForecastState) =>
   state.forecastCycle.days[state.forecastCycle.currentDay]?.customLayers;
 
 export const touchCustomLayer = (layer: OneOffCustomLayer, updatedAt: string) => {
-  layer.updatedAt = updatedAt;
+  // Direct reducer calls use a stable timestamp fallback for replayability.
+  // Never let that fallback invalidate the layer's persisted chronology.
+  layer.updatedAt = updatedAt >= layer.createdAt ? updatedAt : layer.createdAt;
 };
 
 export const normalizeCustomOrder = <T extends { order: number }>(items: T[]) => {
