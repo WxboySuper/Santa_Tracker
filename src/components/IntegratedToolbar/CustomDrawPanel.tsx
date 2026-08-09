@@ -176,7 +176,7 @@ const CustomLayerActionRow: React.FC<{
     <IconButton label="Add custom layer" disabled={layers.length >= CUSTOM_PRODUCT_LIMITS.layersPerCollection} onClick={() => addLayer()}><Plus /></IconButton>
     <Popover>
       <PopoverTrigger asChild>
-        <button type="button" className="custom-draw-panel__picker custom-draw-panel__picker--compact" aria-label="Choose a custom style preset" disabled={layers.length >= CUSTOM_PRODUCT_LIMITS.layersPerCollection}>
+        <button type="button" className="custom-draw-panel__picker custom-draw-panel__picker--compact custom-draw-panel__preset-trigger" aria-label="Choose a custom style preset" disabled={layers.length >= CUSTOM_PRODUCT_LIMITS.layersPerCollection}>
           <span className="sr-only">Choose a custom style preset</span><ChevronDown aria-hidden="true" />
         </button>
       </PopoverTrigger>

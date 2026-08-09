@@ -660,6 +660,8 @@
     align-items: center;
   }
 
+  .custom-draw-panel__preset-trigger { display: none; }
+
   .tabbed-integrated-toolbar__section--type {
     flex: 0 0 146px;
   }
