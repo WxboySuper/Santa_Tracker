@@ -78,80 +78,63 @@ describe('source loaders', () => {
       expect(global.fetch).toHaveBeenCalledWith('https://www.spc.noaa.gov/climo/reports/today.csv');
     });
 
-    const reportFeedCases: { label: string; date: () => string; url: string }[] = [
+    const beforeBoundary = new Date('2026-08-09T11:59:59.999Z');
+    const atBoundary = new Date('2026-08-09T12:00:00.000Z');
+    const reportFeedCases: { label: string; date: string; now: Date; url: string }[] = [
       {
-        label: 'the current calendar day (ISO)',
-        date: () => {
-          const now = new Date();
-          return [
-            now.getFullYear(),
-            String(now.getMonth() + 1).padStart(2, '0'),
-            String(now.getDate()).padStart(2, '0'),
-          ].join('-');
-        },
+        label: 'the current SPC report day before 12Z (ISO)',
+        date: '2026-08-08',
+        now: beforeBoundary,
         url: 'https://www.spc.noaa.gov/climo/reports/today.csv',
       },
       {
-        label: 'the current calendar day (YYMMDD)',
-        date: () => {
-          const now = new Date();
-          return [
-            String(now.getFullYear()).slice(-2),
-            String(now.getMonth() + 1).padStart(2, '0'),
-            String(now.getDate()).padStart(2, '0'),
-          ].join('');
-        },
+        label: 'the current SPC report day before 12Z (YYMMDD)',
+        date: '260808',
+        now: beforeBoundary,
         url: 'https://www.spc.noaa.gov/climo/reports/today.csv',
       },
       {
-        label: 'the previous calendar day (ISO)',
-        date: () => {
-          const yesterday = new Date();
-          yesterday.setDate(yesterday.getDate() - 1);
-          return [
-            yesterday.getFullYear(),
-            String(yesterday.getMonth() + 1).padStart(2, '0'),
-            String(yesterday.getDate()).padStart(2, '0'),
-          ].join('-');
-        },
+        label: 'the previous SPC report day before 12Z (ISO)',
+        date: '2026-08-07',
+        now: beforeBoundary,
         url: 'https://www.spc.noaa.gov/climo/reports/yesterday.csv',
       },
       {
-        label: 'the previous calendar day (YYMMDD)',
-        date: () => {
-          const yesterday = new Date();
-          yesterday.setDate(yesterday.getDate() - 1);
-          return [
-            String(yesterday.getFullYear()).slice(-2),
-            String(yesterday.getMonth() + 1).padStart(2, '0'),
-            String(yesterday.getDate()).padStart(2, '0'),
-          ].join('');
-        },
+        label: 'the previous SPC report day before 12Z (YYMMDD)',
+        date: '260807',
+        now: beforeBoundary,
+        url: 'https://www.spc.noaa.gov/climo/reports/yesterday.csv',
+      },
+      {
+        label: 'the current SPC report day at 12Z',
+        date: '2026-08-09',
+        now: atBoundary,
+        url: 'https://www.spc.noaa.gov/climo/reports/today.csv',
+      },
+      {
+        label: 'the previous SPC report day at 12Z',
+        date: '2026-08-08',
+        now: atBoundary,
         url: 'https://www.spc.noaa.gov/climo/reports/yesterday.csv',
       },
     ];
 
     test.each(reportFeedCases)(
       'routes a date matching $label to the matching SPC reports feed',
-      async ({ date, url }) => {
+      async ({ date, now, url }) => {
         mockFetch('');
-        const reports = await loadReportsForDate(date());
+        const reports = await loadReportsForDate(date, now);
         expect(reports).toEqual([]);
         expect(global.fetch).toHaveBeenCalledWith(url);
       }
     );
 
     test('keeps archived dates on the dated archive feed', async () => {
-      const now = new Date();
-      const past = new Date(now.getFullYear() - 1, now.getMonth(), now.getDate());
-      const iso = [
-        past.getFullYear(),
-        String(past.getMonth() + 1).padStart(2, '0'),
-        String(past.getDate()).padStart(2, '0'),
-      ].join('-');
+      const now = new Date('2026-08-09T15:00:00.000Z');
+      const iso = '2024-05-06';
 
       mockFetch('');
-      const reports = await loadReportsForDate(iso);
+      const reports = await loadReportsForDate(iso, now);
       expect(reports).toEqual([]);
       const archiveDate = iso.slice(2).replace(/-/g, '');
       expect(global.fetch).toHaveBeenCalledWith(

@@ -52,6 +52,7 @@ Work toward the next major release continues in the beta channel while the final
 - **Same-day verification:** Route current-day SPC storm reports to the live `today.csv` feed instead of the not-yet-published dated archive, so in-event grading no longer fails for forecasts dated today.
 - **Selector stability:** Return shared immutable empty outlook data from forecast selectors so repeated selection against unchanged state yields the same reference and avoids avoidable renders and selector-stability warnings.
 - **Previous-day verification:** Route the previous calendar day's SPC storm reports to the live `yesterday.csv` feed, closing the same publication-window gap for forecasts dated the day before today.
+- **SPC report-day routing:** Align report-source selection and reached-date gating with SPC's 1200Z–1159Z report window instead of the browser's local calendar boundary.
 
 #### Security and operations
 
