@@ -9,6 +9,12 @@ import './index.css';
 import './darkMode.css';
 import App from './App';
 import reportWebVitals from './reportWebVitals';
+import { store } from './store';
+import { initializeStorePersistence } from './store/persistence';
+
+// Browser-only hydration and persistence are explicit application bootstrap,
+// not import-time behavior of the Redux store modules.
+initializeStorePersistence(store);
 
 const rootElement = document.getElementById('root') as HTMLElement;
 const root = ReactDOM.createRoot(

@@ -13,6 +13,7 @@ import reducer, {
   saveCurrentCycle,
   startFromPreviousCycle,
   undoLastEdit,
+  updateCustomLayerLabel,
   updateCustomCategory,
   startBlankCycle,
 } from './forecastSlice';
@@ -47,6 +48,19 @@ describe('custom layer forecast state', () => {
     const day = state.forecastCycle.days[1]!;
     expect(day.customLayers!.layers[0].features).toHaveLength(1);
     expect(day.data.tornado!.size).toBe(0);
+  });
+
+  test('clamps only the direct-reducer timestamp fallback', () => {
+    let state = reducer(undefined, addCustomLayer(layer()));
+    state = reducer(state, updateCustomLayerLabel({ layerId: 'layer-1', label: 'Direct update' }));
+    expect(state.forecastCycle.days[1]!.customLayers!.layers[0].updatedAt).toBe(layer().createdAt);
+
+    const replayTimestamp = '2026-07-17T11:00:00.000Z';
+    state = reducer(state, {
+      ...updateCustomLayerLabel({ layerId: 'layer-1', label: 'Replayed update' }),
+      meta: { timestamp: replayTimestamp },
+    });
+    expect(state.forecastCycle.days[1]!.customLayers!.layers[0].updatedAt).toBe(replayTimestamp);
   });
 
   test('includes custom geometry in day-scoped undo and redo history', () => {
