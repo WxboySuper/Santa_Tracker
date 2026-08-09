@@ -39,14 +39,14 @@ The live layer metadata defines the reliable relationship:
 `Layer 1.globalid -> Layer 0.path_guid` and
 `Layer 1.globalid -> Layer 2.path_guid`.
 
-The adapter follows that relationship with child-layer `where` queries. It
-does not join on `event_id`: the field can be blank and is a display/event
-label rather than a unique tornado-path identifier. Some older records also
-have the all-zero `path_guid`, so a track may legitimately have no associated
-children. Current events can go further and publish valid damage points with a
-null `path_guid`; the date-range evidence loader therefore queries layers 0 and
-2 directly by time as the viewer does, then merges any relationship results by
-object ID.
+The adapter follows that relationship with date-scoped child-layer `where`
+queries in batches of at most 50 track IDs. It does not join on `event_id`: the
+field can be blank and is a display/event label rather than a unique
+tornado-path identifier. Some older records also have the all-zero `path_guid`,
+so a track may legitimately have no associated children. Current events can go
+further and publish valid damage points with a null `path_guid`; the date-range
+evidence loader therefore queries layers 0 and 2 directly by time as the viewer
+does, then merges any relationship results by object ID.
 
 ## Verification prototype behavior
 
@@ -61,7 +61,8 @@ change tornado scoring.
 
 The service describes its data as quality controlled but preliminary. GFC
 keeps that status visible and treats a DAT outage as optional: SPC grading can
-still complete, with the DAT error shown in the results pane.
+still complete, with the DAT error shown in the results pane. The optional DAT
+load is cancelled after 15 seconds or when a new grading/restore action starts.
 
 ## Attachments
 
@@ -100,9 +101,10 @@ const surveyedPoints = tracks[0]
   them.
 - Some legacy track, point, and polygon records have null dates, blank event
   labels, or all-zero association keys.
-- The prototype loads related children for every date-matched track. A future
-  map-only workflow should add viewport-scoped child loading and a persistent
-  cache before supporting repeated pan/zoom exploration.
+- Relationship fallback queries are date-scoped and batched, but the public
+  track-detail helpers still issue one child query for one selected track. A
+  future map-only workflow should add viewport-scoped child loading and a
+  persistent cache before supporting repeated pan/zoom exploration.
 
 ## Live research references
 

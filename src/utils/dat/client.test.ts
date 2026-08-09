@@ -2,6 +2,7 @@ import {
   buildDatQueryParams,
   DatClient,
   DatClientError,
+  DAT_ASSOCIATION_BATCH_SIZE,
   DAT_MAX_RECORD_COUNT,
 } from './client';
 
@@ -167,8 +168,38 @@ describe('DatClient', () => {
     })).toBe(true);
   });
 
+  test('batches and date-scopes relationship fallback queries', async () => {
+    const tracks = Array.from(
+      { length: DAT_ASSOCIATION_BATCH_SIZE + 1 },
+      (_, index) => trackFeature(index + 1, `{TRACK-${index + 1}}`),
+    );
+    const fetchImpl = jest.fn().mockImplementation(async (input: RequestInfo | URL) => {
+      const url = new URL(String(input));
+      const layer = url.pathname.split('/').at(-2);
+      if (layer === '1') {
+        return responseFor({ features: tracks, exceededTransferLimit: false });
+      }
+      return responseFor({ features: [], exceededTransferLimit: false });
+    });
+    const client = new DatClient({ fetchImpl });
+
+    await client.queryEvidenceForDate({
+      start: '2026-03-10T00:00:00Z',
+      end: '2026-03-11T00:00:00Z',
+    });
+
+    const relationshipCalls = fetchImpl.mock.calls.filter(([input]) => {
+      const url = new URL(String(input));
+      return url.searchParams.get('where')?.includes('path_guid IN') ?? false;
+    });
+    expect(relationshipCalls).toHaveLength(4);
+    relationshipCalls.forEach(([input]) => {
+      expect(new URL(String(input)).searchParams.get('time')).toBe('1773100800000,1773187200000');
+    });
+  });
+
   test('rejects invalid boxes and preserves explicit page-size construction', () => {
     expect(() => buildDatQueryParams({ bounds: { minLon: 1, minLat: 2, maxLon: -1, maxLat: 3 } })).toThrow(DatClientError);
-    expect(buildDatQueryParams({ pageSize: DAT_MAX_RECORD_COUNT * 2 }).get('resultRecordCount')).toBe(String(DAT_MAX_RECORD_COUNT * 2));
+    expect(buildDatQueryParams({ pageSize: DAT_MAX_RECORD_COUNT * 2 }).get('resultRecordCount')).toBe(String(DAT_MAX_RECORD_COUNT));
   });
 });

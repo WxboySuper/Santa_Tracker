@@ -37,8 +37,10 @@ export {
   rollUpPackageGrade,
   assessDataQuality,
   buildPackageGrade,
+  buildPackageGradeFromProducts,
   type DataQualityAssessment,
   type BuildPackageOptions,
+  type BuildPackageFromProductsOptions,
 } from './composite';
 export {
   gradeForecast,

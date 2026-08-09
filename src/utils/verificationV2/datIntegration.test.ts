@@ -56,4 +56,18 @@ describe('DAT tornado grading prototype', () => {
     expect(result.datEvidence?.tornadoDamagePointCount).toBe(1);
     expect(result.hasReports).toBe(true);
   });
+
+  test('does not let wind or TSTM DAT points unlock tornado package quality', () => {
+    const windOnlyEvidence: DatEvidence = {
+      ...datEvidence,
+      damagePoints: [{ ...datEvidence.damagePoints[0], objectId: 102, efScale: 'TSTM' }],
+    };
+    const result = gradeForecast({ outlooks, reports: [], datEvidence: windOnlyEvidence });
+
+    expect(result.dataQuality).toBe('Good');
+    expect(result.dataQualityReason).toBe('No reports');
+    expect(result.hasReports).toBe(false);
+    expect(result.datEvidence?.damagePointCount).toBe(1);
+    expect(result.datEvidence?.tornadoDamagePointCount).toBe(0);
+  });
 });

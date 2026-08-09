@@ -149,7 +149,7 @@ export const assessDataQuality = (
   hasGeometry: boolean,
   reportCount: number,
   reportsError: boolean,
-  datPointCount = 0,
+  tornadoDatPointCount = 0,
 ): DataQualityAssessment => {
   if (reportsError) {
     return { quality: 'Blocked', reason: 'Storm reports could not be loaded.', withholdPackageGrade: true };
@@ -157,7 +157,7 @@ export const assessDataQuality = (
   if (!hasGeometry) {
     return { quality: 'Blocked', reason: 'No severe hazard geometry to grade.', withholdPackageGrade: true };
   }
-  const observedCount = reportCount + datPointCount;
+  const observedCount = reportCount + tornadoDatPointCount;
   if (observedCount === 0) {
     return { quality: 'Good', reason: 'No reports', withholdPackageGrade: false };
   }
@@ -180,6 +180,10 @@ export interface BuildPackageOptions {
   generatedAt?: string;
 }
 
+export interface BuildPackageFromProductsOptions extends BuildPackageOptions {
+  products: ProductGrade[];
+}
+
 /**
  * Counts reports relevant to the products that actually have geometry, so
  * unrelated hazard reports can't mask a sparse product. Returns 0 if no
@@ -192,22 +196,23 @@ const relevantReportCount = (outlooks: OutlookData, reports: StormReport[]): num
   return counts.length === 0 ? 0 : Math.max(...counts);
 };
 
-/** Builds the full package grade across every product with the quality gate applied. */
-export const buildPackageGrade = ({
+/** Builds the package snapshot from already-computed products with one quality gate. */
+export const buildPackageGradeFromProducts = ({
   formulaVersion,
   outlooks,
   reports,
   reportsError = false,
   datEvidence,
   generatedAt,
-}: BuildPackageOptions): PackageGrade => {
-  const products = PRODUCT_KINDS.map((product) => gradeProduct(product, outlooks, reports, datEvidence));
+  products,
+}: BuildPackageFromProductsOptions): PackageGrade => {
   const hasGeometry = PRODUCT_KINDS.some(
     (product) => extractProductContours(outlooks, product).length > 0
   );
 
   const relevantCount = relevantReportCount(outlooks, reports);
-  const quality = assessDataQuality(hasGeometry, relevantCount, reportsError, datEvidence?.damagePoints.length ?? 0);
+  const tornadoDatPointCount = tornadoDamagePoints(datEvidence).length;
+  const quality = assessDataQuality(hasGeometry, relevantCount, reportsError, tornadoDatPointCount);
   const rolledGrade = rollUpPackageGrade(products);
   const grade = quality.withholdPackageGrade ? null : rolledGrade;
 
@@ -218,8 +223,29 @@ export const buildPackageGrade = ({
     products,
     dataQuality: quality.quality,
     dataQualityReason: quality.reason,
-    hasReports: relevantCount > 0 || (datEvidence?.damagePoints.length ?? 0) > 0,
+    hasReports: relevantCount > 0 || tornadoDatPointCount > 0,
     datEvidence: datEvidence ? summarizeDatEvidence(datEvidence) : undefined,
     generatedAt: generatedAt ?? new Date().toISOString(),
   };
+};
+
+/** Builds the full package grade across every product with the shared quality gate. */
+export const buildPackageGrade = ({
+  formulaVersion,
+  outlooks,
+  reports,
+  reportsError = false,
+  datEvidence,
+  generatedAt,
+}: BuildPackageOptions): PackageGrade => {
+  const products = PRODUCT_KINDS.map((product) => gradeProduct(product, outlooks, reports, datEvidence));
+  return buildPackageGradeFromProducts({
+    formulaVersion,
+    outlooks,
+    reports,
+    reportsError,
+    datEvidence,
+    generatedAt,
+    products,
+  });
 };

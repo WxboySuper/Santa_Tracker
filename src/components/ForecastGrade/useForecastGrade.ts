@@ -24,6 +24,7 @@ import {
   loadForecastFromFile,
   loadReportsForDate,
   loadDatEvidenceForDate,
+  DAT_EVIDENCE_TIMEOUT_MS,
   resolveAccountTier,
   SourceLoadError,
   tierHasSnapshots,
@@ -143,16 +144,39 @@ export const useForecastGrade = (addToast: (message: string, type?: 'info' | 'su
   const [datError, setDatError] = useState<string | null>(null);
   const restoreSeqRef = useRef(0);
   const reportDateWasEditedRef = useRef(false);
+  const datAbortRef = useRef<AbortController | null>(null);
 
   const runGeneration = useRef(0);
+
+  const abortDatLoad = useCallback(() => {
+    datAbortRef.current?.abort();
+  }, []);
+
+  const loadDatEvidenceWithTimeout = useCallback(async (date: string | null): Promise<DatEvidence> => {
+    abortDatLoad();
+    const controller = new AbortController();
+    datAbortRef.current = controller;
+    const timeoutId = window.setTimeout(() => controller.abort(), DAT_EVIDENCE_TIMEOUT_MS);
+    try {
+      return await loadDatEvidenceForDate(date, controller.signal);
+    } finally {
+      window.clearTimeout(timeoutId);
+      if (datAbortRef.current === controller) {
+        datAbortRef.current = null;
+      }
+    }
+  }, [abortDatLoad]);
 
   useEffect(() => {
     setCards(loadGradeCards(scope));
   }, [scope]);
 
+  useEffect(() => () => abortDatLoad(), [abortDatLoad]);
+
   const setForecastPackage = useCallback(
     (nextForecast: ForecastCycle, source: PackageSourceKind, label: string) => {
       runGeneration.current += 1;
+      abortDatLoad();
       const days = daysWithData(nextForecast);
       setForecast(nextForecast);
       setPackageSource(source);
@@ -171,7 +195,7 @@ export const useForecastGrade = (addToast: (message: string, type?: 'info' | 'su
       setDatError(null);
       dispatch(loadVerificationForecast(nextForecast));
     },
-    [dispatch]
+    [abortDatLoad, dispatch]
   );
 
   const loadFromFile = useCallback(
@@ -198,6 +222,7 @@ export const useForecastGrade = (addToast: (message: string, type?: 'info' | 'su
     setUseTodayState(value);
   }, []);
   const setSelectedDay = useCallback((day: DayType) => {
+    abortDatLoad();
     setSelectedDayState(day);
     if (forecast && !reportDateWasEditedRef.current) {
       const packageDate = resolvePackageReportDate(forecast, day);
@@ -208,7 +233,7 @@ export const useForecastGrade = (addToast: (message: string, type?: 'info' | 'su
     setPhase('idle');
     setDatEvidence(null);
     setDatError(null);
-  }, [forecast]);
+  }, [abortDatLoad, forecast]);
 
   const canRun =
     Boolean(forecast) &&
@@ -234,6 +259,7 @@ export const useForecastGrade = (addToast: (message: string, type?: 'info' | 'su
 
     const generation = ++runGeneration.current;
     restoreSeqRef.current += 1; // invalidate any in-flight snapshot restore
+    abortDatLoad();
     setPhase('running');
     setError(null);
     setDatError(null);
@@ -256,7 +282,7 @@ export const useForecastGrade = (addToast: (message: string, type?: 'info' | 'su
     }
 
     try {
-      loadedDatEvidence = await loadDatEvidenceForDate(effectiveDate);
+      loadedDatEvidence = await loadDatEvidenceWithTimeout(effectiveDate);
     } catch (loadError) {
       if (generation !== runGeneration.current) {
         return;
@@ -327,11 +353,12 @@ export const useForecastGrade = (addToast: (message: string, type?: 'info' | 'su
       }
       setCards(recordGradeResult({ scope, card, snapshot }));
     }
-  }, [addToast, dispatch, forecast, packageSource, reportDate, scope, selectedDay, sourceLabel, tier, useToday]);
+  }, [abortDatLoad, addToast, dispatch, forecast, loadDatEvidenceWithTimeout, packageSource, reportDate, scope, selectedDay, sourceLabel, tier, useToday]);
 
   const reset = useCallback(() => {
     restoreSeqRef.current += 1;
     runGeneration.current += 1;
+    abortDatLoad();
     setForecast(null);
     setPackageSource(null);
     setSourceLabel('');
@@ -346,7 +373,7 @@ export const useForecastGrade = (addToast: (message: string, type?: 'info' | 'su
     setDatError(null);
     dispatch(clearVerificationForecast());
     dispatch(clearReports());
-  }, [dispatch]);
+  }, [abortDatLoad, dispatch]);
 
   const restoreCard = useCallback(
     (card: GradeCard): GradeSnapshot | null => {
@@ -363,6 +390,7 @@ export const useForecastGrade = (addToast: (message: string, type?: 'info' | 'su
     (snapshot: GradeSnapshot) => {
       const restoreSeq = ++restoreSeqRef.current;
       runGeneration.current += 1; // invalidate any in-flight run()
+      abortDatLoad();
       const restoredForecast = deserializeForecast(snapshot.forecast);
       const days = daysWithData(restoredForecast);
       setForecast(restoredForecast);
@@ -404,7 +432,7 @@ export const useForecastGrade = (addToast: (message: string, type?: 'info' | 'su
           setReportsState([]);
           dispatch(clearReports());
         });
-      loadDatEvidenceForDate(snapshot.reportDate)
+      loadDatEvidenceWithTimeout(snapshot.reportDate)
         .then((loadedDatEvidence) => {
           if (restoreSeq !== restoreSeqRef.current) {
             return;
@@ -420,7 +448,7 @@ export const useForecastGrade = (addToast: (message: string, type?: 'info' | 'su
         });
       return undefined;
     },
-    [dispatch]
+    [abortDatLoad, dispatch, loadDatEvidenceWithTimeout]
   );
 
   return useMemo<UseForecastGrade>(() => ({

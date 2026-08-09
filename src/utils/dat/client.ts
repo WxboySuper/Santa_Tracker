@@ -28,6 +28,7 @@ export const DAT_LAYER_IDS = {
   damagePolygons: 2,
 } as const;
 export const DAT_MAX_RECORD_COUNT = 2000;
+export const DAT_ASSOCIATION_BATCH_SIZE = 50;
 
 type DatRawProperties = Record<string, unknown>;
 type DatRawFeature = Feature<Geometry, GeoJsonProperties> & { id?: string | number };
@@ -215,6 +216,20 @@ const epochMillis = (value: string | number | Date): number => {
 
 const sqlLiteral = (value: string): string => `'${value.replace(/'/g, "''")}'`;
 
+const associationWhereForTracks = (tracks: DatTrack[]): string | null => {
+  const globalIds = tracks
+    .map((track) => track.globalId)
+    .filter((globalId): globalId is string => Boolean(globalId));
+  if (globalIds.length === 0) {
+    return null;
+  }
+  return `path_guid IN (${globalIds.map(sqlLiteral).join(',')})`;
+};
+
+const mergeByObjectId = <T extends { objectId: number }>(target: Map<number, T>, features: T[]): void => {
+  features.forEach((feature) => target.set(feature.objectId, feature));
+};
+
 const validBounds = (bounds: DatBoundingBox): boolean =>
   [bounds.minLon, bounds.minLat, bounds.maxLon, bounds.maxLat].every(Number.isFinite) &&
   bounds.minLon <= bounds.maxLon && bounds.minLat <= bounds.maxLat;
@@ -248,7 +263,8 @@ export const buildDatQueryParams = (
     params.set('orderByFields', options.orderByFields);
   }
   params.set('resultOffset', String(page.offset ?? 0));
-  params.set('resultRecordCount', String(page.pageSize ?? options.pageSize ?? DAT_MAX_RECORD_COUNT));
+  const pageSize = Math.min(page.pageSize ?? options.pageSize ?? DAT_MAX_RECORD_COUNT, DAT_MAX_RECORD_COUNT);
+  params.set('resultRecordCount', String(pageSize));
   return params;
 };
 
@@ -373,12 +389,13 @@ export class DatClient {
     return this.queryDamagePolygons({ ...options, where: `path_guid = ${sqlLiteral(track.globalId)}` });
   }
 
-  /** Loads tracks for a date range and follows the explicit globalid/path_guid associations. */
+  /** Loads date-matched layers and follows associations in bounded, date-scoped batches. */
   async queryEvidenceForDate(timeRange: DatDateRange, signal?: AbortSignal): Promise<DatEvidence> {
     // The DAT viewer's current-event view queries each layer by date. Some
-    // newer records have null path_guid values, so a track-only relationship
-    // walk misses valid survey observations. Keep the relationship walk for
-    // older/associated records, then merge it with direct date results.
+    // newer records have null path_guid values, so direct date queries remain
+    // authoritative. The relationship fallback is retained for older records,
+    // but batched and date-scoped so an outbreak cannot create one request per
+    // track against the national service.
     const [tracks, datedDamagePoints, datedDamagePolygons] = await Promise.all([
       this.queryTracks({ timeRange, signal }),
       this.queryDamagePoints({ timeRange, signal }),
@@ -387,19 +404,17 @@ export class DatClient {
     const damagePointsById = new Map(datedDamagePoints.map((point) => [point.objectId, point]));
     const damagePolygonsById = new Map(datedDamagePolygons.map((polygon) => [polygon.objectId, polygon]));
 
-    for (let offset = 0; offset < tracks.length; offset += 4) {
-      const batch = tracks.slice(offset, offset + 4);
-      const related = await Promise.all(batch.map(async (track) => {
-        const [points, polygons] = await Promise.all([
-          this.queryDamagePointsForTrack(track, { signal }),
-          this.queryDamagePolygonsForTrack(track, { signal }),
-        ]);
-        return { points, polygons };
-      }));
-      related.forEach(({ points, polygons }) => {
-        points.forEach((point) => damagePointsById.set(point.objectId, point));
-        polygons.forEach((polygon) => damagePolygonsById.set(polygon.objectId, polygon));
-      });
+    for (let offset = 0; offset < tracks.length; offset += DAT_ASSOCIATION_BATCH_SIZE) {
+      const where = associationWhereForTracks(tracks.slice(offset, offset + DAT_ASSOCIATION_BATCH_SIZE));
+      if (!where) {
+        continue;
+      }
+      const [points, polygons] = await Promise.all([
+        this.queryDamagePoints({ timeRange, signal, where }),
+        this.queryDamagePolygons({ timeRange, signal, where }),
+      ]);
+      mergeByObjectId(damagePointsById, points);
+      mergeByObjectId(damagePolygonsById, polygons);
     }
 
     return {

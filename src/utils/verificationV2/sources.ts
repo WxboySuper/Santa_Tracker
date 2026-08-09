@@ -57,6 +57,9 @@ export const tierHasSnapshots = (tier: GradeAccountTier): boolean => tier === 'p
 
 export class SourceLoadError extends Error {}
 
+/** Maximum time the optional DAT source may hold a grading run open. */
+export const DAT_EVIDENCE_TIMEOUT_MS = 15_000;
+
 /** Deserializes a saved forecast payload and surfaces a blocking error. */
 const deserializeCycle = (payload: unknown, parseErrorMessage: string): ForecastCycle => {
   try {
@@ -181,6 +184,9 @@ export const loadDatEvidenceForDate = async (
   try {
     return await queryDatEvidenceForDate(datDateRangeFor(reportDate), signal);
   } catch (error) {
+    if (signal?.aborted) {
+      throw new SourceLoadError('NOAA DAT surveys timed out or were cancelled.');
+    }
     if (error instanceof SourceLoadError) {
       throw error;
     }

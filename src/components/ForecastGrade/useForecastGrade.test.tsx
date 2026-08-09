@@ -23,6 +23,7 @@ jest.mock('../../utils/verificationV2/sources', () => ({
   loadForecastFromFile: jest.fn(),
   loadReportsForDate: jest.fn(),
   loadDatEvidenceForDate: jest.fn(),
+  DAT_EVIDENCE_TIMEOUT_MS: 15_000,
   resolveAccountTier: jest.fn(),
   SourceLoadError: class SourceLoadError extends Error {},
   tierHasSnapshots: jest.fn(),
@@ -428,6 +429,7 @@ describe('useForecastGrade', () => {
       await waitFor(() => expect(result.current.phase).toBe('complete'));
       expect(result.current.result).toEqual(samplePackage);
       expect(result.current.activeProduct).toBe('tornado');
+      expect(mockLoadDatEvidenceForDate).toHaveBeenCalledWith(null, expect.any(AbortSignal));
       expect(mockBuildGradeCard).toHaveBeenCalledWith(
         samplePackage,
         expect.objectContaining({ hasSnapshot: false, sourceLabel: 'forecast.json' })
