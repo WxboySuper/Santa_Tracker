@@ -9,6 +9,13 @@ import { isBuiltInCustomProductId } from './customProductTrust';
 
 export const CUSTOM_PRODUCT_HANDOFF_KEY = 'gfc-custom-product-handoff';
 
+const isKnownBuiltInProductSnapshot = (snapshot: OneOffCustomLayer['productSnapshot']): boolean =>
+  Boolean(snapshot?.builtIn)
+  && isBuiltInCustomProductId(snapshot?.sourceProductId)
+  && listBuiltInCustomProducts().some((product) => (
+    product.id === snapshot?.sourceProductId && product.version === snapshot?.sourceProductVersion
+  ));
+
 /** Restores a validated handoff when the forecast cannot accept it yet. */
 export const restoreCustomProductForecastHandoff = (layer: OneOffCustomLayer): void => {
   if (!isOneOffCustomLayer(layer)) throw new TypeError('Cannot restore an invalid custom product handoff.');
@@ -40,13 +47,7 @@ export const consumeCustomProductForecastHandoff = (premiumActive: boolean): One
   try {
     const parsed = JSON.parse(serialized) as unknown;
     if (!isOneOffCustomLayer(parsed)) return null;
-    const snapshot = parsed.productSnapshot;
-    const isKnownBuiltIn = snapshot?.builtIn === true
-      && isBuiltInCustomProductId(snapshot.sourceProductId)
-      && listBuiltInCustomProducts().some((product) => (
-        product.id === snapshot.sourceProductId && product.version === snapshot.sourceProductVersion
-      ));
-    return premiumActive || isKnownBuiltIn ? parsed : null;
+    return premiumActive || isKnownBuiltInProductSnapshot(parsed.productSnapshot) ? parsed : null;
   } catch {
     return null;
   }
