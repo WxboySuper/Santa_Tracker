@@ -5,6 +5,7 @@ import {
   type HostedCustomProduct,
 } from '../types/customProducts';
 import { isCustomCategoryList } from './customCategoryValidation';
+import { isBuiltInCustomProductId, isTrustedBuiltInCustomProduct } from './customProductTrust';
 
 const ISO_TIMESTAMP = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/;
 
@@ -37,6 +38,7 @@ export const createEmbeddedCustomProductSnapshot = (
   schemaVersion: CUSTOM_PRODUCTS_SCHEMA_VERSION,
   sourceProductId: product.id,
   sourceProductVersion: product.version,
+  ...(isTrustedBuiltInCustomProduct(product) ? { builtIn: true } : {}),
   label: product.label,
   categories: product.categories.map((category) => ({ ...category, style: { ...category.style } })),
   capturedAt,
@@ -44,7 +46,8 @@ export const createEmbeddedCustomProductSnapshot = (
 
 const hasValidSnapshotReferences = (value: Record<string, unknown>): boolean =>
   (value.sourceProductId === undefined || isBoundedText(value.sourceProductId))
-  && (value.sourceProductVersion === undefined || isPositiveInteger(value.sourceProductVersion));
+  && (value.sourceProductVersion === undefined || isPositiveInteger(value.sourceProductVersion))
+  && (value.builtIn === undefined || (value.builtIn === true && isBuiltInCustomProductId(value.sourceProductId)));
 
 const hasValidSnapshotContent = (value: Record<string, unknown>): boolean =>
   isBoundedText(value.label)
@@ -54,7 +57,7 @@ const hasValidSnapshotContent = (value: Record<string, unknown>): boolean =>
 /** Validates an immutable-by-contract embedded product snapshot. */
 export const isEmbeddedCustomProductSnapshot = (value: unknown): value is EmbeddedCustomProductSnapshot => {
   if (!isRecord(value)) return false;
-  if (!hasOnlyKeys(value, ['schemaVersion', 'sourceProductId', 'sourceProductVersion', 'label', 'categories', 'capturedAt'])) return false;
+  if (!hasOnlyKeys(value, ['schemaVersion', 'sourceProductId', 'sourceProductVersion', 'builtIn', 'label', 'categories', 'capturedAt'])) return false;
   if (value.schemaVersion !== CUSTOM_PRODUCTS_SCHEMA_VERSION) return false;
   return hasValidSnapshotReferences(value) && hasValidSnapshotContent(value);
 };

@@ -60,7 +60,6 @@ const CustomProductEditor = ({ product, onCancel, onSave }: Props) => {
     ...current,
     categories: [...current.categories, newCategory(current.categories.length)],
   }));
-
   const submit = async () => {
     const error = validateProductDraft(draft);
     if (error) {

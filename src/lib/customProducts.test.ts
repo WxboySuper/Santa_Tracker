@@ -136,6 +136,8 @@ describe('custom product schema', () => {
     expect(snapshot.categories[0].label).toBe('Elevated hail risk');
     expect(snapshot.categories[0].style.fillColor).toBe('#8a3ffc');
     expect(isEmbeddedCustomProductSnapshot(snapshot)).toBe(true);
+    expect(isEmbeddedCustomProductSnapshot({ ...snapshot, builtIn: true })).toBe(false);
+    expect(createEmbeddedCustomProductSnapshot({ ...source, builtIn: true }, '2026-07-17T13:00:00.000Z')).not.toHaveProperty('builtIn');
   });
 
   test('creates a self-contained empty layer from a product', () => {
@@ -204,6 +206,12 @@ describe('custom product schema', () => {
     expect(revised.createdAt).toBe(original.createdAt);
     expect(original.categories[0].style.fillColor).toBe('#8a3ffc');
     expect(isHostedCustomProduct(revised)).toBe(true);
+    expect(reviseHostedCustomProduct({ ...original, builtIn: true }, {
+      label: 'Revised built-in',
+      description: undefined,
+      categories: [category()],
+      status: 'active',
+    }).builtIn).toBeUndefined();
   });
 
   test('rejects a revision that would exceed the safe integer range', () => {

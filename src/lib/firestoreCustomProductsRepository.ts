@@ -33,7 +33,7 @@ const collectionRef = (userId: string) => collection(requireDb(), 'users', userI
 const productRef = (userId: string, slotId: string) => doc(requireDb(), 'users', userId, 'customProducts', slotId);
 
 const ownedProduct = (value: unknown, userId: string): value is HostedCustomProduct =>
-  isHostedCustomProduct(value) && value.userId === userId;
+  isHostedCustomProduct(value) && value.userId === userId && !value.builtIn;
 
 const readRecords = async (userId: string): Promise<FirestoreProductRecord[]> => {
   const snapshot = await getDocs(collectionRef(userId));

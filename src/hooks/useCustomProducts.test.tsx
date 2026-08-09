@@ -70,6 +70,9 @@ describe('useCustomProducts', () => {
     const { result, unmount } = renderHook(() => useCustomProducts());
     await waitFor(() => expect(result.current.loading).toBe(false));
     expect(repository.subscribe).toHaveBeenCalledWith('user-1', expect.any(Function), expect.any(Function));
+    expect(result.current.builtInProducts.map(({ label }) => label)).toEqual(['Rainfall', 'Tropical AOI']);
+    expect(result.current.userProducts).toEqual([]);
+    expect(result.current.products.map(({ label }) => label)).toEqual(['Rainfall', 'Tropical AOI']);
 
     unmount();
     expect(cleanup).toHaveBeenCalledTimes(1);

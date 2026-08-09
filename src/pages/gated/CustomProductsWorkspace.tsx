@@ -1,26 +1,29 @@
 import { useMemo, useState } from 'react';
-import { Link, useNavigate } from 'react-router';
+import { useNavigate } from 'react-router';
 import { Layers3, Plus } from 'lucide-react';
 import { useAuth } from '../../auth/AuthProvider';
 import { Button } from '../../components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
+import { Card, CardContent } from '../../components/ui/card';
 import { useCustomProducts, type UseCustomProductsResult } from '../../hooks/useCustomProducts';
 import { CUSTOM_PRODUCT_LIMITS, type HostedCustomProduct, type OneOffCustomLayer } from '../../types/customProducts';
 import { consumeCustomProductForecastHandoff } from '../../lib/customProductHandoff';
+import { isBuiltInCustomProduct } from '../../lib/builtInCustomProducts';
 import CustomProductCard from './CustomProductCard';
 import CustomProductEditor from './CustomProductEditor';
 
 const newProductDisabled = (
   customProducts: UseCustomProductsResult,
   editorOpen: boolean,
+  userId?: string,
 ): boolean => Boolean(customProducts.pendingAction)
+  || !userId
   || !customProducts.premiumActive
   || editorOpen
-  || customProducts.products.length >= CUSTOM_PRODUCT_LIMITS.productsPerAccount;
+  || (customProducts.userProducts ?? customProducts.products.filter((product) => !isBuiltInCustomProduct(product))).length >= CUSTOM_PRODUCT_LIMITS.productsPerAccount;
 
 const WorkspaceNotices = ({ customProducts, applicationError }: { customProducts: UseCustomProductsResult; applicationError?: string | null }) => (
   <>
-    {!customProducts.premiumActive ? <Card className="custom-product-notice"><CardContent>Your reusable products remain visible and can be deleted, but premium is required to edit, duplicate, archive, restore, or use them in a new forecast.</CardContent></Card> : null}
+    {!customProducts.premiumActive ? <Card className="custom-product-notice"><CardContent>Rainfall and Tropical AOI are built-in products available to everyone. Premium is only required to create or manage your own reusable products.</CardContent></Card> : null}
     {customProducts.error ? <p role="alert" className="custom-product-error">{customProducts.error}</p> : null}
     {applicationError ? <p role="alert" className="custom-product-error">{applicationError}</p> : null}
   </>
@@ -45,31 +48,27 @@ const WorkspaceEditors = ({
   </>
 );
 
-const SignedOutProducts = ({ embedded = false }: { embedded?: boolean }) => (
-  <div className={`custom-products-page${embedded ? ' custom-products-page--dialog' : ''}`}>
-    <Card><CardHeader><CardTitle>Sign in to manage reusable products</CardTitle></CardHeader><CardContent><Button asChild><Link to="/account">Open Account</Link></Button></CardContent></Card>
-  </div>
-);
-
 const ProductsHero = ({
   productCount,
+  builtInCount,
   activeCount,
   newDisabled,
   onNew,
 }: {
   productCount: number;
+  builtInCount: number;
   activeCount: number;
   newDisabled: boolean;
   onNew(): void;
 }) => (
   <header className="custom-products-hero">
     <div>
-      <span className="custom-product-eyebrow">Local preview · Premium workspace</span>
+      <span className="custom-product-eyebrow">Built-in library · Personal products</span>
       <h1>Reusable custom products</h1>
-      <p>Build a category template once, then snapshot it into any future forecast without changing older maps.</p>
+      <p>Use the built-in Rainfall and Tropical AOI products for free, or build a personal category template and snapshot it into future forecasts.</p>
     </div>
     <div className="custom-products-hero__actions">
-      <span>{productCount}/{CUSTOM_PRODUCT_LIMITS.productsPerAccount} products · {activeCount} active</span>
+      <span>{builtInCount} built-in · {productCount}/{CUSTOM_PRODUCT_LIMITS.productsPerAccount} personal · {activeCount} active</span>
       <Button onClick={onNew} disabled={newDisabled}><Plus className="mr-2 h-4 w-4" /> New product</Button>
     </div>
   </header>
@@ -128,7 +127,6 @@ const CustomProductsWorkspace = ({ embedded = false, onProductUse }: CustomProdu
     [customProducts.products],
   );
 
-  if (!user) return <SignedOutProducts embedded={embedded} />;
   const editorOpen = creating || Boolean(editing);
   const openEditor = (product: HostedCustomProduct) => {
     setCreating(false);
@@ -139,10 +137,10 @@ const CustomProductsWorkspace = ({ embedded = false, onProductUse }: CustomProdu
     if (!layer) return;
     if (onProductUse) {
       if (onProductUse(layer)) {
-        consumeCustomProductForecastHandoff(customProducts.premiumActive);
+        consumeCustomProductForecastHandoff(customProducts.premiumActive || isBuiltInCustomProduct(product));
         setApplicationError(null);
       } else {
-        consumeCustomProductForecastHandoff(customProducts.premiumActive);
+        consumeCustomProductForecastHandoff(customProducts.premiumActive || isBuiltInCustomProduct(product));
         setApplicationError(`Remove a custom layer before loading this product (maximum ${CUSTOM_PRODUCT_LIMITS.layersPerCollection}).`);
       }
       return;
@@ -153,9 +151,10 @@ const CustomProductsWorkspace = ({ embedded = false, onProductUse }: CustomProdu
   return (
     <main className={`custom-products-page${embedded ? ' custom-products-page--dialog' : ''}`}>
       <ProductsHero
-        productCount={customProducts.products.length}
+        productCount={(customProducts.userProducts ?? customProducts.products.filter((product) => !isBuiltInCustomProduct(product))).length}
+        builtInCount={(customProducts.builtInProducts ?? customProducts.products.filter(isBuiltInCustomProduct)).length}
         activeCount={activeCount}
-        newDisabled={newProductDisabled(customProducts, editorOpen)}
+        newDisabled={newProductDisabled(customProducts, editorOpen, user?.uid)}
         onNew={() => { setEditing(null); setCreating(true); }}
       />
       <WorkspaceNotices customProducts={customProducts} applicationError={applicationError} />

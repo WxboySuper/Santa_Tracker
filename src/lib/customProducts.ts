@@ -122,6 +122,7 @@ const hasValidHostedProductFields = (value: Record<string, unknown>): boolean =>
   value.schemaVersion === CUSTOM_PRODUCTS_SCHEMA_VERSION,
   isBoundedText(value.id),
   isBoundedText(value.userId, 128),
+  value.builtIn === undefined || typeof value.builtIn === 'boolean',
   isBoundedText(value.label),
   isOptionalDescription(value.description),
   isPositiveInteger(value.version),
@@ -134,7 +135,7 @@ const hasValidHostedProductFields = (value: Record<string, unknown>): boolean =>
 export const isHostedCustomProduct = (value: unknown): value is HostedCustomProduct => {
   if (!isRecord(value)) return false;
   if (!hasOnlyKeys(value, [
-    'schemaVersion', 'id', 'userId', 'label', 'description', 'version', 'status', 'categories', 'createdAt', 'updatedAt',
+    'schemaVersion', 'id', 'userId', 'builtIn', 'label', 'description', 'version', 'status', 'categories', 'createdAt', 'updatedAt',
   ])) return false;
   return hasValidHostedProductFields(value);
 };
@@ -169,10 +170,15 @@ export const reviseHostedCustomProduct = (
 ): HostedCustomProduct => {
   if (!isHostedCustomProduct(product)) throw new TypeError('Cannot revise an invalid custom product');
   const revised: HostedCustomProduct = {
-    ...product,
-    ...changes,
+    schemaVersion: product.schemaVersion,
+    id: product.id,
+    userId: product.userId,
+    label: changes.label,
+    ...(changes.description === undefined ? {} : { description: changes.description }),
+    status: changes.status,
     categories: changes.categories.map((category) => ({ ...category, style: { ...category.style } })),
     version: getNextProductVersion(product.version),
+    createdAt: product.createdAt,
     updatedAt,
   };
   if (!isHostedCustomProduct(revised) || Date.parse(updatedAt) < Date.parse(product.updatedAt)) {

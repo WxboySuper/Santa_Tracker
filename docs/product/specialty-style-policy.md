@@ -47,12 +47,13 @@ already embedded snapshot, and it does not disable the built-in catalog.
 
 HOT-02 may add only the first reviewed built-in products:
 
-- Rainfall: an ordered accumulation-style custom product.
+- Rainfall: a WPC-style Excessive Rainfall Outlook custom product with Marginal
+  (≥5%), Slight (≥15%), Moderate (≥40%), and High (≥70%) risk categories.
 - Tropical AOI: an ordered tropical area-of-interest custom product.
 
-The labels and colors are presentation defaults, not hazard thresholds. A
-built-in product must not alter forecast completion, verification grading,
-Auto-TSTM, outlook type, or severe-outlook analytics.
+Rainfall's category labels and colors follow the WPC Excessive Rainfall Outlook
+convention. A built-in product must not alter forecast completion, verification
+grading, Auto-TSTM, outlook type, or severe-outlook analytics.
 
 Adding a future built-in product requires a new registry test covering
 detached-copy isolation, catalog access, rendering, legend output, and package

@@ -162,15 +162,16 @@ const CustomLayerActionRow: React.FC<{
 }> = ({ layers, activeLayer }) => {
   const dispatch = useDispatch();
   const layerOptions = layers.map((layer) => ({ id: layer.id, label: layer.label }));
+  const addLayer = () => {
+    dispatch(addCustomLayer(makeLayer(layers.length)));
+    trackProductEvent('custom_layer_created', { layer_count: layers.length + 1 });
+  };
   return <div className="custom-draw-panel__row custom-draw-panel__layer-row">
     {activeLayer ? <div className="custom-draw-panel__name-control">
       <CustomLayerTitleInput layer={activeLayer} />
       <MenuPicker label="Select custom layer" testId="custom-layer-picker" value={activeLayer.id} options={layerOptions} compact onChange={(id) => dispatch(selectCustomLayer(id))} />
     </div> : <MenuPicker label="Select custom layer" testId="custom-layer-picker" value={undefined} options={layerOptions} onChange={(id) => dispatch(selectCustomLayer(id))} />}
-    <IconButton label="Add custom layer" disabled={layers.length >= CUSTOM_PRODUCT_LIMITS.layersPerCollection} onClick={() => {
-      dispatch(addCustomLayer(makeLayer(layers.length)));
-      trackProductEvent('custom_layer_created', { layer_count: layers.length + 1 });
-    }}><Plus /></IconButton>
+    <IconButton label="Add custom layer" disabled={layers.length >= CUSTOM_PRODUCT_LIMITS.layersPerCollection} onClick={() => addLayer()}><Plus /></IconButton>
     <IconButton label="Move layer up" disabled={!activeLayer || activeLayer.order === 0} onClick={() => activeLayer && dispatch(moveCustomLayer({ layerId: activeLayer.id, direction: -1 }))}><ArrowUp /></IconButton>
     <IconButton label="Move layer down" disabled={!activeLayer || activeLayer.order === layers.length - 1} onClick={() => activeLayer && dispatch(moveCustomLayer({ layerId: activeLayer.id, direction: 1 }))}><ArrowDown /></IconButton>
     <IconButton label="Delete custom layer" disabled={!activeLayer} onClick={() => activeLayer && dispatch(removeCustomLayer(activeLayer.id))}><Trash2 /></IconButton>
