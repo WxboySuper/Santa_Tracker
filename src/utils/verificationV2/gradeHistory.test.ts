@@ -24,7 +24,7 @@ const sampleCard = (overrides: Partial<GradeCard> = {}): GradeCard => ({
   id: `card-${Math.random().toString(36).slice(2)}`,
   createdAt: new Date().toISOString(),
   reportDate: '2026-05-01',
-  formulaVersion: 'gfc-ver-3',
+  formulaVersion: 'gfc-ver-4',
   grade: 82.4,
   letter: 'B',
   dataQuality: 'Good',
@@ -159,7 +159,7 @@ describe('buildGradeCard', () => {
     const pkg = gradeForecast({ outlooks, reports: scatterReports('tornado', -97, 37, 10, 0.4) });
     const card = buildGradeCard(pkg, { reportDate: '2026-05-01', sourceLabel: 'File + SPC', hasSnapshot: false });
 
-    expect(card.formulaVersion).toBe('gfc-ver-3');
+    expect(card.formulaVersion).toBe('gfc-ver-4');
     expect(card.productGrades.tornado).toBe(pkg.products.find((p) => p.product === 'tornado')?.grade ?? null);
     expect(card.reportDate).toBe('2026-05-01');
   });

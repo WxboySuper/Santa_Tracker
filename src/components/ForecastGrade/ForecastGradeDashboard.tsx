@@ -39,6 +39,7 @@ const ForecastGradeDashboard: React.FC = () => {
   const grade = useForecastGrade(addToast);
   const [activeComponent, setActiveComponent] = useState<ComponentKey | null>(null);
   const [selectedReportId, setSelectedReportId] = useState<string | null>(null);
+  const [datVisible, setDatVisible] = useState(true);
   const mapRef = useRef<VerificationMapHandle>(null);
   const mapPaneRef = useRef<HTMLDivElement>(null);
   const packageLoadSeqRef = useRef(0);
@@ -64,6 +65,7 @@ const ForecastGradeDashboard: React.FC = () => {
         activeComponent={activeComponent}
         activeProductGrade={activeProductGrade}
         reportsVisible={reportsVisible}
+        datVisible={datVisible}
         selectedReportId={selectedReportId}
         mapRef={mapRef}
         mapPaneRef={mapPaneRef}
@@ -76,6 +78,7 @@ const ForecastGradeDashboard: React.FC = () => {
         onSelectReport={actions.handleSelectReport}
         onSelectHistoryCard={actions.handleSelectHistoryCard}
         onToggleEvidence={actions.handleToggleEvidence}
+        onToggleDat={() => setDatVisible((visible) => !visible)}
       />
     </div>
   );

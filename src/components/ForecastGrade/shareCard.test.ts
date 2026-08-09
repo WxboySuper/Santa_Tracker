@@ -2,7 +2,7 @@ import { shareCardFilename, shareSummaryText, composeShareCard } from './shareCa
 import type { PackageGrade } from '../../utils/verificationV2';
 
 const pkg = (overrides: Partial<PackageGrade> = {}): PackageGrade => ({
-  formulaVersion: 'gfc-ver-3',
+  formulaVersion: 'gfc-ver-4',
   grade: 82.4,
   letter: 'B',
   products: [],
@@ -19,12 +19,12 @@ describe('share card helpers', () => {
   });
 
   test('summary is anonymous and embeds the formula version', () => {
-    expect(shareSummaryText(pkg())).toBe('Forecast Grade 82.4 (B) · Good · formula gfc-ver-3');
+    expect(shareSummaryText(pkg())).toBe('Forecast Grade 82.4 (B) · Good · formula gfc-ver-4');
   });
 
   test('summary handles a withheld grade', () => {
     expect(shareSummaryText(pkg({ grade: null, letter: null, dataQuality: 'Limited' }))).toBe(
-      'Forecast Grade withheld · Limited · formula gfc-ver-3'
+      'Forecast Grade withheld · Limited · formula gfc-ver-4'
     );
   });
 
@@ -64,7 +64,7 @@ describe('share card helpers', () => {
       expect(fillTextCalls.some((c) => c.text === 'Forecast Grade')).toBe(true);
       expect(fillTextCalls.some((c) => c.text === '82.4')).toBe(true);
       expect(fillTextCalls.some((c) => c.text === 'B')).toBe(true);
-      expect(fillTextCalls.some((c) => c.text.includes('formula gfc-ver-3'))).toBe(true);
+      expect(fillTextCalls.some((c) => c.text.includes('formula gfc-ver-4'))).toBe(true);
       expect(fillRectCalls.length).toBeGreaterThanOrEqual(1);
       expect(drawImageCallCount).toBe(0);
     } finally {

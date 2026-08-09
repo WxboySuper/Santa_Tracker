@@ -13,6 +13,7 @@ Work toward the next major release continues in the beta channel while the final
 
 - **Built-in outlook opacity:** Add per-outlook fill opacity controls to the forecast workflow and preserve the selected values in saved and exported forecasts.
 - **Forecast Grade:** Add the verification workspace, source adapters, score breakdowns, report-quality checks, share cards, trend views, and premium snapshot support.
+- **NOAA DAT verification evidence:** Add a direct NOAA Damage Assessment Toolkit adapter and a prototype Forecast Grade survey layer that uses EF-coded damage points as supplemental tornado severity evidence.
 - **Workflow continuity:** Add reusable workflow templates, persistent workflow metadata, scoped discussion/draft persistence, package review and completion flows, lifecycle analytics, and handoff guidance.
 - **Custom products:** Add local custom layers and reusable hosted products with category styling, snapshots, exports/imports, owner-scoped storage, and premium enforcement.
 - **Auto-TSTM:** Add cached SPC guidance, scheduled ingestion, preview/apply/cancel flows, cache health reporting, and stale-result protection.

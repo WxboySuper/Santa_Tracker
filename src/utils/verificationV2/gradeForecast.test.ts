@@ -18,7 +18,7 @@ const componentOf = (product: ProductGrade | undefined, key: ComponentKey) =>
 const tornadoProduct = (grade: ReturnType<typeof gradeForecast>) =>
   grade.products.find((product) => product.product === 'tornado');
 
-describe('gfc-ver-3 letter bands', () => {
+describe('gfc-ver-4 letter bands', () => {
   test.each([
     [95, 'A'],
     [90, 'A'],
@@ -32,7 +32,7 @@ describe('gfc-ver-3 letter bands', () => {
   });
 });
 
-describe('gfc-ver-3 input validation', () => {
+describe('gfc-ver-4 input validation', () => {
   test('blocks a package with no severe hazard geometry', () => {
     const empty: OutlookData = { tornado: new Map(), wind: new Map(), hail: new Map(), categorical: new Map() };
     expect(validateGradeInputs({ outlooks: empty, reports: [] }).valid).toBe(false);
@@ -59,7 +59,7 @@ describe('gfc-ver-3 input validation', () => {
   });
 });
 
-describe('gfc-ver-3 data quality gate', () => {
+describe('gfc-ver-4 data quality gate', () => {
   test('quiet day is Good with a No reports label and is not evaluated', () => {
     const outlooks = tornadoOutlook('10%', circleContour(CENTER[0], CENTER[1], 120));
     const grade = gradeForecast({ outlooks, reports: [], generatedAt: '2026-01-01T00:00:00.000Z' });
@@ -92,7 +92,7 @@ describe('gfc-ver-3 data quality gate', () => {
   });
 });
 
-describe('gfc-ver-3 event yield intent', () => {
+describe('gfc-ver-4 event yield intent', () => {
   test('broad 2% coverage that captures events passes without approaching perfect', () => {
     const outlooks = tornadoOutlook('2%', circleContour(CENTER[0], CENTER[1], 160));
     const reports = scatterReports('tornado', CENTER[0], CENTER[1], 3, 0.1);
@@ -136,7 +136,7 @@ describe('gfc-ver-3 event yield intent', () => {
   });
 });
 
-describe('gfc-ver-3 diagnostics and skill', () => {
+describe('gfc-ver-4 diagnostics and skill', () => {
   test('dense congestion scenario grades well across components', () => {
     const outlooks = tornadoOutlook('15%', circleContour(CENTER[0], CENTER[1], 90));
     const reports = scatterReports('tornado', CENTER[0], CENTER[1], 12, 0.4);
@@ -160,7 +160,7 @@ describe('gfc-ver-3 diagnostics and skill', () => {
   });
 });
 
-describe('gfc-ver-3 severity', () => {
+describe('gfc-ver-4 severity', () => {
   test('significant contour with no significant report applies the soft penalty', () => {
     const outlooks = tornadoOutlook('15%#', circleContour(CENTER[0], CENTER[1], 90));
     const reports = scatterReports('tornado', CENTER[0], CENTER[1], 6, 0.3);
@@ -187,7 +187,7 @@ describe('gfc-ver-3 severity', () => {
   });
 });
 
-describe('gfc-ver-3 product presence and per-hazard gating', () => {
+describe('gfc-ver-4 product presence and per-hazard gating', () => {
   test('report-only product returns inapplicable without scoring components', () => {
     // Tornado has a 10% contour; hail does not. Hail has 4 reports anyway.
     const outlooks = tornadoOutlook('10%', circleContour(CENTER[0], CENTER[1], 120));
@@ -233,7 +233,7 @@ describe('gfc-ver-3 product presence and per-hazard gating', () => {
   });
 });
 
-describe('gfc-ver-3 staged runForecastGrade', () => {
+describe('gfc-ver-4 staged runForecastGrade', () => {
   test('reuses staged product grades and matches the synchronous gradeForecast result', async () => {
     const outlooks = tornadoOutlook('15%', circleContour(CENTER[0], CENTER[1], 90));
     const reports = scatterReports('tornado', CENTER[0], CENTER[1], 12, 0.4);

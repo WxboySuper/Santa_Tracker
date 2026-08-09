@@ -28,6 +28,7 @@ import { DayType } from "../../types/outlooks";
 import type { MapAdapterHandle } from "../../maps/contracts";
 import type { Feature as GeoJsonFeature } from "geojson";
 import Feature from "ol/Feature";
+import Geometry from "ol/geom/Geometry";
 import Point from "ol/geom/Point";
 import {
   Circle,
@@ -47,11 +48,15 @@ import {
 } from "../../lib/openFreeMap";
 import "./ForecastMap.css";
 import { ReportType } from "../../types/stormReports";
+import type { DatEvidence } from "../../utils/dat";
+import { isTornadoDamagePoint } from "../../utils/dat";
 
 interface OpenLayersVerificationMapProps {
   activeOutlookType?: "categorical" | "tornado" | "wind" | "hail";
   selectedDay?: DayType;
   legendOpen?: boolean;
+  datEvidence?: DatEvidence | null;
+  datVisible?: boolean;
 }
 
 type VerificationOutlookType = NonNullable<
@@ -102,6 +107,38 @@ const reportColors = {
 
 // Fallback color for report dots when the report type is not found in reportColors
 const FALLBACK_REPORT_COLOR = "#888888";
+
+const datColors = {
+  EF0: '#94a3b8',
+  EF1: '#38bdf8',
+  EF2: '#f59e0b',
+  EF3: '#f43f5e',
+  EF4: '#d946ef',
+  EF5: '#7f1d1d',
+  EFU: '#f8fafc',
+};
+
+const datColorFor = (efScale: string | null | undefined): string => {
+  const key = (efScale ?? '').toUpperCase() as keyof typeof datColors;
+  return datColors[key] ?? '#fbbf24';
+};
+
+const buildDatTrackStyle = () => new OlStyle({
+  stroke: new StyleStroke({ color: '#fbbf24', width: 3 }),
+});
+
+const buildDatPolygonStyle = (efScale: string | null | undefined) => new OlStyle({
+  fill: new StyleFill({ color: 'rgba(245, 158, 11, 0.16)' }),
+  stroke: new StyleStroke({ color: datColorFor(efScale), width: 1.5 }),
+});
+
+const buildDatPointStyle = (efScale: string | null | undefined) => new OlStyle({
+  image: new Circle({
+    radius: 4,
+    fill: new StyleFill({ color: datColorFor(efScale) }),
+    stroke: new StyleStroke({ color: '#111827', width: 1 }),
+  }),
+});
 
 // Style function for storm reports
 const buildReportStyle = (type: ReportType) => {
@@ -489,7 +526,7 @@ export const VerifMapLegendToggleButton: React.FC<{
 const OpenLayersVerificationMap = forwardRef<
   MapAdapterHandle<OLMap> | null,
   OpenLayersVerificationMapProps
->(({ activeOutlookType = CATEGORICAL_OUTLOOK, selectedDay = 1, legendOpen = false }, ref) => {
+>(({ activeOutlookType = CATEGORICAL_OUTLOOK, selectedDay = 1, legendOpen = false, datEvidence = null, datVisible = true }, ref) => {
   const dispatch = useDispatch();
   const [showStylePicker, setShowStylePicker] = useState(false);
   const [mobileLegendOpen, setMobileLegendOpen] = useState(false);
@@ -506,6 +543,7 @@ const OpenLayersVerificationMap = forwardRef<
   const vectorSourceRef = useRef<VectorSource>(new VectorSource());
   const outlookLayerRef = useRef<VectorLayer<VectorSource> | null>(null);
   const stormReportsSourceRef = useRef<VectorSource>(new VectorSource()); // New source for storm reports
+  const datEvidenceSourceRef = useRef<VectorSource>(new VectorSource());
   const mapView = useSelector(
     (state: RootState) => state.forecast.currentMapView,
   );
@@ -612,6 +650,10 @@ const OpenLayersVerificationMap = forwardRef<
           zIndex: 4,
           style: (feature) =>
             buildReportStyle(feature.get("type") as ReportType),
+        }),
+        new VectorLayer({
+          source: datEvidenceSourceRef.current,
+          zIndex: 5,
         }),
         labelLayer,
       ],
@@ -931,6 +973,55 @@ const OpenLayersVerificationMap = forwardRef<
       });
     }
   }, [reports, reportsVisible, filterByType, activeOutlookType]);
+
+  useEffect(() => {
+    const source = datEvidenceSourceRef.current;
+    source.clear();
+    if (!datVisible || !datEvidence || (activeOutlookType !== CATEGORICAL_OUTLOOK && activeOutlookType !== 'tornado')) {
+      return;
+    }
+
+    const format = new GeoJSON();
+    datEvidence.tracks
+      .filter((track) => /^EF(?:[0-5]|U)$/i.test(track.efScale ?? ''))
+      .forEach((track) => {
+        const feature = format.readFeature({
+          type: 'Feature',
+          geometry: track.geometry,
+          properties: { datType: 'track', objectId: track.objectId, efScale: track.efScale },
+        }, { dataProjection: 'EPSG:4326', featureProjection: 'EPSG:3857' }) as Feature<Geometry>;
+        feature.setStyle(buildDatTrackStyle());
+        source.addFeature(feature);
+      });
+
+    datEvidence.damagePolygons
+      .filter((polygon) => /^EF(?:[0-5]|U)$/i.test(polygon.efScale ?? ''))
+      .forEach((polygon) => {
+        const feature = format.readFeature({
+          type: 'Feature',
+          geometry: polygon.geometry,
+          properties: { datType: 'polygon', objectId: polygon.objectId, efScale: polygon.efScale },
+        }, { dataProjection: 'EPSG:4326', featureProjection: 'EPSG:3857' }) as Feature<Geometry>;
+        feature.setStyle(buildDatPolygonStyle(polygon.efScale));
+        source.addFeature(feature);
+      });
+
+    datEvidence.damagePoints
+      .filter((damagePoint) => isTornadoDamagePoint(damagePoint) && damagePoint.longitude !== null && damagePoint.latitude !== null)
+      .forEach((damagePoint) => {
+        if (damagePoint.longitude === null || damagePoint.latitude === null) {
+          return;
+        }
+        const feature = new Feature({
+          geometry: new Point(fromLonLat([damagePoint.longitude, damagePoint.latitude])),
+          datType: 'point',
+          objectId: damagePoint.objectId,
+          efScale: damagePoint.efScale,
+        });
+        feature.setStyle(buildDatPointStyle(damagePoint.efScale));
+        source.addFeature(feature);
+      });
+  }, [activeOutlookType, datEvidence, datVisible]);
 
   // Handlers for toolbar buttons to switch interaction modes and toggle style picker.
   const handleToggleStylePicker = () => {

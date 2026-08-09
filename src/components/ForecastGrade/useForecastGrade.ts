@@ -6,6 +6,7 @@ import { loadVerificationForecast, clearVerificationForecast } from '../../store
 import { setReports, clearReports, setDate, setVisibility } from '../../store/stormReportsSlice';
 import type { ForecastCycle, DayType } from '../../types/outlooks';
 import type { StormReport } from '../../types/stormReports';
+import type { DatEvidence } from '../../utils/dat';
 import type { GradeAccountTier, GradeCard, GradeSnapshot, PackageSourceKind } from '../../types/forecastGrade';
 import { serializeForecast, deserializeForecast } from '../../utils/fileUtils';
 import {
@@ -22,6 +23,7 @@ import {
   buildGradeCard,
   loadForecastFromFile,
   loadReportsForDate,
+  loadDatEvidenceForDate,
   resolveAccountTier,
   SourceLoadError,
   tierHasSnapshots,
@@ -94,6 +96,8 @@ export interface ForecastGradeState {
   error: string | null;
   cards: GradeCard[];
   reports: StormReport[];
+  datEvidence: DatEvidence | null;
+  datError: string | null;
 }
 
 export interface UseForecastGrade extends ForecastGradeState {
@@ -135,6 +139,8 @@ export const useForecastGrade = (addToast: (message: string, type?: 'info' | 'su
   const [error, setError] = useState<string | null>(null);
   const [cards, setCards] = useState<GradeCard[]>([]);
   const [reports, setReportsState] = useState<StormReport[]>([]);
+  const [datEvidence, setDatEvidence] = useState<DatEvidence | null>(null);
+  const [datError, setDatError] = useState<string | null>(null);
   const restoreSeqRef = useRef(0);
   const reportDateWasEditedRef = useRef(false);
 
@@ -161,6 +167,8 @@ export const useForecastGrade = (addToast: (message: string, type?: 'info' | 'su
       setResult(null);
       setPhase('idle');
       setError(null);
+      setDatEvidence(null);
+      setDatError(null);
       dispatch(loadVerificationForecast(nextForecast));
     },
     [dispatch]
@@ -198,6 +206,8 @@ export const useForecastGrade = (addToast: (message: string, type?: 'info' | 'su
     }
     setResult(null);
     setPhase('idle');
+    setDatEvidence(null);
+    setDatError(null);
   }, [forecast]);
 
   const canRun =
@@ -226,9 +236,11 @@ export const useForecastGrade = (addToast: (message: string, type?: 'info' | 'su
     restoreSeqRef.current += 1; // invalidate any in-flight snapshot restore
     setPhase('running');
     setError(null);
-    setProgress({ fraction: 0, label: 'Loading storm reports…' });
+    setDatError(null);
+    setProgress({ fraction: 0, label: 'Loading SPC reports and NOAA DAT surveys…' });
 
     let loadedReports: StormReport[] = [];
+    let loadedDatEvidence: DatEvidence | null = null;
     try {
       loadedReports = await loadReportsForDate(effectiveDate);
     } catch (loadError) {
@@ -243,11 +255,25 @@ export const useForecastGrade = (addToast: (message: string, type?: 'info' | 'su
       return;
     }
 
+    try {
+      loadedDatEvidence = await loadDatEvidenceForDate(effectiveDate);
+    } catch (loadError) {
+      if (generation !== runGeneration.current) {
+        return;
+      }
+      const message = loadError instanceof SourceLoadError
+        ? loadError.message
+        : 'NOAA DAT surveys could not be loaded.';
+      setDatError(message);
+      addToast('SPC grading is available; NOAA DAT surveys were unavailable.', 'info');
+    }
+
     if (generation !== runGeneration.current) {
       return;
     }
 
     setReportsState(loadedReports);
+    setDatEvidence(loadedDatEvidence);
     dispatch(setReports(loadedReports));
     dispatch(setVisibility(true));
     dispatch(setDate(effectiveDate ?? 'today'));
@@ -264,7 +290,10 @@ export const useForecastGrade = (addToast: (message: string, type?: 'info' | 'su
       return;
     }
 
-    const pkg = await runForecastGrade({ outlooks, reports: loadedReports }, setProgress);
+    const pkg = await runForecastGrade(
+      { outlooks, reports: loadedReports, datEvidence: loadedDatEvidence ?? undefined },
+      setProgress,
+    );
     if (generation !== runGeneration.current) {
       return;
     }
@@ -277,9 +306,10 @@ export const useForecastGrade = (addToast: (message: string, type?: 'info' | 'su
 
     if (scope) {
       const hasSnapshot = tierHasSnapshots(tier);
+      const sourceSuffix = loadedDatEvidence ? ' + DAT' : '';
       const card = buildGradeCard(pkg, {
         reportDate: effectiveDate,
-        sourceLabel: sourceLabel || (packageSource === 'cloud' ? 'Cloud + SPC' : 'File + SPC'),
+        sourceLabel: sourceLabel || `${packageSource === 'cloud' ? 'Cloud + SPC' : 'File + SPC'}${sourceSuffix}`,
         hasSnapshot,
       });
       let snapshot: GradeSnapshot | undefined;
@@ -312,6 +342,8 @@ export const useForecastGrade = (addToast: (message: string, type?: 'info' | 'su
     setProgress(null);
     setError(null);
     setReportsState([]);
+    setDatEvidence(null);
+    setDatError(null);
     dispatch(clearVerificationForecast());
     dispatch(clearReports());
   }, [dispatch]);
@@ -342,6 +374,8 @@ export const useForecastGrade = (addToast: (message: string, type?: 'info' | 'su
       setPhase('complete');
       setError(null);
       setProgress(null);
+      setDatEvidence(null);
+      setDatError(null);
       if (snapshot.reportDate) {
         setUseTodayState(false);
         setReportDateState(snapshot.reportDate);
@@ -370,6 +404,20 @@ export const useForecastGrade = (addToast: (message: string, type?: 'info' | 'su
           setReportsState([]);
           dispatch(clearReports());
         });
+      loadDatEvidenceForDate(snapshot.reportDate)
+        .then((loadedDatEvidence) => {
+          if (restoreSeq !== restoreSeqRef.current) {
+            return;
+          }
+          setDatEvidence(loadedDatEvidence);
+        })
+        .catch((loadError) => {
+          if (restoreSeq !== restoreSeqRef.current) {
+            return;
+          }
+          setDatEvidence(null);
+          setDatError(loadError instanceof SourceLoadError ? loadError.message : 'NOAA DAT surveys could not be loaded.');
+        });
       return undefined;
     },
     [dispatch]
@@ -392,6 +440,8 @@ export const useForecastGrade = (addToast: (message: string, type?: 'info' | 'su
     error,
     cards,
     reports,
+    datEvidence,
+    datError,
     setForecastPackage,
     loadFromFile,
     setReportDate,
@@ -421,6 +471,8 @@ export const useForecastGrade = (addToast: (message: string, type?: 'info' | 'su
     error,
     cards,
     reports,
+    datEvidence,
+    datError,
     setForecastPackage,
     loadFromFile,
     setReportDate,

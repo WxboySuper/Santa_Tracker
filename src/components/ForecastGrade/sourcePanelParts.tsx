@@ -55,7 +55,7 @@ export const ReportDatePicker: React.FC<ReportDatePickerProps> = ({
   <div className="fg-report-date">
     <div>
       <div className="fg-panel-eyebrow">2 · Observation date</div>
-      <div className="text-sm font-semibold">SPC storm reports</div>
+      <div className="text-sm font-semibold">SPC reports + NOAA DAT surveys</div>
     </div>
     <div className="fg-date-controls mt-2 flex flex-wrap items-center gap-3 text-sm">
        <label className="fg-touch inline-flex items-center gap-2 px-2">

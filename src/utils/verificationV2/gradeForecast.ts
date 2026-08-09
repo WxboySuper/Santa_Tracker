@@ -1,5 +1,6 @@
 import type { OutlookData } from '../../types/outlooks';
 import type { StormReport } from '../../types/stormReports';
+import type { DatEvidence } from '../dat';
 import {
   assessDataQuality,
   buildPackageGrade,
@@ -28,6 +29,8 @@ export interface GradeForecastInput {
   reports: StormReport[];
   /** True when the SPC report fetch failed (forces a Blocked result). */
   reportsError?: boolean;
+  /** Optional NOAA DAT evidence; its outage never blocks SPC grading. */
+  datEvidence?: DatEvidence;
   /** Overrides the snapshot timestamp (tests). */
   generatedAt?: string;
 }
@@ -68,6 +71,7 @@ export const gradeForecast = ({
   outlooks,
   reports,
   reportsError = false,
+  datEvidence,
   generatedAt,
 }: GradeForecastInput): PackageGrade =>
   buildPackageGrade({
@@ -75,6 +79,7 @@ export const gradeForecast = ({
     outlooks,
     reports,
     reportsError,
+    datEvidence,
     generatedAt,
   });
 
@@ -115,7 +120,7 @@ export const runForecastGrade = async (
   input: GradeForecastInput,
   onProgress?: GradeProgressHandler
 ): Promise<PackageGrade> => {
-  const { outlooks, reports, reportsError = false, generatedAt } = input;
+  const { outlooks, reports, reportsError = false, datEvidence, generatedAt } = input;
 
   onProgress?.({ fraction: 0.02, label: 'Preparing package and reports…' });
   await nextFrame();
@@ -127,7 +132,7 @@ export const runForecastGrade = async (
       fraction: 0.05 + (index / PRODUCT_KINDS.length) * 0.85,
       label: `Grading ${product} product…`,
     });
-    products.push(gradeProduct(product, outlooks, reports));
+    products.push(gradeProduct(product, outlooks, reports, datEvidence));
     await nextFrame();
   }
 
@@ -138,7 +143,7 @@ export const runForecastGrade = async (
     (product) => extractProductContours(outlooks, product).length > 0
   );
   const relevantCount = relevantReportCount(outlooks, reports);
-  const quality = assessDataQuality(hasGeometry, relevantCount, reportsError);
+  const quality = assessDataQuality(hasGeometry, relevantCount, reportsError, datEvidence?.damagePoints.length ?? 0);
   const rolledGrade = quality.withholdPackageGrade ? null : rollUpPackageGrade(products);
   const snapshot: PackageGrade = {
     formulaVersion: FORECAST_GRADE_FORMULA_VERSION,
@@ -147,7 +152,15 @@ export const runForecastGrade = async (
     products,
     dataQuality: quality.quality,
     dataQualityReason: quality.reason,
-    hasReports: relevantCount > 0,
+    hasReports: relevantCount > 0 || (datEvidence?.damagePoints.length ?? 0) > 0,
+    datEvidence: datEvidence ? {
+      trackCount: datEvidence.tracks.length,
+      damagePointCount: datEvidence.damagePoints.length,
+      damagePolygonCount: datEvidence.damagePolygons.length,
+      tornadoTrackCount: datEvidence.tracks.filter((track) => /^EF(?:[0-5]|U)$/i.test(track.efScale ?? '')).length,
+      tornadoDamagePointCount: datEvidence.damagePoints.filter((point) => /^EF(?:[0-5]|U)$/i.test(point.efScale ?? '')).length,
+      tornadoDamagePolygonCount: datEvidence.damagePolygons.filter((polygon) => /^EF(?:[0-5]|U)$/i.test(polygon.efScale ?? '')).length,
+    } : undefined,
     generatedAt: generatedAt ?? new Date().toISOString(),
   };
 

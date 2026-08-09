@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { fromLonLat } from 'ol/proj';
 import VerificationMap, { type VerificationMapHandle } from '../Map/VerificationMap';
 import type { StormReport } from '../../types/stormReports';
+import type { DatEvidence } from '../../utils/dat';
 import type { DayType } from '../../types/outlooks';
 import type { ComponentKey, MapOutlookLayer, PackageGrade } from '../../utils/verificationV2';
 import ForecastGradeMapControls from './ForecastGradeMapControls';
@@ -17,9 +18,12 @@ interface ForecastGradeMapPaneProps {
   activeComponent: ComponentKey | null;
   result: PackageGrade | null;
   reportsVisible: boolean;
+  datEvidence: DatEvidence | null;
+  datVisible: boolean;
   onSelectMapLayer: (layer: MapOutlookLayer) => void;
   onSelectDay: (day: DayType) => void;
   onToggleEvidence: () => void;
+  onToggleDat: () => void;
   mapPaneRef: React.RefObject<HTMLDivElement | null>;
   mapRef: React.RefObject<VerificationMapHandle | null>;
 }
@@ -35,9 +39,12 @@ const ForecastGradeMapPane: React.FC<ForecastGradeMapPaneProps> = ({
   activeComponent,
   result,
   reportsVisible,
+  datEvidence,
+  datVisible,
   onSelectMapLayer,
   onSelectDay,
   onToggleEvidence,
+  onToggleDat,
   mapPaneRef,
   mapRef,
 }) => {
@@ -68,6 +75,8 @@ const ForecastGradeMapPane: React.FC<ForecastGradeMapPaneProps> = ({
           onSelectDay={onSelectDay}
           reportsVisible={reportsVisible}
           onToggleEvidence={onToggleEvidence}
+          datVisible={datVisible}
+          onToggleDat={onToggleDat}
           legendOpen={legendOpen}
           onToggleLegend={() => setLegendOpen((open) => !open)}
         />
@@ -81,11 +90,14 @@ const ForecastGradeMapPane: React.FC<ForecastGradeMapPaneProps> = ({
             activeOutlookType={activeMapLayer}
             selectedDay={selectedDay}
             legendOpen={legendOpen}
+            datEvidence={datEvidence}
+            datVisible={datVisible}
           />
           <div className="fg-map-telemetry" aria-hidden="true">
             <span>SPC / EVIDENCE</span>
             <span>DAY {selectedDay}</span>
             <span>{reports.length} REPORTS</span>
+            <span>{datEvidence?.damagePoints.length ?? 0} DAT</span>
           </div>
           {result && (
             <div className="fg-grade-overlay">

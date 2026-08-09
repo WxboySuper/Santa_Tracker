@@ -1,4 +1,6 @@
 import type { StormReport } from '../../types/stormReports';
+import type { DatDamagePoint } from '../dat';
+import { datDamagePointToStormReport, isTornadoDamagePoint } from '../dat';
 import {
   SEVERITY_SIG_DRAWN_NONE_OBSERVED,
   SEVERITY_SIG_HIT,
@@ -146,10 +148,22 @@ const scoreSigObservedOnly = (sigReports: StormReport[]): ComponentScore =>
 export const scoreSeverity = (
   product: ProductKind,
   contours: ProductContour[],
-  reports: StormReport[]
+  reports: StormReport[],
+  datDamagePoints: DatDamagePoint[] = [],
 ): ComponentScore => {
   const sigContours = contours.filter((contour) => contour.isSignificant);
-  const sigReports = reportsForProduct(product, reports).filter(isSignificantReport);
+  const datReports = product === 'tornado'
+    ? datDamagePoints
+      .filter(isTornadoDamagePoint)
+      .map(datDamagePointToStormReport)
+      .filter((report): report is StormReport => Boolean(report))
+    : [];
+  const observedReports = [...reportsForProduct(product, reports), ...datReports];
+  const sigReports = observedReports.filter(isSignificantReport);
+  const datSigCount = datReports.filter(isSignificantReport).length;
+  const sourceDetail = datSigCount > 0
+    ? ` (${sigReports.length - datSigCount} SPC, ${datSigCount} DAT survey)`
+    : '';
   const sigDrawn = sigContours.length > 0;
   const sigObserved = sigReports.length > 0;
 
@@ -157,10 +171,16 @@ export const scoreSeverity = (
     return notEvaluatedComponent('severity', 'No significant contour drawn and no significant report observed.');
   }
   if (sigDrawn && sigObserved) {
-    return scoreSigDrawnAndObserved(sigContours, sigReports);
+    const scored = scoreSigDrawnAndObserved(sigContours, sigReports);
+    return scored.applicable
+      ? { ...scored, detail: `${scored.detail}${sourceDetail}` }
+      : scored;
   }
   if (sigDrawn) {
     return scoreSigDrawnOnly();
   }
-  return scoreSigObservedOnly(sigReports);
+  const scored = scoreSigObservedOnly(sigReports);
+  return scored.applicable
+    ? { ...scored, detail: `${scored.detail}${sourceDetail}` }
+    : scored;
 };
