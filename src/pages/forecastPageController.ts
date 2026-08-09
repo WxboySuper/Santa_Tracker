@@ -490,6 +490,21 @@ export const shouldSkipDayRolloverPrompt = ({ restoreComplete, lastActiveDay, to
   hasUnsavedWork: boolean;
 }) => !restoreComplete || !lastActiveDay || lastActiveDay === today || alreadyPromptedToday || promptOpen || !hasUnsavedWork;
 
+interface PendingPromptForTodayInput {
+  restoreComplete: boolean;
+  promptOpen: boolean;
+  pendingPrompt?: DayRolloverPromptState | null;
+  today: string;
+}
+
+const getPendingPromptForToday = ({ restoreComplete, promptOpen, pendingPrompt, today }: PendingPromptForTodayInput): DayRolloverPromptState | null => {
+  if (!restoreComplete) return null;
+  if (promptOpen) return null;
+  if (!pendingPrompt) return null;
+  if (pendingPrompt.currentDay !== today) return null;
+  return pendingPrompt;
+};
+
 export const getDayRolloverPromptState = ({ restoreComplete, lastActiveDay, today, alreadyPromptedToday, promptOpen, forecastCycle, isSaved, pendingPrompt }: {
   restoreComplete: boolean;
   lastActiveDay: string | null;
@@ -500,8 +515,11 @@ export const getDayRolloverPromptState = ({ restoreComplete, lastActiveDay, toda
   isSaved: boolean;
   pendingPrompt?: DayRolloverPromptState | null;
 }): DayRolloverPromptState | null => {
-  if (restoreComplete && !promptOpen && pendingPrompt?.currentDay === today) return pendingPrompt;
-  if (shouldSkipDayRolloverPrompt({ restoreComplete, lastActiveDay, today, alreadyPromptedToday, promptOpen, hasUnsavedWork: hasUnsavedRolloverCandidateSession(forecastCycle, isSaved) })) return null;
+  const existingPrompt = getPendingPromptForToday({ restoreComplete, promptOpen, pendingPrompt, today });
+  if (existingPrompt) return existingPrompt;
+  const hasUnsavedWork = hasUnsavedRolloverCandidateSession(forecastCycle, isSaved);
+  const shouldSkipPrompt = shouldSkipDayRolloverPrompt({ restoreComplete, lastActiveDay, today, alreadyPromptedToday, promptOpen, hasUnsavedWork });
+  if (shouldSkipPrompt) return null;
   return { previousDay: lastActiveDay as string, currentDay: today };
 };
 
