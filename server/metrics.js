@@ -60,6 +60,7 @@ const STORAGE_COLLECTIONS = [
   'adminMetricDedupes',
 ];
 const STORAGE_CACHE_TTL_MS = 5 * 60 * 1000;
+const STORAGE_SCAN_LIMIT = 1001;
 let storageBytesCache = {
   value: null,
   expiresAt: 0,
@@ -368,9 +369,9 @@ const countCollectionDocuments = async (db, collectionName) => {
     if (!db.collection(collectionName).limit) {
       return 0;
     }
-    const capped = await db.collection(collectionName).limit(1001).get();
+    const capped = await db.collection(collectionName).limit(STORAGE_SCAN_LIMIT).get();
     const docs = capped.docs || [];
-    return docs.length === 1001 ? 1001 : docs.length;
+    return docs.length === STORAGE_SCAN_LIMIT ? STORAGE_SCAN_LIMIT : docs.length;
   }
 };
 
@@ -391,7 +392,7 @@ const sumCappedPayloadBytes = async (db) => {
   if (!db.collection('cloudCycles').limit) {
     return 0;
   }
-  const capped = await db.collection('cloudCycles').limit(1001).get();
+  const capped = await db.collection('cloudCycles').limit(STORAGE_SCAN_LIMIT).get();
   const docs = capped.docs || [];
   return docs.reduce(
     (total, docSnapshot) => total + (Number(docSnapshot.data?.()?.payloadBytes) || 0),

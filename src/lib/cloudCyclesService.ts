@@ -91,13 +91,12 @@ const postCloudCycle = async (token: string, body: Record<string, unknown>) => {
   return { success: true };
 };
 
-const buildCloudCycleRequest = ({ cycleId, params, metadata, payloadStats, workflowMetadata }: { cycleId: string; params: SaveCloudCycleParams; metadata: CloudCycleMetadata; payloadStats: { payloadBytes: number }; workflowMetadata?: CycleMetadata }) => ({
+const buildCloudCycleRequest = ({ cycleId, params, metadata, workflowMetadata }: { cycleId: string; params: SaveCloudCycleParams; metadata: CloudCycleMetadata; workflowMetadata?: CycleMetadata }) => ({
   id: cycleId,
   userId: params.userId,
   label: params.label,
   cycleDate: params.cycleDate,
   payloadJson: JSON.stringify(params.payload),
-  payloadBytes: payloadStats.payloadBytes,
   metadata: { ...metadata, ...(workflowMetadata ? { workflowMetadata } : {}) },
 });
 
@@ -506,7 +505,7 @@ const buildCloudCycleSaveContext = async (params: SaveCloudCycleParams) => {
     totalFeatures: params.stats.totalFeatures, isReadOnly: params.isReadOnly ?? false,
     payloadHash: computePayloadHash(params.payload),
   };
-  return { cycleId, metadata, payloadStats: createCloudCyclePayloadStorage(params.payload), workflowMetadata: getCompatibleWorkflowMetadata(params.workflowMetadata, params.cycleDate) };
+  return { cycleId, metadata, workflowMetadata: getCompatibleWorkflowMetadata(params.workflowMetadata, params.cycleDate) };
 };
 
 const saveCloudCycleInternal = async (params: SaveCloudCycleParams): Promise<CloudOperationResult<string>> => {
@@ -515,7 +514,7 @@ const saveCloudCycleInternal = async (params: SaveCloudCycleParams): Promise<Clo
     if ('error' in context) return { success: false, error: context.error };
     const token = await getCloudSaveToken();
     if (!token) return { success: false, error: 'Authentication required' };
-    const result = await postCloudCycle(token, buildCloudCycleRequest({ cycleId: context.cycleId, params, metadata: context.metadata, payloadStats: context.payloadStats, workflowMetadata: context.workflowMetadata }));
+    const result = await postCloudCycle(token, buildCloudCycleRequest({ cycleId: context.cycleId, params, metadata: context.metadata, workflowMetadata: context.workflowMetadata }));
     if (!result.success) return result;
     return { success: true, data: context.cycleId };
   } catch (error) {
@@ -614,7 +613,8 @@ export const renameCloudCycle = async (
 
 /**
  * Lists all cloud cycles for a user as metadata-only objects.
- * Payload JSON is still stored in the same Firestore document today, so this avoids parse cost but not document transfer size.
+ * Payload JSON lives in a dedicated subcollection, so this query transfers
+ * metadata only. Legacy documents are handled through the migration fallback.
  */
 export async function listCloudCycles(
   { userId }: ListCloudCyclesParams
