@@ -15,7 +15,6 @@ import { RootState } from '../store';
 import {
   importForecastCycle,
   restoreForecastCycle,
-  markAsSaved,
   resetForecasts,
   saveCurrentCycle,
   setMapView,
@@ -33,12 +32,12 @@ import {
   clearWorkflowMetadata,
 } from '../store/forecastSlice';
 import { OutlookType, Probability, DayType, GFCForecastSaveData } from '../types/outlooks';
-import { deserializeForecast, validateForecastData, validateForecastDataReason, exportForecastToJson, serializeForecast, MAX_IMPORT_BYTES } from '../utils/fileUtils';
+import { deserializeForecast, validateForecastData, exportForecastToJson, serializeForecast } from '../utils/fileUtils';
 import {
   getFirstExposedOutlookType,
   shouldActivateEmergencyMode,
 } from '../config/productExposureSelectors';
-import { getAutoSaveStorageKey, migrateLegacyAutoSave, selectPreferredAutoSaveValue } from '../hooks/useAutoSave';
+import { getAutoSaveStorageKey, selectPreferredAutoSaveValue } from '../hooks/useAutoSave';
 import {
   DAY_ROLLOVER_CHECK_INTERVAL_MS,
   DAY_ROLLOVER_LAST_ACTIVE_KEY,
@@ -67,7 +66,6 @@ import { hasAnyModifierKey, isTypingTarget, keyboardShortcutKey } from '../utils
 import { useCustomProductForecastHandoff } from '../hooks/useCustomProductForecastHandoff';
 
 export { hasAnyModifierKey, isTypingTarget, clearStoredRolloverPrompt, getRolloverStorageKey, readStoredDayValue, readStoredRolloverPrompt, writeStoredDayValue, writeStoredRolloverPrompt };
-import { queueProductMetric } from '../utils/productMetrics';
 import { ForecastTabbedToolbarLayout } from '../components/ForecastWorkspace/ForecastWorkspaceLayouts';
 import ForecastWorkspaceModals from '../components/ForecastWorkspace/ForecastWorkspaceModals';
 import { useForecastWorkspaceController } from '../components/ForecastWorkspace/useForecastWorkspaceController';
@@ -76,6 +74,17 @@ import {
   resolveForecastUiVariant,
   type ForecastUiVariant,
 } from '../utils/forecastUiVariant';
+import {
+  useDayRolloverPrompt as useControllerDayRolloverPrompt,
+  useForecastFileActions as useControllerForecastFileActions,
+  useSessionRestore as useControllerSessionRestore,
+  useUnsavedChangesWarning as useControllerUnsavedChangesWarning,
+} from './forecastPageController';
+export {
+  buildMapView,
+  dayHasAnyFeatures,
+  parseLoadedForecast,
+} from './forecastPageController';
 import './ForecastPage.css';
 
 interface PageContext { addToast: AddToastFn; }
@@ -235,145 +244,6 @@ const DayRolloverDialog: React.FC<{
     </DialogContent>
   </Dialog>
 );
-
-/** Reads the current map view (center + zoom) from the map adapter; returns defaults if no adapter is mounted. */
-export const buildMapView = (ref: React.RefObject<ForecastMapHandle | null>) => {
-  const adapter = ref.current;
-  if (!adapter) {
-    return {
-      center: [39.8283, -98.5795] as [number, number],
-      zoom: 4
-    };
-  }
-
-  return adapter.getView();
-};
-
-interface LoadedForecastPayload {
-  rawData: {
-    mapView?: { center: [number, number]; zoom: number };
-    cycleMetadata?: import('../types/workflow').CycleMetadata;
-  };
-  deserializedCycle: ReturnType<typeof deserializeForecast>;
-}
-
-interface StoredCloudMeta {
-  id?: string;
-  label?: string;
-}
-
-const CLOUD_CYCLE_PAYLOAD_KEY = 'cloudCyclePayload';
-const CLOUD_CYCLE_META_KEY = 'cloudCycleMeta';
-
-/** Reads and validates a forecast JSON file, returning the parsed payload or null on failure. */
-export const parseLoadedForecast = async (
-  file: File,
-  addToast: AddToastFn
-): Promise<LoadedForecastPayload | null> => {
-  if (file.size > MAX_IMPORT_BYTES) {
-    addToast(`File is too large (${(file.size / 1024 / 1024).toFixed(1)} MB); the maximum supported size is ${MAX_IMPORT_BYTES / 1024 / 1024} MB.`, 'error');
-    return null;
-  }
-
-  const text = await file.text();
-  let data: unknown;
-
-  try {
-    data = JSON.parse(text);
-  } catch {
-    addToast('File is not valid JSON.', 'error');
-    return null;
-  }
-
-  const validationError = validateForecastDataReason(data);
-  if (validationError) {
-    addToast(validationError, 'error');
-    return null;
-  }
-
-  return {
-    rawData: data as LoadedForecastPayload['rawData'],
-    deserializedCycle: deserializeForecast(data),
-  };
-};
-
-/** Returns true if the given day data object contains at least one outlook map with features. */
-export const dayHasAnyFeatures = (dayData: unknown): boolean => {
-  if (!dayData || typeof dayData !== 'object') return false;
-
-  const maps = Object.values(dayData as Record<string, { size?: number } | undefined>);
-  return maps.some((outlookMap) => (outlookMap?.size ?? 0) > 0);
-};
-
-/** Dispatches the loaded forecast to Redux and updates the map view, auto-restoring center/zoom when available. */
-const applyLoadedForecast = (
-  payload: LoadedForecastPayload,
-  dispatch: ShortcutDispatch,
-  mapRef: React.RefObject<ForecastMapHandle | null>
-) => {
-  dispatch(importForecastCycle(payload.deserializedCycle));
-  if (payload.rawData.cycleMetadata) {
-    dispatch(setWorkflowMetadata(payload.rawData.cycleMetadata));
-  } else if (payload.rawData.cycleMetadata === null) {
-    dispatch(clearWorkflowMetadata());
-  }
-
-  if (payload.rawData.mapView) {
-    dispatch(setMapView(payload.rawData.mapView));
-    return;
-  }
-
-  const map = mapRef.current?.getMap();
-  if (!map) return;
-
-  const currentDayData = payload.deserializedCycle.days[payload.deserializedCycle.currentDay]?.data;
-  if (dayHasAnyFeatures(currentDayData)) {
-    dispatch(setMapView({
-      center: [39.8283, -98.5795],
-      zoom: 4
-    }));
-  }
-};
-
-/** Returns a memoized callback that serializes the current forecast cycle to JSON and marks the store as saved. */
-const useForecastSaveAction = (
-  dispatch: ShortcutDispatch,
-  addToast: AddToastFn,
-  forecastCycle: ReturnType<typeof selectForecastCycle>,
-  mapRef: React.RefObject<ForecastMapHandle | null>,
-  user: ReturnType<typeof useAuth>['user'],
-  workflowMetadata?: import('../types/workflow').CycleMetadata
-) => {
-  return useCallback(() => {
-    try {
-      exportForecastToJson(forecastCycle, buildMapView(mapRef), workflowMetadata);
-      dispatch(markAsSaved());
-      queueProductMetric({ event: 'cycle_saved', user });
-      addToast('Forecast exported to JSON!', 'success');
-    } catch {
-      addToast('Error exporting forecast.', 'error');
-    }
-  }, [forecastCycle, dispatch, addToast, mapRef, user, workflowMetadata]);
-};
-
-/** Returns a memoized async callback that parses and imports a forecast JSON file into Redux. */
-const useForecastLoadAction = (
-  dispatch: ShortcutDispatch,
-  addToast: AddToastFn,
-  mapRef: React.RefObject<ForecastMapHandle | null>
-) => {
-  return useCallback(async (file: File) => {
-    try {
-      const payload = await parseLoadedForecast(file, addToast);
-      if (!payload) return;
-
-      applyLoadedForecast(payload, dispatch, mapRef);
-      addToast('Forecast loaded successfully!', 'success');
-    } catch {
-      addToast('Error reading file.', 'error');
-    }
-  }, [dispatch, addToast, mapRef]);
-};
 
 const ARROW_KEYS = new Set(['arrowup', 'arrowright', 'arrowdown', 'arrowleft']);
 const INCREASE_PROBABILITY_KEYS = new Set(['arrowup', 'arrowright']);
@@ -634,6 +504,22 @@ const useOutlookExposureSync = (dispatch: ShortcutDispatch) => {
   }, [dispatch]);
 };
 
+interface LoadedForecastPayload {
+  rawData: {
+    mapView?: { center: [number, number]; zoom: number };
+    cycleMetadata?: import('../types/workflow').CycleMetadata;
+  };
+  deserializedCycle: ReturnType<typeof deserializeForecast>;
+}
+
+interface StoredCloudMeta {
+  id?: string;
+  label?: string;
+}
+
+const CLOUD_CYCLE_PAYLOAD_KEY = 'cloudCyclePayload';
+const CLOUD_CYCLE_META_KEY = 'cloudCycleMeta';
+
 /** Reads and validates one stored forecast payload string from browser storage. */
 export const parseStoredForecastPayload = (storedValue: string | null): GFCForecastSaveData | null => {
   if (!storedValue) {
@@ -788,7 +674,7 @@ const restoreLocalSession = (
 };
 
 /** Restores a pending cloud session first, then falls back to the local auto-save snapshot. */
-const restoreAvailableSession = (
+const _restoreAvailableSession = (
   dispatch: ShortcutDispatch,
   addToast: AddToastFn,
   currentSession: {
@@ -808,95 +694,6 @@ const restoreAvailableSession = (
 
 /** Returns a stable identity for one session-restore attempt keyed by the signed-in scope. */
 export const buildRestoreKey = (userId?: string | null): string => userId || 'anonymous';
-/** Attempts to restore the last auto-saved forecast session from localStorage on mount. */
-const useSessionRestore = (
-  dispatch: ShortcutDispatch,
-  addToast: AddToastFn,
-  currentSession: {
-    forecastCycle: ReturnType<typeof selectForecastCycle>;
-    discussionDraftsByScope: RootState['forecast']['discussionDraftsByScope'];
-    currentMapView: RootState['forecast']['currentMapView'];
-    workflowMetadata: RootState['forecast']['workflowMetadata'];
-    onCloudCycleLoaded?: (cloudCycle: { id: string; label: string }) => void;
-  },
-  userId?: string | null
-) => {
-  const onCloudCycleLoadedRef = useRef(currentSession.onCloudCycleLoaded);
-  const forecastCycleRef = useRef(currentSession.forecastCycle);
-  const initialDraftsRef = useRef(currentSession.discussionDraftsByScope);
-  const currentMapViewRef = useRef(currentSession.currentMapView);
-  const workflowMetadataRef = useRef(currentSession.workflowMetadata);
-  const previousUserIdRef = useRef(userId);
-  const appliedRestoreKeyRef = useRef<string | null>(null);
-  const [restoreComplete, setRestoreComplete] = useState(false);
-  const [restoredSession, setRestoredSession] = useState(false);
-  const [restoreAttempted, setRestoreAttempted] = useState(false);
-
-  useEffect(() => {
-    onCloudCycleLoadedRef.current = currentSession.onCloudCycleLoaded;
-    forecastCycleRef.current = currentSession.forecastCycle;
-    currentMapViewRef.current = currentSession.currentMapView;
-    workflowMetadataRef.current = currentSession.workflowMetadata;
-  }, [currentSession.currentMapView, currentSession.forecastCycle, currentSession.onCloudCycleLoaded, currentSession.workflowMetadata]);
-
-  useEffect(() => {
-    try {
-      const liveSession = previousUserIdRef.current == null && userId
-        ? serializeForecast(forecastCycleRef.current, currentMapViewRef.current, workflowMetadataRef.current)
-        : undefined;
-      migrateLegacyAutoSave(userId, liveSession);
-      previousUserIdRef.current = userId;
-
-      // Key restoration by the signed-in user scope so React Strict Mode's
-      // double effect invocation cannot reapply the same payload or fire
-      // duplicate restore notifications. A fresh mount creates a new hook
-      // instance, so restoration will run again for that mount by design.
-      const restoreKey = buildRestoreKey(userId);
-      if (appliedRestoreKeyRef.current === restoreKey) {
-        setRestoreAttempted(true);
-        return;
-      }
-      appliedRestoreKeyRef.current = restoreKey;
-
-      setRestoredSession(restoreAvailableSession(dispatch, addToast, {
-        forecastCycle: forecastCycleRef.current,
-        discussionDraftsByScope: initialDraftsRef.current,
-        onCloudCycleLoaded: onCloudCycleLoadedRef.current,
-      }, userId));
-    } catch {
-      setRestoredSession(false);
-    } finally {
-      setRestoreAttempted(true);
-    }
-  }, [addToast, dispatch, userId]);
-
-  useEffect(() => {
-    if (restoreAttempted) setRestoreComplete(true);
-  }, [restoreAttempted]);
-
-  return { restoreComplete, restoredSession };
-};
-
-/** Registers a beforeunload listener to warn the user when the forecast has unsaved changes. */
-const useUnsavedChangesWarning = (isSaved: boolean) => {
-  useEffect(() => {
-    /** Shows the browser's native leave-confirmation dialog when there are unsaved changes. */
-    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      if (!isSaved) {
-        const message = 'You have unsaved changes. Are you sure you want to leave?';
-        e.returnValue = message;
-        return message;
-      }
-      return undefined;
-    };
-
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    return () => {
-      window.removeEventListener('beforeunload', handleBeforeUnload);
-    };
-  }, [isSaved]);
-};
-
 /** Returns true when legacy rollover keys describe a prompt for today. */
 const isLegacyPromptForToday = (today: string, legacyPromptedDay: string | null): boolean => legacyPromptedDay === today;
 
@@ -947,10 +744,7 @@ const getDayRolloverSnapshot = (userId?: string | null) => {
   const pendingPrompt = existingPendingPrompt ?? getLegacyPendingRolloverPrompt(today, legacyLastActiveDay, legacyPromptedDay);
 
   migrateLegacyRolloverBaseline(userId, scopedLastActiveKey, legacyLastActiveDay, scopedLastActiveDay);
-  if (pendingPrompt && !existingPendingPrompt) {
-    writeStoredRolloverPrompt(pendingPrompt, userId);
-  }
-
+  if (pendingPrompt && !existingPendingPrompt) writeStoredRolloverPrompt(pendingPrompt, userId);
   return { today, lastActiveDay, alreadyPromptedToday, pendingPrompt };
 };
 
@@ -1117,7 +911,9 @@ const applyDayRolloverDetection = ({
 };
 
 /** Watches for a local calendar-day rollover and offers to save the previous session before starting a new one. */
-const useDayRolloverPrompt = ({ restoreComplete, restoredSession, dispatch, addToast, forecastCycle, currentMapView, isSaved, userId, canSaveToCloud, saveCycle, clearCurrent }: {
+// Kept as a compatibility reference for the pre-controller implementation while downstream callers migrate.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const useLegacyDayRolloverPrompt = ({ restoreComplete, restoredSession, dispatch, addToast, forecastCycle, currentMapView, isSaved, userId, canSaveToCloud, saveCycle, clearCurrent }: {
   restoreComplete: boolean;
   restoredSession: boolean;
   dispatch: ShortcutDispatch;
@@ -1194,19 +990,7 @@ const useDayRolloverPrompt = ({ restoreComplete, restoredSession, dispatch, addT
 };
 
 /** Composes save, load, and file-input-change callbacks into a single hook return. */
-const useForecastFileActions = (
-  dispatch: ShortcutDispatch,
-  addToast: AddToastFn,
-  forecastCycle: ReturnType<typeof selectForecastCycle>,
-  mapRef: React.RefObject<ForecastMapHandle | null>,
-  user: ReturnType<typeof useAuth>['user'],
-  workflowMetadata?: import('../types/workflow').CycleMetadata
-) => {
-  const handleSave = useForecastSaveAction(dispatch, addToast, forecastCycle, mapRef, user, workflowMetadata);
-  const handleLoad = useForecastLoadAction(dispatch, addToast, mapRef);
-
-  return { handleSave, handleLoad };
-};
+const _useForecastFileActions = useControllerForecastFileActions;
 
 interface KeyboardShortcutHookParams {
   dispatch: ShortcutDispatch;
@@ -1387,16 +1171,16 @@ const useForecastPageWorkspace = ({
     workflowMetadata,
   });
 
-  const { restoreComplete, restoredSession } = useSessionRestore(dispatch, addToast, {
+  const { restoreComplete, restoredSession } = useControllerSessionRestore(dispatch, addToast, {
     forecastCycle,
     discussionDraftsByScope,
     currentMapView,
     workflowMetadata,
     onCloudCycleLoaded: handleCloudCycleLoaded,
   }, user?.uid);
-  useUnsavedChangesWarning(isSaved);
+  useControllerUnsavedChangesWarning(isSaved);
 
-  const { handleSave, handleLoad } = useForecastFileActions(
+  const { handleSave, handleLoad } = useControllerForecastFileActions(
     dispatch,
     addToast,
     forecastCycle,
@@ -1419,7 +1203,7 @@ const useForecastPageWorkspace = ({
   });
   useCustomProductForecastHandoff(restoreComplete, addToast);
 
-  const dayRolloverPrompt = useDayRolloverPrompt({
+  const dayRolloverPrompt = useControllerDayRolloverPrompt({
     restoreComplete,
     restoredSession,
     dispatch,

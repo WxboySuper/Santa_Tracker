@@ -2,11 +2,9 @@ import {
   forwardRef,
   useEffect,
   useImperativeHandle,
-  useMemo,
   useRef,
   useState,
 } from "react";
-import { useDispatch, useSelector } from "react-redux";
 import "ol/ol.css";
 import OLMap from "ol/Map";
 import View from "ol/View";
@@ -18,7 +16,6 @@ import OSM from "ol/source/OSM";
 import XYZ from "ol/source/XYZ";
 import GeoJSON from "ol/format/GeoJSON";
 import { Draw, Modify, Select, Snap } from "ol/interaction";
-import { Fill, Stroke, Style } from "ol/style";
 import { fromLonLat, toLonLat } from "ol/proj";
 import Overlay from "ol/Overlay";
 import type { FeatureLike } from "ol/Feature";
@@ -27,18 +24,12 @@ import type Geometry from "ol/geom/Geometry";
 import { click } from "ol/events/condition";
 import { v4 as uuidv4 } from "uuid";
 import { Redo2, Undo2 } from "lucide-react";
-import { RootState } from "../../store";
 import {
   addFeature,
   addCustomFeature,
   removeFeature,
   removeCustomFeature,
   redoLastEdit,
-  selectCanRedo,
-  selectCanUndo,
-  selectCurrentCustomLayers,
-  selectCurrentOutlooks,
-  selectCurrentOutlookOpacity,
   setMapView,
   undoLastEdit,
   updateFeature,
@@ -48,7 +39,6 @@ import {
 import type { BaseMapStyle } from "../../store/overlaysSlice";
 import { computeZIndex } from "../../utils/mapStyleUtils";
 import type { MapAdapterHandle } from "../../maps/contracts";
-import { getGeoBoundarySource } from "../../config/geoBoundarySources";
 import type {
   Feature as GeoJsonFeature,
   GeoJsonProperties,
@@ -64,18 +54,10 @@ import {
   isOpenFreeMapStyle,
 } from "../../lib/openFreeMap";
 import "./ForecastMap.css";
-import { isFeatureExposed } from "../../config/featureExposure";
-import {
-  getForecastSourceDescriptorPlan,
-  reconcileFeatureSource,
-  type FeatureSyncDescriptor,
-} from "./openLayersFeatureSync";
-
 import {
   getFeatureIdentity,
   toUpdatedGeoJsonFeature,
   replaceLayerGroupLayers,
-  ensureBlankLayerLoaded,
   isDrawableOutlookType,
   toOlStyle,
   toCustomOlStyle,
@@ -92,7 +74,14 @@ import {
   TOP_LABEL_LAYER_Z_INDEX,
   GHOST_REFERENCE_LAYER_Z_INDEX,
 } from "./openLayersMapStyles";
-import type { OutlookMapLike, EditableOutlookType, BlankLayerConfig } from "./openLayersMapStyles";
+import type { EditableOutlookType } from "./openLayersMapStyles";
+import {
+  BLANK_LAND_FILL_STYLE,
+  BLANK_LAND_OUTLINE_STYLE,
+  createBlankLayerConfig,
+  ensureBlankLayerLoaded,
+} from "./openLayersBlankBasemap";
+import { useForecastMapReduxState } from "./useForecastMapReduxState";
 
 // OpenLayers 10.9.0 stores the delayed pointer callback in this private field:
 // https://github.com/openlayers/openlayers/blob/v10.9.0/src/ol/interaction/Draw.js#L740-L751
@@ -115,35 +104,6 @@ export const removeDrawInteraction = (map: OLMap, interaction: Draw): void => {
 
   map.removeInteraction(interaction);
 };
-// Cached GeoJSON for blank map style — fetched once, shared across re-renders
-let cachedUsStatesGeoJSON: object | null = null;
-let cachedWorldCountriesGeoJSON: object | null = null;
-let cachedLakesGeoJSON: object | null = null;
-
-// Gray style for world landmass (Canada, Mexico, etc.)
-const BLANK_WORLD_STYLE = new Style({
-  fill: new Fill({ color: "#808080" }),
-  stroke: new Stroke({ color: "#555555", width: 0.5 }),
-});
-
-// Blue style for lakes (Great Lakes, etc.) — renders above world, below US states
-const BLANK_LAKE_STYLE = new Style({
-  fill: new Fill({ color: "#7BA0C8" }),
-  stroke: new Stroke({ color: "#5585b5", width: 0.5 }),
-});
-
-// Cream fill for US land.
-const BLANK_LAND_FILL_STYLE = new Style({
-  fill: new Fill({ color: "#f2ede2" }),
-});
-
-// Outline-only style for US state borders rendered above outlook polygons.
-const BLANK_LAND_OUTLINE_STYLE = new Style({
-  fill: new Fill({ color: "rgba(0, 0, 0, 0)" }),
-  stroke: new Stroke({ color: "#333333", width: 1 }),
-});
-
-
 /** Applies preview styling and metadata before adding one OL feature to the preview source. */
 const addTstmPreviewOlFeature = (
   item: OLFeature<Geometry>,
@@ -191,7 +151,22 @@ type OpenLayersForecastMapProps = {
 // Main map component using OpenLayers, implementing the MapAdapterHandle interface for integration with the rest of the app.
 const OpenLayersForecastMap = forwardRef<MapAdapterHandle<OLMap> | null, OpenLayersForecastMapProps>(
   ({ tstmPreviewFeatures = [] }, ref) => {
-    const dispatch = useDispatch();
+    const {
+      dispatch,
+      drawingState,
+      canUndo,
+      canRedo,
+      customMode,
+      activeCustomLayer,
+      activeCustomCategory,
+      currentMapView,
+      outlooks,
+      outlookOpacity,
+      baseMapStyle,
+      ghostOutlooks,
+      serializedFeatures,
+      serializedCustomFeatures,
+    } = useForecastMapReduxState();
     const [interactionMode, setInteractionMode] = useState<
       "pan" | "draw" | "delete"
     >("pan");
@@ -203,27 +178,6 @@ const OpenLayersForecastMap = forwardRef<MapAdapterHandle<OLMap> | null, OpenLay
     } | null>(null);
     const [showDesktopLegend, setShowDesktopLegend] = useState(true);
     const [showMobileLegend, setShowMobileLegend] = useState(false);
-    const drawingState = useSelector(
-      (state: RootState) => state.forecast.drawingState,
-    );
-    const canUndo = useSelector(selectCanUndo);
-    const canRedo = useSelector(selectCanRedo);
-    const customEditor = useSelector((state: RootState) => state.forecast.customEditor);
-    const customLayers = useSelector(selectCurrentCustomLayers);
-    const customMode = isFeatureExposed("customProducts") && customEditor.mode === "custom";
-    const activeCustomLayer = customLayers.layers.find(({ id }) => id === customEditor.activeLayerId) ?? customLayers.layers[0];
-    const activeCustomCategory = activeCustomLayer?.categories.find(({ id }) => id === customEditor.activeCategoryId) ?? activeCustomLayer?.categories[0];
-    const currentMapView = useSelector(
-      (state: RootState) => state.forecast.currentMapView,
-    );
-    const outlooks = useSelector(selectCurrentOutlooks) as OutlookMapLike;
-    const outlookOpacity = useSelector((state: RootState) => selectCurrentOutlookOpacity(state, drawingState.activeOutlookType));
-    const baseMapStyle = useSelector(
-      (state: RootState) => state.overlays.baseMapStyle,
-    );
-    const ghostOutlooks = useSelector(
-      (state: RootState) => state.overlays.ghostOutlooks,
-    );
     const initialMapViewRef = useRef(currentMapView);
     const currentMapViewRef = useRef(currentMapView);
     const popupRef = useRef<HTMLDivElement>(null);
@@ -271,46 +225,6 @@ const OpenLayersForecastMap = forwardRef<MapAdapterHandle<OLMap> | null, OpenLay
     const ghostSnapRef = useRef<Snap | null>(null);
     const selectRef = useRef<Select | null>(null);
     const isApplyingExternalViewRef = useRef(false);
-
-    // Serialize features from the Redux store into a flat array for rendering on the map.
-    const serializedFeatures = useMemo(() => {
-      const items: Array<{
-        outlookType: string;
-        probability: string;
-        feature: GeoJsonFeature;
-        zIndex: number;
-      }> = [];
-      if (customMode) return items;
-      Object.entries(outlooks).forEach(([outlookType, probs]) => {
-        if (outlookType !== drawingState.activeOutlookType) {
-          return;
-        }
-
-        if (!(probs instanceof Map)) return;
-        probs.forEach((features: GeoJsonFeature[], probability: string) => {
-          features.forEach((feature: GeoJsonFeature) => {
-            items.push({
-              outlookType,
-              probability,
-              feature,
-              zIndex: computeZIndex(outlookType as EditableOutlookType, probability),
-            });
-          });
-        });
-      });
-      return items;
-    }, [outlooks, drawingState.activeOutlookType, customMode]);
-
-    const serializedCustomFeatures = useMemo(() => {
-      if (!customMode) return [];
-      return customLayers.layers.flatMap((layer) => {
-        const categories = new Map(layer.categories.map((category) => [category.id, category]));
-        return layer.features.flatMap((feature) => {
-          const category = categories.get(feature.properties.categoryId);
-          return category ? [{ feature, category, layer }] : [];
-        });
-      });
-    }, [customLayers.layers, customMode]);
 
     useImperativeHandle(
       ref,
@@ -802,23 +716,9 @@ const OpenLayersForecastMap = forwardRef<MapAdapterHandle<OLMap> | null, OpenLay
       )
         return;
 
-      /**
-       * Ensure US states GeoJSON for the blank/base map is loaded into
-       * the `landSourceRef` so state outlines can be rendered above
-       * outlook polygons. Fetches data once and caches it in
-       * `cachedUsStatesGeoJSON`.
-       */
+      /** Ensure state boundaries remain available above outlook polygons in every map style. */
       const loadUsStatesBoundaries = () => {
-        const landLoader: BlankLayerConfig = {
-          source: landSourceRef.current,
-          isLoaded: () => landSourceRef.current.getFeatures().length > 0,
-          url: getGeoBoundarySource("usStates").url,
-          getCache: () => cachedUsStatesGeoJSON,
-          setCache: (data) => {
-            cachedUsStatesGeoJSON = data;
-          },
-        };
-        ensureBlankLayerLoaded(landLoader).catch(() => {
+        ensureBlankLayerLoaded(createBlankLayerConfig("usStates", landSourceRef.current)).catch(() => {
           /* US states outline fetch failed — non-fatal */
         });
       };
@@ -845,36 +745,10 @@ const OpenLayersForecastMap = forwardRef<MapAdapterHandle<OLMap> | null, OpenLay
         // Deeper ocean blue
         el.style.backgroundColor = "#7BA0C8";
 
-        const loaders: BlankLayerConfig[] = [
-          {
-            source: worldSourceRef.current,
-            isLoaded: () => worldSourceRef.current.getFeatures().length > 0,
-            url: getGeoBoundarySource("worldCountries").url,
-            getCache: () => cachedWorldCountriesGeoJSON,
-            setCache: (data) => {
-              cachedWorldCountriesGeoJSON = data;
-            },
-            style: BLANK_WORLD_STYLE,
-          },
-          {
-            source: lakesSourceRef.current,
-            isLoaded: () => lakesSourceRef.current.getFeatures().length > 0,
-            url: getGeoBoundarySource("lakes").url,
-            getCache: () => cachedLakesGeoJSON,
-            setCache: (data) => {
-              cachedLakesGeoJSON = data;
-            },
-            style: BLANK_LAKE_STYLE,
-          },
-          {
-            source: landSourceRef.current,
-            isLoaded: () => landSourceRef.current.getFeatures().length > 0,
-            url: getGeoBoundarySource("usStates").url,
-            getCache: () => cachedUsStatesGeoJSON,
-            setCache: (data) => {
-              cachedUsStatesGeoJSON = data;
-            },
-          },
+        const loaders = [
+          createBlankLayerConfig("worldCountries", worldSourceRef.current),
+          createBlankLayerConfig("lakes", lakesSourceRef.current),
+          createBlankLayerConfig("usStates", landSourceRef.current),
         ];
 
         loaders.forEach((loader) => {

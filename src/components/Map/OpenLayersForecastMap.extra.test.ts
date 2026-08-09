@@ -21,6 +21,11 @@ import {
   hideOverlay,
   ensureBlankLayerLoaded,
 } from './openLayersMapStyles';
+import {
+  BLANK_LAKE_STYLE,
+  BLANK_WORLD_STYLE,
+  createBlankLayerConfig,
+} from './openLayersBlankBasemap';
 
 type OverlayStub = {
   setPosition: (position: unknown) => void;
@@ -84,6 +89,24 @@ describe('OpenLayersForecastMap additional helpers', () => {
     await ensureBlankLayerLoaded(config);
     expect(global.fetch).not.toHaveBeenCalled();
     expect(config.source.addFeatures).not.toHaveBeenCalled();
+  });
+
+  test('createBlankLayerConfig centralizes boundary URLs, styles, and cache ownership', () => {
+    const source = { getFeatures: jest.fn(() => []), addFeatures: jest.fn() };
+    const world = createBlankLayerConfig('worldCountries', source as never);
+    const lakes = createBlankLayerConfig('lakes', source as never);
+    const states = createBlankLayerConfig('usStates', source as never);
+
+    expect(world.url).toBe('geodata/ne_110m_admin_0_countries.geojson');
+    expect(lakes.url).toBe('geodata/ne_110m_lakes.geojson');
+    expect(states.url).toBe('geodata/us-states.json');
+    expect(world.style).toBe(BLANK_WORLD_STYLE);
+    expect(lakes.style).toBe(BLANK_LAKE_STYLE);
+    expect(states.style).toBeUndefined();
+
+    const cached = { type: 'FeatureCollection' };
+    world.setCache(cached);
+    expect(world.getCache()).toBe(cached);
   });
 
   test('ensureBlankLayerLoaded fetches, caches and adds features when not loaded', async () => {
