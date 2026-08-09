@@ -1,5 +1,7 @@
 import GeoJSON from "ol/format/GeoJSON";
 import VectorSource from "ol/source/Vector";
+import type OLFeature from "ol/Feature";
+import type Geometry from "ol/geom/Geometry";
 import type { Feature as GeoJsonFeature, Polygon } from "geojson";
 import { reconcileFeatureSource, type FeatureSyncDescriptor, type FeatureSyncStats } from "./openLayersFeatureSync";
 
@@ -49,7 +51,7 @@ const createMultiPartDescriptor = (
       dataProjection: "EPSG:4326",
       featureProjection: "EPSG:3857",
     },
-  )),
+  ) as OLFeature<Geometry>),
 });
 
 const createStats = (): FeatureSyncStats => ({
