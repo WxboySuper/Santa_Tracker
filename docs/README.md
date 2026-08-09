@@ -25,6 +25,7 @@ repeatable workflows.
 ## Product
 
 - [Outlook information](./product/outlook-info.md) - risk levels, probability values, and categorical conversion rules.
+- [Built-in specialty styles](./product/specialty-style-policy.md) - the approved relationship between visual presets and custom products.
 
 ## Releases
 
