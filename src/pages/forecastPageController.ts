@@ -443,15 +443,30 @@ const deriveLegacyRolloverPrompt = ({ today, legacyLastActiveDay, legacyPrompted
   return { previousDay: legacyLastActiveDay, currentDay: today };
 };
 
+const migrateAnonymousLastActiveDay = (userId: string | null | undefined, snapshot: RolloverStorageSnapshot): void => {
+  if (userId) return;
+  if (!snapshot.legacyLastActiveDay) return;
+  if (snapshot.scopedLastActiveDay) return;
+  writeStoredDayValue(snapshot.scopedLastActiveKey, snapshot.legacyLastActiveDay);
+};
+
+const migratePendingRolloverPrompt = (
+  userId: string | null | undefined,
+  snapshot: RolloverStorageSnapshot,
+  pendingPrompt: DayRolloverPromptState | null,
+): void => {
+  if (!pendingPrompt) return;
+  if (snapshot.existingPendingPrompt) return;
+  writeStoredRolloverPrompt(pendingPrompt, userId);
+};
+
 const migrateLegacyRolloverStorage = (
   userId: string | null | undefined,
   snapshot: RolloverStorageSnapshot,
   pendingPrompt: DayRolloverPromptState | null,
 ): void => {
-  if (!userId && snapshot.legacyLastActiveDay && !snapshot.scopedLastActiveDay) {
-    writeStoredDayValue(snapshot.scopedLastActiveKey, snapshot.legacyLastActiveDay);
-  }
-  if (pendingPrompt && !snapshot.existingPendingPrompt) writeStoredRolloverPrompt(pendingPrompt, userId);
+  migrateAnonymousLastActiveDay(userId, snapshot);
+  migratePendingRolloverPrompt(userId, snapshot, pendingPrompt);
 };
 
 const getDayRolloverSnapshot = (userId?: string | null) => {
