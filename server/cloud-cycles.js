@@ -12,17 +12,18 @@ const verifyUser = async (req) => {
 };
 
 const hasValidCycleIdentity = ({ userId, id, label }, uid) => userId === uid && typeof id === 'string' && id.length <= 128 && typeof label === 'string' && label.length > 0 && label.length <= 200;
-const hasValidCyclePayload = ({ cycleDate, payloadJson, payloadBytes }) => {
-  const bytes = typeof payloadJson === 'string' ? Buffer.byteLength(payloadJson, 'utf8') : -1;
-  return typeof cycleDate === 'string' && cycleDate.length <= 32 && typeof payloadJson === 'string' && bytes <= MAX_PAYLOAD_BYTES && payloadBytes === bytes;
+const getPayloadBytes = (payloadJson) => Buffer.byteLength(payloadJson, 'utf8');
+const hasValidCyclePayload = ({ cycleDate, payloadJson }) => {
+  const bytes = typeof payloadJson === 'string' ? getPayloadBytes(payloadJson) : -1;
+  return typeof cycleDate === 'string' && cycleDate.length <= 32 && typeof payloadJson === 'string' && bytes <= MAX_PAYLOAD_BYTES;
 };
 const hasValidMetadata = (metadata) => Boolean(metadata) && typeof metadata === 'object' && !Array.isArray(metadata);
 const readCloudCycleRequest = (body, uid) => {
-  const { id, userId, label, cycleDate, payloadJson, payloadBytes, metadata } = body || {};
+  const { id, userId, label, cycleDate, payloadJson, metadata } = body || {};
   if (!hasValidCycleIdentity({ userId, id, label }, uid)) return null;
-  if (!hasValidCyclePayload({ cycleDate, payloadJson, payloadBytes })) return null;
+  if (!hasValidCyclePayload({ cycleDate, payloadJson })) return null;
   if (!hasValidMetadata(metadata)) return null;
-  return { id, label, cycleDate, payloadJson, payloadBytes, metadata };
+  return { id, label, cycleDate, payloadJson, payloadBytes: getPayloadBytes(payloadJson), metadata };
 };
 
 const saveCloudCycle = async (db, uid, cycle) => {
@@ -31,7 +32,11 @@ const saveCloudCycle = async (db, uid, cycle) => {
   await db.runTransaction(async (transaction) => {
     const existing = await transaction.get(cycleRef);
     if (!existing.exists) {
-      const count = await transaction.get(db.collection('cloudCycles').where('userId', '==', uid));
+      // The quota is hard-capped at MAX_CLOUD_CYCLES, so never read an
+      // unbounded set of unrelated metadata documents during one save.
+      const count = await transaction.get(
+        db.collection('cloudCycles').where('userId', '==', uid).limit(MAX_CLOUD_CYCLES + 1)
+      );
       if (count.size >= MAX_CLOUD_CYCLES) throw Object.assign(new Error('CLOUD_QUOTA_EXCEEDED'), { code: 'CLOUD_QUOTA_EXCEEDED' });
     }
     transaction.set(cycleRef, { ...cycle.metadata, id: cycle.id, userId: uid, label: cycle.label, cycleDate: cycle.cycleDate, payloadBytes: cycle.payloadBytes });
@@ -65,4 +70,10 @@ const registerCloudCycleRoutes = (app, express, rateLimit) => {
   });
 };
 
-module.exports = { MAX_CLOUD_CYCLES, registerCloudCycleRoutes };
+module.exports = {
+  MAX_CLOUD_CYCLES,
+  getPayloadBytes,
+  readCloudCycleRequest,
+  registerCloudCycleRoutes,
+  saveCloudCycle,
+};
