@@ -2,6 +2,7 @@ packages:
   - '.'
 overrides:
   fast-uri: ^3.1.5
+  js-yaml@3: ^3.15.1
   js-yaml@4: ^4.3.0
   brace-expansion@2: ^2.1.2
   brace-expansion@5: ^5.0.9
@@ -17,6 +18,7 @@ overrides:
   undici@6: ^6.28.0
   undici@8: ^8.9.0
   ip-address: ^10.3.1
+  re2: ^1.26.1
 allowBuilds:
   '@firebase/util': true
   '@sentry/cli': true
