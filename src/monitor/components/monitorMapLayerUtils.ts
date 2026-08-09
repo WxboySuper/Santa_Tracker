@@ -12,6 +12,8 @@ import { getGeoBoundarySource } from '../../config/geoBoundarySources';
 export const BASE_LAYER_Z_INDEX = 0;
 export const SATELLITE_LAYER_Z_INDEX = 15;
 export const RADAR_LAYER_Z_INDEX = 20;
+export const NDFD_REFERENCE_LAYER_Z_INDEX = 1010;
+export const SPC_REFERENCE_LAYER_Z_INDEX = 1025;
 export const ALERTS_LAYER_Z_INDEX = 1030;
 export const MONITOR_OUTLOOK_TRANSPARENCY_SCALE = 0.38;
 export const STATE_OUTLINE_LAYER_Z_INDEX = 1045;
@@ -49,6 +51,13 @@ export const createStateOutlineStyle = (darkMode: boolean) => new Style({
     color: darkMode ? 'rgba(226, 232, 240, 0.72)' : 'rgba(51, 65, 85, 0.88)',
     width: 1.1,
   }),
+});
+
+/** Builds the stable translucent style for official SPC mesoscale discussion polygons. */
+export const createMesoscaleDiscussionStyle = () => new Style({
+  fill: new Fill({ color: 'rgba(168, 85, 247, 0.24)' }),
+  stroke: new Stroke({ color: 'rgba(126, 34, 206, 0.95)', width: 2 }),
+  zIndex: SPC_REFERENCE_LAYER_Z_INDEX,
 });
 
 /** Creates a WMS tile source for the provided monitor layer config. */

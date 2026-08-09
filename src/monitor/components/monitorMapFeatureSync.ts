@@ -9,6 +9,7 @@ import type { NwsAlertFeatureCollection } from '../nwsAlerts';
 import { buildStormReportStyle } from '../stormReportMapStyle';
 import { toOlStyle } from '../../components/Map/openLayersMapStyles';
 import { MONITOR_OUTLOOK_TRANSPARENCY_SCALE } from './monitorMapLayerUtils';
+import type { MonitorMesoscaleDiscussionCollection } from '../referenceLayers';
 
 export interface SerializedMonitorOutlookFeature {
   outlookType: string;
@@ -92,5 +93,30 @@ export const syncStormReportFeatures = (source: VectorSource, stormReports: Stor
     });
     feature.setStyle(buildStormReportStyle(report.type));
     source.addFeature(feature);
+  });
+};
+
+/** Replaces the SPC mesoscale discussion source with normalized polygon features. */
+export const syncMesoscaleDiscussionFeatures = (
+  source: VectorSource,
+  collection: MonitorMesoscaleDiscussionCollection,
+) => {
+  source.clear();
+  const format = new GeoJSON();
+
+  collection.features.forEach((feature) => {
+    const olFeatures = format.readFeatures(feature, {
+      dataProjection: 'EPSG:4326',
+      featureProjection: 'EPSG:3857',
+    });
+    olFeatures.forEach((olFeature) => {
+      if ('setProperties' in olFeature && typeof olFeature.setProperties === 'function') {
+        olFeature.setProperties({
+          ...(feature.properties ?? {}),
+          monitorReferenceLayer: 'spc-mesoscale-discussion',
+        });
+      }
+      source.addFeature(olFeature as never);
+    });
   });
 };

@@ -6,6 +6,7 @@ import type { NwsAlertDetails } from '../nwsAlertDetails';
 import { hideOverlay } from '../../components/Map/openLayersMapStyles';
 import type { RootState } from '../../store';
 import type { MonitorMapView } from '../types';
+import type { MonitorMesoscaleDiscussionCollection } from '../referenceLayers';
 import type { WmsLayerConfig } from '../wms';
 import type { SerializedMonitorOutlookFeature } from './monitorMapFeatureSync';
 import { useMonitorMapBootstrap } from './useMonitorMapBootstrap';
@@ -22,10 +23,13 @@ interface UseMonitorOlMapArgs {
   radarOpacity: number;
   satelliteLayer: WmsLayerConfig | null;
   satelliteOpacity: number;
+  ndfdTemperatureLayer: WmsLayerConfig | null;
+  ndfdTemperatureOpacity: number;
   serializedFeatures: SerializedMonitorOutlookFeature[];
   stormReports: StormReport[];
   alertsCollection: NwsAlertFeatureCollection;
   alertsOpacity: number;
+  mesoscaleDiscussions: MonitorMesoscaleDiscussionCollection;
   mapElementRef: RefObject<HTMLDivElement | null>;
 }
 
@@ -74,10 +78,13 @@ export const useMonitorOlMap = (args: UseMonitorOlMapArgs) => {
     radarOpacity: args.radarOpacity,
     satelliteLayer: args.satelliteLayer,
     satelliteOpacity: args.satelliteOpacity,
+    ndfdTemperatureLayer: args.ndfdTemperatureLayer,
+    ndfdTemperatureOpacity: args.ndfdTemperatureOpacity,
     serializedFeatures: args.serializedFeatures,
     stormReports: args.stormReports,
     alertsCollection: args.alertsCollection,
     alertsOpacity: args.alertsOpacity,
+    mesoscaleDiscussions: args.mesoscaleDiscussions,
     refs,
     onClearSelectedAlert: clearSelectedAlert,
   });

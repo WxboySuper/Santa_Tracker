@@ -22,11 +22,14 @@ import {
   ALERTS_LAYER_Z_INDEX,
   BASE_LAYER_Z_INDEX,
   createBaseSource,
+  createMesoscaleDiscussionStyle,
   loadUsStateOutlines,
+  NDFD_REFERENCE_LAYER_Z_INDEX,
   OUTLOOK_LAYER_Z_INDEX,
   RADAR_LAYER_Z_INDEX,
   replaceLayerGroupLayers,
   SATELLITE_LAYER_Z_INDEX,
+  SPC_REFERENCE_LAYER_Z_INDEX,
   STATE_OUTLINE_LAYER_Z_INDEX,
   STORM_REPORTS_LAYER_Z_INDEX,
   TOP_VECTOR_REFERENCE_LAYER_Z_INDEX,
@@ -80,6 +83,17 @@ export const useMonitorMapBootstrap = ({
       opacity: satelliteOpacity,
       zIndex: SATELLITE_LAYER_Z_INDEX,
     });
+    const ndfdTemperatureLayerInstance = new TileLayer<TileWMS>({
+      visible: false,
+      opacity: 0.58,
+      zIndex: NDFD_REFERENCE_LAYER_Z_INDEX,
+    });
+    const mesoscaleDiscussionLayer = new VectorLayer({
+      visible: false,
+      source: refs.mesoscaleDiscussionSourceRef.current,
+      style: createMesoscaleDiscussionStyle(),
+      zIndex: SPC_REFERENCE_LAYER_Z_INDEX,
+    });
     const vectorReferenceGroup = new LayerGroup({
       visible: false,
       zIndex: TOP_VECTOR_REFERENCE_LAYER_Z_INDEX,
@@ -94,6 +108,8 @@ export const useMonitorMapBootstrap = ({
         baseLayerInstance,
         satelliteLayerInstance,
         radarLayerInstance,
+        ndfdTemperatureLayerInstance,
+        mesoscaleDiscussionLayer,
         alertsLayer,
         new VectorLayer({ source: refs.outlookSourceRef.current, zIndex: OUTLOOK_LAYER_Z_INDEX }),
         new VectorLayer({ source: refs.stormReportsSourceRef.current, zIndex: STORM_REPORTS_LAYER_Z_INDEX }),
@@ -181,6 +197,8 @@ export const useMonitorMapBootstrap = ({
     refs.baseLayerRef.current = baseLayerInstance;
     refs.radarLayerRef.current = radarLayerInstance;
     refs.satelliteLayerRef.current = satelliteLayerInstance;
+    refs.ndfdTemperatureLayerRef.current = ndfdTemperatureLayerInstance;
+    refs.mesoscaleDiscussionLayerRef.current = mesoscaleDiscussionLayer;
     refs.alertsLayerRef.current = alertsLayer;
     refs.vectorReferenceGroupRef.current = vectorReferenceGroup;
 
@@ -230,10 +248,13 @@ export const useMonitorMapBootstrap = ({
       refs.baseLayerRef.current = null;
       refs.radarLayerRef.current = null;
       refs.satelliteLayerRef.current = null;
+      refs.ndfdTemperatureLayerRef.current = null;
+      refs.mesoscaleDiscussionLayerRef.current = null;
       refs.alertsLayerRef.current = null;
       refs.vectorReferenceGroupRef.current = null;
       refs.radarLayerKeyRef.current = null;
       refs.satelliteLayerKeyRef.current = null;
+      refs.ndfdTemperatureLayerKeyRef.current = null;
     };
     // Mount-only: rebuilding the map when any captured prop changes would tear down
     // and recreate the OpenLayers instance. Dedicated effects handle darkMode and view updates.

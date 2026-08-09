@@ -39,6 +39,7 @@ describe('monitor settings', () => {
       mapView: { center: [90, -180], zoom: 14 },
       animationEnabled: true,
       animationSpeedMs: 150,
+      referenceLayers: DEFAULT_MONITOR_SETTINGS.referenceLayers,
     });
   });
 

@@ -3,9 +3,11 @@ import { fromLonLat } from 'ol/proj';
 import type { StormReport } from '../../types/stormReports';
 import type { NwsAlertFeatureCollection } from '../nwsAlerts';
 import type { MonitorMapView } from '../types';
+import type { MonitorMesoscaleDiscussionCollection } from '../referenceLayers';
 import { createStateOutlineStyle } from './monitorMapLayerUtils';
 import {
   syncAlertFeatures,
+  syncMesoscaleDiscussionFeatures,
   syncOutlookFeatures,
   syncStormReportFeatures,
   type SerializedMonitorOutlookFeature,
@@ -20,6 +22,7 @@ interface UseMonitorMapOverlaySyncArgs {
   serializedFeatures: SerializedMonitorOutlookFeature[];
   stormReports: StormReport[];
   alertsCollection: NwsAlertFeatureCollection;
+  mesoscaleDiscussions: MonitorMesoscaleDiscussionCollection;
   alertsOpacity: number;
   refs: MonitorMapRefs;
   onClearSelectedAlert: () => void;
@@ -32,6 +35,7 @@ export const useMonitorMapOverlaySync = ({
   serializedFeatures,
   stormReports,
   alertsCollection,
+  mesoscaleDiscussions,
   alertsOpacity,
   refs,
   onClearSelectedAlert,
@@ -67,6 +71,11 @@ export const useMonitorMapOverlaySync = ({
   useEffect(() => {
     syncAlertFeatures(refs.alertsSourceRef.current, alertsCollection);
   }, [alertsCollection, refs.alertsSourceRef]);
+
+  useEffect(() => {
+    syncMesoscaleDiscussionFeatures(refs.mesoscaleDiscussionSourceRef.current, mesoscaleDiscussions);
+    refs.mesoscaleDiscussionLayerRef.current?.setVisible(mesoscaleDiscussions.features.length > 0);
+  }, [mesoscaleDiscussions, refs.mesoscaleDiscussionLayerRef, refs.mesoscaleDiscussionSourceRef]);
 
   useEffect(() => {
     onClearSelectedAlert();

@@ -23,6 +23,7 @@ import {
   setRadarSite,
   setSatelliteOpacity,
   setSatelliteProduct,
+  setReferenceLayerEnabled,
 } from '../store/monitorSlice';
 import { selectForecastCycle, selectSavedCycles } from '../store/forecastSlice';
 import { useEntitlement } from '../billing/EntitlementProvider';
@@ -36,6 +37,8 @@ import { useLocalMonitorSettings } from './useLocalMonitorSettings';
 import { useMonitorCloudOutlook } from './useMonitorCloudOutlook';
 import { usePremiumMonitorSettingsSync } from './usePremiumMonitorSettingsSync';
 import { buildRadarLayerConfig, buildSatelliteLayerConfig } from '../monitor/wms';
+import { buildNdfdTemperatureLayerConfig } from '../monitor/referenceLayers';
+import { useMonitorReferenceLayers, type MonitorReferenceLayersState } from '../monitor/useMonitorReferenceLayers';
 import { useLiveWmsLayers } from '../monitor/useLiveWmsLayers';
 import { useMonitorNwsAlerts } from '../monitor/useMonitorNwsAlerts';
 import { useMonitorStormReports } from '../monitor/useMonitorStormReports';
@@ -74,10 +77,12 @@ interface MonitorPageWorkspaceProps {
   satelliteDisplayTime?: string;
   radarLayer: ReturnType<typeof buildRadarLayerConfig> | null;
   satelliteLayer: ReturnType<typeof buildSatelliteLayerConfig> | null;
+  ndfdTemperatureLayer: ReturnType<typeof buildNdfdTemperatureLayerConfig> | null;
   statusMessage: string;
   syncLabel: string;
   stormReportState: ReturnType<typeof useMonitorStormReports>;
   alertState: ReturnType<typeof useMonitorNwsAlerts>;
+  referenceLayers: MonitorReferenceLayersState;
   onRefresh: () => void;
   onOutlookSourceChange: (source: MonitorSettings['outlookSource']) => void;
   onOutlookTypeChange: (type: MonitorSettings['outlookType']) => void;
@@ -95,10 +100,12 @@ const MonitorPageWorkspace: React.FC<MonitorPageWorkspaceProps> = ({
   satelliteDisplayTime,
   radarLayer,
   satelliteLayer,
+  ndfdTemperatureLayer,
   statusMessage,
   syncLabel,
   stormReportState,
   alertState,
+  referenceLayers,
   onRefresh,
   onOutlookSourceChange,
   onOutlookTypeChange,
@@ -138,6 +145,12 @@ const MonitorPageWorkspace: React.FC<MonitorPageWorkspaceProps> = ({
         onAlertsShowAdvisoriesChange={(enabled) => dispatch(setAlertsShowAdvisories(enabled))}
         onAnimationEnabledChange={(enabled) => dispatch(setAnimationEnabled(enabled))}
         onAnimationSpeedChange={(speed) => dispatch(setAnimationSpeedMs(speed))}
+        referenceLayerMeta={{
+          ndfdTemperature: referenceLayers.ndfdTemperature,
+          spcMesoscaleDiscussion: referenceLayers.spcMesoscaleDiscussion,
+        }}
+        onNdfdReferenceLayerEnabledChange={(enabled) => dispatch(setReferenceLayerEnabled({ layer: 'ndfdTemperatureEnabled', enabled }))}
+        onSpcReferenceLayerEnabledChange={(enabled) => dispatch(setReferenceLayerEnabled({ layer: 'spcMesoscaleDiscussionEnabled', enabled }))}
         onRefresh={onRefresh}
       />
 
@@ -147,11 +160,14 @@ const MonitorPageWorkspace: React.FC<MonitorPageWorkspaceProps> = ({
         radarOpacity={settings.radarOpacity}
         satelliteLayer={satelliteLayer}
         satelliteOpacity={settings.satelliteOpacity}
+        ndfdTemperatureLayer={ndfdTemperatureLayer}
+        ndfdTemperatureOpacity={0.58}
         outlookData={selectedOutlook.data}
         outlookType={settings.outlookType}
         stormReports={stormReportState.reports}
         alertsCollection={alertState.alertCollection}
         alertsOpacity={settings.alertsOpacity}
+        mesoscaleDiscussions={referenceLayers.mesoscaleDiscussions}
       />
     </div>
 );
@@ -229,6 +245,13 @@ export const MonitorPage: React.FC = () => {
     addToast,
   });
 
+  const referenceLayers = useMonitorReferenceLayers({
+    ndfdEnabled: settings.referenceLayers.ndfdTemperatureEnabled,
+    spcEnabled: settings.referenceLayers.spcMesoscaleDiscussionEnabled,
+    refreshToken,
+    addToast,
+  });
+
   const handleRefreshLiveLayers = useCallback(() => {
     setRefreshToken((value) => value + 1);
   }, []);
@@ -240,6 +263,12 @@ export const MonitorPage: React.FC = () => {
   const satelliteLayer = useMemo(
     () => satelliteConfig ? { ...satelliteConfig, latestTime: satelliteDisplayTime } : null,
     [satelliteConfig, satelliteDisplayTime]
+  );
+  const ndfdTemperatureLayer = useMemo(
+    () => settings.referenceLayers.ndfdTemperatureEnabled
+      ? buildNdfdTemperatureLayerConfig(referenceLayers.ndfdTemperature.validTime ?? undefined)
+      : null,
+    [referenceLayers.ndfdTemperature.validTime, settings.referenceLayers.ndfdTemperatureEnabled],
   );
 
   const handleOutlookSourceChange = useCallback((source: MonitorSettings['outlookSource']) => {
@@ -267,10 +296,12 @@ export const MonitorPage: React.FC = () => {
       satelliteDisplayTime={satelliteDisplayTime}
       radarLayer={radarLayer}
       satelliteLayer={satelliteLayer}
+      ndfdTemperatureLayer={ndfdTemperatureLayer}
       statusMessage={statusMessage}
       syncLabel={syncLabel}
       stormReportState={stormReportState}
       alertState={alertState}
+      referenceLayers={referenceLayers}
       onRefresh={handleRefreshLiveLayers}
       onOutlookSourceChange={handleOutlookSourceChange}
       onOutlookTypeChange={handleOutlookTypeChange}
