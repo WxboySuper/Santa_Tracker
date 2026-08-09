@@ -34,6 +34,21 @@ describe('parseTodayStormReportCsv', () => {
 
     expect(reports.map((report) => report.type)).toEqual(['tornado', 'wind', 'hail']);
   });
+
+  test('treats unknown Time-prefixed lines as section boundaries', () => {
+    const csv = [
+      'Time,F_Scale,Location,County,State,Lat,Lon,Comments',
+      '1805,1,Ada,OK,OK,34.77,-96.67,Test tornado',
+      'Time,Future_Field,Location,County,State,Lat,Lon,Comments',
+      '1806,2,Ignored,OK,OK,34.78,-96.68,Must not inherit tornado section',
+      'Time,Speed,Location,County,State,Lat,Lon,Comments',
+      '1810,65,Norman,OK,OK,35.22,-97.44,Test wind',
+    ].join('\n');
+
+    const reports = parseTodayStormReportCsv(csv);
+
+    expect(reports.map((report) => report.type)).toEqual(['tornado', 'wind']);
+  });
 });
 
 describe('fetchYesterdayStormReports', () => {

@@ -1,14 +1,8 @@
 import type { ReportType, StormReport } from '../types/stormReports';
 import { splitCsvLine } from '../utils/stormReportCsv';
-import { parseTodayCsvRow } from '../utils/stormReportRows';
+import { parseTodayCsvRow, TODAY_SECTION_HEADERS } from '../utils/stormReportRows';
 import { parseTodayStormReportCsv } from '../utils/stormReportParser';
 import { measure, reportComparison } from './benchmarkUtils';
-
-const TODAY_SECTION_HEADERS: ReadonlyArray<{ header: string; type: ReportType }> = [
-  { header: 'Time,F_Scale', type: 'tornado' },
-  { header: 'Time,Speed', type: 'wind' },
-  { header: 'Time,Size', type: 'hail' },
-];
 
 const splitCsvLineLegacy = (line: string): string[] => {
   const values: string[] = [];
@@ -51,7 +45,12 @@ const parseTodaySectionRowsLegacy = (
   return reports;
 };
 
-/** Reproduces the former section-by-section scan of today.csv. */
+/**
+ * Pinned compatibility baseline for PERF-03.
+ *
+ * Keep this former section-by-section scan unchanged so the benchmark compares
+ * the optimized parser against the pre-optimization behavior.
+ */
 const parseTodayStormReportCsvLegacy = (csvText: string): StormReport[] => {
   const lines = csvText.split('\n').map((line) => line.trim()).filter(Boolean);
 
@@ -84,6 +83,14 @@ const createTodayCsv = (rowsPerSection = 100): string => {
 const withoutIds = (reports: StormReport[]) => reports.map(({ id: _id, ...report }) => report);
 
 describe('storm report parser performance', () => {
+  test('keeps the optimized parser aligned with the pinned baseline', () => {
+    const todayCsv = createTodayCsv();
+
+    expect(withoutIds(parseTodayStormReportCsv(todayCsv))).toEqual(
+      withoutIds(parseTodayStormReportCsvLegacy(todayCsv)),
+    );
+  });
+
   test('compares optimized CSV character accumulation and today.csv traversal', () => {
     if (process.env.GFC_PERF !== '1') return;
 
@@ -97,9 +104,6 @@ describe('storm report parser performance', () => {
     });
 
     const todayCsv = createTodayCsv();
-    const optimizedReports = parseTodayStormReportCsv(todayCsv);
-    const baselineReports = parseTodayStormReportCsvLegacy(todayCsv);
-    expect(withoutIds(optimizedReports)).toEqual(withoutIds(baselineReports));
 
     splitFixtures.forEach(({ label, line, iterations }) => {
       const splitBaseline = measure(() => {

@@ -69,7 +69,7 @@ Work toward the next major release continues in the beta channel while the final
 
 - **Forecast snapshot cloning:** Reduce recursive forecast feature clone allocations used by history snapshots while preserving deep-copy behavior.
 - **Forecast map synchronization:** Reconcile OpenLayers forecast layers incrementally by stable feature ID, preserving unchanged feature identity and avoiding full rehydration.
-- **SPC storm report parsing:** Reduce allocations in SPC storm report CSV parsing and parse `today.csv` sections in a single pass.
+- **SPC storm report parsing:** Reduce allocations in shared SPC storm-report CSV tokenization and traverse `today.csv` sections in a single pass.
 - **Cloud library efficiency:** Store forecast payloads in a dedicated `cloudCycles/{id}/payload` subcollection so library listings and realtime subscriptions never download payload content, and replace the tenancy-wide Firestore storage scan with bounded server-side aggregate queries.
 
 ### Stable 1.6.x hotfixes

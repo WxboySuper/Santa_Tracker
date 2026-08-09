@@ -1,6 +1,6 @@
 import type { StormReport } from '../types/stormReports';
 import type { ReportType } from '../types/stormReports';
-import { parseTodayCsvRow } from './stormReportRows';
+import { parseTodayCsvRow, TODAY_SECTION_HEADERS } from './stormReportRows';
 
 type TodayReportsByType = Record<ReportType, StormReport[]>;
 
@@ -11,18 +11,7 @@ const createReportBuckets = (): TodayReportsByType => ({
 });
 
 const getTodaySectionType = (line: string): ReportType | undefined => {
-  if (line.startsWith('Time,F_Scale')) return 'tornado';
-  if (line.startsWith('Time,Speed')) return 'wind';
-  if (line.startsWith('Time,Size')) return 'hail';
-  return undefined;
-};
-
-const appendReport = (
-  reportsByType: TodayReportsByType,
-  type: ReportType,
-  report: StormReport,
-): void => {
-  reportsByType[type].push(report);
+  return TODAY_SECTION_HEADERS.find(({ header }) => line.startsWith(header))?.type;
 };
 
 const flattenReports = (reportsByType: TodayReportsByType): StormReport[] => [
@@ -39,7 +28,8 @@ export const parseTodayStormReportCsv = (csvText: string): StormReport[] => {
 
   for (const line of lines) {
     const sectionType = getTodaySectionType(line);
-    if (sectionType) {
+    if (line.startsWith('Time,')) {
+      // Preserve the former parser's boundary behavior for unknown sections.
       activeType = sectionType;
       continue;
     }
@@ -50,7 +40,7 @@ export const parseTodayStormReportCsv = (csvText: string): StormReport[] => {
 
     const report = parseTodayCsvRow(line, activeType);
     if (report) {
-      appendReport(reportsByType, activeType, report);
+      reportsByType[activeType].push(report);
     }
   }
 
