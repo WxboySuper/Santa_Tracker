@@ -55,4 +55,6 @@ module.exports = {
   ],
   coverageProvider: 'v8',
   coverageReporters: ['text', 'lcov', 'json-summary'],
+  // Recycle workers before accumulated jsdom/module state can exhaust CI memory.
+  workerIdleMemoryLimit: '512MB',
 };
