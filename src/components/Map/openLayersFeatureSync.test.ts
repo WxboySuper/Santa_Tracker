@@ -162,20 +162,20 @@ describe("reconcileFeatureSource", () => {
     };
     const custom = { ...createDescriptor(createFeature("custom", 4), format), targetSource: source };
 
-    expect(getForecastSourceDescriptorPlan(
-      [normal, categorical],
-      false,
-      [custom],
+    expect(getForecastSourceDescriptorPlan({
+      normalDescriptors: [normal, categorical],
+      customMode: false,
+      customDescriptors: [custom],
       source,
       categoricalSource,
-    )).toEqual({ source: [normal], categorical: [categorical] });
-    expect(getForecastSourceDescriptorPlan(
-      [normal, categorical],
-      true,
-      [custom],
+    })).toEqual({ source: [normal], categorical: [categorical] });
+    expect(getForecastSourceDescriptorPlan({
+      normalDescriptors: [normal, categorical],
+      customMode: true,
+      customDescriptors: [custom],
       source,
       categoricalSource,
-    )).toEqual({ source: [custom], categorical: [] });
+    })).toEqual({ source: [custom], categorical: [] });
   });
 
   test("preserves feature identity when descriptors are reordered", () => {

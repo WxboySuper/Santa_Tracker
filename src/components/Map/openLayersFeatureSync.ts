@@ -31,6 +31,14 @@ export type ForecastSourceDescriptorPlan = {
   categorical: FeatureSyncDescriptor[];
 };
 
+export type ForecastSourceDescriptorPlanOptions = {
+  normalDescriptors: FeatureSyncDescriptor[];
+  customMode: boolean;
+  customDescriptors: FeatureSyncDescriptor[];
+  source: VectorSource;
+  categoricalSource: VectorSource;
+};
+
 const increment = (
   stats: FeatureSyncStats | undefined,
   property: keyof FeatureSyncStats,
@@ -64,11 +72,13 @@ const requireUniqueKey = (key: string, keys: Set<string>): void => {
 
 /** Selects the descriptors that feed the normal and categorical map sources. */
 export const getForecastSourceDescriptorPlan = (
-  normalDescriptors: FeatureSyncDescriptor[],
-  customMode: boolean,
-  customDescriptors: FeatureSyncDescriptor[],
-  source: VectorSource,
-  categoricalSource: VectorSource,
+  {
+    normalDescriptors,
+    customMode,
+    customDescriptors,
+    source,
+    categoricalSource,
+  }: ForecastSourceDescriptorPlanOptions,
 ): ForecastSourceDescriptorPlan => ({
   source: customMode
     ? customDescriptors

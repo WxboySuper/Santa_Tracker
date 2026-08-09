@@ -1205,13 +1205,13 @@ const OpenLayersForecastMap = forwardRef<MapAdapterHandle<OLMap> | null, OpenLay
         });
       });
 
-      const sourceDescriptorPlan = getForecastSourceDescriptorPlan(
+      const sourceDescriptorPlan = getForecastSourceDescriptorPlan({
         normalDescriptors,
         customMode,
         customDescriptors,
         source,
-        catSource,
-      );
+        categoricalSource: catSource,
+      });
       reconcileFeatureSource(source, sourceDescriptorPlan.source);
       reconcileFeatureSource(catSource, sourceDescriptorPlan.categorical);
       reconcileFeatureSource(ghostSource, ghostDescriptors);
