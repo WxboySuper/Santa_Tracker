@@ -8,37 +8,31 @@ const TODAY_SECTION_HEADERS: ReadonlyArray<{ header: string; type: ReportType }>
   { header: 'Time,Size', type: 'hail' },
 ];
 
-const parseTodaySectionRows = (
-  lines: string[],
-  startIndex: number,
-  type: ReportType,
-): StormReport[] => {
-  const reports: StormReport[] = [];
-  for (let index = startIndex; index < lines.length; index += 1) {
-    const line = lines[index];
-    if (!line || line.startsWith('Time,')) {
-      break;
-    }
-
-    const report = parseTodayCsvRow(line, type);
-    if (report) {
-      reports.push(report);
-    }
-  }
-
-  return reports;
-};
-
 /** Parses SPC today.csv (Time,F_Scale / Time,Speed / Time,Size sections). */
 export const parseTodayStormReportCsv = (csvText: string): StormReport[] => {
   const lines = csvText.split('\n').map((line) => line.trim()).filter(Boolean);
+  const reportsByType: Record<ReportType, StormReport[]> = {
+    tornado: [],
+    wind: [],
+    hail: [],
+  };
+  let activeType: ReportType | undefined;
 
-  return TODAY_SECTION_HEADERS.flatMap(({ header, type }) => {
-    const headerIndex = lines.findIndex((line) => line.startsWith(header));
-    if (headerIndex < 0) {
-      return [];
+  for (const line of lines) {
+    if (line.startsWith('Time,')) {
+      activeType = TODAY_SECTION_HEADERS.find(({ header }) => line.startsWith(header))?.type;
+      continue;
     }
 
-    return parseTodaySectionRows(lines, headerIndex + 1, type);
-  });
+    if (!activeType) {
+      continue;
+    }
+
+    const report = parseTodayCsvRow(line, activeType);
+    if (report) {
+      reportsByType[activeType].push(report);
+    }
+  }
+
+  return TODAY_SECTION_HEADERS.flatMap(({ type }) => reportsByType[type]);
 };
