@@ -10,7 +10,8 @@ import {
   selectCurrentOutlooks,
 } from "../../store/forecastSlice";
 import { isFeatureExposed } from "../../config/featureExposure";
-import type { OutlookMapLike } from "./openLayersMapStyles";
+import { computeZIndex } from "../../utils/mapStyleUtils";
+import type { EditableOutlookType, OutlookMapLike } from "./openLayersMapStyles";
 
 /** The Redux-owned data projection consumed by the OpenLayers map renderer. */
 const useForecastMapSelections = () => {
@@ -53,12 +54,22 @@ const projectActiveOutlookFeatures = (
   outlooks: OutlookMapLike,
   activeOutlookType: string,
   customMode: boolean,
-): Array<{ outlookType: string; probability: string; feature: GeoJsonFeature }> => {
+): Array<{
+  outlookType: string;
+  probability: string;
+  feature: GeoJsonFeature;
+  zIndex: number;
+}> => {
   if (customMode) return [];
   const probabilities = outlooks[activeOutlookType];
   if (!(probabilities instanceof Map)) return [];
   return Array.from(probabilities.entries()).flatMap(([probability, features]) =>
-    features.map((feature) => ({ outlookType: activeOutlookType, probability, feature })),
+    features.map((feature) => ({
+      outlookType: activeOutlookType,
+      probability,
+      feature,
+      zIndex: computeZIndex(activeOutlookType as EditableOutlookType, probability),
+    })),
   );
 };
 

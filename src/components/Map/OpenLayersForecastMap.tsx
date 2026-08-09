@@ -37,7 +37,6 @@ import {
 } from "../../store/forecastSlice";
 
 import type { BaseMapStyle } from "../../store/overlaysSlice";
-import { computeZIndex } from "../../utils/mapStyleUtils";
 import type { MapAdapterHandle } from "../../maps/contracts";
 import type {
   Feature as GeoJsonFeature,
@@ -81,6 +80,11 @@ import {
   createBlankLayerConfig,
   ensureBlankLayerLoaded,
 } from "./openLayersBlankBasemap";
+import {
+  getForecastSourceDescriptorPlan,
+  reconcileFeatureSource,
+  type FeatureSyncDescriptor,
+} from "./openLayersFeatureSync";
 import { useForecastMapReduxState } from "./useForecastMapReduxState";
 
 // OpenLayers 10.9.0 stores the delayed pointer callback in this private field:
