@@ -48,86 +48,136 @@ const trackFeature = (
   feature.set(RENDER_SIGNATURE, descriptor.signature);
 };
 
+type ExistingFeatures = {
+  byKey: Map<string, Feature<Geometry>[]>;
+  unmanaged: Feature<Geometry>[];
+};
+
+const collectExistingFeatures = (source: VectorSource): ExistingFeatures => {
+  const existing: ExistingFeatures = {
+    byKey: new Map(),
+    unmanaged: [],
+  };
+
+  source.getFeatures().forEach((feature) => {
+    const renderKey = feature.get(RENDER_KEY);
+    if (typeof renderKey !== "string") {
+      existing.unmanaged.push(feature);
+      return;
+    }
+
+    const descriptorKey = renderKey.slice(0, renderKey.lastIndexOf(":"));
+    const features = existing.byKey.get(descriptorKey) || [];
+    features.push(feature);
+    existing.byKey.set(descriptorKey, features);
+  });
+
+  return existing;
+};
+
+const canReuseFeatures = (
+  features: Feature<Geometry>[],
+  descriptor: FeatureSyncDescriptor,
+): boolean => features.length > 0 && features.every(
+  (feature) =>
+    feature.get(SOURCE_FEATURE) === descriptor.feature &&
+    feature.get(RENDER_SIGNATURE) === descriptor.signature,
+);
+
+const updateSharedFeatures = (
+  sourceFeatures: Feature<Geometry>[],
+  parsedFeatures: Feature<Geometry>[],
+  descriptor: FeatureSyncDescriptor,
+  stats: FeatureSyncStats | undefined,
+): number => {
+  const sharedFeatureCount = Math.min(sourceFeatures.length, parsedFeatures.length);
+  for (let index = 0; index < sharedFeatureCount; index += 1) {
+    const currentFeature = sourceFeatures[index];
+    const parsedFeature = parsedFeatures[index];
+    currentFeature.setGeometry(parsedFeature.getGeometry());
+    descriptor.apply(currentFeature);
+    trackFeature(currentFeature, descriptor, index);
+    increment(stats, "updated");
+  }
+  return sharedFeatureCount;
+};
+
+const addNewFeatures = (
+  source: VectorSource,
+  parsedFeatures: Feature<Geometry>[],
+  descriptor: FeatureSyncDescriptor,
+  firstNewIndex: number,
+  stats: FeatureSyncStats | undefined,
+): void => {
+  for (let index = firstNewIndex; index < parsedFeatures.length; index += 1) {
+    const newFeature = parsedFeatures[index];
+    descriptor.apply(newFeature);
+    trackFeature(newFeature, descriptor, index);
+    source.addFeature(newFeature);
+    increment(stats, "added");
+  }
+};
+
+const removeFeatures = (
+  source: VectorSource,
+  features: Feature<Geometry>[],
+  firstIndex: number,
+  stats: FeatureSyncStats | undefined,
+): void => {
+  for (let index = firstIndex; index < features.length; index += 1) {
+    source.removeFeature(features[index]);
+    increment(stats, "removed");
+  }
+};
+
+const reconcileDescriptor = (
+  source: VectorSource,
+  descriptor: FeatureSyncDescriptor,
+  existingByKey: Map<string, Feature<Geometry>[]>,
+  stats: FeatureSyncStats | undefined,
+): void => {
+  const existing = existingByKey.get(descriptor.key) || [];
+  if (canReuseFeatures(existing, descriptor)) {
+    increment(stats, "reused", existing.length);
+    return;
+  }
+
+  const parsedFeatures = normalizeReadResult(descriptor.read());
+  increment(stats, "parsed");
+  const sharedFeatureCount = updateSharedFeatures(
+    existing,
+    parsedFeatures,
+    descriptor,
+    stats,
+  );
+  addNewFeatures(source, parsedFeatures, descriptor, sharedFeatureCount, stats);
+  removeFeatures(source, existing, sharedFeatureCount, stats);
+};
+
+const removeStaleFeatures = (
+  source: VectorSource,
+  existing: ExistingFeatures,
+  desiredKeys: Set<string>,
+  stats: FeatureSyncStats | undefined,
+): void => {
+  existing.byKey.forEach((features, key) => {
+    if (!desiredKeys.has(key)) {
+      removeFeatures(source, features, 0, stats);
+    }
+  });
+  removeFeatures(source, existing.unmanaged, 0, stats);
+};
+
 /** Reconciles one OL source while retaining feature identity for unchanged GeoJSON inputs. */
 export const reconcileFeatureSource = (
   source: VectorSource,
   descriptors: FeatureSyncDescriptor[],
   stats?: FeatureSyncStats,
 ): void => {
-  const existingByKey = new Map<string, Feature<Geometry>[]>();
-  const unmanagedFeatures: Feature<Geometry>[] = [];
-
-  source.getFeatures().forEach((feature) => {
-    const renderKey = feature.get(RENDER_KEY);
-    if (typeof renderKey !== "string") {
-      unmanagedFeatures.push(feature);
-      return;
-    }
-
-    const descriptorKey = renderKey.slice(0, renderKey.lastIndexOf(":"));
-    const features = existingByKey.get(descriptorKey) || [];
-    features.push(feature);
-    existingByKey.set(descriptorKey, features);
-  });
-
-  const desiredKeys = new Set<string>();
-
+  const existing = collectExistingFeatures(source);
+  const desiredKeys = new Set(descriptors.map(({ key }) => key));
   descriptors.forEach((descriptor) => {
-    desiredKeys.add(descriptor.key);
-    const existing = existingByKey.get(descriptor.key) || [];
-    const canReuse =
-      existing.length > 0 &&
-      existing.every(
-        (feature) =>
-          feature.get(SOURCE_FEATURE) === descriptor.feature &&
-          feature.get(RENDER_SIGNATURE) === descriptor.signature,
-      );
-
-    if (canReuse) {
-      increment(stats, "reused", existing.length);
-      return;
-    }
-
-    const parsedFeatures = normalizeReadResult(descriptor.read());
-    increment(stats, "parsed");
-    const sharedFeatureCount = Math.min(existing.length, parsedFeatures.length);
-
-    for (let index = 0; index < sharedFeatureCount; index += 1) {
-      const currentFeature = existing[index];
-      const parsedFeature = parsedFeatures[index];
-      currentFeature.setGeometry(parsedFeature.getGeometry());
-      descriptor.apply(currentFeature);
-      trackFeature(currentFeature, descriptor, index);
-      increment(stats, "updated");
-    }
-
-    for (let index = sharedFeatureCount; index < parsedFeatures.length; index += 1) {
-      const newFeature = parsedFeatures[index];
-      descriptor.apply(newFeature);
-      trackFeature(newFeature, descriptor, index);
-      source.addFeature(newFeature);
-      increment(stats, "added");
-    }
-
-    for (let index = sharedFeatureCount; index < existing.length; index += 1) {
-      source.removeFeature(existing[index]);
-      increment(stats, "removed");
-    }
+    reconcileDescriptor(source, descriptor, existing.byKey, stats);
   });
-
-  existingByKey.forEach((features, key) => {
-    if (desiredKeys.has(key)) {
-      return;
-    }
-
-    features.forEach((feature) => {
-      source.removeFeature(feature);
-      increment(stats, "removed");
-    });
-  });
-
-  unmanagedFeatures.forEach((feature) => {
-    source.removeFeature(feature);
-    increment(stats, "removed");
-  });
+  removeStaleFeatures(source, existing, desiredKeys, stats);
 };
