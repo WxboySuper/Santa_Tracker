@@ -224,6 +224,8 @@ interface KeyboardShortcutContext {
 
 type CommandShortcutKey = 's' | 'o' | 'l' | 'e';
 type CommandShortcutHandler = (context: KeyboardShortcutContext) => void;
+type ShortcutInput = { key: string; context: KeyboardShortcutContext };
+type ShortcutEventInput = ShortcutInput & { event: KeyboardEvent };
 
 const OUTLOOK_SHORTCUTS: Record<string, { type: OutlookType; label: string }> = {
   t: { type: 'tornado', label: 'Tornado' },
@@ -279,8 +281,7 @@ export const getUndoRedoAction = (e: KeyboardEvent, key: string): UndoRedoAction
 
 /** Dispatches an undo/redo action only when that action is currently available in history. */
 const dispatchUndoRedoAction = (
-  action: Exclude<UndoRedoAction, null>,
-  context: KeyboardShortcutContext
+  { action, context }: { action: Exclude<UndoRedoAction, null>; context: KeyboardShortcutContext }
 ) => {
   if (action === 'undo') {
     if (context.canUndo) {
@@ -296,38 +297,31 @@ const dispatchUndoRedoAction = (
 
 /** Handles the app-level undo/redo shortcuts before browser defaults can consume them. */
 const handleUndoRedoShortcuts = (
-  e: KeyboardEvent,
-  key: string,
-  context: KeyboardShortcutContext
+  { event, key, context }: ShortcutEventInput
 ): boolean => {
-  const action = getUndoRedoAction(e, key);
+  const action = getUndoRedoAction(event, key);
   if (!action) return false;
 
-  e.preventDefault();
-  dispatchUndoRedoAction(action, context);
+  event.preventDefault();
+  dispatchUndoRedoAction({ action, context });
   return true;
 };
 
 /** Handles Ctrl/Cmd shortcut keys (save, open, load, export); returns true if the key was handled. */
 const handleCommandShortcuts = (
-  e: KeyboardEvent,
-  key: string,
-  context: KeyboardShortcutContext
+  { event, key, context }: ShortcutEventInput
 ): boolean => {
-  if (!(e.ctrlKey || e.metaKey)) return false;
+  if (!(event.ctrlKey || event.metaKey)) return false;
   if (!isCommandShortcutKey(key)) return false;
 
   const runShortcut = COMMAND_SHORTCUT_HANDLERS[key];
-  e.preventDefault();
+  event.preventDefault();
   runShortcut(context);
   return true;
 };
 
 /** Switches the active forecast day when a digit key 1–8 is pressed; returns true if handled. */
-const handleDayShortcut = (
-  key: string,
-  context: KeyboardShortcutContext
-): boolean => {
+const handleDayShortcut = ({ key, context }: ShortcutInput): boolean => {
   if (!/^[1-8]$/.test(key)) return false;
 
   const day = parseInt(key, 10) as DayType;
@@ -339,10 +333,7 @@ const handleDayShortcut = (
 };
 
 /** Switches to a specific outlook type when its letter shortcut (t/w/h/c) is pressed; returns true if handled. */
-const handleOutlookShortcut = (
-  key: string,
-  context: KeyboardShortcutContext
-): boolean => {
+const handleOutlookShortcut = ({ key, context }: ShortcutInput): boolean => {
   const shortcut = OUTLOOK_SHORTCUTS[key];
   if (!shortcut) return false;
 
@@ -354,10 +345,7 @@ const handleOutlookShortcut = (
 };
 
 /** Sets the active probability to TSTM when `g` is pressed in categorical mode; returns true if handled. */
-const handleGeneralThunderstormShortcut = (
-  key: string,
-  context: KeyboardShortcutContext
-): boolean => {
+const handleGeneralThunderstormShortcut = ({ key, context }: ShortcutInput): boolean => {
   if (key !== 'g') return false;
 
   if (context.activeOutlookType === 'categorical') {
@@ -368,10 +356,7 @@ const handleGeneralThunderstormShortcut = (
 };
 
 /** Toggles the significant-threat flag when `s` is pressed (without Ctrl); returns true if handled. */
-const handleSignificantShortcut = (
-  key: string,
-  context: KeyboardShortcutContext
-): boolean => {
+const handleSignificantShortcut = ({ key, context }: ShortcutInput): boolean => {
   if (key !== 's') return false;
 
   if (!canToggleSignificantForState(context.activeOutlookType, context.activeProbability)) return true;
@@ -387,10 +372,7 @@ const handleSignificantShortcut = (
 };
 
 /** Computes the next probability step from an arrow-key press; returns the step or null if at a boundary. */
-const getArrowProbabilityStep = (
-  key: string,
-  context: KeyboardShortcutContext
-): { nextProbability: string; directionLabel: 'Increased' | 'Decreased' } | null => {
+const getArrowProbabilityStep = ({ key, context }: ShortcutInput): { nextProbability: string; directionLabel: 'Increased' | 'Decreased' } | null => {
   const probabilities = getProbabilityList(context.activeOutlookType);
   const currentIndex = probabilities.indexOf(normalizeProbability(context.activeProbability));
   if (currentIndex === -1) return null;
@@ -406,13 +388,10 @@ const getArrowProbabilityStep = (
 };
 
 /** Handles arrow-key presses to step the active probability up or down; returns true if handled. */
-const handleArrowProbabilityShortcut = (
-  key: string,
-  context: KeyboardShortcutContext
-): boolean => {
+const handleArrowProbabilityShortcut = ({ key, context }: ShortcutInput): boolean => {
   if (!ARROW_KEYS.has(key)) return false;
 
-  const step = getArrowProbabilityStep(key, context);
+  const step = getArrowProbabilityStep({ key, context });
   if (!step) return true;
 
   context.dispatch(setActiveProbability(step.nextProbability as Probability));
@@ -421,20 +400,18 @@ const handleArrowProbabilityShortcut = (
 };
 
 /** Dispatches the first matching standard shortcut handler (day, outlook type, TSTM, significant, arrow keys). */
-const handleStandardShortcuts = (
-  key: string,
-  context: KeyboardShortcutContext
-) => {
-  const shortCircuitHandlers: Array<(shortcutKey: string, shortcutContext: KeyboardShortcutContext) => boolean> = [
+const handleStandardShortcuts = ({ key, context }: ShortcutInput) => {
+  const shortCircuitHandlers: Array<(input: ShortcutInput) => boolean> = [
     handleDayShortcut,
     handleOutlookShortcut,
     handleGeneralThunderstormShortcut,
     handleSignificantShortcut,
   ];
 
-  const wasHandled = shortCircuitHandlers.some((handler) => handler(key, context));
+  const input = { key, context };
+  const wasHandled = shortCircuitHandlers.some((handler) => handler(input));
   if (!wasHandled) {
-    handleArrowProbabilityShortcut(key, context);
+    handleArrowProbabilityShortcut(input);
   }
 };
 
@@ -447,11 +424,12 @@ export const processShortcutKeyDown = (
   if (!key) return;
   if (isTypingTarget(e.target)) return;
 
-  if (handleUndoRedoShortcuts(e, key, context)) return;
-  if (handleCommandShortcuts(e, key, context)) return;
+  const input = { event: e, key, context };
+  if (handleUndoRedoShortcuts(input)) return;
+  if (handleCommandShortcuts(input)) return;
   if (hasAnyModifierKey(e)) return;
 
-  handleStandardShortcuts(key, context);
+  handleStandardShortcuts({ key, context });
 };
 
 /** Syncs the Redux active outlook type and emergency mode from build-target exposure. */
