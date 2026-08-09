@@ -402,7 +402,8 @@ const getCurrentOutlook = (state: ForecastState): OutlookData => {
  * Keep this explicit instead of using structuredClone so history snapshots
  * retain the existing plain-object and array semantics of this helper.
  */
-const cloneJsonValue = <T>(value: T): T => {
+/** @internal Exported for the opt-in performance benchmark. */
+export const cloneJsonValue = <T>(value: T): T => {
   if (Array.isArray(value)) {
     return value.map((item) => cloneJsonValue(item)) as T;
   }
