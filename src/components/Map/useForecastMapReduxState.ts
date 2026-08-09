@@ -13,7 +13,7 @@ import { isFeatureExposed } from "../../config/featureExposure";
 import type { OutlookMapLike } from "./openLayersMapStyles";
 
 /** The Redux-owned data projection consumed by the OpenLayers map renderer. */
-export const useForecastMapReduxState = () => {
+const useForecastMapSelections = () => {
   const dispatch = useDispatch<AppDispatch>();
   const drawingState = useSelector((state: RootState) => state.forecast.drawingState);
   const canUndo = useSelector(selectCanUndo);
@@ -28,30 +28,6 @@ export const useForecastMapReduxState = () => {
   const outlookOpacity = useSelector((state: RootState) => selectCurrentOutlookOpacity(state, drawingState.activeOutlookType));
   const baseMapStyle = useSelector((state: RootState) => state.overlays.baseMapStyle);
   const ghostOutlooks = useSelector((state: RootState) => state.overlays.ghostOutlooks);
-
-  const serializedFeatures = useMemo(() => {
-    const items: Array<{ outlookType: string; probability: string; feature: GeoJsonFeature }> = [];
-    if (customMode) return items;
-
-    Object.entries(outlooks).forEach(([outlookType, probabilities]) => {
-      if (outlookType !== drawingState.activeOutlookType || !(probabilities instanceof Map)) return;
-      probabilities.forEach((features: GeoJsonFeature[], probability: string) => {
-        features.forEach((feature) => items.push({ outlookType, probability, feature }));
-      });
-    });
-    return items;
-  }, [customMode, drawingState.activeOutlookType, outlooks]);
-
-  const serializedCustomFeatures = useMemo(() => {
-    if (!customMode) return [];
-    return customLayers.layers.flatMap((layer) => {
-      const categories = new Map(layer.categories.map((category) => [category.id, category]));
-      return layer.features.flatMap((feature) => {
-        const category = categories.get(feature.properties.categoryId);
-        return category ? [{ feature, category, layer }] : [];
-      });
-    });
-  }, [customLayers.layers, customMode]);
 
   return {
     dispatch,
@@ -68,7 +44,54 @@ export const useForecastMapReduxState = () => {
     outlookOpacity,
     baseMapStyle,
     ghostOutlooks,
+  };
+};
+
+type ForecastMapSelections = ReturnType<typeof useForecastMapSelections>;
+
+const projectActiveOutlookFeatures = (
+  outlooks: OutlookMapLike,
+  activeOutlookType: string,
+  customMode: boolean,
+): Array<{ outlookType: string; probability: string; feature: GeoJsonFeature }> => {
+  if (customMode) return [];
+  const probabilities = outlooks[activeOutlookType];
+  if (!(probabilities instanceof Map)) return [];
+  return Array.from(probabilities.entries()).flatMap(([probability, features]) =>
+    features.map((feature) => ({ outlookType: activeOutlookType, probability, feature })),
+  );
+};
+
+const projectCustomLayerFeatures = (layer: ForecastMapSelections["customLayers"]["layers"][number]) => {
+  const categories = new Map(layer.categories.map((category) => [category.id, category]));
+  return layer.features.flatMap((feature) => {
+    const category = categories.get(feature.properties.categoryId);
+    return category ? [{ feature, category, layer }] : [];
+  });
+};
+
+const projectCustomFeatures = (customLayers: ForecastMapSelections["customLayers"]) =>
+  customLayers.layers.flatMap(projectCustomLayerFeatures);
+
+const useForecastMapFeatureProjection = ({ customMode, drawingState, outlooks, customLayers }: Pick<ForecastMapSelections, "customMode" | "drawingState" | "outlooks" | "customLayers">) => {
+  const serializedFeatures = useMemo(
+    () => projectActiveOutlookFeatures(outlooks, drawingState.activeOutlookType, customMode),
+    [customMode, drawingState.activeOutlookType, outlooks],
+  );
+
+  const serializedCustomFeatures = useMemo(
+    () => customMode ? projectCustomFeatures(customLayers) : [],
+    [customLayers.layers, customMode],
+  );
+
+  return {
     serializedFeatures,
     serializedCustomFeatures,
   };
+};
+
+export const useForecastMapReduxState = () => {
+  const selections = useForecastMapSelections();
+  const projection = useForecastMapFeatureProjection(selections);
+  return { ...selections, ...projection };
 };

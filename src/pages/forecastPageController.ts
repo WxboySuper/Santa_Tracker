@@ -381,24 +381,66 @@ export const useUnsavedChangesWarning = (isSaved: boolean) => {
   }, [isSaved]);
 };
 
-const getDayRolloverSnapshot = (userId?: string | null) => {
-  const today = getLocalCalendarDate();
+interface RolloverStorageSnapshot {
+  today: string;
+  scopedLastActiveKey: string;
+  scopedPromptedKey: string;
+  legacyLastActiveDay: string | null;
+  legacyPromptedDay: string | null;
+  scopedLastActiveDay: string | null;
+  lastActiveDay: string | null;
+  alreadyPromptedToday: boolean;
+  existingPendingPrompt: DayRolloverPromptState | null;
+}
+
+const readRolloverStorageSnapshot = (userId: string | null | undefined, today: string): RolloverStorageSnapshot => {
   const scopedLastActiveKey = getRolloverStorageKey(DAY_ROLLOVER_LAST_ACTIVE_KEY, userId);
   const scopedPromptedKey = getRolloverStorageKey(DAY_ROLLOVER_PROMPTED_KEY, userId);
   const legacyLastActiveDay = userId ? null : readStoredDayValue(DAY_ROLLOVER_LAST_ACTIVE_KEY);
   const legacyPromptedDay = userId ? null : readStoredDayValue(DAY_ROLLOVER_PROMPTED_KEY);
   const scopedLastActiveDay = readStoredDayValue(scopedLastActiveKey);
-  const lastActiveDay = scopedLastActiveDay ?? legacyLastActiveDay;
-  const alreadyPromptedToday = (readStoredDayValue(scopedPromptedKey) ?? legacyPromptedDay) === today;
-  const existingPendingPrompt = readStoredRolloverPrompt(userId);
-  const pendingPrompt = existingPendingPrompt ?? (
-    legacyPromptedDay === today && legacyLastActiveDay && legacyLastActiveDay !== today
-      ? { previousDay: legacyLastActiveDay, currentDay: today }
-      : null
-  );
-  if (!userId && legacyLastActiveDay && !scopedLastActiveDay) writeStoredDayValue(scopedLastActiveKey, legacyLastActiveDay);
-  if (pendingPrompt && !existingPendingPrompt) writeStoredRolloverPrompt(pendingPrompt, userId);
-  return { today, lastActiveDay, alreadyPromptedToday, pendingPrompt };
+  const promptedDay = readStoredDayValue(scopedPromptedKey) ?? legacyPromptedDay;
+
+  return {
+    today,
+    scopedLastActiveKey,
+    scopedPromptedKey,
+    legacyLastActiveDay,
+    legacyPromptedDay,
+    scopedLastActiveDay,
+    lastActiveDay: scopedLastActiveDay ?? legacyLastActiveDay,
+    alreadyPromptedToday: promptedDay === today,
+    existingPendingPrompt: readStoredRolloverPrompt(userId),
+  };
+};
+
+const deriveLegacyRolloverPrompt = ({ today, legacyLastActiveDay, legacyPromptedDay, existingPendingPrompt }: RolloverStorageSnapshot): DayRolloverPromptState | null => {
+  if (existingPendingPrompt) return existingPendingPrompt;
+  if (legacyPromptedDay !== today || !legacyLastActiveDay || legacyLastActiveDay === today) return null;
+  return { previousDay: legacyLastActiveDay, currentDay: today };
+};
+
+const migrateLegacyRolloverStorage = (
+  userId: string | null | undefined,
+  snapshot: RolloverStorageSnapshot,
+  pendingPrompt: DayRolloverPromptState | null,
+): void => {
+  if (!userId && snapshot.legacyLastActiveDay && !snapshot.scopedLastActiveDay) {
+    writeStoredDayValue(snapshot.scopedLastActiveKey, snapshot.legacyLastActiveDay);
+  }
+  if (pendingPrompt && !snapshot.existingPendingPrompt) writeStoredRolloverPrompt(pendingPrompt, userId);
+};
+
+const getDayRolloverSnapshot = (userId?: string | null) => {
+  const snapshot = readRolloverStorageSnapshot(userId, getLocalCalendarDate());
+  const pendingPrompt = deriveLegacyRolloverPrompt(snapshot);
+  migrateLegacyRolloverStorage(userId, snapshot, pendingPrompt);
+  return {
+    today: snapshot.today,
+    lastActiveDay: snapshot.lastActiveDay,
+    alreadyPromptedToday: snapshot.alreadyPromptedToday,
+    pendingPrompt,
+  };
 };
 
 export const shouldSkipDayRolloverPrompt = ({ restoreComplete, lastActiveDay, today, alreadyPromptedToday, promptOpen, hasUnsavedWork }: {
