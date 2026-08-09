@@ -6,6 +6,7 @@ import forecastReducer, { addCustomLayer, setCustomEditorMode } from '../../stor
 import { CUSTOM_PRODUCTS_SCHEMA_VERSION } from '../../types/customProducts';
 import { asCustomLayerId } from '../../lib/customProducts';
 import themeReducer from '../../store/themeSlice';
+import stormReportsReducer from '../../store/stormReportsSlice';
 import Legend from './Legend';
 
 const createMockStore = (preloadedState = {}) =>
@@ -13,6 +14,7 @@ const createMockStore = (preloadedState = {}) =>
     reducer: {
       forecast: forecastReducer,
       theme: themeReducer,
+      stormReports: stormReportsReducer,
     },
     preloadedState,
   });
@@ -90,5 +92,19 @@ describe('Legend', () => {
     expect(screen.getByRole('img', { name: /Legend for CIG1/i })).toHaveStyle({
       border: '1px solid rgba(255,255,255,0.55)',
     });
+  });
+
+  it('keeps the report legend opt-in for maps that display storm reports', () => {
+    const store = createMockStore({
+      forecast: { drawingState: { activeOutlookType: 'tornado' }, uiVariant: 'standard' },
+      theme: { darkMode: false },
+      stormReports: { visible: true, filterByType: { tornado: true, wind: true, hail: true } },
+    });
+
+    const { rerender } = render(<Provider store={store}><Legend /></Provider>);
+    expect(screen.queryByText('Reports visible')).not.toBeInTheDocument();
+
+    rerender(<Provider store={store}><Legend showReportLegend /></Provider>);
+    expect(screen.getByText('Reports visible')).toBeInTheDocument();
   });
 });

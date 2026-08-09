@@ -965,7 +965,7 @@ const OpenLayersVerificationMap = forwardRef<
           />
         </div>
       </div>
-      <Legend activeOutlookType={activeOutlookType} desktopOpen={legendOpen} mobileOpen={mobileLegendOpen} />
+      <Legend activeOutlookType={activeOutlookType} desktopOpen={legendOpen} mobileOpen={mobileLegendOpen} showReportLegend />
       <UnofficialBadge />
     </div>
   );

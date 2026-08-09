@@ -1273,7 +1273,7 @@ const OpenLayersForecastMap = forwardRef<MapAdapterHandle<OLMap> | null, OpenLay
               "Pan mode: drag map to move, scroll to zoom. Click a polygon to see its details."}
           </div>
         </div>
-        <Legend desktopOpen={showDesktopLegend} mobileOpen={showMobileLegend} />
+        <Legend desktopOpen={showDesktopLegend} mobileOpen={showMobileLegend} showReportLegend={false} />
         <button
           type="button"
           className={`map-key-popout-button ${showMobileLegend ? "active" : ""}`}
