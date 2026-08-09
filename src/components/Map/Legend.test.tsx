@@ -79,7 +79,7 @@ describe('Legend', () => {
       forecast: { drawingState: { activeOutlookType: 'tornado' }, uiVariant: 'standard' },
       stormReports: { ...defaultStormReportsState, visible: true },
     });
-    render(<Provider store={store}><Legend activeOutlookType="tornado" /></Provider>);
+    render(<Provider store={store}><Legend activeOutlookType="tornado" showReportLegend /></Provider>);
     expect(screen.getByTestId('report-tornado-color')).toHaveStyle({ backgroundColor: 'rgb(255, 0, 0)' });
     expect(screen.getByTestId('report-wind-color')).toHaveStyle({ backgroundColor: 'rgb(37, 99, 235)' });
     expect(screen.getByTestId('report-hail-color')).toHaveStyle({ backgroundColor: 'rgb(22, 163, 74)' });
