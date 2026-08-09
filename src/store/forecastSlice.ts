@@ -397,7 +397,11 @@ const getCurrentOutlook = (state: ForecastState): OutlookData => {
   return day.data;
 };
 
-/** Recursively clones plain JSON-like values used inside GeoJSON features. */
+/**
+ * Recursively clones plain JSON-like values used inside GeoJSON features.
+ * Keep this explicit instead of using structuredClone so history snapshots
+ * retain the existing plain-object and array semantics of this helper.
+ */
 const cloneJsonValue = <T>(value: T): T => {
   if (Array.isArray(value)) {
     return value.map((item) => cloneJsonValue(item)) as T;

@@ -230,6 +230,11 @@ const getTornadoFeatures = (state: ReturnType<typeof reducer>) =>
 const getUndoStack = (state: ReturnType<typeof reducer>, day: DayType) =>
   state.historyByDay[day]?.undoStack || [];
 
+const getLatestUndoEntry = (state: ReturnType<typeof reducer>, day: DayType) => {
+  const undoStack = getUndoStack(state, day);
+  return undoStack[undoStack.length - 1];
+};
+
 const getRedoStack = (state: ReturnType<typeof reducer>, day: DayType) =>
   state.historyByDay[day]?.redoStack || [];
 
@@ -302,7 +307,7 @@ describe('forecastSlice undo/redo', () => {
       },
     }));
 
-    const snapshotFeature = getUndoStack(state, 1)[1]?.snapshot.data.tornado?.get('2%')?.[0];
+    const snapshotFeature = getLatestUndoEntry(state, 1)?.snapshot.data.tornado?.get('2%')?.[0];
     const liveSource = liveFeature?.properties?.source as { name: string; tags: string[] };
     const snapshotSource = snapshotFeature?.properties?.source as { name: string; tags: string[] };
 
