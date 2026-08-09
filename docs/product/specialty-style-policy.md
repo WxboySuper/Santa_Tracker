@@ -53,15 +53,6 @@ HOT-02 may add only the first reviewed built-in products:
 The labels and colors are presentation defaults, not hazard thresholds. A
 built-in product must not alter forecast completion, verification grading,
 Auto-TSTM, outlook type, or severe-outlook analytics.
-<<<<<<< HEAD
-
-Adding a future built-in product requires a new registry test covering
-detached-copy isolation, catalog access, rendering, legend output, and package
-round-tripping before the product can be exposed. It also needs an approved
-label, category order, entitlement decision, and changelog entry; an
-implementation-only registry addition is not a complete product change.
-=======
->>>>>>> e89c9652 (docs: update built-in product policy)
 
 Adding a future built-in product requires a new registry test covering
 detached-copy isolation, catalog access, rendering, legend output, and package
