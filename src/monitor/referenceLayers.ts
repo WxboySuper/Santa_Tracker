@@ -95,9 +95,21 @@ const readString = (record: Record<string, unknown>, names: readonly string[]): 
 
 const readProductNumber = (record: Record<string, unknown>): string | undefined => {
   const value = readField(record, ['productNumber', 'product_number', 'mdnum', 'md_num', 'number']);
-  return typeof value === 'number' && Number.isFinite(value)
-    ? String(value).padStart(4, '0')
-    : typeof value === 'string' && value.trim() ? value.trim() : undefined;
+  if (typeof value === 'number' && Number.isFinite(value)) return String(value).padStart(4, '0');
+  if (typeof value === 'string' && value.trim()) return value.trim();
+
+  const providerName = readString(record, ['name', 'title']);
+  const match = providerName?.match(/(?:\b(?:MCD|MD)\s*|\bMesoscale Discussion\s+)(\d{1,4})\b/i);
+  return match ? match[1].padStart(4, '0') : undefined;
+};
+
+const readInstant = (record: Record<string, unknown>, names: readonly string[]): string | undefined => {
+  const value = readField(record, names);
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    const instant = new Date(value);
+    return Number.isNaN(instant.getTime()) ? undefined : instant.toISOString();
+  }
+  return typeof value === 'string' && value.trim() ? value.trim() : undefined;
 };
 
 const isPolygonGeometry = (value: unknown): value is Polygon | MultiPolygon =>
@@ -126,9 +138,20 @@ const NORMALIZED_PROPERTY_ALIASES = [
 
 const readNormalizedProperties = (record: Record<string, unknown>): Partial<Record<NormalizedPropertyKey, string>> => {
   const properties: Partial<Record<NormalizedPropertyKey, string>> = {};
+  const issuedAt = readInstant(record, ['issuedAt', 'issued', 'issue_time', 'issuetime', 'idp_filedate']);
+  if (issuedAt) properties.issuedAt = issuedAt;
+
   for (const [property, aliases] of NORMALIZED_PROPERTY_ALIASES) {
+    if (property === 'issuedAt') continue;
     const value = readString(record, aliases);
     if (value) properties[property] = value;
+  }
+
+  const providerValidity = readString(record, ['folderpath']);
+  if (!properties.validTo && providerValidity) properties.validTo = providerValidity;
+  if (!properties.sourceUrl) {
+    const sourceUrl = readString(record, ['popupinfo']);
+    if (sourceUrl) properties.sourceUrl = sourceUrl;
   }
   return properties;
 };
@@ -136,8 +159,8 @@ const readNormalizedProperties = (record: Record<string, unknown>): Partial<Reco
 const normalizeProperties = (value: unknown): MonitorMesoscaleDiscussionProperties => {
   const record = isRecord(value) ? value : {};
   const productNumber = readProductNumber(record);
-  const label = readString(record, ['label', 'name', 'title'])
-    ?? (productNumber ? `Mesoscale Discussion ${productNumber}` : 'Mesoscale discussion');
+  const label = readString(record, ['label', 'title'])
+    ?? (productNumber ? `Mesoscale Discussion ${productNumber}` : readString(record, ['name']) ?? 'Mesoscale discussion');
 
   return {
     label,

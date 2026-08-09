@@ -24,7 +24,9 @@ describe('monitor reference layers', () => {
     expect(normalized.features[0].properties).toMatchObject({
       label: 'Mesoscale Discussion 0001',
       productNumber: '0001',
-      validTo: '2026-08-09T21:00:00Z',
+      issuedAt: '2026-08-09T15:00:00.000Z',
+      validTo: 'MD 0001 Active Till 2100 UTC',
+      sourceUrl: 'http://www.spc.noaa.gov/products/md/md0001.html',
     });
     expect(normalized.features[0].geometry.type).toBe('Polygon');
   });
