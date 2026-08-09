@@ -92,4 +92,6 @@ Small representative fixtures are checked in for parser tests:
 These are deliberately small, synthetic-at-capture-shape fixtures rather than
 an archive of provider data. The live URLs and access date above are the
 research record; tests must not depend on a provider being available.
+When an adapter later discovers provider-contract drift, update this record
+before changing the normalized runtime assumptions.
 
