@@ -596,7 +596,7 @@ const TabbedToolbarDrawTab: React.FC<{ controller: ForecastWorkspaceController }
   return (
     <TabbedToolbarTabRow>
       <TabbedToolbarStripSection label="Draw mode" className="tabbed-integrated-toolbar__section--product-mode w-[226px]">
-        <div className="custom-product-toggle" role="radiogroup" aria-label="Drawing product" data-testid="custom-product-toggle">
+        <div className={cn('custom-product-toggle', storedMode === 'custom' && 'is-custom-mode')} role="radiogroup" aria-label="Drawing product" data-testid="custom-product-toggle">
           <span className="custom-product-toggle__indicator" aria-hidden="true" />
           {(['severe', 'custom'] as const).map((mode) => (
             <button
@@ -604,7 +604,11 @@ const TabbedToolbarDrawTab: React.FC<{ controller: ForecastWorkspaceController }
               type="button"
               role="radio"
               aria-checked={storedMode === mode}
-              className={cn('custom-product-toggle__button mode-toggle-btn', storedMode === mode && 'is-active')}
+              className={cn(
+                'custom-product-toggle__button mode-toggle-btn',
+                mode === 'severe' ? 'custom-product-toggle__button--leading' : 'custom-product-toggle__button--trailing',
+                storedMode === mode && 'is-active',
+              )}
               style={{ backgroundColor: storedMode === mode ? 'var(--button-bg)' : 'transparent' }}
               onClick={() => dispatch(setCustomEditorMode(mode))}
             >
