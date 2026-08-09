@@ -280,6 +280,38 @@ describe('forecastSlice undo/redo', () => {
     expect((getTornadoFeatures(state)[0].geometry as Polygon).coordinates[0][0]).toEqual([3, 3]);
   });
 
+  test('deep-clones nested feature properties in history snapshots', () => {
+    let state = reducer(undefined, addFeature({
+      feature: createBaseFeature('nested-feature', 0, {
+        outlookType: 'tornado',
+        probability: '2%',
+        extras: {
+          source: {
+            name: 'SPC',
+            tags: ['initial'],
+          },
+        },
+      }),
+    }));
+    const liveFeature = getTornadoFeatures(state)[0];
+
+    state = reducer(state, updateFeature({
+      feature: {
+        ...liveFeature,
+        geometry: createPolygon(3),
+      },
+    }));
+
+    const snapshotFeature = getUndoStack(state, 1)[1]?.snapshot.data.tornado?.get('2%')?.[0];
+    const liveSource = liveFeature?.properties?.source as { name: string; tags: string[] };
+    const snapshotSource = snapshotFeature?.properties?.source as { name: string; tags: string[] };
+
+    expect(snapshotFeature).not.toBe(liveFeature);
+    expect(snapshotSource).not.toBe(liveSource);
+    expect(snapshotSource.tags).not.toBe(liveSource.tags);
+    expect(snapshotSource).toEqual({ name: 'SPC', tags: ['initial'] });
+  });
+
   test('undo restores deleted features', () => {
     let state = reducer(undefined, addFeature({ feature: createFeature('feature-1', 0) }));
 

@@ -404,9 +404,12 @@ const cloneJsonValue = <T>(value: T): T => {
   }
 
   if (value && typeof value === 'object') {
-    return Object.fromEntries(
-      Object.entries(value).map(([key, entry]) => [key, cloneJsonValue(entry)])
-    ) as T;
+    const objectValue = value as Record<string, unknown>;
+    const clonedObject: Record<string, unknown> = {};
+    for (const key of Object.keys(objectValue)) {
+      clonedObject[key] = cloneJsonValue(objectValue[key]);
+    }
+    return clonedObject as T;
   }
 
   return value;
