@@ -60,6 +60,12 @@ round-tripping before the product can be exposed. It also needs an approved
 label, category order, entitlement decision, and changelog entry; an
 implementation-only registry addition is not a complete product change.
 
+Adding a future preset requires a new registry test covering detached-copy
+isolation, rendering, legend output, and package round-tripping before the
+preset can be exposed. The preset also needs an approved label, category
+order, and changelog entry; an implementation-only registry addition is not a
+complete product change.
+
 ## Compatibility and follow-up
 
 The implementation must reuse the current `CustomCategoryTemplate`,
