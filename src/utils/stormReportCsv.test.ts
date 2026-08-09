@@ -5,6 +5,15 @@ describe('stormReportCsv', () => {
     expect(splitCsvLine('"a,b",c')).toEqual(['a,b', 'c']);
   });
 
+  test('splitCsvLine preserves legacy escaped-double-quote handling', () => {
+    expect(splitCsvLine('"a ""quoted"" value",c')).toEqual(['a quoted value', 'c']);
+  });
+
+  test('splitCsvLine preserves long fields while accumulating characters', () => {
+    const longField = 'weather '.repeat(1000);
+    expect(splitCsvLine(`"${longField}",ok`)).toEqual([longField, 'ok']);
+  });
+
   test('extractStormReportMagnitude parses tornado EF scale', () => {
     const row = buildCsvRow(['EF_Scale', 'Comments'], ['2', '']);
     expect(extractStormReportMagnitude('tornado', row, {
