@@ -23,8 +23,6 @@ interface UseMonitorOlMapArgs {
   radarOpacity: number;
   satelliteLayer: WmsLayerConfig | null;
   satelliteOpacity: number;
-  ndfdTemperatureLayer: WmsLayerConfig | null;
-  ndfdTemperatureOpacity: number;
   serializedFeatures: SerializedMonitorOutlookFeature[];
   stormReports: StormReport[];
   alertsCollection: NwsAlertFeatureCollection;
@@ -78,8 +76,6 @@ export const useMonitorOlMap = (args: UseMonitorOlMapArgs) => {
     radarOpacity: args.radarOpacity,
     satelliteLayer: args.satelliteLayer,
     satelliteOpacity: args.satelliteOpacity,
-    ndfdTemperatureLayer: args.ndfdTemperatureLayer,
-    ndfdTemperatureOpacity: args.ndfdTemperatureOpacity,
     serializedFeatures: args.serializedFeatures,
     stormReports: args.stormReports,
     alertsCollection: args.alertsCollection,

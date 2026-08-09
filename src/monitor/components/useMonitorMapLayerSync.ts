@@ -17,8 +17,6 @@ interface UseMonitorMapLayerSyncArgs {
   radarOpacity: number;
   satelliteLayer: WmsLayerConfig | null;
   satelliteOpacity: number;
-  ndfdTemperatureLayer: WmsLayerConfig | null;
-  ndfdTemperatureOpacity: number;
   serializedFeatures: SerializedMonitorOutlookFeature[];
   stormReports: StormReport[];
   alertsCollection: NwsAlertFeatureCollection;
@@ -36,8 +34,6 @@ export const useMonitorMapLayerSync = (args: UseMonitorMapLayerSyncArgs) => {
     radarOpacity: args.radarOpacity,
     satelliteLayer: args.satelliteLayer,
     satelliteOpacity: args.satelliteOpacity,
-    ndfdTemperatureLayer: args.ndfdTemperatureLayer,
-    ndfdTemperatureOpacity: args.ndfdTemperatureOpacity,
     refs: args.refs,
   });
   useMonitorMapOverlaySync(args);

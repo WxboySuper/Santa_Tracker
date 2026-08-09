@@ -6,9 +6,7 @@ import MonitorControlsSection from './MonitorControlsSection';
 
 interface MonitorReferenceLayersSectionProps {
   settings: MonitorReferenceLayerSettings;
-  ndfdMeta: MonitorReferenceLayerMeta;
   spcMeta: MonitorReferenceLayerMeta;
-  onNdfdEnabledChange: (enabled: boolean) => void;
   onSpcEnabledChange: (enabled: boolean) => void;
 }
 
@@ -24,31 +22,17 @@ const statusText = (meta: MonitorReferenceLayerMeta, emptyLabel: string): string
 /** Groups optional official forecast and mesoscale-discussion reference layers. */
 const MonitorReferenceLayersSection: React.FC<MonitorReferenceLayersSectionProps> = ({
   settings,
-  ndfdMeta,
   spcMeta,
-  onNdfdEnabledChange,
   onSpcEnabledChange,
 }) => (
   <MonitorControlsSection id="reference-layers" title={<><Layers className="h-4 w-4" /> Reference layers</>} defaultCollapsed>
     <label className="monitor-controls__checkbox">
       <input
         type="checkbox"
-        checked={settings.ndfdTemperatureEnabled}
-        onChange={(event) => onNdfdEnabledChange(event.target.checked)}
-      />
-      NDFD temperature forecast
-    </label>
-    <div className="monitor-controls__meta" title={ndfdMeta.sourceUrl} aria-live="polite">
-      {statusText(ndfdMeta, 'No NDFD forecast is available.')}
-      <span className="monitor-controls__source"> · <a href={ndfdMeta.sourceUrl} target="_blank" rel="noreferrer" aria-label={`${ndfdMeta.sourceName} source`}>{ndfdMeta.attribution}</a></span>
-    </div>
-    <label className="monitor-controls__checkbox">
-      <input
-        type="checkbox"
         checked={settings.spcMesoscaleDiscussionEnabled}
         onChange={(event) => onSpcEnabledChange(event.target.checked)}
       />
-      SPC mesoscale discussions
+      SPC mesoscale discussions (MCDs)
     </label>
     <div className="monitor-controls__meta" title={spcMeta.sourceUrl} aria-live="polite">
       {statusText(spcMeta, 'No active SPC mesoscale discussions.')}

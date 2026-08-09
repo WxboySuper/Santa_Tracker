@@ -1,7 +1,5 @@
 import type { FeatureCollection, MultiPolygon, Polygon } from 'geojson';
-import type { WmsLayerConfig } from './wms';
-
-export type MonitorReferenceLayerId = 'ndfd-temperature' | 'spc-mesoscale-discussion';
+export type MonitorReferenceLayerId = 'spc-mesoscale-discussion';
 
 export type MonitorReferenceLayerStatus = 'idle' | 'loading' | 'ready' | 'empty' | 'stale' | 'error';
 
@@ -15,7 +13,7 @@ export interface MonitorReferenceLayerMeta {
   attribution: string;
   fetchedAt: string | null;
   validTime: string | null;
-  itemCount: number | null;
+  itemCount: number;
   error: string | null;
 }
 
@@ -62,17 +60,6 @@ export type MonitorMesoscaleDiscussionCollection = FeatureCollection<
   MonitorMesoscaleDiscussionProperties
 >;
 
-export const NDFD_TEMPERATURE_SOURCE: MonitorReferenceSourceInfo = {
-  id: 'ndfd-temperature',
-  label: 'NDFD temperature forecast',
-  sourceName: 'NOAA/NWS National Digital Forecast Database',
-  sourceUrl: 'https://mapservices.weather.noaa.gov/raster/rest/services/NDFD/NDFD_temp/MapServer',
-  attribution: 'NOAA/NWS NDFD',
-};
-
-/** Keeps the optional NDFD overlay readable without treating opacity as a user setting. */
-export const DEFAULT_NDFD_TEMPERATURE_OPACITY = 0.58;
-
 export const SPC_MESOSCALE_DISCUSSION_SOURCE: MonitorReferenceSourceInfo = {
   id: 'spc-mesoscale-discussion',
   label: 'SPC mesoscale discussions',
@@ -81,7 +68,6 @@ export const SPC_MESOSCALE_DISCUSSION_SOURCE: MonitorReferenceSourceInfo = {
   attribution: 'NOAA/NWS/SPC',
 };
 
-const NDFD_WMS_URL = 'https://mapservices.weather.noaa.gov/raster/services/NDFD/NDFD_temp/MapServer/WMSServer';
 const SPC_QUERY_URL = `${SPC_MESOSCALE_DISCUSSION_SOURCE.sourceUrl}/query`;
 
 const sleep = (delayMs: number): Promise<void> => new Promise((resolve) => {
@@ -109,13 +95,6 @@ export const withReferenceRetry = async <T>(
   }
   throw lastError instanceof Error ? lastError : new Error('Reference source unavailable.');
 };
-
-/** Builds the current NDFD WMS layer; the service chooses the latest image when time is absent. */
-export const buildNdfdTemperatureLayerConfig = (latestTime?: string): WmsLayerConfig => ({
-  url: NDFD_WMS_URL,
-  layer: '2',
-  ...(latestTime ? { latestTime } : {}),
-});
 
 /** Builds the bounded ArcGIS GeoJSON query used for current SPC MD polygons. */
 export const buildSpcMesoscaleDiscussionQueryUrl = (): string => {

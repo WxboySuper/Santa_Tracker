@@ -87,10 +87,6 @@ const readReferenceLayers = (value: unknown): MonitorSettings['referenceLayers']
   }
 
   return {
-    ndfdTemperatureEnabled: readBooleanSetting(
-      value.ndfdTemperatureEnabled,
-      DEFAULT_MONITOR_SETTINGS.referenceLayers.ndfdTemperatureEnabled,
-    ),
     spcMesoscaleDiscussionEnabled: readBooleanSetting(
       value.spcMesoscaleDiscussionEnabled,
       DEFAULT_MONITOR_SETTINGS.referenceLayers.spcMesoscaleDiscussionEnabled,

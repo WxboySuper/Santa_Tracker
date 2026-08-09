@@ -15,8 +15,6 @@ interface MonitorMapProps {
   radarOpacity: number;
   satelliteLayer: WmsLayerConfig | null;
   satelliteOpacity: number;
-  ndfdTemperatureLayer: WmsLayerConfig | null;
-  ndfdTemperatureOpacity: number;
   outlookData?: OutlookData;
   outlookType: MonitorOutlookLayerType;
   stormReports: StormReport[];
@@ -33,8 +31,6 @@ const MonitorMap: React.FC<MonitorMapProps> = ({
   radarOpacity,
   satelliteLayer,
   satelliteOpacity,
-  ndfdTemperatureLayer,
-  ndfdTemperatureOpacity,
   outlookData,
   outlookType,
   stormReports,
@@ -55,8 +51,6 @@ const MonitorMap: React.FC<MonitorMapProps> = ({
     radarOpacity,
     satelliteLayer,
     satelliteOpacity,
-    ndfdTemperatureLayer,
-    ndfdTemperatureOpacity,
     serializedFeatures,
     stormReports,
     alertsCollection,

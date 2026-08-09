@@ -12,7 +12,6 @@ import { getGeoBoundarySource } from '../../config/geoBoundarySources';
 export const BASE_LAYER_Z_INDEX = 0;
 export const SATELLITE_LAYER_Z_INDEX = 15;
 export const RADAR_LAYER_Z_INDEX = 20;
-export const NDFD_REFERENCE_LAYER_Z_INDEX = 1010;
 export const SPC_REFERENCE_LAYER_Z_INDEX = 1025;
 export const ALERTS_LAYER_Z_INDEX = 1030;
 export const MONITOR_OUTLOOK_TRANSPARENCY_SCALE = 0.38;
@@ -23,7 +22,6 @@ export const TOP_VECTOR_REFERENCE_LAYER_Z_INDEX = 1050;
 
 /** Stable compositing order: official references below warnings and user-owned overlays. */
 export const MONITOR_LAYER_Z_ORDER = Object.freeze({
-  ndfdTemperature: NDFD_REFERENCE_LAYER_Z_INDEX,
   spcMesoscaleDiscussion: SPC_REFERENCE_LAYER_Z_INDEX,
   alerts: ALERTS_LAYER_Z_INDEX,
   outlook: OUTLOOK_LAYER_Z_INDEX,

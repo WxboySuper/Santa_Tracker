@@ -3,7 +3,6 @@ import { join } from 'node:path';
 
 const fixture = JSON.parse(readFileSync(join(__dirname, 'fixtures', 'spc-mesoscale-discussion.geojson'), 'utf8')) as unknown;
 import {
-  buildNdfdTemperatureLayerConfig,
   buildSpcMesoscaleDiscussionQueryUrl,
   fetchSpcMesoscaleDiscussions,
   formatMonitorReferenceTime,
@@ -12,14 +11,6 @@ import {
 } from './referenceLayers';
 
 describe('monitor reference layers', () => {
-  test('builds the reviewed NDFD WMS configuration without a hard-coded time', () => {
-    expect(buildNdfdTemperatureLayerConfig()).toEqual({
-      url: 'https://mapservices.weather.noaa.gov/raster/services/NDFD/NDFD_temp/MapServer/WMSServer',
-      layer: '2',
-    });
-    expect(buildNdfdTemperatureLayerConfig('2026-08-09T15:00:00Z').latestTime).toBe('2026-08-09T15:00:00Z');
-  });
-
   test('normalizes an SPC polygon fixture and preserves attribution metadata', () => {
     const normalized = normalizeSpcMesoscaleDiscussionCollection(fixture);
     expect(normalized.features).toHaveLength(1);

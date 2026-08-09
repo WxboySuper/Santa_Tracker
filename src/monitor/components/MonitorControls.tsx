@@ -66,10 +66,8 @@ interface MonitorControlsProps {
   onAnimationEnabledChange: (enabled: boolean) => void;
   onAnimationSpeedChange: (speed: number) => void;
   referenceLayerMeta: {
-    ndfdTemperature: MonitorReferenceLayerMeta;
     spcMesoscaleDiscussion: MonitorReferenceLayerMeta;
   };
-  onNdfdReferenceLayerEnabledChange: (enabled: boolean) => void;
   onSpcReferenceLayerEnabledChange: (enabled: boolean) => void;
   onRefresh: () => void;
 }
@@ -109,7 +107,6 @@ const MonitorControls: React.FC<MonitorControlsProps> = ({
   onAnimationEnabledChange,
   onAnimationSpeedChange,
   referenceLayerMeta,
-  onNdfdReferenceLayerEnabledChange,
   onSpcReferenceLayerEnabledChange,
   onRefresh,
 }) => (
@@ -173,9 +170,7 @@ const MonitorControls: React.FC<MonitorControlsProps> = ({
 
     <MonitorReferenceLayersSection
       settings={settings.referenceLayers}
-      ndfdMeta={referenceLayerMeta.ndfdTemperature}
       spcMeta={referenceLayerMeta.spcMesoscaleDiscussion}
-      onNdfdEnabledChange={onNdfdReferenceLayerEnabledChange}
       onSpcEnabledChange={onSpcReferenceLayerEnabledChange}
     />
 

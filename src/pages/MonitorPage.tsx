@@ -37,7 +37,7 @@ import { useLocalMonitorSettings } from './useLocalMonitorSettings';
 import { useMonitorCloudOutlook } from './useMonitorCloudOutlook';
 import { usePremiumMonitorSettingsSync } from './usePremiumMonitorSettingsSync';
 import { buildRadarLayerConfig, buildSatelliteLayerConfig } from '../monitor/wms';
-import { buildNdfdTemperatureLayerConfig, formatMonitorReferenceTime } from '../monitor/referenceLayers';
+import { formatMonitorReferenceTime } from '../monitor/referenceLayers';
 import { useMonitorReferenceLayers, type MonitorReferenceLayersState } from '../monitor/useMonitorReferenceLayers';
 import { useLiveWmsLayers } from '../monitor/useLiveWmsLayers';
 import { useMonitorNwsAlerts } from '../monitor/useMonitorNwsAlerts';
@@ -155,7 +155,6 @@ const useMonitorPageLayers = ({ settings, addToast }: {
     addToast,
   });
   const referenceLayers = useMonitorReferenceLayers({
-    ndfdEnabled: settings.referenceLayers.ndfdTemperatureEnabled,
     spcEnabled: settings.referenceLayers.spcMesoscaleDiscussionEnabled,
     refreshToken,
     addToast,
@@ -185,7 +184,6 @@ interface MonitorPageWorkspaceProps {
   satelliteDisplayTime?: string;
   radarLayer: ReturnType<typeof buildRadarLayerConfig> | null;
   satelliteLayer: ReturnType<typeof buildSatelliteLayerConfig> | null;
-  ndfdTemperatureLayer: ReturnType<typeof buildNdfdTemperatureLayerConfig> | null;
   statusMessage: string;
   syncLabel: string;
   stormReportState: ReturnType<typeof useMonitorStormReports>;
@@ -209,7 +207,6 @@ const MonitorPageWorkspace: React.FC<MonitorPageWorkspaceProps> = ({
   satelliteDisplayTime,
   radarLayer,
   satelliteLayer,
-  ndfdTemperatureLayer,
   statusMessage,
   syncLabel,
   stormReportState,
@@ -256,10 +253,8 @@ const MonitorPageWorkspace: React.FC<MonitorPageWorkspaceProps> = ({
         onAnimationEnabledChange={(enabled) => dispatch(setAnimationEnabled(enabled))}
         onAnimationSpeedChange={(speed) => dispatch(setAnimationSpeedMs(speed))}
         referenceLayerMeta={{
-          ndfdTemperature: referenceLayers.ndfdTemperature,
           spcMesoscaleDiscussion: referenceLayers.spcMesoscaleDiscussion,
         }}
-        onNdfdReferenceLayerEnabledChange={(enabled) => dispatch(setReferenceLayerEnabled({ layer: 'ndfdTemperatureEnabled', enabled }))}
         onSpcReferenceLayerEnabledChange={(enabled) => dispatch(setReferenceLayerEnabled({ layer: 'spcMesoscaleDiscussionEnabled', enabled }))}
         onRefresh={onRefresh}
       />
@@ -270,8 +265,6 @@ const MonitorPageWorkspace: React.FC<MonitorPageWorkspaceProps> = ({
         radarOpacity={settings.radarOpacity}
         satelliteLayer={satelliteLayer}
         satelliteOpacity={settings.satelliteOpacity}
-        ndfdTemperatureLayer={ndfdTemperatureLayer}
-        ndfdTemperatureOpacity={0.58}
         outlookData={selectedOutlook.data}
         outlookType={settings.outlookType}
         stormReports={stormReportState.reports}
@@ -299,25 +292,13 @@ export const MonitorPage: React.FC = () => {
     () => layers.satelliteConfig ? { ...layers.satelliteConfig, latestTime: layers.satelliteDisplayTime } : null,
     [layers.satelliteConfig, layers.satelliteDisplayTime],
   );
-  const ndfdTemperatureLayer = useMemo(
-    () => sources.settings.referenceLayers.ndfdTemperatureEnabled
-      ? buildNdfdTemperatureLayerConfig(layers.referenceLayers.ndfdTemperature.validTime ?? undefined)
-      : null,
-    [layers.referenceLayers.ndfdTemperature.validTime, sources.settings.referenceLayers.ndfdTemperatureEnabled],
-  );
   const referenceAttributions = useMemo(() => [
-    sources.settings.referenceLayers.ndfdTemperatureEnabled
-      ? `${layers.referenceLayers.ndfdTemperature.attribution} · NDFD temperature forecast · valid ${formatMonitorReferenceTime(layers.referenceLayers.ndfdTemperature.validTime)}`
-      : null,
     sources.settings.referenceLayers.spcMesoscaleDiscussionEnabled
-      ? `${layers.referenceLayers.spcMesoscaleDiscussion.attribution} · SPC mesoscale discussions · valid ${formatMonitorReferenceTime(layers.referenceLayers.spcMesoscaleDiscussion.validTime)}`
+      ? `${layers.referenceLayers.spcMesoscaleDiscussion.attribution} · SPC mesoscale discussions (MCDs) · valid ${formatMonitorReferenceTime(layers.referenceLayers.spcMesoscaleDiscussion.validTime)}`
       : null,
   ].filter((value): value is string => Boolean(value)), [
-    layers.referenceLayers.ndfdTemperature.attribution,
-    layers.referenceLayers.ndfdTemperature.validTime,
     layers.referenceLayers.spcMesoscaleDiscussion.attribution,
     layers.referenceLayers.spcMesoscaleDiscussion.validTime,
-    sources.settings.referenceLayers.ndfdTemperatureEnabled,
     sources.settings.referenceLayers.spcMesoscaleDiscussionEnabled,
   ]);
 
@@ -346,7 +327,6 @@ export const MonitorPage: React.FC = () => {
       satelliteDisplayTime={layers.satelliteDisplayTime}
       radarLayer={radarLayer}
       satelliteLayer={satelliteLayer}
-      ndfdTemperatureLayer={ndfdTemperatureLayer}
       statusMessage={statusMessage}
       syncLabel={syncLabel}
       stormReportState={layers.stormReportState}

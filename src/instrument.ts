@@ -146,7 +146,7 @@ export function beforeSend(event: ErrorEvent, _hint: EventHint): ErrorEvent | nu
 
 /** Records expected Monitor upstream failures with source context; beforeSend filters the expected outage. */
 export function captureExpectedMonitorReferenceFailure(
-  sourceId: 'ndfd-temperature' | 'spc-mesoscale-discussion',
+  sourceId: 'spc-mesoscale-discussion',
   error: unknown,
 ): void {
   if (!isSentryEnabled()) {

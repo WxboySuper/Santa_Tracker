@@ -57,16 +57,6 @@ const baseProps = {
   onAlertsShowWarningsChange: jest.fn(),
   onAlertsShowAdvisoriesChange: jest.fn(),
   referenceLayerMeta: {
-    ndfdTemperature: {
-      status: 'idle' as const,
-      sourceName: 'NOAA/NWS National Digital Forecast Database',
-      sourceUrl: 'https://example.test/ndfd',
-      attribution: 'NOAA/NWS NDFD',
-      fetchedAt: null,
-      validTime: null,
-      itemCount: null,
-      error: null,
-    },
     spcMesoscaleDiscussion: {
       status: 'idle' as const,
       sourceName: 'NOAA/NWS Storm Prediction Center',
@@ -78,7 +68,6 @@ const baseProps = {
       error: null,
     },
   },
-  onNdfdReferenceLayerEnabledChange: jest.fn(),
   onSpcReferenceLayerEnabledChange: jest.fn(),
   onAnimationEnabledChange: jest.fn(),
   onAnimationSpeedChange: jest.fn(),

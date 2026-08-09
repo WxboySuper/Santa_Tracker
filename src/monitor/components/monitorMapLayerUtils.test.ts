@@ -1,7 +1,6 @@
 import {
   ALERTS_LAYER_Z_INDEX,
   MONITOR_LAYER_Z_ORDER,
-  NDFD_REFERENCE_LAYER_Z_INDEX,
   OUTLOOK_LAYER_Z_INDEX,
   SPC_REFERENCE_LAYER_Z_INDEX,
   STATE_OUTLINE_LAYER_Z_INDEX,
@@ -13,7 +12,6 @@ import {
 describe('monitor reference layer order', () => {
   test('keeps official references below alerts and user overlays', () => {
     expect(MONITOR_LAYER_Z_ORDER).toEqual({
-      ndfdTemperature: NDFD_REFERENCE_LAYER_Z_INDEX,
       spcMesoscaleDiscussion: SPC_REFERENCE_LAYER_Z_INDEX,
       alerts: ALERTS_LAYER_Z_INDEX,
       outlook: OUTLOOK_LAYER_Z_INDEX,
@@ -21,7 +19,6 @@ describe('monitor reference layer order', () => {
       stormReports: STORM_REPORTS_LAYER_Z_INDEX,
       mapReferenceControls: TOP_VECTOR_REFERENCE_LAYER_Z_INDEX,
     });
-    expect(NDFD_REFERENCE_LAYER_Z_INDEX).toBeLessThan(SPC_REFERENCE_LAYER_Z_INDEX);
     expect(SPC_REFERENCE_LAYER_Z_INDEX).toBeLessThan(ALERTS_LAYER_Z_INDEX);
     expect(ALERTS_LAYER_Z_INDEX).toBeLessThan(OUTLOOK_LAYER_Z_INDEX);
     expect(OUTLOOK_LAYER_Z_INDEX).toBeLessThan(STATE_OUTLINE_LAYER_Z_INDEX);
