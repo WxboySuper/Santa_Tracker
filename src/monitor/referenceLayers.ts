@@ -167,10 +167,9 @@ export const normalizeSpcMesoscaleDiscussionCollection = (value: unknown): Monit
     throw new Error('SPC mesoscale discussion response is not a GeoJSON FeatureCollection.');
   }
 
-  const features = value.features.flatMap((candidate, index) => {
-    const feature = normalizeSpcMesoscaleDiscussionFeature(candidate, index);
-    return feature ? [feature] : [];
-  });
+  const features = value.features
+    .map((candidate, index) => normalizeSpcMesoscaleDiscussionFeature(candidate, index))
+    .filter((feature): feature is NonNullable<typeof feature> => feature !== null);
 
   return { type: 'FeatureCollection', features };
 };
