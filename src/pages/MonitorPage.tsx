@@ -66,6 +66,114 @@ const resolveHandoffSource = (
   return undefined;
 };
 
+const useMonitorPageSources = ({
+  dispatch,
+  searchParams,
+  addToast,
+}: {
+  dispatch: AppDispatch;
+  searchParams: URLSearchParams;
+  addToast: AddToastFn;
+}) => {
+  const didApplyHandoffSource = useRef(false);
+  const settings = useSelector((state: RootState) => state.monitor);
+  const currentCycle = useSelector(selectForecastCycle);
+  const savedCycles = useSelector(selectSavedCycles);
+  const { cycles: cloudCycles, loading: cloudCyclesLoading } = useCloudCycles();
+  const { premiumActive } = useEntitlement();
+  const { sites: radarSiteOptions, loading: radarSitesLoading, error: radarSitesError } = useRadarSiteOptions();
+  const today = useMemo(() => getLocalCalendarDate(), []);
+
+  useLocalMonitorSettings(settings);
+  usePremiumMonitorSettingsSync(settings);
+
+  const outlookOptions = useMemo(() => buildMonitorOutlookOptions({
+    currentCycle,
+    savedCycles,
+    cloudCycles: premiumActive ? cloudCycles : [],
+    today,
+  }), [cloudCycles, currentCycle, premiumActive, savedCycles, today]);
+  const selectedOption = useMemo(
+    () => resolveSelectedOutlookOption(outlookOptions, settings.outlookSource),
+    [outlookOptions, settings.outlookSource],
+  );
+
+  useEffect(() => {
+    if (didApplyHandoffSource.current) return;
+    const matchingSource = resolveHandoffSource(searchParams, outlookOptions);
+    if (!matchingSource) return;
+    dispatch(setMonitorOutlookSource({ kind: matchingSource.kind, id: matchingSource.id }));
+    didApplyHandoffSource.current = true;
+  }, [dispatch, outlookOptions, searchParams]);
+
+  const selectedOutlook = useMonitorCloudOutlook({ selectedOption, today, addToast });
+  return {
+    settings,
+    premiumActive,
+    cloudCyclesLoading,
+    outlookOptions,
+    selectedOutlook,
+    radarSiteOptions,
+    radarSitesLoading,
+    radarSitesError,
+  };
+};
+
+const useMonitorPageLayers = ({ settings, addToast }: {
+  settings: MonitorSettings;
+  addToast: AddToastFn;
+}) => {
+  const radarConfig = useMemo(() => buildRadarLayerConfig(settings), [settings]);
+  const satelliteConfig = useMemo(() => buildSatelliteLayerConfig(settings.satelliteProduct), [settings.satelliteProduct]);
+  const [refreshToken, setRefreshToken] = useState(0);
+  const liveWmsLayers = useLiveWmsLayers({
+    radarConfig,
+    satelliteConfig,
+    animationEnabled: settings.animationEnabled,
+    animationSpeedMs: settings.animationSpeedMs,
+    refreshToken,
+    addToast,
+  });
+  const stormReportState = useMonitorStormReports({
+    enabled: settings.stormReportsEnabled,
+    filterTornado: settings.stormReportsFilterTornado,
+    filterWind: settings.stormReportsFilterWind,
+    filterHail: settings.stormReportsFilterHail,
+    matchOutlookType: settings.stormReportsMatchOutlookType,
+    outlookType: settings.outlookType,
+    refreshToken,
+    addToast,
+  });
+  const alertState = useMonitorNwsAlerts({
+    enabled: settings.alertsEnabled,
+    showWatches: settings.alertsShowWatches,
+    showWarnings: settings.alertsShowWarnings,
+    showAdvisories: settings.alertsShowAdvisories,
+    animationEnabled: settings.animationEnabled,
+    animationSpeedMs: settings.animationSpeedMs,
+    refreshToken,
+    addToast,
+  });
+  const referenceLayers = useMonitorReferenceLayers({
+    ndfdEnabled: settings.referenceLayers.ndfdTemperatureEnabled,
+    spcEnabled: settings.referenceLayers.spcMesoscaleDiscussionEnabled,
+    refreshToken,
+    addToast,
+  });
+  const onRefresh = useCallback(() => setRefreshToken((value) => value + 1), []);
+
+  return {
+    radarConfig,
+    satelliteConfig,
+    radarDisplayTime: liveWmsLayers.radarDisplayTime,
+    satelliteDisplayTime: liveWmsLayers.satelliteDisplayTime,
+    stormReportState,
+    alertState,
+    referenceLayers,
+    onRefresh,
+  };
+};
+
 interface MonitorPageWorkspaceProps {
   settings: MonitorSettings;
   outlookOptions: MonitorOutlookSourceOption[];
@@ -177,98 +285,22 @@ export const MonitorPage: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
   const { addToast } = useOutletContext<PageContext>();
   const [searchParams] = useSearchParams();
-  const didApplyHandoffSource = useRef(false);
-  const settings = useSelector((state: RootState) => state.monitor);
-  const currentCycle = useSelector(selectForecastCycle);
-  const savedCycles = useSelector(selectSavedCycles);
-  const { cycles: cloudCycles, loading: cloudCyclesLoading } = useCloudCycles();
-  const { premiumActive } = useEntitlement();
-  const { sites: radarSiteOptions, loading: radarSitesLoading, error: radarSitesError } = useRadarSiteOptions();
-  const today = useMemo(() => getLocalCalendarDate(), []);
-
-  useLocalMonitorSettings(settings);
-  usePremiumMonitorSettingsSync(settings);
-
-  const outlookOptions = useMemo(() => buildMonitorOutlookOptions({
-    currentCycle,
-    savedCycles,
-    cloudCycles: premiumActive ? cloudCycles : [],
-    today,
-  }), [cloudCycles, currentCycle, premiumActive, savedCycles, today]);
-
-  const selectedOption = useMemo(
-    () => resolveSelectedOutlookOption(outlookOptions, settings.outlookSource),
-    [outlookOptions, settings.outlookSource]
-  );
-
-  useEffect(() => {
-    if (didApplyHandoffSource.current) return;
-    const matchingSource = resolveHandoffSource(searchParams, outlookOptions);
-    if (matchingSource) {
-      dispatch(setMonitorOutlookSource({ kind: matchingSource.kind, id: matchingSource.id }));
-      didApplyHandoffSource.current = true;
-    }
-  }, [dispatch, outlookOptions, searchParams]);
-  const selectedOutlook = useMonitorCloudOutlook({ selectedOption, today, addToast });
-
-  const radarConfig = useMemo(() => buildRadarLayerConfig(settings), [settings]);
-  const satelliteConfig = useMemo(() => buildSatelliteLayerConfig(settings.satelliteProduct), [settings.satelliteProduct]);
-  const [refreshToken, setRefreshToken] = useState(0);
-  const { radarDisplayTime, satelliteDisplayTime } = useLiveWmsLayers({
-    radarConfig,
-    satelliteConfig,
-    animationEnabled: settings.animationEnabled,
-    animationSpeedMs: settings.animationSpeedMs,
-    refreshToken,
-    addToast,
-  });
-
-  const stormReportState = useMonitorStormReports({
-    enabled: settings.stormReportsEnabled,
-    filterTornado: settings.stormReportsFilterTornado,
-    filterWind: settings.stormReportsFilterWind,
-    filterHail: settings.stormReportsFilterHail,
-    matchOutlookType: settings.stormReportsMatchOutlookType,
-    outlookType: settings.outlookType,
-    refreshToken,
-    addToast,
-  });
-
-  const alertState = useMonitorNwsAlerts({
-    enabled: settings.alertsEnabled,
-    showWatches: settings.alertsShowWatches,
-    showWarnings: settings.alertsShowWarnings,
-    showAdvisories: settings.alertsShowAdvisories,
-    animationEnabled: settings.animationEnabled,
-    animationSpeedMs: settings.animationSpeedMs,
-    refreshToken,
-    addToast,
-  });
-
-  const referenceLayers = useMonitorReferenceLayers({
-    ndfdEnabled: settings.referenceLayers.ndfdTemperatureEnabled,
-    spcEnabled: settings.referenceLayers.spcMesoscaleDiscussionEnabled,
-    refreshToken,
-    addToast,
-  });
-
-  const handleRefreshLiveLayers = useCallback(() => {
-    setRefreshToken((value) => value + 1);
-  }, []);
+  const sources = useMonitorPageSources({ dispatch, searchParams, addToast });
+  const layers = useMonitorPageLayers({ settings: sources.settings, addToast });
 
   const radarLayer = useMemo(
-    () => radarConfig ? { ...radarConfig, latestTime: radarDisplayTime } : null,
-    [radarConfig, radarDisplayTime]
+    () => layers.radarConfig ? { ...layers.radarConfig, latestTime: layers.radarDisplayTime } : null,
+    [layers.radarConfig, layers.radarDisplayTime],
   );
   const satelliteLayer = useMemo(
-    () => satelliteConfig ? { ...satelliteConfig, latestTime: satelliteDisplayTime } : null,
-    [satelliteConfig, satelliteDisplayTime]
+    () => layers.satelliteConfig ? { ...layers.satelliteConfig, latestTime: layers.satelliteDisplayTime } : null,
+    [layers.satelliteConfig, layers.satelliteDisplayTime],
   );
   const ndfdTemperatureLayer = useMemo(
-    () => settings.referenceLayers.ndfdTemperatureEnabled
-      ? buildNdfdTemperatureLayerConfig(referenceLayers.ndfdTemperature.validTime ?? undefined)
+    () => sources.settings.referenceLayers.ndfdTemperatureEnabled
+      ? buildNdfdTemperatureLayerConfig(layers.referenceLayers.ndfdTemperature.validTime ?? undefined)
       : null,
-    [referenceLayers.ndfdTemperature.validTime, settings.referenceLayers.ndfdTemperatureEnabled],
+    [layers.referenceLayers.ndfdTemperature.validTime, sources.settings.referenceLayers.ndfdTemperatureEnabled],
   );
 
   const handleOutlookSourceChange = useCallback((source: MonitorSettings['outlookSource']) => {
@@ -279,30 +311,30 @@ export const MonitorPage: React.FC = () => {
     dispatch(setMonitorOutlookType(type));
   }, [dispatch]);
 
-  const syncLabel = premiumActive ? 'Cloud sync eligible' : 'Local settings';
-  const statusMessage = cloudCyclesLoading
+  const syncLabel = sources.premiumActive ? 'Cloud sync eligible' : 'Local settings';
+  const statusMessage = sources.cloudCyclesLoading
     ? 'Loading saved outlook sources.'
     : 'Live radar, satellite, SPC reports, and NWS alerts refresh with Playback or Refresh.';
 
   return (
     <MonitorPageWorkspace
-      settings={settings}
-      outlookOptions={outlookOptions}
-      selectedOutlook={selectedOutlook}
-      radarSiteOptions={radarSiteOptions}
-      radarSitesLoading={radarSitesLoading}
-      radarSitesError={radarSitesError}
-      radarDisplayTime={radarDisplayTime}
-      satelliteDisplayTime={satelliteDisplayTime}
+      settings={sources.settings}
+      outlookOptions={sources.outlookOptions}
+      selectedOutlook={sources.selectedOutlook}
+      radarSiteOptions={sources.radarSiteOptions}
+      radarSitesLoading={sources.radarSitesLoading}
+      radarSitesError={sources.radarSitesError}
+      radarDisplayTime={layers.radarDisplayTime}
+      satelliteDisplayTime={layers.satelliteDisplayTime}
       radarLayer={radarLayer}
       satelliteLayer={satelliteLayer}
       ndfdTemperatureLayer={ndfdTemperatureLayer}
       statusMessage={statusMessage}
       syncLabel={syncLabel}
-      stormReportState={stormReportState}
-      alertState={alertState}
-      referenceLayers={referenceLayers}
-      onRefresh={handleRefreshLiveLayers}
+      stormReportState={layers.stormReportState}
+      alertState={layers.alertState}
+      referenceLayers={layers.referenceLayers}
+      onRefresh={layers.onRefresh}
       onOutlookSourceChange={handleOutlookSourceChange}
       onOutlookTypeChange={handleOutlookTypeChange}
       dispatch={dispatch}

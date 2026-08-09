@@ -103,6 +103,36 @@ const readProductNumber = (record: Record<string, unknown>): string | undefined 
 const isPolygonGeometry = (value: unknown): value is Polygon | MultiPolygon =>
   isRecord(value) && (value.type === 'Polygon' || value.type === 'MultiPolygon') && Array.isArray(value.coordinates);
 
+type NormalizedPropertyKey =
+  | 'issuedAt'
+  | 'validFrom'
+  | 'validTo'
+  | 'affected'
+  | 'concerning'
+  | 'summary'
+  | 'discussion'
+  | 'sourceUrl';
+
+const NORMALIZED_PROPERTY_ALIASES = [
+  ['issuedAt', ['issuedAt', 'issued', 'issue_time', 'issuetime']],
+  ['validFrom', ['validFrom', 'valid', 'valid_start', 'validstart']],
+  ['validTo', ['validTo', 'expire', 'expires', 'valid_end', 'validend']],
+  ['affected', ['affected', 'areas_affected', 'affected_area']],
+  ['concerning', ['concerning', 'concerning_line']],
+  ['summary', ['summary', 'summary_text']],
+  ['discussion', ['discussion', 'technical_discussion', 'discussion_text']],
+  ['sourceUrl', ['sourceUrl', 'url', 'link', 'product_url']],
+] as const satisfies ReadonlyArray<readonly [NormalizedPropertyKey, readonly string[]]>;
+
+const readNormalizedProperties = (record: Record<string, unknown>): Partial<Record<NormalizedPropertyKey, string>> => {
+  const properties: Partial<Record<NormalizedPropertyKey, string>> = {};
+  for (const [property, aliases] of NORMALIZED_PROPERTY_ALIASES) {
+    const value = readString(record, aliases);
+    if (value) properties[property] = value;
+  }
+  return properties;
+};
+
 const normalizeProperties = (value: unknown): MonitorMesoscaleDiscussionProperties => {
   const record = isRecord(value) ? value : {};
   const productNumber = readProductNumber(record);
@@ -112,14 +142,22 @@ const normalizeProperties = (value: unknown): MonitorMesoscaleDiscussionProperti
   return {
     label,
     ...(productNumber ? { productNumber } : {}),
-    ...(readString(record, ['issuedAt', 'issued', 'issue_time', 'issuetime']) ? { issuedAt: readString(record, ['issuedAt', 'issued', 'issue_time', 'issuetime']) } : {}),
-    ...(readString(record, ['validFrom', 'valid', 'valid_start', 'validstart']) ? { validFrom: readString(record, ['validFrom', 'valid', 'valid_start', 'validstart']) } : {}),
-    ...(readString(record, ['validTo', 'expire', 'expires', 'valid_end', 'validend']) ? { validTo: readString(record, ['validTo', 'expire', 'expires', 'valid_end', 'validend']) } : {}),
-    ...(readString(record, ['affected', 'areas_affected', 'affected_area']) ? { affected: readString(record, ['affected', 'areas_affected', 'affected_area']) } : {}),
-    ...(readString(record, ['concerning', 'concerning_line']) ? { concerning: readString(record, ['concerning', 'concerning_line']) } : {}),
-    ...(readString(record, ['summary', 'summary_text']) ? { summary: readString(record, ['summary', 'summary_text']) } : {}),
-    ...(readString(record, ['discussion', 'technical_discussion', 'discussion_text']) ? { discussion: readString(record, ['discussion', 'technical_discussion', 'discussion_text']) } : {}),
-    ...(readString(record, ['sourceUrl', 'url', 'link', 'product_url']) ? { sourceUrl: readString(record, ['sourceUrl', 'url', 'link', 'product_url']) } : {}),
+    ...readNormalizedProperties(record),
+  };
+};
+
+const normalizeSpcMesoscaleDiscussionFeature = (candidate: unknown, index: number) => {
+  if (!isRecord(candidate) || !isPolygonGeometry(candidate.geometry)) return null;
+
+  const candidateId = candidate.id;
+  const id = typeof candidateId === 'string' || typeof candidateId === 'number'
+    ? String(candidateId)
+    : `spc-md-${index}`;
+  return {
+    type: 'Feature' as const,
+    id,
+    geometry: candidate.geometry,
+    properties: normalizeProperties(candidate.properties),
   };
 };
 
@@ -130,19 +168,8 @@ export const normalizeSpcMesoscaleDiscussionCollection = (value: unknown): Monit
   }
 
   const features = value.features.flatMap((candidate, index) => {
-    if (!isRecord(candidate) || !isPolygonGeometry(candidate.geometry)) {
-      return [];
-    }
-
-    const id = typeof candidate.id === 'string' || typeof candidate.id === 'number'
-      ? String(candidate.id)
-      : `spc-md-${index}`;
-    return [{
-      type: 'Feature' as const,
-      id,
-      geometry: candidate.geometry,
-      properties: normalizeProperties(candidate.properties),
-    }];
+    const feature = normalizeSpcMesoscaleDiscussionFeature(candidate, index);
+    return feature ? [feature] : [];
   });
 
   return { type: 'FeatureCollection', features };
