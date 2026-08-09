@@ -4,6 +4,10 @@ Research captured 2026-08-09. Re-check provider capabilities and terms before
 enabling a source in a hosted target; these services are operational and can
 change independently of GFC.
 
+This document and its fixtures establish the source contract only. HOT-04 owns
+the opt-in adapters and Monitor controls; no source described here is enabled
+by this research change.
+
 ## Recommended sources
 
 | Product | Official source | Shape/use | Refresh and validity | Attribution/operations |
