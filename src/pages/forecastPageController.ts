@@ -274,6 +274,30 @@ const copyLegacyAutoSaveToScopedStorage = (scopedKey: string, legacyValue: strin
   localStorage.removeItem('forecastData');
 };
 
+interface LocalRestoreCandidate {
+  scopedKey: string;
+  storedValue: string | null;
+  legacyValue: string | null;
+  shouldMigrateLegacy: boolean;
+}
+
+const readLocalRestoreCandidate = (userId?: string | null): LocalRestoreCandidate => {
+  const scopedKey = getAutoSaveStorageKey(userId);
+  const scopedValue = localStorage.getItem(scopedKey);
+  if (!userId) {
+    return { scopedKey, storedValue: scopedValue, legacyValue: null, shouldMigrateLegacy: false };
+  }
+
+  const legacyValue = localStorage.getItem('forecastData');
+  const storedValue = selectPreferredAutoSaveValue(scopedValue, legacyValue);
+  return {
+    scopedKey,
+    storedValue,
+    legacyValue,
+    shouldMigrateLegacy: legacyValue !== null && storedValue === legacyValue,
+  };
+};
+
 const restoreLocalSession = (
   dispatch: ShortcutDispatch,
   addToast: AddToastFn,
@@ -281,13 +305,10 @@ const restoreLocalSession = (
   userId?: string | null,
 ): boolean => {
   if (shouldSkipLocalRestore(currentSession.forecastCycle, currentSession.discussionDraftsByScope)) return false;
-  const scopedKey = getAutoSaveStorageKey(userId);
-  const scopedValue = localStorage.getItem(scopedKey);
-  const legacyValue = userId ? localStorage.getItem('forecastData') : null;
-  const storedValue = userId ? selectPreferredAutoSaveValue(scopedValue, legacyValue) : scopedValue;
-  const data = parseStoredForecastPayload(storedValue);
+  const candidate = readLocalRestoreCandidate(userId);
+  const data = parseStoredForecastPayload(candidate.storedValue);
   if (!data) return false;
-  if (userId && legacyValue !== null && storedValue === legacyValue) copyLegacyAutoSaveToScopedStorage(scopedKey, legacyValue);
+  if (candidate.shouldMigrateLegacy) copyLegacyAutoSaveToScopedStorage(candidate.scopedKey, candidate.legacyValue);
   restoreStoredForecastPayload(data, dispatch, true);
   addToast('Session restored from auto-save.', 'success');
   return true;
