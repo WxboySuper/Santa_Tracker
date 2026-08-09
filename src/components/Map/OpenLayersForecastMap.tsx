@@ -1065,14 +1065,18 @@ const OpenLayersForecastMap = forwardRef<MapAdapterHandle<OLMap> | null, OpenLay
       );
 
       const normalDescriptors: FeatureSyncDescriptor[] = serializedFeatures.map(
-        ({ outlookType, probability, feature, zIndex }) => {
+        ({ outlookType, probability, feature, zIndex }, index) => {
+          const stableId = feature.id == null ? `legacy-index-${index}` : String(feature.id);
           const isCategorical = outlookType === "categorical";
           const isTopLayer = zIndex === maxZIndex;
           const targetSource = isCategorical ? catSource : source;
 
           return {
-            key: `normal:${outlookType}:${probability}:${String(feature.id)}`,
+            // Legacy serialized forecasts may omit feature ids; position is the
+            // only stable identity available for those entries.
+            key: `normal:${outlookType}:${probability}:${stableId}`,
             feature,
+            stableId,
             signature: [
               outlookType,
               probability,
@@ -1092,7 +1096,7 @@ const OpenLayersForecastMap = forwardRef<MapAdapterHandle<OLMap> | null, OpenLay
                   { isTopLayer, outlookOpacity },
                 ),
               );
-              item.set("featureId", feature.id as string);
+              item.set("featureId", stableId);
               item.set("outlookType", outlookType);
               item.set("probability", probability);
               item.set("isSignificant", Boolean(feature.properties?.isSignificant));
@@ -1110,11 +1114,13 @@ const OpenLayersForecastMap = forwardRef<MapAdapterHandle<OLMap> | null, OpenLay
         700,
       );
       const customDescriptors: FeatureSyncDescriptor[] = customMode
-        ? serializedCustomFeatures.map(({ feature, category, layer }) => {
+        ? serializedCustomFeatures.map(({ feature, category, layer }, index) => {
+            const stableId = feature.id == null ? `legacy-index-${index}` : String(feature.id);
             const zIndex = 700 + layer.order * 20 + category.order;
             return {
-              key: `custom:${layer.id}:${String(feature.id)}`,
+              key: `custom:${layer.id}:${stableId}`,
               feature,
+              stableId,
               signature: [
                 layer.id,
                 layer.label,
@@ -1137,7 +1143,7 @@ const OpenLayersForecastMap = forwardRef<MapAdapterHandle<OLMap> | null, OpenLay
                     zIndex,
                   ),
                 );
-                item.set("featureId", feature.id as string);
+                item.set("featureId", stableId);
                 item.set("customLayerId", layer.id);
                 item.set("customLayerTitle", layer.label);
                 item.set("categoryId", category.id);
@@ -1162,10 +1168,12 @@ const OpenLayersForecastMap = forwardRef<MapAdapterHandle<OLMap> | null, OpenLay
 
         probs.forEach((features: GeoJsonFeature[], probability: string) => {
           const isCategorical = outlookType === "categorical";
-          features.forEach((feature) => {
+          features.forEach((feature, index) => {
+            const stableId = feature.id == null ? `legacy-index-${index}` : String(feature.id);
             ghostDescriptors.push({
-              key: `ghost:${outlookType}:${probability}:${String(feature.id)}`,
+              key: `ghost:${outlookType}:${probability}:${stableId}`,
               feature,
+              stableId,
               signature: [
                 outlookType,
                 probability,
@@ -1181,7 +1189,7 @@ const OpenLayersForecastMap = forwardRef<MapAdapterHandle<OLMap> | null, OpenLay
                 item.setStyle(
                   toGhostOlStyle({ outlookType, probability, isCategorical }),
                 );
-                item.set("featureId", feature.id as string);
+                item.set("featureId", stableId);
                 item.set("outlookType", outlookType);
                 item.set("probability", probability);
                 item.set("isSignificant", Boolean(feature.properties?.isSignificant));

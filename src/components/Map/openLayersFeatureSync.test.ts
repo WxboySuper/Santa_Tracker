@@ -184,4 +184,17 @@ describe("reconcileFeatureSource", () => {
       "requires a feature id",
     );
   });
+
+  test("accepts an explicit fallback identity for legacy features", () => {
+    const source = new VectorSource();
+    const format = new GeoJSON();
+    const feature = { ...createFeature("missing-id", 0), id: undefined };
+
+    expect(() => reconcileFeatureSource(source, [{
+      ...createDescriptor(feature, format),
+      key: "normal:legacy-index-0",
+      stableId: "legacy-index-0",
+    }])).not.toThrow();
+    expect(source.getFeatures()).toHaveLength(1);
+  });
 });

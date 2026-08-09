@@ -10,6 +10,8 @@ const RENDER_SIGNATURE = "__gfcRenderSignature";
 export type FeatureSyncDescriptor = {
   key: string;
   feature: GeoJsonFeature;
+  /** Stable fallback for legacy serialized features that do not carry an id. */
+  stableId?: string;
   signature: string;
   read: () => Feature<Geometry> | Feature<Geometry>[];
   apply: (feature: Feature<Geometry>) => void;
@@ -41,7 +43,8 @@ const normalizeReadResult = (
 const validateDescriptors = (descriptors: FeatureSyncDescriptor[]): void => {
   const keys = new Set<string>();
   descriptors.forEach((descriptor) => {
-    if (descriptor.feature.id === undefined || descriptor.feature.id === null) {
+    const stableId = descriptor.stableId ?? descriptor.feature.id;
+    if (stableId === undefined || stableId === null || String(stableId).trim() === "") {
       throw new Error(`Feature sync descriptor "${descriptor.key}" requires a feature id.`);
     }
     if (!descriptor.key.trim() || keys.has(descriptor.key)) {
