@@ -1,9 +1,29 @@
+import { execFileSync } from 'node:child_process';
 import { evaluatePrChangelog } from './lib/pr-changelog-evaluate.mjs';
 import { listChangedFilesBetweenRefs } from './lib/git-changed-files.mjs';
 
-const baseRef = process.env.GITHUB_BASE_REF ?? '';
+const eventBaseRef = process.env.GITHUB_BASE_REF ?? '';
 const headRef = process.env.GITHUB_HEAD_REF ?? '';
 const eventBody = process.env.PR_BODY ?? '';
+
+/** Fetch the current PR base so stacked PRs use their live parent branch. */
+const livePrBaseRef = () => {
+  const repository = process.env.GITHUB_REPOSITORY ?? '';
+  const prNumber = Number(process.env.PR_NUMBER ?? 0);
+  if (![repository, prNumber, process.env.GH_TOKEN].every(Boolean)) return '';
+  try {
+    return execFileSync('gh', [
+      'api',
+      `repos/${repository}/pulls/${prNumber}`,
+      '--jq',
+      '.base.ref',
+    ], { encoding: 'utf8' }).trim();
+  } catch {
+    return '';
+  }
+};
+
+const baseRef = livePrBaseRef() || eventBaseRef;
 
 if (!baseRef || !headRef) {
   console.log('No PR base/head branch; skipping changelog check.');
