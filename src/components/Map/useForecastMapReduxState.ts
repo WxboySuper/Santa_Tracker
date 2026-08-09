@@ -81,7 +81,7 @@ const useForecastMapFeatureProjection = ({ customMode, drawingState, outlooks, c
 
   const serializedCustomFeatures = useMemo(
     () => customMode ? projectCustomFeatures(customLayers) : [],
-    [customLayers.layers, customMode],
+    [customLayers, customMode],
   );
 
   return {
