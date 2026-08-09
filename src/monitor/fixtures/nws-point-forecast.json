@@ -8,10 +8,10 @@
   "properties": {
     "cwa": "TOP",
     "gridId": "TOP",
-    "gridX": 31,
-    "gridY": 80,
-    "forecast": "https://api.weather.gov/gridpoints/TOP/31,80/forecast",
-    "forecastHourly": "https://api.weather.gov/gridpoints/TOP/31,80/forecast/hourly",
-    "forecastGridData": "https://api.weather.gov/gridpoints/TOP/31,80"
+    "gridX": 32,
+    "gridY": 81,
+    "forecast": "https://api.weather.gov/gridpoints/TOP/32,81/forecast",
+    "forecastHourly": "https://api.weather.gov/gridpoints/TOP/32,81/forecast/hourly",
+    "forecastGridData": "https://api.weather.gov/gridpoints/TOP/32,81"
   }
 }

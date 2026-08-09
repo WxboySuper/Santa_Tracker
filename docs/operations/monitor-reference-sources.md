@@ -14,7 +14,7 @@ by this research change.
 | --- | --- | --- | --- | --- |
 | NWS point/grid forecast | [`/points/{lat},{lon}`](https://api.weather.gov/points/39.7456,-97.0892), then the discovered `forecast`, `forecastHourly`, or `forecastGridData` link | JSON-LD/GeoJSON point metadata plus linked forecast periods; use for a selected point or forecast metadata, not a fabricated polygon | The point response supplies the current WFO/grid mapping and cache headers; periodically re-check `/points` because the mapping can change | NOAA/NWS open data. Send an identifying `User-Agent` with contact information and respect provider rate limits |
 | NDFD temperature forecast | [NDFD temperature MapServer](https://mapservices.weather.noaa.gov/raster/rest/services/NDFD/NDFD_temp/MapServer) and its [OGC WMS capabilities](https://mapservices.weather.noaa.gov/raster/services/NDFD/NDFD_temp/MapServer/WMSServer?request=GetCapabilities&service=WMS) | Time-enabled WMS raster for current and forecast temperature products; use as the map reference layer | Provider documents updates at 20 and 50 minutes past the hour. Discover valid times from capabilities/Identify or the service return-updates operation; do not hard-code a timestamp | NOAA/NWS/DISS GIS service. Keep the service attribution visible in Monitor and any image export |
-| SPC Mesoscale Discussions | [SPC ArcGIS layer](https://mapservices.weather.noaa.gov/vector/rest/services/outlooks/spc_mesoscale_discussion/MapServer/0), [SPC MD RSS](https://www.spc.noaa.gov/products/spcmdrss.xml), and [ActiveMD.kmz](https://www.spc.noaa.gov/products/md/ActiveMD.kmz) | GeoJSON polygon layer with area, affected/concerning lines, valid time, summary, technical discussion, and product link; RSS is the lightweight issuance index | The ArcGIS service documents updates within 15 minutes of an MD/MCD issuance and is not time-enabled; treat the current response as a replaceable snapshot | NOAA/NWS/SPC. Keep product number, source link, and valid time visible; never interpret an MD as a GFC warning or forecast edit |
+| SPC Mesoscale Discussions | [SPC ArcGIS layer](https://mapservices.weather.noaa.gov/vector/rest/services/outlooks/spc_mesoscale_discussion/MapServer/0), [SPC MD RSS](https://www.spc.noaa.gov/products/spcmdrss.xml), and [ActiveMD.kmz](https://www.spc.noaa.gov/products/md/ActiveMD.kmz) | GeoJSON polygon layer with provider metadata such as `name`, `folderpath` (active-until text), `popupinfo` (product link), and ArcGIS timestamps; RSS or the linked MD product supplies richer issuance text | The ArcGIS service documents updates within 15 minutes of an MD/MCD issuance and is not time-enabled; treat the current response as a replaceable snapshot | NOAA/NWS/SPC. Keep the product number, source link, and provider validity text visible; never infer structured validity or interpret an MD as a GFC warning or forecast edit |
 
 The NWS API is the official point/grid forecast source, but it does not itself
 provide a national forecast polygon layer. NDFD WMS is therefore the map
@@ -87,7 +87,9 @@ Small representative fixtures are checked in for parser tests:
 - [`nws-forecast.json`](../../src/monitor/fixtures/nws-forecast.json) captures
   the period fields the normalizer needs.
 - [`spc-mesoscale-discussion.geojson`](../../src/monitor/fixtures/spc-mesoscale-discussion.geojson)
-  captures one polygon and the metadata needed for a map popup.
+  captures one polygon and the provider metadata (`name`, `folderpath`,
+  `popupinfo`, and ArcGIS timestamps) needed to construct a normalized map
+  popup.
 
 These are deliberately small, synthetic-at-capture-shape fixtures rather than
 an archive of provider data. The live URLs and access date above are the

@@ -1,11 +1,16 @@
 {
   "type": "Feature",
-  "id": "https://api.weather.gov/gridpoints/TOP/31,80/forecast",
   "geometry": null,
   "properties": {
-    "updated": "2026-08-09T12:00:00+00:00",
-    "units": "us-customary",
-    "forecastGenerator": "MockForecastGenerator",
+    "units": "us",
+    "forecastGenerator": "BaselineForecastGenerator",
+    "generatedAt": "2026-08-09T18:31:49-05:00",
+    "updateTime": "2026-08-09T18:11:52-05:00",
+    "validTimes": "2026-08-09T17:00:00+00:00/P7DT8H",
+    "elevation": {
+      "unitCode": "wmoUnit:m",
+      "value": 441.96
+    },
     "periods": [
       {
         "number": 1,
