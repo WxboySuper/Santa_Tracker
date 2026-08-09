@@ -437,7 +437,9 @@ const readRolloverStorageSnapshot = (userId: string | null | undefined, today: s
 
 const deriveLegacyRolloverPrompt = ({ today, legacyLastActiveDay, legacyPromptedDay, existingPendingPrompt }: RolloverStorageSnapshot): DayRolloverPromptState | null => {
   if (existingPendingPrompt) return existingPendingPrompt;
-  if (legacyPromptedDay !== today || !legacyLastActiveDay || legacyLastActiveDay === today) return null;
+  if (legacyPromptedDay !== today) return null;
+  if (!legacyLastActiveDay) return null;
+  if (legacyLastActiveDay === today) return null;
   return { previousDay: legacyLastActiveDay, currentDay: today };
 };
 
