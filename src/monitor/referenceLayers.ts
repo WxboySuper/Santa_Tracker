@@ -161,9 +161,17 @@ const normalizeSpcMesoscaleDiscussionFeature = (candidate: unknown, index: numbe
   };
 };
 
+const isSpcMesoscaleDiscussionCollection = (
+  value: unknown,
+): value is { type: 'FeatureCollection'; features: unknown[] } => {
+  if (!isRecord(value)) return false;
+  if (value.type !== 'FeatureCollection') return false;
+  return Array.isArray(value.features);
+};
+
 /** Normalizes the provider GeoJSON shape while dropping malformed non-polygon features. */
 export const normalizeSpcMesoscaleDiscussionCollection = (value: unknown): MonitorMesoscaleDiscussionCollection => {
-  if (!isRecord(value) || value.type !== 'FeatureCollection' || !Array.isArray(value.features)) {
+  if (!isSpcMesoscaleDiscussionCollection(value)) {
     throw new Error('SPC mesoscale discussion response is not a GeoJSON FeatureCollection.');
   }
 
