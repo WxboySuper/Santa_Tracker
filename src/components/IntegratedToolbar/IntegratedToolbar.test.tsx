@@ -170,10 +170,17 @@ describe('local-only custom Draw mode', () => {
     const user = userEvent.setup();
     const store = createStore();
     renderToolbar('tabbed', store);
+    const toggle = screen.getByTestId('custom-product-toggle');
+    expect(toggle).not.toHaveClass('is-custom-mode');
+    expect(screen.getByRole('radio', { name: 'Severe' }))
+      .toHaveClass('custom-product-toggle__button--leading');
+    expect(screen.getByRole('radio', { name: 'Custom' }))
+      .toHaveClass('custom-product-toggle__button--trailing');
     expect(screen.getByRole('radio', { name: 'Severe' })).toHaveAttribute('aria-checked', 'true');
     expect(screen.queryByRole('button', { name: /Saved products/i })).not.toBeInTheDocument();
 
     await user.click(screen.getByRole('radio', { name: 'Custom' }));
+    expect(toggle).toHaveClass('is-custom-mode');
     expect(screen.queryByRole('button', { name: /wind/i })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Saved products/i })).toBeInTheDocument();
     expect(screen.getByTestId('custom-draw-panel')).toBeInTheDocument();

@@ -145,9 +145,11 @@
 .custom-product-mode-panel { animation: custom-product-panel-enter 210ms cubic-bezier(.2,.8,.2,1); }
 .custom-product-toggle { position: relative; display: grid; grid-template-columns: repeat(2, 1fr); width: 142px; min-height: 40px; padding: 4px; border: 1px solid var(--border-color); border-radius: 12px; background: var(--bg-tertiary); box-shadow: inset 0 1px 1px rgba(15, 23, 42, .10); isolation: isolate; }
 .custom-product-toggle::before { position: absolute; inset: 4px; border-radius: 8px; background: color-mix(in srgb, var(--bg-secondary) 82%, transparent); content: ''; }
-.custom-product-toggle__indicator { position: absolute; inset: 4px auto 4px 4px; width: calc(50% - 4px); border: 1px solid color-mix(in srgb, var(--button-bg) 74%, #ffffff); border-radius: 8px; background: var(--button-bg); box-shadow: 0 5px 12px -8px color-mix(in srgb, var(--button-bg) 90%, transparent); transition: transform 240ms cubic-bezier(.2,.85,.25,1), border-radius 180ms ease; }
-.custom-product-toggle:has(.custom-product-toggle__button:last-child.is-active) .custom-product-toggle__indicator { transform: translateX(100%); }
+.custom-product-toggle__indicator { position: absolute; inset: 4px auto 4px 4px; width: calc(50% - 4px); border: 1px solid color-mix(in srgb, var(--button-bg) 74%, #ffffff); border-radius: 8px 0 0 8px; background: var(--button-bg); box-shadow: 0 5px 12px -8px color-mix(in srgb, var(--button-bg) 90%, transparent); transition: transform 240ms cubic-bezier(.2,.85,.25,1), border-radius 180ms ease; }
+.custom-product-toggle.is-custom-mode .custom-product-toggle__indicator { transform: translateX(100%); border-radius: 0 8px 8px 0; }
 .custom-product-toggle__button { position: relative; z-index: 1; min-height: 30px; border: 0 !important; border-radius: 7px; background: transparent !important; padding: 4px 8px; color: var(--text-secondary); font-size: 11px; font-weight: 800; letter-spacing: .02em; transition: color 180ms ease, transform 180ms ease; }
+.custom-product-toggle__button--leading { border-radius: 7px 0 0 7px; }
+.custom-product-toggle__button--trailing { border-radius: 0 7px 7px 0; }
 .dark-mode .custom-product-toggle__button { background: transparent !important; background-color: transparent !important; }
 .custom-product-toggle__button:hover { color: var(--text-primary); }
 .custom-product-toggle__button.is-active { color: #ffffff; transform: translateY(-.5px); }
