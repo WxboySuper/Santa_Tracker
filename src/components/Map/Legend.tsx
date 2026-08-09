@@ -11,10 +11,13 @@ import type { CustomCategoryTemplate } from '../../types/customProducts';
 
 type LegendOutlookType = 'categorical' | 'tornado' | 'wind' | 'hail' | 'totalSevere' | 'day4-8';
 
+const DEFAULT_REPORT_FILTERS = { tornado: true, wind: true, hail: true };
+
 interface LegendProps {
   activeOutlookType?: LegendOutlookType;
   desktopOpen?: boolean;
   mobileOpen?: boolean;
+  showReportLegend?: boolean;
 }
 
 // Optimized: Memoized to prevent re-renders when parent re-renders
@@ -22,12 +25,15 @@ const Legend: React.FC<LegendProps> = React.memo(({
   activeOutlookType: activeOutlookTypeOverride,
   desktopOpen = true,
   mobileOpen = false,
+  showReportLegend = false,
 }) => {
   // Optimized: Select only activeOutlookType to avoid re-rendering on other drawing state changes (like activeProbability)
   const storeActiveOutlookType = useSelector((state: RootState) => state.forecast.drawingState.activeOutlookType);
   const darkMode = useSelector((state: RootState) => state.theme.darkMode);
-  const reportsVisible = useSelector((state: RootState) => state.stormReports?.visible ?? false);
-  const reportFilters = useSelector((state: RootState) => state.stormReports?.filterByType ?? { tornado: true, wind: true, hail: true });
+  const reportsVisible = useSelector((state: RootState) => showReportLegend && (state.stormReports?.visible ?? false));
+  const reportFilters = useSelector((state: RootState) => showReportLegend
+    ? state.stormReports?.filterByType ?? DEFAULT_REPORT_FILTERS
+    : DEFAULT_REPORT_FILTERS);
   const customEditor = useSelector((state: RootState) => state.forecast.customEditor) ?? { mode: 'severe' as const, activeLayerId: null, activeCategoryId: null };
   const customLayers = useSelector(selectCurrentCustomLayers);
   const activeOutlookType = activeOutlookTypeOverride || storeActiveOutlookType;
