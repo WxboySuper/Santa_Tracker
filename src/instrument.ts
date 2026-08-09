@@ -18,6 +18,7 @@ const OPENLAYERS_CANVAS_MESSAGE = /^null is not an object \(evaluating '[a-z]{1,
 const REQUEST_ANIMATION_FRAME_MECHANISM = 'auto.browser.browserapierrors.requestAnimationFrame';
 const OPAQUE_GLOBAL_ERROR_MESSAGE = /^uncaught exception: undefined$/i;
 const GLOBAL_ERROR_MECHANISM = 'auto.browser.global_handlers.onerror';
+const EXPECTED_MONITOR_REFERENCE_OUTAGE_TAG = 'gfc_monitor_reference_outage';
 
 const REQUEST_LIFECYCLE_MESSAGES = [
   /^(NetworkError: )?A network error occurred\.?$/i,
@@ -133,9 +134,35 @@ function isKnownBrowserNoise(event: Event): boolean {
   return false;
 }
 
+/** Expected provider outages are retained as tagged context for local debugging, but not sent as errors. */
+function isExpectedMonitorReferenceOutage(event: Event): boolean {
+  return event.tags?.[EXPECTED_MONITOR_REFERENCE_OUTAGE_TAG] === 'true';
+}
+
 /** Drops known no-stack browser noise while preserving actionable stacked errors. */
 export function beforeSend(event: ErrorEvent, _hint: EventHint): ErrorEvent | null {
-  return isKnownBrowserNoise(event) ? null : event;
+  return isKnownBrowserNoise(event) || isExpectedMonitorReferenceOutage(event) ? null : event;
+}
+
+/** Records expected Monitor upstream failures with source context; beforeSend filters the expected outage. */
+export function captureExpectedMonitorReferenceFailure(
+  sourceId: 'ndfd-temperature' | 'spc-mesoscale-discussion',
+  error: unknown,
+): void {
+  if (!isSentryEnabled()) {
+    return;
+  }
+
+  Sentry.withScope((scope) => {
+    scope.setTag('gfc_area', 'monitor');
+    scope.setTag('gfc_monitor_reference_layer', sourceId);
+    scope.setTag(EXPECTED_MONITOR_REFERENCE_OUTAGE_TAG, 'true');
+    scope.setContext('monitor_reference', {
+      sourceId,
+      expectedUpstreamFailure: true,
+    });
+    Sentry.captureException(error);
+  });
 }
 
 /** Initializes Sentry when a DSN is present. No-op in local dev without a DSN. */

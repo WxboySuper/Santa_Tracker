@@ -23,6 +23,7 @@ interface MonitorMapProps {
   alertsCollection: NwsAlertFeatureCollection;
   alertsOpacity: number;
   mesoscaleDiscussions: MonitorMesoscaleDiscussionCollection;
+  referenceAttributions: string[];
 }
 
 /** Monitor workspace map shell hosting radar, satellite, outlook, and alert layers. */
@@ -40,6 +41,7 @@ const MonitorMap: React.FC<MonitorMapProps> = ({
   alertsCollection,
   alertsOpacity,
   mesoscaleDiscussions,
+  referenceAttributions,
 }) => {
   const mapElementRef = useRef<HTMLDivElement>(null);
   const serializedFeatures = useMemo(
@@ -67,6 +69,11 @@ const MonitorMap: React.FC<MonitorMapProps> = ({
     <div className="monitor-map" aria-label="Monitor map" translate="no">
       <div ref={mapElementRef} className="monitor-map__viewport" />
       <div className="monitor-map__badge">Read-only monitor</div>
+      {referenceAttributions.length > 0 ? (
+        <div className="monitor-map__attribution" aria-label="Reference layer attribution">
+          {referenceAttributions.join(' · ')}
+        </div>
+      ) : null}
     </div>
   );
 };

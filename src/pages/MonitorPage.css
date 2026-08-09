@@ -57,10 +57,12 @@
 .monitor-controls__header p,
 .monitor-controls__meta,
 .monitor-controls__buttonRow span {
+  min-width: 0;
   margin: 4px 0 0;
   font-size: 12px;
   line-height: 1.35;
   color: rgb(71, 85, 105);
+  overflow-wrap: anywhere;
 }
 
 .dark-mode .monitor-controls__header p,
@@ -158,6 +160,7 @@
 
 .monitor-controls label.monitor-controls__checkbox {
   display: flex;
+  min-height: 44px;
   align-items: center;
   gap: 8px;
   font-weight: 600;
@@ -202,6 +205,18 @@
   accent-color: rgb(37, 99, 235);
 }
 
+.monitor-controls__source {
+  display: inline;
+  overflow-wrap: anywhere;
+}
+
+.monitor-controls__source a {
+  color: inherit;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
 .monitor-controls__buttonRow {
   display: flex;
   align-items: center;
@@ -230,6 +245,23 @@
   color: white;
   font-size: 12px;
   font-weight: 700;
+  pointer-events: none;
+}
+
+.monitor-map__attribution {
+  position: absolute;
+  left: 12px;
+  right: 40px;
+  bottom: 12px;
+  z-index: 1100;
+  max-width: min(72%, 640px);
+  padding: 5px 8px;
+  border-radius: 5px;
+  background: rgba(15, 23, 42, 0.82);
+  color: white;
+  font-size: 10px;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
   pointer-events: none;
 }
 
@@ -392,6 +424,13 @@
 
   .monitor-map {
     order: 1;
+  }
+
+  .monitor-map__attribution {
+    left: 8px;
+    right: 40px;
+    bottom: 8px;
+    max-width: none;
   }
 }
 

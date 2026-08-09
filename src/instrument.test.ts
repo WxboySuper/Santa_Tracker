@@ -268,4 +268,15 @@ describe('instrument', () => {
   it('keeps unrelated application errors', () => {
     expectBeforeSendToKeep(() => createRequestLifecycleEvent('Cannot read properties of undefined'));
   });
+
+  it('drops explicitly tagged expected Monitor reference outages', () => {
+    expectBeforeSendToDrop(() => ({
+      ...createRequestLifecycleEvent('SPC mesoscale discussions unavailable.'),
+      tags: {
+        gfc_area: 'monitor',
+        gfc_monitor_reference_layer: 'spc-mesoscale-discussion',
+        gfc_monitor_reference_outage: 'true',
+      },
+    }));
+  });
 });

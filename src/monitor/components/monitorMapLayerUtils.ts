@@ -21,6 +21,17 @@ export const OUTLOOK_LAYER_Z_INDEX = 1040;
 export const STORM_REPORTS_LAYER_Z_INDEX = 1048;
 export const TOP_VECTOR_REFERENCE_LAYER_Z_INDEX = 1050;
 
+/** Stable compositing order: official references below warnings and user-owned overlays. */
+export const MONITOR_LAYER_Z_ORDER = Object.freeze({
+  ndfdTemperature: NDFD_REFERENCE_LAYER_Z_INDEX,
+  spcMesoscaleDiscussion: SPC_REFERENCE_LAYER_Z_INDEX,
+  alerts: ALERTS_LAYER_Z_INDEX,
+  outlook: OUTLOOK_LAYER_Z_INDEX,
+  stateOutlines: STATE_OUTLINE_LAYER_Z_INDEX,
+  stormReports: STORM_REPORTS_LAYER_Z_INDEX,
+  mapReferenceControls: TOP_VECTOR_REFERENCE_LAYER_Z_INDEX,
+});
+
 const US_STATES_GEOJSON_URL = getGeoBoundarySource('usStates').url;
 
 let cachedUsStatesGeoJSON: object | null = null;

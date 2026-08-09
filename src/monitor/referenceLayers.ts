@@ -5,6 +5,9 @@ export type MonitorReferenceLayerId = 'ndfd-temperature' | 'spc-mesoscale-discus
 
 export type MonitorReferenceLayerStatus = 'idle' | 'loading' | 'ready' | 'empty' | 'stale' | 'error';
 
+/** Short, bounded retry schedule for transient NOAA upstream failures. */
+export const MONITOR_REFERENCE_RETRY_DELAYS_MS = [1000, 5000] as const;
+
 export interface MonitorReferenceLayerMeta {
   status: MonitorReferenceLayerStatus;
   sourceName: string;
@@ -39,6 +42,21 @@ export interface MonitorMesoscaleDiscussionProperties {
   sourceUrl?: string;
 }
 
+/** Presents an ISO instant or WMS interval in a compact, local-time label. */
+export const formatMonitorReferenceTime = (value: string | null): string => {
+  if (!value) return 'provider latest';
+  const [start, end] = value.split('/');
+  const startDate = new Date(start);
+  const endDate = end ? new Date(end) : null;
+  if (!Number.isNaN(startDate.getTime())) {
+    const format = (date: Date) => date.toLocaleString([], { dateStyle: 'short', timeStyle: 'short' });
+    return endDate && !Number.isNaN(endDate.getTime())
+      ? `${format(startDate)}–${format(endDate)}`
+      : format(startDate);
+  }
+  return value;
+};
+
 export type MonitorMesoscaleDiscussionCollection = FeatureCollection<
   Polygon | MultiPolygon,
   MonitorMesoscaleDiscussionProperties
@@ -65,6 +83,32 @@ export const SPC_MESOSCALE_DISCUSSION_SOURCE: MonitorReferenceSourceInfo = {
 
 const NDFD_WMS_URL = 'https://mapservices.weather.noaa.gov/raster/services/NDFD/NDFD_temp/MapServer/WMSServer';
 const SPC_QUERY_URL = `${SPC_MESOSCALE_DISCUSSION_SOURCE.sourceUrl}/query`;
+
+const sleep = (delayMs: number): Promise<void> => new Promise((resolve) => {
+  setTimeout(resolve, delayMs);
+});
+
+/** Retries a reference request twice, with enough delay to avoid hammering a recovering provider. */
+export const withReferenceRetry = async <T>(
+  operation: () => Promise<T>,
+  retryDelaysMs: readonly number[] = MONITOR_REFERENCE_RETRY_DELAYS_MS,
+  wait: (delayMs: number) => Promise<void> = sleep,
+): Promise<T> => {
+  let lastError: unknown;
+  for (let attempt = 0; attempt <= retryDelaysMs.length; attempt += 1) {
+    try {
+      return await operation();
+    } catch (error: unknown) {
+      lastError = error;
+      const delayMs = retryDelaysMs[attempt];
+      if (delayMs === undefined) {
+        break;
+      }
+      await wait(delayMs);
+    }
+  }
+  throw lastError instanceof Error ? lastError : new Error('Reference source unavailable.');
+};
 
 /** Builds the current NDFD WMS layer; the service chooses the latest image when time is absent. */
 export const buildNdfdTemperatureLayerConfig = (latestTime?: string): WmsLayerConfig => ({
@@ -234,5 +278,10 @@ export const fetchSpcMesoscaleDiscussions = async (
   if (!response.ok) {
     throw new Error(`SPC mesoscale discussions unavailable (${response.status}).`);
   }
-  return normalizeSpcMesoscaleDiscussionCollection(await response.json());
+  const payload = await response.json();
+  const normalized = normalizeSpcMesoscaleDiscussionCollection(payload);
+  if (isRecord(payload) && Array.isArray(payload.features) && payload.features.length > 0 && normalized.features.length === 0) {
+    throw new Error('SPC mesoscale discussion response contained no usable polygon features.');
+  }
+  return normalized;
 };

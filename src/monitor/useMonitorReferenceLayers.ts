@@ -1,12 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
 import type { AddToastFn } from '../components/Layout';
+import { captureExpectedMonitorReferenceFailure } from '../instrument';
 import { fetchLayerTimeValues } from './wms';
 import {
   buildNdfdTemperatureLayerConfig,
   fetchSpcMesoscaleDiscussions,
   NDFD_TEMPERATURE_SOURCE,
   SPC_MESOSCALE_DISCUSSION_SOURCE,
+  withReferenceRetry,
   type MonitorMesoscaleDiscussionCollection,
   type MonitorReferenceLayerMeta,
   type MonitorReferenceLayerStatus,
@@ -16,10 +18,18 @@ const REFERENCE_CACHE_TTL_MS = 10 * 60 * 1000;
 const REFERENCE_STALE_WINDOW_MS = 30 * 60 * 1000;
 const ndfdLayerConfig = buildNdfdTemperatureLayerConfig();
 
+interface CachedNdfdSnapshot {
+  timeValues: string[];
+  fetchedAt: number;
+}
+
 interface CachedSpcSnapshot {
   collection: MonitorMesoscaleDiscussionCollection;
   fetchedAt: number;
 }
+
+let cachedNdfdSnapshot: CachedNdfdSnapshot | null = null;
+const lastFailureToastAt = new Map<string, number>();
 
 export interface MonitorReferenceLayersState {
   ndfdTemperature: MonitorReferenceLayerMeta;
@@ -106,6 +116,16 @@ const createSpcMeta = (status: MonitorReferenceLayerStatus, details: MetaDetails
   ...details,
 });
 
+const notifyReferenceFailure = (sourceId: string, message: string, addToast?: AddToastFn): void => {
+  const now = Date.now();
+  const lastShownAt = lastFailureToastAt.get(sourceId) ?? 0;
+  if (now - lastShownAt < 60_000) {
+    return;
+  }
+  lastFailureToastAt.set(sourceId, now);
+  addToast?.(message, 'warning');
+};
+
 interface UseMonitorReferenceLayersArgs {
   ndfdEnabled: boolean;
   spcEnabled: boolean;
@@ -115,18 +135,35 @@ interface UseMonitorReferenceLayersArgs {
 
 type SetReferenceState = Dispatch<SetStateAction<MonitorReferenceLayersState>>;
 
-const startNdfdReferenceEffect = ({
-  enabled,
-  addToast,
-  setState,
-}: {
+interface NdfdEffectArgs {
   enabled: boolean;
+  refreshToken: number;
   addToast?: AddToastFn;
   setState: SetReferenceState;
-}): (() => void) => {
+}
+
+const isFresh = (fetchedAt: number, refreshToken: number): boolean =>
+  Date.now() - fetchedAt <= REFERENCE_CACHE_TTL_MS && refreshToken === 0;
+
+const startNdfdReferenceEffect = ({
+  enabled,
+  refreshToken,
+  addToast,
+  setState,
+}: NdfdEffectArgs): (() => void) => {
   let active = true;
+
   if (!enabled) {
     setState((current) => ({ ...current, ndfdTemperature: createNdfdMeta('idle') }));
+    return () => { active = false; };
+  }
+
+  const cached = cachedNdfdSnapshot;
+  if (cached && isFresh(cached.fetchedAt, refreshToken)) {
+    setState((current) => ({ ...current, ndfdTemperature: createNdfdMeta('ready', {
+      fetchedAt: new Date(cached.fetchedAt).toISOString(),
+      validTime: cached.timeValues.at(-1) ?? null,
+    }) }));
     return () => { active = false; };
   }
 
@@ -136,27 +173,48 @@ const startNdfdReferenceEffect = ({
     itemCount: current.ndfdTemperature.itemCount,
     error: null,
   }) }));
-  fetchLayerTimeValues(ndfdLayerConfig)
+  withReferenceRetry(() => fetchLayerTimeValues(ndfdLayerConfig))
     .then((timeValues) => {
       if (!active) return;
+      const fetchedAt = Date.now();
+      cachedNdfdSnapshot = { timeValues, fetchedAt };
       setState((current) => ({ ...current, ndfdTemperature: createNdfdMeta('ready', {
-        fetchedAt: new Date().toISOString(),
+        fetchedAt: new Date(fetchedAt).toISOString(),
         validTime: timeValues.at(-1) ?? null,
       }) }));
     })
     .catch((error: unknown) => {
       if (!active) return;
       const message = error instanceof Error ? error.message : 'NDFD capabilities are unavailable.';
-      setState((current) => ({ ...current, ndfdTemperature: createNdfdMeta('error', {
-        fetchedAt: current.ndfdTemperature.fetchedAt,
-        validTime: current.ndfdTemperature.validTime,
-        itemCount: current.ndfdTemperature.itemCount,
-        error: message,
-      }) }));
-      addToast?.('NDFD temperature metadata is unavailable; the map may still show the provider latest image.', 'warning');
+      captureExpectedMonitorReferenceFailure('ndfd-temperature', error);
+      const latestCache = cachedNdfdSnapshot;
+      const cacheAge = latestCache ? Date.now() - latestCache.fetchedAt : Number.POSITIVE_INFINITY;
+      if (latestCache && cacheAge <= REFERENCE_STALE_WINDOW_MS) {
+        setState((current) => ({ ...current, ndfdTemperature: createNdfdMeta('stale', {
+          fetchedAt: new Date(latestCache.fetchedAt).toISOString(),
+          validTime: latestCache.timeValues.at(-1) ?? null,
+          error: message,
+        }) }));
+      } else {
+        setState((current) => ({ ...current, ndfdTemperature: createNdfdMeta('error', {
+          fetchedAt: current.ndfdTemperature.fetchedAt,
+          validTime: current.ndfdTemperature.validTime,
+          itemCount: current.ndfdTemperature.itemCount,
+          error: message,
+        }) }));
+      }
+      notifyReferenceFailure('ndfd-temperature', 'NDFD temperature metadata is unavailable; the map may still show the provider latest image.', addToast);
     });
+
   return () => { active = false; };
 };
+
+interface SpcEffectArgs {
+  enabled: boolean;
+  refreshToken: number;
+  addToast?: AddToastFn;
+  setState: SetReferenceState;
+}
 
 const startSpcReferenceEffect = ({
   enabled,
@@ -164,14 +222,9 @@ const startSpcReferenceEffect = ({
   addToast,
   setState,
   cacheRef,
-}: {
-  enabled: boolean;
-  refreshToken: number;
-  addToast?: AddToastFn;
-  setState: SetReferenceState;
-  cacheRef: { current: CachedSpcSnapshot | null };
-}): (() => void) => {
+}: SpcEffectArgs & { cacheRef: { current: CachedSpcSnapshot | null } }): (() => void) => {
   let active = true;
+
   if (!enabled) {
     setState((current) => ({
       ...current,
@@ -182,8 +235,7 @@ const startSpcReferenceEffect = ({
   }
 
   const cached = cacheRef.current;
-  const cacheIsFresh = cached && Date.now() - cached.fetchedAt <= REFERENCE_CACHE_TTL_MS && refreshToken === 0;
-  if (cacheIsFresh) {
+  if (cached && isFresh(cached.fetchedAt, refreshToken)) {
     setState((current) => ({
       ...current,
       mesoscaleDiscussions: cached.collection,
@@ -202,7 +254,7 @@ const startSpcReferenceEffect = ({
     itemCount: current.spcMesoscaleDiscussion.itemCount,
     error: null,
   }) }));
-  fetchSpcMesoscaleDiscussions()
+  withReferenceRetry(fetchSpcMesoscaleDiscussions)
     .then((collection) => {
       if (!active) return;
       const fetchedAt = Date.now();
@@ -220,6 +272,7 @@ const startSpcReferenceEffect = ({
     .catch((error: unknown) => {
       if (!active) return;
       const message = error instanceof Error ? error.message : 'SPC mesoscale discussions are unavailable.';
+      captureExpectedMonitorReferenceFailure('spc-mesoscale-discussion', error);
       const latestCache = cacheRef.current;
       const cacheAge = latestCache ? Date.now() - latestCache.fetchedAt : Number.POSITIVE_INFINITY;
       if (latestCache && cacheAge <= REFERENCE_STALE_WINDOW_MS) {
@@ -240,8 +293,9 @@ const startSpcReferenceEffect = ({
           spcMesoscaleDiscussion: createSpcMeta('error', { error: message }),
         }));
       }
-      addToast?.('SPC mesoscale discussions are unavailable; Monitor remains usable.', 'warning');
+      notifyReferenceFailure('spc-mesoscale-discussion', 'SPC mesoscale discussions are unavailable; Monitor remains usable.', addToast);
     });
+
   return () => { active = false; };
 };
 
@@ -261,6 +315,7 @@ export const useMonitorReferenceLayers = ({
 
   useEffect(() => startNdfdReferenceEffect({
     enabled: ndfdEnabled,
+    refreshToken,
     addToast,
     setState,
   }), [addToast, ndfdEnabled, refreshToken]);
