@@ -7,6 +7,24 @@ describe('custom style presets', () => {
     expect(listCustomStylePresets().every(({ categories }) => isCustomCategoryList(categories))).toBe(true);
   });
 
+  it('models Rainfall as the four WPC Excessive Rainfall Outlook risk categories', () => {
+    const rainfall = listCustomStylePresets().find(({ id }) => id === 'rainfall');
+
+    expect(rainfall?.description).toMatch(/WPC-style Excessive Rainfall Outlook/i);
+    expect(rainfall?.categories.map(({ label }) => label)).toEqual([
+      'Marginal Risk (≥5%)',
+      'Slight Risk (≥15%)',
+      'Moderate Risk (≥40%)',
+      'High Risk (≥70%)',
+    ]);
+    expect(rainfall?.categories.map(({ style }) => style.fillColor)).toEqual([
+      '#66A366',
+      '#FFE066',
+      '#E06666',
+      '#EE99EE',
+    ]);
+  });
+
   it('returns detached categories so a layer or product edit cannot mutate the registry', () => {
     const first = listCustomStylePresets().find(({ id }) => id === 'rainfall');
     const second = listCustomStylePresets().find(({ id }) => id === 'rainfall');
@@ -20,12 +38,12 @@ describe('custom style presets', () => {
     first!.categories[0].style.fillColor = '#000000';
 
     expect(listCustomStylePresets().find(({ id }) => id === 'rainfall')?.categories[0]).toMatchObject({
-      label: 'Trace–0.10 in',
-      style: { fillColor: '#dbeafe' },
+      label: 'Marginal Risk (≥5%)',
+      style: { fillColor: '#66A366' },
     });
     expect(second?.categories[0]).toMatchObject({
-      label: 'Trace–0.10 in',
-      style: { fillColor: '#dbeafe' },
+      label: 'Marginal Risk (≥5%)',
+      style: { fillColor: '#66A366' },
     });
   });
 

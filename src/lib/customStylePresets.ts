@@ -41,14 +41,13 @@ const PRESET_DEFINITIONS: Record<CustomStylePresetId, CustomStylePreset> = {
   rainfall: {
     id: 'rainfall',
     label: 'Rainfall',
-    description: 'An ordered blue palette for rainfall accumulation areas.',
+    description: 'WPC-style Excessive Rainfall Outlook risk categories.',
     version: 1,
     categories: [
-      category('rainfall', { id: 'trace', label: 'Trace–0.10 in', order: 0, fillColor: '#dbeafe', strokeColor: '#1e3a8a' }),
-      category('rainfall', { id: 'light', label: '0.10–0.50 in', order: 1, fillColor: '#93c5fd', strokeColor: '#1e3a8a' }),
-      category('rainfall', { id: 'moderate', label: '0.50–1.00 in', order: 2, fillColor: '#3b82f6', strokeColor: '#172554' }),
-      category('rainfall', { id: 'heavy', label: '1.00–2.00 in', order: 3, fillColor: '#1d4ed8', strokeColor: '#172554' }),
-      category('rainfall', { id: 'very-heavy', label: '2.00+ in', order: 4, fillColor: '#1e3a8a', strokeColor: '#0f172a' }),
+      category('rainfall', { id: 'marginal', label: 'Marginal Risk (≥5%)', order: 0, fillColor: '#66A366', strokeColor: '#3f6b3f' }),
+      category('rainfall', { id: 'slight', label: 'Slight Risk (≥15%)', order: 1, fillColor: '#FFE066', strokeColor: '#8f7b00' }),
+      category('rainfall', { id: 'moderate', label: 'Moderate Risk (≥40%)', order: 2, fillColor: '#E06666', strokeColor: '#8f2e2e' }),
+      category('rainfall', { id: 'high', label: 'High Risk (≥70%)', order: 3, fillColor: '#EE99EE', strokeColor: '#8f4f8f' }),
     ],
   },
   'tropical-aoi': {

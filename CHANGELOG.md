@@ -15,7 +15,7 @@ Work toward the next major release continues in the beta channel while the final
 - **Forecast Grade:** Add the verification workspace, source adapters, score breakdowns, report-quality checks, share cards, trend views, and premium snapshot support.
 - **Workflow continuity:** Add reusable workflow templates, persistent workflow metadata, scoped discussion/draft persistence, package review and completion flows, lifecycle analytics, and handoff guidance.
 - **Custom products:** Add local custom layers and reusable hosted products with category styling, snapshots, exports/imports, owner-scoped storage, and premium enforcement.
-- **Monitor and custom styles:** Add free built-in Rainfall and Tropical AOI products that are available to everyone and do not consume personal product slots.
+- **Monitor and custom styles:** Add free built-in WPC-style Excessive Rainfall Outlook and Tropical AOI products that are available to everyone and do not consume personal product slots.
 - **Auto-TSTM:** Add cached SPC guidance, scheduled ingestion, preview/apply/cancel flows, cache health reporting, and stale-result protection.
 - **Feature exposure controls:** Add typed local/beta/staging/production target matrices, server capability gates, emergency disable controls, exposure diagnostics, and rollout validation.
 - **Account management:** Add recent-authentication account deletion with subscription cleanup, hosted-data removal, and local/offline-save preservation.
