@@ -40,17 +40,28 @@ const normalizeReadResult = (
   result: Feature<Geometry> | Feature<Geometry>[],
 ): Feature<Geometry>[] => (Array.isArray(result) ? result : [result]);
 
+const requireStableId = (descriptor: FeatureSyncDescriptor): void => {
+  const stableId = descriptor.stableId ?? descriptor.feature.id;
+  if (String(stableId ?? "").trim() === "") {
+    throw new Error(`Feature sync descriptor "${descriptor.key}" requires a feature id.`);
+  }
+};
+
+const requireUniqueKey = (key: string, keys: Set<string>): void => {
+  if (key.trim() === "") {
+    throw new Error(`Feature sync descriptors require unique non-empty keys: "${key}".`);
+  }
+  if (keys.has(key)) {
+    throw new Error(`Feature sync descriptors require unique non-empty keys: "${key}".`);
+  }
+  keys.add(key);
+};
+
 const validateDescriptors = (descriptors: FeatureSyncDescriptor[]): void => {
   const keys = new Set<string>();
   descriptors.forEach((descriptor) => {
-    const stableId = descriptor.stableId ?? descriptor.feature.id;
-    if (stableId === undefined || stableId === null || String(stableId).trim() === "") {
-      throw new Error(`Feature sync descriptor "${descriptor.key}" requires a feature id.`);
-    }
-    if (!descriptor.key.trim() || keys.has(descriptor.key)) {
-      throw new Error(`Feature sync descriptors require unique non-empty keys: "${descriptor.key}".`);
-    }
-    keys.add(descriptor.key);
+    requireStableId(descriptor);
+    requireUniqueKey(descriptor.key, keys);
   });
 };
 
