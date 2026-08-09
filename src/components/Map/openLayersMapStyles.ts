@@ -67,6 +67,7 @@ interface LayerStyleOptions {
   isTopLayer?: boolean;
   /** Multiplier for fill/stroke alpha when imagery sits beneath outlooks (e.g. Monitor). */
   transparencyScale?: number;
+  outlookOpacity?: number;
 }
 
 interface RgbaInput {
@@ -324,7 +325,7 @@ export const toOlStyle = (
   options: LayerStyleOptions = {},
 ) => {
   const { outlookType, probability } = selection;
-  const { isTopLayer = false, transparencyScale = 1 } = options;
+  const { isTopLayer = false, transparencyScale = 1, outlookOpacity = 1 } = options;
   const alphaScale = Math.min(1, Math.max(0, transparencyScale));
 
   const style = getFeatureStyle(
@@ -333,7 +334,7 @@ export const toOlStyle = (
   );
   const fillColor = String(style.fillColor || "#ffffff");
   const fillOpacity =
-    resolveFillOpacity({ fillOpacity: style.fillOpacity }) * alphaScale;
+    resolveFillOpacity({ fillOpacity: style.fillOpacity }) * alphaScale * Math.min(1, Math.max(0, outlookOpacity));
   const strokeOpacity =
     (typeof style.opacity === "number" ? style.opacity : 1) * alphaScale;
   const strokeColor = String(style.color || "#000000");

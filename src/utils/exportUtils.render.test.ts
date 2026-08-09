@@ -50,10 +50,28 @@ describe('renderOutlooksToMap', () => {
 
     const outlooks = { categorical: new Map([['5%', [feature]]]) };
 
-    renderOutlooksToMap(mapInstance, outlooks);
+    renderOutlooksToMap(mapInstance as never, outlooks as never);
 
     expect(mapInstance.added).toBeTruthy();
-    expect(mapInstance.added.length).toBeGreaterThan(0);
-    expect((mapInstance.added[0] as { feature: typeof feature }).feature).toBe(feature);
+    expect(mapInstance.added!.length).toBeGreaterThan(0);
+    expect((mapInstance.added![0] as { feature: typeof feature }).feature).toBe(feature);
+  });
+
+  test('applies the selected built-in outlook opacity to export styles', async () => {
+    jest.resetModules();
+    jest.doMock('leaflet', () => ({
+      geoJSON: (_feature: unknown, opts: { style?: () => unknown }) => ({
+        addTo: (map: { added?: unknown[] }) => {
+          map.added = map.added || [];
+          map.added.push(opts.style?.());
+          return {};
+        },
+      }),
+    }));
+    const { renderOutlooksToMap } = await import('./exportUtils');
+    const mapInstance: { added?: unknown[] } = {};
+    const feature = { type: 'Feature', properties: {}, geometry: { type: 'Polygon', coordinates: [] } };
+    renderOutlooksToMap(mapInstance as never, { tornado: new Map([['30%', [feature]]]) } as never, { tornado: 0.35 });
+    expect((mapInstance.added![0] as { fillOpacity: number }).fillOpacity).toBeCloseTo(0.14);
   });
 });

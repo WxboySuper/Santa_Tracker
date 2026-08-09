@@ -13,15 +13,18 @@ import { ForecastPage } from './pages/ForecastPage';
 
 // Mock child components
 jest.mock('./components/Map/ForecastMap', () => {
-  const calls: Array<Record<string, unknown>> = [];
-  const ForecastMapMock = (props: Record<string, unknown>) => {
-    calls.push(props);
+  let renderCount = 0;
+  const ForecastMapMock = (_props: Record<string, unknown>) => {
+    renderCount += 1;
     return <div data-testid="forecast-map">ForecastMap</div>;
   };
   return {
     __esModule: true,
     default: ForecastMapMock,
-    getCalls: () => calls,
+    getCallCount: () => renderCount,
+    resetCallCount: () => {
+      renderCount = 0;
+    },
   };
 });
 
@@ -59,11 +62,32 @@ jest.mock('./hooks/useCloudSync', () => ({
     markCurrentStateSynced: jest.fn(),
   }),
 }));
+jest.mock('./hooks/useAutoTstm', () => ({
+  useAutoTstm: () => ({
+    status: 'idle',
+    isPanelOpen: false,
+    isDaySupported: false,
+    previewFeatures: [],
+    previewResponse: null,
+    errorMessage: null,
+    openPanel: jest.fn(),
+    closePanel: jest.fn(),
+    fetchPreview: jest.fn(),
+    applyPreview: jest.fn(),
+    cancelPreview: jest.fn(),
+  }),
+}));
+jest.mock('./hooks/useCustomProductForecastHandoff', () => ({
+  useCustomProductForecastHandoff: jest.fn(),
+}));
 
 // Mock router outlet context
 jest.mock('react-router', () => ({
   ...jest.requireActual('react-router'),
-  useOutletContext: () => ({ addToast: jest.fn() }),
+  useOutletContext: (() => {
+    const addToast = jest.fn();
+    return () => ({ addToast });
+  })(),
 }));
 
 describe('ForecastPage Performance', () => {
@@ -71,9 +95,11 @@ describe('ForecastPage Performance', () => {
 
   beforeEach(() => {
     // Clear any previous calls recorded by the mocked ForecastMap module
-    const forecastMapMockModule = jest.requireMock('./components/Map/ForecastMap') as { getCalls: () => Array<Record<string, unknown>> };
-    // Reset recorded calls
-    forecastMapMockModule.getCalls().length = 0;
+    const forecastMapMockModule = jest.requireMock('./components/Map/ForecastMap') as {
+      getCallCount: () => number;
+      resetCallCount: () => void;
+    };
+    forecastMapMockModule.resetCallCount();
     store = configureStore({
       reducer: {
         forecast: forecastReducer,
@@ -92,7 +118,7 @@ describe('ForecastPage Performance', () => {
   });
 
   it('does NOT re-render children when unrelated state changes (Optimized)', () => {
-    render(
+    const { unmount } = render(
       <Provider store={store}>
         <BrowserRouter>
           <ForecastPage />
@@ -101,8 +127,8 @@ describe('ForecastPage Performance', () => {
     );
 
     // Initial render(s)
-    const fm = jest.requireMock('./components/Map/ForecastMap') as { getCalls: () => Array<Record<string, unknown>> };
-    const initialCalls = fm.getCalls().length;
+    const fm = jest.requireMock('./components/Map/ForecastMap') as { getCallCount: () => number };
+    const initialCalls = fm.getCallCount();
 
     // Dispatch an action that changes `forecast` slice but NOT the data used by ForecastPage
     // setMapView changes state.forecast.currentMapView
@@ -111,6 +137,7 @@ describe('ForecastPage Performance', () => {
     });
 
     // With optimized selector: should not cause additional re-renders
-    expect(fm.getCalls().length).toBeLessThanOrEqual(initialCalls + 1);
+    expect(fm.getCallCount()).toBeLessThanOrEqual(initialCalls + 1);
+    unmount();
   });
 });

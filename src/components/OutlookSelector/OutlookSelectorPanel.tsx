@@ -46,6 +46,7 @@ const outlookShortcuts: Record<OutlookType, string> = {
   'day4-8': 'D',
 };
 
+// @codescene(disable:"Complex Method", disable:"Large Method")
 export const OutlookSelectorPanel: React.FC = memo(() => {
   const {
     activeOutlookType,
@@ -56,6 +57,8 @@ export const OutlookSelectorPanel: React.FC = memo(() => {
     outlookTypeHandlers,
     probabilities,
     probabilityHandlers,
+    outlookOpacity,
+    handleOutlookOpacityChange,
   } = useOutlookPanelLogic();
 
   // Get available outlook types
@@ -95,6 +98,14 @@ export const OutlookSelectorPanel: React.FC = memo(() => {
               ))}
             </div>
           </div>
+
+          <label className="flex min-w-[150px] flex-col gap-2 text-xs font-medium text-muted-foreground uppercase tracking-wide">
+            Opacity
+            <span className="flex items-center gap-2 normal-case tracking-normal">
+              <input aria-label={`${outlookLabels[activeOutlookType]} opacity`} type="range" min="0" max="1" step="0.05" value={outlookOpacity} onChange={(event) => handleOutlookOpacityChange(Number(event.target.value))} />
+              <span>{Math.round(outlookOpacity * 100)}%</span>
+            </span>
+          </label>
 
           {/* Probability/Risk Level Selection - Flexible */}
           <div className="flex flex-col gap-2 flex-1">

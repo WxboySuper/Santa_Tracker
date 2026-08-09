@@ -38,6 +38,7 @@ import {
   selectCanUndo,
   selectCurrentCustomLayers,
   selectCurrentOutlooks,
+  selectCurrentOutlookOpacity,
   setMapView,
   undoLastEdit,
   updateFeature,
@@ -211,6 +212,7 @@ const OpenLayersForecastMap = forwardRef<MapAdapterHandle<OLMap> | null, OpenLay
       (state: RootState) => state.forecast.currentMapView,
     );
     const outlooks = useSelector(selectCurrentOutlooks) as OutlookMapLike;
+    const outlookOpacity = useSelector((state: RootState) => selectCurrentOutlookOpacity(state, drawingState.activeOutlookType));
     const baseMapStyle = useSelector(
       (state: RootState) => state.overlays.baseMapStyle,
     );
@@ -1100,7 +1102,7 @@ const OpenLayersForecastMap = forwardRef<MapAdapterHandle<OLMap> | null, OpenLay
 
         // Apply styles and properties to the feature, then add it to the appropriate source.
         const applyProps = (f: OLFeature<Geometry>) => {
-          f.setStyle(toOlStyle({ outlookType, probability }, { isTopLayer }));
+          f.setStyle(toOlStyle({ outlookType, probability }, { isTopLayer, outlookOpacity }));
           f.set("featureId", feature.id as string);
           f.set("outlookType", outlookType);
           f.set("probability", probability);
@@ -1166,6 +1168,7 @@ const OpenLayersForecastMap = forwardRef<MapAdapterHandle<OLMap> | null, OpenLay
       });
     }, [
       serializedFeatures,
+      outlookOpacity,
       serializedCustomFeatures,
       customMode,
       outlooks,

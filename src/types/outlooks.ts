@@ -190,6 +190,7 @@ export interface OutlookDay {
     createdAt: string;
     lastModified: string;
     lowProbabilityOutlooks?: OutlookType[];
+    outlookOpacities?: Partial<Record<OutlookType, number>>;
   };
   discussion?: DiscussionData; // Optional discussion for this day
 }
@@ -232,6 +233,7 @@ export interface GFCForecastSaveData {
         validDate: string;
         issuanceTime: string;
         lowProbabilityOutlooks?: OutlookType[];
+        outlookOpacities?: Partial<Record<OutlookType, number>>;
       };
     }>>;
     currentDay: DayType;

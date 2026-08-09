@@ -74,6 +74,7 @@ interface ForecastDaySnapshot {
   day: DayType;
   data: OutlookData;
   lowProbabilityOutlooks: OutlookType[];
+  outlookOpacities?: Partial<Record<OutlookType, number>>;
   customLayers?: CustomLayerCollection;
 }
 
@@ -484,6 +485,7 @@ const getCurrentDaySnapshot = (state: ForecastState): ForecastDaySnapshot | null
     day: currentDay,
     data: cloneOutlookData(dayData.data),
     lowProbabilityOutlooks: [...(dayData.metadata.lowProbabilityOutlooks || [])],
+    outlookOpacities: dayData.metadata.outlookOpacities ? { ...dayData.metadata.outlookOpacities } : undefined,
     customLayers: cloneCustomLayers(dayData.customLayers),
   };
 };
@@ -501,6 +503,7 @@ const applyDaySnapshot = (state: ForecastState, snapshot: ForecastDaySnapshot, n
   targetDay.data = cloneOutlookData(snapshot.data);
   targetDay.customLayers = cloneCustomLayers(snapshot.customLayers);
   targetDay.metadata.lowProbabilityOutlooks = [...snapshot.lowProbabilityOutlooks];
+  targetDay.metadata.outlookOpacities = snapshot.outlookOpacities ? { ...snapshot.outlookOpacities } : undefined;
   targetDay.metadata.lastModified = now;
 };
 
@@ -1179,6 +1182,22 @@ export const forecastSlice = createSlice({
       }
     },
 
+    setOutlookOpacity: (state, action: PayloadAction<{ outlookType: OutlookType; opacity: number }>) => {
+      const dayData = state.forecastCycle.days[state.forecastCycle.currentDay];
+      if (!dayData) return;
+      pushUndoSnapshot(state);
+      const opacity = Number.isFinite(action.payload.opacity)
+        ? Math.min(1, Math.max(0, action.payload.opacity))
+        : 1;
+      dayData.metadata.outlookOpacities = {
+        ...(dayData.metadata.outlookOpacities || {}),
+        [action.payload.outlookType]: opacity,
+      };
+      dayData.metadata.lastModified = readActionTimestamp(action);
+      state.isSaved = false;
+      invalidateCompletionAcknowledgement(state);
+    },
+
     toggleLowProbability: (state) => {
       const outlookType = state.drawingState.activeOutlookType;
       const dayData = state.forecastCycle.days[state.forecastCycle.currentDay];
@@ -1517,6 +1536,7 @@ export const {
   copyFeaturesFromPrevious,
   loadCycleHistory,
   setLowProbability,
+  setOutlookOpacity,
   toggleLowProbability,
   undoLastEdit,
   redoLastEdit,
@@ -1583,6 +1603,12 @@ export const selectIsLowProbability = (state: RootState) => {
   const day = cycle.days[cycle.currentDay];
   const activeType = state.forecast.drawingState.activeOutlookType;
   return day?.metadata?.lowProbabilityOutlooks?.includes(activeType) || false;
+};
+
+export const selectCurrentOutlookOpacity = (state: RootState, outlookType: OutlookType): number => {
+  const day = state.forecast.forecastCycle.days[state.forecast.forecastCycle.currentDay];
+  const value = day?.metadata.outlookOpacities?.[outlookType];
+  return typeof value === 'number' && Number.isFinite(value) ? Math.min(1, Math.max(0, value)) : 1;
 };
 
 /** Selects the last completion validation result. */

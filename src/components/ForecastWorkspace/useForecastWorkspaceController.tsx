@@ -428,10 +428,14 @@ function useForecastWorkspaceCoreState(
   const outlooks = useSelector((state: RootState) =>
     state.forecast.forecastCycle.days[currentDay]?.data || {}
   );
+  const outlookOpacities = useSelector((state: RootState) =>
+    state.forecast.forecastCycle.days[currentDay]?.metadata?.outlookOpacities || {}
+  );
   const panel = useOutlookPanelLogic();
   const exportState = useExportMap({
     mapRef,
     outlooks,
+    outlookOpacities,
     isExportDisabled: !isExportMapExposed(),
     addToast,
   });

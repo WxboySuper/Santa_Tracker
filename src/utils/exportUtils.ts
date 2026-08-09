@@ -37,6 +37,7 @@ export interface ExportImageOptions {
   format?: ExportImageFormat;
   quality?: number;
   includeLegendAndStatus?: boolean;
+  outlookOpacities?: Partial<Record<OutlookType, number>>;
 }
 
 /**
@@ -238,10 +239,13 @@ export const sortProbabilities = (entries: [string, GeoJSON.Feature[]][]): [stri
 };
 
 // Helper: render outlooks onto a map instance
-export const renderOutlooksToMap = (mapInstance: L.Map, outlooks: OutlookData) => {
+export const renderOutlooksToMap = (mapInstance: L.Map, outlooks: OutlookData, outlookOpacities: Partial<Record<OutlookType, number>> = {}) => {
   /** Returns export-time style options that match the released opaque map rendering mode. */
-  const getExportFeatureStyle = (outlookType: OutlookType, probability: string) =>
-    getFeatureStyle(outlookType, probability);
+  const getExportFeatureStyle = (outlookType: OutlookType, probability: string) => {
+    const style = getFeatureStyle(outlookType, probability);
+    const opacity = typeof outlookOpacities[outlookType] === 'number' ? Math.min(1, Math.max(0, outlookOpacities[outlookType] as number)) : 1;
+    return { ...style, fillOpacity: (style.fillOpacity ?? 1) * opacity };
+  };
 
   // We want to render in a specific order to ensure proper layering
   // (e.g. categorical at bottom, then tornado/wind/hail, then totalSevere, then day4-8 on top)
@@ -628,6 +632,7 @@ const captureFromTempMap = async ({
   tempMap: L.Map;
   sourceMap: L.Map;
   outlooks: OutlookData;
+  outlookOpacities?: Partial<Record<OutlookType, number>>;
   options: ExportImageOptions;
 }): Promise<string> => {
   const { title, format = 'png', quality = 0.92, includeLegendAndStatus = false } = options;
@@ -636,7 +641,7 @@ const captureFromTempMap = async ({
   const waitAndRender = async () => {
     await waitForMapSettle(tempMap);
     const tileResult = await addTilesAndWait(tempMap, sourceMap);
-    renderOutlooksToMap(tempMap, outlooks);
+    renderOutlooksToMap(tempMap, outlooks, options.outlookOpacities);
     await new Promise((r) => setTimeout(r, 300));
     return tileResult;
   };

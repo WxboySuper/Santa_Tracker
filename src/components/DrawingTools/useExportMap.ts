@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import { exportMapAsImage, downloadDataUrl, getFormattedDate } from '../../utils/exportUtils';
-import { OutlookData } from '../../types/outlooks';
+import { OutlookData, OutlookType } from '../../types/outlooks';
 import { ForecastMapHandle } from '../Map/ForecastMap';
 import type React from 'react';
 import type { MapAdapterHandle } from '../../maps/contracts';
@@ -8,6 +8,7 @@ import type { MapAdapterHandle } from '../../maps/contracts';
 interface UseExportMapParams {
   mapRef: React.RefObject<ForecastMapHandle | null>;
   outlooks: OutlookData;
+  outlookOpacities?: Partial<Record<OutlookType, number>>;
   isExportDisabled: boolean;
   addToast: (message: string, type?: 'info' | 'success' | 'warning' | 'error') => void;
 }
@@ -19,6 +20,7 @@ interface UseExportMapParams {
 async function performExport(
   map: unknown,
   outlooks: OutlookData,
+  outlookOpacities: Partial<Record<OutlookType, number>> | undefined,
   title: string | undefined,
   addToast: (message: string, type?: 'info' | 'success' | 'warning' | 'error') => void
 ): Promise<void> {
@@ -27,7 +29,8 @@ async function performExport(
       title: title || undefined,
       format: 'jpeg',
       quality: 0.92,
-      includeLegendAndStatus: true
+      includeLegendAndStatus: true,
+      outlookOpacities,
     });
 
     const filename = `forecast-outlook-${getFormattedDate()}.jpg`;
@@ -74,7 +77,7 @@ const validateExportPreconditions = (
  * @param param0 - mapRef, outlooks, isExportDisabled, addToast
  * @returns { isExporting, isModalOpen, initiateExport, confirmExport, cancelExport }
  */
-export const useExportMap = ({ mapRef, outlooks, isExportDisabled, addToast }: UseExportMapParams) => {
+export const useExportMap = ({ mapRef, outlooks, outlookOpacities, isExportDisabled, addToast }: UseExportMapParams) => {
   const [isExporting, setIsExporting] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -96,13 +99,13 @@ export const useExportMap = ({ mapRef, outlooks, isExportDisabled, addToast }: U
 
     try {
       setIsExporting(true);
-      await performExport(map, outlooks, title || undefined, addToast);
+      await performExport(map, outlooks, outlookOpacities, title || undefined, addToast);
     } catch {
       // performExport already handles user-facing error toasts
     } finally {
       setIsExporting(false);
     }
-  }, [mapRef, isExportDisabled, outlooks, addToast]);
+  }, [mapRef, isExportDisabled, outlooks, outlookOpacities, addToast]);
 
   const cancelExport = useCallback(() => {
     setIsModalOpen(false);
