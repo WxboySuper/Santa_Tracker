@@ -187,7 +187,7 @@ const Legend: React.FC<LegendProps> = React.memo(({
       return null;
     }
     const reports = [
-      ['tornado', 'Tornado', '#8b5cf6'],
+      ['tornado', 'Tornado', '#ff0000'],
       ['wind', 'Wind', '#2563eb'],
       ['hail', 'Hail', '#16a34a'],
     ] as const;
