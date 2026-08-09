@@ -45,6 +45,10 @@ successful live reference-layer request.
 The adapter layer should normalize provider-specific responses into a common
 reference record:
 
+The checked-in fixtures are contract examples rather than a provider archive;
+adapter tests should validate normalization without requiring live upstream
+availability.
+
 ```ts
 interface MonitorReferenceRecord<T> {
   id: string;
