@@ -1,0 +1,25 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "id": "md-0001",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[-98, 35], [-96, 35], [-96, 37], [-98, 37], [-98, 35]]]
+      },
+      "properties": {
+        "name": "Mesoscale Discussion 0001",
+        "mdnum": 1,
+        "issued": "2026-08-09T15:00:00Z",
+        "valid": "2026-08-09T15:00:00Z",
+        "expire": "2026-08-09T21:00:00Z",
+        "affected": "Portions of the central Plains",
+        "concerning": "Severe thunderstorm watch possible",
+        "summary": "Thunderstorms may increase during the afternoon.",
+        "discussion": "This compact fixture represents the provider fields used by the adapter.",
+        "url": "https://www.spc.noaa.gov/products/md/md0001.html"
+      }
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "type": "Feature",
+  "id": "https://api.weather.gov/gridpoints/TOP/31,80/forecast",
+  "geometry": null,
+  "properties": {
+    "updated": "2026-08-09T12:00:00+00:00",
+    "units": "us-customary",
+    "forecastGenerator": "MockForecastGenerator",
+    "periods": [
+      {
+        "number": 1,
+        "name": "Today",
+        "startTime": "2026-08-09T08:00:00-05:00",
+        "endTime": "2026-08-09T18:00:00-05:00",
+        "isDaytime": true,
+        "temperature": 88,
+        "temperatureUnit": "F",
+        "windSpeed": "10 mph",
+        "windDirection": "S",
+        "shortForecast": "Mostly Sunny",
+        "detailedForecast": "Mostly sunny, with a high near 88."
+      }
+    ]
+  }
+}

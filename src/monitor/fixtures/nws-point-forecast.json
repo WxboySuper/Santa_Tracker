@@ -1,0 +1,17 @@
+{
+  "type": "Feature",
+  "id": "https://api.weather.gov/points/39.7456,-97.0892",
+  "geometry": {
+    "type": "Point",
+    "coordinates": [-97.0892, 39.7456]
+  },
+  "properties": {
+    "cwa": "TOP",
+    "gridId": "TOP",
+    "gridX": 31,
+    "gridY": 80,
+    "forecast": "https://api.weather.gov/gridpoints/TOP/31,80/forecast",
+    "forecastHourly": "https://api.weather.gov/gridpoints/TOP/31,80/forecast/hourly",
+    "forecastGridData": "https://api.weather.gov/gridpoints/TOP/31,80"
+  }
+}
