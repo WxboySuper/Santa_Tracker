@@ -1,6 +1,6 @@
 import type { Middleware, UnknownAction } from '@reduxjs/toolkit';
 
-const DIRECT_REDUCER_TIMESTAMP = '1970-01-01T00:00:00.000Z';
+export const DIRECT_REDUCER_TIMESTAMP = '1970-01-01T00:00:00.000Z';
 
 /**
  * Reads the timestamp stamped on an action by the timestamp middleware, or

@@ -12,7 +12,7 @@ do not depend on execution timing or browser environment.
 
 | Concern | Owner | Notes |
 | --- | --- | --- |
-| Timestamp stamping | `src/store/timestampMiddleware.ts` | Stamps `action.meta.timestamp` at dispatch time; `readActionTimestamp` reads it with a live fallback for direct reducer calls. |
+| Timestamp stamping | `src/store/timestampMiddleware.ts` | Stamps `action.meta.timestamp` at dispatch time; `readActionTimestamp` falls back to the stable `DIRECT_REDUCER_TIMESTAMP` for direct reducer calls without a stamped timestamp. |
 | Theme reducer | `src/store/themeSlice.ts` | Pure state transitions only. |
 | Theme persistence + DOM | `src/store/persistence.ts` | Explicitly initialized by `src/index.tsx`; hydrates from `localStorage` and syncs `dark-mode` on change. |
 | Forecast reducer | `src/store/forecastSlice.ts` | No `new Date()`/`Date.now()`/`Math.random()`/`localStorage`/`document` reads. Timestamps and cycle ids derive from `action.meta.timestamp`. |
