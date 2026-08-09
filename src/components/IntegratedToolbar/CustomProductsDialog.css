@@ -1,4 +1,13 @@
 /* The Saved products dialog is shared by desktop and phone forecast workspaces. */
+.custom-products-dialog-content {
+  max-height: min(90dvh, calc(100% - 1.5rem));
+}
+
+.custom-products-dialog-content .custom-products-page--dialog {
+  height: auto;
+  overflow: visible;
+}
+
 .custom-products-dialog-content .custom-products-page--dialog .custom-products-hero__actions {
   display: flex;
   flex-direction: row;

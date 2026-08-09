@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Locator, type Page } from '@playwright/test';
 import { prepareAppState } from './testSetup';
 
 const buildTarget = process.env.VITE_BUILD_TARGET ?? 'local';
@@ -12,9 +12,9 @@ const createProduct = async (page: Page, name: string): Promise<void> => {
   await expect(page.getByRole('heading', { name, exact: true })).toBeVisible();
 };
 
-const productCard = (page: Page, name: string) => page.locator('.custom-product-card').filter({
-  has: page.getByRole('heading', { name, exact: true }),
-});
+const productCard = (container: Page | Locator, name: string) => container
+  .getByRole('heading', { name, exact: true })
+  .locator('xpath=ancestor::div[contains(concat(" ", normalize-space(@class), " "), " custom-product-card ")][1]');
 
 test.describe('Local reusable custom products', () => {
   test.skip(buildTarget !== 'local', 'Local product management is excluded from hosted targets.');
@@ -43,8 +43,10 @@ test.describe('Local reusable custom products', () => {
     await page.getByRole('button', { name: 'Saved products' }).click();
     const savedProductsDialog = page.getByRole('dialog', { name: 'Saved products' });
     await expect(savedProductsDialog.getByText('Custom library', { exact: true })).toBeVisible();
-    await expect(savedProductsDialog.getByText('Apply a reusable category set to this forecast without leaving your workspace.')).toBeVisible();
-    await savedProductsDialog.getByRole('button', { name: 'Use in Forecast' }).click();
+    await expect(savedProductsDialog.getByText(/Use the free Rainfall and Tropical AOI products/i)).toBeVisible();
+    const fireWeatherCard = productCard(savedProductsDialog, 'Fire weather');
+    await fireWeatherCard.scrollIntoViewIfNeeded();
+    await fireWeatherCard.getByRole('button', { name: 'Use in Forecast' }).click();
     await expect(savedProductsDialog).not.toBeVisible();
     await expect(page).toHaveURL(/\/forecast(?:\?localTestAccount=premium)?$/);
     await expect(page.getByLabel('Layer title')).toHaveValue('Fire weather');
@@ -116,7 +118,7 @@ test.describe('Local reusable custom products', () => {
     });
     await page.reload();
 
-    await expect(page.getByText('20/20 products · 20 active')).toBeVisible();
+    await expect(page.getByText('2 built-in · 20/20 personal · 22 active')).toBeVisible();
     await expect(page.getByRole('button', { name: 'New product' })).toBeDisabled();
   });
 
@@ -191,26 +193,26 @@ test.describe('Local reusable custom products', () => {
     await page.goto('/custom-products?localTestAccount=free');
 
     await expect(page.getByRole('heading', { name: 'Expired fire product' })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Use in Forecast' })).toBeDisabled();
-    await expect(page.getByRole('button', { name: 'Edit' })).toBeDisabled();
-    await expect(page.getByText(/remain visible and can be deleted/i)).toBeVisible();
-    await page.getByRole('button', { name: 'Delete' }).click();
-    await page.getByRole('button', { name: 'Delete' }).click();
+    const expiredProductCard = productCard(page, 'Expired fire product');
+    await expect(expiredProductCard.getByRole('button', { name: 'Use in Forecast' })).toBeDisabled();
+    await expect(expiredProductCard.getByRole('button', { name: 'Edit' })).toBeDisabled();
+    await expect(page.getByText(/Rainfall and Tropical AOI are built-in products/i)).toBeVisible();
+    await expiredProductCard.getByRole('button', { name: 'Delete' }).click();
+    await expiredProductCard.getByRole('button', { name: 'Delete' }).click();
     await expect(page.getByRole('heading', { name: 'Expired fire product' })).toHaveCount(0);
   });
 
-  test('shows free users a respectful Premium path from the saved-products panel', async ({ page }) => {
+  test('shows free users the built-in catalog from the saved-products panel', async ({ page }) => {
     await prepareAppState(page);
     await page.goto('/forecast?localTestAccount=free');
     await page.getByRole('radio', { name: 'Custom' }).click();
     await page.getByRole('button', { name: 'Saved products' }).click();
 
     const savedProductsDialog = page.getByRole('dialog', { name: 'Saved products' });
-    await expect(savedProductsDialog.getByText('Premium feature', { exact: true })).toBeVisible();
-    await expect(savedProductsDialog.getByRole('heading', { name: 'Save a product, use it whenever.' })).toBeVisible();
-    await expect(savedProductsDialog.getByText('Build custom layers now, then save reusable category sets with Premium.')).toBeVisible();
-    await expect(savedProductsDialog.getByRole('link', { name: 'View Premium' })).toHaveAttribute('href', '/account');
-    await expect(savedProductsDialog.getByRole('button', { name: 'New product' })).not.toBeVisible();
+    await expect(savedProductsDialog.getByRole('heading', { name: 'Rainfall', exact: true })).toBeVisible();
+    await expect(savedProductsDialog.getByRole('heading', { name: 'Tropical AOI', exact: true })).toBeVisible();
+    await expect(savedProductsDialog.getByText(/available to everyone/i).first()).toBeVisible();
+    await expect(savedProductsDialog.getByRole('button', { name: 'New product' })).toBeDisabled();
   });
 });
 
@@ -240,8 +242,9 @@ test.describe('Beta custom-product exposure', () => {
   test('registers the library route and exposes Custom drawing controls', async ({ page }) => {
     await prepareAppState(page);
     await page.goto('/custom-products');
-    await expect(page.getByRole('heading', { name: 'Sign in to manage reusable products' })).toBeVisible();
-    await expect(page.getByRole('link', { name: 'Open Account' })).toHaveAttribute('href', '/account');
+    await expect(page.getByRole('heading', { name: 'Rainfall', exact: true })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Tropical AOI', exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'New product' })).toBeDisabled();
 
     await page.goto('/forecast');
     await expect(page.getByRole('radio', { name: 'Custom' })).toBeVisible();
