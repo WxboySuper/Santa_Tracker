@@ -170,10 +170,15 @@ export const reviseHostedCustomProduct = (
 ): HostedCustomProduct => {
   if (!isHostedCustomProduct(product)) throw new TypeError('Cannot revise an invalid custom product');
   const revised: HostedCustomProduct = {
-    ...product,
-    ...changes,
+    schemaVersion: product.schemaVersion,
+    id: product.id,
+    userId: product.userId,
+    label: changes.label,
+    ...(changes.description === undefined ? {} : { description: changes.description }),
+    status: changes.status,
     categories: changes.categories.map((category) => ({ ...category, style: { ...category.style } })),
     version: getNextProductVersion(product.version),
+    createdAt: product.createdAt,
     updatedAt,
   };
   if (!isHostedCustomProduct(revised) || Date.parse(updatedAt) < Date.parse(product.updatedAt)) {

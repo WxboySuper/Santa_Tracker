@@ -1,5 +1,5 @@
 import { isCustomCategoryList } from './customProducts';
-import { getCustomStylePreset, listCustomStylePresets } from './customStylePresets';
+import { listCustomStylePresets } from './customStylePresets';
 
 describe('custom style presets', () => {
   it('exposes the reviewed rainfall and Tropical AOI presets', () => {
@@ -8,8 +8,8 @@ describe('custom style presets', () => {
   });
 
   it('returns detached categories so a layer or product edit cannot mutate the registry', () => {
-    const first = getCustomStylePreset('rainfall');
-    const second = getCustomStylePreset('rainfall');
+    const first = listCustomStylePresets().find(({ id }) => id === 'rainfall');
+    const second = listCustomStylePresets().find(({ id }) => id === 'rainfall');
 
     expect(first).toBeDefined();
     expect(second).toBeDefined();
@@ -19,7 +19,7 @@ describe('custom style presets', () => {
     first!.categories[0].label = 'Changed locally';
     first!.categories[0].style.fillColor = '#000000';
 
-    expect(getCustomStylePreset('rainfall')?.categories[0]).toMatchObject({
+    expect(listCustomStylePresets().find(({ id }) => id === 'rainfall')?.categories[0]).toMatchObject({
       label: 'Trace–0.10 in',
       style: { fillColor: '#dbeafe' },
     });
@@ -29,7 +29,4 @@ describe('custom style presets', () => {
     });
   });
 
-  it('returns undefined for an unknown preset', () => {
-    expect(getCustomStylePreset('unknown')).toBeUndefined();
-  });
 });

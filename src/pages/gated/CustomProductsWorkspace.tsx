@@ -137,10 +137,10 @@ const CustomProductsWorkspace = ({ embedded = false, onProductUse }: CustomProdu
     if (!layer) return;
     if (onProductUse) {
       if (onProductUse(layer)) {
-        consumeCustomProductForecastHandoff(customProducts.premiumActive || Boolean(product.builtIn));
+        consumeCustomProductForecastHandoff(customProducts.premiumActive || isBuiltInCustomProduct(product));
         setApplicationError(null);
       } else {
-        consumeCustomProductForecastHandoff(customProducts.premiumActive || Boolean(product.builtIn));
+        consumeCustomProductForecastHandoff(customProducts.premiumActive || isBuiltInCustomProduct(product));
         setApplicationError(`Remove a custom layer before loading this product (maximum ${CUSTOM_PRODUCT_LIMITS.layersPerCollection}).`);
       }
       return;

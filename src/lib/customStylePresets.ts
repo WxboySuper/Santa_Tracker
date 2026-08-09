@@ -80,9 +80,3 @@ const clonePreset = (preset: CustomStylePreset): CustomStylePreset => ({
 export const listCustomStylePresets = (): CustomStylePreset[] =>
   Object.values(PRESET_DEFINITIONS).map(clonePreset);
 
-/** Returns one detached built-in preset, or undefined for an unknown ID. */
-export const getCustomStylePreset = (id: string): CustomStylePreset | undefined => {
-  const preset = PRESET_DEFINITIONS[id as CustomStylePresetId];
-  return preset ? clonePreset(preset) : undefined;
-};
-

@@ -3,6 +3,7 @@ import { Archive, Copy, Pencil, RotateCcw, Trash2 } from 'lucide-react';
 import { Button } from '../../components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
 import type { HostedCustomProduct } from '../../types/customProducts';
+import { isBuiltInCustomProduct } from '../../lib/builtInCustomProducts';
 import CustomProductPreview from './CustomProductPreview';
 
 interface Props {
@@ -32,7 +33,7 @@ const DeleteAction = ({ pending, onDelete }: { pending: boolean; onDelete(): voi
 
 const ProductActions = ({ product, premiumActive, pending, onEdit, onDuplicate, onStatus, onDelete, onUse }: Props) => {
   const active = product.status === 'active';
-  if (product.builtIn) {
+  if (isBuiltInCustomProduct(product)) {
     return <div className="custom-product-card__actions">
       <Button onClick={onUse} disabled={pending || !active}>Use in Forecast</Button>
     </div>;
@@ -54,6 +55,7 @@ const ProductActions = ({ product, premiumActive, pending, onEdit, onDuplicate, 
 
 const CustomProductCard = (props: Props) => {
   const { product } = props;
+  const builtIn = isBuiltInCustomProduct(product);
   return (
     <Card className="custom-product-card">
       <CardHeader>
@@ -62,12 +64,12 @@ const CustomProductCard = (props: Props) => {
             <CardTitle>{product.label}</CardTitle>
             <CardDescription>{product.description || `${product.categories.length} ordered categories`}</CardDescription>
           </div>
-          <span className={`custom-product-status is-${product.builtIn ? 'builtin' : product.status}`}>{product.builtIn ? 'Built-in · Free' : product.status}</span>
+          <span className={`custom-product-status is-${builtIn ? 'builtin' : product.status}`}>{builtIn ? 'Built-in · Free' : product.status}</span>
         </div>
       </CardHeader>
       <CardContent>
         <CustomProductPreview categories={product.categories} />
-        <div className="custom-product-card__meta">{product.builtIn ? 'Available to everyone · Does not count toward your personal product limit' : `Version ${product.version} · Updated ${new Date(product.updatedAt).toLocaleDateString()}`}</div>
+        <div className="custom-product-card__meta">{builtIn ? 'Available to everyone · Does not count toward your personal product limit' : `Version ${product.version} · Updated ${new Date(product.updatedAt).toLocaleDateString()}`}</div>
         <ProductActions {...props} />
       </CardContent>
     </Card>

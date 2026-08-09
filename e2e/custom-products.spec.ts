@@ -14,7 +14,10 @@ const createProduct = async (page: Page, name: string): Promise<void> => {
 
 const productCard = (container: Page | Locator, name: string) => container
   .getByRole('heading', { name, exact: true })
-  .locator('xpath=ancestor::div[contains(concat(" ", normalize-space(@class), " "), " custom-product-card ")][1]');
+  .locator('..')
+  .locator('..')
+  .locator('..')
+  .locator('..');
 
 test.describe('Local reusable custom products', () => {
   test.skip(buildTarget !== 'local', 'Local product management is excluded from hosted targets.');

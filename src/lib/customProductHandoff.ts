@@ -4,6 +4,8 @@ import {
   createLayerFromHostedProduct,
   isOneOffCustomLayer,
 } from './customProducts';
+import { listBuiltInCustomProducts, isBuiltInCustomProduct } from './builtInCustomProducts';
+import { isBuiltInCustomProductId } from './customProductTrust';
 
 export const CUSTOM_PRODUCT_HANDOFF_KEY = 'gfc-custom-product-handoff';
 
@@ -18,7 +20,7 @@ export const stageCustomProductForForecast = (
   product: HostedCustomProduct,
   premiumActive: boolean,
 ): OneOffCustomLayer => {
-  if (!premiumActive && !product.builtIn) throw new Error('Premium is required to use a reusable product in a new map.');
+  if (!premiumActive && !isBuiltInCustomProduct(product)) throw new Error('Premium is required to use a reusable product in a new map.');
   if (product.status !== 'active') throw new Error('Archived products cannot be loaded into a new map.');
   const nonce = globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`;
   const layer = createLayerFromHostedProduct({
@@ -38,7 +40,13 @@ export const consumeCustomProductForecastHandoff = (premiumActive: boolean): One
   try {
     const parsed = JSON.parse(serialized) as unknown;
     if (!isOneOffCustomLayer(parsed)) return null;
-    return premiumActive || parsed.productSnapshot?.builtIn ? parsed : null;
+    const snapshot = parsed.productSnapshot;
+    const isKnownBuiltIn = snapshot?.builtIn === true
+      && isBuiltInCustomProductId(snapshot.sourceProductId)
+      && listBuiltInCustomProducts().some((product) => (
+        product.id === snapshot.sourceProductId && product.version === snapshot.sourceProductVersion
+      ));
+    return premiumActive || isKnownBuiltIn ? parsed : null;
   } catch {
     return null;
   }

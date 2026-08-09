@@ -6,7 +6,6 @@ import type {
   HostedCustomProduct,
 } from '../../types/customProducts';
 import type { CustomProductDraft } from '../../lib/customProductsRepository';
-import type { CustomStylePreset } from '../../lib/customStylePresets';
 
 const DEFAULT_STYLE = {
   fillColor: '#f97316',
@@ -53,13 +52,6 @@ export const emptyProductDraft = (): CustomProductDraft => ({
   label: '',
   description: '',
   categories: [newCategory(0)],
-});
-
-/** Starts a reusable product from a detached built-in style preset. */
-export const productDraftFromPreset = (preset: CustomStylePreset): CustomProductDraft => ({
-  label: preset.label,
-  description: preset.description,
-  categories: preset.categories.map((category) => ({ ...category, style: { ...category.style } })),
 });
 
 export const productDraft = (product: HostedCustomProduct): CustomProductDraft => ({

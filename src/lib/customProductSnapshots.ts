@@ -5,6 +5,7 @@ import {
   type HostedCustomProduct,
 } from '../types/customProducts';
 import { isCustomCategoryList } from './customCategoryValidation';
+import { isBuiltInCustomProductId, isTrustedBuiltInCustomProduct } from './customProductTrust';
 
 const ISO_TIMESTAMP = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/;
 
@@ -37,7 +38,7 @@ export const createEmbeddedCustomProductSnapshot = (
   schemaVersion: CUSTOM_PRODUCTS_SCHEMA_VERSION,
   sourceProductId: product.id,
   sourceProductVersion: product.version,
-  ...(product.builtIn ? { builtIn: true } : {}),
+  ...(isTrustedBuiltInCustomProduct(product) ? { builtIn: true } : {}),
   label: product.label,
   categories: product.categories.map((category) => ({ ...category, style: { ...category.style } })),
   capturedAt,
@@ -46,7 +47,7 @@ export const createEmbeddedCustomProductSnapshot = (
 const hasValidSnapshotReferences = (value: Record<string, unknown>): boolean =>
   (value.sourceProductId === undefined || isBoundedText(value.sourceProductId))
   && (value.sourceProductVersion === undefined || isPositiveInteger(value.sourceProductVersion))
-  && (value.builtIn === undefined || value.builtIn === true);
+  && (value.builtIn === undefined || (value.builtIn === true && isBuiltInCustomProductId(value.sourceProductId)));
 
 const hasValidSnapshotContent = (value: Record<string, unknown>): boolean =>
   isBoundedText(value.label)

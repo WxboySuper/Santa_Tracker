@@ -12,6 +12,7 @@ import {
   CUSTOM_PRODUCT_HANDOFF_KEY,
   stageCustomProductForForecast,
 } from './customProductHandoff';
+import { listBuiltInCustomProducts } from './builtInCustomProducts';
 
 const category = (id: string, order: number) => ({
   id: id as CustomCategoryId,
@@ -151,6 +152,22 @@ describe('customProductsRepository', () => {
     expect(sessionStorage.getItem(CUSTOM_PRODUCT_HANDOFF_KEY)).toBeNull();
     expect(() => stageCustomProductForForecast(product, false)).toThrow('Premium');
     expect(() => stageCustomProductForForecast({ ...product, status: 'archived' } as HostedCustomProduct, true)).toThrow('Archived');
+  });
+
+  test('allows free users to stage and consume catalog built-ins without trusting a spoofed marker', () => {
+    const builtIn = listBuiltInCustomProducts()[0];
+    const layer = stageCustomProductForForecast(builtIn, false);
+
+    expect(layer.productSnapshot?.builtIn).toBe(true);
+    expect(consumeCustomProductForecastHandoff(false)).toEqual(layer);
+
+    const userProduct = createHostedProduct({
+      id: 'product-01',
+      userId: 'user-1',
+      draft: draft(),
+      now: '2026-07-17T12:00:00.000Z',
+    });
+    expect(() => stageCustomProductForForecast({ ...userProduct, builtIn: true }, false)).toThrow('Premium');
   });
 
   test('clears malformed or invalid forecast handoffs without consuming them', () => {

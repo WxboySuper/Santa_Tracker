@@ -18,7 +18,7 @@ const readProducts = (userId: string): HostedCustomProduct[] => {
   try {
     const parsed = JSON.parse(localStorage.getItem(localKey(userId)) ?? '[]') as unknown;
     if (!Array.isArray(parsed)) return [];
-    return sortProducts(parsed.filter(isHostedCustomProduct).filter((product) => product.userId === userId));
+    return sortProducts(parsed.filter(isHostedCustomProduct).filter((product) => product.userId === userId && !product.builtIn));
   } catch {
     return [];
   }
