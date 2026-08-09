@@ -1,6 +1,6 @@
 import type { OutlookData } from '../../types/outlooks';
 import type { StormReport } from '../../types/stormReports';
-import type { DatEvidence } from '../dat';
+import { summarizeDatEvidence, type DatEvidence } from '../dat';
 import {
   assessDataQuality,
   buildPackageGrade,
@@ -110,6 +110,40 @@ const relevantReportCount = (outlooks: OutlookData, reports: StormReport[]): num
   return counts.length === 0 ? 0 : Math.max(...counts);
 };
 
+const buildStagedPackageGrade = ({
+  outlooks,
+  reports,
+  reportsError,
+  datEvidence,
+  generatedAt,
+  products,
+}: GradeForecastInput & { products: ProductGrade[] }): PackageGrade => {
+  const hasGeometry = PRODUCT_KINDS.some(
+    (product) => extractProductContours(outlooks, product).length > 0
+  );
+  const relevantCount = relevantReportCount(outlooks, reports);
+  const datSummary = datEvidence ? summarizeDatEvidence(datEvidence) : undefined;
+  const quality = assessDataQuality(
+    hasGeometry,
+    relevantCount,
+    reportsError ?? false,
+    datSummary?.damagePointCount ?? 0,
+  );
+  const rolledGrade = quality.withholdPackageGrade ? null : rollUpPackageGrade(products);
+
+  return {
+    formulaVersion: FORECAST_GRADE_FORMULA_VERSION,
+    grade: rolledGrade,
+    letter: scoreToLetter(rolledGrade),
+    products,
+    dataQuality: quality.quality,
+    dataQualityReason: quality.reason,
+    hasReports: relevantCount > 0 || (datSummary?.damagePointCount ?? 0) > 0,
+    datEvidence: datSummary,
+    generatedAt: generatedAt ?? new Date().toISOString(),
+  };
+};
+
 /**
  * Runs the grade product-by-product, reporting staged foreground progress and
  * yielding between products so the UI can paint. Reuses the already-computed
@@ -138,31 +172,14 @@ export const runForecastGrade = async (
 
   onProgress?.({ fraction: 0.95, label: 'Rolling up package grade…' });
   await nextFrame();
-
-  const hasGeometry = PRODUCT_KINDS.some(
-    (product) => extractProductContours(outlooks, product).length > 0
-  );
-  const relevantCount = relevantReportCount(outlooks, reports);
-  const quality = assessDataQuality(hasGeometry, relevantCount, reportsError, datEvidence?.damagePoints.length ?? 0);
-  const rolledGrade = quality.withholdPackageGrade ? null : rollUpPackageGrade(products);
-  const snapshot: PackageGrade = {
-    formulaVersion: FORECAST_GRADE_FORMULA_VERSION,
-    grade: rolledGrade,
-    letter: scoreToLetter(rolledGrade),
+  const snapshot = buildStagedPackageGrade({
+    outlooks,
+    reports,
+    reportsError,
+    datEvidence,
+    generatedAt,
     products,
-    dataQuality: quality.quality,
-    dataQualityReason: quality.reason,
-    hasReports: relevantCount > 0 || (datEvidence?.damagePoints.length ?? 0) > 0,
-    datEvidence: datEvidence ? {
-      trackCount: datEvidence.tracks.length,
-      damagePointCount: datEvidence.damagePoints.length,
-      damagePolygonCount: datEvidence.damagePolygons.length,
-      tornadoTrackCount: datEvidence.tracks.filter((track) => /^EF(?:[0-5]|U)$/i.test(track.efScale ?? '')).length,
-      tornadoDamagePointCount: datEvidence.damagePoints.filter((point) => /^EF(?:[0-5]|U)$/i.test(point.efScale ?? '')).length,
-      tornadoDamagePolygonCount: datEvidence.damagePolygons.filter((polygon) => /^EF(?:[0-5]|U)$/i.test(polygon.efScale ?? '')).length,
-    } : undefined,
-    generatedAt: generatedAt ?? new Date().toISOString(),
-  };
+  });
 
   onProgress?.({ fraction: 1, label: 'Complete' });
   return snapshot;

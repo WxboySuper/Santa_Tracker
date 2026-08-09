@@ -43,6 +43,35 @@ const roundTo = (value: number, digits = 3): number => {
 const reportsForProduct = (product: ProductKind, reports: StormReport[]): StormReport[] =>
   reports.filter((report) => report.type === product);
 
+const datReportsForProduct = (
+  product: ProductKind,
+  datDamagePoints: DatDamagePoint[],
+): StormReport[] => {
+  if (product !== 'tornado') {
+    return [];
+  }
+  return datDamagePoints
+    .filter(isTornadoDamagePoint)
+    .map(datDamagePointToStormReport)
+    .filter((report): report is StormReport => Boolean(report));
+};
+
+const withDatSourceDetail = (
+  scored: ComponentScore,
+  sigReports: StormReport[],
+  datReports: StormReport[],
+): ComponentScore => {
+  if (!scored.applicable) {
+    return scored;
+  }
+  const datSigCount = datReports.filter(isSignificantReport).length;
+  if (datSigCount === 0) {
+    return scored;
+  }
+  const sourceDetail = ` (${sigReports.length - datSigCount} SPC, ${datSigCount} DAT survey)`;
+  return { ...scored, detail: `${scored.detail}${sourceDetail}` };
+};
+
 /**
  * Event yield / concentration. For each drawn core (f ≥ 0.15 / 0.30 / 0.45) the
  * expected report count is `baseline + area × density(f)`, and yield is
@@ -152,18 +181,9 @@ export const scoreSeverity = (
   datDamagePoints: DatDamagePoint[] = [],
 ): ComponentScore => {
   const sigContours = contours.filter((contour) => contour.isSignificant);
-  const datReports = product === 'tornado'
-    ? datDamagePoints
-      .filter(isTornadoDamagePoint)
-      .map(datDamagePointToStormReport)
-      .filter((report): report is StormReport => Boolean(report))
-    : [];
+  const datReports = datReportsForProduct(product, datDamagePoints);
   const observedReports = [...reportsForProduct(product, reports), ...datReports];
   const sigReports = observedReports.filter(isSignificantReport);
-  const datSigCount = datReports.filter(isSignificantReport).length;
-  const sourceDetail = datSigCount > 0
-    ? ` (${sigReports.length - datSigCount} SPC, ${datSigCount} DAT survey)`
-    : '';
   const sigDrawn = sigContours.length > 0;
   const sigObserved = sigReports.length > 0;
 
@@ -172,15 +192,11 @@ export const scoreSeverity = (
   }
   if (sigDrawn && sigObserved) {
     const scored = scoreSigDrawnAndObserved(sigContours, sigReports);
-    return scored.applicable
-      ? { ...scored, detail: `${scored.detail}${sourceDetail}` }
-      : scored;
+    return withDatSourceDetail(scored, sigReports, datReports);
   }
   if (sigDrawn) {
     return scoreSigDrawnOnly();
   }
   const scored = scoreSigObservedOnly(sigReports);
-  return scored.applicable
-    ? { ...scored, detail: `${scored.detail}${sourceDetail}` }
-    : scored;
+  return withDatSourceDetail(scored, sigReports, datReports);
 };

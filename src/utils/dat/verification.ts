@@ -6,7 +6,13 @@ export const isTornadoDamagePoint = (point: DatDamagePoint): boolean =>
   /^EF(?:[0-5]|U)$/i.test(point.efScale ?? '');
 
 export const datDamagePointToStormReport = (point: DatDamagePoint): StormReport | null => {
-  if (!isTornadoDamagePoint(point) || point.latitude === null || point.longitude === null) {
+  if (!isTornadoDamagePoint(point)) {
+    return null;
+  }
+  if (point.latitude === null) {
+    return null;
+  }
+  if (point.longitude === null) {
     return null;
   }
   return {

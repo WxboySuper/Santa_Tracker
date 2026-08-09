@@ -144,7 +144,16 @@ const normalizeDamagePoint = (feature: DatRawFeature): DatDamagePoint | null => 
   const objectId = objectIdOf(feature);
   const latitude = asNumber(properties.lat) ?? geometry?.coordinates[1] ?? null;
   const longitude = asNumber(properties.lon) ?? geometry?.coordinates[0] ?? null;
-  if (!geometry || objectId === null || latitude === null || longitude === null) {
+  if (!geometry) {
+    return null;
+  }
+  if (objectId === null) {
+    return null;
+  }
+  if (latitude === null) {
+    return null;
+  }
+  if (longitude === null) {
     return null;
   }
   return {
@@ -251,9 +260,8 @@ const toErrorMessage = (payload: unknown): string | null => {
   if (!error) {
     return 'NOAA DAT returned an unknown ArcGIS error.';
   }
-  const details = Array.isArray(error.details) && error.details.length > 0
-    ? ` ${error.details.join(' ')}`
-    : '';
+  const errorDetails = Array.isArray(error.details) ? error.details : [];
+  const details = errorDetails.length > 0 ? ` ${errorDetails.join(' ')}` : '';
   return `${error.message || 'NOAA DAT returned an ArcGIS error.'}${details}`;
 };
 
