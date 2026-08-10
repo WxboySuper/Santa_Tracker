@@ -60,6 +60,17 @@ export class SourceLoadError extends Error {}
 /** Maximum time the optional DAT source may hold a grading run open. */
 export const DAT_EVIDENCE_TIMEOUT_MS = 15_000;
 
+const toDatLoadError = (error: unknown, signal?: AbortSignal): SourceLoadError => {
+  if (signal?.aborted) {
+    return new SourceLoadError('NOAA DAT surveys timed out or were cancelled.');
+  }
+  if (error instanceof SourceLoadError) {
+    return error;
+  }
+  const detail = error instanceof Error ? error.message : 'Unknown error';
+  return new SourceLoadError(`NOAA DAT surveys could not be loaded (${detail}).`);
+};
+
 /** Deserializes a saved forecast payload and surfaces a blocking error. */
 const deserializeCycle = (payload: unknown, parseErrorMessage: string): ForecastCycle => {
   try {
@@ -184,14 +195,7 @@ export const loadDatEvidenceForDate = async (
   try {
     return await queryDatEvidenceForDate(datDateRangeFor(reportDate), signal);
   } catch (error) {
-    if (signal?.aborted) {
-      throw new SourceLoadError('NOAA DAT surveys timed out or were cancelled.');
-    }
-    if (error instanceof SourceLoadError) {
-      throw error;
-    }
-    const detail = error instanceof Error ? error.message : 'Unknown error';
-    throw new SourceLoadError(`NOAA DAT surveys could not be loaded (${detail}).`);
+    throw toDatLoadError(error, signal);
   }
 };
 
