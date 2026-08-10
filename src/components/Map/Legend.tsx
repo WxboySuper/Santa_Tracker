@@ -8,6 +8,8 @@ import './Legend.css';
 import { isFeatureExposed } from '../../config/featureExposure';
 import { selectCurrentCustomLayers } from '../../store/forecastSlice';
 import type { CustomCategoryTemplate } from '../../types/customProducts';
+import type { ReportType } from '../../types/stormReports';
+import { STORM_REPORT_COLORS } from '../../utils/stormReportColors';
 
 type LegendOutlookType = 'categorical' | 'tornado' | 'wind' | 'hail' | 'totalSevere' | 'day4-8';
 
@@ -186,18 +188,23 @@ const Legend: React.FC<LegendProps> = React.memo(({
     if (!reportsVisible) {
       return null;
     }
-    const reports = [
-      ['tornado', 'Tornado', '#8b5cf6'],
-      ['wind', 'Wind', '#2563eb'],
-      ['hail', 'Hail', '#16a34a'],
-    ] as const;
+    const reports: ReadonlyArray<readonly [ReportType, string]> = [
+      ['tornado', 'Tornado'],
+      ['wind', 'Wind'],
+      ['hail', 'Hail'],
+    ];
     return (
       <div className="legend-reports" aria-labelledby="reports-legend-title">
         <h4 id="reports-legend-title">Reports visible</h4>
         <div className="legend-items" role="list">
-          {reports.filter(([type]) => reportFilters[type]).map(([type, label, color]) => (
+          {reports.filter(([type]) => reportFilters[type]).map(([type, label]) => (
             <div key={type} className="legend-item" role="listitem">
-              <span className="legend-report-dot" style={{ backgroundColor: color }} aria-hidden="true" />
+              <span
+                className="legend-report-dot"
+                role="img"
+                aria-label={`${label} report color`}
+                style={{ backgroundColor: STORM_REPORT_COLORS[type] }}
+              />
               <span>{label}</span>
             </div>
           ))}

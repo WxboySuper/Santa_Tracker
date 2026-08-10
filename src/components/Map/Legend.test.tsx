@@ -7,7 +7,17 @@ import { CUSTOM_PRODUCTS_SCHEMA_VERSION } from '../../types/customProducts';
 import { asCustomLayerId } from '../../lib/customProducts';
 import themeReducer from '../../store/themeSlice';
 import stormReportsReducer from '../../store/stormReportsSlice';
+import type { StormReportsState } from '../../types/stormReports';
 import Legend from './Legend';
+
+const defaultStormReportsState: StormReportsState = {
+  reports: [],
+  date: null,
+  loading: false,
+  error: null,
+  visible: false,
+  filterByType: { tornado: true, wind: true, hail: true },
+};
 
 const createMockStore = (preloadedState = {}) =>
   configureStore({
@@ -16,7 +26,10 @@ const createMockStore = (preloadedState = {}) =>
       theme: themeReducer,
       stormReports: stormReportsReducer,
     },
-    preloadedState,
+    preloadedState: {
+      stormReports: defaultStormReportsState,
+      ...preloadedState,
+    },
   });
 
 const renderSevereLegend = (
@@ -59,6 +72,17 @@ describe('Legend', () => {
   it('renders tornado outlook type', () => {
     renderSevereLegend('tornado');
     expect(screen.getByText(/tornado/i)).toBeInTheDocument();
+  });
+
+  it('uses the red tornado report color in the report legend', () => {
+    const store = createMockStore({
+      forecast: { drawingState: { activeOutlookType: 'tornado' }, uiVariant: 'standard' },
+      stormReports: { ...defaultStormReportsState, visible: true },
+    });
+    render(<Provider store={store}><Legend activeOutlookType="tornado" showReportLegend /></Provider>);
+    expect(screen.getByRole('img', { name: 'Tornado report color' })).toHaveStyle({ backgroundColor: 'rgb(255, 0, 0)' });
+    expect(screen.getByRole('img', { name: 'Wind report color' })).toHaveStyle({ backgroundColor: 'rgb(0, 0, 255)' });
+    expect(screen.getByRole('img', { name: 'Hail report color' })).toHaveStyle({ backgroundColor: 'rgb(0, 255, 0)' });
   });
 
   it('marks the legend as open for the mobile popout state', () => {

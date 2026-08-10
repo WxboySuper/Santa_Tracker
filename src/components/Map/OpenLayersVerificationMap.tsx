@@ -48,6 +48,7 @@ import {
 } from "../../lib/openFreeMap";
 import "./ForecastMap.css";
 import { ReportType } from "../../types/stormReports";
+import { STORM_REPORT_COLORS, STORM_REPORT_FALLBACK_COLOR } from "../../utils/stormReportColors";
 import type { DatEvidence } from "../../utils/dat";
 import { isTornadoDamagePoint } from "../../utils/dat";
 
@@ -98,16 +99,6 @@ export const replaceLayerGroupLayers = (
     });
 };
 
-// Define specific colors for each report type
-const reportColors = {
-  tornado: "#FF0000", // Red for tornado
-  wind: "#0000FF", // Blue for wind
-  hail: "#00FF00", // Green for hail
-};
-
-// Fallback color for report dots when the report type is not found in reportColors
-const FALLBACK_REPORT_COLOR = "#888888";
-
 const datColors = {
   EF0: '#94a3b8',
   EF1: '#38bdf8',
@@ -146,7 +137,7 @@ const buildReportStyle = (type: ReportType) => {
     image: new Circle({
       radius: 6,
       fill: new StyleFill({
-        color: reportColors[type] || FALLBACK_REPORT_COLOR, // Fallback to grey
+        color: STORM_REPORT_COLORS[type] || STORM_REPORT_FALLBACK_COLOR,
       }),
       stroke: new StyleStroke({
         color: "#FFFFFF", // White border
