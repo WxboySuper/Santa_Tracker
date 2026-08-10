@@ -1,36 +1,12 @@
-export interface UpdateScreenshot {
-  src: string;
-  alt: string;
-  caption?: string;
-}
+import type { ReleaseUpdate, UpdateScreenshot } from './types';
 
-export interface UpdateSection {
-  title: string;
-  body: string;
-  screenshots?: UpdateScreenshot[];
-}
-
-export interface ReleaseImprovement {
-  id: string;
-  text: string;
-}
-
-export interface ReleaseHotfixes {
-  title: string;
-  body: string;
-  items: ReleaseImprovement[];
-}
-
-export interface ReleaseUpdate {
-  version: string;
-  title: string;
-  summary: string;
-  /** Optional hero graphics under `public/updates/v{version}/`. */
-  promoImages?: UpdateScreenshot[];
-  sections: UpdateSection[];
-  hotfixes?: ReleaseHotfixes;
-  improvements: ReleaseImprovement[];
-}
+export type {
+  ReleaseHotfixes,
+  ReleaseImprovement,
+  ReleaseUpdate,
+  UpdateScreenshot,
+  UpdateSection,
+} from './types';
 
 /** Builds a screenshot descriptor under public/updates/v1.6/. */
 function buildUpdateImage(fileName: string, alt: string, caption?: string): UpdateScreenshot {

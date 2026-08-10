@@ -9,6 +9,8 @@ All notable changes to this project will be documented in this file.
 
 Work toward the next major release continues in the beta channel while the final stable release is prepared.
 
+<!-- v1.7.0 release lane: keep all v1.7 work here until stable promotion converts this lane into ## v1.7.0. -->
+
 #### Added
 
 - **Built-in outlook opacity:** Add per-outlook fill opacity controls to the forecast workflow and preserve the selected values in saved and exported forecasts.
@@ -18,10 +20,9 @@ Work toward the next major release continues in the beta channel while the final
 - **Custom products:** Add local custom layers and reusable hosted products with category styling, snapshots, exports/imports, owner-scoped storage, and premium enforcement.
 - **Monitor and custom styles:** Add free built-in WPC-style Excessive Rainfall Outlook and Tropical AOI products that are available to everyone and do not consume personal product slots.
 - **Auto-TSTM:** Add cached SPC guidance, scheduled ingestion, preview/apply/cancel flows, cache health reporting, and stale-result protection.
-- **Feature exposure controls:** Add typed local/beta/staging/production target matrices, server capability gates, emergency disable controls, exposure diagnostics, and rollout validation.
 - **Account management:** Add recent-authentication account deletion with subscription cleanup, hosted-data removal, and local/offline-save preservation.
-- **Operations and delivery:** Add manual release workflows, staging support, release manifests, OpenCode review automation, and maintenance reports.
-- **Monitor reference layers:** Add an opt-in SPC mesoscale discussion (MCD) reference adapter with source metadata, valid-time state, and bounded caching; defer short-term model layers such as NDFD.
+- **Release updates and support:** Publish the v1.7 What's New experience plus support and privacy guidance for workflow, premium, upstream-data, and telemetry questions.
+- **Monitor reference layers:** Add opt-in official NDFD temperature and SPC mesoscale discussion adapters with source metadata, valid-time state, and bounded caching.
 
 #### Changed
 
@@ -29,8 +30,6 @@ Work toward the next major release continues in the beta channel while the final
 - **Telemetry and privacy:** Replace legacy analytics with privacy-gated self-hosted Umami while preserving native page views and minimizing tracker data.
 - **Server platform:** Move the analytics service to Express 5 and Stripe Node 22, harden billing/webhook handling, and add shared capability boundaries.
 - **Build and test tooling:** Upgrade to TypeScript 7, modernize the Jest/Babel toolchain, add production/test type checks, expand E2E coverage, and align dependency lockfiles.
-- **Deployment configuration:** Separate beta, staging, and production feature configuration and make release publication the only automatic deployment trigger.
-- **Maintenance dependencies:** Keep frontend, server, test, and build dependencies current through regular automated updates.
 - **Pricing copy:** Consolidate the free/premium boundary into one shared copy contract used by Pricing, Account, and Cloud Library, and remove repeated explanatory sentences and duplicated plan-card summaries.
 
 #### Fixed
@@ -59,9 +58,16 @@ Work toward the next major release continues in the beta channel while the final
 - **Previous-day verification:** Route the previous calendar day's SPC storm reports to the live `yesterday.csv` feed, closing the same publication-window gap for forecasts dated the day before today.
 - **SPC report-day routing:** Align report-source selection and reached-date gating with SPC's 1200Z–1159Z report window instead of the browser's local calendar boundary.
 
-#### Security and operations
+#### Security
 
 - Use immutable action references, protected reviewer gates, shell-safe branch handling, frozen dependency installs, pinned deployment host keys, concurrency controls, and explicit release validation.
+
+#### Operations
+
+- **Release and delivery:** Add manual release workflows, staging support, release manifests, OpenCode review automation, and maintenance reports.
+- **Feature exposure:** Keep local, beta, staging, and production enablement explicit through target matrices, server capability gates, emergency disable controls, exposure diagnostics, and rollout validation.
+- **Deployment configuration:** Separate beta, staging, and production feature configuration and make release publication the only automatic deployment trigger.
+- **Dependency maintenance:** Keep frontend, server, test, and build dependencies current through regular automated updates.
 
 #### Architecture
 
@@ -74,6 +80,12 @@ Work toward the next major release continues in the beta channel while the final
 - **Forecast map synchronization:** Reconcile OpenLayers forecast layers incrementally by stable feature ID, preserving unchanged feature identity and avoiding full rehydration.
 - **SPC storm report parsing:** Reduce allocations in shared SPC storm-report CSV tokenization and traverse `today.csv` sections in a single pass.
 - **Cloud library efficiency:** Store forecast payloads in a dedicated `cloudCycles/{id}/payload` subcollection so library listings and realtime subscriptions never download payload content, and replace the tenancy-wide Firestore storage scan with bounded server-side aggregate queries.
+
+#### Beta-only and experimental
+
+- **Targeted rollout:** Auto-TSTM, Forecast workflow v2, Verification relaunch, and Custom products remain local/beta rollout surfaces until their production exposure is separately approved.
+- **Unreleased foundations:** Tropical workspace and Collaboration room remain disabled on all deployment targets until their release criteria are complete.
+- **Prototype evidence:** NOAA DAT damage points supplement official verification evidence and do not replace the primary verification sources.
 
 ### Stable 1.6.x hotfixes
 

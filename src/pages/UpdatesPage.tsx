@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router';
-import { v16Update, type UpdateScreenshot } from '../content/updates/v1.6';
+import { v17Update } from '../content/updates/v1.7';
+import type { UpdateScreenshot } from '../content/updates/types';
 import './UpdatesPage.css';
 
 interface UpdateImageLightboxProps {
@@ -118,19 +119,19 @@ export const UpdatesPage: React.FC = () => {
   return (
     <div className="updates-page">
       <div className="updates-page__inner">
-        <p className="updates-page__eyebrow">What&apos;s new · v{v16Update.version}</p>
-        <h1>{v16Update.title}</h1>
-        <p className="updates-page__summary">{v16Update.summary}</p>
+        <p className="updates-page__eyebrow">What&apos;s new · v{v17Update.version}</p>
+        <h1>{v17Update.title}</h1>
+        <p className="updates-page__summary">{v17Update.summary}</p>
 
-        {v16Update.promoImages?.length ? (
+        {v17Update.promoImages?.length ? (
           <div className="updates-page__promo">
-            {v16Update.promoImages.map((shot) => (
+            {v17Update.promoImages.map((shot) => (
               <UpdateScreenshotFigure key={shot.src} shot={shot} onExpand={setExpandedShot} testid="updates-promo-image" />
             ))}
           </div>
         ) : null}
 
-        {v16Update.sections.map((section) => (
+        {v17Update.sections.map((section) => (
           <section key={section.title} className="updates-page__section">
             <h2>{section.title}</h2>
             <p>{section.body}</p>
@@ -144,12 +145,12 @@ export const UpdatesPage: React.FC = () => {
           </section>
         ))}
 
-        {v16Update.hotfixes ? (
+        {v17Update.hotfixes ? (
           <section className="updates-page__hotfixes" aria-labelledby="updates-hotfixes-heading">
-            <h2 id="updates-hotfixes-heading">{v16Update.hotfixes.title}</h2>
-            <p>{v16Update.hotfixes.body}</p>
+            <h2 id="updates-hotfixes-heading">{v17Update.hotfixes.title}</h2>
+            <p>{v17Update.hotfixes.body}</p>
             <ul>
-              {v16Update.hotfixes.items.map((item) => (
+              {v17Update.hotfixes.items.map((item) => (
                 <li key={item.id}>{item.text}</li>
               ))}
             </ul>
@@ -159,7 +160,7 @@ export const UpdatesPage: React.FC = () => {
         <section className="updates-page__improvements" aria-labelledby="updates-improvements-heading">
           <h2 id="updates-improvements-heading">Also improved</h2>
           <ul>
-            {v16Update.improvements.map((item) => (
+            {v17Update.improvements.map((item) => (
               <li key={item.id}>{item.text}</li>
             ))}
           </ul>

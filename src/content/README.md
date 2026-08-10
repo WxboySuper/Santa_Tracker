@@ -5,3 +5,7 @@ the application, such as update entries. Keep content declarative and separate
 from route composition, feature exposure, and domain state.
 
 Update content consumers and focused tests when a content shape changes.
+
+Versioned update entries remain under `src/content/updates/`; the public
+`/updates` route currently selects the release entry through an explicit import
+in `UpdatesPage.tsx`, while older versions stay available as source history.
