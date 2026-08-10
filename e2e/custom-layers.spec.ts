@@ -86,6 +86,14 @@ test.describe('local-only custom layers', () => {
       await page.setViewportSize(viewport);
       await openForecast(page);
       await expect(page.getByRole('radio', { name: 'Severe' })).toBeVisible();
+      const drawModeBox = await page.locator('.tabbed-integrated-toolbar__section--product-mode').boundingBox();
+      const toggleBox = await page.getByTestId('custom-product-toggle').boundingBox();
+      const outlookTypeBox = await page.locator('.tabbed-integrated-toolbar__section--type').boundingBox();
+      if (!drawModeBox || !toggleBox || !outlookTypeBox) {
+        throw new Error('Expected Draw mode and Outlook Type sections to have measurable bounds');
+      }
+      expect(toggleBox.x + toggleBox.width).toBeLessThanOrEqual(drawModeBox.x + drawModeBox.width + 1);
+      expect(drawModeBox.x + drawModeBox.width).toBeLessThanOrEqual(outlookTypeBox.x + 1);
       await page.getByRole('radio', { name: 'Custom' }).click();
       await expect(page.getByRole('button', { name: 'Add custom layer' })).toBeVisible();
       await expect(page.locator('.map-container')).toBeVisible();

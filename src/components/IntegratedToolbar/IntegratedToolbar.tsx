@@ -595,7 +595,7 @@ const TabbedToolbarDrawTab: React.FC<{ controller: ForecastWorkspaceController }
 
   return (
     <TabbedToolbarTabRow>
-      <TabbedToolbarStripSection label="Draw mode" className="tabbed-integrated-toolbar__section--product-mode w-[226px]">
+      <TabbedToolbarStripSection label="Draw mode" className="tabbed-integrated-toolbar__section--product-mode">
         <div className={cn('custom-product-toggle', storedMode === 'custom' && 'is-custom-mode')} role="radiogroup" aria-label="Drawing product" data-testid="custom-product-toggle">
           <span className="custom-product-toggle__indicator" aria-hidden="true" />
           {(['severe', 'custom'] as const).map((mode) => (
