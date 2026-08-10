@@ -1,12 +1,10 @@
 import LayerGroup from "ol/layer/Group";
-import VectorSource from "ol/source/Vector";
 import OSM from "ol/source/OSM";
 import XYZ from "ol/source/XYZ";
 import GeoJSON from "ol/format/GeoJSON";
 import { Fill, Stroke, Style } from "ol/style";
 import Overlay from "ol/Overlay";
 import type { FeatureLike } from "ol/Feature";
-import type OLFeature from "ol/Feature";
 import type Geometry from "ol/geom/Geometry";
 import { v4 as uuidv4 } from "uuid";
 import type { BaseMapStyle } from "../../store/overlaysSlice";
@@ -37,15 +35,6 @@ interface CustomFeatureIdentity {
   customLayerId: string;
   categoryId: string;
   title: string;
-}
-
-interface BlankLayerConfig {
-  source: VectorSource;
-  isLoaded: () => boolean;
-  url: string;
-  getCache: () => object | null;
-  setCache: (data: object) => void;
-  style?: Style;
 }
 
 interface OutlookSelection {
@@ -261,15 +250,6 @@ export const toUpdatedGeoJsonFeature = (
   };
 };
 
-/** Iterates over a FeatureLike array and calls setStyle on each, guarding against RenderFeature instances that lack the method. */
-export const applyBlankLayerStyle = (features: FeatureLike[], style: Style) => {
-  features.forEach((feature) => {
-    if ("setStyle" in feature && typeof feature.setStyle === "function") {
-      feature.setStyle(style);
-    }
-  });
-};
-
 /** Replaces all layers in the target group with the current layers from the source group. */
 export const replaceLayerGroupLayers = (
   target: LayerGroup,
@@ -283,31 +263,6 @@ export const replaceLayerGroupLayers = (
     .forEach((layer) => {
       targetLayers.push(layer);
     });
-};
-
-/** Loads GeoJSON features into a blank-basemap VectorSource if not already populated, using an in-memory cache to avoid repeated network requests. */
-export const ensureBlankLayerLoaded = async (config: BlankLayerConfig) => {
-  if (config.isLoaded()) return;
-
-  let geoJson = config.getCache();
-  if (!geoJson) {
-    const response = await fetch(config.url);
-    geoJson = (await response.json()) as object;
-    config.setCache(geoJson);
-  }
-
-  if (!geoJson) return;
-
-  const format = new GeoJSON();
-  const features = format.readFeatures(geoJson, {
-    dataProjection: "EPSG:4326",
-    featureProjection: "EPSG:3857",
-  });
-
-  if (config.style) {
-    applyBlankLayerStyle(features as FeatureLike[], config.style);
-  }
-  config.source.addFeatures(features as unknown as OLFeature<Geometry>[]);
 };
 
 /** Returns true if the given outlook type string is one of the user-editable types defined in DRAWABLE_OUTLOOK_TYPES. */
@@ -586,7 +541,6 @@ export type {
   EditableOutlookType,
   FeatureIdentity,
   CustomFeatureIdentity,
-  BlankLayerConfig,
   OutlookSelection,
   GhostSelection,
   FillBuildInput,
@@ -596,6 +550,12 @@ export type {
   StrokeWidthInput,
   HatchPatternInput,
 };
+
+export {
+  applyBlankLayerStyle,
+  ensureBlankLayerLoaded,
+} from "./openLayersBlankBasemap";
+export type { BlankLayerConfig } from "./openLayersBlankBasemap";
 export {
   TOP_OUTLINE_LAYER_Z_INDEX,
   TOP_VECTOR_REFERENCE_LAYER_Z_INDEX,
