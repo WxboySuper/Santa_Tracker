@@ -1078,8 +1078,8 @@
 }
 
 @media (max-width: 768px) {
-  .tabbed-integrated-toolbar__section--product-mode { flex: 0 0 218px; }
-  .custom-product-toggle { flex-basis: 120px; width: 120px; }
+  .tabbed-integrated-toolbar__section--product-mode { flex: 0 0 218px; width: 218px; }
+  .custom-product-toggle { flex: 0 0 120px; width: 120px; }
   .custom-products-dialog-content { width: calc(100vw - 1rem); }
   .custom-products-dialog-header { padding: 16px 50px 14px 16px; }
   .custom-products-dialog-content .custom-products-page--dialog { padding: 12px 14px 16px; }
@@ -1098,8 +1098,8 @@
 }
 
 @media (max-height: 500px) and (orientation: landscape) {
-  .tabbed-integrated-toolbar__section--product-mode { flex-basis: 242px; }
-  .custom-product-toggle { width: 142px; }
+  .tabbed-integrated-toolbar__section--product-mode { flex-basis: 242px; width: 242px; }
+  .custom-product-toggle { flex-basis: 142px; width: 142px; }
   .custom-draw-panel__group { padding-block: 6px; }
   .custom-draw-panel__label { display: none; }
   .custom-draw-panel__appearance { display: flex; min-width: 760px; }
