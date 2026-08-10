@@ -1,0 +1,82 @@
+name: Release | Bootstrap Stable Release Line
+
+# Create the immutable stable branch only after the reviewed promotion PR has
+# merged into main. This workflow never deploys, publishes, or merges a release.
+on:
+  workflow_dispatch:
+    inputs:
+      source_ref:
+        description: 'Approved main commit or branch to use as the stable source'
+        required: true
+        default: main
+        type: string
+      version:
+        description: 'Stable release version, for example 1.7.0'
+        required: true
+        type: string
+      confirmation:
+        description: 'Type BOOTSTRAP-STABLE to create the stable branch'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  bootstrap:
+    if: inputs.confirmation == 'BOOTSTRAP-STABLE'
+    runs-on: ubuntu-latest
+    env:
+      SOURCE_REF: ${{ inputs.source_ref }}
+      TARGET_VERSION: ${{ inputs.version }}
+
+    steps:
+      - name: Checkout approved source
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          ref: ${{ inputs.source_ref }}
+          fetch-depth: 0
+
+      - name: Validate source and stable branch contract
+        id: validate
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if ! printf '%s' "$SOURCE_REF" | grep -Eq '^(main|[0-9a-f]{7,40})$'; then
+            echo "::error::Stable source must be main or an immutable commit SHA."
+            exit 1
+          fi
+
+          if ! printf '%s' "$TARGET_VERSION" | grep -Eq '^[0-9]+\.[0-9]+\.0$'; then
+            echo "::error::Stable version must be a major.minor.0 version, got $TARGET_VERSION."
+            exit 1
+          fi
+
+          PACKAGE_VERSION=$(node -p "require('./package.json').version")
+          if [ "$PACKAGE_VERSION" != "$TARGET_VERSION" ]; then
+            echo "::error::Approved source package version $PACKAGE_VERSION does not match $TARGET_VERSION."
+            exit 1
+          fi
+
+          STABLE_BRANCH="stable/${TARGET_VERSION%.*}.x"
+          if git ls-remote --exit-code --heads origin "$STABLE_BRANCH" >/dev/null 2>&1; then
+            echo "::error::Stable branch $STABLE_BRANCH already exists; refusing to overwrite it."
+            exit 1
+          fi
+
+          SOURCE_SHA=$(git rev-parse HEAD)
+          echo "stable_branch=$STABLE_BRANCH" >> "$GITHUB_OUTPUT"
+          echo "source_sha=$SOURCE_SHA" >> "$GITHUB_OUTPUT"
+          echo "Preparing $STABLE_BRANCH from $SOURCE_SHA."
+
+      - name: Create and push stable branch
+        shell: bash
+        env:
+          STABLE_BRANCH: ${{ steps.validate.outputs.stable_branch }}
+          SOURCE_SHA: ${{ steps.validate.outputs.source_sha }}
+        run: |
+          set -euo pipefail
+          git switch --create "$STABLE_BRANCH" "$SOURCE_SHA"
+          git push --set-upstream origin "$STABLE_BRANCH"
+          echo "Created $STABLE_BRANCH at $SOURCE_SHA."
