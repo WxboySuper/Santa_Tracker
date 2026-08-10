@@ -19,6 +19,7 @@ repeatable workflows.
 - [v1.7 exposure matrix](./operations/v1.7-exposure-matrix.md) - cross-feature target exposure and release evidence contract.
 - [v1.7 acceptance matrix](./operations/v1.7-acceptance-matrix.md) - desktop, mobile, account-state, and disabled-feature acceptance evidence.
 - [Feature exposure testing](./operations/feature-exposure-testing.md) - disabled-side-effect fixture and coverage contract.
+- [v1.7 support and privacy operations](./operations/v1.7-support-and-privacy.md) - release support triage, limitations, and privacy-request handling.
 - [Auto-TSTM operations](./operations/auto-tstm-operations.md) - cached Auto-TSTM API behavior, cache health, and operational limits.
 - [Auto-TSTM beta test plans](./operations/auto-tstm-beta-test-plans.md) - beta smoke plans for Auto-TSTM.
 - [Auto-TSTM beta tester post](./operations/auto-tstm-beta-tester-post.md) - concise tester instructions.
@@ -32,6 +33,7 @@ repeatable workflows.
 
 ## Releases
 
+- [v1.7.0 release notes](./releases/v1.7.0.md) - v1.7 product scope, boundaries, privacy notes, and promotion evidence.
 - [v1.4.0 plan](./releases/v1.4.0-plan.md) - hosted accounts, sync, billing, and sustainability plan.
 - [v1.3.0 notes](./releases/v1.3.0-draft.md) - workflow polish and visibility notes.
 - [v1.2.0 notes](./releases/v1.2.0-launch.md) - editing safety nets launch notes.

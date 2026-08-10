@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import UpdatesPage from './UpdatesPage';
 
@@ -13,42 +13,31 @@ beforeAll(() => {
 });
 
 describe('UpdatesPage', () => {
-  test('renders v1.6 headline and improvement list', () => {
+  test('renders v1.7 headline and release sections', () => {
     render(
       <MemoryRouter>
         <UpdatesPage />
       </MemoryRouter>,
     );
 
-    expect(screen.getByRole('heading', { level: 1, name: /Monitor/i })).toBeInTheDocument();
-    expect(screen.getByText(/What's new · v1\.6/i)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /View larger: Monitor in light mode/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /View larger: Monitor in dark mode/i })).toBeInTheDocument();
-    const promos = screen.getAllByTestId('updates-promo-image');
-    expect(promos).toHaveLength(2);
-    expect(promos[0]).toHaveAttribute('src', '/updates/v1.6/v1.6-promo-image-light-mrms-visible.png');
-    expect(promos[1]).toHaveAttribute('src', '/updates/v1.6/v1.6-promo-image-dark-single-site-shortwave-ir.png');
-    expect(screen.getByRole('heading', { name: /Monitor workspace/i })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: /v1\.6 Hotfixes/i })).toBeInTheDocument();
-    expect(screen.getByText(/OpenLayers and React disagreed about popup DOM ownership/i)).toBeInTheDocument();
-    expect(screen.getByText(/Signed-in home page primary buttons are easier to read/i)).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 1, name: /Forecast, reflect, and learn/i })).toBeInTheDocument();
+    expect(screen.getByText(/What's new · v1\.7/i)).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /Workflow continuity/i })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /Forecast Grade and Monitor/i })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /Custom products and premium boundaries/i })).toBeInTheDocument();
+    expect(screen.getByText(/Auto-TSTM provides cached guidance/i)).toBeInTheDocument();
+    expect(screen.queryByTestId('updates-promo-image')).not.toBeInTheDocument();
     expect(screen.getByRole('link', { name: /Back to home/i })).toHaveAttribute('href', '/');
   });
 
-  test('opens an enlarged preview when a promo image is clicked', async () => {
+  test('keeps the release page useful without optional image assets', () => {
     render(
       <MemoryRouter>
         <UpdatesPage />
       </MemoryRouter>,
     );
 
-    fireEvent.click(screen.getByRole('button', { name: /View larger:.*light mode/i }));
-
-    const dialog = await screen.findByRole('dialog');
-    expect(dialog).toBeInTheDocument();
-    expect(screen.getByRole('img', { name: /light mode with MRMS reflectivity/i })).toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole('button', { name: /Close enlarged image/i }));
-    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /Back to home/i })).toHaveAttribute('href', '/');
   });
 });
