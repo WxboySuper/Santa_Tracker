@@ -142,6 +142,7 @@ when the stable changelog entry is carried forward.
 | --- | --- |
 | `release-beta.yml` | Version, release, build, and deploy a beta prerelease from `main` |
 | `prepare-stable-promotion.yml` | Create a reviewed main promotion PR |
+| `bootstrap-stable-release.yml` | Create the immutable `stable/X.Y.x` branch from the approved main commit |
 | `release-stable.yml` | Create a stable or hotfix release |
 | `deploy-staging.yml` | Manually deploy a rehearsal ref |
 | `deploy-main-to-vps.yml` | Deploy a published stable release or selected ref |

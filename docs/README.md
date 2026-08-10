@@ -20,6 +20,7 @@ repeatable workflows.
 - [v1.7 acceptance matrix](./operations/v1.7-acceptance-matrix.md) - desktop, mobile, account-state, and disabled-feature acceptance evidence.
 - [Feature exposure testing](./operations/feature-exposure-testing.md) - disabled-side-effect fixture and coverage contract.
 - [v1.7 support and privacy operations](./operations/v1.7-support-and-privacy.md) - release support triage, limitations, and privacy-request handling.
+- [v1.7 release-candidate runbook](./operations/v1.7-release-candidate.md) - regression, beta, staging, stable promotion, and rollback gates.
 - [Auto-TSTM operations](./operations/auto-tstm-operations.md) - cached Auto-TSTM API behavior, cache health, and operational limits.
 - [Auto-TSTM beta test plans](./operations/auto-tstm-beta-test-plans.md) - beta smoke plans for Auto-TSTM.
 - [Auto-TSTM beta tester post](./operations/auto-tstm-beta-tester-post.md) - concise tester instructions.
