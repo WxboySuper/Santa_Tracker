@@ -48,6 +48,20 @@ function collectExistingTestFiles(gatedFeatureKeys) {
   return existingTestFiles;
 }
 
+/** Validates the release document's registry matrix against executable policy data. */
+function validateExposureMatrix(registry) {
+  const result = validateExposureMatrixDocument(
+    readSource('docs/operations/v1.7-exposure-matrix.md'),
+    registry
+  );
+  if (result.ok) return true;
+
+  console.error('Feature exposure matrix document FAILED:');
+  for (const error of result.errors) console.error(`  x ${error}`);
+  process.exitCode = 1;
+  return false;
+}
+
 /** Loads every policy input from repository sources. */
 export function loadPolicyInputs() {
   const registry = extractConst(
@@ -119,16 +133,7 @@ function main() {
     return;
   }
 
-  const matrixResult = validateExposureMatrixDocument(
-    readSource('docs/operations/v1.7-exposure-matrix.md'),
-    registry
-  );
-  if (!matrixResult.ok) {
-    console.error('Feature exposure matrix document FAILED:');
-    for (const error of matrixResult.errors) console.error(`  x ${error}`);
-    process.exitCode = 1;
-    return;
-  }
+  if (!validateExposureMatrix(registry)) return;
 
   console.log('Feature exposure policy OK: all checks passed.');
   console.log(`  Registry: ${Object.keys(registry).length} features`);
