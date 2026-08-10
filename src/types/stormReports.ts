@@ -3,6 +3,7 @@
  */
 
 export type ReportType = 'tornado' | 'wind' | 'hail';
+export type StormReportSource = 'SPC' | 'DAT';
 
 export interface StormReport {
   id: string;
@@ -15,6 +16,7 @@ export interface StormReport {
   county: string;
   state: string;
   comments?: string;
+  source?: StormReportSource;
 }
 
 export interface StormReportsState {

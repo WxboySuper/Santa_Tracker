@@ -6,6 +6,7 @@ import GradeHeadline from './GradeHeadline';
 import ScoreBreakdown from './ScoreBreakdown';
 import DataQualityPanel from './DataQualityPanel';
 import ReportTable from './ReportTable';
+import DatEvidencePanel from './DatEvidencePanel';
 import GradeTrendChart from './GradeTrendChart';
 import RunProgress from './RunProgress';
 import type { useForecastGrade } from './useForecastGrade';
@@ -38,9 +39,9 @@ const ForecastGradeResultsPane: React.FC<ForecastGradeResultsPaneProps> = ({
   result,
   afterResult,
 }) => {
-  const [openSection, setOpenSection] = useState<'breakdown' | 'quality' | 'reports' | null>(null);
+  const [openSection, setOpenSection] = useState<'breakdown' | 'quality' | 'reports' | 'dat' | null>(null);
   /** Keeps only one results disclosure open at a time. */
-  const toggleSection = (section: 'breakdown' | 'quality' | 'reports') =>
+  const toggleSection = (section: 'breakdown' | 'quality' | 'reports' | 'dat') =>
     setOpenSection((current) => (current === section ? null : section));
 
   const isRunning = grade.phase === 'running';
@@ -90,6 +91,12 @@ const ForecastGradeResultsPane: React.FC<ForecastGradeResultsPaneProps> = ({
           onSelect={onSelectReport}
           open={openSection === 'reports'}
           onToggle={() => toggleSection('reports')}
+        />
+        <DatEvidencePanel
+          evidence={grade.datEvidence}
+          error={grade.datError}
+          open={openSection === 'dat'}
+          onToggle={() => toggleSection('dat')}
         />
         {afterResult}
       </div>

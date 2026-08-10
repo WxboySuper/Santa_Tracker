@@ -14,6 +14,8 @@ import {
 import { fetchStormReports, fetchTodayStormReports, fetchYesterdayStormReports } from '../stormReportParser';
 import { isTodayReportDate, isYesterdayReportDate, toArchiveDate } from './archiveDate';
 import type { PackageGrade, ProductKind } from './gradeContract';
+import { queryDatEvidenceForDate } from '../dat';
+import type { DatEvidence } from '../dat';
 
 export {
   getCurrentSpcReportDate,
@@ -54,6 +56,20 @@ export const tierHasHistory = (tier: GradeAccountTier): boolean => tier !== 'sig
 export const tierHasSnapshots = (tier: GradeAccountTier): boolean => tier === 'premium';
 
 export class SourceLoadError extends Error {}
+
+/** Maximum time the optional DAT source may hold a grading run open. */
+export const DAT_EVIDENCE_TIMEOUT_MS = 15_000;
+
+const toDatLoadError = (error: unknown, signal?: AbortSignal): SourceLoadError => {
+  if (signal?.aborted) {
+    return new SourceLoadError('NOAA DAT surveys timed out or were cancelled.');
+  }
+  if (error instanceof SourceLoadError) {
+    return error;
+  }
+  const detail = error instanceof Error ? error.message : 'Unknown error';
+  return new SourceLoadError(`NOAA DAT surveys could not be loaded (${detail}).`);
+};
 
 /** Deserializes a saved forecast payload and surfaces a blocking error. */
 const deserializeCycle = (payload: unknown, parseErrorMessage: string): ForecastCycle => {
@@ -154,6 +170,32 @@ export const loadReportsForDate = async (
     }
     const detail = error instanceof Error ? error.message : 'Unknown error';
     throw new SourceLoadError(`Storm reports could not be loaded (${detail}).`);
+  }
+};
+
+const datDateRangeFor = (reportDate: string | null): { start: number; end: number } => {
+  const date = reportDate ?? new Date().toISOString().slice(0, 10);
+  const match = date.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!match) {
+    throw new SourceLoadError('Choose a valid report date before loading NOAA DAT surveys.');
+  }
+  const isoDate = `${match[1]}-${match[2]}-${match[3]}`;
+  const start = Date.parse(`${isoDate}T00:00:00.000Z`);
+  if (!Number.isFinite(start) || new Date(start).toISOString().slice(0, 10) !== isoDate) {
+    throw new SourceLoadError('Choose a valid report date before loading NOAA DAT surveys.');
+  }
+  return { start, end: start + 24 * 60 * 60 * 1000 };
+};
+
+/** Loads optional NOAA DAT evidence for the same UTC calendar day as SPC. */
+export const loadDatEvidenceForDate = async (
+  reportDate: string | null,
+  signal?: AbortSignal,
+): Promise<DatEvidence> => {
+  try {
+    return await queryDatEvidenceForDate(datDateRangeFor(reportDate), signal);
+  } catch (error) {
+    throw toDatLoadError(error, signal);
   }
 };
 

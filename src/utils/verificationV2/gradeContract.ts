@@ -1,4 +1,5 @@
 import { FORECAST_GRADE_FORMULA_VERSION } from './formulaVersion';
+import type { DatEvidenceSummary } from '../dat';
 
 /**
  * Forecast Grade contract (PR 01 — formula-contract).
@@ -124,6 +125,8 @@ export interface ProductGrade {
   /** False when nothing was forecast and nothing observed for this product. */
   applicable: boolean;
   reportCount: number;
+  /** NOAA DAT survey points used as supplemental tornado severity evidence. */
+  datPointCount?: number;
 }
 
 /** Package grade across every present hazard product. */
@@ -137,6 +140,8 @@ export interface PackageGrade {
   dataQualityReason: string;
   /** True when at least one storm report was supplied. */
   hasReports: boolean;
+  /** Summary of optional NOAA DAT evidence loaded for this run. */
+  datEvidence?: DatEvidenceSummary;
   generatedAt: string;
 }
 

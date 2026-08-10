@@ -12,6 +12,8 @@ interface ForecastGradeMapControlsProps {
   reportsVisible: boolean;
   legendOpen: boolean;
   onToggleEvidence: () => void;
+  datVisible: boolean;
+  onToggleDat: () => void;
   onToggleLegend: () => void;
 }
 
@@ -25,6 +27,8 @@ const ForecastGradeMapControls: React.FC<ForecastGradeMapControlsProps> = ({
   reportsVisible,
   legendOpen,
   onToggleEvidence,
+  datVisible,
+  onToggleDat,
   onToggleLegend,
 }) => (
   <div className="absolute left-2 top-2 z-[5] flex flex-wrap items-center gap-1 rounded-lg bg-slate-900/75 p-1 text-xs text-white">
@@ -64,6 +68,15 @@ const ForecastGradeMapControls: React.FC<ForecastGradeMapControlsProps> = ({
     >
       {reportsVisible ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
       Evidence
+    </button>
+    <button
+      type="button"
+      className="fg-touch inline-flex items-center gap-1 rounded bg-white/10 px-2 py-1"
+      onClick={onToggleDat}
+      aria-pressed={datVisible}
+    >
+      <span aria-hidden="true" className="inline-block h-2 w-2 rounded-full bg-amber-300" />
+      DAT survey
     </button>
     <button
       type="button"

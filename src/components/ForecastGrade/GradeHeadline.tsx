@@ -82,6 +82,7 @@ const GradeSummary: React.FC<GradeSummaryProps> = ({ pkg }) => (
     <div>
       <strong>Summary</strong>
       <span>Reports used <b>{pkg.products.reduce((total, product) => total + product.reportCount, 0)}</b></span>
+      <span>DAT survey points <b>{pkg.datEvidence?.tornadoDamagePointCount ?? 0}</b></span>
       <span>Data quality <b>{pkg.dataQuality}</b></span>
       <span>Formula <b>{pkg.formulaVersion}</b></span>
     </div>

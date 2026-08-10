@@ -1,4 +1,6 @@
 import type { StormReport } from '../../types/stormReports';
+import type { DatDamagePoint } from '../dat';
+import { datDamagePointToStormReport, isTornadoDamagePoint } from '../dat';
 import {
   SEVERITY_SIG_DRAWN_NONE_OBSERVED,
   SEVERITY_SIG_HIT,
@@ -40,6 +42,35 @@ const roundTo = (value: number, digits = 3): number => {
 /** Selects the reports relevant to a single hazard product. */
 const reportsForProduct = (product: ProductKind, reports: StormReport[]): StormReport[] =>
   reports.filter((report) => report.type === product);
+
+const datReportsForProduct = (
+  product: ProductKind,
+  datDamagePoints: DatDamagePoint[],
+): StormReport[] => {
+  if (product !== 'tornado') {
+    return [];
+  }
+  return datDamagePoints
+    .filter(isTornadoDamagePoint)
+    .map(datDamagePointToStormReport)
+    .filter((report): report is StormReport => Boolean(report));
+};
+
+const withDatSourceDetail = (
+  scored: ComponentScore,
+  sigReports: StormReport[],
+  datReports: StormReport[],
+): ComponentScore => {
+  if (!scored.applicable) {
+    return scored;
+  }
+  const datSigCount = datReports.filter(isSignificantReport).length;
+  if (datSigCount === 0) {
+    return scored;
+  }
+  const sourceDetail = ` (${sigReports.length - datSigCount} SPC, ${datSigCount} DAT survey)`;
+  return { ...scored, detail: `${scored.detail}${sourceDetail}` };
+};
 
 /**
  * Event yield / concentration. For each drawn core (f ≥ 0.15 / 0.30 / 0.45) the
@@ -146,10 +177,13 @@ const scoreSigObservedOnly = (sigReports: StormReport[]): ComponentScore =>
 export const scoreSeverity = (
   product: ProductKind,
   contours: ProductContour[],
-  reports: StormReport[]
+  reports: StormReport[],
+  datDamagePoints: DatDamagePoint[] = [],
 ): ComponentScore => {
   const sigContours = contours.filter((contour) => contour.isSignificant);
-  const sigReports = reportsForProduct(product, reports).filter(isSignificantReport);
+  const datReports = datReportsForProduct(product, datDamagePoints);
+  const observedReports = [...reportsForProduct(product, reports), ...datReports];
+  const sigReports = observedReports.filter(isSignificantReport);
   const sigDrawn = sigContours.length > 0;
   const sigObserved = sigReports.length > 0;
 
@@ -157,10 +191,12 @@ export const scoreSeverity = (
     return notEvaluatedComponent('severity', 'No significant contour drawn and no significant report observed.');
   }
   if (sigDrawn && sigObserved) {
-    return scoreSigDrawnAndObserved(sigContours, sigReports);
+    const scored = scoreSigDrawnAndObserved(sigContours, sigReports);
+    return withDatSourceDetail(scored, sigReports, datReports);
   }
   if (sigDrawn) {
     return scoreSigDrawnOnly();
   }
-  return scoreSigObservedOnly(sigReports);
+  const scored = scoreSigObservedOnly(sigReports);
+  return withDatSourceDetail(scored, sigReports, datReports);
 };

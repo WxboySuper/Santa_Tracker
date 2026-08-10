@@ -1,19 +1,18 @@
 import type { OutlookData } from '../../types/outlooks';
 import type { StormReport } from '../../types/stormReports';
+import type { DatEvidence } from '../dat';
 import {
-  assessDataQuality,
   buildPackageGrade,
+  buildPackageGradeFromProducts,
   gradeProduct,
-  rollUpPackageGrade,
 } from './composite';
 import { FORECAST_GRADE_FORMULA_VERSION } from './formulaVersion';
 import {
   PRODUCT_KINDS,
-  scoreToLetter,
   type PackageGrade,
   type ProductGrade,
 } from './gradeContract';
-import { extractProductContours, reportsForProduct } from './neighborhood';
+import { extractProductContours } from './neighborhood';
 
 /**
  * Top-level Forecast Grade orchestrator (PR 04 — yield-composite).
@@ -28,6 +27,8 @@ export interface GradeForecastInput {
   reports: StormReport[];
   /** True when the SPC report fetch failed (forces a Blocked result). */
   reportsError?: boolean;
+  /** Optional NOAA DAT evidence; its outage never blocks SPC grading. */
+  datEvidence?: DatEvidence;
   /** Overrides the snapshot timestamp (tests). */
   generatedAt?: string;
 }
@@ -68,6 +69,7 @@ export const gradeForecast = ({
   outlooks,
   reports,
   reportsError = false,
+  datEvidence,
   generatedAt,
 }: GradeForecastInput): PackageGrade =>
   buildPackageGrade({
@@ -75,6 +77,7 @@ export const gradeForecast = ({
     outlooks,
     reports,
     reportsError,
+    datEvidence,
     generatedAt,
   });
 
@@ -93,19 +96,6 @@ const nextFrame = (): Promise<void> =>
   });
 
 /**
- * Counts reports relevant to the products that actually have geometry, so
- * unrelated hazard reports can't mask a sparse product in the staged runner
- * either. Mirrors `buildPackageGrade` so `runForecastGrade` produces the
- * same data-quality assessment without re-deriving it.
- */
-const relevantReportCount = (outlooks: OutlookData, reports: StormReport[]): number => {
-  const counts = PRODUCT_KINDS
-    .filter((product) => extractProductContours(outlooks, product).length > 0)
-    .map((product) => reportsForProduct(reports, product).length);
-  return counts.length === 0 ? 0 : Math.max(...counts);
-};
-
-/**
  * Runs the grade product-by-product, reporting staged foreground progress and
  * yielding between products so the UI can paint. Reuses the already-computed
  * `products` array for the package rollup instead of recomputing every product
@@ -115,7 +105,7 @@ export const runForecastGrade = async (
   input: GradeForecastInput,
   onProgress?: GradeProgressHandler
 ): Promise<PackageGrade> => {
-  const { outlooks, reports, reportsError = false, generatedAt } = input;
+  const { outlooks, reports, reportsError = false, datEvidence, generatedAt } = input;
 
   onProgress?.({ fraction: 0.02, label: 'Preparing package and reports…' });
   await nextFrame();
@@ -127,29 +117,21 @@ export const runForecastGrade = async (
       fraction: 0.05 + (index / PRODUCT_KINDS.length) * 0.85,
       label: `Grading ${product} product…`,
     });
-    products.push(gradeProduct(product, outlooks, reports));
+    products.push(gradeProduct(product, outlooks, reports, datEvidence));
     await nextFrame();
   }
 
   onProgress?.({ fraction: 0.95, label: 'Rolling up package grade…' });
   await nextFrame();
-
-  const hasGeometry = PRODUCT_KINDS.some(
-    (product) => extractProductContours(outlooks, product).length > 0
-  );
-  const relevantCount = relevantReportCount(outlooks, reports);
-  const quality = assessDataQuality(hasGeometry, relevantCount, reportsError);
-  const rolledGrade = quality.withholdPackageGrade ? null : rollUpPackageGrade(products);
-  const snapshot: PackageGrade = {
+  const snapshot = buildPackageGradeFromProducts({
     formulaVersion: FORECAST_GRADE_FORMULA_VERSION,
-    grade: rolledGrade,
-    letter: scoreToLetter(rolledGrade),
+    outlooks,
+    reports,
+    reportsError,
+    datEvidence,
+    generatedAt,
     products,
-    dataQuality: quality.quality,
-    dataQualityReason: quality.reason,
-    hasReports: relevantCount > 0,
-    generatedAt: generatedAt ?? new Date().toISOString(),
-  };
+  });
 
   onProgress?.({ fraction: 1, label: 'Complete' });
   return snapshot;

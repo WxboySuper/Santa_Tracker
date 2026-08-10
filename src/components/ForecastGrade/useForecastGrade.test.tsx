@@ -22,6 +22,8 @@ jest.mock('../../utils/verificationV2/sources', () => ({
   buildGradeCard: jest.fn(),
   loadForecastFromFile: jest.fn(),
   loadReportsForDate: jest.fn(),
+  loadDatEvidenceForDate: jest.fn(),
+  DAT_EVIDENCE_TIMEOUT_MS: 15_000,
   resolveAccountTier: jest.fn(),
   SourceLoadError: class SourceLoadError extends Error {},
   tierHasSnapshots: jest.fn(),
@@ -45,7 +47,7 @@ const mockValidateGradeInputs = jest.fn(() => ({ valid: true as boolean })) as u
 >;
 
 jest.mock('../../utils/verificationV2', () => ({
-  FORECAST_GRADE_FORMULA_VERSION: 'gfc-ver-3',
+  FORECAST_GRADE_FORMULA_VERSION: 'gfc-ver-4',
   isReachedArchiveDate: (arg: string) => mockIsReachedArchiveDate(arg),
   runForecastGrade: (input: unknown, onProgress?: unknown) =>
     mockRunForecastGrade(input, onProgress),
@@ -59,6 +61,7 @@ import { deserializeForecast, serializeForecast } from '../../utils/fileUtils';
 import {
   buildGradeCard,
   loadForecastFromFile,
+  loadDatEvidenceForDate,
   loadReportsForDate,
   resolveAccountTier,
   SourceLoadError,
@@ -84,6 +87,7 @@ const mockTierHasSnapshots = tierHasSnapshots as jest.MockedFunction<typeof tier
 const mockSerializeForecast = serializeForecast as jest.MockedFunction<typeof serializeForecast>;
 const mockDeserializeForecast = deserializeForecast as jest.MockedFunction<typeof deserializeForecast>;
 const mockLoadReportsForDate = loadReportsForDate as jest.MockedFunction<typeof loadReportsForDate>;
+const mockLoadDatEvidenceForDate = loadDatEvidenceForDate as jest.MockedFunction<typeof loadDatEvidenceForDate>;
 const mockLoadForecastFromFile = loadForecastFromFile as jest.MockedFunction<typeof loadForecastFromFile>;
 
 const sampleCycle = {
@@ -102,7 +106,7 @@ const sampleCycle = {
 } as never;
 
 const samplePackage = {
-  formulaVersion: 'gfc-ver-3',
+  formulaVersion: 'gfc-ver-4',
   grade: 80,
   letter: 'B',
   products: [
@@ -196,6 +200,12 @@ beforeEach(() => {
   mockValidateGradeInputs.mockReturnValue({ valid: true });
   mockRunForecastGrade.mockResolvedValue(samplePackage);
   mockLoadReportsForDate.mockResolvedValue(sampleReports);
+  mockLoadDatEvidenceForDate.mockResolvedValue({
+    tracks: [],
+    damagePoints: [],
+    damagePolygons: [],
+    loadedAt: '2026-07-29T00:00:00.000Z',
+  });
   mockLoadForecastFromFile.mockResolvedValue(sampleCycle);
   mockLoadGradeSnapshot.mockReturnValue(null);
   mockSerializeForecast.mockReturnValue({ kind: 'serialized' } as never);
@@ -419,6 +429,7 @@ describe('useForecastGrade', () => {
       await waitFor(() => expect(result.current.phase).toBe('complete'));
       expect(result.current.result).toEqual(samplePackage);
       expect(result.current.activeProduct).toBe('tornado');
+      expect(mockLoadDatEvidenceForDate).toHaveBeenCalledWith(null, expect.any(AbortSignal));
       expect(mockBuildGradeCard).toHaveBeenCalledWith(
         samplePackage,
         expect.objectContaining({ hasSnapshot: false, sourceLabel: 'forecast.json' })

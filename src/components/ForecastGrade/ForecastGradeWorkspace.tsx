@@ -18,6 +18,7 @@ interface ForecastGradeWorkspaceProps {
   activeComponent: ComponentKey | null;
   activeProductGrade?: ProductGrade;
   reportsVisible: boolean;
+  datVisible: boolean;
   selectedReportId: string | null;
   mapRef: MutableRefObject<VerificationMapHandle | null>;
   mapPaneRef: MutableRefObject<HTMLDivElement | null>;
@@ -30,6 +31,7 @@ interface ForecastGradeWorkspaceProps {
   onSelectReport: (report: StormReport | null) => void;
   onSelectHistoryCard: (card: Parameters<GradeController['restoreCard']>[0]) => void;
   onToggleEvidence: () => void;
+  onToggleDat: () => void;
 }
 
 /** Composes the source rail, evidence map, and verification results rail. */
@@ -39,6 +41,7 @@ const ForecastGradeWorkspace: React.FC<ForecastGradeWorkspaceProps> = ({
   activeComponent,
   activeProductGrade,
   reportsVisible,
+  datVisible,
   selectedReportId,
   mapRef,
   mapPaneRef,
@@ -51,6 +54,7 @@ const ForecastGradeWorkspace: React.FC<ForecastGradeWorkspaceProps> = ({
   onSelectReport,
   onSelectHistoryCard,
   onToggleEvidence,
+  onToggleDat,
 }) => (
   <div className="fg-workspace">
     <aside className="fg-source-rail">
@@ -79,6 +83,8 @@ const ForecastGradeWorkspace: React.FC<ForecastGradeWorkspaceProps> = ({
         selectedDay={grade.selectedDay}
         availableDays={grade.availableDays}
         reports={grade.reports}
+        datEvidence={grade.datEvidence}
+        datVisible={datVisible}
         selectedReportId={selectedReportId}
         activeComponent={activeComponent}
         result={grade.result}
@@ -86,6 +92,7 @@ const ForecastGradeWorkspace: React.FC<ForecastGradeWorkspaceProps> = ({
         onSelectMapLayer={onSelectMapLayer}
         onSelectDay={grade.setSelectedDay}
         onToggleEvidence={onToggleEvidence}
+        onToggleDat={onToggleDat}
         mapPaneRef={mapPaneRef}
         mapRef={mapRef}
       />

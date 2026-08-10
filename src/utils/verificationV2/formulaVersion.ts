@@ -6,4 +6,4 @@
  * produced it. Bump this whenever a component formula or weight changes in a way
  * that would change historical grades.
  */
-export const FORECAST_GRADE_FORMULA_VERSION = 'gfc-ver-3';
+export const FORECAST_GRADE_FORMULA_VERSION = 'gfc-ver-4';
