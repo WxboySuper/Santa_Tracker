@@ -1,7 +1,6 @@
 import { renderHook, waitFor } from '@testing-library/react';
 import type { MonitorMesoscaleDiscussionCollection } from './referenceLayers';
 import * as referenceLayers from './referenceLayers';
-import * as wms from './wms';
 import { useMonitorReferenceLayers } from './useMonitorReferenceLayers';
 
 const collection: MonitorMesoscaleDiscussionCollection = {
@@ -17,7 +16,6 @@ const collection: MonitorMesoscaleDiscussionCollection = {
 };
 
 const baseArgs = {
-  ndfdEnabled: false,
   spcEnabled: true,
   refreshToken: 0,
   addToast: jest.fn(),
@@ -59,6 +57,7 @@ describe('useMonitorReferenceLayers', () => {
 
   test('uses a recent snapshot as stale data when refresh fails, then expires it', async () => {
     const now = jest.spyOn(Date, 'now').mockReturnValue(1_000_000);
+    jest.spyOn(referenceLayers, 'withReferenceRetry').mockImplementation(async (operation) => operation());
     const fetchSpy = jest.spyOn(referenceLayers, 'fetchSpcMesoscaleDiscussions')
       .mockResolvedValueOnce(collection)
       .mockRejectedValue(new Error('SPC unavailable'));
@@ -81,25 +80,5 @@ describe('useMonitorReferenceLayers', () => {
     await waitFor(() => expect(result.current.spcMesoscaleDiscussion.status).toBe('error'));
     expect(result.current.mesoscaleDiscussions.features).toHaveLength(0);
     expect(fetchSpy).toHaveBeenCalledTimes(3);
-  });
-
-  test('reports NDFD metadata failures while leaving the optional layer usable', async () => {
-    const toast = jest.fn();
-    jest.spyOn(wms, 'fetchLayerTimeValues').mockRejectedValue(new Error('Capabilities unavailable'));
-
-    const { result } = renderHook(() => useMonitorReferenceLayers({
-      ...baseArgs,
-      ndfdEnabled: true,
-      spcEnabled: false,
-      addToast: toast,
-    }));
-
-    await waitFor(() => expect(result.current.ndfdTemperature.status).toBe('error'));
-
-    expect(result.current.ndfdTemperature.itemCount).toBeNull();
-    expect(toast).toHaveBeenCalledWith(
-      'NDFD temperature metadata is unavailable; the map may still show the provider latest image.',
-      'warning',
-    );
   });
 });
