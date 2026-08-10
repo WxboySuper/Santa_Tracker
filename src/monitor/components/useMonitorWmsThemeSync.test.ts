@@ -4,6 +4,7 @@ import * as monitorMapLayerUtils from './monitorMapLayerUtils';
 import type { useMonitorMapRefs } from './monitorMapRefs';
 import { useMonitorRadarWmsSync } from './useMonitorRadarWmsSync';
 import { useMonitorSatelliteWmsSync } from './useMonitorSatelliteWmsSync';
+import { useMonitorReferenceWmsSync } from './useMonitorReferenceWmsSync';
 
 jest.mock('./monitorMapLayerUtils', () => ({
   applyWmsLayer: jest.fn(),
@@ -61,5 +62,27 @@ describe('Monitor WMS theme sync', () => {
 
     rerender({ darkMode: true });
     expect(monitorMapLayerUtils.applyWmsLayer).toHaveBeenCalledTimes(2);
+  });
+
+  it('applies the reference WMS configuration once per layer change', () => {
+    const refs = {
+      ndfdTemperatureLayerRef: { current: tileLayer },
+      ndfdTemperatureLayerKeyRef: { current: null },
+    } as unknown as ReturnType<typeof useMonitorMapRefs>;
+    const referenceLayer: WmsLayerConfig = {
+      url: 'https://example.test/ndfd',
+      layer: 'temperature',
+      latestTime: '2026-06-02T12:00:00Z',
+    };
+
+    const { rerender } = renderHook(
+      ({ layerConfig }) => useMonitorReferenceWmsSync(layerConfig, 0.58, refs),
+      { initialProps: { layerConfig: referenceLayer } },
+    );
+
+    rerender({ layerConfig: { ...referenceLayer, latestTime: '2026-06-02T13:00:00Z' } });
+
+    expect(monitorMapLayerUtils.applyWmsLayer).toHaveBeenCalledTimes(2);
+    expect(tileLayer.getSource).not.toHaveBeenCalled();
   });
 });

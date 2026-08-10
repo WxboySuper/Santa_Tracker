@@ -17,6 +17,7 @@ import { useDispatch } from 'react-redux';
 import type { AppDispatch } from '../../store';
 import { setMonitorMapView } from '../../store/monitorSlice';
 import type { MonitorMapView } from '../types';
+import { DEFAULT_NDFD_TEMPERATURE_OPACITY } from '../referenceLayers';
 import { getOpenFreeMapStyleSet } from '../../lib/openFreeMap';
 import {
   ALERTS_LAYER_Z_INDEX,
@@ -80,7 +81,11 @@ const createMonitorMapLayers = ({
   }),
   radar: new TileLayer<TileWMS>({ visible: false, opacity: radarOpacity, zIndex: RADAR_LAYER_Z_INDEX }),
   satellite: new TileLayer<TileWMS>({ visible: false, opacity: satelliteOpacity, zIndex: SATELLITE_LAYER_Z_INDEX }),
-  ndfdTemperature: new TileLayer<TileWMS>({ visible: false, opacity: 0.58, zIndex: NDFD_REFERENCE_LAYER_Z_INDEX }),
+  ndfdTemperature: new TileLayer<TileWMS>({
+    visible: false,
+    opacity: DEFAULT_NDFD_TEMPERATURE_OPACITY,
+    zIndex: NDFD_REFERENCE_LAYER_Z_INDEX,
+  }),
   mesoscaleDiscussion: new VectorLayer({
     visible: false,
     source: refs.mesoscaleDiscussionSourceRef.current,

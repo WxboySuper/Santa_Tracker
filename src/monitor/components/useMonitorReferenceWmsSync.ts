@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import type { WmsLayerConfig } from '../wms';
-import { applyWmsLayer, buildWmsParams } from './monitorMapLayerUtils';
+import { applyWmsLayer } from './monitorMapLayerUtils';
 import type { useMonitorMapRefs } from './monitorMapRefs';
 
 type MonitorMapRefs = ReturnType<typeof useMonitorMapRefs>;
@@ -21,12 +21,5 @@ export const useMonitorReferenceWmsSync = (
       );
     }
   }, [layerConfig, opacity, refs.ndfdTemperatureLayerKeyRef, refs.ndfdTemperatureLayerRef]);
-
-  useEffect(() => {
-    const source = refs.ndfdTemperatureLayerRef.current?.getSource();
-    if (source && layerConfig) {
-      source.updateParams(buildWmsParams(layerConfig));
-    }
-  }, [layerConfig, layerConfig?.latestTime, refs.ndfdTemperatureLayerRef]);
 };
 

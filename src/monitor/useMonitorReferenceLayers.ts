@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
 import type { AddToastFn } from '../components/Layout';
 import { fetchLayerTimeValues } from './wms';
@@ -21,8 +21,6 @@ interface CachedSpcSnapshot {
   fetchedAt: number;
 }
 
-let cachedSpcSnapshot: CachedSpcSnapshot | null = null;
-
 export interface MonitorReferenceLayersState {
   ndfdTemperature: MonitorReferenceLayerMeta;
   spcMesoscaleDiscussion: MonitorReferenceLayerMeta;
@@ -41,7 +39,7 @@ const createMeta = ({
   attribution,
   fetchedAt = null,
   validTime = null,
-  itemCount = 0,
+  itemCount = null,
   error = null,
 }: {
   status: MonitorReferenceLayerStatus;
@@ -50,7 +48,7 @@ const createMeta = ({
   attribution: string;
   fetchedAt?: string | null;
   validTime?: string | null;
-  itemCount?: number;
+  itemCount?: number | null;
   error?: string | null;
 }): MonitorReferenceLayerMeta => ({
   status,
@@ -79,12 +77,16 @@ const createInitialState = (): MonitorReferenceLayersState => ({
   mesoscaleDiscussions: emptyCollection(),
 });
 
-const latestValidTime = (collection: MonitorMesoscaleDiscussionCollection): string | null =>
-  collection.features
+const isParseableInstant = (value: string | undefined): value is string =>
+  typeof value === 'string' && value.length > 0 && !Number.isNaN(Date.parse(value));
+
+const latestValidTime = (collection: MonitorMesoscaleDiscussionCollection): string | null => {
+  const validTimes = collection.features
     .map(({ properties }) => properties.validTo ?? properties.validFrom)
-    .filter((value): value is string => Boolean(value))
-    .sort()
-    .at(-1) ?? null;
+    .filter(isParseableInstant);
+
+  return validTimes.sort((left, right) => Date.parse(left) - Date.parse(right)).at(-1) ?? null;
+};
 
 type MetaDetails = Partial<Pick<MonitorReferenceLayerMeta, 'fetchedAt' | 'validTime' | 'itemCount' | 'error'>>;
 
@@ -140,7 +142,6 @@ const startNdfdReferenceEffect = ({
       setState((current) => ({ ...current, ndfdTemperature: createNdfdMeta('ready', {
         fetchedAt: new Date().toISOString(),
         validTime: timeValues.at(-1) ?? null,
-        itemCount: 1,
       }) }));
     })
     .catch((error: unknown) => {
@@ -162,11 +163,13 @@ const startSpcReferenceEffect = ({
   refreshToken,
   addToast,
   setState,
+  cacheRef,
 }: {
   enabled: boolean;
   refreshToken: number;
   addToast?: AddToastFn;
   setState: SetReferenceState;
+  cacheRef: { current: CachedSpcSnapshot | null };
 }): (() => void) => {
   let active = true;
   if (!enabled) {
@@ -178,7 +181,7 @@ const startSpcReferenceEffect = ({
     return () => { active = false; };
   }
 
-  const cached = cachedSpcSnapshot;
+  const cached = cacheRef.current;
   const cacheIsFresh = cached && Date.now() - cached.fetchedAt <= REFERENCE_CACHE_TTL_MS && refreshToken === 0;
   if (cacheIsFresh) {
     setState((current) => ({
@@ -203,7 +206,7 @@ const startSpcReferenceEffect = ({
     .then((collection) => {
       if (!active) return;
       const fetchedAt = Date.now();
-      cachedSpcSnapshot = { collection, fetchedAt };
+      cacheRef.current = { collection, fetchedAt };
       setState((current) => ({
         ...current,
         mesoscaleDiscussions: collection,
@@ -217,7 +220,7 @@ const startSpcReferenceEffect = ({
     .catch((error: unknown) => {
       if (!active) return;
       const message = error instanceof Error ? error.message : 'SPC mesoscale discussions are unavailable.';
-      const latestCache = cachedSpcSnapshot;
+      const latestCache = cacheRef.current;
       const cacheAge = latestCache ? Date.now() - latestCache.fetchedAt : Number.POSITIVE_INFINITY;
       if (latestCache && cacheAge <= REFERENCE_STALE_WINDOW_MS) {
         setState((current) => ({
@@ -250,6 +253,11 @@ export const useMonitorReferenceLayers = ({
   addToast,
 }: UseMonitorReferenceLayersArgs): MonitorReferenceLayersState => {
   const [state, setState] = useState<MonitorReferenceLayersState>(createInitialState);
+  const spcCacheRef = useRef<CachedSpcSnapshot | null>(null);
+
+  useEffect(() => () => {
+    spcCacheRef.current = null;
+  }, []);
 
   useEffect(() => startNdfdReferenceEffect({
     enabled: ndfdEnabled,
@@ -262,6 +270,7 @@ export const useMonitorReferenceLayers = ({
     refreshToken,
     addToast,
     setState,
+    cacheRef: spcCacheRef,
   }), [addToast, refreshToken, spcEnabled]);
 
   return state;

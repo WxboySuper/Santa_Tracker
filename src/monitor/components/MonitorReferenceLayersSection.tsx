@@ -23,7 +23,12 @@ const statusText = (meta: MonitorReferenceLayerMeta, emptyLabel: string): string
   if (meta.status === 'error') return meta.error ?? 'Source unavailable.';
   if (meta.status === 'stale') return `Stale snapshot · ${meta.error ?? 'refresh recommended'}`;
   if (meta.status === 'empty') return emptyLabel;
-  if (meta.status === 'ready') return `${meta.itemCount} product${meta.itemCount === 1 ? '' : 's'} · valid ${formatValidTime(meta.validTime)}`;
+  if (meta.status === 'ready') {
+    const itemSummary = meta.itemCount === null
+      ? 'Available'
+      : `${meta.itemCount} product${meta.itemCount === 1 ? '' : 's'}`;
+    return `${itemSummary} · valid ${formatValidTime(meta.validTime)}`;
+  }
   return 'Off';
 };
 

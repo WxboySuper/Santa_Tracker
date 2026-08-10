@@ -12,7 +12,7 @@ export interface MonitorReferenceLayerMeta {
   attribution: string;
   fetchedAt: string | null;
   validTime: string | null;
-  itemCount: number;
+  itemCount: number | null;
   error: string | null;
 }
 
@@ -31,6 +31,7 @@ export interface MonitorMesoscaleDiscussionProperties {
   issuedAt?: string;
   validFrom?: string;
   validTo?: string;
+  validityText?: string;
   affected?: string;
   concerning?: string;
   summary?: string;
@@ -50,6 +51,9 @@ export const NDFD_TEMPERATURE_SOURCE: MonitorReferenceSourceInfo = {
   sourceUrl: 'https://mapservices.weather.noaa.gov/raster/rest/services/NDFD/NDFD_temp/MapServer',
   attribution: 'NOAA/NWS NDFD',
 };
+
+/** Keeps the optional NDFD overlay readable without treating opacity as a user setting. */
+export const DEFAULT_NDFD_TEMPERATURE_OPACITY = 0.58;
 
 export const SPC_MESOSCALE_DISCUSSION_SOURCE: MonitorReferenceSourceInfo = {
   id: 'spc-mesoscale-discussion',
@@ -119,6 +123,7 @@ type NormalizedPropertyKey =
   | 'issuedAt'
   | 'validFrom'
   | 'validTo'
+  | 'validityText'
   | 'affected'
   | 'concerning'
   | 'summary'
@@ -129,6 +134,7 @@ const NORMALIZED_PROPERTY_ALIASES = [
   ['issuedAt', ['issuedAt', 'issued', 'issue_time', 'issuetime']],
   ['validFrom', ['validFrom', 'valid', 'valid_start', 'validstart']],
   ['validTo', ['validTo', 'expire', 'expires', 'valid_end', 'validend']],
+  ['validityText', ['validityText']],
   ['affected', ['affected', 'areas_affected', 'affected_area']],
   ['concerning', ['concerning', 'concerning_line']],
   ['summary', ['summary', 'summary_text']],
@@ -157,15 +163,15 @@ const readNormalizedProperties = (record: Record<string, unknown>): NormalizedPr
     'issuedAt',
     readInstant(record, ['issuedAt', 'issued', 'issue_time', 'issuetime', 'idp_filedate']),
   );
-  const withProviderValidity = withPresentNormalizedProperty(
+  const withProviderValidityText = withPresentNormalizedProperty(
     withIssuedAt,
-    'validTo',
-    withIssuedAt.validTo ?? readString(record, ['folderpath']),
+    'validityText',
+    readString(record, ['validityText', 'folderpath']),
   );
   return withPresentNormalizedProperty(
-    withProviderValidity,
+    withProviderValidityText,
     'sourceUrl',
-    withProviderValidity.sourceUrl ?? readString(record, ['popupinfo']),
+    withProviderValidityText.sourceUrl ?? readString(record, ['popupinfo']),
   );
 };
 

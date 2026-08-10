@@ -64,7 +64,7 @@ const baseProps = {
       attribution: 'NOAA/NWS NDFD',
       fetchedAt: null,
       validTime: null,
-      itemCount: 0,
+      itemCount: null,
       error: null,
     },
     spcMesoscaleDiscussion: {

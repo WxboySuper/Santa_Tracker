@@ -37,7 +37,10 @@ import { useLocalMonitorSettings } from './useLocalMonitorSettings';
 import { useMonitorCloudOutlook } from './useMonitorCloudOutlook';
 import { usePremiumMonitorSettingsSync } from './usePremiumMonitorSettingsSync';
 import { buildRadarLayerConfig, buildSatelliteLayerConfig } from '../monitor/wms';
-import { buildNdfdTemperatureLayerConfig } from '../monitor/referenceLayers';
+import {
+  buildNdfdTemperatureLayerConfig,
+  DEFAULT_NDFD_TEMPERATURE_OPACITY,
+} from '../monitor/referenceLayers';
 import { useMonitorReferenceLayers, type MonitorReferenceLayersState } from '../monitor/useMonitorReferenceLayers';
 import { useLiveWmsLayers } from '../monitor/useLiveWmsLayers';
 import { useMonitorNwsAlerts } from '../monitor/useMonitorNwsAlerts';
@@ -269,7 +272,7 @@ const MonitorPageWorkspace: React.FC<MonitorPageWorkspaceProps> = ({
         satelliteLayer={satelliteLayer}
         satelliteOpacity={settings.satelliteOpacity}
         ndfdTemperatureLayer={ndfdTemperatureLayer}
-        ndfdTemperatureOpacity={0.58}
+        ndfdTemperatureOpacity={DEFAULT_NDFD_TEMPERATURE_OPACITY}
         outlookData={selectedOutlook.data}
         outlookType={settings.outlookType}
         stormReports={stormReportState.reports}
