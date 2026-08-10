@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router';
 import { v17Update } from '../content/updates/v1.7';
-import type { UpdateScreenshot } from '../content/updates/v1.6';
+import type { UpdateScreenshot } from '../content/updates/types';
 import './UpdatesPage.css';
 
 interface UpdateImageLightboxProps {

@@ -1,4 +1,4 @@
-import type { ReleaseUpdate } from './v1.6';
+import type { ReleaseUpdate } from './types';
 
 /** Public release update content for the v1.7 major release. */
 export const v17Update: ReleaseUpdate = {
