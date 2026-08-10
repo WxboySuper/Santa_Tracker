@@ -4,6 +4,7 @@ import type { StormReport } from '../../types/stormReports';
 import type { NwsAlertFeatureCollection } from '../nwsAlerts';
 import type { OutlookData } from '../../types/outlooks';
 import type { MonitorMapView, MonitorOutlookLayerType } from '../types';
+import type { MonitorMesoscaleDiscussionCollection } from '../referenceLayers';
 import { flattenMonitorOutlookFeatures } from '../outlookLayers';
 import type { WmsLayerConfig } from '../wms';
 import { useMonitorOlMap } from './useMonitorOlMap';
@@ -14,11 +15,14 @@ interface MonitorMapProps {
   radarOpacity: number;
   satelliteLayer: WmsLayerConfig | null;
   satelliteOpacity: number;
+  ndfdTemperatureLayer: WmsLayerConfig | null;
+  ndfdTemperatureOpacity: number;
   outlookData?: OutlookData;
   outlookType: MonitorOutlookLayerType;
   stormReports: StormReport[];
   alertsCollection: NwsAlertFeatureCollection;
   alertsOpacity: number;
+  mesoscaleDiscussions: MonitorMesoscaleDiscussionCollection;
 }
 
 /** Monitor workspace map shell hosting radar, satellite, outlook, and alert layers. */
@@ -28,11 +32,14 @@ const MonitorMap: React.FC<MonitorMapProps> = ({
   radarOpacity,
   satelliteLayer,
   satelliteOpacity,
+  ndfdTemperatureLayer,
+  ndfdTemperatureOpacity,
   outlookData,
   outlookType,
   stormReports,
   alertsCollection,
   alertsOpacity,
+  mesoscaleDiscussions,
 }) => {
   const mapElementRef = useRef<HTMLDivElement>(null);
   const serializedFeatures = useMemo(
@@ -46,10 +53,13 @@ const MonitorMap: React.FC<MonitorMapProps> = ({
     radarOpacity,
     satelliteLayer,
     satelliteOpacity,
+    ndfdTemperatureLayer,
+    ndfdTemperatureOpacity,
     serializedFeatures,
     stormReports,
     alertsCollection,
     alertsOpacity,
+    mesoscaleDiscussions,
     mapElementRef,
   });
 

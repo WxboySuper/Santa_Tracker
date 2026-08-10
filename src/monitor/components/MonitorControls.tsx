@@ -5,12 +5,14 @@ import { Button } from '../../components/ui/button';
 import type { MonitorOutlookSourceOption } from '../outlookSources';
 import type { RadarSiteOption } from '../radarSites';
 import type { MonitorOutlookLayerType, MonitorOutlookSourceSelection, MonitorSettings } from '../types';
+import type { MonitorReferenceLayerMeta } from '../referenceLayers';
 import MonitorAlertsSection from './MonitorAlertsSection';
 import MonitorOutlookSection from './MonitorOutlookSection';
 import MonitorPlaybackSection from './MonitorPlaybackSection';
 import MonitorRadarSection from './MonitorRadarSection';
 import MonitorSatelliteSection from './MonitorSatelliteSection';
 import MonitorStormReportsSection from './MonitorStormReportsSection';
+import MonitorReferenceLayersSection from './MonitorReferenceLayersSection';
 
 interface MonitorStormReportsMeta {
   reports: unknown[];
@@ -63,6 +65,12 @@ interface MonitorControlsProps {
   onAlertsShowAdvisoriesChange: (enabled: boolean) => void;
   onAnimationEnabledChange: (enabled: boolean) => void;
   onAnimationSpeedChange: (speed: number) => void;
+  referenceLayerMeta: {
+    ndfdTemperature: MonitorReferenceLayerMeta;
+    spcMesoscaleDiscussion: MonitorReferenceLayerMeta;
+  };
+  onNdfdReferenceLayerEnabledChange: (enabled: boolean) => void;
+  onSpcReferenceLayerEnabledChange: (enabled: boolean) => void;
   onRefresh: () => void;
 }
 
@@ -100,6 +108,9 @@ const MonitorControls: React.FC<MonitorControlsProps> = ({
   onAlertsShowAdvisoriesChange,
   onAnimationEnabledChange,
   onAnimationSpeedChange,
+  referenceLayerMeta,
+  onNdfdReferenceLayerEnabledChange,
+  onSpcReferenceLayerEnabledChange,
   onRefresh,
 }) => (
   <aside className="monitor-controls" aria-label="Monitor controls">
@@ -158,6 +169,14 @@ const MonitorControls: React.FC<MonitorControlsProps> = ({
       selectedOutlook={selectedOutlook}
       onOutlookSourceChange={onOutlookSourceChange}
       onOutlookTypeChange={onOutlookTypeChange}
+    />
+
+    <MonitorReferenceLayersSection
+      settings={settings.referenceLayers}
+      ndfdMeta={referenceLayerMeta.ndfdTemperature}
+      spcMeta={referenceLayerMeta.spcMesoscaleDiscussion}
+      onNdfdEnabledChange={onNdfdReferenceLayerEnabledChange}
+      onSpcEnabledChange={onSpcReferenceLayerEnabledChange}
     />
 
     <MonitorPlaybackSection

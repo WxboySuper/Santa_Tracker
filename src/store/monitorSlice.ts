@@ -1,5 +1,5 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
-import type { MonitorMapView, MonitorOutlookLayerType, MonitorOutlookSourceSelection, MonitorSettings } from '../monitor/types';
+import type { MonitorMapView, MonitorOutlookLayerType, MonitorOutlookSourceSelection, MonitorReferenceLayerSettings, MonitorSettings } from '../monitor/types';
 import { DEFAULT_MONITOR_SETTINGS } from '../monitor/types';
 import { normalizeMonitorSettings } from '../monitor/monitorSettingsNormalize';
 import { resolveRadarProductForMode } from '../monitor/wms';
@@ -87,6 +87,12 @@ const monitorSlice = createSlice({
     setAlertsShowAdvisories: (state, action: PayloadAction<boolean>) => {
       state.alertsShowAdvisories = action.payload;
     },
+    setReferenceLayerEnabled: (
+      state,
+      action: PayloadAction<{ layer: keyof MonitorReferenceLayerSettings; enabled: boolean }>,
+    ) => {
+      state.referenceLayers[action.payload.layer] = action.payload.enabled;
+    },
   },
 });
 
@@ -113,6 +119,7 @@ export const {
   setAlertsShowWatches,
   setAlertsShowWarnings,
   setAlertsShowAdvisories,
+  setReferenceLayerEnabled,
 } = monitorSlice.actions;
 
 export default monitorSlice.reducer;

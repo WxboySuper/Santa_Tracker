@@ -10,6 +10,11 @@ export const MONITOR_OUTLOOK_LAYER_TYPES = ['tornado', 'wind', 'hail', 'categori
 
 export type MonitorOutlookLayerType = (typeof MONITOR_OUTLOOK_LAYER_TYPES)[number];
 
+export interface MonitorReferenceLayerSettings {
+  ndfdTemperatureEnabled: boolean;
+  spcMesoscaleDiscussionEnabled: boolean;
+}
+
 export interface MonitorOutlookSourceSelection {
   kind: MonitorOutlookSourceKind;
   id: string;
@@ -42,6 +47,7 @@ export interface MonitorSettings {
   alertsShowWatches: boolean;
   alertsShowWarnings: boolean;
   alertsShowAdvisories: boolean;
+  referenceLayers: MonitorReferenceLayerSettings;
 }
 
 export const DEFAULT_MONITOR_SETTINGS: MonitorSettings = {
@@ -72,6 +78,10 @@ export const DEFAULT_MONITOR_SETTINGS: MonitorSettings = {
   alertsShowWatches: true,
   alertsShowWarnings: true,
   alertsShowAdvisories: false,
+  referenceLayers: {
+    ndfdTemperatureEnabled: false,
+    spcMesoscaleDiscussionEnabled: false,
+  },
 };
 
 export const areMonitorSettingsEqual = (left: MonitorSettings, right: MonitorSettings): boolean =>

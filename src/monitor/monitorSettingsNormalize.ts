@@ -81,6 +81,23 @@ const readOutlookSource = (value: unknown): MonitorOutlookSourceSelection => {
 const readBooleanSetting = (value: unknown, fallback: boolean): boolean =>
   typeof value === 'boolean' ? value : fallback;
 
+const readReferenceLayers = (value: unknown): MonitorSettings['referenceLayers'] => {
+  if (!isRecord(value)) {
+    return DEFAULT_MONITOR_SETTINGS.referenceLayers;
+  }
+
+  return {
+    ndfdTemperatureEnabled: readBooleanSetting(
+      value.ndfdTemperatureEnabled,
+      DEFAULT_MONITOR_SETTINGS.referenceLayers.ndfdTemperatureEnabled,
+    ),
+    spcMesoscaleDiscussionEnabled: readBooleanSetting(
+      value.spcMesoscaleDiscussionEnabled,
+      DEFAULT_MONITOR_SETTINGS.referenceLayers.spcMesoscaleDiscussionEnabled,
+    ),
+  };
+};
+
 export const normalizeMonitorSettings = (value: unknown): MonitorSettings => {
   if (!isRecord(value)) {
     return DEFAULT_MONITOR_SETTINGS;
@@ -120,5 +137,6 @@ export const normalizeMonitorSettings = (value: unknown): MonitorSettings => {
     alertsShowWatches: readBooleanSetting(value.alertsShowWatches, DEFAULT_MONITOR_SETTINGS.alertsShowWatches),
     alertsShowWarnings: readBooleanSetting(value.alertsShowWarnings, DEFAULT_MONITOR_SETTINGS.alertsShowWarnings),
     alertsShowAdvisories: readBooleanSetting(value.alertsShowAdvisories, DEFAULT_MONITOR_SETTINGS.alertsShowAdvisories),
+    referenceLayers: readReferenceLayers(value.referenceLayers),
   };
 };

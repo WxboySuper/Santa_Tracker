@@ -21,6 +21,7 @@ Work toward the next major release continues in the beta channel while the final
 - **Feature exposure controls:** Add typed local/beta/staging/production target matrices, server capability gates, emergency disable controls, exposure diagnostics, and rollout validation.
 - **Account management:** Add recent-authentication account deletion with subscription cleanup, hosted-data removal, and local/offline-save preservation.
 - **Operations and delivery:** Add manual release workflows, staging support, release manifests, OpenCode review automation, and maintenance reports.
+- **Monitor reference layers:** Add opt-in official NDFD temperature and SPC mesoscale discussion adapters with source metadata, valid-time state, and bounded caching.
 
 #### Changed
 

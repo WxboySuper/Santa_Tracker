@@ -1,6 +1,7 @@
 import type { StormReport } from '../../types/stormReports';
 import type { NwsAlertFeatureCollection } from '../nwsAlerts';
 import type { MonitorMapView } from '../types';
+import type { MonitorMesoscaleDiscussionCollection } from '../referenceLayers';
 import type { WmsLayerConfig } from '../wms';
 import type { SerializedMonitorOutlookFeature } from './monitorMapFeatureSync';
 import type { useMonitorMapRefs } from './monitorMapRefs';
@@ -16,10 +17,13 @@ interface UseMonitorMapLayerSyncArgs {
   radarOpacity: number;
   satelliteLayer: WmsLayerConfig | null;
   satelliteOpacity: number;
+  ndfdTemperatureLayer: WmsLayerConfig | null;
+  ndfdTemperatureOpacity: number;
   serializedFeatures: SerializedMonitorOutlookFeature[];
   stormReports: StormReport[];
   alertsCollection: NwsAlertFeatureCollection;
   alertsOpacity: number;
+  mesoscaleDiscussions: MonitorMesoscaleDiscussionCollection;
   refs: MonitorMapRefs;
   onClearSelectedAlert: () => void;
 }
@@ -32,6 +36,8 @@ export const useMonitorMapLayerSync = (args: UseMonitorMapLayerSyncArgs) => {
     radarOpacity: args.radarOpacity,
     satelliteLayer: args.satelliteLayer,
     satelliteOpacity: args.satelliteOpacity,
+    ndfdTemperatureLayer: args.ndfdTemperatureLayer,
+    ndfdTemperatureOpacity: args.ndfdTemperatureOpacity,
     refs: args.refs,
   });
   useMonitorMapOverlaySync(args);
