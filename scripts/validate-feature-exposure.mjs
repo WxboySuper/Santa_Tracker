@@ -6,6 +6,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { evaluateFeatureExposurePolicy } from './lib/feature-exposure-policy.mjs';
+import { validateExposureMatrixDocument } from './lib/feature-exposure-matrix-document.mjs';
 import {
   collectGatedFeatures,
   PER_FEATURE_TEST_PATTERNS,
@@ -45,6 +46,20 @@ function collectExistingTestFiles(gatedFeatureKeys) {
     }
   }
   return existingTestFiles;
+}
+
+/** Validates the release document's registry matrix against executable policy data. */
+function validateExposureMatrix(registry) {
+  const result = validateExposureMatrixDocument(
+    readSource('docs/operations/v1.7-exposure-matrix.md'),
+    registry
+  );
+  if (result.ok) return true;
+
+  console.error('Feature exposure matrix document FAILED:');
+  for (const error of result.errors) console.error(`  x ${error}`);
+  process.exitCode = 1;
+  return false;
 }
 
 /** Loads every policy input from repository sources. */
@@ -118,6 +133,8 @@ function main() {
     return;
   }
 
+  if (!validateExposureMatrix(registry)) return;
+
   console.log('Feature exposure policy OK: all checks passed.');
   console.log(`  Registry: ${Object.keys(registry).length} features`);
   console.log(`  Gated routes: ${gatedRoutes.length}`);
@@ -125,6 +142,7 @@ function main() {
   console.log(`  Side-effect modules: ${Object.keys(sideEffectModules).length}`);
   console.log(`  Server registry entries: ${Object.keys(serverRegistry).length}`);
   console.log(`  Exposure acknowledgements: ${Object.keys(acknowledgements).length}`);
+  console.log(`  Exposure matrix document: ${Object.keys(registry).length} registry keys aligned`);
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
