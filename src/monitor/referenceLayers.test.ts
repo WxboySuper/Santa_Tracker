@@ -74,6 +74,46 @@ describe('monitor reference layers', () => {
     expect(wait).toHaveBeenCalledWith(20);
   });
 
+  test('does not retry permanent provider responses', async () => {
+    const fetcher = jest.fn().mockResolvedValue({ ok: false, status: 404 } as Response);
+    const wait = jest.fn().mockResolvedValue(undefined);
+
+    await expect(withReferenceRetry(() => fetchSpcMesoscaleDiscussions(fetcher), [10, 20], wait))
+      .rejects.toThrow('SPC mesoscale discussions unavailable (404).');
+    expect(fetcher).toHaveBeenCalledTimes(1);
+    expect(wait).not.toHaveBeenCalled();
+  });
+
+  test('retries server failures but not malformed successful responses', async () => {
+    const serverFailure = jest.fn()
+      .mockResolvedValueOnce({ ok: false, status: 503 } as Response)
+      .mockResolvedValue({ ok: true, status: 200, json: async () => fixture } as Response);
+    const wait = jest.fn().mockResolvedValue(undefined);
+
+    await expect(withReferenceRetry(() => fetchSpcMesoscaleDiscussions(serverFailure), [10, 20], wait))
+      .resolves.toEqual(expect.objectContaining({
+        type: 'FeatureCollection',
+        features: expect.any(Array),
+      }));
+    expect(serverFailure).toHaveBeenCalledTimes(2);
+    expect(wait).toHaveBeenCalledWith(10);
+
+    const malformed = jest.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        type: 'FeatureCollection',
+        features: [{ type: 'Feature', geometry: { type: 'Point', coordinates: [0, 0] }, properties: {} }],
+      }),
+    } as Response);
+    const malformedWait = jest.fn().mockResolvedValue(undefined);
+
+    await expect(withReferenceRetry(() => fetchSpcMesoscaleDiscussions(malformed), [10, 20], malformedWait))
+      .rejects.toThrow('no usable polygon features');
+    expect(malformed).toHaveBeenCalledTimes(1);
+    expect(malformedWait).not.toHaveBeenCalled();
+  });
+
   test('surfaces a response containing only malformed features as an upstream error', async () => {
     const fetcher = jest.fn().mockResolvedValue({
       ok: true,

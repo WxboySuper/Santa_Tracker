@@ -6,6 +6,13 @@ export type MonitorReferenceLayerStatus = 'idle' | 'loading' | 'ready' | 'empty'
 /** Short, bounded retry schedule for transient NOAA upstream failures. */
 export const MONITOR_REFERENCE_RETRY_DELAYS_MS = [1000, 5000] as const;
 
+export class MonitorReferenceError extends Error {
+  constructor(message: string, readonly retryable: boolean) {
+    super(message);
+    this.name = 'MonitorReferenceError';
+  }
+}
+
 export interface MonitorReferenceLayerMeta {
   status: MonitorReferenceLayerStatus;
   sourceName: string;
@@ -86,6 +93,9 @@ export const withReferenceRetry = async <T>(
       return await operation();
     } catch (error: unknown) {
       lastError = error;
+      if (error instanceof MonitorReferenceError && !error.retryable) {
+        break;
+      }
       const delayMs = retryDelaysMs[attempt];
       if (delayMs === undefined) {
         break;
@@ -255,12 +265,18 @@ export const fetchSpcMesoscaleDiscussions = async (
     headers: { Accept: 'application/geo+json' },
   });
   if (!response.ok) {
-    throw new Error(`SPC mesoscale discussions unavailable (${response.status}).`);
+    throw new MonitorReferenceError(
+      `SPC mesoscale discussions unavailable (${response.status}).`,
+      response.status >= 500,
+    );
   }
   const payload = await response.json();
   const normalized = normalizeSpcMesoscaleDiscussionCollection(payload);
   if (isRecord(payload) && Array.isArray(payload.features) && payload.features.length > 0 && normalized.features.length === 0) {
-    throw new Error('SPC mesoscale discussion response contained no usable polygon features.');
+    throw new MonitorReferenceError(
+      'SPC mesoscale discussion response contained no usable polygon features.',
+      false,
+    );
   }
   return normalized;
 };

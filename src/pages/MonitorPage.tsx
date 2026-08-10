@@ -38,6 +38,7 @@ import { useMonitorCloudOutlook } from './useMonitorCloudOutlook';
 import { usePremiumMonitorSettingsSync } from './usePremiumMonitorSettingsSync';
 import { buildRadarLayerConfig, buildSatelliteLayerConfig } from '../monitor/wms';
 import { formatMonitorReferenceTime } from '../monitor/referenceLayers';
+import type { MonitorReferenceLayerMeta } from '../monitor/referenceLayers';
 import { useMonitorReferenceLayers, type MonitorReferenceLayersState } from '../monitor/useMonitorReferenceLayers';
 import { useLiveWmsLayers } from '../monitor/useLiveWmsLayers';
 import { useMonitorNwsAlerts } from '../monitor/useMonitorNwsAlerts';
@@ -49,6 +50,23 @@ import './MonitorPage.css';
 interface PageContext {
   addToast: AddToastFn;
 }
+
+export const buildMonitorReferenceAttributions = ({
+  enabled,
+  meta,
+  featureCount,
+}: {
+  enabled: boolean;
+  meta: MonitorReferenceLayerMeta;
+  featureCount: number;
+}): string[] => {
+  if (!enabled || featureCount === 0 || !['ready', 'stale'].includes(meta.status)) {
+    return [];
+  }
+
+  const freshness = meta.status === 'stale' ? 'stale snapshot · ' : '';
+  return [`${meta.attribution} · SPC mesoscale discussions (MCDs) · ${freshness}valid ${formatMonitorReferenceTime(meta.validTime)}`];
+};
 
 /** Resolves a handoff source only when its kind and ID match a real Monitor option. */
 const resolveHandoffSource = (
@@ -292,13 +310,13 @@ export const MonitorPage: React.FC = () => {
     () => layers.satelliteConfig ? { ...layers.satelliteConfig, latestTime: layers.satelliteDisplayTime } : null,
     [layers.satelliteConfig, layers.satelliteDisplayTime],
   );
-  const referenceAttributions = useMemo(() => [
-    sources.settings.referenceLayers.spcMesoscaleDiscussionEnabled
-      ? `${layers.referenceLayers.spcMesoscaleDiscussion.attribution} · SPC mesoscale discussions (MCDs) · valid ${formatMonitorReferenceTime(layers.referenceLayers.spcMesoscaleDiscussion.validTime)}`
-      : null,
-  ].filter((value): value is string => Boolean(value)), [
-    layers.referenceLayers.spcMesoscaleDiscussion.attribution,
-    layers.referenceLayers.spcMesoscaleDiscussion.validTime,
+  const referenceAttributions = useMemo(() => buildMonitorReferenceAttributions({
+    enabled: sources.settings.referenceLayers.spcMesoscaleDiscussionEnabled,
+    meta: layers.referenceLayers.spcMesoscaleDiscussion,
+    featureCount: layers.referenceLayers.mesoscaleDiscussions.features.length,
+  }), [
+    layers.referenceLayers.spcMesoscaleDiscussion,
+    layers.referenceLayers.mesoscaleDiscussions.features.length,
     sources.settings.referenceLayers.spcMesoscaleDiscussionEnabled,
   ]);
 

@@ -134,7 +134,7 @@ function isKnownBrowserNoise(event: Event): boolean {
   return false;
 }
 
-/** Expected provider outages are retained as tagged context for local debugging, but not sent as errors. */
+/** Returns whether an externally captured event is explicitly marked as an expected outage. */
 function isExpectedMonitorReferenceOutage(event: Event): boolean {
   return event.tags?.[EXPECTED_MONITOR_REFERENCE_OUTAGE_TAG] === 'true';
 }
@@ -144,7 +144,7 @@ export function beforeSend(event: ErrorEvent, _hint: EventHint): ErrorEvent | nu
   return isKnownBrowserNoise(event) || isExpectedMonitorReferenceOutage(event) ? null : event;
 }
 
-/** Records expected Monitor upstream failures with source context; beforeSend filters the expected outage. */
+/** Records expected Monitor upstream failures without creating a dropped error event. */
 export function captureExpectedMonitorReferenceFailure(
   sourceId: 'spc-mesoscale-discussion',
   error: unknown,
@@ -153,15 +153,15 @@ export function captureExpectedMonitorReferenceFailure(
     return;
   }
 
-  Sentry.withScope((scope) => {
-    scope.setTag('gfc_area', 'monitor');
-    scope.setTag('gfc_monitor_reference_layer', sourceId);
-    scope.setTag(EXPECTED_MONITOR_REFERENCE_OUTAGE_TAG, 'true');
-    scope.setContext('monitor_reference', {
+  Sentry.addBreadcrumb({
+    category: 'monitor.reference',
+    level: 'warning',
+    message: `Expected upstream failure for ${sourceId}`,
+    data: {
       sourceId,
       expectedUpstreamFailure: true,
-    });
-    Sentry.captureException(error);
+      error: error instanceof Error ? error.message : String(error),
+    },
   });
 }
 
