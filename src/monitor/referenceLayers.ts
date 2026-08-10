@@ -136,24 +136,37 @@ const NORMALIZED_PROPERTY_ALIASES = [
   ['sourceUrl', ['sourceUrl', 'url', 'link', 'product_url']],
 ] as const satisfies ReadonlyArray<readonly [NormalizedPropertyKey, readonly string[]]>;
 
-const readNormalizedProperties = (record: Record<string, unknown>): Partial<Record<NormalizedPropertyKey, string>> => {
-  const properties: Partial<Record<NormalizedPropertyKey, string>> = {};
-  const issuedAt = readInstant(record, ['issuedAt', 'issued', 'issue_time', 'issuetime', 'idp_filedate']);
-  if (issuedAt) properties.issuedAt = issuedAt;
+type NormalizedProperties = Partial<Record<NormalizedPropertyKey, string>>;
 
-  for (const [property, aliases] of NORMALIZED_PROPERTY_ALIASES) {
-    if (property === 'issuedAt') continue;
-    const value = readString(record, aliases);
-    if (value) properties[property] = value;
-  }
+const withPresentNormalizedProperty = (
+  properties: NormalizedProperties,
+  property: NormalizedPropertyKey,
+  value: string | undefined,
+): NormalizedProperties => (value ? { ...properties, [property]: value } : properties);
 
-  const providerValidity = readString(record, ['folderpath']);
-  if (!properties.validTo && providerValidity) properties.validTo = providerValidity;
-  if (!properties.sourceUrl) {
-    const sourceUrl = readString(record, ['popupinfo']);
-    if (sourceUrl) properties.sourceUrl = sourceUrl;
-  }
-  return properties;
+const readAliasProperties = (record: Record<string, unknown>): NormalizedProperties =>
+  NORMALIZED_PROPERTY_ALIASES.reduce<NormalizedProperties>(
+    (properties, [property, aliases]) => withPresentNormalizedProperty(properties, property, readString(record, aliases)),
+    {},
+  );
+
+const readNormalizedProperties = (record: Record<string, unknown>): NormalizedProperties => {
+  const aliasedProperties = readAliasProperties(record);
+  const withIssuedAt = withPresentNormalizedProperty(
+    aliasedProperties,
+    'issuedAt',
+    readInstant(record, ['issuedAt', 'issued', 'issue_time', 'issuetime', 'idp_filedate']),
+  );
+  const withProviderValidity = withPresentNormalizedProperty(
+    withIssuedAt,
+    'validTo',
+    withIssuedAt.validTo ?? readString(record, ['folderpath']),
+  );
+  return withPresentNormalizedProperty(
+    withProviderValidity,
+    'sourceUrl',
+    withProviderValidity.sourceUrl ?? readString(record, ['popupinfo']),
+  );
 };
 
 const normalizeProperties = (value: unknown): MonitorMesoscaleDiscussionProperties => {
