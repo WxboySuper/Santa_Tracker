@@ -65,6 +65,7 @@ Work toward the next major release continues in the beta channel while the final
 #### Operations
 
 - **Release and delivery:** Add manual release workflows, staging support, release manifests, OpenCode review automation, and maintenance reports.
+- **Release candidate:** Add evidence-gated v1.7 beta, staging, stable-promotion, rollback, and support gates, plus bootstrap of `stable/1.7.x` from an approved commit.
 - **Feature exposure:** Keep local, beta, staging, and production enablement explicit through target matrices, server capability gates, emergency disable controls, exposure diagnostics, and rollout validation.
 - **Deployment configuration:** Separate beta, staging, and production feature configuration and make release publication the only automatic deployment trigger.
 - **Dependency maintenance:** Keep frontend, server, test, and build dependencies current through regular automated updates.
