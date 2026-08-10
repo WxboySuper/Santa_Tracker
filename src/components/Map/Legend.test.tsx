@@ -80,9 +80,9 @@ describe('Legend', () => {
       stormReports: { ...defaultStormReportsState, visible: true },
     });
     render(<Provider store={store}><Legend activeOutlookType="tornado" showReportLegend /></Provider>);
-    expect(screen.getByTestId('report-tornado-color')).toHaveStyle({ backgroundColor: 'rgb(255, 0, 0)' });
-    expect(screen.getByTestId('report-wind-color')).toHaveStyle({ backgroundColor: 'rgb(37, 99, 235)' });
-    expect(screen.getByTestId('report-hail-color')).toHaveStyle({ backgroundColor: 'rgb(22, 163, 74)' });
+    expect(screen.getByRole('img', { name: 'Tornado report color' })).toHaveStyle({ backgroundColor: 'rgb(255, 0, 0)' });
+    expect(screen.getByRole('img', { name: 'Wind report color' })).toHaveStyle({ backgroundColor: 'rgb(0, 0, 255)' });
+    expect(screen.getByRole('img', { name: 'Hail report color' })).toHaveStyle({ backgroundColor: 'rgb(0, 255, 0)' });
   });
 
   it('marks the legend as open for the mobile popout state', () => {
