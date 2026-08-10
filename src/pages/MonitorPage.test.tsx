@@ -2,7 +2,8 @@ import { render, screen } from '@testing-library/react';
 import { Provider } from 'react-redux';
 import { configureStore } from '@reduxjs/toolkit';
 import { MemoryRouter, Outlet, Route, Routes } from 'react-router';
-import MonitorPage from './MonitorPage';
+import MonitorPage, { buildMonitorReferenceAttributions } from './MonitorPage';
+import type { MonitorReferenceLayerMeta } from '../monitor/referenceLayers';
 import monitorReducer from '../store/monitorSlice';
 import forecastReducer from '../store/forecastSlice';
 import themeReducer from '../store/themeSlice';
@@ -108,5 +109,30 @@ describe('MonitorPage', () => {
     expect(screen.getByRole('complementary', { name: /Monitor controls/i })).toBeInTheDocument();
     expect(screen.getByTestId('monitor-map-stub')).toBeInTheDocument();
     expect(screen.getByText(/SPC reports, and NWS alerts/i)).toBeInTheDocument();
+  });
+
+  test('shows reference attribution only for a loaded MCD collection', () => {
+    const meta: MonitorReferenceLayerMeta = {
+      status: 'loading',
+      sourceName: 'NOAA/NWS Storm Prediction Center',
+      sourceUrl: 'https://example.test/spc',
+      attribution: 'NOAA/NWS/SPC',
+      fetchedAt: null,
+      validTime: null,
+      itemCount: 0,
+      error: null,
+    };
+
+    expect(buildMonitorReferenceAttributions({ enabled: true, meta, featureCount: 0 })).toEqual([]);
+    expect(buildMonitorReferenceAttributions({
+      enabled: true,
+      meta: { ...meta, status: 'ready', validTime: '2026-08-10T15:00:00Z', itemCount: 1 },
+      featureCount: 1,
+    })).toEqual([expect.stringContaining('NOAA/NWS/SPC')]);
+    expect(buildMonitorReferenceAttributions({
+      enabled: true,
+      meta: { ...meta, status: 'error', error: 'SPC unavailable' },
+      featureCount: 1,
+    })).toEqual([]);
   });
 });

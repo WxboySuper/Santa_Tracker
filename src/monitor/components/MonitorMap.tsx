@@ -15,14 +15,13 @@ interface MonitorMapProps {
   radarOpacity: number;
   satelliteLayer: WmsLayerConfig | null;
   satelliteOpacity: number;
-  ndfdTemperatureLayer: WmsLayerConfig | null;
-  ndfdTemperatureOpacity: number;
   outlookData?: OutlookData;
   outlookType: MonitorOutlookLayerType;
   stormReports: StormReport[];
   alertsCollection: NwsAlertFeatureCollection;
   alertsOpacity: number;
   mesoscaleDiscussions: MonitorMesoscaleDiscussionCollection;
+  referenceAttributions: string[];
 }
 
 /** Monitor workspace map shell hosting radar, satellite, outlook, and alert layers. */
@@ -32,14 +31,13 @@ const MonitorMap: React.FC<MonitorMapProps> = ({
   radarOpacity,
   satelliteLayer,
   satelliteOpacity,
-  ndfdTemperatureLayer,
-  ndfdTemperatureOpacity,
   outlookData,
   outlookType,
   stormReports,
   alertsCollection,
   alertsOpacity,
   mesoscaleDiscussions,
+  referenceAttributions,
 }) => {
   const mapElementRef = useRef<HTMLDivElement>(null);
   const serializedFeatures = useMemo(
@@ -53,8 +51,6 @@ const MonitorMap: React.FC<MonitorMapProps> = ({
     radarOpacity,
     satelliteLayer,
     satelliteOpacity,
-    ndfdTemperatureLayer,
-    ndfdTemperatureOpacity,
     serializedFeatures,
     stormReports,
     alertsCollection,
@@ -67,6 +63,11 @@ const MonitorMap: React.FC<MonitorMapProps> = ({
     <div className="monitor-map" aria-label="Monitor map" translate="no">
       <div ref={mapElementRef} className="monitor-map__viewport" />
       <div className="monitor-map__badge">Read-only monitor</div>
+      {referenceAttributions.length > 0 ? (
+        <div className="monitor-map__attribution" aria-label="Reference layer attribution">
+          {referenceAttributions.join(' · ')}
+        </div>
+      ) : null}
     </div>
   );
 };

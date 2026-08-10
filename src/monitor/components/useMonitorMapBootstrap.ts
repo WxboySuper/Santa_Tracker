@@ -17,22 +17,16 @@ import { useDispatch } from 'react-redux';
 import type { AppDispatch } from '../../store';
 import { setMonitorMapView } from '../../store/monitorSlice';
 import type { MonitorMapView } from '../types';
-import { DEFAULT_NDFD_TEMPERATURE_OPACITY } from '../referenceLayers';
 import { getOpenFreeMapStyleSet } from '../../lib/openFreeMap';
 import {
-  ALERTS_LAYER_Z_INDEX,
   BASE_LAYER_Z_INDEX,
   createBaseSource,
   createMesoscaleDiscussionStyle,
   loadUsStateOutlines,
-  NDFD_REFERENCE_LAYER_Z_INDEX,
-  OUTLOOK_LAYER_Z_INDEX,
+  MONITOR_LAYER_Z_ORDER,
   RADAR_LAYER_Z_INDEX,
   replaceLayerGroupLayers,
   SATELLITE_LAYER_Z_INDEX,
-  SPC_REFERENCE_LAYER_Z_INDEX,
-  STATE_OUTLINE_LAYER_Z_INDEX,
-  STORM_REPORTS_LAYER_Z_INDEX,
   TOP_VECTOR_REFERENCE_LAYER_Z_INDEX,
 } from './monitorMapLayerUtils';
 import type { useMonitorMapRefs } from './monitorMapRefs';
@@ -54,7 +48,6 @@ interface MonitorMapLayers {
   alerts: VectorLayer;
   radar: TileLayer<TileWMS>;
   satellite: TileLayer<TileWMS>;
-  ndfdTemperature: TileLayer<TileWMS>;
   mesoscaleDiscussion: VectorLayer;
   vectorReferenceGroup: LayerGroup;
   base: TileLayer;
@@ -76,23 +69,18 @@ const createMonitorMapLayers = ({
   alerts: new VectorLayer({
     source: refs.alertsSourceRef.current,
     opacity: alertsOpacity,
-    zIndex: ALERTS_LAYER_Z_INDEX,
+    zIndex: MONITOR_LAYER_Z_ORDER.alerts,
     style: (feature) => buildNwsAlertStyle(String(feature.get('event') ?? '')),
   }),
   radar: new TileLayer<TileWMS>({ visible: false, opacity: radarOpacity, zIndex: RADAR_LAYER_Z_INDEX }),
   satellite: new TileLayer<TileWMS>({ visible: false, opacity: satelliteOpacity, zIndex: SATELLITE_LAYER_Z_INDEX }),
-  ndfdTemperature: new TileLayer<TileWMS>({
-    visible: false,
-    opacity: DEFAULT_NDFD_TEMPERATURE_OPACITY,
-    zIndex: NDFD_REFERENCE_LAYER_Z_INDEX,
-  }),
   mesoscaleDiscussion: new VectorLayer({
     visible: false,
     source: refs.mesoscaleDiscussionSourceRef.current,
     style: createMesoscaleDiscussionStyle(),
-    zIndex: SPC_REFERENCE_LAYER_Z_INDEX,
+    zIndex: MONITOR_LAYER_Z_ORDER.spcMesoscaleDiscussion,
   }),
-  vectorReferenceGroup: new LayerGroup({ visible: false, zIndex: TOP_VECTOR_REFERENCE_LAYER_Z_INDEX }),
+  vectorReferenceGroup: new LayerGroup({ visible: false, zIndex: MONITOR_LAYER_Z_ORDER.mapReferenceControls }),
   base: new TileLayer({ zIndex: BASE_LAYER_Z_INDEX }),
 });
 
@@ -112,12 +100,11 @@ const createMonitorMap = ({
     layers.base,
     layers.satellite,
     layers.radar,
-    layers.ndfdTemperature,
     layers.mesoscaleDiscussion,
     layers.alerts,
-    new VectorLayer({ source: refs.outlookSourceRef.current, zIndex: OUTLOOK_LAYER_Z_INDEX }),
-    new VectorLayer({ source: refs.stormReportsSourceRef.current, zIndex: STORM_REPORTS_LAYER_Z_INDEX }),
-    new VectorLayer({ source: refs.stateOutlineSourceRef.current, zIndex: STATE_OUTLINE_LAYER_Z_INDEX }),
+    new VectorLayer({ source: refs.outlookSourceRef.current, zIndex: MONITOR_LAYER_Z_ORDER.outlook }),
+    new VectorLayer({ source: refs.stormReportsSourceRef.current, zIndex: MONITOR_LAYER_Z_ORDER.stormReports }),
+    new VectorLayer({ source: refs.stateOutlineSourceRef.current, zIndex: MONITOR_LAYER_Z_ORDER.stateOutlines }),
     layers.vectorReferenceGroup,
   ],
   view: new View({
@@ -193,7 +180,6 @@ const assignMonitorMapRefs = (refs: MonitorMapRefs, map: OLMap, layers: MonitorM
   refs.baseLayerRef.current = layers.base;
   refs.radarLayerRef.current = layers.radar;
   refs.satelliteLayerRef.current = layers.satellite;
-  refs.ndfdTemperatureLayerRef.current = layers.ndfdTemperature;
   refs.mesoscaleDiscussionLayerRef.current = layers.mesoscaleDiscussion;
   refs.alertsLayerRef.current = layers.alerts;
   refs.vectorReferenceGroupRef.current = layers.vectorReferenceGroup;
@@ -221,13 +207,11 @@ const clearMonitorMapRefs = (refs: MonitorMapRefs): void => {
   refs.baseLayerRef.current = null;
   refs.radarLayerRef.current = null;
   refs.satelliteLayerRef.current = null;
-  refs.ndfdTemperatureLayerRef.current = null;
   refs.mesoscaleDiscussionLayerRef.current = null;
   refs.alertsLayerRef.current = null;
   refs.vectorReferenceGroupRef.current = null;
   refs.radarLayerKeyRef.current = null;
   refs.satelliteLayerKeyRef.current = null;
-  refs.ndfdTemperatureLayerKeyRef.current = null;
 };
 
 const cleanupMonitorMapPopup = (map: OLMap, refs: MonitorMapRefs): void => {

@@ -1,6 +1,7 @@
 import * as Sentry from '@sentry/react';
 
 jest.mock('@sentry/react', () => ({
+  addBreadcrumb: jest.fn(),
   init: jest.fn(),
   reactRouterV7BrowserTracingIntegration: jest.fn(() => ({})),
 }));
@@ -267,5 +268,37 @@ describe('instrument', () => {
 
   it('keeps unrelated application errors', () => {
     expectBeforeSendToKeep(() => createRequestLifecycleEvent('Cannot read properties of undefined'));
+  });
+
+  it('drops explicitly tagged expected Monitor reference outages', () => {
+    expectBeforeSendToDrop(() => ({
+      ...createRequestLifecycleEvent('SPC mesoscale discussions unavailable.'),
+      tags: {
+        gfc_area: 'monitor',
+        gfc_monitor_reference_layer: 'spc-mesoscale-discussion',
+        gfc_monitor_reference_outage: 'true',
+      },
+    }));
+  });
+
+  it('records expected Monitor outages as breadcrumb context instead of a dropped error', () => {
+    jest.isolateModules(() => {
+      globalScope.__GFC_SENTRY_DSN__ = 'https://example@o0.ingest.sentry.io/0';
+      // skipcq: JS-C1003, JS-0359 — isolateModules needs require for fresh module load
+      const { captureExpectedMonitorReferenceFailure } = require('./instrument');
+
+      captureExpectedMonitorReferenceFailure('spc-mesoscale-discussion', new Error('SPC unavailable'));
+
+      expect(Sentry.addBreadcrumb).toHaveBeenCalledWith({
+        category: 'monitor.reference',
+        level: 'warning',
+        message: 'Expected upstream failure for spc-mesoscale-discussion',
+        data: {
+          sourceId: 'spc-mesoscale-discussion',
+          expectedUpstreamFailure: true,
+          error: 'SPC unavailable',
+        },
+      });
+    });
   });
 });

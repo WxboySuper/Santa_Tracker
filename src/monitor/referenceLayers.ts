@@ -1,9 +1,17 @@
 import type { FeatureCollection, MultiPolygon, Polygon } from 'geojson';
-import type { WmsLayerConfig } from './wms';
-
-export type MonitorReferenceLayerId = 'ndfd-temperature' | 'spc-mesoscale-discussion';
+export type MonitorReferenceLayerId = 'spc-mesoscale-discussion';
 
 export type MonitorReferenceLayerStatus = 'idle' | 'loading' | 'ready' | 'empty' | 'stale' | 'error';
+
+/** Short, bounded retry schedule for transient NOAA upstream failures. */
+export const MONITOR_REFERENCE_RETRY_DELAYS_MS = [1000, 5000] as const;
+
+export class MonitorReferenceError extends Error {
+  constructor(message: string, readonly retryable: boolean) {
+    super(message);
+    this.name = 'MonitorReferenceError';
+  }
+}
 
 export interface MonitorReferenceLayerMeta {
   status: MonitorReferenceLayerStatus;
@@ -12,7 +20,7 @@ export interface MonitorReferenceLayerMeta {
   attribution: string;
   fetchedAt: string | null;
   validTime: string | null;
-  itemCount: number | null;
+  itemCount: number;
   error: string | null;
 }
 
@@ -39,21 +47,25 @@ export interface MonitorMesoscaleDiscussionProperties {
   sourceUrl?: string;
 }
 
+/** Presents an ISO instant or WMS interval in a compact, local-time label. */
+export const formatMonitorReferenceTime = (value: string | null): string => {
+  if (!value) return 'provider latest';
+  const [start, end] = value.split('/');
+  const startDate = new Date(start);
+  const endDate = end ? new Date(end) : null;
+  if (!Number.isNaN(startDate.getTime())) {
+    const format = (date: Date) => date.toLocaleString([], { dateStyle: 'short', timeStyle: 'short' });
+    return endDate && !Number.isNaN(endDate.getTime())
+      ? `${format(startDate)}–${format(endDate)}`
+      : format(startDate);
+  }
+  return value;
+};
+
 export type MonitorMesoscaleDiscussionCollection = FeatureCollection<
   Polygon | MultiPolygon,
   MonitorMesoscaleDiscussionProperties
 >;
-
-export const NDFD_TEMPERATURE_SOURCE: MonitorReferenceSourceInfo = {
-  id: 'ndfd-temperature',
-  label: 'NDFD temperature forecast',
-  sourceName: 'NOAA/NWS National Digital Forecast Database',
-  sourceUrl: 'https://mapservices.weather.noaa.gov/raster/rest/services/NDFD/NDFD_temp/MapServer',
-  attribution: 'NOAA/NWS NDFD',
-};
-
-/** Keeps the optional NDFD overlay readable without treating opacity as a user setting. */
-export const DEFAULT_NDFD_TEMPERATURE_OPACITY = 0.58;
 
 export const SPC_MESOSCALE_DISCUSSION_SOURCE: MonitorReferenceSourceInfo = {
   id: 'spc-mesoscale-discussion',
@@ -63,15 +75,36 @@ export const SPC_MESOSCALE_DISCUSSION_SOURCE: MonitorReferenceSourceInfo = {
   attribution: 'NOAA/NWS/SPC',
 };
 
-const NDFD_WMS_URL = 'https://mapservices.weather.noaa.gov/raster/services/NDFD/NDFD_temp/MapServer/WMSServer';
 const SPC_QUERY_URL = `${SPC_MESOSCALE_DISCUSSION_SOURCE.sourceUrl}/query`;
 
-/** Builds the current NDFD WMS layer; the service chooses the latest image when time is absent. */
-export const buildNdfdTemperatureLayerConfig = (latestTime?: string): WmsLayerConfig => ({
-  url: NDFD_WMS_URL,
-  layer: '2',
-  ...(latestTime ? { latestTime } : {}),
+const sleep = (delayMs: number): Promise<void> => new Promise((resolve) => {
+  setTimeout(resolve, delayMs);
 });
+
+/** Retries a reference request twice, with enough delay to avoid hammering a recovering provider. */
+export const withReferenceRetry = async <T>(
+  operation: () => Promise<T>,
+  retryDelaysMs: readonly number[] = MONITOR_REFERENCE_RETRY_DELAYS_MS,
+  wait: (delayMs: number) => Promise<void> = sleep,
+): Promise<T> => {
+  let lastError: unknown;
+  for (let attempt = 0; attempt <= retryDelaysMs.length; attempt += 1) {
+    try {
+      return await operation();
+    } catch (error: unknown) {
+      lastError = error;
+      if (error instanceof MonitorReferenceError && !error.retryable) {
+        break;
+      }
+      const delayMs = retryDelaysMs[attempt];
+      if (delayMs === undefined) {
+        break;
+      }
+      await wait(delayMs);
+    }
+  }
+  throw lastError instanceof Error ? lastError : new Error('Reference source unavailable.');
+};
 
 /** Builds the bounded ArcGIS GeoJSON query used for current SPC MD polygons. */
 export const buildSpcMesoscaleDiscussionQueryUrl = (): string => {
@@ -232,7 +265,18 @@ export const fetchSpcMesoscaleDiscussions = async (
     headers: { Accept: 'application/geo+json' },
   });
   if (!response.ok) {
-    throw new Error(`SPC mesoscale discussions unavailable (${response.status}).`);
+    throw new MonitorReferenceError(
+      `SPC mesoscale discussions unavailable (${response.status}).`,
+      response.status >= 500,
+    );
   }
-  return normalizeSpcMesoscaleDiscussionCollection(await response.json());
+  const payload = await response.json();
+  const normalized = normalizeSpcMesoscaleDiscussionCollection(payload);
+  if (isRecord(payload) && Array.isArray(payload.features) && payload.features.length > 0 && normalized.features.length === 0) {
+    throw new MonitorReferenceError(
+      'SPC mesoscale discussion response contained no usable polygon features.',
+      false,
+    );
+  }
+  return normalized;
 };

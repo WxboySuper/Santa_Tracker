@@ -21,7 +21,7 @@ Work toward the next major release continues in the beta channel while the final
 - **Feature exposure controls:** Add typed local/beta/staging/production target matrices, server capability gates, emergency disable controls, exposure diagnostics, and rollout validation.
 - **Account management:** Add recent-authentication account deletion with subscription cleanup, hosted-data removal, and local/offline-save preservation.
 - **Operations and delivery:** Add manual release workflows, staging support, release manifests, OpenCode review automation, and maintenance reports.
-- **Monitor reference layers:** Add opt-in official NDFD temperature and SPC mesoscale discussion adapters with source metadata, valid-time state, and bounded caching.
+- **Monitor reference layers:** Add an opt-in SPC mesoscale discussion (MCD) reference adapter with source metadata, valid-time state, and bounded caching; defer short-term model layers such as NDFD.
 
 #### Changed
 
@@ -51,6 +51,7 @@ Work toward the next major release continues in the beta channel while the final
 - **Editor responsiveness:** Move auto-categorical geometry derivation behind a cancellable Web Worker with request/version tracking so stale responses cannot overwrite newer edits, the editor stays responsive during expensive geometry work, and the last known-good result is preserved on failure or timeout.
 - **Bundle size:** Lazy-load heavy feature routes so the application shell loads independently from the map/editor and secondary workflow chunks, split vendor families into separate chunks, and enforce an entry-chunk budget in CI.
 - **Session restore:** Make restore idempotent by keying it to the user scope so React Strict Mode and remounts cannot reapply the same payload or fire duplicate notifications, bound the toast queue, keep mobile toasts clear of the forecast toolbar, and preserve live-region semantics.
+- **Monitor resilience:** Harden reference-layer attribution, z-ordering, retry/backoff, stale and malformed-source states, Sentry filtering, and phone layouts.
 - **Discussion editing:** Introduce a local `datetime-local` formatter/parser pair so validity times are displayed and persisted in the user's local wall-clock time instead of being shifted through UTC.
 - **Dialog accessibility:** Consolidate custom dialogs on one hardened focus-trap behavior (trapped Tab/Shift+Tab, initial focus, focus restore, Escape, background isolation), associate discussion validity/forecaster fields with accessible labels, and add primary `h1` landmarks to forecast, verification, and monitor routes.
 - **Same-day verification:** Route current-day SPC storm reports to the live `today.csv` feed instead of the not-yet-published dated archive, so in-event grading no longer fails for forecasts dated today.
