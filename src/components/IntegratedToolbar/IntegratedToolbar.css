@@ -143,7 +143,8 @@
 .custom-product-mode-panel,
 .custom-draw-panel { display: flex; height: 100%; align-items: center; gap: 10px; }
 .custom-product-mode-panel { animation: custom-product-panel-enter 210ms cubic-bezier(.2,.8,.2,1); }
-.custom-product-toggle { position: relative; display: grid; grid-template-columns: repeat(2, 1fr); width: 142px; min-height: 40px; padding: 4px; border: 1px solid var(--border-color); border-radius: 12px; background: var(--bg-tertiary); box-shadow: inset 0 1px 1px rgba(15, 23, 42, .10); isolation: isolate; }
+.tabbed-integrated-toolbar__section--product-mode { flex: 0 0 242px; width: 242px; }
+.custom-product-toggle { position: relative; display: grid; flex: 0 0 142px; grid-template-columns: repeat(2, 1fr); width: 142px; min-height: 40px; padding: 4px; border: 1px solid var(--border-color); border-radius: 12px; background: var(--bg-tertiary); box-shadow: inset 0 1px 1px rgba(15, 23, 42, .10); isolation: isolate; }
 .custom-product-toggle::before { position: absolute; inset: 4px; border-radius: 8px; background: color-mix(in srgb, var(--bg-secondary) 82%, transparent); content: ''; }
 .custom-product-toggle__indicator { position: absolute; inset: 4px auto 4px 4px; width: calc(50% - 4px); border: 1px solid color-mix(in srgb, var(--button-bg) 74%, #ffffff); border-radius: 8px 0 0 8px; background: var(--button-bg); box-shadow: 0 5px 12px -8px color-mix(in srgb, var(--button-bg) 90%, transparent); transition: transform 240ms cubic-bezier(.2,.85,.25,1), border-radius 180ms ease; }
 .custom-product-toggle.is-custom-mode .custom-product-toggle__indicator { transform: translateX(100%); border-radius: 0 8px 8px 0; }
@@ -1078,7 +1079,7 @@
 
 @media (max-width: 768px) {
   .tabbed-integrated-toolbar__section--product-mode { flex: 0 0 218px; }
-  .custom-product-toggle { width: 120px; }
+  .custom-product-toggle { flex-basis: 120px; width: 120px; }
   .custom-products-dialog-content { width: calc(100vw - 1rem); }
   .custom-products-dialog-header { padding: 16px 50px 14px 16px; }
   .custom-products-dialog-content .custom-products-page--dialog { padding: 12px 14px 16px; }
@@ -1097,7 +1098,7 @@
 }
 
 @media (max-height: 500px) and (orientation: landscape) {
-  .tabbed-integrated-toolbar__section--product-mode { flex-basis: 230px; }
+  .tabbed-integrated-toolbar__section--product-mode { flex-basis: 242px; }
   .custom-product-toggle { width: 142px; }
   .custom-draw-panel__group { padding-block: 6px; }
   .custom-draw-panel__label { display: none; }
