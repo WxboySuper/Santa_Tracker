@@ -60,11 +60,25 @@ export const buildMonitorReferenceAttributions = ({
   meta: MonitorReferenceLayerMeta;
   featureCount: number;
 }): string[] => {
-  if (!enabled || featureCount === 0 || !['ready', 'stale'].includes(meta.status)) {
+  if (!enabled) {
+    return [];
+  }
+  if (featureCount === 0) {
     return [];
   }
 
-  const freshness = meta.status === 'stale' ? 'stale snapshot · ' : '';
+  let freshness: string;
+  switch (meta.status) {
+    case 'ready':
+      freshness = '';
+      break;
+    case 'stale':
+      freshness = 'stale snapshot · ';
+      break;
+    default:
+      return [];
+  }
+
   return [`${meta.attribution} · SPC mesoscale discussions (MCDs) · ${freshness}valid ${formatMonitorReferenceTime(meta.validTime)}`];
 };
 
