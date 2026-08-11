@@ -3,7 +3,6 @@ import { resolve } from 'node:path';
 import {
   buildReleaseName,
   evaluateSentryConfig,
-  extractArtifactBundles,
   extractFiles,
   fetchArtifactBundles,
   fetchReleaseFiles,
