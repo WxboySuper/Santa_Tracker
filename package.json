@@ -19,9 +19,9 @@
     "@testing-library/jest-dom": "^7.0.0",
     "@testing-library/react": "^16.2.0",
     "@testing-library/user-event": "^14.6.3",
-    "@turf/difference": "^7.3.4",
-    "@turf/helpers": "^7.3.5",
-    "@turf/turf": "^7.3.4",
+    "@turf/difference": "^7.4.0",
+    "@turf/helpers": "^7.4.0",
+    "@turf/turf": "^7.4.0",
     "@types/jest": "^30.0.0",
     "@types/leaflet": "^1.9.22",
     "@types/node": "^26.1.2",
@@ -31,13 +31,13 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cross-env": "^10.1.0",
-    "firebase": "^12.16.0",
+    "firebase": "^12.17.1",
     "html2canvas": "^1.4.1",
-    "immer": "^11.1.15",
+    "immer": "^11.1.16",
     "jszip": "^3.10.1",
     "leaflet": "^1.9.4",
-    "lucide-react": "^1.27.0",
-    "ol": "^10.9.0",
+    "lucide-react": "^1.30.0",
+    "ol": "^10.10.0",
     "ol-mapbox-style": "^13.4.2",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
@@ -48,7 +48,7 @@
     "tailwind-merge": "^3.5.0",
     "typescript": "npm:@typescript/typescript6@^6.0.2",
     "uuid": "^14.0.1",
-    "web-vitals": "^6.0.1",
+    "web-vitals": "^6.1.0",
     "xml2js": "^0.6.2"
   },
   "scripts": {
@@ -115,7 +115,7 @@
     "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-testing-library": "^7.16.2",
-    "firebase-tools": "15.25.1",
+    "firebase-tools": "15.26.0",
     "gh-pages": "^6.3.0",
     "globals": "^17.9.0",
     "identity-obj-proxy": "^3.0.0",
@@ -124,6 +124,6 @@
     "postcss": "8.5.26",
     "tailwindcss": "^4.3.3",
     "typescript-eslint": "^8.66.0",
-    "vite": "^8.1.5"
+    "vite": "^8.2.1"
   }
 }

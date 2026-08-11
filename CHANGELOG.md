@@ -24,6 +24,18 @@ Work toward the next major release continues in the beta channel while the final
 - **@playwright/test:** ^1.62.0 → ^1.62.1
 - **@vitejs/plugin-react:** ^6.0.4 → ^6.0.5
 - **postcss:** 8 → 8.5.26
+- **@turf/difference:** ^7.3.4 → ^7.4.0
+- **@turf/helpers:** ^7.3.5 → ^7.4.0
+- **@turf/turf:** ^7.3.4 → ^7.4.0
+- **firebase:** ^12.16.0 → ^12.17.1
+- **immer:** ^11.1.15 → ^11.1.16
+- **lucide-react:** ^1.27.0 → ^1.30.0
+- **ol:** ^10.9.0 → ^10.10.0
+- **web-vitals:** ^6.0.1 → ^6.1.0
+- **firebase-tools:** 15.25.1 → 15.26.0
+- **vite:** ^8.1.5 → ^8.2.1
+- **express-rate-limit:** ^8.6.1 → ^8.6.2 (`server`)
+- **stripe:** ^22.3.2 → ^22.4.0 (`server`)
 
 #### Added
 
