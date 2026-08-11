@@ -312,10 +312,11 @@ const hasReleaseAssociation = (bundles, release) =>
       )
   );
 
+const isSuccessfulStatus = (status) => status >= 200 && status < 300;
+
 const nextArtifactBundleUrl = ({ page, release }) => {
-  if (page.status < 200 || page.status >= 300 || hasReleaseAssociation(page.bundles, release)) {
-    return null;
-  }
+  if (!isSuccessfulStatus(page.status)) return null;
+  if (hasReleaseAssociation(page.bundles, release)) return null;
   return nextLinkFromHeader(page.link);
 };
 
