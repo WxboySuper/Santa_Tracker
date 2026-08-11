@@ -52,6 +52,48 @@ export const deleteLocalSourcemaps = (dir) => {
   return maps.length;
 };
 
+const shouldCheckArtifactBundles = ({ status, releaseFiles }) =>
+  status === 400 ||
+  (status >= 200 && status < 300 && Array.isArray(releaseFiles) && releaseFiles.length === 0);
+
+const failVerification = (reason) => {
+  throw new Error(reason);
+};
+
+const verifyLegacyMapCoverage = ({ release, result, body, localMapBasenames }) => {
+  if (!result.ok) failVerification(result.reason);
+
+  const remoteFiles = Array.isArray(body) ? body : body?.files ?? [];
+  const { missing } = findMissingLocalMaps({ remoteFiles, localMapBasenames });
+  if (missing.length > 0) {
+    failVerification(
+      `Local sourcemaps missing from Sentry release ${release}: ${missing.join(', ')}. ` +
+        'Not all maps were published; preserving local artifacts.'
+    );
+  }
+
+  return result.reason;
+};
+
+const verifyPublication = async ({ token, org, project, release, localMapCount, localMapBasenames }) => {
+  const releaseResponse = await fetchReleaseFiles({ token, org, project, release });
+  const releaseResult = verifyReleaseFilesResponse({ release, ...releaseResponse });
+  const releaseFiles = extractFiles(releaseResponse.body);
+
+  if (!releaseResult.ok && shouldCheckArtifactBundles({ status: releaseResponse.status, releaseFiles })) {
+    const artifactResponse = await fetchArtifactBundles({ token, org, project, release });
+    const artifactResult = verifyArtifactBundlesResponse({
+      release,
+      ...artifactResponse,
+      minimumFileCount: localMapCount,
+    });
+    if (!artifactResult.ok) failVerification(artifactResult.reason);
+    return artifactResult.reason;
+  }
+
+  return verifyLegacyMapCoverage({ release, result: releaseResult, body: releaseResponse.body, localMapBasenames });
+};
+
 /**
  * Verifies Sentry sourcemap publication for the current build and deletes
  * local maps only on confirmed success. Exits non-zero when configured but
@@ -77,49 +119,15 @@ const main = async () => {
   try {
     const localMaps = collectSourcemaps(BUILD_DIR);
     const localMapBasenames = localMaps.map((path) => path.split(/[\\/]/).pop());
-
-    const { status, body } = await fetchReleaseFiles({ token, org, project, release });
-    const releaseResult = verifyReleaseFilesResponse({ release, status, body });
-    const releaseFiles = extractFiles(body);
-    const shouldCheckArtifactBundles =
-      status === 400 ||
-      (status >= 200 && status < 300 && Array.isArray(releaseFiles) && releaseFiles.length === 0);
-
-    if (!releaseResult.ok && shouldCheckArtifactBundles) {
-      const artifactBundles = await fetchArtifactBundles({ token, org, project, release });
-      const artifactResult = verifyArtifactBundlesResponse({
-        release,
-        ...artifactBundles,
-        minimumFileCount: localMaps.length,
-      });
-      if (artifactResult.ok) {
-        console.log(artifactResult.reason);
-        const deleted = deleteLocalSourcemaps(BUILD_DIR);
-        console.log(`Deleted ${deleted} local sourcemap file(s) after verified publication.`);
-        return;
-      }
-      console.error(`::error::${artifactResult.reason}`);
-      console.error('Local sourcemaps were preserved as recovery artifacts.');
-      process.exit(1);
-    }
-
-    if (!releaseResult.ok) {
-      console.error(`::error::${releaseResult.reason}`);
-      console.error('Local sourcemaps were preserved as recovery artifacts.');
-      process.exit(1);
-    }
-
-    const remoteFiles = Array.isArray(body) ? body : body?.files ?? [];
-    const { missing } = findMissingLocalMaps({ remoteFiles, localMapBasenames });
-    if (missing.length > 0) {
-      console.error(
-        `::error::Local sourcemaps missing from Sentry release ${release}: ${missing.join(', ')}. ` +
-          'Not all maps were published; preserving local artifacts.'
-      );
-      process.exit(1);
-    }
-
-    console.log(releaseResult.reason);
+    const reason = await verifyPublication({
+      token,
+      org,
+      project,
+      release,
+      localMapCount: localMaps.length,
+      localMapBasenames,
+    });
+    console.log(reason);
     const deleted = deleteLocalSourcemaps(BUILD_DIR);
     console.log(`Deleted ${deleted} local sourcemap file(s) after verified publication.`);
   } catch (error) {

@@ -273,33 +273,47 @@ export const fetchArtifactBundles = async ({ token, org, project, release, fetch
   let status = 200;
 
   while (url) {
-    const response = await fetchFn(url, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        Accept: 'application/json',
-      },
-    });
-    status = response.status;
-    const body = await response.json().catch(() => null);
+    const page = await fetchArtifactBundlePage({ fetchFn, url, token });
+    ({ status } = page);
 
-    const pageBundles = extractArtifactBundles(body);
-    if (!Array.isArray(body) && pageBundles.length === 0 && status >= 300) {
-      return { status, body };
+    if (isArtifactBundleErrorPage(page)) {
+      return { status, body: page.body };
     }
-    allBundles = allBundles.concat(pageBundles);
-    const foundRelease =
-      release &&
-      pageBundles.some((bundle) =>
-        Array.isArray(bundle?.associations) &&
-        bundle.associations.some((association) => association?.release === release)
-      );
-    url =
-      status < 200 || status >= 300 || foundRelease
-        ? null
-        : nextLinkFromHeader(response.headers?.get?.('link'));
+    allBundles = allBundles.concat(page.bundles);
+    url = nextArtifactBundleUrl({ page, release });
   }
 
   return { status, body: allBundles };
+};
+
+const fetchArtifactBundlePage = async ({ fetchFn, url, token }) => {
+  const response = await fetchFn(url, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+      Accept: 'application/json',
+    },
+  });
+  const body = await response.json().catch(() => null);
+  return { status: response.status, body, bundles: extractArtifactBundles(body), link: response.headers?.get?.('link') };
+};
+
+const isArtifactBundleErrorPage = ({ status, body, bundles }) =>
+  status >= 300 && !Array.isArray(body) && bundles.length === 0;
+
+const hasReleaseAssociation = (bundles, release) =>
+  Boolean(
+    release &&
+      bundles.some((bundle) =>
+        Array.isArray(bundle?.associations) &&
+        bundle.associations.some((association) => association?.release === release)
+      )
+  );
+
+const nextArtifactBundleUrl = ({ page, release }) => {
+  if (page.status < 200 || page.status >= 300 || hasReleaseAssociation(page.bundles, release)) {
+    return null;
+  }
+  return nextLinkFromHeader(page.link);
 };
 
 /**
