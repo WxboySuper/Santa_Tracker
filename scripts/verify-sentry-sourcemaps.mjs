@@ -8,7 +8,6 @@ import {
   buildReleaseName,
   evaluateSentryConfig,
   extractFiles,
-  fetchArtifactBundles,
   fetchReleaseFiles,
   findMissingLocalMaps,
   verifyReleaseFilesResponse,
