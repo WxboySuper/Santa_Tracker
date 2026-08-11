@@ -60,41 +60,6 @@ export const verifyReleaseFilesResponse = ({ release, status, body }) => {
   return coverageResult(files, status, release);
 };
 
-/**
- * Validates the artifact-bundle index returned by Sentry's modern sourcemap
- * uploader. Artifact bundles are not exposed through the legacy release-files
- * endpoint, so the release can be healthy while that endpoint is empty.
- * @param {{ release: string; status: number; body: unknown; minimumFileCount?: number }} context
- * @returns {VerificationResult}
- */
-export const verifyArtifactBundlesResponse = ({ release, status, body, minimumFileCount = 0 }) => {
-  const transportError = transportErrorForStatus(status, release);
-  if (transportError) return transportError;
-
-  const bundles = extractArtifactBundles(body);
-  const matchingBundles = bundles.filter(
-    (bundle) =>
-      Array.isArray(bundle?.associations) &&
-      bundle.associations.some((association) => association?.release === release) &&
-      Number.isFinite(bundle?.fileCount) &&
-      bundle.fileCount >= Math.max(1, minimumFileCount)
-  );
-
-  if (matchingBundles.length === 0) {
-    return {
-      ok: false,
-      status,
-      reason: `Sentry release ${release} has no published artifact bundle with the expected files.`,
-    };
-  }
-
-  const fileCount = Math.max(...matchingBundles.map((bundle) => bundle.fileCount));
-  return {
-    ok: true,
-    reason: `Sentry release ${release} verified with an artifact bundle containing ${fileCount} file(s).`,
-  };
-};
-
 /** Maps non-2xx transport statuses to a verification failure, or null when the request succeeded. */
 const transportErrorForStatus = (status, release) => {
   if (status === 401 || status === 403) {
@@ -183,34 +148,12 @@ export const extractFiles = (body) => {
   return isFilesEnvelope(body) ? /** @type {Array<{ name?: unknown }>} */ (body.files) : null;
 };
 
-/**
- * Extracts artifact bundles from the Sentry artifact-bundle index response.
- * @param {unknown} body
- * @returns {Array<{ associations?: unknown; fileCount?: unknown }>}
- */
-export const extractArtifactBundles = (body) => {
-  if (Array.isArray(body)) {
-    return /** @type {Array<{ associations?: unknown; fileCount?: unknown }>} */ (body);
-  }
-  if (isArtifactBundlesEnvelope(body)) {
-    return /** @type {Array<{ associations?: unknown; fileCount?: unknown }>} */ (body.artifactBundles);
-  }
-  return [];
-};
-
 /** Returns true when a value is a `{ files: [...] }` envelope. */
 const isFilesEnvelope = (value) =>
   value !== null &&
   typeof value === 'object' &&
   !Array.isArray(value) &&
   Array.isArray(value.files);
-
-/** Returns true when a value is an `{ artifactBundles: [...] }` envelope. */
-const isArtifactBundlesEnvelope = (value) =>
-  value !== null &&
-  typeof value === 'object' &&
-  !Array.isArray(value) &&
-  Array.isArray(value.artifactBundles);
 
 /** Parses a Link header's next-page URL when present. */
 const nextLinkFromHeader = (linkHeader) => {
@@ -265,62 +208,6 @@ export const fetchReleaseFiles = async ({ token, org, project, release, fetchFn 
 };
 
 /**
- * Lists modern artifact bundles for a project, following pagination links.
- * @param {{ token: string; org: string; project: string; release?: string; fetchFn?: typeof fetch }} context
- * @returns {Promise<{ status: number; body: unknown }>}
- */
-export const fetchArtifactBundles = async ({ token, org, project, release, fetchFn = fetch }) => {
-  const projectSlug = normalizeProjectSlug(project);
-  let url = `https://sentry.io/api/0/projects/${encodeURIComponent(org)}/${encodeURIComponent(projectSlug)}/files/artifact-bundles/`;
-  let allBundles = [];
-  let status = 200;
-
-  while (url) {
-    const page = await fetchArtifactBundlePage({ fetchFn, url, token });
-    ({ status } = page);
-
-    if (isArtifactBundleErrorPage(page)) {
-      return { status, body: page.body };
-    }
-    allBundles = allBundles.concat(page.bundles);
-    url = nextArtifactBundleUrl({ page, release });
-  }
-
-  return { status, body: allBundles };
-};
-
-const fetchArtifactBundlePage = async ({ fetchFn, url, token }) => {
-  const response = await fetchFn(url, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-      Accept: 'application/json',
-    },
-  });
-  const body = await response.json().catch(() => null);
-  return { status: response.status, body, bundles: extractArtifactBundles(body), link: response.headers?.get?.('link') };
-};
-
-const isArtifactBundleErrorPage = ({ status, body, bundles }) =>
-  status >= 300 && !Array.isArray(body) && bundles.length === 0;
-
-const hasReleaseAssociation = (bundles, release) =>
-  Boolean(
-    release &&
-      bundles.some((bundle) =>
-        Array.isArray(bundle?.associations) &&
-        bundle.associations.some((association) => association?.release === release)
-      )
-  );
-
-const isSuccessfulStatus = (status) => status >= 200 && status < 300;
-
-const nextArtifactBundleUrl = ({ page, release }) => {
-  if (!isSuccessfulStatus(page.status)) return null;
-  if (hasReleaseAssociation(page.bundles, release)) return null;
-  return nextLinkFromHeader(page.link);
-};
-
-/**
  * Verifies a release publication and, on success, returns the verified result.
  * @param {{
  *   token: string;
@@ -332,18 +219,8 @@ const nextArtifactBundleUrl = ({ page, release }) => {
  * @returns {Promise<VerificationResult>}
  */
 export const verifySentryRelease = async ({ token, org, project, release, fetchFn }) => {
-  const releaseFiles = await fetchReleaseFiles({ token, org, project, release, fetchFn });
-  const releaseResult = verifyReleaseFilesResponse({ release, ...releaseFiles });
-  const files = extractFiles(releaseFiles.body);
-  const shouldCheckArtifactBundles =
-    releaseFiles.status === 400 ||
-    (releaseFiles.status >= 200 && releaseFiles.status < 300 && Array.isArray(files) && files.length === 0);
-  if (!shouldCheckArtifactBundles || releaseResult.ok) {
-    return releaseResult;
-  }
-
-  const artifactBundles = await fetchArtifactBundles({ token, org, project, release, fetchFn });
-  return verifyArtifactBundlesResponse({ release, ...artifactBundles });
+  const response = await fetchReleaseFiles({ token, org, project, release, fetchFn });
+  return verifyReleaseFilesResponse({ release, ...response });
 };
 
 /**

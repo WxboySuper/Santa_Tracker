@@ -1,13 +1,16 @@
 import { existsSync, readFileSync, readdirSync, rmSync, statSync } from 'node:fs';
 import { resolve } from 'node:path';
 import {
+  fetchArtifactBundles,
+  verifyArtifactBundlesResponse,
+} from './lib/sentry-artifact-bundle-verification.mjs';
+import {
   buildReleaseName,
   evaluateSentryConfig,
   extractFiles,
   fetchArtifactBundles,
   fetchReleaseFiles,
   findMissingLocalMaps,
-  verifyArtifactBundlesResponse,
   verifyReleaseFilesResponse,
 } from './lib/sentry-sourcemap-verification.mjs';
 

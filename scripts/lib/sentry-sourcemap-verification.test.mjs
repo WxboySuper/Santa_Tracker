@@ -1,15 +1,17 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import {
+  extractArtifactBundles,
+  fetchArtifactBundles,
+  verifyArtifactBundlesResponse,
+} from './sentry-artifact-bundle-verification.mjs';
+import {
   buildReleaseName,
   evaluateSentryConfig,
-  extractArtifactBundles,
   extractFiles,
-  fetchArtifactBundles,
   fetchReleaseFiles,
   findMissingLocalMaps,
   normalizeProjectSlug,
-  verifyArtifactBundlesResponse,
   verifyReleaseFilesResponse,
 } from './sentry-sourcemap-verification.mjs';
 
