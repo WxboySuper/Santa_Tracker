@@ -11,6 +11,20 @@ Work toward the next major release continues in the beta channel while the final
 
 <!-- v1.7.0 release lane: keep all v1.7 work here until stable promotion converts this lane into ## v1.7.0. -->
 
+#### Dependencies
+
+<!-- dependabot-automation -->
+
+- **@testing-library/user-event:** ^14.6.1 → ^14.6.3
+- **@types/leaflet:** ^1.9.16 → ^1.9.22
+- **@types/node:** ^26.1.1 → ^26.1.2
+- **@types/react:** 19.2.17 → 19.2.18
+- **@types/react-dom:** 19.2.3 → 19.2.4
+- **rollup:** >=4.62.3 → >=4.62.4
+- **@playwright/test:** ^1.62.0 → ^1.62.1
+- **@vitejs/plugin-react:** ^6.0.4 → ^6.0.5
+- **postcss:** 8 → 8.5.26
+
 #### Added
 
 - **Built-in outlook opacity:** Add per-outlook fill opacity controls to the forecast workflow and preserve the selected values in saved and exported forecasts.
