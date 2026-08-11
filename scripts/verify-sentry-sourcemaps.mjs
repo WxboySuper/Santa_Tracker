@@ -3,8 +3,12 @@ import { resolve } from 'node:path';
 import {
   buildReleaseName,
   evaluateSentryConfig,
+  extractArtifactBundles,
+  extractFiles,
+  fetchArtifactBundles,
   fetchReleaseFiles,
   findMissingLocalMaps,
+  verifyArtifactBundlesResponse,
   verifyReleaseFilesResponse,
 } from './lib/sentry-sourcemap-verification.mjs';
 
@@ -77,6 +81,29 @@ const main = async () => {
 
     const { status, body } = await fetchReleaseFiles({ token, org, project, release });
     const releaseResult = verifyReleaseFilesResponse({ release, status, body });
+    const releaseFiles = extractFiles(body);
+    const shouldCheckArtifactBundles =
+      status === 400 ||
+      (status >= 200 && status < 300 && Array.isArray(releaseFiles) && releaseFiles.length === 0);
+
+    if (!releaseResult.ok && shouldCheckArtifactBundles) {
+      const artifactBundles = await fetchArtifactBundles({ token, org, project, release });
+      const artifactResult = verifyArtifactBundlesResponse({
+        release,
+        ...artifactBundles,
+        minimumFileCount: localMaps.length,
+      });
+      if (artifactResult.ok) {
+        console.log(artifactResult.reason);
+        const deleted = deleteLocalSourcemaps(BUILD_DIR);
+        console.log(`Deleted ${deleted} local sourcemap file(s) after verified publication.`);
+        return;
+      }
+      console.error(`::error::${artifactResult.reason}`);
+      console.error('Local sourcemaps were preserved as recovery artifacts.');
+      process.exit(1);
+    }
+
     if (!releaseResult.ok) {
       console.error(`::error::${releaseResult.reason}`);
       console.error('Local sourcemaps were preserved as recovery artifacts.');
