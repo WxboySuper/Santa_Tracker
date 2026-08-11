@@ -192,11 +192,7 @@ export const extractArtifactBundles = (body) => {
   if (Array.isArray(body)) {
     return /** @type {Array<{ associations?: unknown; fileCount?: unknown }>} */ (body);
   }
-  if (
-    body !== null &&
-    typeof body === 'object' &&
-    Array.isArray(body.artifactBundles)
-  ) {
+  if (isArtifactBundlesEnvelope(body)) {
     return /** @type {Array<{ associations?: unknown; fileCount?: unknown }>} */ (body.artifactBundles);
   }
   return [];
@@ -208,6 +204,13 @@ const isFilesEnvelope = (value) =>
   typeof value === 'object' &&
   !Array.isArray(value) &&
   Array.isArray(value.files);
+
+/** Returns true when a value is an `{ artifactBundles: [...] }` envelope. */
+const isArtifactBundlesEnvelope = (value) =>
+  value !== null &&
+  typeof value === 'object' &&
+  !Array.isArray(value) &&
+  Array.isArray(value.artifactBundles);
 
 /** Parses a Link header's next-page URL when present. */
 const nextLinkFromHeader = (linkHeader) => {
