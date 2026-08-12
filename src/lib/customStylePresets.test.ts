@@ -25,6 +25,18 @@ describe('custom style presets', () => {
     ]);
   });
 
+  it('models Tropical AOI as three formation-probability bands', () => {
+    const tropical = listCustomStylePresets().find(({ id }) => id === 'tropical-aoi');
+
+    expect(tropical?.description).toMatch(/7-day tropical cyclone formation probability/i);
+    expect(tropical?.categories.map(({ label }) => label)).toEqual(['< 40%', '40–60%', '> 60%']);
+    expect(tropical?.categories.map(({ style }) => style.fillColor)).toEqual([
+      '#ffff00',
+      '#ff9966',
+      '#ff6666',
+    ]);
+  });
+
   it('returns detached categories so a layer or product edit cannot mutate the registry', () => {
     const first = listCustomStylePresets().find(({ id }) => id === 'rainfall');
     const second = listCustomStylePresets().find(({ id }) => id === 'rainfall');

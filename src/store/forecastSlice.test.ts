@@ -20,6 +20,7 @@ import reducer, {
   removeFeature,
   completeCycle,
   completeWithOmissions,
+  dismissCompletionModal,
   markAsSaved,
   omitDay,
   validateCompletion,
@@ -714,6 +715,21 @@ describe('forecastSlice undo/redo', () => {
     expect(nextState.forecastCycle.omittedDayReasons).toBeUndefined();
     expect(nextState.workflowMetadata).toBeUndefined();
     expect(nextState.isSaved).toBe(false);
+  });
+
+  it('dismisses completion validation and clears transient modal state', () => {
+    let state = reducer(undefined, validateCompletion());
+    state = reducer(state, omitDay({ day: 3, reason: 'Intentional omission' }));
+
+    expect(state.completionValidation.showCompletionModal).toBe(true);
+    expect(state.completionValidation.lastResult).not.toBeNull();
+    expect(state.completionValidation.omittedDays).toEqual({ 3: 'Intentional omission' });
+
+    const nextState = reducer(state, dismissCompletionModal());
+
+    expect(nextState.completionValidation.showCompletionModal).toBe(false);
+    expect(nextState.completionValidation.lastResult).toBeNull();
+    expect(nextState.completionValidation.omittedDays).toEqual({});
   });
 
   it('marks workflow metadata completed so awareness does not recommend it again', () => {

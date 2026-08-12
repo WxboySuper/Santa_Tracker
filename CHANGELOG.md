@@ -49,6 +49,7 @@ Work toward the next major release continues in the beta channel while the final
 
 #### Fixed
 
+- **Workflow review and Tropical AOI:** Restore review-package visibility and Discussion-page modal controls, and align Tropical AOI with the three probability-band colors used by the reference product.
 - **Forecast reliability:** Repair legacy serialized map shapes, auto-categorical restoration, export sizing, map popup teardown, keyboard shortcuts, and Safari Firestore sleep/reconnect behavior.
 - **Import hardening:** Bound and schema-validate imported forecast files (size, nesting, arrays, features, strings, and coordinates) before any state mutation, with supported geometry types and finite coordinates enforced at every import entry point.
 - **Auto-categorical integrity:** Prevent silent geometry loss during categorical derivation by replacing partial union/hatching fallbacks with explicit failures that preserve the last known-good result and surface an editor-visible recovery banner.

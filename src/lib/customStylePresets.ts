@@ -53,13 +53,12 @@ const PRESET_DEFINITIONS: Record<CustomStylePresetId, CustomStylePreset> = {
   'tropical-aoi': {
     id: 'tropical-aoi',
     label: 'Tropical AOI',
-    description: 'A warm-to-red palette for tropical areas of interest.',
+    description: 'NHC-style 7-day tropical cyclone formation probability bands.',
     version: 1,
     categories: [
-      category('tropical-aoi', { id: 'one', label: 'Tropical AOI 1', order: 0, fillColor: '#fef3c7', strokeColor: '#92400e' }),
-      category('tropical-aoi', { id: 'two', label: 'Tropical AOI 2', order: 1, fillColor: '#fbbf24', strokeColor: '#92400e' }),
-      category('tropical-aoi', { id: 'three', label: 'Tropical AOI 3', order: 2, fillColor: '#f97316', strokeColor: '#7c2d12' }),
-      category('tropical-aoi', { id: 'four', label: 'Tropical AOI 4', order: 3, fillColor: '#ef4444', strokeColor: '#7f1d1d' }),
+      category('tropical-aoi', { id: 'low', label: '< 40%', order: 0, fillColor: '#ffff00', strokeColor: '#a67c00' }),
+      category('tropical-aoi', { id: 'medium', label: '40–60%', order: 1, fillColor: '#ff9966', strokeColor: '#b45309' }),
+      category('tropical-aoi', { id: 'high', label: '> 60%', order: 2, fillColor: '#ff6666', strokeColor: '#b91c1c' }),
     ],
   },
 };

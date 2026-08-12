@@ -1254,6 +1254,8 @@ export const forecastSlice = createSlice({
 
     dismissCompletionModal: (state) => {
       state.completionValidation.showCompletionModal = false;
+      state.completionValidation.lastResult = null;
+      state.completionValidation.omittedDays = {};
     },
 
     omitDay: (state, action: PayloadAction<{ day: DayType; reason: string }>) => {
