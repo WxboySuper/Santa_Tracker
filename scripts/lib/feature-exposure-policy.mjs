@@ -11,6 +11,7 @@ import {
   validateClientServerRegistryAlignment,
 } from './feature-exposure-policy-alignment.mjs';
 import { validateExposureTestContract, validateV17WorkstreamAdoption } from './feature-exposure-policy-contract.mjs';
+import { validateProductionSafety } from './feature-exposure-production-safety.mjs';
 
 /**
  * @typedef {{ ok: true }} PolicyOk
@@ -116,19 +117,6 @@ function validateServerCapabilities(registry, serverCapabilityKeys, errors) {
     if (!definition.serverCapabilityKey) continue;
     if (serverCapabilityKeys.includes(definition.serverCapabilityKey)) continue;
     errors.push(`Feature "${featureKey}" declares serverCapabilityKey "${definition.serverCapabilityKey}" but it is not in the server capability keys list.`);
-  }
-}
-
-/** Adds temporary features that are exposed in production without explicit approval. */
-function validateProductionSafety(registry, acknowledgements, errors) {
-  for (const [featureKey, definition] of Object.entries(registry)) {
-    if (
-      definition.temporary &&
-      definition.exposure?.production === true &&
-      acknowledgements[featureKey]?.productionEnablementApproved !== true
-    ) {
-      errors.push(`Temporary feature "${featureKey}" is exposed on production without productionEnablementApproved.`);
-    }
   }
 }
 
