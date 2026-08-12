@@ -30,7 +30,7 @@ describe('Updates route access', () => {
       </MemoryRouter>,
     );
 
-    expect(screen.getByRole('heading', { level: 1, name: /Forecast, reflect, and learn/i })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 1, name: /The biggest update yet/i })).toBeInTheDocument();
     expect(screen.queryByText('Blocked')).not.toBeInTheDocument();
   });
 });
