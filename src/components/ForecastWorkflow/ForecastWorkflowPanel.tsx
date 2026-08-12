@@ -11,6 +11,7 @@ import {
   selectWorkflowMetadata,
   selectWorkflowTemplate,
   selectCompletionValidationResult,
+  selectShowCompletionModal,
   selectOmittedDays,
   createOutlookUpdate,
   startFromPreviousCycle,
@@ -355,6 +356,7 @@ const WorkflowPanelSteps: React.FC<{
 const WorkflowPanelFooter: React.FC<{
   cycleDate: string;
   validationResult: ReturnType<typeof selectCompletionValidationResult>;
+  showCompletionModal: ReturnType<typeof selectShowCompletionModal>;
   omittedDays: ReturnType<typeof selectOmittedDays>;
   hasController: boolean;
   onClose: () => void;
@@ -366,6 +368,7 @@ const WorkflowPanelFooter: React.FC<{
 }> = ({
   cycleDate,
   validationResult,
+  showCompletionModal,
   omittedDays,
   hasController,
   onClose,
@@ -384,7 +387,7 @@ const WorkflowPanelFooter: React.FC<{
     ) : null}
     {!hasController ? (
       <CompletionValidationModal
-        isOpen={Boolean(validationResult)}
+        isOpen={showCompletionModal}
         validationResult={validationResult}
         omittedDays={omittedDays}
         onClose={onClose}
@@ -459,6 +462,7 @@ export const ForecastWorkflowPanel: React.FC<ForecastWorkflowPanelProps> = ({ co
   const workflowMetadata = useSelector(selectWorkflowMetadata);
   const workflowTemplate = useSelector(selectWorkflowTemplate);
   const validationResult = useSelector(selectCompletionValidationResult);
+  const showCompletionModal = useSelector(selectShowCompletionModal);
   const omittedDays = useSelector(selectOmittedDays);
   const previousSuggestion = usePreviousOutlookSuggestion();
   const handoffEligibility = getCompletionHandoffEligibility(workflowTemplate, workflowMetadata);
@@ -643,6 +647,7 @@ export const ForecastWorkflowPanel: React.FC<ForecastWorkflowPanelProps> = ({ co
       <WorkflowPanelFooter
         cycleDate={forecastCycle.cycleDate}
         validationResult={validationResult}
+        showCompletionModal={showCompletionModal}
         omittedDays={omittedDays}
         hasController={Boolean(controller)}
         onClose={handleCloseReview}
