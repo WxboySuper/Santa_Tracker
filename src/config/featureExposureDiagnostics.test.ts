@@ -9,11 +9,11 @@ import {
 import type { CapabilityAvailabilityReason } from './serverCapabilityStatus';
 
 const SERVER_BACKED_AUTO_TSTM = {
-  exposure: { local: true, beta: true, staging: false, production: false },
+  exposure: { local: true, beta: true, staging: true, production: true },
   owner: 'WxboySuper',
   addedDate: '2026-06-20',
   temporary: true,
-  removalCondition: 'Enable on beta when Auto-TSTM ships.',
+  removalCondition: 'Remove after the v1.7 production rollout completes.',
   serverBacked: true as const,
   serverCapabilityKey: 'TSTM_GENERATION_ENABLED',
   trackingIssue: 427,
@@ -74,12 +74,12 @@ describe('featureExposureDiagnostics', () => {
   });
 
   test('resolves target_policy when the registry keeps a feature off', () => {
-    const diagnostic = resolveFeatureExposureDiagnostic('autoTstm', {
+    const diagnostic = resolveFeatureExposureDiagnostic('tropicalWorkspace', {
       buildTarget: 'staging',
     });
 
     expect(diagnostic).toMatchObject({
-      featureKey: 'autoTstm',
+      featureKey: 'tropicalWorkspace',
       buildTarget: 'staging',
       registryExposed: false,
       resolvedExposed: false,
