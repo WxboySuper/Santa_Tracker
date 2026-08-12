@@ -77,12 +77,19 @@ function validateV17LocalDevelopmentExposure(featureKey, definition, acknowledge
   );
 }
 
-/** Adds violations outside the local-only development boundary and approved beta rollout. */
-function validateV17RestrictedTargets(featureKey, definition, errors) {
+/** Returns whether a v1.7 workstream has explicit approval for a hosted target. */
+function isV17TargetEnablementApproved(featureKey, target, acknowledgements) {
+  const approvalField = `${target}EnablementApproved`;
+  return acknowledgements[featureKey]?.[approvalField] === true;
+}
+
+/** Adds violations when a hosted target is enabled without explicit approval. */
+function validateV17RestrictedTargets(featureKey, definition, acknowledgements, errors) {
   for (const target of ['staging', 'production']) {
     if (definition.exposure?.[target] === false) continue;
+    if (isV17TargetEnablementApproved(featureKey, target, acknowledgements)) continue;
     errors.push(
-      `v1.7 workstream "${featureKey}" must stay disabled on target "${target}" until adoption enables it.`
+      `v1.7 workstream "${featureKey}" requires ${target}EnablementApproved before exposure on target "${target}".`
     );
   }
 }
@@ -96,7 +103,7 @@ function validateV17WorkstreamLifecycle(featureKey, definition, contract, errors
   }
 
   validateV17LocalDevelopmentExposure(featureKey, definition, acknowledgements, errors);
-  validateV17RestrictedTargets(featureKey, definition, errors);
+  validateV17RestrictedTargets(featureKey, definition, acknowledgements, errors);
 
   if (definition.exposure?.beta === true && !isV17BetaEnablementApproved(featureKey, acknowledgements)) {
     errors.push(

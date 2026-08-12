@@ -11,6 +11,7 @@ import {
   validateClientServerRegistryAlignment,
 } from './feature-exposure-policy-alignment.mjs';
 import { validateExposureTestContract, validateV17WorkstreamAdoption } from './feature-exposure-policy-contract.mjs';
+import { validateProductionSafety } from './feature-exposure-production-safety.mjs';
 
 /**
  * @typedef {{ ok: true }} PolicyOk
@@ -119,15 +120,6 @@ function validateServerCapabilities(registry, serverCapabilityKeys, errors) {
   }
 }
 
-/** Adds temporary features that are prematurely exposed in production. */
-function validateProductionSafety(registry, errors) {
-  for (const [featureKey, definition] of Object.entries(registry)) {
-    if (definition.temporary && definition.exposure?.production === true) {
-      errors.push(`Temporary feature "${featureKey}" is exposed on production. Temporary features must not be enabled on production until explicitly promoted.`);
-    }
-  }
-}
-
 /** Converts collected violations into the public policy result shape. */
 function createPolicyResult(errors) {
   return errors.length === 0 ? { ok: true } : { ok: false, errors };
@@ -172,6 +164,6 @@ export function evaluateFeatureExposurePolicy(registry, surfaces, options = {}) 
     errors,
     { requireV17WorkstreamRegistry }
   );
-  validateProductionSafety(registry, errors);
+  validateProductionSafety(registry, acknowledgements, errors);
   return createPolicyResult(errors);
 }

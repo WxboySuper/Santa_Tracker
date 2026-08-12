@@ -98,11 +98,11 @@ describe('Auto-TSTM server foundation', () => {
   it('stays disabled unless registry exposure and deployment env are both enabled', () => {
     assert.equal(isTstmGenerationEnabled({}), false);
     assert.equal(isTstmGenerationEnabled({ TSTM_GENERATION_ENABLED: 'false' }), false);
-    // Local is a registered exposure target now; staging is not.
+    // Auto-TSTM is registered on every v1.7 release target.
     assert.equal(isTstmGenerationEnabled({ TSTM_GENERATION_ENABLED: 'true' }), true);
     assert.equal(
       isTstmGenerationEnabled({ TSTM_GENERATION_ENABLED: 'true', SERVER_TARGET: 'staging' }),
-      false
+      true
     );
     assert.equal(
       isTstmGenerationEnabled({ TSTM_GENERATION_ENABLED: 'true' }, allTargetsEnabledRouteOptions()),

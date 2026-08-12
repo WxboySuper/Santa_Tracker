@@ -2,7 +2,7 @@ import { expect, test, type Locator, type Page } from '@playwright/test';
 import { prepareAppState } from './testSetup';
 
 const buildTarget = process.env.VITE_BUILD_TARGET ?? 'local';
-const customProductsEnabledTarget = buildTarget === 'local' || buildTarget === 'beta';
+const customProductsEnabledTarget = ['local', 'beta', 'staging', 'production'].includes(buildTarget);
 
 const createProduct = async (page: Page, name: string): Promise<void> => {
   await page.getByRole('button', { name: 'New product' }).click();
@@ -219,8 +219,8 @@ test.describe('Local reusable custom products', () => {
   });
 });
 
-test.describe('Hosted custom-product absence', () => {
-  test.skip(customProductsEnabledTarget, 'Requires a staging or production-target dev server.');
+test.describe('Non-release custom-product absence', () => {
+  test.skip(customProductsEnabledTarget, 'Custom Products is enabled on every release build target.');
 
   test('keeps the route, account card, and Draw controls absent', async ({ page }) => {
     await prepareAppState(page);

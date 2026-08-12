@@ -64,8 +64,8 @@ const mockCachedTstmLatest = async (page: import('@playwright/test').Page) => {
   });
 };
 
-// Auto-TSTM is exposed on the local and beta build targets (see src/config/featureExposure.ts)
-// so the feature stays runnable in development and testable in the standard CI e2e job.
+// Auto-TSTM is exposed on every v1.7 release build target (see src/config/featureExposure.ts).
+// The capability mock keeps this workflow testable without requiring live cached guidance.
 // Re-enablement tracked in https://github.com/WxboySuper/Graphical-Forecast-Creator/issues/840
 test.describe('Auto-TSTM workspace tools', () => {
   test.beforeEach(async ({ page }) => {

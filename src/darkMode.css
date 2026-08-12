@@ -126,12 +126,12 @@
 }
 
 /* Buttons */
-.dark-mode button:not(.outlook-type-btn):not(.mode-toggle-btn):not(.dark-mode-toggle-btn):not(.day-btn):not(.day-tab):not(.home-day-button):not(.home-cycle-button):not(.home-utility-button):not(.home-concept-action):not(.home-concept-top-primary):not(.home-concept-top-secondary):not(.home-concept-link):not(.ui-button):not(.map-toolbar-button):not(.ol-zoom-in):not(.ol-zoom-out):not(.tabbed-integrated-toolbar__action-tile) {
+.dark-mode button:not(.outlook-type-btn):not(.mode-toggle-btn):not(.integrated-toolbar-mode-toggle-btn):not(.dark-mode-toggle-btn):not(.day-btn):not(.day-tab):not(.home-day-button):not(.home-cycle-button):not(.home-utility-button):not(.home-concept-action):not(.home-concept-top-primary):not(.home-concept-top-secondary):not(.home-concept-link):not(.ui-button):not(.map-toolbar-button):not(.ol-zoom-in):not(.ol-zoom-out):not(.tabbed-integrated-toolbar__action-tile) {
   background-color: var(--button-dark-default-bg);
   color: var(--text-primary);
 }
 
-.dark-mode button:not(.outlook-type-btn):not(.mode-toggle-btn):not(.dark-mode-toggle-btn):not(.day-btn):not(.day-tab):not(.home-day-button):not(.home-cycle-button):not(.home-utility-button):not(.home-concept-action):not(.home-concept-top-primary):not(.home-concept-top-secondary):not(.home-concept-link):not(.ui-button):not(.map-toolbar-button):not(.ol-zoom-in):not(.ol-zoom-out):not(.tabbed-integrated-toolbar__action-tile):hover:not(:disabled) {
+.dark-mode button:not(.outlook-type-btn):not(.mode-toggle-btn):not(.integrated-toolbar-mode-toggle-btn):not(.dark-mode-toggle-btn):not(.day-btn):not(.day-tab):not(.home-day-button):not(.home-cycle-button):not(.home-utility-button):not(.home-concept-action):not(.home-concept-top-primary):not(.home-concept-top-secondary):not(.home-concept-link):not(.ui-button):not(.map-toolbar-button):not(.ol-zoom-in):not(.ol-zoom-out):not(.tabbed-integrated-toolbar__action-tile):hover:not(:disabled) {
   background-color: var(--button-dark-default-hover);
 }
 

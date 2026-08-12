@@ -1,9 +1,11 @@
 {
   "autoTstm": {
-    "reason": "Disabled-side-effect coverage in src/testing/featureExposure/exemplar.exposure.test.tsx and server/testing/autoTstm.exposure.test.js. Local and beta exposure enabled so the feature stays runnable in development and the CI e2e job; staging and production remain disabled until the #427 rollout.",
+    "reason": "Auto-TSTM is a completed v1.7 release feature with client/server exposure alignment, cached read-route coverage, disabled-side-effect coverage, and deployment capability enabled for every release target.",
     "trackingIssue": 529,
     "localDevelopmentApproved": true,
-    "betaEnablementApproved": true
+    "betaEnablementApproved": true,
+    "stagingEnablementApproved": true,
+    "productionEnablementApproved": true
   },
   "tropicalWorkspace": {
     "reason": "Route and navigation gating covered by src/testing/featureExposure/exemplar.exposure.test.tsx and src/routing/buildFeatureGatedRoutes.test.tsx",
@@ -14,21 +16,27 @@
     "trackingIssue": 529
   },
   "forecastWorkflowV2": {
-    "reason": "WF-05 workflow surfaces are enabled on local and beta for the beta tester pilot; signed-in home interaction coverage is in src/pages/home/HomePage.test.tsx, workflow continuity E2E coverage is in e2e/workflows.spec.ts, and the adoption contract is in src/config/v17WorkstreamAdoption.exposure.test.ts",
+    "reason": "WF-05 workflow surfaces are release-approved across local, beta, staging, and production; signed-in home interaction coverage is in src/pages/home/HomePage.test.tsx, workflow continuity E2E coverage is in e2e/workflows.spec.ts, and the adoption contract is in src/config/v17WorkstreamAdoption.exposure.test.ts",
     "trackingIssue": 530,
     "localDevelopmentApproved": true,
-    "betaEnablementApproved": true
+    "betaEnablementApproved": true,
+    "stagingEnablementApproved": true,
+    "productionEnablementApproved": true
   },
   "verificationRelaunch": {
-    "reason": "The Forecast Grade dashboard shell and classic coexistence routing are complete for the beta tester rollout. Disabled-side-effect coverage is in src/pages/verificationRelaunch.exposure.test.tsx, gate coverage is in src/pages/VerificationPage.test.tsx, and the adoption contract is in src/config/v17WorkstreamAdoption.exposure.test.ts.",
+    "reason": "The Forecast Grade dashboard shell and classic coexistence routing are release-approved across local, beta, staging, and production. Disabled-side-effect coverage is in src/pages/verificationRelaunch.exposure.test.tsx, gate coverage is in src/pages/VerificationPage.test.tsx, and the adoption contract is in src/config/v17WorkstreamAdoption.exposure.test.ts.",
     "trackingIssue": 430,
     "localDevelopmentApproved": true,
-    "betaEnablementApproved": true
+    "betaEnablementApproved": true,
+    "stagingEnablementApproved": true,
+    "productionEnablementApproved": true
   },
   "customProducts": {
-    "reason": "Custom Products completed local implementation, UI review, and regression/E2E coverage under #431. Owner approval enables the beta tester rollout; staging and production remain disabled. Adoption contract is in src/config/v17WorkstreamAdoption.exposure.test.ts and end-to-end coverage is in e2e/custom-products.spec.ts.",
+    "reason": "Custom Products completed implementation, UI review, and regression/E2E coverage under #431. Owner approval promotes the completed v1.7 workflow through beta, staging, and production. Adoption contract is in src/config/v17WorkstreamAdoption.exposure.test.ts and end-to-end coverage is in e2e/custom-products.spec.ts.",
     "trackingIssue": 431,
     "localDevelopmentApproved": true,
-    "betaEnablementApproved": true
+    "betaEnablementApproved": true,
+    "stagingEnablementApproved": true,
+    "productionEnablementApproved": true
   }
 }

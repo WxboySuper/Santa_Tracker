@@ -1,10 +1,10 @@
 'use strict';
 
-const ALL_TARGETS_OFF = {
-  local: false,
-  beta: false,
-  staging: false,
-  production: false,
+const ALL_TARGETS_ON = {
+  local: true,
+  beta: true,
+  staging: true,
+  production: true,
 };
 
 /**
@@ -14,7 +14,7 @@ const ALL_TARGETS_OFF = {
 const SERVER_FEATURE_EXPOSURE_REGISTRY = {
   autoTstm: {
     serverCapabilityKey: 'TSTM_GENERATION_ENABLED',
-    exposure: { ...ALL_TARGETS_OFF, local: true, beta: true },
+    exposure: { ...ALL_TARGETS_ON },
     label: 'Auto-TSTM',
   },
 };

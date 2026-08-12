@@ -20,7 +20,7 @@ const downloadForecast = async (page: import('@playwright/test').Page) => {
   return saved;
 };
 
-test.describe('local-only custom layers', () => {
+test.describe('custom layers', () => {
   test('switches cleanly, draws, identifies, deletes, and undoes a custom polygon', async ({ page }) => {
     test.setTimeout(60_000);
     await openForecast(page);

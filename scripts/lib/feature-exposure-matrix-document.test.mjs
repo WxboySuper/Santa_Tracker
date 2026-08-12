@@ -20,8 +20,8 @@ describe('v1.7 exposure matrix document', () => {
 
   it('reports a documented target drift', () => {
     const drifted = markdown.replace(
-      '| `customProducts` | [#431](https://github.com/WxboySuper/Graphical-Forecast-Creator/issues/431) | On | On | Off | Off |',
-      '| `customProducts` | [#431](https://github.com/WxboySuper/Graphical-Forecast-Creator/issues/431) | On | On | On | Off |'
+      '| `customProducts` | [#431](https://github.com/WxboySuper/Graphical-Forecast-Creator/issues/431) | On | On | On | On |',
+      '| `customProducts` | [#431](https://github.com/WxboySuper/Graphical-Forecast-Creator/issues/431) | On | On | Off | On |'
     );
     const result = validateExposureMatrixDocument(drifted, registry);
     assert.equal(result.ok, false);

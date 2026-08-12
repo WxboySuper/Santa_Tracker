@@ -104,18 +104,18 @@ export const FEATURE_EXPOSURE_REGISTRY = {
     trackingIssue: 440,
   },
   autoTstm: {
-    exposure: { ...ALL_TARGETS_OFF, local: true, beta: true },
+    exposure: { ...ALL_TARGETS_ON },
     owner: 'WxboySuper',
     addedDate: '2026-06-20',
     temporary: true,
     removalCondition:
-      'Remove after Auto-TSTM client and server gates ship and the stable production rollout completes (#427). Local and beta exposure keep the feature testable in development and CI.',
+      'Remove after Auto-TSTM client and server gates ship and the stable production rollout completes (#427). The v1.7 release exposes the completed workflow on every release target.',
     serverBacked: true,
     serverCapabilityKey: 'TSTM_GENERATION_ENABLED',
     trackingIssue: 427,
   },
   forecastWorkflowV2: {
-    exposure: { ...ALL_TARGETS_OFF, local: true, beta: true },
+    exposure: { ...ALL_TARGETS_ON },
     owner: 'WxboySuper',
     addedDate: '2026-06-20',
     temporary: true,
@@ -124,7 +124,7 @@ export const FEATURE_EXPOSURE_REGISTRY = {
     trackingIssue: 429,
   },
   verificationRelaunch: {
-    exposure: { ...ALL_TARGETS_OFF, local: true, beta: true },
+    exposure: { ...ALL_TARGETS_ON },
     owner: 'WxboySuper',
     addedDate: '2026-06-20',
     temporary: true,
@@ -133,7 +133,7 @@ export const FEATURE_EXPOSURE_REGISTRY = {
     trackingIssue: 430,
   },
   customProducts: {
-    exposure: { ...ALL_TARGETS_OFF, local: true, beta: true },
+    exposure: { ...ALL_TARGETS_ON },
     owner: 'WxboySuper',
     addedDate: '2026-06-20',
     temporary: true,

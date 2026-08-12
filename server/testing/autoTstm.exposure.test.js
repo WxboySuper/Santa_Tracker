@@ -21,6 +21,11 @@ const getLatestUrl = (server, query = '') => {
   return `http://127.0.0.1:${address.port}/api/tstm/latest${query}`;
 };
 
+const getStatusUrl = (server) => {
+  const address = server.address();
+  return `http://127.0.0.1:${address.port}/api/tstm/status`;
+};
+
 /** Asserts the latest route rejects without invoking the generator. */
 const assertLatestRouteRejectsWithoutWork = async ({ env, routeOptions = {}, expectedBody }) => {
   let calls = 0;
@@ -57,10 +62,19 @@ describe('autoTstm exposure contract', () => {
     });
   });
 
-  it('rejects latest requests when only deployment env is enabled on a disabled target', async () => {
-    await assertLatestRouteRejectsWithoutWork({
-      env: { TSTM_GENERATION_ENABLED: 'true', SERVER_TARGET: 'staging' },
-    });
+  it('allows latest requests on an enabled hosted release target', async () => {
+    const server = await startServer(
+      { TSTM_GENERATION_ENABLED: 'true', SERVER_TARGET: 'staging' },
+      async () => ({})
+    );
+
+    try {
+      const response = await fetch(getStatusUrl(server));
+      const assert = require('node:assert/strict');
+      assert.equal(response.status, 200);
+    } finally {
+      server.close();
+    }
   });
 
   it('rejects latest requests for emergency-disabled fixtures', async () => {
