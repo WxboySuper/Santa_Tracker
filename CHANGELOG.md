@@ -33,11 +33,11 @@ Work toward the next major release continues in the beta channel while the final
 - **Workflow continuity:** Add reusable workflow templates, persistent workflow metadata, scoped discussion/draft persistence, package review and completion flows, lifecycle analytics, and handoff guidance.
 - **Custom products:** Add local custom layers and reusable hosted products with category styling, snapshots, exports/imports, owner-scoped storage, and premium enforcement.
 - **Monitor and custom styles:** Add free built-in WPC-style Excessive Rainfall Outlook and Tropical AOI products that are available to everyone and do not consume personal product slots.
-- **Auto-TSTM:** Add cached SPC guidance, scheduled ingestion, preview/apply/cancel flows, cache health reporting, and stale-result protection.
+- **Auto-TSTM:** Add cached SPC-calibrated HREF guidance, scheduled ingestion, preview/apply/cancel flows, cache health reporting, and stale-result protection.
 - **v1.7 release exposure:** Enable Auto-TSTM, Forecast Workflow v2, Verification Relaunch, and Custom Products across staging and production, including the server capability and ingestion rollout required by Auto-TSTM.
 - **Account management:** Add recent-authentication account deletion with subscription cleanup, hosted-data removal, and local/offline-save preservation.
-- **Release updates and support:** Publish the v1.7 What's New experience plus support and privacy guidance for workflow, premium, upstream-data, and telemetry questions.
-- **Monitor reference layers:** Add opt-in official NDFD temperature and SPC mesoscale discussion adapters with source metadata, valid-time state, and bounded caching.
+- **Release updates and support:** Publish the v1.7 What's New experience, headlined by Verification v2 and Custom Products, plus support and privacy guidance for workflow, premium, upstream-data, and telemetry questions.
+- **Monitor reference layers:** Add an opt-in official SPC mesoscale discussion adapter with source metadata, valid-time state, and bounded caching.
 
 #### Changed
 
