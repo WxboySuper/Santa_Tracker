@@ -119,9 +119,21 @@ export const UpdatesPage: React.FC = () => {
   return (
     <div className="updates-page">
       <div className="updates-page__inner">
-        <p className="updates-page__eyebrow">What&apos;s new · v{v17Update.version}</p>
-        <h1>{v17Update.title}</h1>
-        <p className="updates-page__summary">{v17Update.summary}</p>
+        <header className="updates-page__masthead">
+          <div className="updates-page__masthead-copy">
+            <p className="updates-page__eyebrow">Release briefing · v{v17Update.version}</p>
+            <h1>{v17Update.title}</h1>
+            <p className="updates-page__summary">{v17Update.summary}</p>
+            <div className="updates-page__masthead-meta" aria-label="Release highlights">
+              <span><strong>2</strong> headline features</span>
+              <span><strong>4</strong> new release stories</span>
+              <span><strong>1</strong> privacy update</span>
+            </div>
+          </div>
+          {v17Update.heroImage ? (
+            <UpdateScreenshotFigure shot={v17Update.heroImage} onExpand={setExpandedShot} testid="updates-hero-image" />
+          ) : null}
+        </header>
 
         {v17Update.promoImages?.length ? (
           <div className="updates-page__promo">
@@ -131,10 +143,28 @@ export const UpdatesPage: React.FC = () => {
           </div>
         ) : null}
 
-        {v17Update.sections.map((section) => (
-          <section key={section.title} className="updates-page__section">
-            <h2>{section.title}</h2>
-            <p>{section.body}</p>
+        <div className="updates-page__section-intro">
+          <p className="updates-page__section-label">What shipped</p>
+          <h2>Two reasons to open GFC today.</h2>
+          <p>Verification v2 is where the learning loop lands. Custom Products is where the forecast becomes yours. Everything else in v1.7 supports those two ideas: make better work, then understand it.</p>
+        </div>
+
+        <div className="updates-page__sections">
+          {v17Update.sections.map((section) => (
+          <section key={section.title} className={`updates-page__section updates-page__section--${section.kind ?? 'support'}`}>
+            <div className="updates-page__section-heading">
+              {section.eyebrow ? <p className="updates-page__section-eyebrow">{section.eyebrow}</p> : null}
+              <h2>{section.title}</h2>
+            </div>
+            <div className="updates-page__section-content">
+              <p>{section.body}</p>
+              {section.bullets?.length ? (
+                <ul className="updates-page__bullet-list">
+                  {section.bullets.map((bullet) => <li key={bullet}>{bullet}</li>)}
+                </ul>
+              ) : null}
+              {section.link ? <Link className="updates-page__section-link" to={section.link.href}>{section.link.label}<span aria-hidden="true">↗</span></Link> : null}
+            </div>
             {section.screenshots?.length ? (
               <div className="updates-page__shots">
                 {section.screenshots.map((shot) => (
@@ -143,7 +173,8 @@ export const UpdatesPage: React.FC = () => {
               </div>
             ) : null}
           </section>
-        ))}
+          ))}
+        </div>
 
         {v17Update.hotfixes ? (
           <section className="updates-page__hotfixes" aria-labelledby="updates-hotfixes-heading">
@@ -158,7 +189,10 @@ export const UpdatesPage: React.FC = () => {
         ) : null}
 
         <section className="updates-page__improvements" aria-labelledby="updates-improvements-heading">
-          <h2 id="updates-improvements-heading">Also improved</h2>
+          <div>
+            <p className="updates-page__section-label">Release notes</p>
+            <h2 id="updates-improvements-heading">Also improved</h2>
+          </div>
           <ul>
             {v17Update.improvements.map((item) => (
               <li key={item.id}>{item.text}</li>
