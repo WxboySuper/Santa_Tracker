@@ -4,7 +4,7 @@ Custom content uses a snapshot-first contract. A one-off layer contains every ca
 
 ## Exposure
 
-The `customProducts` registry key is enabled only for the `local` build target while the feature is implemented and reviewed. Beta, staging, and production must not render custom-product routes, navigation, toolbar controls, unavailable-state messages, or start custom-product side effects. Broader exposure requires separate owner authorization.
+The `customProducts` registry key is enabled on local, beta, staging, and production for the v1.7 release. Hosted mutations remain protected by entitlement and Firestore capability gates; client rollout exposure does not bypass those server-owned checks.
 
 ## Schema rules
 
@@ -21,8 +21,8 @@ The TypeScript contracts live in `src/types/customProducts.ts`; strict runtime v
 
 ## Local one-off layer workflow
 
-On a local build, the Draw tab starts in the existing Severe mode and exposes a
-leftmost Severe/Custom switch. Custom mode replaces the severe controls with
+On an exposed build, the Draw tab starts in the existing Severe mode and exposes
+a leftmost Severe/Custom switch. Custom mode replaces the severe controls with
 layer and category controls while leaving the severe forecast data untouched.
 Each forecast day owns its custom layers independently. Layer/category order,
 labels, fill and stroke appearance, hatching, and polygon geometry are included
@@ -45,8 +45,9 @@ open clients synchronized.
 Using a product stages a validated, detached layer snapshot for the forecast
 editor. The editor consumes and clears that handoff once, then stores the layer
 inside the cycle. Later product edits cannot change the embedded layer. The
-Firestore adapter remains unreachable from hosted UI while the
-`customProducts` exposure is local-only.
+Firestore adapter is used by hosted builds for the authenticated product
+library; server-owned entitlement and capability checks continue to protect
+mutations.
 
 ## Hosted authorization boundary
 
@@ -59,9 +60,9 @@ Hosted create and update requests are fail-closed behind two server-owned
 checks: `/userEntitlements/{uid}.premiumActive` and
 `/serverFeatureCapabilities/customProducts.enabled` must both be `true`.
 Clients cannot write either document and cannot read the rollout capability.
-The capability document is intentionally absent in hosted environments until
-the owner authorizes rollout. Emulator tests seed it with security rules
-disabled to exercise the future hosted boundary without exposing it on beta.
+The capability document remains server-owned and must be enabled separately when
+hosted product mutations are authorized. Emulator tests seed it with security
+rules disabled to exercise the hosted boundary.
 
 Owners retain read and delete access after premium expires or the rollout is
 disabled. Editing, duplication, archive/restore, and loading a product into a
@@ -102,6 +103,6 @@ explicitly excluded from existing severe `forecastDays`, `totalOutlooks`, and
 `totalFeatures` analytics. They are also never inputs to Auto-Categorical,
 which continues to read only tornado, wind, hail, and total-severe maps. The
 local workflow banner discloses these exclusions whenever its active grouping
-contains custom content. No disclosure or custom UI is rendered by beta,
-staging, or production while `customProducts` remains local-only.
+contains custom content. Custom UI is rendered on every release target; hosted
+writes remain subject to the entitlement and capability checks above.
 

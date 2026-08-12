@@ -129,27 +129,20 @@ describe('featureExposure registry', () => {
       }
     }
 
-    // verificationRelaunch is approved for local development and beta while staging and production remain disabled.
     for (const target of ['local', 'beta', 'staging', 'production'] as const) {
-      expect(isFeatureExposedOnTarget('verificationRelaunch', target)).toBe(target === 'beta' || target === 'local');
+      expect(isFeatureExposedOnTarget('verificationRelaunch', target)).toBe(true);
     }
 
-    expect(isFeatureExposedOnTarget('forecastWorkflowV2', 'local')).toBe(true);
-    expect(isFeatureExposedOnTarget('forecastWorkflowV2', 'beta')).toBe(true);
-    expect(isFeatureExposedOnTarget('forecastWorkflowV2', 'staging')).toBe(false);
-    expect(isFeatureExposedOnTarget('forecastWorkflowV2', 'production')).toBe(false);
-
-    expect(isFeatureExposedOnTarget('customProducts', 'local')).toBe(true);
-    expect(isFeatureExposedOnTarget('customProducts', 'beta')).toBe(true);
-    for (const target of ['staging', 'production'] as const) {
-      expect(isFeatureExposedOnTarget('customProducts', target)).toBe(false);
+    for (const target of ['local', 'beta', 'staging', 'production'] as const) {
+      expect(isFeatureExposedOnTarget('forecastWorkflowV2', target)).toBe(true);
     }
 
-    for (const target of ['local', 'beta'] as const) {
+    for (const target of ['local', 'beta', 'staging', 'production'] as const) {
+      expect(isFeatureExposedOnTarget('customProducts', target)).toBe(true);
+    }
+
+    for (const target of ['local', 'beta', 'staging', 'production'] as const) {
       expect(isFeatureExposedOnTarget('autoTstm', target)).toBe(true);
-    }
-    for (const target of ['staging', 'production'] as const) {
-      expect(isFeatureExposedOnTarget('autoTstm', target)).toBe(false);
     }
   });
 

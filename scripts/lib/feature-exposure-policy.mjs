@@ -119,11 +119,15 @@ function validateServerCapabilities(registry, serverCapabilityKeys, errors) {
   }
 }
 
-/** Adds temporary features that are prematurely exposed in production. */
-function validateProductionSafety(registry, errors) {
+/** Adds temporary features that are exposed in production without explicit approval. */
+function validateProductionSafety(registry, acknowledgements, errors) {
   for (const [featureKey, definition] of Object.entries(registry)) {
-    if (definition.temporary && definition.exposure?.production === true) {
-      errors.push(`Temporary feature "${featureKey}" is exposed on production. Temporary features must not be enabled on production until explicitly promoted.`);
+    if (
+      definition.temporary &&
+      definition.exposure?.production === true &&
+      acknowledgements[featureKey]?.productionEnablementApproved !== true
+    ) {
+      errors.push(`Temporary feature "${featureKey}" is exposed on production without productionEnablementApproved.`);
     }
   }
 }
@@ -172,6 +176,6 @@ export function evaluateFeatureExposurePolicy(registry, surfaces, options = {}) 
     errors,
     { requireV17WorkstreamRegistry }
   );
-  validateProductionSafety(registry, errors);
+  validateProductionSafety(registry, acknowledgements, errors);
   return createPolicyResult(errors);
 }

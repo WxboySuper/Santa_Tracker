@@ -59,10 +59,10 @@ describe('verificationRelaunch route gate', () => {
     expect(mockV2Load).toHaveBeenCalled();
   });
 
-  test('exposes verificationRelaunch on local and beta', () => {
+  test('exposes verificationRelaunch on every release target', () => {
     const { isFeatureExposedOnTarget } = require('../config/featureExposure');
     for (const target of BUILD_TARGETS) {
-      expect(isFeatureExposedOnTarget('verificationRelaunch', target)).toBe(target === 'beta' || target === 'local');
+      expect(isFeatureExposedOnTarget('verificationRelaunch', target)).toBe(true);
     }
   });
 });

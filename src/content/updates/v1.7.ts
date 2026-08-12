@@ -35,7 +35,7 @@ export const v17Update: ReleaseUpdate = {
     },
     {
       id: 'v17-auto-tstm',
-      text: 'Auto-TSTM provides cached guidance with preview, cancel, apply, undo, stale-result protection, and public-safe unavailable states on its supported beta targets.',
+      text: 'Auto-TSTM provides cached guidance with preview, cancel, apply, undo, stale-result protection, and public-safe unavailable states on every supported release target.',
     },
     {
       id: 'v17-responsive-controls',

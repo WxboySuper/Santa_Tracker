@@ -16,13 +16,13 @@ Every workstream must:
 | Workstream | Registry key | Tracker | Surfaces today | Coverage |
 | --- | --- | --- | --- | --- |
 | Auto-TSTM | `autoTstm` | #427 | Side-effect module + server capability gate | Exemplar + server exposure tests |
-| Forecast workflow v2 | `forecastWorkflowV2` | #429 | Home entry + forecast workspace workflow slice (local only) | Home interaction + adoption tests |
-| Verification relaunch | `verificationRelaunch` | #430 | Registry only; core `/verification` is separate | Acknowledgement + adoption test |
-| Custom products | `customProducts` | #431 | Registry only (no product slice yet) | Acknowledgement + adoption test |
+| Forecast workflow v2 | `forecastWorkflowV2` | #429 | Home entry + forecast workspace workflow slice | Home interaction + adoption tests |
+| Verification relaunch | `verificationRelaunch` | #430 | Registry-backed Forecast Grade relaunch | Acknowledgement + adoption test |
+| Custom products | `customProducts` | #431 | Forecast editor, product library, entitlement, and storage gates | Acknowledgement + adoption and E2E tests |
 | Tropical workspace | `tropicalWorkspace` | #432 | Gated route `/tropical` + navbar | Exemplar + route/nav tests |
 | Collaboration room | `collaborationRoom` | #433 | Gated route `/collaborate` + navbar | Exemplar + route/nav tests |
 
-Initial exposure matrix for unreleased rows remains all `false`; forecast workflow v2 is enabled on `local` for development and remains off on `beta`, `staging`, and `production` until explicitly approved for beta rollout.
+Unreleased rows remain disabled until their enablement criteria pass. Auto-TSTM, Forecast Workflow v2, Verification relaunch, and Custom Products are release-approved across local, beta, staging, and production for v1.7.
 
 ## Per-workstream detail
 
@@ -32,28 +32,28 @@ Initial exposure matrix for unreleased rows remains all `false`; forecast workfl
 - **Gates:** `FEATURE_SIDE_EFFECT_MODULES.autoTstm`, `ServerBackedFeatureBoundary`, `server/tstm.js` capability gate
 - **Tests:** `src/testing/featureExposure/exemplar.exposure.test.tsx`, `server/testing/autoTstm.exposure.test.js`
 - **Ops:** [auto-tstm-operations.md](./auto-tstm-operations.md)
-- **Beta enablement:** tracker #427; `exposure.beta` enabled with TSTM-05 editor integration (#476)
+- **Release enablement:** tracker #427; client and server exposure are enabled on every release target with TSTM-05 editor integration (#476)
 
 ### Forecast workflow v2 (`forecastWorkflowV2`, #429)
 
 - **Registry:** `temporary: true`, client-only
 - **Gates:** home workflow actions and forecast workspace workflow panel
 - **Tests:** signed-in home interaction coverage in `src/pages/home/HomePage.test.tsx`, adoption contract in `src/config/v17WorkstreamAdoption.exposure.test.ts`
-- **Beta enablement:** Not approved yet; keep beta, staging, and production disabled until the workflow is ready for beta rollout
+- **Release enablement:** approved for local, beta, staging, and production after workflow continuity and adoption coverage
 
 ### Verification relaunch (`verificationRelaunch`, #430)
 
 - **Registry:** `temporary: true`, client-only
 - **Gates:** none yet — the existing `/verification` route is core product, not this relaunch key
 - **Tests:** acknowledgement in `featureExposure.acknowledgements.json`, `src/config/v17WorkstreamAdoption.exposure.test.ts`
-- **Beta enablement:** tracker #430; first enable PR: TBD
+- **Release enablement:** approved for local, beta, staging, and production after dashboard, coexistence, and adoption coverage
 
 ### Custom products (`customProducts`, #431)
 
 - **Registry:** `temporary: true`, client-only
-- **Gates:** none yet — add when CUS-01+ implementation merges
+- **Gates:** custom route, navigation, toolbar, repository, entitlement, and Firestore capability checks
 - **Tests:** acknowledgement in `featureExposure.acknowledgements.json`, `src/config/v17WorkstreamAdoption.exposure.test.ts`
-- **Beta enablement:** tracker #431; first enable PR: TBD
+- **Release enablement:** approved for local, beta, staging, and production after implementation, UI review, and regression/E2E coverage
 
 ### Tropical workspace (`tropicalWorkspace`, #432)
 

@@ -583,7 +583,7 @@ const SevereDrawControls: React.FC<{ controller: ForecastWorkspaceController }> 
   </>
 );
 
-/** Draw tab with a local-only animated switch between severe and custom layers. */
+/** Draw tab with an animated switch between severe and custom layers. */
 const TabbedToolbarDrawTab: React.FC<{ controller: ForecastWorkspaceController }> = ({ controller }) => {
   const dispatch = useDispatch();
   const storedMode = useSelector((state: RootState) => state.forecast.customEditor.mode);
@@ -605,7 +605,7 @@ const TabbedToolbarDrawTab: React.FC<{ controller: ForecastWorkspaceController }
               role="radio"
               aria-checked={storedMode === mode}
               className={cn(
-                'custom-product-toggle__button mode-toggle-btn',
+                'custom-product-toggle__button integrated-toolbar-mode-toggle-btn',
                 mode === 'severe' ? 'custom-product-toggle__button--leading' : 'custom-product-toggle__button--trailing',
                 storedMode === mode && 'is-active',
               )}

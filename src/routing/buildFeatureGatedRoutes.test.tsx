@@ -28,7 +28,7 @@ describe('buildFeatureGatedRoutes', () => {
     jest.restoreAllMocks();
   });
 
-  test('registers only the beta-enabled custom products route while other gated routes remain disabled', () => {
+  test('registers the release-approved custom products route while other gated routes remain disabled', () => {
     runWithBuildTarget('beta', () => {
       assertGatedRoutesAbsent('tropicalWorkspace', ['beta']);
       assertGatedRoutesAbsent('collaborationRoom', ['beta']);
@@ -36,7 +36,7 @@ describe('buildFeatureGatedRoutes', () => {
     });
   });
 
-  test.each(['local', 'beta'] as const)('registers custom products on the %s target', async (target) => {
+  test.each(['local', 'beta', 'staging', 'production'] as const)('registers custom products on the %s target', async (target) => {
     expect(getExposedGatedRoutePaths(target)).toContain('/custom-products');
 
     render(

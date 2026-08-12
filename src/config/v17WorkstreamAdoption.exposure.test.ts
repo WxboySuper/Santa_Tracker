@@ -17,9 +17,9 @@ const V17_WORKSTREAM_KEYS = [
 ] as const satisfies readonly FeatureKey[];
 
 describe('v1.7 workstream adoption contract', () => {
-  test('forecastWorkflowV2 is enabled for local development and beta testers', () => {
+  test('forecastWorkflowV2 is enabled on every release target', () => {
     for (const target of BUILD_TARGETS) {
-      const expected = target === 'local' || target === 'beta';
+      const expected = true;
       expect(isFeatureExposedOnTarget('forecastWorkflowV2', target)).toBe(expected);
       expect(FEATURE_EXPOSURE_REGISTRY.forecastWorkflowV2.exposure[target]).toBe(expected);
     }
@@ -40,25 +40,25 @@ describe('v1.7 workstream adoption contract', () => {
     }
   );
 
-  test('verificationRelaunch is enabled for local development and beta testers', () => {
+  test('verificationRelaunch is enabled on every release target', () => {
     for (const target of BUILD_TARGETS) {
-      const expected = target === 'beta' || target === 'local';
+      const expected = true;
       expect(isFeatureExposedOnTarget('verificationRelaunch', target)).toBe(expected);
       expect(FEATURE_EXPOSURE_REGISTRY.verificationRelaunch.exposure[target]).toBe(expected);
     }
   });
 
-  test('customProducts is enabled for local development and beta testing only', () => {
+  test('customProducts is enabled on every release target', () => {
     for (const target of BUILD_TARGETS) {
-      const expected = target === 'local' || target === 'beta';
+      const expected = true;
       expect(isFeatureExposedOnTarget('customProducts', target)).toBe(expected);
       expect(FEATURE_EXPOSURE_REGISTRY.customProducts.exposure[target]).toBe(expected);
     }
   });
 
-  test('autoTstm is enabled for local development and beta testers', () => {
+  test('autoTstm is enabled on every release target', () => {
     for (const target of BUILD_TARGETS) {
-      const expected = target === 'beta' || target === 'local';
+      const expected = true;
       expect(isFeatureExposedOnTarget('autoTstm', target)).toBe(expected);
       expect(FEATURE_EXPOSURE_REGISTRY.autoTstm.exposure[target]).toBe(expected);
     }

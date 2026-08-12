@@ -153,7 +153,7 @@ describe('TabbedIntegratedToolbar completion validation exposure', () => {
   );
 });
 
-describe('local-only custom Draw mode', () => {
+describe('custom Draw mode exposure', () => {
   afterEach(() => jest.restoreAllMocks());
 
   test('keeps hosted Draw UI unchanged with no custom toggle or placeholder', () => {
@@ -174,8 +174,10 @@ describe('local-only custom Draw mode', () => {
     expect(toggle).not.toHaveClass('is-custom-mode');
     expect(screen.getByRole('radio', { name: 'Severe' }))
       .toHaveClass('custom-product-toggle__button--leading');
-    expect(screen.getByRole('radio', { name: 'Custom' }))
-      .toHaveClass('custom-product-toggle__button--trailing');
+    const customButton = screen.getByRole('radio', { name: 'Custom' });
+    expect(customButton).toHaveClass('custom-product-toggle__button--trailing');
+    expect(customButton).toHaveClass('integrated-toolbar-mode-toggle-btn');
+    expect(customButton).not.toHaveClass('mode-toggle-btn');
     expect(screen.getByRole('radio', { name: 'Severe' })).toHaveAttribute('aria-checked', 'true');
     expect(screen.queryByRole('button', { name: /Saved products/i })).not.toBeInTheDocument();
 
