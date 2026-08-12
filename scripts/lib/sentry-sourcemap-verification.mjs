@@ -13,6 +13,9 @@
 
 const SENTRY_RELEASE_PREFIX = 'graphical-forecast-creator@';
 
+/** Sentry project slugs are lowercase even when the configured value is not. */
+export const normalizeProjectSlug = (project) => project.trim().toLowerCase();
+
 /** @typedef {{ ok: true, reason: string }} VerificationOk */
 /** @typedef {{ ok: false, reason: string, status?: number }} VerificationFail */
 /** @typedef {VerificationOk | VerificationFail} VerificationResult */
@@ -178,7 +181,8 @@ const nextLinkFromHeader = (linkHeader) => {
  * @returns {Promise<{ status: number; body: unknown }>}
  */
 export const fetchReleaseFiles = async ({ token, org, project, release, fetchFn = fetch }) => {
-  let url = `https://sentry.io/api/0/projects/${encodeURIComponent(org)}/${encodeURIComponent(project)}/releases/${encodeURIComponent(release)}/files/`;
+  const projectSlug = normalizeProjectSlug(project);
+  let url = `https://sentry.io/api/0/projects/${encodeURIComponent(org)}/${encodeURIComponent(projectSlug)}/releases/${encodeURIComponent(release)}/files/`;
   let allFiles = [];
   let status = 200;
 
@@ -215,8 +219,8 @@ export const fetchReleaseFiles = async ({ token, org, project, release, fetchFn 
  * @returns {Promise<VerificationResult>}
  */
 export const verifySentryRelease = async ({ token, org, project, release, fetchFn }) => {
-  const { status, body } = await fetchReleaseFiles({ token, org, project, release, fetchFn });
-  return verifyReleaseFilesResponse({ release, status, body });
+  const response = await fetchReleaseFiles({ token, org, project, release, fetchFn });
+  return verifyReleaseFilesResponse({ release, ...response });
 };
 
 /**

@@ -1,11 +1,17 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import {
+  extractArtifactBundles,
+  fetchArtifactBundles,
+  verifyArtifactBundlesResponse,
+} from './sentry-artifact-bundle-verification.mjs';
+import {
   buildReleaseName,
   evaluateSentryConfig,
   extractFiles,
   fetchReleaseFiles,
   findMissingLocalMaps,
+  normalizeProjectSlug,
   verifyReleaseFilesResponse,
 } from './sentry-sourcemap-verification.mjs';
 
@@ -42,6 +48,12 @@ describe('sentry sourcemap verification', () => {
     it('prefixes the package version with the app release prefix', () => {
       assert.equal(buildReleaseName({ version: '1.7.0-beta.106' }), 'graphical-forecast-creator@1.7.0-beta.106');
       assert.equal(buildReleaseName({ version: '1.6.6' }), 'graphical-forecast-creator@1.6.6');
+    });
+  });
+
+  describe('normalizeProjectSlug', () => {
+    it('normalizes configured project names for the Sentry API', () => {
+      assert.equal(normalizeProjectSlug(' GFC-WEB '), 'gfc-web');
     });
   });
 
@@ -137,6 +149,51 @@ describe('sentry sourcemap verification', () => {
     });
   });
 
+  describe('verifyArtifactBundlesResponse', () => {
+    const release = 'graphical-forecast-creator@1.7.0-beta.111';
+
+    it('accepts a published bundle associated with the exact release', () => {
+      const result = verifyArtifactBundlesResponse({
+        release,
+        status: 200,
+        body: [{
+          bundleId: 'bundle-1',
+          associations: [{ release }],
+          fileCount: 91,
+        }],
+        minimumFileCount: 45,
+      });
+      assert.equal(result.ok, true);
+    });
+
+    it('rejects a bundle for a different release or with too few files', () => {
+      const result = verifyArtifactBundlesResponse({
+        release,
+        status: 200,
+        body: [{
+          associations: [{ release: 'graphical-forecast-creator@1.7.0-beta.110' }],
+          fileCount: 91,
+        }, {
+          associations: [{ release }],
+          fileCount: 2,
+        }],
+        minimumFileCount: 45,
+      });
+      assert.equal(result.ok, false);
+      assert.match(result.reason, /no published artifact bundle/);
+    });
+  });
+
+  describe('extractArtifactBundles', () => {
+    it('accepts the API array response', () => {
+      assert.deepEqual(extractArtifactBundles([{ bundleId: 'a' }]), [{ bundleId: 'a' }]);
+    });
+
+    it('returns an empty list for malformed responses', () => {
+      assert.deepEqual(extractArtifactBundles({ error: 'x' }), []);
+    });
+  });
+
   describe('fetchReleaseFiles', () => {
     it('returns the parsed files envelope from the API', async () => {
       const fetchFn = async () => ({
@@ -180,6 +237,25 @@ describe('sentry sourcemap verification', () => {
       });
       assert.equal(calls, 1);
       assert.equal(result.status, 403);
+    });
+  });
+
+  describe('fetchArtifactBundles', () => {
+    it('uses the normalized project slug and follows pagination', async () => {
+      const requestedUrls = [];
+      const responses = [
+        { status: 200, headers: { get: () => '</next?cursor=2>; rel="next"' }, json: async () => [{ bundleId: 'a' }] },
+        { status: 200, headers: { get: () => null }, json: async () => [{ bundleId: 'b' }] },
+      ];
+      const fetchFn = async (url) => {
+        requestedUrls.push(url);
+        return responses[requestedUrls.length - 1];
+      };
+      const result = await fetchArtifactBundles({
+        token: 't', org: 'o', project: 'GFC-WEB', release: 'r', fetchFn,
+      });
+      assert.equal(requestedUrls[0], 'https://sentry.io/api/0/projects/o/gfc-web/files/artifact-bundles/');
+      assert.deepEqual(result.body, [{ bundleId: 'a' }, { bundleId: 'b' }]);
     });
   });
 
