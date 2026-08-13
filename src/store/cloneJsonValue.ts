@@ -13,8 +13,10 @@ export const cloneJsonValue = <T>(value: T): T => {
   if (value && typeof value === 'object') {
     const objectValue = value as Record<string, unknown>;
     const clonedObject: Record<string, unknown> = {};
-    for (const key of Object.keys(objectValue)) {
-      clonedObject[key] = cloneJsonValue(objectValue[key]);
+    for (const key in objectValue) {
+      if (Object.prototype.hasOwnProperty.call(objectValue, key)) {
+        clonedObject[key] = cloneJsonValue(objectValue[key]);
+      }
     }
     return clonedObject as T;
   }

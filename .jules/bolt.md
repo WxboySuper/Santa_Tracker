@@ -34,3 +34,6 @@
 ## 2026-05-21 - Use asynchronous file I/O in CommonJS CLI scripts
 **Learning:** For single-purpose CommonJS CLI scripts handling I/O operations (like reading large log files), wrapping the logic in an `async function main() { ... }` block and utilizing `fs.promises` instead of synchronous `fs` methods improves event loop responsiveness and adheres to idiomatic Node.js practices, even if the raw execution time improvement is minimal.
 **Action:** When updating or writing CLI scripts that perform I/O operations, default to asynchronous implementations using top-level async wrappers rather than blocking synchronous methods.
+## 2026-08-11 - Optimize cloneJsonValue Object Loop
+**Learning:** `Object.entries()` or `Object.keys()` combined with array mapping in highly recursive functions like `cloneJsonValue` allocates unnecessary intermediate arrays, slowing down cloning logic and increasing garbage collection overhead.
+**Action:** Replace `Object.entries(val).map()` with a standard `for...in` loop to iterate over object keys, strictly coupled with an `Object.prototype.hasOwnProperty.call(val, key)` guard to maintain functionality (ensuring inherited prototype properties aren't processed). This safely bypasses intermediate array allocation, boosting parsing speed.
