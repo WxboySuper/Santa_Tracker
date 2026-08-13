@@ -56,42 +56,48 @@ function analyzeOutlookType(
   const relevantReports = reports.filter(r => relevantReportTypes.includes(r.type));
   const totalRelevantReports = relevantReports.length;
 
-  relevantReports.forEach(report => {
-    const reportPoint = turf.point([report.longitude, report.latitude]);
-    let hit = false;
-    let highestRiskLevel: string | undefined;
-
-    if (outlookMap) {
-      const entries = Array.from(outlookMap.entries());
-      const riskLevelsContainingReport: string[] = [];
-      
-      // Find all risk levels that contain this report
-      for (const [riskLevel, features] of entries) {
-        for (const feature of features) {
+  // Pre-process outlook polygons outside the loop
+  const processedPolygons: { riskLevel: string, polygon: Feature<Polygon | MultiPolygon> }[] = [];
+  if (outlookMap) {
+    for (const [riskLevel, features] of outlookMap.entries()) {
+      for (const feature of features) {
+        if (feature.geometry.type === 'Polygon' || feature.geometry.type === 'MultiPolygon') {
           try {
-            if (feature.geometry.type !== 'Polygon' && feature.geometry.type !== 'MultiPolygon') {
-              continue;
-            }
-            
-            const polygon = turf.feature(feature.geometry) as Feature<Polygon | MultiPolygon>;
-            
-            if (turf.booleanPointInPolygon(reportPoint, polygon)) {
-              if (!riskLevelsContainingReport.includes(riskLevel)) {
-                riskLevelsContainingReport.push(riskLevel);
-              }
-            }
+            processedPolygons.push({
+              riskLevel,
+              polygon: turf.feature(feature.geometry) as Feature<Polygon | MultiPolygon>
+            });
           } catch {
             // Skip malformed polygon features
           }
         }
       }
+    }
+  }
+
+  for (const report of relevantReports) {
+    const reportPointCoords = [report.longitude, report.latitude];
+    let hit = false;
+    let highestRiskLevel: string | undefined;
+
+    if (processedPolygons.length > 0) {
+      const riskLevelsContainingReport = new Set<string>();
+      
+      // Find all risk levels that contain this report
+      for (const { riskLevel, polygon } of processedPolygons) {
+        if (!riskLevelsContainingReport.has(riskLevel)) {
+          if (turf.booleanPointInPolygon(reportPointCoords, polygon)) {
+            riskLevelsContainingReport.add(riskLevel);
+          }
+        }
+      }
 
       // If report is in any risk area, it's a hit
-      if (riskLevelsContainingReport.length > 0) {
+      if (riskLevelsContainingReport.size > 0) {
         hit = true;
         
         // Find the highest risk level
-        highestRiskLevel = riskLevelsContainingReport.reduce((highest, current) => {
+        highestRiskLevel = Array.from(riskLevelsContainingReport).reduce((highest, current) => {
           if (!highest) return current;
           return compareRiskLevels(current, highest) > 0 ? current : highest;
         }, undefined as string | undefined);
@@ -117,7 +123,7 @@ function analyzeOutlookType(
     } else {
       result.misses++;
     }
-  });
+  }
 
   // Calculate hit rates
   if (totalRelevantReports > 0) {
