@@ -37,3 +37,4 @@
 ## 2026-08-11 - Optimize cloneJsonValue Object Loop
 **Learning:** `Object.entries()` or `Object.keys()` combined with array mapping in highly recursive functions like `cloneJsonValue` allocates unnecessary intermediate arrays, slowing down cloning logic and increasing garbage collection overhead.
 **Action:** Replace `Object.entries(val).map()` with a standard `for...in` loop to iterate over object keys, strictly coupled with an `Object.prototype.hasOwnProperty.call(val, key)` guard to maintain functionality (ensuring inherited prototype properties aren't processed). This safely bypasses intermediate array allocation, boosting parsing speed.
+Changelog-Impact: none
