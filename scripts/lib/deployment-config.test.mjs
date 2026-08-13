@@ -82,7 +82,7 @@ describe('deployment config', () => {
     const lines = output.trimEnd().split('\n');
     assert.deepEqual(
       lines.map((line) => line.split('=', 1)[0]),
-      ['TSTM_GENERATION_ENABLED', 'TSTM_INGESTION_ENABLED']
+      ['PYTHON_BIN', 'TSTM_GENERATION_ENABLED', 'TSTM_INGESTION_ENABLED']
     );
     assert.ok(lines.every((line) => /^[A-Z][A-Z0-9_]*=.+$/.test(line)));
   });

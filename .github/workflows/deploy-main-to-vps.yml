@@ -328,12 +328,29 @@ jobs:
           npm install --omit=dev --quiet
           cp "$ANALYTICS_ROOT/config/.env" "$ANALYTICS_ROOT/current/.env"
 
-          if pm2 describe gfc-analytics > /dev/null 2>&1; then
-            pm2 restart gfc-analytics
-          else
-            pm2 start analytics.js --name gfc-analytics
-          fi
+          # Recreate the process from the versioned release. A plain `pm2 restart
+          # gfc-analytics` preserves the old executable path when the process was
+          # originally created from /opt/gfc-analytics/analytics.js, which leaves
+          # production running stale backend code after the symlink swap.
+          pm2 delete gfc-analytics > /dev/null 2>&1 || true
+          pm2 start "$ANALYTICS_ROOT/current/analytics.js" \
+            --name gfc-analytics \
+            --cwd "$ANALYTICS_ROOT/current"
           pm2 save
+
+          for attempt in 1 2 3 4 5; do
+            if capability_status=$(curl --fail --silent http://127.0.0.1:3006/api/capabilities/status); then
+              printf '%s\n' "$capability_status"
+              case "$capability_status" in
+                *'TSTM_GENERATION_ENABLED'*'available'*) exit 0 ;;
+              esac
+            fi
+            if [ "$attempt" -lt 5 ]; then
+              sleep 2
+            fi
+          done
+          echo "Production analytics capability smoke test failed" >&2
+          exit 1
           REMOTE
 
       - name: Stage release on VPS (timed rollout)
