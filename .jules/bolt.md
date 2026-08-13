@@ -1,3 +1,0 @@
-## 2024-06-11 - Turf feature parsing overhead in loop
-**Learning:** Instantiating turf features (`turf.feature(geometry)`) and turf points (`turf.point([lon, lat])`) inside nested loops for spatial analysis (like point-in-polygon verification) introduces massive CPU overhead due to object allocation and garbage collection.
-**Action:** When validating a large set of points against polygons, pre-process the polygon geometries into turf features once outside the loop. Use the raw coordinate arrays (`[lon, lat]`) directly with spatial functions like `turf.booleanPointInPolygon` to completely bypass Point object allocations, yielding a ~35% performance gain. Additionally, use `Set.has()` instead of `Array.includes()` for O(1) existence checks.
