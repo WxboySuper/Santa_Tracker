@@ -11,9 +11,9 @@
   "dependencies": {
     "@sentry/node": "^10.69.0",
     "express": "^5.2.1",
-    "express-rate-limit": "^8.6.1",
+    "express-rate-limit": "^8.6.2",
     "firebase-admin": "^14.2.0",
-    "stripe": "^22.3.2"
+    "stripe": "^22.4.0"
   },
   "overrides": {
     "http-proxy-agent": "^7.0.2",
