@@ -10,27 +10,12 @@ export interface StormReportRowFieldMap {
 }
 
 export const splitCsvLine = (line: string): string[] => {
-  const values: string[] = [];
-  let inQuotes = false;
-  let fieldStart = 0;
-
-  const pushField = (fieldEnd: number): void => {
-    const field = line.slice(fieldStart, fieldEnd);
-    values.push(field.includes('"') ? field.replaceAll('"', '') : field);
-  };
-
-  for (let index = 0; index < line.length; index += 1) {
-    const char = line[index];
-    if (char === '"') {
-      inQuotes = !inQuotes;
-    } else if (char === ',' && !inQuotes) {
-      pushField(index);
-      fieldStart = index + 1;
-    }
+  if (!line.includes('"')) {
+    return line.split(',');
   }
-
-  pushField(line.length);
-  return values;
+  return line.split(/,(?=(?:[^"]*"[^"]*")*[^"]*$)/).map((field) =>
+    field.includes('"') ? field.replace(/"/g, '') : field,
+  );
 };
 
 export const buildCsvRow = (headers: string[], values: string[]): Record<string, string> => {
