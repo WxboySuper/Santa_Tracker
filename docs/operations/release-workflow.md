@@ -70,7 +70,7 @@ To promote the next-major line to production:
 1. Run **Prepare Main Stable Promotion** with the reviewed `main` ref and target version.
 2. Review and merge the generated promotion PR into `main`.
 3. Run **Bootstrap Stable Release Line** to create `stable/X.Y.x` at that exact approved main commit.
-4. Run **Create Stable Release** manually from the stable branch.
+4. Run **Create Stable Release** manually from the stable branch. If the branch still has the beta package version (for example `1.7.0-beta.114`), the workflow converts it to the stable version (`1.7.0`), commits that package update to the stable branch, and then creates the release.
 
 The stable GitHub Release starts with the curated changelog entry and may include GitHub's generated merged-PR notes afterward. Production deployment is activated by the published stable release.
 
