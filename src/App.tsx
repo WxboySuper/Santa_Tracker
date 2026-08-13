@@ -22,15 +22,13 @@ import { EntitlementProvider } from './billing/EntitlementProvider';
 
 // New UI components
 import { AppLayout } from './components/Layout';
-import {
-  HomePage,
-  ComingSoonPage,
-  AccountPage,
-  PricingPage,
-  UpdatesPage,
-  BetaLandingPage,
-  BetaInvitePage,
-} from './pages';
+import HomePage from './pages/HomePage';
+import { ComingSoonPage } from './pages/ComingSoonPage';
+import AccountPage from './pages/AccountPage';
+import PricingPage from './pages/PricingPage';
+import { UpdatesPage } from './pages/UpdatesPage';
+import BetaLandingPage from './pages/BetaLandingPage';
+import BetaInvitePage from './pages/BetaInvitePage';
 import BetaAccessGuard from './components/Beta/BetaAccessGuard';
 import { ProductAnalyticsRouteTracker } from './components/ProductAnalyticsRouteTracker';
 import ToSModal, { hasAcceptedToS } from './components/ToS/ToSModal';
