@@ -37,7 +37,9 @@ function getLocalCalendarDate(): string {
 const useHomePageLogic = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  const { addToast } = useOutletContext<{ addToast: AddToastFn }>();
+  const { addToast } = useOutletContext<{ addToast: AddToastFn }>() ?? {
+    addToast: (() => undefined) as AddToastFn,
+  };
   const { hostedAuthEnabled, status, user } = useAuth();
   const forecastCycle = useSelector(selectForecastCycle);
   const workflowMetadata = useSelector(selectWorkflowMetadata);
