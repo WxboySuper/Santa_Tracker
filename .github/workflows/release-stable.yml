@@ -42,24 +42,39 @@ jobs:
         with:
           ref: ${{ inputs.ref }}
           fetch-depth: 0
+          token: ${{ secrets.GH_PAT }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '24.x'
 
-      - name: Validate stable release ref and package version
+      - name: Prepare stable package version
+        id: version
         run: |
           set -euo pipefail
           case "$RELEASE_REF" in
             stable/*) ;;
             *) echo "::error::Stable releases must come from stable/*, got $RELEASE_REF" >&2; exit 1 ;;
           esac
-          VERSION=$(node -p "require('./package.json').version")
-          if ! printf '%s' "$VERSION" | grep -Eq -- '^[0-9]+\.[0-9]+\.[0-9]+$'; then
-            echo "::error::Stable release requires a stable semver package version, got $VERSION" >&2
+
+          CURRENT=$(node -p "require('./package.json').version")
+          if [[ "$CURRENT" =~ ^([0-9]+\.[0-9]+)\.0-beta\.[0-9]+$ ]]; then
+            VERSION="${BASH_REMATCH[1]}.0"
+            npm version "$VERSION" --no-git-tag-version --allow-same-version
+            git config user.name github-actions[bot]
+            git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+            git add package.json
+            git commit -m "chore(release): prepare ${VERSION}"
+            git push origin "HEAD:${RELEASE_REF}"
+          elif printf '%s' "$CURRENT" | grep -Eq -- '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+            VERSION="$CURRENT"
+          else
+            echo "::error::Stable release requires a stable semver or a beta prerelease package version, got $CURRENT" >&2
             exit 1
           fi
+
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "Releasing stable version $VERSION from $RELEASE_REF"
 
       - name: Create GitHub stable release
@@ -71,4 +86,4 @@ jobs:
           RELEASE_NOTES_MODE: changelog-and-prs
           PREVIOUS_TAG: ${{ inputs.previous_tag }}
           NOTES_FILE: stable-release-notes.md
-        run: node scripts/create-github-release.mjs "$(node -p "require('./package.json').version")" "$RELEASE_REF"
+        run: node scripts/create-github-release.mjs "${{ steps.version.outputs.version }}" "$RELEASE_REF"
