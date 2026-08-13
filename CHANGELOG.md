@@ -7,9 +7,11 @@ All notable changes to this project will be documented in this file.
 
 ### Next major / beta
 
-Work toward the next major release continues in the beta channel while the final stable release is prepared.
+#### Added
 
-<!-- v1.7.0 release lane: keep all v1.7 work here until stable promotion converts this lane into ## v1.7.0. -->
+<!-- Continue next-major work here after this stable line is cut. -->
+
+## v1.7.0
 
 #### Dependencies
 
