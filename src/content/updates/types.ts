@@ -7,6 +7,10 @@ export interface UpdateScreenshot {
 export interface UpdateSection {
   title: string;
   body: string;
+  eyebrow?: string;
+  kind?: 'feature' | 'support' | 'privacy' | 'under-the-hood';
+  bullets?: string[];
+  link?: { label: string; href: string };
   screenshots?: UpdateScreenshot[];
 }
 
@@ -25,6 +29,7 @@ export interface ReleaseUpdate {
   version: string;
   title: string;
   summary: string;
+  heroImage?: UpdateScreenshot;
   /** Optional hero graphics under `public/updates/v{version}/`. */
   promoImages?: UpdateScreenshot[];
   sections: UpdateSection[];

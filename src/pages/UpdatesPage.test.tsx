@@ -20,13 +20,16 @@ describe('UpdatesPage', () => {
       </MemoryRouter>,
     );
 
-    expect(screen.getByRole('heading', { level: 1, name: /Forecast, reflect, and learn/i })).toBeInTheDocument();
-    expect(screen.getByText(/What's new · v1\.7/i)).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: /Workflow continuity/i })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: /Forecast Grade and Monitor/i })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: /Custom products and premium boundaries/i })).toBeInTheDocument();
-    expect(screen.getByText(/Auto-TSTM provides cached guidance/i)).toBeInTheDocument();
-    expect(screen.queryByTestId('updates-promo-image')).not.toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 1, name: /The biggest update yet/i })).toBeInTheDocument();
+    expect(screen.getByText(/Release briefing · v1\.7/i)).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /Verification v2/i })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /Custom Products/i })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /Forecast workflows that hold together/i })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /Privacy and account safety/i })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /Open account safety controls/i })).toHaveAttribute('href', '/account');
+    expect(screen.getByText(/Auto-TSTM uses SPC-calibrated HREF guidance/i)).toBeInTheDocument();
+    expect(screen.getByTestId('updates-hero-image')).toBeInTheDocument();
+    expect(screen.getAllByRole('presentation')).toHaveLength(4);
     expect(screen.getByRole('link', { name: /Back to home/i })).toHaveAttribute('href', '/');
   });
 
@@ -38,6 +41,7 @@ describe('UpdatesPage', () => {
     );
 
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(screen.getByTestId('updates-hero-image')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /Back to home/i })).toHaveAttribute('href', '/');
   });
 });
