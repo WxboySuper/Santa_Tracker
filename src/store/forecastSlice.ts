@@ -992,12 +992,8 @@ export const forecastSlice = createSlice({
 
         // Reset low probability flags for types that now have data
         if (dayData.metadata.lowProbabilityOutlooks) {
-          const typesWithData = Object.entries(dayData.data)
-            .filter(([_, map]) => map && map.size > 0)
-            .map(([type]) => type as OutlookType);
-
           dayData.metadata.lowProbabilityOutlooks = dayData.metadata.lowProbabilityOutlooks.filter(
-            t => !typesWithData.includes(t)
+            t => !(dayData.data[t] && dayData.data[t].size > 0)
           );
         }
 
