@@ -106,6 +106,9 @@ const settings = (overrides = {}) => ({
     stormReportsFilterWind: true, stormReportsFilterHail: true,
     stormReportsMatchOutlookType: false, alertsEnabled: true, alertsOpacity: 0.55,
     alertsShowWatches: true, alertsShowWarnings: true, alertsShowAdvisories: false,
+    referenceLayers: {
+      spcMesoscaleDiscussionEnabled: true,
+    },
   },
   ...overrides,
 });
@@ -235,6 +238,9 @@ describe('userSettings schema boundary', () => {
     await assertFails(setDoc(ref, settings({ baseMapStyle: 'x'.repeat(5000) })));
     await assertFails(setDoc(ref, settings({ forecastUiVariant: 'unknown' })));
     await assertFails(setDoc(ref, settings({ monitorSettings: { arbitrary: { nested: true } } })));
+    await assertFails(setDoc(ref, settings({
+      monitorSettings: { ...settings().monitorSettings, referenceLayers: { unsupported: true } },
+    })));
     await assertFails(setDoc(ref, settings({ ghostOutlooks: { tornado: true } })));
   });
 });

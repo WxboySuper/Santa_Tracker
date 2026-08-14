@@ -213,20 +213,23 @@ service cloud.firestore {
     }
 
     function isValidMonitorSettings(value) {
+      // Keep this shape in sync with the client MonitorSettings type.
       return value is map && value.keys().hasOnly([
           'radarMode', 'radarProduct', 'radarSite', 'radarOpacity',
           'satelliteProduct', 'satelliteOpacity', 'outlookSource', 'outlookType',
           'mapView', 'animationEnabled', 'animationSpeedMs', 'stormReportsEnabled',
           'stormReportsFilterTornado', 'stormReportsFilterWind', 'stormReportsFilterHail',
           'stormReportsMatchOutlookType', 'alertsEnabled', 'alertsOpacity',
-          'alertsShowWatches', 'alertsShowWarnings', 'alertsShowAdvisories'
+          'alertsShowWatches', 'alertsShowWarnings', 'alertsShowAdvisories',
+          'referenceLayers'
         ]) && value.keys().hasAll([
           'radarMode', 'radarProduct', 'radarSite', 'radarOpacity',
           'satelliteProduct', 'satelliteOpacity', 'outlookSource', 'outlookType',
           'mapView', 'animationEnabled', 'animationSpeedMs', 'stormReportsEnabled',
           'stormReportsFilterTornado', 'stormReportsFilterWind', 'stormReportsFilterHail',
           'stormReportsMatchOutlookType', 'alertsEnabled', 'alertsOpacity',
-          'alertsShowWatches', 'alertsShowWarnings', 'alertsShowAdvisories'
+          'alertsShowWatches', 'alertsShowWarnings', 'alertsShowAdvisories',
+          'referenceLayers'
         ]) &&
         ['none', 'mrms-conus', 'site'].hasAny([value.radarMode]) &&
         ['bref-qcd', 'cref-qcd', 'sr-bref', 'sr-bvel'].hasAny([value.radarProduct]) &&
@@ -253,7 +256,11 @@ service cloud.firestore {
         value.stormReportsMatchOutlookType is bool && value.alertsEnabled is bool &&
         isNumeric(value.alertsOpacity) && value.alertsOpacity >= 0 && value.alertsOpacity <= 1 &&
         value.alertsShowWatches is bool && value.alertsShowWarnings is bool &&
-        value.alertsShowAdvisories is bool;
+        value.alertsShowAdvisories is bool &&
+        value.referenceLayers is map &&
+        value.referenceLayers.keys().hasOnly(['spcMesoscaleDiscussionEnabled']) &&
+        value.referenceLayers.keys().hasAll(['spcMesoscaleDiscussionEnabled']) &&
+        value.referenceLayers.spcMesoscaleDiscussionEnabled is bool;
     }
 
     function isValidClientSettingsCreate(data) {
