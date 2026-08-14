@@ -733,11 +733,14 @@ const createAdminMetricsSummary = (dailyMetrics, liveSummary = {}) => {
   };
 };
 
-/** Returns true when the event requires authentication but the token is missing, sending a 401 if so. */
-const requireAuthForExpensiveEvents = (eventType, decodedToken, res) => {
-  if (eventType === 'cloud_cycle_saved' && !decodedToken) {
-    console.warn('[metrics] cloud_cycle_saved:unauthenticated');
-    res.status(401).json({ error: 'Authentication required for cloud save metrics.' });
+/** Returns true when a metric event would write trusted admin or account data. */
+const requiresAuthenticatedMetricEvent = (eventType) => METRIC_EVENT_TYPES.has(eventType);
+
+/** Rejects metric events without a verified Firebase identity. */
+const requireAuthForMetricEvent = (eventType, decodedToken, res) => {
+  if (requiresAuthenticatedMetricEvent(eventType) && !decodedToken) {
+    console.warn(`[metrics] ${eventType}:unauthenticated`);
+    res.status(401).json({ error: 'Authentication required for product metrics.' });
     return true;
   }
   return false;
@@ -759,7 +762,7 @@ const handleMetricEvent = async (req, res) => {
   const installationId = readInstallationId(req.body?.installationId);
   const decodedToken = await verifyRequestUser(req);
 
-  if (requireAuthForExpensiveEvents(eventType, decodedToken, res)) return;
+  if (requireAuthForMetricEvent(eventType, decodedToken, res)) return;
 
   await recordMetricEvent({
     eventType,
@@ -836,9 +839,11 @@ const registerMetricsRoutes = (app, express) => {
 };
 
 module.exports = {
+  handleMetricEvent,
   recordBillingMetricEvent,
   registerMetricsRoutes,
   countCollectionDocuments,
   readCloudCyclePayloadBytes,
   getCurrentStorageBytes,
+  requiresAuthenticatedMetricEvent,
 };
