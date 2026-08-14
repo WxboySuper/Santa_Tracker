@@ -7,7 +7,7 @@ import {
   loadSavedCycle,
   deleteSavedCycle,
 } from '../../store/forecastSlice';
-import { AppLayoutContext } from '../Layout/AppLayout';
+import { useAppLayout } from '../Layout/AppLayout';
 import ModalPortal from '../ui/ModalPortal';
 import './CycleHistoryModal.css';
 import CycleHistoryModalDialog, { type CycleHistoryConfirmAction } from './CycleHistoryModalDialog';
@@ -24,9 +24,7 @@ export { deferCloseAfterConfirm } from './cycleHistoryModalUtils';
 /** Modal for browsing, saving, loading, and deleting saved forecast cycles. */
 const CycleHistoryModal: React.FC<CycleHistoryModalProps> = ({ isOpen, onClose }) => {
   const dispatch = useDispatch();
-  const { addToast } = React.useContext(AppLayoutContext) ?? {
-    addToast: (() => undefined) as import('../Layout/AppLayout').AddToastFn,
-  };
+  const { addToast } = useAppLayout();
   const savedCycles = useSelector(selectSavedCycles);
   const currentCycle = useSelector(selectForecastCycle);
 
