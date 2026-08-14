@@ -2,20 +2,36 @@ import { render, screen, act } from '@testing-library/react';
 import App from './App';
 import { Outlet as MockOutlet } from 'react-router';
 
-// Mock pages to avoid heavy modules
-jest.mock('./pages', () => ({
-  HomePage: () => <div>HomePage Mock</div>,
-  ForecastPage: () => <div>ForecastPage Mock</div>,
-  DiscussionPage: () => <div>DiscussionPage Mock</div>,
-  VerificationPage: () => <div>VerificationPage Mock</div>,
-  MonitorPage: () => <div>MonitorPage Mock</div>,
+// Mock lightweight routes directly so the application test does not execute page logic.
+jest.mock('./pages/HomePage', () => ({
+  __esModule: true,
+  default: () => <div>HomePage Mock</div>,
+}));
+jest.mock('./pages/ComingSoonPage', () => ({
   ComingSoonPage: () => <div>ComingSoonPage Mock</div>,
-  AccountPage: () => <div>AccountPage Mock</div>,
-  PricingPage: () => <div>PricingPage Mock</div>,
+}));
+jest.mock('./pages/AccountPage', () => ({
+  __esModule: true,
+  default: () => <div>AccountPage Mock</div>,
+}));
+jest.mock('./pages/PricingPage', () => ({
+  __esModule: true,
+  default: () => <div>PricingPage Mock</div>,
+}));
+jest.mock('./pages/UpdatesPage', () => ({
   UpdatesPage: () => <div>UpdatesPage Mock</div>,
-  AdminPage: () => <div>AdminPage Mock</div>,
-  BetaLandingPage: () => <div>BetaLandingPage Mock</div>,
-  BetaInvitePage: () => <div>BetaInvitePage Mock</div>,
+}));
+jest.mock('./pages/BetaLandingPage', () => ({
+  __esModule: true,
+  default: () => <div>BetaLandingPage Mock</div>,
+}));
+jest.mock('./pages/BetaInvitePage', () => ({
+  __esModule: true,
+  default: () => <div>BetaInvitePage Mock</div>,
+}));
+jest.mock('./pages/HomePage', () => ({
+  __esModule: true,
+  default: () => <div>HomePage Mock</div>,
 }));
 
 // Mock components
