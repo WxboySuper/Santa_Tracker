@@ -17,6 +17,10 @@ jest.mock('./pages', () => ({
   BetaLandingPage: () => <div>BetaLandingPage Mock</div>,
   BetaInvitePage: () => <div>BetaInvitePage Mock</div>,
 }));
+jest.mock('./pages/HomePage', () => ({
+  __esModule: true,
+  default: () => <div>HomePage Mock</div>,
+}));
 
 // Mock components
 jest.mock('./components/Layout', () => ({
