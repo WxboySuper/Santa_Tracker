@@ -172,9 +172,11 @@ service cloud.firestore {
     }
 
     function isValidClientProfileUpdate() {
-      return request.resource.data.diff(resource.data).affectedKeys().hasOnly([
-          'email', 'displayName', 'photoURL', 'providers', 'updatedAt'
-        ]) &&
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(
+          'createdAt' in resource.data
+            ? ['email', 'displayName', 'photoURL', 'providers', 'updatedAt']
+            : ['email', 'displayName', 'photoURL', 'providers', 'createdAt', 'updatedAt']
+        ) &&
         hasValidClientProfileFields(request.resource.data);
     }
 

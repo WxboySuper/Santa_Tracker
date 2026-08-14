@@ -246,13 +246,13 @@ export const readRemoteSettings = (value: Partial<UserSettingsDocument> | undefi
 };
 
 /** Creates the user profile payload written to Firestore on hosted sign-in. */
-export const createProfilePayload = (user: User) => ({
+export const createProfilePayload = (user: User, opts?: { includeCreatedAt?: boolean }) => ({
   email: user.email ?? '',
   displayName: user.displayName ?? '',
   photoURL: user.photoURL ?? '',
   providers: (user.providerData ?? []).map((provider) => provider.providerId),
   updatedAt: serverTimestamp(),
-  createdAt: serverTimestamp(),
+  ...(opts?.includeCreatedAt ? { createdAt: serverTimestamp() } : {}),
 });
 
 /** Reads the current beta-access flag from one hosted profile document snapshot. */
@@ -491,11 +491,12 @@ export const syncProfileDocument = async (
   user: User
 ): Promise<void> => {
   const profileSnapshot = await getDoc(profileRef);
+  const needsCreatedAt =
+    !profileSnapshot.exists() || profileSnapshot.data()?.createdAt === undefined;
   await setDoc(
     profileRef,
     {
-      ...createProfilePayload(user),
-      ...(profileSnapshot.exists() ? {} : { createdAt: serverTimestamp() }),
+      ...createProfilePayload(user, { includeCreatedAt: needsCreatedAt }),
     },
     { merge: true }
   );
