@@ -2,6 +2,7 @@
 
 const { initSentry } = require('./sentry');
 const { configureApp } = require('./analytics-app');
+const { ensureCustomProductsCapability } = require('./feature-capabilities');
 
 /** Loads env vars, creates the Express app, and binds the analytics server. */
 async function start() {
@@ -14,6 +15,7 @@ async function start() {
 
   const app = express();
   configureApp(app, express);
+  await ensureCustomProductsCapability();
   const { logCapabilityStartupState } = require('./capabilities');
   logCapabilityStartupState(process.env);
 
