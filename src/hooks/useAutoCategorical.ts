@@ -117,6 +117,13 @@ const useAutoCategorical = () => {
 
     const currentHash = signatureFromProbabilisticOutlooks(outlooks, currentDay);
 
+    // A successful derivation already handled this probabilistic state. The
+    // generated categorical map changes Redux state, so checking hasChanges
+    // here would start the same derivation again.
+    if (currentHash === lastProcessedRef.current) {
+      return;
+    }
+
     // Skip if there are no changes to process
     let hasChanges = false;
     if (currentDay === 1 || currentDay === 2) {
@@ -126,11 +133,6 @@ const useAutoCategorical = () => {
       });
     } else if (currentDay === 3) {
       hasChanges = outlooks.totalSevere instanceof Map ? outlooks.totalSevere.size > 0 : false;
-    }
-
-    // Fast path: same probabilistic state and no changes worth processing.
-    if (currentHash === lastProcessedRef.current && !hasChanges) {
-      return;
     }
 
     // With nothing to process, record the baseline and skip derivation so an

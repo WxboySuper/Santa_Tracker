@@ -317,6 +317,36 @@ describe('processOutlooksToCategorical', () => {
     });
   });
 
+  test('does not re-derive after publishing the same categorical output', async () => {
+    const store = createStore();
+    let categoricalUpdates = 0;
+    let previousCategorical = store.getState().forecast.forecastCycle.days[1]?.data.categorical;
+    const unsubscribe = store.subscribe(() => {
+      const categorical = store.getState().forecast.forecastCycle.days[1]?.data.categorical;
+      if (categorical !== previousCategorical) {
+        categoricalUpdates += 1;
+        previousCategorical = categorical;
+      }
+    });
+
+    type ProviderProps = { store: ReturnType<typeof createStore>; children?: React.ReactNode };
+    const ProviderComponent = Provider as unknown as React.ComponentType<ProviderProps>;
+    render(React.createElement(ProviderComponent, { store }, React.createElement(HookHarness)));
+
+    act(() => {
+      store.dispatch(addFeature({ feature: makeProbabilisticFeature('feature-1', 0) }));
+    });
+
+    await waitFor(() => {
+      expect(getCategoricalFeatures(store).length).toBeGreaterThan(0);
+      expect(categoricalUpdates).toBe(1);
+    });
+
+    await new Promise((resolve) => setTimeout(resolve, 25));
+    expect(categoricalUpdates).toBe(1);
+    unsubscribe();
+  });
+
   test('preserves manual TSTM geometry when regenerating categorical output', async () => {
     const store = createStore();
     type ProviderProps = { store: ReturnType<typeof createStore>; children?: React.ReactNode };
