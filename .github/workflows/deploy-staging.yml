@@ -34,6 +34,18 @@ jobs:
       - name: Reject an empty ref
         run: test -n "$DEPLOY_REF"
 
+      - name: Validate selected ref
+        env:
+          STAGING_REF: ${{ inputs.ref }}
+        run: |
+          set -euo pipefail
+          if [ "$STAGING_REF" = "main" ] || printf '%s' "$STAGING_REF" | grep -Eq '^stable/[0-9]+\.[0-9]+\.x$'; then
+            exit 0
+          fi
+
+          echo "::error::Staging deploys must target main or a stable/* release line." >&2
+          exit 1
+
       - name: Checkout selected ref
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
         with:

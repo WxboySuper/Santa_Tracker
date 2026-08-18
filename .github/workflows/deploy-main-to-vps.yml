@@ -55,6 +55,10 @@ jobs:
           if [ "$GHA_EVENT_NAME" = "release" ]; then
             echo "ref=${GHA_TAG_NAME}" >> "$GITHUB_OUTPUT"
           elif [ -n "$GHA_INPUT_REF" ]; then
+            if ! printf '%s' "$GHA_INPUT_REF" | grep -Eq '^stable/[0-9]+\.[0-9]+\.x$'; then
+              echo "::error::Manual production deploys must target a stable/* release line." >&2
+              exit 1
+            fi
             echo "ref=${GHA_INPUT_REF}" >> "$GITHUB_OUTPUT"
           else
             echo "ref=stable/1.6.x" >> "$GITHUB_OUTPUT"
