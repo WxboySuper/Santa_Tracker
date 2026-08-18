@@ -139,6 +139,19 @@ function isExpectedMonitorReferenceOutage(event: Event): boolean {
   return event.tags?.[EXPECTED_MONITOR_REFERENCE_OUTAGE_TAG] === 'true';
 }
 
+/** Keeps expected-outage breadcrumb diagnostics useful without recording arbitrary error messages. */
+function getSafeMonitorReferenceError(error: unknown): Record<string, boolean | string> {
+  if (!(error instanceof Error)) {
+    return { type: typeof error };
+  }
+
+  const safeError: Record<string, boolean | string> = { name: error.name };
+  if (error.name === 'MonitorReferenceError' && 'retryable' in error) {
+    safeError.retryable = Boolean(error.retryable);
+  }
+  return safeError;
+}
+
 /** Drops known no-stack browser noise while preserving actionable stacked errors. */
 export function beforeSend(event: ErrorEvent, _hint: EventHint): ErrorEvent | null {
   return isKnownBrowserNoise(event) || isExpectedMonitorReferenceOutage(event) ? null : event;
@@ -160,7 +173,7 @@ export function captureExpectedMonitorReferenceFailure(
     data: {
       sourceId,
       expectedUpstreamFailure: true,
-      error: error instanceof Error ? error.message : String(error),
+      error: getSafeMonitorReferenceError(error),
     },
   });
 }

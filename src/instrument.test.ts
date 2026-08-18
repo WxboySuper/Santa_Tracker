@@ -296,9 +296,33 @@ describe('instrument', () => {
         data: {
           sourceId: 'spc-mesoscale-discussion',
           expectedUpstreamFailure: true,
-          error: 'SPC unavailable',
+          error: { name: 'Error' },
         },
       });
+    });
+  });
+
+  it('records bounded retry context without recording provider error messages', () => {
+    jest.isolateModules(() => {
+      globalScope.__GFC_SENTRY_DSN__ = 'https://example@o0.ingest.sentry.io/0';
+      // skipcq: JS-C1003, JS-0359 — isolateModules needs require for fresh module load
+      const { captureExpectedMonitorReferenceFailure } = require('./instrument');
+
+      captureExpectedMonitorReferenceFailure(
+        'spc-mesoscale-discussion',
+        Object.assign(new Error('SPC unavailable (503)'), {
+          name: 'MonitorReferenceError',
+          retryable: true,
+        })
+      );
+      captureExpectedMonitorReferenceFailure('spc-mesoscale-discussion', 'provider response');
+
+      expect(Sentry.addBreadcrumb).toHaveBeenNthCalledWith(1, expect.objectContaining({
+        data: expect.objectContaining({ error: { name: 'MonitorReferenceError', retryable: true } }),
+      }));
+      expect(Sentry.addBreadcrumb).toHaveBeenNthCalledWith(2, expect.objectContaining({
+        data: expect.objectContaining({ error: { type: 'string' } }),
+      }));
     });
   });
 });
