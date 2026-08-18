@@ -11,6 +11,9 @@ export const SPC_YESTERDAY_STORM_REPORTS_URL = 'https://www.spc.noaa.gov/climo/r
 const archiveUrlForDate = (date: string): string =>
   `https://www.spc.noaa.gov/climo/reports/${date}_rpts_raw.csv`;
 
+const isValidCalendarDate = (date: Date, year: number, month: number, day: number): boolean =>
+  [date.getFullYear() === year, date.getMonth() === month, date.getDate() === day].every(Boolean);
+
 /**
  * Parses archived *_rpts_raw.csv storm report text.
  */
@@ -112,9 +115,22 @@ export function formatReportDate(date: Date): string {
 /**
  * Parses YYMMDD format to Date object
  */
-export function parseReportDate(dateStr: string): Date {
-  const year = 2000 + parseInt(dateStr.slice(0, 2), 10);
+export function parseReportDate(dateStr: string, referenceDate = new Date()): Date {
+  if (!/^\d{6}$/.test(dateStr)) {
+    return new Date(Number.NaN);
+  }
+
+  const shortYear = parseInt(dateStr.slice(0, 2), 10);
+  const currentYear = referenceDate.getFullYear();
+  const currentCentury = Math.floor(currentYear / 100) * 100;
+  let year = currentCentury + shortYear;
+  if (year > currentYear + 1) year -= 100;
   const month = parseInt(dateStr.slice(2, 4), 10) - 1;
   const day = parseInt(dateStr.slice(4, 6), 10);
-  return new Date(year, month, day);
+  const parsedDate = new Date(year, month, day);
+  if (!isValidCalendarDate(parsedDate, year, month, day)) {
+    return new Date(Number.NaN);
+  }
+
+  return parsedDate;
 }
