@@ -2,10 +2,15 @@ import { renderHook, act } from '@testing-library/react';
 import { EntitlementProvider, useEntitlement } from './EntitlementProvider';
 import { useAuth } from '../auth/AuthProvider';
 import { onSnapshot } from 'firebase/firestore';
+import { readLocalTestAccount } from '../lib/localTestAccount';
 
 // Mock useAuth
 jest.mock('../auth/AuthProvider', () => ({
   useAuth: jest.fn(),
+}));
+
+jest.mock('../lib/localTestAccount', () => ({
+  readLocalTestAccount: jest.fn(() => null),
 }));
 
 // Mock lib/firebase
@@ -30,6 +35,7 @@ describe('EntitlementProvider', () => {
       status: 'signed_out',
       user: null,
     });
+    (readLocalTestAccount as jest.Mock).mockReturnValue(null);
     
     // Do not mock window.location here if it causes issues
   });
@@ -133,5 +139,54 @@ describe('EntitlementProvider', () => {
     await act(async () => {
       await expect(result.current.openCheckout('monthly')).rejects.toThrow('Sign in before starting billing actions.');
     });
+  });
+
+  const expectCheckoutBlocked = async ({
+    hostedAuthEnabled,
+    localTestAccount,
+    expectedMessage,
+  }: {
+    hostedAuthEnabled: boolean;
+    localTestAccount: 'premium' | null;
+    expectedMessage: string;
+  }) => {
+    (useAuth as jest.Mock).mockReturnValue({
+      hostedAuthEnabled,
+      status: 'signed_in',
+      user: { uid: 'user-123', getIdToken: jest.fn().mockResolvedValue('token') },
+    });
+    (readLocalTestAccount as jest.Mock).mockReturnValue(localTestAccount);
+    (global.fetch as jest.Mock).mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ billingEnabled: true, checkoutEnabled: true }),
+    });
+
+    const { result } = renderHook(() => useEntitlement(), {
+      wrapper: ({ children }) => <EntitlementProvider>{children}</EntitlementProvider>,
+    });
+
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+    await expect(result.current.openCheckout('monthly')).rejects.toThrow(expectedMessage);
+    expect(global.fetch).not.toHaveBeenCalledWith('/api/billing/checkout', expect.any(Object));
+  };
+
+  test('openCheckout rejects when hosted auth is disabled', async () => {
+    await expectCheckoutBlocked({
+      hostedAuthEnabled: false,
+      localTestAccount: null,
+      expectedMessage: 'Billing is not available on this deployment yet.',
+    });
+    expect(global.fetch).toHaveBeenCalledWith('/api/billing/config');
+  });
+
+  test('openCheckout rejects for local test accounts', async () => {
+    await expectCheckoutBlocked({
+      hostedAuthEnabled: true,
+      localTestAccount: 'premium',
+      expectedMessage: 'Billing is unavailable for local test accounts.',
+    });
+    expect(global.fetch).toHaveBeenCalledWith('/api/billing/config');
   });
 });

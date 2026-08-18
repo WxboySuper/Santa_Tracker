@@ -440,7 +440,7 @@ export const EntitlementProvider: React.FC<{ children: React.ReactNode }> = ({ c
   }, [hostedAuthEnabled, status, user]);
   const { openCheckout, openBillingPortal } = useBillingActions(
     user,
-    billingConfig.checkoutEnabled,
+    billingConfig.checkoutEnabled && hostedAuthEnabled && !readLocalTestAccount(),
     Boolean(readLocalTestAccount()),
   );
 
