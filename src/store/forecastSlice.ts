@@ -1,4 +1,5 @@
 import '../immerSetup';
+import { original } from 'immer';
 import { createSlice, PayloadAction, type UnknownAction } from '@reduxjs/toolkit';
 import { OutlookData, OutlookType, DrawingState, ForecastCycle, DayType, OutlookDay, DiscussionData, DiscussionGrouping, Probability } from '../types/outlooks';
 import type { CycleMetadata, WorkflowMetadata, Package, CycleValidationResult, StandardGrouping } from '../types/workflow';
@@ -854,10 +855,8 @@ export const forecastSlice = createSlice({
       const outlookData = getCurrentOutlook(state);
 
       // Check if outlook type is supported for current day
-      if (outlookData[outlookType] !== undefined || outlookType === 'categorical' ||
-          outlookType === 'tornado' || outlookType === 'wind' || outlookType === 'hail' ||
-          outlookType === 'totalSevere' || outlookType === 'day4-8') {
-        if (outlookData[outlookType] === map) {
+      if (outlookData[outlookType] !== undefined) {
+        if (outlookData[outlookType] === map || original(outlookData[outlookType]) === map) {
           return;
         }
 

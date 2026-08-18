@@ -14,6 +14,7 @@ import reducer, {
   selectCanRedo,
   selectCanUndo,
   setForecastDay,
+  setOutlookMap,
   toggleLowProbability,
   undoLastEdit,
   updateFeature,
@@ -113,6 +114,61 @@ describe('toggleSignificant', () => {
     state = reducer(state, toggleSignificant());
     expect(state.drawingState.isSignificant).toBe(false);
   });
+});
+
+describe('setOutlookMap', () => {
+  test('rejects an outlook type unsupported by the current day', () => {
+    let state = reducer(undefined, setForecastDay(4));
+    state = reducer(state, markAsSaved());
+    const unsupportedMap = new Map<string, Feature[]>();
+
+    const nextState = reducer(
+      state,
+      setOutlookMap({ outlookType: 'tornado', map: unsupportedMap })
+    );
+
+    expect(nextState.forecastCycle.days[4]?.data.tornado).toBeUndefined();
+    expect(nextState.isSaved).toBe(true);
+  });
+
+  test('updates a supported outlook type and marks the forecast unsaved', () => {
+    let state = reducer(undefined, setForecastDay(4));
+    state = reducer(state, markAsSaved());
+    const supportedMap = new Map<string, Feature[]>();
+
+    state = reducer(state, setOutlookMap({ outlookType: 'day4-8', map: supportedMap }));
+
+    expect(state.forecastCycle.days[4]?.data['day4-8']).toBe(supportedMap);
+    expect(state.isSaved).toBe(false);
+  });
+
+  test('keeps day-specific supported outlook maps available', () => {
+    let dayOneState = reducer(undefined, setForecastDay(1));
+    const tornadoMap = new Map<string, Feature[]>();
+    dayOneState = reducer(dayOneState, setOutlookMap({ outlookType: 'tornado', map: tornadoMap }));
+    expect(dayOneState.forecastCycle.days[1]?.data.tornado).toBe(tornadoMap);
+
+    let dayThreeState = reducer(undefined, setForecastDay(3));
+    const totalSevereMap = new Map<string, Feature[]>();
+    dayThreeState = reducer(
+      dayThreeState,
+      setOutlookMap({ outlookType: 'totalSevere', map: totalSevereMap })
+    );
+    expect(dayThreeState.forecastCycle.days[3]?.data.totalSevere).toBe(totalSevereMap);
+  });
+
+  test('does not create an edit when the supported map is already selected', () => {
+    let state = reducer(undefined, setForecastDay(4));
+    const map = new Map<string, Feature[]>();
+    state = reducer(state, setOutlookMap({ outlookType: 'day4-8', map }));
+    state = reducer(state, markAsSaved());
+
+    const nextState = reducer(state, setOutlookMap({ outlookType: 'day4-8', map }));
+
+    expect(nextState).toBe(state);
+    expect(nextState.isSaved).toBe(true);
+  });
+
 });
 
 const getCategoricalFeatureId = (
