@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback, useMemo, type MutableRefObject } from 'react';
+import { useEffect, useRef, useCallback, useMemo, useState, type MutableRefObject } from 'react';
 import { useSelector } from 'react-redux';
 import { RootState } from '../store';
 import { serializeForecast } from '../utils/fileUtils';
@@ -96,7 +96,7 @@ export const useCloudSync = (
   const workflowMetadata = useSelector((state: RootState) => state.forecast.workflowMetadata);
 
   const syncTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const lastSyncStateRef = useRef<string | null>(null);
+  const [lastSyncedHash, setLastSyncedHashState] = useState<string | null>(null);
 
   const canSync = Boolean(currentCloud) && premiumActive;
   const serializedPayload = useMemo(
@@ -119,7 +119,7 @@ export const useCloudSync = (
       forecastCycle,
       workflowMetadata,
       setLastSyncedHash: (hash) => {
-        lastSyncStateRef.current = hash;
+        setLastSyncedHashState(hash);
       },
       currentHash,
     });
@@ -131,7 +131,7 @@ export const useCloudSync = (
       return;
     }
 
-    if (isCurrentStateSynced(lastSyncStateRef.current, currentHash)) {
+    if (isCurrentStateSynced(lastSyncedHash, currentHash)) {
       return;
     }
 
@@ -145,7 +145,7 @@ export const useCloudSync = (
     return function cleanupPendingCloudSync() {
       clearSyncTimeout(syncTimeoutRef);
     };
-  }, [canSync, currentHash, performSync]);
+  }, [canSync, currentHash, lastSyncedHash, performSync]);
 
   const syncNow = useCallback(async () => {
     clearSyncTimeout(syncTimeoutRef);
@@ -153,11 +153,11 @@ export const useCloudSync = (
   }, [performSync]);
 
   const markCurrentStateSynced = useCallback(() => {
-    lastSyncStateRef.current = currentHash;
+    setLastSyncedHashState(currentHash);
   }, [currentHash]);
 
   return {
-    isSynced: isCurrentStateSynced(lastSyncStateRef.current, currentHash),
+    isSynced: isCurrentStateSynced(lastSyncedHash, currentHash),
     currentCloud,
     syncNow,
     markCurrentStateSynced,
