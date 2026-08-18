@@ -157,15 +157,28 @@ describe('AuthProvider Utils', () => {
   test('readRemoteSettings validates data', () => {
     const validSettings = {
       darkMode: true,
-      baseMapStyle: 'streets',
+      baseMapStyle: 'osm' as const,
       stateBorders: true,
       counties: false,
-      ghostOutlooks: {},
+      ghostOutlooks: {
+        tornado: false,
+        wind: false,
+        hail: false,
+        categorical: false,
+        totalSevere: false,
+        'day4-8': false,
+      },
       defaultForecasterName: 'Forecaster',
       forecastUiVariant: 'workspace_dock' as const,
       monitorSettings: DEFAULT_MONITOR_SETTINGS,
     };
     expect(readRemoteSettings(validSettings)).toEqual(validSettings);
+    expect(
+      readRemoteSettings({ ...validSettings, defaultForecasterName: 'a'.repeat(100) } as Record<string, unknown>)
+    ).not.toBeNull();
+    expect(
+      readRemoteSettings({ ...validSettings, defaultForecasterName: 'a'.repeat(101) } as Record<string, unknown>)
+    ).toBeNull();
     expect(readRemoteSettings({ darkMode: 'not boolean' } as Record<string, unknown>)).toBeNull();
     expect(readRemoteSettings()).toBeNull();
   });

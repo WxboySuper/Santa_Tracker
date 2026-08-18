@@ -225,7 +225,7 @@ export const readRemoteSettings = (value: Partial<UserSettingsDocument> | undefi
     return null;
   }
 
-  if (typeof defaultForecasterName !== 'string') {
+  if (typeof defaultForecasterName !== 'string' || defaultForecasterName.length > 100) {
     return null;
   }
 

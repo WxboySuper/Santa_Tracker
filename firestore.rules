@@ -196,7 +196,7 @@ service cloud.firestore {
         (!('counties' in data) || data.counties is bool) &&
         (!('ghostOutlooks' in data) || isValidGhostOutlooks(data.ghostOutlooks)) &&
         (!('defaultForecasterName' in data) ||
-          (data.defaultForecasterName is string && data.defaultForecasterName.size() <= 200)) &&
+          (data.defaultForecasterName is string && data.defaultForecasterName.size() <= 100)) &&
         (!('forecastUiVariant' in data) ||
           ['integrated', 'workspace_dock', 'floating_panels', 'tabbed_toolbar'].hasAny([data.forecastUiVariant])) &&
         (!('monitorSettings' in data) || isValidMonitorSettings(data.monitorSettings));
