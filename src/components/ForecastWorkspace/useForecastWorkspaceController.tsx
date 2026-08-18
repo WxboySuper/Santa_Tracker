@@ -10,11 +10,14 @@ import useOutlookPanelLogic from '../OutlookPanel/useOutlookPanelLogic';
 import { isExportMapExposed } from '../../config/productExposureSelectors';
 import { useExportMap } from '../DrawingTools/useExportMap';
 
-import { DayType, OutlookType } from '../../types/outlooks';
+import { DayType, OutlookData, OutlookType } from '../../types/outlooks';
 import { getOutlookColor } from '../../utils/outlookUtils';
 import { useForecastWorkspaceActionHandlers } from './forecastWorkspaceActions';
 
 const OUTLOOK_TYPE_ORDER: OutlookType[] = ['tornado', 'wind', 'hail', 'categorical', 'totalSevere', 'day4-8'];
+const EMPTY_LOW_PROBABILITY_OUTLOOKS: OutlookType[] = [];
+const EMPTY_OUTLOOKS = {} as OutlookData;
+const EMPTY_OUTLOOK_OPACITIES: Partial<Record<OutlookType, number>> = {};
 
 /** Helper to create ghost outlook handlers outside the hook to reduce hook length. */
 function createGhostOutlookHandlers(
@@ -423,13 +426,13 @@ function useForecastWorkspaceCoreState(
   const ghostOutlookState = useSelector((state: RootState) => state.overlays.ghostOutlooks);
   const baseMapStyle = useSelector((state: RootState) => state.overlays.baseMapStyle);
   const lowProbabilityOutlooks = useSelector((state: RootState) =>
-    state.forecast.forecastCycle.days[currentDay]?.metadata?.lowProbabilityOutlooks || []
+    state.forecast.forecastCycle.days[currentDay]?.metadata?.lowProbabilityOutlooks || EMPTY_LOW_PROBABILITY_OUTLOOKS
   );
   const outlooks = useSelector((state: RootState) =>
-    state.forecast.forecastCycle.days[currentDay]?.data || {}
+    state.forecast.forecastCycle.days[currentDay]?.data || EMPTY_OUTLOOKS
   );
   const outlookOpacities = useSelector((state: RootState) =>
-    state.forecast.forecastCycle.days[currentDay]?.metadata?.outlookOpacities || {}
+    state.forecast.forecastCycle.days[currentDay]?.metadata?.outlookOpacities || EMPTY_OUTLOOK_OPACITIES
   );
   const panel = useOutlookPanelLogic();
   const exportState = useExportMap({
