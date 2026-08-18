@@ -15,6 +15,7 @@ describe('betaAccess local bypass', () => {
     expect(isLocalBetaBypassHost('localhost')).toBe(true);
     expect(isLocalBetaBypassHost('127.0.0.1')).toBe(true);
     expect(isLocalBetaBypassHost('devbox.local')).toBe(true);
+    expect(isLocalBetaBypassHost('0.0.0.0')).toBe(false);
     expect(isLocalBetaBypassHost('example.com')).toBe(false);
   });
 

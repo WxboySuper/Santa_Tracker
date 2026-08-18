@@ -12,7 +12,6 @@ export const isLocalBetaBypassHost = (hostname: string): boolean => {
   const normalized = hostname.trim().toLowerCase();
   return (
     normalized === 'localhost' ||
-    normalized === '0.0.0.0' ||
     normalized === '[::1]' ||
     normalized.startsWith('127.') ||
     normalized.endsWith('.local')
