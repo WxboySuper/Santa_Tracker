@@ -1,5 +1,6 @@
 'use strict';
 
+const { randomUUID } = require('node:crypto');
 const Stripe = require('stripe');
 const rateLimit = require('express-rate-limit');
 const { getSubscriptionPeriodEndUnix } = require('./billing-stripe-period');
@@ -25,6 +26,29 @@ const createBillingRateLimitMiddleware = (max) =>
 const checkoutRateLimit = createBillingRateLimitMiddleware(5);
 const portalRateLimit = createBillingRateLimitMiddleware(10);
 const webhookRateLimit = createBillingRateLimitMiddleware(100);
+const MAX_ERROR_MESSAGE_LENGTH = 500;
+
+/** Returns a bounded, single-line diagnostic suitable for server logs. */
+const getBillingErrorMessage = (error) => {
+  const message = error instanceof Error ? error.message : 'Unknown billing error';
+  return message.replace(/[\r\n]+/g, ' ').slice(0, MAX_ERROR_MESSAGE_LENGTH);
+};
+
+/** Sends a stable billing error response while retaining a request-linked diagnostic. */
+const sendBillingError = ({ req, res, error, fallbackMessage, failureCode, statusCode = 500 }) => {
+  const requestId = randomUUID();
+  console.error('[billing] request:error', {
+    requestId,
+    failureCode,
+    path: req.path,
+    errorMessage: getBillingErrorMessage(error),
+    providerCode: error?.code,
+  });
+  res
+    .status(statusCode)
+    .set('X-Request-ID', requestId)
+    .json({ error: fallbackMessage, code: failureCode, requestId });
+};
 
 /** Returns the Stripe SDK client when the current deployment is configured for billing. */
 const getStripeClient = () => {
@@ -651,8 +675,14 @@ const processWebhookRequest = async (req, res, stripe, webhookSecret) => {
     await handleWebhookEvent(event, stripe);
     res.status(200).json({ received: true });
   } catch (error) {
-    console.error('[billing] webhook:error', error);
-    res.status(400).json({ error: error instanceof Error ? error.message : 'Invalid Stripe webhook payload.' });
+    sendBillingError({
+      req,
+      res,
+      error,
+      fallbackMessage: 'Invalid Stripe webhook payload.',
+      failureCode: 'billing_webhook_invalid',
+      statusCode: 400,
+    });
   }
 };
 
@@ -669,11 +699,11 @@ const handleBillingWebhook = async (req, res) => {
 };
 
 /** Generic wrapper for billing JSON routes with shared error handling. */
-const wrapBillingJsonRoute = ({ handler, fallbackMessage }) => async (req, res) => {
+const wrapBillingJsonRoute = ({ handler, fallbackMessage, failureCode }) => async (req, res) => {
   try {
     await handler(req, res);
   } catch (error) {
-    res.status(500).json({ error: error instanceof Error ? error.message : fallbackMessage });
+    sendBillingError({ req, res, error, fallbackMessage, failureCode });
   }
 };
 
@@ -693,6 +723,7 @@ const registerBillingRoutes = (app, express) => {
     wrapBillingJsonRoute({
       handler: handleCheckout,
       fallbackMessage: 'Unable to create checkout session.',
+      failureCode: 'billing_checkout_failed',
     })
   );
   app.post(
@@ -702,6 +733,7 @@ const registerBillingRoutes = (app, express) => {
     wrapBillingJsonRoute({
       handler: handleBillingPortal,
       fallbackMessage: 'Unable to open the billing portal.',
+      failureCode: 'billing_portal_failed',
     })
   );
 };
@@ -711,8 +743,10 @@ module.exports = {
   cleanupBlockedCheckoutSession,
   getCheckoutRefundTarget,
   registerBillingRoutes,
+  wrapBillingJsonRoute,
   __testing: {
     handleWebhookEvent,
+    processWebhookRequest,
     resolveAuthoritativeSubscription,
   },
 };

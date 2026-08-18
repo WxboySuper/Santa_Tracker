@@ -2,7 +2,7 @@
 
 const { describe, it, mock } = require('node:test');
 const assert = require('node:assert/strict');
-const { wrapBillingJsonRoute } = require('./billing');
+const { __testing, wrapBillingJsonRoute } = require('./billing');
 
 /** Creates the small Express response surface used by billing route failures. */
 const createResponse = () => {
@@ -95,5 +95,35 @@ describe('billing route error boundary', () => {
     assert.equal(response.statusCode, 400);
     assert.deepEqual(response.body, { error: 'Invalid billing plan selected.' });
     assert.deepEqual(response.headers, {});
+  });
+
+  it('does not expose webhook construction errors', async () => {
+    const providerMessage = 'Stripe signature details should stay server-side';
+    const response = createResponse();
+    const errorLog = mock.method(console, 'error', () => {});
+    const stripe = {
+      webhooks: {
+        constructEvent: () => {
+          throw new Error(providerMessage);
+        },
+      },
+    };
+
+    try {
+      await __testing.processWebhookRequest(
+        { path: '/api/billing/webhook', body: '{}', headers: { 'stripe-signature': 'bad' } },
+        response,
+        stripe,
+        'secret'
+      );
+    } finally {
+      errorLog.mock.restore();
+    }
+
+    assert.equal(response.statusCode, 400);
+    assert.equal(response.body.error, 'Invalid Stripe webhook payload.');
+    assert.equal(response.body.code, 'billing_webhook_invalid');
+    assert.equal(response.headers['X-Request-ID'], response.body.requestId);
+    assert.equal(JSON.stringify(response.body).includes(providerMessage), false);
   });
 });
