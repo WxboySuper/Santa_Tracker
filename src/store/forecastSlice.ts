@@ -713,7 +713,8 @@ export const forecastSlice = createSlice({
     },
 
     toggleSignificant: (state) => {
-      state.drawingState.isSignificant = false;
+      state.drawingState.isSignificant = !state.drawingState.isSignificant;
+      state.isSaved = false;
     },
 
     ...createCustomLayerReducers(pushUndoSnapshot),

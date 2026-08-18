@@ -37,6 +37,7 @@ import reducer, {
   selectOutlooksForDay,
   setOutlookOpacity,
   selectCurrentOutlookOpacity,
+  toggleSignificant,
 } from './forecastSlice';
 
 const createPolygon = (offset: number): Polygon => ({
@@ -100,6 +101,19 @@ const createStateWithCategoricalFeatures = () => {
   );
   return state;
 };
+
+describe('toggleSignificant', () => {
+  test('toggles the significant flag and marks the forecast unsaved', () => {
+    let state = reducer(undefined, markAsSaved());
+
+    state = reducer(state, toggleSignificant());
+    expect(state.drawingState.isSignificant).toBe(true);
+    expect(state.isSaved).toBe(false);
+
+    state = reducer(state, toggleSignificant());
+    expect(state.drawingState.isSignificant).toBe(false);
+  });
+});
 
 const getCategoricalFeatureId = (
   state: ReturnType<typeof reducer>,
