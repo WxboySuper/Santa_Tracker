@@ -2,6 +2,7 @@
 
 const SENTRY_DSN_PATTERN =
   /^https:\/\/(?:[^@/]+@)?(o\d+\.ingest(?:\.[a-z]{2})?\.sentry\.io)\/(\d+)\/?$/iu;
+const SENTRY_UPSTREAM_TIMEOUT_MS = 5000;
 
 /** @returns {{ host: string, projectId: string } | null} Parsed ingest target from a Sentry DSN string. */
 function parseSentryDsnString(dsnString) {
@@ -64,6 +65,72 @@ function clientEndpointMatchesConfigured(clientEndpoint, configuredEndpoint) {
   );
 }
 
+const attachUpstreamAbortHandlers = (req, res, controller) => {
+  const abortIfDisconnected = () => {
+    if (req.destroyed || res.destroyed) {
+      controller.abort();
+    }
+  };
+  req.once('close', abortIfDisconnected);
+  res.once('close', abortIfDisconnected);
+
+  return () => {
+    req.removeListener('close', abortIfDisconnected);
+    res.removeListener('close', abortIfDisconnected);
+  };
+};
+
+const endResponseIfWritable = (res, status) => {
+  if (!res.destroyed && !res.headersSent) {
+    res.status(status).end();
+  }
+};
+
+const forwardSentryEnvelope = async (targetUrl, req, res, envelopeBody) => {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), SENTRY_UPSTREAM_TIMEOUT_MS);
+  const removeAbortHandlers = attachUpstreamAbortHandlers(req, res, controller);
+
+  try {
+    const upstream = await fetch(targetUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-sentry-envelope' },
+      body: envelopeBody,
+      signal: controller.signal,
+    });
+    endResponseIfWritable(res, upstream.status);
+  } catch (error) {
+    if (error?.name !== 'AbortError') {
+      throw error;
+    }
+    endResponseIfWritable(res, 504);
+  } finally {
+    clearTimeout(timeoutId);
+    removeAbortHandlers();
+  }
+};
+
+const createSentryTunnelHandler = (targetUrl, configuredEndpoint) => async (req, res) => {
+  try {
+    const envelopeBody = req.body;
+    if (!envelopeBody || !envelopeBody.length) {
+      res.status(400).end();
+      return;
+    }
+
+    const clientEndpoint = parseAllowedSentryEndpoint(envelopeBody);
+    if (!clientEndpointMatchesConfigured(clientEndpoint, configuredEndpoint)) {
+      res.status(400).end();
+      return;
+    }
+
+    await forwardSentryEnvelope(targetUrl, req, res, envelopeBody);
+  } catch (err) {
+    console.error('[analytics] sentry tunnel failed:', err);
+    endResponseIfWritable(res, 500);
+  }
+};
+
 /** Registers POST /api/sentry-tunnel to proxy browser envelopes past ad blockers. */
 function registerSentryTunnelRoutes(app, express, rateLimit) {
   const configuredEndpoint = getConfiguredSentryEndpoint();
@@ -87,34 +154,7 @@ function registerSentryTunnelRoutes(app, express, rateLimit) {
     '/api/sentry-tunnel',
     tunnelRateLimit,
     express.raw({ type: () => true, limit: '100kb' }),
-    async (req, res) => {
-      try {
-        const envelopeBody = req.body;
-        if (!envelopeBody || !envelopeBody.length) {
-          res.status(400).end();
-          return;
-        }
-
-        const clientEndpoint = parseAllowedSentryEndpoint(envelopeBody);
-        if (!clientEndpointMatchesConfigured(clientEndpoint, configuredEndpoint)) {
-          res.status(400).end();
-          return;
-        }
-
-        const upstream = await fetch(targetUrl, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/x-sentry-envelope',
-          },
-          body: envelopeBody,
-        });
-
-        res.status(upstream.status).end();
-      } catch (err) {
-        console.error('[analytics] sentry tunnel failed:', err);
-        res.status(500).end();
-      }
-    }
+    createSentryTunnelHandler(targetUrl, configuredEndpoint)
   );
 }
 
