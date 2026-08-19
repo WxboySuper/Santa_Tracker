@@ -157,6 +157,11 @@ const readEntitlementDocument = (value: Partial<UserEntitlementDocument> | undef
 
 /** Redirects the browser to a server-issued Stripe flow URL. */
 const redirectToBillingUrl = (url: string) => {
+  const parsed = new URL(url, window.location.origin);
+  const allowedHosts = new Set(['checkout.stripe.com', 'billing.stripe.com']);
+  if (parsed.protocol !== 'https:' || !allowedHosts.has(parsed.hostname)) {
+    throw new Error('Billing returned an invalid redirect URL.');
+  }
   window.location.assign(url);
 };
 

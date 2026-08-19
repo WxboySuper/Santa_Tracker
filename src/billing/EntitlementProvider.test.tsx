@@ -100,7 +100,7 @@ describe('EntitlementProvider', () => {
       })
       .mockResolvedValueOnce({ // checkout action
         ok: true,
-        json: () => Promise.resolve({ url: 'https://stripe.com/checkout' }),
+        json: () => Promise.resolve({ url: 'https://checkout.stripe.com/checkout' }),
       });
 
     const { result } = renderHook(() => useEntitlement(), {
@@ -139,6 +139,35 @@ describe('EntitlementProvider', () => {
     await act(async () => {
       await expect(result.current.openCheckout('monthly')).rejects.toThrow('Sign in before starting billing actions.');
     });
+  });
+
+  test('openCheckout rejects redirect URLs outside the Stripe allowlist', async () => {
+    (useAuth as jest.Mock).mockReturnValue({
+      hostedAuthEnabled: true,
+      status: 'signed_in',
+      user: { uid: 'user-123', getIdToken: jest.fn().mockResolvedValue('token') },
+    });
+    (global.fetch as jest.Mock)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ billingEnabled: true, checkoutEnabled: true }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ url: 'https://checkout.stripe.com.evil.example/checkout' }),
+      });
+
+    const { result } = renderHook(() => useEntitlement(), {
+      wrapper: ({ children }) => <EntitlementProvider>{children}</EntitlementProvider>,
+    });
+
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+
+    await expect(result.current.openCheckout('monthly')).rejects.toThrow(
+      'Billing returned an invalid redirect URL.'
+    );
   });
 
   const expectCheckoutBlocked = async ({
