@@ -166,6 +166,15 @@ describe('neighborhood', () => {
       expect(isWithinNeighborhood(outside, [origin])).toBe(false);
     });
 
+    it('keeps a high-latitude point inside the radius after the coordinate prefilter', () => {
+      const origin = report({ latitude: 60, longitude: -97 });
+      const inside = turf.destination([-97, 60], SPC_NEIGHBORHOOD_MILES - 0.1, 90, {
+        units: 'miles',
+      }).geometry.coordinates;
+
+      expect(isWithinNeighborhood(inside, [origin])).toBe(true);
+    });
+
     it('buffers reports into an observed footprint and counts nearby reports', () => {
       const reports = [
         report({ id: 'a', latitude: 35, longitude: -97 }),
@@ -185,6 +194,18 @@ describe('neighborhood', () => {
       ];
       expect(forecastProbabilityAt([-97, 35], contours)).toBe(0.3);
       expect(forecastProbabilityAt([-120, 45], contours)).toBe(0);
+    });
+
+    it('uses the cached contour bounds as a conservative prefilter', () => {
+      const contour = {
+        probability: 0.3,
+        isSignificant: true,
+        polygon: squarePolygon(-98, 34, -96, 36),
+        bounds: [-97.5, 34.5, -96.5, 35.5] as [number, number, number, number],
+      };
+
+      expect(forecastProbabilityAt([-97, 35], [contour])).toBe(0.3);
+      expect(forecastProbabilityAt([-97.8, 35.8], [contour])).toBe(0);
     });
   });
 
