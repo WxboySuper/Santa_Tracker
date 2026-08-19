@@ -1,6 +1,7 @@
 'use strict';
 
 const { getAdminAuth, getAdminDb, hasFirebaseAdminConfig } = require('./firebase-admin');
+const { normalizeMetadata } = require('./cloud-cycle-metadata');
 const MAX_CLOUD_CYCLES = 100;
 const MAX_PAYLOAD_BYTES = 750000;
 
@@ -17,13 +18,13 @@ const hasValidCyclePayload = ({ cycleDate, payloadJson }) => {
   const bytes = typeof payloadJson === 'string' ? getPayloadBytes(payloadJson) : -1;
   return typeof cycleDate === 'string' && cycleDate.length <= 32 && typeof payloadJson === 'string' && bytes <= MAX_PAYLOAD_BYTES;
 };
-const hasValidMetadata = (metadata) => Boolean(metadata) && typeof metadata === 'object' && !Array.isArray(metadata);
 const readCloudCycleRequest = (body, uid) => {
   const { id, userId, label, cycleDate, payloadJson, metadata } = body || {};
   if (!hasValidCycleIdentity({ userId, id, label }, uid)) return null;
   if (!hasValidCyclePayload({ cycleDate, payloadJson })) return null;
-  if (!hasValidMetadata(metadata)) return null;
-  return { id, label, cycleDate, payloadJson, payloadBytes: getPayloadBytes(payloadJson), metadata };
+  const normalizedMetadata = normalizeMetadata(metadata);
+  if (!normalizedMetadata) return null;
+  return { id, label, cycleDate, payloadJson, payloadBytes: getPayloadBytes(payloadJson), metadata: normalizedMetadata };
 };
 
 const saveCloudCycle = async (db, uid, cycle) => {
