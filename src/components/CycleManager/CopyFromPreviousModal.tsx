@@ -2,7 +2,7 @@ import React, { useRef, useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { selectCurrentDay, copyFeaturesFromPrevious } from '../../store/forecastSlice';
 import { DayType, ForecastCycle } from '../../types/outlooks';
-import { deserializeForecast } from '../../utils/fileUtils';
+import { deserializeForecast, validateForecastData } from '../../utils/fileUtils';
 import { useAppLayout } from '../Layout/AppLayout';
 import { useModalFocusTrap } from '../../hooks/useModalFocusTrap';
 import './CopyFromPreviousModal.css';
@@ -27,6 +27,9 @@ const readFileAsText = (file: File): Promise<string> =>
 const parseForecastFile = async (file: File): Promise<ForecastCycle> => {
   const content = await readFileAsText(file);
   const parsed = JSON.parse(content);
+  if (!validateForecastData(parsed)) {
+    throw new Error('Invalid GFC forecast file.');
+  }
   return deserializeForecast(parsed);
 };
 

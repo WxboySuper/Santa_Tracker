@@ -41,9 +41,11 @@ jest.mock('../../utils/fileUtils', () => ({
     days: {},
     ...data
   })),
+  validateForecastData: jest.fn(() => true),
   cloneForecastCycle: jest.fn((cycle) => JSON.parse(JSON.stringify(cycle))),
   cloneForecastDay: jest.fn((day) => JSON.parse(JSON.stringify(day)))
 }));
+const mockValidateForecastData = jest.requireMock('../../utils/fileUtils').validateForecastData as jest.Mock;
 
 type ForecastStateOverrides = {
   forecastCycle?: Partial<ForecastState['forecastCycle']>;
@@ -288,7 +290,7 @@ describe('CycleManager Components', () => {
     it('handles successful file loading', async () => {
       renderCopyFromPreviousModal();
 
-      const file = new File(['{"cycleDate": "2026-04-21"}'], 'forecast.json', { type: 'application/json' });
+      const file = new File(['{"cycleDate": "2026-04-21", "outlooks": {}}'], 'forecast.json', { type: 'application/json' });
       const input = screen.getByLabelText(/Load Forecast File:/i);
 
       // Trigger file load
@@ -313,6 +315,21 @@ describe('CycleManager Components', () => {
 
       await waitFor(() => {
         expect(mockAddToast).toHaveBeenCalledWith(expect.stringContaining('Failed to load forecast file'), 'error');
+      });
+    });
+
+    it('rejects parseable but invalid forecast files', async () => {
+      mockValidateForecastData.mockReturnValueOnce(false);
+      renderCopyFromPreviousModal();
+
+      const file = new File(['{"not": "a forecast"}'], 'invalid-shape.json', { type: 'application/json' });
+      fireEvent.change(screen.getByLabelText(/Load Forecast File:/i), { target: { files: [file] } });
+
+      await waitFor(() => {
+        expect(mockAddToast).toHaveBeenCalledWith(
+          expect.stringContaining('Failed to load forecast file'),
+          'error'
+        );
       });
     });
 
