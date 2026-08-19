@@ -1171,6 +1171,29 @@ describe('forecastSlice undo/redo', () => {
       expect(selectOutlooksForDay(state, 4)).toBe(selectOutlooksForDay(state, 4));
     });
 
+    it('selectOutlooksForDay returns a safe fallback for an unknown day', () => {
+      const base = reducer(undefined, setForecastDay(1));
+      const state = withForecast(base);
+      const fallback = selectOutlooksForDay(state, 99 as DayType);
+
+      expect(fallback).toBeDefined();
+      expect(fallback['day4-8']).toBeInstanceOf(Map);
+      expect(fallback).toBe(selectOutlooksForDay(state, 99 as DayType));
+    });
+
+    it('selectCurrentOutlooks returns a safe fallback for an unknown current day', () => {
+      const base = reducer(undefined, setForecastDay(1));
+      const state = withForecast({
+        ...base,
+        forecastCycle: { ...base.forecastCycle, currentDay: 99 as DayType },
+      });
+      const fallback = selectCurrentOutlooks(state);
+
+      expect(fallback).toBeDefined();
+      expect(fallback['day4-8']).toBeInstanceOf(Map);
+      expect(fallback).toBe(selectCurrentOutlooks(state));
+    });
+
     it('does not expose the shared fallback as the current day data for a real day', () => {
       const forecastState = reducer(undefined, setForecastDay(1));
       const real = forecastState.forecastCycle.days[1]?.data;
