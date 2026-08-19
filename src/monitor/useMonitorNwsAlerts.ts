@@ -15,10 +15,10 @@ interface UseMonitorNwsAlertsArgs {
   addToast: AddToastFn;
 }
 
-const emptyCollection = (): NwsAlertFeatureCollection => ({
+const EMPTY_COLLECTION: NwsAlertFeatureCollection = {
   type: 'FeatureCollection',
   features: [],
-});
+};
 
 export const useMonitorNwsAlerts = ({
   enabled,
@@ -70,14 +70,14 @@ export const useMonitorNwsAlerts = ({
 
   const activeCollection = useMemo(() => {
     if (!enabled || filteredFrames.length === 0) {
-      return emptyCollection();
+      return EMPTY_COLLECTION;
     }
 
     if (animationEnabled && filteredFrames.length > 1) {
-      return filteredFrames[frameIndex] ?? filteredFrames[filteredFrames.length - 1] ?? emptyCollection();
+      return filteredFrames[frameIndex] ?? filteredFrames[filteredFrames.length - 1] ?? EMPTY_COLLECTION;
     }
 
-    return filteredFrames[filteredFrames.length - 1] ?? emptyCollection();
+    return filteredFrames[filteredFrames.length - 1] ?? EMPTY_COLLECTION;
   }, [animationEnabled, enabled, filteredFrames, frameIndex]);
 
   return {

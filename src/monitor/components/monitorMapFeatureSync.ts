@@ -17,11 +17,21 @@ export interface SerializedMonitorOutlookFeature {
   feature: object;
 }
 
+// These caches are valid because each source is exclusively reconciled by its
+// corresponding sync function; callers must use a new input reference after
+// mutating or externally clearing a source.
+const lastOutlookInput = new WeakMap<VectorSource, SerializedMonitorOutlookFeature[]>();
+const lastAlertInput = new WeakMap<VectorSource, NwsAlertFeatureCollection>();
+const lastReportInput = new WeakMap<VectorSource, StormReport[]>();
+const lastMesoscaleInput = new WeakMap<VectorSource, MonitorMesoscaleDiscussionCollection>();
+
 /** Replaces the monitor outlook vector source with serialized outlook features. */
 export const syncOutlookFeatures = (
   source: VectorSource,
   serializedFeatures: SerializedMonitorOutlookFeature[],
 ) => {
+  if (lastOutlookInput.get(source) === serializedFeatures) return;
+  lastOutlookInput.set(source, serializedFeatures);
   source.clear();
   const format = new GeoJSON();
 
@@ -55,6 +65,8 @@ export const syncAlertFeatures = (
   source: VectorSource,
   alertsCollection: NwsAlertFeatureCollection,
 ) => {
+  if (lastAlertInput.get(source) === alertsCollection) return;
+  lastAlertInput.set(source, alertsCollection);
   source.clear();
   const format = new GeoJSON();
 
@@ -83,6 +95,8 @@ export const syncAlertFeatures = (
 
 /** Replaces the monitor storm report source with point features. */
 export const syncStormReportFeatures = (source: VectorSource, stormReports: StormReport[]) => {
+  if (lastReportInput.get(source) === stormReports) return;
+  lastReportInput.set(source, stormReports);
   source.clear();
 
   stormReports.forEach((report) => {
@@ -101,6 +115,8 @@ export const syncMesoscaleDiscussionFeatures = (
   source: VectorSource,
   collection: MonitorMesoscaleDiscussionCollection,
 ) => {
+  if (lastMesoscaleInput.get(source) === collection) return;
+  lastMesoscaleInput.set(source, collection);
   source.clear();
   const format = new GeoJSON();
 
