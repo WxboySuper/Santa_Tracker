@@ -1,16 +1,15 @@
 import { useEffect } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
 import type { AddToastFn } from '../components/Layout';
-import { fetchActiveNwsAlerts, snapshotCollectionKey, type NwsAlertFeatureCollection } from './nwsAlerts';
+import { fetchActiveNwsAlerts, snapshotCollectionsEqual, type NwsAlertFeatureCollection } from './nwsAlerts';
 import { MAX_ANIMATION_FRAMES } from './wms';
 
 const appendSnapshotFrame = (
   current: NwsAlertFeatureCollection[],
   collection: NwsAlertFeatureCollection,
 ): NwsAlertFeatureCollection[] => {
-  const snapshotKey = snapshotCollectionKey(collection);
   const last = current[current.length - 1];
-  if (last && snapshotCollectionKey(last) === snapshotKey) {
+  if (last && snapshotCollectionsEqual(last, collection)) {
     return current;
   }
 

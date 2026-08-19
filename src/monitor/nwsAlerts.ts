@@ -1,8 +1,10 @@
 import type { FeatureCollection } from 'geojson';
 import { Fill, Stroke, Style } from 'ol/style';
 
-export const NWS_ACTIVE_ALERTS_URL = 'https://api.weather.gov/alerts/active?status=actual';
 export const NWS_API_USER_AGENT = 'GraphicalForecastCreator/1.6 (monitor)';
+export const MAX_ACTIVE_ALERTS = 500;
+export const NWS_ACTIVE_ALERTS_URL =
+  `https://api.weather.gov/alerts/active?status=actual&limit=${MAX_ACTIVE_ALERTS}`;
 
 export type NwsAlertCategory = 'watch' | 'warning' | 'advisory' | 'statement' | 'other';
 
@@ -98,16 +100,55 @@ export const fetchActiveNwsAlerts = async (): Promise<NwsAlertFeatureCollection>
   const payload = await response.json() as NwsAlertFeatureCollection;
   return {
     type: 'FeatureCollection',
-    features: Array.isArray(payload.features) ? payload.features : [],
+    features: Array.isArray(payload.features) ? payload.features.slice(0, MAX_ACTIVE_ALERTS) : [],
   };
 };
 
-export const snapshotCollectionKey = (collection: NwsAlertFeatureCollection): string =>
-  collection.features
-    .map((feature) => {
-      const id = feature.id ?? feature.properties?.id ?? '';
-      const updated = feature.properties?.updated ?? '';
-      return `${String(id)}:${String(updated)}`;
-    })
-    .sort()
-    .join('|');
+const alertSnapshotTokens = (collection: NwsAlertFeatureCollection): string[] =>
+  collection.features.map((feature) => {
+    const id = feature.id ?? feature.properties?.id ?? '';
+    const updated = feature.properties?.updated ?? '';
+    return `${String(id)}:${String(updated)}|`;
+  });
+
+/** Hash alert identities so frame comparisons do not retain a second full ID string. */
+export const snapshotCollectionKey = (collection: NwsAlertFeatureCollection): string => {
+  let firstHash = 0;
+  let secondHash = 0;
+  for (const token of alertSnapshotTokens(collection)) {
+    let firstTokenHash = 2166136261;
+    let secondTokenHash = 2246822519;
+    for (const character of token) {
+      const code = character.charCodeAt(0);
+      firstTokenHash = Math.imul(firstTokenHash ^ code, 16777619);
+      secondTokenHash = Math.imul(secondTokenHash ^ code, 3266489917);
+    }
+    firstHash = (firstHash + firstTokenHash) >>> 0;
+    secondHash ^= secondTokenHash;
+  }
+  return `${collection.features.length}:${firstHash >>> 0}:${secondHash >>> 0}`;
+};
+
+/** Compares alert snapshots exactly after the bounded digest passes. */
+export const snapshotCollectionsEqual = (
+  left: NwsAlertFeatureCollection,
+  right: NwsAlertFeatureCollection,
+): boolean => {
+  if (left.features.length !== right.features.length
+    || snapshotCollectionKey(left) !== snapshotCollectionKey(right)) {
+    return false;
+  }
+
+  const rightCounts = new Map<string, number>();
+  alertSnapshotTokens(right).forEach((token) => {
+    rightCounts.set(token, (rightCounts.get(token) ?? 0) + 1);
+  });
+  return alertSnapshotTokens(left).every((token) => {
+    const count = rightCounts.get(token) ?? 0;
+    if (count === 0) {
+      return false;
+    }
+    rightCounts.set(token, count - 1);
+    return true;
+  });
+};

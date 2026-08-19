@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
-import { fetchActiveNwsAlerts, snapshotCollectionKey, type NwsAlertFeatureCollection } from './nwsAlerts';
+import { fetchActiveNwsAlerts, snapshotCollectionsEqual, type NwsAlertFeatureCollection } from './nwsAlerts';
 import { MAX_ANIMATION_FRAMES } from './wms';
 
 const appendSnapshotFrame = (
@@ -8,7 +8,7 @@ const appendSnapshotFrame = (
   collection: NwsAlertFeatureCollection,
 ): NwsAlertFeatureCollection[] => {
   const last = current[current.length - 1];
-  if (last && snapshotCollectionKey(last) === snapshotCollectionKey(collection)) {
+  if (last && snapshotCollectionsEqual(last, collection)) {
     return current;
   }
 
