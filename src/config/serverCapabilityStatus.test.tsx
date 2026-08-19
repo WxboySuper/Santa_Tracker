@@ -20,6 +20,7 @@ describe('serverCapabilityStatus', () => {
   afterEach(() => {
     resetServerCapabilityStatusState();
     jest.restoreAllMocks();
+    jest.useRealTimers();
   });
 
   test('fails closed before status is loaded', () => {
@@ -148,6 +149,75 @@ describe('serverCapabilityStatus', () => {
       await waitFor(() => {
         expect(screen.getByText('unavailable')).toBeInTheDocument();
       });
+    } finally {
+      global.fetch = originalFetch;
+    }
+  });
+
+  test('retries a transient failure and recovers after the scheduled retry', async () => {
+    jest.useFakeTimers();
+    const firstFailure = Promise.reject(new Error('network'));
+    const originalFetch = global.fetch;
+    global.fetch = jest.fn()
+      .mockReturnValueOnce(firstFailure)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          capabilities: {
+            TSTM_GENERATION_ENABLED: { available: true, reason: 'available' },
+          },
+        }),
+      }) as jest.Mock;
+
+    try {
+      await expect(loadSharedServerCapabilityStatus()).resolves.toMatchObject({ loaded: false });
+      expect(global.fetch).toHaveBeenCalledTimes(1);
+      jest.advanceTimersByTime(5000);
+      await Promise.resolve();
+      await expect(loadSharedServerCapabilityStatus()).resolves.toMatchObject({
+        loaded: true,
+        capabilities: { TSTM_GENERATION_ENABLED: { available: true } },
+      });
+      expect(global.fetch).toHaveBeenCalledTimes(2);
+    } finally {
+      global.fetch = originalFetch;
+    }
+  });
+
+  test('coalesces retry timers and cancels them on reset', async () => {
+    jest.useFakeTimers();
+    const originalFetch = global.fetch;
+    global.fetch = jest.fn().mockRejectedValue(new Error('network')) as jest.Mock;
+
+    try {
+      await Promise.all([
+        loadSharedServerCapabilityStatus(),
+        loadSharedServerCapabilityStatus(),
+      ]);
+      expect(global.fetch).toHaveBeenCalledTimes(1);
+      resetServerCapabilityStatusState();
+      jest.advanceTimersByTime(5000);
+      await Promise.resolve();
+      expect(global.fetch).toHaveBeenCalledTimes(1);
+    } finally {
+      global.fetch = originalFetch;
+    }
+  });
+
+  test('falls back to unavailable after the retry budget is exhausted', async () => {
+    jest.useFakeTimers();
+    const originalFetch = global.fetch;
+    global.fetch = jest.fn().mockRejectedValue(new Error('network')) as jest.Mock;
+
+    try {
+      await loadSharedServerCapabilityStatus();
+      jest.advanceTimersByTime(5000);
+      await Promise.resolve();
+      await loadSharedServerCapabilityStatus();
+      jest.advanceTimersByTime(5000);
+      await Promise.resolve();
+      await expect(loadSharedServerCapabilityStatus()).resolves.toMatchObject({ loaded: true });
+      expect(global.fetch).toHaveBeenCalledTimes(3);
     } finally {
       global.fetch = originalFetch;
     }
