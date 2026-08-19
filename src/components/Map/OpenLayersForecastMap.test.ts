@@ -39,7 +39,7 @@ import {
   createCustomFill,
   toCustomOlStyle,
 } from './openLayersMapStyles';
-import { removeDrawInteraction } from './OpenLayersForecastMap';
+import { getCustomStyleSignature, removeDrawInteraction } from './OpenLayersForecastMap';
 
 type FeatureStub = {
   get: (key: string) => unknown;
@@ -70,6 +70,20 @@ describe('OpenLayersForecastMap helpers', () => {
 
   afterAll(() => {
     document.createElement = originalCreateElement;
+  });
+
+  test('custom style signature changes when any rendered style field changes', () => {
+    const style = {
+      fillColor: '#112233', fillOpacity: 0.5, strokeColor: '#445566',
+      strokeOpacity: 0.8, strokeWidth: 2, hatch: 'none' as const,
+    };
+    const baseline = getCustomStyleSignature(style, false);
+
+    (Object.keys(style) as Array<keyof typeof style>).forEach((field) => {
+      const changed = { ...style, [field]: field === 'hatch' ? 'diagonal' : field === 'strokeWidth' ? 3 : field === 'fillOpacity' ? 0.6 : field === 'strokeOpacity' ? 0.9 : '#aabbcc' };
+      expect(getCustomStyleSignature(changed, false)).not.toBe(baseline);
+    });
+    expect(getCustomStyleSignature(style, true)).not.toBe(baseline);
   });
 
   test('toRgbaColor handles empty, hex (3/6), rgb/rgba and invalid values', () => {
