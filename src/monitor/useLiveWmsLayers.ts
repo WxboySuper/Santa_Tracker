@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import type { AddToastFn } from '../components/Layout';
 import type { WmsLayerConfig } from './wms';
 import {
@@ -27,8 +27,21 @@ export const useLiveWmsLayers = ({
   refreshToken,
   addToast,
 }: UseLiveWmsLayersArgs) => {
-  const [radarPlayback, setRadarPlayback] = useState<LayerPlaybackState>(emptyPlayback);
-  const [satellitePlayback, setSatellitePlayback] = useState<LayerPlaybackState>(emptyPlayback);
+  const [playback, setPlayback] = useState({ radar: emptyPlayback(), satellite: emptyPlayback() });
+  const radarPlayback = playback.radar;
+  const satellitePlayback = playback.satellite;
+  const setRadarPlayback = useCallback((update: LayerPlaybackState | ((current: LayerPlaybackState) => LayerPlaybackState)) => {
+    setPlayback((current) => ({
+      ...current,
+      radar: typeof update === 'function' ? update(current.radar) : update,
+    }));
+  }, []);
+  const setSatellitePlayback = useCallback((update: LayerPlaybackState | ((current: LayerPlaybackState) => LayerPlaybackState)) => {
+    setPlayback((current) => ({
+      ...current,
+      satellite: typeof update === 'function' ? update(current.satellite) : update,
+    }));
+  }, []);
 
   useLoadWmsLayerFrames({
     config: radarConfig,
@@ -54,8 +67,7 @@ export const useLiveWmsLayers = ({
     shouldAnimate,
     frameSignature,
     animationSpeedMs,
-    setRadarPlayback,
-    setSatellitePlayback,
+    setPlayback,
   });
 
   return {
