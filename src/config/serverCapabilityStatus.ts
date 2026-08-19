@@ -3,12 +3,15 @@ import { getFeatureExposure, type FeatureKey } from './featureExposure';
 
 export const CAPABILITY_STATUS_ENDPOINT = '/api/capabilities/status';
 
-export type CapabilityAvailabilityReason =
-  | 'available'
-  | 'registry_disabled'
-  | 'deployment_disabled'
-  | 'emergency_disabled'
-  | 'unknown';
+export const CAPABILITY_AVAILABILITY_REASONS = [
+  'available',
+  'registry_disabled',
+  'deployment_disabled',
+  'emergency_disabled',
+  'unknown',
+] as const;
+
+export type CapabilityAvailabilityReason = typeof CAPABILITY_AVAILABILITY_REASONS[number];
 
 export type CapabilityStatusEntry = {
   available: boolean;
@@ -69,6 +72,34 @@ export const getServerCapabilityKeyForFeature = (feature: FeatureKey): string | 
   return definition.serverCapabilityKey;
 };
 
+const isCapabilityStatusReason = (reason: unknown): reason is CapabilityAvailabilityReason =>
+  typeof reason === 'string'
+  && CAPABILITY_AVAILABILITY_REASONS.includes(reason as CapabilityAvailabilityReason);
+
+const isRecord = (value: unknown): value is Record<string, unknown> => {
+  if (value === null || typeof value !== 'object') {
+    return false;
+  }
+
+  return !Array.isArray(value);
+};
+
+const isCapabilityStatusEntry = (entry: unknown): entry is CapabilityStatusEntry => {
+  if (!isRecord(entry)) {
+    return false;
+  }
+
+  if (Object.keys(entry).some((key) => key !== 'available' && key !== 'reason')) {
+    return false;
+  }
+
+  if (typeof entry.available !== 'boolean') {
+    return false;
+  }
+
+  return isCapabilityStatusReason(entry.reason);
+};
+
 /** Returns true when the payload matches the public capability status shape. */
 export const isServerCapabilityStatusResponse = (
   payload: unknown
@@ -77,7 +108,11 @@ export const isServerCapabilityStatusResponse = (
     return false;
   }
 
-  return typeof (payload as ServerCapabilityStatusResponse).capabilities === 'object';
+  const capabilities = (payload as { capabilities?: unknown }).capabilities;
+  return Boolean(
+    isRecord(capabilities)
+      && Object.values(capabilities).every(isCapabilityStatusEntry)
+  );
 };
 
 /** Reads the public server capability status document. */

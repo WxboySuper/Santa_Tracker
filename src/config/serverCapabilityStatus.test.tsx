@@ -1,6 +1,7 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import {
   fetchServerCapabilityStatus,
+  isServerCapabilityStatusResponse,
   isServerCapabilityAvailable,
   loadSharedServerCapabilityStatus,
   markServerCapabilityUnavailable,
@@ -78,6 +79,61 @@ describe('serverCapabilityStatus', () => {
           },
         },
       });
+    } finally {
+      global.fetch = originalFetch;
+    }
+  });
+
+  test('rejects capability entries with invalid fields', () => {
+    expect(isServerCapabilityStatusResponse({
+      capabilities: {
+        TSTM_GENERATION_ENABLED: { available: 'yes', reason: 'available' },
+      },
+    })).toBe(false);
+    expect(isServerCapabilityStatusResponse({
+      capabilities: {
+        TSTM_GENERATION_ENABLED: { available: true, reason: 'not-a-reason' },
+      },
+    })).toBe(false);
+    expect(isServerCapabilityStatusResponse({
+      capabilities: {
+        TSTM_GENERATION_ENABLED: {
+          available: true,
+          reason: 'available',
+          extra: true,
+        },
+      },
+    })).toBe(false);
+  });
+
+  test('accepts every documented reason and empty capability maps', () => {
+    expect(isServerCapabilityStatusResponse({ capabilities: {} })).toBe(true);
+    expect(isServerCapabilityStatusResponse({
+      capabilities: {
+        available: { available: true, reason: 'available' },
+        registry: { available: false, reason: 'registry_disabled' },
+        deployment: { available: false, reason: 'deployment_disabled' },
+        emergency: { available: false, reason: 'emergency_disabled' },
+        unknown: { available: false, reason: 'unknown' },
+      },
+    })).toBe(true);
+  });
+
+  test('rejects malformed payloads at the fetch boundary', async () => {
+    const originalFetch = global.fetch;
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        capabilities: {
+          TSTM_GENERATION_ENABLED: { available: 'yes', reason: 'available' },
+        },
+      }),
+    }) as jest.Mock;
+
+    try {
+      await expect(fetchServerCapabilityStatus()).rejects.toThrow(
+        'Server capability status response was malformed.'
+      );
     } finally {
       global.fetch = originalFetch;
     }
