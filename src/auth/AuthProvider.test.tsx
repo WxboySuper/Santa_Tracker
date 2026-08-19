@@ -26,6 +26,7 @@ import {
   postLocalJson,
   readProfileBetaAccess,
   runInitialHostedSync,
+  attachHostedSettingsSubscription,
   readRemoteSettings,
   safeParseJson,
   seedOrApplySettings,
@@ -676,6 +677,21 @@ describe('AuthProvider Utils', () => {
     expect(setSettingsSyncStatus).toHaveBeenCalledWith('syncing');
     expect(setSettingsSyncStatus).toHaveBeenCalledWith('synced');
     expect(typeof unsubscribeResult).toBe('function');
+  });
+
+  test('cleans up a listener that resolves after hosted settings cleanup', async () => {
+    const unsubscribe = jest.fn();
+    const setSubscription = jest.fn();
+    let active = true;
+
+    const subscriptionPromise = Promise.resolve(unsubscribe);
+    const handoff = attachHostedSettingsSubscription(subscriptionPromise, () => active, setSubscription);
+    active = false;
+
+    await handoff;
+
+    expect(unsubscribe).toHaveBeenCalledTimes(1);
+    expect(setSubscription).not.toHaveBeenCalled();
   });
 });
 

@@ -627,6 +627,21 @@ export const runInitialHostedSync = async (opts: {
   }
 };
 
+/** Stores a late-created listener only while its effect is still active. */
+export const attachHostedSettingsSubscription = (
+  subscriptionPromise: Promise<Unsubscribe | undefined>,
+  isActive: () => boolean,
+  setSubscription: (unsubscribe: Unsubscribe) => void,
+): Promise<void> => subscriptionPromise.then((nextUnsubscribe) => {
+  if (!isActive()) {
+    nextUnsubscribe?.();
+    return;
+  }
+  if (nextUnsubscribe) {
+    setSubscription(nextUnsubscribe);
+  }
+});
+
 /**
  * Initializes local-only auth state by probing the dev server's /api/local/profile endpoint.
  * Extracts a minimal user shape and applies any remote settings into local Redux state.
@@ -1317,7 +1332,7 @@ const useHostedAuthState = (): AuthContextValue => {
     /** Applies validated remote settings into Redux and local auth state. */
     const applyRemoteSettings = (settings: UserSettingsDocument) =>
       applySettingsToState(settings, settingsApplyContext);
-    runInitialHostedSync({
+    const subscriptionPromise = runInitialHostedSync({
       profileRef,
       settingsRef,
       user,
@@ -1329,10 +1344,9 @@ const useHostedAuthState = (): AuthContextValue => {
       setSettingsSyncStatus,
       setError,
       hasInitializedSettingsRef,
-    }).then((nextUnsubscribe) => {
-      if (nextUnsubscribe) {
-        unsubscribeSettings = nextUnsubscribe;
-      }
+    });
+    attachHostedSettingsSubscription(subscriptionPromise, () => isActive, (nextUnsubscribe) => {
+      unsubscribeSettings = nextUnsubscribe;
     });
 
     // skipcq: JS-0045 React effects intentionally return cleanup callbacks.
