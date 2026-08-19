@@ -284,7 +284,7 @@ export const exportForecastToJson = (
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
-  URL.revokeObjectURL(url);
+  setTimeout(() => URL.revokeObjectURL(url), 0);
 };
 
 /** Adds a non-empty discussion to the package using a collision-free entry name. */
@@ -374,5 +374,5 @@ export const downloadGfcPackage = async (
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
-  URL.revokeObjectURL(url);
+  setTimeout(() => URL.revokeObjectURL(url), 0);
 };

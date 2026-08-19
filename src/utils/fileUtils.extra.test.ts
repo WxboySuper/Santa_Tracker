@@ -72,9 +72,11 @@ describe('fileUtils extra', () => {
     const forecast: ForecastCycle = { days: { 1: { day: 1, metadata: {}, data: { categorical: new Map() } } }, currentDay: 1, cycleDate: '2026-04-21' };
 
     exportForecastToJson(forecast, { center: [0, 0], zoom: 0 });
+    await new Promise((resolve) => setTimeout(resolve, 0));
 
     expect(clickMock).toHaveBeenCalled();
     expect(urlHelpers.createObjectURL).toHaveBeenCalled();
+    expect(urlHelpers.revokeObjectURL).toHaveBeenCalledWith('blob:url');
     spy.mockRestore();
   });
 
@@ -162,6 +164,8 @@ describe('fileUtils extra', () => {
 
     expect(clickMock).toHaveBeenCalled();
     expect(urlHelpers.createObjectURL).toHaveBeenCalled();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(urlHelpers.revokeObjectURL).toHaveBeenCalledWith('blob:url');
     expect(Object.keys(generatedFiles).sort()).toEqual(['discussion_day1.txt', 'forecast_cycle.json', 'workflow_package.json']);
     expect(generatedFiles['workflow_package.json']).toBeDefined();
     spy.mockRestore();

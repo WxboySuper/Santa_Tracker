@@ -54,7 +54,7 @@ describe('discussionUtils extra', () => {
     expect(text).toContain('Forecaster: Zoe');
   });
 
-  test('exportDiscussionToFile creates and clicks download link', () => {
+  test('exportDiscussionToFile creates and clicks download link', async () => {
     const discussion: Discussion = {
       mode: 'diy',
       diyContent: 'txt',
@@ -76,6 +76,7 @@ describe('discussionUtils extra', () => {
     globalThis.URL = urlHelpers;
 
     exportDiscussionToFile(discussion, 3);
+    await new Promise((resolve) => setTimeout(resolve, 0));
 
     expect(clickMock).toHaveBeenCalled();
     expect(urlHelpers.createObjectURL).toHaveBeenCalled();
