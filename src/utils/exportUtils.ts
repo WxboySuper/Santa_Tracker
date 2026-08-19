@@ -1,6 +1,5 @@
 // skipcq: JS-C1003
 import * as L from 'leaflet';
-import html2canvas from 'html2canvas';
 import { OutlookData, OutlookType } from '../types/outlooks';
 import { colorMappings } from './outlookUtils';
 import { store } from '../store';
@@ -372,6 +371,7 @@ export const captureContainer = async (
   quality: number,
   onClone?: (clonedContainer: HTMLElement) => void
 ): Promise<string> => {
+  const { default: html2canvas } = await import('html2canvas');
   const captureId = `gfc-export-${Date.now()}-${Math.random().toString(36).slice(2)}`;
   container.setAttribute('data-gfc-export-capture-id', captureId);
 
