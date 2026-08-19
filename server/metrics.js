@@ -71,6 +71,8 @@ let premiumSubscriptionsCache = {
   expiresAt: 0,
 };
 let pendingPremiumCount = null;
+let totalAccountsCache = { value: null, expiresAt: 0 };
+let pendingTotalAccounts = null;
 
 /** Returns true when the premium subscriptions cache has a fresh value. */
 const hasFreshPremiumCache = () =>
@@ -340,14 +342,39 @@ const countPremiumSubscriptions = () => {
 };
 
 /** Returns the current total number of hosted accounts that have profile docs in Firestore. */
+const readTotalAccounts = async (db) => {
+  try {
+    const snapshot = await db.collection('userProfiles').count().get();
+    const count = snapshot.data?.()?.count;
+    if (typeof count === 'number') {
+      return count;
+    }
+  } catch {
+    // Fall through to the bounded scan when aggregate support is unavailable.
+  }
+
+  return countCollectionDocuments(db, 'userProfiles');
+};
+
 const countTotalAccounts = async () => {
   const db = getAdminDb();
   if (!db) {
     return 0;
   }
 
-  const snapshot = await db.collection('userProfiles').get();
-  return snapshot.size;
+  if (typeof totalAccountsCache.value === 'number' && Date.now() < totalAccountsCache.expiresAt) {
+    return totalAccountsCache.value;
+  }
+  if (pendingTotalAccounts) return pendingTotalAccounts;
+
+  pendingTotalAccounts = readTotalAccounts(db).then((count) => {
+    totalAccountsCache = { value: count, expiresAt: Date.now() + STORAGE_CACHE_TTL_MS };
+    return count;
+  }).finally(() => {
+    pendingTotalAccounts = null;
+  });
+
+  return pendingTotalAccounts;
 };
 
 /** Average per-document overhead (id + path + metadata) used for storage estimates. */
@@ -843,6 +870,7 @@ module.exports = {
   recordBillingMetricEvent,
   registerMetricsRoutes,
   countCollectionDocuments,
+  countTotalAccounts,
   readCloudCyclePayloadBytes,
   getCurrentStorageBytes,
   requiresAuthenticatedMetricEvent,
