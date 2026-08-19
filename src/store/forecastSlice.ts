@@ -1,5 +1,5 @@
 import '../immerSetup';
-import { original } from 'immer';
+import { isDraft, original } from 'immer';
 import { createSlice, PayloadAction, type UnknownAction } from '@reduxjs/toolkit';
 import { OutlookData, OutlookType, DrawingState, ForecastCycle, DayType, OutlookDay, DiscussionData, DiscussionGrouping, Probability } from '../types/outlooks';
 import type { CycleMetadata, WorkflowMetadata, Package, CycleValidationResult, StandardGrouping } from '../types/workflow';
@@ -401,6 +401,27 @@ const getCurrentOutlook = (state: ForecastState): OutlookData => {
 
 /** Clones one GeoJSON feature without JSON serialization so history snapshots are cheaper. */
 const cloneFeature = (feature: Feature): Feature => cloneJsonValue(feature);
+const featureCloneCache = new WeakMap<object, Feature>();
+
+/**
+ * Immer creates a fresh draft wrapper for each reducer invocation. Use the
+ * stable base object as the cache key while snapshots are captured before the
+ * enclosing reducer mutates that feature. Plain snapshots keep their own
+ * identity, so restore operations remain isolated from one another.
+ */
+const getFeatureCacheKey = (feature: Feature): object => {
+  if (!isDraft(feature)) return feature;
+  return original(feature) ?? feature;
+};
+
+const cloneFeatureCached = (feature: Feature): Feature => {
+  const cacheKey = getFeatureCacheKey(feature);
+  const cached = featureCloneCache.get(cacheKey);
+  if (cached) return cached;
+  const cloned = cloneFeature(feature);
+  featureCloneCache.set(cacheKey, cloned);
+  return cloned;
+};
 
 /** Returns the history stacks for one day, creating empty stacks when needed. */
 const getOrCreateDayHistory = (
@@ -422,7 +443,7 @@ const cloneEntries = (map?: Map<string, Feature[]>): Map<string, Feature[]> | un
   if (!map) return undefined;
   return new Map(Array.from(map.entries(), ([probability, features]) => [
     probability,
-    features.map(cloneFeature),
+    features.map(cloneFeatureCached),
   ]));
 };
 
