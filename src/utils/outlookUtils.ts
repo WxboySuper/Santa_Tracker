@@ -152,7 +152,7 @@ export function hailToCategorical({ probability, cig = 'CIG0' }: CategoricalInpu
   return categorizeProbability({ probability, cig, rules: HAIL_RULES });
 }
 
-/** Convert Day 3 total severe probability to categorical risk level. */
+/** Convert Day 3 total severe probability using the SPC combined-risk table. */
 export function totalSevereToCategorical({ probability, cig = 'CIG0' }: CategoricalInput): CategoricalRiskLevel {
   return categorizeProbability({ probability, cig, rules: HAIL_RULES });
 }

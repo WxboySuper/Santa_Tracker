@@ -9,6 +9,7 @@ import {
   getCategoricalRiskDisplayName,
   getOutlookColor,
 } from './outlookUtils';
+import type { CIGLevel } from '../types/outlooks';
 
 describe('outlookUtils extra', () => {
   test('getOutlookConstraints returns correct sets for days', () => {
@@ -50,10 +51,19 @@ describe('outlookUtils extra', () => {
   });
 
   test('totalSevereToCategorical maps probabilities for day3', () => {
-    expect(totalSevereToCategorical({ probability: '5%', cig: 'CIG0' })).toBe('MRGL');
-    expect(totalSevereToCategorical({ probability: '5%', cig: 'CIG2' })).toBe('SLGT');
-    expect(totalSevereToCategorical({ probability: '15%', cig: 'CIG2' })).toBe('ENH');
-    expect(totalSevereToCategorical({ probability: '45%', cig: 'CIG2' })).toBe('MDT');
+    const expected: Record<string, [string, string, string]> = {
+      '5%': ['MRGL', 'MRGL', 'SLGT'],
+      '15%': ['SLGT', 'SLGT', 'ENH'],
+      '30%': ['SLGT', 'ENH', 'ENH'],
+      '45%': ['ENH', 'ENH', 'MDT'],
+      '60%': ['ENH', 'MDT', 'MDT'],
+    };
+
+    for (const [probability, risks] of Object.entries(expected)) {
+      for (const [index, cig] of (['CIG0', 'CIG1', 'CIG2'] as CIGLevel[]).entries()) {
+        expect(totalSevereToCategorical({ probability, cig })).toBe(risks[index]);
+      }
+    }
   });
 
   test('isSignificantThreat detects # marker', () => {
