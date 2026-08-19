@@ -36,7 +36,6 @@ to each.
 - **@types/react** 19.2.18 (root (pnpm)) — MIT — allowed
 - **@types/react-dom** 19.2.4 (root (pnpm)) — MIT — allowed
 - **@types/uuid** ^11.0.0 (root (pnpm)) — MIT — allowed
-- **@types/xml2js** ^0.4.14 (root (pnpm)) — MIT — allowed
 - **@typescript/native** npm:typescript@^7.0.2 (root (pnpm)) — Apache-2.0 — allowed
 - **@vitejs/plugin-react** ^6.0.5 (root (pnpm)) — MIT — allowed
 - **autoprefixer** ^10.5.4 (root (pnpm)) — MIT — allowed
@@ -79,7 +78,6 @@ to each.
 - **uuid** ^14.0.1 (root (pnpm)) — MIT — allowed
 - **vite** ^8.2.1 (root (pnpm)) — MIT — allowed
 - **web-vitals** ^6.1.0 (root (pnpm)) — Apache-2.0 — allowed
-- **xml2js** ^0.6.2 (root (pnpm)) — MIT — allowed
 - **@sentry/node** ^10.69.0 (server (npm)) — MIT — allowed
 - **express** ^5.2.1 (server (npm)) — MIT — allowed
 - **express-rate-limit** ^8.6.2 (server (npm)) — MIT — allowed
