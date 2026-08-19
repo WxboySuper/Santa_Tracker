@@ -156,13 +156,32 @@ const createMapClickHandler = ({ map, layers, refs, onSelectAlert }: {
 const createPointerMoveHandler = ({ map, layers }: {
   map: OLMap;
   layers: MonitorMapLayers;
-}) => (evt: { pixel: number[] }) => {
-  const target = map.getTargetElement();
-  if (!(target instanceof HTMLElement)) return;
-  target.style.cursor = map.hasFeatureAtPixel(evt.pixel, {
-    layerFilter: (layer) => layer === layers.alerts,
-    hitTolerance: 6,
-  }) ? 'pointer' : '';
+}) => {
+  let frameId: number | null = null;
+  let latestPixel: number[] | null = null;
+
+  const updateCursor = () => {
+    frameId = null;
+    if (!latestPixel) return;
+    const target = map.getTargetElement();
+    if (!(target instanceof HTMLElement)) return;
+    target.style.cursor = map.hasFeatureAtPixel(latestPixel, {
+      layerFilter: (layer) => layer === layers.alerts,
+      hitTolerance: 6,
+    }) ? 'pointer' : '';
+  };
+
+  return {
+    handle: (evt: { pixel: number[] }) => {
+      latestPixel = evt.pixel;
+      if (frameId === null) frameId = window.requestAnimationFrame(updateCursor);
+    },
+    cancel: () => {
+      if (frameId !== null) window.cancelAnimationFrame(frameId);
+      frameId = null;
+      latestPixel = null;
+    },
+  };
 };
 
 const attachMonitorMapPopup = (map: OLMap, refs: MonitorMapRefs): void => {
@@ -248,11 +267,11 @@ export const useMonitorMapBootstrap = ({
     const map = createMonitorMap({ target: mapElementRef.current, mapView, layers, refs });
     const handleMoveEnd = createMoveEndHandler({ map, refs, dispatch });
     const handleMapClick = createMapClickHandler({ map, layers, refs, onSelectAlert });
-    const handlePointerMove = createPointerMoveHandler({ map, layers });
+    const pointerMove = createPointerMoveHandler({ map, layers });
 
     map.on('moveend', handleMoveEnd);
     map.on('click', handleMapClick);
-    map.on('pointermove', handlePointerMove);
+    map.on('pointermove', pointerMove.handle);
     attachMonitorMapPopup(map, refs);
     assignMonitorMapRefs(refs, map, layers);
     loadUsStateOutlines(refs.stateOutlineSourceRef.current, darkMode).catch(() => undefined);
@@ -261,7 +280,8 @@ export const useMonitorMapBootstrap = ({
     return () => {
       map.un('moveend', handleMoveEnd);
       map.un('click', handleMapClick);
-      map.un('pointermove', handlePointerMove);
+      map.un('pointermove', pointerMove.handle);
+      pointerMove.cancel();
       const target = map.getTargetElement();
       if (target instanceof HTMLElement) {
         target.style.cursor = '';
