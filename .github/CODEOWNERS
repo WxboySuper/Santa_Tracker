@@ -1,0 +1,3 @@
+# Workflow and deployment changes require review from the repository owner.
+/.github/workflows/ @WxboySuper
+/.github/CODEOWNERS @WxboySuper
