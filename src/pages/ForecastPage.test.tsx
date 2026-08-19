@@ -577,7 +577,12 @@ describe('ForecastPage helpers', () => {
 
   test('parses loaded forecast files with clear failure toasts', async () => {
     const addToast = jest.fn();
-    const makeTextFile = (text: string) => ({ text: jest.fn().mockResolvedValue(text) } as unknown as File);
+    const makeTextFile = (text: string) => ({
+      name: 'forecast.json',
+      type: 'application/json',
+      size: text.length,
+      text: jest.fn().mockResolvedValue(text),
+    } as unknown as File);
 
     await expect(parseLoadedForecast(makeTextFile('not json'), addToast)).resolves.toBeNull();
     expect(addToast).toHaveBeenCalledWith('File is not valid JSON.', 'error');

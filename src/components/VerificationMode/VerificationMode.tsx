@@ -4,7 +4,7 @@ import { Eye, FileUp, Layers3 } from 'lucide-react';
 import VerificationMap, { VerificationMapHandle } from '../Map/VerificationMap';
 import VerificationPanel from '../Verification/VerificationPanel';
 import { loadVerificationForecast, clearVerificationForecast } from '../../store/verificationSlice';
-import { deserializeForecast, validateForecastDataReason, MAX_IMPORT_BYTES } from '../../utils/fileUtils';
+import { deserializeForecast, readForecastImportFile, validateForecastDataReason } from '../../utils/fileUtils';
 import { DayType } from '../../types/outlooks';
 import { useAppLayout } from '../Layout/AppLayout';
 import { useAuth } from '../../auth/AuthProvider';
@@ -25,23 +25,9 @@ const getAvailableDays = (days: Record<string, unknown> | undefined): DayType[] 
     .sort((a, b) => a - b);
 };
 
-// Helper function to read a file as text, which returns a promise that resolves with the file content as a string. This is used when loading a forecast file to read its contents before parsing and validating it.
-const readFileAsText = (file: File): Promise<string> =>
-  new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = (e) => resolve(e.target?.result as string);
-    reader.onerror = () => reject(new Error('Failed to read file. Please check file permissions and try again.'));
-    reader.readAsText(file);
-  });
-
-// Parses and validates the loaded forecast file, which reads the file content as text, parses it as JSON, and then validates the structure to ensure it matches the expected format for a GFC forecast. If the file is valid, it returns the deserialized forecast object; otherwise, it throws an error with an appropriate message.
+// Parses and validates through the shared JSON and workflow-package import pipeline.
 const parseAndValidateForecast = async (file: File) => {
-  if (file.size > MAX_IMPORT_BYTES) {
-    throw new Error(`File is too large (${(file.size / 1024 / 1024).toFixed(1)} MB); the maximum supported size is ${MAX_IMPORT_BYTES / 1024 / 1024} MB.`);
-  }
-
-  const content = await readFileAsText(file);
-  const json = JSON.parse(content);
+  const json = await readForecastImportFile(file);
 
   const validationError = validateForecastDataReason(json);
   if (validationError) {
