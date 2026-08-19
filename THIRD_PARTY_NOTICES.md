@@ -26,8 +26,6 @@ to each.
 - **@testing-library/jest-dom** ^7.0.0 (root (pnpm)) — MIT — allowed
 - **@testing-library/react** ^16.2.0 (root (pnpm)) — MIT — allowed
 - **@testing-library/user-event** ^14.6.3 (root (pnpm)) — MIT — allowed
-- **@turf/difference** ^7.4.0 (root (pnpm)) — MIT — allowed
-- **@turf/helpers** ^7.4.0 (root (pnpm)) — MIT — allowed
 - **@turf/turf** ^7.4.0 (root (pnpm)) — MIT — allowed
 - **@types/geojson** ^7946.0.16 (root (pnpm)) — MIT — allowed
 - **@types/jest** ^30.0.0 (root (pnpm)) — MIT — allowed
