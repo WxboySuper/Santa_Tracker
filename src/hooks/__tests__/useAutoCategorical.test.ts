@@ -7,6 +7,7 @@ import useAutoCategorical, {
   processDay3OutlooksToCategorical,
   processOutlooksToCategorical,
   CategoricalDerivationError,
+  signatureFromOutlookMap,
 } from '../useAutoCategorical';
 import { OutlookData } from '../../types/outlooks';
 import { Feature, Polygon } from 'geojson';
@@ -55,6 +56,19 @@ const makeProbabilisticFeature = (id: string, offset: number): Feature<Polygon> 
     probability: '30%',
     isSignificant: false
   }
+});
+
+test('signature tokens are stable for reordering and change for replacement geometry', () => {
+  const first = makeProbabilisticFeature('first', 0);
+  const second = makeProbabilisticFeature('second', 3);
+  const ordered = new Map([['30%', [first]], ['45%', [second]]]);
+  const reordered = new Map([['45%', [second]], ['30%', [first]]]);
+  const replacement = { ...first, geometry: { ...first.geometry, coordinates: [[[9, 9], [10, 9], [10, 10], [9, 9]]] } };
+
+  expect(signatureFromOutlookMap('tornado', ordered)).toBe(signatureFromOutlookMap('tornado', reordered));
+  expect(signatureFromOutlookMap('tornado', ordered)).not.toBe(
+    signatureFromOutlookMap('tornado', new Map([['30%', [replacement]], ['45%', [second]]] ))
+  );
 });
 
 const makeSquare = (id: string, offset: number, size = 2): Feature<Polygon> => ({
