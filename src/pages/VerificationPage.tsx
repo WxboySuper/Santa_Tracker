@@ -4,6 +4,7 @@ import VerificationMode from '../components/VerificationMode/VerificationMode';
 
 // Lazily loaded so the Verification v2 dashboard and its grading engine never
 // import as a side effect while verificationRelaunch is disabled.
+// Verification owns the Turf-backed grading graph; keep it behind this route's lazy boundary.
 const ForecastGradeDashboard = lazy(() => import('../components/ForecastGrade/ForecastGradeDashboard'));
 
 /** Verification v2 loading placeholder. */

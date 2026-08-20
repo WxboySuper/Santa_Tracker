@@ -3,8 +3,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { applyAutoCategoricalSync, selectCurrentOutlooks, selectCurrentDay, setAutoCategoricalError } from '../store/forecastSlice';
 import { OutlookData } from '../types/outlooks';
 import { createDerivationController } from './categoricalWorker';
-import { toDerivationErrorMessage } from './autoCategoricalProcessing';
-export { processDay12OutlooksToCategorical, processDay3OutlooksToCategorical, processOutlooksToCategorical, CategoricalDerivationError } from './autoCategoricalProcessing';
+import { toDerivationErrorMessage } from './categoricalErrors';
 
 const geometryIds = new WeakMap<object, number>();
 let nextGeometryId = 1;

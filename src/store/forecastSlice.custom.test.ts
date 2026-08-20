@@ -17,7 +17,7 @@ import reducer, {
   updateCustomCategory,
   startBlankCycle,
 } from './forecastSlice';
-import { processOutlooksToCategorical } from '../hooks/useAutoCategorical';
+import { processOutlooksToCategorical } from '../hooks/autoCategoricalProcessing';
 
 const layer = (): OneOffCustomLayer => ({
   schemaVersion: CUSTOM_PRODUCTS_SCHEMA_VERSION,

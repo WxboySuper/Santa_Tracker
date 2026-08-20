@@ -1,5 +1,4 @@
 import type { OutlookData } from '../types/outlooks';
-import { processDay12OutlooksToCategorical, processDay3OutlooksToCategorical } from './autoCategoricalProcessing';
 import type { AutoCategoricalWorkerResponse } from './autoCategorical.worker';
 import AutoCategoricalWorker from './autoCategorical.worker?worker';
 
@@ -31,8 +30,9 @@ type WorkerFactory = () => WorkerLike;
 
 /**
  * Runs categorical derivation behind a cancellable Web Worker when the runtime
- * supports it, falling back to the synchronous derivation on the UI thread in
- * test/SSR environments. The returned controller tracks the newest request id
+ * supports it, falling back to a lazy-loaded synchronous derivation only in
+ * test/SSR environments. Keeping this import dynamic prevents Turf from being
+ * pulled into the main UI chunk. The returned controller tracks the newest request id
  * so stale worker responses can never overwrite newer edits.
  */
 export const createDerivationController = (workerFactory: WorkerFactory = () => new AutoCategoricalWorker()): DerivationController => {
@@ -47,6 +47,8 @@ export const createDerivationController = (workerFactory: WorkerFactory = () => 
     return {
       derive: async (requestId, day, outlooks) => {
         try {
+          const { processDay12OutlooksToCategorical, processDay3OutlooksToCategorical } =
+            await import('./autoCategoricalProcessing');
           const features = day === 3
             ? processDay3OutlooksToCategorical(outlooks)
             : processDay12OutlooksToCategorical(outlooks);

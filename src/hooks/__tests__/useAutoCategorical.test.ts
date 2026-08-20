@@ -2,13 +2,14 @@ import React from 'react';
 import { Provider } from 'react-redux';
 import { act, render, waitFor } from '@testing-library/react';
 import { configureStore } from '@reduxjs/toolkit';
-import useAutoCategorical, {
+import useAutoCategorical from '../useAutoCategorical';
+import {
   processDay12OutlooksToCategorical,
   processDay3OutlooksToCategorical,
   processOutlooksToCategorical,
-  CategoricalDerivationError,
-  signatureFromOutlookMap,
-} from '../useAutoCategorical';
+} from '../autoCategoricalProcessing';
+import { signatureFromOutlookMap } from '../useAutoCategorical';
+import { CategoricalDerivationError } from '../categoricalErrors';
 import { OutlookData } from '../../types/outlooks';
 import { Feature, Polygon } from 'geojson';
 import * as turf from '@turf/turf';
