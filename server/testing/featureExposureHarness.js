@@ -20,6 +20,7 @@ const startTestServer = (app) =>
     server.on('error', reject);
   });
 
+/** Builds the loopback URL used to call a test server endpoint. */
 const getServerUrl = (server, path = '/api/test') => {
   const address = server.address();
   return `http://127.0.0.1:${address.port}${path}`;
