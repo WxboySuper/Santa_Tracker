@@ -66,6 +66,7 @@ export function runExposureReport({ json = false } = {}) {
   return { ok: policyResult.ok, report, policyResult };
 }
 
+/** Runs the exposure report CLI, optionally emitting JSON for automation. */
 function main() {
   const json = process.argv.includes('--json');
 
