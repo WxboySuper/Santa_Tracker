@@ -49,8 +49,10 @@ jobs:
         run: |
           set -euo pipefail
           CURRENT=$(node -p "require('./package.json').version")
+          CURRENT_BETA=''
           if [[ "$CURRENT" =~ ^([0-9]+\.[0-9]+\.[0-9]+)-beta\.([0-9]+)$ ]]; then
             BASE="${BASH_REMATCH[1]}"
+            CURRENT_BETA="${BASH_REMATCH[2]}"
           elif [[ "$CURRENT" =~ ^([0-9]+\.[0-9]+\.[0-9]+)$ ]]; then
             BASE="$CURRENT"
           else
@@ -59,14 +61,20 @@ jobs:
           fi
           git fetch --tags --force
           LAST=$(git tag --list "v${BASE}-beta.*" | sed -E "s/^v${BASE}-beta\.([0-9]+)$/\1/" | sort -n | tail -1)
-          NEXT=$(( ${LAST:-0} + 1 ))
-          VERSION="${BASE}-beta.${NEXT}"
-          npm version "$VERSION" --no-git-tag-version
-          git config user.name github-actions[bot]
-          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
-          git add package.json
-          git commit -m "chore(release): prepare ${VERSION}"
-          git push --force-with-lease="refs/heads/main:${GITHUB_SHA}" origin HEAD:main
+          if [ -n "$CURRENT_BETA" ] && ! git rev-parse --verify --quiet "refs/tags/v${CURRENT}" >/dev/null \
+            && { [ -z "$LAST" ] || [ "$CURRENT_BETA" -ge "$LAST" ]; }; then
+            VERSION="$CURRENT"
+            echo "Retrying untagged beta version $VERSION without changing package.json."
+          else
+            NEXT=$(( ${LAST:-0} + 1 ))
+            VERSION="${BASE}-beta.${NEXT}"
+            npm version "$VERSION" --no-git-tag-version
+            git config user.name github-actions[bot]
+            git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+            git add package.json
+            git commit -m "chore(release): prepare ${VERSION}"
+            git push --force-with-lease="refs/heads/main:${GITHUB_SHA}" origin HEAD:main
+          fi
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Validate beta package version
