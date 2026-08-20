@@ -50,6 +50,26 @@ describe('verificationUtils', () => {
     expect(summary).toContain('ENH: 1 hits');
   });
 
+  test('bbox prefilter does not turn an outside-but-in-bounds report into a hit', () => {
+    const polygon = turfPolygon([[[-97.21, 33.49], [-97.19, 33.49], [-97.2, 33.5], [-97.21, 33.49]]]);
+    const outlooks = {
+      categorical: new Map([['ENH', [polygon]]]),
+      tornado: new Map([['ENH', [polygon]]]),
+      wind: new Map(),
+      hail: new Map(),
+    };
+    const reports = [{
+      id: 'r-outside', type: 'tornado' as const, latitude: 33.495, longitude: -97.19,
+      time: '1234Z', magnitude: 'EF1', location: 'TestTown', county: 'TestCo', state: 'TX', comments: '',
+    }];
+
+    const result = analyzeVerification(reports, outlooks);
+
+    expect(result.tornado.hits).toBe(0);
+    expect(result.tornado.misses).toBe(1);
+    expect(result.tornado.reportDetails[0]?.hit).toBe(false);
+  });
+
   test('formatOutlookVerificationSummary sorts risk levels highest-first and formats text', () => {
     const verification = {
       hits: 3,

@@ -1,4 +1,4 @@
-import * as turf from '@turf/turf';
+import { bbox, booleanPointInPolygon, feature as turfFeature, point } from '@turf/turf';
 import type { Feature, Polygon, MultiPolygon, Geometry } from 'geojson';
 import { StormReport, ReportType } from '../types/stormReports';
 import { OutlookData } from '../types/outlooks';
@@ -57,7 +57,11 @@ function analyzeOutlookType(
   const totalRelevantReports = relevantReports.length;
 
   // Pre-process outlook polygons outside the loop
-  const processedPolygons: { riskLevel: string, polygon: Feature<Polygon | MultiPolygon> }[] = [];
+  const processedPolygons: {
+    riskLevel: string;
+    polygon: Feature<Polygon | MultiPolygon>;
+    bounds: [number, number, number, number];
+  }[] = [];
   if (outlookMap) {
     for (const [riskLevel, features] of outlookMap.entries()) {
       for (const feature of features) {
@@ -65,7 +69,8 @@ function analyzeOutlookType(
           try {
             processedPolygons.push({
               riskLevel,
-              polygon: turf.feature(feature.geometry) as Feature<Polygon | MultiPolygon>
+              polygon: turfFeature(feature.geometry) as Feature<Polygon | MultiPolygon>,
+              bounds: bbox(feature) as [number, number, number, number],
             });
           } catch {
             // Skip malformed polygon features
@@ -76,7 +81,7 @@ function analyzeOutlookType(
   }
 
   for (const report of relevantReports) {
-    const reportPointCoords = [report.longitude, report.latitude];
+    const reportPointCoords: [number, number] = [report.longitude, report.latitude];
     let hit = false;
     let highestRiskLevel: string | undefined;
 
@@ -84,9 +89,14 @@ function analyzeOutlookType(
       const riskLevelsContainingReport = new Set<string>();
       
       // Find all risk levels that contain this report
-      for (const { riskLevel, polygon } of processedPolygons) {
+      for (const { riskLevel, polygon, bounds } of processedPolygons) {
         if (!riskLevelsContainingReport.has(riskLevel)) {
-          if (turf.booleanPointInPolygon(reportPointCoords, polygon)) {
+          const [minX, minY, maxX, maxY] = bounds;
+          if (reportPointCoords[0] < minX || reportPointCoords[0] > maxX
+            || reportPointCoords[1] < minY || reportPointCoords[1] > maxY) {
+            continue;
+          }
+          if (booleanPointInPolygon(point(reportPointCoords), polygon)) {
             riskLevelsContainingReport.add(riskLevel);
           }
         }
