@@ -19,6 +19,7 @@ import reducer, {
   toggleLowProbability,
   undoLastEdit,
   updateFeature,
+  updateFeaturesBatch,
   removeFeature,
   completeCycle,
   completeWithOmissions,
@@ -406,6 +407,31 @@ describe('forecastSlice undo/redo', () => {
 
     state = reducer(state, redoLastEdit());
     expect((getTornadoFeatures(state)[0].geometry as Polygon).coordinates[0][0]).toEqual([3, 3]);
+  });
+
+  test('batches undo for multi-feature geometry updates', () => {
+    let state = reducer(undefined, addFeature({ feature: createFeature('feature-a', 0) }));
+    state = reducer(state, addFeature({ feature: createFeature('feature-b', 1) }));
+
+    state = reducer(state, updateFeaturesBatch({
+      features: [
+        {
+          ...createFeature('feature-a', 5),
+          properties: { outlookType: 'tornado', probability: '2%', isSignificant: false },
+        },
+        {
+          ...createFeature('feature-b', 6),
+          properties: { outlookType: 'tornado', probability: '2%', isSignificant: false },
+        },
+      ],
+    }));
+
+    expect((getTornadoFeatures(state)[0].geometry as Polygon).coordinates[0][0]).toEqual([5, 5]);
+    expect((getTornadoFeatures(state)[1].geometry as Polygon).coordinates[0][0]).toEqual([6, 6]);
+
+    state = reducer(state, undoLastEdit());
+    expect((getTornadoFeatures(state)[0].geometry as Polygon).coordinates[0][0]).toEqual([0, 0]);
+    expect((getTornadoFeatures(state)[1].geometry as Polygon).coordinates[0][0]).toEqual([1, 1]);
   });
 
   test('deep-clones nested feature properties in history snapshots', () => {

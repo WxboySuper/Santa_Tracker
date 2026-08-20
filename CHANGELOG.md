@@ -11,6 +11,8 @@ All notable changes to this project will be documented in this file.
 
 <!-- Continue next-major work here after this stable line is cut. -->
 
+- Precision polygon editing now scopes vertex changes to the selected outlook tier and records multi-vertex edits as one undo step.
+
 ## v1.7.0
 
 #### Dependencies

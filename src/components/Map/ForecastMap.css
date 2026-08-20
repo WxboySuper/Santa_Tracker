@@ -197,8 +197,8 @@
 }
 
 .map-toolbar-help-surface {
-  width: 100%;
-  max-width: none;
+  width: min(440px, calc(100vw - 32px));
+  max-width: min(440px, calc(100vw - 32px));
   box-sizing: border-box;
   border-radius: 18px;
   padding: 10px 12px;

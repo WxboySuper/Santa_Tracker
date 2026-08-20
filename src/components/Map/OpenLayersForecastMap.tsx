@@ -21,7 +21,7 @@ import Overlay from "ol/Overlay";
 import type { FeatureLike } from "ol/Feature";
 import type OLFeature from "ol/Feature";
 import type Geometry from "ol/geom/Geometry";
-import { click } from "ol/events/condition";
+import { altKeyOnly, click, shiftKeyOnly, singleClick } from "ol/events/condition";
 import { v4 as uuidv4 } from "uuid";
 import { Redo2, Undo2 } from "lucide-react";
 import {
@@ -32,8 +32,6 @@ import {
   redoLastEdit,
   setMapView,
   undoLastEdit,
-  updateFeature,
-  updateCustomFeature,
 } from "../../store/forecastSlice";
 
 import type { BaseMapStyle } from "../../store/overlaysSlice";
@@ -55,13 +53,11 @@ import {
 import "./ForecastMap.css";
 import {
   getFeatureIdentity,
-  toUpdatedGeoJsonFeature,
   replaceLayerGroupLayers,
   isDrawableOutlookType,
   toOlStyle,
   toCustomOlStyle,
   getCustomFeatureIdentity,
-  toUpdatedCustomFeature,
   toDrawnCustomFeature,
   toTstmPreviewOlStyle,
   toGhostOlStyle,
@@ -87,6 +83,8 @@ import {
   type FeatureSyncDescriptor,
 } from "./openLayersFeatureSync";
 import { useForecastMapReduxState } from "./useForecastMapReduxState";
+import { dispatchModifyUpdates } from "./precisionPolygonEditHandler";
+import { matchesPrecisionEditTier, PAN_MODE_VERTEX_EDIT_HELP } from "./precisionPolygonEditing";
 
 /** Builds the style portion of a custom-feature reconciliation signature without serializing the style object. */
 export const getCustomStyleSignature = (style: CustomCategoryStyle, isTopLayer: boolean): string => [
@@ -200,12 +198,27 @@ const OpenLayersForecastMap = forwardRef<MapAdapterHandle<OLMap> | null, OpenLay
     const overlayRef = useRef<Overlay | null>(null);
     const interactionModeRef = useRef(interactionMode);
     const customModeRef = useRef(customMode);
+    const activeProbabilityRef = useRef(drawingState.activeProbability);
+    const activeOutlookTypeRef = useRef(drawingState.activeOutlookType);
+    const activeCustomCategoryRef = useRef(activeCustomCategory);
 
     useEffect(() => {
       interactionModeRef.current = interactionMode;
     }, [interactionMode]);
 
     useEffect(() => { customModeRef.current = customMode; }, [customMode]);
+
+    useEffect(() => {
+      activeProbabilityRef.current = drawingState.activeProbability;
+    }, [drawingState.activeProbability]);
+
+    useEffect(() => {
+      activeOutlookTypeRef.current = drawingState.activeOutlookType;
+    }, [drawingState.activeOutlookType]);
+
+    useEffect(() => {
+      activeCustomCategoryRef.current = activeCustomCategory;
+    }, [activeCustomCategory]);
 
     useEffect(() => {
       currentMapViewRef.current = currentMapView;
@@ -467,24 +480,31 @@ const OpenLayersForecastMap = forwardRef<MapAdapterHandle<OLMap> | null, OpenLay
         }
       });
 
-      const modify = new Modify({ source: vectorSourceRef.current });
-
-      modify.on("modifyend", (event) => {
-        const format = new GeoJSON();
-        event.features.forEach((feature) => {
-          const customFeature = toUpdatedCustomFeature(feature, format);
-          if (customFeature) {
-            dispatch(updateCustomFeature(customFeature));
-            return;
+      const modify = new Modify({
+        source: vectorSourceRef.current,
+        filter: (feature) => {
+          const customIdentity = getCustomFeatureIdentity(feature);
+          if (customIdentity) {
+            if (!customModeRef.current) {
+              return false;
+            }
+            return customIdentity.categoryId === activeCustomCategoryRef.current?.id;
           }
-          const updatedFeature = toUpdatedGeoJsonFeature(
+          return matchesPrecisionEditTier(
             feature,
-            format,
-            false,
+            activeOutlookTypeRef.current,
+            activeProbabilityRef.current,
           );
-          if (updatedFeature) {
-            dispatch(updateFeature({ feature: updatedFeature }));
-          }
+        },
+        deleteCondition: (event) =>
+          singleClick(event) && (altKeyOnly(event) || shiftKeyOnly(event)),
+      });
+      modify.on("modifyend", (event) => {
+        dispatchModifyUpdates({
+          features: event.features.getArray() as OLFeature<Geometry>[],
+          format: new GeoJSON(),
+          isCategorical: false,
+          dispatch,
         });
       });
       map.addInteraction(modify);
@@ -492,21 +512,28 @@ const OpenLayersForecastMap = forwardRef<MapAdapterHandle<OLMap> | null, OpenLay
 
       // Separate modify interaction for categorical layer to handle its unique properties
       // and to prevent accidental edits of auto-generated categorical features.
-      const catModify = new Modify({ source: catSourceRef.current });
-      catModify.on("modifyend", (event) => {
-        const format = new GeoJSON();
-        event.features.forEach((feature) => {
+      const catModify = new Modify({
+        source: catSourceRef.current,
+        filter: (feature) => {
           const derivedFrom = feature.get("derivedFrom") as string | undefined;
-          if (derivedFrom !== "auto-generated") {
-            const updatedFeature = toUpdatedGeoJsonFeature(
-              feature,
-              format,
-              true,
-            );
-            if (updatedFeature) {
-              dispatch(updateFeature({ feature: updatedFeature }));
-            }
+          if (derivedFrom === "auto-generated") {
+            return false;
           }
+          return matchesPrecisionEditTier(
+            feature,
+            "categorical",
+            activeProbabilityRef.current,
+          );
+        },
+        deleteCondition: (event) =>
+          singleClick(event) && (altKeyOnly(event) || shiftKeyOnly(event)),
+      });
+      catModify.on("modifyend", (event) => {
+        dispatchModifyUpdates({
+          features: event.features.getArray() as OLFeature<Geometry>[],
+          format: new GeoJSON(),
+          isCategorical: true,
+          dispatch,
         });
       });
       map.addInteraction(catModify);
@@ -1207,8 +1234,7 @@ const OpenLayersForecastMap = forwardRef<MapAdapterHandle<OLMap> | null, OpenLay
               "Draw mode: click to place points, double-click to finish polygon."}
             {interactionMode === "delete" &&
               "Delete mode: click any polygon to remove it."}
-            {interactionMode === "pan" &&
-              "Pan mode: drag map to move, scroll to zoom. Click a polygon to see its details."}
+            {interactionMode === "pan" && PAN_MODE_VERTEX_EDIT_HELP}
           </div>
         </div>
         <Legend desktopOpen={showDesktopLegend} mobileOpen={showMobileLegend} showReportLegend={false} />

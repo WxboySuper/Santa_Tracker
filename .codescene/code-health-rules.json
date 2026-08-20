@@ -3,106 +3,23 @@
   "rule_sets": [
     {
       "matching_content_path": "src/pages/ForecastPage.tsx",
-      "rules": [
-        {
-          "name": "Lines of Code in a Single File",
-          "weight": 0.0
-        }
-      ]
+      "rules": [{ "name": "Lines of Code in a Single File", "weight": 0.0 }]
     },
     {
       "matching_content_path": "src/utils/forecastOutlookValidation.ts",
       "rules": [
-        {
-          "name": "Overall Code Complexity",
-          "weight": 0.0
-        },
-        {
-          "name": "String Heavy Function Arguments",
-          "weight": 0.0
-        }
+        { "name": "Overall Code Complexity", "weight": 0.0 },
+        { "name": "String Heavy Function Arguments", "weight": 0.0 }
       ]
     },
-    {
-      "matching_content_path": "scripts/lib/feature-exposure-policy.test.mjs",
-      "rules": [
-        {
-          "name": "Code Duplication",
-          "weight": 0.0
-        }
-      ]
-    },
-    {
-      "matching_content_path": "scripts/validate-feature-exposure.integration.test.mjs",
-      "rules": [
-        {
-          "name": "Code Duplication",
-          "weight": 0.0
-        }
-      ]
-    },
-    {
-      "matching_content_path": "scripts/lib/feature-exposure-report.test.mjs",
-      "rules": [
-        {
-          "name": "Code Duplication",
-          "weight": 0.0
-        }
-      ]
-    },
-    {
-      "matching_content_path": "scripts/generate-exposure-report.integration.test.mjs",
-      "rules": [
-        {
-          "name": "Code Duplication",
-          "weight": 0.0
-        }
-      ]
-    },
-    {
-      "matching_content_path": "scripts/lib/port-pr-policy.test.mjs",
-      "rules": [
-        {
-          "name": "Code Duplication",
-          "weight": 0.0
-        }
-      ]
-    },
-    {
-      "matching_content_path": "scripts/lib/stale-branch-report.test.mjs",
-      "rules": [
-        {
-          "name": "Code Duplication",
-          "weight": 0.0
-        }
-      ]
-    },
-    {
-      "matching_content_path": "src/config/featureExposureDiagnostics.test.ts",
-      "rules": [
-        {
-          "name": "Code Duplication",
-          "weight": 0.0
-        }
-      ]
-    },
-    {
-      "matching_content_path": "scripts/lib/feature-exposure-diagnostics.test.mjs",
-      "rules": [
-        {
-          "name": "Code Duplication",
-          "weight": 0.0
-        }
-      ]
-    },
-    {
-      "matching_content_path": "scripts/generate-exposure-diagnostics.integration.test.mjs",
-      "rules": [
-        {
-          "name": "Code Duplication",
-          "weight": 0.0
-        }
-      ]
-    }
+    { "matching_content_path": "scripts/lib/feature-exposure-policy.test.mjs", "rules": [{ "name": "Code Duplication", "weight": 0.0 }] },
+    { "matching_content_path": "scripts/validate-feature-exposure.integration.test.mjs", "rules": [{ "name": "Code Duplication", "weight": 0.0 }] },
+    { "matching_content_path": "scripts/lib/feature-exposure-report.test.mjs", "rules": [{ "name": "Code Duplication", "weight": 0.0 }] },
+    { "matching_content_path": "scripts/generate-exposure-report.integration.test.mjs", "rules": [{ "name": "Code Duplication", "weight": 0.0 }] },
+    { "matching_content_path": "scripts/lib/port-pr-policy.test.mjs", "rules": [{ "name": "Code Duplication", "weight": 0.0 }] },
+    { "matching_content_path": "scripts/lib/stale-branch-report.test.mjs", "rules": [{ "name": "Code Duplication", "weight": 0.0 }] },
+    { "matching_content_path": "src/config/featureExposureDiagnostics.test.ts", "rules": [{ "name": "Code Duplication", "weight": 0.0 }] },
+    { "matching_content_path": "scripts/lib/feature-exposure-diagnostics.test.mjs", "rules": [{ "name": "Code Duplication", "weight": 0.0 }] },
+    { "matching_content_path": "scripts/generate-exposure-diagnostics.integration.test.mjs", "rules": [{ "name": "Code Duplication", "weight": 0.0 }] }
   ]
 }
