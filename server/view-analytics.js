@@ -38,7 +38,7 @@ if (entries.length === 0) {
 }
 
 const today = new Date().toISOString().slice(0, 10);
-const todayEntries = entries.filter(e => e.ts && e.ts.startsWith(today));
+const todayEntries = entries.filter(e => e.ts?.startsWith(today));
 /** Groups analytics entries by a given key and returns the counts in descending order. */
 const countBy = (arr, key) => {
   const map = {};
