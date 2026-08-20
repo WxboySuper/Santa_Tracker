@@ -6,6 +6,7 @@ import { OutlookData, CIGLevel, CategoricalRiskLevel } from '../types/outlooks';
 import { coerceOutlookProbabilityMap } from '../utils/outlookMapCoercion';
 import { CategoricalDerivationError } from './categoricalErrors';
 
+/** Processes outlook maps into categorical geometry for the requested day. */
 export function processOutlooksToCategorical(outlooks: OutlookData, day: number = 1): GeoJSON.Feature[] {
   if (day === 1 || day === 2) {
     return processDay12OutlooksToCategorical(outlooks);

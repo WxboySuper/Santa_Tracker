@@ -18,6 +18,8 @@ enabled = true
   [analyzers.meta]
   plugins = ["react"]
   cyclomatic_complexity_threshold = "critical"
+  # Shared helpers are intentionally covered by expressive names and module-level docs;
+  # require symbol comments only where they add behavior or contract context.
   skip_doc_coverage = [
     "function-declaration",
     "function-expression",
