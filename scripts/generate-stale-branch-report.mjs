@@ -60,7 +60,7 @@ function resolveReportConfig(options = {}) {
  *   token: string,
  * }} config
  */
-async function loadReportInputs(config) {
+function loadReportInputs(config) {
   if (config.dryRun) {
     return loadFixtureInputs();
   }

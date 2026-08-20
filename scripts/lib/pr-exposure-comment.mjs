@@ -103,7 +103,7 @@ async function githubRequest(repository, token, path, options = {}) {
  * @param {string} token
  * @param {number} prNumber
  */
-async function listIssueComments(repository, token, prNumber) {
+function listIssueComments(repository, token, prNumber) {
   return fetchAllPages((page) =>
     githubRequest(
       repository,

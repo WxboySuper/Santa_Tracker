@@ -56,24 +56,24 @@ export const renderAutoTstm = () => {
   return { store, ...hook };
 };
 
-export const openPanelAndWaitForPreview = async (
+export const openPanelAndWaitForPreview = (
   result: ReturnType<typeof renderAutoTstm>['result'],
-) => {
+) => (async () => {
   await act(async () => {
     result.current.openPanel();
   });
   await waitFor(() => {
     expect(result.current.status).toBe('preview');
   });
-};
+})();
 
-export const openPanelAndWaitForError = async (
+export const openPanelAndWaitForError = (
   result: ReturnType<typeof renderAutoTstm>['result'],
-) => {
+) => (async () => {
   await act(async () => {
     result.current.openPanel();
   });
   await waitFor(() => {
     expect(result.current.status).toBe('error');
   });
-};
+})();

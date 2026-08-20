@@ -53,7 +53,7 @@ export async function githubRequest(repository, token, path, options = {}) {
  * @param {string} repository
  * @param {string} token
  */
-async function listBranches(repository, token) {
+function listBranches(repository, token) {
   return fetchAllPages((page) =>
     githubRequest(repository, token, `/branches?per_page=${GITHUB_PAGE_SIZE}&page=${page}`)
   );
@@ -63,7 +63,7 @@ async function listBranches(repository, token) {
  * @param {string} repository
  * @param {string} token
  */
-async function listOpenPulls(repository, token) {
+function listOpenPulls(repository, token) {
   return fetchAllPages((page) =>
     githubRequest(repository, token, `/pulls?state=open&per_page=${GITHUB_PAGE_SIZE}&page=${page}`)
   );
@@ -74,7 +74,7 @@ async function listOpenPulls(repository, token) {
  * @param {string} token
  * @param {string} ref
  */
-async function fetchCommit(repository, token, ref) {
+function fetchCommit(repository, token, ref) {
   return githubRequest(repository, token, `/commits/${encodeURIComponent(ref)}`);
 }
 
@@ -98,7 +98,7 @@ async function fetchBehindBy(repository, token, baseBranch, headBranch) {
  * @param {string} repository
  * @param {string} token
  */
-async function listOpenIssues(repository, token) {
+function listOpenIssues(repository, token) {
   return fetchAllPages((page) =>
     githubRequest(repository, token, `/issues?state=open&per_page=${GITHUB_PAGE_SIZE}&page=${page}`)
   );

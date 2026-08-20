@@ -183,7 +183,7 @@ const deleteLinkedStripeCustomers = ({ db, uid, stripe }) => {
 };
 
 /** True when the Firebase identity for this uid has already been removed. */
-const isIdentityGone = async (adminAuth, uid) =>
+const isIdentityGone = (adminAuth, uid) =>
   adminAuth.getUser(uid).then(() => false).catch((e) => e?.code === 'auth/user-not-found');
 
 /** Deletes the current linked Stripe customer if it differs from the known set. */
@@ -292,7 +292,7 @@ const verifyRecentDeletionUser = async ({ req, res, adminAuth, nowSeconds }) => 
 };
 
 /** Verifies all request preconditions and returns the authorized Firebase token. */
-const authorizeDeleteAccountRequest = async ({ req, res, adminAuth, db, nowSeconds }) => {
+const authorizeDeleteAccountRequest = ({ req, res, adminAuth, db, nowSeconds }) => {
   if (!ensureAccountLifecycleAvailable(res, adminAuth, db)) return null;
   if (!ensureDeletionConfirmed(req, res)) return null;
   return verifyRecentDeletionUser({ req, res, adminAuth, nowSeconds });

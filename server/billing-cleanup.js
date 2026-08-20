@@ -16,7 +16,7 @@ const findPaymentIntentFromInvoicePayments = async (stripe, invoiceId) => {
 };
 
 /** Resolves a refundable payment intent from an invoice across legacy and current Stripe shapes. */
-const resolveInvoicePaymentIntentId = async (stripe, invoice) => {
+const resolveInvoicePaymentIntentId = (stripe, invoice) => {
   const legacyPaymentIntent = getStripeObjectId(invoice.payment_intent);
   if (legacyPaymentIntent) return legacyPaymentIntent;
 

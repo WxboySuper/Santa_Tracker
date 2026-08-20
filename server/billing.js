@@ -546,7 +546,7 @@ const getWebhookSubscription = (event) => {
 };
 
 /** Retrieves current Stripe lifecycle state for convenience events such as invoices. */
-const resolveAuthoritativeSubscription = async (stripe, event) => {
+const resolveAuthoritativeSubscription = (stripe, event) => {
   const subscription = getWebhookSubscription(event);
   if (!subscription) {
     return null;
@@ -607,7 +607,7 @@ const resolveInvoiceUid = (subscription, invoice) =>
   '';
 
 /** Checks whether an invoice belongs to a deleted account. */
-const isInvoiceForDeletedAccount = async (subscription, invoice, customerId) => {
+const isInvoiceForDeletedAccount = (subscription, invoice, customerId) => {
   const uid = resolveInvoiceUid(subscription, invoice);
   return uid
     ? isAccountDeletionBlocked(getAdminDb(), uid)

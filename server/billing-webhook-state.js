@@ -65,7 +65,7 @@ const hasMissingInputs = ({ db, entitlementRef, event, buildNextPayload }) =>
   !db || !entitlementRef || !event?.id || !event?.type || typeof buildNextPayload !== 'function';
 
 /** Applies one verified Stripe event exactly once without allowing older state to win. */
-const applyEntitlementWebhookEvent = async ({ db, entitlementRef, event, buildNextPayload }) => {
+const applyEntitlementWebhookEvent = ({ db, entitlementRef, event, buildNextPayload }) => {
   if (hasMissingInputs({ db, entitlementRef, event, buildNextPayload })) {
     throw new Error(WEBHOOK_MISSING_ERROR);
   }

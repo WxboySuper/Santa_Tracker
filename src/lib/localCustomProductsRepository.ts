@@ -104,11 +104,11 @@ const subscribeToLocalProducts: CustomProductsRepository['subscribe'] = (userId,
 };
 
 export const localCustomProductsRepository: CustomProductsRepository = {
-  async list(userId) {
-    return readProducts(userId);
+  list(userId) {
+    return Promise.resolve(readProducts(userId));
   },
   subscribe: subscribeToLocalProducts,
-  async create(userId, draft) {
+  create(userId, draft) {
     return mutateProducts(userId, (products) => {
       if (products.length >= CUSTOM_PRODUCT_LIMITS.productsPerAccount) {
         throw new Error(`Custom product limit reached (${CUSTOM_PRODUCT_LIMITS.productsPerAccount}).`);
@@ -117,20 +117,20 @@ export const localCustomProductsRepository: CustomProductsRepository = {
       return { products: [...products, product], value: product };
     });
   },
-  async update(userId, product, draft) {
+  update(userId, product, draft) {
     return mutateProducts(userId, (products) => {
       const revised = reviseProduct(expectedProduct(products, product), draft);
       return { products: replaceProduct(products, revised), value: revised };
     });
   },
-  async setStatus(userId, product, status) {
+  setStatus(userId, product, status) {
     return mutateProducts(userId, (products) => {
       const current = expectedProduct(products, product);
       const revised = reviseProduct(current, current, status);
       return { products: replaceProduct(products, revised), value: revised };
     });
   },
-  async delete(userId, product) {
+  delete(userId, product) {
     return mutateProducts(userId, (products) => {
       const current = products.find(({ id }) => id === product.id);
       if (!current) return { value: undefined };
