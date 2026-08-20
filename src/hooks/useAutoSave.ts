@@ -94,6 +94,7 @@ export const useAutoSave = (userId?: string | null) => {
   const workflowMetadata = useSelector((state: RootState) => state.forecast.workflowMetadata);
   const isFirstRender = useRef(true);
   const saveGenerationRef = useRef(0);
+  const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (isFirstRender.current) {
@@ -102,7 +103,8 @@ export const useAutoSave = (userId?: string | null) => {
     }
 
     const generation = ++saveGenerationRef.current;
-    setTimeout(() => {
+    saveTimeoutRef.current = setTimeout(() => {
+      saveTimeoutRef.current = null;
       if (generation !== saveGenerationRef.current) return;
       try {
         const data = serializeForecast(forecastCycle, mapView, workflowMetadata);
@@ -111,5 +113,12 @@ export const useAutoSave = (userId?: string | null) => {
         // Auto-save silently fails to avoid disrupting the user
       }
     }, AUTOSAVE_DELAY);
+
+    return () => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+        saveTimeoutRef.current = null;
+      }
+    };
   }, [forecastCycle, mapView, userId, workflowMetadata]);
 };

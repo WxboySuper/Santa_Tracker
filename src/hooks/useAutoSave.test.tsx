@@ -149,4 +149,30 @@ describe('useAutoSave', () => {
     expect(serializeForecast).toHaveBeenCalledTimes(1);
     expect(localStorage.getItem('forecastData')).toBeNull();
   });
+
+  test('cancels a pending save when the hook unmounts', async () => {
+    const store = createStore();
+    const { unmount } = render(
+      <Provider store={store}>
+        <Harness />
+      </Provider>
+    );
+
+    act(() => {
+      store.dispatch(setMapView({ center: [35, -97], zoom: 6 }));
+    });
+
+    await waitFor(() => {
+      expect(serializeForecast).not.toHaveBeenCalled();
+    });
+
+    unmount();
+
+    act(() => {
+      jest.advanceTimersByTime(5000);
+    });
+
+    expect(serializeForecast).not.toHaveBeenCalled();
+    expect(localStorage.getItem('forecastData')).toBeNull();
+  });
 });
