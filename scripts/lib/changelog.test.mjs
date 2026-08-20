@@ -47,7 +47,7 @@ test('extractReleaseNotes uses line section for beta when minor line exists', ()
 });
 
 test('extractReleaseNotes falls back to Unreleased for beta without line section', () => {
-  const changelog = `# Changelog\n\n## [Unreleased]\n\n### Added\n- WIP only\n`;
+  const changelog = '# Changelog\n\n## [Unreleased]\n\n### Added\n- WIP only\n';
   const notes = extractReleaseNotes(changelog, '2.0.0-beta.1');
   assert.match(notes ?? '', /v2\.0\.0-beta\.1/);
   assert.match(notes ?? '', /WIP only/);

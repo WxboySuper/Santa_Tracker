@@ -1,5 +1,4 @@
-import type { StormReport } from '../types/stormReports';
-import type { ReportType } from '../types/stormReports';
+import type { StormReport, ReportType } from '../types/stormReports';
 import { parseTodayCsvRow, TODAY_SECTION_HEADERS } from './stormReportRows';
 
 type TodayReportsByType = Record<ReportType, StormReport[]>;

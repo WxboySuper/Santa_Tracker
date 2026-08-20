@@ -1,8 +1,7 @@
 import { bbox, booleanPointInPolygon, feature as turfFeature, point } from '@turf/turf';
-import type { Feature, Polygon, MultiPolygon, Geometry } from 'geojson';
+import type { Feature, Polygon, MultiPolygon, Geometry, GeoJsonProperties } from 'geojson';
 import { StormReport, ReportType } from '../types/stormReports';
 import { OutlookData } from '../types/outlooks';
-import type { GeoJsonProperties } from 'geojson';
 
 export interface OutlookTypeVerification {
   hits: number;
