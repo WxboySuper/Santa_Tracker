@@ -10,7 +10,7 @@ type SavedCycle = {
 
 type StoreLike = {
   subscribe: (cb: () => void) => () => void;
-  getState: () => { forecast: { savedCycles: SavedCycle[] } };
+  getState: () => { forecast: { savedCycles: SavedCycle[]; lifetimeCycleStats?: { totalCyclesMade: number; totalForecastsMade: number; forecastStreak?: number; lastSavedCycleDate?: string } } };
 };
 
 describe('cycleHistoryPersistence', () => {
@@ -39,7 +39,7 @@ describe('cycleHistoryPersistence', () => {
       stats: { total: 1 },
     };
 
-    expect(() => mod.saveCycleHistoryToStorage([savedCycle])).not.toThrow();
+    expect(() => mod.saveCycleHistoryToStorage([savedCycle as never])).not.toThrow();
 
     const loaded = mod.loadCycleHistoryFromStorage();
     expect(loaded.length).toBe(1);
@@ -49,6 +49,49 @@ describe('cycleHistoryPersistence', () => {
     const fileUtils = await import('./fileUtils');
     expect(fileUtils.serializeForecast).toHaveBeenCalled();
     expect(fileUtils.deserializeForecast).toHaveBeenCalled();
+  });
+
+  test('persists lifetime stats separately from the capped retained cycles', async () => {
+    jest.doMock('./fileUtils', () => ({
+      serializeForecast: jest.fn(() => ({ serialized: true })),
+      deserializeForecast: jest.fn(() => ({ restored: true })),
+    }));
+    const mod = await import('./cycleHistoryPersistence');
+    const savedCycle: SavedCycle = {
+      id: '1', timestamp: 'ts', cycleDate: '2026-04-22', forecastCycle: {},
+      stats: { forecastDays: 1 },
+    };
+
+    mod.saveCycleHistoryToStorage([savedCycle as never], 'user-1', { totalCyclesMade: 61, totalForecastsMade: 123 });
+
+    expect(mod.loadCycleHistorySnapshotFromStorage('user-1').lifetimeCycleStats).toEqual({
+      totalCyclesMade: 61,
+      totalForecastsMade: 123,
+      forecastStreak: 1,
+      lastSavedCycleDate: '2026-04-22',
+    });
+  });
+
+  test('preserves persisted streak continuity across snapshot hydration', async () => {
+    const mod = await import('./cycleHistoryPersistence');
+    const savedCycle: SavedCycle = {
+      id: 'streak-1', timestamp: 'ts', cycleDate: '2026-04-22', forecastCycle: {},
+      stats: { forecastDays: 1 },
+    };
+
+    mod.saveCycleHistoryToStorage([savedCycle as never], 'user-1', {
+      totalCyclesMade: 60,
+      totalForecastsMade: 60,
+      forecastStreak: 60,
+      lastSavedCycleDate: '2026-04-22',
+    });
+
+    expect(mod.loadCycleHistorySnapshotFromStorage('user-1').lifetimeCycleStats).toEqual({
+      totalCyclesMade: 60,
+      totalForecastsMade: 60,
+      forecastStreak: 60,
+      lastSavedCycleDate: '2026-04-22',
+    });
   });
 
   test('GFC-WEB-7: legacy saved cycles with plain-object outlook maps normalize on load', async () => {
@@ -232,9 +275,9 @@ describe('cycleHistoryPersistence', () => {
       expect.any(String),
     );
     const stored = JSON.parse(spy.mock.calls[0][1] as string);
-    expect(stored).toHaveLength(1);
-    expect(stored[0]).toMatchObject({ id: 'a', timestamp: 't', cycleDate: 'd', stats: {} });
-    expect(stored[0]).toHaveProperty('forecastData');
+    expect(stored.cycles).toHaveLength(1);
+    expect(stored.cycles[0]).toMatchObject({ id: 'a', timestamp: 't', cycleDate: 'd', stats: {} });
+    expect(stored.cycles[0]).toHaveProperty('forecastData');
 
     spy.mockClear();
     listeners.forEach((cb) => cb());

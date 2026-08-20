@@ -1,5 +1,5 @@
 import type { ForecastCycle, OutlookDay, DayType } from '../types/outlooks';
-import type { SavedCycle } from '../store/forecastSlice';
+import type { LifetimeCycleStats, SavedCycle } from '../store/forecastSlice';
 import type { Feature } from 'geojson';
 import { countForecastMetrics } from '../utils/forecastMetrics';
 
@@ -36,49 +36,55 @@ const computeSavedCycleStreak = (savedCycles: SavedCycle[]): number => {
   return streak;
 };
 
+const getTotalForecastsMade = (
+  currentForecastDays: number,
+  savedCycles: SavedCycle[],
+  lifetimeStats?: LifetimeCycleStats,
+): number => lifetimeStats
+  ? lifetimeStats.totalForecastsMade + currentForecastDays
+  : savedCycles.reduce((runningTotal, cycle) => runningTotal + cycle.stats.forecastDays, currentForecastDays);
+
+const summarizeOutlookDay = (day: DayType, dayData: OutlookDay | undefined) => {
+  if (!dayData) return null;
+  const outlookMaps = (Object.values(dayData.data) as (Map<string, Feature[]> | undefined)[])
+    .filter((outlookMap): outlookMap is Map<string, Feature[]> => outlookMap instanceof Map && outlookMap.size > 0);
+  const hasLowProbabilityData = (dayData.metadata?.lowProbabilityOutlooks?.length ?? 0) > 0;
+  return {
+    day,
+    hasData: hasLowProbabilityData || outlookMaps.length > 0,
+    totalOutlooks: outlookMaps.length,
+    totalFeatures: outlookMaps.reduce((total, outlookMap) => (
+      total + Array.from(outlookMap.values()).reduce((dayTotal, features) => dayTotal + features.length, 0)
+    ), 0),
+  };
+};
+
+const summarizeCurrentCycle = (forecastCycle: ForecastCycle) => Object.entries(forecastCycle.days)
+  .map(([day, dayData]) => summarizeOutlookDay(parseInt(day) as DayType, dayData))
+  .filter((summary): summary is NonNullable<typeof summary> => summary !== null)
+  .reduce((totals, summary) => ({
+    daysWithData: summary.hasData ? [...totals.daysWithData, summary.day] : totals.daysWithData,
+    totalOutlooks: totals.totalOutlooks + summary.totalOutlooks,
+    totalFeatures: totals.totalFeatures + summary.totalFeatures,
+  }), { daysWithData: [] as DayType[], totalOutlooks: 0, totalFeatures: 0 });
+
 /** Aggregates outlook statistics from a forecast cycle for dashboard display. */
-export function computeHomeStats(forecastCycle: ForecastCycle, savedCycles: SavedCycle[]) {
+export function computeHomeStats(
+  forecastCycle: ForecastCycle,
+  savedCycles: SavedCycle[],
+  lifetimeStats?: LifetimeCycleStats,
+) {
   const currentCycleMetrics = countForecastMetrics(forecastCycle);
-  const daysWithData: DayType[] = [];
-  let totalOutlooks = 0;
-  let totalFeatures = 0;
-
-  (Object.entries(forecastCycle.days) as [string, OutlookDay | undefined][]).forEach(([dayStr, dayData]) => {
-    const day = parseInt(dayStr) as DayType;
-    let dayHasData = false;
-
-    if (!dayData) return;
-
-    if (dayData.metadata?.lowProbabilityOutlooks && dayData.metadata.lowProbabilityOutlooks.length > 0) {
-      dayHasData = true;
-    }
-
-    (Object.values(dayData.data) as (Map<string, Feature[]> | undefined)[]).forEach((outlookMap) => {
-      if (outlookMap instanceof Map && outlookMap.size > 0) {
-        dayHasData = true;
-        totalOutlooks++;
-        outlookMap.forEach((features: Feature[]) => {
-          totalFeatures += features.length;
-        });
-      }
-    });
-
-    if (dayHasData) {
-      daysWithData.push(day);
-    }
-  });
+  const currentCycleStats = summarizeCurrentCycle(forecastCycle);
 
   return {
-    daysWithData,
-    totalOutlooks,
-    totalFeatures,
+    daysWithData: currentCycleStats.daysWithData,
+    totalOutlooks: currentCycleStats.totalOutlooks,
+    totalFeatures: currentCycleStats.totalFeatures,
     savedCyclesCount: savedCycles.length,
-    totalForecastsMade: savedCycles.reduce(
-      (runningTotal, cycle) => runningTotal + cycle.stats.forecastDays,
-      currentCycleMetrics.forecastDays
-    ),
-    totalCyclesMade: savedCycles.length,
-    forecastStreak: computeSavedCycleStreak(savedCycles),
+    totalForecastsMade: getTotalForecastsMade(currentCycleMetrics.forecastDays, savedCycles, lifetimeStats),
+    totalCyclesMade: lifetimeStats?.totalCyclesMade ?? savedCycles.length,
+    forecastStreak: lifetimeStats?.forecastStreak ?? computeSavedCycleStreak(savedCycles),
   };
 }
 

@@ -3,7 +3,7 @@ import { useDispatch } from 'react-redux';
 import type { Store } from 'redux';
 import type { RootState } from '../store';
 import { loadCycleHistory } from '../store/forecastSlice';
-import type { SavedCycle, SavedCycleStats } from '../store/forecastSlice';
+import type { LifetimeCycleStats, SavedCycle, SavedCycleStats } from '../store/forecastSlice';
 import { deserializeForecast, serializeForecast } from './fileUtils';
 import { countForecastMetrics } from './forecastMetrics';
 import { normalizeForecastCycle } from './outlookMapCoercion';
@@ -24,6 +24,11 @@ interface PersistedSavedCycle {
   stats?: SavedCycleStats;
   /** v2 workflow metadata for the cycle (optional, present for workflow-imported cycles). */
   workflowMetadata?: CycleMetadata;
+}
+
+export interface CycleHistorySnapshot {
+  cycles: SavedCycle[];
+  lifetimeCycleStats: LifetimeCycleStats;
 }
 
 /** Converts an in-memory saved cycle into a JSON-safe storage shape that preserves map data. */
@@ -103,6 +108,86 @@ const parseStoredCycleHistory = (serialized: string | null): SavedCycle[] => {
   }
 };
 
+const emptyCycleHistorySnapshot = (): CycleHistorySnapshot => ({
+  cycles: [],
+  lifetimeCycleStats: { totalCyclesMade: 0, totalForecastsMade: 0 },
+});
+
+const getCycleDayIndex = (cycleDate: string): number => {
+  const [year, month, day] = cycleDate.split('-').map(Number);
+  return Math.floor(Date.UTC(year, month - 1, day) / 86400000);
+};
+
+const deriveForecastStreak = (cycles: SavedCycle[]): Pick<LifetimeCycleStats, 'forecastStreak' | 'lastSavedCycleDate'> => {
+  const uniqueDates = Array.from(new Set(cycles.map((cycle) => cycle.cycleDate))).sort();
+  if (uniqueDates.length === 0) return {};
+
+  let forecastStreak = 1;
+  for (let index = uniqueDates.length - 1; index > 0; index -= 1) {
+    if (getCycleDayIndex(uniqueDates[index]) - getCycleDayIndex(uniqueDates[index - 1]) !== 1) break;
+    forecastStreak += 1;
+  }
+
+  return { forecastStreak, lastSavedCycleDate: uniqueDates[uniqueDates.length - 1] };
+};
+
+const deriveLifetimeCycleStats = (cycles: SavedCycle[]): LifetimeCycleStats => ({
+  totalCyclesMade: cycles.length,
+  totalForecastsMade: cycles.reduce((total, cycle) => total + (cycle.stats.forecastDays ?? 0), 0),
+  ...deriveForecastStreak(cycles),
+});
+
+const isOptionalNumber = (value: unknown): value is number | undefined =>
+  value === undefined || typeof value === 'number';
+
+const isOptionalString = (value: unknown): value is string | undefined =>
+  value === undefined || typeof value === 'string';
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  Object.prototype.toString.call(value) === '[object Object]';
+
+const isLifetimeCycleStats = (value: unknown): value is LifetimeCycleStats => {
+  if (!isRecord(value)) return false;
+  return [
+    typeof value.totalCyclesMade === 'number',
+    typeof value.totalForecastsMade === 'number',
+    isOptionalNumber(value.forecastStreak),
+    isOptionalString(value.lastSavedCycleDate),
+  ].every(Boolean);
+};
+
+const getStoredLifetimeStats = (parsed: unknown) => {
+  const stats = (parsed as { lifetimeCycleStats?: unknown } | null)?.lifetimeCycleStats;
+  return isLifetimeCycleStats(stats) ? stats : undefined;
+};
+
+const readStoredLifetimeStats = (parsed: unknown, cycles: SavedCycle[]) => {
+  const derived = deriveLifetimeCycleStats(cycles);
+  const stored = getStoredLifetimeStats(parsed);
+  return stored
+    ? {
+        ...derived,
+        ...stored,
+        forecastStreak: stored.forecastStreak ?? derived.forecastStreak,
+        lastSavedCycleDate: stored.lastSavedCycleDate ?? derived.lastSavedCycleDate,
+      }
+    : derived;
+};
+
+const parseStoredCycleHistorySnapshot = (serialized: string | null): CycleHistorySnapshot => {
+  if (!serialized) return emptyCycleHistorySnapshot();
+
+  try {
+    const parsed = JSON.parse(serialized) as { cycles?: unknown } | unknown[];
+    const cycles = Array.isArray(parsed)
+      ? parseStoredCycleHistory(serialized)
+      : parseStoredCycleHistory(JSON.stringify(parsed.cycles));
+    return { cycles, lifetimeCycleStats: readStoredLifetimeStats(parsed, cycles) };
+  } catch {
+    return emptyCycleHistorySnapshot();
+  }
+};
+
 /** Returns the account that claimed the legacy cycle-history copy, if any. */
 const readLegacyCycleHistoryClaim = (): string | null => localStorage.getItem(CYCLE_HISTORY_CLAIM_KEY);
 
@@ -145,9 +230,19 @@ export const migrateLegacyCycleHistory = (userId?: string | null): void => {
 };
 
 /** Persists saved cycles in the anonymous or account-scoped localStorage key. */
-export const saveCycleHistoryToStorage = (cycles: SavedCycle[], userId?: string | null): void => {
+export const saveCycleHistoryToStorage = (
+  cycles: SavedCycle[],
+  userId?: string | null,
+  lifetimeCycleStats?: LifetimeCycleStats,
+): void => {
   try {
-    const serialized = JSON.stringify(cycles.map(toPersistedSavedCycle));
+    const serialized = JSON.stringify({
+      cycles: cycles.map(toPersistedSavedCycle),
+      lifetimeCycleStats: lifetimeCycleStats ?? {
+        totalCyclesMade: cycles.length,
+        totalForecastsMade: cycles.reduce((total, cycle) => total + (cycle.stats.forecastDays ?? 0), 0),
+      },
+    });
     localStorage.setItem(getCycleHistoryStorageKey(userId), serialized);
   } catch {
     // Silently ignore localStorage write failures
@@ -158,31 +253,35 @@ export const saveCycleHistoryToStorage = (cycles: SavedCycle[], userId?: string 
  * Load cycle history from localStorage
  */
 export const loadCycleHistoryFromStorage = (userId?: string | null): SavedCycle[] => {
+  return loadCycleHistorySnapshotFromStorage(userId).cycles;
+};
+
+export const loadCycleHistorySnapshotFromStorage = (userId?: string | null): CycleHistorySnapshot => {
   try {
     const scopedKey = getCycleHistoryStorageKey(userId);
     const scopedSerialized = localStorage.getItem(scopedKey);
-    const scopedCycles = parseStoredCycleHistory(scopedSerialized);
-    if (scopedCycles.length > 0 || !userId) {
+    const scopedSnapshot = parseStoredCycleHistorySnapshot(scopedSerialized);
+    if (scopedSnapshot.cycles.length > 0 || !userId) {
       if (!userId && scopedSerialized === null) {
         const legacySerialized = localStorage.getItem(LEGACY_CYCLE_HISTORY_KEY);
         if (legacySerialized) {
           localStorage.setItem(scopedKey, legacySerialized);
-          return parseStoredCycleHistory(legacySerialized);
+          return parseStoredCycleHistorySnapshot(legacySerialized);
         }
       }
-      return scopedCycles;
+      return scopedSnapshot;
     }
 
     // During rollout, signed-in users may still have only the pre-scope history.
     const legacySerialized = localStorage.getItem(LEGACY_CYCLE_HISTORY_KEY);
-    const legacyCycles = parseStoredCycleHistory(legacySerialized);
-    if (legacyCycles.length > 0 && canImportLegacyCycleHistory(userId)) {
+    const legacySnapshot = parseStoredCycleHistorySnapshot(legacySerialized);
+    if (legacySnapshot.cycles.length > 0 && canImportLegacyCycleHistory(userId)) {
       importLegacyCycleHistoryToScope(userId, legacySerialized as string);
-      return legacyCycles;
+      return legacySnapshot;
     }
-    return scopedCycles;
+    return scopedSnapshot;
   } catch {
-    return [];
+    return { cycles: [], lifetimeCycleStats: { totalCyclesMade: 0, totalForecastsMade: 0 } };
   }
 };
 
@@ -196,9 +295,9 @@ export const useCycleHistoryPersistence = (userId?: string | null): void => {
     // Clear the previous account's history before hydrating the new scope.
     dispatch(loadCycleHistory([]));
     migrateLegacyCycleHistory(userId);
-    const savedCycles = loadCycleHistoryFromStorage(userId);
-    if (savedCycles.length > 0) {
-      dispatch(loadCycleHistory(savedCycles));
+    const snapshot = loadCycleHistorySnapshotFromStorage(userId);
+    if (snapshot.cycles.length > 0) {
+      dispatch(loadCycleHistory(snapshot));
     }
   }, [dispatch, userId]);
 };
@@ -216,9 +315,9 @@ export const setupCycleHistoryListener = (store: Store<RootState>, userId?: stri
 
     if (currentCycles !== previousCycles) {
       if (userId) {
-        saveCycleHistoryToStorage(currentCycles, userId);
+        saveCycleHistoryToStorage(currentCycles, userId, state.forecast.lifetimeCycleStats);
       } else {
-        saveCycleHistoryToStorage(currentCycles);
+        saveCycleHistoryToStorage(currentCycles, undefined, state.forecast.lifetimeCycleStats);
       }
       previousCycles = currentCycles;
     }

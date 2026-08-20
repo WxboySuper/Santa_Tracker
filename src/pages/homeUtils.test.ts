@@ -67,4 +67,17 @@ describe('homeUtils', () => {
     expect(computeHomeStats(makeCycle(), []).forecastStreak).toBe(0);
     expect(formatCycleDate('2026-04-24')).toContain('April 24, 2026');
   });
+
+  test('adds current-cycle days to persisted lifetime forecast totals', () => {
+    const stats = computeHomeStats(makeCycle(), [], {
+      totalCyclesMade: 60,
+      totalForecastsMade: 100,
+      forecastStreak: 75,
+      lastSavedCycleDate: '2026-04-24',
+    });
+
+    expect(stats.totalCyclesMade).toBe(60);
+    expect(stats.totalForecastsMade).toBe(101);
+    expect(stats.forecastStreak).toBe(75);
+  });
 });

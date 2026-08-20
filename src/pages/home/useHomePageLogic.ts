@@ -56,7 +56,8 @@ const useHomePageLogic = () => {
     forecastCycle,
   });
 
-  const stats = useMemo(() => computeHomeStats(forecastCycle, savedCycles), [forecastCycle, savedCycles]);
+  const lifetimeStats = useSelector((state: RootState) => state.forecast.lifetimeCycleStats);
+  const stats = useMemo(() => computeHomeStats(forecastCycle, savedCycles, lifetimeStats), [forecastCycle, savedCycles, lifetimeStats]);
   const formattedDate = useMemo(() => formatCycleDate(forecastCycle.cycleDate), [forecastCycle.cycleDate]);
   const variant = hostedAuthEnabled && status === 'signed_in' ? 'signed_in' : 'signed_out';
 

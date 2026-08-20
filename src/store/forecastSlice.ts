@@ -37,6 +37,18 @@ export interface SavedCycle {
   workflowMetadata?: CycleMetadata;
 }
 
+export interface CycleHistoryLoad {
+  cycles: SavedCycle[];
+  lifetimeCycleStats: LifetimeCycleStats;
+}
+
+export interface LifetimeCycleStats {
+  totalCyclesMade: number;
+  totalForecastsMade: number;
+  forecastStreak?: number;
+  lastSavedCycleDate?: string;
+}
+
 export interface ForecastState {
   forecastCycle: ForecastCycle;
   drawingState: DrawingState;
@@ -52,6 +64,7 @@ export interface ForecastState {
   isSaved: boolean;
   emergencyMode: boolean;
   savedCycles: SavedCycle[];
+  lifetimeCycleStats?: LifetimeCycleStats;
   historyByDay: Partial<Record<DayType, ForecastHistoryStacks>>;
   /** Unsaved discussion editor drafts, keyed by grouping id so shared owner days cannot collide. */
   discussionDraftsByScope: Record<string, DiscussionData>;
@@ -108,6 +121,7 @@ interface CopyFeatureRule {
 }
 
 const HISTORY_LIMIT = 50;
+export const SAVED_CYCLES_LIMIT = 50;
 /** Storage key for the workflow-active flag; persisted by the store subscription, not by reducers. */
 export const WORKFLOW_ACTIVE_STORAGE_KEY = 'gfc-active-forecast-workflow';
 /** Deterministic timestamp used for the module-level initial state so no clock read happens at import time. */
@@ -332,6 +346,7 @@ const initialState: ForecastState = {
   isSaved: true,
   emergencyMode: false,
   savedCycles: [],
+  lifetimeCycleStats: { totalCyclesMade: 0, totalForecastsMade: 0 },
   historyByDay: {},
   discussionDraftsByScope: {},
   completionValidation: {
@@ -1101,6 +1116,24 @@ export const forecastSlice = createSlice({
         workflowMetadata: state.workflowMetadata ? { ...state.workflowMetadata } : undefined,
       };
       state.savedCycles.push(savedCycle);
+      state.lifetimeCycleStats ??= { totalCyclesMade: 0, totalForecastsMade: 0 };
+      state.lifetimeCycleStats.totalCyclesMade += 1;
+      state.lifetimeCycleStats.totalForecastsMade += savedCycle.stats.forecastDays;
+      const lastSavedCycleDate = state.lifetimeCycleStats.lastSavedCycleDate;
+      if (!lastSavedCycleDate || savedCycle.cycleDate > lastSavedCycleDate) {
+        const previousDate = lastSavedCycleDate ? new Date(lastSavedCycleDate).getTime() : 0;
+        const currentDate = new Date(savedCycle.cycleDate).getTime();
+        const isConsecutiveDay = currentDate - previousDate === 86400000;
+        state.lifetimeCycleStats.forecastStreak = isConsecutiveDay
+          ? (state.lifetimeCycleStats.forecastStreak ?? 0) + 1
+          : 1;
+        state.lifetimeCycleStats.lastSavedCycleDate = savedCycle.cycleDate;
+      } else if (!state.lifetimeCycleStats.forecastStreak) {
+        state.lifetimeCycleStats.forecastStreak = 1;
+      }
+      if (state.savedCycles.length > SAVED_CYCLES_LIMIT) {
+        state.savedCycles.splice(0, state.savedCycles.length - SAVED_CYCLES_LIMIT);
+      }
       state.isSaved = true;
     },
 
@@ -1135,6 +1168,7 @@ export const forecastSlice = createSlice({
     deleteSavedCycle: (state, action: PayloadAction<string>) => {
       const cycleId = action.payload;
       state.savedCycles = state.savedCycles.filter(c => c.id !== cycleId);
+      // lifetimeCycleStats intentionally tracks historical saves, not the retained/deletable window.
     },
 
     // Copy features from one cycle/day to current cycle/day
@@ -1173,8 +1207,15 @@ export const forecastSlice = createSlice({
     },
 
     // Load cycles from storage (for hydration)
-    loadCycleHistory: (state, action: PayloadAction<SavedCycle[]>) => {
-      state.savedCycles = action.payload;
+    loadCycleHistory: (state, action: PayloadAction<SavedCycle[] | CycleHistoryLoad>) => {
+      const cycles = Array.isArray(action.payload) ? action.payload : action.payload.cycles;
+      state.savedCycles = cycles.slice(-SAVED_CYCLES_LIMIT);
+      state.lifetimeCycleStats = Array.isArray(action.payload)
+        ? {
+            totalCyclesMade: cycles.length,
+            totalForecastsMade: cycles.reduce((total, cycle) => total + (cycle.stats.forecastDays ?? 0), 0),
+          }
+        : action.payload.lifetimeCycleStats;
     },
 
     setLowProbability: (state, action: PayloadAction<{ outlookType: OutlookType, isLow: boolean }>) => {

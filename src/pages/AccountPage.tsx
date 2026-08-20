@@ -866,9 +866,10 @@ const MetricsCard: React.FC = () => {
   const savedCycles = useSelector((state: RootState) =>
     selectSavedCycles(state),
   );
+  const lifetimeStats = useSelector((state: RootState) => state.forecast.lifetimeCycleStats);
   const localStats = useMemo(
-    () => computeHomeStats(forecastCycle, savedCycles),
-    [forecastCycle, savedCycles],
+    () => computeHomeStats(forecastCycle, savedCycles, lifetimeStats),
+    [forecastCycle, savedCycles, lifetimeStats],
   );
 
   return (
