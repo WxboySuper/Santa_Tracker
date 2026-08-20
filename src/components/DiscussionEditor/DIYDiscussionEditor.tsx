@@ -8,7 +8,7 @@ interface DIYDiscussionEditorProps {
 
 // A simple markdown editor for the forecast discussion, which provides a textarea for input and a toolbar with buttons to insert markdown formatting for bold, italic, and headings. It manages the cursor position to insert formatting around selected text and updates the content state as the user types or applies formatting. The editor also displays a character count below the textarea.
 const DIYDiscussionEditor: React.FC<DIYDiscussionEditorProps> = ({ content, onChange }) => {
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
 
   // Function to insert markdown formatting at the current cursor position or around the selected text in the textarea. It takes the markdown syntax to insert before and after the selected text, updates the content state with the new formatted text, and restores the cursor position after insertion.
   const insertFormatting = (before: string, after: string = '') => {

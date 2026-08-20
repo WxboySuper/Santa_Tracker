@@ -6,11 +6,6 @@ import { OutlookData, CIGLevel, CategoricalRiskLevel } from '../types/outlooks';
 import { coerceOutlookProbabilityMap } from '../utils/outlookMapCoercion';
 import { CategoricalDerivationError } from './categoricalErrors';
 
-/**
- * Raised when automatic categorical derivation cannot produce a complete,
- * valid result. Callers must preserve the last known-good categorical
- * geometry instead of publishing a partial result.
- */
 export function processOutlooksToCategorical(outlooks: OutlookData, day: number = 1): GeoJSON.Feature[] {
   if (day === 1 || day === 2) {
     return processDay12OutlooksToCategorical(outlooks);
