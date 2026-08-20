@@ -145,6 +145,7 @@ describe('useCloudSync', () => {
     });
 
     expect(result.current.currentCloud).toBeNull();
+    expect(mockSerializeForecast).not.toHaveBeenCalled();
     expect(saveCycle).not.toHaveBeenCalled();
   });
 
