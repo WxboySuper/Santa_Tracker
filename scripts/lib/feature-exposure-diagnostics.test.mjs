@@ -157,9 +157,9 @@ describe('feature exposure diagnostics', () => {
     );
 
     for (const diagnostic of report.features) {
-      assert.equal(diagnostic.owner, undefined);
-      assert.equal(diagnostic.trackingIssue, undefined);
-      assert.equal(diagnostic.removalCondition, undefined);
+      assert.ok(!('owner' in diagnostic));
+      assert.ok(!('trackingIssue' in diagnostic));
+      assert.ok(!('removalCondition' in diagnostic));
     }
   });
 });
