@@ -101,7 +101,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
         with:
-          model: opencode/deepseek-v4-flash-free
+          model: opencode/muse-spark-1.2-contributor-free
           use_github_token: true
           mentions: /oc,/opencode
 
