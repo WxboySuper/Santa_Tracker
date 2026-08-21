@@ -1,26 +1,48 @@
 {
-  "name": "santa-tracker",
+  "name": "santa-tracker-workspace",
+  "private": true,
   "version": "1.0.0",
-  "description": "Santa Tracker Web App",
-  "dependencies": {
-    "leaflet": "^1.7.1",
-    "moment": "^2.29.4"
-  },
-  "devDependencies": {
-    "@babel/core": "^7.29.7",
-    "@babel/eslint-parser": "^7.28.5",
-    "@babel/preset-react": "^7.28.5",
-    "eslint": "^8.57.0",
-    "eslint-plugin-react": "^7.37.5",
-    "eslint-plugin-react-hooks": "^7.0.1",
-    "htmlhint": "^1.1.4",
-    "stylelint": "^16.10.0",
-    "stylelint-config-standard": "^36.0.1"
+  "description": "Santa Tracker — Next.js pnpm workspace (Christmas 2026 reinvention)",
+  "type": "module",
+  "packageManager": "pnpm@10.30.3",
+  "engines": {
+    "node": ">=20",
+    "pnpm": ">=9"
   },
   "scripts": {
-    "lint:js": "eslint .",
+    "dev": "pnpm --filter @santa-tracker/web dev",
+    "build": "pnpm -r build",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint . --max-warnings=0",
+    "lint:fix": "eslint . --fix",
+    "lint:js": "eslint . --max-warnings=0",
+    "lint:legacy:js": "eslint src --ext .js",
     "lint:html": "htmlhint \"**/*.html\" --ignore \"src/templates/index.html\"",
-    "lint:css": "stylelint \"**/*.css\"",
-    "lint": "npm run lint:js && npm run lint:html && npm run lint:css"
+    "lint:css": "stylelint \"**/*.css\" --ignore-path .gitignore",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.32.0",
+    "@next/eslint-plugin-next": "^15.4.7",
+    "@types/node": "^22.10.7",
+    "@typescript-eslint/eslint-plugin": "^8.32.0",
+    "@typescript-eslint/parser": "^8.32.0",
+    "eslint": "^9.32.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-react-hooks": "^5.2.0",
+    "htmlhint": "^1.1.4",
+    "prettier": "^3.6.2",
+    "stylelint": "^16.22.0",
+    "stylelint-config-standard": "^38.0.0",
+    "typescript": "^5.8.3",
+    "typescript-eslint": "^8.32.0",
+    "vite-tsconfig-paths": "^5.1.4",
+    "vitest": "^3.2.4"
+  },
+  "dependencies": {
+    "leaflet": "^1.9.4",
+    "moment": "^2.30.1"
   }
 }

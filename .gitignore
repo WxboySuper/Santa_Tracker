@@ -5,9 +5,12 @@ __pycache__/
 venv/
 .env
 
-# Node
+# Node / pnpm
 node_modules/
+.pnpm-store/
 npm-debug.log
+pnpm-debug.log
+.pnpm-debug.log
 
 # IDEs
 .vscode/
@@ -23,10 +26,15 @@ desktop.ini
 # Build & Distribution
 dist/
 build/
+.next/
+out/
+next-env.d.ts
+*.tsbuildinfo
 *.egg-info/
 .coverage
 htmlcov/
 coverage.xml
+coverage/
 
 # Local development
 *.log

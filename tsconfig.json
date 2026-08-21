@@ -1,0 +1,34 @@
+{
+  "compilerOptions": {
+    "strict": true,
+    "strictNullChecks": true,
+    "noUncheckedIndexedAccess": true,
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "jsx": "preserve",
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "skipLibCheck": true,
+    "noEmit": true,
+    "baseUrl": ".",
+    "paths": {
+      "@santa-tracker/contracts": ["packages/contracts/src"],
+      "@santa-tracker/contracts/*": ["packages/contracts/src/*"],
+      "@santa-tracker/database": ["packages/database/src"],
+      "@santa-tracker/route-engine": ["packages/route-engine/src"],
+      "@santa-tracker/ui": ["packages/ui/src"],
+      "@santa-tracker/activity-sdk": ["packages/activity-sdk/src"],
+      "@santa-tracker/config": ["packages/config/src"],
+      "@santa-tracker/test-fixtures": ["packages/test-fixtures/src"]
+    }
+  },
+  "exclude": ["node_modules", "dist", ".next", "coverage", "apps/web/.next", "apps/web/dist"]
+}
