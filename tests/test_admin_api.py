@@ -212,7 +212,8 @@ class TestStatelessTokenAuthentication:
         # Changing only the last char can be flaky with base64 padding, so
         # we flip a middle character and append garbage to guarantee invalidity.
         mid = len(token) // 2
-        tampered_token = token[:mid] + ("X" if token[mid] != "X" else "Y") + token[mid + 1 :] + "x"
+        mid_char = "X" if token[mid] != "X" else "Y"
+        tampered_token = token[:mid] + mid_char + token[mid + 1 :] + "x"
 
         headers = {"Authorization": f"Bearer {tampered_token}"}
         response = client.get("/api/admin/locations", headers=headers)
