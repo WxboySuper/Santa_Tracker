@@ -85,16 +85,13 @@ describe("No Flask in production paths", () => {
       "apps/web/src/lib/advent.ts",
     ];
     for (const f of files) {
-      const content = fs.readFileSync(path.join(process.cwd(), "..", "..", f), "utf-8").catch ? "" : "";
-      // alternative: try workspace root
       try {
         const c = fs.readFileSync(path.resolve(f), "utf-8");
         expect(c).not.toContain("from flask");
         expect(c).not.toContain("import Flask");
       } catch {
-        // if file not at that path, fallback to checking via relative to workspace
         const ws = path.join(process.cwd(), f.replace("apps/web/", "../apps/web/"));
-        // skip if not found
+        void ws;
       }
     }
   });
