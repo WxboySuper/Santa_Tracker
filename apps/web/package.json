@@ -1,0 +1,37 @@
+{
+  "name": "@santa-tracker/web",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Next.js public site, admin studio, APIs, and jobs — composition root.",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src --max-warnings=0",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@santa-tracker/activity-sdk": "workspace:*",
+    "@santa-tracker/config": "workspace:*",
+    "@santa-tracker/contracts": "workspace:*",
+    "@santa-tracker/database": "workspace:*",
+    "@santa-tracker/route-engine": "workspace:*",
+    "@santa-tracker/ui": "workspace:*",
+    "next": "^15.4.7",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.7",
+    "@types/react": "^19.1.9",
+    "@types/react-dom": "^19.1.4",
+    "autoprefixer": "^10.4.21",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^3.4.18",
+    "typescript": "^5.8.3",
+    "vitest": "^3.2.4"
+  }
+}

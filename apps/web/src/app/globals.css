@@ -1,0 +1,15 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Seasonal shell — replaced by the full design system in the North Pole milestone */
+:root {
+  --north-pole-night: #0b1220;
+  --aurora-teal: #2dd4bf;
+  --santa-red: #dc2626;
+}
+
+html,
+body {
+  height: 100%;
+}
