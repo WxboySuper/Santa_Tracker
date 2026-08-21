@@ -19,7 +19,7 @@
   "dependencies": {
     "@santa-tracker/config": "workspace:*",
     "@santa-tracker/contracts": "workspace:*",
-    "drizzle-orm": "^0.44.3",
+    "drizzle-orm": "^0.45.2",
     "postgres": "^3.4.5"
   },
   "devDependencies": {
