@@ -11,6 +11,9 @@ All notable changes to this project will be documented in this file.
 
 <!-- Continue next-major work here after this stable line is cut. -->
 
+#### Fixed
+
+- **Auto-categorical recovery:** Reset timed-out geometry workers, preserve the newest probabilistic edit for a follow-up derivation, and prevent repeated retries of unchanged failed geometry.
 - Precision polygon editing now scopes vertex changes to the selected outlook tier and records multi-vertex edits as one undo step.
 
 ## v1.7.0

@@ -8,7 +8,14 @@ import { toDerivationErrorMessage } from './categoricalErrors';
 const geometryIds = new WeakMap<object, number>();
 let nextGeometryId = 1;
 
-/** Returns a cheap identity token for an immutable geometry object. */
+/**
+ * Returns a cheap identity token for a geometry object.
+ *
+ * Forecast state follows Redux's immutable-update contract. Producers must
+ * replace the feature and geometry objects when coordinates change. This
+ * makes object identity a valid signature input and avoids serializing every
+ * polygon on each effect run.
+ */
 const getGeometryId = (geometry: GeoJSON.Geometry | null): number => {
   if (!geometry || typeof geometry !== 'object') return 0;
   const existingId = geometryIds.get(geometry);
@@ -107,14 +114,16 @@ const buildCategoricalMap = (
  * Day 4-8: Does nothing (no categorical conversion)
  */
 // @codescene(disable:"Complex Method", disable:"Overall Code Complexity")
-const useAutoCategorical = () => {
+const useAutoCategorical = (controllerFactory: () => ReturnType<typeof createDerivationController> = createDerivationController) => {
   const dispatch = useDispatch();
   const outlooks = useSelector(selectCurrentOutlooks);
   const currentDay = useSelector(selectCurrentDay);
   const processingRef = useRef(false);
   const lastProcessedRef = useRef<string>('');
+  const latestHashRef = useRef<string>('');
   const requestIdRef = useRef(0);
-  const [controller] = useState(() => createDerivationController());
+  const [controller] = useState(() => controllerFactory());
+  const [processingRevision, setProcessingRevision] = useState(0);
 
   // Process probabilistic outlooks to generate categorical outlooks
   useEffect(() => {
@@ -122,13 +131,14 @@ const useAutoCategorical = () => {
     if (currentDay >= 4) {
       return;
     }
+
+    const currentHash = signatureFromProbabilisticOutlooks(outlooks, currentDay);
+    latestHashRef.current = currentHash;
     
     // Prevent recursive updates
     if (processingRef.current) {
       return;
     }
-
-    const currentHash = signatureFromProbabilisticOutlooks(outlooks, currentDay);
 
     // A successful derivation already handled this probabilistic state. The
     // generated categorical map changes Redux state, so checking hasChanges
@@ -174,6 +184,10 @@ const useAutoCategorical = () => {
             result.error,
             'Automatic categorical generation failed. Previous categorical geometry was preserved.'
           );
+          // Do not retry the same broken geometry on every unrelated Redux
+          // update. A new probabilistic edit produces a new hash and remains
+          // eligible for derivation.
+          lastProcessedRef.current = currentHash;
           dispatch(setAutoCategoricalError(message));
           return;
         }
@@ -187,9 +201,12 @@ const useAutoCategorical = () => {
       .finally(() => {
         if (requestId === requestIdRef.current) {
           processingRef.current = false;
+          if (latestHashRef.current !== lastProcessedRef.current) {
+            setProcessingRevision((revision) => revision + 1);
+          }
         }
       });
-  }, [controller, dispatch, outlooks, currentDay]);
+  }, [controller, dispatch, outlooks, currentDay, processingRevision]);
 
   useEffect(() => () => controller.dispose(), [controller]);
 
