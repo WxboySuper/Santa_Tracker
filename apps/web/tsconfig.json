@@ -19,11 +19,11 @@
   },
   "include": [
     "next-env.d.ts",
-    "src",
-    ".next/types/**/*.ts"
+    "src"
   ],
   "exclude": [
     "node_modules",
-    "dist"
+    "dist",
+    ".next"
   ]
 }

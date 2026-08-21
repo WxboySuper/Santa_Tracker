@@ -1,15 +1,15 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { validateLocations, createLocationFromPayload } from "../locations";
 import { buildSimulatedFromLocations } from "../route-sim";
-import { isUnlocked, toDict, getManifest, validateAdventCalendar, type AdventDay } from "../advent";
+import { isUnlocked, toDict, validateAdventCalendar, type AdventDay } from "../advent";
 import { createAdminToken, verifyAdminToken, verifyAdminPassword } from "../auth";
 import fs from "fs";
 import path from "path";
 
-describe("Flask parity — locations", () => {
+describe("Flask parity - locations", () => {
   it("validates location payload and normalizes lng", () => {
     const loc = createLocationFromPayload({ name: "Test", latitude: 10, longitude: 190, utc_offset: 0 });
-    expect(loc.longitude).toBe(-170); // normalized
+    expect(loc.longitude).toBe(-170);
   });
   it("rejects invalid latitude", () => {
     expect(() => createLocationFromPayload({ name: "Bad", latitude: 100, longitude: 0, utc_offset: 0 })).toThrow();
@@ -58,7 +58,7 @@ describe("Advent parity", () => {
   });
 });
 
-describe("Auth parity — Flask password fallback removed", () => {
+describe("Auth parity - Flask password fallback removed", () => {
   beforeEach(() => {
     process.env.SECRET_KEY = "test-secret-key-1234567890123456";
     process.env.ADMIN_PASSWORD = "supersecret";
@@ -68,7 +68,6 @@ describe("Auth parity — Flask password fallback removed", () => {
     expect(await verifyAdminToken(token)).toBe(true);
   });
   it("does NOT accept raw password as bearer", async () => {
-    // Flask fallback accepted ADMIN_PASSWORD as Bearer; Next.js must not
     expect(await verifyAdminToken("supersecret")).toBe(false);
   });
   it("verifyAdminPassword timing-safe", async () => {
@@ -86,16 +85,36 @@ describe("No Flask in production paths", () => {
     ];
     for (const f of files) {
       try {
-        const c = fs.readFileSync(path.resolve(f), "utf-8");
-        expect(c).not.toContain("from flask");
-        expect(c).not.toContain("import Flask");
-      } catch {
-        const ws = path.join(process.cwd(), f.replace("apps/web/", "../apps/web/"));
-        void ws;
+        const candidates = [
+          path.resolve(f),
+          path.join(process.cwd(), f),
+          path.join(process.cwd(), "apps/web", f.replace("apps/web/", "")),
+          path.resolve(__dirname, "../../" + f.replace("apps/web/", "")),
+        ];
+        let found = false;
+        for (const p of candidates) {
+          if (fs.existsSync(p)) {
+            const c = fs.readFileSync(p, "utf-8");
+            expect(c).not.toContain("from flask");
+            expect(c).not.toContain("import Flask");
+            found = true;
+            break;
+          }
+        }
+        if (!found) throw new Error("file not found: " + f);
+      } catch (e) {
+        throw e;
       }
     }
   });
   it("archive preserves Flask source", () => {
-    expect(fs.existsSync(path.join(process.cwd(), "..", "..", "archive/flask-legacy/app.py")) || fs.existsSync("archive/flask-legacy/app.py")).toBe(true);
+    const candidates = [
+      path.join(process.cwd(), "archive/flask-legacy/app.py"),
+      path.join(process.cwd(), "..", "..", "archive/flask-legacy/app.py"),
+      path.resolve(__dirname, "../../../archive/flask-legacy/app.py"),
+      path.join(__dirname, "..", "..", "..", "..", "archive/flask-legacy/app.py"),
+    ];
+    const exists = candidates.some((p) => fs.existsSync(p));
+    expect(exists).toBe(true);
   });
 });
