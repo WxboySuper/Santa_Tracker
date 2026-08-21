@@ -1,0 +1,8 @@
+node_modules
+.next
+dist
+coverage
+pnpm-lock.yaml
+package-lock.json
+Route Data
+tools/route-editor/dist

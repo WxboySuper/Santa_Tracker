@@ -1,0 +1,6 @@
+packages:
+  - "apps/*"
+  - "packages/*"
+  # Keep the standalone Vite route editor outside the pnpm workspace
+  # so the Flask-era npm lockfile remains isolated.
+  - "!tools/**"

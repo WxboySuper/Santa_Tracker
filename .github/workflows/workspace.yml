@@ -1,0 +1,72 @@
+name: Workspace
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  workspace:
+    runs-on: ubuntu-latest
+    name: Typecheck / Lint / Test / Build
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.30.3
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Test
+        run: pnpm test
+
+      - name: Production build
+        run: pnpm build
+
+      - name: Verify single-command install
+        run: |
+          rm -rf node_modules apps/web/node_modules packages/*/node_modules
+          pnpm install --frozen-lockfile
+          echo "✓ Fresh clone installs with one pnpm command"
+
+  dependency-rules:
+    runs-on: ubuntu-latest
+    name: Workspace dependency rules
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Enforce ADR 0001 dependency direction
+        run: |
+          echo "Checking that forbidden imports are absent..."
+          # contracts must not import from database, ui, route-engine, activity-sdk, config, next, react
+          if grep -R "from '@santa-tracker/database'" packages/contracts --include="*.ts"; then echo "contracts must not import database"; exit 1; fi
+          if grep -R "from '@santa-tracker/ui'" packages/contracts --include="*.ts"; then echo "contracts must not import ui"; exit 1; fi
+          # route-engine must not import next, react, drizzle, database
+          if grep -R "from 'next" packages/route-engine --include="*.ts"; then echo "route-engine must not import next"; exit 1; fi
+          if grep -R "from 'react" packages/route-engine --include="*.ts"; then echo "route-engine must not import react"; exit 1; fi
+          if grep -R "drizzle" packages/route-engine --include="*.ts"; then echo "route-engine must not import drizzle"; exit 1; fi
+          # ui must not import database
+          if grep -R "from '@santa-tracker/database'" packages/ui --include="*.ts" --include="*.tsx"; then echo "ui must not import database"; exit 1; fi
+          # config must not import feature packages
+          if grep -R "from '@santa-tracker/ui'" packages/config --include="*.ts"; then echo "config must not import ui"; exit 1; fi
+          if grep -R "from '@santa-tracker/route-engine'" packages/config --include="*.ts"; then echo "config must not import route-engine"; exit 1; fi
+          echo "✓ Dependency rules pass (ADR 0001)"
