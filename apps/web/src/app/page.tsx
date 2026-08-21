@@ -1,60 +1,47 @@
-import { Button } from '@santa-tracker/ui';
+import Link from "next/link";
 
-export default function HomePage(): React.JSX.Element {
+export default function HomePage() {
+  const adventEnabled = process.env.ADVENT_ENABLED === "true" || process.env.ADVENT_ENABLED === "True";
   return (
-    <main className="mx-auto flex max-w-5xl flex-col gap-8 px-6 py-12">
-      <header className="space-y-3">
-        <p className="text-sm font-semibold uppercase tracking-widest text-teal-300">Christmas 2026 — Foundation</p>
-        <h1 className="text-4xl font-bold tracking-tight sm:text-5xl">Santa Tracker workspace is live.</h1>
-        <p className="max-w-2xl text-lg leading-relaxed text-slate-300">
-          This is the Next.js App Router shell wired to the typed pnpm workspace. Seasonal scenes, the route engine,
-          activity SDK, and admin studio land in follow-up issues. The legacy Flask app remains at{' '}
-          <code className="rounded bg-slate-800 px-1.5 py-0.5 text-sm">src/app.py</code> until parity is accepted.
-        </p>
-      </header>
-
-      <section className="rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow">
-        <h2 className="text-lg font-semibold">Workspace boundaries</h2>
-        <ul className="mt-3 grid gap-2 text-sm text-slate-300 sm:grid-cols-2">
-          <li>
-            <code className="text-teal-300">apps/web</code> — Next.js composition root
-          </li>
-          <li>
-            <code className="text-teal-300">packages/contracts</code> — Zod schemas &amp; stable IDs
-          </li>
-          <li>
-            <code className="text-teal-300">packages/route-engine</code> — pure domain logic
-          </li>
-          <li>
-            <code className="text-teal-300">packages/database</code> — Drizzle + PostgreSQL
-          </li>
-          <li>
-            <code className="text-teal-300">packages/ui</code> — design tokens &amp; a11y primitives
-          </li>
-          <li>
-            <code className="text-teal-300">packages/activity-sdk</code> — game/activity lifecycle
-          </li>
-          <li>
-            <code className="text-teal-300">packages/config</code> — typed env at process start
-          </li>
-          <li>
-            <code className="text-teal-300">packages/test-fixtures</code> — deterministic clocks &amp; routes
-          </li>
-        </ul>
-        <div className="mt-6 flex flex-wrap gap-3">
-          <Button>Primary action</Button>
-          <Button variant="secondary">Secondary</Button>
-          <Button variant="ghost">Ghost</Button>
+    <>
+      <nav className="glass-nav fixed top-4 left-1/2 -translate-x-1/2 z-40 bg-white/20 backdrop-blur-md rounded-full px-6 py-2 flex gap-4">
+        <Link href="/" className="nav-link nav-link-active text-white font-semibold">Home</Link>
+        <Link href="/tracker" className="nav-link text-white/80 hover:text-white">Tracker</Link>
+        {adventEnabled && <Link href="/advent" className="nav-link text-white/80 hover:text-white">Village</Link>}
+      </nav>
+      <div className="hero min-h-screen flex flex-col items-center justify-center px-4 text-center">
+        <div className="hero-content max-w-2xl">
+          <h1 className="hero-title text-5xl md:text-7xl font-bold mb-4">
+            <span className="text-red-500">Santa</span> <span className="text-green-400">Tracker</span>
+          </h1>
+          <p className="hero-subtitle text-xl text-white/90 mb-8">Track Santa&apos;s Magical Journey Around the World!</p>
+          <div className="countdown-box bg-white/10 backdrop-blur-md rounded-2xl border border-yellow-400/50 p-6 mb-8">
+            <p className="countdown-label text-yellow-300 font-semibold mb-2">Countdown to Takeoff</p>
+            <div id="countdown" className="countdown-display text-3xl font-mono text-white" aria-live="polite">Loading...</div>
+          </div>
+          <div className="cta-buttons-container flex gap-4 justify-center">
+            <Link href="/tracker" className="cta-button bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-8 rounded-full shadow-lg transition">
+              Track Santa
+            </Link>
+          </div>
         </div>
-      </section>
-
-      <section className="rounded-2xl border border-slate-800 bg-slate-900/60 p-6">
-        <h2 className="text-sm font-semibold uppercase tracking-widest text-slate-400">Next steps</h2>
-        <p className="mt-2 text-sm leading-relaxed text-slate-300">
-          Follow <code>docs/planning/christmas-2026-reinvention.md</code> and issue #199 for the tracked delivery order.
-          This scaffold deliberately contains no seasonal content — it proves the workspace, typegraph, and build.
-        </p>
-      </section>
-    </main>
+      </div>
+      {/* minimal countdown script */}
+      <script dangerouslySetInnerHTML={{ __html: `
+        (function(){
+          function update(){
+            var el=document.getElementById('countdown');
+            if(!el) return;
+            var target=new Date(Date.UTC(new Date().getUTCFullYear(),11,24,10,0,0));
+            var now=new Date();
+            var diff=target-now;
+            if(diff<=0){ el.textContent='Santa is on his way!'; return; }
+            var d=Math.floor(diff/86400000),h=Math.floor(diff%86400000/3600000),m=Math.floor(diff%3600000/60000),s=Math.floor(diff%60000/1000);
+            el.textContent=d+'d '+h+'h '+m+'m '+s+'s';
+          }
+          update(); setInterval(update,1000);
+        })();
+      `}} />
+    </>
   );
 }
