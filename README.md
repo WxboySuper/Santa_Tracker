@@ -65,14 +65,16 @@ Navigate to `http://localhost:3000` for the new workspace shell (legacy Flask at
 
 ## 🚩 Feature Flags
 
-**Typed workspace flags** (`packages/contracts/src/schemas.ts:68` — `FEATURE_FLAG_REGISTRY`, publication-validated, owner `foundation`):
+**Typed workspace flags — scaffold-only, not yet wired** (`packages/contracts/src/schemas.ts:68` — `FEATURE_FLAG_REGISTRY`, owner `foundation`, validated at publication but **not yet consumed** in `apps/web`):
 
-| Flag | Default | Exposure | Description |
-|------|---------|----------|-------------|
-| `adventEnabled` | `false` | publication | Enables 24-day Advent unlocks (Dec 1-24); gated by seasonal mode |
-| `mapEnabled` | `true` | publication | Enables map adapter; `false` falls back to no-map mode |
-| `weatherEnabled` | `false` | publication | Enables live-weather overlay (stretch, flagged) |
-| `soundscapeEnabled` | `false` | publication | Enables optional soundscape with explicit opt-in |
+| Flag | Default | Status | Exposure | Description |
+|------|---------|--------|----------|-------------|
+| `adventEnabled` | `false` | scaffold-only | publication (future) | Enables 24-day Advent unlocks (Dec 1-24); gated by seasonal mode — follow-up #214 |
+| `mapEnabled` | `true` | scaffold-only | publication (future) | Enables map adapter; `false` will fall back to no-map mode — follow-up #252 |
+| `weatherEnabled` | `false` | scaffold-only | publication (future) | Enables live-weather overlay (stretch, flagged) — follow-up #253 |
+| `soundscapeEnabled` | `false` | scaffold-only | publication (future) | Enables optional soundscape with explicit opt-in — follow-up |
+
+> **Governance:** All 4 are scaffold-only in this PR; `apps/web/src/app/page.tsx:1` does not yet read `SeasonalConfig`. No visitor-facing toggle. Changes require ADR. See `CHANGELOG.md:9`.”
 
 **Legacy Flask flag:**
 

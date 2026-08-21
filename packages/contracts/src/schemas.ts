@@ -68,8 +68,11 @@ export type Snapshot = z.infer<typeof SnapshotSchema>;
 /**
  * Governance registry for scaffold feature flags.
  * Each entry records owner, default, exposure, and publication impact.
- * These four flags are scaffold-only (no visitor toggle yet); they are
- * validated at publication and changes require an ADR.
+ * These four flags are **scaffold-only in #213** — they are typed and
+ * publication-validated but **not yet wired** in `apps/web` (see
+ * `apps/web/src/app/page.tsx:1`); no visitor toggle exists yet.
+ * Follow-up issues (#214 advent, #252 map, #253 weather) will wire them
+ * and add exposure. Changes require an ADR.
  *
  * @see CHANGELOG.md for disclosure and rollout notes
  * @see docs/planning/christmas-2026-reinvention.md for seasonal modes
@@ -78,26 +81,30 @@ export const FEATURE_FLAG_REGISTRY = {
   adventEnabled: {
     owner: 'foundation',
     default: false,
-    exposure: 'publication',
-    description: 'Enables 24-day Advent unlocks (Dec 1-24); gated behind seasonal mode',
+    exposure: 'scaffold-only' as const,
+    status: 'scaffold-only' as const,
+    description: 'Enables 24-day Advent unlocks (Dec 1-24); gated behind seasonal mode — not yet wired',
   },
   mapEnabled: {
     owner: 'foundation',
     default: true,
-    exposure: 'publication',
-    description: 'Enables map adapter; when false, tracker falls back to no-map mode',
+    exposure: 'scaffold-only' as const,
+    status: 'scaffold-only' as const,
+    description: 'Enables map adapter; when false, will fall back to no-map mode — not yet wired',
   },
   weatherEnabled: {
     owner: 'foundation',
     default: false,
-    exposure: 'publication',
-    description: 'Enables live-weather overlay (stretch, flagged; OFF by default)',
+    exposure: 'scaffold-only' as const,
+    status: 'scaffold-only' as const,
+    description: 'Enables live-weather overlay (stretch, flagged; OFF by default) — not yet wired',
   },
   soundscapeEnabled: {
     owner: 'foundation',
     default: false,
-    exposure: 'publication',
-    description: 'Enables optional soundscape with explicit opt-in',
+    exposure: 'scaffold-only' as const,
+    status: 'scaffold-only' as const,
+    description: 'Enables optional soundscape with explicit opt-in — not yet wired',
   },
 } as const;
 

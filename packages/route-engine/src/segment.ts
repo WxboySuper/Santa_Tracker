@@ -13,29 +13,37 @@ function isBetween(nowMs: number, departureMs: number, nextArrivalMs: number): b
   return nowMs >= departureMs && nowMs < nextArrivalMs;
 }
 
+type ParsedStop = {
+  arrivalMs: number;
+  departureMs: number;
+};
+
+function parseStops(route: Route): ParsedStop[] {
+  return route.stops.map((stop) => ({
+    arrivalMs: Date.parse(stop.arrivalIso),
+    departureMs: Date.parse(stop.departureIso),
+  }));
+}
+
 export function findActiveSegment(route: Route, nowMs: number): SegmentMatch | null {
-  const stops = route.stops;
-  for (let i = 0; i < stops.length; i++) {
-    const stop = stops[i];
+  const parsed = parseStops(route);
+  for (let i = 0; i < parsed.length; i++) {
+    const stop = parsed[i];
     if (!stop) continue;
-    const arrivalMs = Date.parse(stop.arrivalIso);
-    const departureMs = Date.parse(stop.departureIso);
-    if (isActive(nowMs, arrivalMs, departureMs)) {
-      return { currentIndex: i, nextIndex: i + 1 < stops.length ? i + 1 : null };
+    if (isActive(nowMs, stop.arrivalMs, stop.departureMs)) {
+      return { currentIndex: i, nextIndex: i + 1 < parsed.length ? i + 1 : null };
     }
   }
   return null;
 }
 
 export function findBetweenSegment(route: Route, nowMs: number): SegmentMatch | null {
-  const stops = route.stops;
-  for (let i = 0; i < stops.length - 1; i++) {
-    const current = stops[i];
-    const next = stops[i + 1];
+  const parsed = parseStops(route);
+  for (let i = 0; i < parsed.length - 1; i++) {
+    const current = parsed[i];
+    const next = parsed[i + 1];
     if (!current || !next) continue;
-    const departureMs = Date.parse(current.departureIso);
-    const nextArrivalMs = Date.parse(next.arrivalIso);
-    if (isBetween(nowMs, departureMs, nextArrivalMs)) {
+    if (isBetween(nowMs, current.departureMs, next.arrivalMs)) {
       return { currentIndex: i, nextIndex: i + 1 };
     }
   }
