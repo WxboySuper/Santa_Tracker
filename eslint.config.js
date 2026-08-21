@@ -14,17 +14,21 @@ export default tseslint.config(
       '**/dist/**',
       'coverage/**',
       '.pnpm-store/**',
-      'src/static/**',
-      'src/templates/**',
+      // tools/route-editor is a standalone Vite project with its own eslint; keep ignored here
       'tools/**',
-      '**/*.js', // legacy JS until migrated
       '**/next-env.d.ts',
     ],
   },
-  eslint.configs.recommended,
-  ...tseslint.configs.strictTypeChecked,
-  ...tseslint.configs.stylisticTypeChecked,
   {
+    linterOptions: {
+      reportUnusedDisableDirectives: false,
+    },
+  },
+  eslint.configs.recommended,
+  // TypeScript files — strict, type-aware (workspace)
+  {
+    files: ['**/*.{ts,tsx}'],
+    extends: [...tseslint.configs.strictTypeChecked, ...tseslint.configs.stylisticTypeChecked],
     languageOptions: {
       parserOptions: {
         projectService: true,
@@ -50,6 +54,23 @@ export default tseslint.config(
       'react-hooks/rules-of-hooks': 'error',
       'react-hooks/exhaustive-deps': 'warn',
       '@next/next/no-html-link-for-pages': 'off',
+    },
+  },
+  // Legacy JavaScript — linted without type-checking (Flask-era src/static and root JS)
+  // Kept lenient so the new strict TS config does not break maintenance-mode Flask assets.
+  {
+    files: ['**/*.js'],
+    extends: [tseslint.configs.disableTypeChecked],
+    languageOptions: {
+      globals: {
+        L: 'readonly',
+        moment: 'readonly',
+      },
+    },
+    rules: {
+      'no-unused-vars': 'off',
+      'no-undef': 'off',
+      'no-console': 'off',
     },
   },
   {

@@ -65,11 +65,49 @@ export type Snapshot = z.infer<typeof SnapshotSchema>;
 // Feature flags / Seasonal config (typed, validated at publication)
 // ---------------------------------------------------------------------------
 
+/**
+ * Governance registry for scaffold feature flags.
+ * Each entry records owner, default, exposure, and publication impact.
+ * These four flags are scaffold-only (no visitor toggle yet); they are
+ * validated at publication and changes require an ADR.
+ *
+ * @see CHANGELOG.md for disclosure and rollout notes
+ * @see docs/planning/christmas-2026-reinvention.md for seasonal modes
+ */
+export const FEATURE_FLAG_REGISTRY = {
+  adventEnabled: {
+    owner: 'foundation',
+    default: false,
+    exposure: 'publication',
+    description: 'Enables 24-day Advent unlocks (Dec 1-24); gated behind seasonal mode',
+  },
+  mapEnabled: {
+    owner: 'foundation',
+    default: true,
+    exposure: 'publication',
+    description: 'Enables map adapter; when false, tracker falls back to no-map mode',
+  },
+  weatherEnabled: {
+    owner: 'foundation',
+    default: false,
+    exposure: 'publication',
+    description: 'Enables live-weather overlay (stretch, flagged; OFF by default)',
+  },
+  soundscapeEnabled: {
+    owner: 'foundation',
+    default: false,
+    exposure: 'publication',
+    description: 'Enables optional soundscape with explicit opt-in',
+  },
+} as const;
+
+export type FeatureFlagKey = keyof typeof FEATURE_FLAG_REGISTRY;
+
 export const FeatureFlagsSchema = z.object({
-  adventEnabled: z.boolean().default(false),
-  mapEnabled: z.boolean().default(true),
-  weatherEnabled: z.boolean().default(false),
-  soundscapeEnabled: z.boolean().default(false),
+  adventEnabled: z.boolean().default(FEATURE_FLAG_REGISTRY.adventEnabled.default),
+  mapEnabled: z.boolean().default(FEATURE_FLAG_REGISTRY.mapEnabled.default),
+  weatherEnabled: z.boolean().default(FEATURE_FLAG_REGISTRY.weatherEnabled.default),
+  soundscapeEnabled: z.boolean().default(FEATURE_FLAG_REGISTRY.soundscapeEnabled.default),
 });
 
 export type FeatureFlags = z.infer<typeof FeatureFlagsSchema>;

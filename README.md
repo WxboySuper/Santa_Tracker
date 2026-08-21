@@ -26,7 +26,7 @@ Track Santa's magical journey around the world on Christmas Eve! This interactiv
 
 ### Prerequisites
 
-- Node.js 20+ and [pnpm](https://pnpm.io/installation) 9+
+- Node.js 22.13+ and [pnpm](https://pnpm.io/installation) 10+
 - Modern browser
 - PostgreSQL 16+ for the studio/publication flow (optional for the shell; required for draft editing)
 
@@ -65,11 +65,22 @@ Navigate to `http://localhost:3000` for the new workspace shell (legacy Flask at
 
 ## 🚩 Feature Flags
 
+**Typed workspace flags** (`packages/contracts/src/schemas.ts:68` — `FEATURE_FLAG_REGISTRY`, publication-validated, owner `foundation`):
+
+| Flag | Default | Exposure | Description |
+|------|---------|----------|-------------|
+| `adventEnabled` | `false` | publication | Enables 24-day Advent unlocks (Dec 1-24); gated by seasonal mode |
+| `mapEnabled` | `true` | publication | Enables map adapter; `false` falls back to no-map mode |
+| `weatherEnabled` | `false` | publication | Enables live-weather overlay (stretch, flagged) |
+| `soundscapeEnabled` | `false` | publication | Enables optional soundscape with explicit opt-in |
+
+**Legacy Flask flag:**
+
 | Flag | Default | Description |
 |------|---------|-------------|
-| `ADVENT_ENABLED` | `False` | Enables the advent calendar feature. When disabled, the advent calendar UI, navigation links, and API endpoints are hidden/inaccessible. |
+| `ADVENT_ENABLED` | `False` | Enables advent UI/API in legacy Flask (maintenance) |
 
-To enable a feature flag, set the corresponding environment variable:
+To enable a legacy flag, set the environment variable:
 
 ```bash
 # Via environment variable
@@ -113,7 +124,7 @@ Santa_Tracker/
 
 **New platform (Christmas 2026):** Next.js 15 App Router, React 19, strict TypeScript 5.8, pnpm workspaces, Tailwind CSS, Zod, Drizzle ORM + PostgreSQL, Vitest  
 **Legacy (maintenance):** Flask, Gunicorn, Geopy, Python-dotenv, Tailwind CDN, Leaflet.js  
-**DevOps:** GitHub Actions (pnpm 10 + Node 20 matrix + Python 3.10–3.14), Dependabot (pip + npm/pnpm), DeepSource  
+**DevOps:** GitHub Actions (pnpm 10 + Node 22 matrix + Python 3.10–3.14), Dependabot (pip + npm/pnpm), DeepSource  
 **Testing:** Vitest 3 (22 workspace tests, type-aware) + pytest, pytest-cov (140 legacy tests)
 
 ## 🧪 Testing & Route Simulation

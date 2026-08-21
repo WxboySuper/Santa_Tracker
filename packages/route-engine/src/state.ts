@@ -7,12 +7,54 @@ export type JourneyState = {
   isComplete: boolean;
 };
 
+function clampProgress(firstArrival: number, lastDeparture: number, nowMs: number): number {
+  const total = lastDeparture - firstArrival;
+  if (total === 0) return 1;
+  return Math.min(1, Math.max(0, (nowMs - firstArrival) / total));
+}
+
+type SegmentMatch = {
+  currentIndex: number;
+  nextIndex: number | null;
+};
+
+function findSegment(route: Route, nowMs: number): SegmentMatch | null {
+  const stops = route.stops;
+
+  for (let i = 0; i < stops.length; i++) {
+    const stop = stops[i];
+    if (!stop) continue;
+
+    const arrival = Date.parse(stop.arrivalIso);
+    const departure = Date.parse(stop.departureIso);
+
+    const isActive = nowMs >= arrival && nowMs < departure;
+    if (isActive) {
+      return { currentIndex: i, nextIndex: i + 1 < stops.length ? i + 1 : null };
+    }
+
+    if (i + 1 >= stops.length) continue;
+
+    const next = stops[i + 1];
+    if (!next) continue;
+
+    const nextArrival = Date.parse(next.arrivalIso);
+    const isBetween = nowMs >= departure && nowMs < nextArrival;
+    if (isBetween) {
+      return { currentIndex: i, nextIndex: i + 1 };
+    }
+  }
+
+  return null;
+}
+
 /**
  * Deterministic live state from immutable route snapshot and injected time.
  * Pure function — caller provides `now`.
  */
 export function deriveJourneyState(route: Route, now: Date): JourneyState {
   const stops = route.stops;
+
   if (stops.length === 0) {
     return { currentIndex: null, nextIndex: null, progress: 0, isComplete: false };
   }
@@ -29,28 +71,21 @@ export function deriveJourneyState(route: Route, now: Date): JourneyState {
     return { currentIndex: stops.length - 1, nextIndex: null, progress: 1, isComplete: true };
   }
 
-  // Find active stop: arrival <= now < departure, else between stops.
-  for (let i = 0; i < stops.length; i++) {
-    const s = stops[i]!;
-    const arrival = Date.parse(s.arrivalIso);
-    const departure = Date.parse(s.departureIso);
-    if (nowMs >= arrival && nowMs < departure) {
-      const total = lastDeparture - firstArrival;
-      const progress = total === 0 ? 1 : Math.min(1, Math.max(0, (nowMs - firstArrival) / total));
-      return { currentIndex: i, nextIndex: i + 1 < stops.length ? i + 1 : null, progress, isComplete: false };
-    }
-    if (i + 1 < stops.length) {
-      const nextArrival = Date.parse(stops[i + 1]!.arrivalIso);
-      if (nowMs >= departure && nowMs < nextArrival) {
-        const total = lastDeparture - firstArrival;
-        const progress = total === 0 ? 1 : Math.min(1, Math.max(0, (nowMs - firstArrival) / total));
-        return { currentIndex: i, nextIndex: i + 1, progress, isComplete: false };
-      }
-    }
+  const segment = findSegment(route, nowMs);
+
+  if (segment) {
+    return {
+      currentIndex: segment.currentIndex,
+      nextIndex: segment.nextIndex,
+      progress: clampProgress(firstArrival, lastDeparture, nowMs),
+      isComplete: false,
+    };
   }
 
-  // Fallback: clamp progress
-  const total = lastDeparture - firstArrival;
-  const progress = total === 0 ? 1 : Math.min(1, Math.max(0, (nowMs - firstArrival) / total));
-  return { currentIndex: null, nextIndex: null, progress, isComplete: false };
+  return {
+    currentIndex: null,
+    nextIndex: null,
+    progress: clampProgress(firstArrival, lastDeparture, nowMs),
+    isComplete: false,
+  };
 }
