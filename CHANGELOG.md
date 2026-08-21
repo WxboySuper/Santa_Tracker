@@ -1,27 +1,40 @@
-# Changelog (per-PR, exhaustive)
+# Changelog — per-PR exhaustive (enforced in CI)
 
-This file is the exhaustive per-PR changelog required by `docs/planning/christmas-2026-reinvention.md` and the GitHub governance tracked in #330. Every PR must append an entry here. CI enforces presence of a new entry. A curated human highlights file may be added later; this file remains complete and machine-readable.
+## [Unreleased] — Flask retirement #221
 
-Format: `## [PR #] - YYYY-MM-DD - <type>(<scope>): <summary>`
+### Foundation — retire Flask runtime after parity acceptance
 
-## [Unreleased]
+**Implements audit** https://plans.weatherboysuper.com/santa-tracker-flask-audit-217/ (inventory at 41c96a6) and issue #221 / tracker #199 / ADR 0001.
 
-## [PR #350] - 2026-08-21 - feat(foundation): scaffold Next.js pnpm workspace
+#### Added
 
-- **Issue:** Closes #213 — [Foundation] Scaffold the Next.js pnpm workspace; parent tracker #199.
-- **Workspace:** Adds `pnpm-workspace.yaml`, `pnpm-lock.yaml`, root `package.json` (`type: module`, `packageManager: pnpm@10.30.3`, `engines: node >=22.13, pnpm >=10`), `tsconfig.json` (strict, `noUncheckedIndexedAccess`), `eslint.config.js` (flat, strict TypeChecked for `**/*.{ts,tsx}` + `disableTypeChecked` for `**/*.js` legacy, Next + react-hooks + prettier, legacy JS still linted), `vitest.config.ts`, `.prettierrc.json`, and updated `.gitignore` (`next-env.d.ts`).
-- **Apps:** `apps/web` — Next.js 15.5 App Router shell (`output: standalone` on Linux, dev-safe skip on Windows, `transpilePackages`, Tailwind 3.4, `src/app/layout.tsx` + `page.tsx` + `globals.css`) with dependency direction `web -> {activity-sdk, database, route-engine, ui, contracts, config}`.
-- **Packages (explicit boundaries per ADR 0001):**
-  - `@santa-tracker/contracts` — versioned Zod `Route`, `Snapshot`, `FeatureFlags` (with `FEATURE_FLAG_REGISTRY` governance: `adventEnabled`, `mapEnabled`, `weatherEnabled`, `soundscapeEnabled`), `SeasonMode`, `Coordinates` + stable branded IDs (`SCHEMA_VERSION = 2026.0.0`), tests 4.
-  - `@santa-tracker/config` — typed `DATABASE_URL`, `SESSION_SECRET`, etc. validated once at process start with safe public projection, tests 4.
-  - `@santa-tracker/route-engine` — pure `validateRoute` + `deriveJourneyState(now)` with injected clock, deterministic, tests 5 (refactored helpers for CodeScene health).
-  - `@santa-tracker/ui` — `colors`, `radius`, `motion` tokens + `Button` a11y primitive (no data fetching), tests 1.
-  - `@santa-tracker/activity-sdk` — lifecycle FSM `canTransition` / `assertTransition`, tests 2.
-  - `@santa-tracker/database` — Drizzle `publications`, `locations`, `auditEvents` + `drizzle.config.ts`, tests 2 (migration/repo tests land in #210).
-  - `@santa-tracker/test-fixtures` — `fixedClock`, `sequenceClock`, deterministic `Route`/`Snapshot` fixtures, tests 3.
-- **Feature flags (governance):** Four scaffold flags (`adventEnabled` default false, `mapEnabled` true, `weatherEnabled` false, `soundscapeEnabled` false) registered in `FEATURE_FLAG_REGISTRY` with owner `foundation`, `status`/`exposure` `scaffold-only` (typed but **not yet wired** in `apps/web`; `apps/web/src/app/page.tsx:1` does not read `SeasonalConfig`), publication-validated in follow-ups. Disclosed in `README.md` flags table (now with Status column) and this changelog; changes require ADR. Follow-ups: #214 advent, #252 map, #253 weather.
-- **Scripts (workspace):** `pnpm dev`, `pnpm build` (`pnpm -r build`), `pnpm typecheck` (`tsc --noEmit`), `pnpm lint` (`eslint . --max-warnings=0`, now lints both TS and legacy JS), `pnpm test` (`vitest run`), `pnpm test:coverage`. Fresh clone: `pnpm install` only (documented in README Quick Start and `docs/DEVELOPMENT.md`).
-- **Evidence (local, Node 24.18 + pnpm 10.30):** `pnpm typecheck` ✓, `pnpm lint` ✓ (`.next`/`next-env.d.ts` ignored, legacy JS linted), `pnpm test` 22/22 pass, `pnpm build` ✓ (Next `Compiled successfully`, static `/` 102 kB), `stylelint` ✓ (legacy `prefers-contrast: high` and `rgba` now allowed via config). See PR body for logs and `pnpm install --frozen-lockfile` fresh-clone verification (`workspace.yml` job `Verify single-command install`).
-- **Docs:** Updates `README.md` (pnpm Quick Start Node 22.13+, workspace structure, typed flags table, tech stack Node 22), `docs/DEVELOPMENT.md` (workspace workflows, dependency tables, CI simulation), this changelog.
-- **CI:** Adds `.github/workflows/workspace.yml` (Node 22 + pnpm 10, typecheck/lint/test/build + ADR 0001 grep checks), updates `.github/workflows/linting.yml` to pnpm/Node 22 + `pnpm-lock.yaml` check, extends `.github/dependabot.yml` with npm/pnpm workspaces, fixes `.stylelintrc.json` (`media-feature-name-value-no-unknown`/`color-function-alias-notation` null for legacy).
-- **Rollout/Migration:** No DB migration, no feature flag rollout in this PR (all 4 flags are `scaffold-only`, not yet wired; no visitor toggle). Legacy `src/`, `tests/`, `tools/route-editor` remain (legacy JS still linted via `disableTypeChecked`). Risk low; rollback via `git revert`. Build is `standalone` on Linux (VPS); Windows local build skips standalone to avoid EPERM.
+- pnpm workspace (`pnpm-workspace.yaml`, root `package.json` workspaces) with `apps/web` (Next.js 15 App Router, TypeScript, Tailwind, `output: standalone`) and packages `config`, `contracts`, `route-engine`, `database`, `ui`, `activity-sdk`, `test-fixtures` per ADR dependency rules.
+- TypeScript domain ports: `apps/web/src/lib/locations.ts`, `advent.ts`, `route-sim.ts`, `auth.ts`, `config.ts` + pure `packages/route-engine` and `packages/contracts` (Zod). No `itsdangerous` password fallback — JWT HS256 24h only.
+- Public pages: `/` (home), `/tracker`, `/advent` (gated by `ADVENT_ENABLED`), `GET /index` → 301 `/tracker` (archive disposition), `/offline` + `public/sw.js` (fixed cache list, no `/index.html` split), `public/offline.html` compat.
+- Protected admin: `/admin`, `/admin/route-simulator` (client login → JWT → cookie `admin_token`, middleware verifies HS256, `x-admin-auth` header, no page shell without token). Legacy `/admin/route-simulator-legacy` → 404 (Retire).
+- Public APIs: `GET /api/advent/manifest`, `GET /api/advent/day/:day` (403 metadata when locked, server-authoritative), `GET /api/health`.
+- Admin APIs (Bearer JWT, all under `requireAdminAuth`): `POST /api/admin/login`, `GET/POST /api/admin/locations`, `PUT/DELETE /api/admin/locations/:id`, `POST /api/admin/locations/validate`, `POST /api/admin/locations/import`, `GET /api/admin/route/status`, `POST /api/admin/route/precompute` (validation), `POST /api/admin/route/simulate`, `GET/POST/DELETE /api/admin/route/trial`, `POST /api/admin/route/trial/apply`, `POST /api/admin/route/trial/simulate`, `GET /api/admin/backup/export`, `GET /api/admin/advent/days`, `GET/PUT /api/admin/advent/day/:day`, `POST /api/admin/advent/day/:day/toggle-unlock`, `POST /api/admin/advent/validate`, `GET /api/admin/advent/export`, `POST /api/admin/advent/import`.
+- Deployment: `Dockerfile` (standalone), updated `deploy-on-release.yml` / `first-deploy.yml` to Node (no venv/pip), `docs/DEPLOY.md` rewritten for `node server.js` + `/api/health` probe.
+- Data: atomic writes (`.tmp` → `rename`) + versioned `.history/` snapshots (last 5) for both route and advent, rollback via activating previous snapshot. `apps/web/data/` + `public/data/` + fallback to legacy `src/static/data/` (no competing `Route Data/` reads). `archive/route-data-2025-12-20/` snapshot, `archive/offline-flask-legacy.html`, `archive/flask-legacy/` (app.py, config.py, utils, requirements, pyproject).
+- Security fixes: removed `ADMIN_PASSWORD` bearer fallback, admin page boundary now protected in `middleware.ts` (not just API decorator), config fail-closed in production (`packages/config`), `SECRET_KEY` placeholder detection retained.
+- PWA: `POST /sw.js` uses `/offline` and `/data/santa_route.json` (not stale `/src/static/...`), CDN `isExternalUrl` kept, cache version `next-v1`.
+- Workspace CI: `testing.yml` → Node 20/22 + pnpm + typecheck + lint + build + vitest; `linting.yml` → tsc + eslint + stylelint (no Python). `DEPLOYMENT.md` archived.
+- Tests: `apps/web/src/lib/__tests__/parity.test.ts` (13 parity checks: normalization, validation, simulation sort, advent unlock, JWT vs password fallback, no-Flask).
+
+#### Changed
+
+- `next.config.ts`: `standalone` (Linux), `transpilePackages`, redirects for `/index` + `/index.html`, rewrites for `/static/data/*` compat.
+- `.env.example`: Node keys (`ADMIN_PASSWORD`, `SECRET_KEY`, `ADVENT_ENABLED`).
+- `.gitignore`: Node/Next ignores + `.history/` + trial files.
+- `README.md`, `CONTRIBUTING.md`: Node/pnpm instructions.
+
+#### Retired
+
+- Flask runtime: `src/app.py`, `config.py`, `src/utils/locations.py`, `src/utils/advent.py`, `src/utils/tracker.py`, `src/logging_config.py`, `requirements.txt`, `requirements-dev.txt`, `pyproject.toml`, `.coveragerc`, `.flake8`, root `sw.js` + `offline.html` (now in `apps/web/public`), `tools/route-editor` remains but not deployed (Replace disposition), undocumented `/api/santa/*` not ported.
+
+#### Migration notes
+
+- `SEC
+RET_KEY` must be ≥16 chars; set via `PROD_DOTENV` on VPS (`.env` mode 600).
+- After deploy, verify `GET /api/health` and `current` symlink ownership per `DEPLOY.md`.
+- Historical `Route Data/` remains under `archive/` for provenance; new runtime does not read it.
