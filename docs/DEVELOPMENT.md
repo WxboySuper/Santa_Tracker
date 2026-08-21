@@ -2,9 +2,31 @@
 
 This guide covers development workflows, testing, linting, and building the Santa Tracker application.
 
-## 🏃 Running the Application
+## 🏃 Running the Application — pnpm workspace (Christmas 2026, primary)
 
-### Development Mode
+### Prerequisites
+
+- Node.js 20+ and pnpm 9+ (`npm install -g pnpm` or `corepack enable`)
+- PostgreSQL 16+ for studio/publication flows (shell runs without it)
+
+### One-command install (fresh clone)
+
+```bash
+pnpm install
+```
+
+### Next.js shell
+
+```bash
+pnpm dev          # http://localhost:3000 — App Router shell
+pnpm typecheck    # tsc --noEmit, strict
+pnpm lint         # eslint flat config, strict TypeChecked
+pnpm test         # vitest run — 22 tests
+pnpm build        # pnpm -r build → next build (standalone on Linux)
+```
+
+### Legacy Flask (maintenance until parity)
+
 ```bash
 # Standard development server
 python src/app.py
@@ -16,7 +38,8 @@ FLASK_DEBUG=True python src/app.py
 FLASK_RUN_PORT=8080 python src/app.py
 ```
 
-### Production Mode
+### Production Mode (legacy)
+
 ```bash
 # Using Gunicorn (recommended)
 gunicorn -w 4 -b 0.0.0.0:5000 src.app:app
@@ -27,7 +50,20 @@ gunicorn -c gunicorn_config.py src.app:app
 
 ## 🧪 Testing
 
-### Running Tests
+### Workspace (TypeScript)
+
+```bash
+pnpm test              # vitest run — all 22 tests
+pnpm test:watch        # watch mode
+pnpm test:coverage     # v8 coverage
+pnpm --filter @santa-tracker/contracts test
+pnpm --filter @santa-tracker/route-engine test
+```
+
+Contracts, route-engine, config, ui, activity-sdk, database, and test-fixtures each own focused tests. Production domain code injects clocks, routes, and feature flags — never the machine clock.
+
+### Legacy Python tests
+
 ```bash
 # Run all tests
 python -m pytest
@@ -116,15 +152,24 @@ extend-ignore = E203, W503
 exclude = .git,__pycache__,venv
 ```
 
-### JavaScript/CSS/HTML Linters
+### TypeScript / Workspace Lint
 
-#### ESLint (JavaScript)
+```bash
+pnpm lint         # eslint flat config — strict TypeChecked, no warnings
+pnpm lint:fix     # auto-fix
+pnpm typecheck    # tsc --noEmit (workspace-wide strict)
+```
+
+### Legacy JavaScript/CSS/HTML Linters
+
+#### ESLint (legacy JS)
 ```bash
 # Check all JavaScript files
-npm run lint:js
+npm run lint:js  # now pnpm lint covers TS; legacy JS is ignored via eslint ignores
+pnpm lint
 
 # Auto-fix issues
-npx eslint --fix .
+pnpm lint:fix
 
 # Check specific file
 npx eslint src/static/script.js
@@ -199,6 +244,15 @@ Changes to Python files will automatically reload the server.
 ## 📦 Dependency Management
 
 ### Installing Dependencies
+
+One-command workspace install (issue #213):
+
+```bash
+pnpm install
+```
+
+Legacy:
+
 ```bash
 # Install Python dependencies
 pip install -r requirements.txt
@@ -206,8 +260,8 @@ pip install -r requirements.txt
 # Install development dependencies
 pip install -r requirements-dev.txt
 
-# Install Node.js dependencies
-npm install
+# Legacy Node lint deps (now via pnpm)
+pnpm install
 ```
 
 ### Updating Dependencies
@@ -219,8 +273,9 @@ pip install --upgrade package-name
 # Update requirements.txt
 pip freeze > requirements.txt
 
-# Update Node.js packages
-npm update
+# Update pnpm workspace
+pnpm update -r
+pnpm outdated
 ```
 
 ### Security Audits
@@ -230,8 +285,8 @@ pip install safety
 safety check
 
 # Node.js security check
-npm audit
-npm audit fix
+pnpm audit
+pnpm audit --fix  # or pnpm update
 ```
 
 ## 🐛 Debugging
@@ -288,18 +343,24 @@ python -m pstats profile.stats
 
 ### GitHub Actions
 Workflows located in `.github/workflows/`:
-- `testing.yml` - Run tests on push/PR
-- `linting.yml` - Run linters on push/PR
+- `workspace.yml` - pnpm typecheck / lint / test / build + ADR 0001 dependency rules
+- `testing.yml` - Legacy Python matrix (3.10–3.14)
+- `linting.yml` - Python + TypeScript/HTML/CSS lint (pnpm), lockfile checks
 - `deploy.yml` - Deploy on release
 
 ### Local CI Simulation
 ```bash
-# Run the same checks as CI
+# Workspace — same as CI (workspace.yml)
+pnpm typecheck
+pnpm lint
+pnpm test
+pnpm build
+
+# Legacy Python — same as CI
 python -m pytest
 black --check .
 isort --check-only .
 flake8 .
-npm run lint
 ```
 
 ## 📝 Code Style Guidelines

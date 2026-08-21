@@ -1,7 +1,7 @@
 version: 2
 updates:
-  - package-ecosystem: "pip" # See documentation for possible values
-    directory: "/" # Location of package manifests
+  - package-ecosystem: "pip"
+    directory: "/"
     schedule:
       interval: "weekly"
     reviewers:
@@ -10,3 +10,19 @@ updates:
       python-packages:
         patterns:
           - "*"
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    reviewers:
+      - "WxboySuper"
+    groups:
+      npm-workspace:
+        patterns:
+          - "*"
+  - package-ecosystem: "npm"
+    directory: "/tools/route-editor"
+    schedule:
+      interval: "weekly"
+    reviewers:
+      - "WxboySuper"

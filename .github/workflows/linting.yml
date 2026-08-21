@@ -60,72 +60,90 @@ jobs:
   javascript-lint:
     runs-on: ubuntu-latest
     name: JavaScript Linting
-    
+
     steps:
       - uses: actions/checkout@v4
-      
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.30.3
+
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
-      
+          node-version: '20'
+          cache: 'pnpm'
+
       - name: Install dependencies
-        run: npm install
-      
+        run: pnpm install --frozen-lockfile
+
       - name: Run ESLint
-        run: npm run lint:js
+        run: pnpm lint
 
   css-lint:
     runs-on: ubuntu-latest
     name: CSS Linting
-    
+
     steps:
       - uses: actions/checkout@v4
-      
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.30.3
+
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
-      
+          node-version: '20'
+          cache: 'pnpm'
+
       - name: Install dependencies
-        run: npm install
-      
+        run: pnpm install --frozen-lockfile
+
       - name: Run Stylelint
-        run: npm run lint:css
+        run: pnpm run lint:css
 
   html-lint:
     runs-on: ubuntu-latest
     name: HTML Linting
-    
+
     steps:
       - uses: actions/checkout@v4
-      
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.30.3
+
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
-      
+          node-version: '20'
+          cache: 'pnpm'
+
       - name: Install dependencies
-        run: npm install
-      
+        run: pnpm install --frozen-lockfile
+
       - name: Run HTMLHint
-        run: npm run lint:html
+        run: pnpm run lint:html
 
   lockfile-check:
     runs-on: ubuntu-latest
     name: Lockfile Validation
-    
+
     steps:
       - uses: actions/checkout@v4
-      
-      - name: Check root package-lock.json exists
+
+      - name: Check pnpm workspace lockfile exists
         run: |
-          if [ ! -f "package-lock.json" ]; then
-            echo "Error: package-lock.json is missing in the root directory"
+          if [ ! -f "pnpm-lock.yaml" ]; then
+            echo "Error: pnpm-lock.yaml is missing in the root directory"
             exit 1
           fi
-          echo "✓ Root package-lock.json found"
-      
+          echo "✓ pnpm-lock.yaml found"
+
       - name: Check tools/route-editor package-lock.json exists
         run: |
           if [ ! -f "tools/route-editor/package-lock.json" ]; then

@@ -8,6 +8,8 @@
 
 Track Santa's magical journey around the world on Christmas Eve! This interactive Progressive Web App provides real-time updates on Santa's location, destinations, and estimated arrival times.
 
+> **Christmas 2026 reinvention:** The Flask app in `src/` remains in maintenance mode while the production platform moves to a strict-TypeScript Next.js pnpm workspace (`apps/web` + `packages/*`). See [`docs/planning/christmas-2026-reinvention.md`](docs/planning/christmas-2026-reinvention.md) and [ADR 0001](docs/adr/0001-application-architecture.md) for the approved architecture.
+
 ## ✨ Features
 
 - 🗺️ **Interactive Map** - Real-time visualization using Leaflet.js with OpenStreetMap
@@ -20,40 +22,46 @@ Track Santa's magical journey around the world on Christmas Eve! This interactiv
 - ♿ **Accessible** - Full ARIA support, keyboard navigation, screen reader compatible
 - 🎨 **Responsive Design** - Works seamlessly on all devices
 
-## 🚀 Quick Start
+## 🚀 Quick Start — Next.js pnpm workspace (Christmas 2026)
 
 ### Prerequisites
 
-- Python 3.10+
-- pip (Python package manager)
-- Modern web browser
+- Node.js 20+ and [pnpm](https://pnpm.io/installation) 9+
+- Modern browser
+- PostgreSQL 16+ for the studio/publication flow (optional for the shell; required for draft editing)
 
 ### Installation
 
+Fresh clone installs with **one documented command** (issue #213):
+
 ```bash
-# Clone the repository
 git clone https://github.com/WxboySuper/Santa_Tracker.git
 cd Santa_Tracker
-
-# Create virtual environment (recommended)
-python -m venv venv
-source venv/bin/activate  # Windows: venv\Scripts\activate
-
-# Install dependencies
-pip install -r requirements.txt
-npm install  # For frontend linting tools
-
-# Run the application
-python src/app.py
-
-# Development mode with debug enabled
-FLASK_DEBUG=True python src/app.py
-
-# Enable advent calendar feature
-ADVENT_ENABLED=True python src/app.py
+pnpm install
 ```
 
-Navigate to `http://localhost:5000` to start tracking Santa!
+### Run the new shell
+
+```bash
+pnpm dev          # Next.js App Router at http://localhost:3000
+pnpm typecheck    # strict tsc --noEmit across the workspace
+pnpm lint         # eslint --max-warnings=0 (strict TypeChecked)
+pnpm test         # vitest run (22 workspace tests)
+pnpm build        # pnpm -r build → next build (standalone on Linux)
+```
+
+### Legacy Flask (maintenance)
+
+The legacy Flask app remains runnable until parity acceptance (`#199`):
+
+```bash
+python -m venv venv
+source venv/bin/activate  # Windows: venv\Scripts\activate
+pip install -r requirements.txt
+python src/app.py  # http://localhost:5000
+```
+
+Navigate to `http://localhost:3000` for the new workspace shell (legacy Flask at `http://localhost:5000` if running).
 
 ## 🚩 Feature Flags
 
@@ -76,29 +84,52 @@ ADVENT_ENABLED=True
 
 ```text
 Santa_Tracker/
-├── src/
-│   ├── static/          # CSS, JavaScript, images
-│   ├── templates/       # HTML templates
-│   ├── utils/           # Core logic (tracker, locations, advent)
-│   └── app.py           # Flask application
+├── apps/
+│   └── web/                 # Next.js App Router — public site, admin studio, APIs (composition root)
+├── packages/
+│   ├── activity-sdk/        # Activity lifecycle, inputs, saves, audio, achievements
+│   ├── config/              # Typed environment at process start
+│   ├── contracts/           # Versioned Zod schemas & stable IDs (no DB/React)
+│   ├── database/            # Drizzle schema, migrations, repositories
+│   ├── route-engine/        # Pure route validation, state, simulation
+│   ├── test-fixtures/       # Deterministic clocks, routes, snapshots (dev-only)
+│   └── ui/                  # Shared accessible components & design tokens
+├── src/                     # Legacy Flask app (maintenance until parity)
+│   ├── static/              # CSS, JS, images
+│   ├── templates/           # HTML templates
+│   ├── utils/               # Core logic (tracker, locations, advent)
+│   └── app.py
 ├── tools/
-│   └── route-editor/    # Standalone route editor tool (React + Vite)
-├── docs/                # Documentation
-├── tests/               # Test suite
-├── config.py            # Configuration
-└── requirements.txt     # Python dependencies
+│   └── route-editor/        # Standalone Vite route editor (remains npm-isolated)
+├── docs/
+│   ├── adr/                 # Architecture Decision Records
+│   └── planning/            # Christmas 2026 reinvention plan
+├── tests/                   # Legacy Python test suite
+├── pnpm-workspace.yaml      # Workspace definition
+└── pnpm-lock.yaml           # Single-command install lockfile
 ```
 
 ## 🛠️ Technology Stack
 
-**Backend:** Flask, Gunicorn, Geopy, Python-dotenv  
-**Frontend:** Tailwind CSS (CDN), Leaflet.js, Vanilla JavaScript, CSS3  
-**DevOps:** GitHub Actions, Dependabot, DeepSource  
-**Testing:** pytest, pytest-cov (79% coverage across 140 tests)
+**New platform (Christmas 2026):** Next.js 15 App Router, React 19, strict TypeScript 5.8, pnpm workspaces, Tailwind CSS, Zod, Drizzle ORM + PostgreSQL, Vitest  
+**Legacy (maintenance):** Flask, Gunicorn, Geopy, Python-dotenv, Tailwind CDN, Leaflet.js  
+**DevOps:** GitHub Actions (pnpm 10 + Node 20 matrix + Python 3.10–3.14), Dependabot (pip + npm/pnpm), DeepSource  
+**Testing:** Vitest 3 (22 workspace tests, type-aware) + pytest, pytest-cov (140 legacy tests)
 
 ## 🧪 Testing & Route Simulation
 
-### Running Tests
+### Workspace (Next.js / TypeScript)
+
+```bash
+pnpm typecheck   # strict tsc --noEmit (root + 7 packages + web)
+pnpm lint        # eslint flat config, strict TypeChecked, 0 warnings
+pnpm test        # vitest run — 22 tests, type-aware
+pnpm build       # pnpm -r build → Next.js production build (standalone on Linux)
+```
+
+Boundaries are verified in CI (`workspace.yml`): workspace imports must respect ADR 0001 (e.g., `contracts` imports no DB/React, `route-engine` is pure, `ui` fetches no data).
+
+### Legacy Python tests
 
 ```bash
 # Run all tests with coverage
