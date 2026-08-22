@@ -14,13 +14,13 @@
     "@dnd-kit/utilities": "^3.2.2",
     "leaflet": "^1.9.4",
     "lucide-react": "^0.294.0",
-    "react": "^18.2.0",
+    "react": "^19.2.8",
     "react-dom": "^18.2.0",
     "react-leaflet": "^4.2.1",
     "react-router-dom": "^7.18.2"
   },
   "devDependencies": {
-    "@types/react": "^18.2.43",
+    "@types/react": "^19.2.18",
     "@types/react-dom": "^18.2.17",
     "@vitejs/plugin-react": "^6.0.5",
     "autoprefixer": "^10.5.4",
