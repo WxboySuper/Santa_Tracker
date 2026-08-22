@@ -1,0 +1,7 @@
+# CodeScene - ignore generated and archive files
+exclude:
+  - archive/**
+  - pnpm-lock.yaml
+  - apps/web/package-lock.json
+  - apps/web/public/**
+  - Route Data/**

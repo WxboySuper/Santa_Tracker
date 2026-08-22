@@ -1,0 +1,7 @@
+name: "CodeQL config"
+paths-ignore:
+  - archive/**
+  - apps/web/public/**
+  - apps/web/data/**
+  - pnpm-lock.yaml
+  - apps/web/package-lock.json
