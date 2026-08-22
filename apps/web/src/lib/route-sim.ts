@@ -31,8 +31,8 @@ function makeSimulatedItem(loc: LocationEntry) {
 function computeSummary(route: ReturnType<typeof makeSimulatedItem>[]) {
   const withTimes = route.filter(r => r.arrival_time && r.departure_time);
   if (withTimes.length > 0) {
-    const start = withTimes[0].arrival_time!;
-    const end = withTimes[withTimes.length - 1].departure_time!;
+    const start = withTimes[0]!.arrival_time!;
+    const end = withTimes[withTimes.length - 1]!.departure_time!;
     return {
       total_locations: route.length,
       locations_with_timing: withTimes.length,

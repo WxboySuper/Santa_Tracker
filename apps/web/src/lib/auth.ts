@@ -24,7 +24,7 @@ export async function verifyAdminToken(token: string): Promise<boolean> {
   try {
     const { payload } = await jose.jwtVerify(token, secret);
     return payload.admin === true;
-  } catch (e: any) {
+  } catch {
     // Do NOT fallback to raw password comparison — security fix per audit
     // Previously Flask accepted raw ADMIN_PASSWORD as bearer token; we remove that.
     return false;
@@ -40,7 +40,7 @@ export async function verifyAdminPassword(password: string): Promise<boolean> {
   if (a.length !== b.length) return false;
   // constant time
   let diff = 0;
-  for (let i = 0; i < a.length; i++) diff |= a[i] ^ b[i];
+  for (let i = 0; i < a.length; i++) diff |= a[i]! ^ b[i]!;
   return diff === 0;
 }
 

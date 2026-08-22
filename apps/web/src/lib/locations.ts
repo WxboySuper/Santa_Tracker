@@ -236,7 +236,11 @@ async function atomicWrite(filePath: string, data: any) {
     const backupPath = path.join(backupDir, `${path.basename(filePath, ".json")}-${stamp}.json`);
     await fs.writeFile(backupPath, JSON.stringify(data, null, 2), "utf-8");
     const files = (await fs.readdir(backupDir)).filter(f => f.startsWith(path.basename(filePath, ".json"))).sort().reverse();
-    for (const f of files.slice(5)) await fs.unlink(path.join(backupDir, f)).catch(() => {});
+    for (const f of files.slice(5)) {
+      await fs.unlink(path.join(backupDir, f)).catch(() => {
+        // A concurrent cleanup can remove the file first.
+      });
+    }
   } catch {}
 }
 

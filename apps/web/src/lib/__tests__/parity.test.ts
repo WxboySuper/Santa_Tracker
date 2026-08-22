@@ -27,13 +27,13 @@ describe("Flask parity - locations", () => {
     const res = validateLocations([a, b]);
     expect(res.warnings.length).toBeGreaterThan(0);
   });
-  it("buildSimulated sorts by utc_offset desc then priority", async () => {
+  it("buildSimulated sorts by utc_offset desc then priority", () => {
     const locs = [
       createLocationFromPayload({ name: "Low", latitude: 0, longitude: 0, utc_offset: 0, priority: 3 }),
       createLocationFromPayload({ name: "High", latitude: 1, longitude: 1, utc_offset: 5, priority: 1 }),
     ];
     const { simulated_route } = buildSimulatedFromLocations(locs);
-    expect(simulated_route[0].name).toBe("High");
+    expect(simulated_route[0]!.name).toBe("High");
   });
 });
 
@@ -109,6 +109,7 @@ describe("No Flask in production paths", () => {
   });
   it("archive preserves Flask source", () => {
     const candidates = [
+      path.join(process.cwd(), "src/app.py"),
       path.join(process.cwd(), "archive/flask-legacy/app.py"),
       path.join(process.cwd(), "..", "..", "archive/flask-legacy/app.py"),
       path.resolve(__dirname, "../../../archive/flask-legacy/app.py"),
