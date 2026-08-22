@@ -83,22 +83,39 @@ function normalizeLng(lng: number): number {
   return ((lng + 180) % 360) - 180;
 }
 
+function isLegacyLocation(entry: any): boolean {
+  return !entry.location && !entry.id && ("latitude" in entry || "longitude" in entry || "name" in entry);
+}
+
+function normalizeLegacyLocation(entry: any, idx: number): any {
+  const lat = entry.latitude ?? entry.lat;
+  const lng = entry.longitude ?? entry.lng;
+  const tz = entry.utc_offset ?? entry.timezone_offset;
+  return {
+    id: entry.name || `node_${idx}`,
+    location: { name: entry.name, lat, lng, timezone_offset: tz },
+    schedule: { arrival_utc: entry.arrival_time, departure_utc: entry.departure_time },
+    stop_experience: { duration_seconds: entry.stop_duration != null ? entry.stop_duration * 60 : null },
+    notes: entry.notes ?? entry.fun_facts,
+    priority: entry.priority,
+  };
+}
+
+function parseTransit(transit: any): TransitToHere | null {
+  if (!transit || typeof transit !== "object") return null;
+  return {
+    description: transit.description ?? null,
+    duration_seconds: transit.duration_seconds != null ? Number(transit.duration_seconds) : null,
+    distance_km: transit.distance_km != null ? Number(transit.distance_km) : null,
+    speed_curve: transit.speed_curve ?? null,
+    speed_kmh: transit.speed_kmh != null ? Number(transit.speed_kmh) : null,
+    camera_zoom: transit.camera_zoom != null ? Number(transit.camera_zoom) : null,
+  };
+}
+
 function parseLocationNode(entry: any, idx: number): RouteNode | null {
   if (!entry || typeof entry !== "object") return null;
-  // detect legacy flat schema
-  if (!("location" in entry) && !("id" in entry) && ("latitude" in entry || "longitude" in entry || "name" in entry)) {
-    const lat = entry.latitude ?? entry.lat;
-    const lng = entry.longitude ?? entry.lng;
-    const tz = entry.utc_offset ?? entry.timezone_offset;
-    entry = {
-      id: entry.name || `node_${idx}`,
-      location: { name: entry.name, lat, lng, timezone_offset: tz },
-      schedule: { arrival_utc: entry.arrival_time, departure_utc: entry.departure_time },
-      stop_experience: { duration_seconds: entry.stop_duration != null ? entry.stop_duration * 60 : null },
-      notes: entry.notes ?? entry.fun_facts,
-      priority: entry.priority,
-    };
-  }
+  if (isLegacyLocation(entry)) entry = normalizeLegacyLocation(entry, idx);
 
   const loc = entry.location;
   if (!loc || typeof loc !== "object") return null;
@@ -111,19 +128,6 @@ function parseLocationNode(entry: any, idx: number): RouteNode | null {
 
   const stop = entry.stop_experience || {};
   const schedule = entry.schedule || {};
-  const transit = entry.transit_to_here;
-
-  let parsedTransit: TransitToHere | null = null;
-  if (transit && typeof transit === "object") {
-    parsedTransit = {
-      description: transit.description ?? null,
-      duration_seconds: transit.duration_seconds != null ? Number(transit.duration_seconds) : null,
-      distance_km: transit.distance_km != null ? Number(transit.distance_km) : null,
-      speed_curve: transit.speed_curve ?? null,
-      speed_kmh: transit.speed_kmh != null ? Number(transit.speed_kmh) : null,
-      camera_zoom: transit.camera_zoom != null ? Number(transit.camera_zoom) : null,
-    };
-  }
 
   return {
     id,
@@ -148,7 +152,7 @@ function parseLocationNode(entry: any, idx: number): RouteNode | null {
       local_arrival_time: schedule.local_arrival_time ?? null,
       time_window_status: schedule.time_window_status ?? null,
     },
-    transit_to_here: parsedTransit,
+    transit_to_here: parseTransit(entry.transit_to_here),
     notes: entry.notes ?? entry.fun_facts ?? null,
     priority: entry.priority ?? null,
   };
@@ -184,27 +188,30 @@ function toLocationFromNode(node: RouteNode): LocationEntry {
 }
 
 function coerceNodeToFlat(item: any): Record<string, any> {
-  // handles both RouteNode and flat legacy
-  if (item && typeof item === "object" && "location" in item) {
-    const node = item as RouteNode;
-    const loc = node.location;
-    const sched = node.schedule || {};
-    const stop = node.stop_experience || {};
-    const flat: Record<string, any> = {};
-    flat.name = loc.name;
-    flat.latitude = loc.lat;
-    flat.longitude = loc.lng;
-    flat.utc_offset = loc.timezone_offset;
-    flat.arrival_time = sched.arrival_utc ?? null;
-    flat.departure_time = sched.departure_utc ?? null;
-    flat.country = loc.region ?? null;
-    flat.priority = node.priority ?? null;
-    if (node.notes != null) { flat.notes = node.notes; flat.fun_facts = node.notes; }
-    if (stop.duration_seconds != null) flat.stop_duration = Math.round(Number(stop.duration_seconds) / 60);
-    flat.is_stop = true;
-    return flat;
-  }
-  // assume already flat
+  return item && typeof item === "object" && "location" in item ? flattenRouteNode(item as RouteNode) : flattenLegacyLocation(item);
+}
+
+function flattenRouteNode(node: RouteNode): Record<string, any> {
+  const loc = node.location;
+  const sched = node.schedule || {};
+  const stop = node.stop_experience || {};
+  const flat: Record<string, any> = {
+    name: loc.name,
+    latitude: loc.lat,
+    longitude: loc.lng,
+    utc_offset: loc.timezone_offset,
+    arrival_time: sched.arrival_utc ?? null,
+    departure_time: sched.departure_utc ?? null,
+    country: loc.region ?? null,
+    priority: node.priority ?? null,
+    is_stop: true,
+  };
+  if (node.notes != null) { flat.notes = node.notes; flat.fun_facts = node.notes; }
+  if (stop.duration_seconds != null) flat.stop_duration = Math.round(Number(stop.duration_seconds) / 60);
+  return flat;
+}
+
+function flattenLegacyLocation(item: any): Record<string, any> {
   return {
     name: item.name,
     latitude: Number(item.latitude ?? item.lat),
@@ -245,47 +252,38 @@ async function atomicWrite(filePath: string, data: any) {
 }
 
 export async function loadSantaRouteFromJson(source?: string | Record<string, any> | any[]): Promise<LocationEntry[]> {
-  let obj: any;
-  let fromFile = false;
-  if (!source) {
-    const defaultPath = getSantaRoutePath();
-    if (!fsSync.existsSync(defaultPath)) throw new Error(`Route file not found: ${defaultPath}`);
-    const content = await fs.readFile(defaultPath, "utf-8");
-    obj = JSON.parse(content);
-    fromFile = true;
-  } else if (typeof source === "string") {
-    if (fsSync.existsSync(source)) {
-      const content = await fs.readFile(source, "utf-8");
-      obj = JSON.parse(content);
-      fromFile = true;
-    } else {
-      obj = JSON.parse(source);
-    }
-  } else {
-    obj = source;
-  }
+  const obj = await readRouteSource(source);
+  return parseRouteNodes(extractRouteNodes(obj)).map(toLocationFromNode);
+}
 
-  let nodes: any[] = [];
-  if (Array.isArray(obj)) nodes = obj;
-  else if (obj && typeof obj === "object") {
-    nodes = obj.route_nodes ?? obj.route ?? obj.nodes ?? obj.stops ?? [];
-  }
+async function readRouteSource(source?: string | Record<string, any> | any[]): Promise<any> {
+  if (!source) return readRouteFile(getSantaRoutePath(), "Route file not found");
+  if (typeof source !== "string") return source;
+  return fsSync.existsSync(source) ? readRouteFile(source, "Route file not found") : JSON.parse(source);
+}
 
+async function readRouteFile(filePath: string, errorLabel: string): Promise<any> {
+  if (!fsSync.existsSync(filePath)) throw new Error(`${errorLabel}: ${filePath}`);
+  return JSON.parse(await fs.readFile(filePath, "utf-8"));
+}
+
+function extractRouteNodes(obj: any): any[] {
+  if (Array.isArray(obj)) return obj;
+  if (!obj || typeof obj !== "object") return [];
+  return obj.route_nodes ?? obj.route ?? obj.nodes ?? obj.stops ?? [];
+}
+
+function parseRouteNodes(nodes: any[]): RouteNode[] {
   const parsed: RouteNode[] = [];
   for (let i = 0; i < nodes.length; i++) {
     try {
-      const p = parseLocationNode(nodes[i], i);
-      if (p) parsed.push(p);
-    } catch {}
+      const node = parseLocationNode(nodes[i], i);
+      if (node) parsed.push(node);
+    } catch {
+      // Ignore malformed nodes to preserve the legacy loader behavior.
+    }
   }
-
-  // if source is undefined (legacy Flask admin reads), return LocationEntry[]
-  // Mirror Python: source === undefined => Locations; explicit source => parsed nodes without legacy fields
-  if (source == null) {
-    return parsed.map(toLocationFromNode);
-  }
-  // For explicit source, strip legacy top-level fields like notes/priority? but keep for file-backed parity
-  return parsed.map(toLocationFromNode);
+  return parsed;
 }
 
 export async function loadRouteNodesRaw(): Promise<RouteNode[]> {
@@ -391,19 +389,8 @@ export function createLocationFromPayload(data: Record<string, any>): LocationEn
   if (!data || typeof data !== "object") throw new Error("payload must be a dict");
   const name = data.name ?? data.location;
   if (!name) throw new Error("Missing required field: name");
-  const latRaw = data.latitude ?? data.lat;
-  const lngRaw = data.longitude ?? data.lng;
-  const tzRaw = data.utc_offset ?? data.timezone_offset;
-  if (latRaw == null || lngRaw == null || tzRaw == null) throw new Error("Missing required coordinate fields");
-  const lat = Number(latRaw);
-  const lngRawNum = Number(lngRaw);
-  const tz = Number(tzRaw);
-  if (Number.isNaN(lat) || lat < -90 || lat > 90) throw new Error(`Invalid latitude: ${latRaw}`);
-  if (Number.isNaN(lngRawNum)) throw new Error(`Invalid longitude: ${lngRaw}`);
-  // Normalize lng to [-180,180] like Python _location_validate_and_normalize_coords
-  const lng = normalizeLng(lngRawNum);
-  if (Number.isNaN(tz) || tz < -12 || tz > 14) throw new Error(`Invalid timezone_offset: ${tzRaw}`);
-  if (data.priority != null && (!Number.isInteger(data.priority) || data.priority < 1 || data.priority > 3)) throw new Error(`Invalid priority: ${data.priority}`);
+  const { lat, lng, tz } = parseLocationCoordinates(data);
+  validatePriority(data.priority);
   const notes = data.notes ?? data.fun_facts ?? null;
   return {
     name,
@@ -426,72 +413,107 @@ export function createLocationFromPayload(data: Record<string, any>): LocationEn
   };
 }
 
+function parseLocationCoordinates(data: Record<string, any>): { lat: number; lng: number; tz: number } {
+  const latRaw = data.latitude ?? data.lat;
+  const lngRaw = data.longitude ?? data.lng;
+  const tzRaw = data.utc_offset ?? data.timezone_offset;
+  if (latRaw == null || lngRaw == null || tzRaw == null) throw new Error("Missing required coordinate fields");
+  const lat = Number(latRaw);
+  const longitude = Number(lngRaw);
+  const tz = Number(tzRaw);
+  validateLatitude(lat, latRaw);
+  validateLongitude(longitude, lngRaw);
+  validateTimezone(tz, tzRaw);
+  return { lat, lng: normalizeLng(longitude), tz };
+}
+
+function validateLatitude(value: number, raw: any): void {
+  if (Number.isNaN(value) || value < -90 || value > 90) throw new Error(`Invalid latitude: ${raw}`);
+}
+
+function validateLongitude(value: number, raw: any): void {
+  if (Number.isNaN(value)) throw new Error(`Invalid longitude: ${raw}`);
+}
+
+function validateTimezone(value: number, raw: any): void {
+  if (Number.isNaN(value) || value < -12 || value > 14) throw new Error(`Invalid timezone_offset: ${raw}`);
+}
+
+function validatePriority(priority: any): void {
+  if (priority != null && (!Number.isInteger(priority) || priority < 1 || priority > 3)) {
+    throw new Error(`Invalid priority: ${priority}`);
+  }
+}
+
 export function validateLocations(locations: (LocationEntry | RouteNode | Record<string, any>)[]): { valid: boolean; total_locations: number; errors: string[]; warnings: string[] } {
   const errors: string[] = [];
   const warnings: string[] = [];
   const seenNames = new Map<string, number>();
   const seenCoords = new Map<string, number>();
 
-  const extract = (item: any): { name: string | null; lat: any; lng: any; tz: any } => {
-    if (item && typeof item === "object" && "location" in item && item.location) {
-      return {
-        name: item.location.name ?? item.id ?? item.name ?? null,
-        lat: item.location.lat,
-        lng: item.location.lng,
-        tz: item.location.timezone_offset,
-      };
-    }
-    return {
-      name: item.name ?? item.id ?? null,
-      lat: item.lat ?? item.latitude ?? null,
-      lng: item.lng ?? item.longitude ?? null,
-      tz: item.timezone_offset ?? item.utc_offset ?? null,
-    };
-  };
-
   for (let idx = 0; idx < locations.length; idx++) {
     const item = locations[idx];
     try {
-      const info = extract(item);
-      const name = info.name || `(index ${idx})`;
-      if (seenNames.has(name)) {
-        errors.push(`Duplicate location name '${name}' at indices ${seenNames.get(name)} and ${idx}`);
-      } else seenNames.set(name, idx);
-
-      const latf = info.lat != null ? Number(info.lat) : null;
-      const lngf = info.lng != null ? Number(info.lng) : null;
-      const tzf = info.tz != null ? Number(info.tz) : null;
-
-      if (latf == null || Number.isNaN(latf)) errors.push(`Invalid latitude for '${name}' (index ${idx}): ${info.lat}`);
-      if (lngf == null || Number.isNaN(lngf)) errors.push(`Invalid longitude for '${name}' (index ${idx}): ${info.lng}`);
-      if (tzf != null && Number.isNaN(tzf)) errors.push(`Invalid UTC offset for '${name}' (index ${idx}): ${info.tz}`);
-
-      if (latf != null && !Number.isNaN(latf) && (latf < -90 || latf > 90)) errors.push(`Invalid latitude for '${name}' (index ${idx}): ${latf}`);
-      if (lngf != null && !Number.isNaN(lngf) && (lngf < -180 || lngf > 180)) errors.push(`Invalid longitude for '${name}' (index ${idx}): ${lngf}`);
-      if (tzf != null && !Number.isNaN(tzf) && (tzf < -12 || tzf > 14)) errors.push(`Invalid UTC offset for '${name}' (index ${idx}): ${tzf}`);
-
-      if (latf != null && lngf != null && !Number.isNaN(latf) && !Number.isNaN(lngf)) {
-        const key = `${Math.round(latf * 10000) / 10000},${Math.round(lngf * 10000) / 10000}`;
-        if (seenCoords.has(key)) {
-          const otherIdx = seenCoords.get(key)!;
-          const other: any = locations[otherIdx];
-          const otherName = other?.name ?? other?.id ?? other?.location?.name ?? `(index ${otherIdx})`;
-          warnings.push(`Very close coordinates for '${name}' (index ${idx}) and '${otherName}' (index ${otherIdx})`);
-        } else seenCoords.set(key, idx);
-      }
-
-      if (tzf != null && !Number.isNaN(tzf)) {
-        const frac = Math.abs(tzf % 1);
-        if (![0, 0.25, 0.5, 0.75].some(a => Math.abs(frac - a) < 1e-9)) {
-          warnings.push(`Unusual UTC offset for '${name}': ${tzf}`);
-        }
-      }
+      validateLocation(locations, item, idx, seenNames, seenCoords, errors, warnings);
     } catch (e: any) {
       errors.push(`error processing location at index ${idx}: ${e.message}`);
     }
   }
 
   return { valid: errors.length === 0, total_locations: locations.length, errors, warnings };
+}
+
+function extractLocationInfo(item: any): { name: string | null; lat: any; lng: any; tz: any } {
+  if (item && typeof item === "object" && "location" in item && item.location) {
+    return { name: item.location.name ?? item.id ?? item.name ?? null, lat: item.location.lat, lng: item.location.lng, tz: item.location.timezone_offset };
+  }
+  return { name: item.name ?? item.id ?? null, lat: item.lat ?? item.latitude ?? null, lng: item.lng ?? item.longitude ?? null, tz: item.timezone_offset ?? item.utc_offset ?? null };
+}
+
+function validateLocation(locations: any[], item: any, idx: number, seenNames: Map<string, number>, seenCoords: Map<string, number>, errors: string[], warnings: string[]): void {
+  const info = extractLocationInfo(item);
+  const name = info.name || `(index ${idx})`;
+  checkDuplicateName(name, idx, seenNames, errors);
+  const lat = toNumber(info.lat);
+  const lng = toNumber(info.lng);
+  const tz = toNumber(info.tz);
+  addCoordinateErrors(name, idx, info, lat, lng, tz, errors);
+  addCoordinateWarning(locations, name, idx, lat, lng, seenCoords, warnings);
+  addTimezoneWarning(name, tz, warnings);
+}
+
+function toNumber(value: any): number | null {
+  return value == null ? null : Number(value);
+}
+
+function checkDuplicateName(name: string, idx: number, seenNames: Map<string, number>, errors: string[]): void {
+  const previous = seenNames.get(name);
+  if (previous != null) errors.push(`Duplicate location name '${name}' at indices ${previous} and ${idx}`);
+  else seenNames.set(name, idx);
+}
+
+function addCoordinateErrors(name: string, idx: number, info: any, lat: number | null, lng: number | null, tz: number | null, errors: string[]): void {
+  if (lat == null || Number.isNaN(lat) || lat < -90 || lat > 90) errors.push(`Invalid latitude for '${name}' (index ${idx}): ${info.lat}`);
+  if (lng == null || Number.isNaN(lng) || lng < -180 || lng > 180) errors.push(`Invalid longitude for '${name}' (index ${idx}): ${info.lng}`);
+  if (tz != null && (Number.isNaN(tz) || tz < -12 || tz > 14)) errors.push(`Invalid UTC offset for '${name}' (index ${idx}): ${info.tz}`);
+}
+
+function addCoordinateWarning(locations: any[], name: string, idx: number, lat: number | null, lng: number | null, seenCoords: Map<string, number>, warnings: string[]): void {
+  if (lat == null || lng == null || Number.isNaN(lat) || Number.isNaN(lng)) return;
+  const key = `${Math.round(lat * 10000) / 10000},${Math.round(lng * 10000) / 10000}`;
+  const otherIdx = seenCoords.get(key);
+  if (otherIdx != null) {
+    const other = locations[otherIdx] as any;
+    const otherName = other?.name ?? other?.id ?? other?.location?.name ?? `(index ${otherIdx})`;
+    warnings.push(`Very close coordinates for '${name}' (index ${idx}) and '${otherName}' (index ${otherIdx})`);
+  } else seenCoords.set(key, idx);
+}
+
+function addTimezoneWarning(name: string, tz: number | null, warnings: string[]): void {
+  if (tz == null || Number.isNaN(tz)) return;
+  const fraction = Math.abs(tz % 1);
+  const validFraction = [0, 0.25, 0.5, 0.75].some(value => Math.abs(fraction - value) < 1e-9);
+  if (!validFraction) warnings.push(`Unusual UTC offset for '${name}': ${tz}`);
 }
 
 export async function getRouteStatus() {

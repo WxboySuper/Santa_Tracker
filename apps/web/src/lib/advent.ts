@@ -16,47 +16,56 @@ export interface AdventDay {
 // simple in-memory cache with mtime validation
 const cache = new Map<string, { mtimeMs: number; size: number; data: AdventDay[] }>();
 
+function clone<T>(value: T): T {
+  return JSON.parse(JSON.stringify(value));
+}
+
+function validateUnlockTime(value: string): void {
+  const dt = new Date(value.replace("Z", "+00:00"));
+  if (Number.isNaN(dt.getTime())) throw new Error("Invalid date");
+}
+
+function parseAdventDay(day: any): AdventDay {
+  if (day.day == null || day.title == null || day.unlock_time == null || day.content_type == null || day.payload == null) {
+    throw new Error(`Missing required field in advent day data: ${JSON.stringify(day)}`);
+  }
+  if (day.day < 1 || day.day > 24) throw new Error(`Day must be between 1 and 24, got ${day.day}`);
+  const valid = ["fact", "game", "story", "video", "activity", "quiz"];
+  if (!valid.includes(day.content_type)) throw new Error(`Content type must be one of ${valid}`);
+  try {
+    validateUnlockTime(day.unlock_time);
+  } catch (e: any) {
+    throw new Error(`Invalid unlock_time format: ${e.message}`);
+  }
+  return {
+    day: day.day,
+    title: day.title,
+    unlock_time: day.unlock_time,
+    content_type: day.content_type,
+    payload: day.payload,
+    is_unlocked_override: day.is_unlocked_override ?? null,
+  };
+}
+
 export async function loadAdventCalendar(filePath?: string): Promise<AdventDay[]> {
   const p = path.resolve(filePath ?? getAdventCalendarPath());
   if (!fsSync.existsSync(p)) throw new Error(`Advent calendar file not found: ${p}`);
   const stat = fsSync.statSync(p);
   const cached = cache.get(p);
   if (cached && cached.mtimeMs === stat.mtimeMs && cached.size === stat.size) {
-    return JSON.parse(JSON.stringify(cached.data));
+    return clone(cached.data);
   }
   const content = await fs.readFile(p, "utf-8");
   if (!content.trim()) throw new Error(`Advent calendar file is empty: ${p}`);
-  let data: any;
+  let data: { days?: any[] };
   try {
     data = JSON.parse(content);
   } catch (e: any) {
     throw new Error(`JSON decode error in ${p}: ${e.message}`);
   }
-  const days: AdventDay[] = [];
-  for (const d of data.days ?? []) {
-    if (d.day == null || d.title == null || d.unlock_time == null || d.content_type == null || d.payload == null) {
-      throw new Error(`Missing required field in advent day data: ${JSON.stringify(d)}`);
-    }
-    if (d.day < 1 || d.day > 24) throw new Error(`Day must be between 1 and 24, got ${d.day}`);
-    const valid = ["fact", "game", "story", "video", "activity", "quiz"];
-    if (!valid.includes(d.content_type)) throw new Error(`Content type must be one of ${valid}`);
-    try {
-      const dt = new Date(d.unlock_time.replace("Z", "+00:00"));
-      if (Number.isNaN(dt.getTime())) throw new Error("Invalid date");
-    } catch (e: any) {
-      throw new Error(`Invalid unlock_time format: ${e.message}`);
-    }
-    days.push({
-      day: d.day,
-      title: d.title,
-      unlock_time: d.unlock_time,
-      content_type: d.content_type,
-      payload: d.payload,
-      is_unlocked_override: d.is_unlocked_override ?? null,
-    });
-  }
+  const days = (data.days ?? []).map(parseAdventDay);
   cache.set(p, { mtimeMs: stat.mtimeMs, size: stat.size, data: days });
-  return JSON.parse(JSON.stringify(days));
+  return clone(days);
 }
 
 export async function loadAdventCalendarDict(filePath?: string): Promise<Map<number, AdventDay>> {
@@ -130,23 +139,36 @@ export async function saveAdventCalendar(days: AdventDay[] | Map<number, AdventD
 }
 
 export function validateAdventCalendar(days: AdventDay[]) {
-  const errors: string[] = [];
-  const warnings: string[] = [];
+  const errors = duplicateDayErrors(days);
+  const warnings = missingDayWarnings(days);
+  const required: Record<string, string> = { fact: "text", story: "text", game: "url", video: "video_url", activity: "url", quiz: "url" };
+  for (const day of days) warnings.push(...validateDayPayload(day, required));
+  return { valid: errors.length === 0, errors, warnings, total_days: days.length, complete_days: days.filter(d => d.payload).length };
+}
+
+function duplicateDayErrors(days: AdventDay[]): string[] {
   const nums = days.map(d => d.day);
   const dups = nums.filter((d, i) => nums.indexOf(d) !== i);
-  if (dups.length > 0) errors.push(`Duplicate day numbers found: ${[...new Set(dups)]}`);
+  return dups.length > 0 ? [`Duplicate day numbers found: ${[...new Set(dups)]}`] : [];
+}
+
+function missingDayWarnings(days: AdventDay[]): string[] {
+  const nums = days.map(d => d.day);
   const expected = new Set(Array.from({ length: 24 }, (_, i) => i + 1));
   const actual = new Set(nums);
   const missing = [...expected].filter(d => !actual.has(d));
-  if (missing.length > 0) warnings.push(`Missing days: ${missing.sort((a, b) => a - b)}`);
-  const required: Record<string, string> = { fact: "text", story: "text", game: "url", video: "video_url", activity: "url", quiz: "url" };
-  for (const d of days) {
-    const f = required[d.content_type];
-    if (f && !d.payload?.[f]) warnings.push(`Day ${d.day}: Missing '${f}' in payload`);
-    const img = d.payload?.image_url;
-    if (img && !(img.startsWith("/static/") || img.startsWith("http") || img.startsWith("/"))) {
-      warnings.push(`Day ${d.day}: Unusual image_url format: ${img}`);
-    }
-  }
-  return { valid: errors.length === 0, errors, warnings, total_days: days.length, complete_days: days.filter(d => d.payload).length };
+  return missing.length > 0 ? [`Missing days: ${missing.sort((a, b) => a - b)}`] : [];
+}
+
+function validateDayPayload(day: AdventDay, required: Record<string, string>): string[] {
+  const warnings: string[] = [];
+  const field = required[day.content_type];
+  if (field && !day.payload?.[field]) warnings.push(`Day ${day.day}: Missing '${field}' in payload`);
+  const image = day.payload?.image_url;
+  if (image && !isValidImageUrl(image)) warnings.push(`Day ${day.day}: Unusual image_url format: ${image}`);
+  return warnings;
+}
+
+function isValidImageUrl(image: string): boolean {
+  return image.startsWith("/static/") || image.startsWith("http") || image.startsWith("/");
 }
