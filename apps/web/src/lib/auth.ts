@@ -37,10 +37,9 @@ export async function verifyAdminPassword(password: string): Promise<boolean> {
   // timing-safe compare
   const a = new TextEncoder().encode(password);
   const b = new TextEncoder().encode(adminPassword);
-  if (a.length !== b.length) return false;
-  // constant time
-  let diff = 0;
-  for (let i = 0; i < a.length; i++) diff |= a[i]! ^ b[i]!;
+  let diff = a.length ^ b.length;
+  const length = Math.max(a.length, b.length);
+  for (let i = 0; i < length; i++) diff |= (a[i] ?? 0) ^ (b[i] ?? 0);
   return diff === 0;
 }
 

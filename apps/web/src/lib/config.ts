@@ -1,5 +1,5 @@
 export function getSecretKey(): string {
-  return process.env.SECRET_KEY || "dev-secret-key";
+  return process.env.SECRET_KEY ?? "dev-secret-key";
 }
 
 export function getAdminPassword(): string | undefined {
@@ -46,6 +46,7 @@ export function getTrialRoutePath(): string {
   try {
     const fs = require("fs");
     if (fs.existsSync(legacy)) return legacy;
+    if (fs.existsSync(appData)) return appData;
   } catch {}
   return legacy;
 }

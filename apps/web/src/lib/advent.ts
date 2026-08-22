@@ -14,7 +14,7 @@ export interface AdventDay {
 }
 
 // simple in-memory cache with mtime validation
-const cache = new Map<string, { mtimeMs: number; size: number; data: AdventDay[] }>();
+const cache = new Map<string, { mtimeMs: number; size: number; ino: number; data: AdventDay[] }>();
 
 function clone<T>(value: T): T {
   return JSON.parse(JSON.stringify(value));
@@ -52,7 +52,7 @@ export async function loadAdventCalendar(filePath?: string): Promise<AdventDay[]
   if (!fsSync.existsSync(p)) throw new Error(`Advent calendar file not found: ${p}`);
   const stat = fsSync.statSync(p);
   const cached = cache.get(p);
-  if (cached && cached.mtimeMs === stat.mtimeMs && cached.size === stat.size) {
+  if (cached && cached.mtimeMs === stat.mtimeMs && cached.size === stat.size && cached.ino === stat.ino) {
     return clone(cached.data);
   }
   const content = await fs.readFile(p, "utf-8");
@@ -64,7 +64,7 @@ export async function loadAdventCalendar(filePath?: string): Promise<AdventDay[]
     throw new Error(`JSON decode error in ${p}: ${e.message}`);
   }
   const days = (data.days ?? []).map(parseAdventDay);
-  cache.set(p, { mtimeMs: stat.mtimeMs, size: stat.size, data: days });
+  cache.set(p, { mtimeMs: stat.mtimeMs, size: stat.size, ino: stat.ino, data: days });
   return clone(days);
 }
 

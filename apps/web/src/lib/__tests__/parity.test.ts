@@ -10,6 +10,8 @@ describe("Flask parity - locations", () => {
   it("validates location payload and normalizes lng", () => {
     const loc = createLocationFromPayload({ name: "Test", latitude: 10, longitude: 190, utc_offset: 0 });
     expect(loc.longitude).toBe(-170);
+    const negative = createLocationFromPayload({ name: "Negative", latitude: 10, longitude: -190, utc_offset: 0 });
+    expect(negative.longitude).toBe(170);
   });
   it("rejects invalid latitude", () => {
     expect(() => createLocationFromPayload({ name: "Bad", latitude: 100, longitude: 0, utc_offset: 0 })).toThrow();

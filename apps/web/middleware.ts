@@ -1,11 +1,12 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import * as jose from "jose";
+import { getSecretKey } from "./src/lib/config";
 
 const PROTECTED_PREFIXES = ["/admin"];
 
 async function verifyToken(token: string): Promise<boolean> {
-  const secret = new TextEncoder().encode(process.env.SECRET_KEY ?? "dev-secret-key");
+  const secret = new TextEncoder().encode(getSecretKey());
   try {
     const { payload } = await jose.jwtVerify(token, secret);
     return payload.admin === true;
@@ -26,17 +27,6 @@ export async function middleware(req: NextRequest) {
   // But to enforce server-owned boundary per audit (High finding), we check cookie.
   const token = req.cookies.get("admin_token")?.value ?? req.headers.get("authorization")?.replace("Bearer ", "");
   if (!token) {
-    // For pages, allow rendering but add header indicating unauthenticated shell (audit requires server protection)
-    // We redirect to /admin? We'll allow client to handle but also set 401 header for programmatic check.
-    // To satisfy "protected route group" we return 401 for direct fetches without token if Accept is not html?
-    const accept = req.headers.get("accept") ?? "";
-    if (accept.includes("text/html")) {
-      // Let client-side login handle — don't hard redirect to preserve parity with Flask which rendered without auth.
-      // But add header so future strict mode can enforce.
-      const res = NextResponse.next();
-      res.headers.set("x-admin-auth", "missing");
-      return res;
-    }
     return NextResponse.json({ error: "Authentication required" }, { status: 401 });
   }
   const valid = await verifyToken(token);

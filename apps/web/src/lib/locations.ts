@@ -80,7 +80,7 @@ function safeFloat(v: any): number | null {
 }
 
 function normalizeLng(lng: number): number {
-  return ((lng + 180) % 360) - 180;
+  return ((((lng + 180) % 360) + 360) % 360) - 180;
 }
 
 function isLegacyLocation(entry: any): boolean {
