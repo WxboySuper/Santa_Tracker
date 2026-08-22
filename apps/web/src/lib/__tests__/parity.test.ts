@@ -86,38 +86,14 @@ describe("No Flask in production paths", () => {
       "apps/web/src/lib/advent.ts",
     ];
     for (const f of files) {
-      try {
-        const candidates = [
-          path.resolve(f),
-          path.join(process.cwd(), f),
-          path.join(process.cwd(), "apps/web", f.replace("apps/web/", "")),
-          path.resolve(__dirname, "../../" + f.replace("apps/web/", "")),
-        ];
-        let found = false;
-        for (const p of candidates) {
-          if (fs.existsSync(p)) {
-            const c = fs.readFileSync(p, "utf-8");
-            expect(c).not.toContain("from flask");
-            expect(c).not.toContain("import Flask");
-            found = true;
-            break;
-          }
-        }
-        if (!found) throw new Error("file not found: " + f);
-      } catch (e) {
-        throw e;
-      }
+      const filePath = path.resolve(process.cwd(), f);
+      expect(fs.existsSync(filePath)).toBe(true);
+      const content = fs.readFileSync(filePath, "utf-8");
+      expect(content).not.toContain("from flask");
+      expect(content).not.toContain("import Flask");
     }
   });
   it("archive preserves Flask source", () => {
-    const candidates = [
-      path.join(process.cwd(), "src/app.py"),
-      path.join(process.cwd(), "archive/flask-legacy/app.py"),
-      path.join(process.cwd(), "..", "..", "archive/flask-legacy/app.py"),
-      path.resolve(__dirname, "../../../archive/flask-legacy/app.py"),
-      path.join(__dirname, "..", "..", "..", "..", "archive/flask-legacy/app.py"),
-    ];
-    const exists = candidates.some((p) => fs.existsSync(p));
-    expect(exists).toBe(true);
+    expect(fs.existsSync(path.resolve(process.cwd(), "src/app.py"))).toBe(true);
   });
 });
