@@ -1,7 +1,7 @@
 import fs from "fs/promises";
 import fsSync from "fs";
 import path from "path";
-import { getAdventCalendarPath } from "./config";
+import { getAdventCalendarPath, isAdventEnabled } from "./config";
 
 export interface AdventDay {
   day: number;
@@ -25,6 +25,11 @@ export interface AdventPublicDay {
 export interface AdventManifest {
   total_days: number;
   days: AdventPublicDay[];
+}
+
+export interface AdventApiResult {
+  status: number;
+  body: object;
 }
 
 interface AdventFileOptions {
@@ -151,6 +156,33 @@ export async function getDayContent(dayNumber: number, options: AdventQueryOptio
   const day = dict.get(dayNumber);
   if (!day) return null;
   return toDict(day, { includePayload: true, currentTime: options.currentTime });
+}
+
+function isNotFoundError(error: unknown): boolean {
+  return error instanceof Error && error.message.includes("not found");
+}
+
+export async function getDayApiResult(rawDay: string): Promise<AdventApiResult> {
+  if (!isAdventEnabled()) return { status: 404, body: { error: "Not found" } };
+  const dayNumber = Number(rawDay);
+  if (!Number.isInteger(dayNumber) || dayNumber < 1 || dayNumber > 24) {
+    return { status: 404, body: { error: "Day not found" } };
+  }
+  try {
+    const content = await getDayContent(dayNumber);
+    if (!content) return { status: 404, body: { error: "Day not found" } };
+    if (!content.is_unlocked) {
+      return {
+        status: 403,
+        body: { error: "Day is locked", day: content.day, title: content.title, unlock_time: content.unlock_time },
+      };
+    }
+    return { status: 200, body: content };
+  } catch (error: unknown) {
+    if (isNotFoundError(error)) return { status: 404, body: { error: "Advent calendar data not found" } };
+    console.error("Advent day error", error);
+    return { status: 500, body: { error: "Internal server error" } };
+  }
 }
 
 export async function saveAdventCalendar(days: AdventDay[] | Map<number, AdventDay>, options: AdventFileOptions = {}) {

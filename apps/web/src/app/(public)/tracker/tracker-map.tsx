@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import type { Map as LeafletMap } from "leaflet";
+import type * as Leaflet from "leaflet";
 import type { RouteNode } from "@/lib/locations";
 
 interface TrackerMapProps {
@@ -12,6 +13,8 @@ interface TrackerMapProps {
 interface RouteResponse {
   route_nodes: RouteNode[];
 }
+
+type LeafletModule = typeof Leaflet;
 
 function nextTakeoff(now: Date): number {
   const year = now.getUTCFullYear();
@@ -26,6 +29,49 @@ function formatCountdown(target: number, now: Date): string {
   const hours = Math.floor((remaining % 86_400_000) / 3_600_000);
   const minutes = Math.floor((remaining % 3_600_000) / 60_000);
   return `${days}d ${hours}h ${minutes}m`;
+}
+
+function hasCoordinates(node: RouteNode): boolean {
+  return Number.isFinite(node.location.lat) && Number.isFinite(node.location.lng);
+}
+
+function addStopMarker(L: LeafletModule, map: LeafletMap, node: RouteNode): void {
+  L.circleMarker([node.location.lat, node.location.lng], {
+    color: "#fbbf24",
+    fillColor: "#dc2626",
+    fillOpacity: 0.9,
+    radius: 5,
+    weight: 2,
+  })
+    .bindTooltip(node.location.name, { direction: "top" })
+    .addTo(map);
+}
+
+function renderRoute(L: LeafletModule, map: LeafletMap, nodes: RouteNode[]): number {
+  const validNodes = nodes.filter(hasCoordinates);
+  const points = validNodes.map(node => [node.location.lat, node.location.lng] as [number, number]);
+  validNodes.forEach(node => addStopMarker(L, map, node));
+  if (points.length > 1) {
+    const line = L.polyline(points, { color: "#fbbf24", opacity: 0.85, weight: 3 }).addTo(map);
+    map.fitBounds(line.getBounds(), { padding: [32, 32] });
+  }
+  return points.length;
+}
+
+async function createTrackerMap(container: HTMLDivElement): Promise<{ map: LeafletMap; stopCount: number }> {
+  const [{ default: L }, response] = await Promise.all([
+    import("leaflet"),
+    fetch("/api/route", { cache: "no-store" }),
+  ]);
+  if (!response.ok) throw new Error(`Route request failed with ${response.status}`);
+  const data = (await response.json()) as RouteResponse;
+  const map = L.map(container, { worldCopyJump: true, zoomControl: false }).setView([20, 0], 2);
+  L.control.zoom({ position: "bottomright" }).addTo(map);
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    attribution: "&copy; OpenStreetMap contributors",
+    maxZoom: 18,
+  }).addTo(map);
+  return { map, stopCount: renderRoute(L, map, data.route_nodes) };
 }
 
 export default function TrackerMap({ adventEnabled }: TrackerMapProps) {
@@ -47,43 +93,14 @@ export default function TrackerMap({ adventEnabled }: TrackerMapProps) {
 
     const initializeMap = async () => {
       try {
-        const [{ default: L }, response] = await Promise.all([
-          import("leaflet"),
-          fetch("/api/route", { cache: "no-store" }),
-        ]);
-        if (!response.ok) throw new Error(`Route request failed with ${response.status}`);
-        const data = (await response.json()) as RouteResponse;
-        if (cancelled || !mapElement.current) return;
-
-        map = L.map(mapElement.current, { worldCopyJump: true, zoomControl: false }).setView([20, 0], 2);
-        L.control.zoom({ position: "bottomright" }).addTo(map);
-        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-          attribution: "&copy; OpenStreetMap contributors",
-          maxZoom: 18,
-        }).addTo(map);
-
-        const points = data.route_nodes
-          .filter(node => Number.isFinite(node.location.lat) && Number.isFinite(node.location.lng))
-          .map(node => [node.location.lat, node.location.lng] as [number, number]);
-
-        data.route_nodes.forEach(node => {
-          if (!Number.isFinite(node.location.lat) || !Number.isFinite(node.location.lng)) return;
-          L.circleMarker([node.location.lat, node.location.lng], {
-            color: "#fbbf24",
-            fillColor: "#dc2626",
-            fillOpacity: 0.9,
-            radius: 5,
-            weight: 2,
-          })
-            .bindTooltip(node.location.name, { direction: "top" })
-            .addTo(map!);
-        });
-
-        if (points.length > 1) {
-          const line = L.polyline(points, { color: "#fbbf24", opacity: 0.85, weight: 3 }).addTo(map);
-          map.fitBounds(line.getBounds(), { padding: [32, 32] });
+        if (!mapElement.current) return;
+        const result = await createTrackerMap(mapElement.current);
+        if (cancelled) {
+          result.map.remove();
+          return;
         }
-        setRouteStatus(`${points.length} route stops loaded`);
+        map = result.map;
+        setRouteStatus(`${result.stopCount} route stops loaded`);
       } catch (error: unknown) {
         if (!cancelled) {
           console.error("Tracker map error", error);
