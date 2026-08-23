@@ -162,22 +162,33 @@ function isNotFoundError(error: unknown): boolean {
   return error instanceof Error && error.message.includes("not found");
 }
 
+function parseDayNumber(rawDay: string): number | null {
+  const dayNumber = Number(rawDay);
+  return Number.isInteger(dayNumber) && dayNumber >= 1 && dayNumber <= 24 ? dayNumber : null;
+}
+
+function dayContentResult(content: AdventPublicDay): AdventApiResult {
+  if (!content.is_unlocked) {
+    return {
+      status: 403,
+      body: { error: "Day is locked", day: content.day, title: content.title, unlock_time: content.unlock_time },
+    };
+  }
+  return { status: 200, body: content };
+}
+
+async function loadDayApiResult(dayNumber: number): Promise<AdventApiResult> {
+  const content = await getDayContent(dayNumber);
+  if (!content) return { status: 404, body: { error: "Day not found" } };
+  return dayContentResult(content);
+}
+
 export async function getDayApiResult(rawDay: string): Promise<AdventApiResult> {
   if (!isAdventEnabled()) return { status: 404, body: { error: "Not found" } };
-  const dayNumber = Number(rawDay);
-  if (!Number.isInteger(dayNumber) || dayNumber < 1 || dayNumber > 24) {
-    return { status: 404, body: { error: "Day not found" } };
-  }
+  const dayNumber = parseDayNumber(rawDay);
+  if (dayNumber === null) return { status: 404, body: { error: "Day not found" } };
   try {
-    const content = await getDayContent(dayNumber);
-    if (!content) return { status: 404, body: { error: "Day not found" } };
-    if (!content.is_unlocked) {
-      return {
-        status: 403,
-        body: { error: "Day is locked", day: content.day, title: content.title, unlock_time: content.unlock_time },
-      };
-    }
-    return { status: 200, body: content };
+    return await loadDayApiResult(dayNumber);
   } catch (error: unknown) {
     if (isNotFoundError(error)) return { status: 404, body: { error: "Advent calendar data not found" } };
     console.error("Advent day error", error);
