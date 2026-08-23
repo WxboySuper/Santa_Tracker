@@ -23,7 +23,7 @@ export function getSantaRoutePath(): string {
     if (fs.existsSync(legacy)) return legacy;
     if (fs.existsSync(appData)) return appData;
   } catch {}
-  return legacy;
+  return appData;
 }
 
 export function getAdventCalendarPath(): string {
@@ -36,7 +36,7 @@ export function getAdventCalendarPath(): string {
     if (fs.existsSync(legacy)) return legacy;
     if (fs.existsSync(appData)) return appData;
   } catch {}
-  return legacy;
+  return appData;
 }
 
 export function getTrialRoutePath(): string {
