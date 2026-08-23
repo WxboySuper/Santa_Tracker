@@ -84,6 +84,9 @@ importers:
       '@santa-tracker/ui':
         specifier: workspace:*
         version: link:../../packages/ui
+      jose:
+        specifier: ^6.1.0
+        version: 6.2.10
       next:
         specifier: ^15.4.7
         version: 15.5.23(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
@@ -1938,6 +1941,9 @@ packages:
   jiti@1.21.7:
     resolution: {integrity: sha512-/imKNG4EbWNrVjoNC/1H5/9GFy+tqjGBHCaSsN+P2RnPqjsLmv6UD3Ej+Kj8nBWaRAwyk7kK5ZUc+OEatnTR3A==}
     hasBin: true
+
+  jose@6.2.10:
+    resolution: {integrity: sha512-iiW7J9qRFlGxvCOIBDBDxFePQSn7ZMAnrYGhrrOo6siO/MIqwfyilLR27pkfDgUk+raLuzADS8A3S/KLBisc0g==}
 
   js-tokens@4.0.0:
     resolution: {integrity: sha512-RdJUflcE3cUzKiMqQgsCu06FPu9UdIJO0beYbPhHN4k6apgJtifcoCtT9bcxOpYBtpD2kCM6Sbzg4CausW/PKQ==}
@@ -3954,6 +3960,8 @@ snapshots:
   isexe@2.0.0: {}
 
   jiti@1.21.7: {}
+
+  jose@6.2.10: {}
 
   js-tokens@4.0.0: {}
 

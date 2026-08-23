@@ -20,6 +20,7 @@
     "@santa-tracker/route-engine": "workspace:*",
     "@santa-tracker/ui": "workspace:*",
     "next": "^15.4.7",
+    "jose": "^6.1.0",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
     "zod": "^3.25.76"
