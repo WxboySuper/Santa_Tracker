@@ -13,6 +13,18 @@ export interface AdventDay {
   isCurrentlyUnlocked?: boolean;
 }
 
+interface AdventFileOptions {
+  filePath?: string;
+}
+
+interface AdventQueryOptions extends AdventFileOptions {
+  currentTime?: Date;
+}
+
+interface AdventTextValue {
+  value: string;
+}
+
 // simple in-memory cache with mtime validation
 const cache = new Map<string, { mtimeMs: number; size: number; ino: number; data: AdventDay[] }>();
 const CONTENT_TYPES = ["fact", "game", "story", "video", "activity", "quiz"] as const;
@@ -21,7 +33,7 @@ function clone<T>(value: T): T {
   return JSON.parse(JSON.stringify(value));
 }
 
-function validateUnlockTime(value: string): void {
+function validateUnlockTime({ value }: AdventTextValue): void {
   const dt = new Date(value.replace("Z", "+00:00"));
   if (Number.isNaN(dt.getTime())) throw new Error("Invalid date");
 }
@@ -29,8 +41,8 @@ function validateUnlockTime(value: string): void {
 function parseAdventDay(day: any): AdventDay {
   validateRequiredFields(day);
   validateDayNumber(day.day);
-  validateContentType(day.content_type);
-  validateDayUnlockTime(day.unlock_time);
+  validateContentType({ contentType: day.content_type });
+  validateDayUnlockTime({ value: day.unlock_time });
   return {
     day: day.day,
     title: day.title,
@@ -52,13 +64,13 @@ function validateDayNumber(day: number): void {
   if (day < 1 || day > 24) throw new Error(`Day must be between 1 and 24, got ${day}`);
 }
 
-function validateContentType(contentType: string): void {
+function validateContentType({ contentType }: { contentType: string }): void {
   if (!CONTENT_TYPES.includes(contentType as (typeof CONTENT_TYPES)[number])) {
     throw new Error(`Content type must be one of ${CONTENT_TYPES}`);
   }
 }
 
-function validateDayUnlockTime(value: string): void {
+function validateDayUnlockTime(value: AdventTextValue): void {
   try {
     validateUnlockTime(value);
   } catch (e: any) {
@@ -66,8 +78,8 @@ function validateDayUnlockTime(value: string): void {
   }
 }
 
-export async function loadAdventCalendar(filePath?: string): Promise<AdventDay[]> {
-  const p = path.resolve(filePath ?? getAdventCalendarPath());
+export async function loadAdventCalendar(options: AdventFileOptions = {}): Promise<AdventDay[]> {
+  const p = path.resolve(options.filePath ?? getAdventCalendarPath());
   if (!fsSync.existsSync(p)) throw new Error(`Advent calendar file not found: ${p}`);
   const stat = fsSync.statSync(p);
   const cached = cache.get(p);
@@ -87,8 +99,8 @@ export async function loadAdventCalendar(filePath?: string): Promise<AdventDay[]
   return clone(days);
 }
 
-export async function loadAdventCalendarDict(filePath?: string): Promise<Map<number, AdventDay>> {
-  const days = await loadAdventCalendar(filePath);
+export async function loadAdventCalendarDict(options: AdventFileOptions = {}): Promise<Map<number, AdventDay>> {
+  const days = await loadAdventCalendar(options);
   const m = new Map<number, AdventDay>();
   for (const d of days) m.set(d.day, d);
   return m;
@@ -113,22 +125,22 @@ export function toDict(day: AdventDay, opts: { includePayload?: boolean; current
   return result;
 }
 
-export async function getManifest(currentTime: Date = new Date(), filePath?: string) {
-  const days = await loadAdventCalendar(filePath);
-  const daysData = days.map(d => toDict(d, { includePayload: false, currentTime }));
+export async function getManifest(options: AdventQueryOptions = {}) {
+  const days = await loadAdventCalendar(options);
+  const daysData = days.map(d => toDict(d, { includePayload: false, currentTime: options.currentTime }));
   return { total_days: days.length, days: daysData };
 }
 
-export async function getDayContent(dayNumber: number, currentTime: Date = new Date(), filePath?: string) {
+export async function getDayContent(dayNumber: number, options: AdventQueryOptions = {}) {
   if (dayNumber < 1 || dayNumber > 24) return null;
-  const dict = await loadAdventCalendarDict(filePath);
+  const dict = await loadAdventCalendarDict(options);
   const day = dict.get(dayNumber);
   if (!day) return null;
-  return toDict(day, { includePayload: true, currentTime });
+  return toDict(day, { includePayload: true, currentTime: options.currentTime });
 }
 
-export async function saveAdventCalendar(days: AdventDay[] | Map<number, AdventDay>, filePath?: string) {
-  const p = path.resolve(filePath ?? getAdventCalendarPath());
+export async function saveAdventCalendar(days: AdventDay[] | Map<number, AdventDay>, options: AdventFileOptions = {}) {
+  const p = path.resolve(options.filePath ?? getAdventCalendarPath());
   const list = days instanceof Map ? Array.from(days.values()) : days;
   const data = {
     days: list.map(d => {
@@ -184,10 +196,11 @@ function validateDayPayload(day: AdventDay, required: Record<string, string>): s
   const field = required[day.content_type];
   if (field && !day.payload?.[field]) warnings.push(`Day ${day.day}: Missing '${field}' in payload`);
   const image = day.payload?.image_url;
-  if (image && !isValidImageUrl(image)) warnings.push(`Day ${day.day}: Unusual image_url format: ${image}`);
+  if (image && !isValidImageUrl({ image })) warnings.push(`Day ${day.day}: Unusual image_url format: ${image}`);
   return warnings;
 }
 
-function isValidImageUrl(image: string): boolean {
+function isValidImageUrl({ image }: { image: unknown }): boolean {
+  if (typeof image !== "string") return false;
   return image.startsWith("/static/") || image.startsWith("http") || image.startsWith("/");
 }
