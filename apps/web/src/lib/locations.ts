@@ -445,22 +445,33 @@ function validatePriority(priority: any): void {
   }
 }
 
-export function validateLocations(locations: (LocationEntry | RouteNode | Record<string, any>)[]): { valid: boolean; total_locations: number; errors: string[]; warnings: string[] } {
-  const errors: string[] = [];
-  const warnings: string[] = [];
-  const seenNames = new Map<string, number>();
-  const seenCoords = new Map<string, number>();
-
-  locations.forEach((item, idx) => validateLocationSafely(locations, item, idx, seenNames, seenCoords, errors, warnings));
-
-  return { valid: errors.length === 0, total_locations: locations.length, errors, warnings };
+interface LocationValidationState {
+  locations: any[];
+  seenNames: Map<string, number>;
+  seenCoords: Map<string, number>;
+  errors: string[];
+  warnings: string[];
 }
 
-function validateLocationSafely(locations: any[], item: any, idx: number, seenNames: Map<string, number>, seenCoords: Map<string, number>, errors: string[], warnings: string[]): void {
+export function validateLocations(locations: (LocationEntry | RouteNode | Record<string, any>)[]): { valid: boolean; total_locations: number; errors: string[]; warnings: string[] } {
+  const state: LocationValidationState = {
+    locations,
+    seenNames: new Map<string, number>(),
+    seenCoords: new Map<string, number>(),
+    errors: [],
+    warnings: [],
+  };
+
+  locations.forEach((item, idx) => validateLocationSafely(item, idx, state));
+
+  return { valid: state.errors.length === 0, total_locations: locations.length, errors: state.errors, warnings: state.warnings };
+}
+
+function validateLocationSafely(item: any, idx: number, state: LocationValidationState): void {
   try {
-    validateLocation(locations, item, idx, seenNames, seenCoords, errors, warnings);
+    validateLocation(item, idx, state);
   } catch (e: any) {
-    errors.push(`error processing location at index ${idx}: ${e.message}`);
+    state.errors.push(`error processing location at index ${idx}: ${e.message}`);
   }
 }
 
@@ -471,16 +482,16 @@ function extractLocationInfo(item: any): { name: string | null; lat: any; lng: a
   return { name: item.name ?? item.id ?? null, lat: item.lat ?? item.latitude ?? null, lng: item.lng ?? item.longitude ?? null, tz: item.timezone_offset ?? item.utc_offset ?? null };
 }
 
-function validateLocation(locations: any[], item: any, idx: number, seenNames: Map<string, number>, seenCoords: Map<string, number>, errors: string[], warnings: string[]): void {
+function validateLocation(item: any, idx: number, state: LocationValidationState): void {
   const info = extractLocationInfo(item);
   const name = info.name || `(index ${idx})`;
-  checkDuplicateName(name, idx, seenNames, errors);
+  checkDuplicateName(name, idx, state.seenNames, state.errors);
   const lat = toNumber(info.lat);
   const lng = toNumber(info.lng);
   const tz = toNumber(info.tz);
-  addCoordinateErrors(name, idx, info, lat, lng, tz, errors);
-  addCoordinateWarning(locations, name, idx, lat, lng, seenCoords, warnings);
-  addTimezoneWarning(name, tz, warnings);
+  addCoordinateErrors({ name, idx, info, lat, lng, tz, errors: state.errors });
+  addCoordinateWarning(state.locations, name, idx, lat, lng, state.seenCoords, state.warnings);
+  addTimezoneWarning(name, tz, state.warnings);
 }
 
 function toNumber(value: any): number | null {
@@ -493,28 +504,52 @@ function checkDuplicateName(name: string, idx: number, seenNames: Map<string, nu
   else seenNames.set(name, idx);
 }
 
-function addCoordinateErrors(name: string, idx: number, info: any, lat: number | null, lng: number | null, tz: number | null, errors: string[]): void {
-  addLatitudeError(name, idx, info.lat, lat, errors);
-  addLongitudeError(name, idx, info.lng, lng, errors);
-  addTimezoneError(name, idx, info.tz, tz, errors);
+interface CoordinateValidation {
+  name: string;
+  idx: number;
+  raw: any;
+  value: number | null;
+  errors: string[];
 }
 
-function addLatitudeError(name: string, idx: number, raw: any, value: number | null, errors: string[]): void {
-  if (value == null || Number.isNaN(value) || value < -90 || value > 90) {
+function addCoordinateErrors(context: { name: string; idx: number; info: any; lat: number | null; lng: number | null; tz: number | null; errors: string[] }): void {
+  addLatitudeError({ ...context, raw: context.info.lat, value: context.lat });
+  addLongitudeError({ ...context, raw: context.info.lng, value: context.lng });
+  addTimezoneError({ ...context, raw: context.info.tz, value: context.tz });
+}
+
+function addLatitudeError({ name, idx, raw, value, errors }: CoordinateValidation): void {
+  if (isInvalidCoordinate(value, -90, 90)) {
     errors.push(`Invalid latitude for '${name}' (index ${idx}): ${raw}`);
   }
 }
 
-function addLongitudeError(name: string, idx: number, raw: any, value: number | null, errors: string[]): void {
-  if (value == null || Number.isNaN(value) || value < -180 || value > 180) {
+function addLongitudeError({ name, idx, raw, value, errors }: CoordinateValidation): void {
+  if (isInvalidCoordinate(value, -180, 180)) {
     errors.push(`Invalid longitude for '${name}' (index ${idx}): ${raw}`);
   }
 }
 
-function addTimezoneError(name: string, idx: number, raw: any, value: number | null, errors: string[]): void {
-  if (value != null && (Number.isNaN(value) || value < -12 || value > 14)) {
+function addTimezoneError({ name, idx, raw, value, errors }: CoordinateValidation): void {
+  if (isInvalidOptionalCoordinate(value, -12, 14)) {
     errors.push(`Invalid UTC offset for '${name}' (index ${idx}): ${raw}`);
   }
+}
+
+function isInvalidCoordinate(value: number | null, min: number, max: number): boolean {
+  if (value == null) return true;
+  if (Number.isNaN(value)) return true;
+  return isOutsideRange(value, min, max);
+}
+
+function isInvalidOptionalCoordinate(value: number | null, min: number, max: number): boolean {
+  if (value == null) return false;
+  return isInvalidCoordinate(value, min, max);
+}
+
+function isOutsideRange(value: number, min: number, max: number): boolean {
+  if (value < min) return true;
+  return value > max;
 }
 
 function addCoordinateWarning(locations: any[], name: string, idx: number, lat: number | null, lng: number | null, seenCoords: Map<string, number>, warnings: string[]): void {
