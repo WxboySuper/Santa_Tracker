@@ -48,5 +48,5 @@ export function getTrialRoutePath(): string {
     if (fs.existsSync(legacy)) return legacy;
     if (fs.existsSync(appData)) return appData;
   } catch {}
-  return legacy;
+  return appData;
 }

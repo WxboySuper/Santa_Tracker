@@ -451,16 +451,17 @@ export function validateLocations(locations: (LocationEntry | RouteNode | Record
   const seenNames = new Map<string, number>();
   const seenCoords = new Map<string, number>();
 
-  for (let idx = 0; idx < locations.length; idx++) {
-    const item = locations[idx];
-    try {
-      validateLocation(locations, item, idx, seenNames, seenCoords, errors, warnings);
-    } catch (e: any) {
-      errors.push(`error processing location at index ${idx}: ${e.message}`);
-    }
-  }
+  locations.forEach((item, idx) => validateLocationSafely(locations, item, idx, seenNames, seenCoords, errors, warnings));
 
   return { valid: errors.length === 0, total_locations: locations.length, errors, warnings };
+}
+
+function validateLocationSafely(locations: any[], item: any, idx: number, seenNames: Map<string, number>, seenCoords: Map<string, number>, errors: string[], warnings: string[]): void {
+  try {
+    validateLocation(locations, item, idx, seenNames, seenCoords, errors, warnings);
+  } catch (e: any) {
+    errors.push(`error processing location at index ${idx}: ${e.message}`);
+  }
 }
 
 function extractLocationInfo(item: any): { name: string | null; lat: any; lng: any; tz: any } {
@@ -493,9 +494,27 @@ function checkDuplicateName(name: string, idx: number, seenNames: Map<string, nu
 }
 
 function addCoordinateErrors(name: string, idx: number, info: any, lat: number | null, lng: number | null, tz: number | null, errors: string[]): void {
-  if (lat == null || Number.isNaN(lat) || lat < -90 || lat > 90) errors.push(`Invalid latitude for '${name}' (index ${idx}): ${info.lat}`);
-  if (lng == null || Number.isNaN(lng) || lng < -180 || lng > 180) errors.push(`Invalid longitude for '${name}' (index ${idx}): ${info.lng}`);
-  if (tz != null && (Number.isNaN(tz) || tz < -12 || tz > 14)) errors.push(`Invalid UTC offset for '${name}' (index ${idx}): ${info.tz}`);
+  addLatitudeError(name, idx, info.lat, lat, errors);
+  addLongitudeError(name, idx, info.lng, lng, errors);
+  addTimezoneError(name, idx, info.tz, tz, errors);
+}
+
+function addLatitudeError(name: string, idx: number, raw: any, value: number | null, errors: string[]): void {
+  if (value == null || Number.isNaN(value) || value < -90 || value > 90) {
+    errors.push(`Invalid latitude for '${name}' (index ${idx}): ${raw}`);
+  }
+}
+
+function addLongitudeError(name: string, idx: number, raw: any, value: number | null, errors: string[]): void {
+  if (value == null || Number.isNaN(value) || value < -180 || value > 180) {
+    errors.push(`Invalid longitude for '${name}' (index ${idx}): ${raw}`);
+  }
+}
+
+function addTimezoneError(name: string, idx: number, raw: any, value: number | null, errors: string[]): void {
+  if (value != null && (Number.isNaN(value) || value < -12 || value > 14)) {
+    errors.push(`Invalid UTC offset for '${name}' (index ${idx}): ${raw}`);
+  }
 }
 
 function addCoordinateWarning(locations: any[], name: string, idx: number, lat: number | null, lng: number | null, seenCoords: Map<string, number>, warnings: string[]): void {

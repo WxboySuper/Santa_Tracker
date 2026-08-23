@@ -15,6 +15,7 @@ export interface AdventDay {
 
 // simple in-memory cache with mtime validation
 const cache = new Map<string, { mtimeMs: number; size: number; ino: number; data: AdventDay[] }>();
+const CONTENT_TYPES = ["fact", "game", "story", "video", "activity", "quiz"] as const;
 
 function clone<T>(value: T): T {
   return JSON.parse(JSON.stringify(value));
@@ -26,17 +27,10 @@ function validateUnlockTime(value: string): void {
 }
 
 function parseAdventDay(day: any): AdventDay {
-  if (day.day == null || day.title == null || day.unlock_time == null || day.content_type == null || day.payload == null) {
-    throw new Error(`Missing required field in advent day data: ${JSON.stringify(day)}`);
-  }
-  if (day.day < 1 || day.day > 24) throw new Error(`Day must be between 1 and 24, got ${day.day}`);
-  const valid = ["fact", "game", "story", "video", "activity", "quiz"];
-  if (!valid.includes(day.content_type)) throw new Error(`Content type must be one of ${valid}`);
-  try {
-    validateUnlockTime(day.unlock_time);
-  } catch (e: any) {
-    throw new Error(`Invalid unlock_time format: ${e.message}`);
-  }
+  validateRequiredFields(day);
+  validateDayNumber(day.day);
+  validateContentType(day.content_type);
+  validateDayUnlockTime(day.unlock_time);
   return {
     day: day.day,
     title: day.title,
@@ -45,6 +39,31 @@ function parseAdventDay(day: any): AdventDay {
     payload: day.payload,
     is_unlocked_override: day.is_unlocked_override ?? null,
   };
+}
+
+function validateRequiredFields(day: any): void {
+  const required = ["day", "title", "unlock_time", "content_type", "payload"];
+  if (required.some(field => day[field] == null)) {
+    throw new Error(`Missing required field in advent day data: ${JSON.stringify(day)}`);
+  }
+}
+
+function validateDayNumber(day: number): void {
+  if (day < 1 || day > 24) throw new Error(`Day must be between 1 and 24, got ${day}`);
+}
+
+function validateContentType(contentType: string): void {
+  if (!CONTENT_TYPES.includes(contentType as (typeof CONTENT_TYPES)[number])) {
+    throw new Error(`Content type must be one of ${CONTENT_TYPES}`);
+  }
+}
+
+function validateDayUnlockTime(value: string): void {
+  try {
+    validateUnlockTime(value);
+  } catch (e: any) {
+    throw new Error(`Invalid unlock_time format: ${e.message}`);
+  }
 }
 
 export async function loadAdventCalendar(filePath?: string): Promise<AdventDay[]> {
