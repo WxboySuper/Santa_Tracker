@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import './globals.css';
+import 'leaflet/dist/leaflet.css';
 
 export const metadata: Metadata = {
   title: 'Santa Tracker — Christmas 2026',

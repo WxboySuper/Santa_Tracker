@@ -6,7 +6,7 @@ const urlsToCache = [
   '/',
   '/tracker',
   '/offline',
-  '/data/santa_route.json',
+  '/api/route',
 ];
 
 function isExternalUrl(url) {

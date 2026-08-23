@@ -13,6 +13,20 @@ export interface AdventDay {
   isCurrentlyUnlocked?: boolean;
 }
 
+export interface AdventPublicDay {
+  day: number;
+  title: string;
+  unlock_time: string;
+  content_type: AdventDay["content_type"];
+  is_unlocked: boolean;
+  payload?: Record<string, any>;
+}
+
+export interface AdventManifest {
+  total_days: number;
+  days: AdventPublicDay[];
+}
+
 interface AdventFileOptions {
   filePath?: string;
 }
@@ -112,9 +126,9 @@ export function isUnlocked(day: AdventDay, currentTime: Date = new Date()): bool
   return currentTime.getTime() >= unlock.getTime();
 }
 
-export function toDict(day: AdventDay, opts: { includePayload?: boolean; currentTime?: Date } = {}) {
+export function toDict(day: AdventDay, opts: { includePayload?: boolean; currentTime?: Date } = {}): AdventPublicDay {
   const unlocked = isUnlocked(day, opts.currentTime);
-  const result: any = {
+  const result: AdventPublicDay = {
     day: day.day,
     title: day.title,
     unlock_time: day.unlock_time,
@@ -125,13 +139,13 @@ export function toDict(day: AdventDay, opts: { includePayload?: boolean; current
   return result;
 }
 
-export async function getManifest(options: AdventQueryOptions = {}) {
+export async function getManifest(options: AdventQueryOptions = {}): Promise<AdventManifest> {
   const days = await loadAdventCalendar(options);
   const daysData = days.map(d => toDict(d, { includePayload: false, currentTime: options.currentTime }));
   return { total_days: days.length, days: daysData };
 }
 
-export async function getDayContent(dayNumber: number, options: AdventQueryOptions = {}) {
+export async function getDayContent(dayNumber: number, options: AdventQueryOptions = {}): Promise<AdventPublicDay | null> {
   if (dayNumber < 1 || dayNumber > 24) return null;
   const dict = await loadAdventCalendarDict(options);
   const day = dict.get(dayNumber);
