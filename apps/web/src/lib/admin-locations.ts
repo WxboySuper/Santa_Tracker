@@ -92,13 +92,20 @@ async function appendLocation(payload: unknown): Promise<AdminApiResult> {
   };
 }
 
+interface GeoCoordinate {
+  readonly lat: number;
+  readonly lon: number;
+  readonly tz: number;
+}
+
 function hasInvalidCreateCoordinates(payload: Record<string, unknown>): boolean {
   const values = [payload.latitude, payload.longitude, payload.utc_offset].map(Number);
   if (values.some(value => Number.isNaN(value))) return true;
-  return !coordinatesInRange(values[0] ?? 0, values[1] ?? 0, values[2] ?? 0);
+  const coords: GeoCoordinate = { lat: values[0] ?? 0, lon: values[1] ?? 0, tz: values[2] ?? 0 };
+  return !coordinatesInRange(coords);
 }
 
-function coordinatesInRange(lat: number, lon: number, tz: number): boolean {
+function coordinatesInRange({ lat, lon, tz }: GeoCoordinate): boolean {
   if (!contains(LATITUDE_RANGE, lat)) return false;
   if (!contains(LONGITUDE_RANGE, lon)) return false;
   return contains(UTC_OFFSET_RANGE, tz);
@@ -220,14 +227,10 @@ async function removeLocation(locationId: number): Promise<AdminApiResult> {
 }
 
 function locateByIndex(locations: LocationEntry[], locationId: number): LocationEntry | null {
-  if (!isValidLocationIndex(locationId, locations.length)) return null;
+  if (!Number.isInteger(locationId)) return null;
+  if (locationId < 0) return null;
+  if (locationId >= locations.length) return null;
   return locations[locationId] ?? null;
-}
-
-function isValidLocationIndex(index: number, length: number): boolean {
-  if (!Number.isInteger(index)) return false;
-  if (index < 0) return false;
-  return index < length;
 }
 
 interface ImportItem {
