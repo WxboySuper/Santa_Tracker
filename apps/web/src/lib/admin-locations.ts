@@ -93,12 +93,15 @@ async function appendLocation(payload: unknown): Promise<AdminApiResult> {
 }
 
 function hasInvalidCreateCoordinates(payload: Record<string, unknown>): boolean {
-  const lat = Number(payload.latitude);
-  const lon = Number(payload.longitude);
-  const tz = Number(payload.utc_offset);
-  const values = [lat, lon, tz];
+  const values = [payload.latitude, payload.longitude, payload.utc_offset].map(Number);
   if (values.some(value => Number.isNaN(value))) return true;
-  return !(contains(LATITUDE_RANGE, lat) && contains(LONGITUDE_RANGE, lon) && contains(UTC_OFFSET_RANGE, tz));
+  return !coordinatesInRange(values[0] ?? 0, values[1] ?? 0, values[2] ?? 0);
+}
+
+function coordinatesInRange(lat: number, lon: number, tz: number): boolean {
+  if (!contains(LATITUDE_RANGE, lat)) return false;
+  if (!contains(LONGITUDE_RANGE, lon)) return false;
+  return contains(UTC_OFFSET_RANGE, tz);
 }
 
 function createdLocationSummary(location: LocationEntry): Record<string, unknown> {
@@ -190,9 +193,8 @@ const LOCATION_FIELD_RANGES: { pick: (location: LocationEntry) => number | null 
 function assertWithinRange(value: number | null | undefined, range: NumericRange): void {
   if (value == null) return;
   const numeric = Number(value);
-  if (Number.isNaN(numeric) || isOutside(range, numeric)) {
-    throw new RangeError(`value outside ${range.min}..${range.max}`);
-  }
+  if (Number.isNaN(numeric)) throw new RangeError("value is not a number");
+  if (isOutside(range, numeric)) throw new RangeError(`value outside ${range.min}..${range.max}`);
 }
 
 export async function deleteLocation(locationId: number): Promise<AdminApiResult> {
@@ -218,8 +220,14 @@ async function removeLocation(locationId: number): Promise<AdminApiResult> {
 }
 
 function locateByIndex(locations: LocationEntry[], locationId: number): LocationEntry | null {
-  if (!Number.isInteger(locationId) || locationId < 0 || locationId >= locations.length) return null;
+  if (!isValidLocationIndex(locationId, locations.length)) return null;
   return locations[locationId] ?? null;
+}
+
+function isValidLocationIndex(index: number, length: number): boolean {
+  if (!Number.isInteger(index)) return false;
+  if (index < 0) return false;
+  return index < length;
 }
 
 interface ImportItem {
