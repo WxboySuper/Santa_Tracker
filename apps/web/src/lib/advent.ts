@@ -84,8 +84,21 @@ function validateDayNumber(day: number): void {
 }
 
 function validateContentType({ contentType }: { contentType: string }): void {
-  if (!CONTENT_TYPES.includes(contentType as (typeof CONTENT_TYPES)[number])) {
+  if (!isValidContentType(contentType)) {
     throw new Error(`Content type must be one of ${CONTENT_TYPES}`);
+  }
+}
+
+export function isValidContentType(contentType: string): boolean {
+  return CONTENT_TYPES.includes(contentType as (typeof CONTENT_TYPES)[number]);
+}
+
+export function isValidUnlockTime(value: string): boolean {
+  try {
+    validateUnlockTime({ value });
+    return true;
+  } catch {
+    return false;
   }
 }
 
@@ -166,7 +179,7 @@ function isNotFoundError(error: unknown): boolean {
   return error instanceof Error && error.message.includes("not found");
 }
 
-function parseDayNumber(rawDay: string): number | null {
+export function parseDayNumber(rawDay: string): number | null {
   const dayNumber = Number(rawDay);
   return Number.isInteger(dayNumber) && dayNumber >= 1 && dayNumber <= 24 ? dayNumber : null;
 }
