@@ -183,10 +183,17 @@ async function loadDayApiResult(dayNumber: number): Promise<AdventApiResult> {
   return dayContentResult(content);
 }
 
-export async function getDayApiResult(rawDay: string): Promise<AdventApiResult> {
-  if (!isAdventEnabled()) return { status: 404, body: { error: "Not found" } };
+function invalidDayResult(): AdventApiResult {
+  return { status: 404, body: { error: "Day not found" } };
+}
+
+async function getValidatedDayApiResult(rawDay: string): Promise<AdventApiResult> {
   const dayNumber = parseDayNumber(rawDay);
-  if (dayNumber === null) return { status: 404, body: { error: "Day not found" } };
+  if (dayNumber === null) return invalidDayResult();
+  return getDayApiResultWithErrorHandling(dayNumber);
+}
+
+async function getDayApiResultWithErrorHandling(dayNumber: number): Promise<AdventApiResult> {
   try {
     return await loadDayApiResult(dayNumber);
   } catch (error: unknown) {
@@ -194,6 +201,11 @@ export async function getDayApiResult(rawDay: string): Promise<AdventApiResult> 
     console.error("Advent day error", error);
     return { status: 500, body: { error: "Internal server error" } };
   }
+}
+
+export async function getDayApiResult(rawDay: string): Promise<AdventApiResult> {
+  if (!isAdventEnabled()) return { status: 404, body: { error: "Not found" } };
+  return getValidatedDayApiResult(rawDay);
 }
 
 export async function saveAdventCalendar(days: AdventDay[] | Map<number, AdventDay>, options: AdventFileOptions = {}) {
