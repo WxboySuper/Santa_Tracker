@@ -1,7 +1,9 @@
 import Link from "next/link";
+import { isAdventEnabled } from "@/lib/config";
+import Countdown from "@/components/countdown";
 
 export default function HomePage() {
-  const adventEnabled = process.env.ADVENT_ENABLED === "true" || process.env.ADVENT_ENABLED === "True";
+  const adventEnabled = isAdventEnabled();
   return (
     <>
       <nav className="glass-nav fixed top-4 left-1/2 -translate-x-1/2 z-40 bg-white/20 backdrop-blur-md rounded-full px-6 py-2 flex gap-4">
@@ -17,7 +19,7 @@ export default function HomePage() {
           <p className="hero-subtitle text-xl text-white/90 mb-8">Track Santa&apos;s Magical Journey Around the World!</p>
           <div className="countdown-box bg-white/10 backdrop-blur-md rounded-2xl border border-yellow-400/50 p-6 mb-8">
             <p className="countdown-label text-yellow-300 font-semibold mb-2">Countdown to Takeoff</p>
-            <div id="countdown" className="countdown-display text-3xl font-mono text-white" aria-live="polite">Loading...</div>
+            <Countdown className="countdown-display text-3xl font-mono text-white" />
           </div>
           <div className="cta-buttons-container flex gap-4 justify-center">
             <Link href="/tracker" className="cta-button bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-8 rounded-full shadow-lg transition">
@@ -26,22 +28,6 @@ export default function HomePage() {
           </div>
         </div>
       </div>
-      {/* minimal countdown script */}
-      <script dangerouslySetInnerHTML={{ __html: `
-        (function(){
-          function update(){
-            var el=document.getElementById('countdown');
-            if(!el) return;
-            var target=new Date(Date.UTC(new Date().getUTCFullYear(),11,24,10,0,0));
-            var now=new Date();
-            var diff=target-now;
-            if(diff<=0){ el.textContent='Santa is on his way!'; return; }
-            var d=Math.floor(diff/86400000),h=Math.floor(diff%86400000/3600000),m=Math.floor(diff%3600000/60000),s=Math.floor(diff%60000/1000);
-            el.textContent=d+'d '+h+'h '+m+'m '+s+'s';
-          }
-          update(); setInterval(update,1000);
-        })();
-      `}} />
     </>
   );
 }

@@ -2,9 +2,11 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
+import "leaflet/dist/leaflet.css";
 import type { Map as LeafletMap } from "leaflet";
 import type * as Leaflet from "leaflet";
 import type { RouteNode } from "@/lib/locations";
+import Countdown from "@/components/countdown";
 
 interface TrackerMapProps {
   adventEnabled: boolean;
@@ -15,21 +17,6 @@ interface RouteResponse {
 }
 
 type LeafletModule = typeof Leaflet;
-
-function nextTakeoff(now: Date): number {
-  const year = now.getUTCFullYear();
-  const target = Date.UTC(year, 11, 24, 10, 0, 0);
-  return now.getTime() < target ? target : Date.UTC(year + 1, 11, 24, 10, 0, 0);
-}
-
-function formatCountdown(target: number, now: Date): string {
-  const remaining = target - now.getTime();
-  if (remaining <= 0) return "Santa is flying!";
-  const days = Math.floor(remaining / 86_400_000);
-  const hours = Math.floor((remaining % 86_400_000) / 3_600_000);
-  const minutes = Math.floor((remaining % 3_600_000) / 60_000);
-  return `${days}d ${hours}h ${minutes}m`;
-}
 
 function hasCoordinates(node: RouteNode): boolean {
   return Number.isFinite(node.location.lat) && Number.isFinite(node.location.lng);
@@ -77,16 +64,6 @@ async function createTrackerMap(container: HTMLDivElement): Promise<{ map: Leafl
 export default function TrackerMap({ adventEnabled }: TrackerMapProps) {
   const mapElement = useRef<HTMLDivElement>(null);
   const [routeStatus, setRouteStatus] = useState("Loading Santa’s route…");
-  const [countdown, setCountdown] = useState("Loading…");
-
-  useEffect(() => {
-    const target = nextTakeoff(new Date());
-    const update = () => setCountdown(formatCountdown(target, new Date()));
-    update();
-    const timer = window.setInterval(update, 1_000);
-    return () => window.clearInterval(timer);
-  }, []);
-
   useEffect(() => {
     let map: LeafletMap | undefined;
     let cancelled = false;
@@ -129,7 +106,7 @@ export default function TrackerMap({ adventEnabled }: TrackerMapProps) {
         </div>
         <div className="countdown-hud absolute top-20 right-4 bg-black/40 backdrop-blur-md rounded-xl p-4 text-white">
           <p className="countdown-hud-label text-xs opacity-70">Countdown to Takeoff</p>
-          <div className="countdown-hud-value font-mono text-lg" aria-live="polite">{countdown}</div>
+          <Countdown className="countdown-hud-value font-mono text-lg" flyingText="Santa is flying!" />
         </div>
       </div>
     </>

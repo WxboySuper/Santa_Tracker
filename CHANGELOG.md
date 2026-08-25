@@ -6,6 +6,15 @@ Format: `## [PR #] - YYYY-MM-DD - <type>(<scope>): <summary>`
 
 ## [Unreleased]
 
+## [PR #346] - 2026-08-25 - fix(public): harden Next.js public surfaces
+
+- **Security:** Replaced Advent client-side `innerHTML` rendering with server-rendered React elements, so calendar data is escaped before it reaches the DOM.
+- **Consistency:** Unified the Advent feature flag and countdown behavior through shared helpers/components; moved Leaflet CSS to the tracker surface only.
+- **Reliability:** Made Advent and route status metadata reads asynchronous, made the health endpoint explicitly dynamic, and derived legacy `/index` redirects from the incoming request origin.
+- **Offline behavior:** Added cache-first handling for OpenStreetMap tiles and normalized `/api/route` cache keys in the service worker.
+- **Public API exposure review:** `/api/route`, `/api/health`, and `/api/advent/*` are intentionally unauthenticated public endpoints. They expose route/health data and feature-gated Advent metadata only; no admin mutation or secret-bearing data is exposed. The Advent API withholds locked payloads server-side. See `docs/API.md`.
+- **Evidence:** Typecheck ✓, lint ✓, 35 workspace tests ✓, production Next.js build ✓, service-worker syntax check ✓.
+
 ## [PR #350] - 2026-08-21 - feat(foundation): scaffold Next.js pnpm workspace
 
 - **Issue:** Closes #213 — [Foundation] Scaffold the Next.js pnpm workspace; parent tracker #199.

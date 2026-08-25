@@ -1,5 +1,5 @@
 import fs from "fs/promises";
-import fsSync from "fs";
+import type { Stats } from "node:fs";
 import path from "path";
 import { getAdventCalendarPath, isAdventEnabled } from "./config";
 
@@ -8,7 +8,7 @@ export interface AdventDay {
   title: string;
   unlock_time: string;
   content_type: "fact" | "game" | "story" | "video" | "activity" | "quiz";
-  payload: Record<string, any>;
+  payload: Record<string, unknown>;
   is_unlocked_override?: boolean | null;
   isCurrentlyUnlocked?: boolean;
 }
@@ -19,7 +19,7 @@ export interface AdventPublicDay {
   unlock_time: string;
   content_type: AdventDay["content_type"];
   is_unlocked: boolean;
-  payload?: Record<string, any>;
+  payload?: Record<string, unknown>;
 }
 
 export interface AdventManifest {
@@ -99,8 +99,12 @@ function validateDayUnlockTime(value: AdventTextValue): void {
 
 export async function loadAdventCalendar(options: AdventFileOptions = {}): Promise<AdventDay[]> {
   const p = path.resolve(options.filePath ?? getAdventCalendarPath());
-  if (!fsSync.existsSync(p)) throw new Error(`Advent calendar file not found: ${p}`);
-  const stat = fsSync.statSync(p);
+  let stat: Stats;
+  try {
+    stat = await fs.stat(p);
+  } catch {
+    throw new Error(`Advent calendar file not found: ${p}`);
+  }
   const cached = cache.get(p);
   if (cached && cached.mtimeMs === stat.mtimeMs && cached.size === stat.size && cached.ino === stat.ino) {
     return clone(cached.data);
