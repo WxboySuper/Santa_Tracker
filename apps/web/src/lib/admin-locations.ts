@@ -121,8 +121,8 @@ export async function updateLocation(locationId: number, payload: unknown): Prom
 async function applyLocationUpdate(locationId: number, payload: unknown): Promise<AdminApiResult> {
   if (!isRecord(payload)) return badRequest("No data provided");
   const locations = await loadSantaRouteFromJson();
-  const existing = locations[locationId];
-  if (!existing || !isValidIndex(locationId, locations.length)) {
+  const existing = locateByIndex(locations, locationId);
+  if (!existing) {
     return { status: 404, body: { error: "Location not found" } };
   }
   try {
@@ -134,10 +134,6 @@ async function applyLocationUpdate(locationId: number, payload: unknown): Promis
   } catch {
     return badRequest(INVALID_DATA_MESSAGE);
   }
-}
-
-function isValidIndex(index: number, length: number): boolean {
-  return Number.isInteger(index) && index >= 0 && index < length;
 }
 
 function mergedLocation(existing: LocationEntry, payload: Record<string, unknown>): LocationEntry {
@@ -209,16 +205,26 @@ export async function deleteLocation(locationId: number): Promise<AdminApiResult
 
 async function removeLocation(locationId: number): Promise<AdminApiResult> {
   const locations = await loadSantaRouteFromJson();
-  const existing = locations[locationId];
-  if (!existing || !isValidIndex(locationId, locations.length)) {
+  const existing = locateByIndex(locations, locationId);
+  if (!existing) {
     return { status: 404, body: { error: "Location not found" } };
   }
-  locations.splice(locationId, 1);
+  locations.splice(locations.indexOf(existing), 1);
   await saveSantaRouteToJson(locations);
   return {
     status: 200,
     body: { message: "Location deleted successfully", deleted_location: existing.name },
   };
+}
+
+function locateByIndex(locations: LocationEntry[], locationId: number): LocationEntry | null {
+  if (!Number.isInteger(locationId) || locationId < 0 || locationId >= locations.length) return null;
+  return locations[locationId] ?? null;
+}
+
+interface ImportItem {
+  readonly entry: unknown;
+  readonly index: number;
 }
 
 interface ImportAccumulator {
@@ -243,8 +249,7 @@ async function importLocationPayloads(payload: unknown): Promise<AdminApiResult>
   if (!Array.isArray(entries)) return badRequest("Locations must be a list");
   if (entries.length === 0) return badRequest("No locations provided");
 
-  const acc: ImportAccumulator = { imported: [], errors: [] };
-  entries.forEach((entry, index) => collectImportEntry(entry, index, acc));
+  const acc = collectImportEntries(entries);
   if (acc.errors.length > 0 && acc.imported.length === 0) {
     return { status: 400, body: { error: "No valid locations to import", details: acc.errors } };
   }
@@ -268,16 +273,22 @@ async function resolveImportTarget(mode: unknown, imported: LocationEntry[]): Pr
   return [...existing, ...imported];
 }
 
-function collectImportEntry(entry: unknown, index: number, acc: ImportAccumulator): void {
-  const error = importEntryError(entry, index);
+function collectImportEntries(entries: unknown[]): ImportAccumulator {
+  const acc: ImportAccumulator = { imported: [], errors: [] };
+  entries.forEach((entry, index) => collectImportEntry({ entry, index }, acc));
+  return acc;
+}
+
+function collectImportEntry(item: ImportItem, acc: ImportAccumulator): void {
+  const error = importEntryError(item);
   if (error) {
     acc.errors.push(error);
     return;
   }
   try {
-    acc.imported.push(createLocationFromPayload(entry as Record<string, unknown>));
+    acc.imported.push(createLocationFromPayload(item.entry as Record<string, unknown>));
   } catch {
-    acc.errors.push(indexedImportMessage(index, IMPORT_INVALID_MESSAGE));
+    acc.errors.push(importItemMessage(item, IMPORT_INVALID_MESSAGE));
   }
 }
 
@@ -294,36 +305,40 @@ const IMPORT_COORD_SPECS: { field: keyof ImportAlias; label: string; range: Nume
   { field: "utc_offset", label: "utc_offset", range: UTC_OFFSET_RANGE },
 ];
 
-function importEntryError(entry: unknown, index: number): string | null {
-  if (!isRecord(entry)) return indexedImportMessage(index, IMPORT_INVALID_MESSAGE);
-  const alias: ImportAlias = {
+function importEntryError(item: ImportItem): string | null {
+  if (!isRecord(item.entry)) return importItemMessage(item, IMPORT_INVALID_MESSAGE);
+  const alias = importAliasOf(item.entry);
+  if (!alias.name) {
+    return importItemMessage(item, "Missing required field 'name' or 'location'");
+  }
+  const missing = IMPORT_COORD_SPECS.filter(spec => alias[spec.field] == null).map(spec => spec.label);
+  if (missing.length > 0) {
+    return importItemMessage(item, `Missing required field(s): ${missing.join(", ")}`);
+  }
+  return coordinateRangeError(item, alias);
+}
+
+function importAliasOf(entry: Record<string, unknown>): ImportAlias {
+  return {
     name: entry.name ?? entry.location,
     latitude: entry.latitude ?? entry.lat,
     longitude: entry.longitude ?? entry.lng,
     utc_offset: entry.utc_offset ?? entry.timezone_offset,
   };
-  if (!alias.name) {
-    return indexedImportMessage(index, "Missing required field 'name' or 'location'");
-  }
-  const missing = IMPORT_COORD_SPECS.filter(spec => alias[spec.field] == null).map(spec => spec.label);
-  if (missing.length > 0) {
-    return indexedImportMessage(index, `Missing required field(s): ${missing.join(", ")}`);
-  }
-  return importRangeError(alias, index);
 }
 
-function importRangeError(alias: ImportAlias, index: number): string | null {
+function coordinateRangeError(item: ImportItem, alias: ImportAlias): string | null {
   const numeric = IMPORT_COORD_SPECS.map(spec => ({ spec, value: Number(alias[spec.field]) }));
   if (numeric.some(({ value }) => Number.isNaN(value))) {
-    return indexedImportMessage(index, IMPORT_INVALID_MESSAGE);
+    return importItemMessage(item, IMPORT_INVALID_MESSAGE);
   }
   const invalid = numeric.find(({ spec, value }) => isOutside(spec.range, value));
-  if (invalid) return indexedImportMessage(index, `Invalid ${invalid.spec.label}`);
+  if (invalid) return importItemMessage(item, `Invalid ${invalid.spec.label}`);
   return null;
 }
 
-function indexedImportMessage(index: number, message: string): string {
-  return `Location at index ${index}: ${message}`;
+function importItemMessage(item: ImportItem, message: string): string {
+  return `Location at index ${item.index}: ${message}`;
 }
 
 export async function validateStoredLocations(): Promise<AdminApiResult> {
