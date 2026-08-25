@@ -11,18 +11,38 @@ const REQUIRED_CREATE_FIELDS = ["name", "latitude", "longitude", "utc_offset"];
 const INVALID_DATA_MESSAGE = "Invalid data format or values";
 const NOT_FOUND_BODY = { error: "Location data not found" };
 
+interface NumericRange {
+  min: number;
+  max: number;
+}
+
+const LATITUDE_RANGE: NumericRange = { min: -90, max: 90 };
+const LONGITUDE_RANGE: NumericRange = { min: -180, max: 180 };
+const UTC_OFFSET_RANGE: NumericRange = { min: -12, max: 14 };
+
+function contains(range: NumericRange, value: number): boolean {
+  return value >= range.min && value <= range.max;
+}
+
+function isOutside(range: NumericRange, value: number): boolean {
+  return !contains(range, value);
+}
+
 export async function listLocations(): Promise<AdminApiResult> {
   try {
     const locations = await loadSantaRouteFromJson();
-    return { status: 200, body: { locations: locations.map(serializeLocation) } };
+    return { status: 200, body: { locations: locations.map(serializeListedLocation) } };
   } catch (error) {
     return notFoundAwareError(error, NOT_FOUND_BODY);
   }
 }
 
-function serializeLocation(location: LocationEntry, index: number): Record<string, unknown> {
+function serializeListedLocation(location: LocationEntry, index: number): Record<string, unknown> {
+  return { id: index, ...serializeLocationFields(location) };
+}
+
+function serializeLocationFields(location: LocationEntry): Record<string, unknown> {
   return {
-    id: index,
     name: location.name,
     latitude: location.latitude,
     longitude: location.longitude,
@@ -78,11 +98,7 @@ function hasInvalidCreateCoordinates(payload: Record<string, unknown>): boolean 
   const tz = Number(payload.utc_offset);
   const values = [lat, lon, tz];
   if (values.some(value => Number.isNaN(value))) return true;
-  return !(inRange(lat, -90, 90) && inRange(lon, -180, 180) && inRange(tz, -12, 14));
-}
-
-function inRange(value: number, min: number, max: number): boolean {
-  return value >= min && value <= max;
+  return !(contains(LATITUDE_RANGE, lat) && contains(LONGITUDE_RANGE, lon) && contains(UTC_OFFSET_RANGE, tz));
 }
 
 function createdLocationSummary(location: LocationEntry): Record<string, unknown> {
@@ -164,16 +180,22 @@ function numericOrFallback(value: unknown, fallback: number | null | undefined):
 }
 
 function assertCoordinateFieldsValid(updated: LocationEntry): void {
-  assertFieldInRange(updated.latitude, -90, 90);
-  assertFieldInRange(updated.longitude, -180, 180);
-  assertFieldInRange(updated.utc_offset, -12, 14);
+  for (const { pick, range } of LOCATION_FIELD_RANGES) {
+    assertWithinRange(pick(updated), range);
+  }
 }
 
-function assertFieldInRange(value: number | null | undefined, min: number, max: number): void {
+const LOCATION_FIELD_RANGES: { pick: (location: LocationEntry) => number | null | undefined; range: NumericRange }[] = [
+  { pick: location => location.latitude, range: LATITUDE_RANGE },
+  { pick: location => location.longitude, range: LONGITUDE_RANGE },
+  { pick: location => location.utc_offset, range: UTC_OFFSET_RANGE },
+];
+
+function assertWithinRange(value: number | null | undefined, range: NumericRange): void {
   if (value == null) return;
   const numeric = Number(value);
-  if (Number.isNaN(numeric) || !inRange(numeric, min, max)) {
-    throw new RangeError(`value outside ${min}..${max}`);
+  if (Number.isNaN(numeric) || isOutside(range, numeric)) {
+    throw new RangeError(`value outside ${range.min}..${range.max}`);
   }
 }
 
@@ -266,6 +288,12 @@ interface ImportAlias {
   utc_offset: unknown;
 }
 
+const IMPORT_COORD_SPECS: { field: keyof ImportAlias; label: string; range: NumericRange }[] = [
+  { field: "latitude", label: "latitude", range: LATITUDE_RANGE },
+  { field: "longitude", label: "longitude", range: LONGITUDE_RANGE },
+  { field: "utc_offset", label: "utc_offset", range: UTC_OFFSET_RANGE },
+];
+
 function importEntryError(entry: unknown, index: number): string | null {
   if (!isRecord(entry)) return indexedImportMessage(index, IMPORT_INVALID_MESSAGE);
   const alias: ImportAlias = {
@@ -277,32 +305,20 @@ function importEntryError(entry: unknown, index: number): string | null {
   if (!alias.name) {
     return indexedImportMessage(index, "Missing required field 'name' or 'location'");
   }
-  const missing = missingImportCoordinates(alias);
+  const missing = IMPORT_COORD_SPECS.filter(spec => alias[spec.field] == null).map(spec => spec.label);
   if (missing.length > 0) {
     return indexedImportMessage(index, `Missing required field(s): ${missing.join(", ")}`);
   }
   return importRangeError(alias, index);
 }
 
-function missingImportCoordinates(alias: ImportAlias): string[] {
-  const missing: string[] = [];
-  if (alias.latitude == null) missing.push("latitude");
-  if (alias.longitude == null) missing.push("longitude");
-  if (alias.utc_offset == null) missing.push("utc_offset");
-  return missing;
-}
-
 function importRangeError(alias: ImportAlias, index: number): string | null {
-  const lat = Number(alias.latitude);
-  const lng = Number(alias.longitude);
-  const tz = Number(alias.utc_offset);
-  const values = [lat, lng, tz];
-  if (values.some(value => Number.isNaN(value))) {
+  const numeric = IMPORT_COORD_SPECS.map(spec => ({ spec, value: Number(alias[spec.field]) }));
+  if (numeric.some(({ value }) => Number.isNaN(value))) {
     return indexedImportMessage(index, IMPORT_INVALID_MESSAGE);
   }
-  if (!inRange(lat, -90, 90)) return indexedImportMessage(index, "Invalid latitude");
-  if (!inRange(lng, -180, 180)) return indexedImportMessage(index, "Invalid longitude");
-  if (!inRange(tz, -12, 14)) return indexedImportMessage(index, "Invalid utc_offset");
+  const invalid = numeric.find(({ spec, value }) => isOutside(spec.range, value));
+  if (invalid) return indexedImportMessage(index, `Invalid ${invalid.spec.label}`);
   return null;
 }
 
@@ -319,24 +335,6 @@ export async function validateStoredLocations(): Promise<AdminApiResult> {
   }
 }
 
-function serializeBackupLocation(location: LocationEntry): Record<string, unknown> {
-  return {
-    name: location.name,
-    latitude: location.latitude,
-    longitude: location.longitude,
-    utc_offset: location.utc_offset,
-    arrival_time: location.arrival_time,
-    departure_time: location.departure_time,
-    country: location.country,
-    population: location.population,
-    priority: location.priority,
-    notes: location.notes,
-    fun_facts: location.notes,
-    stop_duration: location.stop_duration,
-    is_stop: location.is_stop,
-  };
-}
-
 export async function exportBackup(): Promise<AdminApiResult> {
   try {
     const locations = await loadSantaRouteFromJson();
@@ -345,7 +343,7 @@ export async function exportBackup(): Promise<AdminApiResult> {
       body: {
         backup_timestamp: new Date().toISOString(),
         total_locations: locations.length,
-        route: locations.map(serializeBackupLocation),
+        route: locations.map(serializeLocationFields),
       },
     };
   } catch (error) {

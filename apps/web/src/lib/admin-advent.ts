@@ -36,10 +36,10 @@ async function loadAdminAdventDay(dayNumber: number): Promise<AdminApiResult> {
   const dict = await loadAdventCalendarDict();
   const day = dict.get(dayNumber);
   if (!day) return dayNotFound();
-  return { status: 200, body: adminDayDetail(day) };
+  return { status: 200, body: adminDayView(day) };
 }
 
-function adminDayDetail(day: AdventDay): Record<string, unknown> {
+function adminDayView(day: AdventDay): Record<string, unknown> {
   return {
     day: day.day,
     title: day.title,
@@ -76,18 +76,21 @@ async function applyAdventDayUpdate(dayNumber: number, payload: unknown): Promis
     return badRequest(INVALID_DATA_MESSAGE);
   }
 
-  dict.set(dayNumber, mergedAdventDay(dayNumber, existing, payload, contentType, unlockTime));
+  const update: DayUpdateContext = { dayNumber, existing, payload, contentType, unlockTime };
+  dict.set(dayNumber, mergedAdventDay(update));
   await saveAdventCalendar(dict);
   return { status: 200, body: { message: "Day updated successfully" } };
 }
 
-function mergedAdventDay(
-  dayNumber: number,
-  existing: AdventDay,
-  payload: Record<string, unknown>,
-  contentType: string,
-  unlockTime: string,
-): AdventDay {
+interface DayUpdateContext {
+  dayNumber: number;
+  existing: AdventDay;
+  payload: Record<string, unknown>;
+  contentType: string;
+  unlockTime: string;
+}
+
+function mergedAdventDay({ dayNumber, existing, payload, contentType, unlockTime }: DayUpdateContext): AdventDay {
   return {
     day: dayNumber,
     title: orFallback(payload.title, existing.title),
@@ -134,22 +137,10 @@ function nextUnlockOverride(current: boolean | null | undefined): boolean | null
 export async function listAdminAdventDays(): Promise<AdminApiResult> {
   try {
     const days = await loadAdventCalendar();
-    return { status: 200, body: { days: days.map(adminDaySummary), total_days: days.length } };
+    return { status: 200, body: { days: days.map(adminDayView), total_days: days.length } };
   } catch (error) {
     return notFoundAwareError(error, NOT_FOUND_BODY);
   }
-}
-
-function adminDaySummary(day: AdventDay): Record<string, unknown> {
-  return {
-    day: day.day,
-    title: day.title,
-    unlock_time: day.unlock_time,
-    content_type: day.content_type,
-    payload: day.payload,
-    is_unlocked_override: day.is_unlocked_override ?? null,
-    is_currently_unlocked: isUnlocked(day),
-  };
 }
 
 export async function exportAdminAdventDays(): Promise<AdminApiResult> {
