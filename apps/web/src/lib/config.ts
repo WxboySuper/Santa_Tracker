@@ -1,4 +1,4 @@
-import fs from "node:fs";
+import fs from "node:fs/promises";
 import path from "node:path";
 
 export function getSecretKey(): string {
@@ -25,12 +25,12 @@ export function getAdventCalendarPath(): string {
   return path.join(process.cwd(), "..", "..", "src", "static", "data", "advent_calendar.json");
 }
 
-export function getTrialRoutePath(): string {
+export async function getTrialRoutePath(): Promise<string> {
   const legacy = path.join(process.cwd(), "..", "..", "src", "static", "data", "trial_route.json");
   const appData = path.join(process.cwd(), "data", "trial_route.json");
   try {
-    if (fs.existsSync(legacy)) return legacy;
-    if (fs.existsSync(appData)) return appData;
+    await fs.access(legacy);
+    return legacy;
   } catch {}
   return appData;
 }

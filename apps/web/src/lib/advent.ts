@@ -45,7 +45,7 @@ interface AdventTextValue {
 }
 
 // simple in-memory cache with mtime validation
-const cache = new Map<string, { mtimeMs: number; size: number; ino: number; data: AdventDay[] }>();
+const cache = new Map<string, { mtimeMs: number; size: number; data: AdventDay[] }>();
 const CONTENT_TYPES = ["fact", "game", "story", "video", "activity", "quiz"] as const;
 
 function clone<T>(value: T): T {
@@ -106,7 +106,7 @@ export async function loadAdventCalendar(options: AdventFileOptions = {}): Promi
     throw new Error(`Advent calendar file not found: ${p}`);
   }
   const cached = cache.get(p);
-  if (cached && cached.mtimeMs === stat.mtimeMs && cached.size === stat.size && cached.ino === stat.ino) {
+  if (cached && cached.mtimeMs === stat.mtimeMs && cached.size === stat.size) {
     return clone(cached.data);
   }
   const content = await fs.readFile(p, "utf-8");
@@ -118,7 +118,7 @@ export async function loadAdventCalendar(options: AdventFileOptions = {}): Promi
     throw new Error(`JSON decode error in ${p}: ${e.message}`);
   }
   const days = (data.days ?? []).map(parseAdventDay);
-  cache.set(p, { mtimeMs: stat.mtimeMs, size: stat.size, ino: stat.ino, data: days });
+  cache.set(p, { mtimeMs: stat.mtimeMs, size: stat.size, data: days });
   return clone(days);
 }
 

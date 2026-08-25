@@ -374,7 +374,7 @@ export async function saveSantaRouteToJson(locations: (LocationEntry | RouteNode
 }
 
 export async function loadTrialRouteFromJson(): Promise<LocationEntry[] | null> {
-  const p = getTrialRoutePath();
+  const p = await getTrialRoutePath();
   try {
     await fs.access(p);
   } catch {
@@ -384,12 +384,12 @@ export async function loadTrialRouteFromJson(): Promise<LocationEntry[] | null> 
 }
 
 export async function saveTrialRouteToJson(locations: (LocationEntry | RouteNode | Record<string, any>)[]) {
-  const p = getTrialRoutePath();
+  const p = await getTrialRoutePath();
   await saveSantaRouteToJson(locations, p);
 }
 
 export async function deleteTrialRoute(): Promise<boolean> {
-  const p = getTrialRoutePath();
+  const p = await getTrialRoutePath();
   try {
     await fs.unlink(p);
     return true;
@@ -400,8 +400,9 @@ export async function deleteTrialRoute(): Promise<boolean> {
 }
 
 export async function hasTrialRoute(): Promise<boolean> {
+  const p = await getTrialRoutePath();
   try {
-    await fs.access(getTrialRoutePath());
+    await fs.access(p);
     return true;
   } catch {
     return false;
