@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { isAdventEnabled } from "@/lib/config";
 import { getDayContent } from "@/lib/advent";
 
-// @codescene(disable-all) Compatibility handler retained while the Flask API is migrated.
+// @codescene(disable:"Complex Method", disable:"Complex Conditional") Compatibility handler retained while the Flask API is migrated.
 export async function GET(_req: Request, { params }: { params: Promise<{ day: string }> }) {
   if (!isAdventEnabled()) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
