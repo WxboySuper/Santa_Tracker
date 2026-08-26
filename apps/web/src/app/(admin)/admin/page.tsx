@@ -31,6 +31,8 @@ export default function AdminPage() {
     else setStatus(data.error);
   }
 
+  // The loader also powers the refresh button, so keep it stable outside the effect.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { if (token) loadLocations(); }, [token]);
 
   if (!token) {

@@ -12,24 +12,26 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     if (!data) return NextResponse.json({ error: "No data provided" }, { status: 400 });
     const locations = await loadSantaRouteFromJson();
     if (locationId < 0 || locationId >= locations.length) return NextResponse.json({ error: "Location not found" }, { status: 404 });
+    const location = locations[locationId];
+    if (!location) return NextResponse.json({ error: "Location not found" }, { status: 404 });
 
     try {
-      const notes = "notes" in data ? data.notes : ("fun_facts" in data ? data.fun_facts : locations[locationId].notes);
+      const notes = "notes" in data ? data.notes : ("fun_facts" in data ? data.fun_facts : location.notes);
       const updated = {
-        ...locations[locationId],
-        name: data.name ?? locations[locationId].name,
-        latitude: data.latitude != null ? Number(data.latitude) : locations[locationId].latitude,
-        longitude: data.longitude != null ? Number(data.longitude) : locations[locationId].longitude,
-        utc_offset: data.utc_offset != null ? Number(data.utc_offset) : locations[locationId].utc_offset,
-        arrival_time: data.arrival_time ?? locations[locationId].arrival_time,
-        departure_time: data.departure_time ?? locations[locationId].departure_time,
-        country: data.country ?? locations[locationId].country,
-        population: data.population ?? locations[locationId].population,
-        priority: data.priority ?? locations[locationId].priority,
+        ...location,
+        name: data.name ?? location.name,
+        latitude: data.latitude != null ? Number(data.latitude) : location.latitude,
+        longitude: data.longitude != null ? Number(data.longitude) : location.longitude,
+        utc_offset: data.utc_offset != null ? Number(data.utc_offset) : location.utc_offset,
+        arrival_time: data.arrival_time ?? location.arrival_time,
+        departure_time: data.departure_time ?? location.departure_time,
+        country: data.country ?? location.country,
+        population: data.population ?? location.population,
+        priority: data.priority ?? location.priority,
         notes,
         fun_facts: notes,
-        stop_duration: data.stop_duration ?? locations[locationId].stop_duration,
-        is_stop: data.is_stop ?? locations[locationId].is_stop,
+        stop_duration: data.stop_duration ?? location.stop_duration,
+        is_stop: data.is_stop ?? location.is_stop,
       };
       // Mirror Flask: validate numeric conversion
       if (updated.latitude != null && (Number.isNaN(Number(updated.latitude)) || Number(updated.latitude) < -90 || Number(updated.latitude) > 90)) throw new Error("invalid");
@@ -64,6 +66,7 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
     const locations = await loadSantaRouteFromJson();
     if (locationId < 0 || locationId >= locations.length) return NextResponse.json({ error: "Location not found" }, { status: 404 });
     const deleted = locations.splice(locationId, 1)[0];
+    if (!deleted) return NextResponse.json({ error: "Location not found" }, { status: 404 });
     await saveSantaRouteToJson(locations);
     return NextResponse.json({ message: "Location deleted successfully", deleted_location: deleted.name }, { status: 200 });
   } catch (e: any) {

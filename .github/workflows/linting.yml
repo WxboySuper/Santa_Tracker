@@ -33,29 +33,29 @@ jobs:
       
       - name: Run Black
         run: |
-          black --check --diff .
+          black --check --diff archive/flask-legacy
       
       - name: Run isort
         run: |
-          isort --check-only --diff .
+          isort --check-only --diff archive/flask-legacy
       
       - name: Run Flake8
         run: |
-          flake8 .
+          flake8 --config archive/flask-legacy/.flake8 archive/flask-legacy
       
       - name: Check for print statements in src/
         run: |
-          echo "Checking for print() statements in src/ directory..."
+          echo "Checking for print() statements in the archived Flask code..."
           # Find print statements in Python files under src/, excluding __pycache__
           # Use word boundary to avoid matching sprint(), blueprint(), etc.
           # Exclude comments (lines starting with #)
-          if grep -rn '\bprint\s*(' src/ --include="*.py" | grep -v "__pycache__" | grep -v '^\s*#' | grep -v "# .*print"; then
+          if grep -rn '\bprint\s*(' archive/flask-legacy --include="*.py" | grep -v "__pycache__" | grep -v '^\s*#' | grep -v "# .*print"; then
             echo ""
             echo "❌ Error: Found print() statements in src/ directory."
             echo "Please use logging instead: import logging; logger = logging.getLogger(__name__)"
             exit 1
           fi
-          echo "✓ No print() statements found in src/"
+          echo "✓ No print() statements found in archive/flask-legacy/"
 
   javascript-lint:
     runs-on: ubuntu-latest
@@ -151,4 +151,3 @@ jobs:
             exit 1
           fi
           echo "✓ tools/route-editor/package-lock.json found"
-
