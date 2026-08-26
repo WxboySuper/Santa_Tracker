@@ -28,25 +28,6 @@ interface LocationsResponse {
   error?: string;
 }
 
-const TOKEN_KEY = "admin_token";
-
-function readStoredToken(): string | null {
-  if (typeof window === "undefined") return null;
-  return localStorage.getItem(TOKEN_KEY);
-}
-
-function storeToken(token: string): void {
-  localStorage.setItem(TOKEN_KEY, token);
-  // Cookie is set HttpOnly by POST /api/admin/login (see file-lock + security review).
-  // Keep localStorage for Authorization: Bearer usage.
-}
-
-function clearStoredToken(): void {
-  localStorage.removeItem(TOKEN_KEY);
-  // Clear HttpOnly cookie via server; best-effort, no await needed for UX.
-  void fetch("/api/admin/logout", { method: "POST" }).catch(() => undefined);
-}
-
 async function parseJson<T>(res: Response): Promise<T | null> {
   try {
     return (await res.json()) as T;
@@ -56,7 +37,7 @@ async function parseJson<T>(res: Response): Promise<T | null> {
 }
 
 interface LoginPanelProps {
-  onAuthenticated: (token: string) => void;
+  onAuthenticated: () => void;
 }
 
 function LoginPanel({ onAuthenticated }: LoginPanelProps) {
@@ -68,11 +49,11 @@ function LoginPanel({ onAuthenticated }: LoginPanelProps) {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ password }),
+      credentials: "include",
     });
     const data = await parseJson<LoginResponse>(res);
-    if (res.ok && data?.token) {
-      storeToken(data.token);
-      onAuthenticated(data.token);
+    if (res.ok) {
+      onAuthenticated();
       setStatus("Logged in");
       return;
     }
@@ -100,16 +81,15 @@ function LoginPanel({ onAuthenticated }: LoginPanelProps) {
 }
 
 interface DashboardProps {
-  token: string;
   onLogout: () => void;
 }
 
-function Dashboard({ token, onLogout }: DashboardProps) {
+function Dashboard({ onLogout }: DashboardProps) {
   const [locations, setLocations] = useState<AdminLocation[]>([]);
   const [status, setStatus] = useState("");
 
   const loadLocations = useCallback(async () => {
-    const res = await fetch("/api/admin/locations", { headers: { Authorization: `Bearer ${token}` } });
+    const res = await fetch("/api/admin/locations", { credentials: "include" });
     const data = await parseJson<LocationsResponse>(res);
     if (res.ok && data?.locations) {
       setLocations(data.locations);
@@ -117,17 +97,26 @@ function Dashboard({ token, onLogout }: DashboardProps) {
       return;
     }
     setStatus(data?.error ?? "");
-  }, [token]);
+  }, []);
 
   useEffect(() => {
     void loadLocations();
   }, [loadLocations]);
 
+  async function logout() {
+    try {
+      await fetch("/api/admin/logout", { method: "POST", credentials: "include" });
+    } catch {
+      // ignore network error, still clear UI
+    }
+    onLogout();
+  }
+
   return (
     <div className="min-h-screen bg-gray-900 text-white p-8">
       <h1 className="text-3xl font-bold mb-4">Admin Dashboard</h1>
-      <p className="text-white/70 mb-4">Authenticated via JWT (no password fallback). Token in localStorage for API; HttpOnly cookie for middleware.</p>
-      <button onClick={onLogout} className="bg-gray-700 px-4 py-2 rounded mb-6">Logout</button>
+      <p className="text-white/70 mb-4">Authenticated via HttpOnly JWT cookie (server-owned boundary, Bearer also accepted).</p>
+      <button onClick={() => { void logout(); }} className="bg-gray-700 px-4 py-2 rounded mb-6">Logout</button>
       <div className="flex gap-4 mb-6">
         <a href="/admin/route-simulator" className="bg-blue-600 px-4 py-2 rounded">Route Simulator</a>
         <button onClick={() => { void loadLocations(); }} className="bg-green-600 px-4 py-2 rounded">Refresh Locations ({locations.length})</button>
@@ -142,18 +131,27 @@ function Dashboard({ token, onLogout }: DashboardProps) {
 }
 
 export default function AdminPage() {
-  const [token, setToken] = useState<string | null>(null);
+  const [isAuthed, setIsAuthed] = useState<boolean | null>(null);
 
   useEffect(() => {
-    const stored = readStoredToken();
-    if (stored) setToken(stored);
+    let cancelled = false;
+    async function probe() {
+      try {
+        const res = await fetch("/api/admin/locations", { credentials: "include" });
+        if (!cancelled) setIsAuthed(res.ok);
+      } catch {
+        if (!cancelled) setIsAuthed(false);
+      }
+    }
+    void probe();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
-  function logout() {
-    clearStoredToken();
-    setToken(null);
+  if (isAuthed === null) {
+    return <div className="min-h-screen flex items-center justify-center bg-gray-900 text-white p-8">Loading…</div>;
   }
-
-  if (!token) return <LoginPanel onAuthenticated={setToken} />;
-  return <Dashboard token={token} onLogout={logout} />;
+  if (!isAuthed) return <LoginPanel onAuthenticated={() => setIsAuthed(true)} />;
+  return <Dashboard onLogout={() => setIsAuthed(false)} />;
 }

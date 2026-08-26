@@ -23,16 +23,19 @@ Admin API surface (22 endpoints, all `requireAdminAuth` except `POST /api/admin/
 - Secret config: `SECRET_KEY` defaults to `dev-secret-key` for local dev only; production must set env var (`apps/web/src/lib/config.ts`).
 
 ## Mitigations Landed in This PR
-- **Invalid ID handling:** `locateByIndex` validates `Number.isInteger` and bounds before any `splice`/index access, so `DELETE /locations/foo` correctly returns 404 instead of deleting index 0 (`apps/web/src/lib/admin-locations.ts:locateByIndex`).
-- **Lost-update protection:** Admin mutations that do read-modify-write on `santa_route.json` / `advent_calendar.json` now serialize through `withWriteLock` (`apps/web/src/lib/file-lock.ts`), preventing interleaved loads from silently overwriting each other. File writes remain atomic via tmp + `rename` (`apps/web/src/lib/locations.ts:atomicWrite`, `apps/web/src/lib/advent.ts`).
+- **Invalid ID handling:** `locateByIndex` validates `Number.isInteger` and bounds before any `splice`/index access, so `DELETE /locations/foo` correctly returns 404 instead of deleting index 0 (`apps/web/src/lib/admin-locations.ts:locateByIndex`). `splice` now uses validated `locationId` directly.
+- **Lost-update protection (single + multi-process):** Admin mutations that do read-modify-write on `santa_route.json` / `advent_calendar.json` / `trial_route.json` now serialize through `withWriteLock` (`apps/web/src/lib/file-lock.ts`) — in-memory promise queue for single-process plus file-system lock file `.admin-write.lock` (exclusive `wx` create, 5s timeout, stale-mtime cleanup) for cross-worker/PM2/clustered deployments. File writes remain atomic via tmp + `rename` (`apps/web/src/lib/locations.ts:atomicWrite`, `apps/web/src/lib/advent.ts`) + `.history` versioning. Full `load→mutate→save` is inside the lock so second writer sees first writer's persisted state.
 - **Validation parity:** Explicit ranges for latitude/longitude/UTC offset, `createLocationFromPayload`, `validateLocations` / `validateAdventCalendar`, and `AdminApiResult` response shapes mirror Flask behavior.
-- **Login hardening:** Per-IP rate limiting (`MAX_LOGIN_ATTEMPTS=10` per 60s) in `admin-login.ts`, plus `HttpOnly` `admin_token` cookie set by `POST /api/admin/login` (24h `maxAge`, `SameSite=Lax`, `Secure` in production) in addition to Bearer header flow.
+- **Login hardening:** Per-IP rate limiting (`MAX_LOGIN_ATTEMPTS=10` per 60s) in `admin-login.ts` with `checkLoginRateLimit`/`recordLoginAttempt`, plus `HttpOnly` `admin_token` cookie set by `POST /api/admin/login` (24h `maxAge`, `SameSite=Lax`, `Secure` in production) in addition to Bearer header flow.
+- **Auth transport hardening:** `requireAdminAuth` (`apps/web/src/lib/auth.ts:46`) now accepts `Authorization: Bearer` **or** `Cookie: admin_token` (HttpOnly). Studio pages `apps/web/src/app/(admin)/admin/page.tsx` and `route-simulator` are now `HttpOnly`-only (no `localStorage` readable copy, `credentials: "include"`), eliminating XSS exfiltration window; `POST /api/admin/logout` clears the cookie server-side.
+- **Middleware hardening:** `apps/web/middleware.ts` now protects only `"/admin/:path*"` (removed `"/api/admin/:path*"` double coverage), allows `"/admin"` login shell to render, and for page navigations (`Accept: text/html`) with missing/invalid token returns `NextResponse.redirect("/admin")` instead of JSON 401/403.
+- **Robust error handling:** `notFoundAwareError` (`apps/web/src/lib/admin-api.ts:20`) now checks `error.cause === "ENOENT"` / `code === "ENOENT"` before fragile `includes("not found")` string match.
 
 ## Residual / Recommended Follow-ups (not blocking)
-- Edge/WAF rate limiting and brute-force alerting in front of `/api/admin/login` for production.
-- Token revocation (e.g., short-lived JWT + rotation or blocklist) and CSRF protection for cookie-authenticated mutating routes if cookie-only flow is adopted.
-- `localStorage` + non-`HttpOnly` client cookie in `apps/web/src/app/(admin)/admin/page.tsx` is intentional for API Bearer usage; a future iteration can move to `HttpOnly`-only with a server `POST /api/admin/logout` to clear the cookie.
+- Edge/WAF rate limiting and brute-force alerting in front of `/api/admin/login` for production (in-process map is per-instance only).
+- Token revocation (e.g., short-lived JWT + rotation or blocklist) and CSRF double-submit for cookie-only mutating routes; current `SameSite=Lax` + `Content-Type: application/json` mitigates most CSRF, but explicit token recommended if cookie-only becomes primary.
 - `SECRET_KEY` in production must be a strong random value; consider documenting rotation procedure.
+- Advertised Zod gap: PR description cites Zod but implementation uses hand-rolled `isRecord`/`isOutside`; consider adding Zod schemas for advertised parity or update description (validation logic is covered by `createLocationFromPayload`/`validateLocations`).
 
 ## Verification
 - `pnpm typecheck`, `pnpm lint`, `pnpm test`, `pnpm build` pass locally.

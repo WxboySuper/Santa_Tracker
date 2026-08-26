@@ -5,27 +5,22 @@ interface SimulationResponse {
   error?: string;
 }
 
-function readToken(): string | null {
-  if (typeof window === "undefined") return null;
-  return localStorage.getItem("admin_token");
-}
-
 async function runSimulation(url: string, successLabel: string, setStatus: (value: string) => void): Promise<SimulationResponse | null> {
-  const token = readToken();
-  if (!token) {
-    setStatus("Not authenticated");
-    return null;
-  }
   const res = await fetch(url, {
     method: "POST",
-    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({}),
+    credentials: "include",
   });
   let data: SimulationResponse | null = null;
   try {
     data = (await res.json()) as SimulationResponse;
   } catch {
     setStatus("Invalid response");
+    return null;
+  }
+  if (res.status === 401 || res.status === 403) {
+    setStatus("Not authenticated");
     return null;
   }
   setStatus(res.ok ? successLabel : data.error ?? "");
