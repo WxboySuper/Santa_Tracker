@@ -2,6 +2,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 
 export function getSecretKey(): string {
+  // dev fallback only; production must set SECRET_KEY env
   return process.env.SECRET_KEY ?? "dev-secret-key";
 }
 
