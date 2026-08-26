@@ -1,4 +1,5 @@
 import fs from "node:fs/promises";
+import { existsSync } from "node:fs";
 import path from "node:path";
 
 export function getSecretKey(): string {
@@ -16,14 +17,21 @@ export function isAdventEnabled(): boolean {
 
 export function getSantaRoutePath(): string {
   if (process.env.SANTA_ROUTE_PATH) return process.env.SANTA_ROUTE_PATH;
-  // The legacy data file remains the source of truth until the Flask archive is
-  // retired. Next.js reads it server-side; public consumers use /api/route.
-  return path.join(process.cwd(), "..", "..", "src", "static", "data", "santa_route.json");
+  return getDataPath("santa_route.json");
 }
 
 export function getAdventCalendarPath(): string {
   if (process.env.ADVENT_CALENDAR_PATH) return process.env.ADVENT_CALENDAR_PATH;
-  return path.join(process.cwd(), "..", "..", "src", "static", "data", "advent_calendar.json");
+  return getDataPath("advent_calendar.json");
+}
+
+function getDataPath(filename: string): string {
+  const candidates = [
+    path.join(process.cwd(), "data", filename),
+    path.join(process.cwd(), "apps", "web", "data", filename),
+    path.join(process.cwd(), "..", "..", "src", "static", "data", filename),
+  ];
+  return candidates.find(candidate => existsSync(candidate)) ?? candidates[0]!;
 }
 
 export async function getTrialRoutePath(): Promise<string> {

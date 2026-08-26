@@ -11,13 +11,14 @@ env:
   DEPLOY_HOST: ${{ secrets.PROD_DEPLOY_HOST }}
   DEPLOY_USER: ${{ secrets.PROD_DEPLOY_USER }}
   DEPLOY_PATH: ${{ secrets.PROD_DEPLOY_PATH }}
+  PROD_DOTENV: ${{ secrets.PROD_DOTENV }}
 
 jobs:
   first-deploy:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.3.1
 
       - name: Install helper tools
         run: |
@@ -25,12 +26,12 @@ jobs:
           sudo apt-get install -y sshpass rsync tar
 
       - name: Set up Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 22
 
       - name: Set up pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4.3.0
         with:
           version: 10.30.3
 
@@ -48,13 +49,12 @@ jobs:
           set -euo pipefail
           rm -rf deployment-package
           mkdir -p deployment-package
-          if [ -d apps/web/.next/standalone ]; then
-            cp -a apps/web/.next/standalone/* deployment-package/
-            cp -a apps/web/.next/static deployment-package/.next/static 2>/dev/null || true
-            cp -a apps/web/public deployment-package/public 2>/dev/null || true
-          else
-            rsync -a --exclude='.git' --exclude='.github' --exclude='node_modules' ./ deployment-package/
-          fi
+          test -f apps/web/.next/standalone/server.js
+          cp -a apps/web/.next/standalone/. deployment-package/
+          mkdir -p deployment-package/.next
+          cp -a apps/web/.next/static deployment-package/.next/static
+          cp -a apps/web/public deployment-package/public
+          cp -a apps/web/data deployment-package/data
 
       - name: Create remote release directory
         run: |
@@ -63,6 +63,16 @@ jobs:
           echo "RELEASE_DIR=${RELEASE_DIR}" >> $GITHUB_ENV
           sshpass -p "${{ secrets.PROD_SSH_PASSWORD }}" ssh -o StrictHostKeyChecking=no \
             "${{ env.DEPLOY_USER }}@${{ env.DEPLOY_HOST }}" "mkdir -p '${RELEASE_DIR}' && mkdir -p '${{ env.DEPLOY_PATH }}/releases'"
+
+      - name: Write deployment environment
+        run: |
+          set -euo pipefail
+          if [ -z "${PROD_DOTENV:-}" ]; then
+            echo "PROD_DOTENV must be configured before the first deploy"
+            exit 1
+          fi
+          printf '%s\n' "$PROD_DOTENV" | sshpass -p "${{ secrets.PROD_SSH_PASSWORD }}" ssh -o StrictHostKeyChecking=no \
+            "${{ env.DEPLOY_USER }}@${{ env.DEPLOY_HOST }}" "umask 077; cat > '${RELEASE_DIR}/.env'"
 
       - name: Upload package
         run: |

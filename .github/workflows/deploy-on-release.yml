@@ -17,15 +17,15 @@ jobs:
       PROD_DOTENV: ${{ secrets.PROD_DOTENV }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.3.1
 
       - name: Set up Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 22
 
       - name: Set up pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4.3.0
         with:
           version: 10.30.3
 
@@ -45,19 +45,16 @@ jobs:
           set -euo pipefail
           rm -rf deployment-package
           mkdir -p deployment-package
-          cp -a apps/web/.next/standalone deployment-package/ 2>/dev/null || cp -a apps/web/.next deployment-package/.next
-          cp -a apps/web/.next/static deployment-package/.next/static 2>/dev/null || true
-          cp -a apps/web/public deployment-package/public 2>/dev/null || true
-          cp -a apps/web/data deployment-package/data 2>/dev/null || true
-          cp package.json deployment-package/ 2>/dev/null || true
-          cp pnpm-workspace.yaml deployment-package/ 2>/dev/null || true
-          # rsync fallback for non-standalone
-          if [ ! -f deployment-package/server.js ]; then
-            rsync -a --exclude='.git' --exclude='.github' --exclude='deployment-package' --exclude='node_modules' ./ deployment-package/
-          fi
+          test -f apps/web/.next/standalone/server.js
+          cp -a apps/web/.next/standalone/. deployment-package/
+          mkdir -p deployment-package/.next
+          cp -a apps/web/.next/static deployment-package/.next/static
+          cp -a apps/web/public deployment-package/public
+          cp -a apps/web/data deployment-package/data
+          test -f deployment-package/server.js
 
       - name: Load SSH key
-        uses: webfactory/ssh-agent@v0.5.3
+        uses: webfactory/ssh-agent@5f066a372ec13036ab7cb9a8adf18c936f8d2043 # v0.5.3
         with:
           ssh-private-key: ${{ secrets.DEPLOY_SSH_KEY }}
 
@@ -74,6 +71,10 @@ jobs:
           PROD_DOTENV: ${{ secrets.PROD_DOTENV }}
         run: |
           set -euo pipefail
+          if [ -z "${PROD_DOTENV:-}" ]; then
+            echo "PROD_DOTENV must be configured before deploying"
+            exit 1
+          fi
           RELEASE_ROOT="${PROD_DEPLOY_PATH}/releases"
           TIMESTAMP="$(date -u +%Y%m%d-%H%M%S)"
           REMOTE_DIR="${RELEASE_ROOT}/${TIMESTAMP}"
@@ -83,27 +84,21 @@ jobs:
           rsync -az --delete -e "ssh -o StrictHostKeyChecking=no" deployment-package/ ${PROD_DEPLOY_USER}@${PROD_DEPLOY_HOST}:"${REMOTE_DIR}/"
           ssh -o StrictHostKeyChecking=no ${PROD_DEPLOY_USER}@${PROD_DEPLOY_HOST} "PROD_DEPLOY_PATH='${PROD_DEPLOY_PATH}' PROD_DEPLOY_USER='${PROD_DEPLOY_USER}' REMOTE_DIR='${REMOTE_DIR}' RELEASE_ROOT='${RELEASE_ROOT}' PROD_DOTENV='${PROD_DOTENV}' bash -s" <<'REMOTE_EOF'
             set -euo pipefail
-            if [ -n "${PROD_DOTENV:-}" ]; then
-              printf '%s\n' "${PROD_DOTENV}" > "${REMOTE_DIR}/.env"
+            printf '%s\n' "${PROD_DOTENV}" > "${REMOTE_DIR}/.env"
+            sudo -n /usr/local/bin/deploy_chown.sh "${PROD_DEPLOY_USER}:${PROD_DEPLOY_USER}" "${REMOTE_DIR}/.env"
+            sudo -n /usr/local/bin/deploy_chmod.sh 600 "${REMOTE_DIR}/.env"
+            sudo -n /usr/local/bin/deploy_ln.sh "${REMOTE_DIR}" "${PROD_DEPLOY_PATH}/current"
+            sudo -n /usr/local/bin/deploy_chown.sh "${PROD_DEPLOY_USER}:${PROD_DEPLOY_USER}" "${REMOTE_DIR}"
+            sudo -n /usr/local/bin/deploy_chown.sh "${PROD_DEPLOY_USER}:${PROD_DEPLOY_USER}" "${PROD_DEPLOY_PATH}/data"
+            sudo -n /usr/local/bin/deploy_chown.sh "${PROD_DEPLOY_USER}:${PROD_DEPLOY_USER}" "${RELEASE_ROOT}"
+            cd "${RELEASE_ROOT}"
+            mapfile -t old_releases < <(ls -1dt */ 2>/dev/null | tail -n +6)
+            if [ "${#old_releases[@]}" -gt 0 ]; then
+              rm -rf -- "${old_releases[@]}"
             fi
-            if [ -f "${REMOTE_DIR}/.env" ]; then
-              sudo -n /usr/local/bin/deploy_chown.sh "${PROD_DEPLOY_USER}:${PROD_DEPLOY_USER}" "${REMOTE_DIR}/.env" || true
-              sudo -n /usr/local/bin/deploy_chmod.sh 600 "${REMOTE_DIR}/.env" || true
-            fi
-            # Install node deps if needed (standalone already includes them)
-            if [ -f "${REMOTE_DIR}/package.json" ] && [ ! -d "${REMOTE_DIR}/node_modules" ]; then
-              if command -v pnpm >/dev/null 2>&1; then pnpm --prefix "${REMOTE_DIR}" install --prod --frozen-lockfile || true; fi
-            fi
-            sudo -n /usr/local/bin/deploy_ln.sh "${REMOTE_DIR}" "${PROD_DEPLOY_PATH}/current" || true
-            sudo -n /usr/local/bin/deploy_chown.sh "${PROD_DEPLOY_USER}:${PROD_DEPLOY_USER}" "${REMOTE_DIR}" || true
-            sudo -n /usr/local/bin/deploy_chown.sh "${PROD_DEPLOY_USER}:${PROD_DEPLOY_USER}" "${PROD_DEPLOY_PATH}/data" || true
-            sudo -n /usr/local/bin/deploy_chown.sh "${PROD_DEPLOY_USER}:${PROD_DEPLOY_USER}" "${RELEASE_ROOT}" || true
-            cd "${RELEASE_ROOT}" || exit 0
-            ls -1dt * 2>/dev/null | tail -n +6 | xargs -r rm -rf || true
-            sudo -n /usr/local/bin/deploy_systemctl.sh daemon-reload santa-tracker || true
-            sudo -n /usr/local/bin/deploy_systemctl.sh restart santa-tracker || true
-            # health check
+            sudo -n /usr/local/bin/deploy_systemctl.sh daemon-reload santa-tracker
+            sudo -n /usr/local/bin/deploy_systemctl.sh restart santa-tracker
             sleep 3
-            curl -f http://127.0.0.1:3000/api/health || curl -f http://127.0.0.1:3000/api/health || true
+            curl --fail --retry 5 --retry-delay 2 --retry-connrefused http://127.0.0.1:3000/api/health
             echo "Deployed: ${REMOTE_DIR}"
           REMOTE_EOF
