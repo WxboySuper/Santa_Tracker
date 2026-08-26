@@ -1,38 +1,13 @@
 import { NextResponse } from "next/server";
 import { requireAdminAuth } from "@/lib/auth";
 import { isAdventEnabled } from "@/lib/config";
-import { saveAdventCalendar, validateAdventCalendar } from "@/lib/advent";
+import { importAdminAdventDays } from "@/lib/admin-advent";
+import { readJsonBody, respondWith } from "@/lib/admin-api";
 
-// @codescene(disable-all) Compatibility handler retained while the Flask API is migrated.
 export async function POST(req: Request) {
   if (!isAdventEnabled()) return NextResponse.json({ error: "Not found" }, { status: 404 });
   const auth = await requireAdminAuth(req);
   if (!auth.ok) return NextResponse.json({ error: auth.error }, { status: auth.status! });
-  try {
-    const data = await req.json().catch(() => null);
-    if (!data || !Array.isArray(data.days)) return NextResponse.json({ error: "Invalid import data" }, { status: 400 });
-    const days: any[] = [];
-    for (const d of data.days) {
-      if (!d.day || !d.title || !d.unlock_time || !d.content_type || !d.payload) {
-        return NextResponse.json({ error: "Invalid day data" }, { status: 400 });
-      }
-      days.push({
-        day: d.day,
-        title: d.title,
-        unlock_time: d.unlock_time,
-        content_type: d.content_type,
-        payload: d.payload,
-        is_unlocked_override: d.is_unlocked_override ?? null,
-      });
-    }
-    const validation = validateAdventCalendar(days);
-    if (!validation.valid) {
-      return NextResponse.json({ error: "Validation failed", errors: validation.errors }, { status: 400 });
-    }
-    await saveAdventCalendar(days);
-    return NextResponse.json({ message: `Imported ${days.length} days`, total_days: days.length, warnings: validation.warnings }, { status: 200 });
-  } catch (e: any) {
-    console.error(e);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
-  }
+  const result = await importAdminAdventDays(await readJsonBody(req));
+  return respondWith(result);
 }

@@ -8,6 +8,17 @@
 
 #### Added
 
+## [PR #346] - 2026-08-25 - fix(public): harden Next.js public surfaces
+
+- **Security:** Replaced Advent client-side `innerHTML` rendering with server-rendered React elements, so calendar data is escaped before it reaches the DOM.
+- **Consistency:** Unified the Advent feature flag and countdown behavior through shared helpers/components; moved Leaflet CSS to the tracker surface only.
+- **Reliability:** Made Advent and route status metadata reads asynchronous, made the health endpoint explicitly dynamic, and derived legacy `/index` redirects from the incoming request origin.
+- **Offline behavior:** Added cache-first handling for OpenStreetMap tiles and normalized `/api/route` cache keys in the service worker.
+- **Public API exposure review:** `/api/route`, `/api/health`, and `/api/advent/*` are intentionally unauthenticated public endpoints. They expose route/health data and feature-gated Advent metadata only; no admin mutation or secret-bearing data is exposed. The Advent API withholds locked payloads server-side. See `docs/API.md`.
+- **Evidence:** Typecheck ✓, lint ✓, 35 workspace tests ✓, production Next.js build ✓, service-worker syntax check ✓.
+
+## [PR #350] - 2026-08-21 - feat(foundation): scaffold Next.js pnpm workspace
+
 - pnpm workspace (`pnpm-workspace.yaml`, root `package.json` workspaces) with `apps/web` (Next.js 15 App Router, TypeScript, Tailwind, `output: standalone`) and packages `config`, `contracts`, `route-engine`, `database`, `ui`, `activity-sdk`, `test-fixtures` per ADR dependency rules.
 - TypeScript domain ports: `apps/web/src/lib/locations.ts`, `advent.ts`, `route-sim.ts`, `auth.ts`, `config.ts` + pure `packages/route-engine` and `packages/contracts` (Zod). No `itsdangerous` password fallback — JWT HS256 24h only.
 - Public pages: `/` (home), `/tracker`, `/advent` (gated by `ADVENT_ENABLED`), `GET /index` → 301 `/tracker` (archive disposition), `/offline` + `public/sw.js` (fixed cache list, no `/index.html` split), `public/offline.html` compat.
