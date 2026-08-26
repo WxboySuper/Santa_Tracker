@@ -6,6 +6,7 @@ import {
   type LocationEntry,
 } from "./locations";
 import { badRequest, isRecord, notFoundAwareError, type AdminApiResult } from "./admin-api";
+import { withWriteLock } from "./file-lock";
 
 const REQUIRED_CREATE_FIELDS = ["name", "latitude", "longitude", "utc_offset"];
 const INVALID_DATA_MESSAGE = "Invalid data format or values";
@@ -79,17 +80,19 @@ async function appendLocation(payload: unknown): Promise<AdminApiResult> {
   } catch {
     return badRequest(INVALID_DATA_MESSAGE);
   }
-  const locations = await loadSantaRouteFromJson();
-  locations.push(newLocation);
-  await saveSantaRouteToJson(locations);
-  return {
-    status: 201,
-    body: {
-      message: "Location added successfully",
-      id: locations.length - 1,
-      location: createdLocationSummary(newLocation),
-    },
-  };
+  return withWriteLock(async () => {
+    const locations = await loadSantaRouteFromJson();
+    locations.push(newLocation);
+    await saveSantaRouteToJson(locations);
+    return {
+      status: 201,
+      body: {
+        message: "Location added successfully",
+        id: locations.length - 1,
+        location: createdLocationSummary(newLocation),
+      },
+    };
+  });
 }
 
 interface GeoCoordinate {
@@ -130,20 +133,22 @@ export async function updateLocation(locationId: number, payload: unknown): Prom
 
 async function applyLocationUpdate(locationId: number, payload: unknown): Promise<AdminApiResult> {
   if (!isRecord(payload)) return badRequest("No data provided");
-  const locations = await loadSantaRouteFromJson();
-  const existing = locateByIndex(locations, locationId);
-  if (!existing) {
-    return { status: 404, body: { error: "Location not found" } };
-  }
-  try {
-    const updated = mergedLocation(existing, payload);
-    assertCoordinateFieldsValid(updated);
-    locations[locationId] = updated;
-    await saveSantaRouteToJson(locations);
-    return { status: 200, body: { message: "Location updated successfully" } };
-  } catch {
-    return badRequest(INVALID_DATA_MESSAGE);
-  }
+  return withWriteLock(async () => {
+    const locations = await loadSantaRouteFromJson();
+    const existing = locateByIndex(locations, locationId);
+    if (!existing) {
+      return { status: 404, body: { error: "Location not found" } };
+    }
+    try {
+      const updated = mergedLocation(existing, payload);
+      assertCoordinateFieldsValid(updated);
+      locations[locationId] = updated;
+      await saveSantaRouteToJson(locations);
+      return { status: 200, body: { message: "Location updated successfully" } };
+    } catch {
+      return badRequest(INVALID_DATA_MESSAGE);
+    }
+  });
 }
 
 function mergedLocation(existing: LocationEntry, payload: Record<string, unknown>): LocationEntry {
@@ -213,17 +218,19 @@ export async function deleteLocation(locationId: number): Promise<AdminApiResult
 }
 
 async function removeLocation(locationId: number): Promise<AdminApiResult> {
-  const locations = await loadSantaRouteFromJson();
-  const existing = locateByIndex(locations, locationId);
-  if (!existing) {
-    return { status: 404, body: { error: "Location not found" } };
-  }
-  locations.splice(locations.indexOf(existing), 1);
-  await saveSantaRouteToJson(locations);
-  return {
-    status: 200,
-    body: { message: "Location deleted successfully", deleted_location: existing.name },
-  };
+  return withWriteLock(async () => {
+    const locations = await loadSantaRouteFromJson();
+    const existing = locateByIndex(locations, locationId);
+    if (!existing) {
+      return { status: 404, body: { error: "Location not found" } };
+    }
+    locations.splice(locationId, 1);
+    await saveSantaRouteToJson(locations);
+    return {
+      status: 200,
+      body: { message: "Location deleted successfully", deleted_location: existing.name },
+    };
+  });
 }
 
 function locateByIndex(locations: LocationEntry[], locationId: number): LocationEntry | null {
@@ -265,17 +272,19 @@ async function importLocationPayloads(payload: unknown): Promise<AdminApiResult>
     return { status: 400, body: { error: "No valid locations to import", details: acc.errors } };
   }
 
-  const target = await resolveImportTarget(mode, acc.imported);
-  await saveSantaRouteToJson(target);
-  return {
-    status: 200,
-    body: {
-      message: `Successfully imported ${acc.imported.length} location(s)`,
-      imported: acc.imported.length,
-      errors: acc.errors.length > 0 ? acc.errors : null,
-      mode,
-    },
-  };
+  return withWriteLock(async () => {
+    const target = await resolveImportTarget(mode, acc.imported);
+    await saveSantaRouteToJson(target);
+    return {
+      status: 200,
+      body: {
+        message: `Successfully imported ${acc.imported.length} location(s)`,
+        imported: acc.imported.length,
+        errors: acc.errors.length > 0 ? acc.errors : null,
+        mode,
+      },
+    };
+  });
 }
 
 async function resolveImportTarget(mode: unknown, imported: LocationEntry[]): Promise<LocationEntry[]> {

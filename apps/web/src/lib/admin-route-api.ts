@@ -12,6 +12,7 @@ import {
 } from "./locations";
 import { buildSimulatedFromLocations } from "./route-sim";
 import { badRequest, isRecord, notFoundAwareError, type AdminApiResult } from "./admin-api";
+import { withWriteLock } from "./file-lock";
 
 const ROUTE_NOT_FOUND_BODY = { error: "Route data not found" };
 
@@ -148,16 +149,18 @@ async function storeTrialRoute(payload: unknown): Promise<AdminApiResult> {
       body: { error: "Validation failed", errors: validation.errors, warnings: validation.warnings },
     };
   }
-  await saveTrialRouteToJson(locations);
-  return {
-    status: 200,
-    body: {
-      success: true,
-      message: `Trial route uploaded with ${locations.length} locations`,
-      location_count: locations.length,
-      warnings: validation.warnings,
-    },
-  };
+  return withWriteLock(async () => {
+    await saveTrialRouteToJson(locations);
+    return {
+      status: 200,
+      body: {
+        success: true,
+        message: `Trial route uploaded with ${locations.length} locations`,
+        location_count: locations.length,
+        warnings: validation.warnings,
+      },
+    };
+  });
 }
 
 function buildTrialLocations(routeItems: unknown[]): LocationEntry[] | null {
@@ -186,14 +189,16 @@ export async function trialRouteInfo(): Promise<AdminApiResult> {
 }
 
 export async function removeTrialRoute(): Promise<AdminApiResult> {
-  try {
-    const deleted = await deleteTrialRoute();
-    if (deleted) return { status: 200, body: { success: true, message: "Trial route deleted" } };
-    return { status: 404, body: { success: false, message: "No trial route to delete" } };
-  } catch (error) {
-    console.error(error);
-    return { status: 500, body: { error: "Internal server error" } };
-  }
+  return withWriteLock(async () => {
+    try {
+      const deleted = await deleteTrialRoute();
+      if (deleted) return { status: 200, body: { success: true, message: "Trial route deleted" } };
+      return { status: 404, body: { success: false, message: "No trial route to delete" } };
+    } catch (error) {
+      console.error(error);
+      return { status: 500, body: { error: "Internal server error" } };
+    }
+  });
 }
 
 export async function applyTrialRoute(): Promise<AdminApiResult> {
@@ -206,14 +211,16 @@ export async function applyTrialRoute(): Promise<AdminApiResult> {
 }
 
 async function promoteTrialToMain(): Promise<AdminApiResult> {
-  if (!(await hasTrialRoute())) return { status: 404, body: { error: "No trial route to apply" } };
-  const trial = await loadTrialRouteFromJson();
-  if (!trial || trial.length === 0) return badRequest("Trial route is empty");
-  await saveSantaRouteToJson(trial);
-  return {
-    status: 200,
-    body: { success: true, message: `Trial route applied as main route (${trial.length} locations)` },
-  };
+  return withWriteLock(async () => {
+    if (!(await hasTrialRoute())) return { status: 404, body: { error: "No trial route to apply" } };
+    const trial = await loadTrialRouteFromJson();
+    if (!trial || trial.length === 0) return badRequest("Trial route is empty");
+    await saveSantaRouteToJson(trial);
+    return {
+      status: 200,
+      body: { success: true, message: `Trial route applied as main route (${trial.length} locations)` },
+    };
+  });
 }
 
 export async function simulateTrialRoute(payload: unknown): Promise<AdminApiResult> {

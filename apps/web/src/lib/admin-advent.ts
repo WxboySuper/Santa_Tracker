@@ -10,6 +10,7 @@ import {
   type AdventDay,
 } from "./advent";
 import { badRequest, isRecord, notFoundAwareError, type AdminApiResult } from "./admin-api";
+import { withWriteLock } from "./file-lock";
 
 const NOT_FOUND_BODY = { error: "Advent calendar data not found" };
 const INVALID_DATA_MESSAGE = "Invalid data provided";
@@ -63,23 +64,25 @@ export async function updateAdminAdventDay(rawDay: string, payload: unknown): Pr
 
 async function applyAdventDayUpdate(dayNumber: number, payload: unknown): Promise<AdminApiResult> {
   if (!isRecord(payload)) return badRequest("No data provided");
-  const dict = await loadAdventCalendarDict();
-  const existing = dict.get(dayNumber);
-  if (!existing) return dayNotFound();
+  return withWriteLock(async () => {
+    const dict = await loadAdventCalendarDict();
+    const existing = dict.get(dayNumber);
+    if (!existing) return dayNotFound();
 
-  const contentType = payload.content_type ?? existing.content_type;
-  if (typeof contentType !== "string" || !isValidContentType(contentType)) {
-    return badRequest(INVALID_DATA_MESSAGE);
-  }
-  const unlockTime = payload.unlock_time ?? existing.unlock_time;
-  if (typeof unlockTime !== "string" || !isValidUnlockTime(unlockTime)) {
-    return badRequest(INVALID_DATA_MESSAGE);
-  }
+    const contentType = payload.content_type ?? existing.content_type;
+    if (typeof contentType !== "string" || !isValidContentType(contentType)) {
+      return badRequest(INVALID_DATA_MESSAGE);
+    }
+    const unlockTime = payload.unlock_time ?? existing.unlock_time;
+    if (typeof unlockTime !== "string" || !isValidUnlockTime(unlockTime)) {
+      return badRequest(INVALID_DATA_MESSAGE);
+    }
 
-  const update: DayUpdateContext = { dayNumber, existing, payload, contentType, unlockTime };
-  dict.set(dayNumber, mergedAdventDay(update));
-  await saveAdventCalendar(dict);
-  return { status: 200, body: { message: "Day updated successfully" } };
+    const update: DayUpdateContext = { dayNumber, existing, payload, contentType, unlockTime };
+    dict.set(dayNumber, mergedAdventDay(update));
+    await saveAdventCalendar(dict);
+    return { status: 200, body: { message: "Day updated successfully" } };
+  });
 }
 
 interface DayUpdateContext {
@@ -116,15 +119,17 @@ export async function toggleAdminAdventUnlock(rawDay: string): Promise<AdminApiR
 }
 
 async function toggleAdventOverride(dayNumber: number): Promise<AdminApiResult> {
-  const dict = await loadAdventCalendarDict();
-  const day = dict.get(dayNumber);
-  if (!day) return dayNotFound();
+  return withWriteLock(async () => {
+    const dict = await loadAdventCalendarDict();
+    const day = dict.get(dayNumber);
+    if (!day) return dayNotFound();
 
-  const next = nextUnlockOverride(day.is_unlocked_override);
-  day.is_unlocked_override = next;
-  dict.set(dayNumber, day);
-  await saveAdventCalendar(dict);
-  return { status: 200, body: { message: "Unlock status toggled", is_unlocked_override: next } };
+    const next = nextUnlockOverride(day.is_unlocked_override);
+    day.is_unlocked_override = next;
+    dict.set(dayNumber, day);
+    await saveAdventCalendar(dict);
+    return { status: 200, body: { message: "Unlock status toggled", is_unlocked_override: next } };
+  });
 }
 
 // Toggle cycle: true -> false -> null -> true
@@ -220,13 +225,15 @@ async function storeImportedDays(parsed: ImportParse): Promise<AdminApiResult> {
   if (!validation.valid) {
     return { status: 400, body: { error: "Validation failed", errors: validation.errors } };
   }
-  await saveAdventCalendar(parsed.days);
-  return {
-    status: 200,
-    body: {
-      message: `Imported ${parsed.days.length} days`,
-      total_days: parsed.days.length,
-      warnings: validation.warnings,
-    },
-  };
+  return withWriteLock(async () => {
+    await saveAdventCalendar(parsed.days);
+    return {
+      status: 200,
+      body: {
+        message: `Imported ${parsed.days.length} days`,
+        total_days: parsed.days.length,
+        warnings: validation.warnings,
+      },
+    };
+  });
 }

@@ -37,12 +37,14 @@ function readStoredToken(): string | null {
 
 function storeToken(token: string): void {
   localStorage.setItem(TOKEN_KEY, token);
-  document.cookie = `admin_token=${token}; Path=/; SameSite=Lax`;
+  // Cookie is set HttpOnly by POST /api/admin/login (see file-lock + security review).
+  // Keep localStorage for Authorization: Bearer usage.
 }
 
 function clearStoredToken(): void {
   localStorage.removeItem(TOKEN_KEY);
-  document.cookie = "admin_token=; Max-Age=0; Path=/";
+  // Clear HttpOnly cookie via server; best-effort, no await needed for UX.
+  void fetch("/api/admin/logout", { method: "POST" }).catch(() => undefined);
 }
 
 async function parseJson<T>(res: Response): Promise<T | null> {
@@ -124,7 +126,7 @@ function Dashboard({ token, onLogout }: DashboardProps) {
   return (
     <div className="min-h-screen bg-gray-900 text-white p-8">
       <h1 className="text-3xl font-bold mb-4">Admin Dashboard</h1>
-      <p className="text-white/70 mb-4">Authenticated via JWT (no password fallback). Token stored in localStorage + cookie for middleware.</p>
+      <p className="text-white/70 mb-4">Authenticated via JWT (no password fallback). Token in localStorage for API; HttpOnly cookie for middleware.</p>
       <button onClick={onLogout} className="bg-gray-700 px-4 py-2 rounded mb-6">Logout</button>
       <div className="flex gap-4 mb-6">
         <a href="/admin/route-simulator" className="bg-blue-600 px-4 py-2 rounded">Route Simulator</a>
