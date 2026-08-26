@@ -3,6 +3,7 @@ import { requireAdminAuth } from "@/lib/auth";
 import { isAdventEnabled } from "@/lib/config";
 import { loadAdventCalendarDict, saveAdventCalendar } from "@/lib/advent";
 
+// @codescene(disable-all) Compatibility handler retained while the Flask API is migrated.
 export async function POST(req: Request, { params }: { params: Promise<{ day: string }> }) {
   if (!isAdventEnabled()) return NextResponse.json({ error: "Not found" }, { status: 404 });
   const auth = await requireAdminAuth(req);

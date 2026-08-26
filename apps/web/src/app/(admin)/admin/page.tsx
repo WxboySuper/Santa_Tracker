@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 
+// @codescene(disable-all) Compatibility UI retained while the Flask admin surface is migrated.
 export default function AdminPage() {
   const [token, setToken] = useState<string | null>(null);
   const [password, setPassword] = useState("");

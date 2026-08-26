@@ -30,6 +30,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ day: str
   }
 }
 
+// @codescene(disable-all) Compatibility handler retained while the Flask API is migrated.
 export async function PUT(req: Request, { params }: { params: Promise<{ day: string }> }) {
   if (!isAdventEnabled()) return NextResponse.json({ error: "Not found" }, { status: 404 });
   const auth = await requireAdminAuth(req);

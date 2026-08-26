@@ -5,6 +5,4 @@ exclude:
   - apps/web/package-lock.json
   - apps/web/public/**
   - apps/web/data/**
-  # These routes are compatibility boundaries for the archived Flask runtime.
-  - apps/web/src/app/**
   - Route Data/**

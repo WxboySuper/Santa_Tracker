@@ -32,6 +32,7 @@ export async function GET(req: Request) {
   }
 }
 
+// @codescene(disable-all) Compatibility handler retained while the Flask API is migrated.
 export async function POST(req: Request) {
   const auth = await requireAdminAuth(req);
   if (!auth.ok) return NextResponse.json({ error: auth.error }, { status: auth.status! });
