@@ -79,6 +79,13 @@ function printFailures(failures) {
   console.error('See docs/DEVELOPMENT.md for setup instructions.');
 }
 
+function printHelp() {
+  console.log('Usage: pnpm bootstrap [--check] [--skip-docker]');
+  console.log(
+    'Starts PostgreSQL with Docker Compose, waits for it, then starts the Next.js dev server.',
+  );
+}
+
 function command(commandName, args) {
   const [program, commandArgs] = toolCommand(commandName, args);
   return spawn(program, commandArgs, { stdio: 'inherit', shell: process.platform === 'win32' });
@@ -105,32 +112,16 @@ async function waitForDatabase() {
   );
 }
 
-async function main() {
-  const args = new Set(process.argv.slice(2));
-  if (args.has('--help')) {
-    console.log('Usage: pnpm bootstrap [--check] [--skip-docker]');
-    console.log(
-      'Starts PostgreSQL with Docker Compose, waits for it, then starts the Next.js dev server.',
-    );
-    return;
-  }
-
-  const failures = requiredChecks({ skipDocker: args.has('--skip-docker') });
-  if (args.has('--check')) {
-    if (failures.length > 0) {
-      printFailures(failures);
-      process.exitCode = 1;
-      return;
-    }
-    console.log('Bootstrap prerequisites are available.');
-    return;
-  }
+function reportCheck(failures) {
   if (failures.length > 0) {
     printFailures(failures);
     process.exitCode = 1;
     return;
   }
+  console.log('Bootstrap prerequisites are available.');
+}
 
+async function startStack() {
   const database = command('docker', ['compose', 'up', '-d', 'postgres']);
   const databaseExit = await new Promise((resolve) => database.on('close', resolve));
   if (databaseExit !== 0) {
@@ -167,6 +158,20 @@ async function main() {
     const cleanupExit = await new Promise((resolve) => cleanup.on('close', resolve));
     if (cleanupExit !== 0 && process.exitCode === 0) process.exitCode = 1;
   }
+}
+
+async function main() {
+  const args = new Set(process.argv.slice(2));
+  if (args.has('--help')) return printHelp();
+
+  const failures = requiredChecks({ skipDocker: args.has('--skip-docker') });
+  if (args.has('--check')) return reportCheck(failures);
+  if (failures.length > 0) {
+    printFailures(failures);
+    process.exitCode = 1;
+    return;
+  }
+  await startStack();
 }
 
 main().catch((error) => {
