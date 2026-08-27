@@ -1,14 +1,5 @@
-name: First Deployment Setup (Santa Tracker) (password SSH)
+name: First Deployment Setup (Santa Tracker) Node
 
-# First-deployment workflow using password-only SSH auth.
-# Required repository secrets:
-# - PROD_DEPLOY_HOST
-# - PROD_DEPLOY_USER
-# - PROD_DEPLOY_PATH
-# - PROD_SSH_PASSWORD
-# Optional:
-# - PROD_DOTENV (full .env contents)
-# - DATABASE_URL, OTHER_KEYS...
 on:
   workflow_dispatch:
 
@@ -20,33 +11,50 @@ env:
   DEPLOY_HOST: ${{ secrets.PROD_DEPLOY_HOST }}
   DEPLOY_USER: ${{ secrets.PROD_DEPLOY_USER }}
   DEPLOY_PATH: ${{ secrets.PROD_DEPLOY_PATH }}
+  PROD_DOTENV: ${{ secrets.PROD_DOTENV }}
 
 jobs:
   first-deploy:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.3.1
 
-      - name: Install helper tools on runner
+      - name: Install helper tools
         run: |
           sudo apt-get update
           sudo apt-get install -y sshpass rsync tar
 
+      - name: Set up Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4.3.0
+        with:
+          version: 10.30.3
+
+      - name: Install and build
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm --filter web build
+        env:
+          SECRET_KEY: test-build-key-1234567890123456
+          ADMIN_PASSWORD: test-password
+          ADVENT_ENABLED: "true"
+
       - name: Prepare deployment-package
         run: |
           set -euo pipefail
+          rm -rf deployment-package
           mkdir -p deployment-package
-          # Copy application files (adjust src/ path if your app is elsewhere)
-          rsync -av --exclude='*.pyc' --exclude='__pycache__' --exclude='.env' --exclude='venv/' \
-            ./src/ deployment-package/src/ || true
-          # If Santa Tracker is a static/JS site or has frontend, include root html/static
-          rsync -av --exclude='.env' --exclude='node_modules/' ./public/ deployment-package/public/ || true
-          # Copy top-level requirements.txt if present
-          cp requirements.txt deployment-package/ || true
-          if [ -d "alembic" ]; then rsync -av --delete alembic/ deployment-package/alembic/ || true; fi
-          if [ -f "alembic.ini" ]; then cp alembic.ini deployment-package/ || true; fi
-          tar -czf deployment-package.tar.gz deployment-package || true
+          test -f apps/web/.next/standalone/server.js
+          cp -a apps/web/.next/standalone/. deployment-package/
+          mkdir -p deployment-package/.next
+          cp -a apps/web/.next/static deployment-package/.next/static
+          cp -a apps/web/public deployment-package/public
+          cp -a apps/web/data deployment-package/data
 
       - name: Create remote release directory
         run: |
@@ -56,120 +64,79 @@ jobs:
           sshpass -p "${{ secrets.PROD_SSH_PASSWORD }}" ssh -o StrictHostKeyChecking=no \
             "${{ env.DEPLOY_USER }}@${{ env.DEPLOY_HOST }}" "mkdir -p '${RELEASE_DIR}' && mkdir -p '${{ env.DEPLOY_PATH }}/releases'"
 
-      - name: Upload package to remote
+      - name: Write deployment environment
+        run: |
+          set -euo pipefail
+          if [ -z "${PROD_DOTENV:-}" ]; then
+            echo "PROD_DOTENV must be configured before the first deploy"
+            exit 1
+          fi
+          printf '%s\n' "$PROD_DOTENV" | sshpass -p "${{ secrets.PROD_SSH_PASSWORD }}" ssh -o StrictHostKeyChecking=no \
+            "${{ env.DEPLOY_USER }}@${{ env.DEPLOY_HOST }}" "umask 077; cat > '${RELEASE_DIR}/.env'"
+
+      - name: Upload package
         run: |
           sshpass -p "${{ secrets.PROD_SSH_PASSWORD }}" rsync -avz -e "ssh -o StrictHostKeyChecking=no" \
             deployment-package/ "${{ env.DEPLOY_USER }}@${{ env.DEPLOY_HOST }}:${RELEASE_DIR}/"
-          sshpass -p "${{ secrets.PROD_SSH_PASSWORD }}" scp -o StrictHostKeyChecking=no deployment-package.tar.gz \
-            "${{ env.DEPLOY_USER }}@${{ env.DEPLOY_HOST }}:${RELEASE_DIR}/"
 
-      - name: Configure remote environment (venv, pip install)
+      - name: Install systemd unit (santa-tracker Node)
         run: |
-          sshpass -p "${{ secrets.PROD_SSH_PASSWORD }}" ssh -o StrictHostKeyChecking=no \
-            "${{ env.DEPLOY_USER }}@${{ env.DEPLOY_HOST }}" "RELEASE_DIR='${{ env.RELEASE_DIR }}' DEPLOY_PATH='${{ env.DEPLOY_PATH }}' bash -s" <<'EOF'
-          set -euo pipefail
-          cd "$RELEASE_DIR" || exit 1
-          # Choose python3 if available
-          if command -v python3 >/dev/null 2>&1; then
-            PYTHON=python3
-          else
-            PYTHON=python
-          fi
-          $PYTHON -m venv venv
-          . venv/bin/activate
-          pip install --upgrade pip setuptools wheel || true
-          if [ -f "${RELEASE_DIR}/requirements.txt" ]; then
-            pip install -r "${RELEASE_DIR}/requirements.txt" || true
-          elif [ -f "../requirements.txt" ]; then
-            pip install -r "../requirements.txt" || true
-          fi
-          mkdir -p "${DEPLOY_PATH}"
-          EOF
-        env:
-          RELEASE_DIR: ${{ env.RELEASE_DIR }}
-          DEPLOY_PATH: ${{ env.DEPLOY_PATH }}
-
-      - name: Install systemd unit (santa-tracker)
-        run: |
-          SERVICE_NAME="santa-tracker"
           sshpass -p "${{ secrets.PROD_SSH_PASSWORD }}" ssh -o StrictHostKeyChecking=no \
             "${{ env.DEPLOY_USER }}@${{ env.DEPLOY_HOST }}" "DEPLOY_PATH='${{ env.DEPLOY_PATH }}' DEPLOY_USER='${{ env.DEPLOY_USER }}' bash -s" <<'EOF'
           set -euo pipefail
           SERVICE_FILE="/etc/systemd/system/santa-tracker.service"
           sudo tee "${SERVICE_FILE}" > /dev/null <<'SERVICEEOF'
           [Unit]
-          Description=Santa Tracker Web App
+          Description=Santa Tracker Next.js
           After=network.target
-
           [Service]
           Type=simple
           User=santa
+          Group=santa
           WorkingDirectory=/srv/santa-tracker/current
-          # Adjust ExecStart to your app's entrypoint (see docs/DEPLOY.md)
-          ExecStart=/srv/santa-tracker/current/venv/bin/python -m src.app
+          ExecStart=/usr/bin/node server.js
           Restart=on-failure
           RestartSec=5
-          Environment=PYTHONUNBUFFERED=1
-          # If you use an env file: EnvironmentFile=${DEPLOY_PATH}/current/.env
+          Environment=NODE_ENV=production
+          Environment=PORT=3000
+          EnvironmentFile=/srv/santa-tracker/current/.env
           [Install]
           WantedBy=multi-user.target
           SERVICEEOF
           sudo systemctl daemon-reload
           sudo systemctl enable santa-tracker || true
           EOF
-        env:
-          DEPLOY_PATH: ${{ env.DEPLOY_PATH }}
-          DEPLOY_USER: ${{ env.DEPLOY_USER }}
 
-      - name: Atomic switch to new release and start service
+      - name: Atomic switch and start
         run: |
           sshpass -p "${{ secrets.PROD_SSH_PASSWORD }}" ssh -o StrictHostKeyChecking=no \
             "${{ env.DEPLOY_USER }}@${{ env.DEPLOY_HOST }}" "RELEASE_DIR='${{ env.RELEASE_DIR }}' DEPLOY_PATH='${{ env.DEPLOY_PATH }}' DEPLOY_USER='${{ env.DEPLOY_USER }}' bash -s" <<'EOF'
           set -euo pipefail
-          # Switch symlink (privileged operation)
           sudo ln -sfn "$RELEASE_DIR" "${DEPLOY_PATH}/current"
-          # Ensure the release files and symlink are owned by the deploy user
           sudo chown -R "$DEPLOY_USER:$DEPLOY_USER" "$RELEASE_DIR" || true
           sudo chown -h "$DEPLOY_USER:$DEPLOY_USER" "${DEPLOY_PATH}/current" || true
-          # (Optional) fix perms on data dir
           sudo chown -R "$DEPLOY_USER:$DEPLOY_USER" "${DEPLOY_PATH}/data" || true
-          # Restart service
           sudo systemctl restart santa-tracker || sudo systemctl start santa-tracker
           sleep 3
-          # Verification will be done in next step
           EOF
-        env:
-          RELEASE_DIR: ${{ env.RELEASE_DIR }}
-          DEPLOY_PATH: ${{ env.DEPLOY_PATH }}
-          DEPLOY_USER: ${{ env.DEPLOY_USER }}
 
       - name: Post-deploy verification
         run: |
           set -euo pipefail
-          echo "Verifying deployment ownership and service status..."
           sshpass -p "${{ secrets.PROD_SSH_PASSWORD }}" ssh -o StrictHostKeyChecking=no \
             "${{ env.DEPLOY_USER }}@${{ env.DEPLOY_HOST }}" "DEPLOY_PATH='${{ env.DEPLOY_PATH }}' DEPLOY_USER='${{ env.DEPLOY_USER }}' bash -s" <<'VERIFY_EOF'
           set -euo pipefail
-          
-          # Check ownership of current symlink
           CURRENT_OWNER=$(stat -c '%U:%G' "${DEPLOY_PATH}/current" 2>/dev/null || echo "missing")
           echo "Current symlink owner: ${CURRENT_OWNER}"
           if [ "${CURRENT_OWNER}" != "${DEPLOY_USER}:${DEPLOY_USER}" ]; then
             echo "ERROR: current symlink is not owned by ${DEPLOY_USER}"
-            stat -c '%U:%G %n' "${DEPLOY_PATH}/current" || true
             exit 1
           fi
-          
-          # Check service status
           if ! sudo systemctl is-active --quiet santa-tracker; then
             echo "ERROR: santa-tracker service is not active"
             sudo systemctl status santa-tracker --no-pager || true
-            sudo journalctl -u santa-tracker -n 200 --no-pager || true
             exit 1
           fi
-          
-          echo "✓ Deployment verification passed: ownership correct and service active"
+          curl -f http://127.0.0.1:3000/api/health || { echo "health check failed"; exit 1; }
+          echo "✓ Deployment verification passed"
           VERIFY_EOF
-        env:
-          DEPLOY_PATH: ${{ env.DEPLOY_PATH }}
-          DEPLOY_USER: ${{ env.DEPLOY_USER }}

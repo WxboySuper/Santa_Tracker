@@ -17,7 +17,7 @@
     "lint:fix": "eslint . --fix",
     "lint:js": "eslint . --max-warnings=0",
     "lint:legacy:js": "eslint src --ext .js",
-    "lint:html": "htmlhint \"**/*.html\" --ignore \"src/templates/index.html\"",
+    "lint:html": "htmlhint \"apps/web/**/*.html\"",
     "lint:css": "stylelint \"**/*.css\" --ignore-path .gitignore",
     "test": "vitest run",
     "test:watch": "vitest",
