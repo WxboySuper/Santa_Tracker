@@ -1,6 +1,4 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
 
 :root {
     --primary: #c41e3a;
@@ -167,4 +165,3 @@ body {
 .node-locked .drag-handle {
     @apply cursor-not-allowed opacity-50;
 }
-
