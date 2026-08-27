@@ -4,9 +4,9 @@ Santa Tracker runs as a Next.js application in a pnpm workspace. The Flask appli
 
 ## Prerequisites
 
-- Node.js 20 or newer
-- pnpm 9 or newer
-- PostgreSQL 16 or newer for studio and publication flows
+- Node.js 22.13 or newer
+- pnpm 10 or newer
+- Docker Desktop with the Compose plugin and a running Docker engine
 
 Install dependencies from the repository root:
 
@@ -15,7 +15,24 @@ corepack enable
 pnpm install
 ```
 
-## Run the app
+### One-command local bootstrap
+
+```bash
+pnpm bootstrap
+```
+
+This checks for Node.js 22.13+, pnpm 10+, and Docker Desktop with Compose. It starts the PostgreSQL 16 service,
+waits until `pg_isready` succeeds, and starts the Next.js dev server. The default connection string is
+`postgresql://santa:santa@localhost:5432/santa_tracker`, matching `packages/config` and the Drizzle config.
+
+The command works from PowerShell, Command Prompt, macOS, and Linux because it uses Node's process APIs instead of
+shell-specific syntax. If a prerequisite is missing, it prints the install or startup action to take. To validate
+the Node and pnpm path without starting Docker, use `pnpm bootstrap --check --skip-docker`. CI verifies the full
+Docker prerequisite on Linux and the Node/pnpm path on Windows. macOS is not a supported CI target at this time.
+
+To remove the local database volume and its data, run `docker compose down --volumes`.
+
+### Next.js shell
 
 ```bash
 pnpm dev
