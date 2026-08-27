@@ -329,23 +329,17 @@ def _coerce_node_coords_from_dict(
         try:
             out["latitude"] = float(lat_cand)
         except (TypeError, ValueError):
-            logger.debug(
-                "ignored invalid latitude=%r for node=%r", lat_cand, n.get("id")
-            )
+            logger.debug("ignored invalid latitude for node data")
     if lng_cand is not None:
         try:
             out["longitude"] = float(lng_cand)
         except (TypeError, ValueError):
-            logger.debug(
-                "ignored invalid longitude=%r for node=%r", lng_cand, n.get("id")
-            )
+            logger.debug("ignored invalid longitude for node data")
     if tz_cand is not None:
         try:
             out["utc_offset"] = float(tz_cand)
         except (TypeError, ValueError):
-            logger.debug(
-                "ignored invalid timezone_offset=%r for node=%r", tz_cand, n.get("id")
-            )
+            logger.debug("ignored invalid timezone offset for node data")
     return out
 
 
@@ -370,11 +364,7 @@ def _coerce_node_stop_experience_from_dict(n: Dict[str, Any]) -> Dict[str, Any]:
             if val is not None:
                 out["stop_duration"] = int(float(val) / 60)
         except (TypeError, ValueError):
-            logger.debug(
-                "ignored invalid stop_experience.duration_seconds=%r for node=%r",
-                se.get("duration_seconds"),
-                n.get("id"),
-            )
+            logger.debug("ignored invalid stop experience duration")
     return out
 
 
@@ -428,19 +418,19 @@ def _coerce_node_coords_from_legacy_obj(n) -> Dict[str, Any]:
         try:
             out["latitude"] = float(latv)
         except (TypeError, ValueError):
-            logger.debug("ignored invalid latitude=%r for legacy obj", latv)
+            logger.debug("ignored invalid latitude for legacy object")
     lngv = getattr(n, "lng", None) or getattr(n, "longitude", None)
     if lngv is not None:
         try:
             out["longitude"] = float(lngv)
         except (TypeError, ValueError):
-            logger.debug("ignored invalid longitude=%r for legacy obj", lngv)
+            logger.debug("ignored invalid longitude for legacy object")
     tzv = getattr(n, "timezone_offset", None) or getattr(n, "utc_offset", None)
     if tzv is not None:
         try:
             out["utc_offset"] = float(tzv)
         except (TypeError, ValueError):
-            logger.debug("ignored invalid utc_offset=%r for legacy obj", tzv)
+            logger.debug("ignored invalid UTC offset for legacy object")
     return out
 
 
