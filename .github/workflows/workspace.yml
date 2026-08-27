@@ -14,6 +14,20 @@ jobs:
   workspace:
     runs-on: ubuntu-latest
     name: Typecheck / Lint / Test / Build
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: santa
+          POSTGRES_PASSWORD: santa
+          POSTGRES_DB: santa_tracker_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U santa -d santa_tracker_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     steps:
       - uses: actions/checkout@v4
 
@@ -38,6 +52,8 @@ jobs:
         run: pnpm lint
 
       - name: Test
+        env:
+          DATABASE_URL_TEST: postgresql://santa:santa@localhost:5432/santa_tracker_test
         run: pnpm test
 
       - name: Production build

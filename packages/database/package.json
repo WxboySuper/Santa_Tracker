@@ -14,7 +14,8 @@
     "test": "vitest run",
     "build": "tsc --noEmit",
     "db:generate": "drizzle-kit generate",
-    "db:migrate": "drizzle-kit migrate"
+    "db:migrate": "drizzle-kit migrate",
+    "db:test": "vitest run src/migrate.test.ts"
   },
   "dependencies": {
     "@santa-tracker/config": "workspace:*",
@@ -28,4 +29,3 @@
     "vitest": "^3.2.4"
   }
 }
-
