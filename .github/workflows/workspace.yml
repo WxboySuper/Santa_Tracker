@@ -5,6 +5,7 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -56,23 +57,54 @@ jobs:
     name: Windows bootstrap path
     steps:
       - uses: actions/checkout@v4
-
       - name: Set up pnpm
         uses: pnpm/action-setup@v4
         with:
           version: 10.30.3
-
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '22'
           cache: 'pnpm'
-
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
-
       - name: Verify Windows bootstrap path
         run: pnpm bootstrap --check --skip-docker
+
+  database-migrations:
+    runs-on: ubuntu-latest
+    name: PostgreSQL migrations
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: santa
+          POSTGRES_PASSWORD: santa
+          POSTGRES_DB: santa_tracker_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U santa -d santa_tracker_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.30.3
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Run migration integration tests
+        env:
+          DATABASE_URL_TEST: postgresql://santa:santa@localhost:5432/santa_tracker_test
+        run: pnpm --filter @santa-tracker/database db:test
 
   dependency-rules:
     runs-on: ubuntu-latest

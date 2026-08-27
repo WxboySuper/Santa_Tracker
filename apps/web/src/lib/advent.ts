@@ -1,16 +1,35 @@
 import fs from "fs/promises";
-import fsSync from "fs";
+import type { Stats } from "node:fs";
 import path from "path";
-import { getAdventCalendarPath } from "./config";
+import { getAdventCalendarPath, isAdventEnabled } from "./config";
 
 export interface AdventDay {
   day: number;
   title: string;
   unlock_time: string;
   content_type: "fact" | "game" | "story" | "video" | "activity" | "quiz";
-  payload: Record<string, any>;
+  payload: Record<string, unknown>;
   is_unlocked_override?: boolean | null;
   isCurrentlyUnlocked?: boolean;
+}
+
+export interface AdventPublicDay {
+  day: number;
+  title: string;
+  unlock_time: string;
+  content_type: AdventDay["content_type"];
+  is_unlocked: boolean;
+  payload?: Record<string, unknown>;
+}
+
+export interface AdventManifest {
+  total_days: number;
+  days: AdventPublicDay[];
+}
+
+export interface AdventApiResult {
+  status: number;
+  body: object;
 }
 
 interface AdventFileOptions {
@@ -26,7 +45,7 @@ interface AdventTextValue {
 }
 
 // simple in-memory cache with mtime validation
-const cache = new Map<string, { mtimeMs: number; size: number; ino: number; data: AdventDay[] }>();
+const cache = new Map<string, { mtimeMs: number; size: number; data: AdventDay[] }>();
 const CONTENT_TYPES = ["fact", "game", "story", "video", "activity", "quiz"] as const;
 
 function clone<T>(value: T): T {
@@ -65,8 +84,21 @@ function validateDayNumber(day: number): void {
 }
 
 function validateContentType({ contentType }: { contentType: string }): void {
-  if (!CONTENT_TYPES.includes(contentType as (typeof CONTENT_TYPES)[number])) {
+  if (!isValidContentType(contentType)) {
     throw new Error(`Content type must be one of ${CONTENT_TYPES}`);
+  }
+}
+
+export function isValidContentType(contentType: string): boolean {
+  return CONTENT_TYPES.includes(contentType as (typeof CONTENT_TYPES)[number]);
+}
+
+export function isValidUnlockTime(value: string): boolean {
+  try {
+    validateUnlockTime({ value });
+    return true;
+  } catch {
+    return false;
   }
 }
 
@@ -80,10 +112,14 @@ function validateDayUnlockTime(value: AdventTextValue): void {
 
 export async function loadAdventCalendar(options: AdventFileOptions = {}): Promise<AdventDay[]> {
   const p = path.resolve(options.filePath ?? getAdventCalendarPath());
-  if (!fsSync.existsSync(p)) throw new Error(`Advent calendar file not found: ${p}`);
-  const stat = fsSync.statSync(p);
+  let stat: Stats;
+  try {
+    stat = await fs.stat(p);
+  } catch {
+    throw new Error(`Advent calendar file not found: ${p}`);
+  }
   const cached = cache.get(p);
-  if (cached && cached.mtimeMs === stat.mtimeMs && cached.size === stat.size && cached.ino === stat.ino) {
+  if (cached && cached.mtimeMs === stat.mtimeMs && cached.size === stat.size) {
     return clone(cached.data);
   }
   const content = await fs.readFile(p, "utf-8");
@@ -95,7 +131,7 @@ export async function loadAdventCalendar(options: AdventFileOptions = {}): Promi
     throw new Error(`JSON decode error in ${p}: ${e.message}`);
   }
   const days = (data.days ?? []).map(parseAdventDay);
-  cache.set(p, { mtimeMs: stat.mtimeMs, size: stat.size, ino: stat.ino, data: days });
+  cache.set(p, { mtimeMs: stat.mtimeMs, size: stat.size, data: days });
   return clone(days);
 }
 
@@ -112,9 +148,9 @@ export function isUnlocked(day: AdventDay, currentTime: Date = new Date()): bool
   return currentTime.getTime() >= unlock.getTime();
 }
 
-export function toDict(day: AdventDay, opts: { includePayload?: boolean; currentTime?: Date } = {}) {
+export function toDict(day: AdventDay, opts: { includePayload?: boolean; currentTime?: Date } = {}): AdventPublicDay {
   const unlocked = isUnlocked(day, opts.currentTime);
-  const result: any = {
+  const result: AdventPublicDay = {
     day: day.day,
     title: day.title,
     unlock_time: day.unlock_time,
@@ -125,18 +161,68 @@ export function toDict(day: AdventDay, opts: { includePayload?: boolean; current
   return result;
 }
 
-export async function getManifest(options: AdventQueryOptions = {}) {
+export async function getManifest(options: AdventQueryOptions = {}): Promise<AdventManifest> {
   const days = await loadAdventCalendar(options);
   const daysData = days.map(d => toDict(d, { includePayload: false, currentTime: options.currentTime }));
   return { total_days: days.length, days: daysData };
 }
 
-export async function getDayContent(dayNumber: number, options: AdventQueryOptions = {}) {
+export async function getDayContent(dayNumber: number, options: AdventQueryOptions = {}): Promise<AdventPublicDay | null> {
   if (dayNumber < 1 || dayNumber > 24) return null;
   const dict = await loadAdventCalendarDict(options);
   const day = dict.get(dayNumber);
   if (!day) return null;
   return toDict(day, { includePayload: true, currentTime: options.currentTime });
+}
+
+function isNotFoundError(error: unknown): boolean {
+  return error instanceof Error && error.message.includes("not found");
+}
+
+export function parseDayNumber(rawDay: string): number | null {
+  const dayNumber = Number(rawDay);
+  return Number.isInteger(dayNumber) && dayNumber >= 1 && dayNumber <= 24 ? dayNumber : null;
+}
+
+function dayContentResult(content: AdventPublicDay): AdventApiResult {
+  if (!content.is_unlocked) {
+    return {
+      status: 403,
+      body: { error: "Day is locked", day: content.day, title: content.title, unlock_time: content.unlock_time },
+    };
+  }
+  return { status: 200, body: content };
+}
+
+async function loadDayApiResult(dayNumber: number): Promise<AdventApiResult> {
+  const content = await getDayContent(dayNumber);
+  if (!content) return { status: 404, body: { error: "Day not found" } };
+  return dayContentResult(content);
+}
+
+function invalidDayResult(): AdventApiResult {
+  return { status: 404, body: { error: "Day not found" } };
+}
+
+async function getValidatedDayApiResult(rawDay: string): Promise<AdventApiResult> {
+  const dayNumber = parseDayNumber(rawDay);
+  if (dayNumber === null) return invalidDayResult();
+  return getDayApiResultWithErrorHandling(dayNumber);
+}
+
+async function getDayApiResultWithErrorHandling(dayNumber: number): Promise<AdventApiResult> {
+  try {
+    return await loadDayApiResult(dayNumber);
+  } catch (error: unknown) {
+    if (isNotFoundError(error)) return { status: 404, body: { error: "Advent calendar data not found" } };
+    console.error("Advent day error", error);
+    return { status: 500, body: { error: "Internal server error" } };
+  }
+}
+
+export async function getDayApiResult(rawDay: string): Promise<AdventApiResult> {
+  if (!isAdventEnabled()) return { status: 404, body: { error: "Not found" } };
+  return getValidatedDayApiResult(rawDay);
 }
 
 export async function saveAdventCalendar(days: AdventDay[] | Map<number, AdventDay>, options: AdventFileOptions = {}) {
