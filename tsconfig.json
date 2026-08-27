@@ -27,7 +27,8 @@
       "@santa-tracker/ui": ["packages/ui/src"],
       "@santa-tracker/activity-sdk": ["packages/activity-sdk/src"],
       "@santa-tracker/config": ["packages/config/src"],
-      "@santa-tracker/test-fixtures": ["packages/test-fixtures/src"]
+      "@santa-tracker/test-fixtures": ["packages/test-fixtures/src"],
+      "@/*": ["apps/web/src/*"]
     }
   },
   "exclude": ["node_modules", "dist", ".next", "coverage", "apps/web/.next", "apps/web/dist"]
