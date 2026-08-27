@@ -13,7 +13,7 @@
     "@dnd-kit/sortable": "^8.0.0",
     "@dnd-kit/utilities": "^3.2.2",
     "leaflet": "^1.9.4",
-    "lucide-react": "^0.294.0",
+    "lucide-react": "^1.33.0",
     "react": "^19.2.8",
     "react-dom": "^18.2.0",
     "react-leaflet": "^4.2.1",
@@ -22,7 +22,7 @@
   "devDependencies": {
     "@types/react": "^19.2.18",
     "@types/react-dom": "^18.2.17",
-    "@vitejs/plugin-react": "^6.0.5",
+    "@vitejs/plugin-react": "^6.1.0",
     "autoprefixer": "^10.5.4",
     "postcss": "^8.5.24",
     "tailwindcss": "^3.3.6",
