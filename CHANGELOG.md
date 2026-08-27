@@ -49,3 +49,9 @@
 RET_KEY` must be ≥16 chars; set via `PROD_DOTENV` on VPS (`.env` mode 600).
 - After deploy, verify `GET /api/health` and `current` symlink ownership per `DEPLOY.md`.
 - Historical `Route Data/` remains under `archive/` for provenance; new runtime does not read it.
+
+## [PR #368] - 2026-08-27 - feat(migrations): establish postgres migration workflow
+
+- **Database:** Adds the initial Drizzle SQL migration and metadata for the publications, locations, and audit events tables.
+- **Workflow:** Adds a reusable migration runner, an isolated PostgreSQL integration test, and a PostgreSQL 16 CI service. The test applies migrations to an empty database and runs it a second time to verify repeatability.
+- **Documentation:** Documents local migration commands and the transactional failure and rollback behavior used for production migrations.

@@ -31,6 +31,22 @@ pnpm test:watch
 pnpm build
 ```
 
+### Database migrations
+
+The `@santa-tracker/database` package owns PostgreSQL migrations. Generate a new migration after changing `src/schema.ts`, inspect the SQL, and commit the migration plus its `drizzle/meta` files:
+
+```bash
+pnpm --filter @santa-tracker/database db:generate
+DATABASE_URL=postgresql://santa:santa@localhost:5432/santa_tracker \
+  pnpm --filter @santa-tracker/database db:migrate
+```
+
+The `db:migrate` script calls the same `migrateDatabase` runner used by application code. CI runs the database integration tests in a separate PostgreSQL 16 job against `santa_tracker_test`, while the regular workspace checks do not need a database. The test clears only that database, applies all committed migrations twice, checks the resulting tables and columns, and verifies a failed migration leaves the prior schema usable. Local `pnpm test` skips these integration cases unless `DATABASE_URL_TEST` is set.
+
+Each Drizzle migration runs in a transaction. If a statement fails, PostgreSQL rolls back that migration and leaves the last committed schema available. Do not disable transactional migration execution for production changes. Fix the migration, verify it against an empty test database, and rerun `db:migrate`. Never repair production by deleting rows from `__drizzle_migrations` or by editing an applied migration. For a change that needs data repair, add a new migration with an explicit rollback or recovery procedure.
+
+### Legacy Flask (maintenance until parity)
+
 The production build uses Next.js standalone output. The generated server is `apps/web/.next/standalone/server.js`.
 
 ## Tests and linting
