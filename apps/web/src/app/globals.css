@@ -1,18 +1,12 @@
 @import "tailwindcss";
 
+/* globals.css is four directories below the workspace root. */
 @source "../../../../packages/ui/src";
 
 @theme {
   --color-north-pole-night: #0b1220;
   --color-aurora-teal: #2dd4bf;
   --color-santa-red: #dc2626;
-}
-
-/* Seasonal shell — replaced by the full design system in the North Pole milestone */
-:root {
-  --north-pole-night: #0b1220;
-  --aurora-teal: #2dd4bf;
-  --santa-red: #dc2626;
 }
 
 html,

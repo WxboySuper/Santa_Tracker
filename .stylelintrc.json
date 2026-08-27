@@ -11,9 +11,15 @@
         "ignoreAtRules": ["tailwind", "source", "theme"]
       }
     ],
-    "import-notation": null
+    "import-notation": "url"
   },
   "overrides": [
+    {
+      "files": ["apps/web/src/app/globals.css", "tools/route-editor/src/index.css"],
+      "rules": {
+        "import-notation": "string"
+      }
+    },
     {
       "files": ["src/advent_activities/**/*.css"],
       "rules": {
