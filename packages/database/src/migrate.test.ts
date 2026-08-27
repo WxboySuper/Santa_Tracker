@@ -12,7 +12,7 @@ describe('database migrations', () => {
     const client = postgres(databaseUrl, { max: 1 });
     try {
       await client.unsafe(
-        'DROP TABLE IF EXISTS "audit_events", "locations", "publications", "__drizzle_migrations" CASCADE',
+        'DROP SCHEMA IF EXISTS "drizzle" CASCADE; DROP TABLE IF EXISTS "audit_events", "locations", "publications" CASCADE',
       );
     } finally {
       await client.end();
@@ -66,7 +66,7 @@ describe('database migrations', () => {
       ]);
 
       const migrationRows = await verify<{ count: string }[]>`
-        SELECT count(*)::text AS count FROM "__drizzle_migrations"
+        SELECT count(*)::text AS count FROM "drizzle"."__drizzle_migrations"
       `;
       expect(migrationRows[0]?.count).toBe('1');
     } finally {
@@ -80,7 +80,7 @@ describe('database migrations', () => {
     const client = postgres(databaseUrl, { max: 1 });
     try {
       await client.unsafe(
-        'DROP TABLE IF EXISTS "migration_probe", "migration_probe_invalid", "__drizzle_migrations" CASCADE',
+        'DROP SCHEMA IF EXISTS "drizzle" CASCADE; DROP TABLE IF EXISTS "migration_probe", "migration_probe_invalid" CASCADE',
       );
     } finally {
       await client.end();
