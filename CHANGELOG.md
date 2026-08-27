@@ -30,6 +30,8 @@
 - **Bootstrap:** Adds `pnpm bootstrap`, which checks Node.js, pnpm, and Docker Compose, starts PostgreSQL 16 with
   `docker-compose.yml`, waits for database readiness, and starts the Next.js dev server. `--check --skip-docker`
   supports CI and toolchain-only checks.
+- **CI:** Adds explicit Linux bootstrap coverage that starts the compose PostgreSQL service and waits for readiness,
+  alongside the Windows prerequisite-path job. macOS is not included in the CI matrix.
 - **Docs and tests:** Documents Windows, macOS, Linux, and CI usage and tests the help and prerequisite paths.
 
 ## [PR #350] - 2026-08-21 - feat(foundation): scaffold Next.js pnpm workspace
