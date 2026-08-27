@@ -82,6 +82,9 @@ describe('database migrations', () => {
       await client.unsafe(
         'DROP SCHEMA IF EXISTS "drizzle" CASCADE; DROP TABLE IF EXISTS "migration_probe", "migration_probe_invalid" CASCADE',
       );
+      await client.unsafe(
+        'CREATE TABLE "migration_probe" ("id" integer PRIMARY KEY NOT NULL)',
+      );
     } finally {
       await client.end();
     }
