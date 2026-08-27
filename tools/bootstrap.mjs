@@ -19,7 +19,7 @@ function versionParts(value) {
 }
 
 function executable(name) {
-  return process.platform === 'win32' ? `${name}.cmd` : name;
+  return process.platform === 'win32' && ['corepack', 'pnpm'].includes(name) ? `${name}.cmd` : name;
 }
 
 function toolCommand(name, args = []) {
@@ -59,6 +59,13 @@ function requiredChecks({ skipDocker = false } = {}) {
       failures.push(
         'Docker Desktop with the Compose plugin is required. Install or start Docker Desktop, then rerun `pnpm bootstrap`.',
       );
+    } else {
+      const engine = run('docker', ['info']);
+      if (engine.status !== 0) {
+        failures.push(
+          'The Docker engine is not running. Start Docker Desktop or the Docker service, then rerun `pnpm bootstrap`.',
+        );
+      }
     }
   }
   return failures;

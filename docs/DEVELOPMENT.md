@@ -27,7 +27,8 @@ waits until `pg_isready` succeeds, and starts the Next.js dev server. The defaul
 
 The command works from PowerShell, Command Prompt, macOS, and Linux because it uses Node's process APIs instead of
 shell-specific syntax. If a prerequisite is missing, it prints the install or startup action to take. To validate
-the Node and pnpm path without starting Docker, use `pnpm bootstrap --check --skip-docker`.
+the Node and pnpm path without starting Docker, use `pnpm bootstrap --check --skip-docker`. CI verifies the full
+Docker prerequisite on Linux and the Node/pnpm path on Windows. macOS is not a supported CI target at this time.
 
 To remove the local database volume and its data, run `docker compose down --volumes`.
 

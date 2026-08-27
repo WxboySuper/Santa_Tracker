@@ -39,7 +39,8 @@ The command checks Node.js, pnpm, and Docker Desktop first. It starts the Postgr
 `docker-compose.yml`, waits for `pg_isready`, then runs `pnpm dev` at `http://localhost:3000`. Database data stays in
 the `santa-tracker-postgres` Docker volume. Stop the app with `Ctrl+C`; stop the database with `docker compose down`.
 
-For a toolchain check in CI or on a machine without Docker, run `pnpm bootstrap --check --skip-docker`.
+For a toolchain check on a machine without Docker, run `pnpm bootstrap --check --skip-docker`. The normal check also
+confirms that the Docker engine is running.
 
 ### Run workspace checks
 Env: `SECRET_KEY`, `ADMIN_PASSWORD`, `ADVENT_ENABLED=True/False`, `LOG_LEVEL`, `JSON_LOGS`, `SANTA_ROUTE_PATH`, `ADVENT_CALENDAR_PATH`.
