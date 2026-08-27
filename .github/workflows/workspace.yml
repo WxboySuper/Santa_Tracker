@@ -42,11 +42,37 @@ jobs:
       - name: Production build
         run: pnpm build
 
+      - name: Verify bootstrap prerequisites
+        run: pnpm bootstrap --check
+
       - name: Verify single-command install
         run: |
           rm -rf node_modules apps/web/node_modules packages/*/node_modules
           pnpm install --frozen-lockfile
           echo "✓ Fresh clone installs with one pnpm command"
+
+  windows-bootstrap:
+    runs-on: windows-latest
+    name: Windows bootstrap path
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.30.3
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Verify Windows bootstrap path
+        run: pnpm bootstrap --check --skip-docker
 
   dependency-rules:
     runs-on: ubuntu-latest

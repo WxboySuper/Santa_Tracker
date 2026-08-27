@@ -6,6 +6,14 @@ Format: `## [PR #] - YYYY-MM-DD - <type>(<scope>): <summary>`
 
 ## [Unreleased]
 
+## [PR TBD] - 2026-08-27 - feat(foundation): add local stack bootstrap
+
+- **Issue:** Fixes #219, the one-command local developer bootstrap.
+- **Bootstrap:** Adds `pnpm bootstrap`, which checks Node.js, pnpm, and Docker Compose, starts PostgreSQL 16 with
+  `docker-compose.yml`, waits for database readiness, and starts the Next.js dev server. `--check --skip-docker`
+  supports CI and toolchain-only checks.
+- **Docs and tests:** Documents Windows, macOS, Linux, and CI usage and tests the help and prerequisite paths.
+
 ## [PR #350] - 2026-08-21 - feat(foundation): scaffold Next.js pnpm workspace
 
 - **Issue:** Closes #213 — [Foundation] Scaffold the Next.js pnpm workspace; parent tracker #199.

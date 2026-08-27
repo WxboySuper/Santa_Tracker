@@ -40,7 +40,21 @@ cd Santa_Tracker
 pnpm install
 ```
 
-### Run the new shell
+### Start the local stack
+
+After installation, start PostgreSQL and the Next.js development server with one command:
+
+```bash
+pnpm bootstrap
+```
+
+The command checks Node.js, pnpm, and Docker Desktop first. It starts the PostgreSQL 16 container from
+`docker-compose.yml`, waits for `pg_isready`, then runs `pnpm dev` at `http://localhost:3000`. Database data stays in
+the `santa-tracker-postgres` Docker volume. Stop the app with `Ctrl+C`; stop the database with `docker compose down`.
+
+For a toolchain check in CI or on a machine without Docker, run `pnpm bootstrap --check --skip-docker`.
+
+### Run workspace checks
 
 ```bash
 pnpm dev          # Next.js App Router at http://localhost:3000

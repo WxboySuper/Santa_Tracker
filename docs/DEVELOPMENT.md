@@ -15,6 +15,22 @@ This guide covers development workflows, testing, linting, and building the Sant
 pnpm install
 ```
 
+### One-command local bootstrap
+
+```bash
+pnpm bootstrap
+```
+
+This checks for Node.js 22.13+, pnpm 10+, and Docker Desktop with Compose. It starts the PostgreSQL 16 service,
+waits until `pg_isready` succeeds, and starts the Next.js dev server. The default connection string is
+`postgresql://santa:santa@localhost:5432/santa_tracker`, matching `packages/config` and the Drizzle config.
+
+The command works from PowerShell, Command Prompt, macOS, and Linux because it uses Node's process APIs instead of
+shell-specific syntax. If a prerequisite is missing, it prints the install or startup action to take. To validate
+the Node and pnpm path without starting Docker, use `pnpm bootstrap --check --skip-docker`.
+
+To remove the local database volume and its data, run `docker compose down --volumes`.
+
 ### Next.js shell
 
 ```bash

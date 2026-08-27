@@ -11,6 +11,7 @@
   },
   "scripts": {
     "dev": "pnpm --filter @santa-tracker/web dev",
+    "bootstrap": "node tools/bootstrap.mjs",
     "build": "pnpm -r build",
     "typecheck": "tsc --noEmit",
     "lint": "eslint . --max-warnings=0",
