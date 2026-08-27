@@ -1,6 +1,12 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+
+@source "../../../../packages/ui/src";
+
+@theme {
+  --color-north-pole-night: #0b1220;
+  --color-aurora-teal: #2dd4bf;
+  --color-santa-red: #dc2626;
+}
 
 /* Seasonal shell — replaced by the full design system in the North Pole milestone */
 :root {
