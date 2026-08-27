@@ -1,5 +1,35 @@
 import { z } from 'zod';
-import { SCHEMA_VERSION, SeasonModeValues } from './ids';
+import {
+  SCHEMA_VERSION,
+  SUPPORTED_SCHEMA_VERSIONS,
+  SeasonModeValues,
+  createActivityId,
+  createLocationId,
+  createPublicationId,
+  createSnapshotId,
+} from './ids';
+import type { ActivityId, LocationId, PublicationId, SnapshotId } from './ids';
+
+export type ContractErrorCode = 'invalid_input' | 'unsupported_schema_version';
+
+export class ContractValidationError extends Error {
+  readonly name = 'ContractValidationError';
+
+  constructor(
+    readonly code: ContractErrorCode,
+    readonly schemaName: string,
+    readonly issues: readonly z.ZodIssue[],
+  ) {
+    super(`${schemaName} ${code.replace('_', ' ')}`);
+  }
+}
+
+export const SchemaVersionSchema = z.enum(SUPPORTED_SCHEMA_VERSIONS);
+export const PublicIdSchema = z.string().min(1).regex(/^[a-z0-9]+(?:[-_][a-z0-9]+)*$/);
+export const PublicationIdSchema: z.ZodType<PublicationId, z.ZodTypeDef, string> = PublicIdSchema.transform(createPublicationId);
+export const LocationIdSchema: z.ZodType<LocationId, z.ZodTypeDef, string> = PublicIdSchema.transform(createLocationId);
+export const SnapshotIdSchema: z.ZodType<SnapshotId, z.ZodTypeDef, string> = PublicIdSchema.transform(createSnapshotId);
+export const ActivityIdSchema: z.ZodType<ActivityId, z.ZodTypeDef, string> = PublicIdSchema.transform(createActivityId);
 
 // ---------------------------------------------------------------------------
 // Primitives
@@ -17,7 +47,7 @@ export type Coordinates = z.infer<typeof CoordinatesSchema>;
 // ---------------------------------------------------------------------------
 
 export const LocationSchema = z.object({
-  id: z.string().min(1),
+  id: LocationIdSchema,
   name: z.string().min(1),
   country: z.string().min(1),
   coordinates: CoordinatesSchema,
@@ -30,7 +60,7 @@ export const LocationSchema = z.object({
 export type Location = z.infer<typeof LocationSchema>;
 
 export const RouteStopSchema = z.object({
-  locationId: z.string().min(1),
+  locationId: LocationIdSchema,
   arrivalIso: z.string().datetime({ offset: true }),
   departureIso: z.string().datetime({ offset: true }),
   durationSeconds: z.number().int().min(0),
@@ -51,9 +81,15 @@ export type Route = z.infer<typeof RouteSchema>;
 // ---------------------------------------------------------------------------
 
 export const SnapshotSchema = z.object({
-  schemaVersion: z.literal(SCHEMA_VERSION),
-  publicationId: z.string().min(1),
-  season: z.number().int(),
+  schemaVersion: SchemaVersionSchema,
+  publicationId: PublicationIdSchema,
+  snapshotId: SnapshotIdSchema,
+  season: z.number().int().min(2026),
+  author: z.string().min(1),
+  validationReport: z.object({
+    valid: z.literal(true),
+    issueCount: z.number().int().nonnegative().default(0),
+  }),
   createdAtIso: z.string().datetime({ offset: true }),
   checksum: z.string().min(8),
   route: RouteSchema,
@@ -132,14 +168,30 @@ export type SeasonalConfig = z.infer<typeof SeasonalConfigSchema>;
 // ---------------------------------------------------------------------------
 
 export function parseRoute(input: unknown): Route {
-  return RouteSchema.parse(input);
+  return parseContract(RouteSchema, input, 'Route');
 }
 
 export function parseSnapshot(input: unknown): Snapshot {
-  return SnapshotSchema.parse(input);
+  return parseContract(SnapshotSchema, input, 'Snapshot');
+}
+
+function parseContract<T extends z.ZodTypeAny>(schema: T, input: unknown, schemaName: string): z.infer<T> {
+  const version = isRecord(input) ? input.schemaVersion : undefined;
+  const result = schema.safeParse(input);
+
+  if (result.success) return result.data as z.infer<T>;
+
+  const code: ContractErrorCode =
+    typeof version === 'string' && !SUPPORTED_SCHEMA_VERSIONS.includes(version as typeof SCHEMA_VERSION)
+      ? 'unsupported_schema_version'
+      : 'invalid_input';
+  throw new ContractValidationError(code, schemaName, result.error.issues);
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
 }
 
 export function isValidCoordinates(value: unknown): value is Coordinates {
   return CoordinatesSchema.safeParse(value).success;
 }
-

@@ -1,4 +1,4 @@
-import { SCHEMA_VERSION, type Route } from '@santa-tracker/contracts';
+import { SCHEMA_VERSION, createLocationId, type Route } from '@santa-tracker/contracts';
 
 export function createDeterministicRoute(): Route {
   const base = Date.parse('2026-12-24T00:00:00.000Z');
@@ -7,19 +7,19 @@ export function createDeterministicRoute(): Route {
     season: 2026,
     stops: [
       {
-        locationId: 'north-pole',
+        locationId: createLocationId('north-pole'),
         arrivalIso: new Date(base).toISOString(),
         departureIso: new Date(base + 60_000).toISOString(),
         durationSeconds: 60,
       },
       {
-        locationId: 'auckland-nz',
+        locationId: createLocationId('auckland-nz'),
         arrivalIso: new Date(base + 120_000).toISOString(),
         departureIso: new Date(base + 180_000).toISOString(),
         durationSeconds: 60,
       },
       {
-        locationId: 'tokyo-jp',
+        locationId: createLocationId('tokyo-jp'),
         arrivalIso: new Date(base + 240_000).toISOString(),
         departureIso: new Date(base + 300_000).toISOString(),
         durationSeconds: 60,
@@ -35,13 +35,13 @@ export function createAntarcticRoute(): Route {
     season: 2026,
     stops: [
       {
-        locationId: 'fiji',
+        locationId: createLocationId('fiji'),
         arrivalIso: '2026-12-24T00:00:00.000Z',
         departureIso: '2026-12-24T00:05:00.000Z',
         durationSeconds: 300,
       },
       {
-        locationId: 'samoa',
+        locationId: createLocationId('samoa'),
         arrivalIso: '2026-12-24T00:10:00.000Z',
         departureIso: '2026-12-24T00:15:00.000Z',
         durationSeconds: 300,

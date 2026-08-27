@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { CoordinatesSchema, FeatureFlagsSchema, RouteSchema, SCHEMA_VERSION } from './index';
+import {
+  CoordinatesSchema,
+  ContractValidationError,
+  FeatureFlagsSchema,
+  RouteSchema,
+  SCHEMA_VERSION,
+  createLocationId,
+  parseRoute,
+} from './index';
 
 describe('@santa-tracker/contracts', () => {
   it('validates coordinates', () => {
@@ -27,10 +35,25 @@ describe('@santa-tracker/contracts', () => {
     expect(route.stops).toHaveLength(1);
   });
 
+  it('rejects unsupported versions with a typed error', () => {
+    try {
+      parseRoute({ schemaVersion: '2099.0.0', season: 2026, stops: [] });
+      throw new Error('expected parseRoute to reject');
+    } catch (error: unknown) {
+      expect(error).toBeInstanceOf(ContractValidationError);
+      expect((error as ContractValidationError).code).toBe('unsupported_schema_version');
+    }
+    expect(() => parseRoute({ schemaVersion: SCHEMA_VERSION, season: 2026, stops: [] })).toThrow(ContractValidationError);
+  });
+
+  it('validates stable public identifiers', () => {
+    expect(createLocationId('north-pole')).toBe('north-pole');
+    expect(() => createLocationId('North Pole')).toThrow(TypeError);
+  });
+
   it('defaults feature flags', () => {
     const flags = FeatureFlagsSchema.parse({});
     expect(flags.mapEnabled).toBe(true);
     expect(flags.adventEnabled).toBe(false);
   });
 });
-

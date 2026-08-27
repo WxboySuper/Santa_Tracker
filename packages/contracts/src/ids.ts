@@ -4,18 +4,36 @@
  */
 
 export const SCHEMA_VERSION = '2026.0.0' as const;
+export const SUPPORTED_SCHEMA_VERSIONS = [SCHEMA_VERSION] as const;
 
-export type PublicationId = string & { readonly brand: unique symbol };
-export type LocationId = string & { readonly brand: unique symbol };
-export type SnapshotId = string & { readonly brand: unique symbol };
-export type ActivityId = string & { readonly brand: unique symbol };
+const PUBLIC_ID_PATTERN = /^[a-z0-9]+(?:[-_][a-z0-9]+)*$/;
+
+export type PublicationId = string & { readonly brand: 'PublicationId' };
+export type LocationId = string & { readonly brand: 'LocationId' };
+export type SnapshotId = string & { readonly brand: 'SnapshotId' };
+export type ActivityId = string & { readonly brand: 'ActivityId' };
 
 export function createPublicationId(value: string): PublicationId {
-  return value as PublicationId;
+  return createPublicId(value, 'publication') as PublicationId;
 }
 
 export function createLocationId(value: string): LocationId {
-  return value as LocationId;
+  return createPublicId(value, 'location') as LocationId;
+}
+
+export function createSnapshotId(value: string): SnapshotId {
+  return createPublicId(value, 'snapshot') as SnapshotId;
+}
+
+export function createActivityId(value: string): ActivityId {
+  return createPublicId(value, 'activity') as ActivityId;
+}
+
+function createPublicId(value: string, kind: string): string {
+  if (!PUBLIC_ID_PATTERN.test(value)) {
+    throw new TypeError(`Invalid ${kind} identifier: ${value}`);
+  }
+  return value;
 }
 
 export const SeasonModeValues = [

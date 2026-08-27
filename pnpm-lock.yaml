@@ -108,6 +108,9 @@ importers:
         specifier: ^3.25.76
         version: 3.25.76
     devDependencies:
+      '@santa-tracker/test-fixtures':
+        specifier: workspace:*
+        version: link:../../packages/test-fixtures
       '@tailwindcss/postcss':
         specifier: ^4.3.3
         version: 4.3.3

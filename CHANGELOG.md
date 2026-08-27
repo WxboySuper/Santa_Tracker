@@ -1,5 +1,11 @@
 # Changelog — per-PR exhaustive (enforced in CI)
 
+## [Unreleased] — Shared public contracts (#211)
+
+- Added validated public ID schemas and constructors for locations, publications, snapshots, and activities.
+- Added versioned route and snapshot contracts with publication metadata, checksums, timestamps, and typed version errors.
+- Added deterministic snapshot metadata and consumed the fixture from the web contract test.
+
 ## [Unreleased] — Flask retirement #221
 
 ### Foundation — retire Flask runtime after parity acceptance
