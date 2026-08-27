@@ -9,7 +9,7 @@ This guide covers deploying the TypeScript Next.js application to the existing V
 - Release-based deploys via GitHub Actions (`deploy-on-release.yml` / `first-deploy.yml`)
 - Health check at `/api/health`, readiness via same endpoint
 - Data files at `apps/web/data/` (or fallback to `src/static/data/`), with atomic writes and `.history/` snapshots
-- No Flask/Python runtime in production, CI, or deployment
+- No Flask/Python runtime in production or deployment. CI retains archive-only Python checks for the retired source.
 
 ## File Ownership
 
@@ -73,7 +73,7 @@ curl -f http://127.0.0.1:3000/api/health
 ## Legacy
 
 - Flask artifacts archived under `archive/` (route data snapshot, offline HTML, DEPLOYMENT-flask-legacy.md, flask-legacy source)
-- Python workflows removed; see `archive/README.md`
+- Python workflows only validate the archived source; see `archive/README.md`
 - Service previously ran `venv/bin/python -m src.app` or `gunicorn src.app:app` — now retired
 
 ## Related

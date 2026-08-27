@@ -48,7 +48,7 @@ archive/
   offline-flask-legacy.html
 ```
 
-Dependency direction per ADR: `web -> route-engine/contracts`, `database -> contracts/config`, etc. No Flask/Python in production, CI, or deploy paths.
+Dependency direction per ADR: `web -> route-engine/contracts`, `database -> contracts/config`, etc. Flask and Python are not used by production or deploy paths. CI keeps archive-only Python checks for the retired implementation.
 
 ## API
 

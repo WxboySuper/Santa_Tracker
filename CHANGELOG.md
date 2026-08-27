@@ -29,7 +29,7 @@
 - Data: atomic writes (`.tmp` → `rename`) + versioned `.history/` snapshots (last 5) for both route and advent, rollback via activating previous snapshot. `apps/web/data/` + `public/data/` + fallback to legacy `src/static/data/` (no competing `Route Data/` reads). `archive/route-data-2025-12-20/` snapshot, `archive/offline-flask-legacy.html`, `archive/flask-legacy/` (app.py, config.py, utils, requirements, pyproject).
 - Security fixes: removed `ADMIN_PASSWORD` bearer fallback, admin page boundary now protected in `middleware.ts` (not just API decorator), config fail-closed in production (`packages/config`), `SECRET_KEY` placeholder detection retained.
 - PWA: `POST /sw.js` uses `/offline` and `/data/santa_route.json` (not stale `/src/static/...`), CDN `isExternalUrl` kept, cache version `next-v1`.
-- Workspace CI: `testing.yml` → Node 20/22 + pnpm + typecheck + lint + build + vitest; `linting.yml` → tsc + eslint + stylelint (no Python). `DEPLOYMENT.md` archived.
+- Workspace CI: `testing.yml` → archive-only Python compatibility matrix; `workspace.yml` → Node + pnpm + typecheck + lint + build + vitest; `linting.yml` → tsc + eslint + stylelint plus archive-only Python lint. `DEPLOYMENT.md` archived.
 - Tests: `apps/web/src/lib/__tests__/parity.test.ts` (13 parity checks: normalization, validation, simulation sort, advent unlock, JWT vs password fallback, no-Flask).
 
 #### Changed
