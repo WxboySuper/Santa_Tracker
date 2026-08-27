@@ -287,8 +287,8 @@ def admin_login():
         )
 
         return jsonify({"token": session_token}), 200
-    except (TypeError, ValueError) as e:
-        logger.warning("Login failed: Invalid data format - %s", str(e))
+    except (TypeError, ValueError):
+        logger.warning("Login failed: Invalid data format")
         return jsonify({"error": "Invalid data format"}), 400
 
 
@@ -1583,10 +1583,8 @@ def import_advent_calendar():
                     is_unlocked_override=day_data.get("is_unlocked_override"),
                 )
                 imported_days.append(day)
-            except (KeyError, ValueError, TypeError) as e:
-                logging.error(
-                    "Error importing day at index %d: %s", idx, str(e), exc_info=True
-                )
+            except (KeyError, ValueError, TypeError):
+                logging.exception("Error importing day at index %d", idx)
                 errors.append(f"Invalid day data at index {idx}")
 
         # If any errors occurred, reject entire import (all-or-nothing)
