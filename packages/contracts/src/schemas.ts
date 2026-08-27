@@ -1,12 +1,12 @@
 import { z } from 'zod';
 import {
-  SCHEMA_VERSION,
   SUPPORTED_SCHEMA_VERSIONS,
   SeasonModeValues,
   createActivityId,
   createLocationId,
   createPublicationId,
   createSnapshotId,
+  PUBLIC_ID_PATTERN,
 } from './ids';
 import type { ActivityId, LocationId, PublicationId, SnapshotId } from './ids';
 
@@ -20,12 +20,12 @@ export class ContractValidationError extends Error {
     readonly schemaName: string,
     readonly issues: readonly z.ZodIssue[],
   ) {
-    super(`${schemaName} ${code.replace('_', ' ')}`);
+    super(`${schemaName} ${code.replaceAll('_', ' ')}`);
   }
 }
 
 export const SchemaVersionSchema = z.enum(SUPPORTED_SCHEMA_VERSIONS);
-export const PublicIdSchema = z.string().min(1).regex(/^[a-z0-9]+(?:[-_][a-z0-9]+)*$/);
+export const PublicIdSchema = z.string().min(1).regex(PUBLIC_ID_PATTERN);
 export const PublicationIdSchema: z.ZodType<PublicationId, z.ZodTypeDef, string> = PublicIdSchema.transform(createPublicationId);
 export const LocationIdSchema: z.ZodType<LocationId, z.ZodTypeDef, string> = PublicIdSchema.transform(createLocationId);
 export const SnapshotIdSchema: z.ZodType<SnapshotId, z.ZodTypeDef, string> = PublicIdSchema.transform(createSnapshotId);
@@ -69,12 +69,20 @@ export const RouteStopSchema = z.object({
 export type RouteStop = z.infer<typeof RouteStopSchema>;
 
 export const RouteSchema = z.object({
-  schemaVersion: z.literal(SCHEMA_VERSION),
+  schemaVersion: SchemaVersionSchema,
   season: z.number().int().min(2026),
   stops: z.array(RouteStopSchema).min(1),
 });
 
 export type Route = z.infer<typeof RouteSchema>;
+
+export const ActivitySchema = z.object({
+  id: ActivityIdSchema,
+  title: z.string().min(1),
+  description: z.string().optional(),
+});
+
+export type Activity = z.infer<typeof ActivitySchema>;
 
 // ---------------------------------------------------------------------------
 // Snapshot (immutable published artifact)
@@ -87,8 +95,9 @@ export const SnapshotSchema = z.object({
   season: z.number().int().min(2026),
   author: z.string().min(1),
   validationReport: z.object({
-    valid: z.literal(true),
+    valid: z.boolean(),
     issueCount: z.number().int().nonnegative().default(0),
+    issues: z.array(z.object({ path: z.string().min(1), message: z.string().min(1) })).default([]),
   }),
   createdAtIso: z.string().datetime({ offset: true }),
   checksum: z.string().min(8),
@@ -176,20 +185,15 @@ export function parseSnapshot(input: unknown): Snapshot {
 }
 
 function parseContract<T extends z.ZodTypeAny>(schema: T, input: unknown, schemaName: string): z.infer<T> {
-  const version = isRecord(input) ? input.schemaVersion : undefined;
   const result = schema.safeParse(input);
 
   if (result.success) return result.data as z.infer<T>;
 
-  const code: ContractErrorCode =
-    typeof version === 'string' && !SUPPORTED_SCHEMA_VERSIONS.includes(version as typeof SCHEMA_VERSION)
-      ? 'unsupported_schema_version'
-      : 'invalid_input';
+  const hasUnsupportedVersion = result.error.issues.some(
+    (issue) => issue.path.length === 1 && issue.path[0] === 'schemaVersion' && issue.code === 'invalid_enum_value',
+  );
+  const code: ContractErrorCode = hasUnsupportedVersion ? 'unsupported_schema_version' : 'invalid_input';
   throw new ContractValidationError(code, schemaName, result.error.issues);
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null;
 }
 
 export function isValidCoordinates(value: unknown): value is Coordinates {

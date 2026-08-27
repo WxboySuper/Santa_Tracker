@@ -9,7 +9,7 @@ export function createDeterministicSnapshot(overrides: Partial<Snapshot> = {}): 
     snapshotId: createSnapshotId('snapshot-deterministic-001'),
     season: 2026,
     author: 'fixture',
-    validationReport: { valid: true, issueCount: 0 },
+    validationReport: { valid: true, issueCount: 0, issues: [] },
     createdAtIso: '2026-12-01T00:00:00.000Z',
     checksum: 'sha256:deterministic-checksum-001',
     route,

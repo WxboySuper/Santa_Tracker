@@ -6,7 +6,15 @@
 export const SCHEMA_VERSION = '2026.0.0' as const;
 export const SUPPORTED_SCHEMA_VERSIONS = [SCHEMA_VERSION] as const;
 
-const PUBLIC_ID_PATTERN = /^[a-z0-9]+(?:[-_][a-z0-9]+)*$/;
+export const PUBLIC_ID_PATTERN = /^[a-z0-9]+(?:[-_][a-z0-9]+)*$/;
+
+export class InvalidPublicIdError extends TypeError {
+  readonly name = 'InvalidPublicIdError';
+
+  constructor(readonly kind: string, readonly value: string) {
+    super(`Invalid ${kind} identifier: ${value}`);
+  }
+}
 
 export type PublicationId = string & { readonly brand: 'PublicationId' };
 export type LocationId = string & { readonly brand: 'LocationId' };
@@ -31,7 +39,7 @@ export function createActivityId(value: string): ActivityId {
 
 function createPublicId(value: string, kind: string): string {
   if (!PUBLIC_ID_PATTERN.test(value)) {
-    throw new TypeError(`Invalid ${kind} identifier: ${value}`);
+    throw new InvalidPublicIdError(kind, value);
   }
   return value;
 }

@@ -5,6 +5,7 @@
 - Added validated public ID schemas and constructors for locations, publications, snapshots, and activities.
 - Added versioned route and snapshot contracts with publication metadata, checksums, timestamps, and typed version errors.
 - Added deterministic snapshot metadata and consumed the fixture from the web contract test.
+- Breaking contract change: snapshots now require `snapshotId`, `author`, and `validationReport`; old snapshot payloads must be republished with the current schema version.
 
 ## [Unreleased] — Flask retirement #221
 

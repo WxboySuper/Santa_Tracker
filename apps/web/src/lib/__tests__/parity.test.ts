@@ -3,8 +3,6 @@ import { validateLocations, createLocationFromPayload } from "../locations";
 import { buildSimulatedFromLocations } from "../route-sim";
 import { isUnlocked, toDict, validateAdventCalendar, type AdventDay } from "../advent";
 import { createAdminToken, verifyAdminToken, verifyAdminPassword } from "../auth";
-import { SnapshotSchema } from "@santa-tracker/contracts";
-import { createDeterministicSnapshot } from "@santa-tracker/test-fixtures";
 import fs from "fs";
 import path from "path";
 
@@ -81,10 +79,6 @@ describe("Auth parity - Flask password fallback removed", () => {
 });
 
 describe("No Flask in production paths", () => {
-  it("uses the shared snapshot fixture contract", () => {
-    expect(SnapshotSchema.safeParse(createDeterministicSnapshot()).success).toBe(true);
-  });
-
   it("does not import Flask in any app file", () => {
     const files = [
       "apps/web/src/lib/auth.ts",

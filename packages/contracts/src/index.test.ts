@@ -2,10 +2,12 @@ import { describe, expect, it } from 'vitest';
 import {
   CoordinatesSchema,
   ContractValidationError,
+  ActivitySchema,
   FeatureFlagsSchema,
   RouteSchema,
   SCHEMA_VERSION,
   createLocationId,
+  parseSnapshot,
   parseRoute,
 } from './index';
 
@@ -49,6 +51,21 @@ describe('@santa-tracker/contracts', () => {
   it('validates stable public identifiers', () => {
     expect(createLocationId('north-pole')).toBe('north-pole');
     expect(() => createLocationId('North Pole')).toThrow(TypeError);
+  });
+
+  it('rejects unsupported snapshot versions with a typed error', () => {
+    try {
+      parseSnapshot({ schemaVersion: '2099.0.0' });
+      throw new Error('expected parseSnapshot to reject');
+    } catch (error: unknown) {
+      expect(error).toBeInstanceOf(ContractValidationError);
+      expect((error as ContractValidationError).code).toBe('unsupported_schema_version');
+    }
+  });
+
+  it('validates snapshot reports and activity IDs', () => {
+    expect(ActivitySchema.safeParse({ id: 'ornament-smash', title: 'Ornament smash' }).success).toBe(true);
+    expect(ActivitySchema.safeParse({ id: 'Ornament Smash', title: 'Ornament smash' }).success).toBe(false);
   });
 
   it('defaults feature flags', () => {
