@@ -44,12 +44,18 @@ export async function verifyAdminPassword(password: string): Promise<boolean> {
 }
 
 export async function requireAdminAuth(request: Request): Promise<{ ok: boolean; error?: string; status?: number }> {
+  let token: string | null = null;
   const auth = request.headers.get("authorization");
-  if (!auth || !auth.startsWith("Bearer ")) {
+  if (auth?.startsWith("Bearer ")) {
+    token = auth.slice(7);
+  } else {
+    const cookieHeader = request.headers.get("cookie") ?? "";
+    const match = /(?:^|;\s*)admin_token=([^;]*)/.exec(cookieHeader);
+    if (match?.[1]) token = decodeURIComponent(match[1]);
+  }
+  if (!token) {
     return { ok: false, error: "Authentication required", status: 401 };
   }
-  const token = auth.slice(7);
-  if (!token) return { ok: false, error: "Authentication required", status: 401 };
   const valid = await verifyAdminToken(token);
   if (!valid) {
     return { ok: false, error: "Invalid credentials", status: 403 };
