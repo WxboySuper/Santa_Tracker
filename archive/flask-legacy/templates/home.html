@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Santa Tracker - Track Santa's Magical Journey</title>
+    <meta name="description" content="Welcome to Santa Tracker! Track Santa's magical journey around the world on Christmas Eve in real-time!">
+    <link rel="stylesheet" href="{{ url_for('static', filename='home-styles.css') }}">
+</head>
+<body>
+    <!-- Snowfall Container -->
+    <div id="snowfall" aria-hidden="true"></div>
+
+    <!-- Glass Pill Navigation -->
+    {% if tracker_enabled %}
+    <nav id="glass-nav" class="glass-nav" role="navigation" aria-label="Main navigation">
+        <a href="{{ url_for('home') }}" class="nav-link nav-link-active">Home</a>
+        <a href="{{ url_for('tracker') }}" class="nav-link">Tracker</a>
+        {% if config.ADVENT_ENABLED %}
+        <a href="{{ url_for('advent') }}" class="nav-link">Village</a>
+        {% endif %}
+    </nav>
+    {% endif %}
+    
+    <!-- Hero Section - Game Menu Style -->
+    <div class="hero">
+        <div class="hero-content">
+            <h1 class="hero-title">
+                <span class="text-red">Santa</span> <span class="text-green">Tracker</span>
+            </h1>
+            <p class="hero-subtitle">Track Santa's Magical Journey Around the World!</p>
+            
+            <!-- Countdown Box - Glass Panel with Gold Border -->
+            <div class="countdown-box">
+                <p class="countdown-label">Countdown to Takeoff</p>
+                <div id="countdown" class="countdown-display" aria-live="polite"></div>
+            </div>
+            
+            <!-- CTA Button Dock -->
+            <div class="cta-buttons-container">
+                {% if tracker_enabled %}
+                    <a href="{{ url_for('tracker') }}" class="cta-button">
+                        Track Santa
+                    </a>
+                {% else %}
+                    <button
+                        class="cta-button cta-button-disabled"
+                        type="button"
+                        disabled
+                        aria-disabled="true"
+                        tabindex="-1"
+                        title="Tracker locked until 24 before launch">
+                        Track Santa on Christmas Eve!
+                    </button>
+                {% endif %}
+                {% if config.ADVENT_ENABLED %}
+                <a href="{{ url_for('advent') }}" class="cta-button cta-button-advent">
+                    North Pole Village
+                </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Stats Ticker - Fixed Bottom HUD -->
+    <div class="stats-ticker">
+        <div class="stat-item">
+            <span class="stat-icon">🍪</span>
+            <span class="stat-value" id="cookies-stat">1.2M</span>
+            <span class="stat-label">Cookies</span>
+        </div>
+        <div class="stat-item">
+            <span class="stat-icon">🦌</span>
+            <span class="stat-value">Ready</span>
+            <span class="stat-label">Reindeer</span>
+        </div>
+        <div class="stat-item">
+            <span class="stat-icon">🎁</span>
+            <span class="stat-value" id="gifts-stat">2.8B</span>
+            <span class="stat-label">Gifts</span>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='countdown.js') }}"></script>
+    <script src="{{ url_for('static', filename='home-script.js') }}"></script>
+</body>
+</html>

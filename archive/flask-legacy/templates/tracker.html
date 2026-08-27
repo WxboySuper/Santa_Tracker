@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Santa Tracker - Live Tracking</title>
+    <meta name="description" content="Track Santa's magical journey around the world on Christmas Eve in real-time!">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='tracker-styles.css') }}">
+</head>
+<body>
+    <!-- Full Screen Map -->
+    <div class="map-fullscreen">
+        <div id="map" class="map" aria-label="Interactive map showing Santa's current location and route" role="application" tabindex="0"></div>
+    </div>
+    
+    <!-- Glass Pill Navigation - Fixed Top Center -->
+    <nav class="glass-nav" role="navigation" aria-label="Main navigation">
+        <a href="{{ url_for('home') }}" class="nav-link">Home</a>
+        <a href="{{ url_for('tracker') }}" class="nav-link nav-link-active">Tracker</a>
+        {% if config.ADVENT_ENABLED %}
+        <a href="{{ url_for('advent') }}" class="nav-link">Village</a>
+        {% endif %}
+    </nav>
+    
+    <!-- Countdown HUD - Top Right -->
+    <div class="countdown-hud">
+        <p class="countdown-hud-label">Countdown to Takeoff</p>
+        <div id="countdown" class="countdown-hud-value" aria-live="polite" aria-atomic="true"></div>
+    </div>
+    
+    <!-- Pre-Flight Panel - Floating Left (shown before launch) -->
+    <aside id="preflight-panel" class="mission-control preflight-panel">
+        <div class="panel-header panel-header-preflight">
+            <h2 class="panel-title">🛷 Flight Prep Status</h2>
+        </div>
+        <div class="panel-content">
+            <!-- Status -->
+            <div class="info-box info-box-status">
+                <h3 class="info-title">Status</h3>
+                <p id="preflight-status" class="info-value" aria-live="polite">
+                    <span class="status-indicator status-grounded"></span> Grounded
+                </p>
+            </div>
+
+            <!-- Location -->
+            <div class="info-box info-box-blue">
+                <h3 class="info-title">Location</h3>
+                <p id="preflight-location" class="info-value" aria-live="polite">
+                    🎅 North Pole Workshop
+                </p>
+            </div>
+
+            <!-- Weather -->
+            <div class="info-box info-box-weather">
+                <h3 class="info-title">Weather Conditions</h3>
+                <p id="preflight-weather" class="info-value" aria-live="polite">
+                    ❄️ -24°C / Heavy Snow
+                </p>
+            </div>
+
+            <!-- Reindeer Status -->
+            <div class="info-box info-box-green">
+                <h3 class="info-title">Reindeer Status</h3>
+                <p id="preflight-reindeer" class="info-value" aria-live="polite">
+                    🦌 Resting
+                </p>
+            </div>
+
+            <!-- Sleigh Status -->
+            <div class="info-box info-box-gold">
+                <h3 class="info-title">Sleigh Status</h3>
+                <p id="preflight-sleigh" class="info-value" aria-live="polite">
+                    🎁 Loading Gifts...
+                </p>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Live Tracking Panel - Floating Left (shown after launch) -->
+    <aside id="live-panel" class="mission-control live-panel" style="display: none;">
+        <div class="panel-header">
+            <h2 class="panel-title">🎯 Mission Control</h2>
+        </div>
+        <div class="panel-content">
+            <!-- Current Location -->
+            <div class="info-box info-box-blue">
+                <h3 class="info-title">Current Location</h3>
+                <p id="current-location" class="info-value" aria-live="polite">
+                    Loading...
+                </p>
+            </div>
+
+            <!-- Next Stop -->
+            <div class="info-box info-box-green">
+                <h3 class="info-title">Next Destination</h3>
+                <p id="next-stop" class="info-value" aria-live="polite">
+                    Loading...
+                </p>
+            </div>
+
+            <!-- Location Countdown -->
+            <div class="info-box info-box-red">
+                <h3 id="location-countdown-label" class="info-title">Departure Timer</h3>
+                <p id="location-countdown" class="info-value info-value-large" aria-live="polite">
+                    --:--
+                </p>
+            </div>
+
+            <!-- Distance -->
+            <div class="info-box info-box-gold">
+                <h3 class="info-title">Sleigh Distance</h3>
+                <p id="distance" class="info-value" aria-live="polite">
+                    Scanning...
+                </p>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Liftoff Toast Notification -->
+    <div id="liftoff-toast" class="liftoff-toast" role="alert" aria-live="assertive" style="display: none;">
+        <div class="toast-content">
+            <span class="toast-icon">🚀</span>
+            <span class="toast-message">Santa Has Taken Off! 🎅🎄</span>
+        </div>
+    </div>
+
+    <!-- Snowfall Container -->
+    <div id="snowfall" aria-hidden="true"></div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/Leaflet.markercluster.js"></script>
+    <script src="{{ url_for('static', filename='countdown.js') }}"></script>
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>
