@@ -19,4 +19,10 @@ describe('developer bootstrap', () => {
     });
     expect(output).toContain('Bootstrap prerequisites are available.');
   });
+
+  it('gives help precedence over prerequisite checks', () => {
+    const output = execFileSync(process.execPath, [bootstrap, '--check', '--help'], { encoding: 'utf8' });
+    expect(output).toContain('Usage: pnpm bootstrap');
+    expect(output).not.toContain('Bootstrap prerequisites are available.');
+  });
 });

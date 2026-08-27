@@ -24,7 +24,7 @@
 - **Public API exposure review:** `/api/route`, `/api/health`, and `/api/advent/*` are intentionally unauthenticated public endpoints. They expose route/health data and feature-gated Advent metadata only; no admin mutation or secret-bearing data is exposed. The Advent API withholds locked payloads server-side. See `docs/API.md`.
 - **Evidence:** Typecheck ✓, lint ✓, 35 workspace tests ✓, production Next.js build ✓, service-worker syntax check ✓.
 
-## [PR TBD] - 2026-08-27 - feat(foundation): add local stack bootstrap
+## [PR #370] - 2026-08-27 - feat(foundation): add local stack bootstrap
 
 - **Issue:** Fixes #219, the one-command local developer bootstrap.
 - **Bootstrap:** Adds `pnpm bootstrap`, which checks Node.js, pnpm, and Docker Compose, starts PostgreSQL 16 with

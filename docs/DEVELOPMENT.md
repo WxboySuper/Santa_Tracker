@@ -4,9 +4,9 @@ Santa Tracker runs as a Next.js application in a pnpm workspace. The Flask appli
 
 ## Prerequisites
 
-- Node.js 20 or newer
-- pnpm 9 or newer
-- PostgreSQL 16 or newer for studio and publication flows
+- Node.js 22.13 or newer
+- pnpm 10 or newer
+- Docker Desktop with the Compose plugin and a running Docker engine
 
 Install dependencies from the repository root:
 
@@ -33,7 +33,6 @@ Docker prerequisite on Linux and the Node/pnpm path on Windows. macOS is not a s
 To remove the local database volume and its data, run `docker compose down --volumes`.
 
 ### Next.js shell
-## Run the app
 
 ```bash
 pnpm dev

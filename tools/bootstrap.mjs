@@ -107,6 +107,14 @@ async function waitForDatabase() {
 
 async function main() {
   const args = new Set(process.argv.slice(2));
+  if (args.has('--help')) {
+    console.log('Usage: pnpm bootstrap [--check] [--skip-docker]');
+    console.log(
+      'Starts PostgreSQL with Docker Compose, waits for it, then starts the Next.js dev server.',
+    );
+    return;
+  }
+
   const failures = requiredChecks({ skipDocker: args.has('--skip-docker') });
   if (args.has('--check')) {
     if (failures.length > 0) {
@@ -117,13 +125,6 @@ async function main() {
     console.log('Bootstrap prerequisites are available.');
     return;
   }
-  if (args.has('--help')) {
-    console.log('Usage: pnpm bootstrap [--check] [--skip-docker]');
-    console.log(
-      'Starts PostgreSQL with Docker Compose, waits for it, then starts the Next.js dev server.',
-    );
-    return;
-  }
   if (failures.length > 0) {
     printFailures(failures);
     process.exitCode = 1;
@@ -131,14 +132,41 @@ async function main() {
   }
 
   const database = command('docker', ['compose', 'up', '-d', 'postgres']);
-  if ((await new Promise((resolve) => database.on('close', resolve))) !== 0) process.exit(1);
-  await waitForDatabase();
-  console.log('PostgreSQL is ready at postgresql://santa:santa@localhost:5432/santa_tracker');
+  const databaseExit = await new Promise((resolve) => database.on('close', resolve));
+  if (databaseExit !== 0) {
+    process.exitCode = 1;
+    return;
+  }
 
-  const app = command('pnpm', ['dev']);
-  process.once('SIGINT', () => app.kill('SIGINT'));
-  process.once('SIGTERM', () => app.kill('SIGTERM'));
-  process.exitCode = await new Promise((resolve) => app.on('close', resolve));
+  let app;
+  let stopping = false;
+  const forwardSignal = (signal) => {
+    if (stopping) {
+      app?.kill('SIGKILL');
+      return;
+    }
+    stopping = true;
+    app?.kill(signal);
+  };
+  const onSigint = () => forwardSignal('SIGINT');
+  const onSigterm = () => forwardSignal('SIGTERM');
+
+  try {
+    await waitForDatabase();
+    console.log('PostgreSQL is ready at postgresql://santa:santa@localhost:5432/santa_tracker');
+
+    app = command('pnpm', ['dev']);
+    process.on('SIGINT', onSigint);
+    process.on('SIGTERM', onSigterm);
+    const appExit = await new Promise((resolve) => app.on('close', resolve));
+    process.exitCode = appExit ?? 1;
+  } finally {
+    process.removeListener('SIGINT', onSigint);
+    process.removeListener('SIGTERM', onSigterm);
+    const cleanup = command('docker', ['compose', 'stop', 'postgres']);
+    const cleanupExit = await new Promise((resolve) => cleanup.on('close', resolve));
+    if (cleanupExit !== 0 && process.exitCode === 0) process.exitCode = 1;
+  }
 }
 
 main().catch((error) => {
