@@ -94,6 +94,6 @@ describe("No Flask in production paths", () => {
     }
   });
   it("archive preserves Flask source", () => {
-    expect(fs.existsSync(path.resolve(process.cwd(), "src/app.py"))).toBe(true);
+    expect(fs.existsSync(path.resolve(process.cwd(), "archive/flask-legacy/app.py"))).toBe(true);
   });
 });
