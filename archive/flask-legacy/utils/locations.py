@@ -364,11 +364,7 @@ def _coerce_node_stop_experience_from_dict(n: Dict[str, Any]) -> Dict[str, Any]:
             if val is not None:
                 out["stop_duration"] = int(float(val) / 60)
         except (TypeError, ValueError):
-            logger.debug(
-                "ignored invalid stop_experience.duration_seconds=%r for node=%r",
-                se.get("duration_seconds"),
-                n.get("id"),
-            )
+            logger.debug("ignored invalid stop experience duration")
     return out
 
 
