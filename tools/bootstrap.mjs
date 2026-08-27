@@ -38,37 +38,39 @@ function run(command, args, options = {}) {
   });
 }
 
-function requiredChecks({ skipDocker = false } = {}) {
-  const failures = [];
+function checkNodeVersion() {
   if (compareVersions(versionParts(process.versions.node), MIN_NODE) < 0) {
-    failures.push(`Node.js 22.13 or newer is required (found ${process.versions.node}).`);
+    return `Node.js 22.13 or newer is required (found ${process.versions.node}).`;
   }
+  return null;
+}
 
+function checkPnpmVersion() {
   const pnpm = run('pnpm', ['--version']);
   if (pnpm.status !== 0) {
-    failures.push(
-      'pnpm 10 or newer is required. Install it with `corepack enable` or `npm install --global pnpm`.',
-    );
-  } else if (compareVersions(versionParts(pnpm.stdout.trim()), [10, 0, 0]) < 0) {
-    failures.push(`pnpm 10 or newer is required (found ${pnpm.stdout.trim()}).`);
+    return 'pnpm 10 or newer is required. Install it with `corepack enable` or `npm install --global pnpm`.';
   }
+  const version = pnpm.stdout.trim();
+  return compareVersions(versionParts(version), [10, 0, 0]) < 0
+    ? `pnpm 10 or newer is required (found ${version}).`
+    : null;
+}
 
-  if (!skipDocker) {
-    const docker = run('docker', ['compose', 'version']);
-    if (docker.status !== 0) {
-      failures.push(
-        'Docker Desktop with the Compose plugin is required. Install or start Docker Desktop, then rerun `pnpm bootstrap`.',
-      );
-    } else {
-      const engine = run('docker', ['info']);
-      if (engine.status !== 0) {
-        failures.push(
-          'The Docker engine is not running. Start Docker Desktop or the Docker service, then rerun `pnpm bootstrap`.',
-        );
-      }
-    }
+function checkDocker() {
+  const compose = run('docker', ['compose', 'version']);
+  if (compose.status !== 0) {
+    return 'Docker Desktop with the Compose plugin is required. Install or start Docker Desktop, then rerun `pnpm bootstrap`.';
   }
-  return failures;
+  const engine = run('docker', ['info']);
+  return engine.status !== 0
+    ? 'The Docker engine is not running. Start Docker Desktop or the Docker service, then rerun `pnpm bootstrap`.'
+    : null;
+}
+
+function requiredChecks({ skipDocker = false } = {}) {
+  const failures = [checkNodeVersion(), checkPnpmVersion()];
+  if (!skipDocker) failures.push(checkDocker());
+  return failures.filter((failure) => failure !== null);
 }
 
 function printFailures(failures) {
