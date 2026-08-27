@@ -591,8 +591,8 @@ def validate_location_data():
         return jsonify(validation_results), 200
     except FileNotFoundError:
         return jsonify({"error": "Location data not found"}), 404
-    except json.JSONDecodeError as e:
-        logger.exception("Validate locations: JSON parsing error - %s", str(e))
+    except json.JSONDecodeError:
+        logger.error("Validate locations: JSON parsing error")
         return jsonify({"error": "Internal server error"}), 500
     except (ValueError, KeyError) as e:
         logger.exception("Validate locations: Data validation error - %s", str(e))
@@ -1110,7 +1110,7 @@ def upload_trial_route():
                 location = create_location_from_payload(loc_data)
                 locations.append(location)
             except (KeyError, ValueError):
-                logger.exception("Invalid location data in uploaded trial route.")
+                logger.error("Invalid location data in uploaded trial route.")
                 return jsonify({"error": "Invalid location data."}), 400
 
         # Validate the trial route
