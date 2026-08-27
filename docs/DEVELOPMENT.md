@@ -84,6 +84,14 @@ Data writes use temporary files and rename them into place. Each write also reco
 - `packages/config` contains typed configuration.
 - `archive/flask-legacy` contains the retired Flask source and its maintenance-only checks.
 
+### Public contract changes
+
+`@santa-tracker/contracts` validates public route, snapshot, ID, and activity payloads. The current schema version is `2026.0.0`.
+
+Snapshots require `snapshotId`, `author`, and `validationReport`. This is a breaking change for older snapshot files. Republish those files with the current version before serving them.
+
+Use `parseRoute` and `parseSnapshot` at trust boundaries. Unsupported versions throw `ContractValidationError` with code `unsupported_schema_version`; malformed payloads use `invalid_input`.
+
 Do not add runtime dependencies on files under `archive/`.
 
 ## Continuous integration
