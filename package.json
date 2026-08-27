@@ -9,6 +9,13 @@
     "node": ">=22.13",
     "pnpm": ">=10"
   },
+  "pnpm": {
+    "overrides": {
+      "next>postcss": "8.5.26",
+      "sharp": "0.35.3",
+      "@esbuild-kit/core-utils>esbuild": "0.25.12"
+    }
+  },
   "scripts": {
     "dev": "pnpm --filter @santa-tracker/web dev",
     "build": "pnpm -r build",
