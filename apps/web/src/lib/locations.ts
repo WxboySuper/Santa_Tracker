@@ -1,5 +1,4 @@
 import fs from "fs/promises";
-import fsSync from "fs";
 import path from "path";
 import { getSantaRoutePath, getTrialRoutePath } from "./config";
 
@@ -259,12 +258,25 @@ export async function loadSantaRouteFromJson(source?: string | Record<string, an
 async function readRouteSource(source?: string | Record<string, any> | any[]): Promise<any> {
   if (!source) return readRouteFile(getSantaRoutePath(), "Route file not found");
   if (typeof source !== "string") return source;
-  return fsSync.existsSync(source) ? readRouteFile(source, "Route file not found") : JSON.parse(source);
+  try {
+    return await readRouteFile(source, "Route file not found");
+  } catch (error: unknown) {
+    if (error instanceof Error && error.cause === "ENOENT") return JSON.parse(source);
+    throw error;
+  }
 }
 
 async function readRouteFile(filePath: string, errorLabel: string): Promise<any> {
-  if (!fsSync.existsSync(filePath)) throw new Error(`${errorLabel}: ${filePath}`);
-  return JSON.parse(await fs.readFile(filePath, "utf-8"));
+  try {
+    return JSON.parse(await fs.readFile(filePath, "utf-8"));
+  } catch (error: unknown) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+      const missing = new Error(`${errorLabel}: ${filePath}`);
+      missing.cause = "ENOENT";
+      throw missing;
+    }
+    throw error;
+  }
 }
 
 function extractRouteNodes(obj: any): any[] {
@@ -362,27 +374,39 @@ export async function saveSantaRouteToJson(locations: (LocationEntry | RouteNode
 }
 
 export async function loadTrialRouteFromJson(): Promise<LocationEntry[] | null> {
-  const p = getTrialRoutePath();
-  if (!fsSync.existsSync(p)) return null;
+  const p = await getTrialRoutePath();
+  try {
+    await fs.access(p);
+  } catch {
+    return null;
+  }
   return loadSantaRouteFromJson(p);
 }
 
 export async function saveTrialRouteToJson(locations: (LocationEntry | RouteNode | Record<string, any>)[]) {
-  const p = getTrialRoutePath();
+  const p = await getTrialRoutePath();
   await saveSantaRouteToJson(locations, p);
 }
 
 export async function deleteTrialRoute(): Promise<boolean> {
-  const p = getTrialRoutePath();
-  if (fsSync.existsSync(p)) {
+  const p = await getTrialRoutePath();
+  try {
     await fs.unlink(p);
     return true;
+  } catch (error: unknown) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") return false;
+    throw error;
   }
-  return false;
 }
 
-export function hasTrialRoute(): boolean {
-  return fsSync.existsSync(getTrialRoutePath());
+export async function hasTrialRoute(): Promise<boolean> {
+  const p = await getTrialRoutePath();
+  try {
+    await fs.access(p);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 export function createLocationFromPayload(data: Record<string, any>): LocationEntry {
@@ -584,7 +608,7 @@ export async function getRouteStatus() {
   let last_modified = "Unknown";
   try {
     const p = getSantaRoutePath();
-    const stat = fsSync.statSync(p);
+    const stat = await fs.stat(p);
     last_modified = stat.mtime.toString();
   } catch {}
   return {

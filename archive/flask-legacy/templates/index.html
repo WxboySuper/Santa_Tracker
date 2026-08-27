@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
+    <!-- Sidebar with Santa's Info -->
+    <aside class="lg:col-span-1 order-2 lg:order-1">
+        <div class="bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl overflow-hidden border-4 border-christmas-gold">
+            <div class="bg-gradient-to-r from-christmas-red to-christmas-green p-4">
+                <h2 class="text-2xl font-bold text-white flex items-center gap-2">
+                    <span role="img" aria-label="Location">📍</span>
+                    Santa's Journey
+                </h2>
+            </div>
+            
+            <div id="tracker-info" class="p-6 space-y-6">
+                <!-- Current Location -->
+                <div class="bg-gradient-to-br from-blue-50 to-white p-4 rounded-xl shadow-md border-2 border-blue-200">
+                    <h3 class="text-sm font-semibold text-gray-600 mb-2 flex items-center gap-2">
+                        <span role="img" aria-label="Globe">🌍</span>
+                        Current Location
+                    </h3>
+                    <p id="current-location" class="text-lg font-bold text-christmas-green" aria-live="polite">
+                        Loading current location...
+                    </p>
+                </div>
+
+                <!-- Next Stop -->
+                <div class="bg-gradient-to-br from-green-50 to-white p-4 rounded-xl shadow-md border-2 border-green-200">
+                    <h3 class="text-sm font-semibold text-gray-600 mb-2 flex items-center gap-2">
+                        <span role="img" aria-label="Star">⭐</span>
+                        Next Destination
+                    </h3>
+                    <p id="next-stop" class="text-lg font-bold text-christmas-red" aria-live="polite">
+                        Next Stop: Loading destination...
+                    </p>
+                </div>
+
+                <!-- Location Countdown -->
+                <div class="bg-gradient-to-br from-red-50 to-white p-4 rounded-xl shadow-md border-2 border-red-200">
+                    <h3 class="text-sm font-semibold text-gray-600 mb-2 flex items-center gap-2">
+                        <span role="img" aria-label="Clock">⏰</span>
+                        Departure Timer
+                    </h3>
+                    <p id="location-countdown" class="text-xl font-bold text-christmas-red tabular-nums" aria-live="polite">
+                        --:--:--
+                    </p>
+                </div>
+
+                <!-- Distance -->
+                <div class="bg-gradient-to-br from-yellow-50 to-white p-4 rounded-xl shadow-md border-2 border-yellow-200">
+                    <h3 class="text-sm font-semibold text-gray-600 mb-2 flex items-center gap-2">
+                        <span role="img" aria-label="Ruler">📏</span>
+                        Distance
+                    </h3>
+                    <p id="distance" class="text-lg font-bold text-christmas-green" aria-live="polite">
+                        Distance from you: Calculating...
+                    </p>
+                </div>
+
+                <!-- Delivery Status -->
+                <div id="delivery-status" class="bg-gradient-to-r from-christmas-red to-red-600 text-white p-4 rounded-xl shadow-lg text-center font-bold text-lg animate-pulse" aria-live="assertive"></div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Map Container -->
+    <div class="lg:col-span-2 order-1 lg:order-2">
+        <div class="bg-white rounded-2xl shadow-2xl overflow-hidden border-4 border-christmas-gold" style="height: 600px;">
+            <div id="map" class="w-full h-full" aria-label="Interactive map showing Santa's current location and route" role="application" tabindex="0"></div>
+        </div>
+        
+        <!-- Map Controls Helper Text -->
+        <div class="mt-2 text-center text-white/80 text-sm bg-black/30 backdrop-blur-sm rounded-lg p-2" role="status">
+            <p>🖱️ Use mouse to pan and zoom • 🎯 Click markers for details • ⌨️ Tab to navigate</p>
+        </div>
+    </div>
+</div>
+{% endblock %}

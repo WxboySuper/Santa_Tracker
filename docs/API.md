@@ -12,6 +12,19 @@ The Santa Tracker provides RESTful API endpoints for accessing Santa's location 
 
 **Authentication:** None required for public endpoints, password required for admin endpoints
 
+## Next.js public API exposure review
+
+The Next.js public surface intentionally exposes the following unauthenticated, read-only endpoints:
+
+| Endpoint | Exposure | Data classification | Controls |
+|---|---|---|---|
+| `GET /api/route` | Public | Santa route locations and timing | Canonical route source, normalized coordinates, short-lived cache |
+| `GET /api/health` | Public | Service status and timestamp | No secrets or internal error details; dynamic response |
+| `GET /api/advent/manifest` | Public when `ADVENT_ENABLED` is enabled | Advent titles, unlock times, and lock state | Feature gate; manifest never includes payloads |
+| `GET /api/advent/day/:id` | Public when `ADVENT_ENABLED` is enabled | One Advent day and unlocked payload | Feature gate; locked payloads are withheld server-side |
+
+These endpoints do not perform mutations, require admin credentials, or return secrets. Admin endpoints remain separately authenticated and are outside this public exposure classification. This review is complete for PR #346.
+
 ---
 
 ## 🎅 Santa Tracking API
