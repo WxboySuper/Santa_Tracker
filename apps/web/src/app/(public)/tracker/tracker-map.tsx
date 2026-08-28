@@ -9,8 +9,13 @@ import { t } from "@santa-tracker/localization";
 import type { RouteNode } from "@/lib/locations";
 import Countdown from "@/components/countdown";
 
-interface TrackerMapProps { adventEnabled: boolean; }
-interface RouteResponse { route_nodes: RouteNode[]; }
+interface TrackerMapProps {
+  adventEnabled: boolean;
+}
+
+interface RouteResponse {
+  route_nodes: RouteNode[];
+}
 type LeafletModule = typeof Leaflet;
 
 function hasCoordinates(node: RouteNode): boolean {
@@ -19,8 +24,14 @@ function hasCoordinates(node: RouteNode): boolean {
 
 function addStopMarker(L: LeafletModule, map: LeafletMap, node: RouteNode): void {
   L.circleMarker([node.location.lat, node.location.lng], {
-    color: "#fbbf24", fillColor: "#dc2626", fillOpacity: 0.9, radius: 5, weight: 2,
-  }).bindTooltip(node.location.name, { direction: "top" }).addTo(map);
+    color: "#fbbf24",
+    fillColor: "#dc2626",
+    fillOpacity: 0.9,
+    radius: 5,
+    weight: 2,
+  })
+    .bindTooltip(node.location.name, { direction: "top" })
+    .addTo(map);
 }
 
 function renderRoute(L: LeafletModule, map: LeafletMap, nodes: RouteNode[]): number {
@@ -35,13 +46,17 @@ function renderRoute(L: LeafletModule, map: LeafletMap, nodes: RouteNode[]): num
 }
 
 async function createTrackerMap(container: HTMLDivElement): Promise<{ map: LeafletMap; stopCount: number }> {
-  const [{ default: L }, response] = await Promise.all([import("leaflet"), fetch("/api/route", { cache: "no-store" })]);
+  const [{ default: L }, response] = await Promise.all([
+    import("leaflet"),
+    fetch("/api/route", { cache: "no-store" }),
+  ]);
   if (!response.ok) throw new Error(`Route request failed with ${response.status}`);
   const data = (await response.json()) as RouteResponse;
   const map = L.map(container, { worldCopyJump: true, zoomControl: false }).setView([20, 0], 2);
   L.control.zoom({ position: "bottomright" }).addTo(map);
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-    attribution: "&copy; OpenStreetMap contributors", maxZoom: 18,
+    attribution: "&copy; OpenStreetMap contributors",
+    maxZoom: 18,
   }).addTo(map);
   return { map, stopCount: renderRoute(L, map, data.route_nodes) };
 }
@@ -57,7 +72,10 @@ export default function TrackerMap({ adventEnabled }: TrackerMapProps) {
       try {
         if (!mapElement.current) return;
         const result = await createTrackerMap(mapElement.current);
-        if (cancelled) { result.map.remove(); return; }
+        if (cancelled) {
+          result.map.remove();
+          return;
+        }
         map = result.map;
         setRouteStatus(t("tracker.loaded", { count: result.stopCount }));
       } catch (error: unknown) {
@@ -68,7 +86,10 @@ export default function TrackerMap({ adventEnabled }: TrackerMapProps) {
       }
     };
     void initializeMap();
-    return () => { cancelled = true; map?.remove(); };
+    return () => {
+      cancelled = true;
+      map?.remove();
+    };
   }, []);
 
   return (

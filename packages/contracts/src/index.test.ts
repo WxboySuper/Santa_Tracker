@@ -85,6 +85,7 @@ describe('@santa-tracker/contracts', () => {
     });
     expect(content.id).toBe('ornament-smash');
     expect(resolveLocalizedText(content.title, 'fr')).toBe('Ornament Smash');
+    expect(resolveLocalizedText({ de: 'Ornament zerstoeren' }, 'fr', 'de')).toBe('Ornament zerstoeren');
     expect(LocalizedTextSchema.safeParse({ en: 'Ready' }).success).toBe(true);
     expect(LocalizedTextSchema.safeParse({ en: '' }).success).toBe(false);
   });

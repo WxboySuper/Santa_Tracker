@@ -15,7 +15,7 @@ export default function HomePage() {
       <div className="hero min-h-screen flex flex-col items-center justify-center px-4 text-center">
         <div className="hero-content max-w-2xl">
           <h1 className="hero-title text-5xl md:text-7xl font-bold mb-4">
-            <span className="text-red-500">Santa</span> <span className="text-green-400">{t("nav.tracker")}</span>
+            {t("home.title")}
           </h1>
           <p className="hero-subtitle text-xl text-white/90 mb-8">{t("home.subtitle")}</p>
           <div className="countdown-box bg-white/10 backdrop-blur-md rounded-2xl border border-yellow-400/50 p-6 mb-8">

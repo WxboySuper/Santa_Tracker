@@ -5,6 +5,7 @@ export type { MessageKey, Messages } from './messages';
 
 export type Locale = string;
 export type MessageCatalog = Partial<Record<MessageKey, string>>;
+export const DEFAULT_LOCALE = 'en' as const;
 
 export interface TranslatorOptions {
   locale?: Locale;
@@ -20,8 +21,8 @@ export interface Translator {
 const defaultCatalogs: Record<Locale, MessageCatalog> = { en };
 
 export function createTranslator(options: TranslatorOptions = {}): Translator {
-  const locale = options.locale ?? 'en';
-  const fallbackLocale = options.fallbackLocale ?? 'en';
+  const locale = options.locale ?? DEFAULT_LOCALE;
+  const fallbackLocale = options.fallbackLocale ?? DEFAULT_LOCALE;
   const catalogs = { ...defaultCatalogs, ...options.catalogs };
   const localeCatalog = catalogs[locale] ?? {};
   const fallbackCatalog = catalogs[fallbackLocale] ?? en;
@@ -39,5 +40,6 @@ export function createTranslator(options: TranslatorOptions = {}): Translator {
   };
 }
 
-const defaultTranslator = createTranslator();
-export const t = (key: MessageKey, values?: Record<string, string | number>): string => defaultTranslator.t(key, values);
+export function t(key: MessageKey, values?: Record<string, string | number>): string {
+  return createTranslator().t(key, values);
+}

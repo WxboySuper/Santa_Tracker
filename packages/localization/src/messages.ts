@@ -18,6 +18,7 @@ export const en = {
   'offline.home': 'Go home',
   'notFound.title': 'Page not found',
   'notFound.message': "The page you're looking for doesn't exist.",
+  'notFound.home': 'Go home',
   'advent.title': 'Advent Village',
   'advent.subtitle': 'Daily unlocks December 1-24.',
   'advent.totalDays': 'Total days: {count}',

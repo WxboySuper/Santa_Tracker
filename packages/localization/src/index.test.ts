@@ -23,4 +23,9 @@ describe('@santa-tracker/localization', () => {
     const translator = createTranslator({ catalogs: { en: {} } });
     expect(translator.t('nav.home')).toBe('nav.home');
   });
+
+  it('leaves an interpolation marker visible when its value is missing', () => {
+    const translator = createTranslator();
+    expect(translator.t('advent.day', { day: 1 })).toBe('Day 1: {title}');
+  });
 });
