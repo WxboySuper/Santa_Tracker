@@ -76,6 +76,90 @@ export const RouteSchema = z.object({
 
 export type Route = z.infer<typeof RouteSchema>;
 
+// ---------------------------------------------------------------------------
+// Legacy migration fixtures
+// ---------------------------------------------------------------------------
+
+const LegacyScheduleSchema = z.object({
+  arrival_utc: z.string().datetime({ offset: true }).nullable().optional(),
+  departure_utc: z.string().datetime({ offset: true }).nullable().optional(),
+  local_arrival_time: z.string().min(1).nullable().optional(),
+  time_window_status: z.string().min(1).nullable().optional(),
+});
+
+const LegacyStopExperienceSchema = z.object({
+  duration_seconds: z.number().int().nonnegative().nullable().optional(),
+  camera_zoom: z.number().int().nullable().optional(),
+  weather_condition: z.string().min(1).nullable().optional(),
+  presents_delivered_at_stop: z.number().int().nonnegative().nullable().optional(),
+});
+
+const LegacyTransitSchema = z.object({
+  description: z.string().min(1).nullable().optional(),
+  duration_seconds: z.number().int().nonnegative().nullable().optional(),
+  distance_km: z.number().nonnegative().nullable().optional(),
+  speed_curve: z.string().min(1).nullable().optional(),
+  speed_kmh: z.number().nonnegative().nullable().optional(),
+  camera_zoom: z.number().int().nullable().optional(),
+});
+
+export const LegacyRouteNodeSchema = z.object({
+  comment: z.string().nullable().optional(),
+  // Legacy IDs include repeated underscores. The canonical ID schema remains strict.
+  id: z.string().min(1),
+  type: z.string().min(1),
+  location: z.object({
+    name: z.string().min(1),
+    region: z.string().min(1),
+    lat: z.number().min(-90).max(90),
+    // The old route stores unwrapped longitudes for antimeridian continuity.
+    lng: z.number().min(-360).max(360),
+    timezone_offset: z.number().min(-12).max(14),
+  }),
+  stop_experience: LegacyStopExperienceSchema,
+  schedule: LegacyScheduleSchema,
+  transit_to_here: LegacyTransitSchema.nullable(),
+});
+
+export type LegacyRouteNode = z.infer<typeof LegacyRouteNodeSchema>;
+
+export const LegacyRouteFixtureSchema = z.object({
+  meta: z.object({
+    year: z.number().int(),
+    route_version: z.string().min(1),
+    generated_at: z.string().datetime({ offset: true }),
+  }),
+  route_nodes: z.array(LegacyRouteNodeSchema).min(1),
+});
+
+export type LegacyRouteFixture = z.infer<typeof LegacyRouteFixtureSchema>;
+
+export const LegacyAdventDaySchema = z.object({
+  day: z.number().int().min(1).max(24),
+  title: z.string().min(1),
+  unlock_time: z.string().datetime({ offset: true }),
+  content_type: z.enum(['fact', 'game', 'story', 'video', 'activity', 'quiz']),
+  // Legacy content types have different payload shapes. Keep the copied source
+  // lossless here; the editor/content contracts can tighten each type later.
+  payload: z.record(z.unknown()),
+});
+
+export type LegacyAdventDay = z.infer<typeof LegacyAdventDaySchema>;
+
+export const LegacyAdventFixtureSchema = z.object({
+  days: z.array(LegacyAdventDaySchema).length(24).superRefine((days, context) => {
+    const dayNumbers = days.map(day => day.day);
+    if (new Set(dayNumbers).size !== dayNumbers.length) {
+      context.addIssue({ code: z.ZodIssueCode.custom, message: 'Advent days must be unique' });
+    }
+    if (dayNumbers.some((day, index) => day !== index + 1)) {
+      context.addIssue({ code: z.ZodIssueCode.custom, message: 'Advent days must contain 1 through 24 in order' });
+    }
+  }),
+});
+
+export type LegacyAdventFixture = z.infer<typeof LegacyAdventFixtureSchema>;
+
 export const ActivitySchema = z.object({
   id: ActivityIdSchema,
   title: z.string().min(1),
