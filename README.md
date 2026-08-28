@@ -57,7 +57,7 @@ packages/
   database/              # Drizzle placeholder (issue #210); filesystem store provides parity now
   ui/                    # Shared primitives
   activity-sdk/          # Activity lifecycle
-  test-fixtures/         # Clocks, routes, snapshots
+  test-fixtures/         # Clocks, routes, snapshots, and frozen legacy fixtures
 archive/
   flask-legacy/          # Retired src/app.py, config.py, utils, requirements
   route-data-2025-12-20/ # Snapshot of Route Data/ at audit commit 41c96a6
