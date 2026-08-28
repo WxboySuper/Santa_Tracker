@@ -141,6 +141,21 @@ export const FEATURE_EXPOSURE_REGISTRY = {
     serverBacked: false,
     trackingIssue: 431,
   },
+  outlookLandMasking: {
+    exposure: {
+      local: true,
+      beta: true,
+      staging: false,
+      production: false,
+    },
+    owner: 'WxboySuper',
+    addedDate: '2026-08-27',
+    temporary: true,
+    removalCondition:
+      'Remove after land masking is validated by beta testers and the stable production rollout is approved (#619).',
+    serverBacked: false,
+    trackingIssue: 619,
+  },
   tropicalWorkspace: {
     exposure: { ...ALL_TARGETS_OFF },
     owner: 'WxboySuper',

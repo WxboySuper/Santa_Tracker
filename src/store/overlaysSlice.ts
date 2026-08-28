@@ -1,5 +1,6 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 import type { OutlookType } from '../types/outlooks';
+import type { LandMaskStrategy } from '../utils/outlookPolygonMasking/types';
 
 export type BaseMapStyle = 'osm' | 'carto-light' | 'carto-dark' | 'esri-satellite' | 'blank';
 
@@ -8,12 +9,21 @@ export interface OverlaysState {
   counties: boolean;
   baseMapStyle: BaseMapStyle;
   ghostOutlooks: Record<OutlookType, boolean>;
+  /** Prototype (#619): trim outlook polygons to land; default off. */
+  outlookTrimStrategy: LandMaskStrategy;
+  /** Prototype (#619): trim geometry when finishing draw/modify. */
+  outlookTrimAutoOnDraw: boolean;
+  /** Prototype (#619): show trimmed preview layer without mutating stored geometry. */
+  outlookTrimPreviewOnly: boolean;
 }
 
 const initialState: OverlaysState = {
   stateBorders: true, // Default to showing state borders
   counties: false,
   baseMapStyle: 'osm',
+  outlookTrimStrategy: 'us-country-minus-great-lakes',
+  outlookTrimAutoOnDraw: false,
+  outlookTrimPreviewOnly: false,
   ghostOutlooks: {
     tornado: false,
     wind: false,
@@ -55,8 +65,32 @@ const overlaysSlice = createSlice({
       const { outlookType, visible } = action.payload;
       state.ghostOutlooks[outlookType] = visible;
     },
+    setOutlookTrimStrategy: (state, action: PayloadAction<LandMaskStrategy>) => {
+      state.outlookTrimStrategy = action.payload;
+    },
+    setOutlookTrimAutoOnDraw: (state, action: PayloadAction<boolean>) => {
+      state.outlookTrimAutoOnDraw = action.payload;
+    },
+    toggleOutlookTrimAutoOnDraw: (state) => {
+      state.outlookTrimAutoOnDraw = !state.outlookTrimAutoOnDraw;
+    },
+    setOutlookTrimPreviewOnly: (state, action: PayloadAction<boolean>) => {
+      state.outlookTrimPreviewOnly = action.payload;
+    },
+    toggleOutlookTrimPreviewOnly: (state) => {
+      state.outlookTrimPreviewOnly = !state.outlookTrimPreviewOnly;
+    },
+    // @codescene(disable:"Complex Method")
     applyOverlaySettings: (state, action: PayloadAction<Partial<OverlaysState>>) => {
-      const { stateBorders, counties, baseMapStyle, ghostOutlooks } = action.payload;
+      const {
+        stateBorders,
+        counties,
+        baseMapStyle,
+        ghostOutlooks,
+        outlookTrimStrategy,
+        outlookTrimAutoOnDraw,
+        outlookTrimPreviewOnly,
+      } = action.payload;
 
       if (typeof stateBorders === 'boolean') {
         state.stateBorders = stateBorders;
@@ -68,6 +102,18 @@ const overlaysSlice = createSlice({
 
       if (baseMapStyle) {
         state.baseMapStyle = baseMapStyle;
+      }
+
+      if (outlookTrimStrategy) {
+        state.outlookTrimStrategy = outlookTrimStrategy;
+      }
+
+      if (typeof outlookTrimAutoOnDraw === 'boolean') {
+        state.outlookTrimAutoOnDraw = outlookTrimAutoOnDraw;
+      }
+
+      if (typeof outlookTrimPreviewOnly === 'boolean') {
+        state.outlookTrimPreviewOnly = outlookTrimPreviewOnly;
       }
 
       if (ghostOutlooks && !areGhostOutlooksEqual(state.ghostOutlooks, {
@@ -91,6 +137,11 @@ export const {
   setBaseMapStyle,
   toggleGhostOutlook,
   setGhostOutlookVisibility,
+  setOutlookTrimStrategy,
+  setOutlookTrimAutoOnDraw,
+  toggleOutlookTrimAutoOnDraw,
+  setOutlookTrimPreviewOnly,
+  toggleOutlookTrimPreviewOnly,
   applyOverlaySettings,
   resetOverlays,
 } = overlaysSlice.actions;

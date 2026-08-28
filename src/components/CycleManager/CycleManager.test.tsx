@@ -77,6 +77,7 @@ const baseForecastState: ForecastState = {
   savedCycles: [],
   historyByDay: {},
   autoCategoricalError: null,
+  lastTrimResult: null,
 };
 
 const buildStore = (overrides: ForecastStateOverrides = {}) => {

@@ -26,9 +26,13 @@ const useForecastMapSelections = () => {
   const activeCustomCategory = activeCustomLayer?.categories.find(({ id }) => id === customEditor.activeCategoryId) ?? activeCustomLayer?.categories[0];
   const currentMapView = useSelector((state: RootState) => state.forecast.currentMapView);
   const outlooks = useSelector(selectCurrentOutlooks) as OutlookMapLike;
+  const currentDay = useSelector((state: RootState) => state.forecast.forecastCycle.currentDay);
   const outlookOpacity = useSelector((state: RootState) => selectCurrentOutlookOpacity(state, drawingState.activeOutlookType));
   const baseMapStyle = useSelector((state: RootState) => state.overlays.baseMapStyle);
   const ghostOutlooks = useSelector((state: RootState) => state.overlays.ghostOutlooks);
+  const outlookTrimStrategy = useSelector((state: RootState) => state.overlays.outlookTrimStrategy);
+  const outlookTrimAutoOnDraw = useSelector((state: RootState) => state.overlays.outlookTrimAutoOnDraw);
+  const outlookTrimPreviewOnly = useSelector((state: RootState) => state.overlays.outlookTrimPreviewOnly);
 
   return {
     dispatch,
@@ -42,9 +46,13 @@ const useForecastMapSelections = () => {
     activeCustomCategory,
     currentMapView,
     outlooks,
+    currentDay,
     outlookOpacity,
     baseMapStyle,
     ghostOutlooks,
+    outlookTrimStrategy,
+    outlookTrimAutoOnDraw,
+    outlookTrimPreviewOnly,
   };
 };
 

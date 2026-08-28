@@ -39,6 +39,24 @@ import themeReducer from '../store/themeSlice';
 import overlaysReducer from '../store/overlaysSlice';
 import monitorReducer from '../store/monitorSlice';
 import { DEFAULT_MONITOR_SETTINGS } from '../monitor/types';
+import type { OverlaysState } from '../store/overlaysSlice';
+
+const TEST_OVERLAY_STATE: OverlaysState = {
+  baseMapStyle: 'osm',
+  stateBorders: true,
+  counties: false,
+  ghostOutlooks: {
+    tornado: false,
+    wind: false,
+    hail: false,
+    categorical: false,
+    totalSevere: false,
+    'day4-8': false,
+  },
+  outlookTrimStrategy: 'us-country-minus-great-lakes',
+  outlookTrimAutoOnDraw: false,
+  outlookTrimPreviewOnly: false,
+};
 
 interface MockResponse {
   ok: boolean;
@@ -105,13 +123,13 @@ describe('AuthProvider Utils', () => {
 
   test('safeParseJson parses valid JSON', async () => {
     const data = { foo: 'bar' };
-    const resp = { ok: true, json: jest.fn().mockResolvedValue(data) } as MockResponse;
+    const resp = { ok: true, json: jest.fn().mockResolvedValue(data), text: jest.fn() } as MockResponse;
     const result = await safeParseJson<{ foo: string }>(resp as unknown as Response);
     expect(result).toEqual(data);
   });
 
   test('safeParseJson returns null on invalid JSON', async () => {
-    const resp = { ok: false, json: jest.fn().mockRejectedValue(new Error('invalid json')) } as MockResponse;
+    const resp = { ok: false, json: jest.fn().mockRejectedValue(new Error('invalid json')), text: jest.fn() } as MockResponse;
     const result = await safeParseJson(resp as unknown as Response);
     expect(result).toBeNull();
   });
@@ -131,12 +149,7 @@ describe('AuthProvider Utils', () => {
   });
 
   test('createSettingsSnapshot builds correct object', () => {
-    const overlays = {
-      baseMapStyle: 'streets',
-      stateBorders: true,
-      counties: false,
-      ghostOutlooks: {},
-    };
+    const overlays = { ...TEST_OVERLAY_STATE };
     const result = createSettingsSnapshot({
       darkMode: true,
       overlays,
@@ -145,10 +158,10 @@ describe('AuthProvider Utils', () => {
     });
     expect(result).toEqual({
       darkMode: true,
-      baseMapStyle: 'streets',
+      baseMapStyle: 'osm',
       stateBorders: true,
       counties: false,
-      ghostOutlooks: {},
+      ghostOutlooks: TEST_OVERLAY_STATE.ghostOutlooks,
       defaultForecasterName: 'Forecaster',
       forecastUiVariant: 'workspace_dock',
       monitorSettings: DEFAULT_MONITOR_SETTINGS,
@@ -181,23 +194,11 @@ describe('AuthProvider Utils', () => {
       readRemoteSettings({ ...validSettings, defaultForecasterName: 'a'.repeat(101) } as Record<string, unknown>)
     ).toBeNull();
     expect(readRemoteSettings({ darkMode: 'not boolean' } as Record<string, unknown>)).toBeNull();
-    expect(readRemoteSettings()).toBeNull();
+    expect(readRemoteSettings(undefined)).toBeNull();
   });
 
   test('settings comparison and application helpers avoid redundant dispatches', () => {
-    const overlays = {
-      baseMapStyle: 'osm' as const,
-      stateBorders: true,
-      counties: false,
-      ghostOutlooks: {
-        tornado: false,
-        wind: false,
-        hail: false,
-        categorical: false,
-        totalSevere: false,
-        'day4-8': false,
-      },
-    };
+    const overlays = { ...TEST_OVERLAY_STATE };
     const settings = createSettingsSnapshot({
       darkMode: false,
       overlays,
@@ -248,7 +249,7 @@ describe('AuthProvider Utils', () => {
     expect(getDefaultContextValue()).toEqual(expect.objectContaining({ status: 'disabled', hostedAuthEnabled: false }));
     expect(canSyncHostedUserDocuments(null)).toBe(false);
     expect(readProfileBetaAccess({ betaAccess: true })).toBe(true);
-    expect(readProfileBetaAccess()).toBe(false);
+    expect(readProfileBetaAccess(undefined)).toBe(false);
     expect(getSettingsUpdateError(new Error('Update failed'))).toBe('Update failed');
     expect(getSettingsUpdateError('bad')).toBe('Unable to update synced settings right now.');
     expect(getSettingsSyncError(new Error('Sync failed'))).toBe('Sync failed');
@@ -268,7 +269,7 @@ describe('AuthProvider Utils', () => {
         baseMapStyle: 'osm',
         stateBorders: true,
         counties: false,
-        ghostOutlooks: {},
+        ghostOutlooks: TEST_OVERLAY_STATE.ghostOutlooks,
         defaultForecasterName: '',
         forecastUiVariant: 'workspace_dock',
         monitorSettings: DEFAULT_MONITOR_SETTINGS,
@@ -297,12 +298,7 @@ describe('AuthProvider Utils', () => {
   });
 
   test('local auth action helpers update state and surface failures', async () => {
-    const overlays = {
-      baseMapStyle: 'osm' as const,
-      stateBorders: true,
-      counties: false,
-      ghostOutlooks: {},
-    };
+    const overlays = { ...TEST_OVERLAY_STATE };
     const deps = {
       dispatch: jest.fn(),
       currentDarkModeRef: { current: false },
@@ -326,7 +322,7 @@ describe('AuthProvider Utils', () => {
         baseMapStyle: 'osm',
         stateBorders: true,
         counties: false,
-        ghostOutlooks: {},
+        ghostOutlooks: TEST_OVERLAY_STATE.ghostOutlooks,
         defaultForecasterName: 'Local',
         forecastUiVariant: 'workspace_dock',
         monitorSettings: DEFAULT_MONITOR_SETTINGS,
@@ -392,12 +388,7 @@ describe('AuthProvider Utils', () => {
       dispatch: jest.fn(),
       currentDarkModeRef: { current: false },
       currentOverlaysRef: {
-        current: {
-          baseMapStyle: 'osm' as const,
-          stateBorders: true,
-          counties: false,
-          ghostOutlooks: {},
-        },
+        current: TEST_OVERLAY_STATE,
       },
       setUser: jest.fn(),
       setStatus: jest.fn(),
@@ -418,7 +409,7 @@ describe('AuthProvider Utils', () => {
         baseMapStyle: 'osm',
         stateBorders: true,
         counties: false,
-        ghostOutlooks: {},
+        ghostOutlooks: TEST_OVERLAY_STATE.ghostOutlooks,
         defaultForecasterName: 'Local',
         forecastUiVariant: 'workspace_dock',
         monitorSettings: DEFAULT_MONITOR_SETTINGS,
@@ -534,7 +525,7 @@ describe('AuthProvider Utils', () => {
       baseMapStyle: 'osm' as const,
       stateBorders: true,
       counties: false,
-      ghostOutlooks: {},
+      ghostOutlooks: TEST_OVERLAY_STATE.ghostOutlooks,
       defaultForecasterName: 'Remote',
       forecastUiVariant: 'workspace_dock' as const,
       monitorSettings: DEFAULT_MONITOR_SETTINGS,
@@ -563,7 +554,7 @@ describe('AuthProvider Utils', () => {
       baseMapStyle: 'osm' as const,
       stateBorders: true,
       counties: false,
-      ghostOutlooks: {},
+      ghostOutlooks: TEST_OVERLAY_STATE.ghostOutlooks,
       defaultForecasterName: 'Remote',
       forecastUiVariant: 'workspace_dock' as const,
       monitorSettings: DEFAULT_MONITOR_SETTINGS,
@@ -596,7 +587,7 @@ describe('AuthProvider Utils', () => {
       baseMapStyle: 'osm' as const,
       stateBorders: true,
       counties: false,
-      ghostOutlooks: {},
+      ghostOutlooks: TEST_OVERLAY_STATE.ghostOutlooks,
       defaultForecasterName: 'Remote',
       forecastUiVariant: 'workspace_dock' as const,
       monitorSettings: DEFAULT_MONITOR_SETTINGS,
@@ -642,7 +633,7 @@ describe('AuthProvider Utils', () => {
       baseMapStyle: 'osm' as const,
       stateBorders: true,
       counties: false,
-      ghostOutlooks: {},
+      ghostOutlooks: TEST_OVERLAY_STATE.ghostOutlooks,
       defaultForecasterName: 'Remote',
       forecastUiVariant: 'workspace_dock' as const,
       monitorSettings: DEFAULT_MONITOR_SETTINGS,
@@ -730,7 +721,7 @@ describe('AuthProvider Local Auth', () => {
         baseMapStyle: 'satellite',
         stateBorders: true,
         counties: true,
-        ghostOutlooks: {},
+        ghostOutlooks: TEST_OVERLAY_STATE.ghostOutlooks,
         defaultForecasterName: 'Local Hero',
         forecastUiVariant: 'workspace_dock',
         monitorSettings: DEFAULT_MONITOR_SETTINGS,

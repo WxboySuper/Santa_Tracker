@@ -45,7 +45,7 @@ import {
 } from '../ForecastWorkspace/workspaceMeta';
 
 const getGhostLayerColor = (type: OutlookType) => getOutlookColor({ outlookType: type, probability: type === 'categorical' ? 'SLGT' : '15%' });
-import TabbedToolbarSelectionStrip from './TabbedToolbarSelectionStrip';
+import TabbedToolbarSelectionStrip, { OutlookTrimToolbarSection } from './TabbedToolbarSelectionStrip';
 import CustomDrawPanel from './CustomDrawPanel';
 import CustomProductsDialog from './CustomProductsDialog';
 import type { RootState } from '../../store';
@@ -819,7 +819,7 @@ const TabbedToolbarLayersTab: React.FC<{ controller: ForecastWorkspaceController
       </div>
     </TabbedToolbarStripSection>
 
-    <TabbedToolbarStripSection label="Layer Status" className="tabbed-integrated-toolbar__section--layer-status w-[250px]">
+    <OutlookTrimToolbarSection controller={controller} /><TabbedToolbarStripSection label="Layer Status" className="tabbed-integrated-toolbar__section--layer-status w-[250px]">
       <div className="flex flex-wrap items-center gap-2">
         <TabbedToolbarStatPill label="Visible" value={`${controller.visibleGhostOutlooks.length}`} />
         <TabbedToolbarStatPill label="Editing" value={outlookLabels[controller.activeOutlookType]} />

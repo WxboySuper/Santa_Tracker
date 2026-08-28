@@ -18,7 +18,7 @@ interface PendingFeatureUpdate {
 }
 
 interface ForecastOutlookReducerDeps {
-  getCurrentOutlook: (state: ForecastState) => OutlookData;
+  getCurrentOutlook: (state: ForecastState, day?: DayType) => OutlookData;
   computeOutlookType: (feature: Feature, state: ForecastState) => OutlookType;
   computeProbability: (feature: Feature, state: ForecastState) => string;
   buildFeatureWithProps: (
@@ -30,10 +30,12 @@ interface ForecastOutlookReducerDeps {
   collectPendingFeatureUpdates: (
     state: ForecastState,
     incoming: Feature[],
+    day?: DayType,
   ) => PendingFeatureUpdate[];
   applyPendingFeatureUpdates: (
     state: ForecastState,
     pendingUpdates: PendingFeatureUpdate[],
+    day?: DayType,
   ) => void;
   pushUndoSnapshot: (state: ForecastState) => void;
   invalidateCompletionAcknowledgement: (state: ForecastState) => void;
@@ -55,11 +57,12 @@ const applyFeatureUpdates = (
   deps: ForecastOutlookReducerDeps,
   state: ForecastState,
   incoming: Feature[],
+  day?: DayType,
 ) => {
-  const pendingUpdates = deps.collectPendingFeatureUpdates(state, incoming);
+  const pendingUpdates = deps.collectPendingFeatureUpdates(state, incoming, day);
   if (pendingUpdates.length === 0) return;
   deps.pushUndoSnapshot(state);
-  deps.applyPendingFeatureUpdates(state, pendingUpdates);
+  deps.applyPendingFeatureUpdates(state, pendingUpdates, day);
   deps.invalidateCompletionAcknowledgement(state);
   state.isSaved = false;
 };
@@ -109,10 +112,10 @@ export const createForecastOutlookReducers = (deps: ForecastOutlookReducerDeps) 
     state.isSaved = false;
   },
 
-  addFeature: (state: ForecastState, action: PayloadAction<{ feature: Feature }>) => {
+  addFeature: (state: ForecastState, action: PayloadAction<{ feature: Feature; day?: DayType }>) => {
     const feature = action.payload.feature;
     const outlookType = deps.computeOutlookType(feature, state);
-    const dayData = state.forecastCycle.days[state.forecastCycle.currentDay];
+    const dayData = state.forecastCycle.days[action.payload.day ?? state.forecastCycle.currentDay];
     const outlookMap = dayData?.data[outlookType];
     if (!dayData || !outlookMap) {
       return;
@@ -135,8 +138,8 @@ export const createForecastOutlookReducers = (deps: ForecastOutlookReducerDeps) 
     state.isSaved = false;
   },
 
-  updateFeature: (state: ForecastState, action: PayloadAction<{ feature: Feature }>) => {
-    applyFeatureUpdates(deps, state, [action.payload.feature]);
+  updateFeature: (state: ForecastState, action: PayloadAction<{ feature: Feature; day?: DayType }>) => {
+    applyFeatureUpdates(deps, state, [action.payload.feature], action.payload.day);
   },
 
   updateFeaturesBatch: (state: ForecastState, action: PayloadAction<{ features: Feature[] }>) => {

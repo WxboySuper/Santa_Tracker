@@ -67,6 +67,7 @@ describe('featureExposure registry', () => {
       'forecastWorkflowV2',
       'verificationRelaunch',
       'customProducts',
+      'outlookLandMasking',
       'tropicalWorkspace',
       'collaborationRoom',
     ]);

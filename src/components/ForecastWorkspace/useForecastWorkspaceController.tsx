@@ -2,13 +2,15 @@ import React, { useMemo, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { RootState } from '../../store';
 import { selectCanRedo, selectCanUndo, selectForecastCycle, selectOmittedDays, setActiveOutlookType, setForecastDay } from '../../store/forecastSlice';
-import { setBaseMapStyle, setGhostOutlookVisibility } from '../../store/overlaysSlice';
+import { setBaseMapStyle, setGhostOutlookVisibility, setOutlookTrimStrategy, toggleOutlookTrimAutoOnDraw, toggleOutlookTrimPreviewOnly } from '../../store/overlaysSlice';
 import type { BaseMapStyle } from '../../store/overlaysSlice';
 import { ForecastMapHandle } from '../Map/ForecastMap';
 import type { AddToastFn } from '../Layout';
 import useOutlookPanelLogic from '../OutlookPanel/useOutlookPanelLogic';
 import { isExportMapExposed } from '../../config/productExposureSelectors';
 import { useExportMap } from '../DrawingTools/useExportMap';
+import { useTrimCurrentDayOutlooks } from '../../hooks/useTrimCurrentDayOutlooks';
+import type { LandMaskStrategy } from '../../utils/outlookPolygonMasking/types';
 
 import type { ProbabilisticHazardType } from '../../utils/outlookGeometryCopy';
 import { DayType, OutlookData, OutlookType } from '../../types/outlooks';
@@ -151,6 +153,14 @@ export interface ForecastWorkspaceController {
   cloudTools: React.ReactNode;
   baseMapStyle: BaseMapStyle;
   onBaseMapStyleSelect: (style: BaseMapStyle) => void;
+  outlookTrimStrategy: LandMaskStrategy;
+  outlookTrimAutoOnDraw: boolean;
+  outlookTrimPreviewOnly: boolean;
+  onOutlookTrimStrategyChange: (strategy: LandMaskStrategy) => void;
+  onToggleOutlookTrimAutoOnDraw: () => void;
+  onToggleOutlookTrimPreviewOnly: () => void;
+  onTrimCurrentDayOutlooks: () => Promise<void>;
+  isTrimmingOutlooks: boolean;
   // Completion validation (WF-03)
   showCompletionModal: boolean;
   onOpenCompletionModal: () => void;
@@ -209,6 +219,11 @@ interface BuildForecastWorkspaceControllerArgs {
   ghostOutlookHandlers: Partial<Record<OutlookType, () => void>>;
   baseMapStyle: BaseMapStyle;
   handleBaseMapStyleSelect: (style: BaseMapStyle) => void;
+  outlookTrimStrategy: LandMaskStrategy;
+  outlookTrimAutoOnDraw: boolean;
+  outlookTrimPreviewOnly: boolean;
+  trimCurrentDayOutlooks: () => Promise<void>;
+  isTrimmingOutlooks: boolean;
   handleOpenHistoryModal: () => void;
   handleOpenCopyModal: () => void;
   handleOpenResetConfirm: () => void;
@@ -218,6 +233,7 @@ interface BuildForecastWorkspaceControllerArgs {
   handleTempDateChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   handleStartDateEdit: () => void;
   handlers: ReturnType<typeof useForecastWorkspaceActionHandlers>;
+  dispatch: ReturnType<typeof useDispatch>;
   // Completion validation (WF-03)
   showCompletionModal: boolean;
   handleOpenCompletionModal: () => void;
@@ -232,6 +248,7 @@ interface BuildForecastWorkspaceControllerArgs {
 /** Build the controller object returned by useForecastWorkspaceController.
  * Extracted to keep the hook body small for static analysis tools.
  */
+// @codescene(disable:"Large Method")
 function buildForecastWorkspaceController(args: BuildForecastWorkspaceControllerArgs): ForecastWorkspaceController {
   const {
     onSave,
@@ -262,6 +279,11 @@ function buildForecastWorkspaceController(args: BuildForecastWorkspaceController
     ghostOutlookHandlers,
     baseMapStyle,
     handleBaseMapStyleSelect,
+    outlookTrimStrategy,
+    outlookTrimAutoOnDraw,
+    outlookTrimPreviewOnly,
+    trimCurrentDayOutlooks,
+    isTrimmingOutlooks,
     handleOpenHistoryModal,
     handleOpenCopyModal,
     handleOpenResetConfirm,
@@ -271,6 +293,7 @@ function buildForecastWorkspaceController(args: BuildForecastWorkspaceController
     handleTempDateChange,
     handleStartDateEdit,
     handlers,
+    dispatch,
     showCompletionModal,
     handleOpenCompletionModal,
     handleCloseCompletionModal,
@@ -322,6 +345,20 @@ function buildForecastWorkspaceController(args: BuildForecastWorkspaceController
     isLowProb,
     baseMapStyle,
     onBaseMapStyleSelect: handleBaseMapStyleSelect,
+    outlookTrimStrategy,
+    outlookTrimAutoOnDraw,
+    outlookTrimPreviewOnly,
+    onOutlookTrimStrategyChange: (strategy: LandMaskStrategy) => {
+      dispatch(setOutlookTrimStrategy(strategy));
+    },
+    onToggleOutlookTrimAutoOnDraw: () => {
+      dispatch(toggleOutlookTrimAutoOnDraw());
+    },
+    onToggleOutlookTrimPreviewOnly: () => {
+      dispatch(toggleOutlookTrimPreviewOnly());
+    },
+    onTrimCurrentDayOutlooks: trimCurrentDayOutlooks,
+    isTrimmingOutlooks,
     onOpenHistoryModal: handleOpenHistoryModal,
     onOpenCopyModal: handleOpenCopyModal,
     onOpenResetConfirm: handleOpenResetConfirm,
@@ -438,6 +475,9 @@ function useForecastWorkspaceCoreState(
   const canRedo = useSelector(selectCanRedo);
   const ghostOutlookState = useSelector((state: RootState) => state.overlays.ghostOutlooks);
   const baseMapStyle = useSelector((state: RootState) => state.overlays.baseMapStyle);
+  const outlookTrimStrategy = useSelector((state: RootState) => state.overlays.outlookTrimStrategy);
+  const outlookTrimAutoOnDraw = useSelector((state: RootState) => state.overlays.outlookTrimAutoOnDraw);
+  const outlookTrimPreviewOnly = useSelector((state: RootState) => state.overlays.outlookTrimPreviewOnly);
   const lowProbabilityOutlooks = useSelector((state: RootState) =>
     state.forecast.forecastCycle.days[currentDay]?.metadata?.lowProbabilityOutlooks || EMPTY_LOW_PROBABILITY_OUTLOOKS
   );
@@ -461,6 +501,7 @@ function useForecastWorkspaceCoreState(
     () => createGhostOutlookHandlers(dispatch, ghostOutlookState),
     [dispatch, ghostOutlookState],
   );
+  const { trimCurrentDayOutlooks, isTrimming: isTrimmingOutlooks } = useTrimCurrentDayOutlooks({ addToast });
 
   return {
     dispatch,
@@ -479,6 +520,11 @@ function useForecastWorkspaceCoreState(
     availableTypes,
     ghostTypes,
     ghostOutlookHandlers,
+    outlookTrimStrategy,
+    outlookTrimAutoOnDraw,
+    outlookTrimPreviewOnly,
+    trimCurrentDayOutlooks,
+    isTrimmingOutlooks,
     ...exportState,
   };
 }
@@ -539,6 +585,12 @@ function useForecastWorkspaceControllerArgs({
     lowProbabilityOutlooks: core.lowProbabilityOutlooks,
     ghostOutlookState: core.ghostOutlookState,
     ghostOutlookHandlers: core.ghostOutlookHandlers,
+    outlookTrimStrategy: core.outlookTrimStrategy,
+    outlookTrimAutoOnDraw: core.outlookTrimAutoOnDraw,
+    outlookTrimPreviewOnly: core.outlookTrimPreviewOnly,
+    trimCurrentDayOutlooks: core.trimCurrentDayOutlooks,
+    isTrimmingOutlooks: core.isTrimmingOutlooks,
+    dispatch: core.dispatch,
     baseMapStyle: core.baseMapStyle,
     handleBaseMapStyleSelect: modalState.handleBaseMapStyleSelect,
     handleOpenHistoryModal: modalState.handleOpenHistoryModal,
