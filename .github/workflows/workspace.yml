@@ -43,6 +43,31 @@ jobs:
       - name: Production build
         run: pnpm build
 
+      - name: Build UI Storybook
+        run: pnpm --filter @santa-tracker/ui storybook:build
+
+      - name: Cache Storybook browser
+        id: playwright-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ hashFiles('pnpm-lock.yaml') }}
+
+      - name: Install Storybook browser
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        run: pnpm --filter @santa-tracker/ui exec playwright install --with-deps chromium
+
+      - name: Run UI accessibility and screenshot checks
+        run: pnpm --filter @santa-tracker/ui storybook:test
+
+      - name: Upload UI screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ui-storybook-screenshots
+          path: storybook-screenshots/
+          if-no-files-found: error
+
       - name: Verify single-command install
         run: |
           rm -rf node_modules apps/web/node_modules packages/*/node_modules

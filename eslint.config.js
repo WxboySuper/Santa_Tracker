@@ -13,6 +13,8 @@ export default tseslint.config(
       'dist/**',
       '**/dist/**',
       'coverage/**',
+      'storybook-static/**',
+      'storybook-screenshots/**',
       '.pnpm-store/**',
       // tools/route-editor is a standalone Vite project with its own eslint; keep ignored here
       'tools/**',
@@ -31,7 +33,9 @@ export default tseslint.config(
     extends: [...tseslint.configs.strictTypeChecked, ...tseslint.configs.stylisticTypeChecked],
     languageOptions: {
       parserOptions: {
-        projectService: true,
+        projectService: {
+          allowDefaultProject: ['packages/ui/.storybook/*.ts', 'packages/ui/.storybook/*.tsx'],
+        },
         tsconfigRootDir: import.meta.dirname,
       },
     },

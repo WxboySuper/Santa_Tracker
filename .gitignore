@@ -35,6 +35,8 @@ next-env.d.ts
 htmlcov/
 coverage.xml
 coverage/
+storybook-static/
+storybook-screenshots/
 
 # Local development
 *.log

@@ -10,6 +10,14 @@
 
 ## [Unreleased] — Shared public contracts (#211)
 
+## [PR #373] - 2026-08-28 - feat(ui): add Storybook design baseline
+
+- **Issue:** Closes #216, establishing the first shared UI baseline for the Christmas 2026 redesign.
+- **Tokens:** Adds color, typography, spacing, layer, motion, focus, radius, and seasonal-state tokens, including CSS overrides for reduced motion and high contrast.
+- **Stories:** Adds Button variants and a seasonal token gallery with mobile, high-contrast, and reduced-motion toolbar states.
+- **Checks:** Adds Storybook build, axe accessibility, and per-story PNG screenshot checks to the workspace CI job.
+- **Docs:** Adds `docs/UI_STORYBOOK.md` with local and CI-style commands.
+
 - Added validated public ID schemas and constructors for locations, publications, snapshots, and activities.
 - Added versioned route and snapshot contracts with publication metadata, checksums, timestamps, and typed version errors.
 - Added deterministic snapshot metadata and consumed the fixture from the web contract test.

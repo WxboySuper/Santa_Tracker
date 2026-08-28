@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "../../../../packages/ui/src/tokens.css";
 
 /* globals.css is four directories below the workspace root. */
 @source "../../../../packages/ui/src";
