@@ -9,23 +9,44 @@ export const DEFAULT_LOCALE = 'en' as const;
 export const SUPPORTED_LOCALES = [DEFAULT_LOCALE] as const;
 export type SupportedLocale = (typeof SUPPORTED_LOCALES)[number];
 
+interface RequestedLocale {
+  language: string;
+  quality: number;
+}
+
 export function negotiateLocale(acceptLanguage: string | null | undefined): SupportedLocale {
-  const requested = (acceptLanguage ?? '')
-    .split(',')
-    .map(part => {
-      const qualityMatch = /q=([0-9.]+)/.exec(part);
-      const hasQuality = /(?:^|;)\s*q=/i.test(part);
-      const quality = hasQuality ? Number(qualityMatch?.[1]) : 1;
-      return { language: part.trim().split(';')[0]?.toLowerCase() ?? '', quality };
-    })
-    .filter(item => item.language && Number.isFinite(item.quality) && item.quality > 0)
-    .sort((a, b) => b.quality - a.quality);
+  const requested = parseAcceptLanguage(acceptLanguage);
   for (const item of requested) {
-    if (item.language === '*') return SUPPORTED_LOCALES[0];
-    const match = SUPPORTED_LOCALES.find(locale => item.language === locale || item.language.startsWith(`${locale}-`));
+    const match = findSupportedLocale(item.language);
     if (match) return match;
   }
   return DEFAULT_LOCALE;
+}
+
+function parseAcceptLanguage(header: string | null | undefined): RequestedLocale[] {
+  return (header ?? '')
+    .split(',')
+    .map(parseLanguageRange)
+    .filter(isUsableLanguageRange)
+    .sort((a, b) => b.quality - a.quality);
+}
+
+function parseLanguageRange(part: string): RequestedLocale {
+  const qualityMatch = /q=([0-9.]+)/.exec(part);
+  const hasQuality = /(?:^|;)\s*q=/i.test(part);
+  return {
+    language: part.trim().split(';')[0]?.toLowerCase() ?? '',
+    quality: hasQuality ? Number(qualityMatch?.[1]) : 1,
+  };
+}
+
+function isUsableLanguageRange(item: RequestedLocale): boolean {
+  return item.language !== '' && Number.isFinite(item.quality) && item.quality > 0;
+}
+
+function findSupportedLocale(language: string): SupportedLocale | undefined {
+  if (language === '*') return SUPPORTED_LOCALES[0];
+  return SUPPORTED_LOCALES.find(locale => language === locale || language.startsWith(`${locale}-`));
 }
 
 export interface TranslatorOptions {
