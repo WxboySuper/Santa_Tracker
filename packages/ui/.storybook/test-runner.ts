@@ -1,9 +1,10 @@
 import { mkdirSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { checkA11y, injectAxe } from 'axe-playwright';
 import type { TestRunnerConfig } from '@storybook/test-runner';
 
-const screenshotDirectory = resolve(process.env.INIT_CWD ?? process.cwd(), 'storybook-screenshots');
+const screenshotDirectory = resolve(dirname(fileURLToPath(import.meta.url)), '../../../storybook-screenshots');
 mkdirSync(screenshotDirectory, { recursive: true });
 
 const config: TestRunnerConfig = {
