@@ -11,4 +11,9 @@ describe('locale negotiation', () => {
     expect(negotiateLocale(undefined)).toBe(DEFAULT_LOCALE);
     expect(negotiateLocale('de,ja;q=0.9')).toBe(DEFAULT_LOCALE);
   });
+
+  it('handles wildcards and ignores malformed quality values', () => {
+    expect(negotiateLocale('de, *;q=0.5')).toBe(DEFAULT_LOCALE);
+    expect(negotiateLocale('en;q=abc, de;q=0.9')).toBe(DEFAULT_LOCALE);
+  });
 });

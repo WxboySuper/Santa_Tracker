@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { createTranslator } from "@santa-tracker/localization";
+import { DEFAULT_LOCALE, createTranslator } from "@santa-tracker/localization";
 import { formatCountdown, nextTakeoff } from "@/lib/countdown";
 
 interface CountdownProps {
@@ -10,9 +10,13 @@ interface CountdownProps {
   locale?: string;
 }
 
-export default function Countdown({ className, flyingText, locale = "en" }: CountdownProps) {
+export default function Countdown({ className, flyingText, locale = DEFAULT_LOCALE }: CountdownProps) {
   const translator = useMemo(() => createTranslator({ locale }), [locale]);
   const [value, setValue] = useState(translator.t("countdown.loading"));
+
+  useEffect(() => {
+    setValue(translator.t("countdown.loading"));
+  }, [translator]);
 
   useEffect(() => {
     const target = nextTakeoff(new Date());

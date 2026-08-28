@@ -14,11 +14,14 @@ export function negotiateLocale(acceptLanguage: string | null | undefined): Supp
     .split(',')
     .map(part => {
       const qualityMatch = /q=([0-9.]+)/.exec(part);
-      return { language: part.trim().split(';')[0]?.toLowerCase() ?? '', quality: Number(qualityMatch?.[1] ?? 1) };
+      const hasQuality = /(?:^|;)\s*q=/i.test(part);
+      const quality = hasQuality ? Number(qualityMatch?.[1]) : 1;
+      return { language: part.trim().split(';')[0]?.toLowerCase() ?? '', quality };
     })
-    .filter(item => item.language && item.quality > 0)
+    .filter(item => item.language && Number.isFinite(item.quality) && item.quality > 0)
     .sort((a, b) => b.quality - a.quality);
   for (const item of requested) {
+    if (item.language === '*') return SUPPORTED_LOCALES[0];
     const match = SUPPORTED_LOCALES.find(locale => item.language === locale || item.language.startsWith(`${locale}-`));
     if (match) return match;
   }
@@ -56,8 +59,4 @@ export function createTranslator(options: TranslatorOptions = {}): Translator {
     locale,
     t: translate,
   };
-}
-
-export function t(key: MessageKey, values?: Record<string, string | number>): string {
-  return createTranslator().t(key, values);
 }
