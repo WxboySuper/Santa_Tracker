@@ -21,7 +21,9 @@
 
 - Added shared Zod schemas and deeply frozen fixtures for all 185 nodes in the 2025 route and all 24 Advent days.
 - The migration schema records two source exceptions without rewriting the fixture: unwrapped longitudes up to 360 degrees and legacy IDs containing repeated underscores. Runtime normalization still applies the canonical coordinate and ID rules.
+- Published SHA-256 values in the fixture module make accidental source drift visible in tests. Legacy Advent payloads stay intentionally open-ended because the copied source uses different shapes by content type; a later content contract can tighten those fields without rewriting this provenance fixture.
 - Removed the Next.js resolver's fallback to retired Flask data, so the new runtime has one route and Advent data source.
+- Removed the remaining Next.js trial-route fallback to `src/static/data`; trial data now stays under the new app data directory.
 
 ### Foundation — retire Flask runtime after parity acceptance
 

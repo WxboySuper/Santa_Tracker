@@ -20,6 +20,12 @@ function deepFreeze<T>(value: T): T {
   return value;
 }
 
+/** SHA-256 values of the source files copied into these fixtures. */
+export const LEGACY_SOURCE_SHA256 = {
+  route: '25a3222d49daf14726ece485d00684f47013099a730cac5927b47be40ab22917',
+  advent: 'b8e8212cc75d3bca0a110756fde7f8a10b213f1efec35fa3214a9e394552be2f',
+} as const;
+
 /** The unmodified 2025 route, checked once before test code can use it. */
 export const legacyRouteFixture: Readonly<LegacyRouteFixture> = deepFreeze(
   LegacyRouteFixtureSchema.parse(routeSource),
@@ -29,11 +35,3 @@ export const legacyRouteFixture: Readonly<LegacyRouteFixture> = deepFreeze(
 export const legacyAdventFixture: Readonly<LegacyAdventFixture> = deepFreeze(
   LegacyAdventFixtureSchema.parse(adventCalendarSource),
 );
-
-export function getLegacyRouteFixture(): Readonly<LegacyRouteFixture> {
-  return legacyRouteFixture;
-}
-
-export function getLegacyAdventFixture(): Readonly<LegacyAdventFixture> {
-  return legacyAdventFixture;
-}

@@ -139,6 +139,8 @@ export const LegacyAdventDaySchema = z.object({
   title: z.string().min(1),
   unlock_time: z.string().datetime({ offset: true }),
   content_type: z.enum(['fact', 'game', 'story', 'video', 'activity', 'quiz']),
+  // Legacy content types have different payload shapes. Keep the copied source
+  // lossless here; the editor/content contracts can tighten each type later.
   payload: z.record(z.unknown()),
 });
 
