@@ -15,3 +15,15 @@ export const Primary: Story = { args: { children: 'Track Santa', variant: 'prima
 export const Secondary: Story = { args: { children: 'View route', variant: 'secondary' } };
 export const Ghost: Story = { args: { children: 'Learn more', variant: 'ghost' } };
 export const Disabled: Story = { args: { children: 'Unavailable', disabled: true } };
+export const Mobile: Story = {
+  args: { children: 'Track Santa', variant: 'primary' },
+  parameters: { viewport: { defaultViewport: 'mobile' } },
+};
+export const HighContrast: Story = {
+  args: { children: 'Track Santa', variant: 'primary' },
+  parameters: { globals: { contrast: 'high' } },
+};
+export const ReducedMotion: Story = {
+  args: { children: 'Track Santa', variant: 'primary' },
+  parameters: { globals: { motion: 'reduced' } },
+};

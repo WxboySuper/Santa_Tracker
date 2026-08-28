@@ -4,7 +4,10 @@
   --st-color-santa-red: #dc2626;
   --st-color-snow: #f8fafc;
   --st-color-evergreen: #14532d;
+  --st-color-midnight: #111827;
+  --st-color-frost: #e2e8f0;
   --st-color-focus: #facc15;
+  --st-font-family: ui-sans-serif, system-ui, sans-serif;
   --st-space-xs: 0.25rem;
   --st-space-sm: 0.5rem;
   --st-space-md: 1rem;
@@ -29,5 +32,65 @@
 @media (prefers-contrast: more) {
   :root {
     --st-color-focus: #fff;
+  }
+}
+
+[data-contrast='high'] {
+  --st-color-focus: #fff;
+  --st-color-santa-red: #f87171;
+  --st-color-frost: #fff;
+  --st-color-midnight: #000;
+}
+
+[data-motion='reduced'] {
+  --st-motion-fast: 0ms;
+  --st-motion-medium: 0ms;
+}
+
+.st-button {
+  align-items: center;
+  border-radius: var(--st-radius-md);
+  display: inline-flex;
+  font-family: var(--st-font-family);
+  font-size: 0.875rem;
+  font-weight: 500;
+  justify-content: center;
+  min-height: 2.75rem;
+  padding: 0.5rem 1rem;
+  transition: filter var(--st-motion-fast) var(--st-motion-easing);
+}
+
+.st-button:focus-visible {
+  outline: var(--st-color-focus) solid 3px;
+  outline-offset: 2px;
+}
+
+.st-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.st-button:hover:not(:disabled) {
+  filter: brightness(0.9);
+}
+
+.st-button--primary {
+  background: var(--st-color-santa-red);
+  color: var(--st-color-snow);
+}
+
+.st-button--secondary {
+  background: var(--st-color-frost);
+  color: var(--st-color-midnight);
+}
+
+.st-button--ghost {
+  background: transparent;
+  color: var(--st-color-snow);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .st-button {
+    transition: none;
   }
 }

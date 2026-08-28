@@ -32,6 +32,7 @@
     "@storybook/test-runner": "0.22.0",
     "@types/react": "^19.1.9",
     "@types/react-dom": "^19.1.4",
+    "axe-playwright": "2.2.2",
     "http-server": "14.1.1",
     "playwright": "1.62.1",
     "start-server-and-test": "2.0.5",

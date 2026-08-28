@@ -24,12 +24,15 @@ const preview: Preview = {
   },
   decorators: [
     (Story, context) => {
-      const highContrast = context.globals.contrast === 'high';
-      const reducedMotion = context.globals.motion === 'reduced';
+      const { globals = {} } = context as unknown as { globals?: { contrast?: string; motion?: string } };
+      const contrast = globals.contrast ?? 'normal';
+      const motion = globals.motion ?? 'full';
+      const highContrast = contrast === 'high';
+      const reducedMotion = motion === 'reduced';
       return (
         <div
-          data-contrast={context.globals.contrast}
-          data-motion={context.globals.motion}
+          data-contrast={contrast}
+          data-motion={motion}
           style={{
             background: highContrast ? '#000' : '#0b1220',
             color: '#f8fafc',
@@ -38,7 +41,12 @@ const preview: Preview = {
             transitionDuration: reducedMotion ? '0ms' : undefined,
           }}
         >
-          <Story />
+          <main aria-label="Story preview">
+            <h1 style={{ clip: 'rect(0 0 0 0)', clipPath: 'inset(50%)', height: 1, overflow: 'hidden', position: 'absolute', whiteSpace: 'nowrap', width: 1 }}>
+              Santa Tracker UI preview
+            </h1>
+            <Story />
+          </main>
         </div>
       );
     },

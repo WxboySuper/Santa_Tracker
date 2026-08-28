@@ -52,6 +52,14 @@ jobs:
       - name: Run UI accessibility and screenshot checks
         run: pnpm --filter @santa-tracker/ui storybook:test
 
+      - name: Upload UI screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ui-storybook-screenshots
+          path: storybook-screenshots/
+          if-no-files-found: error
+
       - name: Verify single-command install
         run: |
           rm -rf node_modules apps/web/node_modules packages/*/node_modules
