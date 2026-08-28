@@ -1,0 +1,32 @@
+export const en = {
+  'nav.home': 'Home',
+  'nav.tracker': 'Tracker',
+  'nav.village': 'Village',
+  'home.title': 'Santa Tracker',
+  'home.subtitle': "Track Santa's magical journey around the world!",
+  'home.countdown': 'Countdown to takeoff',
+  'home.trackSanta': 'Track Santa',
+  'countdown.loading': 'Loading...',
+  'countdown.flying': 'Santa is flying!',
+  'countdown.onHisWay': 'Santa is on his way!',
+  'tracker.mapLabel': "Interactive map showing Santa's current location and route",
+  'tracker.loading': "Loading Santa's route...",
+  'tracker.loaded': '{count} route stops loaded',
+  'tracker.unavailable': "Santa's route is unavailable right now.",
+  'offline.title': 'You are offline',
+  'offline.message': 'Santa is still on his way. Check your connection and try again.',
+  'offline.home': 'Go home',
+  'notFound.title': 'Page not found',
+  'notFound.message': "The page you're looking for doesn't exist.",
+  'advent.title': 'Advent Village',
+  'advent.subtitle': 'Daily unlocks December 1-24.',
+  'advent.totalDays': 'Total days: {count}',
+  'advent.day': 'Day {day}: {title}',
+  'advent.unlocked': 'Unlocked',
+  'advent.locked': 'Locked',
+  'metadata.title': 'Santa Tracker - Christmas 2026',
+  'metadata.description': "Follow Santa's magical journey around the world on Christmas Eve - a modern, accessible holiday experience.",
+} as const;
+
+export type MessageKey = keyof typeof en;
+export type Messages = Record<MessageKey, string>;

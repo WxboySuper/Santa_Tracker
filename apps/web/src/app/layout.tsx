@@ -1,10 +1,10 @@
 import type { Metadata } from 'next';
+import { t } from '@santa-tracker/localization';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'Santa Tracker — Christmas 2026',
-  description:
-    "Follow Santa's magical journey around the world on Christmas Eve — a modern, accessible holiday experience.",
+  title: t('metadata.title'),
+  description: t('metadata.description'),
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }): React.JSX.Element {

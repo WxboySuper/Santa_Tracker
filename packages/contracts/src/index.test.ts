@@ -7,6 +7,9 @@ import {
   RouteSchema,
   SCHEMA_VERSION,
   createLocationId,
+  LocalizedContentSchema,
+  LocalizedTextSchema,
+  resolveLocalizedText,
   parseSnapshot,
   parseRoute,
 } from './index';
@@ -72,5 +75,17 @@ describe('@santa-tracker/contracts', () => {
     const flags = FeatureFlagsSchema.parse({});
     expect(flags.mapEnabled).toBe(true);
     expect(flags.adventEnabled).toBe(false);
+  });
+
+  it('keeps localized copy separate from stable content identity and numeric order', () => {
+    const content = LocalizedContentSchema.parse({
+      id: 'ornament-smash',
+      title: { en: 'Ornament Smash', de: 'Ornament zerstoeren' },
+      order: 1,
+    });
+    expect(content.id).toBe('ornament-smash');
+    expect(resolveLocalizedText(content.title, 'fr')).toBe('Ornament Smash');
+    expect(LocalizedTextSchema.safeParse({ en: 'Ready' }).success).toBe(true);
+    expect(LocalizedTextSchema.safeParse({ en: '' }).success).toBe(false);
   });
 });
