@@ -43,6 +43,15 @@ jobs:
       - name: Production build
         run: pnpm build
 
+      - name: Build UI Storybook
+        run: pnpm --filter @santa-tracker/ui storybook:build
+
+      - name: Install Storybook browser
+        run: pnpm --filter @santa-tracker/ui exec playwright install --with-deps chromium
+
+      - name: Run UI accessibility and screenshot checks
+        run: pnpm --filter @santa-tracker/ui storybook:test
+
       - name: Verify single-command install
         run: |
           rm -rf node_modules apps/web/node_modules packages/*/node_modules

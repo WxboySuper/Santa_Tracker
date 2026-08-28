@@ -13,6 +13,9 @@ export default tseslint.config(
       'dist/**',
       '**/dist/**',
       'coverage/**',
+      'storybook-static/**',
+      'storybook-screenshots/**',
+      '**/.storybook/**',
       '.pnpm-store/**',
       // tools/route-editor is a standalone Vite project with its own eslint; keep ignored here
       'tools/**',

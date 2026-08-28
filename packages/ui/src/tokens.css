@@ -1,0 +1,33 @@
+:root {
+  --st-color-north-pole-night: #0b1220;
+  --st-color-aurora-teal: #2dd4bf;
+  --st-color-santa-red: #dc2626;
+  --st-color-snow: #f8fafc;
+  --st-color-evergreen: #14532d;
+  --st-color-focus: #facc15;
+  --st-space-xs: 0.25rem;
+  --st-space-sm: 0.5rem;
+  --st-space-md: 1rem;
+  --st-space-lg: 1.5rem;
+  --st-space-xl: 2rem;
+  --st-space-2xl: 3rem;
+  --st-radius-sm: 0.375rem;
+  --st-radius-md: 0.75rem;
+  --st-radius-lg: 1.5rem;
+  --st-motion-fast: 150ms;
+  --st-motion-medium: 300ms;
+  --st-motion-easing: cubic-bezier(0.2, 0, 0, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --st-motion-fast: 0ms;
+    --st-motion-medium: 0ms;
+  }
+}
+
+@media (prefers-contrast: more) {
+  :root {
+    --st-color-focus: #fff;
+  }
+}
