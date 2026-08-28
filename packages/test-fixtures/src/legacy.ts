@@ -7,11 +7,16 @@ import {
 import adventCalendarSource from './data/advent-calendar-2024.json';
 import routeSource from './data/santa-route-2025.json';
 
+function isObjectLike(value: unknown): value is object {
+  return value !== null && typeof value === 'object';
+}
+
 function deepFreeze<T>(value: T): T {
-  if (value !== null && typeof value === 'object' && !Object.isFrozen(value)) {
-    Object.freeze(value);
-    for (const child of Object.values(value)) deepFreeze(child);
-  }
+  if (!isObjectLike(value)) return value;
+  if (Object.isFrozen(value)) return value;
+
+  Object.freeze(value);
+  for (const child of Object.values(value)) deepFreeze(child);
   return value;
 }
 
