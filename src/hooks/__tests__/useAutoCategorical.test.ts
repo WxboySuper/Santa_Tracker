@@ -29,6 +29,7 @@ jest.mock('@turf/turf', () => {
     featureCollection: jest.fn((...args: Parameters<typeof actual.featureCollection>) =>
       actual.featureCollection(...args)),
     union: jest.fn((...args: Parameters<typeof actual.union>) => actual.union(...args)),
+    difference: jest.fn((...args: Parameters<typeof actual.difference>) => actual.difference(...args)),
     intersect: jest.fn((...args: Parameters<typeof actual.intersect>) => actual.intersect(...args)),
   };
 });
@@ -520,6 +521,43 @@ describe('processOutlooksToCategorical', () => {
 
     expect(() => processDay12OutlooksToCategorical(outlooks)).toThrow(CategoricalDerivationError);
     expect(() => processDay12OutlooksToCategorical(outlooks)).toThrow(/intersection failed/i);
+  });
+
+  test('fully covered CIG blanket emits no uncovered CIG0 piece', () => {
+    const outlooks: OutlookData = {
+      tornado: new Map(),
+      wind: new Map([
+        ['30%', [makeSquare('wind-prob', 0)]],
+        ['CIG1', [makeSquare('wind-hatch', 0)]],
+      ]),
+      hail: new Map(),
+      categorical: new Map(),
+    };
+
+    const result = processDay12OutlooksToCategorical(outlooks);
+    expect(result.some((feature) => feature.properties?.probability === 'CIG0')).toBe(false);
+    expect(result.length).toBeGreaterThan(0);
+  });
+
+  test('Turf difference failure throws a CategoricalDerivationError', () => {
+    const outlooks: OutlookData = {
+      tornado: new Map(),
+      wind: new Map([
+        ['30%', [makeSquare('wind-prob', 0)]],
+        ['CIG1', [makeSquare('wind-hatch', 0.5)]],
+      ]),
+      hail: new Map(),
+      categorical: new Map(),
+    };
+
+    const differenceMock = turf.difference as jest.MockedFunction<typeof turf.difference>;
+    differenceMock.mockImplementationOnce(() => {
+      throw new Error('turf difference exploded');
+    });
+
+    expect(() => processDay12OutlooksToCategorical(outlooks)).toThrow(
+      expect.objectContaining({ name: 'CategoricalDerivationError', message: expect.stringMatching(/intersection failed/i) }),
+    );
   });
 
   test('non-finite coordinates fail loudly with CategoricalDerivationError', () => {

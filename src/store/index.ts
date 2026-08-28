@@ -48,6 +48,7 @@ export const store = configureStore({
           'forecast/restoreForecastCycle',
           'forecast/setOutlookMap',
           'forecast/applyAutoCategoricalSync',
+          'forecast/applyPaintBucketEdit',
           'forecast/resetCategorical',
           'forecast/undoLastEdit',
           'forecast/redoLastEdit',
@@ -59,3 +60,4 @@ export const store = configureStore({
 
 export type RootState = ReturnType<typeof store.getState>;
 export type AppDispatch = typeof store.dispatch;
+

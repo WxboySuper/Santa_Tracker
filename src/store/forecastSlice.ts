@@ -12,6 +12,7 @@ import { countForecastMetrics } from '../utils/forecastMetrics';
 import { createCustomLayerReducers } from './customLayerReducers';
 import { createCustomCategoryReducers } from './customCategoryReducers';
 import { createCustomFeatureReducers } from './customFeatureReducers';
+import { createForecastOutlookReducers } from './forecastOutlookReducers';
 import { readActionTimestamp } from './timestampMiddleware';
 import { getLocalCalendarDate } from '../utils/localDate';
 import { areTstmFeaturesEqual } from '../utils/tstmGeneration';
@@ -23,11 +24,14 @@ import { getCachedLandMask } from '../utils/outlookPolygonMasking/landMaskRuntim
 import { trimOutlookDataInPlace, type TrimOutlookDataResult } from '../utils/outlookPolygonMasking/trimOutlookData';
 import type { LandMaskStrategy } from '../utils/outlookPolygonMasking/types';
 import {
+  applyPaintBucketStrategy,
+  type PaintBucketEditAction,
+} from '../utils/paintBucket';
+import {
   copyOutlookGeometry,
   countCopyableSourceFeatures,
   type CopyOutlookGeometryOptions,
 } from '../utils/outlookGeometryCopy';
-import { createForecastOutlookReducers } from './forecastOutlookReducers';
 
 export interface SavedCycleStats {
   forecastDays: number;
@@ -790,6 +794,42 @@ export const forecastSlice = createSlice({
     ...createCustomCategoryReducers(pushUndoSnapshot),
     ...createCustomFeatureReducers(pushUndoSnapshot),
 
+    applyPaintBucketEdit: (state, action: PayloadAction<{
+      outlookType: OutlookType;
+      featureId: string;
+      fromProbability: string;
+      action: PaintBucketEditAction;
+      probabilityList: readonly string[];
+    }>) => {
+      const { outlookType, featureId, fromProbability, action: editAction, probabilityList } = action.payload;
+      const outlookData = getCurrentOutlook(state);
+      const outlookMap = outlookData[outlookType];
+      if (!outlookMap) {
+        return;
+      }
+
+      const result = applyPaintBucketStrategy(outlookMap, {
+        outlookType,
+        featureId,
+        fromProbability,
+        action: editAction,
+        activeProbability: state.drawingState.activeProbability,
+        probabilityList,
+      });
+
+      if (!result.changed) {
+        return;
+      }
+
+      pushUndoSnapshot(state);
+      outlookMap.clear();
+      result.map.forEach((features, key) => {
+        outlookMap.set(key, features);
+      });
+      invalidateCompletionAcknowledgement(state);
+      state.isSaved = false;
+    },
+
     trimCurrentDayOutlooksToLand: (
       state,
       action: PayloadAction<{ strategy: LandMaskStrategy; day?: DayType }>,
@@ -1472,6 +1512,7 @@ export const {
   updateFeature,
   updateFeaturesBatch,
   removeFeature,
+  applyPaintBucketEdit,
   trimCurrentDayOutlooksToLand,
   resetCategorical,
   setOutlookMap,

@@ -254,4 +254,39 @@ describe("reconcileFeatureSource", () => {
     }])).not.toThrow();
     expect(source.getFeatures()).toHaveLength(1);
   });
+
+  test("updates features in place when paint bucket moves them between probability buckets", () => {
+    const source = new VectorSource();
+    const format = new GeoJSON();
+    const feature = createFeature("bucket-id", 0);
+    const initialDescriptor = {
+      ...createDescriptor(feature, format),
+      key: "normal:tornado:bucket-id",
+      signature: ["tornado", "2%", true, 1, false, "undefined"].join("|"),
+    };
+
+    reconcileFeatureSource(source, [initialDescriptor]);
+    const olFeature = source.getFeatures()[0];
+    expect(olFeature?.get("probability")).toBe("2%");
+
+    const movedFeature = {
+      ...feature,
+      properties: { ...feature.properties, probability: "10%" },
+    };
+
+    reconcileFeatureSource(source, [{
+      ...createDescriptor(movedFeature, format),
+      key: "normal:tornado:bucket-id",
+      signature: ["tornado", "10%", true, 1, false, "undefined"].join("|"),
+      apply: (item) => {
+        item.set("featureId", "bucket-id");
+        item.set("outlookType", "tornado");
+        item.set("probability", "10%");
+      },
+    }]);
+
+    expect(source.getFeatures()).toHaveLength(1);
+    expect(source.getFeatures()[0]).toBe(olFeature);
+    expect(source.getFeatures()[0]?.get("probability")).toBe("10%");
+  });
 });

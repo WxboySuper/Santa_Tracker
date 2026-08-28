@@ -39,6 +39,8 @@ import {
 } from "../../store/forecastSlice";
 
 import type { BaseMapStyle } from "../../store/overlaysSlice";
+import type { AppDispatch } from "../../store";
+import type { DayType, OutlookType } from "../../types/outlooks";
 import type { MapAdapterHandle } from "../../maps/contracts";
 import type {
   Feature as GeoJsonFeature,
@@ -46,7 +48,6 @@ import type {
   Polygon,
   MultiPolygon,
 } from "geojson";
-import type { DayType } from "../../types/outlooks";
 import { apply } from "ol-mapbox-style";
 import Legend from "./Legend";
 import StatusOverlay from "./StatusOverlay";
@@ -91,11 +92,106 @@ import {
   type FeatureSyncDescriptor,
 } from "./openLayersFeatureSync";
 import { useForecastMapReduxState } from "./useForecastMapReduxState";
+import { isFeatureExposed } from "../../config/featureExposure";
+import { isPaintBucketOutlookType, type PaintBucketMode, type PaintBucketStepDirection } from "../../utils/paintBucket";
+import { handlePaintBucketMapClick } from "./paintBucketMapInteraction";
 import { trimGeometryForAutoDraw } from "../../hooks/useTrimCurrentDayOutlooks";
 import { clearLandMaskRuntimeCache, ensureLandMask } from "../../utils/outlookPolygonMasking/landMaskRuntime";
 import { buildTrimmedOutlookPreviewFeatures } from "../../utils/outlookPolygonMasking/trimOutlookData";
 import { Fill, Stroke, Style as OlStyle } from "ol/style";
 import { matchesPrecisionEditTier, PAN_MODE_VERTEX_EDIT_HELP } from "./precisionPolygonEditing";
+
+const shouldHandlePaintBucketClick = (
+  paintBucketEnabled: boolean,
+  interactionMode: "pan" | "draw" | "delete" | "edit",
+  customMode: boolean,
+  activeOutlookType: string,
+): boolean => paintBucketEnabled
+  && interactionMode === "edit"
+  && !customMode
+  && isPaintBucketOutlookType(activeOutlookType);
+
+interface ForecastMapClickEvent {
+  pixel: number[];
+  coordinate: number[];
+  originalEvent: { shiftKey?: boolean };
+}
+
+const handleForecastMapClick = ({
+  map,
+  event,
+  mode,
+  paintBucketEnabled,
+  customMode,
+  activeOutlookType,
+  editBehavior,
+  stepDirection,
+  activeProbability,
+  currentDay,
+  vectorLayer,
+  catLayer,
+  dispatch,
+  overlay,
+  setFeedback,
+  setPopupInfo,
+}: {
+  map: OLMap;
+  event: ForecastMapClickEvent;
+  mode: "pan" | "draw" | "delete" | "edit";
+  paintBucketEnabled: boolean;
+  customMode: boolean;
+  activeOutlookType: string;
+  editBehavior: PaintBucketMode;
+  stepDirection: PaintBucketStepDirection;
+  activeProbability: string;
+  currentDay: DayType;
+  vectorLayer: VectorLayer | null;
+  catLayer: VectorLayer | null;
+  dispatch: AppDispatch;
+  overlay: Overlay | null;
+  setFeedback: (value: string | null) => void;
+  setPopupInfo: (value: { outlookType: string; probability: string; isSignificant: boolean } | null) => void;
+}): void => {
+  if (shouldHandlePaintBucketClick(paintBucketEnabled, mode, customMode, activeOutlookType)) {
+    setFeedback(null);
+    handlePaintBucketMapClick({
+      map,
+      pixel: event.pixel,
+      vectorLayer,
+      dispatch,
+      outlookType: activeOutlookType as OutlookType,
+      currentDay,
+      mode: editBehavior,
+      stepDirection,
+      shiftKey: Boolean(event.originalEvent.shiftKey),
+      activeProbability,
+      onNoOp: () => setFeedback(`Set mode: this polygon already uses ${activeProbability}.`),
+    });
+    return;
+  }
+
+  if (mode !== "pan") return;
+
+  const feature = map.forEachFeatureAtPixel(event.pixel, (candidate) => candidate, {
+    layerFilter: (layer) => layer === vectorLayer || layer === catLayer,
+  });
+  if (feature && overlay) {
+    const customIdentity = getCustomFeatureIdentity(feature);
+    const outlookType = customIdentity
+      ? (feature.get("customLayerTitle") as string || "Custom layer")
+      : feature.get("outlookType") as string;
+    const probability = customIdentity?.title ?? feature.get("probability") as string;
+    const isSignificant = feature.get("isSignificant") as boolean;
+    setPopupInfo({ outlookType, probability, isSignificant });
+    overlay.setPosition(event.coordinate);
+    return;
+  }
+
+  if (overlay) {
+    hideOverlay(overlay);
+    setPopupInfo(null);
+  }
+};
 
 /** Builds the style portion of a custom-feature reconciliation signature without serializing the style object. */
 export const getCustomStyleSignature = (style: CustomCategoryStyle, isTopLayer: boolean): string => [
@@ -233,9 +329,16 @@ const OpenLayersForecastMap = forwardRef<MapAdapterHandle<OLMap> | null, OpenLay
       serializedFeatures,
       serializedCustomFeatures,
     } = useForecastMapReduxState();
+    const paintBucketEnabled = isFeatureExposed("paintBucketTool");
+    const paintBucketAvailable = paintBucketEnabled
+      && !customMode
+      && isPaintBucketOutlookType(drawingState.activeOutlookType);
     const [interactionMode, setInteractionMode] = useState<
-      "pan" | "draw" | "delete"
+      "pan" | "draw" | "delete" | "edit"
     >("pan");
+    const [editBehavior, setEditBehavior] = useState<PaintBucketMode>("step");
+    const [stepDirection, setStepDirection] = useState<PaintBucketStepDirection>("up");
+    const [paintBucketFeedback, setPaintBucketFeedback] = useState<string | null>(null);
 
     const [popupInfo, setPopupInfo] = useState<{
       outlookType: string;
@@ -250,10 +353,13 @@ const OpenLayersForecastMap = forwardRef<MapAdapterHandle<OLMap> | null, OpenLay
     const overlayRef = useRef<Overlay | null>(null);
     const interactionModeRef = useRef(interactionMode);
     const customModeRef = useRef(customMode);
-    const outlookTrimStrategyRef = useRef(outlookTrimStrategy);
+      const drawingStateRef = useRef(drawingState);
+      const editBehaviorRef = useRef(editBehavior);
+      const stepDirectionRef = useRef(stepDirection);
+      const outlookTrimStrategyRef = useRef(outlookTrimStrategy);
     const outlookTrimAutoOnDrawRef = useRef(outlookTrimAutoOnDraw);
     const outlookTrimPreviewOnlyRef = useRef(outlookTrimPreviewOnly);
-    const currentDayRef = useRef<DayType>(currentDay);
+      const currentDayRef = useRef<DayType>(currentDay);
 
     useEffect(() => {
       outlookTrimStrategyRef.current = outlookTrimStrategy;
@@ -290,7 +396,7 @@ const OpenLayersForecastMap = forwardRef<MapAdapterHandle<OLMap> | null, OpenLay
         ...feature,
         geometry: trimmedGeometry as unknown as GeoJsonFeature["geometry"],
       };
-    };
+      };
     const activeProbabilityRef = useRef(drawingState.activeProbability);
     const activeOutlookTypeRef = useRef(drawingState.activeOutlookType);
     const activeCustomCategoryRef = useRef(activeCustomCategory);
@@ -300,6 +406,19 @@ const OpenLayersForecastMap = forwardRef<MapAdapterHandle<OLMap> | null, OpenLay
     }, [interactionMode]);
 
     useEffect(() => { customModeRef.current = customMode; }, [customMode]);
+    useEffect(() => { drawingStateRef.current = drawingState; }, [drawingState]);
+    useEffect(() => { currentDayRef.current = currentDay; }, [currentDay]);
+    useEffect(() => { editBehaviorRef.current = editBehavior; }, [editBehavior]);
+    useEffect(() => { stepDirectionRef.current = stepDirection; }, [stepDirection]);
+
+    useEffect(() => {
+      if (
+        interactionMode === "edit"
+        && (!isPaintBucketOutlookType(drawingState.activeOutlookType) || customMode)
+      ) {
+        setInteractionMode("pan");
+      }
+    }, [customMode, drawingState.activeOutlookType, interactionMode]);
 
     useEffect(() => {
       activeProbabilityRef.current = drawingState.activeProbability;
@@ -374,6 +493,9 @@ const OpenLayersForecastMap = forwardRef<MapAdapterHandle<OLMap> | null, OpenLay
     useEffect(() => {
       if (!mapElementRef.current || mapRef.current) return undefined;
 
+      // CodeScene suppression is limited to this legacy async feature-sync coordinator.
+      // It batches categorical filtering, custom-feature conversion, and Redux updates;
+      // the paint-bucket click path is extracted and has no suppression.
       // @codescene(disable:"Complex Method")
       const handleModifiedFeatures = (
         features: OLFeature<Geometry>[],
@@ -589,32 +711,26 @@ const OpenLayersForecastMap = forwardRef<MapAdapterHandle<OLMap> | null, OpenLay
       map.addOverlay(overlay);
       overlayRef.current = overlay;
 
-      // Add click handler for pan mode
+      // Add click handler for pan and paint-bucket modes.
       map.on("click", (evt) => {
-        if (interactionModeRef.current !== "pan") {
-          return;
-        }
-
-        // Use forEachFeatureAtPixel to get the topmost feature at the clicked pixel,
-        // which accounts for z-index and layer visibility.
-        const feature = map.forEachFeatureAtPixel(evt.pixel, (f) => f, {
-          layerFilter: (layer) =>
-            layer === vectorLayerRef.current || layer === catLayerRef.current,
+        handleForecastMapClick({
+          map,
+          event: evt,
+          mode: interactionModeRef.current,
+          paintBucketEnabled,
+          customMode: customModeRef.current,
+          activeOutlookType: drawingStateRef.current.activeOutlookType,
+          editBehavior: editBehaviorRef.current,
+          stepDirection: stepDirectionRef.current,
+          activeProbability: activeProbabilityRef.current,
+          currentDay: currentDayRef.current,
+          vectorLayer: vectorLayerRef.current,
+          catLayer: catLayerRef.current,
+          dispatch,
+          overlay: overlayRef.current,
+          setFeedback: setPaintBucketFeedback,
+          setPopupInfo,
         });
-        if (feature && overlayRef.current) {
-          const customIdentity = getCustomFeatureIdentity(feature);
-          const outlookType = customIdentity
-            ? (feature.get("customLayerTitle") as string || "Custom layer")
-            : feature.get("outlookType") as string;
-          const probability = customIdentity?.title ?? feature.get("probability") as string;
-          const isSignificant = feature.get("isSignificant") as boolean;
-
-          setPopupInfo({ outlookType, probability, isSignificant });
-          overlayRef.current.setPosition(evt.coordinate);
-        } else if (overlayRef.current) {
-          hideOverlay(overlayRef.current);
-          setPopupInfo(null);
-        }
       });
 
       const modify = new Modify({
@@ -778,7 +894,7 @@ const OpenLayersForecastMap = forwardRef<MapAdapterHandle<OLMap> | null, OpenLay
         vectorReferenceGroupRef.current = null;
         vectorLayerRef.current = null;
       };
-    }, [dispatch]);
+    }, [dispatch, paintBucketEnabled]);
 
     useEffect(() => {
       if (!selectRef.current) {
@@ -790,6 +906,10 @@ const OpenLayersForecastMap = forwardRef<MapAdapterHandle<OLMap> | null, OpenLay
         selectRef.current.getFeatures().clear();
       }
 
+      const disableModify = interactionMode === "delete" || interactionMode === "edit";
+      modifyRef.current?.setActive(!disableModify);
+      catModifyRef.current?.setActive(!disableModify);
+
       // Hide popup when not in pan mode
       if (interactionMode !== "pan") {
         if (overlayRef.current) {
@@ -800,8 +920,8 @@ const OpenLayersForecastMap = forwardRef<MapAdapterHandle<OLMap> | null, OpenLay
     }, [interactionMode]);
 
     useEffect(() => {
-      // Keep snapping enabled outside delete mode for draw/modify workflows.
-      const enableSnap = interactionMode !== "delete";
+      // Keep snapping enabled outside delete/fill modes for draw/modify workflows.
+      const enableSnap = interactionMode !== "delete" && interactionMode !== "edit";
       if (snapRef.current) {
         snapRef.current.setActive(enableSnap);
       }
@@ -1147,7 +1267,7 @@ const OpenLayersForecastMap = forwardRef<MapAdapterHandle<OLMap> | null, OpenLay
           return {
             // Legacy serialized forecasts may omit feature ids; position is the
             // only stable identity available for those entries.
-            key: `normal:${outlookType}:${probability}:${stableId}`,
+            key: `normal:${outlookType}:${stableId}`,
             feature,
             stableId,
             signature: [
@@ -1353,11 +1473,19 @@ const OpenLayersForecastMap = forwardRef<MapAdapterHandle<OLMap> | null, OpenLay
       setInteractionMode("delete");
     };
 
+    const handleSetModeEdit = () => {
+      setInteractionMode("edit");
+    };
+
     return (
       <div className="map-container" translate="no">
         <div ref={mapElementRef} style={{ width: "100%", height: "100%" }} />
         <div className="map-toolbar-bottom-right">
-          <div className="map-toolbar-surface">
+          <div
+            className={`map-toolbar-surface${
+              interactionMode === "edit" && paintBucketAvailable ? " map-toolbar-surface--edit-active" : ""
+            }`}
+          >
             <button
               type="button"
               className={`map-toolbar-button mode-pan ${interactionMode === "pan" ? "active" : ""}`}
@@ -1385,6 +1513,70 @@ const OpenLayersForecastMap = forwardRef<MapAdapterHandle<OLMap> | null, OpenLay
             >
               Delete
             </button>
+            {paintBucketEnabled && (
+              <>
+                <button
+                  type="button"
+                  onClick={handleSetModeEdit}
+                  disabled={!paintBucketAvailable}
+                  className={`map-toolbar-button mode-edit ${interactionMode === "edit" ? "active" : ""}`}
+                  title={paintBucketAvailable
+                    ? "Edit existing polygon risk levels"
+                    : "Switch to a probabilistic outlook (tornado, wind, hail) to use Edit"}
+                  aria-label="Edit polygon risk"
+                >
+                  Edit
+                </button>
+                {interactionMode === "edit" && paintBucketAvailable && (
+                  <div
+                    className="map-toolbar-edit-toggle"
+                    role="group"
+                    aria-label="Edit behavior"
+                  >
+                    <button
+                      type="button"
+                      className={editBehavior === "step" ? "active" : ""}
+                      onClick={() => setEditBehavior("step")}
+                      title="Click to raise risk; use Down or Shift+click to lower"
+                      aria-pressed={editBehavior === "step"}
+                    >
+                      Step
+                    </button>
+                    {editBehavior === "step" && (
+                      <>
+                        <button
+                          type="button"
+                          className={stepDirection === "up" ? "active" : ""}
+                          onClick={() => setStepDirection("up")}
+                          title="Step up on polygon click"
+                          aria-pressed={stepDirection === "up"}
+                        >
+                          Up
+                        </button>
+                        <button
+                          type="button"
+                          className={stepDirection === "down" ? "active" : ""}
+                          onClick={() => setStepDirection("down")}
+                          title="Step down on polygon click"
+                          aria-pressed={stepDirection === "down"}
+                        >
+                          Down
+                        </button>
+                      </>
+                    )}
+                    <button
+                      type="button"
+                      className={editBehavior === "assign" ? "active" : ""}
+                      onClick={() => setEditBehavior("assign")}
+                      title="Click to apply the active risk level"
+                      aria-pressed={editBehavior === "assign"}
+                    >
+                      Set
+                    </button>
+                  </div>
+                )}
+              </>
+            )}
             <span className="map-toolbar-divider" aria-hidden="true" />
             <button
               type="button"
@@ -1427,6 +1619,12 @@ const OpenLayersForecastMap = forwardRef<MapAdapterHandle<OLMap> | null, OpenLay
               "Draw mode: click to place points, double-click to finish polygon."}
             {interactionMode === "delete" &&
               "Delete mode: click any polygon to remove it."}
+            {interactionMode === "edit" && editBehavior === "step" &&
+              `Edit (Step): ${stepDirection === "up" ? "click to raise risk" : "click to lower risk"}. Shift+click also lowers.`}
+            {interactionMode === "edit" && editBehavior === "assign" &&
+              (paintBucketFeedback ?? `Edit (Set): click a polygon to apply the active risk (${drawingState.activeProbability}).`)}
+            {interactionMode === "pan" &&
+              "Pan mode: drag map to move, scroll to zoom. Click a polygon to see its details."}
             {interactionMode === "pan" && PAN_MODE_VERTEX_EDIT_HELP}
           </div>
         </div>

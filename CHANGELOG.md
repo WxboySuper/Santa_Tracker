@@ -9,6 +9,8 @@ All notable changes to this project will be documented in this file.
 
 #### Added
 
+- **Paint bucket editing prototype:** Add beta-gated Step and Set editing for existing probabilistic outlook polygons, with undo/redo support.
+
 <!-- Continue next-major work here after this stable line is cut. -->
 
 - Unified forecast transfer modal with KML and KMZ import/export support.

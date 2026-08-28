@@ -15,7 +15,7 @@ module.exports = {
     '\\.(css|less|sass|scss)$': 'identity-obj-proxy',
     '\\.(gif|ttf|eot|svg|png)$': '<rootDir>/src/__mocks__/fileMock.js',
     '^@/(.*)$': '<rootDir>/src/$1',
-    '^@turf/turf$': '<rootDir>/node_modules/.pnpm/@turf+turf@7.4.0/node_modules/@turf/turf/dist/cjs/index.cjs',
+    '^@turf/turf$': '<rootDir>/node_modules/@turf/turf/dist/cjs/index.cjs',
     '\\?worker$': '<rootDir>/src/__mocks__/workerMock.js',
   },
   collectCoverageFrom: [

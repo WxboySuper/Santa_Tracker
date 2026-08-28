@@ -196,6 +196,10 @@
   padding: 6px;
 }
 
+.map-toolbar-surface.map-toolbar-surface--edit-active {
+  width: min(520px, calc(100vw - 16px));
+}
+
 .map-toolbar-help-surface {
   width: min(440px, calc(100vw - 32px));
   max-width: min(440px, calc(100vw - 32px));
@@ -315,6 +319,70 @@
 
 .map-toolbar-button.mode-draw.active:hover {
   background-color: #047857;
+}
+
+.map-toolbar-button.mode-edit.active {
+  background-color: #4f46e5;
+}
+
+.map-toolbar-button.mode-edit.active:hover {
+  background-color: #4338ca;
+}
+
+.map-toolbar-edit-toggle {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-self: stretch;
+  border: 1px solid var(--border-color, #d1d5db);
+  border-radius: 6px;
+  overflow: hidden;
+  font-size: 11px;
+}
+
+.map-toolbar-edit-toggle button {
+  border: none;
+  background: transparent;
+  color: var(--text-primary, #111827);
+  padding: 0 8px;
+  min-height: 32px;
+  cursor: pointer;
+}
+
+.map-toolbar-edit-toggle button.active {
+  background: color-mix(in srgb, #4f46e5 18%, var(--bg-primary, #fff));
+  color: #312e81;
+  font-weight: 600;
+}
+
+.map-toolbar-edit-toggle button:hover:not(.active) {
+  background: color-mix(in srgb, var(--text-secondary, #6b7280) 12%, transparent);
+}
+
+.map-toolbar-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.map-toolbar-strategy select {
+  min-height: 32px;
+  border: 1px solid var(--border-color, #d1d5db);
+  border-radius: 6px;
+  background: var(--bg-primary, #fff);
+  color: var(--text-primary, #111827);
+  font-size: 12px;
+  padding: 0 8px;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 .map-key-popout-button {

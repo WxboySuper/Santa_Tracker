@@ -25,8 +25,8 @@ const useForecastMapSelections = () => {
   const activeCustomLayer = customLayers.layers.find(({ id }) => id === customEditor.activeLayerId) ?? customLayers.layers[0];
   const activeCustomCategory = activeCustomLayer?.categories.find(({ id }) => id === customEditor.activeCategoryId) ?? activeCustomLayer?.categories[0];
   const currentMapView = useSelector((state: RootState) => state.forecast.currentMapView);
-  const outlooks = useSelector(selectCurrentOutlooks) as OutlookMapLike;
   const currentDay = useSelector((state: RootState) => state.forecast.forecastCycle.currentDay);
+  const outlooks = useSelector(selectCurrentOutlooks) as OutlookMapLike;
   const outlookOpacity = useSelector((state: RootState) => selectCurrentOutlookOpacity(state, drawingState.activeOutlookType));
   const baseMapStyle = useSelector((state: RootState) => state.overlays.baseMapStyle);
   const ghostOutlooks = useSelector((state: RootState) => state.overlays.ghostOutlooks);
@@ -93,9 +93,10 @@ const projectCustomFeatures = (customLayers: ForecastMapSelections["customLayers
   customLayers.layers.flatMap(projectCustomLayerFeatures);
 
 const useForecastMapFeatureProjection = ({ customMode, drawingState, outlooks, customLayers }: Pick<ForecastMapSelections, "customMode" | "drawingState" | "outlooks" | "customLayers">) => {
-  const serializedFeatures = useMemo(
-    () => projectActiveOutlookFeatures(outlooks, drawingState.activeOutlookType, customMode),
-    [customMode, drawingState.activeOutlookType, outlooks],
+  const serializedFeatures = projectActiveOutlookFeatures(
+    outlooks,
+    drawingState.activeOutlookType,
+    customMode,
   );
 
   const serializedCustomFeatures = useMemo(

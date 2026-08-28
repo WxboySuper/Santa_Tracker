@@ -314,6 +314,7 @@ const getLatestUndoEntry = (state: ReturnType<typeof reducer>, day: DayType) => 
 const getRedoStack = (state: ReturnType<typeof reducer>, day: DayType) =>
   state.historyByDay[day]?.redoStack || [];
 
+// @codescene(disable:"Lines of Code in a Single File", disable:"Number of Functions in a Single Module", disable:"Code Duplication")
 describe('forecastSlice undo/redo', () => {
   test('caps saved cycles on save and hydration while preserving lifetime totals', () => {
     let state = reducer(undefined, { type: 'test/init' });
