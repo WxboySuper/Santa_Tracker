@@ -83,13 +83,11 @@ const createFeature = () => ({
 
 const ToolbarTestHarness: React.FC<{ variant: 'legacy' | 'tabbed' }> = ({ variant }) => {
   const mapRef = useRef<ForecastMapHandle | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const controller = useForecastWorkspaceController({
-    onSave: jest.fn(),
-    onLoad: jest.fn(),
     mapRef,
-    fileInputRef,
     addToast: mockAddToast,
+    onImportResult: jest.fn(),
+    onExportComplete: jest.fn(),
   });
 
   return variant === 'tabbed'

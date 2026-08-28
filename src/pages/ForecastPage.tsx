@@ -62,11 +62,15 @@ import {
   type ForecastUiVariant,
 } from '../utils/forecastUiVariant';
 import {
+  applyForecastImportResult,
+  useForecastFileActions,
   useDayRolloverPrompt as useControllerDayRolloverPrompt,
-  useForecastFileActions as useControllerForecastFileActions,
   useSessionRestore as useControllerSessionRestore,
   useUnsavedChangesWarning as useControllerUnsavedChangesWarning,
 } from './forecastPageController';
+import { markAsSaved } from '../store/forecastSlice';
+import type { ForecastImportResult, ForecastTransferFormat, ForecastTransferScope } from '../utils/forecastTransfer';
+import { queueProductMetric } from '../utils/productMetrics';
 export {
   buildMapView,
   dayHasAnyFeatures,
@@ -210,11 +214,11 @@ type ShortcutDispatch = Dispatch<UnknownAction>;
 interface KeyboardShortcutContext {
   dispatch: ShortcutDispatch;
   addToast: AddToastFn;
-  isSaved: boolean;
   canUndo: boolean;
   canRedo: boolean;
-  handleSave: () => void;
-  fileInputRef: React.RefObject<HTMLInputElement | null>;
+  onOpenTransferModal: (direction?: 'import' | 'export') => void;
+  onSaveForecast: () => void;
+  onInitiateExport: () => void;
   mapRef: React.RefObject<ForecastMapHandle | null>;
   currentDay: DayType;
   activeOutlookType: OutlookType;
@@ -249,18 +253,16 @@ export const canToggleSignificantForState = (
 
 const COMMAND_SHORTCUT_HANDLERS: Record<CommandShortcutKey, CommandShortcutHandler> = {
   s: (context) => {
-    if (!context.isSaved) {
-      context.handleSave();
-    }
+    context.onSaveForecast();
   },
   o: (context) => {
-    context.fileInputRef.current?.click();
+    context.onOpenTransferModal('import');
   },
   l: (context) => {
-    context.fileInputRef.current?.click();
+    context.onOpenTransferModal('import');
   },
   e: (context) => {
-    context.mapRef.current?.getMap();
+    context.onInitiateExport();
   },
 };
 
@@ -444,11 +446,11 @@ interface KeyboardShortcutHookParams {
   dispatch: ShortcutDispatch;
   addToast: AddToastFn;
   drawingState: RootState['forecast']['drawingState'];
-  isSaved: boolean;
   canUndo: boolean;
   canRedo: boolean;
-  handleSave: () => void;
-  fileInputRef: React.RefObject<HTMLInputElement | null>;
+  onOpenTransferModal: (direction?: 'import' | 'export') => void;
+  onSaveForecast: () => void;
+  onInitiateExport: () => void;
   mapRef: React.RefObject<ForecastMapHandle | null>;
   currentDay: DayType;
 }
@@ -458,11 +460,11 @@ const useKeyboardShortcuts = ({
   dispatch,
   addToast,
   drawingState,
-  isSaved,
   canUndo,
   canRedo,
-  handleSave,
-  fileInputRef,
+  onOpenTransferModal,
+  onSaveForecast,
+  onInitiateExport,
   mapRef,
   currentDay,
 }: KeyboardShortcutHookParams) => {
@@ -471,11 +473,11 @@ const useKeyboardShortcuts = ({
     const shortcutContext: KeyboardShortcutContext = {
       dispatch,
       addToast,
-      isSaved,
       canUndo,
       canRedo,
-      handleSave,
-      fileInputRef,
+      onOpenTransferModal,
+      onSaveForecast,
+      onInitiateExport,
       mapRef,
       currentDay,
       activeOutlookType,
@@ -488,7 +490,7 @@ const useKeyboardShortcuts = ({
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [dispatch, addToast, drawingState, isSaved, canUndo, canRedo, handleSave, fileInputRef, mapRef, currentDay]);
+  }, [dispatch, addToast, drawingState, canUndo, canRedo, onOpenTransferModal, onSaveForecast, onInitiateExport, mapRef, currentDay]);
 };
 
 /** Returns the cloud-cycle restore callback and cloud-save action used by the forecast toolbar. */
@@ -579,13 +581,13 @@ const useForecastPageWorkspace = ({
   addToast,
   navigate,
   mapRef,
-  fileInputRef,
+  onSaveForecast,
 }: {
   dispatch: ShortcutDispatch;
   addToast: AddToastFn;
   navigate: ReturnType<typeof useNavigate>;
   mapRef: React.RefObject<ForecastMapHandle | null>;
-  fileInputRef: React.RefObject<HTMLInputElement | null>;
+  onSaveForecast: () => void;
 }) => {
   const forecastCycle = useSelector(selectForecastCycle);
   const discussionDraftsByScope = useSelector((state: RootState) => state.forecast.discussionDraftsByScope);
@@ -619,6 +621,35 @@ const useForecastPageWorkspace = ({
     workflowMetadata,
   });
 
+  const handleImportResult = useCallback((result: ForecastImportResult) => {
+    applyForecastImportResult(result, dispatch, mapRef);
+    const warningSuffix = result.warnings.length > 0
+      ? ` (${result.warnings.length} import note${result.warnings.length === 1 ? '' : 's'})`
+      : '';
+    addToast(`Forecast imported from ${result.format.toUpperCase()}!${warningSuffix}`, 'success');
+  }, [addToast, dispatch, mapRef]);
+
+  const handleExportComplete = useCallback((format: ForecastTransferFormat, scope: ForecastTransferScope) => {
+    if (format === 'json') {
+      dispatch(markAsSaved());
+      queueProductMetric({ event: 'cycle_saved', user });
+      addToast('Forecast exported to JSON!', 'success');
+      return;
+    }
+
+    if (format === 'package') {
+      addToast(scope === 'workflow' ? 'Workflow package downloaded!' : 'Cycle package downloaded!', 'success');
+      return;
+    }
+
+    const scopeLabel = scope === 'current-day' ? 'Current day' : 'Full cycle';
+    addToast(`${scopeLabel} ${format.toUpperCase()} downloaded!`, 'success');
+  }, [addToast, dispatch, user]);
+
+  const handleTransferError = useCallback((message: string) => {
+    addToast(message, 'error');
+  }, [addToast]);
+
   const { restoreComplete, restoredSession } = useControllerSessionRestore(dispatch, addToast, {
     forecastCycle,
     discussionDraftsByScope,
@@ -628,24 +659,30 @@ const useForecastPageWorkspace = ({
   }, user?.uid);
   useControllerUnsavedChangesWarning(isSaved);
 
-  const { handleSave, handleLoad } = useControllerForecastFileActions(
-    dispatch,
-    addToast,
-    forecastCycle,
+  const workspaceController = useForecastWorkspaceController({
     mapRef,
-    user,
-    workflowMetadata
-  );
+    addToast,
+    onImportResult: handleImportResult,
+    onExportComplete: handleExportComplete,
+    cloudTools: renderCloudToolbar({
+      premiumActive,
+      isExpiredPremium,
+      forecastCycle,
+      currentCloud,
+      onSaveToCloud: handleSaveToCloud,
+      onOpenCloudLibrary: () => navigate('/cloud'),
+    }),
+  });
 
   useKeyboardShortcuts({
     dispatch,
     addToast,
     drawingState,
-    isSaved,
     canUndo,
     canRedo,
-    handleSave,
-    fileInputRef,
+    onOpenTransferModal: workspaceController.onOpenTransferModal,
+    onSaveForecast,
+    onInitiateExport: workspaceController.onInitiateExport,
     mapRef,
     currentDay: forecastCycle.currentDay,
   });
@@ -665,26 +702,11 @@ const useForecastPageWorkspace = ({
     clearCurrent,
   });
 
-  const workspaceController = useForecastWorkspaceController({
-    onSave: handleSave,
-    onLoad: handleLoad,
-    mapRef,
-    fileInputRef,
-    addToast,
-    cloudTools: renderCloudToolbar({
-      premiumActive,
-      isExpiredPremium,
-      forecastCycle,
-      currentCloud,
-      onSaveToCloud: handleSaveToCloud,
-      onOpenCloudLibrary: () => navigate('/cloud'),
-    }),
-  });
-
   return {
     emergencyMode,
     dayRolloverPrompt,
     workspaceController,
+    handleTransferError,
     autoTstmTools: <AutoTstmWorkspaceTools autoTstm={autoTstm} />,
     tstmPreviewFeatures: autoTstm.previewFeatures,
   };
@@ -696,13 +718,23 @@ export const ForecastPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { addToast } = useOutletContext<PageContext>();
-  const { syncedSettings } = useAuth();
+  const { syncedSettings, user } = useAuth();
   const mapRef = useRef<ForecastMapHandle>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const forecastCycle = useSelector(selectForecastCycle);
+  const workflowMetadata = useSelector((state: RootState) => state.forecast.workflowMetadata);
+  const { handleSave } = useForecastFileActions(
+    dispatch,
+    addToast,
+    forecastCycle,
+    mapRef,
+    user,
+    workflowMetadata,
+  );
   const {
     emergencyMode,
     dayRolloverPrompt,
     workspaceController,
+    handleTransferError,
     autoTstmTools,
     tstmPreviewFeatures,
   } = useForecastPageWorkspace({
@@ -710,7 +742,7 @@ export const ForecastPage: React.FC = () => {
     addToast,
     navigate,
     mapRef,
-    fileInputRef,
+    onSaveForecast: handleSave,
   });
 
   if (emergencyMode) {
@@ -731,7 +763,7 @@ export const ForecastPage: React.FC = () => {
         autoTstmTools,
         tstmPreviewFeatures,
       })}
-      <ForecastWorkspaceModals controller={workspaceController} />
+      <ForecastWorkspaceModals controller={workspaceController} onTransferError={handleTransferError} />
       <DayRolloverDialog
         promptState={dayRolloverPrompt.promptState}
         canSaveToCloud={dayRolloverPrompt.canSaveToCloud}

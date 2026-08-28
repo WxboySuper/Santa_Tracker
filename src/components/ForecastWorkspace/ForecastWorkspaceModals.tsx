@@ -11,6 +11,7 @@ import { Button } from '../ui/button';
 import CycleHistoryModal from '../CycleManager/CycleHistoryModal';
 import CopyFromPreviousModal from '../CycleManager/CopyFromPreviousModal';
 import ExportModal from '../DrawingTools/ExportModal';
+import ForecastTransferModal from './ForecastTransferModal';
 import CompletionValidationModal from '../CompletionValidation/CompletionValidationModal';
 import { useSelector } from 'react-redux';
 import type { RootState } from '../../store';
@@ -36,28 +37,39 @@ const ResetConfirmDialog: React.FC<{
   </Dialog>
 );
 
-/** Shared hidden file input plus modals used by every Forecast workspace layout. */
-export const ForecastWorkspaceModals: React.FC<{ controller: ForecastWorkspaceController }> = ({ controller }) => {
+/** Shared modals used by every Forecast workspace layout. */
+export const ForecastWorkspaceModals: React.FC<{
+  controller: ForecastWorkspaceController;
+  onTransferError?: (message: string) => void;
+}> = ({ controller, onTransferError }) => {
   const completionValidationResult = useSelector(
     (state: RootState) => state.forecast.completionValidation.lastResult
   );
 
   return (
     <>
-      <input
-        ref={controller.fileInputRef as unknown as React.Ref<HTMLInputElement>}
-        type="file"
-        accept=".json"
-        onChange={controller.onFileSelect}
-        className="hidden"
-        data-testid="forecast-workspace-file-input"
-      />
       <CycleHistoryModal isOpen={controller.showHistoryModal} onClose={controller.onCloseHistoryModal} />
       <CopyFromPreviousModal isOpen={controller.showCopyModal} onClose={controller.onCloseCopyModal} />
       <ExportModal
         isOpen={controller.isExportModalOpen}
         onConfirm={controller.onConfirmExport}
         onCancel={controller.onCancelExport}
+      />
+      <ForecastTransferModal
+        open={controller.showTransferModal}
+        direction={controller.transferDirection}
+        onDirectionChange={controller.onTransferDirectionChange}
+        onClose={controller.onCloseTransferModal}
+        forecastCycle={controller.forecastCycle}
+        mapView={controller.getMapView()}
+        cycleMetadata={controller.cycleMetadata}
+        isWorkflowActive={controller.isWorkflowActive}
+        isBusy={controller.isTransferBusy}
+        onBusyChange={controller.onTransferBusyChange}
+        onImported={controller.onTransferImported}
+        onExported={controller.onTransferExported}
+        onError={onTransferError}
+        onExportImage={controller.onInitiateExport}
       />
       <ResetConfirmDialog
         open={controller.showResetConfirm}

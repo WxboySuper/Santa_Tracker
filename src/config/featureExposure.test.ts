@@ -70,6 +70,8 @@ describe('featureExposure registry', () => {
       'outlookLandMasking',
       'tropicalWorkspace',
       'collaborationRoom',
+      'paintBucketTool',
+      'kmzExport',
     ]);
   });
 

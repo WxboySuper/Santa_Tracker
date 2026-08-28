@@ -1,6 +1,4 @@
 import React, { useCallback } from 'react';
-import { downloadGfcPackage } from '../../utils/fileUtils';
-import type { WorkflowExportScope } from '../../utils/workflowPackage';
 import {
   redoLastEdit,
   resetForecasts,
@@ -11,32 +9,23 @@ import {
 } from '../../store/forecastSlice';
 import type { ForecastMapHandle } from '../Map/ForecastMap';
 import type { AddToastFn } from '../Layout';
-import type { DayType, ForecastCycle } from '../../types/outlooks';
-import type { CycleMetadata } from '../../types/workflow';
+import type { DayType } from '../../types/outlooks';
 import { useDispatch } from 'react-redux';
-import { trackWorkflowEvent } from '../../lib/workflowAnalytics';
+import type { ForecastTransferDirection } from './ForecastTransferModal';
 
 export interface ForecastWorkspaceActionParams {
   dispatch: ReturnType<typeof useDispatch>;
-  onLoad: (file: File) => void;
   mapRef: React.RefObject<ForecastMapHandle | null>;
   addToast: AddToastFn;
-  forecastCycle: ForecastCycle;
-  cycleMetadata?: CycleMetadata;
   currentDay: DayType;
   canUndo: boolean;
   canRedo: boolean;
   tempDate: string;
   setIsEditingDate: React.Dispatch<React.SetStateAction<boolean>>;
-  setIsPackageDownloading: React.Dispatch<React.SetStateAction<boolean>>;
-  fileInputRef: React.RefObject<HTMLInputElement | null>;
+  setShowTransferModal: React.Dispatch<React.SetStateAction<boolean>>;
+  setTransferDirection: React.Dispatch<React.SetStateAction<ForecastTransferDirection>>;
   handleCancelReset: () => void;
 }
-
-/** Returns the selected file from a file input change event, or null when none was chosen. */
-const getSelectedFile = (e: React.ChangeEvent<HTMLInputElement>): File | null => {
-  return e.target.files?.[0] ?? null;
-};
 
 /** Returns the neighboring forecast day in the requested direction, or null at the ends. */
 const getAdjacentDay = (currentDay: DayType, offset: -1 | 1): DayType | null => {
@@ -62,66 +51,23 @@ const dispatchHistoryAction = (
   }
 };
 
-/** Downloads one package scope and reports success or failure without leaking errors to the caller. */
-const downloadPackageForScope = async ({ scope, forecastCycle, cycleMetadata, mapRef, addToast, setIsPackageDownloading }: {
-  scope: WorkflowExportScope;
-  forecastCycle: ForecastCycle;
-  cycleMetadata?: CycleMetadata;
-  mapRef: React.RefObject<ForecastMapHandle | null>;
-  addToast: AddToastFn;
-  setIsPackageDownloading: React.Dispatch<React.SetStateAction<boolean>>;
-}): Promise<boolean> => {
-  setIsPackageDownloading(true);
-  try {
-    const mapView = mapRef.current?.getView() ?? ({ center: [39.8283, -98.5795] as [number, number], zoom: 4 });
-    await downloadGfcPackage(forecastCycle, mapView, cycleMetadata, scope);
-    addToast(scope === 'workflow' ? 'Workflow package downloaded!' : 'Cycle package downloaded!', 'success');
-    return true;
-  } catch {
-    addToast('Failed to create package.', 'error');
-    return false;
-  } finally {
-    setIsPackageDownloading(false);
-  }
-};
-
 /** Constructs all event-handler callbacks for workspace actions. */
 export const useForecastWorkspaceActionHandlers = ({
   dispatch,
-  onLoad,
-  mapRef,
   addToast,
-  forecastCycle,
-  cycleMetadata,
   currentDay,
   canUndo,
   canRedo,
   tempDate,
   setIsEditingDate,
-  setIsPackageDownloading,
-  fileInputRef,
+  setShowTransferModal,
+  setTransferDirection,
   handleCancelReset,
 }: ForecastWorkspaceActionParams) => {
-  const handlePackageDownload = useCallback(async (scope: WorkflowExportScope) => {
-    const succeeded = await downloadPackageForScope({
-      scope, forecastCycle, cycleMetadata, mapRef, addToast, setIsPackageDownloading,
-    });
-    trackWorkflowEvent('export', {
-      result: succeeded ? 'success' : 'failure',
-      entryPath: 'forecast-workspace',
-      packageScope: scope,
-    });
-  }, [mapRef, forecastCycle, cycleMetadata, addToast, setIsPackageDownloading]);
-
-  const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = getSelectedFile(e);
-    if (file) {
-      onLoad(file);
-    }
-    e.target.value = '';
-  }, [onLoad]);
-
-  const handleLoadClick = useCallback(() => fileInputRef.current?.click(), [fileInputRef]);
+  const handleOpenTransferModal = useCallback((direction: ForecastTransferDirection = 'export') => {
+    setTransferDirection(direction);
+    setShowTransferModal(true);
+  }, [setShowTransferModal, setTransferDirection]);
 
   const handleReset = useCallback(() => {
     dispatch(resetForecasts());
@@ -164,16 +110,12 @@ export const useForecastWorkspaceActionHandlers = ({
   return {
     onUndo: handleUndo,
     onRedo: handleRedo,
-    onLoadClick: handleLoadClick,
-    onPackageDownload: () => { handlePackageDownload('cycle'); },
-    onWorkflowPackageDownload: () => { handlePackageDownload('workflow'); },
-    onCyclePackageDownload: () => { handlePackageDownload('cycle'); },
+    onOpenTransferModal: handleOpenTransferModal,
     onDateSave: handleDateSave,
     onDayButtonClick: handleDayButtonClick,
     onPrevDay: handlePrevDay,
     onNextDay: handleNextDay,
     onToggleLowProbability: handleToggleLowProbability,
     onReset: handleReset,
-    onFileSelect: handleFileSelect,
   };
 };

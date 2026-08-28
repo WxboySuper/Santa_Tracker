@@ -175,6 +175,24 @@ export const FEATURE_EXPOSURE_REGISTRY = {
     serverBacked: false,
     trackingIssue: 433,
   },
+  paintBucketTool: {
+    exposure: { local: true, beta: false, staging: false, production: false },
+    owner: 'WxboySuper',
+    addedDate: '2026-08-18',
+    temporary: true,
+    removalCondition: 'Remove strategy selector after paint-bucket interaction is chosen and promoted beyond local prototype (#623).',
+    serverBacked: false,
+    trackingIssue: 623,
+  },
+  kmzExport: {
+    exposure: { local: true, beta: true, staging: false, production: false },
+    owner: 'WxboySuper',
+    addedDate: '2026-08-18',
+    temporary: true,
+    removalCondition: 'Promote after KMZ export prototype validation and consumer testing (#621).',
+    serverBacked: false,
+    trackingIssue: 621,
+  },
 } as const satisfies Record<string, FeatureExposureDefinition>;
 
 export type FeatureKey = keyof typeof FEATURE_EXPOSURE_REGISTRY;

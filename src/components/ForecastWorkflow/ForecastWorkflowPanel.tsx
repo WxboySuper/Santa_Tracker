@@ -545,10 +545,6 @@ export const ForecastWorkflowPanel: React.FC<ForecastWorkflowPanelProps> = ({ co
   }
   /** Exports the complete cycle through the existing WF-09 package path. */
   function handleCycleExport(): void {
-    if (controller) {
-      controller.onCyclePackageDownload();
-      return;
-    }
     setIsPackageDownloading(true);
     downloadGfcPackage(
       forecastCycle,
@@ -665,8 +661,8 @@ export const ForecastWorkflowPanel: React.FC<ForecastWorkflowPanelProps> = ({ co
       <CompletionHandoff
         open={showCompletionHandoff}
         showMonitor={handoffEligibility.showMonitor}
-        isDownloading={isPackageDownloading || Boolean(controller?.isPackageDownloading)}
-        onWorkflowExport={controller?.onWorkflowPackageDownload ?? (() => { handleWorkflowExport().catch(() => undefined); })}
+        isDownloading={isPackageDownloading}
+        onWorkflowExport={() => { handleWorkflowExport().catch(() => undefined); }}
         onCycleExport={handleCycleExport}
         onMonitor={handleOpenMonitor}
         onReturnToMap={handleReturnToMap}

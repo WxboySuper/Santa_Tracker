@@ -45,13 +45,11 @@ const LayoutHarness: React.FC<{
   cloudTools?: React.ReactNode;
 }> = ({ cloudTools }) => {
   const mapRef = useRef<ForecastMapHandle | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const controller = useForecastWorkspaceController({
-    onSave: jest.fn(),
-    onLoad: jest.fn(),
     mapRef,
-    fileInputRef,
     addToast: mockAddToast,
+    onImportResult: jest.fn(),
+    onExportComplete: jest.fn(),
     cloudTools,
   });
 

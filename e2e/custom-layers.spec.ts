@@ -10,8 +10,9 @@ const openForecast = async (page: import('@playwright/test').Page) => {
 
 const downloadForecast = async (page: import('@playwright/test').Page) => {
   await page.getByRole('tab', { name: 'Tools' }).click();
+  await page.getByRole('button', { name: 'Import / Export' }).click();
   const downloadPromise = page.waitForEvent('download');
-  await page.getByRole('button', { name: 'Save' }).first().click();
+  await page.getByRole('button', { name: 'Download' }).click();
   const download = await downloadPromise;
   const savedPath = await download.path();
   if (!savedPath) throw new Error('Custom forecast download has no readable path');

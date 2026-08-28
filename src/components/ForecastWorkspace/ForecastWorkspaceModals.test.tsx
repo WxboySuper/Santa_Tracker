@@ -35,6 +35,34 @@ jest.mock('../DrawingTools/ExportModal', () => ({
     ) : null,
 }));
 
+jest.mock('./ForecastTransferModal', () => ({
+  __esModule: true,
+  default: ({
+    open,
+    onClose,
+    onImported,
+    onExported,
+    onError,
+    onExportImage,
+  }: {
+    open: boolean;
+    onClose: () => void;
+    onImported: () => void;
+    onExported: () => void;
+    onError: (message: string) => void;
+    onExportImage: () => void;
+  }) =>
+    open ? (
+      <div>
+        <button onClick={onClose}>Close Transfer</button>
+        <button onClick={onImported}>Import Transfer</button>
+        <button onClick={onExported}>Export Transfer</button>
+        <button onClick={() => onError('transfer failed')}>Transfer Error</button>
+        <button onClick={onExportImage}>Export Image</button>
+      </div>
+    ) : null,
+}));
+
 jest.mock('../ui/dialog', () => ({
   Dialog: ({ open, children }: { open: boolean; children: React.ReactNode }) => (open ? <div>{children}</div> : null),
   DialogContent: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
@@ -46,8 +74,15 @@ jest.mock('../ui/dialog', () => ({
 
 const createController = (): ForecastWorkspaceController =>
   ({
-    fileInputRef: { current: null },
-    onFileSelect: jest.fn(),
+    showTransferModal: true,
+    onCloseTransferModal: jest.fn(),
+    onTransferImported: jest.fn(),
+    onTransferExported: jest.fn(),
+    onInitiateExport: jest.fn(),
+    getMapView: () => ({ center: [39.8283, -98.5795], zoom: 4 }),
+    forecastCycle: { currentDay: 1, cycleDate: '2026-08-18', days: {} },
+    isWorkflowActive: false,
+    isTransferBusy: false,
     showHistoryModal: true,
     onCloseHistoryModal: jest.fn(),
     showCopyModal: true,
@@ -76,14 +111,21 @@ const renderWithProvider = (ui: React.ReactElement) => {
 };
 
 describe('ForecastWorkspaceModals', () => {
-  test('wires hidden file input and modal callbacks', () => {
+  test('wires transfer, export, and reset modal callbacks', () => {
     const controller = createController();
-    renderWithProvider(<ForecastWorkspaceModals controller={controller} />);
+    const onTransferError = jest.fn();
+    renderWithProvider(<ForecastWorkspaceModals controller={controller} onTransferError={onTransferError} />);
 
-    const input = screen.getByTestId('forecast-workspace-file-input') as HTMLInputElement;
-    expect(input).toHaveAttribute('accept', '.json');
-    fireEvent.change(input);
-    expect(controller.onFileSelect).toHaveBeenCalled();
+    fireEvent.click(screen.getByText('Close Transfer'));
+    expect(controller.onCloseTransferModal).toHaveBeenCalledTimes(1);
+    fireEvent.click(screen.getByText('Import Transfer'));
+    expect(controller.onTransferImported).toHaveBeenCalledTimes(1);
+    fireEvent.click(screen.getByText('Export Transfer'));
+    expect(controller.onTransferExported).toHaveBeenCalledTimes(1);
+    fireEvent.click(screen.getByText('Transfer Error'));
+    expect(onTransferError).toHaveBeenCalledWith('transfer failed');
+    fireEvent.click(screen.getByText('Export Image'));
+    expect(controller.onInitiateExport).toHaveBeenCalledTimes(1);
 
     fireEvent.click(screen.getByText('History Modal'));
     expect(controller.onCloseHistoryModal).toHaveBeenCalledTimes(1);

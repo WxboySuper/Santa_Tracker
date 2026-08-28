@@ -594,19 +594,18 @@ describe('ForecastPage helpers', () => {
   test('routes keyboard shortcuts through command and standard handlers', () => {
     const dispatch = jest.fn();
     const addToast = jest.fn();
-    const handleSave = jest.fn();
-    const fileInput = document.createElement('input');
-    fileInput.click = jest.fn();
-    const mapAdapter = { getMap: jest.fn() };
+    const onOpenTransferModal = jest.fn();
+    const onSaveForecast = jest.fn();
+    const onInitiateExport = jest.fn();
     const context = {
       dispatch,
       addToast,
-      isSaved: false,
       canUndo: true,
       canRedo: true,
-      handleSave,
-      fileInputRef: { current: fileInput },
-      mapRef: { current: mapAdapter },
+      onOpenTransferModal,
+      onSaveForecast,
+      onInitiateExport,
+      mapRef: { current: null },
       currentDay: 1,
       activeOutlookType: 'tornado' as const,
       activeProbability: '10%',
@@ -615,13 +614,14 @@ describe('ForecastPage helpers', () => {
 
     const ctrlS = new KeyboardEvent('keydown', { key: 's', ctrlKey: true });
     processShortcutKeyDown(ctrlS, context);
-    expect(handleSave).toHaveBeenCalledTimes(1);
+    expect(onSaveForecast).toHaveBeenCalledTimes(1);
+    expect(onOpenTransferModal).not.toHaveBeenCalled();
 
     processShortcutKeyDown(new KeyboardEvent('keydown', { key: 'o', ctrlKey: true }), context);
-    expect(fileInput.click).toHaveBeenCalledTimes(1);
+    expect(onOpenTransferModal).toHaveBeenCalledWith('import');
 
     processShortcutKeyDown(new KeyboardEvent('keydown', { key: 'e', ctrlKey: true }), context);
-    expect(mapAdapter.getMap).toHaveBeenCalledTimes(1);
+    expect(onInitiateExport).toHaveBeenCalledTimes(1);
 
     processShortcutKeyDown(new KeyboardEvent('keydown', { key: 'z', ctrlKey: true }), context);
     processShortcutKeyDown(new KeyboardEvent('keydown', { key: 'y', ctrlKey: true }), context);
@@ -652,15 +652,16 @@ describe('ForecastPage helpers', () => {
   it('ignores keydown events when the browser omits KeyboardEvent.key', () => {
     const dispatch = jest.fn();
     const addToast = jest.fn();
-    const handleSave = jest.fn();
+    const onOpenTransferModal = jest.fn();
+    const onSaveForecast = jest.fn();
     const context = {
       dispatch,
       addToast,
-      isSaved: false,
       canUndo: false,
       canRedo: false,
-      handleSave,
-      fileInputRef: { current: null },
+      onOpenTransferModal,
+      onSaveForecast,
+      onInitiateExport: jest.fn(),
       mapRef: { current: null },
       currentDay: 1,
       activeOutlookType: 'tornado' as const,
@@ -672,7 +673,7 @@ describe('ForecastPage helpers', () => {
     Object.defineProperty(event, 'key', { value: undefined });
 
     expect(() => processShortcutKeyDown(event, context)).not.toThrow();
-    expect(handleSave).not.toHaveBeenCalled();
+    expect(onOpenTransferModal).not.toHaveBeenCalled();
     expect(dispatch).not.toHaveBeenCalled();
     expect(addToast).not.toHaveBeenCalled();
   });

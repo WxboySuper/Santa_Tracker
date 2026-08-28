@@ -128,3 +128,6 @@ export const validateForecastImport = (data: unknown): ImportValidationResult =>
 
 export type { ImportValidationResult };
 export { MAX_IMPORT_BYTES };
+
+/** Maximum expanded KML payload accepted from a KMZ archive. */
+export const MAX_KML_IMPORT_BYTES = 10 * 1024 * 1024;
