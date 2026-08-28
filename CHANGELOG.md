@@ -1,5 +1,13 @@
 # Changelog — per-PR exhaustive (enforced in CI)
 
+## [PR #] - 2026-08-28 - feat(ui): add Storybook design baseline
+
+- **Issue:** Closes #216, establishing the first shared UI baseline for the Christmas 2026 redesign.
+- **Tokens:** Adds color, typography, spacing, layer, motion, focus, radius, and seasonal-state tokens, including CSS overrides for reduced motion and high contrast.
+- **Stories:** Adds Button variants and a seasonal token gallery with mobile, high-contrast, and reduced-motion toolbar states.
+- **Checks:** Adds Storybook build, axe accessibility, and per-story PNG screenshot checks to the workspace CI job.
+- **Docs:** Adds `docs/UI_STORYBOOK.md` with local and CI-style commands.
+
 ## [Unreleased] — Shared public contracts (#211)
 
 - Added validated public ID schemas and constructors for locations, publications, snapshots, and activities.
@@ -8,6 +16,12 @@
 - Breaking contract change: snapshots now require `snapshotId`, `author`, and `validationReport`; old snapshot payloads must be republished with the current schema version.
 
 ## [Unreleased] — Flask retirement #221
+
+## [Unreleased] — Migration fixtures #218
+
+- Added shared Zod schemas and deeply frozen fixtures for all 185 nodes in the 2025 route and all 24 Advent days.
+- The migration schema records two source exceptions without rewriting the fixture: unwrapped longitudes up to 360 degrees and legacy IDs containing repeated underscores. Runtime normalization still applies the canonical coordinate and ID rules.
+- Removed the Next.js resolver's fallback to retired Flask data, so the new runtime has one route and Advent data source.
 
 ### Foundation — retire Flask runtime after parity acceptance
 

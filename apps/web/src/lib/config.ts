@@ -29,7 +29,6 @@ function getDataPath(filename: string): string {
   const candidates = [
     path.join(process.cwd(), "data", filename),
     path.join(process.cwd(), "apps", "web", "data", filename),
-    path.join(process.cwd(), "..", "..", "src", "static", "data", filename),
   ];
   return candidates.find(candidate => existsSync(candidate)) ?? candidates[0]!;
 }
