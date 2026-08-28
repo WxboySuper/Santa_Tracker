@@ -1,0 +1,21 @@
+{
+  "name": "@santa-tracker/localization",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Typed locale messages and deterministic fallback behavior for the Santa Tracker UI.",
+  "exports": {
+    ".": "./src/index.ts",
+    "./messages": "./src/messages.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src --max-warnings=0",
+    "test": "vitest run",
+    "build": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.3",
+    "vitest": "^3.2.4"
+  }
+}
