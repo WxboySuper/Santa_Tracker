@@ -1,16 +1,17 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import "leaflet/dist/leaflet.css";
 import type { Map as LeafletMap } from "leaflet";
 import type * as Leaflet from "leaflet";
-import { t } from "@santa-tracker/localization";
+import { createTranslator } from "@santa-tracker/localization";
 import type { RouteNode } from "@/lib/locations";
 import Countdown from "@/components/countdown";
 
 interface TrackerMapProps {
   adventEnabled: boolean;
+  locale: string;
 }
 
 interface RouteResponse {
@@ -61,9 +62,10 @@ async function createTrackerMap(container: HTMLDivElement): Promise<{ map: Leafl
   return { map, stopCount: renderRoute(L, map, data.route_nodes) };
 }
 
-export default function TrackerMap({ adventEnabled }: TrackerMapProps) {
+export default function TrackerMap({ adventEnabled, locale }: TrackerMapProps) {
+  const translator = useMemo(() => createTranslator({ locale }), [locale]);
   const mapElement = useRef<HTMLDivElement>(null);
-  const [routeStatus, setRouteStatus] = useState(t("tracker.loading"));
+  const [routeStatus, setRouteStatus] = useState(translator.t("tracker.loading"));
 
   useEffect(() => {
     let map: LeafletMap | undefined;
@@ -77,11 +79,11 @@ export default function TrackerMap({ adventEnabled }: TrackerMapProps) {
           return;
         }
         map = result.map;
-        setRouteStatus(t("tracker.loaded", { count: result.stopCount }));
+        setRouteStatus(translator.t("tracker.loaded", { count: result.stopCount }));
       } catch (error: unknown) {
         if (!cancelled) {
           console.error("Tracker map error", error);
-          setRouteStatus(t("tracker.unavailable"));
+          setRouteStatus(translator.t("tracker.unavailable"));
         }
       }
     };
@@ -90,22 +92,22 @@ export default function TrackerMap({ adventEnabled }: TrackerMapProps) {
       cancelled = true;
       map?.remove();
     };
-  }, []);
+  }, [translator]);
 
   return (
     <>
       <nav className="glass-nav fixed top-4 left-1/2 -translate-x-1/2 z-40 bg-white/20 backdrop-blur-md rounded-full px-6 py-2 flex gap-4">
-        <Link href="/" className="nav-link text-white/80 hover:text-white">{t("nav.home")}</Link>
-        <Link href="/tracker" className="nav-link nav-link-active text-white font-semibold">{t("nav.tracker")}</Link>
-        {adventEnabled && <Link href="/advent" className="nav-link text-white/80 hover:text-white">{t("nav.village")}</Link>}
+        <Link href="/" className="nav-link text-white/80 hover:text-white">{translator.t("nav.home")}</Link>
+        <Link href="/tracker" className="nav-link nav-link-active text-white font-semibold">{translator.t("nav.tracker")}</Link>
+        {adventEnabled && <Link href="/advent" className="nav-link text-white/80 hover:text-white">{translator.t("nav.village")}</Link>}
       </nav>
       <div className="map-fullscreen relative w-screen h-screen">
-        <div ref={mapElement} className="map w-full h-full bg-blue-950" aria-label={t("tracker.mapLabel")} role="application" tabIndex={0}>
+        <div ref={mapElement} className="map w-full h-full bg-blue-950" aria-label={translator.t("tracker.mapLabel")} role="application" tabIndex={0}>
           <p className="absolute left-4 bottom-4 z-[1000] rounded-lg bg-black/60 px-3 py-2 text-sm text-white/80" aria-live="polite">{routeStatus}</p>
         </div>
         <div className="countdown-hud absolute top-20 right-4 bg-black/40 backdrop-blur-md rounded-xl p-4 text-white">
-          <p className="countdown-hud-label text-xs opacity-70">{t("home.countdown")}</p>
-          <Countdown className="countdown-hud-value font-mono text-lg" flyingText={t("countdown.flying")} />
+          <p className="countdown-hud-label text-xs opacity-70">{translator.t("home.countdown")}</p>
+          <Countdown locale={locale} className="countdown-hud-value font-mono text-lg" flyingText={translator.t("countdown.flying")} />
         </div>
       </div>
     </>

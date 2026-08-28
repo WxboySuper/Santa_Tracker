@@ -6,6 +6,24 @@ export type { MessageKey, Messages } from './messages';
 export type Locale = string;
 export type MessageCatalog = Partial<Record<MessageKey, string>>;
 export const DEFAULT_LOCALE = 'en' as const;
+export const SUPPORTED_LOCALES = [DEFAULT_LOCALE] as const;
+export type SupportedLocale = (typeof SUPPORTED_LOCALES)[number];
+
+export function negotiateLocale(acceptLanguage: string | null | undefined): SupportedLocale {
+  const requested = (acceptLanguage ?? '')
+    .split(',')
+    .map(part => {
+      const qualityMatch = /q=([0-9.]+)/.exec(part);
+      return { language: part.trim().split(';')[0]?.toLowerCase() ?? '', quality: Number(qualityMatch?.[1] ?? 1) };
+    })
+    .filter(item => item.language && item.quality > 0)
+    .sort((a, b) => b.quality - a.quality);
+  for (const item of requested) {
+    const match = SUPPORTED_LOCALES.find(locale => item.language === locale || item.language.startsWith(`${locale}-`));
+    if (match) return match;
+  }
+  return DEFAULT_LOCALE;
+}
 
 export interface TranslatorOptions {
   locale?: Locale;
