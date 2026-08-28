@@ -108,6 +108,20 @@ function hasApplicationStackFrame(values: SentryExceptionValue[]): boolean {
   );
 }
 
+/** True when breadcrumbs contain more than Redux's initial store action. */
+function hasActionableBreadcrumbs(event: Event): boolean {
+  return (event.breadcrumbs ?? []).some((breadcrumb) => {
+    if (breadcrumb.category !== 'redux.action') {
+      return true;
+    }
+
+    const actionType = typeof breadcrumb.data?.type === 'string'
+      ? breadcrumb.data.type
+      : breadcrumb.message ?? '';
+    return !/^@@redux\/INIT/i.test(actionType);
+  });
+}
+
 /** True when the event is known browser noise that is safe to drop. */
 function isKnownBrowserNoise(event: Event): boolean {
   const values = event.exception?.values ?? [];
@@ -126,9 +140,10 @@ function isKnownBrowserNoise(event: Event): boolean {
   }
 
   // The opaque global error is only noise when it has neither an application stack
-  // frame nor breadcrumbs that could explain what was happening.
+  // frame nor breadcrumbs that could explain what was happening. Redux's initial
+  // store action is not useful context for an otherwise stackless browser error.
   if (values.some(isOpaqueGlobalError)) {
-    return !(hasApplicationStackFrame(values) || Boolean(event.breadcrumbs?.length));
+    return !(hasApplicationStackFrame(values) || hasActionableBreadcrumbs(event));
   }
 
   return false;
