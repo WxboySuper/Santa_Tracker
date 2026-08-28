@@ -199,6 +199,21 @@ export const FEATURE_EXPOSURE_REGISTRY = {
     serverBacked: false,
     trackingIssue: 621,
   },
+  populationEstimate: {
+    exposure: {
+      local: true,
+      beta: true,
+      staging: false,
+      production: false,
+    },
+    owner: 'WxboySuper',
+    addedDate: '2026-08-28',
+    temporary: true,
+    removalCondition:
+      'Remove after the WorldPop population estimate prototype is validated by beta testers and a permanent product decision is made (#622).',
+    serverBacked: false,
+    trackingIssue: 622,
+  },
 } as const satisfies Record<string, FeatureExposureDefinition>;
 
 export type FeatureKey = keyof typeof FEATURE_EXPOSURE_REGISTRY;

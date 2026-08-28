@@ -72,6 +72,7 @@ describe('featureExposure registry', () => {
       'collaborationRoom',
       'paintBucketTool',
       'kmzExport',
+      'populationEstimate',
     ]);
   });
 

@@ -28,6 +28,7 @@ import {
 import { Input } from '../ui/input';
 import { cn } from '../../lib/utils';
 import { isFeatureExposed } from '../../config/featureExposure';
+import PopulationEstimateBeta from '../PopulationEstimate/PopulationEstimateBeta';
 import { getCategoricalRiskDisplayName, getOutlookColor } from '../../utils/outlookUtils';
 import type { CategoricalRiskLevel, OutlookType } from '../../types/outlooks';
 import type { ForecastWorkspaceController } from '../ForecastWorkspace/useForecastWorkspaceController';
@@ -987,6 +988,11 @@ const TabbedToolbarToolsTab: React.FC<{
           )}
         </div>
       </TabbedToolbarStripSection>
+      {isFeatureExposed('populationEstimate') ? (
+        <TabbedToolbarStripSection label="Beta research" className="w-[300px]">
+          <PopulationEstimateBeta />
+        </TabbedToolbarStripSection>
+      ) : null}
     </TabbedToolbarTabRow>
   );
 };

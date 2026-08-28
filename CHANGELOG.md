@@ -10,6 +10,7 @@ All notable changes to this project will be documented in this file.
 #### Added
 
 - **Paint bucket editing prototype:** Add beta-gated Step and Set editing for existing probabilistic outlook polygons, with undo/redo support.
+- **Population estimate prototype:** Add a beta-gated WorldPop estimate for the population inside the active day's active-hazard outlook polygons.
 
 <!-- Continue next-major work here after this stable line is cut. -->
 
