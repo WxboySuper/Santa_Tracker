@@ -29,17 +29,14 @@ function getDataPath(filename: string): string {
   const candidates = [
     path.join(process.cwd(), "data", filename),
     path.join(process.cwd(), "apps", "web", "data", filename),
-    path.join(process.cwd(), "..", "..", "src", "static", "data", filename),
   ];
   return candidates.find(candidate => existsSync(candidate)) ?? candidates[0]!;
 }
 
 export async function getTrialRoutePath(): Promise<string> {
-  const legacy = path.join(process.cwd(), "..", "..", "src", "static", "data", "trial_route.json");
-  const appData = path.join(process.cwd(), "data", "trial_route.json");
-  try {
-    await fs.access(legacy);
-    return legacy;
-  } catch {}
-  return appData;
+  const candidates = [
+    path.join(process.cwd(), "data", "trial_route.json"),
+    path.join(process.cwd(), "apps", "web", "data", "trial_route.json"),
+  ];
+  return candidates.find(candidate => existsSync(candidate)) ?? candidates[0]!;
 }
