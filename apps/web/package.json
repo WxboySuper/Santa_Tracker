@@ -17,6 +17,7 @@
     "@santa-tracker/config": "workspace:*",
     "@santa-tracker/contracts": "workspace:*",
     "@santa-tracker/database": "workspace:*",
+    "@santa-tracker/localization": "workspace:*",
     "@santa-tracker/route-engine": "workspace:*",
     "@santa-tracker/ui": "workspace:*",
     "leaflet": "^1.9.4",

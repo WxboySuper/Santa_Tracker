@@ -83,6 +83,9 @@ importers:
       '@santa-tracker/database':
         specifier: workspace:*
         version: link:../../packages/database
+      '@santa-tracker/localization':
+        specifier: workspace:*
+        version: link:../../packages/localization
       '@santa-tracker/route-engine':
         specifier: workspace:*
         version: link:../../packages/route-engine
@@ -202,6 +205,15 @@ importers:
       tsx:
         specifier: ^4.23.12
         version: 4.23.12
+      typescript:
+        specifier: ^5.8.3
+        version: 5.9.3
+      vitest:
+        specifier: ^3.2.4
+        version: 3.2.7(@types/node@22.20.1)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.23.12)
+
+  packages/localization:
+    devDependencies:
       typescript:
         specifier: ^5.8.3
         version: 5.9.3

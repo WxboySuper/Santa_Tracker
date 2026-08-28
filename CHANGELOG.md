@@ -83,6 +83,12 @@ RET_KEY` must be ≥16 chars; set via `PROD_DOTENV` on VPS (`.env` mode 600).
 - After deploy, verify `GET /api/health` and `current` symlink ownership per `DEPLOY.md`.
 - Historical `Route Data/` remains under `archive/` for provenance; new runtime does not read it.
 
+## [Unreleased] - Localization-ready boundaries (#220)
+
+- Added typed localization with English fallback and visible missing-key behavior.
+- Routed public UI messages through the localization layer.
+- Added localized content contracts and tests. See `docs/LOCALIZATION.md`.
+
 ## [PR #368] - 2026-08-27 - feat(migrations): establish postgres migration workflow
 
 - **Database:** Adds the initial Drizzle SQL migration and metadata for the publications, locations, and audit events tables.
