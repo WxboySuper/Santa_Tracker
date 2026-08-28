@@ -7,6 +7,7 @@
   --st-color-midnight: #111827;
   --st-color-frost: #e2e8f0;
   --st-color-focus: #facc15;
+  --st-color-button-foreground: #f8fafc;
   --st-font-family: ui-sans-serif, system-ui, sans-serif;
   --st-space-xs: 0.25rem;
   --st-space-sm: 0.5rem;
@@ -38,6 +39,7 @@
 [data-contrast='high'] {
   --st-color-focus: #fff;
   --st-color-santa-red: #f87171;
+  --st-color-button-foreground: #000;
   --st-color-frost: #fff;
   --st-color-midnight: #000;
 }
@@ -76,7 +78,7 @@
 
 .st-button--primary {
   background: var(--st-color-santa-red);
-  color: var(--st-color-snow);
+  color: var(--st-color-button-foreground);
 }
 
 .st-button--secondary {

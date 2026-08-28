@@ -21,9 +21,9 @@ export const Mobile: Story = {
 };
 export const HighContrast: Story = {
   args: { children: 'Track Santa', variant: 'primary' },
-  parameters: { globals: { contrast: 'high' } },
+  globals: { contrast: 'high' },
 };
 export const ReducedMotion: Story = {
   args: { children: 'Track Santa', variant: 'primary' },
-  parameters: { globals: { motion: 'reduced' } },
+  globals: { motion: 'reduced' },
 };

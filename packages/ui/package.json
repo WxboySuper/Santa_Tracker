@@ -16,7 +16,7 @@
     "build": "tsc --noEmit",
     "storybook": "storybook dev -p 6006",
     "storybook:build": "storybook build --output-dir ../../storybook-static",
-    "storybook:serve": "http-server ../../storybook-static -p 6006 -s",
+    "storybook:serve": "http-server ../../storybook-static -p 6006",
     "storybook:test": "start-test storybook:serve 6006 storybook:run",
     "storybook:run": "test-storybook --url http://127.0.0.1:6006"
   },

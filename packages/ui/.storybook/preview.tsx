@@ -28,7 +28,6 @@ const preview: Preview = {
       const contrast = globals.contrast ?? 'normal';
       const motion = globals.motion ?? 'full';
       const highContrast = contrast === 'high';
-      const reducedMotion = motion === 'reduced';
       return (
         <div
           data-contrast={contrast}
@@ -38,7 +37,6 @@ const preview: Preview = {
             color: '#f8fafc',
             minHeight: '100vh',
             padding: '2rem',
-            transitionDuration: reducedMotion ? '0ms' : undefined,
           }}
         >
           <main aria-label="Story preview">
