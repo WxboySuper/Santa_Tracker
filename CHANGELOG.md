@@ -11,6 +11,8 @@ All notable changes to this project will be documented in this file.
 
 <!-- Continue next-major work here after this stable line is cut. -->
 
+- Cross-hazard outlook geometry copy prototype for related Day 1/2 tornado, wind, and hail outlooks. It is exposed on local and beta builds only; categorical, day 3/4-8, same-hazard, and per-feature variants remain follow-up work for #620.
+
 #### Fixed
 
 - **Auto-categorical recovery:** Reset timed-out geometry workers, preserve the newest probabilistic edit for a follow-up derivation, and prevent repeated retries of unchanged failed geometry.

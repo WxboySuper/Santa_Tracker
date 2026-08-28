@@ -33,6 +33,11 @@ export const isExportMapExposed = (target: BuildTarget = getBuildTarget()): bool
 export const isSaveLoadExposed = (target: BuildTarget = getBuildTarget()): boolean =>
   isFeatureExposedOnTarget('saveLoad', target);
 
+/** Returns whether the prototype cross-hazard geometry copy controls are available. */
+export const isOutlookGeometryCopyExposed = (
+  target: BuildTarget = getBuildTarget(),
+): boolean => target === 'local' || target === 'beta';
+
 /** Returns whether significant-threat labels are exposed on the current build target. */
 export const isSignificantThreatsExposed = (target: BuildTarget = getBuildTarget()): boolean =>
   isFeatureExposedOnTarget('significantThreats', target);

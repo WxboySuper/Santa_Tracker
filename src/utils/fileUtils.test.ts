@@ -1,4 +1,5 @@
 import JSZip from 'jszip';
+import type { Feature } from 'geojson';
 import { serializeForecast, deserializeForecast, readForecastImportFile, validateForecastData } from './fileUtils';
 import { buildWorkflowExportPackage } from './workflowPackage';
 
@@ -36,6 +37,40 @@ describe('fileUtils', () => {
     expect(validateForecastData(ser)).toBe(true);
     const des = deserializeForecast(ser);
     expect(des.days[1].data.categorical instanceof Map).toBe(true);
+  });
+
+  test('serialize/deserialize preserves copied geometry metadata', () => {
+    const copiedFeature: Feature = {
+      type: 'Feature',
+      id: 'geometry-copy:wind-15:tornado:15%:0',
+      geometry: {
+        type: 'Polygon',
+        coordinates: [[[0, 0], [1, 0], [1, 1], [0, 0]]],
+      },
+      properties: {
+        outlookType: 'tornado',
+        probability: '15%',
+        isSignificant: false,
+        derivedFrom: 'geometry-copy:wind',
+      },
+    };
+    const cycle = {
+      days: {
+        1: {
+          day: 1,
+          metadata: { issueDate: 'x', validDate: 'y', issuanceTime: '0600', createdAt: '', lastModified: '', lowProbabilityOutlooks: [] },
+          data: { tornado: new Map([['15%', [copiedFeature]]]) },
+        },
+      },
+      currentDay: 1,
+      cycleDate: '2026-04-21',
+    } as never;
+
+    const serialized = serializeForecast(cycle, { center: [0, 0], zoom: 0 });
+    const restored = deserializeForecast(JSON.parse(JSON.stringify(serialized)));
+    const restoredFeature = restored.days[1]?.data.tornado?.get('15%')?.[0];
+    expect(restoredFeature?.id).toBe(copiedFeature.id);
+    expect(restoredFeature?.properties?.derivedFrom).toBe('geometry-copy:wind');
   });
 
   test('validates and deserializes a workflow package wrapper', () => {

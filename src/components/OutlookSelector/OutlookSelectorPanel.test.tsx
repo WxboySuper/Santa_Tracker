@@ -43,6 +43,14 @@ describe('OutlookSelectorPanel', () => {
         '10%': prob10Handler,
         SIG: probSigHandler,
       },
+      outlookOpacity: 1,
+      handleOutlookOpacityChange: jest.fn(),
+      activeProbabilisticHazard: 'tornado',
+      otherProbabilisticHazards: ['wind', 'hail'],
+      canCopyAllFrom: jest.fn(() => false),
+      canCopyProbabilityFrom: jest.fn(() => false),
+      handleCopyAllGeometryFrom: jest.fn(),
+      handleCopyProbabilityGeometryFrom: jest.fn(),
     } as ReturnType<typeof useOutlookPanelLogic>);
   });
 

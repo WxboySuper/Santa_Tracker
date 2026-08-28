@@ -3,6 +3,7 @@ import {
   getFirstExposedOutlookType,
   isAnyOutlookExposed,
   isExportMapExposed,
+  isOutlookGeometryCopyExposed,
   isOutlookTypeExposed,
   isSaveLoadExposed,
   isSignificantThreatsExposed,
@@ -52,5 +53,14 @@ describe('productExposureSelectors', () => {
     expect(isExportMapExposed()).toBe(false);
     expect(isSaveLoadExposed()).toBe(false);
     expect(isOutlookTypeExposed('tornado')).toBe(true);
+  });
+
+  test.each([
+    ['local', true],
+    ['beta', true],
+    ['staging', false],
+    ['production', false],
+  ] as const)('exposes geometry copy only on local and beta builds', (target, expected) => {
+    expect(isOutlookGeometryCopyExposed(target)).toBe(expected);
   });
 });

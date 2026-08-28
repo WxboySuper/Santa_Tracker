@@ -29,6 +29,14 @@ jest.mock('../OutlookPanel/useOutlookPanelLogic', () => () => ({
     'day4-8': jest.fn(),
   },
   getOutlookTypeEnabled: () => true,
+  outlookOpacity: 1,
+  handleOutlookOpacityChange: jest.fn(),
+  activeProbabilisticHazard: 'tornado',
+  otherProbabilisticHazards: ['wind', 'hail'],
+  canCopyAllFrom: jest.fn(() => false),
+  canCopyProbabilityFrom: jest.fn(() => false),
+  handleCopyAllGeometryFrom: jest.fn(),
+  handleCopyProbabilityGeometryFrom: jest.fn(),
 }));
 jest.mock('../DrawingTools/useExportMap', () => ({
   useExportMap: () => ({
@@ -161,7 +169,7 @@ describe('custom Draw mode exposure', () => {
     renderToolbar('tabbed');
     expect(screen.queryByRole('radiogroup', { name: 'Drawing product' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Saved products/i })).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /wind/i })).toBeInTheDocument();
+    expect(screen.getByTitle('Wind')).toBeInTheDocument();
     expect(screen.queryByText(/not available/i)).not.toBeInTheDocument();
   });
 
@@ -183,7 +191,7 @@ describe('custom Draw mode exposure', () => {
 
     await user.click(screen.getByRole('radio', { name: 'Custom' }));
     expect(toggle).toHaveClass('is-custom-mode');
-    expect(screen.queryByRole('button', { name: /wind/i })).not.toBeInTheDocument();
+    expect(screen.queryByTitle('Wind')).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Saved products/i })).toBeInTheDocument();
     expect(screen.getByTestId('custom-draw-panel')).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Add custom layer' }));
@@ -196,7 +204,7 @@ describe('custom Draw mode exposure', () => {
     await waitFor(() => expect(screen.getByLabelText('Layer title')).toHaveValue('Custom Layer 1'));
 
     await user.click(screen.getByRole('radio', { name: 'Severe' }));
-    expect(screen.getByRole('button', { name: /wind/i })).toBeInTheDocument();
+    expect(screen.getByTitle('Wind')).toBeInTheDocument();
     expect(screen.queryByTestId('custom-draw-panel')).not.toBeInTheDocument();
   });
 });

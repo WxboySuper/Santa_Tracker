@@ -7,6 +7,8 @@ import {
   setOutlookOpacity,
   selectCurrentOutlookOpacity,
   selectCurrentDay,
+  selectCurrentOutlooks,
+  copyOutlookGeometryBetweenHazards,
 } from '../../store/forecastSlice';
 import {
   OutlookType,
@@ -16,15 +18,24 @@ import { getAvailableProbabilities } from './outlookPanelUtils';
 import { getOutlookConstraints } from '../../utils/outlookUtils';
 import {
   isOutlookTypeExposed,
+  isOutlookGeometryCopyExposed,
   isSignificantThreatsExposed,
 } from '../../config/productExposureSelectors';
+import {
+  countCopyableSourceFeatures,
+  countOutlookMapFeatures,
+  isProbabilisticHazardType,
+  PROBABILISTIC_HAZARD_TYPES,
+  type ProbabilisticHazardType,
+} from '../../utils/outlookGeometryCopy';
 
-// @codescene(disable:"Large Method")
+// @codescene(disable:"Large Method", disable:"Complex Method", disable:"Bumpy Road Ahead", disable:"Complex Conditional")
 export function useOutlookPanelLogic() {
   const dispatch = useDispatch();
   const drawingState = useSelector((s: RootState) => s.forecast.drawingState);
   const emergencyMode = useSelector((s: RootState) => s.forecast.emergencyMode);
   const currentDay = useSelector(selectCurrentDay);
+  const outlooks = useSelector(selectCurrentOutlooks);
   const { activeOutlookType, activeProbability, isSignificant } = drawingState;
   const outlookOpacity = useSelector((s: RootState) => selectCurrentOutlookOpacity(s, activeOutlookType));
 
@@ -88,6 +99,87 @@ export function useOutlookPanelLogic() {
     [handleOutlookTypeChange]
   );
 
+  const activeProbabilisticHazard = isProbabilisticHazardType(activeOutlookType)
+    ? activeOutlookType
+    : null;
+
+  const otherProbabilisticHazards = useMemo(
+    () => PROBABILISTIC_HAZARD_TYPES.filter((type) => type !== activeProbabilisticHazard),
+    [activeProbabilisticHazard],
+  );
+
+  const canCopyAllFrom = useCallback((sourceType: ProbabilisticHazardType) => {
+    if (!isOutlookGeometryCopyExposed() || !activeProbabilisticHazard || sourceType === activeProbabilisticHazard) {
+      return false;
+    }
+
+    return countCopyableSourceFeatures({
+      sourceMap: outlooks[sourceType],
+      sourceType,
+      targetType: activeProbabilisticHazard,
+      day: currentDay,
+    }) > 0;
+  }, [activeProbabilisticHazard, currentDay, outlooks]);
+
+  const canCopyProbabilityFrom = useCallback((sourceType: ProbabilisticHazardType) => {
+    if (!isOutlookGeometryCopyExposed() || !activeProbabilisticHazard || sourceType === activeProbabilisticHazard) {
+      return false;
+    }
+
+    return countCopyableSourceFeatures({
+      sourceMap: outlooks[sourceType],
+      sourceType,
+      targetType: activeProbabilisticHazard,
+      day: currentDay,
+      probabilityFilter: activeProbability,
+    }) > 0;
+  }, [activeProbabilisticHazard, activeProbability, currentDay, outlooks]);
+
+  const handleCopyAllGeometryFrom = useCallback((sourceType: ProbabilisticHazardType) => {
+    if (!activeProbabilisticHazard) {
+      return;
+    }
+
+    const targetFeatureCount = countOutlookMapFeatures(outlooks[activeProbabilisticHazard]);
+    if (targetFeatureCount > 0) {
+      const confirmed = window.confirm(
+        `Replace all ${activeProbabilisticHazard} polygons with geometry from ${sourceType}? Existing ${activeProbabilisticHazard} shapes will be removed.`,
+      );
+      if (!confirmed) {
+        return;
+      }
+    }
+
+    dispatch(copyOutlookGeometryBetweenHazards({
+      sourceType,
+      targetType: activeProbabilisticHazard,
+      mode: 'replace',
+    }));
+  }, [activeProbabilisticHazard, dispatch, outlooks]);
+
+  const handleCopyProbabilityGeometryFrom = useCallback((sourceType: ProbabilisticHazardType) => {
+    if (!activeProbabilisticHazard) {
+      return;
+    }
+
+    const targetFeatureCount = outlooks[activeProbabilisticHazard]?.get(activeProbability)?.length ?? 0;
+    if (targetFeatureCount > 0) {
+      const confirmed = window.confirm(
+        `Replace ${activeProbabilisticHazard} ${activeProbability} polygons with geometry from ${sourceType}? Existing ${activeProbabilisticHazard} shapes at this level will be removed.`,
+      );
+      if (!confirmed) {
+        return;
+      }
+    }
+
+    dispatch(copyOutlookGeometryBetweenHazards({
+      sourceType,
+      targetType: activeProbabilisticHazard,
+      mode: 'replace',
+      probabilityFilter: activeProbability,
+    }));
+  }, [activeProbabilisticHazard, activeProbability, dispatch, outlooks]);
+
   return {
     emergencyMode,
     activeOutlookType,
@@ -103,6 +195,12 @@ export function useOutlookPanelLogic() {
     probabilityHandlers,
     outlookOpacity,
     handleOutlookOpacityChange,
+    activeProbabilisticHazard,
+    otherProbabilisticHazards,
+    canCopyAllFrom,
+    canCopyProbabilityFrom,
+    handleCopyAllGeometryFrom,
+    handleCopyProbabilityGeometryFrom,
   } as const;
 }
 
