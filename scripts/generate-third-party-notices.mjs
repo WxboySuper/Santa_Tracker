@@ -20,6 +20,18 @@ const PYTHON_LICENSE_MAP = {
   xarray: 'Apache-2.0',
 };
 
+/**
+ * Curated licenses for direct server dependencies whose published manifests
+ * do not expose a usable license field to the local npm installation.
+ */
+const SERVER_NPM_LICENSE_MAP = {
+  '@sentry/node': 'MIT',
+  express: 'MIT',
+  'express-rate-limit': 'MIT',
+  'firebase-admin': 'Apache-2.0',
+  stripe: 'MIT',
+};
+
 /** Reads and parses a package.json manifest, returning null when absent or invalid. */
 const readManifest = (pkgPath) => {
   try {
@@ -38,6 +50,7 @@ const normalizeLicenseField = (license) => {
 
 /** Reads the license declared by one installed dependency from its own manifest. */
 const readInstalledLicense = (name, scope = 'root') => {
+  if (scope === 'server' && SERVER_NPM_LICENSE_MAP[name]) return SERVER_NPM_LICENSE_MAP[name];
   const basePath = scope === 'server' ? 'server/node_modules' : 'node_modules';
   try {
     const pkg = readManifest(`${basePath}/${name}/package.json`);

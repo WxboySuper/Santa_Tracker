@@ -4,11 +4,11 @@ GFC is built on open-source software. This document lists the packages used
 by the shipped application, their licenses, and the policy category applied
 to each.
 
-- **@babel/core** ^7.29.7 (root (pnpm)) — MIT — allowed
-- **@babel/parser** ^7.29.7 (root (pnpm)) — MIT — allowed
-- **@babel/preset-env** ^7.29.7 (root (pnpm)) — MIT — allowed
-- **@babel/preset-react** ^7.29.7 (root (pnpm)) — MIT — allowed
-- **@babel/preset-typescript** ^7.29.7 (root (pnpm)) — MIT — allowed
+- **@babel/core** ^8.0.1 (root (pnpm)) — MIT — allowed
+- **@babel/parser** ^8.0.1 (root (pnpm)) — MIT — allowed
+- **@babel/preset-env** ^8.0.2 (root (pnpm)) — MIT — allowed
+- **@babel/preset-react** ^8.0.1 (root (pnpm)) — MIT — allowed
+- **@babel/preset-typescript** ^8.0.1 (root (pnpm)) — MIT — allowed
 - **@eslint/js** ^9.39.5 (root (pnpm)) — MIT — allowed
 - **@firebase/rules-unit-testing** ^5.0.1 (root (pnpm)) — Apache-2.0 — allowed
 - **@playwright/test** ^1.62.1 (root (pnpm)) — Apache-2.0 — allowed
@@ -37,7 +37,7 @@ to each.
 - **@typescript/native** npm:typescript@^7.0.2 (root (pnpm)) — Apache-2.0 — allowed
 - **@vitejs/plugin-react** ^6.0.5 (root (pnpm)) — MIT — allowed
 - **autoprefixer** ^10.5.4 (root (pnpm)) — MIT — allowed
-- **babel-jest** ^30.2.0 (root (pnpm)) — MIT — allowed
+- **babel-jest** ^30.5.0 (root (pnpm)) — MIT — allowed
 - **babel-plugin-istanbul** ^8.0.0 (root (pnpm)) — BSD-3-Clause — allowed
 - **class-variance-authority** ^0.7.1 (root (pnpm)) — Apache-2.0 — allowed
 - **clsx** ^2.1.1 (root (pnpm)) — MIT — allowed
@@ -55,8 +55,8 @@ to each.
 - **html2canvas** ^1.4.1 (root (pnpm)) — MIT — allowed
 - **identity-obj-proxy** ^3.0.0 (root (pnpm)) — MIT — allowed
 - **immer** ^11.1.16 (root (pnpm)) — MIT — allowed
-- **jest** ^30.2.0 (root (pnpm)) — MIT — allowed
-- **jest-environment-jsdom** ^30.2.0 (root (pnpm)) — MIT — allowed
+- **jest** ^30.5.0 (root (pnpm)) — MIT — allowed
+- **jest-environment-jsdom** ^30.5.0 (root (pnpm)) — MIT — allowed
 - **jszip** ^3.10.1 (root (pnpm)) — (MIT OR GPL-3.0-or-later) — allowed
 - **leaflet** ^1.9.4 (root (pnpm)) — BSD-2-Clause — allowed
 - **lucide-react** ^1.30.0 (root (pnpm)) — ISC — allowed
