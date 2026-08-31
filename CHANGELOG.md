@@ -6,6 +6,35 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 ### Next major / beta
+#### Dependencies
+<!-- dependabot-automation -->
+
+- **@sentry/react:** ^10.69.0 → ^10.72.0
+- **@testing-library/jest-dom:** ^7.0.0 → ^7.0.1
+- **@testing-library/react:** ^16.2.0 → ^16.3.3
+- **@testing-library/user-event:** ^14.6.3 → ^14.6.6
+- **@types/node:** ^26.1.2 → ^26.4.0
+- **@types/react-dom:** 19.2.4 → 19.2.5
+- **firebase:** ^12.17.1 → ^12.18.0
+- **immer:** ^11.1.16 → ^11.1.18
+- **lucide-react:** ^1.30.0 → ^1.35.0
+- **ol-mapbox-style:** ^13.4.2 → ^13.4.3
+- **react-router:** ^8.3.0 → ^8.3.1
+- **rollup:** >=4.62.4 → >=4.63.1
+- **uuid:** ^14.0.1 → ^14.0.2
+- **web-vitals:** ^6.1.0 → ^6.2.1
+- **@firebase/rules-unit-testing:** ^5.0.1 → ^5.0.2
+- **@vitejs/plugin-react:** ^6.0.5 → ^6.1.1
+- **babel-jest:** ^30.2.0 → ^30.5.0
+- **esbuild:** ^0.28.1 → ^0.28.2
+- **eslint-plugin-jest:** ^29.16.0 → ^29.16.5
+- **firebase-tools:** 15.26.0 → 15.28.2
+- **globals:** ^17.9.0 → ^17.11.0
+- **jest:** ^30.2.0 → ^30.5.0
+- **jest-environment-jsdom:** ^30.2.0 → ^30.5.0
+- **typescript-eslint:** ^8.66.0 → ^8.68.0
+- **vite:** ^8.2.1 → ^8.2.2
+
 
 #### Added
 
@@ -21,7 +50,6 @@ All notable changes to this project will be documented in this file.
 
 - **Auto-categorical recovery:** Reset timed-out geometry workers, preserve the newest probabilistic edit for a follow-up derivation, and prevent repeated retries of unchanged failed geometry.
 - Precision polygon editing now scopes vertex changes to the selected outlook tier and records multi-vertex edits as one undo step.
-
 ## v1.7.0
 
 #### Dependencies
