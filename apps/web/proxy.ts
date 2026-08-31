@@ -13,13 +13,13 @@ async function verifyToken(token: string): Promise<boolean> {
   }
 }
 
-export async function middleware(req: NextRequest) {
+export async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
   // Public APIs that are gated by ADVENT_ENABLED should be handled in route handlers (return 404)
-  // Protect admin pages only — APIs do Bearer/cookie verification themselves via requireAdminAuth
+  // Protect admin pages only. APIs do Bearer/cookie verification themselves via requireAdminAuth
   // so we avoid double coverage and inconsistent error shapes.
-  const isAdminPage = pathname.startsWith("/admin/") ;
+  const isAdminPage = pathname.startsWith("/admin/");
   if (!isAdminPage) return NextResponse.next();
 
   const token = req.cookies.get("admin_token")?.value ?? req.headers.get("authorization")?.replace("Bearer ", "");
