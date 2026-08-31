@@ -582,8 +582,11 @@ def validate_locations(
             errors.extend(sub_errors)
             warnings.extend(sub_warnings)
 
-        except (TypeError, ValueError, KeyError, AttributeError) as exc:
-            errors.append(f"error processing location at index {idx}: {exc}")
+        except (TypeError, ValueError, KeyError, AttributeError):
+            # Keep parser details in the server logs. Validation results are
+            # returned to callers, so exception text must not cross that boundary.
+            logger.exception("Error processing location at index %d", idx)
+            errors.append(f"Invalid location data at index {idx}")
 
     return {
         "valid": len(errors) == 0,
