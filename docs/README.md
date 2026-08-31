@@ -19,6 +19,7 @@ repeatable workflows.
 - [v1.7 exposure matrix](./operations/v1.7-exposure-matrix.md) - cross-feature target exposure and release evidence contract.
 - [v1.7 acceptance matrix](./operations/v1.7-acceptance-matrix.md) - desktop, mobile, account-state, and disabled-feature acceptance evidence.
 - [Feature exposure testing](./operations/feature-exposure-testing.md) - disabled-side-effect fixture and coverage contract.
+- [Forecast workspace boundaries](./architecture/forecast-workspace-boundaries.md) - v1.8 route, state, persistence, and exposure contract.
 - [v1.7 support and privacy operations](./operations/v1.7-support-and-privacy.md) - release support triage, limitations, and privacy-request handling.
 - [v1.7 release-candidate runbook](./operations/v1.7-release-candidate.md) - regression, beta, staging, stable promotion, and rollback gates.
 - [Auto-TSTM operations](./operations/auto-tstm-operations.md) - cached Auto-TSTM API behavior, cache health, and operational limits.

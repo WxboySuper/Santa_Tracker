@@ -30,7 +30,7 @@ test.describe('Discussion workflow', () => {
     const startWorkflow = page.getByRole('button', { name: 'Start Workflow', exact: true });
     await expect(startWorkflow).toBeVisible();
     await startWorkflow.click();
-    await expect(page).toHaveURL('/forecast');
+    await expect(page).toHaveURL('/forecast/severe');
 
     await page.getByRole('link', { name: 'Discussion' }).click();
     await expect(page).toHaveURL('/discussion');

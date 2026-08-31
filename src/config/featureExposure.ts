@@ -166,6 +166,25 @@ export const FEATURE_EXPOSURE_REGISTRY = {
     serverBacked: false,
     trackingIssue: 432,
   },
+  mesoscaleWorkspace: {
+    exposure: { ...ALL_TARGETS_OFF },
+    owner: 'WxboySuper',
+    addedDate: '2026-08-28',
+    temporary: true,
+    removalCondition:
+      'Remove after the Mesoscale Forecast workspace and provider contract complete their staged rollout (#919).',
+    serverBacked: false,
+    trackingIssue: 919,
+  },
+  winterWorkspace: {
+    exposure: { ...ALL_TARGETS_OFF },
+    owner: 'WxboySuper',
+    addedDate: '2026-08-28',
+    temporary: true,
+    removalCondition: 'Keep disabled until a future Winter workspace release is approved.',
+    serverBacked: false,
+    trackingIssue: 913,
+  },
   collaborationRoom: {
     exposure: { ...ALL_TARGETS_OFF },
     owner: 'WxboySuper',

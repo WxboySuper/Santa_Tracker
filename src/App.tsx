@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback, lazy, Suspense } from 'react';
 import { Provider, useDispatch } from 'react-redux';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router';
 import { store } from './store';
 import { setActiveOutlookType, setEmergencyMode } from './store/forecastSlice';
 import useAutoCategorical from './hooks/useAutoCategorical';
@@ -36,6 +36,7 @@ import PrivacyPolicyModal, { hasAcceptedPrivacyPolicy } from './components/Priva
 import { initProductAnalytics } from './lib/productAnalytics';
 import { buildFeatureGatedRoutes } from './routing/buildFeatureGatedRoutes';
 import { isFeatureExposureDiagnosticsEnabled } from './config/featureExposureDiagnostics';
+import { getDefaultForecastWorkspacePath } from './routing/forecastWorkspaceRoutes';
 
 // Heavy feature routes are lazy-loaded so the application shell stays small and
 // independent of the map/editor and secondary workflow chunks.
@@ -60,6 +61,17 @@ const RouteFallback = () => (
     <span className="text-sm text-muted-foreground">Loading…</span>
   </div>
 );
+
+/** Redirects the legacy Forecast entry point without dropping deep-link options. */
+const ForecastLegacyRedirect = () => {
+  const location = useLocation();
+  return (
+    <Navigate
+      to={{ pathname: getDefaultForecastWorkspacePath(), search: location.search, hash: location.hash }}
+      replace
+    />
+  );
+};
 
 // Launch gate: set VITE_COMING_SOON=true in the public build to enable pre-launch mode.
 // The app auto-unlocks at the launch date/time regardless of the env var.
@@ -207,7 +219,10 @@ const AppRoutes: React.FC<AppRoutesProps> = ({ showComingSoon }) => {
         <Route path="pricing" element={<PricingPage />} />
         <Route path="admin" element={<Suspense fallback={<RouteFallback />}><AdminPage /></Suspense>} />
         <Route path="cloud" element={<Suspense fallback={<RouteFallback />}><CloudLibraryPage /></Suspense>} />
-        <Route path="forecast" element={<Suspense fallback={<RouteFallback />}><ForecastPage /></Suspense>} />
+        <Route path="forecast">
+          <Route index element={<ForecastLegacyRedirect />} />
+          <Route path="severe" element={<Suspense fallback={<RouteFallback />}><ForecastPage /></Suspense>} />
+        </Route>
         <Route path="discussion" element={<Suspense fallback={<RouteFallback />}><DiscussionPage /></Suspense>} />
         <Route path="verification" element={<Suspense fallback={<RouteFallback />}><VerificationPage /></Suspense>} />
         <Route path="monitor" element={<Suspense fallback={<RouteFallback />}><MonitorPage /></Suspense>} />
