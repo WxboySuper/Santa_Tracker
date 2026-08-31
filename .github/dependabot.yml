@@ -1,23 +1,32 @@
 # Dependabot version updates target main, the next-major integration line.
-# https://docs.github.com/en/code-security/tutorials/secure-your-dependencies/configuring-multi-ecosystem-updates
+# Minor and patch updates share one PR. Major updates stay individual so
+# migrations can be handled when there is time to review them.
 
 version: 2
-
-multi-ecosystem-groups:
-  npm-main:
-    target-branch: main
-    schedule:
-      interval: weekly
 
 updates:
   - package-ecosystem: npm
     directory: /
-    patterns:
-      - "*"
-    multi-ecosystem-group: npm-main
+    target-branch: main
+    schedule:
+      interval: weekly
+    groups:
+      app-non-major:
+        patterns:
+          - "*"
+        update-types:
+          - minor
+          - patch
 
   - package-ecosystem: npm
     directory: /server
-    patterns:
-      - "*"
-    multi-ecosystem-group: npm-main
+    target-branch: main
+    schedule:
+      interval: weekly
+    groups:
+      server-non-major:
+        patterns:
+          - "*"
+        update-types:
+          - minor
+          - patch
