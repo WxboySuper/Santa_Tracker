@@ -16,6 +16,6 @@ pnpm --filter @santa-tracker/ui exec playwright install --with-deps chromium
 pnpm --filter @santa-tracker/ui storybook:test
 ```
 
-The test runner visits every story, fails on accessibility violations, and captures a PNG for each story under `storybook-screenshots/`. Generated output is not committed.
+The Vitest addon runs every story in Chromium and fails on accessibility violations. The follow-up Playwright check captures a PNG for each story under `storybook-screenshots/`. Generated output is not committed.
 
-Storybook and its browser-test dependencies are kept in the workspace lockfile so CI can install the same versions with one frozen-lockfile install. The lockfile grows because Storybook brings its own manager, Vite, axe, and Playwright dependencies.
+Storybook and its browser-test dependencies are kept in the workspace lockfile so CI can install the same versions with one frozen-lockfile install. The Vitest addon uses the Vite browser mode, and the screenshot check uses Playwright.

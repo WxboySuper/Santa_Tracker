@@ -17,27 +17,27 @@
     "storybook": "storybook dev -p 6006",
     "storybook:build": "storybook build --output-dir ../../storybook-static",
     "storybook:serve": "http-server ../../storybook-static -p 6006",
-    "storybook:test": "start-test storybook:serve 6006 storybook:run",
-    "storybook:run": "test-storybook --url http://127.0.0.1:6006"
+    "storybook:test": "vitest --config vitest.config.ts --project=storybook && node scripts/storybook-screenshots.mjs",
+    "storybook:run": "vitest --config vitest.config.ts --project=storybook",
+    "storybook:screenshots": "node scripts/storybook-screenshots.mjs"
   },
   "dependencies": {
     "react": "^19.1.1",
     "react-dom": "^19.1.1"
   },
   "devDependencies": {
-    "@storybook/addon-a11y": "8.6.14",
-    "@storybook/addon-essentials": "8.6.14",
-    "@storybook/react": "8.6.14",
-    "@storybook/react-vite": "8.6.14",
-    "@storybook/test-runner": "0.22.0",
+    "@storybook/addon-a11y": "10.5.10",
+    "@storybook/react": "10.5.10",
+    "@storybook/react-vite": "10.5.10",
+    "@storybook/addon-vitest": "10.5.10",
     "@types/react": "^19.1.9",
     "@types/react-dom": "^19.2.5",
     "axe-playwright": "2.2.2",
+    "@vitest/browser-playwright": "4.1.11",
     "http-server": "14.1.1",
     "playwright": "1.62.1",
-    "start-server-and-test": "2.0.5",
-    "storybook": "8.6.17",
+    "storybook": "10.5.10",
     "typescript": "^5.8.3",
-    "vitest": "^3.2.4"
+    "vitest": "4.1.11"
   }
 }
