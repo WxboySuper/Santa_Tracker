@@ -10,6 +10,9 @@ updates:
       python-packages:
         patterns:
           - "*"
+        update-types:
+          - "minor"
+          - "patch"
   - package-ecosystem: "npm"
     directory: "/"
     schedule:
@@ -20,9 +23,19 @@ updates:
       npm-workspace:
         patterns:
           - "*"
+        update-types:
+          - "minor"
+          - "patch"
   - package-ecosystem: "npm"
     directory: "/tools/route-editor"
     schedule:
       interval: "weekly"
     reviewers:
       - "WxboySuper"
+    groups:
+      route-editor-packages:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
