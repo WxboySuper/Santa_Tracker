@@ -4,11 +4,11 @@ GFC is built on open-source software. This document lists the packages used
 by the shipped application, their licenses, and the policy category applied
 to each.
 
-- **@babel/core** ^7.29.7 (root (pnpm)) — MIT — allowed
-- **@babel/parser** ^7.29.7 (root (pnpm)) — MIT — allowed
-- **@babel/preset-env** ^7.29.7 (root (pnpm)) — MIT — allowed
-- **@babel/preset-react** ^7.29.7 (root (pnpm)) — MIT — allowed
-- **@babel/preset-typescript** ^7.29.7 (root (pnpm)) — MIT — allowed
+- **@babel/core** ^8.0.1 (root (pnpm)) — MIT — allowed
+- **@babel/parser** ^8.0.1 (root (pnpm)) — MIT — allowed
+- **@babel/preset-env** ^8.0.2 (root (pnpm)) — MIT — allowed
+- **@babel/preset-react** ^8.0.1 (root (pnpm)) — MIT — allowed
+- **@babel/preset-typescript** ^8.0.1 (root (pnpm)) — MIT — allowed
 - **@eslint/js** ^9.39.5 (root (pnpm)) — MIT — allowed
 - **@firebase/rules-unit-testing** ^5.0.2 (root (pnpm)) — Apache-2.0 — allowed
 - **@playwright/test** ^1.62.1 (root (pnpm)) — Apache-2.0 — allowed
@@ -76,11 +76,11 @@ to each.
 - **uuid** ^14.0.2 (root (pnpm)) — MIT — allowed
 - **vite** ^8.2.2 (root (pnpm)) — MIT — allowed
 - **web-vitals** ^6.2.1 (root (pnpm)) — Apache-2.0 — allowed
-- **@sentry/node** ^10.69.0 (server (npm)) — MIT — allowed
+- **@sentry/node** ^10.72.0 (server (npm)) — MIT — allowed
 - **express** ^5.2.1 (server (npm)) — MIT — allowed
 - **express-rate-limit** ^8.6.2 (server (npm)) — MIT — allowed
-- **firebase-admin** ^14.2.0 (server (npm)) — Apache-2.0 — allowed
-- **stripe** ^22.4.0 (server (npm)) — MIT — allowed
+- **firebase-admin** ^14.3.0 (server (npm)) — Apache-2.0 — allowed
+- **stripe** ^22.6.0 (server (npm)) — MIT — allowed
 - **cfgrib** 0.9.15.1 (server (python)) — Apache-2.0 — allowed
 - **numpy** 2.4.1 (server (python)) — BSD-3-Clause — allowed
 - **scikit-image** 0.26.0 (server (python)) — BSD-3-Clause — allowed

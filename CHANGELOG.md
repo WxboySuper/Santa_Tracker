@@ -34,6 +34,9 @@ All notable changes to this project will be documented in this file.
 - **jest-environment-jsdom:** ^30.2.0 → ^30.5.0
 - **typescript-eslint:** ^8.66.0 → ^8.68.0
 - **vite:** ^8.2.1 → ^8.2.2
+- **@sentry/node:** ^10.69.0 → ^10.72.0 (`server`)
+- **firebase-admin:** ^14.2.0 → ^14.3.0 (`server`)
+- **stripe:** ^22.4.0 → ^22.6.0 (`server`)
 
 
 #### Added
@@ -48,6 +51,7 @@ All notable changes to this project will be documented in this file.
 
 #### Fixed
 
+- **Map reliability:** Reject malformed or empty forecast geometry before OpenLayers Snap indexes it, preserving the last valid rendered feature.
 - **Auto-categorical recovery:** Reset timed-out geometry workers, preserve the newest probabilistic edit for a follow-up derivation, and prevent repeated retries of unchanged failed geometry.
 - Precision polygon editing now scopes vertex changes to the selected outlook tier and records multi-vertex edits as one undo step.
 ## v1.7.0

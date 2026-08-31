@@ -51,7 +51,7 @@ test.describe('Local reusable custom products', () => {
     await fireWeatherCard.scrollIntoViewIfNeeded();
     await fireWeatherCard.getByRole('button', { name: 'Use in Forecast' }).click();
     await expect(savedProductsDialog).not.toBeVisible();
-    await expect(page).toHaveURL(/\/forecast(?:\?localTestAccount=premium)?$/);
+    await expect(page).toHaveURL(/\/forecast\/severe(?:\?localTestAccount=premium)?$/);
     await expect(page.getByLabel('Layer title')).toHaveValue('Fire weather');
     await expect(page.getByLabel('Category label')).toHaveValue('Critical');
     await expect(page.getByLabel('Category color')).toContainText('#F97316');

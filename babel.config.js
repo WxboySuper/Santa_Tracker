@@ -1,8 +1,13 @@
 module.exports = {
   presets: [
-    ['@babel/preset-env', { targets: { node: 'current' } }],
-    ['@babel/preset-react', { runtime: 'automatic' }],
-    '@babel/preset-typescript',
+    ['@babel/preset-env', { targets: { node: 'current' }, modules: 'commonjs' }],
+    ['@babel/preset-typescript', { onlyRemoveTypeImports: false }],
+  ],
+  overrides: [
+    {
+      test: /\.(tsx|jsx)$/,
+      presets: [['@babel/preset-react', { runtime: 'automatic' }]],
+    },
   ],
   plugins: [
     // react-router v8 is ESM-only and uses `import.meta` (e.g. `import.meta.hot`

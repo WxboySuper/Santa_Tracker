@@ -48,6 +48,7 @@ const createStats = (): FeatureSyncStats => ({
   updated: 0,
   removed: 0,
   reused: 0,
+  skipped: 0,
 });
 
 const normalizeReadResult = (
@@ -73,12 +74,13 @@ describe('OpenLayers feature synchronization performance', () => {
     if (process.env.GFC_PERF !== '1') return;
 
     const format = new GeoJSON();
+    // Keep benchmark coordinates within valid Web Mercator latitude bounds.
     const initialFeatures = Array.from(
       { length: 256 },
-      (_, index) => createFeature(`feature-${index}`, index),
+      (_, index) => createFeature(`feature-${index}`, index / 10),
     );
     const scenarios = Array.from({ length: 100 }, (_, index) => {
-      const changedFeature = createFeature('feature-128', 1000 + index);
+      const changedFeature = createFeature('feature-128', 50 + index / 10);
       return initialFeatures.map((feature) =>
         feature.id === changedFeature.id
           ? createDescriptor(changedFeature, format)

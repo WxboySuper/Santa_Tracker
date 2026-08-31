@@ -13,7 +13,7 @@ test.describe('Navigation', () => {
   test('can navigate from homepage to forecast page', async ({ page }) => {
     await page.goto('/');
     await page.getByRole('button', { name: /Start a new forecast/i }).click();
-    await expect(page).toHaveURL('/forecast');
+    await expect(page).toHaveURL('/forecast/severe');
   });
 
   test('can navigate from homepage to verification page', async ({ page }) => {
@@ -21,6 +21,11 @@ test.describe('Navigation', () => {
     const verifyBtn = page.getByRole('link', { name: /Verification/i }).first();
     await verifyBtn.click();
     await expect(page).toHaveURL('/verification');
+  });
+
+  test('preserves Forecast query parameters through the legacy redirect', async ({ page }) => {
+    await page.goto('/forecast?forecastUi=workspace_dock');
+    await expect(page).toHaveURL('/forecast/severe?forecastUi=workspace_dock');
   });
 
   test('navbar links navigate correctly', async ({ page }) => {
@@ -38,7 +43,7 @@ test.describe('Navigation', () => {
 
     await editor.fill('Day 1 draft');
     await page.getByRole('link', { name: /^Forecast$/i }).click();
-    await expect(page).toHaveURL(/\/forecast$/);
+    await expect(page).toHaveURL(/\/forecast\/severe$/);
     await page.getByRole('tab', { name: /^Days$/i }).click();
     await page.getByRole('button', { name: '2', exact: true }).click();
 
@@ -48,7 +53,7 @@ test.describe('Navigation', () => {
     await editor.fill('Day 2 draft');
 
     await page.getByRole('link', { name: /^Forecast$/i }).click();
-    await expect(page).toHaveURL(/\/forecast$/);
+    await expect(page).toHaveURL(/\/forecast\/severe$/);
     await page.getByRole('tab', { name: /^Days$/i }).click();
     await page.getByRole('button', { name: '1', exact: true }).click();
     await page.getByRole('link', { name: /^Discussion$/i }).click();
@@ -56,7 +61,7 @@ test.describe('Navigation', () => {
     await expect(editor).toHaveValue('Day 1 draft');
 
     await page.getByRole('link', { name: /^Forecast$/i }).click();
-    await expect(page).toHaveURL(/\/forecast$/);
+    await expect(page).toHaveURL(/\/forecast\/severe$/);
     await page.getByRole('tab', { name: /^Days$/i }).click();
     await page.getByRole('button', { name: '2', exact: true }).click();
     await page.getByRole('link', { name: /^Discussion$/i }).click();

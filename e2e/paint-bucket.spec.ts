@@ -11,7 +11,7 @@ const startForecast = async (page: Page): Promise<void> => {
   await page.goto('/?localTestAccount=premium', { waitUntil: 'domcontentloaded' });
   await page.getByRole('button', { name: 'Day 1', exact: true }).click();
   await page.getByRole('button', { name: 'Start Workflow', exact: true }).click();
-  await expect(page).toHaveURL(/\/forecast$/, { timeout: 15000 });
+  await expect(page).toHaveURL(/\/forecast\/severe$/, { timeout: 15000 });
   await expect(page.locator('.map-container')).toBeVisible({ timeout: 15000 });
 };
 

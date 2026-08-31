@@ -30,7 +30,7 @@ const startWorkflow = async (page: Page, scope: string, expectedLabel: string): 
   await page.getByRole('button', { name: 'Start Workflow', exact: true }).click();
   // Route and content assertions use explicit generous timeouts because the
   // forecast editor mounts a heavy OpenLayers map and can be slow under CI load.
-  await expect(page).toHaveURL(/\/forecast$/, { timeout: 15000 });
+  await expect(page).toHaveURL(/\/forecast\/severe$/, { timeout: 15000 });
   await homeNav(page).click();
   await expect(page.locator('main').last()).toContainText(expectedLabel, { timeout: 15000 });
   await forecastNav(page).click();
