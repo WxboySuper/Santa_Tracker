@@ -21,7 +21,7 @@
     "@santa-tracker/route-engine": "workspace:*",
     "@santa-tracker/ui": "workspace:*",
     "leaflet": "^1.9.4",
-    "next": "^15.4.7",
+    "next": "^16.3.3",
     "jose": "^6.1.0",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
