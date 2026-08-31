@@ -12,7 +12,7 @@
   "scripts": {
     "typecheck": "tsc --noEmit",
     "lint": "eslint src --max-warnings=0",
-    "test": "vitest run",
+    "test": "vitest run --config vitest.config.ts --project=unit",
     "build": "tsc --noEmit",
     "storybook": "storybook dev -p 6006",
     "storybook:build": "storybook build --output-dir ../../storybook-static",
@@ -32,7 +32,6 @@
     "@storybook/addon-vitest": "10.5.10",
     "@types/react": "^19.1.9",
     "@types/react-dom": "^19.2.5",
-    "axe-playwright": "2.2.2",
     "@vitest/browser-playwright": "4.1.11",
     "http-server": "14.1.1",
     "playwright": "1.62.1",
