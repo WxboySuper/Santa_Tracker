@@ -67,6 +67,7 @@ const createStats = (): FeatureSyncStats => ({
   updated: 0,
   removed: 0,
   reused: 0,
+  skipped: 0,
 });
 
 describe("reconcileFeatureSource", () => {
@@ -85,7 +86,7 @@ describe("reconcileFeatureSource", () => {
 
     const firstOlFeature = source.getFeatures()[0];
     const secondOlFeature = source.getFeatures()[1];
-    expect(initialStats).toEqual({ parsed: 2, added: 2, updated: 0, removed: 0, reused: 0 });
+    expect(initialStats).toEqual({ parsed: 2, added: 2, updated: 0, removed: 0, reused: 0, skipped: 0 });
 
     const changedFirst = createFeature("first", 10);
     const updateStats = createStats();
@@ -95,7 +96,7 @@ describe("reconcileFeatureSource", () => {
       updateStats,
     );
 
-    expect(updateStats).toEqual({ parsed: 1, added: 0, updated: 1, removed: 0, reused: 1 });
+    expect(updateStats).toEqual({ parsed: 1, added: 0, updated: 1, removed: 0, reused: 1, skipped: 0 });
     expect(source.getFeatureById("first")).toBe(firstOlFeature);
     expect(source.getFeatureById("second")).toBe(secondOlFeature);
     expect(firstOlFeature?.getGeometry()?.getExtent()[0]).toBeGreaterThan(0);
@@ -104,10 +105,11 @@ describe("reconcileFeatureSource", () => {
   test("only parses one feature during a representative large-forecast edit", () => {
     const source = new VectorSource();
     const format = new GeoJSON();
-    const features = Array.from({ length: 256 }, (_, index) => createFeature(`feature-${index}`, index));
+    // Keep benchmark coordinates within valid Web Mercator latitude bounds.
+    const features = Array.from({ length: 256 }, (_, index) => createFeature(`feature-${index}`, index / 10));
     reconcileFeatureSource(source, features.map((feature) => createDescriptor(feature, format)));
 
-    const changedFeature = createFeature("feature-128", 1000);
+    const changedFeature = createFeature("feature-128", 50);
     const stats = createStats();
     reconcileFeatureSource(
       source,
@@ -134,7 +136,7 @@ describe("reconcileFeatureSource", () => {
     const stats = createStats();
     reconcileFeatureSource(source, [createDescriptor(second, format)], stats);
 
-    expect(stats).toEqual({ parsed: 1, added: 1, updated: 0, removed: 1, reused: 0 });
+    expect(stats).toEqual({ parsed: 1, added: 1, updated: 0, removed: 1, reused: 0, skipped: 0 });
     expect(source.getFeatures()).toHaveLength(1);
     expect(source.getFeatures()[0]?.get("featureId")).toBe("second");
   });
@@ -147,7 +149,7 @@ describe("reconcileFeatureSource", () => {
 
     reconcileFeatureSource(source, [], stats);
 
-    expect(stats).toEqual({ parsed: 0, added: 0, updated: 0, removed: 1, reused: 0 });
+    expect(stats).toEqual({ parsed: 0, added: 0, updated: 0, removed: 1, reused: 0, skipped: 0 });
     expect(source.getFeatures()).toEqual([]);
   });
 
@@ -196,7 +198,7 @@ describe("reconcileFeatureSource", () => {
       createDescriptor(first, format),
     ], stats);
 
-    expect(stats).toEqual({ parsed: 0, added: 0, updated: 0, removed: 0, reused: 2 });
+    expect(stats).toEqual({ parsed: 0, added: 0, updated: 0, removed: 0, reused: 2, skipped: 0 });
     expect(source.getFeatureById("first")).toBe(firstOlFeature);
     expect(source.getFeatureById("second")).toBe(secondOlFeature);
   });
@@ -215,7 +217,7 @@ describe("reconcileFeatureSource", () => {
       createMultiPartDescriptor(createFeature("multi", 10), format, [10]),
     ], stats);
 
-    expect(stats).toEqual({ parsed: 1, added: 0, updated: 1, removed: 1, reused: 0 });
+    expect(stats).toEqual({ parsed: 1, added: 0, updated: 1, removed: 1, reused: 0, skipped: 0 });
     expect(source.getFeatures()).toHaveLength(1);
     expect(source.getFeatures()[0]).toBe(initialParts[0]);
     expect(source.getFeatures()[0]?.getGeometry()?.getExtent()[0]).toBeGreaterThan(0);
@@ -288,5 +290,80 @@ describe("reconcileFeatureSource", () => {
     expect(source.getFeatures()).toHaveLength(1);
     expect(source.getFeatures()[0]).toBe(olFeature);
     expect(source.getFeatures()[0]?.get("probability")).toBe("10%");
+  });
+
+  test("skips empty geometry before OpenLayers Snap can index it", () => {
+    const source = new VectorSource();
+    const format = new GeoJSON();
+    const feature = createFeature("empty", 0);
+    feature.geometry = { type: "Polygon", coordinates: [] };
+    const stats = createStats();
+
+    reconcileFeatureSource(source, [createDescriptor(feature, format)], stats);
+
+    expect(source.getFeatures()).toHaveLength(0);
+    expect(stats).toEqual({ parsed: 0, added: 0, updated: 0, removed: 0, reused: 0, skipped: 1 });
+  });
+
+  test("skips a polygon with an unusable ring before OpenLayers Snap can index it", () => {
+    const source = new VectorSource();
+    const format = new GeoJSON();
+    const feature = createFeature("short-ring", 0);
+    feature.geometry = {
+      type: "Polygon",
+      coordinates: [[[0, 0], [1, 0], [0, 0]]],
+    };
+    const stats = createStats();
+
+    reconcileFeatureSource(source, [createDescriptor(feature, format)], stats);
+
+    expect(source.getFeatures()).toHaveLength(0);
+    expect(stats.skipped).toBe(1);
+  });
+
+  test("keeps existing geometry when a replacement cannot be rendered", () => {
+    const source = new VectorSource();
+    const format = new GeoJSON();
+    const initial = createFeature("stable", 0);
+    reconcileFeatureSource(source, [createDescriptor(initial, format)]);
+    const initialOlFeature = source.getFeatures()[0];
+
+    const replacement = createFeature("stable", 10);
+    replacement.geometry = { type: "Polygon", coordinates: [] };
+    const stats = createStats();
+    reconcileFeatureSource(source, [createDescriptor(replacement, format)], stats);
+
+    expect(source.getFeatures()).toEqual([initialOlFeature]);
+    expect(stats).toEqual({ parsed: 0, added: 0, updated: 0, removed: 0, reused: 0, skipped: 1 });
+  });
+
+  test("keeps all existing parts when one replacement part is invalid", () => {
+    const source = new VectorSource();
+    const format = new GeoJSON();
+    const initial = createFeature("multi", 0);
+    reconcileFeatureSource(source, [createMultiPartDescriptor(initial, format, [0, 2])]);
+    const initialFeatures = source.getFeatures();
+    const invalidReplacement = {
+      ...createMultiPartDescriptor(createFeature("multi", 10), format, [10]),
+      read: () => [
+        format.readFeature(createFeature("multi-part-0", 10), {
+          dataProjection: "EPSG:4326",
+          featureProjection: "EPSG:3857",
+        }),
+        format.readFeature({
+          ...createFeature("multi-part-1", 20),
+          geometry: { type: "Polygon", coordinates: [] },
+        }, {
+          dataProjection: "EPSG:4326",
+          featureProjection: "EPSG:3857",
+        }),
+      ] as OLFeature<Geometry>[],
+    };
+    const stats = createStats();
+
+    reconcileFeatureSource(source, [invalidReplacement], stats);
+
+    expect(source.getFeatures()).toEqual(initialFeatures);
+    expect(stats.skipped).toBe(1);
   });
 });

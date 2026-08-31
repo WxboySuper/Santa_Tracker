@@ -1,7 +1,8 @@
-import type Feature from "ol/Feature";
+import Feature from "ol/Feature";
 import type Geometry from "ol/geom/Geometry";
 import type VectorSource from "ol/source/Vector";
 import type { Feature as GeoJsonFeature } from "geojson";
+import { readRenderableFeatures } from "./openLayersRenderableGeometry";
 
 const RENDER_KEY = "__gfcRenderKey";
 const SOURCE_FEATURE = "__gfcSourceFeature";
@@ -24,6 +25,7 @@ export type FeatureSyncStats = {
   updated: number;
   removed: number;
   reused: number;
+  skipped: number;
 };
 
 export type ForecastSourceDescriptorPlan = {
@@ -48,10 +50,6 @@ const increment = (
     stats[property] += amount;
   }
 };
-
-const normalizeReadResult = (
-  result: Feature<Geometry> | Feature<Geometry>[],
-): Feature<Geometry>[] => (Array.isArray(result) ? result : [result]);
 
 const requireStableId = (descriptor: FeatureSyncDescriptor): void => {
   const stableId = descriptor.stableId ?? descriptor.feature.id;
@@ -204,7 +202,13 @@ const reconcileDescriptor = (
     return;
   }
 
-  const parsedFeatures = normalizeReadResult(descriptor.read());
+  const parsedFeatures = readRenderableFeatures(descriptor.read);
+  if (!parsedFeatures) {
+    // Keep an existing good render when a replacement cannot be parsed. New
+    // malformed features are omitted until their source data becomes valid.
+    increment(stats, "skipped");
+    return;
+  }
   increment(stats, "parsed");
   const sharedFeatureCount = updateSharedFeatures(
     existing,
