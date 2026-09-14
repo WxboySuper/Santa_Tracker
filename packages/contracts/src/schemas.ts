@@ -8,7 +8,6 @@ import {
   createSnapshotId,
   PUBLIC_ID_PATTERN,
 } from './ids';
-import type { ActivityId, LocationId, PublicationId, SnapshotId } from './ids';
 
 export type ContractErrorCode = 'invalid_input' | 'unsupported_schema_version';
 
@@ -18,7 +17,7 @@ export class ContractValidationError extends Error {
   constructor(
     readonly code: ContractErrorCode,
     readonly schemaName: string,
-    readonly issues: readonly z.ZodIssue[],
+    readonly issues: readonly z.core.$ZodIssue[],
   ) {
     super(`${schemaName} ${code.replaceAll('_', ' ')}`);
   }
@@ -26,10 +25,10 @@ export class ContractValidationError extends Error {
 
 export const SchemaVersionSchema = z.enum(SUPPORTED_SCHEMA_VERSIONS);
 export const PublicIdSchema = z.string().min(1).regex(PUBLIC_ID_PATTERN);
-export const PublicationIdSchema: z.ZodType<PublicationId, z.ZodTypeDef, string> = PublicIdSchema.transform(createPublicationId);
-export const LocationIdSchema: z.ZodType<LocationId, z.ZodTypeDef, string> = PublicIdSchema.transform(createLocationId);
-export const SnapshotIdSchema: z.ZodType<SnapshotId, z.ZodTypeDef, string> = PublicIdSchema.transform(createSnapshotId);
-export const ActivityIdSchema: z.ZodType<ActivityId, z.ZodTypeDef, string> = PublicIdSchema.transform(createActivityId);
+export const PublicationIdSchema = PublicIdSchema.transform(createPublicationId);
+export const LocationIdSchema = PublicIdSchema.transform(createLocationId);
+export const SnapshotIdSchema = PublicIdSchema.transform(createSnapshotId);
+export const ActivityIdSchema = PublicIdSchema.transform(createActivityId);
 
 // ---------------------------------------------------------------------------
 // Primitives
@@ -61,8 +60,8 @@ export type Location = z.infer<typeof LocationSchema>;
 
 export const RouteStopSchema = z.object({
   locationId: LocationIdSchema,
-  arrivalIso: z.string().datetime({ offset: true }),
-  departureIso: z.string().datetime({ offset: true }),
+  arrivalIso: z.iso.datetime({ offset: true }),
+  departureIso: z.iso.datetime({ offset: true }),
   durationSeconds: z.number().int().min(0),
 });
 
@@ -81,8 +80,8 @@ export type Route = z.infer<typeof RouteSchema>;
 // ---------------------------------------------------------------------------
 
 const LegacyScheduleSchema = z.object({
-  arrival_utc: z.string().datetime({ offset: true }).nullable().optional(),
-  departure_utc: z.string().datetime({ offset: true }).nullable().optional(),
+  arrival_utc: z.iso.datetime({ offset: true }).nullable().optional(),
+  departure_utc: z.iso.datetime({ offset: true }).nullable().optional(),
   local_arrival_time: z.string().min(1).nullable().optional(),
   time_window_status: z.string().min(1).nullable().optional(),
 });
@@ -127,7 +126,7 @@ export const LegacyRouteFixtureSchema = z.object({
   meta: z.object({
     year: z.number().int(),
     route_version: z.string().min(1),
-    generated_at: z.string().datetime({ offset: true }),
+    generated_at: z.iso.datetime({ offset: true }),
   }),
   route_nodes: z.array(LegacyRouteNodeSchema).min(1),
 });
@@ -137,11 +136,11 @@ export type LegacyRouteFixture = z.infer<typeof LegacyRouteFixtureSchema>;
 export const LegacyAdventDaySchema = z.object({
   day: z.number().int().min(1).max(24),
   title: z.string().min(1),
-  unlock_time: z.string().datetime({ offset: true }),
+  unlock_time: z.iso.datetime({ offset: true }),
   content_type: z.enum(['fact', 'game', 'story', 'video', 'activity', 'quiz']),
   // Legacy content types have different payload shapes. Keep the copied source
   // lossless here; the editor/content contracts can tighten each type later.
-  payload: z.record(z.unknown()),
+  payload: z.record(z.string(), z.unknown()),
 });
 
 export type LegacyAdventDay = z.infer<typeof LegacyAdventDaySchema>;
@@ -150,10 +149,10 @@ export const LegacyAdventFixtureSchema = z.object({
   days: z.array(LegacyAdventDaySchema).length(24).superRefine((days, context) => {
     const dayNumbers = days.map(day => day.day);
     if (new Set(dayNumbers).size !== dayNumbers.length) {
-      context.addIssue({ code: z.ZodIssueCode.custom, message: 'Advent days must be unique' });
+      context.addIssue({ code: 'custom', message: 'Advent days must be unique' });
     }
     if (dayNumbers.some((day, index) => day !== index + 1)) {
-      context.addIssue({ code: z.ZodIssueCode.custom, message: 'Advent days must contain 1 through 24 in order' });
+      context.addIssue({ code: 'custom', message: 'Advent days must contain 1 through 24 in order' });
     }
   }),
 });
@@ -183,7 +182,7 @@ export const SnapshotSchema = z.object({
     issueCount: z.number().int().nonnegative().default(0),
     issues: z.array(z.object({ path: z.string().min(1), message: z.string().min(1) })).default([]),
   }),
-  createdAtIso: z.string().datetime({ offset: true }),
+  createdAtIso: z.iso.datetime({ offset: true }),
   checksum: z.string().min(8),
   route: RouteSchema,
 });
@@ -268,13 +267,13 @@ export function parseSnapshot(input: unknown): Snapshot {
   return parseContract(SnapshotSchema, input, 'Snapshot');
 }
 
-function parseContract<T extends z.ZodTypeAny>(schema: T, input: unknown, schemaName: string): z.infer<T> {
+function parseContract<T extends z.ZodType>(schema: T, input: unknown, schemaName: string): z.infer<T> {
   const result = schema.safeParse(input);
 
-  if (result.success) return result.data as z.infer<T>;
+  if (result.success) return result.data;
 
   const hasUnsupportedVersion = result.error.issues.some(
-    (issue) => issue.path.length === 1 && issue.path[0] === 'schemaVersion' && issue.code === 'invalid_enum_value',
+    (issue) => issue.path.length === 1 && issue.path[0] === 'schemaVersion' && issue.code === 'invalid_value',
   );
   const code: ContractErrorCode = hasUnsupportedVersion ? 'unsupported_schema_version' : 'invalid_input';
   throw new ContractValidationError(code, schemaName, result.error.issues);
