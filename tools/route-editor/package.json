@@ -13,18 +13,18 @@
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",
     "leaflet": "^1.9.4",
-    "lucide-react": "^1.35.0",
-    "react": "^19.2.8",
-    "react-dom": "^19.2.8",
+    "lucide-react": "^1.44.0",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
     "react-leaflet": "^5.0.0",
     "react-router-dom": "^7.18.3"
   },
   "devDependencies": {
-    "@types/react": "^19.2.18",
-    "@types/react-dom": "^19.2.5",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
     "@tailwindcss/vite": "^4.3.3",
     "@vitejs/plugin-react": "^6.1.1",
     "tailwindcss": "^4.3.3",
-    "vite": "^8.2.2"
+    "vite": "^8.3.0"
   }
 }
