@@ -161,7 +161,7 @@ button, a, .clickable {
     }
     
     #map {
-        page-break-inside: avoid;
+        break-inside: avoid;
     }
 }
 
