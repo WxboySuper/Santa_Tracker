@@ -10,7 +10,7 @@ const ServerEnvSchema = z.object({
   DATABASE_URL: z.string().min(1).default('postgresql://santa:santa@localhost:5432/santa_tracker'),
   SESSION_SECRET: z.string().min(16).default('dev-session-secret-change-me-32chars'),
   ADMIN_PASSKEY_RP_ID: z.string().default('localhost'),
-  NEXT_PUBLIC_APP_URL: z.string().url().optional(),
+  NEXT_PUBLIC_APP_URL: z.url().optional(),
 });
 
 export type ServerEnv = z.infer<typeof ServerEnvSchema>;
