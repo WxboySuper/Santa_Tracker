@@ -40,7 +40,7 @@
     "@typescript-eslint/parser": "^8.68.0",
     "eslint": "^9.32.0",
     "eslint-config-prettier": "^10.1.8",
-    "eslint-plugin-react-hooks": "^5.2.0",
+    "eslint-plugin-react-hooks": "^7.1.1",
     "htmlhint": "^1.1.4",
     "prettier": "^3.6.2",
     "stylelint": "^16.22.0",
