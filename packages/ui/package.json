@@ -32,7 +32,7 @@
     "@storybook/addon-vitest": "10.5.10",
     "@types/react": "^19.1.9",
     "@types/react-dom": "^19.2.5",
-    "@vitest/browser-playwright": "4.1.11",
+    "@vitest/browser-playwright": "5.0.1",
     "http-server": "14.1.1",
     "playwright": "1.62.1",
     "storybook": "10.5.10",
