@@ -1,6 +1,14 @@
-import fs from "node:fs/promises";
 import { existsSync } from "node:fs";
 import path from "node:path";
+
+export function getDataRoot(): string {
+  if (process.env.SANTA_DATA_ROOT) return process.env.SANTA_DATA_ROOT;
+  const candidates = [
+    path.join(process.cwd(), "data"),
+    path.join(process.cwd(), "apps", "web", "data"),
+  ];
+  return candidates.find(candidate => existsSync(candidate)) ?? candidates[0]!;
+}
 
 export function getSecretKey(): string {
   // dev fallback only; production must set SECRET_KEY env
@@ -26,11 +34,7 @@ export function getAdventCalendarPath(): string {
 }
 
 function getDataPath(filename: string): string {
-  const candidates = [
-    path.join(process.cwd(), "data", filename),
-    path.join(process.cwd(), "apps", "web", "data", filename),
-  ];
-  return candidates.find(candidate => existsSync(candidate)) ?? candidates[0]!;
+  return path.join(getDataRoot(), filename);
 }
 
 export async function getTrialRoutePath(): Promise<string> {

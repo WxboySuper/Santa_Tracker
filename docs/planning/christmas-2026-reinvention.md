@@ -30,7 +30,7 @@ The accepted application boundary is recorded in [ADR 0001](../adr/0001-applicat
 
 - Replace Flask with a modern Next.js and TypeScript application.
 - Consolidate reusable route and application logic in TypeScript rather than retaining a permanent Python service.
-- Use the existing VPS as the primary production host.
+- **Production host for Eve 2026:** Cloudflare Workers + Static Assets (see [ADR 0002](../adr/0002-cloudflare-workers-hosting.md)). The existing VPS remains available as a legacy fallback until cutover.
 - Borrow mature infrastructure patterns from Graphical Forecast Creator only where they solve an actual need.
 - Prefer free, open-source, or self-hosted services.
 - Use PostgreSQL for drafts, editorial data, configuration, audit records, and publication metadata.

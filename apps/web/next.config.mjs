@@ -6,13 +6,14 @@ import { fileURLToPath } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const isWindows = process.platform === 'win32';
+const isVinextBuild = process.env.VINEXT_BUILD === '1';
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   // ADR 0001 requires standalone output for the containerized VPS deployment.
   // Windows local builds lack symlink privileges, so we skip standalone locally
   // and keep it for CI/Linux production.
-  ...(isWindows ? {} : { output: 'standalone' }),
+  ...(isWindows || isVinextBuild ? {} : { output: 'standalone' }),
   reactStrictMode: true,
   typedRoutes: true,
   outputFileTracingRoot: path.join(__dirname, '../../'),
@@ -25,10 +26,14 @@ const nextConfig = {
     '@santa-tracker/activity-sdk',
     '@santa-tracker/test-fixtures',
   ],
-  async rewrites() {
+  async headers() {
     return [
-      { source: '/static/data/santa_route.json', destination: '/api/route' },
-      { source: '/data/santa_route.json', destination: '/api/route' },
+      {
+        source: '/data/:path*',
+        headers: [
+          { key: 'Cache-Control', value: 'public, max-age=900, stale-while-revalidate=3600' },
+        ],
+      },
     ];
   },
 };

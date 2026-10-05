@@ -1,0 +1,57 @@
+name: Deploy Cloudflare Workers (manual)
+
+permissions:
+  contents: read
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Cloudflare Workers environment
+        required: false
+        default: production
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.3.1
+
+      - name: Set up Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22.18
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4.3.0
+        with:
+          version: 10.30.3
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Mirror published JSON into static assets
+        run: pnpm santa:publish
+
+      - name: Build vinext Worker bundle
+        run: pnpm --filter @santa-tracker/web build:vinext
+        env:
+          SECRET_KEY: ${{ secrets.SECRET_KEY }}
+          ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
+          ADVENT_ENABLED: "true"
+
+      - name: Upload snapshots to R2 (optional remote sync)
+        if: vars.SANTA_PUBLISH_REMOTE == 'true'
+        run: pnpm santa:publish:remote
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          SANTA_R2_BUCKET: santa-tracker-snapshots
+
+      - name: Deploy to Cloudflare Workers
+        run: pnpm --filter @santa-tracker/web deploy:vinext
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          SECRET_KEY: ${{ secrets.SECRET_KEY }}
+          ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
+          ADVENT_ENABLED: "true"

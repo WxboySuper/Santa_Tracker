@@ -1,7 +1,10 @@
 import fs from "fs/promises";
-import type { Stats } from "node:fs";
 import path from "path";
 import { getAdventCalendarPath, isAdventEnabled } from "./config";
+import { getSantaSnapshotsBucket } from "./cloudflare-bindings";
+import { getSnapshotStore } from "./storage";
+import { ensureStoreBootstrapped, persistAdventCalendar } from "./storage/publish";
+import { DATASET_ADVENT } from "./storage/types";
 
 export interface AdventDay {
   day: number;
@@ -44,8 +47,8 @@ interface AdventTextValue {
   value: string;
 }
 
-// simple in-memory cache with mtime validation
-const cache = new Map<string, { mtimeMs: number; size: number; data: AdventDay[] }>();
+// simple in-memory cache keyed by active version id
+const cache = new Map<string, { versionKey: string; data: AdventDay[] }>();
 const CONTENT_TYPES = ["fact", "game", "story", "video", "activity", "quiz"] as const;
 
 function clone<T>(value: T): T {
@@ -110,28 +113,36 @@ function validateDayUnlockTime(value: AdventTextValue): void {
   }
 }
 
-export async function loadAdventCalendar(options: AdventFileOptions = {}): Promise<AdventDay[]> {
-  const p = path.resolve(options.filePath ?? getAdventCalendarPath());
-  let stat: Stats;
-  try {
-    stat = await fs.stat(p);
-  } catch {
-    throw new Error(`Advent calendar file not found: ${p}`);
+async function readAdventSource(options: AdventFileOptions = {}): Promise<{ cacheKey: string; versionKey: string; content: string }> {
+  if (options.filePath) {
+    const p = path.resolve(options.filePath);
+    const content = await fs.readFile(p, "utf-8");
+    return { cacheKey: p, versionKey: p, content };
   }
-  const cached = cache.get(p);
-  if (cached && cached.mtimeMs === stat.mtimeMs && cached.size === stat.size) {
+  const store = getSnapshotStore(getSantaSnapshotsBucket());
+  await ensureStoreBootstrapped(store);
+  const content = await store.readActive(DATASET_ADVENT);
+  if (!content?.trim()) throw new Error(`Advent calendar file not found: ${getAdventCalendarPath()}`);
+  const versions = await store.listVersions(DATASET_ADVENT);
+  const versionKey = versions[0]?.versionId ?? "bootstrap";
+  return { cacheKey: DATASET_ADVENT, versionKey, content };
+}
+
+export async function loadAdventCalendar(options: AdventFileOptions = {}): Promise<AdventDay[]> {
+  const { cacheKey, content, versionKey } = await readAdventSource(options);
+  const cached = cache.get(cacheKey);
+  if (cached && cached.versionKey === versionKey) {
     return clone(cached.data);
   }
-  const content = await fs.readFile(p, "utf-8");
-  if (!content.trim()) throw new Error(`Advent calendar file is empty: ${p}`);
+  if (!content.trim()) throw new Error(`Advent calendar file is empty: ${cacheKey}`);
   let data: { days?: any[] };
   try {
     data = JSON.parse(content);
   } catch (e: any) {
-    throw new Error(`JSON decode error in ${p}: ${e.message}`);
+    throw new Error(`JSON decode error in ${cacheKey}: ${e.message}`);
   }
   const days = (data.days ?? []).map(parseAdventDay);
-  cache.set(p, { mtimeMs: stat.mtimeMs, size: stat.size, data: days });
+  cache.set(cacheKey, { versionKey, data: days });
   return clone(days);
 }
 
@@ -226,7 +237,6 @@ export async function getDayApiResult(rawDay: string): Promise<AdventApiResult> 
 }
 
 export async function saveAdventCalendar(days: AdventDay[] | Map<number, AdventDay>, options: AdventFileOptions = {}) {
-  const p = path.resolve(options.filePath ?? getAdventCalendarPath());
   const list = days instanceof Map ? Array.from(days.values()) : days;
   const data = {
     days: list.map(d => {
@@ -241,18 +251,19 @@ export async function saveAdventCalendar(days: AdventDay[] | Map<number, AdventD
       return o;
     }),
   };
-  await fs.mkdir(path.dirname(p), { recursive: true });
-  const tmp = `${p}.tmp.${Date.now()}.${Math.random().toString(36).slice(2)}`;
-  await fs.writeFile(tmp, JSON.stringify(data, null, 2), "utf-8");
-  await fs.rename(tmp, p);
-  cache.delete(p);
-  // versioned history
-  try {
-    const dir = path.join(path.dirname(p), ".history");
-    await fs.mkdir(dir, { recursive: true });
-    const stamp = new Date().toISOString().replace(/[:.]/g, "-");
-    await fs.writeFile(path.join(dir, `advent-${stamp}.json`), JSON.stringify(data, null, 2), "utf-8");
-  } catch {}
+  const body = JSON.stringify(data, null, 2);
+  if (options.filePath) {
+    const p = path.resolve(options.filePath);
+    await fs.mkdir(path.dirname(p), { recursive: true });
+    const tmp = `${p}.tmp.${Date.now()}.${Math.random().toString(36).slice(2)}`;
+    await fs.writeFile(tmp, body, "utf-8");
+    await fs.rename(tmp, p);
+    cache.delete(p);
+    return;
+  }
+  const store = getSnapshotStore(getSantaSnapshotsBucket());
+  await persistAdventCalendar(store, body);
+  cache.delete(DATASET_ADVENT);
 }
 
 export function validateAdventCalendar(days: AdventDay[]) {

@@ -1,6 +1,10 @@
 import fs from "fs/promises";
 import path from "path";
 import { getSantaRoutePath, getTrialRoutePath } from "./config";
+import { getSantaSnapshotsBucket } from "./cloudflare-bindings";
+import { getSnapshotStore } from "./storage";
+import { ensureStoreBootstrapped, persistSantaRoute, persistTrialRoute, removeTrialRoute } from "./storage/publish";
+import { DATASET_SANTA_ROUTE, DATASET_TRIAL_ROUTE } from "./storage/types";
 
 export interface StopExperience {
   duration_seconds?: number | null;
@@ -228,26 +232,21 @@ function flattenLegacyLocation(item: any): Record<string, any> {
   };
 }
 
-async function atomicWrite(filePath: string, data: any) {
-  const dir = path.dirname(filePath);
-  await fs.mkdir(dir, { recursive: true });
-  const tmp = `${filePath}.tmp.${Date.now()}.${Math.random().toString(36).slice(2)}`;
-  await fs.writeFile(tmp, JSON.stringify(data, null, 2), "utf-8");
-  await fs.rename(tmp, filePath);
-  // versioned snapshot: keep last 5 versions for rollback
-  try {
-    const backupDir = path.join(dir, ".history");
-    await fs.mkdir(backupDir, { recursive: true });
-    const stamp = new Date().toISOString().replace(/[:.]/g, "-");
-    const backupPath = path.join(backupDir, `${path.basename(filePath, ".json")}-${stamp}.json`);
-    await fs.writeFile(backupPath, JSON.stringify(data, null, 2), "utf-8");
-    const files = (await fs.readdir(backupDir)).filter(f => f.startsWith(path.basename(filePath, ".json"))).sort().reverse();
-    for (const f of files.slice(5)) {
-      await fs.unlink(path.join(backupDir, f)).catch(() => {
-        // A concurrent cleanup can remove the file first.
-      });
-    }
-  } catch {}
+async function getRouteStore() {
+  const store = getSnapshotStore(getSantaSnapshotsBucket());
+  await ensureStoreBootstrapped(store);
+  return store;
+}
+
+async function readPublishedSantaRouteJson(): Promise<string> {
+  const store = await getRouteStore();
+  const active = await store.readActive(DATASET_SANTA_ROUTE);
+  if (!active) {
+    const missing = new Error(`Route file not found: ${getSantaRoutePath()}`);
+    missing.cause = "ENOENT";
+    throw missing;
+  }
+  return active;
 }
 
 export async function loadSantaRouteFromJson(source?: string | Record<string, any> | any[]): Promise<LocationEntry[]> {
@@ -256,7 +255,7 @@ export async function loadSantaRouteFromJson(source?: string | Record<string, an
 }
 
 async function readRouteSource(source?: string | Record<string, any> | any[]): Promise<any> {
-  if (!source) return readRouteFile(getSantaRoutePath(), "Route file not found");
+  if (!source) return JSON.parse(await readPublishedSantaRouteJson());
   if (typeof source !== "string") return source;
   try {
     return await readRouteFile(source, "Route file not found");
@@ -299,9 +298,7 @@ function parseRouteNodes(nodes: any[]): RouteNode[] {
 }
 
 export async function loadRouteNodesRaw(): Promise<RouteNode[]> {
-  const defaultPath = getSantaRoutePath();
-  const content = await fs.readFile(defaultPath, "utf-8");
-  const obj = JSON.parse(content);
+  const obj = JSON.parse(await readPublishedSantaRouteJson());
   const nodes = obj.route_nodes ?? obj.route ?? obj.nodes ?? [];
   const parsed: RouteNode[] = [];
   for (let i = 0; i < nodes.length; i++) {
@@ -311,102 +308,110 @@ export async function loadRouteNodesRaw(): Promise<RouteNode[]> {
   return parsed;
 }
 
-export async function saveSantaRouteToJson(locations: (LocationEntry | RouteNode | Record<string, any>)[], filePath?: string) {
-  const target = filePath ?? getSantaRoutePath();
-  // Build route_nodes format for storage (preserve rich structure if nodes available)
-  // If locations are LocationEntry (flattened), we need to convert to nodes or flat route array
-  // For parity with Flask's save_santa_route_to_json which writes {"route": flat[]}, we support both:
-  // If target is the main route file, write as {meta, route_nodes}
-  // Detect by checking if original file had route_nodes
+function buildSantaRouteDocument(
+  locations: (LocationEntry | RouteNode | Record<string, any>)[],
+  existingJson?: string,
+): Record<string, unknown> {
   let isLegacyFlat = false;
-  try {
-    const existing = JSON.parse(await fs.readFile(target, "utf-8"));
-    if (existing.route && !existing.route_nodes) isLegacyFlat = true;
-  } catch {}
+  let meta: Record<string, unknown> = { year: 2025, route_version: "1.0", generated_at: new Date().toISOString() };
+  if (existingJson) {
+    try {
+      const existing = JSON.parse(existingJson) as Record<string, unknown>;
+      if (existing.route && !existing.route_nodes) isLegacyFlat = true;
+      if (existing.meta && typeof existing.meta === "object") meta = existing.meta as Record<string, unknown>;
+    } catch {
+      // ignore parse errors
+    }
+  }
 
   if (isLegacyFlat) {
-    const route = locations.map(coerceNodeToFlat);
-    await atomicWrite(target, { route });
-  } else {
-    // Write as route_nodes with full structure — convert flat entries to nodes
-    const nodes: RouteNode[] = locations.map((item: any, idx: number) => {
-      if (item.location && item.id) return item as RouteNode;
-      // flat LocationEntry -> RouteNode
-      const lat = item.latitude ?? item.lat;
-      const lng = item.longitude ?? item.lng;
-      const tz = item.utc_offset ?? item.timezone_offset ?? 0;
-      return {
-        id: item.id ?? `node_${idx}_${(item.name || "unknown").toLowerCase().replace(/\s+/g, "_")}`,
-        type: item.type ?? "DELIVERY",
-        comment: item.comment ?? null,
-        location: {
-          name: item.name,
-          region: item.country ?? item.region ?? null,
-          lat: Number(lat),
-          lng: normalizeLng(Number(lng)),
-          timezone_offset: Number(tz),
-        },
-        schedule: {
-          arrival_utc: item.arrival_time ?? null,
-          departure_utc: item.departure_time ?? null,
-          local_arrival_time: null,
-          time_window_status: null,
-        },
-        stop_experience: {
-          duration_seconds: item.stop_duration != null ? Number(item.stop_duration) * 60 : 0,
-          camera_zoom: null,
-          weather_condition: null,
-          presents_delivered_at_stop: 0,
-        },
-        transit_to_here: null,
-        notes: item.notes ?? item.fun_facts ?? null,
-        priority: item.priority ?? null,
-      };
-    });
-    // Preserve meta if exists
-    let meta: any = { year: 2025, route_version: "1.0", generated_at: new Date().toISOString() };
-    try {
-      const existing = JSON.parse(await fs.readFile(target, "utf-8"));
-      if (existing.meta) meta = existing.meta;
-    } catch {}
-    await atomicWrite(target, { meta, route_nodes: nodes });
+    return { route: locations.map(coerceNodeToFlat) };
   }
+
+  const nodes: RouteNode[] = locations.map((item: any, idx: number) => {
+    if (item.location && item.id) return item as RouteNode;
+    const lat = item.latitude ?? item.lat;
+    const lng = item.longitude ?? item.lng;
+    const tz = item.utc_offset ?? item.timezone_offset ?? 0;
+    return {
+      id: item.id ?? `node_${idx}_${(item.name || "unknown").toLowerCase().replace(/\s+/g, "_")}`,
+      type: item.type ?? "DELIVERY",
+      comment: item.comment ?? null,
+      location: {
+        name: item.name,
+        region: item.country ?? item.region ?? null,
+        lat: Number(lat),
+        lng: normalizeLng(Number(lng)),
+        timezone_offset: Number(tz),
+      },
+      schedule: {
+        arrival_utc: item.arrival_time ?? null,
+        departure_utc: item.departure_time ?? null,
+        local_arrival_time: null,
+        time_window_status: null,
+      },
+      stop_experience: {
+        duration_seconds: item.stop_duration != null ? Number(item.stop_duration) * 60 : 0,
+        camera_zoom: null,
+        weather_condition: null,
+        presents_delivered_at_stop: 0,
+      },
+      transit_to_here: null,
+      notes: item.notes ?? item.fun_facts ?? null,
+      priority: item.priority ?? null,
+    };
+  });
+  return { meta, route_nodes: nodes };
+}
+
+export async function saveSantaRouteToJson(locations: (LocationEntry | RouteNode | Record<string, any>)[], filePath?: string) {
+  const target = filePath ?? getSantaRoutePath();
+  const isMainRoute = path.resolve(target) === path.resolve(getSantaRoutePath());
+  let existingJson: string | undefined;
+  try {
+    existingJson = isMainRoute ? await readPublishedSantaRouteJson() : await fs.readFile(target, "utf-8");
+  } catch {
+    existingJson = undefined;
+  }
+  const document = buildSantaRouteDocument(locations, existingJson);
+  const body = JSON.stringify(document, null, 2);
+  if (isMainRoute) {
+    await persistSantaRoute(await getRouteStore(), body);
+    return;
+  }
+  await fs.mkdir(path.dirname(target), { recursive: true });
+  const tmp = `${target}.tmp.${Date.now()}`;
+  await fs.writeFile(tmp, body, "utf-8");
+  await fs.rename(tmp, target);
 }
 
 export async function loadTrialRouteFromJson(): Promise<LocationEntry[] | null> {
-  const p = await getTrialRoutePath();
-  try {
-    await fs.access(p);
-  } catch {
-    return null;
-  }
-  return loadSantaRouteFromJson(p);
+  const store = await getRouteStore();
+  const active = await store.readActive(DATASET_TRIAL_ROUTE);
+  if (!active) return null;
+  return loadSantaRouteFromJson(JSON.parse(active) as Record<string, unknown>);
 }
 
 export async function saveTrialRouteToJson(locations: (LocationEntry | RouteNode | Record<string, any>)[]) {
-  const p = await getTrialRoutePath();
-  await saveSantaRouteToJson(locations, p);
+  const existing = await (async () => {
+    try {
+      return await readPublishedSantaRouteJson();
+    } catch {
+      return undefined;
+    }
+  })();
+  const body = JSON.stringify(buildSantaRouteDocument(locations, existing), null, 2);
+  await persistTrialRoute(await getRouteStore(), body);
 }
 
 export async function deleteTrialRoute(): Promise<boolean> {
-  const p = await getTrialRoutePath();
-  try {
-    await fs.unlink(p);
-    return true;
-  } catch (error: unknown) {
-    if ((error as NodeJS.ErrnoException).code === "ENOENT") return false;
-    throw error;
-  }
+  return removeTrialRoute(await getRouteStore());
 }
 
 export async function hasTrialRoute(): Promise<boolean> {
-  const p = await getTrialRoutePath();
-  try {
-    await fs.access(p);
-    return true;
-  } catch {
-    return false;
-  }
+  const store = await getRouteStore();
+  const active = await store.readActive(DATASET_TRIAL_ROUTE);
+  return active != null;
 }
 
 export function createLocationFromPayload(data: Record<string, any>): LocationEntry {
@@ -607,9 +612,8 @@ export async function getRouteStatus() {
   }
   let last_modified = "Unknown";
   try {
-    const p = getSantaRoutePath();
-    const stat = await fs.stat(p);
-    last_modified = stat.mtime.toString();
+    const versions = await (await getRouteStore()).listVersions(DATASET_SANTA_ROUTE);
+    if (versions[0]) last_modified = versions[0].createdAt;
   } catch {}
   return {
     total_locations,

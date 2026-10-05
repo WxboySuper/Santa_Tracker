@@ -3,10 +3,11 @@
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import "leaflet/dist/leaflet.css";
-import type { Map as LeafletMap } from "leaflet";
+import type { Map as LeafletMap, Marker as LeafletMarker } from "leaflet";
 import type * as Leaflet from "leaflet";
 import { createTranslator } from "@santa-tracker/localization";
 import type { RouteNode } from "@/lib/locations";
+import { computeSantaPosition } from "@/lib/tracker-position";
 import Countdown from "@/components/countdown";
 
 interface TrackerMapProps {
@@ -17,6 +18,10 @@ interface TrackerMapProps {
 interface RouteResponse {
   route_nodes: RouteNode[];
 }
+
+const ROUTE_URL = "/data/santa_route.json";
+const POSITION_TICK_MS = 1000;
+
 type LeafletModule = typeof Leaflet;
 
 function hasCoordinates(node: RouteNode): boolean {
@@ -46,20 +51,32 @@ function renderRoute(L: LeafletModule, map: LeafletMap, nodes: RouteNode[]): num
   return points.length;
 }
 
-async function createTrackerMap(container: HTMLDivElement): Promise<{ map: LeafletMap; stopCount: number }> {
-  const [{ default: L }, response] = await Promise.all([
-    import("leaflet"),
-    fetch("/api/route", { cache: "no-store" }),
-  ]);
+async function loadPublishedRoute(): Promise<RouteNode[]> {
+  const response = await fetch(ROUTE_URL, { cache: "default" });
   if (!response.ok) throw new Error(`Route request failed with ${response.status}`);
   const data = (await response.json()) as RouteResponse;
+  return data.route_nodes;
+}
+
+async function createTrackerMap(container: HTMLDivElement): Promise<{ map: LeafletMap; nodes: RouteNode[]; stopCount: number; L: LeafletModule }> {
+  const [{ default: L }, nodes] = await Promise.all([import("leaflet"), loadPublishedRoute()]);
   const map = L.map(container, { worldCopyJump: true, zoomControl: false }).setView([20, 0], 2);
   L.control.zoom({ position: "bottomright" }).addTo(map);
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
     attribution: "&copy; OpenStreetMap contributors",
     maxZoom: 18,
   }).addTo(map);
-  return { map, stopCount: renderRoute(L, map, data.route_nodes) };
+  return { map, nodes, stopCount: renderRoute(L, map, nodes), L };
+}
+
+function createSantaMarker(L: LeafletModule, map: LeafletMap, lat: number, lng: number): LeafletMarker {
+  const icon = L.divIcon({
+    className: "santa-marker",
+    html: '<span aria-hidden="true" style="font-size:28px;line-height:1">🎅</span>',
+    iconSize: [32, 32],
+    iconAnchor: [16, 16],
+  });
+  return L.marker([lat, lng], { icon, zIndexOffset: 1000 }).addTo(map);
 }
 
 export default function TrackerMap({ adventEnabled, locale }: TrackerMapProps) {
@@ -69,7 +86,23 @@ export default function TrackerMap({ adventEnabled, locale }: TrackerMapProps) {
 
   useEffect(() => {
     let map: LeafletMap | undefined;
+    let santaMarker: LeafletMarker | undefined;
+    let nodes: RouteNode[] = [];
+    let leaflet: LeafletModule | undefined;
     let cancelled = false;
+    let tickTimer: ReturnType<typeof setInterval> | undefined;
+
+    const updateSanta = () => {
+      if (!leaflet || !map || nodes.length === 0) return;
+      const position = computeSantaPosition(nodes, new Date());
+      if (!position) return;
+      if (!santaMarker) {
+        santaMarker = createSantaMarker(leaflet, map, position.lat, position.lng);
+        return;
+      }
+      santaMarker.setLatLng([position.lat, position.lng]);
+    };
+
     const initializeMap = async () => {
       try {
         if (!mapElement.current) return;
@@ -79,7 +112,11 @@ export default function TrackerMap({ adventEnabled, locale }: TrackerMapProps) {
           return;
         }
         map = result.map;
+        nodes = result.nodes;
+        leaflet = result.L;
         setRouteStatus(translator.t("tracker.loaded", { count: result.stopCount }));
+        updateSanta();
+        tickTimer = setInterval(updateSanta, POSITION_TICK_MS);
       } catch (error: unknown) {
         if (!cancelled) {
           console.error("Tracker map error", error);
@@ -90,6 +127,7 @@ export default function TrackerMap({ adventEnabled, locale }: TrackerMapProps) {
     void initializeMap();
     return () => {
       cancelled = true;
+      if (tickTimer) clearInterval(tickTimer);
       map?.remove();
     };
   }, [translator]);

@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
 import { loadRouteNodesRaw } from "@/lib/locations";
 
-export const dynamic = "force-dynamic";
-
+/** Legacy/admin path — public tracker reads static `/data/santa_route.json`. */
 export async function GET() {
   try {
     const route_nodes = await loadRouteNodesRaw();
@@ -10,7 +9,7 @@ export async function GET() {
       { route_nodes },
       {
         status: 200,
-        headers: { "Cache-Control": "public, max-age=60, stale-while-revalidate=300" },
+        headers: { "Cache-Control": "public, max-age=900, stale-while-revalidate=3600" },
       },
     );
   } catch (error: unknown) {
