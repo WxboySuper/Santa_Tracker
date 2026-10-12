@@ -65,16 +65,17 @@ function validateUnlockTime({ value }: AdventTextValue): void {
   if (Number.isNaN(dt.getTime())) throw new Error("Invalid date");
 }
 
+function isObjectValue(value: unknown): value is object {
+  return value !== null && typeof value === "object";
+}
+
 function isRecordValue(value: unknown): value is Record<string, unknown> {
-  if (value === null) return false;
-  if (typeof value !== "object") return false;
-  if (Array.isArray(value)) return false;
-  return true;
+  return isObjectValue(value) && !Array.isArray(value);
 }
 
 function asRecord(value: unknown, description: string): Record<string, unknown> {
   if (!isRecordValue(value)) throw new Error(`${description} must be an object`);
-  return value as Record<string, unknown>;
+  return value;
 }
 
 function parseAdventDay(value: unknown): AdventDay {
@@ -108,10 +109,17 @@ function validateRequiredFields(day: Record<string, unknown>): void {
 }
 
 function validateDayNumber(day: unknown): number {
-  if (typeof day !== "number" || !Number.isInteger(day) || day < 1 || day > 24) {
+  if (!isValidDayNumber(day)) {
     throw new Error(`Day must be between 1 and 24, got ${String(day)}`);
   }
   return day;
+}
+
+function isValidDayNumber(day: unknown): day is number {
+  if (typeof day !== "number") return false;
+  if (!Number.isInteger(day)) return false;
+  if (day < 1) return false;
+  return day <= 24;
 }
 
 function parseContentType(contentType: unknown): AdventDay["content_type"] {

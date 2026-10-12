@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import "leaflet/dist/leaflet.css";
 import type { Map as LeafletMap, Marker as LeafletMarker } from "leaflet";
-import type * as Leaflet from "leaflet";
 import { createTranslator } from "@santa-tracker/localization";
 import type { RouteNode } from "@/lib/locations";
 import { computeSantaPosition } from "@/lib/tracker-position";
@@ -22,7 +21,11 @@ interface RouteResponse {
 const ROUTE_URL = "/api/route";
 const POSITION_TICK_MS = 1000;
 
-type LeafletModule = typeof Leaflet;
+function loadLeafletModule() {
+  return import("leaflet");
+}
+
+type LeafletModule = Awaited<ReturnType<typeof loadLeafletModule>>["default"];
 
 function hasCoordinates(node: RouteNode): boolean {
   return Number.isFinite(node.location.lat) && Number.isFinite(node.location.lng);
@@ -59,7 +62,7 @@ async function loadPublishedRoute(): Promise<RouteNode[]> {
 }
 
 async function createTrackerMap(container: HTMLDivElement): Promise<{ map: LeafletMap; nodes: RouteNode[]; stopCount: number; L: LeafletModule }> {
-  const [{ default: L }, nodes] = await Promise.all([import("leaflet"), loadPublishedRoute()]);
+  const [{ default: L }, nodes] = await Promise.all([loadLeafletModule(), loadPublishedRoute()]);
   const map = L.map(container, { worldCopyJump: true, zoomControl: false }).setView([20, 0], 2);
   L.control.zoom({ position: "bottomright" }).addTo(map);
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {

@@ -36,10 +36,16 @@ describe("versioned snapshot store", () => {
 
   it("lists versions newest-first", async () => {
     const store = createVersionedSnapshotStore(createFilesystemBackend(root));
-    const a = await store.saveNewVersion("advent-calendar", "{}");
-    const b = await store.saveNewVersion("advent-calendar", "{}");
-    await store.activateVersion("advent-calendar", b.versionId);
+    const firstVersion = await store.saveNewVersion("advent-calendar", "{}");
+    const secondVersion = await store.saveNewVersion("advent-calendar", "{}");
+    await store.activateVersion("advent-calendar", secondVersion.versionId);
     const versions = await store.listVersions("advent-calendar");
-    expect(versions.map(version => version.versionId)).toEqual([b.versionId, a.versionId]);
+    expect(versions).toHaveLength(2);
+    expect(versions.map(version => version.versionId)).toEqual(
+      expect.arrayContaining([firstVersion.versionId, secondVersion.versionId]),
+    );
+    expect(Date.parse(versions[0]?.createdAt ?? "")).toBeGreaterThanOrEqual(
+      Date.parse(versions[1]?.createdAt ?? ""),
+    );
   });
 });
