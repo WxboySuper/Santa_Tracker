@@ -65,6 +65,10 @@ class AdventDataNotFoundError extends Error {
   readonly name = "AdventDataNotFoundError";
 }
 
+export function isAdventDataNotFoundError(error: unknown): error is AdventDataNotFoundError {
+  return error instanceof AdventDataNotFoundError;
+}
+
 class AdventFeatureDisabledError extends Error {
   readonly name = "AdventFeatureDisabledError";
 }
@@ -266,18 +270,16 @@ export function toDict(day: AdventDay, opts: { includePayload?: boolean; current
 }
 
 export async function getManifest(options: AdventQueryOptions = {}): Promise<AdventManifest> {
-  assertTimeOptions(options);
-  const { data: days } = await loadCachedAdventCalendar(options);
   const currentTime = resolveCurrentTime(options);
+  const { data: days } = await loadCachedAdventCalendar(options);
   const daysData = days.map(d => toDict(d, { includePayload: false, currentTime, mode: options.mode }));
   return { total_days: days.length, days: daysData };
 }
 
 export async function getDayContent(dayNumber: number, options: AdventQueryOptions = {}): Promise<AdventPublicDay | null> {
   if (dayNumber < 1 || dayNumber > MAX_ADVENT_DAY) return null;
-  assertTimeOptions(options);
-  const { byDay } = await loadCachedAdventCalendar(options);
   const currentTime = resolveCurrentTime(options);
+  const { byDay } = await loadCachedAdventCalendar(options);
   const day = byDay.get(dayNumber);
   if (!day) return null;
   return toDict(day, { includePayload: true, currentTime, mode: options.mode });
@@ -345,6 +347,7 @@ async function getDayApiResultWithErrorHandling(
     if (!content) return invalidDayResult();
     return dayContentResult(content);
   } catch (error: unknown) {
+    if (isAdventDataNotFoundError(error)) return { status: 404, body: { error: "Advent calendar data not found" } };
     if (error instanceof AdventFeatureDisabledError) return { status: 404, body: { error: "Not found" } };
     if (isNotFoundError(error)) return { status: 404, body: { error: "Advent calendar data not found" } };
     console.error(`Advent ${errorContext} error`, error);

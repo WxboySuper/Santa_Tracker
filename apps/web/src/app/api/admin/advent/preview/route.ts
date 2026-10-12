@@ -2,9 +2,9 @@ import { NextResponse, type NextRequest } from "next/server";
 import { requireAdminAuth } from "@/lib/auth";
 import { isAdventEnabled } from "@/lib/config";
 import { previewAdminAdventDays } from "@/lib/admin-advent";
+import { ADVENT_NO_STORE_HEADERS } from "@/lib/advent-http";
 
 export const dynamic = "force-dynamic";
-const NO_STORE = { "Cache-Control": "private, no-store" };
 const ISO_EXPLICIT_ZONE_DATE_TIME = /^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})(?:\.\d+)?(Z|[+-](?:(?:0\d|1[0-3]):[0-5]\d|14:00))$/;
 
 export async function GET(req: NextRequest) {
@@ -19,7 +19,7 @@ export async function GET(req: NextRequest) {
   }
   try {
     const result = await previewAdminAdventDays(parsedTime);
-    return NextResponse.json(result.body, { status: result.status, headers: NO_STORE });
+    return NextResponse.json(result.body, { status: result.status, headers: ADVENT_NO_STORE_HEADERS });
   } catch (error: unknown) {
     console.error("Admin advent preview error", error);
     return jsonError("Internal server error", 500);
@@ -55,5 +55,5 @@ function parseZoneOffsetMinutes(zone: string): number | null {
 }
 
 function jsonError(error: string, status: number): NextResponse {
-  return NextResponse.json({ error }, { status, headers: NO_STORE });
+  return NextResponse.json({ error }, { status, headers: ADVENT_NO_STORE_HEADERS });
 }
