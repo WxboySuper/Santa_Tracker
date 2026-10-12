@@ -1,6 +1,7 @@
 # Security and supply-chain checks
 
 This repository runs CodeQL and dependency review from GitHub Actions.
+The repository uses the advanced CodeQL workflow; default CodeQL setup must be disabled so GitHub can accept its analysis results.
 
 ## Pull request and scheduled checks
 
@@ -27,3 +28,5 @@ gh attestation verify Santa_Tracker-vX.Y.Z-source.tar.gz --repo WxboySuper/Santa
 ```
 
 Replace `vX.Y.Z` with the release tag. Verification checks the artifact digest and the signed build provenance from GitHub Actions.
+
+The workflow does not overwrite an existing release asset. To retry after a partial upload, remove the existing source archive with `gh release delete-asset <tag> <asset-name>` and rerun the workflow. It recreates the archive from the same release tag before attesting and uploading it.
