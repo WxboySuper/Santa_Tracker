@@ -296,8 +296,10 @@ function getMigrationProperty(
   migration: Record<string, unknown>,
   key: string,
   description: string,
+  allowMissing = false,
 ): unknown {
   const descriptor = Object.getOwnPropertyDescriptor(migration, key);
+  if (descriptor === undefined && allowMissing) return undefined;
   if (descriptor === undefined || !descriptor.enumerable || !('value' in descriptor)) {
     throw new ActivitySaveMigrationError(`${description} must be an own data property`);
   }
@@ -326,7 +328,7 @@ function normalizeMigrationEntry(input: {
   assertPositiveVersion(sourceVersion);
   assertPositiveVersion(targetVersion);
   assertConsecutiveMigrationVersions(sourceVersion.version, targetVersion.version, description);
-  const migrate = getMigrationProperty(migration, 'migrate', description);
+  const migrate = getMigrationProperty(migration, 'migrate', description, true);
   if (typeof migrate !== 'function') {
     throw new ActivitySaveMigrationError(`${description} migrate must be a function`);
   }

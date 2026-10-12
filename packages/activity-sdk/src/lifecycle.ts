@@ -63,7 +63,7 @@ export const DEFAULT_LIFECYCLE: ActivityLifecycle = {
     playing: ['paused', 'completed', 'failed', 'ready', 'exited'],
     paused: ['playing', 'failed', 'ready', 'exited'],
     completed: ['ready', 'failed', 'exited'],
-    failed: ['loading', 'ready', 'failed', 'exited'],
+    failed: ['loading', 'ready', 'idle', 'failed', 'exited'],
     exited: ['loading', 'ready', 'failed', 'exited'],
   },
 };
@@ -356,11 +356,10 @@ export function applyActivityEvent(
     throw new ActivityLifecycleError('invalid_event', 'Invalid activity event');
   }
 
-  if (isProgressEvent(event)) {
-    assertCurrentState(currentState);
-    return applyProgressEvent(currentState, event);
-  }
   assertLifecycleShape(lifecycle);
   assertCurrentState(currentState);
+  if (isProgressEvent(event)) {
+    return applyProgressEvent(currentState, event);
+  }
   return applyLifecycleEvent(lifecycle, currentState, event);
 }
