@@ -49,6 +49,8 @@ const EVENT_TARGET: Record<ActivityLifecycleEvent['type'], ActivityState> = {
   exit: 'exited',
 };
 
+const PROGRESS_EVENT_TYPES = new Set<ActivityProgressEvent['type']>(['score', 'achievement']);
+
 export function canTransition(
   lifecycle: ActivityLifecycle,
   from: ActivityState,
@@ -136,17 +138,25 @@ function applyLifecycleEvent(
   return target;
 }
 
+function isActivityEvent(value: unknown): value is ActivityEvent {
+  return typeof value === 'object' && value !== null && 'type' in value && typeof value.type === 'string';
+}
+
+function isProgressEvent(event: ActivityEvent): event is ActivityProgressEvent {
+  return PROGRESS_EVENT_TYPES.has(event.type as ActivityProgressEvent['type']);
+}
+
 /** Apply one lifecycle, score, or achievement event without renderer coupling. */
 export function applyActivityEvent(
   lifecycle: ActivityLifecycle,
   currentState: ActivityState,
   event: ActivityEvent,
 ): ActivityState {
-  if (event == null || typeof event !== 'object' || typeof event.type !== 'string') {
+  if (!isActivityEvent(event)) {
     throw new Error('Invalid activity event');
   }
 
-  if (event.type === 'score' || event.type === 'achievement') {
+  if (isProgressEvent(event)) {
     return applyProgressEvent(currentState, event);
   }
   return applyLifecycleEvent(lifecycle, currentState, event);
