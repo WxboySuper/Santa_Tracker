@@ -8,8 +8,8 @@ import path from "path";
 
 describe("Flask parity - locations", () => {
   it("validates location payload and normalizes lng", () => {
-    const loc = createLocationFromPayload({ name: "Test", latitude: 10, longitude: 190, utc_offset: 0 });
-    expect(loc.longitude).toBe(-170);
+    const location = createLocationFromPayload({ name: "Test", latitude: 10, longitude: 190, utc_offset: 0 });
+    expect(location.longitude).toBe(-170);
     const negative = createLocationFromPayload({ name: "Negative", latitude: 10, longitude: -190, utc_offset: 0 });
     expect(negative.longitude).toBe(170);
   });
@@ -35,7 +35,7 @@ describe("Flask parity - locations", () => {
       createLocationFromPayload({ name: "High", latitude: 1, longitude: 1, utc_offset: 5, priority: 1 }),
     ];
     const { simulated_route } = buildSimulatedFromLocations(locs);
-    expect(simulated_route[0]!.name).toBe("High");
+    expect(simulated_route[0]?.name).toBe("High");
   });
 });
 
