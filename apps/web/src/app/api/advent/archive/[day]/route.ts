@@ -7,23 +7,33 @@ const NO_STORE = { "Cache-Control": "private, no-store" };
 export const dynamic = "force-dynamic";
 
 export async function GET(_req: Request, { params }: { params: Promise<{ day: string }> }) {
-  if (!isAdventEnabled()) return NextResponse.json({ error: "Not found" }, { status: 404, headers: NO_STORE });
+  if (!isAdventEnabled()) return jsonError("Not found", 404);
   try {
     const { day: rawDay } = await params;
-    if (!/^(?:[1-9]|1\d|2[0-4])$/.test(rawDay)) return dayNotFound();
     const day = parseDayNumber(rawDay);
     if (day === null) return dayNotFound();
     const content = await getArchiveDayContent(day);
     if (content === null) return dayNotFound();
-    if (!content.is_unlocked) return NextResponse.json({ error: "Day is locked", day: content.day, title: content.title, unlock_time: content.unlock_time }, { status: 403, headers: NO_STORE });
+    if (!content.is_unlocked) return lockedDay(content);
     return NextResponse.json(content, { headers: NO_STORE });
   } catch (error: unknown) {
-    if (error instanceof Error && error.message.includes("not found")) return NextResponse.json({ error: "Advent calendar data not found" }, { status: 404, headers: NO_STORE });
+    if (error instanceof Error && error.message.includes("not found")) return jsonError("Advent calendar data not found", 404);
     console.error("Advent archive error", error);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500, headers: NO_STORE });
+    return jsonError("Internal server error", 500);
   }
 }
 
 function dayNotFound(): NextResponse {
-  return NextResponse.json({ error: "Day not found" }, { status: 404, headers: NO_STORE });
+  return jsonError("Day not found", 404);
+}
+
+function jsonError(error: string, status: number): NextResponse {
+  return NextResponse.json({ error }, { status, headers: NO_STORE });
+}
+
+function lockedDay(content: { day: number; title: string; unlock_time: string }): NextResponse {
+  return NextResponse.json(
+    { error: "Day is locked", day: content.day, title: content.title, unlock_time: content.unlock_time },
+    { status: 403, headers: NO_STORE },
+  );
 }
