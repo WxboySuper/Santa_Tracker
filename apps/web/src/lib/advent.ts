@@ -221,16 +221,17 @@ function parseUnlockTime(day: AdventDay): Date {
   return new Date(day.unlock_time.replace("Z", "+00:00"));
 }
 
-export function isPlayable(day: AdventDay, opts: { mode?: AdventMode; currentTime?: Date } = {}): boolean {
+export function isPlayable(day: AdventDay, opts: { mode?: AdventMode; currentTime?: Date; clock?: AdventClock } = {}): boolean {
   if (opts.mode === "archive") {
     if (day.is_unlocked_override != null) return day.is_unlocked_override;
-    const currentTime = opts.currentTime ?? trustedClock();
+    const currentTime = resolveCurrentTime(opts);
     return currentTime.getTime() >= parseUnlockTime(day).getTime();
   }
+  if (opts.mode !== undefined && opts.mode !== "live") throw new Error(`Unknown AdventMode: ${String(opts.mode)}`);
   return isUnlocked(day, opts.currentTime);
 }
 
-export function toDict(day: AdventDay, opts: { includePayload?: boolean; currentTime?: Date; mode?: AdventMode } = {}): AdventPublicDay {
+export function toDict(day: AdventDay, opts: { includePayload?: boolean; currentTime?: Date; clock?: AdventClock; mode?: AdventMode } = {}): AdventPublicDay {
   const unlocked = isPlayable(day, opts);
   const result: AdventPublicDay = {
     day: day.day,
@@ -264,6 +265,7 @@ export function getArchiveDayContent(dayNumber: number, options: AdventQueryOpti
 }
 
 function resolveCurrentTime(options: AdventQueryOptions): Date {
+  if (options.currentTime !== undefined && options.clock !== undefined) throw new Error("Pass only one of currentTime or clock");
   return options.currentTime ?? options.clock?.() ?? trustedClock();
 }
 
@@ -272,6 +274,7 @@ function isNotFoundError(error: unknown): boolean {
 }
 
 export function parseDayNumber(rawDay: string): number | null {
+  if (!/^(?:[1-9]|1\d|2[0-4])$/.test(rawDay)) return null;
   const dayNumber = Number(rawDay);
   return Number.isInteger(dayNumber) && dayNumber >= 1 && dayNumber <= 24 ? dayNumber : null;
 }

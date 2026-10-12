@@ -4,10 +4,13 @@ import { getArchiveDayContent, parseDayNumber } from "@/lib/advent";
 
 const NO_STORE = { "Cache-Control": "private, no-store" };
 
+export const dynamic = "force-dynamic";
+
 export async function GET(_req: Request, { params }: { params: Promise<{ day: string }> }) {
-  if (!isAdventEnabled()) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (!isAdventEnabled()) return NextResponse.json({ error: "Not found" }, { status: 404, headers: NO_STORE });
   try {
     const { day: rawDay } = await params;
+    if (!/^(?:[1-9]|1\d|2[0-4])$/.test(rawDay)) return dayNotFound();
     const day = parseDayNumber(rawDay);
     if (day === null) return dayNotFound();
     const content = await getArchiveDayContent(day);

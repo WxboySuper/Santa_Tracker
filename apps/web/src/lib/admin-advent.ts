@@ -63,8 +63,8 @@ export async function updateAdminAdventDay(rawDay: string, payload: unknown): Pr
   }
 }
 
-function applyAdventDayUpdate(dayNumber: number, payload: unknown): Promise<AdminApiResult> {
-  if (!isRecord(payload)) return Promise.resolve(badRequest("No data provided"));
+async function applyAdventDayUpdate(dayNumber: number, payload: unknown): Promise<AdminApiResult> {
+  if (!isRecord(payload)) return badRequest("No data provided");
   return withWriteLock(async () => {
     const dict = await loadAdventCalendarDict();
     const existing = dict.get(dayNumber);
@@ -158,8 +158,8 @@ export async function previewAdminAdventDays(previewTime: Date): Promise<AdminAp
       body: {
         preview_time: previewTime.toISOString(),
         days: days.map(day => {
-          const preview = toDict(day, { includePayload: true, currentTime: previewTime });
-          return { ...preview, payload: day.payload, is_unlocked_override: day.is_unlocked_override ?? null, is_unlocked_at_preview_time: preview.is_unlocked };
+          const preview = toDict(day, { includePayload: false, currentTime: previewTime });
+          return { ...preview, payload: day.payload, is_unlocked_override: day.is_unlocked_override ?? null };
         }),
         total_days: days.length,
       },
