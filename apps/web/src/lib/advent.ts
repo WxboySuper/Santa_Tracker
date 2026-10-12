@@ -35,12 +35,19 @@ export interface AdventApiResult {
   body: object;
 }
 
+export type AdventClock = () => Date;
+export type AdventMode = "live" | "archive";
+
+export const trustedClock: AdventClock = () => new Date();
+
 interface AdventFileOptions {
   filePath?: string;
 }
 
 interface AdventQueryOptions extends AdventFileOptions {
   currentTime?: Date;
+  clock?: AdventClock;
+  mode?: AdventMode;
 }
 
 interface AdventTextValue {
@@ -204,14 +211,22 @@ export async function loadAdventCalendarDict(options: AdventFileOptions = {}): P
   return daysByNumber;
 }
 
-export function isUnlocked(day: AdventDay, currentTime: Date = new Date()): boolean {
+export function isUnlocked(day: AdventDay, currentTime: Date = trustedClock()): boolean {
   if (day.is_unlocked_override != null) return day.is_unlocked_override;
   const unlock = new Date(day.unlock_time.replace("Z", "+00:00"));
   return currentTime.getTime() >= unlock.getTime();
 }
 
-export function toDict(day: AdventDay, opts: { includePayload?: boolean; currentTime?: Date } = {}): AdventPublicDay {
-  const unlocked = isUnlocked(day, opts.currentTime);
+export function isPlayable(day: AdventDay, opts: { mode?: AdventMode; currentTime?: Date } = {}): boolean {
+  if (opts.mode === "archive") {
+    const scheduledUnlock = new Date(day.unlock_time.replace("Z", "+00:00"));
+    return opts.currentTime !== undefined && opts.currentTime.getTime() >= scheduledUnlock.getTime();
+  }
+  return isUnlocked(day, opts.currentTime);
+}
+
+export function toDict(day: AdventDay, opts: { includePayload?: boolean; currentTime?: Date; mode?: AdventMode } = {}): AdventPublicDay {
+  const unlocked = isPlayable(day, opts);
   const result: AdventPublicDay = {
     day: day.day,
     title: day.title,
@@ -225,7 +240,8 @@ export function toDict(day: AdventDay, opts: { includePayload?: boolean; current
 
 export async function getManifest(options: AdventQueryOptions = {}): Promise<AdventManifest> {
   const { data: days } = await loadCachedAdventCalendar(options);
-  const daysData = days.map(d => toDict(d, { includePayload: false, currentTime: options.currentTime }));
+  const currentTime = options.currentTime ?? options.clock?.() ?? trustedClock();
+  const daysData = days.map(d => toDict(d, { includePayload: false, currentTime, mode: options.mode }));
   return { total_days: days.length, days: daysData };
 }
 
@@ -234,7 +250,12 @@ export async function getDayContent(dayNumber: number, options: AdventQueryOptio
   const { byDay } = await loadCachedAdventCalendar(options);
   const day = byDay.get(dayNumber);
   if (!day) return null;
-  return toDict(day, { includePayload: true, currentTime: options.currentTime });
+  const currentTime = options.currentTime ?? options.clock?.() ?? trustedClock();
+  return toDict(day, { includePayload: true, currentTime, mode: options.mode });
+}
+
+export async function getArchiveDayContent(dayNumber: number, clock: AdventClock = trustedClock): Promise<AdventPublicDay | null> {
+  return getDayContent(dayNumber, { currentTime: clock(), mode: "archive" });
 }
 
 function isNotFoundError(error: unknown): boolean {

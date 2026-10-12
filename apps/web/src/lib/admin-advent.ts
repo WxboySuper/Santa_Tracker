@@ -6,6 +6,7 @@ import {
   loadAdventCalendarDict,
   parseDayNumber,
   saveAdventCalendar,
+  toDict,
   validateAdventCalendar,
   type AdventDay,
 } from "./advent";
@@ -143,6 +144,26 @@ export async function listAdminAdventDays(): Promise<AdminApiResult> {
   try {
     const days = await loadAdventCalendar();
     return { status: 200, body: { days: days.map(adminDayView), total_days: days.length } };
+  } catch (error) {
+    return notFoundAwareError(error, NOT_FOUND_BODY);
+  }
+}
+
+export async function previewAdminAdventDays(previewTime: Date): Promise<AdminApiResult> {
+  if (Number.isNaN(previewTime.getTime())) return badRequest("Invalid preview time");
+  try {
+    const days = await loadAdventCalendar();
+    return {
+      status: 200,
+      body: {
+        preview_time: previewTime.toISOString(),
+        days: days.map(day => {
+          const preview = toDict(day, { includePayload: true, currentTime: previewTime });
+          return { ...preview, is_currently_unlocked: preview.is_unlocked };
+        }),
+        total_days: days.length,
+      },
+    };
   } catch (error) {
     return notFoundAwareError(error, NOT_FOUND_BODY);
   }

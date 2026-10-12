@@ -1,5 +1,13 @@
 # Changelog — per-PR exhaustive (enforced in CI)
 
+## [PR #269] - 2026-10-12 - feat(advent): add trusted unlock preview and archive access
+
+- **Unlocks:** Public Advent reads use the server clock, with explicit clock injection available to deterministic tests.
+- **Preview:** Adds an authenticated, read-only admin preview endpoint at `/api/admin/advent/preview?at=...`; preview time is never written to calendar data or used by public routes.
+- **Archive:** Adds `/api/advent/archive/:day` for activities whose scheduled unlock has passed, so they remain playable after the live season changes.
+- **Tests:** Covers UTC boundary equality, preview isolation, and archive access rules.
+- **Docs:** Documents the clock, preview, and archive contracts in `docs/ADVENT_CALENDAR_API.md`.
+
 ## [Unreleased] — CI: add OCR pull request reviews
 
 - **Review:** Adds automated Muse Spark reviews with inline findings, a sticky digest, and a manual /ocr trigger.

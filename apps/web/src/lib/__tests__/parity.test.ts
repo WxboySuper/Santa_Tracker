@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { validateLocations, createLocationFromPayload } from "../locations";
 import { buildSimulatedFromLocations } from "../route-sim";
-import { isUnlocked, toDict, validateAdventCalendar, type AdventDay } from "../advent";
+import { isPlayable, isUnlocked, toDict, validateAdventCalendar, type AdventDay } from "../advent";
 import { createAdminToken, verifyAdminToken, verifyAdminPassword } from "../auth";
 import fs from "fs";
 import path from "path";
@@ -47,6 +47,18 @@ describe("Advent parity", () => {
     expect(isUnlocked(future)).toBe(false);
     expect(isUnlocked({ ...future, is_unlocked_override: true })).toBe(true);
     expect(isUnlocked({ ...past, is_unlocked_override: false })).toBe(false);
+  });
+  it("uses an inclusive UTC boundary", () => {
+    const boundary = new Date("2026-12-01T00:00:00.000Z");
+    const day = { ...past, unlock_time: boundary.toISOString() };
+    expect(isUnlocked(day, new Date(boundary.getTime() - 1))).toBe(false);
+    expect(isUnlocked(day, boundary)).toBe(true);
+  });
+  it("keeps archive playability separate from live override state", () => {
+    const day = { ...future, unlock_time: "2026-12-01T00:00:00Z", is_unlocked_override: false };
+    const archiveTime = new Date("2026-12-25T00:00:00Z");
+    expect(isUnlocked(day, archiveTime)).toBe(false);
+    expect(isPlayable(day, { mode: "archive", currentTime: archiveTime })).toBe(true);
   });
   it("toDict hides payload when locked", () => {
     const d = toDict(future, { includePayload: true });

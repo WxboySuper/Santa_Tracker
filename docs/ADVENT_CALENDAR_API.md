@@ -4,6 +4,14 @@
 
 The Advent Calendar Core Engine provides a backend system for storing, unlocking, and serving daily Advent content for December 1-24. The system uses server-authoritative unlock logic based on UTC time and supports admin overrides for testing and special cases.
 
+## Unlock, preview, and archive rules
+
+Public manifest and day requests compare each `unlock_time` with the trusted server clock in UTC. The boundary is inclusive: a day unlocks when the server time is exactly equal to its configured time. Clients cannot provide a public clock value.
+
+Authenticated admins can inspect a hypothetical time with `GET /api/admin/advent/preview?at=2026-12-05T00:00:00Z`. The endpoint requires the normal admin bearer token or cookie and does not write the preview time or change `is_unlocked_override`. A later public request still uses the server clock.
+
+Archived reads use `GET /api/advent/archive/:day`. A day is available there after its scheduled unlock time, even when the live seasonal mode has moved on. Archive availability is derived from the immutable schedule and does not create or modify unlock state.
+
 ## Features
 
 - **Server-Controlled Unlocking**: Days unlock automatically at UTC midnight based on configured unlock times
