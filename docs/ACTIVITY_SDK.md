@@ -2,10 +2,11 @@
 
 `@santa-tracker/activity-sdk` provides browser-independent lifecycle and save contracts, plus shared input, audio, and telemetry helpers for Advent activities. Activities can use the same contracts with DOM, canvas, or optional WebGL renderers; the SDK does not own a rendering loop or require browser globals.
 
-Import lifecycle and save helpers from the package root, and use the explicit subpaths for input, audio, and telemetry:
+Import lifecycle and save helpers from their explicit subpaths. Input, audio, and telemetry also have dedicated subpaths:
 
 ```ts
-import { applyActivityEvent, migrateActivitySave, type ActivitySaveMigration } from '@santa-tracker/activity-sdk';
+import { applyActivityEvent } from '@santa-tracker/activity-sdk/lifecycle';
+import { migrateActivitySave, type ActivitySaveMigration } from '@santa-tracker/activity-sdk/save';
 import { normalizeInput } from '@santa-tracker/activity-sdk/input';
 import { audioPreferencesFrom, createAudioController } from '@santa-tracker/activity-sdk/audio';
 import { completionEvent, failureEvent } from '@santa-tracker/activity-sdk/telemetry';
@@ -15,7 +16,9 @@ import { completionEvent, failureEvent } from '@santa-tracker/activity-sdk/telem
 
 `ActivityEvent` covers loading, start, pause, resume, reset, completion, errors, exit, score, and achievement progress. Use `applyActivityEvent` to validate an event against the current state and transition table. Start is valid from `ready`, resume from `paused`, and pause or completion from `playing`. Score and achievement events leave the lifecycle state unchanged. Scores must be finite and emitted while playing; achievements need a non-empty id and may be emitted while playing or immediately after completion.
 
-`DEFAULT_LIFECYCLE` is the common state graph. Custom `ActivityLifecycle` graphs can narrow the allowed transitions and may omit the optional `exited` transition list for compatibility; without that list, exit transitions are rejected. Lifecycle events enforce their source states: load accepts idle, ready, failed, or exited; start requires ready; pause and complete require playing; resume requires paused. Reset returns a loaded activity to `ready`; resetting an idle activity is always a no-op and does not require an `idle -> idle` edge. Error events can move any state to `failed` in the default graph; failed activities can return to `idle`, `loading`, or `ready` for recovery. Exit moves to `exited`; an exited activity can be loaded or reset for a later play session.
+`DEFAULT_LIFECYCLE` is the common state graph. This contract adds the `exited` state and expands several default transitions. Consumers that persist lifecycle states separately must handle `exited` and review the changed edges; `ActivitySaveEnvelope` does not version lifecycle state. `canTransition` validates the graph and runtime states, so malformed graphs or unknown runtime states throw `ActivityLifecycleError` instead of returning `false`.
+
+Custom `ActivityLifecycle` graphs can narrow allowed transitions and may omit the optional `exited` transition list for compatibility; without an incoming edge to `exited`, exit attempts fail with `invalid_transition`. Lifecycle events enforce their source states: load accepts idle, ready, failed, or exited; start requires ready; pause and complete require playing; resume requires paused. Reset returns a loaded activity to `ready`; resetting an idle activity is always a no-op and does not require an `idle -> idle` edge. Other same-state events still require their explicit self-loop in the transition table. Error events can move any state to `failed` in the default graph; custom graphs may reject the transition. Failed activities can return to `idle`, `loading`, or `ready` for recovery. Exit moves to `exited`; an exited activity can be loaded or reset for a later play session.
 
 Error events carry a stable, non-personal `code`. Keep exception text and user-supplied content out of event payloads. Invalid configuration, state, transition, and event errors are instances of `ActivityLifecycleError` with a stable `code`. Renderer adapters can map browser keyboard, pointer, touch, audio, and rendering APIs to these contracts without changing lifecycle logic.
 

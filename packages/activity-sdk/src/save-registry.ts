@@ -63,38 +63,57 @@ function assertConsecutiveMigrationVersions(
   }
 }
 
+function isMigrationRecord(value: unknown): value is Record<string, unknown> {
+  if (value === null) return false;
+  if (typeof value !== 'object') return false;
+  return !Array.isArray(value);
+}
+
+function readMigrationVersion(input: {
+  migration: Record<string, unknown>;
+  key: 'fromVersion' | 'toVersion';
+  description: string;
+}): number {
+  const { migration, key, description } = input;
+  const version = {
+    version: getMigrationProperty({ migration, key, description }),
+    description: `${description} ${key === 'fromVersion' ? 'source' : 'target'} schema version`,
+  };
+  assertPositiveVersion(version);
+  return version.version;
+}
+
+function getMigrationHandler(
+  migration: Record<string, unknown>,
+  description: string,
+): ActivitySaveMigration['migrate'] {
+  const handler = getOptionalMigrationProperty({ migration, key: 'migrate', description });
+  if (typeof handler !== 'function') {
+    throw new ActivitySaveMigrationError(`${description} migrate must be a function`);
+  }
+  return handler as ActivitySaveMigration['migrate'];
+}
+
 function normalizeMigrationEntry(input: {
   migration: unknown;
   index: number;
 }): ActivitySaveMigration {
   const { migration, index } = input;
   const description = `Migration at index ${index}`;
-  if (typeof migration !== 'object' || migration === null || Array.isArray(migration)) {
+  if (!isMigrationRecord(migration)) {
     throw new ActivitySaveMigrationError(`${description} must be an object`);
   }
-  const migrationRecord = migration as Record<string, unknown>;
+  const migrationRecord = migration;
   const activityId = getMigrationProperty({ migration: migrationRecord, key: 'activityId', description });
   assertActivityId(activityId, `${description} activity id`);
-  const sourceVersion = {
-    version: getMigrationProperty({ migration: migrationRecord, key: 'fromVersion', description }),
-    description: `${description} source schema version`,
-  };
-  const targetVersion = {
-    version: getMigrationProperty({ migration: migrationRecord, key: 'toVersion', description }),
-    description: `${description} target schema version`,
-  };
-  assertPositiveVersion(sourceVersion);
-  assertPositiveVersion(targetVersion);
-  assertConsecutiveMigrationVersions(sourceVersion.version, targetVersion.version, description);
-  const migrate = getOptionalMigrationProperty({ migration: migrationRecord, key: 'migrate', description });
-  if (typeof migrate !== 'function') {
-    throw new ActivitySaveMigrationError(`${description} migrate must be a function`);
-  }
+  const fromVersion = readMigrationVersion({ migration: migrationRecord, key: 'fromVersion', description });
+  const toVersion = readMigrationVersion({ migration: migrationRecord, key: 'toVersion', description });
+  assertConsecutiveMigrationVersions(fromVersion, toVersion, description);
   return {
     activityId,
-    fromVersion: sourceVersion.version,
-    toVersion: targetVersion.version,
-    migrate: migrate as ActivitySaveMigration['migrate'],
+    fromVersion,
+    toVersion,
+    migrate: getMigrationHandler(migrationRecord, description),
   };
 }
 

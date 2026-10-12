@@ -3,6 +3,8 @@
 ## [Unreleased] — Activity save contract (#266)
 
 - **Activity SDK:** Defines renderer-independent load, start, pause, resume, reset, complete, error, exit, score, and achievement events with lifecycle transition validation.
+- **Lifecycle compatibility:** Adds the `exited` state and expands the default transition graph. `canTransition` now throws `ActivityLifecycleError` for malformed graphs or unknown runtime states. Consumers persisting lifecycle state separately must handle the new state and review the changed transitions; save envelopes do not version lifecycle state.
+- **Package exports:** Adds explicit `./lifecycle` and `./save` entry points and named root exports so consumers can import these contracts independently.
 - **Saves:** Adds activity-specific versioned save envelopes and consecutive migration steps; missing, ambiguous, invalid, and downgrade paths fail explicitly.
 - **Runtime validation:** Rejects sparse transition lists and invalid lifecycle states with stable SDK errors, while preserving support for legacy graphs that omit exited transitions. Splits recursive JSON validation into focused checks without broadening accepted save values.
 - **Docs and tests:** Documents integration for DOM, canvas, and optional WebGL renderers and tests lifecycle events, progress events, and migration behavior.

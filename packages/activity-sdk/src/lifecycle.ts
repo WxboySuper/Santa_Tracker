@@ -98,7 +98,7 @@ function assertLifecycleRecord(lifecycle: unknown): asserts lifecycle is Record<
 }
 
 function assertLifecycleId(id: unknown): asserts id is string {
-  if (typeof id !== 'string' || id.trim() === '') {
+  if (typeof id !== 'string' || id.trim() === '' || id !== id.trim()) {
     throw new ActivityLifecycleError('invalid_configuration', 'Invalid lifecycle configuration: id must be a non-empty string');
   }
 }
@@ -254,38 +254,43 @@ type ProgressEventRuleMap = {
     event: Extract<ActivityProgressEvent, { type: Type }>,
   ) => string | undefined;
 };
-type ProgressEventRule = (state: ActivityState, event: ActivityProgressEvent) => string | undefined;
 
 /**
  * Single source of truth for progress events: the keys of this record define
  * the accepted progress event types, so no separate type list is kept.
  */
 const progressEventRules = {
-  score: (currentState: ActivityState, event: ActivityProgressEvent): string | undefined =>
-    event.type === 'score'
-    && currentState === 'playing'
+  score: (currentState: ActivityState, event: Extract<ActivityProgressEvent, { type: 'score' }>): string | undefined =>
+    currentState === 'playing'
     && typeof event.value === 'number'
     && Number.isFinite(event.value)
       ? undefined
       : `Score events require a finite value while playing (state: ${currentState})`,
-  achievement: (currentState: ActivityState, event: ActivityProgressEvent): string | undefined => {
-    if (event.type !== 'achievement') {
-      return `Achievement events require an id while playing or completed (state: ${currentState})`;
-    }
+  achievement: (currentState: ActivityState, event: Extract<ActivityProgressEvent, { type: 'achievement' }>): string | undefined => {
     const validState = currentState === 'playing' || currentState === 'completed';
-    const validId = typeof event.achievementId === 'string' && event.achievementId.trim() !== '';
+    const validId = typeof event.achievementId === 'string'
+      && event.achievementId.trim() !== ''
+      && event.achievementId === event.achievementId.trim();
     return validState && validId
       ? undefined
       : `Achievement events require an id while playing or completed (state: ${currentState})`;
   },
-} satisfies ProgressEventRuleMap & Record<ActivityProgressEvent['type'], ProgressEventRule>;
+} satisfies ProgressEventRuleMap;
 
 function isProgressEvent(event: ActivityEvent): event is ActivityProgressEvent {
   return hasOwn(progressEventRules, event.type);
 }
 
 function applyProgressEvent(currentState: ActivityState, event: ActivityProgressEvent): ActivityState {
-  const message = progressEventRules[event.type](currentState, event);
+  let message: string | undefined;
+  switch (event.type) {
+    case 'score':
+      message = progressEventRules.score(currentState, event);
+      break;
+    case 'achievement':
+      message = progressEventRules.achievement(currentState, event);
+      break;
+  }
   if (message !== undefined) throw new ActivityLifecycleError('invalid_event', message);
   return currentState;
 }
@@ -320,17 +325,16 @@ const lifecycleEventRules = {
       ? undefined
       : `Complete events require playing state (state: ${currentState})`,
   error: (_currentState: ActivityState, event: ActivityLifecycleEvent): string | undefined =>
-    event.type === 'error' && typeof event.code === 'string' && event.code.trim() !== ''
+    typeof (event as { code?: unknown }).code === 'string'
+    && (event as { code: string }).code.trim() !== ''
+    && (event as { code: string }).code === (event as { code: string }).code.trim()
       ? undefined
       : 'Error events require a stable code',
   exit: (): undefined => undefined,
 } satisfies Record<ActivityLifecycleEvent['type'], LifecycleEventRule>;
 
 function validateLifecycleEvent(currentState: ActivityState, event: ActivityLifecycleEvent): void {
-  const rule = hasOwn(lifecycleEventRules, event.type) ? lifecycleEventRules[event.type] : undefined;
-  if (rule === undefined) {
-    throw new ActivityLifecycleError('invalid_event', `Unknown activity event type: ${event.type}`);
-  }
+  const rule = lifecycleEventRules[event.type];
   const message = rule(currentState, event);
   if (message !== undefined) {
     throw new ActivityLifecycleError('invalid_event', message);
@@ -356,7 +360,19 @@ function applyLifecycleEvent(
 
 function assertCurrentState(value: unknown): asserts value is ActivityState {
   if (!isActivityState(value)) {
-    throw new ActivityLifecycleError('invalid_state', `Invalid activity state: ${String(value)}`);
+    throw new ActivityLifecycleError('invalid_state', `Invalid activity state: ${formatInvalidState(value)}`);
+  }
+}
+
+function formatInvalidState(value: unknown): string {
+  try {
+    return String(value);
+  } catch {
+    try {
+      return Object.prototype.toString.call(value);
+    } catch {
+      return '[unprintable]';
+    }
   }
 }
 

@@ -90,7 +90,7 @@ function isThenable(value: unknown): boolean {
 
 function observeNativePromiseRejection(value: unknown): boolean {
   try {
-    const _observedPromise = Promise.prototype.then.call(
+    void Promise.prototype.then.call(
       value as Promise<unknown>,
       undefined,
       () => undefined,
