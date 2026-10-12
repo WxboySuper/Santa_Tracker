@@ -213,8 +213,18 @@ function assertExitedTransitionsIfReachable(input: {
   transitions: Partial<Record<ActivityState, ActivityState[]>>;
 }): void {
   const { lifecycleId, initialState, transitions } = input;
-  if (hasOwn(transitions, 'exited')) return;
-  const canReachExited = Object.values(transitions).some((allowed) => allowed?.includes('exited') ?? false);
+  let hasExitedTransitions: boolean;
+  let canReachExited: boolean;
+  try {
+    hasExitedTransitions = hasOwn(transitions, 'exited');
+    canReachExited = Object.values(transitions).some((allowed) => allowed?.includes('exited') ?? false);
+  } catch {
+    throw new ActivityLifecycleError(
+      'invalid_configuration',
+      `Invalid lifecycle configuration ${lifecycleId}: transitions must be inspectable`,
+    );
+  }
+  if (hasExitedTransitions) return;
   if (initialState !== 'exited' && !canReachExited) return;
   throw new ActivityLifecycleError(
     'invalid_configuration',

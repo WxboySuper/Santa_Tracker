@@ -11,7 +11,13 @@ function isAllowedJsonArrayKey(key: PropertyKey, length: number): boolean {
 }
 
 function assertJsonArrayKeys(value: unknown[], path: string, length: number): void {
-  const hasExtraKey = Reflect.ownKeys(value).some((key) => !isAllowedJsonArrayKey(key, length));
+  let keys: PropertyKey[];
+  try {
+    keys = Reflect.ownKeys(value);
+  } catch {
+    throw new ActivitySaveMigrationError(`Save value at ${path} must be an inspectable JSON array`);
+  }
+  const hasExtraKey = keys.some((key) => !isAllowedJsonArrayKey(key, length));
   if (hasExtraKey) {
     throw new ActivitySaveMigrationError(`Save value at ${path} must not contain extra array keys`);
   }
