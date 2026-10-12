@@ -262,12 +262,7 @@ function assertSaveEnvelope(save: unknown): asserts save is ActivitySaveEnvelope
   if (!isRecord(save)) {
     throw new ActivitySaveMigrationError('Invalid activity save envelope');
   }
-  for (const key of ['payload', 'activityId', 'schemaVersion', 'savedAtIso']) {
-    const value = getOwnSaveProperty(save, key);
-    if (key === 'payload' && value === undefined) {
-      throw new ActivitySaveMigrationError('Save envelope payload must not be undefined');
-    }
-  }
+  assertRequiredSaveFields(save);
   assertActivityId(save.activityId);
   assertPositiveVersion({ version: save.schemaVersion, description: 'Save schema version' });
   assertIsoTimestamp(save.savedAtIso);
@@ -290,6 +285,15 @@ function getOwnSaveProperty(
     throw new ActivitySaveMigrationError(message);
   }
   return descriptor.value;
+}
+
+function assertRequiredSaveFields(save: Record<string, unknown>): void {
+  for (const key of ['payload', 'activityId', 'schemaVersion', 'savedAtIso']) {
+    const value = getOwnSaveProperty(save, key);
+    if (key === 'payload' && value === undefined) {
+      throw new ActivitySaveMigrationError('Save envelope payload must not be undefined');
+    }
+  }
 }
 
 function assertMigrationEntry(input: {
