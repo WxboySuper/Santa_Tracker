@@ -4,6 +4,7 @@ import {
   isValidUnlockTime,
   loadAdventCalendar,
   loadAdventCalendarDict,
+  MAX_ADVENT_DAY,
   parseDayNumber,
   saveAdventCalendar,
   toDict,
@@ -21,7 +22,7 @@ function dayNotFound(): AdminApiResult {
 }
 
 function invalidDayNumber(): AdminApiResult {
-  return badRequest("Day number must be between 1 and 24");
+  return badRequest(`Day number must be between 1 and ${MAX_ADVENT_DAY}`);
 }
 
 export async function getAdminAdventDay(rawDay: string): Promise<AdminApiResult> {

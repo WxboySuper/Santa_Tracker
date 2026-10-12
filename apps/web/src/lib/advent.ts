@@ -66,7 +66,7 @@ class AdventDataNotFoundError extends Error {
 
 const cache = new Map<string, CachedAdventCalendar>();
 const CONTENT_TYPES = ["fact", "game", "story", "video", "activity", "quiz"] as const;
-const MAX_ADVENT_DAY = 24;
+export const MAX_ADVENT_DAY = 24;
 
 function clone<T>(value: T): T {
   return JSON.parse(JSON.stringify(value));
@@ -126,7 +126,7 @@ function validateRequiredFields(day: Record<string, unknown>): void {
 
 function validateDayNumber(day: unknown): number {
   if (!isValidDayNumber(day)) {
-    throw new Error(`Day must be between 1 and 24, got ${String(day)}`);
+    throw new Error(`Day must be between 1 and ${MAX_ADVENT_DAY}, got ${String(day)}`);
   }
   return day;
 }
@@ -403,7 +403,7 @@ function duplicateDayErrors(days: AdventDay[]): string[] {
 
 function missingDayWarnings(days: AdventDay[]): string[] {
   const nums = days.map(d => d.day);
-  const expected = new Set(Array.from({ length: 24 }, (_, i) => i + 1));
+  const expected = new Set(Array.from({ length: MAX_ADVENT_DAY }, (_, i) => i + 1));
   const actual = new Set(nums);
   const missing = [...expected].filter(d => !actual.has(d));
   return missing.length > 0 ? [`Missing days: ${missing.sort((a, b) => a - b)}`] : [];
