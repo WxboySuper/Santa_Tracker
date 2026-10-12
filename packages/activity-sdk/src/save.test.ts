@@ -90,4 +90,27 @@ describe('@santa-tracker/activity-sdk save migrations', () => {
       ]),
     ).toThrow(/must advance exactly one schema version/);
   });
+
+  it('rejects invalid envelopes and does not expose payload aliases to migrations', () => {
+    expect(() => migrateActivitySave(null as never, 1, [])).toThrow(ActivitySaveMigrationError);
+    expect(() => migrateActivitySave(save(), 1, undefined as never)).toThrow(
+      /Migrations must be an array/,
+    );
+    expect(() => migrateActivitySave({ ...save(), savedAtIso: 'invalid' }, 1, [])).toThrow(
+      /valid ISO date/,
+    );
+    const source = save({ points: 1 });
+    migrateActivitySave(source, 2, [
+      {
+        activityId,
+        fromVersion: 1,
+        toVersion: 2,
+        migrate: (payload) => {
+          (payload as { points: number }).points = 2;
+          return payload;
+        },
+      },
+    ]);
+    expect(source.payload).toEqual({ points: 1 });
+  });
 });

@@ -65,4 +65,25 @@ describe('@santa-tracker/activity-sdk', () => {
       applyActivityEvent(DEFAULT_LIFECYCLE, 'playing', { type: 'error', code: '  ' }),
     ).toThrow(/require a stable code/);
   });
+
+  it('rejects invalid runtime event shapes and distinguishes start from resume', () => {
+    expect(() => applyActivityEvent(DEFAULT_LIFECYCLE, 'ready', { type: 'resume' } as never)).toThrow(
+      /Resume events require paused state/,
+    );
+    expect(() => applyActivityEvent(DEFAULT_LIFECYCLE, 'paused', { type: 'start' })).toThrow(
+      /cannot resume/,
+    );
+    expect(() => applyActivityEvent(DEFAULT_LIFECYCLE, 'playing', { type: 'bogus' } as never)).toThrow(
+      /Unknown activity event type/,
+    );
+    expect(() => applyActivityEvent(DEFAULT_LIFECYCLE, 'playing', null as never)).toThrow(
+      /Invalid activity event/,
+    );
+  });
+
+  it('validates reset against a custom transition table and permits repeated exit', () => {
+    const custom = { ...DEFAULT_LIFECYCLE, transitions: { ...DEFAULT_LIFECYCLE.transitions, idle: [] } };
+    expect(() => applyActivityEvent(custom, 'idle', { type: 'reset' })).toThrow(/Invalid transition/);
+    expect(applyActivityEvent(DEFAULT_LIFECYCLE, 'exited', { type: 'exit' })).toBe('exited');
+  });
 });

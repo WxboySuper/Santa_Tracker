@@ -34,7 +34,7 @@ export const DEFAULT_LIFECYCLE: ActivityLifecycle = {
     paused: ['playing', 'failed', 'ready', 'exited'],
     completed: ['ready', 'exited'],
     failed: ['loading', 'ready', 'exited'],
-    exited: ['loading', 'ready'],
+    exited: ['loading', 'ready', 'exited'],
   },
 };
 
@@ -54,7 +54,7 @@ export function canTransition(
   from: ActivityState,
   to: ActivityState,
 ): boolean {
-  const allowed = lifecycle.transitions[from] ?? [];
+  const allowed = lifecycle?.transitions?.[from] ?? [];
   return allowed.includes(to);
 }
 
@@ -64,7 +64,39 @@ export function assertTransition(
   to: ActivityState,
 ): void {
   if (!canTransition(lifecycle, from, to)) {
-    throw new Error(`Invalid transition ${from} -> ${to} for lifecycle ${lifecycle.id}`);
+    throw new Error(`Invalid transition ${from} -> ${to} for lifecycle ${lifecycle?.id ?? 'unknown'}`);
+  }
+}
+
+function applyProgressEvent(currentState: ActivityState, event: ActivityProgressEvent): ActivityState {
+  if (event.type === 'score') {
+    if (currentState !== 'playing' || !Number.isFinite(event.value)) {
+      throw new Error(`Score events require a finite value while playing (state: ${currentState})`);
+    }
+    return currentState;
+  }
+
+  if (
+    (currentState !== 'playing' && currentState !== 'completed') ||
+    typeof event.achievementId !== 'string' ||
+    event.achievementId.trim() === ''
+  ) {
+    throw new Error(
+      `Achievement events require an id while playing or completed (state: ${currentState})`,
+    );
+  }
+  return currentState;
+}
+
+function validateLifecycleEvent(currentState: ActivityState, event: ActivityLifecycleEvent): void {
+  if (event.type === 'error' && (typeof event.code !== 'string' || event.code.trim() === '')) {
+    throw new Error('Error events require a stable code');
+  }
+  if (event.type === 'start' && currentState === 'paused') {
+    throw new Error(`Start events cannot resume a paused activity (state: ${currentState})`);
+  }
+  if (event.type === 'resume' && currentState !== 'paused') {
+    throw new Error(`Resume events require paused state (state: ${currentState})`);
   }
 }
 
@@ -74,35 +106,26 @@ export function applyActivityEvent(
   currentState: ActivityState,
   event: ActivityEvent,
 ): ActivityState {
-  if (event.type === 'score') {
-    if (currentState !== 'playing' || !Number.isFinite(event.value)) {
-      throw new Error(`Score events require a finite value while playing (state: ${currentState})`);
-    }
-    return currentState;
+  if (event == null || typeof event !== 'object' || typeof event.type !== 'string') {
+    throw new Error('Invalid activity event');
   }
 
-  if (event.type === 'achievement') {
-    if (
-      (currentState !== 'playing' && currentState !== 'completed') ||
-      event.achievementId.trim() === ''
-    ) {
-      throw new Error(
-        `Achievement events require an id while playing or completed (state: ${currentState})`,
-      );
-    }
-    return currentState;
-  }
-
-  if (event.type === 'error' && event.code.trim() === '') {
-    throw new Error('Error events require a stable code');
-  }
-
-  // Resetting before an activity has loaded is an idempotent return to idle.
-  if (event.type === 'reset' && currentState === 'idle') {
-    return currentState;
+  if (event.type === 'score' || event.type === 'achievement') {
+    return applyProgressEvent(currentState, event);
   }
 
   const target = EVENT_TARGET[event.type];
+  if (target === undefined) {
+    throw new Error(`Unknown activity event type: ${event.type}`);
+  }
+  validateLifecycleEvent(currentState, event);
+
+  // Resetting before an activity has loaded is an idempotent return to idle.
+  if (event.type === 'reset' && currentState === 'idle') {
+    assertTransition(lifecycle, currentState, currentState);
+    return currentState;
+  }
+
   assertTransition(lifecycle, currentState, target);
   return target;
 }

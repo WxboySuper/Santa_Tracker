@@ -29,6 +29,22 @@ function assertPositiveVersion(version: number, description: string): void {
   }
 }
 
+function assertSaveInput(
+  save: ActivitySaveEnvelope,
+  migrations: readonly ActivitySaveMigration[],
+): void {
+  if (save == null || typeof save !== 'object') {
+    throw new ActivitySaveMigrationError('Invalid activity save envelope');
+  }
+  if (!Array.isArray(migrations)) {
+    throw new ActivitySaveMigrationError('Migrations must be an array');
+  }
+  assertPositiveVersion(save.schemaVersion, 'Save schema version');
+  if (typeof save.savedAtIso !== 'string' || Number.isNaN(Date.parse(save.savedAtIso))) {
+    throw new ActivitySaveMigrationError('Save timestamp must be a valid ISO date');
+  }
+}
+
 /**
  * Upgrade a device-local save through consecutive, activity-specific
  * migrations. The input envelope is not mutated. Payload validation remains
@@ -39,7 +55,7 @@ export function migrateActivitySave(
   targetVersion: number,
   migrations: readonly ActivitySaveMigration[],
 ): ActivitySaveEnvelope {
-  assertPositiveVersion(save.schemaVersion, 'Save schema version');
+  assertSaveInput(save, migrations);
   assertPositiveVersion(targetVersion, 'Target schema version');
 
   if (save.schemaVersion > targetVersion) {
@@ -72,7 +88,11 @@ export function migrateActivitySave(
       );
     }
 
+    assertPositiveVersion(migration.fromVersion, 'Migration source schema version');
     assertPositiveVersion(migration.toVersion, 'Migration target schema version');
+    if (payload !== null && typeof payload === 'object') {
+      payload = structuredClone(payload);
+    }
     payload = migration.migrate(payload);
     schemaVersion = migration.toVersion;
   }
