@@ -45,6 +45,47 @@ function assertSaveInput(
   }
 }
 
+function indexMigrations(
+  migrations: readonly ActivitySaveMigration[],
+  activityId: ActivityId,
+): Map<number, ActivitySaveMigration> {
+  const indexed = new Map<number, ActivitySaveMigration>();
+  for (const migration of migrations) {
+    if (migration.activityId !== activityId) continue;
+    if (indexed.has(migration.fromVersion)) {
+      throw new ActivitySaveMigrationError(
+        `Multiple migrations for activity ${activityId} from schema ${migration.fromVersion}`,
+      );
+    }
+    indexed.set(migration.fromVersion, migration);
+  }
+  return indexed;
+}
+
+function applyMigration(
+  migration: ActivitySaveMigration | undefined,
+  activityId: ActivityId,
+  schemaVersion: number,
+  payload: unknown,
+): unknown {
+  if (migration === undefined) {
+    throw new ActivitySaveMigrationError(
+      `No migration for activity ${activityId} from schema ${schemaVersion}`,
+    );
+  }
+  if (migration.toVersion !== schemaVersion + 1) {
+    throw new ActivitySaveMigrationError(
+      `Migration for activity ${activityId} must advance exactly one schema version`,
+    );
+  }
+  assertPositiveVersion(migration.fromVersion, 'Migration source schema version');
+  assertPositiveVersion(migration.toVersion, 'Migration target schema version');
+  const isolatedPayload = payload !== null && typeof payload === 'object'
+    ? structuredClone(payload)
+    : payload;
+  return migration.migrate(isolatedPayload);
+}
+
 /**
  * Upgrade a device-local save through consecutive, activity-specific
  * migrations. The input envelope is not mutated. Payload validation remains
@@ -64,37 +105,14 @@ export function migrateActivitySave(
     );
   }
 
+  const indexedMigrations = indexMigrations(migrations, save.activityId);
   let schemaVersion = save.schemaVersion;
   let payload = save.payload;
 
   while (schemaVersion < targetVersion) {
-    const candidates = migrations.filter(
-      (migration) =>
-        migration.activityId === save.activityId && migration.fromVersion === schemaVersion,
-    );
-
-    if (candidates.length !== 1) {
-      throw new ActivitySaveMigrationError(
-        candidates.length === 0
-          ? `No migration for activity ${save.activityId} from schema ${schemaVersion}`
-          : `Multiple migrations for activity ${save.activityId} from schema ${schemaVersion}`,
-      );
-    }
-
-    const migration = candidates[0];
-    if (migration?.toVersion !== schemaVersion + 1) {
-      throw new ActivitySaveMigrationError(
-        `Migration for activity ${save.activityId} must advance exactly one schema version`,
-      );
-    }
-
-    assertPositiveVersion(migration.fromVersion, 'Migration source schema version');
-    assertPositiveVersion(migration.toVersion, 'Migration target schema version');
-    if (payload !== null && typeof payload === 'object') {
-      payload = structuredClone(payload);
-    }
-    payload = migration.migrate(payload);
-    schemaVersion = migration.toVersion;
+    const migration = indexedMigrations.get(schemaVersion);
+    payload = applyMigration(migration, save.activityId, schemaVersion, payload);
+    schemaVersion += 1;
   }
 
   return { ...save, schemaVersion, payload };
