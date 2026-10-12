@@ -63,8 +63,8 @@ export async function updateAdminAdventDay(rawDay: string, payload: unknown): Pr
   }
 }
 
-async function applyAdventDayUpdate(dayNumber: number, payload: unknown): Promise<AdminApiResult> {
-  if (!isRecord(payload)) return badRequest("No data provided");
+function applyAdventDayUpdate(dayNumber: number, payload: unknown): Promise<AdminApiResult> {
+  if (!isRecord(payload)) return Promise.resolve(badRequest("No data provided"));
   return withWriteLock(async () => {
     const dict = await loadAdventCalendarDict();
     const existing = dict.get(dayNumber);

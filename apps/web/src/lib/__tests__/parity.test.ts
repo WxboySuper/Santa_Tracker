@@ -17,17 +17,17 @@ describe("Flask parity - locations", () => {
     expect(() => createLocationFromPayload({ name: "Bad", latitude: 100, longitude: 0, utc_offset: 0 })).toThrow();
   });
   it("validateLocations detects duplicates", () => {
-    const a = createLocationFromPayload({ name: "A", latitude: 0, longitude: 0, utc_offset: 0 });
-    const b = createLocationFromPayload({ name: "A", latitude: 1, longitude: 1, utc_offset: 1 });
-    const res = validateLocations([a, b]);
-    expect(res.valid).toBe(false);
-    expect(res.errors.join()).toContain("Duplicate");
+    const firstLocation = createLocationFromPayload({ name: "A", latitude: 0, longitude: 0, utc_offset: 0 });
+    const secondLocation = createLocationFromPayload({ name: "A", latitude: 1, longitude: 1, utc_offset: 1 });
+    const validation = validateLocations([firstLocation, secondLocation]);
+    expect(validation.valid).toBe(false);
+    expect(validation.errors.join()).toContain("Duplicate");
   });
   it("validateLocations warns on near-duplicate coords", () => {
-    const a = createLocationFromPayload({ name: "A", latitude: 0, longitude: 0, utc_offset: 0 });
-    const b = createLocationFromPayload({ name: "B", latitude: 0.00001, longitude: 0, utc_offset: 0 });
-    const res = validateLocations([a, b]);
-    expect(res.warnings.length).toBeGreaterThan(0);
+    const firstLocation = createLocationFromPayload({ name: "A", latitude: 0, longitude: 0, utc_offset: 0 });
+    const secondLocation = createLocationFromPayload({ name: "B", latitude: 0.00001, longitude: 0, utc_offset: 0 });
+    const validation = validateLocations([firstLocation, secondLocation]);
+    expect(validation.warnings.length).toBeGreaterThan(0);
   });
   it("buildSimulated sorts by utc_offset desc then priority", () => {
     const locs = [
