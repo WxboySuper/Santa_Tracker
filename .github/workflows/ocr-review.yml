@@ -1,0 +1,430 @@
+name: Review | OCR
+
+# Side-by-side review trial with Santa Tracker's existing /oc OpenCode assistant.
+# Non-interference design:
+# - Own concurrency group, so it cannot cancel another Santa Tracker workflow.
+# - Own sticky digest marker and manual /ocr trigger.
+# - The gate reports findings and errors as a failed check. The current
+#   repository ruleset requires review-thread resolution but does not yet
+#   require this check's status while the reviewer is being evaluated.
+# - Picky by design: high effort, full re-review every push, and scoped rules
+#   in .opencodereview/rule.json.
+
+# Model: Muse Spark via the OpenCode Go subscription endpoint, using the same
+# OPENCODE_API_KEY secret name as the existing /oc workflow. Muse Spark serves
+# the OpenAI Responses API, so llm_protocol is openai-responses and the URL
+# ends in /responses, not /chat/completions.
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened, ready_for_review]
+  issue_comment:
+    types: [created]
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: PR number to review
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: >-
+    ${{
+      (github.event_name == 'pull_request_target'
+        || (github.event_name == 'issue_comment'
+          && github.event.issue.pull_request
+          && github.event.comment.user.type != 'Bot'
+          && startsWith(github.event.comment.body, '/ocr')
+          && contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.comment.author_association)))
+        && format('santa-ocr-{0}', github.event.pull_request.number || github.event.issue.number)
+        || format('santa-ocr-noop-{0}', github.run_id)
+    }}
+  cancel-in-progress: true
+
+jobs:
+  review:
+    if: |
+      github.event_name == 'pull_request_target'
+      || github.event_name == 'workflow_dispatch'
+      || (
+        github.event_name == 'issue_comment'
+        && github.event.issue.pull_request
+        && github.event.comment.user.type != 'Bot'
+        && startsWith(github.event.comment.body, '/ocr')
+        && contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.comment.author_association)
+      )
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Check Muse Spark credentials
+        id: auth
+        env:
+          OCR_LLM_AUTH_TOKEN: ${{ secrets.OPENCODE_API_KEY }}
+        shell: bash
+        run: |
+          if [[ -z "$OCR_LLM_AUTH_TOKEN" ]]; then
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+
+            echo "::warning::OCR review skipped because OPENCODE_API_KEY is not configured."
+          else
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Resolve PR refs for comment or dispatch triggers
+        id: pr-refs
+        if: github.event_name != 'pull_request_target' && steps.auth.outputs.configured == 'true'
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7.1.0
+        with:
+          script: |
+            const prNumber = Number(
+              context.payload.issue?.number ?? context.payload.inputs?.pr_number,
+            );
+            if (!Number.isInteger(prNumber) || prNumber < 1) {
+              core.setFailed('No valid PR number for the OCR review.');
+              return;
+            }
+            const { data: pull } = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: prNumber,
+            });
+            core.setOutput('pr_number', String(prNumber));
+            core.setOutput('base_ref', pull.base.ref);
+            core.setOutput('head_sha', pull.head.sha);
+
+      - name: Run OCR review with Muse Spark
+        id: ocr
+        if: steps.auth.outputs.configured == 'true'
+        uses: alibaba/open-code-review@357c3f09a264563ab64d8f4fc3b25b186cd3c4a4 # main as of 2026-10-10
+        with:
+          llm_url: ${{ vars.OCR_LLM_URL || 'https://opencode.ai/zen/go/v1/responses' }}
+          llm_auth_token: ${{ secrets.OPENCODE_API_KEY }}
+          # The Go gateway 400s every request without x-opencode-session
+          # (MissingSessionID). The run ID is stable for the conversation,
+          # since each workflow run performs exactly one review.
+          llm_extra_headers: 'x-opencode-session=ocr-${{ github.run_id }}'
+          llm_model: ${{ vars.OCR_LLM_MODEL || 'muse-spark-1.3-contributor' }}
+          llm_use_anthropic: 'false'
+          llm_protocol: ${{ vars.OCR_LLM_PROTOCOL || 'openai-responses' }}
+          # Keep the action's Anthropic-style default extra_body off this
+          # OpenAI-Responses request. Probe runs showed the gateway accepts
+          # every body field OCR sends (tools, store, include, cache key)
+          # once the session header is present; '{}' simply stays neutral.
+          llm_extra_body: '{}'
+          language: English
+          effort: high
+          review_task_timeout: '20'
+          sticky_summary: 'true'
+          incremental: 'false'
+          resolve_outdated: 'false'
+          upload_artifacts: 'true'
+          rule: .opencodereview/rule.json
+          base_ref: ${{ steps.pr-refs.outputs.base_ref }}
+          head_sha: ${{ steps.pr-refs.outputs.head_sha }}
+          pr_number: ${{ steps.pr-refs.outputs.pr_number }}
+
+      - name: Post OCR digest summary
+        id: ocr-digest
+        if: always() && steps.ocr.outcome != 'cancelled' && steps.ocr.outcome != 'skipped'
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7.1.0
+        env:
+          OCR_OUTCOME: ${{ steps.ocr.outcome }}
+          DIGEST_PR_NUMBER: ${{ steps.pr-refs.outputs.pr_number }}
+          DIGEST_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          DIGEST_HEAD_SHA: ${{ steps.pr-refs.outputs.head_sha }}
+          DIGEST_PAYLOAD_SHA: ${{ github.event.pull_request.head.sha }}
+        with:
+          script: |
+            // Advisory-only takeaway comment. Never fails the job: any
+            // problem logs a warning and skips, so a digest hiccup can never
+            // block a review or a merge. Uses its own marker, distinct from
+            // the OCR action's summary comment.
+            // pr-refs exposes the PR number and head SHA as step outputs for
+            // dispatch/comment runs. pull_request_target uses its event payload.
+            const MARKER = '<!-- santa-ocr-digest -->';
+            const findDigestComment = async (prNumber) => {
+              // Paginated: on busy PRs the marker can sit past page one.
+              // Retried: a flaked lookup must not masquerade a stale digest.
+              const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+              const listPage = async (page) => {
+                for (let attempt = 0; attempt < 3; attempt++) {
+                  try {
+                    return await github.rest.issues.listComments({
+                      owner: context.repo.owner,
+                      repo: context.repo.repo,
+                      issue_number: prNumber,
+                      per_page: 100,
+                      page,
+                    });
+                  } catch (error) {
+                    if (attempt === 2) throw error;
+                    core.warning('OCR digest comment lookup failed; retrying.');
+                    await wait(5000);
+                  }
+                }
+              };
+              for (let page = 1; page <= 20; page++) {
+                const { data: existing } = await listPage(page);
+                const match = existing.find((item) =>
+                  item.user?.login === 'github-actions[bot]' && (item.body || '').includes(MARKER),
+                );
+                if (match || existing.length < 100) return match || null;
+              }
+              return null;
+            };
+            const esc = (s) => String(s).replace(/[\r\n]+/g, ' ').replace(/\\/g, '\\\\').replace(/[\x60_*<>\[\]]/g, function (m) { return '\\' + m; }).replace(/@/g, '@\u200b');
+            try {
+              const outcome = process.env.OCR_OUTCOME || 'unknown';
+              const prNumber = Number(
+                process.env.DIGEST_PR_NUMBER
+                  || context.payload.pull_request?.number
+                  || context.payload.issue?.number,
+              );
+              if (!Number.isInteger(prNumber) || prNumber < 1) {
+                core.warning('OCR digest: no PR number; skipping.');
+                return;
+              }
+              if (outcome !== 'success') {
+                // Don't leave a previous run's digest masquerading as current:
+                // mark the existing comment stale instead of posting anew.
+                const stale = await findDigestComment(prNumber);
+                if (stale) {
+                    const prior = String(stale.body || '').split(MARKER).slice(1).join(MARKER).replace(/<details>[\s\S]*?<\/details>/g, '').trim();
+                  await github.rest.issues.updateComment({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    comment_id: stale.id,
+                    body: MARKER + '\n## OCR review digest \u2014 stale\n\n'
+                     + 'Latest run did not complete; prior findings preserved below.\n\nFull log: ' + esc(process.env.DIGEST_RUN_URL || '')
+                     + (prior ? '\n\n<details><summary>Previous digest</summary>\n\n' + prior + '\n\n</details>' : ''),
+                  });
+                  core.info('OCR digest marked stale.');
+                } else {
+                  core.warning(`OCR digest: review outcome was ${outcome}; skipping.`);
+                }
+                return;
+              }
+              const fs = require('fs');
+              let result;
+              try {
+                // Written by the OCR action's run step (see run logs:
+                // `ocr review ... > /tmp/ocr-result.json`); shape-checked below.
+                result = JSON.parse(fs.readFileSync('/tmp/ocr-result.json', 'utf8'));
+                core.info(`OCR digest: read result file (${result?.summary?.files_reviewed ?? '?'} files).`);
+              } catch (error) {
+                core.warning(`OCR digest: unreadable result file (${error.message}); skipping.`);
+                return;
+              }
+              const summary = result.summary || {};
+              const groups = Array.isArray(result.groups) ? result.groups : [];
+              const comments = Array.isArray(result.comments) ? result.comments : [];
+              const files = groups.flatMap((g) => Array.isArray(g.files) ? g.files : []);
+              // Dispatch/comment runs use pr-refs outputs. On
+              // pull_request_target use the event payload SHA.
+              const headSha = (
+                process.env.DIGEST_HEAD_SHA
+                || process.env.DIGEST_PAYLOAD_SHA
+                || ''
+              ).slice(0, 7);
+              const elapsed = summary.elapsed || '?';
+              const tokens = summary.total_tokens ?? '?';
+
+              const sevOf = (c) => String(
+                c.severity || c.priority || c.level || '',
+              ).toLowerCase();
+              const isHot = (c) => /\bcritical\b|\bhigh\b|^p0$|^p1$|\bblocker\b/.test(sevOf(c));
+              const hot = comments.filter(isHot).length;
+
+              const excerpt = (c) => {
+                const text = String(
+                  c.message || c.title || c.body || c.text || '',
+                ).replace(/\s+/g, ' ').trim();
+                return text.length > 300 ? `${text.slice(0, 297)}...` : text;
+              };
+              const locOf = (c) => {
+                const path = c.path || c.file || c.filename || 'unknown file';
+                return c.line ? `${path}:${c.line}` : path;
+              };
+
+              const lines = [
+                `## OCR review digest — ${headSha ? `\`${headSha}\`` : 'this revision'}`,
+                '',
+                comments.length === 0
+                  ? `✅ Clean: ${summary.files_reviewed ?? files.length} file(s) reviewed, no findings.`
+                  : `⚠️ ${comments.length} finding(s)${hot ? `, ${hot} critical/high` : ''} — resolve every inline thread to merge.`,
+                '',
+                `Scope: ${files.length ? files.slice(0, 20).map((f) => `\`${esc(f)}\``).join(', ') : 'n/a'}${files.length > 20 ? ` (+${files.length - 20} more)` : ''}`,
+              ];
+              for (const c of [...comments].sort((a, b) => Number(isHot(b)) - Number(isHot(a))).slice(0, 20)) {
+                const sev = sevOf(c) || 'n/a';
+                lines.push(`- **${esc(sev)}** ${esc(locOf(c))} — ${esc(excerpt(c)) || '(see inline thread)'}`);
+              }
+              if (comments.length > 20) lines.push(`- …and ${comments.length - 20} more (see inline threads)`);
+              lines.push(
+                '',
+                `Cost: ${esc(tokens)} tokens in ${esc(elapsed)}. Full log: ${esc(process.env.DIGEST_RUN_URL || '')}`,
+              );
+
+              const body = `${MARKER}\n${lines.join('\n')}`;
+              const match = await findDigestComment(prNumber);
+              if (match) {
+                await github.rest.issues.updateComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  comment_id: match.id,
+                  body,
+                });
+              } else {
+                await github.rest.issues.createComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: prNumber,
+                  body,
+                });
+              }
+              core.info(`OCR digest posted (${comments.length} finding(s), ${files.length} file(s)).`);
+            } catch (error) {
+              core.warning(`OCR digest skipped: ${error.message}`);
+            }
+
+      - name: Enforce zero open OCR threads (merge gate)
+        id: ocr-gate
+        if: always() && steps.auth.outputs.configured == 'true'
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7.1.0
+        env:
+          OCR_OUTCOME: ${{ steps.ocr.outcome }}
+          OCR_COMMENTS_TOTAL: ${{ steps.ocr.outputs.comments_total }}
+          GATE_PR_NUMBER: ${{ env.PR_NUMBER }}
+        with:
+          script: |
+            // Fail-closed merge gate: the review must complete, post zero
+            // findings, and leave zero unresolved bot-authored review threads.
+            // Anything else fails this check. Note the Main Ruleset already
+            // requires review-thread resolution, so unresolved inline threads
+            // block merge even without this job in required_status_checks.
+            const outcome = process.env.OCR_OUTCOME || 'unknown';
+            if (outcome !== 'success') {
+              core.setFailed(`OCR review did not complete (outcome=${outcome}). Fix the reviewer before merging.`);
+              return;
+            }
+            const posted = Number(process.env.OCR_COMMENTS_TOTAL || '0');
+            if (Number.isInteger(posted) && posted > 0) {
+              core.setFailed(`OCR posted ${posted} finding(s) this run. Address or resolve every inline thread, then push again.`);
+              return;
+            }
+            const prNumber = Number(
+              process.env.GATE_PR_NUMBER
+                || context.payload.pull_request?.number
+                || context.payload.issue?.number,
+            );
+            if (!Number.isInteger(prNumber) || prNumber < 1) {
+              core.setFailed('OCR gate could not resolve a PR number; failing closed.');
+              return;
+            }
+            let cursor = null;
+            let openBotThreads = 0;
+            const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+            // GitHub's search/GraphQL tier flakes (timeouts, 502s). Retry a
+            // bounded number of times, then fail closed — never fail open.
+            const queryThreads = async (after) => {
+              const delaysMs = [5000, 15000, 30000];
+              let lastError = null;
+              for (let attempt = 0; attempt <= delaysMs.length; attempt++) {
+                try {
+                  return await github.graphql(
+                    `query($owner: String!, $repo: String!, $number: Int!, $after: String) {
+                      repository(owner: $owner, name: $repo) {
+                        pullRequest(number: $number) {
+                          reviewThreads(first: 100, after: $after) {
+                            nodes {
+                              isResolved
+                              comments(first: 20) { nodes { author { login } } }
+                            }
+                            pageInfo { hasNextPage endCursor }
+                          }
+                        }
+                      }
+                    }`,
+                    {
+                      owner: context.repo.owner,
+                      repo: context.repo.repo,
+                      number: prNumber,
+                      after,
+                    },
+                  );
+                } catch (error) {
+                  lastError = error;
+                  const status = error?.status ?? error?.response?.status;
+                  const msg = String(error?.message || '');
+                  const transient = /timeout|timed out|econn|socket hang|eai_again|502|503|504|temporarily/i.test(msg);
+                  const retryable = status === 429 || status === 408 || (status ?? 0) >= 500 || (status == null && transient) || (status === 403 && /rate limit|secondary|abuse/i.test(msg));
+                  if (!retryable || attempt === delaysMs.length) break;
+                  core.warning(`OCR gate thread query attempt ${attempt + 1} failed (${error.message}); retrying.`);
+                  await sleep(delaysMs[attempt]);
+                }
+              }
+              core.setFailed(`OCR gate could not read review threads after ${delaysMs.length + 1} attempts (${lastError && lastError.message}); failing closed.`);
+              return null;
+            };
+            const MAX_PAGES = 20;
+            // Two passes: GitHub needs a moment to index just-posted threads,
+            // so a clean first pass waits 20s and re-checks before passing.
+            for (let pass = 0; pass < 2; pass++) {
+              openBotThreads = 0;
+              cursor = null;
+              for (let page = 0; page < MAX_PAGES; page++) {
+              const data = await queryThreads(cursor);
+              if (!data) return;
+              const connection = data?.repository?.pullRequest?.reviewThreads;
+              if (!connection) {
+                core.setFailed('OCR gate could not read review threads; failing closed.');
+                return;
+              }
+              for (const thread of connection.nodes ?? []) {
+                const authors = (thread.comments?.nodes ?? []).map((c) => c?.author?.login);
+                if (!thread.isResolved && authors.includes('github-actions[bot]')) {
+                  openBotThreads += 1;
+                }
+              }
+              if (!connection.pageInfo?.hasNextPage) break;
+              if (connection.pageInfo.endCursor === cursor) {
+                core.setFailed('OCR gate review-thread pagination did not advance; failing closed.');
+                return;
+              }
+              cursor = connection.pageInfo.endCursor ?? null;
+              if (page === MAX_PAGES - 1) {
+                core.setFailed('OCR gate hit the thread pagination cap; failing closed.');
+                return;
+              }
+            }
+            if (openBotThreads === 0 && pass === 0) {
+              core.info('OCR gate first pass clean; waiting 20s for indexing, then re-checking.');
+              await sleep(20000);
+              continue;
+            }
+            if (openBotThreads > 0) {
+              core.setFailed(`${openBotThreads} unresolved reviewer thread(s) remain on PR #${prNumber}. Resolve every inline comment before merging.`);
+              return;
+            }
+            core.info('OCR gate clean: review completed with no findings and no unresolved reviewer threads.');
+            }
+
+      - name: Review summary
+        if: always()
+        run: |
+          {
+            if [ "${{ steps.auth.outputs.configured }}" != "true" ]; then
+              echo "OCR review skipped because OPENCODE_API_KEY is not configured.";
+            else
+              echo "OCR review outcome=${{ steps.ocr.outcome }}.";
+              if [ "${{ steps.ocr.outcome }}" = "success" ]; then
+                echo "OCR review posted. Compare with the /oc assistant response on the same PR.";
+              else
+                echo "OCR review did NOT post (outcome=${{ steps.ocr.outcome }}). No comparison available for this run.";
+              fi
+              echo "inline=${{ steps.ocr.outputs.comments_inline }} total=${{ steps.ocr.outputs.comments_total }} failed=${{ steps.ocr.outputs.comments_failed }} summary=${{ steps.ocr.outputs.summary_comment_url }}";
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
