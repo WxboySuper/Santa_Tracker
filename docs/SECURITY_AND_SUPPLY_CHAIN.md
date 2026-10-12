@@ -5,7 +5,7 @@ The repository uses the advanced CodeQL workflow; default CodeQL setup must be d
 
 ## Pull request and scheduled checks
 
-- `.github/workflows/codeql.yml` analyzes JavaScript/TypeScript and GitHub Actions workflow code on pull requests to `main`, pushes to `main`, and weekly.
+- `.github/workflows/codeql.yml` analyzes JavaScript/TypeScript, configured Python sources, and GitHub Actions workflow code on pull requests to `main`, pushes to `main`, and weekly. The CodeQL configuration excludes archived Flask code.
 - The CodeQL configuration at `.github/codeql/codeql-config.yml` excludes archived Flask code, generated content, and data files from the scan.
 - `.github/workflows/dependency-review.yml` reviews dependency changes in pull requests to `main`. It blocks newly introduced vulnerabilities rated moderate or higher across runtime, development, and unknown dependency scopes.
 - Dependabot continues to open weekly dependency update pull requests. Dependency review checks lockfile and manifest changes before merge. Dependabot also proposes weekly grouped minor and patch updates to GitHub Actions used by workflows; major action updates remain separate for review.
@@ -29,4 +29,4 @@ gh attestation verify Santa_Tracker-vX.Y.Z-source.tar.gz --repo WxboySuper/Santa
 
 Replace `vX.Y.Z` with the release tag. Verification checks the artifact digest and the signed build provenance from GitHub Actions.
 
-The workflow does not overwrite an existing release asset. To retry after a partial upload, remove the existing source archive with `gh release delete-asset <tag> <asset-name>` and rerun the workflow. It recreates the archive from the same release tag before attesting and uploading it.
+The workflow does not overwrite an existing release asset. To retry after a partial upload, list the assets with `gh release view <tag> --json assets --jq '.assets[].name'`, then remove the existing source archive with `gh release delete-asset <tag> <asset-name>` and rerun the workflow. It recreates the archive from the same release tag before attesting and uploading it.

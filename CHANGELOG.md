@@ -2,7 +2,7 @@
 
 ## [Unreleased] - Security automation (#316)
 
-- **Code scanning:** Adds weekly and pull-request CodeQL analysis for the active JavaScript/TypeScript app and GitHub Actions workflows, using the repository's existing exclusions for archived and generated files.
+- **Code scanning:** Adds weekly and pull-request CodeQL analysis for the active JavaScript/TypeScript app, configured Python sources, and GitHub Actions workflows, using the repository's existing exclusions for archived and generated files.
 - **Dependency review:** Checks pull-request dependency changes and blocks new moderate-or-higher vulnerabilities across runtime, development, and unknown scopes. Existing Dependabot updates continue to supply lockfile changes for review. Adds weekly grouped minor and patch updates for GitHub Actions used by workflows.
 - **Workflow hardening:** Pins CodeQL, dependency-review, checkout, and attestation actions to verified commit SHAs. Removes unused permissions, scopes release write access to its job, and disables persisted checkout credentials.
 - **Reliability:** Prevents pushes from cancelling scheduled CodeQL scans, adds workflow concurrency and time limits, sanitizes release tags in archive filenames, and prevents release reruns from overwriting attested assets.

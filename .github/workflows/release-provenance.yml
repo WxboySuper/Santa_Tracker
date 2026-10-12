@@ -34,7 +34,7 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p dist
-          safe_release_tag="${RELEASE_TAG//\//-}"
+          safe_release_tag="$(printf '%s' "$RELEASE_TAG" | LC_ALL=C tr -c 'A-Za-z0-9._-' '-')"
           source_archive="${REPOSITORY_NAME}-${safe_release_tag}-source.tar.gz"
           git archive \
             --format=tar.gz \
