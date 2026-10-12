@@ -1,13 +1,23 @@
 # Activity SDK
 
-`@santa-tracker/activity-sdk` contains browser-independent contracts shared by Advent activities.
-Import these helpers from documented subpaths so clients load only what they need:
+`@santa-tracker/activity-sdk` provides browser-independent lifecycle and save contracts, plus shared input, audio, and telemetry helpers for Advent activities. Activities can use the same contracts with DOM, canvas, or optional WebGL renderers; the SDK does not own a rendering loop or require browser globals.
+
+Import lifecycle and save helpers from the package root, and use the explicit subpaths for input, audio, and telemetry:
 
 ```ts
+import { applyActivityEvent, migrateActivitySave, type ActivitySaveMigration } from '@santa-tracker/activity-sdk';
 import { normalizeInput } from '@santa-tracker/activity-sdk/input';
 import { audioPreferencesFrom, createAudioController } from '@santa-tracker/activity-sdk/audio';
 import { completionEvent, failureEvent } from '@santa-tracker/activity-sdk/telemetry';
 ```
+
+## Lifecycle and progress events
+
+`ActivityEvent` covers loading, start, pause, resume, reset, completion, errors, exit, score, and achievement progress. Use `applyActivityEvent` to validate an event against the current state and transition table. Start is valid from `ready`, resume from `paused`, and pause or completion from `playing`. Score and achievement events leave the lifecycle state unchanged. Scores must be finite and emitted while playing; achievements need a non-empty id and may be emitted while playing or immediately after completion.
+
+`DEFAULT_LIFECYCLE` is the common state graph. Custom `ActivityLifecycle` graphs can narrow the allowed transitions. Reset returns a loaded activity to `ready`; resetting an idle activity is a no-op. A failed activity can return to `idle` or `loading` for recovery. Exit moves to `exited`; an exited activity can be loaded or reset for a later play session. `ActivityLifecycleError` reports malformed configurations, invalid events, states, and transitions with stable error codes.
+
+Error events carry a stable, non-personal `code`. Keep exception text and user-supplied content out of event payloads. Renderer adapters can map browser keyboard, pointer, touch, audio, and rendering APIs to these contracts without changing lifecycle logic.
 
 ## Input
 
@@ -15,8 +25,33 @@ Call `normalizeInput` with a small event-shaped object. Keyboard keys map to sta
 
 ## Audio and sensory preferences
 
-Create preferences with `audioPreferencesFrom`. Audio is opt-in by default. Volume defaults to 1 when unspecified and is clamped to the inclusive range 0 to 1; non-finite stored values resolve to silence. `createAudioController` will not call its injected player when preferences or the player are missing, when the sound id is blank, when audio is disabled, muted, silent (including non-finite stored volume), or when `reducedSensory` is true. The trimmed sound id is forwarded to the player.
+Create preferences with `audioPreferencesFrom`. Audio is opt-in by default. Volume defaults to 1 when unspecified and is clamped to the inclusive range 0 to 1; non-finite stored values resolve to silence. `createAudioController` will not call its injected player when preferences or the player are malformed, when the sound id is blank, when audio is disabled, muted, silent, or when `reducedSensory` is true. The trimmed sound id is forwarded to the player.
 
 ## Telemetry
 
-Use `completionEvent` (accepts `score`, `durationMs`) and `failureEvent` (accepts `durationMs`, `reason`) for activity outcomes. Authoritative `activityId` and `event` fields cannot be overridden by caller payloads, extra keys are dropped, and only finite scores, non-negative finite durations, and non-empty reasons are kept. `activityId` must be a non-empty string; full canonical ID-pattern validation stays in `@santa-tracker/contracts`. Their typed payloads contain the activity ID and gameplay metrics only. Do not add names, email addresses, account IDs, or other identity fields to these events.
+Use `completionEvent` (accepts `score`, `durationMs`) and `failureEvent` (accepts `durationMs`, `reason`) for activity outcomes. Authoritative `activityId` and `event` fields cannot be overridden by caller payloads, extra keys are dropped, and only finite scores, non-negative finite durations, and non-empty trimmed reasons are kept. `activityId` must be a non-empty string; full canonical ID-pattern validation stays in `@santa-tracker/contracts`. These payloads contain activity IDs and gameplay metrics only. Do not add names, email addresses, account IDs, or other identity fields.
+
+## Device-local saves
+
+Store progress in an `ActivitySaveEnvelope` with the stable `ActivityId`, a positive safe integer `schemaVersion`, an ISO date-time string, and activity-owned `payload`. Saves are device-local and contain no visitor or account identity. Payloads must be JSON-compatible: null, strings, booleans, finite numbers, arrays, and plain objects. Values such as `undefined`, `bigint`, functions, symbols, dates, cyclic objects, accessors, and non-enumerable properties are rejected.
+
+When an activity changes its payload shape, add one `ActivitySaveMigration` for each schema version step and call `migrateActivitySave` with the target version. Migrations are scoped to an activity id and run in ascending consecutive order. Each step must synchronously return a JSON-compatible payload; input saves and migration results are cloned so migrations cannot mutate stored data through shared references. The activity remains responsible for validating the final payload against its own schema. Missing or duplicate steps, version gaps, invalid versions, and downgrades throw `ActivitySaveMigrationError`.
+
+`savedAtIso` must use an extended ISO date-time form with a timezone. Numeric timezone offsets are limited to `-12:00` through `+14:00`.
+
+```ts
+import { createActivityId } from '@santa-tracker/contracts';
+import { migrateActivitySave, type ActivitySaveMigration } from '@santa-tracker/activity-sdk';
+
+const activityId = createActivityId('snowman-puzzle');
+const migrations: ActivitySaveMigration[] = [
+  {
+    activityId,
+    fromVersion: 1,
+    toVersion: 2,
+    migrate: (payload) => ({ score: (payload as { points: number }).points }),
+  },
+];
+
+const currentSave = migrateActivitySave(legacySave, 2, migrations);
+```

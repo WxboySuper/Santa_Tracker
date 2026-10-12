@@ -1,5 +1,11 @@
 # Changelog — per-PR exhaustive (enforced in CI)
 
+## [Unreleased] — Activity save contract (#266)
+
+- **Activity SDK:** Defines renderer-independent load, start, pause, resume, reset, complete, error, exit, score, and achievement events with lifecycle transition validation.
+- **Saves:** Adds activity-specific versioned save envelopes and consecutive migration steps; missing, ambiguous, invalid, and downgrade paths fail explicitly.
+- **Docs and tests:** Documents integration for DOM, canvas, and optional WebGL renderers and tests lifecycle events, progress events, and migration behavior.
+
 ## [Unreleased] — CI: add OCR pull request reviews
 
 - **Review:** Adds automated Muse Spark reviews with inline findings, a sticky digest, and a manual /ocr trigger.
