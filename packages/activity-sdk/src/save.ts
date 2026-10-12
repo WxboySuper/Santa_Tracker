@@ -95,9 +95,9 @@ function assertJsonArrayEntries(
 }
 
 function isJsonArrayIndexKey(key: PropertyKey, length: number): boolean {
-  if (typeof key !== 'string') return false;
-  const index = Number(key);
-  return Number.isInteger(index) && index >= 0 && String(index) === key && index < length;
+  return typeof key === 'string'
+    && /^(0|[1-9]\d*)$/.test(key)
+    && Number(key) < length;
 }
 
 function isAllowedJsonArrayKey(key: PropertyKey, length: number): boolean {
@@ -163,9 +163,8 @@ function assertPositiveVersion(input: {
   description: string;
 }): asserts input is { version: number; description: string } {
   if (
-    typeof input.version !== 'number' ||
     !Number.isSafeInteger(input.version) ||
-    input.version < 1
+    (input.version as number) < 1
   ) {
     throw new ActivitySaveMigrationError(`${input.description} must be a positive safe integer`);
   }
@@ -180,75 +179,39 @@ function assertActivityId(
   }
 }
 
-type IsoParts = {
-  year: number;
-  month: number;
-  day: number;
-  hour: number;
-  minute: number;
-  second: number;
-  offset: string;
-};
-
-type IsoCalendarDate = Pick<IsoParts, 'year' | 'month' | 'day'>;
-type IsoClockTime = Pick<IsoParts, 'hour' | 'minute' | 'second'>;
-
 const ISO_DATE_TIME_PATTERN =
   /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.\d+)?(Z|[+-]\d{2}:?\d{2})$/;
 
-function parseIsoParts(value: string): IsoParts | undefined {
-  const match = ISO_DATE_TIME_PATTERN.exec(value);
+const ISO_OFFSET_PATTERN = /^([+-])(\d{2}):?(\d{2})$/;
+
+function parseIsoOffsetMinutes(value: string): number | undefined {
+  if (value === 'Z') return 0;
+  const match = ISO_OFFSET_PATTERN.exec(value);
   if (match === null) return undefined;
-  return {
-    // The regex guarantees each required capture. These fallbacks keep a
-    // future mismatch invalid without relying on non-null assertions.
-    year: Number(match[1] ?? 'NaN'),
-    month: Number(match[2] ?? 'NaN'),
-    day: Number(match[3] ?? 'NaN'),
-    hour: Number(match[4] ?? 'NaN'),
-    minute: Number(match[5] ?? 'NaN'),
-    second: Number(match[6] ?? 'NaN'),
-    offset: match[7] ?? 'invalid',
-  };
-}
-
-function daysInMonth({ year, month }: IsoCalendarDate): number {
-  const lengths = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
-  const isLeapYear = year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
-  if (month === 2 && isLeapYear) return 29;
-  return lengths[month - 1] ?? 0;
-}
-
-function isValidCalendarDate({ year, month, day }: IsoCalendarDate): boolean {
-  if (!Number.isSafeInteger(year) || year < 0) return false;
-  if (month < 1 || month > 12) return false;
-  return day >= 1 && day <= daysInMonth({ year, month, day });
-}
-
-function isValidClockTime({ hour, minute, second }: IsoClockTime): boolean {
-  return hour >= 0 && hour <= 23
-    && minute >= 0 && minute <= 59
-    && second >= 0 && second <= 59;
-}
-
-function isValidOffset({ offset }: Pick<IsoParts, 'offset'>): boolean {
-  if (offset === 'Z') return true;
-  // parseIsoParts already restricts this to a two-digit hour and minute.
-  const digits = offset.replace(':', '');
-  const sign = digits.startsWith('-') ? -1 : 1;
-  const hours = Number(digits.slice(1, 3));
-  const minutes = Number(digits.slice(3, 5));
+  const hours = Number(match[2]);
+  const minutes = Number(match[3]);
+  const sign = match[1] === '-' ? -1 : 1;
   const totalMinutes = sign * (hours * 60 + minutes);
-  return minutes <= 59 && totalMinutes >= -720 && totalMinutes <= 840;
+  return minutes <= 59 && totalMinutes >= -720 && totalMinutes <= 840
+    ? totalMinutes
+    : undefined;
 }
 
 function isValidIsoDateTime(value: unknown): boolean {
   if (typeof value !== 'string') return false;
-  const parts = parseIsoParts(value);
-  if (parts === undefined) return false;
-  if (!isValidCalendarDate(parts)) return false;
-  if (!isValidClockTime(parts)) return false;
-  return isValidOffset(parts);
+  const match = ISO_DATE_TIME_PATTERN.exec(value);
+  if (match === null) return false;
+  const offsetMinutes = parseIsoOffsetMinutes(match[7] ?? 'invalid');
+  if (offsetMinutes === undefined) return false;
+
+  const normalized = value
+    .replace(/\.\d+(?=Z|[+-]\d{2}:?\d{2}$)/, '')
+    .replace(/([+-]\d{2}):?(\d{2})$/, '$1:$2');
+  const timestamp = Date.parse(normalized);
+  if (!Number.isFinite(timestamp)) return false;
+
+  const localTimestamp = new Date(timestamp + offsetMinutes * 60_000);
+  return localTimestamp.toISOString().startsWith(value.slice(0, 19));
 }
 
 function assertIsoTimestamp(value: unknown): void {
@@ -438,7 +401,7 @@ function isThenable(value: unknown): boolean {
 
 function observeNativePromiseRejection(value: unknown): boolean {
   try {
-    void Promise.prototype.then.call(
+    const _observedPromise = Promise.prototype.then.call(
       value as Promise<unknown>,
       undefined,
       () => undefined,
