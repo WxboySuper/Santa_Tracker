@@ -183,6 +183,12 @@ export function assertTransition(
 
 type ScoreEvent = Extract<ActivityProgressEvent, { type: 'score' }>;
 type AchievementEvent = Extract<ActivityProgressEvent, { type: 'achievement' }>;
+type ProgressEventRuleMap = {
+  [Type in ActivityProgressEvent['type']]: (
+    state: ActivityState,
+    event: Extract<ActivityProgressEvent, { type: Type }>,
+  ) => string | undefined;
+};
 
 /**
  * Single source of truth for progress events: the keys of this record define
@@ -200,7 +206,7 @@ const progressEventRules = {
       ? undefined
       : `Achievement events require an id while playing or completed (state: ${currentState})`;
   },
-} satisfies Record<ActivityProgressEvent['type'], (state: ActivityState, event: never) => string | undefined>;
+} satisfies ProgressEventRuleMap;
 
 function isProgressEvent(event: ActivityEvent): event is ActivityProgressEvent {
   return hasOwn(progressEventRules, event.type);

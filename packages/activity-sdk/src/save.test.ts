@@ -229,8 +229,7 @@ describe('@santa-tracker/activity-sdk save migrations', () => {
     ).toThrow(ActivitySaveMigrationError);
     expect(() =>
       migrateActivitySave(save(), 2, [
-        // eslint-disable-next-line @typescript-eslint/require-await
-        { activityId, fromVersion: 1, toVersion: 2, migrate: (async (p: unknown) => p) as never },
+        { activityId, fromVersion: 1, toVersion: 2, migrate: () => ({ then: () => undefined }) },
       ]),
     ).toThrow(/synchronous/);
     expect(() =>

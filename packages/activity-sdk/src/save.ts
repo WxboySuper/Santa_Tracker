@@ -160,7 +160,9 @@ function isValidCalendarDate({ year, month, day }: IsoCalendarDate): boolean {
 }
 
 function isValidClockTime({ hour, minute, second }: IsoClockTime): boolean {
-  return hour <= 23 && minute <= 59 && second <= 59;
+  return hour >= 0 && hour <= 23
+    && minute >= 0 && minute <= 59
+    && second >= 0 && second <= 59;
 }
 
 function isValidOffset({ offset }: Pick<IsoParts, 'offset'>): boolean {
