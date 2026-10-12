@@ -88,15 +88,29 @@ function applyProgressEvent(currentState: ActivityState, event: ActivityProgress
   return currentState;
 }
 
+type LifecycleEventRule = (currentState: ActivityState, event: ActivityLifecycleEvent) => string | undefined;
+
+const lifecycleEventRules: Partial<Record<ActivityLifecycleEvent['type'], LifecycleEventRule>> = {
+  error: (_, event) => {
+    const code = (event as { code?: unknown }).code;
+    return typeof code === 'string' && code.trim() !== ''
+      ? undefined
+      : 'Error events require a stable code';
+  },
+  start: (currentState) =>
+    currentState === 'paused'
+      ? `Start events cannot resume a paused activity (state: ${currentState})`
+      : undefined,
+  resume: (currentState) =>
+    currentState !== 'paused'
+      ? `Resume events require paused state (state: ${currentState})`
+      : undefined,
+};
+
 function validateLifecycleEvent(currentState: ActivityState, event: ActivityLifecycleEvent): void {
-  if (event.type === 'error' && (typeof event.code !== 'string' || event.code.trim() === '')) {
-    throw new Error('Error events require a stable code');
-  }
-  if (event.type === 'start' && currentState === 'paused') {
-    throw new Error(`Start events cannot resume a paused activity (state: ${currentState})`);
-  }
-  if (event.type === 'resume' && currentState !== 'paused') {
-    throw new Error(`Resume events require paused state (state: ${currentState})`);
+  const message = lifecycleEventRules[event.type]?.(currentState, event);
+  if (message !== undefined) {
+    throw new Error(message);
   }
 }
 
