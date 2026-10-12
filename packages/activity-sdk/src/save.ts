@@ -279,8 +279,15 @@ function getOwnSaveProperty(
   key: string,
 ): unknown {
   const descriptor = Object.getOwnPropertyDescriptor(save, key);
-  if (descriptor === undefined || !descriptor.enumerable || !('value' in descriptor)) {
-    throw new ActivitySaveMigrationError(`Save envelope must include its own ${key} value`);
+  const message = `Save envelope must include its own ${key} value`;
+  if (descriptor === undefined) {
+    throw new ActivitySaveMigrationError(message);
+  }
+  if (!descriptor.enumerable) {
+    throw new ActivitySaveMigrationError(message);
+  }
+  if (!('value' in descriptor)) {
+    throw new ActivitySaveMigrationError(message);
   }
   return descriptor.value;
 }
