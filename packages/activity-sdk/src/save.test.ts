@@ -96,9 +96,17 @@ describe('@santa-tracker/activity-sdk save migrations', () => {
     expect(() => migrateActivitySave(save(), 1, undefined as never)).toThrow(
       /Migrations must be an array/,
     );
-    expect(() => migrateActivitySave({ ...save(), savedAtIso: 'invalid' }, 1, [])).toThrow(
-      /valid ISO date/,
-    );
+    for (const savedAtIso of ['invalid', '10/12/2026', 'October 12, 2026', '2026-02-30T12:00:00Z']) {
+      expect(() => migrateActivitySave({ ...save(), savedAtIso }, 1, [])).toThrow(/valid ISO date/);
+    }
+    for (const savedAtIso of [
+      '2026-10-12T12:00:00Z',
+      '2026-10-12T12:00:00.123456Z',
+      '2026-10-12T12:00:00+05:30',
+      '2026-10-12T12:00:00-0500',
+    ]) {
+      expect(() => migrateActivitySave({ ...save(), savedAtIso }, 1, [])).not.toThrow();
+    }
     const source = save({ points: 1 });
     migrateActivitySave(source, 2, [
       {

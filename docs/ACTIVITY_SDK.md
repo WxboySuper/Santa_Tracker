@@ -33,11 +33,11 @@ Use `completionEvent` (accepts `score`, `durationMs`) and `failureEvent` (accept
 
 ## Device-local saves
 
-Store progress in an `ActivitySaveEnvelope` with the stable `ActivityId`, a positive safe integer `schemaVersion`, an ISO date-time string, and activity-owned `payload`. Saves are device-local and contain no visitor or account identity. Payloads must be JSON-compatible: null, strings, booleans, finite numbers, arrays, and plain objects. Values such as `undefined`, `bigint`, functions, symbols, dates, cyclic objects, accessors, and non-enumerable properties are rejected.
+Store progress in an `ActivitySaveEnvelope` with the stable `ActivityId`, a positive safe integer `schemaVersion`, an extended ISO 8601 date-time string, and an activity-owned `payload`. `savedAtIso` must include seconds and a timezone marker, such as `2026-10-12T12:00:00.000Z` or `2026-10-12T12:00:00-05:00`. Saves are device-local and contain no visitor or account identity. Payloads must be JSON-compatible: null, strings, booleans, finite numbers, arrays, and plain objects. Values such as `undefined`, `bigint`, functions, symbols, dates, cyclic objects, accessors, and non-enumerable properties are rejected.
 
 When an activity changes its payload shape, add one `ActivitySaveMigration` for each schema version step and call `migrateActivitySave` with the target version. Migrations are scoped to an activity id and run in ascending consecutive order. Each step must synchronously return a JSON-compatible payload; input saves and migration results are cloned so migrations cannot mutate stored data through shared references. The activity remains responsible for validating the final payload against its own schema. Missing or duplicate steps, version gaps, invalid versions, and downgrades throw `ActivitySaveMigrationError`.
 
-`savedAtIso` must use an extended ISO date-time form with a timezone. Numeric timezone offsets are limited to `-12:00` through `+14:00`.
+Numeric timezone offsets are limited to `-12:00` through `+14:00`.
 
 ```ts
 import { createActivityId } from '@santa-tracker/contracts';
