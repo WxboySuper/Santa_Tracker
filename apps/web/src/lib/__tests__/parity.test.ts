@@ -61,9 +61,9 @@ describe("Advent parity", () => {
     expect(isPlayable(day, { mode: "archive", currentTime: archiveTime })).toBe(true);
   });
   it("toDict hides payload when locked", () => {
-    const d = toDict(future, { includePayload: true });
-    expect(d.payload).toBeUndefined();
-    expect(d.is_unlocked).toBe(false);
+    const futureDay = toDict(future, { includePayload: true });
+    expect(futureDay.payload).toBeUndefined();
+    expect(futureDay.is_unlocked).toBe(false);
   });
   it("validateAdvent detects duplicates", () => {
     const days: AdventDay[] = [past, past];
@@ -97,8 +97,8 @@ describe("No Flask in production paths", () => {
       "apps/web/src/lib/locations.ts",
       "apps/web/src/lib/advent.ts",
     ];
-    for (const f of files) {
-      const filePath = path.resolve(process.cwd(), f);
+    for (const fileName of files) {
+      const filePath = path.resolve(process.cwd(), fileName);
       expect(fs.existsSync(filePath)).toBe(true);
       const content = fs.readFileSync(filePath, "utf-8");
       expect(content).not.toContain("from flask");

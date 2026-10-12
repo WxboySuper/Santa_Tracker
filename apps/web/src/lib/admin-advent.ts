@@ -119,7 +119,7 @@ export async function toggleAdminAdventUnlock(rawDay: string): Promise<AdminApiR
   }
 }
 
-async function toggleAdventOverride(dayNumber: number): Promise<AdminApiResult> {
+function toggleAdventOverride(dayNumber: number): Promise<AdminApiResult> {
   return withWriteLock(async () => {
     const dict = await loadAdventCalendarDict();
     const day = dict.get(dayNumber);
