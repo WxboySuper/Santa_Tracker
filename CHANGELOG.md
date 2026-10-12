@@ -1,5 +1,13 @@
 # Changelog — per-PR exhaustive (enforced in CI)
 
+## [Unreleased] - Security automation (#316)
+
+- **Code scanning:** Adds weekly and pull-request CodeQL analysis for the active JavaScript/TypeScript app and GitHub Actions workflows, using the repository's existing exclusions for archived and generated files.
+- **Dependency review:** Checks pull-request dependency changes and blocks new moderate-or-higher vulnerabilities across runtime, development, and unknown scopes. Existing Dependabot updates continue to supply lockfile changes for review. Adds weekly grouped minor and patch updates for GitHub Actions used by workflows.
+- **Secrets:** Records that secret scanning and push protection are already enabled in GitHub repository settings.
+- **Release provenance:** Adds a source archive to each published GitHub release and attaches a signed GitHub artifact attestation for verification with the GitHub CLI.
+- **Docs:** Documents the automated checks, repository settings, and release verification command in docs/SECURITY_AND_SUPPLY_CHAIN.md.
+
 ## [Unreleased] — CI: add OCR pull request reviews
 
 - **Review:** Adds automated Muse Spark reviews with inline findings, a sticky digest, and a manual /ocr trigger.

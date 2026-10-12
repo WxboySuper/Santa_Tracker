@@ -1,0 +1,22 @@
+name: Dependency Review
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  dependency-review:
+    name: Review dependency changes
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Review changed dependencies
+        uses: actions/dependency-review-action@v5
+        with:
+          fail-on-severity: moderate
+          fail-on-scopes: runtime, development, unknown

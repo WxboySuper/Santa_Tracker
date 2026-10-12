@@ -1,0 +1,48 @@
+name: Release source provenance
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  attestations: write
+  contents: write
+  id-token: write
+
+concurrency:
+  group: release-provenance-${{ github.event.release.tag_name }}
+  cancel-in-progress: false
+
+jobs:
+  attest-source:
+    name: Attest and publish release source
+    runs-on: ubuntu-latest
+    env:
+      RELEASE_TAG: ${{ github.event.release.tag_name }}
+      REPOSITORY_NAME: ${{ github.event.repository.name }}
+      SOURCE_ARCHIVE: ${{ github.event.repository.name }}-${{ github.event.release.tag_name }}-source.tar.gz
+    steps:
+      - name: Check out release tag
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.release.tag_name }}
+
+      - name: Package source archive
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          git archive \
+            --format=tar.gz \
+            --prefix="${REPOSITORY_NAME}-${RELEASE_TAG}/" \
+            --output="dist/${SOURCE_ARCHIVE}" \
+            "${RELEASE_TAG}"
+
+      - name: Generate build provenance
+        uses: actions/attest@v4
+        with:
+          subject-path: dist/${{ env.SOURCE_ARCHIVE }}
+
+      - name: Attach source archive to the GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "$RELEASE_TAG" "dist/$SOURCE_ARCHIVE" --clobber
