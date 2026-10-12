@@ -35,10 +35,10 @@ describe("admin Advent preview", () => {
     const body = result.body as { days: Record<string, unknown>[] };
 
     expect(result.status).toBe(200);
-    expect(body.days[0]).toMatchObject({ is_unlocked: false, is_unlocked_override: false });
+    expect(body.days[0]).toMatchObject({ is_unlocked_at_preview_time: false, is_unlocked_override: false });
     expect(body.days[0]?.payload).toBeUndefined();
     expect(body.days[1]).toMatchObject({
-      is_unlocked: true,
+      is_unlocked_at_preview_time: true,
       is_unlocked_override: true,
       payload: { text: "shown" },
     });

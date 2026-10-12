@@ -159,8 +159,16 @@ export async function previewAdminAdventDays(previewTime: Date): Promise<AdminAp
       body: {
         preview_time: previewTime.toISOString(),
         days: days.map(day => {
-          const preview = toDict(day, { includePayload: true, currentTime: previewTime, mode: "live" });
-          return { ...preview, is_unlocked_override: day.is_unlocked_override ?? null };
+          const { is_unlocked: isUnlockedAtPreviewTime, ...preview } = toDict(day, {
+            includePayload: true,
+            currentTime: previewTime,
+            mode: "live",
+          });
+          return {
+            ...preview,
+            is_unlocked_at_preview_time: isUnlockedAtPreviewTime,
+            is_unlocked_override: day.is_unlocked_override ?? null,
+          };
         }),
         total_days: days.length,
       },
