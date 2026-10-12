@@ -8,6 +8,7 @@ This repository runs CodeQL and dependency review from GitHub Actions.
 - The CodeQL configuration at `.github/codeql/codeql-config.yml` excludes archived Flask code, generated content, and data files from the scan.
 - `.github/workflows/dependency-review.yml` reviews dependency changes in pull requests to `main`. It blocks newly introduced vulnerabilities rated moderate or higher across runtime, development, and unknown dependency scopes.
 - Dependabot continues to open weekly dependency update pull requests. Dependency review checks lockfile and manifest changes before merge. Dependabot also proposes weekly grouped minor and patch updates to GitHub Actions used by workflows; major action updates remain separate for review.
+- The new security workflows pin third-party actions to reviewed commit SHAs. Dependabot keeps those pins current through pull requests.
 
 The workflow files create status checks. Repository administrators can require the CodeQL and dependency-review checks in the `main` ruleset if they should block merges.
 
