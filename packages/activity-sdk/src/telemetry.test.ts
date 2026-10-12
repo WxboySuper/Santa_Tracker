@@ -35,6 +35,7 @@ describe('telemetry privacy', () => {
   it('trims activity ids and drops blank reasons', () => {
     expect(completionEvent('  ornament-smash  ', { score: 1 })).toMatchObject({ activityId: 'ornament-smash' });
     expect(failureEvent('ornament-smash', { reason: '   ' }).reason).toBeUndefined();
+    expect(failureEvent('ornament-smash', { reason: '  timeout  ' }).reason).toBe('timeout');
   });
   it('enforces discriminated payloads and non-empty activity ids', () => {
     expect(completionEvent('ornament-smash', { reason: 'timeout' } as never).reason).toBeUndefined();

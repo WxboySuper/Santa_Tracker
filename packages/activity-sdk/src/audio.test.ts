@@ -61,4 +61,11 @@ describe('audio preferences', () => {
     expect(controller.play('chime')).toBe(false);
     expect(play).not.toHaveBeenCalled();
   });
+
+  it('rejects malformed runtime preferences passed directly to the controller', () => {
+    const play = vi.fn();
+    const controller = createAudioController({ enabled: 1 } as never, { play });
+    expect(controller.play('chime')).toBe(false);
+    expect(play).not.toHaveBeenCalled();
+  });
 });

@@ -1,8 +1,14 @@
+/** Input device families supported by the shared activity input adapter. */
 export type InputKind = 'keyboard' | 'pointer' | 'touch';
+/** Device-independent input event returned by {@link normalizeInput}. */
 export type NormalizedInput = { kind: InputKind; action: string; phase: 'start' | 'move' | 'end' | 'cancel'; x?: number; y?: number; repeat?: boolean };
+/** Keyboard input accepted by {@link normalizeInput}. */
 export type KeyboardInput = { kind: 'keyboard'; key: string; type?: 'keydown' | 'keyup'; repeat?: boolean };
+/** Pointer input accepted by {@link normalizeInput}. */
 export type PointerInput = { kind: 'pointer'; type?: 'pointerdown' | 'pointermove' | 'pointerup' | 'pointercancel'; button?: number; x?: number; y?: number };
+/** Touch input accepted by {@link normalizeInput}. */
 export type TouchInput = { kind: 'touch'; type?: 'touchstart' | 'touchmove' | 'touchend' | 'touchcancel'; x?: number; y?: number };
+/** Any supported raw activity input. */
 export type AnyActivityInput = KeyboardInput | PointerInput | TouchInput;
 
 const KEY_ACTIONS: Record<string, string> = { ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right', Enter: 'confirm', ' ': 'confirm', Escape: 'cancel' };
@@ -66,6 +72,7 @@ function normalizePointerOrTouch(kind: 'pointer' | 'touch', value: object): Norm
   return result;
 }
 
+/** Converts a supported device input into a validated, device-independent event. */
 export function normalizeInput(input: AnyActivityInput | null | undefined): NormalizedInput | null {
   if (typeof input !== 'object' || input === null) return null;
   const kind: unknown = (input as { kind?: unknown }).kind;

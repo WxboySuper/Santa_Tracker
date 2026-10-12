@@ -1,4 +1,6 @@
+/** Playback settings that gate activity sound effects. */
 export type AudioPreferences = { enabled: boolean; muted: boolean; volume: number; reducedSensory: boolean };
+/** Minimal sound-player interface injected into the audio controller. */
 export type AudioPlayer = { play: (id: string, volume: number) => void };
 
 function clampVolume(volume: number, fallback: number): number {
@@ -11,9 +13,15 @@ function canPlay(preferences: AudioPreferences, volume: number): boolean {
 }
 
 function isValidPreferences(value: unknown): value is AudioPreferences {
-  return typeof value === 'object' && value !== null;
+  if (typeof value !== 'object' || value === null) return false;
+  const preferences = value as Record<string, unknown>;
+  return typeof preferences.enabled === 'boolean'
+    && typeof preferences.muted === 'boolean'
+    && typeof preferences.volume === 'number'
+    && typeof preferences.reducedSensory === 'boolean';
 }
 
+/** Creates a player wrapper that applies preference, volume, and sound-id guards. */
 export function createAudioController(preferences: AudioPreferences, player: AudioPlayer) {
   return {
     play(id: string): boolean {
@@ -27,6 +35,7 @@ export function createAudioController(preferences: AudioPreferences, player: Aud
   };
 }
 
+/** Normalizes optional or untrusted preference values into safe playback settings. */
 export function audioPreferencesFrom(options: Partial<AudioPreferences> | null | undefined = {}): AudioPreferences {
   const source: Partial<AudioPreferences> = options ?? {};
   return {

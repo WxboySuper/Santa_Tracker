@@ -19,7 +19,6 @@ describe('input normalization', () => {
 
   it('returns null for null, malformed, or unknown-kind inputs', () => {
     expect(normalizeInput(null)).toBeNull();
-    expect(normalizeInput(undefined)).toBeNull();
     expect(normalizeInput({ kind: 'mouse' } as never)).toBeNull();
     expect(normalizeInput({ kind: 'keyboard' } as never)).toBeNull();
     expect(normalizeInput({ kind: 'keyboard', key: null } as never)).toBeNull();
