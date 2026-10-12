@@ -138,6 +138,10 @@ function assertStateTransitions(
   }
 }
 
+function hasExplicitExitedTransitions(transitions: Record<string, unknown>): boolean {
+  return hasOwn(transitions, 'exited') && transitions.exited !== undefined;
+}
+
 /** Throw a descriptive configuration error for malformed lifecycle graphs. */
 function assertLifecycleShape(lifecycle: ActivityLifecycle): void {
   assertLifecycleRecord(lifecycle);
@@ -145,7 +149,7 @@ function assertLifecycleShape(lifecycle: ActivityLifecycle): void {
   assertInitialState(lifecycle.initialState);
   const transitions = getTransitions(lifecycle.id, lifecycle.transitions);
   for (const state of ALL_STATES) {
-    if (state === 'exited' && (!hasOwn(transitions, state) || transitions[state] === undefined)) continue;
+    if (state === 'exited' && !hasExplicitExitedTransitions(transitions)) continue;
     assertStateTransitions(transitions, lifecycle.id, state);
   }
 }

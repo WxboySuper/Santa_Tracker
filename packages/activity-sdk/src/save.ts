@@ -35,20 +35,25 @@ function hasOwn(value: object, key: string): boolean {
   return Object.prototype.hasOwnProperty.call(value, key);
 }
 
+function assertFiniteJsonNumber(value: number, path: string): void {
+  if (!Number.isFinite(value)) {
+    throw new ActivitySaveMigrationError(`Save value at ${path} must be a finite JSON number`);
+  }
+}
+
 function assertJsonPrimitive(value: unknown, path: string): boolean {
-  if (value === null) return true;
-  if (typeof value === 'string') return true;
-  if (typeof value === 'boolean') return true;
-  if (typeof value === 'number') {
-    if (!Number.isFinite(value)) {
-      throw new ActivitySaveMigrationError(`Save value at ${path} must be a finite JSON number`);
-    }
-    return true;
+  switch (typeof value) {
+    case 'string':
+    case 'boolean':
+      return true;
+    case 'number':
+      assertFiniteJsonNumber(value, path);
+      return true;
+    case 'object':
+      return value === null;
+    default:
+      throw new ActivitySaveMigrationError(`Save value at ${path} must be JSON-compatible`);
   }
-  if (typeof value !== 'object') {
-    throw new ActivitySaveMigrationError(`Save value at ${path} must be JSON-compatible`);
-  }
-  return false;
 }
 
 function assertJsonProperty({
@@ -89,18 +94,22 @@ function assertJsonArrayEntries(
   }
 }
 
+function isJsonArrayIndexKey(key: PropertyKey, length: number): boolean {
+  return typeof key === 'string'
+    && /^(?:0|[1-9]\d*)$/.test(key)
+    && Number(key) < length;
+}
+
+function isAllowedJsonArrayKey(key: PropertyKey, length: number): boolean {
+  return key === 'length' || isJsonArrayIndexKey(key, length);
+}
+
 function assertJsonArrayKeys(value: unknown[], path: string): void {
-  for (const key of Reflect.ownKeys(value)) {
-    if (key === 'length') continue;
-    if (typeof key !== 'string') {
-      throw new ActivitySaveMigrationError(`Save value at ${path} must not contain extra array keys`);
-    }
-    if (!/^(?:0|[1-9]\d*)$/.test(key)) {
-      throw new ActivitySaveMigrationError(`Save value at ${path} must not contain extra array keys`);
-    }
-    if (Number(key) >= value.length) {
-      throw new ActivitySaveMigrationError(`Save value at ${path} must not contain extra array keys`);
-    }
+  const hasExtraKey = Reflect.ownKeys(value).some(
+    (key) => !isAllowedJsonArrayKey(key, value.length),
+  );
+  if (hasExtraKey) {
+    throw new ActivitySaveMigrationError(`Save value at ${path} must not contain extra array keys`);
   }
 }
 
@@ -251,14 +260,8 @@ function assertSaveEnvelope(save: unknown): asserts save is ActivitySaveEnvelope
     throw new ActivitySaveMigrationError('Invalid activity save envelope');
   }
   for (const key of ['payload', 'activityId', 'schemaVersion', 'savedAtIso']) {
-    if (!hasOwn(save, key)) {
-      throw new ActivitySaveMigrationError(`Save envelope must include its own ${key} value`);
-    }
-    const descriptor = Object.getOwnPropertyDescriptor(save, key);
-    if (descriptor === undefined || !('value' in descriptor)) {
-      throw new ActivitySaveMigrationError(`Save envelope must include its own ${key} value`);
-    }
-    if (key === 'payload' && descriptor.value === undefined) {
+    const value = getOwnSaveProperty(save, key);
+    if (key === 'payload' && value === undefined) {
       throw new ActivitySaveMigrationError('Save envelope payload must not be undefined');
     }
   }
@@ -266,6 +269,17 @@ function assertSaveEnvelope(save: unknown): asserts save is ActivitySaveEnvelope
   assertPositiveVersion({ version: save.schemaVersion, description: 'Save schema version' });
   assertIsoTimestamp(save.savedAtIso);
   assertJsonCompatible(save);
+}
+
+function getOwnSaveProperty(
+  save: Record<string, unknown>,
+  key: string,
+): unknown {
+  const descriptor = Object.getOwnPropertyDescriptor(save, key);
+  if (descriptor === undefined || !descriptor.enumerable || !('value' in descriptor)) {
+    throw new ActivitySaveMigrationError(`Save envelope must include its own ${key} value`);
+  }
+  return descriptor.value;
 }
 
 function assertMigrationEntry(input: {
@@ -288,13 +302,19 @@ function assertMigrationEntry(input: {
   };
   assertPositiveVersion(sourceVersion);
   assertPositiveVersion(targetVersion);
-  if (targetVersion.version !== sourceVersion.version + 1) {
-    throw new ActivitySaveMigrationError(
-      `${description} must advance exactly one schema version`,
-    );
-  }
+  assertConsecutiveMigrationVersions(sourceVersion.version, targetVersion.version, description);
   if (typeof migration.migrate !== 'function') {
     throw new ActivitySaveMigrationError(`${description} migrate must be a function`);
+  }
+}
+
+function assertConsecutiveMigrationVersions(
+  fromVersion: number,
+  toVersion: number,
+  description: string,
+): void {
+  if (toVersion !== fromVersion + 1) {
+    throw new ActivitySaveMigrationError(`${description} must advance exactly one schema version`);
   }
 }
 
@@ -337,15 +357,22 @@ function clonePayload(payload: unknown): unknown {
   } catch (error) {
     if (error instanceof ActivitySaveMigrationError) throw error;
     throw new ActivitySaveMigrationError(
-      `Cannot migrate activity save: payload is not JSON-compatible (${error instanceof Error ? error.message : String(error)})`,
+      `Cannot migrate activity save: payload is not JSON-compatible (${getErrorMessage(error)})`,
     );
   }
 }
 
-function isThenable(value: unknown): boolean {
-  if (value === null) return false;
+function getErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
+function isObjectLike(value: unknown): boolean {
   const kind = typeof value;
-  if (kind !== 'object' && kind !== 'function') return false;
+  return value !== null && (kind === 'object' || kind === 'function');
+}
+
+function isThenable(value: unknown): boolean {
+  if (!isObjectLike(value)) return false;
   try {
     return typeof (value as { then?: unknown }).then === 'function';
   } catch {
@@ -395,7 +422,7 @@ function applyMigration(
   } catch (error) {
     if (error instanceof ActivitySaveMigrationError) throw error;
     throw new ActivitySaveMigrationError(
-      `Migration for activity ${activityId} from schema ${schemaVersion} failed (${error instanceof Error ? error.message : String(error)})`,
+      `Migration for activity ${activityId} from schema ${schemaVersion} failed (${getErrorMessage(error)})`,
     );
   }
 }
