@@ -80,14 +80,14 @@ Key CDN resources:
 
 ### Next.js application (`apps/web`)
 
-- **Public:** App Router pages (`/`, `/tracker`, `/advent`) and static JSON under `/data/*`
+- **Public:** App Router pages (`/`, `/tracker`, `/advent`); route data is served from `/api/route`, and Advent payloads are guarded by `/api/advent/[day]`
 - **Admin:** `/admin/*` pages and `/api/admin/*` route handlers (JWT via `proxy.ts`)
-- **Live position:** Client-side only — `packages/route-engine` (`deriveJourneyState`) over the published route snapshot
-- **Snapshots:** Versioned route/advent JSON in R2 on Workers (filesystem adapter for dev/VPS); `pnpm santa:publish` syncs repo JSON to static assets and R2
+- **Live position:** Client-side only — `packages/route-engine` (`deriveJourneyState`) over the route snapshot fetched once from `/api/route`
+- **Snapshots:** Versioned route/advent JSON in R2 on Workers (filesystem adapter for dev/VPS); `pnpm santa:publish:remote` seeds R2 from checked-in data
 
 ### Route organization
 
-- `/tracker` — map UI (static route JSON + client interpolation)
+- `/tracker` — map UI (R2-backed route API + client interpolation)
 - `/admin` — route editor and advent studio
 - `/api/admin/*` — authenticated mutations
 - `/api/advent/*` — public advent APIs when `ADVENT_ENABLED`

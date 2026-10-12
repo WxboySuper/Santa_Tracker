@@ -1,8 +1,8 @@
 import type { VersionedStoreBackend } from "./versioned-store-core";
 
 export interface R2BucketLike {
-  get(key: string): Promise<{ text(): Promise<string> } | null>;
-  put(key: string, value: string): Promise<unknown>;
+  get(key: string): Promise<{ text(): Promise<string>; etag?: string; uploaded?: Date } | null>;
+  put(key: string, value: string, options?: { onlyIf?: Headers | { etagMatches?: string } }): Promise<unknown>;
   delete(key: string): Promise<void>;
   list(options?: { prefix?: string }): Promise<{ objects: { key: string }[] }>;
 }

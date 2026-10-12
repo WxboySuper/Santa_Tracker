@@ -19,7 +19,7 @@ interface RouteResponse {
   route_nodes: RouteNode[];
 }
 
-const ROUTE_URL = "/data/santa_route.json";
+const ROUTE_URL = "/api/route";
 const POSITION_TICK_MS = 1000;
 
 type LeafletModule = typeof Leaflet;

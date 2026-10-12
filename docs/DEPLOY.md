@@ -11,10 +11,11 @@ See [ADR 0002](adr/0002-cloudflare-workers-hosting.md) for the hosting decision.
 ### Overview
 
 - **Build/deploy:** vinext (`pnpm --filter @santa-tracker/web build:vinext` / `deploy:vinext`)
-- **Public data:** `apps/web/public/data/*.json` (mirrored from `apps/web/data/` via `pnpm santa:publish`)
+- **Public route:** `/api/route` reads the active route snapshot from R2; the tracker fetches it once and interpolates positions in the browser.
+- **Advent:** `/api/advent/manifest` exposes metadata only; `/api/advent/[day]` returns payloads only after the server checks the unlock time.
 - **Admin snapshots:** R2 bucket binding `SANTA_SNAPSHOTS` (versioned JSON + active pointer)
 - **Auth:** JWT admin cookie (`proxy.ts`), `nodejs_compat` enabled
-- **Free-tier safety:** Public `/tracker` and `/data/*` are static assets — they do **not** use `run_worker_first`
+- **HTTP caching:** `/api/route` permits shared caches to reuse a snapshot for 60 seconds; the tracker fetches once and interpolates on the client. Advent responses use `no-store` so unlock checks always run.
 
 ### Owner setup (one-time)
 
@@ -26,12 +27,12 @@ See [ADR 0002](adr/0002-cloudflare-workers-hosting.md) for the hosting decision.
    - `wrangler secret put SECRET_KEY`
    - `wrangler secret put ADMIN_PASSWORD`
 4. Set vars: `ADVENT_ENABLED=true`, `SANTA_STORAGE_BACKEND=r2`
-5. First content publish:
+5. The deploy workflow seeds missing R2 pointers before deploying. To seed manually, run this once; it preserves existing active pointers so it does not overwrite admin edits:
    ```bash
    pnpm install
-   pnpm santa:publish          # mirror JSON into public/data for static serving
-   pnpm santa:publish:remote     # optional: upload active snapshots to R2 (requires API token)
+   pnpm santa:publish:remote  # requires CLOUDFLARE_API_TOKEN and SANTA_R2_BUCKET
    ```
+   To intentionally replace active data from the checked-in JSON, run `pnpm exec node tools/santa-publish.mjs --remote --activate`.
 6. Deploy manually via GitHub Actions workflow **Deploy Cloudflare Workers (manual)** (`deploy-cloudflare-workers.yml`) using repository secret `CLOUDFLARE_API_TOKEN`.
 
 ### Local preview
@@ -47,13 +48,13 @@ Local admin/route storage uses the filesystem adapter under `apps/web/data/.vers
 
 ### Cache headers
 
-Published JSON is served with `Cache-Control: public, max-age=900, stale-while-revalidate=3600` (`next.config.mjs` headers + `public/_headers`).
+Route responses use `Cache-Control: public, max-age=0, s-maxage=60, stale-while-revalidate=60`. Advent manifest and day responses are not stored because unlock state depends on the current time. R2-backed admin writes use a conditional-write lock; filesystem locks are used only for local and VPS storage.
 
 ---
 
 ## VPS standalone (legacy)
 
-> **Legacy:** Release deploy via `.github/workflows/deploy-on-release.yml` until Cloudflare production is verified.
+> **Legacy:** Release deploy via `.github/workflows/deploy-on-release.yml` continues until Cloudflare production is verified and cutover is complete.
 
 ### Overview
 

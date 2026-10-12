@@ -1,10 +1,13 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { getSantaRoutePath } from "./config";
+import { getSantaSnapshotsBucket } from "./cloudflare-bindings";
 
-// In-process queue prevents interleaving within a single Node instance.
-// File-system lock file prevents interleaving across workers / scaled instances.
+// The local queue serializes writes per instance. Node/VPS uses a file lock;
+// Workers use an R2 conditional-write lock because their filesystem is read-only.
 let memQueue: Promise<void> = Promise.resolve();
+const R2_LOCK_KEY = "admin-write-lock.json";
+const R2_LOCK_LEASE_MS = 30_000;
 
 interface LockFile {
   readonly path: string;
@@ -82,6 +85,53 @@ async function acquireFsLock(lock: LockFile, timeoutMs = 5000): Promise<() => Pr
   }
 }
 
+async function acquireR2Lock(timeoutMs = 5000): Promise<() => Promise<void>> {
+  const bucket = getSantaSnapshotsBucket();
+  if (!bucket) throw new Error("SANTA_SNAPSHOTS binding is required when SANTA_STORAGE_BACKEND=r2");
+  const owner = Math.random().toString(36).slice(2);
+  const start = Date.now();
+
+  while (true) {
+    const now = Date.now();
+    const current = await bucket.get(R2_LOCK_KEY);
+    let writeOptions: { onlyIf: Headers | { etagMatches?: string } } | undefined;
+    if (!current) {
+      writeOptions = { onlyIf: new Headers({ "If-None-Match": "*" }) };
+    } else {
+      let expiresAt = Number.POSITIVE_INFINITY;
+      try {
+        expiresAt = (JSON.parse(await current.text()) as { expiresAt?: number }).expiresAt ?? Number.POSITIVE_INFINITY;
+      } catch {
+        if (current.uploaded) expiresAt = current.uploaded.getTime() + R2_LOCK_LEASE_MS;
+      }
+      if (expiresAt <= now && current.etag) {
+        writeOptions = { onlyIf: { etagMatches: current.etag } };
+      }
+    }
+
+    if (writeOptions) {
+      const result = await bucket.put(
+        R2_LOCK_KEY,
+        JSON.stringify({ owner, expiresAt: now + R2_LOCK_LEASE_MS }),
+        writeOptions,
+      );
+      const etag = (result as { etag?: string } | null)?.etag;
+      if (etag) {
+        return async () => {
+          await bucket.put(
+            R2_LOCK_KEY,
+            JSON.stringify({ owner: "released", expiresAt: 0 }),
+            { onlyIf: { etagMatches: etag } },
+          ).catch(error => console.error("Unable to release R2 admin write lock", error));
+        };
+      }
+    }
+
+    if (now - start > timeoutMs) throw new Error("Timed out acquiring R2 admin write lock");
+    await delay(50);
+  }
+}
+
 export async function withWriteLock<T>(fn: () => Promise<T>): Promise<T> {
   const previous = memQueue;
   let releaseMem!: () => void;
@@ -90,18 +140,16 @@ export async function withWriteLock<T>(fn: () => Promise<T>): Promise<T> {
   });
   await previous;
 
-  const lock = getLockFile();
-  let releaseFs: (() => Promise<void>) | null = null;
+  let releaseLock: (() => Promise<void>) | null = null;
   try {
-    releaseFs = await acquireFsLock(lock).catch(() => null);
-  } catch {
-    releaseFs = null;
-  }
-
-  try {
+    if (process.env.SANTA_STORAGE_BACKEND === "r2") {
+      releaseLock = await acquireR2Lock();
+    } else {
+      releaseLock = await acquireFsLock(getLockFile()).catch(() => null);
+    }
     return await fn();
   } finally {
-    if (releaseFs) await releaseFs();
+    if (releaseLock) await releaseLock();
     releaseMem();
   }
 }

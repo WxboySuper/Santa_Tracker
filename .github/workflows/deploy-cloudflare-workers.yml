@@ -31,8 +31,11 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Mirror published JSON into static assets
-        run: pnpm santa:publish
+      - name: Publish route and Advent snapshots to R2
+        run: pnpm santa:publish:remote
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          SANTA_R2_BUCKET: santa-tracker-snapshots
 
       - name: Build vinext Worker bundle
         run: pnpm --filter @santa-tracker/web build:vinext
@@ -40,13 +43,6 @@ jobs:
           SECRET_KEY: ${{ secrets.SECRET_KEY }}
           ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
           ADVENT_ENABLED: "true"
-
-      - name: Upload snapshots to R2 (optional remote sync)
-        if: vars.SANTA_PUBLISH_REMOTE == 'true'
-        run: pnpm santa:publish:remote
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          SANTA_R2_BUCKET: santa-tracker-snapshots
 
       - name: Deploy to Cloudflare Workers
         run: pnpm --filter @santa-tracker/web deploy:vinext

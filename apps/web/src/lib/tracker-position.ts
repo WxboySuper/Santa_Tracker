@@ -33,20 +33,30 @@ export function computeSantaPosition(nodes: RouteNode[], now: Date): SantaPositi
   const journey = deriveJourneyState(route, now);
   const nowMs = now.getTime();
   const segment = findSegment(route, nowMs);
+  return segment
+    ? positionOnSegment(route, timedNodes, segment, journey, nowMs)
+    : positionAtRouteEndpoint(timedNodes, journey);
+}
 
-  if (!segment) {
-    if (journey.nextIndex === 0) {
-      const first = timedNodes.find(hasCoordinates) ?? timedNodes[0];
-      if (!first) return null;
-      const { lat, lng } = nodeLatLng(first);
-      return { lat, lng, journey };
-    }
-    const last = timedNodes[timedNodes.length - 1];
-    if (!last) return null;
-    const { lat, lng } = nodeLatLng(last);
-    return { lat, lng, journey };
-  }
+function positionAtRouteEndpoint(
+  timedNodes: ReturnType<typeof routeNodesToContractRoute>["timedNodes"],
+  journey: SantaPosition["journey"],
+): SantaPosition | null {
+  const node = journey.nextIndex === 0
+    ? timedNodes.find(hasCoordinates) ?? timedNodes[0]
+    : timedNodes[timedNodes.length - 1];
+  if (!node) return null;
+  const { lat, lng } = nodeLatLng(node);
+  return { lat, lng, journey };
+}
 
+function positionOnSegment(
+  route: Route,
+  timedNodes: ReturnType<typeof routeNodesToContractRoute>["timedNodes"],
+  segment: NonNullable<ReturnType<typeof findSegment>>,
+  journey: SantaPosition["journey"],
+  nowMs: number,
+): SantaPosition | null {
   const fromNode = timedNodes[segment.currentIndex] ?? timedNodes[0];
   const toNode = segment.nextIndex != null ? timedNodes[segment.nextIndex] : fromNode;
   if (!fromNode || !toNode) return null;

@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 /**
- * Publish repo JSON snapshots to R2 (production) and mirror to apps/web/public/data (static assets).
+ * Publish the checked-in route and Advent snapshots to the production R2 bucket.
  *
  * Usage:
- *   pnpm santa:publish              # local mirror only
- *   pnpm santa:publish --remote     # wrangler R2 upload + local mirror
+ *   pnpm santa:publish:remote       # initialize missing active snapshots through Wrangler
+ *   pnpm exec node tools/santa-publish.mjs --remote --activate # replace active snapshots from checked-in data
  */
 import fs from "node:fs/promises";
 import path from "node:path";
@@ -14,7 +14,6 @@ import { spawnSync } from "node:child_process";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.join(__dirname, "..");
 const dataDir = path.join(repoRoot, "apps", "web", "data");
-const publicDataDir = path.join(repoRoot, "apps", "web", "public", "data");
 
 const DATASETS = [
   { file: "santa_route.json", dataset: "santa-route" },
@@ -26,51 +25,66 @@ function makeVersionId() {
   return `${stamp}-${Math.random().toString(36).slice(2, 10)}`;
 }
 
-async function mirrorPublic(file, body) {
-  await fs.mkdir(publicDataDir, { recursive: true });
-  const target = path.join(publicDataDir, file);
-  const tmp = `${target}.tmp.${Date.now()}`;
-  await fs.writeFile(tmp, body, "utf-8");
-  await fs.rename(tmp, target);
+function runWrangler(args, options = {}) {
+  const command = process.platform === "win32" ? "pnpm.cmd" : "pnpm";
+  const result = spawnSync(command, args, {
+    cwd: path.join(repoRoot, "apps", "web"),
+    encoding: "utf-8",
+    shell: process.platform === "win32",
+    ...options,
+  });
+  if (result.error) throw result.error;
+  return result;
 }
 
-function uploadToR2({ bucket, dataset, versionId, body }) {
+function uploadToR2({ bucket, dataset, versionId, body, activate }) {
   const versionKey = `${dataset}/versions/${versionId}.json`;
   const activeKey = `${dataset}/active.json`;
   const pointer = JSON.stringify({ versionId, updatedAt: new Date().toISOString() }, null, 2);
   const put = (key, filePath) => {
-    const result = spawnSync(
-      "pnpm",
-      ["exec", "wrangler", "r2", "object", "put", key, "--file", filePath, "--bucket", bucket, "--remote"],
-      { cwd: path.join(repoRoot, "apps", "web"), stdio: "inherit" },
-    );
+    const result = runWrangler(["exec", "wrangler", "r2", "object", "put", `${bucket}/${key}`, "--file", filePath, "--remote", "--force"], { stdio: "inherit" });
     if (result.status !== 0) throw new Error(`wrangler r2 put failed for ${key}`);
   };
   const tmpDir = path.join(repoRoot, ".tmp-publish");
   return fs.mkdir(tmpDir, { recursive: true }).then(async () => {
     const versionPath = path.join(tmpDir, `${dataset}-${versionId}.json`);
     const activePath = path.join(tmpDir, `${dataset}-active.json`);
+    if (!activate) {
+      const existing = runWrangler(["exec", "wrangler", "r2", "object", "get", `${bucket}/${activeKey}`, "--file", activePath, "--remote"]);
+      if (existing.status === 0) {
+        await fs.rm(activePath, { force: true });
+        return false;
+      }
+      const details = `${existing.stdout ?? ""}\n${existing.stderr ?? ""}`;
+      if (!/NoSuchKey|not found|does not exist|404|no object/i.test(details)) {
+        throw new Error(`Could not check active R2 pointer for ${dataset}: ${details.trim()}`);
+      }
+    }
     await fs.writeFile(versionPath, body, "utf-8");
-    await fs.writeFile(activePath, pointer, "utf-8");
     put(versionKey, versionPath);
+    await fs.writeFile(activePath, pointer, "utf-8");
     put(activeKey, activePath);
+    return true;
   });
 }
 
 async function main() {
   const remote = process.argv.includes("--remote");
+  const activate = process.argv.includes("--activate");
   const bucket = process.env.SANTA_R2_BUCKET ?? "santa-tracker-snapshots";
 
   for (const { file, dataset } of DATASETS) {
     const sourcePath = path.join(dataDir, file);
     const body = await fs.readFile(sourcePath, "utf-8");
-    await mirrorPublic(file, body);
     if (remote) {
       const versionId = makeVersionId();
-      await uploadToR2({ bucket, dataset, versionId, body });
-      console.log(`Uploaded ${dataset} version ${versionId} to R2 bucket ${bucket}`);
+      const activated = await uploadToR2({ bucket, dataset, versionId, body, activate });
+      console.log(activated
+        ? `Activated ${dataset} version ${versionId} in R2 bucket ${bucket}`
+        : `Kept existing ${dataset} active pointer in R2 bucket ${bucket}`);
+    } else {
+      console.log(`Validated ${file}; local runtime reads the checked-in data file directly`);
     }
-    console.log(`Mirrored ${file} -> apps/web/public/data/${file}`);
   }
 }
 

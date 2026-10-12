@@ -12,7 +12,10 @@ export async function GET() {
   }
   try {
     const manifest = await getManifest();
-    return NextResponse.json(manifest, { status: 200 });
+    return NextResponse.json(manifest, {
+      status: 200,
+      headers: { "Cache-Control": "private, no-store" },
+    });
   } catch (error: unknown) {
     if (isNotFoundError(error)) return NextResponse.json({ error: "Advent calendar data not found" }, { status: 404 });
     console.error("Advent manifest error", error);

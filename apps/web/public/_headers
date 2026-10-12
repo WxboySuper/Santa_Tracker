@@ -1,5 +1,2 @@
-/data/*
-  Cache-Control: public, max-age=900, stale-while-revalidate=3600
-
 /static/data/*
   Cache-Control: public, max-age=900, stale-while-revalidate=3600

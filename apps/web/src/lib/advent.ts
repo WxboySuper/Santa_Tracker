@@ -1,6 +1,6 @@
 import fs from "fs/promises";
 import path from "path";
-import { getAdventCalendarPath, isAdventEnabled } from "./config";
+import { isAdventEnabled } from "./config";
 import { getSantaSnapshotsBucket } from "./cloudflare-bindings";
 import { getSnapshotStore } from "./storage";
 import { ensureStoreBootstrapped, persistAdventCalendar } from "./storage/publish";
@@ -47,8 +47,13 @@ interface AdventTextValue {
   value: string;
 }
 
-// simple in-memory cache keyed by active version id
-const cache = new Map<string, { versionKey: string; data: AdventDay[] }>();
+interface CachedAdventCalendar {
+  versionKey: string;
+  data: AdventDay[];
+  byDay: Map<number, AdventDay>;
+}
+
+const cache = new Map<string, CachedAdventCalendar>();
 const CONTENT_TYPES = ["fact", "game", "story", "video", "activity", "quiz"] as const;
 
 function clone<T>(value: T): T {
@@ -113,37 +118,46 @@ function validateDayUnlockTime(value: AdventTextValue): void {
   }
 }
 
-async function readAdventSource(options: AdventFileOptions = {}): Promise<{ cacheKey: string; versionKey: string; content: string }> {
+async function readAdventSource(options: AdventFileOptions = {}): Promise<{ cacheKey: string | null; versionKey: string; readContent: () => Promise<string> }> {
   if (options.filePath) {
     const p = path.resolve(options.filePath);
-    const content = await fs.readFile(p, "utf-8");
-    return { cacheKey: p, versionKey: p, content };
+    return { cacheKey: null, versionKey: "", readContent: () => fs.readFile(p, "utf-8") };
   }
-  const store = getSnapshotStore(getSantaSnapshotsBucket());
-  await ensureStoreBootstrapped(store);
-  const content = await store.readActive(DATASET_ADVENT);
-  if (!content?.trim()) throw new Error(`Advent calendar file not found: ${getAdventCalendarPath()}`);
-  const versions = await store.listVersions(DATASET_ADVENT);
-  const versionKey = versions[0]?.versionId ?? "bootstrap";
-  return { cacheKey: DATASET_ADVENT, versionKey, content };
+  const bucket = getSantaSnapshotsBucket();
+  const store = getSnapshotStore(bucket);
+  if (!bucket) await ensureStoreBootstrapped(store);
+  const active = await store.readActiveVersion(DATASET_ADVENT);
+  if (!active) throw new Error("Advent calendar data not found");
+  return {
+    cacheKey: DATASET_ADVENT,
+    versionKey: active.versionId,
+    readContent: async () => (await store.readVersion(DATASET_ADVENT, active.versionId)) ?? "",
+  };
 }
 
-export async function loadAdventCalendar(options: AdventFileOptions = {}): Promise<AdventDay[]> {
-  const { cacheKey, content, versionKey } = await readAdventSource(options);
-  const cached = cache.get(cacheKey);
+async function loadCachedAdventCalendar(options: AdventFileOptions = {}): Promise<CachedAdventCalendar> {
+  const { cacheKey, versionKey, readContent } = await readAdventSource(options);
+  const cached = cacheKey ? cache.get(cacheKey) : undefined;
   if (cached && cached.versionKey === versionKey) {
-    return clone(cached.data);
+    return cached;
   }
-  if (!content.trim()) throw new Error(`Advent calendar file is empty: ${cacheKey}`);
+  const content = await readContent();
+  const sourceName = cacheKey ?? options.filePath ?? "advent calendar";
+  if (!content.trim()) throw new Error(`Advent calendar file is empty: ${sourceName}`);
   let data: { days?: any[] };
   try {
     data = JSON.parse(content);
   } catch (e: any) {
-    throw new Error(`JSON decode error in ${cacheKey}: ${e.message}`);
+    throw new Error(`JSON decode error in ${sourceName}: ${e.message}`);
   }
   const days = (data.days ?? []).map(parseAdventDay);
-  cache.set(cacheKey, { versionKey, data: days });
-  return clone(days);
+  const parsed: CachedAdventCalendar = { versionKey, data: days, byDay: new Map(days.map(day => [day.day, day])) };
+  if (cacheKey) cache.set(cacheKey, parsed);
+  return parsed;
+}
+
+export async function loadAdventCalendar(options: AdventFileOptions = {}): Promise<AdventDay[]> {
+  return clone((await loadCachedAdventCalendar(options)).data);
 }
 
 export async function loadAdventCalendarDict(options: AdventFileOptions = {}): Promise<Map<number, AdventDay>> {
@@ -168,20 +182,20 @@ export function toDict(day: AdventDay, opts: { includePayload?: boolean; current
     content_type: day.content_type,
     is_unlocked: unlocked,
   };
-  if (opts.includePayload !== false && unlocked) result.payload = day.payload;
+  if (opts.includePayload !== false && unlocked) result.payload = clone(day.payload);
   return result;
 }
 
 export async function getManifest(options: AdventQueryOptions = {}): Promise<AdventManifest> {
-  const days = await loadAdventCalendar(options);
+  const { data: days } = await loadCachedAdventCalendar(options);
   const daysData = days.map(d => toDict(d, { includePayload: false, currentTime: options.currentTime }));
   return { total_days: days.length, days: daysData };
 }
 
 export async function getDayContent(dayNumber: number, options: AdventQueryOptions = {}): Promise<AdventPublicDay | null> {
   if (dayNumber < 1 || dayNumber > 24) return null;
-  const dict = await loadAdventCalendarDict(options);
-  const day = dict.get(dayNumber);
+  const { byDay } = await loadCachedAdventCalendar(options);
+  const day = byDay.get(dayNumber);
   if (!day) return null;
   return toDict(day, { includePayload: true, currentTime: options.currentTime });
 }
