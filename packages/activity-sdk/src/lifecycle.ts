@@ -63,7 +63,7 @@ export const DEFAULT_LIFECYCLE: ActivityLifecycle = {
     playing: ['paused', 'completed', 'failed', 'ready', 'exited'],
     paused: ['playing', 'failed', 'ready', 'exited'],
     completed: ['ready', 'failed', 'exited'],
-    failed: ['loading', 'ready', 'idle', 'failed', 'exited'],
+    failed: ['loading', 'ready', 'failed', 'exited'],
     exited: ['loading', 'ready', 'failed', 'exited'],
   },
 };
@@ -148,10 +148,38 @@ function assertLifecycleShape(lifecycle: ActivityLifecycle): void {
   assertLifecycleId(lifecycle.id);
   assertInitialState(lifecycle.initialState);
   const transitions = getTransitions(lifecycle.id, lifecycle.transitions);
+  for (const key of Object.keys(transitions)) {
+    if (!isActivityState(key)) {
+      throw new ActivityLifecycleError(
+        'invalid_configuration',
+        `Invalid lifecycle configuration ${lifecycle.id}: unknown state ${key}`,
+      );
+    }
+  }
+  const targetsExited = ALL_STATES.some((state) => {
+    const allowed = hasOwn(transitions, state) ? transitions[state] : undefined;
+    return Array.isArray(allowed) && allowed.includes('exited');
+  });
+  if (
+    !hasExplicitExitedTransitions(transitions)
+    && (lifecycle.initialState === 'exited' || targetsExited)
+  ) {
+    throw new ActivityLifecycleError(
+      'invalid_configuration',
+      `Invalid lifecycle configuration ${lifecycle.id}: transitions for exited are required when exited is reachable`,
+    );
+  }
   for (const state of ALL_STATES) {
     if (state === 'exited' && !hasExplicitExitedTransitions(transitions)) continue;
     assertStateTransitions(transitions, lifecycle.id, state);
   }
+}
+
+function getAllowedTransitions(
+  lifecycle: ActivityLifecycle,
+  from: ActivityState,
+): ActivityState[] | undefined {
+  return hasOwn(lifecycle.transitions, from) ? lifecycle.transitions[from] : undefined;
 }
 
 export function canTransition(
@@ -162,7 +190,7 @@ export function canTransition(
   assertLifecycleShape(lifecycle);
   assertCurrentState(from);
   assertCurrentState(to);
-  const allowed = hasOwn(lifecycle.transitions, from) ? lifecycle.transitions[from] : undefined;
+  const allowed = getAllowedTransitions(lifecycle, from);
   return allowed?.includes(to) ?? false;
 }
 
@@ -173,11 +201,11 @@ function assertTransitionAllowed(
 ): void {
   assertCurrentState(from);
   assertCurrentState(to);
-  const allowed = hasOwn(lifecycle.transitions, from) ? lifecycle.transitions[from] : undefined;
+  const allowed = getAllowedTransitions(lifecycle, from);
   if (!allowed?.includes(to)) {
     throw new ActivityLifecycleError(
       'invalid_transition',
-      `Invalid transition ${String(from)} -> ${String(to)} for lifecycle ${lifecycle.id}`,
+      `Invalid transition ${from} -> ${to} for lifecycle ${lifecycle.id}`,
     );
   }
 }
@@ -191,49 +219,44 @@ export function assertTransition(
   assertTransitionAllowed(lifecycle, from, to);
 }
 
-type ScoreEvent = Extract<ActivityProgressEvent, { type: 'score' }>;
-type AchievementEvent = Extract<ActivityProgressEvent, { type: 'achievement' }>;
 type ProgressEventRuleMap = {
   [Type in ActivityProgressEvent['type']]: (
     state: ActivityState,
     event: Extract<ActivityProgressEvent, { type: Type }>,
   ) => string | undefined;
 };
+type ProgressEventRule = (state: ActivityState, event: ActivityProgressEvent) => string | undefined;
 
 /**
  * Single source of truth for progress events: the keys of this record define
  * the accepted progress event types, so no separate type list is kept.
  */
 const progressEventRules = {
-  score: (currentState: ActivityState, event: ScoreEvent): string | undefined =>
-    currentState === 'playing' && typeof event.value === 'number' && Number.isFinite(event.value)
+  score: (currentState: ActivityState, event: ActivityProgressEvent): string | undefined =>
+    event.type === 'score'
+    && currentState === 'playing'
+    && typeof event.value === 'number'
+    && Number.isFinite(event.value)
       ? undefined
       : `Score events require a finite value while playing (state: ${currentState})`,
-  achievement: (currentState: ActivityState, event: AchievementEvent): string | undefined => {
+  achievement: (currentState: ActivityState, event: ActivityProgressEvent): string | undefined => {
+    if (event.type !== 'achievement') {
+      return `Achievement events require an id while playing or completed (state: ${currentState})`;
+    }
     const validState = currentState === 'playing' || currentState === 'completed';
     const validId = typeof event.achievementId === 'string' && event.achievementId.trim() !== '';
     return validState && validId
       ? undefined
       : `Achievement events require an id while playing or completed (state: ${currentState})`;
   },
-} satisfies ProgressEventRuleMap;
+} satisfies ProgressEventRuleMap & Record<ActivityProgressEvent['type'], ProgressEventRule>;
 
 function isProgressEvent(event: ActivityEvent): event is ActivityProgressEvent {
   return hasOwn(progressEventRules, event.type);
 }
 
 function applyProgressEvent(currentState: ActivityState, event: ActivityProgressEvent): ActivityState {
-  let message: string | undefined;
-  switch (event.type) {
-    case 'score':
-      message = progressEventRules.score(currentState, event);
-      break;
-    case 'achievement':
-      message = progressEventRules.achievement(currentState, event);
-      break;
-    default:
-      throw new ActivityLifecycleError('invalid_event', 'Unknown progress event type');
-  }
+  const message = progressEventRules[event.type](currentState, event);
   if (message !== undefined) throw new ActivityLifecycleError('invalid_event', message);
   return currentState;
 }
@@ -275,16 +298,17 @@ const lifecycleEventRules = {
 } satisfies Record<ActivityLifecycleEvent['type'], LifecycleEventRule>;
 
 function validateLifecycleEvent(currentState: ActivityState, event: ActivityLifecycleEvent): void {
-  const message = lifecycleEventRules[event.type](currentState, event);
+  const rule = hasOwn(lifecycleEventRules, event.type) ? lifecycleEventRules[event.type] : undefined;
+  if (rule === undefined) {
+    throw new ActivityLifecycleError('invalid_event', `Unknown activity event type: ${event.type}`);
+  }
+  const message = rule(currentState, event);
   if (message !== undefined) {
     throw new ActivityLifecycleError('invalid_event', message);
   }
 }
 
 function targetFor(event: ActivityLifecycleEvent): ActivityState {
-  if (!hasOwn(EVENT_TARGET, event.type)) {
-    throw new ActivityLifecycleError('invalid_event', `Unknown activity event type: ${event.type}`);
-  }
   return EVENT_TARGET[event.type];
 }
 
@@ -332,10 +356,11 @@ export function applyActivityEvent(
     throw new ActivityLifecycleError('invalid_event', 'Invalid activity event');
   }
 
-  assertCurrentState(currentState);
-  assertLifecycleShape(lifecycle);
   if (isProgressEvent(event)) {
+    assertCurrentState(currentState);
     return applyProgressEvent(currentState, event);
   }
+  assertLifecycleShape(lifecycle);
+  assertCurrentState(currentState);
   return applyLifecycleEvent(lifecycle, currentState, event);
 }

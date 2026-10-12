@@ -1,4 +1,4 @@
-import { PUBLIC_ID_PATTERN, type ActivityId } from '@santa-tracker/contracts';
+import { PUBLIC_ID_PATTERN, type ActivityId } from '@santa-tracker/contracts/ids';
 
 /**
  * Device-local activity progress. Saves intentionally contain no visitor or
@@ -97,7 +97,7 @@ function assertJsonArrayEntries(
 function isJsonArrayIndexKey(key: PropertyKey, length: number): boolean {
   if (typeof key !== 'string') return false;
   const index = Number(key);
-  return String(index) === key && index < length;
+  return Number.isInteger(index) && index >= 0 && String(index) === key && index < length;
 }
 
 function isAllowedJsonArrayKey(key: PropertyKey, length: number): boolean {
@@ -134,7 +134,7 @@ function assertJsonObject(value: object, path: string, ancestors: WeakSet<object
   assertJsonObjectProperties(value, path, ancestors);
 }
 
-function assertJsonCompatible(value: unknown, path = '$', ancestors = new WeakSet<object>()): void {
+function assertJsonCompatible(value: unknown, path = '$', ancestors = new WeakSet()): void {
   if (assertJsonPrimitive(value, path)) return;
 
   const objectValue = value as object;
@@ -208,7 +208,7 @@ function parseIsoParts(value: string): IsoParts | undefined {
     hour: Number(match[4] ?? 'NaN'),
     minute: Number(match[5] ?? 'NaN'),
     second: Number(match[6] ?? 'NaN'),
-    offset: match[7] ?? '',
+    offset: match[7] ?? 'invalid',
   };
 }
 
@@ -292,30 +292,50 @@ function getOwnSaveProperty(
   return descriptor.value;
 }
 
-function assertMigrationEntry(input: {
+function getMigrationProperty(
+  migration: Record<string, unknown>,
+  key: string,
+  description: string,
+): unknown {
+  const descriptor = Object.getOwnPropertyDescriptor(migration, key);
+  if (descriptor === undefined || !descriptor.enumerable || !('value' in descriptor)) {
+    throw new ActivitySaveMigrationError(`${description} must be an own data property`);
+  }
+  return descriptor.value;
+}
+
+function normalizeMigrationEntry(input: {
   migration: unknown;
   index: number;
-}): asserts input is { migration: ActivitySaveMigration; index: number } {
+}): ActivitySaveMigration {
   const { migration, index } = input;
   const description = `Migration at index ${index}`;
   if (!isRecord(migration)) {
     throw new ActivitySaveMigrationError(`${description} must be an object`);
   }
-  assertActivityId(migration.activityId, `${description} activity id`);
+  const activityId = getMigrationProperty(migration, 'activityId', description);
+  assertActivityId(activityId, `${description} activity id`);
   const sourceVersion = {
-    version: migration.fromVersion,
+    version: getMigrationProperty(migration, 'fromVersion', description),
     description: `${description} source schema version`,
   };
   const targetVersion = {
-    version: migration.toVersion,
+    version: getMigrationProperty(migration, 'toVersion', description),
     description: `${description} target schema version`,
   };
   assertPositiveVersion(sourceVersion);
   assertPositiveVersion(targetVersion);
   assertConsecutiveMigrationVersions(sourceVersion.version, targetVersion.version, description);
-  if (typeof migration.migrate !== 'function') {
+  const migrate = getMigrationProperty(migration, 'migrate', description);
+  if (typeof migrate !== 'function') {
     throw new ActivitySaveMigrationError(`${description} migrate must be a function`);
   }
+  return {
+    activityId,
+    fromVersion: sourceVersion.version,
+    toVersion: targetVersion.version,
+    migrate: migrate as ActivitySaveMigration['migrate'],
+  };
 }
 
 function assertConsecutiveMigrationVersions(
@@ -328,14 +348,20 @@ function assertConsecutiveMigrationVersions(
   }
 }
 
-/** Every registry entry is validated, including steps no save currently needs. */
-function assertMigrationRegistry(migrations: unknown): asserts migrations is readonly ActivitySaveMigration[] {
+/** Every registry entry is snapshotted and validated, including unused steps. */
+function normalizeMigrationRegistry(migrations: unknown): readonly ActivitySaveMigration[] {
   if (!Array.isArray(migrations)) {
     throw new ActivitySaveMigrationError('Migrations must be an array');
   }
+  const normalized: ActivitySaveMigration[] = [];
   for (let index = 0; index < migrations.length; index += 1) {
-    assertMigrationEntry({ migration: migrations[index], index });
+    const descriptor = Object.getOwnPropertyDescriptor(migrations, String(index));
+    if (descriptor === undefined || !('value' in descriptor)) {
+      throw new ActivitySaveMigrationError(`Migration at index ${index} must be an own data property`);
+    }
+    normalized.push(normalizeMigrationEntry({ migration: descriptor.value, index }));
   }
+  return normalized;
 }
 
 function indexMigrations({
@@ -459,7 +485,16 @@ function runMigrationStep(step: MigrationStep): unknown {
   const isolatedPayload = clonePayload(step.payload);
   const next = applyMigration(migration, isolatedPayload, step);
   assertSynchronousMigrationResult(next, step);
-  return clonePayload(next);
+  try {
+    return clonePayload(next);
+  } catch (error) {
+    if (error instanceof ActivitySaveMigrationError) {
+      throw new ActivitySaveMigrationError(
+        `Migration for activity ${step.activityId} from schema ${step.schemaVersion} produced invalid payload (${error.message})`,
+      );
+    }
+    throw error;
+  }
 }
 
 /**
@@ -474,7 +509,7 @@ export function migrateActivitySave<TOutput = unknown>(
   migrations: readonly ActivitySaveMigration[],
 ): ActivitySaveEnvelope<TOutput> {
   assertSaveEnvelope(save);
-  assertMigrationRegistry(migrations);
+  const validatedMigrations = normalizeMigrationRegistry(migrations);
   assertPositiveVersion({ version: targetVersion, description: 'Target schema version' });
 
   if (save.schemaVersion > targetVersion) {
@@ -485,7 +520,7 @@ export function migrateActivitySave<TOutput = unknown>(
 
   const isolatedSave = clonePayload(save) as ActivitySaveEnvelope;
 
-  const indexedMigrations = indexMigrations({ migrations, activityId: isolatedSave.activityId });
+  const indexedMigrations = indexMigrations({ migrations: validatedMigrations, activityId: isolatedSave.activityId });
   let schemaVersion = isolatedSave.schemaVersion;
   let payload: unknown = isolatedSave.payload;
 
