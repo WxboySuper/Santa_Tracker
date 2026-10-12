@@ -31,8 +31,8 @@ function pointerOrTouchPhase(type: unknown): NormalizedInput['phase'] | null {
   return null;
 }
 
-function pointerAction(input: PointerInput): string {
-  const button: unknown = (input as { button?: unknown }).button;
+function pointerAction(input: { button?: unknown }): string {
+  const button: unknown = input.button;
   return typeof button === 'number' && Number.isInteger(button) && button !== 0 ? `button:${button}` : 'primary';
 }
 
@@ -40,29 +40,32 @@ function finiteCoordinate(value: unknown): number | undefined {
   return typeof value === 'number' && Number.isFinite(value) ? value : undefined;
 }
 
+function normalizeKeyboard(value: object): NormalizedInput | null {
+  const keyboard = value as KeyboardInput;
+  const action = keyboardAction(keyboard.key);
+  if (!action) return null;
+  const phase = keyboardPhase(keyboard.type);
+  if (!phase) return null;
+  return { kind: 'keyboard', action, phase, repeat: keyboard.repeat ?? false };
+}
+
+function normalizePointerOrTouch(kind: 'pointer' | 'touch', value: object): NormalizedInput | null {
+  const source = value as { type?: unknown; x?: unknown; y?: unknown; button?: unknown };
+  const phase = pointerOrTouchPhase(source.type);
+  if (!phase) return null;
+  const action = kind === 'pointer' ? pointerAction(source) : 'primary';
+  const result: NormalizedInput = { kind, action, phase };
+  const x = finiteCoordinate(source.x);
+  if (x !== undefined) result.x = x;
+  const y = finiteCoordinate(source.y);
+  if (y !== undefined) result.y = y;
+  return result;
+}
+
 export function normalizeInput(input: AnyActivityInput | null | undefined): NormalizedInput | null {
   if (typeof input !== 'object' || input === null) return null;
   const kind: unknown = (input as { kind?: unknown }).kind;
-  if (kind === 'keyboard') {
-    const keyboard = input as KeyboardInput;
-    const action = keyboardAction(keyboard.key);
-    if (!action) return null;
-    const phase = keyboardPhase(keyboard.type);
-    if (!phase) return null;
-    return { kind: 'keyboard', action, phase, repeat: keyboard.repeat ?? false };
-  }
-  if (kind === 'pointer' || kind === 'touch') {
-    const pointerLike = input as PointerInput | TouchInput;
-    const phase = pointerOrTouchPhase((pointerLike as { type?: unknown }).type);
-    if (!phase) return null;
-    const action = kind === 'pointer' ? pointerAction(pointerLike as PointerInput) : 'primary';
-    const result: NormalizedInput = { kind, action, phase };
-    const coords = pointerLike as { x?: unknown; y?: unknown };
-    const x = finiteCoordinate(coords.x);
-    const y = finiteCoordinate(coords.y);
-    if (x !== undefined) result.x = x;
-    if (y !== undefined) result.y = y;
-    return result;
-  }
+  if (kind === 'keyboard') return normalizeKeyboard(input);
+  if (kind === 'pointer' || kind === 'touch') return normalizePointerOrTouch(kind, input);
   return null;
 }
