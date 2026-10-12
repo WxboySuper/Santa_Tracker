@@ -79,7 +79,7 @@ const EVENT_TARGET: Record<ActivityLifecycleEvent['type'], ActivityState> = {
   exit: 'exited',
 };
 
-function hasOwn(object: object, key: string): boolean {
+function hasOwn(object: object, key: PropertyKey): boolean {
   return Object.prototype.hasOwnProperty.call(object, key);
 }
 
@@ -128,11 +128,13 @@ function assertStateTransitions(
       `Invalid lifecycle configuration ${lifecycleId}: transitions for ${state} must list activity states`,
     );
   }
-  if (!allowed.every(isActivityState)) {
-    throw new ActivityLifecycleError(
-      'invalid_configuration',
-      `Invalid lifecycle configuration ${lifecycleId}: transitions for ${state} must list activity states`,
-    );
+  for (let index = 0; index < allowed.length; index += 1) {
+    if (!hasOwn(allowed, index) || !isActivityState(allowed[index])) {
+      throw new ActivityLifecycleError(
+        'invalid_configuration',
+        `Invalid lifecycle configuration ${lifecycleId}: transitions for ${state} must list activity states`,
+      );
+    }
   }
 }
 
@@ -143,7 +145,7 @@ function assertLifecycleShape(lifecycle: ActivityLifecycle): void {
   assertInitialState(lifecycle.initialState);
   const transitions = getTransitions(lifecycle.id, lifecycle.transitions);
   for (const state of ALL_STATES) {
-    if (state === 'exited' && !hasOwn(transitions, state)) continue;
+    if (state === 'exited' && (!hasOwn(transitions, state) || transitions[state] === undefined)) continue;
     assertStateTransitions(transitions, lifecycle.id, state);
   }
 }
@@ -154,7 +156,9 @@ export function canTransition(
   to: ActivityState,
 ): boolean {
   assertLifecycleShape(lifecycle);
-  const allowed = lifecycle.transitions[from];
+  assertCurrentState(from);
+  assertCurrentState(to);
+  const allowed = hasOwn(lifecycle.transitions, from) ? lifecycle.transitions[from] : undefined;
   return allowed?.includes(to) ?? false;
 }
 
@@ -163,11 +167,13 @@ function assertTransitionAllowed(
   from: ActivityState,
   to: ActivityState,
 ): void {
-  const allowed = lifecycle.transitions[from];
+  assertCurrentState(from);
+  assertCurrentState(to);
+  const allowed = hasOwn(lifecycle.transitions, from) ? lifecycle.transitions[from] : undefined;
   if (!allowed?.includes(to)) {
     throw new ActivityLifecycleError(
       'invalid_transition',
-      `Invalid transition ${from} -> ${to} for lifecycle ${lifecycle.id}`,
+      `Invalid transition ${String(from)} -> ${String(to)} for lifecycle ${lifecycle.id}`,
     );
   }
 }
