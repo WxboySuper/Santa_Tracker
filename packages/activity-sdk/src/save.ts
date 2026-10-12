@@ -301,6 +301,20 @@ function isThenable(value: unknown): boolean {
   }
 }
 
+function observeNativePromiseRejection(value: unknown): boolean {
+  try {
+    void Promise.prototype.then.call(
+      value as Promise<unknown>,
+      undefined,
+      () => undefined,
+    );
+    return true;
+  } catch {
+    // The native method rejects non-Promise receivers without reading `then`.
+    return false;
+  }
+}
+
 type MigrationStep = {
   migration: ActivitySaveMigration | undefined;
   activityId: ActivityId;
@@ -341,21 +355,9 @@ function assertSynchronousMigrationResult(
       `Migration for activity ${activityId} from schema ${schemaVersion} must return a payload`,
     );
   }
-  if (!isThenable(value)) return;
-  // Observe a rejected async migration before rejecting it synchronously. This
-  // prevents its otherwise-unhandled promise rejection from escaping the API.
-  // Calling the native method avoids assimilating arbitrary thenables or
-  // reading their `then` property a second time.
-  try {
-    void Promise.prototype.then.call(
-      value as Promise<unknown>,
-      undefined,
-      () => undefined,
-    );
-  } catch {
-    // Non-native thenables have no promise rejection for this intrinsic to
-    // observe.
-  }
+  // Observe native Promise rejections before rejecting async migrations
+  // synchronously. The intrinsic doesn't assimilate arbitrary thenables.
+  if (!observeNativePromiseRejection(value) && !isThenable(value)) return;
   throw new ActivitySaveMigrationError(
     `Migration for activity ${activityId} from schema ${schemaVersion} must be synchronous`,
   );
