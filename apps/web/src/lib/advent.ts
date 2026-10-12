@@ -221,9 +221,16 @@ export async function loadAdventCalendarDict(options: AdventFileOptions = {}): P
 }
 
 export function isUnlocked(day: AdventDay, currentTime: Date = trustedClock()): boolean {
+  assertValidCurrentTime(currentTime);
   if (day.is_unlocked_override != null) return day.is_unlocked_override;
   const unlock = parseUnlockTime(day);
   return currentTime.getTime() >= unlock.getTime();
+}
+
+function assertValidCurrentTime(currentTime: unknown): asserts currentTime is Date {
+  if (!(currentTime instanceof Date) || Number.isNaN(currentTime.getTime())) {
+    throw new Error("Advent current time must be a valid Date");
+  }
 }
 
 function parseUnlockTime(day: AdventDay): Date {
@@ -272,7 +279,7 @@ export async function getDayContent(dayNumber: number, options: AdventQueryOptio
 
 export async function getArchiveDayContent(dayNumber: number, options: AdventQueryOptions = {}): Promise<AdventPublicDay | null> {
   if (options.mode !== undefined && options.mode !== "archive") throw new Error(`getArchiveDayContent called with conflicting mode: ${String(options.mode)}`);
-  if (!isAdventEnabled()) return null;
+  if (!isAdventEnabled()) throw new AdventDataNotFoundError("Advent calendar is disabled");
   return await getDayContent(dayNumber, { ...options, mode: "archive" });
 }
 
@@ -282,10 +289,12 @@ function assertTimeOptions(options: AdventQueryOptions): void {
 
 function resolveCurrentTime(options: AdventQueryOptions): Date {
   assertTimeOptions(options);
-  const currentTime = options.currentTime ?? options.clock?.() ?? trustedClock();
-  if (!(currentTime instanceof Date) || Number.isNaN(currentTime.getTime())) {
-    throw new Error("Advent current time must be a valid Date");
-  }
+  const currentTime = options.currentTime !== undefined
+    ? options.currentTime
+    : options.clock !== undefined
+      ? options.clock()
+      : trustedClock();
+  assertValidCurrentTime(currentTime);
   return currentTime;
 }
 
@@ -314,50 +323,43 @@ function dayContentResult(content: AdventPublicDay): AdventApiResult {
   return { status: 200, body: content };
 }
 
-async function loadDayApiResult(dayNumber: number): Promise<AdventApiResult> {
-  const content = await getDayContent(dayNumber);
-  if (!content) return { status: 404, body: { error: "Day not found" } };
-  return dayContentResult(content);
-}
-
 function invalidDayResult(): AdventApiResult {
   return { status: 404, body: { error: "Day not found" } };
 }
 
-function getValidatedDayApiResult(rawDay: string): Promise<AdventApiResult> {
+type AdventApiQueryOptions = Pick<AdventQueryOptions, "filePath" | "currentTime" | "clock">;
+
+function getValidatedDayApiResult(rawDay: unknown, options: AdventApiQueryOptions): Promise<AdventApiResult> {
   const dayNumber = parseDayNumber(rawDay);
   if (dayNumber === null) return Promise.resolve(invalidDayResult());
-  return getDayApiResultWithErrorHandling(dayNumber);
+  return getDayApiResultWithErrorHandling(() => getDayContent(dayNumber, options), "day");
 }
 
-async function getDayApiResultWithErrorHandling(dayNumber: number): Promise<AdventApiResult> {
+async function getDayApiResultWithErrorHandling(
+  loadContent: () => Promise<AdventPublicDay | null>,
+  errorContext: "day" | "archive day",
+): Promise<AdventApiResult> {
   try {
-    return await loadDayApiResult(dayNumber);
-  } catch (error: unknown) {
-    if (isNotFoundError(error)) return { status: 404, body: { error: "Advent calendar data not found" } };
-    console.error("Advent day error", error);
-    return { status: 500, body: { error: "Internal server error" } };
-  }
-}
-
-export function getDayApiResult(rawDay: string): Promise<AdventApiResult> {
-  if (!isAdventEnabled()) return Promise.resolve({ status: 404, body: { error: "Not found" } });
-  return getValidatedDayApiResult(rawDay);
-}
-
-export async function getArchiveDayApiResult(rawDay: unknown): Promise<AdventApiResult> {
-  if (!isAdventEnabled()) return { status: 404, body: { error: "Not found" } };
-  const dayNumber = parseDayNumber(rawDay);
-  if (dayNumber === null) return invalidDayResult();
-  try {
-    const content = await getArchiveDayContent(dayNumber);
+    const content = await loadContent();
     if (!content) return invalidDayResult();
     return dayContentResult(content);
   } catch (error: unknown) {
     if (isNotFoundError(error)) return { status: 404, body: { error: "Advent calendar data not found" } };
-    console.error("Advent day error", error);
+    console.error(`Advent ${errorContext} error`, error);
     return { status: 500, body: { error: "Internal server error" } };
   }
+}
+
+export function getDayApiResult(rawDay: unknown, options: AdventApiQueryOptions = {}): Promise<AdventApiResult> {
+  if (!isAdventEnabled()) return Promise.resolve({ status: 404, body: { error: "Not found" } });
+  return getValidatedDayApiResult(rawDay, options);
+}
+
+export async function getArchiveDayApiResult(rawDay: unknown, options: AdventApiQueryOptions = {}): Promise<AdventApiResult> {
+  if (!isAdventEnabled()) return { status: 404, body: { error: "Not found" } };
+  const dayNumber = parseDayNumber(rawDay);
+  if (dayNumber === null) return invalidDayResult();
+  return getDayApiResultWithErrorHandling(() => getArchiveDayContent(dayNumber, options), "archive day");
 }
 
 export async function saveAdventCalendar(days: AdventDay[] | Map<number, AdventDay>, options: AdventFileOptions = {}) {
