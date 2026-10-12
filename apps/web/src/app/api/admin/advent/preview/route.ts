@@ -6,7 +6,7 @@ import { previewAdminAdventDays } from "@/lib/admin-advent";
 
 export const dynamic = "force-dynamic";
 const NO_STORE = { "Cache-Control": "private, no-store" };
-const ISO_EXPLICIT_ZONE_DATE_TIME = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-](?:(?:0\d|1[0-3]):[0-5]\d|14:00))$/;
+const ISO_EXPLICIT_ZONE_DATE_TIME = /^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})(?:\.\d+)?(Z|[+-](?:(?:0\d|1[0-3]):[0-5]\d|14:00))$/;
 
 export async function GET(req: NextRequest) {
   if (!isAdventEnabled()) return jsonError("Not found", 404);
@@ -28,13 +28,22 @@ export async function GET(req: NextRequest) {
 }
 
 function parsePreviewTime(value: string): Date | null {
-  if (!ISO_EXPLICIT_ZONE_DATE_TIME.test(value) || value.endsWith("-00:00")) return null;
+  const match = ISO_EXPLICIT_ZONE_DATE_TIME.exec(value);
+  if (!match || value.endsWith("-00:00")) return null;
   if (!isValidUnlockTime(value)) return null;
 
-  const localDateTime = value.slice(0, 19);
-  const normalizedLocalDateTime = new Date(`${localDateTime}Z`).toISOString().slice(0, 19);
-  if (normalizedLocalDateTime !== localDateTime) return null;
+  const localDateTime = match[1];
+  const zone = match[2];
+  if (!localDateTime || !zone) return null;
   const parsedTime = new Date(value);
+  const offsetMatch = /^([+-])(\d{2}):(\d{2})$/.exec(zone);
+  const offsetMinutes = offsetMatch
+    ? (offsetMatch[1] === "+" ? 1 : -1) * (Number(offsetMatch[2]) * 60 + Number(offsetMatch[3]))
+    : 0;
+  const normalizedLocalTime = new Date(parsedTime.getTime() + offsetMinutes * 60_000);
+  if (Number.isNaN(normalizedLocalTime.getTime()) || normalizedLocalTime.toISOString().slice(0, 19) !== localDateTime) {
+    return null;
+  }
   return parsedTime;
 }
 
