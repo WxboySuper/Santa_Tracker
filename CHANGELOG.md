@@ -1,6 +1,6 @@
 # Changelog — per-PR exhaustive (enforced in CI)
 
-## [PR #269] - 2026-10-12 - feat(advent): add trusted unlock preview and archive access
+## [PR #419] - 2026-10-12 - feat(advent): add trusted unlock preview and archive access (issue #269)
 
 - **Unlocks:** Public Advent reads use the server clock, with explicit clock injection available to deterministic tests.
 - **Preview:** Adds an authenticated, read-only admin preview endpoint at `/api/admin/advent/preview?at=...`; preview time is never written to calendar data or used by public routes.

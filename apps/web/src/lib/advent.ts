@@ -290,7 +290,10 @@ function resolveCurrentTime(options: AdventQueryOptions): Date {
 }
 
 function isNotFoundError(error: unknown): boolean {
-  return error instanceof AdventDataNotFoundError;
+  if (error instanceof AdventDataNotFoundError) return true;
+  if (!(error instanceof Error)) return false;
+  const filesystemError = error as NodeJS.ErrnoException & { cause?: unknown };
+  return filesystemError.code === "ENOENT" || filesystemError.cause === "ENOENT";
 }
 
 export function parseDayNumber(rawDay: unknown): number | null {
