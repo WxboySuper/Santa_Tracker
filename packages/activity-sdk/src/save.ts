@@ -190,7 +190,7 @@ function parseIsoOffsetMinutes(value: string): number | undefined {
   if (match === null) return undefined;
   const hours = Number(match[2]);
   const minutes = Number(match[3]);
-  const sign = match[1] === '-' ? -1 : 1;
+  const sign = match[1] === '-' ? -1 : match[1] === '+' ? 1 : Number.NaN;
   const totalMinutes = sign * (hours * 60 + minutes);
   return minutes <= 59 && totalMinutes >= -720 && totalMinutes <= 840
     ? totalMinutes
