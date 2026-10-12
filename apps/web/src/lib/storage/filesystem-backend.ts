@@ -5,12 +5,16 @@ import type { VersionedStoreBackend } from "./versioned-store-core";
 export function createFilesystemBackend(rootDir: string): VersionedStoreBackend {
   const base = path.resolve(rootDir, ".versioned");
 
+  function isSafeRelativeKey(relative: string): boolean {
+    if (!relative) return false;
+    if (relative.split(path.sep)[0] === "..") return false;
+    return !path.isAbsolute(relative);
+  }
+
   function resolveKey(key: string): string {
     const full = path.resolve(base, key);
     const relative = path.relative(base, full);
-    if (!relative || relative === ".." || relative.startsWith(`..${path.sep}`) || path.isAbsolute(relative)) {
-      throw new Error("Invalid storage key");
-    }
+    if (!isSafeRelativeKey(relative)) throw new Error("Invalid storage key");
     return full;
   }
 

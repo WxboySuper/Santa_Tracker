@@ -26,16 +26,14 @@ const nextConfig = {
     '@santa-tracker/activity-sdk',
     '@santa-tracker/test-fixtures',
   ],
-  async headers() {
-    return [
+  headers: () => Promise.resolve([
       {
         source: '/data/:path*',
         headers: [
           { key: 'Cache-Control', value: 'public, max-age=900, stale-while-revalidate=3600' },
         ],
       },
-    ];
-  },
+    ]),
 };
 
 export default nextConfig;

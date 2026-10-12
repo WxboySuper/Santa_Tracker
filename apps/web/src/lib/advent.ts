@@ -65,36 +65,55 @@ function validateUnlockTime({ value }: AdventTextValue): void {
   if (Number.isNaN(dt.getTime())) throw new Error("Invalid date");
 }
 
-function parseAdventDay(day: any): AdventDay {
+function asRecord(value: unknown, description: string): Record<string, unknown> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw new Error(`${description} must be an object`);
+  }
+  return value as Record<string, unknown>;
+}
+
+function parseAdventDay(value: unknown): AdventDay {
+  const day = asRecord(value, "Advent day");
   validateRequiredFields(day);
-  validateDayNumber(day.day);
-  validateContentType({ contentType: day.content_type });
+  const dayNumber = validateDayNumber(day.day);
+  const contentType = parseContentType(day.content_type);
+  if (typeof day.title !== "string") throw new Error("Advent day title must be a string");
+  if (typeof day.unlock_time !== "string") throw new Error("Advent day unlock_time must be a string");
+  const payload = asRecord(day.payload, "Advent day payload");
+  const unlockOverride = day.is_unlocked_override;
+  if (unlockOverride != null && typeof unlockOverride !== "boolean") {
+    throw new Error("Advent day is_unlocked_override must be a boolean");
+  }
   validateDayUnlockTime({ value: day.unlock_time });
   return {
-    day: day.day,
+    day: dayNumber,
     title: day.title,
     unlock_time: day.unlock_time,
-    content_type: day.content_type,
-    payload: day.payload,
-    is_unlocked_override: day.is_unlocked_override ?? null,
+    content_type: contentType,
+    payload,
+    is_unlocked_override: unlockOverride ?? null,
   };
 }
 
-function validateRequiredFields(day: any): void {
+function validateRequiredFields(day: Record<string, unknown>): void {
   const required = ["day", "title", "unlock_time", "content_type", "payload"];
   if (required.some(field => day[field] == null)) {
     throw new Error(`Missing required field in advent day data: ${JSON.stringify(day)}`);
   }
 }
 
-function validateDayNumber(day: number): void {
-  if (day < 1 || day > 24) throw new Error(`Day must be between 1 and 24, got ${day}`);
+function validateDayNumber(day: unknown): number {
+  if (typeof day !== "number" || !Number.isInteger(day) || day < 1 || day > 24) {
+    throw new Error(`Day must be between 1 and 24, got ${String(day)}`);
+  }
+  return day;
 }
 
-function validateContentType({ contentType }: { contentType: string }): void {
-  if (!isValidContentType(contentType)) {
+function parseContentType(contentType: unknown): AdventDay["content_type"] {
+  if (typeof contentType !== "string" || !isValidContentType(contentType)) {
     throw new Error(`Content type must be one of ${CONTENT_TYPES}`);
   }
+  return contentType as AdventDay["content_type"];
 }
 
 export function isValidContentType(contentType: string): boolean {
@@ -113,8 +132,9 @@ export function isValidUnlockTime(value: string): boolean {
 function validateDayUnlockTime(value: AdventTextValue): void {
   try {
     validateUnlockTime(value);
-  } catch (e: any) {
-    throw new Error(`Invalid unlock_time format: ${e.message}`);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
+    throw new Error(`Invalid unlock_time format: ${message}`);
   }
 }
 
@@ -144,13 +164,17 @@ async function loadCachedAdventCalendar(options: AdventFileOptions = {}): Promis
   const content = await readContent();
   const sourceName = cacheKey ?? options.filePath ?? "advent calendar";
   if (!content.trim()) throw new Error(`Advent calendar file is empty: ${sourceName}`);
-  let data: { days?: any[] };
+  let data: unknown;
   try {
     data = JSON.parse(content);
-  } catch (e: any) {
-    throw new Error(`JSON decode error in ${sourceName}: ${e.message}`);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
+    throw new Error(`JSON decode error in ${sourceName}: ${message}`);
   }
-  const days = (data.days ?? []).map(parseAdventDay);
+  const calendar = asRecord(data, "Advent calendar");
+  const rawDays = calendar.days ?? [];
+  if (!Array.isArray(rawDays)) throw new Error("Advent calendar days must be an array");
+  const days = (rawDays as unknown[]).map(parseAdventDay);
   const parsed: CachedAdventCalendar = { versionKey, data: days, byDay: new Map(days.map(day => [day.day, day])) };
   if (cacheKey) cache.set(cacheKey, parsed);
   return parsed;
@@ -162,9 +186,9 @@ export async function loadAdventCalendar(options: AdventFileOptions = {}): Promi
 
 export async function loadAdventCalendarDict(options: AdventFileOptions = {}): Promise<Map<number, AdventDay>> {
   const days = await loadAdventCalendar(options);
-  const m = new Map<number, AdventDay>();
-  for (const d of days) m.set(d.day, d);
-  return m;
+  const daysByNumber = new Map<number, AdventDay>();
+  for (const day of days) daysByNumber.set(day.day, day);
+  return daysByNumber;
 }
 
 export function isUnlocked(day: AdventDay, currentTime: Date = new Date()): boolean {
@@ -229,9 +253,9 @@ function invalidDayResult(): AdventApiResult {
   return { status: 404, body: { error: "Day not found" } };
 }
 
-async function getValidatedDayApiResult(rawDay: string): Promise<AdventApiResult> {
+function getValidatedDayApiResult(rawDay: string): Promise<AdventApiResult> {
   const dayNumber = parseDayNumber(rawDay);
-  if (dayNumber === null) return invalidDayResult();
+  if (dayNumber === null) return Promise.resolve(invalidDayResult());
   return getDayApiResultWithErrorHandling(dayNumber);
 }
 
@@ -245,8 +269,8 @@ async function getDayApiResultWithErrorHandling(dayNumber: number): Promise<Adve
   }
 }
 
-export async function getDayApiResult(rawDay: string): Promise<AdventApiResult> {
-  if (!isAdventEnabled()) return { status: 404, body: { error: "Not found" } };
+export function getDayApiResult(rawDay: string): Promise<AdventApiResult> {
+  if (!isAdventEnabled()) return Promise.resolve({ status: 404, body: { error: "Not found" } });
   return getValidatedDayApiResult(rawDay);
 }
 
@@ -254,15 +278,15 @@ export async function saveAdventCalendar(days: AdventDay[] | Map<number, AdventD
   const list = days instanceof Map ? Array.from(days.values()) : days;
   const data = {
     days: list.map(d => {
-      const o: any = {
+      const serializedDay: Omit<AdventDay, "isCurrentlyUnlocked"> = {
         day: d.day,
         title: d.title,
         unlock_time: d.unlock_time,
         content_type: d.content_type,
         payload: d.payload,
       };
-      if (d.is_unlocked_override != null) o.is_unlocked_override = d.is_unlocked_override;
-      return o;
+      if (d.is_unlocked_override != null) serializedDay.is_unlocked_override = d.is_unlocked_override;
+      return serializedDay;
     }),
   };
   const body = JSON.stringify(data, null, 2);

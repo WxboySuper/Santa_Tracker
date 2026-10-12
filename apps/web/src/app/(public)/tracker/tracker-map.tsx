@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import "leaflet/dist/leaflet.css";
 import type { Map as LeafletMap, Marker as LeafletMarker } from "leaflet";
-import type * as Leaflet from "leaflet";
 import { createTranslator } from "@santa-tracker/localization";
 import type { RouteNode } from "@/lib/locations";
 import { computeSantaPosition } from "@/lib/tracker-position";
@@ -22,7 +21,7 @@ interface RouteResponse {
 const ROUTE_URL = "/api/route";
 const POSITION_TICK_MS = 1000;
 
-type LeafletModule = typeof Leaflet;
+type LeafletModule = typeof import("leaflet");
 
 function hasCoordinates(node: RouteNode): boolean {
   return Number.isFinite(node.location.lat) && Number.isFinite(node.location.lng);
@@ -79,6 +78,17 @@ function createSantaMarker(L: LeafletModule, map: LeafletMap, lat: number, lng: 
   return L.marker([lat, lng], { icon, zIndexOffset: 1000 }).addTo(map);
 }
 
+function updateSantaMarker(
+  L: LeafletModule,
+  map: LeafletMap,
+  marker: LeafletMarker | undefined,
+  position: { lat: number; lng: number },
+): LeafletMarker {
+  const nextMarker = marker ?? createSantaMarker(L, map, position.lat, position.lng);
+  if (marker) nextMarker.setLatLng([position.lat, position.lng]);
+  return nextMarker;
+}
+
 export default function TrackerMap({ adventEnabled, locale }: TrackerMapProps) {
   const translator = useMemo(() => createTranslator({ locale }), [locale]);
   const mapElement = useRef<HTMLDivElement>(null);
@@ -93,14 +103,11 @@ export default function TrackerMap({ adventEnabled, locale }: TrackerMapProps) {
     let tickTimer: ReturnType<typeof setInterval> | undefined;
 
     const updateSanta = () => {
-      if (!leaflet || !map || nodes.length === 0) return;
+      if (!leaflet) return;
+      if (!map) return;
       const position = computeSantaPosition(nodes, new Date());
       if (!position) return;
-      if (!santaMarker) {
-        santaMarker = createSantaMarker(leaflet, map, position.lat, position.lng);
-        return;
-      }
-      santaMarker.setLatLng([position.lat, position.lng]);
+      santaMarker = updateSantaMarker(leaflet, map, santaMarker, position);
     };
 
     const initializeMap = async () => {
@@ -124,7 +131,7 @@ export default function TrackerMap({ adventEnabled, locale }: TrackerMapProps) {
         }
       }
     };
-    void initializeMap();
+    initializeMap();
     return () => {
       cancelled = true;
       if (tickTimer) clearInterval(tickTimer);

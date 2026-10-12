@@ -2,6 +2,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { getSantaRoutePath } from "./config";
 import { getSantaSnapshotsBucket } from "./cloudflare-bindings";
+import type { R2BucketLike } from "./storage/r2-backend";
 
 // The local queue serializes writes per instance. Node/VPS uses a file lock;
 // Workers use an R2 conditional-write lock because their filesystem is read-only.
@@ -59,6 +60,51 @@ function delay(ms: number): Promise<void> {
   return new Promise<void>((resolve) => setTimeout(resolve, ms));
 }
 
+type R2LockObject = Awaited<ReturnType<R2BucketLike["get"]>>;
+type R2LockWriteOptions = { onlyIf: Headers | { etagMatches?: string } };
+
+async function getR2LockWriteOptions(current: R2LockObject, now: number): Promise<R2LockWriteOptions | null> {
+  if (!current) return { onlyIf: new Headers({ "If-None-Match": "*" }) };
+
+  let expiresAt = Number.POSITIVE_INFINITY;
+  try {
+    const lockData: unknown = JSON.parse(await current.text());
+    if (typeof lockData === "object" && lockData !== null && "expiresAt" in lockData) {
+      const expiry = lockData.expiresAt;
+      expiresAt = typeof expiry === "number" ? expiry : Number.POSITIVE_INFINITY;
+    }
+  } catch {
+    if (current.uploaded) expiresAt = current.uploaded.getTime() + R2_LOCK_LEASE_MS;
+  }
+
+  if (expiresAt > now || !current.etag) return null;
+  return { onlyIf: { etagMatches: current.etag } };
+}
+
+function makeR2LockRelease(bucket: R2BucketLike, etag: string): () => Promise<void> {
+  return async () => {
+    await bucket.put(
+      R2_LOCK_KEY,
+      JSON.stringify({ owner: "released", expiresAt: 0 }),
+      { onlyIf: { etagMatches: etag } },
+    ).catch(error => console.error("Unable to release R2 admin write lock", error));
+  };
+}
+
+async function tryAcquireR2Lock(
+  bucket: R2BucketLike,
+  owner: string,
+  options: R2LockWriteOptions,
+): Promise<(() => Promise<void>) | null> {
+  const result = await bucket.put(
+    R2_LOCK_KEY,
+    JSON.stringify({ owner, expiresAt: Date.now() + R2_LOCK_LEASE_MS }),
+    options,
+  );
+  const etag = (result as { etag?: string } | null)?.etag;
+  return etag ? makeR2LockRelease(bucket, etag) : null;
+}
+
 function makeRelease(lock: LockFile): () => Promise<void> {
   return async () => {
     try {
@@ -91,42 +137,14 @@ async function acquireR2Lock(timeoutMs = 5000): Promise<() => Promise<void>> {
   const owner = Math.random().toString(36).slice(2);
   const start = Date.now();
 
-  while (true) {
+  for (;;) {
     const now = Date.now();
     const current = await bucket.get(R2_LOCK_KEY);
-    let writeOptions: { onlyIf: Headers | { etagMatches?: string } } | undefined;
-    if (!current) {
-      writeOptions = { onlyIf: new Headers({ "If-None-Match": "*" }) };
-    } else {
-      let expiresAt = Number.POSITIVE_INFINITY;
-      try {
-        expiresAt = (JSON.parse(await current.text()) as { expiresAt?: number }).expiresAt ?? Number.POSITIVE_INFINITY;
-      } catch {
-        if (current.uploaded) expiresAt = current.uploaded.getTime() + R2_LOCK_LEASE_MS;
-      }
-      if (expiresAt <= now && current.etag) {
-        writeOptions = { onlyIf: { etagMatches: current.etag } };
-      }
-    }
-
+    const writeOptions = await getR2LockWriteOptions(current, now);
     if (writeOptions) {
-      const result = await bucket.put(
-        R2_LOCK_KEY,
-        JSON.stringify({ owner, expiresAt: now + R2_LOCK_LEASE_MS }),
-        writeOptions,
-      );
-      const etag = (result as { etag?: string } | null)?.etag;
-      if (etag) {
-        return async () => {
-          await bucket.put(
-            R2_LOCK_KEY,
-            JSON.stringify({ owner: "released", expiresAt: 0 }),
-            { onlyIf: { etagMatches: etag } },
-          ).catch(error => console.error("Unable to release R2 admin write lock", error));
-        };
-      }
+      const release = await tryAcquireR2Lock(bucket, owner, writeOptions);
+      if (release) return release;
     }
-
     if (now - start > timeoutMs) throw new Error("Timed out acquiring R2 admin write lock");
     await delay(50);
   }
