@@ -150,7 +150,7 @@ export async function listAdminAdventDays(): Promise<AdminApiResult> {
 }
 
 export async function previewAdminAdventDays(previewTime: Date): Promise<AdminApiResult> {
-  if (Number.isNaN(previewTime.getTime())) return badRequest("Invalid preview time");
+  if (!(previewTime instanceof Date) || Number.isNaN(previewTime.getTime())) return badRequest("Invalid preview time");
   try {
     const days = await loadAdventCalendar();
     return {
@@ -159,7 +159,7 @@ export async function previewAdminAdventDays(previewTime: Date): Promise<AdminAp
         preview_time: previewTime.toISOString(),
         days: days.map(day => {
           const preview = toDict(day, { includePayload: true, currentTime: previewTime });
-          return { ...preview, is_currently_unlocked: preview.is_unlocked };
+          return { ...preview, payload: day.payload, is_unlocked_override: day.is_unlocked_override ?? null, is_unlocked_at_preview_time: preview.is_unlocked };
         }),
         total_days: days.length,
       },
