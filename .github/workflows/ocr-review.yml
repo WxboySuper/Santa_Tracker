@@ -132,9 +132,9 @@ jobs:
         uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7.1.0
         env:
           OCR_OUTCOME: ${{ steps.ocr.outcome }}
-          DIGEST_PR_NUMBER: ${{ env.PR_NUMBER }}
+          DIGEST_PR_NUMBER: ${{ steps.pr-refs.outputs.pr_number }}
           DIGEST_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-          DIGEST_HEAD_SHA: ${{ env.HEAD_SHA }}
+          DIGEST_HEAD_SHA: ${{ steps.pr-refs.outputs.head_sha }}
           DIGEST_PAYLOAD_SHA: ${{ github.event.pull_request.head.sha }}
         with:
           script: |
@@ -142,10 +142,8 @@ jobs:
             // problem logs a warning and skips, so a digest hiccup can never
             // block a review or a merge. Uses its own marker, distinct from
             // the OCR action's summary comment.
-            // PR-number/SHA wiring note (reviewers keep misreading this):
-            // pr-refs exports PR_NUMBER/HEAD_SHA via $GITHUB_ENV on
-            // dispatch/comment runs; on pull_request_target it is skipped
-            // and the payload fallbacks below cover those events.
+            // pr-refs exposes the PR number and head SHA as step outputs for
+            // dispatch/comment runs. pull_request_target uses its event payload.
             const MARKER = '<!-- santa-ocr-digest -->';
             const findDigestComment = async (prNumber) => {
               // Paginated: on busy PRs the marker can sit past page one.
@@ -224,8 +222,8 @@ jobs:
               const groups = Array.isArray(result.groups) ? result.groups : [];
               const comments = Array.isArray(result.comments) ? result.comments : [];
               const files = groups.flatMap((g) => Array.isArray(g.files) ? g.files : []);
-              // HEAD_SHA env only exists for dispatch/comment triggers
-              // (pr-refs step); on pull_request_target use the payload SHA.
+              // Dispatch/comment runs use pr-refs outputs. On
+              // pull_request_target use the event payload SHA.
               const headSha = (
                 process.env.DIGEST_HEAD_SHA
                 || process.env.DIGEST_PAYLOAD_SHA
