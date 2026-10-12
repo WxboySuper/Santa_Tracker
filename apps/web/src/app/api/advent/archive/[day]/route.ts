@@ -18,7 +18,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ day: st
     return NextResponse.json(content, { headers: NO_STORE });
   } catch (error: unknown) {
     if (error instanceof Error && error.message.includes("not found")) return jsonError("Advent calendar data not found", 404);
-    console.error("Advent archive error", error);
+    console.error("Advent day error", { route: "archive", error });
     return jsonError("Internal server error", 500);
   }
 }

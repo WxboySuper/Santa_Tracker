@@ -158,7 +158,7 @@ export async function previewAdminAdventDays(previewTime: Date): Promise<AdminAp
       body: {
         preview_time: previewTime.toISOString(),
         days: days.map(day => {
-          const preview = toDict(day, { includePayload: false, currentTime: previewTime });
+          const preview = toDict(day, { includePayload: true, currentTime: previewTime, mode: "archive" });
           return { ...preview, payload: day.payload, is_unlocked_override: day.is_unlocked_override ?? null };
         }),
         total_days: days.length,
@@ -238,13 +238,13 @@ function normalizeImportedDay(raw: unknown): AdventDay | null {
   };
 }
 
-function storeImportedDays(parsed: ImportParse): AdminApiResult | Promise<AdminApiResult> {
-  if (parsed.kind === "invalid_request") return badRequest("Invalid import data");
-  if (parsed.kind === "invalid_day") return badRequest("Invalid day data");
+function storeImportedDays(parsed: ImportParse): Promise<AdminApiResult> {
+  if (parsed.kind === "invalid_request") return Promise.resolve(badRequest("Invalid import data"));
+  if (parsed.kind === "invalid_day") return Promise.resolve(badRequest("Invalid day data"));
 
   const validation = validateAdventCalendar(parsed.days);
   if (!validation.valid) {
-    return { status: 400, body: { error: "Validation failed", errors: validation.errors } };
+    return Promise.resolve({ status: 400, body: { error: "Validation failed", errors: validation.errors } });
   }
   return withWriteLock(async () => {
     await saveAdventCalendar(parsed.days);

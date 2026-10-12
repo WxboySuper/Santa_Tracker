@@ -68,8 +68,12 @@ function clone<T>(value: T): T {
 }
 
 function validateUnlockTime({ value }: AdventTextValue): void {
-  const dt = new Date(value.replace("Z", "+00:00"));
+  const dt = parseUnlockTimeValue(value);
   if (Number.isNaN(dt.getTime())) throw new Error("Invalid date");
+}
+
+function parseUnlockTimeValue(value: string): Date {
+  return new Date(value.replace("Z", "+00:00"));
 }
 
 function isObjectValue(value: unknown): value is object {
@@ -218,7 +222,7 @@ export function isUnlocked(day: AdventDay, currentTime: Date = trustedClock()): 
 }
 
 function parseUnlockTime(day: AdventDay): Date {
-  return new Date(day.unlock_time.replace("Z", "+00:00"));
+  return parseUnlockTimeValue(day.unlock_time);
 }
 
 export function isPlayable(day: AdventDay, opts: { mode?: AdventMode; currentTime?: Date; clock?: AdventClock } = {}): boolean {
@@ -227,7 +231,7 @@ export function isPlayable(day: AdventDay, opts: { mode?: AdventMode; currentTim
     return currentTime.getTime() >= parseUnlockTime(day).getTime();
   }
   if (opts.mode !== undefined && opts.mode !== "live") throw new Error(`Unknown AdventMode: ${String(opts.mode)}`);
-  return isUnlocked(day, opts.currentTime);
+  return isUnlocked(day, resolveCurrentTime(opts));
 }
 
 export function toDict(day: AdventDay, opts: { includePayload?: boolean; currentTime?: Date; clock?: AdventClock; mode?: AdventMode } = {}): AdventPublicDay {
@@ -244,22 +248,23 @@ export function toDict(day: AdventDay, opts: { includePayload?: boolean; current
 }
 
 export async function getManifest(options: AdventQueryOptions = {}): Promise<AdventManifest> {
-  const { data: days } = await loadCachedAdventCalendar(options);
   const currentTime = resolveCurrentTime(options);
+  const { data: days } = await loadCachedAdventCalendar(options);
   const daysData = days.map(d => toDict(d, { includePayload: false, currentTime, mode: options.mode }));
   return { total_days: days.length, days: daysData };
 }
 
 export async function getDayContent(dayNumber: number, options: AdventQueryOptions = {}): Promise<AdventPublicDay | null> {
   if (dayNumber < 1 || dayNumber > 24) return null;
+  const currentTime = resolveCurrentTime(options);
   const { byDay } = await loadCachedAdventCalendar(options);
   const day = byDay.get(dayNumber);
   if (!day) return null;
-  const currentTime = resolveCurrentTime(options);
   return toDict(day, { includePayload: true, currentTime, mode: options.mode });
 }
 
 export function getArchiveDayContent(dayNumber: number, options: AdventQueryOptions = {}): Promise<AdventPublicDay | null> {
+  if (options.mode !== undefined && options.mode !== "archive") throw new Error(`getArchiveDayContent called with conflicting mode: ${String(options.mode)}`);
   return getDayContent(dayNumber, { ...options, mode: "archive" });
 }
 
@@ -273,9 +278,9 @@ function isNotFoundError(error: unknown): boolean {
 }
 
 export function parseDayNumber(rawDay: string): number | null {
-  if (!/^(?:[1-9]|1\d|2[0-4])$/.test(rawDay)) return null;
-  const dayNumber = Number(rawDay);
-  return Number.isInteger(dayNumber) && dayNumber >= 1 && dayNumber <= 24 ? dayNumber : null;
+  const trimmed = rawDay.trim();
+  if (!/^(?:[1-9]|1\d|2[0-4])$/.test(trimmed)) return null;
+  return Number(trimmed);
 }
 
 function dayContentResult(content: AdventPublicDay): AdventApiResult {
