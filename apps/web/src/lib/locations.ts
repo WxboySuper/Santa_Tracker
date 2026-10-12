@@ -1,6 +1,10 @@
 import fs from "fs/promises";
 import path from "path";
-import { getSantaRoutePath, getTrialRoutePath } from "./config";
+import { getSantaRoutePath } from "./config";
+import { getSantaSnapshotsBucket } from "./cloudflare-bindings";
+import { getSnapshotStore } from "./storage";
+import { ensureStoreBootstrapped, persistSantaRoute, persistTrialRoute, removeTrialRoute } from "./storage/publish";
+import { DATASET_SANTA_ROUTE, DATASET_TRIAL_ROUTE } from "./storage/types";
 
 export interface StopExperience {
   duration_seconds?: number | null;
@@ -65,95 +69,117 @@ export interface RouteNode {
   priority?: number | null;
 }
 
+type JsonRecord = Record<string, unknown>;
+type LocationInput = LocationEntry | RouteNode | JsonRecord;
+
+function isRecord(value: unknown): value is JsonRecord {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function toRecord(value: LocationInput): JsonRecord {
+  return value as unknown as JsonRecord;
+}
+
+function optionalString(value: unknown): string | null {
+  return typeof value === "string" ? value : null;
+}
+
+function optionalNumber(value: unknown): number | null {
+  if (value == null) return null;
+  const number = Number(value);
+  return Number.isNaN(number) ? null : number;
+}
+
 // Helpers mirroring locations.py coercion
-function safeFloat(v: any): number | null {
-  if (v == null) return null;
-  if (typeof v === "number") return v;
-  if (typeof v === "string") {
-    const s = v.replace(/,/g, "").trim();
-    const n = Number(s);
-    if (Number.isNaN(n)) throw new Error(`expected numeric string got ${v}`);
-    return n;
+function safeFloat(value: unknown): number | null {
+  if (value == null) return null;
+  if (typeof value === "number") return value;
+  if (typeof value === "string") {
+    const normalized = value.replace(/,/g, "").trim();
+    const parsedNumber = Number(normalized);
+    if (Number.isNaN(parsedNumber)) throw new Error(`expected numeric string got ${value}`);
+    return parsedNumber;
   }
-  throw new Error(`unsupported type`);
+  throw new Error("unsupported type");
 }
 
 function normalizeLng(lng: number): number {
   return ((((lng + 180) % 360) + 360) % 360) - 180;
 }
 
-function isLegacyLocation(entry: any): boolean {
+function isLegacyLocation(entry: JsonRecord): boolean {
   return !entry.location && !entry.id && ("latitude" in entry || "longitude" in entry || "name" in entry);
 }
 
-function normalizeLegacyLocation(entry: any, idx: number): any {
+function normalizeLegacyLocation(entry: JsonRecord, idx: number): JsonRecord {
   const lat = entry.latitude ?? entry.lat;
   const lng = entry.longitude ?? entry.lng;
   const tz = entry.utc_offset ?? entry.timezone_offset;
+  const durationSeconds = optionalNumber(entry.stop_duration);
   return {
     id: entry.name || `node_${idx}`,
     location: { name: entry.name, lat, lng, timezone_offset: tz },
     schedule: { arrival_utc: entry.arrival_time, departure_utc: entry.departure_time },
-    stop_experience: { duration_seconds: entry.stop_duration != null ? entry.stop_duration * 60 : null },
+    stop_experience: { duration_seconds: durationSeconds != null ? durationSeconds * 60 : null },
     notes: entry.notes ?? entry.fun_facts,
     priority: entry.priority,
   };
 }
 
-function parseTransit(transit: any): TransitToHere | null {
-  if (!transit || typeof transit !== "object") return null;
+function parseTransit(value: unknown): TransitToHere | null {
+  if (!isRecord(value)) return null;
   return {
-    description: transit.description ?? null,
-    duration_seconds: transit.duration_seconds != null ? Number(transit.duration_seconds) : null,
-    distance_km: transit.distance_km != null ? Number(transit.distance_km) : null,
-    speed_curve: transit.speed_curve ?? null,
-    speed_kmh: transit.speed_kmh != null ? Number(transit.speed_kmh) : null,
-    camera_zoom: transit.camera_zoom != null ? Number(transit.camera_zoom) : null,
+    description: optionalString(value.description),
+    duration_seconds: optionalNumber(value.duration_seconds),
+    distance_km: optionalNumber(value.distance_km),
+    speed_curve: optionalString(value.speed_curve),
+    speed_kmh: optionalNumber(value.speed_kmh),
+    camera_zoom: optionalNumber(value.camera_zoom),
   };
 }
 
-function parseLocationNode(entry: any, idx: number): RouteNode | null {
-  if (!entry || typeof entry !== "object") return null;
-  if (isLegacyLocation(entry)) entry = normalizeLegacyLocation(entry, idx);
+function parseLocationNode(value: unknown, idx: number): RouteNode | null {
+  if (!isRecord(value)) return null;
+  const entry = isLegacyLocation(value) ? normalizeLegacyLocation(value, idx) : value;
 
   const loc = entry.location;
-  if (!loc || typeof loc !== "object") return null;
-  const id = entry.id;
+  if (!isRecord(loc)) return null;
+  const id = optionalString(entry.id);
   if (!id) return null;
   const lat = safeFloat(loc.lat);
   const lng = safeFloat(loc.lng);
   if (lat == null || lng == null) return null;
   const tz = safeFloat(loc.timezone_offset);
 
-  const stop = entry.stop_experience || {};
-  const schedule = entry.schedule || {};
+  const stop = isRecord(entry.stop_experience) ? entry.stop_experience : {};
+  const schedule = isRecord(entry.schedule) ? entry.schedule : {};
 
   return {
     id,
-    type: entry.type ?? "DELIVERY",
-    comment: entry.comment ?? null,
+    type: optionalString(entry.type) ?? "DELIVERY",
+    comment: optionalString(entry.comment),
     location: {
-      name: loc.name ?? id,
-      region: loc.region ?? null,
-      lat: lat!,
-      lng: normalizeLng(lng!),
+      name: optionalString(loc.name) ?? id,
+      region: optionalString(loc.region),
+      lat,
+      lng: normalizeLng(lng),
       timezone_offset: tz,
     },
     stop_experience: {
-      duration_seconds: stop.duration_seconds != null ? Number(stop.duration_seconds) : 0,
-      camera_zoom: stop.camera_zoom ?? null,
-      weather_condition: stop.weather_condition ?? null,
-      presents_delivered_at_stop: stop.presents_delivered_at_stop != null ? Number(stop.presents_delivered_at_stop) : 0,
+      duration_seconds: optionalNumber(stop.duration_seconds) ?? 0,
+      camera_zoom: optionalNumber(stop.camera_zoom),
+      weather_condition: optionalString(stop.weather_condition),
+      presents_delivered_at_stop: optionalNumber(stop.presents_delivered_at_stop) ?? 0,
     },
     schedule: {
-      arrival_utc: schedule.arrival_utc ?? null,
-      departure_utc: schedule.departure_utc ?? null,
-      local_arrival_time: schedule.local_arrival_time ?? null,
-      time_window_status: schedule.time_window_status ?? null,
+      arrival_utc: optionalString(schedule.arrival_utc),
+      departure_utc: optionalString(schedule.departure_utc),
+      local_arrival_time: optionalString(schedule.local_arrival_time),
+      time_window_status: optionalString(schedule.time_window_status),
     },
     transit_to_here: parseTransit(entry.transit_to_here),
-    notes: entry.notes ?? entry.fun_facts ?? null,
-    priority: entry.priority ?? null,
+    notes: optionalString(entry.notes) ?? optionalString(entry.fun_facts),
+    priority: optionalNumber(entry.priority),
   };
 }
 
@@ -186,15 +212,20 @@ function toLocationFromNode(node: RouteNode): LocationEntry {
   };
 }
 
-function coerceNodeToFlat(item: any): Record<string, any> {
-  return item && typeof item === "object" && "location" in item ? flattenRouteNode(item as RouteNode) : flattenLegacyLocation(item);
+function isRouteNode(item: LocationInput): item is RouteNode {
+  const record = toRecord(item);
+  return typeof record.id === "string" && isRecord(record.location);
 }
 
-function flattenRouteNode(node: RouteNode): Record<string, any> {
+function coerceNodeToFlat(item: LocationInput): JsonRecord {
+  return isRouteNode(item) ? flattenRouteNode(item) : flattenLegacyLocation(toRecord(item));
+}
+
+function flattenRouteNode(node: RouteNode): JsonRecord {
   const loc = node.location;
   const sched = node.schedule || {};
   const stop = node.stop_experience || {};
-  const flat: Record<string, any> = {
+  const flat: JsonRecord = {
     name: loc.name,
     latitude: loc.lat,
     longitude: loc.lng,
@@ -210,7 +241,7 @@ function flattenRouteNode(node: RouteNode): Record<string, any> {
   return flat;
 }
 
-function flattenLegacyLocation(item: any): Record<string, any> {
+function flattenLegacyLocation(item: JsonRecord): JsonRecord {
   return {
     name: item.name,
     latitude: Number(item.latitude ?? item.lat),
@@ -228,35 +259,30 @@ function flattenLegacyLocation(item: any): Record<string, any> {
   };
 }
 
-async function atomicWrite(filePath: string, data: any) {
-  const dir = path.dirname(filePath);
-  await fs.mkdir(dir, { recursive: true });
-  const tmp = `${filePath}.tmp.${Date.now()}.${Math.random().toString(36).slice(2)}`;
-  await fs.writeFile(tmp, JSON.stringify(data, null, 2), "utf-8");
-  await fs.rename(tmp, filePath);
-  // versioned snapshot: keep last 5 versions for rollback
-  try {
-    const backupDir = path.join(dir, ".history");
-    await fs.mkdir(backupDir, { recursive: true });
-    const stamp = new Date().toISOString().replace(/[:.]/g, "-");
-    const backupPath = path.join(backupDir, `${path.basename(filePath, ".json")}-${stamp}.json`);
-    await fs.writeFile(backupPath, JSON.stringify(data, null, 2), "utf-8");
-    const files = (await fs.readdir(backupDir)).filter(f => f.startsWith(path.basename(filePath, ".json"))).sort().reverse();
-    for (const f of files.slice(5)) {
-      await fs.unlink(path.join(backupDir, f)).catch(() => {
-        // A concurrent cleanup can remove the file first.
-      });
-    }
-  } catch {}
+async function getRouteStore() {
+  const store = getSnapshotStore(getSantaSnapshotsBucket());
+  await ensureStoreBootstrapped(store);
+  return store;
 }
 
-export async function loadSantaRouteFromJson(source?: string | Record<string, any> | any[]): Promise<LocationEntry[]> {
+async function readPublishedSantaRouteJson(): Promise<string> {
+  const store = await getRouteStore();
+  const active = await store.readActive(DATASET_SANTA_ROUTE);
+  if (!active) {
+    const missing = new Error(`Route file not found: ${getSantaRoutePath()}`);
+    missing.cause = "ENOENT";
+    throw missing;
+  }
+  return active;
+}
+
+export async function loadSantaRouteFromJson(source?: string | JsonRecord | unknown[]): Promise<LocationEntry[]> {
   const obj = await readRouteSource(source);
   return parseRouteNodes(extractRouteNodes(obj)).map(toLocationFromNode);
 }
 
-async function readRouteSource(source?: string | Record<string, any> | any[]): Promise<any> {
-  if (!source) return readRouteFile(getSantaRoutePath(), "Route file not found");
+async function readRouteSource(source?: string | JsonRecord | unknown[]): Promise<unknown> {
+  if (!source) return JSON.parse(await readPublishedSantaRouteJson());
   if (typeof source !== "string") return source;
   try {
     return await readRouteFile(source, "Route file not found");
@@ -266,7 +292,7 @@ async function readRouteSource(source?: string | Record<string, any> | any[]): P
   }
 }
 
-async function readRouteFile(filePath: string, errorLabel: string): Promise<any> {
+async function readRouteFile(filePath: string, errorLabel: string): Promise<unknown> {
   try {
     return JSON.parse(await fs.readFile(filePath, "utf-8"));
   } catch (error: unknown) {
@@ -279,13 +305,14 @@ async function readRouteFile(filePath: string, errorLabel: string): Promise<any>
   }
 }
 
-function extractRouteNodes(obj: any): any[] {
+function extractRouteNodes(obj: unknown): unknown[] {
   if (Array.isArray(obj)) return obj;
-  if (!obj || typeof obj !== "object") return [];
-  return obj.route_nodes ?? obj.route ?? obj.nodes ?? obj.stops ?? [];
+  if (!isRecord(obj)) return [];
+  const nodes = obj.route_nodes ?? obj.route ?? obj.nodes ?? obj.stops;
+  return Array.isArray(nodes) ? nodes : [];
 }
 
-function parseRouteNodes(nodes: any[]): RouteNode[] {
+function parseRouteNodes(nodes: unknown[]): RouteNode[] {
   const parsed: RouteNode[] = [];
   for (let i = 0; i < nodes.length; i++) {
     try {
@@ -299,123 +326,127 @@ function parseRouteNodes(nodes: any[]): RouteNode[] {
 }
 
 export async function loadRouteNodesRaw(): Promise<RouteNode[]> {
-  const defaultPath = getSantaRoutePath();
-  const content = await fs.readFile(defaultPath, "utf-8");
-  const obj = JSON.parse(content);
-  const nodes = obj.route_nodes ?? obj.route ?? obj.nodes ?? [];
-  const parsed: RouteNode[] = [];
-  for (let i = 0; i < nodes.length; i++) {
-    const p = parseLocationNode(nodes[i], i);
-    if (p) parsed.push(p);
-  }
-  return parsed;
+  const obj: unknown = JSON.parse(await readPublishedSantaRouteJson());
+  return parseRouteNodes(extractRouteNodes(obj));
 }
 
-export async function saveSantaRouteToJson(locations: (LocationEntry | RouteNode | Record<string, any>)[], filePath?: string) {
-  const target = filePath ?? getSantaRoutePath();
-  // Build route_nodes format for storage (preserve rich structure if nodes available)
-  // If locations are LocationEntry (flattened), we need to convert to nodes or flat route array
-  // For parity with Flask's save_santa_route_to_json which writes {"route": flat[]}, we support both:
-  // If target is the main route file, write as {meta, route_nodes}
-  // Detect by checking if original file had route_nodes
+function buildSantaRouteDocument(
+  locations: LocationInput[],
+  existingJson?: string,
+): Record<string, unknown> {
   let isLegacyFlat = false;
-  try {
-    const existing = JSON.parse(await fs.readFile(target, "utf-8"));
-    if (existing.route && !existing.route_nodes) isLegacyFlat = true;
-  } catch {}
+  let meta: Record<string, unknown> = { year: 2025, route_version: "1.0", generated_at: new Date().toISOString() };
+  if (existingJson) {
+    try {
+      const parsed: unknown = JSON.parse(existingJson);
+      if (isRecord(parsed)) {
+        if (parsed.route && !parsed.route_nodes) isLegacyFlat = true;
+        if (isRecord(parsed.meta)) meta = parsed.meta;
+      }
+    } catch {
+      // ignore parse errors
+    }
+  }
 
   if (isLegacyFlat) {
-    const route = locations.map(coerceNodeToFlat);
-    await atomicWrite(target, { route });
-  } else {
-    // Write as route_nodes with full structure — convert flat entries to nodes
-    const nodes: RouteNode[] = locations.map((item: any, idx: number) => {
-      if (item.location && item.id) return item as RouteNode;
-      // flat LocationEntry -> RouteNode
-      const lat = item.latitude ?? item.lat;
-      const lng = item.longitude ?? item.lng;
-      const tz = item.utc_offset ?? item.timezone_offset ?? 0;
-      return {
-        id: item.id ?? `node_${idx}_${(item.name || "unknown").toLowerCase().replace(/\s+/g, "_")}`,
-        type: item.type ?? "DELIVERY",
-        comment: item.comment ?? null,
-        location: {
-          name: item.name,
-          region: item.country ?? item.region ?? null,
-          lat: Number(lat),
-          lng: normalizeLng(Number(lng)),
-          timezone_offset: Number(tz),
-        },
-        schedule: {
-          arrival_utc: item.arrival_time ?? null,
-          departure_utc: item.departure_time ?? null,
-          local_arrival_time: null,
-          time_window_status: null,
-        },
-        stop_experience: {
-          duration_seconds: item.stop_duration != null ? Number(item.stop_duration) * 60 : 0,
-          camera_zoom: null,
-          weather_condition: null,
-          presents_delivered_at_stop: 0,
-        },
-        transit_to_here: null,
-        notes: item.notes ?? item.fun_facts ?? null,
-        priority: item.priority ?? null,
-      };
-    });
-    // Preserve meta if exists
-    let meta: any = { year: 2025, route_version: "1.0", generated_at: new Date().toISOString() };
-    try {
-      const existing = JSON.parse(await fs.readFile(target, "utf-8"));
-      if (existing.meta) meta = existing.meta;
-    } catch {}
-    await atomicWrite(target, { meta, route_nodes: nodes });
+    return { route: locations.map(coerceNodeToFlat) };
   }
+
+  const nodes: RouteNode[] = locations.map((input, idx) => {
+    if (isRouteNode(input)) return input;
+    const item = toRecord(input);
+    const lat = item.latitude ?? item.lat;
+    const lng = item.longitude ?? item.lng;
+    const tz = item.utc_offset ?? item.timezone_offset ?? 0;
+    const name = optionalString(item.name) ?? "";
+    return {
+      id: optionalString(item.id) ?? `node_${idx}_${(name || "unknown").toLowerCase().replace(/\s+/g, "_")}`,
+      type: optionalString(item.type) ?? "DELIVERY",
+      comment: optionalString(item.comment),
+      location: {
+        name,
+        region: optionalString(item.country) ?? optionalString(item.region),
+        lat: Number(lat),
+        lng: normalizeLng(Number(lng)),
+        timezone_offset: Number(tz),
+      },
+      schedule: {
+        arrival_utc: optionalString(item.arrival_time),
+        departure_utc: optionalString(item.departure_time),
+        local_arrival_time: null,
+        time_window_status: null,
+      },
+      stop_experience: {
+        duration_seconds: optionalNumber(item.stop_duration) != null ? Number(item.stop_duration) * 60 : 0,
+        camera_zoom: null,
+        weather_condition: null,
+        presents_delivered_at_stop: 0,
+      },
+      transit_to_here: null,
+      notes: optionalString(item.notes) ?? optionalString(item.fun_facts),
+      priority: optionalNumber(item.priority),
+    };
+  });
+  return { meta, route_nodes: nodes };
+}
+
+export async function saveSantaRouteToJson(locations: LocationInput[], filePath?: string) {
+  const target = filePath ?? getSantaRoutePath();
+  const isMainRoute = path.resolve(target) === path.resolve(getSantaRoutePath());
+  let existingJson: string | undefined;
+  try {
+    existingJson = isMainRoute ? await readPublishedSantaRouteJson() : await fs.readFile(target, "utf-8");
+  } catch {
+    existingJson = undefined;
+  }
+  const document = buildSantaRouteDocument(locations, existingJson);
+  const body = JSON.stringify(document, null, 2);
+  if (isMainRoute) {
+    await persistSantaRoute(await getRouteStore(), body);
+    return;
+  }
+  await fs.mkdir(path.dirname(target), { recursive: true });
+  const tmp = `${target}.tmp.${Date.now()}`;
+  await fs.writeFile(tmp, body, "utf-8");
+  await fs.rename(tmp, target);
 }
 
 export async function loadTrialRouteFromJson(): Promise<LocationEntry[] | null> {
-  const p = await getTrialRoutePath();
-  try {
-    await fs.access(p);
-  } catch {
-    return null;
-  }
-  return loadSantaRouteFromJson(p);
+  const store = await getRouteStore();
+  const active = await store.readActive(DATASET_TRIAL_ROUTE);
+  if (!active) return null;
+  return loadSantaRouteFromJson(JSON.parse(active) as Record<string, unknown>);
 }
 
-export async function saveTrialRouteToJson(locations: (LocationEntry | RouteNode | Record<string, any>)[]) {
-  const p = await getTrialRoutePath();
-  await saveSantaRouteToJson(locations, p);
+export async function saveTrialRouteToJson(locations: LocationInput[]) {
+  const existing = await (async () => {
+    try {
+      return await readPublishedSantaRouteJson();
+    } catch {
+      return undefined;
+    }
+  })();
+  const body = JSON.stringify(buildSantaRouteDocument(locations, existing), null, 2);
+  await persistTrialRoute(await getRouteStore(), body);
 }
 
 export async function deleteTrialRoute(): Promise<boolean> {
-  const p = await getTrialRoutePath();
-  try {
-    await fs.unlink(p);
-    return true;
-  } catch (error: unknown) {
-    if ((error as NodeJS.ErrnoException).code === "ENOENT") return false;
-    throw error;
-  }
+  return removeTrialRoute(await getRouteStore());
 }
 
 export async function hasTrialRoute(): Promise<boolean> {
-  const p = await getTrialRoutePath();
-  try {
-    await fs.access(p);
-    return true;
-  } catch {
-    return false;
-  }
+  const store = await getRouteStore();
+  const active = await store.readActive(DATASET_TRIAL_ROUTE);
+  return active != null;
 }
 
-export function createLocationFromPayload(data: Record<string, any>): LocationEntry {
-  if (!data || typeof data !== "object") throw new Error("payload must be a dict");
-  const name = data.name ?? data.location;
+export function createLocationFromPayload(data: JsonRecord): LocationEntry {
+  const name = optionalString(data.name) ?? optionalString(data.location);
   if (!name) throw new Error("Missing required field: name");
   const { lat, lng, tz } = parseLocationCoordinates(data);
   validatePriority(data.priority);
-  const notes = data.notes ?? data.fun_facts ?? null;
+  const notes = optionalString(data.notes) ?? optionalString(data.fun_facts);
+  const priority = optionalNumber(data.priority);
   return {
     name,
     latitude: lat,
@@ -424,20 +455,20 @@ export function createLocationFromPayload(data: Record<string, any>): LocationEn
     lat,
     lng,
     timezone_offset: tz,
-    arrival_time: data.arrival_time ?? null,
-    departure_time: data.departure_time ?? null,
-    country: data.country ?? null,
-    population: data.population ?? null,
-    priority: data.priority ?? null,
+    arrival_time: optionalString(data.arrival_time),
+    departure_time: optionalString(data.departure_time),
+    country: optionalString(data.country),
+    population: optionalNumber(data.population),
+    priority,
     notes,
     fun_facts: notes,
-    stop_duration: data.stop_duration ?? null,
-    is_stop: data.is_stop ?? true,
-    region: data.region ?? data.country ?? null,
+    stop_duration: optionalNumber(data.stop_duration),
+    is_stop: typeof data.is_stop === "boolean" ? data.is_stop : true,
+    region: optionalString(data.region) ?? optionalString(data.country),
   };
 }
 
-function parseLocationCoordinates(data: Record<string, any>): { lat: number; lng: number; tz: number } {
+function parseLocationCoordinates(data: JsonRecord): { lat: number; lng: number; tz: number } {
   const latRaw = data.latitude ?? data.lat;
   const lngRaw = data.longitude ?? data.lng;
   const tzRaw = data.utc_offset ?? data.timezone_offset;
@@ -451,33 +482,33 @@ function parseLocationCoordinates(data: Record<string, any>): { lat: number; lng
   return { lat, lng: normalizeLng(longitude), tz };
 }
 
-function validateLatitude(value: number, raw: any): void {
+function validateLatitude(value: number, raw: unknown): void {
   if (Number.isNaN(value) || value < -90 || value > 90) throw new Error(`Invalid latitude: ${raw}`);
 }
 
-function validateLongitude(value: number, raw: any): void {
+function validateLongitude(value: number, raw: unknown): void {
   if (Number.isNaN(value)) throw new Error(`Invalid longitude: ${raw}`);
 }
 
-function validateTimezone(value: number, raw: any): void {
+function validateTimezone(value: number, raw: unknown): void {
   if (Number.isNaN(value) || value < -12 || value > 14) throw new Error(`Invalid timezone_offset: ${raw}`);
 }
 
-function validatePriority(priority: any): void {
-  if (priority != null && (!Number.isInteger(priority) || priority < 1 || priority > 3)) {
+function validatePriority(priority: unknown): void {
+  if (priority != null && (typeof priority !== "number" || !Number.isInteger(priority) || priority < 1 || priority > 3)) {
     throw new Error(`Invalid priority: ${priority}`);
   }
 }
 
 interface LocationValidationState {
-  locations: any[];
+  locations: LocationInput[];
   seenNames: Map<string, number>;
   seenCoords: Map<string, number>;
   errors: string[];
   warnings: string[];
 }
 
-export function validateLocations(locations: (LocationEntry | RouteNode | Record<string, any>)[]): { valid: boolean; total_locations: number; errors: string[]; warnings: string[] } {
+export function validateLocations(locations: LocationInput[]): { valid: boolean; total_locations: number; errors: string[]; warnings: string[] } {
   const state: LocationValidationState = {
     locations,
     seenNames: new Map<string, number>(),
@@ -491,22 +522,42 @@ export function validateLocations(locations: (LocationEntry | RouteNode | Record
   return { valid: state.errors.length === 0, total_locations: locations.length, errors: state.errors, warnings: state.warnings };
 }
 
-function validateLocationSafely(item: any, idx: number, state: LocationValidationState): void {
+function validateLocationSafely(item: LocationInput, idx: number, state: LocationValidationState): void {
   try {
     validateLocation(item, idx, state);
-  } catch (e: any) {
-    state.errors.push(`error processing location at index ${idx}: ${e.message}`);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
+    state.errors.push(`error processing location at index ${idx}: ${message}`);
   }
 }
 
-function extractLocationInfo(item: any): { name: string | null; lat: any; lng: any; tz: any } {
-  if (item && typeof item === "object" && "location" in item && item.location) {
-    return { name: item.location.name ?? item.id ?? item.name ?? null, lat: item.location.lat, lng: item.location.lng, tz: item.location.timezone_offset };
-  }
-  return { name: item.name ?? item.id ?? null, lat: item.lat ?? item.latitude ?? null, lng: item.lng ?? item.longitude ?? null, tz: item.timezone_offset ?? item.utc_offset ?? null };
+interface LocationInfo {
+  name: string | null;
+  lat: unknown;
+  lng: unknown;
+  tz: unknown;
 }
 
-function validateLocation(item: any, idx: number, state: LocationValidationState): void {
+function extractLocationInfo(input: LocationInput): LocationInfo {
+  const item = toRecord(input);
+  if (isRecord(item.location)) {
+    const location = item.location;
+    return {
+      name: optionalString(location.name) ?? optionalString(item.id) ?? optionalString(item.name),
+      lat: location.lat,
+      lng: location.lng,
+      tz: location.timezone_offset,
+    };
+  }
+  return {
+    name: optionalString(item.name) ?? optionalString(item.id),
+    lat: item.lat ?? item.latitude ?? null,
+    lng: item.lng ?? item.longitude ?? null,
+    tz: item.timezone_offset ?? item.utc_offset ?? null,
+  };
+}
+
+function validateLocation(item: LocationInput, idx: number, state: LocationValidationState): void {
   const info = extractLocationInfo(item);
   const name = info.name || `(index ${idx})`;
   checkDuplicateName(name, idx, state.seenNames, state.errors);
@@ -518,7 +569,7 @@ function validateLocation(item: any, idx: number, state: LocationValidationState
   addTimezoneWarning(name, tz, state.warnings);
 }
 
-function toNumber(value: any): number | null {
+function toNumber(value: unknown): number | null {
   return value == null ? null : Number(value);
 }
 
@@ -531,12 +582,12 @@ function checkDuplicateName(name: string, idx: number, seenNames: Map<string, nu
 interface CoordinateValidation {
   name: string;
   idx: number;
-  raw: any;
+  raw: unknown;
   value: number | null;
   errors: string[];
 }
 
-function addCoordinateErrors(context: { name: string; idx: number; info: any; lat: number | null; lng: number | null; tz: number | null; errors: string[] }): void {
+function addCoordinateErrors(context: { name: string; idx: number; info: LocationInfo; lat: number | null; lng: number | null; tz: number | null; errors: string[] }): void {
   addLatitudeError({ ...context, raw: context.info.lat, value: context.lat });
   addLongitudeError({ ...context, raw: context.info.lng, value: context.lng });
   addTimezoneError({ ...context, raw: context.info.tz, value: context.tz });
@@ -576,13 +627,16 @@ function isOutsideRange(value: number, min: number, max: number): boolean {
   return value > max;
 }
 
-function addCoordinateWarning(locations: any[], name: string, idx: number, lat: number | null, lng: number | null, seenCoords: Map<string, number>, warnings: string[]): void {
+function addCoordinateWarning(locations: LocationInput[], name: string, idx: number, lat: number | null, lng: number | null, seenCoords: Map<string, number>, warnings: string[]): void {
   if (lat == null || lng == null || Number.isNaN(lat) || Number.isNaN(lng)) return;
   const key = `${Math.round(lat * 10000) / 10000},${Math.round(lng * 10000) / 10000}`;
   const otherIdx = seenCoords.get(key);
   if (otherIdx != null) {
-    const other = locations[otherIdx] as any;
-    const otherName = other?.name ?? other?.id ?? other?.location?.name ?? `(index ${otherIdx})`;
+    const otherInput = locations[otherIdx];
+    if (!otherInput) return;
+    const other = toRecord(otherInput);
+    const otherLocation = isRecord(other.location) ? other.location : null;
+    const otherName = optionalString(other.name) ?? optionalString(other.id) ?? optionalString(otherLocation?.name) ?? `(index ${otherIdx})`;
     warnings.push(`Very close coordinates for '${name}' (index ${idx}) and '${otherName}' (index ${otherIdx})`);
   } else seenCoords.set(key, idx);
 }
@@ -607,10 +661,11 @@ export async function getRouteStatus() {
   }
   let last_modified = "Unknown";
   try {
-    const p = getSantaRoutePath();
-    const stat = await fs.stat(p);
-    last_modified = stat.mtime.toString();
-  } catch {}
+    const versions = await (await getRouteStore()).listVersions(DATASET_SANTA_ROUTE);
+    if (versions[0]) last_modified = versions[0].createdAt;
+  } catch {
+    last_modified = "Unknown";
+  }
   return {
     total_locations,
     locations_with_timing,

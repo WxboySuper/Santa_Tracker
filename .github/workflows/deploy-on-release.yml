@@ -1,4 +1,4 @@
-name: Deploy on release
+name: Deploy to legacy VPS on release
 
 permissions:
   contents: read

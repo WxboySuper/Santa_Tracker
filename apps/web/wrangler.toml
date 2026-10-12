@@ -1,0 +1,24 @@
+# Reference Wrangler settings for manual deploys and `pnpm santa:publish:remote`.
+# Vinext/CF Vite uses cloudflare.config.ts at build time; keep both in sync.
+name = "santa-tracker"
+main = "vinext/server/fetch-handler"
+compatibility_date = "2026-10-05"
+compatibility_flags = ["nodejs_compat"]
+
+# Public tracker route data is read from R2 through /api/route; Advent payloads
+# are only returned by the locked-day API after the server checks unlock time.
+[assets]
+directory = "./.vinext/client"
+binding = "ASSETS"
+not_found_handling = "none"
+
+[[r2_buckets]]
+binding = "SANTA_SNAPSHOTS"
+bucket_name = "santa-tracker-snapshots"
+
+[vars]
+ADVENT_ENABLED = "true"
+SANTA_STORAGE_BACKEND = "r2"
+# Set via `wrangler secret put`:
+# - SECRET_KEY
+# - ADMIN_PASSWORD

@@ -1,7 +1,10 @@
 import fs from "fs/promises";
-import type { Stats } from "node:fs";
 import path from "path";
-import { getAdventCalendarPath, isAdventEnabled } from "./config";
+import { isAdventEnabled } from "./config";
+import { getSantaSnapshotsBucket } from "./cloudflare-bindings";
+import { getSnapshotStore } from "./storage";
+import { ensureStoreBootstrapped, persistAdventCalendar } from "./storage/publish";
+import { DATASET_ADVENT } from "./storage/types";
 
 export interface AdventDay {
   day: number;
@@ -44,8 +47,13 @@ interface AdventTextValue {
   value: string;
 }
 
-// simple in-memory cache with mtime validation
-const cache = new Map<string, { mtimeMs: number; size: number; data: AdventDay[] }>();
+interface CachedAdventCalendar {
+  versionKey: string;
+  data: AdventDay[];
+  byDay: Map<number, AdventDay>;
+}
+
+const cache = new Map<string, CachedAdventCalendar>();
 const CONTENT_TYPES = ["fact", "game", "story", "video", "activity", "quiz"] as const;
 
 function clone<T>(value: T): T {
@@ -57,36 +65,68 @@ function validateUnlockTime({ value }: AdventTextValue): void {
   if (Number.isNaN(dt.getTime())) throw new Error("Invalid date");
 }
 
-function parseAdventDay(day: any): AdventDay {
+function isObjectValue(value: unknown): value is object {
+  return value !== null && typeof value === "object";
+}
+
+function isRecordValue(value: unknown): value is Record<string, unknown> {
+  return isObjectValue(value) && !Array.isArray(value);
+}
+
+function asRecord(value: unknown, description: string): Record<string, unknown> {
+  if (!isRecordValue(value)) throw new Error(`${description} must be an object`);
+  return value;
+}
+
+function parseAdventDay(value: unknown): AdventDay {
+  const day = asRecord(value, "Advent day");
   validateRequiredFields(day);
-  validateDayNumber(day.day);
-  validateContentType({ contentType: day.content_type });
+  const dayNumber = validateDayNumber(day.day);
+  const contentType = parseContentType(day.content_type);
+  if (typeof day.title !== "string") throw new Error("Advent day title must be a string");
+  if (typeof day.unlock_time !== "string") throw new Error("Advent day unlock_time must be a string");
+  const payload = asRecord(day.payload, "Advent day payload");
+  const unlockOverride = day.is_unlocked_override;
+  if (unlockOverride != null && typeof unlockOverride !== "boolean") {
+    throw new Error("Advent day is_unlocked_override must be a boolean");
+  }
   validateDayUnlockTime({ value: day.unlock_time });
   return {
-    day: day.day,
+    day: dayNumber,
     title: day.title,
     unlock_time: day.unlock_time,
-    content_type: day.content_type,
-    payload: day.payload,
-    is_unlocked_override: day.is_unlocked_override ?? null,
+    content_type: contentType,
+    payload,
+    is_unlocked_override: unlockOverride ?? null,
   };
 }
 
-function validateRequiredFields(day: any): void {
+function validateRequiredFields(day: Record<string, unknown>): void {
   const required = ["day", "title", "unlock_time", "content_type", "payload"];
   if (required.some(field => day[field] == null)) {
     throw new Error(`Missing required field in advent day data: ${JSON.stringify(day)}`);
   }
 }
 
-function validateDayNumber(day: number): void {
-  if (day < 1 || day > 24) throw new Error(`Day must be between 1 and 24, got ${day}`);
+function validateDayNumber(day: unknown): number {
+  if (!isValidDayNumber(day)) {
+    throw new Error(`Day must be between 1 and 24, got ${String(day)}`);
+  }
+  return day;
 }
 
-function validateContentType({ contentType }: { contentType: string }): void {
-  if (!isValidContentType(contentType)) {
+function isValidDayNumber(day: unknown): day is number {
+  if (typeof day !== "number") return false;
+  if (!Number.isInteger(day)) return false;
+  if (day < 1) return false;
+  return day <= 24;
+}
+
+function parseContentType(contentType: unknown): AdventDay["content_type"] {
+  if (typeof contentType !== "string" || !isValidContentType(contentType)) {
     throw new Error(`Content type must be one of ${CONTENT_TYPES}`);
   }
+  return contentType as AdventDay["content_type"];
 }
 
 export function isValidContentType(contentType: string): boolean {
@@ -105,41 +145,63 @@ export function isValidUnlockTime(value: string): boolean {
 function validateDayUnlockTime(value: AdventTextValue): void {
   try {
     validateUnlockTime(value);
-  } catch (e: any) {
-    throw new Error(`Invalid unlock_time format: ${e.message}`);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
+    throw new Error(`Invalid unlock_time format: ${message}`);
   }
 }
 
-export async function loadAdventCalendar(options: AdventFileOptions = {}): Promise<AdventDay[]> {
-  const p = path.resolve(options.filePath ?? getAdventCalendarPath());
-  let stat: Stats;
-  try {
-    stat = await fs.stat(p);
-  } catch {
-    throw new Error(`Advent calendar file not found: ${p}`);
+async function readAdventSource(options: AdventFileOptions = {}): Promise<{ cacheKey: string | null; versionKey: string; readContent: () => Promise<string> }> {
+  if (options.filePath) {
+    const absolutePath = path.resolve(options.filePath);
+    return { cacheKey: null, versionKey: "", readContent: () => fs.readFile(absolutePath, "utf-8") };
   }
-  const cached = cache.get(p);
-  if (cached && cached.mtimeMs === stat.mtimeMs && cached.size === stat.size) {
-    return clone(cached.data);
+  const bucket = getSantaSnapshotsBucket();
+  const store = getSnapshotStore(bucket);
+  if (!bucket) await ensureStoreBootstrapped(store);
+  const active = await store.readActiveVersion(DATASET_ADVENT);
+  if (!active) throw new Error("Advent calendar data not found");
+  return {
+    cacheKey: DATASET_ADVENT,
+    versionKey: active.versionId,
+    readContent: async () => (await store.readVersion(DATASET_ADVENT, active.versionId)) ?? "",
+  };
+}
+
+async function loadCachedAdventCalendar(options: AdventFileOptions = {}): Promise<CachedAdventCalendar> {
+  const { cacheKey, versionKey, readContent } = await readAdventSource(options);
+  const cached = cacheKey ? cache.get(cacheKey) : undefined;
+  if (cached && cached.versionKey === versionKey) {
+    return cached;
   }
-  const content = await fs.readFile(p, "utf-8");
-  if (!content.trim()) throw new Error(`Advent calendar file is empty: ${p}`);
-  let data: { days?: any[] };
+  const content = await readContent();
+  const sourceName = cacheKey ?? options.filePath ?? "advent calendar";
+  if (!content.trim()) throw new Error(`Advent calendar file is empty: ${sourceName}`);
+  let data: unknown;
   try {
     data = JSON.parse(content);
-  } catch (e: any) {
-    throw new Error(`JSON decode error in ${p}: ${e.message}`);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
+    throw new Error(`JSON decode error in ${sourceName}: ${message}`);
   }
-  const days = (data.days ?? []).map(parseAdventDay);
-  cache.set(p, { mtimeMs: stat.mtimeMs, size: stat.size, data: days });
-  return clone(days);
+  const calendar = asRecord(data, "Advent calendar");
+  const rawDays = calendar.days ?? [];
+  if (!Array.isArray(rawDays)) throw new Error("Advent calendar days must be an array");
+  const days = (rawDays as unknown[]).map(parseAdventDay);
+  const parsed: CachedAdventCalendar = { versionKey, data: days, byDay: new Map(days.map(day => [day.day, day])) };
+  if (cacheKey) cache.set(cacheKey, parsed);
+  return parsed;
+}
+
+export async function loadAdventCalendar(options: AdventFileOptions = {}): Promise<AdventDay[]> {
+  return clone((await loadCachedAdventCalendar(options)).data);
 }
 
 export async function loadAdventCalendarDict(options: AdventFileOptions = {}): Promise<Map<number, AdventDay>> {
   const days = await loadAdventCalendar(options);
-  const m = new Map<number, AdventDay>();
-  for (const d of days) m.set(d.day, d);
-  return m;
+  const daysByNumber = new Map<number, AdventDay>();
+  for (const day of days) daysByNumber.set(day.day, day);
+  return daysByNumber;
 }
 
 export function isUnlocked(day: AdventDay, currentTime: Date = new Date()): boolean {
@@ -157,20 +219,20 @@ export function toDict(day: AdventDay, opts: { includePayload?: boolean; current
     content_type: day.content_type,
     is_unlocked: unlocked,
   };
-  if (opts.includePayload !== false && unlocked) result.payload = day.payload;
+  if (opts.includePayload !== false && unlocked) result.payload = clone(day.payload);
   return result;
 }
 
 export async function getManifest(options: AdventQueryOptions = {}): Promise<AdventManifest> {
-  const days = await loadAdventCalendar(options);
+  const { data: days } = await loadCachedAdventCalendar(options);
   const daysData = days.map(d => toDict(d, { includePayload: false, currentTime: options.currentTime }));
   return { total_days: days.length, days: daysData };
 }
 
 export async function getDayContent(dayNumber: number, options: AdventQueryOptions = {}): Promise<AdventPublicDay | null> {
   if (dayNumber < 1 || dayNumber > 24) return null;
-  const dict = await loadAdventCalendarDict(options);
-  const day = dict.get(dayNumber);
+  const { byDay } = await loadCachedAdventCalendar(options);
+  const day = byDay.get(dayNumber);
   if (!day) return null;
   return toDict(day, { includePayload: true, currentTime: options.currentTime });
 }
@@ -204,9 +266,9 @@ function invalidDayResult(): AdventApiResult {
   return { status: 404, body: { error: "Day not found" } };
 }
 
-async function getValidatedDayApiResult(rawDay: string): Promise<AdventApiResult> {
+function getValidatedDayApiResult(rawDay: string): Promise<AdventApiResult> {
   const dayNumber = parseDayNumber(rawDay);
-  if (dayNumber === null) return invalidDayResult();
+  if (dayNumber === null) return Promise.resolve(invalidDayResult());
   return getDayApiResultWithErrorHandling(dayNumber);
 }
 
@@ -220,39 +282,39 @@ async function getDayApiResultWithErrorHandling(dayNumber: number): Promise<Adve
   }
 }
 
-export async function getDayApiResult(rawDay: string): Promise<AdventApiResult> {
-  if (!isAdventEnabled()) return { status: 404, body: { error: "Not found" } };
+export function getDayApiResult(rawDay: string): Promise<AdventApiResult> {
+  if (!isAdventEnabled()) return Promise.resolve({ status: 404, body: { error: "Not found" } });
   return getValidatedDayApiResult(rawDay);
 }
 
 export async function saveAdventCalendar(days: AdventDay[] | Map<number, AdventDay>, options: AdventFileOptions = {}) {
-  const p = path.resolve(options.filePath ?? getAdventCalendarPath());
   const list = days instanceof Map ? Array.from(days.values()) : days;
   const data = {
     days: list.map(d => {
-      const o: any = {
+      const serializedDay: Omit<AdventDay, "isCurrentlyUnlocked"> = {
         day: d.day,
         title: d.title,
         unlock_time: d.unlock_time,
         content_type: d.content_type,
         payload: d.payload,
       };
-      if (d.is_unlocked_override != null) o.is_unlocked_override = d.is_unlocked_override;
-      return o;
+      if (d.is_unlocked_override != null) serializedDay.is_unlocked_override = d.is_unlocked_override;
+      return serializedDay;
     }),
   };
-  await fs.mkdir(path.dirname(p), { recursive: true });
-  const tmp = `${p}.tmp.${Date.now()}.${Math.random().toString(36).slice(2)}`;
-  await fs.writeFile(tmp, JSON.stringify(data, null, 2), "utf-8");
-  await fs.rename(tmp, p);
-  cache.delete(p);
-  // versioned history
-  try {
-    const dir = path.join(path.dirname(p), ".history");
-    await fs.mkdir(dir, { recursive: true });
-    const stamp = new Date().toISOString().replace(/[:.]/g, "-");
-    await fs.writeFile(path.join(dir, `advent-${stamp}.json`), JSON.stringify(data, null, 2), "utf-8");
-  } catch {}
+  const body = JSON.stringify(data, null, 2);
+  if (options.filePath) {
+    const absolutePath = path.resolve(options.filePath);
+    await fs.mkdir(path.dirname(absolutePath), { recursive: true });
+    const tmp = `${absolutePath}.tmp.${Date.now()}.${Math.random().toString(36).slice(2)}`;
+    await fs.writeFile(tmp, body, "utf-8");
+    await fs.rename(tmp, absolutePath);
+    cache.delete(absolutePath);
+    return;
+  }
+  const store = getSnapshotStore(getSantaSnapshotsBucket());
+  await persistAdventCalendar(store, body);
+  cache.delete(DATASET_ADVENT);
 }
 
 export function validateAdventCalendar(days: AdventDay[]) {

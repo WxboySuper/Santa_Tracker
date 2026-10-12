@@ -78,29 +78,21 @@ Key CDN resources:
 
 ## 🏗️ Backend Architecture
 
-### Flask Application Structure
-```
-src/
-├── app.py                 # Main Flask application
-├── utils/
-│   ├── tracker.py         # Santa location tracking logic
-│   ├── locations.py       # Location data management
-│   └── advent.py          # Advent calendar system
-├── templates/             # Jinja2 HTML templates
-└── static/                # Static assets
-```
+### Next.js application (`apps/web`)
 
-### Route Organization
-- `/` - Main tracking interface
-- `/admin` - Admin dashboard (password-protected)
-- `/api/santa/*` - Santa tracking API endpoints
-- `/api/advent/*` - Advent calendar API endpoints
+- **Public:** App Router pages (`/`, `/tracker`, `/advent`); route data is served from `/api/route`, and Advent payloads are guarded by `/api/advent/[day]`
+- **Admin:** `/admin/*` pages and `/api/admin/*` route handlers (JWT via `proxy.ts`)
+- **Live position:** Client-side only — `packages/route-engine` (`deriveJourneyState`) over the route snapshot fetched once from `/api/route`
+- **Snapshots:** Versioned route/advent JSON in R2 on Workers (filesystem adapter for dev/VPS); `pnpm santa:publish:remote` seeds R2 from checked-in data
 
-### Data Management
-- **SQLite Databases**: Geographic data (cities, countries, regions)
-- **JSON Files**: Route data and advent calendar content
-- **In-Memory Caching**: Frequently accessed data cached in memory
-- **Session Management**: Flask sessions for admin authentication
+### Route organization
+
+- `/tracker` — map UI (R2-backed route API + client interpolation)
+- `/admin` — route editor and advent studio
+- `/api/admin/*` — authenticated mutations
+- `/api/advent/*` — public advent APIs when `ADVENT_ENABLED`
+
+Legacy Flask/Python sources live under `archive/flask-legacy/`.
 
 ## 🔐 Security Considerations
 

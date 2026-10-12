@@ -1,10 +1,14 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { getSantaRoutePath } from "./config";
+import { getSantaSnapshotsBucket } from "./cloudflare-bindings";
+import type { R2BucketLike } from "./storage/r2-backend";
 
-// In-process queue prevents interleaving within a single Node instance.
-// File-system lock file prevents interleaving across workers / scaled instances.
+// The local queue serializes writes per instance. Node/VPS uses a file lock;
+// Workers use an R2 conditional-write lock because their filesystem is read-only.
 let memQueue: Promise<void> = Promise.resolve();
+const R2_LOCK_KEY = "admin-write-lock.json";
+const R2_LOCK_LEASE_MS = 30_000;
 
 interface LockFile {
   readonly path: string;
@@ -56,6 +60,64 @@ function delay(ms: number): Promise<void> {
   return new Promise<void>((resolve) => setTimeout(resolve, ms));
 }
 
+type R2LockObject = Awaited<ReturnType<R2BucketLike["get"]>>;
+type R2LockWriteOptions = { onlyIf: Headers | { etagMatches?: string } };
+
+function parsedR2LockExpiry(value: unknown): number {
+  if (value === null) return Number.POSITIVE_INFINITY;
+  if (typeof value !== "object") return Number.POSITIVE_INFINITY;
+  if (Array.isArray(value)) return Number.POSITIVE_INFINITY;
+  const expiry = (value as Record<string, unknown>).expiresAt;
+  return typeof expiry === "number" ? expiry : Number.POSITIVE_INFINITY;
+}
+
+function uploadedR2LockExpiry(current: R2LockObject): number {
+  if (!current?.uploaded) return Number.POSITIVE_INFINITY;
+  return current.uploaded.getTime() + R2_LOCK_LEASE_MS;
+}
+
+async function getR2LockExpiry(current: NonNullable<R2LockObject>): Promise<number> {
+  try {
+    const lockData: unknown = JSON.parse(await current.text());
+    return parsedR2LockExpiry(lockData);
+  } catch {
+    return uploadedR2LockExpiry(current);
+  }
+}
+
+async function getR2LockWriteOptions(current: R2LockObject, now: number): Promise<R2LockWriteOptions | null> {
+  if (!current) return { onlyIf: new Headers({ "If-None-Match": "*" }) };
+
+  const expiresAt = await getR2LockExpiry(current);
+  if (expiresAt > now) return null;
+  if (!current.etag) return null;
+  return { onlyIf: { etagMatches: current.etag } };
+}
+
+function makeR2LockRelease(bucket: R2BucketLike, etag: string): () => Promise<void> {
+  return async () => {
+    await bucket.put(
+      R2_LOCK_KEY,
+      JSON.stringify({ owner: "released", expiresAt: 0 }),
+      { onlyIf: { etagMatches: etag } },
+    ).catch(error => console.error("Unable to release R2 admin write lock", error));
+  };
+}
+
+async function tryAcquireR2Lock(
+  bucket: R2BucketLike,
+  owner: string,
+  options: R2LockWriteOptions,
+): Promise<(() => Promise<void>) | null> {
+  const result = await bucket.put(
+    R2_LOCK_KEY,
+    JSON.stringify({ owner, expiresAt: Date.now() + R2_LOCK_LEASE_MS }),
+    options,
+  );
+  const etag = (result as { etag?: string } | null)?.etag;
+  return etag ? makeR2LockRelease(bucket, etag) : null;
+}
+
 function makeRelease(lock: LockFile): () => Promise<void> {
   return async () => {
     try {
@@ -82,6 +144,25 @@ async function acquireFsLock(lock: LockFile, timeoutMs = 5000): Promise<() => Pr
   }
 }
 
+async function acquireR2Lock(timeoutMs = 5000): Promise<() => Promise<void>> {
+  const bucket = getSantaSnapshotsBucket();
+  if (!bucket) throw new Error("SANTA_SNAPSHOTS binding is required when SANTA_STORAGE_BACKEND=r2");
+  const owner = Math.random().toString(36).slice(2);
+  const start = Date.now();
+
+  for (;;) {
+    const now = Date.now();
+    const current = await bucket.get(R2_LOCK_KEY);
+    const writeOptions = await getR2LockWriteOptions(current, now);
+    if (writeOptions) {
+      const release = await tryAcquireR2Lock(bucket, owner, writeOptions);
+      if (release) return release;
+    }
+    if (now - start > timeoutMs) throw new Error("Timed out acquiring R2 admin write lock");
+    await delay(50);
+  }
+}
+
 export async function withWriteLock<T>(fn: () => Promise<T>): Promise<T> {
   const previous = memQueue;
   let releaseMem!: () => void;
@@ -90,18 +171,16 @@ export async function withWriteLock<T>(fn: () => Promise<T>): Promise<T> {
   });
   await previous;
 
-  const lock = getLockFile();
-  let releaseFs: (() => Promise<void>) | null = null;
+  let releaseLock: (() => Promise<void>) | null = null;
   try {
-    releaseFs = await acquireFsLock(lock).catch(() => null);
-  } catch {
-    releaseFs = null;
-  }
-
-  try {
+    if (process.env.SANTA_STORAGE_BACKEND === "r2") {
+      releaseLock = await acquireR2Lock();
+    } else {
+      releaseLock = await acquireFsLock(getLockFile()).catch(() => null);
+    }
     return await fn();
   } finally {
-    if (releaseFs) await releaseFs();
+    if (releaseLock) await releaseLock();
     releaseMem();
   }
 }
