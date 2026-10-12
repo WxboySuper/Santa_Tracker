@@ -23,33 +23,51 @@ function assertJsonPrimitive(value: unknown, path: string): boolean {
   }
 }
 
+function assertJsonContainerCompatible(
+  objectValue: object,
+  path: string,
+  ancestors: WeakSet<object>,
+): void {
+  if (Array.isArray(objectValue)) {
+    assertJsonArray(objectValue, path, ancestors, assertJsonCompatible);
+    return;
+  }
+  assertJsonObject(objectValue, path, ancestors, assertJsonCompatible);
+}
+
+function assertJsonObjectCompatible(
+  objectValue: object,
+  path: string,
+  ancestors: WeakSet<object>,
+): void {
+  if (ancestors.has(objectValue)) {
+    throw new ActivitySaveMigrationError(`Save value at ${path} must not contain cycles`);
+  }
+  ancestors.add(objectValue);
+  try {
+    assertJsonContainerCompatible(objectValue, path, ancestors);
+  } finally {
+    ancestors.delete(objectValue);
+  }
+}
+
+function rethrowJsonCompatibilityError(error: unknown, path: string): never {
+  if (error instanceof ActivitySaveMigrationError) throw error;
+  throw new ActivitySaveMigrationError(
+    `Save value at ${path} must be JSON-compatible (${getErrorMessage(error)})`,
+  );
+}
+
 export function assertJsonCompatible(
   value: unknown,
   path = '$',
   ancestors = new WeakSet(),
 ): void {
-  let objectValue: object | undefined;
-  let addedToAncestors = false;
   try {
     if (assertJsonPrimitive(value, path)) return;
-    objectValue = value as object;
-    if (ancestors.has(objectValue)) {
-      throw new ActivitySaveMigrationError(`Save value at ${path} must not contain cycles`);
-    }
-    ancestors.add(objectValue);
-    addedToAncestors = true;
-    if (Array.isArray(objectValue)) {
-      assertJsonArray(objectValue, path, ancestors, assertJsonCompatible);
-      return;
-    }
-    assertJsonObject(objectValue, path, ancestors, assertJsonCompatible);
+    assertJsonObjectCompatible(value as object, path, ancestors);
   } catch (error) {
-    if (error instanceof ActivitySaveMigrationError) throw error;
-    throw new ActivitySaveMigrationError(
-      `Save value at ${path} must be JSON-compatible (${getErrorMessage(error)})`,
-    );
-  } finally {
-    if (addedToAncestors && objectValue !== undefined) ancestors.delete(objectValue);
+    rethrowJsonCompatibilityError(error, path);
   }
 }
 

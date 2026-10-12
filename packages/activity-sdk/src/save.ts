@@ -74,7 +74,9 @@ function isThenable(value: unknown): boolean {
 
 function observeNativePromiseRejection(value: unknown): boolean {
   try {
-    void Promise.prototype.then.call(
+    // Consume a native promise rejection before reporting the sync-only contract.
+    // eslint-disable-next-line @typescript-eslint/no-floating-promises
+    Promise.prototype.then.call(
       value as Promise<unknown>,
       undefined,
       () => undefined,

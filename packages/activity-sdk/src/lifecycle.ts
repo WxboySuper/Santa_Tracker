@@ -351,6 +351,11 @@ function applyProgressEvent(
         event as Extract<ActivityProgressEvent, { type: 'achievement' }>,
       );
       break;
+    default:
+      throw new ActivityLifecycleError(
+        'invalid_event',
+        `Unsupported progress event type: ${String(type)}`,
+      );
   }
   if (message !== undefined) throw new ActivityLifecycleError('invalid_event', message);
   return currentState;
