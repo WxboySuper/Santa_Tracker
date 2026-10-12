@@ -344,7 +344,18 @@ function assertSynchronousMigrationResult(
   if (!isThenable(value)) return;
   // Observe a rejected async migration before rejecting it synchronously. This
   // prevents its otherwise-unhandled promise rejection from escaping the API.
-  void Promise.resolve(value).catch(() => undefined);
+  // Calling the native method avoids assimilating arbitrary thenables or
+  // reading their `then` property a second time.
+  try {
+    void Promise.prototype.then.call(
+      value as Promise<unknown>,
+      undefined,
+      () => undefined,
+    );
+  } catch {
+    // Non-native thenables have no promise rejection for this intrinsic to
+    // observe.
+  }
   throw new ActivitySaveMigrationError(
     `Migration for activity ${activityId} from schema ${schemaVersion} must be synchronous`,
   );
