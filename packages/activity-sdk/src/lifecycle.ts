@@ -143,36 +143,65 @@ function hasExplicitExitedTransitions(transitions: Record<string, unknown>): boo
 }
 
 /** Throw a descriptive configuration error for malformed lifecycle graphs. */
-function assertLifecycleShape(lifecycle: ActivityLifecycle): void {
-  assertLifecycleRecord(lifecycle);
-  assertLifecycleId(lifecycle.id);
-  assertInitialState(lifecycle.initialState);
-  const transitions = getTransitions(lifecycle.id, lifecycle.transitions);
+function assertKnownTransitionStates(input: {
+  lifecycleId: string;
+  transitions: Record<string, unknown>;
+}): void {
+  const { lifecycleId, transitions } = input;
   for (const key of Object.keys(transitions)) {
     if (!isActivityState(key)) {
       throw new ActivityLifecycleError(
         'invalid_configuration',
-        `Invalid lifecycle configuration ${lifecycle.id}: unknown state ${key}`,
+        `Invalid lifecycle configuration ${lifecycleId}: unknown state ${key}`,
       );
     }
   }
-  const targetsExited = ALL_STATES.some((state) => {
-    const allowed = hasOwn(transitions, state) ? transitions[state] : undefined;
-    return Array.isArray(allowed) && allowed.includes('exited');
-  });
-  if (
-    !hasExplicitExitedTransitions(transitions)
-    && (lifecycle.initialState === 'exited' || targetsExited)
-  ) {
-    throw new ActivityLifecycleError(
-      'invalid_configuration',
-      `Invalid lifecycle configuration ${lifecycle.id}: transitions for exited are required when exited is reachable`,
-    );
-  }
+}
+
+function hasTransitionToExited(transitions: Record<string, unknown>): boolean {
   for (const state of ALL_STATES) {
-    if (state === 'exited' && !hasExplicitExitedTransitions(transitions)) continue;
-    assertStateTransitions(transitions, lifecycle.id, state);
+    const allowed = hasOwn(transitions, state) ? transitions[state] : undefined;
+    if (Array.isArray(allowed) && allowed.includes('exited')) return true;
   }
+  return false;
+}
+
+function assertExitedTransitionsIfReachable(input: {
+  lifecycleId: string;
+  initialState: ActivityState;
+  transitions: Record<string, unknown>;
+}): void {
+  const { lifecycleId, initialState, transitions } = input;
+  if (hasExplicitExitedTransitions(transitions)) return;
+  if (initialState !== 'exited' && !hasTransitionToExited(transitions)) return;
+  throw new ActivityLifecycleError(
+    'invalid_configuration',
+    `Invalid lifecycle configuration ${lifecycleId}: transitions for exited are required when exited is reachable`,
+  );
+}
+
+function assertRequiredStateTransitions(input: {
+  lifecycleId: string;
+  transitions: Record<string, unknown>;
+}): void {
+  const { lifecycleId, transitions } = input;
+  const hasExitedTransitions = hasExplicitExitedTransitions(transitions);
+  for (const state of ALL_STATES) {
+    if (state === 'exited' && !hasExitedTransitions) continue;
+    assertStateTransitions(transitions, lifecycleId, state);
+  }
+}
+
+function assertLifecycleShape(lifecycle: ActivityLifecycle): void {
+  assertLifecycleRecord(lifecycle);
+  assertLifecycleId(lifecycle.id);
+  assertInitialState(lifecycle.initialState);
+  const lifecycleId = lifecycle.id;
+  const initialState = lifecycle.initialState;
+  const transitions = getTransitions(lifecycleId, lifecycle.transitions);
+  assertKnownTransitionStates({ lifecycleId, transitions });
+  assertExitedTransitionsIfReachable({ lifecycleId, initialState, transitions });
+  assertRequiredStateTransitions({ lifecycleId, transitions });
 }
 
 function getAllowedTransitions(

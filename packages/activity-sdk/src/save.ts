@@ -292,18 +292,34 @@ function getOwnSaveProperty(
   return descriptor.value;
 }
 
-function getMigrationProperty(
-  migration: Record<string, unknown>,
-  key: string,
-  description: string,
-  allowMissing = false,
-): unknown {
+type MigrationPropertyRequest = {
+  migration: Record<string, unknown>;
+  key: string;
+  description: string;
+};
+
+function getMigrationPropertyDescriptor(
+  input: MigrationPropertyRequest,
+): PropertyDescriptor | undefined {
+  const { migration, key, description } = input;
   const descriptor = Object.getOwnPropertyDescriptor(migration, key);
-  if (descriptor === undefined && allowMissing) return undefined;
-  if (descriptor === undefined || !descriptor.enumerable || !('value' in descriptor)) {
+  if (descriptor === undefined) return undefined;
+  if (!descriptor.enumerable || !('value' in descriptor)) {
     throw new ActivitySaveMigrationError(`${description} must be an own data property`);
   }
+  return descriptor;
+}
+
+function getMigrationProperty(input: MigrationPropertyRequest): unknown {
+  const descriptor = getMigrationPropertyDescriptor(input);
+  if (descriptor === undefined) {
+    throw new ActivitySaveMigrationError(`${input.description} must be an own data property`);
+  }
   return descriptor.value;
+}
+
+function getOptionalMigrationProperty(input: MigrationPropertyRequest): unknown {
+  return getMigrationPropertyDescriptor(input)?.value;
 }
 
 function normalizeMigrationEntry(input: {
@@ -315,20 +331,20 @@ function normalizeMigrationEntry(input: {
   if (!isRecord(migration)) {
     throw new ActivitySaveMigrationError(`${description} must be an object`);
   }
-  const activityId = getMigrationProperty(migration, 'activityId', description);
+  const activityId = getMigrationProperty({ migration, key: 'activityId', description });
   assertActivityId(activityId, `${description} activity id`);
   const sourceVersion = {
-    version: getMigrationProperty(migration, 'fromVersion', description),
+    version: getMigrationProperty({ migration, key: 'fromVersion', description }),
     description: `${description} source schema version`,
   };
   const targetVersion = {
-    version: getMigrationProperty(migration, 'toVersion', description),
+    version: getMigrationProperty({ migration, key: 'toVersion', description }),
     description: `${description} target schema version`,
   };
   assertPositiveVersion(sourceVersion);
   assertPositiveVersion(targetVersion);
   assertConsecutiveMigrationVersions(sourceVersion.version, targetVersion.version, description);
-  const migrate = getMigrationProperty(migration, 'migrate', description, true);
+  const migrate = getOptionalMigrationProperty({ migration, key: 'migrate', description });
   if (typeof migrate !== 'function') {
     throw new ActivitySaveMigrationError(`${description} migrate must be a function`);
   }
