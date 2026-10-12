@@ -35,63 +35,117 @@ function hasOwn(value: object, key: string): boolean {
   return Object.prototype.hasOwnProperty.call(value, key);
 }
 
-function assertJsonCompatible(value: unknown, path = '$', ancestors = new WeakSet()): void {
-  if (value === null || typeof value === 'string' || typeof value === 'boolean') return;
+function assertJsonPrimitive(value: unknown, path: string): boolean {
+  if (value === null) return true;
+  if (typeof value === 'string') return true;
+  if (typeof value === 'boolean') return true;
   if (typeof value === 'number') {
     if (!Number.isFinite(value)) {
       throw new ActivitySaveMigrationError(`Save value at ${path} must be a finite JSON number`);
     }
-    return;
+    return true;
   }
   if (typeof value !== 'object') {
     throw new ActivitySaveMigrationError(`Save value at ${path} must be JSON-compatible`);
   }
-  if (ancestors.has(value)) {
+  return false;
+}
+
+function assertJsonProperty({
+  value,
+  key,
+  path,
+  ancestors,
+}: {
+  value: object;
+  key: string;
+  path: string;
+  ancestors: WeakSet<object>;
+}): void {
+  const descriptor = Object.getOwnPropertyDescriptor(value, key);
+  if (descriptor === undefined) {
+    throw new ActivitySaveMigrationError(`Save value at ${path} must be a JSON value`);
+  }
+  if (!descriptor.enumerable) {
+    throw new ActivitySaveMigrationError(`Save value at ${path} must be a JSON value`);
+  }
+  if (!('value' in descriptor)) {
+    throw new ActivitySaveMigrationError(`Save value at ${path} must be a JSON value`);
+  }
+  assertJsonCompatible(descriptor.value, path, ancestors);
+}
+
+function assertJsonArrayEntries(
+  value: unknown[],
+  path: string,
+  ancestors: WeakSet<object>,
+): void {
+  for (let index = 0; index < value.length; index += 1) {
+    const key = String(index);
+    if (!hasOwn(value, key)) {
+      throw new ActivitySaveMigrationError(`Save value at ${path}[${index}] must not be empty`);
+    }
+    assertJsonProperty({ value, key, path: `${path}[${index}]`, ancestors });
+  }
+}
+
+function assertJsonArrayKeys(value: unknown[], path: string): void {
+  for (const key of Reflect.ownKeys(value)) {
+    if (key === 'length') continue;
+    if (typeof key !== 'string') {
+      throw new ActivitySaveMigrationError(`Save value at ${path} must not contain extra array keys`);
+    }
+    if (!/^(?:0|[1-9]\d*)$/.test(key)) {
+      throw new ActivitySaveMigrationError(`Save value at ${path} must not contain extra array keys`);
+    }
+    if (Number(key) >= value.length) {
+      throw new ActivitySaveMigrationError(`Save value at ${path} must not contain extra array keys`);
+    }
+  }
+}
+
+function assertJsonObjectProperties(
+  value: object,
+  path: string,
+  ancestors: WeakSet<object>,
+): void {
+  for (const key of Reflect.ownKeys(value)) {
+    if (typeof key !== 'string') {
+      throw new ActivitySaveMigrationError(`Save value at ${path} must not contain symbol keys`);
+    }
+    assertJsonProperty({ value, key, path: `${path}.${key}`, ancestors });
+  }
+}
+
+function assertJsonObject(value: object, path: string, ancestors: WeakSet<object>): void {
+  const prototype: unknown = Object.getPrototypeOf(value);
+  if (prototype !== Object.prototype && prototype !== null) {
+    throw new ActivitySaveMigrationError(`Save value at ${path} must be a plain JSON object`);
+  }
+  assertJsonObjectProperties(value, path, ancestors);
+}
+
+function assertJsonCompatible(value: unknown, path = '$', ancestors = new WeakSet<object>()): void {
+  if (assertJsonPrimitive(value, path)) return;
+
+  const objectValue = value as object;
+  if (ancestors.has(objectValue)) {
     throw new ActivitySaveMigrationError(`Save value at ${path} must not contain cycles`);
   }
 
-  ancestors.add(value);
+  ancestors.add(objectValue);
   try {
-    if (Array.isArray(value)) {
-      if (Object.getPrototypeOf(value) !== Array.prototype) {
+    if (Array.isArray(objectValue)) {
+      if (Object.getPrototypeOf(objectValue) !== Array.prototype) {
         throw new ActivitySaveMigrationError(`Save value at ${path} must be a plain JSON array`);
       }
-      for (let index = 0; index < value.length; index += 1) {
-        if (!hasOwn(value, String(index))) {
-          throw new ActivitySaveMigrationError(`Save value at ${path}[${index}] must not be empty`);
-        }
-        const descriptor = Object.getOwnPropertyDescriptor(value, String(index));
-        if (descriptor === undefined || !descriptor.enumerable || !('value' in descriptor)) {
-          throw new ActivitySaveMigrationError(`Save value at ${path}[${index}] must be a JSON value`);
-        }
-        assertJsonCompatible(descriptor.value, `${path}[${index}]`, ancestors);
-      }
-      for (const key of Reflect.ownKeys(value)) {
-        if (key === 'length') continue;
-        if (typeof key !== 'string' || !/^(?:0|[1-9]\d*)$/.test(key) || Number(key) >= value.length) {
-          throw new ActivitySaveMigrationError(`Save value at ${path} must not contain extra array keys`);
-        }
-      }
+      assertJsonArrayEntries(objectValue, path, ancestors);
+      assertJsonArrayKeys(objectValue, path);
       return;
     }
-
-    const prototype: unknown = Object.getPrototypeOf(value);
-    if (prototype !== Object.prototype && prototype !== null) {
-      throw new ActivitySaveMigrationError(`Save value at ${path} must be a plain JSON object`);
-    }
-    if (Object.getOwnPropertySymbols(value).length > 0) {
-      throw new ActivitySaveMigrationError(`Save value at ${path} must not contain symbol keys`);
-    }
-    for (const key of Reflect.ownKeys(value)) {
-      if (typeof key !== 'string') continue;
-      const descriptor = Object.getOwnPropertyDescriptor(value, key);
-      if (descriptor === undefined || !descriptor.enumerable || !('value' in descriptor)) {
-        throw new ActivitySaveMigrationError(`Save value at ${path}.${key} must be a JSON value`);
-      }
-      assertJsonCompatible(descriptor.value, `${path}.${key}`, ancestors);
-    }
+    assertJsonObject(objectValue, path, ancestors);
   } finally {
-    ancestors.delete(value);
+    ancestors.delete(objectValue);
   }
 }
 

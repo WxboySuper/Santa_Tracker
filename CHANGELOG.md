@@ -4,6 +4,7 @@
 
 - **Activity SDK:** Defines renderer-independent load, start, pause, resume, reset, complete, error, exit, score, and achievement events with lifecycle transition validation.
 - **Saves:** Adds activity-specific versioned save envelopes and consecutive migration steps; missing, ambiguous, invalid, and downgrade paths fail explicitly.
+- **Runtime validation:** Rejects sparse transition lists and invalid lifecycle states with stable SDK errors, while preserving support for legacy graphs that omit exited transitions. Splits recursive JSON validation into focused checks without broadening accepted save values.
 - **Docs and tests:** Documents integration for DOM, canvas, and optional WebGL renderers and tests lifecycle events, progress events, and migration behavior.
 
 ## [Unreleased] — CI: add OCR pull request reviews
