@@ -5,7 +5,7 @@ const config: StorybookConfig = {
   addons: ['@storybook/addon-a11y', '@storybook/addon-vitest'],
   framework: { name: '@storybook/react-vite', options: {} },
   docs: { autodocs: 'tag' },
-  viteFinal: async config => ({
+  viteFinal: config => ({
     ...config,
     oxc: { ...config.oxc, jsx: { runtime: 'automatic' } },
   }),
