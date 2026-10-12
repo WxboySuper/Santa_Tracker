@@ -20,12 +20,12 @@
   "dependencies": {
     "@santa-tracker/config": "workspace:*",
     "@santa-tracker/contracts": "workspace:*",
-    "drizzle-orm": "^0.45.2",
+    "drizzle-orm": "^0.45.4",
     "postgres": "^3.4.5"
   },
   "devDependencies": {
-    "drizzle-kit": "^0.31.3",
-    "tsx": "^4.23.12",
+    "drizzle-kit": "^0.31.11",
+    "tsx": "^4.23.15",
     "typescript": "^5.8.3",
     "vitest": "^4.1.11"
   }
