@@ -133,44 +133,58 @@ function getTransitions(id: string, value: unknown): Record<string, unknown> {
   return value;
 }
 
+function invalidStateTransitions(lifecycleId: string, state: ActivityState): never {
+  throw new ActivityLifecycleError(
+    'invalid_configuration',
+    `Invalid lifecycle configuration ${lifecycleId}: transitions for ${state} must list activity states`,
+  );
+}
+
+function getAllowedStateTransitions(
+  transitions: Record<string, unknown>,
+  lifecycleId: string,
+  state: ActivityState,
+): unknown[] {
+  const descriptor = getOwnDataPropertyDescriptor(transitions, state);
+  if (!isEnumerableDataProperty(descriptor) || !isArrayValue(descriptor.value)) {
+    invalidStateTransitions(lifecycleId, state);
+  }
+  return descriptor.value;
+}
+
+function getAllowedStateTransitionLength(
+  allowed: object,
+  lifecycleId: string,
+  state: ActivityState,
+): number {
+  const length = getOwnArrayLength(allowed);
+  if (length === undefined) invalidStateTransitions(lifecycleId, state);
+  return length;
+}
+
+function normalizeAllowedStateTransitions(
+  allowed: unknown[],
+  length: number,
+  lifecycleId: string,
+  state: ActivityState,
+): ActivityState[] {
+  const normalized: ActivityState[] = [];
+  for (let index = 0; index < length; index += 1) {
+    const entry = getOwnDataPropertyDescriptor(allowed, String(index));
+    if (!isEnumerableDataProperty(entry) || !isActivityState(entry.value)) invalidStateTransitions(lifecycleId, state);
+    normalized.push(entry.value);
+  }
+  return normalized;
+}
+
 function assertStateTransitions(
   transitions: Record<string, unknown>,
   lifecycleId: string,
   state: ActivityState,
 ): ActivityState[] {
-  const descriptor = getOwnDataPropertyDescriptor(transitions, state);
-  if (!isEnumerableDataProperty(descriptor)) {
-    throw new ActivityLifecycleError(
-      'invalid_configuration',
-      `Invalid lifecycle configuration ${lifecycleId}: transitions for ${state} must list activity states`,
-    );
-  }
-  if (!isArrayValue(descriptor.value)) {
-    throw new ActivityLifecycleError(
-      'invalid_configuration',
-      `Invalid lifecycle configuration ${lifecycleId}: transitions for ${state} must list activity states`,
-    );
-  }
-  const allowed = descriptor.value;
-  const length = getOwnArrayLength(allowed);
-  if (length === undefined) {
-    throw new ActivityLifecycleError(
-      'invalid_configuration',
-      `Invalid lifecycle configuration ${lifecycleId}: transitions for ${state} must list activity states`,
-    );
-  }
-  const normalized: ActivityState[] = [];
-  for (let index = 0; index < length; index += 1) {
-    const entry = getOwnDataPropertyDescriptor(allowed, String(index));
-    if (!isEnumerableDataProperty(entry) || !isActivityState(entry.value)) {
-      throw new ActivityLifecycleError(
-        'invalid_configuration',
-        `Invalid lifecycle configuration ${lifecycleId}: transitions for ${state} must list activity states`,
-      );
-    }
-    normalized.push(entry.value);
-  }
-  return normalized;
+  const allowed = getAllowedStateTransitions(transitions, lifecycleId, state);
+  const length = getAllowedStateTransitionLength(allowed, lifecycleId, state);
+  return normalizeAllowedStateTransitions(allowed, length, lifecycleId, state);
 }
 
 function hasExplicitExitedTransitions(transitions: Record<string, unknown>): boolean {
