@@ -5,7 +5,10 @@
   "type": "module",
   "description": "Activity lifecycle, inputs, saves, audio, achievements — mechanics-agnostic.",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./input": "./src/input.ts",
+    "./audio": "./src/audio.ts",
+    "./telemetry": "./src/telemetry.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
