@@ -2,13 +2,11 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { NextRequest } from "next/server";
 import { requireAdminAuth } from "@/lib/auth";
 import { isAdventEnabled } from "@/lib/config";
-import { isValidUnlockTime } from "@/lib/advent";
 import { previewAdminAdventDays } from "@/lib/admin-advent";
 import { GET } from "./route";
 
 vi.mock("@/lib/auth", () => ({ requireAdminAuth: vi.fn() }));
 vi.mock("@/lib/config", () => ({ isAdventEnabled: vi.fn() }));
-vi.mock("@/lib/advent", () => ({ isValidUnlockTime: vi.fn() }));
 vi.mock("@/lib/admin-advent", () => ({ previewAdminAdventDays: vi.fn() }));
 
 function request(at?: string): NextRequest {
@@ -22,7 +20,6 @@ describe("admin advent preview route", () => {
     vi.clearAllMocks();
     vi.mocked(isAdventEnabled).mockReturnValue(true);
     vi.mocked(requireAdminAuth).mockResolvedValue({ ok: true });
-    vi.mocked(isValidUnlockTime).mockReturnValue(true);
     vi.mocked(previewAdminAdventDays).mockResolvedValue({ status: 200, body: { days: [] } });
   });
 

@@ -64,8 +64,8 @@ export async function updateAdminAdventDay(rawDay: string, payload: unknown): Pr
   }
 }
 
-function applyAdventDayUpdate(dayNumber: number, payload: unknown): Promise<AdminApiResult> {
-  if (!isRecord(payload)) return Promise.resolve(badRequest("No data provided"));
+async function applyAdventDayUpdate(dayNumber: number, payload: unknown): Promise<AdminApiResult> {
+  if (!isRecord(payload)) return badRequest("No data provided");
   return withWriteLock(async () => {
     const dict = await loadAdventCalendarDict();
     const existing = dict.get(dayNumber);
@@ -120,7 +120,7 @@ export async function toggleAdminAdventUnlock(rawDay: string): Promise<AdminApiR
   }
 }
 
-function toggleAdventOverride(dayNumber: number): Promise<AdminApiResult> {
+async function toggleAdventOverride(dayNumber: number): Promise<AdminApiResult> {
   return withWriteLock(async () => {
     const dict = await loadAdventCalendarDict();
     const day = dict.get(dayNumber);
@@ -247,13 +247,13 @@ function normalizeImportedDay(raw: unknown): AdventDay | null {
   };
 }
 
-function storeImportedDays(parsed: ImportParse): Promise<AdminApiResult> {
-  if (parsed.kind === "invalid_request") return Promise.resolve(badRequest("Invalid import data"));
-  if (parsed.kind === "invalid_day") return Promise.resolve(badRequest("Invalid day data"));
+async function storeImportedDays(parsed: ImportParse): Promise<AdminApiResult> {
+  if (parsed.kind === "invalid_request") return badRequest("Invalid import data");
+  if (parsed.kind === "invalid_day") return badRequest("Invalid day data");
 
   const validation = validateAdventCalendar(parsed.days);
   if (!validation.valid) {
-    return Promise.resolve({ status: 400, body: { error: "Validation failed", errors: validation.errors } });
+    return { status: 400, body: { error: "Validation failed", errors: validation.errors } };
   }
   return withWriteLock(async () => {
     await saveAdventCalendar(parsed.days);

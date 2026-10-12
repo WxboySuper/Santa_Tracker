@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { isNotFoundError } from "./errors";
 
 export interface AdminApiResult {
   status: number;
@@ -23,13 +24,6 @@ export function notFoundAwareError(error: unknown, notFoundBody: Record<string, 
   }
   console.error(error);
   return { status: 500, body: { error: "Internal server error" } };
-}
-
-function isNotFoundError(error: unknown): boolean {
-  if (!(error instanceof Error)) return false;
-  if ((error as NodeJS.ErrnoException & { cause?: unknown }).cause === "ENOENT") return true;
-  if ((error as NodeJS.ErrnoException).code === "ENOENT") return true;
-  return error.message.toLowerCase().includes("not found");
 }
 
 export function badRequest(error: string): AdminApiResult {

@@ -1,10 +1,7 @@
 import { NextResponse } from "next/server";
 import { isAdventEnabled } from "@/lib/config";
 import { getManifest } from "@/lib/advent";
-
-function isNotFoundError(error: unknown): boolean {
-  return error instanceof Error && error.message.includes("not found");
-}
+import { isNotFoundError } from "@/lib/errors";
 
 export async function GET() {
   if (!isAdventEnabled()) {
