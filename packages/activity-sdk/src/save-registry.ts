@@ -1,6 +1,12 @@
 import { PUBLIC_ID_PATTERN, type ActivityId } from '@santa-tracker/contracts/ids';
 import { ActivitySaveMigrationError } from './save-errors';
-import type { ActivitySaveMigration } from './save';
+import type { ActivitySaveMigration } from './save-types';
+import {
+  getOwnArrayLength,
+  getOwnDataPropertyDescriptor,
+  isArrayValue,
+  isEnumerableDataProperty,
+} from './shared-guards';
 
 export function assertPositiveVersion(input: {
   version: unknown;
@@ -33,9 +39,9 @@ function getMigrationPropertyDescriptor(
   input: MigrationPropertyRequest,
 ): PropertyDescriptor | undefined {
   const { migration, key, description } = input;
-  const descriptor = Object.getOwnPropertyDescriptor(migration, key);
+  const descriptor = getOwnDataPropertyDescriptor(migration, key);
   if (descriptor === undefined) return undefined;
-  if (!descriptor.enumerable || !('value' in descriptor)) {
+  if (!isEnumerableDataProperty(descriptor)) {
     throw new ActivitySaveMigrationError(`${description} must be an own data property`);
   }
   return descriptor;
@@ -66,7 +72,7 @@ function assertConsecutiveMigrationVersions(
 function isMigrationRecord(value: unknown): value is Record<string, unknown> {
   if (value === null) return false;
   if (typeof value !== 'object') return false;
-  return !Array.isArray(value);
+  return !isArrayValue(value);
 }
 
 function readMigrationVersion(input: {
@@ -119,13 +125,15 @@ function normalizeMigrationEntry(input: {
 
 /** Every registry entry is snapshotted and validated, including unused steps. */
 export function normalizeMigrationRegistry(migrations: unknown): readonly ActivitySaveMigration[] {
-  if (!Array.isArray(migrations)) {
+  if (!isArrayValue(migrations)) {
     throw new ActivitySaveMigrationError('Migrations must be an array');
   }
+  const length = getOwnArrayLength(migrations);
+  if (length === undefined) throw new ActivitySaveMigrationError('Migrations must be an array');
   const normalized: ActivitySaveMigration[] = [];
-  for (let index = 0; index < migrations.length; index += 1) {
-    const descriptor = Object.getOwnPropertyDescriptor(migrations, String(index));
-    if (descriptor === undefined || !('value' in descriptor)) {
+  for (let index = 0; index < length; index += 1) {
+    const descriptor = getOwnDataPropertyDescriptor(migrations, String(index));
+    if (!isEnumerableDataProperty(descriptor)) {
       throw new ActivitySaveMigrationError(`Migration at index ${index} must be an own data property`);
     }
     normalized.push(normalizeMigrationEntry({ migration: descriptor.value, index }));

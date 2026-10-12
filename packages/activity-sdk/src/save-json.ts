@@ -49,7 +49,6 @@ export function clonePayload(payload: unknown): unknown {
   try {
     assertJsonCompatible(payload);
     const serialized = JSON.stringify(payload);
-    if (serialized === undefined) throw new Error('Value has no JSON representation');
     return JSON.parse(serialized) as unknown;
   } catch (error) {
     if (error instanceof ActivitySaveMigrationError) throw error;

@@ -1,4 +1,5 @@
 import { ActivitySaveMigrationError } from './save-errors';
+import { getOwnDataPropertyDescriptor, isEnumerableDataProperty } from './shared-guards';
 
 export function assertJsonProperty(input: {
   value: object;
@@ -8,8 +9,8 @@ export function assertJsonProperty(input: {
   validate: (value: unknown, path: string, ancestors: WeakSet<object>) => void;
 }): void {
   const { value, key, path, ancestors, validate } = input;
-  const descriptor = Object.getOwnPropertyDescriptor(value, key);
-  if (descriptor === undefined || !descriptor.enumerable || !('value' in descriptor)) {
+  const descriptor = getOwnDataPropertyDescriptor(value, key);
+  if (!isEnumerableDataProperty(descriptor)) {
     throw new ActivitySaveMigrationError(`Save value at ${path} must be a JSON value`);
   }
   validate(descriptor.value, path, ancestors);

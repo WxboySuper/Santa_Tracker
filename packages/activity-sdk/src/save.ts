@@ -8,8 +8,11 @@ import {
   indexMigrations,
   normalizeMigrationRegistry,
 } from './save-registry';
+import type { ActivitySaveMigration } from './save-types';
+import { getOwnDataPropertyDescriptor, isEnumerableDataProperty, isStringRecord } from './shared-guards';
 
 export { ActivitySaveMigrationError } from './save-errors';
+export type { ActivitySaveMigration } from './save-types';
 /**
  * Device-local activity progress. Saves intentionally contain no visitor or
  * account identity so activities remain usable without a server profile.
@@ -19,6 +22,8 @@ export type ActivitySaveEnvelope<TPayload = unknown> = {
   schemaVersion: number;
   savedAtIso: string;
   payload: TPayload;
+  /** Forward-compatible JSON metadata is preserved by `migrateActivitySave`. */
+  [metadata: string]: unknown;
 };
 
 /**
@@ -26,31 +31,21 @@ export type ActivitySaveEnvelope<TPayload = unknown> = {
  * payload. `migrate` must return the next payload directly; async migrations
  * are rejected at runtime so a `Promise` is never stored as a payload.
  */
-export type ActivitySaveMigration = {
-  activityId: ActivityId;
-  fromVersion: number;
-  toVersion: number;
-  migrate: (payload: unknown) => unknown;
-};
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
-
 /** Validation boundary: accepts unknown device-local JSON, narrows on success. */
 function assertSaveEnvelope(save: unknown): asserts save is ActivitySaveEnvelope {
-  if (!isRecord(save)) {
+  if (!isStringRecord(save)) {
     throw new ActivitySaveMigrationError('Invalid activity save envelope');
   }
-  for (const key of ['payload', 'activityId', 'schemaVersion', 'savedAtIso']) {
-    const value = getOwnSaveProperty(save, key);
-    if (key === 'payload' && value === undefined) {
-      throw new ActivitySaveMigrationError('Save envelope payload must not be undefined');
-    }
+  const payload = getOwnSaveProperty(save, 'payload');
+  const activityId = getOwnSaveProperty(save, 'activityId');
+  const schemaVersion = getOwnSaveProperty(save, 'schemaVersion');
+  const savedAtIso = getOwnSaveProperty(save, 'savedAtIso');
+  if (payload === undefined) {
+    throw new ActivitySaveMigrationError('Save envelope payload must not be undefined');
   }
-  assertActivityId(save.activityId);
-  assertPositiveVersion({ version: save.schemaVersion, description: 'Save schema version' });
-  assertIsoTimestamp(save.savedAtIso);
+  assertActivityId(activityId);
+  assertPositiveVersion({ version: schemaVersion, description: 'Save schema version' });
+  assertIsoTimestamp(savedAtIso);
   assertJsonCompatible(save);
 }
 
@@ -58,15 +53,9 @@ function getOwnSaveProperty(
   save: Record<string, unknown>,
   key: string,
 ): unknown {
-  const descriptor = Object.getOwnPropertyDescriptor(save, key);
+  const descriptor = getOwnDataPropertyDescriptor(save, key);
   const message = `Save envelope must include its own ${key} value`;
-  if (descriptor === undefined) {
-    throw new ActivitySaveMigrationError(message);
-  }
-  if (!descriptor.enumerable) {
-    throw new ActivitySaveMigrationError(message);
-  }
-  if (!('value' in descriptor)) {
+  if (!isEnumerableDataProperty(descriptor)) {
     throw new ActivitySaveMigrationError(message);
   }
   return descriptor.value;
@@ -200,5 +189,6 @@ export function migrateActivitySave<TOutput = unknown>(
     schemaVersion += 1;
   }
 
+  // Forward-compatible envelope metadata is validated and cloned with the save.
   return { ...isolatedSave, schemaVersion, payload: payload as TOutput };
 }
