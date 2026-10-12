@@ -31,9 +31,16 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
-function assertPositiveVersion(version: unknown, description: string): asserts version is number {
-  if (typeof version !== 'number' || !Number.isSafeInteger(version) || version < 1) {
-    throw new ActivitySaveMigrationError(`${description} must be a positive safe integer`);
+function assertPositiveVersion(input: {
+  version: unknown;
+  description: string;
+}): asserts input is { version: number; description: string } {
+  if (
+    typeof input.version !== 'number' ||
+    !Number.isSafeInteger(input.version) ||
+    input.version < 1
+  ) {
+    throw new ActivitySaveMigrationError(`${input.description} must be a positive safe integer`);
   }
 }
 
@@ -53,56 +60,46 @@ type IsoParts = {
   offset: string;
 };
 
+type IsoCalendarDate = Pick<IsoParts, 'year' | 'month' | 'day'>;
+type IsoClockTime = Pick<IsoParts, 'hour' | 'minute' | 'second'>;
+
 const ISO_DATE_TIME_PATTERN =
   /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.\d+)?(Z|[+-]\d{2}:?\d{2})$/;
 
 function parseIsoParts(value: string): IsoParts | undefined {
   const match = ISO_DATE_TIME_PATTERN.exec(value);
   if (match === null) return undefined;
-  const [, yearText, monthText, dayText, hourText, minuteText, secondText, offset] = match;
-  if (
-    yearText === undefined ||
-    monthText === undefined ||
-    dayText === undefined ||
-    hourText === undefined ||
-    minuteText === undefined ||
-    secondText === undefined ||
-    offset === undefined
-  ) {
-    return undefined;
-  }
   return {
-    year: Number(yearText),
-    month: Number(monthText),
-    day: Number(dayText),
-    hour: Number(hourText),
-    minute: Number(minuteText),
-    second: Number(secondText),
-    offset,
+    // The regex guarantees each required capture. These fallbacks keep a
+    // future mismatch invalid without relying on non-null assertions.
+    year: Number(match[1] ?? 'NaN'),
+    month: Number(match[2] ?? 'NaN'),
+    day: Number(match[3] ?? 'NaN'),
+    hour: Number(match[4] ?? 'NaN'),
+    minute: Number(match[5] ?? 'NaN'),
+    second: Number(match[6] ?? 'NaN'),
+    offset: match[7] ?? '',
   };
 }
 
-function isLeapYear(year: number): boolean {
-  return year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
-}
-
-function daysInMonth(year: number, month: number): number {
+function daysInMonth({ year, month }: IsoCalendarDate): number {
   const lengths = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
-  if (month === 2 && isLeapYear(year)) return 29;
+  const isLeapYear = year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
+  if (month === 2 && isLeapYear) return 29;
   return lengths[month - 1] ?? 0;
 }
 
-function isValidCalendarDate(year: number, month: number, day: number): boolean {
+function isValidCalendarDate({ year, month, day }: IsoCalendarDate): boolean {
   if (!Number.isSafeInteger(year) || year < 0) return false;
   if (month < 1 || month > 12) return false;
-  return day >= 1 && day <= daysInMonth(year, month);
+  return day >= 1 && day <= daysInMonth({ year, month, day });
 }
 
-function isValidClockTime(hour: number, minute: number, second: number): boolean {
+function isValidClockTime({ hour, minute, second }: IsoClockTime): boolean {
   return hour <= 23 && minute <= 59 && second <= 59;
 }
 
-function isValidOffset(offset: string): boolean {
+function isValidOffset({ offset }: Pick<IsoParts, 'offset'>): boolean {
   if (offset === 'Z') return true;
   const digits = offset.replace(':', '');
   if (digits.length !== 5) return false;
@@ -115,9 +112,9 @@ function isValidIsoDateTime(value: unknown): boolean {
   if (typeof value !== 'string') return false;
   const parts = parseIsoParts(value);
   if (parts === undefined) return false;
-  if (!isValidCalendarDate(parts.year, parts.month, parts.day)) return false;
-  if (!isValidClockTime(parts.hour, parts.minute, parts.second)) return false;
-  return isValidOffset(parts.offset);
+  if (!isValidCalendarDate(parts)) return false;
+  if (!isValidClockTime(parts)) return false;
+  return isValidOffset(parts);
 }
 
 function assertIsoTimestamp(value: unknown): void {
@@ -135,19 +132,31 @@ function assertSaveEnvelope(save: unknown): asserts save is ActivitySaveEnvelope
     throw new ActivitySaveMigrationError('Save envelope must include a payload');
   }
   assertActivityId(save.activityId);
-  assertPositiveVersion(save.schemaVersion, 'Save schema version');
+  assertPositiveVersion({ version: save.schemaVersion, description: 'Save schema version' });
   assertIsoTimestamp(save.savedAtIso);
 }
 
-function assertMigrationEntry(migration: unknown, index: number): asserts migration is ActivitySaveMigration {
+function assertMigrationEntry(input: {
+  migration: unknown;
+  index: number;
+}): asserts input is { migration: ActivitySaveMigration; index: number } {
+  const { migration, index } = input;
   const description = `Migration at index ${index}`;
   if (!isRecord(migration)) {
     throw new ActivitySaveMigrationError(`${description} must be an object`);
   }
   assertActivityId(migration.activityId);
-  assertPositiveVersion(migration.fromVersion, `${description} source schema version`);
-  assertPositiveVersion(migration.toVersion, `${description} target schema version`);
-  if (migration.toVersion !== migration.fromVersion + 1) {
+  const sourceVersion = {
+    version: migration.fromVersion,
+    description: `${description} source schema version`,
+  };
+  const targetVersion = {
+    version: migration.toVersion,
+    description: `${description} target schema version`,
+  };
+  assertPositiveVersion(sourceVersion);
+  assertPositiveVersion(targetVersion);
+  if (targetVersion.version !== sourceVersion.version + 1) {
     throw new ActivitySaveMigrationError(
       `${description} must advance exactly one schema version`,
     );
@@ -163,14 +172,17 @@ function assertMigrationRegistry(migrations: unknown): asserts migrations is rea
     throw new ActivitySaveMigrationError('Migrations must be an array');
   }
   for (let index = 0; index < migrations.length; index += 1) {
-    assertMigrationEntry(migrations[index], index);
+    assertMigrationEntry({ migration: migrations[index], index });
   }
 }
 
-function indexMigrations(
-  migrations: readonly ActivitySaveMigration[],
-  activityId: ActivityId,
-): Map<number, ActivitySaveMigration> {
+function indexMigrations({
+  migrations,
+  activityId,
+}: {
+  migrations: readonly ActivitySaveMigration[];
+  activityId: ActivityId;
+}): Map<number, ActivitySaveMigration> {
   const indexed = new Map<number, ActivitySaveMigration>();
   for (const migration of migrations) {
     if (migration.activityId !== activityId) continue;
@@ -202,32 +214,52 @@ function isThenable(value: unknown): boolean {
   return typeof (value as { then?: unknown }).then === 'function';
 }
 
-function runMigrationStep(
-  migration: ActivitySaveMigration | undefined,
-  activityId: ActivityId,
-  schemaVersion: number,
-  payload: unknown,
-): unknown {
+type MigrationStep = {
+  migration: ActivitySaveMigration | undefined;
+  activityId: ActivityId;
+  schemaVersion: number;
+  payload: unknown;
+};
+
+function getMigration({ migration, activityId, schemaVersion }: MigrationStep): ActivitySaveMigration {
   if (migration === undefined) {
     throw new ActivitySaveMigrationError(
       `No migration for activity ${activityId} from schema ${schemaVersion}`,
     );
   }
-  const isolatedPayload = clonePayload(payload);
-  let next: unknown;
+  return migration;
+}
+
+function applyMigration(
+  migration: ActivitySaveMigration,
+  payload: unknown,
+  { activityId, schemaVersion }: MigrationStep,
+): unknown {
   try {
-    next = migration.migrate(isolatedPayload);
+    return migration.migrate(payload);
   } catch (error) {
     if (error instanceof ActivitySaveMigrationError) throw error;
     throw new ActivitySaveMigrationError(
       `Migration for activity ${activityId} from schema ${schemaVersion} failed (${error instanceof Error ? error.message : String(error)})`,
     );
   }
-  if (isThenable(next)) {
-    throw new ActivitySaveMigrationError(
-      `Migration for activity ${activityId} from schema ${schemaVersion} must be synchronous`,
-    );
-  }
+}
+
+function assertSynchronousMigrationResult(
+  value: unknown,
+  { activityId, schemaVersion }: MigrationStep,
+): void {
+  if (!isThenable(value)) return;
+  throw new ActivitySaveMigrationError(
+    `Migration for activity ${activityId} from schema ${schemaVersion} must be synchronous`,
+  );
+}
+
+function runMigrationStep(step: MigrationStep): unknown {
+  const migration = getMigration(step);
+  const isolatedPayload = clonePayload(step.payload);
+  const next = applyMigration(migration, isolatedPayload, step);
+  assertSynchronousMigrationResult(next, step);
   return next;
 }
 
@@ -244,7 +276,7 @@ export function migrateActivitySave<TInput, TOutput = unknown>(
 ): ActivitySaveEnvelope<TOutput> {
   assertSaveEnvelope(save);
   assertMigrationRegistry(migrations);
-  assertPositiveVersion(targetVersion, 'Target schema version');
+  assertPositiveVersion({ version: targetVersion, description: 'Target schema version' });
 
   if (save.schemaVersion > targetVersion) {
     throw new ActivitySaveMigrationError(
@@ -252,13 +284,13 @@ export function migrateActivitySave<TInput, TOutput = unknown>(
     );
   }
 
-  const indexedMigrations = indexMigrations(migrations, save.activityId);
+  const indexedMigrations = indexMigrations({ migrations, activityId: save.activityId });
   let schemaVersion = save.schemaVersion;
   let payload: unknown = clonePayload(save.payload);
 
   while (schemaVersion < targetVersion) {
     const migration = indexedMigrations.get(schemaVersion);
-    payload = runMigrationStep(migration, save.activityId, schemaVersion, payload);
+    payload = runMigrationStep({ migration, activityId: save.activityId, schemaVersion, payload });
     schemaVersion += 1;
   }
 

@@ -72,28 +72,57 @@ function isStringRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
-/** Throw a descriptive configuration error for malformed lifecycle graphs. */
-function assertLifecycleShape(lifecycle: ActivityLifecycle): void {
+function assertLifecycleRecord(lifecycle: unknown): asserts lifecycle is Record<string, unknown> {
   if (!isStringRecord(lifecycle)) {
-    throw new Error(`Invalid lifecycle configuration: expected an object`);
+    throw new Error('Invalid lifecycle configuration: expected an object');
   }
-  if (typeof lifecycle.id !== 'string' || lifecycle.id.trim() === '') {
+}
+
+function assertLifecycleId(id: unknown): asserts id is string {
+  if (typeof id !== 'string' || id.trim() === '') {
     throw new Error('Invalid lifecycle configuration: id must be a non-empty string');
   }
-  if (!isActivityState(lifecycle.initialState)) {
+}
+
+function assertInitialState(state: unknown): asserts state is ActivityState {
+  if (!isActivityState(state)) {
     throw new Error('Invalid lifecycle configuration: unknown initialState');
   }
-  const transitions = lifecycle.transitions;
-  if (!isStringRecord(transitions)) {
-    throw new Error(`Invalid lifecycle configuration ${lifecycle.id}: transitions must be an object`);
+}
+
+function getTransitions(id: string, value: unknown): Record<string, unknown> {
+  if (!isStringRecord(value)) {
+    throw new Error(`Invalid lifecycle configuration ${id}: transitions must be an object`);
   }
+  return value;
+}
+
+function assertStateTransitions(
+  transitions: Record<string, unknown>,
+  lifecycleId: string,
+  state: ActivityState,
+): void {
+  const allowed = transitions[state];
+  if (!Array.isArray(allowed)) {
+    throw new Error(
+      `Invalid lifecycle configuration ${lifecycleId}: transitions for ${state} must list activity states`,
+    );
+  }
+  if (!allowed.every(isActivityState)) {
+    throw new Error(
+      `Invalid lifecycle configuration ${lifecycleId}: transitions for ${state} must list activity states`,
+    );
+  }
+}
+
+/** Throw a descriptive configuration error for malformed lifecycle graphs. */
+function assertLifecycleShape(lifecycle: ActivityLifecycle): void {
+  assertLifecycleRecord(lifecycle);
+  assertLifecycleId(lifecycle.id);
+  assertInitialState(lifecycle.initialState);
+  const transitions = getTransitions(lifecycle.id, lifecycle.transitions);
   for (const state of ALL_STATES) {
-    const allowed = (transitions as Record<string, unknown>)[state];
-    if (!Array.isArray(allowed) || !allowed.every(isActivityState)) {
-      throw new Error(
-        `Invalid lifecycle configuration ${lifecycle.id}: transitions for ${state} must list activity states`,
-      );
-    }
+    assertStateTransitions(transitions, lifecycle.id, state);
   }
 }
 
