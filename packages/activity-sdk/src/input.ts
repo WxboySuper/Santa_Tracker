@@ -21,14 +21,18 @@ function keyboardPhase(type: unknown): NormalizedInput['phase'] | null {
   return null;
 }
 
-function pointerOrTouchPhase(type: unknown): NormalizedInput['phase'] | null {
+const POINTER_TYPES = new Set(['pointerdown', 'pointermove', 'pointerup', 'pointercancel']);
+const TOUCH_TYPES = new Set(['touchstart', 'touchmove', 'touchend', 'touchcancel']);
+
+function pointerOrTouchPhase(kind: 'pointer' | 'touch', type: unknown): NormalizedInput['phase'] | null {
   if (type === undefined) return 'start';
   if (typeof type !== 'string') return null;
+  const allowed = kind === 'pointer' ? POINTER_TYPES : TOUCH_TYPES;
+  if (!allowed.has(type)) return null;
   if (type.endsWith('cancel')) return 'cancel';
   if (type.endsWith('up') || type === 'touchend') return 'end';
   if (type.endsWith('move')) return 'move';
-  if (type.endsWith('down') || type === 'touchstart') return 'start';
-  return null;
+  return 'start';
 }
 
 function pointerAction(input: { button?: unknown }): string {
@@ -46,12 +50,12 @@ function normalizeKeyboard(value: object): NormalizedInput | null {
   if (!action) return null;
   const phase = keyboardPhase(keyboard.type);
   if (!phase) return null;
-  return { kind: 'keyboard', action, phase, repeat: keyboard.repeat ?? false };
+  return { kind: 'keyboard', action, phase, repeat: keyboard.repeat === true };
 }
 
 function normalizePointerOrTouch(kind: 'pointer' | 'touch', value: object): NormalizedInput | null {
   const source = value as { type?: unknown; x?: unknown; y?: unknown; button?: unknown };
-  const phase = pointerOrTouchPhase(source.type);
+  const phase = pointerOrTouchPhase(kind, source.type);
   if (!phase) return null;
   const action = kind === 'pointer' ? pointerAction(source) : 'primary';
   const result: NormalizedInput = { kind, action, phase };

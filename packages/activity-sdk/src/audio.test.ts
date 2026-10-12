@@ -19,12 +19,26 @@ describe('audio preferences', () => {
     expect(play).toHaveBeenCalledWith('chime', 0.4);
   });
 
-  it('clamps stored volume and falls back for non-finite input', () => {
+  it('clamps stored volume and silences non-finite input', () => {
     expect(audioPreferencesFrom({ volume: 2 }).volume).toBe(1);
     expect(audioPreferencesFrom({ volume: -1 }).volume).toBe(0);
-    expect(audioPreferencesFrom({ volume: Number.NaN }).volume).toBe(1);
-    expect(audioPreferencesFrom({ volume: Number.POSITIVE_INFINITY }).volume).toBe(1);
+    expect(audioPreferencesFrom({ volume: Number.NaN }).volume).toBe(0);
+    expect(audioPreferencesFrom({ volume: Number.POSITIVE_INFINITY }).volume).toBe(0);
     expect(audioPreferencesFrom(null).volume).toBe(1);
+  });
+
+  it('coerces non-boolean preference flags to false', () => {
+    const prefs = audioPreferencesFrom({ enabled: 1 as never, muted: 'true' as never, reducedSensory: 1 as never });
+    expect(prefs).toMatchObject({ enabled: false, muted: false, reducedSensory: false });
+    const play = vi.fn();
+    expect(createAudioController(audioPreferencesFrom({ enabled: 1 as never }), { play }).play('chime')).toBe(false);
+    expect(play).not.toHaveBeenCalled();
+  });
+
+  it('forwards the trimmed sound id to the player', () => {
+    const play = vi.fn();
+    expect(createAudioController(audioPreferencesFrom({ enabled: true }), { play }).play('  chime  ')).toBe(true);
+    expect(play).toHaveBeenCalledWith('chime', 1);
   });
 
   it('blocks blank sound ids and malformed controller inputs', () => {

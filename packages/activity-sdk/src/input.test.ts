@@ -35,6 +35,17 @@ describe('input normalization', () => {
     expect(normalizeInput({ kind: 'pointer', button: null as never })).toMatchObject({ action: 'primary' });
   });
 
+  it('rejects suffix lookalikes and cross-kind event types', () => {
+    expect(normalizeInput({ kind: 'pointer', type: 'mydown' as never })).toBeNull();
+    expect(normalizeInput({ kind: 'pointer', type: 'touchstart' as never })).toBeNull();
+    expect(normalizeInput({ kind: 'touch', type: 'pointerdown' as never })).toBeNull();
+    expect(normalizeInput({ kind: 'pointer', type: 'pointerup' })).toMatchObject({ phase: 'end' });
+  });
+
+  it('sanitizes non-boolean repeat flags', () => {
+    expect(normalizeInput({ kind: 'keyboard', key: 'A', repeat: 1 as never })).toMatchObject({ repeat: false });
+    expect(normalizeInput({ kind: 'keyboard', key: 'A', repeat: true })).toMatchObject({ repeat: true });
+  });
   it('drops non-finite coordinates and rejects unknown phases', () => {
     expect(normalizeInput({ kind: 'pointer', type: 'pointerdown', x: Number.NaN, y: 8 })).not.toHaveProperty('x');
     expect(normalizeInput({ kind: 'pointer', type: 'pointerdown', x: 1, y: Number.POSITIVE_INFINITY })).not.toHaveProperty('y');

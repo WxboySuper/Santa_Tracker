@@ -32,6 +32,10 @@ describe('telemetry privacy', () => {
     expect(failureEvent('ornament-smash', { reason: 42 as never }).reason).toBeUndefined();
   });
 
+  it('trims activity ids and drops blank reasons', () => {
+    expect(completionEvent('  ornament-smash  ', { score: 1 })).toMatchObject({ activityId: 'ornament-smash' });
+    expect(failureEvent('ornament-smash', { reason: '   ' }).reason).toBeUndefined();
+  });
   it('enforces discriminated payloads and non-empty activity ids', () => {
     expect(completionEvent('ornament-smash', { reason: 'timeout' } as never).reason).toBeUndefined();
     expect(failureEvent('ornament-smash', { score: 10 } as never).score).toBeUndefined();

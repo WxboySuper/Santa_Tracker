@@ -15,7 +15,7 @@ Call `normalizeInput` with a small event-shaped object. Keyboard keys map to sta
 
 ## Audio and sensory preferences
 
-Create preferences with `audioPreferencesFrom`. Audio is opt-in by default. Volume is clamped to the inclusive range 0 to 1 at creation (non-finite values fall back to 1). `createAudioController` will not call its injected player when preferences or the player are missing, when the sound id is blank, when audio is disabled, muted, silent (including non-finite stored volume), or when `reducedSensory` is true.
+Create preferences with `audioPreferencesFrom`. Audio is opt-in by default. Volume defaults to 1 when unspecified and is clamped to the inclusive range 0 to 1; non-finite stored values resolve to silence. `createAudioController` will not call its injected player when preferences or the player are missing, when the sound id is blank, when audio is disabled, muted, silent (including non-finite stored volume), or when `reducedSensory` is true. The trimmed sound id is forwarded to the player.
 
 ## Telemetry
 

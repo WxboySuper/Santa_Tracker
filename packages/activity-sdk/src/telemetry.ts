@@ -11,14 +11,14 @@ function sanitizeDuration(value: unknown): number | undefined {
 }
 
 function sanitizeReason(value: unknown): string | undefined {
-  return typeof value === 'string' && value.length > 0 ? value : undefined;
+  return typeof value === 'string' && value.trim().length > 0 ? value : undefined;
 }
 
 function requireActivityId(activityId: unknown): string {
   if (typeof activityId !== 'string' || activityId.trim().length === 0) {
     throw new Error('activityId must be a non-empty string');
   }
-  return activityId;
+  return activityId.trim();
 }
 
 function baseDetails(details: unknown): Record<string, unknown> {

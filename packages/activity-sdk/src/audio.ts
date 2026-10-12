@@ -1,8 +1,8 @@
 export type AudioPreferences = { enabled: boolean; muted: boolean; volume: number; reducedSensory: boolean };
 export type AudioPlayer = { play: (id: string, volume: number) => void };
 
-function clampVolume(volume: number): number {
-  if (!Number.isFinite(volume)) return 0;
+function clampVolume(volume: number, fallback: number): number {
+  if (!Number.isFinite(volume)) return fallback;
   return Math.max(0, Math.min(1, volume));
 }
 
@@ -19,9 +19,9 @@ export function createAudioController(preferences: AudioPreferences, player: Aud
     play(id: string): boolean {
       if (!isValidPreferences(preferences) || typeof player?.play !== 'function') return false;
       if (typeof id !== 'string' || id.trim().length === 0) return false;
-      const volume = clampVolume(preferences.volume);
+      const volume = clampVolume(preferences.volume, 0);
       if (!canPlay(preferences, volume)) return false;
-      player.play(id, volume);
+      player.play(id.trim(), volume);
       return true;
     },
   };
@@ -29,11 +29,10 @@ export function createAudioController(preferences: AudioPreferences, player: Aud
 
 export function audioPreferencesFrom(options: Partial<AudioPreferences> | null | undefined = {}): AudioPreferences {
   const source: Partial<AudioPreferences> = options ?? {};
-  const candidate = source.volume ?? 1;
   return {
-    enabled: source.enabled ?? false,
-    muted: source.muted ?? false,
-    volume: Number.isFinite(candidate) ? Math.max(0, Math.min(1, candidate)) : 1,
-    reducedSensory: source.reducedSensory ?? false,
+    enabled: source.enabled === true,
+    muted: source.muted === true,
+    volume: source.volume === undefined ? 1 : clampVolume(source.volume, 0),
+    reducedSensory: source.reducedSensory === true,
   };
 }
