@@ -1,10 +1,13 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { validateLocations, createLocationFromPayload } from "../locations";
 import { buildSimulatedFromLocations } from "../route-sim";
-import { isPlayable, isUnlocked, toDict, validateAdventCalendar, type AdventDay } from "../advent";
+import { isPlayable, isUnlocked, parseDayNumber, toDict, validateAdventCalendar, type AdventDay } from "../advent";
 import { createAdminToken, verifyAdminToken, verifyAdminPassword } from "../auth";
 import fs from "fs";
 import path from "path";
+import { fileURLToPath } from "node:url";
+
+const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../../../../");
 
 describe("Flask parity - locations", () => {
   it("validates location payload and normalizes lng", () => {
@@ -53,6 +56,22 @@ describe("Advent parity", () => {
     const day = { ...past, unlock_time: boundary.toISOString() };
     expect(isUnlocked(day, new Date(boundary.getTime() - 1))).toBe(false);
     expect(isUnlocked(day, boundary)).toBe(true);
+  });
+  it("rejects invalid time inputs and unknown playability modes", () => {
+    expect(() => isPlayable(past, { currentTime: new Date(Number.NaN) })).toThrow(/valid Date/);
+    expect(() => isPlayable(past, { currentTime: new Date(), clock: () => new Date() })).toThrow(
+      /only one of currentTime or clock/,
+    );
+    expect(() => isPlayable(past, { mode: "preview" as never })).toThrow(/Unknown AdventMode/);
+    expect(() => isPlayable(past, { clock: () => "not a date" as never })).toThrow(/valid Date/);
+  });
+  it("parses string day parameters without coercing other values", () => {
+    expect(parseDayNumber("1")).toBe(1);
+    expect(parseDayNumber("01")).toBe(1);
+    expect(parseDayNumber(" 24 ")).toBe(24);
+    for (const value of [undefined, null, ["2"], "+1", "1.0", "1e1", "0x10", "25"]) {
+      expect(parseDayNumber(value)).toBeNull();
+    }
   });
   it("keeps archive playability separate from live override state", () => {
     const day = { ...future, unlock_time: "2026-12-01T00:00:00Z", is_unlocked_override: null };
@@ -106,7 +125,7 @@ describe("No Flask in production paths", () => {
       "apps/web/src/lib/advent.ts",
     ];
     for (const fileName of files) {
-      const filePath = path.resolve(process.cwd(), fileName);
+      const filePath = path.resolve(REPO_ROOT, fileName);
       expect(fs.existsSync(filePath)).toBe(true);
       const content = fs.readFileSync(filePath, "utf-8");
       expect(content).not.toContain("from flask");
@@ -114,6 +133,6 @@ describe("No Flask in production paths", () => {
     }
   });
   it("archive preserves Flask source", () => {
-    expect(fs.existsSync(path.resolve(process.cwd(), "archive/flask-legacy/app.py"))).toBe(true);
+    expect(fs.existsSync(path.resolve(REPO_ROOT, "archive/flask-legacy/app.py"))).toBe(true);
   });
 });
