@@ -238,7 +238,7 @@ function normalizeImportedDay(raw: unknown): AdventDay | null {
   };
 }
 
-function storeImportedDays(parsed: ImportParse): Promise<AdminApiResult> {
+function storeImportedDays(parsed: ImportParse): AdminApiResult | Promise<AdminApiResult> {
   if (parsed.kind === "invalid_request") return badRequest("Invalid import data");
   if (parsed.kind === "invalid_day") return badRequest("Invalid day data");
 
