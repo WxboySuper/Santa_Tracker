@@ -55,9 +55,9 @@ describe("Advent parity", () => {
     expect(isUnlocked(day, boundary)).toBe(true);
   });
   it("keeps archive playability separate from live override state", () => {
-    const day = { ...future, unlock_time: "2026-12-01T00:00:00Z", is_unlocked_override: false };
+    const day = { ...future, unlock_time: "2026-12-01T00:00:00Z", is_unlocked_override: null };
     const archiveTime = new Date("2026-12-25T00:00:00Z");
-    expect(isUnlocked(day, archiveTime)).toBe(false);
+    expect(isUnlocked({ ...day, is_unlocked_override: false }, archiveTime)).toBe(false);
     expect(isPlayable(day, { mode: "archive", currentTime: archiveTime })).toBe(true);
   });
   it("toDict hides payload when locked", () => {
