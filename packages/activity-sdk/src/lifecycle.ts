@@ -100,6 +100,24 @@ function validateLifecycleEvent(currentState: ActivityState, event: ActivityLife
   }
 }
 
+function applyLifecycleEvent(
+  lifecycle: ActivityLifecycle,
+  currentState: ActivityState,
+  event: ActivityLifecycleEvent,
+): ActivityState {
+  const target = EVENT_TARGET[event.type];
+  if (target === undefined) {
+    throw new Error(`Unknown activity event type: ${event.type}`);
+  }
+  validateLifecycleEvent(currentState, event);
+  if (event.type === 'reset' && currentState === 'idle') {
+    assertTransition(lifecycle, currentState, currentState);
+    return currentState;
+  }
+  assertTransition(lifecycle, currentState, target);
+  return target;
+}
+
 /** Apply one lifecycle, score, or achievement event without renderer coupling. */
 export function applyActivityEvent(
   lifecycle: ActivityLifecycle,
@@ -113,19 +131,5 @@ export function applyActivityEvent(
   if (event.type === 'score' || event.type === 'achievement') {
     return applyProgressEvent(currentState, event);
   }
-
-  const target = EVENT_TARGET[event.type];
-  if (target === undefined) {
-    throw new Error(`Unknown activity event type: ${event.type}`);
-  }
-  validateLifecycleEvent(currentState, event);
-
-  // Resetting before an activity has loaded is an idempotent return to idle.
-  if (event.type === 'reset' && currentState === 'idle') {
-    assertTransition(lifecycle, currentState, currentState);
-    return currentState;
-  }
-
-  assertTransition(lifecycle, currentState, target);
-  return target;
+  return applyLifecycleEvent(lifecycle, currentState, event);
 }

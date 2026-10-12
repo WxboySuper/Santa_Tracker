@@ -29,19 +29,19 @@ function assertPositiveVersion(version: number, description: string): void {
   }
 }
 
-function assertSaveInput(
-  save: ActivitySaveEnvelope,
-  migrations: readonly ActivitySaveMigration[],
-): void {
+function assertSaveEnvelope(save: ActivitySaveEnvelope): void {
   if (save == null || typeof save !== 'object') {
     throw new ActivitySaveMigrationError('Invalid activity save envelope');
-  }
-  if (!Array.isArray(migrations)) {
-    throw new ActivitySaveMigrationError('Migrations must be an array');
   }
   assertPositiveVersion(save.schemaVersion, 'Save schema version');
   if (typeof save.savedAtIso !== 'string' || Number.isNaN(Date.parse(save.savedAtIso))) {
     throw new ActivitySaveMigrationError('Save timestamp must be a valid ISO date');
+  }
+}
+
+function assertMigrations(migrations: readonly ActivitySaveMigration[]): void {
+  if (!Array.isArray(migrations)) {
+    throw new ActivitySaveMigrationError('Migrations must be an array');
   }
 }
 
@@ -96,7 +96,8 @@ export function migrateActivitySave(
   targetVersion: number,
   migrations: readonly ActivitySaveMigration[],
 ): ActivitySaveEnvelope {
-  assertSaveInput(save, migrations);
+  assertSaveEnvelope(save);
+  assertMigrations(migrations);
   assertPositiveVersion(targetVersion, 'Target schema version');
 
   if (save.schemaVersion > targetVersion) {
