@@ -95,9 +95,9 @@ function assertJsonArrayEntries(
 }
 
 function isJsonArrayIndexKey(key: PropertyKey, length: number): boolean {
-  return typeof key === 'string'
-    && /^(?:0|[1-9]\d*)$/.test(key)
-    && Number(key) < length;
+  if (typeof key !== 'string') return false;
+  const index = Number(key);
+  return String(index) === key && index < length;
 }
 
 function isAllowedJsonArrayKey(key: PropertyKey, length: number): boolean {
@@ -233,8 +233,8 @@ function isValidClockTime({ hour, minute, second }: IsoClockTime): boolean {
 
 function isValidOffset({ offset }: Pick<IsoParts, 'offset'>): boolean {
   if (offset === 'Z') return true;
+  // parseIsoParts already restricts this to a two-digit hour and minute.
   const digits = offset.replace(':', '');
-  if (digits.length !== 5) return false;
   const sign = digits.startsWith('-') ? -1 : 1;
   const hours = Number(digits.slice(1, 3));
   const minutes = Number(digits.slice(3, 5));
@@ -262,7 +262,12 @@ function assertSaveEnvelope(save: unknown): asserts save is ActivitySaveEnvelope
   if (!isRecord(save)) {
     throw new ActivitySaveMigrationError('Invalid activity save envelope');
   }
-  assertRequiredSaveFields(save);
+  for (const key of ['payload', 'activityId', 'schemaVersion', 'savedAtIso']) {
+    const value = getOwnSaveProperty(save, key);
+    if (key === 'payload' && value === undefined) {
+      throw new ActivitySaveMigrationError('Save envelope payload must not be undefined');
+    }
+  }
   assertActivityId(save.activityId);
   assertPositiveVersion({ version: save.schemaVersion, description: 'Save schema version' });
   assertIsoTimestamp(save.savedAtIso);
@@ -285,15 +290,6 @@ function getOwnSaveProperty(
     throw new ActivitySaveMigrationError(message);
   }
   return descriptor.value;
-}
-
-function assertRequiredSaveFields(save: Record<string, unknown>): void {
-  for (const key of ['payload', 'activityId', 'schemaVersion', 'savedAtIso']) {
-    const value = getOwnSaveProperty(save, key);
-    if (key === 'payload' && value === undefined) {
-      throw new ActivitySaveMigrationError('Save envelope payload must not be undefined');
-    }
-  }
 }
 
 function assertMigrationEntry(input: {
