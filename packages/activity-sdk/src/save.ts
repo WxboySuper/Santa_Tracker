@@ -171,9 +171,12 @@ function assertPositiveVersion(input: {
   }
 }
 
-function assertActivityId(value: unknown): asserts value is ActivityId {
+function assertActivityId(
+  value: unknown,
+  description = 'Save activity id',
+): asserts value is ActivityId {
   if (typeof value !== 'string' || !PUBLIC_ID_PATTERN.test(value)) {
-    throw new ActivitySaveMigrationError('Save activity id must match the activity id contract');
+    throw new ActivitySaveMigrationError(`${description} must match the activity id contract`);
   }
 }
 
@@ -291,7 +294,7 @@ function assertMigrationEntry(input: {
   if (!isRecord(migration)) {
     throw new ActivitySaveMigrationError(`${description} must be an object`);
   }
-  assertActivityId(migration.activityId);
+  assertActivityId(migration.activityId, `${description} activity id`);
   const sourceVersion = {
     version: migration.fromVersion,
     description: `${description} source schema version`,
