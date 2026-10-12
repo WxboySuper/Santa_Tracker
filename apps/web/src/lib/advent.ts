@@ -223,7 +223,6 @@ function parseUnlockTime(day: AdventDay): Date {
 
 export function isPlayable(day: AdventDay, opts: { mode?: AdventMode; currentTime?: Date; clock?: AdventClock } = {}): boolean {
   if (opts.mode === "archive") {
-    if (day.is_unlocked_override != null) return day.is_unlocked_override;
     const currentTime = resolveCurrentTime(opts);
     return currentTime.getTime() >= parseUnlockTime(day).getTime();
   }
