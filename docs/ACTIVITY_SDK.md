@@ -14,7 +14,7 @@ import { completionEvent, failureEvent } from '@santa-tracker/activity-sdk/telem
 
 ## Lifecycle and progress events
 
-`ActivityEvent` covers loading, start, pause, resume, reset, completion, errors, exit, score, and achievement progress. Use `applyActivityEvent` to validate an event against the current state and transition table. Start is valid from `ready`, resume from `paused`, and pause or completion from `playing`. Score and achievement events leave the lifecycle state unchanged. Scores must be finite and emitted while playing; achievements need a non-empty id and may be emitted while playing or immediately after completion.
+`ActivityEvent` covers loading, start, pause, resume, reset, completion, errors, exit, score, and achievement progress. Use `applyActivityEvent` to validate an event against the current state and transition table. Load is valid from `idle`, `ready`, `failed`, or `exited`; start is valid from `ready`, resume from `paused`, and pause or completion from `playing`. Score and achievement events leave the lifecycle state unchanged. Scores must be finite and emitted while playing; achievements need a non-empty id and may be emitted while playing or immediately after completion.
 
 `DEFAULT_LIFECYCLE` is the common state graph. This contract adds the `exited` state and expands several default transitions. Consumers that persist lifecycle states separately must handle `exited` and review the changed edges; `ActivitySaveEnvelope` does not version lifecycle state. `canTransition` validates the graph and runtime states, so malformed graphs or unknown runtime states throw `ActivityLifecycleError` instead of returning `false`.
 

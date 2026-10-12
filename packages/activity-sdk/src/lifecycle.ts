@@ -182,7 +182,7 @@ function hasExplicitExitedTransitions(transitions: Record<string, unknown>): boo
       'Invalid lifecycle configuration: transitions for exited must be an own data property',
     );
   }
-  return descriptor.value !== undefined;
+  return true;
 }
 
 /** Throw a descriptive configuration error for malformed lifecycle graphs. */

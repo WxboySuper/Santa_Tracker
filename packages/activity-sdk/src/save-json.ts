@@ -28,20 +28,28 @@ export function assertJsonCompatible(
   path = '$',
   ancestors = new WeakSet(),
 ): void {
-  if (assertJsonPrimitive(value, path)) return;
-  const objectValue = value as object;
-  if (ancestors.has(objectValue)) {
-    throw new ActivitySaveMigrationError(`Save value at ${path} must not contain cycles`);
-  }
-  ancestors.add(objectValue);
+  let objectValue: object | undefined;
+  let addedToAncestors = false;
   try {
+    if (assertJsonPrimitive(value, path)) return;
+    objectValue = value as object;
+    if (ancestors.has(objectValue)) {
+      throw new ActivitySaveMigrationError(`Save value at ${path} must not contain cycles`);
+    }
+    ancestors.add(objectValue);
+    addedToAncestors = true;
     if (Array.isArray(objectValue)) {
       assertJsonArray(objectValue, path, ancestors, assertJsonCompatible);
       return;
     }
     assertJsonObject(objectValue, path, ancestors, assertJsonCompatible);
+  } catch (error) {
+    if (error instanceof ActivitySaveMigrationError) throw error;
+    throw new ActivitySaveMigrationError(
+      `Save value at ${path} must be JSON-compatible (${getErrorMessage(error)})`,
+    );
   } finally {
-    ancestors.delete(objectValue);
+    if (addedToAncestors && objectValue !== undefined) ancestors.delete(objectValue);
   }
 }
 

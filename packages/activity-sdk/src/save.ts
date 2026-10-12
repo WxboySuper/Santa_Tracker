@@ -26,11 +26,6 @@ export type ActivitySaveEnvelope<TPayload = unknown> = {
   [metadata: string]: unknown;
 };
 
-/**
- * A pure, synchronous single-version step for upgrading one activity's saved
- * payload. `migrate` must return the next payload directly; async migrations
- * are rejected at runtime so a `Promise` is never stored as a payload.
- */
 /** Validation boundary: accepts unknown device-local JSON, narrows on success. */
 function assertSaveEnvelope(save: unknown): asserts save is ActivitySaveEnvelope {
   if (!isStringRecord(save)) {
