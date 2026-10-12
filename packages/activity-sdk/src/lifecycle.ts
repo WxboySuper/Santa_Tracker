@@ -68,22 +68,26 @@ export function assertTransition(
   }
 }
 
-function applyProgressEvent(currentState: ActivityState, event: ActivityProgressEvent): ActivityState {
-  if (event.type === 'score') {
-    if (currentState !== 'playing' || !Number.isFinite(event.value)) {
-      throw new Error(`Score events require a finite value while playing (state: ${currentState})`);
-    }
-    return currentState;
-  }
+type ProgressEventRule = (currentState: ActivityState, event: ActivityProgressEvent) => string | undefined;
 
-  if (
-    (currentState !== 'playing' && currentState !== 'completed') ||
-    typeof event.achievementId !== 'string' ||
-    event.achievementId.trim() === ''
-  ) {
-    throw new Error(
-      `Achievement events require an id while playing or completed (state: ${currentState})`,
-    );
+const progressEventRules: Record<ActivityProgressEvent['type'], ProgressEventRule> = {
+  score: (currentState, event) =>
+    currentState !== 'playing' || !Number.isFinite((event as { value: number }).value)
+      ? `Score events require a finite value while playing (state: ${currentState})`
+      : undefined,
+  achievement: (currentState, event) => {
+    const achievementId = (event as { achievementId: unknown }).achievementId;
+    const validState = currentState === 'playing' || currentState === 'completed';
+    return validState && typeof achievementId === 'string' && achievementId.trim() !== ''
+      ? undefined
+      : `Achievement events require an id while playing or completed (state: ${currentState})`;
+  },
+};
+
+function applyProgressEvent(currentState: ActivityState, event: ActivityProgressEvent): ActivityState {
+  const message = progressEventRules[event.type](currentState, event);
+  if (message !== undefined) {
+    throw new Error(message);
   }
   return currentState;
 }
