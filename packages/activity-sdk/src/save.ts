@@ -292,7 +292,13 @@ function isThenable(value: unknown): boolean {
   if (value === null) return false;
   const kind = typeof value;
   if (kind !== 'object' && kind !== 'function') return false;
-  return typeof (value as { then?: unknown }).then === 'function';
+  try {
+    return typeof (value as { then?: unknown }).then === 'function';
+  } catch {
+    // A throwing `then` getter is still an unusable asynchronous result. Treat
+    // it as thenable so the caller reports the stable migration error below.
+    return true;
+  }
 }
 
 type MigrationStep = {
@@ -336,6 +342,9 @@ function assertSynchronousMigrationResult(
     );
   }
   if (!isThenable(value)) return;
+  // Observe a rejected async migration before rejecting it synchronously. This
+  // prevents its otherwise-unhandled promise rejection from escaping the API.
+  void Promise.resolve(value).catch(() => undefined);
   throw new ActivitySaveMigrationError(
     `Migration for activity ${activityId} from schema ${schemaVersion} must be synchronous`,
   );
