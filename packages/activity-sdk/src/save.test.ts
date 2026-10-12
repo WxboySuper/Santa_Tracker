@@ -93,7 +93,8 @@ describe('@santa-tracker/activity-sdk save migrations', () => {
   });
 
   it('rejects invalid envelopes and does not expose payload aliases to migrations', () => {
-    expect(() => migrateActivitySave(null as never, 1, [])).toThrow(ActivitySaveMigrationError);    expect(() => migrateActivitySave(save(), 1, undefined as never)).toThrow(
+    expect(() => migrateActivitySave(null, 1, [])).toThrow(ActivitySaveMigrationError);
+    expect(() => migrateActivitySave(save(), 1, undefined as never)).toThrow(
       /Migrations must be an array/,
     );
     for (const savedAtIso of ['invalid', '10/12/2026', 'October 12, 2026', '2026-02-30T12:00:00Z']) {
@@ -125,6 +126,9 @@ describe('@santa-tracker/activity-sdk save migrations', () => {
   it('requires the payload field and a contract-shaped activity id', () => {
     const { payload: _dropped, ...truncated } = save();
     expect(() => migrateActivitySave(truncated as never, 1, [])).toThrow(/payload/);
+    expect(() => migrateActivitySave({ ...save(), payload: undefined }, 1, [])).toThrow(
+      /must not be undefined/,
+    );
     expect(() => migrateActivitySave({ ...save(), activityId: '' as never }, 1, [])).toThrow(
       /activity id/,
     );
@@ -151,6 +155,58 @@ describe('@santa-tracker/activity-sdk save migrations', () => {
         { activityId, fromVersion: 1, toVersion: 2 } as never,
       ]),
     ).toThrow(/migrate must be a function/);
+  });
+
+  it('accepts unknown JSON input and rejects inherited save fields', () => {
+    const parsed: unknown = JSON.parse(JSON.stringify(save()));
+    expect(migrateActivitySave(parsed, 1, [])).toEqual(save());
+
+    const inherited = Object.create({
+      activityId,
+      schemaVersion: 1,
+      savedAtIso: '2026-10-12T12:00:00.000Z',
+      payload: {},
+    }) as unknown;
+    expect(() => migrateActivitySave(inherited, 1, [])).toThrow(/own payload/);
+  });
+
+  it('accepts only JSON-compatible payload values', () => {
+    const cycle: Record<string, unknown> = {};
+    cycle.self = cycle;
+    for (const payload of [
+      new Date('2026-10-12T12:00:00.000Z'),
+      new Map([['value', 1]]),
+      Number.NaN,
+      { missing: undefined },
+      () => undefined,
+      Symbol('value'),
+      cycle,
+    ]) {
+      expect(() => migrateActivitySave(save(payload), 1, [])).toThrow(ActivitySaveMigrationError);
+    }
+  });
+
+  it('copies the final migration output and extra envelope fields', () => {
+    let retainedOutput: { values: number[] } | undefined;
+    const source = { ...save(), metadata: { labels: ['device'] } };
+    const migrated = migrateActivitySave(source, 2, [
+      {
+        activityId,
+        fromVersion: 1,
+        toVersion: 2,
+        migrate: () => {
+          retainedOutput = { values: [1] };
+          return retainedOutput;
+        },
+      },
+    ]);
+
+    const migratedWithMetadata = migrated as typeof source;
+    expect(migratedWithMetadata.metadata).toEqual({ labels: ['device'] });
+    expect(migratedWithMetadata.metadata).not.toBe(source.metadata);
+    expect(migrated.payload).not.toBe(retainedOutput);
+    if (retainedOutput !== undefined) retainedOutput.values.push(2);
+    expect(migrated.payload).toEqual({ values: [1] });
   });
 
   it('wraps clone and migration failures and rejects async migrations', () => {
@@ -193,8 +249,14 @@ describe('@santa-tracker/activity-sdk save migrations', () => {
       '2026-10-12T24:00:00Z',
       '2026-10-12T12:00:00',
       '2026-10-12T12:00:00+05:60',
+      '2026-10-12T12:00:00+14:01',
+      '2026-10-12T12:00:00-12:01',
+      '2026-10-12T12:00:00+23:00',
     ]) {
       expect(() => migrateActivitySave({ ...save(), savedAtIso }, 1, [])).toThrow(/valid ISO date/);
+    }
+    for (const savedAtIso of ['2026-10-12T12:00:00+14:00', '2026-10-12T12:00:00-12:00']) {
+      expect(() => migrateActivitySave({ ...save(), savedAtIso }, 1, [])).not.toThrow();
     }
   });
 });

@@ -31,6 +31,70 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
+function hasOwn(value: object, key: string): boolean {
+  return Object.prototype.hasOwnProperty.call(value, key);
+}
+
+function assertJsonCompatible(value: unknown, path = '$', ancestors = new WeakSet()): void {
+  if (value === null || typeof value === 'string' || typeof value === 'boolean') return;
+  if (typeof value === 'number') {
+    if (!Number.isFinite(value)) {
+      throw new ActivitySaveMigrationError(`Save value at ${path} must be a finite JSON number`);
+    }
+    return;
+  }
+  if (typeof value !== 'object') {
+    throw new ActivitySaveMigrationError(`Save value at ${path} must be JSON-compatible`);
+  }
+  if (ancestors.has(value)) {
+    throw new ActivitySaveMigrationError(`Save value at ${path} must not contain cycles`);
+  }
+
+  ancestors.add(value);
+  try {
+    if (Array.isArray(value)) {
+      if (Object.getPrototypeOf(value) !== Array.prototype) {
+        throw new ActivitySaveMigrationError(`Save value at ${path} must be a plain JSON array`);
+      }
+      for (let index = 0; index < value.length; index += 1) {
+        if (!hasOwn(value, String(index))) {
+          throw new ActivitySaveMigrationError(`Save value at ${path}[${index}] must not be empty`);
+        }
+        const descriptor = Object.getOwnPropertyDescriptor(value, String(index));
+        if (descriptor === undefined || !descriptor.enumerable || !('value' in descriptor)) {
+          throw new ActivitySaveMigrationError(`Save value at ${path}[${index}] must be a JSON value`);
+        }
+        assertJsonCompatible(descriptor.value, `${path}[${index}]`, ancestors);
+      }
+      for (const key of Reflect.ownKeys(value)) {
+        if (key === 'length') continue;
+        if (typeof key !== 'string' || !/^(?:0|[1-9]\d*)$/.test(key) || Number(key) >= value.length) {
+          throw new ActivitySaveMigrationError(`Save value at ${path} must not contain extra array keys`);
+        }
+      }
+      return;
+    }
+
+    const prototype: unknown = Object.getPrototypeOf(value);
+    if (prototype !== Object.prototype && prototype !== null) {
+      throw new ActivitySaveMigrationError(`Save value at ${path} must be a plain JSON object`);
+    }
+    if (Object.getOwnPropertySymbols(value).length > 0) {
+      throw new ActivitySaveMigrationError(`Save value at ${path} must not contain symbol keys`);
+    }
+    for (const key of Reflect.ownKeys(value)) {
+      if (typeof key !== 'string') continue;
+      const descriptor = Object.getOwnPropertyDescriptor(value, key);
+      if (descriptor === undefined || !descriptor.enumerable || !('value' in descriptor)) {
+        throw new ActivitySaveMigrationError(`Save value at ${path}.${key} must be a JSON value`);
+      }
+      assertJsonCompatible(descriptor.value, `${path}.${key}`, ancestors);
+    }
+  } finally {
+    ancestors.delete(value);
+  }
+}
+
 function assertPositiveVersion(input: {
   version: unknown;
   description: string;
@@ -103,9 +167,11 @@ function isValidOffset({ offset }: Pick<IsoParts, 'offset'>): boolean {
   if (offset === 'Z') return true;
   const digits = offset.replace(':', '');
   if (digits.length !== 5) return false;
+  const sign = digits.startsWith('-') ? -1 : 1;
   const hours = Number(digits.slice(1, 3));
   const minutes = Number(digits.slice(3, 5));
-  return hours <= 23 && minutes <= 59;
+  const totalMinutes = sign * (hours * 60 + minutes);
+  return minutes <= 59 && totalMinutes >= -720 && totalMinutes <= 840;
 }
 
 function isValidIsoDateTime(value: unknown): boolean {
@@ -128,12 +194,22 @@ function assertSaveEnvelope(save: unknown): asserts save is ActivitySaveEnvelope
   if (!isRecord(save)) {
     throw new ActivitySaveMigrationError('Invalid activity save envelope');
   }
-  if (!('payload' in save)) {
-    throw new ActivitySaveMigrationError('Save envelope must include a payload');
+  for (const key of ['payload', 'activityId', 'schemaVersion', 'savedAtIso']) {
+    if (!hasOwn(save, key)) {
+      throw new ActivitySaveMigrationError(`Save envelope must include its own ${key} value`);
+    }
+    const descriptor = Object.getOwnPropertyDescriptor(save, key);
+    if (descriptor === undefined || !('value' in descriptor)) {
+      throw new ActivitySaveMigrationError(`Save envelope must include its own ${key} value`);
+    }
+    if (key === 'payload' && descriptor.value === undefined) {
+      throw new ActivitySaveMigrationError('Save envelope payload must not be undefined');
+    }
   }
   assertActivityId(save.activityId);
   assertPositiveVersion({ version: save.schemaVersion, description: 'Save schema version' });
   assertIsoTimestamp(save.savedAtIso);
+  assertJsonCompatible(save);
 }
 
 function assertMigrationEntry(input: {
@@ -197,12 +273,15 @@ function indexMigrations({
 }
 
 function clonePayload(payload: unknown): unknown {
-  if (payload === null || typeof payload !== 'object') return payload;
   try {
-    return structuredClone(payload);
+    assertJsonCompatible(payload);
+    const serialized = JSON.stringify(payload);
+    if (serialized === undefined) throw new Error('Value has no JSON representation');
+    return JSON.parse(serialized) as unknown;
   } catch (error) {
+    if (error instanceof ActivitySaveMigrationError) throw error;
     throw new ActivitySaveMigrationError(
-      `Cannot migrate activity save: payload is not cloneable (${error instanceof Error ? error.message : String(error)})`,
+      `Cannot migrate activity save: payload is not JSON-compatible (${error instanceof Error ? error.message : String(error)})`,
     );
   }
 }
@@ -265,7 +344,7 @@ function runMigrationStep(step: MigrationStep): unknown {
   const isolatedPayload = clonePayload(step.payload);
   const next = applyMigration(migration, isolatedPayload, step);
   assertSynchronousMigrationResult(next, step);
-  return next;
+  return clonePayload(next);
 }
 
 /**
@@ -274,8 +353,8 @@ function runMigrationStep(step: MigrationStep): unknown {
  * receive an isolated copy and the returned envelope owns a cloned payload,
  * including when no migration step runs.
  */
-export function migrateActivitySave<TInput, TOutput = unknown>(
-  save: ActivitySaveEnvelope<TInput>,
+export function migrateActivitySave<TOutput = unknown>(
+  save: unknown,
   targetVersion: number,
   migrations: readonly ActivitySaveMigration[],
 ): ActivitySaveEnvelope<TOutput> {
@@ -289,15 +368,17 @@ export function migrateActivitySave<TInput, TOutput = unknown>(
     );
   }
 
-  const indexedMigrations = indexMigrations({ migrations, activityId: save.activityId });
-  let schemaVersion = save.schemaVersion;
-  let payload: unknown = clonePayload(save.payload);
+  const isolatedSave = clonePayload(save) as ActivitySaveEnvelope;
+
+  const indexedMigrations = indexMigrations({ migrations, activityId: isolatedSave.activityId });
+  let schemaVersion = isolatedSave.schemaVersion;
+  let payload: unknown = isolatedSave.payload;
 
   while (schemaVersion < targetVersion) {
     const migration = indexedMigrations.get(schemaVersion);
-    payload = runMigrationStep({ migration, activityId: save.activityId, schemaVersion, payload });
+    payload = runMigrationStep({ migration, activityId: isolatedSave.activityId, schemaVersion, payload });
     schemaVersion += 1;
   }
 
-  return { ...save, schemaVersion, payload: payload as TOutput };
+  return { ...isolatedSave, schemaVersion, payload: payload as TOutput };
 }

@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { applyActivityEvent, assertTransition, canTransition, DEFAULT_LIFECYCLE } from './lifecycle';
+import {
+  ActivityLifecycleError,
+  applyActivityEvent,
+  assertTransition,
+  canTransition,
+  DEFAULT_LIFECYCLE,
+  type ActivityLifecycle,
+} from './lifecycle';
 
 describe('@santa-tracker/activity-sdk', () => {
   it('allows valid transitions', () => {
@@ -9,6 +16,7 @@ describe('@santa-tracker/activity-sdk', () => {
 
   it('rejects invalid transitions', () => {
     expect(canTransition(DEFAULT_LIFECYCLE, 'idle', 'playing')).toBe(false);
+    expect(canTransition(DEFAULT_LIFECYCLE, 'idle', 'idle')).toBe(false);
     expect(canTransition(DEFAULT_LIFECYCLE, 'completed', 'playing')).toBe(false);
     expect(canTransition(DEFAULT_LIFECYCLE, 'failed', 'idle')).toBe(true);
     expect(() => assertTransition(DEFAULT_LIFECYCLE, 'failed', 'idle')).not.toThrow();
@@ -61,7 +69,7 @@ describe('@santa-tracker/activity-sdk', () => {
       applyActivityEvent(DEFAULT_LIFECYCLE, 'ready', { type: 'achievement', achievementId: '   ' }),
     ).toThrow();
     expect(() => applyActivityEvent(DEFAULT_LIFECYCLE, 'idle', { type: 'start' })).toThrow(
-      /Invalid transition/,
+      /Start events require ready state/,
     );
     expect(() =>
       applyActivityEvent(DEFAULT_LIFECYCLE, 'playing', { type: 'error', code: '  ' }),
@@ -73,13 +81,33 @@ describe('@santa-tracker/activity-sdk', () => {
       /Resume events require paused state/,
     );
     expect(() => applyActivityEvent(DEFAULT_LIFECYCLE, 'paused', { type: 'start' })).toThrow(
-      /cannot resume/,
+      /require ready state/,
     );
     expect(() => applyActivityEvent(DEFAULT_LIFECYCLE, 'playing', { type: 'bogus' } as never)).toThrow(
       /Invalid activity event/,
     );
     expect(() => applyActivityEvent(DEFAULT_LIFECYCLE, 'playing', null as never)).toThrow(
       /Invalid activity event/,
+    );
+  });
+
+  it('keeps lifecycle event rules even when a custom graph is permissive', () => {
+    const permissive: ActivityLifecycle = {
+      ...DEFAULT_LIFECYCLE,
+      transitions: {
+        ...DEFAULT_LIFECYCLE.transitions,
+        idle: ['loading', 'playing', 'paused', 'completed', 'failed', 'exited'],
+      },
+    };
+
+    expect(() => applyActivityEvent(permissive, 'idle', { type: 'start' })).toThrow(
+      /Start events require ready state/,
+    );
+    expect(() => applyActivityEvent(permissive, 'idle', { type: 'pause' })).toThrow(
+      /Pause events require playing state/,
+    );
+    expect(() => applyActivityEvent(permissive, 'idle', { type: 'complete' })).toThrow(
+      /Complete events require playing state/,
     );
   });
 
@@ -117,7 +145,46 @@ describe('@santa-tracker/activity-sdk', () => {
         { type: 'load' },
       ),
     ).toThrow(/Invalid lifecycle configuration/);
-    expect(canTransition(null as never, 'idle', 'loading')).toBe(false);
+    expect(() => canTransition(null as never, 'idle', 'loading')).toThrow(
+      ActivityLifecycleError,
+    );
+  });
+
+  it('accepts legacy custom graphs that omit the newly added exited state', () => {
+    const { exited: _exited, ...currentStates } = DEFAULT_LIFECYCLE.transitions;
+    const legacyTransitions = Object.fromEntries(
+      Object.entries(currentStates).map(([state, transitions]) => [
+        state,
+        transitions.filter(target => target !== 'exited'),
+      ]),
+    ) as ActivityLifecycle['transitions'];
+    const legacyLifecycle: ActivityLifecycle = {
+      ...DEFAULT_LIFECYCLE,
+      transitions: legacyTransitions,
+    };
+
+    expect(canTransition(legacyLifecycle, 'ready', 'playing')).toBe(true);
+    expect(applyActivityEvent(legacyLifecycle, 'ready', { type: 'start' })).toBe('playing');
+    expect(() => applyActivityEvent(legacyLifecycle, 'idle', { type: 'exit' })).toThrow(
+      /Invalid transition/,
+    );
+  });
+
+  it('reports stable lifecycle error codes', () => {
+    try {
+      applyActivityEvent(DEFAULT_LIFECYCLE, 'idle', { type: 'start' });
+      throw new Error('Expected an invalid lifecycle event');
+    } catch (error) {
+      expect(error).toBeInstanceOf(ActivityLifecycleError);
+      expect((error as ActivityLifecycleError).code).toBe('invalid_event');
+    }
+    try {
+      assertTransition(DEFAULT_LIFECYCLE, 'idle', 'playing');
+      throw new Error('Expected an invalid transition');
+    } catch (error) {
+      expect(error).toBeInstanceOf(ActivityLifecycleError);
+      expect((error as ActivityLifecycleError).code).toBe('invalid_transition');
+    }
   });
 
   it('rejects malformed known payloads and prototype-polluting event types', () => {
