@@ -177,6 +177,11 @@ describe('@santa-tracker/activity-sdk save migrations', () => {
         { activityId, fromVersion: 1, toVersion: 2, migrate: (async (p: unknown) => p) as never },
       ]),
     ).toThrow(/synchronous/);
+    expect(() =>
+      migrateActivitySave(save(), 2, [
+        { activityId, fromVersion: 1, toVersion: 2, migrate: () => undefined },
+      ]),
+    ).toThrow(/must return a payload/);
   });
 
   it('keeps strict ISO semantics, including leap years and colon offsets', () => {

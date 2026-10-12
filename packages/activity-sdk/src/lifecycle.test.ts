@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { applyActivityEvent, canTransition, DEFAULT_LIFECYCLE } from './lifecycle';
+import { applyActivityEvent, assertTransition, canTransition, DEFAULT_LIFECYCLE } from './lifecycle';
 
 describe('@santa-tracker/activity-sdk', () => {
   it('allows valid transitions', () => {
@@ -10,6 +10,8 @@ describe('@santa-tracker/activity-sdk', () => {
   it('rejects invalid transitions', () => {
     expect(canTransition(DEFAULT_LIFECYCLE, 'idle', 'playing')).toBe(false);
     expect(canTransition(DEFAULT_LIFECYCLE, 'completed', 'playing')).toBe(false);
+    expect(canTransition(DEFAULT_LIFECYCLE, 'failed', 'idle')).toBe(true);
+    expect(() => assertTransition(DEFAULT_LIFECYCLE, 'failed', 'idle')).not.toThrow();
   });
 
   it('maps start, pause, resume, reset, complete, error, and exit to lifecycle states', () => {
@@ -133,6 +135,19 @@ describe('@santa-tracker/activity-sdk', () => {
     ).toThrow(/Invalid activity event/);
     expect(() => applyActivityEvent(DEFAULT_LIFECYCLE, 'playing', [] as never)).toThrow(
       /Invalid activity event/,
+    );
+  });
+
+  it('validates runtime states and lifecycle configuration for progress events', () => {
+    expect(() =>
+      applyActivityEvent(DEFAULT_LIFECYCLE, 'bogus' as never, { type: 'score', value: 1 }),
+    ).toThrow(/Invalid activity state/);
+    const malformed = {
+      ...DEFAULT_LIFECYCLE,
+      transitions: { ...DEFAULT_LIFECYCLE.transitions, failed: 'idle' },
+    } as never;
+    expect(() => applyActivityEvent(malformed, 'playing', { type: 'score', value: 1 })).toThrow(
+      /Invalid lifecycle configuration/,
     );
   });
 });

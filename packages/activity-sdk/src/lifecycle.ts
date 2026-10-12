@@ -44,7 +44,7 @@ export const DEFAULT_LIFECYCLE: ActivityLifecycle = {
     playing: ['paused', 'completed', 'failed', 'ready', 'exited'],
     paused: ['playing', 'failed', 'ready', 'exited'],
     completed: ['ready', 'failed', 'exited'],
-    failed: ['loading', 'ready', 'failed', 'exited'],
+    failed: ['loading', 'ready', 'idle', 'failed', 'exited'],
     exited: ['loading', 'ready', 'failed', 'exited'],
   },
 };
@@ -138,15 +138,23 @@ export function canTransition(
   return Array.isArray(allowed) && allowed.includes(to);
 }
 
+function assertTransitionAllowed(
+  lifecycle: ActivityLifecycle,
+  from: ActivityState,
+  to: ActivityState,
+): void {
+  if (!canTransition(lifecycle, from, to)) {
+    throw new Error(`Invalid transition ${from} -> ${to} for lifecycle ${lifecycle.id}`);
+  }
+}
+
 export function assertTransition(
   lifecycle: ActivityLifecycle,
   from: ActivityState,
   to: ActivityState,
 ): void {
   assertLifecycleShape(lifecycle);
-  if (!canTransition(lifecycle, from, to)) {
-    throw new Error(`Invalid transition ${from} -> ${to} for lifecycle ${lifecycle.id}`);
-  }
+  assertTransitionAllowed(lifecycle, from, to);
 }
 
 type ScoreEvent = Extract<ActivityProgressEvent, { type: 'score' }>;
@@ -234,8 +242,14 @@ function applyLifecycleEvent(
   if (event.type === 'reset' && currentState === 'idle') return 'idle';
   validateLifecycleEvent(currentState, event);
   const target = targetFor(event);
-  assertTransition(lifecycle, currentState, target);
+  assertTransitionAllowed(lifecycle, currentState, target);
   return target;
+}
+
+function assertCurrentState(value: unknown): asserts value is ActivityState {
+  if (!isActivityState(value)) {
+    throw new Error(`Invalid activity state: ${String(value)}`);
+  }
 }
 
 const KNOWN_EVENT_TYPES: ReadonlySet<string> = new Set([
@@ -271,6 +285,8 @@ export function applyActivityEvent(
     throw new Error('Invalid activity event');
   }
 
+  assertCurrentState(currentState);
+  assertLifecycleShape(lifecycle);
   if (isProgressEvent(event)) {
     return applyProgressEvent(currentState, event);
   }

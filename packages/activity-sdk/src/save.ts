@@ -249,6 +249,11 @@ function assertSynchronousMigrationResult(
   value: unknown,
   { activityId, schemaVersion }: MigrationStep,
 ): void {
+  if (value === undefined) {
+    throw new ActivitySaveMigrationError(
+      `Migration for activity ${activityId} from schema ${schemaVersion} must return a payload`,
+    );
+  }
   if (!isThenable(value)) return;
   throw new ActivitySaveMigrationError(
     `Migration for activity ${activityId} from schema ${schemaVersion} must be synchronous`,
@@ -296,5 +301,3 @@ export function migrateActivitySave<TInput, TOutput = unknown>(
 
   return { ...save, schemaVersion, payload: payload as TOutput };
 }
-
-export { isValidIsoDateTime };
