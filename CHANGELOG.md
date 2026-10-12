@@ -108,3 +108,6 @@ RET_KEY` must be ≥16 chars; set via `PROD_DOTENV` on VPS (`.env` mode 600).
 - **Database:** Adds the initial Drizzle SQL migration and metadata for the publications, locations, and audit events tables.
 - **Workflow:** Adds a reusable migration runner, an isolated PostgreSQL integration test, and a PostgreSQL 16 CI service. The test applies migrations to an empty database and runs it a second time to verify repeatability.
 - **Documentation:** Documents local migration commands and the transactional failure and rollback behavior used for production migrations.
+# Unreleased
+
+- Added typed activity SDK helpers for keyboard, pointer, and touch input normalization, opt-in audio preferences, reduced-sensory support, and identity-free completion and failure telemetry.

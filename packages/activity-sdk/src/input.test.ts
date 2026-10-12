@@ -1,0 +1,3 @@
+import { describe, expect, it } from 'vitest';
+import { normalizeInput } from './input';
+describe('input normalization', () => { it('maps keyboard controls', () => { expect(normalizeInput({ kind: 'keyboard', key: 'ArrowLeft' })).toMatchObject({ action: 'left', phase: 'start' }); expect(normalizeInput({ kind: 'keyboard', key: 'A', type: 'keyup' })).toMatchObject({ action: 'key:a', phase: 'end' }); }); it('normalizes pointer and touch phases', () => { expect(normalizeInput({ kind: 'pointer', type: 'pointerdown', x: 4, y: 8 })).toMatchObject({ action: 'primary', phase: 'start', x: 4, y: 8 }); expect(normalizeInput({ kind: 'touch', type: 'touchcancel' })).toMatchObject({ phase: 'cancel' }); }); });
