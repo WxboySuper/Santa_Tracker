@@ -21,20 +21,17 @@ describe("versioned snapshot store", () => {
     const first = await store.saveNewVersion("santa-route", JSON.stringify({ v: 1 }));
     await store.activateVersion("santa-route", first.versionId);
     const activeAfterFirst = await store.readActive("santa-route");
-    expect(activeAfterFirst).not.toBeNull();
-    expect(JSON.parse(activeAfterFirst!)).toEqual({ v: 1 });
+    expect(activeAfterFirst).toBe(JSON.stringify({ v: 1 }));
 
     const second = await store.saveNewVersion("santa-route", JSON.stringify({ v: 2 }));
     await store.activateVersion("santa-route", second.versionId);
     const activeAfterSecond = await store.readActive("santa-route");
-    expect(activeAfterSecond).not.toBeNull();
-    expect(JSON.parse(activeAfterSecond!)).toEqual({ v: 2 });
+    expect(activeAfterSecond).toBe(JSON.stringify({ v: 2 }));
 
     const rolled = await store.rollback("santa-route");
     expect(rolled.versionId).toBe(first.versionId);
     const activeAfterRollback = await store.readActive("santa-route");
-    expect(activeAfterRollback).not.toBeNull();
-    expect(JSON.parse(activeAfterRollback!)).toEqual({ v: 1 });
+    expect(activeAfterRollback).toBe(JSON.stringify({ v: 1 }));
   });
 
   it("lists versions newest-first", async () => {
@@ -43,6 +40,6 @@ describe("versioned snapshot store", () => {
     const b = await store.saveNewVersion("advent-calendar", "{}");
     await store.activateVersion("advent-calendar", b.versionId);
     const versions = await store.listVersions("advent-calendar");
-    expect(versions.map(v => v.versionId)).toEqual([b.versionId, a.versionId]);
+    expect(versions.map(version => version.versionId)).toEqual([b.versionId, a.versionId]);
   });
 });

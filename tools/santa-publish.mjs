@@ -79,16 +79,18 @@ async function main() {
     if (remote) {
       const versionId = makeVersionId();
       const activated = await uploadToR2({ bucket, dataset, versionId, body, activate });
-      console.log(activated
+      const message = activated
         ? `Activated ${dataset} version ${versionId} in R2 bucket ${bucket}`
-        : `Kept existing ${dataset} active pointer in R2 bucket ${bucket}`);
+        : `Kept existing ${dataset} active pointer in R2 bucket ${bucket}`;
+      process.stdout.write(`${message}\n`);
     } else {
-      console.log(`Validated ${file}; local runtime reads the checked-in data file directly`);
+      process.stdout.write(`Validated ${file}; local runtime reads the checked-in data file directly\n`);
     }
   }
 }
 
 main().catch(error => {
-  console.error(error);
+  const message = error instanceof Error ? error.stack ?? error.message : String(error);
+  process.stderr.write(`${message}\n`);
   process.exit(1);
 });

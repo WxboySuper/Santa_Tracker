@@ -32,7 +32,7 @@ describe("tracker position", () => {
   it("interpolates Santa between timed stops", () => {
     const position = computeSantaPosition(sampleNodes, new Date("2026-12-24T01:30:00.000Z"));
     expect(position).not.toBeNull();
-    expect(position!.lat).toBeGreaterThan(51);
-    expect(position!.lat).toBeLessThan(80);
+    expect(position?.lat).toBeGreaterThan(51);
+    expect(position?.lat).toBeLessThan(80);
   });
 });

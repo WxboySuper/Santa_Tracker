@@ -1,6 +1,6 @@
 import fs from "fs/promises";
 import path from "path";
-import { getSantaRoutePath, getTrialRoutePath } from "./config";
+import { getSantaRoutePath } from "./config";
 import { getSantaSnapshotsBucket } from "./cloudflare-bindings";
 import { getSnapshotStore } from "./storage";
 import { ensureStoreBootstrapped, persistSantaRoute, persistTrialRoute, removeTrialRoute } from "./storage/publish";
@@ -91,16 +91,16 @@ function optionalNumber(value: unknown): number | null {
 }
 
 // Helpers mirroring locations.py coercion
-function safeFloat(v: unknown): number | null {
-  if (v == null) return null;
-  if (typeof v === "number") return v;
-  if (typeof v === "string") {
-    const s = v.replace(/,/g, "").trim();
-    const n = Number(s);
-    if (Number.isNaN(n)) throw new Error(`expected numeric string got ${v}`);
-    return n;
+function safeFloat(value: unknown): number | null {
+  if (value == null) return null;
+  if (typeof value === "number") return value;
+  if (typeof value === "string") {
+    const normalized = value.replace(/,/g, "").trim();
+    const parsedNumber = Number(normalized);
+    if (Number.isNaN(parsedNumber)) throw new Error(`expected numeric string got ${value}`);
+    return parsedNumber;
   }
-  throw new Error(`unsupported type`);
+  throw new Error("unsupported type");
 }
 
 function normalizeLng(lng: number): number {
@@ -115,11 +115,12 @@ function normalizeLegacyLocation(entry: JsonRecord, idx: number): JsonRecord {
   const lat = entry.latitude ?? entry.lat;
   const lng = entry.longitude ?? entry.lng;
   const tz = entry.utc_offset ?? entry.timezone_offset;
+  const durationSeconds = optionalNumber(entry.stop_duration);
   return {
     id: entry.name || `node_${idx}`,
     location: { name: entry.name, lat, lng, timezone_offset: tz },
     schedule: { arrival_utc: entry.arrival_time, departure_utc: entry.departure_time },
-    stop_experience: { duration_seconds: entry.stop_duration != null ? entry.stop_duration * 60 : null },
+    stop_experience: { duration_seconds: durationSeconds != null ? durationSeconds * 60 : null },
     notes: entry.notes ?? entry.fun_facts,
     priority: entry.priority,
   };
@@ -160,8 +161,8 @@ function parseLocationNode(value: unknown, idx: number): RouteNode | null {
     location: {
       name: optionalString(loc.name) ?? id,
       region: optionalString(loc.region),
-      lat: lat!,
-      lng: normalizeLng(lng!),
+      lat,
+      lng: normalizeLng(lng),
       timezone_offset: tz,
     },
     stop_experience: {
@@ -662,7 +663,9 @@ export async function getRouteStatus() {
   try {
     const versions = await (await getRouteStore()).listVersions(DATASET_SANTA_ROUTE);
     if (versions[0]) last_modified = versions[0].createdAt;
-  } catch {}
+  } catch {
+    last_modified = "Unknown";
+  }
   return {
     total_locations,
     locations_with_timing,

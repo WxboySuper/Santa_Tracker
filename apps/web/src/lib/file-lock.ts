@@ -63,21 +63,34 @@ function delay(ms: number): Promise<void> {
 type R2LockObject = Awaited<ReturnType<R2BucketLike["get"]>>;
 type R2LockWriteOptions = { onlyIf: Headers | { etagMatches?: string } };
 
+function parsedR2LockExpiry(value: unknown): number {
+  if (value === null) return Number.POSITIVE_INFINITY;
+  if (typeof value !== "object") return Number.POSITIVE_INFINITY;
+  if (Array.isArray(value)) return Number.POSITIVE_INFINITY;
+  const expiry = (value as Record<string, unknown>).expiresAt;
+  return typeof expiry === "number" ? expiry : Number.POSITIVE_INFINITY;
+}
+
+function uploadedR2LockExpiry(current: R2LockObject): number {
+  if (!current?.uploaded) return Number.POSITIVE_INFINITY;
+  return current.uploaded.getTime() + R2_LOCK_LEASE_MS;
+}
+
+async function getR2LockExpiry(current: NonNullable<R2LockObject>): Promise<number> {
+  try {
+    const lockData: unknown = JSON.parse(await current.text());
+    return parsedR2LockExpiry(lockData);
+  } catch {
+    return uploadedR2LockExpiry(current);
+  }
+}
+
 async function getR2LockWriteOptions(current: R2LockObject, now: number): Promise<R2LockWriteOptions | null> {
   if (!current) return { onlyIf: new Headers({ "If-None-Match": "*" }) };
 
-  let expiresAt = Number.POSITIVE_INFINITY;
-  try {
-    const lockData: unknown = JSON.parse(await current.text());
-    if (typeof lockData === "object" && lockData !== null && "expiresAt" in lockData) {
-      const expiry = lockData.expiresAt;
-      expiresAt = typeof expiry === "number" ? expiry : Number.POSITIVE_INFINITY;
-    }
-  } catch {
-    if (current.uploaded) expiresAt = current.uploaded.getTime() + R2_LOCK_LEASE_MS;
-  }
-
-  if (expiresAt > now || !current.etag) return null;
+  const expiresAt = await getR2LockExpiry(current);
+  if (expiresAt > now) return null;
+  if (!current.etag) return null;
   return { onlyIf: { etagMatches: current.etag } };
 }
 

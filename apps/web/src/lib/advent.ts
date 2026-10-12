@@ -65,10 +65,15 @@ function validateUnlockTime({ value }: AdventTextValue): void {
   if (Number.isNaN(dt.getTime())) throw new Error("Invalid date");
 }
 
+function isRecordValue(value: unknown): value is Record<string, unknown> {
+  if (value === null) return false;
+  if (typeof value !== "object") return false;
+  if (Array.isArray(value)) return false;
+  return true;
+}
+
 function asRecord(value: unknown, description: string): Record<string, unknown> {
-  if (!value || typeof value !== "object" || Array.isArray(value)) {
-    throw new Error(`${description} must be an object`);
-  }
+  if (!isRecordValue(value)) throw new Error(`${description} must be an object`);
   return value as Record<string, unknown>;
 }
 
@@ -140,8 +145,8 @@ function validateDayUnlockTime(value: AdventTextValue): void {
 
 async function readAdventSource(options: AdventFileOptions = {}): Promise<{ cacheKey: string | null; versionKey: string; readContent: () => Promise<string> }> {
   if (options.filePath) {
-    const p = path.resolve(options.filePath);
-    return { cacheKey: null, versionKey: "", readContent: () => fs.readFile(p, "utf-8") };
+    const absolutePath = path.resolve(options.filePath);
+    return { cacheKey: null, versionKey: "", readContent: () => fs.readFile(absolutePath, "utf-8") };
   }
   const bucket = getSantaSnapshotsBucket();
   const store = getSnapshotStore(bucket);
@@ -291,12 +296,12 @@ export async function saveAdventCalendar(days: AdventDay[] | Map<number, AdventD
   };
   const body = JSON.stringify(data, null, 2);
   if (options.filePath) {
-    const p = path.resolve(options.filePath);
-    await fs.mkdir(path.dirname(p), { recursive: true });
-    const tmp = `${p}.tmp.${Date.now()}.${Math.random().toString(36).slice(2)}`;
+    const absolutePath = path.resolve(options.filePath);
+    await fs.mkdir(path.dirname(absolutePath), { recursive: true });
+    const tmp = `${absolutePath}.tmp.${Date.now()}.${Math.random().toString(36).slice(2)}`;
     await fs.writeFile(tmp, body, "utf-8");
-    await fs.rename(tmp, p);
-    cache.delete(p);
+    await fs.rename(tmp, absolutePath);
+    cache.delete(absolutePath);
     return;
   }
   const store = getSnapshotStore(getSantaSnapshotsBucket());

@@ -60,12 +60,12 @@ function positionOnSegment(
   const fromNode = timedNodes[segment.currentIndex] ?? timedNodes[0];
   const toNode = segment.nextIndex != null ? timedNodes[segment.nextIndex] : fromNode;
   if (!fromNode || !toNode) return null;
-  const from = nodeLatLng(fromNode);
-  const to = nodeLatLng(toNode);
-  const t = segment.nextIndex != null ? segmentProgress(route, segment.currentIndex, segment.nextIndex, nowMs) : 0;
+  const fromCoordinates = nodeLatLng(fromNode);
+  const toCoordinates = nodeLatLng(toNode);
+  const progress = segment.nextIndex != null ? segmentProgress(route, segment.currentIndex, segment.nextIndex, nowMs) : 0;
   return {
-    lat: lerp(from.lat, to.lat, t),
-    lng: lerp(from.lng, to.lng, t),
+    lat: lerp(fromCoordinates.lat, toCoordinates.lat, progress),
+    lng: lerp(fromCoordinates.lng, toCoordinates.lng, progress),
     journey,
   };
 }

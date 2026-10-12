@@ -46,11 +46,11 @@ export function createVersionedSnapshotStore(backend: VersionedStoreBackend): Ve
       return pointer ? backend.read(versionKey(dataset, pointer.versionId)) : null;
     },
 
-    async readActiveVersion(dataset) {
+    readActiveVersion(dataset) {
       return readPointer(dataset);
     },
 
-    async readVersion(dataset, versionId) {
+    readVersion(dataset, versionId) {
       return backend.read(versionKey(dataset, versionId));
     },
 

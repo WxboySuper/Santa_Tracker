@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import "leaflet/dist/leaflet.css";
 import type { Map as LeafletMap, Marker as LeafletMarker } from "leaflet";
+import type * as Leaflet from "leaflet";
 import { createTranslator } from "@santa-tracker/localization";
 import type { RouteNode } from "@/lib/locations";
 import { computeSantaPosition } from "@/lib/tracker-position";
@@ -21,7 +22,7 @@ interface RouteResponse {
 const ROUTE_URL = "/api/route";
 const POSITION_TICK_MS = 1000;
 
-type LeafletModule = typeof import("leaflet");
+type LeafletModule = typeof Leaflet;
 
 function hasCoordinates(node: RouteNode): boolean {
   return Number.isFinite(node.location.lat) && Number.isFinite(node.location.lng);
