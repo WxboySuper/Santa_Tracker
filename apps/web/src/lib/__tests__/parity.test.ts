@@ -66,8 +66,8 @@ describe("Advent parity", () => {
     expect(d.is_unlocked).toBe(false);
   });
   it("validateAdvent detects duplicates", () => {
-    const days = [past, past];
-    const res = validateAdventCalendar(days as any);
+    const days: AdventDay[] = [past, past];
+    const res = validateAdventCalendar(days);
     expect(res.valid).toBe(false);
   });
 });
