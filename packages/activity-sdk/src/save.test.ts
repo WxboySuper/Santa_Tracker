@@ -15,13 +15,14 @@ function save(payload: unknown = { stars: 2 }): ActivitySaveEnvelope {
 }
 
 describe('@santa-tracker/activity-sdk save migrations', () => {
-  it('returns the same version without requiring a migration', () => {
+  it('returns the same version with an isolated payload copy', () => {
     const source = save();
     const migrated = migrateActivitySave(source, 1, []);
 
     expect(migrated).toEqual(source);
     expect(migrated).not.toBe(source);
-    expect(migrated.payload).toBe(source.payload);
+    expect(migrated.payload).toEqual(source.payload);
+    expect(migrated.payload).not.toBe(source.payload);
   });
 
   it('applies consecutive activity-specific migrations and preserves envelope metadata', () => {
@@ -92,8 +93,7 @@ describe('@santa-tracker/activity-sdk save migrations', () => {
   });
 
   it('rejects invalid envelopes and does not expose payload aliases to migrations', () => {
-    expect(() => migrateActivitySave(null as never, 1, [])).toThrow(ActivitySaveMigrationError);
-    expect(() => migrateActivitySave(save(), 1, undefined as never)).toThrow(
+    expect(() => migrateActivitySave(null as never, 1, [])).toThrow(ActivitySaveMigrationError);    expect(() => migrateActivitySave(save(), 1, undefined as never)).toThrow(
       /Migrations must be an array/,
     );
     for (const savedAtIso of ['invalid', '10/12/2026', 'October 12, 2026', '2026-02-30T12:00:00Z']) {
@@ -120,5 +120,76 @@ describe('@santa-tracker/activity-sdk save migrations', () => {
       },
     ]);
     expect(source.payload).toEqual({ points: 1 });
+  });
+
+  it('requires the payload field and a contract-shaped activity id', () => {
+    const { payload: _dropped, ...truncated } = save();
+    expect(() => migrateActivitySave(truncated as never, 1, [])).toThrow(/payload/);
+    expect(() => migrateActivitySave({ ...save(), activityId: '' as never }, 1, [])).toThrow(
+      /activity id/,
+    );
+    expect(
+      () => migrateActivitySave({ ...save(), activityId: 'Has Spaces' as never }, 1, []),
+    ).toThrow(/activity id/);
+  });
+
+  it('validates every migration entry, including sparse and unused steps', () => {
+    const registry = [
+      { activityId, fromVersion: 1, toVersion: 2, migrate: (payload: unknown) => payload },
+      { activityId, fromVersion: 2, toVersion: 4, migrate: (payload: unknown) => payload },
+    ];
+    expect(() => migrateActivitySave(save(), 2, registry)).toThrow(/exactly one schema version/);
+    expect(() =>
+      migrateActivitySave(save(), 1, [null as never]),
+    ).toThrow(ActivitySaveMigrationError);
+    // eslint-disable-next-line no-sparse-arrays
+    expect(() => migrateActivitySave(save(), 1, [,] as never)).toThrow(
+      ActivitySaveMigrationError,
+    );
+    expect(() =>
+      migrateActivitySave(save(), 1, [
+        { activityId, fromVersion: 1, toVersion: 2 } as never,
+      ]),
+    ).toThrow(/migrate must be a function/);
+  });
+
+  it('wraps clone and migration failures and rejects async migrations', () => {
+    expect(() =>
+      migrateActivitySave(save({ handler: () => undefined }), 2, [
+        { activityId, fromVersion: 1, toVersion: 2, migrate: (payload: unknown) => payload },
+      ]),
+    ).toThrow(ActivitySaveMigrationError);
+    expect(() =>
+      migrateActivitySave(save(), 2, [
+        {
+          activityId,
+          fromVersion: 1,
+          toVersion: 2,
+          migrate: () => {
+            throw new TypeError('boom');
+          },
+        },
+      ]),
+    ).toThrow(ActivitySaveMigrationError);
+    expect(() =>
+      migrateActivitySave(save(), 2, [
+        // eslint-disable-next-line @typescript-eslint/require-await
+        { activityId, fromVersion: 1, toVersion: 2, migrate: (async (p: unknown) => p) as never },
+      ]),
+    ).toThrow(/synchronous/);
+  });
+
+  it('keeps strict ISO semantics, including leap years and colon offsets', () => {
+    for (const savedAtIso of ['2024-02-29T12:00:00Z', '2026-10-12T12:00:00.000Z']) {
+      expect(() => migrateActivitySave({ ...save(), savedAtIso }, 1, [])).not.toThrow();
+    }
+    for (const savedAtIso of [
+      '2025-02-29T12:00:00Z',
+      '2026-10-12T24:00:00Z',
+      '2026-10-12T12:00:00',
+      '2026-10-12T12:00:00+05:60',
+    ]) {
+      expect(() => migrateActivitySave({ ...save(), savedAtIso }, 1, [])).toThrow(/valid ISO date/);
+    }
   });
 });

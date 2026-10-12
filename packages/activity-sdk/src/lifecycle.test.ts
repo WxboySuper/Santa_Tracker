@@ -74,16 +74,65 @@ describe('@santa-tracker/activity-sdk', () => {
       /cannot resume/,
     );
     expect(() => applyActivityEvent(DEFAULT_LIFECYCLE, 'playing', { type: 'bogus' } as never)).toThrow(
-      /Unknown activity event type/,
+      /Invalid activity event/,
     );
     expect(() => applyActivityEvent(DEFAULT_LIFECYCLE, 'playing', null as never)).toThrow(
       /Invalid activity event/,
     );
   });
 
-  it('validates reset against a custom transition table and permits repeated exit', () => {
+  it('treats reset from idle as a no-op independent of custom graphs and permits repeated exit', () => {
     const custom = { ...DEFAULT_LIFECYCLE, transitions: { ...DEFAULT_LIFECYCLE.transitions, idle: [] } };
-    expect(() => applyActivityEvent(custom, 'idle', { type: 'reset' })).toThrow(/Invalid transition/);
+    expect(applyActivityEvent(custom, 'idle', { type: 'reset' })).toBe('idle');
     expect(applyActivityEvent(DEFAULT_LIFECYCLE, 'exited', { type: 'exit' })).toBe('exited');
+  });
+
+  it('maps error events to failed from every state', () => {
+    for (const state of [
+      'idle',
+      'loading',
+      'ready',
+      'playing',
+      'paused',
+      'completed',
+      'failed',
+      'exited',
+    ] as const) {
+      expect(applyActivityEvent(DEFAULT_LIFECYCLE, state, { type: 'error', code: 'boom' })).toBe(
+        'failed',
+      );
+    }
+  });
+
+  it('rejects malformed lifecycles as configuration errors, not transition failures', () => {
+    expect(() =>
+      applyActivityEvent(null as never, 'idle', { type: 'load' }),
+    ).toThrow(/Invalid lifecycle configuration/);
+    expect(() =>
+      applyActivityEvent(
+        { ...DEFAULT_LIFECYCLE, transitions: { ...DEFAULT_LIFECYCLE.transitions, idle: 'loading' } } as never,
+        'idle',
+        { type: 'load' },
+      ),
+    ).toThrow(/Invalid lifecycle configuration/);
+    expect(canTransition(null as never, 'idle', 'loading')).toBe(false);
+  });
+
+  it('rejects malformed known payloads and prototype-polluting event types', () => {
+    expect(() =>
+      applyActivityEvent(DEFAULT_LIFECYCLE, 'playing', { type: 'score' } as never),
+    ).toThrow(/Score events require/);
+    expect(() =>
+      applyActivityEvent(DEFAULT_LIFECYCLE, 'playing', { type: 'error' } as never),
+    ).toThrow(/stable code/);
+    expect(() =>
+      applyActivityEvent(DEFAULT_LIFECYCLE, 'playing', { type: '__proto__' } as never),
+    ).toThrow(/Invalid activity event/);
+    expect(() =>
+      applyActivityEvent(DEFAULT_LIFECYCLE, 'playing', { type: 'toString' } as never),
+    ).toThrow(/Invalid activity event/);
+    expect(() => applyActivityEvent(DEFAULT_LIFECYCLE, 'playing', [] as never)).toThrow(
+      /Invalid activity event/,
+    );
   });
 });
