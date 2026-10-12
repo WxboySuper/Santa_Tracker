@@ -56,6 +56,16 @@ pnpm build
 
 The repository also runs CSS, HTML, lockfile, dependency-rule, and security checks in GitHub Actions. The Python workflow only validates files under `archive/flask-legacy`; it does not run the application.
 
+## Automated pull request review
+
+The Review | OCR workflow runs the OpenCode Code Review action with Muse Spark through the OpenCode Go Responses endpoint. It reviews each pull request update, posts inline findings and a sticky digest, and can be rerun by an authorized repository collaborator with the /ocr comment command. A workflow dispatch can also target a PR by number.
+
+To enable reviews, add OPENCODE_API_KEY as a repository Actions secret. This is the same secret name used by the existing /oc workflow. The OCR workflow skips with a clear Actions summary while the secret is missing. The endpoint, model, and protocol can be overridden with repository variables OCR_LLM_URL, OCR_LLM_MODEL, and OCR_LLM_PROTOCOL.
+
+The workflow uses pull_request_target so it can post review comments for fork PRs. The pinned review action checks out the trusted base and fetches the PR head as Git objects; it does not check out or execute the PR's files. Keep that boundary when changing the workflow.
+
+During the evaluation period, the OCR check reports review failures and findings but is not a required status in the main-branch ruleset. The ruleset already blocks unresolved review threads. Add the OCR status check to the ruleset only after the reviewer has been evaluated and its findings should be a required merge gate.
+
 ## Making changes
 
 1. Create a focused branch.

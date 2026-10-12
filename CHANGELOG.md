@@ -1,5 +1,11 @@
 # Changelog — per-PR exhaustive (enforced in CI)
 
+## [Unreleased] — CI: add OCR pull request reviews
+
+- **Review:** Adds automated Muse Spark reviews with inline findings, a sticky digest, and a manual /ocr trigger.
+- **Setup:** Uses the OpenCode Go Responses endpoint and skips with a clear notice until the repository Actions secret OPENCODE_API_KEY is configured.
+- **Merge feedback:** Reports review findings and failures as a check; the existing branch ruleset continues to require review-thread resolution while this reviewer is evaluated.
+
 ## [PR #] - 2026-08-28 - feat(ui): add Storybook design baseline
 
 - **Issue:** Closes #216, establishing the first shared UI baseline for the Christmas 2026 redesign.
