@@ -259,7 +259,7 @@ export async function getDayContent(dayNumber: number, options: AdventQueryOptio
   return toDict(day, { includePayload: true, currentTime, mode: options.mode });
 }
 
-export async function getArchiveDayContent(dayNumber: number, options: AdventQueryOptions = {}): Promise<AdventPublicDay | null> {
+export function getArchiveDayContent(dayNumber: number, options: AdventQueryOptions = {}): Promise<AdventPublicDay | null> {
   return getDayContent(dayNumber, { ...options, mode: "archive" });
 }
 

@@ -10,7 +10,7 @@ export const dynamic = "force-dynamic";
 export async function GET(req: NextRequest) {
   if (!isAdventEnabled()) return NextResponse.json({ error: "Not found" }, { status: 404 });
   const auth = await requireAdminAuth(req);
-  if (!auth.ok) return NextResponse.json({ error: auth.error }, { status: auth.status! });
+  if (!auth.ok) return NextResponse.json({ error: auth.error }, { status: auth.status ?? 401 });
   const rawTime = req.nextUrl.searchParams.get("at");
   if (!rawTime) return respondWith(badRequest("The 'at' query parameter is required"));
   if (!isValidUnlockTime(rawTime)) return respondWith(badRequest("Invalid 'at'. Expected ISO 8601 UTC, e.g. 2026-12-05T00:00:00Z"));
