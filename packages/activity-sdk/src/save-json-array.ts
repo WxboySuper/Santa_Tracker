@@ -34,6 +34,35 @@ function assertJsonArrayKeys(value: unknown[], path: string, length: number): vo
   }
 }
 
+function assertPlainJsonArray(value: unknown[], path: string): void {
+  let prototype: object | null;
+  try {
+    prototype = Reflect.getPrototypeOf(value);
+  } catch {
+    throw new ActivitySaveMigrationError(`Save value at ${path} must be an inspectable JSON array`);
+  }
+  if (prototype !== null && !isPlainArrayPrototype(prototype)) {
+    throw new ActivitySaveMigrationError(`Save value at ${path} must be a plain JSON array`);
+  }
+}
+
+function assertJsonArrayItems(input: {
+  value: unknown[];
+  path: string;
+  length: number;
+  ancestors: WeakSet<object>;
+  validate: (value: unknown, path: string, ancestors: WeakSet<object>) => void;
+}): void {
+  const { value, path, length, ancestors, validate } = input;
+  for (let index = 0; index < length; index += 1) {
+    const key = String(index);
+    if (!hasOwn(value, key)) {
+      throw new ActivitySaveMigrationError(`Save value at ${path}[${index}] must not be empty`);
+    }
+    assertJsonProperty({ value, key, path: `${path}[${index}]`, ancestors, validate });
+  }
+}
+
 export function assertJsonArray(
   value: unknown[],
   path: string,
@@ -44,22 +73,7 @@ export function assertJsonArray(
   if (length === undefined) {
     throw new ActivitySaveMigrationError(`Save value at ${path} must be a JSON array`);
   }
-  let prototype: object | null;
-  try {
-    prototype = Reflect.getPrototypeOf(value);
-    if (prototype !== null && !isPlainArrayPrototype(prototype)) {
-      throw new ActivitySaveMigrationError(`Save value at ${path} must be a plain JSON array`);
-    }
-  } catch (error) {
-    if (error instanceof ActivitySaveMigrationError) throw error;
-    throw new ActivitySaveMigrationError(`Save value at ${path} must be an inspectable JSON array`);
-  }
-  for (let index = 0; index < length; index += 1) {
-    const key = String(index);
-    if (!hasOwn(value, key)) {
-      throw new ActivitySaveMigrationError(`Save value at ${path}[${index}] must not be empty`);
-    }
-    assertJsonProperty({ value, key, path: `${path}[${index}]`, ancestors, validate });
-  }
+  assertPlainJsonArray(value, path);
+  assertJsonArrayItems({ value, path, length, ancestors, validate });
   assertJsonArrayKeys(value, path, length);
 }

@@ -11,33 +11,59 @@ function isPlainObjectPrototype(value: object): boolean {
   }
 }
 
+function getJsonObjectPrototype(value: object, path: string): object | null {
+  try {
+    return Reflect.getPrototypeOf(value);
+  } catch {
+    throw new ActivitySaveMigrationError(`Save value at ${path} must be an inspectable JSON object`);
+  }
+}
+
+function assertPlainJsonObject(prototype: object | null, path: string): void {
+  if (prototype === null) return;
+  if (!isPlainObjectPrototype(prototype)) {
+    throw new ActivitySaveMigrationError(`Save value at ${path} must be a plain JSON object`);
+  }
+  try {
+    if (Reflect.getPrototypeOf(prototype) === null) return;
+  } catch {
+    throw new ActivitySaveMigrationError(`Save value at ${path} must be an inspectable JSON object`);
+  }
+  throw new ActivitySaveMigrationError(`Save value at ${path} must be a plain JSON object`);
+}
+
+function getJsonObjectKeys(value: object, path: string): PropertyKey[] {
+  try {
+    return Reflect.ownKeys(value);
+  } catch {
+    throw new ActivitySaveMigrationError(`Save value at ${path} must be an inspectable JSON object`);
+  }
+}
+
+function assertJsonObjectProperty(input: {
+  value: object;
+  key: PropertyKey;
+  path: string;
+  ancestors: WeakSet<object>;
+  validate: (value: unknown, path: string, ancestors: WeakSet<object>) => void;
+}): void {
+  const { value, key, path, ancestors, validate } = input;
+  if (typeof key !== 'string') {
+    throw new ActivitySaveMigrationError(`Save value at ${path} must not contain symbol keys`);
+  }
+  assertJsonProperty({ value, key, path: `${path}[${JSON.stringify(key)}]`, ancestors, validate });
+}
+
 export function assertJsonObject(
   value: object,
   path: string,
   ancestors: WeakSet<object>,
   validate: (value: unknown, path: string, ancestors: WeakSet<object>) => void,
 ): void {
-  let prototype: object | null;
-  let keys: PropertyKey[];
-  try {
-    prototype = Reflect.getPrototypeOf(value);
-    keys = Reflect.ownKeys(value);
-  } catch {
-    throw new ActivitySaveMigrationError(`Save value at ${path} must be an inspectable JSON object`);
-  }
-  let prototypeParent: object | null = null;
-  try {
-    if (prototype !== null) prototypeParent = Reflect.getPrototypeOf(prototype);
-  } catch {
-    throw new ActivitySaveMigrationError(`Save value at ${path} must be an inspectable JSON object`);
-  }
-  if (prototype !== null && (prototypeParent !== null || !isPlainObjectPrototype(prototype))) {
-    throw new ActivitySaveMigrationError(`Save value at ${path} must be a plain JSON object`);
-  }
+  const prototype = getJsonObjectPrototype(value, path);
+  assertPlainJsonObject(prototype, path);
+  const keys = getJsonObjectKeys(value, path);
   for (const key of keys) {
-    if (typeof key !== 'string') {
-      throw new ActivitySaveMigrationError(`Save value at ${path} must not contain symbol keys`);
-    }
-    assertJsonProperty({ value, key, path: `${path}[${JSON.stringify(key)}]`, ancestors, validate });
+    assertJsonObjectProperty({ value, key, path, ancestors, validate });
   }
 }
