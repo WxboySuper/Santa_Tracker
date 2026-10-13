@@ -1,16 +1,15 @@
-name: Review | OCR
+name: Review | OCR trial
 
-# Side-by-side review trial with Santa Tracker's existing /oc OpenCode assistant.
+# Side-by-side trial with Santa Tracker's existing /oc OpenCode assistant.
 # Non-interference design:
 # - Own concurrency group, so it cannot cancel another Santa Tracker workflow.
 # - Own sticky digest marker and manual /ocr trigger.
-# - The gate reports findings and errors as a failed check. The current
-#   repository ruleset requires review-thread resolution but does not yet
-#   require this check's status while the reviewer is being evaluated.
-# - Picky by design: high effort, full re-review every push, and scoped rules
-#   in .opencodereview/rule.json.
+# - Advisory only while review quality is evaluated. Findings remain inline
+#   and in the digest, but do not fail the check solely because they exist.
+# - High effort, full re-review every push, and scoped rules in
+#   .opencodereview/rule.json.
 
-# Model: Muse Spark via the OpenCode Go subscription endpoint, using the same
+# Model: Muse Spark via the OpenCode Zen endpoint, using the same
 # OPENCODE_API_KEY secret name as the existing /oc workflow. Muse Spark serves
 # the OpenAI Responses API, so llm_protocol is openai-responses and the URL
 # ends in /responses, not /chat/completions.
@@ -100,20 +99,11 @@ jobs:
         if: steps.auth.outputs.configured == 'true'
         uses: alibaba/open-code-review@357c3f09a264563ab64d8f4fc3b25b186cd3c4a4 # main as of 2026-10-10
         with:
-          llm_url: ${{ vars.OCR_LLM_URL || 'https://opencode.ai/zen/go/v1/responses' }}
+          llm_url: ${{ vars.OCR_LLM_URL || 'https://opencode.ai/zen/v1/responses' }}
           llm_auth_token: ${{ secrets.OPENCODE_API_KEY }}
-          # The Go gateway 400s every request without x-opencode-session
-          # (MissingSessionID). The run ID is stable for the conversation,
-          # since each workflow run performs exactly one review.
-          llm_extra_headers: 'x-opencode-session=ocr-${{ github.run_id }}'
           llm_model: ${{ vars.OCR_LLM_MODEL || 'muse-spark-1.3-contributor' }}
           llm_use_anthropic: 'false'
           llm_protocol: ${{ vars.OCR_LLM_PROTOCOL || 'openai-responses' }}
-          # Keep the action's Anthropic-style default extra_body off this
-          # OpenAI-Responses request. Probe runs showed the gateway accepts
-          # every body field OCR sends (tools, store, include, cache key)
-          # once the session header is present; '{}' simply stays neutral.
-          llm_extra_body: '{}'
           language: English
           effort: high
           review_task_timeout: '20'
@@ -290,128 +280,6 @@ jobs:
               core.warning(`OCR digest skipped: ${error.message}`);
             }
 
-      - name: Enforce zero open OCR threads (merge gate)
-        id: ocr-gate
-        if: always() && steps.auth.outputs.configured == 'true'
-        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7.1.0
-        env:
-          OCR_OUTCOME: ${{ steps.ocr.outcome }}
-          OCR_COMMENTS_TOTAL: ${{ steps.ocr.outputs.comments_total }}
-          GATE_PR_NUMBER: ${{ env.PR_NUMBER }}
-        with:
-          script: |
-            // Fail-closed merge gate: the review must complete, post zero
-            // findings, and leave zero unresolved bot-authored review threads.
-            // Anything else fails this check. Note the Main Ruleset already
-            // requires review-thread resolution, so unresolved inline threads
-            // block merge even without this job in required_status_checks.
-            const outcome = process.env.OCR_OUTCOME || 'unknown';
-            if (outcome !== 'success') {
-              core.setFailed(`OCR review did not complete (outcome=${outcome}). Fix the reviewer before merging.`);
-              return;
-            }
-            const posted = Number(process.env.OCR_COMMENTS_TOTAL || '0');
-            if (Number.isInteger(posted) && posted > 0) {
-              core.setFailed(`OCR posted ${posted} finding(s) this run. Address or resolve every inline thread, then push again.`);
-              return;
-            }
-            const prNumber = Number(
-              process.env.GATE_PR_NUMBER
-                || context.payload.pull_request?.number
-                || context.payload.issue?.number,
-            );
-            if (!Number.isInteger(prNumber) || prNumber < 1) {
-              core.setFailed('OCR gate could not resolve a PR number; failing closed.');
-              return;
-            }
-            let cursor = null;
-            let openBotThreads = 0;
-            const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-            // GitHub's search/GraphQL tier flakes (timeouts, 502s). Retry a
-            // bounded number of times, then fail closed — never fail open.
-            const queryThreads = async (after) => {
-              const delaysMs = [5000, 15000, 30000];
-              let lastError = null;
-              for (let attempt = 0; attempt <= delaysMs.length; attempt++) {
-                try {
-                  return await github.graphql(
-                    `query($owner: String!, $repo: String!, $number: Int!, $after: String) {
-                      repository(owner: $owner, name: $repo) {
-                        pullRequest(number: $number) {
-                          reviewThreads(first: 100, after: $after) {
-                            nodes {
-                              isResolved
-                              comments(first: 20) { nodes { author { login } } }
-                            }
-                            pageInfo { hasNextPage endCursor }
-                          }
-                        }
-                      }
-                    }`,
-                    {
-                      owner: context.repo.owner,
-                      repo: context.repo.repo,
-                      number: prNumber,
-                      after,
-                    },
-                  );
-                } catch (error) {
-                  lastError = error;
-                  const status = error?.status ?? error?.response?.status;
-                  const msg = String(error?.message || '');
-                  const transient = /timeout|timed out|econn|socket hang|eai_again|502|503|504|temporarily/i.test(msg);
-                  const retryable = status === 429 || status === 408 || (status ?? 0) >= 500 || (status == null && transient) || (status === 403 && /rate limit|secondary|abuse/i.test(msg));
-                  if (!retryable || attempt === delaysMs.length) break;
-                  core.warning(`OCR gate thread query attempt ${attempt + 1} failed (${error.message}); retrying.`);
-                  await sleep(delaysMs[attempt]);
-                }
-              }
-              core.setFailed(`OCR gate could not read review threads after ${delaysMs.length + 1} attempts (${lastError && lastError.message}); failing closed.`);
-              return null;
-            };
-            const MAX_PAGES = 20;
-            // Two passes: GitHub needs a moment to index just-posted threads,
-            // so a clean first pass waits 20s and re-checks before passing.
-            for (let pass = 0; pass < 2; pass++) {
-              openBotThreads = 0;
-              cursor = null;
-              for (let page = 0; page < MAX_PAGES; page++) {
-              const data = await queryThreads(cursor);
-              if (!data) return;
-              const connection = data?.repository?.pullRequest?.reviewThreads;
-              if (!connection) {
-                core.setFailed('OCR gate could not read review threads; failing closed.');
-                return;
-              }
-              for (const thread of connection.nodes ?? []) {
-                const authors = (thread.comments?.nodes ?? []).map((c) => c?.author?.login);
-                if (!thread.isResolved && authors.includes('github-actions[bot]')) {
-                  openBotThreads += 1;
-                }
-              }
-              if (!connection.pageInfo?.hasNextPage) break;
-              if (connection.pageInfo.endCursor === cursor) {
-                core.setFailed('OCR gate review-thread pagination did not advance; failing closed.');
-                return;
-              }
-              cursor = connection.pageInfo.endCursor ?? null;
-              if (page === MAX_PAGES - 1) {
-                core.setFailed('OCR gate hit the thread pagination cap; failing closed.');
-                return;
-              }
-            }
-            if (openBotThreads === 0 && pass === 0) {
-              core.info('OCR gate first pass clean; waiting 20s for indexing, then re-checking.');
-              await sleep(20000);
-              continue;
-            }
-            if (openBotThreads > 0) {
-              core.setFailed(`${openBotThreads} unresolved reviewer thread(s) remain on PR #${prNumber}. Resolve every inline comment before merging.`);
-              return;
-            }
-            core.info('OCR gate clean: review completed with no findings and no unresolved reviewer threads.');
-            }
-
       - name: Review summary
         if: always()
         run: |
@@ -421,7 +289,7 @@ jobs:
             else
               echo "OCR review outcome=${{ steps.ocr.outcome }}.";
               if [ "${{ steps.ocr.outcome }}" = "success" ]; then
-                echo "OCR review posted. Compare with the /oc assistant response on the same PR.";
+                echo "OCR trial posted. Compare with the /oc assistant response on the same PR.";
               else
                 echo "OCR review did NOT post (outcome=${{ steps.ocr.outcome }}). No comparison available for this run.";
               fi
