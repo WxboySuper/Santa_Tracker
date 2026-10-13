@@ -297,62 +297,118 @@ jobs:
         uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7.1.0
         env:
           OCR_OUTCOME: ${{ steps.ocr.outcome }}
+          OCR_COMMENTS_TOTAL: ${{ steps.ocr.outputs.comments_total }}
+          OCR_COMMENTS_INLINE: ${{ steps.ocr.outputs.comments_inline }}
+          OCR_COMMENTS_SKIPPED: ${{ steps.ocr.outputs.comments_skipped }}
+          OCR_COMMENTS_ROUTED: ${{ steps.ocr.outputs.comments_routed }}
+          OCR_COMMENTS_FAILED: ${{ steps.ocr.outputs.comments_failed }}
           GATE_PR_NUMBER: ${{ env.PR_NUMBER }}
+          GATE_RUN_ID: ${{ github.run_id }}
         with:
           script: |
             // Fail-closed merge gate with severity awareness. The review must
-            // complete. Blocking: any medium+ finding (unknown severity counts
-            // as blocking, fail-closed) or any documentation-category finding,
-            // plus any unresolved bot-authored thread NOT attributable to a
-            // low-only finding. Low-severity non-docs findings stay inline for
-            // visibility but never fail this check on their own.
+            // complete. Only explicit low-severity, non-documentation findings
+            // are non-blocking; unknown severities and categories fail closed.
+            // Unrelated Actions bot threads are ignored unless they carry OCR's marker.
             const outcome = process.env.OCR_OUTCOME || 'unknown';
             if (outcome !== 'success') {
               core.setFailed(`OCR review did not complete (outcome=${outcome}). Fix the reviewer before merging.`);
               return;
             }
             const fs = require('fs');
+            const countOutput = (name) => {
+              const raw = process.env[name];
+              if (!/^\d+$/.test(String(raw ?? ''))) return null;
+              const value = Number(raw);
+              return Number.isSafeInteger(value) ? value : null;
+            };
+            const counts = {
+              total: countOutput('OCR_COMMENTS_TOTAL'),
+              inline: countOutput('OCR_COMMENTS_INLINE'),
+              skipped: countOutput('OCR_COMMENTS_SKIPPED'),
+              routed: countOutput('OCR_COMMENTS_ROUTED'),
+              failed: countOutput('OCR_COMMENTS_FAILED'),
+            };
+            if (Object.values(counts).some((value) => value === null)) {
+              core.setFailed('OCR gate could not read the action comment-count outputs; failing closed.');
+              return;
+            }
+            if (counts.inline + counts.skipped + counts.routed + counts.failed > counts.total) {
+              core.setFailed('OCR action comment-count outputs exceed the total; failing closed.');
+              return;
+            }
+            if (counts.failed > 0) {
+              core.setFailed(`OCR could not post ${counts.failed} finding comment(s); failing closed.`);
+              return;
+            }
+            const actionsBotLogins = new Set(['github-actions', 'github-actions[bot]']);
+            const knownOcrCategories = new Set([
+              'bug', 'security', 'performance', 'maintainability',
+              'test', 'style', 'documentation', 'other',
+            ]);
+            const isActionsBotComment = (comment) =>
+              actionsBotLogins.has(comment?.author?.login);
+            const isOcrComment = (comment) =>
+              isActionsBotComment(comment)
+              && String(comment?.body || '').includes('<!-- ocr-');
+            const parseOcrBadge = (comment) => {
+              const match = String(comment?.body || '').match(
+                /^<!--\s*ocr-[^>]+-->\s*\r?\n!\[([^\]]+)\]\(/,
+              );
+              if (!match) return null;
+              const label = match[1].split('·').map((part) => part.trim().toLowerCase());
+              if (label.length !== 2 || !knownOcrCategories.has(label[0]) || !label[1]) return null;
+              return { category: label[0], severity: label[1] };
+            };
+            const isBlockingOcrComment = (comment) => {
+              const label = parseOcrBadge(comment);
+              return !label || label.category === 'documentation' || label.severity !== 'low';
+            };
             let result;
+            let resultError = null;
             try {
               result = JSON.parse(fs.readFileSync('/tmp/ocr-result.json', 'utf8'));
+              if (!Array.isArray(result?.comments)) {
+                throw new Error('result has no comments array');
+              }
+              if (result.comments.length !== counts.total) {
+                throw new Error('result count does not match action outputs');
+              }
             } catch (error) {
-              core.setFailed(`OCR gate could not read result file (${error.message}); failing closed.`);
-              return;
+              result = null;
+              resultError = error;
             }
-            const comments = Array.isArray(result.comments) ? result.comments : [];
-            const sevOf = (c) => String(
-              c.severity || c.priority || c.level || '',
-            ).toLowerCase();
-            const catOf = (c) => String(c.category || '').toLowerCase();
-            const isBlocking = (c) => {
-              const sev = sevOf(c);
-              if (catOf(c) === 'documentation') return true;
-              if (!sev) return true; // unknown severity: fail closed
-              return /\bcritical\b|\bhigh\b|\bmedium\b|^p0$|^p1$|^p2$|\bblocker\b/.test(sev);
+            const isBlockingFinding = (comment) => {
+              const severity = String(
+                comment?.severity || comment?.priority || comment?.level || '',
+              ).trim().toLowerCase();
+              const category = String(comment?.category || '').trim().toLowerCase();
+              return !knownOcrCategories.has(category)
+                || category === 'documentation'
+                || severity !== 'low';
             };
-            const blocking = comments.filter(isBlocking);
-            if (blocking.length > 0) {
-              core.setFailed(`OCR posted ${blocking.length} blocking finding(s) (medium+ or docs) this run. Address or resolve every inline thread, then push again.`);
+            if (result) {
+              const blocking = result.comments.filter(isBlockingFinding);
+              if (blocking.length > 0) {
+                core.setFailed(`OCR produced ${blocking.length} blocking finding(s) (anything other than explicit low non-documentation). Address or resolve each inline thread, then push again.`);
+                return;
+              }
+            } else if (counts.total > 0 && (counts.inline !== counts.total || counts.skipped > 0 || counts.routed > 0)) {
+              core.setFailed(`OCR result details are unavailable (${resultError?.message}); action outputs show findings that cannot all be classified from inline threads, so the gate is failing closed.`);
               return;
+            } else if (resultError) {
+              core.warning(`OCR result file unavailable (${resultError.message}); classifying declared inline findings from review threads.`);
             }
-            core.info(`OCR gate: ${comments.length} finding(s), none blocking; checking threads.`);
+            core.info(`OCR gate: ${counts.total} finding(s), none blocking so far; checking OCR review threads.`);
             // Classify old threads by their OCR finding badge, not current line
             // locations. Outdated threads have null lines, and a clean run has
-            // no low locations to match. Unknown or malformed bot comments fail closed.
+            // no low locations to match. Unknown or malformed OCR comments fail closed.
             const isLowOnlyOcrThread = (commentConnection) => {
               if (commentConnection?.pageInfo?.hasNextPage) return false;
-              const botComments = (commentConnection?.nodes ?? []).filter(
-                (comment) => comment?.author?.login === 'github-actions[bot]',
+              const ocrComments = (commentConnection?.nodes ?? []).filter(isOcrComment);
+              return ocrComments.length > 0 && ocrComments.every(
+                (comment) => !isBlockingOcrComment(comment),
               );
-              if (botComments.length === 0) return false;
-              return botComments.every((comment) => {
-                const match = String(comment?.body || '').match(
-                  /^<!--\s*ocr-[^>]+-->\s*\r?\n!\[([^\]]+)\]\(/,
-                );
-                if (!match) return false;
-                const label = match[1].split('·').map((part) => part.trim().toLowerCase());
-                return label.length === 2 && label[1] === 'low' && label[0] !== 'documentation';
-              });
             };
             const prNumber = Number(
               process.env.GATE_PR_NUMBER
@@ -363,8 +419,16 @@ jobs:
               core.setFailed('OCR gate could not resolve a PR number; failing closed.');
               return;
             }
+            const runId = String(process.env.GATE_RUN_ID || '');
+            if (!/^\d+$/.test(runId)) {
+              core.setFailed('OCR gate could not resolve the workflow run ID; failing closed.');
+              return;
+            }
+            const currentRunMarker = `<!-- ocr-${runId}-`;
             let cursor = null;
             let openBotThreads = 0;
+            let currentRunOcrComments = 0;
+            let currentRunBlockingComments = 0;
             const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
             // GitHub's search/GraphQL tier flakes (timeouts, 502s). Retry a
             // bounded number of times, then fail closed — never fail open.
@@ -382,7 +446,7 @@ jobs:
                               isResolved
                               path
                               line
-                              comments(first: 20) {
+                              comments(first: 100) {
                                 nodes { author { login } body }
                                 pageInfo { hasNextPage }
                               }
@@ -418,6 +482,8 @@ jobs:
             // so a clean first pass waits 20s and re-checks before passing.
             for (let pass = 0; pass < 2; pass++) {
               openBotThreads = 0;
+              currentRunOcrComments = 0;
+              currentRunBlockingComments = 0;
               cursor = null;
               for (let page = 0; page < MAX_PAGES; page++) {
               const data = await queryThreads(cursor);
@@ -429,10 +495,14 @@ jobs:
               }
               for (const thread of connection.nodes ?? []) {
                 const threadComments = thread.comments?.nodes ?? [];
-                const hasBotComment = threadComments.some(
-                  (comment) => comment?.author?.login === 'github-actions[bot]',
-                );
-                if (!thread.isResolved && hasBotComment) {
+                const ocrComments = threadComments.filter(isOcrComment);
+                for (const comment of ocrComments) {
+                  if (String(comment?.body || '').includes(currentRunMarker)) {
+                    currentRunOcrComments += 1;
+                    if (isBlockingOcrComment(comment)) currentRunBlockingComments += 1;
+                  }
+                }
+                if (!thread.isResolved && ocrComments.length > 0) {
                   if (isLowOnlyOcrThread(thread.comments)) continue;
                   openBotThreads += 1;
                 }
@@ -447,6 +517,19 @@ jobs:
                 core.setFailed('OCR gate hit the thread pagination cap; failing closed.');
                 return;
               }
+            }
+            if (currentRunOcrComments !== counts.inline) {
+              if (pass === 0) {
+                core.info('OCR gate did not see every inline comment yet; waiting 20s for indexing, then re-checking.');
+                await sleep(20000);
+                continue;
+              }
+              core.setFailed(`OCR action reported ${counts.inline} inline comment(s), but the gate found ${currentRunOcrComments} for this run; failing closed.`);
+              return;
+            }
+            if (currentRunBlockingComments > 0) {
+              core.setFailed(`OCR posted ${currentRunBlockingComments} blocking finding(s) in this run. Address or resolve every inline thread, then push again.`);
+              return;
             }
             if (openBotThreads === 0 && pass === 0) {
               core.info('OCR gate first pass clean; waiting 20s for indexing, then re-checking.');
