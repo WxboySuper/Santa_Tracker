@@ -22,8 +22,9 @@ describe('@santa-tracker/activity-sdk', () => {
     expect(() => assertTransition(DEFAULT_LIFECYCLE, 'failed', 'idle')).not.toThrow();
   });
 
-  it('maps start, pause, resume, reset, complete, error, and exit to lifecycle states', () => {
+  it('maps load completion and other lifecycle events to lifecycle states', () => {
     expect(applyActivityEvent(DEFAULT_LIFECYCLE, 'idle', { type: 'load' })).toBe('loading');
+    expect(applyActivityEvent(DEFAULT_LIFECYCLE, 'loading', { type: 'loaded' })).toBe('ready');
     expect(applyActivityEvent(DEFAULT_LIFECYCLE, 'ready', { type: 'start' })).toBe('playing');
     expect(applyActivityEvent(DEFAULT_LIFECYCLE, 'playing', { type: 'pause' })).toBe('paused');
     expect(applyActivityEvent(DEFAULT_LIFECYCLE, 'paused', { type: 'resume' })).toBe('playing');
@@ -70,6 +71,12 @@ describe('@santa-tracker/activity-sdk', () => {
     ).toThrow();
     expect(() => applyActivityEvent(DEFAULT_LIFECYCLE, 'idle', { type: 'start' })).toThrow(
       /Start events require ready state/,
+    );
+    expect(() => applyActivityEvent(DEFAULT_LIFECYCLE, 'ready', { type: 'loaded' })).toThrow(
+      /Loaded events require loading state/,
+    );
+    expect(() => applyActivityEvent(DEFAULT_LIFECYCLE, 'loading', { type: 'reset' })).toThrow(
+      /Reset events are not valid while loading/,
     );
     expect(() =>
       applyActivityEvent(DEFAULT_LIFECYCLE, 'playing', { type: 'error', code: '  ' }),

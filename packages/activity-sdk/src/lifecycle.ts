@@ -12,6 +12,7 @@ export type ActivityState =
 
 export type ActivityLifecycleEvent =
   | { type: 'load' }
+  | { type: 'loaded' }
   | { type: 'start' }
   | { type: 'pause' }
   | { type: 'resume' }
@@ -79,6 +80,7 @@ export const DEFAULT_LIFECYCLE: ActivityLifecycle = {
 
 const EVENT_TARGET: Record<ActivityLifecycleEvent['type'], ActivityState> = {
   load: 'loading',
+  loaded: 'ready',
   start: 'playing',
   pause: 'paused',
   resume: 'playing',
@@ -397,6 +399,10 @@ const lifecycleEventRules = {
     LOADABLE_STATES.includes(currentState)
       ? undefined
       : `Load events require an idle, ready, failed, or exited activity (state: ${currentState})`,
+  loaded: (currentState: ActivityState): string | undefined =>
+    currentState === 'loading'
+      ? undefined
+      : `Loaded events require loading state (state: ${currentState})`,
   start: (currentState: ActivityState): string | undefined =>
     currentState === 'ready'
       ? undefined
@@ -409,7 +415,10 @@ const lifecycleEventRules = {
     currentState === 'paused'
       ? undefined
       : `Resume events require paused state (state: ${currentState})`,
-  reset: (): undefined => undefined,
+  reset: (currentState: ActivityState): string | undefined =>
+    currentState === 'loading'
+      ? 'Reset events are not valid while loading'
+      : undefined,
   complete: (currentState: ActivityState): string | undefined =>
     currentState === 'playing'
       ? undefined

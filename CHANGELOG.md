@@ -2,7 +2,7 @@
 
 ## [Unreleased] — Activity save contract (PR #420, issue #266)
 
-- **Activity SDK:** Defines renderer-independent load, start, pause, resume, reset, complete, error, exit, score, and achievement events with lifecycle transition validation.
+- **Activity SDK:** Defines renderer-independent load, loaded, start, pause, resume, reset, complete, error, exit, score, and achievement events with lifecycle transition validation.
 - **Breaking lifecycle contract:** Adds the `exited` state and expands the default transition graph. `canTransition` now throws `ActivityLifecycleError` for malformed graphs or unknown runtime states instead of returning `false`. Consumers persisting lifecycle state separately must handle the new state and review the changed transitions; save envelopes do not version lifecycle state.
 - **Package exports:** Adds explicit `./lifecycle` and `./save` entry points and named root exports so consumers can import these contracts independently.
 - **Saves:** Adds activity-specific versioned save envelopes and consecutive migration steps; missing, ambiguous, invalid, and downgrade paths fail explicitly.
