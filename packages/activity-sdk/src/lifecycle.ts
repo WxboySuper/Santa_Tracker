@@ -506,10 +506,10 @@ export function applyActivityEvent(
     throw new ActivityLifecycleError('invalid_event', 'Invalid activity event');
   }
 
-  const validatedLifecycle = assertLifecycleShape(lifecycle);
   assertCurrentState(currentState);
   if (isProgressEventType(eventType)) {
     return applyProgressEvent(currentState, event, eventType);
   }
+  const validatedLifecycle = assertLifecycleShape(lifecycle);
   return applyLifecycleEvent(validatedLifecycle, currentState, event, eventType);
 }

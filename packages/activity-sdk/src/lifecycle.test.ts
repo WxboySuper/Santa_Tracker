@@ -205,7 +205,7 @@ describe('@santa-tracker/activity-sdk', () => {
     );
   });
 
-  it('validates runtime states and lifecycle configuration for progress events', () => {
+  it('validates runtime states without inspecting the lifecycle graph for progress events', () => {
     expect(() =>
       applyActivityEvent(DEFAULT_LIFECYCLE, 'bogus' as never, { type: 'score', value: 1 }),
     ).toThrow(/Invalid activity state/);
@@ -213,8 +213,6 @@ describe('@santa-tracker/activity-sdk', () => {
       ...DEFAULT_LIFECYCLE,
       transitions: { ...DEFAULT_LIFECYCLE.transitions, failed: 'idle' },
     } as never;
-    expect(() => applyActivityEvent(malformed, 'playing', { type: 'score', value: 1 })).toThrow(
-      /Invalid lifecycle configuration/,
-    );
+    expect(applyActivityEvent(malformed, 'playing', { type: 'score', value: 1 })).toBe('playing');
   });
 });

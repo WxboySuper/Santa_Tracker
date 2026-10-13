@@ -10,6 +10,17 @@ function isAllowedJsonArrayKey(key: PropertyKey, length: number): boolean {
   return key === 'length' || isJsonArrayIndexKey(key, length);
 }
 
+function isPlainArrayPrototype(value: object): boolean {
+  if (!Array.isArray(value)) return false;
+  try {
+    const constructor: unknown = Object.getOwnPropertyDescriptor(value, 'constructor')?.value;
+    if (typeof constructor !== 'function') return false;
+    return Object.getOwnPropertyDescriptor(constructor, 'prototype')?.value === value;
+  } catch {
+    return false;
+  }
+}
+
 function assertJsonArrayKeys(value: unknown[], path: string, length: number): void {
   let keys: PropertyKey[];
   try {
@@ -33,8 +44,15 @@ export function assertJsonArray(
   if (length === undefined) {
     throw new ActivitySaveMigrationError(`Save value at ${path} must be a JSON array`);
   }
-  if (Object.getPrototypeOf(value) !== Array.prototype) {
-    throw new ActivitySaveMigrationError(`Save value at ${path} must be a plain JSON array`);
+  let prototype: object | null;
+  try {
+    prototype = Reflect.getPrototypeOf(value);
+    if (prototype !== null && !isPlainArrayPrototype(prototype)) {
+      throw new ActivitySaveMigrationError(`Save value at ${path} must be a plain JSON array`);
+    }
+  } catch (error) {
+    if (error instanceof ActivitySaveMigrationError) throw error;
+    throw new ActivitySaveMigrationError(`Save value at ${path} must be an inspectable JSON array`);
   }
   for (let index = 0; index < length; index += 1) {
     const key = String(index);

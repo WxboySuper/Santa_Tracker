@@ -6,7 +6,7 @@
 - **Breaking lifecycle contract:** Adds the `exited` state and expands the default transition graph. `canTransition` now throws `ActivityLifecycleError` for malformed graphs or unknown runtime states instead of returning `false`. Consumers persisting lifecycle state separately must handle the new state and review the changed transitions; save envelopes do not version lifecycle state.
 - **Package exports:** Adds explicit `./lifecycle` and `./save` entry points and named root exports so consumers can import these contracts independently.
 - **Saves:** Adds activity-specific versioned save envelopes and consecutive migration steps; missing, ambiguous, invalid, and downgrade paths fail explicitly.
-- **Runtime validation:** Rejects sparse transition lists and invalid lifecycle states with stable SDK errors, while preserving support for legacy graphs that omit exited transitions. Splits recursive JSON validation into focused checks without broadening accepted save values.
+- **Runtime validation:** Rejects sparse transition lists, inherited/accessor lifecycle fields, and invalid lifecycle states with stable SDK errors, while preserving support for legacy graphs that omit exited transitions. Save validation accepts plain objects and arrays across JavaScript realms, limits JSON nesting to 100 levels, and rejects unknown migration keys.
 - **Docs and tests:** Documents integration for DOM, canvas, and optional WebGL renderers and tests lifecycle events, progress events, and migration behavior.
 
 ## [Unreleased] — CI: add OCR pull request reviews

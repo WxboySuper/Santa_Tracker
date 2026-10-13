@@ -100,6 +100,36 @@ function getMigrationHandler(
   return handler as ActivitySaveMigration['migrate'];
 }
 
+const MIGRATION_KEYS = new Set(['activityId', 'fromVersion', 'toVersion', 'migrate']);
+
+function assertMigrationRecordKeys(migration: Record<string, unknown>, description: string): void {
+  let keys: PropertyKey[];
+  try {
+    keys = Reflect.ownKeys(migration);
+  } catch {
+    throw new ActivitySaveMigrationError(`${description} must be an inspectable object`);
+  }
+  if (keys.some((key) => typeof key !== 'string' || !MIGRATION_KEYS.has(key))) {
+    throw new ActivitySaveMigrationError(`${description} must not contain unknown keys`);
+  }
+}
+
+function assertMigrationArrayKeys(migrations: unknown[], length: number): void {
+  let keys: PropertyKey[];
+  try {
+    keys = Reflect.ownKeys(migrations);
+  } catch {
+    throw new ActivitySaveMigrationError('Migrations must be an inspectable array');
+  }
+  const hasExtraKey = keys.some((key) => {
+    if (key === 'length') return false;
+    if (typeof key !== 'string' || !/^(0|[1-9]\d*)$/.test(key)) return true;
+    const index = Number(key);
+    return !Number.isSafeInteger(index) || index >= length;
+  });
+  if (hasExtraKey) throw new ActivitySaveMigrationError('Migrations must not contain extra array keys');
+}
+
 function normalizeMigrationEntry(input: {
   migration: unknown;
   index: number;
@@ -110,6 +140,7 @@ function normalizeMigrationEntry(input: {
     throw new ActivitySaveMigrationError(`${description} must be an object`);
   }
   const migrationRecord = migration;
+  assertMigrationRecordKeys(migrationRecord, description);
   const activityId = getMigrationProperty({ migration: migrationRecord, key: 'activityId', description });
   assertActivityId(activityId, `${description} activity id`);
   const fromVersion = readMigrationVersion({ migration: migrationRecord, key: 'fromVersion', description });
@@ -130,6 +161,7 @@ export function normalizeMigrationRegistry(migrations: unknown): readonly Activi
   }
   const length = getOwnArrayLength(migrations);
   if (length === undefined) throw new ActivitySaveMigrationError('Migrations must be an array');
+  assertMigrationArrayKeys(migrations, length);
   const normalized: ActivitySaveMigration[] = [];
   for (let index = 0; index < length; index += 1) {
     const descriptor = getOwnDataPropertyDescriptor(migrations, String(index));

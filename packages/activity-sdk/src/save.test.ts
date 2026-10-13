@@ -1,4 +1,5 @@
 import { createActivityId } from '@santa-tracker/contracts';
+import { runInNewContext } from 'node:vm';
 import { describe, expect, it } from 'vitest';
 import { ActivitySaveMigrationError, migrateActivitySave, type ActivitySaveEnvelope } from './save';
 
@@ -155,6 +156,16 @@ describe('@santa-tracker/activity-sdk save migrations', () => {
         { activityId, fromVersion: 1, toVersion: 2 } as never,
       ]),
     ).toThrow(/migrate must be a function/);
+    expect(() =>
+      migrateActivitySave(save(), 1, [
+        { activityId, fromVersion: 1, toVersion: 2, migrate: () => ({}), migrat: 'typo' } as never,
+      ]),
+    ).toThrow(/unknown keys/);
+    const withExtraArrayKey = [
+      { activityId, fromVersion: 1, toVersion: 2, migrate: () => ({}) },
+    ];
+    Object.assign(withExtraArrayKey, { unexpected: true });
+    expect(() => migrateActivitySave(save(), 1, withExtraArrayKey)).toThrow(/extra array keys/);
   });
 
   it('accepts unknown JSON input and rejects inherited save fields', () => {
@@ -184,6 +195,21 @@ describe('@santa-tracker/activity-sdk save migrations', () => {
     ]) {
       expect(() => migrateActivitySave(save(payload), 1, [])).toThrow(ActivitySaveMigrationError);
     }
+  });
+
+  it('accepts plain objects and arrays from another JavaScript realm', () => {
+    const foreignObject = runInNewContext('({ values: [1, { label: "snow" }] })') as Record<string, unknown>;
+    const migrated = migrateActivitySave(save(foreignObject), 1, []);
+
+    expect(migrated.payload).toEqual({ values: [1, { label: 'snow' }] });
+  });
+
+  it('reports unambiguous paths and rejects excessive JSON nesting', () => {
+    expect(() => migrateActivitySave(save({ 'a.b': undefined }), 1, [])).toThrow(/\["a\.b"\]/);
+
+    let deeplyNested: unknown = null;
+    for (let depth = 0; depth < 102; depth += 1) deeplyNested = { nested: deeplyNested };
+    expect(() => migrateActivitySave(save(deeplyNested), 1, [])).toThrow(/maximum JSON depth of 100/);
   });
 
   it('copies the final migration output and extra envelope fields', () => {
