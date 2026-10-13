@@ -3,6 +3,7 @@ import { assertJsonArray } from './save-json-array';
 import { assertJsonObject } from './save-json-object';
 
 const MAX_JSON_DEPTH = 100;
+type JsonPrimitive = string | number | boolean | null;
 
 function assertFiniteJsonNumber(value: number, path: string): void {
   if (!Number.isFinite(value)) {
@@ -10,21 +11,23 @@ function assertFiniteJsonNumber(value: number, path: string): void {
   }
 }
 
-function cloneJsonPrimitive(value: unknown, path: string): string | number | boolean | null {
+function isJsonPrimitive(value: unknown): value is JsonPrimitive {
   switch (typeof value) {
     case 'string':
     case 'boolean':
-      return value;
     case 'number':
-      assertFiniteJsonNumber(value, path);
-      return Object.is(value, -0) ? 0 : value;
+      return true;
     case 'object':
-      if (value === null) return null;
-      break;
+      return value === null;
     default:
-      throw new ActivitySaveMigrationError(`Save value at ${path} must be JSON-compatible`);
+      return false;
   }
-  throw new ActivitySaveMigrationError(`Save value at ${path} must be JSON-compatible`);
+}
+
+function cloneJsonPrimitive(value: JsonPrimitive, path: string): JsonPrimitive {
+  if (typeof value !== 'number') return value;
+  assertFiniteJsonNumber(value, path);
+  return Object.is(value, -0) ? 0 : value;
 }
 
 function assertJsonContainerCompatible(
@@ -82,7 +85,7 @@ function assertJsonCompatibleAtDepth(
         `Save value at ${path} exceeds maximum JSON depth of ${MAX_JSON_DEPTH}`,
       );
     }
-    if (value === null || typeof value === 'string' || typeof value === 'boolean' || typeof value === 'number') {
+    if (isJsonPrimitive(value)) {
       return cloneJsonPrimitive(value, path);
     }
     return assertJsonObjectCompatible(value as object, path, ancestors, depth);
