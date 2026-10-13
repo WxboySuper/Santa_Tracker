@@ -5,6 +5,7 @@ import {
   getOwnArrayLength,
   getOwnDataPropertyDescriptor,
   isArrayValue,
+  isAllowedJsonArrayKey,
   isEnumerableDataProperty,
 } from './shared-guards';
 
@@ -121,12 +122,7 @@ function assertMigrationArrayKeys(migrations: unknown[], length: number): void {
   } catch {
     throw new ActivitySaveMigrationError('Migrations must be an inspectable array');
   }
-  const hasExtraKey = keys.some((key) => {
-    if (key === 'length') return false;
-    if (typeof key !== 'string' || !/^(0|[1-9]\d*)$/.test(key)) return true;
-    const index = Number(key);
-    return !Number.isSafeInteger(index) || index >= length;
-  });
+  const hasExtraKey = keys.some((key) => !isAllowedJsonArrayKey(key, length));
   if (hasExtraKey) throw new ActivitySaveMigrationError('Migrations must not contain extra array keys');
 }
 

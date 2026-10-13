@@ -1,16 +1,6 @@
 import { ActivitySaveMigrationError } from './save-errors';
 import { assertJsonProperty } from './save-json-property';
 
-function isPlainObjectPrototype(value: object): boolean {
-  try {
-    const constructor: unknown = Object.getOwnPropertyDescriptor(value, 'constructor')?.value;
-    if (typeof constructor !== 'function') return false;
-    return Object.getOwnPropertyDescriptor(constructor, 'prototype')?.value === value;
-  } catch {
-    return false;
-  }
-}
-
 function getJsonObjectPrototype(value: object, path: string): object | null {
   try {
     return Reflect.getPrototypeOf(value);
@@ -21,9 +11,6 @@ function getJsonObjectPrototype(value: object, path: string): object | null {
 
 function assertPlainJsonObject(prototype: object | null, path: string): void {
   if (prototype === null) return;
-  if (!isPlainObjectPrototype(prototype)) {
-    throw new ActivitySaveMigrationError(`Save value at ${path} must be a plain JSON object`);
-  }
   try {
     if (Reflect.getPrototypeOf(prototype) === null) return;
   } catch {
@@ -40,30 +27,41 @@ function getJsonObjectKeys(value: object, path: string): PropertyKey[] {
   }
 }
 
-function assertJsonObjectProperty(input: {
+function cloneJsonObjectProperty(input: {
   value: object;
   key: PropertyKey;
   path: string;
   ancestors: WeakSet<object>;
-  validate: (value: unknown, path: string, ancestors: WeakSet<object>) => void;
-}): void {
+  validate: (value: unknown, path: string, ancestors: WeakSet<object>) => unknown;
+}): { key: string; value: unknown } {
   const { value, key, path, ancestors, validate } = input;
   if (typeof key !== 'string') {
     throw new ActivitySaveMigrationError(`Save value at ${path} must not contain symbol keys`);
   }
-  assertJsonProperty({ value, key, path: `${path}[${JSON.stringify(key)}]`, ancestors, validate });
+  return {
+    key,
+    value: assertJsonProperty({ value, key, path: `${path}[${JSON.stringify(key)}]`, ancestors, validate }),
+  };
 }
 
 export function assertJsonObject(
   value: object,
   path: string,
   ancestors: WeakSet<object>,
-  validate: (value: unknown, path: string, ancestors: WeakSet<object>) => void,
-): void {
+  validate: (value: unknown, path: string, ancestors: WeakSet<object>) => unknown,
+): Record<string, unknown> {
   const prototype = getJsonObjectPrototype(value, path);
   assertPlainJsonObject(prototype, path);
   const keys = getJsonObjectKeys(value, path);
+  const clone: Record<string, unknown> = Object.create(null) as Record<string, unknown>;
   for (const key of keys) {
-    assertJsonObjectProperty({ value, key, path, ancestors, validate });
+    const property = cloneJsonObjectProperty({ value, key, path, ancestors, validate });
+    Object.defineProperty(clone, property.key, {
+      configurable: true,
+      enumerable: true,
+      value: property.value,
+      writable: true,
+    });
   }
+  return clone;
 }

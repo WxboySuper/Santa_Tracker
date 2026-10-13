@@ -10,19 +10,21 @@ function assertFiniteJsonNumber(value: number, path: string): void {
   }
 }
 
-function assertJsonPrimitive(value: unknown, path: string): boolean {
+function cloneJsonPrimitive(value: unknown, path: string): string | number | boolean | null {
   switch (typeof value) {
     case 'string':
     case 'boolean':
-      return true;
+      return value;
     case 'number':
       assertFiniteJsonNumber(value, path);
-      return true;
+      return Object.is(value, -0) ? 0 : value;
     case 'object':
-      return value === null;
+      if (value === null) return null;
+      break;
     default:
       throw new ActivitySaveMigrationError(`Save value at ${path} must be JSON-compatible`);
   }
+  throw new ActivitySaveMigrationError(`Save value at ${path} must be JSON-compatible`);
 }
 
 function assertJsonContainerCompatible(
@@ -30,19 +32,18 @@ function assertJsonContainerCompatible(
   path: string,
   ancestors: WeakSet<object>,
   depth: number,
-): void {
+): unknown {
   const validateNested = (
     value: unknown,
     nestedPath: string,
     nestedAncestors: WeakSet<object>,
-  ): void => {
-    assertJsonCompatibleAtDepth(value, nestedPath, nestedAncestors, depth + 1);
+  ): unknown => {
+    return assertJsonCompatibleAtDepth(value, nestedPath, nestedAncestors, depth + 1);
   };
   if (Array.isArray(objectValue)) {
-    assertJsonArray(objectValue, path, ancestors, validateNested);
-    return;
+    return assertJsonArray(objectValue, path, ancestors, validateNested);
   }
-  assertJsonObject(objectValue, path, ancestors, validateNested);
+  return assertJsonObject(objectValue, path, ancestors, validateNested);
 }
 
 function assertJsonObjectCompatible(
@@ -50,13 +51,13 @@ function assertJsonObjectCompatible(
   path: string,
   ancestors: WeakSet<object>,
   depth: number,
-): void {
+): unknown {
   if (ancestors.has(objectValue)) {
     throw new ActivitySaveMigrationError(`Save value at ${path} must not contain cycles`);
   }
   ancestors.add(objectValue);
   try {
-    assertJsonContainerCompatible(objectValue, path, ancestors, depth);
+    return assertJsonContainerCompatible(objectValue, path, ancestors, depth);
   } finally {
     ancestors.delete(objectValue);
   }
@@ -74,15 +75,17 @@ function assertJsonCompatibleAtDepth(
   path: string,
   ancestors: WeakSet<object>,
   depth: number,
-): void {
+): unknown {
   try {
     if (depth > MAX_JSON_DEPTH) {
       throw new ActivitySaveMigrationError(
         `Save value at ${path} exceeds maximum JSON depth of ${MAX_JSON_DEPTH}`,
       );
     }
-    if (assertJsonPrimitive(value, path)) return;
-    assertJsonObjectCompatible(value as object, path, ancestors, depth);
+    if (value === null || typeof value === 'string' || typeof value === 'boolean' || typeof value === 'number') {
+      return cloneJsonPrimitive(value, path);
+    }
+    return assertJsonObjectCompatible(value as object, path, ancestors, depth);
   } catch (error) {
     rethrowJsonCompatibilityError(error, path);
   }
@@ -92,14 +95,14 @@ export function assertJsonCompatible(
   value: unknown,
   path = '$',
   ancestors = new WeakSet(),
-): void {
-  assertJsonCompatibleAtDepth(value, path, ancestors, 0);
+): unknown {
+  return assertJsonCompatibleAtDepth(value, path, ancestors, 0);
 }
 
 export function clonePayload(payload: unknown): unknown {
   try {
-    assertJsonCompatible(payload);
-    const serialized = JSON.stringify(payload);
+    const safePayload = assertJsonCompatible(payload);
+    const serialized = JSON.stringify(safePayload);
     return JSON.parse(serialized) as unknown;
   } catch (error) {
     if (error instanceof ActivitySaveMigrationError) throw error;

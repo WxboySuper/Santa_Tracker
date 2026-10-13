@@ -6,12 +6,12 @@ export function assertJsonProperty(input: {
   key: string;
   path: string;
   ancestors: WeakSet<object>;
-  validate: (value: unknown, path: string, ancestors: WeakSet<object>) => void;
-}): void {
+  validate: (value: unknown, path: string, ancestors: WeakSet<object>) => unknown;
+}): unknown {
   const { value, key, path, ancestors, validate } = input;
   const descriptor = getOwnDataPropertyDescriptor(value, key);
   if (!isEnumerableDataProperty(descriptor)) {
     throw new ActivitySaveMigrationError(`Save value at ${path} must be a JSON value`);
   }
-  validate(descriptor.value, path, ancestors);
+  return validate(descriptor.value, path, ancestors);
 }

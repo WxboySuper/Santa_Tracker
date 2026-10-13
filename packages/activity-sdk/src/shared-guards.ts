@@ -38,6 +38,14 @@ export function getOwnArrayLength(value: object): number | undefined {
     : undefined;
 }
 
+export function isJsonArrayIndexKey(key: PropertyKey, length: number): boolean {
+  return typeof key === 'string' && /^(0|[1-9]\d*)$/.test(key) && Number(key) < length;
+}
+
+export function isAllowedJsonArrayKey(key: PropertyKey, length: number): boolean {
+  return key === 'length' || isJsonArrayIndexKey(key, length);
+}
+
 export function isEnumerableDataProperty(
   descriptor: PropertyDescriptor | undefined,
 ): descriptor is PropertyDescriptor & { value: unknown } {
