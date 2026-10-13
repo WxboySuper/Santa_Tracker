@@ -330,17 +330,30 @@ jobs:
               if (!sev) return true; // unknown severity: fail closed
               return /\bcritical\b|\bhigh\b|\bmedium\b|^p0$|^p1$|^p2$|\bblocker\b/.test(sev);
             };
-            const locOf = (c) => {
-              const path = c.path || c.file || c.filename || '';
-              return c.line ? `${path}:${c.line}` : path;
-            };
             const blocking = comments.filter(isBlocking);
-            const lowLocs = new Set(comments.filter((c) => !isBlocking(c)).map(locOf));
             if (blocking.length > 0) {
               core.setFailed(`OCR posted ${blocking.length} blocking finding(s) (medium+ or docs) this run. Address or resolve every inline thread, then push again.`);
               return;
             }
-            core.info(`OCR gate: ${comments.length} low finding(s), none blocking; checking threads.`);
+            core.info(`OCR gate: ${comments.length} finding(s), none blocking; checking threads.`);
+            // Classify old threads by their OCR finding badge, not current line
+            // locations. Outdated threads have null lines, and a clean run has
+            // no low locations to match. Unknown or malformed bot comments fail closed.
+            const isLowOnlyOcrThread = (commentConnection) => {
+              if (commentConnection?.pageInfo?.hasNextPage) return false;
+              const botComments = (commentConnection?.nodes ?? []).filter(
+                (comment) => comment?.author?.login === 'github-actions[bot]',
+              );
+              if (botComments.length === 0) return false;
+              return botComments.every((comment) => {
+                const match = String(comment?.body || '').match(
+                  /^<!--\s*ocr-[^>]+-->\s*\r?\n!\[([^\]]+)\]\(/,
+                );
+                if (!match) return false;
+                const label = match[1].split('·').map((part) => part.trim().toLowerCase());
+                return label.length === 2 && label[1] === 'low' && label[0] !== 'documentation';
+              });
+            };
             const prNumber = Number(
               process.env.GATE_PR_NUMBER
                 || context.payload.pull_request?.number
@@ -369,7 +382,10 @@ jobs:
                               isResolved
                               path
                               line
-                              comments(first: 20) { nodes { author { login } } }
+                              comments(first: 20) {
+                                nodes { author { login } body }
+                                pageInfo { hasNextPage }
+                              }
                             }
                             pageInfo { hasNextPage endCursor }
                           }
@@ -412,11 +428,12 @@ jobs:
                 return;
               }
               for (const thread of connection.nodes ?? []) {
-                const authors = (thread.comments?.nodes ?? []).map((c) => c?.author?.login);
-                if (!thread.isResolved && authors.includes('github-actions[bot]')) {
-                  // Threads on a low-only finding's location never block.
-                  const loc = thread.line ? `${thread.path}:${thread.line}` : (thread.path || '');
-                  if (loc && lowLocs.has(loc)) continue;
+                const threadComments = thread.comments?.nodes ?? [];
+                const hasBotComment = threadComments.some(
+                  (comment) => comment?.author?.login === 'github-actions[bot]',
+                );
+                if (!thread.isResolved && hasBotComment) {
+                  if (isLowOnlyOcrThread(thread.comments)) continue;
                   openBotThreads += 1;
                 }
               }
