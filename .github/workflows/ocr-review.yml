@@ -308,7 +308,7 @@ jobs:
           OCR_COMMENTS_SKIPPED: ${{ steps.ocr.outputs.comments_skipped }}
           OCR_COMMENTS_ROUTED: ${{ steps.ocr.outputs.comments_routed }}
           OCR_COMMENTS_FAILED: ${{ steps.ocr.outputs.comments_failed }}
-          GATE_PR_NUMBER: ${{ env.PR_NUMBER }}
+          GATE_PR_NUMBER: ${{ steps.pr-refs.outputs.pr_number }}
           GATE_RUN_ID: ${{ github.run_id }}
         with:
           script: |
@@ -423,7 +423,8 @@ jobs:
             const prNumber = Number(
               process.env.GATE_PR_NUMBER
                 || context.payload.pull_request?.number
-                || context.payload.issue?.number,
+                  || context.payload.issue?.number
+                  || context.payload.inputs?.pr_number,
             );
             if (!Number.isInteger(prNumber) || prNumber < 1) {
               core.setFailed('OCR gate could not resolve a PR number; failing closed.');
