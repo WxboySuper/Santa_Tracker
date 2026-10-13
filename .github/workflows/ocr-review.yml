@@ -1,15 +1,14 @@
-name: Review | OCR trial
+name: Review | OCR
 
-# Side-by-side trial with Santa Tracker's existing /oc OpenCode assistant.
+# Permanent inline reviewer alongside Santa Tracker's existing /oc OpenCode assistant.
 # Non-interference design:
-# - Own concurrency group, so it cannot cancel another Santa Tracker workflow.
-# - Own sticky digest marker and manual /ocr trigger.
-# - Advisory only while review quality is evaluated. Findings remain inline
-#   and in the digest, but do not fail the check solely because they exist.
-# - High effort, full re-review every push, and scoped rules in
-#   .opencodereview/rule.json.
-
-# Model: Muse Spark via the OpenCode Zen endpoint, using the same
+# - Own concurrency group, sticky digest marker, and manual /ocr trigger.
+# - Medium+ findings, documentation findings, reviewer errors, and unresolved
+#   blocking threads fail the check. Low non-documentation findings stay inline
+#   but do not block by themselves.
+# - Full review on every push, scoped project rules, and at most 10 findings.
+#
+# Model: Muse Spark via the OpenCode Go subscription endpoint, using the same
 # OPENCODE_API_KEY secret name as the existing /oc workflow. Muse Spark serves
 # the OpenAI Responses API, so llm_protocol is openai-responses and the URL
 # ends in /responses, not /chat/completions.
@@ -67,7 +66,8 @@ jobs:
           if [[ -z "$OCR_LLM_AUTH_TOKEN" ]]; then
             echo "configured=false" >> "$GITHUB_OUTPUT"
 
-            echo "::warning::OCR review skipped because OPENCODE_API_KEY is not configured."
+            echo "::error::OCR review cannot run because OPENCODE_API_KEY is not configured."
+            exit 1
           else
             echo "configured=true" >> "$GITHUB_OUTPUT"
           fi
@@ -99,14 +99,25 @@ jobs:
         if: steps.auth.outputs.configured == 'true'
         uses: alibaba/open-code-review@357c3f09a264563ab64d8f4fc3b25b186cd3c4a4 # main as of 2026-10-10
         with:
-          llm_url: ${{ vars.OCR_LLM_URL || 'https://opencode.ai/zen/v1/responses' }}
+          llm_url: ${{ vars.OCR_LLM_URL || 'https://opencode.ai/zen/go/v1/responses' }}
           llm_auth_token: ${{ secrets.OPENCODE_API_KEY }}
+          # The Go gateway 400s every request without x-opencode-session
+          # (MissingSessionID). The run ID is stable for the conversation,
+          # since each workflow run performs exactly one review.
+          llm_extra_headers: 'x-opencode-session=ocr-${{ github.run_id }}'
           llm_model: ${{ vars.OCR_LLM_MODEL || 'muse-spark-1.3-contributor' }}
           llm_use_anthropic: 'false'
           llm_protocol: ${{ vars.OCR_LLM_PROTOCOL || 'openai-responses' }}
+          # Keep the action's Anthropic-style default extra_body off this
+          # OpenAI-Responses request. Probe runs showed the gateway accepts
+          # every body field OCR sends (tools, store, include, cache key)
+          # once the session header is present; '{}' simply stays neutral.
+          llm_extra_body: '{}'
           language: English
-          effort: high
+          effort: medium
           review_task_timeout: '20'
+          # Keep all findings inline except style-only notes, which go to the digest.
+          route_categories: 'style'
           sticky_summary: 'true'
           incremental: 'false'
           resolve_outdated: 'false'
@@ -280,6 +291,158 @@ jobs:
               core.warning(`OCR digest skipped: ${error.message}`);
             }
 
+      - name: Enforce blocking OCR findings and threads (merge gate)
+        id: ocr-gate
+        if: always()
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7.1.0
+        env:
+          OCR_OUTCOME: ${{ steps.ocr.outcome }}
+          GATE_PR_NUMBER: ${{ env.PR_NUMBER }}
+        with:
+          script: |
+            // Fail-closed merge gate with severity awareness. The review must
+            // complete. Blocking: any medium+ finding (unknown severity counts
+            // as blocking, fail-closed) or any documentation-category finding,
+            // plus any unresolved bot-authored thread NOT attributable to a
+            // low-only finding. Low-severity non-docs findings stay inline for
+            // visibility but never fail this check on their own.
+            const outcome = process.env.OCR_OUTCOME || 'unknown';
+            if (outcome !== 'success') {
+              core.setFailed(`OCR review did not complete (outcome=${outcome}). Fix the reviewer before merging.`);
+              return;
+            }
+            const fs = require('fs');
+            let result;
+            try {
+              result = JSON.parse(fs.readFileSync('/tmp/ocr-result.json', 'utf8'));
+            } catch (error) {
+              core.setFailed(`OCR gate could not read result file (${error.message}); failing closed.`);
+              return;
+            }
+            const comments = Array.isArray(result.comments) ? result.comments : [];
+            const sevOf = (c) => String(
+              c.severity || c.priority || c.level || '',
+            ).toLowerCase();
+            const catOf = (c) => String(c.category || '').toLowerCase();
+            const isBlocking = (c) => {
+              const sev = sevOf(c);
+              if (catOf(c) === 'documentation') return true;
+              if (!sev) return true; // unknown severity: fail closed
+              return /\bcritical\b|\bhigh\b|\bmedium\b|^p0$|^p1$|^p2$|\bblocker\b/.test(sev);
+            };
+            const locOf = (c) => {
+              const path = c.path || c.file || c.filename || '';
+              return c.line ? `${path}:${c.line}` : path;
+            };
+            const blocking = comments.filter(isBlocking);
+            const lowLocs = new Set(comments.filter((c) => !isBlocking(c)).map(locOf));
+            if (blocking.length > 0) {
+              core.setFailed(`OCR posted ${blocking.length} blocking finding(s) (medium+ or docs) this run. Address or resolve every inline thread, then push again.`);
+              return;
+            }
+            core.info(`OCR gate: ${comments.length} low finding(s), none blocking; checking threads.`);
+            const prNumber = Number(
+              process.env.GATE_PR_NUMBER
+                || context.payload.pull_request?.number
+                || context.payload.issue?.number,
+            );
+            if (!Number.isInteger(prNumber) || prNumber < 1) {
+              core.setFailed('OCR gate could not resolve a PR number; failing closed.');
+              return;
+            }
+            let cursor = null;
+            let openBotThreads = 0;
+            const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+            // GitHub's search/GraphQL tier flakes (timeouts, 502s). Retry a
+            // bounded number of times, then fail closed — never fail open.
+            const queryThreads = async (after) => {
+              const delaysMs = [5000, 15000, 30000];
+              let lastError = null;
+              for (let attempt = 0; attempt <= delaysMs.length; attempt++) {
+                try {
+                  return await github.graphql(
+                    `query($owner: String!, $repo: String!, $number: Int!, $after: String) {
+                      repository(owner: $owner, name: $repo) {
+                        pullRequest(number: $number) {
+                          reviewThreads(first: 100, after: $after) {
+                            nodes {
+                              isResolved
+                              path
+                              line
+                              comments(first: 20) { nodes { author { login } } }
+                            }
+                            pageInfo { hasNextPage endCursor }
+                          }
+                        }
+                      }
+                    }`,
+                    {
+                      owner: context.repo.owner,
+                      repo: context.repo.repo,
+                      number: prNumber,
+                      after,
+                    },
+                  );
+                } catch (error) {
+                  lastError = error;
+                  const status = error?.status ?? error?.response?.status;
+                  const msg = String(error?.message || '');
+                  const transient = /timeout|timed out|econn|socket hang|eai_again|502|503|504|temporarily/i.test(msg);
+                  const retryable = status === 429 || status === 408 || (status ?? 0) >= 500 || (status == null && transient) || (status === 403 && /rate limit|secondary|abuse/i.test(msg));
+                  if (!retryable || attempt === delaysMs.length) break;
+                  core.warning(`OCR gate thread query attempt ${attempt + 1} failed (${error.message}); retrying.`);
+                  await sleep(delaysMs[attempt]);
+                }
+              }
+              core.setFailed(`OCR gate could not read review threads after ${delaysMs.length + 1} attempts (${lastError && lastError.message}); failing closed.`);
+              return null;
+            };
+            const MAX_PAGES = 20;
+            // Two passes: GitHub needs a moment to index just-posted threads,
+            // so a clean first pass waits 20s and re-checks before passing.
+            for (let pass = 0; pass < 2; pass++) {
+              openBotThreads = 0;
+              cursor = null;
+              for (let page = 0; page < MAX_PAGES; page++) {
+              const data = await queryThreads(cursor);
+              if (!data) return;
+              const connection = data?.repository?.pullRequest?.reviewThreads;
+              if (!connection) {
+                core.setFailed('OCR gate could not read review threads; failing closed.');
+                return;
+              }
+              for (const thread of connection.nodes ?? []) {
+                const authors = (thread.comments?.nodes ?? []).map((c) => c?.author?.login);
+                if (!thread.isResolved && authors.includes('github-actions[bot]')) {
+                  // Threads on a low-only finding's location never block.
+                  const loc = thread.line ? `${thread.path}:${thread.line}` : (thread.path || '');
+                  if (loc && lowLocs.has(loc)) continue;
+                  openBotThreads += 1;
+                }
+              }
+              if (!connection.pageInfo?.hasNextPage) break;
+              if (connection.pageInfo.endCursor === cursor) {
+                core.setFailed('OCR gate review-thread pagination did not advance; failing closed.');
+                return;
+              }
+              cursor = connection.pageInfo.endCursor ?? null;
+              if (page === MAX_PAGES - 1) {
+                core.setFailed('OCR gate hit the thread pagination cap; failing closed.');
+                return;
+              }
+            }
+            if (openBotThreads === 0 && pass === 0) {
+              core.info('OCR gate first pass clean; waiting 20s for indexing, then re-checking.');
+              await sleep(20000);
+              continue;
+            }
+            if (openBotThreads > 0) {
+              core.setFailed(`${openBotThreads} unresolved blocking reviewer thread(s) remain on PR #${prNumber}. Resolve every medium+ or docs inline comment before merging.`);
+              return;
+            }
+            core.info('OCR gate clean: review completed with no blocking findings and no unresolved blocking threads.');
+            }
+
       - name: Review summary
         if: always()
         run: |
@@ -289,7 +452,7 @@ jobs:
             else
               echo "OCR review outcome=${{ steps.ocr.outcome }}.";
               if [ "${{ steps.ocr.outcome }}" = "success" ]; then
-                echo "OCR trial posted. Compare with the /oc assistant response on the same PR.";
+                echo "OCR review posted. Compare with the /oc assistant response on the same PR.";
               else
                 echo "OCR review did NOT post (outcome=${{ steps.ocr.outcome }}). No comparison available for this run.";
               fi
