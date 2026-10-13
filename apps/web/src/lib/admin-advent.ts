@@ -66,7 +66,7 @@ export async function updateAdminAdventDay(rawDay: string, payload: unknown): Pr
 
 async function applyAdventDayUpdate(dayNumber: number, payload: unknown): Promise<AdminApiResult> {
   if (!isRecord(payload)) return badRequest("No data provided");
-  return withWriteLock(async () => {
+  const result = await withWriteLock(async () => {
     const dict = await loadAdventCalendarDict();
     const existing = dict.get(dayNumber);
     if (!existing) return dayNotFound();
@@ -85,6 +85,7 @@ async function applyAdventDayUpdate(dayNumber: number, payload: unknown): Promis
     await saveAdventCalendar(dict);
     return { status: 200, body: { message: "Day updated successfully" } };
   });
+  return result;
 }
 
 interface DayUpdateContext {
@@ -121,7 +122,7 @@ export async function toggleAdminAdventUnlock(rawDay: string): Promise<AdminApiR
 }
 
 async function toggleAdventOverride(dayNumber: number): Promise<AdminApiResult> {
-  return withWriteLock(async () => {
+  const result = await withWriteLock(async () => {
     const dict = await loadAdventCalendarDict();
     const day = dict.get(dayNumber);
     if (!day) return dayNotFound();
@@ -132,6 +133,7 @@ async function toggleAdventOverride(dayNumber: number): Promise<AdminApiResult> 
     await saveAdventCalendar(dict);
     return { status: 200, body: { message: "Unlock status toggled", is_unlocked_override: next } };
   });
+  return result;
 }
 
 // Toggle cycle: true -> false -> null -> true
@@ -255,7 +257,7 @@ async function storeImportedDays(parsed: ImportParse): Promise<AdminApiResult> {
   if (!validation.valid) {
     return { status: 400, body: { error: "Validation failed", errors: validation.errors } };
   }
-  return withWriteLock(async () => {
+  const result = await withWriteLock(async () => {
     await saveAdventCalendar(parsed.days);
     return {
       status: 200,
@@ -266,4 +268,5 @@ async function storeImportedDays(parsed: ImportParse): Promise<AdminApiResult> {
       },
     };
   });
+  return result;
 }
