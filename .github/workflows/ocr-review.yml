@@ -4,9 +4,11 @@ name: Review | OCR
 # Non-interference design:
 # - Own concurrency group, sticky digest marker, and manual /ocr trigger.
 # - Medium+ findings, documentation findings, reviewer errors, and unresolved
-#   blocking threads fail the check. Low non-documentation findings stay inline
-#   but do not block by themselves.
-# - Full review on every push, scoped project rules, and at most 10 findings.
+#   blocking threads fail the OCR status. Low non-documentation findings stay
+#   inline but do not fail the status by themselves.
+# - The main ruleset does not require this status, so it is advisory until the
+#   ruleset adds it to required_status_checks.
+# - Full review on every push with scoped project rules and no findings cap.
 #
 # Model: Muse Spark via the OpenCode Go subscription endpoint, using the same
 # OPENCODE_API_KEY secret name as the existing /oc workflow. Muse Spark serves
@@ -44,6 +46,7 @@ concurrency:
 
 jobs:
   review:
+    name: OCR review (advisory)
     if: |
       github.event_name == 'pull_request_target'
       || github.event_name == 'workflow_dispatch'
@@ -122,6 +125,9 @@ jobs:
           incremental: 'false'
           resolve_outdated: 'false'
           upload_artifacts: 'true'
+          # The gate matches this release's inline marker format:
+          # `<!-- ocr-<run-id>-... -->`.
+          ocr_version: v1.13.0
           rule: .opencodereview/rule.json
           base_ref: ${{ steps.pr-refs.outputs.base_ref }}
           head_sha: ${{ steps.pr-refs.outputs.head_sha }}
@@ -255,7 +261,7 @@ jobs:
                 '',
                 comments.length === 0
                   ? `✅ Clean: ${summary.files_reviewed ?? files.length} file(s) reviewed, no findings.`
-                  : `⚠️ ${comments.length} finding(s)${hot ? `, ${hot} critical/high` : ''} — resolve every inline thread to merge.`,
+                  : `⚠️ ${comments.length} finding(s)${hot ? `, ${hot} critical/high` : ''} — inspect inline threads for blocking findings.`,
                 '',
                 `Scope: ${files.length ? files.slice(0, 20).map((f) => `\`${esc(f)}\``).join(', ') : 'n/a'}${files.length > 20 ? ` (+${files.length - 20} more)` : ''}`,
               ];
@@ -291,7 +297,7 @@ jobs:
               core.warning(`OCR digest skipped: ${error.message}`);
             }
 
-      - name: Enforce blocking OCR findings and threads (merge gate)
+      - name: Report blocking OCR findings and threads (advisory)
         id: ocr-gate
         if: always()
         uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7.1.0
@@ -306,13 +312,14 @@ jobs:
           GATE_RUN_ID: ${{ github.run_id }}
         with:
           script: |
-            // Fail-closed merge gate with severity awareness. The review must
+            // Fail-closed OCR status with severity awareness. The status is
+            // advisory until the repository ruleset requires it. The review must
             // complete. Only explicit low-severity, non-documentation findings
             // are non-blocking; unknown severities and categories fail closed.
             // Unrelated Actions bot threads are ignored unless they carry OCR's marker.
             const outcome = process.env.OCR_OUTCOME || 'unknown';
             if (outcome !== 'success') {
-              core.setFailed(`OCR review did not complete (outcome=${outcome}). Fix the reviewer before merging.`);
+              core.setFailed(`OCR review did not complete (outcome=${outcome}). Fix the reviewer and rerun the review.`);
               return;
             }
             const fs = require('fs');
@@ -333,8 +340,8 @@ jobs:
               core.setFailed('OCR gate could not read the action comment-count outputs; failing closed.');
               return;
             }
-            if (counts.inline + counts.skipped + counts.routed + counts.failed > counts.total) {
-              core.setFailed('OCR action comment-count outputs exceed the total; failing closed.');
+            if (counts.inline + counts.skipped + counts.routed + counts.failed !== counts.total) {
+              core.setFailed('OCR action comment-count outputs do not reconcile with the total; failing closed.');
               return;
             }
             if (counts.failed > 0) {
@@ -396,8 +403,11 @@ jobs:
             } else if (counts.total > 0 && (counts.inline !== counts.total || counts.skipped > 0 || counts.routed > 0)) {
               core.setFailed(`OCR result details are unavailable (${resultError?.message}); action outputs show findings that cannot all be classified from inline threads, so the gate is failing closed.`);
               return;
-            } else if (resultError) {
-              core.warning(`OCR result file unavailable (${resultError.message}); classifying declared inline findings from review threads.`);
+            } else if (resultError && counts.total === 0) {
+              // comments_total is the action's declared count of generated
+              // findings. A zero count is clean; no result file is needed when
+              // there are no findings to classify.
+              core.info(`OCR reported zero findings through comments_total; no result file is needed (${resultError.message}).`);
             }
             core.info(`OCR gate: ${counts.total} finding(s), none blocking so far; checking OCR review threads.`);
             // Classify old threads by their OCR finding badge, not current line
@@ -424,6 +434,9 @@ jobs:
               core.setFailed('OCR gate could not resolve the workflow run ID; failing closed.');
               return;
             }
+            // OCR v1.13.0 prefixes each inline comment with
+            // `<!-- ocr-<run-id>-... -->`; the version is pinned above so the
+            // thread ownership marker stays stable.
             const currentRunMarker = `<!-- ocr-${runId}-`;
             let cursor = null;
             let openBotThreads = 0;
@@ -524,7 +537,7 @@ jobs:
                 await sleep(20000);
                 continue;
               }
-              core.setFailed(`OCR action reported ${counts.inline} inline comment(s), but the gate found ${currentRunOcrComments} for this run; failing closed.`);
+              core.setFailed(`OCR v1.13.0 reported ${counts.inline} inline comment(s), but the gate found ${currentRunOcrComments} with expected marker prefix "${currentRunMarker}". Check OCR comment formatting and thread indexing; failing closed.`);
               return;
             }
             if (currentRunBlockingComments > 0) {
@@ -537,7 +550,7 @@ jobs:
               continue;
             }
             if (openBotThreads > 0) {
-              core.setFailed(`${openBotThreads} unresolved blocking reviewer thread(s) remain on PR #${prNumber}. Resolve every medium+ or docs inline comment before merging.`);
+              core.setFailed(`${openBotThreads} unresolved blocking OCR thread(s) remain on PR #${prNumber}. Resolve every medium+ or documentation comment to clear the OCR status.`);
               return;
             }
             core.info('OCR gate clean: review completed with no blocking findings and no unresolved blocking threads.');
