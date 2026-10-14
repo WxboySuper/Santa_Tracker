@@ -10,23 +10,27 @@ function getJsonObjectPrototype(value: object, path: string): object | null {
   }
 }
 
-function assertPlainJsonObject(prototype: object | null, path: string): void {
-  if (prototype === null) return;
+function isNativeObjectPrototype(prototype: object): boolean {
+  const constructor: unknown = getOwnDataPropertyDescriptor(prototype, 'constructor')?.value;
+  if (typeof constructor !== 'function') return false;
+  if (Reflect.get(constructor, 'prototype') !== prototype) return false;
+  return Function.prototype.toString.call(constructor) === Function.prototype.toString.call(Object);
+}
+
+function isPlainJsonObjectPrototype(prototype: object | null): boolean {
+  if (prototype === null) return true;
   try {
-    if (Reflect.getPrototypeOf(prototype) === null) {
-      const constructor: unknown = getOwnDataPropertyDescriptor(prototype, 'constructor')?.value;
-      if (
-        typeof constructor === 'function'
-        && Reflect.get(constructor, 'prototype') === prototype
-        && Function.prototype.toString.call(constructor) === Function.prototype.toString.call(Object)
-      ) {
-        return;
-      }
-    }
+    if (Reflect.getPrototypeOf(prototype) !== null) return false;
+    return isNativeObjectPrototype(prototype);
   } catch {
+    return false;
+  }
+}
+
+function assertPlainJsonObject(prototype: object | null, path: string): void {
+  if (!isPlainJsonObjectPrototype(prototype)) {
     throw new ActivitySaveMigrationError(`Save value at ${path} must be a plain JSON object`);
   }
-  throw new ActivitySaveMigrationError(`Save value at ${path} must be a plain JSON object`);
 }
 
 function getJsonObjectKeys(value: object, path: string): PropertyKey[] {
