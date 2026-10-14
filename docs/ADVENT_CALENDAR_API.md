@@ -4,6 +4,14 @@
 
 The Advent Calendar Core Engine provides a backend system for storing, unlocking, and serving daily Advent content for December 1-24. The system uses server-authoritative unlock logic based on UTC time and supports admin overrides for testing and special cases.
 
+## Unlock, preview, and archive rules
+
+Public manifest and day requests compare each `unlock_time` with the trusted server clock in UTC. The boundary is inclusive: a day unlocks when the server time is exactly equal to its configured time. Clients cannot provide a public clock value.
+
+Authenticated admins can inspect a hypothetical live view with `GET /api/admin/advent/preview?at=2026-12-05T00:00:00Z`. The `at` value must be an ISO 8601 date-time with an explicit zone: `Z` or a numeric UTC offset such as `2026-12-05T02:00:00+02:00`; fractional seconds are accepted. The server normalizes the value to a UTC instant. The response echoes it as `preview_time` in UTC ISO format with millisecond precision. The endpoint requires the normal admin bearer token or cookie, applies the live `is_unlocked_override`, and does not write the preview time or change that override. Each day reports its simulated state as `is_unlocked_at_preview_time`, distinct from `is_currently_unlocked` in the admin day views. Locked preview days omit their payload, as public live reads do. A later public request still uses the server clock.
+
+Archived reads use `GET /api/advent/archive/:day`. A day is available after its scheduled unlock time, even when the live seasonal mode has moved on. `is_unlocked_override: false` is a takedown lock: it hides the payload from live, preview, and archive reads until the override is cleared. Archive access otherwise follows the scheduled unlock time; `is_unlocked_override: true` does not make archived content available early.
+
 ## Features
 
 - **Server-Controlled Unlocking**: Days unlock automatically at UTC midnight based on configured unlock times
@@ -202,8 +210,8 @@ Days unlock automatically based on the `unlock_time` field:
 
 You can override the unlock status by setting `is_unlocked_override`:
 - `null` (default): Use time-based unlock logic
-- `true`: Force unlock regardless of time (useful for testing)
-- `false`: Force lock regardless of time (useful for special cases)
+- `true`: Force unlock live reads and previews regardless of time; archive reads still wait for the scheduled time
+- `false`: Force-lock live reads and previews, and hide the payload from archive reads as a takedown lock
 
 **Example:**
 ```json

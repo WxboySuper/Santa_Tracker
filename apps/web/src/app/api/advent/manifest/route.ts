@@ -1,24 +1,29 @@
 import { NextResponse } from "next/server";
 import { isAdventEnabled } from "@/lib/config";
-import { getManifest } from "@/lib/advent";
+import { getManifest, isAdventDataNotFoundError, isAdventFeatureDisabledError } from "@/lib/advent";
+import { isNotFoundError } from "@/lib/errors";
+import { ADVENT_NO_STORE_HEADERS } from "@/lib/advent-http";
 
-function isNotFoundError(error: unknown): boolean {
-  return error instanceof Error && error.message.includes("not found");
-}
+export const dynamic = "force-dynamic";
 
 export async function GET() {
   if (!isAdventEnabled()) {
-    return NextResponse.json({ error: "Not found" }, { status: 404 });
+    return NextResponse.json({ error: "Not found" }, { status: 404, headers: ADVENT_NO_STORE_HEADERS });
   }
   try {
     const manifest = await getManifest();
     return NextResponse.json(manifest, {
       status: 200,
-      headers: { "Cache-Control": "private, no-store" },
+      headers: ADVENT_NO_STORE_HEADERS,
     });
   } catch (error: unknown) {
-    if (isNotFoundError(error)) return NextResponse.json({ error: "Advent calendar data not found" }, { status: 404 });
+    if (isAdventFeatureDisabledError(error)) {
+      return NextResponse.json({ error: "Not found" }, { status: 404, headers: ADVENT_NO_STORE_HEADERS });
+    }
+    if (isAdventDataNotFoundError(error) || isNotFoundError(error)) {
+      return NextResponse.json({ error: "Advent calendar data not found" }, { status: 404, headers: ADVENT_NO_STORE_HEADERS });
+    }
     console.error("Advent manifest error", error);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error" }, { status: 500, headers: ADVENT_NO_STORE_HEADERS });
   }
 }
