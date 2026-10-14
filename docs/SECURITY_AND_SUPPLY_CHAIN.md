@@ -1,17 +1,16 @@
 # Security and supply-chain checks
 
-This repository runs CodeQL and dependency review from GitHub Actions.
-The repository uses the advanced CodeQL workflow; default CodeQL setup must be disabled so GitHub can accept its analysis results.
+This repository uses GitHub's default CodeQL setup and a GitHub Actions dependency-review workflow.
+The default setup is configured for Actions, JavaScript/TypeScript, and Python. Keep it enabled: advanced CodeQL workflows cannot upload analyses while default setup is active.
 
 ## Pull request and scheduled checks
 
-- `.github/workflows/codeql.yml` analyzes JavaScript/TypeScript, configured Python sources, and GitHub Actions workflow code on pull requests to `main`, pushes to `main`, and weekly. The CodeQL configuration excludes archived Flask code.
-- The CodeQL configuration at `.github/codeql/codeql-config.yml` excludes archived Flask code, generated content, and data files from the scan.
+- GitHub's default CodeQL setup analyzes JavaScript/TypeScript, Python, and GitHub Actions code on pull requests and weekly. Manage its languages and schedule in the repository's security settings.
 - `.github/workflows/dependency-review.yml` reviews dependency changes in pull requests to `main`. It blocks newly introduced vulnerabilities rated moderate or higher across runtime, development, and unknown dependency scopes.
 - Dependabot continues to open weekly dependency update pull requests. Dependency review checks lockfile and manifest changes before merge. Dependabot also proposes weekly grouped minor and patch updates to GitHub Actions used by workflows; major action updates remain separate for review.
 - The new security workflows pin third-party actions to reviewed commit SHAs. Dependabot keeps those pins current through pull requests.
 
-The workflow files create status checks. Repository administrators can require the CodeQL and dependency-review checks in the `main` ruleset if they should block merges.
+The default CodeQL setup and dependency-review workflow publish status checks. Repository administrators can require those checks in the `main` ruleset.
 
 ## Secret protection
 
