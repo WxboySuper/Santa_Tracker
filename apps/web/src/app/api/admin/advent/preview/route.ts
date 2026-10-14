@@ -27,15 +27,20 @@ export async function GET(req: NextRequest) {
 }
 
 function parsePreviewTime(value: string): Date | null {
-  const match = ISO_EXPLICIT_ZONE_DATE_TIME.exec(value);
-  if (!match || value.endsWith("-00:00")) return null;
+  const components = previewTimeComponents(value);
+  if (!components) return null;
+  const parsedTime = new Date(value);
+  return matchesLocalDateTime(parsedTime, components.localDateTime, components.zone) ? parsedTime : null;
+}
 
+function previewTimeComponents(value: string): { localDateTime: string; zone: string } | null {
+  if (value.endsWith("-00:00")) return null;
+  const match = ISO_EXPLICIT_ZONE_DATE_TIME.exec(value);
+  if (!match) return null;
   const localDateTime = match[1];
   const zone = match[2];
   if (!localDateTime || !zone) return null;
-  const parsedTime = new Date(value);
-  if (!matchesLocalDateTime(parsedTime, localDateTime, zone)) return null;
-  return parsedTime;
+  return { localDateTime, zone };
 }
 
 function matchesLocalDateTime(parsedTime: Date, localDateTime: string, zone: string): boolean {

@@ -4,6 +4,8 @@ import { getManifest, isAdventDataNotFoundError } from "@/lib/advent";
 import { isNotFoundError } from "@/lib/errors";
 import { ADVENT_NO_STORE_HEADERS } from "@/lib/advent-http";
 
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   if (!isAdventEnabled()) {
     return NextResponse.json({ error: "Not found" }, { status: 404, headers: ADVENT_NO_STORE_HEADERS });

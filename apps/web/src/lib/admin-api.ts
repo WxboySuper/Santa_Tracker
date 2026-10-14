@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { isAdventDataNotFoundError } from "./advent";
 import { isNotFoundError } from "./errors";
 
 export interface AdminApiResult {
@@ -19,7 +20,7 @@ export function respondWith(result: AdminApiResult): NextResponse {
 }
 
 export function notFoundAwareError(error: unknown, notFoundBody: Record<string, unknown>): AdminApiResult {
-  if (isNotFoundError(error)) {
+  if (isAdventDataNotFoundError(error) || isNotFoundError(error)) {
     return { status: 404, body: notFoundBody };
   }
   console.error(error);

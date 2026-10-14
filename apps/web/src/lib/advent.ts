@@ -63,14 +63,33 @@ interface CachedAdventCalendar {
 
 class AdventDataNotFoundError extends Error {
   readonly name = "AdventDataNotFoundError";
+  readonly code = "ADVENT_DATA_NOT_FOUND";
 }
 
 export function isAdventDataNotFoundError(error: unknown): error is AdventDataNotFoundError {
-  return error instanceof AdventDataNotFoundError;
+  return readErrorCode(error) === "ADVENT_DATA_NOT_FOUND";
 }
 
 class AdventFeatureDisabledError extends Error {
   readonly name = "AdventFeatureDisabledError";
+  readonly code = "ADVENT_FEATURE_DISABLED";
+}
+
+export function isAdventFeatureDisabledError(error: unknown): error is AdventFeatureDisabledError {
+  return readErrorCode(error) === "ADVENT_FEATURE_DISABLED";
+}
+
+function readErrorCode(error: unknown): unknown {
+  if (error === null || (typeof error !== "object" && typeof error !== "function")) return undefined;
+  try {
+    return Reflect.get(error, "code");
+  } catch {
+    return undefined;
+  }
+}
+
+function assertAdventEnabled(): void {
+  if (!isAdventEnabled()) throw new AdventFeatureDisabledError("Advent calendar is disabled");
 }
 
 const cache = new Map<string, CachedAdventCalendar>();
@@ -247,13 +266,19 @@ function parseUnlockTime(day: AdventDay): Date {
 }
 
 export function isPlayable(day: AdventDay, opts: { mode?: AdventMode; currentTime?: Date; clock?: AdventClock } = {}): boolean {
+  assertValidAdventMode(opts.mode);
   if (opts.mode === "archive") {
     // Archive access follows the schedule. Live overrides do not act as an archive takedown control.
     const currentTime = resolveCurrentTime(opts);
     return currentTime.getTime() >= parseUnlockTime(day).getTime();
   }
-  if (opts.mode !== undefined && opts.mode !== "live") throw new Error(`Unknown AdventMode: ${String(opts.mode)}`);
   return isUnlocked(day, resolveCurrentTime(opts));
+}
+
+function assertValidAdventMode(mode: unknown): asserts mode is AdventMode | undefined {
+  if (mode !== undefined && mode !== "live" && mode !== "archive") {
+    throw new Error(`Unknown AdventMode: ${String(mode)}`);
+  }
 }
 
 export function toDict(day: AdventDay, opts: { includePayload?: boolean; currentTime?: Date; clock?: AdventClock; mode?: AdventMode } = {}): AdventPublicDay {
@@ -270,6 +295,8 @@ export function toDict(day: AdventDay, opts: { includePayload?: boolean; current
 }
 
 export async function getManifest(options: AdventQueryOptions = {}): Promise<AdventManifest> {
+  assertValidAdventMode(options.mode);
+  assertAdventEnabled();
   const currentTime = resolveCurrentTime(options);
   const { data: days } = await loadCachedAdventCalendar(options);
   const daysData = days.map(d => toDict(d, { includePayload: false, currentTime, mode: options.mode }));
@@ -277,6 +304,8 @@ export async function getManifest(options: AdventQueryOptions = {}): Promise<Adv
 }
 
 export async function getDayContent(dayNumber: number, options: AdventQueryOptions = {}): Promise<AdventPublicDay | null> {
+  assertValidAdventMode(options.mode);
+  assertAdventEnabled();
   if (dayNumber < 1 || dayNumber > MAX_ADVENT_DAY) return null;
   const currentTime = resolveCurrentTime(options);
   const { byDay } = await loadCachedAdventCalendar(options);
@@ -287,7 +316,6 @@ export async function getDayContent(dayNumber: number, options: AdventQueryOptio
 
 export async function getArchiveDayContent(dayNumber: number, options: AdventQueryOptions = {}): Promise<AdventPublicDay | null> {
   if (options.mode !== undefined && options.mode !== "archive") throw new Error(`getArchiveDayContent called with conflicting mode: ${String(options.mode)}`);
-  if (!isAdventEnabled()) throw new AdventFeatureDisabledError("Advent calendar is disabled");
   return await getDayContent(dayNumber, { ...options, mode: "archive" });
 }
 
@@ -297,11 +325,14 @@ function assertTimeOptions(options: AdventQueryOptions): void {
 
 function resolveCurrentTime(options: AdventQueryOptions): Date {
   assertTimeOptions(options);
-  const currentTime = options.currentTime !== undefined
-    ? options.currentTime
-    : options.clock !== undefined
-      ? options.clock()
-      : trustedClock();
+  let currentTime: Date;
+  if (options.currentTime !== undefined) {
+    currentTime = options.currentTime;
+  } else if (options.clock !== undefined) {
+    currentTime = options.clock();
+  } else {
+    currentTime = trustedClock();
+  }
   assertValidCurrentTime(currentTime);
   return currentTime;
 }
@@ -348,7 +379,7 @@ async function getDayApiResultWithErrorHandling(
     return dayContentResult(content);
   } catch (error: unknown) {
     if (isAdventDataNotFoundError(error)) return { status: 404, body: { error: "Advent calendar data not found" } };
-    if (error instanceof AdventFeatureDisabledError) return { status: 404, body: { error: "Not found" } };
+    if (isAdventFeatureDisabledError(error)) return { status: 404, body: { error: "Not found" } };
     if (isNotFoundError(error)) return { status: 404, body: { error: "Advent calendar data not found" } };
     console.error(`Advent ${errorContext} error`, error);
     return { status: 500, body: { error: "Internal server error" } };

@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { getArchiveDayApiResult, type AdventApiResult, type AdventPublicDay } from "@/lib/advent";
 import { GET } from "./route";
 
@@ -22,10 +22,14 @@ function request(day: unknown = "4") {
 }
 
 describe("advent archive route", () => {
+  const logError = vi.spyOn(console, "error").mockImplementation(() => undefined);
+
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(getArchiveDayApiResult).mockResolvedValue({ status: 200, body: unlockedDay });
   });
+
+  afterEach(() => logError.mockClear());
 
   it("returns unlocked archive content without caching it", async () => {
     const { request: req, context } = request();
@@ -75,5 +79,15 @@ describe("advent archive route", () => {
 
     expect(getArchiveDayApiResult).toHaveBeenCalledWith(["4"]);
     expect(response.status).toBe(404);
+  });
+
+  it("distinguishes route failures from library errors", async () => {
+    vi.mocked(getArchiveDayApiResult).mockRejectedValue(new Error("Unexpected failure"));
+    const { request: req, context } = request();
+
+    const response = await GET(req, context);
+
+    expect(response.status).toBe(500);
+    expect(logError).toHaveBeenCalledWith("Advent archive day route error", expect.any(Error));
   });
 });
