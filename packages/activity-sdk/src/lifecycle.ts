@@ -24,15 +24,19 @@ export type ActivityLifecycleEvent =
 export type ActivityProgressEvent =
   { type: 'score'; value: number } | { type: 'achievement'; achievementId: string };
 
+type LegacyActivityTransitions = Record<Exclude<ActivityState, 'exited'>, Exclude<ActivityState, 'exited'>[]> & {
+  exited?: never;
+};
+
+type CompleteActivityTransitions = Record<ActivityState, ActivityState[]>;
+
 /** Renderer-independent events emitted by an activity instance. */
 export type ActivityEvent = ActivityLifecycleEvent | ActivityProgressEvent;
 
 export type ActivityLifecycle = {
   id: string;
   initialState: ActivityState;
-  transitions: Record<Exclude<ActivityState, 'exited'>, ActivityState[]> & {
-    exited?: ActivityState[];
-  };
+  transitions: LegacyActivityTransitions | CompleteActivityTransitions;
 };
 
 export type ActivityLifecycleErrorCode =
@@ -63,7 +67,7 @@ const ALL_STATES: readonly ActivityState[] = [
   'exited',
 ];
 
-export const DEFAULT_LIFECYCLE: ActivityLifecycle = {
+export const DEFAULT_LIFECYCLE = {
   id: 'default',
   initialState: 'idle',
   transitions: {
@@ -76,7 +80,7 @@ export const DEFAULT_LIFECYCLE: ActivityLifecycle = {
     failed: ['loading', 'ready', 'idle', 'failed', 'exited'],
     exited: ['loading', 'ready', 'failed', 'exited'],
   },
-};
+} satisfies ActivityLifecycle;
 
 const EVENT_TARGET: Record<ActivityLifecycleEvent['type'], ActivityState> = {
   load: 'loading',

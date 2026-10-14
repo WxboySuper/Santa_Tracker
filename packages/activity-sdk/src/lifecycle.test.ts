@@ -177,6 +177,20 @@ describe('@santa-tracker/activity-sdk', () => {
     );
   });
 
+  it('requires exited transitions when a custom graph can enter exited', () => {
+    // @ts-expect-error A graph that can enter exited must define exited transitions.
+    const invalidTransitions: ActivityLifecycle['transitions'] = {
+      idle: ['loading', 'exited'],
+      loading: ['ready'],
+      ready: ['playing'],
+      playing: ['paused'],
+      paused: ['playing'],
+      completed: ['ready'],
+      failed: ['loading'],
+    };
+    expect(invalidTransitions.idle).toContain('exited');
+  });
+
   it('reports stable lifecycle error codes', () => {
     try {
       applyActivityEvent(DEFAULT_LIFECYCLE, 'idle', { type: 'start' });
