@@ -8,6 +8,8 @@ vi.mock("@/lib/advent", () => ({
   getManifest: vi.fn(),
   isAdventDataNotFoundError: (error: unknown) =>
     typeof error === "object" && error !== null && Reflect.get(error, "code") === "ADVENT_DATA_NOT_FOUND",
+  isAdventFeatureDisabledError: (error: unknown) =>
+    typeof error === "object" && error !== null && Reflect.get(error, "code") === "ADVENT_FEATURE_DISABLED",
 }));
 
 describe("advent manifest route", () => {
@@ -47,5 +49,17 @@ describe("advent manifest route", () => {
 
     expect(response.status).toBe(404);
     expect(await response.json()).toEqual({ error: "Advent calendar data not found" });
+  });
+
+  it("maps a feature-disabled error during the request to 404", async () => {
+    vi.mocked(getManifest).mockRejectedValue(
+      Object.assign(new Error("Advent calendar is disabled"), { code: "ADVENT_FEATURE_DISABLED" }),
+    );
+
+    const response = await GET();
+
+    expect(response.status).toBe(404);
+    expect(await response.json()).toEqual({ error: "Not found" });
+    expect(response.headers.get("Cache-Control")).toBe("private, no-store");
   });
 });

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { isAdventEnabled } from "@/lib/config";
-import { getManifest, isAdventDataNotFoundError } from "@/lib/advent";
+import { getManifest, isAdventDataNotFoundError, isAdventFeatureDisabledError } from "@/lib/advent";
 import { isNotFoundError } from "@/lib/errors";
 import { ADVENT_NO_STORE_HEADERS } from "@/lib/advent-http";
 
@@ -17,6 +17,9 @@ export async function GET() {
       headers: ADVENT_NO_STORE_HEADERS,
     });
   } catch (error: unknown) {
+    if (isAdventFeatureDisabledError(error)) {
+      return NextResponse.json({ error: "Not found" }, { status: 404, headers: ADVENT_NO_STORE_HEADERS });
+    }
     if (isAdventDataNotFoundError(error) || isNotFoundError(error)) {
       return NextResponse.json({ error: "Advent calendar data not found" }, { status: 404, headers: ADVENT_NO_STORE_HEADERS });
     }
