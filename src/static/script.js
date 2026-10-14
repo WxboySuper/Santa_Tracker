@@ -1288,8 +1288,7 @@ function initCountdowns() {
 
                 // Prefer an explicit North Pole anchor node (by id or START type),
                 // otherwise fall back to the first node in the route.
-                let first = null;
-                first = santaRoute.find(n => {
+                const first = santaRoute.find(n => {
                     try {
                         const nid = String(n.id || '').toLowerCase();
                         const ntype = String(n.type || '').toLowerCase();
@@ -1459,13 +1458,14 @@ function triggerLiftoff() {
         // as during normal in-transit updates. This removes any special-case
         // "launch" zoom and keeps liftoff framing consistent with long-haul.
         const displayLng = getDisplayLng(destNode.longitude);
-        let travelZoom = null;
-        try {
-            const anchorNode = (anchorIndex !== -1) ? santaRoute[anchorIndex] : null;
-            travelZoom = computeTravelZoom(anchorNode, destNode);
-        } catch (e) {
-            travelZoom = CAMERA_ZOOM.LONG_HAUL || 7;
-        }
+        const travelZoom = (() => {
+            try {
+                const anchorNode = (anchorIndex !== -1) ? santaRoute[anchorIndex] : null;
+                return computeTravelZoom(anchorNode, destNode);
+            } catch {
+                return CAMERA_ZOOM.LONG_HAUL || 7;
+            }
+        })();
         // liftoff travel zoom debug removed
 
         mapRef.flyTo([destNode.latitude, displayLng], travelZoom, {
