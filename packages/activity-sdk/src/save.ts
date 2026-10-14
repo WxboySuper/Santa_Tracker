@@ -28,20 +28,21 @@ export type ActivitySaveEnvelope<TPayload = unknown> = {
 
 /** Validation boundary: accepts unknown device-local JSON, narrows on success. */
 function cloneValidatedSaveEnvelope(save: unknown): ActivitySaveEnvelope {
-  if (!isStringRecord(save)) {
+  const isolatedSave = assertJsonCompatible(save);
+  if (!isStringRecord(isolatedSave)) {
     throw new ActivitySaveMigrationError('Invalid activity save envelope');
   }
-  const payload = getOwnSaveProperty(save, 'payload');
-  const activityId = getOwnSaveProperty(save, 'activityId');
-  const schemaVersion = getOwnSaveProperty(save, 'schemaVersion');
-  const savedAtIso = getOwnSaveProperty(save, 'savedAtIso');
+  const payload = getOwnSaveProperty(isolatedSave, 'payload');
+  const activityId = getOwnSaveProperty(isolatedSave, 'activityId');
+  const schemaVersion = getOwnSaveProperty(isolatedSave, 'schemaVersion');
+  const savedAtIso = getOwnSaveProperty(isolatedSave, 'savedAtIso');
   if (payload === undefined) {
     throw new ActivitySaveMigrationError('Save envelope payload must not be undefined');
   }
   assertActivityId(activityId);
   assertPositiveVersion({ version: schemaVersion, description: 'Save schema version' });
   assertIsoTimestamp(savedAtIso);
-  return assertJsonCompatible(save) as ActivitySaveEnvelope;
+  return isolatedSave as ActivitySaveEnvelope;
 }
 
 function getOwnSaveProperty(

@@ -126,7 +126,10 @@ function isUnsupportedMigrationHandler(handler: object): boolean {
   // Bound functions hide whether their target is async, so reject them instead
   // of running migration code during registry validation.
   const kind = getMigrationHandlerKind(handler);
-  return kind === 'AsyncFunction' || kind === 'AsyncGeneratorFunction' || isBoundMigrationHandler(handler);
+  return kind === 'AsyncFunction'
+    || kind === 'GeneratorFunction'
+    || kind === 'AsyncGeneratorFunction'
+    || isBoundMigrationHandler(handler);
 }
 
 const MIGRATION_KEYS = new Set(['activityId', 'fromVersion', 'toVersion', 'migrate']);

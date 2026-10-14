@@ -2,7 +2,14 @@ import { ActivitySaveMigrationError } from './save-errors';
 import { assertJsonProperty } from './save-json-property';
 import { getOwnArrayLength, hasOnlyAllowedJsonArrayKeys, hasOwn } from './shared-guards';
 
+const MAX_JSON_ARRAY_LENGTH = 100_000;
+
 function assertJsonArrayKeys(value: unknown[], path: string, length: number): void {
+  if (length > MAX_JSON_ARRAY_LENGTH) {
+    throw new ActivitySaveMigrationError(
+      `Save array at ${path} exceeds maximum length of ${MAX_JSON_ARRAY_LENGTH}`,
+    );
+  }
   let keys: PropertyKey[];
   try {
     keys = Reflect.ownKeys(value);

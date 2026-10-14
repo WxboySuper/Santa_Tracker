@@ -128,7 +128,7 @@ describe('@santa-tracker/activity-sdk save migrations', () => {
     const { payload: _dropped, ...truncated } = save();
     expect(() => migrateActivitySave(truncated as never, 1, [])).toThrow(/payload/);
     expect(() => migrateActivitySave({ ...save(), payload: undefined }, 1, [])).toThrow(
-      /must not be undefined/,
+      /payload.*JSON value/,
     );
     expect(() => migrateActivitySave({ ...save(), activityId: '' as never }, 1, [])).toThrow(
       /activity id/,
@@ -174,10 +174,19 @@ describe('@santa-tracker/activity-sdk save migrations', () => {
       await Promise.resolve();
       yield {};
     };
+    function* syncGeneratorMigration() {
+      yield {};
+    }
     const boundAsyncMigration = asyncMigration.bind(undefined);
     const boundSyncMigration = (() => ({})).bind(undefined);
 
-    for (const migrate of [asyncMigration, asyncGeneratorMigration, boundAsyncMigration, boundSyncMigration]) {
+    for (const migrate of [
+      asyncMigration,
+      asyncGeneratorMigration,
+      syncGeneratorMigration,
+      boundAsyncMigration,
+      boundSyncMigration,
+    ]) {
       expect(() =>
         migrateActivitySave(save(), 1, [
           { activityId, fromVersion: 1, toVersion: 2, migrate },
@@ -196,7 +205,7 @@ describe('@santa-tracker/activity-sdk save migrations', () => {
       savedAtIso: '2026-10-12T12:00:00.000Z',
       payload: {},
     }) as unknown;
-    expect(() => migrateActivitySave(inherited, 1, [])).toThrow(/own payload/);
+    expect(() => migrateActivitySave(inherited, 1, [])).toThrow(/plain JSON object/);
   });
 
   it('accepts only JSON-compatible payload values', () => {
@@ -214,6 +223,31 @@ describe('@santa-tracker/activity-sdk save migrations', () => {
       expect(() => migrateActivitySave(save(payload), 1, [])).toThrow(ActivitySaveMigrationError);
     }
     expect(() => migrateActivitySave(save(() => undefined), 1, [])).toThrow(/must be a JSON value/);
+  });
+
+  it('rejects arrays beyond the supported JSON length before cloning them', () => {
+    const oversized = new Array(100_001);
+    expect(() => migrateActivitySave(save(oversized), 1, [])).toThrow(/maximum length of 100000/);
+  });
+
+  it('validates a proxy envelope using the values captured in its clone', () => {
+    let activityIdReads = 0;
+    const source = save();
+    const proxy = new Proxy(source, {
+      getOwnPropertyDescriptor(target, key) {
+        const descriptor = Reflect.getOwnPropertyDescriptor(target, key);
+        if (key === 'activityId' && descriptor !== undefined) {
+          activityIdReads += 1;
+          if (activityIdReads > 1) {
+            return { ...descriptor, value: 'invalid id' };
+          }
+        }
+        return descriptor;
+      },
+    });
+
+    expect(migrateActivitySave(proxy, 1, []).activityId).toBe(activityId);
+    expect(activityIdReads).toBe(1);
   });
 
   it('accepts plain objects and arrays from another JavaScript realm', () => {
