@@ -4,8 +4,8 @@ import type { ActivitySaveMigration } from './save-types';
 import {
   getOwnArrayLength,
   getOwnDataPropertyDescriptor,
+  hasOnlyAllowedJsonArrayKeys,
   isArrayValue,
-  isAllowedJsonArrayKey,
   isEnumerableDataProperty,
 } from './shared-guards';
 
@@ -98,7 +98,21 @@ function getMigrationHandler(
   if (typeof handler !== 'function') {
     throw new ActivitySaveMigrationError(`${description} migrate must be a function`);
   }
+  if (isAsyncMigrationHandler(handler)) {
+    throw new ActivitySaveMigrationError(`${description} migrate must be synchronous`);
+  }
   return handler as ActivitySaveMigration['migrate'];
+}
+
+function isAsyncMigrationHandler(handler: object): boolean {
+  try {
+    const prototype = Reflect.getPrototypeOf(handler);
+    if (prototype === null) return false;
+    const constructor: unknown = getOwnDataPropertyDescriptor(prototype, 'constructor')?.value;
+    return typeof constructor === 'function' && Reflect.get(constructor, 'name') === 'AsyncFunction';
+  } catch {
+    return false;
+  }
 }
 
 const MIGRATION_KEYS = new Set(['activityId', 'fromVersion', 'toVersion', 'migrate']);
@@ -122,8 +136,9 @@ function assertMigrationArrayKeys(migrations: unknown[], length: number): void {
   } catch {
     throw new ActivitySaveMigrationError('Migrations must be an inspectable array');
   }
-  const hasExtraKey = keys.some((key) => !isAllowedJsonArrayKey(key, length));
-  if (hasExtraKey) throw new ActivitySaveMigrationError('Migrations must not contain extra array keys');
+  if (!hasOnlyAllowedJsonArrayKeys(keys, length)) {
+    throw new ActivitySaveMigrationError('Migrations must not contain extra array keys');
+  }
 }
 
 function normalizeMigrationEntry(input: {

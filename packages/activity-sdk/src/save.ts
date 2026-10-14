@@ -27,7 +27,7 @@ export type ActivitySaveEnvelope<TPayload = unknown> = {
 };
 
 /** Validation boundary: accepts unknown device-local JSON, narrows on success. */
-function assertSaveEnvelope(save: unknown): asserts save is ActivitySaveEnvelope {
+function cloneValidatedSaveEnvelope(save: unknown): ActivitySaveEnvelope {
   if (!isStringRecord(save)) {
     throw new ActivitySaveMigrationError('Invalid activity save envelope');
   }
@@ -41,7 +41,7 @@ function assertSaveEnvelope(save: unknown): asserts save is ActivitySaveEnvelope
   assertActivityId(activityId);
   assertPositiveVersion({ version: schemaVersion, description: 'Save schema version' });
   assertIsoTimestamp(savedAtIso);
-  assertJsonCompatible(save);
+  return assertJsonCompatible(save) as ActivitySaveEnvelope;
 }
 
 function getOwnSaveProperty(
@@ -138,18 +138,14 @@ function assertSynchronousMigrationResult(
 
 function runMigrationStep(step: MigrationStep): unknown {
   const migration = getMigration(step);
-  const isolatedPayload = clonePayload(step.payload);
-  const next = applyMigration(migration, isolatedPayload, step);
+  const next = applyMigration(migration, step.payload, step);
   assertSynchronousMigrationResult(next, step);
   try {
     return clonePayload(next);
   } catch (error) {
-    if (error instanceof ActivitySaveMigrationError) {
-      throw new ActivitySaveMigrationError(
-        `Migration for activity ${step.activityId} from schema ${step.schemaVersion} produced invalid payload (${error.message})`,
-      );
-    }
-    throw error;
+    throw new ActivitySaveMigrationError(
+      `Migration for activity ${step.activityId} from schema ${step.schemaVersion} produced invalid payload (${getErrorMessage(error)})`,
+    );
   }
 }
 
@@ -164,17 +160,15 @@ export function migrateActivitySave<TOutput = unknown>(
   targetVersion: number,
   migrations: readonly ActivitySaveMigration[],
 ): ActivitySaveEnvelope<TOutput> {
-  assertSaveEnvelope(save);
+  const isolatedSave = cloneValidatedSaveEnvelope(save);
   const validatedMigrations = normalizeMigrationRegistry(migrations);
   assertPositiveVersion({ version: targetVersion, description: 'Target schema version' });
 
-  if (save.schemaVersion > targetVersion) {
+  if (isolatedSave.schemaVersion > targetVersion) {
     throw new ActivitySaveMigrationError(
-      `Cannot downgrade activity ${save.activityId} from schema ${save.schemaVersion} to ${targetVersion}`,
+      `Cannot downgrade activity ${isolatedSave.activityId} from schema ${isolatedSave.schemaVersion} to ${targetVersion}`,
     );
   }
-
-  const isolatedSave = clonePayload(save) as ActivitySaveEnvelope;
 
   const indexedMigrations = indexMigrations({ migrations: validatedMigrations, activityId: isolatedSave.activityId });
   let schemaVersion = isolatedSave.schemaVersion;

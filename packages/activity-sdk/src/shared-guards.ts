@@ -1,5 +1,9 @@
 export function hasOwn(value: object, key: PropertyKey): boolean {
-  return Object.prototype.hasOwnProperty.call(value, key);
+  try {
+    return Object.prototype.hasOwnProperty.call(value, key);
+  } catch {
+    return false;
+  }
 }
 
 export function isStringRecord(value: unknown): value is Record<string, unknown> {
@@ -44,6 +48,10 @@ export function isJsonArrayIndexKey(key: PropertyKey, length: number): boolean {
 
 export function isAllowedJsonArrayKey(key: PropertyKey, length: number): boolean {
   return key === 'length' || isJsonArrayIndexKey(key, length);
+}
+
+export function hasOnlyAllowedJsonArrayKeys(keys: readonly PropertyKey[], length: number): boolean {
+  return keys.every((key) => isAllowedJsonArrayKey(key, length));
 }
 
 export function isEnumerableDataProperty(

@@ -6,7 +6,8 @@ const ISO_DATE_TIME_PATTERN =
 // ISO offsets range from -12:00 through +14:00, with minute values below 60.
 const ISO_OFFSET_PATTERN = /^(?:[+](?:0\d|1[0-3]):?[0-5]\d|[+]14:?00|-(?:0\d|1[01]):?[0-5]\d|-12:?00)$/;
 
-function parseIsoOffsetMinutes(value: string): number | undefined {
+function parseIsoOffsetMinutes(value: string | undefined): number | undefined {
+  if (value === undefined) return undefined;
   if (value === 'Z') return 0;
   if (!ISO_OFFSET_PATTERN.test(value)) return undefined;
   const compact = value.replace(':', '');
@@ -33,7 +34,7 @@ function isValidIsoDateTime(value: unknown): boolean {
 function isValidIsoDateTimeString(value: string): boolean {
   const match = ISO_DATE_TIME_PATTERN.exec(value);
   if (match === null) return false;
-  const offsetMinutes = parseIsoOffsetMinutes(match[7] ?? 'invalid');
+  const offsetMinutes = parseIsoOffsetMinutes(match[7]);
   return offsetMinutes !== undefined && matchesIsoLocalTime(value, offsetMinutes);
 }
 

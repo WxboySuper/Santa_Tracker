@@ -166,6 +166,19 @@ describe('@santa-tracker/activity-sdk save migrations', () => {
     ];
     Object.assign(withExtraArrayKey, { unexpected: true });
     expect(() => migrateActivitySave(save(), 1, withExtraArrayKey)).toThrow(/extra array keys/);
+    expect(() =>
+      migrateActivitySave(save(), 1, [
+        {
+          activityId,
+          fromVersion: 1,
+          toVersion: 2,
+          migrate: async () => {
+            await Promise.resolve();
+            return {};
+          },
+        },
+      ]),
+    ).toThrow(/migrate must be synchronous/);
   });
 
   it('accepts unknown JSON input and rejects inherited save fields', () => {
@@ -195,6 +208,7 @@ describe('@santa-tracker/activity-sdk save migrations', () => {
     ]) {
       expect(() => migrateActivitySave(save(payload), 1, [])).toThrow(ActivitySaveMigrationError);
     }
+    expect(() => migrateActivitySave(save(() => undefined), 1, [])).toThrow(/must be a JSON value/);
   });
 
   it('accepts plain objects and arrays from another JavaScript realm', () => {
@@ -202,6 +216,41 @@ describe('@santa-tracker/activity-sdk save migrations', () => {
     const migrated = migrateActivitySave(save(foreignObject), 1, []);
 
     expect(migrated.payload).toEqual({ values: [1, { label: 'snow' }] });
+  });
+
+  it('rejects custom intermediate object prototypes', () => {
+    const intermediate = Object.create(null) as object;
+    const customObject = Object.create(intermediate) as Record<string, unknown>;
+
+    expect(() => migrateActivitySave(save(customObject), 1, [])).toThrow(/plain JSON object/);
+  });
+
+  it('returns standard-prototype clones without exposing prototype-pollution keys', () => {
+    const payload = JSON.parse('{"nested":{"values":[1]},"__proto__":{"polluted":true}}') as {
+      nested: { values: number[] };
+      __proto__: { polluted: boolean };
+    };
+    const migrated = migrateActivitySave(save(payload), 1, []);
+    const migratedPayload = migrated.payload as typeof payload;
+
+    expect(Object.getPrototypeOf(migratedPayload)).toBe(Object.prototype);
+    expect(Object.getPrototypeOf(migratedPayload.nested)).toBe(Object.prototype);
+    expect(Object.getPrototypeOf(migratedPayload.nested.values)).toBe(Array.prototype);
+    expect(Object.hasOwn(migratedPayload, '__proto__')).toBe(true);
+    expect(({} as { polluted?: boolean }).polluted).toBeUndefined();
+  });
+
+  it('keeps array validation errors path-specific when proxy traps throw', () => {
+    const throwingArray = new Proxy([1], {
+      getOwnPropertyDescriptor(target, key) {
+        if (key === '0') throw new Error('blocked descriptor');
+        return Reflect.getOwnPropertyDescriptor(target, key);
+      },
+    });
+
+    expect(() => migrateActivitySave(save({ values: throwingArray }), 1, [])).toThrow(
+      /\["values"\]\[0\].*must not be empty/,
+    );
   });
 
   it('reports unambiguous paths and rejects excessive JSON nesting', () => {

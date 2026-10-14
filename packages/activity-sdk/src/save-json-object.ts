@@ -1,5 +1,6 @@
 import { ActivitySaveMigrationError } from './save-errors';
 import { assertJsonProperty } from './save-json-property';
+import { getOwnDataPropertyDescriptor } from './shared-guards';
 
 function getJsonObjectPrototype(value: object, path: string): object | null {
   try {
@@ -12,9 +13,18 @@ function getJsonObjectPrototype(value: object, path: string): object | null {
 function assertPlainJsonObject(prototype: object | null, path: string): void {
   if (prototype === null) return;
   try {
-    if (Reflect.getPrototypeOf(prototype) === null) return;
+    if (Reflect.getPrototypeOf(prototype) === null) {
+      const constructor: unknown = getOwnDataPropertyDescriptor(prototype, 'constructor')?.value;
+      if (
+        typeof constructor === 'function'
+        && Reflect.get(constructor, 'prototype') === prototype
+        && Function.prototype.toString.call(constructor) === Function.prototype.toString.call(Object)
+      ) {
+        return;
+      }
+    }
   } catch {
-    throw new ActivitySaveMigrationError(`Save value at ${path} must be an inspectable JSON object`);
+    throw new ActivitySaveMigrationError(`Save value at ${path} must be a plain JSON object`);
   }
   throw new ActivitySaveMigrationError(`Save value at ${path} must be a plain JSON object`);
 }
@@ -53,7 +63,7 @@ export function assertJsonObject(
   const prototype = getJsonObjectPrototype(value, path);
   assertPlainJsonObject(prototype, path);
   const keys = getJsonObjectKeys(value, path);
-  const clone: Record<string, unknown> = Object.create(null) as Record<string, unknown>;
+  const clone: Record<string, unknown> = {};
   for (const key of keys) {
     const property = cloneJsonObjectProperty({ value, key, path, ancestors, validate });
     Object.defineProperty(clone, property.key, {

@@ -1,6 +1,6 @@
 import { ActivitySaveMigrationError } from './save-errors';
 import { assertJsonProperty } from './save-json-property';
-import { getOwnArrayLength, hasOwn, isAllowedJsonArrayKey } from './shared-guards';
+import { getOwnArrayLength, hasOnlyAllowedJsonArrayKeys, hasOwn } from './shared-guards';
 
 function assertJsonArrayKeys(value: unknown[], path: string, length: number): void {
   let keys: PropertyKey[];
@@ -9,8 +9,7 @@ function assertJsonArrayKeys(value: unknown[], path: string, length: number): vo
   } catch {
     throw new ActivitySaveMigrationError(`Save value at ${path} must be an inspectable JSON array`);
   }
-  const hasExtraKey = keys.some((key) => !isAllowedJsonArrayKey(key, length));
-  if (hasExtraKey) {
+  if (!hasOnlyAllowedJsonArrayKeys(keys, length)) {
     throw new ActivitySaveMigrationError(`Save value at ${path} must not contain extra array keys`);
   }
 }
@@ -37,7 +36,6 @@ function cloneJsonArrayItems(input: {
       writable: true,
     });
   }
-  Object.setPrototypeOf(clone, null);
   return clone;
 }
 

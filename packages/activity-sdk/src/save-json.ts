@@ -88,7 +88,10 @@ function assertJsonCompatibleAtDepth(
     if (isJsonPrimitive(value)) {
       return cloneJsonPrimitive(value, path);
     }
-    return assertJsonObjectCompatible(value as object, path, ancestors, depth);
+    if (typeof value !== 'object' || value === null) {
+      throw new ActivitySaveMigrationError(`Save value at ${path} must be a JSON value`);
+    }
+    return assertJsonObjectCompatible(value, path, ancestors, depth);
   } catch (error) {
     rethrowJsonCompatibilityError(error, path);
   }
@@ -104,9 +107,7 @@ export function assertJsonCompatible(
 
 export function clonePayload(payload: unknown): unknown {
   try {
-    const safePayload = assertJsonCompatible(payload);
-    const serialized = JSON.stringify(safePayload);
-    return JSON.parse(serialized) as unknown;
+    return assertJsonCompatible(payload);
   } catch (error) {
     if (error instanceof ActivitySaveMigrationError) throw error;
     throw new ActivitySaveMigrationError(
