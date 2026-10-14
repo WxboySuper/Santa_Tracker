@@ -18,6 +18,16 @@
 - **Tests:** Covers UTC boundary equality, preview isolation, and archive access rules.
 - **Docs:** Documents the clock, preview, and archive contracts in `docs/ADVENT_CALENDAR_API.md`.
 
+## [Unreleased] - Security automation (#316)
+
+- **Code scanning:** Uses the repository's existing GitHub default setup for weekly and pull-request analysis of JavaScript/TypeScript, Python, and GitHub Actions.
+- **Dependency review:** Checks pull-request dependency changes and blocks new moderate-or-higher vulnerabilities across runtime, development, and unknown scopes. Existing Dependabot updates continue to supply lockfile changes for review. Adds weekly grouped minor and patch updates for GitHub Actions used by workflows.
+- **Workflow hardening:** Pins dependency-review, checkout, and attestation actions to verified commit SHAs. Removes unused permissions, scopes release write access to its job, and disables persisted checkout credentials.
+- **Reliability:** Prevents pushes from cancelling scheduled CodeQL scans, adds workflow concurrency and time limits, sanitizes release tags in archive filenames, and prevents release reruns from overwriting attested assets.
+- **Secrets:** Records that secret scanning and push protection are already enabled in GitHub repository settings.
+- **Release provenance:** Adds a source archive to each published GitHub release and attaches a signed GitHub artifact attestation for verification with the GitHub CLI.
+- **Docs:** Documents the automated checks, repository settings, and release verification command in docs/SECURITY_AND_SUPPLY_CHAIN.md.
+
 ## [Unreleased] — CI: add OCR pull request reviews
 
 - **Review:** Adds automated Muse Spark reviews with inline findings, a sticky digest, and a manual /ocr trigger.

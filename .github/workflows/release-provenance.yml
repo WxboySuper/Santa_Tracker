@@ -1,0 +1,55 @@
+name: Release source provenance
+
+on:
+  release:
+    types: [published]
+
+permissions: {}
+
+concurrency:
+  group: release-provenance-${{ github.event.release.tag_name }}
+  cancel-in-progress: false
+
+jobs:
+  attest-source:
+    name: Attest and publish release source
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      attestations: write
+      contents: write
+      id-token: write
+    env:
+      RELEASE_TAG: ${{ github.event.release.tag_name }}
+      REPOSITORY_NAME: ${{ github.event.repository.name }}
+    steps:
+      - name: Check out release tag
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          ref: ${{ github.event.release.tag_name }}
+          persist-credentials: false
+
+      - name: Package source archive
+        id: package
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          safe_release_tag="$(printf '%s' "$RELEASE_TAG" | LC_ALL=C tr -c 'A-Za-z0-9._-' '-')"
+          source_archive="${REPOSITORY_NAME}-${safe_release_tag}-source.tar.gz"
+          git archive \
+            --format=tar.gz \
+            --prefix="${REPOSITORY_NAME}-${safe_release_tag}/" \
+            --output="dist/${source_archive}" \
+            HEAD
+          printf 'source_archive=%s\n' "$source_archive" >> "$GITHUB_OUTPUT"
+
+      - name: Generate build provenance
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        with:
+          subject-path: dist/${{ steps.package.outputs.source_archive }}
+
+      - name: Attach source archive to the GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SOURCE_ARCHIVE: ${{ steps.package.outputs.source_archive }}
+        run: gh release upload "$RELEASE_TAG" "dist/$SOURCE_ARCHIVE"
