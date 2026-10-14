@@ -12,6 +12,7 @@
   "pnpm": {
     "overrides": {
       "next>postcss": "8.5.26",
+      "undici": "7.29.1",
       "sharp": "0.35.3",
       "@esbuild-kit/core-utils>esbuild": "0.25.12",
       "uuid": "11.1.1"
