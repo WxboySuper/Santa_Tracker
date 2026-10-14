@@ -80,7 +80,8 @@ export function isAdventFeatureDisabledError(error: unknown): error is AdventFea
 }
 
 function readErrorCode(error: unknown): unknown {
-  if (error === null || (typeof error !== "object" && typeof error !== "function")) return undefined;
+  if (error === null) return undefined;
+  if (typeof error !== "object" && typeof error !== "function") return undefined;
   try {
     return Reflect.get(error, "code");
   } catch {

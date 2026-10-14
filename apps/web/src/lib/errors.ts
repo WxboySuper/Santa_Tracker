@@ -1,5 +1,6 @@
 function readErrorProperty(error: unknown, property: "code" | "cause"): unknown {
-  if (error === null || (typeof error !== "object" && typeof error !== "function")) return undefined;
+  if (error === null) return undefined;
+  if (typeof error !== "object" && typeof error !== "function") return undefined;
   try {
     return Reflect.get(error, property);
   } catch {
@@ -10,7 +11,9 @@ function readErrorProperty(error: unknown, property: "code" | "cause"): unknown 
 export function isNotFoundError(error: unknown): boolean {
   const visited = new Set<unknown>();
   let current = error;
-  while (current !== null && (typeof current === "object" || typeof current === "function")) {
+  while (true) {
+    if (current === null) return false;
+    if (typeof current !== "object" && typeof current !== "function") return false;
     if (visited.has(current)) return false;
     visited.add(current);
 
