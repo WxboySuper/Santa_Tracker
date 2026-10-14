@@ -1,15 +1,15 @@
 name: Review | OCR
 
-# Side-by-side review trial with Santa Tracker's existing /oc OpenCode assistant.
+# Permanent inline reviewer alongside Santa Tracker's existing /oc OpenCode assistant.
 # Non-interference design:
-# - Own concurrency group, so it cannot cancel another Santa Tracker workflow.
-# - Own sticky digest marker and manual /ocr trigger.
-# - The gate reports findings and errors as a failed check. The current
-#   repository ruleset requires review-thread resolution but does not yet
-#   require this check's status while the reviewer is being evaluated.
-# - Picky by design: high effort, full re-review every push, and scoped rules
-#   in .opencodereview/rule.json.
-
+# - Own concurrency group, sticky digest marker, and manual /ocr trigger.
+# - Medium+ findings, documentation findings, reviewer errors, and unresolved
+#   blocking threads fail the OCR status. Low non-documentation findings stay
+#   inline but do not fail the status by themselves.
+# - The main ruleset does not require this status, so it is advisory until the
+#   ruleset adds it to required_status_checks.
+# - Full review on every push with scoped project rules and no findings cap.
+#
 # Model: Muse Spark via the OpenCode Go subscription endpoint, using the same
 # OPENCODE_API_KEY secret name as the existing /oc workflow. Muse Spark serves
 # the OpenAI Responses API, so llm_protocol is openai-responses and the URL
@@ -46,6 +46,7 @@ concurrency:
 
 jobs:
   review:
+    name: OCR review (advisory)
     if: |
       github.event_name == 'pull_request_target'
       || github.event_name == 'workflow_dispatch'
@@ -68,7 +69,8 @@ jobs:
           if [[ -z "$OCR_LLM_AUTH_TOKEN" ]]; then
             echo "configured=false" >> "$GITHUB_OUTPUT"
 
-            echo "::warning::OCR review skipped because OPENCODE_API_KEY is not configured."
+            echo "::error::OCR review cannot run because OPENCODE_API_KEY is not configured."
+            exit 1
           else
             echo "configured=true" >> "$GITHUB_OUTPUT"
           fi
@@ -115,12 +117,17 @@ jobs:
           # once the session header is present; '{}' simply stays neutral.
           llm_extra_body: '{}'
           language: English
-          effort: high
+          effort: medium
           review_task_timeout: '20'
+          # Keep all findings inline except style-only notes, which go to the digest.
+          route_categories: 'style'
           sticky_summary: 'true'
           incremental: 'false'
           resolve_outdated: 'false'
           upload_artifacts: 'true'
+          # The gate matches this release's inline marker format:
+          # `<!-- ocr-<run-id>-... -->`.
+          ocr_version: v1.13.0
           rule: .opencodereview/rule.json
           base_ref: ${{ steps.pr-refs.outputs.base_ref }}
           head_sha: ${{ steps.pr-refs.outputs.head_sha }}
@@ -254,7 +261,7 @@ jobs:
                 '',
                 comments.length === 0
                   ? `✅ Clean: ${summary.files_reviewed ?? files.length} file(s) reviewed, no findings.`
-                  : `⚠️ ${comments.length} finding(s)${hot ? `, ${hot} critical/high` : ''} — resolve every inline thread to merge.`,
+                  : `⚠️ ${comments.length} finding(s)${hot ? `, ${hot} critical/high` : ''} — inspect inline threads for blocking findings.`,
                 '',
                 `Scope: ${files.length ? files.slice(0, 20).map((f) => `\`${esc(f)}\``).join(', ') : 'n/a'}${files.length > 20 ? ` (+${files.length - 20} more)` : ''}`,
               ];
@@ -290,42 +297,152 @@ jobs:
               core.warning(`OCR digest skipped: ${error.message}`);
             }
 
-      - name: Enforce zero open OCR threads (merge gate)
+      - name: Report blocking OCR findings and threads (advisory)
         id: ocr-gate
-        if: always() && steps.auth.outputs.configured == 'true'
+        if: always()
         uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7.1.0
         env:
           OCR_OUTCOME: ${{ steps.ocr.outcome }}
           OCR_COMMENTS_TOTAL: ${{ steps.ocr.outputs.comments_total }}
-          GATE_PR_NUMBER: ${{ env.PR_NUMBER }}
+          OCR_COMMENTS_INLINE: ${{ steps.ocr.outputs.comments_inline }}
+          OCR_COMMENTS_SKIPPED: ${{ steps.ocr.outputs.comments_skipped }}
+          OCR_COMMENTS_ROUTED: ${{ steps.ocr.outputs.comments_routed }}
+          OCR_COMMENTS_FAILED: ${{ steps.ocr.outputs.comments_failed }}
+          GATE_PR_NUMBER: ${{ steps.pr-refs.outputs.pr_number }}
+          GATE_RUN_ID: ${{ github.run_id }}
         with:
           script: |
-            // Fail-closed merge gate: the review must complete, post zero
-            // findings, and leave zero unresolved bot-authored review threads.
-            // Anything else fails this check. Note the Main Ruleset already
-            // requires review-thread resolution, so unresolved inline threads
-            // block merge even without this job in required_status_checks.
+            // Fail-closed OCR status with severity awareness. The status is
+            // advisory until the repository ruleset requires it. The review must
+            // complete. Only explicit low-severity, non-documentation findings
+            // are non-blocking; unknown severities and categories fail closed.
+            // Unrelated Actions bot threads are ignored unless they carry OCR's marker.
             const outcome = process.env.OCR_OUTCOME || 'unknown';
             if (outcome !== 'success') {
-              core.setFailed(`OCR review did not complete (outcome=${outcome}). Fix the reviewer before merging.`);
+              core.setFailed(`OCR review did not complete (outcome=${outcome}). Fix the reviewer and rerun the review.`);
               return;
             }
-            const posted = Number(process.env.OCR_COMMENTS_TOTAL || '0');
-            if (Number.isInteger(posted) && posted > 0) {
-              core.setFailed(`OCR posted ${posted} finding(s) this run. Address or resolve every inline thread, then push again.`);
+            const fs = require('fs');
+            const countOutput = (name) => {
+              const raw = process.env[name];
+              if (!/^\d+$/.test(String(raw ?? ''))) return null;
+              const value = Number(raw);
+              return Number.isSafeInteger(value) ? value : null;
+            };
+            const counts = {
+              total: countOutput('OCR_COMMENTS_TOTAL'),
+              inline: countOutput('OCR_COMMENTS_INLINE'),
+              skipped: countOutput('OCR_COMMENTS_SKIPPED'),
+              routed: countOutput('OCR_COMMENTS_ROUTED'),
+              failed: countOutput('OCR_COMMENTS_FAILED'),
+            };
+            if (Object.values(counts).some((value) => value === null)) {
+              core.setFailed('OCR gate could not read the action comment-count outputs; failing closed.');
               return;
             }
+            if (counts.inline + counts.skipped + counts.routed + counts.failed !== counts.total) {
+              core.setFailed('OCR action comment-count outputs do not reconcile with the total; failing closed.');
+              return;
+            }
+            if (counts.failed > 0) {
+              core.setFailed(`OCR could not post ${counts.failed} finding comment(s); failing closed.`);
+              return;
+            }
+            const actionsBotLogins = new Set(['github-actions', 'github-actions[bot]']);
+            const knownOcrCategories = new Set([
+              'bug', 'security', 'performance', 'maintainability',
+              'test', 'style', 'documentation', 'other',
+            ]);
+            const isActionsBotComment = (comment) =>
+              actionsBotLogins.has(comment?.author?.login);
+            const isOcrComment = (comment) =>
+              isActionsBotComment(comment)
+              && String(comment?.body || '').includes('<!-- ocr-');
+            const parseOcrBadge = (comment) => {
+              const match = String(comment?.body || '').match(
+                /^<!--\s*ocr-[^>]+-->\s*\r?\n!\[([^\]]+)\]\(/,
+              );
+              if (!match) return null;
+              const label = match[1].split('·').map((part) => part.trim().toLowerCase());
+              if (label.length !== 2 || !knownOcrCategories.has(label[0]) || !label[1]) return null;
+              return { category: label[0], severity: label[1] };
+            };
+            const isBlockingOcrComment = (comment) => {
+              const label = parseOcrBadge(comment);
+              return !label || label.category === 'documentation' || label.severity !== 'low';
+            };
+            let result;
+            let resultError = null;
+            try {
+              result = JSON.parse(fs.readFileSync('/tmp/ocr-result.json', 'utf8'));
+              if (!Array.isArray(result?.comments)) {
+                throw new Error('result has no comments array');
+              }
+              if (result.comments.length !== counts.total) {
+                throw new Error('result count does not match action outputs');
+              }
+            } catch (error) {
+              result = null;
+              resultError = error;
+            }
+            const isBlockingFinding = (comment) => {
+              const severity = String(
+                comment?.severity || comment?.priority || comment?.level || '',
+              ).trim().toLowerCase();
+              const category = String(comment?.category || '').trim().toLowerCase();
+              return !knownOcrCategories.has(category)
+                || category === 'documentation'
+                || severity !== 'low';
+            };
+            if (result) {
+              const blocking = result.comments.filter(isBlockingFinding);
+              if (blocking.length > 0) {
+                core.setFailed(`OCR produced ${blocking.length} blocking finding(s) (anything other than explicit low non-documentation). Address or resolve each inline thread, then push again.`);
+                return;
+              }
+            } else if (counts.total > 0 && (counts.inline !== counts.total || counts.skipped > 0 || counts.routed > 0)) {
+              core.setFailed(`OCR result details are unavailable (${resultError?.message}); action outputs show findings that cannot all be classified from inline threads, so the gate is failing closed.`);
+              return;
+            } else if (resultError && counts.total === 0) {
+              // comments_total is the action's declared count of generated
+              // findings. A zero count is clean; no result file is needed when
+              // there are no findings to classify.
+              core.info(`OCR reported zero findings through comments_total; no result file is needed (${resultError.message}).`);
+            }
+            core.info(`OCR gate: ${counts.total} finding(s), none blocking so far; checking OCR review threads.`);
+            // Classify old threads by their OCR finding badge, not current line
+            // locations. Outdated threads have null lines, and a clean run has
+            // no low locations to match. Unknown or malformed OCR comments fail closed.
+            const isLowOnlyOcrThread = (commentConnection) => {
+              if (commentConnection?.pageInfo?.hasNextPage) return false;
+              const ocrComments = (commentConnection?.nodes ?? []).filter(isOcrComment);
+              return ocrComments.length > 0 && ocrComments.every(
+                (comment) => !isBlockingOcrComment(comment),
+              );
+            };
             const prNumber = Number(
               process.env.GATE_PR_NUMBER
                 || context.payload.pull_request?.number
-                || context.payload.issue?.number,
+                  || context.payload.issue?.number
+                  || context.payload.inputs?.pr_number,
             );
             if (!Number.isInteger(prNumber) || prNumber < 1) {
               core.setFailed('OCR gate could not resolve a PR number; failing closed.');
               return;
             }
+            const runId = String(process.env.GATE_RUN_ID || '');
+            if (!/^\d+$/.test(runId)) {
+              core.setFailed('OCR gate could not resolve the workflow run ID; failing closed.');
+              return;
+            }
+            // OCR v1.13.0 prefixes each inline comment with
+            // `<!-- ocr-<run-id>-... -->`; the version is pinned above so the
+            // thread ownership marker stays stable.
+            const currentRunMarker = `<!-- ocr-${runId}-`;
             let cursor = null;
             let openBotThreads = 0;
+            let currentRunOcrComments = 0;
+            let currentRunBlockingComments = 0;
             const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
             // GitHub's search/GraphQL tier flakes (timeouts, 502s). Retry a
             // bounded number of times, then fail closed — never fail open.
@@ -341,7 +458,12 @@ jobs:
                           reviewThreads(first: 100, after: $after) {
                             nodes {
                               isResolved
-                              comments(first: 20) { nodes { author { login } } }
+                              path
+                              line
+                              comments(first: 100) {
+                                nodes { author { login } body }
+                                pageInfo { hasNextPage }
+                              }
                             }
                             pageInfo { hasNextPage endCursor }
                           }
@@ -374,6 +496,8 @@ jobs:
             // so a clean first pass waits 20s and re-checks before passing.
             for (let pass = 0; pass < 2; pass++) {
               openBotThreads = 0;
+              currentRunOcrComments = 0;
+              currentRunBlockingComments = 0;
               cursor = null;
               for (let page = 0; page < MAX_PAGES; page++) {
               const data = await queryThreads(cursor);
@@ -384,8 +508,16 @@ jobs:
                 return;
               }
               for (const thread of connection.nodes ?? []) {
-                const authors = (thread.comments?.nodes ?? []).map((c) => c?.author?.login);
-                if (!thread.isResolved && authors.includes('github-actions[bot]')) {
+                const threadComments = thread.comments?.nodes ?? [];
+                const ocrComments = threadComments.filter(isOcrComment);
+                for (const comment of ocrComments) {
+                  if (String(comment?.body || '').includes(currentRunMarker)) {
+                    currentRunOcrComments += 1;
+                    if (isBlockingOcrComment(comment)) currentRunBlockingComments += 1;
+                  }
+                }
+                if (!thread.isResolved && ocrComments.length > 0) {
+                  if (isLowOnlyOcrThread(thread.comments)) continue;
                   openBotThreads += 1;
                 }
               }
@@ -400,16 +532,29 @@ jobs:
                 return;
               }
             }
+            if (currentRunOcrComments !== counts.inline) {
+              if (pass === 0) {
+                core.info('OCR gate did not see every inline comment yet; waiting 20s for indexing, then re-checking.');
+                await sleep(20000);
+                continue;
+              }
+              core.setFailed(`OCR v1.13.0 reported ${counts.inline} inline comment(s), but the gate found ${currentRunOcrComments} with expected marker prefix "${currentRunMarker}". Check OCR comment formatting and thread indexing; failing closed.`);
+              return;
+            }
+            if (currentRunBlockingComments > 0) {
+              core.setFailed(`OCR posted ${currentRunBlockingComments} blocking finding(s) in this run. Address or resolve every inline thread, then push again.`);
+              return;
+            }
             if (openBotThreads === 0 && pass === 0) {
               core.info('OCR gate first pass clean; waiting 20s for indexing, then re-checking.');
               await sleep(20000);
               continue;
             }
             if (openBotThreads > 0) {
-              core.setFailed(`${openBotThreads} unresolved reviewer thread(s) remain on PR #${prNumber}. Resolve every inline comment before merging.`);
+              core.setFailed(`${openBotThreads} unresolved blocking OCR thread(s) remain on PR #${prNumber}. Resolve every medium+ or documentation comment to clear the OCR status.`);
               return;
             }
-            core.info('OCR gate clean: review completed with no findings and no unresolved reviewer threads.');
+            core.info('OCR gate clean: review completed with no blocking findings and no unresolved blocking threads.');
             }
 
       - name: Review summary
