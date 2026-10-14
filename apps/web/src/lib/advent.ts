@@ -192,7 +192,7 @@ function validateDayUnlockTime(value: AdventTextValue): void {
     validateUnlockTime(value);
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);
-    throw new Error(`Invalid unlock_time format: ${message}`);
+    throw new Error(`Invalid unlock_time format: ${message}`, { cause: error });
   }
 }
 
@@ -227,7 +227,7 @@ async function loadCachedAdventCalendar(options: AdventFileOptions = {}): Promis
     data = JSON.parse(content);
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);
-    throw new Error(`JSON decode error in ${sourceName}: ${message}`);
+    throw new Error(`JSON decode error in ${sourceName}: ${message}`, { cause: error });
   }
   const calendar = asRecord(data, "Advent calendar");
   const rawDays = calendar.days ?? [];

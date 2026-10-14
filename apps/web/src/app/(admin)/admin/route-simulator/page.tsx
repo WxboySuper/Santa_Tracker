@@ -12,7 +12,7 @@ async function runSimulation(url: string, successLabel: string, setStatus: (valu
     body: JSON.stringify({}),
     credentials: "include",
   });
-  let data: SimulationResponse | null = null;
+  let data: SimulationResponse;
   try {
     data = (await res.json()) as SimulationResponse;
   } catch {

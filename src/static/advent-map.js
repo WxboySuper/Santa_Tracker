@@ -295,8 +295,7 @@ function displayDayContent(dayContent) {
     modalContentTypeEl.textContent = `${getContentTypeIcon(dayContent.content_type)} ${dayContent.content_type}`;
     
     const payload = dayContent.payload;
-    let bodyHTML = '';
-    
+    let bodyHTML;
     switch (dayContent.content_type) {
     case 'fact':
     case 'story':
