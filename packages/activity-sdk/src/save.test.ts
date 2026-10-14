@@ -166,19 +166,24 @@ describe('@santa-tracker/activity-sdk save migrations', () => {
     ];
     Object.assign(withExtraArrayKey, { unexpected: true });
     expect(() => migrateActivitySave(save(), 1, withExtraArrayKey)).toThrow(/extra array keys/);
-    expect(() =>
-      migrateActivitySave(save(), 1, [
-        {
-          activityId,
-          fromVersion: 1,
-          toVersion: 2,
-          migrate: async () => {
-            await Promise.resolve();
-            return {};
-          },
-        },
-      ]),
-    ).toThrow(/migrate must be synchronous/);
+    const asyncMigration = async () => {
+      await Promise.resolve();
+      return {};
+    };
+    const asyncGeneratorMigration = async function* () {
+      await Promise.resolve();
+      yield {};
+    };
+    const boundAsyncMigration = asyncMigration.bind(undefined);
+    const boundSyncMigration = (() => ({})).bind(undefined);
+
+    for (const migrate of [asyncMigration, asyncGeneratorMigration, boundAsyncMigration, boundSyncMigration]) {
+      expect(() =>
+        migrateActivitySave(save(), 1, [
+          { activityId, fromVersion: 1, toVersion: 2, migrate },
+        ]),
+      ).toThrow(/migrate must be a direct synchronous function/);
+    }
   });
 
   it('accepts unknown JSON input and rejects inherited save fields', () => {

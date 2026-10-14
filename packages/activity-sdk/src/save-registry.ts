@@ -98,21 +98,35 @@ function getMigrationHandler(
   if (typeof handler !== 'function') {
     throw new ActivitySaveMigrationError(`${description} migrate must be a function`);
   }
-  if (isAsyncMigrationHandler(handler)) {
-    throw new ActivitySaveMigrationError(`${description} migrate must be synchronous`);
+  if (isUnsupportedMigrationHandler(handler)) {
+    throw new ActivitySaveMigrationError(`${description} migrate must be a direct synchronous function`);
   }
   return handler as ActivitySaveMigration['migrate'];
 }
 
-function isAsyncMigrationHandler(handler: object): boolean {
+function getMigrationHandlerKind(handler: object): string | undefined {
   try {
     const prototype = Reflect.getPrototypeOf(handler);
-    if (prototype === null) return false;
+    if (prototype === null) return undefined;
     const constructor: unknown = getOwnDataPropertyDescriptor(prototype, 'constructor')?.value;
-    return typeof constructor === 'function' && Reflect.get(constructor, 'name') === 'AsyncFunction';
+    if (typeof constructor !== 'function') return undefined;
+    const name: unknown = Reflect.get(constructor, 'name');
+    return typeof name === 'string' ? name : undefined;
   } catch {
-    return false;
+    return undefined;
   }
+}
+
+function isBoundMigrationHandler(handler: object): boolean {
+  const name: unknown = getOwnDataPropertyDescriptor(handler, 'name')?.value;
+  return typeof name === 'string' && name.startsWith('bound ');
+}
+
+function isUnsupportedMigrationHandler(handler: object): boolean {
+  // Bound functions hide whether their target is async, so reject them instead
+  // of running migration code during registry validation.
+  const kind = getMigrationHandlerKind(handler);
+  return kind === 'AsyncFunction' || kind === 'AsyncGeneratorFunction' || isBoundMigrationHandler(handler);
 }
 
 const MIGRATION_KEYS = new Set(['activityId', 'fromVersion', 'toVersion', 'migrate']);
