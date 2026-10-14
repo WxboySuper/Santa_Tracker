@@ -73,16 +73,15 @@ describe("Advent parity", () => {
       expect(parseDayNumber(value)).toBeNull();
     }
   });
-  it("keeps archive playability separate from live override state", () => {
-    const day = { ...future, unlock_time: "2026-12-01T00:00:00Z", is_unlocked_override: null };
+  it("uses a false override as an archive takedown lock", () => {
+    const day = { ...past, is_unlocked_override: false };
     const archiveTime = new Date("2026-12-25T00:00:00Z");
-    expect(isUnlocked({ ...day, is_unlocked_override: false }, archiveTime)).toBe(false);
-    const relockedDay = { ...day, is_unlocked_override: false };
-    expect(isPlayable(relockedDay, { mode: "archive", currentTime: archiveTime })).toBe(true);
-    expect(toDict(relockedDay, { mode: "archive", currentTime: archiveTime }).payload).toEqual(day.payload);
+    expect(isUnlocked(day, archiveTime)).toBe(false);
+    expect(isPlayable(day, { mode: "archive", currentTime: archiveTime })).toBe(false);
+    expect(toDict(day, { mode: "archive", currentTime: archiveTime }).payload).toBeUndefined();
   });
-  it("unlocks archive content at the scheduled boundary despite a live relock", () => {
-    const day = { ...future, unlock_time: "2026-12-01T00:00:00.000Z", is_unlocked_override: false };
+  it("keeps archive unlocks schedule-based when the override is true", () => {
+    const day = { ...future, unlock_time: "2026-12-01T00:00:00.000Z", is_unlocked_override: true };
     const boundary = new Date("2026-12-01T00:00:00.000Z");
     expect(isPlayable(day, { mode: "archive", currentTime: new Date(boundary.getTime() - 1) })).toBe(false);
     expect(isPlayable(day, { mode: "archive", currentTime: boundary })).toBe(true);

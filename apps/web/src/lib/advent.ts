@@ -269,8 +269,9 @@ function parseUnlockTime(day: AdventDay): Date {
 export function isPlayable(day: AdventDay, opts: { mode?: AdventMode; currentTime?: Date; clock?: AdventClock } = {}): boolean {
   assertValidAdventMode(opts.mode);
   if (opts.mode === "archive") {
-    // Archive access follows the schedule. Live overrides do not act as an archive takedown control.
     const currentTime = resolveCurrentTime(opts);
+    // A false override is a takedown veto; true never bypasses the archive schedule.
+    if (day.is_unlocked_override === false) return false;
     return currentTime.getTime() >= parseUnlockTime(day).getTime();
   }
   return isUnlocked(day, resolveCurrentTime(opts));
