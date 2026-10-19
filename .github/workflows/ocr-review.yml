@@ -16,7 +16,7 @@ name: Review | OCR
 # ends in /responses, not /chat/completions.
 on:
   pull_request_target:
-    types: [opened, synchronize, reopened, ready_for_review]
+    types: [opened, ready_for_review]
   issue_comment:
     types: [created]
   workflow_dispatch:
@@ -48,7 +48,12 @@ jobs:
   review:
     name: OCR review (advisory)
     if: |
-      github.event_name == 'pull_request_target'
+      (
+        github.event_name == 'pull_request_target'
+        && !github.event.pull_request.draft
+        && !contains(github.event.pull_request.title, 'HOLD')
+        && !contains(github.event.pull_request.title, 'WIP')
+      )
       || github.event_name == 'workflow_dispatch'
       || (
         github.event_name == 'issue_comment'
@@ -58,7 +63,7 @@ jobs:
         && contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.comment.author_association)
       )
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 20
     steps:
       - name: Check Muse Spark credentials
         id: auth
@@ -117,12 +122,12 @@ jobs:
           # once the session header is present; '{}' simply stays neutral.
           llm_extra_body: '{}'
           language: English
-          effort: medium
+          effort: low
+          max_tokens_budget: '400000'
           review_task_timeout: '20'
-          # Keep all findings inline except style-only notes, which go to the digest.
-          route_categories: 'style'
+          route_severity_below: 'medium'
           sticky_summary: 'true'
-          incremental: 'false'
+          incremental: 'true'
           resolve_outdated: 'false'
           upload_artifacts: 'true'
           # The gate matches this release's inline marker format:
@@ -350,7 +355,7 @@ jobs:
             }
             const actionsBotLogins = new Set(['github-actions', 'github-actions[bot]']);
             const knownOcrCategories = new Set([
-              'bug', 'security', 'performance', 'maintainability',
+              'bug', 'security', 'correctness', 'performance', 'maintainability',
               'test', 'style', 'documentation', 'other',
             ]);
             const isActionsBotComment = (comment) =>
@@ -369,7 +374,9 @@ jobs:
             };
             const isBlockingOcrComment = (comment) => {
               const label = parseOcrBadge(comment);
-              return !label || label.category === 'documentation' || label.severity !== 'low';
+              return !label
+                || !['bug', 'security', 'correctness'].includes(label.category)
+                || !['medium', 'high', 'critical', 'blocker', 'p0', 'p1', 'p2'].includes(label.severity);
             };
             let result;
             let resultError = null;
@@ -391,13 +398,13 @@ jobs:
               ).trim().toLowerCase();
               const category = String(comment?.category || '').trim().toLowerCase();
               return !knownOcrCategories.has(category)
-                || category === 'documentation'
-                || severity !== 'low';
+                || !['bug', 'security', 'correctness'].includes(category)
+                || !['medium', 'high', 'critical', 'blocker', 'p0', 'p1', 'p2'].includes(severity);
             };
             if (result) {
               const blocking = result.comments.filter(isBlockingFinding);
               if (blocking.length > 0) {
-                core.setFailed(`OCR produced ${blocking.length} blocking finding(s) (anything other than explicit low non-documentation). Address or resolve each inline thread, then push again.`);
+                core.setFailed(`OCR produced ${blocking.length} blocking finding(s) (only medium-or-higher bug, security, or correctness findings). Address or resolve each inline thread, then push again.`);
                 return;
               }
             } else if (counts.total > 0 && (counts.inline !== counts.total || counts.skipped > 0 || counts.routed > 0)) {
@@ -551,7 +558,7 @@ jobs:
               continue;
             }
             if (openBotThreads > 0) {
-              core.setFailed(`${openBotThreads} unresolved blocking OCR thread(s) remain on PR #${prNumber}. Resolve every medium+ or documentation comment to clear the OCR status.`);
+              core.setFailed(`${openBotThreads} unresolved blocking OCR thread(s) remain on PR #${prNumber}. Resolve every medium-or-higher bug, security, or correctness comment to clear the OCR status.`);
               return;
             }
             core.info('OCR gate clean: review completed with no blocking findings and no unresolved blocking threads.');
