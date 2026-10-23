@@ -129,7 +129,7 @@ jobs:
           upload_artifacts: 'true'
           # The gate matches this release's inline marker format:
           # `<!-- ocr-<run-id>-... -->`.
-          ocr_version: v1.13.0
+          ocr_version: v1.13.3
           rule: .opencodereview/rule.json
           base_ref: ${{ steps.pr-refs.outputs.base_ref }}
           head_sha: ${{ steps.pr-refs.outputs.head_sha }}
