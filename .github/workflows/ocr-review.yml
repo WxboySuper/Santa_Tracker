@@ -9,7 +9,7 @@ name: Review | OCR
 #   ruleset adds it to required_status_checks.
 # - Full review on every push with scoped project rules and no findings cap.
 #
-# Model: MiniMax M3.1 Flash Free via the free OpenCode Go endpoint and OpenAI
+# Model: Beam Free via the free OpenCode Go endpoint and OpenAI
 # chat/completions protocol. Uses OPENCODE_API_KEY, like the existing /oc workflow.
 on:
   pull_request_target:
@@ -62,7 +62,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - name: Check MiniMax M3.1 Flash Free credentials
+      - name: Check Beam Free credentials
         id: auth
         env:
           OCR_LLM_AUTH_TOKEN: ${{ secrets.OPENCODE_API_KEY }}
@@ -99,7 +99,7 @@ jobs:
             core.setOutput('base_ref', pull.base.ref);
             core.setOutput('head_sha', pull.head.sha);
 
-      - name: Run OCR review with MiniMax M3.1 Flash Free
+      - name: Run OCR review with Beam Free
         id: ocr
         if: steps.auth.outputs.configured == 'true'
         uses: alibaba/open-code-review@357c3f09a264563ab64d8f4fc3b25b186cd3c4a4 # main as of 2026-10-10
@@ -110,7 +110,7 @@ jobs:
           # (MissingSessionID). The run ID is stable for the conversation,
           # since each workflow run performs exactly one review.
           llm_extra_headers: 'x-opencode-session=ocr-${{ github.run_id }}'
-          llm_model: ${{ vars.OCR_LLM_MODEL || 'minimax-m3.1-flash-free' }}
+          llm_model: ${{ vars.OCR_LLM_MODEL || 'beam-free' }}
           llm_use_anthropic: 'false'
           llm_protocol: ${{ vars.OCR_LLM_PROTOCOL || 'openai' }}
           # Keep the action's Anthropic-style default extra_body off this
