@@ -80,7 +80,7 @@ jobs:
       - name: Resolve PR refs for comment or dispatch triggers
         id: pr-refs
         if: github.event_name != 'pull_request_target' && steps.auth.outputs.configured == 'true'
-        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7.1.0
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         with:
           script: |
             const prNumber = Number(
@@ -138,7 +138,7 @@ jobs:
       - name: Post OCR digest summary
         id: ocr-digest
         if: always() && steps.ocr.outcome != 'cancelled' && steps.ocr.outcome != 'skipped'
-        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7.1.0
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         env:
           OCR_OUTCOME: ${{ steps.ocr.outcome }}
           DIGEST_PR_NUMBER: ${{ steps.pr-refs.outputs.pr_number }}
@@ -302,7 +302,7 @@ jobs:
       - name: Report blocking OCR findings and threads (advisory)
         id: ocr-gate
         if: always()
-        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7.1.0
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         env:
           OCR_OUTCOME: ${{ steps.ocr.outcome }}
           OCR_COMMENTS_TOTAL: ${{ steps.ocr.outputs.comments_total }}
