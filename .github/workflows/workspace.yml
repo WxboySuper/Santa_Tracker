@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     name: Typecheck / Lint / Test / Build
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Set up pnpm
         uses: pnpm/action-setup@v4
@@ -78,7 +78,7 @@ jobs:
     runs-on: ubuntu-latest
     name: Linux bootstrap path
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Set up pnpm
         uses: pnpm/action-setup@v4
         with:
@@ -109,7 +109,7 @@ jobs:
     runs-on: windows-latest
     name: Windows bootstrap path
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Set up pnpm
         uses: pnpm/action-setup@v4
         with:
@@ -142,7 +142,7 @@ jobs:
           --health-timeout 5s
           --health-retries 5
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Set up pnpm
         uses: pnpm/action-setup@v4
         with:
@@ -163,7 +163,7 @@ jobs:
     runs-on: ubuntu-latest
     name: Workspace dependency rules
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Enforce ADR 0001 dependency direction
         run: |
