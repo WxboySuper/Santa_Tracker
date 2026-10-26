@@ -20,7 +20,7 @@ jobs:
     name: Python Linting
     
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       
       - name: Set up Python 3.12
         uses: actions/setup-python@v7
@@ -63,10 +63,10 @@ jobs:
     name: JavaScript Linting
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Set up pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v6
         with:
           version: 10.30.3
 
@@ -87,10 +87,10 @@ jobs:
     name: CSS Linting
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Set up pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v6
         with:
           version: 10.30.3
 
@@ -111,10 +111,10 @@ jobs:
     name: HTML Linting
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Set up pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v6
         with:
           version: 10.30.3
 
@@ -135,7 +135,7 @@ jobs:
     name: Lockfile Validation
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Check pnpm workspace lockfile exists
         run: |
