@@ -102,7 +102,7 @@ jobs:
       - name: Run OCR review with Beam Free
         id: ocr
         if: steps.auth.outputs.configured == 'true'
-        uses: alibaba/open-code-review@357c3f09a264563ab64d8f4fc3b25b186cd3c4a4 # main as of 2026-10-10
+        uses: alibaba/open-code-review@216dcf513593055a70165f793e96b52589d71b1b # main as of 2026-10-10
         with:
           llm_url: ${{ vars.OCR_LLM_URL || 'https://opencode.ai/zen/go/v1/chat/completions' }}
           llm_auth_token: ${{ secrets.OPENCODE_API_KEY }}
