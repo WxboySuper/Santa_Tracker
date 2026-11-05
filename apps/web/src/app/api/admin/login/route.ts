@@ -4,6 +4,8 @@ import { readJsonBody, respondWith } from "@/lib/admin-api";
 import { ADMIN_SESSION_TTL_SECONDS, requireAdminAuth, shouldUseSecureAdminCookie } from "@/lib/auth";
 
 let loginQueue: Promise<void> = Promise.resolve();
+let pendingLoginCount = 0;
+const MAX_PENDING_LOGINS = 64;
 
 export function getClientIp(req: Request): string {
   const cloudflareIp = req.headers.get("cf-connecting-ip")?.trim();
@@ -21,9 +23,13 @@ export async function POST(req: Request) {
 }
 
 function serializeLogin(task: () => Promise<NextResponse>): Promise<NextResponse> {
+  if (pendingLoginCount >= MAX_PENDING_LOGINS) return Promise.resolve(throttledResponse(1));
+  pendingLoginCount += 1;
   const current = loginQueue.then(task, task);
   loginQueue = current.then(() => undefined, () => undefined);
-  return current;
+  return current.finally(() => {
+    pendingLoginCount -= 1;
+  });
 }
 
 async function handleLogin(req: Request, ip: string, authenticated: boolean, payload: unknown): Promise<NextResponse> {

@@ -69,4 +69,18 @@ describe("admin login throttle", () => {
     advance(60 * MINUTE + 1);
     expect(await throttle.check("new-ip")).toBeNull();
   });
+
+  it("bounds in-memory keys while preserving the global counter and recently used IPs", async () => {
+    const store = new InMemoryThrottleStore(3);
+    const state = { attempts: [1], lockoutUntil: 0, lockoutLevel: 0, lastLockoutAt: -1 };
+    await store.set("global", state);
+    await store.set("ip:old", state);
+    await store.set("ip:recent", state);
+    await store.get("ip:old");
+    await store.set("ip:new", state);
+    expect(await store.get("global")).toEqual(state);
+    expect(await store.get("ip:old")).toEqual(state);
+    expect(await store.get("ip:new")).toEqual(state);
+    expect(await store.get("ip:recent")).toBeUndefined();
+  });
 });

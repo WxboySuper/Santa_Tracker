@@ -49,6 +49,16 @@ describe("admin login route", () => {
     expect(responses.filter((response) => response.status === 429)).toHaveLength(16);
   });
 
+  it("bounds the number of login requests waiting in the queue", async () => {
+    const requests = Array.from({ length: 70 }, (_, index) => POST(new Request("http://example.test/api/admin/login", {
+      method: "POST",
+      headers: { "cf-connecting-ip": "198.51.100.71", "content-type": "application/json" },
+      body: JSON.stringify({ password: `wrong-${index}` }),
+    })));
+    const responses = await Promise.all(requests);
+    expect(responses.filter((response) => response.headers.get("Retry-After") === "1")).toHaveLength(6);
+  });
+
   it("sets Secure for production requests even if an internal URL is HTTP", () => {
     vi.stubEnv("NODE_ENV", "production");
     expect(shouldUseSecureAdminCookie(new Request("http://internal.example.test"))).toBe(true);

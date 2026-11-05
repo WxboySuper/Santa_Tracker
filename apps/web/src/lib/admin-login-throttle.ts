@@ -11,20 +11,41 @@ export interface ThrottleStore {
   delete(key: string): Promise<void>;
 }
 
+const GLOBAL_KEY = "global";
+const MAX_STORE_ENTRIES = 10_001;
+
 export class InMemoryThrottleStore implements ThrottleStore {
   private readonly values = new Map<string, ThrottleState>();
 
+  constructor(private readonly maxEntries = MAX_STORE_ENTRIES) {
+    if (maxEntries < 2) throw new Error("Throttle store must allow global and per-IP state");
+  }
+
   async get(key: string): Promise<ThrottleState | undefined> {
     const value = this.values.get(key);
+    if (value) {
+      this.values.delete(key);
+      this.values.set(key, value);
+    }
     return value ? { ...value, attempts: [...value.attempts] } : undefined;
   }
 
   async set(key: string, value: ThrottleState): Promise<void> {
+    this.values.delete(key);
     this.values.set(key, { ...value, attempts: [...value.attempts] });
+    this.evictOldestIpEntries();
   }
 
   async delete(key: string): Promise<void> {
     this.values.delete(key);
+  }
+
+  private evictOldestIpEntries(): void {
+    while (this.values.size > this.maxEntries) {
+      const oldestIpKey = [...this.values.keys()].find((key) => key !== GLOBAL_KEY);
+      if (!oldestIpKey) return;
+      this.values.delete(oldestIpKey);
+    }
   }
 }
 
@@ -36,7 +57,6 @@ const INITIAL_LOCKOUT_MS = 15 * 60 * 1000;
 const MAX_LOCKOUT_MS = 60 * 60 * 1000;
 const LOCKOUT_RESET_MS = 24 * 60 * 60 * 1000;
 const IP_PREFIX = "ip:";
-const GLOBAL_KEY = "global";
 
 export interface ThrottleDecision {
   retryAfterSeconds: number;
