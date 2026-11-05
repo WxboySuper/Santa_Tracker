@@ -2,7 +2,7 @@ import fs from "fs/promises";
 import path from "path";
 import { isAdventEnabled } from "./config";
 import { isNotFoundError } from "./errors";
-import { hasValidActivityKind } from "@/components/advent/activities";
+import { hasValidActivityKind } from "./advent-activity";
 import { safeEmbedPath } from "./advent-ui";
 import { getSantaSnapshotsBucket } from "./cloudflare-bindings";
 import { getSnapshotStore } from "./storage";
