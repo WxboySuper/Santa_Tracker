@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { DEFAULT_LOCALE, createTranslator } from "@santa-tracker/localization";
 import { countdownTarget, getCountdownParts, type CountdownParts } from "@/lib/countdown";
 
@@ -24,6 +25,8 @@ const pad = (value: number): string => String(value).padStart(2, "0");
 export default function CountdownTiles({ locale = DEFAULT_LOCALE, flyingText }: CountdownTilesProps) {
   const translator = useMemo(() => createTranslator({ locale }), [locale]);
   const [parts, setParts] = useState<CountdownParts | null>(null);
+  const router = useRouter();
+  const sawCountdown = useRef(false);
 
   useEffect(() => {
     // Recompute the target every tick so a tab left open across takeoff (or the end of the
@@ -36,6 +39,17 @@ export default function CountdownTiles({ locale = DEFAULT_LOCALE, flyingText }: 
     const timer = window.setInterval(update, 1_000);
     return () => window.clearInterval(timer);
   }, []);
+
+  // When takeoff arrives while the page is open, ask the server to re-render: the Track Santa
+  // button and nav links are decided server-side and should appear without a manual reload.
+  const done = parts?.done === true;
+  useEffect(() => {
+    if (parts && !parts.done) sawCountdown.current = true;
+    if (done && sawCountdown.current) {
+      sawCountdown.current = false;
+      router.refresh();
+    }
+  }, [done, parts, router]);
 
   if (parts?.done) {
     return <p className="text-2xl font-bold text-yellow-300 md:text-3xl">{flyingText}</p>;

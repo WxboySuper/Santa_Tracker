@@ -1,14 +1,13 @@
 import { NextResponse } from "next/server";
 import { getArchiveDayApiResult } from "@/lib/advent";
 import { ADVENT_NO_STORE_HEADERS } from "@/lib/advent-http";
+import { gatedFeature } from "@/lib/access";
 
 export const dynamic = "force-dynamic";
 
 type AdventDayContext = { params: Promise<{ day: string }> };
 
-export function GET(_req: Request, { params }: AdventDayContext) {
-  return getArchiveDayResponse(params);
-}
+export const GET = gatedFeature("advent", (_req: Request, { params }: AdventDayContext) => getArchiveDayResponse(params));
 
 async function getArchiveDayResponse(params: AdventDayContext["params"]) {
   try {

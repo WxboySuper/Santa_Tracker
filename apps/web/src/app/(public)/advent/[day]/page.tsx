@@ -2,6 +2,7 @@ import Link from "next/link";
 import { createTranslator } from "@santa-tracker/localization";
 import { notFound } from "next/navigation";
 import { renderDayContent } from "@/components/advent/day-content";
+import { canViewFeature } from "@/lib/access";
 import { getDayContent, parseDayNumber } from "@/lib/advent";
 import { formatUnlockDate } from "@/lib/advent-ui";
 import { isAdventEnabled } from "@/lib/config";
@@ -11,7 +12,7 @@ import { getRequestLocale } from "@/lib/request-locale";
 export const dynamic = "force-dynamic";
 
 export default async function AdventDayPage({ params }: { params: Promise<{ day: string }> }) {
-  if (!isAdventEnabled()) notFound();
+  if (!isAdventEnabled() || !(await canViewFeature("advent"))) notFound();
   const dayNumber = parseDayNumber((await params).day);
   if (dayNumber === null) notFound();
   const day = await getDayContent(dayNumber);

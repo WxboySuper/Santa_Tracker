@@ -3,10 +3,11 @@ import { isAdventEnabled } from "@/lib/config";
 import { getManifest, isAdventDataNotFoundError, isAdventFeatureDisabledError } from "@/lib/advent";
 import { isNotFoundError } from "@/lib/errors";
 import { ADVENT_NO_STORE_HEADERS } from "@/lib/advent-http";
+import { gatedFeature } from "@/lib/access";
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+async function getManifestResponse() {
   if (!isAdventEnabled()) {
     return NextResponse.json({ error: "Not found" }, { status: 404, headers: ADVENT_NO_STORE_HEADERS });
   }
@@ -27,3 +28,5 @@ export async function GET() {
     return NextResponse.json({ error: "Internal server error" }, { status: 500, headers: ADVENT_NO_STORE_HEADERS });
   }
 }
+
+export const GET = gatedFeature("advent", getManifestResponse);

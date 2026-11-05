@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
 import { getDayApiResult } from "@/lib/advent";
 import { ADVENT_NO_STORE_HEADERS } from "@/lib/advent-http";
+import { gatedFeature } from "@/lib/access";
 
 export const dynamic = "force-dynamic";
 
-export async function GET(_request: Request, context: { params: Promise<{ day: string }> }) {
+async function getDayResponse(_request: Request, context: { params: Promise<{ day: string }> }) {
   try {
     const { day } = await context.params;
     const result = await getDayApiResult(day);
@@ -20,3 +21,5 @@ export async function GET(_request: Request, context: { params: Promise<{ day: s
     );
   }
 }
+
+export const GET = gatedFeature("advent", getDayResponse);
