@@ -7,7 +7,6 @@ describe('@santa-tracker/config', () => {
   it('parses defaults', () => {
     const env = getServerEnv({} as NodeJS.ProcessEnv);
     expect(env.NODE_ENV).toBe('development');
-    expect(env.DATABASE_URL).toContain('postgresql://');
   });
 
   it('throws on invalid NODE_ENV', () => {

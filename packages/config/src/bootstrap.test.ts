@@ -7,13 +7,13 @@ const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url))
 const bootstrap = path.join(repositoryRoot, 'tools', 'bootstrap.mjs');
 
 describe('developer bootstrap', () => {
-  it('exposes help without requiring Docker', () => {
+  it('exposes help', () => {
     const output = execFileSync(process.execPath, [bootstrap, '--help'], { encoding: 'utf8' });
     expect(output).toContain('pnpm bootstrap');
   });
 
-  it('checks the local Node and pnpm toolchain without Docker', () => {
-    const output = execFileSync(process.execPath, [bootstrap, '--check', '--skip-docker'], {
+  it('checks the local Node and pnpm toolchain', () => {
+    const output = execFileSync(process.execPath, [bootstrap, '--check'], {
       cwd: repositoryRoot,
       encoding: 'utf8',
     });

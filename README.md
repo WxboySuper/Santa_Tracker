@@ -29,15 +29,14 @@ pnpm --filter web build && pnpm --filter web start
 
 ### Start the local stack
 
-After installation, start PostgreSQL and the Next.js development server with one command:
+After installation, check prerequisites and start the Next.js dev server with one command:
 
 ```bash
 pnpm bootstrap
 ```
 
-The command checks Node.js, pnpm, and Docker Desktop first. It starts the PostgreSQL 16 container from
-`docker-compose.yml`, waits for `pg_isready`, then runs `pnpm dev` at `http://localhost:3000`. Database data stays in
-the `santa-tracker-postgres` Docker volume. Stop the app with `Ctrl+C`; stop the database with `docker compose down`.
+The command checks Node.js and pnpm, then runs `pnpm dev` at `http://localhost:3000`. No database or Docker is needed;
+local route and Advent data use the filesystem snapshot store.
 
 For a toolchain check on a machine without Docker, run `pnpm bootstrap --check --skip-docker`. The normal check also
 confirms that the Docker engine is running.
@@ -54,7 +53,6 @@ packages/
   config/                # Typed env + validation (fail-closed in prod)
   contracts/             # Zod schemas + stable IDs
   route-engine/          # Pure validation/simulation/unlock (no Next/F S/clock)
-  database/              # Drizzle placeholder (issue #210); filesystem store provides parity now
   ui/                    # Shared primitives
   activity-sdk/          # Activity lifecycle
   test-fixtures/         # Clocks, routes, snapshots, and frozen legacy fixtures
@@ -65,7 +63,7 @@ archive/
   offline-flask-legacy.html
 ```
 
-Dependency direction per ADR: `web -> route-engine/contracts`, `database -> contracts/config`, etc. Flask and Python are not used by production or deploy paths. CI keeps archive-only Python checks for the retired implementation.
+Dependency direction per ADR: `web -> route-engine/contracts`, etc. Flask and Python are not used by production or deploy paths. CI keeps archive-only Python checks for the retired implementation.
 
 ## API
 

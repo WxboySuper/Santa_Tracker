@@ -21,16 +21,11 @@ pnpm install
 pnpm bootstrap
 ```
 
-This checks for Node.js 22.13+, pnpm 10+, and Docker Desktop with Compose. It starts the PostgreSQL 16 service,
-waits until `pg_isready` succeeds, and starts the Next.js dev server. The default connection string is
-`postgresql://santa:santa@localhost:5432/santa_tracker`, matching `packages/config` and the Drizzle config.
+This checks for Node.js 22.13+ and pnpm 10+, then starts the Next.js dev server. No database or Docker is needed.
 
 The command works from PowerShell, Command Prompt, macOS, and Linux because it uses Node's process APIs instead of
-shell-specific syntax. If a prerequisite is missing, it prints the install or startup action to take. To validate
-the Node and pnpm path without starting Docker, use `pnpm bootstrap --check --skip-docker`. CI verifies the full
-Docker prerequisite on Linux and the Node/pnpm path on Windows. macOS is not a supported CI target at this time.
-
-To remove the local database volume and its data, run `docker compose down --volumes`.
+shell-specific syntax. If a prerequisite is missing, it prints the install action to take. To validate the toolchain
+without starting the server, use `pnpm bootstrap --check`.
 
 ### Next.js shell
 
@@ -48,19 +43,6 @@ pnpm test:watch
 pnpm build
 ```
 
-### Database migrations
-
-The `@santa-tracker/database` package owns PostgreSQL migrations. Generate a new migration after changing `src/schema.ts`, inspect the SQL, and commit the migration plus its `drizzle/meta` files:
-
-```bash
-pnpm --filter @santa-tracker/database db:generate
-DATABASE_URL=postgresql://santa:santa@localhost:5432/santa_tracker \
-  pnpm --filter @santa-tracker/database db:migrate
-```
-
-The `db:migrate` script calls the same `migrateDatabase` runner used by application code. CI runs the database integration tests in a separate PostgreSQL 16 job against `santa_tracker_test`, while the regular workspace checks do not need a database. The test clears only that database, applies all committed migrations twice, checks the resulting tables and columns, and verifies a failed migration leaves the prior schema usable. Local `pnpm test` skips these integration cases unless `DATABASE_URL_TEST` is set.
-
-Each Drizzle migration runs in a transaction. If a statement fails, PostgreSQL rolls back that migration and leaves the last committed schema available. Do not disable transactional migration execution for production changes. Fix the migration, verify it against an empty test database, and rerun `db:migrate`. Never repair production by deleting rows from `__drizzle_migrations` or by editing an applied migration. For a change that needs data repair, add a new migration with an explicit rollback or recovery procedure.
 
 ### Legacy Flask (maintenance until parity)
 
