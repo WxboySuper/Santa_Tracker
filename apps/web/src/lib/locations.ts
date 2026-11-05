@@ -284,6 +284,8 @@ export async function loadSantaRouteFromJson(source?: string | JsonRecord | unkn
 async function readRouteSource(source?: string | JsonRecord | unknown[]): Promise<unknown> {
   if (!source) return JSON.parse(await readPublishedSantaRouteJson());
   if (typeof source !== "string") return source;
+  const normalized = source.trimStart();
+  if (normalized.startsWith("{") || normalized.startsWith("[")) return JSON.parse(source);
   try {
     return await readRouteFile(source, "Route file not found");
   } catch (error: unknown) {

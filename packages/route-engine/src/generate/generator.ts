@@ -19,7 +19,9 @@ function stableHash(value: string, seed: number): number {
   for (const character of value) hash = Math.imul(hash ^ character.charCodeAt(0), 16777619) >>> 0;
   return hash;
 }
-function createStop(index: number, place: Candidate, config: GeneratorConfig, prior: Candidate | undefined, lastDeparture: number) {
+type StopContext = { config: GeneratorConfig; prior?: Candidate; lastDeparture: number };
+function createStop(index: number, place: Candidate, context: StopContext) {
+  const { config, prior, lastDeparture } = context;
   const target = Date.parse(christmasArrival(place.timezone, place.plannedMinute ?? config.arrivalStartMinute));
   const distance = prior ? haversineKm(prior, place) : 0;
   const travel = distance / config.maxSpeedKmh * 3_600_000 * 1.001 + 1_000;
@@ -37,7 +39,7 @@ function buildDocument(places: Candidate[], config: GeneratorConfig): { document
   let departureTime = 0;
   let previous: Candidate | undefined;
   for (const [index, place] of places.entries()) {
-    const stop = createStop(index, place, config, previous, departureTime);
+    const stop = createStop(index, place, { config, prior: previous, lastDeparture: departureTime });
     coordinates.set(stop.locationId, place);
     stops.push({ locationId: stop.locationId, arrivalIso: stop.arrival, departureIso: stop.departure, durationSeconds: config.durationSeconds });
     routeNodes.push({ id: stop.id, type: 'DELIVERY', location: { name: place.name, region: place.country, lat: place.lat, lng: place.lng, timezone_offset: christmasOffset(place.timezone) / 60 }, schedule: { arrival_utc: stop.arrival, departure_utc: stop.departure, local_arrival_time: null, time_window_status: null }, stop_experience: { duration_seconds: config.durationSeconds, camera_zoom: null, weather_condition: null, presents_delivered_at_stop: 0 }, transit_to_here: null, comment: place.category, notes: place.source ?? null, priority: 2 });
