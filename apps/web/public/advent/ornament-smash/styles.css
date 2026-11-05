@@ -60,7 +60,8 @@ html, body {
     box-shadow: inset 0 2px 8px rgb(0 0 0 / 10%);
 }
 
-/* Canvas */
+/* Canvas. The id is referenced by game.js, so it keeps its legacy camelCase name until the game is rebuilt (issue #271). */
+/* stylelint-disable-next-line selector-id-pattern */
 #gameCanvas {
     display: block;
     width: 100%;
@@ -73,11 +74,8 @@ html, body {
 /* Overlays */
 .overlay {
     position: absolute;
-    top: 0;
-    right: 0;
-    bottom: 0;
-    left: 0;
-    background: rgba(0, 0, 0, 0.75);
+    inset: 0;
+    background: rgb(0 0 0 / 75%);
     backdrop-filter: blur(4px);
     display: flex;
     align-items: center;
@@ -236,7 +234,7 @@ html, body {
 }
 
 /* Responsive */
-@media (max-width: 600px) {
+@media (width <= 600px) {
     .overlay-card {
         padding: 1.5rem 1rem;
     }
