@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { DEFAULT_LOCALE, createTranslator } from "@santa-tracker/localization";
-import { getCountdownParts, nextTakeoff, type CountdownParts } from "@/lib/countdown";
+import { countdownTarget, getCountdownParts, type CountdownParts } from "@/lib/countdown";
 
 interface CountdownTilesProps {
   locale?: string;
@@ -26,8 +26,12 @@ export default function CountdownTiles({ locale = DEFAULT_LOCALE, flyingText }: 
   const [parts, setParts] = useState<CountdownParts | null>(null);
 
   useEffect(() => {
-    const target = nextTakeoff(new Date());
-    const update = () => setParts(getCountdownParts(target, new Date()));
+    // Recompute the target every tick so a tab left open across takeoff (or the end of the
+    // flight window) switches state on its own.
+    const update = () => {
+      const now = new Date();
+      setParts(getCountdownParts(countdownTarget(now), now));
+    };
     update();
     const timer = window.setInterval(update, 1_000);
     return () => window.clearInterval(timer);

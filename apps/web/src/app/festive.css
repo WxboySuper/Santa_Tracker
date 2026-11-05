@@ -109,12 +109,13 @@
     animation: festive-twinkle 5s ease-in-out infinite alternate;
   }
 
+  /* Each layer scrolls by exactly one tile height per cycle, so the loop restarts invisibly. */
   .festive-snow--far {
-    animation: festive-fall 38s linear infinite;
+    animation: festive-fall-far 10s linear infinite;
   }
 
   .festive-snow--near {
-    animation: festive-fall 19s linear infinite;
+    animation: festive-fall-near 6s linear infinite;
   }
 
   .festive-lights::before {
@@ -135,9 +136,15 @@
   to { opacity: 1; }
 }
 
-@keyframes festive-fall {
+/* Distances match each layer's background-size height (200px and 280px). */
+@keyframes festive-fall-far {
   from { background-position: 0 0; }
-  to { background-position: 40px 100vh; }
+  to { background-position: 0 200px; }
+}
+
+@keyframes festive-fall-near {
+  from { background-position: 0 0; }
+  to { background-position: 0 280px; }
 }
 
 @keyframes festive-bulb {
@@ -148,4 +155,24 @@
 @keyframes festive-tick {
   0% { transform: scale(1.06); }
   100% { transform: scale(1); }
+}
+
+/*
+ * Windows High Contrast / forced colors strips backgrounds, so a transparent gradient title would
+ * disappear. Use the system text colour, keep visible tile borders, and drop the decorative scene.
+ */
+@media (forced-colors: active) {
+  .festive-title {
+    background: none;
+    color: CanvasText;
+    filter: none;
+  }
+
+  .countdown-tile {
+    border-color: CanvasText;
+  }
+
+  .festive-backdrop {
+    display: none;
+  }
 }

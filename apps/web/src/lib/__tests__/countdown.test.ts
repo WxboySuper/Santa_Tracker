@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatCountdown, getCountdownParts, nextTakeoff } from "../countdown";
+import { FLIGHT_WINDOW_MS, countdownTarget, formatCountdown, getCountdownParts, nextTakeoff } from "../countdown";
 
 const takeoff = Date.UTC(2026, 11, 24, 10, 0, 0);
 
@@ -7,6 +7,30 @@ describe("nextTakeoff", () => {
   it("targets Dec 24 10:00 UTC this year until it passes, then next year", () => {
     expect(nextTakeoff(new Date("2026-11-05T00:00:00Z"))).toBe(takeoff);
     expect(nextTakeoff(new Date("2026-12-24T10:00:01Z"))).toBe(Date.UTC(2027, 11, 24, 10, 0, 0));
+  });
+});
+
+describe("countdownTarget", () => {
+  it("counts down to this year's takeoff beforehand", () => {
+    expect(countdownTarget(new Date("2026-12-24T09:59:59Z"))).toBe(takeoff);
+  });
+
+  it("holds this year's takeoff through the flight window so the page says Santa is flying", () => {
+    const during = new Date(takeoff + 3600 * 1000);
+    expect(countdownTarget(during)).toBe(takeoff);
+    expect(getCountdownParts(countdownTarget(during), during).done).toBe(true);
+    const lastMoment = new Date(takeoff + FLIGHT_WINDOW_MS - 1);
+    expect(getCountdownParts(countdownTarget(lastMoment), lastMoment).done).toBe(true);
+  });
+
+  it("rolls over to next year once the window closes", () => {
+    const after = new Date(takeoff + FLIGHT_WINDOW_MS);
+    expect(countdownTarget(after)).toBe(Date.UTC(2027, 11, 24, 10, 0, 0));
+    expect(getCountdownParts(countdownTarget(after), after).done).toBe(false);
+  });
+
+  it("is a plain countdown in the following spring", () => {
+    expect(countdownTarget(new Date("2027-03-01T00:00:00Z"))).toBe(Date.UTC(2027, 11, 24, 10, 0, 0));
   });
 });
 
