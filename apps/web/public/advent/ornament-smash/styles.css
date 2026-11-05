@@ -206,6 +206,9 @@ html, body {
     left: 50%;
     transform: translateX(-50%);
     z-index: 5;
+
+    /* Display-only: ornaments can sit under it, so it must not swallow taps meant for the canvas. */
+    pointer-events: none;
 }
 
 .hud.hidden {

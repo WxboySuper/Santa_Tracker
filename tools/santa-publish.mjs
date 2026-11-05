@@ -72,16 +72,32 @@ function uploadToR2({ bucket, dataset, versionId, body, activate }) {
   });
 }
 
+const KNOWN_FLAGS = new Set(["--remote", "--activate", "--only"]);
+
+/**
+ * The value of `--only`, accepting both `--only <dataset>` and `--only=<dataset>`. An unrecognised
+ * spelling must never fall through to "all datasets": combined with --activate that would silently
+ * replace every live dataset when one was intended.
+ */
+function readOnly(args) {
+  const inline = args.find((arg) => arg.startsWith("--only="));
+  if (inline !== undefined) return inline.slice("--only=".length);
+  const index = args.indexOf("--only");
+  return index === -1 ? null : (args[index + 1] ?? "");
+}
+
 /** Read the command line and environment into one validated options object. */
 function parseOptions(argv, env) {
-  const onlyIndex = argv.indexOf("--only");
-  const only = onlyIndex === -1 ? null : argv[onlyIndex + 1];
+  const args = argv.slice(2);
+  const unknown = args.filter((arg) => arg.startsWith("--") && !KNOWN_FLAGS.has(arg.split("=")[0]));
+  if (unknown.length > 0) throw new Error(`Unknown option(s): ${unknown.join(", ")}`);
+  const only = readOnly(args);
   if (only !== null && !DATASETS.some((entry) => entry.dataset === only)) {
     throw new Error(`--only must be one of: ${DATASETS.map((entry) => entry.dataset).join(", ")}`);
   }
   return {
-    remote: argv.includes("--remote"),
-    activate: argv.includes("--activate"),
+    remote: args.includes("--remote"),
+    activate: args.includes("--activate"),
     only,
     bucket: env.SANTA_R2_BUCKET ?? "santa-tracker-snapshots",
   };

@@ -743,8 +743,9 @@ function drawTree() {
 function drawStar(x, y, radius, color) {
     ctx.fillStyle = color;
     ctx.beginPath();
-    for (let i = 0; i < 5; i++) {
-        const angle = (i * 4 * Math.PI) / 5 - Math.PI / 2;
+    // A five-point star has ten vertices: five outer points alternating with five inner ones.
+    for (let i = 0; i < 10; i++) {
+        const angle = (i * Math.PI) / 5 - Math.PI / 2;
         const rad = i % 2 === 0 ? radius : radius / 2;
         const px = x + rad * Math.cos(angle);
         const py = y + rad * Math.sin(angle);
