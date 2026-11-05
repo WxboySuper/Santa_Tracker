@@ -9,6 +9,11 @@ describe('applyOverrides', () => {
       .toEqual(['d', 'c']);
   });
 
+  it('replaces an unlocked selection with a lock and rejects too many locks', () => {
+    expect(applyOverrides(pool, ['a', 'b'], { lock: ['c'] })).toEqual(['a', 'c']);
+    expect(() => applyOverrides(pool, ['a', 'b'], { lock: ['a', 'b', 'c'] })).toThrow();
+  });
+
   it('rejects unknown ids, conflicting directives, and swaps of missing stops', () => {
     expect(() => applyOverrides(pool, ['a'], { lock: ['z'] })).toThrow();
     expect(() => applyOverrides(pool, ['a'], { lock: ['a'], veto: ['a'] })).toThrow();

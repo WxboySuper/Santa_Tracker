@@ -6,7 +6,7 @@ export type Candidate = LatLng & {
   population?: number; worldCity?: boolean; source?: string; region?: string; plannedMinute?: number;
 };
 export type GeneratorConfig = {
-  seed: number; total: number; weights?: Record<string, number>; arrivalStartMinute: number;
+  seed: number; total: number; weights: Record<string, number>; arrivalStartMinute: number;
   arrivalEndMinute: number; durationSeconds: number; maxSpeedKmh: number; maxGapKm: number;
   maxCountryRun: number; minimumStopsPerHour: number; westernHours: number;
 };
@@ -21,7 +21,7 @@ export type RouteReport = {
   longestLegs: { from: string; to: string; km: number; kmh: number }[]; flags: { longGap: number; fastLeg: number; repeatCountry: number }[];
   issues: string[]; westernMinimum: number;
 };
-export const DEFAULT_GENERATOR_CONFIG: GeneratorConfig = {
+export const DEFAULT_GENERATOR_LIMITS: Omit<GeneratorConfig, 'weights'> = {
   seed: 2026, total: 160,
   arrivalStartMinute: 20, arrivalEndMinute: 180, durationSeconds: 60, maxSpeedKmh: 40_000,
   maxGapKm: 1200, maxCountryRun: 8, minimumStopsPerHour: 4, westernHours: 8,

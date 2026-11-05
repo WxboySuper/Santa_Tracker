@@ -9,9 +9,9 @@ import { buildReport } from './report';
 import { christmasArrival } from './sweep';
 import type { RouteOverrides } from './overrides';
 import { christmasOffset, localMinute } from './timezone';
-import { DEFAULT_GENERATOR_CONFIG, type Candidate, type GeneratedRoute, type GeneratorConfig } from './types';
+import type { Candidate, GeneratedRoute, GeneratorConfig } from './types';
 
-export { DEFAULT_GENERATOR_CONFIG } from './types';
+export { DEFAULT_GENERATOR_LIMITS } from './types';
 export type { Candidate, GeneratedRoute, GeneratorConfig, RouteReport } from './types';
 
 function stableHash(value: string, seed: number): number {
@@ -62,8 +62,8 @@ function addReportWarnings(report: GeneratedRoute['report'], config: GeneratorCo
   const longLegs = report.flags.filter((flag) => flag.longGap > 0).length;
   if (longLegs > 0) report.issues.push(`Distance threshold relaxed for ${longLegs} legs over ${config.maxGapKm} km to preserve the global stop mix and the 26-hour sweep.`);
 }
-export function generateRoute(pool: Candidate[], config: GeneratorConfig = DEFAULT_GENERATOR_CONFIG, overrides: RouteOverrides = {}): GeneratedRoute {
-  if (!config.weights || Object.keys(config.weights).length === 0) throw new Error('Category weights are required');
+export function generateRoute(pool: Candidate[], config: GeneratorConfig, overrides: RouteOverrides = {}): GeneratedRoute {
+  if (Object.keys(config.weights).length === 0) throw new Error('Category weights are required');
   const chosen = chooseCandidates(pool, config, overrides);
   const ordered = sweepOrder(chosen, config);
   const { document, route, coordinates } = buildDocument(ordered, config);

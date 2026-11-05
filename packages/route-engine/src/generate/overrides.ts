@@ -24,6 +24,12 @@ function applySwap(selected: string[], from: string, to: string, rules: SwapRule
   checkSwapTarget(selected, to, rules.veto);
   selected[index] = to;
 }
+function lastUnlockedIndex(selection: string[], locks: Set<string>): number {
+  for (let index = selection.length - 1; index >= 0; index--) {
+    if (!locks.has(selection[index] ?? '')) return index;
+  }
+  return -1;
+}
 
 /** Apply owner directives to a selection. The caller is responsible for refilling it. */
 export function applyOverrides(pool: readonly { id: string }[], selection: readonly string[], overrides: RouteOverrides): string[] {
@@ -35,12 +41,20 @@ export function applyOverrides(pool: readonly { id: string }[], selection: reado
   for (const id of locks) {
     if (veto.has(id)) throw new Error(`Stop is both locked and vetoed: ${id}`);
   }
+  if (locks.size > selection.length) throw new Error('Locked stops exceed the selection size');
   if (new Set(selection).size !== selection.length) throw new Error('Duplicate selected stop');
   const selected = [...selection];
   for (const [from, to] of swaps) applySwap(selected, from, to, { veto, locks });
   const result = selected.filter((id) => !veto.has(id));
   for (const id of locks) {
-    if (!result.includes(id)) result.push(id);
+    if (result.includes(id)) continue;
+    if (result.length < selection.length) {
+      result.push(id);
+      continue;
+    }
+    const replaceAt = lastUnlockedIndex(result, locks);
+    if (replaceAt < 0) throw new Error(`Cannot fit locked stop ${id} into selection`);
+    result[replaceAt] = id;
   }
   return result;
 }

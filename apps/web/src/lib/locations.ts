@@ -281,17 +281,16 @@ export async function loadSantaRouteFromJson(source?: string | JsonRecord | unkn
   return parseRouteNodes(extractRouteNodes(obj)).map(toLocationFromNode);
 }
 
+function isInlineRouteJson(source: string): boolean {
+  const firstCharacter = source.trimStart()[0];
+  return firstCharacter === "{" || firstCharacter === "[";
+}
+
 async function readRouteSource(source?: string | JsonRecord | unknown[]): Promise<unknown> {
   if (!source) return JSON.parse(await readPublishedSantaRouteJson());
   if (typeof source !== "string") return source;
-  const normalized = source.trimStart();
-  if (normalized.startsWith("{") || normalized.startsWith("[")) return JSON.parse(source);
-  try {
-    return await readRouteFile(source, "Route file not found");
-  } catch (error: unknown) {
-    if (error instanceof Error && error.cause === "ENOENT") return JSON.parse(source);
-    throw error;
-  }
+  if (isInlineRouteJson(source)) return JSON.parse(source);
+  return readRouteFile(source, "Route file not found");
 }
 
 async function readRouteFile(filePath: string, errorLabel: string): Promise<unknown> {

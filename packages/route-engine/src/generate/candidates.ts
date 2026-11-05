@@ -12,9 +12,9 @@ function categoryOf(place: Candidate): string {
   if (['hub', 'cultural', 'underserved', 'nature', 'special'].includes(place.category)) return place.category;
   return place.worldCity ? 'hub' : 'underserved';
 }
-type SelectionContext = { places: Candidate[]; config: GeneratorConfig; countryBandCounts: Map<string, number> };
+type SelectionContext = { places: Candidate[]; config: GeneratorConfig };
 function selectCategory(context: SelectionContext, category: string, quota: number): string[] {
-  const { places, config, countryBandCounts } = context;
+  const { places, config } = context;
   const candidates = places.filter((place) => place.category === category)
     .sort((a, b) => stableHash(a.id, config.seed) - stableHash(b.id, config.seed) || a.id.localeCompare(b.id));
   const selected: string[] = [];
@@ -24,11 +24,7 @@ function selectCategory(context: SelectionContext, category: string, quota: numb
   const preferred = [...preferredWest, ...candidates.filter((place) => !preferredWest.includes(place))];
   for (const place of preferred) {
     if (selected.length === quota) break;
-    const key = `${christmasOffset(place.timezone)}:${place.country}`;
-    const count = countryBandCounts.get(key) ?? 0;
-    if (count >= config.maxCountryRun) continue;
     selected.push(place.id);
-    countryBandCounts.set(key, count + 1);
   }
   if (selected.length < quota) throw new Error(`Country cap prevents filling ${category} quota ${quota}`);
   return selected;
@@ -43,8 +39,8 @@ function refillSelection(
 }
 export function chooseCandidates(pool: Candidate[], config: GeneratorConfig, overrides: RouteOverrides): Candidate[] {
   const places = pool.map((place) => ({ ...place, category: categoryOf(place) }));
-  const quotas = allocateQuotas(config.total, config.weights ?? {});
-  const context = { places, config, countryBandCounts: new Map<string, number>() };
+  const quotas = allocateQuotas(config.total, config.weights);
+  const context = { places, config };
   const selected = Object.entries(quotas).flatMap(([category, quota]) => selectCategory(context, category, quota));
   const adjusted = applyOverrides(places, selected, overrides);
   const refilled = refillSelection(places, adjusted, config, overrides);

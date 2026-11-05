@@ -1,7 +1,8 @@
 export function christmasOffset(timezone: string): number {
   const parts = new Intl.DateTimeFormat('en-US', { timeZone: timezone, timeZoneName: 'longOffset' }).formatToParts(Date.UTC(2026, 11, 25));
-  const offset = parts.find((part) => part.type === 'timeZoneName')?.value.replace('GMT', '');
-  if (!offset) throw new Error(`Missing UTC offset for ${timezone}`);
+  const rawOffset = parts.find((part) => part.type === 'timeZoneName')?.value;
+  if (rawOffset == null) throw new Error(`Missing UTC offset for ${timezone}`);
+  const offset = rawOffset.replace('GMT', '') || '+00:00';
   const match = /^([+-])(\d{2}):?(\d{2})?$/.exec(offset);
   if (!match) throw new Error(`Invalid UTC offset for ${timezone}: ${offset}`);
   return (match[1] === '-' ? -1 : 1) * (Number(match[2]) * 60 + Number(match[3] ?? 0));

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { christmasArrival } from './sweep';
+import { christmasOffset } from './timezone';
 
 describe('christmasArrival', () => {
   it('places the date-line extremes on their respective Christmas days', () => {
@@ -19,5 +20,10 @@ describe('christmasArrival', () => {
   it('rejects invalid offsets and time zones', () => {
     expect(() => christmasArrival('Pacific/Kiritimati', 1440)).toThrow();
     expect(() => christmasArrival('Invalid/Zone', 20)).toThrow();
+  });
+
+  it('handles valid zero-offset time zones', () => {
+    expect(christmasOffset('UTC')).toBe(0);
+    expect(christmasOffset('Africa/Abidjan')).toBe(0);
   });
 });

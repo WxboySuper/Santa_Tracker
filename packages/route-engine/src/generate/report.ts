@@ -4,7 +4,7 @@ import type { Route } from '@santa-tracker/contracts';
 
 type LegSummary = { from: string; to: string; km: number; kmh: number; longGap: boolean };
 function categoryMix(places: Candidate[], config: GeneratorConfig): RouteReport['mix'] {
-  const weights = config.weights ?? {};
+  const weights = config.weights;
   const weightTotal = Object.values(weights).reduce((total, weight) => total + weight, 0);
   return Object.fromEntries(Object.entries(weights).map(([category, weight]) => [category, {
     count: places.filter((place) => place.category === category).length,
