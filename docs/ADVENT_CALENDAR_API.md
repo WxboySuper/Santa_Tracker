@@ -14,7 +14,7 @@ Archived reads use `GET /api/advent/archive/:day`. A day is available after its 
 
 ## Features
 
-- **Server-Controlled Unlocking**: Days unlock automatically at UTC midnight based on configured unlock times
+- **Server-Controlled Unlocking**: Days unlock automatically at their configured `unlock_time`. The 2026 calendar opens day N at **12:00 UTC on Dec N**, which is midnight at UTC-12, the last midnight on Earth, so no visitor anywhere can open a door before that date has started where they are (no early spoilers). Americas families see it open in the early morning; Europe sees it around midday.
 - **Admin Override Support**: Force unlock or lock specific days regardless of time
 - **Content Types**: Support for facts, games, stories, videos, activities, and quizzes
 - **Secure API**: Locked days don't expose content payload, preventing client-side tampering

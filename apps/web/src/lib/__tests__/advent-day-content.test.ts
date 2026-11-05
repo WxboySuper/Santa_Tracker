@@ -24,8 +24,16 @@ describe("renderDayContent", () => {
     expect(render(day({}))).toContain("Reindeer eyes change colour in winter.");
   });
 
+  it("renders a story's text payload the same way as a fact", () => {
+    const html = render(day({ content_type: "story", payload: { text: "Once upon a snowy night." } }));
+    expect(html).toContain("Once upon a snowy night.");
+    expect(html).not.toContain("FALLBACK");
+  });
+
   it("falls back for a content type with no renderer yet", () => {
-    expect(render(day({ content_type: "quiz" }))).toContain("FALLBACK");
+    for (const content_type of ["quiz", "video", "activity"] as const) {
+      expect(render(day({ content_type }))).toContain("FALLBACK");
+    }
   });
 
   it("falls back when a fact has no usable text", () => {

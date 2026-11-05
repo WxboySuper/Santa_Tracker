@@ -32,7 +32,7 @@ See [ADR 0002](adr/0002-cloudflare-workers-hosting.md) for the hosting decision.
    pnpm install
    pnpm santa:publish:remote  # requires CLOUDFLARE_API_TOKEN and SANTA_R2_BUCKET
    ```
-   To intentionally replace active data from the checked-in JSON, run `pnpm exec node tools/santa-publish.mjs --remote --activate`.
+   To intentionally replace active data from the checked-in JSON, name the scope: `pnpm exec node tools/santa-publish.mjs --remote --activate --only advent-calendar` (or `--only santa-route`; `--all` replaces both, on purpose). `--activate` without a scope is refused, as are unknown options and stray arguments. The previous version stays in R2 for rollback. Prefer the manual **Deploy Cloudflare Workers** run with its `activate_dataset` input, which replaces the data only after a successful build and deploy.
 6. Deploy manually via GitHub Actions workflow **Deploy Cloudflare Workers (manual)** (`deploy-cloudflare-workers.yml`) using repository secret `CLOUDFLARE_API_TOKEN`.
 
 ### Local preview
