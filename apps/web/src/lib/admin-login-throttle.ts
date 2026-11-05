@@ -6,24 +6,24 @@ export interface ThrottleState {
 }
 
 export interface ThrottleStore {
-  get(key: string): ThrottleState | undefined;
-  set(key: string, value: ThrottleState): void;
-  delete(key: string): void;
+  get(key: string): Promise<ThrottleState | undefined>;
+  set(key: string, value: ThrottleState): Promise<void>;
+  delete(key: string): Promise<void>;
 }
 
 export class InMemoryThrottleStore implements ThrottleStore {
   private readonly values = new Map<string, ThrottleState>();
 
-  get(key: string): ThrottleState | undefined {
+  async get(key: string): Promise<ThrottleState | undefined> {
     const value = this.values.get(key);
     return value ? { ...value, attempts: [...value.attempts] } : undefined;
   }
 
-  set(key: string, value: ThrottleState): void {
+  async set(key: string, value: ThrottleState): Promise<void> {
     this.values.set(key, { ...value, attempts: [...value.attempts] });
   }
 
-  delete(key: string): void {
+  async delete(key: string): Promise<void> {
     this.values.delete(key);
   }
 }
@@ -44,9 +44,9 @@ export interface ThrottleDecision {
 }
 
 export interface LoginThrottle {
-  check(ip: string, authenticated?: boolean): ThrottleDecision | null;
-  recordFailure(ip: string): ThrottleDecision | null;
-  clear(ip: string): void;
+  check(ip: string, authenticated?: boolean): Promise<ThrottleDecision | null>;
+  recordFailure(ip: string): Promise<ThrottleDecision | null>;
+  clear(ip: string): Promise<void>;
 }
 
 // Workers isolates are ephemeral, so this memory store only offers best-effort throttling.
@@ -56,11 +56,11 @@ export function createLoginThrottle(store: ThrottleStore = new InMemoryThrottleS
     check(ip, authenticated = false) {
       return checkThrottle(store, clock, ip, authenticated);
     },
-    recordFailure(ip) {
+    async recordFailure(ip) {
       const now = clock();
       const key = ipKey(ip);
-      const state = readState(store, key, now, IP_WINDOW_MS);
-      recordGlobalFailure(store, now);
+      const state = await readState(store, key, now, IP_WINDOW_MS);
+      await recordGlobalFailure(store, now);
       if (state.lockoutUntil > now) return checkThrottle(store, clock, ip);
 
       const lockoutIsStale = state.lastLockoutAt >= 0 && now - state.lastLockoutAt >= LOCKOUT_RESET_MS;
@@ -76,38 +76,38 @@ export function createLoginThrottle(store: ThrottleStore = new InMemoryThrottleS
         lockoutUntil = now + duration;
         lastLockoutAt = now;
       }
-      store.set(key, { attempts, lockoutUntil, lockoutLevel, lastLockoutAt });
+      await store.set(key, { attempts, lockoutUntil, lockoutLevel, lastLockoutAt });
       return checkThrottle(store, clock, ip);
     },
-    clear(ip) {
-      store.delete(ipKey(ip));
+    async clear(ip) {
+      await store.delete(ipKey(ip));
     },
   };
 }
 
-function checkThrottle(store: ThrottleStore, clock: () => number, ip: string, authenticated = false): ThrottleDecision | null {
+async function checkThrottle(store: ThrottleStore, clock: () => number, ip: string, authenticated = false): Promise<ThrottleDecision | null> {
   const now = clock();
-  const ipState = readState(store, ipKey(ip), now, IP_WINDOW_MS);
+  const ipState = await readState(store, ipKey(ip), now, IP_WINDOW_MS);
   if (ipState.lockoutUntil > now) return decision(ipState.lockoutUntil, now, "ip");
   if (authenticated) return null;
-  const globalState = readState(store, GLOBAL_KEY, now, GLOBAL_WINDOW_MS);
+  const globalState = await readState(store, GLOBAL_KEY, now, GLOBAL_WINDOW_MS);
   if (globalState.attempts.length > GLOBAL_ATTEMPT_LIMIT) {
     return decision(globalState.attempts[0]! + GLOBAL_WINDOW_MS, now, "global");
   }
   return null;
 }
 
-function recordGlobalFailure(store: ThrottleStore, now: number): void {
-  const globalState = readState(store, GLOBAL_KEY, now, GLOBAL_WINDOW_MS);
+async function recordGlobalFailure(store: ThrottleStore, now: number): Promise<void> {
+  const globalState = await readState(store, GLOBAL_KEY, now, GLOBAL_WINDOW_MS);
   globalState.attempts.push(now);
-  store.set(GLOBAL_KEY, globalState);
+  await store.set(GLOBAL_KEY, globalState);
 }
 
-function readState(store: ThrottleStore, key: string, now: number, windowMs: number): ThrottleState {
-  const state = store.get(key) ?? { attempts: [], lockoutUntil: 0, lockoutLevel: 0, lastLockoutAt: -1 };
+async function readState(store: ThrottleStore, key: string, now: number, windowMs: number): Promise<ThrottleState> {
+  const state = await store.get(key) ?? { attempts: [], lockoutUntil: 0, lockoutLevel: 0, lastLockoutAt: -1 };
   const attempts = state.attempts.filter((timestamp) => now - timestamp < windowMs);
   const next = { ...state, attempts };
-  if (attempts.length !== state.attempts.length) store.set(key, next);
+  if (attempts.length !== state.attempts.length) await store.set(key, next);
   return next;
 }
 

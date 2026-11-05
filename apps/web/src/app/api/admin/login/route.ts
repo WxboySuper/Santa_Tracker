@@ -14,15 +14,15 @@ export function getClientIp(req: Request): string {
 export async function POST(req: Request) {
   const ip = getClientIp(req);
   const existingSession = await requireAdminAuth(req);
-  const limited = checkLoginRateLimit(ip, existingSession.ok);
+  const limited = await checkLoginRateLimit(ip, existingSession.ok);
   if (limited) return throttledResponse(limited.retryAfterSeconds);
 
   const result = await loginAdmin(await readJsonBody(req));
   if (result.status === 401) {
-    const failureLimit = recordLoginAttempt(ip);
+    const failureLimit = await recordLoginAttempt(ip);
     if (failureLimit) return throttledResponse(failureLimit.retryAfterSeconds);
   } else if (result.status === 200) {
-    clearLoginAttempts(ip);
+    await clearLoginAttempts(ip);
   }
 
   const response = respondWith(result);
