@@ -5,7 +5,7 @@ import { parseQuiz } from "@/lib/advent-quiz";
 import { AdventQuiz } from "./advent-quiz";
 
 type ContentType = AdventPublicDay["content_type"];
-type Renderer = (day: AdventPublicDay) => ReactNode;
+type Renderer = (day: AdventPublicDay, locale: string) => ReactNode;
 
 function textOf(day: AdventPublicDay): string | null {
   const text = day.payload?.text;
@@ -37,7 +37,9 @@ const renderEmbed: Renderer = (day) => {
   );
 };
 
-const renderQuiz: Renderer = (day) => parseQuiz(day.payload) ? <AdventQuiz payload={day.payload} /> : null;
+const renderQuiz: Renderer = (day, locale) => parseQuiz(day.payload)
+  ? <AdventQuiz key={day.day} payload={day.payload} locale={locale} />
+  : null;
 
 /**
  * One renderer per content type. A type with no renderer yet (`video`, `activity`), or a
@@ -52,6 +54,6 @@ const renderers: Partial<Record<ContentType, Renderer>> = {
 };
 
 /** The content for a day, or `fallback` when the type has no renderer or the payload is unusable. */
-export function renderDayContent(day: AdventPublicDay, fallback: ReactNode): ReactNode {
-  return renderers[day.content_type]?.(day) ?? fallback;
+export function renderDayContent(day: AdventPublicDay, fallback: ReactNode, locale = "en"): ReactNode {
+  return renderers[day.content_type]?.(day, locale) ?? fallback;
 }

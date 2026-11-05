@@ -7,9 +7,9 @@ import { initialQuizState, parseQuiz, quizReducer, type Quiz, type QuizAction, t
 type QuizTranslator = ReturnType<typeof createTranslator>;
 type FocusTarget = (element: HTMLElement | null) => void;
 
-export function AdventQuiz({ payload }: { payload: unknown }) {
+export function AdventQuiz({ payload, locale }: { payload: unknown; locale: string }) {
   const quiz = parseQuiz(payload);
-  const translator = useMemo(() => createTranslator({ locale: "en" }), []);
+  const translator = useMemo(() => createTranslator({ locale }), [locale]);
   const [state, dispatch] = useReducer(quizReducer, undefined, initialQuizState);
   const focusRef = useRef<HTMLElement | null>(null);
   const hasMounted = useRef(false);
