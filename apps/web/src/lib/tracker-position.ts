@@ -1,5 +1,5 @@
 import type { Route } from "@santa-tracker/contracts";
-import { deriveJourneyState, findSegment } from "@santa-tracker/route-engine";
+import { deriveJourneyState, findSegment, interpolateGreatCircle } from "@santa-tracker/route-engine";
 import type { RouteNode } from "./locations";
 import { routeNodesToContractRoute } from "./route-bridge";
 
@@ -7,10 +7,6 @@ export interface SantaPosition {
   lat: number;
   lng: number;
   journey: ReturnType<typeof deriveJourneyState>;
-}
-
-function lerp(a: number, b: number, t: number): number {
-  return a + (b - a) * t;
 }
 
 function nodeLatLng(node: RouteNode): { lat: number; lng: number } {
@@ -63,11 +59,10 @@ function positionOnSegment(
   const fromCoordinates = nodeLatLng(fromNode);
   const toCoordinates = nodeLatLng(toNode);
   const progress = segment.nextIndex != null ? segmentProgress(route, segment.currentIndex, segment.nextIndex, nowMs) : 0;
-  return {
-    lat: lerp(fromCoordinates.lat, toCoordinates.lat, progress),
-    lng: lerp(fromCoordinates.lng, toCoordinates.lng, progress),
-    journey,
-  };
+  // Great-circle and antimeridian-safe: a linear lat/lng lerp would swing the long way round
+  // the planet on dateline-crossing legs (lng 179 -> -179).
+  const { lat, lng } = interpolateGreatCircle(fromCoordinates, toCoordinates, progress);
+  return { lat, lng, journey };
 }
 
 function hasCoordinates(node: RouteNode): boolean {
