@@ -64,7 +64,8 @@ jobs:
           SANTA_R2_BUCKET: santa-tracker-snapshots
 
       - name: Replace live data from the checked-in file (manual, opt-in)
-        if: ${{ inputs.activate_dataset != '' && inputs.activate_dataset != 'none' }}
+        # `inputs` only exists for manual runs; guard on the event so a push can never reach this step.
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.activate_dataset != '' && inputs.activate_dataset != 'none' }}
         run: node tools/santa-publish.mjs --remote --activate --only "$DATASET"
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}

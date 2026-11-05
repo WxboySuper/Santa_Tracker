@@ -398,6 +398,19 @@ function updateRemainingCount() {
     }
 }
 
+// Remember that the player has won, and report whether this was the first win. Storage can be
+// unavailable (private modes, strict tracking protection, quota) and then throws; that must never
+// stop the win screen from showing. Without storage a badge cannot be remembered, so none is awarded.
+function recordFirstWin() {
+    try {
+        if (localStorage.getItem('santa_advent_day_1_complete')) return false;
+        localStorage.setItem('santa_advent_day_1_complete', 'true');
+        return true;
+    } catch {
+        return false;
+    }
+}
+
 // End game and show win screen
 function endGame() {
     gameState.isPlaying = false;
@@ -415,11 +428,9 @@ function endGame() {
     // Announce win to screen readers
     announceToScreenReader('Congratulations! You cleared all ornaments and won the game!');
     
-    // Check if first time win
-    const isFirstWin = !localStorage.getItem('santa_advent_day_1_complete');
-    
+    const isFirstWin = recordFirstWin();
+
     if (isFirstWin) {
-        localStorage.setItem('santa_advent_day_1_complete', 'true');
         badgeNotification.classList.remove('hidden');
     } else {
         badgeNotification.classList.add('hidden');
