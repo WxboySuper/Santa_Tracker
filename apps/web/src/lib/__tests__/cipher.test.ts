@@ -10,9 +10,9 @@ describe("Caesar cipher helpers", () => {
   it("preserves spaces and normalizes answer case and extra whitespace", () => {
     expect(encode("Meet   me", 3)).toBe("PHHW   PH");
     expect(normalizeCipherAnswer("  meet   me  ")).toBe("MEET ME");
-    expect(isCipherAnswerCorrect("  meet   me ", "MEET ME")).toBe(true);
-    expect(isCipherAnswerCorrect("meet you", "MEET ME")).toBe(false);
-    expect(isCipherAnswerCorrect("  merry   christmas ", "MERRY CHRISTMAS")).toBe(true);
+    expect(isCipherAnswerCorrect({ submitted: "  meet   me ", expected: "MEET ME" })).toBe(true);
+    expect(isCipherAnswerCorrect({ submitted: "meet you", expected: "MEET ME" })).toBe(false);
+    expect(isCipherAnswerCorrect({ submitted: "  merry   christmas ", expected: "MERRY CHRISTMAS" })).toBe(true);
   });
 
   it("parses valid config and an optional hint", () => {

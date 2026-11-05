@@ -21,7 +21,7 @@ export function CipherActivity({ config }: { config: CipherConfig }) {
     const submitted = new FormData(event.currentTarget).get("answer");
     const submittedAnswer = typeof submitted === "string" ? submitted : "";
     setAnswer(submittedAnswer);
-    setFeedback(isCipherAnswerCorrect(submittedAnswer, config.message)
+    setFeedback(isCipherAnswerCorrect({ submitted: submittedAnswer, expected: config.message })
       ? translator.t("advent.activity.cipher.correct")
       : translator.t("advent.activity.cipher.tryAgain"));
   }

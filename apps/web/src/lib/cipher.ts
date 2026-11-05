@@ -4,6 +4,11 @@ export interface CipherConfig {
   hint?: string;
 }
 
+export interface CipherAnswerCheck {
+  submitted: string;
+  expected: string;
+}
+
 const MESSAGE_PATTERN = /^(?=.*[A-Z])[A-Z ]{3,60}$/i;
 
 function shiftMessage(message: string, shift: number): string {
@@ -57,6 +62,6 @@ export function normalizeCipherAnswer(value: string): string {
   return value.trim().replace(/\s+/g, " ").toUpperCase();
 }
 
-export function isCipherAnswerCorrect(answer: string, message: string): boolean {
-  return normalizeCipherAnswer(answer) === normalizeCipherAnswer(message);
+export function isCipherAnswerCorrect({ submitted, expected }: CipherAnswerCheck): boolean {
+  return normalizeCipherAnswer(submitted) === normalizeCipherAnswer(expected);
 }
