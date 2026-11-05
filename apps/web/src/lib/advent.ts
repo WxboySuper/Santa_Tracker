@@ -431,7 +431,7 @@ export async function saveAdventCalendar(days: AdventDay[] | Map<number, AdventD
 export function validateAdventCalendar(days: AdventDay[]) {
   const errors = duplicateDayErrors(days);
   const warnings = missingDayWarnings(days);
-  const required: Record<string, string> = { fact: "text", story: "text", game: "url", video: "video_url", activity: "url", quiz: "url" };
+  const required: Record<string, string> = { fact: "text", story: "text", game: "url", video: "video_url", activity: "url", quiz: "questions" };
   for (const day of days) warnings.push(...validateDayPayload(day, required));
   return { valid: errors.length === 0, errors, warnings, total_days: days.length, complete_days: days.filter(d => d.payload).length };
 }
