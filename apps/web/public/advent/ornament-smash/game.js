@@ -235,6 +235,16 @@ function initSnowflakes() {
 
 // Start the game
 function startGame() {
+    // A second activation must not stack another spawn timer or render loop.
+    if (gameState.isPlaying) return;
+    if (gameState.spawnTimer) {
+        clearInterval(gameState.spawnTimer);
+        gameState.spawnTimer = null;
+    }
+    if (gameState.animationId) {
+        cancelAnimationFrame(gameState.animationId);
+        gameState.animationId = null;
+    }
     gameState.isPlaying = true;
     startOverlay.classList.add('hidden');
     gameHUD.classList.remove('hidden');
