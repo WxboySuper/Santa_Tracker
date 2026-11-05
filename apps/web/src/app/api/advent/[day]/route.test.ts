@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { getDayApiResult } from "@/lib/advent";
 import { dynamic, GET } from "./route";
+vi.mock("@/lib/access", () => ({ gatedFeature: (_feature: string, handler: unknown) => handler }));
 
 vi.mock("@/lib/advent", () => ({ getDayApiResult: vi.fn() }));
 

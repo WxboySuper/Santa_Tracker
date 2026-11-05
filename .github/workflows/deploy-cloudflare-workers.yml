@@ -91,3 +91,7 @@ jobs:
         # resolver that still caches the old record, so retry once before failing.
         run: |
           node tools/smoke-test.mjs https://santa.weatherboysuper.com             || { sleep 30; node tools/smoke-test.mjs https://santa.weatherboysuper.com; }
+        env:
+          # /tracker and /advent are hidden from visitors outside their season windows, so the
+          # test logs in as admin to verify the real data. Value comes from the existing secret.
+          SMOKE_ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}

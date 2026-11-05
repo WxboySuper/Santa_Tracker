@@ -3,6 +3,7 @@ import { isAdventEnabled } from "@/lib/config";
 import { getManifest } from "@/lib/advent";
 import { dynamic, GET } from "./route";
 
+vi.mock("@/lib/access", () => ({ gatedFeature: (_feature: string, handler: unknown) => handler }));
 vi.mock("@/lib/config", () => ({ isAdventEnabled: vi.fn() }));
 vi.mock("@/lib/advent", () => ({
   getManifest: vi.fn(),
@@ -20,7 +21,7 @@ describe("advent manifest route", () => {
   });
 
   it("is dynamic so unlock state follows request time", async () => {
-    const response = await GET();
+    const response = await GET(new Request("https://example.test/api/advent/manifest"), undefined);
 
     expect(dynamic).toBe("force-dynamic");
     expect(response.status).toBe(200);
@@ -31,7 +32,7 @@ describe("advent manifest route", () => {
     vi.mocked(getManifest).mockRejectedValue(new Error("Downstream day not found"));
     const logError = vi.spyOn(console, "error").mockImplementation(() => undefined);
 
-    const response = await GET();
+    const response = await GET(new Request("https://example.test/api/advent/manifest"), undefined);
 
     expect(response.status).toBe(500);
     expect(await response.json()).toEqual({ error: "Internal server error" });
@@ -45,7 +46,7 @@ describe("advent manifest route", () => {
       Object.assign(new Error("Advent calendar data is absent"), { code: "ADVENT_DATA_NOT_FOUND" }),
     );
 
-    const response = await GET();
+    const response = await GET(new Request("https://example.test/api/advent/manifest"), undefined);
 
     expect(response.status).toBe(404);
     expect(await response.json()).toEqual({ error: "Advent calendar data not found" });
@@ -56,7 +57,7 @@ describe("advent manifest route", () => {
       Object.assign(new Error("Advent calendar is disabled"), { code: "ADVENT_FEATURE_DISABLED" }),
     );
 
-    const response = await GET();
+    const response = await GET(new Request("https://example.test/api/advent/manifest"), undefined);
 
     expect(response.status).toBe(404);
     expect(await response.json()).toEqual({ error: "Not found" });
