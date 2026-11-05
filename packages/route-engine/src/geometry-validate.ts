@@ -25,11 +25,17 @@ export type GeometryValidationResult = {
   totalDistanceKm: number;
 };
 
-const DEFAULTS: Required<GeometryValidationOptions> = {
+type Limits = Required<GeometryValidationOptions>;
+type Stop = Route['stops'][number];
+
+const DEFAULTS: Limits = {
   maxSpeedKmh: 40_000,
   minSpeedKmh: 200,
   maxGapSeconds: 45 * 60,
 };
+
+/** Legs shorter than this are treated as "same place" for travel-time and stall checks. */
+const SAME_PLACE_KM = 1;
 
 function validCoordinate(point: LatLng | undefined): point is LatLng {
   return (
@@ -40,6 +46,65 @@ function validCoordinate(point: LatLng | undefined): point is LatLng {
     point.lat <= 90 &&
     point.lng >= -180 &&
     point.lng <= 180
+  );
+}
+
+function coordinateIssues(route: Route, coordinates: ReadonlyMap<string, LatLng>): GeometryIssue[] {
+  const issues: GeometryIssue[] = [];
+  route.stops.forEach((stop, i) => {
+    if (validCoordinate(coordinates.get(stop.locationId))) return;
+    issues.push({
+      severity: 'error',
+      path: `stops.${i}.locationId`,
+      message: `no valid coordinates for location "${stop.locationId}"`,
+    });
+  });
+  return issues;
+}
+
+type Leg = {
+  index: number;
+  prev: Stop;
+  stop: Stop;
+  distanceKm: number;
+  gapSeconds: number;
+};
+
+function arrivalIssue(leg: Leg, severity: GeometryIssueSeverity, message: string): GeometryIssue {
+  return { severity, path: `stops.${leg.index}.arrivalIso`, message };
+}
+
+function speedIssue(leg: Leg, from: LatLng, to: LatLng, limits: Limits): GeometryIssue | null {
+  const label = `${leg.prev.locationId} -> ${leg.stop.locationId}`;
+  const speed = legSpeedKmh(from, to, leg.gapSeconds);
+
+  if (speed === null) {
+    // Zero or negative travel time between distinct places cannot be displayed.
+    return leg.distanceKm > SAME_PLACE_KM
+      ? arrivalIssue(leg, 'error', `no travel time on leg ${label} (${Math.round(leg.distanceKm)} km apart)`)
+      : null;
+  }
+  if (speed > limits.maxSpeedKmh) {
+    return arrivalIssue(leg, 'error', `leg ${label} needs ${Math.round(speed)} km/h (max ${limits.maxSpeedKmh})`);
+  }
+  if (leg.distanceKm > SAME_PLACE_KM && speed < limits.minSpeedKmh) {
+    return arrivalIssue(leg, 'warning', `leg ${label} is only ${Math.round(speed)} km/h; Santa will look stalled`);
+  }
+  return null;
+}
+
+function gapIssue(leg: Leg, limits: Limits): GeometryIssue | null {
+  if (leg.gapSeconds <= limits.maxGapSeconds) return null;
+  return arrivalIssue(
+    leg,
+    'warning',
+    `${Math.round(leg.gapSeconds / 60)} min between "${leg.prev.locationId}" and "${leg.stop.locationId}"; long quiet stretch on the tracker`,
+  );
+}
+
+function legIssues(leg: Leg, from: LatLng, to: LatLng, limits: Limits): GeometryIssue[] {
+  return [speedIssue(leg, from, to, limits), gapIssue(leg, limits)].filter(
+    (issue): issue is GeometryIssue => issue !== null,
   );
 }
 
@@ -56,68 +121,21 @@ export function validateRouteGeometry(
   coordinates: ReadonlyMap<string, LatLng>,
   options: GeometryValidationOptions = {},
 ): GeometryValidationResult {
-  const limits = { ...DEFAULTS, ...options };
-  const issues: GeometryIssue[] = [];
+  const limits: Limits = { ...DEFAULTS, ...options };
+  const issues = coordinateIssues(route, coordinates);
   let totalDistanceKm = 0;
 
-  route.stops.forEach((stop, i) => {
-    const point = coordinates.get(stop.locationId);
-    if (!validCoordinate(point)) {
-      issues.push({
-        severity: 'error',
-        path: `stops.${i}.locationId`,
-        message: `no valid coordinates for location "${stop.locationId}"`,
-      });
-    }
-  });
-
-  for (let i = 1; i < route.stops.length; i++) {
-    const prev = route.stops[i - 1];
-    const stop = route.stops[i];
-    if (!prev || !stop) continue;
-    const from = coordinates.get(prev.locationId);
-    const to = coordinates.get(stop.locationId);
-    if (!validCoordinate(from) || !validCoordinate(to)) continue;
+  for (let index = 1; index < route.stops.length; index++) {
+    const prev = route.stops[index - 1];
+    const stop = route.stops[index];
+    const from = prev && coordinates.get(prev.locationId);
+    const to = stop && coordinates.get(stop.locationId);
+    if (!prev || !stop || !validCoordinate(from) || !validCoordinate(to)) continue;
 
     const distanceKm = haversineKm(from, to);
     totalDistanceKm += distanceKm;
-
     const gapSeconds = (Date.parse(stop.arrivalIso) - Date.parse(prev.departureIso)) / 1000;
-    const speed = legSpeedKmh(from, to, gapSeconds);
-
-    if (speed === null) {
-      // Zero or negative travel time between distinct places is impossible to display.
-      if (distanceKm > 1) {
-        issues.push({
-          severity: 'error',
-          path: `stops.${i}.arrivalIso`,
-          message: `no travel time between "${prev.locationId}" and "${stop.locationId}" (${Math.round(distanceKm)} km apart)`,
-        });
-      }
-      continue;
-    }
-
-    if (speed > limits.maxSpeedKmh) {
-      issues.push({
-        severity: 'error',
-        path: `stops.${i}.arrivalIso`,
-        message: `leg ${prev.locationId} -> ${stop.locationId} needs ${Math.round(speed)} km/h (max ${limits.maxSpeedKmh})`,
-      });
-    } else if (distanceKm > 1 && speed < limits.minSpeedKmh) {
-      issues.push({
-        severity: 'warning',
-        path: `stops.${i}.arrivalIso`,
-        message: `leg ${prev.locationId} -> ${stop.locationId} is only ${Math.round(speed)} km/h; Santa will look stalled`,
-      });
-    }
-
-    if (gapSeconds > limits.maxGapSeconds) {
-      issues.push({
-        severity: 'warning',
-        path: `stops.${i}.arrivalIso`,
-        message: `${Math.round(gapSeconds / 60)} min between "${prev.locationId}" and "${stop.locationId}"; long quiet stretch on the tracker`,
-      });
-    }
+    issues.push(...legIssues({ index, prev, stop, distanceKm, gapSeconds }, from, to, limits));
   }
 
   return { ok: !issues.some((issue) => issue.severity === 'error'), issues, totalDistanceKm };
