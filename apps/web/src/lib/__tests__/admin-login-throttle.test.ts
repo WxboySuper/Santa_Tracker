@@ -5,7 +5,7 @@ const MINUTE = 60_000;
 
 function setup() {
   let now = 0;
-  const throttle = createLoginThrottle(new InMemoryThrottleStore(), () => now);
+  const throttle = createLoginThrottle(new InMemoryThrottleStore({ maxEntries: 10_001, clock: () => now }), () => now);
   return { throttle, advance: (milliseconds: number) => { now += milliseconds; } };
 }
 
@@ -50,6 +50,41 @@ describe("admin login throttle", () => {
     expect((await throttle.check("new-ip"))?.reason).toBe("global");
   });
 
+  it("does not let a concurrent check erase a global failure", async () => {
+    const now = 60 * MINUTE + 1;
+    const memory = new InMemoryThrottleStore({ maxEntries: 10, clock: () => now });
+    const attempts = Array.from({ length: 30 }, () => now - 1000);
+    attempts.push(now - 60 * MINUTE - 1);
+    await memory.set("global", { attempts, lockoutUntil: 0, lockoutLevel: 0, lastLockoutAt: -1 });
+
+    let releaseRead: () => void = () => undefined;
+    let signalRead: () => void = () => undefined;
+    let paused = false;
+    const readStarted = new Promise<void>((resolve) => { signalRead = resolve; });
+    const readGate = new Promise<void>((resolve) => { releaseRead = resolve; });
+    const store = {
+      async get(key: string) {
+        const value = await memory.get(key);
+        if (key === "global" && !paused) {
+          paused = true;
+          signalRead();
+          await readGate;
+        }
+        return value;
+      },
+      set: (key: string, value: Parameters<typeof memory.set>[1]) => memory.set(key, value),
+      delete: (key: string) => memory.delete(key),
+    };
+    const throttle = createLoginThrottle(store, () => now);
+    const concurrentCheck = throttle.check("probe");
+    await readStarted;
+    const concurrentFailure = throttle.recordFailure("racer");
+    releaseRead();
+    await Promise.all([concurrentCheck, concurrentFailure]);
+
+    expect((await throttle.check("next-ip"))?.reason).toBe("global");
+  });
+
   it("does not add more global failures from an already locked IP", async () => {
     const { throttle } = setup();
     for (let i = 0; i < 5; i += 1) await throttle.recordFailure("locked-ip");
@@ -77,7 +112,7 @@ describe("admin login throttle", () => {
   });
 
   it("bounds in-memory keys while preserving the global counter and recently used IPs", async () => {
-    const store = new InMemoryThrottleStore(3);
+    const store = new InMemoryThrottleStore({ maxEntries: 3 });
     const state = { attempts: [1], lockoutUntil: 0, lockoutLevel: 0, lastLockoutAt: -1 };
     await store.set("global", state);
     await store.set("ip:old", state);
@@ -88,5 +123,19 @@ describe("admin login throttle", () => {
     expect(await store.get("ip:old")).toEqual(state);
     expect(await store.get("ip:new")).toEqual(state);
     expect(await store.get("ip:recent")).toBeUndefined();
+  });
+
+  it("preserves active lockouts and fails closed when no state can be evicted", async () => {
+    let now = 0;
+    const store = new InMemoryThrottleStore({ maxEntries: 2, clock: () => now });
+    await store.set("global", { attempts: [], lockoutUntil: 0, lockoutLevel: 0, lastLockoutAt: -1 });
+    await store.set("ip:locked", { attempts: [0, 1, 2, 3, 4], lockoutUntil: 15 * MINUTE, lockoutLevel: 1, lastLockoutAt: 0 });
+    const throttle = createLoginThrottle(store, () => now);
+    expect(await throttle.check("locked")).toEqual({ retryAfterSeconds: 900, reason: "ip" });
+    expect(await throttle.check("ip:new")).toEqual({ retryAfterSeconds: 60, reason: "global" });
+    expect(await store.get("ip:locked")).toBeDefined();
+    now += 15 * MINUTE;
+    expect(await throttle.check("ip:new")).toBeNull();
+    expect(await store.get("ip:locked")).toBeUndefined();
   });
 });

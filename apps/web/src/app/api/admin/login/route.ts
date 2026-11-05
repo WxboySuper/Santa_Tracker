@@ -1,11 +1,12 @@
 import { NextResponse } from "next/server";
 import { checkLoginRateLimit, clearLoginAttempts, loginAdmin, recordLoginAttempt } from "@/lib/admin-login";
-import { readJsonBody, respondWith } from "@/lib/admin-api";
+import { respondWith } from "@/lib/admin-api";
 import { ADMIN_SESSION_TTL_SECONDS, requireAdminAuth, shouldUseSecureAdminCookie } from "@/lib/auth";
 
 const loginQueues = new Map<string, Promise<void>>();
 const pendingLogins = new Map<string, number>();
 const MAX_PENDING_LOGINS_PER_IP = 64;
+const MAX_LOGIN_BODY_BYTES = 4096;
 
 export function getClientIp(req: Request): string {
   const cloudflareIp = req.headers.get("cf-connecting-ip")?.trim();
@@ -17,9 +18,7 @@ export function getClientIp(req: Request): string {
 
 export async function POST(req: Request) {
   const ip = getClientIp(req);
-  const existingSession = await requireAdminAuth(req);
-  const payload = await readJsonBody(req);
-  return serializeLogin(ip, () => handleLogin(req, ip, existingSession.ok, payload));
+  return serializeLogin(ip, () => handleLoginRequest(req, ip));
 }
 
 export function serializeLogin(ip: string, task: () => Promise<NextResponse>): Promise<NextResponse> {
@@ -41,10 +40,21 @@ export function serializeLogin(ip: string, task: () => Promise<NextResponse>): P
   });
 }
 
-async function handleLogin(req: Request, ip: string, authenticated: boolean, payload: unknown): Promise<NextResponse> {
-  const limited = await checkLoginRateLimit(ip, authenticated);
+async function handleLoginRequest(req: Request, ip: string): Promise<NextResponse> {
+  const ipLimit = await checkLoginRateLimit(ip, true);
+  if (ipLimit) return throttledResponse(ipLimit.retryAfterSeconds);
+
+  const existingSession = await requireAdminAuth(req);
+  const limited = await checkLoginRateLimit(ip, existingSession.ok);
   if (limited) return throttledResponse(limited.retryAfterSeconds);
 
+  const parsed = await readCappedJsonBody(req);
+  if (parsed.tooLarge) return NextResponse.json({ error: "Request body too large" }, { status: 413 });
+
+  return handleLogin(req, ip, existingSession.ok, parsed.payload);
+}
+
+async function handleLogin(req: Request, ip: string, authenticated: boolean, payload: unknown): Promise<NextResponse> {
   const result = await loginAdmin(payload);
   if (result.status === 401) {
     const failureLimit = await recordLoginAttempt(ip, authenticated);
@@ -65,6 +75,51 @@ async function handleLogin(req: Request, ip: string, authenticated: boolean, pay
     maxAge: ADMIN_SESSION_TTL_SECONDS,
   });
   return response;
+}
+
+async function readCappedJsonBody(req: Request): Promise<{ payload: unknown; tooLarge: boolean }> {
+  if (hasOversizedContentLength(req)) return { payload: null, tooLarge: true };
+  if (!req.body) return { payload: null, tooLarge: false };
+
+  const reader = req.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let totalBytes = 0;
+  try {
+    while (true) {
+      const chunk = await reader.read();
+      if (chunk.done) break;
+      totalBytes += chunk.value.byteLength;
+      if (totalBytes > MAX_LOGIN_BODY_BYTES) {
+        await reader.cancel().catch(() => undefined);
+        return { payload: null, tooLarge: true };
+      }
+      chunks.push(chunk.value);
+    }
+  } catch {
+    return { payload: null, tooLarge: false };
+  } finally {
+    reader.releaseLock();
+  }
+
+  const bytes = new Uint8Array(totalBytes);
+  let offset = 0;
+  for (const chunk of chunks) {
+    bytes.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  try {
+    return { payload: JSON.parse(new TextDecoder().decode(bytes)), tooLarge: false };
+  } catch {
+    return { payload: null, tooLarge: false };
+  }
+}
+
+function hasOversizedContentLength(req: Request): boolean {
+  const header = req.headers.get("content-length");
+  if (!header) return false;
+  const contentLength = Number(header);
+  if (!Number.isFinite(contentLength)) return false;
+  return contentLength > MAX_LOGIN_BODY_BYTES;
 }
 
 function throttledResponse(retryAfterSeconds: number) {

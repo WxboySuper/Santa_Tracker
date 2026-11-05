@@ -37,6 +37,32 @@ describe("admin login route", () => {
     }));
     expect(correct.status).toBe(429);
     expect(correct.headers.get("Retry-After")).toBe("900");
+
+    let bodyReads = 0;
+    const lockedBody = new ReadableStream<Uint8Array>({
+      pull(controller) {
+        bodyReads += 1;
+        controller.enqueue(new TextEncoder().encode("not json"));
+        controller.close();
+      },
+    }, { highWaterMark: 0 });
+    const lockedMalformed = await POST(new Request("http://example.test/api/admin/login", {
+      method: "POST",
+      headers: { ...headers, "content-type": "application/json" },
+      body: lockedBody,
+      duplex: "half",
+    } as RequestInit & { duplex: "half" }));
+    expect(lockedMalformed.status).toBe(429);
+    expect(bodyReads).toBe(0);
+  });
+
+  it("rejects login JSON larger than 4 KiB without parsing it", async () => {
+    const oversized = await POST(new Request("http://example.test/api/admin/login", {
+      method: "POST",
+      headers: { "cf-connecting-ip": "198.51.100.72", "content-type": "application/json" },
+      body: JSON.stringify({ password: "x".repeat(5000) }),
+    }));
+    expect(oversized.status).toBe(413);
   });
 
   it("serializes concurrent failures so only four requests receive 401", async () => {
