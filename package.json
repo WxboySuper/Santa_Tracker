@@ -33,7 +33,8 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "santa:publish": "node tools/santa-publish.mjs",
-    "santa:publish:remote": "node tools/santa-publish.mjs --remote"
+    "santa:publish:remote": "node tools/santa-publish.mjs --remote",
+    "route:generate": "tsx tools/route-generator/generate.mts"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

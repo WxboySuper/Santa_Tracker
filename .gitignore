@@ -28,6 +28,7 @@ dist/
 build/
 .next/
 out/
+tools/route-generator/out/
 next-env.d.ts
 *.tsbuildinfo
 *.egg-info/
