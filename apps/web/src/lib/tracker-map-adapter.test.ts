@@ -40,4 +40,16 @@ describe("map fallback", () => {
     deadline.clear();
     expect(clear).toHaveBeenCalledOnce();
   });
+
+  it("uses browser timers without losing their receiver", async () => {
+    vi.useFakeTimers();
+    try {
+      const deadline = styleDeadline(10);
+      const result = expect(deadline.promise).rejects.toThrow("Map style timed out");
+      await vi.advanceTimersByTimeAsync(10);
+      await result;
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });
