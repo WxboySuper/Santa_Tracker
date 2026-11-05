@@ -1,20 +1,19 @@
 import { haversineKm, type LatLng } from '../geo';
 
-/** Apportion an integer total without losing stops to rounding. */
-export function allocateQuotas(total: number, weights: Record<string, number>): Record<string, number> {
+function validateWeights(total: number, entries: [string, number][]): number {
   if (!Number.isSafeInteger(total)) throw new Error('Invalid stop total');
   if (total < 0) throw new Error('Invalid stop total');
-  const entries = Object.entries(weights);
   if (entries.some(([, weight]) => !Number.isFinite(weight))) throw new Error('Invalid weight');
   if (entries.some(([, weight]) => weight < 0)) throw new Error('Invalid weight');
   const sum = entries.reduce((value, [, weight]) => value + weight, 0);
   if (!Number.isFinite(sum)) throw new Error('Weights must have a positive total');
   if (sum <= 0) throw new Error('Weights must have a positive total');
-  const allocations = entries.map(([key, weight], index) => {
-    const exact = (weight / sum) * total;
-    const count = Math.floor(exact);
-    return { key, count, remainder: exact - count, index };
-  });
+  return sum;
+}
+
+type Allocation = { key: string; count: number; remainder: number; index: number };
+
+function distributeRemainders(allocations: Allocation[], total: number): void {
   const remaining = total - allocations.reduce((value, entry) => value + entry.count, 0);
   const ranked = [...allocations].sort((a, b) => {
     const difference = b.remainder - a.remainder;
@@ -24,6 +23,18 @@ export function allocateQuotas(total: number, weights: Record<string, number>): 
     const entry = ranked[index];
     if (entry) entry.count++;
   }
+}
+
+/** Apportion an integer total without losing stops to rounding. */
+export function allocateQuotas(total: number, weights: Record<string, number>): Record<string, number> {
+  const entries = Object.entries(weights);
+  const sum = validateWeights(total, entries);
+  const allocations = entries.map(([key, weight], index) => {
+    const exact = (weight / sum) * total;
+    const count = Math.floor(exact);
+    return { key, count, remainder: exact - count, index };
+  });
+  distributeRemainders(allocations, total);
   return Object.fromEntries(allocations.map(({ key, count }) => [key, count]));
 }
 

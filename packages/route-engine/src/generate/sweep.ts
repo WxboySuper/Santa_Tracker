@@ -12,10 +12,14 @@ function localTimestamp(formatter: Intl.DateTimeFormat, instant: number): number
 }
 
 /** Resolve a local Christmas morning time using the IANA rules for that date. */
-export function christmasArrival(timeZone: string, minutesAfterMidnight: number): string {
+function validateMinute(minutesAfterMidnight: number): void {
   if (!Number.isInteger(minutesAfterMidnight)) throw new Error('Arrival minute must be an integer');
   if (minutesAfterMidnight < 0) throw new Error('Arrival minute must be on Christmas Day');
   if (minutesAfterMidnight >= 1440) throw new Error('Arrival minute must be on Christmas Day');
+}
+
+export function christmasArrival(timeZone: string, minutesAfterMidnight: number): string {
+  validateMinute(minutesAfterMidnight);
   const formatter = new Intl.DateTimeFormat('en-GB', {
     timeZone,
     year: 'numeric', month: '2-digit', day: '2-digit',

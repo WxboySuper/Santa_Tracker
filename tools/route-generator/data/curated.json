@@ -960,16 +960,6 @@
     "source": "https://www.wikidata.org/wiki/Q131233"
   },
   {
-    "id": "Q1139401",
-    "name": "Kuria",
-    "country": "Kiribati",
-    "lat": 0.21666666666667,
-    "lng": 173.4,
-    "timezone": "Pacific/Tarawa",
-    "category": "special",
-    "source": "https://www.wikidata.org/wiki/Q1139401"
-  },
-  {
     "id": "Q1050883",
     "name": "Orona",
     "country": "Kiribati",
@@ -1000,16 +990,6 @@
     "source": "https://www.wikidata.org/wiki/Q1050891"
   },
   {
-    "id": "Q1059275",
-    "name": "Nonouti",
-    "country": "Kiribati",
-    "lat": -0.66666666666667,
-    "lng": 174.33333333333,
-    "timezone": "Pacific/Tarawa",
-    "category": "special",
-    "source": "https://www.wikidata.org/wiki/Q1059275"
-  },
-  {
     "id": "Q1059287",
     "name": "Nikunau",
     "country": "Kiribati",
@@ -1020,103 +1000,133 @@
     "source": "https://www.wikidata.org/wiki/Q1059287"
   },
   {
-    "id": "Q1059295",
-    "name": "Rawaki Island",
-    "country": "Kiribati",
-    "lat": -3.720833333333333,
-    "lng": -170.7125,
-    "timezone": "Pacific/Kanton",
+    "id": "Q79809",
+    "name": "Utqiagvik",
+    "country": "United States",
+    "lat": 71.29055555555556,
+    "lng": -156.78861111111112,
+    "timezone": "America/Anchorage",
     "category": "special",
-    "source": "https://www.wikidata.org/wiki/Q1059295"
+    "source": "https://www.wikidata.org/wiki/Q79809"
   },
   {
-    "id": "Q613386",
-    "name": "Beru",
-    "country": "Kiribati",
-    "lat": -1.2936111111111,
-    "lng": 175.9775,
-    "timezone": "Pacific/Tarawa",
+    "id": "Q46879",
+    "name": "Baker Island",
+    "country": "United States",
+    "lat": 0.194722,
+    "lng": -176.479444,
+    "timezone": "Etc/GMT+12",
     "category": "special",
-    "source": "https://www.wikidata.org/wiki/Q613386"
+    "source": "https://www.wikidata.org/wiki/Q46879"
   },
   {
-    "id": "Q944319",
-    "name": "Tamana",
-    "country": "Kiribati",
-    "lat": -2.5,
-    "lng": 175.98333333333,
-    "timezone": "Pacific/Tarawa",
+    "id": "Q131305",
+    "name": "Howland Island",
+    "country": "United States",
+    "lat": 0.80666666666667,
+    "lng": -176.61638888889,
+    "timezone": "Etc/GMT+12",
     "category": "special",
-    "source": "https://www.wikidata.org/wiki/Q944319"
+    "source": "https://www.wikidata.org/wiki/Q131305"
   },
   {
-    "id": "Q626095",
-    "name": "Aranuka",
-    "country": "Kiribati",
-    "lat": 0.19191666666667,
-    "lng": 173.63376666667,
-    "timezone": "Pacific/Tarawa",
+    "id": "Q26087",
+    "name": "Tromsø Municipality",
+    "country": "Norway",
+    "lat": 69.64961,
+    "lng": 18.95701,
+    "timezone": "Europe/Oslo",
     "category": "special",
-    "source": "https://www.wikidata.org/wiki/Q626095"
+    "source": "https://www.wikidata.org/wiki/Q26087"
   },
   {
-    "id": "Q698352",
-    "name": "Arorae",
-    "country": "Kiribati",
-    "lat": -2.6397222222222,
-    "lng": 176.82583333333,
-    "timezone": "Pacific/Tarawa",
+    "id": "Q4069",
+    "name": "North Cape",
+    "country": "Norway",
+    "lat": 71.1725,
+    "lng": 25.784444444444446,
+    "timezone": "Europe/Oslo",
     "category": "special",
-    "source": "https://www.wikidata.org/wiki/Q698352"
+    "source": "https://www.wikidata.org/wiki/Q4069"
   },
   {
-    "id": "Q831455",
-    "name": "Betio",
-    "country": "Kiribati",
-    "lat": 1.356266,
-    "lng": 172.931607,
-    "timezone": "Pacific/Tarawa",
+    "id": "Q46650",
+    "name": "Macquarie Island",
+    "country": "Australia",
+    "lat": -54.63,
+    "lng": 158.86,
+    "timezone": "Antarctica/Macquarie",
     "category": "special",
-    "source": "https://www.wikidata.org/wiki/Q831455"
+    "source": "https://www.wikidata.org/wiki/Q46650"
   },
   {
-    "id": "Q867325",
-    "name": "Butaritari",
-    "country": "Kiribati",
-    "lat": 3.1677777777778,
-    "lng": 172.82583333333,
-    "timezone": "Pacific/Tarawa",
+    "id": "Q9009773",
+    "name": "Isla de Pascua",
+    "country": "Chile",
+    "lat": -27.0833,
+    "lng": -109.375,
+    "timezone": "Pacific/Easter",
     "category": "special",
-    "source": "https://www.wikidata.org/wiki/Q867325"
+    "source": "https://www.wikidata.org/wiki/Q9009773"
   },
   {
-    "id": "Q909758",
-    "name": "Marakei",
-    "country": "Kiribati",
-    "lat": 2,
-    "lng": 173.28333333333,
-    "timezone": "Pacific/Tarawa",
+    "id": "Q4078",
+    "name": "Cape Horn",
+    "country": "Chile",
+    "lat": -55.98,
+    "lng": -67.289166666667,
+    "timezone": "America/Argentina/Ushuaia",
     "category": "special",
-    "source": "https://www.wikidata.org/wiki/Q909758"
+    "source": "https://www.wikidata.org/wiki/Q4078"
   },
   {
-    "id": "Q911037",
-    "name": "Teraina",
-    "country": "Kiribati",
-    "lat": 4.6833333333333,
-    "lng": -160.37777777778,
-    "timezone": "Pacific/Kiritimati",
+    "id": "Q1343019",
+    "name": "Point Barrow",
+    "country": "United States",
+    "lat": 71.39194444444445,
+    "lng": -156.36111111111111,
+    "timezone": "America/Anchorage",
     "category": "special",
-    "source": "https://www.wikidata.org/wiki/Q911037"
+    "source": "https://www.wikidata.org/wiki/Q1343019"
   },
   {
-    "id": "Q909742",
-    "name": "Maiana",
-    "country": "Kiribati",
-    "lat": 0.91666666666667,
-    "lng": 173,
-    "timezone": "Pacific/Tarawa",
+    "id": "Q46772",
+    "name": "Kerguelen Islands",
+    "country": "France",
+    "lat": -49.25,
+    "lng": 69.15,
+    "timezone": "Indian/Kerguelen",
     "category": "special",
-    "source": "https://www.wikidata.org/wiki/Q909742"
+    "source": "https://www.wikidata.org/wiki/Q46772"
+  },
+  {
+    "id": "Q35086",
+    "name": "South Georgia and the South Sandwich Islands",
+    "country": "United Kingdom",
+    "lat": -54.25,
+    "lng": -36.75,
+    "timezone": "Atlantic/South_Georgia",
+    "category": "special",
+    "source": "https://www.wikidata.org/wiki/Q35086"
+  },
+  {
+    "id": "Q25923",
+    "name": "Longyearbyen",
+    "country": "Norway",
+    "lat": 78.216666666667,
+    "lng": 15.633333333333,
+    "timezone": "Arctic/Longyearbyen",
+    "category": "special",
+    "source": "https://www.wikidata.org/wiki/Q25923"
+  },
+  {
+    "id": "Q223379",
+    "name": "Aitutaki",
+    "country": "Cook Islands",
+    "lat": -18.85,
+    "lng": -159.79,
+    "timezone": "Pacific/Rarotonga",
+    "category": "special",
+    "source": "https://www.wikidata.org/wiki/Q223379"
   }
 ]
