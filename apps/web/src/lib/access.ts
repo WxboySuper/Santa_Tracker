@@ -21,10 +21,25 @@ function publiclyOpen(feature: SeasonFeature, now: Date): boolean {
   return overrideOpen() || isFeatureOpen(feature, now);
 }
 
+/**
+ * A hostile or corrupt credential must never turn a closed gate into an error: a 500 instead of the
+ * 404 every other visitor gets would reveal that the hidden route exists. Any failure to establish
+ * an admin session therefore means "not an admin".
+ */
+async function asAdmin(check: () => Promise<boolean>): Promise<boolean> {
+  try {
+    return await check();
+  } catch {
+    return false;
+  }
+}
+
 /** Whether this page request carries a valid admin session cookie. */
-async function isAdminSession(): Promise<boolean> {
-  const token = (await cookies()).get("admin_token")?.value;
-  return token ? verifyAdminToken(token) : false;
+function isAdminSession(): Promise<boolean> {
+  return asAdmin(async () => {
+    const token = (await cookies()).get("admin_token")?.value;
+    return token ? verifyAdminToken(token) : false;
+  });
 }
 
 /** Page-side gate: true when the visitor may see `feature` now. */
@@ -36,7 +51,7 @@ export async function canViewFeature(feature: SeasonFeature, now: Date = new Dat
 /** API-side decision, taken from the request's own credentials (cookie or bearer token). */
 export async function featureAccess(feature: SeasonFeature, request: Request, now: Date = new Date()): Promise<FeatureAccess> {
   if (publiclyOpen(feature, now)) return "open";
-  const admin = (await requireAdminAuth(request)).ok;
+  const admin = await asAdmin(async () => (await requireAdminAuth(request)).ok);
   return resolveAccess(false, admin);
 }
 

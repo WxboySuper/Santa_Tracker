@@ -1,9 +1,10 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { DEFAULT_LOCALE, createTranslator } from "@santa-tracker/localization";
 import { countdownTarget, getCountdownParts, type CountdownParts } from "@/lib/countdown";
+import { nextSeasonBoundary } from "@/lib/season";
 
 interface CountdownTilesProps {
   locale?: string;
@@ -33,19 +34,35 @@ function useCountdownParts(): CountdownParts | null {
   return parts;
 }
 
-/** When takeoff arrives while the page is open, ask the server to re-render: the Track Santa button
- * and nav links are decided server-side and should appear without a manual reload. */
-function useRefreshAtTakeoff(parts: CountdownParts | null): void {
+/** Longest delay a browser timer accepts (about 24.8 days); longer waits are chained. */
+const MAX_TIMER_MS = 2_147_483_647;
+/** Refresh slightly after a boundary so the server's own clock has certainly crossed it. */
+const REFRESH_SLACK_MS = 2_000;
+
+/**
+ * Re-render the page from the server whenever a feature opens or closes while it is open.
+ * The Track Santa button and the nav links are decided server-side from the season windows, so
+ * without this a visitor waiting on the page (for the tracker, 10 minutes before takeoff) would
+ * not see them until a manual reload.
+ */
+function useRefreshAtSeasonBoundary(): void {
   const router = useRouter();
-  const sawCountdown = useRef(false);
-  const done = parts?.done === true;
   useEffect(() => {
-    if (parts && !parts.done) sawCountdown.current = true;
-    if (done && sawCountdown.current) {
-      sawCountdown.current = false;
-      router.refresh();
-    }
-  }, [done, parts, router]);
+    let timer: number | undefined;
+    const schedule = () => {
+      const now = Date.now();
+      const boundary = nextSeasonBoundary(new Date(now));
+      if (boundary === null) return;
+      const delay = Math.min(boundary - now + REFRESH_SLACK_MS, MAX_TIMER_MS);
+      timer = window.setTimeout(() => {
+        // A chained (capped) wait fires before the boundary; only refresh once it has passed.
+        if (Date.now() >= boundary) router.refresh();
+        schedule();
+      }, delay);
+    };
+    schedule();
+    return () => window.clearTimeout(timer);
+  }, [router]);
 }
 
 function buildTiles(parts: CountdownParts | null, translator: Translator): Tile[] {
@@ -91,7 +108,7 @@ function CountdownTile({ tile }: { tile: Tile }) {
 export default function CountdownTiles({ locale = DEFAULT_LOCALE, flyingText }: CountdownTilesProps) {
   const translator = useMemo(() => createTranslator({ locale }), [locale]);
   const parts = useCountdownParts();
-  useRefreshAtTakeoff(parts);
+  useRefreshAtSeasonBoundary();
 
   if (parts?.done) {
     return <p className="text-2xl font-bold text-yellow-300 md:text-3xl">{flyingText}</p>;

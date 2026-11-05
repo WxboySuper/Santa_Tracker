@@ -53,6 +53,18 @@ describe("featureAccess", () => {
     expect(await featureAccess("tracker", request({ cookie: "admin_token=garbage" }))).toBe("closed");
   });
 
+  it("treats a malformed cookie as no session instead of throwing (a 500 would reveal the route exists)", async () => {
+    expect(await featureAccess("tracker", request({ cookie: "admin_token=%" }))).toBe("closed");
+    expect(await featureAccess("tracker", request({ cookie: "admin_token=%E0%A4%A" }))).toBe("closed");
+  });
+
+  it("gatedFeature answers a malformed-cookie request with the same 404 as any visitor", async () => {
+    const handler = vi.fn(async () => Response.json({ ok: true }));
+    const response = await gatedFeature("tracker", handler)(request({ cookie: "admin_token=%" }), undefined);
+    expect(response.status).toBe(404);
+    expect(handler).not.toHaveBeenCalled();
+  });
+
   it("opens everything with SEASON_OVERRIDE=open", async () => {
     vi.stubEnv("SEASON_OVERRIDE", "open");
     expect(await featureAccess("tracker", request())).toBe("open");

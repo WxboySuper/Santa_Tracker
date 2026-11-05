@@ -47,3 +47,18 @@ export function resolveAccess(open: boolean, isAdmin: boolean): FeatureAccess {
   if (open) return "open";
   return isAdmin ? "admin" : "closed";
 }
+
+/**
+ * The next moment (epoch ms, strictly after `now`) at which any feature opens or closes, or null if
+ * none is known. A page that is open across it should re-render so links and buttons that depend on
+ * the gate appear or disappear without a manual reload.
+ */
+export function nextSeasonBoundary(now: Date): number | null {
+  const t = now.getTime();
+  const year = now.getUTCFullYear();
+  const boundaries = [year - 1, year, year + 1].flatMap((candidate) =>
+    (["tracker", "advent"] as const).flatMap((feature) => windowFor(feature, candidate)),
+  );
+  const upcoming = boundaries.filter((boundary) => boundary > t);
+  return upcoming.length > 0 ? Math.min(...upcoming) : null;
+}
