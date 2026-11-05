@@ -1,0 +1,1122 @@
+[
+  {
+    "id": "Q4531",
+    "name": "Soltaniyeh",
+    "country": "Iran",
+    "lat": 36.434722,
+    "lng": 48.7975,
+    "timezone": "Asia/Tehran",
+    "category": "cultural",
+    "source": "https://www.wikidata.org/wiki/Q4531"
+  },
+  {
+    "id": "Q38888",
+    "name": "Olympia",
+    "country": "Greece",
+    "lat": 37.638333333333335,
+    "lng": 21.63,
+    "timezone": "Europe/Athens",
+    "category": "cultural",
+    "source": "https://www.wikidata.org/wiki/Q38888"
+  },
+  {
+    "id": "Q9427",
+    "name": "Timbuktu",
+    "country": "Mali",
+    "lat": 16.773333055556,
+    "lng": -2.9994438888889,
+    "timezone": "Africa/Bamako",
+    "category": "cultural",
+    "source": "https://www.wikidata.org/wiki/Q9427"
+  },
+  {
+    "id": "Q22647",
+    "name": "Troy",
+    "country": "Turkey",
+    "lat": 39.9575,
+    "lng": 26.238888888889,
+    "timezone": "Europe/Istanbul",
+    "category": "cultural",
+    "source": "https://www.wikidata.org/wiki/Q22647"
+  },
+  {
+    "id": "Q4132",
+    "name": "Summer Palace",
+    "country": "People's Republic of China",
+    "lat": 39.9975,
+    "lng": 116.2689,
+    "timezone": "Asia/Shanghai",
+    "category": "cultural",
+    "source": "https://www.wikidata.org/wiki/Q4132"
+  },
+  {
+    "id": "Q9202",
+    "name": "Statue of Liberty",
+    "country": "United States",
+    "lat": 40.689209166667,
+    "lng": -74.044425277778,
+    "timezone": "America/New_York",
+    "category": "cultural",
+    "source": "https://www.wikidata.org/wiki/Q9202"
+  },
+  {
+    "id": "Q29070",
+    "name": "Borobudur Temple Compounds",
+    "country": "Indonesia",
+    "lat": -7.60778,
+    "lng": 110.20361,
+    "timezone": "Asia/Jakarta",
+    "category": "cultural",
+    "source": "https://www.wikidata.org/wiki/Q29070"
+  },
+  {
+    "id": "Q39671",
+    "name": "Stonehenge",
+    "country": "United Kingdom",
+    "lat": 51.17888888888889,
+    "lng": -1.826111111111111,
+    "timezone": "Europe/London",
+    "category": "cultural",
+    "source": "https://www.wikidata.org/wiki/Q39671"
+  },
+  {
+    "id": "Q5747",
+    "name": "Palmyra",
+    "country": "Syria",
+    "lat": 34.550381,
+    "lng": 38.269791,
+    "timezone": "Asia/Damascus",
+    "category": "cultural",
+    "source": "https://www.wikidata.org/wiki/Q5747"
+  },
+  {
+    "id": "Q9141",
+    "name": "Taj Mahal",
+    "country": "India",
+    "lat": 27.175,
+    "lng": 78.04194444444444,
+    "timezone": "Asia/Kolkata",
+    "category": "cultural",
+    "source": "https://www.wikidata.org/wiki/Q9141"
+  },
+  {
+    "id": "Q19053",
+    "name": "Mystras",
+    "country": "Greece",
+    "lat": 37.074,
+    "lng": 22.3673,
+    "timezone": "Europe/Athens",
+    "category": "cultural",
+    "source": "https://www.wikidata.org/wiki/Q19053"
+  },
+  {
+    "id": "Q29317",
+    "name": "Bagan",
+    "country": "Myanmar",
+    "lat": 21.1725,
+    "lng": 94.86,
+    "timezone": "Asia/Yangon",
+    "category": "cultural",
+    "source": "https://www.wikidata.org/wiki/Q29317"
+  },
+  {
+    "id": "Q4523",
+    "name": "Chogha Zanbil",
+    "country": "Iran",
+    "lat": 32.008333333333,
+    "lng": 48.520833333333,
+    "timezone": "Asia/Tehran",
+    "category": "cultural",
+    "source": "https://www.wikidata.org/wiki/Q4523"
+  },
+  {
+    "id": "Q5724",
+    "name": "Anuradhapura",
+    "country": "Sri Lanka",
+    "lat": 8.335,
+    "lng": 80.410833333333,
+    "timezone": "Asia/Colombo",
+    "category": "cultural",
+    "source": "https://www.wikidata.org/wiki/Q5724"
+  },
+  {
+    "id": "Q9213",
+    "name": "Lumbini",
+    "country": "Nepal",
+    "lat": 27.4814,
+    "lng": 83.275829,
+    "timezone": "Asia/Kathmandu",
+    "category": "cultural",
+    "source": "https://www.wikidata.org/wiki/Q9213"
+  },
+  {
+    "id": "Q5725",
+    "name": "Mohenjo-daro",
+    "country": "Pakistan",
+    "lat": 27.329166666667,
+    "lng": 68.138888888889,
+    "timezone": "Asia/Karachi",
+    "category": "cultural",
+    "source": "https://www.wikidata.org/wiki/Q5725"
+  },
+  {
+    "id": "Q5788",
+    "name": "Petra",
+    "country": "Jordan",
+    "lat": 30.328888888889,
+    "lng": 35.440277777778,
+    "timezone": "Asia/Jerusalem",
+    "category": "cultural",
+    "source": "https://www.wikidata.org/wiki/Q5788"
+  },
+  {
+    "id": "Q32378",
+    "name": "Dougga",
+    "country": "Tunisia",
+    "lat": 36.42333333,
+    "lng": 9.22027778,
+    "timezone": "Africa/Tunis",
+    "category": "cultural",
+    "source": "https://www.wikidata.org/wiki/Q32378"
+  },
+  {
+    "id": "Q26732",
+    "name": "Hampi",
+    "country": "India",
+    "lat": 15.334547,
+    "lng": 76.462162,
+    "timezone": "Asia/Kolkata",
+    "category": "cultural",
+    "source": "https://www.wikidata.org/wiki/Q26732"
+  },
+  {
+    "id": "Q9276",
+    "name": "Aapravasi Ghat",
+    "country": "Mauritius",
+    "lat": -20.158611,
+    "lng": 57.503056,
+    "timezone": "Indian/Mauritius",
+    "category": "cultural",
+    "source": "https://www.wikidata.org/wiki/Q9276"
+  },
+  {
+    "id": "Q27356",
+    "name": "Hegra",
+    "country": "Saudi Arabia",
+    "lat": 26.814166666667,
+    "lng": 37.9475,
+    "timezone": "Asia/Riyadh",
+    "category": "cultural",
+    "source": "https://www.wikidata.org/wiki/Q27356"
+  },
+  {
+    "id": "Q5832",
+    "name": "Axum",
+    "country": "Ethiopia",
+    "lat": 14.116666666666667,
+    "lng": 38.733333333333334,
+    "timezone": "Africa/Addis_Ababa",
+    "category": "cultural",
+    "source": "https://www.wikidata.org/wiki/Q5832"
+  },
+  {
+    "id": "Q36160",
+    "name": "Hội An",
+    "country": "Vietnam",
+    "lat": 15.877669444444445,
+    "lng": 108.33265,
+    "timezone": "Asia/Ho_Chi_Minh",
+    "category": "cultural",
+    "source": "https://www.wikidata.org/wiki/Q36160"
+  },
+  {
+    "id": "Q5859",
+    "name": "Chichen Itza",
+    "country": "Mexico",
+    "lat": 20.683055555556,
+    "lng": -88.568611111111,
+    "timezone": "America/Merida",
+    "category": "cultural",
+    "source": "https://www.wikidata.org/wiki/Q5859"
+  },
+  {
+    "id": "Q9468",
+    "name": "Dholavira",
+    "country": "India",
+    "lat": 23.88611111,
+    "lng": 70.21666667,
+    "timezone": "Asia/Kolkata",
+    "category": "cultural",
+    "source": "https://www.wikidata.org/wiki/Q9468"
+  },
+  {
+    "id": "Q25495",
+    "name": "Aflaj Irrigation System of Oman",
+    "country": "Oman",
+    "lat": 22.998889,
+    "lng": 57.536056,
+    "timezone": "Asia/Muscat",
+    "category": "cultural",
+    "source": "https://www.wikidata.org/wiki/Q25495"
+  },
+  {
+    "id": "Q25496",
+    "name": "Bat, Al-Khutm and Al-Ayn archaeological sites",
+    "country": "Oman",
+    "lat": 23.27,
+    "lng": 56.745,
+    "timezone": "Asia/Muscat",
+    "category": "cultural",
+    "source": "https://www.wikidata.org/wiki/Q25496"
+  },
+  {
+    "id": "Q27964",
+    "name": "Churches of Chiloé",
+    "country": "Chile",
+    "lat": -42.5,
+    "lng": -73.766666666667,
+    "timezone": "America/Santiago",
+    "category": "cultural",
+    "source": "https://www.wikidata.org/wiki/Q27964"
+  },
+  {
+    "id": "Q27985",
+    "name": "Joya de Cerén",
+    "country": "El Salvador",
+    "lat": 13.827494444444444,
+    "lng": -89.35615833333334,
+    "timezone": "America/El_Salvador",
+    "category": "cultural",
+    "source": "https://www.wikidata.org/wiki/Q27985"
+  },
+  {
+    "id": "Q28416",
+    "name": "Hospicio Cabañas",
+    "country": "Mexico",
+    "lat": 20.676897222222,
+    "lng": -103.33733333333,
+    "timezone": "America/Mexico_City",
+    "category": "cultural",
+    "source": "https://www.wikidata.org/wiki/Q28416"
+  },
+  {
+    "id": "Q33200",
+    "name": "Mosque-Cathedral of Cordoba",
+    "country": "Spain",
+    "lat": 37.8788654292767,
+    "lng": -4.77934163461387,
+    "timezone": "Europe/Madrid",
+    "category": "cultural",
+    "source": "https://www.wikidata.org/wiki/Q33200"
+  },
+  {
+    "id": "Q33934",
+    "name": "Jesuit Missions of Chiquitos",
+    "country": "Bolivia",
+    "lat": -16.2748,
+    "lng": -62.5072,
+    "timezone": "America/La_Paz",
+    "category": "cultural",
+    "source": "https://www.wikidata.org/wiki/Q33934"
+  },
+  {
+    "id": "Q43277",
+    "name": "Bam Citadel",
+    "country": "Iran",
+    "lat": 29.116855555556,
+    "lng": 58.368475,
+    "timezone": "Asia/Tehran",
+    "category": "cultural",
+    "source": "https://www.wikidata.org/wiki/Q43277"
+  },
+  {
+    "id": "Q4399",
+    "name": "Tabriz Bazaar",
+    "country": "Iran",
+    "lat": 38.080772222222,
+    "lng": 46.292286111111,
+    "timezone": "Asia/Tehran",
+    "category": "cultural",
+    "source": "https://www.wikidata.org/wiki/Q4399"
+  },
+  {
+    "id": "Q4513",
+    "name": "Mahabodhi Temple",
+    "country": "India",
+    "lat": 24.696004,
+    "lng": 84.991358,
+    "timezone": "Asia/Kolkata",
+    "category": "cultural",
+    "source": "https://www.wikidata.org/wiki/Q4513"
+  },
+  {
+    "id": "Q4519",
+    "name": "Naqsh-e Jahan Square",
+    "country": "Iran",
+    "lat": 32.65822222222222,
+    "lng": 51.67733333333334,
+    "timezone": "Asia/Tehran",
+    "category": "cultural",
+    "source": "https://www.wikidata.org/wiki/Q4519"
+  },
+  {
+    "id": "Q172077",
+    "name": "Dome of the Rock",
+    "country": "Palestine",
+    "lat": 31.778055555556,
+    "lng": 35.235277777778,
+    "timezone": "Asia/Jerusalem",
+    "category": "cultural",
+    "source": "https://www.wikidata.org/wiki/Q172077"
+  },
+  {
+    "id": "Q129072",
+    "name": "Persepolis",
+    "country": "Iran",
+    "lat": 29.935,
+    "lng": 52.89,
+    "timezone": "Asia/Tehran",
+    "category": "cultural",
+    "source": "https://www.wikidata.org/wiki/Q129072"
+  },
+  {
+    "id": "Q156093",
+    "name": "Taxila",
+    "country": "Pakistan",
+    "lat": 33.745833333333,
+    "lng": 72.7875,
+    "timezone": "Asia/Karachi",
+    "category": "cultural",
+    "source": "https://www.wikidata.org/wiki/Q156093"
+  },
+  {
+    "id": "Q71279",
+    "name": "Malbork Castle",
+    "country": "Poland",
+    "lat": 54.039722222222,
+    "lng": 19.027777777778,
+    "timezone": "Europe/Warsaw",
+    "category": "cultural",
+    "source": "https://www.wikidata.org/wiki/Q71279"
+  },
+  {
+    "id": "Q172613",
+    "name": "Teotihuacan",
+    "country": "Mexico",
+    "lat": 19.6925,
+    "lng": -98.843888888889,
+    "timezone": "America/Mexico_City",
+    "category": "cultural",
+    "source": "https://www.wikidata.org/wiki/Q172613"
+  },
+  {
+    "id": "Q125445",
+    "name": "Temple of Heaven",
+    "country": "People's Republic of China",
+    "lat": 39.8822,
+    "lng": 116.4066,
+    "timezone": "Asia/Shanghai",
+    "category": "cultural",
+    "source": "https://www.wikidata.org/wiki/Q125445"
+  },
+  {
+    "id": "Q153430",
+    "name": "Bryggen",
+    "country": "Norway",
+    "lat": 60.3975,
+    "lng": 5.3233333333333,
+    "timezone": "Europe/Oslo",
+    "category": "cultural",
+    "source": "https://www.wikidata.org/wiki/Q153430"
+  },
+  {
+    "id": "Q131013",
+    "name": "Acropolis of Athens",
+    "country": "Greece",
+    "lat": 37.971666666666664,
+    "lng": 23.726111111111113,
+    "timezone": "Europe/Athens",
+    "category": "cultural",
+    "source": "https://www.wikidata.org/wiki/Q131013"
+  },
+  {
+    "id": "Q133575",
+    "name": "Cave of Altamira",
+    "country": "Spain",
+    "lat": 43.376944444444,
+    "lng": -4.11975,
+    "timezone": "Europe/Madrid",
+    "category": "cultural",
+    "source": "https://www.wikidata.org/wiki/Q133575"
+  },
+  {
+    "id": "Q167298",
+    "name": "Khajuraho Group of Monuments",
+    "country": "India",
+    "lat": 24.85,
+    "lng": 79.93333333,
+    "timezone": "Asia/Kolkata",
+    "category": "cultural",
+    "source": "https://www.wikidata.org/wiki/Q167298"
+  },
+  {
+    "id": "Q61750",
+    "name": "Tiwanaku",
+    "country": "Bolivia",
+    "lat": -16.554722222222,
+    "lng": -68.673333333333,
+    "timezone": "America/La_Paz",
+    "category": "cultural",
+    "source": "https://www.wikidata.org/wiki/Q61750"
+  },
+  {
+    "id": "Q189616",
+    "name": "Ellora Caves",
+    "country": "India",
+    "lat": 20.026388888889,
+    "lng": 75.179166666667,
+    "timezone": "Asia/Kolkata",
+    "category": "cultural",
+    "source": "https://www.wikidata.org/wiki/Q189616"
+  },
+  {
+    "id": "Q188754",
+    "name": "Himeji Castle",
+    "country": "Japan",
+    "lat": 34.839444444444446,
+    "lng": 134.69361111111112,
+    "timezone": "Asia/Tokyo",
+    "category": "cultural",
+    "source": "https://www.wikidata.org/wiki/Q188754"
+  },
+  {
+    "id": "Q191763",
+    "name": "Itsukushima Shrine",
+    "country": "Japan",
+    "lat": 34.29577,
+    "lng": 132.320105,
+    "timezone": "Asia/Tokyo",
+    "category": "cultural",
+    "source": "https://www.wikidata.org/wiki/Q191763"
+  },
+  {
+    "id": "Q191504",
+    "name": "Leptis Magna",
+    "country": "Ancient Carthage",
+    "lat": 32.638331884068016,
+    "lng": 14.29049645909896,
+    "timezone": "Africa/Tripoli",
+    "category": "cultural",
+    "source": "https://www.wikidata.org/wiki/Q191504"
+  },
+  {
+    "id": "Q214827",
+    "name": "Copán",
+    "country": "Honduras",
+    "lat": 14.837963888888888,
+    "lng": -89.14244166666667,
+    "timezone": "America/Guatemala",
+    "category": "cultural",
+    "source": "https://www.wikidata.org/wiki/Q214827"
+  },
+  {
+    "id": "Q193325",
+    "name": "Merv",
+    "country": "Turkmenistan",
+    "lat": 37.662777777778,
+    "lng": 62.1925,
+    "timezone": "Asia/Ashgabat",
+    "category": "cultural",
+    "source": "https://www.wikidata.org/wiki/Q193325"
+  },
+  {
+    "id": "Q209217",
+    "name": "Great Zimbabwe",
+    "country": "Zimbabwe",
+    "lat": -20.27,
+    "lng": 30.933,
+    "timezone": "Africa/Harare",
+    "category": "cultural",
+    "source": "https://www.wikidata.org/wiki/Q209217"
+  },
+  {
+    "id": "Q214944",
+    "name": "Göbekli Tepe",
+    "country": "Turkey",
+    "lat": 37.223055555556,
+    "lng": 38.9225,
+    "timezone": "Europe/Istanbul",
+    "category": "cultural",
+    "source": "https://www.wikidata.org/wiki/Q214944"
+  },
+  {
+    "id": "Q189113",
+    "name": "L'Anse aux Meadows",
+    "country": "Canada",
+    "lat": 51.595266666667,
+    "lng": -55.531222222222,
+    "timezone": "America/St_Johns",
+    "category": "cultural",
+    "source": "https://www.wikidata.org/wiki/Q189113"
+  },
+  {
+    "id": "Q223385",
+    "name": "Cueva de las Manos",
+    "country": "Argentina",
+    "lat": -47.15,
+    "lng": -70.66666666666667,
+    "timezone": "America/Argentina/Rio_Gallegos",
+    "category": "cultural",
+    "source": "https://www.wikidata.org/wiki/Q223385"
+  },
+  {
+    "id": "Q192493",
+    "name": "Robben Island",
+    "country": "South Africa",
+    "lat": -33.805,
+    "lng": 18.37,
+    "timezone": "Africa/Johannesburg",
+    "category": "cultural",
+    "source": "https://www.wikidata.org/wiki/Q192493"
+  },
+  {
+    "id": "Q5513",
+    "name": "Lake Baikal",
+    "country": "Russia",
+    "lat": 53.30277778,
+    "lng": 108.00472222,
+    "timezone": "Asia/Irkutsk",
+    "category": "nature",
+    "source": "https://www.wikidata.org/wiki/Q5513"
+  },
+  {
+    "id": "Q43278",
+    "name": "Victoria Falls",
+    "country": "Zambia",
+    "lat": -17.924777777778,
+    "lng": 25.858055555556,
+    "timezone": "Africa/Lusaka",
+    "category": "nature",
+    "source": "https://www.wikidata.org/wiki/Q43278"
+  },
+  {
+    "id": "Q4107",
+    "name": "Huanglong",
+    "country": "People's Republic of China",
+    "lat": 32.740756,
+    "lng": 103.831077,
+    "timezone": "Asia/Shanghai",
+    "category": "nature",
+    "source": "https://www.wikidata.org/wiki/Q4107"
+  },
+  {
+    "id": "Q36034",
+    "name": "Huangshan",
+    "country": "People's Republic of China",
+    "lat": 30.125,
+    "lng": 118.166667,
+    "timezone": "Asia/Shanghai",
+    "category": "nature",
+    "source": "https://www.wikidata.org/wiki/Q36034"
+  },
+  {
+    "id": "Q7343",
+    "name": "Great Barrier Reef",
+    "country": "Australia",
+    "lat": -16.4,
+    "lng": 145.8,
+    "timezone": "Australia/Brisbane",
+    "category": "nature",
+    "source": "https://www.wikidata.org/wiki/Q7343"
+  },
+  {
+    "id": "Q351",
+    "name": "Yellowstone National Park",
+    "country": "United States",
+    "lat": 44.6,
+    "lng": -110.5,
+    "timezone": "America/Denver",
+    "category": "nature",
+    "source": "https://www.wikidata.org/wiki/Q351"
+  },
+  {
+    "id": "Q28061",
+    "name": "Quebrada de Humahuaca",
+    "country": "Argentina",
+    "lat": -23.199861111111,
+    "lng": -65.348861111111,
+    "timezone": "America/Argentina/Jujuy",
+    "category": "nature",
+    "source": "https://www.wikidata.org/wiki/Q28061"
+  },
+  {
+    "id": "Q28361",
+    "name": "Belize Barrier Reef",
+    "country": "Belize",
+    "lat": 17.2625,
+    "lng": -88.052777777778,
+    "timezone": "America/Belize",
+    "category": "nature",
+    "source": "https://www.wikidata.org/wiki/Q28361"
+  },
+  {
+    "id": "Q40729",
+    "name": "Wadi Rum",
+    "country": "Jordan",
+    "lat": 29.5765,
+    "lng": 35.419927777778,
+    "timezone": "Asia/Amman",
+    "category": "nature",
+    "source": "https://www.wikidata.org/wiki/Q40729"
+  },
+  {
+    "id": "Q38095",
+    "name": "Galapagos Islands",
+    "country": "Ecuador",
+    "lat": -0.66666666666667,
+    "lng": -90.55,
+    "timezone": "Pacific/Galapagos",
+    "category": "nature",
+    "source": "https://www.wikidata.org/wiki/Q38095"
+  },
+  {
+    "id": "Q4111",
+    "name": "Jiuzhaigou Valley",
+    "country": "People's Republic of China",
+    "lat": 33.2,
+    "lng": 103.9,
+    "timezone": "Asia/Shanghai",
+    "category": "nature",
+    "source": "https://www.wikidata.org/wiki/Q4111"
+  },
+  {
+    "id": "Q4187",
+    "name": "Wulingyuan",
+    "country": "People's Republic of China",
+    "lat": 29.345555555555556,
+    "lng": 110.46666666666667,
+    "timezone": "Asia/Shanghai",
+    "category": "nature",
+    "source": "https://www.wikidata.org/wiki/Q4187"
+  },
+  {
+    "id": "Q4516",
+    "name": "Lorentz National Park",
+    "country": "Indonesia",
+    "lat": -4.75,
+    "lng": 137.833333,
+    "timezone": "Asia/Jayapura",
+    "category": "nature",
+    "source": "https://www.wikidata.org/wiki/Q4516"
+  },
+  {
+    "id": "Q4520",
+    "name": "Komodo National Park",
+    "country": "Indonesia",
+    "lat": -8.651625,
+    "lng": 119.576569,
+    "timezone": "Asia/Makassar",
+    "category": "nature",
+    "source": "https://www.wikidata.org/wiki/Q4520"
+  },
+  {
+    "id": "Q4522",
+    "name": "Ujung Kulon National Park",
+    "country": "Indonesia",
+    "lat": -6.75,
+    "lng": 105.33333333333,
+    "timezone": "Asia/Jakarta",
+    "category": "nature",
+    "source": "https://www.wikidata.org/wiki/Q4522"
+  },
+  {
+    "id": "Q4521",
+    "name": "Tropical Rainforest Heritage of Sumatra",
+    "country": "Indonesia",
+    "lat": -2.5,
+    "lng": 101.5,
+    "timezone": "Asia/Jakarta",
+    "category": "nature",
+    "source": "https://www.wikidata.org/wiki/Q4521"
+  },
+  {
+    "id": "Q4527",
+    "name": "Western Ghats",
+    "country": "India",
+    "lat": 10.169722222222223,
+    "lng": 77.06111111111112,
+    "timezone": "Asia/Kolkata",
+    "category": "nature",
+    "source": "https://www.wikidata.org/wiki/Q4527"
+  },
+  {
+    "id": "Q5595",
+    "name": "Curonian Spit",
+    "country": "Lithuania",
+    "lat": 55.274444444444,
+    "lng": 20.970833333333,
+    "timezone": "Europe/Kaliningrad",
+    "category": "nature",
+    "source": "https://www.wikidata.org/wiki/Q5595"
+  },
+  {
+    "id": "Q23513",
+    "name": "Phong Nha–Ke Bang National Park",
+    "country": "Vietnam",
+    "lat": 17.533333333333,
+    "lng": 106.15,
+    "timezone": "Asia/Bangkok",
+    "category": "nature",
+    "source": "https://www.wikidata.org/wiki/Q23513"
+  },
+  {
+    "id": "Q80344",
+    "name": "Mount Olympus",
+    "country": "Greece",
+    "lat": 40.083333333333336,
+    "lng": 22.35,
+    "timezone": "Europe/Athens",
+    "category": "nature",
+    "source": "https://www.wikidata.org/wiki/Q80344"
+  },
+  {
+    "id": "Q122082",
+    "name": "Srebarna Nature Reserve",
+    "country": "Bulgaria",
+    "lat": 44.111116,
+    "lng": 27.072206,
+    "timezone": "Europe/Bucharest",
+    "category": "nature",
+    "source": "https://www.wikidata.org/wiki/Q122082"
+  },
+  {
+    "id": "Q131198",
+    "name": "Heard Island and McDonald Islands",
+    "country": "Australia",
+    "lat": -53.07833333333333,
+    "lng": 73.5075,
+    "timezone": "Etc/GMT-5",
+    "category": "nature",
+    "source": "https://www.wikidata.org/wiki/Q131198"
+  },
+  {
+    "id": "Q172697",
+    "name": "Marquesas Islands",
+    "country": "France",
+    "lat": -8.9,
+    "lng": -139.6,
+    "timezone": "Pacific/Marquesas",
+    "category": "nature",
+    "source": "https://www.wikidata.org/wiki/Q172697"
+  },
+  {
+    "id": "Q106187",
+    "name": "Giant's Causeway",
+    "country": "United Kingdom",
+    "lat": 55.240833333333,
+    "lng": -6.5116666666667,
+    "timezone": "Europe/London",
+    "category": "nature",
+    "source": "https://www.wikidata.org/wiki/Q106187"
+  },
+  {
+    "id": "Q107370",
+    "name": "Thingvellir National Park",
+    "country": "Iceland",
+    "lat": 64.258055555556,
+    "lng": -21.125,
+    "timezone": "Atlantic/Reykjavik",
+    "category": "nature",
+    "source": "https://www.wikidata.org/wiki/Q107370"
+  },
+  {
+    "id": "Q134905",
+    "name": "K'gari",
+    "country": "Australia",
+    "lat": -25.24,
+    "lng": 153.15,
+    "timezone": "Australia/Brisbane",
+    "category": "nature",
+    "source": "https://www.wikidata.org/wiki/Q134905"
+  },
+  {
+    "id": "Q138170",
+    "name": "Tasmanian Wilderness",
+    "country": "Australia",
+    "lat": -42.5957,
+    "lng": 146.1729,
+    "timezone": "Australia/Hobart",
+    "category": "nature",
+    "source": "https://www.wikidata.org/wiki/Q138170"
+  },
+  {
+    "id": "Q155495",
+    "name": "Golden Mountains of Altai",
+    "country": "Russia",
+    "lat": 50.466666666667,
+    "lng": 86,
+    "timezone": "Asia/Almaty",
+    "category": "nature",
+    "source": "https://www.wikidata.org/wiki/Q155495"
+  },
+  {
+    "id": "Q72895",
+    "name": "Canadian Rocky Mountain Parks World Heritage Site",
+    "country": "Canada",
+    "lat": 51.424722222222,
+    "lng": -116.47972222222,
+    "timezone": "America/Edmonton",
+    "category": "nature",
+    "source": "https://www.wikidata.org/wiki/Q72895"
+  },
+  {
+    "id": "Q48608",
+    "name": "Darién National Park",
+    "country": "Panama",
+    "lat": 7.73611111,
+    "lng": -77.54722222,
+    "timezone": "America/Panama",
+    "category": "nature",
+    "source": "https://www.wikidata.org/wiki/Q48608"
+  },
+  {
+    "id": "Q61535",
+    "name": "Gunung Mulu National Park",
+    "country": "Malaysia",
+    "lat": 4.0425,
+    "lng": 114.8125,
+    "timezone": "Asia/Kuching",
+    "category": "nature",
+    "source": "https://www.wikidata.org/wiki/Q61535"
+  },
+  {
+    "id": "Q242681",
+    "name": "Mammoth Cave National Park",
+    "country": "United States",
+    "lat": 37.186944444444,
+    "lng": -86.101111111111,
+    "timezone": "America/Chicago",
+    "category": "nature",
+    "source": "https://www.wikidata.org/wiki/Q242681"
+  },
+  {
+    "id": "Q189849",
+    "name": "Plitvice Lakes National Park",
+    "country": "Croatia",
+    "lat": 44.880445,
+    "lng": 15.616035,
+    "timezone": "Europe/Zagreb",
+    "category": "nature",
+    "source": "https://www.wikidata.org/wiki/Q189849"
+  },
+  {
+    "id": "Q242176",
+    "name": "Yakushima",
+    "country": "Japan",
+    "lat": 30.358611111111,
+    "lng": 130.52861111111,
+    "timezone": "Asia/Tokyo",
+    "category": "nature",
+    "source": "https://www.wikidata.org/wiki/Q242176"
+  },
+  {
+    "id": "Q2900",
+    "name": "Quito",
+    "country": "Ecuador",
+    "lat": -0.22,
+    "lng": -78.5125,
+    "timezone": "America/Guayaquil",
+    "category": "special",
+    "source": "https://www.wikidata.org/wiki/Q2900"
+  },
+  {
+    "id": "Q152225",
+    "name": "Bikini Atoll",
+    "country": "Marshall Islands",
+    "lat": 11.6,
+    "lng": 165.4,
+    "timezone": "Pacific/Majuro",
+    "category": "special",
+    "source": "https://www.wikidata.org/wiki/Q152225"
+  },
+  {
+    "id": "Q193331",
+    "name": "Kiritimati",
+    "country": "Kiribati",
+    "lat": 1.85,
+    "lng": -157.4,
+    "timezone": "Pacific/Kiritimati",
+    "category": "special",
+    "source": "https://www.wikidata.org/wiki/Q193331"
+  },
+  {
+    "id": "Q131233",
+    "name": "South Tarawa",
+    "country": "Kiribati",
+    "lat": 1.3333333333333333,
+    "lng": 172.96666666666667,
+    "timezone": "Pacific/Tarawa",
+    "category": "special",
+    "source": "https://www.wikidata.org/wiki/Q131233"
+  },
+  {
+    "id": "Q1139401",
+    "name": "Kuria",
+    "country": "Kiribati",
+    "lat": 0.21666666666667,
+    "lng": 173.4,
+    "timezone": "Pacific/Tarawa",
+    "category": "special",
+    "source": "https://www.wikidata.org/wiki/Q1139401"
+  },
+  {
+    "id": "Q1050883",
+    "name": "Orona",
+    "country": "Kiribati",
+    "lat": -4.5,
+    "lng": -172.16666666667,
+    "timezone": "Pacific/Kanton",
+    "category": "special",
+    "source": "https://www.wikidata.org/wiki/Q1050883"
+  },
+  {
+    "id": "Q1050899",
+    "name": "McKean Island",
+    "country": "Kiribati",
+    "lat": -3.6,
+    "lng": -174.11666666667,
+    "timezone": "Pacific/Kanton",
+    "category": "special",
+    "source": "https://www.wikidata.org/wiki/Q1050899"
+  },
+  {
+    "id": "Q1050891",
+    "name": "Nikumaroro",
+    "country": "Kiribati",
+    "lat": -4.68,
+    "lng": -174.517,
+    "timezone": "Pacific/Kanton",
+    "category": "special",
+    "source": "https://www.wikidata.org/wiki/Q1050891"
+  },
+  {
+    "id": "Q1059275",
+    "name": "Nonouti",
+    "country": "Kiribati",
+    "lat": -0.66666666666667,
+    "lng": 174.33333333333,
+    "timezone": "Pacific/Tarawa",
+    "category": "special",
+    "source": "https://www.wikidata.org/wiki/Q1059275"
+  },
+  {
+    "id": "Q1059287",
+    "name": "Nikunau",
+    "country": "Kiribati",
+    "lat": -1.35,
+    "lng": 176.46666666667,
+    "timezone": "Pacific/Tarawa",
+    "category": "special",
+    "source": "https://www.wikidata.org/wiki/Q1059287"
+  },
+  {
+    "id": "Q1059295",
+    "name": "Rawaki Island",
+    "country": "Kiribati",
+    "lat": -3.720833333333333,
+    "lng": -170.7125,
+    "timezone": "Pacific/Kanton",
+    "category": "special",
+    "source": "https://www.wikidata.org/wiki/Q1059295"
+  },
+  {
+    "id": "Q613386",
+    "name": "Beru",
+    "country": "Kiribati",
+    "lat": -1.2936111111111,
+    "lng": 175.9775,
+    "timezone": "Pacific/Tarawa",
+    "category": "special",
+    "source": "https://www.wikidata.org/wiki/Q613386"
+  },
+  {
+    "id": "Q944319",
+    "name": "Tamana",
+    "country": "Kiribati",
+    "lat": -2.5,
+    "lng": 175.98333333333,
+    "timezone": "Pacific/Tarawa",
+    "category": "special",
+    "source": "https://www.wikidata.org/wiki/Q944319"
+  },
+  {
+    "id": "Q626095",
+    "name": "Aranuka",
+    "country": "Kiribati",
+    "lat": 0.19191666666667,
+    "lng": 173.63376666667,
+    "timezone": "Pacific/Tarawa",
+    "category": "special",
+    "source": "https://www.wikidata.org/wiki/Q626095"
+  },
+  {
+    "id": "Q698352",
+    "name": "Arorae",
+    "country": "Kiribati",
+    "lat": -2.6397222222222,
+    "lng": 176.82583333333,
+    "timezone": "Pacific/Tarawa",
+    "category": "special",
+    "source": "https://www.wikidata.org/wiki/Q698352"
+  },
+  {
+    "id": "Q831455",
+    "name": "Betio",
+    "country": "Kiribati",
+    "lat": 1.356266,
+    "lng": 172.931607,
+    "timezone": "Pacific/Tarawa",
+    "category": "special",
+    "source": "https://www.wikidata.org/wiki/Q831455"
+  },
+  {
+    "id": "Q867325",
+    "name": "Butaritari",
+    "country": "Kiribati",
+    "lat": 3.1677777777778,
+    "lng": 172.82583333333,
+    "timezone": "Pacific/Tarawa",
+    "category": "special",
+    "source": "https://www.wikidata.org/wiki/Q867325"
+  },
+  {
+    "id": "Q909758",
+    "name": "Marakei",
+    "country": "Kiribati",
+    "lat": 2,
+    "lng": 173.28333333333,
+    "timezone": "Pacific/Tarawa",
+    "category": "special",
+    "source": "https://www.wikidata.org/wiki/Q909758"
+  },
+  {
+    "id": "Q911037",
+    "name": "Teraina",
+    "country": "Kiribati",
+    "lat": 4.6833333333333,
+    "lng": -160.37777777778,
+    "timezone": "Pacific/Kiritimati",
+    "category": "special",
+    "source": "https://www.wikidata.org/wiki/Q911037"
+  },
+  {
+    "id": "Q909742",
+    "name": "Maiana",
+    "country": "Kiribati",
+    "lat": 0.91666666666667,
+    "lng": 173,
+    "timezone": "Pacific/Tarawa",
+    "category": "special",
+    "source": "https://www.wikidata.org/wiki/Q909742"
+  }
+]
