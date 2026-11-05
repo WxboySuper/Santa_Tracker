@@ -20,7 +20,6 @@ const nextConfig = {
   transpilePackages: [
     '@santa-tracker/contracts',
     '@santa-tracker/config',
-    '@santa-tracker/database',
     '@santa-tracker/route-engine',
     '@santa-tracker/ui',
     '@santa-tracker/activity-sdk',
