@@ -16,6 +16,11 @@ async function expectNoSeriousAxeIssues(page: Page) {
   })), null, 2)).toEqual([]);
 }
 
+function expectClosedCacheHeaders(route: string, cacheControl: string | undefined) {
+  expect(cacheControl, route).toContain("no-store");
+  if (route.startsWith("/api/")) expect(cacheControl).toContain("private");
+}
+
 test("home works at narrow widths, with motion settings, and passes axe", async ({ page }) => {
   await page.clock.install({ time: new Date("2026-09-14T10:00:00Z") });
   await page.goto("/");
@@ -55,17 +60,14 @@ test("closed season gates pages and APIs, including malformed credentials", asyn
   for (const route of gatedPaths) {
     const response = await request.get(route);
     expect(response.status(), route).toBe(404);
-    expect(response.headers()["cache-control"], route).toContain("no-store");
-    if (route.startsWith("/api/")) expect(response.headers()["cache-control"]).toContain("private");
+    expectClosedCacheHeaders(route, response.headers()["cache-control"]);
   }
   await page.goto("/");
   await expect(page.getByRole("link", { name: /track santa/i })).toHaveCount(0);
   await expect(page.getByRole("link", { name: /tracker|village/i })).toHaveCount(0);
 
-  for (const cookie of ["forged-token", "%"]){
-    const response = await request.get("/advent", { headers: { cookie: `admin_token=${cookie}` } });
-    expect(response.status()).toBe(404);
-  }
+  const forged = await request.get("/advent", { headers: { cookie: "admin_token=forged-token" } });
+  expect(forged.status()).toBe(404);
   const malformed = await request.get("/advent", { headers: { cookie: "admin_token=%" } });
   expect(malformed.status()).toBe(404);
   const login = await request.post("/api/admin/login", { data: { password: loginPassword } });
@@ -73,8 +75,9 @@ test("closed season gates pages and APIs, including malformed credentials", asyn
   for (const route of gatedPaths) {
     const response = await request.get(route);
     expect(response.status(), route).toBe(200);
-    if (route === "/api/route") expect(response.headers()["cache-control"]).toBe("private, no-store");
   }
+  const routeResponse = await request.get("/api/route");
+  expect(routeResponse.headers()["cache-control"]).toBe("private, no-store");
 });
 
 test("Advent exposes 24 doors, day 1 game, and rejects invalid days", async ({ page }, testInfo) => {
