@@ -14,7 +14,8 @@ import type { RouteNode } from "./locations";
 import type { SantaPosition } from "./tracker-position";
 import type { TrackerMapAdapter } from "./tracker-map-adapter";
 import { routeNodesToContractRoute } from "./route-bridge";
-import { positionToView, splitGreatCircle } from "./tracker-map-geometry";
+import { applyInitialCamera, hasValidMapExtent, positionToView, splitGreatCircle } from "./tracker-map-geometry";
+import { isMapInteractionKey } from "./tracker-map-adapter";
 import { styleDeadline } from "./tracker-map-timeout";
 
 const STYLE_URL = "https://tiles.openfreemap.org/styles/liberty";
@@ -57,6 +58,10 @@ export class OpenLayersTrackerMap implements TrackerMapAdapter {
     map.addLayer(new VectorLayer({ source: this.marker }));
     this.drawRoute();
     this.drawMarker();
+    applyInitialCamera(Boolean(this.position), {
+      centerOnSanta: () => this.centerSanta(),
+      fitRoute: () => this.fitToRoute(),
+    });
   }
 
   private async loadVector(map: Map): Promise<void> {
@@ -82,13 +87,17 @@ export class OpenLayersTrackerMap implements TrackerMapAdapter {
 
   private bindInput(element: HTMLElement): void {
     const stop = () => { this.stopFollowing(); this.onStopFollowing(); };
+    const stopForMapKey = (event: KeyboardEvent) => {
+      if (!isMapInteractionKey(event.key)) return;
+      stop();
+    };
     element.addEventListener("pointerdown", stop);
     element.addEventListener("wheel", stop, { passive: true });
-    element.addEventListener("keydown", stop);
+    element.addEventListener("keydown", stopForMapKey);
     this.cleanupInput = () => {
       element.removeEventListener("pointerdown", stop);
       element.removeEventListener("wheel", stop);
-      element.removeEventListener("keydown", stop);
+      element.removeEventListener("keydown", stopForMapKey);
     };
   }
 
@@ -96,6 +105,7 @@ export class OpenLayersTrackerMap implements TrackerMapAdapter {
     this.nodes = routeNodesToContractRoute(nodes).timedNodes;
     this.drawRoute();
     this.drawActiveLeg();
+    if (!this.position) this.fitToRoute();
   }
 
   setSantaPosition(position: SantaPosition): void {
@@ -151,7 +161,9 @@ export class OpenLayersTrackerMap implements TrackerMapAdapter {
   stopFollowing(): void { this.following = false; }
   fitToRoute(): void {
     const extent = this.route.getExtent();
-    if (extent) this.map?.getView().fit(extent, { padding: [32, 32, 32, 32] });
+    if (!extent) return;
+    if (!hasValidMapExtent(extent)) return;
+    this.map?.getView().fit(extent, { padding: [32, 32, 32, 32] });
   }
   destroy(): void { this.disposed = true; this.cancelStyle?.(); this.cleanupInput?.(); this.map?.setTarget(undefined); this.map?.dispose(); }
 }

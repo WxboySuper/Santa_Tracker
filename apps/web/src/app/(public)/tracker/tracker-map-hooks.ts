@@ -1,8 +1,7 @@
 import { useEffect, useRef } from "react";
 import { startAdapter } from "./tracker-map-start";
 import type { MapRuntime } from "./tracker-map-types";
-import type { MapEvent, MapMode } from "@/lib/tracker-map-adapter";
-import type { TrackerMapAdapter } from "@/lib/tracker-map-adapter";
+import { syncMapState, type MapEvent, type MapMode, type TrackerMapAdapter } from "@/lib/tracker-map-adapter";
 
 export type { MapEvent, MapMode };
 
@@ -27,7 +26,11 @@ export function useMapAdapter(runtime: MapRuntime): void {
       const startOptions = { mode: mapMode, element, nodes: latestNodes.current, position: latestPosition.current, dispatch, stopFollowing, adapter };
       const result = await startAdapter(startOptions, () => cancelled);
       instance = result.instance;
-      if (cancelled) return;
+      if (cancelled) {
+        instance?.destroy();
+        return;
+      }
+      syncMapState(instance, latestNodes.current, latestPosition.current);
       if (result.failure) dispatch(result.failure);
     };
     void start();

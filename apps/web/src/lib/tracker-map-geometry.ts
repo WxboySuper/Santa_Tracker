@@ -5,6 +5,18 @@ export function positionToView(position: LatLng): [number, number] {
   return [position.lng, Math.max(-85.05112878, Math.min(85.05112878, position.lat))];
 }
 
+export function applyInitialCamera(hasSantaPosition: boolean, camera: { centerOnSanta: () => void; fitRoute: () => void }): void {
+  if (hasSantaPosition) {
+    camera.centerOnSanta();
+    return;
+  }
+  camera.fitRoute();
+}
+
+export function hasValidMapExtent(extent: number[]): boolean {
+  return extent.every(Number.isFinite);
+}
+
 /** Sample the same great circle used for Santa, splitting at the map's world boundary. */
 export function splitGreatCircle(start: LatLng, end: LatLng): LatLng[][] {
   const pieces: LatLng[][] = [[start]];

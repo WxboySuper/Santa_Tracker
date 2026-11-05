@@ -13,6 +13,17 @@ export interface TrackerMapAdapter {
 
 export type MapMode = "vector" | "raster" | "text";
 export type MapEvent = "vectorFailed" | "rasterFailed" | "initFailed" | "showText" | "showMap";
+const MAP_INTERACTION_KEYS = ["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "+", "-", "PageUp", "PageDown"];
+
+export function isMapInteractionKey(key: string): boolean {
+  return MAP_INTERACTION_KEYS.includes(key);
+}
+
+export function syncMapState(adapter: TrackerMapAdapter | undefined, nodes: RouteNode[], position: SantaPosition | null): void {
+  if (!adapter) return;
+  adapter.setRoute(nodes);
+  if (position) adapter.setSantaPosition(position);
+}
 
 export function mapModeReducer(mode: MapMode, event: MapEvent): MapMode {
   if (event === "showText") return "text";

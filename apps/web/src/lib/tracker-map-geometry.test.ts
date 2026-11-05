@@ -1,5 +1,5 @@
-import { describe, expect, it } from "vitest";
-import { positionToView, splitGreatCircle } from "./tracker-map-geometry";
+import { describe, expect, it, vi } from "vitest";
+import { applyInitialCamera, hasValidMapExtent, positionToView, splitGreatCircle } from "./tracker-map-geometry";
 
 describe("splitGreatCircle", () => {
   it.each([
@@ -22,4 +22,20 @@ it("maps longitude first and clamps the poles for the map projection", () => {
   expect(positionToView({ lat: 90, lng: 180 })).toEqual([180, 85.05112878]);
   expect(positionToView({ lat: -90, lng: -42 })).toEqual([-42, -85.05112878]);
   expect(positionToView({ lat: 10, lng: 20 })).toEqual([20, 10]);
+});
+
+it("centers Santa when a live position exists and fits the route otherwise", () => {
+  const camera = { centerOnSanta: vi.fn(), fitRoute: vi.fn() };
+  applyInitialCamera(true, camera);
+  expect(camera.centerOnSanta).toHaveBeenCalledOnce();
+  expect(camera.fitRoute).not.toHaveBeenCalled();
+  camera.centerOnSanta.mockClear();
+  applyInitialCamera(false, camera);
+  expect(camera.fitRoute).toHaveBeenCalledOnce();
+  expect(camera.centerOnSanta).not.toHaveBeenCalled();
+});
+
+it("rejects empty map extents before fitting", () => {
+  expect(hasValidMapExtent([0, 0, 10, 10])).toBe(true);
+  expect(hasValidMapExtent([Infinity, Infinity, -Infinity, -Infinity])).toBe(false);
 });

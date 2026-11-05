@@ -1,5 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
-import { mapModeReducer, type TrackerMapAdapter } from "./tracker-map-adapter";
+import type { RouteNode } from "./locations";
+import type { SantaPosition } from "./tracker-position";
+import { isMapInteractionKey, mapModeReducer, syncMapState, type TrackerMapAdapter } from "./tracker-map-adapter";
 import { styleDeadline } from "./tracker-map-timeout";
 
 describe("map fallback", () => {
@@ -27,6 +29,18 @@ describe("map fallback", () => {
     expect(fake.destroy).toHaveBeenCalledOnce();
   });
 
+  it("syncs current route state after the asynchronous map mount completes", () => {
+    const fake: TrackerMapAdapter = {
+      mount: vi.fn().mockResolvedValue(undefined), setRoute: vi.fn(), setSantaPosition: vi.fn(),
+      follow: vi.fn(), stopFollowing: vi.fn(), fitToRoute: vi.fn(), destroy: vi.fn(),
+    };
+    const currentPosition = { lat: 10, lng: 20, journey: { currentIndex: 0, nextIndex: 1, progress: 0.5, isComplete: false } } as SantaPosition;
+    const latestNodes = [{ id: "current-route" }] as RouteNode[];
+    syncMapState(fake, latestNodes, currentPosition);
+    expect(fake.setRoute).toHaveBeenCalledWith(latestNodes);
+    expect(fake.setSantaPosition).toHaveBeenCalledWith(currentPosition);
+  });
+
   it("uses an injected clock for the style timeout", async () => {
     let callback!: () => void;
     const clear = vi.fn();
@@ -52,4 +66,13 @@ describe("map fallback", () => {
       vi.useRealTimers();
     }
   });
+});
+
+it("stops following only for map movement and zoom keys", () => {
+  for (const key of ["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "+", "-", "PageUp", "PageDown"]) {
+    expect(isMapInteractionKey(key)).toBe(true);
+  }
+  for (const key of ["Tab", "Shift", "Escape", "a"]) {
+    expect(isMapInteractionKey(key)).toBe(false);
+  }
 });
