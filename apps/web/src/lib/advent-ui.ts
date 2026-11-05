@@ -20,13 +20,33 @@ const EMBED_PREFIX = "/advent/";
 // A backslash (written "\\"), a colon (scheme), a query marker and a fragment marker.
 const FORBIDDEN_CHARS = ["\\", ":", "?", "#"];
 
-/** Control characters, whitespace (including Unicode spaces) and the characters that let a path escape. */
+const MAX_EMBED_PATH_LENGTH = 200;
+
+/** ASCII control characters, the space, and DEL. */
+function isControlCode(code: number): boolean {
+  return code <= 0x20 || code === 0x7f;
+}
+
+/** Unicode whitespace, or one of the characters that let a path escape its directory. */
+function isForbiddenCharacter(ch: string): boolean {
+  return /\s/.test(ch) || FORBIDDEN_CHARS.includes(ch);
+}
+
 function hasUnsafeCharacter(value: string): boolean {
   for (const ch of value) {
-    const code = ch.codePointAt(0) ?? 0;
-    if (code <= 0x20 || code === 0x7f || /\s/.test(ch) || FORBIDDEN_CHARS.includes(ch)) return true;
+    if (isControlCode(ch.codePointAt(0) ?? 0)) return true;
+    if (isForbiddenCharacter(ch)) return true;
   }
   return false;
+}
+
+/** Doubled slashes (protocol-relative) or `..` segments (traversal). */
+function hasPathEscape(value: string): boolean {
+  return value.includes("//") || value.includes("..");
+}
+
+function isAllowedShape(value: string): boolean {
+  return value.startsWith(EMBED_PREFIX) && value.length <= MAX_EMBED_PATH_LENGTH;
 }
 
 /**
@@ -37,7 +57,8 @@ function hasUnsafeCharacter(value: string): boolean {
  */
 export function safeEmbedPath(value: unknown): string | null {
   if (typeof value !== "string") return null;
-  if (!value.startsWith(EMBED_PREFIX) || value.length > 200) return null;
-  if (hasUnsafeCharacter(value) || value.includes("//") || value.includes("..")) return null;
+  if (!isAllowedShape(value)) return null;
+  if (hasUnsafeCharacter(value)) return null;
+  if (hasPathEscape(value)) return null;
   return value;
 }

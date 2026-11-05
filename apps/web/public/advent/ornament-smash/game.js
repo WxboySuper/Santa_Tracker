@@ -454,6 +454,7 @@ function updateSnowflakes() {
 }
 
 // Update game state
+// @codescene(disable:"Bumpy Road Ahead") Vendored legacy game kept as-is for Day 1; it is replaced by a from-scratch rebuild in issue #271, so refactoring it now would only add risk.
 function update() {
     const now = Date.now();
     
@@ -590,6 +591,7 @@ function drawSnowflakes() {
 }
 
 // Draw Christmas tree
+// @codescene(disable:"Large Method") Vendored legacy game kept as-is for Day 1; it is replaced by a from-scratch rebuild in issue #271, so refactoring it now would only add risk.
 function drawTree() {
     const centerX = canvas.width / 2;
     const colors = getTreeColors();

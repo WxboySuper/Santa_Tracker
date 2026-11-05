@@ -72,30 +72,43 @@ function uploadToR2({ bucket, dataset, versionId, body, activate }) {
   });
 }
 
-async function main() {
-  const remote = process.argv.includes("--remote");
-  const activate = process.argv.includes("--activate");
-  const bucket = process.env.SANTA_R2_BUCKET ?? "santa-tracker-snapshots";
-  const onlyIndex = process.argv.indexOf("--only");
-  const only = onlyIndex === -1 ? null : process.argv[onlyIndex + 1];
+/** Read the command line and environment into one validated options object. */
+function parseOptions(argv, env) {
+  const onlyIndex = argv.indexOf("--only");
+  const only = onlyIndex === -1 ? null : argv[onlyIndex + 1];
   if (only !== null && !DATASETS.some((entry) => entry.dataset === only)) {
     throw new Error(`--only must be one of: ${DATASETS.map((entry) => entry.dataset).join(", ")}`);
   }
+  return {
+    remote: argv.includes("--remote"),
+    activate: argv.includes("--activate"),
+    only,
+    bucket: env.SANTA_R2_BUCKET ?? "santa-tracker-snapshots",
+  };
+}
 
-  for (const { file, dataset } of DATASETS) {
-    if (only !== null && dataset !== only) continue;
-    const sourcePath = path.join(dataDir, file);
-    const body = await fs.readFile(sourcePath, "utf-8");
-    if (remote) {
-      const versionId = makeVersionId();
-      const activated = await uploadToR2({ bucket, dataset, versionId, body, activate });
-      const message = activated
-        ? `Activated ${dataset} version ${versionId} in R2 bucket ${bucket}`
-        : `Kept existing ${dataset} active pointer in R2 bucket ${bucket}`;
-      process.stdout.write(`${message}\n`);
-    } else {
-      process.stdout.write(`Validated ${file}; local runtime reads the checked-in data file directly\n`);
-    }
+/** Validate one dataset locally, or upload it to R2 (activating only when asked). */
+async function publishDataset({ file, dataset }, { remote, activate, bucket }) {
+  const body = await fs.readFile(path.join(dataDir, file), "utf-8");
+  if (!remote) {
+    process.stdout.write(`Validated ${file}; local runtime reads the checked-in data file directly
+`);
+    return;
+  }
+  const versionId = makeVersionId();
+  const activated = await uploadToR2({ bucket, dataset, versionId, body, activate });
+  const message = activated
+    ? `Activated ${dataset} version ${versionId} in R2 bucket ${bucket}`
+    : `Kept existing ${dataset} active pointer in R2 bucket ${bucket}`;
+  process.stdout.write(`${message}
+`);
+}
+
+async function main() {
+  const options = parseOptions(process.argv, process.env);
+  for (const entry of DATASETS) {
+    if (options.only !== null && entry.dataset !== options.only) continue;
+    await publishDataset(entry, options);
   }
 }
 
