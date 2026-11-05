@@ -325,8 +325,8 @@ function parseRouteNodes(nodes: unknown[]): RouteNode[] {
   return parsed;
 }
 
-export async function loadRouteNodesRaw(): Promise<RouteNode[]> {
-  const obj: unknown = JSON.parse(await readPublishedSantaRouteJson());
+export async function loadRouteNodesRaw(source?: string | JsonRecord | unknown[]): Promise<RouteNode[]> {
+  const obj = source === undefined ? JSON.parse(await readPublishedSantaRouteJson()) : await readRouteSource(source);
   return parseRouteNodes(extractRouteNodes(obj));
 }
 
