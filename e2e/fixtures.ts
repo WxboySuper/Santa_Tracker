@@ -2,7 +2,7 @@ import { readFile } from "node:fs/promises";
 import { expect, test as base } from "@playwright/test";
 
 const test = base.extend({
-  baseURL: async ({ browser: _browser }, use, testInfo) => {
+  baseURL: async ({ playwright: _playwright }, use, testInfo) => {
     const runtimeFile = process.env.E2E_RUNTIME_FILE;
     if (!runtimeFile) throw new Error("E2E_RUNTIME_FILE is not configured");
     const endpoints = JSON.parse(await readFile(runtimeFile, "utf8")) as Record<string, string>;

@@ -17,7 +17,7 @@ function getLocalAddress(output: string): string | undefined {
 
 async function isServerReady(endpoint: string): Promise<boolean> {
   try {
-    const response = await fetch(endpoint);
+    const response = await fetch(endpoint, { signal: AbortSignal.timeout(5_000) });
     return response.ok;
   } catch {
     return false;
