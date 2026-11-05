@@ -1,7 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { NextResponse } from "next/server";
 import * as jose from "jose";
 import { ADMIN_SESSION_TTL_SECONDS, shouldUseSecureAdminCookie } from "@/lib/auth";
-import { getClientIp, POST } from "./route";
+import { getClientIp, POST, serializeLogin } from "./route";
 import { POST as logout } from "../logout/route";
 
 describe("admin login route", () => {
@@ -57,6 +58,23 @@ describe("admin login route", () => {
     })));
     const responses = await Promise.all(requests);
     expect(responses.filter((response) => response.headers.get("Retry-After") === "1")).toHaveLength(6);
+  });
+
+  it("does not let one IP's full queue reject a different IP", async () => {
+    let releaseFirst: () => void = () => undefined;
+    const gate = new Promise<void>((resolve) => { releaseFirst = resolve; });
+    const response = () => Promise.resolve(NextResponse.json({ ok: true }));
+    const first = serializeLogin("ip-a", () => gate.then(() => NextResponse.json({ ok: true })));
+    const queued = Array.from({ length: 63 }, () => serializeLogin("ip-a", response));
+    try {
+      const sameIpOverflow = await serializeLogin("ip-a", response);
+      const otherIpResponse = await serializeLogin("ip-b", response);
+      expect(sameIpOverflow.status).toBe(429);
+      expect(otherIpResponse.status).toBe(200);
+    } finally {
+      releaseFirst();
+      await Promise.all([first, ...queued]);
+    }
   });
 
   it("sets Secure for production requests even if an internal URL is HTTP", () => {

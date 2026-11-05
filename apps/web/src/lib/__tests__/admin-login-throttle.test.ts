@@ -44,6 +44,12 @@ describe("admin login throttle", () => {
     expect(await throttle.check("new-ip", true)).toBeNull();
   });
 
+  it("counts simultaneous failures from different IPs toward the global cap", async () => {
+    const { throttle } = setup();
+    await Promise.all(Array.from({ length: 31 }, (_, index) => throttle.recordFailure(`parallel-${index}`)));
+    expect((await throttle.check("new-ip"))?.reason).toBe("global");
+  });
+
   it("does not add more global failures from an already locked IP", async () => {
     const { throttle } = setup();
     for (let i = 0; i < 5; i += 1) await throttle.recordFailure("locked-ip");

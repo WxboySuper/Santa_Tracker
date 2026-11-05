@@ -3,9 +3,9 @@ import { checkLoginRateLimit, clearLoginAttempts, loginAdmin, recordLoginAttempt
 import { readJsonBody, respondWith } from "@/lib/admin-api";
 import { ADMIN_SESSION_TTL_SECONDS, requireAdminAuth, shouldUseSecureAdminCookie } from "@/lib/auth";
 
-let loginQueue: Promise<void> = Promise.resolve();
-let pendingLoginCount = 0;
-const MAX_PENDING_LOGINS = 64;
+const loginQueues = new Map<string, Promise<void>>();
+const pendingLogins = new Map<string, number>();
+const MAX_PENDING_LOGINS_PER_IP = 64;
 
 export function getClientIp(req: Request): string {
   const cloudflareIp = req.headers.get("cf-connecting-ip")?.trim();
@@ -19,16 +19,25 @@ export async function POST(req: Request) {
   const ip = getClientIp(req);
   const existingSession = await requireAdminAuth(req);
   const payload = await readJsonBody(req);
-  return serializeLogin(() => handleLogin(req, ip, existingSession.ok, payload));
+  return serializeLogin(ip, () => handleLogin(req, ip, existingSession.ok, payload));
 }
 
-function serializeLogin(task: () => Promise<NextResponse>): Promise<NextResponse> {
-  if (pendingLoginCount >= MAX_PENDING_LOGINS) return Promise.resolve(throttledResponse(1));
-  pendingLoginCount += 1;
-  const current = loginQueue.then(task, task);
-  loginQueue = current.then(() => undefined, () => undefined);
+export function serializeLogin(ip: string, task: () => Promise<NextResponse>): Promise<NextResponse> {
+  const pendingCount = pendingLogins.get(ip) ?? 0;
+  if (pendingCount >= MAX_PENDING_LOGINS_PER_IP) return Promise.resolve(throttledResponse(1));
+  pendingLogins.set(ip, pendingCount + 1);
+  const previous = loginQueues.get(ip) ?? Promise.resolve();
+  const current = previous.then(task, task);
+  const tail = current.then(() => undefined, () => undefined);
+  loginQueues.set(ip, tail);
   return current.finally(() => {
-    pendingLoginCount -= 1;
+    const remaining = (pendingLogins.get(ip) ?? 1) - 1;
+    if (remaining > 0) {
+      pendingLogins.set(ip, remaining);
+      return;
+    }
+    pendingLogins.delete(ip);
+    if (loginQueues.get(ip) === tail) loginQueues.delete(ip);
   });
 }
 
