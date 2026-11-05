@@ -1,0 +1,178 @@
+/*
+ * Festive scene. Decorative only: every layer is aria-hidden and pointer-events:none.
+ * Motion is opt-in (prefers-reduced-motion: no-preference), so reduced-motion visitors get the
+ * same scene frozen.
+ */
+
+.festive-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 80% 55% at 50% 108%, rgb(20 83 45 / 55%), transparent 70%),
+    radial-gradient(ellipse 70% 40% at 20% 0%, rgb(45 212 191 / 16%), transparent 70%),
+    radial-gradient(ellipse 60% 35% at 85% 8%, rgb(220 38 38 / 12%), transparent 70%),
+    linear-gradient(180deg, #050a1a 0%, #0b1220 55%, #0f172a 100%);
+}
+
+.festive-stars,
+.festive-snow {
+  position: absolute;
+  inset: 0;
+}
+
+.festive-stars {
+  background-image:
+    radial-gradient(1.5px 1.5px at 8% 12%, #fff, transparent),
+    radial-gradient(1px 1px at 22% 28%, #fde68a, transparent),
+    radial-gradient(1.5px 1.5px at 37% 9%, #fff, transparent),
+    radial-gradient(1px 1px at 52% 22%, #fff, transparent),
+    radial-gradient(2px 2px at 66% 14%, #fde68a, transparent),
+    radial-gradient(1px 1px at 79% 31%, #fff, transparent),
+    radial-gradient(1.5px 1.5px at 91% 11%, #fff, transparent),
+    radial-gradient(1px 1px at 14% 44%, #fff, transparent),
+    radial-gradient(1px 1px at 71% 47%, #fde68a, transparent),
+    radial-gradient(1.5px 1.5px at 45% 40%, #fff, transparent);
+  opacity: 0.85;
+}
+
+.festive-snow {
+  background-repeat: repeat;
+}
+
+.festive-snow--far {
+  background-image:
+    radial-gradient(2px 2px at 20px 30px, rgb(255 255 255 / 80%), transparent),
+    radial-gradient(2px 2px at 140px 90px, rgb(255 255 255 / 70%), transparent),
+    radial-gradient(2px 2px at 80px 160px, rgb(255 255 255 / 75%), transparent),
+    radial-gradient(2px 2px at 200px 40px, rgb(255 255 255 / 65%), transparent);
+  background-size: 240px 200px;
+}
+
+.festive-snow--near {
+  background-image:
+    radial-gradient(3.5px 3.5px at 60px 50px, rgb(255 255 255 / 95%), transparent),
+    radial-gradient(3px 3px at 190px 140px, rgb(255 255 255 / 90%), transparent),
+    radial-gradient(3.5px 3.5px at 120px 230px, rgb(255 255 255 / 90%), transparent);
+  background-size: 300px 280px;
+}
+
+/* A string of lights along the top edge. Two alternating layers give the twinkle. */
+.festive-lights {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 18px;
+}
+
+.festive-lights::before,
+.festive-lights::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-size: 96px 18px;
+  background-repeat: repeat-x;
+}
+
+.festive-lights::before {
+  background-image:
+    radial-gradient(5px 5px at 12px 9px, #ef4444 55%, transparent 60%),
+    radial-gradient(5px 5px at 60px 9px, #22c55e 55%, transparent 60%);
+  filter: drop-shadow(0 0 5px #ef4444);
+}
+
+.festive-lights::after {
+  background-image:
+    radial-gradient(5px 5px at 36px 9px, #facc15 55%, transparent 60%),
+    radial-gradient(5px 5px at 84px 9px, #38bdf8 55%, transparent 60%);
+  filter: drop-shadow(0 0 5px #facc15);
+}
+
+.festive-title {
+  background: linear-gradient(180deg, #fff 10%, #fde68a 55%, #facc15 100%);
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 2px 14px rgb(250 204 21 / 35%));
+}
+
+.countdown-tile {
+  background: linear-gradient(180deg, rgb(255 255 255 / 14%), rgb(255 255 255 / 5%));
+  border: 1px solid rgb(250 204 21 / 45%);
+  box-shadow: 0 8px 30px rgb(0 0 0 / 35%), inset 0 1px 0 rgb(255 255 255 / 18%);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .festive-stars {
+    animation: festive-twinkle 5s ease-in-out infinite alternate;
+  }
+
+  /* Each layer scrolls by exactly one tile height per cycle, so the loop restarts invisibly. */
+  .festive-snow--far {
+    animation: festive-fall-far 10s linear infinite;
+  }
+
+  .festive-snow--near {
+    animation: festive-fall-near 6s linear infinite;
+  }
+
+  .festive-lights::before {
+    animation: festive-bulb 2.4s ease-in-out infinite alternate;
+  }
+
+  .festive-lights::after {
+    animation: festive-bulb 2.4s ease-in-out 1.2s infinite alternate;
+  }
+
+  .countdown-seconds {
+    animation: festive-tick 1s ease-out infinite;
+  }
+}
+
+@keyframes festive-twinkle {
+  from { opacity: 0.55; }
+  to { opacity: 1; }
+}
+
+/* Distances match each layer's background-size height (200px and 280px). */
+@keyframes festive-fall-far {
+  from { background-position: 0 0; }
+  to { background-position: 0 200px; }
+}
+
+@keyframes festive-fall-near {
+  from { background-position: 0 0; }
+  to { background-position: 0 280px; }
+}
+
+@keyframes festive-bulb {
+  from { opacity: 0.35; }
+  to { opacity: 1; }
+}
+
+@keyframes festive-tick {
+  0% { transform: scale(1.06); }
+  100% { transform: scale(1); }
+}
+
+/*
+ * Windows High Contrast / forced colors strips backgrounds, so a transparent gradient title would
+ * disappear. Use the system text colour, keep visible tile borders, and drop the decorative scene.
+ */
+@media (forced-colors: active) {
+  .festive-title {
+    background: none;
+    color: CanvasText;
+    filter: none;
+  }
+
+  .countdown-tile {
+    border-color: CanvasText;
+  }
+
+  .festive-backdrop {
+    display: none;
+  }
+}
