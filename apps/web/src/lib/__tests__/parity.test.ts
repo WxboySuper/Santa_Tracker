@@ -99,7 +99,9 @@ describe("Advent parity", () => {
   it("requires a quiz questions field", () => {
     const quizDay: AdventDay = { ...past, content_type: "quiz", payload: {} };
     expect(validateAdventCalendar([quizDay]).warnings).toContain("Day 1: Missing 'questions' in payload");
-    expect(validateAdventCalendar([{ ...quizDay, payload: { questions: [] } }]).warnings).not.toContain("Day 1: Missing 'questions' in payload");
+    expect(validateAdventCalendar([{ ...quizDay, payload: { questions: [] } }]).warnings).toContain("Day 1: Invalid 'questions' payload");
+    expect(validateAdventCalendar([{ ...quizDay, payload: { questions: [{ prompt: "", choices: [], answerIndex: 0 }] } }]).warnings).toContain("Day 1: Invalid 'questions' payload");
+    expect(validateAdventCalendar([{ ...quizDay, payload: { questions: [{ prompt: "Pick one", choices: ["A", "B"], answerIndex: 1 }] } }]).warnings).not.toContain("Day 1: Invalid 'questions' payload");
   });
 });
 

@@ -39,7 +39,9 @@ export function quizReducer(state: QuizState, action: QuizAction): QuizState {
 }
 
 function selectAnswer(state: QuizState, index: number): QuizState {
-  if (state.phase !== "answering" || !Number.isInteger(index) || index < 0) return state;
+  if (state.phase !== "answering") return state;
+  if (!Number.isInteger(index)) return state;
+  if (index < 0) return state;
   return { ...state, selectedIndex: index };
 }
 
@@ -49,7 +51,9 @@ function checkAnswer(state: QuizState, answerIndex: number): QuizState {
 }
 
 function nextQuestion(state: QuizState, questionCount: number): QuizState {
-  if (state.phase !== "feedback" || !Number.isInteger(questionCount) || questionCount < 1) return state;
+  if (state.phase !== "feedback") return state;
+  if (!Number.isInteger(questionCount)) return state;
+  if (questionCount < 1) return state;
   const questionIndex = state.questionIndex + 1;
   if (questionIndex >= questionCount) return { ...state, phase: "done" };
   return { ...state, phase: "answering", questionIndex, selectedIndex: null };
