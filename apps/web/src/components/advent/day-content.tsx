@@ -1,9 +1,11 @@
 import type { ReactNode } from "react";
 import type { AdventPublicDay } from "@/lib/advent";
 import { safeEmbedPath } from "@/lib/advent-ui";
+import { parseQuiz } from "@/lib/advent-quiz";
+import { AdventQuiz } from "./advent-quiz";
 
 type ContentType = AdventPublicDay["content_type"];
-type Renderer = (day: AdventPublicDay) => ReactNode;
+type Renderer = (day: AdventPublicDay, locale: string) => ReactNode;
 
 function textOf(day: AdventPublicDay): string | null {
   const text = day.payload?.text;
@@ -35,8 +37,12 @@ const renderEmbed: Renderer = (day) => {
   );
 };
 
+const renderQuiz: Renderer = (day, locale) => parseQuiz(day.payload)
+  ? <AdventQuiz key={day.day} payload={day.payload} locale={locale} />
+  : null;
+
 /**
- * One renderer per content type. A type with no renderer yet (`video`, `activity`, `quiz`), or a
+ * One renderer per content type. A type with no renderer yet (`video`, `activity`), or a
  * payload the renderer cannot use, shows the fallback instead of a blank page, so a day is never a
  * dead end. Add new activity types here; the calendar and day page do not change.
  */
@@ -44,9 +50,10 @@ const renderers: Partial<Record<ContentType, Renderer>> = {
   fact: renderText,
   story: renderText,
   game: renderEmbed,
+  quiz: renderQuiz,
 };
 
 /** The content for a day, or `fallback` when the type has no renderer or the payload is unusable. */
-export function renderDayContent(day: AdventPublicDay, fallback: ReactNode): ReactNode {
-  return renderers[day.content_type]?.(day) ?? fallback;
+export function renderDayContent(day: AdventPublicDay, fallback: ReactNode, locale = "en"): ReactNode {
+  return renderers[day.content_type]?.(day, locale) ?? fallback;
 }
