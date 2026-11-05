@@ -1,149 +1,37 @@
-# Architecture & Design
+# Architecture
 
-This document describes the design choices, technical decisions, and architectural patterns used in Santa Tracker.
+## Runtime
 
-## 🎨 UI/UX Design
+`apps/web` is the application entry point. It uses the Next.js App Router and runs in production as a Cloudflare Worker through vinext. The Worker handles page and API requests. The Cloudflare assets binding serves built static files.
 
-### Mobile-First Approach
-The application uses a responsive design with breakpoints optimized for mobile, tablet, and desktop devices. All layouts are tested on various screen sizes to ensure a consistent experience.
+Public route data is returned by `/api/route`; the browser calculates Santa's position from the route snapshot with `packages/route-engine`. Advent manifest and day APIs check the server clock before returning unlocked content. Admin pages and `/api/admin/*` use a signed admin session.
 
-### Accessibility Features
-- **ARIA Labels**: All interactive elements are properly labeled for screen readers
-- **Live Regions**: Real-time updates are announced to assistive technologies
-- **Keyboard Navigation**: Full keyboard support for map controls and interactions
-- **Focus Indicators**: High-contrast focus outlines (3px gold) for visibility
-- **Semantic HTML**: Proper heading hierarchy and landmark regions
-- **High Contrast Support**: Tested with `prefers-contrast: high` media query
-- **Reduced Motion**: Respects `prefers-reduced-motion` preference for animations
+## Snapshot storage
 
-### Christmas Color Palette
-- **Christmas Red** (#C41E3A) - Primary action color
-- **Christmas Green** (#165B33) - Secondary/accent color
-- **Gold** (#FFD700) - Highlights and borders
-- **Blue Gradient** - Night sky theme background
+The versioned snapshot store holds route and Advent data, including admin edits. Production uses the `SANTA_SNAPSHOTS` R2 binding. Local development uses the filesystem backend at `apps/web/data/.versioned`; set `SANTA_DATA_ROOT` to choose another data root. The checked-in JSON files under `apps/web/data/` seed snapshots.
 
-### Festive Elements
-- **Animated Snowfall**: 40 snowflakes using pure CSS/JS
-- **Emoji-Based Icons**: Visual appeal with better compatibility
-- **Gradient Backgrounds**: Festive color combinations
-- **Smooth Animations**: Transitions respect motion preferences
+PostgreSQL and `packages/database` were removed. The old Postgres and Drizzle decisions in [ADR 0001](adr/0001-application-architecture.md) are historical. [ADR 0003](adr/0003-drop-postgres-r2-snapshots.md) records the current storage decision.
 
-## 🗺️ Map Implementation
+## Season access
 
-### Technology Choice: OpenStreetMap
-We chose OpenStreetMap for several key reasons:
-- **Cost-Free**: No API keys or usage limits
-- **Open Source**: Community-driven and freely available
-- **Reliable**: Stable tile servers with global coverage
-- **No Vendor Lock-in**: Can self-host tiles if needed
+`apps/web/src/lib/season.ts` defines public windows. The tracker opens at 09:50 UTC on December 24 and closes at 00:00 UTC on January 7. Advent opens at 00:00 UTC on November 30 and closes at the same January boundary. Closed pages and APIs return 404 to visitors. A valid admin session bypasses the seasonal gate. `SEASON_OVERRIDE=open` opens both features for local or preview use.
 
-### Leaflet.js Features
-- **Marker Clustering**: Leaflet.markercluster plugin for performance with many route points
-- **Smooth Animations**: 30-step interpolation for Santa's movement (1.5s transitions)
-- **Keyboard Accessible**: Arrow keys for pan, +/- for zoom
-- **Custom Icons**: 48x48px Santa icon with hover effects
-- **Touch Support**: Optimized for mobile touch interactions
+Advent day N unlocks at 12:00 UTC on December N. The day page selects a renderer by content type in `apps/web/src/components/advent/day-content.tsx`. Facts and stories render text; games render a same-origin embed. Other content types use the fallback until a renderer exists. The activity SDK is in `packages/activity-sdk`. Day 1 embeds `apps/web/public/advent/ornament-smash/`.
 
-### Map Performance
-- Marker clustering reduces DOM elements for better rendering
-- Debounced pan/zoom events to minimize redraws
-- Lazy loading of route data as needed
-- Efficient tile caching
+## Workspace packages
 
-## ⚡ Performance Optimizations
+- `route-engine`: journey state, great-circle geometry, and geometry validation.
+- `contracts`: shared Zod schemas and stable IDs.
+- `config`: typed application configuration.
+- `localization`: locale resources and helpers.
+- `ui`: shared React components.
+- `activity-sdk`: lifecycle helpers for embedded activities.
+- `test-fixtures`: clocks, routes, snapshots, and fixtures used by tests.
 
-### CDN Resources
-Using CDN-hosted libraries provides several benefits:
-- Faster initial load times
-- Browser caching across sites
-- Reduced server bandwidth
-- Global edge distribution
+`apps/web` composes these packages. The Flask/Python sources in `src/` and `archive/` are retired. They are not imported by the production app; Python workflows only run archival checks.
 
-Key CDN resources:
-- Tailwind CSS (JIT via CDN)
-- Leaflet.js and plugins
-- Web fonts (if any)
+## Hosting and deployment
 
-### Animation Optimizations
-- **Lazy Animations**: Snowfall respects `prefers-reduced-motion`
-- **CSS Transforms**: Hardware-accelerated transforms for smooth animations
-- **RequestAnimationFrame**: Efficient timing for JavaScript animations
-- **Debouncing**: Limit frequency of resize/scroll handlers
+Cloudflare Worker settings and bindings are defined in `apps/web/cloudflare.config.ts`, with a matching Wrangler reference in `apps/web/wrangler.toml`. `.github/workflows/deploy-cloudflare-workers.yml` builds and deploys the Worker, syncs the admin secrets, and runs a smoke test. The workflow can opt in to replacing one live dataset during a manual run.
 
-### Code Organization
-- **Modular JavaScript**: Separate files for distinct features
-- **Minimal Dependencies**: Only essential libraries included
-- **Tree Shaking**: Unused code eliminated in production builds
-- **Minification**: Assets compressed for faster loading
-
-## 🏗️ Backend Architecture
-
-### Next.js application (`apps/web`)
-
-- **Public:** App Router pages (`/`, `/tracker`, `/advent`); route data is served from `/api/route`, and Advent payloads are guarded by `/api/advent/[day]`
-- **Admin:** `/admin/*` pages and `/api/admin/*` route handlers (JWT via `proxy.ts`)
-- **Live position:** Client-side only — `packages/route-engine` (`deriveJourneyState`) over the route snapshot fetched once from `/api/route`
-- **Snapshots:** Versioned route/advent JSON in R2 on Workers (filesystem adapter for dev/VPS); `pnpm santa:publish:remote` seeds R2 from checked-in data
-
-### Route organization
-
-- `/tracker` — map UI (R2-backed route API + client interpolation)
-- `/admin` — route editor and advent studio
-- `/api/admin/*` — authenticated mutations
-- `/api/advent/*` — public advent APIs when `ADVENT_ENABLED`
-
-Legacy Flask/Python sources live under `archive/flask-legacy/`.
-
-## 🔐 Security Considerations
-
-### Admin Dashboard Security
-- Password-based authentication via environment variable
-- Session-based authorization with Bearer tokens
-- HTTPS required in production
-- No password storage in code or version control
-
-### API Security
-- Server-side validation for all inputs
-- Locked content not exposed in API responses
-- UTC time used for consistency and security
-- Error handling without stack trace exposure
-
-### Best Practices
-- Environment variables for sensitive data
-- Input sanitization and validation
-- CORS configuration for API endpoints
-- Content Security Policy headers (recommended)
-
-## 📱 Progressive Web App
-
-### PWA Features
-- **Manifest File**: App metadata for installation
-- **Service Worker**: Offline caching strategy
-- **Installable**: Add to home screen on mobile
-- **Offline Support**: Core features work without connection
-- **Push Notifications**: Ready for future implementation
-
-### Caching Strategy
-- **Cache First**: Static assets (CSS, JS, images)
-- **Network First**: Dynamic content (API calls)
-- **Stale While Revalidate**: Balance freshness and speed
-
-## 🎯 Future Architecture Considerations
-
-### Scalability
-- Horizontal scaling with load balancer
-- Redis for distributed caching
-- CDN for static assets
-- Database connection pooling
-
-### Monitoring
-- Application performance monitoring (APM)
-- Error tracking and logging
-- User analytics (privacy-respecting)
-- Uptime monitoring
-
-### Enhancements
-- WebSocket for real-time updates
-- Server-Sent Events for live tracking
-- GraphQL API for flexible queries
-- Microservices architecture for large scale
+The repository still contains release-triggered VPS workflows. They describe a retired deployment path and are not the current production target. See [Deployment](DEPLOY.md) for the active path and this legacy exception.
