@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { createTranslator } from "@santa-tracker/localization";
 import { notFound } from "next/navigation";
-import { DayContent } from "@/components/advent/day-content";
+import { renderDayContent } from "@/components/advent/day-content";
 import { getDayContent, parseDayNumber } from "@/lib/advent";
 import { formatUnlockDate } from "@/lib/advent-ui";
 import { isAdventEnabled } from "@/lib/config";
@@ -27,7 +27,7 @@ export default async function AdventDayPage({ params }: { params: Promise<{ day:
       <main className="w-full max-w-2xl rounded-xl bg-white/10 p-6 backdrop-blur-md">
         <h1 className="mb-4 text-3xl font-bold">{translator.t("advent.day", { day: day.day, title: day.title })}</h1>
         {day.is_unlocked ? (
-          <DayContent day={day} fallback={<p>{translator.t("advent.comingSoon")}</p>} />
+          renderDayContent(day, <p>{translator.t("advent.comingSoon")}</p>)
         ) : (
           <p>{translator.t("advent.lockedHint", { date })}</p>
         )}

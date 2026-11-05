@@ -21,7 +21,7 @@ const renderers: Partial<Record<ContentType, Renderer>> = {
   },
 };
 
-export function DayContent({ day, fallback }: { day: AdventPublicDay; fallback: ReactNode }) {
-  const rendered = renderers[day.content_type]?.(day) ?? null;
-  return <>{rendered ?? fallback}</>;
+/** The content for a day, or `fallback` when the type has no renderer or the payload is unusable. */
+export function renderDayContent(day: AdventPublicDay, fallback: ReactNode): ReactNode {
+  return renderers[day.content_type]?.(day) ?? fallback;
 }

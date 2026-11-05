@@ -1,7 +1,7 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import { DayContent } from "@/components/advent/day-content";
+import { renderDayContent } from "@/components/advent/day-content";
 import type { AdventPublicDay } from "../advent";
 
 function day(overrides: Partial<AdventPublicDay>): AdventPublicDay {
@@ -17,9 +17,9 @@ function day(overrides: Partial<AdventPublicDay>): AdventPublicDay {
 }
 
 const render = (d: AdventPublicDay) =>
-  renderToStaticMarkup(createElement(DayContent, { day: d, fallback: createElement("p", null, "FALLBACK") }));
+  renderToStaticMarkup(renderDayContent(d, createElement("p", null, "FALLBACK")));
 
-describe("DayContent", () => {
+describe("renderDayContent", () => {
   it("renders a fact payload", () => {
     expect(render(day({}))).toContain("Reindeer eyes change colour in winter.");
   });
