@@ -11,6 +11,8 @@ compatibility_flags = ["nodejs_compat"]
 directory = "./.vinext/client"
 binding = "ASSETS"
 not_found_handling = "none"
+html_handling = "none"
+run_worker_first = ["/*", "!/_next/static/*", "!/*/_next/static/*"]
 
 [[r2_buckets]]
 binding = "SANTA_SNAPSHOTS"
