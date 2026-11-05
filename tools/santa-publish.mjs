@@ -16,6 +16,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
+import { parseArgs } from "node:util";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.join(__dirname, "..");
@@ -83,44 +84,41 @@ function uploadToR2({ bucket, dataset, versionId, body, activate }) {
   });
 }
 
-const BOOLEAN_FLAGS = new Set(["--remote", "--activate", "--all"]);
+const CLI_OPTIONS = {
+  remote: { type: "boolean" },
+  activate: { type: "boolean" },
+  all: { type: "boolean" },
+  only: { type: "string", multiple: true },
+};
 
-/**
- * Split argv into recognised flags and the `--only` value (`--only <dataset>` or `--only=<dataset>`).
- * Anything else, a typo, a wrong-case or single-dash spelling, or a stray positional such as
- * `--activate advent-calendar`, is an error. It must never be ignored, because an ignored scope
- * silently becomes "all datasets" and, with --activate, a mass overwrite of live data.
- */
-function scanArgs(args) {
-  const flags = new Set();
-  let only = null;
-  for (let i = 0; i < args.length; i++) {
-    const arg = args[i];
-    if (BOOLEAN_FLAGS.has(arg)) {
-      flags.add(arg);
-    } else if (arg === "--only" || arg.startsWith("--only=")) {
-      if (only !== null) throw new Error("--only was given more than once");
-      only = arg === "--only" ? (args[++i] ?? "") : arg.slice("--only=".length);
-    } else {
-      throw new Error(`Unknown option or stray argument: ${arg}`);
-    }
-  }
-  return { flags, only };
-}
-
-/** Read the command line and environment into one validated options object. */
-function parseOptions(argv, env) {
-  const { flags, only } = scanArgs(argv.slice(2));
-  if (only !== null && !DATASETS.some((entry) => entry.dataset === only)) {
+/** `--only` must name exactly one known dataset (an empty or repeated value is an error). */
+function readOnly(values) {
+  if (values === undefined) return null;
+  if (values.length !== 1) throw new Error("--only must be given exactly once");
+  const [only] = values;
+  if (!DATASETS.some((entry) => entry.dataset === only)) {
     throw new Error(`--only must be one of: ${DATASETS.map((entry) => entry.dataset).join(", ")}`);
   }
-  if (only !== null && flags.has("--all")) throw new Error("--only and --all cannot be combined");
-  const activate = flags.has("--activate");
-  // Replacing live data always names its scope: one dataset, or everything on purpose.
-  if (activate && only === null && !flags.has("--all")) {
-    throw new Error("--activate needs an explicit scope: --only <dataset> or --all");
-  }
-  return { remote: flags.has("--remote"), activate, only, bucket: env.SANTA_R2_BUCKET ?? "santa-tracker-snapshots" };
+  return only;
+}
+
+/** Replacing live data always names its scope: one dataset, or everything on purpose. */
+function assertScope({ activate, all, only }) {
+  if (only !== null && all) throw new Error("--only and --all cannot be combined");
+  if (activate && only === null && !all) throw new Error("--activate needs an explicit scope: --only <dataset> or --all");
+}
+
+/**
+ * Read the command line and environment into one validated options object. Parsing is strict:
+ * unknown options, typos, wrong-case or single-dash spellings and stray positional arguments
+ * (e.g. `--activate advent-calendar`) are errors. An ignored scope would silently become "all
+ * datasets" and, with --activate, a mass overwrite of live data.
+ */
+function parseOptions(argv, env) {
+  const { values } = parseArgs({ args: argv.slice(2), options: CLI_OPTIONS, strict: true, allowPositionals: false });
+  const only = readOnly(values.only);
+  assertScope({ activate: values.activate, all: values.all, only });
+  return { remote: Boolean(values.remote), activate: Boolean(values.activate), only, bucket: env.SANTA_R2_BUCKET ?? "santa-tracker-snapshots" };
 }
 
 /** Validate one dataset locally, or upload it to R2 (activating only when asked). */
