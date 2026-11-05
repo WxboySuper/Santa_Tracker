@@ -53,3 +53,9 @@ docs/personal/*
 TODO.md
 TODO copy.md
 src/static/data/santa_route_testing.json
+
+# Local snapshot store written by the filesystem backend during dev (R2 is used in production)
+apps/web/data/.versioned/
+
+# Written and re-added by `next dev`; not project source
+apps/web/AGENTS.md

@@ -25,6 +25,13 @@ export const en = {
   'advent.day': 'Day {day}: {title}',
   'advent.unlocked': 'Unlocked',
   'advent.locked': 'Locked',
+  'advent.openDay': 'Open day {day}: {title}',
+  'advent.lockedDay': 'Day {day}, locked until {date}',
+  'advent.unlocksOn': 'Unlocks {date}',
+  'advent.lockedHint': 'This door opens on {date}. Come back then!',
+  'advent.backToCalendar': 'Back to the calendar',
+  'advent.comingSoon': "Today's surprise is still being wrapped. Check back soon!",
+  'advent.calendarLabel': 'Advent calendar, 24 doors',
   'metadata.title': 'Santa Tracker - Christmas 2026',
   'metadata.description': "Follow Santa's magical journey around the world on Christmas Eve - a modern, accessible holiday experience.",
 } as const;
