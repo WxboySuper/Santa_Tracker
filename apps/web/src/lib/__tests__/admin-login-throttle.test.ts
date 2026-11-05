@@ -44,6 +44,22 @@ describe("admin login throttle", () => {
     expect(await throttle.check("new-ip", true)).toBeNull();
   });
 
+  it("does not add more global failures from an already locked IP", async () => {
+    const { throttle } = setup();
+    for (let i = 0; i < 5; i += 1) await throttle.recordFailure("locked-ip");
+    for (let i = 0; i < 25; i += 1) await throttle.recordFailure(`other-${i}`);
+    for (let i = 0; i < 5; i += 1) await throttle.recordFailure("locked-ip");
+    expect(await throttle.check("new-ip")).toBeNull();
+    expect((await throttle.recordFailure("last-ip"))?.reason).toBe("global");
+  });
+
+  it("keeps the global cap bypass for authenticated failed logins", async () => {
+    const { throttle } = setup();
+    for (let i = 0; i < 31; i += 1) await throttle.recordFailure(`ip-${i}`);
+    expect(await throttle.recordFailure("authenticated-ip", true)).toBeNull();
+    expect((await throttle.check("new-ip"))?.reason).toBe("global");
+  });
+
   it("clears an IP's counter on successful login and expires global failures after an hour", async () => {
     const { throttle, advance } = setup();
     for (let i = 0; i < 4; i += 1) await throttle.recordFailure("ip-a");

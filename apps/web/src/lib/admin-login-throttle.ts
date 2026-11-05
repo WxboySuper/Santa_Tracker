@@ -45,7 +45,7 @@ export interface ThrottleDecision {
 
 export interface LoginThrottle {
   check(ip: string, authenticated?: boolean): Promise<ThrottleDecision | null>;
-  recordFailure(ip: string): Promise<ThrottleDecision | null>;
+  recordFailure(ip: string, authenticated?: boolean): Promise<ThrottleDecision | null>;
   clear(ip: string): Promise<void>;
 }
 
@@ -56,12 +56,12 @@ export function createLoginThrottle(store: ThrottleStore = new InMemoryThrottleS
     check(ip, authenticated = false) {
       return checkThrottle(store, clock, ip, authenticated);
     },
-    async recordFailure(ip) {
+    async recordFailure(ip, authenticated = false) {
       const now = clock();
       const key = ipKey(ip);
       const state = await readState(store, key, now, IP_WINDOW_MS);
+      if (state.lockoutUntil > now) return checkThrottle(store, clock, ip, authenticated);
       await recordGlobalFailure(store, now);
-      if (state.lockoutUntil > now) return checkThrottle(store, clock, ip);
 
       const lockoutIsStale = state.lastLockoutAt >= 0 && now - state.lastLockoutAt >= LOCKOUT_RESET_MS;
       const previousLockoutAt = lockoutIsStale ? -1 : state.lastLockoutAt;
@@ -77,7 +77,7 @@ export function createLoginThrottle(store: ThrottleStore = new InMemoryThrottleS
         lastLockoutAt = now;
       }
       await store.set(key, { attempts, lockoutUntil, lockoutLevel, lastLockoutAt });
-      return checkThrottle(store, clock, ip);
+      return checkThrottle(store, clock, ip, authenticated);
     },
     async clear(ip) {
       await store.delete(ipKey(ip));

@@ -19,7 +19,7 @@ export async function POST(req: Request) {
 
   const result = await loginAdmin(await readJsonBody(req));
   if (result.status === 401) {
-    const failureLimit = await recordLoginAttempt(ip);
+    const failureLimit = await recordLoginAttempt(ip, existingSession.ok);
     if (failureLimit) return throttledResponse(failureLimit.retryAfterSeconds);
   } else if (result.status === 200) {
     await clearLoginAttempts(ip);
