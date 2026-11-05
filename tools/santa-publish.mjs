@@ -104,8 +104,10 @@ function readOnly(values) {
 
 /** Replacing live data always names its scope: one dataset, or everything on purpose. */
 function assertScope({ activate, all, only }) {
-  if (only !== null && all) throw new Error("--only and --all cannot be combined");
-  if (activate && only === null && !all) throw new Error("--activate needs an explicit scope: --only <dataset> or --all");
+  const scopes = Number(only !== null) + Number(Boolean(all));
+  if (scopes > 1) throw new Error("--only and --all cannot be combined");
+  if (!activate) return;
+  if (scopes === 0) throw new Error("--activate needs an explicit scope: --only <dataset> or --all");
 }
 
 /**
