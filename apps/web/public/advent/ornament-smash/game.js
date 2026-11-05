@@ -146,6 +146,11 @@ function handleVisibilityChange() {
     
     // Resume passive render if page becomes visible and game is not playing
     if (isPageVisible && !gameState.isPlaying) {
+        // Cancel a still-pending idle frame first, or every visibility event would stack another loop.
+        if (gameState.animationId) {
+            cancelAnimationFrame(gameState.animationId);
+            gameState.animationId = null;
+        }
         passiveRender();
     }
 }
@@ -539,7 +544,8 @@ function passiveRender() {
     
     // Continue passive loop if page is visible and game is not playing
     if (isPageVisible && !gameState.isPlaying) {
-        requestAnimationFrame(passiveRender);
+        // Keep the id so cleanup() and startGame() can cancel the idle loop.
+        gameState.animationId = requestAnimationFrame(passiveRender);
     }
 }
 
