@@ -2,6 +2,7 @@ import fs from "fs/promises";
 import path from "path";
 import { isAdventEnabled } from "./config";
 import { isNotFoundError } from "./errors";
+import { hasRegisteredActivityKind } from "@/components/advent/activities";
 import { getSantaSnapshotsBucket } from "./cloudflare-bindings";
 import { getSnapshotStore } from "./storage";
 import { ensureStoreBootstrapped, persistAdventCalendar } from "./storage/publish";
@@ -438,9 +439,8 @@ export function validateAdventCalendar(days: AdventDay[]) {
     warnings.push(...invalidQuizPayloadWarnings(day));
   }
   for (const day of days) {
-    if (day.content_type === "activity" && !hasActivityKind(day.payload) && !day.payload.url) {
-      warnings.push(`Day ${day.day}: Missing 'kind' or 'url' in payload`);
-    }
+    const warning = missingActivityWarning(day);
+    if (warning) warnings.push(warning);
   }
   return { valid: errors.length === 0, errors, warnings, total_days: days.length, complete_days: days.filter(d => d.payload).length };
 }
@@ -452,8 +452,17 @@ function invalidQuizPayloadWarnings(day: AdventDay): string[] {
   return [`Day ${day.day}: Invalid 'questions' payload`];
 }
 
-function hasActivityKind(payload: Record<string, unknown>): boolean {
-  return typeof payload.kind === "string" && payload.kind.trim() !== "";
+function missingActivityWarning(day: AdventDay): string | null {
+  if (day.content_type !== "activity") return null;
+  if (hasRegisteredActivityKind(day.payload)) return null;
+  if (hasActivityUrl(day.payload)) return null;
+  return `Day ${day.day}: Missing 'kind' or 'url' in payload`;
+}
+
+function hasActivityUrl(payload: unknown): boolean {
+  if (!isRecordValue(payload)) return false;
+  if (typeof payload.url !== "string") return false;
+  return payload.url.trim() !== "";
 }
 
 function duplicateDayErrors(days: AdventDay[]): string[] {

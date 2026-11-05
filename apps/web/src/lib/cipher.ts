@@ -4,7 +4,7 @@ export interface CipherConfig {
   hint?: string;
 }
 
-const MESSAGE_PATTERN = /^[A-Z ]{3,60}$/i;
+const MESSAGE_PATTERN = /^(?=.*[A-Z])[A-Z ]{3,60}$/i;
 
 function shiftMessage(message: string, shift: number): string {
   return message.replace(/[A-Z]/gi, (letter) => {
@@ -22,12 +22,35 @@ export function decode(message: string, shift: number): string {
 }
 
 export function parseCipher(payload: unknown): CipherConfig | null {
-  if (payload === null || typeof payload !== "object" || Array.isArray(payload)) return null;
+  if (!isCipherRecord(payload)) return null;
   const value = payload as Record<string, unknown>;
-  if (typeof value.message !== "string" || !MESSAGE_PATTERN.test(value.message)) return null;
-  if (typeof value.shift !== "number" || !Number.isInteger(value.shift) || value.shift < 1 || value.shift > 25) return null;
-  if (value.hint !== undefined && typeof value.hint !== "string") return null;
+  if (!isCipherMessage(value.message)) return null;
+  if (!isCipherShift(value.shift)) return null;
+  if (!isCipherHint(value.hint)) return null;
   return { message: value.message, shift: value.shift, ...(typeof value.hint === "string" ? { hint: value.hint } : {}) };
+}
+
+function isCipherRecord(value: unknown): value is Record<string, unknown> {
+  if (value === null) return false;
+  if (typeof value !== "object") return false;
+  return !Array.isArray(value);
+}
+
+function isCipherMessage(value: unknown): value is string {
+  if (typeof value !== "string") return false;
+  return MESSAGE_PATTERN.test(value);
+}
+
+function isCipherShift(value: unknown): value is number {
+  if (typeof value !== "number") return false;
+  if (!Number.isInteger(value)) return false;
+  if (value < 1) return false;
+  return value <= 25;
+}
+
+function isCipherHint(value: unknown): boolean {
+  if (value === undefined) return true;
+  return typeof value === "string";
 }
 
 export function normalizeCipherAnswer(value: string): string {

@@ -34,6 +34,7 @@ describe("Caesar cipher helpers", () => {
       expect(parseCipher({ ...valid, shift })).toBeNull();
     }
     expect(parseCipher({ ...valid, hint: 5 })).toBeNull();
+    expect(parseCipher({ message: "   ", shift: 1 })).toBeNull();
     expect(parseCipher(null)).toBeNull();
     expect(parseCipher([])).toBeNull();
   });
