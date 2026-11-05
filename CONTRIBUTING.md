@@ -9,7 +9,6 @@ Santa Tracker is a Next.js application in a pnpm workspace. The former Flask app
 - Git
 - A modern browser
 
-PostgreSQL 16 or newer is optional for studio and publication flows.
 
 ## Local setup
 

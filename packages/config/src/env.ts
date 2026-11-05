@@ -7,7 +7,6 @@ import { z } from 'zod';
 
 const ServerEnvSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
-  DATABASE_URL: z.string().min(1).default('postgresql://santa:santa@localhost:5432/santa_tracker'),
   SESSION_SECRET: z.string().min(16).default('dev-session-secret-change-me-32chars'),
   ADMIN_PASSKEY_RP_ID: z.string().default('localhost'),
   NEXT_PUBLIC_APP_URL: z.url().optional(),

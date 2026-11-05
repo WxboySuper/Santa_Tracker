@@ -92,18 +92,6 @@ jobs:
         run: pnpm install --frozen-lockfile
       - name: Verify Linux bootstrap prerequisites
         run: pnpm bootstrap --check
-      - name: Start PostgreSQL and wait for readiness
-        run: |
-          trap 'docker compose down --volumes' EXIT
-          docker compose up -d postgres
-          for attempt in {1..30}; do
-            if docker compose exec -T postgres pg_isready -U santa -d santa_tracker; then
-              exit 0
-            fi
-            sleep 1
-          done
-          docker compose logs postgres
-          exit 1
 
   windows-bootstrap:
     runs-on: windows-latest
@@ -122,42 +110,7 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
       - name: Verify Windows bootstrap path
-        run: pnpm bootstrap --check --skip-docker
-
-  database-migrations:
-    runs-on: ubuntu-latest
-    name: PostgreSQL migrations
-    services:
-      postgres:
-        image: postgres:16
-        env:
-          POSTGRES_USER: santa
-          POSTGRES_PASSWORD: santa
-          POSTGRES_DB: santa_tracker_test
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U santa -d santa_tracker_test"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-    steps:
-      - uses: actions/checkout@v7
-      - name: Set up pnpm
-        uses: pnpm/action-setup@v6
-        with:
-          version: 10.30.3
-      - name: Set up Node.js
-        uses: actions/setup-node@v7
-        with:
-          node-version: '22'
-          cache: 'pnpm'
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-      - name: Run migration integration tests
-        env:
-          DATABASE_URL_TEST: postgresql://santa:santa@localhost:5432/santa_tracker_test
-        run: pnpm --filter @santa-tracker/database db:test
+        run: pnpm bootstrap --check
 
   dependency-rules:
     runs-on: ubuntu-latest
@@ -168,15 +121,12 @@ jobs:
       - name: Enforce ADR 0001 dependency direction
         run: |
           echo "Checking that forbidden imports are absent..."
-          # contracts must not import from database, ui, route-engine, activity-sdk, config, next, react
-          if grep -R "from '@santa-tracker/database'" packages/contracts --include="*.ts"; then echo "contracts must not import database"; exit 1; fi
+          # contracts must not import from ui, route-engine, activity-sdk, config, next, react
           if grep -R "from '@santa-tracker/ui'" packages/contracts --include="*.ts"; then echo "contracts must not import ui"; exit 1; fi
-          # route-engine must not import next, react, drizzle, database
+          # route-engine must not import next, react, drizzle
           if grep -R "from 'next" packages/route-engine --include="*.ts"; then echo "route-engine must not import next"; exit 1; fi
           if grep -R "from 'react" packages/route-engine --include="*.ts"; then echo "route-engine must not import react"; exit 1; fi
           if grep -R "drizzle" packages/route-engine --include="*.ts"; then echo "route-engine must not import drizzle"; exit 1; fi
-          # ui must not import database
-          if grep -R "from '@santa-tracker/database'" packages/ui --include="*.ts" --include="*.tsx"; then echo "ui must not import database"; exit 1; fi
           # config must not import feature packages
           if grep -R "from '@santa-tracker/ui'" packages/config --include="*.ts"; then echo "config must not import ui"; exit 1; fi
           if grep -R "from '@santa-tracker/route-engine'" packages/config --include="*.ts"; then echo "config must not import route-engine"; exit 1; fi
