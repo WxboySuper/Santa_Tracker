@@ -69,7 +69,7 @@ await check('Admin page requires auth', async () => {
 });
 
 await check('Admin API rejects anonymous requests', async () => {
-  const res = await get('/api/admin/route');
+  const res = await get('/api/admin/locations');
   assert([401, 403].includes(res.status), `status ${res.status}`);
 });
 
