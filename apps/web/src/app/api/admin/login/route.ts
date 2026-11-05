@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
 import { checkLoginRateLimit, clearLoginAttempts, loginAdmin, recordLoginAttempt } from "@/lib/admin-login";
 import { readJsonBody, respondWith } from "@/lib/admin-api";
-import { ADMIN_SESSION_TTL_SECONDS, requireAdminAuth } from "@/lib/auth";
+import { ADMIN_SESSION_TTL_SECONDS, requireAdminAuth, shouldUseSecureAdminCookie } from "@/lib/auth";
+
+let loginQueue: Promise<void> = Promise.resolve();
 
 export function getClientIp(req: Request): string {
   const cloudflareIp = req.headers.get("cf-connecting-ip")?.trim();
@@ -14,12 +16,23 @@ export function getClientIp(req: Request): string {
 export async function POST(req: Request) {
   const ip = getClientIp(req);
   const existingSession = await requireAdminAuth(req);
-  const limited = await checkLoginRateLimit(ip, existingSession.ok);
+  const payload = await readJsonBody(req);
+  return serializeLogin(() => handleLogin(req, ip, existingSession.ok, payload));
+}
+
+function serializeLogin(task: () => Promise<NextResponse>): Promise<NextResponse> {
+  const current = loginQueue.then(task, task);
+  loginQueue = current.then(() => undefined, () => undefined);
+  return current;
+}
+
+async function handleLogin(req: Request, ip: string, authenticated: boolean, payload: unknown): Promise<NextResponse> {
+  const limited = await checkLoginRateLimit(ip, authenticated);
   if (limited) return throttledResponse(limited.retryAfterSeconds);
 
-  const result = await loginAdmin(await readJsonBody(req));
+  const result = await loginAdmin(payload);
   if (result.status === 401) {
-    const failureLimit = await recordLoginAttempt(ip, existingSession.ok);
+    const failureLimit = await recordLoginAttempt(ip, authenticated);
     if (failureLimit) return throttledResponse(failureLimit.retryAfterSeconds);
   } else if (result.status === 200) {
     await clearLoginAttempts(ip);
@@ -31,7 +44,7 @@ export async function POST(req: Request) {
   if (typeof token !== "string") return response;
   response.cookies.set("admin_token", token, {
     httpOnly: true,
-    secure: new URL(req.url).protocol === "https:",
+    secure: shouldUseSecureAdminCookie(req),
     sameSite: "lax",
     path: "/",
     maxAge: ADMIN_SESSION_TTL_SECONDS,

@@ -1,7 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import * as jose from "jose";
-import { ADMIN_SESSION_TTL_SECONDS } from "@/lib/auth";
+import { ADMIN_SESSION_TTL_SECONDS, shouldUseSecureAdminCookie } from "@/lib/auth";
 import { getClientIp, POST } from "./route";
+import { POST as logout } from "../logout/route";
 
 describe("admin login route", () => {
   beforeEach(() => {
@@ -35,6 +36,33 @@ describe("admin login route", () => {
     }));
     expect(correct.status).toBe(429);
     expect(correct.headers.get("Retry-After")).toBe("900");
+  });
+
+  it("serializes concurrent failures so only four requests receive 401", async () => {
+    const requests = Array.from({ length: 20 }, (_, index) => POST(new Request("http://example.test/api/admin/login", {
+      method: "POST",
+      headers: { "cf-connecting-ip": "198.51.100.70", "x-forwarded-for": `192.0.2.${index}`, "content-type": "application/json" },
+      body: JSON.stringify({ password: "wrong" }),
+    })));
+    const responses = await Promise.all(requests);
+    expect(responses.filter((response) => response.status === 401)).toHaveLength(4);
+    expect(responses.filter((response) => response.status === 429)).toHaveLength(16);
+  });
+
+  it("sets Secure for production requests even if an internal URL is HTTP", () => {
+    vi.stubEnv("NODE_ENV", "production");
+    expect(shouldUseSecureAdminCookie(new Request("http://internal.example.test"))).toBe(true);
+  });
+
+  it("clears the cookie with the same production Secure and path attributes", () => {
+    vi.stubEnv("NODE_ENV", "production");
+    const response = logout(new Request("http://internal.example.test/api/admin/logout", { method: "POST" }));
+    const cookie = response.headers.get("set-cookie") ?? "";
+    expect(cookie).toContain("Max-Age=0");
+    expect(cookie).toContain("HttpOnly");
+    expect(cookie).toContain("Secure");
+    expect(cookie).toContain("SameSite=lax");
+    expect(cookie).toContain("Path=/");
   });
 
   it("uses one 12-hour constant for JWT expiry and the HTTPS cookie", async () => {

@@ -5,6 +5,11 @@ import { getSecretKey, getAdminPassword } from "./config";
 const alg = "HS256";
 export const ADMIN_SESSION_TTL_SECONDS = 12 * 60 * 60;
 
+export function shouldUseSecureAdminCookie(request: Request): boolean {
+  if (process.env.NODE_ENV === "production") return true;
+  return new URL(request.url).protocol === "https:";
+}
+
 function getSecret(): Uint8Array {
   return new TextEncoder().encode(getSecretKey());
 }

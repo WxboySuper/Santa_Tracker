@@ -18,7 +18,7 @@ Admin API surface (22 endpoints, all `requireAdminAuth` except `POST /api/admin/
 
 ## Auth Boundary
 - Audit fix: removed password-as-token fallback (`apps/web/src/lib/auth.ts:verifyAdminToken` returns `false` on failure, does not compare raw `ADMIN_PASSWORD`).
-- JWT: HS256 via `jose`, `SECRET_KEY`-signed, 12h expiry (`ADMIN_SESSION_TTL_SECONDS` in `apps/web/src/lib/auth.ts:createAdminToken`), `admin: true` claim checked in `verifyAdminToken` and `requireAdminAuth`. The login cookie uses the same constant for `maxAge` and sets `Secure` when the request URL uses HTTPS.
+- JWT: HS256 via `jose`, `SECRET_KEY`-signed, 12h expiry (`ADMIN_SESSION_TTL_SECONDS` in `apps/web/src/lib/auth.ts:createAdminToken`), `admin: true` claim checked in `verifyAdminToken` and `requireAdminAuth`. The login cookie uses the same constant for `maxAge` and sets `Secure` in production or when the request URL uses HTTPS.
 - Server-owned boundary: `middleware.ts:18` protects page shell, per-route `requireAdminAuth` enforces API boundary.
 - Secret config: `SECRET_KEY` defaults to `dev-secret-key` for local dev only; production must set env var (`apps/web/src/lib/config.ts`).
 
