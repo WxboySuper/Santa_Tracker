@@ -1,8 +1,10 @@
 import AxeBuilder from "@axe-core/playwright";
-import { expect, test, type Page } from "@playwright/test";
+import type { Page } from "@playwright/test";
+import { expect, test } from "./fixtures";
 
 const axeTags = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"];
-const loginPassword = "e2e-admin-password";
+const loginPassword = process.env.E2E_ADMIN_PASSWORD;
+if (!loginPassword) throw new Error("E2E_ADMIN_PASSWORD is not configured by global setup");
 const gatedPaths = ["/tracker", "/advent", "/advent/1", "/api/route", "/api/advent/manifest"];
 
 async function expectNoSeriousAxeIssues(page: Page) {
@@ -55,8 +57,7 @@ test("home works at narrow widths, with motion settings, and passes axe", async 
   await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
 });
 
-test("closed season gates pages and APIs, including malformed credentials", async ({ page, request }, testInfo) => {
-  test.skip(testInfo.project.name !== "closed", "This scenario applies only to the closed season server.");
+test("closed season gates pages and APIs, including malformed credentials", async ({ page, request }) => {
   for (const route of gatedPaths) {
     const response = await request.get(route);
     expect(response.status(), route).toBe(404);
@@ -80,8 +81,7 @@ test("closed season gates pages and APIs, including malformed credentials", asyn
   expect(routeResponse.headers()["cache-control"]).toBe("private, no-store");
 });
 
-test("Advent exposes 24 doors, day 1 game, and rejects invalid days", async ({ page }, testInfo) => {
-  test.skip(testInfo.project.name !== "open", "This scenario applies only to the open season server.");
+test("Advent exposes 24 doors, day 1 game, and rejects invalid days", async ({ page }) => {
   await page.goto("/advent");
   const calendar = page.getByRole("list", { name: /advent calendar/i });
   await expect(calendar.getByRole("listitem")).toHaveCount(24);
@@ -104,8 +104,7 @@ test("Advent exposes 24 doors, day 1 game, and rejects invalid days", async ({ p
   }
 });
 
-test("accessible Advent calendar in the closed project matches axe", async ({ page }, testInfo) => {
-  test.skip(testInfo.project.name !== "closed", "This scenario is reachable only by an admin in the closed season.");
+test("accessible Advent calendar in the closed project matches axe", async ({ page }) => {
   const login = await page.request.post("/api/admin/login", { data: { password: loginPassword } });
   expect(login.status()).toBe(200);
   await page.goto("/advent");
