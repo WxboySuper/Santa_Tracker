@@ -3,7 +3,7 @@ import { getSecretKey, getAdminPassword } from "./config";
 
 // Use HS256 with SECRET_KEY — replaces Flask's URLSafeTimedSerializer
 const alg = "HS256";
-const TOKEN_EXPIRY = "24h";
+export const ADMIN_SESSION_TTL_SECONDS = 12 * 60 * 60;
 
 function getSecret(): Uint8Array {
   return new TextEncoder().encode(getSecretKey());
@@ -14,7 +14,7 @@ export async function createAdminToken(): Promise<string> {
   const jwt = await new jose.SignJWT({ admin: true })
     .setProtectedHeader({ alg })
     .setIssuedAt()
-    .setExpirationTime(TOKEN_EXPIRY)
+    .setExpirationTime(`${ADMIN_SESSION_TTL_SECONDS}s`)
     .sign(secret);
   return jwt;
 }
@@ -51,7 +51,13 @@ export async function requireAdminAuth(request: Request): Promise<{ ok: boolean;
   } else {
     const cookieHeader = request.headers.get("cookie") ?? "";
     const match = /(?:^|;\s*)admin_token=([^;]*)/.exec(cookieHeader);
-    if (match?.[1]) token = decodeURIComponent(match[1]);
+    if (match?.[1]) {
+      try {
+        token = decodeURIComponent(match[1]);
+      } catch {
+        return { ok: false, error: "Invalid credentials", status: 403 };
+      }
+    }
   }
   if (!token) {
     return { ok: false, error: "Authentication required", status: 401 };

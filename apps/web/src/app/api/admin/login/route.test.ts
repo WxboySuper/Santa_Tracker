@@ -1,0 +1,57 @@
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import * as jose from "jose";
+import { ADMIN_SESSION_TTL_SECONDS } from "@/lib/auth";
+import { getClientIp, POST } from "./route";
+
+describe("admin login route", () => {
+  beforeEach(() => {
+    vi.stubEnv("SECRET_KEY", "test-secret-key-0123456789abcdef-0123456789");
+    vi.stubEnv("ADMIN_PASSWORD", "correct horse");
+  });
+
+  afterEach(() => vi.unstubAllEnvs());
+
+  it("prefers Cloudflare IP, then real IP, and ignores forwarded-for", () => {
+    expect(getClientIp(new Request("http://example.test", { headers: {
+      "cf-connecting-ip": "203.0.113.1", "x-real-ip": "203.0.113.2", "x-forwarded-for": "203.0.113.3",
+    } }))).toBe("203.0.113.1");
+    expect(getClientIp(new Request("http://example.test", { headers: { "x-real-ip": "203.0.113.2", "x-forwarded-for": "203.0.113.3" } }))).toBe("203.0.113.2");
+    expect(getClientIp(new Request("http://example.test", { headers: { "x-forwarded-for": "203.0.113.3" } }))).toBe("unknown");
+  });
+
+  it("returns the same 429 response for the fifth failure and refuses a correct password while locked", async () => {
+    const headers = { "cf-connecting-ip": "198.51.100.50", "x-forwarded-for": "192.0.2.1" };
+    let response: Response | undefined;
+    for (let i = 0; i < 5; i += 1) {
+      response = await POST(new Request("http://example.test/api/admin/login", {
+        method: "POST", headers: { ...headers, "content-type": "application/json" }, body: JSON.stringify({ password: "wrong" }),
+      }));
+    }
+    expect(response?.status).toBe(429);
+    expect(response?.headers.get("Retry-After")).toBe("900");
+    expect(await response?.json()).toEqual({ error: "Too many login attempts, please try again later" });
+    const correct = await POST(new Request("http://example.test/api/admin/login", {
+      method: "POST", headers: { ...headers, "content-type": "application/json" }, body: JSON.stringify({ password: "correct horse" }),
+    }));
+    expect(correct.status).toBe(429);
+    expect(correct.headers.get("Retry-After")).toBe("900");
+  });
+
+  it("uses one 12-hour constant for JWT expiry and the HTTPS cookie", async () => {
+    const response = await POST(new Request("https://example.test/api/admin/login", {
+      method: "POST",
+      headers: { "cf-connecting-ip": "198.51.100.60", "content-type": "application/json" },
+      body: JSON.stringify({ password: "correct horse" }),
+    }));
+    expect(response.status).toBe(200);
+    const token = (await response.json() as { token: string }).token;
+    const { payload } = await jose.jwtVerify(token, new TextEncoder().encode(process.env.SECRET_KEY!));
+    expect(payload.exp! - payload.iat!).toBe(ADMIN_SESSION_TTL_SECONDS);
+    const cookie = response.headers.get("set-cookie") ?? "";
+    expect(cookie).toContain("Max-Age=43200");
+    expect(cookie).toContain("HttpOnly");
+    expect(cookie).toContain("SameSite=lax");
+    expect(cookie).toContain("Secure");
+    expect(cookie).toContain("Path=/");
+  });
+});

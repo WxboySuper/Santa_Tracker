@@ -1,34 +1,13 @@
 import { createAdminToken, verifyAdminPassword } from "./auth";
 import { getAdminPassword } from "./config";
 import { badRequest, isRecord, type AdminApiResult } from "./admin-api";
+import { createLoginThrottle } from "./admin-login-throttle";
 
-// Simple in-memory rate limiter for login (per-process, best-effort).
-// Production deployments should enforce rate limiting at the edge/WAF.
-const loginAttempts = new Map<string, number[]>();
-const LOGIN_WINDOW_MS = 60_000;
-const MAX_LOGIN_ATTEMPTS = 10;
+const loginThrottle = createLoginThrottle();
 
-export function checkLoginRateLimit(ip: string): AdminApiResult | null {
-  const now = Date.now();
-  const attempts = loginAttempts.get(ip) ?? [];
-  const recent = attempts.filter((timestamp) => now - timestamp < LOGIN_WINDOW_MS);
-  // prune stale entries
-  if (recent.length !== attempts.length) loginAttempts.set(ip, recent);
-  if (recent.length >= MAX_LOGIN_ATTEMPTS) {
-    return { status: 429, body: { error: "Too many login attempts, please try again later" } };
-  }
-  return null;
-}
-
-export function recordLoginAttempt(ip: string): void {
-  const list = loginAttempts.get(ip) ?? [];
-  list.push(Date.now());
-  loginAttempts.set(ip, list);
-}
-
-export function clearLoginAttempts(ip: string): void {
-  loginAttempts.delete(ip);
-}
+export const checkLoginRateLimit = (ip: string, authenticated = false) => loginThrottle.check(ip, authenticated);
+export const recordLoginAttempt = (ip: string) => loginThrottle.recordFailure(ip);
+export const clearLoginAttempts = (ip: string) => loginThrottle.clear(ip);
 
 export async function loginAdmin(payload: unknown): Promise<AdminApiResult> {
   try {
