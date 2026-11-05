@@ -11,7 +11,7 @@ const questionSchema = z.object({
 const quizSchema = z.object({
   title: z.string().optional(),
   questions: z.array(questionSchema).min(1).max(10),
-}).strict();
+});
 
 export type Quiz = z.infer<typeof quizSchema>;
 export type QuizState = { phase: "answering" | "feedback" | "done"; questionIndex: number; selectedIndex: number | null; score: number };

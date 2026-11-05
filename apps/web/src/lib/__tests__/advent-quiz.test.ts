@@ -7,6 +7,7 @@ describe("parseQuiz", () => {
   it("accepts optional content and one to ten valid questions", () => {
     expect(parseQuiz({ title: "Quiz", questions: [question] })).not.toBeNull();
     expect(parseQuiz({ questions: Array.from({ length: 10 }, () => question) })?.questions).toHaveLength(10);
+    expect(parseQuiz({ title: "Quiz", questions: [question], image_url: "/static/quiz.jpg", url: "/quiz" })).not.toBeNull();
   });
 
   it.each([
