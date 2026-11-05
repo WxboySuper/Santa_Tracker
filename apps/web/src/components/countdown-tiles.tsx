@@ -53,17 +53,17 @@ export default function CountdownTiles({ locale = DEFAULT_LOCALE, flyingText }: 
   ];
 
   return (
-    <div role="timer" aria-live="off" aria-label={summary} className="flex justify-center gap-2 sm:gap-4">
+    <div role="timer" aria-live="off" aria-label={summary} className="mx-auto flex w-full max-w-md justify-center gap-2 sm:max-w-none sm:gap-4">
       {tiles.map((tile) => (
         <div
           key={tile.key}
           aria-hidden="true"
-          className="countdown-tile flex min-w-[4.25rem] flex-col items-center rounded-2xl px-3 py-3 sm:min-w-24 sm:px-5 sm:py-4"
+          className="countdown-tile flex min-w-0 flex-1 flex-col items-center rounded-2xl px-1 py-3 sm:min-w-24 sm:flex-none sm:px-5 sm:py-4"
         >
-          <span className={`font-mono text-3xl font-bold tabular-nums text-white sm:text-5xl ${tile.className}`}>
+          <span className={`font-mono text-2xl font-bold tabular-nums text-white min-[400px]:text-3xl sm:text-5xl ${tile.className}`}>
             {tile.value}
           </span>
-          <span className="mt-1 text-[0.65rem] font-semibold uppercase tracking-widest text-yellow-300 sm:text-xs">
+          <span className="mt-1 text-[0.6rem] font-semibold uppercase tracking-wide text-yellow-300 min-[400px]:text-[0.65rem] sm:text-xs sm:tracking-widest">
             {tile.label}
           </span>
         </div>
