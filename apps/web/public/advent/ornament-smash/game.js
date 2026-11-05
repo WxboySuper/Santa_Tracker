@@ -333,14 +333,17 @@ function handleTouchStart(e) {
     if (!gameState.isPlaying) return;
     
     e.preventDefault();
-    const touch = e.touches[0];
     const rect = canvas.getBoundingClientRect();
     const scaleX = canvas.width / rect.width;
     const scaleY = canvas.height / rect.height;
-    const x = (touch.clientX - rect.left) * scaleX;
-    const y = (touch.clientY - rect.top) * scaleY;
     
-    checkOrnamentHit(x, y);
+    // changedTouches holds the fingers that just landed. touches[0] is the first finger still down,
+    // which is not the new one when a second finger lands, and several can land in one event.
+    for (const touch of e.changedTouches) {
+        const x = (touch.clientX - rect.left) * scaleX;
+        const y = (touch.clientY - rect.top) * scaleY;
+        checkOrnamentHit(x, y);
+    }
 }
 
 // Check if an ornament was hit
