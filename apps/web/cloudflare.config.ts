@@ -6,7 +6,15 @@ export default defineConfig({
     entrypoint: "vinext/server/fetch-handler",
     compatibilityDate: "2026-10-05",
     compatibilityFlags: ["nodejs_compat"],
-    assets: { notFoundHandling: "none", runWorkerFirst: ["/_vinext/static-cache/*"] },
+    // Asset routing for a non-static-export app (matches `vinext init`): the Worker handles every
+// request except hashed static files. A narrower runWorkerFirst list (e.g. only the static-cache
+// route) makes the assets layer answer unmatched paths like `/` and `/api/*` with its own 404
+// without ever invoking the Worker.
+    assets: {
+      htmlHandling: "none",
+      notFoundHandling: "none",
+      runWorkerFirst: ["/*", "!/_next/static/*", "!/*/_next/static/*"],
+    },
     env: {
       ASSETS: bindings.assets(),
       IMAGES: bindings.images(),
