@@ -4,12 +4,27 @@ permissions:
   contents: read
 
 on:
+  # Auto-deploy to the Cloudflare Worker while the site is in development. Only changes that
+  # can affect the deployed Worker trigger it (docs, tests and CI-only edits do not).
+  push:
+    branches: [main]
+    paths:
+      - 'apps/web/**'
+      - 'packages/**'
+      - 'tools/santa-publish.mjs'
+      - 'pnpm-lock.yaml'
+      - '.github/workflows/deploy-cloudflare-workers.yml'
   workflow_dispatch:
     inputs:
       environment:
         description: Cloudflare Workers environment
         required: false
         default: production
+
+# Serialize deploys; a newer push waits rather than cancelling a deploy mid-upload.
+concurrency:
+  group: deploy-cloudflare-workers
+  cancel-in-progress: false
 
 jobs:
   deploy:
@@ -51,3 +66,6 @@ jobs:
           SECRET_KEY: ${{ secrets.SECRET_KEY }}
           ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
           ADVENT_ENABLED: "true"
+
+      - name: Smoke test deployed Worker
+        run: node tools/smoke-test.mjs https://santa-tracker.alex-miller-6464.workers.dev
