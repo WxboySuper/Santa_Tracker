@@ -12,6 +12,8 @@ export default tseslint.config(
       '**/.next/**',
       'dist/**',
       '**/dist/**',
+      '**/.cloudflare/**',
+      '**/.vinext/**',
       'coverage/**',
       'storybook-static/**',
       'storybook-screenshots/**',

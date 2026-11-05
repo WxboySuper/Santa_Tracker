@@ -184,8 +184,6 @@ ADMIN_PASSWORD=your-secure-admin-password
 # Feature Flags
 ADVENT_ENABLED=False  # Set to True when advent calendar is ready
 
-# Optional: Database (if using external DB)
-# DATABASE_URL=postgresql://user:pass@localhost/dbname
 
 # Optional: External APIs
 # SANTA_API_KEY=your-api-key

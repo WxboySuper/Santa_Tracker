@@ -22,7 +22,6 @@
     "paths": {
       "@santa-tracker/contracts": ["packages/contracts/src"],
       "@santa-tracker/contracts/*": ["packages/contracts/src/*"],
-      "@santa-tracker/database": ["packages/database/src"],
       "@santa-tracker/route-engine": ["packages/route-engine/src"],
       "@santa-tracker/ui": ["packages/ui/src"],
       "@santa-tracker/activity-sdk": ["packages/activity-sdk/src"],
