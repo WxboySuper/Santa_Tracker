@@ -3,6 +3,7 @@ import type { AdventPublicDay } from "@/lib/advent";
 import { safeEmbedPath } from "@/lib/advent-ui";
 import { parseQuiz } from "@/lib/advent-quiz";
 import { AdventQuiz } from "./advent-quiz";
+import { renderActivity as dispatchActivity } from "./activities";
 
 type ContentType = AdventPublicDay["content_type"];
 type Renderer = (day: AdventPublicDay, locale: string) => ReactNode;
@@ -41,8 +42,12 @@ const renderQuiz: Renderer = (day, locale) => parseQuiz(day.payload)
   ? <AdventQuiz key={day.day} payload={day.payload} locale={locale} />
   : null;
 
+const renderActivity: Renderer = (day) => {
+  return dispatchActivity(day, renderEmbed(day));
+};
+
 /**
- * One renderer per content type. A type with no renderer yet (`video`, `activity`), or a
+ * One renderer per content type. A type with no renderer yet (`video`), or a
  * payload the renderer cannot use, shows the fallback instead of a blank page, so a day is never a
  * dead end. Add new activity types here; the calendar and day page do not change.
  */
@@ -51,6 +56,7 @@ const renderers: Partial<Record<ContentType, Renderer>> = {
   story: renderText,
   game: renderEmbed,
   quiz: renderQuiz,
+  activity: renderActivity,
 };
 
 /** The content for a day, or `fallback` when the type has no renderer or the payload is unusable. */

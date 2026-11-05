@@ -30,8 +30,8 @@ describe("renderDayContent", () => {
     expect(html).not.toContain("FALLBACK");
   });
 
-  it("falls back for content types with no renderer yet", () => {
-    for (const content_type of ["video", "activity"] as const) {
+  it("falls back for a content type with no renderer yet", () => {
+    for (const content_type of ["video"] as const) {
       expect(render(day({ content_type }))).toContain("FALLBACK");
     }
   });
@@ -51,6 +51,17 @@ describe("renderDayContent", () => {
 
   it("falls back for a malformed quiz payload", () => {
     expect(render(day({ content_type: "quiz", payload: { questions: [] } }))).toContain("FALLBACK");
+  });
+
+  it("renders a built-in cipher and falls back for invalid or unknown kinds", () => {
+    expect(render(day({ content_type: "activity", payload: { kind: "cipher", message: "HELLO", shift: 3 } }))).toContain("KHOOR");
+    expect(render(day({ content_type: "activity", payload: { kind: "cipher", message: "NO", shift: 3 } }))).toContain("FALLBACK");
+    expect(render(day({ content_type: "activity", payload: { kind: "unknown" } }))).toContain("FALLBACK");
+  });
+
+  it("uses the existing safe embed route for static activities", () => {
+    expect(render(day({ content_type: "activity", payload: { url: "/advent/puzzle/index.html" } }))).toContain('src="/advent/puzzle/index.html"');
+    expect(render(day({ content_type: "activity", payload: { url: "https://example.com" } }))).toContain("FALLBACK");
   });
 
   it("falls back when a fact has no usable text", () => {
