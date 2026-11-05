@@ -106,6 +106,32 @@ describe('validateRouteGeometry', () => {
     expect(result.totalDistanceKm).toBe(0);
   });
 
+  it('errors when co-located stops overlap in time (arrival before previous departure)', () => {
+    // Same place, so distance is ~0, but the second stop arrives 30s before the first departs.
+    const result = validateRouteGeometry(
+      route([
+        { id: 'london', arrive: 0, depart: 120 },
+        { id: 'london', arrive: 90, depart: 150 },
+      ]),
+      coords,
+    );
+    expect(result.ok).toBe(false);
+    expect(result.issues).toHaveLength(1);
+    expect(result.issues[0]?.message).toMatch(/arrives before/);
+  });
+
+  it('allows back-to-back stops in the same place with zero travel time', () => {
+    const result = validateRouteGeometry(
+      route([
+        { id: 'london', arrive: 0, depart: 60 },
+        { id: 'london', arrive: 60, depart: 120 },
+      ]),
+      coords,
+    );
+    expect(result.ok).toBe(true);
+    expect(result.issues).toEqual([]);
+  });
+
   it('honours custom limits', () => {
     const r = route([
       { id: 'west', arrive: 0, depart: 60 },

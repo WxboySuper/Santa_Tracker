@@ -37,16 +37,12 @@ const DEFAULTS: Limits = {
 /** Legs shorter than this are treated as "same place" for travel-time and stall checks. */
 const SAME_PLACE_KM = 1;
 
+function inRange(value: number, min: number, max: number): boolean {
+  return Number.isFinite(value) && value >= min && value <= max;
+}
+
 function validCoordinate(point: LatLng | undefined): point is LatLng {
-  return (
-    point !== undefined &&
-    Number.isFinite(point.lat) &&
-    Number.isFinite(point.lng) &&
-    point.lat >= -90 &&
-    point.lat <= 90 &&
-    point.lng >= -180 &&
-    point.lng <= 180
-  );
+  return point !== undefined && inRange(point.lat, -90, 90) && inRange(point.lng, -180, 180);
 }
 
 function coordinateIssues(route: Route, coordinates: ReadonlyMap<string, LatLng>): GeometryIssue[] {
@@ -74,12 +70,26 @@ function arrivalIssue(leg: Leg, severity: GeometryIssueSeverity, message: string
   return { severity, path: `stops.${leg.index}.arrivalIso`, message };
 }
 
+/**
+ * A stop must not arrive before the previous stop departs, wherever they are. `validateRoute`
+ * only checks each stop's own times and that arrivals increase, so overlap is caught here.
+ * An unparseable timestamp (NaN) is reported the same way.
+ */
+function overlapIssue(leg: Leg): GeometryIssue | null {
+  if (Number.isFinite(leg.gapSeconds) && leg.gapSeconds >= 0) return null;
+  return arrivalIssue(
+    leg,
+    'error',
+    `"${leg.stop.locationId}" arrives before "${leg.prev.locationId}" departs (overlapping or invalid times)`,
+  );
+}
+
 function speedIssue(leg: Leg, from: LatLng, to: LatLng, limits: Limits): GeometryIssue | null {
   const label = `${leg.prev.locationId} -> ${leg.stop.locationId}`;
   const speed = legSpeedKmh(from, to, leg.gapSeconds);
 
   if (speed === null) {
-    // Zero or negative travel time between distinct places cannot be displayed.
+    // Zero travel time is fine between co-located stops but not between distinct places.
     return leg.distanceKm > SAME_PLACE_KM
       ? arrivalIssue(leg, 'error', `no travel time on leg ${label} (${Math.round(leg.distanceKm)} km apart)`)
       : null;
@@ -103,9 +113,10 @@ function gapIssue(leg: Leg, limits: Limits): GeometryIssue | null {
 }
 
 function legIssues(leg: Leg, from: LatLng, to: LatLng, limits: Limits): GeometryIssue[] {
-  return [speedIssue(leg, from, to, limits), gapIssue(leg, limits)].filter(
-    (issue): issue is GeometryIssue => issue !== null,
-  );
+  const overlap = overlapIssue(leg);
+  // An overlapping leg has no meaningful speed or gap, so report only the overlap.
+  const found = overlap ? [overlap] : [speedIssue(leg, from, to, limits), gapIssue(leg, limits)];
+  return found.filter((issue): issue is GeometryIssue => issue !== null);
 }
 
 /**
