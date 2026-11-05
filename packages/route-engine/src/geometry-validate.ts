@@ -34,6 +34,15 @@ const DEFAULTS: Limits = {
   maxGapSeconds: 45 * 60,
 };
 
+/** Per-field merge: `{ ...DEFAULTS, ...options }` would let an explicit `undefined` wipe a default. */
+function resolveLimits(options: GeometryValidationOptions): Limits {
+  return {
+    maxSpeedKmh: options.maxSpeedKmh ?? DEFAULTS.maxSpeedKmh,
+    minSpeedKmh: options.minSpeedKmh ?? DEFAULTS.minSpeedKmh,
+    maxGapSeconds: options.maxGapSeconds ?? DEFAULTS.maxGapSeconds,
+  };
+}
+
 /** Legs shorter than this are treated as "same place" for travel-time and stall checks. */
 const SAME_PLACE_KM = 1;
 
@@ -112,6 +121,21 @@ function gapIssue(leg: Leg, limits: Limits): GeometryIssue | null {
   );
 }
 
+type LocatedLeg = { leg: Leg; from: LatLng; to: LatLng };
+
+/** The leg ending at `index`, or null when either end has no valid coordinates. */
+function locatedLegAt(route: Route, index: number, coordinates: ReadonlyMap<string, LatLng>): LocatedLeg | null {
+  const prev = route.stops[index - 1];
+  const stop = route.stops[index];
+  if (!prev || !stop) return null;
+  const from = coordinates.get(prev.locationId);
+  const to = coordinates.get(stop.locationId);
+  if (!validCoordinate(from) || !validCoordinate(to)) return null;
+  const distanceKm = haversineKm(from, to);
+  const gapSeconds = (Date.parse(stop.arrivalIso) - Date.parse(prev.departureIso)) / 1000;
+  return { leg: { index, prev, stop, distanceKm, gapSeconds }, from, to };
+}
+
 function legIssues(leg: Leg, from: LatLng, to: LatLng, limits: Limits): GeometryIssue[] {
   const overlap = overlapIssue(leg);
   // An overlapping leg has no meaningful speed or gap, so report only the overlap.
@@ -132,21 +156,15 @@ export function validateRouteGeometry(
   coordinates: ReadonlyMap<string, LatLng>,
   options: GeometryValidationOptions = {},
 ): GeometryValidationResult {
-  const limits: Limits = { ...DEFAULTS, ...options };
+  const limits = resolveLimits(options);
   const issues = coordinateIssues(route, coordinates);
   let totalDistanceKm = 0;
 
   for (let index = 1; index < route.stops.length; index++) {
-    const prev = route.stops[index - 1];
-    const stop = route.stops[index];
-    const from = prev && coordinates.get(prev.locationId);
-    const to = stop && coordinates.get(stop.locationId);
-    if (!prev || !stop || !validCoordinate(from) || !validCoordinate(to)) continue;
-
-    const distanceKm = haversineKm(from, to);
-    totalDistanceKm += distanceKm;
-    const gapSeconds = (Date.parse(stop.arrivalIso) - Date.parse(prev.departureIso)) / 1000;
-    issues.push(...legIssues({ index, prev, stop, distanceKm, gapSeconds }, from, to, limits));
+    const located = locatedLegAt(route, index, coordinates);
+    if (!located) continue;
+    totalDistanceKm += located.leg.distanceKm;
+    issues.push(...legIssues(located.leg, located.from, located.to, limits));
   }
 
   return { ok: !issues.some((issue) => issue.severity === 'error'), issues, totalDistanceKm };

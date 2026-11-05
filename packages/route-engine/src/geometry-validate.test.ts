@@ -55,16 +55,20 @@ describe('validateRouteGeometry', () => {
     expect(result.issues[0]).toMatchObject({ severity: 'error', path: 'stops.1.arrivalIso' });
   });
 
-  it('errors when distinct places have no travel time', () => {
+  it.each([
+    ['distinct places', 'sydney', false, /no travel time/],
+    ['the same place', 'london', true, undefined],
+  ] as const)('zero travel time between %s', (_label, second, ok, message) => {
     const result = validateRouteGeometry(
       route([
         { id: 'london', arrive: 0, depart: 60 },
-        { id: 'sydney', arrive: 60, depart: 120 },
+        { id: second, arrive: 60, depart: 120 },
       ]),
       coords,
     );
-    expect(result.ok).toBe(false);
-    expect(result.issues[0]?.message).toMatch(/no travel time/);
+    expect(result.ok).toBe(ok);
+    if (message) expect(result.issues[0]?.message).toMatch(message);
+    else expect(result.issues).toEqual([]);
   });
 
   it('warns about stalled legs and long quiet gaps without failing', () => {
@@ -120,23 +124,24 @@ describe('validateRouteGeometry', () => {
     expect(result.issues[0]?.message).toMatch(/arrives before/);
   });
 
-  it('allows back-to-back stops in the same place with zero travel time', () => {
-    const result = validateRouteGeometry(
-      route([
-        { id: 'london', arrive: 0, depart: 60 },
-        { id: 'london', arrive: 60, depart: 120 },
-      ]),
-      coords,
-    );
-    expect(result.ok).toBe(true);
-    expect(result.issues).toEqual([]);
-  });
-
   it('honours custom limits', () => {
     const r = route([
       { id: 'west', arrive: 0, depart: 60 },
       { id: 'east', arrive: 660, depart: 720 },
     ]);
     expect(validateRouteGeometry(r, coords, { maxSpeedKmh: 500 }).ok).toBe(false);
+  });
+
+  it('keeps defaults when an option is explicitly undefined', () => {
+    // London -> Sydney in 60 seconds must still fail the default max-speed check.
+    const result = validateRouteGeometry(
+      route([
+        { id: 'london', arrive: 0, depart: 60 },
+        { id: 'sydney', arrive: 120, depart: 180 },
+      ]),
+      coords,
+      { maxSpeedKmh: undefined, minSpeedKmh: undefined, maxGapSeconds: undefined },
+    );
+    expect(result.ok).toBe(false);
   });
 });
