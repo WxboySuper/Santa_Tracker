@@ -96,6 +96,13 @@ describe("Advent parity", () => {
     const res = validateAdventCalendar(days);
     expect(res.valid).toBe(false);
   });
+  it("requires a quiz questions field", () => {
+    const quizDay: AdventDay = { ...past, content_type: "quiz", payload: {} };
+    expect(validateAdventCalendar([quizDay]).warnings).toContain("Day 1: Missing 'questions' in payload");
+    expect(validateAdventCalendar([{ ...quizDay, payload: { questions: [] } }]).warnings).toContain("Day 1: Invalid 'questions' payload");
+    expect(validateAdventCalendar([{ ...quizDay, payload: { questions: [{ prompt: "", choices: [], answerIndex: 0 }] } }]).warnings).toContain("Day 1: Invalid 'questions' payload");
+    expect(validateAdventCalendar([{ ...quizDay, payload: { questions: [{ prompt: "Pick one", choices: ["A", "B"], answerIndex: 1 }] } }]).warnings).not.toContain("Day 1: Invalid 'questions' payload");
+  });
 });
 
 describe("Auth parity - Flask password fallback removed", () => {

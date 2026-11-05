@@ -6,6 +6,7 @@ import { getSantaSnapshotsBucket } from "./cloudflare-bindings";
 import { getSnapshotStore } from "./storage";
 import { ensureStoreBootstrapped, persistAdventCalendar } from "./storage/publish";
 import { DATASET_ADVENT } from "./storage/types";
+import { parseQuiz } from "./advent-quiz";
 
 export interface AdventDay {
   day: number;
@@ -431,9 +432,19 @@ export async function saveAdventCalendar(days: AdventDay[] | Map<number, AdventD
 export function validateAdventCalendar(days: AdventDay[]) {
   const errors = duplicateDayErrors(days);
   const warnings = missingDayWarnings(days);
-  const required: Record<string, string> = { fact: "text", story: "text", game: "url", video: "video_url", activity: "url", quiz: "url" };
-  for (const day of days) warnings.push(...validateDayPayload(day, required));
+  const required: Record<string, string> = { fact: "text", story: "text", game: "url", video: "video_url", activity: "url", quiz: "questions" };
+  for (const day of days) {
+    warnings.push(...validateDayPayload(day, required));
+    warnings.push(...invalidQuizPayloadWarnings(day));
+  }
   return { valid: errors.length === 0, errors, warnings, total_days: days.length, complete_days: days.filter(d => d.payload).length };
+}
+
+function invalidQuizPayloadWarnings(day: AdventDay): string[] {
+  if (day.content_type !== "quiz") return [];
+  if (!day.payload?.questions) return [];
+  if (parseQuiz(day.payload)) return [];
+  return [`Day ${day.day}: Invalid 'questions' payload`];
 }
 
 function duplicateDayErrors(days: AdventDay[]): string[] {

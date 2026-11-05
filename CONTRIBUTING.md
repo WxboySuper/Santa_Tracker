@@ -1,86 +1,48 @@
 # Contributing to Santa Tracker
 
-Santa Tracker is a Next.js application in a pnpm workspace. The former Flask application is kept under `archive/flask-legacy` for reference and migration checks. It is not a development or production runtime.
-
-## Prerequisites
-
-- Node.js 20 or newer
-- pnpm 9 or newer, installed with Corepack or `npm install --global pnpm`
-- Git
-- A modern browser
-
+The live application is the Next.js workspace in `apps/web`. Flask/Python code in `src/` and `archive/` is retired and kept for reference or archival CI only.
 
 ## Local setup
 
-```bash
-git clone https://github.com/WxboySuper/Santa_Tracker.git
-cd Santa_Tracker
+Requirements are Node.js 22.13 or newer for bootstrap and pnpm 10 or newer. The root package declares Node.js 22.18+ as its engine range.
+
+```sh
 corepack enable
 pnpm install
-cp .env.example .env
+pnpm bootstrap
 ```
 
-Edit `.env` before using authenticated routes. Never commit that file.
+Bootstrap starts the app at `http://localhost:3000`. Copy `.env.example` only if you need local admin credentials or other local overrides. See [Configuration](docs/CONFIGURATION.md) for current variable names.
 
-Start the application at `http://localhost:3000`:
+## Before opening a pull request
 
-```bash
-pnpm dev
-```
+Run the workspace checks:
 
-## Environment variables
-
-| Variable | Required | Description |
-| --- | --- | --- |
-| `ADMIN_PASSWORD` | Yes for admin login | Password checked during login |
-| `SECRET_KEY` | Yes in production | Secret used to sign admin JWTs |
-| `ADVENT_ENABLED` | No | Set to `true` to enable Advent routes |
-| `SANTA_ROUTE_PATH` | No | Optional route-data file override |
-| `ADVENT_CALENDAR_PATH` | No | Optional Advent-data file override |
-| `LOG_LEVEL` | No | Application log level |
-| `JSON_LOGS` | No | Set to `true` for structured logs |
-
-See [docs/CONFIGURATION.md](docs/CONFIGURATION.md) for the complete configuration reference.
-
-## Checks before opening a pull request
-
-Run the same core checks used by the workspace workflow:
-
-```bash
-pnpm typecheck
+```sh
 pnpm lint
+pnpm typecheck
 pnpm test
 pnpm build
 ```
 
-The repository also runs CSS, HTML, lockfile, dependency-rule, and security checks in GitHub Actions. The Python workflow only validates files under `archive/flask-legacy`; it does not run the application.
+The GitHub workflows also run CSS, HTML, lockfile, dependency-rule, and UI Storybook checks. The linting workflow has JavaScript, CSS, HTML, and lockfile jobs, plus a separate Python job for the archived Flask source. Python checks do not validate the live app. `SECURITY_AND_SUPPLY_CHAIN.md` says the repository uses GitHub's default CodeQL setup, but the setup is managed outside the workflow files in this checkout. Review the checks on the pull request because branch protection settings are also managed by GitHub.
 
-## Automated pull request review
+## Automated reviews
 
-The Review | OCR workflow runs the OpenCode Code Review action with Muse Spark through the OpenCode Go Responses endpoint. It reviews each pull request update, posts inline findings and a sticky digest, and can be rerun by an authorized repository collaborator with the /ocr comment command. A workflow dispatch can also target a PR by number.
+The OCR workflow reviews pull requests and publishes inline findings and a summary. It skips draft PRs, WIP/HOLD titles, and fork heads. The workflow fails its `ocr-review` gate when the review reports medium-or-higher findings. Resolve those findings and complete the review before merging. An authorized collaborator can request another run with `/ocr`.
 
-To enable reviews, add OPENCODE_API_KEY as a repository Actions secret. This is the same secret name used by the existing /oc workflow. The OCR workflow skips with a clear Actions summary while the secret is missing. The endpoint, model, and protocol can be overridden with repository variables OCR_LLM_URL, OCR_LLM_MODEL, and OCR_LLM_PROTOCOL.
-
-The workflow uses pull_request_target so it can post review comments for fork PRs. The pinned review action checks out the trusted base and fetches the PR head as Git objects; it does not check out or execute the PR's files. Keep that boundary when changing the workflow.
-
-During the evaluation period, the OCR check reports review failures and findings but is not a required status in the main-branch ruleset. The ruleset already blocks unresolved review threads. Add the OCR status check to the ruleset only after the reviewer has been evaluated and its findings should be a required merge gate.
+The repo also contains configuration for CodeRabbit, CodeScene, and DeepSource. Those services are external integrations; their exact status requirements and label behavior are not defined by the application code here. Follow any review findings that appear on the PR. The checked-in CodeRabbit configuration has an empty `auto_review.labels` list, so this checkout does not verify a label-gated review rule.
 
 ## Making changes
 
-1. Create a focused branch.
-2. Add or update tests for behavior changes.
-3. Update `CHANGELOG.md` for every pull request.
-4. Update the relevant documentation when commands, routes, configuration, or deployment behavior changes.
-5. Run the local checks above.
-6. Commit with a short, descriptive message and open a pull request.
+1. Keep changes focused and add tests for behavior changes.
+2. Update the relevant docs when commands, routes, configuration, or deployment behavior changes.
+3. Update `CHANGELOG.md` for user-visible behavior changes.
+4. Run the checks above and review automated findings.
+5. Open a pull request with a short, descriptive title and a summary of the changes and verification.
 
-Keep production code in the TypeScript workspace. Do not add new runtime imports from the archived Flask application.
+Keep production code in the TypeScript workspace. Do not add runtime imports from `src/` or `archive/`.
 
 ## Documentation
 
-- [Architecture](docs/ARCHITECTURE.md)
-- [Development](docs/DEVELOPMENT.md)
-- [Configuration](docs/CONFIGURATION.md)
-- [API](docs/API.md)
-- [Deployment](docs/DEPLOY.md)
-- [Legacy archive](archive/README.md)
+See [the docs index](docs/README.md) for current guides and historical records.
