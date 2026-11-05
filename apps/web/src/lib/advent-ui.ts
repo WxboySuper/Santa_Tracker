@@ -17,8 +17,10 @@ export function formatUnlockDate(unlockIso: string, locale: string): string {
 }
 
 const EMBED_PREFIX = "/advent/";
-// A backslash (written "\\"), a colon (scheme), a query marker and a fragment marker.
-const FORBIDDEN_CHARS = ["\\", ":", "?", "#"];
+// A backslash (written "\\"), a colon (scheme), a query marker, a fragment marker, and "%": browsers
+// normalise %2e%2e as ".." so an encoded path can climb out of /advent/. Our paths are plain
+// kebab-case, so percent-encoding is never legitimate here.
+const FORBIDDEN_CHARS = ["\\", ":", "?", "#", "%"];
 
 const MAX_EMBED_PATH_LENGTH = 200;
 

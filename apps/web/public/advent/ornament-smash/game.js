@@ -276,6 +276,10 @@ function resetGame() {
         clearInterval(gameState.spawnTimer);
         gameState.spawnTimer = null;
     }
+    if (gameState.animationId) {
+        cancelAnimationFrame(gameState.animationId);
+        gameState.animationId = null;
+    }
     
     updateRemainingCount();
 }
