@@ -5,6 +5,10 @@
  * Usage:
  *   pnpm santa:publish:remote       # initialize missing active snapshots through Wrangler
  *   pnpm exec node tools/santa-publish.mjs --remote --activate # replace active snapshots from checked-in data
+ *   pnpm exec node tools/santa-publish.mjs --remote --activate --only advent-calendar # replace just one dataset
+ *
+ * The previous active version stays in R2 under <dataset>/versions/, so a replace can be rolled back
+ * by pointing <dataset>/active.json back at the old versionId.
  */
 import fs from "node:fs/promises";
 import path from "node:path";
@@ -72,8 +76,14 @@ async function main() {
   const remote = process.argv.includes("--remote");
   const activate = process.argv.includes("--activate");
   const bucket = process.env.SANTA_R2_BUCKET ?? "santa-tracker-snapshots";
+  const onlyIndex = process.argv.indexOf("--only");
+  const only = onlyIndex === -1 ? null : process.argv[onlyIndex + 1];
+  if (only !== null && !DATASETS.some((entry) => entry.dataset === only)) {
+    throw new Error(`--only must be one of: ${DATASETS.map((entry) => entry.dataset).join(", ")}`);
+  }
 
   for (const { file, dataset } of DATASETS) {
+    if (only !== null && dataset !== only) continue;
     const sourcePath = path.join(dataDir, file);
     const body = await fs.readFile(sourcePath, "utf-8");
     if (remote) {

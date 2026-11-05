@@ -20,6 +20,17 @@ on:
         description: Cloudflare Workers environment
         required: false
         default: production
+      activate_dataset:
+        description: >-
+          Replace the LIVE data for one dataset from the checked-in file (normal deploys never do this,
+          because they keep whatever is live). The previous version stays in R2 for rollback.
+        required: false
+        type: choice
+        default: none
+        options:
+          - none
+          - advent-calendar
+          - santa-route
 
 # Serialize deploys; a newer push waits rather than cancelling a deploy mid-upload.
 concurrency:
@@ -51,6 +62,14 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           SANTA_R2_BUCKET: santa-tracker-snapshots
+
+      - name: Replace live data from the checked-in file (manual, opt-in)
+        if: ${{ inputs.activate_dataset != '' && inputs.activate_dataset != 'none' }}
+        run: node tools/santa-publish.mjs --remote --activate --only "$DATASET"
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          SANTA_R2_BUCKET: santa-tracker-snapshots
+          DATASET: ${{ inputs.activate_dataset }}
 
       - name: Build vinext Worker bundle
         run: pnpm --filter @santa-tracker/web build:vinext
