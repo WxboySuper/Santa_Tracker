@@ -42,7 +42,7 @@ const renderQuiz: Renderer = (day, locale) => parseQuiz(day.payload)
   ? <AdventQuiz key={day.day} payload={day.payload} locale={locale} />
   : null;
 
-const renderActivity: Renderer = (day, locale) => dispatchActivity(day, renderEmbed(day, locale));
+const renderActivity: Renderer = (day, locale) => dispatchActivity(day, renderEmbed(day, locale), locale);
 
 /**
  * One renderer per content type. A type with no renderer yet (`video`), or a

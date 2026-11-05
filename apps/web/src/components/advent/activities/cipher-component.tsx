@@ -4,8 +4,8 @@ import { useState, type SyntheticEvent } from "react";
 import { createTranslator } from "@santa-tracker/localization";
 import { encode, isCipherAnswerCorrect, type CipherConfig } from "@/lib/cipher";
 
-export function CipherActivity({ config }: { config: CipherConfig }) {
-  const translator = createTranslator();
+export function CipherActivity({ config, locale }: { config: CipherConfig; locale: string }) {
+  const translator = createTranslator({ locale });
   const [answer, setAnswer] = useState("");
   const [feedback, setFeedback] = useState("");
   const [showHint, setShowHint] = useState(false);

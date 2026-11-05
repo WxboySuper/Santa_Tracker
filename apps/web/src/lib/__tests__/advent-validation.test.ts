@@ -13,18 +13,23 @@ function activity(payload: unknown): AdventDay {
 
 describe("activity calendar validation", () => {
   it("accepts a kind payload or an embed URL", () => {
-    for (const payload of [{ kind: "cipher" }, { url: "/advent/puzzle/index.html" }]) {
-      expect(validateAdventCalendar([activity(payload)]).warnings).not.toContain("Day 1: Missing 'kind' or 'url' in payload");
+    for (const payload of [
+      { kind: "cipher", message: "MERRY CHRISTMAS", shift: 3 },
+      { url: "/advent/puzzle/index.html" },
+    ]) {
+      expect(validateAdventCalendar([activity(payload)]).warnings).not.toContain("Day 1: Missing or invalid 'kind' or 'url' in payload");
     }
   });
 
   it("warns when neither kind nor URL is provided", () => {
-    expect(validateAdventCalendar([activity({ message: "ABC" })]).warnings).toContain("Day 1: Missing 'kind' or 'url' in payload");
-    expect(validateAdventCalendar([activity({ kind: "  " })]).warnings).toContain("Day 1: Missing 'kind' or 'url' in payload");
+    expect(validateAdventCalendar([activity({ message: "ABC" })]).warnings).toContain("Day 1: Missing or invalid 'kind' or 'url' in payload");
+    expect(validateAdventCalendar([activity({ kind: "  " })]).warnings).toContain("Day 1: Missing or invalid 'kind' or 'url' in payload");
   });
 
   it("rejects unknown activity kinds and tolerates a missing payload", () => {
-    expect(validateAdventCalendar([activity({ kind: "not-built-in" })]).warnings).toContain("Day 1: Missing 'kind' or 'url' in payload");
-    expect(validateAdventCalendar([activity(null)]).warnings).toContain("Day 1: Missing 'kind' or 'url' in payload");
+    expect(validateAdventCalendar([activity({ kind: "not-built-in" })]).warnings).toContain("Day 1: Missing or invalid 'kind' or 'url' in payload");
+    expect(validateAdventCalendar([activity(null)]).warnings).toContain("Day 1: Missing or invalid 'kind' or 'url' in payload");
+    expect(validateAdventCalendar([activity({ kind: "cipher", message: "NO", shift: 99 })]).warnings).toContain("Day 1: Missing or invalid 'kind' or 'url' in payload");
+    expect(validateAdventCalendar([activity({ url: "https://example.com" })]).warnings).toContain("Day 1: Missing or invalid 'kind' or 'url' in payload");
   });
 });

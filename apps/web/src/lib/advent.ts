@@ -2,7 +2,8 @@ import fs from "fs/promises";
 import path from "path";
 import { isAdventEnabled } from "./config";
 import { isNotFoundError } from "./errors";
-import { hasRegisteredActivityKind } from "@/components/advent/activities";
+import { hasValidActivityKind } from "@/components/advent/activities";
+import { safeEmbedPath } from "./advent-ui";
 import { getSantaSnapshotsBucket } from "./cloudflare-bindings";
 import { getSnapshotStore } from "./storage";
 import { ensureStoreBootstrapped, persistAdventCalendar } from "./storage/publish";
@@ -454,15 +455,14 @@ function invalidQuizPayloadWarnings(day: AdventDay): string[] {
 
 function missingActivityWarning(day: AdventDay): string | null {
   if (day.content_type !== "activity") return null;
-  if (hasRegisteredActivityKind(day.payload)) return null;
+  if (hasValidActivityKind(day.payload)) return null;
   if (hasActivityUrl(day.payload)) return null;
-  return `Day ${day.day}: Missing 'kind' or 'url' in payload`;
+  return `Day ${day.day}: Missing or invalid 'kind' or 'url' in payload`;
 }
 
 function hasActivityUrl(payload: unknown): boolean {
   if (!isRecordValue(payload)) return false;
-  if (typeof payload.url !== "string") return false;
-  return payload.url.trim() !== "";
+  return safeEmbedPath(payload.url) !== null;
 }
 
 function duplicateDayErrors(days: AdventDay[]): string[] {
