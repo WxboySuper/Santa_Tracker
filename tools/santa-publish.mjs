@@ -4,8 +4,10 @@
  *
  * Usage:
  *   pnpm santa:publish:remote       # initialize missing active snapshots through Wrangler
- *   pnpm exec node tools/santa-publish.mjs --remote --activate # replace active snapshots from checked-in data
- *   pnpm exec node tools/santa-publish.mjs --remote --activate --only advent-calendar # replace just one dataset
+ *   pnpm exec node tools/santa-publish.mjs --remote --activate --only advent-calendar # replace one dataset
+ *   pnpm exec node tools/santa-publish.mjs --remote --activate --all # replace every dataset, on purpose
+ *
+ * --activate must name its scope (--only <dataset> or --all); unknown options and stray arguments are errors.
  *
  * The previous active version stays in R2 under <dataset>/versions/, so a replace can be rolled back
  * by pointing <dataset>/active.json back at the old versionId.
@@ -81,35 +83,44 @@ function uploadToR2({ bucket, dataset, versionId, body, activate }) {
   });
 }
 
-const KNOWN_FLAGS = new Set(["--remote", "--activate", "--only"]);
+const BOOLEAN_FLAGS = new Set(["--remote", "--activate", "--all"]);
 
 /**
- * The value of `--only`, accepting both `--only <dataset>` and `--only=<dataset>`. An unrecognised
- * spelling must never fall through to "all datasets": combined with --activate that would silently
- * replace every live dataset when one was intended.
+ * Split argv into recognised flags and the `--only` value (`--only <dataset>` or `--only=<dataset>`).
+ * Anything else, a typo, a wrong-case or single-dash spelling, or a stray positional such as
+ * `--activate advent-calendar`, is an error. It must never be ignored, because an ignored scope
+ * silently becomes "all datasets" and, with --activate, a mass overwrite of live data.
  */
-function readOnly(args) {
-  const inline = args.find((arg) => arg.startsWith("--only="));
-  if (inline !== undefined) return inline.slice("--only=".length);
-  const index = args.indexOf("--only");
-  return index === -1 ? null : (args[index + 1] ?? "");
+function scanArgs(args) {
+  const flags = new Set();
+  let only = null;
+  for (let i = 0; i < args.length; i++) {
+    const arg = args[i];
+    if (BOOLEAN_FLAGS.has(arg)) {
+      flags.add(arg);
+    } else if (arg === "--only" || arg.startsWith("--only=")) {
+      if (only !== null) throw new Error("--only was given more than once");
+      only = arg === "--only" ? (args[++i] ?? "") : arg.slice("--only=".length);
+    } else {
+      throw new Error(`Unknown option or stray argument: ${arg}`);
+    }
+  }
+  return { flags, only };
 }
 
 /** Read the command line and environment into one validated options object. */
 function parseOptions(argv, env) {
-  const args = argv.slice(2);
-  const unknown = args.filter((arg) => arg.startsWith("--") && !KNOWN_FLAGS.has(arg.split("=")[0]));
-  if (unknown.length > 0) throw new Error(`Unknown option(s): ${unknown.join(", ")}`);
-  const only = readOnly(args);
+  const { flags, only } = scanArgs(argv.slice(2));
   if (only !== null && !DATASETS.some((entry) => entry.dataset === only)) {
     throw new Error(`--only must be one of: ${DATASETS.map((entry) => entry.dataset).join(", ")}`);
   }
-  return {
-    remote: args.includes("--remote"),
-    activate: args.includes("--activate"),
-    only,
-    bucket: env.SANTA_R2_BUCKET ?? "santa-tracker-snapshots",
-  };
+  if (only !== null && flags.has("--all")) throw new Error("--only and --all cannot be combined");
+  const activate = flags.has("--activate");
+  // Replacing live data always names its scope: one dataset, or everything on purpose.
+  if (activate && only === null && !flags.has("--all")) {
+    throw new Error("--activate needs an explicit scope: --only <dataset> or --all");
+  }
+  return { remote: flags.has("--remote"), activate, only, bucket: env.SANTA_R2_BUCKET ?? "santa-tracker-snapshots" };
 }
 
 /** Validate one dataset locally, or upload it to R2 (activating only when asked). */
