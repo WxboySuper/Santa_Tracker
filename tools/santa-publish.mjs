@@ -41,6 +41,24 @@ function runWrangler(args, options = {}) {
   return result;
 }
 
+/**
+ * Whether the dataset already has an active pointer in R2. Any failure other than "no such object"
+ * throws, so an outage can never be mistaken for "nothing is live yet".
+ */
+async function hasActivePointer({ bucket, dataset, activeKey, activePath }) {
+  const existing = runWrangler(["exec", "wrangler", "r2", "object", "get", `${bucket}/${activeKey}`, "--file", activePath, "--remote"]);
+  if (existing.status === 0) {
+    await fs.rm(activePath, { force: true });
+    return true;
+  }
+  const details = `${existing.stdout ?? ""}
+${existing.stderr ?? ""}`;
+  if (!/NoSuchKey|not found|does not exist|404|no object/i.test(details)) {
+    throw new Error(`Could not check active R2 pointer for ${dataset}: ${details.trim()}`);
+  }
+  return false;
+}
+
 function uploadToR2({ bucket, dataset, versionId, body, activate }) {
   const versionKey = `${dataset}/versions/${versionId}.json`;
   const activeKey = `${dataset}/active.json`;
@@ -53,17 +71,8 @@ function uploadToR2({ bucket, dataset, versionId, body, activate }) {
   return fs.mkdir(tmpDir, { recursive: true }).then(async () => {
     const versionPath = path.join(tmpDir, `${dataset}-${versionId}.json`);
     const activePath = path.join(tmpDir, `${dataset}-active.json`);
-    if (!activate) {
-      const existing = runWrangler(["exec", "wrangler", "r2", "object", "get", `${bucket}/${activeKey}`, "--file", activePath, "--remote"]);
-      if (existing.status === 0) {
-        await fs.rm(activePath, { force: true });
-        return false;
-      }
-      const details = `${existing.stdout ?? ""}\n${existing.stderr ?? ""}`;
-      if (!/NoSuchKey|not found|does not exist|404|no object/i.test(details)) {
-        throw new Error(`Could not check active R2 pointer for ${dataset}: ${details.trim()}`);
-      }
-    }
+    // Without --activate an existing live pointer is kept as-is.
+    if (!activate && (await hasActivePointer({ bucket, dataset, activeKey, activePath }))) return false;
     await fs.writeFile(versionPath, body, "utf-8");
     put(versionKey, versionPath);
     await fs.writeFile(activePath, pointer, "utf-8");

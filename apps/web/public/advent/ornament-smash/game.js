@@ -56,6 +56,7 @@ const gameState = {
     remaining: CONFIG.targetCount,
     spawnTimer: null,
     animationId: null,
+    winTimer: null,
 };
 
 // Canvas Setup
@@ -242,6 +243,7 @@ function initSnowflakes() {
 function startGame() {
     // A second activation must not stack another spawn timer or render loop.
     if (gameState.isPlaying) return;
+    clearWinTimer();
     if (gameState.spawnTimer) {
         clearInterval(gameState.spawnTimer);
         gameState.spawnTimer = null;
@@ -271,6 +273,7 @@ function startGame() {
 
 // Reset game state
 function resetGame() {
+    clearWinTimer();
     gameState.isPlaying = false;
     gameState.ornaments = [];
     gameState.particles = [];
@@ -396,14 +399,19 @@ function smashOrnament(ornament, index) {
 }
 
 // Subtle screen shake effect
+let shakeTimer = null;
+
 function shakeScreen() {
     const shakeMagnitude = 3;
-    const originalTransform = canvas.style.transform;
     
     canvas.style.transform = `translate(${Math.random() * shakeMagnitude - shakeMagnitude/2}px, ${Math.random() * shakeMagnitude - shakeMagnitude/2}px)`;
     
-    setTimeout(() => {
-        canvas.style.transform = originalTransform;
+    // One shared timer, always restoring to rest (the canvas has no base transform). Saving the
+    // "original" per call let overlapping shakes capture each other's offset and stick.
+    clearTimeout(shakeTimer);
+    shakeTimer = setTimeout(() => {
+        canvas.style.transform = '';
+        shakeTimer = null;
     }, 50);
 }
 
@@ -456,9 +464,18 @@ function endGame() {
     }
     
     // Show win overlay after a brief delay
-    setTimeout(() => {
+    gameState.winTimer = setTimeout(() => {
+        gameState.winTimer = null;
         winOverlay.classList.remove('hidden');
     }, 500);
+}
+
+// Cancel a pending win screen so it cannot appear over a new game or after teardown.
+function clearWinTimer() {
+    if (gameState.winTimer) {
+        clearTimeout(gameState.winTimer);
+        gameState.winTimer = null;
+    }
 }
 
 // Hide win overlay
@@ -583,6 +600,8 @@ function render() {
 function cleanup() {  // skipcq: JS-0128
     // Stop game if playing
     gameState.isPlaying = false;
+    clearWinTimer();
+    clearTimeout(shakeTimer);
     
     // Cancel animation frames
     if (gameState.animationId) {
