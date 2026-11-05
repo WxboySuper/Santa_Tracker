@@ -87,4 +87,7 @@ jobs:
           ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
 
       - name: Smoke test deployed Worker
-        run: node tools/smoke-test.mjs https://santa-tracker.alex-miller-6464.workers.dev
+        # Test the public hostname visitors use. The first run after a DNS change can hit a
+        # resolver that still caches the old record, so retry once before failing.
+        run: |
+          node tools/smoke-test.mjs https://santa.weatherboysuper.com             || { sleep 30; node tools/smoke-test.mjs https://santa.weatherboysuper.com; }
