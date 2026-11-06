@@ -26,7 +26,7 @@ const child = spawn(process.execPath, [path.join(root, "apps/web/node_modules/ne
 });
 
 const samples = new Map(paths.map(path => [path, { durations: [], errors: 0, requests: 0 }]));
-const deadline = performance.now() + durationSeconds * 1000;
+let deadline = 0;
 let cursor = 0;
 
 async function worker() {
@@ -57,6 +57,7 @@ function percentile(values, percent) {
 
 try {
   await waitForServer();
+  deadline = performance.now() + durationSeconds * 1000;
   await Promise.all(Array.from({ length: connections }, () => worker()));
   console.log(`Local load results: origin=${origin} connections=${connections} duration=${durationSeconds}s`);
   console.log("endpoint       requests errors error-rate p50-ms p95-ms p99-ms");
