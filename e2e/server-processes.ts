@@ -7,6 +7,8 @@ import type { ServerName } from "./types";
 import { isServerEndpointMap } from "./validation";
 export type ServerEntry = { name: ServerName; endpoint: string; child: ChildProcess };
 export type StartupResult = { name: ServerName; endpoint: string };
+type ServerLaunchOptions = { name: ServerName; appRoot: string; dataRoot: string; port: number; password: string; secret: string };
+type ExitWaitOptions = { child: ChildProcess; timeoutMs: number };
 const maxStartupOutput = 4_000;
 
 function childHasExited(child: ChildProcess): boolean {
@@ -14,7 +16,7 @@ function childHasExited(child: ChildProcess): boolean {
   return child.signalCode !== null;
 }
 
-async function isServerReady(endpoint: string): Promise<boolean> {
+async function isServerReady({ endpoint }: ServerEntry): Promise<boolean> {
   try {
     const response = await fetch(endpoint, { signal: AbortSignal.timeout(5_000) });
     return response.ok;
@@ -57,7 +59,7 @@ async function findFreePort(): Promise<number> {
   return port;
 }
 
-function serverEnvironment(name: ServerName, dataRoot: string, password: string, secret: string): NodeJS.ProcessEnv {
+function serverEnvironment({ name, dataRoot, password, secret }: ServerLaunchOptions): NodeJS.ProcessEnv {
   return {
     ...process.env,
     ADVENT_ENABLED: "true",
@@ -69,14 +71,15 @@ function serverEnvironment(name: ServerName, dataRoot: string, password: string,
   };
 }
 
-function spawnNextServer(name: ServerName, appRoot: string, dataRoot: string, port: number, password: string, secret: string): ServerEntry {
+function spawnNextServer(options: ServerLaunchOptions): ServerEntry {
+	const { name, appRoot, port } = options;
   const appRequire = createRequire(path.join(appRoot, "package.json"));
   const nextCli = appRequire.resolve("next/dist/bin/next");
   const child = spawn(process.execPath, [nextCli, "dev", "--hostname", "127.0.0.1", "--port", String(port)], {
     cwd: appRoot,
     detached: process.platform !== "win32",
     stdio: ["ignore", "pipe", "pipe"],
-    env: serverEnvironment(name, dataRoot, password, secret),
+		env: serverEnvironment(options),
   });
   return { name, endpoint: `http://127.0.0.1:${port}`, child };
 }
@@ -88,7 +91,7 @@ async function stopPartialServers(entries: ServerEntry[], startupError: unknown)
   throw startupError;
 }
 
-function getStartupError(entry: ServerEntry, spawnError: Error | undefined, output: string): Error | undefined {
+function getStartupError({ entry, spawnError, output }: { entry: ServerEntry; spawnError: Error | undefined; output: string }): Error | undefined {
   if (spawnError) return new Error(`Next.js failed to spawn: ${spawnError.message}`);
   if (entry.child.exitCode !== null) return new Error(`Next.js exited early with code ${entry.child.exitCode}. Output: ${output}`);
   if (entry.child.signalCode !== null) return new Error(`Next.js exited early with signal ${entry.child.signalCode}. Output: ${output}`);
@@ -98,9 +101,12 @@ function getStartupError(entry: ServerEntry, spawnError: Error | undefined, outp
 function captureStartupState(entry: ServerEntry) {
   let output = "";
   let truncated = false;
+  let addressInUse = false;
   let spawnError: Error | undefined;
   const capture = (chunk: Buffer) => {
-    output += chunk.toString();
+	const text = chunk.toString();
+	if (/EADDRINUSE|address already in use/i.test(text)) addressInUse = true;
+	output += text;
     if (output.length <= maxStartupOutput) return;
     output = output.slice(-maxStartupOutput);
     truncated = true;
@@ -115,7 +121,7 @@ function captureStartupState(entry: ServerEntry) {
   entry.child.stdout?.on("data", onStdout);
   entry.child.stderr?.on("data", onStderr);
   return {
-    output: () => truncated ? `...[earlier output truncated]...\n${output}` : output,
+    output: () => `${addressInUse ? "EADDRINUSE detected in server output\n" : ""}${truncated ? `...[earlier output truncated]...\n${output}` : output}`,
     error: () => spawnError,
     dispose: () => {
       entry.child.removeListener("error", onError);
@@ -130,12 +136,12 @@ async function waitForServer(entry: ServerEntry): Promise<StartupResult> {
   const state = captureStartupState(entry);
   try {
     while (Date.now() < deadline) {
-      const startupError = getStartupError(entry, state.error(), state.output());
+      const startupError = getStartupError({ entry, spawnError: state.error(), output: state.output() });
       if (startupError) throw startupError;
-      if (await isServerReady(entry.endpoint)) return { name: entry.name, endpoint: entry.endpoint };
+      if (await isServerReady(entry)) return { name: entry.name, endpoint: entry.endpoint };
       await delay(250);
     }
-    const startupError = getStartupError(entry, state.error(), state.output());
+    const startupError = getStartupError({ entry, spawnError: state.error(), output: state.output() });
     if (startupError) throw startupError;
     throw new Error(`Next.js did not become ready. Output: ${state.output()}`);
   } finally {
@@ -150,26 +156,30 @@ function normalizeFailure(reason: unknown): Error {
 
 function isAddressInUse(error: unknown): boolean {
   if (!(error instanceof Error)) return false;
-  return error.message.includes("EADDRINUSE");
+	return /EADDRINUSE|address already in use/i.test(error.message);
 }
 
-async function startNextServerWithRetry(name: ServerName, appRoot: string, dataRoot: string, initialPort: number, password: string, secret: string): Promise<ServerEntry> {
-  let port = initialPort;
+async function cleanupFailedLaunch(entry: ServerEntry, startupError: unknown): Promise<void> {
+	await stopServers([entry]).catch((cleanupError: unknown) => {
+		throw new AggregateError([startupError, cleanupError], "Server startup and cleanup both failed", { cause: cleanupError });
+	});
+}
+
+async function startNextServerWithRetry(options: ServerLaunchOptions): Promise<ServerEntry> {
+	let port = options.port;
   for (let attempt = 0; attempt < 3; attempt += 1) {
-    const entry = spawnNextServer(name, appRoot, dataRoot, port, password, secret);
+		const entry = spawnNextServer({ ...options, port });
     try {
       await waitForServer(entry);
       return entry;
     } catch (error) {
-      await stopServers([entry]).catch((cleanupError: unknown) => {
-        throw new AggregateError([error, cleanupError], "Server startup and cleanup both failed", { cause: cleanupError });
-      });
+      await cleanupFailedLaunch(entry, error);
       if (!isAddressInUse(error)) throw error;
       if (attempt === 2) throw error;
       port = await findFreePort();
     }
   }
-  throw new Error(`Next.js server ${name} exhausted its port retries`);
+		throw new Error(`Next.js server ${options.name} exhausted its port retries`);
 }
 
 export function getStartupFailure(results: PromiseSettledResult<StartupResult>[]): Error | undefined {
@@ -200,8 +210,8 @@ export async function startServers(appRoot: string, dataRoots: Record<ServerName
   if (closedPort === undefined) throw new Error("Could not allocate the closed-season port");
   if (openPort === undefined) throw new Error("Could not allocate the open-season port");
   const results = await Promise.allSettled([
-    startNextServerWithRetry("closed", appRoot, dataRoots.closed, closedPort, password, secret),
-    startNextServerWithRetry("open", appRoot, dataRoots.open, openPort, password, secret),
+    startNextServerWithRetry({ name: "closed", appRoot, dataRoot: dataRoots.closed, port: closedPort, password, secret }),
+    startNextServerWithRetry({ name: "open", appRoot, dataRoot: dataRoots.open, port: openPort, password, secret }),
   ]);
   const entries = results.flatMap((result) => result.status === "fulfilled" ? [result.value] : []);
   const failure = getStartupFailure(results);
@@ -209,7 +219,7 @@ export async function startServers(appRoot: string, dataRoots: Record<ServerName
   return entries;
 }
 
-async function waitForExit(child: ChildProcess, timeoutMs: number): Promise<boolean> {
+async function waitForExit({ child, timeoutMs }: ExitWaitOptions): Promise<boolean> {
   return new Promise<boolean>((resolve) => {
     const finish = (exited: boolean) => {
       clearTimeout(timer);
@@ -228,9 +238,9 @@ async function waitForExit(child: ChildProcess, timeoutMs: number): Promise<bool
 async function killWindowsTree(child: ChildProcess): Promise<void> {
   if (child.pid === undefined) return;
   const killer = spawn("taskkill", ["/pid", String(child.pid), "/t", "/f"], { stdio: "ignore" });
-  if (await waitForExit(killer, 5_000)) return;
+  if (await waitForExit({ child: killer, timeoutMs: 5_000 })) return;
   killer.kill();
-  await waitForExit(killer, 1_000);
+  await waitForExit({ child: killer, timeoutMs: 1_000 });
 }
 
 function signalUnixProcessGroup(child: ChildProcess, signal: NodeJS.Signals): void {
@@ -256,9 +266,9 @@ async function stopServer(child: ChildProcess): Promise<void> {
   if (childHasExited(child)) return;
   if (child.pid === undefined) return;
   await signalServer(child, "SIGTERM");
-  if (await waitForExit(child, 10_000)) return;
+  if (await waitForExit({ child, timeoutMs: 10_000 })) return;
   await signalServer(child, "SIGKILL");
-  if (await waitForExit(child, 5_000)) return;
+  if (await waitForExit({ child, timeoutMs: 5_000 })) return;
   throw new Error(`Next.js process ${child.pid} did not exit after termination`);
 }
 

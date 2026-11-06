@@ -2,12 +2,13 @@ import { chmod, mkdtemp, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { randomBytes } from "node:crypto";
 import type { FullConfig } from "@playwright/test";
 import { prepareFixtureData } from "./fixture-data";
 import { startServers, stopServers, waitForServers, type ServerEntry } from "./server-processes";
 
-const password = "e2e-admin-password";
-const secret = "e2e-secret-key-that-is-at-least-32-characters";
+const password = process.env.E2E_ADMIN_PASSWORD ?? `e2e-admin-${randomBytes(16).toString("hex")}`;
+const secret = process.env.E2E_SECRET_KEY ?? randomBytes(32).toString("hex");
 
 async function cleanup(servers: ServerEntry[], temporaryRoot: string, runtimeFile: string): Promise<void> {
   try {
@@ -47,5 +48,3 @@ export default async function globalSetup(_config: FullConfig) {
   }
   return () => cleanup(servers, temporaryRoot, runtimeFile);
 }
-
-export { password };

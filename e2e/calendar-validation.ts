@@ -46,7 +46,7 @@ export function parseCalendar({ content, path: filePath }: CalendarSource): Cale
 }
 
 export function cloneCalendar(calendar: Calendar): Calendar {
-  return JSON.parse(JSON.stringify(calendar)) as Calendar;
+	return structuredClone(calendar);
 }
 
 export function closeCalendar(calendar: Calendar): Calendar {

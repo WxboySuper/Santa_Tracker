@@ -4,9 +4,13 @@ import { expect, type Page } from "@playwright/test";
 const axeTags = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"];
 
 function isHighImpactOrUnclassified(impact: string | null | undefined): boolean {
-  if (impact === null) return true;
-  if (impact === undefined) return true;
-  return ["serious", "critical"].includes(impact);
+	switch (impact) {
+		case null:
+		case undefined:
+			return true;
+		default:
+			return ["serious", "critical"].includes(impact);
+	}
 }
 
 export async function expectNoSeriousAxeIssues(page: Page): Promise<void> {

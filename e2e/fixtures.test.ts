@@ -22,7 +22,7 @@ async function withCalendarFixture(
   try {
     await mkdir(source, { recursive: true });
     await mkdir(temporaryRoot, { recursive: true });
-    await writeFile(path.join(source, "santa_route.json"), "{}");
+    await writeFile(path.join(source, "santa_route.json"), JSON.stringify({ meta: {}, route_nodes: [{}] }));
     await writeFile(calendarPath, calendarContent);
     await run({ source, temporaryRoot, calendarPath });
   } finally {
@@ -97,6 +97,14 @@ test("route JSON reports its source path before fixture servers start", async ()
     await writeFile(routePath, "{");
     await expect(prepareFixtureData({ source, temporaryRoot })).rejects.toThrow(routePath);
   });
+});
+
+test("route with an invalid shape reports its source path before fixture servers start", async () => {
+	await withCalendarFixture("route-shape-test", JSON.stringify({ days: completeCalendarDays }), async ({ source, temporaryRoot }) => {
+		const routePath = path.join(source, "santa_route.json");
+		await writeFile(routePath, JSON.stringify({ route_nodes: [] }));
+		await expect(prepareFixtureData({ source, temporaryRoot })).rejects.toThrow(routePath);
+	});
 });
 
 test("fixture calendars clear source overrides and unlock only open day one", async () => {
