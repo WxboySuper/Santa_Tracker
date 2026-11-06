@@ -27,7 +27,7 @@ export default async function globalSetup(_config: FullConfig) {
   const appRoot = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "apps", "web");
   let servers: ServerEntry[] = [];
   try {
-    const dataRoots = await prepareFixtureData(path.join(appRoot, "data"), temporaryRoot);
+    const dataRoots = await prepareFixtureData({ source: path.join(appRoot, "data"), temporaryRoot });
     servers = startServers(appRoot, dataRoots, password, secret);
     const endpoints = await waitForServers(servers);
     await rm(runtimeFile, { force: true });

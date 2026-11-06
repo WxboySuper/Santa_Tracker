@@ -83,7 +83,7 @@ test.each([
   ["duplicate day", JSON.stringify({ days: duplicateCalendarDays })],
 ])("calendar reports its source path for %s", async (_name, calendarContent) => {
   await withCalendarFixture("calendar-invalid-test", calendarContent, async ({ source, temporaryRoot, calendarPath }) => {
-    await expect(prepareFixtureData(source, temporaryRoot)).rejects.toThrow(calendarPath);
+    await expect(prepareFixtureData({ source, temporaryRoot })).rejects.toThrow(calendarPath);
   });
 });
 
@@ -95,7 +95,7 @@ test("fixture calendars clear source overrides and unlock only open day one", as
   });
   const calendar = JSON.stringify({ days: calendarDays });
   await withCalendarFixture("calendar-override-test", calendar, async ({ source, temporaryRoot }) => {
-    const roots = await prepareFixtureData(source, temporaryRoot);
+    const roots = await prepareFixtureData({ source, temporaryRoot });
     const closed = JSON.parse(await readFile(path.join(roots.closed, "advent_calendar.json"), "utf8")) as { days: { day: number; is_unlocked_override?: boolean }[] };
     const open = JSON.parse(await readFile(path.join(roots.open, "advent_calendar.json"), "utf8")) as { days: { day: number; is_unlocked_override?: boolean }[] };
     expect(closed.days.some((day) => day.is_unlocked_override !== undefined)).toBe(false);

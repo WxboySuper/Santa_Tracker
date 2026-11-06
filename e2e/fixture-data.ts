@@ -4,6 +4,9 @@ import type { ServerName } from "./types";
 
 type CalendarDay = { day: number; is_unlocked_override?: boolean };
 type Calendar = { days: CalendarDay[] };
+type CalendarSource = { content: string; path: string };
+type ServerData = { name: ServerName; root: string; route: string; calendar: Calendar };
+type FixtureDataSource = { source: string; temporaryRoot: string };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   if (typeof value !== "object") return false;
@@ -41,10 +44,10 @@ function isCalendar(value: unknown): value is Calendar {
   return new Set(days.map((day) => day.day)).size === 24;
 }
 
-function parseCalendar(source: string, filePath: string): Calendar {
+function parseCalendar({ content, path: filePath }: CalendarSource): Calendar {
   let value: unknown;
   try {
-    value = JSON.parse(source);
+    value = JSON.parse(content);
   } catch (error) {
     const reason = error instanceof Error ? error.message : String(error);
     throw new Error(`Could not parse Advent calendar at ${filePath}: ${reason}`, { cause: error });
@@ -53,7 +56,7 @@ function parseCalendar(source: string, filePath: string): Calendar {
   return value;
 }
 
-async function writeServerData(name: ServerName, root: string, route: string, originalCalendar: Calendar): Promise<string> {
+async function writeServerData({ name, root, route, calendar: originalCalendar }: ServerData): Promise<string> {
   const dataRoot = path.join(root, name);
   await mkdir(dataRoot, { recursive: true });
   const calendar = JSON.parse(JSON.stringify(originalCalendar)) as Calendar;
@@ -70,15 +73,15 @@ async function writeServerData(name: ServerName, root: string, route: string, or
   return dataRoot;
 }
 
-export async function prepareFixtureData(source: string, temporaryRoot: string): Promise<Record<ServerName, string>> {
+export async function prepareFixtureData({ source, temporaryRoot }: FixtureDataSource): Promise<Record<ServerName, string>> {
   const [route, rawCalendar] = await Promise.all([
     readFile(path.join(source, "santa_route.json"), "utf8"),
     readFile(path.join(source, "advent_calendar.json"), "utf8"),
   ]);
-  const calendar = parseCalendar(rawCalendar, path.join(source, "advent_calendar.json"));
+  const calendar = parseCalendar({ content: rawCalendar, path: path.join(source, "advent_calendar.json") });
   const [closed, open] = await Promise.all([
-    writeServerData("closed", temporaryRoot, route, calendar),
-    writeServerData("open", temporaryRoot, route, calendar),
+    writeServerData({ name: "closed", root: temporaryRoot, route, calendar }),
+    writeServerData({ name: "open", root: temporaryRoot, route, calendar }),
   ]);
   return { closed, open };
 }
