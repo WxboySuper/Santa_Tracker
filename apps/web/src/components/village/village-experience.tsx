@@ -160,6 +160,7 @@ export default function VillageExperience({ experiences }: { experiences: Experi
           onHover: (id, anchor) => setHover(id && anchor ? { id, x: anchor.x, y: anchor.y } : null),
           onSelect: (id) => setSelected(id),
           onReady: () => setReady(true),
+          onFail: () => setSupported(false),
         },
       });
     } catch {

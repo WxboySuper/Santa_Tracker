@@ -7,6 +7,7 @@ import type { Building, BuildingId } from './village-buildings';
 import { PLAZA, createWorld, type World } from './village-world';
 
 export type EngineEvents = {
+  onFail: () => void;
   onHover: (id: BuildingId | null, anchor: { x: number; y: number } | null) => void;
   onSelect: (id: BuildingId | null) => void;
   onReady: () => void;
@@ -31,8 +32,11 @@ export class VillageEngine {
   private readonly renderer: THREE.WebGLRenderer;
   private readonly scene = new THREE.Scene();
   private readonly camera = new THREE.PerspectiveCamera(34, 1, 0.5, 700);
-  private readonly composer: EffectComposer;
-  private readonly bloom: UnrealBloomPass;
+  private composer: EffectComposer | null = null;
+  private bloom: UnrealBloomPass | null = null;
+  /** high: HDR bloom. low: 8-bit bloom for GPUs without float targets. basic: plain render, no post-processing. */
+  private mode: 'high' | 'low' | 'basic' = 'high';
+  private blackChecks = 0;
   private readonly world: World;
   private readonly raycaster = new THREE.Raycaster();
   private readonly pointer = new THREE.Vector2(9, 9);
@@ -72,11 +76,10 @@ export class VillageEngine {
     this.world = createWorld();
     this.scene.add(this.world.root);
 
-    this.composer = new EffectComposer(this.renderer);
-    this.composer.addPass(new RenderPass(this.scene, this.camera));
-    this.bloom = new UnrealBloomPass(new THREE.Vector2(1, 1), 0.34, 0.55, 0.92);
-    this.composer.addPass(this.bloom);
-    this.composer.addPass(new OutputPass());
+    this.mode = this.chooseMode();
+    this.buildComposer();
+    canvas.addEventListener('webglcontextlost', this.onContextLost);
+    this.listeners.push(() => canvas.removeEventListener('webglcontextlost', this.onContextLost));
 
     this.bindEvents(canvas);
     this.resize();
@@ -144,8 +147,8 @@ export class VillageEngine {
     const height = canvas.clientHeight || 1;
     this.renderer.setPixelRatio(this.pixelRatio);
     this.renderer.setSize(width, height, false);
-    this.composer.setPixelRatio(this.pixelRatio);
-    this.composer.setSize(width, height);
+    this.composer?.setPixelRatio(this.pixelRatio);
+    this.composer?.setSize(width, height);
     this.camera.aspect = width / height;
     this.camera.fov = width / height < 0.8 ? 56 : width / height < 1.2 ? 46 : 38;
     this.camera.updateProjectionMatrix();
@@ -160,7 +163,7 @@ export class VillageEngine {
       const materials = Array.isArray(renderable.material) ? renderable.material : renderable.material ? [renderable.material] : [];
       materials.forEach((material) => material.dispose());
     });
-    this.composer.dispose();
+    this.composer?.dispose();
     this.renderer.dispose();
   }
 
@@ -289,11 +292,83 @@ export class VillageEngine {
       this.pixelRatio = Math.max(1, this.pixelRatio - 0.5);
       this.slowFrames = 0;
       this.resize();
-    } else if (this.slowFrames > 110 && this.bloom.enabled) {
+    } else if (this.slowFrames > 110 && this.bloom?.enabled) {
       this.bloom.enabled = false;
       this.slowFrames = 0;
     }
   }
+
+  /* --------------------------------------------------------- post-processing */
+
+  /** Picks the richest pipeline this GPU can run. ?safe=1 forces the plain renderer. */
+  private chooseMode(): 'high' | 'low' | 'basic' {
+    if (new URLSearchParams(window.location.search).has('safe')) return 'basic';
+    const extensions = this.renderer.extensions;
+    const floatTargets = extensions.has('EXT_color_buffer_float') || extensions.has('EXT_color_buffer_half_float');
+    return this.renderer.capabilities.isWebGL2 && floatTargets ? 'high' : 'low';
+  }
+
+  private buildComposer(): void {
+    this.composer?.dispose();
+    this.composer = null;
+    this.bloom = null;
+    if (this.mode === 'basic') return;
+    const canvas = this.renderer.domElement;
+    const width = Math.max(1, canvas.clientWidth);
+    const height = Math.max(1, canvas.clientHeight);
+    const target = this.mode === 'low'
+      ? new THREE.WebGLRenderTarget(width * this.pixelRatio, height * this.pixelRatio, { type: THREE.UnsignedByteType })
+      : undefined;
+    const composer = new EffectComposer(this.renderer, target);
+    composer.addPass(new RenderPass(this.scene, this.camera));
+    const bloom = new UnrealBloomPass(new THREE.Vector2(1, 1), this.mode === 'low' ? 0.3 : 0.34, 0.55, this.mode === 'low' ? 0.88 : 0.92);
+    composer.addPass(bloom);
+    composer.addPass(new OutputPass());
+    composer.setPixelRatio(this.pixelRatio);
+    composer.setSize(width, height);
+    this.composer = composer;
+    this.bloom = bloom;
+  }
+
+  private renderFrame(): void {
+    if (this.composer) this.composer.render();
+    else this.renderer.render(this.scene, this.camera);
+    if (this.blackChecks < 12 && this.frameCount % 10 === 5) this.checkForBlackFrame();
+    this.frameCount += 1;
+  }
+
+  private frameCount = 0;
+
+  /**
+   * Some browsers (strict privacy settings, odd drivers) accept the pipeline but present a black
+   * frame. The sky is never pure black, so if every sampled pixel is zero, step down a mode.
+   */
+  private checkForBlackFrame(): void {
+    this.blackChecks += 1;
+    const gl = this.renderer.getContext();
+    const pixel = new Uint8Array(4);
+    let seen = 0;
+    for (const [fx, fy] of [[0.5, 0.5], [0.2, 0.3], [0.8, 0.3], [0.5, 0.8], [0.3, 0.6]] as const) {
+      gl.readPixels(Math.floor(gl.drawingBufferWidth * fx), Math.floor(gl.drawingBufferHeight * fy), 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, pixel);
+      seen += (pixel[0] ?? 0) + (pixel[1] ?? 0) + (pixel[2] ?? 0);
+    }
+    if (seen > 0) {
+      this.blackChecks = 12;
+      return;
+    }
+    if (this.mode === 'high') this.mode = 'low';
+    else if (this.mode === 'low') this.mode = 'basic';
+    else return;
+    this.blackChecks = 0;
+    this.buildComposer();
+  }
+
+  private readonly onContextLost = (event: Event): void => {
+    event.preventDefault();
+    this.stop();
+    this.events.onFail();
+  };
+
 
   private readonly tick = (): void => {
     if (!this.running) return;
@@ -324,6 +399,6 @@ export class VillageEngine {
       });
     });
     this.adaptQuality(delta);
-    this.composer.render();
+    this.renderFrame();
   };
 }
