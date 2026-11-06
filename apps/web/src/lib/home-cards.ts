@@ -1,6 +1,10 @@
 import { isFeatureOpen } from './season';
 
-export type HomeCardState = { status: 'before' | 'open' | 'after'; day?: number };
+export type HomeCardState = {
+  status: 'before' | 'open' | 'after';
+  day?: number;
+  phase?: 'before-doors' | 'after-doors' | 'hidden';
+};
 export interface HomeCardsContext {
   now: Date;
   adventAllowed: boolean;
@@ -23,11 +27,17 @@ function adventDay(now: Date): number | undefined {
 function adventState(now: Date, allowed: boolean): HomeCardState {
   const year = now.getUTCFullYear();
   if (isFeatureOpen('advent', now)) {
-    if (!allowed) return { status: 'open' };
+    if (!allowed) return { status: 'open', phase: 'hidden' };
     const day = adventDay(now);
-    return day ? { status: 'open', day } : { status: 'after' };
+    if (day) return { status: 'open', day };
+    const beforeFirstDoor =
+      now.getUTCMonth() === 10 ||
+      (now.getUTCMonth() === 11 && now.getUTCDate() === 1 && now.getUTCHours() < 12);
+    const phase = beforeFirstDoor ? 'before-doors' : 'after-doors';
+    return { status: 'open', phase };
   }
-  const before = now.getUTCMonth() === 10 && now.getTime() < Date.UTC(year, 10, 30);
+  const month = now.getUTCMonth();
+  const before = (month === 9 || month === 10) && now.getTime() < Date.UTC(year, 10, 30);
   if (before) return { status: 'before' };
   if (now.getUTCMonth() < 10) return { status: 'after' };
   return { status: 'open', ...(allowed ? { day: adventDay(now) } : {}) };
@@ -37,8 +47,9 @@ function trackerState(now: Date, allowed: boolean): HomeCardState {
   const year = now.getUTCFullYear();
   const takeoff = Date.UTC(year, 11, 24, 10);
   if (isFeatureOpen('tracker', now)) return { status: 'open' };
+  const month = now.getUTCMonth();
   const before =
-    (now.getUTCMonth() === 10 || now.getUTCMonth() === 11) && now.getTime() < takeoff - 10 * 60_000;
+    (month === 9 || month === 10 || month === 11) && now.getTime() < takeoff - 10 * 60_000;
   if (before) return { status: 'before' };
   if (now.getUTCMonth() < 11) return { status: 'after' };
   return { status: allowed ? 'open' : 'after' };

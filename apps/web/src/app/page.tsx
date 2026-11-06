@@ -16,6 +16,9 @@ function adventCopy(state: HomeCardState, t: Translate): string {
   if (state.status === 'before') return t('home.adventBefore');
   if (state.status === 'after') return t('home.adventAfter');
   if (state.day) return t('home.adventOpen', { day: state.day });
+  if (state.phase === 'before-doors') return t('home.adventFirstDoor');
+  if (state.phase === 'after-doors') return t('home.adventDone');
+  if (state.phase === 'hidden') return t('home.adventTeaser');
   return t('home.adventWaiting');
 }
 
@@ -29,7 +32,12 @@ function cardCopy(kind: CardKind, state: HomeCardState, allowed: boolean, t: Tra
   return kind === 'advent' ? adventCopy(state, t) : trackerCopy(state, allowed, t);
 }
 
-function CardCopy({ kind, state, allowed, t }: {
+function CardCopy({
+  kind,
+  state,
+  allowed,
+  t,
+}: {
   kind: CardKind;
   state: HomeCardState;
   allowed: boolean;
