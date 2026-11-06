@@ -34,14 +34,15 @@ interface TrackerMapViewProps {
 }
 
 /** Presents the route as a keyboard-readable text alternative. */
-export function JourneyPanel({ nodes, position, translator, locale }: { nodes: RouteNode[]; position: SantaPosition | null; translator: Translator; locale: string }) {
+export function JourneyPanel({ nodes, position, translator, locale, tv = false }: { nodes: RouteNode[]; position: SantaPosition | null; translator: Translator; locale: string; tv?: boolean }) {
   const timedNodes = routeNodesToContractRoute(nodes).timedNodes;
   const currentIndex = position?.journey.currentIndex ?? null;
   const nextIndex = position?.journey.nextIndex ?? null;
   const current = currentIndex === null ? undefined : timedNodes[currentIndex];
   const next = nextIndex === null ? undefined : timedNodes[nextIndex];
   const recent = currentIndex === null ? [] : timedNodes.slice(Math.max(0, currentIndex - 4), currentIndex + 1).reverse();
-  return <section className="absolute inset-0 overflow-auto bg-blue-950 px-6 pt-36 pb-8 text-white" aria-label={translator.t("tracker.textMode")}>
+  const sectionClass = tv ? "tracker-tv-map-text" : "absolute inset-0 overflow-auto bg-blue-950 px-6 pt-36 pb-8 text-white";
+  return <section className={sectionClass} aria-label={translator.t("tracker.textMode")}>
     <dl className="mx-auto max-w-xl space-y-4">
       <div><dt>{translator.t("tracker.current")}</dt><dd className="text-2xl font-bold">{current?.location.name ?? translator.t("tracker.notStarted")}</dd></div>
       <div><dt>{translator.t("tracker.next")}</dt><dd>{next?.location.name ?? translator.t("tracker.complete")}</dd></div>
@@ -150,7 +151,7 @@ export function TrackerMapView(props: TrackerMapViewProps) {
     <TrackerNavigation adventEnabled={adventEnabled} immersive={immersive || tv} translator={translator} />
     <div ref={stageRef} className={stageClass(viewMode)} onPointerMove={wake} onPointerDown={wake} onFocusCapture={wake} onBlurCapture={wake} onKeyDownCapture={event => handleTrackerKey({ event, wake, immersive, toggle: toggleImmersive, tv })}>
       {tv ? <div className="tracker-tv-layout">
-        <div className="tracker-tv-map"><MapSurface mode="vector" element={element} nodes={nodes} position={position} translator={translator} locale={locale} /></div>
+        <div className="tracker-tv-map"><MapSurface mode={mode} tv element={element} nodes={nodes} position={position} translator={translator} locale={locale} /></div>
         <TvTrackerDashboard locale={locale} nodes={nodes} position={position} translator={translator} />
         <button className="tracker-tv-exit" type="button" onClick={toggleTv}>{translator.t("tracker.exitTv")}</button>
       </div> : <>
@@ -177,9 +178,9 @@ function stageClass(viewMode: TrackerViewMode): string {
 }
 
 /** Selects the interactive map or text route surface. */
-function MapSurface({ mode, element, nodes, position, translator, locale }: { mode: MapMode; element: RefObject<HTMLDivElement | null>; nodes: RouteNode[]; position: SantaPosition | null; translator: Translator; locale: string }) {
-  if (mode === "text") return <JourneyPanel nodes={nodes} position={position} translator={translator} locale={locale} />;
-  return <div ref={element} className="h-full w-full bg-blue-950 focus-visible:outline focus-visible:outline-4 focus-visible:outline-yellow-300" aria-label={translator.t("tracker.mapLabel")} aria-describedby="map-instructions" role="application" tabIndex={0} />;
+function MapSurface({ mode, element, nodes, position, translator, locale, tv = false }: { mode: MapMode; element: RefObject<HTMLDivElement | null>; nodes: RouteNode[]; position: SantaPosition | null; translator: Translator; locale: string; tv?: boolean }) {
+  if (mode === "text") return <JourneyPanel nodes={nodes} position={position} translator={translator} locale={locale} tv={tv} />;
+  return <div ref={element} className="h-full w-full bg-blue-950 focus-visible:outline focus-visible:outline-4 focus-visible:outline-yellow-300" aria-label={translator.t("tracker.mapLabel")} aria-describedby={tv ? undefined : "map-instructions"} role="application" tabIndex={0} />;
 }
 
 /** Groups standard map controls with the immersive mode toggle. */

@@ -33,8 +33,8 @@ export default function TrackerMap({ adventEnabled, locale }: TrackerMapProps) {
   useEffect(() => {
     const context = { session: tvSession, mode, following, setFollowing, dispatch, adapter };
     if (viewMode === "tv") {
-      enterTvMode(context);
-      if (mode === "text") dispatch("showMap");
+      const shouldShowMap = enterTvMode(context);
+      if (shouldShowMap) dispatch("showMap");
       return;
     }
     restoreTrackerMode(context);
@@ -64,11 +64,12 @@ export default function TrackerMap({ adventEnabled, locale }: TrackerMapProps) {
   />;
 }
 
-function enterTvMode({ session, mode, following, setFollowing, adapter }: TvModeContext): void {
-  if (session.current) return;
+function enterTvMode({ session, mode, following, setFollowing, adapter }: TvModeContext): boolean {
+  if (session.current) return false;
   session.current = { mode, following };
   setFollowing(true);
   adapter.current?.follow();
+  return mode === "text";
 }
 
 function restoreTrackerMode({ session, mode, setFollowing, dispatch, adapter }: TvModeContext): void {

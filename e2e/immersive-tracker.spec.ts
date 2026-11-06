@@ -134,3 +134,12 @@ test("TV mode restores the text route preference on exit", async ({ page }) => {
   await page.getByRole("button", { name: "Exit TV mode" }).click();
   await expect(page.getByRole("button", { name: "Show map" })).toBeVisible();
 });
+
+test("TV mode keeps the text route readable when both map layers fail", async ({ page }) => {
+  await page.route("https://tiles.openfreemap.org/**", route => route.abort());
+  await page.route("https://tile.openstreetmap.org/**", route => route.abort());
+  await page.goto("/tracker?mode=tv");
+  await expect(page.getByRole("region", { name: "Show text view" })).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByRole("heading", { name: "Recent stops" })).toBeVisible();
+  await expect(page.getByRole("region", { name: "Santa tracker TV dashboard" })).toBeVisible();
+});

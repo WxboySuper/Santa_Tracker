@@ -390,6 +390,21 @@
 
 .tracker-tv-map .ol-viewport { pointer-events: none; }
 
+.tracker-tv-map-text {
+  height: 100%;
+  overflow: auto;
+  padding: clamp(24px, 3vw, 48px);
+  color: #fff;
+  background: #081225;
+  font-size: clamp(20px, 1.6vw, 32px);
+}
+
+.tracker-tv-map-text dd { margin: 4px 0 0; }
+
+.tracker-tv-map-text dd.text-2xl { font-size: clamp(30px, 2.5vw, 48px); }
+
+.tracker-tv-map-text h2 { font-size: clamp(24px, 1.8vw, 36px); }
+
 .tracker-tv-panel {
   position: relative;
   display: flex;
