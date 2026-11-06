@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { copyFile, mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { spawn, type ChildProcess } from "node:child_process";
@@ -21,11 +21,11 @@ const flight = [
 ];
 
 await mkdir(scratch, { recursive: true });
-await copyFile(routePath, path.join(scratch, "source-copy.json"));
-await writeFile(fixturePath, JSON.stringify({ meta: { year: 2026 }, route_nodes: flight }, null, 2));
+const sourceData = JSON.parse(await readFile(routePath, "utf-8")) as { meta?: Record<string, unknown> };
+await writeFile(fixturePath, JSON.stringify({ ...sourceData, meta: { ...sourceData.meta, year: 2026 }, route_nodes: flight }, null, 2));
 
 async function run(): Promise<void> {
-  const closedServer = startServer(basePort, undefined, fixturePath);
+  const closedServer = startServer(basePort, undefined, fixturePath, "2026-11-06T12:00:00.000Z");
   try {
     await waitForServer(baseUrl);
     await assertClosedSeason(baseUrl);
@@ -33,18 +33,18 @@ async function run(): Promise<void> {
     await stopServer(closedServer);
   }
 
-  const openServer = startServer(basePort, "open", fixturePath);
-  try {
-    await waitForServer(baseUrl);
-    const cases = [
-      { label: "before takeoff", instant: "2026-12-24T09:58:30.000Z", complete: false, currentIndex: null },
-      { label: "at takeoff", instant: "2026-12-24T10:00:00.000Z", complete: false, currentIndex: 0 },
-      { label: "mid-route", instant: "2026-12-24T10:45:00.000Z", complete: false, currentIndex: 1 },
-      { label: "final stop", instant: "2026-12-24T11:31:00.000Z", complete: true, currentIndex: 3 },
-      { label: "after landing", instant: "2026-12-24T11:40:00.000Z", complete: true, currentIndex: 3 },
-    ] as const;
+  const cases = [
+    { label: "before takeoff", instant: "2026-12-24T09:58:30.000Z", complete: false, currentIndex: null },
+    { label: "at takeoff", instant: "2026-12-24T10:00:00.000Z", complete: false, currentIndex: 0 },
+    { label: "mid-route", instant: "2026-12-24T10:45:00.000Z", complete: false, currentIndex: 1 },
+    { label: "final stop", instant: "2026-12-24T11:31:00.000Z", complete: true, currentIndex: 3 },
+    { label: "after landing", instant: "2026-12-24T11:40:00.000Z", complete: true, currentIndex: 3 },
+  ] as const;
 
-    for (const testCase of cases) {
+  for (const testCase of cases) {
+    const openServer = startServer(basePort, "open", fixturePath, testCase.instant);
+    try {
+      await waitForServer(baseUrl);
       const page = await fetch(`${baseUrl}/tracker`);
       assert.equal(page.status, 200, `${testCase.label}: tracker page`);
       const response = await fetch(`${baseUrl}/api/route`);
@@ -59,11 +59,11 @@ async function run(): Promise<void> {
       assert.equal(position.journey.currentIndex, testCase.currentIndex, `${testCase.label}: leg index`);
       assert.ok(position.journey.progress >= 0 && position.journey.progress <= 1, `${testCase.label}: route progress`);
       console.log(`PASS ${testCase.label.padEnd(14)} tracker=200 route=200 complete=${position.journey.isComplete} leg=${position.journey.currentIndex ?? "waiting"} position=${position.lat.toFixed(2)},${position.lng.toFixed(2)}`);
+    } finally {
+      await stopServer(openServer);
     }
-  } finally {
-    await stopServer(openServer);
-    await rm(scratch, { recursive: true, force: true });
   }
+  await rm(scratch, { recursive: true, force: true });
 }
 
 async function assertClosedSeason(url: string): Promise<void> {
@@ -74,11 +74,11 @@ async function assertClosedSeason(url: string): Promise<void> {
   console.log("PASS closed season tracker=404 route=404 cache=private, no-store");
 }
 
-function startServer(port: number, override: string | undefined, scratchRoute: string): ChildProcess {
+function startServer(port: number, override: string | undefined, scratchRoute: string, instant: string): ChildProcess {
   const env: NodeJS.ProcessEnv = { ...process.env, NODE_ENV: "development", SANTA_DATA_ROOT: scratch, SANTA_ROUTE_PATH: scratchRoute };
   if (override) {
     env.SEASON_OVERRIDE = override;
-    env.LOCAL_REHEARSAL_TIME = "2026-12-24T10:00:00.000Z";
+    env.LOCAL_REHEARSAL_TIME = instant;
   } else {
     delete env.SEASON_OVERRIDE;
     delete env.LOCAL_REHEARSAL_TIME;

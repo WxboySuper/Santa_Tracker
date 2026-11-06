@@ -10,7 +10,7 @@ Prerequisites: Node 22.18 or later, pnpm 10, dependencies installed, and port 43
 pnpm rehearsal
 ```
 
-The script starts a local server without the season override to confirm the public tracker page and `/api/route` return 404 while closed. It checks the route API's `private, no-store` header. Then it restarts the server with `SEASON_OVERRIDE=open` and checks `/tracker`, `/api/route`, Santa coordinates, journey completion, progress, and leg index at five instants.
+The script starts a local server with a fixed November clock and no season override to confirm the public tracker page and `/api/route` return 404 while closed. It checks the route API's `private, no-store` header. Then it restarts the server with `SEASON_OVERRIDE=open` and the mock clock set to each timeline instant. At every point it checks `/tracker`, `/api/route`, Santa coordinates, journey completion, progress, and leg index.
 
 Expected output includes one closed-season pass and these timeline cases:
 
