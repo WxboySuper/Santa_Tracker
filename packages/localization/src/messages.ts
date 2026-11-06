@@ -22,7 +22,7 @@ export const en = {
   'home.heroLabel': 'A quiet winter village beside the North Pole workshop',
   'home.kicker': 'The North Pole',
   'home.adventTitle': 'Advent calendar',
-  'home.adventBefore': 'The first door opens Nov 30.',
+  'home.adventBefore': 'The calendar opens Nov 30. The first door opens Dec 1 at noon UTC.',
   'home.adventOpen': 'Door {day} is open today.',
   'home.adventFirstDoor': 'The calendar opens today. Its first door opens Dec 1 at noon UTC.',
   'home.adventDone': 'The daily doors are done for the year. The calendar stays open for its replay week.',
