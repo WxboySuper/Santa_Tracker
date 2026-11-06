@@ -10,6 +10,7 @@ export type StartupResult = { name: ServerName; endpoint: string };
 type ServerLaunchOptions = { name: ServerName; appRoot: string; dataRoot: string; port: number; password: string; secret: string };
 type ExitWaitOptions = { child: ChildProcess; timeoutMs: number };
 const maxStartupOutput = 4_000;
+const portInUsePattern = /EADDRINUSE|address already in use|port .* is in use/i;
 
 function childHasExited(child: ChildProcess): boolean {
   if (child.exitCode !== null) return true;
@@ -19,7 +20,7 @@ function childHasExited(child: ChildProcess): boolean {
 async function isServerReady({ endpoint }: ServerEntry): Promise<boolean> {
   try {
     const response = await fetch(endpoint, { signal: AbortSignal.timeout(5_000) });
-    return response.status < 500;
+    return response.status === 200;
   } catch {
     return false;
   }
@@ -93,6 +94,7 @@ async function stopPartialServers(entries: ServerEntry[], startupError: unknown)
 
 function getStartupError({ entry, spawnError, output }: { entry: ServerEntry; spawnError: Error | undefined; output: string }): Error | undefined {
   if (spawnError) return new Error(`Next.js failed to spawn: ${spawnError.message}`);
+  if (portInUsePattern.test(output)) return new Error(`Next.js could not bind the requested port. Output: ${output}`);
   if (entry.child.exitCode !== null) return new Error(`Next.js exited early with code ${entry.child.exitCode}. Output: ${output}`);
   if (entry.child.signalCode !== null) return new Error(`Next.js exited early with signal ${entry.child.signalCode}. Output: ${output}`);
   return undefined;
@@ -102,10 +104,12 @@ function captureStartupState(entry: ServerEntry) {
   let output = "";
   let truncated = false;
   let addressInUse = false;
+  let previousTail = "";
   let spawnError: Error | undefined;
   const capture = (chunk: Buffer) => {
 	const text = chunk.toString();
-	if (/EADDRINUSE|address already in use/i.test(text)) addressInUse = true;
+	if (portInUsePattern.test(previousTail + text)) addressInUse = true;
+	previousTail = (previousTail + text).slice(-128);
 	output += text;
     if (output.length <= maxStartupOutput) return;
     output = output.slice(-maxStartupOutput);
@@ -121,7 +125,7 @@ function captureStartupState(entry: ServerEntry) {
   entry.child.stdout?.on("data", onStdout);
   entry.child.stderr?.on("data", onStderr);
   return {
-    output: () => `${addressInUse ? "EADDRINUSE detected in server output\n" : ""}${truncated ? `...[earlier output truncated]...\n${output}` : output}`,
+    output: () => `${addressInUse ? "EADDRINUSE: port in use was reported in server output\n" : ""}${truncated ? `...[earlier output truncated]...\n${output}` : output}`,
     error: () => spawnError,
     dispose: () => {
       entry.child.removeListener("error", onError);
@@ -156,7 +160,7 @@ function normalizeFailure(reason: unknown): Error {
 
 function isAddressInUse(error: unknown): boolean {
   if (!(error instanceof Error)) return false;
-	return /EADDRINUSE|address already in use/i.test(error.message);
+	return portInUsePattern.test(error.message);
 }
 
 async function cleanupFailedLaunch(entry: ServerEntry, startupError: unknown): Promise<void> {
