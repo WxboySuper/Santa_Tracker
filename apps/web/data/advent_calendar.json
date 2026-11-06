@@ -24,11 +24,11 @@
     },
     {
       "day": 3,
-      "title": "Day 3",
+      "title": "The Desk at 2:17",
       "unlock_time": "2026-12-03T12:00:00Z",
-      "content_type": "fact",
+      "content_type": "story",
       "payload": {
-        "text": "Content for day 3"
+        "text": "At 2:17 in the morning, the North Pole logistics desk made a sound like a spoon settling in a mug. Wren looked up from the route ledger. Nothing else moved. The clock continued its patient work, and the radiator clicked once as if it had an opinion.\n\nWren was the overnight dispatcher. The title sounded grander than the job, which involved checking addresses, correcting weather notes, and keeping the whole operation from being surprised by a bridge that had been closed since August. A small brass lamp lit the desk. Beyond its circle, the office was dark and orderly, which was how Wren preferred it.\n\nThe Ledger lay open at the day's deliveries. It was an old book with a blue cloth cover, a narrow ribbon, and a habit of adding remarks in the margins. The ink appeared without a pen.\n\nA quiet shift, Wren had written at the top of the page.\n\nThe Ledger replied: You have mistaken quiet for uneventful.\n\nWren turned the page. The night's list was long, but familiar. The sleigh route would begin when the world turned far enough toward evening. Before then, every name and doorway needed to be in the right place. Nobody noticed a correct address. This was considered proof of good work.\n\nAt the far end of the room sat a kettle and a cup with a hairline crack. Wren had not made tea. The kettle had not been switched on. The spoon in the mug had no reason to settle.\n\nWren marked the time in the margin. The Ledger added, in smaller handwriting: First note of the season.\n\nOutside, snow collected on the window ledge in a thin white line. Inside, the lamp hummed, the paper waited, and Wren began again at the top of the list."
       }
     },
     {
@@ -42,20 +42,21 @@
     },
     {
       "day": 5,
-      "title": "Day 5",
+      "title": "Why the Chorus Knows the Way",
       "unlock_time": "2026-12-05T12:00:00Z",
       "content_type": "fact",
       "payload": {
-        "text": "Content for day 5"
+        "text": "Carols have often been made for people to sing together, which helps explain their direct tunes and returning refrains. Some older carols use modal tunes; many familiar carols use major or minor keys. Regular rhythms and returning refrains give a room of uneven singers a clear place to join in. This is musical design with practical ambitions.\n\nThe word carol once referred to a kind of song or dance, and medieval carols were not all about Christmas. Over time, Christmas carols became a distinct part of seasonal singing in Britain and elsewhere. Their sound varies widely: some are solemn, some lively, and some seem built to survive a drafty room and one person who enters half a beat late.\n\nSource note: music encyclopedia entries and scholarly overviews of carol history and communal singing.",
+        "source": "music encyclopedia entries and scholarly overviews of carol history and communal singing."
       }
     },
     {
       "day": 6,
-      "title": "Day 6",
+      "title": "The Address That Wasn?t There",
       "unlock_time": "2026-12-06T12:00:00Z",
-      "content_type": "fact",
+      "content_type": "story",
       "payload": {
-        "text": "Content for day 6"
+        "text": "The first missing address appeared just before three. Wren checked the route sheet, the district index, and the older index that nobody admitted to using. The parcel was small, the recipient's name was clear, and the street number did not exist.\n\nWren tried the map again. The street ran between a bakery and a narrow park. The number should have been there. Instead, the map showed a blank square with a note: access by foot.\n\nThe Ledger's margin filled itself. Some places are entered by remembering them.\n\nWren did not enjoy instructions that sounded like riddles. The job was already mostly riddles with better filing. A soft knock came at the office door. Pim, the new apprentice, stood there holding two folded maps and wearing the expression of someone who had been told not to touch a mysterious lever.\n\n?I found a second version,? Pim said. ?This one has the street, but no number.?\n\n?And the first??\n\n?Has the number, but no street.? Pim put them side by side. Their lines matched everywhere except at the blank square.\n\nWren saw it then. The street had been renamed decades ago, but the older residents still used the first name. The parcel's address belonged to neither map by itself.\n\nThey added both names to the route sheet and wrote a note for the driver: look for the bakery window, then the little park gate. Pim copied it carefully.\n\nThe Ledger wrote: A place can have more than one way of being found.\n\nWren set the old map back in its sleeve. Outside, the snow had softened the edges of the lamp posts. In the ledger, the blank square was no longer blank."
       }
     },
     {
@@ -137,29 +138,30 @@
     },
     {
       "day": 9,
-      "title": "Day 9",
+      "title": "Bellamy?s Longest Night",
       "unlock_time": "2026-12-09T12:00:00Z",
-      "content_type": "fact",
+      "content_type": "story",
       "payload": {
-        "text": "Content for day 9"
+        "text": "Bellamy arrived with tea at 3:04, carrying the pot in both hands as if it had once tried to escape. He had retired from sleigh navigation years ago, but still came by when the night grew long. He wore his old wool scarf indoors and poured tea the color of wet bark.\n\n?The secret,? he said, ?is to add enough honey that you stop asking questions.?\n\nWren took a cautious sip. It tasted like a wooden cupboard had been thinking about leaves.\n\nBellamy sat beside the route board. On the far wall, a map showed the broad curve of the night around the Earth. He traced the darkened edge with one finger. ?The longest shift I ever worked began in a storm. We were waiting for a break in the cloud, and the sky kept giving us another hour of it.?\n\n?What did you do?? Pim asked.\n\n?Checked the compass. Checked it again. Then I listened.?\n\nBellamy described the quiet between gusts, when the sleigh runners stopped singing against the wind and the stars returned one by one. He had learned to navigate by those small openings. Not because they made the weather kind, he said, but because they gave you enough to choose the next safe direction.\n\nThe Ledger's margin appeared: The night is long. The next step is still a size one can manage.\n\nBellamy nodded at the note. ?The book remembers better than I do.?\n\nWren poured the rest of the tea into the plant by the window. It had survived worse. The pot sat cooling beside the map, and above the desk the route curved patiently through the dark."
       }
     },
     {
       "day": 10,
-      "title": "Day 10",
+      "title": "From Mince to Pudding",
       "unlock_time": "2026-12-10T12:00:00Z",
       "content_type": "fact",
       "payload": {
-        "text": "Content for day 10"
+        "text": "Holiday food has a longer and less tidy history than most menus suggest. English mince pies once contained minced meat, often with suet, dried fruit, and spices. Over centuries, the balance shifted toward fruit and sweetness; the name stayed behind like a label on the wrong drawer. Medieval pies could be savory and richly spiced.\n\nChristmas pudding also grew out of earlier mixed dishes. A medieval recipe sometimes described as an ancestor used meat, wine, bread, spices, and dried fruit, though it was not yet the familiar Christmas pudding. By the seventeenth century, cookbooks identified related porridge-like dishes with Christmas. Gingerbread traditions are older still and vary by place. Eggnog has its own uncertain lineage, with milk-and-egg drinks developing in different forms. No single dish has represented everyone's winter table.\n\nSource note: museum and university food-history collections, historical recipes, and scholarly overviews.",
+        "source": "museum and university food-history collections, historical recipes, and scholarly overviews."
       }
     },
     {
       "day": 11,
-      "title": "Day 11",
+      "title": "The Map and Its Margins",
       "unlock_time": "2026-12-11T12:00:00Z",
-      "content_type": "fact",
+      "content_type": "story",
       "payload": {
-        "text": "Content for day 11"
+        "text": "The route map and the Ledger disagreed about a river crossing. The map showed a bridge. The Ledger's margin said: bridge removed.\n\nWren checked the date on the map. It had been printed six years earlier. Pim found a maintenance note in the district file. The bridge had closed in spring, and the replacement footbridge would not open until after the holiday. The map had been right when it was drawn. The Ledger was right now.\n\nThe Ledger's margin filled again: You are welcome.\n\n?It could have mentioned that before I started,? Wren said.\n\nIt replied: I have been mentioning it for three pages.\n\nPim searched the route annotations and found the old ferry landing. A service boat still ran for the nearby island, but only at certain tides. The schedule was tucked behind a weather chart, folded into a shape that suggested it had been put away in a hurry.\n\nBellamy examined the timings over the rim of his cup. ?You can make that connection if the wind holds and the sleigh arrives on the north bank.?\n\n?And if it doesn't?? Pim asked.\n\n?Then we use the second route.? Bellamy tapped the map. ?A plan is a way to begin. It isn't a promise that the weather will read it.?\n\nWren added both routes to the sheet. The primary line ran over the old ferry landing; the backup looped inland. The Ledger approved with a small inked check.\n\nBy dawn, the map was corrected in pencil. Its old bridge remained visible beneath the new marks, a gray line leading to a place the river had already taken back."
       }
     },
     {
@@ -184,11 +186,11 @@
     },
     {
       "day": 14,
-      "title": "Day 14",
+      "title": "A Weather Line Across the Pacific",
       "unlock_time": "2026-12-14T12:00:00Z",
-      "content_type": "fact",
+      "content_type": "story",
       "payload": {
-        "text": "Content for day 14"
+        "text": "The storm gathered over the Pacific before the desk expected it. A broad band of cloud moved east across the route map, and the weather instruments began reporting wind in several places at once. Wren set down the pencil. There would be no tidy line through this night.\n\nThe route did not travel around the globe in one leap. It followed darkness westward, crossing time zones as evening arrived in one place and morning waited in another. The real Santa route is often described as sweeping west across those zones, where the changing local hour gives the night its long, moving shape. On the map, the path looked almost gentle. The storm did not.\n\nBellamy leaned over the chart. Pim held the updates while Wren marked the area to avoid. The Ledger wrote: A straight line is not always the shortest safe way.\n\nThey shifted the route south, then watched the wind reports. The sleigh would need more room and more time. Wren sent the revised path, checked the coastal stations, and set an alert for the next clear interval. The work was quiet except for the receiver's soft ticks and the teaspoon Bellamy had left in his terrible tea.\n\nFor a while, no new message arrived. Wren imagined the sleigh moving above a black ocean, the cloud tops silvered by moonlight. It was only an image, not a forecast, and the desk had no use for pretending otherwise.\n\nThen the southern station reported a gap opening. Wren marked it in blue. Pim exhaled. Bellamy lifted the pot and decided the tea could be reheated.\n\nOn the screen, the storm turned slowly over the water. The route bent west into the next time zone, a fine pencil line finding its way between clouds."
       }
     },
     {
@@ -202,20 +204,21 @@
     },
     {
       "day": 16,
-      "title": "Day 16",
+      "title": "Company for the Long Night",
       "unlock_time": "2026-12-16T12:00:00Z",
       "content_type": "fact",
       "payload": {
-        "text": "Content for day 16"
+        "text": "Stories of the long winter night differ from place to place. In parts of northern and central European folklore, the Wild Hunt is a spectral procession said to sweep through the sky or across wild ground. Some accounts connect it with Odin; others name different leaders and meanings. It belongs to folklore, not a report from the weather office.\n\nIn Alpine traditions, Perchta and the Perchten appear in winter customs and stories, with forms that vary by region. Krampus is associated with Saint Nicholas traditions in some areas. These figures are related by season and geography, but they are not one shared ancient story. Saint Lucia's Day, observed on December 13 in Sweden and elsewhere, brings processions, song, and candlelight. Its Christian saint and later local customs have their own histories.\n\nThe dark has invited many kinds of company. Each tradition deserves its own name.\n\nSource note: folklore encyclopedias and scholarly overviews of European winter customs and Saint Lucia traditions.",
+        "source": "folklore encyclopedias and scholarly overviews of European winter customs and Saint Lucia traditions."
       }
     },
     {
       "day": 17,
-      "title": "Day 17",
+      "title": "Pim Finds the Street",
       "unlock_time": "2026-12-17T12:00:00Z",
-      "content_type": "fact",
+      "content_type": "story",
       "payload": {
-        "text": "Content for day 17"
+        "text": "Pim found the address in a box of returned letters. The box lived under the reference shelf, where old paperwork went to become important again. The envelope was decades old, addressed in careful blue ink to a street that appeared on neither current map.\n\nThe recipient's surname matched the parcel list. So did the small penciled note on the back: side entrance, beside the pear tree.\n\n?The tree is still there,? Pim said. ?I checked the property file.?\n\nWren looked at the maps spread across the desk. The old street name, the new district number, and the blank square aligned. The place had been rebuilt, but the address had survived in the letters and in someone's habit of writing the extra detail.\n\nThe Ledger's margin appeared: The useful note is often the one no form asks for.\n\nWren checked the parcel tag. It held no toy or wrapped box, only a small packet of papers. The delivery request was for a set of family letters, copied and returned to their owner. Someone had found them in an attic and wanted them home before the year turned.\n\nPim added the address to the route. This time, they included both street names, the current district, the side entrance, and the pear tree. The form had room for only one address, so Wren attached a second sheet.\n\n?Does this happen often?? Pim asked.\n\n?Often enough to keep the extra paper.?\n\nAt the end of the shift, the old letter went back into its sleeve. Pim put the parcel on the verified shelf. Snow rested on the windowsill, and somewhere under it an old pear tree held still against the dark."
       }
     },
     {
@@ -229,20 +232,21 @@
     },
     {
       "day": 19,
-      "title": "Day 19",
+      "title": "The First Strings of Light",
       "unlock_time": "2026-12-19T12:00:00Z",
       "content_type": "fact",
       "payload": {
-        "text": "Content for day 19"
+        "text": "Before electric strings, some people lit Christmas trees with candles. The practice was beautiful and plainly hazardous: open flames stood among dry branches, so families watched closely and lit them briefly. Candle holders clipped to branches became one way to keep the candles upright.\n\nIn 1882, Edward H. Johnson, an associate of Thomas Edison, displayed a Christmas tree lit with electric bulbs at his New York home. The bulbs were hand-wired and costly, so electric tree lights took time to become practical for ordinary households. The familiar strings arrived through later improvements in manufacturing and electricity access.\n\nThe story is often shortened to ?Edison invented Christmas lights,? but the early display is credited to Johnson, using electric lighting made possible by the wider work of Edison and others. A safer glow took a while to become a common one.\n\nSource note: National Museum of American History collections and museum histories of electric lighting.",
+        "source": "National Museum of American History collections and museum histories of electric lighting."
       }
     },
     {
       "day": 20,
-      "title": "Day 20",
+      "title": "A Delivery with No Ribbon",
       "unlock_time": "2026-12-20T12:00:00Z",
-      "content_type": "fact",
+      "content_type": "story",
       "payload": {
-        "text": "Content for day 20"
+        "text": "The delivery on Wren's desk had no ribbon and no wrapping. It was a request to turn on a porch light at 6:40, leave a key under the blue flowerpot, and knock twice. The recipient was returning home after a long hospital stay. The person who sent the request had already arranged the ride.\n\nWren read it twice. The route ledger classified deliveries by size, weight, and handling. There was no field for a porch light.\n\nThe Ledger supplied one in the margin: Some packages are instructions for being expected.\n\nPim took the request to the dispatch board. Bellamy checked the timing against the sleigh's arrival in that district. The route could allow a minute, perhaps two, if the driver used the south lane. Wren entered the note under special handling and attached the sender's confirmation.\n\n?It isn't really a delivery,? Pim said.\n\n?It needs to arrive,? Wren replied.\n\nThey watched the clock approach the scheduled hour. The confirmation came through quietly: porch light on, key placed, two knocks. Then another message, only one line long. Home now.\n\nNo one at the desk spoke for a moment. Bellamy poured the last of the tea and drank it without ceremony. Wren filed the request under completed.\n\nPim put the sender's confirmation in a sleeve instead of the usual tray. It felt like a detail worth keeping where the next dispatcher could find it, beside the route notes and the spare pencils.\n\nThe Ledger closed itself, leaving a small square of warm light on the polished wood where its cover had rested."
       }
     },
     {
@@ -256,11 +260,12 @@
     },
     {
       "day": 22,
-      "title": "Day 22",
+      "title": "Snow Is a Weather Decision",
       "unlock_time": "2026-12-22T12:00:00Z",
       "content_type": "fact",
       "payload": {
-        "text": "Content for day 22"
+        "text": "A white Christmas sounds like a date on the calendar ought to guarantee snow. Weather does not keep that sort of appointment. Snow on the ground depends on local climate, elevation, nearby water, the path of storms, and whether earlier snow has melted. Even places with cold winters can have a mild spell or a storm that misses by a few miles.\n\nMeteorologists distinguish snowfall on Christmas Day from snow already covering the ground. Those are different questions, and climate records count them separately. A cold surface alone is not enough: snow forms when moist air rises and cools, and the temperature profile through the atmosphere determines whether flakes reach the ground or melt into rain.\n\nThat is why the familiar snowy scene is common in some regions and unlikely in others. The forecast for one particular Christmas comes down to the weather pattern that week.\n\nSource note: NOAA climate normals and National Weather Service explanations of snow formation.",
+        "source": "NOAA climate normals and National Weather Service explanations of snow formation."
       }
     },
     {
@@ -274,11 +279,11 @@
     },
     {
       "day": 24,
-      "title": "Day 24",
+      "title": "The Last Quiet Hour",
       "unlock_time": "2026-12-24T12:00:00Z",
-      "content_type": "fact",
+      "content_type": "story",
       "payload": {
-        "text": "Content for day 24"
+        "text": "Christmas Eve came on as a series of small confirmations. The coastal station reported clear weather. The southern route held. The last address was checked twice, then once more by Pim, who had learned that confidence and verification could share a desk.\n\nBy midnight, the North Pole logistics office had gone quiet. Bellamy had gone home. Pim had left a note beside the Ledger: Thank you for the maps. The book wrote beneath it: You are welcome, though the maps did most of the work.\n\nWren closed the final route sheet. The lamp stayed on, its circle of light falling across the empty chair and the blue cloth cover. There was nothing left to correct. For a moment, Wren simply listened to the clock and the muted hush of snow against the window.\n\nThen Wren put on a coat and stepped outside. The air was sharp enough to make each breath visible. Over the roofline, a moving point of light crossed the dark, followed by the faintest sound of runners. Wren watched until it passed beyond the clouds. No grand announcement came. The night had work to do elsewhere.\n\nBack inside, the Ledger had opened to a clean page. In the margin it wrote: Shift complete.\n\nThe door clicked shut behind Wren. Across the snow, the office window held one square of gold, then the clock's reflection drifted over it like a small second moon.\n\nWren set the pencil down. If you would like to follow the rest of the route, the live tracker is waiting here: /tracker."
       }
     }
   ]

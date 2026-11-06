@@ -20,7 +20,13 @@ function embedPathOf(day: AdventPublicDay): string | null {
 /** A short passage of text: used by facts and by stories, whose payload is also `text`. */
 const renderText: Renderer = (day) => {
   const text = textOf(day);
-  return text ? <p className="text-lg leading-relaxed">{text}</p> : null;
+  return text ? (
+    <div className="space-y-4 text-lg leading-relaxed">
+      {text.split(/\n\s*\n/).map((paragraph, index) => (
+        <p key={index}>{paragraph}</p>
+      ))}
+    </div>
+  ) : null;
 };
 
 /** An activity shipped as static files, shown in a titled same-origin frame. */
