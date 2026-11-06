@@ -49,7 +49,7 @@ function parseCalendar(source: string, filePath: string): Calendar {
     const reason = error instanceof Error ? error.message : String(error);
     throw new Error(`Could not parse Advent calendar at ${filePath}: ${reason}`, { cause: error });
   }
-  if (!isCalendar(value)) throw new Error(`Advent calendar at ${filePath} must contain a days array`);
+  if (!isCalendar(value)) throw new Error(`Advent calendar at ${filePath} must contain 24 unique days numbered 1-24`);
   return value;
 }
 
