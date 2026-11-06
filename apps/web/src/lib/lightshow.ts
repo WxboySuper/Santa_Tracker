@@ -33,8 +33,8 @@ const intensityByPattern: Record<LightshowPattern, (frame: PatternFrame) => numb
 };
 
 export function parseLightshow(payload: unknown): { scene: LightshowScene } | null {
-  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) return null;
-  const source = payload as Record<string, unknown>;
+  if (!isRecord(payload)) return null;
+  const source = payload;
   if (source.kind !== 'lightshow') return null;
   if (!isValidSceneProperty(source.scene)) return null;
   return { scene: (source.scene as LightshowScene | undefined) ?? 'tree' };
