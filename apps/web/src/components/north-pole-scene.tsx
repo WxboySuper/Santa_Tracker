@@ -1,76 +1,263 @@
-export default function NorthPoleScene({ label }: { label: string }) {
+'use client';
+
+import './north-pole-scene.css';
+import { useCallback, useEffect, useRef, useState, type ReactNode, type RefObject } from 'react';
+import { AuroraRibbon, Gradients, Moon, MountainsFar, MountainsMid, Stars } from './scene-art';
+import SnowCanvas from './snow-canvas';
+import {
+  Foreground,
+  ForestBack,
+  ForestFront,
+  Sleigh,
+  VillageLayer,
+  TREE_PALETTES,
+  type VillageControls,
+} from './scene-village';
+
+const INITIALLY_LIT = new Set([0, 2, 3, 5, 6, 8]);
+
+type SceneProps = {
+  label: string;
+  windowOnLabel: string;
+  windowOffLabel: string;
+  treeLabel: string;
+  soundLabel: string;
+  soundOnLabel: string;
+  soundOffLabel: string;
+};
+
+function fillNumber(template: string, number: number): string {
+  return template.replace('{number}', String(number));
+}
+
+/**
+ * One full-size drawing plane. Every plane is its own SVG element, so the browser can keep it on its
+ * own compositor layer: parallax and fades move whole planes without repainting them, and a small
+ * animation in one plane never forces the others to redraw.
+ */
+function Plane({ name, children, interactive = false }: { name: string; children: ReactNode; interactive?: boolean }) {
   return (
     <svg
-      className="north-pole-scene"
-      viewBox="0 0 1200 420"
-      role="img"
-      aria-label={label}
+      className={`scene-plane plane-${name}`}
+      viewBox="0 0 1440 860"
+      preserveAspectRatio="xMaxYMid slice"
       xmlns="http://www.w3.org/2000/svg"
+      aria-hidden={interactive ? undefined : true}
+      focusable="false"
     >
-      <defs>
-        <linearGradient id="night" x2="0" y2="1">
-          <stop stopColor="#14243a" />
-          <stop offset="1" stopColor="#24384a" />
-        </linearGradient>
-        <linearGradient id="snow" x2="0" y2="1">
-          <stop stopColor="#edf4f1" />
-          <stop offset="1" stopColor="#b9ccd0" />
-        </linearGradient>
-        <filter id="glow">
-          <feGaussianBlur stdDeviation="8" result="blur" />
-          <feMerge>
-            <feMergeNode in="blur" />
-            <feMergeNode in="SourceGraphic" />
-          </feMerge>
-        </filter>
-      </defs>
-      <rect width="1200" height="420" rx="22" fill="url(#night)" />
-      <g fill="#f8ead0" opacity=".8">
-        <circle cx="95" cy="64" r="2" />
-        <circle cx="243" cy="112" r="2" />
-        <circle cx="422" cy="55" r="2" />
-        <circle cx="958" cy="73" r="2" />
-        <circle cx="1085" cy="122" r="2" />
-      </g>
-      <g fill="#d9e8e7" opacity=".85">
-        <circle className="scene-snow snow-a" cx="184" cy="159" r="4" />
-        <circle className="scene-snow snow-b" cx="511" cy="112" r="3" />
-        <circle className="scene-snow snow-c" cx="1001" cy="171" r="4" />
-        <circle className="scene-snow snow-a" cx="759" cy="88" r="3" />
-        <circle className="scene-snow snow-b" cx="329" cy="210" r="3" />
-      </g>
-      <path
-        d="M0 306 160 206l122 94 170-141 148 145 156-130 151 136 143-120 150 105v105H0Z"
-        fill="#304859"
-      />
-      <g>
-        <path d="m119 258 66-66 68 66v115H119Z" fill="#523f3c" />
-        <path d="m103 262 82-86 87 86Z" fill="#35494d" />
-        <path d="M185 176v-31" stroke="#e8d7a8" strokeWidth="5" />
-        <path d="M169 224h30v30h-30zM169 276h30v29h-30z" fill="#f3c976" filter="url(#glow)" />
-        <path d="m352 279 75-80 77 80v94H352Z" fill="#594542" />
-        <path d="m332 284 95-105 98 105Z" fill="#425458" />
-        <path d="M391 240h26v28h-26zM438 240h26v28h-26z" fill="#ffd58a" filter="url(#glow)" />
-        <path d="m760 259 70-75 73 75v114H760Z" fill="#5b4540" />
-        <path d="m739 264 91-98 94 98Z" fill="#384c50" />
-        <path d="M805 218h29v29h-29zM849 218h29v29h-29z" fill="#f5cc7a" filter="url(#glow)" />
-        <path d="m965 282 66-68 70 68v91H965Z" fill="#574340" />
-        <path d="m946 286 85-90 88 90Z" fill="#405459" />
-        <path d="M1017 239h28v27h-28z" fill="#ffd58a" filter="url(#glow)" />
-      </g>
-      <g fill="#244a3c">
-        <path d="m628 151 31-59 31 59h-20l34 54h-29l39 61h-110l39-61h-29l34-54Z" />
-        <path d="m554 257 25-48 25 48h-16l28 43h-74l28-43Z" />
-        <path d="m706 273 21-40 22 40h-14l25 38h-65l25-38Z" />
-      </g>
-      <path d="M0 346q175-53 354 0t352 0 346 0 148 0v74H0Z" fill="url(#snow)" />
-      <path
-        d="M0 375q225-42 425 0t398-3 377 2"
-        fill="none"
-        stroke="#fff"
-        strokeOpacity=".65"
-        strokeWidth="3"
-      />
+      {children}
     </svg>
+  );
+}
+
+/** Eased pointer and scroll parallax. Only CSS custom properties change; nothing re-renders. */
+function useParallax(scene: RefObject<HTMLDivElement | null>) {
+  useEffect(() => {
+    const element = scene.current;
+    if (!element || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    let frame = 0;
+    let targetX = 0;
+    let targetY = 0;
+    let x = 0;
+    let y = 0;
+    const paint = () => {
+      frame = 0;
+      x += (targetX - x) * 0.1;
+      y += (targetY - y) * 0.1;
+      element.style.setProperty('--px', `${x}px`);
+      element.style.setProperty('--py', `${y}px`);
+      if (Math.abs(targetX - x) > 0.05 || Math.abs(targetY - y) > 0.05) frame = window.requestAnimationFrame(paint);
+    };
+    const schedule = () => {
+      if (!frame) frame = window.requestAnimationFrame(paint);
+    };
+    const onPointer = (event: PointerEvent) => {
+      targetX = (event.clientX / window.innerWidth - 0.5) * -22;
+      targetY = (event.clientY / window.innerHeight - 0.5) * -10 + Math.max(-14, window.scrollY * -0.02);
+      schedule();
+    };
+    const onScroll = () => {
+      targetY = Math.max(-14, Math.min(14, window.scrollY * -0.02));
+      schedule();
+    };
+    window.addEventListener('pointermove', onPointer, { passive: true });
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => {
+      window.removeEventListener('pointermove', onPointer);
+      window.removeEventListener('scroll', onScroll);
+      window.cancelAnimationFrame(frame);
+    };
+  }, [scene]);
+}
+
+/** Pauses every CSS animation while the tab is hidden or the hero is scrolled out of view. */
+function useSceneActivity(scene: RefObject<HTMLDivElement | null>) {
+  const [active, setActive] = useState(true);
+  useEffect(() => {
+    const element = scene.current;
+    let visible = document.visibilityState === 'visible';
+    let onScreen = true;
+    const update = () => setActive(visible && onScreen);
+    const onVisibility = () => {
+      visible = document.visibilityState === 'visible';
+      update();
+    };
+    const observer = new IntersectionObserver(([entry]) => {
+      onScreen = entry?.isIntersecting ?? true;
+      update();
+    });
+    if (element) observer.observe(element);
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => {
+      observer.disconnect();
+      document.removeEventListener('visibilitychange', onVisibility);
+    };
+  }, [scene]);
+  return active;
+}
+
+/** A soft two-partial chime, synthesized on demand. Only ever called after the visitor opts in. */
+function playChime(context: AudioContext, semitone: number) {
+  const now = context.currentTime;
+  const base = 523.25 * 2 ** (semitone / 12);
+  for (const [multiple, level] of [
+    [1, 0.09],
+    [2.01, 0.035],
+  ] as const) {
+    const oscillator = context.createOscillator();
+    const gain = context.createGain();
+    oscillator.type = 'sine';
+    oscillator.frequency.value = base * multiple;
+    gain.gain.setValueAtTime(0.0001, now);
+    gain.gain.exponentialRampToValueAtTime(level, now + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + 1.3);
+    oscillator.connect(gain).connect(context.destination);
+    oscillator.start(now);
+    oscillator.stop(now + 1.4);
+  }
+}
+
+type WebkitWindow = Window & { webkitAudioContext?: typeof AudioContext };
+
+/** Creates the shared AudioContext on first use, with the older Safari constructor as a fallback. */
+function ensureAudioContext(ref: RefObject<AudioContext | null>): AudioContext | null {
+  if (ref.current) return ref.current;
+  const Constructor = window.AudioContext ?? (window as WebkitWindow).webkitAudioContext;
+  if (!Constructor) return null;
+  ref.current = new Constructor();
+  return ref.current;
+}
+
+const SCALE = [0, 2, 4, 7, 9, 12, 14, 16, 19];
+
+export default function NorthPoleScene(props: SceneProps) {
+  const sceneRef = useRef<HTMLDivElement>(null);
+  const audioRef = useRef<AudioContext | null>(null);
+  const [lit, setLit] = useState<ReadonlySet<number>>(INITIALLY_LIT);
+  const [treePalette, setTreePalette] = useState(0);
+  const [sound, setSound] = useState(false);
+  useParallax(sceneRef);
+  const active = useSceneActivity(sceneRef);
+
+  const chime = useCallback(
+    (semitone: number) => {
+      if (sound && audioRef.current) playChime(audioRef.current, semitone);
+    },
+    [sound],
+  );
+
+  const toggleWindow = useCallback(
+    (index: number) => {
+      setLit((previous) => {
+        const next = new Set(previous);
+        if (next.has(index)) next.delete(index);
+        else next.add(index);
+        return next;
+      });
+      chime(SCALE[index % SCALE.length] ?? 0);
+    },
+    [chime],
+  );
+
+  const cycleTree = useCallback(() => {
+    setTreePalette((value) => (value + 1) % TREE_PALETTES.length);
+    chime(19);
+  }, [chime]);
+
+  const toggleSound = useCallback(() => {
+    if (!sound) {
+      const audio = ensureAudioContext(audioRef);
+      if (!audio) return;
+      void audio.resume().catch(() => undefined);
+    }
+    setSound((value) => !value);
+  }, [sound]);
+
+  const controls: VillageControls = {
+    lit,
+    onToggleWindow: toggleWindow,
+    windowLabel: (index, isLit) => fillNumber(isLit ? props.windowOnLabel : props.windowOffLabel, index),
+    treePalette,
+    onCycleTree: cycleTree,
+    treeLabel: props.treeLabel,
+  };
+
+  return (
+    <>
+      <div ref={sceneRef} className={`north-pole-scene${active ? '' : ' is-paused'}`} role="group" aria-label={props.label}>
+        <svg className="scene-defs" width="0" height="0" aria-hidden="true" focusable="false">
+          <Gradients />
+        </svg>
+        <Plane name="sky">
+          <rect width="1440" height="860" fill="url(#sky)" />
+          <rect width="1440" height="860" fill="url(#horizon-glow)" />
+          <Moon />
+        </Plane>
+        <Plane name="stars">
+          <Stars />
+        </Plane>
+        <Plane name="aurora-teal">
+          <AuroraRibbon name="teal" />
+        </Plane>
+        <Plane name="aurora-violet">
+          <AuroraRibbon name="violet" />
+        </Plane>
+        <Plane name="aurora-green">
+          <AuroraRibbon name="green" />
+        </Plane>
+        <Plane name="events">
+          <path className="shooting-star shooting-star-a" d="M0 0h140" stroke="url(#trail)" strokeWidth="2.4" strokeLinecap="round" />
+          <path className="shooting-star shooting-star-b" d="M0 0h96" stroke="url(#trail)" strokeWidth="1.8" strokeLinecap="round" />
+          <Sleigh />
+        </Plane>
+        <Plane name="far">
+          <MountainsFar />
+        </Plane>
+        <Plane name="mid">
+          <MountainsMid />
+        </Plane>
+        <Plane name="forest-back">
+          <ForestBack />
+        </Plane>
+        <Plane name="village" interactive>
+          <VillageLayer controls={controls} />
+        </Plane>
+        <Plane name="mist">
+          <rect className="mist" x="-200" y="560" width="1840" height="150" fill="url(#mist)" />
+        </Plane>
+        <Plane name="forest-front">
+          <ForestFront />
+        </Plane>
+        <Plane name="front">
+          <Foreground />
+        </Plane>
+        <div className="scene-vignette" aria-hidden="true" />
+      </div>
+      <SnowCanvas />
+      <button type="button" className="scene-sound" aria-pressed={sound} onClick={toggleSound}>
+        <span aria-hidden="true" className="scene-sound-icon">{sound ? '♪' : '♩'}</span>
+        {props.soundLabel}: {sound ? props.soundOnLabel : props.soundOffLabel}
+      </button>
+    </>
   );
 }

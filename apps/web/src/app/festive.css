@@ -109,16 +109,21 @@
 .home-main {
   position: relative;
   z-index: 1;
-  width: min(100% - 2rem, 72rem);
+  width: 100%;
   margin: 0 auto;
-  padding: 2rem 0 1.5rem;
+  padding: 0 0 3rem;
 }
 
 .home-nav {
-  position: absolute;
-  top: 1.25rem;
-  right: max(1rem, calc((100vw - 72rem) / 2));
-  z-index: 2;
+  position: fixed;
+  top: 1.5rem;
+  right: max(1.5rem, calc((100vw - 96rem) / 2));
+  z-index: 5;
+  padding: 0.55rem 0.9rem;
+  border: 1px solid rgb(250 232 197 / 40%);
+  border-radius: 999px;
+  background: rgb(11 22 35 / 74%);
+  backdrop-filter: blur(12px);
 }
 
 .home-nav a {
@@ -127,92 +132,210 @@
   text-underline-offset: 0.25rem;
 }
 
-.north-pole-scene {
-  display: block;
-  width: 100%;
-  height: auto;
-  aspect-ratio: 20 / 7;
-  border: 1px solid rgb(248 234 208 / 20%);
-  border-radius: 1.4rem;
-  box-shadow: 0 18px 55px rgb(0 0 0 / 25%);
+.home-hero {
+  position: relative;
+  isolation: isolate;
+  min-height: max(760px, 100svh);
+  overflow: hidden;
+  background: #0b1930;
+}
+
+.home-hero-shade {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    linear-gradient(90deg, rgb(7 17 33 / 42%) 0%, rgb(7 17 33 / 20%) 43%, transparent 76%),
+    linear-gradient(0deg, rgb(7 20 30 / 36%), transparent 44%);
+}
+
+.home-hero-content {
+  position: relative;
+  display: grid;
+  align-content: center;
+  width: min(42rem, 48%);
+  min-height: max(760px, 100svh);
+  margin-left: clamp(2rem, 8vw, 8rem);
+  padding: 5rem 0;
+}
+
+.home-scene-note {
+  position: absolute;
+  right: clamp(1.25rem, 4vw, 4rem);
+  bottom: 1.8rem;
+  color: #f5ead6;
+  font-family: 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, serif;
+  font-size: 0.95rem;
+  font-style: italic;
+  text-shadow: 0 2px 10px #08121f;
 }
 
 .home-heading {
-  padding: 2rem 0 1rem;
-  text-align: center;
+  padding: 0.5rem 0 1.5rem 0.25rem;
+  text-align: left;
 }
 
 .home-kicker,
 .home-card-index {
-  color: #f4ca7a;
+  color: #e7bc7b;
   font-size: 0.72rem;
   font-weight: 700;
-  letter-spacing: 0.18em;
+  letter-spacing: 0.2em;
   text-transform: uppercase;
+}
+
+.home-kicker {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.home-kicker span {
+  font-size: 1rem;
+  color: #f4d9a5;
 }
 
 .home-heading h1 {
-  margin-top: 0.25rem;
-  color: #fff4dc;
-  font-size: clamp(2.3rem, 6vw, 4.3rem);
-  font-weight: 750;
-  letter-spacing: -0.04em;
-  line-height: 1.05;
+  margin-top: 0.45rem;
+  color: #fff5df;
+  font-family: 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, serif;
+  font-size: clamp(3rem, 5.5vw, 5.1rem);
+  font-weight: 500;
+  letter-spacing: -0.045em;
+  line-height: 0.98;
+  text-shadow: 0 3px 24px rgb(3 13 25 / 55%);
 }
 
 .home-heading > p:last-child {
-  margin-top: 0.75rem;
-  color: #d5e1e1;
-  font-size: clamp(1rem, 2vw, 1.2rem);
+  max-width: 29rem;
+  margin-top: 1rem;
+  color: #eee9dc;
+  font-family: 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, serif;
+  font-size: clamp(1.05rem, 1.8vw, 1.3rem);
+  line-height: 1.6;
 }
 
 .countdown-panel {
-  margin: 1rem auto 2.5rem;
-  width: min(100%, 55rem);
-  padding: 1.35rem;
-  border: 1px solid rgb(248 234 208 / 18%);
-  border-radius: 1.25rem;
-  background: rgb(10 21 34 / 72%);
+  position: relative;
+  width: min(100%, 40rem);
+  margin: 0;
+  padding: 1.15rem 1.25rem 1.25rem;
+  border: 1px solid rgb(231 188 123 / 54%);
+  border-radius: 1.1rem;
+  background:
+    linear-gradient(135deg, rgb(31 43 50 / 96%), rgb(21 32 39 / 95%)),
+    #1f2b32;
+  box-shadow:
+    0 18px 55px rgb(4 11 20 / 40%),
+    inset 0 0 0 4px rgb(231 188 123 / 7%),
+    inset 0 1px 0 rgb(255 255 255 / 12%);
   text-align: center;
 }
 
+.countdown-panel::before,
+.countdown-panel::after {
+  position: absolute;
+  top: 50%;
+  width: 0.55rem;
+  height: 0.55rem;
+  border: 1px solid rgb(231 188 123 / 75%);
+  border-radius: 50%;
+  background: #15232b;
+  content: '';
+  transform: translateY(-50%);
+}
+
+.countdown-panel::before { left: 0.45rem; }
+.countdown-panel::after { right: 0.45rem; }
+
+.countdown-ornament {
+  margin-bottom: 0.45rem;
+  color: #e9c58d;
+  font-size: 0.65rem;
+  letter-spacing: 0.34em;
+}
+
 .countdown-panel h2 {
-  margin-bottom: 1rem;
-  color: #f4ca7a;
-  font-size: 0.8rem;
+  margin-bottom: 0.85rem;
+  color: #f3d7a4;
+  font-family: 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, serif;
+  font-size: 0.95rem;
   font-weight: 700;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
+  letter-spacing: 0.08em;
 }
 
 .home-cards {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 1rem;
+  gap: clamp(1rem, 2.2vw, 2rem);
+  width: min(100% - 3rem, 82rem);
+  margin: -2rem auto 0;
+  position: relative;
+  z-index: 2;
 }
 
 .home-card {
   min-width: 0;
-  padding: 1.5rem;
-  border: 1px solid rgb(248 234 208 / 22%);
-  border-radius: 1rem;
-  background: #152638;
+  padding: clamp(1.5rem, 3vw, 2.5rem);
+  border: 1px solid rgb(231 188 123 / 44%);
+  border-radius: 1.2rem;
+  background:
+    linear-gradient(145deg, rgb(30 45 51 / 95%), rgb(16 30 39 / 96%)),
+    #1e2d33;
+  box-shadow: 0 18px 55px rgb(3 12 20 / 32%), inset 0 1px 0 rgb(255 255 255 / 8%);
+  backdrop-filter: blur(16px);
+}
+
+.home-card-topline {
+  display: flex;
+  min-height: 2rem;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.home-card-mark {
+  width: 2.1rem;
+  height: 2.1rem;
+  fill: none;
+  stroke: #e3bd80;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.5;
 }
 
 .home-card h2 {
-  margin-top: 0.65rem;
+  margin-top: 1rem;
   color: #fff4dc;
-  font-size: 1.45rem;
-  font-weight: 700;
+  font-family: 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, serif;
+  font-size: clamp(1.55rem, 3vw, 2rem);
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+}
+
+.home-card-copy {
+  min-height: 3.5rem;
+  margin-top: 0.75rem;
+  color: #e1e3dc;
+  font-size: 1rem;
+  line-height: 1.7;
 }
 
 .home-link {
-  color: #121b24;
-  background: #f4ca7a;
+  min-height: 2.8rem;
+  align-items: center;
+  border: 1px solid #e7bf80;
+  color: #15212a;
+  background: #f0cf97;
+  text-decoration: none;
+  transition: background-color 150ms ease, transform 150ms ease;
 }
 
 .home-link:hover {
-  background: #ffdda0;
+  background: #ffe0a9;
+  transform: translateY(-1px);
 }
 
 .skip-link {
@@ -236,8 +359,9 @@
 
 .home-footer {
   padding: 2.5rem 0.5rem 1rem;
-  color: #d5e1e1;
+  color: #d8dfda;
   text-align: center;
+  font-family: 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, serif;
   font-size: 0.95rem;
 }
 
@@ -245,65 +369,86 @@
   transform: translateY(0);
 }
 
-@media (width <= 600px) {
-  .home-main {
-    width: min(100% - 1.25rem, 72rem);
-    padding-top: 3.75rem;
-  }
-
+@media (width <= 900px) {
   .home-nav {
-    top: 1rem;
-    right: 0.75rem;
+    top: 1.1rem;
+    right: 1rem;
   }
 
-  .north-pole-scene {
-    aspect-ratio: 20 / 7;
-    border-radius: 1rem;
+  .home-hero,
+  .home-hero-content {
+    min-height: max(780px, 100svh);
+  }
+
+  .home-hero-content {
+    align-content: end;
+    width: auto;
+    margin: 0;
+    padding: 7rem 1.2rem 5.5rem;
+  }
+
+  .home-hero-shade {
+    background:
+      linear-gradient(0deg, rgb(7 17 30 / 82%) 0%, rgb(7 17 30 / 60%) 48%, rgb(7 17 30 / 12%) 100%),
+      linear-gradient(90deg, rgb(7 17 30 / 12%), transparent);
   }
 
   .home-heading {
-    padding-top: 1.5rem;
+    padding: 0 0.15rem 1.2rem;
+  }
+
+  .home-heading h1 {
+    font-size: clamp(2.8rem, 11vw, 4.2rem);
+  }
+
+  .home-heading > p:last-child {
+    max-width: 22rem;
+    margin-top: 0.7rem;
+    font-size: 1.05rem;
   }
 
   .countdown-panel {
-    margin-bottom: 1.5rem;
-    padding: 1rem 0.65rem;
+    width: 100%;
+    padding: 0.9rem 0.8rem 1rem;
+  }
+
+  .countdown-panel h2 {
+    margin-bottom: 0.65rem;
+    font-size: 0.87rem;
+  }
+
+  .countdown-tile {
+    padding-top: 0.65rem;
+    padding-bottom: 0.65rem;
+    border-radius: 0.85rem;
   }
 
   .home-cards {
     grid-template-columns: minmax(0, 1fr);
+    width: min(100% - 2rem, 38rem);
+    gap: 1rem;
+    margin-top: -1.6rem;
   }
 
   .home-card {
-    padding: 1.25rem;
-  }
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  .scene-snow {
-    animation: scene-drift 7s ease-in-out infinite alternate;
+    padding: 1.35rem;
   }
 
-  .snow-b {
-    animation-delay: -2s;
-  }
-
-  .snow-c {
-    animation-delay: -4s;
-  }
-}
-
-@keyframes scene-drift {
-  to {
-    transform: translateY(12px);
-    opacity: 0.35;
+  .home-scene-note {
+    inset: 6.5rem auto auto 1.2rem;
+    max-width: 12rem;
+    font-size: 0.85rem;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .scene-snow {
-    animation: none;
+  .home-main *,
+  .home-main *::before,
+  .home-main *::after {
+    animation: none !important;
+    transition: none !important;
   }
+
 }
 
 @media (prefers-reduced-motion: no-preference) {
