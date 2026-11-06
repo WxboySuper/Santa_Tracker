@@ -10,7 +10,7 @@ const SAVE_KEY = "santa-advent-jigsaw-v1";
 const JIGSAW_MIGRATIONS: ActivitySaveMigration[] = [];
 
 export function JigsawActivity({ config, locale }: { config: JigsawConfig; locale: string }) {
-  const t = createTranslator({ locale });
+  const translator = createTranslator({ locale });
   const [placed, setPlaced] = useState<number[]>([]);
   const [selected, setSelected] = useState<number | null>(null);
   const [targetCell, setTargetCell] = useState<number | null>(null);
@@ -56,7 +56,7 @@ export function JigsawActivity({ config, locale }: { config: JigsawConfig; local
     setPlaced(next);
     setSelected(null);
     setTargetCell(null);
-    setAnnouncement(next.length === config.pieces ? t.t("advent.activity.jigsaw.complete") : t.t("advent.activity.jigsaw.placed", { count: next.length, total: config.pieces }));
+    setAnnouncement(next.length === config.pieces ? translator.t("advent.activity.jigsaw.complete") : translator.t("advent.activity.jigsaw.placed", { count: next.length, total: config.pieces }));
   }
 
   function handlePointerUp(event: PointerEvent<HTMLButtonElement>, cell: number) {
@@ -90,35 +90,35 @@ export function JigsawActivity({ config, locale }: { config: JigsawConfig; local
     setPlaced([]);
     setSelected(null);
     setTargetCell(null);
-    setAnnouncement(t.t("advent.activity.jigsaw.reset"));
+    setAnnouncement(translator.t("advent.activity.jigsaw.reset"));
   }
 
   return (
     <section className="space-y-4" aria-labelledby="jigsaw-title">
-      <h2 id="jigsaw-title" className="text-2xl font-bold">{t.t("advent.activity.jigsaw.title")}</h2>
-      <p>{t.t("advent.activity.jigsaw.instructions")}</p>
+      <h2 id="jigsaw-title" className="text-2xl font-bold">{translator.t("advent.activity.jigsaw.title")}</h2>
+      <p>{translator.t("advent.activity.jigsaw.instructions")}</p>
       <div className="flex flex-wrap gap-4">
-        <label className="flex items-center gap-2"><input type="checkbox" checked={ghost} onChange={(event) => setGhost(event.currentTarget.checked)} />{t.t("advent.activity.jigsaw.ghost")}</label>
-        <label className="flex items-center gap-2"><input type="checkbox" checked={edgeFirst} onChange={(event) => setEdgeFirst(event.currentTarget.checked)} />{t.t("advent.activity.jigsaw.edgeFirst")}</label>
-        <button type="button" className="underline focus-visible:outline focus-visible:outline-2" onClick={startOver}>{t.t("advent.activity.jigsaw.startOver")}</button>
+        <label className="flex items-center gap-2"><input type="checkbox" checked={ghost} onChange={(event) => setGhost(event.currentTarget.checked)} />{translator.t("advent.activity.jigsaw.ghost")}</label>
+        <label className="flex items-center gap-2"><input type="checkbox" checked={edgeFirst} onChange={(event) => setEdgeFirst(event.currentTarget.checked)} />{translator.t("advent.activity.jigsaw.edgeFirst")}</label>
+        <button type="button" className="underline focus-visible:outline focus-visible:outline-2" onClick={startOver}>{translator.t("advent.activity.jigsaw.startOver")}</button>
       </div>
-      <p className="text-sm">{t.t("advent.activity.jigsaw.progress", { count: placed.length, total: config.pieces })}</p>
-      <div className="mx-auto grid w-full max-w-2xl touch-none overflow-hidden rounded-xl bg-slate-900 shadow-lg" style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`, aspectRatio: "3 / 2" }} aria-label={t.t("advent.activity.jigsaw.board")}>
+      <p className="text-sm">{translator.t("advent.activity.jigsaw.progress", { count: placed.length, total: config.pieces })}</p>
+      <div className="mx-auto grid w-full max-w-2xl touch-none overflow-hidden rounded-xl bg-slate-900 shadow-lg" style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`, aspectRatio: "3 / 2" }} aria-label={translator.t("advent.activity.jigsaw.board")}>
         {ids.map((cell) => {
           const bounds = getCellBounds(cell, config.pieces);
           const filled = placed.includes(cell);
-          return <button key={cell} type="button" aria-label={t.t("advent.activity.jigsaw.cell", { count: cell + 1 })} onPointerUp={(event) => handlePointerUp(event, cell)} className={`relative min-w-0 border border-white/20 focus-visible:z-10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-amber-300 ${selected !== null ? "cursor-crosshair" : "cursor-default"}`}>
+          return <button key={cell} type="button" aria-label={translator.t("advent.activity.jigsaw.cell", { count: cell + 1 })} onPointerUp={(event) => handlePointerUp(event, cell)} className={`relative min-w-0 border border-white/20 focus-visible:z-10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-amber-300 ${selected !== null ? "cursor-crosshair" : "cursor-default"}`}>
             {targetCell === cell && selected !== null ? <span className="absolute inset-0 z-10 border-2 border-amber-300" aria-hidden="true" /> : null}
             {filled || ghost ? <SceneCrop scene={config.scene} x={bounds.x} y={bounds.y} width={bounds.width} height={bounds.height} revealed={complete} settle={filled} /> : null}
             {!filled && !ghost ? <span className="absolute inset-0 grid place-items-center text-white/40">{cell + 1}</span> : null}
           </button>;
         })}
       </div>
-      {!complete ? <div className="grid grid-cols-4 gap-2 sm:grid-cols-6 lg:grid-cols-8" aria-label={t.t("advent.activity.jigsaw.tray")}>
-        {tray.map((piece) => <button key={piece} type="button" draggable={false} onPointerDown={(event) => handlePointerDown(event, piece, setSelected)} onKeyDown={(event) => handlePieceKey(event, piece)} onClick={() => setSelected(piece)} aria-pressed={selected === piece} aria-label={t.t("advent.activity.jigsaw.piece", { count: piece + 1, total: config.pieces })} className={`aspect-square overflow-hidden rounded-lg border-2 bg-slate-800 touch-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-amber-300 ${selected === piece ? "border-amber-300 ring-2 ring-amber-300" : "border-slate-300"}`}>
+      {!complete ? <div className="grid grid-cols-4 gap-2 sm:grid-cols-6 lg:grid-cols-8" aria-label={translator.t("advent.activity.jigsaw.tray")}>
+        {tray.map((piece) => <button key={piece} type="button" draggable={false} onPointerDown={(event) => handlePointerDown(event, piece, setSelected)} onKeyDown={(event) => handlePieceKey(event, piece)} onClick={() => setSelected(piece)} aria-pressed={selected === piece} aria-label={translator.t("advent.activity.jigsaw.piece", { count: piece + 1, total: config.pieces })} className={`aspect-square overflow-hidden rounded-lg border-2 bg-slate-800 touch-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-amber-300 ${selected === piece ? "border-amber-300 ring-2 ring-amber-300" : "border-slate-300"}`}>
           <SceneCrop scene={config.scene} {...getCellBounds(piece, config.pieces)} />
         </button>)}
-      </div> : <div className="rounded-xl bg-slate-100 p-4 text-center"><p className="font-semibold">{t.t("advent.activity.jigsaw.caption")}</p></div>}
+      </div> : <div className="rounded-xl bg-slate-100 p-4 text-center"><p className="font-semibold">{translator.t("advent.activity.jigsaw.caption")}</p></div>}
       <p className="sr-only" aria-live="polite" aria-atomic="true">{announcement}</p>
     </section>
   );
