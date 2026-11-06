@@ -31,7 +31,9 @@ export function getLocalAddress(output: string): string | undefined {
   const cleanOutput = stripAnsiColorCodes(output);
   const match = /^\s*(?:[-+]\s*)?Local:\s*(https?:\/\/)(localhost|127\.0\.0\.1|0\.0\.0\.0|\[[\da-f:]+\]):(\d+)/im.exec(cleanOutput);
   if (!match) return undefined;
-  const hostname = match[2] === "0.0.0.0" ? "localhost" : match[2];
+  const unspecifiedHosts = ["0.0.0.0", "[::]", "[0:0:0:0:0:0:0:0]"];
+  const rawHostname = match[2] ?? "localhost";
+  const hostname = unspecifiedHosts.includes(rawHostname.toLowerCase()) ? "localhost" : rawHostname;
   return `${match[1]}${hostname}:${match[3]}`;
 }
 

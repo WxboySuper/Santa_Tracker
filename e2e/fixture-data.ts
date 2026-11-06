@@ -5,17 +5,29 @@ import type { ServerName } from "./types";
 type CalendarDay = { day: number; is_unlocked_override?: boolean };
 type Calendar = { days: CalendarDay[] };
 
-function isCalendarDay(value: unknown): value is CalendarDay {
+function isRecord(value: unknown): value is Record<string, unknown> {
   if (typeof value !== "object") return false;
   if (value === null) return false;
   if (Array.isArray(value)) return false;
-  const day = value as { day?: unknown; is_unlocked_override?: unknown };
-  if (typeof day.day !== "number") return false;
-  if (!Number.isInteger(day.day)) return false;
-  if (day.day < 1) return false;
-  if (day.day > 24) return false;
-  if (day.is_unlocked_override === undefined) return true;
-  return typeof day.is_unlocked_override === "boolean";
+  return true;
+}
+
+function isValidDayNumber(value: unknown): value is number {
+  if (typeof value !== "number") return false;
+  if (!Number.isInteger(value)) return false;
+  if (value < 1) return false;
+  return value <= 24;
+}
+
+function hasValidOverride(value: unknown): boolean {
+  if (value === undefined) return true;
+  return typeof value === "boolean";
+}
+
+function isCalendarDay(value: unknown): value is CalendarDay {
+  if (!isRecord(value)) return false;
+  if (!isValidDayNumber(value.day)) return false;
+  return hasValidOverride(value.is_unlocked_override);
 }
 
 function isCalendar(value: unknown): value is Calendar {

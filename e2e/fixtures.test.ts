@@ -44,39 +44,23 @@ test("runtime config parse errors include the file path and allow retry", async 
   }
 });
 
-test("runtime config rejects empty endpoints and credentials", async () => {
+type RuntimeValidationCase = { name: string; config: unknown; validateEndpoint: boolean };
+const runtimeValidationCases: RuntimeValidationCase[] = [
+  { name: "empty endpoints", config: { endpoints: {}, adminPassword: "test-pass" }, validateEndpoint: false },
+  { name: "empty password", config: { endpoints: { closed: "http://localhost:3000", open: "http://localhost:3001" }, adminPassword: "" }, validateEndpoint: false },
+  { name: "missing project endpoint", config: { endpoints: { closed: "http://localhost:3000" }, adminPassword: "test-pass" }, validateEndpoint: false },
+  { name: "non-HTTP URL", config: { endpoints: { closed: "file:///tmp/site", open: "http://localhost:3001" }, adminPassword: "test-pass" }, validateEndpoint: true },
+];
+
+test.each(runtimeValidationCases)("runtime validation rejects $name with its file path", async ({ config, validateEndpoint }) => {
   const root = await mkdtemp(path.join(os.tmpdir(), "santa-e2e-invalid-runtime-test-"));
   const runtimeFile = path.join(root, "endpoints.json");
   try {
-    await writeFile(runtimeFile, JSON.stringify({ endpoints: {}, adminPassword: "test-pass" }));
-    await expect(getRuntimeConfig(runtimeFile)).rejects.toThrow(runtimeFile);
-    await writeFile(runtimeFile, JSON.stringify({ endpoints: { closed: "http://localhost:3000" }, adminPassword: "" }));
-    await expect(getRuntimeConfig(runtimeFile)).rejects.toThrow(runtimeFile);
-  } finally {
-    await rm(root, { recursive: true, force: true });
-  }
-});
-
-test("runtime config requires both project endpoints", async () => {
-  const root = await mkdtemp(path.join(os.tmpdir(), "santa-e2e-incomplete-runtime-test-"));
-  const runtimeFile = path.join(root, "endpoints.json");
-  try {
-    await writeFile(runtimeFile, JSON.stringify({ endpoints: { closed: "http://localhost:3000" }, adminPassword: "test-pass" }));
-    await expect(getRuntimeConfig(runtimeFile)).rejects.toThrow(runtimeFile);
-  } finally {
-    await rm(root, { recursive: true, force: true });
-  }
-});
-
-test("runtime endpoints reject non-HTTP URLs with the runtime path", async () => {
-  const root = await mkdtemp(path.join(os.tmpdir(), "santa-e2e-invalid-endpoint-test-"));
-  const runtimeFile = path.join(root, "endpoints.json");
-  try {
-    await writeFile(runtimeFile, JSON.stringify({
-      endpoints: { closed: "file:///tmp/site", open: "http://localhost:3001" },
-      adminPassword: "test-pass",
-    }));
-    await expect(getEndpointForProject(runtimeFile, "closed")).rejects.toThrow(runtimeFile);
+    await writeFile(runtimeFile, JSON.stringify(config));
+    const validation = validateEndpoint
+      ? getEndpointForProject(runtimeFile, "closed")
+      : getRuntimeConfig(runtimeFile);
+    await expect(validation).rejects.toThrow(runtimeFile);
   } finally {
     await rm(root, { recursive: true, force: true });
   }
@@ -141,6 +125,10 @@ test("server address parsing strips ANSI color and trailing punctuation", () => 
 
 test("server address parsing converts a bind-all address into a local URL", () => {
   expect(getLocalAddress("Local: http://0.0.0.0:43171")).toBe("http://localhost:43171");
+});
+
+test.each(["[::]", "[0:0:0:0:0:0:0:0]"])("server address parsing converts IPv6 bind-all address %s", (host) => {
+  expect(getLocalAddress(`Local: http://${host}:43171`)).toBe("http://localhost:43171");
 });
 
 test("server address parsing rejects non-loopback hostnames", () => {
