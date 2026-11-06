@@ -44,11 +44,26 @@ async function processLogin(req: Request, ip: string) {
 async function verifyLogin(req: Request, ip: string, payload: unknown) {
   const lockout = checkLoginRateLimitNow(ip);
   if (lockout) return throttledResponse(lockout.retryAfterSeconds);
+  if (lockout === undefined) {
+    const asyncLockout = await checkLoginRateLimit(ip);
+    if (asyncLockout) return throttledResponse(asyncLockout.retryAfterSeconds);
+  }
   const login = loginAdmin(payload);
-  if (login instanceof Promise) return setLoginCookie(req, await login, ip);
+  if (login instanceof Promise) return completeAsyncLogin(req, login, ip);
   const result = login;
   const failure = await failedLoginLimit(ip, result);
   if (failure) return throttledResponse(failure.retryAfterSeconds);
+  return setLoginCookie(req, result, ip);
+}
+
+async function completeAsyncLogin(req: Request, login: Promise<Awaited<ReturnType<typeof loginAdmin>>>, ip: string) {
+  const result = await login;
+  const failure = await failedLoginLimit(ip, result);
+  if (failure) return throttledResponse(failure.retryAfterSeconds);
+  const lockout = await checkLoginRateLimit(ip);
+  if (lockout) return throttledResponse(lockout.retryAfterSeconds);
+  const syncLockout = checkLoginRateLimitNow(ip);
+  if (syncLockout) return throttledResponse(syncLockout.retryAfterSeconds);
   return setLoginCookie(req, result, ip);
 }
 

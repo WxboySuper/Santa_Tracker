@@ -18,7 +18,7 @@ export interface ThrottleDecision {
 
 export interface LoginThrottle {
   check(input: { ip: string }): Promise<ThrottleDecision | null>;
-  checkNow(input: { ip: string }): ThrottleDecision | null;
+  checkNow(input: { ip: string }): ThrottleDecision | null | undefined;
   recordFailure(input: { ip: string }): Promise<ThrottleDecision | null>;
   clear(input: { ip: string }): Promise<void>;
 }
@@ -139,12 +139,12 @@ export function createLoginThrottle(input: { store?: ThrottleStore; clock?: () =
   };
 }
 
-function checkInMemoryIp(input: { runtime: Runtime; ip: string }): ThrottleDecision | null {
+function checkInMemoryIp(input: { runtime: Runtime; ip: string }): ThrottleDecision | null | undefined {
   const { runtime, ip } = input;
   const { store, clock } = runtime;
   // The async check runs before body parsing. This synchronous recheck closes
   // the same-isolate race only when the store can be read synchronously.
-  if (!(store instanceof InMemoryThrottleStore)) return null;
+  if (!(store instanceof InMemoryThrottleStore)) return undefined;
   const key = ipKey({ ip });
   const existing = store.peek({ key });
   const now = clock();

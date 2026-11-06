@@ -67,7 +67,7 @@ describe("admin login throttle", () => {
     };
     const throttle = createLoginThrottle({ store, clock: () => 0 });
 
-    expect(throttle.checkNow({ ip: "ip-a" })).toBeNull();
+    expect(throttle.checkNow({ ip: "ip-a" })).toBeUndefined();
     expect(await throttle.check({ ip: "ip-a" })).toEqual({ retryAfterSeconds: 900 });
   });
 

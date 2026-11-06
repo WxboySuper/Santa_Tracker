@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import * as jose from "jose";
+import * as adminLogin from "@/lib/admin-login";
 import * as auth from "@/lib/auth";
 import { ADMIN_SESSION_TTL_SECONDS, shouldUseSecureAdminCookie } from "@/lib/auth";
 import { getClientIp, POST } from "./route";
@@ -117,6 +118,65 @@ describe("admin login route", () => {
     expect(responses.filter((response) => response.status === 429)).toHaveLength(16);
     expect(responses.filter((response) => response.status === 429).every((response) => response.headers.get("Retry-After") === "900")).toBe(true);
     expect(verifyPassword).toHaveBeenCalledTimes(5);
+  });
+
+  it("refuses a successful password if the IP locks while its token is being signed", async () => {
+    let finishSigning: ((token: string) => void) | undefined;
+    const signing = vi.spyOn(auth, "createAdminToken").mockImplementation(() => new Promise((resolve) => {
+      finishSigning = resolve;
+    }));
+    const headers = { "cf-connecting-ip": "198.51.100.65", "content-type": "application/json" };
+    const pendingLogin = POST(new Request("https://example.test/api/admin/login", {
+      method: "POST", headers, body: JSON.stringify({ password: "correct horse" }),
+    }));
+    await vi.waitFor(() => expect(signing).toHaveBeenCalledOnce());
+
+    const failures: number[] = [];
+    for (let index = 0; index < 5; index += 1) {
+      const response = await POST(new Request("https://example.test/api/admin/login", {
+        method: "POST", headers, body: JSON.stringify({ password: "wrong" }),
+      }));
+      failures.push(response.status);
+    }
+    expect(failures).toEqual([401, 401, 401, 401, 429]);
+    if (!finishSigning) throw new Error("Token signing did not start");
+    finishSigning("late-token");
+
+    const response = await pendingLogin;
+    expect(response.status).toBe(429);
+    expect(response.headers.get("Retry-After")).toBe("900");
+  });
+
+  it("counts an asynchronous password failure toward the per-IP lockout", async () => {
+    const login = vi.spyOn(adminLogin, "loginAdmin").mockResolvedValue({ status: 401, body: { error: "Invalid password" } });
+    const headers = { "cf-connecting-ip": "198.51.100.66", "content-type": "application/json" };
+    const statuses: number[] = [];
+    for (let index = 0; index < 5; index += 1) {
+      const response = await POST(new Request("https://example.test/api/admin/login", {
+        method: "POST", headers, body: JSON.stringify({ password: "wrong" }),
+      }));
+      statuses.push(response.status);
+    }
+
+    expect(statuses).toEqual([401, 401, 401, 401, 429]);
+    expect(login).toHaveBeenCalledTimes(5);
+  });
+
+  it("rechecks an async throttle store after the body is read", async () => {
+    vi.spyOn(adminLogin, "checkLoginRateLimit")
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce({ retryAfterSeconds: 60 });
+    vi.spyOn(adminLogin, "checkLoginRateLimitNow").mockReturnValue(undefined);
+    const verifyPassword = vi.spyOn(auth, "verifyAdminPassword");
+    const response = await POST(new Request("https://example.test/api/admin/login", {
+      method: "POST",
+      headers: { "cf-connecting-ip": "198.51.100.67", "content-type": "application/json" },
+      body: JSON.stringify({ password: "wrong" }),
+    }));
+
+    expect(response.status).toBe(429);
+    expect(response.headers.get("Retry-After")).toBe("60");
+    expect(verifyPassword).not.toHaveBeenCalled();
   });
 
   it("does not globally lock out distinct IPs", async () => {
