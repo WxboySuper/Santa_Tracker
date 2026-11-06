@@ -81,13 +81,22 @@ Video content.
 ```
 
 #### 5. Activity
-Interactive activities.
+Interactive activities. An activity payload is either a built-in activity with a `kind`, or a static same-origin embed under `/advent/` with a `url`. If neither form can be rendered, the day page shows its usual fallback.
+
+The first built-in activity is the Caesar cipher. Its message contains 3 to 60 letters and spaces, and its shift is an integer from 1 to 25. The optional hint is plain text.
 ```json
 {
-    "activity_type": "creative",
-    "title": "Virtual Tree Decorator",
-    "description": "Decorate your own virtual Christmas tree!",
-    "url": "/activities/tree-decorator"
+    "kind": "cipher",
+    "message": "MEET ME BY THE TREE",
+    "shift": 3,
+    "hint": "Look for a place with twinkling lights."
+}
+```
+
+Static activities use a path beneath `/advent/`, for example:
+```json
+{
+    "url": "/advent/tree-decorator/index.html"
 }
 ```
 
