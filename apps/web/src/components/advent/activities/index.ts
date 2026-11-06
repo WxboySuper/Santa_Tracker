@@ -10,5 +10,5 @@ export function renderActivity(day: AdventPublicDay, fallback: ReactNode, locale
   const kind = day.payload?.kind;
   if (typeof kind !== "string" || !Object.hasOwn(activityKinds, kind)) return fallback;
   const activity = activityKinds[kind as keyof typeof activityKinds];
-  return activity.render(day.payload, locale) ?? fallback;
+  return activity.render(day.payload, locale, String(day.day)) ?? fallback;
 }

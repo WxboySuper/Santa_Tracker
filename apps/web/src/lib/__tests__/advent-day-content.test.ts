@@ -67,6 +67,15 @@ describe("renderDayContent", () => {
     expect(content).toMatchObject({ props: { locale: "fr" } });
   });
 
+  it("keys built-in activities by Advent day", () => {
+    const content = renderDayContent(day({
+      day: 2,
+      content_type: "activity",
+      payload: { kind: "cipher", message: "HELLO", shift: 3 },
+    }), createElement("p", null, "FALLBACK"));
+    expect(content).toHaveProperty("key", "2");
+  });
+
   it("uses the existing safe embed route for static activities", () => {
     expect(render(day({ content_type: "activity", payload: { url: "/advent/puzzle/index.html" } }))).toContain('src="/advent/puzzle/index.html"');
     expect(render(day({ content_type: "activity", payload: { url: "https://example.com" } }))).toContain("FALLBACK");

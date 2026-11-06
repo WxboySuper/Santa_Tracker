@@ -4,16 +4,16 @@ export interface ActivityDefinition<Config> {
   id: string;
   parse(payload: unknown): Config | null;
   Component: ComponentType<{ config: Config; locale: string }>;
-  render(payload: unknown, locale: string): ReactNode | null;
+  render(payload: unknown, locale: string, key: string): ReactNode | null;
 }
 
 export function defineActivity<Config>(activity: Omit<ActivityDefinition<Config>, "render">): ActivityDefinition<Config> {
   return {
     ...activity,
-    render(payload, locale) {
+    render(payload, locale, key) {
       try {
         const config = activity.parse(payload);
-        return config === null ? null : createElement(activity.Component, { config, locale });
+        return config === null ? null : createElement(activity.Component, { config, locale, key });
       } catch {
         return null;
       }
