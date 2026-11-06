@@ -21,17 +21,17 @@ const ISO_DATE_TIME = /^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})(?:\.(\d{1,3}))?Z$/
 
 export function parseFeatureFlags(raw: string | null): FeatureFlags {
   if (!raw) return DEFAULT_FEATURE_FLAGS;
-  return parseFeatureFlagsJson(raw);
+  return parseFeatureFlagsJson(raw) ?? DEFAULT_FEATURE_FLAGS;
 }
 
-function parseFeatureFlagsJson(raw: string): FeatureFlags {
+function parseFeatureFlagsJson(raw: string): FeatureFlags | null {
   let value: unknown;
   try {
     value = JSON.parse(raw) as unknown;
   } catch {
-    return DEFAULT_FEATURE_FLAGS;
+    return null;
   }
-  if (!isFeatureFlagsRecord(value)) return DEFAULT_FEATURE_FLAGS;
+  if (!isFeatureFlagsRecord(value)) return null;
   return {
     version: 1,
     hidden: { tracker: value.hidden.tracker, advent: value.hidden.advent },
@@ -91,6 +91,7 @@ export function createFeatureFlagCache(
   ttlMs = CACHE_TTL_MS,
 ): FeatureFlagCache {
   let cached: FeatureFlags = DEFAULT_FEATURE_FLAGS;
+  let lastKnownGood: FeatureFlags | null = null;
   let expiresAt = 0;
   let pending: Promise<FeatureFlags> | null = null;
   let generation = 0;
@@ -102,8 +103,16 @@ export function createFeatureFlagCache(
       const readGeneration = generation;
       const readPromise = Promise.resolve()
         .then(() => store.read(FEATURE_FLAGS_KEY))
-        .then(parseFeatureFlags)
-        .catch(() => DEFAULT_FEATURE_FLAGS)
+        .then(raw => {
+          if (raw === null) return DEFAULT_FEATURE_FLAGS;
+          const parsed = parseFeatureFlagsJson(raw);
+          if (parsed) {
+            lastKnownGood = parsed;
+            return parsed;
+          }
+          return lastKnownGood ?? DEFAULT_FEATURE_FLAGS;
+        })
+        .catch(() => lastKnownGood ?? DEFAULT_FEATURE_FLAGS)
         .then(flags => {
           if (generation === readGeneration) {
             cached = flags;

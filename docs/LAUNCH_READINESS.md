@@ -18,7 +18,7 @@ The switches are stored as a standalone key through the configured storage backe
 
 The Worker caches the flag read for up to 7 seconds. `/api/route` has a 60-second shared cache lifetime and a 60-second stale-while-revalidate window. A visitor may therefore see an already cached route response for up to 120 seconds after a hide is saved, plus the 7-second Worker flag cache: worst case about 127 seconds. Other gated responses are private and not cached. Verify in a private browser session by requesting `/tracker` and `/api/route`; the page should show the not-found response, and the API should return 404 with `Cache-Control: private, no-store`. The admin preview should remain available.
 
-If the flag store cannot be read, the Worker uses the regular season schedule and retries after at most 7 seconds. A storage read failure does not hide a feature or fail the request.
+The Worker keeps the last successfully read, valid flag document in memory per isolate. If a later storage read fails or returns corrupt data, it continues using that last-known-good document, so a saved hide survives a transient storage problem. Failed reads are cached for at most 7 seconds before retrying. On a cold isolate with no valid read yet, or when the key is missing, defaults preserve the regular season schedule; storage trouble on startup never hides a feature by accident. Requests continue using the normal season rules.
 
 ## Gaps to close before December
 

@@ -28,16 +28,48 @@ describe("feature flag cache", () => {
     expect(read).toHaveBeenCalledTimes(2);
   });
 
-  it("falls back to the schedule on storage failure and retries after the brief failure cache", async () => {
+  it("keeps the last valid hide on storage failure and retries after the brief failure cache", async () => {
     let current = 1;
-    const read = vi.fn(async () => { throw new Error("storage offline"); });
+    let failing = false;
+    const read = vi.fn(async () => {
+      if (failing) throw new Error("storage offline");
+      return active;
+    });
     const cache = createFeatureFlagCache({ read }, () => current, 7_000);
-    expect(await cache.read()).toEqual(DEFAULT_FEATURE_FLAGS);
-    expect(await cache.read()).toEqual(DEFAULT_FEATURE_FLAGS);
-    expect(read).toHaveBeenCalledTimes(1);
+    expect(await cache.read()).toEqual(parseFeatureFlags(active));
+    failing = true;
+    current += 7_001;
+    expect(await cache.read()).toEqual(parseFeatureFlags(active));
+    expect(read).toHaveBeenCalledTimes(2);
+    expect(await cache.read()).toEqual(parseFeatureFlags(active));
+    expect(read).toHaveBeenCalledTimes(2);
     current += 7_001;
     await cache.read();
+    expect(read).toHaveBeenCalledTimes(3);
+  });
+
+  it("uses schedule defaults on a cold-start storage failure", async () => {
+    const read = vi.fn(async () => { throw new Error("storage offline"); });
+    const cache = createFeatureFlagCache({ read }, () => 1);
+    expect(await cache.read()).toEqual(DEFAULT_FEATURE_FLAGS);
+  });
+
+  it("keeps the last valid document when a later stored document is corrupt", async () => {
+    let current = 1;
+    let raw: string | null = active;
+    const read = vi.fn(async () => raw);
+    const cache = createFeatureFlagCache({ read }, () => current, 7_000);
+    expect(await cache.read()).toEqual(parseFeatureFlags(active));
+    raw = "{corrupt";
+    current += 7_001;
+    expect(await cache.read()).toEqual(parseFeatureFlags(active));
     expect(read).toHaveBeenCalledTimes(2);
+  });
+
+  it("uses schedule defaults when the flag document is missing", async () => {
+    const read = vi.fn(async () => null);
+    const cache = createFeatureFlagCache({ read }, () => 1);
+    expect(await cache.read()).toEqual(DEFAULT_FEATURE_FLAGS);
   });
 
   it("does not let an in-flight old read overwrite an invalidated flag value", async () => {
