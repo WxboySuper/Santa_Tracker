@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { generateWordsearch, generateWordsearchWithLimit, parseWordsearch, shouldCancelWordsearchSelection, wordAtSelection } from "./wordsearch";
+import { findWordsearchPlacement, generateWordsearch, generateWordsearchWithLimit, parseWordsearch, shouldCancelWordsearchSelection, wordAtSelection, wordsearchConfigKey } from "./wordsearch";
 
 const config = parseWordsearch({ kind: "wordsearch" });
 
@@ -55,5 +55,19 @@ describe("wordsearch", () => {
     expect(shouldCancelWordsearchSelection({ key: "Escape", selectionPending: true })).toBe(true);
     expect(shouldCancelWordsearchSelection({ key: "Escape", selectionPending: false })).toBe(false);
     expect(shouldCancelWordsearchSelection({ key: "Enter", selectionPending: true })).toBe(false);
+  });
+
+  it("keys transient state to its puzzle config", () => {
+    const base = { seed: 1, words: ["SNOW", "EMBER"] };
+    expect(wordsearchConfigKey(base)).not.toBe(wordsearchConfigKey({ ...base, seed: 2 }));
+    expect(wordsearchConfigKey(base)).not.toBe(wordsearchConfigKey({ ...base, words: ["SNOW", "CANDLE"] }));
+  });
+
+  it("only accepts a found word at its placed cells in either direction", () => {
+    const placements = [{ word: "EMBER", cells: [1, 2, 3, 4, 5] }];
+    expect(findWordsearchPlacement({ placements, selectedCells: [1, 2, 3, 4, 5], foundWords: [] })).toEqual(placements[0]);
+    expect(findWordsearchPlacement({ placements, selectedCells: [5, 4, 3, 2, 1], foundWords: [] })).toEqual(placements[0]);
+    expect(findWordsearchPlacement({ placements, selectedCells: [6, 7, 8, 9, 10], foundWords: [] })).toBeNull();
+    expect(findWordsearchPlacement({ placements, selectedCells: [1, 2, 3, 4, 5], foundWords: ["EMBER"] })).toBeNull();
   });
 });

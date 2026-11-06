@@ -2,7 +2,7 @@
 
 import { useMemo, useState, type PointerEvent, type KeyboardEvent } from "react";
 import { createTranslator } from "@santa-tracker/localization";
-import { generateWordsearch, shouldCancelWordsearchSelection, wordAtSelection, type WordsearchConfig } from "@/lib/wordsearch";
+import { findWordsearchPlacement, generateWordsearch, shouldCancelWordsearchSelection, wordAtSelection, wordsearchConfigKey, type WordsearchConfig } from "@/lib/wordsearch";
 
 const GRID_SIZE = 15;
 
@@ -54,7 +54,10 @@ interface PointerCoordinates {
 }
 
 export function WordsearchActivity(props: WordsearchActivityProps) {
-  const { config, locale } = props;
+  return <WordsearchBoard key={wordsearchConfigKey(props.config)} {...props} />;
+}
+
+function WordsearchBoard({ config, locale }: WordsearchActivityProps) {
   const { seed, words } = config;
   const translator = createTranslator({ locale });
   const puzzle = useMemo(() => {
@@ -83,10 +86,9 @@ export function WordsearchActivity(props: WordsearchActivityProps) {
     try {
       const cells = wordAtSelection({ startCell: start, endCell: end, gridSize: GRID_SIZE });
       if (!cells) return;
-      const letters = cells.map((cell) => placedPuzzle.grid[Math.floor(cell / GRID_SIZE)]?.[cell % GRID_SIZE]).join("");
-      const reverse = letters.split("").reduce((reversed, letter) => letter + reversed, "");
-      const word = words.find((candidate) => (candidate === letters || candidate === reverse) && !found.includes(candidate));
-      if (!word) return;
+      const placement = findWordsearchPlacement({ placements: placedPuzzle.placements, selectedCells: cells, foundWords: found });
+      if (!placement) return;
+      const { word } = placement;
       const next = [...found, word];
       setFound(next);
       setAnnouncement(translator.t("advent.activity.wordsearch.found", { word }));

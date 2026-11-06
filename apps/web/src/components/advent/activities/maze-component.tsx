@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, type PointerEvent, type KeyboardEvent } from "react";
+import { useMemo, useRef, useState, type PointerEvent, type KeyboardEvent } from "react";
 import { createTranslator } from "@santa-tracker/localization";
 import { generateMaze, mazeConfigKey, moveThroughMaze, type MazeConfig, type MazeDirection } from "@/lib/maze";
 
@@ -21,13 +21,16 @@ function MazeBoard({ config, locale }: { config: MazeConfig; locale: string }) {
   const maze = useMemo(() => generateMaze({ seed, size }), [seed, size]);
   const [position, setPosition] = useState(maze.start);
   const [trail, setTrail] = useState<number[]>([maze.start]);
+  const positionRef = useRef(maze.start);
   const [swipeStart, setSwipeStart] = useState<{ x: number; y: number } | null>(null);
   const [announcement, setAnnouncement] = useState("");
   const complete = position === maze.goal;
 
   function move(direction: MazeDirection) {
-    const next = moveThroughMaze(maze, position, direction);
-    if (next === position) return;
+    const current = positionRef.current;
+    const next = moveThroughMaze(maze, current, direction);
+    if (next === current) return;
+    positionRef.current = next;
     setPosition(next);
     setTrail((path) => [...path, next]);
     setAnnouncement(next === maze.goal ? translator.t("advent.activity.maze.complete") : translator.t("advent.activity.maze.position", { row: Math.floor(next / maze.width) + 1, column: next % maze.width + 1 }));
@@ -41,11 +44,12 @@ function MazeBoard({ config, locale }: { config: MazeConfig; locale: string }) {
   }
 
   function handlePointerDown(event: PointerEvent<HTMLDivElement>) {
+    event.currentTarget.setPointerCapture(event.pointerId);
     setSwipeStart({ x: event.clientX, y: event.clientY });
   }
 
   function handlePointerUp(event: PointerEvent<HTMLDivElement>) {
-    if (!swipeStart) return;
+    if (!swipeStart) { setSwipeStart(null); return; }
     const dx = event.clientX - swipeStart.x;
     const dy = event.clientY - swipeStart.y;
     setSwipeStart(null);
@@ -53,10 +57,16 @@ function MazeBoard({ config, locale }: { config: MazeConfig; locale: string }) {
     move(Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? "right" : "left") : (dy > 0 ? "down" : "up"));
   }
 
+  function cancelSwipe() {
+    setSwipeStart(null);
+  }
+
   function reset() {
+    positionRef.current = maze.start;
     setPosition(maze.start);
     setTrail([maze.start]);
     setAnnouncement("");
+    setSwipeStart(null);
   }
 
   return (
@@ -72,6 +82,9 @@ function MazeBoard({ config, locale }: { config: MazeConfig; locale: string }) {
         onKeyDown={handleKey}
         onPointerDown={handlePointerDown}
         onPointerUp={handlePointerUp}
+        onPointerCancel={cancelSwipe}
+        onLostPointerCapture={cancelSwipe}
+        onPointerLeave={cancelSwipe}
       >
         {maze.cells.map((cell, index) => {
           const atStart = index === maze.start;

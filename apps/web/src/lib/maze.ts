@@ -35,6 +35,12 @@ interface MazeSearchContext {
   previous: Map<number, number | null>;
 }
 
+interface MazeMoveContext {
+  maze: Maze;
+  current: number;
+  direction: MazeDirection;
+}
+
 const SIZE_DIMENSIONS: Record<MazeSize, number> = { small: 9, medium: 13, large: 17 };
 const REVERSE: Record<MazeDirection, MazeDirection> = { up: "down", right: "left", down: "up", left: "right" };
 const DELTAS: Record<MazeDirection, { row: number; column: number }> = {
@@ -128,7 +134,10 @@ function getOpenNeighbor({ maze, cell, direction }: MazeNeighborContext): number
   const current = maze.cells[cell];
   if (!current) return null;
   if (current.walls[direction]) return null;
-  return cell + DELTAS[direction].row * maze.width + DELTAS[direction].column;
+  const row = Math.floor(cell / maze.width) + DELTAS[direction].row;
+  const column = cell % maze.width + DELTAS[direction].column;
+  if (!isInMazeBounds({ maze, row, column })) return null;
+  return row * maze.width + column;
 }
 
 export function solveMaze(maze: Maze): number[] | null {
@@ -160,14 +169,30 @@ function buildPath(previous: Map<number, number | null>, goal: number): number[]
 }
 
 export function moveThroughMaze(maze: Maze, current: number, direction: MazeDirection): number {
-  if (!Number.isInteger(current) || current < 0 || current >= maze.cells.length) return current;
-  if (maze.cells[current]?.walls[direction]) return current;
+  return getMazeDestination({ maze, current, direction }) ?? current;
+}
+
+function getMazeDestination({ maze, current, direction }: MazeMoveContext): number | null {
+  if (!isValidMazePosition({ maze, current })) return null;
+  const cell = maze.cells[current];
+  if (!cell || cell.walls[direction]) return null;
   const row = Math.floor(current / maze.width);
   const column = current % maze.width;
   const nextRow = row + DELTAS[direction].row;
   const nextColumn = column + DELTAS[direction].column;
-  if (nextRow < 0 || nextRow >= maze.height || nextColumn < 0 || nextColumn >= maze.width) return current;
+  if (!isInMazeBounds({ maze, row: nextRow, column: nextColumn })) return null;
   return nextRow * maze.width + nextColumn;
+}
+
+function isValidMazePosition({ maze, current }: Pick<MazeMoveContext, "maze" | "current">): boolean {
+  if (!Number.isInteger(current)) return false;
+  if (current < 0) return false;
+  return current < maze.cells.length;
+}
+
+function isInMazeBounds({ maze, row, column }: { maze: Maze; row: number; column: number }): boolean {
+  if (row < 0 || row >= maze.height) return false;
+  return column >= 0 && column < maze.width;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

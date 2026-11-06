@@ -44,6 +44,12 @@ interface BoundedGeneration {
   attemptLimit: number;
 }
 
+interface FilledPuzzleContext {
+  grid: (string | null)[][];
+  placements: WordsearchPuzzle["placements"];
+  random: () => number;
+}
+
 interface PlacementCheck {
   grid: (string | null)[][];
   word: string;
@@ -88,6 +94,12 @@ interface SelectionCancelKey {
   selectionPending: boolean;
 }
 
+interface PlacementSelectionContext {
+  placements: WordsearchPuzzle["placements"];
+  selectedCells: number[];
+  foundWords: string[];
+}
+
 const DEFAULT_WORDS = ["CHIMNEY", "EMBER", "MITTENS", "LANTERN", "SOLSTICE", "EVERGREEN", "CINNAMON", "SNOWFALL", "CANDLE", "NIGHTSKY"];
 const GRID_SIZE = 15;
 const MAX_TOTAL_WORD_LETTERS = Math.floor(GRID_SIZE * GRID_SIZE * 0.8);
@@ -99,14 +111,30 @@ const DIRECTIONS = [
 ] as const;
 
 export function parseWordsearch(payload: unknown): WordsearchConfig | null {
-  if (!isRecord(payload) || payload.kind !== "wordsearch") return null;
-  const seed = payload.seed === undefined ? 2026 : payload.seed;
-  const words = payload.words === undefined ? DEFAULT_WORDS : payload.words;
-  if (typeof seed !== "number" || !Number.isSafeInteger(seed)) return null;
-  const parsedWords = isWordList({ value: words });
-  if (parsedWords === null) return null;
-  if (!isPlausibleWordList(parsedWords)) return null;
-  return { seed, words: parsedWords };
+  if (!isRecord(payload)) return null;
+  if (payload.kind !== "wordsearch") return null;
+  return parseWordsearchConfig(payload);
+}
+
+function parseWordsearchConfig(payload: Record<string, unknown>): WordsearchConfig | null {
+  const seed = readWordsearchSeed(payload.seed);
+  const words = readWordsearchWords(payload.words);
+  if (seed === null || words === null) return null;
+  return { seed, words };
+}
+
+function readWordsearchSeed(value: unknown): number | null {
+  if (value === undefined) return 2026;
+  if (typeof value !== "number") return null;
+  if (!Number.isSafeInteger(value)) return null;
+  return value;
+}
+
+function readWordsearchWords(value: unknown): string[] | null {
+  const words = isWordList({ value: value === undefined ? DEFAULT_WORDS : value });
+  if (words === null) return null;
+  if (!isPlausibleWordList(words)) return null;
+  return words;
 }
 
 function isPlausibleWordList(words: string[]): boolean {
@@ -154,6 +182,12 @@ export function generateWordsearch(config: WordsearchConfig): WordsearchPuzzle {
 }
 
 export function generateWordsearchWithLimit({ config, attemptLimit }: BoundedGeneration): WordsearchPuzzle {
+  const search = createPlacementSearch({ config, attemptLimit });
+  if (!placeWords(search)) throw new Error(`Unable to place every word within ${attemptLimit} candidate attempts`);
+  return fillWordsearch({ grid: search.grid, placements: search.placements, random: search.random });
+}
+
+function createPlacementSearch({ config, attemptLimit }: BoundedGeneration): PlacementSearch {
   const { seed, words } = config;
   const size = GRID_SIZE;
   if (!isPlausibleWordList(words)) throw new Error("Word list cannot plausibly fit in a 15 by 15 grid");
@@ -163,8 +197,10 @@ export function generateWordsearchWithLimit({ config, attemptLimit }: BoundedGen
   const placements: WordsearchPuzzle["placements"] = [];
   const ordered = [...words].sort((a, b) => b.length - a.length || a.localeCompare(b));
   const search = { words: ordered, wordIndex: 0, grid, placements, size, random, budget: { attempts: 0, limit: attemptLimit } };
-  if (!placeWords(search)) throw new Error(`Unable to place every word within ${attemptLimit} candidate attempts`);
+  return search;
+}
 
+function fillWordsearch({ grid, placements, random }: FilledPuzzleContext): WordsearchPuzzle {
   const filledGrid = grid.map((row) => row.map((cell) => cell ?? randomLetter({ random })));
   return { grid: filledGrid, placements };
 }
@@ -261,6 +297,23 @@ export function wordAtSelection({ startCell, endCell, gridSize }: WordSelection)
 
 export function shouldCancelWordsearchSelection({ key, selectionPending }: SelectionCancelKey): boolean {
   return selectionPending && key === "Escape";
+}
+
+export function wordsearchConfigKey(config: WordsearchConfig): string {
+  return JSON.stringify([config.seed, config.words]);
+}
+
+export function findWordsearchPlacement({ placements, selectedCells, foundWords }: PlacementSelectionContext): WordsearchPuzzle["placements"][number] | null {
+  const reverse = [...selectedCells].reverse();
+  return placements.find((placement) => {
+    if (foundWords.includes(placement.word)) return false;
+    return hasSameCells(placement.cells, selectedCells) || hasSameCells(placement.cells, reverse);
+  }) ?? null;
+}
+
+function hasSameCells(left: number[], right: number[]): boolean {
+  if (left.length !== right.length) return false;
+  return left.every((cell, index) => cell === right[index]);
 }
 
 function isStraightSelection({ rowDistance, columnDistance, length }: SelectionVector): boolean {

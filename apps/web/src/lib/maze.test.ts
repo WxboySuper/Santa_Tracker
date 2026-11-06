@@ -50,5 +50,8 @@ describe("maze", () => {
     const broken = { ...maze, cells: maze.cells.map((cell) => ({ walls: { ...cell.walls } })) };
     broken.cells[0]!.walls.up = false;
     expect(moveThroughMaze(broken, 0, "up")).toBe(0);
+    broken.cells[8]!.walls.right = false;
+    expect(mazeNeighbors(broken, 8)).not.toContain(9);
+    expect(solveMaze(broken)?.every((cell) => cell >= 0 && cell < broken.cells.length)).toBe(true);
   });
 });
