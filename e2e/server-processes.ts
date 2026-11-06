@@ -4,7 +4,7 @@ import path from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 import type { ServerName } from "./types";
 export type ServerEntry = { name: ServerName; child: ChildProcess };
-type StartupResult = { name: ServerName; endpoint: string };
+export type StartupResult = { name: ServerName; endpoint: string };
 const maxStartupOutput = 4_000;
 
 function childHasExited(child: ChildProcess): boolean {
@@ -102,10 +102,19 @@ async function waitForServer(entry: ServerEntry): Promise<StartupResult> {
   }
 }
 
-function getStartupFailure(results: PromiseSettledResult<StartupResult>[]): Error | undefined {
-  const failed = results.find((result) => result.status === "rejected");
-  if (failed?.status !== "rejected") return undefined;
-  return failed.reason instanceof Error ? failed.reason : new Error(String(failed.reason));
+function normalizeFailure(reason: unknown): Error {
+  if (reason instanceof Error) return reason;
+  return new Error(String(reason));
+}
+
+export function getStartupFailure(results: PromiseSettledResult<StartupResult>[]): Error | undefined {
+  const failures = results.flatMap((result) => {
+    if (result.status !== "rejected") return [];
+    return [normalizeFailure(result.reason)];
+  });
+  if (failures.length === 0) return undefined;
+  if (failures.length === 1) return failures[0];
+  return new AggregateError(failures, "Failed to start Next.js servers");
 }
 
 export async function waitForServers(entries: ServerEntry[]): Promise<Record<ServerName, string>> {

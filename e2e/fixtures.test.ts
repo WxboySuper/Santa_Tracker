@@ -4,7 +4,7 @@ import path from "node:path";
 import { expect, test } from "vitest";
 import { getEndpointForProject, getRuntimeConfig } from "./fixtures";
 import { prepareFixtureData } from "./fixture-data";
-import { getLocalAddress } from "./server-processes";
+import { getLocalAddress, getStartupFailure, type StartupResult } from "./server-processes";
 
 type CalendarFixture = { source: string; temporaryRoot: string; calendarPath: string };
 
@@ -138,4 +138,17 @@ test("server address parsing rejects non-loopback hostnames", () => {
 test("server address parsing ignores unrelated URLs outside the Local line", () => {
   expect(getLocalAddress("Telemetry: https://cdn.example.com:43171\nLocal: http://localhost:43172"))
     .toBe("http://localhost:43172");
+});
+
+test("startup failure reports all failed server starts", () => {
+  const failures: PromiseSettledResult<StartupResult>[] = [
+    { status: "rejected", reason: new Error("closed server failed") },
+    { status: "rejected", reason: "open server failed" },
+  ];
+  const failure = getStartupFailure(failures);
+  expect(failure).toBeInstanceOf(AggregateError);
+  expect((failure as AggregateError).errors.map((error: Error) => error.message)).toEqual([
+    "closed server failed",
+    "open server failed",
+  ]);
 });
