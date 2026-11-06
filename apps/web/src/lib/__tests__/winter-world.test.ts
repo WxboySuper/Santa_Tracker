@@ -3,6 +3,12 @@ import { en } from "@santa-tracker/localization";
 import { winterWorldEntries } from "../winter-world-data";
 import { isWinterWorldTonight, parseLitEntryIds, parseWinterWorld, projectWinterWorldPoint } from "../winter-world";
 
+function entryById(id: string) {
+  const entry = winterWorldEntries.find((item) => item.id === id);
+  if (entry === undefined) throw new Error(`Missing winter world test entry: ${id}`);
+  return entry;
+}
+
 describe("winter world activity", () => {
   it("accepts only a winterworld payload with a known optional focus", () => {
     expect(parseWinterWorld({ kind: "winterworld" })).toEqual({});
@@ -14,16 +20,10 @@ describe("winter world activity", () => {
   });
 
   it("marks fixed dates from an injected local clock, including ranges across New Year", () => {
-    const posadas = winterWorldEntries.find((entry) => entry.id === "posadas");
-    const kwanzaa = winterWorldEntries.find((entry) => entry.id === "kwanzaa");
-    const lucia = winterWorldEntries.find((entry) => entry.id === "lucia");
-    const hanukkah = winterWorldEntries.find((entry) => entry.id === "hanukkah");
-    expect(posadas).toBeDefined();
-    expect(kwanzaa).toBeDefined();
-    expect(lucia).toBeDefined();
-    expect(hanukkah).toBeDefined();
-    if (!posadas || !kwanzaa || !lucia || !hanukkah) return;
-
+    const posadas = entryById("posadas");
+    const kwanzaa = entryById("kwanzaa");
+    const lucia = entryById("lucia");
+    const hanukkah = entryById("hanukkah");
     expect(isWinterWorldTonight(posadas, new Date(2026, 11, 16))).toBe(true);
     expect(isWinterWorldTonight(posadas, new Date(2026, 11, 25))).toBe(false);
     expect(isWinterWorldTonight(kwanzaa, new Date(2027, 0, 1))).toBe(true);
@@ -35,10 +35,7 @@ describe("winter world activity", () => {
   it("drops malformed saved candle ids and projects map points into the SVG", () => {
     expect(parseLitEntryIds(["lucia", "lucia", 2, "missing"])).toEqual(["lucia"]);
     expect(parseLitEntryIds({ lit: ["yalda"] })).toEqual([]);
-    const entry = winterWorldEntries.find((item) => item.id === "lucia");
-    expect(entry).toBeDefined();
-    if (!entry) return;
-    const point = projectWinterWorldPoint(entry);
+    const point = projectWinterWorldPoint(entryById("lucia"));
     expect(point.x).toBeGreaterThanOrEqual(40);
     expect(point.x).toBeLessThanOrEqual(760);
     expect(point.y).toBeGreaterThanOrEqual(24);
