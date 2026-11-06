@@ -2,6 +2,7 @@ import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { requireAdminAuth, verifyAdminToken } from "./auth";
 import { isFeatureOpen, resolveAccess, type FeatureAccess, type SeasonFeature } from "./season";
+import { currentTime } from "./clock";
 import { readFeatureFlags } from "./feature-flags";
 
 /**
@@ -45,13 +46,13 @@ function isAdminSession(): Promise<boolean> {
 }
 
 /** Page-side gate: true when the visitor may see `feature` now. */
-export async function canViewFeature(feature: SeasonFeature, now: Date = new Date()): Promise<boolean> {
+export async function canViewFeature(feature: SeasonFeature, now: Date = currentTime()): Promise<boolean> {
   if (await publiclyOpen(feature, now)) return true;
   return isAdminSession();
 }
 
 /** API-side decision, taken from the request's own credentials (cookie or bearer token). */
-export async function featureAccess(feature: SeasonFeature, request: Request, now: Date = new Date()): Promise<FeatureAccess> {
+export async function featureAccess(feature: SeasonFeature, request: Request, now: Date = currentTime()): Promise<FeatureAccess> {
   if (await publiclyOpen(feature, now)) return "open";
   const admin = await asAdmin(async () => (await requireAdminAuth(request)).ok);
   return resolveAccess(false, admin);

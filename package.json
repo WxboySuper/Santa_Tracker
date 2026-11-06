@@ -33,6 +33,8 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "e2e": "playwright test",
+    "rehearsal": "tsx tools/rehearsal/rehearse.ts",
+    "load:local": "node tools/rehearsal/load.mjs",
     "santa:publish": "node tools/santa-publish.mjs",
     "santa:publish:remote": "node tools/santa-publish.mjs --remote",
     "route:generate": "tsx tools/route-generator/generate.mts"
