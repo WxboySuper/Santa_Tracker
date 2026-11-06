@@ -4,8 +4,11 @@ import type { ServerName } from "./types";
 import { closeCalendar, getCalendarPath, openFirstDay, parseCalendar, type Calendar } from "./calendar-validation";
 import { isRecord } from "./validation";
 type FixtureDataSource = { source: string; temporaryRoot: string };
+type FixtureRouteNode = Record<string, unknown> & { schedule?: unknown };
+type SantaRoute = { meta: Record<string, unknown>; route_nodes: FixtureRouteNode[] };
+const SCHEDULE_TIME_KEYS = ["arrival_utc", "departure_utc"] as const;
 
-function isSantaRoute(value: unknown): boolean {
+function isSantaRoute(value: unknown): value is SantaRoute {
 	if (!isRecord(value) || !isRecord(value.meta)) return false;
 	if (!Array.isArray(value.route_nodes) || value.route_nodes.length === 0) return false;
 	return value.route_nodes.every(isRecord);
@@ -29,11 +32,9 @@ function liveWindowShift(nodes: { schedule?: unknown }[]): number | null {
 	let count = 0;
 	for (const node of nodes) {
 		if (!isRecord(node.schedule)) continue;
-		for (const key of ["arrival_utc", "departure_utc"] as const) {
-			const candidate = node.schedule[key];
-			if (typeof candidate !== "string") continue;
-			const time = Date.parse(candidate);
-			if (!Number.isFinite(time)) continue;
+		for (const key of SCHEDULE_TIME_KEYS) {
+			const time = scheduleTime(node.schedule[key]);
+			if (time === null) continue;
 			minimum = Math.min(minimum, time);
 			maximum = Math.max(maximum, time);
 			count++;
@@ -43,15 +44,21 @@ function liveWindowShift(nodes: { schedule?: unknown }[]): number | null {
 	return Date.now() - (minimum + (maximum - minimum) / 2);
 }
 
+/** Parses a valid timestamp from one schedule field. */
+function scheduleTime(value: unknown): number | null {
+	if (typeof value !== "string") return null;
+	const parsed = Date.parse(value);
+	return Number.isFinite(parsed) ? parsed : null;
+}
+
 /** Moves a route node's arrival and departure by the same interval. */
 function shiftNodeTimes(node: { schedule?: unknown }, shift: number): void {
 	const schedule = node.schedule;
 	if (!isRecord(schedule)) return;
-	for (const key of ["arrival_utc", "departure_utc"] as const) {
+	for (const key of SCHEDULE_TIME_KEYS) {
 		const value = schedule[key];
-		if (typeof value !== "string") continue;
-		const parsed = Date.parse(value);
-		if (!Number.isFinite(parsed)) continue;
+		const parsed = scheduleTime(value);
+		if (parsed === null) continue;
 		schedule[key] = new Date(parsed + shift).toISOString();
 	}
 }
