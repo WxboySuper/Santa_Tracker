@@ -1,0 +1,329 @@
+import * as THREE from 'three';
+import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
+import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
+import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
+import type { Building, BuildingId } from './village-buildings';
+import { PLAZA, createWorld, type World } from './village-world';
+
+export type EngineEvents = {
+  onHover: (id: BuildingId | null, anchor: { x: number; y: number } | null) => void;
+  onSelect: (id: BuildingId | null) => void;
+  onReady: () => void;
+};
+
+export type EngineOptions = {
+  canvas: HTMLCanvasElement;
+  reducedMotion: boolean;
+  events: EngineEvents;
+};
+
+type Pose = { yaw: number; pitch: number; distance: number; target: THREE.Vector3 };
+
+const HOME: Pose = { yaw: 0.46, pitch: 0.36, distance: 47, target: new THREE.Vector3(0, 3.6, 0.2) };
+const damp = (current: number, target: number, rate: number, delta: number) => current + (target - current) * (1 - Math.exp(-rate * delta));
+
+/**
+ * The renderer, camera rig, picking and the frame loop. It owns every WebGL resource and releases
+ * them in dispose(), so mounting and unmounting the page leaks nothing.
+ */
+export class VillageEngine {
+  private readonly renderer: THREE.WebGLRenderer;
+  private readonly scene = new THREE.Scene();
+  private readonly camera = new THREE.PerspectiveCamera(34, 1, 0.5, 700);
+  private readonly composer: EffectComposer;
+  private readonly bloom: UnrealBloomPass;
+  private readonly world: World;
+  private readonly raycaster = new THREE.Raycaster();
+  private readonly pointer = new THREE.Vector2(9, 9);
+  private readonly timer = new THREE.Timer();
+  private readonly pose: Pose = { ...HOME, target: HOME.target.clone() };
+  private readonly goal: Pose = { ...HOME, target: HOME.target.clone() };
+  private readonly idle = { x: 0, y: 0 };
+  private readonly events: EngineEvents;
+  private readonly reducedMotion: boolean;
+  private frame = 0;
+  private running = false;
+  private hovered: Building | null = null;
+  private selected: Building | null = null;
+  private dragging = false;
+  private dragMoved = 0;
+  private lastPointer = { x: 0, y: 0 };
+  private lastInteraction = 0;
+  private pixelRatio = 1;
+  private slowFrames = 0;
+  private readonly listeners: (() => void)[] = [];
+  private debugPose: { position: THREE.Vector3; target: THREE.Vector3 } | null = null;
+  private shift = 0;
+
+  constructor({ canvas, reducedMotion, events }: EngineOptions) {
+    this.events = events;
+    this.reducedMotion = reducedMotion;
+    this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
+    this.renderer.shadowMap.enabled = true;
+    this.renderer.shadowMap.type = THREE.PCFShadowMap;
+    this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    this.renderer.toneMappingExposure = 0.95;
+    this.pixelRatio = Math.min(window.devicePixelRatio || 1, 2);
+    this.renderer.setPixelRatio(this.pixelRatio);
+
+    this.scene.background = new THREE.Color(0x07122c);
+    this.scene.fog = new THREE.FogExp2(0x0c1f45, 0.0058);
+    this.world = createWorld();
+    this.scene.add(this.world.root);
+
+    this.composer = new EffectComposer(this.renderer);
+    this.composer.addPass(new RenderPass(this.scene, this.camera));
+    this.bloom = new UnrealBloomPass(new THREE.Vector2(1, 1), 0.34, 0.55, 0.92);
+    this.composer.addPass(this.bloom);
+    this.composer.addPass(new OutputPass());
+
+    this.bindEvents(canvas);
+    this.resize();
+    this.applyCamera(1);
+    this.lastInteraction = performance.now();
+  }
+
+  /* ----------------------------------------------------------------- public */
+
+  get buildings(): Building[] {
+    return this.world.buildings;
+  }
+
+  start(): void {
+    if (this.running) return;
+    this.running = true;
+    this.timer.reset();
+    this.frame = requestAnimationFrame(this.tick);
+    this.events.onReady();
+  }
+
+  stop(): void {
+    this.running = false;
+    cancelAnimationFrame(this.frame);
+  }
+
+  /** Development aid: place the camera anywhere, or pass null to return to the rig. */
+  debugView(position: [number, number, number] | null, target: [number, number, number] = [0, 0, 0]): void {
+    this.debugPose = position ? { position: new THREE.Vector3(...position), target: new THREE.Vector3(...target) } : null;
+  }
+
+  sleighPosition(): [number, number, number] {
+    const point = this.world.sleighPosition();
+    return [point.x, point.y, point.z];
+  }
+
+  setPlaying(playing: boolean): void {
+    this.world.buildings.find((building) => building.id === 'music')?.setPlaying?.(playing);
+  }
+
+  select(id: BuildingId | null): void {
+    const building = id ? (this.world.buildings.find((entry) => entry.id === id) ?? null) : null;
+    this.selected = building;
+    this.lastInteraction = performance.now();
+    if (!building) {
+      this.goal.yaw = HOME.yaw;
+      this.goal.pitch = HOME.pitch;
+      this.goal.distance = HOME.distance;
+      this.goal.target.copy(HOME.target);
+    } else {
+      const position = building.group.position;
+      const tall = id === 'tower' || id === 'observatory';
+      this.goal.target.set(position.x, tall ? 3.6 : 1.9, position.z);
+      this.goal.distance = tall ? 24 : id === 'workshop' ? 23 : 19;
+      this.goal.pitch = tall ? 0.3 : id === 'workshop' ? 0.52 : 0.34;
+      const toPlaza = Math.atan2(PLAZA.x - position.x, PLAZA.z - position.z);
+      this.goal.yaw = THREE.MathUtils.clamp(toPlaza * 0.5, -0.9, 0.9) + 0.32;
+    }
+    this.events.onSelect(id);
+  }
+
+  resize(): void {
+    const canvas = this.renderer.domElement;
+    const width = canvas.clientWidth || 1;
+    const height = canvas.clientHeight || 1;
+    this.renderer.setPixelRatio(this.pixelRatio);
+    this.renderer.setSize(width, height, false);
+    this.composer.setPixelRatio(this.pixelRatio);
+    this.composer.setSize(width, height);
+    this.camera.aspect = width / height;
+    this.camera.fov = width / height < 0.8 ? 56 : width / height < 1.2 ? 46 : 38;
+    this.camera.updateProjectionMatrix();
+  }
+
+  dispose(): void {
+    this.stop();
+    this.listeners.forEach((remove) => remove());
+    this.scene.traverse((object) => {
+      const renderable = object as THREE.Object3D & { geometry?: THREE.BufferGeometry; material?: THREE.Material | THREE.Material[] };
+      renderable.geometry?.dispose();
+      const materials = Array.isArray(renderable.material) ? renderable.material : renderable.material ? [renderable.material] : [];
+      materials.forEach((material) => material.dispose());
+    });
+    this.composer.dispose();
+    this.renderer.dispose();
+  }
+
+  /* ----------------------------------------------------------------- input */
+
+  private bindEvents(canvas: HTMLCanvasElement): void {
+    const add = (target: EventTarget, type: string, handler: (event: never) => void, options?: AddEventListenerOptions) => {
+      target.addEventListener(type, handler as EventListener, options);
+      this.listeners.push(() => target.removeEventListener(type, handler as EventListener));
+    };
+    add(canvas, 'pointerdown', (event: PointerEvent) => {
+      this.dragging = true;
+      this.dragMoved = 0;
+      this.lastPointer = { x: event.clientX, y: event.clientY };
+      canvas.setPointerCapture(event.pointerId);
+    });
+    add(canvas, 'pointermove', (event: PointerEvent) => {
+      this.lastInteraction = performance.now();
+      const rect = canvas.getBoundingClientRect();
+      this.pointer.set(((event.clientX - rect.left) / rect.width) * 2 - 1, -((event.clientY - rect.top) / rect.height) * 2 + 1);
+      if (!this.dragging) return;
+      const dx = event.clientX - this.lastPointer.x;
+      const dy = event.clientY - this.lastPointer.y;
+      this.dragMoved += Math.abs(dx) + Math.abs(dy);
+      this.lastPointer = { x: event.clientX, y: event.clientY };
+      if (this.selected) return;
+      this.goal.yaw = THREE.MathUtils.clamp(this.goal.yaw - dx * 0.004, -0.9, 1.5);
+      this.goal.pitch = THREE.MathUtils.clamp(this.goal.pitch + dy * 0.003, 0.34, 0.95);
+    });
+    add(canvas, 'pointerup', (event: PointerEvent) => {
+      this.dragging = false;
+      canvas.releasePointerCapture(event.pointerId);
+      if (this.dragMoved < 6) this.click();
+    });
+    add(canvas, 'pointerleave', () => {
+      this.pointer.set(9, 9);
+    });
+    add(canvas, 'wheel', (event: WheelEvent) => {
+      if (this.selected) return;
+      event.preventDefault();
+      this.goal.distance = THREE.MathUtils.clamp(this.goal.distance + event.deltaY * 0.03, 36, 74);
+      this.lastInteraction = performance.now();
+    }, { passive: false });
+    add(window, 'resize', () => this.resize());
+    add(document, 'visibilitychange', () => {
+      if (document.visibilityState === 'visible' && this.running) this.timer.update();
+    });
+  }
+
+  private pick(): Building | null {
+    this.raycaster.setFromCamera(this.pointer, this.camera);
+    const hits = this.raycaster.intersectObjects(this.world.buildings.map((building) => building.hit), false);
+    const first = hits[0];
+    return first ? (this.world.buildings.find((building) => building.hit === first.object) ?? null) : null;
+  }
+
+  private click(): void {
+    const building = this.pick();
+    if (building) this.select(building.id);
+    else if (this.selected) this.select(null);
+  }
+
+  /* ----------------------------------------------------------------- frame */
+
+  private applyCamera(delta: number): void {
+    const rate = 3.2;
+    this.pose.yaw = damp(this.pose.yaw, this.goal.yaw, rate, delta);
+    this.pose.pitch = damp(this.pose.pitch, this.goal.pitch, rate, delta);
+    this.pose.distance = damp(this.pose.distance, this.goal.distance, rate, delta);
+    this.pose.target.x = damp(this.pose.target.x, this.goal.target.x, rate, delta);
+    this.pose.target.y = damp(this.pose.target.y, this.goal.target.y, rate, delta);
+    this.pose.target.z = damp(this.pose.target.z, this.goal.target.z, rate, delta);
+    const { x, y } = this.idle;
+    const yaw = this.pose.yaw + x;
+    const pitch = this.pose.pitch + y;
+    this.camera.position.set(
+      this.pose.target.x + Math.sin(yaw) * Math.cos(pitch) * this.pose.distance,
+      this.pose.target.y + Math.sin(pitch) * this.pose.distance,
+      this.pose.target.z + Math.cos(yaw) * Math.cos(pitch) * this.pose.distance,
+    );
+    this.camera.lookAt(this.pose.target);
+    if (this.debugPose) {
+      this.camera.position.copy(this.debugPose.position);
+      this.camera.lookAt(this.debugPose.target);
+    }
+    this.applyViewShift(delta);
+  }
+
+  /** With a detail panel open on a wide screen, slide the scene left so the building stays in view. */
+  private applyViewShift(delta: number): void {
+    const wide = this.camera.aspect > 1.15;
+    this.shift = damp(this.shift, this.selected && wide ? 1 : 0, 4, delta);
+    const canvas = this.renderer.domElement;
+    const width = canvas.clientWidth || 1;
+    const height = canvas.clientHeight || 1;
+    if (this.shift < 0.002) {
+      this.camera.clearViewOffset();
+      return;
+    }
+    this.camera.setViewOffset(width, height, width * 0.15 * this.shift, 0, width, height);
+  }
+
+  private updateHover(): void {
+    if (this.dragging) return;
+    const next = this.selected ?? this.pick();
+    if (next === this.hovered) {
+      if (next) this.events.onHover(next.id, this.project(next));
+      return;
+    }
+    this.hovered = next;
+    this.renderer.domElement.style.cursor = next && !this.selected ? 'pointer' : 'grab';
+    this.events.onHover(next ? next.id : null, next ? this.project(next) : null);
+  }
+
+  private project(building: Building): { x: number; y: number } {
+    const anchor = building.group.localToWorld(building.labelAnchor.clone());
+    anchor.project(this.camera);
+    const canvas = this.renderer.domElement;
+    return { x: ((anchor.x + 1) / 2) * canvas.clientWidth, y: ((1 - anchor.y) / 2) * canvas.clientHeight };
+  }
+
+  private adaptQuality(delta: number): void {
+    if (delta > 0.034) this.slowFrames += 1;
+    else this.slowFrames = Math.max(0, this.slowFrames - 0.2);
+    if (this.slowFrames > 50 && this.pixelRatio > 1) {
+      this.pixelRatio = Math.max(1, this.pixelRatio - 0.5);
+      this.slowFrames = 0;
+      this.resize();
+    } else if (this.slowFrames > 110 && this.bloom.enabled) {
+      this.bloom.enabled = false;
+      this.slowFrames = 0;
+    }
+  }
+
+  private readonly tick = (): void => {
+    if (!this.running) return;
+    this.frame = requestAnimationFrame(this.tick);
+    if (document.visibilityState !== 'visible') return;
+    this.timer.update();
+    const delta = Math.min(this.timer.getDelta(), 0.1);
+    const time = this.timer.getElapsed();
+    this.world.update(this.reducedMotion ? 0 : time, delta);
+    const idleFor = performance.now() - this.lastInteraction;
+    if (!this.reducedMotion && !this.selected && !this.dragging) {
+      const sway = Math.min(1, Math.max(0, (idleFor - 2500) / 3000));
+      this.idle.x = damp(this.idle.x, Math.sin(time * 0.11) * 0.2 * sway, 1.2, delta);
+      this.idle.y = damp(this.idle.y, Math.sin(time * 0.083) * 0.035 * sway, 1.2, delta);
+    } else {
+      this.idle.x = damp(this.idle.x, 0, 3, delta);
+      this.idle.y = damp(this.idle.y, 0, 3, delta);
+    }
+    this.applyCamera(delta);
+    this.updateHover();
+    this.world.buildings.forEach((building) => {
+      const boost = building === this.hovered ? 1 : 0;
+      building.glowMaterials.forEach((material) => {
+        const base = (material.userData.base as number | undefined) ?? material.emissiveIntensity;
+        material.userData.base = base;
+        material.userData.hover = damp((material.userData.hover as number | undefined) ?? 0, boost, 10, delta);
+        material.emissiveIntensity = base * (1 + (material.userData.hover as number) * 0.9);
+      });
+    });
+    this.adaptQuality(delta);
+    this.composer.render();
+  };
+}
