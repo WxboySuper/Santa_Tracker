@@ -22,12 +22,19 @@ const renderText: Renderer = (day) => {
   const text = textOf(day);
   return text ? (
     <div className="space-y-4 text-lg leading-relaxed">
-      {text.split(/\n\s*\n/).map((paragraph, index) => (
-        <p key={index}>{paragraph}</p>
-      ))}
+      {renderParagraphs(text)}
     </div>
   ) : null;
 };
+
+function renderParagraphs(text: string): ReactNode[] {
+  const occurrences = new Map<string, number>();
+  return text.split(/\n\s*\n/).map((paragraph) => {
+    const occurrence = occurrences.get(paragraph) ?? 0;
+    occurrences.set(paragraph, occurrence + 1);
+    return <p key={`${paragraph}-${occurrence}`}>{paragraph}</p>;
+  });
+}
 
 /** An activity shipped as static files, shown in a titled same-origin frame. */
 const renderEmbed: Renderer = (day) => {
