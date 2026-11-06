@@ -11,14 +11,19 @@ export interface ThrottleStore {
   delete(key: string): Promise<void>;
 }
 
-const GLOBAL_KEY = "global";
-const MAX_STORE_ENTRIES = 10_001;
-const MAX_PENDING_FAILURES = 10_000;
+export interface ThrottleDecision {
+  retryAfterSeconds: number;
+}
+
+export interface LoginThrottle {
+  check(ip: string): Promise<ThrottleDecision | null>;
+  recordFailure(ip: string): Promise<ThrottleDecision | null>;
+  clear(ip: string): Promise<void>;
+}
+
+const MAX_STORE_ENTRIES = 10_000;
 const IP_WINDOW_MS = 15 * 60 * 1000;
-const GLOBAL_WINDOW_MS = 60 * 60 * 1000;
 const ATTEMPT_LIMIT = 5;
-const GLOBAL_ATTEMPT_LIMIT = 30;
-const GLOBAL_ATTEMPT_STORAGE_LIMIT = GLOBAL_ATTEMPT_LIMIT + 1;
 const INITIAL_LOCKOUT_MS = 15 * 60 * 1000;
 const MAX_LOCKOUT_MS = 60 * 60 * 1000;
 const LOCKOUT_RESET_MS = 24 * 60 * 60 * 1000;
@@ -32,34 +37,40 @@ export class ThrottleStoreFullError extends Error {
   }
 }
 
+interface StoreOptions {
+  maxEntries?: number;
+  clock?: () => number;
+}
+
+interface Runtime {
+  store: ThrottleStore;
+  clock: () => number;
+}
+
+// Workers isolates are ephemeral. This per-IP memory limit is deliberate for a single-owner site.
+// A future Cloudflare KV ThrottleStore can share state when the site needs distributed enforcement.
 export class InMemoryThrottleStore implements ThrottleStore {
   private readonly values = new Map<string, ThrottleState>();
   private readonly maxEntries: number;
   private readonly clock: () => number;
 
-  constructor(options: ThrottleStoreOptions = {}) {
+  constructor(options: StoreOptions = {}) {
     this.maxEntries = options.maxEntries ?? MAX_STORE_ENTRIES;
     this.clock = options.clock ?? Date.now;
-    if (this.maxEntries < 2) throw new Error("Throttle store must allow global and per-IP state");
+    if (this.maxEntries < 1) throw new Error("Throttle store must allow per-IP state");
   }
 
   async get(key: string): Promise<ThrottleState | undefined> {
     const value = this.values.get(key);
-    if (value) {
-      this.values.delete(key);
-      this.values.set(key, value);
-    }
-    return value ? { ...value, attempts: [...value.attempts] } : undefined;
+    if (!value) return undefined;
+    this.values.delete(key);
+    this.values.set(key, value);
+    return { ...value, attempts: [...value.attempts] };
   }
 
   async set(key: string, value: ThrottleState): Promise<void> {
-    const isUpdate = this.values.has(key);
-    if (isUpdate) this.values.delete(key);
-    if (this.values.size >= this.maxEntries) {
-      const evictable = this.findEvictableIpEntry();
-      if (!evictable) throw new ThrottleStoreFullError();
-      this.values.delete(evictable);
-    }
+    this.evictForNewIp(key);
+    this.values.delete(key);
     this.values.set(key, { ...value, attempts: [...value.attempts] });
   }
 
@@ -70,227 +81,115 @@ export class InMemoryThrottleStore implements ThrottleStore {
   canStore(key: string): boolean {
     if (this.values.has(key)) return true;
     if (this.values.size < this.maxEntries) return true;
-    return this.findEvictableIpEntry() !== undefined;
+    return this.findEvictableIp() !== undefined;
   }
 
-  private findEvictableIpEntry(): string | undefined {
+  private evictForNewIp(key: string): void {
+    if (this.values.has(key)) return;
+    if (this.values.size < this.maxEntries) return;
+    const evictable = this.findEvictableIp();
+    if (!evictable) throw new ThrottleStoreFullError();
+    this.values.delete(evictable);
+  }
+
+  private findEvictableIp(): string | undefined {
     const now = this.clock();
     for (const [key, state] of this.values) {
-      if (isExpiredIpState({ key, state, now })) return key;
+      if (isExpiredState(state, now)) return key;
     }
-    return this.findLeastRecentlyFailedNonLockout(now);
-  }
-
-  private findLeastRecentlyFailedNonLockout(now: number): string | undefined {
-    let leastRecent: { key: string; failedAt: number } | undefined;
+    let candidate: { key: string; lastFailure: number } | undefined;
     for (const [key, state] of this.values) {
-      if (key === GLOBAL_KEY) continue;
       if (state.lockoutUntil > now) continue;
-      const failedAt = state.attempts.at(-1) ?? state.lastLockoutAt;
-      if (!leastRecent) {
-        leastRecent = { key, failedAt };
+      const lastFailure = state.attempts.at(-1) ?? state.lastLockoutAt;
+      if (!candidate) {
+        candidate = { key, lastFailure };
         continue;
       }
-      if (failedAt < leastRecent.failedAt) leastRecent = { key, failedAt };
+      if (lastFailure < candidate.lastFailure) candidate = { key, lastFailure };
     }
-    return leastRecent?.key;
+    return candidate?.key;
   }
 }
 
-export interface ThrottleDecision {
-  retryAfterSeconds: number;
-  reason: "ip" | "global";
-}
-
-export interface LoginThrottle {
-  check(ip: string, authenticated?: boolean): Promise<ThrottleDecision | null>;
-  recordFailure(ip: string, authenticated?: boolean): Promise<ThrottleDecision | null>;
-  clear(ip: string): Promise<void>;
-}
-
-interface ThrottleRuntime {
-  store: ThrottleStore;
-  clock: () => number;
-}
-
-interface LoginAttempt {
-  ip: string;
-  authenticated: boolean;
-}
-
-interface StateQuery {
-  store: ThrottleStore;
-  key: string;
-  now: number;
-  windowMs: number;
-}
-
-interface DecisionInput {
-  until: number;
-  now: number;
-  reason: ThrottleDecision["reason"];
-}
-
-interface ThrottleStoreOptions {
-  maxEntries?: number;
-  clock?: () => number;
-}
-
-interface ExpiryQuery {
-  key: string;
-  state: ThrottleState;
-  now: number;
-}
-
-interface TimedRuntime extends ThrottleRuntime {
-  now: number;
-}
-
-// Workers isolates are ephemeral, so this memory store only offers best-effort throttling.
-// A Cloudflare KV binding could implement ThrottleStore later for shared state.
 export function createLoginThrottle(store: ThrottleStore = new InMemoryThrottleStore(), clock: () => number = Date.now): LoginThrottle {
   const runtime = { store, clock };
-  let failureQueue: Promise<void> = Promise.resolve();
-  let pendingOperations = 0;
-  const enqueue = <T>(task: () => Promise<T>, overflow: () => T): Promise<T> => {
-    if (pendingOperations >= MAX_PENDING_FAILURES) return Promise.resolve(overflow());
-    pendingOperations += 1;
-    const current = failureQueue.then(task, task);
-    failureQueue = current.then(() => undefined, () => undefined);
-    return current.finally(() => {
-      pendingOperations -= 1;
-    });
-  };
   return {
-    check(ip, authenticated = false) {
-      return enqueue(
-        () => failClosedOnFullStore(() => checkThrottle(runtime, { ip, authenticated }), clock),
-        () => ({ retryAfterSeconds: 1, reason: "global" }),
-      );
-    },
-    recordFailure(ip, authenticated = false) {
-      return enqueue(
-        () => failClosedOnFullStore(() => recordFailedAttempt(runtime, { ip, authenticated }), clock),
-        () => ({ retryAfterSeconds: 1, reason: "global" }),
-      );
-    },
-    async clear(ip) {
-      const task = () => runtime.store.delete(`${IP_PREFIX}${ip}`);
-      const current = failureQueue.then(task, task);
-      failureQueue = current.then(() => undefined, () => undefined);
-      await current;
-    },
+    check(ip) { return checkIp(runtime, ip); },
+    recordFailure(ip) { return recordIpFailure(runtime, ip); },
+    clear(ip) { return store.delete(ipKey(ip)); },
   };
 }
 
-async function failClosedOnFullStore<T>(task: () => Promise<T>, clock: () => number): Promise<T | ThrottleDecision> {
+async function checkIp(runtime: Runtime, ip: string): Promise<ThrottleDecision | null> {
+  const { store, clock } = runtime;
+  const key = ipKey(ip);
+  const existing = await store.get(key);
+  const now = clock();
+  if (!existing) return checkUnknownIpCapacity(store, key);
+  if (existing.lockoutUntil <= now) return null;
+  return lockoutDecision(existing.lockoutUntil, now);
+}
+
+function checkUnknownIpCapacity(store: ThrottleStore, key: string): ThrottleDecision | null {
+  if (!storeCanNotStoreUnknownIp(store, key)) return null;
+  return { retryAfterSeconds: STORE_FULL_RETRY_MS / 1000 };
+}
+
+function storeCanNotStoreUnknownIp(store: ThrottleStore, key: string): boolean {
+  if (!(store instanceof InMemoryThrottleStore)) return false;
+  return !store.canStore(key);
+}
+
+async function recordIpFailure(runtime: Runtime, ip: string): Promise<ThrottleDecision | null> {
+  const { store, clock } = runtime;
+  const key = ipKey(ip);
+  const now = clock();
+  const current = await store.get(key) ?? emptyState();
+  if (current.lockoutUntil > now) return lockoutDecision(current.lockoutUntil, now);
+  const attempts = current.attempts.filter((timestamp) => now - timestamp < IP_WINDOW_MS);
+  attempts.push(now);
+  const next = nextFailureState(current, attempts, now);
   try {
-    return await task();
+    await store.set(key, next);
   } catch (error) {
     if (!(error instanceof ThrottleStoreFullError)) throw error;
-    const now = clock();
-    return decision({ until: now + STORE_FULL_RETRY_MS, now, reason: "global" });
+    return { retryAfterSeconds: STORE_FULL_RETRY_MS / 1000 };
   }
+  if (next.lockoutUntil > now) return lockoutDecision(next.lockoutUntil, now);
+  return null;
 }
 
-async function recordFailedAttempt(runtime: ThrottleRuntime, attempt: LoginAttempt): Promise<ThrottleDecision | null> {
-  const { store, clock } = runtime;
-  const now = clock();
-  const key = `${IP_PREFIX}${attempt.ip}`;
-  const state = await readState({ store, key, now, windowMs: IP_WINDOW_MS });
-  if (state.lockoutUntil > now) return checkThrottle(runtime, attempt);
-  if (!attempt.authenticated) await recordGlobalFailure({ ...runtime, now });
-
-  const storeLimit = await saveUpdatedFailure({ store, key, state: nextFailureState(state, now), now });
-  if (storeLimit) return storeLimit;
-  return checkThrottle(runtime, attempt);
-}
-
-function nextFailureState(state: ThrottleState, now: number): ThrottleState {
-  const previousLockoutAt = isStaleLockout(state, now) ? -1 : state.lastLockoutAt;
-  const lockoutLevel = previousLockoutAt < 0 ? 0 : state.lockoutLevel;
-  const attempts = [...state.attempts, now];
-  if (attempts.length < ATTEMPT_LIMIT) return { ...state, attempts, lastLockoutAt: previousLockoutAt, lockoutLevel };
+function nextFailureState(current: ThrottleState, attempts: number[], now: number): ThrottleState {
+  const lockoutWasReset = isLockoutReset(current, now);
+  const lockoutLevel = lockoutWasReset ? 0 : current.lockoutLevel;
+  if (attempts.length < ATTEMPT_LIMIT) {
+    return { ...current, attempts, lockoutLevel, lastLockoutAt: lockoutWasReset ? -1 : current.lastLockoutAt };
+  }
   const nextLevel = lockoutLevel + 1;
   const duration = Math.min(INITIAL_LOCKOUT_MS * 2 ** (nextLevel - 1), MAX_LOCKOUT_MS);
   return { attempts, lockoutUntil: now + duration, lockoutLevel: nextLevel, lastLockoutAt: now };
 }
 
-async function saveUpdatedFailure(input: { store: ThrottleStore; key: string; state: ThrottleState; now: number }): Promise<ThrottleDecision | null> {
-  const { store, key, state, now } = input;
-  try {
-    await store.set(key, state);
-    return null;
-  } catch (error) {
-    if (!(error instanceof ThrottleStoreFullError)) throw error;
-    return decision({ until: now + STORE_FULL_RETRY_MS, now, reason: "global" });
-  }
-}
-
-async function checkThrottle(runtime: ThrottleRuntime, attempt: LoginAttempt): Promise<ThrottleDecision | null> {
-  const { store, clock } = runtime;
-  const now = clock();
-  const key = `${IP_PREFIX}${attempt.ip}`;
-  const storedState = await store.get(key);
-  const ipState = await readState({ store, key, now, windowMs: IP_WINDOW_MS });
-  const capacityLimit = storeCapacityDecision({ store, key, now, storedState });
-  if (capacityLimit) return capacityLimit;
-  if (ipState.lockoutUntil > now) return decision({ until: ipState.lockoutUntil, now, reason: "ip" });
-  if (attempt.authenticated) return null;
-  const globalState = await readState({ store, key: GLOBAL_KEY, now, windowMs: GLOBAL_WINDOW_MS });
-  if (globalState.attempts.length > GLOBAL_ATTEMPT_LIMIT) {
-    return decision({ until: globalState.attempts[0]! + GLOBAL_WINDOW_MS, now, reason: "global" });
-  }
-  return null;
-}
-
-async function recordGlobalFailure(input: TimedRuntime): Promise<void> {
-  const { store, now } = input;
-  const globalState = await readState({ store, key: GLOBAL_KEY, now, windowMs: GLOBAL_WINDOW_MS });
-  globalState.attempts.push(now);
-  globalState.attempts = globalState.attempts.slice(-GLOBAL_ATTEMPT_STORAGE_LIMIT);
-  await store.set(GLOBAL_KEY, globalState);
-}
-
-async function readState(query: StateQuery): Promise<ThrottleState> {
-  const { store, key, now, windowMs } = query;
-  const state = await store.get(key) ?? { attempts: [], lockoutUntil: 0, lockoutLevel: 0, lastLockoutAt: -1 };
-  const attempts = state.attempts.filter((timestamp) => now - timestamp < windowMs);
-  const next = { ...state, attempts };
-  if (attempts.length !== state.attempts.length) await store.set(key, next);
-  return next;
-}
-
-function isExpiredIpState(query: ExpiryQuery): boolean {
-  const { key, state, now } = query;
-  if (key === GLOBAL_KEY) return false;
-  if (state.lockoutUntil > now) return false;
-  if (state.attempts.some((timestamp) => now - timestamp < IP_WINDOW_MS)) return false;
-  if (state.lastLockoutAt < 0) return true;
-  return now - state.lastLockoutAt >= LOCKOUT_RESET_MS;
-}
-
-function isStaleLockout(state: ThrottleState, now: number): boolean {
+function isLockoutReset(state: ThrottleState, now: number): boolean {
   if (state.lastLockoutAt < 0) return false;
   return now - state.lastLockoutAt >= LOCKOUT_RESET_MS;
 }
 
-function decision(input: DecisionInput): ThrottleDecision {
-  const { until, now, reason } = input;
-  return { retryAfterSeconds: Math.max(1, Math.ceil((until - now) / 1000)), reason };
+function emptyState(): ThrottleState {
+  return { attempts: [], lockoutUntil: 0, lockoutLevel: 0, lastLockoutAt: -1 };
 }
 
-interface StoreCapacityQuery {
-  store: ThrottleStore;
-  key: string;
-  now: number;
-  storedState: ThrottleState | undefined;
+function lockoutDecision(until: number, now: number): ThrottleDecision {
+  return { retryAfterSeconds: Math.max(1, Math.ceil((until - now) / 1000)) };
 }
 
-function storeCapacityDecision(query: StoreCapacityQuery): ThrottleDecision | null {
-  const { store, key, now, storedState } = query;
-  if (storedState) return null;
-  if (!(store instanceof InMemoryThrottleStore)) return null;
-  if (store.canStore(key)) return null;
-  return decision({ until: now + STORE_FULL_RETRY_MS, now, reason: "global" });
+function ipKey(ip: string): string {
+  return `${IP_PREFIX}${ip}`;
+}
+
+function isExpiredState(state: ThrottleState, now: number): boolean {
+  if (state.lockoutUntil > now) return false;
+  if (state.attempts.some((timestamp) => now - timestamp < IP_WINDOW_MS)) return false;
+  if (state.lastLockoutAt < 0) return true;
+  return now - state.lastLockoutAt >= LOCKOUT_RESET_MS;
 }
