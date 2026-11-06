@@ -3,7 +3,13 @@ import { getSecretKey, getAdminPassword } from "./config";
 
 // Use HS256 with SECRET_KEY — replaces Flask's URLSafeTimedSerializer
 const alg = "HS256";
-const TOKEN_EXPIRY = "24h";
+export const ADMIN_SESSION_TTL_SECONDS = 12 * 60 * 60;
+
+export function shouldUseSecureAdminCookie(): boolean {
+  // Use a stable policy so logout can clear the cookie even if proxy headers differ.
+  // HTTPS requests (including those marked by x-forwarded-proto) always require Secure.
+  return true;
+}
 
 function getSecret(): Uint8Array {
   return new TextEncoder().encode(getSecretKey());
@@ -14,7 +20,7 @@ export async function createAdminToken(): Promise<string> {
   const jwt = await new jose.SignJWT({ admin: true })
     .setProtectedHeader({ alg })
     .setIssuedAt()
-    .setExpirationTime(TOKEN_EXPIRY)
+    .setExpirationTime(`${ADMIN_SESSION_TTL_SECONDS}s`)
     .sign(secret);
   return jwt;
 }
@@ -31,7 +37,7 @@ export async function verifyAdminToken(token: string): Promise<boolean> {
   }
 }
 
-export async function verifyAdminPassword(password: string): Promise<boolean> {
+export function verifyAdminPassword(password: string): boolean {
   const adminPassword = getAdminPassword();
   if (!adminPassword) return false;
   // timing-safe compare
@@ -51,7 +57,13 @@ export async function requireAdminAuth(request: Request): Promise<{ ok: boolean;
   } else {
     const cookieHeader = request.headers.get("cookie") ?? "";
     const match = /(?:^|;\s*)admin_token=([^;]*)/.exec(cookieHeader);
-    if (match?.[1]) token = decodeURIComponent(match[1]);
+    if (match?.[1]) {
+      try {
+        token = decodeURIComponent(match[1]);
+      } catch {
+        return { ok: false, error: "Invalid credentials", status: 403 };
+      }
+    }
   }
   if (!token) {
     return { ok: false, error: "Authentication required", status: 401 };

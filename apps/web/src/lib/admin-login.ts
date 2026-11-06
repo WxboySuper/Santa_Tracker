@@ -1,55 +1,36 @@
 import { createAdminToken, verifyAdminPassword } from "./auth";
 import { getAdminPassword } from "./config";
 import { badRequest, isRecord, type AdminApiResult } from "./admin-api";
+import { createLoginThrottle } from "./admin-login-throttle";
 
-// Simple in-memory rate limiter for login (per-process, best-effort).
-// Production deployments should enforce rate limiting at the edge/WAF.
-const loginAttempts = new Map<string, number[]>();
-const LOGIN_WINDOW_MS = 60_000;
-const MAX_LOGIN_ATTEMPTS = 10;
+const loginThrottle = createLoginThrottle();
 
-export function checkLoginRateLimit(ip: string): AdminApiResult | null {
-  const now = Date.now();
-  const attempts = loginAttempts.get(ip) ?? [];
-  const recent = attempts.filter((timestamp) => now - timestamp < LOGIN_WINDOW_MS);
-  // prune stale entries
-  if (recent.length !== attempts.length) loginAttempts.set(ip, recent);
-  if (recent.length >= MAX_LOGIN_ATTEMPTS) {
-    return { status: 429, body: { error: "Too many login attempts, please try again later" } };
-  }
-  return null;
-}
+export const checkLoginRateLimit = (ip: string) => loginThrottle.check({ ip });
+export const checkLoginRateLimitNow = (ip: string) => loginThrottle.checkNow({ ip });
+export const recordLoginAttempt = (ip: string) => loginThrottle.recordFailure({ ip });
+export const clearLoginAttempts = (ip: string) => loginThrottle.clear({ ip });
 
-export function recordLoginAttempt(ip: string): void {
-  const list = loginAttempts.get(ip) ?? [];
-  list.push(Date.now());
-  loginAttempts.set(ip, list);
-}
-
-export function clearLoginAttempts(ip: string): void {
-  loginAttempts.delete(ip);
-}
-
-export async function loginAdmin(payload: unknown): Promise<AdminApiResult> {
+export function loginAdmin(payload: unknown): AdminApiResult | Promise<AdminApiResult> {
   try {
-    return await issueSessionToken(payload);
+    return issueSessionToken(payload);
   } catch {
     return badRequest("Invalid data format");
   }
 }
 
-async function issueSessionToken(payload: unknown): Promise<AdminApiResult> {
+function issueSessionToken(payload: unknown): AdminApiResult | Promise<AdminApiResult> {
   const password = extractPassword(payload);
   if (!password) return badRequest("Password required");
   const adminPassword = getAdminPassword();
   if (!adminPassword) {
     return { status: 500, body: { error: "Admin access not configured" } };
   }
-  if (!(await verifyAdminPassword(password as string))) {
+  if (!verifyAdminPassword(password as string)) {
     return { status: 401, body: { error: "Invalid password" } };
   }
-  const token = await createAdminToken();
-  return { status: 200, body: { token } };
+  return createAdminToken()
+    .then((token) => ({ status: 200, body: { token } }))
+    .catch(() => ({ status: 500, body: { error: "Failed to create session" } }));
 }
 
 function extractPassword(payload: unknown): unknown {
