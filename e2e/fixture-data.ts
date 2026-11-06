@@ -14,10 +14,10 @@ function isSantaRoute(value: unknown): boolean {
 /** Copies route times into a live window so browser tests see a journey in progress. */
 function shiftRouteToLiveWindow(route: string): string {
 	const parsed: unknown = JSON.parse(route);
-	if (!isSantaRoute(parsed)) return route;
+	if (!isSantaRoute(parsed)) throw new Error("Expected route metadata and route_nodes");
   const nodes = (parsed as { route_nodes: { schedule?: unknown }[] }).route_nodes;
 	const shift = liveWindowShift(nodes);
-	if (shift === null) return route;
+	if (shift === null) throw new Error("Cannot center route: fewer than two valid schedule timestamps");
 	for (const node of nodes) shiftNodeTimes(node, shift);
 	return JSON.stringify(parsed);
 }

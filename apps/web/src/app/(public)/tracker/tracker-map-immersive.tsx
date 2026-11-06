@@ -75,11 +75,12 @@ function AudioToggle({ chimes, setChimes, translator }: { chimes: boolean; setCh
 function ImmersiveJourneyHud({ current, next, progress, now, translator }: { current?: RouteNode; next?: RouteNode; progress: number; now: Date; translator: Translator }) {
   const percent = Math.round(progress * 100);
   const arrival = next?.schedule?.arrival_utc;
+  const arrivalTimestamp = arrival ? Date.parse(arrival) : Number.NaN;
   return <section className="absolute inset-x-0 bottom-0 z-10 bg-slate-950/75 px-5 py-4 text-white backdrop-blur-md" aria-label={translator.t("tracker.progress")}>
     <p className="text-xs uppercase tracking-widest text-white/70">{translator.t("tracker.current")}</p><p className="text-xl font-semibold">{current?.location.name ?? translator.t("tracker.notStarted")}</p>
     <div className="mt-2 flex flex-wrap justify-between gap-x-4 gap-y-1 text-sm">
       <span>{translator.t("tracker.next")}: {next?.location.name ?? translator.t("tracker.complete")}</span><span>{percent}%</span>
-      {arrival && <span>{translator.t("tracker.countdownToArrival", { time: formatTimeRemaining(Date.parse(arrival), now.getTime()) })}</span>}
+      {Number.isFinite(arrivalTimestamp) && <span>{translator.t("tracker.countdownToArrival", { time: formatTimeRemaining(arrivalTimestamp, now.getTime()) })}</span>}
     </div>
     <div className="mt-2 h-1 rounded bg-white/20"><div className="h-full rounded bg-amber-300" style={{ width: `${percent}%` }} /></div>
   </section>;
@@ -101,6 +102,7 @@ function FindMePanel({ locale, nodes, now, translator }: { locale: string; nodes
   const estimate = useMemo(() => place ? estimateArrival(place, nodes, now) : null, [place, nodes, now]);
   const cityOptions = useMemo(() => searchableCities(nodes, search), [nodes, search]);
   useEffect(() => {
+    if (!nodes.length) return;
     try {
       const saved = window.localStorage.getItem("tracker:place");
       if (!saved) return;

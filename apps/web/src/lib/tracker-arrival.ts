@@ -16,10 +16,21 @@ export function estimateArrival(place: ChosenPlace, route: RouteNode[], now: Dat
 
 /** Measures coordinate distance or time-zone offset when coordinates are absent. */
 function distance(place: ChosenPlace, node: RouteNode): number {
-  if (place.lat !== undefined && place.lng !== undefined) return Math.hypot(place.lat - node.location.lat, (place.lng - node.location.lng) * Math.cos(place.lat * Math.PI / 180));
+  if (place.lat !== undefined && place.lng !== undefined) return greatCircleDistance(place.lat, place.lng, node.location.lat, node.location.lng);
   const arrival = node.schedule?.arrival_utc;
   const offset = place.timezone && arrival ? timezoneOffset(place.timezone, new Date(arrival)) : 0;
   return Math.abs(offset - (node.location.timezone_offset ?? 0));
+}
+
+function greatCircleDistance(fromLatitude: number, fromLongitude: number, toLatitude: number, toLongitude: number): number {
+  const radians = Math.PI / 180;
+  const latitudeDifference = (toLatitude - fromLatitude) * radians;
+  const longitudeDifference = ((toLongitude - fromLongitude + 540) % 360 - 180) * radians;
+  const fromRadians = fromLatitude * radians;
+  const toRadians = toLatitude * radians;
+  const haversine = Math.sin(latitudeDifference / 2) ** 2
+    + Math.cos(fromRadians) * Math.cos(toRadians) * Math.sin(longitudeDifference / 2) ** 2;
+  return 2 * Math.atan2(Math.sqrt(haversine), Math.sqrt(1 - haversine));
 }
 
 /** Reads a time zone's UTC offset at the candidate stop's arrival instant. */

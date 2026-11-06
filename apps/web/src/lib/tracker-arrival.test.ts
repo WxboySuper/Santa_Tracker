@@ -19,6 +19,15 @@ describe("estimateArrival", () => {
     const result = estimateArrival({ name: "New York", timezone: "America/New_York" }, route, new Date("2026-12-25T00:00:00Z"));
     expect(result?.stop.location.name).toBe("East");
   });
+
+  it("measures coordinate distance across the antimeridian", () => {
+    const crossingRoute = [
+      { id: "dateline", type: "DELIVERY", location: { name: "Dateline", lat: 0, lng: -179.8 }, schedule: { arrival_utc: "2030-12-25T02:00:00Z" } },
+      { id: "far", type: "DELIVERY", location: { name: "Far", lat: 0, lng: 0 }, schedule: { arrival_utc: "2030-12-25T03:00:00Z" } },
+    ] as RouteNode[];
+    const result = estimateArrival({ name: "Island", lat: 0, lng: 179.8 }, crossingRoute, new Date("2030-12-25T00:00:00Z"));
+    expect(result?.stop.location.name).toBe("Dateline");
+  });
 });
 
 describe("validateStoredPlace", () => {

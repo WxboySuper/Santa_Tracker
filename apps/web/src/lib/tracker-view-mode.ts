@@ -51,8 +51,14 @@ function updateModeUrl(mode: TrackerViewMode): void {
 /** Requests or exits fullscreen when the browser supports it. */
 function updateFullscreen(mode: TrackerViewMode): void {
   if (mode === "immersive") {
-    document.documentElement.requestFullscreen?.().catch(() => undefined);
+    catchFullscreenError(document.documentElement.requestFullscreen?.() as unknown);
     return;
   }
-  if (document.fullscreenElement) document.exitFullscreen().catch(() => undefined);
+  if (document.fullscreenElement) catchFullscreenError(document.exitFullscreen() as unknown);
+}
+
+function catchFullscreenError(result: unknown): void {
+  if (typeof result !== "object" || result === null) return;
+  if (!("catch" in result) || typeof result.catch !== "function") return;
+  result.catch(() => undefined);
 }
