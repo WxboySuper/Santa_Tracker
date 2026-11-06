@@ -3,7 +3,7 @@ import type { Candidate, GeneratorConfig, RouteReport } from './types';
 import type { Route } from '@santa-tracker/contracts';
 import { allocateQuotas } from './selection';
 
-type LegSummary = { from: string; to: string; km: number; kmh: number; longGap: boolean };
+type LegSummary = { from: string; to: string; km: number; kmh: number; minutes: number; longGap: boolean };
 function categoryMix(places: Candidate[], config: GeneratorConfig): RouteReport['mix'] {
   const quotas = allocateQuotas(config.total, config.weights);
   return Object.fromEntries(Object.entries(quotas).map(([category, target]) => [category, {
@@ -39,7 +39,7 @@ function routeLeg(context: LegContext, stop: Route['stops'][number], index: numb
   const km = haversineKm(from, to);
   const seconds = (Date.parse(stop.arrivalIso) - Date.parse(prior.departureIso)) / 1000;
   const kmh = requireValue(legSpeedKmh(from, to, seconds), `Invalid travel duration for leg ${legNumber}`);
-  return { from: fromPlace.name, to: toPlace.name, km, kmh, longGap: km > context.config.maxGapKm };
+  return { from: fromPlace.name, to: toPlace.name, km, kmh, minutes: seconds / 60, longGap: km > context.config.maxGapKm };
 }
 function routeLegs(context: LegContext): LegSummary[] {
   if (context.places.length !== context.route.stops.length) throw new Error('Report locations do not match route stops');
@@ -54,7 +54,7 @@ function regionCounts(places: Candidate[]): Record<string, number> {
 }
 function countFlags(places: Candidate[], legs: LegSummary[], config: GeneratorConfig): RouteReport['flags'] {
   return legs.map((leg, index) => ({
-    longGap: Number(leg.longGap), fastLeg: Number(leg.kmh > config.maxSpeedKmh),
+    longGap: Number(leg.longGap), fastLeg: Number(leg.kmh > config.maxLegSpeedKmh),
     repeatCountry: Number(places[index]?.country === places[index + 1]?.country),
   }));
 }
@@ -62,10 +62,15 @@ export function buildReport(places: Candidate[], route: Route, config: Generator
   const hourly = hourlyCounts(route);
   const legs = routeLegs({ places, config, coordinates, route });
   const lastHours = config.westernHours > 0 ? hourly.slice(-config.westernHours) : [];
+  const maxLegSpeedKmh = Math.max(0, ...legs.map((leg) => leg.kmh));
+  const fastLegs = legs.filter((leg) => leg.kmh > config.maxLegSpeedKmh);
   return {
     seed: config.seed, count: places.length, mix: categoryMix(places, config), regionBalance: regionCounts(places), hourly,
     fastestLeg: [...legs].sort((a, b) => b.kmh - a.kmh)[0] ?? null,
     longestLegs: [...legs].sort((a, b) => b.km - a.km).slice(0, 10), flags: countFlags(places, legs, config),
     issues: [], westernMinimum: lastHours.length ? Math.min(...lastHours.map((entry) => entry.count)) : 0,
+    maxLegSpeedKmh, legsAbove15000Kmh: legs.filter((leg) => leg.kmh > 15_000).length,
+    speedWarnings: fastLegs.map((leg) => `${leg.from} to ${leg.to}: ${Math.round(leg.km)} km in ${Math.round(leg.minutes)} min requires ${Math.round(leg.kmh)} km/h`),
+    reorderedStops: 0, replacedStops: 0,
   };
 }

@@ -10,6 +10,7 @@
   "arrivalEndMinute": 180,
   "durationSeconds": 60,
   "maxSpeedKmh": 100000,
+  "maxLegSpeedKmh": 25000,
   "maxGapKm": 1200,
   "maxCountryRun": 8,
   "minimumStopsPerHour": 4,
