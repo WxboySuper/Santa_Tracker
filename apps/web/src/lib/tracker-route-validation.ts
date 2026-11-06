@@ -8,13 +8,28 @@ export function validRouteNodes(value: unknown): RouteNode[] {
 }
 
 function isRouteNode(value: unknown): value is RouteNode {
-  if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
-  const node = value as Record<string, unknown>;
-  if (typeof node.id !== "string") return false;
-  if (typeof node.location !== "object" || node.location === null || Array.isArray(node.location)) return false;
-  const location = node.location as Record<string, unknown>;
-  if (typeof location.name !== "string") return false;
-  if (typeof location.lat !== "number" || !Number.isFinite(location.lat)) return false;
-  if (typeof location.lng !== "number" || !Number.isFinite(location.lng)) return false;
+  if (!isRecord(value)) return false;
+  if (typeof value.id !== "string") return false;
+  if (typeof value.type !== "string") return false;
+  return hasValidLocation(value.location);
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  if (typeof value !== "object") return false;
+  if (value === null) return false;
+  if (Array.isArray(value)) return false;
   return true;
+}
+
+function hasValidLocation(value: unknown): boolean {
+  if (!isRecord(value)) return false;
+  if (typeof value.name !== "string") return false;
+  if (!isFiniteNumber(value.lat)) return false;
+  if (!isFiniteNumber(value.lng)) return false;
+  return true;
+}
+
+function isFiniteNumber(value: unknown): value is number {
+  if (typeof value !== "number") return false;
+  return Number.isFinite(value);
 }

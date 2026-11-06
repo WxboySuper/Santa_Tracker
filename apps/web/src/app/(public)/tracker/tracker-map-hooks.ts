@@ -10,6 +10,23 @@ function interactiveMode(mode: MapMode): Exclude<MapMode, "text"> | null {
   return mode;
 }
 
+async function attachMap(
+  runtime: Omit<MapRuntime, "mode"> & { mode: Exclude<MapMode, "text"> },
+  cancelled: () => boolean,
+  setInstance: (adapter?: TrackerMapAdapter) => void,
+  latestState: () => { nodes: MapRuntime["nodes"]; position: MapRuntime["position"] },
+): Promise<void> {
+  const result = await startAdapter(runtime, cancelled);
+  setInstance(result.instance);
+  if (cancelled()) {
+    result.instance?.destroy();
+    return;
+  }
+  const current = latestState();
+  syncMapState(result.instance, current.nodes, current.position);
+  if (result.failure) runtime.dispatch(result.failure);
+}
+
 export function useMapAdapter(runtime: MapRuntime): void {
   const { mode, element, nodes, position, dispatch, stopFollowing, adapter } = runtime;
   const latestNodes = useRef(nodes);
@@ -22,18 +39,8 @@ export function useMapAdapter(runtime: MapRuntime): void {
     if (mapMode === null) return;
     let cancelled = false;
     let instance: TrackerMapAdapter | undefined;
-    const start = async () => {
-      const startOptions = { mode: mapMode, element, nodes: latestNodes.current, position: latestPosition.current, dispatch, stopFollowing, adapter };
-      const result = await startAdapter(startOptions, () => cancelled);
-      instance = result.instance;
-      if (cancelled) {
-        instance?.destroy();
-        return;
-      }
-      syncMapState(instance, latestNodes.current, latestPosition.current);
-      if (result.failure) dispatch(result.failure);
-    };
-    void start();
+    const startOptions = { mode: mapMode, element, nodes: latestNodes.current, position: latestPosition.current, dispatch, stopFollowing, adapter };
+    void attachMap(startOptions, () => cancelled, value => { instance = value; }, () => ({ nodes: latestNodes.current, position: latestPosition.current }));
     return () => {
       cancelled = true;
       instance?.destroy();
