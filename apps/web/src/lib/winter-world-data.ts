@@ -61,7 +61,7 @@ export const winterWorldEntries: readonly WinterWorldEntry[] = [
     latitude: 31.23,
     longitude: 121.47,
     dateRule: { startMonth: 12, startDay: 21, endMonth: 12, endDay: 23 },
-    sourceNote: "Encyclopedia entry: Encyclopaedia Britannica, Dongzhi (Winter Solstice) Festival (https://www.britannica.com/topic/Dongzhi-Festival)",
+    sourceNote: "University overview: University of Chinese Academy of Sciences, Winter Solstice (https://english.ucas.ac.cn/index.php/academic-calendar/6338-winter-solstice-2)",
   },
   {
     id: "yalda",
@@ -72,7 +72,7 @@ export const winterWorldEntries: readonly WinterWorldEntry[] = [
     latitude: 35.69,
     longitude: 51.39,
     dateRule: { startMonth: 12, startDay: 20, endMonth: 12, endDay: 22 },
-    sourceNote: "Scholarly cultural overview: Encyclopaedia Iranica, Yalda (https://iranicaonline.org/articles/yalda-night)",
+    sourceNote: "National cultural body: Iran's Islamic Culture and Relations Organization, Yalda (https://en.icro.ir/Customs/Yalda)",
   },
   {
     id: "yule",

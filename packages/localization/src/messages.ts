@@ -101,7 +101,7 @@ export const en = {
   'advent.activity.winterworld.entries.posadas.when': 'Traditionally, December 16–24.',
   'advent.activity.winterworld.entries.dongzhi.title': 'Dongzhi',
   'advent.activity.winterworld.entries.dongzhi.place': 'Shanghai, China',
-  'advent.activity.winterworld.entries.dongzhi.story': 'Dongzhi means winter solstice and names both a solar term and a seasonal observance in Chinese communities. It falls around the shortest day in the Northern Hemisphere. Family meals are common, though foods vary by region: tangyuan, round glutinous rice balls, are associated with southern China, while dumplings are customary in some northern areas. The round shape is often linked with reunion, but households make their own choices. The sun takes its time turning around; the calendar gives it a date anyway.',
+  'advent.activity.winterworld.entries.dongzhi.story': 'Dongzhi means winter solstice and names both a solar term and a seasonal observance in Chinese communities. It falls around the shortest day in the Northern Hemisphere. Family meals are common, and in places such as Shanghai people eat tangyuan, round glutinous rice balls, for the occasion. Foods and family customs vary by region, so one table cannot stand in for a whole country. The sun takes its time turning around; the calendar gives it a date anyway.',
   'advent.activity.winterworld.entries.dongzhi.when': 'Around the December solstice, usually December 21–23.',
   'advent.activity.winterworld.entries.yalda.title': 'Shab-e Yalda',
   'advent.activity.winterworld.entries.yalda.place': 'Tehran, Iran',
