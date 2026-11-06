@@ -92,7 +92,7 @@ function planTimes(windows: StopWindow[], config: GeneratorConfig): Candidate[] 
     if (timestamp === null) {
       const priorName = state.ordered.at(-1)?.name ?? 'route start';
       const distance = state.ordered.length ? haversineKm(state.current, window.place) : 0;
-      const availableHours = Math.max(1 / 60, (window.hi - state.departure - config.durationSeconds * 1000) / HOUR_MS);
+      const availableHours = Math.max(1 / 60, (window.hi - state.departure) / HOUR_MS);
       const availableMinutes = Math.max(1, Math.round(availableHours * 60));
       throw new Error(`Speed-aware schedule cannot fit leg ${priorName} to ${window.place.name}: ${Math.round(distance)} km in at most ${availableMinutes} min requires at least ${Math.round(distance / availableHours)} km/h inside the local arrival window`);
     }
