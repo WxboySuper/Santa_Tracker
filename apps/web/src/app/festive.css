@@ -369,14 +369,18 @@
 .tracker-tv-layout {
   display: grid;
   grid-template-columns: minmax(0, 1.08fr) minmax(0, 0.92fr);
+  grid-template-rows: auto minmax(0, 1fr);
   gap: clamp(20px, 3vw, 56px);
   min-height: 100svh;
   padding: clamp(28px, 4vw, 76px);
-  padding-top: clamp(36px, 5vw, 88px);
+  padding-top: clamp(18px, 2vw, 32px);
   align-items: center;
 }
 
 .tracker-tv-map {
+  position: relative;
+  grid-column: 1;
+  grid-row: 2;
   height: min(78vh, 920px);
   min-height: 440px;
   overflow: hidden;
@@ -386,9 +390,33 @@
   box-shadow: 0 24px 80px rgb(0 0 0 / 38%);
 }
 
-.tracker-tv-map .ol-control { display: none; }
+.tracker-tv-map .ol-zoom,
+.tracker-tv-map .ol-rotate,
+.tracker-tv-map .ol-attribution { display: none; }
 
 .tracker-tv-map .ol-viewport { pointer-events: none; }
+
+.tracker-tv-map-attribution {
+  position: absolute;
+  right: clamp(10px, 1vw, 18px);
+  bottom: clamp(10px, 1vw, 18px);
+  z-index: 5;
+  max-width: calc(100% - 20px);
+  padding: 8px 12px;
+  border: 1px solid rgb(255 255 255 / 35%);
+  border-radius: 8px;
+  color: #fff;
+  background: rgb(2 6 23 / 94%);
+  font-size: clamp(18px, 1.25vw, 22px);
+  line-height: 1.3;
+  text-align: right;
+  text-wrap: balance;
+}
+
+.tracker-tv-map-attribution :where(a) {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
 
 .tracker-tv-map-text {
   height: 100%;
@@ -407,6 +435,8 @@
 
 .tracker-tv-panel {
   position: relative;
+  grid-column: 2;
+  grid-row: 2;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -528,7 +558,13 @@
 
 .tracker-tv-visitor > * { margin: 0; }
 
-.tracker-tv-stop-name { flex: 1; }
+.tracker-tv-stop-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 
 .tracker-tv-stop-time {
   color: #fde68a;
@@ -552,10 +588,9 @@
 .tracker-tv-audio { align-self: flex-start; }
 
 .tracker-tv-exit {
-  position: absolute;
-  top: clamp(18px, 2vw, 34px);
-  right: clamp(18px, 2vw, 34px);
-  z-index: 40;
+  grid-column: 1 / -1;
+  grid-row: 1;
+  justify-self: end;
 }
 
 .tracker-tv-audio:focus-visible,
@@ -575,17 +610,22 @@
 @media (width <= 760px) {
   .tracker-tv-layout {
     grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto auto auto;
     gap: 18px;
-    padding: 72px 18px 24px;
+    padding: 18px 18px 24px;
   }
 
   .tracker-tv-map {
+    grid-column: 1;
+    grid-row: 2;
     height: 34svh;
     min-height: 240px;
     border-radius: 18px;
   }
 
   .tracker-tv-panel {
+    grid-column: 1;
+    grid-row: 3;
     min-height: 0;
     gap: 22px;
     padding: 24px 20px;
@@ -605,8 +645,6 @@
   .tracker-tv-visitor { font-size: 21px; }
 
   .tracker-tv-exit {
-    top: 12px;
-    right: 18px;
     min-height: 46px;
     font-size: 17px;
   }

@@ -77,7 +77,7 @@ function TvNextStops({ stops, translator }: { stops: ReturnType<typeof deriveTvD
     <h2>{translator.t("tracker.next")}</h2>
     <ol>{stops.map((stop, index) => <li key={stop.id}>
       <span className="tracker-tv-stop-index">{index + 1}</span>
-      <span className="tracker-tv-stop-name">{stop.name}</span>
+      <span className="tracker-tv-stop-name" title={stop.name} aria-label={stop.name}>{stop.name}</span>
       <time className="tracker-tv-stop-time" dateTime={stop.arrival?.toISOString()}>{stop.localArrival}</time>
     </li>)}</ol>
   </section>;

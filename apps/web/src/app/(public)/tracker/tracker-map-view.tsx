@@ -151,7 +151,10 @@ export function TrackerMapView(props: TrackerMapViewProps) {
     <TrackerNavigation adventEnabled={adventEnabled} immersive={immersive || tv} translator={translator} />
     <div ref={stageRef} className={stageClass(viewMode)} onPointerMove={wake} onPointerDown={wake} onFocusCapture={wake} onBlurCapture={wake} onKeyDownCapture={event => handleTrackerKey({ event, wake, immersive, toggle: toggleImmersive, tv })}>
       {tv ? <div className="tracker-tv-layout">
-        <div className="tracker-tv-map"><MapSurface mode={mode} tv element={element} nodes={nodes} position={position} translator={translator} locale={locale} /></div>
+        <div className="tracker-tv-map">
+          <MapSurface mode={mode} tv element={element} nodes={nodes} position={position} translator={translator} locale={locale} />
+          <TvMapAttribution translator={translator} />
+        </div>
         <TvTrackerDashboard locale={locale} nodes={nodes} position={position} translator={translator} />
         <button className="tracker-tv-exit" type="button" onClick={toggleTv}>{translator.t("tracker.exitTv")}</button>
       </div> : <>
@@ -169,6 +172,15 @@ export function TrackerMapView(props: TrackerMapViewProps) {
 function TrackerNavigation({ adventEnabled, immersive, translator }: { adventEnabled: boolean; immersive: boolean; translator: Translator }) {
   if (immersive) return null;
   return <TrackerNav adventEnabled={adventEnabled} translator={translator} />;
+}
+
+/** Credits the map data providers while remaining visible on the television map. */
+function TvMapAttribution({ translator }: { translator: Translator }) {
+  return <div className="tracker-tv-map-attribution" role="group" aria-label={translator.t("tracker.mapAttributionLabel")}>
+    <a href="https://openfreemap.org/" target="_blank" rel="noreferrer">{translator.t("tracker.mapAttributionProvider")}</a>
+    <span aria-hidden="true"> · </span>
+    <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">{translator.t("tracker.mapAttributionData")}</a>
+  </div>;
 }
 
 /** Applies the stage sizing and night scene class. */

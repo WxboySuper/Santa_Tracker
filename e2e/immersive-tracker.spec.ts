@@ -93,6 +93,9 @@ test("TV mode keeps its dashboard visible across display sizes and exits from a 
   await page.goto("/tracker?mode=tv");
   await expect(page).toHaveURL(/mode=tv/);
   await expect(page.getByRole("region", { name: "Santa tracker TV dashboard" })).toBeVisible();
+  await expect(page.getByRole("group", { name: "Map attribution" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "OpenFreeMap © OpenMapTiles" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "© OpenStreetMap contributors" })).toBeVisible();
   await expect(page.getByText("Santa local time")).toBeVisible();
   await expect(page.getByText("London:")).toBeVisible({ timeout: 15_000 });
   await expect(page.getByRole("button", { name: "Arrival chimes off" })).toBeVisible();
@@ -109,20 +112,57 @@ test("TV mode keeps its dashboard visible across display sizes and exits from a 
   });
   await expect.poll(() => page.evaluate(() => window.wakeRequests)).toBeGreaterThan(1);
 
-  for (const viewport of [{ width: 1920, height: 1080 }, { width: 1280, height: 720 }, { width: 390, height: 844 }]) {
+  const viewports = [
+    { width: 1920, height: 1080 },
+    { width: 1760, height: 990 },
+    { width: 1600, height: 900 },
+    { width: 1440, height: 810 },
+    { width: 1280, height: 720 },
+    { width: 390, height: 844 },
+  ];
+  for (const viewport of viewports) {
     await page.setViewportSize(viewport);
     await expect(page.getByRole("region", { name: "Santa tracker TV dashboard" })).toBeVisible();
     await expect(page.getByRole("button", { name: "Exit TV mode" })).toBeVisible();
+    await expect(page.getByRole("group", { name: "Map attribution" })).toBeVisible();
+    const attributionSize = `${Math.min(22, Math.max(18, viewport.width * 0.0125))}px`;
+    await expect(page.locator(".tracker-tv-map-attribution")).toHaveCSS("font-size", attributionSize);
+    expect(await page.evaluate(() => {
+      const exitBounds = document.querySelector(".tracker-tv-exit")?.getBoundingClientRect();
+      const headerBounds = document.querySelector(".tracker-tv-topline")?.getBoundingClientRect();
+      return exitBounds && headerBounds ? exitBounds.bottom <= headerBounds.top : false;
+    })).toBe(true);
     await page.keyboard.press("ArrowRight");
     await expect(page.getByRole("region", { name: "Santa tracker TV dashboard" })).toBeVisible();
-    const size = `${viewport.width}x${viewport.height}`;
-    await page.screenshot({ path: testInfo.outputPath(path.join("tv-mode", `tv-${size}.png`)), fullPage: true });
+    if ([1280, 1920, 390].includes(viewport.width)) {
+      const size = `${viewport.width}x${viewport.height}`;
+      await page.screenshot({ path: testInfo.outputPath(path.join("tv-mode", `tv-${size}.png`)), fullPage: true });
+    }
   }
 
   await page.keyboard.press("Escape");
   await expect(page).not.toHaveURL(/mode=tv/);
   await expect(page.getByRole("button", { name: "Enter TV mode" })).toBeVisible();
   await expect.poll(() => page.evaluate(() => window.wakeReleases)).toBeGreaterThan(1);
+});
+
+test("TV mode keeps long stop names readable with full accessible text", async ({ page }) => {
+  const longName = "Itsukushima Shrine (Miyajima), Hatsukaichi";
+  await page.route("**/api/route", async route => {
+    const response = await route.fetch();
+    const data = await response.json() as { route_nodes: { location: { name: string }; schedule?: { arrival_utc?: string | null } }[] };
+    const nextNode = data.route_nodes.find(node => Date.parse(node.schedule?.arrival_utc ?? "") > Date.now());
+    if (!nextNode) throw new Error("The shifted route needs at least one future stop");
+    nextNode.location.name = longName;
+    await route.fulfill({ response, json: data });
+  });
+  await page.goto("/tracker?mode=tv");
+  const stopName = page.locator(".tracker-tv-stop-name").filter({ hasText: longName });
+  await expect(stopName).toBeVisible();
+  await expect(stopName).toHaveAttribute("title", longName);
+  await expect(stopName).toHaveAttribute("aria-label", longName);
+  await expect(stopName).toHaveCSS("text-overflow", "ellipsis");
+  await expect(stopName).toHaveCSS("overflow", "hidden");
 });
 
 test("TV mode restores the text route preference on exit", async ({ page }) => {
