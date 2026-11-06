@@ -9,6 +9,7 @@ import type { TrackerMapAdapter } from "@/lib/tracker-map-adapter";
 import type { TrackerViewMode } from "@/lib/tracker-view-mode";
 import type { MapEvent, MapMode } from "./tracker-map-hooks";
 import { ImmersiveTrackerOverlays } from "./tracker-map-immersive";
+import { TvTrackerDashboard } from "./tracker-map-tv";
 
 type Translator = ReturnType<typeof createTranslator>;
 
@@ -29,6 +30,7 @@ interface TrackerMapViewProps {
   setFollowing: (value: boolean) => void;
   viewMode: TrackerViewMode;
   toggleImmersive: () => void;
+  toggleTv: () => void;
 }
 
 /** Presents the route as a keyboard-readable text alternative. */
@@ -93,30 +95,56 @@ function focusedControlWithin(stageRef: RefObject<HTMLDivElement | null>): boole
 }
 
 /** Restores controls for keyboard input and handles the immersive Escape key. */
-function handleTrackerKey(event: React.KeyboardEvent<HTMLDivElement>, wake: () => void, immersive: boolean, toggle: () => void): void {
+function handleTrackerKey(event: React.KeyboardEvent<HTMLDivElement>, wake: () => void, immersive: boolean, toggle: () => void, tv: boolean): void {
   wake();
-  if (event.key !== "Escape") return;
-  if (!immersive) return;
+  if (tv && event.key.startsWith("Arrow")) { event.preventDefault(); event.stopPropagation(); return; }
+  if (tv || event.key !== "Escape" || !immersive) return;
   const target = event.target;
   const tagName = target instanceof HTMLElement ? target.tagName : "";
   if (["INPUT", "TEXTAREA", "SELECT"].includes(tagName)) return;
   toggle();
 }
 
+/** Exits TV mode on Escape or the back key used by some remotes. */
+function useTvKeyboardExit(tv: boolean, toggleTv: () => void): void {
+  useEffect(() => {
+    if (!tv) return;
+    const exit = (event: KeyboardEvent) => {
+      if (!isBackKey(event.key)) return;
+      event.preventDefault();
+      toggleTv();
+    };
+    document.addEventListener("keydown", exit);
+    return () => document.removeEventListener("keydown", exit);
+  }, [toggleTv, tv]);
+}
+
+function isBackKey(key: string): boolean {
+  return key === "Escape" || key === "BrowserBack" || key === "GoBack";
+}
+
 /** Composes the standard map, text view, and immersive tracker presentation. */
 export function TrackerMapView(props: TrackerMapViewProps) {
-  const { adventEnabled, locale, translator, element, adapter, mode, dispatch, nodes, position, current, status, following, setFollowing, viewMode, toggleImmersive } = props;
+  const { adventEnabled, locale, translator, element, adapter, mode, dispatch, nodes, position, current, status, following, setFollowing, viewMode, toggleImmersive, toggleTv } = props;
   const immersive = viewMode === "immersive";
+  const tv = viewMode === "tv";
   const stageRef = useRef<HTMLDivElement>(null);
   const { visible, wake } = useIdleControls(viewMode, stageRef);
+  useTvKeyboardExit(tv, toggleTv);
   return <>
-    <TrackerNavigation adventEnabled={adventEnabled} immersive={immersive} translator={translator} />
-    <div ref={stageRef} className={stageClass(immersive)} onPointerMove={wake} onPointerDown={wake} onFocusCapture={wake} onBlurCapture={wake} onKeyDown={event => handleTrackerKey(event, wake, immersive, toggleImmersive)}>
-      <MapSurface mode={mode} element={element} nodes={nodes} position={position} translator={translator} locale={locale} />
-      <TrackerControls mode={mode} following={following} dispatch={dispatch} translator={translator} adapter={adapter} setFollowing={setFollowing} immersive={immersive} visible={visible} toggleImmersive={toggleImmersive} />
-      <MapInstructions mode={mode} translator={translator} />
-      <TrackerStatus status={status} current={current} translator={translator} />
-      <CountdownLayer immersive={immersive} controlsVisible={visible} locale={locale} translator={translator} nodes={nodes} position={position} current={current} />
+    <TrackerNavigation adventEnabled={adventEnabled} immersive={immersive || tv} translator={translator} />
+    <div ref={stageRef} className={stageClass(viewMode)} onPointerMove={wake} onPointerDown={wake} onFocusCapture={wake} onBlurCapture={wake} onKeyDownCapture={event => handleTrackerKey(event, wake, immersive, toggleImmersive, tv)}>
+      {tv ? <div className="tracker-tv-layout">
+        <div className="tracker-tv-map"><MapSurface mode="vector" element={element} nodes={nodes} position={position} translator={translator} locale={locale} /></div>
+        <TvTrackerDashboard locale={locale} nodes={nodes} position={position} translator={translator} />
+        <button className="tracker-tv-exit" type="button" onClick={toggleTv}>{translator.t("tracker.exitTv")}</button>
+      </div> : <>
+        <MapSurface mode={mode} element={element} nodes={nodes} position={position} translator={translator} locale={locale} />
+        <TrackerControls mode={mode} following={following} dispatch={dispatch} translator={translator} adapter={adapter} setFollowing={setFollowing} immersive={immersive} visible={visible} toggleImmersive={toggleImmersive} toggleTv={toggleTv} />
+        <MapInstructions mode={mode} translator={translator} />
+        <TrackerStatus status={status} current={current} translator={translator} />
+        <CountdownLayer immersive={immersive} controlsVisible={visible} locale={locale} translator={translator} nodes={nodes} position={position} current={current} />
+      </>}
     </div>
   </>;
 }
@@ -128,8 +156,9 @@ function TrackerNavigation({ adventEnabled, immersive, translator }: { adventEna
 }
 
 /** Applies the stage sizing and night scene class. */
-function stageClass(immersive: boolean): string {
-  return immersive ? "tracker-stage tracker-immersive relative h-screen w-screen" : "tracker-stage relative h-screen w-screen";
+function stageClass(viewMode: TrackerViewMode): string {
+  if (viewMode === "tv") return "tracker-stage tracker-tv relative min-h-screen w-full";
+  return viewMode === "immersive" ? "tracker-stage tracker-immersive relative h-screen w-screen" : "tracker-stage relative h-screen w-screen";
 }
 
 /** Selects the interactive map or text route surface. */
@@ -139,13 +168,14 @@ function MapSurface({ mode, element, nodes, position, translator, locale }: { mo
 }
 
 /** Groups standard map controls with the immersive mode toggle. */
-function TrackerControls({ mode, following, dispatch, translator, adapter, setFollowing, immersive, visible, toggleImmersive }: { mode: MapMode; following: boolean; dispatch: Dispatch<MapEvent>; translator: Translator; adapter: RefObject<TrackerMapAdapter | null>; setFollowing: (value: boolean) => void; immersive: boolean; visible: boolean; toggleImmersive: () => void }) {
+function TrackerControls({ mode, following, dispatch, translator, adapter, setFollowing, immersive, visible, toggleImmersive, toggleTv }: { mode: MapMode; following: boolean; dispatch: Dispatch<MapEvent>; translator: Translator; adapter: RefObject<TrackerMapAdapter | null>; setFollowing: (value: boolean) => void; immersive: boolean; visible: boolean; toggleImmersive: () => void; toggleTv: () => void }) {
   const hidden = immersive && !visible;
   return <>
     <div className={hidden ? "tracker-controls tracker-controls-hidden" : "tracker-controls"}>
       <MapControls mode={mode} following={following} dispatch={dispatch} translator={translator} adapter={adapter} setFollowing={setFollowing} />
     </div>
     <button className="absolute top-20 right-4 z-20 rounded bg-blue-900 px-3 py-2 text-white focus-visible:outline focus-visible:outline-4 focus-visible:outline-yellow-300" onClick={toggleImmersive}>{translator.t(immersive ? "tracker.exitImmersive" : "tracker.immersive")}</button>
+    {!immersive && <button className="absolute top-32 right-4 z-20 rounded bg-blue-900 px-3 py-2 text-white focus-visible:outline focus-visible:outline-4 focus-visible:outline-yellow-300" onClick={toggleTv}>{translator.t("tracker.tv")}</button>}
   </>;
 }
 

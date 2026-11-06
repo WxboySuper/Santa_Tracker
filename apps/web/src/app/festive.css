@@ -359,6 +359,232 @@
   transform: translate(-50%, -50%);
 }
 
+.tracker-tv {
+  min-height: 100svh;
+  overflow: auto;
+  color: #fff;
+  background: radial-gradient(ellipse at 28% 20%, #172554 0%, #07101f 56%, #020617 100%);
+}
+
+.tracker-tv-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.08fr) minmax(0, 0.92fr);
+  gap: clamp(20px, 3vw, 56px);
+  min-height: 100svh;
+  padding: clamp(28px, 4vw, 76px);
+  padding-top: clamp(36px, 5vw, 88px);
+  align-items: center;
+}
+
+.tracker-tv-map {
+  height: min(78vh, 920px);
+  min-height: 440px;
+  overflow: hidden;
+  border: 2px solid rgb(255 255 255 / 18%);
+  border-radius: 28px;
+  background: #081225;
+  box-shadow: 0 24px 80px rgb(0 0 0 / 38%);
+}
+
+.tracker-tv-panel {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: clamp(20px, 3vh, 42px);
+  min-width: 0;
+  min-height: 76vh;
+  padding: clamp(24px, 3vw, 56px);
+  overflow: hidden;
+  border: 2px solid rgb(255 255 255 / 14%);
+  border-radius: 28px;
+  background: linear-gradient(155deg, rgb(15 23 42 / 96%), rgb(7 18 34 / 96%));
+  box-shadow: 0 24px 80px rgb(0 0 0 / 38%);
+}
+
+.tracker-tv-topline,
+.tracker-tv-progress-label,
+.tracker-tv-stops li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.tracker-tv-eyebrow {
+  margin: 0 0 8px;
+  color: #cbd5e1;
+  font-size: clamp(18px, 1.3vw, 26px);
+  font-weight: 650;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.tracker-tv-current {
+  margin: 0;
+  color: #fff;
+  font-size: clamp(38px, 3.5vw, 72px);
+  font-weight: 750;
+  line-height: 1.05;
+  overflow-wrap: anywhere;
+}
+
+.tracker-tv-clock {
+  flex: none;
+  text-align: right;
+}
+
+.tracker-tv-clock-time {
+  margin: 0;
+  color: #fde68a;
+  font-size: clamp(32px, 3vw, 58px);
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+}
+
+.tracker-tv-progress-label,
+.tracker-tv-stops h2,
+.tracker-tv-visitor h2 {
+  margin: 0 0 12px;
+  color: #f8fafc;
+  font-size: clamp(21px, 1.65vw, 32px);
+  font-weight: 700;
+}
+
+.tracker-tv-progress-track {
+  height: 16px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgb(255 255 255 / 18%);
+}
+
+.tracker-tv-progress-value {
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #fbbf24, #fde68a);
+  transition: width 500ms ease;
+}
+
+.tracker-tv-stops ol {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tracker-tv-stops li {
+  min-height: 56px;
+  padding: 10px 0;
+  border-bottom: 1px solid rgb(255 255 255 / 16%);
+}
+
+.tracker-tv-stop-index {
+  display: grid;
+  flex: 0 0 42px;
+  width: 42px;
+  height: 42px;
+  place-items: center;
+  border-radius: 50%;
+  color: #0f172a;
+  background: #fde68a;
+  font-size: 22px;
+  font-weight: 750;
+}
+
+.tracker-tv-stop-name,
+.tracker-tv-stop-time,
+.tracker-tv-visitor p,
+.tracker-tv-muted {
+  margin: 0;
+  color: #f8fafc;
+  font-size: clamp(22px, 1.8vw, 36px);
+  line-height: 1.25;
+}
+
+.tracker-tv-stop-name { flex: 1; }
+
+.tracker-tv-stop-time {
+  color: #fde68a;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.tracker-tv-muted { color: #cbd5e1; }
+
+.tracker-tv-audio,
+.tracker-tv-exit {
+  min-height: 58px;
+  padding: 12px 22px;
+  border: 2px solid rgb(255 255 255 / 36%);
+  border-radius: 14px;
+  color: #fff;
+  background: #17345b;
+  font-size: clamp(20px, 1.45vw, 28px);
+  font-weight: 650;
+}
+
+.tracker-tv-audio { align-self: flex-start; }
+
+.tracker-tv-exit {
+  position: absolute;
+  top: clamp(18px, 2vw, 34px);
+  right: clamp(18px, 2vw, 34px);
+  z-index: 40;
+}
+
+.tracker-tv-audio:focus-visible,
+.tracker-tv-exit:focus-visible {
+  outline: 4px solid #fde68a;
+  outline-offset: 4px;
+}
+
+.tracker-arrival-card-tv {
+  width: min(84vw, 52rem);
+  padding: clamp(36px, 5vw, 88px);
+}
+.tracker-arrival-card-tv p:first-child { font-size: clamp(42px, 5vw, 88px); }
+
+.tracker-arrival-card-tv p:last-child { font-size: clamp(26px, 2.5vw, 46px); }
+
+@media (width <= 760px) {
+  .tracker-tv-layout {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 18px;
+    padding: 72px 18px 24px;
+  }
+
+  .tracker-tv-map {
+    height: 34svh;
+    min-height: 240px;
+    border-radius: 18px;
+  }
+
+  .tracker-tv-panel {
+    min-height: 0;
+    gap: 22px;
+    padding: 24px 20px;
+    border-radius: 18px;
+  }
+  .tracker-tv-current { font-size: clamp(32px, 9vw, 48px); }
+  .tracker-tv-eyebrow { font-size: 15px; }
+  .tracker-tv-clock-time { font-size: clamp(27px, 7vw, 38px); }
+
+  .tracker-tv-stop-name,
+  .tracker-tv-stop-time,
+  .tracker-tv-visitor p { font-size: 21px; }
+
+  .tracker-tv-exit {
+    top: 12px;
+    right: 18px;
+    min-height: 46px;
+    font-size: 17px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tracker-tv-progress-value { transition: none; }
+}
+
 @keyframes tracker-arrival-in {
   from {
     opacity: 0;

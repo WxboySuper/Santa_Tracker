@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useReducer, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
 import "ol/ol.css";
 import { createTranslator } from "@santa-tracker/localization";
 import { routeNodesToContractRoute } from "@/lib/route-bridge";
@@ -20,7 +20,13 @@ export default function TrackerMap({ adventEnabled, locale }: TrackerMapProps) {
   const [nodes, status] = useRouteNodes(translator);
   const position = useSantaPosition(nodes);
   const [following, setFollowing] = useState(true);
-  const { viewMode, toggleImmersive } = useTrackerViewMode();
+  const { viewMode, toggleImmersive, toggleTv } = useTrackerViewMode();
+  useEffect(() => {
+    if (viewMode !== "tv") return;
+    if (mode === "text") dispatch("showMap");
+    setFollowing(true);
+    adapter.current?.follow();
+  }, [adapter, dispatch, mode, viewMode]);
   const stopFollowing = useCallback(() => setFollowing(false), []);
   useMapAdapter({ mode, element, nodes, position, dispatch, stopFollowing, adapter });
   const timedNodes = routeNodesToContractRoute(nodes).timedNodes;
@@ -42,5 +48,6 @@ export default function TrackerMap({ adventEnabled, locale }: TrackerMapProps) {
     setFollowing={setFollowing}
     viewMode={viewMode}
     toggleImmersive={toggleImmersive}
+    toggleTv={toggleTv}
   />;
 }

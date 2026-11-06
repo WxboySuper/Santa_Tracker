@@ -1,4 +1,5 @@
 import { expect, test } from "./fixtures";
+import path from "node:path";
 
 declare global {
   interface Window { geoCalls: number }
@@ -75,4 +76,30 @@ test("immersive controls work on a phone with reduced motion and blocked browser
   await expect(page.locator(":focus")).toBeVisible();
   await page.keyboard.press("Escape");
   await expect(page.getByRole("button", { name: "Enter immersive mode" })).toBeVisible();
+});
+
+test("TV mode keeps its dashboard visible across display sizes and exits from a remote key", async ({ page }, testInfo) => {
+  await page.addInitScript(() => {
+    window.localStorage.setItem("tracker:place", JSON.stringify({ name: "London", lat: 51.5072, lng: -0.1276, timezone: "Europe/London" }));
+  });
+  await page.goto("/tracker?mode=tv");
+  await expect(page).toHaveURL(/mode=tv/);
+  await expect(page.getByRole("region", { name: "Santa tracker TV dashboard" })).toBeVisible();
+  await expect(page.getByText("Santa local time")).toBeVisible();
+  await expect(page.getByText("London:")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Arrival chimes off" })).toBeVisible();
+
+  for (const viewport of [{ width: 1920, height: 1080 }, { width: 1280, height: 720 }, { width: 390, height: 844 }]) {
+    await page.setViewportSize(viewport);
+    await expect(page.getByRole("region", { name: "Santa tracker TV dashboard" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Exit TV mode" })).toBeVisible();
+    await page.keyboard.press("ArrowRight");
+    await expect(page.getByRole("region", { name: "Santa tracker TV dashboard" })).toBeVisible();
+    const size = `${viewport.width}x${viewport.height}`;
+    await page.screenshot({ path: testInfo.outputPath(path.join("tv-mode", `tv-${size}.png`)), fullPage: true });
+  }
+
+  await page.keyboard.press("Escape");
+  await expect(page).not.toHaveURL(/mode=tv/);
+  await expect(page.getByRole("button", { name: "Enter TV mode" })).toBeVisible();
 });
