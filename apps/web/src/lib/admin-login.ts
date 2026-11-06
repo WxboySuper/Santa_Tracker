@@ -6,29 +6,31 @@ import { createLoginThrottle } from "./admin-login-throttle";
 const loginThrottle = createLoginThrottle();
 
 export const checkLoginRateLimit = (ip: string) => loginThrottle.check({ ip });
+export const checkLoginRateLimitNow = (ip: string) => loginThrottle.checkNow({ ip });
 export const recordLoginAttempt = (ip: string) => loginThrottle.recordFailure({ ip });
 export const clearLoginAttempts = (ip: string) => loginThrottle.clear({ ip });
 
-export async function loginAdmin(payload: unknown): Promise<AdminApiResult> {
+export function loginAdmin(payload: unknown): AdminApiResult | Promise<AdminApiResult> {
   try {
-    return await issueSessionToken(payload);
+    return issueSessionToken(payload);
   } catch {
     return badRequest("Invalid data format");
   }
 }
 
-async function issueSessionToken(payload: unknown): Promise<AdminApiResult> {
+function issueSessionToken(payload: unknown): AdminApiResult | Promise<AdminApiResult> {
   const password = extractPassword(payload);
   if (!password) return badRequest("Password required");
   const adminPassword = getAdminPassword();
   if (!adminPassword) {
     return { status: 500, body: { error: "Admin access not configured" } };
   }
-  if (!(await verifyAdminPassword(password as string))) {
+  if (!verifyAdminPassword(password as string)) {
     return { status: 401, body: { error: "Invalid password" } };
   }
-  const token = await createAdminToken();
-  return { status: 200, body: { token } };
+  return createAdminToken()
+    .then((token) => ({ status: 200, body: { token } }))
+    .catch(() => badRequest("Invalid data format"));
 }
 
 function extractPassword(payload: unknown): unknown {

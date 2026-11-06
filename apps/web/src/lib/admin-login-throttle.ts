@@ -18,6 +18,7 @@ export interface ThrottleDecision {
 
 export interface LoginThrottle {
   check(input: { ip: string }): Promise<ThrottleDecision | null>;
+  checkNow(input: { ip: string }): ThrottleDecision | null;
   recordFailure(input: { ip: string }): Promise<ThrottleDecision | null>;
   clear(input: { ip: string }): Promise<void>;
 }
@@ -67,6 +68,10 @@ export class InMemoryThrottleStore implements ThrottleStore {
     this.values.delete(key);
     this.values.set(key, value);
     return { ...value, attempts: [...value.attempts] };
+  }
+
+  peek({ key }: { key: string }): ThrottleState | undefined {
+    return this.clone(this.values.get(key));
   }
 
   async set({ key, value }: { key: string; value: ThrottleState }): Promise<void> {
@@ -128,9 +133,22 @@ export function createLoginThrottle(input: { store?: ThrottleStore; clock?: () =
   const runtime = { store, clock };
   return {
     check({ ip }) { return checkIp({ runtime, ip }); },
+    checkNow({ ip }) { return checkInMemoryIp({ runtime, ip }); },
     recordFailure({ ip }) { return recordIpFailure({ runtime, ip }); },
     clear({ ip }) { return store.delete({ key: ipKey({ ip }) }); },
   };
+}
+
+function checkInMemoryIp(input: { runtime: Runtime; ip: string }): ThrottleDecision | null {
+  const { runtime, ip } = input;
+  const { store, clock } = runtime;
+  if (!(store instanceof InMemoryThrottleStore)) throw new Error("Synchronous throttle checks require in-memory storage");
+  const key = ipKey({ ip });
+  const existing = store.peek({ key });
+  const now = clock();
+  if (!existing) return checkUnknownIpCapacity({ store, key });
+  if (existing.lockoutUntil <= now) return null;
+  return lockoutDecision({ until: existing.lockoutUntil, now });
 }
 
 async function checkIp(input: { runtime: Runtime; ip: string }): Promise<ThrottleDecision | null> {

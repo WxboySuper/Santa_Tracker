@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import * as jose from "jose";
+import * as auth from "@/lib/auth";
 import { ADMIN_SESSION_TTL_SECONDS, shouldUseSecureAdminCookie } from "@/lib/auth";
 import { getClientIp, POST } from "./route";
 import { POST as logout } from "../logout/route";
@@ -10,7 +11,10 @@ describe("admin login route", () => {
     vi.stubEnv("ADMIN_PASSWORD", "correct horse");
   });
 
-  afterEach(() => vi.unstubAllEnvs());
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.unstubAllEnvs();
+  });
 
   it("prefers Cloudflare IP, falls back to real IP, and ignores forwarded-for", () => {
     expect(getClientIp(new Request("http://example.test", { headers: {
@@ -78,6 +82,7 @@ describe("admin login route", () => {
   });
 
   it("counts simultaneous same-IP failures without losing throttle updates", async () => {
+    const verifyPassword = vi.spyOn(auth, "verifyAdminPassword");
     const requests = Array.from({ length: 20 }, () => POST(new Request("http://example.test/api/admin/login", {
       method: "POST",
       headers: { "cf-connecting-ip": "198.51.100.53", "content-type": "application/json" },
@@ -87,6 +92,7 @@ describe("admin login route", () => {
     expect(responses.filter((response) => response.status === 401)).toHaveLength(4);
     expect(responses.filter((response) => response.status === 429)).toHaveLength(16);
     expect(responses.filter((response) => response.status === 429).every((response) => response.headers.get("Retry-After") === "900")).toBe(true);
+    expect(verifyPassword).toHaveBeenCalledTimes(5);
   });
 
   it("does not globally lock out distinct IPs", async () => {

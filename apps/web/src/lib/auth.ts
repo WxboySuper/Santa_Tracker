@@ -37,7 +37,7 @@ export async function verifyAdminToken(token: string): Promise<boolean> {
   }
 }
 
-export async function verifyAdminPassword(password: string): Promise<boolean> {
+export function verifyAdminPassword(password: string): boolean {
   const adminPassword = getAdminPassword();
   if (!adminPassword) return false;
   // timing-safe compare
