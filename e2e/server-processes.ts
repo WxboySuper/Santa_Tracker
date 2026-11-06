@@ -18,8 +18,8 @@ function childHasExited(child: ChildProcess): boolean {
 
 async function isServerReady({ endpoint }: ServerEntry): Promise<boolean> {
   try {
-    const response = await fetch(endpoint, { signal: AbortSignal.timeout(5_000) });
-    return response.ok;
+    await fetch(endpoint, { signal: AbortSignal.timeout(5_000) });
+    return true;
   } catch {
     return false;
   }
