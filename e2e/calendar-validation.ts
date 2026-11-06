@@ -1,7 +1,14 @@
 import path from "node:path";
 import { isRecord } from "./validation";
 
-export type CalendarDay = { day: number; is_unlocked_override?: boolean };
+export type CalendarDay = {
+	day: number;
+	title: string;
+	unlock_time: string;
+	content_type: "fact" | "game" | "story" | "video" | "activity" | "quiz";
+	payload: Record<string, unknown>;
+	is_unlocked_override?: boolean | null;
+};
 export type Calendar = { days: CalendarDay[] };
 
 type CalendarSource = { content: string; path: string };
@@ -15,12 +22,36 @@ function isValidDayNumber(value: unknown): value is number {
 
 function hasValidOverride(value: unknown): boolean {
   if (value === undefined) return true;
+	if (value === null) return true;
   return typeof value === "boolean";
+}
+
+function isValidCalendarContentType(value: unknown): value is CalendarDay["content_type"] {
+	switch (value) {
+		case "fact":
+		case "game":
+		case "story":
+		case "video":
+		case "activity":
+		case "quiz":
+			return true;
+		default:
+			return false;
+	}
+}
+
+function hasValidUnlockTime(value: unknown): value is string {
+	if (typeof value !== "string") return false;
+	return !Number.isNaN(Date.parse(value.replace(/Z$/, "+00:00")));
 }
 
 function isCalendarDay(value: unknown): value is CalendarDay {
   if (!isRecord(value)) return false;
   if (!isValidDayNumber(value.day)) return false;
+	if (typeof value.title !== "string") return false;
+	if (!hasValidUnlockTime(value.unlock_time)) return false;
+	if (!isValidCalendarContentType(value.content_type)) return false;
+	if (!isRecord(value.payload)) return false;
   return hasValidOverride(value.is_unlocked_override);
 }
 

@@ -70,13 +70,23 @@ test.each(runtimeValidationCases)("runtime validation rejects $name with its fil
   }
 });
 
-const completeCalendarDays = Array.from({ length: 24 }, (_, index) => ({ day: index + 1 }));
+const completeCalendarDays = Array.from({ length: 24 }, (_, index) => ({
+	day: index + 1,
+	title: `Day ${index + 1}`,
+	unlock_time: `2026-12-${String(index + 1).padStart(2, "0")}T12:00:00Z`,
+	content_type: "fact",
+	payload: { text: `Fact for day ${index + 1}` },
+}));
 const malformedCalendarDays: unknown[] = [...completeCalendarDays];
 malformedCalendarDays[0] = null;
-const outOfRangeCalendarDays = completeCalendarDays.map((day) => ({ ...day }));
-outOfRangeCalendarDays[0] = { day: 25 };
-const duplicateCalendarDays = completeCalendarDays.map((day) => ({ ...day }));
-duplicateCalendarDays[1] = { day: 1 };
+const outOfRangeCalendarDays = completeCalendarDays.map((day, index) => index === 0 ? { ...day, day: 25 } : day);
+const duplicateCalendarDays = completeCalendarDays.map((day, index) => index === 1 ? { ...day, day: 1 } : day);
+const missingCalendarFieldCases = ["title", "unlock_time", "content_type", "payload"].map((field) => {
+	const firstDay = completeCalendarDays[0];
+	if (!firstDay) throw new Error("Calendar test fixture must contain day 1");
+	const day = Object.fromEntries(Object.entries(firstDay).filter(([key]) => key !== field));
+	return [field, JSON.stringify({ days: [day, ...completeCalendarDays.slice(1)] })];
+});
 
 test.each([
   ["invalid JSON", "{"],
@@ -89,6 +99,12 @@ test.each([
   await withCalendarFixture("calendar-invalid-test", calendarContent, async ({ source, temporaryRoot, calendarPath }) => {
     await expect(prepareFixtureData({ source, temporaryRoot })).rejects.toThrow(calendarPath);
   });
+});
+
+test.each(missingCalendarFieldCases)("calendar reports its source path when day 1 has no %s", async (_field, calendarContent) => {
+	await withCalendarFixture("calendar-missing-field-test", calendarContent, async ({ source, temporaryRoot, calendarPath }) => {
+		await expect(prepareFixtureData({ source, temporaryRoot })).rejects.toThrow(calendarPath);
+	});
 });
 
 test("route JSON reports its source path before fixture servers start", async () => {
@@ -108,10 +124,10 @@ test("route with an invalid shape reports its source path before fixture servers
 });
 
 test("fixture calendars clear source overrides and unlock only open day one", async () => {
-  const calendarDays = completeCalendarDays.map(({ day }) => {
-    if (day === 1) return { day, is_unlocked_override: false };
-    if (day === 2) return { day, unlock_time: "2000-01-01T00:00:00Z", is_unlocked_override: true };
-    return { day };
+  const calendarDays = completeCalendarDays.map((day) => {
+    if (day.day === 1) return { ...day, is_unlocked_override: null };
+    if (day.day === 2) return { ...day, unlock_time: "2000-01-01T00:00:00Z", is_unlocked_override: true };
+    return day;
   });
   const calendar = JSON.stringify({ days: calendarDays });
   await withCalendarFixture("calendar-override-test", calendar, async ({ source, temporaryRoot }) => {
@@ -119,7 +135,7 @@ test("fixture calendars clear source overrides and unlock only open day one", as
     const closed = JSON.parse(await readFile(path.join(roots.closed, "advent_calendar.json"), "utf8")) as { days: { day: number; is_unlocked_override?: boolean }[] };
     const open = JSON.parse(await readFile(path.join(roots.open, "advent_calendar.json"), "utf8")) as { days: { day: number; is_unlocked_override?: boolean; unlock_time?: string }[] };
     expect(closed.days.some((day) => day.is_unlocked_override !== undefined)).toBe(false);
-    expect(open.days[0]).toEqual({ day: 1, is_unlocked_override: true });
+    expect(open.days[0]).toMatchObject({ day: 1, is_unlocked_override: true });
     expect(open.days.slice(1).every((day) => day.is_unlocked_override === false)).toBe(true);
     expect(open.days.find((day) => day.day === 2)?.unlock_time).toBe("2000-01-01T00:00:00Z");
   });
