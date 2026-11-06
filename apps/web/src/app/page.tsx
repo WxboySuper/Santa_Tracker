@@ -48,7 +48,7 @@ function CardCopy({
   const label = kind === 'advent' ? t('home.openCalendar') : t('home.openTracker');
   return (
     <>
-      <p className="mt-3 min-h-12 text-base leading-7 text-slate-200">{copy}</p>
+      <p className="home-card-copy mt-3 min-h-12 text-base leading-7 text-slate-200">{copy}</p>
       {allowed && (
         <Link className="home-link mt-5 inline-flex rounded-lg px-4 py-2 font-semibold" href={href}>
           {label}
@@ -79,24 +79,47 @@ export default async function HomePage() {
         </Link>
       </nav>
       <main id="main" className="home-main">
-        <NorthPoleScene label={t('home.heroLabel')} />
-        <header className="home-heading">
-          <p className="home-kicker">{t('home.kicker')}</p>
-          <h1>{t('home.title')}</h1>
-          <p>{t('home.subtitle')}</p>
-        </header>
-        <section aria-labelledby="countdown-heading" className="countdown-panel">
-          <h2 id="countdown-heading">{t('home.countdown')}</h2>
-          <CountdownTiles locale={translator.locale} flyingText={t('home.flyingTonight')} />
+        <section className="home-hero" aria-labelledby="home-title">
+          <NorthPoleScene
+            label={t('home.heroLabel')}
+            windowOnLabel={t('home.windowOn')}
+            windowOffLabel={t('home.windowOff')}
+          />
+          <div className="home-hero-shade" aria-hidden="true" />
+          <div className="home-hero-content">
+            <header className="home-heading">
+              <p className="home-kicker"><span aria-hidden="true">✦</span>{t('home.kicker')}</p>
+              <h1 id="home-title">{t('home.title')}</h1>
+              <p>{t('home.subtitle')}</p>
+            </header>
+            <section aria-labelledby="countdown-heading" className="countdown-panel">
+              <p className="countdown-ornament" aria-hidden="true">✧ · ✦ · ✧</p>
+              <h2 id="countdown-heading">{t('home.countdown')}</h2>
+              <CountdownTiles locale={translator.locale} flyingText={t('home.flyingTonight')} />
+            </section>
+          </div>
+          <p className="home-scene-note">{t('home.sceneNote')}</p>
         </section>
         <section aria-label={t('home.destinations')} className="home-cards">
           <article className="home-card">
-            <p className="home-card-index">{t('home.adventIndex')}</p>
+            <div className="home-card-topline">
+              <span className="home-card-index">{t('home.adventIndex')}</span>
+              <svg aria-hidden="true" viewBox="0 0 32 32" className="home-card-mark">
+                <path d="M7 10.5 16 5l9 5.5v12L16 28l-9-5.5z" />
+                <path d="M7.5 11 16 16l8.5-5M16 16v11M16 9v4m-2-2h4" />
+              </svg>
+            </div>
             <h2>{t('home.adventTitle')}</h2>
             <CardCopy kind="advent" state={cards.advent} allowed={adventAllowed} t={t} />
           </article>
           <article className="home-card">
-            <p className="home-card-index">{t('home.trackerIndex')}</p>
+            <div className="home-card-topline">
+              <span className="home-card-index">{t('home.trackerIndex')}</span>
+              <svg aria-hidden="true" viewBox="0 0 32 32" className="home-card-mark">
+                <path d="M16 4.5 26 9v7.5c0 6-4.2 9.5-10 11-5.8-1.5-10-5-10-11V9z" />
+                <path d="M9.5 17h4l2-4 2.5 7 2-3h2.5" />
+              </svg>
+            </div>
             <h2>{t('home.trackerTitle')}</h2>
             <CardCopy kind="tracker" state={cards.tracker} allowed={trackerAllowed} t={t} />
           </article>
