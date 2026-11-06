@@ -1,5 +1,8 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
+import { createTranslator } from "@santa-tracker/localization";
+
+const t = createTranslator().t;
 
 interface AdminLocation {
   id?: number;
@@ -26,6 +29,12 @@ interface LoginResponse {
 interface LocationsResponse {
   locations?: AdminLocation[];
   error?: string;
+}
+
+interface FeatureFlagsResponse {
+  version: 1;
+  hidden: { tracker: boolean; advent: boolean };
+  updatedAt: string;
 }
 
 async function parseJson<T>(res: Response): Promise<T | null> {
@@ -121,12 +130,109 @@ function Dashboard({ onLogout }: DashboardProps) {
         <a href="/admin/route-simulator" className="bg-blue-600 px-4 py-2 rounded">Route Simulator</a>
         <button onClick={() => { void loadLocations(); }} className="bg-green-600 px-4 py-2 rounded">Refresh Locations ({locations.length})</button>
       </div>
+      <EmergencySwitches />
       {status && <p className="mb-4">{status}</p>}
       <div className="bg-white/5 rounded p-4 overflow-auto max-h-[60vh]">
         <pre className="text-xs">{JSON.stringify(locations.slice(0, 3), null, 2)}</pre>
         {locations.length > 3 && <p>… and {locations.length - 3} more</p>}
       </div>
     </div>
+  );
+}
+
+function EmergencySwitches() {
+  const [flags, setFlags] = useState<FeatureFlagsResponse | null>(null);
+  const [pendingFeature, setPendingFeature] = useState<"tracker" | "advent" | null>(null);
+  const [status, setStatus] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
+
+  const loadFlags = useCallback(async () => {
+    try {
+      const response = await fetch("/api/admin/feature-flags", { credentials: "include" });
+      const data = await parseJson<FeatureFlagsResponse>(response);
+      if (!response.ok || !data) throw new Error("load failed");
+      setFlags(data);
+      setStatus("");
+    } catch {
+      setStatus(t("admin.emergency.loadFailed"));
+    }
+  }, []);
+
+  useEffect(() => { void loadFlags(); }, [loadFlags]);
+
+  async function save(hidden: FeatureFlagsResponse["hidden"]) {
+    setIsSaving(true);
+    try {
+      const response = await fetch("/api/admin/feature-flags", {
+        method: "PUT",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ version: 1, hidden }),
+      });
+      const data = await parseJson<FeatureFlagsResponse>(response);
+      if (!response.ok || !data) throw new Error("save failed");
+      setFlags(data);
+      setStatus(t("admin.emergency.saved"));
+    } catch {
+      setStatus(t("admin.emergency.saveFailed"));
+    } finally {
+      setIsSaving(false);
+      setPendingFeature(null);
+    }
+  }
+
+  function toggle(feature: "tracker" | "advent", hidden: boolean) {
+    if (!flags || isSaving) return;
+    if (hidden) {
+      setPendingFeature(feature);
+      return;
+    }
+    void save({ ...flags.hidden, [feature]: false });
+  }
+
+  return (
+    <section aria-labelledby="emergency-switches-title" className="mb-6 rounded-xl border border-red-300/30 bg-red-950/30 p-5">
+      <h2 id="emergency-switches-title" className="text-xl font-bold">{t("admin.emergency.title")}</h2>
+      <p className="mb-4 mt-1 text-white/70">{t("admin.emergency.description")}</p>
+      {!flags ? <p role="status">{status || t("admin.emergency.loading")}</p> : (
+        <div className="grid gap-4 sm:grid-cols-2">
+          {(["tracker", "advent"] as const).map(feature => {
+            const label = feature === "tracker" ? t("admin.emergency.hideTracker") : t("admin.emergency.hideAdvent");
+            return (
+              <label key={feature} className="flex min-h-20 items-center justify-between gap-4 rounded-lg bg-white/5 p-4">
+                <span>
+                  <span className="block font-semibold">{label}</span>
+                  <span className="text-sm text-white/70">{flags.hidden[feature] ? t("admin.emergency.hidden") : t("admin.emergency.visible")}</span>
+                </span>
+                <input
+                  type="checkbox"
+                  role="switch"
+                  aria-label={label}
+                  checked={flags.hidden[feature]}
+                  disabled={isSaving}
+                  onChange={event => toggle(feature, event.currentTarget.checked)}
+                  className="h-6 w-11 accent-red-500"
+                />
+              </label>
+            );
+          })}
+        </div>
+      )}
+      {flags && <p className="mt-4 text-sm text-white/60">{flags.updatedAt ? t("admin.emergency.lastUpdated", { time: new Date(flags.updatedAt).toLocaleString() }) : t("admin.emergency.neverUpdated")}</p>}
+      {status && <p className="mt-3" role={status === t("admin.emergency.saveFailed") || status === t("admin.emergency.loadFailed") ? "alert" : "status"} aria-live="polite">{status}</p>}
+      {pendingFeature && (
+        <div role="alertdialog" aria-modal="true" aria-labelledby="emergency-confirm-title" aria-describedby="emergency-confirm-message" className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
+          <div className="w-full max-w-md rounded-xl bg-gray-800 p-6 shadow-xl">
+            <h3 id="emergency-confirm-title" className="text-lg font-bold">{t("admin.emergency.confirmTitle")}</h3>
+            <p id="emergency-confirm-message" className="my-3 text-white/80">{t("admin.emergency.confirmMessage")}</p>
+            <div className="flex justify-end gap-3">
+              <button type="button" autoFocus onClick={() => setPendingFeature(null)} className="rounded bg-gray-600 px-4 py-2">{t("admin.emergency.cancel")}</button>
+              <button type="button" disabled={isSaving} onClick={() => { if (flags) void save({ ...flags.hidden, [pendingFeature]: true }); }} className="rounded bg-red-600 px-4 py-2 font-semibold">{t("admin.emergency.confirm")}</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </section>
   );
 }
 

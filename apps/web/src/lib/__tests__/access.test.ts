@@ -2,9 +2,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createAdminToken } from "../auth";
 
 const cookieJar = new Map<string, string>();
+const flags = { hidden: { tracker: false, advent: false } };
 vi.mock("next/headers", () => ({
   cookies: async () => ({ get: (name: string) => (cookieJar.has(name) ? { value: cookieJar.get(name) } : undefined) }),
 }));
+vi.mock("../feature-flags", () => ({ readFeatureFlags: async () => ({ version: 1, ...flags, updatedAt: "" }) }));
 
 const { canViewFeature, closedResponse, featureAccess, gatedFeature } = await import("../access");
 
@@ -19,6 +21,8 @@ beforeEach(() => {
   vi.stubEnv("SECRET_KEY", "test-secret-key-0123456789abcdef-0123456789");
   vi.stubEnv("SEASON_OVERRIDE", "");
   cookieJar.clear();
+  flags.hidden.tracker = false;
+  flags.hidden.advent = false;
   vi.useFakeTimers();
   vi.setSystemTime(CLOSED);
 });
@@ -69,6 +73,25 @@ describe("featureAccess", () => {
     vi.stubEnv("SEASON_OVERRIDE", "open");
     expect(await featureAccess("tracker", request())).toBe("open");
     expect(await featureAccess("advent", request())).toBe("open");
+  });
+
+  it("a hidden feature closes to visitors during its season but remains available to admins", async () => {
+    flags.hidden.tracker = true;
+    expect(await featureAccess("tracker", request(), OPEN_TRACKER)).toBe("closed");
+    const token = await createAdminToken();
+    expect(await featureAccess("tracker", request({ authorization: `Bearer ${token}` }), OPEN_TRACKER)).toBe("admin");
+  });
+
+  it("a hide flag never opens a feature outside its season", async () => {
+    flags.hidden.advent = true;
+    expect(await featureAccess("advent", request())).toBe("closed");
+  });
+
+  it("keeps the local season override, while a hide still closes the feature", async () => {
+    vi.stubEnv("SEASON_OVERRIDE", "open");
+    expect(await featureAccess("advent", request())).toBe("open");
+    flags.hidden.advent = true;
+    expect(await featureAccess("advent", request())).toBe("closed");
   });
 });
 

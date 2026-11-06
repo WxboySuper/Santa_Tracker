@@ -349,6 +349,23 @@ export const en = {
   'metadata.title': 'Santa Tracker - Christmas 2026',
   'metadata.description':
     "Follow Santa's magical journey around the world on Christmas Eve - a modern, accessible holiday experience.",
+  'admin.emergency.title': 'Emergency switches',
+  'admin.emergency.description': 'Hide a feature from visitors without a deploy. Admin sessions can still preview it.',
+  'admin.emergency.hideTracker': 'Hide tracker',
+  'admin.emergency.hideAdvent': 'Hide Advent',
+  'admin.emergency.hidden': 'Hidden from visitors',
+  'admin.emergency.visible': 'Visible when its season is open',
+  'admin.emergency.lastUpdated': 'Last updated: {time}',
+  'admin.emergency.neverUpdated': 'Last updated: never',
+  'admin.emergency.confirmTitle': 'Hide this feature from visitors?',
+  'admin.emergency.confirmMessage': 'Visitors will see a 404 page until you turn this switch off.',
+  'admin.emergency.confirm': 'Hide feature',
+  'admin.emergency.cancel': 'Cancel',
+  'admin.emergency.saved': 'Emergency switches saved.',
+  'admin.emergency.saveFailed': 'Could not save emergency switches. Try again.',
+  'admin.emergency.loading': 'Loading emergency switches…',
+  'admin.emergency.loadFailed': 'Could not load emergency switches.',
+  'admin.emergency.show': 'Show {feature}',
 } as const;
 
 export type MessageKey = keyof typeof en;

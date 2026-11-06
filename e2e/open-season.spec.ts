@@ -1,5 +1,8 @@
-import { expect, test } from "./fixtures";
+import { expect, test, getRuntimeConfig } from "./fixtures";
 import { expectNoSeriousAxeIssues } from "./axe-check";
+import type { Page } from "@playwright/test";
+
+test.describe.configure({ mode: "serial" });
 
 test("Advent exposes 24 doors, day 1 game, and rejects invalid days", async ({ page }) => {
   await page.goto("/advent");
@@ -23,3 +26,66 @@ test("Advent exposes 24 doors, day 1 game, and rejects invalid days", async ({ p
     expect((await page.request.get(route)).status(), route).toBe(404);
   }
 });
+
+test("the admin emergency switch hides and restores the tracker for visitors", async ({ page, browser }) => {
+  const runtimeFile = process.env.E2E_RUNTIME_FILE;
+  if (!runtimeFile) throw new Error("E2E_RUNTIME_FILE is not configured");
+  const loginPassword = (await getRuntimeConfig(runtimeFile)).adminPassword;
+  const login = await page.request.post("/api/admin/login", { data: { password: loginPassword } });
+  expect(login.status()).toBe(200);
+  const hide = await page.request.put("/api/admin/feature-flags", { data: { version: 1, hidden: { tracker: true, advent: false } } });
+  expect(hide.status()).toBe(200);
+
+  const visitorContext = await browser.newContext();
+  try {
+    const visitor = await visitorContext.newPage();
+    await expect.poll(async () => (await visitor.request.get("/tracker")).status(), { timeout: 8_000 }).toBe(404);
+    const hiddenApi = await visitor.request.get("/api/route");
+    expect(hiddenApi.status()).toBe(404);
+    expect(hiddenApi.headers()["cache-control"]).toBe("private, no-store");
+
+    const show = await page.request.put("/api/admin/feature-flags", { data: { version: 1, hidden: { tracker: false, advent: false } } });
+    expect(show.status()).toBe(200);
+    await expect.poll(async () => (await visitor.request.get("/tracker")).status(), { timeout: 8_000 }).toBe(200);
+  } finally {
+    await visitorContext.close();
+  }
+});
+
+test("emergency switches work at desktop and mobile sizes with keyboard confirmation", async ({ page }) => {
+  const runtimeFile = process.env.E2E_RUNTIME_FILE;
+  if (!runtimeFile) throw new Error("E2E_RUNTIME_FILE is not configured");
+  const loginPassword = (await getRuntimeConfig(runtimeFile)).adminPassword;
+  expect((await page.request.post("/api/admin/login", { data: { password: loginPassword } })).status()).toBe(200);
+
+  for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 }]) {
+    await page.setViewportSize(viewport);
+    await page.goto("/admin");
+    const trackerSwitch = page.getByRole("switch", { name: "Hide tracker" });
+    await expect(trackerSwitch).toBeVisible();
+    await expect(page.getByText(/Last updated:/)).toBeVisible();
+
+    await tabTo(page, "Hide tracker");
+    await page.keyboard.press("Space");
+    const dialog = page.getByRole("alertdialog");
+    await expect(dialog.getByText(/Visitors will see a 404/)).toBeVisible();
+    await page.keyboard.press("Tab");
+    await page.keyboard.press("Enter");
+    await expect(page.getByRole("status").filter({ hasText: "Emergency switches saved." })).toBeVisible();
+    await expect(trackerSwitch).toBeChecked();
+
+    await tabTo(page, "Hide tracker");
+    await page.keyboard.press("Space");
+    await expect(page.getByRole("status").filter({ hasText: "Emergency switches saved." })).toBeVisible();
+    await expect(trackerSwitch).not.toBeChecked();
+  }
+});
+
+async function tabTo(page: Page, accessibleName: string) {
+  for (let attempt = 0; attempt < 30; attempt += 1) {
+    const activeLabel = await page.evaluate(() => document.activeElement?.getAttribute("aria-label") ?? "");
+    if (activeLabel === accessibleName) return;
+    await page.keyboard.press("Tab");
+  }
+  throw new Error(`Could not reach ${accessibleName} with the keyboard`);
+}
