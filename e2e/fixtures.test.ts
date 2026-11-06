@@ -6,6 +6,28 @@ import { getEndpointForProject, getRuntimeConfig } from "./fixtures";
 import { prepareFixtureData } from "./fixture-data";
 import { getLocalAddress } from "./server-processes";
 
+type CalendarFixture = { source: string; temporaryRoot: string; calendarPath: string };
+
+async function withCalendarFixture(
+  name: string,
+  calendarContent: string,
+  run: (fixture: CalendarFixture) => Promise<void>,
+): Promise<void> {
+  const root = await mkdtemp(path.join(os.tmpdir(), `santa-e2e-${name}-`));
+  const source = path.join(root, "source");
+  const temporaryRoot = path.join(root, "temp");
+  const calendarPath = path.join(source, "advent_calendar.json");
+  await mkdir(source, { recursive: true });
+  await mkdir(temporaryRoot, { recursive: true });
+  await writeFile(path.join(source, "santa_route.json"), "{}");
+  await writeFile(calendarPath, calendarContent);
+  try {
+    await run({ source, temporaryRoot, calendarPath });
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+}
+
 test("runtime config parse errors include the file path and allow retry", async () => {
   const root = await mkdtemp(path.join(os.tmpdir(), "santa-e2e-fixture-test-"));
   const runtimeFile = path.join(root, "endpoints.json");
@@ -47,73 +69,35 @@ test("runtime config requires both project endpoints", async () => {
 });
 
 test("calendar parse errors include the source path", async () => {
-  const root = await mkdtemp(path.join(os.tmpdir(), "santa-e2e-calendar-test-"));
-  const source = path.join(root, "source");
-  const temporaryRoot = path.join(root, "temp");
-  await mkdir(source, { recursive: true });
-  await mkdir(temporaryRoot, { recursive: true });
-  const calendarPath = path.join(source, "advent_calendar.json");
-  try {
-    await writeFile(path.join(source, "santa_route.json"), "{}");
-    await writeFile(calendarPath, "{");
+  await withCalendarFixture("calendar-test", "{", async ({ source, temporaryRoot, calendarPath }) => {
     await expect(prepareFixtureData(source, temporaryRoot)).rejects.toThrow(calendarPath);
-  } finally {
-    await rm(root, { recursive: true, force: true });
-  }
+  });
 });
 
 test("calendar shape errors include the source path", async () => {
-  const root = await mkdtemp(path.join(os.tmpdir(), "santa-e2e-calendar-shape-test-"));
-  const source = path.join(root, "source");
-  const temporaryRoot = path.join(root, "temp");
-  await mkdir(source, { recursive: true });
-  await mkdir(temporaryRoot, { recursive: true });
-  const calendarPath = path.join(source, "advent_calendar.json");
-  try {
-    await writeFile(path.join(source, "santa_route.json"), "{}");
-    await writeFile(calendarPath, "{}");
+  await withCalendarFixture("calendar-shape-test", "{}", async ({ source, temporaryRoot, calendarPath }) => {
     await expect(prepareFixtureData(source, temporaryRoot)).rejects.toThrow(calendarPath);
-  } finally {
-    await rm(root, { recursive: true, force: true });
-  }
+  });
 });
 
 test("calendar rejects malformed day entries with the source path", async () => {
-  const root = await mkdtemp(path.join(os.tmpdir(), "santa-e2e-calendar-day-test-"));
-  const source = path.join(root, "source");
-  const temporaryRoot = path.join(root, "temp");
-  await mkdir(source, { recursive: true });
-  await mkdir(temporaryRoot, { recursive: true });
-  const calendarPath = path.join(source, "advent_calendar.json");
-  try {
-    await writeFile(path.join(source, "santa_route.json"), "{}");
-    await writeFile(calendarPath, JSON.stringify({ days: [null] }));
+  await withCalendarFixture("calendar-day-test", JSON.stringify({ days: [null] }), async ({ source, temporaryRoot, calendarPath }) => {
     await expect(prepareFixtureData(source, temporaryRoot)).rejects.toThrow(calendarPath);
-  } finally {
-    await rm(root, { recursive: true, force: true });
-  }
+  });
 });
 
 test("fixture calendars clear source overrides and unlock only open day one", async () => {
-  const root = await mkdtemp(path.join(os.tmpdir(), "santa-e2e-calendar-override-test-"));
-  const source = path.join(root, "source");
-  const temporaryRoot = path.join(root, "temp");
-  await mkdir(source, { recursive: true });
-  await mkdir(temporaryRoot, { recursive: true });
-  try {
-    await writeFile(path.join(source, "santa_route.json"), "{}");
-    await writeFile(path.join(source, "advent_calendar.json"), JSON.stringify({ days: [
-      { day: 1, is_unlocked_override: false },
-      { day: 2, is_unlocked_override: true },
-    ] }));
+  const calendar = JSON.stringify({ days: [
+    { day: 1, is_unlocked_override: false },
+    { day: 2, is_unlocked_override: true },
+  ] });
+  await withCalendarFixture("calendar-override-test", calendar, async ({ source, temporaryRoot }) => {
     const roots = await prepareFixtureData(source, temporaryRoot);
     const closed = JSON.parse(await readFile(path.join(roots.closed, "advent_calendar.json"), "utf8")) as { days: { day: number; is_unlocked_override?: boolean }[] };
     const open = JSON.parse(await readFile(path.join(roots.open, "advent_calendar.json"), "utf8")) as { days: { day: number; is_unlocked_override?: boolean }[] };
     expect(closed.days.some((day) => day.is_unlocked_override !== undefined)).toBe(false);
     expect(open.days).toEqual([{ day: 1, is_unlocked_override: true }, { day: 2 }]);
-  } finally {
-    await rm(root, { recursive: true, force: true });
-  }
+  });
 });
 
 test("runtime endpoints are cached per file for each worker", async () => {
