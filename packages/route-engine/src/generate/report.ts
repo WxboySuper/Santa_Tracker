@@ -61,7 +61,7 @@ function countFlags(places: Candidate[], legs: LegSummary[], config: GeneratorCo
 export function buildReport(places: Candidate[], route: Route, config: GeneratorConfig, coordinates: Map<string, LatLng>): RouteReport {
   const hourly = hourlyCounts(route);
   const legs = routeLegs({ places, config, coordinates, route });
-  const lastHours = hourly.slice(-config.westernHours);
+  const lastHours = config.westernHours > 0 ? hourly.slice(-config.westernHours) : [];
   return {
     seed: config.seed, count: places.length, mix: categoryMix(places, config), regionBalance: regionCounts(places), hourly,
     fastestLeg: [...legs].sort((a, b) => b.kmh - a.kmh)[0] ?? null,

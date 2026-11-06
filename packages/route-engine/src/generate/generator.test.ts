@@ -45,4 +45,14 @@ describe('generateRoute', () => {
   it('rejects a zero-stop route before creating an empty report', () => {
     expect(() => generateRoute(candidates, { ...DEFAULT_GENERATOR_LIMITS, total: 0, weights: { hub: 1 } })).toThrow(/Invalid stop total/);
   });
+
+  it('rejects invalid schedule and travel limits before generating stops', () => {
+    const config = { ...DEFAULT_GENERATOR_LIMITS, total: 1, weights: { hub: 1 } };
+    expect(() => generateRoute(candidates, { ...config, arrivalStartMinute: 181, arrivalEndMinute: 180 })).toThrow(/arrival window/);
+    expect(() => generateRoute(candidates, { ...config, durationSeconds: 0 })).toThrow(/stop duration/);
+    expect(() => generateRoute(candidates, { ...config, maxSpeedKmh: 0 })).toThrow(/maximum speed/);
+    expect(() => generateRoute(candidates, { ...config, maxGapKm: Number.NaN })).toThrow(/maximum gap/);
+    expect(() => generateRoute(candidates, { ...config, maxCountryRun: 0 })).toThrow(/country run limit/);
+    expect(() => generateRoute(candidates, { ...config, westernHours: -1 })).toThrow(/western hour count/);
+  });
 });

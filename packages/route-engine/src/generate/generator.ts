@@ -59,13 +59,27 @@ function validateGeneratedRoute(route: Route, coordinates: Map<string, LatLng>, 
   if (errors.length) throw new Error(`Invalid route geometry: ${errors.join('; ')}`);
 }
 function addReportWarnings(report: GeneratedRoute['report'], config: GeneratorConfig): void {
-  if (report.westernMinimum < config.minimumStopsPerHour) report.issues.push(`Western hourly minimum ${report.westernMinimum} is below target ${config.minimumStopsPerHour}; sparse final time zones limit available verified stops.`);
+  if (config.westernHours > 0 && report.westernMinimum < config.minimumStopsPerHour) report.issues.push(`Western hourly minimum ${report.westernMinimum} is below target ${config.minimumStopsPerHour}; sparse final time zones limit available verified stops.`);
   const longLegs = report.flags.filter((flag) => flag.longGap > 0).length;
   if (longLegs > 0) report.issues.push(`Distance threshold relaxed for ${longLegs} legs over ${config.maxGapKm} km to preserve the global stop mix and the 26-hour sweep.`);
 }
-export function generateRoute(pool: Candidate[], config: GeneratorConfig, overrides: RouteOverrides = {}): GeneratedRoute {
+function validateGeneratorConfig(config: GeneratorConfig): void {
+  if (!Number.isSafeInteger(config.seed)) throw new Error('Invalid seed');
   if (!Number.isSafeInteger(config.total) || config.total < 1) throw new Error('Invalid stop total');
   if (Object.keys(config.weights).length === 0) throw new Error('Category weights are required');
+  if (!Number.isSafeInteger(config.arrivalStartMinute) || !Number.isSafeInteger(config.arrivalEndMinute)
+    || config.arrivalStartMinute < 0 || config.arrivalEndMinute > 1439 || config.arrivalStartMinute > config.arrivalEndMinute) {
+    throw new Error('Invalid arrival window');
+  }
+  if (!Number.isSafeInteger(config.durationSeconds) || config.durationSeconds < 1) throw new Error('Invalid stop duration');
+  if (!Number.isFinite(config.maxSpeedKmh) || config.maxSpeedKmh <= 0) throw new Error('Invalid maximum speed');
+  if (!Number.isFinite(config.maxGapKm) || config.maxGapKm < 0) throw new Error('Invalid maximum gap');
+  if (!Number.isSafeInteger(config.maxCountryRun) || config.maxCountryRun < 1) throw new Error('Invalid country run limit');
+  if (!Number.isFinite(config.minimumStopsPerHour) || config.minimumStopsPerHour < 0) throw new Error('Invalid hourly minimum');
+  if (!Number.isSafeInteger(config.westernHours) || config.westernHours < 0) throw new Error('Invalid western hour count');
+}
+export function generateRoute(pool: Candidate[], config: GeneratorConfig, overrides: RouteOverrides = {}): GeneratedRoute {
+  validateGeneratorConfig(config);
   const chosen = chooseCandidates(pool, config, overrides);
   const ordered = sweepOrder(chosen, config);
   const { document, route, coordinates } = buildDocument(ordered, config);

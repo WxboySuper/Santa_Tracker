@@ -32,4 +32,10 @@ describe('buildReport', () => {
 
     expect(Object.values(report.mix).map((entry) => entry.target)).toEqual([1, 1, 0]);
   });
+
+  it('does not count all hours as western coverage when the window is disabled', () => {
+    const reportConfig = { ...config, westernHours: 0, minimumStopsPerHour: 1 };
+    const report = buildReport([place], route, reportConfig, new Map([[createLocationId('location_one'), place]]));
+    expect(report.westernMinimum).toBe(0);
+  });
 });
