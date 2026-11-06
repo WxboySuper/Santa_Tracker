@@ -1,7 +1,7 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
+import type { ServerName } from "./types";
 
-type ServerName = "closed" | "open";
 type CalendarDay = { day: number; is_unlocked_override?: boolean };
 type Calendar = { days: CalendarDay[] };
 

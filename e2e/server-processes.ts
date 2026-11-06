@@ -2,8 +2,7 @@ import { spawn, type ChildProcess } from "node:child_process";
 import { createRequire } from "node:module";
 import path from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
-
-type ServerName = "closed" | "open";
+import type { ServerName } from "./types";
 export type ServerEntry = { name: ServerName; child: ChildProcess };
 type StartupResult = { name: ServerName; endpoint: string };
 const maxStartupOutput = 4_000;
@@ -30,14 +29,14 @@ function stripAnsiColorCodes(output: string): string {
 
 export function getLocalAddress(output: string): string | undefined {
   const cleanOutput = stripAnsiColorCodes(output);
-  const match = /(https?:\/\/)(localhost|127\.0\.0\.1|0\.0\.0\.0|\[[\da-f:]+\]|[a-z\d.-]+):(\d+)/i.exec(cleanOutput);
+  const match = /^\s*(?:[-+]\s*)?Local:\s*(https?:\/\/)(localhost|127\.0\.0\.1|0\.0\.0\.0|\[[\da-f:]+\]|[a-z\d.-]+):(\d+)/im.exec(cleanOutput);
   if (!match) return undefined;
   const hostname = match[2] === "0.0.0.0" ? "localhost" : match[2];
   return `${match[1]}${hostname}:${match[3]}`;
 }
 
-async function findReadyEndpoint(output: string): Promise<string | undefined> {
-  const endpoint = getLocalAddress(output);
+async function findReadyEndpoint(endpoint: string | undefined): Promise<string | undefined> {
+  if (!endpoint) return undefined;
   if (!endpoint) return undefined;
   if (!await isServerReady(endpoint)) return undefined;
   return endpoint;
@@ -52,10 +51,12 @@ function getStartupError(entry: ServerEntry, spawnError: Error | undefined): Err
 
 function captureStartupState(entry: ServerEntry) {
   let output = "";
+  let endpoint: string | undefined;
   let truncated = false;
   let spawnError: Error | undefined;
   const capture = (chunk: Buffer) => {
     output += chunk.toString();
+    endpoint = getLocalAddress(output) ?? endpoint;
     if (output.length <= maxStartupOutput) return;
     output = output.slice(-maxStartupOutput);
     truncated = true;
@@ -71,6 +72,7 @@ function captureStartupState(entry: ServerEntry) {
   entry.child.stderr?.on("data", onStderr);
   return {
     output: () => truncated ? `...[earlier output truncated]...\n${output}` : output,
+    endpoint: () => endpoint,
     error: () => spawnError,
     dispose: () => {
       entry.child.removeListener("error", onError);
@@ -87,8 +89,8 @@ async function waitForServer(entry: ServerEntry): Promise<StartupResult> {
     while (Date.now() < deadline) {
       const startupError = getStartupError(entry, state.error());
       if (startupError) throw startupError;
-      const endpoint = await findReadyEndpoint(state.output());
-      if (endpoint) return { name: entry.name, endpoint };
+      const readyEndpoint = await findReadyEndpoint(state.endpoint());
+      if (readyEndpoint) return { name: entry.name, endpoint: readyEndpoint };
       await delay(250);
     }
     const startupError = getStartupError(entry, state.error());

@@ -68,20 +68,12 @@ test("runtime config requires both project endpoints", async () => {
   }
 });
 
-test("calendar parse errors include the source path", async () => {
-  await withCalendarFixture("calendar-test", "{", async ({ source, temporaryRoot, calendarPath }) => {
-    await expect(prepareFixtureData(source, temporaryRoot)).rejects.toThrow(calendarPath);
-  });
-});
-
-test("calendar shape errors include the source path", async () => {
-  await withCalendarFixture("calendar-shape-test", "{}", async ({ source, temporaryRoot, calendarPath }) => {
-    await expect(prepareFixtureData(source, temporaryRoot)).rejects.toThrow(calendarPath);
-  });
-});
-
-test("calendar rejects malformed day entries with the source path", async () => {
-  await withCalendarFixture("calendar-day-test", JSON.stringify({ days: [null] }), async ({ source, temporaryRoot, calendarPath }) => {
+test.each([
+  ["invalid JSON", "{"],
+  ["missing days array", "{}"],
+  ["malformed day entry", JSON.stringify({ days: [null] })],
+])("calendar reports its source path for %s", async (_name, calendarContent) => {
+  await withCalendarFixture("calendar-invalid-test", calendarContent, async ({ source, temporaryRoot, calendarPath }) => {
     await expect(prepareFixtureData(source, temporaryRoot)).rejects.toThrow(calendarPath);
   });
 });
@@ -125,4 +117,9 @@ test("server address parsing converts a bind-all address into a local URL", () =
 
 test("server address parsing accepts local hostnames", () => {
   expect(getLocalAddress("Local: https://santa.local:43171")).toBe("https://santa.local:43171");
+});
+
+test("server address parsing ignores unrelated URLs outside the Local line", () => {
+  expect(getLocalAddress("Telemetry: https://cdn.example.com:43171\nLocal: http://localhost:43172"))
+    .toBe("http://localhost:43172");
 });
