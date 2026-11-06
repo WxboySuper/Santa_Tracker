@@ -26,7 +26,7 @@ const IP_PREFIX = "ip:";
 
 export class ThrottleStoreFullError extends Error {
   constructor() {
-    super("Throttle store is full of active state");
+    super("Throttle store has no expired IP state to evict");
     this.name = "ThrottleStoreFullError";
   }
 }
@@ -74,19 +74,10 @@ export class InMemoryThrottleStore implements ThrottleStore {
 
   private findExpiredIpEntry(): string | undefined {
     const now = this.clock();
-    let oldestKey: string | undefined;
-    let oldestFailureAt = Number.POSITIVE_INFINITY;
     for (const [key, state] of this.values) {
       if (isExpiredIpState({ key, state, now })) return key;
-      if (key === GLOBAL_KEY) continue;
-      if (state.lockoutUntil > now) continue;
-      const lastFailureAt = state.attempts.at(-1) ?? Number.NEGATIVE_INFINITY;
-      if (lastFailureAt < oldestFailureAt) {
-        oldestKey = key;
-        oldestFailureAt = lastFailureAt;
-      }
     }
-    return oldestKey;
+    return undefined;
   }
 }
 

@@ -118,6 +118,26 @@ describe("admin login route", () => {
     }
   });
 
+  it("starts the processing timeout only when a queued login begins", async () => {
+    let releaseFirst: () => void = () => undefined;
+    const gate = new Promise<void>((resolve) => { releaseFirst = resolve; });
+    let timeoutStarts = 0;
+    const first = serializeLogin("ip-timeout", () => gate.then(() => NextResponse.json({ ok: true })));
+    const queued = serializeLogin(
+      "ip-timeout",
+      () => Promise.resolve(NextResponse.json({ ok: true })),
+      undefined,
+      () => { timeoutStarts += 1; },
+    );
+    try {
+      expect(timeoutStarts).toBe(0);
+    } finally {
+      releaseFirst();
+    }
+    await Promise.all([first, queued]);
+    expect(timeoutStarts).toBe(1);
+  });
+
   it("abandons a stalled body read when the request is aborted", async () => {
     let releaseBody: () => void = () => undefined;
     const bodyStarted = new Promise<void>((resolve) => { releaseBody = resolve; });

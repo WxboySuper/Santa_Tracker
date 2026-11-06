@@ -101,6 +101,17 @@ describe("admin login throttle", () => {
     expect(await store.get("ip:unknown-client")).toBeUndefined();
   });
 
+  it("fails closed instead of evicting recent unlocked failure state", async () => {
+    const now = 1000;
+    const store = new InMemoryThrottleStore({ maxEntries: 2, clock: () => now });
+    await store.set("global", { attempts: [], lockoutUntil: 0, lockoutLevel: 0, lastLockoutAt: -1 });
+    await store.set("ip:partial", { attempts: [now], lockoutUntil: 0, lockoutLevel: 0, lastLockoutAt: -1 });
+    const throttle = createLoginThrottle(store, () => now);
+
+    expect(await throttle.check("new")).toEqual({ retryAfterSeconds: 60, reason: "global" });
+    expect(await store.get("ip:partial")).toBeDefined();
+  });
+
   it("keeps the global cap bypass for authenticated failed logins", async () => {
     const { throttle } = setup();
     for (let i = 0; i < 31; i += 1) await throttle.recordFailure(`ip-${i}`);
@@ -143,6 +154,9 @@ describe("admin login throttle", () => {
     expect(await store.get("ip:new")).toBeUndefined();
     expect(await store.get("ip:locked")).toBeDefined();
     now += 15 * MINUTE;
+    expect(await throttle.check("locked")).toBeNull();
+    expect(await throttle.check("new")).toEqual({ retryAfterSeconds: 60, reason: "global" });
+    now += 24 * 60 * MINUTE;
     expect(await throttle.check("new")).toBeNull();
     expect(await throttle.recordFailure("new")).toBeNull();
     expect(await store.get("ip:locked")).toBeUndefined();
