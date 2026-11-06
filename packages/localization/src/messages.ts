@@ -44,6 +44,8 @@ export const en = {
   'tracker.chooseCity': 'Choose a city or route stop',
   'tracker.citySearch': 'Search cities and route stops',
   'tracker.arrivalEstimate': 'Santa reaches you at {time}',
+  'tracker.countdownToArrival': 'Arrival in {time}',
+  'tracker.hereNote': 'The lights can stay on a little longer. Santa made it to your part of the map.',
   'tracker.locationPermission': 'Location access was unavailable. Choose a city or time zone instead.',
   'tracker.locationSaved': 'Saved on this device',
   'tracker.ambientNote': 'The map will follow Santa. Press Escape to leave.',

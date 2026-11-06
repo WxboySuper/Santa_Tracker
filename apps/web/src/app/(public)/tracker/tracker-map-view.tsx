@@ -135,7 +135,9 @@ export function TrackerMapView({ adventEnabled, locale, translator, element, ada
       </div>
       {immersive && <section className="absolute inset-x-0 bottom-0 z-10 bg-slate-950/75 px-5 py-4 text-white backdrop-blur-md" aria-label={translator.t("tracker.progress")}>
         <p className="text-xs uppercase tracking-widest text-white/70">{translator.t("tracker.current")}</p><p className="text-xl font-semibold">{current?.location.name ?? translator.t("tracker.notStarted")}</p>
-        <div className="mt-2 flex justify-between text-sm"><span>{translator.t("tracker.next")}: {position?.journey.nextIndex == null ? translator.t("tracker.complete") : nodes[position.journey.nextIndex]?.location.name}</span><span>{Math.round((position?.journey.progress ?? 0) * 100)}%</span></div>
+        <div className="mt-2 flex flex-wrap justify-between gap-x-4 gap-y-1 text-sm"><span>{translator.t("tracker.next")}: {position?.journey.nextIndex == null ? translator.t("tracker.complete") : nodes[position.journey.nextIndex]?.location.name}</span><span>{Math.round((position?.journey.progress ?? 0) * 100)}%</span>
+          {position?.journey.nextIndex != null && nodes[position.journey.nextIndex]?.schedule?.arrival_utc && <span>{translator.t("tracker.countdownToArrival", { time: formatTimeRemaining(Date.parse(nodes[position.journey.nextIndex]?.schedule?.arrival_utc ?? ""), now.getTime()) })}</span>}
+        </div>
         <div className="mt-2 h-1 rounded bg-white/20"><div className="h-full rounded bg-amber-300" style={{ width: `${Math.round((position?.journey.progress ?? 0) * 100)}%` }} /></div>
       </section>}
       {arrivalNotice && <div className="tracker-arrival-card absolute left-1/2 top-1/2 z-30 w-[min(90vw,26rem)] -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-amber-100/30 bg-slate-950/90 p-6 text-center text-white shadow-2xl" role="status"><p className="text-2xl font-semibold">{arrivalNotice.location.name}</p><p className="mt-2 text-white/80">{translator.t("tracker.arrivalMoment", { location: arrivalNotice.location.name })}</p></div>}
@@ -145,10 +147,20 @@ export function TrackerMapView({ adventEnabled, locale, translator, element, ada
         <label className="mt-3 block text-sm" htmlFor="tracker-city">{translator.t("tracker.chooseCity")}</label><input id="tracker-city" value={search} onChange={event => setSearch(event.target.value)} placeholder={translator.t("tracker.citySearch")} className="mt-1 w-full rounded bg-white px-3 py-2 text-slate-950" />
         <ul className="mt-2 max-h-28 overflow-auto">{cityOptions.slice(0, 8).map(option => <li key={option.name}><button className="w-full rounded px-2 py-1 text-left hover:bg-white/10" onClick={() => setPlace(option)}>{option.name}</button></li>)}</ul>
         {permissionFailed && <p role="status" className="mt-2 text-sm">{translator.t("tracker.locationPermission")}</p>}
-        {estimate && <p className="mt-2 text-sm">{now.getTime() >= estimate.at.getTime() ? translator.t("tracker.hesHereTitle") : translator.t("tracker.arrivalEstimate", { time: estimate.at.toLocaleTimeString(locale, { hour: "numeric", minute: "2-digit" }) })}</p>}
+        {estimate && (now.getTime() >= estimate.at.getTime()
+          ? <div className="mt-3 rounded-lg border border-amber-200/30 bg-amber-100/10 p-3" role="status"><p className="font-semibold">{translator.t("tracker.hesHereTitle")}</p><p className="text-sm text-white/80">{translator.t("tracker.hereNote")}</p></div>
+          : <p className="mt-2 text-sm">{translator.t("tracker.arrivalEstimate", { time: estimate.at.toLocaleTimeString(locale, { hour: "numeric", minute: "2-digit" }) })}</p>)}
       </section>
     </div>
   </>;
+}
+
+function formatTimeRemaining(arrival: number, now: number): string {
+  const seconds = Math.max(0, Math.floor((arrival - now) / 1000));
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  const remainingSeconds = seconds % 60;
+  return [hours, minutes, remainingSeconds].map(value => String(value).padStart(2, "0")).join(":");
 }
 
 function playArrivalChime(): void {
