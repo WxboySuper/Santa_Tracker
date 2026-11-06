@@ -9,6 +9,7 @@ describe("map fallback", () => {
     expect(mapModeReducer("vector", "vectorFailed")).toBe("raster");
     expect(mapModeReducer("raster", "rasterFailed")).toBe("text");
     expect(mapModeReducer("text", "showMap")).toBe("vector");
+    expect(mapModeReducer("text", "showRaster")).toBe("raster");
     expect(mapModeReducer("vector", "showText")).toBe("text");
     expect(mapModeReducer("vector", "initFailed")).toBe("text");
     expect(mapModeReducer("text", "vectorFailed")).toBe("text");

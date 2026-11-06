@@ -60,7 +60,7 @@ function clearArrivalNotice(node: RouteNode | null, chimes: boolean, clear: (nod
   return () => { window.clearTimeout(timeout); };
 }
 
-function playArrivalNoticeChime(chimes: boolean): void {
+export function playArrivalNoticeChime(chimes: boolean): void {
   if (!chimes) return;
   const audio = createAudioController(audioPreferencesFrom({ enabled: true, reducedSensory: window.matchMedia("(prefers-reduced-motion: reduce)").matches }), { play: playArrivalChime });
   audio.play("arrival");
@@ -87,8 +87,8 @@ function ImmersiveJourneyHud({ current, next, progress, now, translator }: { cur
 }
 
 /** Shows a brief card when Santa reaches a new route stop. */
-function ArrivalNoticeCard({ node, translator }: { node: RouteNode; translator: Translator }) {
-  return <div className="tracker-arrival-card absolute left-1/2 top-1/2 z-30 w-[min(90vw,26rem)] rounded-2xl border border-amber-100/30 bg-slate-950/90 p-6 text-center text-white shadow-2xl" role="status">
+export function ArrivalNoticeCard({ node, translator, large = false }: { node: RouteNode; translator: Translator; large?: boolean }) {
+  return <div className={`tracker-arrival-card absolute left-1/2 top-1/2 z-30 w-[min(90vw,26rem)] rounded-2xl border border-amber-100/30 bg-slate-950/95 p-6 text-center text-white shadow-2xl ${large ? "tracker-arrival-card-tv" : ""}`} role="status">
     <p className="text-2xl font-semibold">{node.location.name}</p><p className="mt-2 text-white/80">{translator.t("tracker.arrivalMoment", { location: node.location.name })}</p>
   </div>;
 }

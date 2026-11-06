@@ -5,7 +5,7 @@ export type TrackerViewMode = "standard" | "immersive" | "tv";
 
 /** Parses the supported view mode from the URL. */
 export function trackerViewMode(value: string | null): TrackerViewMode {
-  return value === "immersive" ? value : "standard";
+  return value === "immersive" || value === "tv" ? value : "standard";
 }
 
 /** Keeps the selected view in sync with the URL and optional Fullscreen API. */
@@ -14,7 +14,6 @@ export function useTrackerViewMode() {
   useEffect(() => {
     const sync = () => {
       const mode = new URLSearchParams(window.location.search).get("mode");
-      if (mode === "tv") updateModeUrl("standard");
       setViewMode(trackerViewMode(mode));
     };
     sync();
@@ -37,13 +36,18 @@ export function useTrackerViewMode() {
     updateModeUrl(next);
     updateFullscreen(next);
   }, [viewMode]);
-  return { viewMode, toggleImmersive };
+  const toggleTv = useCallback(() => {
+    const next = viewMode === "tv" ? "standard" : "tv";
+    setViewMode(next);
+    updateModeUrl(next);
+  }, [viewMode]);
+  return { viewMode, toggleImmersive, toggleTv };
 }
 
 /** Replaces the mode query without adding a history entry. */
 function updateModeUrl(mode: TrackerViewMode): void {
   const url = new URL(window.location.href);
-  if (mode === "immersive") url.searchParams.set("mode", mode);
+  if (mode !== "standard") url.searchParams.set("mode", mode);
   else url.searchParams.delete("mode");
   window.history.replaceState({}, "", url);
 }

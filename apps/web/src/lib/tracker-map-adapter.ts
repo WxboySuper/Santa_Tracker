@@ -12,7 +12,7 @@ export interface TrackerMapAdapter {
 }
 
 export type MapMode = "vector" | "raster" | "text";
-export type MapEvent = "vectorFailed" | "rasterFailed" | "initFailed" | "showText" | "showMap";
+export type MapEvent = "vectorFailed" | "rasterFailed" | "initFailed" | "showText" | "showMap" | "showRaster";
 const MAP_INTERACTION_KEYS = ["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "+", "-", "PageUp", "PageDown"];
 
 export function isMapInteractionKey(key: string): boolean {
@@ -25,11 +25,24 @@ export function syncMapState(adapter: TrackerMapAdapter | undefined, nodes: Rout
   if (position) adapter.setSantaPosition(position);
 }
 
+type ModeTransition = (mode: MapMode) => MapMode;
+const modeTransitions: Record<MapEvent, ModeTransition> = {
+  showText: () => "text",
+  showMap: () => "vector",
+  showRaster: () => "raster",
+  initFailed: () => "text",
+  vectorFailed: mode => transitionAfterVectorFailure(mode),
+  rasterFailed: mode => transitionAfterRasterFailure(mode),
+};
+
 export function mapModeReducer(mode: MapMode, event: MapEvent): MapMode {
-  if (event === "showText") return "text";
-  if (event === "showMap") return "vector";
-  if (event === "initFailed") return "text";
-  if (event === "vectorFailed" && mode === "vector") return "raster";
-  if (event === "rasterFailed" && mode === "raster") return "text";
-  return mode;
+  return modeTransitions[event](mode);
+}
+
+function transitionAfterVectorFailure(mode: MapMode): MapMode {
+  return mode === "vector" ? "raster" : mode;
+}
+
+function transitionAfterRasterFailure(mode: MapMode): MapMode {
+  return mode === "raster" ? "text" : mode;
 }
