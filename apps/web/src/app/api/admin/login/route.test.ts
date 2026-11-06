@@ -138,6 +138,27 @@ describe("admin login route", () => {
     expect(timeoutStarts).toBe(1);
   });
 
+  it("returns a timeout when a login exceeds the separate queue wait limit", async () => {
+    vi.useFakeTimers();
+    let releaseFirst: () => void = () => undefined;
+    const gate = new Promise<void>((resolve) => { releaseFirst = resolve; });
+    const first = serializeLogin("queue-wait-limit", () => gate.then(() => NextResponse.json({ ok: true })));
+    const queued = POST(new Request("http://example.test/api/admin/login", {
+      method: "POST",
+      headers: { "cf-connecting-ip": "queue-wait-limit", "content-type": "application/json" },
+      body: JSON.stringify({ password: "wrong" }),
+    }));
+    try {
+      await vi.advanceTimersByTimeAsync(30_000);
+      expect((await queued).status).toBe(408);
+    } finally {
+      releaseFirst();
+      await first;
+      await vi.runAllTimersAsync();
+      vi.useRealTimers();
+    }
+  });
+
   it("abandons a stalled body read when the request is aborted", async () => {
     let releaseBody: () => void = () => undefined;
     const bodyStarted = new Promise<void>((resolve) => { releaseBody = resolve; });

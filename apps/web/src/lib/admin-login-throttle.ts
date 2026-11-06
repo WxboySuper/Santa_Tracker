@@ -18,6 +18,7 @@ const IP_WINDOW_MS = 15 * 60 * 1000;
 const GLOBAL_WINDOW_MS = 60 * 60 * 1000;
 const ATTEMPT_LIMIT = 5;
 const GLOBAL_ATTEMPT_LIMIT = 30;
+const GLOBAL_ATTEMPT_STORAGE_LIMIT = GLOBAL_ATTEMPT_LIMIT + 1;
 const INITIAL_LOCKOUT_MS = 15 * 60 * 1000;
 const MAX_LOCKOUT_MS = 60 * 60 * 1000;
 const LOCKOUT_RESET_MS = 24 * 60 * 60 * 1000;
@@ -183,7 +184,7 @@ async function recordFailedAttempt(runtime: ThrottleRuntime, attempt: LoginAttem
   const key = `${IP_PREFIX}${attempt.ip}`;
   const state = await readState({ store, key, now, windowMs: IP_WINDOW_MS });
   if (state.lockoutUntil > now) return checkThrottle(runtime, attempt);
-  await recordGlobalFailure({ ...runtime, now });
+  if (!attempt.authenticated) await recordGlobalFailure({ ...runtime, now });
 
   const lockoutIsStale = isStaleLockout(state, now);
   const previousLockoutAt = lockoutIsStale ? -1 : state.lastLockoutAt;
@@ -230,6 +231,7 @@ async function recordGlobalFailure(input: TimedRuntime): Promise<void> {
   const { store, now } = input;
   const globalState = await readState({ store, key: GLOBAL_KEY, now, windowMs: GLOBAL_WINDOW_MS });
   globalState.attempts.push(now);
+  globalState.attempts = globalState.attempts.slice(-GLOBAL_ATTEMPT_STORAGE_LIMIT);
   await store.set(GLOBAL_KEY, globalState);
 }
 

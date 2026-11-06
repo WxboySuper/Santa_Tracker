@@ -131,6 +131,22 @@ describe("admin login throttle", () => {
     expect((await throttle.check("new-ip"))?.reason).toBe("global");
   });
 
+  it("does not let authenticated failures fill the anonymous global bucket", async () => {
+    const { throttle, store } = setup();
+    for (let i = 0; i < 31; i += 1) await throttle.recordFailure(`trusted-${i}`, true);
+
+    expect((await throttle.check("anonymous"))?.reason).toBeUndefined();
+    expect(await store.get("global")).toBeUndefined();
+  });
+
+  it("keeps only the newest 31 timestamps needed to calculate global expiry", async () => {
+    const { throttle, store } = setup();
+    for (let i = 0; i < 50; i += 1) await throttle.recordFailure(`burst-${i}`);
+
+    expect((await store.get("global"))?.attempts).toHaveLength(31);
+    expect((await throttle.check("anonymous"))?.retryAfterSeconds).toBe(3600);
+  });
+
   it("clears an IP's counter on successful login and expires global failures after an hour", async () => {
     const { throttle, advance } = setup();
     for (let i = 0; i < 4; i += 1) await throttle.recordFailure("ip-a");

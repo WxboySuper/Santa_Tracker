@@ -9,6 +9,7 @@ const MAX_PENDING_LOGINS_PER_IP = 64;
 const MAX_LOGIN_QUEUE_IPS = 256;
 const MAX_LOGIN_BODY_BYTES = 4096;
 const MAX_LOGIN_PROCESSING_MS = 30_000;
+const MAX_LOGIN_QUEUE_WAIT_MS = 30_000;
 
 interface LoginContext {
   req: Request;
@@ -56,7 +57,7 @@ export function serializeLogin(ip: string, task: () => Promise<NextResponse>, si
   const current = previous.then(runTask, runTask);
   const tail = current.then(() => undefined, () => undefined);
   loginQueues.set(ip, tail);
-  return current.finally(() => {
+  const completed = current.finally(() => {
     const remaining = (pendingLogins.get(ip) ?? 1) - 1;
     if (remaining > 0) {
       pendingLogins.set(ip, remaining);
@@ -65,6 +66,19 @@ export function serializeLogin(ip: string, task: () => Promise<NextResponse>, si
     pendingLogins.delete(ip);
     if (loginQueues.get(ip) === tail) loginQueues.delete(ip);
   });
+  return raceLoginWithAbort(completed, signal);
+}
+
+function raceLoginWithAbort(task: Promise<NextResponse>, signal?: AbortSignal): Promise<NextResponse> {
+  if (!signal) return task;
+  if (signal.aborted) return Promise.resolve(requestTimeoutResponse());
+  let onAbort: () => void = () => undefined;
+  const aborted = new Promise<NextResponse>((resolve) => {
+    onAbort = () => resolve(requestTimeoutResponse());
+    signal.addEventListener("abort", onAbort, { once: true });
+    if (signal.aborted) onAbort();
+  });
+  return Promise.race([task, aborted]).finally(() => signal.removeEventListener("abort", onAbort));
 }
 
 async function handleLoginRequest(req: Request, ip: string, signal: AbortSignal): Promise<NextResponse> {
@@ -177,16 +191,20 @@ function createLoginProcessingSignal(req: Request): { signal: AbortSignal; start
   const controller = new AbortController();
   const abortFromRequest = () => controller.abort();
   let timer: ReturnType<typeof setTimeout> | undefined;
+  let queueTimer: ReturnType<typeof setTimeout> | undefined = setTimeout(abortFromRequest, MAX_LOGIN_QUEUE_WAIT_MS);
   if (req.signal.aborted) abortFromRequest();
   if (!req.signal.aborted) req.signal.addEventListener("abort", abortFromRequest, { once: true });
   return {
     signal: controller.signal,
     startTimeout() {
       if (timer !== undefined) return;
+      if (queueTimer !== undefined) clearTimeout(queueTimer);
+      queueTimer = undefined;
       timer = setTimeout(abortFromRequest, MAX_LOGIN_PROCESSING_MS);
     },
     dispose() {
       if (timer !== undefined) clearTimeout(timer);
+      if (queueTimer !== undefined) clearTimeout(queueTimer);
       req.signal.removeEventListener("abort", abortFromRequest);
     },
   };
