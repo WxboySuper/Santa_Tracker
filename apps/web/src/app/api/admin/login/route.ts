@@ -189,7 +189,10 @@ function parseLoginBody(bytes: Uint8Array): { payload: unknown; tooLarge: boolea
 
 function createLoginProcessingSignal(req: Request): { signal: AbortSignal; startTimeout: () => void; dispose: () => void } {
   const controller = new AbortController();
-  const abortFromRequest = () => controller.abort();
+  const abortFromRequest = () => {
+    controller.abort();
+    if (req.body && !req.body.locked) void req.body.cancel().catch(() => undefined);
+  };
   let timer: ReturnType<typeof setTimeout> | undefined;
   let queueTimer: ReturnType<typeof setTimeout> | undefined = setTimeout(abortFromRequest, MAX_LOGIN_QUEUE_WAIT_MS);
   if (req.signal.aborted) abortFromRequest();
