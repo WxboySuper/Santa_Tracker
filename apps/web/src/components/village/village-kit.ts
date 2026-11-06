@@ -64,7 +64,9 @@ export function box(width: number, height: number, depth: number, material: THRE
   return mesh;
 }
 
-export function cylinder(radiusTop: number, radiusBottom: number, height: number, segments: number, material: THREE.Material): THREE.Mesh {
+export type CylinderOptions = { radiusTop: number; radiusBottom: number; height: number; segments: number; material: THREE.Material };
+
+export function cylinder({ radiusTop, radiusBottom, height, segments, material }: CylinderOptions): THREE.Mesh {
   const mesh = new THREE.Mesh(new THREE.CylinderGeometry(radiusTop, radiusBottom, height, segments), material);
   mesh.castShadow = true;
   mesh.receiveShadow = true;
@@ -162,7 +164,7 @@ export function chimney(width: number, height: number): THREE.Group {
 /** A stacked-cone pine. Tiers shrink toward the top; each carries a little snow. */
 export function pine(height: number, radius: number, tiers = 4): THREE.Group {
   const group = new THREE.Group();
-  const trunk = cylinder(radius * 0.12, radius * 0.16, height * 0.18, 6, matte(COLORS.woodDark));
+  const trunk = cylinder({ radiusTop: radius * 0.12, radiusBottom: radius * 0.16, height: height * 0.18, segments: 6, material: matte(COLORS.woodDark) });
   trunk.position.y = height * 0.09;
   group.add(trunk);
   const tierHeight = (height * 0.86) / tiers;
@@ -208,10 +210,10 @@ export function snowman(): THREE.Group {
   scarf.rotation.x = Math.PI / 2;
   scarf.position.y = 1.5;
   group.add(scarf);
-  const hat = cylinder(0.2, 0.2, 0.3, 10, matte(0x1e1b26));
+  const hat = cylinder({ radiusTop: 0.2, radiusBottom: 0.2, height: 0.3, segments: 10, material: matte(0x1e1b26) });
   hat.position.y = 2.1;
   group.add(hat);
-  const brim = cylinder(0.34, 0.34, 0.04, 12, matte(0x1e1b26));
+  const brim = cylinder({ radiusTop: 0.34, radiusBottom: 0.34, height: 0.04, segments: 12, material: matte(0x1e1b26) });
   brim.position.y = 1.97;
   group.add(brim);
   return group;
@@ -235,7 +237,7 @@ export function present(size: number, color: number, ribbon: number): THREE.Grou
 
 export function lampPost(height = 1.9): THREE.Group {
   const group = new THREE.Group();
-  const pole = cylinder(0.05, 0.07, height, 6, matte(0x23222b, { metalness: 0.3 }));
+  const pole = cylinder({ radiusTop: 0.05, radiusBottom: 0.07, height: height, segments: 6, material: matte(0x23222b, { metalness: 0.3 }) });
   pole.position.y = height / 2;
   group.add(pole);
   const housing = box(0.24, 0.3, 0.24, matte(0x23222b));

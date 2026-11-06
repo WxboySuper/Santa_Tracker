@@ -26,6 +26,8 @@ type Pose = { yaw: number; pitch: number; distance: number; target: THREE.Vector
 
 const HOME: Pose = { yaw: 0.46, pitch: 0.36, distance: 47, target: new THREE.Vector3(0, 3.6, 0.2) };
 const damp = (current: number, target: number, rate: number, delta: number) => current + (target - current) * (1 - Math.exp(-rate * delta));
+const needsTallFraming = (id: BuildingId): boolean => id === 'tower' || id === 'observatory';
+const needsWorkshopFraming = (id: BuildingId): boolean => id === 'workshop';
 
 /**
  * The renderer, camera rig, picking and the frame loop. It owns every WebGL resource and releases
@@ -143,11 +145,12 @@ export class VillageEngine {
       this.goal.distance = HOME.distance;
       this.goal.target.copy(HOME.target);
     } else {
+      const buildingId = building.id;
       const position = building.group.position;
-      const tall = id === 'tower' || id === 'observatory';
+      const tall = needsTallFraming(buildingId);
       this.goal.target.set(position.x, tall ? 3.6 : 1.9, position.z);
-      this.goal.distance = tall ? 24 : id === 'workshop' ? 23 : 19;
-      this.goal.pitch = tall ? 0.3 : id === 'workshop' ? 0.52 : 0.34;
+      this.goal.distance = tall ? 24 : needsWorkshopFraming(buildingId) ? 23 : 19;
+      this.goal.pitch = tall ? 0.3 : needsWorkshopFraming(buildingId) ? 0.52 : 0.34;
       const toPlaza = Math.atan2(PLAZA.x - position.x, PLAZA.z - position.z);
       this.goal.yaw = THREE.MathUtils.clamp(toPlaza * 0.5, -0.9, 0.9) + 0.32;
     }
@@ -426,7 +429,7 @@ export class VillageEngine {
     const time = this.timer.getElapsed();
     this.world.update(this.reducedMotion ? 0 : time, delta);
     const idleFor = performance.now() - this.lastInteraction;
-    if (!this.reducedMotion && !this.selected && !this.dragging) {
+    if (this.shouldSway()) {
       const sway = Math.min(1, Math.max(0, (idleFor - 2500) / 3000));
       this.idle.x = damp(this.idle.x, Math.sin(time * 0.11) * 0.2 * sway, 1.2, delta);
       this.idle.y = damp(this.idle.y, Math.sin(time * 0.083) * 0.035 * sway, 1.2, delta);
@@ -448,4 +451,8 @@ export class VillageEngine {
     this.adaptQuality(delta);
     this.renderFrame();
   };
+
+  private shouldSway(): boolean {
+    return !this.reducedMotion && this.selected === null && !this.dragging;
+  }
 }

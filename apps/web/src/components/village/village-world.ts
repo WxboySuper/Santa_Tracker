@@ -142,11 +142,7 @@ function buildForest(avoid: Building[]): THREE.InstancedMesh {
     const distance = 0.7 + random() * 0.32;
     const x = Math.cos(angle) * 15 * distance;
     const z = Math.sin(angle) * 12.2 * distance;
-    const insideIsland = (x / 15.2) ** 2 + (z / 12.4) ** 2 < 0.88;
-    const clear = avoid.every((building) => Math.hypot(building.group.position.x - x, building.group.position.z - z) > 4.4);
-    const nearPlaza = Math.hypot(x - PLAZA.x, z - PLAZA.z) < 5.8;
-    const blocksView = z > 3.5 && Math.abs(x) < 8;
-    if (insideIsland && clear && !nearPlaza && !blocksView) spots.push({ x, z, scale: 0.42 + random() * 0.55 });
+    if (isForestSpotAllowed(x, z, avoid)) spots.push({ x, z, scale: 0.42 + random() * 0.55 });
   }
   const mesh = new THREE.InstancedMesh(geometry, material, spots.length);
   const matrix = new THREE.Matrix4();
@@ -161,6 +157,14 @@ function buildForest(avoid: Building[]): THREE.InstancedMesh {
   mesh.castShadow = true;
   mesh.receiveShadow = true;
   return mesh;
+}
+
+function isForestSpotAllowed(x: number, z: number, avoid: Building[]): boolean {
+  const insideIsland = (x / 15.2) ** 2 + (z / 12.4) ** 2 < 0.88;
+  const clearOfBuildings = avoid.every((building) => Math.hypot(building.group.position.x - x, building.group.position.z - z) > 4.4);
+  const clearOfPlaza = Math.hypot(x - PLAZA.x, z - PLAZA.z) >= 5.8;
+  const outsideViewLane = z <= 3.5 || Math.abs(x) >= 8;
+  return insideIsland && clearOfBuildings && clearOfPlaza && outsideViewLane;
 }
 
 /* ------------------------------------------------------------ twinkle lights */
@@ -202,7 +206,7 @@ function twinkle({ size, points }: TwinkleOptions): { points: THREE.Points; mate
 
 function buildPlazaTree(): { group: THREE.Group; star: THREE.Mesh; lights: ReturnType<typeof twinkle> } {
   const group = new THREE.Group();
-  const trunk = cylinder(0.35, 0.5, 1.0, 8, matte(COLORS.woodDark));
+  const trunk = cylinder({ radiusTop: 0.35, radiusBottom: 0.5, height: 1.0, segments: 8, material: matte(COLORS.woodDark) });
   trunk.position.y = 0.5;
   group.add(trunk);
   const tiers = 6;
@@ -234,13 +238,7 @@ function buildPlazaTree(): { group: THREE.Group; star: THREE.Mesh; lights: Retur
   }
   const lights = twinkle({ size: 7, points });
   group.add(lights.points);
-  const starShape = new THREE.Shape();
-  for (let index = 0; index < 10; index += 1) {
-    const radius = index % 2 ? 0.28 : 0.6;
-    const angle = (index / 10) * Math.PI * 2 + Math.PI / 2;
-    if (index === 0) starShape.moveTo(Math.cos(angle) * radius, Math.sin(angle) * radius);
-    else starShape.lineTo(Math.cos(angle) * radius, Math.sin(angle) * radius);
-  }
+  const starShape = plazaStarShape();
   const star = new THREE.Mesh(
     new THREE.ExtrudeGeometry(starShape, { depth: 0.18, bevelEnabled: false }),
     new THREE.MeshStandardMaterial({ color: 0x2a1c0a, emissive: 0xffd36b, emissiveIntensity: 3 }),
@@ -257,12 +255,25 @@ function buildPlazaTree(): { group: THREE.Group; star: THREE.Mesh; lights: Retur
   return { group, star, lights };
 }
 
+function plazaStarShape(): THREE.Shape {
+  const starShape = new THREE.Shape();
+  for (let index = 0; index < 10; index += 1) {
+    const radius = index % 2 ? 0.28 : 0.6;
+    const angle = (index / 10) * Math.PI * 2 + Math.PI / 2;
+    const x = Math.cos(angle) * radius;
+    const y = Math.sin(angle) * radius;
+    if (index === 0) starShape.moveTo(x, y);
+    else starShape.lineTo(x, y);
+  }
+  return starShape;
+}
+
 /* ---------------------------------------------------------------------- pole */
 
 function buildPole(): { group: THREE.Group; beam: THREE.Mesh } {
   const group = new THREE.Group();
   for (let ring = 0; ring < 14; ring += 1) {
-    const piece = cylinder(0.17, 0.17, 0.42, 10, matte(ring % 2 ? 0xffffff : COLORS.red, { roughness: 0.5 }));
+    const piece = cylinder({ radiusTop: 0.17, radiusBottom: 0.17, height: 0.42, segments: 10, material: matte(ring % 2 ? 0xffffff : COLORS.red, { roughness: 0.5 }) });
     piece.position.y = 0.21 + ring * 0.42;
     group.add(piece);
   }
@@ -678,6 +689,102 @@ function buildSleighTrail(): { points: THREE.Points; emit: (position: THREE.Vect
 
 /* --------------------------------------------------------------------- world */
 
+function addIslandFigures(island: THREE.Group): ReturnType<typeof twinkle> {
+  const snowmen: [number, number, number][] = [[-3.2, 5.6, 0.5], [2.0, -1.8, -0.4]];
+  for (const [x, z, rotation] of snowmen) {
+    const figure = snowman();
+    figure.position.set(x, 0, z);
+    figure.rotation.y = rotation;
+    island.add(figure);
+  }
+  const lampSpots: [number, number][] = [[-3.4, -1.6], [3.6, -1.2], [-1.8, 5.2], [1.6, 5.6], [-5.2, 2.2], [5.6, 1.4]];
+  const lampLightPoints: TwinkleOptions['points'] = [];
+  for (const [x, z] of lampSpots) {
+    const post = lampPost(1.9);
+    post.position.set(x, 0, z);
+    island.add(post);
+    lampLightPoints.push({ position: new THREE.Vector3(x, 2.05, z), color: new THREE.Color(0xffc980), phase: x + z });
+  }
+  const lampGlow = twinkle({ size: 40, points: lampLightPoints });
+  island.add(lampGlow.points);
+  return lampGlow;
+}
+
+function addBuildingEffects(island: THREE.Group, buildings: Building[]): { points: THREE.Points; update: (time: number) => void } {
+  const smokeOrigins: THREE.Vector3[] = [];
+  for (const building of buildings) {
+    building.group.updateMatrixWorld(true);
+    building.smoke.forEach((local) => smokeOrigins.push(building.group.localToWorld(local.clone())));
+    building.lights.forEach((light) => building.group.add(light));
+  }
+  const smoke = buildSmoke(smokeOrigins);
+  island.add(smoke.points);
+  return smoke;
+}
+
+function buildStringLights(island: THREE.Group): ReturnType<typeof twinkle> {
+  const stringPoints: TwinkleOptions['points'] = [];
+  const random = seeded(19);
+  const bulbPalette = [0xff5a5a, 0xffd166, 0x66d3ff, 0x8affb0, 0xffa0e8].map((value) => new THREE.Color(value));
+  const strings: [THREE.Vector3, THREE.Vector3][] = [
+    [new THREE.Vector3(-9.4, 3.4, -2.6), new THREE.Vector3(-3.4, 2.2, -1.6)],
+    [new THREE.Vector3(9.2, 3.4, -3.2), new THREE.Vector3(3.6, 2.2, -1.2)],
+    [new THREE.Vector3(-3.4, 2.2, -1.6), new THREE.Vector3(0, 3.6, -6.0)],
+    [new THREE.Vector3(3.6, 2.2, -1.2), new THREE.Vector3(0, 3.6, -6.0)],
+    [new THREE.Vector3(-5.2, 2.2, 2.2), new THREE.Vector3(-1.8, 2.2, 5.2)],
+    [new THREE.Vector3(5.6, 2.2, 1.4), new THREE.Vector3(1.6, 2.2, 5.6)],
+  ];
+  strings.forEach(([a, b], stringIndex) => {
+    const segments = 14;
+    const curvePoints: THREE.Vector3[] = [];
+    for (let index = 0; index <= segments; index += 1) {
+      const t = index / segments;
+      const point = a.clone().lerp(b, t);
+      point.y -= Math.sin(t * Math.PI) * 0.6;
+      curvePoints.push(point);
+      if (index > 0 && index < segments) stringPoints.push({ position: point, color: bulbPalette[(index + stringIndex) % bulbPalette.length] ?? bulbPalette[0]!, phase: random() * 9 });
+    }
+    const wire = new THREE.Line(new THREE.BufferGeometry().setFromPoints(curvePoints), new THREE.LineBasicMaterial({ color: 0x14121c }));
+    island.add(wire);
+  });
+  const stringLights = twinkle({ size: 9, points: stringPoints });
+  island.add(stringLights.points);
+  return stringLights;
+}
+
+function buildFlightPath(): THREE.CatmullRomCurve3 {
+  return new THREE.CatmullRomCurve3(
+    [
+      new THREE.Vector3(-30, 13, -4), new THREE.Vector3(-18, 16, -20),
+      new THREE.Vector3(2, 18, -26), new THREE.Vector3(22, 15, -14),
+      new THREE.Vector3(30, 12, 4), new THREE.Vector3(18, 14, 22),
+      new THREE.Vector3(-4, 17, 28), new THREE.Vector3(-22, 14, 18),
+    ],
+    true,
+    'catmullrom',
+    0.5,
+  );
+}
+
+function addWorldLighting(root: THREE.Group, sky: ReturnType<typeof buildSky>): THREE.DirectionalLight {
+  const moon = new THREE.DirectionalLight(0xb4cbff, 2.2);
+  moon.position.copy(sky.moonDirection).multiplyScalar(40);
+  moon.castShadow = true;
+  moon.shadow.mapSize.set(2048, 2048);
+  const shadowCamera = moon.shadow.camera;
+  shadowCamera.left = -20;
+  shadowCamera.right = 20;
+  shadowCamera.top = 20;
+  shadowCamera.bottom = -20;
+  shadowCamera.near = 5;
+  shadowCamera.far = 100;
+  moon.shadow.bias = -0.0006;
+  moon.shadow.normalBias = 0.04;
+  root.add(moon);
+  root.add(new THREE.HemisphereLight(0x7f9cf0, 0x2c3b6c, 1.05));
+  return moon;
+}
+
 export function createWorld(): World {
   const root = new THREE.Group();
   const buildings = createBuildings();
@@ -707,71 +814,10 @@ export function createWorld(): World {
   const walkers = buildWalkers();
   island.add(walkers.group);
 
-  const snowmen: [number, number, number][] = [
-    [-3.2, 5.6, 0.5],
-    [2.0, -1.8, -0.4],
-  ];
-  for (const [x, z, rotation] of snowmen) {
-    const figure = snowman();
-    figure.position.set(x, 0, z);
-    figure.rotation.y = rotation;
-    island.add(figure);
-  }
-  const lampSpots: [number, number][] = [
-    [-3.4, -1.6],
-    [3.6, -1.2],
-    [-1.8, 5.2],
-    [1.6, 5.6],
-    [-5.2, 2.2],
-    [5.6, 1.4],
-  ];
-  const lampLightPoints: TwinkleOptions['points'] = [];
-  for (const [x, z] of lampSpots) {
-    const post = lampPost(1.9);
-    post.position.set(x, 0, z);
-    island.add(post);
-    lampLightPoints.push({ position: new THREE.Vector3(x, 2.05, z), color: new THREE.Color(0xffc980), phase: x + z });
-  }
-  const lampGlow = twinkle({ size: 40, points: lampLightPoints });
-  island.add(lampGlow.points);
+  const lampGlow = addIslandFigures(island);
+  const smoke = addBuildingEffects(island, buildings);
 
-  const smokeOrigins: THREE.Vector3[] = [];
-  const stringPoints: TwinkleOptions['points'] = [];
-  for (const building of buildings) {
-    building.group.updateMatrixWorld(true);
-    building.smoke.forEach((local) => smokeOrigins.push(building.group.localToWorld(local.clone())));
-    building.lights.forEach((light) => {
-      building.group.add(light);
-    });
-  }
-  const smoke = buildSmoke(smokeOrigins);
-  island.add(smoke.points);
-
-  const random = seeded(19);
-  const bulbPalette = [0xff5a5a, 0xffd166, 0x66d3ff, 0x8affb0, 0xffa0e8].map((value) => new THREE.Color(value));
-  const strings: [THREE.Vector3, THREE.Vector3][] = [
-    [new THREE.Vector3(-9.4, 3.4, -2.6), new THREE.Vector3(-3.4, 2.2, -1.6)],
-    [new THREE.Vector3(9.2, 3.4, -3.2), new THREE.Vector3(3.6, 2.2, -1.2)],
-    [new THREE.Vector3(-3.4, 2.2, -1.6), new THREE.Vector3(0, 3.6, -6.0)],
-    [new THREE.Vector3(3.6, 2.2, -1.2), new THREE.Vector3(0, 3.6, -6.0)],
-    [new THREE.Vector3(-5.2, 2.2, 2.2), new THREE.Vector3(-1.8, 2.2, 5.2)],
-    [new THREE.Vector3(5.6, 2.2, 1.4), new THREE.Vector3(1.6, 2.2, 5.6)],
-  ];
-  strings.forEach(([a, b], stringIndex) => {
-    const segments = 14;
-    const curvePoints: THREE.Vector3[] = [];
-    for (let index = 0; index <= segments; index += 1) {
-      const t = index / segments;
-      const point = a.clone().lerp(b, t);
-      point.y -= Math.sin(t * Math.PI) * 0.6;
-      curvePoints.push(point);
-      if (index > 0 && index < segments) stringPoints.push({ position: point, color: bulbPalette[(index + stringIndex) % bulbPalette.length] ?? bulbPalette[0]!, phase: random() * 9 });
-    }
-    const wire = new THREE.Line(new THREE.BufferGeometry().setFromPoints(curvePoints), new THREE.LineBasicMaterial({ color: 0x14121c }));
-    island.add(wire);
-  });
-  const stringLights = twinkle({ size: 9, points: stringPoints });
-  island.add(stringLights.points);
+  const stringLights = buildStringLights(island);
 
   const snow = buildSnowfall();
   root.add(snow.points);
@@ -781,37 +827,8 @@ export function createWorld(): World {
   root.add(sleigh.group);
   const trail = buildSleighTrail();
   root.add(trail.points);
-  const flightPath = new THREE.CatmullRomCurve3(
-    [
-      new THREE.Vector3(-30, 13, -4),
-      new THREE.Vector3(-18, 16, -20),
-      new THREE.Vector3(2, 18, -26),
-      new THREE.Vector3(22, 15, -14),
-      new THREE.Vector3(30, 12, 4),
-      new THREE.Vector3(18, 14, 22),
-      new THREE.Vector3(-4, 17, 28),
-      new THREE.Vector3(-22, 14, 18),
-    ],
-    true,
-    'catmullrom',
-    0.5,
-  );
-
-  const moon = new THREE.DirectionalLight(0xb4cbff, 2.2);
-  moon.position.copy(sky.moonDirection).multiplyScalar(40);
-  moon.castShadow = true;
-  moon.shadow.mapSize.set(2048, 2048);
-  const shadowCamera = moon.shadow.camera;
-  shadowCamera.left = -20;
-  shadowCamera.right = 20;
-  shadowCamera.top = 20;
-  shadowCamera.bottom = -20;
-  shadowCamera.near = 5;
-  shadowCamera.far = 100;
-  moon.shadow.bias = -0.0006;
-  moon.shadow.normalBias = 0.04;
-  root.add(moon);
-  root.add(new THREE.HemisphereLight(0x7f9cf0, 0x2c3b6c, 1.05));
+  const flightPath = buildFlightPath();
+  const moon = addWorldLighting(root, sky);
 
   const sleighPosition = new THREE.Vector3();
   const tangent = new THREE.Vector3();
