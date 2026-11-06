@@ -22,7 +22,7 @@ function MazeBoard({ config, locale }: { config: MazeConfig; locale: string }) {
   const [position, setPosition] = useState(maze.start);
   const [trail, setTrail] = useState<number[]>([maze.start]);
   const positionRef = useRef(maze.start);
-  const [swipeStart, setSwipeStart] = useState<{ x: number; y: number } | null>(null);
+  const swipeStartRef = useRef<{ x: number; y: number } | null>(null);
   const [announcement, setAnnouncement] = useState("");
   const complete = position === maze.goal;
 
@@ -45,20 +45,21 @@ function MazeBoard({ config, locale }: { config: MazeConfig; locale: string }) {
 
   function handlePointerDown(event: PointerEvent<HTMLDivElement>) {
     event.currentTarget.setPointerCapture(event.pointerId);
-    setSwipeStart({ x: event.clientX, y: event.clientY });
+    swipeStartRef.current = { x: event.clientX, y: event.clientY };
   }
 
   function handlePointerUp(event: PointerEvent<HTMLDivElement>) {
-    if (!swipeStart) { setSwipeStart(null); return; }
+    const swipeStart = swipeStartRef.current;
+    swipeStartRef.current = null;
+    if (!swipeStart) return;
     const dx = event.clientX - swipeStart.x;
     const dy = event.clientY - swipeStart.y;
-    setSwipeStart(null);
     if (Math.max(Math.abs(dx), Math.abs(dy)) < 20) return;
     move(Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? "right" : "left") : (dy > 0 ? "down" : "up"));
   }
 
   function cancelSwipe() {
-    setSwipeStart(null);
+    swipeStartRef.current = null;
   }
 
   function reset() {
@@ -66,7 +67,7 @@ function MazeBoard({ config, locale }: { config: MazeConfig; locale: string }) {
     setPosition(maze.start);
     setTrail([maze.start]);
     setAnnouncement("");
-    setSwipeStart(null);
+    swipeStartRef.current = null;
   }
 
   return (
@@ -84,7 +85,6 @@ function MazeBoard({ config, locale }: { config: MazeConfig; locale: string }) {
         onPointerUp={handlePointerUp}
         onPointerCancel={cancelSwipe}
         onLostPointerCapture={cancelSwipe}
-        onPointerLeave={cancelSwipe}
       >
         {maze.cells.map((cell, index) => {
           const atStart = index === maze.start;
