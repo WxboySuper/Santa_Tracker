@@ -156,12 +156,34 @@ function WorldMapMarker({ entry, isSelected, isLit, translator, onSelect }: {
       onClick={() => onSelect(entry.id)}
       onKeyDown={(event) => handleMarkerKeyDown(event, entry.id, onSelect)}
     >
-      {isLit ? <circle cx={x} cy={y} r="13" fill="url(#world-glow)" /> : null}
-      <circle cx={x} cy={y} r={isSelected ? 8 : 6} fill={isLit ? "#f4cc73" : "#f1eee2"} stroke={isSelected ? "#fff4c5" : "#203846"} strokeWidth={isSelected ? 3 : 2} />
-      {isLit ? <circle cx={x} cy={y} r="9" fill="#ffe7a4" opacity=".4" filter="url(#candle-glow)" /> : null}
+      <WorldMapMarkerEffects x={x} y={y} isLit={isLit} />
+      <WorldMapMarkerDot isSelected={isSelected} isLit={isLit} x={x} y={y} />
       <circle cx={x} cy={y} r="13" fill="transparent" />
     </g>
   );
+}
+
+function WorldMapMarkerEffects({ x, y, isLit }: { x: number; y: number; isLit: boolean }) {
+  if (!isLit) return null;
+  return (
+    <>
+      <circle cx={x} cy={y} r="13" fill="url(#world-glow)" />
+      <circle cx={x} cy={y} r="9" fill="#ffe7a4" opacity=".4" filter="url(#candle-glow)" />
+    </>
+  );
+}
+
+function WorldMapMarkerDot({ isSelected, isLit, x, y }: {
+  isSelected: boolean;
+  isLit: boolean;
+  x: number;
+  y: number;
+}) {
+  const radius = isSelected ? 8 : 6;
+  const fill = isLit ? "#f4cc73" : "#f1eee2";
+  const stroke = isSelected ? "#fff4c5" : "#203846";
+  const strokeWidth = isSelected ? 3 : 2;
+  return <circle cx={x} cy={y} r={radius} fill={fill} stroke={stroke} strokeWidth={strokeWidth} />;
 }
 
 function WinterWorldEntryList({ selectedId, litIds, translator, onSelect }: EntryListProps) {
