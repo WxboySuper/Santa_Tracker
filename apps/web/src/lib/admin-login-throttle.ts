@@ -142,7 +142,9 @@ export function createLoginThrottle(input: { store?: ThrottleStore; clock?: () =
 function checkInMemoryIp(input: { runtime: Runtime; ip: string }): ThrottleDecision | null {
   const { runtime, ip } = input;
   const { store, clock } = runtime;
-  if (!(store instanceof InMemoryThrottleStore)) return { retryAfterSeconds: STORE_FULL_RETRY_MS / 1000 };
+  // The async check runs before body parsing. This synchronous recheck closes
+  // the same-isolate race only when the store can be read synchronously.
+  if (!(store instanceof InMemoryThrottleStore)) return null;
   const key = ipKey({ ip });
   const existing = store.peek({ key });
   const now = clock();

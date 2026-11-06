@@ -1,17 +1,29 @@
+import { isIP } from "node:net";
 import { NextResponse } from "next/server";
 import { checkLoginRateLimit, checkLoginRateLimitNow, clearLoginAttempts, loginAdmin, recordLoginAttempt } from "@/lib/admin-login";
 import { respondWith } from "@/lib/admin-api";
 import { ADMIN_SESSION_TTL_SECONDS, shouldUseSecureAdminCookie } from "@/lib/auth";
 
 const MAX_LOGIN_BODY_BYTES = 4096;
+const MAX_IP_LENGTH = 45;
 
 export function getClientIp(req: Request): string | null {
-  const cloudflareIp = req.headers.get("cf-connecting-ip")?.trim();
+  const cloudflareIp = normalizeIp(req.headers.get("cf-connecting-ip"));
   if (cloudflareIp) return cloudflareIp;
-  const realIp = req.headers.get("x-real-ip")?.trim();
+  const realIp = normalizeIp(req.headers.get("x-real-ip"));
   if (realIp) return realIp;
   if (process.env.NODE_ENV !== "production") return "unknown";
   return null;
+}
+
+function normalizeIp(header: string | null): string | null {
+  const value = header?.trim();
+  if (!value) return null;
+  if (value.length > MAX_IP_LENGTH) return null;
+  const ipVersion = isIP(value);
+  if (ipVersion === 4) return value;
+  if (ipVersion !== 6) return null;
+  return new URL(`http://[${value}]/`).hostname.slice(1, -1);
 }
 
 export async function POST(req: Request) {

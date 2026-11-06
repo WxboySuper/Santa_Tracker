@@ -22,8 +22,12 @@ describe("admin login route", () => {
     } }))).toBe("203.0.113.1");
     expect(getClientIp(new Request("http://example.test", { headers: { "x-real-ip": "203.0.113.2", "x-forwarded-for": "203.0.113.3" } }))).toBe("203.0.113.2");
     expect(getClientIp(new Request("http://example.test", { headers: { "x-forwarded-for": "203.0.113.3" } }))).toBe("unknown");
+    expect(getClientIp(new Request("http://example.test", { headers: { "cf-connecting-ip": "2001:0DB8:0:0::1" } }))).toBe("2001:db8::1");
+    expect(getClientIp(new Request("http://example.test", { headers: { "cf-connecting-ip": "not-an-ip", "x-real-ip": "203.0.113.4" } }))).toBe("203.0.113.4");
+    expect(getClientIp(new Request("http://example.test", { headers: { "cf-connecting-ip": "x".repeat(46) } }))).toBe("unknown");
     vi.stubEnv("NODE_ENV", "production");
     expect(getClientIp(new Request("http://example.test", { headers: { "x-forwarded-for": "203.0.113.3" } }))).toBeNull();
+    expect(getClientIp(new Request("http://example.test", { headers: { "cf-connecting-ip": "x".repeat(46) } }))).toBeNull();
   });
 
   it("locks after five failures, ignores spoofed forwarded-for, and hides password correctness", async () => {
