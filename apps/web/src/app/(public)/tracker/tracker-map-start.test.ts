@@ -6,6 +6,7 @@ const mapMethods = vi.hoisted(() => ({
   destroy: vi.fn(),
   setRoute: vi.fn(),
   setSantaPosition: vi.fn(),
+  styleFailure: Object.assign(new Error("style failed"), { name: "StyleLoadError" }),
 }));
 
 vi.mock("@/lib/openlayers-tracker-map", () => ({
@@ -62,6 +63,15 @@ describe("startAdapter lifecycle", () => {
     const runtime = createRuntime();
 
     expect(await startAdapter(runtime, () => false)).toEqual({ failure: "initFailed" });
+    expect(mapMethods.destroy).toHaveBeenCalledOnce();
+    expect(runtime.adapter.current).toBeNull();
+  });
+
+  it("classifies vector style errors for raster fallback", async () => {
+    mapMethods.mount.mockRejectedValue(mapMethods.styleFailure);
+    const runtime = createRuntime();
+
+    expect(await startAdapter(runtime, () => false)).toEqual({ failure: "vectorFailed" });
     expect(mapMethods.destroy).toHaveBeenCalledOnce();
     expect(runtime.adapter.current).toBeNull();
   });

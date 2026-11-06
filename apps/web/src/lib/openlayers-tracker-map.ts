@@ -22,7 +22,9 @@ const STYLE_URL = "https://tiles.openfreemap.org/styles/liberty";
 const VECTOR_TIMEOUT_MS = 6000;
 const TILE_ERROR_LIMIT = 4;
 
-export class StyleLoadError extends Error {}
+export class StyleLoadError extends Error {
+  override readonly name = "StyleLoadError";
+}
 
 export class OpenLayersTrackerMap implements TrackerMapAdapter {
   private map?: Map;
