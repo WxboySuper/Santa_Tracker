@@ -1,4 +1,5 @@
 import { notFound } from 'next/navigation';
+import VillageStatic from '@/components/village/village-static';
 import VillageExperience, { type Experience } from '@/components/village/village-experience';
 import { canPreviewDesign, canViewFeature } from '@/lib/access';
 import { isAdventEnabled } from '@/lib/config';
@@ -13,7 +14,7 @@ export const metadata = { title: 'The North Pole Village (preview)' };
  * so it never appears to visitors. The copy is English-only for now and moves to the localization
  * catalogue if the design is adopted.
  */
-export default async function VillagePage() {
+export default async function VillagePage({ searchParams }: { searchParams: Promise<{ view?: string }> }) {
   if (!(await canPreviewDesign())) notFound();
   const now = new Date();
   const trackerAllowed = await canViewFeature('tracker', now);
@@ -105,5 +106,7 @@ export default async function VillagePage() {
     },
   ];
 
+  const { view } = await searchParams;
+  if (view === 'static') return <VillageStatic experiences={experiences} />;
   return <VillageExperience experiences={experiences} />;
 }

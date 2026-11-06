@@ -42,19 +42,6 @@
   opacity: 0;
 }
 
-.village-fallback {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  max-width: 30rem;
-  padding: 1rem 1.2rem;
-  border: 1px solid var(--line);
-  border-radius: 1rem;
-  background: var(--glass);
-  text-align: center;
-  transform: translate(-50%, -50%);
-}
-
 .village-notice {
   position: absolute;
   top: 6.5rem;

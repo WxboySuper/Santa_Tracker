@@ -7,6 +7,7 @@ import { countdownTarget, getCountdownParts, type CountdownParts } from '@/lib/c
 import { MusicBox, TUNES, type MusicState } from './music-box';
 import type { BuildingId } from './village-buildings';
 import { VillageEngine } from './village-engine';
+import VillageStatic from './village-static';
 
 export type ExperienceStatus = 'open' | 'soon' | 'waiting';
 
@@ -195,21 +196,20 @@ export default function VillageExperience({ experiences }: { experiences: Experi
   const hovered = hover ? byId.get(hover.id) : undefined;
   const current = selected ? byId.get(selected) : undefined;
 
+  if (!supported) {
+    return <VillageStatic experiences={experiences} note="This browser can’t draw the 3D village, so here is the simple version. Everything is still a click away." />;
+  }
+
   return (
     <div className="village" data-ready={ready}>
       <canvas ref={canvasRef} className="village-canvas" role="img" aria-label="An illustrated winter village at the North Pole, with a workshop, arcade, control tower, cinema, music hall, gift shop, stable and observatory around a lit Christmas tree." />
-      <div className="village-veil" aria-hidden={ready || !supported}>
-        <p>{supported ? 'Lighting the lamps…' : ''}</p>
+      <div className="village-veil" aria-hidden={ready}>
+        <p>Lighting the lamps…</p>
       </div>
-      {!supported && (
-        <p className="village-fallback" role="status">
-          This browser can’t draw the 3D village, but everything is still a click away in the list below.
-        </p>
-      )}
-
       {blocked && (
         <p className="village-notice" role="status">
-          Your browser seems to be hiding the 3D scene; some privacy settings block canvas drawing until you allow it for this site. The list of places below still works.
+          Your browser seems to be hiding the 3D scene; some privacy settings block canvas drawing until you allow it for this site. The list of places below still works.{' '}
+          <Link href="/village?view=static">Open the simple version</Link>.
         </p>
       )}
 

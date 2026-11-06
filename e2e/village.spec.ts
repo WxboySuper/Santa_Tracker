@@ -18,3 +18,16 @@ test('the village preview opens, lists its places, and works without WebGL', asy
   await menu.getByRole('button', { name: 'The Control Tower' }).click();
   await expect(page.getByRole('link', { name: /Track Santa/ })).toHaveAttribute('href', '/tracker');
 });
+
+test('the simple village view needs no WebGL and links to every open place', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'open', 'preview is only reachable with the local override');
+  await page.addInitScript(() => {
+    HTMLCanvasElement.prototype.getContext = () => null;
+  });
+  await page.goto('/village');
+  await expect(page.getByText('This browser can’t draw the 3D village')).toBeVisible();
+  await expect(page.getByRole('link', { name: /Track Santa/ })).toHaveAttribute('href', '/tracker');
+  await page.goto('/village?view=static');
+  await expect(page.getByRole('heading', { level: 1, name: 'Santa Tracker' })).toBeVisible();
+  await expect(page.getByRole('img', { name: /snowy North Pole village/ })).toBeVisible();
+});
