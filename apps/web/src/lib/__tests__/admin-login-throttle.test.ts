@@ -5,8 +5,9 @@ const MINUTE = 60_000;
 
 function setup() {
   let now = 0;
-  const throttle = createLoginThrottle(new InMemoryThrottleStore({ maxEntries: 10_001, clock: () => now }), () => now);
-  return { throttle, advance: (milliseconds: number) => { now += milliseconds; } };
+  const store = new InMemoryThrottleStore({ maxEntries: 10_001, clock: () => now });
+  const throttle = createLoginThrottle(store, () => now);
+  return { throttle, store, advance: (milliseconds: number) => { now += milliseconds; } };
 }
 
 describe("admin login throttle", () => {
@@ -94,6 +95,12 @@ describe("admin login throttle", () => {
     expect((await throttle.recordFailure("last-ip"))?.reason).toBe("global");
   });
 
+  it("does not allocate storage for unknown IPs during a read-only check", async () => {
+    const { throttle, store } = setup();
+    expect(await throttle.check("unknown-client")).toBeNull();
+    expect(await store.get("ip:unknown-client")).toBeUndefined();
+  });
+
   it("keeps the global cap bypass for authenticated failed logins", async () => {
     const { throttle } = setup();
     for (let i = 0; i < 31; i += 1) await throttle.recordFailure(`ip-${i}`);
@@ -132,10 +139,12 @@ describe("admin login throttle", () => {
     await store.set("ip:locked", { attempts: [0, 1, 2, 3, 4], lockoutUntil: 15 * MINUTE, lockoutLevel: 1, lastLockoutAt: 0 });
     const throttle = createLoginThrottle(store, () => now);
     expect(await throttle.check("locked")).toEqual({ retryAfterSeconds: 900, reason: "ip" });
-    expect(await throttle.check("ip:new")).toEqual({ retryAfterSeconds: 60, reason: "global" });
+    expect(await throttle.check("new")).toEqual({ retryAfterSeconds: 60, reason: "global" });
+    expect(await store.get("ip:new")).toBeUndefined();
     expect(await store.get("ip:locked")).toBeDefined();
     now += 15 * MINUTE;
-    expect(await throttle.check("ip:new")).toBeNull();
+    expect(await throttle.check("new")).toBeNull();
+    expect(await throttle.recordFailure("new")).toBeNull();
     expect(await store.get("ip:locked")).toBeUndefined();
   });
 });

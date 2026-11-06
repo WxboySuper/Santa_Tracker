@@ -6,7 +6,9 @@ import { ADMIN_SESSION_TTL_SECONDS, requireAdminAuth, shouldUseSecureAdminCookie
 const loginQueues = new Map<string, Promise<void>>();
 const pendingLogins = new Map<string, number>();
 const MAX_PENDING_LOGINS_PER_IP = 64;
+const MAX_LOGIN_QUEUE_IPS = 256;
 const MAX_LOGIN_BODY_BYTES = 4096;
+const MAX_LOGIN_PROCESSING_MS = 30_000;
 
 export function getClientIp(req: Request): string {
   const cloudflareIp = req.headers.get("cf-connecting-ip")?.trim();
@@ -18,15 +20,22 @@ export function getClientIp(req: Request): string {
 
 export async function POST(req: Request) {
   const ip = getClientIp(req);
-  return serializeLogin(ip, () => handleLoginRequest(req, ip));
+  const processing = createLoginProcessingSignal(req);
+  try {
+    return await serializeLogin(ip, () => handleLoginRequest(req, ip, processing.signal), processing.signal);
+  } finally {
+    processing.dispose();
+  }
 }
 
-export function serializeLogin(ip: string, task: () => Promise<NextResponse>): Promise<NextResponse> {
+export function serializeLogin(ip: string, task: () => Promise<NextResponse>, signal?: AbortSignal): Promise<NextResponse> {
   const pendingCount = pendingLogins.get(ip) ?? 0;
   if (pendingCount >= MAX_PENDING_LOGINS_PER_IP) return Promise.resolve(throttledResponse(1));
+  if (isLoginQueueMapFull(ip)) return Promise.resolve(throttledResponse(1));
   pendingLogins.set(ip, pendingCount + 1);
   const previous = loginQueues.get(ip) ?? Promise.resolve();
-  const current = previous.then(task, task);
+  const runTask = () => runLoginTask(task, signal);
+  const current = previous.then(runTask, runTask);
   const tail = current.then(() => undefined, () => undefined);
   loginQueues.set(ip, tail);
   return current.finally(() => {
@@ -40,22 +49,26 @@ export function serializeLogin(ip: string, task: () => Promise<NextResponse>): P
   });
 }
 
-async function handleLoginRequest(req: Request, ip: string): Promise<NextResponse> {
+async function handleLoginRequest(req: Request, ip: string, signal: AbortSignal): Promise<NextResponse> {
   const ipLimit = await checkLoginRateLimit(ip, true);
   if (ipLimit) return throttledResponse(ipLimit.retryAfterSeconds);
+  if (signal.aborted) return requestTimeoutResponse();
 
   const existingSession = await requireAdminAuth(req);
+  if (signal.aborted) return requestTimeoutResponse();
   const limited = await checkLoginRateLimit(ip, existingSession.ok);
   if (limited) return throttledResponse(limited.retryAfterSeconds);
 
-  const parsed = await readCappedJsonBody(req);
+  const parsed = await readCappedJsonBody(req, signal);
+  if (parsed.aborted) return requestTimeoutResponse();
   if (parsed.tooLarge) return NextResponse.json({ error: "Request body too large" }, { status: 413 });
 
-  return handleLogin(req, ip, existingSession.ok, parsed.payload);
+  return handleLogin(req, ip, existingSession.ok, parsed.payload, signal);
 }
 
-async function handleLogin(req: Request, ip: string, authenticated: boolean, payload: unknown): Promise<NextResponse> {
+async function handleLogin(req: Request, ip: string, authenticated: boolean, payload: unknown, signal: AbortSignal): Promise<NextResponse> {
   const result = await loginAdmin(payload);
+  if (signal.aborted) return requestTimeoutResponse();
   if (result.status === 401) {
     const failureLimit = await recordLoginAttempt(ip, authenticated);
     if (failureLimit) return throttledResponse(failureLimit.retryAfterSeconds);
@@ -77,26 +90,28 @@ async function handleLogin(req: Request, ip: string, authenticated: boolean, pay
   return response;
 }
 
-async function readCappedJsonBody(req: Request): Promise<{ payload: unknown; tooLarge: boolean }> {
-  if (hasOversizedContentLength(req)) return { payload: null, tooLarge: true };
-  if (!req.body) return { payload: null, tooLarge: false };
+async function readCappedJsonBody(req: Request, signal: AbortSignal): Promise<{ payload: unknown; tooLarge: boolean; aborted: boolean }> {
+  if (signal.aborted) return { payload: null, tooLarge: false, aborted: true };
+  if (hasOversizedContentLength(req)) return { payload: null, tooLarge: true, aborted: false };
+  if (!req.body) return { payload: null, tooLarge: false, aborted: false };
 
   const reader = req.body.getReader();
   const chunks: Uint8Array[] = [];
   let totalBytes = 0;
   try {
     while (true) {
-      const chunk = await reader.read();
+      const chunk = await readWithAbort(reader, signal);
+      if (!chunk) return { payload: null, tooLarge: false, aborted: true };
       if (chunk.done) break;
       totalBytes += chunk.value.byteLength;
       if (totalBytes > MAX_LOGIN_BODY_BYTES) {
-        await reader.cancel().catch(() => undefined);
-        return { payload: null, tooLarge: true };
+        void reader.cancel().catch(() => undefined);
+        return { payload: null, tooLarge: true, aborted: false };
       }
       chunks.push(chunk.value);
     }
   } catch {
-    return { payload: null, tooLarge: false };
+    return { payload: null, tooLarge: false, aborted: signal.aborted };
   } finally {
     reader.releaseLock();
   }
@@ -108,9 +123,52 @@ async function readCappedJsonBody(req: Request): Promise<{ payload: unknown; too
     offset += chunk.byteLength;
   }
   try {
-    return { payload: JSON.parse(new TextDecoder().decode(bytes)), tooLarge: false };
+    return { payload: JSON.parse(new TextDecoder().decode(bytes)), tooLarge: false, aborted: false };
   } catch {
-    return { payload: null, tooLarge: false };
+    return { payload: null, tooLarge: false, aborted: false };
+  }
+}
+
+function createLoginProcessingSignal(req: Request): { signal: AbortSignal; dispose: () => void } {
+  const controller = new AbortController();
+  const abortFromRequest = () => controller.abort();
+  if (req.signal.aborted) abortFromRequest();
+  if (!req.signal.aborted) req.signal.addEventListener("abort", abortFromRequest, { once: true });
+  const timer = setTimeout(abortFromRequest, MAX_LOGIN_PROCESSING_MS);
+  return {
+    signal: controller.signal,
+    dispose() {
+      clearTimeout(timer);
+      req.signal.removeEventListener("abort", abortFromRequest);
+    },
+  };
+}
+
+function runLoginTask(task: () => Promise<NextResponse>, signal?: AbortSignal): Promise<NextResponse> {
+  if (signal?.aborted) return Promise.resolve(requestTimeoutResponse());
+  return task();
+}
+
+function isLoginQueueMapFull(ip: string): boolean {
+  if (loginQueues.has(ip)) return false;
+  return loginQueues.size >= MAX_LOGIN_QUEUE_IPS;
+}
+
+async function readWithAbort(reader: ReadableStreamDefaultReader<Uint8Array>, signal: AbortSignal): Promise<ReadableStreamReadResult<Uint8Array> | null> {
+  if (signal.aborted) return null;
+  let onAbort = () => undefined;
+  const aborted = new Promise<null>((resolve) => {
+    onAbort = () => {
+      void reader.cancel().catch(() => undefined);
+      resolve(null);
+    };
+    signal.addEventListener("abort", onAbort, { once: true });
+    if (signal.aborted) onAbort();
+  });
+  try {
+    return await Promise.race([reader.read(), aborted]);
+  } finally {
+    signal.removeEventListener("abort", onAbort);
   }
 }
 
@@ -127,4 +185,8 @@ function throttledResponse(retryAfterSeconds: number) {
     status: 429,
     headers: { "Retry-After": String(retryAfterSeconds) },
   });
+}
+
+function requestTimeoutResponse() {
+  return NextResponse.json({ error: "Request timed out" }, { status: 408 });
 }

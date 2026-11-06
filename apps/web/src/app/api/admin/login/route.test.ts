@@ -103,6 +103,49 @@ describe("admin login route", () => {
     }
   });
 
+  it("bounds login queues for distinct IPs", async () => {
+    let release: () => void = () => undefined;
+    const gate = new Promise<void>((resolve) => { release = resolve; });
+    const requests = Array.from({ length: 256 }, (_, index) =>
+      serializeLogin(`source-${index}`, () => gate.then(() => NextResponse.json({ ok: true }))),
+    );
+    try {
+      const overflow = await serializeLogin("source-overflow", () => Promise.resolve(NextResponse.json({ ok: true })));
+      expect(overflow.status).toBe(429);
+    } finally {
+      release();
+      await Promise.all(requests);
+    }
+  });
+
+  it("abandons a stalled body read when the request is aborted", async () => {
+    let releaseBody: () => void = () => undefined;
+    const bodyStarted = new Promise<void>((resolve) => { releaseBody = resolve; });
+    let controller: ReadableStreamDefaultController<Uint8Array> | undefined;
+    const body = new ReadableStream<Uint8Array>({
+      start(streamController) { controller = streamController; },
+      pull() { releaseBody(); },
+    }, { highWaterMark: 0 });
+    const requestAbort = new AbortController();
+    const stalledRequest = POST(new Request("http://example.test/api/admin/login", {
+      method: "POST",
+      headers: { "cf-connecting-ip": "198.51.100.74", "content-type": "application/json" },
+      body,
+      signal: requestAbort.signal,
+      duplex: "half",
+    } as RequestInit & { duplex: "half" }));
+    await bodyStarted;
+    requestAbort.abort();
+    let timeout: ReturnType<typeof setTimeout>;
+    const result = await Promise.race([
+      stalledRequest.then((response) => response.status),
+      new Promise<number>((resolve) => { timeout = setTimeout(() => resolve(0), 50); }),
+    ]);
+    clearTimeout(timeout!);
+    if (result === 0) controller?.error(new Error("Test cleanup"));
+    expect(result).toBe(408);
+  });
+
   it("sets Secure for production requests even if an internal URL is HTTP", () => {
     vi.stubEnv("NODE_ENV", "production");
     expect(shouldUseSecureAdminCookie(new Request("http://internal.example.test"))).toBe(true);

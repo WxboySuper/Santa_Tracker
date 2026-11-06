@@ -66,6 +66,12 @@ export class InMemoryThrottleStore implements ThrottleStore {
     this.values.delete(key);
   }
 
+  canStore(key: string): boolean {
+    if (this.values.has(key)) return true;
+    if (this.values.size < this.maxEntries) return true;
+    return this.findExpiredIpEntry() !== undefined;
+  }
+
   private findExpiredIpEntry(): string | undefined {
     const now = this.clock();
     let oldestKey: string | undefined;
@@ -202,16 +208,8 @@ async function checkThrottle(runtime: ThrottleRuntime, attempt: LoginAttempt): P
   const key = `${IP_PREFIX}${attempt.ip}`;
   const storedState = await store.get(key);
   const ipState = await readState({ store, key, now, windowMs: IP_WINDOW_MS });
-  if (!storedState) {
-    try {
-      await store.set(key, ipState);
-    } catch (error) {
-      if (error instanceof ThrottleStoreFullError) {
-        return decision({ until: now + STORE_FULL_RETRY_MS, now, reason: "global" });
-      }
-      throw error;
-    }
-  }
+  const capacityLimit = storeCapacityDecision({ store, key, now, storedState });
+  if (capacityLimit) return capacityLimit;
   if (ipState.lockoutUntil > now) return decision({ until: ipState.lockoutUntil, now, reason: "ip" });
   if (attempt.authenticated) return null;
   const globalState = await readState({ store, key: GLOBAL_KEY, now, windowMs: GLOBAL_WINDOW_MS });
@@ -254,4 +252,19 @@ function isStaleLockout(state: ThrottleState, now: number): boolean {
 function decision(input: DecisionInput): ThrottleDecision {
   const { until, now, reason } = input;
   return { retryAfterSeconds: Math.max(1, Math.ceil((until - now) / 1000)), reason };
+}
+
+interface StoreCapacityQuery {
+  store: ThrottleStore;
+  key: string;
+  now: number;
+  storedState: ThrottleState | undefined;
+}
+
+function storeCapacityDecision(query: StoreCapacityQuery): ThrottleDecision | null {
+  const { store, key, now, storedState } = query;
+  if (storedState) return null;
+  if (!(store instanceof InMemoryThrottleStore)) return null;
+  if (store.canStore(key)) return null;
+  return decision({ until: now + STORE_FULL_RETRY_MS, now, reason: "global" });
 }
