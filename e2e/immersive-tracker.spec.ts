@@ -2,7 +2,12 @@ import { expect, test } from "./fixtures";
 import path from "node:path";
 
 declare global {
-  interface Window { geoCalls: number; wakeRequests: number; wakeReleases: number }
+  interface Window {
+    geoCalls: number;
+    wakeRequests: number;
+    wakeReleases: number;
+    wakeResolvers: ((sentinel: { released: boolean; release: () => Promise<void> }) => void)[];
+  }
 }
 
 test.describe.configure({ mode: "serial" });
@@ -163,6 +168,38 @@ test("TV mode keeps long stop names readable with full accessible text", async (
   await expect(stopName).toHaveAttribute("aria-label", longName);
   await expect(stopName).toHaveCSS("text-overflow", "ellipsis");
   await expect(stopName).toHaveCSS("overflow", "hidden");
+});
+
+test("TV mode releases wake locks that resolve after exit", async ({ page }) => {
+  await page.addInitScript(() => {
+    window.wakeRequests = 0;
+    window.wakeReleases = 0;
+    window.wakeResolvers = [];
+    Object.defineProperty(navigator, "wakeLock", { value: { request: () => {
+      window.wakeRequests += 1;
+      return new Promise(resolve => window.wakeResolvers.push(resolve));
+    } } });
+  });
+  await page.goto("/tracker?mode=tv");
+  await expect.poll(() => page.evaluate(() => window.wakeRequests)).toBeGreaterThan(0);
+  const requestsBeforeEvents = await page.evaluate(() => window.wakeRequests);
+  await page.evaluate(() => {
+    window.dispatchEvent(new Event("pointerdown"));
+    window.dispatchEvent(new Event("keydown"));
+    Object.defineProperty(document, "visibilityState", { configurable: true, value: "hidden" });
+    document.dispatchEvent(new Event("visibilitychange"));
+    Object.defineProperty(document, "visibilityState", { configurable: true, value: "visible" });
+    document.dispatchEvent(new Event("visibilitychange"));
+  });
+  await expect.poll(() => page.evaluate(() => window.wakeRequests)).toBe(requestsBeforeEvents);
+  await page.keyboard.press("Escape");
+  await expect(page).not.toHaveURL(/mode=tv/);
+  await page.evaluate(() => window.wakeResolvers.forEach(resolve => resolve({
+      released: false,
+      release: () => Promise.resolve().then(() => { window.wakeReleases += 1; }),
+    })));
+  await expect.poll(() => page.evaluate(() => window.wakeReleases)).toBe(requestsBeforeEvents);
+  await expect.poll(() => page.evaluate(() => window.wakeRequests)).toBe(requestsBeforeEvents);
 });
 
 test("TV mode restores the text route preference on exit", async ({ page }) => {

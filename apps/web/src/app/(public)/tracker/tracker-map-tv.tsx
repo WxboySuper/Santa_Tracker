@@ -131,16 +131,31 @@ function clearArrivalCard(node: RouteNode | null, chimes: boolean, clear: (node:
 }
 
 function keepScreenAwake(lock: { current: WakeLockSentinel | null }): () => void {
+  let mounted = true;
+  let requestPending = false;
+  let retryRequested = false;
   const request = async () => {
-    if (document.visibilityState !== "visible" || lock.current) return;
+    if (!mounted || document.visibilityState !== "visible" || lock.current) return;
+    if (requestPending) { retryRequested = true; return; }
+    const wakeLock = (navigator as WakeLockNavigator).wakeLock;
+    if (!wakeLock) return;
+    requestPending = true;
     try {
-      lock.current = await (navigator as WakeLockNavigator).wakeLock?.request("screen") ?? null;
+      const sentinel = await wakeLock.request("screen");
+      if (!mounted || document.visibilityState !== "visible") releaseSentinel(sentinel);
+      else lock.current = sentinel;
     } catch { /* Wake Lock is optional. */ }
+    finally {
+      requestPending = false;
+      const shouldRetry = retryRequested && mounted && document.visibilityState === "visible" && !lock.current;
+      retryRequested = false;
+      if (shouldRetry) void request();
+    }
   };
   const release = () => {
     const active = lock.current;
     lock.current = null;
-    if (active && !active.released) void active.release().catch(() => undefined);
+    releaseSentinel(active);
   };
   const onVisibilityChange = () => {
     release();
@@ -152,11 +167,16 @@ function keepScreenAwake(lock: { current: WakeLockSentinel | null }): () => void
   window.addEventListener("keydown", onGesture);
   document.addEventListener("visibilitychange", onVisibilityChange);
   return () => {
+    mounted = false;
     window.removeEventListener("pointerdown", onGesture);
     window.removeEventListener("keydown", onGesture);
     document.removeEventListener("visibilitychange", onVisibilityChange);
     release();
   };
+}
+
+function releaseSentinel(sentinel: WakeLockSentinel | null): void {
+  if (sentinel && !sentinel.released) void sentinel.release().catch(() => undefined);
 }
 
 function formatVisitorArrival({ place, arrival, now, locale, translator }: ArrivalDisplayInput): string {
