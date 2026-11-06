@@ -1,6 +1,7 @@
 import { getKeyValueStore, type KeyValueStore } from "./storage";
 import { getSantaSnapshotsBucket } from "./cloudflare-bindings";
 import type { SeasonFeature } from "./season";
+import { withWriteLock } from "./file-lock";
 
 export interface FeatureFlags {
   version: 1;
@@ -137,11 +138,27 @@ export function readFeatureFlags(): Promise<FeatureFlags> {
   }
 }
 
-export async function writeFeatureFlags(hidden: Record<SeasonFeature, boolean>, updatedAt: string): Promise<FeatureFlags> {
-  const flags: FeatureFlags = { version: 1, hidden, updatedAt };
+export async function readFreshFeatureFlags(): Promise<FeatureFlags> {
+  try {
+    const store = getKeyValueStore(getSantaSnapshotsBucket());
+    return parseFeatureFlags(await store.read(FEATURE_FLAGS_KEY));
+  } catch {
+    return DEFAULT_FEATURE_FLAGS;
+  }
+}
+
+export async function writeFeatureFlags(hidden: Record<SeasonFeature, boolean>, expectedUpdatedAt: string): Promise<FeatureFlags | null> {
   const store = getKeyValueStore(getSantaSnapshotsBucket());
-  await store.write(FEATURE_FLAGS_KEY, JSON.stringify(flags));
-  cache?.invalidate();
+  const flags = await withWriteLock(async () => {
+    const current = parseFeatureFlags(await store.read(FEATURE_FLAGS_KEY));
+    if (current.updatedAt !== expectedUpdatedAt) return null;
+    const previousTimestamp = Date.parse(current.updatedAt);
+    const updatedAt = new Date(Math.max(Date.now(), Number.isNaN(previousTimestamp) ? 0 : previousTimestamp + 1)).toISOString();
+    const replacement: FeatureFlags = { version: 1, hidden, updatedAt };
+    await store.write(FEATURE_FLAGS_KEY, JSON.stringify(replacement));
+    return replacement;
+  });
+  if (flags) cache?.invalidate();
   return flags;
 }
 

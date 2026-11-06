@@ -33,7 +33,7 @@ test("the admin emergency switch hides and restores the tracker for visitors", a
   const loginPassword = (await getRuntimeConfig(runtimeFile)).adminPassword;
   const login = await page.request.post("/api/admin/login", { data: { password: loginPassword } });
   expect(login.status()).toBe(200);
-  const hide = await page.request.put("/api/admin/feature-flags", { data: { version: 1, hidden: { tracker: true, advent: false } } });
+  const hide = await replaceFlags(page, { tracker: true, advent: false });
   expect(hide.status()).toBe(200);
 
   const visitorContext = await browser.newContext();
@@ -44,13 +44,24 @@ test("the admin emergency switch hides and restores the tracker for visitors", a
     expect(hiddenApi.status()).toBe(404);
     expect(hiddenApi.headers()["cache-control"]).toBe("private, no-store");
 
-    const show = await page.request.put("/api/admin/feature-flags", { data: { version: 1, hidden: { tracker: false, advent: false } } });
+    const show = await replaceFlags(page, { tracker: false, advent: false });
     expect(show.status()).toBe(200);
     await expect.poll(async () => (await visitor.request.get("/tracker")).status(), { timeout: 8_000 }).toBe(200);
   } finally {
     await visitorContext.close();
   }
 });
+
+async function replaceFlags(page: Page, hidden: { tracker: boolean; advent: boolean }) {
+  const current = await page.request.get("/api/admin/feature-flags");
+  expect(current.status()).toBe(200);
+  const etag = current.headers().etag;
+  if (!etag) throw new Error("Feature flags response omitted its ETag");
+  return page.request.put("/api/admin/feature-flags", {
+    headers: { "If-Match": etag },
+    data: { version: 1, hidden },
+  });
+}
 
 test("emergency switches work at desktop and mobile sizes with keyboard confirmation", async ({ page }) => {
   const runtimeFile = process.env.E2E_RUNTIME_FILE;

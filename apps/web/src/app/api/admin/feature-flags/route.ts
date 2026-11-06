@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireAdminAuth } from "@/lib/auth";
-import { readFeatureFlags, writeFeatureFlags } from "@/lib/feature-flags";
+import { readFreshFeatureFlags, writeFeatureFlags } from "@/lib/feature-flags";
 
 export const dynamic = "force-dynamic";
 const NO_STORE = { "Cache-Control": "private, no-store" };
@@ -9,22 +9,27 @@ const MAX_BODY_BYTES = 1024;
 export async function GET(request: Request) {
   const auth = await requireAdminAuth(request);
   if (!auth.ok) return NextResponse.json({ error: auth.error ?? "Unauthorized" }, { status: auth.status ?? 401, headers: NO_STORE });
-  return NextResponse.json(await readFeatureFlags(), { headers: NO_STORE });
+  const flags = await readFreshFeatureFlags();
+  return NextResponse.json(flags, { headers: { ...NO_STORE, ETag: makeEtag(flags.updatedAt) } });
 }
 
 export async function PUT(request: Request) {
   const auth = await requireAdminAuth(request);
   if (!auth.ok) return NextResponse.json({ error: auth.error ?? "Unauthorized" }, { status: auth.status ?? 401, headers: NO_STORE });
-  return saveFeatureFlags(request);
+  const expectedUpdatedAt = parseEtag(request.headers.get("if-match"));
+  if (expectedUpdatedAt === null) {
+    return NextResponse.json({ error: "If-Match is required. Read the current flags before replacing them." }, { status: 428, headers: NO_STORE });
+  }
+  return saveFeatureFlags(request, expectedUpdatedAt);
 }
 
-async function saveFeatureFlags(request: Request): Promise<NextResponse> {
+async function saveFeatureFlags(request: Request, expectedUpdatedAt: string): Promise<NextResponse> {
   const parsed = await readFlagsBody(request);
   if (parsed.kind === "error") return parsed.response;
   if (!validRequestBody(parsed.value)) {
     return NextResponse.json({ error: "Expected version 1 and boolean tracker and advent flags" }, { status: 400, headers: NO_STORE });
   }
-  return writeFlags(parsed.value.hidden);
+  return writeFlags(parsed.value.hidden, expectedUpdatedAt);
 }
 
 async function readFlagsBody(request: Request): Promise<{ kind: "body"; value: unknown } | { kind: "error"; response: NextResponse }> {
@@ -42,14 +47,24 @@ async function readFlagsBody(request: Request): Promise<{ kind: "body"; value: u
     : { kind: "error", response: NextResponse.json({ error: "Invalid JSON" }, { status: 400, headers: NO_STORE }) };
 }
 
-async function writeFlags(hidden: { tracker: boolean; advent: boolean }): Promise<NextResponse> {
+async function writeFlags(hidden: { tracker: boolean; advent: boolean }, expectedUpdatedAt: string): Promise<NextResponse> {
   try {
-    const result = await writeFeatureFlags(hidden, new Date().toISOString());
-    return NextResponse.json(result, { headers: NO_STORE });
+    const result = await writeFeatureFlags(hidden, expectedUpdatedAt);
+    if (!result) return NextResponse.json({ error: "Feature switches changed. Reload the current state before retrying." }, { status: 412, headers: NO_STORE });
+    return NextResponse.json(result, { headers: { ...NO_STORE, ETag: makeEtag(result.updatedAt) } });
   } catch (error: unknown) {
     console.error("Admin feature flags write failed", error);
     return NextResponse.json({ error: "Unable to save feature flags" }, { status: 500, headers: NO_STORE });
   }
+}
+
+function makeEtag(updatedAt: string): string {
+  return `"${updatedAt}"`;
+}
+
+function parseEtag(value: string | null): string | null {
+  const match = value && /^"([^"]*)"$/.exec(value);
+  return match ? match[1] ?? null : null;
 }
 
 async function readCappedJson(request: Request): Promise<{ kind: "body"; value: unknown } | { kind: "too-large" } | { kind: "invalid" }> {

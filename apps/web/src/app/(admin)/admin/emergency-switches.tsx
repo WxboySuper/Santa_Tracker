@@ -11,6 +11,7 @@ interface FeatureFlagsResponse {
   version: 1;
   hidden: HiddenFeatures;
   updatedAt: string;
+  etag: string;
 }
 
 const LABEL_KEYS: Record<SeasonFeature, MessageKey> = {
@@ -18,12 +19,38 @@ const LABEL_KEYS: Record<SeasonFeature, MessageKey> = {
   advent: "admin.emergency.hideAdvent",
 };
 
+const FEATURE_NAME_KEYS: Record<SeasonFeature, MessageKey> = {
+  tracker: "admin.emergency.featureTracker",
+  advent: "admin.emergency.featureAdvent",
+};
+
 async function readFlagsResponse(response: Response): Promise<FeatureFlagsResponse | null> {
   try {
-    return (await response.json()) as FeatureFlagsResponse;
+    const value: unknown = await response.json();
+    if (!isFeatureFlagsResponse(value)) return null;
+    return { ...value, etag: response.headers.get("etag") ?? "" };
   } catch {
     return null;
   }
+}
+
+function isFeatureFlagsResponse(value: unknown): value is Omit<FeatureFlagsResponse, "etag"> {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
+  const record = value as Record<string, unknown>;
+  if (Object.keys(record).sort().join(",") !== "hidden,updatedAt,version" || record.version !== 1) return false;
+  if (typeof record.hidden !== "object" || record.hidden === null || Array.isArray(record.hidden)) return false;
+  const hidden = record.hidden as Record<string, unknown>;
+  if (Object.keys(hidden).sort().join(",") !== "advent,tracker") return false;
+  if (typeof hidden.tracker !== "boolean" || typeof hidden.advent !== "boolean") return false;
+  return record.updatedAt === "" || (typeof record.updatedAt === "string" && isValidTimestamp(record.updatedAt));
+}
+
+function isValidTimestamp(value: string): boolean {
+  const match = /^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})(?:\.(\d{1,3}))?Z$/.exec(value);
+  if (!match) return false;
+  const date = new Date(value);
+  const fraction = match[2] ? `.${match[2].padEnd(3, "0")}` : ".000";
+  return !Number.isNaN(date.getTime()) && date.toISOString() === `${match[1]}${fraction}Z`;
 }
 
 function useEmergencyFlags() {
@@ -52,9 +79,14 @@ function useEmergencyFlags() {
       const response = await fetch("/api/admin/feature-flags", {
         method: "PUT",
         credentials: "include",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "If-Match": flags?.etag ?? "" },
         body: JSON.stringify({ version: 1, hidden }),
       });
+      if (response.status === 412) {
+        await loadFlags();
+        setStatus(t("admin.emergency.conflict"));
+        return;
+      }
       const data = await readFlagsResponse(response);
       if (!response.ok || !data) throw new Error("save failed");
       setFlags(data);
@@ -117,7 +149,7 @@ function ConfirmHideDialog({ feature, disabled, onCancel, onConfirm }: {
   onCancel: () => void;
   onConfirm: () => void;
 }) {
-  const title = feature === "tracker" ? "tracker" : "Advent";
+  const title = t(FEATURE_NAME_KEYS[feature]);
   return (
     <div role="alertdialog" aria-modal="true" aria-labelledby="emergency-confirm-title" aria-describedby="emergency-confirm-message" className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
       <div className="w-full max-w-md rounded-xl bg-gray-800 p-6 shadow-xl">

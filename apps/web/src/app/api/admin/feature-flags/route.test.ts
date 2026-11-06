@@ -1,15 +1,15 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { requireAdminAuth } from "@/lib/auth";
-import { readFeatureFlags, writeFeatureFlags } from "@/lib/feature-flags";
+import { readFreshFeatureFlags, writeFeatureFlags } from "@/lib/feature-flags";
 import { GET, PUT } from "./route";
 
 vi.mock("@/lib/auth", () => ({ requireAdminAuth: vi.fn() }));
-vi.mock("@/lib/feature-flags", () => ({ readFeatureFlags: vi.fn(), writeFeatureFlags: vi.fn() }));
+vi.mock("@/lib/feature-flags", () => ({ readFreshFeatureFlags: vi.fn(), writeFeatureFlags: vi.fn() }));
 
 function request(body?: string): Request {
   return new Request("https://example.test/api/admin/feature-flags", {
     method: body === undefined ? "GET" : "PUT",
-    headers: body === undefined ? {} : { "Content-Type": "application/json" },
+    headers: body === undefined ? {} : { "Content-Type": "application/json", "If-Match": '""' },
     body,
   });
 }
@@ -18,8 +18,8 @@ describe("admin feature flags API", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(requireAdminAuth).mockResolvedValue({ ok: true });
-    vi.mocked(readFeatureFlags).mockResolvedValue({ version: 1, hidden: { tracker: false, advent: false }, updatedAt: "" });
-    vi.mocked(writeFeatureFlags).mockImplementation(async (hidden, updatedAt) => ({ version: 1, hidden, updatedAt }));
+    vi.mocked(readFreshFeatureFlags).mockResolvedValue({ version: 1, hidden: { tracker: false, advent: false }, updatedAt: "" });
+    vi.mocked(writeFeatureFlags).mockImplementation(async hidden => ({ version: 1, hidden, updatedAt: new Date().toISOString() }));
   });
 
   it("requires authentication", async () => {
@@ -27,7 +27,23 @@ describe("admin feature flags API", () => {
     const response = await GET(request());
     expect(response.status).toBe(401);
     expect(response.headers.get("Cache-Control")).toBe("private, no-store");
-    expect(readFeatureFlags).not.toHaveBeenCalled();
+    expect(readFreshFeatureFlags).not.toHaveBeenCalled();
+  });
+
+  it("returns current flags with a validator for the next replacement", async () => {
+    vi.mocked(readFreshFeatureFlags).mockResolvedValue({
+      version: 1,
+      hidden: { tracker: true, advent: false },
+      updatedAt: "2026-11-06T12:00:00.000Z",
+    });
+    const response = await GET(request());
+    expect(response.status).toBe(200);
+    expect(response.headers.get("ETag")).toBe('"2026-11-06T12:00:00.000Z"');
+    expect(await response.json()).toEqual({
+      version: 1,
+      hidden: { tracker: true, advent: false },
+      updatedAt: "2026-11-06T12:00:00.000Z",
+    });
   });
 
   it("rejects malformed or extra request fields", async () => {
@@ -43,9 +59,16 @@ describe("admin feature flags API", () => {
       const response = await PUT(request(JSON.stringify({ version: 1, hidden: { tracker: true, advent: false } })));
       expect(response.status).toBe(200);
       expect(await response.json()).toEqual({ version: 1, hidden: { tracker: true, advent: false }, updatedAt: "2026-11-06T12:00:00.000Z" });
-      expect(writeFeatureFlags).toHaveBeenCalledWith({ tracker: true, advent: false }, "2026-11-06T12:00:00.000Z");
+      expect(writeFeatureFlags).toHaveBeenCalledWith({ tracker: true, advent: false }, "");
     } finally {
       vi.useRealTimers();
     }
+  });
+
+  it("rejects a stale replacement without writing it", async () => {
+    vi.mocked(writeFeatureFlags).mockResolvedValue(null);
+    const response = await PUT(request(JSON.stringify({ version: 1, hidden: { tracker: true, advent: false } })));
+    expect(response.status).toBe(412);
+    expect(response.headers.get("Cache-Control")).toBe("private, no-store");
   });
 });
