@@ -42,7 +42,7 @@ export function parseLightshow(payload: unknown): { scene: LightshowScene } | nu
 
 export function lightColor(palette: LightshowPalette, index: number): string {
   const colors = palettes[palette];
-  return colors[index % colors.length] ?? colors[0]!;
+  return colors[index % colors.length] ?? '#ffe6a3';
 }
 
 export function lightIntensity(pattern: LightshowPattern, index: number, tick: number, reducedMotion: boolean): number {
