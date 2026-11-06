@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { claim, coordinatesFromGeometry, validEarthPoint } from '../../../../tools/route-generator/refresh-validation.mjs';
+import { claim, coordinatesFromGeometry, countryIdFor, timezoneCorrection, validEarthPoint } from '../../../../tools/route-generator/refresh-validation.mjs';
 
 describe('route refresh data validation', () => {
   it('returns no claim for missing or malformed entities', () => {
@@ -20,5 +20,13 @@ describe('route refresh data validation', () => {
     expect(validEarthPoint(undefined)).toBe(false);
     expect(validEarthPoint({ globe: 'moon', latitude: 0, longitude: 0 })).toBe(false);
     expect(validEarthPoint({ globe: 'http://www.wikidata.org/entity/Q2', latitude: 91, longitude: 0 })).toBe(false);
+  });
+
+  it('uses the current administrative unit country for historical sites and corrects Petra timezone', () => {
+    const historicalSite = { claims: { P17: [{ rank: 'normal', mainsnak: { datavalue: { value: { id: 'QAncient' } } } }], P131: [{ rank: 'normal', mainsnak: { datavalue: { value: { id: 'QAlKhums' } } } }] } };
+    const administrative = { QAlKhums: { claims: { P17: [{ rank: 'normal', mainsnak: { datavalue: { value: { id: 'QLibya' } } } }] } } };
+    expect(countryIdFor(historicalSite, administrative)).toBe('QLibya');
+    expect(timezoneCorrection('Q5788')).toBe('Asia/Amman');
+    expect(timezoneCorrection('Q191504')).toBeUndefined();
   });
 });

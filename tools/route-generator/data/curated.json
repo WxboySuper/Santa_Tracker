@@ -165,7 +165,7 @@
     "country": "Jordan",
     "lat": 30.328888888889,
     "lng": 35.440277777778,
-    "timezone": "Asia/Jerusalem",
+    "timezone": "Asia/Amman",
     "category": "cultural",
     "source": "https://www.wikidata.org/wiki/Q5788"
   },
@@ -362,7 +362,7 @@
   {
     "id": "Q172077",
     "name": "Dome of the Rock",
-    "country": "Palestine",
+    "country": "Israel",
     "lat": 31.778055555556,
     "lng": 35.235277777778,
     "timezone": "Asia/Jerusalem",
@@ -502,7 +502,7 @@
   {
     "id": "Q191504",
     "name": "Leptis Magna",
-    "country": "Ancient Carthage",
+    "country": "Libya",
     "lat": 32.638331884068016,
     "lng": 14.29049645909896,
     "timezone": "Africa/Tripoli",

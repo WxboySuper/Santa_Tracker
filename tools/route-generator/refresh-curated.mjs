@@ -1,6 +1,6 @@
 import { readFile, writeFile } from 'node:fs/promises';
 import lookup from '@photostructure/tz-lookup';
-import { claim, validEarthPoint } from './refresh-validation.mjs';
+import { claim, countryIdFor, timezoneCorrection, validEarthPoint } from './refresh-validation.mjs';
 
 const seeds = JSON.parse(await readFile(new URL('./data/curated-seeds.json', import.meta.url), 'utf8'));
 const ids = Object.values(seeds).flat();
@@ -22,21 +22,25 @@ async function entities(idsToFetch) {
 }
 
 const items = await entities(ids);
-const countryIds = [...new Set(ids.map((id) => claim(items[id], 'P17')?.id).filter(Boolean))];
+const administrativeIds = [...new Set(ids.map((id) => claim(items[id], 'P131')?.id).filter(Boolean))];
+const administrativeEntities = await entities(administrativeIds);
+const countryIds = [...new Set(ids.map((id) => countryIdFor(items[id], administrativeEntities)).filter(Boolean))];
 const countries = await entities(countryIds);
 const places = [];
 for (const [category, categoryIds] of Object.entries(seeds)) {
   for (const id of categoryIds) {
     const entity = items[id];
     const point = claim(entity, 'P625');
-    const countryId = claim(entity, 'P17')?.id;
+    const countryId = countryIdFor(entity, administrativeEntities);
     const name = entity?.labels?.en?.value;
     const country = countries[countryId]?.labels?.en?.value;
     if (!name || !country || !validEarthPoint(point)) {
       throw new Error(`${id} lacks an English label, country, or Earth coordinates`);
     }
     const { latitude: lat, longitude: lng } = point;
-    places.push({ id, name, country, lat, lng, timezone: lookup(lat, lng), category, source: `https://www.wikidata.org/wiki/${id}` });
+    const lookedUpTimezone = lookup(lat, lng);
+    const timezone = timezoneCorrection(id) ?? lookedUpTimezone;
+    places.push({ id, name, country, lat, lng, timezone, category, source: `https://www.wikidata.org/wiki/${id}` });
   }
 }
 await writeFile(new URL('./data/curated.json', import.meta.url), `${JSON.stringify(places, null, 2)}\n`);

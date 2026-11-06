@@ -11,7 +11,9 @@ coordinates, population, world-city status, and a derived timezone. Refresh with
 date-line or equator candidates. `curated.json` records their English labels,
 country, Earth coordinates, source links, and derived timezones. The Wikidata
 data is available under CC0: https://www.wikidata.org/wiki/Wikidata:Licensing.
-The snapshot was fetched on 2026-11-05. Refresh it with
+The snapshot was fetched on 2026-11-05. For historical sites whose `P17` claim
+names an obsolete state, refresh follows the site's `P131` administrative entity
+to its `P17` country when available. Refresh it with
 `node tools/route-generator/refresh-curated.mjs`. Refresh fails if a seed lacks
 an English label, country, or Earth coordinate, so it cannot silently invent one.
 
@@ -20,3 +22,6 @@ simple dataset has no timezone field. The library runs offline and ships a compa
 timezone boundary index; the generator therefore does not need a network service.
 Timezone boundaries, especially for remote islands or disputed areas, can change
 or be approximate. Review a candidate's local time before approving it.
+The coordinate library assigns Petra (Q5788) to Asia/Jerusalem at its Wikidata
+point; the refresh script applies the verified Jordan timezone Asia/Amman for
+that QID after still running the library lookup.
