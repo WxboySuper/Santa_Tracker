@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { checkLoginRateLimit, clearLoginAttempts, loginAdmin, recordLoginAttempt } from "@/lib/admin-login";
 import { respondWith } from "@/lib/admin-api";
-import { ADMIN_SESSION_TTL_SECONDS, requireAdminAuth, shouldUseSecureAdminCookie } from "@/lib/auth";
+import { ADMIN_SESSION_TTL_SECONDS, shouldUseSecureAdminCookie } from "@/lib/auth";
 
 const MAX_LOGIN_BODY_BYTES = 4096;
 
@@ -19,9 +19,6 @@ export async function POST(req: Request) {
   if (!ip) return throttledResponse(60);
   const lockout = await checkLoginRateLimit(ip);
   if (lockout) return throttledResponse(lockout.retryAfterSeconds);
-
-  const auth = await requireAdminAuth(req);
-  if (auth.ok) return NextResponse.json({ error: "Already authenticated" }, { status: 409 });
   return processLogin(req, ip);
 }
 

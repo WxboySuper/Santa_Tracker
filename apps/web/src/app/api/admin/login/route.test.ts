@@ -144,4 +144,22 @@ describe("admin login route", () => {
     expect(payload.exp! - payload.iat!).toBe(ADMIN_SESSION_TTL_SECONDS);
     expect(response.headers.get("set-cookie")).toContain(`Max-Age=${ADMIN_SESSION_TTL_SECONDS}`);
   });
+
+  it("lets an authenticated owner re-login and refresh the session", async () => {
+    const headers = { "cf-connecting-ip": "198.51.100.62", "content-type": "application/json" };
+    const firstLogin = await POST(new Request("https://example.test/api/admin/login", {
+      method: "POST", headers, body: JSON.stringify({ password: "correct horse" }),
+    }));
+    const firstToken = (await firstLogin.json() as { token: string }).token;
+
+    const refreshed = await POST(new Request("https://example.test/api/admin/login", {
+      method: "POST",
+      headers: { ...headers, authorization: `Bearer ${firstToken}` },
+      body: JSON.stringify({ password: "correct horse" }),
+    }));
+
+    expect(refreshed.status).toBe(200);
+    expect(refreshed.headers.get("set-cookie")).toContain("admin_token=");
+    expect(refreshed.headers.get("set-cookie")).toContain(`Max-Age=${ADMIN_SESSION_TTL_SECONDS}`);
+  });
 });
