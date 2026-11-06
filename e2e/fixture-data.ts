@@ -1,69 +1,16 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import type { ServerName } from "./types";
-import { isRecord } from "./validation";
-
-type CalendarDay = { day: number; is_unlocked_override?: boolean };
-type Calendar = { days: CalendarDay[] };
-type CalendarSource = { content: string; path: string };
-type ServerData = { name: ServerName; root: string; route: string; calendar: Calendar };
+import { closeCalendar, getCalendarPath, openFirstDay, parseCalendar, type Calendar } from "./calendar-validation";
 type FixtureDataSource = { source: string; temporaryRoot: string };
 
-function isValidDayNumber(value: unknown): value is number {
-  if (typeof value !== "number") return false;
-  if (!Number.isInteger(value)) return false;
-  if (value < 1) return false;
-  return value <= 24;
-}
-
-function hasValidOverride(value: unknown): boolean {
-  if (value === undefined) return true;
-  return typeof value === "boolean";
-}
-
-function isCalendarDay(value: unknown): value is CalendarDay {
-  if (!isRecord(value)) return false;
-  if (!isValidDayNumber(value.day)) return false;
-  return hasValidOverride(value.is_unlocked_override);
-}
-
-function isCalendar(value: unknown): value is Calendar {
-  if (!isRecord(value)) return false;
-  const days = (value as { days?: unknown }).days;
-  if (!Array.isArray(days)) return false;
-  if (days.length !== 24) return false;
-  if (!days.every(isCalendarDay)) return false;
-  return new Set(days.map((day) => day.day)).size === 24;
-}
-
-function parseCalendar({ content, path: filePath }: CalendarSource): Calendar {
-  let value: unknown;
-  try {
-    value = JSON.parse(content);
-  } catch (error) {
-    const reason = error instanceof Error ? error.message : String(error);
-    throw new Error(`Could not parse Advent calendar at ${filePath}: ${reason}`, { cause: error });
-  }
-  if (!isCalendar(value)) throw new Error(`Advent calendar at ${filePath} must contain 24 unique days numbered 1-24`);
-  return value;
-}
-
-async function writeServerData({ name, root, route, calendar: originalCalendar }: ServerData): Promise<string> {
+async function writeServerData(name: ServerName, root: string, route: string, calendar: Calendar): Promise<string> {
   const dataRoot = path.join(root, name);
   await mkdir(dataRoot, { recursive: true });
-  const calendar = JSON.parse(JSON.stringify(originalCalendar)) as Calendar;
-  if (name === "closed") {
-    for (const day of calendar.days) delete day.is_unlocked_override;
-  }
-  if (name === "open") {
-    for (const day of calendar.days) day.is_unlocked_override = false;
-    const firstDay = calendar.days.find((day) => day.day === 1);
-    if (!firstDay) throw new Error("The advent calendar must include day 1");
-    firstDay.is_unlocked_override = true;
-  }
+  const serverCalendar = name === "closed" ? closeCalendar(calendar) : openFirstDay(calendar);
   await Promise.all([
     writeFile(path.join(dataRoot, "santa_route.json"), route),
-    writeFile(path.join(dataRoot, "advent_calendar.json"), JSON.stringify(calendar, null, 2)),
+    writeFile(getCalendarPath(dataRoot), JSON.stringify(serverCalendar, null, 2)),
   ]);
   return dataRoot;
 }
@@ -80,10 +27,10 @@ export async function prepareFixtureData({ source, temporaryRoot }: FixtureDataS
     const reason = error instanceof Error ? error.message : String(error);
     throw new Error(`Could not parse Santa route at ${routePath}: ${reason}`, { cause: error });
   }
-  const calendar = parseCalendar({ content: rawCalendar, path: path.join(source, "advent_calendar.json") });
+  const calendar = parseCalendar({ content: rawCalendar, path: getCalendarPath(source) });
   const [closed, open] = await Promise.all([
-    writeServerData({ name: "closed", root: temporaryRoot, route, calendar }),
-    writeServerData({ name: "open", root: temporaryRoot, route, calendar }),
+    writeServerData("closed", temporaryRoot, route, calendar),
+    writeServerData("open", temporaryRoot, route, calendar),
   ]);
   return { closed, open };
 }
