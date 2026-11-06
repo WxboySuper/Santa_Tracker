@@ -131,6 +131,48 @@
   }
 }
 
+.tracker-immersive {
+  background: radial-gradient(ellipse at 55% 35%, #172554 0%, #020617 70%);
+  color: white;
+}
+
+.tracker-immersive > div[role="application"] {
+  background: transparent;
+}
+
+.tracker-controls {
+  transition: opacity 220ms ease;
+}
+
+.tracker-controls-hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.tracker-arrival-card {
+  animation: tracker-arrival-in 500ms ease-out both;
+}
+
+@keyframes tracker-arrival-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, calc(-50% + 12px));
+  }
+
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tracker-controls,
+  .tracker-arrival-card {
+    transition: none;
+    animation: none;
+  }
+}
+
 @keyframes festive-twinkle {
   from { opacity: 0.55; }
   to { opacity: 1; }

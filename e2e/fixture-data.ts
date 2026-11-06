@@ -11,6 +11,27 @@ function isSantaRoute(value: unknown): boolean {
 	return value.route_nodes.every(isRecord);
 }
 
+function shiftRouteToLiveWindow(route: string): string {
+	const parsed: unknown = JSON.parse(route);
+	if (!isSantaRoute(parsed)) return route;
+	const nodes = (parsed as { route_nodes: { schedule?: Record<string, unknown> }[] }).route_nodes;
+	const timestamps = nodes.flatMap(node => [node.schedule?.arrival_utc, node.schedule?.departure_utc]
+		.filter((value): value is string => typeof value === "string")
+		.map(value => Date.parse(value)).filter(Number.isFinite));
+	if (timestamps.length < 2) return route;
+	const midpoint = Math.min(...timestamps) + (Math.max(...timestamps) - Math.min(...timestamps)) / 2;
+	const shift = Date.now() - midpoint;
+	for (const node of nodes) {
+		const schedule = node.schedule;
+		if (!schedule) continue;
+		for (const key of ["arrival_utc", "departure_utc"] as const) {
+			const value = schedule[key];
+			if (typeof value === "string") schedule[key] = new Date(Date.parse(value) + shift).toISOString();
+		}
+	}
+	return JSON.stringify(parsed);
+}
+
 async function writeServerData(name: ServerName, root: string, route: string, calendar: Calendar): Promise<string> {
   const dataRoot = path.join(root, name);
   await mkdir(dataRoot, { recursive: true });
@@ -23,18 +44,19 @@ async function writeServerData(name: ServerName, root: string, route: string, ca
 }
 
 export async function prepareFixtureData({ source, temporaryRoot }: FixtureDataSource): Promise<Record<ServerName, string>> {
-  const [route, rawCalendar] = await Promise.all([
+  const [sourceRoute, rawCalendar] = await Promise.all([
     readFile(path.join(source, "santa_route.json"), "utf8"),
     readFile(path.join(source, "advent_calendar.json"), "utf8"),
   ]);
   const routePath = path.join(source, "santa_route.json");
   try {
-		const parsed: unknown = JSON.parse(route);
+		const parsed: unknown = JSON.parse(sourceRoute);
 		if (!isSantaRoute(parsed)) throw new Error("Expected route metadata and route_nodes");
   } catch (error) {
     const reason = error instanceof Error ? error.message : String(error);
 		throw new Error(`Could not validate Santa route at ${routePath}: ${reason}`, { cause: error });
   }
+	const route = shiftRouteToLiveWindow(sourceRoute);
   const calendar = parseCalendar({ content: rawCalendar, path: getCalendarPath(source) });
   const [closed, open] = await Promise.all([
     writeServerData("closed", temporaryRoot, route, calendar),
