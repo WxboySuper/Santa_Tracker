@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { applyInitialCamera, hasValidMapExtent, positionToView, splitGreatCircle } from "./tracker-map-geometry";
+import { applyInitialCamera, bearingBetween, hasValidMapExtent, positionToView, splitGreatCircle } from "./tracker-map-geometry";
 
 describe("splitGreatCircle", () => {
   it.each([
@@ -38,4 +38,15 @@ it("centers Santa when a live position exists and fits the route otherwise", () 
 it("rejects empty map extents before fitting", () => {
   expect(hasValidMapExtent([0, 0, 10, 10])).toBe(true);
   expect(hasValidMapExtent([Infinity, Infinity, -Infinity, -Infinity])).toBe(false);
+});
+
+describe("bearingBetween", () => {
+  it.each([
+    [{ lat: 0, lng: 0 }, { lat: 10, lng: 0 }, 0],
+    [{ lat: 0, lng: 0 }, { lat: 0, lng: 10 }, Math.PI / 2],
+    [{ lat: 10, lng: 0 }, { lat: 0, lng: 0 }, Math.PI],
+    [{ lat: 0, lng: 10 }, { lat: 0, lng: 0 }, -Math.PI / 2],
+  ])("points the right way from %o to %o", (from, to, expected) => {
+    expect(bearingBetween(from, to)).toBeCloseTo(expected, 5);
+  });
 });

@@ -6,6 +6,7 @@ export interface TrackerMapAdapter {
   setRoute(nodes: RouteNode[]): void;
   setSantaPosition(position: SantaPosition): void;
   follow(): void;
+  visitPole(): void;
   stopFollowing(): void;
   fitToRoute(): void;
   destroy(): void;
