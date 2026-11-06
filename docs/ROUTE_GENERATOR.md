@@ -18,7 +18,7 @@ The seed controls candidate selection and tie breaking. Running the same seed wi
 
 Open `review.html` directly in a browser. It includes the category mix, timezone-region balance, stop counts by hour, longest legs, and a sortable and searchable stop table. Check the local arrival, long-gap and fast-leg flags, and repeated countries. The final eight hours show the hourly counts for the western part of the sweep. A below-target hourly count appears as a warning because the candidate source has very few verified places in UTC-11 and UTC-12; the report leaves those gaps visible instead of inventing stops.
 
-Copy `tools/route-generator/overrides.example.json` to `tools/route-generator/overrides.json` and put owner decisions there. Use candidate IDs copied from the `review.html` table. `lock` keeps a candidate selected, `veto` removes it, and `swap` replaces a selected ID with another candidate ID:
+Copy `tools/route-generator/overrides.example.json` to `tools/route-generator/overrides.json` and put owner decisions there. Use candidate IDs copied from the `review.html` table. `lock` keeps a candidate selected, `veto` removes it, and `swap` replaces a selected ID with another candidate ID from the same category. Category quotas remain exact after overrides:
 
 ```json
 {

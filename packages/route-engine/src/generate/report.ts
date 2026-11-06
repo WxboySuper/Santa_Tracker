@@ -12,8 +12,11 @@ function categoryMix(places: Candidate[], config: GeneratorConfig): RouteReport[
   }]));
 }
 function hourlyCounts(route: Route): RouteReport['hourly'] {
-  const start = Date.parse(route.stops[0]?.arrivalIso ?? new Date(0).toISOString());
-  const end = Date.parse(route.stops.at(-1)?.arrivalIso ?? new Date(start).toISOString());
+  const first = route.stops[0];
+  const last = route.stops.at(-1);
+  if (!first || !last) throw new Error('Cannot report an empty route');
+  const start = Date.parse(first.arrivalIso);
+  const end = Date.parse(last.arrivalIso);
   const count = Math.floor((end - start) / 3_600_000) + 1;
   return Array.from({ length: count }, (_, hour) => ({
     hour,
@@ -21,15 +24,22 @@ function hourlyCounts(route: Route): RouteReport['hourly'] {
   }));
 }
 function routeLegs(places: Candidate[], route: Route, config: GeneratorConfig, coordinates: Map<string, LatLng>): LegSummary[] {
+  if (places.length !== route.stops.length) throw new Error('Report locations do not match route stops');
   return route.stops.slice(1).map((stop, index) => {
     const previous = route.stops[index];
-    const from = previous ? coordinates.get(previous.locationId) : undefined;
+    if (!previous) throw new Error(`Missing previous stop for leg ${index + 1}`);
+    const from = coordinates.get(previous.locationId);
     const to = coordinates.get(stop.locationId);
-    const km = from && to ? haversineKm(from, to) : 0;
-    const seconds = previous ? (Date.parse(stop.arrivalIso) - Date.parse(previous.departureIso)) / 1000 : 0;
+    if (!from || !to) throw new Error(`Missing coordinates for leg ${index + 1}`);
+    const fromPlace = places[index];
+    const toPlace = places[index + 1];
+    if (!fromPlace || !toPlace) throw new Error(`Missing locations for leg ${index + 1}`);
+    const km = haversineKm(from, to);
+    const seconds = (Date.parse(stop.arrivalIso) - Date.parse(previous.departureIso)) / 1000;
+    const kmh = legSpeedKmh(from, to, seconds);
+    if (kmh === null) throw new Error(`Invalid travel duration for leg ${index + 1}`);
     return {
-      from: places[index]?.name ?? '', to: places[index + 1]?.name ?? '', km,
-      kmh: legSpeedKmh(from ?? { lat: 0, lng: 0 }, to ?? { lat: 0, lng: 0 }, seconds) ?? 0,
+      from: fromPlace.name, to: toPlace.name, km, kmh,
       longGap: km > config.maxGapKm,
     };
   });

@@ -19,7 +19,8 @@ describe('christmasArrival', () => {
 
   it('rejects invalid offsets and time zones', () => {
     expect(() => christmasArrival('Pacific/Kiritimati', 1440)).toThrow();
-    expect(() => christmasArrival('Invalid/Zone', 20)).toThrow();
+    expect(() => christmasArrival('Invalid/Zone', 20)).toThrow(/Invalid IANA time zone/);
+    expect(() => christmasArrival('UTC', Number.NaN)).toThrow(/integer/);
   });
 
   it('handles valid zero-offset time zones', () => {

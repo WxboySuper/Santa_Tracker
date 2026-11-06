@@ -1,4 +1,4 @@
-import { createLocationId, SCHEMA_VERSION, type Route } from '@santa-tracker/contracts';
+import { createLocationId, LegacyRouteFixtureSchema, SCHEMA_VERSION, type Route } from '@santa-tracker/contracts';
 import { validateRouteGeometry } from '../geometry-validate';
 import type { LatLng } from '../geo';
 import { haversineKm } from '../geo';
@@ -24,7 +24,7 @@ function createStop(index: number, place: Candidate, context: StopContext) {
   const { config, prior, lastDeparture } = context;
   const target = Date.parse(christmasArrival(place.timezone, place.plannedMinute ?? config.arrivalStartMinute));
   const distance = prior ? haversineKm(prior, place) : 0;
-  const travel = distance / config.maxSpeedKmh * 3_600_000 * 1.001 + 1_000;
+  const travel = Math.ceil(distance / config.maxSpeedKmh * 3_600_000) + 1;
   const arrival = new Date(Math.max(target, lastDeparture + Math.max(config.durationSeconds * 1000, travel))).toISOString();
   const minute = localMinute(arrival, place.timezone);
   if (minute < config.arrivalStartMinute || minute > config.arrivalEndMinute) throw new Error(`${place.name} arrives outside its local window at ${arrival}`);
@@ -48,6 +48,7 @@ function buildDocument(places: Candidate[], config: GeneratorConfig): { document
   }
   const route = { schemaVersion: SCHEMA_VERSION, season: 2026, stops } as Route;
   const document = { meta: { year: 2026, route_version: '1.0', generated_at: '2026-12-24T00:00:00.000Z' }, route_nodes: routeNodes };
+  LegacyRouteFixtureSchema.parse(document);
   return { document, route, coordinates };
 }
 function validateGeneratedRoute(route: Route, coordinates: Map<string, LatLng>, config: GeneratorConfig): void {

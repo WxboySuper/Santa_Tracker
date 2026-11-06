@@ -20,11 +20,7 @@ function validateMinute(minutesAfterMidnight: number): void {
 
 export function christmasArrival(timeZone: string, minutesAfterMidnight: number): string {
   validateMinute(minutesAfterMidnight);
-  const formatter = new Intl.DateTimeFormat('en-GB', {
-    timeZone,
-    year: 'numeric', month: '2-digit', day: '2-digit',
-    hour: '2-digit', minute: '2-digit', hourCycle: 'h23',
-  });
+  const formatter = createFormatter(timeZone);
   const target = LOCAL_MIDNIGHT + minutesAfterMidnight * MINUTE_MS;
   let instant = target;
   for (let attempt = 0; attempt < 4; attempt++) {
@@ -33,4 +29,15 @@ export function christmasArrival(timeZone: string, minutesAfterMidnight: number)
     instant += delta;
   }
   throw new Error(`Cannot resolve local arrival in ${timeZone}`);
+}
+
+function createFormatter(timeZone: string): Intl.DateTimeFormat {
+  try {
+    return new Intl.DateTimeFormat('en-GB', {
+      timeZone, year: 'numeric', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit', hourCycle: 'h23',
+    });
+  } catch (error) {
+    throw new Error(`Invalid IANA time zone: ${timeZone}`, { cause: error });
+  }
 }

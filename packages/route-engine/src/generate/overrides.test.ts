@@ -21,4 +21,13 @@ describe('applyOverrides', () => {
     expect(() => applyOverrides(pool, ['a', 'b'], { swap: { a: 'b' } })).toThrow();
     expect(() => applyOverrides(pool, ['a'], { swap: { a: 'c' }, veto: ['c'] })).toThrow();
   });
+
+  it('requires swaps and new locks to preserve the selected category quota', () => {
+    const categorized = [
+      { id: 'hub-a', category: 'hub' }, { id: 'hub-b', category: 'hub' },
+      { id: 'nature-a', category: 'nature' }, { id: 'nature-b', category: 'nature' },
+    ];
+    expect(() => applyOverrides(categorized, ['hub-a', 'nature-a'], { swap: { 'hub-a': 'nature-b' } })).toThrow(/preserve category/);
+    expect(applyOverrides(categorized, ['hub-a', 'nature-a'], { lock: ['hub-b'] })).toEqual(['hub-b', 'nature-a']);
+  });
 });
