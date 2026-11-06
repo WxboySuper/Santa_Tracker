@@ -1,0 +1,54 @@
+import { describe, expect, it } from "vitest";
+import { en } from "@santa-tracker/localization";
+import { winterWorldEntries } from "../winter-world-data";
+import { isWinterWorldTonight, parseLitEntryIds, parseWinterWorld, projectWinterWorldPoint } from "../winter-world";
+
+function entryById(id: string) {
+  const entry = winterWorldEntries.find((item) => item.id === id);
+  if (entry === undefined) throw new Error(`Missing winter world test entry: ${id}`);
+  return entry;
+}
+
+describe("winter world activity", () => {
+  it("accepts only a winterworld payload with a known optional focus", () => {
+    expect(parseWinterWorld({ kind: "winterworld" })).toEqual({});
+    expect(parseWinterWorld({ kind: "winterworld", focus: "yalda" })).toEqual({ focus: "yalda" });
+    expect(parseWinterWorld({ kind: "winterworld", focus: "unknown" })).toBeNull();
+    expect(parseWinterWorld({ kind: "winterworld", focus: 3 })).toBeNull();
+    expect(parseWinterWorld(null)).toBeNull();
+    expect(parseWinterWorld({ kind: "cipher" })).toBeNull();
+  });
+
+  it("marks fixed dates from an injected local clock, including ranges across New Year", () => {
+    const posadas = entryById("posadas");
+    const kwanzaa = entryById("kwanzaa");
+    const lucia = entryById("lucia");
+    const hanukkah = entryById("hanukkah");
+    expect(isWinterWorldTonight(posadas, new Date(2026, 11, 16))).toBe(true);
+    expect(isWinterWorldTonight(posadas, new Date(2026, 11, 25))).toBe(false);
+    expect(isWinterWorldTonight(kwanzaa, new Date(2027, 0, 1))).toBe(true);
+    expect(isWinterWorldTonight(lucia, new Date(2026, 11, 14))).toBe(false);
+    expect(isWinterWorldTonight(hanukkah, new Date(2026, 11, 10))).toBeNull();
+    expect(isWinterWorldTonight(lucia, new Date(Number.NaN))).toBeNull();
+  });
+
+  it("drops malformed saved candle ids and projects map points into the SVG", () => {
+    expect(parseLitEntryIds(["lucia", "lucia", 2, "missing"])).toEqual(["lucia"]);
+    expect(parseLitEntryIds({ lit: ["yalda"] })).toEqual([]);
+    const point = projectWinterWorldPoint(entryById("lucia"));
+    expect(point.x).toBeGreaterThanOrEqual(40);
+    expect(point.x).toBeLessThanOrEqual(760);
+    expect(point.y).toBeGreaterThanOrEqual(24);
+    expect(point.y).toBeLessThanOrEqual(216);
+  });
+
+  it("keeps every entry within the requested paragraph length and gives it a source note", () => {
+    for (const entry of winterWorldEntries) {
+      const story = en[entry.storyKey];
+      const wordCount = story.trim().split(/\s+/).length;
+      expect(wordCount, entry.id).toBeGreaterThanOrEqual(60);
+      expect(wordCount, entry.id).toBeLessThanOrEqual(110);
+      expect(entry.sourceNote.trim(), entry.id).not.toBe("");
+    }
+  });
+});
