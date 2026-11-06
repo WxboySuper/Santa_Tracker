@@ -1,6 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { expect, test as base } from "@playwright/test";
-import { isRecord, isServerEndpointMap } from "./validation";
+import { isHttpEndpointUrl, isRecord, isServerEndpointMap } from "./validation";
 
 type RuntimeConfig = { endpoints: Record<string, string>; adminPassword: string };
 
@@ -9,17 +9,6 @@ const runtimeConfigByFile = new Map<string, Promise<RuntimeConfig>>();
 function isNonEmptyString(value: unknown): value is string {
   if (typeof value !== "string") return false;
   return value.length > 0;
-}
-
-function isHttpEndpoint(value: string): boolean {
-  let endpoint: URL;
-  try {
-    endpoint = new URL(value);
-  } catch {
-    return false;
-  }
-  if (endpoint.protocol === "http:") return true;
-  return endpoint.protocol === "https:";
 }
 
 function isStringRecord(value: unknown): value is Record<string, string> {
@@ -68,7 +57,7 @@ export async function getEndpointForProject(runtimeFile: string, projectName: st
   if (typeof endpoint !== "string") {
     throw new Error(`No endpoint configured for project ${projectName} in ${runtimeFile}`);
   }
-  if (!isHttpEndpoint(endpoint)) {
+  if (!isHttpEndpointUrl(endpoint)) {
     throw new Error(`Invalid endpoint for project ${projectName} in ${runtimeFile}: ${endpoint}`);
   }
   return endpoint;

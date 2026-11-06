@@ -30,11 +30,11 @@ function closePortReservation(server: net.Server): Promise<void> {
   });
 }
 
-async function findFreePorts(): Promise<[number, number]> {
+async function findFreePorts(count = 2): Promise<number[]> {
   const reservations: net.Server[] = [];
   const ports: number[] = [];
   try {
-    while (ports.length < 2) {
+    while (ports.length < count) {
       const server = net.createServer();
       reservations.push(server);
       await new Promise<void>((resolve, reject) => {
@@ -48,7 +48,13 @@ async function findFreePorts(): Promise<[number, number]> {
   } finally {
     await Promise.all(reservations.map(closePortReservation));
   }
-  return ports as [number, number];
+  return ports;
+}
+
+async function findFreePort(): Promise<number> {
+  const [port] = await findFreePorts(1);
+  if (port === undefined) throw new Error("Could not allocate a local port");
+  return port;
 }
 
 function serverEnvironment(name: ServerName, dataRoot: string, password: string, secret: string): NodeJS.ProcessEnv {
@@ -82,10 +88,10 @@ async function stopPartialServers(entries: ServerEntry[], startupError: unknown)
   throw startupError;
 }
 
-function getStartupError(entry: ServerEntry, spawnError: Error | undefined): Error | undefined {
+function getStartupError(entry: ServerEntry, spawnError: Error | undefined, output: string): Error | undefined {
   if (spawnError) return new Error(`Next.js failed to spawn: ${spawnError.message}`);
-  if (entry.child.exitCode !== null) return new Error(`Next.js exited early with code ${entry.child.exitCode}`);
-  if (entry.child.signalCode !== null) return new Error(`Next.js exited early with signal ${entry.child.signalCode}`);
+  if (entry.child.exitCode !== null) return new Error(`Next.js exited early with code ${entry.child.exitCode}. Output: ${output}`);
+  if (entry.child.signalCode !== null) return new Error(`Next.js exited early with signal ${entry.child.signalCode}. Output: ${output}`);
   return undefined;
 }
 
@@ -124,12 +130,12 @@ async function waitForServer(entry: ServerEntry): Promise<StartupResult> {
   const state = captureStartupState(entry);
   try {
     while (Date.now() < deadline) {
-      const startupError = getStartupError(entry, state.error());
+      const startupError = getStartupError(entry, state.error(), state.output());
       if (startupError) throw startupError;
       if (await isServerReady(entry.endpoint)) return { name: entry.name, endpoint: entry.endpoint };
       await delay(250);
     }
-    const startupError = getStartupError(entry, state.error());
+    const startupError = getStartupError(entry, state.error(), state.output());
     if (startupError) throw startupError;
     throw new Error(`Next.js did not become ready. Output: ${state.output()}`);
   } finally {
@@ -140,6 +146,30 @@ async function waitForServer(entry: ServerEntry): Promise<StartupResult> {
 function normalizeFailure(reason: unknown): Error {
   if (reason instanceof Error) return reason;
   return new Error(String(reason));
+}
+
+function isAddressInUse(error: unknown): boolean {
+  if (!(error instanceof Error)) return false;
+  return error.message.includes("EADDRINUSE");
+}
+
+async function startNextServerWithRetry(name: ServerName, appRoot: string, dataRoot: string, initialPort: number, password: string, secret: string): Promise<ServerEntry> {
+  let port = initialPort;
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    const entry = spawnNextServer(name, appRoot, dataRoot, port, password, secret);
+    try {
+      await waitForServer(entry);
+      return entry;
+    } catch (error) {
+      await stopServers([entry]).catch((cleanupError: unknown) => {
+        throw new AggregateError([error, cleanupError], "Server startup and cleanup both failed", { cause: cleanupError });
+      });
+      if (!isAddressInUse(error)) throw error;
+      if (attempt === 2) throw error;
+      port = await findFreePort();
+    }
+  }
+  throw new Error(`Next.js server ${name} exhausted its port retries`);
 }
 
 export function getStartupFailure(results: PromiseSettledResult<StartupResult>[]): Error | undefined {
@@ -164,14 +194,18 @@ export async function waitForServers(entries: ServerEntry[]): Promise<Record<Ser
 }
 
 export async function startServers(appRoot: string, dataRoots: Record<ServerName, string>, password: string, secret: string): Promise<ServerEntry[]> {
-  const entries: ServerEntry[] = [];
-  const [closedPort, openPort] = await findFreePorts();
-  try {
-    entries.push(spawnNextServer("closed", appRoot, dataRoots.closed, closedPort, password, secret));
-    entries.push(spawnNextServer("open", appRoot, dataRoots.open, openPort, password, secret));
-  } catch (error) {
-    await stopPartialServers(entries, error);
-  }
+  const ports = await findFreePorts(2);
+  const closedPort = ports[0];
+  const openPort = ports[1];
+  if (closedPort === undefined) throw new Error("Could not allocate the closed-season port");
+  if (openPort === undefined) throw new Error("Could not allocate the open-season port");
+  const results = await Promise.allSettled([
+    startNextServerWithRetry("closed", appRoot, dataRoots.closed, closedPort, password, secret),
+    startNextServerWithRetry("open", appRoot, dataRoots.open, openPort, password, secret),
+  ]);
+  const entries = results.flatMap((result) => result.status === "fulfilled" ? [result.value] : []);
+  const failure = getStartupFailure(results);
+  if (failure) await stopPartialServers(entries, failure);
   return entries;
 }
 

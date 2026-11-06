@@ -4,6 +4,7 @@ import path from "node:path";
 import { expect, test } from "vitest";
 import { getEndpointForProject, getRuntimeConfig } from "./fixtures";
 import { prepareFixtureData } from "./fixture-data";
+import { openFirstDay } from "./calendar-validation";
 import { getStartupFailure, waitForServers, type StartupResult } from "./server-processes";
 import { isServerEndpointMap } from "./validation";
 
@@ -114,6 +115,10 @@ test("fixture calendars clear source overrides and unlock only open day one", as
     expect(open.days.slice(1).every((day) => day.is_unlocked_override === false)).toBe(true);
     expect(open.days.find((day) => day.day === 2)?.unlock_time).toBe("2000-01-01T00:00:00Z");
   });
+});
+
+test("opening an invalid calendar reports a missing day one", () => {
+  expect(() => openFirstDay({ days: [] })).toThrow("Advent calendar must contain day 1");
 });
 
 test("runtime endpoints are cached per file for each worker", async () => {

@@ -7,7 +7,7 @@ export function isRecord(value: unknown): value is Record<string, unknown> {
   return true;
 }
 
-function isHttpEndpoint(value: unknown): value is string {
+export function isHttpEndpointUrl(value: unknown): value is string {
   if (typeof value !== "string") return false;
   if (value.length === 0) return false;
   let url: URL;
@@ -25,6 +25,6 @@ export function isServerEndpointMap(value: unknown): value is Record<ServerName,
   if (Object.keys(value).length !== 2) return false;
   if (!Object.hasOwn(value, "closed")) return false;
   if (!Object.hasOwn(value, "open")) return false;
-  if (!isHttpEndpoint(value.closed)) return false;
-  return isHttpEndpoint(value.open);
+  if (!isHttpEndpointUrl(value.closed)) return false;
+  return isHttpEndpointUrl(value.open);
 }
