@@ -800,6 +800,21 @@ body:has(.home-main)::before {
   stroke-width: 1.2;
 }
 
+.snowfall-particle {
+  fill: #e9e4d8;
+  opacity: 0;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.north-pole-scene.is-visible .snowfall-particle {
+  animation: snowfall 11s linear infinite;
+}
+
+.north-pole-scene.is-visible .snowfall-1 { animation-delay: -3.1s; }
+.north-pole-scene.is-visible .snowfall-2 { animation-delay: -6.8s; }
+.north-pole-scene.is-visible .snowfall-3 { animation-delay: -8.7s; }
+
 .light-bulb {
   cursor: pointer;
   outline: none;
@@ -1014,6 +1029,22 @@ body:has(.home-main)::before {
   }
 }
 
+@keyframes snowfall {
+  0% {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+
+  18%, 68% {
+    opacity: 0.65;
+  }
+
+  100% {
+    opacity: 0;
+    transform: translateY(88px);
+  }
+}
+
 @media (width <= 600px) {
   .home-main {
     width: min(100% - 1.25rem, 68rem);
@@ -1051,6 +1082,7 @@ body:has(.home-main)::before {
   body:has(.home-main)::before,
   .light-bulb,
   .bulb-halo,
+  .snowfall-particle,
   .home-card::after {
     animation: none;
     transition: none;
