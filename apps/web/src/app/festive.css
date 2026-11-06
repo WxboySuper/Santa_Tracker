@@ -70,7 +70,7 @@
 
 .festive-lights::before,
 .festive-lights::after {
-  content: "";
+  content: '';
   position: absolute;
   inset: 0;
   background-size: 96px 18px;
@@ -101,7 +101,209 @@
 .countdown-tile {
   background: linear-gradient(180deg, rgb(255 255 255 / 14%), rgb(255 255 255 / 5%));
   border: 1px solid rgb(250 204 21 / 45%);
-  box-shadow: 0 8px 30px rgb(0 0 0 / 35%), inset 0 1px 0 rgb(255 255 255 / 18%);
+  box-shadow:
+    0 8px 30px rgb(0 0 0 / 35%),
+    inset 0 1px 0 rgb(255 255 255 / 18%);
+}
+
+.home-main {
+  position: relative;
+  z-index: 1;
+  width: min(100% - 2rem, 72rem);
+  margin: 0 auto;
+  padding: 2rem 0 1.5rem;
+}
+
+.home-nav {
+  position: absolute;
+  top: 1.25rem;
+  right: max(1rem, calc((100vw - 72rem) / 2));
+  z-index: 2;
+}
+
+.home-nav a {
+  color: #f8ead0;
+  text-decoration: underline;
+  text-underline-offset: 0.25rem;
+}
+
+.north-pole-scene {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 20 / 7;
+  border: 1px solid rgb(248 234 208 / 20%);
+  border-radius: 1.4rem;
+  box-shadow: 0 18px 55px rgb(0 0 0 / 25%);
+}
+
+.home-heading {
+  padding: 2rem 0 1rem;
+  text-align: center;
+}
+
+.home-kicker,
+.home-card-index {
+  color: #f4ca7a;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.home-heading h1 {
+  margin-top: 0.25rem;
+  color: #fff4dc;
+  font-size: clamp(2.3rem, 6vw, 4.3rem);
+  font-weight: 750;
+  letter-spacing: -0.04em;
+  line-height: 1.05;
+}
+
+.home-heading > p:last-child {
+  margin-top: 0.75rem;
+  color: #d5e1e1;
+  font-size: clamp(1rem, 2vw, 1.2rem);
+}
+
+.countdown-panel {
+  margin: 1rem auto 2.5rem;
+  width: min(100%, 55rem);
+  padding: 1.35rem;
+  border: 1px solid rgb(248 234 208 / 18%);
+  border-radius: 1.25rem;
+  background: rgb(10 21 34 / 72%);
+  text-align: center;
+}
+
+.countdown-panel h2 {
+  margin-bottom: 1rem;
+  color: #f4ca7a;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.home-cards {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.home-card {
+  min-width: 0;
+  padding: 1.5rem;
+  border: 1px solid rgb(248 234 208 / 22%);
+  border-radius: 1rem;
+  background: #152638;
+}
+
+.home-card h2 {
+  margin-top: 0.65rem;
+  color: #fff4dc;
+  font-size: 1.45rem;
+  font-weight: 700;
+}
+
+.home-link {
+  color: #121b24;
+  background: #f4ca7a;
+}
+
+.home-link:hover {
+  background: #ffdda0;
+}
+
+.skip-link {
+  position: absolute;
+  z-index: 10;
+  top: 0.5rem;
+  left: 0.5rem;
+  transform: translateY(-160%);
+  border-radius: 0.5rem;
+  background: #fff4dc;
+  padding: 0.75rem 1rem;
+  color: #14243a;
+}
+
+.home-link:focus-visible,
+.home-nav a:focus-visible,
+.skip-link:focus-visible {
+  outline: 3px solid #fff;
+  outline-offset: 4px;
+}
+
+.home-footer {
+  padding: 2.5rem 0.5rem 1rem;
+  color: #d5e1e1;
+  text-align: center;
+  font-size: 0.95rem;
+}
+
+.skip-link:focus {
+  transform: translateY(0);
+}
+
+@media (width <= 600px) {
+  .home-main {
+    width: min(100% - 1.25rem, 72rem);
+    padding-top: 3.75rem;
+  }
+
+  .home-nav {
+    top: 1rem;
+    right: 0.75rem;
+  }
+
+  .north-pole-scene {
+    aspect-ratio: 20 / 7;
+    border-radius: 1rem;
+  }
+
+  .home-heading {
+    padding-top: 1.5rem;
+  }
+
+  .countdown-panel {
+    margin-bottom: 1.5rem;
+    padding: 1rem 0.65rem;
+  }
+
+  .home-cards {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .home-card {
+    padding: 1.25rem;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .scene-snow {
+    animation: scene-drift 7s ease-in-out infinite alternate;
+  }
+
+  .snow-b {
+    animation-delay: -2s;
+  }
+
+  .snow-c {
+    animation-delay: -4s;
+  }
+}
+
+@keyframes scene-drift {
+  to {
+    transform: translateY(12px);
+    opacity: 0.35;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scene-snow {
+    animation: none;
+  }
 }
 
 @media (prefers-reduced-motion: no-preference) {
@@ -136,12 +338,14 @@
   color: white;
 }
 
-.tracker-immersive > div[role="application"] {
+.tracker-immersive > div[role='application'] {
   background: transparent;
 }
 
 .tracker-controls {
-  transition: opacity 220ms ease, visibility 220ms ease;
+  transition:
+    opacity 220ms ease,
+    visibility 220ms ease;
 }
 
 .tracker-controls-hidden {
@@ -176,29 +380,54 @@
 }
 
 @keyframes festive-twinkle {
-  from { opacity: 0.55; }
-  to { opacity: 1; }
+  from {
+    opacity: 0.55;
+  }
+
+  to {
+    opacity: 1;
+  }
 }
 
 /* Distances match each layer's background-size height (200px and 280px). */
 @keyframes festive-fall-far {
-  from { background-position: 0 0; }
-  to { background-position: 0 200px; }
+  from {
+    background-position: 0 0;
+  }
+
+  to {
+    background-position: 0 200px;
+  }
 }
 
 @keyframes festive-fall-near {
-  from { background-position: 0 0; }
-  to { background-position: 0 280px; }
+  from {
+    background-position: 0 0;
+  }
+
+  to {
+    background-position: 0 280px;
+  }
 }
 
 @keyframes festive-bulb {
-  from { opacity: 0.35; }
-  to { opacity: 1; }
+  from {
+    opacity: 0.35;
+  }
+
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes festive-tick {
-  0% { transform: scale(1.06); }
-  100% { transform: scale(1); }
+  0% {
+    transform: scale(1.06);
+  }
+
+  100% {
+    transform: scale(1);
+  }
 }
 
 /*
