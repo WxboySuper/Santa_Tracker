@@ -10,7 +10,7 @@ import { ArrivalNoticeCard, playArrivalNoticeChime } from "./tracker-map-immersi
 type Translator = ReturnType<typeof createTranslator>;
 type WakeLockSentinel = { release: () => Promise<void>; released: boolean; addEventListener: (type: "release", listener: () => void) => void };
 type WakeLockNavigator = Navigator & { wakeLock?: { request: (type: "screen") => Promise<WakeLockSentinel> } };
-type ArrivalDisplayInput = { place: ChosenPlace; arrival: Date | null; now: Date; locale: string; translator: Translator };
+type ArrivalDisplayInput = { place: ChosenPlace; arrival: Date | null; routeComplete: boolean; now: Date; locale: string; translator: Translator };
 
 /** Renders the read-only route dashboard and keeps the display awake when supported. */
 export function TvTrackerDashboard({ locale, nodes, position, translator }: { locale: string; nodes: RouteNode[]; position: SantaPosition | null; translator: Translator }) {
@@ -44,7 +44,7 @@ export function TvTrackerDashboard({ locale, nodes, position, translator }: { lo
     <TvDashboardHeader current={dashboard.current?.location.name} localTime={dashboard.santaLocalTime} translator={translator} />
     <TvProgress progress={dashboard.progressPercent} translator={translator} />
     <TvNextStops stops={dashboard.nextStops} complete={dashboard.routeComplete} translator={translator} />
-    <TvVisitorEstimate place={place} arrival={dashboard.visitorArrival} now={now} locale={locale} translator={translator} />
+    <TvVisitorEstimate place={place} arrival={dashboard.visitorArrival} routeComplete={dashboard.routeComplete} now={now} locale={locale} translator={translator} />
     <TvAudioToggle chimes={chimes} toggle={() => setChimes(value => !value)} translator={translator} />
     <TvArrivalNotice node={arrivalNotice} translator={translator} />
   </section>;
@@ -83,11 +83,11 @@ function TvNextStops({ stops, complete, translator }: { stops: ReturnType<typeof
   </section>;
 }
 
-function TvVisitorEstimate({ place, arrival, now, locale, translator }: Omit<ArrivalDisplayInput, "place"> & { place: ChosenPlace | null }) {
+function TvVisitorEstimate({ place, arrival, routeComplete, now, locale, translator }: Omit<ArrivalDisplayInput, "place"> & { place: ChosenPlace | null }) {
   if (!place) return <section className="tracker-tv-visitor" aria-live="polite"><h2>{translator.t("tracker.findMe")}</h2><p className="tracker-tv-muted">{translator.t("tracker.tvFindMeHint")}</p></section>;
   return <section className="tracker-tv-visitor" aria-live="polite">
     <h2>{translator.t("tracker.findMe")}</h2>
-    <p>{place.name}: {formatVisitorArrival({ place, arrival, now, locale, translator })}</p>
+    <p>{place.name}: {formatVisitorArrival({ place, arrival, routeComplete, now, locale, translator })}</p>
   </section>;
 }
 
@@ -209,8 +209,8 @@ function releaseSentinel(sentinel: WakeLockSentinel | null): void {
   if (sentinel && !sentinel.released) void sentinel.release().catch(() => undefined);
 }
 
-function formatVisitorArrival({ place, arrival, now, locale, translator }: ArrivalDisplayInput): string {
-  if (!arrival) return translator.t("tracker.complete");
+function formatVisitorArrival({ place, arrival, routeComplete, now, locale, translator }: ArrivalDisplayInput): string {
+  if (!arrival) return translator.t(routeComplete ? "tracker.complete" : "tracker.nextWaiting");
   if (arrival.getTime() <= now.getTime()) return translator.t("tracker.hesHereTitle");
   try {
     return translator.t("tracker.arrivalEstimate", { time: arrival.toLocaleTimeString(locale, { hour: "numeric", minute: "2-digit", ...(place.timezone ? { timeZone: place.timezone } : {}) }) });
