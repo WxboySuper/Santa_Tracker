@@ -130,6 +130,7 @@ export default function VillageExperience({ experiences }: { experiences: Experi
   const [box] = useState(() => new MusicBox());
   const [ready, setReady] = useState(false);
   const [supported, setSupported] = useState(true);
+  const [blocked, setBlocked] = useState(false);
   const [hover, setHover] = useState<Hover>(null);
   const [selected, setSelected] = useState<BuildingId | null>(null);
   const [music, setMusic] = useState<MusicState>({ playing: false, tune: 0 });
@@ -161,6 +162,7 @@ export default function VillageExperience({ experiences }: { experiences: Experi
           onSelect: (id) => setSelected(id),
           onReady: () => setReady(true),
           onFail: () => setSupported(false),
+          onBlocked: () => setBlocked(true),
         },
       });
     } catch {
@@ -202,6 +204,12 @@ export default function VillageExperience({ experiences }: { experiences: Experi
       {!supported && (
         <p className="village-fallback" role="status">
           This browser can’t draw the 3D village, but everything is still a click away in the list below.
+        </p>
+      )}
+
+      {blocked && (
+        <p className="village-notice" role="status">
+          Your browser seems to be hiding the 3D scene; some privacy settings block canvas drawing until you allow it for this site. The list of places below still works.
         </p>
       )}
 

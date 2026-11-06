@@ -8,6 +8,8 @@ import { PLAZA, createWorld, type World } from './village-world';
 
 export type EngineEvents = {
   onFail: () => void;
+  /** The canvas still reads as blank in the plainest mode: likely a privacy setting hiding it. */
+  onBlocked: () => void;
   onHover: (id: BuildingId | null, anchor: { x: number; y: number } | null) => void;
   onSelect: (id: BuildingId | null) => void;
   onReady: () => void;
@@ -358,7 +360,11 @@ export class VillageEngine {
     }
     if (this.mode === 'high') this.mode = 'low';
     else if (this.mode === 'low') this.mode = 'basic';
-    else return;
+    else {
+      this.blackChecks = 12;
+      this.events.onBlocked();
+      return;
+    }
     this.blackChecks = 0;
     this.buildComposer();
   }

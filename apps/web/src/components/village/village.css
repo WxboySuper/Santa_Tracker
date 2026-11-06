@@ -55,6 +55,21 @@
   transform: translate(-50%, -50%);
 }
 
+.village-notice {
+  position: absolute;
+  top: 6.5rem;
+  left: 50%;
+  width: min(32rem, calc(100vw - 2rem));
+  padding: 0.8rem 1rem;
+  border: 1px solid var(--line);
+  border-radius: 0.9rem;
+  background: rgb(9 18 36 / 88%);
+  font-size: 0.9rem;
+  line-height: 1.5;
+  text-align: center;
+  transform: translateX(-50%);
+}
+
 .village-sr {
   position: absolute;
   width: 1px;
