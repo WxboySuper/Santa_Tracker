@@ -65,6 +65,44 @@ describe("admin login route", () => {
     expect(oversized.status).toBe(413);
   });
 
+  it("does not let one slow body read block a later same-IP login", async () => {
+    let markBodyStarted: () => void = () => undefined;
+    const bodyStarted = new Promise<void>((resolve) => { markBodyStarted = resolve; });
+    const requestAbort = new AbortController();
+    const slowBody = new ReadableStream<Uint8Array>({
+      pull() {
+        markBodyStarted();
+        return new Promise<void>(() => undefined);
+      },
+    }, { highWaterMark: 0 });
+    const stalled = POST(new Request("http://example.test/api/admin/login", {
+      method: "POST",
+      headers: { "cf-connecting-ip": "198.51.100.73", "content-type": "application/json" },
+      body: slowBody,
+      signal: requestAbort.signal,
+      duplex: "half",
+    } as RequestInit & { duplex: "half" }));
+    await bodyStarted;
+    const normal = POST(new Request("http://example.test/api/admin/login", {
+      method: "POST",
+      headers: { "cf-connecting-ip": "198.51.100.73", "content-type": "application/json" },
+      body: JSON.stringify({ password: "correct horse" }),
+    }));
+    let timer: ReturnType<typeof setTimeout>;
+    let normalStatus: number;
+    try {
+      normalStatus = await Promise.race([
+        normal.then((response) => response.status),
+        new Promise<number>((resolve) => { timer = setTimeout(() => resolve(0), 50); }),
+      ]);
+    } finally {
+      clearTimeout(timer!);
+      requestAbort.abort();
+    }
+    expect(normalStatus).toBe(200);
+    expect((await stalled).status).toBe(408);
+  });
+
   it("serializes concurrent failures so only four requests receive 401", async () => {
     const requests = Array.from({ length: 20 }, (_, index) => POST(new Request("http://example.test/api/admin/login", {
       method: "POST",
