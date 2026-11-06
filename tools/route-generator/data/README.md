@@ -1,11 +1,13 @@
 # Route candidate sources
 
 `places.json` is derived from Natural Earth's 1:10m populated places simple dataset,
-downloaded on 2026-11-05 from
+downloaded on 2026-11-06 from
 https://naturalearthdata.com/downloads/10m-cultural-vectors/10m-populated-places/.
 Natural Earth data is public domain. The snapshot keeps identifiers, names, countries,
 coordinates, population, world-city status, and a derived timezone. Refresh with
-`node tools/route-generator/refresh-places.mjs`.
+`node tools/route-generator/refresh-places.mjs`. The refresh script reads the
+Natural Earth DBF text as UTF-8 so accented names stay intact in the snapshot and
+review report.
 
 `curated-seeds.json` lists Wikidata item IDs selected as cultural, nature, and
 date-line or equator candidates. `curated.json` records their English labels,

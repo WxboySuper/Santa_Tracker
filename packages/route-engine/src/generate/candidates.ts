@@ -12,20 +12,21 @@ function categoryOf(place: Candidate): string {
   if (['hub', 'cultural', 'underserved', 'nature', 'special'].includes(place.category)) return place.category;
   return place.worldCity ? 'hub' : 'underserved';
 }
-type SelectionContext = { places: Candidate[]; config: GeneratorConfig };
+type SelectionContext = { places: Candidate[]; config: GeneratorConfig; vetoed: Set<string> };
+function stableCandidates(candidates: Candidate[], seed: number): Candidate[] {
+  return [...candidates].sort((a, b) => stableHash(a.id, seed) - stableHash(b.id, seed) || a.id.localeCompare(b.id));
+}
+function prioritizeWestern(candidates: Candidate[], seed: number, westernSlots: number): Candidate[] {
+  const sorted = stableCandidates(candidates, seed);
+  const western = sorted.filter((place) => christmasOffset(place.timezone) <= -240);
+  const preferredWestern = western.slice(0, westernSlots);
+  const other = sorted.filter((place) => !preferredWestern.includes(place) && christmasOffset(place.timezone) > -240);
+  return [...preferredWestern, ...other, ...western.slice(westernSlots)];
+}
 function selectCategory(context: SelectionContext, category: string, quota: number): string[] {
-  const { places, config } = context;
-  const candidates = places.filter((place) => place.category === category)
-    .sort((a, b) => stableHash(a.id, config.seed) - stableHash(b.id, config.seed) || a.id.localeCompare(b.id));
-  const selected: string[] = [];
-  const westernTarget = Math.floor(quota * 0.45);
-  const western = candidates.filter((place) => christmasOffset(place.timezone) <= -240);
-  const preferredWest = western.slice(0, westernTarget);
-  const preferred = [...preferredWest, ...candidates.filter((place) => !preferredWest.includes(place))];
-  for (const place of preferred) {
-    if (selected.length === quota) break;
-    selected.push(place.id);
-  }
+  const { places, config, vetoed } = context;
+  const candidates = prioritizeWestern(places.filter((place) => place.category === category && !vetoed.has(place.id)), config.seed, Math.floor(quota * 0.45));
+  const selected = candidates.slice(0, quota).map((place) => place.id);
   if (selected.length < quota) throw new Error(`Cannot fill ${category} quota ${quota}: not enough candidates in pool`);
   return selected;
 }
@@ -37,16 +38,25 @@ function refillSelection(context: RefillContext): string[] {
   for (const [category, quota] of Object.entries(quotas)) {
     const current = result.filter((id) => byId.get(id)?.category === category).length;
     if (current > quota) throw new Error(`Overrides exceed ${category} quota ${quota}`);
-    const extras = places.filter((place) => place.category === category && !result.includes(place.id) && !(overrides.veto ?? []).includes(place.id))
-      .sort((a, b) => stableHash(a.id, config.seed) - stableHash(b.id, config.seed) || a.id.localeCompare(b.id));
-    result.push(...extras.slice(0, Math.max(0, quota - current)).map((place) => place.id));
+    const currentWestern = result.filter((id) => {
+      const place = byId.get(id);
+      return place?.category === category && christmasOffset(place.timezone) <= -240;
+    }).length;
+    const westernNeed = Math.max(0, Math.floor(quota * 0.45) - currentWestern);
+    const extras = places.filter((place) => place.category === category && !result.includes(place.id) && !(overrides.veto ?? []).includes(place.id));
+    const sorted = stableCandidates(extras, config.seed);
+    const western = sorted.filter((place) => christmasOffset(place.timezone) <= -240);
+    const other = sorted.filter((place) => !western.includes(place));
+    const preferred = [...western.slice(0, westernNeed), ...other, ...western.slice(westernNeed)];
+    result.push(...preferred.slice(0, Math.max(0, quota - current)).map((place) => place.id));
   }
   return result;
 }
 export function chooseCandidates(pool: Candidate[], config: GeneratorConfig, overrides: RouteOverrides): Candidate[] {
   const places = pool.map((place) => ({ ...place, category: categoryOf(place) }));
   const quotas = allocateQuotas(config.total, config.weights);
-  const context = { places, config };
+  const vetoed = new Set(overrides.veto ?? []);
+  const context = { places, config, vetoed };
   const selected = Object.entries(quotas).flatMap(([category, quota]) => selectCategory(context, category, quota));
   const adjusted = applyOverrides(places, selected, overrides);
   const refilled = refillSelection({ places, selection: adjusted, quotas, config, overrides });

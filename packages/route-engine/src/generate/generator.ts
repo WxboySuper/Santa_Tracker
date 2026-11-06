@@ -64,6 +64,7 @@ function addReportWarnings(report: GeneratedRoute['report'], config: GeneratorCo
   if (longLegs > 0) report.issues.push(`Distance threshold relaxed for ${longLegs} legs over ${config.maxGapKm} km to preserve the global stop mix and the 26-hour sweep.`);
 }
 export function generateRoute(pool: Candidate[], config: GeneratorConfig, overrides: RouteOverrides = {}): GeneratedRoute {
+  if (!Number.isSafeInteger(config.total) || config.total < 1) throw new Error('Invalid stop total');
   if (Object.keys(config.weights).length === 0) throw new Error('Category weights are required');
   const chosen = chooseCandidates(pool, config, overrides);
   const ordered = sweepOrder(chosen, config);

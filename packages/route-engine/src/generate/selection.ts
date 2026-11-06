@@ -2,7 +2,7 @@ import { haversineKm, type LatLng } from '../geo';
 
 function validateWeights(total: number, entries: [string, number][]): number {
   if (!Number.isSafeInteger(total)) throw new Error('Invalid stop total');
-  if (total < 0) throw new Error('Invalid stop total');
+  if (total <= 0) throw new Error('Invalid stop total');
   if (entries.some(([, weight]) => !Number.isFinite(weight))) throw new Error('Invalid weight');
   if (entries.some(([, weight]) => weight < 0)) throw new Error('Invalid weight');
   const sum = entries.reduce((value, [, weight]) => value + weight, 0);

@@ -25,4 +25,11 @@ describe('buildReport', () => {
     const twoStops: Route = { ...route, stops: [firstStop, { ...firstStop, locationId: createLocationId('location_two'), arrivalIso: '2026-12-25T00:22:00.000Z', departureIso: '2026-12-25T00:23:00.000Z' }] };
     expect(() => buildReport([place, place], twoStops, config, new Map([[createLocationId('location_one'), place]]))).toThrow(/Missing coordinates/);
   });
+
+  it('reports largest-remainder category targets that sum to the route total', () => {
+    const reportConfig = { ...config, total: 2, weights: { hub: 1, cultural: 1, nature: 1 } };
+    const report = buildReport([place], route, reportConfig, new Map([[createLocationId('location_one'), place]]));
+
+    expect(Object.values(report.mix).map((entry) => entry.target)).toEqual([1, 1, 0]);
+  });
 });

@@ -11,7 +11,7 @@ const files = unzipSync(new Uint8Array(await response.arrayBuffer()));
 const shp = files['ne_10m_populated_places_simple.shp'];
 const dbf = files['ne_10m_populated_places_simple.dbf'];
 if (!shp || !dbf) throw new Error('Natural Earth archive is missing its shapefile');
-const source = await shapefile.open(shp.buffer, dbf.buffer);
+const source = await shapefile.open(shp.buffer, dbf.buffer, { encoding: 'utf-8' });
 const places = [];
 for (;;) {
   const item = await source.read();

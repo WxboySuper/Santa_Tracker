@@ -10,6 +10,7 @@ describe('allocateQuotas', () => {
 
   it('rejects invalid inputs', () => {
     expect(() => allocateQuotas(2, { a: 0 })).toThrow();
+    expect(() => allocateQuotas(0, { a: 1 })).toThrow(/stop total/);
     expect(() => allocateQuotas(-1, { a: 1 })).toThrow();
     expect(() => allocateQuotas(1, { a: -1, b: 2 })).toThrow();
   });

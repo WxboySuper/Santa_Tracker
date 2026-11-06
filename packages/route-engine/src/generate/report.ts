@@ -1,14 +1,14 @@
 import { haversineKm, legSpeedKmh, type LatLng } from '../geo';
 import type { Candidate, GeneratorConfig, RouteReport } from './types';
 import type { Route } from '@santa-tracker/contracts';
+import { allocateQuotas } from './selection';
 
 type LegSummary = { from: string; to: string; km: number; kmh: number; longGap: boolean };
 function categoryMix(places: Candidate[], config: GeneratorConfig): RouteReport['mix'] {
-  const weights = config.weights;
-  const weightTotal = Object.values(weights).reduce((total, weight) => total + weight, 0);
-  return Object.fromEntries(Object.entries(weights).map(([category, weight]) => [category, {
+  const quotas = allocateQuotas(config.total, config.weights);
+  return Object.fromEntries(Object.entries(quotas).map(([category, target]) => [category, {
     count: places.filter((place) => place.category === category).length,
-    target: Math.round(config.total * weight / weightTotal),
+    target,
   }]));
 }
 function hourlyCounts(route: Route): RouteReport['hourly'] {

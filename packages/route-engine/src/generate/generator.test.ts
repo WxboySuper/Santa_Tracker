@@ -41,4 +41,8 @@ describe('generateRoute', () => {
   it('rejects an impossible quota instead of fabricating candidates', () => {
     expect(() => generateRoute(candidates.slice(0, 2), { ...DEFAULT_GENERATOR_LIMITS, total: 5, weights: { hub: 100 } })).toThrow();
   });
+
+  it('rejects a zero-stop route before creating an empty report', () => {
+    expect(() => generateRoute(candidates, { ...DEFAULT_GENERATOR_LIMITS, total: 0, weights: { hub: 1 } })).toThrow(/Invalid stop total/);
+  });
 });
