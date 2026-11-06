@@ -168,10 +168,7 @@ async function handleLogin(context: LoginContext): Promise<NextResponse> {
   const verificationTask = startTrackedLoginOperation(context.ip, () => loginAdmin(context.payload));
   if (!verificationTask) return throttledResponse(1);
   const verification = await awaitTimedLoginOperation(() => verificationTask, context.signal);
-  if (!verification.completed) {
-    await recordLoginAttempt(context.ip, context.authenticated);
-    return requestTimeoutResponse();
-  }
+  if (!verification.completed) return requestTimeoutResponse();
   const result = verification.value;
   if (result.status === 401) return handleFailedLogin(context, result);
   if (result.status === 200) return handleSuccessfulLogin(context, result);

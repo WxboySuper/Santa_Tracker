@@ -16,7 +16,7 @@ describe("admin login processing timeout", () => {
     vi.unstubAllEnvs();
   });
 
-  it("times out a pending verification and records the attempt before releasing the IP queue", async () => {
+  it("times out a pending verification without counting it as a password failure", async () => {
     vi.useFakeTimers();
     vi.stubEnv("SECRET_KEY", "test-secret-key-0123456789abcdef-0123456789");
     vi.stubEnv("ADMIN_PASSWORD", "correct horse");
@@ -33,7 +33,7 @@ describe("admin login processing timeout", () => {
     await vi.advanceTimersByTimeAsync(30_000);
 
     expect((await request).status).toBe(408);
-    expect(recordLoginAttempt).toHaveBeenCalledWith("198.51.100.81", false);
+    expect(recordLoginAttempt).not.toHaveBeenCalled();
     finishLogin?.({ status: 401, body: { error: "Invalid password" } });
     await Promise.resolve();
     await Promise.resolve();
