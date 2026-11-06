@@ -1,0 +1,32 @@
+import { describe, expect, it } from "vitest";
+import { getCityClocks, getDecemberMidnightUtc, getInitialTimezoneOrder, getOrderedCityIds, getUtcOffsetMinutes, parseTimezones, REFERENCE_END_UTC, REFERENCE_START_UTC } from "./timezones";
+
+describe("timezone puzzle", () => {
+  it("accepts only the timezones activity payload", () => {
+    expect(parseTimezones({ kind: "timezones" })).toEqual({ kind: "timezones" });
+    expect(parseTimezones({ kind: "timezones", unexpected: true })).toEqual({ kind: "timezones" });
+    expect(parseTimezones(null)).toBeNull();
+    expect(parseTimezones({ kind: "maze" })).toBeNull();
+  });
+
+  it("uses December offsets, including Auckland summer time", () => {
+    const december = Date.UTC(2026, 11, 24, 12);
+    expect(getUtcOffsetMinutes({ instant: december, timeZone: "Pacific/Auckland" })).toBe(13 * 60);
+    expect(getUtcOffsetMinutes({ instant: december, timeZone: "Europe/London" })).toBe(0);
+    expect(getUtcOffsetMinutes({ instant: december, timeZone: "Africa/Cairo" })).toBe(2 * 60);
+    expect(getUtcOffsetMinutes({ instant: december, timeZone: "Pacific/Honolulu" })).toBe(-10 * 60);
+  });
+
+  it("orders the six cities by their Dec 25 midnight and formats injected instants", () => {
+    expect(getOrderedCityIds({ referenceInstant: REFERENCE_START_UTC })).toEqual(["kiritimati", "auckland", "tokyo", "cairo", "london", "honolulu"]);
+    const clocks = getCityClocks({ referenceInstant: REFERENCE_START_UTC, locale: "en-US" });
+    expect(clocks.find(({ id }) => id === "kiritimati")?.localDate).toContain("Dec 25");
+    expect(clocks.find(({ id }) => id === "auckland")?.offsetMinutes).toBe(780);
+    expect(getDecemberMidnightUtc({ timeZone: "Pacific/Auckland", year: 2026 })).toBe(Date.UTC(2026, 11, 24, 11));
+    expect(REFERENCE_END_UTC - REFERENCE_START_UTC).toBe(28 * 60 * 60 * 1000);
+  });
+
+  it("starts from a scrambled order so the puzzle is not already solved", () => {
+    expect(getInitialTimezoneOrder()).not.toEqual(getOrderedCityIds({ referenceInstant: REFERENCE_START_UTC }));
+  });
+});

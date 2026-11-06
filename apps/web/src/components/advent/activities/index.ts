@@ -4,12 +4,18 @@ import { cipherActivity } from "./cipher";
 import { jigsawActivity } from "./jigsaw";
 import { winterWorldActivity } from "./winter-world";
 import { lightshowActivity } from "./lightshow";
+import { wordsearchActivity } from "./wordsearch";
+import { mazeActivity } from "./maze";
+import { timezonesActivity } from "./timezones";
 
 export const activityKinds = {
   cipher: cipherActivity,
   jigsaw: jigsawActivity,
   winterworld: winterWorldActivity,
   lightshow: lightshowActivity,
+  wordsearch: wordsearchActivity,
+  maze: mazeActivity,
+  timezones: timezonesActivity,
 } as const;
 
 export function renderActivity(day: AdventPublicDay, fallback: ReactNode, locale: string): ReactNode {
