@@ -1,5 +1,9 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
+import { createTranslator } from "@santa-tracker/localization";
+import EmergencySwitches from "./emergency-switches";
+
+const t = createTranslator().t;
 
 interface AdminLocation {
   id?: number;
@@ -121,6 +125,7 @@ function Dashboard({ onLogout }: DashboardProps) {
         <a href="/admin/route-simulator" className="bg-blue-600 px-4 py-2 rounded">Route Simulator</a>
         <button onClick={() => { void loadLocations(); }} className="bg-green-600 px-4 py-2 rounded">Refresh Locations ({locations.length})</button>
       </div>
+      <EmergencySwitches />
       {status && <p className="mb-4">{status}</p>}
       <div className="bg-white/5 rounded p-4 overflow-auto max-h-[60vh]">
         <pre className="text-xs">{JSON.stringify(locations.slice(0, 3), null, 2)}</pre>
