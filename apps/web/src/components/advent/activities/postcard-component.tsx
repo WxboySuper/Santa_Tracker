@@ -95,7 +95,7 @@ export function PostcardActivity({ config, locale }: { config: PostcardConfig; l
           </select>
         </label>
         {greetingChoice === "custom" ? <label className="grid gap-1">{translator.t("advent.activity.postcard.customGreeting")}
-          <textarea value={customGreeting} onChange={(event) => updateCustomGreeting(event.currentTarget.value)} maxLength={280} rows={3} className="rounded border border-slate-400 p-2" />
+          <textarea value={customGreeting} onChange={(event) => updateCustomGreeting(event.currentTarget.value)} maxLength={140} rows={3} className="rounded border border-slate-400 p-2" />
           <span className="text-sm">{translator.t("advent.activity.postcard.characterCount", { count: Array.from(customGreeting).length })}</span>
         </label> : null}
         <label className="grid min-w-0 gap-1">{translator.t("advent.activity.postcard.signoff")}
@@ -127,7 +127,7 @@ function PostcardPreview({ scene, layout, previewLabel, svgRef }: { scene: Winte
       <path d="M64 454h1072" stroke="#a8aaa2" strokeWidth="2" />
       <TextLines lines={layout.greeting} x={80} y={510} lineHeight={44} size={36} weight="600" />
       <TextLines lines={layout.signoff} x={80} y={730} lineHeight={32} size={30} />
-      {layout.postmark.length ? <g fill="#6e5050" fontFamily="Georgia,serif" fontSize="20" textAnchor="end"><TextLines lines={layout.postmark} x={1110} y={662} lineHeight={28} size={20} align="end" /></g> : null}
+      {layout.postmark.length ? <TextLines lines={layout.postmark} x={1110} y={662} lineHeight={28} size={20} align="end" fill="#6e5050" /> : null}
       <path d="M1025 520h88m-88 9h88m-88 9h88" stroke="#8e6363" strokeWidth="2" opacity=".8" />
     </svg>
   </div>;
@@ -137,7 +137,7 @@ function PostcardSceneImage({ scene }: { scene: WinterScene }) {
   return <svg x="64" y="64" width="1072" height="360" viewBox="0 0 100 75" preserveAspectRatio="xMidYMid slice"><WinterSceneArt scene={scene} /></svg>;
 }
 
-function TextLines({ lines, x, y, lineHeight, size, weight, align = "start" }: { lines: string[]; x: number; y: number; lineHeight: number; size: number; weight?: string; align?: "start" | "end" }) {
+function TextLines({ lines, x, y, lineHeight, size, weight, align = "start", fill = "#283a3b" }: { lines: string[]; x: number; y: number; lineHeight: number; size: number; weight?: string; align?: "start" | "end"; fill?: string }) {
   const occurrences = new Map<string, number>();
   let firstLine = true;
   const children = lines.map((line) => {
@@ -147,5 +147,5 @@ function TextLines({ lines, x, y, lineHeight, size, weight, align = "start" }: {
     firstLine = false;
     return <tspan key={`${line}-${occurrence}`} x={x} dy={dy}>{line}</tspan>;
   });
-  return <text x={x} y={y} fill="#283a3b" fontFamily="Georgia,serif" fontSize={size} fontWeight={weight} textAnchor={align}>{children}</text>;
+  return <text x={x} y={y} fill={fill} fontFamily="Georgia,serif" fontSize={size} fontWeight={weight} textAnchor={align}>{children}</text>;
 }
