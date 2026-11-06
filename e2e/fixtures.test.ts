@@ -88,20 +88,29 @@ test.each([
   });
 });
 
+test("route JSON reports its source path before fixture servers start", async () => {
+  await withCalendarFixture("route-invalid-test", JSON.stringify({ days: completeCalendarDays }), async ({ source, temporaryRoot }) => {
+    const routePath = path.join(source, "santa_route.json");
+    await writeFile(routePath, "{");
+    await expect(prepareFixtureData({ source, temporaryRoot })).rejects.toThrow(routePath);
+  });
+});
+
 test("fixture calendars clear source overrides and unlock only open day one", async () => {
   const calendarDays = completeCalendarDays.map(({ day }) => {
     if (day === 1) return { day, is_unlocked_override: false };
-    if (day === 2) return { day, is_unlocked_override: true };
+    if (day === 2) return { day, unlock_time: "2000-01-01T00:00:00Z", is_unlocked_override: true };
     return { day };
   });
   const calendar = JSON.stringify({ days: calendarDays });
   await withCalendarFixture("calendar-override-test", calendar, async ({ source, temporaryRoot }) => {
     const roots = await prepareFixtureData({ source, temporaryRoot });
     const closed = JSON.parse(await readFile(path.join(roots.closed, "advent_calendar.json"), "utf8")) as { days: { day: number; is_unlocked_override?: boolean }[] };
-    const open = JSON.parse(await readFile(path.join(roots.open, "advent_calendar.json"), "utf8")) as { days: { day: number; is_unlocked_override?: boolean }[] };
+    const open = JSON.parse(await readFile(path.join(roots.open, "advent_calendar.json"), "utf8")) as { days: { day: number; is_unlocked_override?: boolean; unlock_time?: string }[] };
     expect(closed.days.some((day) => day.is_unlocked_override !== undefined)).toBe(false);
     expect(open.days[0]).toEqual({ day: 1, is_unlocked_override: true });
-    expect(open.days.slice(1)).toEqual(completeCalendarDays.slice(1));
+    expect(open.days.slice(1).every((day) => day.is_unlocked_override === false)).toBe(true);
+    expect(open.days.find((day) => day.day === 2)?.unlock_time).toBe("2000-01-01T00:00:00Z");
   });
 });
 

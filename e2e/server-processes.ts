@@ -16,7 +16,7 @@ function childHasExited(child: ChildProcess): boolean {
 async function isServerReady(endpoint: string): Promise<boolean> {
   try {
     const response = await fetch(endpoint, { signal: AbortSignal.timeout(5_000) });
-    return response.ok;
+    return response.status < 500;
   } catch {
     return false;
   }
@@ -67,7 +67,7 @@ function captureStartupState(entry: ServerEntry) {
   const onStdout = (chunk: Buffer) => capture(chunk);
   const onStderr = (chunk: Buffer) => {
     capture(chunk);
-    process.stderr.write(chunk);
+    process.stderr.write(`[${entry.name}] ${chunk.toString()}`);
   };
   entry.child.on("error", onError);
   entry.child.stdout?.on("data", onStdout);

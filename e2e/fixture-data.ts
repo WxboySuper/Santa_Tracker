@@ -28,9 +28,7 @@ function isCalendarDay(value: unknown): value is CalendarDay {
 }
 
 function isCalendar(value: unknown): value is Calendar {
-  if (typeof value !== "object") return false;
-  if (value === null) return false;
-  if (Array.isArray(value)) return false;
+  if (!isRecord(value)) return false;
   const days = (value as { days?: unknown }).days;
   if (!Array.isArray(days)) return false;
   if (days.length !== 24) return false;
@@ -54,8 +52,11 @@ async function writeServerData({ name, root, route, calendar: originalCalendar }
   const dataRoot = path.join(root, name);
   await mkdir(dataRoot, { recursive: true });
   const calendar = JSON.parse(JSON.stringify(originalCalendar)) as Calendar;
-  for (const day of calendar.days) delete day.is_unlocked_override;
+  if (name === "closed") {
+    for (const day of calendar.days) delete day.is_unlocked_override;
+  }
   if (name === "open") {
+    for (const day of calendar.days) day.is_unlocked_override = false;
     const firstDay = calendar.days.find((day) => day.day === 1);
     if (!firstDay) throw new Error("The advent calendar must include day 1");
     firstDay.is_unlocked_override = true;
@@ -72,6 +73,13 @@ export async function prepareFixtureData({ source, temporaryRoot }: FixtureDataS
     readFile(path.join(source, "santa_route.json"), "utf8"),
     readFile(path.join(source, "advent_calendar.json"), "utf8"),
   ]);
+  const routePath = path.join(source, "santa_route.json");
+  try {
+    JSON.parse(route);
+  } catch (error) {
+    const reason = error instanceof Error ? error.message : String(error);
+    throw new Error(`Could not parse Santa route at ${routePath}: ${reason}`, { cause: error });
+  }
   const calendar = parseCalendar({ content: rawCalendar, path: path.join(source, "advent_calendar.json") });
   const [closed, open] = await Promise.all([
     writeServerData({ name: "closed", root: temporaryRoot, route, calendar }),

@@ -12,12 +12,15 @@ function isHighImpactOrUnclassified(impact: string | null | undefined): boolean 
 export async function expectNoSeriousAxeIssues(page: Page): Promise<void> {
   const result = await new AxeBuilder({ page }).withTags(axeTags).analyze();
   const issues = result.violations.filter((violation) => isHighImpactOrUnclassified(violation.impact));
-  const summary = issues.slice(0, 5).map(({ id, impact, description, nodes }) => ({
-    id,
-    impact,
-    description,
-    violationCount: nodes.length,
-    targets: nodes.slice(0, 3).map(({ target }) => target),
-  }));
+  const summary = {
+    totalViolations: issues.length,
+    issues: issues.slice(0, 5).map(({ id, impact, description, nodes }) => ({
+      id,
+      impact,
+      description,
+      violationCount: nodes.length,
+      targets: nodes.slice(0, 3).map(({ target }) => target),
+    })),
+  };
   expect(issues, JSON.stringify(summary, null, 2)).toEqual([]);
 }
