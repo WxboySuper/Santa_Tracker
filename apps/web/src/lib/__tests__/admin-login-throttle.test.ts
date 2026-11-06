@@ -112,6 +112,18 @@ describe("admin login throttle", () => {
     expect(await store.get("ip:partial")).toBeDefined();
   });
 
+  it("returns 429 when recording the global counter cannot fit in the store", async () => {
+    const now = 1000;
+    const store = new InMemoryThrottleStore({ maxEntries: 2, clock: () => now });
+    const state = { attempts: [now], lockoutUntil: 0, lockoutLevel: 0, lastLockoutAt: -1 };
+    await store.set("ip:recent-a", state);
+    await store.set("ip:recent-b", state);
+    const throttle = createLoginThrottle(store, () => now);
+
+    await expect(throttle.recordFailure("new")).resolves.toEqual({ retryAfterSeconds: 60, reason: "global" });
+    expect(await store.get("global")).toBeUndefined();
+  });
+
   it("keeps the global cap bypass for authenticated failed logins", async () => {
     const { throttle } = setup();
     for (let i = 0; i < 31; i += 1) await throttle.recordFailure(`ip-${i}`);
@@ -127,6 +139,35 @@ describe("admin login throttle", () => {
     for (let i = 0; i < 31; i += 1) await throttle.recordFailure(`global-${i}`);
     advance(60 * MINUTE + 1);
     expect(await throttle.check("new-ip")).toBeNull();
+  });
+
+  it("serializes a successful clear after an in-flight state update", async () => {
+    const now = 20 * MINUTE;
+    const memory = new InMemoryThrottleStore({ maxEntries: 4, clock: () => now });
+    await memory.set("ip:old", { attempts: [0], lockoutUntil: 0, lockoutLevel: 0, lastLockoutAt: -1 });
+    let releaseWrite: () => void = () => undefined;
+    let signalWrite: () => void = () => undefined;
+    const writeStarted = new Promise<void>((resolve) => { signalWrite = resolve; });
+    const writeGate = new Promise<void>((resolve) => { releaseWrite = resolve; });
+    const store = {
+      get: (key: string) => memory.get(key),
+      async set(key: string, value: Parameters<typeof memory.set>[1]) {
+        if (key === "ip:old") {
+          signalWrite();
+          await writeGate;
+        }
+        await memory.set(key, value);
+      },
+      delete: (key: string) => memory.delete(key),
+    };
+    const throttle = createLoginThrottle(store, () => now);
+    const pendingCheck = throttle.check("old");
+    await writeStarted;
+    const pendingClear = throttle.clear("old");
+    releaseWrite();
+    await Promise.all([pendingCheck, pendingClear]);
+
+    expect(await memory.get("ip:old")).toBeUndefined();
   });
 
   it("bounds in-memory keys while preserving the global counter and recently used IPs", async () => {

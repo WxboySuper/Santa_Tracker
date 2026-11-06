@@ -147,18 +147,34 @@ export function createLoginThrottle(store: ThrottleStore = new InMemoryThrottleS
   };
   return {
     check(ip, authenticated = false) {
-      return enqueue(() => checkThrottle(runtime, { ip, authenticated }), () => ({ retryAfterSeconds: 1, reason: "global" }));
+      return enqueue(
+        () => failClosedOnFullStore(() => checkThrottle(runtime, { ip, authenticated }), clock),
+        () => ({ retryAfterSeconds: 1, reason: "global" }),
+      );
     },
     recordFailure(ip, authenticated = false) {
       return enqueue(
-        () => recordFailedAttempt(runtime, { ip, authenticated }),
+        () => failClosedOnFullStore(() => recordFailedAttempt(runtime, { ip, authenticated }), clock),
         () => ({ retryAfterSeconds: 1, reason: "global" }),
       );
     },
     async clear(ip) {
-      await runtime.store.delete(`${IP_PREFIX}${ip}`);
+      const task = () => runtime.store.delete(`${IP_PREFIX}${ip}`);
+      const current = failureQueue.then(task, task);
+      failureQueue = current.then(() => undefined, () => undefined);
+      await current;
     },
   };
+}
+
+async function failClosedOnFullStore<T>(task: () => Promise<T>, clock: () => number): Promise<T | ThrottleDecision> {
+  try {
+    return await task();
+  } catch (error) {
+    if (!(error instanceof ThrottleStoreFullError)) throw error;
+    const now = clock();
+    return decision({ until: now + STORE_FULL_RETRY_MS, now, reason: "global" });
+  }
 }
 
 async function recordFailedAttempt(runtime: ThrottleRuntime, attempt: LoginAttempt): Promise<ThrottleDecision | null> {
