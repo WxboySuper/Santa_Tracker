@@ -88,6 +88,11 @@ function useEmergencyFlags() {
   useEffect(() => { void loadFlags(); }, [loadFlags]);
 
   async function save(hidden: HiddenFeatures) {
+    if (!flags?.etag) {
+      await loadFlags();
+      setStatus(t("admin.emergency.conflict"));
+      return;
+    }
     setIsSaving(true);
     try {
       const response = await fetch("/api/admin/feature-flags", {
@@ -96,7 +101,7 @@ function useEmergencyFlags() {
         headers: { "Content-Type": "application/json", "If-Match": flags?.etag ?? "" },
         body: JSON.stringify({ version: 1, hidden }),
       });
-      if (response.status === 412) {
+      if (response.status === 412 || response.status === 428) {
         await loadFlags();
         setStatus(t("admin.emergency.conflict"));
         return;
