@@ -1,16 +1,35 @@
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { expect, test } from "vitest";
 import { getEndpointForProject, getRuntimeConfig } from "./fixtures";
+import { prepareFixtureData } from "./fixture-data";
 import { getLocalAddress } from "./server-processes";
 
-test("runtime endpoint parse errors include the file path", async () => {
+test("runtime config parse errors include the file path and allow retry", async () => {
   const root = await mkdtemp(path.join(os.tmpdir(), "santa-e2e-fixture-test-"));
   const runtimeFile = path.join(root, "endpoints.json");
   try {
     await writeFile(runtimeFile, "{");
     await expect(getRuntimeConfig(runtimeFile)).rejects.toThrow(runtimeFile);
+    await writeFile(runtimeFile, JSON.stringify({ endpoints: { closed: "http://localhost:3000" }, adminPassword: "test-pass" }));
+    await expect(getEndpointForProject(runtimeFile, "closed")).resolves.toBe("http://localhost:3000");
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test("calendar parse errors include the source path", async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), "santa-e2e-calendar-test-"));
+  const source = path.join(root, "source");
+  const temporaryRoot = path.join(root, "temp");
+  await mkdir(source, { recursive: true });
+  await mkdir(temporaryRoot, { recursive: true });
+  const calendarPath = path.join(source, "advent_calendar.json");
+  try {
+    await writeFile(path.join(source, "santa_route.json"), "{}");
+    await writeFile(calendarPath, "{");
+    await expect(prepareFixtureData(source, temporaryRoot)).rejects.toThrow(calendarPath);
   } finally {
     await rm(root, { recursive: true, force: true });
   }

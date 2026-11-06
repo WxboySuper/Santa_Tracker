@@ -42,23 +42,32 @@ function getStartupError(entry: ServerEntry, spawnError: Error | undefined): Err
   return undefined;
 }
 
-async function waitForServer(entry: ServerEntry): Promise<StartupResult> {
-  const deadline = Date.now() + 120_000;
+function captureStartupState(entry: ServerEntry): { output: () => string; error: () => Error | undefined } {
   let output = "";
   let spawnError: Error | undefined;
+  const capture = (chunk: Buffer) => { output += chunk.toString(); };
   entry.child.on("error", (error) => { spawnError = error; });
-  entry.child.stdout?.on("data", (chunk: Buffer) => { output += chunk.toString(); });
-  entry.child.stderr?.on("data", (chunk: Buffer) => process.stderr.write(chunk));
+  entry.child.stdout?.on("data", capture);
+  entry.child.stderr?.on("data", (chunk: Buffer) => {
+    capture(chunk);
+    process.stderr.write(chunk);
+  });
+  return { output: () => output, error: () => spawnError };
+}
+
+async function waitForServer(entry: ServerEntry): Promise<StartupResult> {
+  const deadline = Date.now() + 120_000;
+  const state = captureStartupState(entry);
   while (Date.now() < deadline) {
-    const startupError = getStartupError(entry, spawnError);
+    const startupError = getStartupError(entry, state.error());
     if (startupError) throw startupError;
-    const endpoint = await findReadyEndpoint(output);
+    const endpoint = await findReadyEndpoint(state.output());
     if (endpoint) return { name: entry.name, endpoint };
     await delay(250);
   }
-  const startupError = getStartupError(entry, spawnError);
+  const startupError = getStartupError(entry, state.error());
   if (startupError) throw startupError;
-  throw new Error(`Next.js did not become ready. Output: ${output}`);
+  throw new Error(`Next.js did not become ready. Output: ${state.output()}`);
 }
 
 function getStartupFailure(results: PromiseSettledResult<StartupResult>[]): Error | undefined {

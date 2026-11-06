@@ -4,6 +4,15 @@ import path from "node:path";
 type ServerName = "closed" | "open";
 type Calendar = { days: { day: number; is_unlocked_override?: boolean }[] };
 
+function parseCalendar(source: string, filePath: string): Calendar {
+  try {
+    return JSON.parse(source) as Calendar;
+  } catch (error) {
+    const reason = error instanceof Error ? error.message : String(error);
+    throw new Error(`Could not parse Advent calendar at ${filePath}: ${reason}`, { cause: error });
+  }
+}
+
 async function writeServerData(name: ServerName, root: string, route: string, originalCalendar: Calendar): Promise<string> {
   const dataRoot = path.join(root, name);
   await mkdir(dataRoot, { recursive: true });
@@ -25,7 +34,7 @@ export async function prepareFixtureData(source: string, temporaryRoot: string):
     readFile(path.join(source, "santa_route.json"), "utf8"),
     readFile(path.join(source, "advent_calendar.json"), "utf8"),
   ]);
-  const calendar = JSON.parse(rawCalendar) as Calendar;
+  const calendar = parseCalendar(rawCalendar, path.join(source, "advent_calendar.json"));
   const [closed, open] = await Promise.all([
     writeServerData("closed", temporaryRoot, route, calendar),
     writeServerData("open", temporaryRoot, route, calendar),

@@ -6,7 +6,27 @@ type RuntimeConfig = { endpoints: Record<string, string>; adminPassword: string 
 const runtimeConfigByFile = new Map<string, Promise<RuntimeConfig>>();
 
 function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
+  if (typeof value !== "object") return false;
+  if (value === null) return false;
+  if (Array.isArray(value)) return false;
+  return true;
+}
+
+function isNonEmptyString(value: unknown): value is string {
+  if (typeof value !== "string") return false;
+  return value.length > 0;
+}
+
+function isStringRecord(value: unknown): value is Record<string, string> {
+  if (!isRecord(value)) return false;
+  return Object.values(value).every(isNonEmptyString);
+}
+
+function isRuntimeConfig(value: unknown): value is RuntimeConfig {
+  if (!isRecord(value)) return false;
+  if (!isStringRecord(value.endpoints)) return false;
+  if (typeof value.adminPassword !== "string") return false;
+  return true;
 }
 
 export async function readRuntimeConfig(runtimeFile: string): Promise<RuntimeConfig> {
@@ -18,16 +38,19 @@ export async function readRuntimeConfig(runtimeFile: string): Promise<RuntimeCon
     const reason = error instanceof Error ? error.message : String(error);
     throw new Error(`Could not parse runtime config at ${runtimeFile}: ${reason}`, { cause: error });
   }
-  if (!isRecord(value) || !isRecord(value.endpoints) || typeof value.adminPassword !== "string") {
+  if (!isRuntimeConfig(value)) {
     throw new Error(`Runtime config at ${runtimeFile} must contain endpoints and adminPassword`);
   }
-  return { endpoints: value.endpoints as Record<string, string>, adminPassword: value.adminPassword };
+  return value;
 }
 
 export async function getRuntimeConfig(runtimeFile: string): Promise<RuntimeConfig> {
   let configPromise = runtimeConfigByFile.get(runtimeFile);
   if (!configPromise) {
     configPromise = readRuntimeConfig(runtimeFile);
+    configPromise.catch(() => {
+      if (runtimeConfigByFile.get(runtimeFile) === configPromise) runtimeConfigByFile.delete(runtimeFile);
+    });
     runtimeConfigByFile.set(runtimeFile, configPromise);
   }
   return configPromise;
