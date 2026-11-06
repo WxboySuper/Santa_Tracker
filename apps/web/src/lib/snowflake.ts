@@ -12,8 +12,13 @@ export type SnowflakeCellCenter = { sector: number; x: number; y: number };
 export function parseSnowflake(payload: unknown): SnowflakeConfig | null {
   if (!isRecord(payload) || payload.kind !== "snowflake") return null;
   if (payload.seed === undefined) return {};
-  if (typeof payload.seed !== "number" || !Number.isInteger(payload.seed) || payload.seed < 0 || payload.seed > 0xffffffff) return null;
-  return { seed: payload.seed };
+  return isValidSeed(payload.seed) ? { seed: payload.seed } : null;
+}
+
+function isValidSeed(seed: unknown): seed is number {
+  if (typeof seed !== "number") return false;
+  if (!Number.isInteger(seed)) return false;
+  return seed >= 0 && seed <= 0xffffffff;
 }
 
 export function normalizeSnowflakeDesign(value: unknown): SnowflakeDesign {
