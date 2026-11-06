@@ -69,9 +69,7 @@ export class InMemoryThrottleStore implements ThrottleStore {
   }
 
   async set(key: string, value: ThrottleState): Promise<void> {
-    this.evictForNewIp(key);
-    this.values.delete(key);
-    this.values.set(key, { ...value, attempts: [...value.attempts] });
+    this.write(key, value);
   }
 
   async delete(key: string): Promise<void> {
@@ -84,12 +82,30 @@ export class InMemoryThrottleStore implements ThrottleStore {
     return this.findEvictableIp() !== undefined;
   }
 
+  update(key: string, transform: (current: ThrottleState | undefined) => ThrottleState): ThrottleState {
+    const current = this.clone(this.values.get(key));
+    const updated = transform(current);
+    this.write(key, updated);
+    return this.clone(updated)!;
+  }
+
+  private write(key: string, value: ThrottleState): void {
+    this.evictForNewIp(key);
+    this.values.delete(key);
+    this.values.set(key, this.clone(value)!);
+  }
+
   private evictForNewIp(key: string): void {
     if (this.values.has(key)) return;
     if (this.values.size < this.maxEntries) return;
     const evictable = this.findEvictableIp();
     if (!evictable) throw new ThrottleStoreFullError();
     this.values.delete(evictable);
+  }
+
+  private clone(value: ThrottleState | undefined): ThrottleState | undefined {
+    if (!value) return undefined;
+    return { ...value, attempts: [...value.attempts] };
   }
 
   private findEvictableIp(): string | undefined {
@@ -144,11 +160,25 @@ async function recordIpFailure(runtime: Runtime, ip: string): Promise<ThrottleDe
   const { store, clock } = runtime;
   const key = ipKey(ip);
   const now = clock();
+  if (store instanceof InMemoryThrottleStore) return recordInMemoryFailure(store, key, now);
+  return recordRemoteFailure(store, key, now);
+}
+
+function recordInMemoryFailure(store: InMemoryThrottleStore, key: string, now: number): ThrottleDecision | null {
+  try {
+    const next = store.update(key, (current) => advanceFailure(current ?? emptyState(), now));
+    if (next.lockoutUntil > now) return lockoutDecision(next.lockoutUntil, now);
+    return null;
+  } catch (error) {
+    if (!(error instanceof ThrottleStoreFullError)) throw error;
+    return { retryAfterSeconds: STORE_FULL_RETRY_MS / 1000 };
+  }
+}
+
+async function recordRemoteFailure(store: ThrottleStore, key: string, now: number): Promise<ThrottleDecision | null> {
   const current = await store.get(key) ?? emptyState();
   if (current.lockoutUntil > now) return lockoutDecision(current.lockoutUntil, now);
-  const attempts = current.attempts.filter((timestamp) => now - timestamp < IP_WINDOW_MS);
-  attempts.push(now);
-  const next = nextFailureState(current, attempts, now);
+  const next = advanceFailure(current, now);
   try {
     await store.set(key, next);
   } catch (error) {
@@ -157,6 +187,13 @@ async function recordIpFailure(runtime: Runtime, ip: string): Promise<ThrottleDe
   }
   if (next.lockoutUntil > now) return lockoutDecision(next.lockoutUntil, now);
   return null;
+}
+
+function advanceFailure(current: ThrottleState, now: number): ThrottleState {
+  if (current.lockoutUntil > now) return current;
+  const attempts = current.attempts.filter((timestamp) => now - timestamp < IP_WINDOW_MS);
+  attempts.push(now);
+  return nextFailureState(current, attempts, now);
 }
 
 function nextFailureState(current: ThrottleState, attempts: number[], now: number): ThrottleState {

@@ -36,6 +36,12 @@ describe("admin login throttle", () => {
     expect(decision).toEqual({ retryAfterSeconds: 3600 });
   });
 
+  it("counts simultaneous failures without losing same-IP updates", async () => {
+    const { throttle } = setup();
+    await Promise.all(Array.from({ length: 5 }, () => throttle.recordFailure("ip-a")));
+    expect(await throttle.check("ip-a")).toEqual({ retryAfterSeconds: 900 });
+  });
+
   it("clears an IP's attempts and lockout history after successful login", async () => {
     const { throttle } = setup();
     for (let i = 0; i < 4; i += 1) await throttle.recordFailure("ip-a");
