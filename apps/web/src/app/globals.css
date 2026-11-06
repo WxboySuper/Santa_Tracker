@@ -25,6 +25,7 @@ body {
   inset: 0;
   overflow: hidden;
   pointer-events: none;
+  z-index: 1;
 }
 
 .snowflake-fall i {

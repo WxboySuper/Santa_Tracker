@@ -6,6 +6,9 @@ describe("snowflake activity", () => {
     expect(parseSnowflake({ kind: "snowflake" })).toEqual({});
     expect(parseSnowflake({ kind: "snowflake", seed: 42 })).toEqual({ seed: 42 });
     expect(parseSnowflake({ kind: "snowflake", seed: "42" })).toBeNull();
+    expect(parseSnowflake({ kind: "snowflake", seed: -1 })).toBeNull();
+    expect(parseSnowflake({ kind: "snowflake", seed: 0x1_0000_0000 })).toBeNull();
+    expect(parseSnowflake({ kind: "snowflake", seed: 1.5 })).toBeNull();
   });
 
   it("keeps only unique wedge cells and supports toggling", () => {
