@@ -19,26 +19,30 @@ export type ExperienceContext = {
   trackerStatus: ExperienceStatus;
 };
 
+function chooseByAccess<T>(allowed: boolean, open: T, closed: T): T {
+  return allowed ? open : closed;
+}
+
 export function buildExperiences({ adventAllowed, trackerAllowed, adventStatus, trackerStatus }: ExperienceContext): Experience[] {
   return [
     {
       id: 'workshop', name: 'The Workshop', tagline: 'Where the night shift keeps the lights on.',
       blurb: 'The old workshop never really closes. Wren, Bellamy and the Ledger take turns minding the desk, and their story unfolds one door at a time through the Advent calendar.',
-      status: adventStatus, href: adventAllowed ? '/advent' : null,
-      actionLabel: adventAllowed ? 'Read the story in Advent' : 'Opens with the Advent calendar',
-      statusLabel: adventAllowed ? 'Open' : 'Opens Nov 30',
+      status: adventStatus, href: chooseByAccess(adventAllowed, '/advent', null),
+      actionLabel: chooseByAccess(adventAllowed, 'Read the story in Advent', 'Opens with the Advent calendar'),
+      statusLabel: chooseByAccess(adventAllowed, 'Open', 'Opens Nov 30'),
     },
     {
       id: 'arcade', name: 'The Arcade', tagline: 'A new door every day.',
       blurb: 'Twenty-four doors: puzzles, a jigsaw, a snowflake maker, a maze, a quiz and a few small surprises. The first one opens on December 1 at noon UTC.',
-      status: adventStatus, href: adventAllowed ? '/advent' : null,
-      actionLabel: adventAllowed ? 'Open the calendar' : 'Opens Nov 30', statusLabel: adventAllowed ? 'Open' : 'Opens Nov 30',
+      status: adventStatus, href: chooseByAccess(adventAllowed, '/advent', null),
+      actionLabel: chooseByAccess(adventAllowed, 'Open the calendar', 'Opens Nov 30'), statusLabel: chooseByAccess(adventAllowed, 'Open', 'Opens Nov 30'),
     },
     {
       id: 'tower', name: 'The Control Tower', tagline: 'Watch the sleigh, live.',
       blurb: 'On Christmas Eve the dish starts turning and the whole route lights up on the map. Immersive mode follows him stop by stop; TV mode is made for a living-room screen.',
-      status: trackerStatus, href: trackerAllowed ? '/tracker' : null,
-      actionLabel: trackerAllowed ? 'Track Santa' : 'Takes off Dec 24, 10:00 UTC', statusLabel: trackerAllowed ? 'Open' : 'Dec 24',
+      status: trackerStatus, href: chooseByAccess(trackerAllowed, '/tracker', null),
+      actionLabel: chooseByAccess(trackerAllowed, 'Track Santa', 'Takes off Dec 24, 10:00 UTC'), statusLabel: chooseByAccess(trackerAllowed, 'Open', 'Dec 24'),
     },
     {
       id: 'cinema', name: 'The Cinema', tagline: 'A quiet little screening room.',
@@ -53,8 +57,8 @@ export function buildExperiences({ adventAllowed, trackerAllowed, adventStatus, 
     {
       id: 'gifts', name: 'The Gift Shop', tagline: 'Postcards for faraway people.',
       blurb: 'Nothing here costs a thing. The postcard studio is waiting on Day 23 of the calendar, and more small gifts are on the shelf for later.',
-      status: adventStatus, href: adventAllowed ? '/advent' : null,
-      actionLabel: adventAllowed ? 'See the calendar' : 'Opens with Advent', statusLabel: adventAllowed ? 'Open' : 'Opens Nov 30',
+      status: adventStatus, href: chooseByAccess(adventAllowed, '/advent', null),
+      actionLabel: chooseByAccess(adventAllowed, 'See the calendar', 'Opens with Advent'), statusLabel: chooseByAccess(adventAllowed, 'Open', 'Opens Nov 30'),
     },
     {
       id: 'stable', name: 'The Stable', tagline: 'Dasher, Dancer, Prancer, Vixen, Comet, Cupid, Donner, Blitzen. And Rudolph.',
