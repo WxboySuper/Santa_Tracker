@@ -12,9 +12,10 @@ describe("jigsaw activity logic", () => {
   it("builds consistent piece grids and source bounds", () => {
     expect(getGridSize(12)).toEqual({ columns: 4, rows: 3 });
     expect(createPieceIds(48)).toHaveLength(48);
-    expect(getCellBounds(5, 24)).toMatchObject({ y: 0, height: 25 });
+    expect(getCellBounds(5, 24)).toMatchObject({ y: 0, height: 18.75 });
     expect(getCellBounds(5, 24).x).toBeCloseTo(83.3333, 3);
     expect(getCellBounds(5, 24).width).toBeCloseTo(16.6667, 3);
+    expect(getCellBounds(11, 24).y).toBeCloseTo(18.75, 3);
     expect(isEdgePiece(0, 6, 4)).toBe(true);
     expect(isEdgePiece(8, 6, 4)).toBe(false);
   });

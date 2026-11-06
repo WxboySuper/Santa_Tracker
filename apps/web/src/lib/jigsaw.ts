@@ -90,7 +90,7 @@ export function isEdgePiece(piece: number, columns: number, rows: number): boole
 
 export function getCellBounds(piece: number, count: JigsawPieceCount): { x: number; y: number; width: number; height: number } {
   const { columns, rows } = getGridSize(count);
-  return { x: (piece % columns) * 100 / columns, y: Math.floor(piece / columns) * 100 / rows, width: 100 / columns, height: 100 / rows };
+  return { x: (piece % columns) * 100 / columns, y: Math.floor(piece / columns) * 75 / rows, width: 100 / columns, height: 75 / rows };
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
