@@ -13,6 +13,7 @@ const durationSeconds = Number(process.env.LOAD_DURATION_SECONDS ?? 30);
 const paths = ["/tracker", "/api/route", "/api/health"];
 
 if (!Number.isInteger(connections) || connections < 1 || connections > 1000) throw new Error("LOAD_CONNECTIONS must be between 1 and 1000");
+if (!Number.isFinite(durationSeconds) || durationSeconds < 1 || durationSeconds > 600) throw new Error("LOAD_DURATION_SECONDS must be between 1 and 600");
 if (!Number.isInteger(port) || port < 1024 || port > 65535) throw new Error("LOAD_PORT must be a valid local port");
 
 const scratch = await mkdtemp(path.join(os.tmpdir(), "santa-load-"));

@@ -12,6 +12,7 @@ const routePath = path.join(root, "apps/web/data/santa_route.json");
 const scratch = await mkdtemp(path.join(os.tmpdir(), "santa-rehearsal-"));
 const fixturePath = path.join(scratch, "santa_route.json");
 const basePort = Number(process.env.REHEARSAL_PORT ?? 4317);
+if (!Number.isInteger(basePort) || basePort < 1024 || basePort > 65535) throw new Error("REHEARSAL_PORT must be a valid local port");
 const baseUrl = `http://127.0.0.1:${basePort}`;
 const flight = [
   { id: "anchor", type: "TAKEOFF", location: { name: "North Pole", lat: 90, lng: 0 }, schedule: { arrival_utc: "2026-12-24T09:59:00.000Z", departure_utc: "2026-12-24T10:00:00.000Z" }, stop_experience: { duration_seconds: 0 } },
@@ -76,13 +77,9 @@ async function assertClosedSeason(url: string): Promise<void> {
 
 function startServer(port: number, override: string | undefined, scratchRoute: string, instant: string): ChildProcess {
   const env: NodeJS.ProcessEnv = { ...process.env, NODE_ENV: "development", SANTA_DATA_ROOT: scratch, SANTA_ROUTE_PATH: scratchRoute };
-  if (override) {
-    env.SEASON_OVERRIDE = override;
-    env.LOCAL_REHEARSAL_TIME = instant;
-  } else {
-    delete env.SEASON_OVERRIDE;
-    delete env.LOCAL_REHEARSAL_TIME;
-  }
+  env.LOCAL_REHEARSAL_TIME = instant;
+  if (override) env.SEASON_OVERRIDE = override;
+  else delete env.SEASON_OVERRIDE;
   return spawn(process.execPath, [path.join(root, "apps/web/node_modules/next/dist/bin/next"), "dev", "--hostname", "127.0.0.1", "--port", String(port)], {
     cwd: path.join(root, "apps/web"),
     env,
