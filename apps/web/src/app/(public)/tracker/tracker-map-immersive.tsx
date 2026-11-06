@@ -5,8 +5,11 @@ import { estimateArrival, type ChosenPlace } from "@/lib/tracker-arrival";
 import type { RouteNode } from "@/lib/locations";
 import type { SantaPosition } from "@/lib/tracker-position";
 
+/** Translator type shared by the immersive overlay controls. */
 type Translator = ReturnType<typeof createTranslator>;
+/** Inputs needed to render the live immersive presentation. */
 type ImmersiveTrackerProps = { locale: string; nodes: RouteNode[]; position: SantaPosition | null; current?: RouteNode; translator: Translator; controlsVisible: boolean };
+/** A searchable route stop or curated city. */
 type CityOption = ChosenPlace & { lat: number; lng: number };
 
 /** Renders live journey details and the three local ways to choose a place. */

@@ -12,6 +12,7 @@ import { ImmersiveTrackerOverlays } from "./tracker-map-immersive";
 
 type Translator = ReturnType<typeof createTranslator>;
 
+/** Values shared by the standard and immersive tracker presentations. */
 interface TrackerMapViewProps {
   adventEnabled: boolean;
   locale: string;
