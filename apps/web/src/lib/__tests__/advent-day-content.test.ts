@@ -98,4 +98,11 @@ describe("renderDayContent", () => {
     expect(html).not.toContain("<script>");
     expect(html).toContain("&lt;script&gt;");
   });
+
+  it("links the literal /tracker token and leaves other text plain", () => {
+    const html = render(day({ payload: { text: "Follow along at /tracker tonight." } }));
+    expect(html).toContain('<a class="underline underline-offset-2" href="/tracker">/tracker</a>');
+    expect(html).toContain("Follow along at ");
+    expect(render(day({ payload: { text: "No link here." } }))).not.toContain("<a ");
+  });
 });

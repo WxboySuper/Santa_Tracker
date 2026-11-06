@@ -8,7 +8,7 @@ import { loadAdventCalendar, validateAdventCalendar } from "../advent";
 import type { AdventPublicDay } from "../advent";
 
 const file = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../../data/advent_calendar.json");
-const WIRED_DAYS = [1, 2, 7, 8, 12, 15];
+const WIRED_DAYS = [1, 2, 4, 7, 8, 12, 13, 15, 18, 21, 23];
 const WRITTEN_DAYS = [3, 5, 6, 9, 10, 11, 14, 16, 17, 19, 20, 22, 24];
 const STORY_DAYS = [3, 6, 9, 11, 14, 17, 20, 24];
 const FACT_DAYS = [5, 10, 16, 19, 22];

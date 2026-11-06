@@ -32,8 +32,24 @@ function renderParagraphs(text: string): ReactNode[] {
   return text.split(/\n\s*\n/).map((paragraph) => {
     const occurrence = occurrences.get(paragraph) ?? 0;
     occurrences.set(paragraph, occurrence + 1);
-    return <p key={`${paragraph}-${occurrence}`}>{paragraph}</p>;
+    return <p key={`${paragraph}-${occurrence}`}>{linkTracker(paragraph)}</p>;
   });
+}
+
+const TRACKER_PATH = "/tracker";
+
+/** Turns the literal token /tracker into a same-origin link; everything else stays plain text. */
+function linkTracker(paragraph: string): ReactNode {
+  const index = paragraph.indexOf(TRACKER_PATH);
+  if (index === -1) return paragraph;
+  const after = paragraph.slice(index + TRACKER_PATH.length);
+  return (
+    <>
+      {paragraph.slice(0, index)}
+      <a className="underline underline-offset-2" href={TRACKER_PATH}>{TRACKER_PATH}</a>
+      {after}
+    </>
+  );
 }
 
 /** An activity shipped as static files, shown in a titled same-origin frame. */
