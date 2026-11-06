@@ -10,6 +10,7 @@ const isVinextBuild = process.env.VINEXT_BUILD === '1';
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  distDir: process.env.NEXT_DIST_DIR ?? '.next',
   // ADR 0001 requires standalone output for the containerized VPS deployment.
   // Windows local builds lack symlink privileges, so we skip standalone locally
   // and keep it for CI/Linux production.
