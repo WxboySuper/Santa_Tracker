@@ -42,6 +42,11 @@ export function matte(color: number, options: { roughness?: number; metalness?: 
   return material;
 }
 
+/** True for the cached toy materials that every building shares, which must outlive any one scene. */
+export function isSharedMaterial(material: THREE.Material): boolean {
+  return material instanceof THREE.MeshStandardMaterial && [...materialCache.values()].includes(material);
+}
+
 /** A glowing material for windows, bulbs and signs. Intensity above 1 feeds the bloom pass. */
 export function glow(color: number, intensity = 2): THREE.MeshStandardMaterial {
   return new THREE.MeshStandardMaterial({

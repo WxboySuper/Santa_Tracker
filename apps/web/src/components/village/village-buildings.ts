@@ -544,16 +544,18 @@ function observatory(): Building {
   const dome = new THREE.Mesh(new THREE.SphereGeometry(1.6, 18, 10, 0, Math.PI * 2, 0, Math.PI / 2), new THREE.MeshStandardMaterial({ color: 0xcfd9ee, roughness: 0.35, metalness: 0.3 }));
   dome.position.y = 2.0;
   dome.castShadow = true;
-  group.add(dome);
+  const turret = new THREE.Group();
+  turret.add(dome);
+  group.add(turret);
   const slit = new THREE.Mesh(new THREE.BoxGeometry(0.42, 1.9, 0.9), glow(0x9fc2ff, 2.2));
   slit.position.set(0, 2.9, 0.9);
   slit.rotation.x = -0.55;
-  group.add(slit);
+  turret.add(slit);
   building.glowMaterials.push(slit.material);
   const scope = cylinder(0.12, 0.18, 1.4, 8, matte(0x2a3042, { metalness: 0.4 }));
   scope.position.set(0, 3.1, 0.7);
   scope.rotation.x = -1.0;
-  group.add(scope);
+  turret.add(scope);
   const door = doorBlock(0.8, 1.3);
   door.position.set(0, 0.8, 1.62);
   group.add(door);
@@ -570,8 +572,7 @@ function observatory(): Building {
   group.add(plaque);
   building.glowMaterials.push(plaque.material as THREE.MeshStandardMaterial);
   building.animate = (time) => {
-    dome.rotation.y = Math.sin(time * 0.15) * 0.5;
-    slit.rotation.y = 0;
+    turret.rotation.y = Math.sin(time * 0.15) * 0.5;
   };
   const cool = new THREE.PointLight(0x9fc2ff, 4, 8, 2);
   cool.position.set(0, 1.6, 2.4);

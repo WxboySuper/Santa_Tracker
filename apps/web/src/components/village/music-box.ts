@@ -161,7 +161,7 @@ export class MusicBox {
   chime(semitone = 0): void {
     const context = this.ensure();
     if (!context) return;
-    void context.resume();
+    context.resume().catch(() => undefined);
     const base = 523.25 * 2 ** (semitone / 12);
     this.note(context.currentTime + 0.01, base, 0.22, 1.4);
     this.note(context.currentTime + 0.09, base * 1.5, 0.16, 1.2);
@@ -173,6 +173,7 @@ export class MusicBox {
     const tune = TUNES[this.state.tune] ?? TUNES[0];
     if (!tune) return;
     const beat = 60 / tune.tempo;
+    if (this.nextTime < context.currentTime - 0.1) this.nextTime = context.currentTime + 0.05;
     while (this.nextTime < context.currentTime + 0.4) {
       const step = tune.steps[this.cursor];
       if (!step) {
@@ -198,7 +199,11 @@ export class MusicBox {
   async play(): Promise<void> {
     const context = this.ensure();
     if (!context) return;
-    await context.resume();
+    try {
+      await context.resume();
+    } catch {
+      return;
+    }
     if (this.state.playing) return;
     this.state = { ...this.state, playing: true };
     this.nextTime = context.currentTime + 0.15;

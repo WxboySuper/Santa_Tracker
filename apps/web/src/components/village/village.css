@@ -437,8 +437,10 @@
   }
 
   .village-panel {
-    inset: auto 0.9rem 5.2rem;
+    inset: auto 0.9rem 8.2rem;
     width: auto;
+    max-height: calc(100svh - 11.5rem);
+    overflow-y: auto;
     translate: 0 0;
   }
 }

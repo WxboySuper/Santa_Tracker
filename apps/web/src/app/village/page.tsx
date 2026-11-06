@@ -82,7 +82,7 @@ export default async function VillagePage({ searchParams }: { searchParams: Prom
       status: adventStatus,
       href: adventAllowed ? '/advent' : null,
       actionLabel: adventAllowed ? 'See the calendar' : 'Opens with Advent',
-      statusLabel: 'Coming soon',
+      statusLabel: adventAllowed ? 'Open' : 'Opens Nov 30',
     },
     {
       id: 'stable',

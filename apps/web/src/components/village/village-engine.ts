@@ -5,6 +5,7 @@ import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
 import type { Building, BuildingId } from './village-buildings';
 import { PLAZA, createWorld, type World } from './village-world';
+import { isSharedMaterial } from './village-kit';
 
 export type EngineEvents = {
   onFail: () => void;
@@ -181,7 +182,7 @@ export class VillageEngine {
       const renderable = object as THREE.Object3D & { geometry?: THREE.BufferGeometry; material?: THREE.Material | THREE.Material[] };
       renderable.geometry?.dispose();
       const materials = Array.isArray(renderable.material) ? renderable.material : renderable.material ? [renderable.material] : [];
-      materials.forEach((material) => material.dispose());
+      materials.filter((material) => !isSharedMaterial(material)).forEach((material) => material.dispose());
     });
     this.composer?.dispose();
     this.renderer.dispose();
