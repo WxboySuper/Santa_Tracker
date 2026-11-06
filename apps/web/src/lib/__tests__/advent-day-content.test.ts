@@ -30,6 +30,12 @@ describe("renderDayContent", () => {
     expect(html).not.toContain("FALLBACK");
   });
 
+  it("renders blank-line separated text as separate safe paragraphs", () => {
+    const html = render(day({ payload: { text: "First paragraph.\n\nSecond <paragraph>." } }));
+    expect(html).toContain("<p>First paragraph.</p>");
+    expect(html).toContain("<p>Second &lt;paragraph&gt;.</p>");
+  });
+
   it("falls back for a content type with no renderer yet", () => {
     for (const content_type of ["video"] as const) {
       expect(render(day({ content_type }))).toContain("FALLBACK");
