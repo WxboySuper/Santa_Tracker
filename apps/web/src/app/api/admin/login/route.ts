@@ -6,10 +6,14 @@ import { ADMIN_SESSION_TTL_SECONDS, requireAdminAuth, shouldUseSecureAdminCookie
 const loginQueues = new Map<string, Promise<void>>();
 const pendingLogins = new Map<string, number>();
 const pendingBodyReads = new Map<string, number>();
+// Web Crypto work cannot be cancelled, so keep timed-out operations bounded until they settle.
+const activeVerificationByIp = new Set<string>();
+let activeVerificationCount = 0;
 const MAX_PENDING_LOGINS_PER_IP = 64;
 const MAX_LOGIN_QUEUE_IPS = 256;
 const MAX_BODY_READS_PER_IP = 16;
 const MAX_BODY_READ_IPS = 256;
+const MAX_ACTIVE_VERIFICATIONS = 64;
 const MAX_LOGIN_BODY_BYTES = 4096;
 const MAX_LOGIN_PROCESSING_MS = 30_000;
 const MAX_LOGIN_QUEUE_WAIT_MS = 30_000;
@@ -79,7 +83,9 @@ async function checkLoginBeforeBody(req: Request, ip: string, signal: AbortSigna
   const ipLimit = await checkLoginRateLimit(ip, true);
   if (ipLimit) return { allowed: false, response: throttledResponse(ipLimit.retryAfterSeconds) };
   if (signal.aborted) return { allowed: false, response: requestTimeoutResponse() };
-  const existingSession = await awaitTimedLoginOperation(() => requireAdminAuth(req), signal);
+  const sessionCheck = startTrackedLoginOperation(ip, () => requireAdminAuth(req));
+  if (!sessionCheck) return { allowed: false, response: throttledResponse(1) };
+  const existingSession = await awaitTimedLoginOperation(() => sessionCheck, signal);
   if (!existingSession.completed) return { allowed: false, response: requestTimeoutResponse() };
   const globalLimit = await checkLoginRateLimit(ip, existingSession.value.ok);
   if (globalLimit) return { allowed: false, response: throttledResponse(globalLimit.retryAfterSeconds) };
@@ -158,7 +164,10 @@ function raceLoginWithAbort(task: Promise<NextResponse>, signal: AbortSignal | u
 async function handleLogin(context: LoginContext): Promise<NextResponse> {
   const limited = await checkLoginRateLimit(context.ip, context.authenticated);
   if (limited) return throttledResponse(limited.retryAfterSeconds);
-  const verification = await awaitTimedLoginOperation(() => loginAdmin(context.payload), context.signal);
+  if (context.signal.aborted) return requestTimeoutResponse();
+  const verificationTask = startTrackedLoginOperation(context.ip, () => loginAdmin(context.payload));
+  if (!verificationTask) return throttledResponse(1);
+  const verification = await awaitTimedLoginOperation(() => verificationTask, context.signal);
   if (!verification.completed) {
     await recordLoginAttempt(context.ip, context.authenticated);
     return requestTimeoutResponse();
@@ -168,6 +177,19 @@ async function handleLogin(context: LoginContext): Promise<NextResponse> {
   if (result.status === 200) return handleSuccessfulLogin(context, result);
   if (context.signal.aborted) return requestTimeoutResponse();
   return respondWith(result);
+}
+
+function startTrackedLoginOperation<T>(ip: string, operation: () => Promise<T>): Promise<T> | null {
+  if (activeVerificationByIp.has(ip)) return null;
+  if (activeVerificationCount >= MAX_ACTIVE_VERIFICATIONS) return null;
+  activeVerificationByIp.add(ip);
+  activeVerificationCount += 1;
+  return Promise.resolve()
+    .then(operation)
+    .finally(() => {
+      activeVerificationByIp.delete(ip);
+      activeVerificationCount -= 1;
+    });
 }
 
 async function handleFailedLogin(context: LoginContext, result: Awaited<ReturnType<typeof loginAdmin>>): Promise<NextResponse> {
