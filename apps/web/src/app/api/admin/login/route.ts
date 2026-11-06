@@ -10,6 +10,19 @@ const MAX_LOGIN_QUEUE_IPS = 256;
 const MAX_LOGIN_BODY_BYTES = 4096;
 const MAX_LOGIN_PROCESSING_MS = 30_000;
 
+interface LoginContext {
+  req: Request;
+  ip: string;
+  authenticated: boolean;
+  payload: unknown;
+  signal: AbortSignal;
+}
+
+type CappedBodyRead =
+  | { kind: "complete"; chunks: Uint8Array[]; totalBytes: number }
+  | { kind: "too-large" }
+  | { kind: "aborted" };
+
 export function getClientIp(req: Request): string {
   const cloudflareIp = req.headers.get("cf-connecting-ip")?.trim();
   if (cloudflareIp) return cloudflareIp;
@@ -63,10 +76,11 @@ async function handleLoginRequest(req: Request, ip: string, signal: AbortSignal)
   if (parsed.aborted) return requestTimeoutResponse();
   if (parsed.tooLarge) return NextResponse.json({ error: "Request body too large" }, { status: 413 });
 
-  return handleLogin(req, ip, existingSession.ok, parsed.payload, signal);
+  return handleLogin({ req, ip, authenticated: existingSession.ok, payload: parsed.payload, signal });
 }
 
-async function handleLogin(req: Request, ip: string, authenticated: boolean, payload: unknown, signal: AbortSignal): Promise<NextResponse> {
+async function handleLogin(context: LoginContext): Promise<NextResponse> {
+  const { req, ip, authenticated, payload, signal } = context;
   const result = await loginAdmin(payload);
   if (signal.aborted) return requestTimeoutResponse();
   if (result.status === 401) {
@@ -91,37 +105,62 @@ async function handleLogin(req: Request, ip: string, authenticated: boolean, pay
 }
 
 async function readCappedJsonBody(req: Request, signal: AbortSignal): Promise<{ payload: unknown; tooLarge: boolean; aborted: boolean }> {
+  const rejection = bodyPreflightRejection(req, signal);
+  if (rejection) return rejection;
+  if (!req.body) return parseLoginBody(new Uint8Array(0));
+  return readAndParseBody(req.body, signal);
+}
+
+function bodyPreflightRejection(req: Request, signal: AbortSignal): { payload: unknown; tooLarge: boolean; aborted: boolean } | null {
   if (signal.aborted) return { payload: null, tooLarge: false, aborted: true };
   if (hasOversizedContentLength(req)) return { payload: null, tooLarge: true, aborted: false };
-  if (!req.body) return { payload: null, tooLarge: false, aborted: false };
+  return null;
+}
 
-  const reader = req.body.getReader();
-  const chunks: Uint8Array[] = [];
-  let totalBytes = 0;
+async function readAndParseBody(body: ReadableStream<Uint8Array>, signal: AbortSignal): Promise<{ payload: unknown; tooLarge: boolean; aborted: boolean }> {
+  const reader = body.getReader();
   try {
-    while (true) {
-      const chunk = await readWithAbort(reader, signal);
-      if (!chunk) return { payload: null, tooLarge: false, aborted: true };
-      if (chunk.done) break;
-      totalBytes += chunk.value.byteLength;
-      if (totalBytes > MAX_LOGIN_BODY_BYTES) {
-        void reader.cancel().catch(() => undefined);
-        return { payload: null, tooLarge: true, aborted: false };
-      }
-      chunks.push(chunk.value);
-    }
+    return bodyReadResult(await collectBodyChunks(reader, signal));
   } catch {
     return { payload: null, tooLarge: false, aborted: signal.aborted };
   } finally {
     reader.releaseLock();
   }
+}
 
+async function collectBodyChunks(reader: ReadableStreamDefaultReader<Uint8Array>, signal: AbortSignal): Promise<CappedBodyRead> {
+  const chunks: Uint8Array[] = [];
+  let totalBytes = 0;
+  while (true) {
+    const chunk = await readWithAbort(reader, signal);
+    if (!chunk) return { kind: "aborted" };
+    if (chunk.done) return { kind: "complete", chunks, totalBytes };
+    totalBytes += chunk.value.byteLength;
+    if (totalBytes > MAX_LOGIN_BODY_BYTES) {
+      void reader.cancel().catch(() => undefined);
+      return { kind: "too-large" };
+    }
+    chunks.push(chunk.value);
+  }
+}
+
+function bodyReadResult(result: CappedBodyRead): { payload: unknown; tooLarge: boolean; aborted: boolean } {
+  if (result.kind === "aborted") return { payload: null, tooLarge: false, aborted: true };
+  if (result.kind === "too-large") return { payload: null, tooLarge: true, aborted: false };
+  return parseLoginBody(joinBodyChunks(result.chunks, result.totalBytes));
+}
+
+function joinBodyChunks(chunks: Uint8Array[], totalBytes: number): Uint8Array {
   const bytes = new Uint8Array(totalBytes);
   let offset = 0;
   for (const chunk of chunks) {
     bytes.set(chunk, offset);
     offset += chunk.byteLength;
   }
+  return bytes;
+}
+
+function parseLoginBody(bytes: Uint8Array): { payload: unknown; tooLarge: boolean; aborted: boolean } {
   try {
     return { payload: JSON.parse(new TextDecoder().decode(bytes)), tooLarge: false, aborted: false };
   } catch {
