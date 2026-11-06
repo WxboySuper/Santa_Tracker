@@ -11,18 +11,18 @@ describe("timezone puzzle", () => {
 
   it("uses December offsets, including Auckland summer time", () => {
     const december = Date.UTC(2026, 11, 24, 12);
-    expect(getUtcOffsetMinutes(december, "Pacific/Auckland")).toBe(13 * 60);
-    expect(getUtcOffsetMinutes(december, "Europe/London")).toBe(0);
-    expect(getUtcOffsetMinutes(december, "Africa/Cairo")).toBe(2 * 60);
-    expect(getUtcOffsetMinutes(december, "Pacific/Honolulu")).toBe(-10 * 60);
+    expect(getUtcOffsetMinutes({ instant: december, timeZone: "Pacific/Auckland" })).toBe(13 * 60);
+    expect(getUtcOffsetMinutes({ instant: december, timeZone: "Europe/London" })).toBe(0);
+    expect(getUtcOffsetMinutes({ instant: december, timeZone: "Africa/Cairo" })).toBe(2 * 60);
+    expect(getUtcOffsetMinutes({ instant: december, timeZone: "Pacific/Honolulu" })).toBe(-10 * 60);
   });
 
   it("orders the six cities by their Dec 25 midnight and formats injected instants", () => {
-    expect(getOrderedCityIds(REFERENCE_START_UTC)).toEqual(["kiritimati", "auckland", "tokyo", "cairo", "london", "honolulu"]);
-    const clocks = getCityClocks(REFERENCE_START_UTC, "en-US");
+    expect(getOrderedCityIds({ referenceInstant: REFERENCE_START_UTC })).toEqual(["kiritimati", "auckland", "tokyo", "cairo", "london", "honolulu"]);
+    const clocks = getCityClocks({ referenceInstant: REFERENCE_START_UTC, locale: "en-US" });
     expect(clocks.find(({ id }) => id === "kiritimati")?.localDate).toContain("Dec 25");
     expect(clocks.find(({ id }) => id === "auckland")?.offsetMinutes).toBe(780);
-    expect(getDecemberMidnightUtc("Pacific/Auckland", 2026)).toBe(Date.UTC(2026, 11, 24, 11));
+    expect(getDecemberMidnightUtc({ timeZone: "Pacific/Auckland", year: 2026 })).toBe(Date.UTC(2026, 11, 24, 11));
     expect(REFERENCE_END_UTC - REFERENCE_START_UTC).toBe(28 * 60 * 60 * 1000);
   });
 });

@@ -16,10 +16,10 @@ export function WordsearchActivity({ config, locale }: { config: WordsearchConfi
   const [announcement, setAnnouncement] = useState("");
   const complete = found.length === config.words.length;
   const highlighted = new Set(puzzle.placements.filter(({ word }) => found.includes(word)).flatMap(({ cells }) => cells));
-  const preview = anchor === null || dragEnd === null ? [] : wordAtSelection(anchor, dragEnd, GRID_SIZE) ?? [];
+  const preview = anchor === null || dragEnd === null ? [] : wordAtSelection({ startCell: anchor, endCell: dragEnd, gridSize: GRID_SIZE }) ?? [];
 
   function finishSelection(start: number, end: number) {
-    const cells = wordAtSelection(start, end, GRID_SIZE);
+    const cells = wordAtSelection({ startCell: start, endCell: end, gridSize: GRID_SIZE });
     if (!cells) return;
     const letters = cells.map((cell) => puzzle.grid[Math.floor(cell / GRID_SIZE)]?.[cell % GRID_SIZE]).join("");
     const reverse = letters.split("").reduce((reversed, letter) => letter + reversed, "");
@@ -54,26 +54,26 @@ export function WordsearchActivity({ config, locale }: { config: WordsearchConfi
   }
 
   function handleKey(event: KeyboardEvent<HTMLButtonElement>, cell: number) {
-    const row = Math.floor(cell / GRID_SIZE);
-    const column = cell % GRID_SIZE;
-    const delta = {
-      ArrowLeft: column > 0 ? -1 : 0,
-      ArrowRight: column < GRID_SIZE - 1 ? 1 : 0,
-      ArrowUp: row > 0 ? -GRID_SIZE : 0,
-      ArrowDown: row < GRID_SIZE - 1 ? GRID_SIZE : 0,
-    }[event.key];
-    if (delta !== undefined) {
+    const next = getKeyboardTarget(cell, event.key);
+    if (next !== null) {
       event.preventDefault();
-      const next = Math.min(GRID_SIZE * GRID_SIZE - 1, Math.max(0, cell + delta));
       setCursor(next);
       if (anchor !== null) setDragEnd(next);
       document.getElementById(`wordsearch-cell-${next}`)?.focus();
       return;
     }
-    if (event.key !== "Enter" && event.key !== " ") return;
+    if (!isSelectionKey(event.key)) return;
     event.preventDefault();
-    if (anchor === null) { setAnchor(cell); setDragEnd(cell); }
-    else finishSelection(anchor, cell);
+    selectKeyboardEnd(cell);
+  }
+
+  function selectKeyboardEnd(cell: number) {
+    if (anchor === null) {
+      setAnchor(cell);
+      setDragEnd(cell);
+      return;
+    }
+    finishSelection(anchor, cell);
   }
 
   return (
@@ -99,10 +99,43 @@ export function WordsearchActivity({ config, locale }: { config: WordsearchConfi
   );
 }
 
+function getKeyboardTarget(cell: number, key: string): number | null {
+  const row = Math.floor(cell / GRID_SIZE);
+  const column = cell % GRID_SIZE;
+  const horizontalDelta = getHorizontalDelta(key, column);
+  if (horizontalDelta !== null) return cell + horizontalDelta;
+  const verticalDelta = getVerticalDelta(key, row);
+  if (verticalDelta !== null) return cell + verticalDelta;
+  return null;
+}
+
+function getHorizontalDelta(key: string, column: number): number | null {
+  if (key === "ArrowLeft") return column > 0 ? -1 : 0;
+  if (key === "ArrowRight") return column < GRID_SIZE - 1 ? 1 : 0;
+  return null;
+}
+
+function getVerticalDelta(key: string, row: number): number | null {
+  if (key === "ArrowUp") return row > 0 ? -GRID_SIZE : 0;
+  if (key === "ArrowDown") return row < GRID_SIZE - 1 ? GRID_SIZE : 0;
+  return null;
+}
+
+function isSelectionKey(key: string): boolean {
+  return key === "Enter" || key === " ";
+}
+
 function getCell(target: EventTarget): number | null {
   if (!(target instanceof HTMLElement)) return null;
   const cell = target.closest<HTMLElement>("[data-cell]")?.dataset.cell;
-  if (cell === undefined) return null;
-  const value = Number(cell);
-  return Number.isInteger(value) && value >= 0 && value < GRID_SIZE * GRID_SIZE ? value : null;
+  return parseCellIndex(cell);
+}
+
+function parseCellIndex(value: string | undefined): number | null {
+  if (value === undefined) return null;
+  const index = Number(value);
+  if (!Number.isInteger(index)) return null;
+  if (index < 0) return null;
+  if (index >= GRID_SIZE * GRID_SIZE) return null;
+  return index;
 }

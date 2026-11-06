@@ -18,6 +18,19 @@ export interface Maze {
   goal: number;
 }
 
+interface MazeNeighborContext {
+  maze: Maze;
+  cell: number;
+  direction: MazeDirection;
+}
+
+interface MazeSearchContext {
+  maze: Maze;
+  current: number;
+  queue: number[];
+  previous: Map<number, number | null>;
+}
+
 const SIZE_DIMENSIONS: Record<MazeSize, number> = { small: 9, medium: 13, large: 17 };
 const REVERSE: Record<MazeDirection, MazeDirection> = { up: "down", right: "left", down: "up", left: "right" };
 const DELTAS: Record<MazeDirection, { row: number; column: number }> = {
@@ -26,11 +39,35 @@ const DELTAS: Record<MazeDirection, { row: number; column: number }> = {
 
 export function parseMaze(payload: unknown): MazeConfig | null {
   if (!isRecord(payload) || payload.kind !== "maze") return null;
-  const seed = payload.seed === undefined ? 18 : payload.seed;
-  const size = payload.size === undefined ? "medium" : payload.size;
-  if (typeof seed !== "number" || !Number.isSafeInteger(seed)) return null;
-  if (size !== "small" && size !== "medium" && size !== "large") return null;
+  const seed = readSeed(payload.seed);
+  if (seed === null) return null;
+  const size = readSize(payload.size);
+  if (size === null) return null;
   return { seed, size };
+}
+
+function readSeed(value: unknown): number | null {
+  if (value === undefined) return 18;
+  if (typeof value !== "number") return null;
+  if (!Number.isSafeInteger(value)) return null;
+  return value;
+}
+
+function readSize(value: unknown): MazeSize | null {
+  if (value === undefined) return "medium";
+  if (!isMazeSize(value)) return null;
+  return value;
+}
+
+function isMazeSize(value: unknown): value is MazeSize {
+  switch (value) {
+    case "small":
+    case "medium":
+    case "large":
+      return true;
+    default:
+      return false;
+  }
 }
 
 export function generateMaze({ seed, size }: MazeConfig): Maze {
@@ -75,10 +112,19 @@ function randomFor(seed: number): () => number {
 }
 
 export function mazeNeighbors(maze: Maze, cell: number): number[] {
-  if (!Number.isInteger(cell) || cell < 0 || cell >= maze.cells.length) return [];
+  if (!Number.isInteger(cell)) return [];
+  if (cell < 0) return [];
+  if (cell >= maze.cells.length) return [];
   return (Object.keys(DELTAS) as MazeDirection[])
-    .filter((direction) => !maze.cells[cell]?.walls[direction])
-    .map((direction) => cell + DELTAS[direction].row * maze.width + DELTAS[direction].column);
+    .map((direction) => getOpenNeighbor({ maze, cell, direction }))
+    .filter((neighbor): neighbor is number => neighbor !== null);
+}
+
+function getOpenNeighbor({ maze, cell, direction }: MazeNeighborContext): number | null {
+  const current = maze.cells[cell];
+  if (!current) return null;
+  if (current.walls[direction]) return null;
+  return cell + DELTAS[direction].row * maze.width + DELTAS[direction].column;
 }
 
 export function solveMaze(maze: Maze): number[] | null {
@@ -86,13 +132,17 @@ export function solveMaze(maze: Maze): number[] | null {
   const previous = new Map<number, number | null>([[maze.start, null]]);
   for (const current of queue) {
     if (current === maze.goal) return buildPath(previous, maze.goal);
-    for (const neighbor of mazeNeighbors(maze, current)) {
-      if (previous.has(neighbor)) continue;
-      previous.set(neighbor, current);
-      queue.push(neighbor);
-    }
+    visitMazeNeighbors({ maze, current, queue, previous });
   }
   return null;
+}
+
+function visitMazeNeighbors({ maze, current, queue, previous }: MazeSearchContext): void {
+  for (const neighbor of mazeNeighbors(maze, current)) {
+    if (previous.has(neighbor)) continue;
+    previous.set(neighbor, current);
+    queue.push(neighbor);
+  }
 }
 
 function buildPath(previous: Map<number, number | null>, goal: number): number[] {

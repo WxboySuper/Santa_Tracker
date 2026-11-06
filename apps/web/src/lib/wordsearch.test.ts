@@ -29,9 +29,9 @@ describe("wordsearch", () => {
   });
 
   it("returns straight selections in eight directions", () => {
-    expect(wordAtSelection(0, 32, 15)).toEqual([0, 16, 32]);
-    expect(wordAtSelection(2, 30, 15)).toEqual([2, 16, 30]);
-    expect(wordAtSelection(3, 19, 15)).toEqual([3, 19]);
-    expect(wordAtSelection(0, 17, 15)).toBeNull();
+    expect(wordAtSelection({ startCell: 0, endCell: 32, gridSize: 15 })).toEqual([0, 16, 32]);
+    expect(wordAtSelection({ startCell: 2, endCell: 30, gridSize: 15 })).toEqual([2, 16, 30]);
+    expect(wordAtSelection({ startCell: 3, endCell: 19, gridSize: 15 })).toEqual([3, 19]);
+    expect(wordAtSelection({ startCell: 0, endCell: 17, gridSize: 15 })).toBeNull();
   });
 });

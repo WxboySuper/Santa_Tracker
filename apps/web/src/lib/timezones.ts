@@ -13,6 +13,26 @@ export interface CityClock extends PuzzleCity {
   offsetMinutes: number;
 }
 
+interface CityClockOptions {
+  referenceInstant: number;
+  locale?: string;
+}
+
+interface ZoneInstant {
+  instant: number;
+  timeZone: string;
+}
+
+interface MidnightTarget {
+  timeZone: string;
+  year: number;
+}
+
+interface ZonedFormat extends ZoneInstant {
+  locale: string;
+  options: Intl.DateTimeFormatOptions;
+}
+
 export const REFERENCE_START_UTC = Date.UTC(2026, 11, 24, 10);
 export const REFERENCE_END_UTC = Date.UTC(2026, 11, 25, 14);
 export const PUZZLE_CITIES: PuzzleCity[] = [
@@ -29,40 +49,40 @@ export function parseTimezones(payload: unknown): TimezoneConfig | null {
   return { kind: "timezones" };
 }
 
-export function getCityClocks(referenceInstant: number, locale = "en"): CityClock[] {
+export function getCityClocks({ referenceInstant, locale = "en" }: CityClockOptions): CityClock[] {
   return PUZZLE_CITIES.map((city) => ({
     ...city,
-    localTime: formatInZone(referenceInstant, city.timeZone, locale, { hour: "numeric", minute: "2-digit" }),
-    localDate: formatInZone(referenceInstant, city.timeZone, locale, { month: "short", day: "numeric" }),
-    midnightUtc: getDecemberMidnightUtc(city.timeZone, new Date(referenceInstant).getUTCFullYear()),
-    offsetMinutes: getUtcOffsetMinutes(referenceInstant, city.timeZone),
+    localTime: formatInZone({ instant: referenceInstant, timeZone: city.timeZone, locale, options: { hour: "numeric", minute: "2-digit" } }),
+    localDate: formatInZone({ instant: referenceInstant, timeZone: city.timeZone, locale, options: { month: "short", day: "numeric" } }),
+    midnightUtc: getDecemberMidnightUtc({ timeZone: city.timeZone, year: new Date(referenceInstant).getUTCFullYear() }),
+    offsetMinutes: getUtcOffsetMinutes({ instant: referenceInstant, timeZone: city.timeZone }),
   }));
 }
 
-export function getOrderedCityIds(referenceInstant: number): string[] {
-  return getCityClocks(referenceInstant).sort((left, right) => left.midnightUtc - right.midnightUtc).map(({ id }) => id);
+export function getOrderedCityIds({ referenceInstant }: Pick<CityClockOptions, "referenceInstant">): string[] {
+  return getCityClocks({ referenceInstant }).sort((left, right) => left.midnightUtc - right.midnightUtc).map(({ id }) => id);
 }
 
-export function getUtcOffsetMinutes(instant: number, timeZone: string): number {
-  const parts = getDateParts(instant, timeZone);
+export function getUtcOffsetMinutes({ instant, timeZone }: ZoneInstant): number {
+  const parts = getDateParts({ instant, timeZone });
   const localAsUtc = Date.UTC(parts.year, parts.month - 1, parts.day, parts.hour, parts.minute, parts.second);
   return Math.round((localAsUtc - Math.floor(instant / 1000) * 1000) / 60000);
 }
 
-export function getDecemberMidnightUtc(timeZone: string, year: number): number {
+export function getDecemberMidnightUtc({ timeZone, year }: MidnightTarget): number {
   const localMidnightAsUtc = Date.UTC(year, 11, 25);
   let candidate = localMidnightAsUtc;
   for (let attempt = 0; attempt < 3; attempt += 1) {
-    candidate = localMidnightAsUtc - getUtcOffsetMinutes(candidate, timeZone) * 60000;
+    candidate = localMidnightAsUtc - getUtcOffsetMinutes({ instant: candidate, timeZone }) * 60000;
   }
   return candidate;
 }
 
-function formatInZone(instant: number, timeZone: string, locale: string, options: Intl.DateTimeFormatOptions): string {
+function formatInZone({ instant, timeZone, locale, options }: ZonedFormat): string {
   return new Intl.DateTimeFormat(locale, { ...options, timeZone }).format(instant);
 }
 
-function getDateParts(instant: number, timeZone: string): { year: number; month: number; day: number; hour: number; minute: number; second: number } {
+function getDateParts({ instant, timeZone }: ZoneInstant): { year: number; month: number; day: number; hour: number; minute: number; second: number } {
   const parts = new Intl.DateTimeFormat("en-US", {
     timeZone,
     year: "numeric",

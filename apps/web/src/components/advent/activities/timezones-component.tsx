@@ -18,7 +18,7 @@ export function TimezonesActivity({ locale }: { config: TimezoneConfig; locale: 
   const [reference, setReference] = useState(REFERENCE_START_UTC);
   const [order, setOrder] = useState<PuzzleCity["id"][]>(["kiritimati", "auckland", "tokyo", "cairo", "london", "honolulu"]);
   const [feedback, setFeedback] = useState("");
-  const clocks = useMemo(() => getCityClocks(reference, locale), [locale, reference]);
+  const clocks = useMemo(() => getCityClocks({ referenceInstant: reference, locale }), [locale, reference]);
   const clockById = new Map(clocks.map((city) => [city.id, city]));
   const utcLabel = `${new Intl.DateTimeFormat(locale, { timeZone: "UTC", dateStyle: "medium", timeStyle: "short" }).format(reference)} UTC`;
 
