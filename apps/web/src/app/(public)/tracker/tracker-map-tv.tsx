@@ -19,6 +19,7 @@ export function TvTrackerDashboard({ locale, nodes, position, translator }: { lo
   const [chimes, setChimes] = useState(false);
   const [arrivalNotice, setArrivalNotice] = useState<RouteNode | null>(null);
   const previousStop = useRef<number | null>(null);
+  const chimesEnabled = useRef(false);
   const wakeLock = useRef<WakeLockSentinel | null>(null);
   const dashboard = useMemo(() => deriveTvDashboard({
     nodes,
@@ -35,7 +36,8 @@ export function TvTrackerDashboard({ locale, nodes, position, translator }: { lo
   }, []);
   useEffect(() => readSavedPlace(nodes, setPlace), [nodes]);
   useEffect(() => showArrivalOnStopChange(position?.journey.currentIndex ?? null, previousStop, nodes, setArrivalNotice), [nodes, position]);
-  useEffect(() => clearArrivalCard(arrivalNotice, chimes, setArrivalNotice), [arrivalNotice, chimes]);
+  useEffect(() => { chimesEnabled.current = chimes; }, [chimes]);
+  useEffect(() => clearArrivalCard(arrivalNotice, chimesEnabled.current, setArrivalNotice), [arrivalNotice]);
   useEffect(() => keepScreenAwake(wakeLock), []);
 
   return <section className="tracker-tv-panel" aria-label={translator.t("tracker.tvPanel")}>

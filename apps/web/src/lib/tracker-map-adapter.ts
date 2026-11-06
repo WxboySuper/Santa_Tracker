@@ -12,7 +12,7 @@ export interface TrackerMapAdapter {
 }
 
 export type MapMode = "vector" | "raster" | "text";
-export type MapEvent = "vectorFailed" | "rasterFailed" | "initFailed" | "showText" | "showMap";
+export type MapEvent = "vectorFailed" | "rasterFailed" | "initFailed" | "showText" | "showMap" | "showRaster";
 const MAP_INTERACTION_KEYS = ["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "+", "-", "PageUp", "PageDown"];
 
 export function isMapInteractionKey(key: string): boolean {
@@ -28,6 +28,7 @@ export function syncMapState(adapter: TrackerMapAdapter | undefined, nodes: Rout
 export function mapModeReducer(mode: MapMode, event: MapEvent): MapMode {
   if (event === "showText") return "text";
   if (event === "showMap") return "vector";
+  if (event === "showRaster") return "raster";
   if (event === "initFailed") return "text";
   if (event === "vectorFailed" && mode === "vector") return "raster";
   if (event === "rasterFailed" && mode === "raster") return "text";

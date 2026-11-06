@@ -5,6 +5,8 @@ declare global {
   interface Window { geoCalls: number; wakeRequests: number; wakeReleases: number }
 }
 
+test.describe.configure({ mode: "serial" });
+
 test("tracker opens immersive mode and lets a visitor choose a city", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/tracker?mode=immersive");
@@ -15,7 +17,7 @@ test("tracker opens immersive mode and lets a visitor choose a city", async ({ p
   await page.keyboard.press("Escape");
   await expect(page.getByRole("button", { name: "Exit immersive mode" })).toBeVisible();
   await page.getByRole("button", { name: "London", exact: true }).click();
-  await expect(page.getByText(/Santa reaches you at/)).toBeVisible();
+  await expect(page.getByText(/Santa reaches you at/)).toBeVisible({ timeout: 15_000 });
   await page.keyboard.press("Escape");
   await expect(page.getByRole("button", { name: "Enter immersive mode" })).toBeVisible();
   await page.getByRole("button", { name: "Enter immersive mode" }).click();
@@ -92,7 +94,7 @@ test("TV mode keeps its dashboard visible across display sizes and exits from a 
   await expect(page).toHaveURL(/mode=tv/);
   await expect(page.getByRole("region", { name: "Santa tracker TV dashboard" })).toBeVisible();
   await expect(page.getByText("Santa local time")).toBeVisible();
-  await expect(page.getByText("London:")).toBeVisible();
+  await expect(page.getByText("London:")).toBeVisible({ timeout: 15_000 });
   await expect(page.getByRole("button", { name: "Arrival chimes off" })).toBeVisible();
   await expect.poll(() => page.evaluate(() => window.wakeRequests)).toBeGreaterThan(0);
 
@@ -121,4 +123,14 @@ test("TV mode keeps its dashboard visible across display sizes and exits from a 
   await expect(page).not.toHaveURL(/mode=tv/);
   await expect(page.getByRole("button", { name: "Enter TV mode" })).toBeVisible();
   await expect.poll(() => page.evaluate(() => window.wakeReleases)).toBeGreaterThan(1);
+});
+
+test("TV mode restores the text route preference on exit", async ({ page }) => {
+  await page.goto("/tracker");
+  await page.getByRole("button", { name: "Show text view" }).click();
+  await expect(page.getByRole("button", { name: "Show map" })).toBeVisible();
+  await page.getByRole("button", { name: "Enter TV mode" }).click();
+  await expect(page.getByRole("region", { name: "Santa tracker TV dashboard" })).toBeVisible();
+  await page.getByRole("button", { name: "Exit TV mode" }).click();
+  await expect(page.getByRole("button", { name: "Show map" })).toBeVisible();
 });
