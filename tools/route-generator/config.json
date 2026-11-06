@@ -1,0 +1,17 @@
+{
+  "weights": {
+    "hub": 30,
+    "cultural": 25,
+    "underserved": 20,
+    "nature": 15,
+    "special": 10
+  },
+  "arrivalStartMinute": 20,
+  "arrivalEndMinute": 180,
+  "durationSeconds": 60,
+  "maxSpeedKmh": 100000,
+  "maxGapKm": 1200,
+  "maxCountryRun": 8,
+  "minimumStopsPerHour": 4,
+  "westernHours": 8
+}

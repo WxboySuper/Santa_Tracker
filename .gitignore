@@ -29,6 +29,8 @@ build/
 .next/
 .next-e2e-*/
 out/
+tools/route-generator/out/
+tools/route-generator/overrides.json
 next-env.d.ts
 *.tsbuildinfo
 *.egg-info/
