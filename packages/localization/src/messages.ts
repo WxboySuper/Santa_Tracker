@@ -52,6 +52,7 @@ export const en = {
   'tracker.recent': 'Recent stops',
   'tracker.notStarted': 'Journey not started',
   'tracker.complete': 'Journey complete',
+  'tracker.nextWaiting': 'The next stops will appear here once their times are known.',
   'tracker.unknown': 'Unavailable',
   'tracker.announcement': 'Current location: {location}',
   'tracker.immersive': 'Enter immersive mode',

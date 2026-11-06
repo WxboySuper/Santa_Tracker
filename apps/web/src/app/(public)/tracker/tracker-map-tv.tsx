@@ -43,7 +43,7 @@ export function TvTrackerDashboard({ locale, nodes, position, translator }: { lo
   return <section className="tracker-tv-panel" aria-label={translator.t("tracker.tvPanel")}>
     <TvDashboardHeader current={dashboard.current?.location.name} localTime={dashboard.santaLocalTime} translator={translator} />
     <TvProgress progress={dashboard.progressPercent} translator={translator} />
-    <TvNextStops stops={dashboard.nextStops} translator={translator} />
+    <TvNextStops stops={dashboard.nextStops} complete={dashboard.routeComplete} translator={translator} />
     <TvVisitorEstimate place={place} arrival={dashboard.visitorArrival} now={now} locale={locale} translator={translator} />
     <TvAudioToggle chimes={chimes} toggle={() => setChimes(value => !value)} translator={translator} />
     <TvArrivalNotice node={arrivalNotice} translator={translator} />
@@ -71,8 +71,8 @@ function TvProgress({ progress, translator }: { progress: number; translator: Tr
   </div>;
 }
 
-function TvNextStops({ stops, translator }: { stops: ReturnType<typeof deriveTvDashboard>["nextStops"]; translator: Translator }) {
-  if (!stops.length) return <section className="tracker-tv-stops"><h2>{translator.t("tracker.next")}</h2><p className="tracker-tv-muted">{translator.t("tracker.complete")}</p></section>;
+function TvNextStops({ stops, complete, translator }: { stops: ReturnType<typeof deriveTvDashboard>["nextStops"]; complete: boolean; translator: Translator }) {
+  if (!stops.length) return <section className="tracker-tv-stops"><h2>{translator.t("tracker.next")}</h2><p className="tracker-tv-muted">{translator.t(complete ? "tracker.complete" : "tracker.nextWaiting")}</p></section>;
   return <section className="tracker-tv-stops">
     <h2>{translator.t("tracker.next")}</h2>
     <ol>{stops.map((stop, index) => <li key={stop.id}>

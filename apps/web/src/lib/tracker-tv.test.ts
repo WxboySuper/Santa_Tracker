@@ -37,4 +37,15 @@ describe("deriveTvDashboard", () => {
     expect(data.visitorArrival).toBeNull();
     expect(data.current).toBeNull();
   });
+
+  it("marks the route complete only when no stop remains, not when remaining stops have unusable times", () => {
+    const base = { progress: 0.5, place: null, now, locale: "en-US" };
+    expect(deriveTvDashboard({ ...base, nodes: route, currentIndex: 3 }).routeComplete).toBe(true);
+    expect(deriveTvDashboard({ ...base, nodes: route, currentIndex: 0 }).routeComplete).toBe(false);
+    const broken = route.map((node, index) => (index > 0 ? { ...node, schedule: { arrival_utc: "not a time" } } : node)) as RouteNode[];
+    const data = deriveTvDashboard({ ...base, nodes: broken, currentIndex: 0 });
+    expect(data.nextStops).toEqual([]);
+    expect(data.routeComplete).toBe(false);
+    expect(deriveTvDashboard({ ...base, nodes: route, currentIndex: null }).routeComplete).toBe(false);
+  });
 });

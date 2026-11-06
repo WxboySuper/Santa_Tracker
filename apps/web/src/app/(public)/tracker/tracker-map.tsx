@@ -76,7 +76,8 @@ function restoreTrackerMode({ session, mode, setFollowing, dispatch, adapter }: 
   const previous = session.current;
   if (!previous) return;
   session.current = null;
-  if (mode !== previous.mode) dispatch(modeEvent(previous.mode));
+  // Only undo the map we forced for a text-mode visitor; a map that degraded during TV stays as it is.
+  if (previous.mode === "text" && mode !== "text") dispatch(modeEvent(previous.mode));
   setFollowing(previous.following);
   restoreMapFollowing(previous.following, adapter);
 }

@@ -12,6 +12,7 @@ export interface TvStop {
 export interface TvDashboardData {
   current: RouteNode | null;
   nextStops: TvStop[];
+  routeComplete: boolean;
   progressPercent: number;
   santaLocalTime: string;
   visitorArrival: Date | null;
@@ -42,10 +43,17 @@ export function deriveTvDashboard({ nodes, currentIndex, progress, place, now, l
   return {
     current,
     nextStops,
+    routeComplete: isRouteComplete(nodes, currentIndex),
     progressPercent: Math.round(Math.min(1, Math.max(0, progress)) * 100),
     santaLocalTime: formatLocalClock(now, current?.location.timezone_offset ?? 0, locale),
     visitorArrival,
   };
+}
+
+/** True only when no stop remains after the current one, as opposed to stops with unusable times. */
+function isRouteComplete(nodes: RouteNode[], currentIndex: number | null): boolean {
+  if (currentIndex === null) return false;
+  return currentIndex >= nodes.length - 1;
 }
 
 /** Returns the next three scheduled stops after the current route index. */
