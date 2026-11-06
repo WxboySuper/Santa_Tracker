@@ -64,7 +64,9 @@ describe("wired Advent days", () => {
     const days = await loadAdventCalendar({ filePath: file });
     for (const number of WRITTEN_DAYS) {
       const day = days.find((candidate) => candidate.day === number);
-      assertWrittenDay(day!, number);
+      expect(day, `day ${number} exists`).toBeDefined();
+      if (!day) continue;
+      assertWrittenDay(day, number);
     }
   });
 });
