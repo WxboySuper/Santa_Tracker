@@ -19,7 +19,7 @@ function compareWindow(left: StopWindow, right: StopWindow): number {
   return difference || compareStableIds(left.place.id, right.place.id);
 }
 
-function orderWindows(windows: StopWindow[], config: GeneratorConfig): StopWindow[] {
+function bucketWindows(windows: StopWindow[]): Map<number, StopWindow[]> {
   const buckets = new Map<number, StopWindow[]>();
   for (const window of windows) {
     const key = Math.floor(window.midpoint / HOUR_MS);
@@ -27,21 +27,45 @@ function orderWindows(windows: StopWindow[], config: GeneratorConfig): StopWindo
     bucket.push(window);
     buckets.set(key, bucket);
   }
+  return buckets;
+}
+
+function countryRunAllows(window: StopWindow, ordered: StopWindow[], maximumRun: number): boolean {
+  const previous = ordered.at(-1)?.place.country;
+  if (window.place.country !== previous) return true;
+  return ordered.slice(-maximumRun).filter((entry) => entry.place.country === window.place.country).length < maximumRun - 1;
+}
+
+function takeNearest(remaining: StopWindow[], current: LatLng): StopWindow | undefined {
+  return [...remaining].sort((left, right) => {
+    const distanceDifference = haversineKm(current, left.place) - haversineKm(current, right.place);
+    return distanceDifference || compareStableIds(left.place.id, right.place.id);
+  })[0];
+}
+
+function orderBucket(bucket: StopWindow[], ordered: StopWindow[], current: LatLng, maximumCountryRun: number): LatLng {
+  const remaining = [...bucket];
+  let position = current;
+  while (remaining.length > 0) {
+    const eligible = remaining.filter((window) => countryRunAllows(window, ordered, maximumCountryRun));
+    const choices = eligible.length > 0 ? eligible : remaining;
+    const next = takeNearest(choices, position);
+    if (!next) break;
+    remaining.splice(remaining.findIndex((window) => window.place.id === next.place.id), 1);
+    ordered.push(next);
+    position = next.place;
+  }
+  return position;
+}
+
+function orderWindows(windows: StopWindow[], config: GeneratorConfig): StopWindow[] {
+  const buckets = bucketWindows(windows);
   const ordered: StopWindow[] = [];
   let current: LatLng = { lat: 0, lng: 180 };
   const keys = [...buckets.keys()].sort((left, right) => left - right);
   for (const key of keys) {
     const remaining = buckets.get(key) ?? [];
-    while (remaining.length > 0) {
-      const eligible = remaining.filter((window) => window.place.country !== ordered.at(-1)?.place.country || ordered.slice(-config.maxCountryRun).filter((entry) => entry.place.country === window.place.country).length < config.maxCountryRun - 1);
-      const choices = eligible.length > 0 ? eligible : remaining;
-      choices.sort((left, right) => haversineKm(current, left.place) - haversineKm(current, right.place) || compareStableIds(left.place.id, right.place.id));
-      const next = choices[0];
-      if (!next) break;
-      remaining.splice(remaining.indexOf(next), 1);
-      ordered.push(next);
-      current = next.place;
-    }
+    current = orderBucket(remaining, ordered, current, config.maxCountryRun);
   }
   return ordered;
 }

@@ -52,10 +52,13 @@ function buildDocument(places: Candidate[], config: GeneratorConfig): { document
   LegacyRouteFixtureSchema.parse(document);
   return { document, route, coordinates };
 }
+function geometrySpeedLimit(config: GeneratorConfig): number {
+  return config.allowFastLegs ? Number.MAX_VALUE : config.maxSpeedKmh;
+}
 function validateGeneratedRoute(route: Route, coordinates: Map<string, LatLng>, config: GeneratorConfig): void {
   const validation = validateRoute(route);
   if (!validation.ok) throw new Error(`Invalid generated route: ${validation.issues.map((issue) => issue.message).join('; ')}`);
-  const geometry = validateRouteGeometry(route, coordinates, { maxSpeedKmh: config.allowFastLegs ? Number.MAX_VALUE : config.maxSpeedKmh });
+  const geometry = validateRouteGeometry(route, coordinates, { maxSpeedKmh: geometrySpeedLimit(config) });
   const errors = geometry.issues.filter((issue) => issue.severity === 'error').map((issue) => issue.message);
   if (errors.length) throw new Error(`Invalid route geometry: ${errors.join('; ')}`);
 }
@@ -102,7 +105,7 @@ export function generateRoute(pool: Candidate[], config: GeneratorConfig, overri
   validateGeneratedRoute(route, coordinates, config);
   const report = buildReport(ordered, route, config, coordinates);
   report.reorderedStops = reorderedStopCount(chosen, ordered);
-  report.issues = validateRouteGeometry(route, coordinates, { maxSpeedKmh: config.allowFastLegs ? Number.MAX_VALUE : config.maxSpeedKmh }).issues.map((issue) => issue.message);
+  report.issues = validateRouteGeometry(route, coordinates, { maxSpeedKmh: geometrySpeedLimit(config) }).issues.map((issue) => issue.message);
   addReportWarnings(report, config);
   if (report.speedWarnings.length > 0) {
     if (!config.allowFastLegs) throw new Error(`Leg speed ceiling ${config.maxLegSpeedKmh} km/h exceeded: ${report.speedWarnings.join('; ')}`);
