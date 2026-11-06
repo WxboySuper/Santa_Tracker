@@ -4,13 +4,23 @@ import path from "node:path";
 type ServerName = "closed" | "open";
 type Calendar = { days: { day: number; is_unlocked_override?: boolean }[] };
 
+function isCalendar(value: unknown): value is Calendar {
+  if (typeof value !== "object") return false;
+  if (value === null) return false;
+  if (Array.isArray(value)) return false;
+  return Array.isArray((value as { days?: unknown }).days);
+}
+
 function parseCalendar(source: string, filePath: string): Calendar {
+  let value: unknown;
   try {
-    return JSON.parse(source) as Calendar;
+    value = JSON.parse(source);
   } catch (error) {
     const reason = error instanceof Error ? error.message : String(error);
     throw new Error(`Could not parse Advent calendar at ${filePath}: ${reason}`, { cause: error });
   }
+  if (!isCalendar(value)) throw new Error(`Advent calendar at ${filePath} must contain a days array`);
+  return value;
 }
 
 async function writeServerData(name: ServerName, root: string, route: string, originalCalendar: Calendar): Promise<string> {

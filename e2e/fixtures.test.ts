@@ -35,6 +35,22 @@ test("calendar parse errors include the source path", async () => {
   }
 });
 
+test("calendar shape errors include the source path", async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), "santa-e2e-calendar-shape-test-"));
+  const source = path.join(root, "source");
+  const temporaryRoot = path.join(root, "temp");
+  await mkdir(source, { recursive: true });
+  await mkdir(temporaryRoot, { recursive: true });
+  const calendarPath = path.join(source, "advent_calendar.json");
+  try {
+    await writeFile(path.join(source, "santa_route.json"), "{}");
+    await writeFile(calendarPath, "{}");
+    await expect(prepareFixtureData(source, temporaryRoot)).rejects.toThrow(calendarPath);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
 test("runtime endpoints are cached per file for each worker", async () => {
   const root = await mkdtemp(path.join(os.tmpdir(), "santa-e2e-fixture-cache-test-"));
   const runtimeFile = path.join(root, "endpoints.json");

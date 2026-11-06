@@ -25,7 +25,8 @@ function isStringRecord(value: unknown): value is Record<string, string> {
 function isRuntimeConfig(value: unknown): value is RuntimeConfig {
   if (!isRecord(value)) return false;
   if (!isStringRecord(value.endpoints)) return false;
-  if (typeof value.adminPassword !== "string") return false;
+  if (Object.keys(value.endpoints).length === 0) return false;
+  if (!isNonEmptyString(value.adminPassword)) return false;
   return true;
 }
 

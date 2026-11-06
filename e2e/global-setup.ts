@@ -30,7 +30,7 @@ export default async function globalSetup(_config: FullConfig) {
     const dataRoots = await prepareFixtureData(path.join(appRoot, "data"), temporaryRoot);
     servers = startServers(appRoot, dataRoots, password, secret);
     const endpoints = await waitForServers(servers);
-    await writeFile(runtimeFile, JSON.stringify({ endpoints, adminPassword: password }));
+    await writeFile(runtimeFile, JSON.stringify({ endpoints, adminPassword: password }), { mode: 0o600 });
   } catch (error) {
     await cleanup(servers, temporaryRoot, runtimeFile);
     throw error;

@@ -14,8 +14,8 @@ function childHasExited(child: ChildProcess): boolean {
 
 async function isServerReady(endpoint: string): Promise<boolean> {
   try {
-    await fetch(endpoint, { signal: AbortSignal.timeout(5_000) });
-    return true;
+    const response = await fetch(endpoint, { signal: AbortSignal.timeout(5_000) });
+    return response.ok;
   } catch {
     return false;
   }
@@ -161,6 +161,10 @@ async function stopServer(child: ChildProcess): Promise<void> {
 
 export async function stopServers(entries: ServerEntry[]): Promise<void> {
   const results = await Promise.allSettled(entries.map(({ child }) => stopServer(child)));
-  const failure = results.find((result) => result.status === "rejected");
-  if (failure?.status === "rejected") throw failure.reason;
+  const failures = results.flatMap((result) => {
+    if (result.status !== "rejected") return [];
+    if (result.reason instanceof Error) return [result.reason];
+    return [new Error(String(result.reason))];
+  });
+  if (failures.length > 0) throw new AggregateError(failures, "Failed to stop Next.js servers");
 }
