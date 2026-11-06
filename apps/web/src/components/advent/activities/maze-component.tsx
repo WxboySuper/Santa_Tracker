@@ -2,16 +2,23 @@
 
 import { useMemo, useState, type PointerEvent, type KeyboardEvent } from "react";
 import { createTranslator } from "@santa-tracker/localization";
-import { generateMaze, moveThroughMaze, type MazeConfig, type MazeDirection } from "@/lib/maze";
+import { generateMaze, mazeConfigKey, moveThroughMaze, type MazeConfig, type MazeDirection } from "@/lib/maze";
 
 const KEY_DIRECTIONS: Record<string, MazeDirection> = {
   ArrowUp: "up", w: "up", W: "up", ArrowRight: "right", d: "right", D: "right",
   ArrowDown: "down", s: "down", S: "down", ArrowLeft: "left", a: "left", A: "left",
 };
 
+export const MAZE_DPAD_LAYOUT: readonly (MazeDirection | null)[] = [null, "up", null, "left", null, "right", null, "down", null];
+
 export function MazeActivity({ config, locale }: { config: MazeConfig; locale: string }) {
+  return <MazeBoard key={mazeConfigKey(config)} config={config} locale={locale} />;
+}
+
+function MazeBoard({ config, locale }: { config: MazeConfig; locale: string }) {
   const translator = createTranslator({ locale });
-  const maze = useMemo(() => generateMaze(config), [config]);
+  const { seed, size } = config;
+  const maze = useMemo(() => generateMaze({ seed, size }), [seed, size]);
   const [position, setPosition] = useState(maze.start);
   const [trail, setTrail] = useState<number[]>([maze.start]);
   const [swipeStart, setSwipeStart] = useState<{ x: number; y: number } | null>(null);
@@ -80,13 +87,10 @@ export function MazeActivity({ config, locale }: { config: MazeConfig; locale: s
         })}
       </div>
       <p className="text-center text-sm text-slate-300">{translator.t("advent.activity.maze.swipe")}</p>
-      <div className="mx-auto grid w-40 grid-cols-3 gap-2" aria-label={translator.t("advent.activity.maze.controls")}>
-        <span />
-        <DirectionButton direction="up" label={translator.t("advent.activity.maze.up")} onMove={move} />
-        <span />
-        <DirectionButton direction="left" label={translator.t("advent.activity.maze.left")} onMove={move} />
-        <DirectionButton direction="down" label={translator.t("advent.activity.maze.down")} onMove={move} />
-        <DirectionButton direction="right" label={translator.t("advent.activity.maze.right")} onMove={move} />
+      <div className="mx-auto grid w-40 grid-cols-3 gap-2" role="group" aria-label={translator.t("advent.activity.maze.controls")}>
+        {MAZE_DPAD_LAYOUT.map((direction, index) => direction === null
+          ? <span key={`spacer-${index}`} aria-hidden="true" />
+          : <DirectionButton key={direction} direction={direction} label={translator.t(`advent.activity.maze.${direction}`)} onMove={move} />)}
       </div>
       {complete ? <p className="rounded-xl bg-amber-50 p-4 text-center font-medium">{translator.t("advent.activity.maze.complete")}</p> : null}
       <div className="text-center"><button type="button" onClick={reset} className="rounded-lg border border-slate-400 px-4 py-2 font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-amber-500">{translator.t("advent.activity.maze.reset")}</button></div>

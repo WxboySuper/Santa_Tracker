@@ -35,6 +35,7 @@ interface ZonedFormat extends ZoneInstant {
 
 export const REFERENCE_START_UTC = Date.UTC(2026, 11, 24, 10);
 export const REFERENCE_END_UTC = Date.UTC(2026, 11, 25, 14);
+export const INITIAL_TIMEZONE_ORDER: PuzzleCity["id"][] = ["london", "tokyo", "honolulu", "kiritimati", "cairo", "auckland"];
 export const PUZZLE_CITIES: PuzzleCity[] = [
   { id: "kiritimati", name: "Kiritimati", timeZone: "Pacific/Kiritimati" },
   { id: "auckland", name: "Auckland", timeZone: "Pacific/Auckland" },
@@ -63,6 +64,10 @@ export function getCityClocks(options: CityClockOptions): CityClock[] {
 
 export function getOrderedCityIds(options: Pick<CityClockOptions, "referenceInstant">): string[] {
   return getCityClocks({ referenceInstant: options.referenceInstant }).sort((left, right) => left.midnightUtc - right.midnightUtc).map(({ id }) => id);
+}
+
+export function getInitialTimezoneOrder(): PuzzleCity["id"][] {
+  return [...INITIAL_TIMEZONE_ORDER];
 }
 
 export function getUtcOffsetMinutes(context: ZoneInstant): number {

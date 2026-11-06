@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { createTranslator, type MessageKey } from "@santa-tracker/localization";
-import { getCityClocks, REFERENCE_END_UTC, REFERENCE_START_UTC, type PuzzleCity, type TimezoneConfig } from "@/lib/timezones";
+import { getCityClocks, getInitialTimezoneOrder, REFERENCE_END_UTC, REFERENCE_START_UTC, type PuzzleCity, type TimezoneConfig } from "@/lib/timezones";
 
 const CITY_MESSAGE_KEYS: Record<PuzzleCity["id"], MessageKey> = {
   kiritimati: "advent.activity.timezones.city.kiritimati",
@@ -16,7 +16,7 @@ const CITY_MESSAGE_KEYS: Record<PuzzleCity["id"], MessageKey> = {
 export function TimezonesActivity({ locale }: { config: TimezoneConfig; locale: string }) {
   const translator = createTranslator({ locale });
   const [reference, setReference] = useState(REFERENCE_START_UTC);
-  const [order, setOrder] = useState<PuzzleCity["id"][]>(["kiritimati", "auckland", "tokyo", "cairo", "london", "honolulu"]);
+  const [order, setOrder] = useState<PuzzleCity["id"][]>(getInitialTimezoneOrder);
   const [feedback, setFeedback] = useState("");
   const clocks = useMemo(() => getCityClocks({ referenceInstant: reference, locale }), [locale, reference]);
   const clockById = new Map(clocks.map((city) => [city.id, city]));

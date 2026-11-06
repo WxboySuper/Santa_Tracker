@@ -31,6 +31,17 @@ interface PlacementSearch {
   placements: WordsearchPuzzle["placements"];
   size: number;
   random: () => number;
+  budget: PlacementBudget;
+}
+
+interface PlacementBudget {
+  attempts: number;
+  limit: number;
+}
+
+interface BoundedGeneration {
+  config: WordsearchConfig;
+  attemptLimit: number;
 }
 
 interface PlacementCheck {
@@ -72,7 +83,15 @@ interface SelectionVector {
   length: number;
 }
 
+interface SelectionCancelKey {
+  key: string;
+  selectionPending: boolean;
+}
+
 const DEFAULT_WORDS = ["CHIMNEY", "EMBER", "MITTENS", "LANTERN", "SOLSTICE", "EVERGREEN", "CINNAMON", "SNOWFALL", "CANDLE", "NIGHTSKY"];
+const GRID_SIZE = 15;
+const MAX_TOTAL_WORD_LETTERS = Math.floor(GRID_SIZE * GRID_SIZE * 0.8);
+export const MAX_WORDSEARCH_PLACEMENT_ATTEMPTS = 5000;
 const DIRECTIONS = [
   { row: -1, column: -1 }, { row: -1, column: 0 }, { row: -1, column: 1 },
   { row: 0, column: -1 }, { row: 0, column: 1 },
@@ -86,7 +105,13 @@ export function parseWordsearch(payload: unknown): WordsearchConfig | null {
   if (typeof seed !== "number" || !Number.isSafeInteger(seed)) return null;
   const parsedWords = isWordList({ value: words });
   if (parsedWords === null) return null;
+  if (!isPlausibleWordList(parsedWords)) return null;
   return { seed, words: parsedWords };
+}
+
+function isPlausibleWordList(words: string[]): boolean {
+  const totalLetters = words.reduce((total, word) => total + word.length, 0);
+  return totalLetters <= MAX_TOTAL_WORD_LETTERS;
 }
 
 function isWordList({ value }: ValueContext): string[] | null {
@@ -114,7 +139,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 function randomFor({ seed }: SeedContext): () => number {
-  let state = seed | 0;
+  let state = (seed | 0) || 0x9e3779b9;
   return () => {
     state ^= state << 13;
     state ^= state >>> 17;
@@ -124,14 +149,21 @@ function randomFor({ seed }: SeedContext): () => number {
 }
 
 /** Place longest words first, using seeded candidate order and backtracking when a later word cannot fit. */
-export function generateWordsearch({ seed, words }: WordsearchConfig): WordsearchPuzzle {
-  const size = 15;
+export function generateWordsearch(config: WordsearchConfig): WordsearchPuzzle {
+  return generateWordsearchWithLimit({ config, attemptLimit: MAX_WORDSEARCH_PLACEMENT_ATTEMPTS });
+}
+
+export function generateWordsearchWithLimit({ config, attemptLimit }: BoundedGeneration): WordsearchPuzzle {
+  const { seed, words } = config;
+  const size = GRID_SIZE;
+  if (!isPlausibleWordList(words)) throw new Error("Word list cannot plausibly fit in a 15 by 15 grid");
+  if (!Number.isInteger(attemptLimit) || attemptLimit < 1) throw new Error("Placement attempt limit must be a positive integer");
   const random = randomFor({ seed });
   const grid: (string | null)[][] = Array.from({ length: size }, () => Array(size).fill(null));
   const placements: WordsearchPuzzle["placements"] = [];
   const ordered = [...words].sort((a, b) => b.length - a.length || a.localeCompare(b));
-  const search = { words: ordered, wordIndex: 0, grid, placements, size, random };
-  if (!placeWords(search)) throw new Error("Unable to place every word");
+  const search = { words: ordered, wordIndex: 0, grid, placements, size, random, budget: { attempts: 0, limit: attemptLimit } };
+  if (!placeWords(search)) throw new Error(`Unable to place every word within ${attemptLimit} candidate attempts`);
 
   const filledGrid = grid.map((row) => row.map((cell) => cell ?? randomLetter({ random })));
   return { grid: filledGrid, placements };
@@ -142,11 +174,13 @@ function randomLetter({ random }: RandomContext): string {
 }
 
 function placeWords(search: PlacementSearch): boolean {
-  const { words, wordIndex, grid, placements, size, random } = search;
+  const { words, wordIndex, grid, placements, size, random, budget } = search;
   if (wordIndex >= words.length) return true;
   const word = words[wordIndex];
   if (!word) return true;
   for (const candidate of getCandidates({ word, size, random })) {
+    if (budget.attempts >= budget.limit) return false;
+    budget.attempts += 1;
     if (!canPlace({ grid, word, candidate, size })) continue;
     const { cells, added } = writeWord({ grid, word, candidate, size });
     placements.push({ word, cells });
@@ -223,6 +257,10 @@ export function wordAtSelection({ startCell, endCell, gridSize }: WordSelection)
   const rowStep = Math.sign(rowDistance);
   const columnStep = Math.sign(columnDistance);
   return Array.from({ length: length + 1 }, (_, index) => (startRow + rowStep * index) * gridSize + startColumn + columnStep * index);
+}
+
+export function shouldCancelWordsearchSelection({ key, selectionPending }: SelectionCancelKey): boolean {
+  return selectionPending && key === "Escape";
 }
 
 function isStraightSelection({ rowDistance, columnDistance, length }: SelectionVector): boolean {

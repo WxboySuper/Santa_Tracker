@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { generateWordsearch, parseWordsearch, wordAtSelection } from "./wordsearch";
+import { generateWordsearch, generateWordsearchWithLimit, parseWordsearch, shouldCancelWordsearchSelection, wordAtSelection } from "./wordsearch";
 
 const config = parseWordsearch({ kind: "wordsearch" });
 
@@ -28,10 +28,32 @@ describe("wordsearch", () => {
     }
   });
 
+  it("varies the filler grid for seed zero", () => {
+    const zero = generateWordsearch({ ...config!, seed: 0 });
+    expect(new Set(zero.grid.flat()).size).toBeGreaterThan(1);
+    expect(zero).not.toEqual(generateWordsearch({ ...config!, seed: 1 }));
+  });
+
+  it("rejects overly dense lists and bounds adversarial placement attempts", () => {
+    const denseWords = Array.from({ length: 16 }, (_, index) => `ABCDEFGHIJK${String.fromCharCode(65 + index)}`);
+    expect(parseWordsearch({ kind: "wordsearch", words: denseWords })).toBeNull();
+    expect(() => generateWordsearchWithLimit({
+      config: { seed: 4, words: ["AAAAAAAAAAAB", "AAAAAAAAAAAC"] },
+      attemptLimit: 1,
+    })).toThrow("Unable to place every word within 1 candidate attempts");
+  });
+
   it("returns straight selections in eight directions", () => {
     expect(wordAtSelection({ startCell: 0, endCell: 32, gridSize: 15 })).toEqual([0, 16, 32]);
     expect(wordAtSelection({ startCell: 2, endCell: 30, gridSize: 15 })).toEqual([2, 16, 30]);
     expect(wordAtSelection({ startCell: 3, endCell: 19, gridSize: 15 })).toEqual([3, 19]);
     expect(wordAtSelection({ startCell: 0, endCell: 17, gridSize: 15 })).toBeNull();
+    expect(wordAtSelection({ startCell: 7, endCell: 7, gridSize: 15 })).toBeNull();
+  });
+
+  it("cancels a pending keyboard selection on Escape", () => {
+    expect(shouldCancelWordsearchSelection({ key: "Escape", selectionPending: true })).toBe(true);
+    expect(shouldCancelWordsearchSelection({ key: "Escape", selectionPending: false })).toBe(false);
+    expect(shouldCancelWordsearchSelection({ key: "Enter", selectionPending: true })).toBe(false);
   });
 });

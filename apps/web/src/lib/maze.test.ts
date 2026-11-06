@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { generateMaze, mazeNeighbors, moveThroughMaze, parseMaze, solveMaze } from "./maze";
+import { MAZE_DPAD_LAYOUT } from "@/components/advent/activities/maze-component";
+import { generateMaze, mazeConfigKey, mazeNeighbors, moveThroughMaze, parseMaze, solveMaze } from "./maze";
 
 describe("maze", () => {
   it("parses the size and seed defensively", () => {
@@ -24,5 +25,30 @@ describe("maze", () => {
       .find((direction) => !maze.cells[0]!.walls[direction]);
     expect(openDirection).toBeDefined();
     expect(moveThroughMaze(maze, maze.start, openDirection!)).not.toBe(maze.start);
+  });
+
+  it("uses a new state key when the seed or size changes", () => {
+    expect(mazeConfigKey({ seed: 1, size: "small" })).not.toBe(mazeConfigKey({ seed: 1, size: "large" }));
+    expect(mazeConfigKey({ seed: 1, size: "small" })).not.toBe(mazeConfigKey({ seed: 2, size: "small" }));
+  });
+
+  it("places the d-pad down control in the bottom center cell", () => {
+    expect(MAZE_DPAD_LAYOUT).toEqual([null, "up", null, "left", null, "right", null, "down", null]);
+  });
+
+  it("keeps seed zero varied and deterministic", () => {
+    const zero = generateMaze({ seed: 0, size: "small" });
+    expect(generateMaze({ seed: 0, size: "small" })).toEqual(zero);
+    expect(zero).not.toEqual(generateMaze({ seed: 1, size: "small" }));
+  });
+
+  it("leaves an invalid position unchanged and prevents crossing an open outer wall", () => {
+    const maze = generateMaze({ seed: 3, size: "small" });
+    for (const current of [-1, maze.cells.length, 1.5, Number.NaN]) {
+      expect(moveThroughMaze(maze, current, "up")).toBe(current);
+    }
+    const broken = { ...maze, cells: maze.cells.map((cell) => ({ walls: { ...cell.walls } })) };
+    broken.cells[0]!.walls.up = false;
+    expect(moveThroughMaze(broken, 0, "up")).toBe(0);
   });
 });

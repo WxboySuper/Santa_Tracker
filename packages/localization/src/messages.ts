@@ -191,6 +191,7 @@ export const en = {
   'advent.activity.lightshow.saveUnavailable': 'This arrangement will last for this visit.',
   'advent.activity.wordsearch.title': 'Winter word search',
   'advent.activity.wordsearch.instructions': 'Trace a word in any straight direction. On a keyboard, move with the arrows, press Enter or Space to mark each end, and let the letters do the walking.',
+  'advent.activity.wordsearch.unavailable': 'This word search could not be laid out. The letters are having a quiet day.',
   'advent.activity.wordsearch.cell': 'Row {row}, column {column}, {letter}',
   'advent.activity.wordsearch.listTitle': 'Words in the snow',
   'advent.activity.wordsearch.found': 'Found {word}. It was hiding in plain sight.',

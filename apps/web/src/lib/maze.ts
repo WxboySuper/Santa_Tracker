@@ -18,6 +18,10 @@ export interface Maze {
   goal: number;
 }
 
+export function mazeConfigKey(config: MazeConfig): string {
+  return `${config.seed}:${config.size}`;
+}
+
 interface MazeNeighborContext {
   maze: Maze;
   cell: number;
@@ -102,7 +106,7 @@ function getNeighbors(cell: number, width: number): { cell: number; direction: M
 }
 
 function randomFor(seed: number): () => number {
-  let state = seed | 0;
+  let state = (seed | 0) || 0x9e3779b9;
   return () => {
     state ^= state << 13;
     state ^= state >>> 17;
@@ -156,8 +160,14 @@ function buildPath(previous: Map<number, number | null>, goal: number): number[]
 }
 
 export function moveThroughMaze(maze: Maze, current: number, direction: MazeDirection): number {
+  if (!Number.isInteger(current) || current < 0 || current >= maze.cells.length) return current;
   if (maze.cells[current]?.walls[direction]) return current;
-  return current + DELTAS[direction].row * maze.width + DELTAS[direction].column;
+  const row = Math.floor(current / maze.width);
+  const column = current % maze.width;
+  const nextRow = row + DELTAS[direction].row;
+  const nextColumn = column + DELTAS[direction].column;
+  if (nextRow < 0 || nextRow >= maze.height || nextColumn < 0 || nextColumn >= maze.width) return current;
+  return nextRow * maze.width + nextColumn;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
