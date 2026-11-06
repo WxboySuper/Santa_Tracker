@@ -24,6 +24,7 @@ describe("estimateArrival", () => {
 describe("validateStoredPlace", () => {
   it("accepts route stops and curated cities with valid fields", () => {
     expect(validateStoredPlace({ name: "East", lat: 40, lng: -73 }, route)?.name).toBe("East");
+    expect(validateStoredPlace({ name: "East", lat: 40.01, lng: -73 }, route)?.name).toBe("East");
     expect(validateStoredPlace({ name: "London", lat: 51.5072, lng: -0.1276, timezone: "Europe/London" }, route)?.name).toBe("London");
     expect(validateStoredPlace({ name: "America/New_York", timezone: "America/New_York" }, route)?.timezone).toBe("America/New_York");
   });
@@ -37,6 +38,7 @@ describe("validateStoredPlace", () => {
     { name: "Removed Stop", lat: 40, lng: -73 },
     { name: "New York", lat: 40, lng: -73 },
     { name: "Local", timezone: "Unknown/Zone" },
+    { name: "Someone Else", timezone: "America/New_York" },
   ])("rejects malformed or stale stored choices: %o", value => {
     expect(validateStoredPlace(value, route)).toBeNull();
   });

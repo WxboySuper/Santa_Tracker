@@ -15,7 +15,7 @@ function isSantaRoute(value: unknown): boolean {
 function shiftRouteToLiveWindow(route: string): string {
 	const parsed: unknown = JSON.parse(route);
 	if (!isSantaRoute(parsed)) return route;
-	const nodes = (parsed as { route_nodes: { schedule?: Record<string, unknown> }[] }).route_nodes;
+  const nodes = (parsed as { route_nodes: { schedule?: unknown }[] }).route_nodes;
 	const shift = liveWindowShift(nodes);
 	if (shift === null) return route;
 	for (const node of nodes) shiftNodeTimes(node, shift);
@@ -23,18 +23,30 @@ function shiftRouteToLiveWindow(route: string): string {
 }
 
 /** Returns a shift that centers the route schedule on the current time. */
-function liveWindowShift(nodes: { schedule?: Record<string, unknown> }[]): number | null {
-	const times = nodes.flatMap(node => [node.schedule?.arrival_utc, node.schedule?.departure_utc])
-		.filter((value): value is string => typeof value === "string")
-		.map(Date.parse).filter(Number.isFinite);
-	if (times.length < 2) return null;
-	return Date.now() - (Math.min(...times) + (Math.max(...times) - Math.min(...times)) / 2);
+function liveWindowShift(nodes: { schedule?: unknown }[]): number | null {
+	let minimum = Infinity;
+	let maximum = -Infinity;
+	let count = 0;
+	for (const node of nodes) {
+		if (!isRecord(node.schedule)) continue;
+		for (const key of ["arrival_utc", "departure_utc"] as const) {
+			const candidate = node.schedule[key];
+			if (typeof candidate !== "string") continue;
+			const time = Date.parse(candidate);
+			if (!Number.isFinite(time)) continue;
+			minimum = Math.min(minimum, time);
+			maximum = Math.max(maximum, time);
+			count++;
+		}
+	}
+	if (count < 2) return null;
+	return Date.now() - (minimum + (maximum - minimum) / 2);
 }
 
 /** Moves a route node's arrival and departure by the same interval. */
-function shiftNodeTimes(node: { schedule?: Record<string, unknown> }, shift: number): void {
+function shiftNodeTimes(node: { schedule?: unknown }, shift: number): void {
 	const schedule = node.schedule;
-	if (!schedule) return;
+	if (!isRecord(schedule)) return;
 	for (const key of ["arrival_utc", "departure_utc"] as const) {
 		const value = schedule[key];
 		if (typeof value !== "string") continue;

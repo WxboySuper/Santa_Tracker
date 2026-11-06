@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { useCallback, useEffect, useState, type Dispatch, type RefObject } from "react";
+import { useCallback, useEffect, useRef, useState, type Dispatch, type RefObject } from "react";
 import Countdown from "@/components/countdown";
 import type { createTranslator } from "@santa-tracker/localization";
 import type { RouteNode } from "@/lib/locations";
@@ -70,34 +70,48 @@ function MapControls({ mode, following, dispatch, translator, adapter, setFollow
 }
 
 /** Hides immersive controls after idle and restores them on activity. */
-function useIdleControls(viewMode: TrackerViewMode) {
+function useIdleControls(viewMode: TrackerViewMode, stageRef: RefObject<HTMLDivElement | null>) {
   const [visible, setVisible] = useState(true);
   const [activity, setActivity] = useState(0);
   const wake = useCallback(() => { setVisible(true); setActivity(value => value + 1); }, []);
   useEffect(() => {
     if (viewMode !== "immersive") { setVisible(true); return; }
-    const timer = window.setTimeout(() => setVisible(false), 4500);
+    const timer = window.setTimeout(() => {
+      if (focusedControlWithin(stageRef)) return;
+      setVisible(false);
+    }, 4500);
     return () => window.clearTimeout(timer);
-  }, [activity, viewMode]);
+  }, [activity, stageRef, viewMode]);
   return { visible, wake };
+}
+
+function focusedControlWithin(stageRef: RefObject<HTMLDivElement | null>): boolean {
+  const active = document.activeElement;
+  if (!(active instanceof HTMLElement)) return false;
+  if (!stageRef.current?.contains(active)) return false;
+  return active.closest(".tracker-controls") !== null;
 }
 
 /** Restores controls for keyboard input and handles the immersive Escape key. */
 function handleTrackerKey(event: React.KeyboardEvent<HTMLDivElement>, wake: () => void, immersive: boolean, toggle: () => void): void {
   wake();
+  if (event.key !== "Escape") return;
+  if (!immersive) return;
   const target = event.target;
-  const isTextEntry = target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement || target instanceof HTMLSelectElement;
-  if (event.key === "Escape" && immersive && !isTextEntry) toggle();
+  const tagName = target instanceof HTMLElement ? target.tagName : "";
+  if (["INPUT", "TEXTAREA", "SELECT"].includes(tagName)) return;
+  toggle();
 }
 
 /** Composes the standard map, text view, and immersive tracker presentation. */
 export function TrackerMapView(props: TrackerMapViewProps) {
   const { adventEnabled, locale, translator, element, adapter, mode, dispatch, nodes, position, current, status, following, setFollowing, viewMode, toggleImmersive } = props;
   const immersive = viewMode === "immersive";
-  const { visible, wake } = useIdleControls(viewMode);
+  const stageRef = useRef<HTMLDivElement>(null);
+  const { visible, wake } = useIdleControls(viewMode, stageRef);
   return <>
     <TrackerNavigation adventEnabled={adventEnabled} immersive={immersive} translator={translator} />
-    <div className={stageClass(immersive)} onPointerMove={wake} onPointerDown={wake} onFocusCapture={wake} onKeyDown={event => handleTrackerKey(event, wake, immersive, toggleImmersive)}>
+    <div ref={stageRef} className={stageClass(immersive)} onPointerMove={wake} onPointerDown={wake} onFocusCapture={wake} onBlurCapture={wake} onKeyDown={event => handleTrackerKey(event, wake, immersive, toggleImmersive)}>
       <MapSurface mode={mode} element={element} nodes={nodes} position={position} translator={translator} locale={locale} />
       <TrackerControls mode={mode} following={following} dispatch={dispatch} translator={translator} adapter={adapter} setFollowing={setFollowing} immersive={immersive} visible={visible} toggleImmersive={toggleImmersive} />
       <MapInstructions mode={mode} translator={translator} />

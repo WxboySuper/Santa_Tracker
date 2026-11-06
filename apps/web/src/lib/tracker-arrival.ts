@@ -17,16 +17,18 @@ export function estimateArrival(place: ChosenPlace, route: RouteNode[], now: Dat
 /** Measures coordinate distance or time-zone offset when coordinates are absent. */
 function distance(place: ChosenPlace, node: RouteNode): number {
   if (place.lat !== undefined && place.lng !== undefined) return Math.hypot(place.lat - node.location.lat, (place.lng - node.location.lng) * Math.cos(place.lat * Math.PI / 180));
-  const offset = place.timezone ? timezoneOffset(place.timezone) : 0;
+  const arrival = node.schedule?.arrival_utc;
+  const offset = place.timezone && arrival ? timezoneOffset(place.timezone, new Date(arrival)) : 0;
   return Math.abs(offset - (node.location.timezone_offset ?? 0));
 }
 
-/** Reads a time zone's UTC offset at Christmas. */
-function timezoneOffset(timezone: string): number {
+/** Reads a time zone's UTC offset at the candidate stop's arrival instant. */
+function timezoneOffset(timezone: string, instant: Date): number {
   try {
-    const parts = new Intl.DateTimeFormat("en", { timeZone: timezone, timeZoneName: "longOffset" }).formatToParts(new Date("2026-12-25T12:00:00Z"));
-    const label = parts.find(part => part.type === "timeZoneName")?.value ?? "GMT";
-    const match = /GMT([+-])(\d{2}):(\d{2})/.exec(label);
-    return match ? (match[1] === "+" ? 1 : -1) * (Number(match[2]) + Number(match[3]) / 60) : 0;
+    const parts = new Intl.DateTimeFormat("en-US", { timeZone: timezone, year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit", hourCycle: "h23" }).formatToParts(instant);
+    const value = (type: Intl.DateTimeFormatPartTypes) => Number(parts.find(part => part.type === type)?.value);
+    const localAsUtc = Date.UTC(value("year"), value("month") - 1, value("day"), value("hour"), value("minute"), value("second"));
+    if (!Number.isFinite(localAsUtc)) return 0;
+    return (localAsUtc - Math.floor(instant.getTime() / 1000) * 1000) / 3_600_000;
   } catch { return 0; }
 }

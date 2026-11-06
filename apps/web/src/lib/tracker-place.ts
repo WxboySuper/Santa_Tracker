@@ -1,6 +1,8 @@
 import type { RouteNode } from "./locations";
 import type { ChosenPlace } from "./tracker-arrival";
 
+const PLACE_COORDINATE_TOLERANCE = 0.03;
+
 /** Curated coordinate choices accepted by the local-storage validator. */
 export const CURATED_CITIES: ChosenPlace[] = [
   { name: "New York", lat: 40.7128, lng: -74.006, timezone: "America/New_York" },
@@ -44,8 +46,10 @@ function hasValidCoordinatePair(value: Record<string, unknown>): boolean {
 function hasValidTimezone(value: Record<string, unknown>): boolean {
   if (value.timezone === undefined) return typeof value.lat === "number";
   if (typeof value.timezone !== "string") return false;
-  try { new Intl.DateTimeFormat("en", { timeZone: value.timezone }); return true; }
+  try { new Intl.DateTimeFormat("en", { timeZone: value.timezone }); }
   catch { return false; }
+  if (typeof value.lat === "number") return true;
+  return value.name === value.timezone;
 }
 
 function hasKnownCoordinates(value: ChosenPlace, route: RouteNode[]): boolean {
@@ -56,6 +60,7 @@ function hasKnownCoordinates(value: ChosenPlace, route: RouteNode[]): boolean {
 
 function matchesCoordinates(value: ChosenPlace, location: { name: string; lat?: number; lng?: number }): boolean {
   if (value.name !== location.name) return false;
-  if (value.lat !== location.lat) return false;
-  return value.lng === location.lng;
+  if (value.lat === undefined || value.lng === undefined || location.lat === undefined || location.lng === undefined) return false;
+  if (Math.abs(value.lat - location.lat) > PLACE_COORDINATE_TOLERANCE) return false;
+  return Math.abs(value.lng - location.lng) <= PLACE_COORDINATE_TOLERANCE;
 }

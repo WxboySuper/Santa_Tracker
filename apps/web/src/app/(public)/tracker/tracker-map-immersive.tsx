@@ -19,6 +19,8 @@ export function ImmersiveTrackerOverlays({ locale, nodes, position, current, tra
   const [arrivalNotice, setArrivalNotice] = useState<RouteNode | null>(null);
   const [chimes, setChimes] = useState(false);
   const previousStop = useRef<number | null>(null);
+  const chimesEnabled = useRef(false);
+  const updateChimes = useCallback((enabled: boolean) => { chimesEnabled.current = enabled; setChimes(enabled); }, []);
   useEffect(() => {
     const timer = window.setInterval(() => setNow(new Date()), 1000);
     return () => window.clearInterval(timer);
@@ -29,14 +31,14 @@ export function ImmersiveTrackerOverlays({ locale, nodes, position, current, tra
     if (arrived) setArrivalNotice(arrived);
     previousStop.current = index;
   }, [position, nodes]);
-  useEffect(() => showArrivalNotice(arrivalNotice, chimes, setArrivalNotice), [arrivalNotice, chimes]);
+  useEffect(() => clearArrivalNotice(arrivalNotice, chimesEnabled.current, setArrivalNotice), [arrivalNotice]);
   const nextIndex = position?.journey.nextIndex ?? null;
   const next = nextIndex === null ? undefined : nodes[nextIndex];
   return <>
     <ImmersiveJourneyHud current={current} next={next} progress={position?.journey.progress ?? 0} now={now} translator={translator} />
     {arrivalNotice && <ArrivalNoticeCard node={arrivalNotice} translator={translator} />}
     <div className={controlsVisible ? "tracker-controls" : "tracker-controls tracker-controls-hidden"}>
-      <AudioToggle chimes={chimes} setChimes={setChimes} translator={translator} />
+      <AudioToggle chimes={chimes} setChimes={updateChimes} translator={translator} />
       <FindMePanel locale={locale} nodes={nodes} now={now} translator={translator} />
     </div>
   </>;
@@ -51,12 +53,17 @@ function stopAfterChange(current: number | null, previous: number | null, nodes:
 }
 
 /** Plays an opted-in chime and clears the arrival card after a short pause. */
-function showArrivalNotice(node: RouteNode | null, chimes: boolean, clear: (node: RouteNode | null) => void): (() => void) | undefined {
+function clearArrivalNotice(node: RouteNode | null, chimes: boolean, clear: (node: RouteNode | null) => void): (() => void) | undefined {
   if (!node) return undefined;
-  const audio = createAudioController(audioPreferencesFrom({ enabled: chimes, reducedSensory: window.matchMedia("(prefers-reduced-motion: reduce)").matches }), { play: playArrivalChime });
-  audio.play("arrival");
+  playArrivalNoticeChime(chimes);
   const timeout = window.setTimeout(() => clear(null), 6500);
   return () => { window.clearTimeout(timeout); };
+}
+
+function playArrivalNoticeChime(chimes: boolean): void {
+  if (!chimes) return;
+  const audio = createAudioController(audioPreferencesFrom({ enabled: true, reducedSensory: window.matchMedia("(prefers-reduced-motion: reduce)").matches }), { play: playArrivalChime });
+  audio.play("arrival");
 }
 
 /** Lets the visitor opt in to synthesized stop chimes. */
@@ -123,7 +130,7 @@ function FindMePanel({ locale, nodes, now, translator }: { locale: string; nodes
     </div>
     <label className="mt-3 block text-sm" htmlFor="tracker-city">{translator.t("tracker.chooseCity")}</label>
     <input id="tracker-city" value={search} onChange={event => setSearch(event.target.value)} placeholder={translator.t("tracker.citySearch")} className="mt-1 w-full rounded bg-white px-3 py-2 text-slate-950" />
-    <ul className="mt-2 max-h-28 overflow-auto">{cityOptions.slice(0, 8).map(option => <li key={option.name}><button className="w-full rounded px-2 py-1 text-left hover:bg-white/10" onClick={() => choosePlace(option, setPlace, setPersistChoice)}>{option.name}</button></li>)}</ul>
+    <ul className="mt-2 max-h-28 overflow-auto">{cityOptions.slice(0, 8).map(option => <li key={`${option.name}-${option.lat}-${option.lng}`}><button className="w-full rounded px-2 py-1 text-left hover:bg-white/10" onClick={() => choosePlace(option, setPlace, setPersistChoice)}>{option.name}</button></li>)}</ul>
     {permissionFailed && <p role="status" className="mt-2 text-sm">{translator.t("tracker.locationPermission")}</p>}
     {estimate && <ArrivalEstimateCard estimate={estimate} now={now} locale={locale} translator={translator} />}
   </section>;
