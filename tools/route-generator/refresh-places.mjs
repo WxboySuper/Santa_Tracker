@@ -16,17 +16,17 @@ const places = [];
 for (;;) {
   const item = await source.read();
   if (item.done) break;
-  const p = item.value.properties;
+  const properties = item.value.properties;
   const coordinates = coordinatesFromGeometry(item.value?.geometry);
-  if (!p.name || !p.adm0name || !p.ne_id) continue;
+  if (!properties.name || !properties.adm0name || !properties.ne_id) continue;
   if (!coordinates) continue;
   const { lat, lng } = coordinates;
   places.push({
-    id: `ne-${p.ne_id}`, name: p.name, country: p.adm0name,
-    lat, lng, population: p.pop_max, worldCity: Boolean(p.worldcity),
+    id: `ne-${properties.ne_id}`, name: properties.name, country: properties.adm0name,
+    lat, lng, population: properties.pop_max, worldCity: Boolean(properties.worldcity),
     timezone: lookup(lat, lng),
   });
 }
 places.sort((a, b) => a.id.localeCompare(b.id, 'en'));
 await writeFile(new URL('./data/places.json', import.meta.url), `${JSON.stringify(places)}\n`);
-console.log(`Wrote ${places.length} populated places`);
+process.stdout.write(`Wrote ${places.length} populated places\n`);

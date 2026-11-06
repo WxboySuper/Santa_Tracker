@@ -44,4 +44,4 @@ for (const [category, categoryIds] of Object.entries(seeds)) {
   }
 }
 await writeFile(new URL('./data/curated.json', import.meta.url), `${JSON.stringify(places, null, 2)}\n`);
-console.log(`Wrote ${places.length} curated places`);
+process.stdout.write(`Wrote ${places.length} curated places\n`);

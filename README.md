@@ -1,94 +1,49 @@
-# 🎅 Santa Tracker — Next.js + TypeScript
+# Santa Tracker
 
-[![Tests](https://img.shields.io/github/actions/workflow/status/WxboySuper/Santa_Tracker/testing.yml?branch=main&label=tests&style=flat-square)](https://github.com/WxboySuper/Santa_Tracker/actions)
-[![Next.js](https://img.shields.io/badge/next.js-15-black?style=flat-square)](https://nextjs.org/)
-[![TypeScript](https://img.shields.io/badge/typescript-5-blue?style=flat-square)](https://www.typescriptlang.org/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](https://opensource.org/licenses/MIT)
+Santa Tracker is a Next.js app in a pnpm workspace. The production app runs on Cloudflare Workers through vinext. The former Flask app remains under `src/` and `archive/` for historical reference; neither is part of the live runtime.
 
-Track Santa's magical journey around the world on Christmas Eve — rebuilt as a single Next.js App Router application (TypeScript, pnpm workspace) per [ADR 0001](docs/adr/0001-application-architecture.md). Flask has been retired; see `archive/` for provenance.
+## Local development
 
-## Features
+Requirements: Node.js 22.13 or newer and pnpm 10 or newer.
 
-- Interactive map (Leaflet) + countdown + tracker at `/tracker`
-- Advent Village at `/advent` (gated by `ADVENT_ENABLED`, manifest + day APIs with server-authoritative unlock)
-- Protected admin studio at `/admin` and `/admin/route-simulator` (JWT, no password bearer fallback, route group protected)
-- Route CRUD, validation, import, simulation, trial lifecycle, backup export
-- Advent editor (days, toggle-unlock, validate, export/import)
-- PWA with curated offline fallback (`/offline`, `/sw.js` cache policy fixed vs Flask's `/index.html` split)
-- Atomic JSON writes + versioned `.history/` snapshots, rollback via previous snapshot activation
-
-## Quick Start
-
-```bash
+```sh
 pnpm install
-cp .env.example .env  # set ADMIN_PASSWORD + SECRET_KEY (min 16 chars)
-pnpm dev              # http://localhost:3000
-# production
-pnpm --filter web build && pnpm --filter web start
-```
-
-### Start the local stack
-
-After installation, check prerequisites and start the Next.js dev server with one command:
-
-```bash
 pnpm bootstrap
 ```
 
-The command checks Node.js and pnpm, then runs `pnpm dev` at `http://localhost:3000`. No database or Docker is needed;
-local route and Advent data use the filesystem snapshot store.
+`pnpm bootstrap` checks the tool versions and starts the development server at `http://localhost:3000`. To start it directly, use `pnpm dev`. Local route and Advent changes use the filesystem snapshot store.
 
-For a toolchain check on a machine without Docker, run `pnpm bootstrap --check --skip-docker`. The normal check also
-confirms that the Docker engine is running.
+## What is in the workspace
 
-### Environment
+- `apps/web`: Next.js pages, APIs, admin tools, and the vinext Worker entry point.
+- `packages/route-engine`: journey state, great-circle geometry, and geometry validation.
+- `packages/contracts`: shared schemas and stable IDs.
+- `packages/config`: shared configuration.
+- `packages/localization`: localized content and helpers.
+- `packages/ui`: shared UI components.
+- `packages/activity-sdk`: lifecycle helpers for Advent activities.
+- `packages/test-fixtures`: clocks, routes, snapshots, and legacy fixtures.
+- `src/` and `archive/`: retired Flask/Python code, kept for historical reference and archival checks.
 
-Env: `SECRET_KEY`, `ADMIN_PASSWORD`, `ADVENT_ENABLED=True/False`, `LOG_LEVEL`, `JSON_LOGS`, `SANTA_ROUTE_PATH`, `ADVENT_CALENDAR_PATH`.
+Production route and Advent snapshots live in the `SANTA_SNAPSHOTS` R2 bucket. Local development uses `apps/web/data/.versioned`, which is gitignored. PostgreSQL and `packages/database` were removed; see [ADR 0003](docs/adr/0003-drop-postgres-r2-snapshots.md).
 
-## Workspace
+## Season access
 
-```
-apps/web                 # Next.js public site, admin, APIs, jobs (standalone output)
-packages/
-  config/                # Typed env + validation (fail-closed in prod)
-  contracts/             # Zod schemas + stable IDs
-  route-engine/          # Pure validation/simulation/unlock (no Next/F S/clock)
-  ui/                    # Shared primitives
-  activity-sdk/          # Activity lifecycle
-  test-fixtures/         # Clocks, routes, snapshots, and frozen legacy fixtures
-archive/
-  flask-legacy/          # Retired src/app.py, config.py, utils, requirements
-  route-data-2025-12-20/ # Snapshot of Route Data/ at audit commit 41c96a6
-  DEPLOYMENT-flask-legacy.md
-  offline-flask-legacy.html
-```
+The tracker opens to visitors 10 minutes before takeoff, at 09:50 UTC on December 24, and closes at 00:00 UTC on January 7. Advent opens at 00:00 UTC on November 30 and closes at the same January boundary. Outside those windows, public pages and APIs return 404. An authenticated admin can still preview them. For local or preview work, `SEASON_OVERRIDE=open` opens both features.
 
-Dependency direction per ADR: `web -> route-engine/contracts`, etc. Flask and Python are not used by production or deploy paths. CI keeps archive-only Python checks for the retired implementation.
+Advent day N unlocks at 12:00 UTC on December N. Day 1 is the Ornament Smash embed in `apps/web/public/advent/ornament-smash/`.
 
-## API
+## Checks
 
-- Public: `GET /api/advent/manifest`, `GET /api/advent/day/:day` (403 when locked with metadata)
-- Admin (Bearer JWT, 24h HS256): `/api/admin/login` + all `…/locations`, `…/route/*`, `…/backup/export`, `…/advent/*`
-- Health: `GET /api/health`
-- Legacy: `GET /index` → 301 `/tracker`; `/admin/route-simulator-legacy` → 404; `/api/santa/*` documented but never implemented → retired
-
-## Deploy
-
-VPS (existing) — `Dockerfile` uses `output: standalone` (`node server.js`). See `docs/DEPLOY.md`. Legacy `docs/DEPLOYMENT.md` archived.
-
-## Testing
-
-```bash
-pnpm --filter web exec vitest run   # parity tests (route-engine, advent, auth, no-Flask)
-pnpm --filter web build             # 29 routes, 0 Flask imports
+```sh
+pnpm lint
+pnpm typecheck
+pnpm test
+pnpm build
 ```
 
-See `docs/ARCHITECTURE.md`, `docs/CONFIGURATION.md`, and audit: https://plans.weatherboysuper.com/santa-tracker-flask-audit-217/.
+See [the docs index](docs/README.md) for setup, configuration, architecture, deployment, and historical references.
 
-## Contributing
+## Deployment
 
-See `CONTRIBUTING.md` (updated for pnpm/Next). Past Flask instructions archived under `archive/`.
-
-## License
-
-MIT — `LICENSE`
+The production Worker serves `https://santa.weatherboysuper.com`. Deployments run through `.github/workflows/deploy-cloudflare-workers.yml` on qualifying pushes to `main` or a manual workflow dispatch. See [docs/DEPLOY.md](docs/DEPLOY.md).

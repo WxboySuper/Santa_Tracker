@@ -17,7 +17,7 @@ describe('route refresh data validation', () => {
 
   it('accepts only finite Earth points in Wikidata bounds', () => {
     expect(validEarthPoint({ globe: 'http://www.wikidata.org/entity/Q2', latitude: 90, longitude: 180 })).toBe(true);
-    expect(validEarthPoint(undefined)).toBe(false);
+    expect(validEarthPoint(null)).toBe(false);
     expect(validEarthPoint({ globe: 'moon', latitude: 0, longitude: 0 })).toBe(false);
     expect(validEarthPoint({ globe: 'http://www.wikidata.org/entity/Q2', latitude: 91, longitude: 0 })).toBe(false);
   });

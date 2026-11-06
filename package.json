@@ -32,6 +32,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
+    "e2e": "playwright test",
     "santa:publish": "node tools/santa-publish.mjs",
     "santa:publish:remote": "node tools/santa-publish.mjs --remote",
     "route:generate": "tsx tools/route-generator/generate.mts"
@@ -39,6 +40,8 @@
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@next/eslint-plugin-next": "^16.4.4",
+    "@axe-core/playwright": "^4.10.2",
+    "@playwright/test": "^1.56.1",
     "@photostructure/tz-lookup": "11.7.0",
     "@types/node": "^26.6.6",
     "@typescript-eslint/eslint-plugin": "^8.72.1",
