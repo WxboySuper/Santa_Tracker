@@ -186,28 +186,30 @@ async function recordFailedAttempt(runtime: ThrottleRuntime, attempt: LoginAttem
   if (state.lockoutUntil > now) return checkThrottle(runtime, attempt);
   if (!attempt.authenticated) await recordGlobalFailure({ ...runtime, now });
 
-  const lockoutIsStale = isStaleLockout(state, now);
-  const previousLockoutAt = lockoutIsStale ? -1 : state.lastLockoutAt;
-  const previousLevel = previousLockoutAt < 0 ? 0 : state.lockoutLevel;
-  const attempts = [...state.attempts, now];
-  let lockoutUntil = state.lockoutUntil;
-  let lockoutLevel = previousLevel;
-  let lastLockoutAt = previousLockoutAt;
-  if (attempts.length >= ATTEMPT_LIMIT) {
-    lockoutLevel += 1;
-    const duration = Math.min(INITIAL_LOCKOUT_MS * 2 ** (lockoutLevel - 1), MAX_LOCKOUT_MS);
-    lockoutUntil = now + duration;
-    lastLockoutAt = now;
-  }
-  try {
-    await store.set(key, { attempts, lockoutUntil, lockoutLevel, lastLockoutAt });
-  } catch (error) {
-    if (error instanceof ThrottleStoreFullError) {
-      return decision({ until: now + STORE_FULL_RETRY_MS, now, reason: "global" });
-    }
-    throw error;
-  }
+  const storeLimit = await saveUpdatedFailure({ store, key, state: nextFailureState(state, now), now });
+  if (storeLimit) return storeLimit;
   return checkThrottle(runtime, attempt);
+}
+
+function nextFailureState(state: ThrottleState, now: number): ThrottleState {
+  const previousLockoutAt = isStaleLockout(state, now) ? -1 : state.lastLockoutAt;
+  const lockoutLevel = previousLockoutAt < 0 ? 0 : state.lockoutLevel;
+  const attempts = [...state.attempts, now];
+  if (attempts.length < ATTEMPT_LIMIT) return { ...state, attempts, lastLockoutAt: previousLockoutAt, lockoutLevel };
+  const nextLevel = lockoutLevel + 1;
+  const duration = Math.min(INITIAL_LOCKOUT_MS * 2 ** (nextLevel - 1), MAX_LOCKOUT_MS);
+  return { attempts, lockoutUntil: now + duration, lockoutLevel: nextLevel, lastLockoutAt: now };
+}
+
+async function saveUpdatedFailure(input: { store: ThrottleStore; key: string; state: ThrottleState; now: number }): Promise<ThrottleDecision | null> {
+  const { store, key, state, now } = input;
+  try {
+    await store.set(key, state);
+    return null;
+  } catch (error) {
+    if (!(error instanceof ThrottleStoreFullError)) throw error;
+    return decision({ until: now + STORE_FULL_RETRY_MS, now, reason: "global" });
+  }
 }
 
 async function checkThrottle(runtime: ThrottleRuntime, attempt: LoginAttempt): Promise<ThrottleDecision | null> {
