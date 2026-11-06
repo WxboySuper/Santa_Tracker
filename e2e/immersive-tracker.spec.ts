@@ -1,5 +1,6 @@
 import { expect, test } from "./fixtures";
 import path from "node:path";
+import type { Page } from "@playwright/test";
 
 declare global {
   interface Window {
@@ -14,6 +15,7 @@ test.describe.configure({ mode: "serial" });
 
 test("tracker opens immersive mode and lets a visitor choose a city", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
+  await ensureFutureLondonArrival(page);
   await page.goto("/tracker?mode=immersive");
   await expect(page.getByRole("button", { name: "Exit immersive mode" })).toBeVisible();
   await expect(page.getByRole("region", { name: "See when Santa reaches me" })).toBeVisible();
@@ -86,6 +88,7 @@ test("immersive controls work on a phone with reduced motion and blocked browser
 });
 
 test("TV mode keeps its dashboard visible across display sizes and exits from a remote key", async ({ page }, testInfo) => {
+  await ensureFutureLondonArrival(page);
   await page.addInitScript(() => {
     window.wakeRequests = 0;
     window.wakeReleases = 0;
@@ -151,14 +154,47 @@ test("TV mode keeps its dashboard visible across display sizes and exits from a 
   await expect.poll(() => page.evaluate(() => window.wakeReleases)).toBeGreaterThan(1);
 });
 
+async function ensureFutureLondonArrival(page: Page) {
+  await page.route("**/api/route", async route => {
+    const response = await route.fetch();
+    const data = await response.json() as {
+      route_nodes: {
+        location: { name: string; lat: number; lng: number; timezone_offset?: number };
+        schedule?: { arrival_utc?: string | null; departure_utc?: string | null };
+      }[];
+    };
+    const stop = data.route_nodes[0];
+    if (!stop) throw new Error("The route needs a stop for the London arrival check");
+    const arrival = Date.now() + 60 * 60 * 1000;
+    stop.location = { ...stop.location, name: "London", lat: 51.5072, lng: -0.1276, timezone_offset: 0 };
+    stop.schedule = {
+      ...stop.schedule,
+      arrival_utc: new Date(arrival).toISOString(),
+      departure_utc: new Date(arrival + 15 * 60 * 1000).toISOString(),
+    };
+    await route.fulfill({ response, json: data });
+  });
+}
+
 test("TV mode keeps long stop names readable with full accessible text", async ({ page }) => {
   const longName = "Itsukushima Shrine (Miyajima), Hatsukaichi";
   await page.route("**/api/route", async route => {
     const response = await route.fetch();
-    const data = await response.json() as { route_nodes: { location: { name: string }; schedule?: { arrival_utc?: string | null } }[] };
-    const nextNode = data.route_nodes.find(node => Date.parse(node.schedule?.arrival_utc ?? "") > Date.now());
-    if (!nextNode) throw new Error("The shifted route needs at least one future stop");
+    const data = await response.json() as {
+      route_nodes: {
+        location: { name: string };
+        schedule?: { arrival_utc?: string | null; departure_utc?: string | null };
+      }[];
+    };
+    const nextNode = data.route_nodes[0];
+    if (!nextNode) throw new Error("The route needs a stop for the long-name check");
     nextNode.location.name = longName;
+    const arrival = Date.now() + 60 * 60 * 1000;
+    nextNode.schedule = {
+      ...nextNode.schedule,
+      arrival_utc: new Date(arrival).toISOString(),
+      departure_utc: new Date(arrival + 15 * 60 * 1000).toISOString(),
+    };
     await route.fulfill({ response, json: data });
   });
   await page.goto("/tracker?mode=tv");

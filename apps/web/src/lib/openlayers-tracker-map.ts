@@ -14,9 +14,11 @@ import type { RouteNode } from "./locations";
 import type { SantaPosition } from "./tracker-position";
 import type { TrackerMapAdapter } from "./tracker-map-adapter";
 import { routeNodesToContractRoute } from "./route-bridge";
-import { applyInitialCamera, hasValidMapExtent, positionToView, splitGreatCircle } from "./tracker-map-geometry";
+import { applyInitialCamera, bearingBetween, hasValidMapExtent, positionToView, splitGreatCircle } from "./tracker-map-geometry";
 import { isMapInteractionKey } from "./tracker-map-adapter";
+import { createPolarCapLayer, POLE_COORD, VIEW_EXTENT } from "./tracker-polar-cap";
 import { styleDeadline } from "./tracker-map-timeout";
+import type { TrackerArt } from "../components/tracker-3d/tracker-art";
 
 const STYLE_URL = "https://tiles.openfreemap.org/styles/liberty";
 const VECTOR_TIMEOUT_MS = 6000;
@@ -45,6 +47,7 @@ export class OpenLayersTrackerMap implements TrackerMapAdapter {
   private disposed = false;
   private cleanupInput?: () => void;
   private cancelStyle?: () => void;
+  private art?: TrackerArt;
 
   constructor(
     private mode: "vector" | "raster",
@@ -54,7 +57,7 @@ export class OpenLayersTrackerMap implements TrackerMapAdapter {
   ) {}
 
   async mount(element: HTMLElement): Promise<void> {
-    const map = new Map({ target: element, view: new View({ center: fromLonLat([0, 20]), zoom: 2 }) });
+    const map = new Map({ target: element, view: new View({ center: fromLonLat([0, 20]), zoom: 2, extent: VIEW_EXTENT }) });
     this.map = map;
     this.bindInput(element);
     if (this.mode === "vector") {
@@ -66,15 +69,31 @@ export class OpenLayersTrackerMap implements TrackerMapAdapter {
     }
     else this.loadRaster(map);
     if (this.disposed) return;
+    map.addLayer(createPolarCapLayer());
     map.addLayer(new VectorLayer({ source: this.route }));
     map.addLayer(new VectorLayer({ source: this.activeLeg }));
     map.addLayer(new VectorLayer({ source: this.marker }));
     this.drawRoute();
     this.drawMarker();
+    void this.mountArt(map);
     applyInitialCamera(Boolean(this.position), {
       centerOnSanta: () => this.centerSanta(),
       fitRoute: () => this.fitToRoute(),
     });
+  }
+
+  /** The 3D pole and sleigh are an enhancement; the plain marker stays if they cannot load. */
+  private async mountArt(map: Map): Promise<void> {
+    try {
+      const { TrackerArt } = await import("../components/tracker-3d/tracker-art");
+      if (this.disposed) return;
+      const art = new TrackerArt(map, () => this.drawMarker());
+      art.mount();
+      this.art = art;
+      this.drawMarker();
+    } catch {
+      // Keep the plain marker.
+    }
   }
 
   private async loadVector(map: Map): Promise<void> {
@@ -161,14 +180,37 @@ export class OpenLayersTrackerMap implements TrackerMapAdapter {
   private drawMarker(): void {
     this.marker.clear();
     if (!this.position) return;
+    if (this.drawSleighArt(this.position)) return;
     const marker = new Feature(new Point(fromLonLat(positionToView(this.position))));
     marker.setStyle(new Style({ image: new Circle({ radius: 9, fill: new Fill({ color: "#dc2626" }), stroke: new Stroke({ color: "white", width: 3 }) }) }));
     this.marker.addFeature(marker);
   }
 
+  private drawSleighArt(position: SantaPosition): boolean {
+    if (!this.art?.sleighReady) return false;
+    const index = position.journey.currentIndex;
+    const next = index == null ? undefined : this.nodes[index + 1];
+    const bearing = next ? bearingBetween(position, next.location) : 0;
+    const [lng, lat] = positionToView(position);
+    this.art.setSleigh([lng, lat], bearing);
+    return true;
+  }
+
   private centerSanta(): void {
     if (!this.position) return;
     this.map?.getView().setCenter(fromLonLat(positionToView(this.position)));
+  }
+
+  /** Flies up to the North Pole station, which sits beyond the northern edge of the projected world. */
+  visitPole(): void {
+    this.stopFollowing();
+    const map = this.map;
+    if (!map) return;
+    const view = map.getView();
+    const zoom = 3.6;
+    const [x, y] = POLE_COORD;
+    const dropPx = (map.getSize()?.[1] ?? 800) * 0.12;
+    view.animate({ center: [x ?? 0, (y ?? 0) + dropPx * view.getResolutionForZoom(zoom)], zoom, duration: 1400 });
   }
 
   follow(): void { this.following = true; this.centerSanta(); }
@@ -179,5 +221,5 @@ export class OpenLayersTrackerMap implements TrackerMapAdapter {
     if (!hasValidMapExtent(extent)) return;
     this.map?.getView().fit(extent, { padding: [32, 32, 32, 32] });
   }
-  destroy(): void { this.disposed = true; this.cancelStyle?.(); this.cleanupInput?.(); this.map?.setTarget(); this.map?.dispose(); }
+  destroy(): void { this.disposed = true; this.art?.dispose(); this.cancelStyle?.(); this.cleanupInput?.(); this.map?.setTarget(); this.map?.dispose(); }
 }

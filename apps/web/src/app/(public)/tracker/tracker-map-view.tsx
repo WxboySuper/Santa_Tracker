@@ -66,8 +66,10 @@ function TrackerNav({ adventEnabled, translator }: { adventEnabled: boolean; tra
 function MapControls({ mode, following, dispatch, translator, adapter, setFollowing }: { mode: MapMode; following: boolean; dispatch: Dispatch<MapEvent>; translator: Translator; adapter: RefObject<TrackerMapAdapter | null>; setFollowing: (value: boolean) => void }) {
   const switchMode = () => { dispatch(mode === "text" ? "showMap" : "showText"); setFollowing(true); };
   const returnToSanta = () => { adapter.current?.follow(); setFollowing(true); };
+  const visitPole = () => { adapter.current?.visitPole(); setFollowing(false); };
   return <div className="absolute top-20 left-4 z-10 flex flex-col items-start gap-2 text-white">
     <button className="rounded bg-blue-900 px-3 py-2 focus-visible:outline focus-visible:outline-4 focus-visible:outline-yellow-300" onClick={switchMode}>{translator.t(mode === "text" ? "tracker.mapMode" : "tracker.textMode")}</button>
+    {mode !== "text" && <button className="rounded bg-blue-900 px-3 py-2 focus-visible:outline focus-visible:outline-4 focus-visible:outline-yellow-300" onClick={visitPole}>{translator.t("tracker.northPole")}</button>}
     {mode !== "text" && !following && <button className="rounded bg-blue-900 px-3 py-2 focus-visible:outline focus-visible:outline-4 focus-visible:outline-yellow-300" onClick={returnToSanta}>{translator.t("tracker.return")}</button>}
   </div>;
 }
