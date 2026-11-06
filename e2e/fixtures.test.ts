@@ -17,11 +17,11 @@ async function withCalendarFixture(
   const source = path.join(root, "source");
   const temporaryRoot = path.join(root, "temp");
   const calendarPath = path.join(source, "advent_calendar.json");
-  await mkdir(source, { recursive: true });
-  await mkdir(temporaryRoot, { recursive: true });
-  await writeFile(path.join(source, "santa_route.json"), "{}");
-  await writeFile(calendarPath, calendarContent);
   try {
+    await mkdir(source, { recursive: true });
+    await mkdir(temporaryRoot, { recursive: true });
+    await writeFile(path.join(source, "santa_route.json"), "{}");
+    await writeFile(calendarPath, calendarContent);
     await run({ source, temporaryRoot, calendarPath });
   } finally {
     await rm(root, { recursive: true, force: true });
@@ -68,10 +68,35 @@ test("runtime config requires both project endpoints", async () => {
   }
 });
 
+test("runtime endpoints reject non-HTTP URLs with the runtime path", async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), "santa-e2e-invalid-endpoint-test-"));
+  const runtimeFile = path.join(root, "endpoints.json");
+  try {
+    await writeFile(runtimeFile, JSON.stringify({
+      endpoints: { closed: "file:///tmp/site", open: "http://localhost:3001" },
+      adminPassword: "test-pass",
+    }));
+    await expect(getEndpointForProject(runtimeFile, "closed")).rejects.toThrow(runtimeFile);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+const completeCalendarDays = Array.from({ length: 24 }, (_, index) => ({ day: index + 1 }));
+const malformedCalendarDays: unknown[] = [...completeCalendarDays];
+malformedCalendarDays[0] = null;
+const outOfRangeCalendarDays = completeCalendarDays.map((day) => ({ ...day }));
+outOfRangeCalendarDays[0] = { day: 25 };
+const duplicateCalendarDays = completeCalendarDays.map((day) => ({ ...day }));
+duplicateCalendarDays[1] = { day: 1 };
+
 test.each([
   ["invalid JSON", "{"],
   ["missing days array", "{}"],
-  ["malformed day entry", JSON.stringify({ days: [null] })],
+  ["malformed day entry", JSON.stringify({ days: malformedCalendarDays })],
+  ["incomplete day set", JSON.stringify({ days: completeCalendarDays.slice(1) })],
+  ["out-of-range day", JSON.stringify({ days: outOfRangeCalendarDays })],
+  ["duplicate day", JSON.stringify({ days: duplicateCalendarDays })],
 ])("calendar reports its source path for %s", async (_name, calendarContent) => {
   await withCalendarFixture("calendar-invalid-test", calendarContent, async ({ source, temporaryRoot, calendarPath }) => {
     await expect(prepareFixtureData(source, temporaryRoot)).rejects.toThrow(calendarPath);
@@ -79,16 +104,19 @@ test.each([
 });
 
 test("fixture calendars clear source overrides and unlock only open day one", async () => {
-  const calendar = JSON.stringify({ days: [
-    { day: 1, is_unlocked_override: false },
-    { day: 2, is_unlocked_override: true },
-  ] });
+  const calendarDays = completeCalendarDays.map(({ day }) => {
+    if (day === 1) return { day, is_unlocked_override: false };
+    if (day === 2) return { day, is_unlocked_override: true };
+    return { day };
+  });
+  const calendar = JSON.stringify({ days: calendarDays });
   await withCalendarFixture("calendar-override-test", calendar, async ({ source, temporaryRoot }) => {
     const roots = await prepareFixtureData(source, temporaryRoot);
     const closed = JSON.parse(await readFile(path.join(roots.closed, "advent_calendar.json"), "utf8")) as { days: { day: number; is_unlocked_override?: boolean }[] };
     const open = JSON.parse(await readFile(path.join(roots.open, "advent_calendar.json"), "utf8")) as { days: { day: number; is_unlocked_override?: boolean }[] };
     expect(closed.days.some((day) => day.is_unlocked_override !== undefined)).toBe(false);
-    expect(open.days).toEqual([{ day: 1, is_unlocked_override: true }, { day: 2 }]);
+    expect(open.days[0]).toEqual({ day: 1, is_unlocked_override: true });
+    expect(open.days.slice(1)).toEqual(completeCalendarDays.slice(1));
   });
 });
 
@@ -115,8 +143,8 @@ test("server address parsing converts a bind-all address into a local URL", () =
   expect(getLocalAddress("Local: http://0.0.0.0:43171")).toBe("http://localhost:43171");
 });
 
-test("server address parsing accepts local hostnames", () => {
-  expect(getLocalAddress("Local: https://santa.local:43171")).toBe("https://santa.local:43171");
+test("server address parsing rejects non-loopback hostnames", () => {
+  expect(getLocalAddress("Local: https://santa.local:43171")).toBeUndefined();
 });
 
 test("server address parsing ignores unrelated URLs outside the Local line", () => {

@@ -12,6 +12,8 @@ function isCalendarDay(value: unknown): value is CalendarDay {
   const day = value as { day?: unknown; is_unlocked_override?: unknown };
   if (typeof day.day !== "number") return false;
   if (!Number.isInteger(day.day)) return false;
+  if (day.day < 1) return false;
+  if (day.day > 24) return false;
   if (day.is_unlocked_override === undefined) return true;
   return typeof day.is_unlocked_override === "boolean";
 }
@@ -22,7 +24,9 @@ function isCalendar(value: unknown): value is Calendar {
   if (Array.isArray(value)) return false;
   const days = (value as { days?: unknown }).days;
   if (!Array.isArray(days)) return false;
-  return days.every(isCalendarDay);
+  if (days.length !== 24) return false;
+  if (!days.every(isCalendarDay)) return false;
+  return new Set(days.map((day) => day.day)).size === 24;
 }
 
 function parseCalendar(source: string, filePath: string): Calendar {

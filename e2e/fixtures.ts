@@ -22,6 +22,17 @@ function hasBothProjectEndpoints(endpoints: Record<string, string>): boolean {
   return Object.hasOwn(endpoints, "open");
 }
 
+function isHttpEndpoint(value: string): boolean {
+  let endpoint: URL;
+  try {
+    endpoint = new URL(value);
+  } catch {
+    return false;
+  }
+  if (endpoint.protocol === "http:") return true;
+  return endpoint.protocol === "https:";
+}
+
 function isStringRecord(value: unknown): value is Record<string, string> {
   if (!isRecord(value)) return false;
   return Object.values(value).every(isNonEmptyString);
@@ -68,6 +79,9 @@ export async function getEndpointForProject(runtimeFile: string, projectName: st
   const endpoint = endpoints[projectName];
   if (typeof endpoint !== "string") {
     throw new Error(`No endpoint configured for project ${projectName} in ${runtimeFile}`);
+  }
+  if (!isHttpEndpoint(endpoint)) {
+    throw new Error(`Invalid endpoint for project ${projectName} in ${runtimeFile}: ${endpoint}`);
   }
   return endpoint;
 }
