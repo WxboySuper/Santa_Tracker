@@ -4,7 +4,6 @@ import { respondWith } from "@/lib/admin-api";
 import { ADMIN_SESSION_TTL_SECONDS, requireAdminAuth, shouldUseSecureAdminCookie } from "@/lib/auth";
 
 const MAX_LOGIN_BODY_BYTES = 4096;
-const activeLoginChecks = new Set<string>();
 
 export function getClientIp(req: Request): string | null {
   const cloudflareIp = req.headers.get("cf-connecting-ip")?.trim();
@@ -30,13 +29,7 @@ async function processLogin(req: Request, ip: string) {
   const payload = await readCappedJsonBody(req);
   if (payload.kind === "too-large") return NextResponse.json({ error: "Request body too large" }, { status: 413 });
   if (payload.kind === "invalid") return respondWith(await loginAdmin(null));
-  if (activeLoginChecks.has(ip)) return throttledResponse(1);
-  activeLoginChecks.add(ip);
-  try {
-    return await verifyLogin(req, ip, payload.value);
-  } finally {
-    activeLoginChecks.delete(ip);
-  }
+  return verifyLogin(req, ip, payload.value);
 }
 
 async function verifyLogin(req: Request, ip: string, payload: unknown) {

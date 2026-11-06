@@ -77,16 +77,16 @@ describe("admin login route", () => {
     expect(response.status).toBe(413);
   });
 
-  it("allows only one same-IP password check at a time", async () => {
+  it("counts simultaneous same-IP failures without losing throttle updates", async () => {
     const requests = Array.from({ length: 20 }, () => POST(new Request("http://example.test/api/admin/login", {
       method: "POST",
       headers: { "cf-connecting-ip": "198.51.100.53", "content-type": "application/json" },
       body: JSON.stringify({ password: "wrong" }),
     })));
     const responses = await Promise.all(requests);
-    expect(responses.filter((response) => response.status === 401)).toHaveLength(1);
-    expect(responses.filter((response) => response.status === 429)).toHaveLength(19);
-    expect(responses.filter((response) => response.status === 429).every((response) => response.headers.get("Retry-After") === "1")).toBe(true);
+    expect(responses.filter((response) => response.status === 401)).toHaveLength(4);
+    expect(responses.filter((response) => response.status === 429)).toHaveLength(16);
+    expect(responses.filter((response) => response.status === 429).every((response) => response.headers.get("Retry-After") === "900")).toBe(true);
   });
 
   it("does not globally lock out distinct IPs", async () => {
