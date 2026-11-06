@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createPostcardSave, layoutPostcard, parsePostcard, restorePostcardSave, sanitizePostcardText, wrapPostcardText } from "./postcard";
+import { createPostcardSave, layoutPostcard, limitPostcardInput, parsePostcard, restorePostcardSave, sanitizePostcardText, wrapPostcardText } from "./postcard";
 
 describe("postcard activity", () => {
   it("validates the optional scene", () => {
@@ -11,6 +11,21 @@ describe("postcard activity", () => {
   it("keeps plain unicode text and the 140 codepoint limit", () => {
     expect(sanitizePostcardText({ value: "  <b>Hello</b> friend  " })).toBe("Hello friend");
     expect(Array.from(sanitizePostcardText({ value: "🌲".repeat(150) })).length).toBe(140);
+  });
+
+  it("keeps spaces while typing a multiword greeting", () => {
+    let greeting = "";
+    for (const character of Array.from("New York")) {
+      greeting = limitPostcardInput({ value: greeting + character, maximum: 140 });
+      if (greeting === "New ") expect(greeting).toBe("New ");
+    }
+    expect(greeting).toBe("New York");
+    expect(layoutPostcard({ greeting, signoff: "Warmly", city: "", date: "", includePostmark: false }).greeting.join(" ")).toBe("New York");
+  });
+
+  it("caps raw input by codepoint without trimming it", () => {
+    expect(limitPostcardInput({ value: " A ", maximum: 3 })).toBe(" A ");
+    expect(Array.from(limitPostcardInput({ value: "ðŸŒ²".repeat(150), maximum: 140 })).length).toBe(140);
   });
 
   it("preserves ordinary angle brackets and turns control characters into spacing", () => {

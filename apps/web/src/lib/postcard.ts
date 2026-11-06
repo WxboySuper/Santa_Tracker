@@ -6,6 +6,7 @@ export type PostcardConfig = { scene: WinterScene };
 export type PostcardContent = { scene: WinterScene; greeting: string; signoff: string; city: string; date: string; includePostmark: boolean };
 export type PostcardLayout = { greeting: string[]; signoff: string[]; postmark: string[] };
 type PostcardTextInput = { value: string; maximum?: number };
+type PostcardInputLimit = { value: string; maximum: number };
 type TextWrapContext = { value: string; maxWidth: number; fontSize: number };
 type TextMeasureContext = { value: string; fontSize: number };
 type LongWordContext = { word: string; maxWidth: number; fontSize: number };
@@ -23,6 +24,10 @@ export function parsePostcard(payload: unknown): PostcardConfig | null {
 export function sanitizePostcardText({ value, maximum = 140 }: PostcardTextInput): string {
   const plainText = stripMarkup({ value }).replace(/\s+/g, " ").trim();
   return Array.from(plainText).slice(0, maximum).join("");
+}
+
+export function limitPostcardInput({ value, maximum }: PostcardInputLimit): string {
+  return Array.from(value).slice(0, maximum).join("");
 }
 
 export function wrapPostcardText({ value, maxWidth, fontSize }: TextWrapContext): string[] {

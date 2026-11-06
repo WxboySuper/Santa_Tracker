@@ -2,7 +2,7 @@
 
 import { useMemo, useRef, useState, type RefObject } from "react";
 import { createTranslator } from "@santa-tracker/localization";
-import { layoutPostcard, sanitizePostcardText, type PostcardConfig, type PostcardLayout, type WinterScene } from "@/lib/postcard";
+import { layoutPostcard, limitPostcardInput, type PostcardConfig, type PostcardLayout, type WinterScene } from "@/lib/postcard";
 import { WinterSceneArt } from "./winter-scene-art";
 
 const sceneOptions: WinterScene[] = ["cabin", "harbor", "street", "forest"];
@@ -30,7 +30,7 @@ export function PostcardActivity({ config, locale }: { config: PostcardConfig; l
   }
 
   function updateCustomGreeting(value: string) {
-    setCustomGreeting(sanitizePostcardText({ value }));
+    setCustomGreeting(limitPostcardInput({ value, maximum: 140 }));
   }
 
   function download() {
@@ -95,7 +95,7 @@ export function PostcardActivity({ config, locale }: { config: PostcardConfig; l
           </select>
         </label>
         {greetingChoice === "custom" ? <label className="grid gap-1">{translator.t("advent.activity.postcard.customGreeting")}
-          <textarea value={customGreeting} onChange={(event) => updateCustomGreeting(event.currentTarget.value)} maxLength={140} rows={3} className="rounded border border-slate-400 p-2" />
+          <textarea value={customGreeting} onChange={(event) => updateCustomGreeting(event.currentTarget.value)} maxLength={280} rows={3} className="rounded border border-slate-400 p-2" />
           <span className="text-sm">{translator.t("advent.activity.postcard.characterCount", { count: Array.from(customGreeting).length })}</span>
         </label> : null}
         <label className="grid min-w-0 gap-1">{translator.t("advent.activity.postcard.signoff")}
@@ -107,7 +107,7 @@ export function PostcardActivity({ config, locale }: { config: PostcardConfig; l
       <div className="space-y-3 rounded-lg border border-slate-300 p-3">
         <label className="flex items-center gap-2"><input type="checkbox" checked={includePostmark} onChange={(event) => setIncludePostmark(event.currentTarget.checked)} />{translator.t("advent.activity.postcard.includePostmark")}</label>
         {includePostmark ? <div className="grid gap-3 sm:grid-cols-2">
-          <label className="grid gap-1">{translator.t("advent.activity.postcard.city")}<input value={city} onChange={(event) => setCity(sanitizePostcardText({ value: event.currentTarget.value }))} maxLength={60} className="min-w-0 rounded border border-slate-400 p-2" /></label>
+          <label className="grid gap-1">{translator.t("advent.activity.postcard.city")}<input value={city} onChange={(event) => setCity(event.currentTarget.value)} maxLength={60} className="min-w-0 rounded border border-slate-400 p-2" /></label>
           <label className="grid gap-1">{translator.t("advent.activity.postcard.date")}<input type="date" value={date} onChange={(event) => setDate(event.currentTarget.value)} className="min-w-0 rounded border border-slate-400 p-2" /></label>
         </div> : null}
         <p className="text-sm">{translator.t("advent.activity.postcard.postmarkNote")}</p>
