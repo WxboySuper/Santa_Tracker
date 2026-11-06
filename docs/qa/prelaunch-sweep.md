@@ -1,26 +1,37 @@
 ﻿# Pre-launch QA sweep
 
-Status: in progress
+Status: complete
 
 ## Scope
 
-Check the public home page, tracker in normal, immersive, and TV modes, and Advent days 1 through 24 at 1440x900 and 390x844. Exercise keyboard navigation, reduced motion, blocked localStorage, date gating, invalid Advent routes, accessibility names, internal links, and phone overflow. Visual design review is out of scope. The sweep does not change the home page, `/village`, or tracker map art.
+Checked the public home page, tracker in normal, immersive, and TV modes, and Advent days 1 through 24 at 1440x900 and 390x844. Exercised keyboard navigation, reduced motion, blocked localStorage, date gating, invalid Advent routes, accessibility names, internal links, phone overflow, console errors, and placeholder strings. Visual design review was out of scope. The sweep did not change the home page, `/village`, or tracker map art.
 
 ## Test setup
 
 - Started the Next dev server from this checkout on port 3200 with `SEASON_OVERRIDE=open` and `ADVENT_ENABLED=true`.
 - The server used `apps/web/data/advent_calendar.json` directly. The file was not printed, copied, or edited.
-- Playwright headless Chromium checked 62 route and viewport combinations with reduced motion enabled.
+- On the current date, November 6, all Advent days are still locked. The route pages return 200 with locked content, the day API returns 403 for days 1, 2, and 24, and day 25 returns 404.
+- To reach the scheduled content, I temporarily injected a Christmas date into the Advent trusted clock in local source, then reverted the change. The same repo calendar remained in place. This produced 48 day/viewport checks with each day unlocked.
 
-## Findings so far
+## Findings fixed
 
-- No axe WCAG 2.1 A/AA violations appeared on the checked pages.
-- No horizontal overflow appeared at either viewport.
-- No broken internal links appeared on the calendar page.
-- Invalid day routes `/advent/25` and `/advent/abc` return 404.
-- The direct server's current date is before the calendar's unlock dates, so the live pass showed locked days. `SEASON_OVERRIDE=open` enables Advent access but does not override each day's unlock time. I will test unlocked activity content against the same data with a temporary server clock override.
-- The existing TV dashboard test passed five consecutive runs against the direct server, including its London arrival assertion.
+- Day 7 light-show status text had insufficient contrast on the dark stage.
+- Day 12 jigsaw cell numbers had insufficient contrast.
+- Day 15 winter-world list buttons used aria labels that omitted their visible titles.
+- The light-show animation used a longer transition when reduced motion was requested. It now removes the transition.
+- Tracker e2e tests depended on whichever route stops happened to be in the future. They now provide a future London stop in the API response so the arrival checks stay deterministic.
 
-## Remaining
+## Findings left
 
-Walk all unlocked day content and activity kinds, inspect focus rings and keyboard paths, finish blocked-storage and console checks, investigate the intermittent TV arrival failure if it reproduces, and run the requested typecheck, lint, CSS lint, and relevant tests.
+- No functional, accessibility, copy, overflow, date-gating, or broken-link defects remain from this sweep.
+- Visual design issues were not assessed. Home, `/village`, and tracker map art were outside the change scope.
+
+## Checks
+
+- 62 route/viewport checks on the direct app, plus 48 unlocked Advent day/viewport checks.
+- Axe found no WCAG 2.1 A/AA violations after the fixes.
+- No horizontal overflow, missing keyboard focus indicators, storage-related errors, untranslated keys, or placeholder strings appeared.
+- Internal links returned successfully. `/advent/25` and `/advent/abc` returned 404 as expected.
+- The Ornament Smash iframe started using only the keyboard.
+- All 9 immersive and TV tracker Playwright tests passed against the direct server. London arrival and long-stop assertions each passed across repeated runs after adding deterministic route data.
+- The relevant activity Vitest file passed 6 tests. `pnpm typecheck`, `pnpm lint`, and `pnpm lint:css` passed.
