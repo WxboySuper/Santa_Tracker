@@ -4,13 +4,15 @@ import type { RouteNode } from "./locations";
 
 export function routeNodesToContractRoute(nodes: RouteNode[], season = 2026): { route: Route; timedNodes: RouteNode[] } {
   const timedNodes: RouteNode[] = [];
-  const stops = nodes.flatMap(node => {
+  const stops = nodes.flatMap((node, index) => {
     const arrivalIso = node.schedule?.arrival_utc;
     const departureIso = node.schedule?.departure_utc;
     if (!arrivalIso || !departureIso) return [];
     timedNodes.push(node);
     return [{
-      locationId: createLocationId(node.id),
+      // Legacy IDs are not guaranteed to satisfy the public contract's syntax.
+      // Journey calculations only need a unique identifier within this route.
+      locationId: createLocationId(`stop-${index}`),
       arrivalIso,
       departureIso,
       durationSeconds: node.stop_experience?.duration_seconds ?? 0,
