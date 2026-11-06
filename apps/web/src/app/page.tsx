@@ -84,6 +84,10 @@ export default async function HomePage() {
             label={t('home.heroLabel')}
             windowOnLabel={t('home.windowOn')}
             windowOffLabel={t('home.windowOff')}
+            treeLabel={t('home.treeLights')}
+            soundLabel={t('home.soundLabel')}
+            soundOnLabel={t('home.soundOn')}
+            soundOffLabel={t('home.soundOff')}
           />
           <div className="home-hero-shade" aria-hidden="true" />
           <div className="home-hero-content">
