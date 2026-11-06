@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createLoginThrottle, InMemoryThrottleStore } from "../admin-login-throttle";
+import { createLoginThrottle, InMemoryThrottleStore, type ThrottleStore } from "../admin-login-throttle";
 
 const MINUTE = 60_000;
 
@@ -40,6 +40,21 @@ describe("admin login throttle", () => {
     const { throttle } = setup();
     await Promise.all(Array.from({ length: 5 }, () => throttle.recordFailure({ ip: "ip-a" })));
     expect(await throttle.check({ ip: "ip-a" })).toEqual({ retryAfterSeconds: 900 });
+  });
+
+  it("uses the store's atomic update for shared-store adapters", async () => {
+    let now = 0;
+    const memory = new InMemoryThrottleStore({ clock: () => now });
+    const store: ThrottleStore = {
+      get: (input) => memory.get(input),
+      set: (input) => memory.set(input),
+      delete: (input) => memory.delete(input),
+      update: (input) => memory.update(input),
+    };
+    const throttle = createLoginThrottle({ store, clock: () => now });
+    await Promise.all(Array.from({ length: 5 }, () => throttle.recordFailure({ ip: "ip-a" })));
+    expect(await throttle.check({ ip: "ip-a" })).toEqual({ retryAfterSeconds: 900 });
+    now += 15 * MINUTE;
   });
 
   it("clears an IP's attempts and lockout history after successful login", async () => {

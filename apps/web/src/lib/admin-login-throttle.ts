@@ -9,6 +9,7 @@ export interface ThrottleStore {
   get(input: { key: string }): Promise<ThrottleState | undefined>;
   set(input: { key: string; value: ThrottleState }): Promise<void>;
   delete(input: { key: string }): Promise<void>;
+  update(input: { key: string; transform: (current: ThrottleState | undefined) => ThrottleState }): ThrottleState | Promise<ThrottleState>;
 }
 
 export interface ThrottleDecision {
@@ -48,7 +49,7 @@ interface Runtime {
 }
 
 // Workers isolates are ephemeral. This per-IP memory limit is deliberate for a single-owner site.
-// A future Cloudflare KV ThrottleStore can share state when the site needs distributed enforcement.
+// A shared adapter must make update atomic; a plain KV get/set pair is not enough for distributed enforcement.
 export class InMemoryThrottleStore implements ThrottleStore {
   private readonly values = new Map<string, ThrottleState>();
   private readonly maxEntries: number;
@@ -159,35 +160,19 @@ async function recordIpFailure(input: { runtime: Runtime; ip: string }): Promise
   const { store, clock } = runtime;
   const key = ipKey({ ip });
   const now = clock();
-  if (store instanceof InMemoryThrottleStore) return recordInMemoryFailure({ store, key, now });
-  return recordRemoteFailure({ store, key, now });
+  return recordFailureWithStore({ store, key, now });
 }
 
-function recordInMemoryFailure(input: { store: InMemoryThrottleStore; key: string; now: number }): ThrottleDecision | null {
+async function recordFailureWithStore(input: { store: ThrottleStore; key: string; now: number }): Promise<ThrottleDecision | null> {
   const { store, key, now } = input;
   try {
-    const next = store.update({ key, transform: (current) => advanceFailure({ current: current ?? emptyState(), now }) });
+    const next = await store.update({ key, transform: (current) => advanceFailure({ current: current ?? emptyState(), now }) });
     if (next.lockoutUntil > now) return lockoutDecision({ until: next.lockoutUntil, now });
     return null;
   } catch (error) {
     if (!(error instanceof ThrottleStoreFullError)) throw error;
     return { retryAfterSeconds: STORE_FULL_RETRY_MS / 1000 };
   }
-}
-
-async function recordRemoteFailure(input: { store: ThrottleStore; key: string; now: number }): Promise<ThrottleDecision | null> {
-  const { store, key, now } = input;
-  const current = await store.get({ key }) ?? emptyState();
-  if (current.lockoutUntil > now) return lockoutDecision({ until: current.lockoutUntil, now });
-  const next = advanceFailure({ current, now });
-  try {
-    await store.set({ key, value: next });
-  } catch (error) {
-    if (!(error instanceof ThrottleStoreFullError)) throw error;
-    return { retryAfterSeconds: STORE_FULL_RETRY_MS / 1000 };
-  }
-  if (next.lockoutUntil > now) return lockoutDecision({ until: next.lockoutUntil, now });
-  return null;
 }
 
 function advanceFailure(input: { current: ThrottleState; now: number }): ThrottleState {
