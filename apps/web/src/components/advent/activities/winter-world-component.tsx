@@ -97,6 +97,13 @@ function handleArrowNavigation({ event, currentId, onSelect, focusList = true }:
   if (focusList) document.getElementById(`winter-entry-${nextEntry.id}`)?.focus();
 }
 
+function handleMarkerKeyDown(event: KeyboardEvent, entryId: string, onSelect: SelectEntry) {
+  handleArrowNavigation({ event, currentId: entryId, onSelect });
+  if (event.key !== "Enter" && event.key !== " ") return;
+  event.preventDefault();
+  onSelect(entryId);
+}
+
 function arrowDirection(key: string): number {
   if (key === "ArrowDown" || key === "ArrowRight") return 1;
   if (key === "ArrowUp" || key === "ArrowLeft") return -1;
@@ -147,13 +154,7 @@ function WorldMapMarker({ entry, isSelected, isLit, translator, onSelect }: {
       aria-label={label}
       aria-pressed={isSelected}
       onClick={() => onSelect(entry.id)}
-      onKeyDown={(event) => {
-        handleArrowNavigation({ event, currentId: entry.id, onSelect });
-        if (event.key === "Enter" || event.key === " ") {
-          event.preventDefault();
-          onSelect(entry.id);
-        }
-      }}
+      onKeyDown={(event) => handleMarkerKeyDown(event, entry.id, onSelect)}
     >
       {isLit ? <circle cx={x} cy={y} r="13" fill="url(#world-glow)" /> : null}
       <circle cx={x} cy={y} r={isSelected ? 8 : 6} fill={isLit ? "#f4cc73" : "#f1eee2"} stroke={isSelected ? "#fff4c5" : "#203846"} strokeWidth={isSelected ? 3 : 2} />
