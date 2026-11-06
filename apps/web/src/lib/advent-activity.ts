@@ -2,6 +2,8 @@ import { parseCipher } from "./cipher";
 import { parseJigsaw } from "./jigsaw";
 import { parseWinterWorld } from "./winter-world";
 import { parseLightshow } from "./lightshow";
+import { parseSnowflake } from "./snowflake";
+import { parsePostcard } from "./postcard";
 import { parseWordsearch } from "./wordsearch";
 import { parseMaze } from "./maze";
 import { parseTimezones } from "./timezones";
@@ -11,6 +13,8 @@ const activityPayloadParsers = {
   jigsaw: parseJigsaw,
   winterworld: parseWinterWorld,
   lightshow: parseLightshow,
+  snowflake: parseSnowflake,
+  postcard: parsePostcard,
   wordsearch: parseWordsearch,
   maze: parseMaze,
   timezones: parseTimezones,

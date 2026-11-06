@@ -20,6 +20,31 @@ body {
   animation: jigsaw-settle 180ms ease-out;
 }
 
+.snowflake-fall {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.snowflake-fall i {
+  position: absolute;
+  top: -1rem;
+  color: rgb(255 255 255 / 65%);
+  font-size: 1.25rem;
+  font-style: normal;
+  animation: snowflake-fall 9s linear infinite;
+}
+
+@keyframes snowflake-fall {
+  to { transform: translateY(24rem); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .snowflake-fall { display: none; }
+}
+
 @keyframes jigsaw-settle {
   from {
     transform: scale(0.96);
