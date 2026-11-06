@@ -4,7 +4,8 @@ import path from "node:path";
 import { expect, test } from "vitest";
 import { getEndpointForProject, getRuntimeConfig } from "./fixtures";
 import { prepareFixtureData } from "./fixture-data";
-import { getLocalAddress, getStartupFailure, type StartupResult } from "./server-processes";
+import { getLocalAddress, getStartupFailure, waitForServers, type StartupResult } from "./server-processes";
+import { isServerEndpointMap } from "./validation";
 
 type CalendarFixture = { source: string; temporaryRoot: string; calendarPath: string };
 
@@ -151,4 +152,9 @@ test("startup failure reports all failed server starts", () => {
     "closed server failed",
     "open server failed",
   ]);
+});
+
+test("server readiness requires both configured servers", async () => {
+  await expect(waitForServers([])).rejects.toThrow("Both closed and open server endpoints must be available");
+  expect(isServerEndpointMap({ closed: "http://localhost:3000" })).toBe(false);
 });

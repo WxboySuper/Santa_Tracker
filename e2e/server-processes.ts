@@ -3,6 +3,7 @@ import { createRequire } from "node:module";
 import path from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 import type { ServerName } from "./types";
+import { isServerEndpointMap } from "./validation";
 export type ServerEntry = { name: ServerName; child: ChildProcess };
 export type StartupResult = { name: ServerName; endpoint: string };
 const maxStartupOutput = 4_000;
@@ -121,9 +122,11 @@ export async function waitForServers(entries: ServerEntry[]): Promise<Record<Ser
   const results = await Promise.allSettled(entries.map(waitForServer));
   const failure = getStartupFailure(results);
   if (failure) throw failure;
-  return Object.fromEntries(results.flatMap((result) => result.status === "fulfilled"
+  const endpoints = Object.fromEntries(results.flatMap((result) => result.status === "fulfilled"
     ? [[result.value.name, result.value.endpoint]]
-    : [])) as Record<ServerName, string>;
+    : []));
+  if (!isServerEndpointMap(endpoints)) throw new Error("Both closed and open server endpoints must be available");
+  return endpoints;
 }
 
 export function startServers(appRoot: string, dataRoots: Record<ServerName, string>, password: string, secret: string): ServerEntry[] {

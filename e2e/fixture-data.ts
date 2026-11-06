@@ -1,19 +1,13 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import type { ServerName } from "./types";
+import { isRecord } from "./validation";
 
 type CalendarDay = { day: number; is_unlocked_override?: boolean };
 type Calendar = { days: CalendarDay[] };
 type CalendarSource = { content: string; path: string };
 type ServerData = { name: ServerName; root: string; route: string; calendar: Calendar };
 type FixtureDataSource = { source: string; temporaryRoot: string };
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  if (typeof value !== "object") return false;
-  if (value === null) return false;
-  if (Array.isArray(value)) return false;
-  return true;
-}
 
 function isValidDayNumber(value: unknown): value is number {
   if (typeof value !== "number") return false;

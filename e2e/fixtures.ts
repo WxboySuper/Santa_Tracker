@@ -1,25 +1,14 @@
 import { readFile } from "node:fs/promises";
 import { expect, test as base } from "@playwright/test";
+import { isRecord, isServerEndpointMap } from "./validation";
 
 type RuntimeConfig = { endpoints: Record<string, string>; adminPassword: string };
 
 const runtimeConfigByFile = new Map<string, Promise<RuntimeConfig>>();
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  if (typeof value !== "object") return false;
-  if (value === null) return false;
-  if (Array.isArray(value)) return false;
-  return true;
-}
-
 function isNonEmptyString(value: unknown): value is string {
   if (typeof value !== "string") return false;
   return value.length > 0;
-}
-
-function hasBothProjectEndpoints(endpoints: Record<string, string>): boolean {
-  if (!Object.hasOwn(endpoints, "closed")) return false;
-  return Object.hasOwn(endpoints, "open");
 }
 
 function isHttpEndpoint(value: string): boolean {
@@ -41,8 +30,7 @@ function isStringRecord(value: unknown): value is Record<string, string> {
 function isRuntimeConfig(value: unknown): value is RuntimeConfig {
   if (!isRecord(value)) return false;
   if (!isStringRecord(value.endpoints)) return false;
-  if (Object.keys(value.endpoints).length === 0) return false;
-  if (!hasBothProjectEndpoints(value.endpoints)) return false;
+  if (!isServerEndpointMap(value.endpoints)) return false;
   if (!isNonEmptyString(value.adminPassword)) return false;
   return true;
 }
