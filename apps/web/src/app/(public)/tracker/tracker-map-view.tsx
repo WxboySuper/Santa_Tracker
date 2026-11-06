@@ -75,10 +75,8 @@ function useIdleControls(viewMode: TrackerViewMode) {
   const [activity, setActivity] = useState(0);
   const wake = useCallback(() => { setVisible(true); setActivity(value => value + 1); }, []);
   useEffect(() => {
-    if (viewMode === "immersive") {
-      const timer = window.setTimeout(() => setVisible(false), 4500);
-      return () => { window.clearTimeout(timer); };
-    }
+    const timer = viewMode === "immersive" ? window.setTimeout(() => setVisible(false), 4500) : undefined;
+    return () => { if (timer !== undefined) window.clearTimeout(timer); };
   }, [activity, viewMode]);
   return { visible, wake };
 }
