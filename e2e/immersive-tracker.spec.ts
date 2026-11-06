@@ -2,7 +2,7 @@ import { expect, test } from "./fixtures";
 import path from "node:path";
 
 declare global {
-  interface Window { geoCalls: number }
+  interface Window { geoCalls: number; wakeRequests: number; wakeReleases: number }
 }
 
 test("tracker opens immersive mode and lets a visitor choose a city", async ({ page }) => {
@@ -80,6 +80,12 @@ test("immersive controls work on a phone with reduced motion and blocked browser
 
 test("TV mode keeps its dashboard visible across display sizes and exits from a remote key", async ({ page }, testInfo) => {
   await page.addInitScript(() => {
+    window.wakeRequests = 0;
+    window.wakeReleases = 0;
+    Object.defineProperty(navigator, "wakeLock", { value: { request: () => {
+      window.wakeRequests += 1;
+      return Promise.resolve({ released: false, release: () => Promise.resolve().then(() => { window.wakeReleases += 1; }) });
+    } } });
     window.localStorage.setItem("tracker:place", JSON.stringify({ name: "London", lat: 51.5072, lng: -0.1276, timezone: "Europe/London" }));
   });
   await page.goto("/tracker?mode=tv");
@@ -88,6 +94,18 @@ test("TV mode keeps its dashboard visible across display sizes and exits from a 
   await expect(page.getByText("Santa local time")).toBeVisible();
   await expect(page.getByText("London:")).toBeVisible();
   await expect(page.getByRole("button", { name: "Arrival chimes off" })).toBeVisible();
+  await expect.poll(() => page.evaluate(() => window.wakeRequests)).toBeGreaterThan(0);
+
+  await page.evaluate(() => {
+    Object.defineProperty(document, "visibilityState", { configurable: true, value: "hidden" });
+    document.dispatchEvent(new Event("visibilitychange"));
+  });
+  await expect.poll(() => page.evaluate(() => window.wakeReleases)).toBeGreaterThan(0);
+  await page.evaluate(() => {
+    Object.defineProperty(document, "visibilityState", { configurable: true, value: "visible" });
+    document.dispatchEvent(new Event("visibilitychange"));
+  });
+  await expect.poll(() => page.evaluate(() => window.wakeRequests)).toBeGreaterThan(1);
 
   for (const viewport of [{ width: 1920, height: 1080 }, { width: 1280, height: 720 }, { width: 390, height: 844 }]) {
     await page.setViewportSize(viewport);
@@ -102,4 +120,5 @@ test("TV mode keeps its dashboard visible across display sizes and exits from a 
   await page.keyboard.press("Escape");
   await expect(page).not.toHaveURL(/mode=tv/);
   await expect(page.getByRole("button", { name: "Enter TV mode" })).toBeVisible();
+  await expect.poll(() => page.evaluate(() => window.wakeReleases)).toBeGreaterThan(1);
 });

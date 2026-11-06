@@ -95,10 +95,25 @@ function focusedControlWithin(stageRef: RefObject<HTMLDivElement | null>): boole
 }
 
 /** Restores controls for keyboard input and handles the immersive Escape key. */
-function handleTrackerKey(event: React.KeyboardEvent<HTMLDivElement>, wake: () => void, immersive: boolean, toggle: () => void, tv: boolean): void {
+interface TrackerKeyContext {
+  event: React.KeyboardEvent<HTMLDivElement>;
+  wake: () => void;
+  immersive: boolean;
+  toggle: () => void;
+  tv: boolean;
+}
+
+function handleTrackerKey({ event, wake, immersive, toggle, tv }: TrackerKeyContext): void {
   wake();
-  if (tv && event.key.startsWith("Arrow")) { event.preventDefault(); event.stopPropagation(); return; }
-  if (tv || event.key !== "Escape" || !immersive) return;
+  if (tv) {
+    if (event.key.startsWith("Arrow")) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+    return;
+  }
+  if (event.key !== "Escape") return;
+  if (!immersive) return;
   const target = event.target;
   const tagName = target instanceof HTMLElement ? target.tagName : "";
   if (["INPUT", "TEXTAREA", "SELECT"].includes(tagName)) return;
@@ -133,7 +148,7 @@ export function TrackerMapView(props: TrackerMapViewProps) {
   useTvKeyboardExit(tv, toggleTv);
   return <>
     <TrackerNavigation adventEnabled={adventEnabled} immersive={immersive || tv} translator={translator} />
-    <div ref={stageRef} className={stageClass(viewMode)} onPointerMove={wake} onPointerDown={wake} onFocusCapture={wake} onBlurCapture={wake} onKeyDownCapture={event => handleTrackerKey(event, wake, immersive, toggleImmersive, tv)}>
+    <div ref={stageRef} className={stageClass(viewMode)} onPointerMove={wake} onPointerDown={wake} onFocusCapture={wake} onBlurCapture={wake} onKeyDownCapture={event => handleTrackerKey({ event, wake, immersive, toggle: toggleImmersive, tv })}>
       {tv ? <div className="tracker-tv-layout">
         <div className="tracker-tv-map"><MapSurface mode="vector" element={element} nodes={nodes} position={position} translator={translator} locale={locale} /></div>
         <TvTrackerDashboard locale={locale} nodes={nodes} position={position} translator={translator} />

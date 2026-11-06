@@ -386,6 +386,10 @@
   box-shadow: 0 24px 80px rgb(0 0 0 / 38%);
 }
 
+.tracker-tv-map .ol-control { display: none; }
+
+.tracker-tv-map .ol-viewport { pointer-events: none; }
+
 .tracker-tv-panel {
   position: relative;
   display: flex;
@@ -565,8 +569,12 @@
     padding: 24px 20px;
     border-radius: 18px;
   }
-  .tracker-tv-current { font-size: clamp(32px, 9vw, 48px); }
-  .tracker-tv-eyebrow { font-size: 15px; }
+
+  .tracker-tv-eyebrow {
+    font-size: 12px;
+    letter-spacing: 0.05em;
+  }
+  .tracker-tv-current { font-size: clamp(26px, 7vw, 32px); }
   .tracker-tv-clock-time { font-size: clamp(27px, 7vw, 38px); }
 
   .tracker-tv-stop-name,
