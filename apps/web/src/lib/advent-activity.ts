@@ -3,6 +3,7 @@ import { parseJigsaw } from "./jigsaw";
 import { parseWinterWorld } from "./winter-world";
 import { parseLightshow } from "./lightshow";
 import { parseWordsearch } from "./wordsearch";
+import { parseMaze } from "./maze";
 
 const activityPayloadParsers = {
   cipher: parseCipher,
@@ -10,6 +11,7 @@ const activityPayloadParsers = {
   winterworld: parseWinterWorld,
   lightshow: parseLightshow,
   wordsearch: parseWordsearch,
+  maze: parseMaze,
 } as const;
 
 export function hasValidActivityKind(payload: unknown): boolean {

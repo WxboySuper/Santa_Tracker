@@ -5,6 +5,7 @@ import { jigsawActivity } from "./jigsaw";
 import { winterWorldActivity } from "./winter-world";
 import { lightshowActivity } from "./lightshow";
 import { wordsearchActivity } from "./wordsearch";
+import { mazeActivity } from "./maze";
 
 export const activityKinds = {
   cipher: cipherActivity,
@@ -12,6 +13,7 @@ export const activityKinds = {
   winterworld: winterWorldActivity,
   lightshow: lightshowActivity,
   wordsearch: wordsearchActivity,
+  maze: mazeActivity,
 } as const;
 
 export function renderActivity(day: AdventPublicDay, fallback: ReactNode, locale: string): ReactNode {
