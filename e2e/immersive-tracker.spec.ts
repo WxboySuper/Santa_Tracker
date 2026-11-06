@@ -41,6 +41,16 @@ test("immersive exit toggle stays keyboard reachable after idle controls fade", 
   await expect(page.getByRole("button", { name: "Enter immersive mode" })).toBeVisible();
 });
 
+test("idle fade keeps controls visible while a control has keyboard focus", async ({ page }) => {
+  await page.clock.install();
+  await page.goto("/tracker?mode=immersive");
+  const search = page.getByRole("textbox", { name: "Choose a city or route stop" });
+  await search.focus();
+  await page.clock.fastForward(5000);
+  await expect(search).toBeFocused();
+  await expect(page.locator(".tracker-controls").last()).toHaveCSS("visibility", "visible");
+});
+
 test("immersive controls work on a phone with reduced motion and blocked browser features", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.emulateMedia({ reducedMotion: "reduce" });

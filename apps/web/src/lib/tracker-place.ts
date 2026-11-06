@@ -60,7 +60,10 @@ function hasKnownCoordinates(value: ChosenPlace, route: RouteNode[]): boolean {
 
 function matchesCoordinates(value: ChosenPlace, location: { name: string; lat?: number; lng?: number }): boolean {
   if (value.name !== location.name) return false;
-  if (value.lat === undefined || value.lng === undefined || location.lat === undefined || location.lng === undefined) return false;
+  if (value.lat === undefined) return false;
+  if (value.lng === undefined) return false;
+  if (location.lat === undefined) return false;
+  if (location.lng === undefined) return false;
   if (Math.abs(value.lat - location.lat) > PLACE_COORDINATE_TOLERANCE) return false;
   return Math.abs(value.lng - location.lng) <= PLACE_COORDINATE_TOLERANCE;
 }
