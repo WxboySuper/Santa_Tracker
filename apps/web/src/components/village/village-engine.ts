@@ -31,6 +31,16 @@ const damp = (current: number, target: number, rate: number, delta: number) => c
  * The renderer, camera rig, picking and the frame loop. It owns every WebGL resource and releases
  * them in dispose(), so mounting and unmounting the page leaks nothing.
  */
+function disposeMaterial(material: THREE.Material): void {
+  const holder = material as THREE.Material & { map?: THREE.Texture | null; emissiveMap?: THREE.Texture | null; uniforms?: Record<string, { value: unknown }> };
+  holder.map?.dispose();
+  holder.emissiveMap?.dispose();
+  for (const uniform of Object.values(holder.uniforms ?? {})) {
+    if (uniform.value instanceof THREE.Texture) uniform.value.dispose();
+  }
+  material.dispose();
+}
+
 export class VillageEngine {
   private readonly renderer: THREE.WebGLRenderer;
   private readonly scene = new THREE.Scene();
@@ -182,7 +192,7 @@ export class VillageEngine {
       const renderable = object as THREE.Object3D & { geometry?: THREE.BufferGeometry; material?: THREE.Material | THREE.Material[] };
       renderable.geometry?.dispose();
       const materials = Array.isArray(renderable.material) ? renderable.material : renderable.material ? [renderable.material] : [];
-      materials.filter((material) => !isSharedMaterial(material)).forEach((material) => material.dispose());
+      materials.filter((material) => !isSharedMaterial(material)).forEach(disposeMaterial);
     });
     this.composer?.dispose();
     this.renderer.dispose();
@@ -199,12 +209,12 @@ export class VillageEngine {
       this.dragging = true;
       this.dragMoved = 0;
       this.lastPointer = { x: event.clientX, y: event.clientY };
+      this.aim(canvas, event);
       canvas.setPointerCapture(event.pointerId);
     });
     add(canvas, 'pointermove', (event: PointerEvent) => {
       this.lastInteraction = performance.now();
-      const rect = canvas.getBoundingClientRect();
-      this.pointer.set(((event.clientX - rect.left) / rect.width) * 2 - 1, -((event.clientY - rect.top) / rect.height) * 2 + 1);
+      this.aim(canvas, event);
       if (!this.dragging) return;
       const dx = event.clientX - this.lastPointer.x;
       const dy = event.clientY - this.lastPointer.y;
@@ -217,6 +227,7 @@ export class VillageEngine {
     add(canvas, 'pointerup', (event: PointerEvent) => {
       this.dragging = false;
       canvas.releasePointerCapture(event.pointerId);
+      this.aim(canvas, event);
       if (this.dragMoved < 6) this.click();
     });
     add(canvas, 'pointerleave', () => {
@@ -235,6 +246,12 @@ export class VillageEngine {
     add(document, 'visibilitychange', () => {
       if (document.visibilityState === 'visible' && this.running) this.timer.update();
     });
+  }
+
+  /** Points the raycaster at the pointer, so taps (which have no preceding move) pick correctly. */
+  private aim(canvas: HTMLCanvasElement, event: PointerEvent): void {
+    const rect = canvas.getBoundingClientRect();
+    this.pointer.set(((event.clientX - rect.left) / rect.width) * 2 - 1, -((event.clientY - rect.top) / rect.height) * 2 + 1);
   }
 
   private pick(): Building | null {

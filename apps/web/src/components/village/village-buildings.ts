@@ -490,7 +490,7 @@ function stable(): Building {
   const wall: Wall = { width: 5.0, height: 1.7, depth: 2.6, color: COLORS.wood };
   const group = building.group;
   group.add(body(wall));
-  const roof = gableRoof({ width: wall.width, depth: wall.depth, height: 1.2, color: COLORS.redDark });
+  const roof = gableRoof({ width: wall.depth, depth: wall.width, height: 1.2, color: COLORS.redDark });
   roof.rotation.y = Math.PI / 2;
   roof.scale.set(1, 1, 1);
   roof.position.y = wall.height + 0.02;
