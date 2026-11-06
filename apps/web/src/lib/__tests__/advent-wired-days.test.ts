@@ -36,6 +36,12 @@ function assertWrittenDay(day: Awaited<ReturnType<typeof loadAdventCalendar>>[nu
   }
 }
 
+function assertCleanPunctuation(value: string): void {
+  expect(value).not.toContain("\uFFFD");
+  expect(value).not.toMatch(/[A-Za-z]\?[a-z]/);
+  expect(value).not.toMatch(/(^|\s)\?[A-Za-z]/);
+}
+
 function render(day: AdventPublicDay): string {
   return renderToStaticMarkup(renderDayContent({ ...day, is_unlocked: true }, createElement("p", null, "FALLBACK")));
 }
@@ -67,6 +73,15 @@ describe("wired Advent days", () => {
       expect(day, `day ${number} exists`).toBeDefined();
       if (!day) continue;
       assertWrittenDay(day, number);
+    }
+  });
+
+  it("keeps titles, text, and sources free of encoding damage", async () => {
+    const days = await loadAdventCalendar({ filePath: file });
+    for (const day of days) {
+      for (const value of [day.title, day.payload.text, day.payload.source]) {
+        if (typeof value === "string") assertCleanPunctuation(value);
+      }
     }
   });
 });
