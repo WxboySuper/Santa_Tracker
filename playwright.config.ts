@@ -14,7 +14,7 @@ export default defineConfig({
   reporter: "list",
   use: baseUse,
   projects: [
-    { name: "closed", testMatch: ["**/public-site.spec.ts", "**/closed-season.spec.ts"], use: { ...baseUse } },
-    { name: "open", testMatch: ["**/public-site.spec.ts", "**/open-season.spec.ts", "**/immersive-tracker.spec.ts"], use: { ...baseUse } },
+    { name: "closed", testMatch: ["**/public-site.spec.ts", "**/closed-season.spec.ts", "**/village.spec.ts"], use: { ...baseUse } },
+    { name: "open", testMatch: ["**/public-site.spec.ts", "**/open-season.spec.ts", "**/immersive-tracker.spec.ts", "**/village.spec.ts"], use: { ...baseUse } },
   ],
 });
