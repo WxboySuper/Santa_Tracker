@@ -7,7 +7,24 @@ export function isRecord(value: unknown): value is Record<string, unknown> {
   return true;
 }
 
-export function isServerEndpointMap(value: Record<string, string>): value is Record<ServerName, string> {
+function isHttpEndpoint(value: unknown): value is string {
+  if (typeof value !== "string") return false;
+  if (value.length === 0) return false;
+  let url: URL;
+  try {
+    url = new URL(value);
+  } catch {
+    return false;
+  }
+  if (url.protocol === "http:") return true;
+  return url.protocol === "https:";
+}
+
+export function isServerEndpointMap(value: unknown): value is Record<ServerName, string> {
+  if (!isRecord(value)) return false;
+  if (Object.keys(value).length !== 2) return false;
   if (!Object.hasOwn(value, "closed")) return false;
-  return Object.hasOwn(value, "open");
+  if (!Object.hasOwn(value, "open")) return false;
+  if (!isHttpEndpoint(value.closed)) return false;
+  return isHttpEndpoint(value.open);
 }

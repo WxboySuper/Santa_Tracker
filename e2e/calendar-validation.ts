@@ -58,9 +58,8 @@ export function closeCalendar(calendar: Calendar): Calendar {
 export function openFirstDay(calendar: Calendar): Calendar {
   const open = cloneCalendar(calendar);
   for (const day of open.days) day.is_unlocked_override = false;
-  const firstDay = open.days.find((day) => day.day === 1);
-  if (!firstDay) throw new Error("The advent calendar must include day 1");
-  firstDay.is_unlocked_override = true;
+  // parseCalendar guarantees this day exists.
+  open.days.find((day) => day.day === 1)!.is_unlocked_override = true;
   return open;
 }
 

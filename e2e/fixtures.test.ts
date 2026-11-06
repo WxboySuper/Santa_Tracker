@@ -4,7 +4,7 @@ import path from "node:path";
 import { expect, test } from "vitest";
 import { getEndpointForProject, getRuntimeConfig } from "./fixtures";
 import { prepareFixtureData } from "./fixture-data";
-import { getLocalAddress, getStartupFailure, waitForServers, type StartupResult } from "./server-processes";
+import { getStartupFailure, waitForServers, type StartupResult } from "./server-processes";
 import { isServerEndpointMap } from "./validation";
 
 type CalendarFixture = { source: string; temporaryRoot: string; calendarPath: string };
@@ -48,6 +48,8 @@ test("runtime config parse errors include the file path and allow retry", async 
 type RuntimeValidationCase = { name: string; config: unknown; validateEndpoint: boolean };
 const runtimeValidationCases: RuntimeValidationCase[] = [
   { name: "empty endpoints", config: { endpoints: {}, adminPassword: "test-pass" }, validateEndpoint: false },
+  { name: "empty endpoint value", config: { endpoints: { closed: "", open: "http://localhost:3001" }, adminPassword: "test-pass" }, validateEndpoint: false },
+  { name: "extra endpoint", config: { endpoints: { closed: "http://localhost:3000", open: "http://localhost:3001", spare: "http://localhost:3002" }, adminPassword: "test-pass" }, validateEndpoint: false },
   { name: "empty password", config: { endpoints: { closed: "http://localhost:3000", open: "http://localhost:3001" }, adminPassword: "" }, validateEndpoint: false },
   { name: "missing project endpoint", config: { endpoints: { closed: "http://localhost:3000" }, adminPassword: "test-pass" }, validateEndpoint: false },
   { name: "non-HTTP URL", config: { endpoints: { closed: "file:///tmp/site", open: "http://localhost:3001" }, adminPassword: "test-pass" }, validateEndpoint: true },
@@ -126,28 +128,6 @@ test("runtime endpoints are cached per file for each worker", async () => {
   } finally {
     await rm(root, { recursive: true, force: true });
   }
-});
-
-test("server address parsing strips ANSI color and trailing punctuation", () => {
-  const red = String.fromCharCode(27);
-  expect(getLocalAddress(`Local: http://localhost:43171.${red}[0m`)).toBe("http://localhost:43171");
-});
-
-test("server address parsing converts a bind-all address into a local URL", () => {
-  expect(getLocalAddress("Local: http://0.0.0.0:43171")).toBe("http://localhost:43171");
-});
-
-test.each(["[::]", "[0:0:0:0:0:0:0:0]"])("server address parsing converts IPv6 bind-all address %s", (host) => {
-  expect(getLocalAddress(`Local: http://${host}:43171`)).toBe("http://localhost:43171");
-});
-
-test("server address parsing rejects non-loopback hostnames", () => {
-  expect(getLocalAddress("Local: https://santa.local:43171")).toBeUndefined();
-});
-
-test("server address parsing ignores unrelated URLs outside the Local line", () => {
-  expect(getLocalAddress("Telemetry: https://cdn.example.com:43171\nLocal: http://localhost:43172"))
-    .toBe("http://localhost:43172");
 });
 
 test("startup failure reports all failed server starts", () => {

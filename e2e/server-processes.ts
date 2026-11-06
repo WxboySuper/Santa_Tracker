@@ -1,10 +1,11 @@
 import { spawn, type ChildProcess } from "node:child_process";
 import { createRequire } from "node:module";
+import net from "node:net";
 import path from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 import type { ServerName } from "./types";
 import { isServerEndpointMap } from "./validation";
-export type ServerEntry = { name: ServerName; child: ChildProcess };
+export type ServerEntry = { name: ServerName; endpoint: string; child: ChildProcess };
 export type StartupResult = { name: ServerName; endpoint: string };
 const maxStartupOutput = 4_000;
 
@@ -16,32 +17,38 @@ function childHasExited(child: ChildProcess): boolean {
 async function isServerReady(endpoint: string): Promise<boolean> {
   try {
     const response = await fetch(endpoint, { signal: AbortSignal.timeout(5_000) });
-    return response.status < 500;
+    return response.ok;
   } catch {
     return false;
   }
 }
 
-function stripAnsiColorCodes(output: string): string {
-  const escape = String.fromCharCode(27);
-  const colorCode = new RegExp(`${escape}\\[[0-9;]*m`, "g");
-  return output.replace(colorCode, "");
+function closePortReservation(server: net.Server): Promise<void> {
+  if (!server.listening) return Promise.resolve();
+  return new Promise<void>((resolve, reject) => {
+    server.close((error) => error ? reject(error) : resolve());
+  });
 }
 
-export function getLocalAddress(output: string): string | undefined {
-  const cleanOutput = stripAnsiColorCodes(output);
-  const match = /^\s*(?:[-+]\s*)?Local:\s*(https?:\/\/)(localhost|127\.0\.0\.1|0\.0\.0\.0|\[[\da-f:]+\]):(\d+)/im.exec(cleanOutput);
-  if (!match) return undefined;
-  const unspecifiedHosts = ["0.0.0.0", "[::]", "[0:0:0:0:0:0:0:0]"];
-  const rawHostname = match[2] ?? "localhost";
-  const hostname = unspecifiedHosts.includes(rawHostname.toLowerCase()) ? "localhost" : rawHostname;
-  return `${match[1]}${hostname}:${match[3]}`;
-}
-
-async function findReadyEndpoint(endpoint: string | undefined): Promise<string | undefined> {
-  if (!endpoint) return undefined;
-  if (!await isServerReady(endpoint)) return undefined;
-  return endpoint;
+async function findFreePorts(count: number): Promise<number[]> {
+  const reservations: net.Server[] = [];
+  const ports: number[] = [];
+  try {
+    while (ports.length < count) {
+      const server = net.createServer();
+      reservations.push(server);
+      await new Promise<void>((resolve, reject) => {
+        server.once("error", reject);
+        server.listen(0, "127.0.0.1", resolve);
+      });
+      const address = server.address();
+      if (!address || typeof address === "string") throw new Error("Could not allocate a local port");
+      ports.push(address.port);
+    }
+  } finally {
+    await Promise.all(reservations.map(closePortReservation));
+  }
+  return ports;
 }
 
 function getStartupError(entry: ServerEntry, spawnError: Error | undefined): Error | undefined {
@@ -53,12 +60,10 @@ function getStartupError(entry: ServerEntry, spawnError: Error | undefined): Err
 
 function captureStartupState(entry: ServerEntry) {
   let output = "";
-  let endpoint: string | undefined;
   let truncated = false;
   let spawnError: Error | undefined;
   const capture = (chunk: Buffer) => {
     output += chunk.toString();
-    endpoint = getLocalAddress(output) ?? endpoint;
     if (output.length <= maxStartupOutput) return;
     output = output.slice(-maxStartupOutput);
     truncated = true;
@@ -74,7 +79,6 @@ function captureStartupState(entry: ServerEntry) {
   entry.child.stderr?.on("data", onStderr);
   return {
     output: () => truncated ? `...[earlier output truncated]...\n${output}` : output,
-    endpoint: () => endpoint,
     error: () => spawnError,
     dispose: () => {
       entry.child.removeListener("error", onError);
@@ -91,8 +95,7 @@ async function waitForServer(entry: ServerEntry): Promise<StartupResult> {
     while (Date.now() < deadline) {
       const startupError = getStartupError(entry, state.error());
       if (startupError) throw startupError;
-      const readyEndpoint = await findReadyEndpoint(state.endpoint());
-      if (readyEndpoint) return { name: entry.name, endpoint: readyEndpoint };
+      if (await isServerReady(entry.endpoint)) return { name: entry.name, endpoint: entry.endpoint };
       await delay(250);
     }
     const startupError = getStartupError(entry, state.error());
@@ -129,26 +132,41 @@ export async function waitForServers(entries: ServerEntry[]): Promise<Record<Ser
   return endpoints;
 }
 
-export function startServers(appRoot: string, dataRoots: Record<ServerName, string>, password: string, secret: string): ServerEntry[] {
+export async function startServers(appRoot: string, dataRoots: Record<ServerName, string>, password: string, secret: string): Promise<ServerEntry[]> {
   const appRequire = createRequire(path.join(appRoot, "package.json"));
   const nextCli = appRequire.resolve("next/dist/bin/next");
-  return (["closed", "open"] as const).map((name) => ({
-    name,
-    child: spawn(process.execPath, [nextCli, "dev", "--port", "0"], {
-      cwd: appRoot,
-      detached: process.platform !== "win32",
-      stdio: ["ignore", "pipe", "pipe"],
-      env: {
-        ...process.env,
-        ADVENT_ENABLED: "true",
-        ADMIN_PASSWORD: password,
-        SECRET_KEY: secret,
-        SANTA_DATA_ROOT: dataRoots[name],
-        NEXT_DIST_DIR: `.next-e2e-${name}`,
-        ...(name === "open" ? { SEASON_OVERRIDE: "open" } : { SEASON_OVERRIDE: "" }),
-      },
-    }),
-  }));
+  const entries: ServerEntry[] = [];
+  const ports = await findFreePorts(2);
+  let index = 0;
+  try {
+    for (const name of ["closed", "open"] as const) {
+      const port = ports[index];
+      index += 1;
+      if (port === undefined) throw new Error("Could not allocate ports for both Next.js servers");
+      const endpoint = `http://127.0.0.1:${port}`;
+      const child = spawn(process.execPath, [nextCli, "dev", "--hostname", "127.0.0.1", "--port", String(port)], {
+        cwd: appRoot,
+        detached: process.platform !== "win32",
+        stdio: ["ignore", "pipe", "pipe"],
+        env: {
+          ...process.env,
+          ADVENT_ENABLED: "true",
+          ADMIN_PASSWORD: password,
+          SECRET_KEY: secret,
+          SANTA_DATA_ROOT: dataRoots[name],
+          NEXT_DIST_DIR: `.next-e2e-${name}`,
+          ...(name === "open" ? { SEASON_OVERRIDE: "open" } : { SEASON_OVERRIDE: "" }),
+        },
+      });
+      entries.push({ name, endpoint, child });
+    }
+  } catch (error) {
+    await stopServers(entries).catch((cleanupError: unknown) => {
+      throw new AggregateError([error, cleanupError], "Server startup and partial cleanup both failed", { cause: cleanupError });
+    });
+    throw error;
+  }
+  return entries;
 }
 
 async function waitForExit(child: ChildProcess, timeoutMs: number): Promise<boolean> {
@@ -179,7 +197,8 @@ function signalUnixProcessGroup(child: ChildProcess, signal: NodeJS.Signals): vo
   if (child.pid === undefined) return;
   try {
     process.kill(-child.pid, signal);
-  } catch {
+  } catch (error) {
+    process.stderr.write(`Failed to signal process group ${child.pid}: ${String(error)}\n`);
     child.kill(signal);
   }
 }
