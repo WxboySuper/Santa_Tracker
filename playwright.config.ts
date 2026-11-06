@@ -13,7 +13,7 @@ export default defineConfig({
   reporter: "list",
   use: baseUse,
   projects: [
-    { name: "closed", testMatch: "**/*.spec.ts", grep: /home works|closed season gates|accessible Advent calendar/, use: baseUse },
-    { name: "open", testMatch: "**/*.spec.ts", grep: /home works|Advent exposes/, use: baseUse },
+    { name: "closed", testMatch: ["**/public-site.spec.ts", "**/closed-season.spec.ts"], use: baseUse },
+    { name: "open", testMatch: ["**/public-site.spec.ts", "**/open-season.spec.ts"], use: baseUse },
   ],
 });

@@ -6,7 +6,7 @@ type Calendar = { days: { day: number; is_unlocked_override?: boolean }[] };
 
 async function writeServerData(name: ServerName, root: string, route: string, originalCalendar: Calendar): Promise<string> {
   const dataRoot = path.join(root, name);
-  await mkdir(dataRoot);
+  await mkdir(dataRoot, { recursive: true });
   const calendar = JSON.parse(JSON.stringify(originalCalendar)) as Calendar;
   if (name === "open") {
     const firstDay = calendar.days.find((day) => day.day === 1);
