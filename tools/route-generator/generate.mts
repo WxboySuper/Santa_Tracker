@@ -39,7 +39,7 @@ const tableRows = nodes.map((value, index) => {
   const travelSeconds = priorNode ? (Date.parse(node.schedule.arrival_utc) - Date.parse(priorNode.schedule.departure_utc)) / 1000 : 0;
   const speed = previous && place ? Math.round(legSpeedKmh(previous, place, travelSeconds) ?? 0) : 0;
   const local = new Intl.DateTimeFormat('en-GB', { timeZone: place?.timezone, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(new Date(node.schedule.arrival_utc));
-  return `<tr><td>${index + 1}</td><td>${escapeHtml(place?.id ?? '')}</td><td>${escapeHtml(node.location.name)}</td><td>${escapeHtml(node.comment)}</td><td>${escapeHtml(node.location.region)}</td><td>${local}</td><td>${Math.round(km)}</td><td>${speed}</td><td>${km > settings.maxGapKm ? 'long gap' : ''}</td><td>${speed > settings.maxSpeedKmh ? 'fast leg' : ''}</td><td>${index > 0 && locations[index - 1]?.country === place?.country ? 'repeat country' : ''}</td></tr>`;
+  return `<tr><td>${index + 1}</td><td>${escapeHtml(place?.id ?? '')}</td><td>${escapeHtml(node.location.name)}</td><td>${escapeHtml(node.comment)}</td><td>${escapeHtml(node.location.region)}</td><td>${local}</td><td>${Math.round(km)}</td><td>${speed}</td><td>${km > settings.maxGapKm ? 'long gap' : ''}</td><td>${speed > settings.maxLegSpeedKmh ? 'fast leg' : ''}</td><td>${index > 0 && locations[index - 1]?.country === place?.country ? 'repeat country' : ''}</td></tr>`;
 }).join('');
 function escapeHtml(value: string): string { return value.replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char] ?? char); }
 const mixRows = Object.entries(report.mix).map(([category, entry]) => `<tr><td>${escapeHtml(category)}</td><td>${entry.count}</td><td>${entry.target}</td></tr>`).join('');
