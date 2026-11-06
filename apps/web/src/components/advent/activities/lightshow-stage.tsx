@@ -40,5 +40,5 @@ function LightBulb({ composition, index, tick, reducedMotion }: { composition: L
   const y = composition.scene === 'tree' ? 150 + Math.floor(index / 6) * 47 : 205 + Math.floor(index / 9) * 52;
   const color = lightColor(composition.palette, index);
   const intensity = lightIntensity(composition.pattern, index, tick, reducedMotion) * composition.brightness / 100;
-  return <circle cx={x} cy={y} r={composition.pattern === 'steady' ? 7 : 8} fill={color} opacity={intensity} style={{ transition: `opacity ${reducedMotion ? 1800 : 450}ms ease-in-out`, filter: `drop-shadow(0 0 ${6 + intensity * 8}px ${color})` }} />;
+  return <circle cx={x} cy={y} r={composition.pattern === 'steady' ? 7 : 8} fill={color} opacity={intensity} style={{ transition: `opacity ${reducedMotion ? 0 : 450}ms ease-in-out`, filter: `drop-shadow(0 0 ${6 + intensity * 8}px ${color})` }} />;
 }

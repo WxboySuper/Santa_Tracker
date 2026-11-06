@@ -116,7 +116,7 @@ export function JigsawActivity({ config, locale }: { config: JigsawConfig; local
           return <button key={cell} type="button" aria-label={translator.t("advent.activity.jigsaw.cell", { count: cell + 1 })} onPointerUp={(event) => handlePointerUp(event, cell)} className={`relative min-w-0 border border-white/20 focus-visible:z-10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-amber-300 ${selected !== null ? "cursor-crosshair" : "cursor-default"}`}>
             {targetCell === cell && selected !== null ? <span className="absolute inset-0 z-10 border-2 border-amber-300" aria-hidden="true" /> : null}
             {filled || ghost ? <SceneCrop scene={config.scene} x={bounds.x} y={bounds.y} width={bounds.width} height={bounds.height} revealed={complete} settle={filled} /> : null}
-            {!filled && !ghost ? <span className="absolute inset-0 grid place-items-center text-white/40">{cell + 1}</span> : null}
+            {!filled && !ghost ? <span className="absolute inset-0 grid place-items-center text-white/80">{cell + 1}</span> : null}
           </button>;
         })}
       </div>

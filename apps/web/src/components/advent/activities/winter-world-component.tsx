@@ -213,7 +213,6 @@ function WinterWorldEntryButton({ entry, isSelected, isLit, translator, onSelect
   onSelect: SelectEntry;
 }) {
   const place = translator.t(entry.placeKey);
-  const label = isLit ? `${place}, ${translator.t("advent.activity.winterworld.candleLit", { place })}` : place;
   return (
     <li>
       <button
@@ -221,7 +220,6 @@ function WinterWorldEntryButton({ entry, isSelected, isLit, translator, onSelect
         type="button"
         tabIndex={isSelected ? 0 : -1}
         aria-current={isSelected ? "location" : undefined}
-        aria-label={label}
         onClick={() => onSelect(entry.id)}
         onKeyDown={(event) => handleArrowNavigation({ event, currentId: entry.id, onSelect })}
         className={`flex min-h-11 w-full items-center gap-2 rounded-xl border px-3 py-2 text-left text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-700 ${isSelected ? "border-amber-700 bg-white text-slate-950 shadow-sm" : "border-slate-300/80 bg-white/60 text-slate-700 hover:bg-white"}`}

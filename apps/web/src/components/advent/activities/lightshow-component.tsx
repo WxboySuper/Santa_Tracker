@@ -95,7 +95,7 @@ export function LightshowActivity({ config, locale }: { config: { scene: 'tree' 
       <p>{translator.t('advent.activity.lightshow.intro')}</p>
       <LightshowStage composition={composition} tick={tick} reducedMotion={reducedMotion} fullscreen={fullscreen} stageRef={stageRef} translator={translator} onFullscreenToggle={toggleFullscreen} />
       {!fullscreen ? <LightshowControls composition={composition} sound={sound} translator={translator} onUpdate={update} onSoundChange={setSound} onPreset={applyPreset} /> : null}
-      {!fullscreen ? <p className="text-sm text-slate-600" aria-live="polite">{reducedMotion ? translator.t('advent.activity.lightshow.reducedMotion') : translator.t(storageAvailable ? 'advent.activity.lightshow.saved' : 'advent.activity.lightshow.saveUnavailable')}</p> : null}
+      {!fullscreen ? <p className="text-sm text-slate-200" aria-live="polite">{reducedMotion ? translator.t('advent.activity.lightshow.reducedMotion') : translator.t(storageAvailable ? 'advent.activity.lightshow.saved' : 'advent.activity.lightshow.saveUnavailable')}</p> : null}
     </section>
   );
 }
