@@ -33,11 +33,11 @@
     },
     {
       "day": 4,
-      "title": "Day 4",
+      "title": "Paper snowflakes",
       "unlock_time": "2026-12-04T12:00:00Z",
-      "content_type": "fact",
+      "content_type": "activity",
       "payload": {
-        "text": "Content for day 4"
+        "kind": "snowflake"
       }
     },
     {
@@ -177,11 +177,26 @@
     },
     {
       "day": 13,
-      "title": "Day 13",
+      "title": "Winter words",
       "unlock_time": "2026-12-13T12:00:00Z",
-      "content_type": "fact",
+      "content_type": "activity",
       "payload": {
-        "text": "Content for day 13"
+        "kind": "wordsearch",
+        "seed": 2026,
+        "words": [
+          "CHIMNEY",
+          "EMBER",
+          "MITTENS",
+          "LANTERN",
+          "SOLSTICE",
+          "EVERGREEN",
+          "COCOA",
+          "SLEDGE",
+          "WREATH",
+          "FROST",
+          "CAROL",
+          "TINSEL"
+        ]
       }
     },
     {
@@ -223,11 +238,13 @@
     },
     {
       "day": 18,
-      "title": "Day 18",
+      "title": "Find the address",
       "unlock_time": "2026-12-18T12:00:00Z",
-      "content_type": "fact",
+      "content_type": "activity",
       "payload": {
-        "text": "Content for day 18"
+        "kind": "maze",
+        "size": "medium",
+        "seed": 1218
       }
     },
     {
@@ -251,11 +268,11 @@
     },
     {
       "day": 21,
-      "title": "Day 21",
+      "title": "When does midnight arrive?",
       "unlock_time": "2026-12-21T12:00:00Z",
-      "content_type": "fact",
+      "content_type": "activity",
       "payload": {
-        "text": "Content for day 21"
+        "kind": "timezones"
       }
     },
     {
@@ -270,11 +287,12 @@
     },
     {
       "day": 23,
-      "title": "Day 23",
+      "title": "Postcard studio",
       "unlock_time": "2026-12-23T12:00:00Z",
-      "content_type": "fact",
+      "content_type": "activity",
       "payload": {
-        "text": "Content for day 23"
+        "kind": "postcard",
+        "scene": "cabin"
       }
     },
     {
