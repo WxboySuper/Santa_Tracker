@@ -1,0 +1,456 @@
+.village {
+  --gold: #ffd58a;
+  --ink: #fff4dc;
+  --glass: rgb(10 20 40 / 62%);
+  --line: rgb(255 213 138 / 38%);
+
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  background: #0a1a38;
+  color: var(--ink);
+  font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+
+.village-canvas {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  cursor: grab;
+  touch-action: none;
+  outline: none;
+}
+
+.village-veil {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: radial-gradient(ellipse at 50% 55%, #17305c, #07101f 72%);
+  color: var(--gold);
+  font-family: 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, serif;
+  font-size: 1.2rem;
+  font-style: italic;
+  opacity: 1;
+  pointer-events: none;
+  transition: opacity 900ms ease 150ms;
+}
+
+.village[data-ready='true'] .village-veil {
+  opacity: 0;
+}
+
+.village-notice {
+  position: absolute;
+  top: 6.5rem;
+  left: 50%;
+  width: min(32rem, calc(100vw - 2rem));
+  padding: 0.8rem 1rem;
+  border: 1px solid var(--line);
+  border-radius: 0.9rem;
+  background: rgb(9 18 36 / 88%);
+  font-size: 0.9rem;
+  line-height: 1.5;
+  text-align: center;
+  transform: translateX(-50%);
+}
+
+.village-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.village-lockup {
+  position: absolute;
+  top: clamp(1rem, 3vw, 2rem);
+  left: clamp(1rem, 3vw, 2.4rem);
+  pointer-events: none;
+  text-shadow: 0 3px 22px rgb(2 8 20 / 70%);
+}
+
+.village-kicker {
+  color: var(--gold);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+}
+
+.village-lockup h1 {
+  margin-top: 0.2rem;
+  font-family: 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, serif;
+  font-size: clamp(1.9rem, 4vw, 3.3rem);
+  font-weight: 500;
+  letter-spacing: -0.03em;
+  line-height: 1;
+}
+
+.village-topnav {
+  position: absolute;
+  top: clamp(1rem, 3vw, 2rem);
+  right: clamp(1rem, 3vw, 2.4rem);
+}
+
+.village-topnav a {
+  display: inline-block;
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--glass);
+  color: var(--ink);
+  text-decoration: none;
+  backdrop-filter: blur(10px);
+}
+
+.village-label {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: grid;
+  gap: 0.1rem;
+  padding: 0.5rem 0.85rem;
+  border: 1px solid var(--line);
+  border-radius: 0.8rem;
+  background: rgb(10 20 40 / 80%);
+  box-shadow: 0 8px 30px rgb(0 0 0 / 40%);
+  pointer-events: none;
+  text-align: center;
+  translate: -50% -125%;
+  backdrop-filter: blur(8px);
+}
+
+.village-label strong {
+  font-family: 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, serif;
+  font-size: 1.05rem;
+  font-weight: 600;
+}
+
+.village-label span {
+  color: var(--gold);
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.village-menu {
+  position: absolute;
+  bottom: clamp(0.9rem, 2.4vw, 1.6rem);
+  left: clamp(0.9rem, 3vw, 2.4rem);
+  max-width: min(46vw, 40rem);
+}
+
+.village-menu ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  list-style: none;
+}
+
+.village-menu button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-height: 2.4rem;
+  padding: 0.4rem 0.85rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--glass);
+  color: var(--ink);
+  font-size: 0.86rem;
+  cursor: pointer;
+  backdrop-filter: blur(10px);
+  transition: background-color 160ms ease, transform 160ms ease;
+}
+
+.village-menu button:hover,
+.village-menu button[aria-pressed='true'] {
+  background: rgb(60 44 20 / 82%);
+  transform: translateY(-1px);
+}
+
+.village-dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: #7be0a0;
+  box-shadow: 0 0 8px #7be0a0;
+}
+
+.village-menu button[data-status='soon'] .village-dot {
+  background: #8da2c8;
+  box-shadow: none;
+}
+
+.village-menu button[data-status='waiting'] .village-dot {
+  background: var(--gold);
+  box-shadow: 0 0 8px var(--gold);
+}
+
+.village-music {
+  position: absolute;
+  bottom: clamp(0.9rem, 2.4vw, 1.6rem);
+  left: 50%;
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.4rem 0.8rem 0.4rem 0.4rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--glass);
+  translate: -50% 0;
+  backdrop-filter: blur(12px);
+}
+
+.village-music-button {
+  display: grid;
+  width: 2.6rem;
+  height: 2.6rem;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  background: var(--gold);
+  color: #2a1a06;
+  font-size: 0.95rem;
+  cursor: pointer;
+}
+
+.village-music-next {
+  width: 2.1rem;
+  height: 2.1rem;
+  background: rgb(255 213 138 / 22%);
+  color: var(--ink);
+}
+
+.village-music-title {
+  display: grid;
+  min-width: 9.5rem;
+  line-height: 1.25;
+}
+
+.village-music-title strong {
+  font-family: 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, serif;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.village-music-title span {
+  color: rgb(255 244 220 / 70%);
+  font-size: 0.72rem;
+}
+
+.village-countdown {
+  position: absolute;
+  right: clamp(0.9rem, 3vw, 2.4rem);
+  bottom: clamp(0.9rem, 2.4vw, 1.6rem);
+  padding: 0.6rem 0.9rem 0.7rem;
+  border: 1px solid var(--line);
+  border-radius: 1rem;
+  background: var(--glass);
+  text-align: center;
+  backdrop-filter: blur(12px);
+}
+
+.village-countdown h2 {
+  color: var(--gold);
+  font-size: 0.64rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.village-countdown-cells {
+  display: flex;
+  gap: 0.7rem;
+  margin-top: 0.3rem;
+}
+
+.village-countdown-cells div {
+  display: grid;
+  min-width: 2.4rem;
+}
+
+.village-countdown-cells strong {
+  font-family: 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, serif;
+  font-size: 1.5rem;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+
+.village-countdown-cells span {
+  color: rgb(255 244 220 / 70%);
+  font-size: 0.6rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.village-panel {
+  position: absolute;
+  top: 50%;
+  right: clamp(0.9rem, 3vw, 2.4rem);
+  width: min(26rem, calc(100vw - 2rem));
+  padding: 1.5rem 1.6rem 1.7rem;
+  border: 1px solid var(--line);
+  border-radius: 1.2rem;
+  background: rgb(9 18 36 / 82%);
+  box-shadow: 0 24px 70px rgb(0 0 0 / 50%);
+  translate: 0 -50%;
+  animation: village-panel-in 380ms ease-out both;
+  backdrop-filter: blur(16px);
+}
+
+.village-panel h2 {
+  margin-top: 0.3rem;
+  font-family: 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, serif;
+  font-size: 2rem;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+}
+
+.village-panel p {
+  margin-top: 0.7rem;
+  color: rgb(255 244 220 / 88%);
+  line-height: 1.6;
+}
+
+.village-panel .village-panel-tagline {
+  color: var(--gold);
+  font-family: 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, serif;
+  font-size: 1.1rem;
+  font-style: italic;
+}
+
+.village-panel .village-panel-status {
+  margin-top: 0.9rem;
+  color: #7be0a0;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.village-panel-status[data-status='soon'] {
+  color: #8da2c8;
+}
+
+.village-panel-status[data-status='waiting'] {
+  color: var(--gold);
+}
+
+.village-panel-close {
+  padding: 0.3rem 0;
+  border: 0;
+  background: none;
+  color: rgb(255 244 220 / 78%);
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.village-panel-actions {
+  margin-top: 1.3rem;
+}
+
+.village-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 2.8rem;
+  padding: 0.6rem 1.2rem;
+  border: 1px solid #e7bf80;
+  border-radius: 0.8rem;
+  background: #f0cf97;
+  color: #18212d;
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.village-action-quiet {
+  border-color: var(--line);
+  background: transparent;
+  color: rgb(255 244 220 / 75%);
+  font-weight: 500;
+  cursor: default;
+}
+
+.village-menu button:focus-visible,
+.village-topnav a:focus-visible,
+.village-music-button:focus-visible,
+.village-action:focus-visible,
+.village-panel-close:focus-visible,
+.village-canvas:focus-visible {
+  outline: 3px solid #fff;
+  outline-offset: 3px;
+}
+
+@keyframes village-panel-in {
+  from {
+    opacity: 0;
+    transform: translateX(24px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@media (width <= 820px) {
+  .village-menu {
+    right: 0.9rem;
+    bottom: 0.9rem;
+    left: 0.9rem;
+    max-width: none;
+    overflow-x: auto;
+  }
+
+  .village-menu ul {
+    flex-wrap: nowrap;
+  }
+
+  .village-menu button {
+    white-space: nowrap;
+  }
+
+  .village-music {
+    bottom: 4.4rem;
+  }
+
+  .village-countdown {
+    top: 4.2rem;
+    right: 0.9rem;
+    bottom: auto;
+    padding: 0.4rem 0.6rem;
+  }
+
+  .village-countdown h2 {
+    display: none;
+  }
+
+  .village-countdown-cells strong {
+    font-size: 1.05rem;
+  }
+
+  .village-panel {
+    inset: auto 0.9rem 8.2rem;
+    width: auto;
+    max-height: calc(100svh - 11.5rem);
+    overflow-y: auto;
+    translate: 0 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .village-panel {
+    animation: none;
+  }
+
+  .village-veil {
+    transition: none;
+  }
+}

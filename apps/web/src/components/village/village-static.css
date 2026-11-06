@@ -1,0 +1,178 @@
+.vs {
+  --gold: #ffd58a;
+  --ink: #fff4dc;
+
+  position: relative;
+  min-height: 100svh;
+  overflow: hidden;
+  background: #070b1e;
+  color: var(--ink);
+  font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+
+.vs-scene {
+  display: block;
+  width: 100%;
+  height: min(62svh, 560px);
+  mask-image: linear-gradient(to bottom, #000 78%, transparent);
+}
+
+.vs-head {
+  position: absolute;
+  top: clamp(1.5rem, 6svh, 3.5rem);
+  right: 0;
+  left: 0;
+  padding: 0 1rem;
+  text-align: center;
+}
+
+.vs-kicker {
+  margin: 0;
+  color: var(--gold);
+  font-size: 0.8rem;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+}
+
+.vs-head h1 {
+  margin: 0.2rem 0 0;
+  font-family: 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, serif;
+  font-size: clamp(2.2rem, 8vw, 4rem);
+  font-weight: 600;
+  text-shadow: 0 2px 24px rgb(0 0 0 / 55%);
+}
+
+.vs-note {
+  max-width: 34rem;
+  margin: 0.8rem auto 0;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  opacity: 0.85;
+}
+
+.vs-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(14.5rem, 1fr));
+  gap: 0.9rem;
+  max-width: 68rem;
+  padding: 0;
+  margin: 0 auto;
+  list-style: none;
+  padding-inline: 1rem;
+  transform: translateY(-1.5rem);
+}
+
+.vs-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  height: 100%;
+  padding: 1rem 1.1rem;
+  border: 1px solid rgb(255 213 138 / 32%);
+  border-radius: 1rem;
+  background: rgb(14 24 48 / 82%);
+  color: var(--ink);
+  text-decoration: none;
+  transition: border-color 160ms ease, transform 160ms ease;
+}
+
+a.vs-card:hover {
+  border-color: var(--gold);
+  transform: translateY(-2px);
+}
+
+.vs-card strong {
+  font-family: 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, serif;
+  font-size: 1.15rem;
+}
+
+.vs-card span,
+.vs-card em {
+  font-size: 0.88rem;
+  line-height: 1.45;
+}
+
+.vs-card em {
+  margin-top: auto;
+  color: var(--gold);
+  font-style: normal;
+}
+
+.vs-card-quiet em {
+  opacity: 0.6;
+}
+
+.vs-status {
+  align-self: flex-start;
+  padding: 0.1rem 0.55rem;
+  border-radius: 999px;
+  background: rgb(255 213 138 / 16%);
+  color: var(--gold);
+  font-size: 0.72rem !important;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.vs-status[data-status='open'] {
+  background: rgb(120 220 160 / 20%);
+  color: #9be8bb;
+}
+
+.vs-foot {
+  padding: 1.5rem 1rem 2.5rem;
+  text-align: center;
+}
+
+.vs-foot a {
+  color: var(--gold);
+}
+
+.vs a:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 3px;
+}
+
+.vs-star {
+  animation: vs-twinkle 4s ease-in-out infinite;
+}
+
+.vs-bulb {
+  animation: vs-twinkle 2.4s ease-in-out infinite;
+}
+
+.vs-aurora {
+  animation: vs-drift 14s ease-in-out infinite alternate;
+}
+
+@keyframes vs-twinkle {
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.25;
+  }
+}
+
+@keyframes vs-drift {
+  from {
+    opacity: 0.7;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vs-star,
+  .vs-bulb,
+  .vs-aurora {
+    animation: none;
+  }
+
+  a.vs-card {
+    transition: none;
+  }
+}

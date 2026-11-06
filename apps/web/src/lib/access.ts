@@ -45,6 +45,11 @@ function isAdminSession(): Promise<boolean> {
   });
 }
 
+/** Page-side gate for work in progress: only a logged-in admin may preview it. */
+export async function canPreviewDesign(): Promise<boolean> {
+  return overrideOpen() || (await isAdminSession());
+}
+
 /** Page-side gate: true when the visitor may see `feature` now. */
 export async function canViewFeature(feature: SeasonFeature, now: Date = currentTime()): Promise<boolean> {
   if (await publiclyOpen(feature, now)) return true;
