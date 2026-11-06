@@ -15,3 +15,23 @@ html,
 body {
   height: 100%;
 }
+
+.jigsaw-settle {
+  animation: jigsaw-settle 180ms ease-out;
+}
+
+@keyframes jigsaw-settle {
+  from {
+    transform: scale(0.96);
+  }
+
+  to {
+    transform: scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .jigsaw-settle {
+    animation: none;
+  }
+}

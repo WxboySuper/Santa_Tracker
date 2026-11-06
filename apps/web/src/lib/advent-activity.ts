@@ -1,9 +1,11 @@
 import { parseCipher } from "./cipher";
+import { parseJigsaw } from "./jigsaw";
 import { parseWinterWorld } from "./winter-world";
 import { parseLightshow } from "./lightshow";
 
 const activityPayloadParsers = {
   cipher: parseCipher,
+  jigsaw: parseJigsaw,
   winterworld: parseWinterWorld,
   lightshow: parseLightshow,
 } as const;
