@@ -137,6 +137,17 @@ function playChime(context: AudioContext, semitone: number) {
   }
 }
 
+type WebkitWindow = Window & { webkitAudioContext?: typeof AudioContext };
+
+/** Creates the shared AudioContext on first use, with the older Safari constructor as a fallback. */
+function ensureAudioContext(ref: RefObject<AudioContext | null>): AudioContext | null {
+  if (ref.current) return ref.current;
+  const Constructor = window.AudioContext ?? (window as WebkitWindow).webkitAudioContext;
+  if (!Constructor) return null;
+  ref.current = new Constructor();
+  return ref.current;
+}
+
 const SCALE = [0, 2, 4, 7, 9, 12, 14, 16, 19];
 
 export default function NorthPoleScene(props: SceneProps) {
@@ -174,8 +185,11 @@ export default function NorthPoleScene(props: SceneProps) {
   }, [chime]);
 
   const toggleSound = useCallback(() => {
-    const AudioConstructor = window.AudioContext;
-    if (!sound && AudioConstructor && !audioRef.current) audioRef.current = new AudioConstructor();
+    if (!sound) {
+      const audio = ensureAudioContext(audioRef);
+      if (!audio) return;
+      void audio.resume().catch(() => undefined);
+    }
     setSound((value) => !value);
   }, [sound]);
 
