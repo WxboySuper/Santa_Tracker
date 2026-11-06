@@ -24,14 +24,19 @@ const scenes: readonly LightshowScene[] = ['tree', 'house'];
 const paletteNames: readonly LightshowPalette[] = ['warm', 'classic', 'ice', 'redGold'];
 const storageKey = 'santa-tracker-lightshow-v1';
 const activityId = createActivityId('lightshow');
+const intensityByPattern: Record<LightshowPattern, (frame: PatternFrame) => number> = {
+  steady: () => 1,
+  twinkle: twinkleIntensity,
+  chase: chaseIntensity,
+  fade: fadeIntensity,
+  wave: waveIntensity,
+};
 
 export function parseLightshow(payload: unknown): { scene: LightshowScene } | null {
   if (!payload || typeof payload !== 'object' || Array.isArray(payload)) return null;
   const source = payload as Record<string, unknown>;
   if (source.kind !== 'lightshow') return null;
-  if (source.scene !== undefined) {
-    if (!isLightshowScene(source.scene)) return null;
-  }
+  if (!isValidSceneProperty(source.scene)) return null;
   return { scene: (source.scene as LightshowScene | undefined) ?? 'tree' };
 }
 
@@ -41,19 +46,8 @@ export function lightColor(palette: LightshowPalette, index: number): string {
 }
 
 export function lightIntensity(pattern: LightshowPattern, index: number, tick: number, reducedMotion: boolean): number {
-  if (pattern === 'steady') return 1;
   const slowTick = reducedMotion ? Math.floor(tick / 8) : tick;
-  return intensityForPattern(pattern, { tick: slowTick, index });
-}
-
-function intensityForPattern(pattern: LightshowPattern, frame: PatternFrame): number {
-  switch (pattern) {
-    case 'twinkle': return twinkleIntensity(frame);
-    case 'chase': return chaseIntensity(frame);
-    case 'fade': return fadeIntensity(frame);
-    case 'wave': return waveIntensity(frame);
-    default: return 1;
-  }
+  return intensityByPattern[pattern]({ tick: slowTick, index });
 }
 
 function twinkleIntensity({ tick, index }: PatternFrame): number {
@@ -139,6 +133,11 @@ function parseScene(value: unknown): LightshowScene | null {
 
 function isLightshowScene(value: unknown): value is LightshowScene {
   return scenes.includes(value as LightshowScene);
+}
+
+function isValidSceneProperty(value: unknown): boolean {
+  if (value === undefined) return true;
+  return isLightshowScene(value);
 }
 
 function parsePalette(value: unknown): LightshowPalette | null {
