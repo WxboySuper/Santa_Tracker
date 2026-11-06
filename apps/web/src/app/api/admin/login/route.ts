@@ -19,6 +19,13 @@ interface LoginContext {
   signal: AbortSignal;
 }
 
+interface RunLoginInput {
+  task: () => Promise<NextResponse>;
+  signal?: AbortSignal;
+  onStart?: () => void;
+  markStarted: () => void;
+}
+
 type CappedBodyRead =
   | { kind: "complete"; chunks: Uint8Array[]; totalBytes: number }
   | { kind: "too-large" }
@@ -53,7 +60,8 @@ export function serializeLogin(ip: string, task: () => Promise<NextResponse>, si
   if (isLoginQueueMapFull(ip)) return Promise.resolve(throttledResponse(1));
   pendingLogins.set(ip, pendingCount + 1);
   const previous = loginQueues.get(ip) ?? Promise.resolve();
-  const runTask = () => runLoginTask(task, signal, onStart);
+  let taskStarted = false;
+  const runTask = () => runLoginTask({ task, signal, onStart, markStarted: () => { taskStarted = true; } });
   const current = previous.then(runTask, runTask);
   const tail = current.then(() => undefined, () => undefined);
   loginQueues.set(ip, tail);
@@ -66,15 +74,17 @@ export function serializeLogin(ip: string, task: () => Promise<NextResponse>, si
     pendingLogins.delete(ip);
     if (loginQueues.get(ip) === tail) loginQueues.delete(ip);
   });
-  return raceLoginWithAbort(completed, signal);
+  return raceLoginWithAbort(completed, signal, () => taskStarted);
 }
 
-function raceLoginWithAbort(task: Promise<NextResponse>, signal?: AbortSignal): Promise<NextResponse> {
+function raceLoginWithAbort(task: Promise<NextResponse>, signal: AbortSignal | undefined, hasStarted: () => boolean): Promise<NextResponse> {
   if (!signal) return task;
   if (signal.aborted) return Promise.resolve(requestTimeoutResponse());
   let onAbort: () => void = () => undefined;
   const aborted = new Promise<NextResponse>((resolve) => {
-    onAbort = () => resolve(requestTimeoutResponse());
+    onAbort = () => {
+      if (!hasStarted()) resolve(requestTimeoutResponse());
+    };
     signal.addEventListener("abort", onAbort, { once: true });
     if (signal.aborted) onAbort();
   });
@@ -101,12 +111,15 @@ async function handleLoginRequest(req: Request, ip: string, signal: AbortSignal)
 async function handleLogin(context: LoginContext): Promise<NextResponse> {
   const { req, ip, authenticated, payload, signal } = context;
   const result = await loginAdmin(payload);
-  if (signal.aborted) return requestTimeoutResponse();
   if (result.status === 401) {
     const failureLimit = await recordLoginAttempt(ip, authenticated);
+    if (signal.aborted) return requestTimeoutResponse();
     if (failureLimit) return throttledResponse(failureLimit.retryAfterSeconds);
   } else if (result.status === 200) {
     await clearLoginAttempts(ip);
+    if (signal.aborted) return requestTimeoutResponse();
+  } else if (signal.aborted) {
+    return requestTimeoutResponse();
   }
 
   const response = respondWith(result);
@@ -143,7 +156,7 @@ async function readAndParseBody(body: ReadableStream<Uint8Array>, signal: AbortS
   } catch {
     return { payload: null, tooLarge: false, aborted: signal.aborted };
   } finally {
-    reader.releaseLock();
+    if (!signal.aborted) reader.releaseLock();
   }
 }
 
@@ -189,14 +202,10 @@ function parseLoginBody(bytes: Uint8Array): { payload: unknown; tooLarge: boolea
 
 function createLoginProcessingSignal(req: Request): { signal: AbortSignal; startTimeout: () => void; dispose: () => void } {
   const controller = new AbortController();
-  const abortFromRequest = () => {
-    controller.abort();
-    if (req.body && !req.body.locked) void req.body.cancel().catch(() => undefined);
-  };
+  const abortFromRequest = () => abortLoginProcessing(req, controller);
   let timer: ReturnType<typeof setTimeout> | undefined;
   let queueTimer: ReturnType<typeof setTimeout> | undefined = setTimeout(abortFromRequest, MAX_LOGIN_QUEUE_WAIT_MS);
-  if (req.signal.aborted) abortFromRequest();
-  if (!req.signal.aborted) req.signal.addEventListener("abort", abortFromRequest, { once: true });
+  const removeRequestAbortListener = listenForRequestAbort(req, abortFromRequest);
   return {
     signal: controller.signal,
     startTimeout() {
@@ -208,13 +217,31 @@ function createLoginProcessingSignal(req: Request): { signal: AbortSignal; start
     dispose() {
       if (timer !== undefined) clearTimeout(timer);
       if (queueTimer !== undefined) clearTimeout(queueTimer);
-      req.signal.removeEventListener("abort", abortFromRequest);
+      removeRequestAbortListener();
     },
   };
 }
 
-function runLoginTask(task: () => Promise<NextResponse>, signal?: AbortSignal, onStart?: () => void): Promise<NextResponse> {
+function abortLoginProcessing(req: Request, controller: AbortController): void {
+  controller.abort();
+  if (!req.body) return;
+  if (req.body.locked) return;
+  void req.body.cancel().catch(() => undefined);
+}
+
+function listenForRequestAbort(req: Request, callback: () => void): () => void {
+  if (req.signal.aborted) {
+    callback();
+    return () => undefined;
+  }
+  req.signal.addEventListener("abort", callback, { once: true });
+  return () => req.signal.removeEventListener("abort", callback);
+}
+
+function runLoginTask(input: RunLoginInput): Promise<NextResponse> {
+  const { task, signal, onStart, markStarted } = input;
   if (signal?.aborted) return Promise.resolve(requestTimeoutResponse());
+  markStarted();
   if (onStart) onStart();
   return task();
 }

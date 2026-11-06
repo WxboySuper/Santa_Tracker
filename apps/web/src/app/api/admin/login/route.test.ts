@@ -165,11 +165,13 @@ describe("admin login route", () => {
 
   it("abandons a stalled body read when the request is aborted", async () => {
     let releaseBody: () => void = () => undefined;
+    let releaseCancel: () => void = () => undefined;
     const bodyStarted = new Promise<void>((resolve) => { releaseBody = resolve; });
     let controller: ReadableStreamDefaultController<Uint8Array> | undefined;
     const body = new ReadableStream<Uint8Array>({
       start(streamController) { controller = streamController; },
       pull() { releaseBody(); },
+      cancel() { return new Promise<void>((resolve) => { releaseCancel = resolve; }); },
     }, { highWaterMark: 0 });
     const requestAbort = new AbortController();
     const stalledRequest = POST(new Request("http://example.test/api/admin/login", {
@@ -188,6 +190,7 @@ describe("admin login route", () => {
     ]);
     clearTimeout(timeout!);
     if (result === 0) controller?.error(new Error("Test cleanup"));
+    releaseCancel();
     expect(result).toBe(408);
   });
 
