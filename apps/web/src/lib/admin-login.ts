@@ -30,7 +30,7 @@ function issueSessionToken(payload: unknown): AdminApiResult | Promise<AdminApiR
   }
   return createAdminToken()
     .then((token) => ({ status: 200, body: { token } }))
-    .catch(() => badRequest("Invalid data format"));
+    .catch(() => ({ status: 500, body: { error: "Failed to create session" } }));
 }
 
 function extractPassword(payload: unknown): unknown {

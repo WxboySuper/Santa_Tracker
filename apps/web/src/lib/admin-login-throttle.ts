@@ -142,7 +142,7 @@ export function createLoginThrottle(input: { store?: ThrottleStore; clock?: () =
 function checkInMemoryIp(input: { runtime: Runtime; ip: string }): ThrottleDecision | null {
   const { runtime, ip } = input;
   const { store, clock } = runtime;
-  if (!(store instanceof InMemoryThrottleStore)) throw new Error("Synchronous throttle checks require in-memory storage");
+  if (!(store instanceof InMemoryThrottleStore)) return { retryAfterSeconds: STORE_FULL_RETRY_MS / 1000 };
   const key = ipKey({ ip });
   const existing = store.peek({ key });
   const now = clock();

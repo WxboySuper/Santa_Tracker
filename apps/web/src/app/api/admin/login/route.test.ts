@@ -81,6 +81,26 @@ describe("admin login route", () => {
     expect(response.status).toBe(413);
   });
 
+  it("does not count malformed JSON as a failed password attempt", async () => {
+    const headers = { "cf-connecting-ip": "198.51.100.54", "content-type": "application/json" };
+    for (let index = 0; index < 4; index += 1) {
+      const response = await POST(new Request("http://example.test/api/admin/login", {
+        method: "POST", headers, body: JSON.stringify({ password: "wrong" }),
+      }));
+      expect(response.status).toBe(401);
+    }
+    const malformed = await POST(new Request("http://example.test/api/admin/login", {
+      method: "POST", headers, body: "{",
+    }));
+    expect(malformed.status).toBe(400);
+
+    const fifthFailure = await POST(new Request("http://example.test/api/admin/login", {
+      method: "POST", headers, body: JSON.stringify({ password: "wrong" }),
+    }));
+    expect(fifthFailure.status).toBe(429);
+    expect(fifthFailure.headers.get("Retry-After")).toBe("900");
+  });
+
   it("counts simultaneous same-IP failures without losing throttle updates", async () => {
     const verifyPassword = vi.spyOn(auth, "verifyAdminPassword");
     const requests = Array.from({ length: 20 }, () => POST(new Request("http://example.test/api/admin/login", {
@@ -179,5 +199,17 @@ describe("admin login route", () => {
     expect(refreshed.status).toBe(200);
     expect(refreshed.headers.get("set-cookie")).toContain("admin_token=");
     expect(refreshed.headers.get("set-cookie")).toContain(`Max-Age=${ADMIN_SESSION_TTL_SECONDS}`);
+  });
+
+  it("returns a server error when token signing fails", async () => {
+    vi.spyOn(auth, "createAdminToken").mockRejectedValue(new Error("signing failed"));
+    const response = await POST(new Request("https://example.test/api/admin/login", {
+      method: "POST",
+      headers: { "cf-connecting-ip": "198.51.100.64", "content-type": "application/json" },
+      body: JSON.stringify({ password: "correct horse" }),
+    }));
+
+    expect(response.status).toBe(500);
+    expect(await response.json()).toEqual({ error: "Failed to create session" });
   });
 });
