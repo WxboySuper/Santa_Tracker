@@ -36,7 +36,7 @@ async function worker() {
     if (!result) continue;
     const started = performance.now();
     try {
-      const response = await fetch(`${origin}${path}`);
+      const response = await fetch(`${origin}${path}`, { signal: AbortSignal.timeout(10_000) });
       await response.arrayBuffer();
       result.durations.push(performance.now() - started);
       result.requests++;
