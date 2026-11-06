@@ -22,7 +22,10 @@ async function withCalendarFixture(
   try {
     await mkdir(source, { recursive: true });
     await mkdir(temporaryRoot, { recursive: true });
-    await writeFile(path.join(source, "santa_route.json"), JSON.stringify({ meta: {}, route_nodes: [{}] }));
+    await writeFile(path.join(source, "santa_route.json"), JSON.stringify({ meta: {}, route_nodes: [
+      { schedule: { arrival_utc: "2026-12-24T20:00:00Z" } },
+      { schedule: { departure_utc: "2026-12-25T02:00:00Z" } },
+    ] }));
     await writeFile(calendarPath, calendarContent);
     await run({ source, temporaryRoot, calendarPath });
   } finally {
@@ -120,6 +123,13 @@ test("route with an invalid shape reports its source path before fixture servers
 		const routePath = path.join(source, "santa_route.json");
 		await writeFile(routePath, JSON.stringify({ route_nodes: [] }));
 		await expect(prepareFixtureData({ source, temporaryRoot })).rejects.toThrow(routePath);
+	});
+});
+
+test("open route fixtures fail when there are too few valid schedule timestamps", async () => {
+	await withCalendarFixture("route-schedule-test", JSON.stringify({ days: completeCalendarDays }), async ({ source, temporaryRoot }) => {
+		await writeFile(path.join(source, "santa_route.json"), JSON.stringify({ meta: {}, route_nodes: [{ schedule: { arrival_utc: "not-a-date" } }] }));
+		await expect(prepareFixtureData({ source, temporaryRoot })).rejects.toThrow("Cannot center route: fewer than two valid schedule timestamps");
 	});
 });
 

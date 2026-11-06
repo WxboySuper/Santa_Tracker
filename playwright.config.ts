@@ -15,6 +15,6 @@ export default defineConfig({
   use: baseUse,
   projects: [
     { name: "closed", testMatch: ["**/public-site.spec.ts", "**/closed-season.spec.ts"], use: { ...baseUse } },
-    { name: "open", testMatch: ["**/public-site.spec.ts", "**/open-season.spec.ts"], use: { ...baseUse } },
+    { name: "open", testMatch: ["**/public-site.spec.ts", "**/open-season.spec.ts", "**/immersive-tracker.spec.ts"], use: { ...baseUse } },
   ],
 });
