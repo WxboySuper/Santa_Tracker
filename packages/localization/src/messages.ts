@@ -357,7 +357,7 @@ export const en = {
   'admin.emergency.visible': 'Visible when its season is open',
   'admin.emergency.lastUpdated': 'Last updated: {time}',
   'admin.emergency.neverUpdated': 'Last updated: never',
-  'admin.emergency.confirmTitle': 'Hide this feature from visitors?',
+  'admin.emergency.confirmTitle': 'Hide {feature} from visitors?',
   'admin.emergency.confirmMessage': 'Visitors will see a 404 page until you turn this switch off.',
   'admin.emergency.confirm': 'Hide feature',
   'admin.emergency.cancel': 'Cancel',

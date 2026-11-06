@@ -15,26 +15,36 @@ export async function GET(request: Request) {
 export async function PUT(request: Request) {
   const auth = await requireAdminAuth(request);
   if (!auth.ok) return NextResponse.json({ error: auth.error ?? "Unauthorized" }, { status: auth.status ?? 401, headers: NO_STORE });
+  return saveFeatureFlags(request);
+}
+
+async function saveFeatureFlags(request: Request): Promise<NextResponse> {
+  const parsed = await readFlagsBody(request);
+  if (parsed.kind === "error") return parsed.response;
+  if (!validRequestBody(parsed.value)) {
+    return NextResponse.json({ error: "Expected version 1 and boolean tracker and advent flags" }, { status: 400, headers: NO_STORE });
+  }
+  return writeFlags(parsed.value.hidden);
+}
+
+async function readFlagsBody(request: Request): Promise<{ kind: "body"; value: unknown } | { kind: "error"; response: NextResponse }> {
   if (!request.headers.get("content-type")?.toLowerCase().startsWith("application/json")) {
-    return NextResponse.json({ error: "Content-Type must be application/json" }, { status: 400, headers: NO_STORE });
+    return { kind: "error", response: NextResponse.json({ error: "Content-Type must be application/json" }, { status: 400, headers: NO_STORE }) };
   }
   const length = Number(request.headers.get("content-length"));
   if (Number.isFinite(length) && length > MAX_BODY_BYTES) {
-    return NextResponse.json({ error: "Request body too large" }, { status: 413, headers: NO_STORE });
+    return { kind: "error", response: NextResponse.json({ error: "Request body too large" }, { status: 413, headers: NO_STORE }) };
   }
   const parsed = await readCappedJson(request);
-  if (parsed.kind === "too-large") {
-    return NextResponse.json({ error: "Request body too large" }, { status: 413, headers: NO_STORE });
-  }
-  if (parsed.kind === "invalid") {
-    return NextResponse.json({ error: "Invalid JSON" }, { status: 400, headers: NO_STORE });
-  }
-  const body = parsed.value;
-  if (!validRequestBody(body)) {
-    return NextResponse.json({ error: "Expected version 1 and boolean tracker and advent flags" }, { status: 400, headers: NO_STORE });
-  }
+  if (parsed.kind === "body") return parsed;
+  return parsed.kind === "too-large"
+    ? { kind: "error", response: NextResponse.json({ error: "Request body too large" }, { status: 413, headers: NO_STORE }) }
+    : { kind: "error", response: NextResponse.json({ error: "Invalid JSON" }, { status: 400, headers: NO_STORE }) };
+}
+
+async function writeFlags(hidden: { tracker: boolean; advent: boolean }): Promise<NextResponse> {
   try {
-    const result = await writeFeatureFlags(body.hidden, new Date().toISOString());
+    const result = await writeFeatureFlags(hidden, new Date().toISOString());
     return NextResponse.json(result, { headers: NO_STORE });
   } catch (error: unknown) {
     console.error("Admin feature flags write failed", error);

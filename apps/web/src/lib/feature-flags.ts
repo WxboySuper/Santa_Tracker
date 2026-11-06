@@ -20,16 +20,46 @@ const ISO_DATE_TIME = /^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})(?:\.(\d{1,3}))?Z$/
 
 export function parseFeatureFlags(raw: string | null): FeatureFlags {
   if (!raw) return DEFAULT_FEATURE_FLAGS;
+  return parseFeatureFlagsJson(raw);
+}
+
+function parseFeatureFlagsJson(raw: string): FeatureFlags {
+  let value: unknown;
   try {
-    const value: unknown = JSON.parse(raw);
-    if (!isRecord(value) || !hasExactKeys(value, ["version", "hidden", "updatedAt"]) || value.version !== 1) return DEFAULT_FEATURE_FLAGS;
-    if (!isRecord(value.hidden) || !hasExactKeys(value.hidden, ["tracker", "advent"])) return DEFAULT_FEATURE_FLAGS;
-    if (typeof value.hidden.tracker !== "boolean" || typeof value.hidden.advent !== "boolean") return DEFAULT_FEATURE_FLAGS;
-    if (typeof value.updatedAt !== "string" || !isValidTimestamp(value.updatedAt)) return DEFAULT_FEATURE_FLAGS;
-    return { version: 1, hidden: { tracker: value.hidden.tracker, advent: value.hidden.advent }, updatedAt: value.updatedAt };
+    value = JSON.parse(raw) as unknown;
   } catch {
     return DEFAULT_FEATURE_FLAGS;
   }
+  if (!isFeatureFlagsRecord(value)) return DEFAULT_FEATURE_FLAGS;
+  return {
+    version: 1,
+    hidden: { tracker: value.hidden.tracker, advent: value.hidden.advent },
+    updatedAt: value.updatedAt,
+  };
+}
+
+interface FeatureFlagsRecord {
+  hidden: HiddenFlagsRecord;
+  updatedAt: string;
+}
+
+interface HiddenFlagsRecord {
+  tracker: boolean;
+  advent: boolean;
+}
+
+function isFeatureFlagsRecord(value: unknown): value is FeatureFlagsRecord {
+  if (!isRecord(value)) return false;
+  if (!hasExactKeys(value, ["version", "hidden", "updatedAt"])) return false;
+  if (value.version !== 1 || typeof value.updatedAt !== "string") return false;
+  if (!isHiddenFlagsRecord(value.hidden)) return false;
+  return isValidTimestamp(value.updatedAt);
+}
+
+function isHiddenFlagsRecord(value: unknown): value is HiddenFlagsRecord {
+  if (!isRecord(value)) return false;
+  if (!hasExactKeys(value, ["tracker", "advent"])) return false;
+  return typeof value.tracker === "boolean" && typeof value.advent === "boolean";
 }
 
 function isValidTimestamp(value: string): boolean {
