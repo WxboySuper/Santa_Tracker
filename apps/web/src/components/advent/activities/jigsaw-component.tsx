@@ -4,23 +4,25 @@ import { useEffect, useMemo, useState, type PointerEvent, type KeyboardEvent } f
 import { createTranslator } from "@santa-tracker/localization";
 import { createActivityId } from "@santa-tracker/contracts/ids";
 import { migrateActivitySave, type ActivitySaveMigration } from "@santa-tracker/activity-sdk/save";
-import { createPieceIds, getCellBounds, getGridSize, getNextPiece, isEdgePiece, JIGSAW_ACTIVITY_ID, JIGSAW_SCHEMA_VERSION, normalizeProgress, type JigsawConfig, type JigsawScene } from "@/lib/jigsaw";
+import { createPieceIds, getCellBounds, getGridSize, getJigsawSaveKey, getNextPiece, isEdgePiece, JIGSAW_ACTIVITY_ID, JIGSAW_SCHEMA_VERSION, normalizeProgress, type JigsawConfig, type JigsawScene } from "@/lib/jigsaw";
 
-const SAVE_KEY = "santa-advent-jigsaw-v1";
 const JIGSAW_MIGRATIONS: ActivitySaveMigration[] = [];
 
 export function JigsawActivity({ config, locale }: { config: JigsawConfig; locale: string }) {
   const translator = createTranslator({ locale });
-  const [placed, setPlaced] = useState<number[]>([]);
+  const saveKey = getJigsawSaveKey(config);
+  const [storedPieces, setPlaced] = useState<number[]>([]);
+  const [progressKey, setProgressKey] = useState<string | null>(null);
   const [selected, setSelected] = useState<number | null>(null);
   const [targetCell, setTargetCell] = useState<number | null>(null);
   const [ghost, setGhost] = useState(false);
   const [edgeFirst, setEdgeFirst] = useState(false);
   const [storageReady, setStorageReady] = useState(false);
   const [announcement, setAnnouncement] = useState("");
-  const complete = placed.length === config.pieces;
   const { columns } = getGridSize(config.pieces);
   const ids = useMemo(() => createPieceIds(config.pieces), [config.pieces]);
+  const placed = useMemo(() => progressKey === saveKey ? storedPieces : [], [progressKey, saveKey, storedPieces]);
+  const complete = placed.length === config.pieces;
   const tray = ids.filter((piece) => !placed.includes(piece)).sort((left, right) => {
     if (!edgeFirst) return left - right;
     const { columns, rows } = getGridSize(config.pieces);
@@ -28,8 +30,10 @@ export function JigsawActivity({ config, locale }: { config: JigsawConfig; local
   });
 
   useEffect(() => {
+    setProgressKey(null);
+    setPlaced([]);
     try {
-      const raw = window.localStorage.getItem(SAVE_KEY);
+      const raw = window.localStorage.getItem(saveKey);
       if (raw) {
         const saved = migrateActivitySave<{ placed: number[] }>(JSON.parse(raw), JIGSAW_SCHEMA_VERSION, JIGSAW_MIGRATIONS);
         if (saved.activityId === JIGSAW_ACTIVITY_ID) setPlaced(normalizeProgress(saved.payload, config.pieces).placed);
@@ -37,18 +41,19 @@ export function JigsawActivity({ config, locale }: { config: JigsawConfig; local
     } catch {
       // Storage is optional; the puzzle remains playable in memory.
     }
+    setProgressKey(saveKey);
     setStorageReady(true);
-  }, [config.pieces]);
+  }, [config.pieces, saveKey]);
 
   useEffect(() => {
-    if (!storageReady) return;
+    if (!storageReady || progressKey !== saveKey) return;
     try {
       const envelope = { activityId: createActivityId(JIGSAW_ACTIVITY_ID), schemaVersion: JIGSAW_SCHEMA_VERSION, savedAtIso: new Date().toISOString(), payload: { placed } };
-      window.localStorage.setItem(SAVE_KEY, JSON.stringify(envelope));
+      window.localStorage.setItem(saveKey, JSON.stringify(envelope));
     } catch {
       // A full or blocked store should not interrupt play.
     }
-  }, [placed, storageReady]);
+  }, [placed, progressKey, saveKey, storageReady]);
 
   function placePiece(piece: number, cell: number) {
     if (piece !== cell || placed.includes(piece)) return;
@@ -83,7 +88,7 @@ export function JigsawActivity({ config, locale }: { config: JigsawConfig; local
       setTargetCell(piece);
       return;
     }
-    setTargetCell(getNextPiece({ current: targetCell ?? piece, direction, count: config.pieces, placed: [], edgeFirst: false }));
+    setTargetCell(getNextPiece({ current: targetCell ?? piece, direction, count: config.pieces, placed, edgeFirst }));
   }
 
   function startOver() {

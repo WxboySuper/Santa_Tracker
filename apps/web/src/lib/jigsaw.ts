@@ -13,6 +13,10 @@ export interface JigsawProgress {
 export const JIGSAW_SCHEMA_VERSION = 1;
 export const JIGSAW_ACTIVITY_ID = "advent-jigsaw" as const;
 
+export function getJigsawSaveKey(config: JigsawConfig): string {
+  return `santa-advent-jigsaw-${config.scene}-${config.pieces}-v${JIGSAW_SCHEMA_VERSION}`;
+}
+
 export function parseJigsaw(payload: unknown): JigsawConfig | null {
   if (!isRecord(payload) || payload.kind !== "jigsaw") return null;
   const scene = parseScene(payload.scene);

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createPieceIds, getCellBounds, getGridSize, getNextPiece, isEdgePiece, normalizeProgress, parseJigsaw } from "./jigsaw";
+import { createPieceIds, getCellBounds, getGridSize, getJigsawSaveKey, getNextPiece, isEdgePiece, normalizeProgress, parseJigsaw } from "./jigsaw";
 
 describe("jigsaw activity logic", () => {
   it("parses defaults and rejects malformed payloads", () => {
@@ -22,7 +22,15 @@ describe("jigsaw activity logic", () => {
 
   it("moves a keyboard target and normalizes saved progress", () => {
     expect(getNextPiece({ current: 0, direction: "right", count: 12, placed: [], edgeFirst: false })).toBe(1);
+    expect(getNextPiece({ current: 0, direction: "right", count: 12, placed: [1], edgeFirst: false })).not.toBe(1);
+    const suggested = getNextPiece({ current: 5, direction: "down", count: 12, placed: [], edgeFirst: true });
+    expect(isEdgePiece(suggested, 4, 3)).toBe(true);
     expect(normalizeProgress({ placed: [1, 1, -1, 12, "2"] }, 12)).toEqual({ placed: [1] });
     expect(normalizeProgress({ placed: "bad" }, 24)).toEqual({ placed: [] });
+  });
+
+  it("keeps saved progress separate for each scene and piece count", () => {
+    expect(getJigsawSaveKey({ scene: "cabin", pieces: 12 })).not.toBe(getJigsawSaveKey({ scene: "cabin", pieces: 24 }));
+    expect(getJigsawSaveKey({ scene: "cabin", pieces: 24 })).not.toBe(getJigsawSaveKey({ scene: "street", pieces: 24 }));
   });
 });
