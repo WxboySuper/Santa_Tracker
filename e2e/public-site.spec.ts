@@ -42,7 +42,7 @@ async function verifyNarrowWidths(page: Page): Promise<void> {
 async function verifyAccessibilityPreferences(page: Page): Promise<void> {
   await page.emulateMedia({ reducedMotion: 'reduce' });
   const moving = await page
-    .locator('.scene-snow')
+    .locator('.aurora-ribbon, .drifting-snow, .smoke-puff')
     .evaluateAll((layers) =>
       layers
         .map((layer) => getComputedStyle(layer).animationName)
