@@ -138,7 +138,7 @@ function searchableCities(nodes: RouteNode[], search: string): CityOption[] {
 function requestLocation(setPlace: (place: ChosenPlace) => void, setPersist: (persist: boolean) => void, fail: (failed: boolean) => void): void {
   if (!navigator.geolocation) { fail(true); return; }
   navigator.geolocation.getCurrentPosition(
-    ({ coords }) => { setPersist(false); setPlace({ name: "Your location", lat: coords.latitude, lng: coords.longitude }); },
+    ({ coords }) => { fail(false); setPersist(false); setPlace({ name: "Your location", lat: coords.latitude, lng: coords.longitude }); },
     () => fail(true),
     { maximumAge: 300000, timeout: 10000 },
   );

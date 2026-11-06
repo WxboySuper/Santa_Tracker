@@ -141,11 +141,12 @@
 }
 
 .tracker-controls {
-  transition: opacity 220ms ease;
+  transition: opacity 220ms ease, visibility 220ms ease;
 }
 
 .tracker-controls-hidden {
   opacity: 0;
+  visibility: hidden;
   pointer-events: none;
 }
 

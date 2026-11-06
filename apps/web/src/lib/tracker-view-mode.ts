@@ -17,6 +17,16 @@ export function useTrackerViewMode() {
     window.addEventListener("popstate", sync);
     return () => window.removeEventListener("popstate", sync);
   }, []);
+  useEffect(() => {
+    const syncFullscreen = () => {
+      if (document.fullscreenElement) return;
+      if (viewMode !== "immersive") return;
+      setViewMode("standard");
+      updateModeUrl("standard");
+    };
+    document.addEventListener("fullscreenchange", syncFullscreen);
+    return () => document.removeEventListener("fullscreenchange", syncFullscreen);
+  }, [viewMode]);
   const toggleImmersive = useCallback(() => {
     const next = viewMode === "immersive" ? "standard" : "immersive";
     setViewMode(next);

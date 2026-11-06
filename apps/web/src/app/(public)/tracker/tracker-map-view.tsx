@@ -94,7 +94,7 @@ export function TrackerMapView(props: TrackerMapViewProps) {
   const { visible, wake } = useIdleControls(viewMode);
   return <>
     <TrackerNavigation adventEnabled={adventEnabled} immersive={immersive} translator={translator} />
-    <div className={stageClass(immersive)} onPointerMove={wake} onKeyDown={event => handleTrackerKey(event, wake, immersive, toggleImmersive)}>
+    <div className={stageClass(immersive)} onPointerMove={wake} onPointerDown={wake} onFocusCapture={wake} onKeyDown={event => handleTrackerKey(event, wake, immersive, toggleImmersive)}>
       <MapSurface mode={mode} element={element} nodes={nodes} position={position} translator={translator} locale={locale} />
       <TrackerControls mode={mode} following={following} dispatch={dispatch} translator={translator} adapter={adapter} setFollowing={setFollowing} immersive={immersive} visible={visible} toggleImmersive={toggleImmersive} />
       <MapInstructions mode={mode} translator={translator} />

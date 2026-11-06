@@ -17,7 +17,7 @@ function shiftRouteToLiveWindow(route: string): string {
 	if (!isSantaRoute(parsed)) return route;
 	const nodes = (parsed as { route_nodes: { schedule?: Record<string, unknown> }[] }).route_nodes;
 	const shift = liveWindowShift(nodes);
-	if (shift == null) return route;
+	if (shift === null) return route;
 	for (const node of nodes) shiftNodeTimes(node, shift);
 	return JSON.stringify(parsed);
 }
@@ -37,7 +37,10 @@ function shiftNodeTimes(node: { schedule?: Record<string, unknown> }, shift: num
 	if (!schedule) return;
 	for (const key of ["arrival_utc", "departure_utc"] as const) {
 		const value = schedule[key];
-		if (typeof value === "string") schedule[key] = new Date(Date.parse(value) + shift).toISOString();
+		if (typeof value !== "string") continue;
+		const parsed = Date.parse(value);
+		if (!Number.isFinite(parsed)) continue;
+		schedule[key] = new Date(parsed + shift).toISOString();
 	}
 }
 

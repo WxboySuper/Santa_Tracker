@@ -29,9 +29,14 @@ test("immersive controls work on a phone with reduced motion and blocked browser
     Object.defineProperty(window, "localStorage", { get() { throw new DOMException("Blocked", "SecurityError"); } });
     Object.defineProperty(navigator, "geolocation", { value: { getCurrentPosition: (_success: unknown, error: (failure: { code: number }) => void) => { window.geoCalls += 1; error({ code: 1 }); } } });
   });
+  await page.clock.install();
   await page.goto("/tracker?mode=immersive");
   await expect(page.getByRole("button", { name: "Arrival chimes off" })).toBeVisible();
   await expect(page.locator(".tracker-controls").first()).toHaveCSS("transition-duration", "0s");
+  await page.clock.fastForward(4500);
+  await expect(page.locator(".tracker-controls").first()).toHaveCSS("visibility", "hidden");
+  await page.locator(".tracker-stage").dispatchEvent("pointerdown");
+  await expect(page.locator(".tracker-controls").first()).toHaveCSS("visibility", "visible");
   await expect.poll(() => page.evaluate(() => window.geoCalls)).toBe(0);
   await page.getByRole("button", { name: "Use my location" }).click();
   await expect.poll(() => page.evaluate(() => window.geoCalls)).toBe(1);
