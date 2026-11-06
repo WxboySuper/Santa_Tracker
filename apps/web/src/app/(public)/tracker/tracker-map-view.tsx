@@ -87,21 +87,55 @@ export function TrackerMapView(props: TrackerMapViewProps) {
   const immersive = viewMode === "immersive";
   const { visible, wake } = useIdleControls(viewMode);
   return <>
-    {!immersive && <TrackerNav adventEnabled={adventEnabled} translator={translator} />}
-    <div className={`tracker-stage relative w-screen h-screen ${immersive ? "tracker-immersive" : ""}`} onPointerMove={wake} onKeyDown={event => handleTrackerKey(event, wake, immersive, toggleImmersive)}>
-      {mode !== "text" && <div ref={element} className="w-full h-full bg-blue-950 focus-visible:outline focus-visible:outline-4 focus-visible:outline-yellow-300" aria-label={translator.t("tracker.mapLabel")} aria-describedby="map-instructions" role="application" tabIndex={0} />}
-      {mode === "text" && <JourneyPanel nodes={nodes} position={position} translator={translator} locale={locale} />}
-      <div className={immersive && !visible ? "tracker-controls tracker-controls-hidden" : "tracker-controls"}>
-        <MapControls mode={mode} following={following} dispatch={dispatch} translator={translator} adapter={adapter} setFollowing={setFollowing} />
-        <button className="absolute top-20 right-4 z-20 rounded bg-blue-900 px-3 py-2 text-white focus-visible:outline focus-visible:outline-4 focus-visible:outline-yellow-300" onClick={toggleImmersive}>{translator.t(immersive ? "tracker.exitImmersive" : "tracker.immersive")}</button>
-      </div>
-      {mode !== "text" && <p id="map-instructions" className="absolute left-4 bottom-16 z-10 max-w-[calc(100%-2rem)] rounded bg-black/70 px-3 py-2 text-sm text-white">{translator.t("tracker.instructions")}</p>}
-      <p className="absolute left-4 bottom-4 z-10 rounded bg-black/70 px-3 py-2 text-sm text-white">{status}</p>
-      <p className="sr-only" aria-live="polite">{current ? translator.t("tracker.announcement", { location: current.location.name }) : ""}</p>
-      {!immersive && <CountdownHud locale={locale} translator={translator} />}
-      {immersive && <ImmersiveTrackerOverlays locale={locale} nodes={nodes} position={position} current={current} translator={translator} />}
+    <TrackerNavigation adventEnabled={adventEnabled} immersive={immersive} translator={translator} />
+    <div className={stageClass(immersive)} onPointerMove={wake} onKeyDown={event => handleTrackerKey(event, wake, immersive, toggleImmersive)}>
+      <MapSurface mode={mode} element={element} nodes={nodes} position={position} translator={translator} locale={locale} />
+      <TrackerControls mode={mode} following={following} dispatch={dispatch} translator={translator} adapter={adapter} setFollowing={setFollowing} immersive={immersive} visible={visible} toggleImmersive={toggleImmersive} />
+      <MapInstructions mode={mode} translator={translator} />
+      <TrackerStatus status={status} current={current} translator={translator} />
+      <CountdownLayer immersive={immersive} controlsVisible={visible} locale={locale} translator={translator} nodes={nodes} position={position} current={current} />
     </div>
   </>;
+}
+
+function TrackerNavigation({ adventEnabled, immersive, translator }: { adventEnabled: boolean; immersive: boolean; translator: Translator }) {
+  if (immersive) return null;
+  return <TrackerNav adventEnabled={adventEnabled} translator={translator} />;
+}
+
+function stageClass(immersive: boolean): string {
+  return immersive ? "tracker-stage tracker-immersive relative h-screen w-screen" : "tracker-stage relative h-screen w-screen";
+}
+
+function MapSurface({ mode, element, nodes, position, translator, locale }: { mode: MapMode; element: RefObject<HTMLDivElement | null>; nodes: RouteNode[]; position: SantaPosition | null; translator: Translator; locale: string }) {
+  if (mode === "text") return <JourneyPanel nodes={nodes} position={position} translator={translator} locale={locale} />;
+  return <div ref={element} className="h-full w-full bg-blue-950 focus-visible:outline focus-visible:outline-4 focus-visible:outline-yellow-300" aria-label={translator.t("tracker.mapLabel")} aria-describedby="map-instructions" role="application" tabIndex={0} />;
+}
+
+function TrackerControls({ mode, following, dispatch, translator, adapter, setFollowing, immersive, visible, toggleImmersive }: { mode: MapMode; following: boolean; dispatch: Dispatch<MapEvent>; translator: Translator; adapter: RefObject<TrackerMapAdapter | null>; setFollowing: (value: boolean) => void; immersive: boolean; visible: boolean; toggleImmersive: () => void }) {
+  const hidden = immersive && !visible;
+  return <div className={hidden ? "tracker-controls tracker-controls-hidden" : "tracker-controls"}>
+    <MapControls mode={mode} following={following} dispatch={dispatch} translator={translator} adapter={adapter} setFollowing={setFollowing} />
+    <button className="absolute top-20 right-4 z-20 rounded bg-blue-900 px-3 py-2 text-white focus-visible:outline focus-visible:outline-4 focus-visible:outline-yellow-300" onClick={toggleImmersive}>{translator.t(immersive ? "tracker.exitImmersive" : "tracker.immersive")}</button>
+  </div>;
+}
+
+function MapInstructions({ mode, translator }: { mode: MapMode; translator: Translator }) {
+  if (mode === "text") return null;
+  return <p id="map-instructions" className="absolute left-4 bottom-16 z-10 max-w-[calc(100%-2rem)] rounded bg-black/70 px-3 py-2 text-sm text-white">{translator.t("tracker.instructions")}</p>;
+}
+
+function TrackerStatus({ status, current, translator }: { status: string; current?: RouteNode; translator: Translator }) {
+  const announcement = current ? translator.t("tracker.announcement", { location: current.location.name }) : "";
+  return <>
+    <p className="absolute left-4 bottom-4 z-10 rounded bg-black/70 px-3 py-2 text-sm text-white">{status}</p>
+    <p className="sr-only" aria-live="polite">{announcement}</p>
+  </>;
+}
+
+function CountdownLayer({ immersive, controlsVisible, ...props }: { immersive: boolean; controlsVisible: boolean; locale: string; translator: Translator; nodes: RouteNode[]; position: SantaPosition | null; current?: RouteNode }) {
+  if (!immersive) return <CountdownHud locale={props.locale} translator={props.translator} />;
+  return <ImmersiveTrackerOverlays locale={props.locale} nodes={props.nodes} position={props.position} current={props.current} translator={props.translator} controlsVisible={controlsVisible} />;
 }
 
 function CountdownHud({ locale, translator }: { locale: string; translator: Translator }) {

@@ -6,10 +6,10 @@ import type { RouteNode } from "@/lib/locations";
 import type { SantaPosition } from "@/lib/tracker-position";
 
 type Translator = ReturnType<typeof createTranslator>;
-type ImmersiveTrackerProps = { locale: string; nodes: RouteNode[]; position: SantaPosition | null; current?: RouteNode; translator: Translator };
+type ImmersiveTrackerProps = { locale: string; nodes: RouteNode[]; position: SantaPosition | null; current?: RouteNode; translator: Translator; controlsVisible: boolean };
 type CityOption = ChosenPlace & { lat: number; lng: number };
 
-export function ImmersiveTrackerOverlays({ locale, nodes, position, current, translator }: ImmersiveTrackerProps) {
+export function ImmersiveTrackerOverlays({ locale, nodes, position, current, translator, controlsVisible }: ImmersiveTrackerProps) {
   const [now, setNow] = useState(() => new Date());
   const [arrivalNotice, setArrivalNotice] = useState<RouteNode | null>(null);
   const [chimes, setChimes] = useState(false);
@@ -20,18 +20,27 @@ export function ImmersiveTrackerOverlays({ locale, nodes, position, current, tra
   }, []);
   useEffect(() => {
     const index = position?.journey.currentIndex ?? null;
-    const prior = previousStop.current;
-    if (index != null && prior != null && index !== prior) setArrivalNotice(nodes[index] ?? null);
+    const arrived = stopAfterChange(index, previousStop.current, nodes);
+    if (arrived) setArrivalNotice(arrived);
     previousStop.current = index;
   }, [position, nodes]);
   useEffect(() => showArrivalNotice(arrivalNotice, chimes, setArrivalNotice), [arrivalNotice, chimes]);
   const next = position?.journey.nextIndex == null ? undefined : nodes[position.journey.nextIndex];
   return <>
-    <AudioToggle chimes={chimes} setChimes={setChimes} translator={translator} />
     <ImmersiveJourneyHud current={current} next={next} progress={position?.journey.progress ?? 0} now={now} translator={translator} />
     {arrivalNotice && <ArrivalNoticeCard node={arrivalNotice} translator={translator} />}
-    <FindMePanel locale={locale} nodes={nodes} now={now} translator={translator} />
+    <div className={controlsVisible ? "tracker-controls" : "tracker-controls tracker-controls-hidden"}>
+      <AudioToggle chimes={chimes} setChimes={setChimes} translator={translator} />
+      <FindMePanel locale={locale} nodes={nodes} now={now} translator={translator} />
+    </div>
   </>;
+}
+
+function stopAfterChange(current: number | null, previous: number | null, nodes: RouteNode[]): RouteNode | null {
+  if (current === null) return null;
+  if (previous === null) return null;
+  if (current === previous) return null;
+  return nodes[current] ?? null;
 }
 
 function showArrivalNotice(node: RouteNode | null, chimes: boolean, clear: (node: RouteNode | null) => void): (() => void) | undefined {

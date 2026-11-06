@@ -22,7 +22,7 @@ test("immersive controls work on a phone with reduced motion and blocked browser
   });
   await page.goto("/tracker?mode=immersive");
   await expect(page.getByRole("button", { name: "Arrival chimes off" })).toBeVisible();
-  await expect(page.locator(".tracker-controls")).toHaveCSS("transition-duration", "0s");
+  await expect(page.locator(".tracker-controls").first()).toHaveCSS("transition-duration", "0s");
   await page.getByRole("button", { name: "Use my location" }).click();
   await expect(page.getByText(/Location access was unavailable/)).toBeVisible();
   await page.keyboard.press("Tab");
