@@ -24,7 +24,10 @@ function executable(name) {
 
 function toolCommand(name, args = []) {
   if (name !== 'pnpm') return [executable(name), args];
-  const direct = spawnSync(executable(name), ['--version'], { stdio: 'ignore' });
+  const direct = spawnSync(executable(name), ['--version'], {
+    stdio: 'ignore',
+    shell: process.platform === 'win32',
+  });
   return direct.error ? [executable('corepack'), ['pnpm', ...args]] : [executable(name), args];
 }
 

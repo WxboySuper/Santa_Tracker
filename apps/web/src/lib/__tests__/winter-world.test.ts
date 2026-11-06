@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { en } from "@santa-tracker/localization";
 import { winterWorldEntries } from "../winter-world-data";
 import { isWinterWorldTonight, parseLitEntryIds, parseWinterWorld, projectWinterWorldPoint } from "../winter-world";
 
@@ -42,5 +43,15 @@ describe("winter world activity", () => {
     expect(point.x).toBeLessThanOrEqual(760);
     expect(point.y).toBeGreaterThanOrEqual(24);
     expect(point.y).toBeLessThanOrEqual(216);
+  });
+
+  it("keeps every entry within the requested paragraph length and gives it a source note", () => {
+    for (const entry of winterWorldEntries) {
+      const story = en[entry.storyKey];
+      const wordCount = story.trim().split(/\s+/).length;
+      expect(wordCount, entry.id).toBeGreaterThanOrEqual(60);
+      expect(wordCount, entry.id).toBeLessThanOrEqual(110);
+      expect(entry.sourceNote.trim(), entry.id).not.toBe("");
+    }
   });
 });

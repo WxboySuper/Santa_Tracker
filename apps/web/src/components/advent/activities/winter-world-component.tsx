@@ -151,7 +151,7 @@ export function WinterWorldActivity({ config, locale }: { config: WinterWorldCon
                     aria-label={`${translator.t(entry.placeKey)}${isLit ? `, ${translator.t("advent.activity.winterworld.candleLit", { place: translator.t(entry.placeKey) })}` : ""}`}
                     onClick={() => selectEntry(entry.id)}
                     onKeyDown={(event) => handleNavigationKey(event, entry.id)}
-                    className={`flex min-h-11 w-full items-center gap-2 rounded-xl border px-3 py-2 text-left text-sm transition-colors motion-reduce:transition-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-700 ${isSelected ? "border-amber-700 bg-white text-slate-950 shadow-sm" : "border-slate-300/80 bg-white/60 text-slate-700 hover:bg-white"}`}
+                    className={`flex min-h-11 w-full items-center gap-2 rounded-xl border px-3 py-2 text-left text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-700 ${isSelected ? "border-amber-700 bg-white text-slate-950 shadow-sm" : "border-slate-300/80 bg-white/60 text-slate-700 hover:bg-white"}`}
                   >
                     <span aria-hidden="true" className={`inline-block h-2.5 w-2.5 shrink-0 rounded-full ${isLit ? "bg-amber-500 shadow-[0_0_8px_2px_rgba(245,158,11,.45)]" : "bg-slate-300"}`} />
                     <span className="min-w-0"><span className="block font-semibold">{translator.t(entry.titleKey)}</span><span className="block truncate text-xs text-slate-600">{translator.t(entry.placeKey)}</span></span>
@@ -178,7 +178,7 @@ export function WinterWorldActivity({ config, locale }: { config: WinterWorldCon
           <p className="mt-4 border-t border-slate-200 pt-3 text-sm text-slate-600">{translator.t(selected.whenKey)}</p>
           <button
             type="button"
-            className="mt-5 inline-flex min-h-11 items-center gap-3 rounded-xl bg-slate-900 px-4 py-2 font-semibold text-white transition-colors hover:bg-slate-700 motion-reduce:transition-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-700"
+            className="mt-5 inline-flex min-h-11 items-center gap-3 rounded-xl bg-slate-900 px-4 py-2 font-semibold text-white hover:bg-slate-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-700"
             onClick={lightSelectedCandle}
             aria-pressed={selectedIsLit}
           >
