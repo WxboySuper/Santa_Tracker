@@ -21,6 +21,22 @@ test("tracker opens immersive mode and lets a visitor choose a city", async ({ p
   await expect(page).not.toHaveURL(/mode=immersive/);
 });
 
+test("immersive exit toggle stays keyboard reachable after idle controls fade", async ({ page }) => {
+  await page.clock.install();
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/tracker?mode=immersive");
+  const exit = page.getByRole("button", { name: "Exit immersive mode" });
+  await expect(exit).toBeVisible();
+  await page.clock.fastForward(5000);
+  await expect(page.locator(".tracker-controls").first()).toHaveCSS("visibility", "hidden");
+  await expect(exit).toBeVisible();
+  await page.locator('.tracker-stage [role="application"]').focus();
+  await page.keyboard.press("Tab");
+  await expect(exit).toBeFocused();
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("button", { name: "Enter immersive mode" })).toBeVisible();
+});
+
 test("immersive controls work on a phone with reduced motion and blocked browser features", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.emulateMedia({ reducedMotion: "reduce" });

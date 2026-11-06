@@ -124,10 +124,12 @@ function MapSurface({ mode, element, nodes, position, translator, locale }: { mo
 /** Groups standard map controls with the immersive mode toggle. */
 function TrackerControls({ mode, following, dispatch, translator, adapter, setFollowing, immersive, visible, toggleImmersive }: { mode: MapMode; following: boolean; dispatch: Dispatch<MapEvent>; translator: Translator; adapter: RefObject<TrackerMapAdapter | null>; setFollowing: (value: boolean) => void; immersive: boolean; visible: boolean; toggleImmersive: () => void }) {
   const hidden = immersive && !visible;
-  return <div className={hidden ? "tracker-controls tracker-controls-hidden" : "tracker-controls"}>
-    <MapControls mode={mode} following={following} dispatch={dispatch} translator={translator} adapter={adapter} setFollowing={setFollowing} />
+  return <>
+    <div className={hidden ? "tracker-controls tracker-controls-hidden" : "tracker-controls"}>
+      <MapControls mode={mode} following={following} dispatch={dispatch} translator={translator} adapter={adapter} setFollowing={setFollowing} />
+    </div>
     <button className="absolute top-20 right-4 z-20 rounded bg-blue-900 px-3 py-2 text-white focus-visible:outline focus-visible:outline-4 focus-visible:outline-yellow-300" onClick={toggleImmersive}>{translator.t(immersive ? "tracker.exitImmersive" : "tracker.immersive")}</button>
-  </div>;
+  </>;
 }
 
 /** Displays map keyboard instructions when the map is visible. */

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { audioPreferencesFrom, createAudioController } from "@santa-tracker/activity-sdk/audio";
 import type { createTranslator } from "@santa-tracker/localization";
-import { estimateArrival, type ChosenPlace } from "@/lib/tracker-arrival";
+import { CURATED_CITIES, estimateArrival, validateStoredPlace, type ChosenPlace } from "@/lib/tracker-arrival";
 import type { RouteNode } from "@/lib/locations";
 import type { SantaPosition } from "@/lib/tracker-position";
 
@@ -78,7 +78,7 @@ function ImmersiveJourneyHud({ current, next, progress, now, translator }: { cur
 
 /** Shows a brief card when Santa reaches a new route stop. */
 function ArrivalNoticeCard({ node, translator }: { node: RouteNode; translator: Translator }) {
-  return <div className="tracker-arrival-card absolute left-1/2 top-1/2 z-30 w-[min(90vw,26rem)] -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-amber-100/30 bg-slate-950/90 p-6 text-center text-white shadow-2xl" role="status">
+  return <div className="tracker-arrival-card absolute left-1/2 top-1/2 z-30 w-[min(90vw,26rem)] rounded-2xl border border-amber-100/30 bg-slate-950/90 p-6 text-center text-white shadow-2xl" role="status">
     <p className="text-2xl font-semibold">{node.location.name}</p><p className="mt-2 text-white/80">{translator.t("tracker.arrivalMoment", { location: node.location.name })}</p>
   </div>;
 }
@@ -94,12 +94,17 @@ function FindMePanel({ locale, nodes, now, translator }: { locale: string; nodes
   useEffect(() => {
     try {
       const saved = window.localStorage.getItem("tracker:place");
-      if (saved) setPlace(JSON.parse(saved) as ChosenPlace);
+      if (!saved) return;
+      const place = validateStoredPlace(JSON.parse(saved), nodes);
+      if (place) setPlace(place);
+      else window.localStorage.removeItem("tracker:place");
     } catch { /* Storage can be disabled. */ }
-  }, []);
+  }, [nodes]);
   useEffect(() => {
-    if (!place || !persistChoice) return;
-    try { window.localStorage.setItem("tracker:place", JSON.stringify(place)); }
+    try {
+      if (!persistChoice) { window.localStorage.removeItem("tracker:place"); return; }
+      if (place) window.localStorage.setItem("tracker:place", JSON.stringify(place));
+    }
     catch { /* The selection remains available for this visit. */ }
   }, [place, persistChoice]);
   const askLocation = useCallback(() => requestLocation(setPlace, setPersistChoice, setPermissionFailed), []);
@@ -126,10 +131,7 @@ function FindMePanel({ locale, nodes, now, translator }: { locale: string; nodes
 function searchableCities(nodes: RouteNode[], search: string): CityOption[] {
   const options: CityOption[] = [
     ...nodes.map(node => ({ name: node.location.name, lat: node.location.lat, lng: node.location.lng })),
-    { name: "New York", lat: 40.7128, lng: -74.006, timezone: "America/New_York" },
-    { name: "London", lat: 51.5072, lng: -0.1276, timezone: "Europe/London" },
-    { name: "Tokyo", lat: 35.6762, lng: 139.6503, timezone: "Asia/Tokyo" },
-    { name: "Sydney", lat: -33.8688, lng: 151.2093, timezone: "Australia/Sydney" },
+    ...CURATED_CITIES as CityOption[],
   ];
   return options.filter(option => option.name.toLowerCase().includes(search.toLowerCase()));
 }
