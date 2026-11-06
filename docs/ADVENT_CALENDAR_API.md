@@ -81,31 +81,42 @@ Video content.
 ```
 
 #### 5. Activity
-Interactive activities.
+Interactive activities. An activity payload is either a built-in activity with a `kind`, or a static same-origin embed under `/advent/` with a `url`. If neither form can be rendered, the day page shows its usual fallback.
+
+The first built-in activity is the Caesar cipher. Its message contains 3 to 60 letters and spaces, and its shift is an integer from 1 to 25. The optional hint is plain text.
 ```json
 {
-    "activity_type": "creative",
-    "title": "Virtual Tree Decorator",
-    "description": "Decorate your own virtual Christmas tree!",
-    "url": "/activities/tree-decorator"
+    "kind": "cipher",
+    "message": "MEET ME BY THE TREE",
+    "shift": 3,
+    "hint": "Look for a place with twinkling lights."
+}
+```
+
+Static activities use a path beneath `/advent/`, for example:
+```json
+{
+    "url": "/advent/tree-decorator/index.html"
 }
 ```
 
 #### 6. Quiz
-Quizzes with multiple choice questions.
+One question is shown at a time. Each question has 2-5 choices and a zero-based `answerIndex`. Optional explanations and sources appear after the player checks an answer.
 ```json
 {
-    "title": "Test Your Christmas Knowledge",
-    "description": "How well do you know Christmas traditions?",
+    "title": "Winter quiz",
     "questions": [
         {
-            "question": "In which country did the tradition originate?",
-            "options": ["Germany", "England", "America", "France"],
-            "correct_answer": 0
+            "prompt": "Which animal pulls Santa's sleigh?",
+            "choices": ["Reindeer", "Penguins", "Foxes"],
+            "answerIndex": 0,
+            "explanation": "Santa's reindeer guide his sleigh.",
+            "source": "Santa's workshop"
         }
     ]
 }
 ```
+`title`, `explanation`, and `source` are optional. A quiz must contain 1-10 questions. Each question needs a non-empty `prompt`, 2-5 string `choices`, and an integer `answerIndex` within the choices array. Invalid quiz payloads use the standard wrapped-content fallback.
 
 ## API Endpoints
 
