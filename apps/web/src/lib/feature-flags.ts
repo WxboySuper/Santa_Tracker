@@ -139,12 +139,8 @@ export function readFeatureFlags(): Promise<FeatureFlags> {
 }
 
 export async function readFreshFeatureFlags(): Promise<FeatureFlags> {
-  try {
-    const store = getKeyValueStore(getSantaSnapshotsBucket());
-    return parseFeatureFlags(await store.read(FEATURE_FLAGS_KEY));
-  } catch {
-    return DEFAULT_FEATURE_FLAGS;
-  }
+  const store = getKeyValueStore(getSantaSnapshotsBucket());
+  return parseFeatureFlags(await store.read(FEATURE_FLAGS_KEY));
 }
 
 export async function writeFeatureFlags(hidden: Record<SeasonFeature, boolean>, expectedUpdatedAt: string): Promise<FeatureFlags | null> {

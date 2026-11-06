@@ -46,6 +46,13 @@ describe("admin feature flags API", () => {
     });
   });
 
+  it("reports an admin read error when storage is unavailable", async () => {
+    vi.mocked(readFreshFeatureFlags).mockRejectedValue(new Error("storage offline"));
+    const response = await GET(request());
+    expect(response.status).toBe(500);
+    expect(response.headers.get("Cache-Control")).toBe("private, no-store");
+  });
+
   it("rejects malformed or extra request fields", async () => {
     const response = await PUT(request(JSON.stringify({ version: 1, hidden: { tracker: true, advent: false }, updatedAt: "client" })));
     expect(response.status).toBe(400);

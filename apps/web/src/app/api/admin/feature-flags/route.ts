@@ -9,8 +9,13 @@ const MAX_BODY_BYTES = 1024;
 export async function GET(request: Request) {
   const auth = await requireAdminAuth(request);
   if (!auth.ok) return NextResponse.json({ error: auth.error ?? "Unauthorized" }, { status: auth.status ?? 401, headers: NO_STORE });
-  const flags = await readFreshFeatureFlags();
-  return NextResponse.json(flags, { headers: { ...NO_STORE, ETag: makeEtag(flags.updatedAt) } });
+  try {
+    const flags = await readFreshFeatureFlags();
+    return NextResponse.json(flags, { headers: { ...NO_STORE, ETag: makeEtag(flags.updatedAt) } });
+  } catch (error: unknown) {
+    console.error("Admin feature flags read failed", error);
+    return NextResponse.json({ error: "Unable to read feature flags" }, { status: 500, headers: NO_STORE });
+  }
 }
 
 export async function PUT(request: Request) {

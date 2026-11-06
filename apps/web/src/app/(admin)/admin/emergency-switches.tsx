@@ -35,14 +35,28 @@ async function readFlagsResponse(response: Response): Promise<FeatureFlagsRespon
 }
 
 function isFeatureFlagsResponse(value: unknown): value is Omit<FeatureFlagsResponse, "etag"> {
-  if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
-  const record = value as Record<string, unknown>;
-  if (Object.keys(record).sort().join(",") !== "hidden,updatedAt,version" || record.version !== 1) return false;
-  if (typeof record.hidden !== "object" || record.hidden === null || Array.isArray(record.hidden)) return false;
-  const hidden = record.hidden as Record<string, unknown>;
-  if (Object.keys(hidden).sort().join(",") !== "advent,tracker") return false;
-  if (typeof hidden.tracker !== "boolean" || typeof hidden.advent !== "boolean") return false;
-  return record.updatedAt === "" || (typeof record.updatedAt === "string" && isValidTimestamp(record.updatedAt));
+  if (!isRecord(value)) return false;
+  if (!hasFeatureFlagKeys(value) || value.version !== 1) return false;
+  return hasHiddenFlags(value.hidden) && isEmptyOrValidTimestamp(value.updatedAt);
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function hasFeatureFlagKeys(value: Record<string, unknown>): boolean {
+  return Object.keys(value).sort().join(",") === "hidden,updatedAt,version";
+}
+
+function hasHiddenFlags(value: unknown): value is HiddenFeatures {
+  if (!isRecord(value)) return false;
+  if (Object.keys(value).sort().join(",") !== "advent,tracker") return false;
+  return typeof value.tracker === "boolean" && typeof value.advent === "boolean";
+}
+
+function isEmptyOrValidTimestamp(value: unknown): boolean {
+  if (value === "") return true;
+  return typeof value === "string" && isValidTimestamp(value);
 }
 
 function isValidTimestamp(value: string): boolean {
