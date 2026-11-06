@@ -147,13 +147,31 @@ export class VillageEngine {
     const canvas = this.renderer.domElement;
     const width = canvas.clientWidth || 1;
     const height = canvas.clientHeight || 1;
-    this.renderer.setPixelRatio(this.pixelRatio);
+    const ratio = this.safePixelRatio(width, height);
+    this.renderer.setPixelRatio(ratio);
     this.renderer.setSize(width, height, false);
-    this.composer?.setPixelRatio(this.pixelRatio);
+    this.composer?.setPixelRatio(ratio);
     this.composer?.setSize(width, height);
     this.camera.aspect = width / height;
     this.camera.fov = width / height < 0.8 ? 56 : width / height < 1.2 ? 46 : 38;
     this.camera.updateProjectionMatrix();
+  }
+
+  /**
+   * The drawing buffer must fit the GPU's limits on every side (some browsers report small limits
+   * for privacy) and a sane pixel budget, otherwise part of the picture silently goes missing on
+   * very wide or high-density screens.
+   */
+  private safePixelRatio(width: number, height: number): number {
+    const gl = this.renderer.getContext();
+    const viewport = gl.getParameter(gl.MAX_VIEWPORT_DIMS) as Int32Array | null;
+    const limits = [gl.getParameter(gl.MAX_TEXTURE_SIZE), gl.getParameter(gl.MAX_RENDERBUFFER_SIZE), viewport?.[0], viewport?.[1]]
+      .map((value) => Number(value))
+      .filter((value) => Number.isFinite(value) && value > 0);
+    const maxSide = Math.min(...limits, 16384);
+    const byLimit = maxSide / Math.max(width, height);
+    const byBudget = Math.sqrt(4_200_000 / (width * height));
+    return Math.max(0.5, Math.min(this.pixelRatio, byLimit, byBudget));
   }
 
   dispose(): void {
@@ -210,6 +228,9 @@ export class VillageEngine {
       this.lastInteraction = performance.now();
     }, { passive: false });
     add(window, 'resize', () => this.resize());
+    const observer = new ResizeObserver(() => this.resize());
+    observer.observe(canvas);
+    this.listeners.push(() => observer.disconnect());
     add(document, 'visibilitychange', () => {
       if (document.visibilityState === 'visible' && this.running) this.timer.update();
     });
@@ -239,12 +260,14 @@ export class VillageEngine {
     this.pose.target.y = damp(this.pose.target.y, this.goal.target.y, rate, delta);
     this.pose.target.z = damp(this.pose.target.z, this.goal.target.z, rate, delta);
     const { x, y } = this.idle;
+    // Very wide screens have room to spare at the sides, so move in a little.
+    const distance = this.pose.distance * (this.camera.aspect > 1.8 ? THREE.MathUtils.lerp(1, 0.82, Math.min(1, (this.camera.aspect - 1.8) / 0.8)) : 1);
     const yaw = this.pose.yaw + x;
     const pitch = this.pose.pitch + y;
     this.camera.position.set(
-      this.pose.target.x + Math.sin(yaw) * Math.cos(pitch) * this.pose.distance,
-      this.pose.target.y + Math.sin(pitch) * this.pose.distance,
-      this.pose.target.z + Math.cos(yaw) * Math.cos(pitch) * this.pose.distance,
+      this.pose.target.x + Math.sin(yaw) * Math.cos(pitch) * distance,
+      this.pose.target.y + Math.sin(pitch) * distance,
+      this.pose.target.z + Math.cos(yaw) * Math.cos(pitch) * distance,
     );
     this.camera.lookAt(this.pose.target);
     if (this.debugPose) {
@@ -319,14 +342,14 @@ export class VillageEngine {
     const width = Math.max(1, canvas.clientWidth);
     const height = Math.max(1, canvas.clientHeight);
     const target = this.mode === 'low'
-      ? new THREE.WebGLRenderTarget(width * this.pixelRatio, height * this.pixelRatio, { type: THREE.UnsignedByteType })
+      ? new THREE.WebGLRenderTarget(width * this.safePixelRatio(width, height), height * this.safePixelRatio(width, height), { type: THREE.UnsignedByteType })
       : undefined;
     const composer = new EffectComposer(this.renderer, target);
     composer.addPass(new RenderPass(this.scene, this.camera));
     const bloom = new UnrealBloomPass(new THREE.Vector2(1, 1), this.mode === 'low' ? 0.3 : 0.34, 0.55, this.mode === 'low' ? 0.88 : 0.92);
     composer.addPass(bloom);
     composer.addPass(new OutputPass());
-    composer.setPixelRatio(this.pixelRatio);
+    composer.setPixelRatio(this.safePixelRatio(width, height));
     composer.setSize(width, height);
     this.composer = composer;
     this.bloom = bloom;
