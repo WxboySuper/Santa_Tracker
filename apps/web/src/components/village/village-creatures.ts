@@ -8,44 +8,9 @@ export type Reindeer = {
   nose: THREE.Mesh;
 };
 
-function antler(side: 1 | -1): THREE.Group {
-  const group = new THREE.Group();
-  const wood = matte(0xd9c9a6);
-  const main = cylinder(0.018, 0.026, 0.42, 5, wood);
-  main.position.set(0, 0.21, 0);
-  main.rotation.z = side * -0.35;
-  group.add(main);
-  for (const [height, length, tilt] of [
-    [0.16, 0.22, 0.9],
-    [0.3, 0.2, 0.7],
-  ] as const) {
-    const prong = cylinder(0.012, 0.018, length, 5, wood);
-    prong.position.set(side * (0.05 + height * 0.1), height + 0.04, 0.02);
-    prong.rotation.z = side * -tilt;
-    prong.rotation.x = 0.4;
-    group.add(prong);
-  }
-  return group;
-}
+type ReindeerMaterials = { fur: THREE.MeshStandardMaterial; light: THREE.MeshStandardMaterial };
 
-/** A low-poly reindeer facing +z. */
-export function createReindeer(options: { redNose?: boolean; scale?: number } = {}): Reindeer {
-  const group = new THREE.Group();
-  const fur = matte(0x8a5a3a);
-  const light = matte(0xe9d8bd);
-  const body = new THREE.Mesh(new THREE.SphereGeometry(0.42, 12, 10), fur);
-  body.scale.set(0.8, 0.72, 1.35);
-  body.position.y = 0.88;
-  body.castShadow = true;
-  group.add(body);
-  const chest = new THREE.Mesh(new THREE.SphereGeometry(0.3, 10, 8), light);
-  chest.scale.set(0.9, 0.9, 0.8);
-  chest.position.set(0, 0.8, 0.42);
-  group.add(chest);
-  const neck = cylinder(0.14, 0.2, 0.55, 8, fur);
-  neck.position.set(0, 1.18, 0.62);
-  neck.rotation.x = 0.55;
-  group.add(neck);
+function addReindeerHead(group: THREE.Group, options: { redNose?: boolean }, { fur, light }: ReindeerMaterials): THREE.Mesh {
   const head = new THREE.Mesh(new THREE.SphereGeometry(0.19, 10, 8), fur);
   head.scale.set(0.9, 0.9, 1.15);
   head.position.set(0, 1.46, 0.86);
@@ -73,21 +38,19 @@ export function createReindeer(options: { redNose?: boolean; scale?: number } = 
   const tail = new THREE.Mesh(new THREE.SphereGeometry(0.08, 6, 6), light);
   tail.position.set(0, 1.02, -0.58);
   group.add(tail);
+  return nose;
+}
 
+function addReindeerLegs(group: THREE.Group, fur: THREE.MeshStandardMaterial): THREE.Group[] {
   const legs: THREE.Group[] = [];
-  const legOffsets: [number, number][] = [
-    [-0.18, 0.4],
-    [0.18, 0.4],
-    [-0.18, -0.36],
-    [0.18, -0.36],
-  ];
+  const legOffsets: [number, number][] = [[-0.18, 0.4], [0.18, 0.4], [-0.18, -0.36], [0.18, -0.36]];
   for (const [x, z] of legOffsets) {
     const hip = new THREE.Group();
     hip.position.set(x, 0.82, z);
-    const upper = cylinder(0.06, 0.07, 0.46, 6, fur);
+    const upper = cylinder({ radiusTop: 0.06, radiusBottom: 0.07, height: 0.46, segments: 6, material: fur });
     upper.position.y = -0.23;
     hip.add(upper);
-    const lower = cylinder(0.04, 0.055, 0.42, 6, fur);
+    const lower = cylinder({ radiusTop: 0.04, radiusBottom: 0.055, height: 0.42, segments: 6, material: fur });
     lower.position.y = -0.64;
     hip.add(lower);
     const hoof = box(0.1, 0.07, 0.13, matte(0x241a18));
@@ -96,6 +59,49 @@ export function createReindeer(options: { redNose?: boolean; scale?: number } = 
     group.add(hip);
     legs.push(hip);
   }
+  return legs;
+}
+
+function antler(side: 1 | -1): THREE.Group {
+  const group = new THREE.Group();
+  const wood = matte(0xd9c9a6);
+  const main = cylinder({ radiusTop: 0.018, radiusBottom: 0.026, height: 0.42, segments: 5, material: wood });
+  main.position.set(0, 0.21, 0);
+  main.rotation.z = side * -0.35;
+  group.add(main);
+  for (const [height, length, tilt] of [
+    [0.16, 0.22, 0.9],
+    [0.3, 0.2, 0.7],
+  ] as const) {
+    const prong = cylinder({ radiusTop: 0.012, radiusBottom: 0.018, height: length, segments: 5, material: wood });
+    prong.position.set(side * (0.05 + height * 0.1), height + 0.04, 0.02);
+    prong.rotation.z = side * -tilt;
+    prong.rotation.x = 0.4;
+    group.add(prong);
+  }
+  return group;
+}
+
+/** A low-poly reindeer facing +z. */
+export function createReindeer(options: { redNose?: boolean; scale?: number } = {}): Reindeer {
+  const group = new THREE.Group();
+  const fur = matte(0x8a5a3a);
+  const light = matte(0xe9d8bd);
+  const body = new THREE.Mesh(new THREE.SphereGeometry(0.42, 12, 10), fur);
+  body.scale.set(0.8, 0.72, 1.35);
+  body.position.y = 0.88;
+  body.castShadow = true;
+  group.add(body);
+  const chest = new THREE.Mesh(new THREE.SphereGeometry(0.3, 10, 8), light);
+  chest.scale.set(0.9, 0.9, 0.8);
+  chest.position.set(0, 0.8, 0.42);
+  group.add(chest);
+  const neck = cylinder({ radiusTop: 0.14, radiusBottom: 0.2, height: 0.55, segments: 8, material: fur });
+  neck.position.set(0, 1.18, 0.62);
+  neck.rotation.x = 0.55;
+  group.add(neck);
+  const nose = addReindeerHead(group, options, { fur, light });
+  const legs = addReindeerLegs(group, fur);
   group.scale.setScalar(options.scale ?? 1);
 
   const gait = (phase: number, amount: number) => {
@@ -117,12 +123,7 @@ export type Sleigh = {
   trailOrigin: THREE.Object3D;
 };
 
-/** Santa's sleigh with four reindeer, facing +z. Roughly 6 units long. */
-export function createSleigh(): Sleigh {
-  const group = new THREE.Group();
-  const red = matte(COLORS.red, { roughness: 0.55 });
-  const gold = matte(COLORS.gold, { roughness: 0.35, metalness: 0.4 });
-
+function addSleighCabin(group: THREE.Group, red: THREE.Material, gold: THREE.Material): void {
   const cabinShape = new THREE.Shape();
   cabinShape.moveTo(-0.6, 0);
   cabinShape.lineTo(0.7, 0);
@@ -138,38 +139,26 @@ export function createSleigh(): Sleigh {
   const trim = new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.07, 2.0), gold);
   trim.position.set(0, 0.92, -0.05);
   group.add(trim);
+}
 
+function addSleighRunners(group: THREE.Group, gold: THREE.Material): void {
   for (const x of [-0.5, 0.5]) {
     const curve = new THREE.CatmullRomCurve3([
-      new THREE.Vector3(x, 0.08, -1.0),
-      new THREE.Vector3(x, 0.05, 0.9),
-      new THREE.Vector3(x, 0.2, 1.35),
-      new THREE.Vector3(x, 0.5, 1.45),
+      new THREE.Vector3(x, 0.08, -1.0), new THREE.Vector3(x, 0.05, 0.9),
+      new THREE.Vector3(x, 0.2, 1.35), new THREE.Vector3(x, 0.5, 1.45),
     ]);
     const runner = new THREE.Mesh(new THREE.TubeGeometry(curve, 24, 0.05, 6), gold);
     runner.castShadow = true;
     group.add(runner);
     for (const z of [-0.6, 0.55]) {
-      const strut = cylinder(0.035, 0.035, 0.3, 5, gold);
+      const strut = cylinder({ radiusTop: 0.035, radiusBottom: 0.035, height: 0.3, segments: 5, material: gold });
       strut.position.set(x, 0.22, z);
       group.add(strut);
     }
   }
+}
 
-  const sack = new THREE.Mesh(new THREE.SphereGeometry(0.42, 10, 8), matte(0x7c4a2a));
-  sack.scale.set(1, 0.9, 1);
-  sack.position.set(0, 1.18, -0.62);
-  group.add(sack);
-  for (const [x, y, z, color] of [
-    [0.22, 1.5, -0.55, COLORS.blue],
-    [-0.2, 1.48, -0.72, COLORS.green],
-  ] as const) {
-    const gift = box(0.2, 0.2, 0.2, matte(color));
-    gift.position.set(x, y, z);
-    gift.rotation.y = x * 2;
-    group.add(gift);
-  }
-
+function createSanta(): THREE.Group {
   const santa = new THREE.Group();
   santa.position.set(0, 1.0, 0.18);
   const suit = new THREE.Mesh(new THREE.SphereGeometry(0.34, 10, 8), matte(0xd23030));
@@ -190,14 +179,12 @@ export function createSleigh(): Sleigh {
   const pom = new THREE.Mesh(new THREE.SphereGeometry(0.065, 8, 8), matte(0xffffff));
   pom.position.set(0, 1.16, -0.2);
   santa.add(pom);
-  group.add(santa);
+  return santa;
+}
 
+function addReindeerTeam(group: THREE.Group): Reindeer[] {
   const team: Reindeer[] = [];
-  const reinMaterial = new THREE.LineBasicMaterial({ color: 0xffd98a });
-  for (const [row, z] of [
-    [0, 2.6],
-    [1, 4.0],
-  ] as const) {
+  for (const [row, z] of [[0, 2.6], [1, 4.0]] as const) {
     for (const x of [-0.5, 0.5]) {
       const deer = createReindeer({ redNose: row === 1 && x > 0, scale: 0.78 });
       deer.group.position.set(x, 0, z);
@@ -206,14 +193,41 @@ export function createSleigh(): Sleigh {
     }
   }
   const reins = new THREE.BufferGeometry().setFromPoints([
-    new THREE.Vector3(0, 1.0, 0.7),
-    new THREE.Vector3(-0.5, 0.9, 2.6),
-    new THREE.Vector3(-0.5, 0.9, 4.0),
-    new THREE.Vector3(0.5, 0.9, 4.0),
-    new THREE.Vector3(0.5, 0.9, 2.6),
-    new THREE.Vector3(0, 1.0, 0.7),
+    new THREE.Vector3(0, 1.0, 0.7), new THREE.Vector3(-0.5, 0.9, 2.6),
+    new THREE.Vector3(-0.5, 0.9, 4.0), new THREE.Vector3(0.5, 0.9, 4.0),
+    new THREE.Vector3(0.5, 0.9, 2.6), new THREE.Vector3(0, 1.0, 0.7),
   ]);
-  group.add(new THREE.Line(reins, reinMaterial));
+  group.add(new THREE.Line(reins, new THREE.LineBasicMaterial({ color: 0xffd98a })));
+  return team;
+}
+
+/** Santa's sleigh with four reindeer, facing +z. Roughly 6 units long. */
+export function createSleigh(): Sleigh {
+  const group = new THREE.Group();
+  const red = matte(COLORS.red, { roughness: 0.55 });
+  const gold = matte(COLORS.gold, { roughness: 0.35, metalness: 0.4 });
+
+  addSleighCabin(group, red, gold);
+  addSleighRunners(group, gold);
+
+  const sack = new THREE.Mesh(new THREE.SphereGeometry(0.42, 10, 8), matte(0x7c4a2a));
+  sack.scale.set(1, 0.9, 1);
+  sack.position.set(0, 1.18, -0.62);
+  group.add(sack);
+  for (const [x, y, z, color] of [
+    [0.22, 1.5, -0.55, COLORS.blue],
+    [-0.2, 1.48, -0.72, COLORS.green],
+  ] as const) {
+    const gift = box(0.2, 0.2, 0.2, matte(color));
+    gift.position.set(x, y, z);
+    gift.rotation.y = x * 2;
+    group.add(gift);
+  }
+
+  const santa = createSanta();
+  group.add(santa);
+
+  const team = addReindeerTeam(group);
 
   const trailOrigin = new THREE.Object3D();
   trailOrigin.position.set(0, 0.5, -1.2);

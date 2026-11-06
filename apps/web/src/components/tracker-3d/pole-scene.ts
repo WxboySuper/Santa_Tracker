@@ -33,9 +33,9 @@ function stripeTexture(): THREE.Texture {
 
 function islet(): THREE.Group {
   const group = new THREE.Group();
-  const ice = cylinder(3.5, 3.0, 0.7, 20, matte(COLORS.ice, { roughness: 0.4 }));
+  const ice = cylinder({ radiusTop: 3.5, radiusBottom: 3.0, height: 0.7, segments: 20, material: matte(COLORS.ice, { roughness: 0.4 }) });
   ice.position.y = -0.35;
-  const snow = cylinder(3.15, 3.4, 0.5, 20, matte(COLORS.snow, { roughness: 1 }));
+  const snow = cylinder({ radiusTop: 3.15, radiusBottom: 3.4, height: 0.5, segments: 20, material: matte(COLORS.snow, { roughness: 1 }) });
   snow.position.y = 0.05;
   const cap = new THREE.Mesh(new THREE.SphereGeometry(3.1, 20, 8, 0, Math.PI * 2, 0, Math.PI / 2), matte(COLORS.snow, { roughness: 1 }));
   cap.scale.y = 0.14;

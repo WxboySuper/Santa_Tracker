@@ -2,37 +2,17 @@
 
 import './village.css';
 import Link from 'next/link';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { countdownTarget, getCountdownParts, type CountdownParts } from '@/lib/countdown';
 import { MusicBox, TUNES, type MusicState } from './music-box';
 import type { BuildingId } from './village-buildings';
-import { VillageEngine } from './village-engine';
+import type { Experience } from './build-experiences';
+import { useVillageRuntime } from './use-village-runtime';
 import VillageStatic from './village-static';
 
-export type ExperienceStatus = 'open' | 'soon' | 'waiting';
-
-export type Experience = {
-  id: BuildingId;
-  name: string;
-  tagline: string;
-  blurb: string;
-  status: ExperienceStatus;
-  /** Where the primary action goes. Null when there is nowhere to go yet. */
-  href: string | null;
-  actionLabel: string;
-  statusLabel: string;
-};
+export type { Experience, ExperienceStatus } from './build-experiences';
 
 type Hover = { id: BuildingId; x: number; y: number } | null;
-
-function webglAvailable(): boolean {
-  try {
-    const canvas = document.createElement('canvas');
-    return Boolean(canvas.getContext('webgl2') ?? canvas.getContext('webgl'));
-  } catch {
-    return false;
-  }
-}
 
 function useCountdown(): CountdownParts | null {
   const [parts, setParts] = useState<CountdownParts | null>(null);
@@ -125,9 +105,6 @@ function DetailPanel({ experience, onClose, box, playing }: { experience: Experi
 }
 
 export default function VillageExperience({ experiences }: { experiences: Experience[] }) {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const engineRef = useRef<VillageEngine | null>(null);
-  const boxRef = useRef<MusicBox | null>(null);
   const [box] = useState(() => new MusicBox());
   const [ready, setReady] = useState(false);
   const [supported, setSupported] = useState(true);
@@ -136,62 +113,8 @@ export default function VillageExperience({ experiences }: { experiences: Experi
   const [selected, setSelected] = useState<BuildingId | null>(null);
   const [music, setMusic] = useState<MusicState>({ playing: false, tune: 0 });
   const countdown = useCountdown();
-  boxRef.current = box;
   const byId = useMemo(() => new Map(experiences.map((entry) => [entry.id, entry])), [experiences]);
-
-  useEffect(() => box.subscribe(setMusic), [box]);
-  useEffect(() => () => box.dispose(), [box]);
-  useEffect(() => {
-    engineRef.current?.setPlaying(music.playing);
-  }, [music.playing]);
-
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    if (!webglAvailable()) {
-      setSupported(false);
-      return;
-    }
-    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    let engine: VillageEngine | null = null;
-    try {
-      engine = new VillageEngine({
-        canvas,
-        reducedMotion,
-        events: {
-          onHover: (id, anchor) => setHover(id && anchor ? { id, x: anchor.x, y: anchor.y } : null),
-          onSelect: (id) => setSelected(id),
-          onReady: () => setReady(true),
-          onFail: () => setSupported(false),
-          onBlocked: () => setBlocked(true),
-        },
-      });
-    } catch {
-      setSupported(false);
-      return;
-    }
-    engineRef.current = engine;
-    if (process.env.NODE_ENV !== 'production') Object.assign(window, { __villageEngine: engine, __villageMusic: boxRef.current });
-    engine.start();
-    return () => {
-      engine?.dispose();
-      engineRef.current = null;
-    };
-  }, []);
-
-  useEffect(() => {
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') engineRef.current?.select(null);
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, []);
-
-  const choose = useCallback((id: BuildingId | null) => {
-    if (engineRef.current) engineRef.current.select(id);
-    else setSelected(id);
-    if (id) boxRef.current?.chime(id.length % 7);
-  }, []);
+  const { canvasRef, choose } = useVillageRuntime({ box, playing: music.playing, setMusic, setReady, setSupported, setBlocked, setHover, setSelected });
 
   const hovered = hover ? byId.get(hover.id) : undefined;
   const current = selected ? byId.get(selected) : undefined;

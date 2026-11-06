@@ -59,7 +59,9 @@ function body(wall: Wall): THREE.Group {
   return group;
 }
 
-function addWindows(group: THREE.Group, wall: Wall, xs: number[], y: number, color: number, size: [number, number], collect: THREE.MeshStandardMaterial[]): void {
+type WindowOptions = { group: THREE.Group; wall: Wall; xs: number[]; y: number; color: number; size: [number, number]; collect: THREE.MeshStandardMaterial[] };
+
+function addWindows({ group, wall, xs, y, color, size, collect }: WindowOptions): void {
   for (const x of xs) {
     const pane = windowBlock(size[0], size[1], color);
     pane.position.set(x, y, wall.depth / 2 + 0.02);
@@ -137,7 +139,7 @@ function workshop(): Building {
   group.add(doorGlow);
   building.glowMaterials.push(doorGlow.material);
 
-  addWindows(group, wall, [-1.8, 1.8], 1.55, COLORS.gold, [0.8, 0.95], building.glowMaterials);
+  addWindows({ group: group, wall: wall, xs: [-1.8, 1.8], y: 1.55, color: COLORS.gold, size: [0.8, 0.95], collect: building.glowMaterials });
   const round = new THREE.Mesh(new THREE.CylinderGeometry(0.34, 0.34, 0.08, 20), glow(COLORS.warm, 2.4));
   round.rotation.x = Math.PI / 2;
   round.position.set(0, wall.height + 0.75, wall.depth / 2 + 0.3);
@@ -152,7 +154,7 @@ function workshop(): Building {
   for (const x of [-1.0, 1.0]) {
     const cane = new THREE.Group();
     for (let ring = 0; ring < 8; ring += 1) {
-      const piece = cylinder(0.09, 0.09, 0.26, 8, matte(ring % 2 ? 0xffffff : COLORS.red));
+      const piece = cylinder({ radiusTop: 0.09, radiusBottom: 0.09, height: 0.26, segments: 8, material: matte(ring % 2 ? 0xffffff : COLORS.red) });
       piece.position.y = 0.13 + ring * 0.26;
       cane.add(piece);
     }
@@ -241,11 +243,11 @@ function tower(): Building {
   const baseRoof = box(3.7, 0.2, 3.3, matte(COLORS.snow));
   baseRoof.position.y = 1.7;
   group.add(baseRoof);
-  const shaft = cylinder(0.85, 1.05, 3.4, 8, matte(0xe9eef7));
+  const shaft = cylinder({ radiusTop: 0.85, radiusBottom: 1.05, height: 3.4, segments: 8, material: matte(0xe9eef7) });
   shaft.position.set(0, 3.5, 0);
   group.add(shaft);
   for (const y of [2.6, 3.9]) {
-    const band = cylinder(0.9, 0.95, 0.22, 8, matte(COLORS.red));
+    const band = cylinder({ radiusTop: 0.9, radiusBottom: 0.95, height: 0.22, segments: 8, material: matte(COLORS.red) });
     band.position.set(0, y, 0);
     group.add(band);
   }
@@ -258,11 +260,11 @@ function tower(): Building {
   cabinRoof.position.y = 6.35;
   cabinRoof.castShadow = true;
   group.add(cabinRoof);
-  const ring = cylinder(1.38, 1.38, 0.08, 8, matte(COLORS.woodDark));
+  const ring = cylinder({ radiusTop: 1.38, radiusBottom: 1.38, height: 0.08, segments: 8, material: matte(COLORS.woodDark) });
   ring.position.y = 5.1;
   group.add(ring);
 
-  const mast = cylinder(0.05, 0.06, 1.2, 6, matte(0x23222b));
+  const mast = cylinder({ radiusTop: 0.05, radiusBottom: 0.06, height: 1.2, segments: 6, material: matte(0x23222b) });
   mast.position.y = 7.0;
   group.add(mast);
   const dish = new THREE.Group();
@@ -270,7 +272,7 @@ function tower(): Building {
   bowl.rotation.x = -Math.PI / 2.4;
   bowl.castShadow = true;
   dish.add(bowl);
-  const feed = cylinder(0.025, 0.025, 0.6, 5, matte(0x23222b));
+  const feed = cylinder({ radiusTop: 0.025, radiusBottom: 0.025, height: 0.6, segments: 5, material: matte(0x23222b) });
   feed.rotation.x = Math.PI / 2 - 0.4;
   feed.position.set(0, 0.34, 0.42);
   dish.add(feed);
@@ -286,7 +288,7 @@ function tower(): Building {
   door.position.set(0, 0.95, 1.53);
   group.add(door);
   const wall: Wall = { width: 3.4, height: 1.6, depth: 3.0, color: 0 };
-  addWindows(group, wall, [-1.0, 1.0], 1.05, 0x7fe3ff, [0.55, 0.5], building.glowMaterials);
+  addWindows({ group: group, wall: wall, xs: [-1.0, 1.0], y: 1.05, color: 0x7fe3ff, size: [0.55, 0.5], collect: building.glowMaterials });
   const plaque = sign({ text: 'SANTA TRACKER', width: 2.6, height: 0.5, background: '#14233b', color: '#9fe8ff' });
   plaque.position.set(0, 1.95, 1.62);
   group.add(plaque);
@@ -359,48 +361,7 @@ function cinema(): Building {
   return finish(building, pickBox(5.2, 5.0, 4.4, 2.5), 5.0);
 }
 
-function musicHall(): Building {
-  const building = emptyBuilding('music');
-  const wall: Wall = { width: 3.4, height: 2.4, depth: 3.8, color: COLORS.cream };
-  const group = building.group;
-  group.add(body(wall));
-  const roof = gableRoof({ width: wall.width, depth: wall.depth, height: 1.9, color: COLORS.green });
-  roof.position.y = wall.height + 0.02;
-  group.add(roof);
-  const steeple = body({ width: 1.2, height: 2.0, depth: 1.2, color: COLORS.cream });
-  steeple.position.set(0, wall.height + 0.6, wall.depth / 2 - 0.4);
-  group.add(steeple);
-  const spire = new THREE.Mesh(new THREE.ConeGeometry(0.98, 1.9, 4), matte(COLORS.green));
-  spire.rotation.y = Math.PI / 4;
-  spire.position.set(0, wall.height + 2.6 + 0.95, wall.depth / 2 - 0.4);
-  spire.castShadow = true;
-  group.add(spire);
-  const spireSnow = new THREE.Mesh(new THREE.ConeGeometry(0.5, 0.9, 4), matte(COLORS.snow));
-  spireSnow.rotation.y = Math.PI / 4;
-  spireSnow.position.set(0, wall.height + 2.6 + 1.5, wall.depth / 2 - 0.4);
-  group.add(spireSnow);
-  const bellMaterial = glow(COLORS.gold, 2.2);
-  const bell = new THREE.Mesh(new THREE.SphereGeometry(0.28, 10, 8, 0, Math.PI * 2, 0, Math.PI * 0.75), bellMaterial);
-  bell.position.set(0, wall.height + 1.7, wall.depth / 2 + 0.2);
-  bell.rotation.x = Math.PI;
-  group.add(bell);
-  building.glowMaterials.push(bellMaterial);
-  const cross = box(0.06, 0.4, 0.06, matte(COLORS.gold, { metalness: 0.5 }));
-  cross.position.set(0, wall.height + 4.75, wall.depth / 2 - 0.4);
-  const crossBar = box(0.26, 0.06, 0.06, matte(COLORS.gold, { metalness: 0.5 }));
-  crossBar.position.set(0, wall.height + 4.82, wall.depth / 2 - 0.4);
-  group.add(cross, crossBar);
-
-  const door = doorBlock(1.1, 1.6);
-  door.position.set(0, 0.95, wall.depth / 2 + 0.55);
-  group.add(door);
-  addWindows(group, wall, [-1.2, 1.2], 1.4, COLORS.gold, [0.5, 1.0], building.glowMaterials);
-  const rose = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.3, 0.07, 18), glow(0xffa86a, 2.4));
-  rose.rotation.x = Math.PI / 2;
-  rose.position.set(0, wall.height + 0.1, wall.depth / 2 + 0.55);
-  rose.visible = false;
-  group.add(rose);
-
+function buildMusicNotes(group: THREE.Group): THREE.Sprite[] {
   const notes: THREE.Sprite[] = [];
   const noteTexture = (() => {
     const canvas = document.createElement('canvas');
@@ -426,6 +387,41 @@ function musicHall(): Building {
     group.add(sprite);
     notes.push(sprite);
   }
+  return notes;
+}
+
+function musicHall(): Building {
+  const building = emptyBuilding('music');
+  const wall: Wall = { width: 3.4, height: 2.4, depth: 3.8, color: COLORS.cream };
+  const group = building.group;
+  group.add(body(wall));
+  const roof = gableRoof({ width: wall.width, depth: wall.depth, height: 1.9, color: COLORS.green });
+  roof.position.y = wall.height + 0.02;
+  group.add(roof);
+  addMusicHallSpire(group, wall);
+  const bellMaterial = glow(COLORS.gold, 2.2);
+  const bell = new THREE.Mesh(new THREE.SphereGeometry(0.28, 10, 8, 0, Math.PI * 2, 0, Math.PI * 0.75), bellMaterial);
+  bell.position.set(0, wall.height + 1.7, wall.depth / 2 + 0.2);
+  bell.rotation.x = Math.PI;
+  group.add(bell);
+  building.glowMaterials.push(bellMaterial);
+  const cross = box(0.06, 0.4, 0.06, matte(COLORS.gold, { metalness: 0.5 }));
+  cross.position.set(0, wall.height + 4.75, wall.depth / 2 - 0.4);
+  const crossBar = box(0.26, 0.06, 0.06, matte(COLORS.gold, { metalness: 0.5 }));
+  crossBar.position.set(0, wall.height + 4.82, wall.depth / 2 - 0.4);
+  group.add(cross, crossBar);
+
+  const door = doorBlock(1.1, 1.6);
+  door.position.set(0, 0.95, wall.depth / 2 + 0.55);
+  group.add(door);
+  addWindows({ group, wall, xs: [-1.2, 1.2], y: 1.4, color: COLORS.gold, size: [0.5, 1.0], collect: building.glowMaterials });
+  const rose = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.3, 0.07, 18), glow(0xffa86a, 2.4));
+  rose.rotation.x = Math.PI / 2;
+  rose.position.set(0, wall.height + 0.1, wall.depth / 2 + 0.55);
+  rose.visible = false;
+  group.add(rose);
+
+  const notes = buildMusicNotes(group);
   let playing = false;
   building.setPlaying = (value) => {
     playing = value;
@@ -445,6 +441,21 @@ function musicHall(): Building {
   };
   building.lights.push(warmLight(0, 1.4, wall.depth / 2 + 1.9, 7));
   return finish(building, pickBox(4.0, 6.0, 4.6, 3.0), 6.4);
+}
+
+function addMusicHallSpire(group: THREE.Group, wall: Wall): void {
+  const steeple = body({ width: 1.2, height: 2.0, depth: 1.2, color: COLORS.cream });
+  steeple.position.set(0, wall.height + 0.6, wall.depth / 2 - 0.4);
+  group.add(steeple);
+  const spire = new THREE.Mesh(new THREE.ConeGeometry(0.98, 1.9, 4), matte(COLORS.green));
+  spire.rotation.y = Math.PI / 4;
+  spire.position.set(0, wall.height + 2.6 + 0.95, wall.depth / 2 - 0.4);
+  spire.castShadow = true;
+  group.add(spire);
+  const spireSnow = new THREE.Mesh(new THREE.ConeGeometry(0.5, 0.9, 4), matte(COLORS.snow));
+  spireSnow.rotation.y = Math.PI / 4;
+  spireSnow.position.set(0, wall.height + 2.6 + 1.5, wall.depth / 2 - 0.4);
+  group.add(spireSnow);
 }
 
 function giftShop(): Building {
@@ -533,11 +544,11 @@ function stable(): Building {
 function observatory(): Building {
   const building = emptyBuilding('observatory');
   const group = building.group;
-  const base = cylinder(1.5, 1.7, 2.0, 12, matte(0x6f7fa8));
+  const base = cylinder({ radiusTop: 1.5, radiusBottom: 1.7, height: 2.0, segments: 12, material: matte(0x6f7fa8) });
   base.position.y = 1.0;
   group.add(base);
   for (let ring = 0; ring < 3; ring += 1) {
-    const band = cylinder(1.56, 1.56, 0.08, 12, matte(COLORS.woodDark));
+    const band = cylinder({ radiusTop: 1.56, radiusBottom: 1.56, height: 0.08, segments: 12, material: matte(COLORS.woodDark) });
     band.position.y = 0.4 + ring * 0.6;
     group.add(band);
   }
@@ -552,7 +563,7 @@ function observatory(): Building {
   slit.rotation.x = -0.55;
   turret.add(slit);
   building.glowMaterials.push(slit.material);
-  const scope = cylinder(0.12, 0.18, 1.4, 8, matte(0x2a3042, { metalness: 0.4 }));
+  const scope = cylinder({ radiusTop: 0.12, radiusBottom: 0.18, height: 1.4, segments: 8, material: matte(0x2a3042, { metalness: 0.4 }) });
   scope.position.set(0, 3.1, 0.7);
   scope.rotation.x = -1.0;
   turret.add(scope);
