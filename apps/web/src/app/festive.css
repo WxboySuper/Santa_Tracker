@@ -152,6 +152,7 @@
 
 .tracker-arrival-card {
   animation: tracker-arrival-in 500ms ease-out both;
+  transform: translate(-50%, -50%);
 }
 
 @keyframes tracker-arrival-in {

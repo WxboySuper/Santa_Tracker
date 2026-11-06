@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { audioPreferencesFrom, createAudioController } from "@santa-tracker/activity-sdk/audio";
 import type { createTranslator } from "@santa-tracker/localization";
-import { CURATED_CITIES, estimateArrival, validateStoredPlace, type ChosenPlace } from "@/lib/tracker-arrival";
+import { estimateArrival, type ChosenPlace } from "@/lib/tracker-arrival";
+import { CURATED_CITIES, validateStoredPlace } from "@/lib/tracker-place";
 import type { RouteNode } from "@/lib/locations";
 import type { SantaPosition } from "@/lib/tracker-position";
 
@@ -29,7 +30,8 @@ export function ImmersiveTrackerOverlays({ locale, nodes, position, current, tra
     previousStop.current = index;
   }, [position, nodes]);
   useEffect(() => showArrivalNotice(arrivalNotice, chimes, setArrivalNotice), [arrivalNotice, chimes]);
-  const next = position?.journey.nextIndex == null ? undefined : nodes[position.journey.nextIndex];
+  const nextIndex = position?.journey.nextIndex ?? null;
+  const next = nextIndex === null ? undefined : nodes[nextIndex];
   return <>
     <ImmersiveJourneyHud current={current} next={next} progress={position?.journey.progress ?? 0} now={now} translator={translator} />
     {arrivalNotice && <ArrivalNoticeCard node={arrivalNotice} translator={translator} />}

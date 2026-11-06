@@ -36,9 +36,9 @@ export function JourneyPanel({ nodes, position, translator, locale }: { nodes: R
   const timedNodes = routeNodesToContractRoute(nodes).timedNodes;
   const currentIndex = position?.journey.currentIndex ?? null;
   const nextIndex = position?.journey.nextIndex ?? null;
-  const current = currentIndex == null ? undefined : timedNodes[currentIndex];
-  const next = nextIndex == null ? undefined : timedNodes[nextIndex];
-  const recent = currentIndex == null ? [] : timedNodes.slice(Math.max(0, currentIndex - 4), currentIndex + 1).reverse();
+  const current = currentIndex === null ? undefined : timedNodes[currentIndex];
+  const next = nextIndex === null ? undefined : timedNodes[nextIndex];
+  const recent = currentIndex === null ? [] : timedNodes.slice(Math.max(0, currentIndex - 4), currentIndex + 1).reverse();
   return <section className="absolute inset-0 overflow-auto bg-blue-950 px-6 pt-36 pb-8 text-white" aria-label={translator.t("tracker.textMode")}>
     <dl className="mx-auto max-w-xl space-y-4">
       <div><dt>{translator.t("tracker.current")}</dt><dd className="text-2xl font-bold">{current?.location.name ?? translator.t("tracker.notStarted")}</dd></div>
@@ -75,8 +75,9 @@ function useIdleControls(viewMode: TrackerViewMode) {
   const [activity, setActivity] = useState(0);
   const wake = useCallback(() => { setVisible(true); setActivity(value => value + 1); }, []);
   useEffect(() => {
-    const timer = viewMode === "immersive" ? window.setTimeout(() => setVisible(false), 4500) : undefined;
-    return () => { if (timer !== undefined) window.clearTimeout(timer); };
+    if (viewMode !== "immersive") { setVisible(true); return; }
+    const timer = window.setTimeout(() => setVisible(false), 4500);
+    return () => window.clearTimeout(timer);
   }, [activity, viewMode]);
   return { visible, wake };
 }
@@ -84,7 +85,9 @@ function useIdleControls(viewMode: TrackerViewMode) {
 /** Restores controls for keyboard input and handles the immersive Escape key. */
 function handleTrackerKey(event: React.KeyboardEvent<HTMLDivElement>, wake: () => void, immersive: boolean, toggle: () => void): void {
   wake();
-  if (event.key === "Escape" && immersive) toggle();
+  const target = event.target;
+  const isTextEntry = target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement || target instanceof HTMLSelectElement;
+  if (event.key === "Escape" && immersive && !isTextEntry) toggle();
 }
 
 /** Composes the standard map, text view, and immersive tracker presentation. */

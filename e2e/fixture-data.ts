@@ -68,11 +68,12 @@ export async function prepareFixtureData({ source, temporaryRoot }: FixtureDataS
     const reason = error instanceof Error ? error.message : String(error);
 		throw new Error(`Could not validate Santa route at ${routePath}: ${reason}`, { cause: error });
   }
-	const route = shiftRouteToLiveWindow(sourceRoute);
+	const closedRoute = sourceRoute;
+	const openRoute = shiftRouteToLiveWindow(sourceRoute);
   const calendar = parseCalendar({ content: rawCalendar, path: getCalendarPath(source) });
   const [closed, open] = await Promise.all([
-    writeServerData("closed", temporaryRoot, route, calendar),
-    writeServerData("open", temporaryRoot, route, calendar),
+    writeServerData("closed", temporaryRoot, closedRoute, calendar),
+    writeServerData("open", temporaryRoot, openRoute, calendar),
   ]);
   return { closed, open };
 }

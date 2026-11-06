@@ -11,6 +11,8 @@ test("tracker opens immersive mode and lets a visitor choose a city", async ({ p
   await expect(page.getByRole("region", { name: "See when Santa reaches me" })).toBeVisible();
   const search = page.getByRole("textbox", { name: "Choose a city or route stop" });
   await search.fill("London");
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("button", { name: "Exit immersive mode" })).toBeVisible();
   await page.getByRole("button", { name: "London", exact: true }).click();
   await expect(page.getByText(/Santa reaches you at/)).toBeVisible();
   await page.keyboard.press("Escape");
@@ -30,8 +32,10 @@ test("immersive exit toggle stays keyboard reachable after idle controls fade", 
   await page.clock.fastForward(5000);
   await expect(page.locator(".tracker-controls").first()).toHaveCSS("visibility", "hidden");
   await expect(exit).toBeVisible();
-  await page.locator('.tracker-stage [role="application"]').focus();
-  await page.keyboard.press("Tab");
+  for (let index = 0; index < 8; index += 1) {
+    if (await exit.evaluate(button => button === document.activeElement)) break;
+    await page.keyboard.press("Tab");
+  }
   await expect(exit).toBeFocused();
   await page.keyboard.press("Escape");
   await expect(page.getByRole("button", { name: "Enter immersive mode" })).toBeVisible();

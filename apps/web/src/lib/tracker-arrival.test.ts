@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { estimateArrival, validateStoredPlace } from "./tracker-arrival";
+import { estimateArrival } from "./tracker-arrival";
+import { validateStoredPlace } from "./tracker-place";
 import type { RouteNode } from "./locations";
 
 const route = [
