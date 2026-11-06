@@ -12,11 +12,14 @@
     },
     {
       "day": 2,
-      "title": "Day 2",
+      "title": "A note from the desk",
       "unlock_time": "2026-12-02T12:00:00Z",
-      "content_type": "fact",
+      "content_type": "activity",
       "payload": {
-        "text": "Content for day 2"
+        "kind": "cipher",
+        "message": "WELCOME TO THE NIGHT SHIFT",
+        "shift": 5,
+        "hint": "Count five letters back for each letter. The first word is a greeting."
       }
     },
     {
@@ -57,20 +60,79 @@
     },
     {
       "day": 7,
-      "title": "Day 7",
+      "title": "Light-show composer",
       "unlock_time": "2026-12-07T12:00:00Z",
-      "content_type": "fact",
+      "content_type": "activity",
       "payload": {
-        "text": "Content for day 7"
+        "kind": "lightshow",
+        "scene": "tree"
       }
     },
     {
       "day": 8,
-      "title": "Day 8",
+      "title": "Winter traditions",
       "unlock_time": "2026-12-08T12:00:00Z",
-      "content_type": "fact",
+      "content_type": "quiz",
       "payload": {
-        "text": "Content for day 8"
+        "title": "Winter traditions",
+        "questions": [
+          {
+            "prompt": "On which date is Saint Lucia's Day celebrated in Sweden?",
+            "choices": [
+              "December 6",
+              "December 13",
+              "December 21",
+              "December 25"
+            ],
+            "answerIndex": 1,
+            "explanation": "Lucia processions with candles and song take place every December 13."
+          },
+          {
+            "prompt": "How many candle holders does a hanukkiah have, counting the shamash?",
+            "choices": [
+              "7",
+              "8",
+              "9",
+              "12"
+            ],
+            "answerIndex": 2,
+            "explanation": "Eight for the nights of Hanukkah, plus the shamash that lights the others."
+          },
+          {
+            "prompt": "For how many evenings do Las Posadas traditionally run in Mexico?",
+            "choices": [
+              "3",
+              "7",
+              "9",
+              "12"
+            ],
+            "answerIndex": 2,
+            "explanation": "Traditionally December 16 through 24, nine evenings."
+          },
+          {
+            "prompt": "Which fruit is a classic on the table for Yalda, the longest night?",
+            "choices": [
+              "Pineapple",
+              "Pomegranate",
+              "Banana",
+              "Kiwi"
+            ],
+            "answerIndex": 1,
+            "explanation": "Pomegranates and watermelon often appear, their red flesh bright against the long night."
+          },
+          {
+            "prompt": "On which date does Kwanzaa end?",
+            "choices": [
+              "December 31",
+              "January 1",
+              "January 6",
+              "December 25"
+            ],
+            "answerIndex": 1,
+            "explanation": "It runs from December 26 through January 1."
+          }
+        ],
+        "source": "Traditions from the Winter around the world door (Day 15)"
       }
     },
     {
@@ -102,11 +164,13 @@
     },
     {
       "day": 12,
-      "title": "Day 12",
+      "title": "Jigsaw reveal",
       "unlock_time": "2026-12-12T12:00:00Z",
-      "content_type": "fact",
+      "content_type": "activity",
       "payload": {
-        "text": "Content for day 12"
+        "kind": "jigsaw",
+        "scene": "cabin",
+        "pieces": 24
       }
     },
     {
@@ -129,11 +193,11 @@
     },
     {
       "day": 15,
-      "title": "Day 15",
+      "title": "Winter around the world",
       "unlock_time": "2026-12-15T12:00:00Z",
-      "content_type": "fact",
+      "content_type": "activity",
       "payload": {
-        "text": "Content for day 15"
+        "kind": "winterworld"
       }
     },
     {

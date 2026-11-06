@@ -153,7 +153,7 @@ export const en = {
   'advent.activity.winterworld.entries.kwanzaa.when': 'December 26 through January 1.',
   'advent.activity.winterworld.entries.intiRaymi.title': 'Inti Raymi',
   'advent.activity.winterworld.entries.intiRaymi.place': 'Cusco, Peru',
-  'advent.activity.winterworld.entries.intiRaymi.story': 'While December brings the Northern Hemisphere’s longest night, Cusco is approaching the Southern Hemisphere’s winter. Inti Raymi, the Festival of the Sun, is held there on June 24, with a large public reenactment at Qorikancha, the main square, and Sacsayhuamán. The modern event recalls Inca-era ceremonies honoring Inti, though today’s staged celebration was revived in the twentieth century. The seasons reverse across the equator; a midwinter fire in one hemisphere can be a midsummer thought in another.',
+  'advent.activity.winterworld.entries.intiRaymi.story': 'While December brings the Northern Hemisphere’s longest night, Cusco waits for its own midwinter in June. Inti Raymi, the Festival of the Sun, is held there on June 24, with a large public reenactment at Qorikancha, the main square, and Sacsayhuamán. The modern event recalls Inca-era ceremonies honoring Inti, though today’s staged celebration was revived in the twentieth century. The seasons reverse across the equator; a midwinter fire in one hemisphere can be a midsummer thought in another.',
   'advent.activity.winterworld.entries.intiRaymi.when': 'June 24, during the Southern Hemisphere winter.',
   'advent.activity.winterworld.entries.tokyoLights.title': 'Winter illuminations',
   'advent.activity.winterworld.entries.tokyoLights.place': 'Tokyo, Japan',
