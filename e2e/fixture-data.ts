@@ -11,6 +11,7 @@ function isSantaRoute(value: unknown): boolean {
 	return value.route_nodes.every(isRecord);
 }
 
+/** Copies route times into a live window so browser tests see a journey in progress. */
 function shiftRouteToLiveWindow(route: string): string {
 	const parsed: unknown = JSON.parse(route);
 	if (!isSantaRoute(parsed)) return route;
@@ -21,6 +22,7 @@ function shiftRouteToLiveWindow(route: string): string {
 	return JSON.stringify(parsed);
 }
 
+/** Returns a shift that centers the route schedule on the current time. */
 function liveWindowShift(nodes: { schedule?: Record<string, unknown> }[]): number | null {
 	const times = nodes.flatMap(node => [node.schedule?.arrival_utc, node.schedule?.departure_utc])
 		.filter((value): value is string => typeof value === "string")
@@ -29,6 +31,7 @@ function liveWindowShift(nodes: { schedule?: Record<string, unknown> }[]): numbe
 	return Date.now() - (Math.min(...times) + (Math.max(...times) - Math.min(...times)) / 2);
 }
 
+/** Moves a route node's arrival and departure by the same interval. */
 function shiftNodeTimes(node: { schedule?: Record<string, unknown> }, shift: number): void {
 	const schedule = node.schedule;
 	if (!schedule) return;

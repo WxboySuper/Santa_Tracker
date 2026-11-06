@@ -30,6 +30,7 @@ interface TrackerMapViewProps {
   toggleImmersive: () => void;
 }
 
+/** Presents the route as a keyboard-readable text alternative. */
 export function JourneyPanel({ nodes, position, translator, locale }: { nodes: RouteNode[]; position: SantaPosition | null; translator: Translator; locale: string }) {
   const timedNodes = routeNodesToContractRoute(nodes).timedNodes;
   const currentIndex = position?.journey.currentIndex ?? null;
@@ -48,6 +49,7 @@ export function JourneyPanel({ nodes, position, translator, locale }: { nodes: R
   </section>;
 }
 
+/** Renders the standard site's navigation links. */
 function TrackerNav({ adventEnabled, translator }: { adventEnabled: boolean; translator: Translator }) {
   return <nav className="glass-nav fixed top-4 left-1/2 -translate-x-1/2 z-40 bg-white/20 backdrop-blur-md rounded-full px-6 py-2 flex gap-4">
     <Link href="/" className="nav-link text-white/80 hover:text-white">{translator.t("nav.home")}</Link>
@@ -56,6 +58,7 @@ function TrackerNav({ adventEnabled, translator }: { adventEnabled: boolean; tra
   </nav>;
 }
 
+/** Renders map/text switching and the existing return-to-Santa control. */
 function MapControls({ mode, following, dispatch, translator, adapter, setFollowing }: { mode: MapMode; following: boolean; dispatch: Dispatch<MapEvent>; translator: Translator; adapter: RefObject<TrackerMapAdapter | null>; setFollowing: (value: boolean) => void }) {
   const switchMode = () => { dispatch(mode === "text" ? "showMap" : "showText"); setFollowing(true); };
   const returnToSanta = () => { adapter.current?.follow(); setFollowing(true); };
@@ -65,6 +68,7 @@ function MapControls({ mode, following, dispatch, translator, adapter, setFollow
   </div>;
 }
 
+/** Hides immersive controls after idle and restores them on activity. */
 function useIdleControls(viewMode: TrackerViewMode) {
   const [visible, setVisible] = useState(true);
   const [activity, setActivity] = useState(0);
@@ -72,16 +76,18 @@ function useIdleControls(viewMode: TrackerViewMode) {
   useEffect(() => {
     if (viewMode !== "immersive") return;
     const timer = window.setTimeout(() => setVisible(false), 4500);
-    return () => window.clearTimeout(timer);
+    return () => { window.clearTimeout(timer); };
   }, [activity, viewMode]);
   return { visible, wake };
 }
 
+/** Restores controls for keyboard input and handles the immersive Escape key. */
 function handleTrackerKey(event: React.KeyboardEvent<HTMLDivElement>, wake: () => void, immersive: boolean, toggle: () => void): void {
   wake();
   if (event.key === "Escape" && immersive) toggle();
 }
 
+/** Composes the standard map, text view, and immersive tracker presentation. */
 export function TrackerMapView(props: TrackerMapViewProps) {
   const { adventEnabled, locale, translator, element, adapter, mode, dispatch, nodes, position, current, status, following, setFollowing, viewMode, toggleImmersive } = props;
   const immersive = viewMode === "immersive";
@@ -98,20 +104,24 @@ export function TrackerMapView(props: TrackerMapViewProps) {
   </>;
 }
 
+/** Hides site navigation while immersive mode owns the screen. */
 function TrackerNavigation({ adventEnabled, immersive, translator }: { adventEnabled: boolean; immersive: boolean; translator: Translator }) {
   if (immersive) return null;
   return <TrackerNav adventEnabled={adventEnabled} translator={translator} />;
 }
 
+/** Applies the stage sizing and night scene class. */
 function stageClass(immersive: boolean): string {
   return immersive ? "tracker-stage tracker-immersive relative h-screen w-screen" : "tracker-stage relative h-screen w-screen";
 }
 
+/** Selects the interactive map or text route surface. */
 function MapSurface({ mode, element, nodes, position, translator, locale }: { mode: MapMode; element: RefObject<HTMLDivElement | null>; nodes: RouteNode[]; position: SantaPosition | null; translator: Translator; locale: string }) {
   if (mode === "text") return <JourneyPanel nodes={nodes} position={position} translator={translator} locale={locale} />;
   return <div ref={element} className="h-full w-full bg-blue-950 focus-visible:outline focus-visible:outline-4 focus-visible:outline-yellow-300" aria-label={translator.t("tracker.mapLabel")} aria-describedby="map-instructions" role="application" tabIndex={0} />;
 }
 
+/** Groups standard map controls with the immersive mode toggle. */
 function TrackerControls({ mode, following, dispatch, translator, adapter, setFollowing, immersive, visible, toggleImmersive }: { mode: MapMode; following: boolean; dispatch: Dispatch<MapEvent>; translator: Translator; adapter: RefObject<TrackerMapAdapter | null>; setFollowing: (value: boolean) => void; immersive: boolean; visible: boolean; toggleImmersive: () => void }) {
   const hidden = immersive && !visible;
   return <div className={hidden ? "tracker-controls tracker-controls-hidden" : "tracker-controls"}>
@@ -120,11 +130,13 @@ function TrackerControls({ mode, following, dispatch, translator, adapter, setFo
   </div>;
 }
 
+/** Displays map keyboard instructions when the map is visible. */
 function MapInstructions({ mode, translator }: { mode: MapMode; translator: Translator }) {
   if (mode === "text") return null;
   return <p id="map-instructions" className="absolute left-4 bottom-16 z-10 max-w-[calc(100%-2rem)] rounded bg-black/70 px-3 py-2 text-sm text-white">{translator.t("tracker.instructions")}</p>;
 }
 
+/** Announces route loading and current stop changes to screen readers. */
 function TrackerStatus({ status, current, translator }: { status: string; current?: RouteNode; translator: Translator }) {
   const announcement = current ? translator.t("tracker.announcement", { location: current.location.name }) : "";
   return <>
@@ -133,11 +145,13 @@ function TrackerStatus({ status, current, translator }: { status: string; curren
   </>;
 }
 
+/** Selects the standard countdown or immersive journey overlays. */
 function CountdownLayer({ immersive, controlsVisible, ...props }: { immersive: boolean; controlsVisible: boolean; locale: string; translator: Translator; nodes: RouteNode[]; position: SantaPosition | null; current?: RouteNode }) {
   if (!immersive) return <CountdownHud locale={props.locale} translator={props.translator} />;
   return <ImmersiveTrackerOverlays locale={props.locale} nodes={props.nodes} position={props.position} current={props.current} translator={props.translator} controlsVisible={controlsVisible} />;
 }
 
+/** Shows the takeoff countdown in the standard tracker. */
 function CountdownHud({ locale, translator }: { locale: string; translator: Translator }) {
   return <div className="countdown-hud absolute top-20 right-4 bg-black/40 backdrop-blur-md rounded-xl p-4 text-white">
     <p className="countdown-hud-label text-xs opacity-70">{translator.t("home.countdown")}</p>

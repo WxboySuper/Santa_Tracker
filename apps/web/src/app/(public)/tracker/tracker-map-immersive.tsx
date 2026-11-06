@@ -9,6 +9,7 @@ type Translator = ReturnType<typeof createTranslator>;
 type ImmersiveTrackerProps = { locale: string; nodes: RouteNode[]; position: SantaPosition | null; current?: RouteNode; translator: Translator; controlsVisible: boolean };
 type CityOption = ChosenPlace & { lat: number; lng: number };
 
+/** Renders live journey details and the three local ways to choose a place. */
 export function ImmersiveTrackerOverlays({ locale, nodes, position, current, translator, controlsVisible }: ImmersiveTrackerProps) {
   const [now, setNow] = useState(() => new Date());
   const [arrivalNotice, setArrivalNotice] = useState<RouteNode | null>(null);
@@ -36,6 +37,7 @@ export function ImmersiveTrackerOverlays({ locale, nodes, position, current, tra
   </>;
 }
 
+/** Returns a stop only after the live route advances from a known stop. */
 function stopAfterChange(current: number | null, previous: number | null, nodes: RouteNode[]): RouteNode | null {
   if (current === null) return null;
   if (previous === null) return null;
@@ -43,18 +45,21 @@ function stopAfterChange(current: number | null, previous: number | null, nodes:
   return nodes[current] ?? null;
 }
 
+/** Plays an opted-in chime and clears the arrival card after a short pause. */
 function showArrivalNotice(node: RouteNode | null, chimes: boolean, clear: (node: RouteNode | null) => void): (() => void) | undefined {
   if (!node) return undefined;
   const audio = createAudioController(audioPreferencesFrom({ enabled: chimes, reducedSensory: window.matchMedia("(prefers-reduced-motion: reduce)").matches }), { play: playArrivalChime });
   audio.play("arrival");
   const timeout = window.setTimeout(() => clear(null), 6500);
-  return () => window.clearTimeout(timeout);
+  return () => { window.clearTimeout(timeout); };
 }
 
+/** Lets the visitor opt in to synthesized stop chimes. */
 function AudioToggle({ chimes, setChimes, translator }: { chimes: boolean; setChimes: (value: boolean) => void; translator: Translator }) {
   return <button className="absolute top-32 right-4 z-20 rounded bg-blue-900 px-3 py-2 text-white focus-visible:outline focus-visible:outline-4 focus-visible:outline-yellow-300" onClick={() => setChimes(!chimes)} aria-pressed={chimes}>{translator.t(chimes ? "tracker.audioOn" : "tracker.audioOff")}</button>;
 }
 
+/** Shows the current stop, next stop, arrival countdown, and route progress. */
 function ImmersiveJourneyHud({ current, next, progress, now, translator }: { current?: RouteNode; next?: RouteNode; progress: number; now: Date; translator: Translator }) {
   const percent = Math.round(progress * 100);
   const arrival = next?.schedule?.arrival_utc;
@@ -68,12 +73,14 @@ function ImmersiveJourneyHud({ current, next, progress, now, translator }: { cur
   </section>;
 }
 
+/** Shows a brief card when Santa reaches a new route stop. */
 function ArrivalNoticeCard({ node, translator }: { node: RouteNode; translator: Translator }) {
   return <div className="tracker-arrival-card absolute left-1/2 top-1/2 z-30 w-[min(90vw,26rem)] -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-amber-100/30 bg-slate-950/90 p-6 text-center text-white shadow-2xl" role="status">
     <p className="text-2xl font-semibold">{node.location.name}</p><p className="mt-2 text-white/80">{translator.t("tracker.arrivalMoment", { location: node.location.name })}</p>
   </div>;
 }
 
+/** Collects a visitor's location choice without sending it to the server. */
 function FindMePanel({ locale, nodes, now, translator }: { locale: string; nodes: RouteNode[]; now: Date; translator: Translator }) {
   const [place, setPlace] = useState<ChosenPlace | null>(null);
   const [search, setSearch] = useState("");
@@ -112,6 +119,7 @@ function FindMePanel({ locale, nodes, now, translator }: { locale: string; nodes
   </section>;
 }
 
+/** Builds the searchable list from route stops and a few major cities. */
 function searchableCities(nodes: RouteNode[], search: string): CityOption[] {
   const options: CityOption[] = [
     ...nodes.map(node => ({ name: node.location.name, lat: node.location.lat, lng: node.location.lng })),
@@ -123,6 +131,7 @@ function searchableCities(nodes: RouteNode[], search: string): CityOption[] {
   return options.filter(option => option.name.toLowerCase().includes(search.toLowerCase()));
 }
 
+/** Requests geolocation after a visitor presses the location button. */
 function requestLocation(setPlace: (place: ChosenPlace) => void, setPersist: (persist: boolean) => void, fail: (failed: boolean) => void): void {
   if (!navigator.geolocation) { fail(true); return; }
   navigator.geolocation.getCurrentPosition(
@@ -132,11 +141,13 @@ function requestLocation(setPlace: (place: ChosenPlace) => void, setPersist: (pe
   );
 }
 
+/** Saves a manual city or time-zone choice on this device. */
 function choosePlace(place: ChosenPlace, setPlace: (place: ChosenPlace) => void, setPersist: (persist: boolean) => void): void {
   setPersist(true);
   setPlace(place);
 }
 
+/** Shows either an expected arrival time or the local arrival message. */
 function ArrivalEstimateCard({ estimate, now, locale, translator }: { estimate: NonNullable<ReturnType<typeof estimateArrival>>; now: Date; locale: string; translator: Translator }) {
   if (now.getTime() < estimate.at.getTime()) {
     return <p className="mt-2 text-sm">{translator.t("tracker.arrivalEstimate", { time: estimate.at.toLocaleTimeString(locale, { hour: "numeric", minute: "2-digit" }) })}</p>;
@@ -144,6 +155,7 @@ function ArrivalEstimateCard({ estimate, now, locale, translator }: { estimate: 
   return <div className="mt-3 rounded-lg border border-amber-200/30 bg-amber-100/10 p-3" role="status"><p className="font-semibold">{translator.t("tracker.hesHereTitle")}</p><p className="text-sm text-white/80">{translator.t("tracker.hereNote")}</p></div>;
 }
 
+/** Formats remaining route time as hours, minutes, and seconds. */
 function formatTimeRemaining(arrival: number, now: number): string {
   const seconds = Math.max(0, Math.floor((arrival - now) / 1000));
   const hours = Math.floor(seconds / 3600);
@@ -152,6 +164,7 @@ function formatTimeRemaining(arrival: number, now: number): string {
   return [hours, minutes, remainingSeconds].map(value => String(value).padStart(2, "0")).join(":");
 }
 
+/** Plays two quiet sine tones through Web Audio and closes the context. */
 function playArrivalChime(): void {
   try {
     const context = new window.AudioContext();
@@ -167,6 +180,6 @@ function playArrivalChime(): void {
     gain.connect(context.destination);
     oscillator.start();
     oscillator.stop(context.currentTime + 0.45);
-    oscillator.onended = () => { void context.close(); };
+    oscillator.onended = () => { context.close().catch(() => undefined); };
   } catch { /* Audio is optional, so an unavailable device stays quiet. */ }
 }
