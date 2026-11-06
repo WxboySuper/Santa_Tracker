@@ -131,30 +131,11 @@ function clearArrivalCard(node: RouteNode | null, chimes: boolean, clear: (node:
 }
 
 function keepScreenAwake(lock: { current: WakeLockSentinel | null }): () => void {
-  let mounted = true;
-  let requestPending = false;
-  let retryRequested = false;
-  const request = async () => {
-    if (!mounted || document.visibilityState !== "visible" || lock.current) return;
-    if (requestPending) { retryRequested = true; return; }
-    const wakeLock = (navigator as WakeLockNavigator).wakeLock;
-    if (!wakeLock) return;
-    requestPending = true;
-    try {
-      const sentinel = await wakeLock.request("screen");
-      if (!mounted || document.visibilityState !== "visible") releaseSentinel(sentinel);
-      else lock.current = sentinel;
-    } catch { /* Wake Lock is optional. */ }
-    finally {
-      requestPending = false;
-      const shouldRetry = retryRequested && mounted && document.visibilityState === "visible" && !lock.current;
-      retryRequested = false;
-      if (shouldRetry) void request();
-    }
-  };
+  const state: WakeLockRequestState = { lock, mounted: true, requestPending: false, retryRequested: false };
+  const request = () => requestWakeLock(state);
   const release = () => {
-    const active = lock.current;
-    lock.current = null;
+    const active = state.lock.current;
+    state.lock.current = null;
     releaseSentinel(active);
   };
   const onVisibilityChange = () => {
@@ -167,12 +148,53 @@ function keepScreenAwake(lock: { current: WakeLockSentinel | null }): () => void
   window.addEventListener("keydown", onGesture);
   document.addEventListener("visibilitychange", onVisibilityChange);
   return () => {
-    mounted = false;
+    state.mounted = false;
     window.removeEventListener("pointerdown", onGesture);
     window.removeEventListener("keydown", onGesture);
     document.removeEventListener("visibilitychange", onVisibilityChange);
     release();
   };
+}
+
+interface WakeLockRequestState {
+  lock: { current: WakeLockSentinel | null };
+  mounted: boolean;
+  requestPending: boolean;
+  retryRequested: boolean;
+}
+
+async function requestWakeLock(state: WakeLockRequestState): Promise<void> {
+  if (!canRequestWakeLock(state)) return;
+  const wakeLock = (navigator as WakeLockNavigator).wakeLock;
+  if (!wakeLock) return;
+  state.requestPending = true;
+  try {
+    const sentinel = await wakeLock.request("screen");
+    if (shouldReleaseReturnedLock(state)) releaseSentinel(sentinel);
+    else state.lock.current = sentinel;
+  } catch { /* Wake Lock is optional. */ }
+  finally { finishWakeLockRequest(state); }
+}
+
+function canRequestWakeLock(state: WakeLockRequestState): boolean {
+  if (!state.mounted) return false;
+  if (document.visibilityState !== "visible") return false;
+  if (state.lock.current) return false;
+  if (!state.requestPending) return true;
+  state.retryRequested = true;
+  return false;
+}
+
+function shouldReleaseReturnedLock(state: WakeLockRequestState): boolean {
+  if (!state.mounted) return true;
+  return document.visibilityState !== "visible";
+}
+
+function finishWakeLockRequest(state: WakeLockRequestState): void {
+  const retryRequested = state.retryRequested;
+  state.requestPending = false;
+  state.retryRequested = false;
+  if (retryRequested) void requestWakeLock(state);
 }
 
 function releaseSentinel(sentinel: WakeLockSentinel | null): void {
