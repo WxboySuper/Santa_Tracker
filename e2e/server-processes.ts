@@ -30,11 +30,11 @@ function closePortReservation(server: net.Server): Promise<void> {
   });
 }
 
-async function findFreePorts(count: number): Promise<number[]> {
+async function findFreePorts(): Promise<[number, number]> {
   const reservations: net.Server[] = [];
   const ports: number[] = [];
   try {
-    while (ports.length < count) {
+    while (ports.length < 2) {
       const server = net.createServer();
       reservations.push(server);
       await new Promise<void>((resolve, reject) => {
@@ -48,7 +48,38 @@ async function findFreePorts(count: number): Promise<number[]> {
   } finally {
     await Promise.all(reservations.map(closePortReservation));
   }
-  return ports;
+  return ports as [number, number];
+}
+
+function serverEnvironment(name: ServerName, dataRoot: string, password: string, secret: string): NodeJS.ProcessEnv {
+  return {
+    ...process.env,
+    ADVENT_ENABLED: "true",
+    ADMIN_PASSWORD: password,
+    SECRET_KEY: secret,
+    SANTA_DATA_ROOT: dataRoot,
+    NEXT_DIST_DIR: `.next-e2e-${name}`,
+    ...(name === "open" ? { SEASON_OVERRIDE: "open" } : { SEASON_OVERRIDE: "" }),
+  };
+}
+
+function spawnNextServer(name: ServerName, appRoot: string, dataRoot: string, port: number, password: string, secret: string): ServerEntry {
+  const appRequire = createRequire(path.join(appRoot, "package.json"));
+  const nextCli = appRequire.resolve("next/dist/bin/next");
+  const child = spawn(process.execPath, [nextCli, "dev", "--hostname", "127.0.0.1", "--port", String(port)], {
+    cwd: appRoot,
+    detached: process.platform !== "win32",
+    stdio: ["ignore", "pipe", "pipe"],
+    env: serverEnvironment(name, dataRoot, password, secret),
+  });
+  return { name, endpoint: `http://127.0.0.1:${port}`, child };
+}
+
+async function stopPartialServers(entries: ServerEntry[], startupError: unknown): Promise<never> {
+  await stopServers(entries).catch((cleanupError: unknown) => {
+    throw new AggregateError([startupError, cleanupError], "Server startup and partial cleanup both failed", { cause: cleanupError });
+  });
+  throw startupError;
 }
 
 function getStartupError(entry: ServerEntry, spawnError: Error | undefined): Error | undefined {
@@ -133,38 +164,13 @@ export async function waitForServers(entries: ServerEntry[]): Promise<Record<Ser
 }
 
 export async function startServers(appRoot: string, dataRoots: Record<ServerName, string>, password: string, secret: string): Promise<ServerEntry[]> {
-  const appRequire = createRequire(path.join(appRoot, "package.json"));
-  const nextCli = appRequire.resolve("next/dist/bin/next");
   const entries: ServerEntry[] = [];
-  const ports = await findFreePorts(2);
-  let index = 0;
+  const [closedPort, openPort] = await findFreePorts();
   try {
-    for (const name of ["closed", "open"] as const) {
-      const port = ports[index];
-      index += 1;
-      if (port === undefined) throw new Error("Could not allocate ports for both Next.js servers");
-      const endpoint = `http://127.0.0.1:${port}`;
-      const child = spawn(process.execPath, [nextCli, "dev", "--hostname", "127.0.0.1", "--port", String(port)], {
-        cwd: appRoot,
-        detached: process.platform !== "win32",
-        stdio: ["ignore", "pipe", "pipe"],
-        env: {
-          ...process.env,
-          ADVENT_ENABLED: "true",
-          ADMIN_PASSWORD: password,
-          SECRET_KEY: secret,
-          SANTA_DATA_ROOT: dataRoots[name],
-          NEXT_DIST_DIR: `.next-e2e-${name}`,
-          ...(name === "open" ? { SEASON_OVERRIDE: "open" } : { SEASON_OVERRIDE: "" }),
-        },
-      });
-      entries.push({ name, endpoint, child });
-    }
+    entries.push(spawnNextServer("closed", appRoot, dataRoots.closed, closedPort, password, secret));
+    entries.push(spawnNextServer("open", appRoot, dataRoots.open, openPort, password, secret));
   } catch (error) {
-    await stopServers(entries).catch((cleanupError: unknown) => {
-      throw new AggregateError([error, cleanupError], "Server startup and partial cleanup both failed", { cause: cleanupError });
-    });
-    throw error;
+    await stopPartialServers(entries, error);
   }
   return entries;
 }
