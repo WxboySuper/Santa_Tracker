@@ -59,7 +59,7 @@ export function createSurpriseDesign(seed: number): SnowflakeDesign {
     state ^= state << 13;
     state ^= state >>> 17;
     state ^= state << 5;
-    return (state >>> 0) / 0xffffffff;
+    return (state >>> 0) / 0x100000000;
   };
   const cells: number[] = [];
   for (let row = 1; row < SNOWFLAKE_GRID_SIZE; row += 1) {

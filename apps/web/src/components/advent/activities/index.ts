@@ -5,6 +5,7 @@ import { jigsawActivity } from "./jigsaw";
 import { winterWorldActivity } from "./winter-world";
 import { lightshowActivity } from "./lightshow";
 import { snowflakeActivity } from "./snowflake";
+import { postcardActivity } from "./postcard";
 
 export const activityKinds = {
   cipher: cipherActivity,
@@ -12,6 +13,7 @@ export const activityKinds = {
   winterworld: winterWorldActivity,
   lightshow: lightshowActivity,
   snowflake: snowflakeActivity,
+  postcard: postcardActivity,
 } as const;
 
 export function renderActivity(day: AdventPublicDay, fallback: ReactNode, locale: string): ReactNode {

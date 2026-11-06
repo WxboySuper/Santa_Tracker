@@ -5,21 +5,22 @@ import { createTranslator } from "@santa-tracker/localization";
 import { createSurpriseDesign, getSnowflakeCellCenters, loadSnowflake, saveSnowflake, SNOWFLAKE_GRID_SIZE, toggleSnowflakeCell, type SnowflakeConfig } from "@/lib/snowflake";
 
 const ORIGIN = 50;
+type SnowflakeEditorState = { cells: number[]; history: number[][]; redo: number[][] };
 
 export function SnowflakeActivity({ config, locale }: { config: SnowflakeConfig; locale: string }) {
   const translator = createTranslator({ locale });
-  const [cells, setCells] = useState<number[]>([]);
-  const [history, setHistory] = useState<number[][]>([]);
-  const [redo, setRedo] = useState<number[][]>([]);
+  const [design, setDesign] = useState<SnowflakeEditorState>({ cells: [], history: [], redo: [] });
   const [reducedMotion, setReducedMotion] = useState(false);
   const [storageAvailable, setStorageAvailable] = useState(true);
   const [announcement, setAnnouncement] = useState("");
   const [ready, setReady] = useState(false);
   const svgRef = useRef<SVGSVGElement>(null);
+  const { cells, history, redo } = design;
 
   useEffect(() => {
     const saved = loadSnowflake();
-    setCells(saved?.cells ?? (config.seed === undefined ? [] : createSurpriseDesign(config.seed).cells));
+    const restoredCells = saved?.cells ?? (config.seed === undefined ? [] : createSurpriseDesign(config.seed).cells);
+    setDesign((previous) => ({ ...previous, cells: restoredCells }));
     setReady(true);
     const query = window.matchMedia("(prefers-reduced-motion: reduce)");
     const update = () => setReducedMotion(query.matches);
@@ -33,32 +34,34 @@ export function SnowflakeActivity({ config, locale }: { config: SnowflakeConfig;
     setStorageAvailable(saveSnowflake({ cells }));
   }, [cells, ready]);
 
-  function commit(next: number[], message: string) {
-    setHistory((past) => [...past.slice(-39), cells]);
-    setRedo([]);
-    setCells(next);
+  function commit(next: number[] | ((previous: number[]) => number[]), message: string) {
+    setDesign((previous) => ({
+      cells: typeof next === "function" ? next(previous.cells) : next,
+      history: [...previous.history.slice(-39), previous.cells],
+      redo: [],
+    }));
     setAnnouncement(message);
   }
 
   function toggle(index: number) {
-    commit(toggleSnowflakeCell(cells, index), translator.t("advent.activity.snowflake.changed"));
+    commit((previous) => toggleSnowflakeCell(previous, index), translator.t("advent.activity.snowflake.changed"));
   }
 
   function undo() {
-    const previous = history.at(-1);
-    if (!previous) return;
-    setHistory((past) => past.slice(0, -1));
-    setRedo((future) => [...future, cells]);
-    setCells(previous);
+    setDesign((previous) => {
+      const restored = previous.history.at(-1);
+      if (!restored) return previous;
+      return { cells: restored, history: previous.history.slice(0, -1), redo: [...previous.redo, previous.cells] };
+    });
     setAnnouncement(translator.t("advent.activity.snowflake.undone"));
   }
 
   function redoChange() {
-    const next = redo.at(-1);
-    if (!next) return;
-    setRedo((future) => future.slice(0, -1));
-    setHistory((past) => [...past, cells]);
-    setCells(next);
+    setDesign((previous) => {
+      const restored = previous.redo.at(-1);
+      if (!restored) return previous;
+      return { cells: restored, history: [...previous.history, previous.cells], redo: previous.redo.slice(0, -1) };
+    });
     setAnnouncement(translator.t("advent.activity.snowflake.redone"));
   }
 
@@ -73,29 +76,49 @@ export function SnowflakeActivity({ config, locale }: { config: SnowflakeConfig;
 
   function download() {
     const svg = svgRef.current;
-    if (!svg) return;
-    const markup = new XMLSerializer().serializeToString(svg);
+    if (!svg) {
+      setAnnouncement(translator.t("advent.activity.snowflake.downloadError"));
+      return;
+    }
+    const exportSvg = svg.cloneNode(true) as SVGSVGElement;
+    exportSvg.setAttribute("width", "1000");
+    exportSvg.setAttribute("height", "1000");
+    exportSvg.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+    const markup = new XMLSerializer().serializeToString(exportSvg);
     const image = new Image();
     image.onload = () => {
       const canvas = document.createElement("canvas");
       canvas.width = 1000;
       canvas.height = 1000;
       const context = canvas.getContext("2d");
-      if (!context) return;
+      if (!context) {
+        setAnnouncement(translator.t("advent.activity.snowflake.downloadError"));
+        return;
+      }
       context.fillStyle = "#102333";
       context.fillRect(0, 0, canvas.width, canvas.height);
       context.drawImage(image, 0, 0, canvas.width, canvas.height);
       canvas.toBlob((blob) => {
-        if (!blob) return;
+        if (!blob) {
+          setAnnouncement(translator.t("advent.activity.snowflake.downloadError"));
+          return;
+        }
         const url = URL.createObjectURL(blob);
         const link = document.createElement("a");
         link.href = url;
         link.download = "snowflake.png";
+        document.body.appendChild(link);
         link.click();
-        URL.revokeObjectURL(url);
+        link.remove();
+        window.setTimeout(() => URL.revokeObjectURL(url), 1000);
       }, "image/png");
     };
+    image.onerror = () => setAnnouncement(translator.t("advent.activity.snowflake.downloadError"));
     image.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(markup)}`;
+  }
+
+  if (!ready) {
+    return <section aria-labelledby="snowflake-title"><h2 id="snowflake-title" className="text-2xl font-bold">{translator.t("advent.activity.snowflake.title")}</h2><p>{translator.t("advent.activity.snowflake.instructions")}</p></section>;
   }
 
   const cellButtons = Array.from({ length: SNOWFLAKE_GRID_SIZE * SNOWFLAKE_GRID_SIZE }, (_, index) => index).filter((index) => Math.floor(index / SNOWFLAKE_GRID_SIZE) >= index % SNOWFLAKE_GRID_SIZE);

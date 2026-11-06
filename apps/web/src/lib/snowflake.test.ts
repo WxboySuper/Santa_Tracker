@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createSurpriseDesign, getSnowflakeCellCenters, normalizeSnowflakeDesign, parseSnowflake, restoreSnowflakeSave, toggleSnowflakeCell } from "./snowflake";
+import { createSurpriseDesign, getSnowflakeCellCenters, isWedgeCell, normalizeSnowflakeDesign, parseSnowflake, restoreSnowflakeSave, toggleSnowflakeCell } from "./snowflake";
 
 describe("snowflake activity", () => {
   it("parses optional seeds and rejects invalid payloads", () => {
@@ -19,13 +19,17 @@ describe("snowflake activity", () => {
     expect(createSurpriseDesign(73)).toEqual(first);
     expect(first.cells.length).toBeGreaterThanOrEqual(7);
     expect(normalizeSnowflakeDesign(first)).toEqual(first);
+    for (let seed = 0; seed < 500; seed += 1) {
+      expect(createSurpriseDesign(seed).cells.every(isWedgeCell)).toBe(true);
+    }
   });
 
   it("mirrors each wedge cut into six symmetric positions", () => {
     const centers = getSnowflakeCellCenters(27);
     expect(centers).toHaveLength(6);
     const distances = centers.map(({ x, y }) => Math.hypot(x - 50, y - 50));
-    expect(distances.every((distance) => Math.abs(distance - distances[0]!) < 0.0001)).toBe(true);
+    const firstDistance = distances[0] ?? 0;
+    expect(distances.every((distance) => Math.abs(distance - firstDistance) < 0.0001)).toBe(true);
     expect(getSnowflakeCellCenters(1)).toHaveLength(0);
   });
 
