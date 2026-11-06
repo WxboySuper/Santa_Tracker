@@ -30,6 +30,12 @@ export function LightshowActivity({ config, locale }: { config: { scene: 'tree' 
   }, []);
 
   useEffect(() => {
+    const syncFullscreen = () => setFullscreen(Boolean(document.fullscreenElement));
+    document.addEventListener('fullscreenchange', syncFullscreen);
+    return () => document.removeEventListener('fullscreenchange', syncFullscreen);
+  }, []);
+
+  useEffect(() => {
     const timer = window.setInterval(() => setTick((value) => value + 1), reducedMotion ? 2000 : Math.max(300, 1200 - composition.speed * 160));
     return () => window.clearInterval(timer);
   }, [composition.speed, reducedMotion]);
@@ -70,7 +76,7 @@ export function LightshowActivity({ config, locale }: { config: { scene: 'tree' 
   const enterFullscreen = async () => {
     try {
       if (!document.fullscreenElement) await stageRef.current?.requestFullscreen();
-      setFullscreen(Boolean(document.fullscreenElement) || Boolean(stageRef.current));
+      setFullscreen(Boolean(document.fullscreenElement));
     } catch { setFullscreen(false); }
   };
   const exitFullscreen = async () => {
