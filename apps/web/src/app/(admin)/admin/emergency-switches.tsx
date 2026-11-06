@@ -134,21 +134,42 @@ function ConfirmHideDialog({ feature, disabled, onCancel, onConfirm }: {
 
 export default function EmergencySwitches() {
   const model = useEmergencyFlags();
-  const failed = model.status === t("admin.emergency.saveFailed") || model.status === t("admin.emergency.loadFailed");
   return (
     <section aria-labelledby="emergency-switches-title" className="mb-6 rounded-xl border border-red-300/30 bg-red-950/30 p-5">
       <h2 id="emergency-switches-title" className="text-xl font-bold">{t("admin.emergency.title")}</h2>
       <p className="mb-4 mt-1 text-white/70">{t("admin.emergency.description")}</p>
-      {!model.flags ? <p role="status">{model.status || t("admin.emergency.loading")}</p> : (
-        <div className="grid gap-4 sm:grid-cols-2">
-          {(["tracker", "advent"] as const).map(feature => (
-            <FeatureToggle key={feature} feature={feature} hidden={model.flags?.hidden[feature] ?? false} disabled={model.isSaving} onChange={model.toggle} />
-          ))}
-        </div>
-      )}
-      {model.flags && <p className="mt-4 text-sm text-white/60">{model.flags.updatedAt ? t("admin.emergency.lastUpdated", { time: new Date(model.flags.updatedAt).toLocaleString() }) : t("admin.emergency.neverUpdated")}</p>}
-      {model.status && <p className="mt-3" role={failed ? "alert" : "status"} aria-live="polite">{model.status}</p>}
+      <SwitchControls model={model} />
+      <LastUpdated flags={model.flags} />
+      <Feedback status={model.status} />
       {model.pendingFeature && <ConfirmHideDialog feature={model.pendingFeature} disabled={model.isSaving} onCancel={model.cancelHide} onConfirm={model.confirmHide} />}
     </section>
   );
+}
+
+type EmergencySwitchModel = ReturnType<typeof useEmergencyFlags>;
+
+function SwitchControls({ model }: { model: EmergencySwitchModel }) {
+  const flags = model.flags;
+  if (!flags) return <p role="status">{model.status || t("admin.emergency.loading")}</p>;
+  return (
+    <div className="grid gap-4 sm:grid-cols-2">
+      {(["tracker", "advent"] as const).map(feature => (
+        <FeatureToggle key={feature} feature={feature} hidden={flags.hidden[feature]} disabled={model.isSaving} onChange={model.toggle} />
+      ))}
+    </div>
+  );
+}
+
+function LastUpdated({ flags }: { flags: FeatureFlagsResponse | null }) {
+  if (!flags) return null;
+  const updated = flags.updatedAt
+    ? t("admin.emergency.lastUpdated", { time: new Date(flags.updatedAt).toLocaleString() })
+    : t("admin.emergency.neverUpdated");
+  return <p className="mt-4 text-sm text-white/60">{updated}</p>;
+}
+
+function Feedback({ status }: { status: string }) {
+  if (!status) return null;
+  const failed = status === t("admin.emergency.saveFailed") || status === t("admin.emergency.loadFailed");
+  return <p className="mt-3" role={failed ? "alert" : "status"} aria-live="polite">{status}</p>;
 }
