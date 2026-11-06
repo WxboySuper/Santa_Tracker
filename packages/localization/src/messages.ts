@@ -43,6 +43,7 @@ export const en = {
   'tracker.unavailable': "Santa's route is unavailable right now.",
   'tracker.instructions': 'Use arrow keys to pan and plus or minus to zoom.',
   'tracker.return': 'Return to Santa',
+  'tracker.northPole': 'Visit the North Pole',
   'tracker.textMode': 'Show text view',
   'tracker.mapMode': 'Show map',
   'tracker.current': 'Current location',
