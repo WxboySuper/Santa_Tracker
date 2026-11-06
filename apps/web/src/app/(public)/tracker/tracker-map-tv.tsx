@@ -8,7 +8,7 @@ import { deriveTvDashboard } from "@/lib/tracker-tv";
 import { ArrivalNoticeCard, playArrivalNoticeChime } from "./tracker-map-immersive";
 
 type Translator = ReturnType<typeof createTranslator>;
-type WakeLockSentinel = { release: () => Promise<void>; released: boolean };
+type WakeLockSentinel = { release: () => Promise<void>; released: boolean; addEventListener: (type: "release", listener: () => void) => void };
 type WakeLockNavigator = Navigator & { wakeLock?: { request: (type: "screen") => Promise<WakeLockSentinel> } };
 type ArrivalDisplayInput = { place: ChosenPlace; arrival: Date | null; now: Date; locale: string; translator: Translator };
 
@@ -171,9 +171,17 @@ async function requestWakeLock(state: WakeLockRequestState): Promise<void> {
   try {
     const sentinel = await wakeLock.request("screen");
     if (shouldReleaseReturnedLock(state)) releaseSentinel(sentinel);
-    else state.lock.current = sentinel;
+    else holdSentinel(state, sentinel);
   } catch { /* Wake Lock is optional. */ }
   finally { finishWakeLockRequest(state); }
+}
+
+/** Keeps the sentinel, and forgets it when the browser revokes it so the next gesture can re-acquire. */
+function holdSentinel(state: WakeLockRequestState, sentinel: WakeLockSentinel): void {
+  state.lock.current = sentinel;
+  sentinel.addEventListener("release", () => {
+    if (state.lock.current === sentinel) state.lock.current = null;
+  });
 }
 
 function canRequestWakeLock(state: WakeLockRequestState): boolean {
