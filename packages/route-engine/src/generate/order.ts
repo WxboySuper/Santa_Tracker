@@ -33,7 +33,13 @@ function bucketWindows(windows: StopWindow[]): Map<number, StopWindow[]> {
 function countryRunAllows(window: StopWindow, ordered: StopWindow[], maximumRun: number): boolean {
   const previous = ordered.at(-1)?.place.country;
   if (window.place.country !== previous) return true;
-  return ordered.slice(-maximumRun).filter((entry) => entry.place.country === window.place.country).length < maximumRun - 1;
+  let run = 0;
+  for (let index = ordered.length - 1; index >= 0; index--) {
+    if (ordered[index]?.place.country !== window.place.country) break;
+    run++;
+    if (run >= maximumRun) return false;
+  }
+  return true;
 }
 
 function takeNearest(remaining: StopWindow[], current: LatLng): StopWindow | undefined {
