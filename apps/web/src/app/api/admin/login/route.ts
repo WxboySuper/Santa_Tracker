@@ -47,8 +47,14 @@ export async function POST(req: Request) {
   const processing = createLoginProcessingSignal(req);
   try {
     const preflight = await checkLoginBeforeBody(req, ip, processing.signal);
-    if (!preflight.allowed) return preflight.response;
-    if (!reserveBodyRead(ip)) return throttledResponse(1);
+    if (!preflight.allowed) {
+      cancelUnreadBody(req);
+      return preflight.response;
+    }
+    if (!reserveBodyRead(ip)) {
+      cancelUnreadBody(req);
+      return throttledResponse(1);
+    }
     processing.startTimeout();
     let parsed: Awaited<ReturnType<typeof readCappedJsonBody>>;
     try {
@@ -174,7 +180,10 @@ async function readCappedJsonBody(req: Request, signal: AbortSignal): Promise<{ 
 
 function bodyPreflightRejection(req: Request, signal: AbortSignal): { payload: unknown; tooLarge: boolean; aborted: boolean } | null {
   if (signal.aborted) return { payload: null, tooLarge: false, aborted: true };
-  if (hasOversizedContentLength(req)) return { payload: null, tooLarge: true, aborted: false };
+  if (hasOversizedContentLength(req)) {
+    cancelUnreadBody(req);
+    return { payload: null, tooLarge: true, aborted: false };
+  }
   return null;
 }
 
@@ -253,6 +262,10 @@ function createLoginProcessingSignal(req: Request): { signal: AbortSignal; start
 
 function abortLoginProcessing(req: Request, controller: AbortController): void {
   controller.abort();
+  cancelUnreadBody(req);
+}
+
+function cancelUnreadBody(req: Request): void {
   if (!req.body) return;
   if (req.body.locked) return;
   void req.body.cancel().catch(() => undefined);

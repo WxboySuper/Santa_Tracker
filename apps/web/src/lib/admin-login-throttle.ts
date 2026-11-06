@@ -27,7 +27,7 @@ const IP_PREFIX = "ip:";
 
 export class ThrottleStoreFullError extends Error {
   constructor() {
-    super("Throttle store has no expired IP state to evict");
+    super("Throttle store has no eligible IP state to evict");
     this.name = "ThrottleStoreFullError";
   }
 }
