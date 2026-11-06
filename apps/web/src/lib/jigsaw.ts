@@ -23,13 +23,17 @@ export function parseJigsaw(payload: unknown): JigsawConfig | null {
 
 function parseScene(value: unknown): JigsawScene | null {
   if (value === undefined) return "cabin";
-  if (value === "cabin" || value === "harbor" || value === "street") return value;
+  if (value === "cabin") return value;
+  if (value === "harbor") return value;
+  if (value === "street") return value;
   return null;
 }
 
 function parsePieceCount(value: unknown): JigsawPieceCount | null {
   if (value === undefined) return 24;
-  if (value === 12 || value === 24 || value === 48) return value;
+  if (value === 12) return value;
+  if (value === 24) return value;
+  if (value === 48) return value;
   return null;
 }
 
