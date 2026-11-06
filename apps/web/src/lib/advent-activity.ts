@@ -4,6 +4,9 @@ import { parseWinterWorld } from "./winter-world";
 import { parseLightshow } from "./lightshow";
 import { parseSnowflake } from "./snowflake";
 import { parsePostcard } from "./postcard";
+import { parseWordsearch } from "./wordsearch";
+import { parseMaze } from "./maze";
+import { parseTimezones } from "./timezones";
 
 const activityPayloadParsers = {
   cipher: parseCipher,
@@ -12,6 +15,9 @@ const activityPayloadParsers = {
   lightshow: parseLightshow,
   snowflake: parseSnowflake,
   postcard: parsePostcard,
+  wordsearch: parseWordsearch,
+  maze: parseMaze,
+  timezones: parseTimezones,
 } as const;
 
 export function hasValidActivityKind(payload: unknown): boolean {

@@ -1,0 +1,324 @@
+export interface WordsearchConfig {
+  seed: number;
+  words: string[];
+}
+
+export interface WordsearchPuzzle {
+  grid: string[][];
+  placements: { word: string; cells: number[] }[];
+}
+
+interface PlacementCandidate {
+  row: number;
+  column: number;
+  rowStep: number;
+  columnStep: number;
+}
+
+interface PlacementBounds {
+  row: number;
+  column: number;
+  rowStep: number;
+  columnStep: number;
+  wordLength: number;
+  size: number;
+}
+
+interface PlacementSearch {
+  words: string[];
+  wordIndex: number;
+  grid: (string | null)[][];
+  placements: WordsearchPuzzle["placements"];
+  size: number;
+  random: () => number;
+  budget: PlacementBudget;
+}
+
+interface PlacementBudget {
+  attempts: number;
+  limit: number;
+}
+
+interface BoundedGeneration {
+  config: WordsearchConfig;
+  attemptLimit: number;
+}
+
+interface FilledPuzzleContext {
+  grid: (string | null)[][];
+  placements: WordsearchPuzzle["placements"];
+  random: () => number;
+}
+
+interface PlacementCheck {
+  grid: (string | null)[][];
+  word: string;
+  candidate: PlacementCandidate;
+  size: number;
+}
+
+interface CandidateOptions {
+  word: string;
+  size: number;
+  random: () => number;
+}
+
+type WritePlacement = PlacementCheck;
+
+interface ValueContext {
+  value: unknown;
+}
+
+interface SeedContext {
+  seed: number;
+}
+
+interface RandomContext {
+  random: () => number;
+}
+
+interface WordSelection {
+  startCell: number;
+  endCell: number;
+  gridSize: number;
+}
+
+interface SelectionVector {
+  rowDistance: number;
+  columnDistance: number;
+  length: number;
+}
+
+interface SelectionCancelKey {
+  key: string;
+  selectionPending: boolean;
+}
+
+interface PlacementSelectionContext {
+  placements: WordsearchPuzzle["placements"];
+  selectedCells: number[];
+  foundWords: string[];
+}
+
+const DEFAULT_WORDS = ["CHIMNEY", "EMBER", "MITTENS", "LANTERN", "SOLSTICE", "EVERGREEN", "CINNAMON", "SNOWFALL", "CANDLE", "NIGHTSKY"];
+const GRID_SIZE = 15;
+const MAX_TOTAL_WORD_LETTERS = Math.floor(GRID_SIZE * GRID_SIZE * 0.8);
+export const MAX_WORDSEARCH_PLACEMENT_ATTEMPTS = 5000;
+const DIRECTIONS = [
+  { row: -1, column: -1 }, { row: -1, column: 0 }, { row: -1, column: 1 },
+  { row: 0, column: -1 }, { row: 0, column: 1 },
+  { row: 1, column: -1 }, { row: 1, column: 0 }, { row: 1, column: 1 },
+] as const;
+
+export function parseWordsearch(payload: unknown): WordsearchConfig | null {
+  if (!isRecord(payload)) return null;
+  if (payload.kind !== "wordsearch") return null;
+  return parseWordsearchConfig(payload);
+}
+
+function parseWordsearchConfig(payload: Record<string, unknown>): WordsearchConfig | null {
+  const seed = readWordsearchSeed(payload.seed);
+  const words = readWordsearchWords(payload.words);
+  if (seed === null || words === null) return null;
+  return { seed, words };
+}
+
+function readWordsearchSeed(value: unknown): number | null {
+  if (value === undefined) return 2026;
+  if (typeof value !== "number") return null;
+  if (!Number.isSafeInteger(value)) return null;
+  return value;
+}
+
+function readWordsearchWords(value: unknown): string[] | null {
+  const words = isWordList({ value: value === undefined ? DEFAULT_WORDS : value });
+  if (words === null) return null;
+  if (!isPlausibleWordList(words)) return null;
+  return words;
+}
+
+function isPlausibleWordList(words: string[]): boolean {
+  const totalLetters = words.reduce((total, word) => total + word.length, 0);
+  return totalLetters <= MAX_TOTAL_WORD_LETTERS;
+}
+
+function isWordList({ value }: ValueContext): string[] | null {
+  if (!Array.isArray(value)) return null;
+  if (value.length === 0) return null;
+  if (value.length > 16) return null;
+  const words: string[] = [];
+  for (const candidate of value) {
+    const candidateContext = { value: candidate };
+    if (!isWord(candidateContext)) return null;
+    words.push(candidateContext.value);
+  }
+  if (new Set(words).size !== words.length) return null;
+  return words;
+}
+
+function isWord(context: ValueContext): context is ValueContext & { value: string } {
+  const { value } = context;
+  if (typeof value !== "string") return false;
+  return /^[A-Z]{4,12}$/.test(value);
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
+function randomFor({ seed }: SeedContext): () => number {
+  let state = (seed | 0) || 0x9e3779b9;
+  return () => {
+    state ^= state << 13;
+    state ^= state >>> 17;
+    state ^= state << 5;
+    return (state >>> 0) / 4294967296;
+  };
+}
+
+/** Place longest words first, using seeded candidate order and backtracking when a later word cannot fit. */
+export function generateWordsearch(config: WordsearchConfig): WordsearchPuzzle {
+  return generateWordsearchWithLimit({ config, attemptLimit: MAX_WORDSEARCH_PLACEMENT_ATTEMPTS });
+}
+
+export function generateWordsearchWithLimit({ config, attemptLimit }: BoundedGeneration): WordsearchPuzzle {
+  const search = createPlacementSearch({ config, attemptLimit });
+  if (!placeWords(search)) throw new Error(`Unable to place every word within ${attemptLimit} candidate attempts`);
+  return fillWordsearch({ grid: search.grid, placements: search.placements, random: search.random });
+}
+
+function createPlacementSearch({ config, attemptLimit }: BoundedGeneration): PlacementSearch {
+  const { seed, words } = config;
+  const size = GRID_SIZE;
+  if (!isPlausibleWordList(words)) throw new Error("Word list cannot plausibly fit in a 15 by 15 grid");
+  if (!Number.isInteger(attemptLimit) || attemptLimit < 1) throw new Error("Placement attempt limit must be a positive integer");
+  const random = randomFor({ seed });
+  const grid: (string | null)[][] = Array.from({ length: size }, () => Array(size).fill(null));
+  const placements: WordsearchPuzzle["placements"] = [];
+  const ordered = [...words].sort((a, b) => b.length - a.length || a.localeCompare(b));
+  const search = { words: ordered, wordIndex: 0, grid, placements, size, random, budget: { attempts: 0, limit: attemptLimit } };
+  return search;
+}
+
+function fillWordsearch({ grid, placements, random }: FilledPuzzleContext): WordsearchPuzzle {
+  const filledGrid = grid.map((row) => row.map((cell) => cell ?? randomLetter({ random })));
+  return { grid: filledGrid, placements };
+}
+
+function randomLetter({ random }: RandomContext): string {
+  return String.fromCharCode(65 + Math.floor(random() * 26));
+}
+
+function placeWords(search: PlacementSearch): boolean {
+  const { words, wordIndex, grid, placements, size, random, budget } = search;
+  if (wordIndex >= words.length) return true;
+  const word = words[wordIndex];
+  if (!word) return true;
+  for (const candidate of getCandidates({ word, size, random })) {
+    if (budget.attempts >= budget.limit) return false;
+    budget.attempts += 1;
+    if (!canPlace({ grid, word, candidate, size })) continue;
+    const { cells, added } = writeWord({ grid, word, candidate, size });
+    placements.push({ word, cells });
+    if (placeWords({ ...search, wordIndex: wordIndex + 1 })) return true;
+    placements.pop();
+    for (const cell of added) grid[Math.floor(cell / size)]![cell % size] = null;
+  }
+  return false;
+}
+
+function getCandidates({ word, size, random }: CandidateOptions): PlacementCandidate[] {
+  const candidates: PlacementCandidate[] = [];
+  for (let row = 0; row < size; row += 1) {
+    appendCandidates({ row, word, size, candidates });
+  }
+  return shuffled({ values: candidates, random });
+}
+
+function appendCandidates({ row, word, size, candidates }: { row: number; word: string; size: number; candidates: PlacementCandidate[] }): void {
+  for (let column = 0; column < size; column += 1) {
+    for (const direction of DIRECTIONS) {
+      const bounds = { row, column, rowStep: direction.row, columnStep: direction.column, wordLength: word.length, size };
+      if (isInBounds(bounds)) candidates.push({ row, column, rowStep: direction.row, columnStep: direction.column });
+    }
+  }
+}
+
+function isInBounds({ row, column, rowStep, columnStep, wordLength, size }: PlacementBounds): boolean {
+  const endRow = row + rowStep * (wordLength - 1);
+  const endColumn = column + columnStep * (wordLength - 1);
+  if (endRow < 0 || endRow >= size) return false;
+  if (endColumn < 0 || endColumn >= size) return false;
+  return true;
+}
+
+function writeWord({ grid, word, candidate, size }: WritePlacement): { cells: number[]; added: number[] } {
+  const added: number[] = [];
+  const cells = word.split("").map((letter, index) => {
+    const row = candidate.row + candidate.rowStep * index;
+    const column = candidate.column + candidate.columnStep * index;
+    if (grid[row]?.[column] === null) added.push(row * size + column);
+    grid[row]![column] = letter;
+    return row * size + column;
+  });
+  return { cells, added };
+}
+
+function shuffled<T>({ values, random }: { values: T[]; random: () => number }): T[] {
+  for (let index = values.length - 1; index > 0; index -= 1) {
+    const swap = Math.floor(random() * (index + 1));
+    [values[index], values[swap]] = [values[swap]!, values[index]!];
+  }
+  return values;
+}
+
+function canPlace({ grid, word, candidate, size }: PlacementCheck): boolean {
+  const { row, column, rowStep, columnStep } = candidate;
+  if (!isInBounds({ row, column, rowStep, columnStep, wordLength: word.length, size })) return false;
+  return word.split("").every((letter, index) => {
+    const cell = grid[row + rowStep * index]?.[column + columnStep * index];
+    return cell === null || cell === letter;
+  });
+}
+
+export function wordAtSelection({ startCell, endCell, gridSize }: WordSelection): number[] | null {
+  const startRow = Math.floor(startCell / gridSize);
+  const startColumn = startCell % gridSize;
+  const endRow = Math.floor(endCell / gridSize);
+  const endColumn = endCell % gridSize;
+  const rowDistance = endRow - startRow;
+  const columnDistance = endColumn - startColumn;
+  const length = Math.max(Math.abs(rowDistance), Math.abs(columnDistance));
+  if (!isStraightSelection({ rowDistance, columnDistance, length })) return null;
+  const rowStep = Math.sign(rowDistance);
+  const columnStep = Math.sign(columnDistance);
+  return Array.from({ length: length + 1 }, (_, index) => (startRow + rowStep * index) * gridSize + startColumn + columnStep * index);
+}
+
+export function shouldCancelWordsearchSelection({ key, selectionPending }: SelectionCancelKey): boolean {
+  return selectionPending && key === "Escape";
+}
+
+export function wordsearchConfigKey(config: WordsearchConfig): string {
+  return JSON.stringify([config.seed, config.words]);
+}
+
+export function findWordsearchPlacement({ placements, selectedCells, foundWords }: PlacementSelectionContext): WordsearchPuzzle["placements"][number] | null {
+  const reverse = [...selectedCells].reverse();
+  return placements.find((placement) => {
+    if (foundWords.includes(placement.word)) return false;
+    return hasSameCells(placement.cells, selectedCells) || hasSameCells(placement.cells, reverse);
+  }) ?? null;
+}
+
+function hasSameCells(left: number[], right: number[]): boolean {
+  if (left.length !== right.length) return false;
+  return left.every((cell, index) => cell === right[index]);
+}
+
+function isStraightSelection({ rowDistance, columnDistance, length }: SelectionVector): boolean {
+  if (length === 0) return false;
+  if (rowDistance === 0) return true;
+  if (columnDistance === 0) return true;
+  return Math.abs(rowDistance) === Math.abs(columnDistance);
+}
