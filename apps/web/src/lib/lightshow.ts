@@ -11,6 +11,7 @@ export type LightshowComposition = {
   speed: number;
   brightness: number;
 };
+type PatternFrame = { tick: number; index: number };
 
 const palettes: Record<LightshowPalette, readonly string[]> = {
   warm: ['#ffe6a3', '#fff3d6', '#ffc982'],
@@ -28,7 +29,9 @@ export function parseLightshow(payload: unknown): { scene: LightshowScene } | nu
   if (!payload || typeof payload !== 'object' || Array.isArray(payload)) return null;
   const source = payload as Record<string, unknown>;
   if (source.kind !== 'lightshow') return null;
-  if (source.scene !== undefined && !scenes.includes(source.scene as LightshowScene)) return null;
+  if (source.scene !== undefined) {
+    if (!isLightshowScene(source.scene)) return null;
+  }
   return { scene: (source.scene as LightshowScene | undefined) ?? 'tree' };
 }
 
@@ -40,11 +43,37 @@ export function lightColor(palette: LightshowPalette, index: number): string {
 export function lightIntensity(pattern: LightshowPattern, index: number, tick: number, reducedMotion: boolean): number {
   if (pattern === 'steady') return 1;
   const slowTick = reducedMotion ? Math.floor(tick / 8) : tick;
-  const phase = (slowTick + index * 3) % 12;
-  if (pattern === 'twinkle') return phase < 2 ? 0.38 : phase < 5 ? 0.72 : 1;
-  if (pattern === 'chase') return phase < 3 ? 1 : 0.42;
-  if (pattern === 'fade') return 0.48 + (Math.sin((slowTick / 6 + index / 4) * Math.PI) + 1) * 0.26;
-  return 0.42 + (Math.sin((slowTick / 4 + index / 3) * Math.PI) + 1) * 0.29;
+  return intensityForPattern(pattern, { tick: slowTick, index });
+}
+
+function intensityForPattern(pattern: LightshowPattern, frame: PatternFrame): number {
+  switch (pattern) {
+    case 'twinkle': return twinkleIntensity(frame);
+    case 'chase': return chaseIntensity(frame);
+    case 'fade': return fadeIntensity(frame);
+    case 'wave': return waveIntensity(frame);
+    default: return 1;
+  }
+}
+
+function twinkleIntensity({ tick, index }: PatternFrame): number {
+  const phase = (tick + index * 3) % 12;
+  if (phase < 2) return 0.38;
+  if (phase < 5) return 0.72;
+  return 1;
+}
+
+function chaseIntensity({ tick, index }: PatternFrame): number {
+  const phase = (tick + index * 3) % 12;
+  return phase < 3 ? 1 : 0.42;
+}
+
+function fadeIntensity({ tick, index }: PatternFrame): number {
+  return 0.48 + (Math.sin((tick / 6 + index / 4) * Math.PI) + 1) * 0.26;
+}
+
+function waveIntensity({ tick, index }: PatternFrame): number {
+  return 0.42 + (Math.sin((tick / 4 + index / 3) * Math.PI) + 1) * 0.29;
 }
 
 export function createLightshowSave(composition: LightshowComposition, savedAtIso = new Date().toISOString()): ActivitySaveEnvelope<LightshowComposition> {
@@ -105,7 +134,11 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 function parseScene(value: unknown): LightshowScene | null {
-  return scenes.includes(value as LightshowScene) ? value as LightshowScene : null;
+  return isLightshowScene(value) ? value : null;
+}
+
+function isLightshowScene(value: unknown): value is LightshowScene {
+  return scenes.includes(value as LightshowScene);
 }
 
 function parsePalette(value: unknown): LightshowPalette | null {
