@@ -1,5 +1,5 @@
 import { applyOverrides, type RouteOverrides } from './overrides';
-import { allocateQuotas } from './selection';
+import { allocateQuotas, compareStableIds } from './selection';
 import { christmasOffset } from './timezone';
 import type { Candidate, GeneratorConfig } from './types';
 
@@ -17,7 +17,10 @@ type SelectionContext = { places: Candidate[]; config: GeneratorConfig; vetoed: 
 type CandidateSortContext = { candidates: Candidate[]; seed: number };
 function stableCandidates(context: CandidateSortContext): Candidate[] {
   const { candidates, seed } = context;
-  return [...candidates].sort((a, b) => stableHash({ value: a.id, seed }) - stableHash({ value: b.id, seed }) || a.id.localeCompare(b.id));
+  return [...candidates].sort((a, b) => {
+    const difference = stableHash({ value: a.id, seed }) - stableHash({ value: b.id, seed });
+    return difference === 0 ? compareStableIds(a.id, b.id) : difference;
+  });
 }
 type WesternPriorityContext = { candidates: Candidate[]; seed: number; westernSlots: number };
 function prioritizeWestern(context: WesternPriorityContext): Candidate[] {
@@ -33,7 +36,7 @@ function selectCategory(input: CategorySelection): string[] {
   const { places, config, vetoed } = input.context;
   const { category, count } = input.quota;
   const eligible = places.filter((place) => place.category === category && !vetoed.has(place.id));
-  const candidates = prioritizeWestern({ candidates: eligible, seed: config.seed, westernSlots: Math.floor(count * 0.45) });
+  const candidates = prioritizeWestern({ candidates: eligible, seed: config.seed, westernSlots: Math.ceil(count * 0.45) });
   const selected = candidates.slice(0, count).map((place) => place.id);
   if (selected.length < count) throw new Error(`Cannot fill ${category} quota ${count}: not enough candidates in pool`);
   return selected;
@@ -67,6 +70,28 @@ function westernRefillOrder(context: RefillOrderContext): Candidate[] {
   const other = sorted.filter((place) => !western.includes(place));
   return [...western.slice(0, westernNeed), ...other, ...western.slice(westernNeed)];
 }
+type WesternRestoreContext = { result: string[]; places: Candidate[]; category: string; needed: number; locks: Set<string>; vetoed: Set<string> };
+function unlockedEasternIndex(context: WesternRestoreContext, byId: Map<string, Candidate>): number {
+  for (let index = context.result.length - 1; index >= 0; index--) {
+    const id = context.result[index] ?? '';
+    const place = byId.get(id);
+    if (context.locks.has(id)) continue;
+    if (place?.category !== context.category) continue;
+    if (christmasOffset(place.timezone) <= -240) continue;
+    return index;
+  }
+  return -1;
+}
+function restoreWesternSlots(context: WesternRestoreContext, byId: Map<string, Candidate>, config: GeneratorConfig): void {
+  const extras = refillCandidates({ places: context.places, selection: context.result, category: context.category, vetoed: context.vetoed });
+  const western = westernRefillOrder({ extras, config, westernNeed: context.needed })
+    .filter((place) => christmasOffset(place.timezone) <= -240);
+  for (const place of western.slice(0, context.needed)) {
+    const index = unlockedEasternIndex(context, byId);
+    if (index < 0) break;
+    context.result[index] = place.id;
+  }
+}
 function refillSelection(context: RefillContext): string[] {
   const { places, selection, quotas, config, overrides } = context;
   const byId = new Map(places.map((place) => [place.id, place]));
@@ -77,7 +102,8 @@ function refillSelection(context: RefillContext): string[] {
     const current = selectedCategoryCount(countContext);
     if (current > quota) throw new Error(`Overrides exceed ${category} quota ${quota}`);
     const currentWestern = selectedWesternCount(countContext);
-    const westernNeed = Math.max(0, Math.floor(quota * 0.45) - currentWestern);
+    const westernNeed = Math.max(0, Math.ceil(quota * 0.45) - currentWestern);
+    restoreWesternSlots({ result, places, category, needed: westernNeed, locks: new Set(overrides.lock ?? []), vetoed }, byId, config);
     const extras = refillCandidates({ places, selection: result, category, vetoed });
     const preferred = westernRefillOrder({ extras, config, westernNeed });
     result.push(...preferred.slice(0, Math.max(0, quota - current)).map((place) => place.id));

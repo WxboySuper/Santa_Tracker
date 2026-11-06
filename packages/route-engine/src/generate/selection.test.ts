@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { allocateQuotas, nearestNeighbour } from './selection';
+import { allocateQuotas, compareStableIds, nearestNeighbour } from './selection';
+
+describe('compareStableIds', () => {
+  it('uses code-unit ordering instead of runtime locale collation', () => {
+    expect(compareStableIds('a', 'B')).toBe(1);
+    expect(compareStableIds('B', 'a')).toBe(-1);
+  });
+});
 
 describe('allocateQuotas', () => {
   it('uses largest remainders with stable ties', () => {

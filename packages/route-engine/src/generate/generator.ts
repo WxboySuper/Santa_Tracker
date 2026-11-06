@@ -25,7 +25,7 @@ function createStop(index: number, place: Candidate, context: StopContext) {
   const target = Date.parse(christmasArrival(place.timezone, place.plannedMinute ?? config.arrivalStartMinute));
   const distance = prior ? haversineKm(prior, place) : 0;
   const travel = Math.ceil(distance / config.maxSpeedKmh * 3_600_000) + 1;
-  const arrival = new Date(Math.max(target, lastDeparture + Math.max(config.durationSeconds * 1000, travel))).toISOString();
+  const arrival = new Date(Math.max(target, lastDeparture + travel)).toISOString();
   const minute = localMinute(arrival, place.timezone);
   if (minute < config.arrivalStartMinute || minute > config.arrivalEndMinute) throw new Error(`${place.name} arrives outside its local window at ${arrival}`);
   const departure = new Date(Date.parse(arrival) + config.durationSeconds * 1000).toISOString();

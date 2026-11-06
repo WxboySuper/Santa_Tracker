@@ -1,5 +1,11 @@
 import { haversineKm, type LatLng } from '../geo';
 
+export function compareStableIds(left: string, right: string): number {
+  if (left < right) return -1;
+  if (left > right) return 1;
+  return 0;
+}
+
 function validateWeights(total: number, entries: [string, number][]): number {
   if (!Number.isSafeInteger(total)) throw new Error('Invalid stop total');
   if (total <= 0) throw new Error('Invalid stop total');
@@ -47,9 +53,7 @@ export function nearestNeighbour<T extends LatLng & { id: string }>(places: read
     remaining.sort((a, b) => {
       const difference = haversineKm(current, a) - haversineKm(current, b);
       if (difference !== 0) return difference;
-      if (a.id < b.id) return -1;
-      if (a.id > b.id) return 1;
-      return 0;
+      return compareStableIds(a.id, b.id);
     });
     const next = remaining.shift();
     if (!next) break;

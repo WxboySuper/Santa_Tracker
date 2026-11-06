@@ -34,6 +34,9 @@ function lastUnlockedIndex(selection: string[], locks: Set<string>, category: st
   }
   return -1;
 }
+function categoryCount(selection: string[], category: string | undefined, categories: Map<string, string | undefined>): number {
+  return selection.filter((id) => categories.get(id) === category).length;
+}
 
 /** Apply owner directives to a selection. The caller is responsible for refilling it. */
 export function applyOverrides(pool: readonly { id: string; category?: string }[], selection: readonly string[], overrides: RouteOverrides): string[] {
@@ -49,15 +52,22 @@ export function applyOverrides(pool: readonly { id: string; category?: string }[
   if (locks.size > selection.length) throw new Error('Locked stops exceed the selection size');
   if (new Set(selection).size !== selection.length) throw new Error('Duplicate selected stop');
   const selected = [...selection];
+  const categoryTargets = new Map<string | undefined, number>();
+  for (const id of selected) {
+    const category = categories.get(id);
+    categoryTargets.set(category, (categoryTargets.get(category) ?? 0) + 1);
+  }
   for (const [from, to] of swaps) applySwap(selected, from, to, { veto, locks, categories });
   const result = selected.filter((id) => !veto.has(id));
   for (const id of locks) {
     if (result.includes(id)) continue;
-    if (result.length < selection.length) {
+    const category = categories.get(id);
+    const target = categoryTargets.get(category) ?? 0;
+    if (categoryCount(result, category, categories) < target) {
       result.push(id);
       continue;
     }
-    const replaceAt = lastUnlockedIndex(result, locks, categories.get(id), categories);
+    const replaceAt = lastUnlockedIndex(result, locks, category, categories);
     if (replaceAt < 0) throw new Error(`Cannot fit locked stop ${id} into selection`);
     result[replaceAt] = id;
   }

@@ -30,4 +30,13 @@ describe('applyOverrides', () => {
     expect(() => applyOverrides(categorized, ['hub-a', 'nature-a'], { swap: { 'hub-a': 'nature-b' } })).toThrow(/preserve category/);
     expect(applyOverrides(categorized, ['hub-a', 'nature-a'], { lock: ['hub-b'] })).toEqual(['hub-b', 'nature-a']);
   });
+
+  it('fills a lock into a same-category vacancy before preserving other categories', () => {
+    const categorized = [
+      { id: 'hub-a', category: 'hub' }, { id: 'nature-a', category: 'nature' },
+      { id: 'nature-b', category: 'nature' },
+    ];
+    expect(applyOverrides(categorized, ['hub-a', 'nature-a'], { veto: ['hub-a'], lock: ['nature-b'] }))
+      .toEqual(['nature-b']);
+  });
 });

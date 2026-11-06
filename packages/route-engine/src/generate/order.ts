@@ -1,5 +1,5 @@
 import type { LatLng } from '../geo';
-import { nearestNeighbour } from './selection';
+import { compareStableIds, nearestNeighbour } from './selection';
 import { christmasArrival } from './sweep';
 import { christmasOffset } from './timezone';
 import type { Candidate, GeneratorConfig } from './types';
@@ -13,7 +13,10 @@ function addPlannedBand(band: Candidate[], target: Candidate[], config: Generato
   });
 }
 function sortByPlannedArrival(places: Candidate[], config: GeneratorConfig): Candidate[] {
-  return [...places].sort((a, b) => Date.parse(christmasArrival(a.timezone, a.plannedMinute ?? config.arrivalStartMinute)) - Date.parse(christmasArrival(b.timezone, b.plannedMinute ?? config.arrivalStartMinute)) || a.id.localeCompare(b.id));
+  return [...places].sort((a, b) => {
+    const difference = Date.parse(christmasArrival(a.timezone, a.plannedMinute ?? config.arrivalStartMinute)) - Date.parse(christmasArrival(b.timezone, b.plannedMinute ?? config.arrivalStartMinute));
+    return difference === 0 ? compareStableIds(a.id, b.id) : difference;
+  });
 }
 function assertCountryRun(places: Candidate[], maximumRun: number): void {
   let lastCountry: string | undefined;

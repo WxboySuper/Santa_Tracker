@@ -55,4 +55,17 @@ describe('generateRoute', () => {
     expect(() => generateRoute(candidates, { ...config, maxCountryRun: 0 })).toThrow(/country run limit/);
     expect(() => generateRoute(candidates, { ...config, westernHours: -1 })).toThrow(/western hour count/);
   });
+
+  it('starts the next arrival after travel from the prior departure without adding dwell twice', () => {
+    const colocated = [
+      { ...candidates[0]!, id: 'close-a', timezone: 'UTC', category: 'hub', lat: 0, lng: 0 },
+      { ...candidates[1]!, id: 'close-b', timezone: 'UTC', category: 'hub', lat: 0, lng: 0 },
+    ];
+    const config = { ...DEFAULT_GENERATOR_LIMITS, total: 2, weights: { hub: 1 }, arrivalStartMinute: 20, arrivalEndMinute: 80 };
+    const generated = generateRoute(colocated, config);
+    const prior = generated.route.stops[0];
+    const next = generated.route.stops[1];
+    if (!prior || !next) throw new Error('Expected two generated stops');
+    expect(Date.parse(next.arrivalIso) - Date.parse(prior.departureIso)).toBe(1);
+  });
 });
