@@ -2,10 +2,12 @@ import type { ReactNode } from "react";
 import type { AdventPublicDay } from "@/lib/advent";
 import { cipherActivity } from "./cipher";
 import { winterWorldActivity } from "./winter-world";
+import { lightshowActivity } from "./lightshow";
 
 export const activityKinds = {
   cipher: cipherActivity,
   winterworld: winterWorldActivity,
+  lightshow: lightshowActivity,
 } as const;
 
 export function renderActivity(day: AdventPublicDay, fallback: ReactNode, locale: string): ReactNode {
