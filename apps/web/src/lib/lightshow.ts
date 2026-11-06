@@ -84,12 +84,42 @@ export function isLightshowComposition(value: unknown): value is LightshowCompos
 }
 
 function parseComposition(value: unknown): LightshowComposition | null {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
-  const source = value as Record<string, unknown>;
-  if (!scenes.includes(source.scene as LightshowScene)) return null;
-  if (!paletteNames.includes(source.palette as LightshowPalette)) return null;
-  if (!patterns.includes(source.pattern as LightshowPattern)) return null;
-  if (typeof source.speed !== 'number' || source.speed < 1 || source.speed > 5) return null;
-  if (typeof source.brightness !== 'number' || source.brightness < 20 || source.brightness > 100) return null;
-  return { scene: source.scene as LightshowScene, palette: source.palette as LightshowPalette, pattern: source.pattern as LightshowPattern, speed: source.speed, brightness: source.brightness };
+  if (!isRecord(value)) return null;
+  const scene = parseScene(value.scene);
+  const palette = parsePalette(value.palette);
+  const pattern = parsePattern(value.pattern);
+  const speed = parseRange(value.speed, 1, 5);
+  const brightness = parseRange(value.brightness, 20, 100);
+  if (scene === null) return null;
+  if (palette === null) return null;
+  if (pattern === null) return null;
+  if (speed === null) return null;
+  if (brightness === null) return null;
+  return { scene, palette, pattern, speed, brightness };
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  if (value === null) return false;
+  if (typeof value !== 'object') return false;
+  return !Array.isArray(value);
+}
+
+function parseScene(value: unknown): LightshowScene | null {
+  return scenes.includes(value as LightshowScene) ? value as LightshowScene : null;
+}
+
+function parsePalette(value: unknown): LightshowPalette | null {
+  return paletteNames.includes(value as LightshowPalette) ? value as LightshowPalette : null;
+}
+
+function parsePattern(value: unknown): LightshowPattern | null {
+  return patterns.includes(value as LightshowPattern) ? value as LightshowPattern : null;
+}
+
+function parseRange(value: unknown, minimum: number, maximum: number): number | null {
+  if (typeof value !== 'number') return null;
+  if (!Number.isFinite(value)) return null;
+  if (value < minimum) return null;
+  if (value > maximum) return null;
+  return value;
 }
