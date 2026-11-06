@@ -3,7 +3,7 @@ export const en = {
   'nav.tracker': 'Tracker',
   'nav.village': 'Village',
   'home.title': 'Santa Tracker',
-  'home.subtitle': "Track Santa's magical journey around the world!",
+  'home.subtitle': 'A small winter outpost, open when the season allows.',
   'home.countdown': 'Countdown to takeoff',
   'home.trackSanta': 'Track Santa',
   'countdown.loading': 'Loading...',
@@ -15,6 +15,24 @@ export const en = {
   'countdown.seconds': 'Seconds',
   'countdown.summary': '{days} days, {hours} hours and {minutes} minutes until takeoff',
   'home.flyingTonight': 'Santa is flying tonight! Follow every stop.',
+  'home.skip': 'Skip to content',
+  'home.destinations': 'Seasonal destinations',
+  'home.adventIndex': '01 / December',
+  'home.trackerIndex': '02 / Christmas Eve',
+  'home.heroLabel': 'A quiet winter village beside the North Pole workshop',
+  'home.adventTitle': 'Advent calendar',
+  'home.adventBefore': 'The first door opens Nov 30.',
+  'home.adventOpen': 'Door {day} is open today.',
+  'home.adventWaiting': 'The calendar is here, but its doors are still closed to visitors.',
+  'home.adventAfter': 'The calendar has gone quiet. See you next year.',
+  'home.openCalendar': 'Visit the calendar',
+  'home.trackerTitle': 'Track Santa',
+  'home.trackerBefore': 'The sleigh takes off Dec 24 at 10:00 UTC.',
+  'home.trackerOpen': 'Santa is on his way.',
+  'home.trackerWaiting': 'The route is being kept under wraps for now.',
+  'home.trackerAfter': 'The route is resting until next Christmas.',
+  'home.openTracker': 'Open the tracker',
+  'home.footer': 'A light in the window, and a little time to spare.',
   'tracker.mapLabel': "Interactive map showing Santa's current location and route",
   'tracker.loading': "Loading Santa's route...",
   'tracker.loaded': '{count} route stops loaded',
@@ -38,15 +56,17 @@ export const en = {
   'tracker.audioOff': 'Arrival chimes off',
   'tracker.arrivalMoment': 'Santa has reached {location}. The night keeps moving.',
   'tracker.hesHereTitle': "He's here",
-  'tracker.findMe': "See when Santa reaches me",
+  'tracker.findMe': 'See when Santa reaches me',
   'tracker.useLocation': 'Use my location',
   'tracker.useTimezone': 'Use my time zone',
   'tracker.chooseCity': 'Choose a city or route stop',
   'tracker.citySearch': 'Search cities and route stops',
   'tracker.arrivalEstimate': 'Santa reaches you at {time}',
   'tracker.countdownToArrival': 'Arrival in {time}',
-  'tracker.hereNote': 'The lights can stay on a little longer. Santa made it to your part of the map.',
-  'tracker.locationPermission': 'Location access was unavailable. Choose a city or time zone instead.',
+  'tracker.hereNote':
+    'The lights can stay on a little longer. Santa made it to your part of the map.',
+  'tracker.locationPermission':
+    'Location access was unavailable. Choose a city or time zone instead.',
   'tracker.locationSaved': 'Saved on this device',
   'tracker.ambientNote': 'The map will follow Santa. Press Escape to leave.',
   'tracker.reducedSensory': 'Arrival chimes are unavailable while reduced sensory mode is on.',
@@ -79,7 +99,8 @@ export const en = {
   'advent.quiz.source': 'Source: {source}',
   'advent.quiz.choiceGroup': 'Answer choices',
   'advent.activity.cipher.title': 'Secret message',
-  'advent.activity.cipher.instructions': 'This message has been shifted through the alphabet. Move each letter back to find the words.',
+  'advent.activity.cipher.instructions':
+    'This message has been shifted through the alphabet. Move each letter back to find the words.',
   'advent.activity.cipher.codedMessage': 'Coded message',
   'advent.activity.cipher.answerLabel': 'Your decoded message',
   'advent.activity.cipher.check': 'Check',
@@ -93,7 +114,8 @@ export const en = {
   'advent.activity.cipher.alphabet': 'Alphabet',
   'advent.activity.cipher.shifted': 'Shifted',
   'advent.activity.jigsaw.title': 'Jigsaw reveal',
-  'advent.activity.jigsaw.instructions': 'Move the little pieces into place. A quiet winter scene is waiting underneath. Focus a piece, press Enter, use the arrows, then press Enter again.',
+  'advent.activity.jigsaw.instructions':
+    'Move the little pieces into place. A quiet winter scene is waiting underneath. Focus a piece, press Enter, use the arrows, then press Enter again.',
   'advent.activity.jigsaw.ghost': 'Show faint picture guide',
   'advent.activity.jigsaw.edgeFirst': 'Suggest edge pieces first',
   'advent.activity.jigsaw.startOver': 'Start over',
@@ -101,17 +123,21 @@ export const en = {
   'advent.activity.jigsaw.board': 'Jigsaw board',
   'advent.activity.jigsaw.cell': 'Board cell {count}',
   'advent.activity.jigsaw.tray': 'Loose jigsaw pieces',
-  'advent.activity.jigsaw.piece': 'Piece {count} of {total}. Select, then use arrow keys to find its cell and Enter to place.',
+  'advent.activity.jigsaw.piece':
+    'Piece {count} of {total}. Select, then use arrow keys to find its cell and Enter to place.',
   'advent.activity.jigsaw.placed': '{count} of {total} pieces placed.',
   'advent.activity.jigsaw.complete': 'The whole scene is in place.',
-  'advent.activity.jigsaw.caption': 'The windows come on. The snow, naturally, keeps its own counsel.',
+  'advent.activity.jigsaw.caption':
+    'The windows come on. The snow, naturally, keeps its own counsel.',
   'advent.activity.jigsaw.reset': 'The pieces are back in the tray.',
   'advent.activity.snowflake.title': 'Snowflake designer',
-  'advent.activity.snowflake.instructions': 'Cut a few shapes into one sixth of the paper. The other five copies will keep up.',
+  'advent.activity.snowflake.instructions':
+    'Cut a few shapes into one sixth of the paper. The other five copies will keep up.',
   'advent.activity.snowflake.preview': 'Six-fold paper snowflake preview',
   'advent.activity.snowflake.editor': 'Snowflake wedge editor',
   'advent.activity.snowflake.cell': 'Wedge row {row}, column {column}, toggle cut',
-  'advent.activity.snowflake.editorHint': 'Select the pale squares to cut them away. Every cut repeats around the center.',
+  'advent.activity.snowflake.editorHint':
+    'Select the pale squares to cut them away. Every cut repeats around the center.',
   'advent.activity.snowflake.undo': 'Undo',
   'advent.activity.snowflake.redo': 'Redo',
   'advent.activity.snowflake.clear': 'Clear cuts',
@@ -123,10 +149,12 @@ export const en = {
   'advent.activity.snowflake.redone': 'Cut restored.',
   'advent.activity.snowflake.cleared': 'The paper is clear again.',
   'advent.activity.snowflake.surprise': 'A new pattern is ready.',
-  'advent.activity.snowflake.saved': 'Your design is saved on this device when storage is available.',
+  'advent.activity.snowflake.saved':
+    'Your design is saved on this device when storage is available.',
   'advent.activity.snowflake.saveUnavailable': 'This design will last for this visit.',
   'advent.activity.postcard.title': 'Postcard studio',
-  'advent.activity.postcard.intro': 'A winter scene, a few words, and the useful fiction that the post office is still open.',
+  'advent.activity.postcard.intro':
+    'A winter scene, a few words, and the useful fiction that the post office is still open.',
   'advent.activity.postcard.preview': 'Winter postcard preview',
   'advent.activity.postcard.scene': 'Choose a scene',
   'advent.activity.postcard.scene.cabin': 'Cabin',
@@ -134,7 +162,8 @@ export const en = {
   'advent.activity.postcard.scene.street': 'Street',
   'advent.activity.postcard.scene.forest': 'Forest',
   'advent.activity.postcard.greeting': 'Greeting',
-  'advent.activity.postcard.greeting.1': 'The snow has made the street quieter. I thought you might like to know.',
+  'advent.activity.postcard.greeting.1':
+    'The snow has made the street quieter. I thought you might like to know.',
   'advent.activity.postcard.greeting.2': 'A small winter note, sent before the kettle boils.',
   'advent.activity.postcard.greeting.3': 'I hope there is a warm window wherever you are tonight.',
   'advent.activity.postcard.signoff': 'Sign-off',
@@ -152,8 +181,10 @@ export const en = {
   'advent.activity.postcard.downloadError': 'The postcard PNG could not be made. Please try again.',
   'advent.activity.winterworld.title': 'Winter around the world',
   'advent.activity.winterworld.dayLabel': 'Advent, day 15',
-  'advent.activity.winterworld.intro': 'A small map of winter nights, old observances, and newer city lights. Choose a place, then light its candle. Nothing here needs catching up.',
-  'advent.activity.winterworld.mapLabel': 'Map of winter traditions. Markers match the place list below.',
+  'advent.activity.winterworld.intro':
+    'A small map of winter nights, old observances, and newer city lights. Choose a place, then light its candle. Nothing here needs catching up.',
+  'advent.activity.winterworld.mapLabel':
+    'Map of winter traditions. Markers match the place list below.',
   'advent.activity.winterworld.listLabel': 'Places on the winter map',
   'advent.activity.winterworld.selectPlace': 'Show {place}',
   'advent.activity.winterworld.lightCandle': 'Light a candle for {place}',
@@ -162,51 +193,72 @@ export const en = {
   'advent.activity.winterworld.notTonight': 'Not tonight where you are',
   'advent.activity.winterworld.dateUnknown': 'Dates vary by calendar',
   'advent.activity.winterworld.progress': '{lit} of {total} candles lit',
-  'advent.activity.winterworld.closing': 'Across the long night, someone has left a light on. That is enough for now.',
+  'advent.activity.winterworld.closing':
+    'Across the long night, someone has left a light on. That is enough for now.',
   'advent.activity.winterworld.entries.lucia.title': 'Lucia Day',
   'advent.activity.winterworld.entries.lucia.place': 'Stockholm, Sweden',
-  'advent.activity.winterworld.entries.lucia.story': 'On December 13, a Lucia procession brings song and candlelight into the Swedish winter. Lucia leads in a white gown with a crown of lights; others follow with candles, singing in churches, town halls, homes, and sometimes over breakfast. The custom draws on the feast day of Lucia of Syracuse, while the familiar Swedish procession took shape much later. Before dawn is traditional, though many gatherings happen at dusk because people, inconveniently, have jobs.',
+  'advent.activity.winterworld.entries.lucia.story':
+    'On December 13, a Lucia procession brings song and candlelight into the Swedish winter. Lucia leads in a white gown with a crown of lights; others follow with candles, singing in churches, town halls, homes, and sometimes over breakfast. The custom draws on the feast day of Lucia of Syracuse, while the familiar Swedish procession took shape much later. Before dawn is traditional, though many gatherings happen at dusk because people, inconveniently, have jobs.',
   'advent.activity.winterworld.entries.lucia.when': 'Every December 13.',
   'advent.activity.winterworld.entries.hanukkah.title': 'Hanukkah',
   'advent.activity.winterworld.entries.hanukkah.place': 'Observed around the world',
-  'advent.activity.winterworld.entries.hanukkah.story': 'Hanukkah is an eight-day Jewish festival whose dates follow the Hebrew calendar, so its Gregorian dates shift from year to year. The holiday commemorates the rededication of the Temple in Jerusalem in the second century BCE. In homes and public places, a hanukkiah is lit over the eight nights, adding a light each evening; the ninth holder is for the shamash, used to light the others. Jewish observance is varied, and this is one small window into a living holiday, not a definition of it.',
-  'advent.activity.winterworld.entries.hanukkah.when': 'Eight nights beginning on 25 Kislev; Gregorian dates vary.',
+  'advent.activity.winterworld.entries.hanukkah.story':
+    'Hanukkah is an eight-day Jewish festival whose dates follow the Hebrew calendar, so its Gregorian dates shift from year to year. The holiday commemorates the rededication of the Temple in Jerusalem in the second century BCE. In homes and public places, a hanukkiah is lit over the eight nights, adding a light each evening; the ninth holder is for the shamash, used to light the others. Jewish observance is varied, and this is one small window into a living holiday, not a definition of it.',
+  'advent.activity.winterworld.entries.hanukkah.when':
+    'Eight nights beginning on 25 Kislev; Gregorian dates vary.',
   'advent.activity.winterworld.entries.posadas.title': 'Las Posadas',
   'advent.activity.winterworld.entries.posadas.place': 'Mexico City, Mexico',
-  'advent.activity.winterworld.entries.posadas.story': 'In Mexico, Las Posadas are commonly held on the nine evenings before Christmas, December 16 through 24. The name means inns, and gatherings recall Mary and Joseph seeking shelter. In many places, people move between homes or gathering spots with songs and a request for lodging, then share food and company. Local versions differ, as traditions do when they belong to real communities rather than a single tidy paragraph. Warm ponche, candles, and a piñata may appear; no one needs to pretend December is not busy already.',
+  'advent.activity.winterworld.entries.posadas.story':
+    'In Mexico, Las Posadas are commonly held on the nine evenings before Christmas, December 16 through 24. The name means inns, and gatherings recall Mary and Joseph seeking shelter. In many places, people move between homes or gathering spots with songs and a request for lodging, then share food and company. Local versions differ, as traditions do when they belong to real communities rather than a single tidy paragraph. Warm ponche, candles, and a piñata may appear; no one needs to pretend December is not busy already.',
   'advent.activity.winterworld.entries.posadas.when': 'Traditionally, December 16–24.',
   'advent.activity.winterworld.entries.dongzhi.title': 'Dongzhi',
   'advent.activity.winterworld.entries.dongzhi.place': 'Shanghai, China',
-  'advent.activity.winterworld.entries.dongzhi.story': 'Dongzhi means winter solstice and names both a solar term and a seasonal observance in Chinese communities. It falls around the shortest day in the Northern Hemisphere. Family meals are common, and in places such as Shanghai people eat tangyuan, round glutinous rice balls, for the occasion. Foods and family customs vary by region, so one table cannot stand in for a whole country. The sun takes its time turning around; the calendar gives it a date anyway.',
-  'advent.activity.winterworld.entries.dongzhi.when': 'Around the December solstice, usually December 21–23.',
+  'advent.activity.winterworld.entries.dongzhi.story':
+    'Dongzhi means winter solstice and names both a solar term and a seasonal observance in Chinese communities. It falls around the shortest day in the Northern Hemisphere. Family meals are common, and in places such as Shanghai people eat tangyuan, round glutinous rice balls, for the occasion. Foods and family customs vary by region, so one table cannot stand in for a whole country. The sun takes its time turning around; the calendar gives it a date anyway.',
+  'advent.activity.winterworld.entries.dongzhi.when':
+    'Around the December solstice, usually December 21–23.',
   'advent.activity.winterworld.entries.yalda.title': 'Shab-e Yalda',
   'advent.activity.winterworld.entries.yalda.place': 'Tehran, Iran',
-  'advent.activity.winterworld.entries.yalda.story': 'Shab-e Yalda marks the longest night of the year in Iran and among Persian-speaking communities. Families and friends may stay up together, sharing fruit, nuts, conversation, and poetry. Pomegranates and watermelon often appear on the table, their red flesh a bright detail against a long evening. Customs differ among families and regions, and the night is not a performance for outsiders. It is enough to picture a room where the kettle is working and nobody has checked the clock for a while.',
-  'advent.activity.winterworld.entries.yalda.when': 'The night of the Northern Hemisphere winter solstice, around December 20–22.',
+  'advent.activity.winterworld.entries.yalda.story':
+    'Shab-e Yalda marks the longest night of the year in Iran and among Persian-speaking communities. Families and friends may stay up together, sharing fruit, nuts, conversation, and poetry. Pomegranates and watermelon often appear on the table, their red flesh a bright detail against a long evening. Customs differ among families and regions, and the night is not a performance for outsiders. It is enough to picture a room where the kettle is working and nobody has checked the clock for a while.',
+  'advent.activity.winterworld.entries.yalda.when':
+    'The night of the Northern Hemisphere winter solstice, around December 20–22.',
   'advent.activity.winterworld.entries.yule.title': 'Yule and midwinter',
   'advent.activity.winterworld.entries.yule.place': 'Oslo, Norway',
-  'advent.activity.winterworld.entries.yule.story': 'Yule is an old midwinter word used across parts of Northern Europe, and its history does not reduce to one uniform ancient festival. Sources describe seasonal feasting and observances, while later Christian Christmas customs shaped how Yule is kept today. In modern Norway, jul is Christmas, with meals and visits often gathering around Christmas Eve. This marker stands for a layered season rather than a single rite: the year is dark, the table is set, and the exact age of every custom is not always knowable.',
-  'advent.activity.winterworld.entries.yule.when': 'Midwinter; modern Christmas observances vary by community.',
+  'advent.activity.winterworld.entries.yule.story':
+    'Yule is an old midwinter word used across parts of Northern Europe, and its history does not reduce to one uniform ancient festival. Sources describe seasonal feasting and observances, while later Christian Christmas customs shaped how Yule is kept today. In modern Norway, jul is Christmas, with meals and visits often gathering around Christmas Eve. This marker stands for a layered season rather than a single rite: the year is dark, the table is set, and the exact age of every custom is not always knowable.',
+  'advent.activity.winterworld.entries.yule.when':
+    'Midwinter; modern Christmas observances vary by community.',
   'advent.activity.winterworld.entries.hogmanay.title': 'Hogmanay',
   'advent.activity.winterworld.entries.hogmanay.place': 'Edinburgh, Scotland',
-  'advent.activity.winterworld.entries.hogmanay.story': 'Hogmanay is the Scottish name for New Year’s Eve, with celebrations often carrying into January 1 and 2. Singing “Auld Lang Syne” at midnight is now familiar well beyond Scotland, while first-footing remains a custom in some households: the first visitor after midnight brings good wishes, and sometimes a small gift for the home. Practices vary, as does the ideal hour for going to bed. For a moment, the calendar changes and the street seems to belong to everyone still awake.',
-  'advent.activity.winterworld.entries.hogmanay.when': 'December 31 into the first days of January.',
+  'advent.activity.winterworld.entries.hogmanay.story':
+    'Hogmanay is the Scottish name for New Year’s Eve, with celebrations often carrying into January 1 and 2. Singing “Auld Lang Syne” at midnight is now familiar well beyond Scotland, while first-footing remains a custom in some households: the first visitor after midnight brings good wishes, and sometimes a small gift for the home. Practices vary, as does the ideal hour for going to bed. For a moment, the calendar changes and the street seems to belong to everyone still awake.',
+  'advent.activity.winterworld.entries.hogmanay.when':
+    'December 31 into the first days of January.',
   'advent.activity.winterworld.entries.kwanzaa.title': 'Kwanzaa',
   'advent.activity.winterworld.entries.kwanzaa.place': 'Washington, DC, United States',
-  'advent.activity.winterworld.entries.kwanzaa.story': 'Kwanzaa is a week-long African American and Pan-African cultural holiday, observed from December 26 through January 1. Created in 1966 by Maulana Karenga, it centers on seven principles, the Nguzo Saba, with one considered each day. Families and communities may gather around a kinara, lighting candles that represent the principles, and share stories, food, and music. People observe Kwanzaa in different ways, often alongside other holidays. Here, the light is part of a deliberate practice of memory, culture, and community.',
+  'advent.activity.winterworld.entries.kwanzaa.story':
+    'Kwanzaa is a week-long African American and Pan-African cultural holiday, observed from December 26 through January 1. Created in 1966 by Maulana Karenga, it centers on seven principles, the Nguzo Saba, with one considered each day. Families and communities may gather around a kinara, lighting candles that represent the principles, and share stories, food, and music. People observe Kwanzaa in different ways, often alongside other holidays. Here, the light is part of a deliberate practice of memory, culture, and community.',
   'advent.activity.winterworld.entries.kwanzaa.when': 'December 26 through January 1.',
   'advent.activity.winterworld.entries.intiRaymi.title': 'Inti Raymi',
   'advent.activity.winterworld.entries.intiRaymi.place': 'Cusco, Peru',
-  'advent.activity.winterworld.entries.intiRaymi.story': 'While December brings the Northern Hemisphere’s longest night, Cusco waits for its own midwinter in June. Inti Raymi, the Festival of the Sun, is held there on June 24, with a large public reenactment at Qorikancha, the main square, and Sacsayhuamán. The modern event recalls Inca-era ceremonies honoring Inti, though today’s staged celebration was revived in the twentieth century. The seasons reverse across the equator; a midwinter fire in one hemisphere can be a midsummer thought in another.',
-  'advent.activity.winterworld.entries.intiRaymi.when': 'June 24, during the Southern Hemisphere winter.',
+  'advent.activity.winterworld.entries.intiRaymi.story':
+    'While December brings the Northern Hemisphere’s longest night, Cusco waits for its own midwinter in June. Inti Raymi, the Festival of the Sun, is held there on June 24, with a large public reenactment at Qorikancha, the main square, and Sacsayhuamán. The modern event recalls Inca-era ceremonies honoring Inti, though today’s staged celebration was revived in the twentieth century. The seasons reverse across the equator; a midwinter fire in one hemisphere can be a midsummer thought in another.',
+  'advent.activity.winterworld.entries.intiRaymi.when':
+    'June 24, during the Southern Hemisphere winter.',
   'advent.activity.winterworld.entries.tokyoLights.title': 'Winter illuminations',
   'advent.activity.winterworld.entries.tokyoLights.place': 'Tokyo, Japan',
-  'advent.activity.winterworld.entries.tokyoLights.story': 'Tokyo’s winter illuminations are seasonal public displays rather than one single festival. Streets and plazas in areas such as Marunouchi and Shinjuku are outlined with electric lights, with schedules and designs changing from year to year. Some displays continue into February, after holiday decorations elsewhere have come down. This is a newer urban custom, built around the pleasure of walking through a bright city after dark. Bring a warm coat; the lights do not appear to be providing much heat.',
-  'advent.activity.winterworld.entries.tokyoLights.when': 'Many displays run from November into February; dates vary by venue.',
+  'advent.activity.winterworld.entries.tokyoLights.story':
+    'Tokyo’s winter illuminations are seasonal public displays rather than one single festival. Streets and plazas in areas such as Marunouchi and Shinjuku are outlined with electric lights, with schedules and designs changing from year to year. Some displays continue into February, after holiday decorations elsewhere have come down. This is a newer urban custom, built around the pleasure of walking through a bright city after dark. Bring a warm coat; the lights do not appear to be providing much heat.',
+  'advent.activity.winterworld.entries.tokyoLights.when':
+    'Many displays run from November into February; dates vary by venue.',
   'advent.activity.lightshow.title': 'Light-show composer',
-  'advent.activity.lightshow.intro': 'A dark window, a strand of lights, and no obligation to untangle anything.',
-  'advent.activity.lightshow.treeScene': 'A pine tree with a string of colored lights against a winter night',
-  'advent.activity.lightshow.houseScene': 'A house front with a string of colored lights against a winter night',
+  'advent.activity.lightshow.intro':
+    'A dark window, a strand of lights, and no obligation to untangle anything.',
+  'advent.activity.lightshow.treeScene':
+    'A pine tree with a string of colored lights against a winter night',
+  'advent.activity.lightshow.houseScene':
+    'A house front with a string of colored lights against a winter night',
   'advent.activity.lightshow.presets': 'Start with a small arrangement',
   'advent.activity.lightshow.preset.fireplace': 'Fireplace',
   'advent.activity.lightshow.preset.snow': 'First Snow',
@@ -231,17 +283,22 @@ export const en = {
   'advent.activity.lightshow.fullscreen': 'Full-screen glow',
   'advent.activity.lightshow.exitFullscreen': 'Leave full screen',
   'advent.activity.lightshow.reducedMotion': 'The lights change slowly with reduced motion on.',
-  'advent.activity.lightshow.saved': 'Your arrangement stays on this device when storage is available.',
+  'advent.activity.lightshow.saved':
+    'Your arrangement stays on this device when storage is available.',
   'advent.activity.lightshow.saveUnavailable': 'This arrangement will last for this visit.',
   'advent.activity.wordsearch.title': 'Winter word search',
-  'advent.activity.wordsearch.instructions': 'Trace a word in any straight direction. On a keyboard, move with the arrows, press Enter or Space to mark each end, and let the letters do the walking.',
-  'advent.activity.wordsearch.unavailable': 'This word search could not be laid out. The letters are having a quiet day.',
+  'advent.activity.wordsearch.instructions':
+    'Trace a word in any straight direction. On a keyboard, move with the arrows, press Enter or Space to mark each end, and let the letters do the walking.',
+  'advent.activity.wordsearch.unavailable':
+    'This word search could not be laid out. The letters are having a quiet day.',
   'advent.activity.wordsearch.cell': 'Row {row}, column {column}, {letter}',
   'advent.activity.wordsearch.listTitle': 'Words in the snow',
   'advent.activity.wordsearch.found': 'Found {word}. It was hiding in plain sight.',
-  'advent.activity.wordsearch.complete': 'Every word is accounted for. The kettle can get back to its own business.',
+  'advent.activity.wordsearch.complete':
+    'Every word is accounted for. The kettle can get back to its own business.',
   'advent.activity.maze.title': 'Find the address',
-  'advent.activity.maze.instructions': 'Make your way through the snowy village to the lit window. A few streets look promising. Most are walls.',
+  'advent.activity.maze.instructions':
+    'Make your way through the snowy village to the lit window. A few streets look promising. Most are walls.',
   'advent.activity.maze.board': 'Snowy village maze. Use arrow keys or W A S D to move.',
   'advent.activity.maze.start': 'Starting doorstep',
   'advent.activity.maze.goal': 'Lit window, destination',
@@ -255,16 +312,19 @@ export const en = {
   'advent.activity.maze.complete': 'There it is. Someone left the porch light on.',
   'advent.activity.maze.reset': 'Back to the starting doorstep',
   'advent.activity.timezones.title': 'When does midnight arrive?',
-  'advent.activity.timezones.instructions': 'Set the shared clock, then put these places in the order their local clocks reach midnight on December 25. Midnight is punctual, even when it has to cross an ocean.',
+  'advent.activity.timezones.instructions':
+    'Set the shared clock, then put these places in the order their local clocks reach midnight on December 25. Midnight is punctual, even when it has to cross an ocean.',
   'advent.activity.timezones.reference': 'Shared reference clock: {time}',
   'advent.activity.timezones.rangeStart': 'December 24, 10:00 UTC',
   'advent.activity.timezones.rangeEnd': 'December 25, 14:00 UTC',
-  'advent.activity.timezones.dstNote': 'December is summer in the Southern Hemisphere. Auckland observes daylight time at UTC+13; London and Cairo use their winter offsets here.',
+  'advent.activity.timezones.dstNote':
+    'December is summer in the Southern Hemisphere. Auckland observes daylight time at UTC+13; London and Cairo use their winter offsets here.',
   'advent.activity.timezones.listLabel': 'Order of cities by local midnight',
   'advent.activity.timezones.moveUp': 'Move {city} earlier in the list',
   'advent.activity.timezones.moveDown': 'Move {city} later in the list',
   'advent.activity.timezones.check': 'Check the order',
-  'advent.activity.timezones.correct': 'That is the order midnight visits. The map has done a full turn.',
+  'advent.activity.timezones.correct':
+    'That is the order midnight visits. The map has done a full turn.',
   'advent.activity.timezones.tryAgain': 'A couple of clocks are out of line. Give it another look.',
   'advent.activity.timezones.city.kiritimati': 'Kiritimati',
   'advent.activity.timezones.city.auckland': 'Auckland',
@@ -274,7 +334,8 @@ export const en = {
   'advent.activity.timezones.city.honolulu': 'Honolulu',
   'advent.calendarLabel': 'Advent calendar, 24 doors',
   'metadata.title': 'Santa Tracker - Christmas 2026',
-  'metadata.description': "Follow Santa's magical journey around the world on Christmas Eve - a modern, accessible holiday experience.",
+  'metadata.description':
+    "Follow Santa's magical journey around the world on Christmas Eve - a modern, accessible holiday experience.",
 } as const;
 
 export type MessageKey = keyof typeof en;
