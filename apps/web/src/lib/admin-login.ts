@@ -5,9 +5,9 @@ import { createLoginThrottle } from "./admin-login-throttle";
 
 const loginThrottle = createLoginThrottle();
 
-export const checkLoginRateLimit = (ip: string) => loginThrottle.check(ip);
-export const recordLoginAttempt = (ip: string) => loginThrottle.recordFailure(ip);
-export const clearLoginAttempts = (ip: string) => loginThrottle.clear(ip);
+export const checkLoginRateLimit = (ip: string) => loginThrottle.check({ ip });
+export const recordLoginAttempt = (ip: string) => loginThrottle.recordFailure({ ip });
+export const clearLoginAttempts = (ip: string) => loginThrottle.clear({ ip });
 
 export async function loginAdmin(payload: unknown): Promise<AdminApiResult> {
   try {
