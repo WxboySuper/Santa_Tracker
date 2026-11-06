@@ -9,40 +9,39 @@ import { getRequestLocale } from '@/lib/request-locale';
 
 export const dynamic = 'force-dynamic';
 
-function CardCopy({
-  kind,
-  state,
-  allowed,
-  t,
-}: {
-  kind: 'advent' | 'tracker';
+type Translate = ReturnType<typeof createTranslator>['t'];
+type CardKind = 'advent' | 'tracker';
+
+function adventCopy(state: HomeCardState, t: Translate): string {
+  if (state.status === 'before') return t('home.adventBefore');
+  if (state.status === 'after') return t('home.adventAfter');
+  if (state.day) return t('home.adventOpen', { day: state.day });
+  return t('home.adventWaiting');
+}
+
+function trackerCopy(state: HomeCardState, allowed: boolean, t: Translate): string {
+  if (state.status === 'before') return t('home.trackerBefore');
+  if (state.status === 'after') return t('home.trackerAfter');
+  return allowed ? t('home.trackerOpen') : t('home.trackerWaiting');
+}
+
+function cardCopy(kind: CardKind, state: HomeCardState, allowed: boolean, t: Translate): string {
+  return kind === 'advent' ? adventCopy(state, t) : trackerCopy(state, allowed, t);
+}
+
+function CardCopy({ kind, state, allowed, t }: {
+  kind: CardKind;
   state: HomeCardState;
   allowed: boolean;
-  t: ReturnType<typeof createTranslator>['t'];
+  t: Translate;
 }) {
-  const copy =
-    kind === 'advent'
-      ? state.status === 'before'
-        ? t('home.adventBefore')
-        : state.status === 'after'
-          ? t('home.adventAfter')
-          : state.day
-            ? t('home.adventOpen', { day: state.day })
-            : t('home.adventWaiting')
-      : state.status === 'before'
-        ? t('home.trackerBefore')
-        : state.status === 'after'
-          ? t('home.trackerAfter')
-          : allowed
-            ? t('home.trackerOpen')
-            : t('home.trackerWaiting');
+  const copy = cardCopy(kind, state, allowed, t);
   const href = kind === 'advent' ? '/advent' : '/tracker';
   const label = kind === 'advent' ? t('home.openCalendar') : t('home.openTracker');
-  const linkAllowed = allowed;
   return (
     <>
       <p className="mt-3 min-h-12 text-base leading-7 text-slate-200">{copy}</p>
-      {linkAllowed && (
+      {allowed && (
         <Link className="home-link mt-5 inline-flex rounded-lg px-4 py-2 font-semibold" href={href}>
           {label}
           <span aria-hidden="true" className="ml-2">
@@ -74,7 +73,7 @@ export default async function HomePage() {
       <main id="main" className="home-main">
         <NorthPoleScene label={t('home.heroLabel')} />
         <header className="home-heading">
-          <p className="home-kicker">The North Pole</p>
+          <p className="home-kicker">{t('home.kicker')}</p>
           <h1>{t('home.title')}</h1>
           <p>{t('home.subtitle')}</p>
         </header>

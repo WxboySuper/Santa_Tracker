@@ -20,6 +20,7 @@ export const en = {
   'home.adventIndex': '01 / December',
   'home.trackerIndex': '02 / Christmas Eve',
   'home.heroLabel': 'A quiet winter village beside the North Pole workshop',
+  'home.kicker': 'The North Pole',
   'home.adventTitle': 'Advent calendar',
   'home.adventBefore': 'The first door opens Nov 30.',
   'home.adventOpen': 'Door {day} is open today.',
