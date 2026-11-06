@@ -15,11 +15,22 @@ export const JIGSAW_ACTIVITY_ID = "advent-jigsaw" as const;
 
 export function parseJigsaw(payload: unknown): JigsawConfig | null {
   if (!isRecord(payload) || payload.kind !== "jigsaw") return null;
-  const scene = payload.scene === undefined ? "cabin" : payload.scene;
-  const pieces = payload.pieces === undefined ? 24 : payload.pieces;
-  if (scene !== "cabin" && scene !== "harbor" && scene !== "street") return null;
-  if (pieces !== 12 && pieces !== 24 && pieces !== 48) return null;
+  const scene = parseScene(payload.scene);
+  const pieces = parsePieceCount(payload.pieces);
+  if (scene === null || pieces === null) return null;
   return { scene, pieces };
+}
+
+function parseScene(value: unknown): JigsawScene | null {
+  if (value === undefined) return "cabin";
+  if (value === "cabin" || value === "harbor" || value === "street") return value;
+  return null;
+}
+
+function parsePieceCount(value: unknown): JigsawPieceCount | null {
+  if (value === undefined) return 24;
+  if (value === 12 || value === 24 || value === 48) return value;
+  return null;
 }
 
 export function createPieceIds(count: JigsawPieceCount): number[] {
