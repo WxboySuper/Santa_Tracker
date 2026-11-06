@@ -34,6 +34,8 @@ type CappedBodyRead =
   | { kind: "too-large" }
   | { kind: "aborted" };
 
+type TimedLoginOperation<T> = { completed: true; value: T } | { completed: false };
+
 export function getClientIp(req: Request): string {
   const cloudflareIp = req.headers.get("cf-connecting-ip")?.trim();
   if (cloudflareIp) return cloudflareIp;
@@ -77,11 +79,26 @@ async function checkLoginBeforeBody(req: Request, ip: string, signal: AbortSigna
   const ipLimit = await checkLoginRateLimit(ip, true);
   if (ipLimit) return { allowed: false, response: throttledResponse(ipLimit.retryAfterSeconds) };
   if (signal.aborted) return { allowed: false, response: requestTimeoutResponse() };
-  const existingSession = await requireAdminAuth(req);
-  if (signal.aborted) return { allowed: false, response: requestTimeoutResponse() };
-  const globalLimit = await checkLoginRateLimit(ip, existingSession.ok);
+  const existingSession = await awaitTimedLoginOperation(() => requireAdminAuth(req), signal);
+  if (!existingSession.completed) return { allowed: false, response: requestTimeoutResponse() };
+  const globalLimit = await checkLoginRateLimit(ip, existingSession.value.ok);
   if (globalLimit) return { allowed: false, response: throttledResponse(globalLimit.retryAfterSeconds) };
-  return { allowed: true, authenticated: existingSession.ok };
+  return { allowed: true, authenticated: existingSession.value.ok };
+}
+
+export async function awaitTimedLoginOperation<T>(operation: () => Promise<T>, signal: AbortSignal): Promise<TimedLoginOperation<T>> {
+  if (signal.aborted) return { completed: false };
+  let removeAbortListener: () => void = () => undefined;
+  const aborted = new Promise<TimedLoginOperation<T>>((resolve) => {
+    const onAbort = () => resolve({ completed: false });
+    signal.addEventListener("abort", onAbort, { once: true });
+    removeAbortListener = () => signal.removeEventListener("abort", onAbort);
+    if (signal.aborted) onAbort();
+  });
+  return Promise.race([
+    operation().then((value) => ({ completed: true as const, value })),
+    aborted,
+  ]).finally(removeAbortListener);
 }
 
 function reserveBodyRead(ip: string): boolean {
@@ -141,7 +158,12 @@ function raceLoginWithAbort(task: Promise<NextResponse>, signal: AbortSignal | u
 async function handleLogin(context: LoginContext): Promise<NextResponse> {
   const limited = await checkLoginRateLimit(context.ip, context.authenticated);
   if (limited) return throttledResponse(limited.retryAfterSeconds);
-  const result = await loginAdmin(context.payload);
+  const verification = await awaitTimedLoginOperation(() => loginAdmin(context.payload), context.signal);
+  if (!verification.completed) {
+    await recordLoginAttempt(context.ip, context.authenticated);
+    return requestTimeoutResponse();
+  }
+  const result = verification.value;
   if (result.status === 401) return handleFailedLogin(context, result);
   if (result.status === 200) return handleSuccessfulLogin(context, result);
   if (context.signal.aborted) return requestTimeoutResponse();
