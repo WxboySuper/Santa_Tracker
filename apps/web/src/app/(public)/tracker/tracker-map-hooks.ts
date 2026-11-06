@@ -40,7 +40,10 @@ export function useMapAdapter(runtime: MapRuntime): void {
     let cancelled = false;
     let instance: TrackerMapAdapter | undefined;
     const startOptions = { mode: mapMode, element, nodes: latestNodes.current, position: latestPosition.current, dispatch, stopFollowing, adapter };
-    void attachMap(startOptions, () => cancelled, value => { instance = value; }, () => ({ nodes: latestNodes.current, position: latestPosition.current }));
+    attachMap(startOptions, () => cancelled, value => { instance = value; }, () => ({ nodes: latestNodes.current, position: latestPosition.current }))
+      .catch(() => {
+        if (!cancelled) dispatch("initFailed");
+      });
     return () => {
       cancelled = true;
       instance?.destroy();

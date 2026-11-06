@@ -16,7 +16,7 @@ describe("map fallback", () => {
 
   it("supports the provider boundary with a fake adapter", async () => {
     const fake: TrackerMapAdapter = {
-      mount: vi.fn().mockResolvedValue(undefined), setRoute: vi.fn(), setSantaPosition: vi.fn(),
+      mount: vi.fn(() => Promise.resolve()), setRoute: vi.fn(), setSantaPosition: vi.fn(),
       follow: vi.fn(), stopFollowing: vi.fn(), fitToRoute: vi.fn(), destroy: vi.fn(),
     };
     await fake.mount({} as HTMLElement);
@@ -31,7 +31,7 @@ describe("map fallback", () => {
 
   it("syncs current route state after the asynchronous map mount completes", () => {
     const fake: TrackerMapAdapter = {
-      mount: vi.fn().mockResolvedValue(undefined), setRoute: vi.fn(), setSantaPosition: vi.fn(),
+      mount: vi.fn(() => Promise.resolve()), setRoute: vi.fn(), setSantaPosition: vi.fn(),
       follow: vi.fn(), stopFollowing: vi.fn(), fitToRoute: vi.fn(), destroy: vi.fn(),
     };
     const currentPosition = { lat: 10, lng: 20, journey: { currentIndex: 0, nextIndex: 1, progress: 0.5, isComplete: false } } as SantaPosition;

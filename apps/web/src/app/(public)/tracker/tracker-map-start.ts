@@ -1,4 +1,3 @@
-import type { TrackerMapAdapter } from "@/lib/tracker-map-adapter";
 import type { OpenLayersTrackerMap } from "@/lib/openlayers-tracker-map";
 import type { InteractiveMapMode, MapRuntime, StartResult } from "./tracker-map-types";
 

@@ -39,7 +39,7 @@ describe("startAdapter lifecycle", () => {
     mapMethods.destroy.mockReset();
     mapMethods.setRoute.mockReset();
     mapMethods.setSantaPosition.mockReset();
-    mapMethods.mount.mockResolvedValue(undefined);
+    mapMethods.mount.mockImplementation(() => Promise.resolve());
   });
 
   it("destroys and detaches the map when cancelled during mount", async () => {

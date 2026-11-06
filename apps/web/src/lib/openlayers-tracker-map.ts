@@ -22,6 +22,14 @@ const STYLE_URL = "https://tiles.openfreemap.org/styles/liberty";
 const VECTOR_TIMEOUT_MS = 6000;
 const TILE_ERROR_LIMIT = 4;
 
+function drawLeg(source: VectorSource, from: { lat: number; lng: number }, to: { lat: number; lng: number }, completed: boolean): void {
+  for (const piece of splitGreatCircle(from, to)) {
+    const line = new Feature(new LineString(piece.map(point => fromLonLat(positionToView(point)))));
+    line.setStyle(new Style({ stroke: new Stroke({ color: "#fbbf24", width: 3, lineDash: completed ? undefined : [8, 8] }) }));
+    source.addFeature(line);
+  }
+}
+
 export class StyleLoadError extends Error {
   override readonly name = "StyleLoadError";
 }
@@ -133,7 +141,9 @@ export class OpenLayersTrackerMap implements TrackerMapAdapter {
     this.route.clear();
     this.nodes.slice(1).forEach((node, index) => {
       if (index === this.position?.journey.currentIndex) return;
-      this.drawLeg(this.route, this.nodes[index]!.location, node.location, index < (this.position?.journey.currentIndex ?? -1));
+      const previous = this.nodes[index];
+      if (!previous) return;
+      drawLeg(this.route, previous.location, node.location, index < (this.position?.journey.currentIndex ?? -1));
     });
   }
 
@@ -144,8 +154,8 @@ export class OpenLayersTrackerMap implements TrackerMapAdapter {
     const from = this.nodes[index];
     const next = this.nodes[index + 1];
     if (!from || !next) return;
-    this.drawLeg(this.activeLeg, from.location, this.position, true);
-    this.drawLeg(this.activeLeg, this.position, next.location, false);
+    drawLeg(this.activeLeg, from.location, this.position, true);
+    drawLeg(this.activeLeg, this.position, next.location, false);
   }
 
   private drawMarker(): void {
@@ -154,14 +164,6 @@ export class OpenLayersTrackerMap implements TrackerMapAdapter {
     const marker = new Feature(new Point(fromLonLat(positionToView(this.position))));
     marker.setStyle(new Style({ image: new Circle({ radius: 9, fill: new Fill({ color: "#dc2626" }), stroke: new Stroke({ color: "white", width: 3 }) }) }));
     this.marker.addFeature(marker);
-  }
-
-  private drawLeg(source: VectorSource, from: { lat: number; lng: number }, to: { lat: number; lng: number }, completed: boolean): void {
-    for (const piece of splitGreatCircle(from, to)) {
-      const line = new Feature(new LineString(piece.map(point => fromLonLat(positionToView(point)))));
-      line.setStyle(new Style({ stroke: new Stroke({ color: "#fbbf24", width: 3, lineDash: completed ? undefined : [8, 8] }) }));
-      source.addFeature(line);
-    }
   }
 
   private centerSanta(): void {
@@ -177,5 +179,5 @@ export class OpenLayersTrackerMap implements TrackerMapAdapter {
     if (!hasValidMapExtent(extent)) return;
     this.map?.getView().fit(extent, { padding: [32, 32, 32, 32] });
   }
-  destroy(): void { this.disposed = true; this.cancelStyle?.(); this.cleanupInput?.(); this.map?.setTarget(undefined); this.map?.dispose(); }
+  destroy(): void { this.disposed = true; this.cancelStyle?.(); this.cleanupInput?.(); this.map?.setTarget(); this.map?.dispose(); }
 }
