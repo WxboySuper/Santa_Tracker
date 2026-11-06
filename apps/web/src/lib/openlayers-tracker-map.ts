@@ -49,7 +49,10 @@ export class OpenLayersTrackerMap implements TrackerMapAdapter {
     this.bindInput(element);
     if (this.mode === "vector") {
       try { await this.loadVector(map); }
-      catch { throw new StyleLoadError("Vector style failed"); }
+      catch (error) {
+        if (this.disposed) return;
+        throw new StyleLoadError("Vector style failed", { cause: error });
+      }
     }
     else this.loadRaster(map);
     if (this.disposed) return;
@@ -66,9 +69,16 @@ export class OpenLayersTrackerMap implements TrackerMapAdapter {
 
   private async loadVector(map: Map): Promise<void> {
     const deadline = styleDeadline(this.timeoutMs);
-    this.cancelStyle = deadline.cancel;
+    const controller = new AbortController();
+    this.cancelStyle = () => {
+      controller.abort();
+      deadline.cancel();
+    };
     try {
-      await Promise.race([apply(map, STYLE_URL), deadline.promise]);
+      await Promise.race([apply(map, STYLE_URL, { transformRequest: url => new Request(url, { signal: controller.signal }) }), deadline.promise]);
+    } catch (error) {
+      controller.abort();
+      throw error;
     } finally {
       deadline.clear();
       this.cancelStyle = undefined;

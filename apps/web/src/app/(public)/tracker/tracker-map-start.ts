@@ -10,16 +10,24 @@ export async function startAdapter(runtime: Omit<MapRuntime, "mode"> & { mode: I
     styleLoadError = module.StyleLoadError;
     if (isCancelled()) return {};
     const element = runtime.element.current;
-    if (!element) return {};
+    if (!element) return { failure: "initFailed" };
     instance = new module.OpenLayersTrackerMap(runtime.mode, () => runtime.dispatch("rasterFailed"), runtime.stopFollowing);
     runtime.adapter.current = instance;
     instance.setRoute(runtime.nodes);
     if (runtime.position) instance.setSantaPosition(runtime.position);
     await instance.mount(element);
+    if (isCancelled()) {
+      instance.destroy();
+      if (runtime.adapter.current === instance) runtime.adapter.current = null;
+      return {};
+    }
     return { instance };
   } catch (error) {
-    if (!styleLoadError) return { instance, failure: "initFailed" };
-    if (error instanceof styleLoadError) return { instance, failure: "vectorFailed" };
-    return { instance, failure: "initFailed" };
+    instance?.destroy();
+    if (runtime.adapter.current === instance) runtime.adapter.current = null;
+    if (isCancelled()) return {};
+    if (!styleLoadError) return { failure: "initFailed" };
+    if (error instanceof styleLoadError) return { failure: "vectorFailed" };
+    return { failure: "initFailed" };
   }
 }
