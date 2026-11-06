@@ -15,21 +15,27 @@ function shiftRouteToLiveWindow(route: string): string {
 	const parsed: unknown = JSON.parse(route);
 	if (!isSantaRoute(parsed)) return route;
 	const nodes = (parsed as { route_nodes: { schedule?: Record<string, unknown> }[] }).route_nodes;
-	const timestamps = nodes.flatMap(node => [node.schedule?.arrival_utc, node.schedule?.departure_utc]
-		.filter((value): value is string => typeof value === "string")
-		.map(value => Date.parse(value)).filter(Number.isFinite));
-	if (timestamps.length < 2) return route;
-	const midpoint = Math.min(...timestamps) + (Math.max(...timestamps) - Math.min(...timestamps)) / 2;
-	const shift = Date.now() - midpoint;
-	for (const node of nodes) {
-		const schedule = node.schedule;
-		if (!schedule) continue;
-		for (const key of ["arrival_utc", "departure_utc"] as const) {
-			const value = schedule[key];
-			if (typeof value === "string") schedule[key] = new Date(Date.parse(value) + shift).toISOString();
-		}
-	}
+	const shift = liveWindowShift(nodes);
+	if (shift == null) return route;
+	for (const node of nodes) shiftNodeTimes(node, shift);
 	return JSON.stringify(parsed);
+}
+
+function liveWindowShift(nodes: { schedule?: Record<string, unknown> }[]): number | null {
+	const times = nodes.flatMap(node => [node.schedule?.arrival_utc, node.schedule?.departure_utc])
+		.filter((value): value is string => typeof value === "string")
+		.map(Date.parse).filter(Number.isFinite);
+	if (times.length < 2) return null;
+	return Date.now() - (Math.min(...times) + (Math.max(...times) - Math.min(...times)) / 2);
+}
+
+function shiftNodeTimes(node: { schedule?: Record<string, unknown> }, shift: number): void {
+	const schedule = node.schedule;
+	if (!schedule) return;
+	for (const key of ["arrival_utc", "departure_utc"] as const) {
+		const value = schedule[key];
+		if (typeof value === "string") schedule[key] = new Date(Date.parse(value) + shift).toISOString();
+	}
 }
 
 async function writeServerData(name: ServerName, root: string, route: string, calendar: Calendar): Promise<string> {
