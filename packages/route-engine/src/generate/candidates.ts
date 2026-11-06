@@ -31,23 +31,42 @@ function selectCategory(context: SelectionContext, category: string, quota: numb
   return selected;
 }
 type RefillContext = { places: Candidate[]; selection: string[]; quotas: Record<string, number>; config: GeneratorConfig; overrides: RouteOverrides };
+function selectedCategoryCount(selection: string[], byId: Map<string, Candidate>, category: string): number {
+  return selection.filter((id) => byId.get(id)?.category === category).length;
+}
+function selectedWesternCount(selection: string[], byId: Map<string, Candidate>, category: string): number {
+  return selection.filter((id) => {
+    const place = byId.get(id);
+    if (!place) return false;
+    if (place.category !== category) return false;
+    return christmasOffset(place.timezone) <= -240;
+  }).length;
+}
+function refillCandidates(places: Candidate[], selection: string[], category: string, vetoed: Set<string>): Candidate[] {
+  return places.filter((place) => {
+    if (place.category !== category) return false;
+    if (selection.includes(place.id)) return false;
+    return !vetoed.has(place.id);
+  });
+}
+function westernRefillOrder(extras: Candidate[], config: GeneratorConfig, westernNeed: number): Candidate[] {
+  const sorted = stableCandidates(extras, config.seed);
+  const western = sorted.filter((place) => christmasOffset(place.timezone) <= -240);
+  const other = sorted.filter((place) => !western.includes(place));
+  return [...western.slice(0, westernNeed), ...other, ...western.slice(westernNeed)];
+}
 function refillSelection(context: RefillContext): string[] {
   const { places, selection, quotas, config, overrides } = context;
   const byId = new Map(places.map((place) => [place.id, place]));
+  const vetoed = new Set(overrides.veto ?? []);
   const result = [...selection];
   for (const [category, quota] of Object.entries(quotas)) {
-    const current = result.filter((id) => byId.get(id)?.category === category).length;
+    const current = selectedCategoryCount(result, byId, category);
     if (current > quota) throw new Error(`Overrides exceed ${category} quota ${quota}`);
-    const currentWestern = result.filter((id) => {
-      const place = byId.get(id);
-      return place?.category === category && christmasOffset(place.timezone) <= -240;
-    }).length;
+    const currentWestern = selectedWesternCount(result, byId, category);
     const westernNeed = Math.max(0, Math.floor(quota * 0.45) - currentWestern);
-    const extras = places.filter((place) => place.category === category && !result.includes(place.id) && !(overrides.veto ?? []).includes(place.id));
-    const sorted = stableCandidates(extras, config.seed);
-    const western = sorted.filter((place) => christmasOffset(place.timezone) <= -240);
-    const other = sorted.filter((place) => !western.includes(place));
-    const preferred = [...western.slice(0, westernNeed), ...other, ...western.slice(westernNeed)];
+    const extras = refillCandidates(places, result, category, vetoed);
+    const preferred = westernRefillOrder(extras, config, westernNeed);
     result.push(...preferred.slice(0, Math.max(0, quota - current)).map((place) => place.id));
   }
   return result;

@@ -1,10 +1,16 @@
+function invalidUtcOffset(hours: number, minutes: number): boolean {
+  if (hours > 14) return true;
+  if (minutes > 59) return true;
+  return hours === 14 && minutes !== 0;
+}
+
 export function parseUtcOffset(rawOffset: string, timezone: string): number {
   const normalized = rawOffset.replace(/^(GMT|UTC)/, '').trim() || '+00:00';
   const match = /^([+-])\s*(\d{1,2})(?::?(\d{2}))?(?::\d{2})?$/.exec(normalized);
   if (!match) throw new Error(`Invalid UTC offset for ${timezone}: ${rawOffset}`);
   const hours = Number(match[2]);
   const minutes = Number(match[3] ?? 0);
-  if (hours > 14 || minutes > 59 || (hours === 14 && minutes !== 0)) {
+  if (invalidUtcOffset(hours, minutes)) {
     throw new Error(`Invalid UTC offset for ${timezone}: ${rawOffset}`);
   }
   return (match[1] === '-' ? -1 : 1) * (hours * 60 + minutes);
