@@ -82,7 +82,7 @@ export default async function HomePage() {
         <NorthPoleScene label={t('home.heroLabel')} />
         <header className="home-heading">
           <p className="home-kicker">{t('home.kicker')}</p>
-          <h1>{t('home.title')}</h1>
+          <h1 className="festive-title">{t('home.title')}</h1>
           <p>{t('home.subtitle')}</p>
         </header>
         <section aria-labelledby="countdown-heading" className="countdown-panel">
@@ -91,11 +91,13 @@ export default async function HomePage() {
         </section>
         <section aria-label={t('home.destinations')} className="home-cards">
           <article className="home-card">
+            <svg className="card-ornament" viewBox="0 0 32 32" aria-hidden="true"><path d="M16 2v28M2 16h28M6 6l20 20M26 6 6 26"/><circle cx="16" cy="16" r="4"/></svg>
             <p className="home-card-index">{t('home.adventIndex')}</p>
             <h2>{t('home.adventTitle')}</h2>
             <CardCopy kind="advent" state={cards.advent} allowed={adventAllowed} t={t} />
           </article>
           <article className="home-card">
+            <svg className="card-ornament" viewBox="0 0 32 32" aria-hidden="true"><path d="M16 2v28M2 16h28M6 6l20 20M26 6 6 26"/><circle cx="16" cy="16" r="4"/></svg>
             <p className="home-card-index">{t('home.trackerIndex')}</p>
             <h2>{t('home.trackerTitle')}</h2>
             <CardCopy kind="tracker" state={cards.tracker} allowed={trackerAllowed} t={t} />

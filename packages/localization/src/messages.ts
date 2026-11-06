@@ -19,7 +19,7 @@ export const en = {
   'home.destinations': 'Seasonal destinations',
   'home.adventIndex': '01 / December',
   'home.trackerIndex': '02 / Christmas Eve',
-  'home.heroLabel': 'A quiet winter village beside the North Pole workshop',
+  'home.heroLabel': 'A string of fairy lights above the North Pole',
   'home.kicker': 'The North Pole',
   'home.adventTitle': 'Advent calendar',
   'home.adventBefore': 'The calendar opens Nov 30. The first door opens Dec 1 at noon UTC.',
