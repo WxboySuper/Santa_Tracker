@@ -4,6 +4,8 @@ What has to be true before Advent opens (Nov 30 00:00 UTC; Day 1 at Dec 1 12:00 
 
 ## What already protects launch
 
+Operational procedures: [rollback runbook](ROLLBACK_RUNBOOK.md), [cache purge](CACHE_PURGE.md), and [uptime checks](UPTIME.md).
+
 - **Season gates.** The tracker and Advent return `404` with `Cache-Control: private, no-store` to visitors outside their windows. Admin sessions bypass. `SEASON_OVERRIDE=open` is local only and is not set in production.
 - **Data never changes by accident.** Ordinary pushes publish snapshots to R2 without moving the active pointer. Activation is an explicit manual dispatch (`activate_dataset`) of the deploy workflow. See [DEPLOY.md](DEPLOY.md).
 - **Smoke test after every deploy.** `tools/smoke-test.mjs` checks the production host, including an admin login and gated data.
@@ -22,11 +24,11 @@ The Worker keeps the last successfully read, valid flag document in memory per i
 
 ## Gaps to close before December
 
-1. **Rollback runbook (gap).** Snapshots are versioned in R2 and the previous version is kept, but `tools/santa-publish.mjs` publishes the checked-in data; there is no documented, rehearsed command to point the active pointer back at an older version. Options: revert the data commit in git and run the manual dispatch with `activate_dataset`, or add a `--rollback <versionId>` path to the trusted workflow only (never run write commands from a local machine; see DEPLOY.md). Write the exact steps, then rehearse them once against a non-live dataset name.
+1. **Rollback rehearsal (gap).** The [rollback runbook](ROLLBACK_RUNBOOK.md) documents Worker rollback and recovery of a versioned R2 dataset. Rehearse against a non-live dataset before Dec 24; never run remote write commands from a developer workstation.
 2. **Rehearsal against a copy (gap).** There is no staging environment. Rehearse the Dec 24 flow locally with shifted schedule times (the Playwright suite in `e2e/` already does this for the tracker) and, if wanted, on a throwaway Worker name that does not share the production R2 bucket.
 3. **Load test (gap).** Run a local or throwaway-Worker load test of `/api/route` and the tracker page at a realistic burst (hundreds of requests per second for a few minutes) to confirm edge caching holds. Do not load-test the production hostname without the owner's approval.
-4. **Monitoring and a quiet alert (gap).** At minimum: an uptime check on `/api/health` and on `/` every minute from Dec 23 to Dec 26, notifying the owner. Cloudflare's built-in analytics and Worker error logs should be checked once before launch to know where to look.
-5. **Cache purge procedure (gap).** After changing the live route or calendar, know how to purge the edge cache for `/api/route` and `/api/advent/manifest` so a correction appears within a minute.
+4. **Monitoring rehearsal (gap).** Configure the checks and alert thresholds in [UPTIME.md](UPTIME.md), then verify notifications before launch. Check Cloudflare analytics and Worker error logs once before launch.
+5. **Cache purge procedure.** Follow [CACHE_PURGE.md](CACHE_PURGE.md) after a live route or flag change. `/api/route` can remain at the edge for up to 120 seconds; Advent APIs already return `private, no-store`.
 6. **Content freeze and review (gap).** Owner reviews the generated 2026 route (`docs/planning/route-2026-draft/review.html`) and the Advent text. After the route is approved, activation is a deliberate, announced step, not an automatic one.
 
 ## Dates and checks
