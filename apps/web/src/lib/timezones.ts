@@ -49,7 +49,9 @@ export function parseTimezones(payload: unknown): TimezoneConfig | null {
   return { kind: "timezones" };
 }
 
-export function getCityClocks({ referenceInstant, locale = "en" }: CityClockOptions): CityClock[] {
+export function getCityClocks(options: CityClockOptions): CityClock[] {
+  const referenceInstant = options.referenceInstant;
+  const locale = options.locale ?? "en";
   return PUZZLE_CITIES.map((city) => ({
     ...city,
     localTime: formatInZone({ instant: referenceInstant, timeZone: city.timeZone, locale, options: { hour: "numeric", minute: "2-digit" } }),
@@ -59,32 +61,33 @@ export function getCityClocks({ referenceInstant, locale = "en" }: CityClockOpti
   }));
 }
 
-export function getOrderedCityIds({ referenceInstant }: Pick<CityClockOptions, "referenceInstant">): string[] {
-  return getCityClocks({ referenceInstant }).sort((left, right) => left.midnightUtc - right.midnightUtc).map(({ id }) => id);
+export function getOrderedCityIds(options: Pick<CityClockOptions, "referenceInstant">): string[] {
+  return getCityClocks({ referenceInstant: options.referenceInstant }).sort((left, right) => left.midnightUtc - right.midnightUtc).map(({ id }) => id);
 }
 
-export function getUtcOffsetMinutes({ instant, timeZone }: ZoneInstant): number {
-  const parts = getDateParts({ instant, timeZone });
+export function getUtcOffsetMinutes(context: ZoneInstant): number {
+  const parts = getDateParts(context);
+  const { instant } = context;
   const localAsUtc = Date.UTC(parts.year, parts.month - 1, parts.day, parts.hour, parts.minute, parts.second);
   return Math.round((localAsUtc - Math.floor(instant / 1000) * 1000) / 60000);
 }
 
-export function getDecemberMidnightUtc({ timeZone, year }: MidnightTarget): number {
-  const localMidnightAsUtc = Date.UTC(year, 11, 25);
+export function getDecemberMidnightUtc(target: MidnightTarget): number {
+  const localMidnightAsUtc = Date.UTC(target.year, 11, 25);
   let candidate = localMidnightAsUtc;
   for (let attempt = 0; attempt < 3; attempt += 1) {
-    candidate = localMidnightAsUtc - getUtcOffsetMinutes({ instant: candidate, timeZone }) * 60000;
+    candidate = localMidnightAsUtc - getUtcOffsetMinutes({ instant: candidate, timeZone: target.timeZone }) * 60000;
   }
   return candidate;
 }
 
-function formatInZone({ instant, timeZone, locale, options }: ZonedFormat): string {
-  return new Intl.DateTimeFormat(locale, { ...options, timeZone }).format(instant);
+function formatInZone(context: ZonedFormat): string {
+  return new Intl.DateTimeFormat(context.locale, { ...context.options, timeZone: context.timeZone }).format(context.instant);
 }
 
-function getDateParts({ instant, timeZone }: ZoneInstant): { year: number; month: number; day: number; hour: number; minute: number; second: number } {
+function getDateParts(context: ZoneInstant): { year: number; month: number; day: number; hour: number; minute: number; second: number } {
   const parts = new Intl.DateTimeFormat("en-US", {
-    timeZone,
+    timeZone: context.timeZone,
     year: "numeric",
     month: "numeric",
     day: "numeric",
@@ -92,7 +95,7 @@ function getDateParts({ instant, timeZone }: ZoneInstant): { year: number; month
     minute: "numeric",
     second: "numeric",
     hourCycle: "h23",
-  }).formatToParts(instant);
+  }).formatToParts(context.instant);
   const part = (type: string) => Number(parts.find((item) => item.type === type)?.value);
   return { year: part("year"), month: part("month"), day: part("day"), hour: part("hour"), minute: part("minute"), second: part("second") };
 }

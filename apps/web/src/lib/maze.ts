@@ -131,10 +131,10 @@ export function solveMaze(maze: Maze): number[] | null {
   const queue = [maze.start];
   const previous = new Map<number, number | null>([[maze.start, null]]);
   for (const current of queue) {
-    if (current === maze.goal) return buildPath(previous, maze.goal);
     visitMazeNeighbors({ maze, current, queue, previous });
   }
-  return null;
+  if (!previous.has(maze.goal)) return null;
+  return buildPath(previous, maze.goal);
 }
 
 function visitMazeNeighbors({ maze, current, queue, previous }: MazeSearchContext): void {
