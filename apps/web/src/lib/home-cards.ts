@@ -24,23 +24,30 @@ function adventDay(now: Date): number | undefined {
   return day >= 1 && day <= 24 ? day : undefined;
 }
 
-function adventState(now: Date, allowed: boolean): HomeCardState {
-  const year = now.getUTCFullYear();
-  if (isFeatureOpen('advent', now)) {
-    if (!allowed) return { status: 'open', phase: 'hidden' };
-    const day = adventDay(now);
-    if (day) return { status: 'open', day };
-    const beforeFirstDoor =
-      now.getUTCMonth() === 10 ||
-      (now.getUTCMonth() === 11 && now.getUTCDate() === 1 && now.getUTCHours() < 12);
-    const phase = beforeFirstDoor ? 'before-doors' : 'after-doors';
-    return { status: 'open', phase };
-  }
+function firstDoorPhase(now: Date): 'before-doors' | 'after-doors' {
   const month = now.getUTCMonth();
-  const before = (month === 9 || month === 10) && now.getTime() < Date.UTC(year, 10, 30);
-  if (before) return { status: 'before' };
-  if (now.getUTCMonth() < 10) return { status: 'after' };
-  return { status: 'open', ...(allowed ? { day: adventDay(now) } : {}) };
+  const beforeFirstDoor = month === 10 ||
+    (month === 11 && now.getUTCDate() === 1 && now.getUTCHours() < 12);
+  return beforeFirstDoor ? 'before-doors' : 'after-doors';
+}
+
+function openAdventState(now: Date, allowed: boolean): HomeCardState {
+  if (!allowed) return { status: 'open', phase: 'hidden' };
+  const day = adventDay(now);
+  if (day) return { status: 'open', day };
+  return { status: 'open', phase: firstDoorPhase(now) };
+}
+
+function beforeAdventWindow(now: Date): boolean {
+  const year = now.getUTCFullYear();
+  const month = now.getUTCMonth();
+  return (month === 9 || month === 10) && now.getTime() < Date.UTC(year, 10, 30);
+}
+
+function adventState(now: Date, allowed: boolean): HomeCardState {
+  if (isFeatureOpen('advent', now)) return openAdventState(now, allowed);
+  if (beforeAdventWindow(now)) return { status: 'before' };
+  return { status: 'after' };
 }
 
 function trackerState(now: Date, allowed: boolean): HomeCardState {
