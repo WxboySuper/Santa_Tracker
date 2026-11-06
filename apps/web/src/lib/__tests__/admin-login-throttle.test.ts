@@ -57,6 +57,19 @@ describe("admin login throttle", () => {
     now += 15 * MINUTE;
   });
 
+  it("fails closed without throwing when a non-memory store reaches the sync check", () => {
+    const store: ThrottleStore = {
+      get: async () => undefined,
+      set: async () => undefined,
+      delete: async () => undefined,
+      update: () => ({ attempts: [], lockoutUntil: 0, lockoutLevel: 0, lastLockoutAt: -1 }),
+    };
+    const throttle = createLoginThrottle({ store });
+
+    expect(() => throttle.checkNow({ ip: "ip-a" })).not.toThrow();
+    expect(throttle.checkNow({ ip: "ip-a" })).toEqual({ retryAfterSeconds: 60 });
+  });
+
   it("clears an IP's attempts and lockout history after successful login", async () => {
     const { throttle } = setup();
     for (let i = 0; i < 4; i += 1) await throttle.recordFailure({ ip: "ip-a" });
