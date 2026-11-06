@@ -57,9 +57,12 @@ describe('generateRoute', () => {
   });
 
   it('starts the next arrival after travel from the prior departure without adding dwell twice', () => {
+    const firstCandidate = candidates[0];
+    const secondCandidate = candidates[1];
+    if (!firstCandidate || !secondCandidate) throw new Error('Expected test candidates');
     const colocated = [
-      { ...candidates[0]!, id: 'close-a', timezone: 'UTC', category: 'hub', lat: 0, lng: 0 },
-      { ...candidates[1]!, id: 'close-b', timezone: 'UTC', category: 'hub', lat: 0, lng: 0 },
+      { ...firstCandidate, id: 'close-a', timezone: 'UTC', category: 'hub', lat: 0, lng: 0 },
+      { ...secondCandidate, id: 'close-b', timezone: 'UTC', category: 'hub', lat: 0, lng: 0 },
     ];
     const config = { ...DEFAULT_GENERATOR_LIMITS, total: 2, weights: { hub: 1 }, arrivalStartMinute: 20, arrivalEndMinute: 80 };
     const generated = generateRoute(colocated, config);
