@@ -10,6 +10,7 @@ export default tseslint.config(
       'node_modules/**',
       '.next/**',
       '**/.next/**',
+      '**/.next-e2e-*/**',
       'dist/**',
       '**/dist/**',
       '**/.cloudflare/**',
