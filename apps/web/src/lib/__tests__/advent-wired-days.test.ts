@@ -13,6 +13,29 @@ const WRITTEN_DAYS = [3, 5, 6, 9, 10, 11, 14, 16, 17, 19, 20, 22, 24];
 const STORY_DAYS = [3, 6, 9, 11, 14, 17, 20, 24];
 const FACT_DAYS = [5, 10, 16, 19, 22];
 
+function expectedContentType(dayNumber: number): "fact" | "story" {
+  return STORY_DAYS.includes(dayNumber) ? "story" : "fact";
+}
+
+function expectedWordCount(dayNumber: number): [number, number] {
+  return STORY_DAYS.includes(dayNumber) ? [250, 450] : [80, 160];
+}
+
+function assertWrittenDay(day: Awaited<ReturnType<typeof loadAdventCalendar>>[number], number: number): void {
+  expect(day, `day ${number} exists`).toBeDefined();
+  expect(day.content_type).toBe(expectedContentType(number));
+  const text = day.payload.text;
+  expect(typeof text, `day ${number} text is a string`).toBe("string");
+  const words = (text as string).trim().split(/\s+/).filter(Boolean);
+  const [minimum, maximum] = expectedWordCount(number);
+  expect(words.length, `day ${number} word count`).toBeGreaterThanOrEqual(minimum);
+  expect(words.length, `day ${number} word count`).toBeLessThanOrEqual(maximum);
+  if (FACT_DAYS.includes(number)) {
+    expect(typeof day.payload.source).toBe("string");
+    expect((day.payload.source as string).trim().length).toBeGreaterThan(0);
+  }
+}
+
 function render(day: AdventPublicDay): string {
   return renderToStaticMarkup(renderDayContent({ ...day, is_unlocked: true }, createElement("p", null, "FALLBACK")));
 }
@@ -41,18 +64,7 @@ describe("wired Advent days", () => {
     const days = await loadAdventCalendar({ filePath: file });
     for (const number of WRITTEN_DAYS) {
       const day = days.find((candidate) => candidate.day === number);
-      expect(day, `day ${number} exists`).toBeDefined();
-      expect(day?.content_type).toBe(STORY_DAYS.includes(number) ? "story" : "fact");
-      const text = day?.payload.text;
-      expect(typeof text, `day ${number} text is a string`).toBe("string");
-      const words = (text as string).trim().split(/\s+/).filter(Boolean);
-      const [minimum, maximum] = STORY_DAYS.includes(number) ? [250, 450] : [80, 160];
-      expect(words.length, `day ${number} word count`).toBeGreaterThanOrEqual(minimum);
-      expect(words.length, `day ${number} word count`).toBeLessThanOrEqual(maximum);
-      if (FACT_DAYS.includes(number)) {
-        expect(typeof day?.payload.source).toBe("string");
-        expect((day?.payload.source as string).trim().length).toBeGreaterThan(0);
-      }
+      assertWrittenDay(day!, number);
     }
   });
 });
