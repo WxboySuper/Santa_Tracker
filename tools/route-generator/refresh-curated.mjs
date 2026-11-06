@@ -1,5 +1,6 @@
 import { readFile, writeFile } from 'node:fs/promises';
 import lookup from '@photostructure/tz-lookup';
+import { claim, validEarthPoint } from './refresh-validation.mjs';
 
 const seeds = JSON.parse(await readFile(new URL('./data/curated-seeds.json', import.meta.url), 'utf8'));
 const ids = Object.values(seeds).flat();
@@ -20,10 +21,6 @@ async function entities(idsToFetch) {
   return result;
 }
 
-function claim(entity, property) {
-  return entity.claims?.[property]?.find((entry) => entry.rank !== 'deprecated' && entry.mainsnak?.datavalue)?.mainsnak.datavalue.value;
-}
-
 const items = await entities(ids);
 const countryIds = [...new Set(ids.map((id) => claim(items[id], 'P17')?.id).filter(Boolean))];
 const countries = await entities(countryIds);
@@ -35,7 +32,7 @@ for (const [category, categoryIds] of Object.entries(seeds)) {
     const countryId = claim(entity, 'P17')?.id;
     const name = entity?.labels?.en?.value;
     const country = countries[countryId]?.labels?.en?.value;
-    if (!name || !country || !point || point.globe !== 'http://www.wikidata.org/entity/Q2') {
+    if (!name || !country || !validEarthPoint(point)) {
       throw new Error(`${id} lacks an English label, country, or Earth coordinates`);
     }
     const { latitude: lat, longitude: lng } = point;

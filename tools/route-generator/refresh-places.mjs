@@ -2,6 +2,7 @@ import { writeFile } from 'node:fs/promises';
 import { unzipSync } from 'fflate';
 import shapefile from 'shapefile';
 import lookup from '@photostructure/tz-lookup';
+import { coordinatesFromGeometry } from './refresh-validation.mjs';
 
 const url = 'https://naturalearth.s3.amazonaws.com/10m_cultural/ne_10m_populated_places_simple.zip';
 const response = await fetch(url);
@@ -16,8 +17,10 @@ for (;;) {
   const item = await source.read();
   if (item.done) break;
   const p = item.value.properties;
-  const [lng, lat] = item.value.geometry.coordinates;
+  const coordinates = coordinatesFromGeometry(item.value?.geometry);
   if (!p.name || !p.adm0name || !p.ne_id) continue;
+  if (!coordinates) continue;
+  const { lat, lng } = coordinates;
   places.push({
     id: `ne-${p.ne_id}`, name: p.name, country: p.adm0name,
     lat, lng, population: p.pop_max, worldCity: Boolean(p.worldcity),

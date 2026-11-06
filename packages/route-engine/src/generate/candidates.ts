@@ -26,12 +26,12 @@ function selectCategory(context: SelectionContext, category: string, quota: numb
     if (selected.length === quota) break;
     selected.push(place.id);
   }
-  if (selected.length < quota) throw new Error(`Country cap prevents filling ${category} quota ${quota}`);
+  if (selected.length < quota) throw new Error(`Cannot fill ${category} quota ${quota}: not enough candidates in pool`);
   return selected;
 }
-function refillSelection(
-  places: Candidate[], selection: string[], quotas: Record<string, number>, config: GeneratorConfig, overrides: RouteOverrides,
-): string[] {
+type RefillContext = { places: Candidate[]; selection: string[]; quotas: Record<string, number>; config: GeneratorConfig; overrides: RouteOverrides };
+function refillSelection(context: RefillContext): string[] {
+  const { places, selection, quotas, config, overrides } = context;
   const byId = new Map(places.map((place) => [place.id, place]));
   const result = [...selection];
   for (const [category, quota] of Object.entries(quotas)) {
@@ -49,7 +49,7 @@ export function chooseCandidates(pool: Candidate[], config: GeneratorConfig, ove
   const context = { places, config };
   const selected = Object.entries(quotas).flatMap(([category, quota]) => selectCategory(context, category, quota));
   const adjusted = applyOverrides(places, selected, overrides);
-  const refilled = refillSelection(places, adjusted, quotas, config, overrides);
+  const refilled = refillSelection({ places, selection: adjusted, quotas, config, overrides });
   const byId = new Map(places.map((place) => [place.id, place]));
   const chosen = refilled.map((id) => byId.get(id)).filter((place): place is Candidate => place !== undefined);
   if (chosen.length !== config.total) throw new Error(`Unable to select ${config.total} candidates while preserving category quotas`);

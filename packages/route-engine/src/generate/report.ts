@@ -23,26 +23,27 @@ function hourlyCounts(route: Route): RouteReport['hourly'] {
     count: route.stops.filter((stop) => Math.floor((Date.parse(stop.arrivalIso) - start) / 3_600_000) === hour).length,
   }));
 }
-function routeLegs(places: Candidate[], route: Route, config: GeneratorConfig, coordinates: Map<string, LatLng>): LegSummary[] {
-  if (places.length !== route.stops.length) throw new Error('Report locations do not match route stops');
-  return route.stops.slice(1).map((stop, index) => {
-    const previous = route.stops[index];
-    if (!previous) throw new Error(`Missing previous stop for leg ${index + 1}`);
-    const from = coordinates.get(previous.locationId);
-    const to = coordinates.get(stop.locationId);
-    if (!from || !to) throw new Error(`Missing coordinates for leg ${index + 1}`);
-    const fromPlace = places[index];
-    const toPlace = places[index + 1];
-    if (!fromPlace || !toPlace) throw new Error(`Missing locations for leg ${index + 1}`);
-    const km = haversineKm(from, to);
-    const seconds = (Date.parse(stop.arrivalIso) - Date.parse(previous.departureIso)) / 1000;
-    const kmh = legSpeedKmh(from, to, seconds);
-    if (kmh === null) throw new Error(`Invalid travel duration for leg ${index + 1}`);
-    return {
-      from: fromPlace.name, to: toPlace.name, km, kmh,
-      longGap: km > config.maxGapKm,
-    };
-  });
+type LegContext = { places: Candidate[]; config: GeneratorConfig; coordinates: Map<string, LatLng>; route: Route };
+function requireValue<T>(value: T | null | undefined, message: string): T {
+  if (value === null) throw new Error(message);
+  if (value === undefined) throw new Error(message);
+  return value;
+}
+function routeLeg(context: LegContext, stop: Route['stops'][number], index: number): LegSummary {
+  const legNumber = index + 1;
+  const prior = requireValue(context.route.stops[index], `Missing previous stop for leg ${legNumber}`);
+  const from = requireValue(context.coordinates.get(prior.locationId), `Missing coordinates for leg ${legNumber}`);
+  const to = requireValue(context.coordinates.get(stop.locationId), `Missing coordinates for leg ${legNumber}`);
+  const fromPlace = requireValue(context.places[index], `Missing locations for leg ${legNumber}`);
+  const toPlace = requireValue(context.places[index + 1], `Missing locations for leg ${legNumber}`);
+  const km = haversineKm(from, to);
+  const seconds = (Date.parse(stop.arrivalIso) - Date.parse(prior.departureIso)) / 1000;
+  const kmh = requireValue(legSpeedKmh(from, to, seconds), `Invalid travel duration for leg ${legNumber}`);
+  return { from: fromPlace.name, to: toPlace.name, km, kmh, longGap: km > context.config.maxGapKm };
+}
+function routeLegs(context: LegContext): LegSummary[] {
+  if (context.places.length !== context.route.stops.length) throw new Error('Report locations do not match route stops');
+  return context.route.stops.slice(1).map((stop, index) => routeLeg(context, stop, index));
 }
 function regionCounts(places: Candidate[]): Record<string, number> {
   return places.reduce<Record<string, number>>((counts, place) => {
@@ -59,7 +60,7 @@ function countFlags(places: Candidate[], legs: LegSummary[], config: GeneratorCo
 }
 export function buildReport(places: Candidate[], route: Route, config: GeneratorConfig, coordinates: Map<string, LatLng>): RouteReport {
   const hourly = hourlyCounts(route);
-  const legs = routeLegs(places, route, config, coordinates);
+  const legs = routeLegs({ places, config, coordinates, route });
   const lastHours = hourly.slice(-config.westernHours);
   return {
     seed: config.seed, count: places.length, mix: categoryMix(places, config), regionBalance: regionCounts(places), hourly,
