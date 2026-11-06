@@ -79,16 +79,29 @@ export default async function HomePage() {
         </Link>
       </nav>
       <main id="main" className="home-main">
-        <NorthPoleScene label={t('home.heroLabel')} />
-        <header className="home-heading">
-          <p className="home-kicker">{t('home.kicker')}</p>
-          <h1>{t('home.title')}</h1>
-          <p>{t('home.subtitle')}</p>
-        </header>
-        <section aria-labelledby="countdown-heading" className="countdown-panel">
-          <h2 id="countdown-heading">{t('home.countdown')}</h2>
-          <CountdownTiles locale={translator.locale} flyingText={t('home.flyingTonight')} />
-        </section>
+        <div className="cabin-stage">
+          <NorthPoleScene
+            labels={{
+              label: t('home.heroLabel'),
+              stoke: t('home.stokeFire'),
+              lampOn: t('home.lampOn'),
+              lampOff: t('home.lampOff'),
+              tree: t('home.treeLights'),
+            }}
+          />
+          <div className="cabin-copy">
+            <header className="home-heading">
+              <p className="home-kicker">{t('home.kicker')}</p>
+              <h1>{t('home.title')}</h1>
+              <p>{t('home.subtitle')}</p>
+            </header>
+            <section aria-labelledby="countdown-heading" className="countdown-panel">
+              <p className="clock-label">{t('home.clockLabel')}</p>
+              <h2 id="countdown-heading">{t('home.countdown')}</h2>
+              <CountdownTiles locale={translator.locale} flyingText={t('home.flyingTonight')} />
+            </section>
+          </div>
+        </div>
         <section aria-label={t('home.destinations')} className="home-cards">
           <article className="home-card">
             <p className="home-card-index">{t('home.adventIndex')}</p>
