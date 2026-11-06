@@ -101,21 +101,24 @@ describe("admin login throttle", () => {
     expect(await store.get("ip:unknown-client")).toBeUndefined();
   });
 
-  it("fails closed instead of evicting recent unlocked failure state", async () => {
+  it("evicts the least-recent unlocked failure before rejecting a new IP", async () => {
     const now = 1000;
-    const store = new InMemoryThrottleStore({ maxEntries: 2, clock: () => now });
+    const store = new InMemoryThrottleStore({ maxEntries: 3, clock: () => now });
     await store.set("global", { attempts: [], lockoutUntil: 0, lockoutLevel: 0, lastLockoutAt: -1 });
-    await store.set("ip:partial", { attempts: [now], lockoutUntil: 0, lockoutLevel: 0, lastLockoutAt: -1 });
+    await store.set("ip:older", { attempts: [now - 100], lockoutUntil: 0, lockoutLevel: 0, lastLockoutAt: -1 });
+    await store.set("ip:recent", { attempts: [now], lockoutUntil: 0, lockoutLevel: 0, lastLockoutAt: -1 });
     const throttle = createLoginThrottle(store, () => now);
 
-    expect(await throttle.check("new")).toEqual({ retryAfterSeconds: 60, reason: "global" });
-    expect(await store.get("ip:partial")).toBeDefined();
+    expect(await throttle.recordFailure("new")).toBeNull();
+    expect(await store.get("ip:older")).toBeUndefined();
+    expect(await store.get("ip:recent")).toBeDefined();
+    expect(await store.get("ip:new")).toBeDefined();
   });
 
   it("returns 429 when recording the global counter cannot fit in the store", async () => {
     const now = 1000;
     const store = new InMemoryThrottleStore({ maxEntries: 2, clock: () => now });
-    const state = { attempts: [now], lockoutUntil: 0, lockoutLevel: 0, lastLockoutAt: -1 };
+    const state = { attempts: [now], lockoutUntil: now + MINUTE, lockoutLevel: 1, lastLockoutAt: now };
     await store.set("ip:recent-a", state);
     await store.set("ip:recent-b", state);
     const throttle = createLoginThrottle(store, () => now);
@@ -212,7 +215,7 @@ describe("admin login throttle", () => {
     expect(await store.get("ip:locked")).toBeDefined();
     now += 15 * MINUTE;
     expect(await throttle.check("locked")).toBeNull();
-    expect(await throttle.check("new")).toEqual({ retryAfterSeconds: 60, reason: "global" });
+    expect(await throttle.check("new")).toBeNull();
     now += 24 * 60 * MINUTE;
     expect(await throttle.check("new")).toBeNull();
     expect(await throttle.recordFailure("new")).toBeNull();

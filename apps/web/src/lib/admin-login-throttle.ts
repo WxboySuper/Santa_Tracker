@@ -56,7 +56,7 @@ export class InMemoryThrottleStore implements ThrottleStore {
     const isUpdate = this.values.has(key);
     if (isUpdate) this.values.delete(key);
     if (this.values.size >= this.maxEntries) {
-      const evictable = this.findExpiredIpEntry();
+      const evictable = this.findEvictableIpEntry();
       if (!evictable) throw new ThrottleStoreFullError();
       this.values.delete(evictable);
     }
@@ -70,15 +70,30 @@ export class InMemoryThrottleStore implements ThrottleStore {
   canStore(key: string): boolean {
     if (this.values.has(key)) return true;
     if (this.values.size < this.maxEntries) return true;
-    return this.findExpiredIpEntry() !== undefined;
+    return this.findEvictableIpEntry() !== undefined;
   }
 
-  private findExpiredIpEntry(): string | undefined {
+  private findEvictableIpEntry(): string | undefined {
     const now = this.clock();
     for (const [key, state] of this.values) {
       if (isExpiredIpState({ key, state, now })) return key;
     }
-    return undefined;
+    return this.findLeastRecentlyFailedNonLockout(now);
+  }
+
+  private findLeastRecentlyFailedNonLockout(now: number): string | undefined {
+    let leastRecent: { key: string; failedAt: number } | undefined;
+    for (const [key, state] of this.values) {
+      if (key === GLOBAL_KEY) continue;
+      if (state.lockoutUntil > now) continue;
+      const failedAt = state.attempts.at(-1) ?? state.lastLockoutAt;
+      if (!leastRecent) {
+        leastRecent = { key, failedAt };
+        continue;
+      }
+      if (failedAt < leastRecent.failedAt) leastRecent = { key, failedAt };
+    }
+    return leastRecent?.key;
   }
 }
 
