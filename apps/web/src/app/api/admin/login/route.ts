@@ -95,7 +95,7 @@ async function setLoginCookie(req: Request, result: Awaited<ReturnType<typeof lo
   if (typeof token !== "string") return response;
   response.cookies.set("admin_token", token, {
     httpOnly: true,
-    secure: shouldUseSecureAdminCookie(req),
+    secure: shouldUseSecureAdminCookie(),
     sameSite: "lax",
     path: "/",
     maxAge: ADMIN_SESSION_TTL_SECONDS,

@@ -108,7 +108,7 @@ describe("admin login route", () => {
   });
 
   it("uses forwarded HTTPS for matching login and logout cookie attributes", async () => {
-    expect(shouldUseSecureAdminCookie(new Request("http://internal.example.test", { headers: { "x-forwarded-proto": "http" } }))).toBe(false);
+    expect(shouldUseSecureAdminCookie()).toBe(true);
     const request = new Request("http://internal.example.test/api/admin/login", {
       method: "POST", headers: { "cf-connecting-ip": "198.51.100.60", "content-type": "application/json", "x-forwarded-proto": "https, http" },
       body: JSON.stringify({ password: "correct horse" }),
@@ -130,6 +130,18 @@ describe("admin login route", () => {
     expect(logoutCookie).toContain("SameSite=lax");
     expect(logoutCookie).toContain("Secure");
     expect(logoutCookie).toContain("Path=/");
+  });
+
+  it("keeps a secure login cookie clearable if the logout request scheme differs", async () => {
+    const login = await POST(new Request("http://internal.example.test/api/admin/login", {
+      method: "POST",
+      headers: { "cf-connecting-ip": "198.51.100.63", "content-type": "application/json", "x-forwarded-proto": "https" },
+      body: JSON.stringify({ password: "correct horse" }),
+    }));
+    const logoutResponse = logout(new Request("http://internal.example.test/api/admin/logout", { method: "POST" }));
+
+    expect(login.headers.get("set-cookie")).toContain("Secure");
+    expect(logoutResponse.headers.get("set-cookie")).toContain("Secure");
   });
 
   it("uses the shared 12-hour constant for JWT expiry and cookie lifetime", async () => {

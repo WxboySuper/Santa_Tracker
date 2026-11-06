@@ -5,11 +5,10 @@ import { getSecretKey, getAdminPassword } from "./config";
 const alg = "HS256";
 export const ADMIN_SESSION_TTL_SECONDS = 12 * 60 * 60;
 
-export function shouldUseSecureAdminCookie(request: Request): boolean {
-  if (process.env.NODE_ENV === "production") return true;
-  const forwardedProto = request.headers.get("x-forwarded-proto")?.split(",", 1)[0]?.trim().toLowerCase();
-  if (forwardedProto === "https") return true;
-  return new URL(request.url).protocol === "https:";
+export function shouldUseSecureAdminCookie(): boolean {
+  // Use a stable policy so logout can clear the cookie even if proxy headers differ.
+  // HTTPS requests (including those marked by x-forwarded-proto) always require Secure.
+  return true;
 }
 
 function getSecret(): Uint8Array {

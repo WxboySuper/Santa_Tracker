@@ -6,7 +6,7 @@ export function POST(request: Request) {
   const response = NextResponse.json({ message: "Logged out" }, { status: 200 });
   response.cookies.set("admin_token", "", {
     httpOnly: true,
-    secure: shouldUseSecureAdminCookie(request),
+    secure: shouldUseSecureAdminCookie(),
     sameSite: "lax",
     path: "/",
     maxAge: 0,
