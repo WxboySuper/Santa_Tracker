@@ -24,7 +24,8 @@ function createStop(index: number, place: Candidate, context: StopContext) {
   const { config, prior, lastDeparture } = context;
   const target = Date.parse(christmasArrival(place.timezone, place.plannedMinute ?? config.arrivalStartMinute));
   const distance = prior ? haversineKm(prior, place) : 0;
-  const travel = Math.ceil(distance / config.maxSpeedKmh * 3_600_000) + 1;
+  const speedLimit = config.allowFastLegs ? config.maxSpeedKmh : config.maxLegSpeedKmh;
+  const travel = Math.ceil(distance / speedLimit * 3_600_000) + 1;
   const arrival = new Date(Math.max(target, lastDeparture + travel)).toISOString();
   const minute = localMinute(arrival, place.timezone);
   if (minute < config.arrivalStartMinute || minute > config.arrivalEndMinute) throw new Error(`${place.name} arrives outside its local window at ${arrival}`);
@@ -54,7 +55,7 @@ function buildDocument(places: Candidate[], config: GeneratorConfig): { document
 function validateGeneratedRoute(route: Route, coordinates: Map<string, LatLng>, config: GeneratorConfig): void {
   const validation = validateRoute(route);
   if (!validation.ok) throw new Error(`Invalid generated route: ${validation.issues.map((issue) => issue.message).join('; ')}`);
-  const geometry = validateRouteGeometry(route, coordinates, { maxSpeedKmh: config.maxSpeedKmh });
+  const geometry = validateRouteGeometry(route, coordinates, { maxSpeedKmh: config.allowFastLegs ? Number.MAX_VALUE : config.maxSpeedKmh });
   const errors = geometry.issues.filter((issue) => issue.severity === 'error').map((issue) => issue.message);
   if (errors.length) throw new Error(`Invalid route geometry: ${errors.join('; ')}`);
 }
@@ -62,6 +63,9 @@ function addReportWarnings(report: GeneratedRoute['report'], config: GeneratorCo
   if (config.westernHours > 0 && report.westernMinimum < config.minimumStopsPerHour) report.issues.push(`Western hourly minimum ${report.westernMinimum} is below target ${config.minimumStopsPerHour}; sparse final time zones limit available verified stops.`);
   const longLegs = report.flags.filter((flag) => flag.longGap > 0).length;
   if (longLegs > 0) report.issues.push(`Distance threshold relaxed for ${longLegs} legs over ${config.maxGapKm} km to preserve the global stop mix and the 26-hour sweep.`);
+}
+function reorderedStopCount(before: Candidate[], after: Candidate[]): number {
+  return after.filter((place, index) => before[index]?.id !== place.id).length;
 }
 function requireIntegerAtLeast(value: number, minimum: number, message: string): void {
   if (!Number.isSafeInteger(value)) throw new Error(message);
@@ -84,6 +88,7 @@ function validateGeneratorConfig(config: GeneratorConfig): void {
   validateArrivalWindow(config);
   requireIntegerAtLeast(config.durationSeconds, 1, 'Invalid stop duration');
   requireFiniteAtLeast(config.maxSpeedKmh, Number.MIN_VALUE, 'Invalid maximum speed');
+  requireFiniteAtLeast(config.maxLegSpeedKmh, Number.MIN_VALUE, 'Invalid maximum leg speed');
   requireFiniteAtLeast(config.maxGapKm, 0, 'Invalid maximum gap');
   requireIntegerAtLeast(config.maxCountryRun, 1, 'Invalid country run limit');
   requireFiniteAtLeast(config.minimumStopsPerHour, 0, 'Invalid hourly minimum');
@@ -96,7 +101,12 @@ export function generateRoute(pool: Candidate[], config: GeneratorConfig, overri
   const { document, route, coordinates } = buildDocument(ordered, config);
   validateGeneratedRoute(route, coordinates, config);
   const report = buildReport(ordered, route, config, coordinates);
-  report.issues = validateRouteGeometry(route, coordinates, { maxSpeedKmh: config.maxSpeedKmh }).issues.map((issue) => issue.message);
+  report.reorderedStops = reorderedStopCount(chosen, ordered);
+  report.issues = validateRouteGeometry(route, coordinates, { maxSpeedKmh: config.allowFastLegs ? Number.MAX_VALUE : config.maxSpeedKmh }).issues.map((issue) => issue.message);
   addReportWarnings(report, config);
+  if (report.speedWarnings.length > 0) {
+    if (!config.allowFastLegs) throw new Error(`Leg speed ceiling ${config.maxLegSpeedKmh} km/h exceeded: ${report.speedWarnings.join('; ')}`);
+    report.issues.push(`--allow-fast-legs accepted ${report.speedWarnings.length} legs above ${config.maxLegSpeedKmh} km/h.`);
+  }
   return { document, route, locations: ordered, report };
 }

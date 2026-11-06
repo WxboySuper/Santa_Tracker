@@ -9,7 +9,7 @@ const candidates: Candidate[] = Array.from({ length: 25 }, (_, index) => ({
 
 describe('generateRoute', () => {
   it('creates repeatable output that passes route and geometry validation', () => {
-    const config = { ...DEFAULT_GENERATOR_LIMITS, seed: 2026, total: 20, weights: { hub: 20, cultural: 20, underserved: 20, nature: 20, special: 20 }, maxSpeedKmh: 40000 };
+    const config = { ...DEFAULT_GENERATOR_LIMITS, seed: 2026, total: 20, weights: { hub: 20, cultural: 20, underserved: 20, nature: 20, special: 20 }, maxSpeedKmh: 40000, maxLegSpeedKmh: 40000 };
     const inputIds = candidates.map((place) => place.id);
     const first = generateRoute(candidates, config);
     const second = generateRoute(candidates, config);
@@ -56,6 +56,35 @@ describe('generateRoute', () => {
     expect(() => generateRoute(candidates, { ...config, westernHours: -1 })).toThrow(/western hour count/);
   });
 
+  it('fails with leg details above the speed ceiling and allows an explicit diagnostic override', () => {
+    const farApart = [
+      { ...candidates[0]!, id: 'far-a', name: 'Far A', timezone: 'UTC', lat: 0, lng: 0, category: 'hub' },
+      { ...candidates[1]!, id: 'far-b', name: 'Far B', timezone: 'UTC', lat: 0, lng: 180, category: 'hub' },
+    ];
+    const config = { ...DEFAULT_GENERATOR_LIMITS, total: 2, weights: { hub: 1 }, arrivalEndMinute: 100, maxSpeedKmh: 20000, maxLegSpeedKmh: 1000 };
+    expect(() => generateRoute(farApart, config)).toThrow(/leg Far . to Far .: .* km in at most .* min requires .* km\/h/);
+    const allowed = generateRoute(farApart, { ...config, allowFastLegs: true });
+    expect(allowed.report.speedWarnings).toHaveLength(1);
+    expect(allowed.report.legsAbove15000Kmh).toBe(1);
+    expect(allowed.report.maxLegSpeedKmh).toBeGreaterThan(1000);
+  });
+
+  it('reorders a sparse same-window pool and retimes its long jump under the ceiling', () => {
+    const pool = [
+      { ...candidates[0]!, id: 'balcarce', name: 'Balcarce', country: 'Argentina', timezone: 'UTC', category: 'hub', lat: -37.85, lng: -58.25 },
+      { ...candidates[1]!, id: 'churchill-falls', name: 'Churchill Falls', country: 'Canada', timezone: 'UTC', category: 'hub', lat: 53.52, lng: -64.01 },
+      { ...candidates[2]!, id: 'st-johns', name: 'St Johns', country: 'Canada', timezone: 'UTC', category: 'hub', lat: 47.56, lng: -52.71 },
+    ];
+    const config = { ...DEFAULT_GENERATOR_LIMITS, total: 3, weights: { hub: 1 } };
+    const generated = generateRoute(pool, config);
+
+    expect(generated.report.maxLegSpeedKmh).toBeLessThanOrEqual(config.maxLegSpeedKmh);
+    expect(generated.report.mix.hub).toEqual({ count: 3, target: 3 });
+    expect(generated.report.reorderedStops).toBeGreaterThan(0);
+    expect(generated.report.replacedStops).toBe(0);
+    expect(generateRoute(pool, config).route).toEqual(generated.route);
+  });
+
   it('starts the next arrival after travel from the prior departure without adding dwell twice', () => {
     const firstCandidate = candidates[0];
     const secondCandidate = candidates[1];
@@ -69,6 +98,6 @@ describe('generateRoute', () => {
     const prior = generated.route.stops[0];
     const next = generated.route.stops[1];
     if (!prior || !next) throw new Error('Expected two generated stops');
-    expect(Date.parse(next.arrivalIso) - Date.parse(prior.departureIso)).toBe(1);
+    expect(Date.parse(next.arrivalIso) - Date.parse(prior.departureIso)).toBe(60_000);
   });
 });
