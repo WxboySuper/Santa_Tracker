@@ -1,8 +1,9 @@
 import { defineConfig, devices } from "@playwright/test";
 import os from "node:os";
+import { randomUUID } from "node:crypto";
 import path from "node:path";
 
-process.env.E2E_RUNTIME_FILE ??= path.join(os.tmpdir(), `santa-tracker-e2e-runtime-${process.pid}.json`);
+process.env.E2E_RUNTIME_FILE ??= path.join(os.tmpdir(), `santa-tracker-e2e-runtime-${process.pid}-${randomUUID()}.json`);
 
 const baseUse = { ...devices["Desktop Chrome"], trace: "retain-on-failure" as const };
 

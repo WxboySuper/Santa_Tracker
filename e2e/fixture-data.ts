@@ -2,13 +2,27 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 type ServerName = "closed" | "open";
-type Calendar = { days: { day: number; is_unlocked_override?: boolean }[] };
+type CalendarDay = { day: number; is_unlocked_override?: boolean };
+type Calendar = { days: CalendarDay[] };
+
+function isCalendarDay(value: unknown): value is CalendarDay {
+  if (typeof value !== "object") return false;
+  if (value === null) return false;
+  if (Array.isArray(value)) return false;
+  const day = value as { day?: unknown; is_unlocked_override?: unknown };
+  if (typeof day.day !== "number") return false;
+  if (!Number.isInteger(day.day)) return false;
+  if (day.is_unlocked_override === undefined) return true;
+  return typeof day.is_unlocked_override === "boolean";
+}
 
 function isCalendar(value: unknown): value is Calendar {
   if (typeof value !== "object") return false;
   if (value === null) return false;
   if (Array.isArray(value)) return false;
-  return Array.isArray((value as { days?: unknown }).days);
+  const days = (value as { days?: unknown }).days;
+  if (!Array.isArray(days)) return false;
+  return days.every(isCalendarDay);
 }
 
 function parseCalendar(source: string, filePath: string): Calendar {
@@ -27,6 +41,7 @@ async function writeServerData(name: ServerName, root: string, route: string, or
   const dataRoot = path.join(root, name);
   await mkdir(dataRoot, { recursive: true });
   const calendar = JSON.parse(JSON.stringify(originalCalendar)) as Calendar;
+  for (const day of calendar.days) delete day.is_unlocked_override;
   if (name === "open") {
     const firstDay = calendar.days.find((day) => day.day === 1);
     if (!firstDay) throw new Error("The advent calendar must include day 1");

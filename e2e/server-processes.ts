@@ -6,6 +6,7 @@ import { setTimeout as delay } from "node:timers/promises";
 type ServerName = "closed" | "open";
 export type ServerEntry = { name: ServerName; child: ChildProcess };
 type StartupResult = { name: ServerName; endpoint: string };
+const maxStartupOutput = 4_000;
 
 function childHasExited(child: ChildProcess): boolean {
   if (child.exitCode !== null) return true;
@@ -21,11 +22,18 @@ async function isServerReady(endpoint: string): Promise<boolean> {
   }
 }
 
+function stripAnsiColorCodes(output: string): string {
+  const escape = String.fromCharCode(27);
+  const colorCode = new RegExp(`${escape}\\[[0-9;]*m`, "g");
+  return output.replace(colorCode, "");
+}
+
 export function getLocalAddress(output: string): string | undefined {
-  const ansiColorCode = new RegExp(`${String.fromCharCode(27)}\\[[0-9;]*m`, "g");
-  const cleanOutput = output.replace(ansiColorCode, "");
-  const raw = /https?:\/\/(?:localhost|127\.0\.0\.1|\[[\da-f:]+\]):\d+/i.exec(cleanOutput)?.[0];
-  return raw?.replace(/[.,;')\]]+$/, "");
+  const cleanOutput = stripAnsiColorCodes(output);
+  const match = /(https?:\/\/)(localhost|127\.0\.0\.1|0\.0\.0\.0|\[[\da-f:]+\]|[a-z\d.-]+):(\d+)/i.exec(cleanOutput);
+  if (!match) return undefined;
+  const hostname = match[2] === "0.0.0.0" ? "localhost" : match[2];
+  return `${match[1]}${hostname}:${match[3]}`;
 }
 
 async function findReadyEndpoint(output: string): Promise<string | undefined> {
@@ -42,32 +50,53 @@ function getStartupError(entry: ServerEntry, spawnError: Error | undefined): Err
   return undefined;
 }
 
-function captureStartupState(entry: ServerEntry): { output: () => string; error: () => Error | undefined } {
+function captureStartupState(entry: ServerEntry) {
   let output = "";
+  let truncated = false;
   let spawnError: Error | undefined;
-  const capture = (chunk: Buffer) => { output += chunk.toString(); };
-  entry.child.on("error", (error) => { spawnError = error; });
-  entry.child.stdout?.on("data", capture);
-  entry.child.stderr?.on("data", (chunk: Buffer) => {
+  const capture = (chunk: Buffer) => {
+    output += chunk.toString();
+    if (output.length <= maxStartupOutput) return;
+    output = output.slice(-maxStartupOutput);
+    truncated = true;
+  };
+  const onError = (error: Error) => { spawnError = error; };
+  const onStdout = (chunk: Buffer) => capture(chunk);
+  const onStderr = (chunk: Buffer) => {
     capture(chunk);
     process.stderr.write(chunk);
-  });
-  return { output: () => output, error: () => spawnError };
+  };
+  entry.child.on("error", onError);
+  entry.child.stdout?.on("data", onStdout);
+  entry.child.stderr?.on("data", onStderr);
+  return {
+    output: () => truncated ? `...[earlier output truncated]...\n${output}` : output,
+    error: () => spawnError,
+    dispose: () => {
+      entry.child.removeListener("error", onError);
+      entry.child.stdout?.removeListener("data", onStdout);
+      entry.child.stderr?.removeListener("data", onStderr);
+    },
+  };
 }
 
 async function waitForServer(entry: ServerEntry): Promise<StartupResult> {
   const deadline = Date.now() + 120_000;
   const state = captureStartupState(entry);
-  while (Date.now() < deadline) {
+  try {
+    while (Date.now() < deadline) {
+      const startupError = getStartupError(entry, state.error());
+      if (startupError) throw startupError;
+      const endpoint = await findReadyEndpoint(state.output());
+      if (endpoint) return { name: entry.name, endpoint };
+      await delay(250);
+    }
     const startupError = getStartupError(entry, state.error());
     if (startupError) throw startupError;
-    const endpoint = await findReadyEndpoint(state.output());
-    if (endpoint) return { name: entry.name, endpoint };
-    await delay(250);
+    throw new Error(`Next.js did not become ready. Output: ${state.output()}`);
+  } finally {
+    state.dispose();
   }
-  const startupError = getStartupError(entry, state.error());
-  if (startupError) throw startupError;
-  throw new Error(`Next.js did not become ready. Output: ${state.output()}`);
 }
 
 function getStartupFailure(results: PromiseSettledResult<StartupResult>[]): Error | undefined {

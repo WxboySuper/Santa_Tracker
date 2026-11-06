@@ -17,6 +17,11 @@ function isNonEmptyString(value: unknown): value is string {
   return value.length > 0;
 }
 
+function hasBothProjectEndpoints(endpoints: Record<string, string>): boolean {
+  if (!Object.hasOwn(endpoints, "closed")) return false;
+  return Object.hasOwn(endpoints, "open");
+}
+
 function isStringRecord(value: unknown): value is Record<string, string> {
   if (!isRecord(value)) return false;
   return Object.values(value).every(isNonEmptyString);
@@ -26,6 +31,7 @@ function isRuntimeConfig(value: unknown): value is RuntimeConfig {
   if (!isRecord(value)) return false;
   if (!isStringRecord(value.endpoints)) return false;
   if (Object.keys(value.endpoints).length === 0) return false;
+  if (!hasBothProjectEndpoints(value.endpoints)) return false;
   if (!isNonEmptyString(value.adminPassword)) return false;
   return true;
 }

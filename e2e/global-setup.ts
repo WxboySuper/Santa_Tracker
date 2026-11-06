@@ -1,4 +1,4 @@
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { chmod, mkdtemp, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -30,7 +30,9 @@ export default async function globalSetup(_config: FullConfig) {
     const dataRoots = await prepareFixtureData(path.join(appRoot, "data"), temporaryRoot);
     servers = startServers(appRoot, dataRoots, password, secret);
     const endpoints = await waitForServers(servers);
+    await rm(runtimeFile, { force: true });
     await writeFile(runtimeFile, JSON.stringify({ endpoints, adminPassword: password }), { mode: 0o600 });
+    await chmod(runtimeFile, 0o600);
   } catch (error) {
     await cleanup(servers, temporaryRoot, runtimeFile);
     throw error;
