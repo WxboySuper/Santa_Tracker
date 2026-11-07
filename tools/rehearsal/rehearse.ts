@@ -93,8 +93,9 @@ async function waitForServer(url: string): Promise<void> {
     try {
       if ((await fetch(`${url}/api/health`)).ok) return;
     } catch {
-      await delay(500);
+      // Not up yet; back off below.
     }
+    await delay(500);
   }
   throw new Error(`Local server did not start at ${url}`);
 }

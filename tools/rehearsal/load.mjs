@@ -80,8 +80,9 @@ async function waitForServer() {
     try {
       if ((await fetch(`${origin}/api/health`)).ok) return;
     } catch {
-      await delay(500);
+      // Not up yet; back off below.
     }
+    await delay(500);
   }
   throw new Error(`Local server did not start at ${origin}`);
 }
@@ -90,5 +91,7 @@ async function stopServer() {
   if (child.exitCode != null) return;
   child.kill("SIGTERM");
   await Promise.race([new Promise(resolve => child.once("exit", resolve)), delay(5_000)]);
-  if (child.exitCode == null) child.kill("SIGKILL");
+  if (child.exitCode != null) return;
+  child.kill("SIGKILL");
+  await Promise.race([new Promise(resolve => child.once("exit", resolve)), delay(5_000)]);
 }
