@@ -94,4 +94,5 @@ async function stopServer() {
   if (child.exitCode != null) return;
   child.kill("SIGKILL");
   await Promise.race([new Promise(resolve => child.once("exit", resolve)), delay(5_000)]);
+  if (child.exitCode == null) throw new Error("load server did not exit");
 }
