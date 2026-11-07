@@ -45,5 +45,7 @@ The Worker keeps the last successfully read, valid flag document in memory per i
 
 ## Owner decisions needed
 
+For the local tracker rehearsal, load test, and Christmas Eve checklist, see [REHEARSAL.md](REHEARSAL.md).
+
 - Leave or roll back the R2 data rewrite from the accidental local `--remote --activate` test on 2026-11-05 (the live Advent pointer was replaced by the checked-in calendar). The prior versions are kept in R2.
 - Approve a throwaway Worker for rehearsal and load tests, or keep everything local.
