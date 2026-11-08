@@ -18,8 +18,10 @@ export function countdownCaption(daysLeft: number): string {
   return CAPTIONS[CAPTIONS.length - 1]?.[1] ?? '';
 }
 
-/** How many bulbs hang on the garland and how many are still lit: one bulb per day, Nov 1 to Dec 24. */
+export const GARLAND_BULBS = 54;
+
+/** One bulb per day, Nov 1 to Dec 24. Before November every bulb is lit; the count never grows past the garland. */
 export function garlandBulbs(daysLeft: number): { total: number; lit: number } {
-  const lit = Math.max(1, Math.floor(daysLeft) + 1);
-  return { total: Math.max(54, lit), lit: Math.min(lit, Math.max(54, lit)) };
+  const lit = Math.min(GARLAND_BULBS, Math.max(1, Math.floor(daysLeft) + 1));
+  return { total: GARLAND_BULBS, lit };
 }

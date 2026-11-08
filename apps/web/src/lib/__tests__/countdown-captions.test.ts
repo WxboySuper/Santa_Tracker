@@ -19,7 +19,7 @@ describe('garlandBulbs', () => {
     expect(garlandBulbs(0).lit).toBe(1);
   });
   it('never has more lit bulbs than total, even before November', () => {
-    const bulbs = garlandBulbs(80);
-    expect(bulbs.lit).toBeLessThanOrEqual(bulbs.total);
+    expect(garlandBulbs(80)).toEqual({ total: 54, lit: 54 });
+    expect(garlandBulbs(365)).toEqual({ total: 54, lit: 54 });
   });
 });
