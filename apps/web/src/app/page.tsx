@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { createTranslator } from '@santa-tracker/localization';
 import CountdownTiles from '@/components/countdown-tiles';
-import NorthPoleScene from '@/components/north-pole-scene';
+import CountdownHero from '@/components/countdown-hero';
 import { canViewFeature } from '@/lib/access';
 import { deriveHomeCards, type HomeCardState } from '@/lib/home-cards';
 import { isAdventEnabled } from '@/lib/config';
@@ -79,7 +79,7 @@ export default async function HomePage() {
         </Link>
       </nav>
       <main id="main" className="home-main">
-        <NorthPoleScene label={t('home.heroLabel')} />
+        <CountdownHero label={t('home.heroLabel')} />
         <header className="home-heading">
           <p className="home-kicker">{t('home.kicker')}</p>
           <h1>{t('home.title')}</h1>
