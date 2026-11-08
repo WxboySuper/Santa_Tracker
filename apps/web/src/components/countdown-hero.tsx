@@ -24,15 +24,11 @@ function useDaysLeft(): number | null {
 
 type Painter = { redraw: () => void; stop: () => void };
 
-/** Sizes the canvas to its box, redraws on resize, and runs the 30 fps loop unless motion is reduced. */
-function startPainter(canvas: HTMLCanvasElement, context: CanvasRenderingContext2D, bulbsRef: RefObject<Bulbs | null>): Painter {
-  const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+const prefersReducedMotion = (): boolean => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/** Owns the canvas size and the scene built for it. */
+function createSurface(canvas: HTMLCanvasElement, context: CanvasRenderingContext2D, onResize: () => void): { scene: () => NightScene | null; stop: () => void } {
   let scene: NightScene | null = null;
-  let handle = 0;
-  let last = 0;
-  const still = () => {
-    if (scene) drawNightScene(context, scene, STILL_TIME, bulbsRef.current);
-  };
   const resize = () => {
     const ratio = Math.min(window.devicePixelRatio || 1, 2);
     const { width, height } = canvas.getBoundingClientRect();
@@ -41,23 +37,44 @@ function startPainter(canvas: HTMLCanvasElement, context: CanvasRenderingContext
     canvas.height = Math.round(height * ratio);
     context.setTransform(ratio, 0, 0, ratio, 0, 0);
     scene = createNightScene(width, height);
-    if (reduced) still();
-  };
-  const tick = (now: number) => {
-    handle = requestAnimationFrame(tick);
-    if (document.hidden || !scene || now - last < FRAME_MS) return;
-    last = now;
-    drawNightScene(context, scene, now / 1000, bulbsRef.current);
+    onResize();
   };
   resize();
   const observer = new ResizeObserver(resize);
   observer.observe(canvas);
-  if (!reduced) handle = requestAnimationFrame(tick);
+  return { scene: () => scene, stop: () => observer.disconnect() };
+}
+
+function startLoop(paint: (time: number) => void): () => void {
+  let handle = 0;
+  let last = 0;
+  const tick = (now: number) => {
+    handle = requestAnimationFrame(tick);
+    if (document.hidden || now - last < FRAME_MS) return;
+    last = now;
+    paint(now / 1000);
+  };
+  handle = requestAnimationFrame(tick);
+  return () => cancelAnimationFrame(handle);
+}
+
+/** Draws a still frame under reduced motion, otherwise runs the 30 fps loop. */
+function startPainter(canvas: HTMLCanvasElement, context: CanvasRenderingContext2D, bulbsRef: RefObject<Bulbs | null>): Painter {
+  const reduced = prefersReducedMotion();
+  let surface: ReturnType<typeof createSurface> | null = null;
+  const paint = (time: number) => {
+    const scene = surface?.scene();
+    if (scene) drawNightScene(context, scene, { time, bulbs: bulbsRef.current });
+  };
+  const still = () => paint(STILL_TIME);
+  surface = createSurface(canvas, context, () => reduced && still());
+  if (reduced) still();
+  const stopLoop = reduced ? () => undefined : startLoop(paint);
   return {
     redraw: () => reduced && still(),
     stop: () => {
-      cancelAnimationFrame(handle);
-      observer.disconnect();
+      stopLoop();
+      surface?.stop();
     },
   };
 }

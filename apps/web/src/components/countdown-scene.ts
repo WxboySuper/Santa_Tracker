@@ -6,7 +6,7 @@ type House = { x: number; w: number; h: number; roof: number; windows: { x: numb
 type Pine = { x: number; h: number; w: number };
 type Bulb = { colorIndex: number; phase: number };
 type Ridge = { base: number; amplitude: number; freq: number; fill: string | CanvasGradient; offset: number };
-type Frame = { time: number; bulbs: Bulbs };
+export type Frame = { time: number; bulbs: Bulbs | null };
 
 export type NightScene = {
   width: number;
@@ -84,7 +84,7 @@ function drawSky(context: CanvasRenderingContext2D, scene: NightScene): void {
   context.fillRect(0, 0, width, height);
 }
 
-function drawStars(context: CanvasRenderingContext2D, scene: NightScene, time: number): void {
+function drawStars(context: CanvasRenderingContext2D, scene: NightScene, { time }: Frame): void {
   context.fillStyle = '#fff4dc';
   for (const star of scene.stars) {
     context.globalAlpha = 0.35 + 0.6 * (0.5 + 0.5 * Math.sin(time * 1.4 + star.phase));
@@ -101,7 +101,7 @@ const RIBBONS = [
   { base: 0.36, spread: 0.14, hue: '90, 220, 255', speed: 0.07, freq: 0.0058 },
 ];
 
-function drawAurora(context: CanvasRenderingContext2D, scene: NightScene, time: number): void {
+function drawAurora(context: CanvasRenderingContext2D, scene: NightScene, { time }: Frame): void {
   const { width, height } = scene;
   context.save();
   context.globalCompositeOperation = 'lighter';
@@ -169,7 +169,7 @@ function drawPine(context: CanvasRenderingContext2D, baseY: number, pine: Pine):
   context.fill();
 }
 
-function drawWindow(context: CanvasRenderingContext2D, house: House, win: House['windows'][number], baseY: number, time: number): void {
+function drawWindow(context: CanvasRenderingContext2D, house: House, win: House['windows'][number], baseY: number, { time }: Frame): void {
   const wx = house.x - house.w / 2 + win.x * house.w - house.w * 0.09;
   const wy = baseY - house.h + win.y * house.h;
   const flicker = 0.85 + 0.15 * Math.sin(time * 2.3 + win.phase) * Math.sin(time * 0.7 + win.phase * 2);
@@ -184,7 +184,7 @@ function drawWindow(context: CanvasRenderingContext2D, house: House, win: House[
   context.fillRect(wx, wy, house.w * 0.18, house.w * 0.2);
 }
 
-function drawHouse(context: CanvasRenderingContext2D, scene: NightScene, house: House, time: number): void {
+function drawHouse(context: CanvasRenderingContext2D, scene: NightScene, house: House, frame: Frame): void {
   const baseY = scene.skyline + scene.height * 0.07;
   context.fillStyle = '#3a2b2d';
   context.fillRect(house.x - house.w / 2, baseY - house.h, house.w, house.h);
@@ -199,21 +199,21 @@ function drawHouse(context: CanvasRenderingContext2D, scene: NightScene, house: 
     context.fillStyle = '#2b2326';
     context.fillRect(house.x + house.w * 0.22, baseY - house.h - house.roof * 0.9, house.w * 0.1, house.roof * 0.6);
   }
-  house.windows.forEach((win) => drawWindow(context, house, win, baseY, time));
+  house.windows.forEach((win) => drawWindow(context, house, win, baseY, frame));
 }
 
-function drawVillage(context: CanvasRenderingContext2D, scene: NightScene, time: number): void {
+function drawVillage(context: CanvasRenderingContext2D, scene: NightScene, frame: Frame): void {
   drawRidge(context, scene, { base: scene.skyline - scene.height * 0.12, amplitude: scene.height * 0.05, freq: 0.004, fill: '#1a2b42', offset: 1.2 });
   drawRidge(context, scene, { base: scene.skyline - scene.height * 0.03, amplitude: scene.height * 0.035, freq: 0.007, fill: '#233a50', offset: 4 });
   scene.pines.forEach((pine) => drawPine(context, scene.skyline + scene.height * 0.05, pine));
-  scene.houses.forEach((house) => drawHouse(context, scene, house, time));
+  scene.houses.forEach((house) => drawHouse(context, scene, house, frame));
   const snow = context.createLinearGradient(0, scene.skyline, 0, scene.height);
   snow.addColorStop(0, '#cddbe2');
   snow.addColorStop(1, '#7f98aa');
   drawRidge(context, scene, { base: scene.skyline + scene.height * 0.08, amplitude: scene.height * 0.025, freq: 0.006, fill: snow, offset: 0.4 });
 }
 
-function drawSnowfall(context: CanvasRenderingContext2D, scene: NightScene, time: number): void {
+function drawSnowfall(context: CanvasRenderingContext2D, scene: NightScene, { time }: Frame): void {
   context.fillStyle = '#eef6f6';
   for (const flake of scene.flakes) {
     const y = (flake.y + time * flake.speed) % (scene.height + 10);
@@ -245,7 +245,7 @@ function drawWire(context: CanvasRenderingContext2D, scene: NightScene): void {
   context.stroke();
 }
 
-function drawBulb(context: CanvasRenderingContext2D, scene: NightScene, index: number, frame: Frame): void {
+function drawBulb(context: CanvasRenderingContext2D, scene: NightScene, index: number, frame: Frame & { bulbs: Bulbs }): void {
   const { time, bulbs } = frame;
   const bulb = scene.bulbs[index % scene.bulbs.length];
   const sprite = bulb ? scene.glows[bulb.colorIndex] : undefined;
@@ -269,18 +269,18 @@ function drawBulb(context: CanvasRenderingContext2D, scene: NightScene, index: n
   context.restore();
 }
 
-function drawGarland(context: CanvasRenderingContext2D, scene: NightScene, time: number, bulbs: Bulbs): void {
+function drawGarland(context: CanvasRenderingContext2D, scene: NightScene, frame: Frame & { bulbs: Bulbs }): void {
   drawWire(context, scene);
-  for (let index = 0; index < bulbs.total; index += 1) drawBulb(context, scene, index, { time, bulbs });
+  for (let index = 0; index < frame.bulbs.total; index += 1) drawBulb(context, scene, index, frame);
 }
 
-export function drawNightScene(context: CanvasRenderingContext2D, scene: NightScene, time: number, bulbs: Bulbs | null): void {
+export function drawNightScene(context: CanvasRenderingContext2D, scene: NightScene, frame: Frame): void {
   context.clearRect(0, 0, scene.width, scene.height);
   drawSky(context, scene);
-  drawStars(context, scene, time);
-  drawAurora(context, scene, time);
+  drawStars(context, scene, frame);
+  drawAurora(context, scene, frame);
   drawMoon(context, scene);
-  drawVillage(context, scene, time);
-  drawSnowfall(context, scene, time);
-  if (bulbs) drawGarland(context, scene, time, bulbs);
+  drawVillage(context, scene, frame);
+  drawSnowfall(context, scene, frame);
+  if (frame.bulbs) drawGarland(context, scene, { ...frame, bulbs: frame.bulbs });
 }
