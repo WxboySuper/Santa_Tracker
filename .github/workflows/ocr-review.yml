@@ -81,7 +81,7 @@ jobs:
       - name: Resolve PR refs for manual comments
         id: pr-refs
         if: github.event_name == 'issue_comment'
-        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7.1.0
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         with:
           script: |
             const prNumber = Number(
@@ -102,7 +102,7 @@ jobs:
 
       - name: Mark the manual review as pending on the PR head
         if: github.event_name == 'issue_comment'
-        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7.1.0
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         env:
           HEAD_SHA: ${{ steps.pr-refs.outputs.head_sha }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
@@ -209,7 +209,7 @@ jobs:
       - name: Post OCR digest summary
         id: ocr-digest
         if: always() && steps.skip.outputs.skip != 'true' && steps.ocr.outcome != 'cancelled' && steps.ocr.outcome != 'skipped'
-        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7.1.0
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         env:
           OCR_OUTCOME: ${{ steps.ocr.outcome }}
           DIGEST_PR_NUMBER: ${{ env.PR_NUMBER }}
@@ -375,7 +375,7 @@ jobs:
       - name: Enforce medium-or-higher OCR findings (merge gate)
         id: ocr-gate
         if: always()
-        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7.1.0
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         env:
           OCR_OUTCOME: ${{ steps.ocr.outcome }}
           OCR_SKIPPED: ${{ steps.skip.outputs.skip }}
@@ -417,7 +417,7 @@ jobs:
 
       - name: Report the ocr-review status on the PR head
         if: always() && github.event_name == 'issue_comment'
-        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7.1.0
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         env:
           HEAD_SHA: ${{ steps.pr-refs.outputs.head_sha }}
           GATE_OUTCOME: ${{ steps.ocr-gate.outcome }}
