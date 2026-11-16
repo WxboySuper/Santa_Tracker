@@ -24,8 +24,8 @@
     "@santa-tracker/route-engine": "workspace:*",
     "@santa-tracker/ui": "workspace:*",
     "@vinext/cloudflare": "latest",
-    "jose": "^6.2.15",
-    "next": "^16.4.5",
+    "jose": "^6.2.17",
+    "next": "^16.4.6",
     "ol": "10.11.0",
     "ol-mapbox-style": "13.9.0",
     "react": "^19.3.1",
@@ -36,21 +36,21 @@
   "devDependencies": {
     "@cloudflare/vite-plugin": "beta",
     "@santa-tracker/test-fixtures": "workspace:*",
-    "@tailwindcss/postcss": "^4.3.4",
+    "@tailwindcss/postcss": "^4.3.5",
     "@types/node": "^26.6.6",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "@types/three": "0.187.0",
-    "@vitejs/plugin-react": "^6.2.1",
+    "@vitejs/plugin-react": "^6.3.0",
     "@vitejs/plugin-rsc": "^0.5.39",
     "cf": "latest",
     "postcss": "^8.5.32",
     "react-server-dom-webpack": "^19.3.1",
-    "tailwindcss": "^4.3.4",
+    "tailwindcss": "^4.3.5",
     "typescript": "^5.8.3",
-    "vinext": "^1.4.3",
-    "vite": "8.3.6",
+    "vinext": "^1.4.5",
+    "vite": "8.3.8",
     "vitest": "5.1.0",
-    "wrangler": "^4.158.0"
+    "wrangler": "^4.161.0"
   }
 }
