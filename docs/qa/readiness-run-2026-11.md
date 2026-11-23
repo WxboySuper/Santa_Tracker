@@ -25,7 +25,7 @@ The kit restarts Next for each injected time. It reports per-request durations i
 
 Command: `pnpm load:local`
 
-The documented profile is 300 concurrent workers for 30 seconds. The script starts Next.js in development mode; it does not support an external server or a vinext production build. The request timeout is 10 seconds. This run completed with exit code 1:
+The documented profile is 300 concurrent workers for 30 seconds. The original run starts Next.js in development mode and uses a 10-second request timeout. This run completed with exit code 1:
 
 | Endpoint | Requests | Errors | Error rate | p50 | p95 | p99 |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
@@ -33,7 +33,18 @@ The documented profile is 300 concurrent workers for 30 seconds. The script star
 | `/api/route` | 371 | 213 | 57.41% | 10003.1 ms | 10193.8 ms | 10257.4 ms |
 | `/api/health` | 371 | 198 | 53.37% | 10002.0 ms | 10194.7 ms | 10257.8 ms |
 
-Total observed throughput was 37.1 requests/second (1113 completed requests divided by 30 seconds). This profile saturated the local development server and hit the runner timeout. It is not a successful load result and does not establish Cloudflare edge capacity. A vinext production-mode local run was not performed because the current runner hardcodes `next dev` and the docs provide no production runner command.
+Total observed throughput was 37.1 requests/second (1113 completed requests divided by 30 seconds). This profile saturated the local development server and hit the runner timeout. It is not a successful load result and says nothing about production capacity.
+
+I also built the vinext bundle and started its local Cloudflare preview runtime:
+
+```powershell
+$env:VINEXT_BUILD = '1'
+pnpm santa:publish
+pnpm --filter @santa-tracker/web exec vite build
+pnpm --dir apps/web exec vite preview --host 127.0.0.1 --port 4319
+```
+
+The build completed. Local `GET /api/health` returned 200, but `/api/route` and `/tracker` returned 404. The generated Worker configuration fixes `SANTA_STORAGE_BACKEND=r2` and binds `SANTA_SNAPSHOTS`; the preview therefore uses the local Cloudflare R2 emulator rather than the application's filesystem backend. It also had no active route snapshot, and the tracker season was closed on the run date. I stopped there to keep the rehearsal on the requested filesystem backend. A comparable vinext load profile is infeasible under that constraint without a code/config change to make the production build use the filesystem adapter. This local run does not establish Cloudflare edge capacity.
 
 ## #325, map outage and emergency switch
 
@@ -45,21 +56,37 @@ pnpm exec playwright test e2e/map-outage.spec.ts --project=open
 pnpm exec playwright test e2e/open-season.spec.ts --project=open -g "the admin emergency switch hides and restores the tracker for visitors"
 ```
 
-The existing outage test passed with both public tile providers blocked. The new deterministic local spec blocks `tiles.openfreemap.org` and `tile.openstreetmap.org`, confirms a raster request follows the vector failure, waits for the text view, verifies the TV dashboard stays visible, and checks `/api/route` is unchanged across the outage. It passed with measured local delays of 170 ms vector-to-raster and 372 ms raster-to-text. The journey remains available in text mode.
+The existing outage test passed with both public tile providers blocked. The new deterministic local spec blocks `tiles.openfreemap.org` and `tile.openstreetmap.org`, confirms a raster request follows the vector failure, waits for the text view, verifies the TV dashboard stays visible, and checks `/api/route` is unchanged across the outage. On the post-rebase run, vector-to-raster took 182 ms and raster-to-text took 239 ms. The journey remains available in text mode.
 
 The emergency switch test passed against the E2E suite's isolated filesystem store. It logged in with a generated local test password, hid the tracker, observed visitor `404` responses for `/tracker` and `/api/route`, then restored the flag and observed `/tracker` return `200`. No real secret or production backend was used.
 
 ## #326, snapshots and backup recovery
 
-The versioned filesystem store and route activation/rollback APIs exist, and the existing unit suite covers save, activate, read, and rollback. This run did not complete the requested end-to-end snapshot activation and backup restore rehearsal.
+The admin endpoint `GET /api/admin/backup/export` exports route locations. The new local-only restore script validates that format, converts it to the route snapshot format, and writes one version through the filesystem versioned store. It refuses to overwrite an active route. It has no R2 binding or Wrangler path.
 
-The admin endpoint is `GET /api/admin/backup/export`. It exports route locations. There is no matching backup restore endpoint. `POST /api/admin/locations/import` accepts a location list and creates/activates a route snapshot, but it is not a general backup restore operation and the export response is not accepted as-is. A recovery drill needs an explicit conversion procedure or a purpose-built restore workflow with validation. No local restore was attempted without a reliable, documented path.
+Command:
+
+```text
+pnpm exec playwright test e2e/backup-restore.spec.ts --project=open
+```
+
+The local drill passed against the isolated E2E filesystem fixture. It fetched the backup export through the authenticated admin API, saved and activated an original route snapshot, activated a changed snapshot, rolled back to the original version, and verified the active snapshot matched. It restored the backup through the script into a clean temporary data directory and verified the restored route document against the export. The export contained 185 locations.
+
+```text
+BACKUP_RECOVERY versions=2026-11-23T19-36-13-883Z-r8a98zqb,2026-11-23T19-36-14-026Z-0tltieuq rollback=2026-11-23T19-36-13-883Z-r8a98zqb restored=2026-11-23T19-36-14-344Z-ekvu4k61 locations=185
+```
+
+For a standalone restore from an existing export, use:
+
+```text
+pnpm exec tsx tools/rehearsal/restore-backup.ts --input <export.json> --data-dir <empty-local-data-dir>
+```
 
 ```text
 NOT RUN: requires production access: inspect or change production R2 pointers, restore a live R2 backup, or verify production recovery.
 ```
 
-No production access was used. The local activation/rollback/export/restore sequence remains open.
+No production access was used. Production pointer restore remains open. The local filesystem activation/rollback/export/restore drill passed.
 
 ## #327 and #328, runbook review
 
@@ -68,8 +95,9 @@ The rollback, cache purge, uptime, and launch-readiness docs correctly warn agai
 Gaps found:
 
 - The launch checklist calls for rehearsal outputs to be saved, but did not link a run record. This file supplies local evidence and keeps production evidence separate.
-- The backup export route has no corresponding restore route, and the rollback runbook does not document the local filesystem snapshot/restore sequence.
-- `pnpm load:local` is described as an ordinary local load check but always starts Next dev mode. It cannot target the vinext production-mode server described in the issue request.
+- There is no admin restore endpoint. The new operator script covers local filesystem recovery only; production restore remains an approved R2 operator action.
+- The built vinext preview requires the local R2 binding and had no active route snapshot; it does not use the app filesystem adapter. With the filesystem-only constraint, it could not provide a comparable load run.
+- `pnpm load:local` can now target an explicitly supplied loopback origin through `LOAD_ORIGIN`; it still starts Next dev by default.
 - The existing outage test covered both providers failing together. The new test adds a check that the raster request occurs after the vector failure and records local fallback timing.
 - There is no staging Worker rehearsal. Production R2 pointer restore, Worker rollback, cache purge, monitoring delivery, and edge load remain owner-run tasks.
 
@@ -80,16 +108,17 @@ After the documentation and runner changes:
 ```text
 pnpm lint       PASS
 pnpm typecheck  PASS
-pnpm test       PASS, 75 files and 515 tests
+pnpm test       PASS, 76 files and 519 tests
 ```
 
 ## Owner checklist
 
 - [ ] Review and approve `docs/planning/route-2026-draft/review.html` and Advent content.
 - [ ] Decide whether to keep local-only rehearsals or approve a separate throwaway Worker and isolated bucket for edge rehearsals.
-- [ ] Run a local vinext production load profile after the runner can target a built server; then arrange an approved edge-capacity check.
-- [ ] Define and rehearse a filesystem backup restore procedure, including the route export/import shape and the versioned active pointer.
-- [ ] Run and record a local end-to-end publish, activate, rollback, and restore drill.
+- [ ] Decide whether to add a safe filesystem backend option to the vinext runtime so it can be load-tested locally without the Cloudflare R2 emulator.
+- [ ] Arrange an approved edge-capacity check; local measurements do not measure Cloudflare edge capacity.
+- [ ] Review and adopt the local restore script's route-field mapping before relying on it for any operator recovery.
+- [ ] Rehearse production R2 restore through the approved operator process.
 - [ ] Review the rollback, cache purge, and change-control runbooks before launch.
 - [ ] Configure uptime alerts and verify delivery to the launch owner.
 - [ ] Approve any production R2 pointer change, live cache purge, production smoke test, and deploy through the approved operator workflow.

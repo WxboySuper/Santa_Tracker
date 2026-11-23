@@ -6,7 +6,7 @@ What has to be true before Advent opens (Nov 30 00:00 UTC; Day 1 at Dec 1 12:00 
 
 - **Evidenced locally:** injected-clock season and journey timeline against a temporary fixture; map vector-to-raster-to-text fallback under blocked local browser requests; filesystem-backed emergency switch hide and restore.
 - **Failed locally:** the documented 300-worker dev-server load profile exceeded the runner timeout and returned error rates from 53.37% to 100%. This is evidence of local dev-server saturation, not a passing load result.
-- **Still open:** a vinext production-mode load run, snapshot activation/rollback plus backup restore, production edge capacity, production rollback and cache purge, and alert delivery. See the readiness run for commands, results, and owner actions.
+- **Still open:** a vinext load run using the required application filesystem backend, production R2 recovery, production edge capacity, production rollback and cache purge, and alert delivery. The vinext preview binds local R2 and cannot use the application filesystem backend. See the readiness run for the local snapshot and restore evidence and remaining owner actions.
 
 ## What already protects launch
 
