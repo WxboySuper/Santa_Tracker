@@ -60,11 +60,28 @@ function assertBackupEnvelope({ value }: { value: Record<string, unknown> }): Re
   total_locations: number;
   route: unknown[];
 } {
-  if (typeof value.backup_timestamp !== "string") throw new Error("Backup file must be an admin route export");
-  if (!Array.isArray(value.route)) throw new Error("Backup file must be an admin route export");
-  if (value.total_locations !== value.route.length) throw new Error("Backup total_locations must match the route");
-  if (value.route.length === 0) throw new Error("Backup route must not be empty");
+  assertBackupTimestamp({ value });
+  const route = assertBackupRoute({ value });
+  assertLocationCount({ value, actualCount: route.length });
+  assertRouteHasLocations({ route });
   return value as Record<string, unknown> & { backup_timestamp: string; total_locations: number; route: unknown[] };
+}
+
+function assertBackupTimestamp({ value }: { value: Record<string, unknown> }): void {
+  if (typeof value.backup_timestamp !== "string") throw new Error("Backup file must be an admin route export");
+}
+
+function assertBackupRoute({ value }: { value: Record<string, unknown> }): unknown[] {
+  if (!Array.isArray(value.route)) throw new Error("Backup file must be an admin route export");
+  return value.route;
+}
+
+function assertLocationCount({ value, actualCount }: { value: Record<string, unknown>; actualCount: number }): void {
+  if (value.total_locations !== actualCount) throw new Error("Backup total_locations must match the route");
+}
+
+function assertRouteHasLocations({ route }: { route: unknown[] }): void {
+  if (route.length === 0) throw new Error("Backup route must not be empty");
 }
 
 function parseLocation({ value, index }: ValueAtIndex): BackupLocation {
@@ -126,9 +143,9 @@ function validateNonNegativeNumber({ value, index, field }: FieldAtIndex): void 
 
 function validatePriority({ value, index }: ValueAtIndex): void {
   if (value == null) return;
-  if (typeof value !== "number" || !Number.isInteger(value) || value < 1 || value > 3) {
-    throw new Error(`Backup route item ${index} has invalid priority`);
-  }
+  if (typeof value !== "number") throw new Error(`Backup route item ${index} has invalid priority`);
+  if (!Number.isInteger(value)) throw new Error(`Backup route item ${index} has invalid priority`);
+  if (value < 1 || value > 3) throw new Error(`Backup route item ${index} has invalid priority`);
 }
 
 function finiteNumber({ value, index, field }: FieldAtIndex): number {
@@ -158,7 +175,9 @@ function optionalNumber({ value }: { value: unknown }): number | null {
 }
 
 function asRecord({ value }: { value: unknown }): Record<string, unknown> | null {
-  if (typeof value !== "object" || value === null || Array.isArray(value)) return null;
+  if (typeof value !== "object") return null;
+  if (value === null) return null;
+  if (Array.isArray(value)) return null;
   return value as Record<string, unknown>;
 }
 
