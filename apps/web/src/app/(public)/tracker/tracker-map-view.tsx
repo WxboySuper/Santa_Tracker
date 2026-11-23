@@ -232,7 +232,7 @@ function CountdownLayer({ immersive, controlsVisible, ...props }: { immersive: b
 
 /** Shows the takeoff countdown in the standard tracker. */
 function CountdownHud({ locale, translator }: { locale: string; translator: Translator }) {
-  return <div className="countdown-hud absolute top-20 right-4 bg-black/40 backdrop-blur-md rounded-xl p-4 text-white">
+  return <div className="countdown-hud absolute top-44 right-4 bg-black/40 backdrop-blur-md rounded-xl p-4 text-white">
     <p className="countdown-hud-label text-xs opacity-70">{translator.t("home.countdown")}</p>
     <Countdown locale={locale} className="countdown-hud-value font-mono text-lg" flyingText={translator.t("countdown.flying")} />
   </div>;
