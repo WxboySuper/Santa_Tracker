@@ -1,0 +1,40 @@
+name: Bundle budgets
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: bundle-budget-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  report:
+    name: Advisory bundle report
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
+        with:
+          version: 10.30.3
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '22'
+          cache: pnpm
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Build client bundles
+        working-directory: apps/web
+        env:
+          VINEXT_BUILD: '1'
+          SECRET_KEY: bundle-budget-ci-secret
+          ADMIN_PASSWORD: bundle-budget-ci-admin
+        run: pnpm exec vite build
+      - name: Measure client bundles
+        run: node tools/bundle-budget.mjs
