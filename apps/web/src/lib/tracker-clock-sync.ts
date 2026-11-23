@@ -27,17 +27,21 @@ export function createClockSync(
 export function createMonotonicProgressGuard(tolerance = 0.01): (progress: number, version: string) => number {
   assertTolerance(tolerance);
 
-  let previous: number | undefined;
-  let previousVersion: string | undefined;
+  const previous: ProgressSnapshot = {};
   return (progress, version) => {
-    if (!Number.isFinite(progress)) return lastProgress(previous);
+    if (!Number.isFinite(progress)) return lastProgress(previous.progress);
     const next = clampProgress(progress);
-    if (shouldAcceptProgress(next, version, previous, previousVersion, tolerance)) {
-      previous = next;
-      previousVersion = version;
+    if (shouldAcceptProgress(next, version, previous, tolerance)) {
+      previous.progress = next;
+      previous.version = version;
     }
-    return lastProgress(previous);
+    return lastProgress(previous.progress);
   };
+}
+
+interface ProgressSnapshot {
+  progress?: number;
+  version?: string;
 }
 
 function parseTimestamp(value: string | Date | number): number {
@@ -65,13 +69,12 @@ function assertTolerance(tolerance: number): void {
 function shouldAcceptProgress(
   next: number,
   version: string,
-  previous: number | undefined,
-  previousVersion: string | undefined,
+  previous: ProgressSnapshot,
   tolerance: number,
 ): boolean {
-  if (previous === undefined) return true;
-  if (version !== previousVersion) return true;
-  return next >= previous - tolerance;
+  if (previous.progress === undefined) return true;
+  if (version !== previous.version) return true;
+  return next >= previous.progress - tolerance;
 }
 
 function lastProgress(previous: number | undefined): number {
