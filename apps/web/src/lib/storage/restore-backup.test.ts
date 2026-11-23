@@ -2,10 +2,10 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { createFilesystemBackend } from "../../apps/web/src/lib/storage/filesystem-backend";
-import { createVersionedSnapshotStore } from "../../apps/web/src/lib/storage/versioned-store-core";
-import { DATASET_SANTA_ROUTE } from "../../apps/web/src/lib/storage/types";
-import { backupToRouteDocument, parseRouteBackupExport, restoreBackupFile } from "./restore-backup";
+import { createFilesystemBackend } from "./filesystem-backend";
+import { createVersionedSnapshotStore } from "./versioned-store-core";
+import { DATASET_SANTA_ROUTE } from "./types";
+import { backupToRouteDocument, parseRouteBackupExport, restoreBackupFile } from "../../../../../tools/rehearsal/restore-backup";
 
 const roots: string[] = [];
 async function tempDir(): Promise<string> {

@@ -108,10 +108,10 @@ After the documentation and runner changes:
 ```text
 pnpm lint       PASS
 pnpm typecheck  PASS
-pnpm test       PASS on rerun, 79 files and 547 tests
+pnpm test       PASS, 80 files and 550 tests
 ```
 
-After rebasing again onto the latest `main` and simplifying the backup validator in response to the CodeScene complexity finding, `pnpm lint` and `pnpm typecheck` passed. The first `pnpm test` attempt had one 5-second bootstrap test timeout while the full suite spawned 79 workers; the retry passed all 547 tests. The backup recovery E2E passed, and the map outage E2E passed alone with the timings above. CodeScene's new-head review had reported complexity in `parseLocation`; validation was split into smaller helpers. The new-head review and CI checks were still running at the final PR status check.
+After rebasing again onto the latest `main`, the restore export parser was split into smaller validation helpers in response to CodeScene complexity findings. `pnpm lint` and `pnpm typecheck` passed. One earlier full-suite attempt had a 5-second bootstrap test timeout while the suite spawned 79 workers; the retry passed. After the parser refactor, the full suite passed all 550 tests. The backup recovery E2E passed, and the map outage E2E passed alone with the timings above. PR checks for this final follow-up commit remain pending.
 
 ## Owner checklist
 

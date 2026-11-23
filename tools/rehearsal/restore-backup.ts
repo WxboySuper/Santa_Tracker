@@ -28,20 +28,32 @@ export interface RouteBackupExport {
 }
 
 export function parseRouteBackupExport(raw: string): RouteBackupExport {
+  const value = parseBackupJson(raw);
+  assertBackupEnvelope(value);
+  const route = value.route.map((item, index) => parseLocation(item, index));
+  return { backup_timestamp: value.backup_timestamp, total_locations: route.length, route };
+}
+
+function parseBackupJson(raw: string): Record<string, unknown> {
   let value: unknown;
   try {
     value = JSON.parse(raw) as unknown;
   } catch {
     throw new Error("Backup file must contain valid JSON");
   }
-  if (!isRecord(value) || typeof value.backup_timestamp !== "string" || !Array.isArray(value.route)) {
-    throw new Error("Backup file must be an admin route export");
-  }
-  if (value.total_locations !== value.route.length || value.route.length === 0) {
-    throw new Error("Backup total_locations must match a non-empty route");
-  }
-  const route = value.route.map((item, index) => parseLocation(item, index));
-  return { backup_timestamp: value.backup_timestamp, total_locations: route.length, route };
+  if (!isRecord(value)) throw new Error("Backup file must be an admin route export");
+  return value;
+}
+
+function assertBackupEnvelope(value: Record<string, unknown>): asserts value is Record<string, unknown> & {
+  backup_timestamp: string;
+  total_locations: number;
+  route: unknown[];
+} {
+  if (typeof value.backup_timestamp !== "string") throw new Error("Backup file must be an admin route export");
+  if (!Array.isArray(value.route)) throw new Error("Backup file must be an admin route export");
+  if (value.total_locations !== value.route.length) throw new Error("Backup total_locations must match the route");
+  if (value.route.length === 0) throw new Error("Backup route must not be empty");
 }
 
 function parseLocation(value: unknown, index: number): BackupLocation {
