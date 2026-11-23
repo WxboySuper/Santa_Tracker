@@ -1,7 +1,8 @@
 name: Bundle budgets
 
 on:
-  pull_request:
+  # Load the workflow from the base branch; the build job runs PR code without a token.
+  pull_request_target:
     branches: [main]
 
 permissions:
@@ -77,12 +78,6 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.base.sha }}
           persist-credentials: false
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          repository: ${{ github.event.pull_request.head.repo.full_name }}
-          ref: ${{ github.event.pull_request.head.sha }}
-          path: .head
-          persist-credentials: false
       - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
         with:
           name: bundle-budget-${{ github.run_id }}-${{ github.run_attempt }}
@@ -90,7 +85,7 @@ jobs:
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: '22'
-      - name: Select trusted checker and limits
+      - name: Verify trusted checker and limits
         id: trusted
         env:
           GITHUB_TOKEN: ${{ github.token }}
@@ -98,7 +93,6 @@ jobs:
         run: |
           node --input-type=module <<'NODE'
           import fs from 'node:fs';
-          import path from 'node:path';
 
           const files = [];
           for (let page = 1; ; page += 1) {
@@ -119,27 +113,21 @@ jobs:
             process.exit(1);
           }
 
-          const checker = missing.includes('tools/bundle-budget.mjs') ? 'head' : 'base';
-          const config = missing.includes('tools/bundle-budget.config.json') ? 'head' : 'base';
+          if (missing.length) {
+            console.log('::notice::One-time bootstrap run: this PR adds the missing bundle checker/config file(s). Budget enforcement is skipped until a trusted base copy is available; no PR-supplied checker or limit is run.');
+            fs.appendFileSync(process.env.GITHUB_OUTPUT, 'bootstrap=true\n');
+            process.exit(0);
+          }
+
           const configChanged = files.some((file) => file.filename === 'tools/bundle-budget.config.json');
-          if (configChanged && config === 'base') {
+          if (configChanged) {
             console.log('::warning::This PR changes tools/bundle-budget.config.json. The check uses the target base limits. An application owner must approve any budget increase.');
           }
-          if (missing.length) console.log('::notice::One-time bootstrap run: this PR adds the missing bundle checker/config file(s).');
-
-          const workspace = process.env.GITHUB_WORKSPACE;
-          fs.appendFileSync(process.env.GITHUB_OUTPUT, `checker=${checker}\nconfig=${config}\nconfig_path=${path.join(workspace, config === 'head' ? '.head/tools/bundle-budget.config.json' : 'tools/bundle-budget.config.json')}\n`);
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, 'bootstrap=false\n');
           NODE
       - name: Check bundle budgets
+        if: steps.trusted.outputs.bootstrap != 'true'
         env:
-          BUNDLE_BUDGET_CHECKER: ${{ steps.trusted.outputs.checker }}
           BUNDLE_BUDGET_ROOT: ${{ github.workspace }}
-          BUNDLE_BUDGET_CONFIG: ${{ steps.trusted.outputs.config_path }}
           BUNDLE_BUDGET_OUT_DIR: ${{ runner.temp }}/bundle-budget-client
-        run: |
-          set -euo pipefail
-          if test "$BUNDLE_BUDGET_CHECKER" = "base"; then
-            node tools/bundle-budget.mjs
-          else
-            node .head/tools/bundle-budget.mjs
-          fi
+        run: node tools/bundle-budget.mjs

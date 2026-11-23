@@ -66,7 +66,7 @@ function makeBuildOutput({ includeAssets = true } = {}) {
       'src/main.ts': {
         file: '_next/static/chunks/entry.js',
         isEntry: true,
-        imports: ['shared.js'],
+        imports: ['shared.js', 'src/components/village/village-world.ts'],
         dynamicImports: ['src/components/village/village-world.ts', 'src/app/admin/page.tsx'],
       },
       'shared.js': { file: '_next/static/chunks/framework.js' },
@@ -111,12 +111,13 @@ describe('measureAssets', () => {
     const outDir = makeBuildOutput();
     try {
       const result = measureAssets(outDir);
-      const tierFor = (name) => result.assets.find((asset) => asset.file.endsWith(name)).tier;
+      const tierFor = (name) =>
+        result.assets.find((asset) => asset.file === name || asset.file.endsWith(`/${name}`)).tier;
       expect(tierFor('entry.js')).toBe('public');
       expect(tierFor('sw.js')).toBe('public, 3d, admin');
       expect(tierFor('framework.js')).toBe('public, 3d');
-      expect(tierFor('village.js')).toBe('3d');
-      expect(tierFor('three.js')).toBe('3d');
+      expect(tierFor('village.js')).toBe('public, 3d');
+      expect(tierFor('three.js')).toBe('public, 3d');
       expect(tierFor('admin.js')).toBe('admin');
       expect(tierFor('map.js')).toBe('public');
       expect(tierFor('map-core.js')).toBe('public');

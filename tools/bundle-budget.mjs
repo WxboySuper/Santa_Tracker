@@ -167,7 +167,7 @@ function graphNeighbors(key, context) {
   const imports = entry.imports ?? [];
   const dynamicImports = entry.dynamicImports ?? [];
   if (tier !== 'public') return [...imports, ...dynamicImports];
-  return [...imports, ...dynamicImports].filter((target) => isPublicDynamicTarget(target, context));
+  return [...imports, ...dynamicImports.filter((target) => isPublicDynamicTarget(target, context))];
 }
 
 function walkManifest(context, seeds) {

@@ -6,7 +6,7 @@ The tiers separate the strict public application from lazy 3D features and the a
 
 | Tier                                                                     | Measured JavaScript |    Budget | Measured CSS |   Budget |
 | ------------------------------------------------------------------------ | ------------------: | --------: | -----------: | -------: |
-| Public landing and tracker, plus shared chunks                           |           385.4 KiB | 424.0 KiB |     15.2 KiB | 16.7 KiB |
+| Public landing and tracker, plus shared chunks                           |           449.4 KiB | 494.3 KiB |     15.2 KiB | 16.7 KiB |
 | Lazy 3D chunks, including village and tracker scenes, plus shared chunks |           501.0 KiB | 551.0 KiB |     17.7 KiB | 19.5 KiB |
 | Admin chunks, including shared chunks                                    |           132.8 KiB | 146.0 KiB |     13.9 KiB | 15.3 KiB |
 
