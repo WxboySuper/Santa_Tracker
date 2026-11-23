@@ -8,7 +8,7 @@ test("Advent exposes 24 doors, day 1 game, and rejects invalid days", async ({ p
   await page.goto("/advent");
   const calendar = page.getByRole("list", { name: /advent calendar/i });
   await expect(calendar.getByRole("listitem")).toHaveCount(24);
-  await expect(calendar.getByRole("link", { name: /open day 1/i })).toBeVisible();
+  await expect(calendar.getByRole("link", { name: /^open day 1:/i })).toBeVisible();
   await expect(calendar.getByRole("img")).toHaveCount(23);
   await expect(calendar.getByRole("img").first()).toHaveAttribute("aria-label", /Dec 2/);
   await expectNoSeriousAxeIssues(page);
