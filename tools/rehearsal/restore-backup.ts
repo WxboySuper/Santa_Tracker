@@ -93,7 +93,9 @@ function parseLocation({ value, index }: ValueAtIndex): BackupLocation {
     throw new Error(`Backup route item ${index} needs a name`);
   }
   const latitude = requiredNumber({ value: location.latitude, index, field: "latitude", range: { min: -90, max: 90 } });
-  const longitude = normalizeLongitude({ value: finiteNumber({ value: location.longitude, index, field: "longitude" }) });
+  const longitude = normalizeLongitude({
+    value: requiredNumber({ value: location.longitude, index, field: "longitude", range: { min: -360, max: 360 } }),
+  });
   const utcOffset = requiredNumber({ value: location.utc_offset, index, field: "utc_offset", range: { min: -12, max: 14 } });
   validateOptionalFields({ value: location, index });
   return {
@@ -122,7 +124,18 @@ function validateOptionalFields({ value, index }: { value: Record<string, unknow
 }
 
 function validateOptionalStrings({ value, index }: { value: Record<string, unknown>; index: number }): void {
-  const fields = ["arrival_time", "departure_time", "country", "notes", "fun_facts"] as const;
+  validateOptionalDateTime({ value: value.arrival_time, index, field: "arrival_time" });
+  validateOptionalDateTime({ value: value.departure_time, index, field: "departure_time" });
+  validateStringFields({ value, index, fields: ["country", "notes", "fun_facts"] });
+}
+
+function validateOptionalDateTime({ value, index, field }: FieldAtIndex): void {
+  if (value == null) return;
+  const schema = LegacyRouteFixtureSchema.shape.route_nodes.element.shape.schedule.shape.arrival_utc;
+  if (!schema.safeParse(value).success) throw new Error(`Backup route item ${index} has invalid ${field}`);
+}
+
+function validateStringFields({ value, index, fields }: { value: Record<string, unknown>; index: number; fields: readonly string[] }): void {
   for (const field of fields) {
     if (value[field] != null && typeof value[field] !== "string") {
       throw new Error(`Backup route item ${index} has invalid ${field}`);
@@ -141,6 +154,9 @@ function validateNonNegativeNumber({ value, index, field }: FieldAtIndex): void 
   if (typeof value !== "number") throw new Error(`Backup route item ${index} has invalid ${field}`);
   if (!Number.isFinite(value)) throw new Error(`Backup route item ${index} has invalid ${field}`);
   if (value < 0) throw new Error(`Backup route item ${index} has invalid ${field}`);
+  if (field === "population" && !Number.isInteger(value)) {
+    throw new Error(`Backup route item ${index} has invalid ${field}`);
+  }
 }
 
 function validatePriority({ value, index }: ValueAtIndex): void {
@@ -159,13 +175,6 @@ function validateIntegerPriority({ value, index }: ValueAtIndex): void {
 function validatePriorityRange({ value, index }: ValueAtIndex): void {
   if (typeof value !== "number") throw new Error(`Backup route item ${index} has invalid priority`);
   if (value < 1 || value > 3) throw new Error(`Backup route item ${index} has invalid priority`);
-}
-
-function finiteNumber({ value, index, field }: FieldAtIndex): number {
-  if (typeof value !== "number" || !Number.isFinite(value)) {
-    throw new Error(`Backup route item ${index} has invalid ${field}`);
-  }
-  return value;
 }
 
 function normalizeLongitude({ value }: { value: number }): number {
@@ -262,11 +271,22 @@ async function assertEmptyTargetDirectory({ root }: { root: string }): Promise<v
 }
 
 function readOption({ args, name }: { args: string[]; name: string }): string | undefined {
-  const index = args.indexOf(name);
-  if (index < 0) return undefined;
-  const value = args[index + 1];
-  if (!value || value.startsWith("--")) throw new Error(`${name} needs a value`);
-  return value;
+  for (let index = 0; index < args.length; index += 1) {
+    const argument = args[index];
+    if (!argument) continue;
+    if (argument === name) {
+      const value = args[index + 1];
+      if (!value || value.startsWith("--")) throw new Error(`${name} needs a value`);
+      return value;
+    }
+    const prefix = `${name}=`;
+    if (argument.startsWith(prefix)) {
+      const value = argument.slice(prefix.length);
+      if (!value) throw new Error(`${name} needs a value`);
+      return value;
+    }
+  }
+  return undefined;
 }
 
 function isCliEntry(): boolean {

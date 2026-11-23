@@ -56,7 +56,7 @@ pnpm exec playwright test e2e/map-outage.spec.ts --project=open
 pnpm exec playwright test e2e/open-season.spec.ts --project=open -g "the admin emergency switch hides and restores the tracker for visitors"
 ```
 
-The existing outage test passed with both public tile providers blocked. The new deterministic local spec blocks `tiles.openfreemap.org` and `tile.openstreetmap.org`, confirms a raster request follows the vector failure, waits for the text view, verifies the TV dashboard stays visible, and checks `/api/route` is unchanged across the outage. On the latest serial rerun, vector-to-raster took 145 ms and raster-to-text took 573 ms. The journey remains available in text mode. An earlier parallel map-plus-recovery run exceeded the map spec's 30-second timeout after it had logged fallback timings; serial execution passed both tests.
+The existing outage test passed with both public tile providers blocked. The new deterministic local spec blocks `tiles.openfreemap.org` and `tile.openstreetmap.org`, confirms a raster request follows the vector failure, waits for the text view, verifies the TV dashboard stays visible, and checks `/api/route` is unchanged across the outage. On the latest serial rerun, vector-to-raster took 130 ms and raster-to-text took 83 ms. The journey remains available in text mode. An earlier parallel map-plus-recovery run exceeded the map spec's 30-second timeout after it had logged fallback timings; serial execution passed both tests.
 
 The emergency switch test passed against the E2E suite's isolated filesystem store. It logged in with a generated local test password, hid the tracker, observed visitor `404` responses for `/tracker` and `/api/route`, then restored the flag and observed `/tracker` return `200`. No real secret or production backend was used.
 
@@ -73,7 +73,7 @@ pnpm exec playwright test e2e/backup-restore.spec.ts --project=open
 The local drill passed against the isolated E2E filesystem fixture. It fetched the backup export through the authenticated admin API, saved and activated an original route snapshot, activated a changed snapshot, rolled back to the original version, and verified the active snapshot matched. It restored the backup through the script into a clean temporary data directory and verified the restored route document against the export. The export contained 185 locations.
 
 ```text
-BACKUP_RECOVERY versions=2026-11-23T21-17-49-551Z-ywxb69rc,2026-11-23T21-17-49-589Z-v5dupipg rollback=2026-11-23T21-17-49-551Z-ywxb69rc restored=2026-11-23T21-17-49-622Z-bnky76lb locations=185
+BACKUP_RECOVERY versions=2026-11-23T21-24-43-214Z-ud1seeud,2026-11-23T21-24-43-243Z-o41kdotl rollback=2026-11-23T21-24-43-214Z-ud1seeud restored=2026-11-23T21-24-43-269Z-1ft3p4dq locations=185
 ```
 
 For a standalone restore from an existing export, use:
@@ -99,7 +99,7 @@ Gaps found:
 - The built vinext preview requires the local R2 binding and had no active route snapshot; it does not use the app filesystem adapter. With the filesystem-only constraint, it could not provide a comparable load run.
 - `pnpm load:local` can now target an explicitly supplied loopback origin through `LOAD_ORIGIN`; it still starts Next dev by default.
 - The existing outage test covered both providers failing together. The new test adds a check that the raster request occurs after the vector failure and records local fallback timing.
-- OCR review fixes now normalize longitude like the application, reject negative population and stop duration, restrict priority to integers 1-3, preserve flyover `is_stop`, population, notes, and fun facts, and reject any non-empty restore target. Unit tests cover wrapped longitude, invalid values, full-directory guards, and modern and legacy `is_stop` round-trips. The admin export and update path keep notes and fun facts separate. Create/update, flatten, and route reads retain distinct values; missing `is_stop` on FLYOVER nodes defaults to false. The restore parser also checks `backup_timestamp` against the route schema's ISO datetime with offset and validates the complete snapshot before activation. It derives the route year from the export timestamp. Missing country values use `Unknown` for the required schema region while preserving the original nullable country field.
+- OCR review fixes now normalize longitude like the application, reject negative population and stop duration, require integer population and priority 1-3, restrict longitude to the supported ±360 range before normalization, validate optional ISO schedule times, preserve explicit null fun facts, preserve flyover `is_stop`, population, notes, and fun facts, and reject any non-empty restore target. Unit tests cover wrapped longitude, invalid values, full-directory guards, and modern and legacy `is_stop` round-trips. The admin export and update path keep notes and fun facts separate. Create/update, flatten, and route reads retain distinct values; missing `is_stop` on FLYOVER nodes defaults to false. The restore parser also checks `backup_timestamp` against the route schema's ISO datetime with offset and validates the complete snapshot before activation. The CLI accepts both `--option value` and `--option=value`; `LOAD_ORIGIN` preserves an optional path prefix and does not require an unused `LOAD_PORT`. It derives the route year from the export timestamp. Missing country values use `Unknown` for the required schema region while preserving the original nullable country field.
 - There is no staging Worker rehearsal. Production R2 pointer restore, Worker rollback, cache purge, monitoring delivery, and edge load remain owner-run tasks.
 
 ## Repository checks
@@ -112,7 +112,7 @@ pnpm typecheck  PASS
 pnpm test       PASS, 80 files and 552 tests
 ```
 
-After the latest review fixes, `pnpm lint`, `pnpm typecheck`, and `pnpm test` passed. Vitest passed all 552 tests. Both targeted Playwright specs passed serially; recovery matched all 185 exported locations, and the map fallback took 145 ms then 573 ms. The restore helper now uses smaller validation functions and typed option objects in response to CodeScene findings. The latest CodeScene analysis on the earlier head passed. One initial `pnpm test` run hit a 5-second timeout in `bootstrap.test.ts`; the immediate rerun passed all 552 tests. CodeRabbit skipped review because the repository requires a `review` label.
+After the latest review fixes, `pnpm lint`, `pnpm typecheck`, and `pnpm test` passed. Vitest passed all 552 tests. Both targeted Playwright specs passed serially; recovery matched all 185 exported locations, and the map fallback took 130 ms then 83 ms. The restore helper now uses smaller validation functions and typed option objects in response to CodeScene findings. The latest CodeScene analysis on the earlier head passed. One initial `pnpm test` run hit a 5-second timeout in `bootstrap.test.ts`; the immediate rerun passed all 552 tests. CodeRabbit skipped review because the repository requires a `review` label.
 
 ## Owner checklist
 

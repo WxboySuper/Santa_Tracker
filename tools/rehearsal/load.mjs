@@ -15,7 +15,7 @@ const paths = ["/tracker", "/api/route", "/api/health"];
 
 if (!Number.isInteger(connections) || connections < 1 || connections > 1000) throw new Error("LOAD_CONNECTIONS must be between 1 and 1000");
 if (!Number.isFinite(durationSeconds) || durationSeconds < 1 || durationSeconds > 600) throw new Error("LOAD_DURATION_SECONDS must be between 1 and 600");
-if (!Number.isInteger(port) || port < 1024 || port > 65535) throw new Error("LOAD_PORT must be a valid local port");
+if (!externalOrigin && (!Number.isInteger(port) || port < 1024 || port > 65535)) throw new Error("LOAD_PORT must be a valid local port");
 
 const scratch = externalOrigin ? null : await mkdtemp(path.join(os.tmpdir(), "santa-load-"));
 let child = null;
@@ -116,5 +116,5 @@ function parseLocalOrigin(value) {
   if (url.protocol !== "http:" || !["127.0.0.1", "localhost", "::1", "[::1]"].includes(url.hostname)) {
     throw new Error("LOAD_ORIGIN must use http and a loopback host");
   }
-  return url.origin;
+  return url.origin + url.pathname.replace(/\/$/, "");
 }

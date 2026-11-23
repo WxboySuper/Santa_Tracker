@@ -133,8 +133,8 @@ function normalizeLegacyLocation(entry: JsonRecord, idx: number): JsonRecord {
     },
     schedule: { arrival_utc: entry.arrival_time, departure_utc: entry.departure_time },
     stop_experience: { duration_seconds: durationSeconds != null ? durationSeconds * 60 : null },
-    notes: entry.notes,
-    fun_facts: entry.fun_facts,
+    ...( "notes" in entry ? { notes: entry.notes } : {}),
+    ...( "fun_facts" in entry ? { fun_facts: entry.fun_facts } : {}),
     population: entry.population,
     priority: entry.priority,
   };
@@ -195,7 +195,7 @@ function parseLocationNode(value: unknown, idx: number): RouteNode | null {
     },
     transit_to_here: parseTransit(entry.transit_to_here),
     notes: optionalString(entry.notes),
-    fun_facts: optionalString(entry.fun_facts),
+    fun_facts: "fun_facts" in entry ? optionalString(entry.fun_facts) : undefined,
     population: optionalNumber(entry.population),
     priority: optionalNumber(entry.priority),
   };
@@ -222,7 +222,7 @@ function toLocationFromNode(node: RouteNode): LocationEntry {
     is_stop: node.is_stop ?? (node.type === "FLYOVER" ? false : true),
     priority: node.priority ?? null,
     notes: node.notes ?? null,
-    fun_facts: node.fun_facts ?? node.notes ?? null,
+    fun_facts: node.fun_facts !== undefined ? node.fun_facts : node.notes ?? null,
     country: loc.country !== undefined ? loc.country : loc.region ?? null,
     population: node.population ?? null,
     id: node.id,
@@ -254,7 +254,7 @@ function flattenRouteNode(node: RouteNode): JsonRecord {
     population: node.population ?? null,
     priority: node.priority ?? null,
     notes: node.notes ?? null,
-    fun_facts: node.fun_facts ?? node.notes ?? null,
+    fun_facts: node.fun_facts !== undefined ? node.fun_facts : node.notes ?? null,
     is_stop: node.is_stop ?? (node.type === "FLYOVER" ? false : true),
   };
   if (stop.duration_seconds != null) flat.stop_duration = Math.round(Number(stop.duration_seconds) / 60);
@@ -263,7 +263,7 @@ function flattenRouteNode(node: RouteNode): JsonRecord {
 
 function flattenLegacyLocation(item: JsonRecord): JsonRecord {
   const notes = item.notes ?? item.fun_facts ?? null;
-  const funFacts = item.fun_facts ?? item.notes ?? null;
+  const funFacts = "fun_facts" in item ? item.fun_facts : item.notes ?? null;
   return {
     name: item.name,
     latitude: Number(item.latitude ?? item.lat),
@@ -473,7 +473,7 @@ export function createLocationFromPayload(data: JsonRecord): LocationEntry {
   const { lat, lng, tz } = parseLocationCoordinates(data);
   validatePriority(data.priority);
   const notes = optionalString(data.notes) ?? optionalString(data.fun_facts);
-  const funFacts = optionalString(data.fun_facts) ?? notes;
+  const funFacts = "fun_facts" in data ? optionalString(data.fun_facts) : notes;
   const priority = optionalNumber(data.priority);
   return {
     name,
