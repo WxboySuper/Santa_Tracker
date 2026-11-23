@@ -5,7 +5,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { createFilesystemBackend } from "./filesystem-backend";
 import { createVersionedSnapshotStore } from "./versioned-store-core";
 import { DATASET_SANTA_ROUTE } from "./types";
-import { loadSantaRouteFromJson, saveSantaRouteToJson } from "../locations";
+import { createLocationFromPayload, loadSantaRouteFromJson, saveSantaRouteToJson } from "../locations";
 import { backupToRouteDocument, parseRouteBackupExport, restoreBackupFile } from "../../../../../tools/rehearsal/restore-backup";
 
 const roots: string[] = [];
@@ -101,12 +101,26 @@ describe("local filesystem backup restore", () => {
 
     await fs.writeFile(legacyPath, JSON.stringify({ route: [{
       name: "Legacy", latitude: 1, longitude: 2, utc_offset: 0, is_stop: false,
+      notes: "Legacy note", fun_facts: "Legacy fact", type: "DELIVERY",
     }] }));
     const legacyRead = await loadSantaRouteFromJson(legacyPath);
     expect(legacyRead[0]?.is_stop).toBe(false);
     await saveSantaRouteToJson(legacyRead, legacyPath);
-    const legacySaved = JSON.parse(await fs.readFile(legacyPath, "utf8")) as { route: { is_stop: boolean }[] };
-    expect(legacySaved.route[0]?.is_stop).toBe(false);
-    await expect(loadSantaRouteFromJson(legacyPath)).resolves.toMatchObject([{ is_stop: false }]);
+    const legacySaved = JSON.parse(await fs.readFile(legacyPath, "utf8")) as { route: { is_stop: boolean; notes: string; fun_facts: string }[] };
+    expect(legacySaved.route[0]).toMatchObject({ is_stop: false, notes: "Legacy note", fun_facts: "Legacy fact" });
+    await expect(loadSantaRouteFromJson(legacyPath)).resolves.toMatchObject([{
+      is_stop: false, notes: "Legacy note", fun_facts: "Legacy fact",
+    }]);
+
+    const flyoverPath = path.join(parent, "flyover.json");
+    await fs.writeFile(flyoverPath, JSON.stringify({ route_nodes: [{
+      id: "flyover-default", type: "FLYOVER", location: { name: "Flyover", lat: 1, lng: 2 },
+    }] }));
+    await expect(loadSantaRouteFromJson(flyoverPath)).resolves.toMatchObject([{ is_stop: false }]);
+
+    const created = createLocationFromPayload({
+      name: "Created", latitude: 1, longitude: 2, utc_offset: 0, notes: "A", fun_facts: "B",
+    });
+    expect(created).toMatchObject({ notes: "A", fun_facts: "B" });
   });
 });

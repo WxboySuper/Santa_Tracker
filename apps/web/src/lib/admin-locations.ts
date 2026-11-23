@@ -152,7 +152,10 @@ async function applyLocationUpdate(locationId: number, payload: unknown): Promis
 }
 
 function mergedLocation(existing: LocationEntry, payload: Record<string, unknown>): LocationEntry {
-  const notes = pickUpdatedNotes(existing, payload);
+  const notes = "notes" in payload ? payload.notes as LocationEntry["notes"] : existing.notes;
+  const funFacts = "fun_facts" in payload
+    ? payload.fun_facts as LocationEntry["fun_facts"]
+    : existing.fun_facts ?? existing.notes;
   const updated: LocationEntry = {
     ...existing,
     name: orFallback(payload.name, existing.name),
@@ -165,7 +168,7 @@ function mergedLocation(existing: LocationEntry, payload: Record<string, unknown
     population: orFallback(payload.population, existing.population),
     priority: orFallback(payload.priority, existing.priority),
     notes,
-    fun_facts: notes,
+    fun_facts: funFacts,
     stop_duration: orFallback(payload.stop_duration, existing.stop_duration),
     is_stop: orFallback(payload.is_stop, existing.is_stop),
   };
@@ -173,12 +176,6 @@ function mergedLocation(existing: LocationEntry, payload: Record<string, unknown
   updated.lng = Number(updated.longitude);
   updated.timezone_offset = Number(updated.utc_offset);
   return updated;
-}
-
-function pickUpdatedNotes(existing: LocationEntry, payload: Record<string, unknown>): LocationEntry["notes"] {
-  if ("notes" in payload) return payload.notes as LocationEntry["notes"];
-  if ("fun_facts" in payload) return payload.fun_facts as LocationEntry["notes"];
-  return existing.notes;
 }
 
 function orFallback<T>(value: unknown, fallback: T): T {

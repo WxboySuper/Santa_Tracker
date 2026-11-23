@@ -14,9 +14,22 @@ test("local backup export, snapshot rollback, and clean-directory restore preser
   const password = (await getRuntimeConfig(runtimeFile)).adminPassword;
   expect((await page.request.post("/api/admin/login", { data: { password } })).status()).toBe(200);
 
+  const initialExport = await page.request.get("/api/admin/backup/export");
+  expect(initialExport.status()).toBe(200);
+  const initialBackup = await initialExport.json() as RouteBackupExport;
+  const firstLocation = initialBackup.route[0];
+  expect(firstLocation).toBeDefined();
+  const factUpdate = await page.request.put("/api/admin/locations/0", {
+    data: { fun_facts: "Readiness recovery fact" },
+  });
+  expect(factUpdate.status()).toBe(200);
   const response = await page.request.get("/api/admin/backup/export");
   expect(response.status()).toBe(200);
   const backup = await response.json() as RouteBackupExport;
+  expect(backup.route[0]).toMatchObject({
+    notes: firstLocation?.notes,
+    fun_facts: "Readiness recovery fact",
+  });
   expect(backup.route.length).toBeGreaterThan(1);
   expect(backup.total_locations).toBe(backup.route.length);
 

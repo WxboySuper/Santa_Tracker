@@ -211,7 +211,7 @@ function toLocationFromNode(node: RouteNode): LocationEntry {
     arrival_time: sched.arrival_utc ?? null,
     departure_time: sched.departure_utc ?? null,
     stop_duration: durationMin,
-    is_stop: node.is_stop ?? true,
+    is_stop: node.is_stop ?? (node.type === "FLYOVER" ? false : true),
     priority: node.priority ?? null,
     notes: node.notes ?? null,
     fun_facts: node.fun_facts ?? node.notes ?? null,
@@ -247,13 +247,15 @@ function flattenRouteNode(node: RouteNode): JsonRecord {
     priority: node.priority ?? null,
     notes: node.notes ?? null,
     fun_facts: node.fun_facts ?? node.notes ?? null,
-    is_stop: node.is_stop ?? true,
+    is_stop: node.is_stop ?? (node.type === "FLYOVER" ? false : true),
   };
   if (stop.duration_seconds != null) flat.stop_duration = Math.round(Number(stop.duration_seconds) / 60);
   return flat;
 }
 
 function flattenLegacyLocation(item: JsonRecord): JsonRecord {
+  const notes = item.notes ?? item.fun_facts ?? null;
+  const funFacts = item.fun_facts ?? item.notes ?? null;
   return {
     name: item.name,
     latitude: Number(item.latitude ?? item.lat),
@@ -264,10 +266,10 @@ function flattenLegacyLocation(item: JsonRecord): JsonRecord {
     country: item.country ?? item.region ?? null,
     population: item.population ?? null,
     priority: item.priority ?? null,
-    notes: item.notes ?? item.fun_facts ?? null,
-    fun_facts: item.notes ?? item.fun_facts ?? null,
+    notes,
+    fun_facts: funFacts,
     stop_duration: item.stop_duration ?? null,
-    is_stop: item.is_stop ?? true,
+    is_stop: item.is_stop ?? (item.type === "FLYOVER" ? false : true),
   };
 }
 
@@ -462,6 +464,7 @@ export function createLocationFromPayload(data: JsonRecord): LocationEntry {
   const { lat, lng, tz } = parseLocationCoordinates(data);
   validatePriority(data.priority);
   const notes = optionalString(data.notes) ?? optionalString(data.fun_facts);
+  const funFacts = optionalString(data.fun_facts) ?? notes;
   const priority = optionalNumber(data.priority);
   return {
     name,
@@ -477,9 +480,9 @@ export function createLocationFromPayload(data: JsonRecord): LocationEntry {
     population: optionalNumber(data.population),
     priority,
     notes,
-    fun_facts: notes,
+    fun_facts: funFacts,
     stop_duration: optionalNumber(data.stop_duration),
-    is_stop: typeof data.is_stop === "boolean" ? data.is_stop : true,
+    is_stop: typeof data.is_stop === "boolean" ? data.is_stop : data.type === "FLYOVER" ? false : true,
     region: optionalString(data.region) ?? optionalString(data.country),
   };
 }
