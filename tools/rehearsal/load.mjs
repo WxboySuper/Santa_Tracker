@@ -89,6 +89,12 @@ async function waitForServer() {
 
 async function stopServer() {
   if (child.exitCode != null) return;
+  if (process.platform === "win32" && child.pid) {
+    const killer = spawn("taskkill", ["/PID", String(child.pid), "/T", "/F"], { stdio: "ignore" });
+    await Promise.race([new Promise(resolve => killer.once("exit", resolve)), delay(5_000)]);
+    await Promise.race([new Promise(resolve => child.once("exit", resolve)), delay(5_000)]);
+    if (child.exitCode != null) return;
+  }
   child.kill("SIGTERM");
   await Promise.race([new Promise(resolve => child.once("exit", resolve)), delay(5_000)]);
   if (child.exitCode != null) return;

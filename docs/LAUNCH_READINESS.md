@@ -1,6 +1,12 @@
 # Launch readiness
 
-What has to be true before Advent opens (Nov 30 00:00 UTC; Day 1 at Dec 1 12:00 UTC) and before the tracker opens (Dec 24, 09:50 UTC). Written from a read of the repo on 2026-11-06. Items marked **gap** are not built or not rehearsed yet.
+What has to be true before Advent opens (Nov 30 00:00 UTC; Day 1 at Dec 1 12:00 UTC) and before the tracker opens (Dec 24, 09:50 UTC). Initial review was on 2026-11-06. Local rehearsal evidence from 2026-11-23 is recorded in [readiness run](qa/readiness-run-2026-11.md). Local evidence does not establish production readiness.
+
+## Evidence update, Nov 23
+
+- **Evidenced locally:** injected-clock season and journey timeline against a temporary fixture; map vector-to-raster-to-text fallback under blocked local browser requests; filesystem-backed emergency switch hide and restore.
+- **Failed locally:** the documented 300-worker dev-server load profile exceeded the runner timeout and returned error rates from 53.37% to 100%. This is evidence of local dev-server saturation, not a passing load result.
+- **Still open:** a vinext production-mode load run, snapshot activation/rollback plus backup restore, production edge capacity, production rollback and cache purge, and alert delivery. See the readiness run for commands, results, and owner actions.
 
 ## What already protects launch
 

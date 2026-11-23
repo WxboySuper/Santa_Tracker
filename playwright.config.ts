@@ -20,6 +20,6 @@ export default defineConfig({
   use: baseUse,
   projects: [
     { name: "closed", testMatch: ["**/public-site.spec.ts", "**/closed-season.spec.ts", "**/village.spec.ts", "**/a11y.spec.ts"], use: { ...baseUse } },
-    { name: "open", testMatch: ["**/public-site.spec.ts", "**/open-season.spec.ts", "**/advent-activities.spec.ts", "**/immersive-tracker.spec.ts", "**/village.spec.ts", "**/a11y.spec.ts"], use: { ...baseUse } },
+    { name: "open", testMatch: ["**/public-site.spec.ts", "**/open-season.spec.ts", "**/advent-activities.spec.ts", "**/backup-restore.spec.ts", "**/immersive-tracker.spec.ts", "**/map-outage.spec.ts", "**/village.spec.ts", "**/a11y.spec.ts"], use: { ...baseUse } },
   ],
 });
