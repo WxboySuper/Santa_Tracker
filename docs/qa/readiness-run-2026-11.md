@@ -73,7 +73,7 @@ pnpm exec playwright test e2e/backup-restore.spec.ts --project=open
 The local drill passed against the isolated E2E filesystem fixture. It fetched the backup export through the authenticated admin API, saved and activated an original route snapshot, activated a changed snapshot, rolled back to the original version, and verified the active snapshot matched. It restored the backup through the script into a clean temporary data directory and verified the restored route document against the export. The export contained 185 locations.
 
 ```text
-BACKUP_RECOVERY versions=2026-11-23T20-12-56-015Z-0s8ncnnu,2026-11-23T20-12-56-051Z-pugmd996 rollback=2026-11-23T20-12-56-015Z-0s8ncnnu restored=2026-11-23T20-12-56-168Z-41g16hxq locations=185
+BACKUP_RECOVERY versions=2026-11-23T20-23-57-540Z-7lsau8kv,2026-11-23T20-23-57-570Z-ojyygvqw rollback=2026-11-23T20-23-57-540Z-7lsau8kv restored=2026-11-23T20-23-57-625Z-ppx51kep locations=185
 ```
 
 For a standalone restore from an existing export, use:
@@ -99,6 +99,7 @@ Gaps found:
 - The built vinext preview requires the local R2 binding and had no active route snapshot; it does not use the app filesystem adapter. With the filesystem-only constraint, it could not provide a comparable load run.
 - `pnpm load:local` can now target an explicitly supplied loopback origin through `LOAD_ORIGIN`; it still starts Next dev by default.
 - The existing outage test covered both providers failing together. The new test adds a check that the raster request occurs after the vector failure and records local fallback timing.
+- OCR review found and fixed three restore mapping defects: longitudes outside ±180 are now normalized like the application; optional numeric values reject negatives and priority is restricted to integers 1–3; flyovers retain `is_stop: false`, use type `FLYOVER`, and restore with zero stop duration. Route flattening now preserves the stored `is_stop` value. Unit tests verify wrapped longitude and flyover semantics through the application route loader.
 - There is no staging Worker rehearsal. Production R2 pointer restore, Worker rollback, cache purge, monitoring delivery, and edge load remain owner-run tasks.
 
 ## Repository checks
@@ -111,7 +112,7 @@ pnpm typecheck  PASS
 pnpm test       PASS, 80 files and 550 tests
 ```
 
-After rebasing again onto the latest `main`, the restore export parser was split into smaller validation helpers in response to CodeScene complexity findings. `pnpm lint` and `pnpm typecheck` passed. The full suite passed all 550 tests. The backup recovery and map outage E2E tests passed serially with the results above. CodeScene still flags advisory complexity/argument-shape metrics in the restore helper; the route parser and location validation were simplified, but the quality gate remains an open code review item. CodeRabbit skipped review because the repository requires a `review` label.
+After rebasing again onto the latest `main`, the restore export parser was split into smaller validation helpers in response to CodeScene complexity findings. `pnpm lint` and `pnpm typecheck` passed. The full suite passed all 550 tests. The backup recovery E2E and map outage E2E passed after the latest rebase; restore recovery passed again after the mapping fixes. CodeScene still flags advisory complexity/argument-shape metrics in the restore helper; the route parser and location validation were simplified, but the quality gate remains an open code review item. CodeRabbit skipped review because the repository requires a `review` label.
 
 ## Owner checklist
 

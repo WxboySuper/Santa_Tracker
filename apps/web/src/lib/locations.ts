@@ -55,6 +55,7 @@ export interface RouteNode {
   comment?: string | null;
   id: string;
   type: string;
+  is_stop?: boolean | null;
   location: {
     name: string;
     region?: string | null;
@@ -157,6 +158,7 @@ function parseLocationNode(value: unknown, idx: number): RouteNode | null {
   return {
     id,
     type: optionalString(entry.type) ?? "DELIVERY",
+    is_stop: typeof entry.is_stop === "boolean" ? entry.is_stop : entry.type === "FLYOVER" ? false : true,
     comment: optionalString(entry.comment),
     location: {
       name: optionalString(loc.name) ?? id,
@@ -201,7 +203,7 @@ function toLocationFromNode(node: RouteNode): LocationEntry {
     arrival_time: sched.arrival_utc ?? null,
     departure_time: sched.departure_utc ?? null,
     stop_duration: durationMin,
-    is_stop: true,
+    is_stop: node.is_stop ?? true,
     priority: node.priority ?? null,
     notes: node.notes ?? null,
     fun_facts: node.notes ?? null,

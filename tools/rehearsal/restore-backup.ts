@@ -62,7 +62,7 @@ function parseLocation(value: unknown, index: number): BackupLocation {
     throw new Error(`Backup route item ${index} needs a name`);
   }
   const latitude = requiredNumber(value.latitude, index, "latitude", { min: -90, max: 90 });
-  const longitude = requiredNumber(value.longitude, index, "longitude", { min: -180, max: 180 });
+  const longitude = normalizeLongitude(finiteNumber(value.longitude, index, "longitude"));
   const utcOffset = requiredNumber(value.utc_offset, index, "utc_offset", { min: -12, max: 14 });
   validateOptionalFields(value, index);
   return {
@@ -106,7 +106,22 @@ function validateOptionalNumbers(value: Record<string, unknown>, index: number):
     if (candidate == null) continue;
     if (typeof candidate !== "number") throw new Error(`Backup route item ${index} has invalid ${field}`);
     if (!Number.isFinite(candidate)) throw new Error(`Backup route item ${index} has invalid ${field}`);
+    if (candidate < 0) throw new Error(`Backup route item ${index} has invalid ${field}`);
+    if (field === "priority" && (!Number.isInteger(candidate) || candidate > 3)) {
+      throw new Error(`Backup route item ${index} has invalid ${field}`);
+    }
   }
+}
+
+function finiteNumber(value: unknown, index: number, field: string): number {
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    throw new Error(`Backup route item ${index} has invalid ${field}`);
+  }
+  return value;
+}
+
+function normalizeLongitude(value: number): number {
+  return ((((value + 180) % 360) + 360) % 360) - 180;
 }
 
 function requiredNumber(value: unknown, index: number, field: string, range: { min: number; max: number }): number {
@@ -133,7 +148,8 @@ export function backupToRouteDocument(backup: RouteBackupExport): Record<string,
     meta: { year: 2026, route_version: "restored-from-admin-backup", generated_at: backup.backup_timestamp },
     route_nodes: backup.route.map((location, index) => ({
       id: `backup-${index + 1}`,
-      type: "DELIVERY",
+      type: location.is_stop === false ? "FLYOVER" : "DELIVERY",
+      is_stop: location.is_stop ?? true,
       location: {
         name: location.name,
         lat: location.latitude,
@@ -145,7 +161,7 @@ export function backupToRouteDocument(backup: RouteBackupExport): Record<string,
         arrival_utc: location.arrival_time ?? null,
         departure_utc: location.departure_time ?? null,
       },
-      stop_experience: { duration_seconds: (location.stop_duration ?? 0) * 60 },
+      stop_experience: { duration_seconds: location.is_stop === false ? 0 : (location.stop_duration ?? 0) * 60 },
       notes: location.notes ?? location.fun_facts ?? null,
       priority: location.priority ?? null,
     })),

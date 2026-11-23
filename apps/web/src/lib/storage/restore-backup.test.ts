@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { createFilesystemBackend } from "./filesystem-backend";
 import { createVersionedSnapshotStore } from "./versioned-store-core";
 import { DATASET_SANTA_ROUTE } from "./types";
+import { loadSantaRouteFromJson } from "../locations";
 import { backupToRouteDocument, parseRouteBackupExport, restoreBackupFile } from "../../../../../tools/rehearsal/restore-backup";
 
 const roots: string[] = [];
@@ -29,13 +30,22 @@ const backup = {
 };
 
 describe("local filesystem backup restore", () => {
-  it("validates the export and converts it into a route snapshot", () => {
+  it("validates the export and converts it into a route snapshot", async () => {
     const parsed = parseRouteBackupExport(JSON.stringify(backup));
     const document = backupToRouteDocument(parsed) as { route_nodes: { location: { name: string; lat: number; lng: number }; stop_experience: { duration_seconds: number } }[] };
     expect(document.route_nodes[0]?.location).toMatchObject({ name: "North Pole", lat: 90, lng: 0 });
     expect(document.route_nodes[0]?.stop_experience.duration_seconds).toBe(60);
+    const wrapped = parseRouteBackupExport(JSON.stringify({
+      ...backup,
+      route: [{ ...backup.route[0], longitude: 202.51, priority: 2, is_stop: false, stop_duration: 10 }],
+    }));
+    const wrappedDocument = backupToRouteDocument(wrapped) as { route_nodes: { type: string; is_stop: boolean; location: { lng: number }; stop_experience: { duration_seconds: number } }[] };
+    expect(wrappedDocument.route_nodes[0]).toMatchObject({ type: "FLYOVER", is_stop: false, location: { lng: -157.49 }, stop_experience: { duration_seconds: 0 } });
+    await expect(loadSantaRouteFromJson(wrappedDocument)).resolves.toMatchObject([{ longitude: -157.49, is_stop: false, stop_duration: 0 }]);
     expect(() => parseRouteBackupExport(JSON.stringify({ ...backup, total_locations: 2 }))).toThrow("must match");
     expect(() => parseRouteBackupExport(JSON.stringify({ ...backup, route: [{ ...backup.route[0], latitude: 91 }] }))).toThrow("invalid latitude");
+    expect(() => parseRouteBackupExport(JSON.stringify({ ...backup, route: [{ ...backup.route[0], stop_duration: -1 }] }))).toThrow("invalid stop_duration");
+    expect(() => parseRouteBackupExport(JSON.stringify({ ...backup, route: [{ ...backup.route[0], priority: 4 }] }))).toThrow("invalid priority");
   });
 
   it("writes and activates one version in an empty filesystem directory", async () => {
