@@ -3,6 +3,18 @@ import type { Page } from "@playwright/test";
 import { generateMaze, solveMaze, type MazeDirection } from "../apps/web/src/lib/maze";
 import { getOrderedCityIds, INITIAL_TIMEZONE_ORDER, REFERENCE_START_UTC } from "../apps/web/src/lib/timezones";
 
+const overriddenUnlockDays = new Set<number>();
+
+test.afterEach(async ({ page }) => {
+  for (const day of overriddenUnlockDays) {
+    const reset = await page.request.post(`/api/admin/advent/day/${day}/toggle-unlock`);
+    expect(reset.status()).toBe(200);
+    const body: unknown = await reset.json();
+    expect(body).toMatchObject({ is_unlocked_override: false });
+  }
+  overriddenUnlockDays.clear();
+});
+
 async function openUnlockedAdventDay(page: Page, day: number) {
   const runtimeFile = process.env.E2E_RUNTIME_FILE;
   if (!runtimeFile) throw new Error("E2E_RUNTIME_FILE is not configured");
@@ -11,6 +23,7 @@ async function openUnlockedAdventDay(page: Page, day: number) {
   expect(login.status()).toBe(200);
   const unlock = await page.request.put(`/api/admin/advent/day/${day}`, { data: { is_unlocked_override: true } });
   expect(unlock.status()).toBe(200);
+  overriddenUnlockDays.add(day);
   await page.goto(`/advent/${day}`);
 }
 
