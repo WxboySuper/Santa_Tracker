@@ -9,12 +9,27 @@ const configPath = path.join(root, 'tools', 'bundle-budget.config.json');
 const appRoot = path.join(root, 'apps', 'web');
 const CLIENT_ASSET_EXTENSIONS = new Set(['.js', '.mjs', '.css']);
 
-function validateTierMeasurement(tier, measurement, limits) {
+function hasNonZeroBudget(limits) {
+  return Object.values(limits).some((limit) => limit > 0);
+}
+
+function hasNoMeasuredBytes(measurement) {
+  return Object.values(measurement).every((size) => size === 0);
+}
+
+function assertMeasurementExists(tier, measurement) {
   if (!measurement) throw new Error(`Missing bundle measurement for tier "${tier}".`);
-  const tierTotal = (measurement.js ?? 0) + (measurement.css ?? 0);
-  if (tierTotal === 0 && (limits.js > 0 || limits.css > 0)) {
+}
+
+function assertMeasurementHasBytes(tier, measurement, limits) {
+  if (hasNoMeasuredBytes(measurement) && hasNonZeroBudget(limits)) {
     throw new Error(`Bundle tier "${tier}" measured 0 bytes despite a non-zero budget. Check the build output and manifest.`);
   }
+}
+
+function validateTierMeasurement(tier, measurement, limits) {
+  assertMeasurementExists(tier, measurement);
+  assertMeasurementHasBytes(tier, measurement, limits);
 }
 
 function compareAssetKind(tier, kind, measurement, limits) {
