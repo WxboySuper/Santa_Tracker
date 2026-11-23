@@ -36,9 +36,10 @@ function makeBuildOutput({ includeAssets = true } = {}) {
   fs.mkdirSync(path.join(outDir, '.vite'), { recursive: true });
   if (includeAssets) {
     fs.mkdirSync(staticDir, { recursive: true });
-    for (const name of ['entry.js', 'framework.js', 'village.js', 'three.js', 'admin.js', 'map.js', 'map-core.js']) {
+    for (const name of ['entry.js', 'framework.js', 'village.js', 'three.js', 'admin.js', 'map.js', 'map-core.js', 'map-deep.js', 'unreachable-village.js']) {
       fs.writeFileSync(path.join(staticDir, name), `export const ${name.replaceAll('.', '_')} = 'sample';`);
     }
+    fs.writeFileSync(path.join(outDir, 'sw.js'), 'self.addEventListener("fetch", () => {});');
   }
   fs.writeFileSync(path.join(outDir, '.vite', 'manifest.json'), JSON.stringify({
     'src/main.ts': { file: '_next/static/chunks/entry.js', isEntry: true, imports: ['shared.js'], dynamicImports: ['src/components/village/village-world.ts', 'src/app/admin/page.tsx'] },
@@ -47,7 +48,9 @@ function makeBuildOutput({ includeAssets = true } = {}) {
     'node_modules/three/build/three.module.js': { file: '_next/static/chunks/three.js' },
     'virtual:admin-page': { file: '_next/static/chunks/admin.js', name: 'page', isDynamicEntry: true },
     'virtual:tracker-map': { file: '_next/static/chunks/map.js', dynamicImports: ['src/lib/map-core.ts'] },
-    'src/lib/map-core.ts': { file: '_next/static/chunks/map-core.js', dynamicImports: ['src/components/tracker-3d/tracker-art.ts'] },
+    'src/lib/map-core.ts': { file: '_next/static/chunks/map-core.js', dynamicImports: ['src/lib/map-deep.ts'] },
+    'src/lib/map-deep.ts': { file: '_next/static/chunks/map-deep.js', dynamicImports: ['src/components/tracker-3d/tracker-art.ts'] },
+    'vendor-extra': { file: '_next/static/chunks/unreachable-village.js', name: 'vendor-extra' },
   }));
   fs.writeFileSync(path.join(outDir, '.vite', 'vinext-client-reference-sources.json'), JSON.stringify({
     'src/app/(admin)/admin/page.tsx': '_next/static/chunks/admin.js',
@@ -64,12 +67,15 @@ describe('measureAssets', () => {
       const result = measureAssets(outDir);
       const tierFor = (name) => result.assets.find((asset) => asset.file.endsWith(name)).tier;
       expect(tierFor('entry.js')).toBe('public');
+      expect(tierFor('sw.js')).toBe('public');
       expect(tierFor('framework.js')).toBe('public');
       expect(tierFor('village.js')).toBe('3d');
       expect(tierFor('three.js')).toBe('3d');
       expect(tierFor('admin.js')).toBe('admin');
       expect(tierFor('map.js')).toBe('public');
       expect(tierFor('map-core.js')).toBe('public');
+      expect(tierFor('map-deep.js')).toBe('public');
+      expect(tierFor('unreachable-village.js')).toBe('3d');
       expect(result.assets.find((asset) => asset.file.endsWith('framework.js')).owners).toContain('shared.js');
     } finally {
       fs.rmSync(outDir, { recursive: true, force: true });

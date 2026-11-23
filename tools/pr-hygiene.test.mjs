@@ -45,4 +45,21 @@ describe('checkPullRequest', () => {
     expect(result.failures).toHaveLength(1);
     expect(result.failures[0]).toContain('PR title must match Conventional Commits');
   });
+
+  it('reports title and missing-token failures clearly without throwing', async () => {
+    const result = await checkPullRequest({
+      repository: { full_name: 'example/repo' },
+      pull_request: { number: 123, title: 'bad title', user: { login: 'octocat' } },
+    }, '');
+    expect(result.failures).toHaveLength(2);
+    expect(result.failures[0]).toContain('PR title must match Conventional Commits');
+    expect(result.failures[1]).toContain('GITHUB_TOKEN is missing');
+  });
+
+  it('reports missing repository context clearly', async () => {
+    const result = await checkPullRequest({
+      pull_request: { number: 123, title: 'fix: update docs', user: { login: 'octocat' } },
+    }, 'token');
+    expect(result.failures[0]).toContain('repository context is missing');
+  });
 });

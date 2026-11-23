@@ -49,7 +49,8 @@ export function isChangelogUpdate(file) {
 
 async function changelogFailure({ event, pr, parsedTitle, author, token }) {
   if (isChangelogExempt({ parsedTitle, labels: pr.labels ?? [], author })) return null;
-  if (!token) throw new Error('GITHUB_TOKEN is required to check changed PR files.');
+  if (!event.repository?.full_name) return 'Cannot check CHANGELOG.md because repository context is missing from the pull request event.';
+  if (!token) return 'Cannot check CHANGELOG.md because GITHUB_TOKEN is missing.';
   const files = await listChangedFiles({ repository: event.repository.full_name, pullNumber: pr.number, token });
   if (files.some(isChangelogUpdate)) return null;
   return 'CHANGELOG.md must be updated. Add the no-changelog label for an intentional omission. Docs, ci, chore, and test titles, plus Dependabot PRs, are exempt.';

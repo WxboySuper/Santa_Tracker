@@ -7,20 +7,19 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: bundle-budget-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
 jobs:
-  budget:
+  build:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      # PR-head build code gets no token or secrets. Budget limits are loaded from the base commit below.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          fetch-depth: 0
-          persist-credentials: false
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          ref: ${{ github.event.pull_request.base.sha }}
-          path: .base
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          ref: ${{ github.event.pull_request.head.sha }}
           persist-credentials: false
       - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
         with:
@@ -31,28 +30,6 @@ jobs:
           cache: pnpm
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
-      - name: Load trusted bundle budgets
-        env:
-          BASE_SHA: ${{ github.event.pull_request.base.sha }}
-          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-        run: |
-          set -euo pipefail
-          trusted_config=".base/tools/bundle-budget.config.json"
-          pr_config="tools/bundle-budget.config.json"
-          if test -f "$trusted_config"; then
-            if ! cmp -s "$trusted_config" "$pr_config"; then
-              echo "::warning::This PR changes tools/bundle-budget.config.json. The check still uses the base limits. An application owner must approve any budget increase."
-            fi
-            cp "$trusted_config" "$pr_config"
-            echo "::notice::Bundle limits loaded from the target base commit."
-          else
-            added=$(git diff --name-status "$BASE_SHA" "$HEAD_SHA" -- tools/bundle-budget.config.json | awk '$1 == "A" && $2 == "tools/bundle-budget.config.json" { found=1 } END { print found+0 }')
-            if test "$added" != "1" || ! test -f "$pr_config"; then
-              echo "::error::No trusted config in base, and this PR does not add tools/bundle-budget.config.json. Failing closed."
-              exit 1
-            fi
-            echo "::notice::One-time bootstrap run: this PR adds the bundle budget config, so the new config is used for this measurement."
-          fi
       - name: Build client bundles
         working-directory: apps/web
         env:
@@ -60,21 +37,90 @@ jobs:
           SECRET_KEY: bundle-budget-ci-secret
           ADMIN_PASSWORD: bundle-budget-ci-admin
         run: pnpm exec vite build
+      - name: Upload client assets
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: bundle-budget-${{ github.run_id }}-${{ github.run_attempt }}
+          path: apps/web/.cloudflare/output/v1/workers/default/assets/
+          if-no-files-found: error
+          include-hidden-files: true
+
+  check:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      pull-requests: read
+    steps:
+      # This job never installs dependencies or runs code from the PR build job.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          persist-credentials: false
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          ref: ${{ github.event.pull_request.head.sha }}
+          path: .head
+          persist-credentials: false
+      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
+        with:
+          name: bundle-budget-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/bundle-budget-client
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '22'
+      - name: Select trusted checker and limits
+        id: trusted
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          import path from 'node:path';
+
+          const files = [];
+          for (let page = 1; ; page += 1) {
+            const url = `https://api.github.com/repos/${process.env.GITHUB_REPOSITORY}/pulls/${process.env.PR_NUMBER}/files?per_page=100&page=${page}`;
+            const response = await fetch(url, { headers: { accept: 'application/vnd.github+json', authorization: `Bearer ${process.env.GITHUB_TOKEN}`, 'x-github-api-version': '2022-11-28' } });
+            if (!response.ok) throw new Error(`GitHub API could not list PR files (${response.status} ${response.statusText})`);
+            const pageFiles = await response.json();
+            files.push(...pageFiles);
+            if (pageFiles.length < 100) break;
+          }
+
+          const trustedPaths = ['tools/bundle-budget.mjs', 'tools/bundle-budget.config.json'];
+          const missing = trustedPaths.filter((file) => !fs.existsSync(file));
+          const addedFiles = new Set(files.filter((file) => file.status === 'added').map((file) => file.filename));
+          const notAdded = missing.filter((file) => !addedFiles.has(file));
+          if (notAdded.length) {
+            console.error(`::error::Trusted bundle file(s) missing from base and not added by this PR: ${notAdded.join(', ')}. Failing closed.`);
+            process.exit(1);
+          }
+
+          const checker = missing.includes('tools/bundle-budget.mjs') ? 'head' : 'base';
+          const config = missing.includes('tools/bundle-budget.config.json') ? 'head' : 'base';
+          const configChanged = files.some((file) => file.filename === 'tools/bundle-budget.config.json');
+          if (configChanged && config === 'base') {
+            console.log('::warning::This PR changes tools/bundle-budget.config.json. The check uses the target base limits. An application owner must approve any budget increase.');
+          }
+          if (missing.length) console.log('::notice::One-time bootstrap run: this PR adds the missing bundle checker/config file(s).');
+
+          const workspace = process.env.GITHUB_WORKSPACE;
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, `checker=${checker}\nconfig=${config}\nconfig_path=${path.join(workspace, config === 'head' ? '.head/tools/bundle-budget.config.json' : 'tools/bundle-budget.config.json')}\n`);
+          NODE
       - name: Check bundle budgets
         env:
-          BASE_SHA: ${{ github.event.pull_request.base.sha }}
-          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          BUNDLE_BUDGET_CHECKER: ${{ steps.trusted.outputs.checker }}
           BUNDLE_BUDGET_ROOT: ${{ github.workspace }}
+          BUNDLE_BUDGET_CONFIG: ${{ steps.trusted.outputs.config_path }}
+          BUNDLE_BUDGET_OUT_DIR: ${{ runner.temp }}/bundle-budget-client
         run: |
           set -euo pipefail
-          if test -f .base/tools/bundle-budget.mjs; then
-            node .base/tools/bundle-budget.mjs
-          else
-            added=$(git diff --name-status "$BASE_SHA" "$HEAD_SHA" -- tools/bundle-budget.mjs | awk '$1 == "A" && $2 == "tools/bundle-budget.mjs" { found=1 } END { print found+0 }')
-            if test "$added" != "1" || ! test -f tools/bundle-budget.mjs; then
-              echo "::error::No trusted checker in base, and this PR does not add tools/bundle-budget.mjs. Failing closed."
-              exit 1
-            fi
-            echo "::notice::One-time bootstrap run: this PR adds the bundle budget checker, so its checker is used for this measurement."
+          if test "$BUNDLE_BUDGET_CHECKER" = "base"; then
             node tools/bundle-budget.mjs
+          else
+            node .head/tools/bundle-budget.mjs
           fi

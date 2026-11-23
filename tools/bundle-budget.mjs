@@ -5,9 +5,10 @@ import { gzipSync } from 'node:zlib';
 import { fileURLToPath } from 'node:url';
 
 const root = path.resolve(process.env.BUNDLE_BUDGET_ROOT ?? path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..'));
-const configPath = path.join(root, 'tools', 'bundle-budget.config.json');
+const configPath = path.resolve(process.env.BUNDLE_BUDGET_CONFIG ?? path.join(root, 'tools', 'bundle-budget.config.json'));
 const appRoot = path.join(root, 'apps', 'web');
 const CLIENT_ASSET_EXTENSIONS = new Set(['.js', '.mjs', '.css']);
+const MAX_CLIENT_ASSET_BYTES = 50 * 1024 * 1024;
 
 function hasNonZeroBudget(limits) {
   return Object.values(limits).some((limit) => limit > 0);
@@ -80,21 +81,33 @@ function readManifestAssets(outDir) {
 }
 
 function locateAssetDir() {
+  if (process.env.BUNDLE_BUDGET_OUT_DIR) return path.resolve(process.env.BUNDLE_BUDGET_OUT_DIR);
   const candidates = [
+    path.join(appRoot, '.vinext', 'client'),
     path.join(appRoot, '.cloudflare', 'output', 'v1', 'workers', 'default', 'assets'),
     path.join(appRoot, 'dist', 'client'),
     path.join(appRoot, 'dist'),
   ];
-  const found = candidates.find((candidate) => fs.existsSync(candidate));
+  const found = candidates.find((candidate) => fs.existsSync(path.join(candidate, '.vite', 'manifest.json')));
   if (!found) throw new Error('No client build output found. Run VINEXT_BUILD=1 vite build in apps/web first.');
   return found;
 }
 
+function walkEntry(dir, entry) {
+  const full = path.join(dir, entry.name);
+  if (entry.isDirectory()) return walk(full);
+  if (entry.isSymbolicLink() && isClientAsset(full)) throw new Error(`Client asset must not be a symbolic link: ${full}`);
+  return entry.isFile() ? [full] : [];
+}
+
 function walk(dir) {
-  return fs.readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
-    const full = path.join(dir, entry.name);
-    return entry.isDirectory() ? walk(full) : [full];
-  });
+  return fs.readdirSync(dir, { withFileTypes: true }).flatMap((entry) => walkEntry(dir, entry));
+}
+
+function readClientAsset(file) {
+  const size = fs.statSync(file).size;
+  if (size > MAX_CLIENT_ASSET_BYTES) throw new Error(`Client asset exceeds the ${MAX_CLIENT_ASSET_BYTES}-byte safety limit: ${file}`);
+  return fs.readFileSync(file);
 }
 
 function categoryClue(value) {
@@ -119,17 +132,16 @@ function graphSeeds(manifest, tier, referenceSeeds, referenceCategories) {
 function isPublicDynamicTarget(target, { manifest, referenceCategories }) {
   const entry = manifest[target];
   if (!entry) return true;
-  const clue = categoryClue(`${target} ${entry.name ?? ''} ${entry.src ?? ''}`);
-  return !clue && !referenceCategories.has(target);
+  const tier = categoryClue(`${target} ${entry.name ?? ''} ${entry.src ?? ''}`) ?? referenceCategories.get(target);
+  return tier !== '3d' && tier !== 'admin';
 }
 
 function graphNeighbors(key, context) {
-  const { manifest, tier, referenceSeeds, referenceCategories } = context;
+  const { manifest, tier } = context;
   const entry = manifest[key];
   const imports = entry.imports ?? [];
   const dynamicImports = entry.dynamicImports ?? [];
   if (tier !== 'public') return [...imports, ...dynamicImports];
-  if (!referenceSeeds.has(key)) return imports;
   return [...imports, ...dynamicImports.filter((target) => isPublicDynamicTarget(target, context))];
 }
 
@@ -157,9 +169,8 @@ function manifestAssetFiles(manifest, keys) {
 }
 
 function reachableFiles(manifest, tier, extraSeeds = [], referenceCategories = new Map()) {
-  const referenceSeeds = new Set(extraSeeds);
   const seeds = graphSeeds(manifest, tier, extraSeeds, referenceCategories);
-  const context = { manifest, tier, referenceSeeds, referenceCategories };
+  const context = { manifest, tier, referenceCategories };
   const reachable = walkManifest(context, seeds);
   return new Set(manifestAssetFiles(manifest, reachable));
 }
@@ -215,9 +226,11 @@ function classify(file, owners, graphCategories) {
   const categories = graphCategories.get(normalizeAssetPath(file));
   if (categories?.size === 1) return [...categories][0];
   if (categories?.size > 1) return 'public';
+  const fallback = categoryClue(`${file} ${(owners.get(normalizeAssetPath(file)) ?? []).join(' ')}`);
+  if (fallback) return fallback;
   // Fallback for assets absent from the Vite graph. Manifest-mapped shared assets default to public.
   if (owners.has(normalizeAssetPath(file))) return 'public';
-  return categoryClue(`${file} ${(owners.get(normalizeAssetPath(file)) ?? []).join(' ')}`) ?? 'public';
+  return 'public';
 }
 
 function isClientAsset(file) {
@@ -227,8 +240,7 @@ function isClientAsset(file) {
 export function measureAssets(outDir) {
   const { manifest, owners } = readManifestAssets(outDir);
   const graphCategories = buildGraphCategories(manifest, owners);
-  const staticDir = path.join(outDir, '_next', 'static');
-  const scanDir = fs.existsSync(staticDir) ? staticDir : outDir;
+  const scanDir = outDir;
   const totals = { public: { js: 0, css: 0 }, '3d': { js: 0, css: 0 }, admin: { js: 0, css: 0 } };
   const assets = [];
   for (const file of walk(scanDir)) {
@@ -237,7 +249,7 @@ export function measureAssets(outDir) {
     const relativePath = normalizeAssetPath(path.relative(outDir, file));
     const tier = classify(relativePath, owners, graphCategories);
     const kind = ext === '.css' ? 'css' : 'js';
-    const gzipBytes = gzipSync(fs.readFileSync(file), { level: 9 }).byteLength;
+    const gzipBytes = gzipSync(readClientAsset(file), { level: 9 }).byteLength;
     totals[tier][kind] += gzipBytes;
     assets.push({ file: relativePath, tier, kind, gzipBytes, owners: owners.get(relativePath) ?? [] });
   }

@@ -22,24 +22,37 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.base.sha }}
           persist-credentials: false
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          ref: ${{ github.event.pull_request.head.sha }}
-          path: .head
-          persist-credentials: false
       - name: Check for a trusted gate script
         id: gate
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
+          set -euo pipefail
           if test -f tools/pr-hygiene.mjs; then
             echo "available=true" >> "$GITHUB_OUTPUT"
             echo "bootstrap=false" >> "$GITHUB_OUTPUT"
-          elif test -f .head/tools/pr-hygiene.mjs; then
-            echo "available=false" >> "$GITHUB_OUTPUT"
-            echo "bootstrap=true" >> "$GITHUB_OUTPUT"
-            echo "::notice::One-time bootstrap run: this PR adds tools/pr-hygiene.mjs, which will be trusted from the base branch after merge."
           else
-            echo "::error::No trusted script in base, and this PR does not add tools/pr-hygiene.mjs. Failing closed."
-            exit 1
+            node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+
+          const files = [];
+          for (let page = 1; ; page += 1) {
+            const url = `https://api.github.com/repos/${process.env.GITHUB_REPOSITORY}/pulls/${process.env.PR_NUMBER}/files?per_page=100&page=${page}`;
+            const response = await fetch(url, { headers: { accept: 'application/vnd.github+json', authorization: `Bearer ${process.env.GITHUB_TOKEN}`, 'x-github-api-version': '2022-11-28' } });
+            if (!response.ok) throw new Error(`GitHub API could not list PR files (${response.status} ${response.statusText})`);
+            const pageFiles = await response.json();
+            files.push(...pageFiles);
+            if (pageFiles.length < 100) break;
+          }
+
+          if (!files.some((file) => file.filename === 'tools/pr-hygiene.mjs' && file.status === 'added')) {
+            console.error('::error::No trusted PR hygiene script in base, and this PR does not add tools/pr-hygiene.mjs. Failing closed.');
+            process.exit(1);
+          }
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, 'available=false\nbootstrap=true\n');
+          console.log('::notice::One-time bootstrap run: this PR adds tools/pr-hygiene.mjs. The gate will run from the trusted base after merge.');
+          NODE
           fi
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
