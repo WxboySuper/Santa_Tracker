@@ -9,20 +9,26 @@ const configPath = path.join(root, 'tools', 'bundle-budget.config.json');
 const appRoot = path.join(root, 'apps', 'web');
 const CLIENT_ASSET_EXTENSIONS = new Set(['.js', '.mjs', '.css']);
 
+function validateTierMeasurement(tier, measurement, limits) {
+  if (!measurement) throw new Error(`Missing bundle measurement for tier "${tier}".`);
+  const tierTotal = (measurement.js ?? 0) + (measurement.css ?? 0);
+  if (tierTotal === 0 && (limits.js > 0 || limits.css > 0)) {
+    throw new Error(`Bundle tier "${tier}" measured 0 bytes despite a non-zero budget. Check the build output and manifest.`);
+  }
+}
+
+function compareAssetKind(tier, kind, measurement, limits) {
+  if (typeof measurement[kind] !== 'number') throw new Error(`Missing ${kind.toUpperCase()} measurement for tier "${tier}".`);
+  const actual = measurement[kind];
+  const limit = limits[kind];
+  return { tier, kind, actual, limit, passed: actual <= limit };
+}
+
 export function compareBudgets(measured, budgets) {
   return Object.entries(budgets).flatMap(([tier, limits]) => {
     const measurement = measured[tier];
-    if (!measurement) throw new Error(`Missing bundle measurement for tier "${tier}".`);
-    const tierTotal = (measurement.js ?? 0) + (measurement.css ?? 0);
-    if (tierTotal === 0 && (limits.js > 0 || limits.css > 0)) {
-      throw new Error(`Bundle tier "${tier}" measured 0 bytes despite a non-zero budget. Check the build output and manifest.`);
-    }
-    return ['js', 'css'].map((kind) => {
-      if (typeof measurement[kind] !== 'number') throw new Error(`Missing ${kind.toUpperCase()} measurement for tier "${tier}".`);
-      const actual = measurement[kind];
-      const limit = limits[kind];
-      return { tier, kind, actual, limit, passed: actual <= limit };
-    });
+    validateTierMeasurement(tier, measurement, limits);
+    return ['js', 'css'].map((kind) => compareAssetKind(tier, kind, measurement, limits));
   });
 }
 
@@ -95,22 +101,25 @@ function graphSeeds(manifest, tier, referenceSeeds, referenceCategories) {
   return [...entries, ...referenceSeeds];
 }
 
-function isPublicDynamicTarget(target, manifest, referenceCategories) {
+function isPublicDynamicTarget(target, { manifest, referenceCategories }) {
   const entry = manifest[target];
   if (!entry) return true;
   const clue = categoryClue(`${target} ${entry.name ?? ''} ${entry.src ?? ''}`);
   return !clue && !referenceCategories.has(target);
 }
 
-function graphNeighbors(key, entry, tier, referenceSeeds, manifest, referenceCategories) {
+function graphNeighbors(key, context) {
+  const { manifest, tier, referenceSeeds, referenceCategories } = context;
+  const entry = manifest[key];
   const imports = entry.imports ?? [];
   const dynamicImports = entry.dynamicImports ?? [];
   if (tier !== 'public') return [...imports, ...dynamicImports];
   if (!referenceSeeds.has(key)) return imports;
-  return [...imports, ...dynamicImports.filter((target) => isPublicDynamicTarget(target, manifest, referenceCategories))];
+  return [...imports, ...dynamicImports.filter((target) => isPublicDynamicTarget(target, context))];
 }
 
-function walkManifest(manifest, seeds, tier, referenceSeeds, referenceCategories) {
+function walkManifest(context, seeds) {
+  const { manifest } = context;
   const reachable = new Set();
   const pending = [...seeds];
   while (pending.length) {
@@ -118,7 +127,7 @@ function walkManifest(manifest, seeds, tier, referenceSeeds, referenceCategories
     const entry = manifest[key];
     if (!entry || reachable.has(key)) continue;
     reachable.add(key);
-    pending.push(...graphNeighbors(key, entry, tier, referenceSeeds, manifest, referenceCategories));
+    pending.push(...graphNeighbors(key, context));
   }
   return reachable;
 }
@@ -135,11 +144,12 @@ function manifestAssetFiles(manifest, keys) {
 function reachableFiles(manifest, tier, extraSeeds = [], referenceCategories = new Map()) {
   const referenceSeeds = new Set(extraSeeds);
   const seeds = graphSeeds(manifest, tier, extraSeeds, referenceCategories);
-  const reachable = walkManifest(manifest, seeds, tier, referenceSeeds, referenceCategories);
+  const context = { manifest, tier, referenceSeeds, referenceCategories };
+  const reachable = walkManifest(context, seeds);
   return new Set(manifestAssetFiles(manifest, reachable));
 }
 
-function clientReferenceSeeds(manifest, owners) {
+function indexManifestFiles(manifest) {
   const manifestKeysByFile = new Map();
   for (const [key, entry] of Object.entries(manifest)) {
     if (!entry.file) continue;
@@ -148,19 +158,28 @@ function clientReferenceSeeds(manifest, owners) {
     keys.push(key);
     manifestKeysByFile.set(normalizedFile, keys);
   }
+  return manifestKeysByFile;
+}
 
+function referenceTier(sources) {
+  const hintedCategory = categoryClue(sources.join(' '));
+  if (hintedCategory) return hintedCategory;
+  return sources.some((source) => /^src\/app\//.test(source)) ? 'public' : null;
+}
+
+function addReferenceSeeds({ file, sources, manifestKeysByFile, seeds, categoriesByKey }) {
+  const tier = referenceTier(sources);
+  if (!tier) return;
+  const entryKeys = manifestKeysByFile.get(file) ?? [];
+  seeds[tier].push(...entryKeys);
+  for (const key of entryKeys) categoriesByKey.set(key, tier);
+}
+
+function clientReferenceSeeds(manifest, owners) {
+  const manifestKeysByFile = indexManifestFiles(manifest);
   const seeds = { public: [], '3d': [], admin: [] };
   const categoriesByKey = new Map();
-  for (const [file, sources] of owners) {
-    const sourceText = sources.join(' ');
-    const hintedCategory = categoryClue(sourceText);
-    const isPublicRoute = sources.some((source) => /^src\/app\//.test(source));
-    const tier = hintedCategory ?? (isPublicRoute ? 'public' : null);
-    if (!tier) continue;
-    const entryKeys = manifestKeysByFile.get(file) ?? [];
-    seeds[tier].push(...entryKeys);
-    for (const key of entryKeys) categoriesByKey.set(key, tier);
-  }
+  for (const [file, sources] of owners) addReferenceSeeds({ file, sources, manifestKeysByFile, seeds, categoriesByKey });
   return { seeds, categoriesByKey };
 }
 
