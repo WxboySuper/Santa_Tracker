@@ -57,6 +57,10 @@ describe("Flask parity - locations", () => {
   it("rejects invalid latitude", () => {
     expect(() => createLocationFromPayload({ name: "Bad", latitude: 100, longitude: 0, utc_offset: 0 })).toThrow();
   });
+  it("uses a region as country only when country was omitted", () => {
+    expect(createLocationFromPayload({ name: "Region only", latitude: 1, longitude: 2, utc_offset: 0, region: "North" }).country).toBe("North");
+    expect(createLocationFromPayload({ name: "Explicit null", latitude: 1, longitude: 2, utc_offset: 0, country: null, region: "North" }).country).toBeNull();
+  });
   it("validateLocations detects duplicates", () => {
     const firstLocation = createLocationFromPayload({ name: "A", latitude: 0, longitude: 0, utc_offset: 0 });
     const secondLocation = createLocationFromPayload({ name: "A", latitude: 1, longitude: 1, utc_offset: 1 });

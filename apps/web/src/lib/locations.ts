@@ -525,7 +525,7 @@ export function createLocationFromPayload(data: JsonRecord): LocationEntry {
     timezone_offset: tz,
     arrival_time: optionalString(data.arrival_time),
     departure_time: optionalString(data.departure_time),
-    country: optionalString(data.country),
+    country: "country" in data ? optionalString(data.country) : optionalString(data.region),
     population: optionalNumber(data.population),
     priority,
     notes,
