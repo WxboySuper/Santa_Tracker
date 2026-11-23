@@ -33,3 +33,5 @@ body:
       label: Owner decision needed
       description: State the editorial decision needed, or write "No".
       placeholder: "No"
+    validations:
+      required: true
