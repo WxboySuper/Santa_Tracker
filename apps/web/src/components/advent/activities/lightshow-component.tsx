@@ -16,12 +16,14 @@ export function LightshowActivity({ config, locale }: { config: { scene: 'tree' 
   const [sound, setSound] = useState(false);
   const [fullscreen, setFullscreen] = useState(false);
   const [storageAvailable, setStorageAvailable] = useState(true);
+  const [hydrated, setHydrated] = useState(false);
   const stageRef = useRef<HTMLDivElement>(null);
   const contextRef = useRef<AudioContext | null>(null);
 
   useEffect(() => {
     const stored = loadLightshow();
     if (stored) setComposition(stored);
+    setHydrated(true);
     const query = window.matchMedia('(prefers-reduced-motion: reduce)');
     const update = () => setReducedMotion(query.matches);
     update();
@@ -69,8 +71,10 @@ export function LightshowActivity({ config, locale }: { config: { scene: 'tree' 
   }, [playChime, tick]);
 
   useEffect(() => {
+    // Wait for the stored composition to load first, or the defaults would overwrite it on mount.
+    if (!hydrated) return;
     setStorageAvailable(saveLightshow(composition));
-  }, [composition]);
+  }, [composition, hydrated]);
 
   const update = (patch: Partial<LightshowComposition>) => setComposition((current) => ({ ...current, ...patch }));
   const enterFullscreen = async () => {
