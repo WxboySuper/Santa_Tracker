@@ -165,6 +165,10 @@ function parseNodeIsStop(entry: JsonRecord): boolean {
   return entry.type === "FLYOVER" ? false : true;
 }
 
+function serializedIsStop(value: unknown, type: unknown): boolean {
+  return typeof value === "boolean" ? value : type === "FLYOVER" ? false : true;
+}
+
 function parseNodeFunFacts(entry: JsonRecord): string | null | undefined {
   return "fun_facts" in entry ? optionalString(entry.fun_facts) : optionalString(entry.notes);
 }
@@ -248,7 +252,7 @@ function toLocationFromNode(node: RouteNode): LocationEntry {
     arrival_time: sched.arrival_utc ?? null,
     departure_time: sched.departure_utc ?? null,
     stop_duration: durationMin,
-    is_stop: node.is_stop ?? (node.type === "FLYOVER" ? false : true),
+    is_stop: serializedIsStop(node.is_stop, node.type),
     priority: node.priority ?? null,
     notes: node.notes ?? null,
     fun_facts: node.fun_facts !== undefined ? node.fun_facts : node.notes ?? null,
@@ -285,7 +289,7 @@ function flattenRouteNode(node: RouteNode): JsonRecord {
     priority: node.priority ?? null,
     notes: node.notes ?? null,
     fun_facts: node.fun_facts !== undefined ? node.fun_facts : node.notes ?? null,
-    is_stop: node.is_stop ?? (node.type === "FLYOVER" ? false : true),
+    is_stop: serializedIsStop(node.is_stop, node.type),
   };
   if (stop.duration_seconds != null) flat.stop_duration = Math.round(Number(stop.duration_seconds) / 60);
   return flat;
@@ -308,7 +312,7 @@ function flattenLegacyLocation(item: JsonRecord): JsonRecord {
     notes,
     fun_facts: funFacts,
     stop_duration: item.stop_duration ?? null,
-    is_stop: item.is_stop ?? (item.type === "FLYOVER" ? false : true),
+    is_stop: serializedIsStop(item.is_stop, item.type),
   };
 }
 

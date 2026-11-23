@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { validateLocations, createLocationFromPayload } from "../locations";
+import { validateLocations, createLocationFromPayload, loadRouteNodesRaw, loadSantaRouteFromJson, saveSantaRouteToJson } from "../locations";
 import { buildSimulatedFromLocations } from "../route-sim";
 import { isPlayable, isUnlocked, parseDayNumber, toDict, validateAdventCalendar, type AdventDay } from "../advent";
 import { createAdminToken, verifyAdminToken, verifyAdminPassword } from "../auth";
@@ -10,6 +10,27 @@ import { fileURLToPath } from "node:url";
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../../../../");
 
 describe("Flask parity - locations", () => {
+  it("preserves explicit is_stop values when reading modern and legacy routes", async () => {
+    const modern = await loadRouteNodesRaw({ route_nodes: [{ id: "modern-flyover", type: "FLYOVER", is_stop: false, location: { name: "Modern", lat: 1, lng: 2 } }] });
+    const legacy = await loadSantaRouteFromJson({ route: [{ name: "Legacy", latitude: 1, longitude: 2, type: "DELIVERY", is_stop: false }] });
+    expect(modern[0]?.is_stop).toBe(false);
+    expect(legacy[0]?.is_stop).toBe(false);
+  });
+  it("writes explicit false is_stop for modern nodes and legacy entries", async () => {
+    const directory = fs.mkdtempSync(path.join(REPO_ROOT, "tmp-is-stop-"));
+    try {
+      const modernPath = path.join(directory, "modern.json");
+      await saveSantaRouteToJson([{ id: "modern-flyover", type: "FLYOVER", is_stop: false, location: { name: "Modern", lat: 1, lng: 2 }, schedule: {}, stop_experience: {} }], modernPath);
+      expect(JSON.parse(fs.readFileSync(modernPath, "utf8")).route_nodes[0].is_stop).toBe(false);
+
+      const legacyPath = path.join(directory, "legacy.json");
+      fs.writeFileSync(legacyPath, JSON.stringify({ route: [] }));
+      await saveSantaRouteToJson([{ name: "Legacy", latitude: 1, longitude: 2, type: "DELIVERY", is_stop: false }], legacyPath);
+      expect(JSON.parse(fs.readFileSync(legacyPath, "utf8")).route[0].is_stop).toBe(false);
+    } finally {
+      fs.rmSync(directory, { recursive: true, force: true });
+    }
+  });
   it("validates location payload and normalizes lng", () => {
     const location = createLocationFromPayload({ name: "Test", latitude: 10, longitude: 190, utc_offset: 0 });
     expect(location.longitude).toBe(-170);

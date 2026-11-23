@@ -116,5 +116,7 @@ function parseLocalOrigin(value) {
   if (url.protocol !== "http:" || !["127.0.0.1", "localhost", "::1", "[::1]"].includes(url.hostname)) {
     throw new Error("LOAD_ORIGIN must use http and a loopback host");
   }
-  return url.origin + url.pathname.replace(/\/$/, "");
+  if (url.search || url.hash) throw new Error("LOAD_ORIGIN must not include query or fragment");
+  if (url.pathname !== "/") throw new Error("LOAD_ORIGIN must not include a path prefix");
+  return url.origin;
 }

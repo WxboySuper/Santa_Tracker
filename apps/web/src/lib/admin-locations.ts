@@ -170,7 +170,7 @@ function mergedLocation(existing: LocationEntry, payload: Record<string, unknown
     notes,
     fun_facts: funFacts,
     stop_duration: orFallback(payload.stop_duration, existing.stop_duration),
-    is_stop: orFallback(payload.is_stop, existing.is_stop),
+    is_stop: typeof payload.is_stop === "boolean" ? payload.is_stop : existing.is_stop,
   };
   updated.lat = Number(updated.latitude);
   updated.lng = Number(updated.longitude);

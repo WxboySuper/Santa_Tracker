@@ -73,7 +73,7 @@ pnpm exec playwright test e2e/backup-restore.spec.ts --project=open
 The local drill passed against the isolated E2E filesystem fixture. It fetched the backup export through the authenticated admin API, saved and activated an original route snapshot, activated a changed snapshot, rolled back to the original version, and verified the active snapshot matched. It restored the backup through the script into a clean temporary data directory and verified the restored route document against the export. The export contained 185 locations.
 
 ```text
-BACKUP_RECOVERY versions=2026-11-23T21-24-43-214Z-ud1seeud,2026-11-23T21-24-43-243Z-o41kdotl rollback=2026-11-23T21-24-43-214Z-ud1seeud restored=2026-11-23T21-24-43-269Z-1ft3p4dq locations=185
+BACKUP_RECOVERY versions=2026-11-23T21-50-44-639Z-xyz3f3be,2026-11-23T21-50-44-668Z-rh3hvf0e rollback=2026-11-23T21-50-44-639Z-xyz3f3be restored=2026-11-23T21-50-44-706Z-hxg2jx0b locations=185
 ```
 
 For a standalone restore from an existing export, use:
@@ -109,10 +109,10 @@ After the documentation and runner changes:
 ```text
 pnpm lint       PASS
 pnpm typecheck  PASS
-pnpm test       PASS, 80 files and 553 tests
+pnpm test       PASS, 80 files and 555 tests
 ```
 
-After the latest review fixes, `pnpm lint`, `pnpm typecheck`, and `pnpm test` passed. Vitest passed all 553 tests. Both targeted Playwright specs passed serially; recovery matched all 185 exported locations, and the map fallback took 130 ms then 83 ms. The restore helper now uses smaller validation functions and typed option objects in response to CodeScene findings. The latest CodeScene analysis on the earlier head passed. One initial `pnpm test` run hit a 5-second timeout in `bootstrap.test.ts`; the immediate rerun passed all 553 tests. CodeRabbit skipped review because the repository requires a `review` label.
+After the latest review fixes, `pnpm lint`, `pnpm typecheck`, and `pnpm test` passed. Vitest passed all 555 tests. Both targeted Playwright specs passed serially; recovery matched all 185 exported locations, and map fallback took 216 ms then 694 ms. The test run produced a new local backup version pair and restored version recorded above. CodeRabbit skipped review because the repository requires a `review` label.
 
 ## Owner checklist
 
