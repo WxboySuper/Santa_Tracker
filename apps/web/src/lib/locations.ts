@@ -55,11 +55,9 @@ export interface RouteNode {
   comment?: string | null;
   id: string;
   type: string;
-  is_stop?: boolean | null;
   location: {
     name: string;
     region?: string | null;
-    country?: string | null;
     lat: number;
     lng: number;
     timezone_offset?: number | null;
@@ -68,8 +66,6 @@ export interface RouteNode {
   schedule?: Schedule | null;
   transit_to_here?: TransitToHere | null;
   notes?: string | null;
-  fun_facts?: string | null;
-  population?: number | null;
   priority?: number | null;
 }
 
@@ -122,30 +118,12 @@ function normalizeLegacyLocation(entry: JsonRecord, idx: number): JsonRecord {
   const durationSeconds = optionalNumber(entry.stop_duration);
   return {
     id: entry.name || `node_${idx}`,
-    type: entry.type,
-    is_stop: entry.is_stop,
-    location: {
-      name: entry.name,
-      lat,
-      lng,
-      timezone_offset: tz,
-      ...normalizeLegacyLocationFields(entry),
-    },
+    location: { name: entry.name, lat, lng, timezone_offset: tz },
     schedule: { arrival_utc: entry.arrival_time, departure_utc: entry.departure_time },
     stop_experience: { duration_seconds: durationSeconds != null ? durationSeconds * 60 : null },
-    ...( "notes" in entry ? { notes: entry.notes } : {}),
-    ...( "fun_facts" in entry ? { fun_facts: entry.fun_facts } : {}),
-    population: entry.population,
+    notes: entry.notes ?? entry.fun_facts,
     priority: entry.priority,
   };
-}
-
-function normalizeLegacyLocationFields(entry: JsonRecord): JsonRecord {
-  const fields: JsonRecord = {};
-  if ("country" in entry) fields.country = entry.country;
-  if ("region" in entry) fields.region = entry.region;
-  else if ("country" in entry) fields.region = entry.country;
-  return fields;
 }
 
 function parseTransit(value: unknown): TransitToHere | null {
@@ -158,36 +136,6 @@ function parseTransit(value: unknown): TransitToHere | null {
     speed_kmh: optionalNumber(value.speed_kmh),
     camera_zoom: optionalNumber(value.camera_zoom),
   };
-}
-
-function parseNodeIsStop(entry: JsonRecord): boolean {
-  return resolveIsStop(entry.is_stop, entry.type);
-}
-
-function isFlyoverType(value: unknown): boolean {
-  return typeof value === "string" && value.trim().toUpperCase() === "FLYOVER";
-}
-
-function resolveIsStop(value: unknown, type: unknown, fallback?: boolean): boolean {
-  if (value == null) return fallback ?? !isFlyoverType(type);
-  if (typeof value === "boolean") return value;
-  throw new Error("is_stop must be a boolean");
-}
-
-function parseNodeFunFacts(entry: JsonRecord): string | null | undefined {
-  return "fun_facts" in entry ? optionalString(entry.fun_facts) : optionalString(entry.notes);
-}
-
-function parseNodeNotes(entry: JsonRecord): string | null {
-  return "notes" in entry ? optionalString(entry.notes) : optionalString(entry.fun_facts);
-}
-
-function parseNodeCountry(location: JsonRecord): string | null | undefined {
-  return "country" in location ? optionalString(location.country) : undefined;
-}
-
-function asRecordOrEmpty(value: unknown): JsonRecord {
-  return isRecord(value) ? value : {};
 }
 
 function parseLocationNode(value: unknown, idx: number): RouteNode | null {
@@ -203,18 +151,16 @@ function parseLocationNode(value: unknown, idx: number): RouteNode | null {
   if (lat == null || lng == null) return null;
   const tz = safeFloat(loc.timezone_offset);
 
-  const stop = asRecordOrEmpty(entry.stop_experience);
-  const schedule = asRecordOrEmpty(entry.schedule);
+  const stop = isRecord(entry.stop_experience) ? entry.stop_experience : {};
+  const schedule = isRecord(entry.schedule) ? entry.schedule : {};
 
   return {
     id,
     type: optionalString(entry.type) ?? "DELIVERY",
-    is_stop: parseNodeIsStop(entry),
     comment: optionalString(entry.comment),
     location: {
       name: optionalString(loc.name) ?? id,
       region: optionalString(loc.region),
-      country: parseNodeCountry(loc),
       lat,
       lng: normalizeLng(lng),
       timezone_offset: tz,
@@ -232,9 +178,7 @@ function parseLocationNode(value: unknown, idx: number): RouteNode | null {
       time_window_status: optionalString(schedule.time_window_status),
     },
     transit_to_here: parseTransit(entry.transit_to_here),
-    notes: parseNodeNotes(entry),
-    fun_facts: parseNodeFunFacts(entry),
-    population: optionalNumber(entry.population),
+    notes: optionalString(entry.notes) ?? optionalString(entry.fun_facts),
     priority: optionalNumber(entry.priority),
   };
 }
@@ -257,12 +201,12 @@ function toLocationFromNode(node: RouteNode): LocationEntry {
     arrival_time: sched.arrival_utc ?? null,
     departure_time: sched.departure_utc ?? null,
     stop_duration: durationMin,
-    is_stop: resolveIsStop(node.is_stop, node.type),
+    is_stop: true,
     priority: node.priority ?? null,
     notes: node.notes ?? null,
-    fun_facts: node.fun_facts !== undefined ? node.fun_facts : node.notes ?? null,
-    country: loc.country !== undefined ? loc.country : loc.region ?? null,
-    population: node.population ?? null,
+    fun_facts: node.notes ?? null,
+    country: loc.region ?? null,
+    population: null,
     id: node.id,
     type: node.type,
   };
@@ -288,21 +232,16 @@ function flattenRouteNode(node: RouteNode): JsonRecord {
     utc_offset: loc.timezone_offset,
     arrival_time: sched.arrival_utc ?? null,
     departure_time: sched.departure_utc ?? null,
-    country: loc.country !== undefined ? loc.country : loc.region ?? null,
-    region: loc.region ?? null,
-    population: node.population ?? null,
+    country: loc.region ?? null,
     priority: node.priority ?? null,
-    notes: node.notes ?? null,
-    fun_facts: node.fun_facts !== undefined ? node.fun_facts : node.notes ?? null,
-    is_stop: resolveIsStop(node.is_stop, node.type),
+    is_stop: true,
   };
+  if (node.notes != null) { flat.notes = node.notes; flat.fun_facts = node.notes; }
   if (stop.duration_seconds != null) flat.stop_duration = Math.round(Number(stop.duration_seconds) / 60);
   return flat;
 }
 
 function flattenLegacyLocation(item: JsonRecord): JsonRecord {
-  const notes = "notes" in item ? optionalString(item.notes) : optionalString(item.fun_facts);
-  const funFacts = "fun_facts" in item ? optionalString(item.fun_facts) : optionalString(item.notes);
   return {
     name: item.name,
     latitude: Number(item.latitude ?? item.lat),
@@ -310,14 +249,13 @@ function flattenLegacyLocation(item: JsonRecord): JsonRecord {
     utc_offset: Number(item.utc_offset ?? item.timezone_offset),
     arrival_time: item.arrival_time ?? null,
     departure_time: item.departure_time ?? null,
-    country: "country" in item ? item.country : item.region ?? null,
-    region: "region" in item ? item.region : item.country ?? null,
+    country: item.country ?? item.region ?? null,
     population: item.population ?? null,
     priority: item.priority ?? null,
-    notes,
-    fun_facts: funFacts,
+    notes: item.notes ?? item.fun_facts ?? null,
+    fun_facts: item.notes ?? item.fun_facts ?? null,
     stop_duration: item.stop_duration ?? null,
-    is_stop: resolveIsStop(item.is_stop, item.type),
+    is_stop: item.is_stop ?? true,
   };
 }
 
@@ -425,12 +363,10 @@ function buildSantaRouteDocument(
     return {
       id: optionalString(item.id) ?? `node_${idx}_${(name || "unknown").toLowerCase().replace(/\s+/g, "_")}`,
       type: optionalString(item.type) ?? "DELIVERY",
-      is_stop: resolveIsStop(item.is_stop, item.type),
       comment: optionalString(item.comment),
       location: {
         name,
-        region: optionalString(item.region) ?? optionalString(item.country),
-        country: "country" in item ? optionalString(item.country) : optionalString(item.region),
+        region: optionalString(item.country) ?? optionalString(item.region),
         lat: Number(lat),
         lng: normalizeLng(Number(lng)),
         timezone_offset: Number(tz),
@@ -448,9 +384,7 @@ function buildSantaRouteDocument(
         presents_delivered_at_stop: 0,
       },
       transit_to_here: null,
-      notes: "notes" in item ? optionalString(item.notes) : optionalString(item.fun_facts),
-      fun_facts: "fun_facts" in item ? optionalString(item.fun_facts) : optionalString(item.notes),
-      population: optionalNumber(item.population),
+      notes: optionalString(item.notes) ?? optionalString(item.fun_facts),
       priority: optionalNumber(item.priority),
     };
   });
@@ -513,7 +447,6 @@ export function createLocationFromPayload(data: JsonRecord): LocationEntry {
   const { lat, lng, tz } = parseLocationCoordinates(data);
   validatePriority(data.priority);
   const notes = optionalString(data.notes) ?? optionalString(data.fun_facts);
-  const funFacts = "fun_facts" in data ? optionalString(data.fun_facts) : notes;
   const priority = optionalNumber(data.priority);
   return {
     name,
@@ -525,13 +458,13 @@ export function createLocationFromPayload(data: JsonRecord): LocationEntry {
     timezone_offset: tz,
     arrival_time: optionalString(data.arrival_time),
     departure_time: optionalString(data.departure_time),
-    country: "country" in data ? optionalString(data.country) : optionalString(data.region),
+    country: optionalString(data.country),
     population: optionalNumber(data.population),
     priority,
     notes,
-    fun_facts: funFacts,
+    fun_facts: notes,
     stop_duration: optionalNumber(data.stop_duration),
-    is_stop: resolveIsStop(data.is_stop, data.type),
+    is_stop: typeof data.is_stop === "boolean" ? data.is_stop : true,
     region: optionalString(data.region) ?? optionalString(data.country),
   };
 }

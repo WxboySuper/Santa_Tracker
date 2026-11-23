@@ -56,13 +56,15 @@ pnpm exec playwright test e2e/map-outage.spec.ts --project=open
 pnpm exec playwright test e2e/open-season.spec.ts --project=open -g "the admin emergency switch hides and restores the tracker for visitors"
 ```
 
-The existing outage test passed with both public tile providers blocked. The new deterministic local spec blocks `tiles.openfreemap.org` and `tile.openstreetmap.org`, confirms a raster request follows the vector failure, waits for the text view, verifies the TV dashboard stays visible, and checks `/api/route` is unchanged across the outage. On the latest serial rerun, vector-to-raster took 180 ms and raster-to-text took 709 ms. The journey remains available in text mode. An earlier parallel map-plus-recovery run exceeded the map spec's 30-second timeout after it had logged fallback timings; serial execution passed both tests.
+The existing outage test passed with both public tile providers blocked. The new deterministic local spec blocks `tiles.openfreemap.org` and `tile.openstreetmap.org`, confirms a raster request follows the vector failure, waits for the text view, verifies the TV dashboard stays visible, and checks `/api/route` is unchanged across the outage. On the latest serial rerun, vector-to-raster took 132 ms and raster-to-text took 591 ms. The journey remains available in text mode. An earlier parallel map-plus-recovery run exceeded the map spec's 30-second timeout after it had logged fallback timings; serial execution passed both tests.
 
 The emergency switch test passed against the E2E suite's isolated filesystem store. It logged in with a generated local test password, hid the tracker, observed visitor `404` responses for `/tracker` and `/api/route`, then restored the flag and observed `/tracker` return `200`. No real secret or production backend was used.
 
 ## #326, snapshots and backup recovery
 
-The admin endpoint `GET /api/admin/backup/export` exports route locations. The new local-only restore script validates that format, converts it to the route snapshot format, and writes one version through the filesystem versioned store. It refuses any non-empty target data directory, including orphan version history and other datasets. It has no R2 binding or Wrangler path.
+The admin endpoint `GET /api/admin/backup/export` exports route locations. The new local-only restore script validates that format, converts supported stop entries to the route snapshot format, and writes one version through the filesystem versioned store. It refuses any non-empty target data directory, including orphan version history and other datasets. It has no R2 binding or Wrangler path.
+
+Flyovers are not supported by this restore drill. The restore parser rejects any backup entry with `is_stop: false` or a `type` of `FLYOVER`, with the error `flyovers are not supported by the local restore drill`. This rehearsal PR does not change production route handling, and it does not provide flyover recovery evidence. A separate approved route-handling change or operator procedure is needed to restore backups containing flyovers.
 
 Command:
 
@@ -73,7 +75,7 @@ pnpm exec playwright test e2e/backup-restore.spec.ts --project=open
 The local drill passed against the isolated E2E filesystem fixture. It fetched the backup export through the authenticated admin API, saved and activated an original route snapshot, activated a changed snapshot, rolled back to the original version, and verified the active snapshot matched. It restored the backup through the script into a clean temporary data directory and verified the restored route document against the export. The export contained 185 locations.
 
 ```text
-BACKUP_RECOVERY versions=2026-11-23T22-11-05-113Z-2o4oukmw,2026-11-23T22-11-05-133Z-h3zzqi9o rollback=2026-11-23T22-11-05-113Z-2o4oukmw restored=2026-11-23T22-11-05-171Z-na9o7sla locations=185
+BACKUP_RECOVERY versions=2026-11-23T22-32-07-532Z-xwvh2ko9,2026-11-23T22-32-07-558Z-a6kuhdvd rollback=2026-11-23T22-32-07-532Z-xwvh2ko9 restored=2026-11-23T22-32-07-602Z-pxg3667a locations=185
 ```
 
 For a standalone restore from an existing export, use:
@@ -99,7 +101,7 @@ Gaps found:
 - The built vinext preview requires the local R2 binding and had no active route snapshot; it does not use the app filesystem adapter. With the filesystem-only constraint, it could not provide a comparable load run.
 - `pnpm load:local` can now target an explicitly supplied loopback origin through `LOAD_ORIGIN`; it still starts Next dev by default.
 - The existing outage test covered both providers failing together. The new test adds a check that the raster request occurs after the vector failure and records local fallback timing.
-- OCR review fixes now normalize longitude like the application, reject negative population and stop duration, require integer population and priority 1-3, restrict longitude to the supported ±360 range before normalization, validate optional ISO schedule times, preserve explicit null fun facts, preserve flyover `is_stop`, population, notes, and fun facts, and reject any non-empty restore target. Unit tests cover wrapped longitude, invalid values, full-directory guards, and modern and legacy `is_stop` round-trips. The admin export and update path keep notes and fun facts separate. Explicit fact clears remain null after unrelated updates, and missing fields retain legacy fallbacks. Region and country values stay distinct; create/update, flatten, and route reads retain separate values; missing `is_stop` on FLYOVER nodes defaults to false. The restore parser also checks `backup_timestamp` against the route schema's ISO datetime with offset and validates the complete snapshot before activation. The CLI accepts both `--option value` and `--option=value`; `LOAD_ORIGIN` preserves an optional path prefix and does not require an unused `LOAD_PORT`. It derives the route year from the export timestamp. Missing country values use `Unknown` for the required schema region while preserving the original nullable country field.
+- Restore-tool validation normalizes longitude like the application, rejects negative population and stop duration, requires integer population and priority 1-3, restricts longitude to the supported ±360 range before normalization, validates optional ISO schedule times, rejects unsupported flyovers, and refuses any non-empty restore target. Unit tests cover wrapped longitude, invalid values, flyover rejection, and full-directory guards. The restore parser checks `backup_timestamp` against the route schema's ISO datetime with offset and validates the complete snapshot before activation. The CLI accepts both `--option value` and `--option=value`; `LOAD_ORIGIN` preserves an optional path prefix and does not require an unused `LOAD_PORT`. It derives the route year from the export timestamp. Missing country values use `Unknown` for the required schema region while preserving the original nullable country field.
 - There is no staging Worker rehearsal. Production R2 pointer restore, Worker rollback, cache purge, monitoring delivery, and edge load remain owner-run tasks.
 
 ## Repository checks
@@ -107,12 +109,12 @@ Gaps found:
 After the documentation and runner changes:
 
 ```text
-pnpm lint       PASS
+pnpm lint -- --ignore-pattern playwright-report/** --ignore-pattern test-results/**  PASS
 pnpm typecheck  PASS
-pnpm test       PASS, 80 files and 557 tests
+pnpm test       PASS, 81 files and 559 tests
 ```
 
-After the latest review fixes, `pnpm lint`, `pnpm typecheck`, and `pnpm test` passed. Vitest passed all 557 tests. Both targeted Playwright specs passed serially; recovery matched all 185 exported locations, and map fallback took 166 ms then 380 ms. The test run produced a new local backup version pair and restored version recorded above. CodeRabbit skipped review because the repository requires a `review` label.
+After restoring the production route files to `origin/main`, `pnpm typecheck` and `pnpm test` passed. Vitest passed all 559 tests across 81 files. `pnpm lint` initially scanned generated Playwright artifacts and reported lint errors in those files; rerunning with `playwright-report/**` and `test-results/**` excluded passed. Both targeted Playwright specs passed serially; recovery matched all 185 exported locations, and map fallback took 132 ms then 591 ms. The backup version IDs are recorded above. This report's local route handling is the `main` implementation. The restore drill rejects flyover backups rather than relying on an unreviewed production route change.
 
 ## Owner checklist
 

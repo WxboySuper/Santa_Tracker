@@ -54,7 +54,7 @@ function serializeLocationFields(location: LocationEntry): Record<string, unknow
     population: location.population,
     priority: location.priority,
     notes: location.notes,
-    fun_facts: location.fun_facts ?? location.notes,
+    fun_facts: location.notes,
     stop_duration: location.stop_duration,
     is_stop: location.is_stop,
   };
@@ -152,10 +152,7 @@ async function applyLocationUpdate(locationId: number, payload: unknown): Promis
 }
 
 function mergedLocation(existing: LocationEntry, payload: Record<string, unknown>): LocationEntry {
-  const notes = "notes" in payload ? payload.notes as LocationEntry["notes"] : existing.notes;
-  const funFacts = "fun_facts" in payload
-    ? payload.fun_facts as LocationEntry["fun_facts"]
-    : existing.fun_facts;
+  const notes = pickUpdatedNotes(existing, payload);
   const updated: LocationEntry = {
     ...existing,
     name: orFallback(payload.name, existing.name),
@@ -168,9 +165,9 @@ function mergedLocation(existing: LocationEntry, payload: Record<string, unknown
     population: orFallback(payload.population, existing.population),
     priority: orFallback(payload.priority, existing.priority),
     notes,
-    fun_facts: funFacts,
+    fun_facts: notes,
     stop_duration: orFallback(payload.stop_duration, existing.stop_duration),
-    is_stop: resolveUpdatedIsStop(payload.is_stop, existing),
+    is_stop: orFallback(payload.is_stop, existing.is_stop),
   };
   updated.lat = Number(updated.latitude);
   updated.lng = Number(updated.longitude);
@@ -178,10 +175,10 @@ function mergedLocation(existing: LocationEntry, payload: Record<string, unknown
   return updated;
 }
 
-function resolveUpdatedIsStop(value: unknown, existing: LocationEntry): boolean | null | undefined {
-  if (value == null) return existing.is_stop;
-  if (typeof value === "boolean") return value;
-  throw new Error("is_stop must be a boolean");
+function pickUpdatedNotes(existing: LocationEntry, payload: Record<string, unknown>): LocationEntry["notes"] {
+  if ("notes" in payload) return payload.notes as LocationEntry["notes"];
+  if ("fun_facts" in payload) return payload.fun_facts as LocationEntry["notes"];
+  return existing.notes;
 }
 
 function orFallback<T>(value: unknown, fallback: T): T {

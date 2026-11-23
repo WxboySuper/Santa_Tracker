@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { validateLocations, createLocationFromPayload, loadRouteNodesRaw, loadSantaRouteFromJson, saveSantaRouteToJson } from "../locations";
+import { validateLocations, createLocationFromPayload } from "../locations";
 import { buildSimulatedFromLocations } from "../route-sim";
 import { isPlayable, isUnlocked, parseDayNumber, toDict, validateAdventCalendar, type AdventDay } from "../advent";
 import { createAdminToken, verifyAdminToken, verifyAdminPassword } from "../auth";
@@ -10,44 +10,6 @@ import { fileURLToPath } from "node:url";
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../../../../");
 
 describe("Flask parity - locations", () => {
-  it("preserves explicit is_stop values when reading modern and legacy routes", async () => {
-    const modern = await loadRouteNodesRaw({ route_nodes: [{ id: "modern-flyover", type: "FLYOVER", is_stop: false, location: { name: "Modern", lat: 1, lng: 2 } }] });
-    const legacy = await loadSantaRouteFromJson({ route: [{ name: "Legacy", latitude: 1, longitude: 2, type: "DELIVERY", is_stop: false }] });
-    expect(modern[0]?.is_stop).toBe(false);
-    expect(legacy[0]?.is_stop).toBe(false);
-  });
-  it("rejects non-boolean stop overrides at payload and route import boundaries", async () => {
-    expect(() => createLocationFromPayload({ name: "Bad stop", latitude: 1, longitude: 2, utc_offset: 0, is_stop: 0 })).toThrow("is_stop must be a boolean");
-    const imported = await loadRouteNodesRaw({ route_nodes: [{ id: "bad-stop", type: "DELIVERY", is_stop: "false", location: { name: "Bad", lat: 1, lng: 2 } }] });
-    expect(imported).toHaveLength(0);
-  });
-  it("writes explicit false is_stop for modern nodes and legacy entries", async () => {
-    const directory = fs.mkdtempSync(path.join(REPO_ROOT, "tmp-is-stop-"));
-    try {
-      const modernPath = path.join(directory, "modern.json");
-      await saveSantaRouteToJson([{ id: "modern-flyover", type: "FLYOVER", is_stop: false, location: { name: "Modern", lat: 1, lng: 2 }, schedule: {}, stop_experience: {} }], modernPath);
-      expect(JSON.parse(fs.readFileSync(modernPath, "utf8")).route_nodes[0].is_stop).toBe(false);
-
-      const legacyPath = path.join(directory, "legacy.json");
-      fs.writeFileSync(legacyPath, JSON.stringify({ route: [] }));
-      await saveSantaRouteToJson([
-        { name: "Legacy", latitude: 1, longitude: 2, type: "delivery", is_stop: false, notes: 42, fun_facts: undefined, country: null, region: "North" },
-        { name: "Flyover", latitude: 2, longitude: 3, type: " flyover " },
-        { name: "Fact only", latitude: 3, longitude: 4, fun_facts: "A fact" },
-      ], legacyPath);
-      const savedLegacy = JSON.parse(fs.readFileSync(legacyPath, "utf8")).route;
-      expect(savedLegacy[0].is_stop).toBe(false);
-      expect(savedLegacy[0].notes).toBeNull();
-      expect(savedLegacy[0].fun_facts).toBeNull();
-      expect(savedLegacy[0].country).toBeNull();
-      expect(savedLegacy[0].region).toBe("North");
-      expect(savedLegacy[1].is_stop).toBe(false);
-      expect(savedLegacy[2].notes).toBe("A fact");
-      expect(savedLegacy[2].fun_facts).toBe("A fact");
-    } finally {
-      fs.rmSync(directory, { recursive: true, force: true });
-    }
-  });
   it("validates location payload and normalizes lng", () => {
     const location = createLocationFromPayload({ name: "Test", latitude: 10, longitude: 190, utc_offset: 0 });
     expect(location.longitude).toBe(-170);
@@ -56,10 +18,6 @@ describe("Flask parity - locations", () => {
   });
   it("rejects invalid latitude", () => {
     expect(() => createLocationFromPayload({ name: "Bad", latitude: 100, longitude: 0, utc_offset: 0 })).toThrow();
-  });
-  it("uses a region as country only when country was omitted", () => {
-    expect(createLocationFromPayload({ name: "Region only", latitude: 1, longitude: 2, utc_offset: 0, region: "North" }).country).toBe("North");
-    expect(createLocationFromPayload({ name: "Explicit null", latitude: 1, longitude: 2, utc_offset: 0, country: null, region: "North" }).country).toBeNull();
   });
   it("validateLocations detects duplicates", () => {
     const firstLocation = createLocationFromPayload({ name: "A", latitude: 0, longitude: 0, utc_offset: 0 });

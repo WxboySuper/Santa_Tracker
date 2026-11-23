@@ -6,7 +6,6 @@ import { createFilesystemBackend } from "./filesystem-backend";
 import { createVersionedSnapshotStore } from "./versioned-store-core";
 import { DATASET_SANTA_ROUTE } from "./types";
 import { LegacyRouteFixtureSchema } from "../../../../../packages/contracts/src/schemas";
-import { createLocationFromPayload, loadSantaRouteFromJson, saveSantaRouteToJson } from "../locations";
 import { backupToRouteDocument, parseRouteBackupExport, readOption, restoreBackupFile } from "../../../../../tools/rehearsal/restore-backup";
 
 const roots: string[] = [];
@@ -48,19 +47,15 @@ describe("local filesystem backup restore", () => {
     expect(priorYear.meta.year).toBe(2025);
     const wrapped = parseRouteBackupExport({ raw: JSON.stringify({
       ...backup,
-      route: [{ ...backup.route[0], longitude: 202.51, priority: 2, is_stop: false, stop_duration: 10 }],
+      route: [{ ...backup.route[0], longitude: 202.51, priority: 2, is_stop: true, stop_duration: 10 }],
     }) });
     const wrappedDocument = backupToRouteDocument(wrapped) as { route_nodes: { type: string; is_stop: boolean; location: { lng: number }; stop_experience: { duration_seconds: number } }[] };
-    expect(wrappedDocument.route_nodes[0]).toMatchObject({ type: "FLYOVER", is_stop: false, location: { lng: -157.49 }, stop_experience: { duration_seconds: 0 } });
+    expect(wrappedDocument.route_nodes[0]).toMatchObject({ type: "DELIVERY", is_stop: true, location: { lng: -157.49 }, stop_experience: { duration_seconds: 600 } });
     const fullCircle = parseRouteBackupExport({ raw: JSON.stringify({
       ...backup,
       route: [{ ...backup.route[0], longitude: 360 }],
     }) });
     expect(fullCircle.route[0]?.longitude).toBe(0);
-    await expect(loadSantaRouteFromJson(wrappedDocument)).resolves.toMatchObject([{
-      longitude: -157.49, is_stop: false, stop_duration: 0, population: 123,
-      notes: "Independent note", fun_facts: "Separate fact",
-    }]);
     expect(() => parseRouteBackupExport({ raw: JSON.stringify({ ...backup, total_locations: 2 }) })).toThrow("must match");
     expect(() => parseRouteBackupExport({ raw: JSON.stringify({ ...backup, backup_timestamp: "not-a-date" }) })).toThrow("valid ISO timestamp");
     expect(() => parseRouteBackupExport({ raw: JSON.stringify({ ...backup, route: [{ ...backup.route[0], latitude: 91 }] }) })).toThrow("invalid latitude");
@@ -70,6 +65,8 @@ describe("local filesystem backup restore", () => {
     expect(() => parseRouteBackupExport({ raw: JSON.stringify({ ...backup, route: [{ ...backup.route[0], longitude: 361 }] }) })).toThrow("invalid longitude");
     expect(() => parseRouteBackupExport({ raw: JSON.stringify({ ...backup, route: [{ ...backup.route[0], arrival_time: "tomorrow" }] }) })).toThrow("invalid arrival_time");
     expect(() => parseRouteBackupExport({ raw: JSON.stringify({ ...backup, route: [{ ...backup.route[0], population: 1.5 }] }) })).toThrow("invalid population");
+    expect(() => parseRouteBackupExport({ raw: JSON.stringify({ ...backup, route: [{ ...backup.route[0], is_stop: false }] }) })).toThrow("flyovers are not supported by the local restore drill");
+    expect(() => parseRouteBackupExport({ raw: JSON.stringify({ ...backup, route: [{ ...backup.route[0], type: "FLYOVER" }] }) })).toThrow("flyovers are not supported by the local restore drill");
   });
 
   it("writes and activates one version in an empty filesystem directory", async () => {
@@ -83,9 +80,9 @@ describe("local filesystem backup restore", () => {
     expect(restored.locationCount).toBe(1);
     expect(restored.versionId).toBe((await store.readActiveVersion(DATASET_SANTA_ROUTE))?.versionId);
     expect(JSON.parse(active ?? "{}")).toEqual(backupToRouteDocument(backup));
-    await expect(loadSantaRouteFromJson(JSON.parse(active ?? "{}"))).resolves.toMatchObject([{
+    expect(JSON.parse(active ?? "{}").route_nodes[0]).toMatchObject({
       population: 123, notes: "Independent note", fun_facts: "Separate fact", is_stop: true,
-    }]);
+    });
   });
 
   it("rejects schema-invalid route times before creating a version", async () => {
@@ -115,74 +112,4 @@ describe("local filesystem backup restore", () => {
     await expect(restoreBackupFile({ inputPath: input, dataDir: otherDatasetDir })).rejects.toThrow("non-empty local data directory");
   });
 
-  it("preserves is_stop on modern-node and legacy-flat read/write round trips", async () => {
-    const parent = await tempDir();
-    const modernPath = path.join(parent, "modern.json");
-    const legacyPath = path.join(parent, "legacy.json");
-    const modernNode = {
-      id: "flyover-modern", type: "DELIVERY", is_stop: false,
-      location: { name: "Modern", lat: 1, lng: 2, timezone_offset: 0 },
-      schedule: {}, stop_experience: { duration_seconds: 0 },
-      notes: "Keep this note", fun_facts: null,
-    };
-    await saveSantaRouteToJson([modernNode], modernPath);
-    const modernRead = await loadSantaRouteFromJson(modernPath);
-    expect(modernRead[0]).toMatchObject({ is_stop: false, notes: "Keep this note", fun_facts: null });
-    await saveSantaRouteToJson(modernRead, modernPath);
-    await expect(loadSantaRouteFromJson(modernPath)).resolves.toMatchObject([{
-      is_stop: false, notes: "Keep this note", fun_facts: null,
-    }]);
-
-    await fs.writeFile(legacyPath, JSON.stringify({ route: [{
-      name: "Legacy", latitude: 1, longitude: 2, utc_offset: 0, is_stop: false,
-      notes: "Legacy note", fun_facts: "Legacy fact", type: "DELIVERY", country: "Canada", region: "Arctic",
-    }] }));
-    const legacyRead = await loadSantaRouteFromJson(legacyPath);
-    expect(legacyRead[0]?.is_stop).toBe(false);
-    await saveSantaRouteToJson(legacyRead, legacyPath);
-    const legacySaved = JSON.parse(await fs.readFile(legacyPath, "utf8")) as { route: { is_stop: boolean; notes: string; fun_facts: string; country: string; region: string }[] };
-    expect(legacySaved.route[0]).toMatchObject({
-      is_stop: false, notes: "Legacy note", fun_facts: "Legacy fact", country: "Canada", region: "Arctic",
-    });
-    await expect(loadSantaRouteFromJson(legacyPath)).resolves.toMatchObject([{
-      is_stop: false, notes: "Legacy note", fun_facts: "Legacy fact", country: "Canada", region: "Arctic",
-    }]);
-
-    const factOnlyPath = path.join(parent, "fact-only.json");
-    await fs.writeFile(factOnlyPath, JSON.stringify({ route: [{
-      name: "Fact only", latitude: 1, longitude: 2, utc_offset: 0, fun_facts: "Fallback fact",
-    }] }));
-    await expect(loadSantaRouteFromJson(factOnlyPath)).resolves.toMatchObject([{
-      notes: "Fallback fact", fun_facts: "Fallback fact",
-    }]);
-    const noteOnlyPath = path.join(parent, "note-only.json");
-    await fs.writeFile(noteOnlyPath, JSON.stringify({ route: [{
-      name: "Note only", latitude: 1, longitude: 2, utc_offset: 0, notes: "Fallback note",
-    }] }));
-    await expect(loadSantaRouteFromJson(noteOnlyPath)).resolves.toMatchObject([{
-      notes: "Fallback note", fun_facts: "Fallback note",
-    }]);
-
-    const clearedFactPath = path.join(parent, "cleared-fact.json");
-    await fs.writeFile(clearedFactPath, JSON.stringify({ route: [{
-      name: "Cleared fact", latitude: 1, longitude: 2, utc_offset: 0, notes: "Keep note", fun_facts: null,
-    }] }));
-    const clearedFact = await loadSantaRouteFromJson(clearedFactPath);
-    expect(clearedFact[0]?.fun_facts).toBeNull();
-    await saveSantaRouteToJson(clearedFact, clearedFactPath);
-    await expect(loadSantaRouteFromJson(clearedFactPath)).resolves.toMatchObject([{
-      notes: "Keep note", fun_facts: null,
-    }]);
-
-    const flyoverPath = path.join(parent, "flyover.json");
-    await fs.writeFile(flyoverPath, JSON.stringify({ route_nodes: [{
-      id: "flyover-default", type: "FLYOVER", location: { name: "Flyover", lat: 1, lng: 2 },
-    }] }));
-    await expect(loadSantaRouteFromJson(flyoverPath)).resolves.toMatchObject([{ is_stop: false }]);
-
-    const created = createLocationFromPayload({
-      name: "Created", latitude: 1, longitude: 2, utc_offset: 0, notes: "A", fun_facts: "B",
-    });
-    expect(created).toMatchObject({ notes: "A", fun_facts: "B" });
-  });
 });

@@ -8,6 +8,7 @@ import { DATASET_SANTA_ROUTE } from "../../apps/web/src/lib/storage/types";
 
 export interface BackupLocation {
   name: string;
+  type?: string | null;
   latitude: number;
   longitude: number;
   utc_offset: number;
@@ -84,6 +85,18 @@ function assertLocationCount({ value, actualCount }: { value: Record<string, unk
 
 function assertRouteHasLocations({ route }: { route: unknown[] }): void {
   if (route.length === 0) throw new Error("Backup route must not be empty");
+  assertNoFlyovers({ route });
+}
+
+function assertNoFlyovers({ route }: { route: unknown[] }): void {
+  route.forEach((value, index) => {
+    const location = asRecord({ value });
+    if (!location) return;
+    const isFlyover = location.is_stop === false || (typeof location.type === "string" && location.type.trim().toUpperCase() === "FLYOVER");
+    if (isFlyover) {
+      throw new Error(`Backup route item ${index} is a flyover; flyovers are not supported by the local restore drill`);
+    }
+  });
 }
 
 function parseLocation({ value, index }: ValueAtIndex): BackupLocation {
@@ -215,6 +228,7 @@ function asRecord({ value }: { value: unknown }): Record<string, unknown> | null
 }
 
 export function backupToRouteDocument(backup: RouteBackupExport): Record<string, unknown> {
+  assertNoFlyovers({ route: backup.route });
   return {
     meta: {
       year: new Date(backup.backup_timestamp).getUTCFullYear(),
@@ -223,7 +237,7 @@ export function backupToRouteDocument(backup: RouteBackupExport): Record<string,
     },
     route_nodes: backup.route.map((location, index) => ({
       id: `backup-${index + 1}`,
-      type: location.is_stop === false ? "FLYOVER" : "DELIVERY",
+      type: "DELIVERY",
       is_stop: location.is_stop ?? true,
       location: {
         name: location.name,
@@ -239,7 +253,7 @@ export function backupToRouteDocument(backup: RouteBackupExport): Record<string,
         departure_utc: location.departure_time ?? null,
       },
       transit_to_here: null,
-      stop_experience: { duration_seconds: location.is_stop === false ? 0 : Math.round((location.stop_duration ?? 0) * 60) },
+      stop_experience: { duration_seconds: Math.round((location.stop_duration ?? 0) * 60) },
       notes: location.notes ?? null,
       fun_facts: location.fun_facts ?? null,
       priority: location.priority ?? null,
