@@ -83,39 +83,60 @@ function categoryClue(value) {
   return null;
 }
 
-function reachableFiles(manifest, seedCategory, extraSeeds = [], referenceCategories = new Map()) {
-  const reachable = new Set();
-  const pending = Object.entries(manifest)
-    .filter(([key, entry]) => {
-      const clue = categoryClue(`${key} ${entry.name ?? ''} ${entry.src ?? ''}`) ?? referenceCategories.get(key);
-      return seedCategory === 'public' ? entry.isEntry && !clue : clue === seedCategory;
-    })
+function isGraphSeed(key, entry, tier, referenceCategories) {
+  const clue = categoryClue(`${key} ${entry.name ?? ''} ${entry.src ?? ''}`) ?? referenceCategories.get(key);
+  return tier === 'public' ? entry.isEntry && !clue : clue === tier;
+}
+
+function graphSeeds(manifest, tier, referenceSeeds, referenceCategories) {
+  const entries = Object.entries(manifest)
+    .filter(([key, entry]) => isGraphSeed(key, entry, tier, referenceCategories))
     .map(([key]) => key);
-  pending.push(...extraSeeds);
+  return [...entries, ...referenceSeeds];
+}
+
+function isPublicDynamicTarget(target, manifest, referenceCategories) {
+  const entry = manifest[target];
+  if (!entry) return true;
+  const clue = categoryClue(`${target} ${entry.name ?? ''} ${entry.src ?? ''}`);
+  return !clue && !referenceCategories.has(target);
+}
+
+function graphNeighbors(key, entry, tier, referenceSeeds, manifest, referenceCategories) {
+  const imports = entry.imports ?? [];
+  const dynamicImports = entry.dynamicImports ?? [];
+  if (tier !== 'public') return [...imports, ...dynamicImports];
+  if (!referenceSeeds.has(key)) return imports;
+  return [...imports, ...dynamicImports.filter((target) => isPublicDynamicTarget(target, manifest, referenceCategories))];
+}
+
+function walkManifest(manifest, seeds, tier, referenceSeeds, referenceCategories) {
+  const reachable = new Set();
+  const pending = [...seeds];
   while (pending.length) {
     const key = pending.pop();
-    if (reachable.has(key) || !manifest[key]) continue;
+    const entry = manifest[key];
+    if (!entry || reachable.has(key)) continue;
     reachable.add(key);
-    const entry = manifest[key];
-    pending.push(...(entry.imports ?? []));
-    const dynamicTargets = entry.dynamicImports ?? [];
-    if (seedCategory === 'public') {
-      if (extraSeeds.includes(key)) {
-        pending.push(...dynamicTargets.filter((target) => {
-          const targetEntry = manifest[target];
-          if (!targetEntry) return true;
-          return !categoryClue(`${target} ${targetEntry.name ?? ''} ${targetEntry.src ?? ''}`)
-            && !referenceCategories.has(target);
-        }));
-      }
-    } else {
-      pending.push(...dynamicTargets);
-    }
+    pending.push(...graphNeighbors(key, entry, tier, referenceSeeds, manifest, referenceCategories));
   }
-  return new Set([...reachable].flatMap((key) => {
+  return reachable;
+}
+
+function manifestAssetFiles(manifest, keys) {
+  const files = [];
+  for (const key of keys) {
     const entry = manifest[key];
-    return [entry.file, ...(entry.css ?? []), ...(entry.assets ?? [])].filter(Boolean).map(normalizeAssetPath);
-  }));
+    files.push(entry.file, ...(entry.css ?? []), ...(entry.assets ?? []));
+  }
+  return files.filter(Boolean).map(normalizeAssetPath);
+}
+
+function reachableFiles(manifest, tier, extraSeeds = [], referenceCategories = new Map()) {
+  const referenceSeeds = new Set(extraSeeds);
+  const seeds = graphSeeds(manifest, tier, extraSeeds, referenceCategories);
+  const reachable = walkManifest(manifest, seeds, tier, referenceSeeds, referenceCategories);
+  return new Set(manifestAssetFiles(manifest, reachable));
 }
 
 function clientReferenceSeeds(manifest, owners) {
