@@ -73,7 +73,7 @@ pnpm exec playwright test e2e/backup-restore.spec.ts --project=open
 The local drill passed against the isolated E2E filesystem fixture. It fetched the backup export through the authenticated admin API, saved and activated an original route snapshot, activated a changed snapshot, rolled back to the original version, and verified the active snapshot matched. It restored the backup through the script into a clean temporary data directory and verified the restored route document against the export. The export contained 185 locations.
 
 ```text
-BACKUP_RECOVERY versions=2026-11-23T22-01-11-772Z-h537duva,2026-11-23T22-01-11-797Z-852r4q0l rollback=2026-11-23T22-01-11-772Z-h537duva restored=2026-11-23T22-01-11-829Z-7wg7nk9k locations=185
+BACKUP_RECOVERY versions=2026-11-23T22-06-44-022Z-dbijx499,2026-11-23T22-06-44-049Z-w1mbte0f rollback=2026-11-23T22-06-44-022Z-dbijx499 restored=2026-11-23T22-06-44-089Z-065tospa locations=185
 ```
 
 For a standalone restore from an existing export, use:
@@ -109,10 +109,10 @@ After the documentation and runner changes:
 ```text
 pnpm lint       PASS
 pnpm typecheck  PASS
-pnpm test       PASS, 80 files and 555 tests
+pnpm test       PASS, 80 files and 556 tests
 ```
 
-After the latest review fixes, `pnpm lint`, `pnpm typecheck`, and `pnpm test` passed. Vitest passed all 555 tests. Both targeted Playwright specs passed serially; recovery matched all 185 exported locations, and map fallback took 138 ms then 108 ms. The test run produced a new local backup version pair and restored version recorded above. CodeRabbit skipped review because the repository requires a `review` label.
+After the latest review fixes, `pnpm lint`, `pnpm typecheck`, and `pnpm test` passed. Vitest passed all 556 tests. Both targeted Playwright specs passed serially; recovery matched all 185 exported locations, and map fallback took 139 ms then 163 ms. The test run produced a new local backup version pair and restored version recorded above. CodeRabbit skipped review because the repository requires a `review` label.
 
 ## Owner checklist
 

@@ -161,16 +161,17 @@ function parseTransit(value: unknown): TransitToHere | null {
 }
 
 function parseNodeIsStop(entry: JsonRecord): boolean {
-  if (typeof entry.is_stop === "boolean") return entry.is_stop;
-  return !isFlyoverType(entry.type);
+  return resolveIsStop(entry.is_stop, entry.type);
 }
 
 function isFlyoverType(value: unknown): boolean {
   return typeof value === "string" && value.trim().toUpperCase() === "FLYOVER";
 }
 
-function serializedIsStop(value: unknown, type: unknown): boolean {
-  return typeof value === "boolean" ? value : !isFlyoverType(type);
+function resolveIsStop(value: unknown, type: unknown, fallback?: boolean): boolean {
+  if (value == null) return fallback ?? !isFlyoverType(type);
+  if (typeof value === "boolean") return value;
+  throw new Error("is_stop must be a boolean");
 }
 
 function parseNodeFunFacts(entry: JsonRecord): string | null | undefined {
@@ -256,7 +257,7 @@ function toLocationFromNode(node: RouteNode): LocationEntry {
     arrival_time: sched.arrival_utc ?? null,
     departure_time: sched.departure_utc ?? null,
     stop_duration: durationMin,
-    is_stop: serializedIsStop(node.is_stop, node.type),
+    is_stop: resolveIsStop(node.is_stop, node.type),
     priority: node.priority ?? null,
     notes: node.notes ?? null,
     fun_facts: node.fun_facts !== undefined ? node.fun_facts : node.notes ?? null,
@@ -293,7 +294,7 @@ function flattenRouteNode(node: RouteNode): JsonRecord {
     priority: node.priority ?? null,
     notes: node.notes ?? null,
     fun_facts: node.fun_facts !== undefined ? node.fun_facts : node.notes ?? null,
-    is_stop: serializedIsStop(node.is_stop, node.type),
+    is_stop: resolveIsStop(node.is_stop, node.type),
   };
   if (stop.duration_seconds != null) flat.stop_duration = Math.round(Number(stop.duration_seconds) / 60);
   return flat;
@@ -316,7 +317,7 @@ function flattenLegacyLocation(item: JsonRecord): JsonRecord {
     notes,
     fun_facts: funFacts,
     stop_duration: item.stop_duration ?? null,
-    is_stop: serializedIsStop(item.is_stop, item.type),
+    is_stop: resolveIsStop(item.is_stop, item.type),
   };
 }
 
@@ -424,7 +425,7 @@ function buildSantaRouteDocument(
     return {
       id: optionalString(item.id) ?? `node_${idx}_${(name || "unknown").toLowerCase().replace(/\s+/g, "_")}`,
       type: optionalString(item.type) ?? "DELIVERY",
-      is_stop: serializedIsStop(item.is_stop, item.type),
+      is_stop: resolveIsStop(item.is_stop, item.type),
       comment: optionalString(item.comment),
       location: {
         name,
@@ -530,7 +531,7 @@ export function createLocationFromPayload(data: JsonRecord): LocationEntry {
     notes,
     fun_facts: funFacts,
     stop_duration: optionalNumber(data.stop_duration),
-    is_stop: serializedIsStop(data.is_stop, data.type),
+    is_stop: resolveIsStop(data.is_stop, data.type),
     region: optionalString(data.region) ?? optionalString(data.country),
   };
 }

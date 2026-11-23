@@ -170,12 +170,18 @@ function mergedLocation(existing: LocationEntry, payload: Record<string, unknown
     notes,
     fun_facts: funFacts,
     stop_duration: orFallback(payload.stop_duration, existing.stop_duration),
-    is_stop: typeof payload.is_stop === "boolean" ? payload.is_stop : existing.is_stop,
+    is_stop: resolveUpdatedIsStop(payload.is_stop, existing),
   };
   updated.lat = Number(updated.latitude);
   updated.lng = Number(updated.longitude);
   updated.timezone_offset = Number(updated.utc_offset);
   return updated;
+}
+
+function resolveUpdatedIsStop(value: unknown, existing: LocationEntry): boolean | null | undefined {
+  if (value == null) return existing.is_stop;
+  if (typeof value === "boolean") return value;
+  throw new Error("is_stop must be a boolean");
 }
 
 function orFallback<T>(value: unknown, fallback: T): T {

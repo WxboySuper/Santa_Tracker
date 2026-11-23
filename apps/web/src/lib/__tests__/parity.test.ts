@@ -16,6 +16,11 @@ describe("Flask parity - locations", () => {
     expect(modern[0]?.is_stop).toBe(false);
     expect(legacy[0]?.is_stop).toBe(false);
   });
+  it("rejects non-boolean stop overrides at payload and route import boundaries", async () => {
+    expect(() => createLocationFromPayload({ name: "Bad stop", latitude: 1, longitude: 2, utc_offset: 0, is_stop: 0 })).toThrow("is_stop must be a boolean");
+    const imported = await loadRouteNodesRaw({ route_nodes: [{ id: "bad-stop", type: "DELIVERY", is_stop: "false", location: { name: "Bad", lat: 1, lng: 2 } }] });
+    expect(imported).toHaveLength(0);
+  });
   it("writes explicit false is_stop for modern nodes and legacy entries", async () => {
     const directory = fs.mkdtempSync(path.join(REPO_ROOT, "tmp-is-stop-"));
     try {
