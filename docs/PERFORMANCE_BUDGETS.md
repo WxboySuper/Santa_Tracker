@@ -1,16 +1,16 @@
 # Client bundle budgets
 
-The bundle budget check measures gzip-compressed JavaScript and CSS in the Vinext client build. It reads the manifest-bearing client asset directory and follows Vite entry, import, and dynamic-import relationships to attribute chunks. A shared chunk is charged to every tier whose route graph reaches it, so shared dependencies cannot hide growth in a smaller 3D or admin budget. Filename clues are a fallback for assets with no route in the manifest graph. Assets outside the graph and without filename clues are charged to every tier, and symbolic links fail the scan.
+The bundle budget report measures gzip-compressed JavaScript and CSS in the Vinext client build. It follows Vite entry, import, and dynamic-import relationships to attribute chunks. A shared chunk is charged to every tier whose route graph reaches it. Filename clues provide fallback attribution. If the Vinext client reference file is missing, the report warns and uses the manifest graph alone. An asset with no graph or filename attribution is charged to the public tier and counted in the report warnings. Symbolic links fail the scan.
 
 The tiers separate the strict public application from lazy 3D features and the admin UI:
 
 | Tier                                                                     | Measured JavaScript |    Budget | Measured CSS |   Budget |
 | ------------------------------------------------------------------------ | ------------------: | --------: | -----------: | -------: |
 | Public landing and tracker, plus shared chunks                           |           449.4 KiB | 494.3 KiB |     15.2 KiB | 16.7 KiB |
-| Lazy 3D chunks, including village and tracker scenes, plus shared chunks |           501.0 KiB | 551.0 KiB |     17.7 KiB | 19.5 KiB |
-| Admin chunks, including shared chunks                                    |           132.8 KiB | 146.0 KiB |     13.9 KiB | 15.3 KiB |
+| Lazy 3D chunks, including village and tracker scenes, plus shared chunks |           493.6 KiB | 543.0 KiB |      3.8 KiB |  4.2 KiB |
+| Admin chunks, including shared chunks                                    |           125.4 KiB | 138.0 KiB |      0.0 KiB |  0.0 KiB |
 
-These are the baseline measurements from the 2026-11-23 Vinext production build using manifest graph attribution. Budgets start at roughly 10 percent above each measured size. The scan includes client assets outside `_next/static`, such as the service worker and Advent mini-game files. Feature CSS is attributed when the build manifest identifies its source.
+These are the baseline measurements from the 2026-11-23 Vinext production build using manifest graph attribution. Budgets start at roughly 10 percent above each non-zero measured size. Admin CSS measured 0 bytes in this build, so its CSS budget is 0. The scan includes client assets outside `_next/static`, such as the service worker and Advent mini-game files. Feature CSS is attributed when the build manifest identifies its source. Seven assets had no route graph or filename attribution and were charged to public; the report includes a warning count for them.
 
 ## Run the check locally
 
@@ -32,4 +32,4 @@ On macOS or Linux, set the same three variables before running `pnpm exec vite b
 
 Update the relevant byte limit in [`tools/bundle-budget.config.json`](../tools/bundle-budget.config.json) only after rebuilding and reviewing the report. The byte limits are gzip sizes, not source sizes or raw build sizes. If a module moves between public, 3D, or admin, check its manifest attribution and update the tier baseline only when the ownership change is understood.
 
-Any increase to a committed limit needs explicit approval from the application owner in the pull request review. Include the before and after measurements and the reason the larger budget is needed. Bundle budget and PR hygiene workflows are informative checks and are not required branch-protection checks.
+The advisory workflow builds the pull request checkout and reads the config from that same checkout. Change a budget by editing `tools/bundle-budget.config.json` in a pull request for the application owner to review. Include the before and after measurements and explain why the new limit is needed. The report fails when a measured tier exceeds its configured limit, but it is not a required check and does not block merging by itself.

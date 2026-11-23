@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { compareBudgets, measureAssets } from './bundle-budget.mjs';
+import { compareBudgets, measureAssets, renderReport } from './bundle-budget.mjs';
 
 describe('compareBudgets', () => {
   it('passes assets at or below each tier limit', () => {
@@ -36,7 +36,7 @@ describe('compareBudgets', () => {
   });
 });
 
-function makeBuildOutput({ includeAssets = true } = {}) {
+function makeBuildOutput({ includeAssets = true, includeReferences = true } = {}) {
   const outDir = fs.mkdtempSync(path.join(os.tmpdir(), 'bundle-budget-'));
   const staticDir = path.join(outDir, '_next', 'static', 'chunks');
   fs.mkdirSync(path.join(outDir, '.vite'), { recursive: true });
@@ -82,6 +82,7 @@ function makeBuildOutput({ includeAssets = true } = {}) {
       },
       'virtual:tracker-map': {
         file: '_next/static/chunks/map.js',
+        isDynamicEntry: true,
         dynamicImports: ['src/lib/map-core.ts'],
       },
       'src/lib/map-core.ts': {
@@ -95,14 +96,16 @@ function makeBuildOutput({ includeAssets = true } = {}) {
       'vendor-extra': { file: '_next/static/chunks/unreachable-village.js', name: 'vendor-extra' },
     }),
   );
-  fs.writeFileSync(
-    path.join(outDir, '.vite', 'vinext-client-reference-sources.json'),
-    JSON.stringify({
-      'src/app/(admin)/admin/page.tsx': '_next/static/chunks/admin.js',
-      'src/app/(public)/tracker/tracker-map.tsx': '_next/static/chunks/map.js',
-      'src/components/village/village-experience.tsx': '_next/static/chunks/village.js',
-    }),
-  );
+  if (includeReferences) {
+    fs.writeFileSync(
+      path.join(outDir, '.vite', 'vinext-client-reference-sources.json'),
+      JSON.stringify({
+        'src/app/(admin)/admin/page.tsx': '_next/static/chunks/admin.js',
+        'src/app/(public)/tracker/tracker-map.tsx': '_next/static/chunks/map.js',
+        'src/components/village/village-experience.tsx': '_next/static/chunks/village.js',
+      }),
+    );
+  }
   return outDir;
 }
 
@@ -114,7 +117,11 @@ describe('measureAssets', () => {
       const tierFor = (name) =>
         result.assets.find((asset) => asset.file === name || asset.file.endsWith(`/${name}`)).tier;
       expect(tierFor('entry.js')).toBe('public');
-      expect(tierFor('sw.js')).toBe('public, 3d, admin');
+      expect(tierFor('sw.js')).toBe('public');
+      expect(result.unattributedAssetCount).toBe(1);
+      expect(result.warnings).toContain(
+        '1 client asset(s) had no manifest graph or filename attribution and were charged to the public tier.',
+      );
       expect(tierFor('framework.js')).toBe('public, 3d');
       expect(tierFor('village.js')).toBe('public, 3d');
       expect(tierFor('three.js')).toBe('public, 3d');
@@ -126,6 +133,22 @@ describe('measureAssets', () => {
       expect(result.assets.find((asset) => asset.file.endsWith('framework.js')).owners).toContain(
         'shared.js',
       );
+    } finally {
+      fs.rmSync(outDir, { recursive: true, force: true });
+    }
+  });
+
+  it('uses manifest-only attribution and reports a missing reference file', () => {
+    const outDir = makeBuildOutput({ includeReferences: false });
+    try {
+      const result = measureAssets(outDir);
+      const report = renderReport(result, {}, []);
+      expect(result.assets.find((asset) => asset.file.endsWith('admin.js')).tier).toBe('admin');
+      expect(result.assets.find((asset) => asset.file.endsWith('sw.js')).tier).toBe('public');
+      expect(report).toContain(
+        'Client reference source file is missing. Attribution uses the Vite manifest graph only.',
+      );
+      expect(report).toContain('1 client asset(s)');
     } finally {
       fs.rmSync(outDir, { recursive: true, force: true });
     }

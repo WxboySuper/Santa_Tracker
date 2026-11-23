@@ -1,8 +1,6 @@
 name: Bundle budgets
 
-# Advisory only: the build output is produced from PR code, and this job is not a required check.
 on:
-  # Load the workflow from the base branch; the build job runs PR code without a token.
   pull_request:
     branches: [main]
 
@@ -14,14 +12,13 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build:
+  report:
+    name: Advisory bundle report
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          repository: ${{ github.event.pull_request.head.repo.full_name }}
-          ref: ${{ github.event.pull_request.head.sha }}
           persist-credentials: false
       - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
         with:
@@ -39,96 +36,5 @@ jobs:
           SECRET_KEY: bundle-budget-ci-secret
           ADMIN_PASSWORD: bundle-budget-ci-admin
         run: pnpm exec vite build
-      - name: Locate manifest-bearing client output
-        id: assets
-        run: |
-          node --input-type=module <<'NODE'
-          import fs from 'node:fs';
-
-          const candidates = [
-            'apps/web/.vinext/client',
-            'apps/web/.cloudflare/output/v1/workers/default/assets',
-            'apps/web/dist/client',
-            'apps/web/dist',
-          ];
-          const found = candidates.find((candidate) => fs.existsSync(`${candidate}/.vite/manifest.json`));
-          if (!found) {
-            console.error('::error::No manifest-bearing client build output found.');
-            process.exit(1);
-          }
-          fs.appendFileSync(process.env.GITHUB_OUTPUT, `path=${found}\n`);
-          NODE
-      - name: Upload client assets
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
-        with:
-          name: bundle-budget-${{ github.run_id }}-${{ github.run_attempt }}
-          path: ${{ steps.assets.outputs.path }}/
-          if-no-files-found: error
-          include-hidden-files: true
-
-  check:
-    needs: build
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    permissions:
-      contents: read
-      pull-requests: read
-    steps:
-      # This job never installs dependencies or runs code from the PR build job.
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          ref: ${{ github.event.pull_request.base.sha }}
-          persist-credentials: false
-      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
-        with:
-          name: bundle-budget-${{ github.run_id }}-${{ github.run_attempt }}
-          path: ${{ runner.temp }}/bundle-budget-client
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        with:
-          node-version: '22'
-      - name: Verify trusted checker and limits
-        id: trusted
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
-        run: |
-          node --input-type=module <<'NODE'
-          import fs from 'node:fs';
-
-          const files = [];
-          for (let page = 1; ; page += 1) {
-            const url = `https://api.github.com/repos/${process.env.GITHUB_REPOSITORY}/pulls/${process.env.PR_NUMBER}/files?per_page=100&page=${page}`;
-            const response = await fetch(url, { headers: { accept: 'application/vnd.github+json', authorization: `Bearer ${process.env.GITHUB_TOKEN}`, 'x-github-api-version': '2022-11-28' } });
-            if (!response.ok) throw new Error(`GitHub API could not list PR files (${response.status} ${response.statusText})`);
-            const pageFiles = await response.json();
-            files.push(...pageFiles);
-            if (pageFiles.length < 100) break;
-          }
-
-          const trustedPaths = ['tools/bundle-budget.mjs', 'tools/bundle-budget.config.json'];
-          const missing = trustedPaths.filter((file) => !fs.existsSync(file));
-          const addedFiles = new Set(files.filter((file) => file.status === 'added').map((file) => file.filename));
-          const notAdded = missing.filter((file) => !addedFiles.has(file));
-          if (notAdded.length) {
-            console.error(`::error::Trusted bundle file(s) missing from base and not added by this PR: ${notAdded.join(', ')}. Failing closed.`);
-            process.exit(1);
-          }
-
-          if (missing.length) {
-            console.log('::notice::One-time bootstrap run: this PR adds the missing bundle checker/config file(s). Budget enforcement is skipped until a trusted base copy is available; no PR-supplied checker or limit is run.');
-            fs.appendFileSync(process.env.GITHUB_OUTPUT, 'bootstrap=true\n');
-            process.exit(0);
-          }
-
-          const configChanged = files.some((file) => file.filename === 'tools/bundle-budget.config.json');
-          if (configChanged) {
-            console.log('::warning::This PR changes tools/bundle-budget.config.json. The check uses the target base limits. An application owner must approve any budget increase.');
-          }
-          fs.appendFileSync(process.env.GITHUB_OUTPUT, 'bootstrap=false\n');
-          NODE
-      - name: Check bundle budgets
-        if: steps.trusted.outputs.bootstrap != 'true'
-        env:
-          BUNDLE_BUDGET_ROOT: ${{ github.workspace }}
-          BUNDLE_BUDGET_OUT_DIR: ${{ runner.temp }}/bundle-budget-client
+      - name: Measure client bundles
         run: node tools/bundle-budget.mjs

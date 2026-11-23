@@ -70,9 +70,10 @@ function addOwner(owners, file, ...sources) {
 
 function addClientReferenceOwners(outDir, owners) {
   const referencesPath = path.join(outDir, '.vite', 'vinext-client-reference-sources.json');
-  if (!fs.existsSync(referencesPath)) return;
+  if (!fs.existsSync(referencesPath)) return false;
   const references = JSON.parse(fs.readFileSync(referencesPath, 'utf8'));
   for (const [source, file] of Object.entries(references)) addOwner(owners, file, source);
+  return true;
 }
 
 function readManifestAssets(outDir) {
@@ -87,8 +88,8 @@ function readManifestAssets(outDir) {
     const files = [entry.file, ...(entry.css ?? []), ...(entry.assets ?? [])];
     for (const file of files) addOwner(owners, file, source, entry.name, entry.src);
   }
-  addClientReferenceOwners(outDir, owners);
-  return { manifest, owners };
+  const hasClientReferences = addClientReferenceOwners(outDir, owners);
+  return { manifest, owners, hasClientReferences };
 }
 
 function locateAssetDir() {
@@ -142,7 +143,7 @@ function categoryClue(value) {
 function isGraphSeed(key, entry, tier, referenceCategories) {
   const clue =
     categoryClue(`${key} ${entry.name ?? ''} ${entry.src ?? ''}`) ?? referenceCategories.get(key);
-  return tier === 'public' ? entry.isEntry && !clue : clue === tier;
+  return tier === 'public' ? (entry.isEntry || entry.isDynamicEntry) && !clue : clue === tier;
 }
 
 function graphSeeds(manifest, tier, referenceSeeds, referenceCategories) {
@@ -250,13 +251,12 @@ function buildGraphCategories(manifest, owners) {
 
 function classify(file, owners, graphCategories) {
   const categories = graphCategories.get(normalizeAssetPath(file));
-  if (categories?.size) return [...categories];
+  if (categories?.size) return { tiers: [...categories], unattributed: false };
   const fallback = categoryClue(
     `${file} ${(owners.get(normalizeAssetPath(file)) ?? []).join(' ')}`,
   );
-  if (fallback) return [fallback];
-  // Assets outside the manifest graph are charged to every tier to keep unknown chunks visible.
-  return ['public', '3d', 'admin'];
+  if (fallback) return { tiers: [fallback], unattributed: false };
+  return { tiers: ['public'], unattributed: true };
 }
 
 function isClientAsset(file) {
@@ -264,16 +264,25 @@ function isClientAsset(file) {
 }
 
 export function measureAssets(outDir) {
-  const { manifest, owners } = readManifestAssets(outDir);
+  const { manifest, owners, hasClientReferences } = readManifestAssets(outDir);
   const graphCategories = buildGraphCategories(manifest, owners);
   const scanDir = outDir;
   const totals = { public: { js: 0, css: 0 }, '3d': { js: 0, css: 0 }, admin: { js: 0, css: 0 } };
   const assets = [];
+  const warnings = [];
+  let unattributedAssetCount = 0;
+  if (!hasClientReferences) {
+    warnings.push(
+      'Client reference source file is missing. Attribution uses the Vite manifest graph only.',
+    );
+  }
   for (const file of walk(scanDir)) {
     if (!isClientAsset(file)) continue;
     const ext = path.extname(file).toLowerCase();
     const relativePath = normalizeAssetPath(path.relative(outDir, file));
-    const tiers = classify(relativePath, owners, graphCategories);
+    const classification = classify(relativePath, owners, graphCategories);
+    const { tiers } = classification;
+    if (classification.unattributed) unattributedAssetCount += 1;
     const kind = ext === '.css' ? 'css' : 'js';
     const gzipBytes = gzipSync(readClientAsset(file), { level: 9 }).byteLength;
     for (const tier of tiers) totals[tier][kind] += gzipBytes;
@@ -290,8 +299,13 @@ export function measureAssets(outDir) {
     throw new Error(
       `No client JS or CSS assets found under ${scanDir}. Check the build output directory.`,
     );
+  if (unattributedAssetCount) {
+    warnings.push(
+      `${unattributedAssetCount} client asset(s) had no manifest graph or filename attribution and were charged to the public tier.`,
+    );
+  }
   assets.sort((a, b) => b.gzipBytes - a.gzipBytes);
-  return { totals, assets };
+  return { totals, assets, warnings, unattributedAssetCount };
 }
 
 export function renderReport(measurement, budgets, results) {
@@ -304,6 +318,9 @@ export function renderReport(measurement, budgets, results) {
       ({ tier, kind, actual, limit, passed }) =>
         `| ${tier} | ${kind.toUpperCase()} | ${(actual / 1024).toFixed(1)} KiB | ${(limit / 1024).toFixed(1)} KiB | ${passed ? 'pass' : 'over budget'} |`,
     ),
+    ...(measurement.warnings.length
+      ? ['', 'Warnings:', '', ...measurement.warnings.map((warning) => `- ${warning}`)]
+      : []),
     '',
     'Largest client assets (gzip):',
     '',

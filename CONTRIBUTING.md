@@ -27,7 +27,7 @@ pnpm build
 
 The GitHub workflows also run CSS, HTML, lockfile, dependency-rule, and UI Storybook checks. The linting workflow has JavaScript, CSS, HTML, and lockfile jobs, plus a separate Python job for the archived Flask source. Python checks do not validate the live app. `SECURITY_AND_SUPPLY_CHAIN.md` says the repository uses GitHub's default CodeQL setup, but the setup is managed outside the workflow files in this checkout. Review the checks on the pull request because branch protection settings are also managed by GitHub.
 
-Pull request titles must use a Conventional Commit type such as `feat`, `fix`, `docs`, `perf`, or `chore`. Update `CHANGELOG.md` for changes unless the title is `docs`, `ci`, `chore`, or `test`, the PR has the `no-changelog` label, or Dependabot authored it. The bundle budget workflow reports gzip sizes for public, 3D, and admin client assets. See [performance budgets](docs/PERFORMANCE_BUDGETS.md) for its local command and the approval rule for changing limits.
+The bundle budget workflow reports gzip sizes for public, 3D, and admin client assets. See [performance budgets](docs/PERFORMANCE_BUDGETS.md) for its local command and the owner review rule for changing limits.
 
 ## Automated reviews
 
