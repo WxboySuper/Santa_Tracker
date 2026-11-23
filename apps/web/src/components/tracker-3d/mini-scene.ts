@@ -71,10 +71,11 @@ function startLoop(frame: (time: number, delta: number) => void): Loop {
 
 function disposeScene(scene: THREE.Scene): void {
   scene.traverse((object) => {
+    if (!(object instanceof THREE.Mesh)) return;
     const mesh = object as THREE.Mesh;
     mesh.geometry?.dispose();
-    const material = mesh.material as THREE.Material | THREE.Material[] | undefined;
-    const materials = Array.isArray(material) ? material : material ? [material] : [];
+    const material = mesh.material;
+    const materials = Array.isArray(material) ? material : [material];
     materials.filter((entry) => !isSharedMaterial(entry)).forEach((entry) => entry.dispose());
   });
 }
