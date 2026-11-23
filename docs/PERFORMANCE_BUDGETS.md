@@ -1,16 +1,16 @@
 # Client bundle budgets
 
-The bundle budget check measures gzip-compressed JavaScript and CSS in the Vinext client build. It reads the Cloudflare client asset directory and uses the Vite manifest and Vinext client-reference map to attribute chunks to source modules when possible. Unattributed shared chunks stay in the public tier.
+The bundle budget check measures gzip-compressed JavaScript and CSS in the Vinext client build. It reads the Cloudflare client asset directory and follows Vite entry, import, and dynamic-import relationships to attribute chunks. Shared chunks reachable by public routes stay in the public tier. Filename clues are a fallback only for assets that have no manifest graph entry.
 
 The tiers separate the strict public application from lazy 3D features and the admin UI:
 
 | Tier | Measured JavaScript | Budget | Measured CSS | Budget |
 | --- | ---: | ---: | ---: | ---: |
-| Public landing and tracker, plus shared public chunks | 378.2 KiB | 416.0 KiB | 13.4 KiB | 14.8 KiB |
-| Lazy 3D chunks, including village and tracker scenes | 175.8 KiB | 193.4 KiB | 2.5 KiB | 2.8 KiB |
+| Public landing and tracker, plus shared public chunks | 442.2 KiB | 486.4 KiB | 13.5 KiB | 14.8 KiB |
+| Lazy 3D chunks, including village and tracker scenes | 111.9 KiB | 123.0 KiB | 2.5 KiB | 2.8 KiB |
 | Admin chunks | 3.5 KiB | 3.9 KiB | 0 KiB | 0 KiB |
 
-These are the baseline measurements from the 2026-11-23 Vinext production build. Budgets start at roughly 10 percent above each measured size. The shared CSS bundle is charged to public; feature CSS is attributed when the build manifest identifies its source.
+These are the baseline measurements from the 2026-11-23 Vinext production build using manifest graph attribution. Budgets start at roughly 10 percent above each measured size. Shared chunks reachable by a public route are charged to public. Feature CSS is attributed when the build manifest identifies its source.
 
 ## Run the check locally
 

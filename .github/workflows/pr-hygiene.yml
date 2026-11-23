@@ -9,6 +9,10 @@ permissions:
   contents: read
   pull-requests: read
 
+concurrency:
+  group: pr-hygiene-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
 jobs:
   checks:
     runs-on: ubuntu-latest
@@ -18,13 +22,24 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.base.sha }}
           persist-credentials: false
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          path: .head
+          persist-credentials: false
       - name: Check for a trusted gate script
         id: gate
         run: |
           if test -f tools/pr-hygiene.mjs; then
             echo "available=true" >> "$GITHUB_OUTPUT"
-          else
+            echo "bootstrap=false" >> "$GITHUB_OUTPUT"
+          elif test -f .head/tools/pr-hygiene.mjs; then
             echo "available=false" >> "$GITHUB_OUTPUT"
+            echo "bootstrap=true" >> "$GITHUB_OUTPUT"
+            echo "::notice::One-time bootstrap run: this PR adds tools/pr-hygiene.mjs, which will be trusted from the base branch after merge."
+          else
+            echo "::error::No trusted script in base, and this PR does not add tools/pr-hygiene.mjs. Failing closed."
+            exit 1
           fi
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
@@ -35,5 +50,5 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
         run: node tools/pr-hygiene.mjs
       - name: Explain bootstrap skip
-        if: steps.gate.outputs.available != 'true'
-        run: echo "::notice::The trusted PR hygiene script is not present in the target branch yet. This bootstrap PR skips the gate; later PRs run the base-branch script."
+        if: steps.gate.outputs.bootstrap == 'true'
+        run: echo "PR title and changelog checks are skipped for this one-time bootstrap PR."

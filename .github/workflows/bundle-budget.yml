@@ -15,6 +15,7 @@ jobs:
       # PR-head build code gets no token or secrets. Budget limits are loaded from the base commit below.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          fetch-depth: 0
           persist-credentials: false
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -31,6 +32,9 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
       - name: Load trusted bundle budgets
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
           set -euo pipefail
           trusted_config=".base/tools/bundle-budget.config.json"
@@ -42,7 +46,12 @@ jobs:
             cp "$trusted_config" "$pr_config"
             echo "::notice::Bundle limits loaded from the target base commit."
           else
-            echo "::warning::No trusted bundle budget config exists in the target base yet. Using the PR's config for this bootstrap change only."
+            added=$(git diff --name-status "$BASE_SHA" "$HEAD_SHA" -- tools/bundle-budget.config.json | awk '$1 == "A" && $2 == "tools/bundle-budget.config.json" { found=1 } END { print found+0 }')
+            if test "$added" != "1" || ! test -f "$pr_config"; then
+              echo "::error::No trusted config in base, and this PR does not add tools/bundle-budget.config.json. Failing closed."
+              exit 1
+            fi
+            echo "::notice::One-time bootstrap run: this PR adds the bundle budget config, so the new config is used for this measurement."
           fi
       - name: Build client bundles
         working-directory: apps/web
@@ -52,4 +61,20 @@ jobs:
           ADMIN_PASSWORD: bundle-budget-ci-admin
         run: pnpm exec vite build
       - name: Check bundle budgets
-        run: node tools/bundle-budget.mjs
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          BUNDLE_BUDGET_ROOT: ${{ github.workspace }}
+        run: |
+          set -euo pipefail
+          if test -f .base/tools/bundle-budget.mjs; then
+            node .base/tools/bundle-budget.mjs
+          else
+            added=$(git diff --name-status "$BASE_SHA" "$HEAD_SHA" -- tools/bundle-budget.mjs | awk '$1 == "A" && $2 == "tools/bundle-budget.mjs" { found=1 } END { print found+0 }')
+            if test "$added" != "1" || ! test -f tools/bundle-budget.mjs; then
+              echo "::error::No trusted checker in base, and this PR does not add tools/bundle-budget.mjs. Failing closed."
+              exit 1
+            fi
+            echo "::notice::One-time bootstrap run: this PR adds the bundle budget checker, so its checker is used for this measurement."
+            node tools/bundle-budget.mjs
+          fi

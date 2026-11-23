@@ -4,26 +4,38 @@ import path from 'node:path';
 import { gzipSync } from 'node:zlib';
 import { fileURLToPath } from 'node:url';
 
-const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const root = path.resolve(process.env.BUNDLE_BUDGET_ROOT ?? path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..'));
 const configPath = path.join(root, 'tools', 'bundle-budget.config.json');
 const appRoot = path.join(root, 'apps', 'web');
 const CLIENT_ASSET_EXTENSIONS = new Set(['.js', '.mjs', '.css']);
 
 export function compareBudgets(measured, budgets) {
-  return Object.entries(budgets).flatMap(([tier, limits]) =>
-    ['js', 'css'].map((kind) => {
-      const actual = measured[tier]?.[kind] ?? 0;
+  return Object.entries(budgets).flatMap(([tier, limits]) => {
+    const measurement = measured[tier];
+    if (!measurement) throw new Error(`Missing bundle measurement for tier "${tier}".`);
+    const tierTotal = (measurement.js ?? 0) + (measurement.css ?? 0);
+    if (tierTotal === 0 && (limits.js > 0 || limits.css > 0)) {
+      throw new Error(`Bundle tier "${tier}" measured 0 bytes despite a non-zero budget. Check the build output and manifest.`);
+    }
+    return ['js', 'css'].map((kind) => {
+      if (typeof measurement[kind] !== 'number') throw new Error(`Missing ${kind.toUpperCase()} measurement for tier "${tier}".`);
+      const actual = measurement[kind];
       const limit = limits[kind];
       return { tier, kind, actual, limit, passed: actual <= limit };
-    }),
-  );
+    });
+  });
+}
+
+function normalizeAssetPath(file) {
+  return file.replaceAll('\\', '/').replace(/^\.\//, '');
 }
 
 function addOwner(owners, file, ...sources) {
   if (!file) return;
-  const list = owners.get(file) ?? [];
+  const key = normalizeAssetPath(file);
+  const list = owners.get(key) ?? [];
   list.push(...sources.filter(Boolean));
-  owners.set(file, list);
+  owners.set(key, list);
 }
 
 function addClientReferenceOwners(outDir, owners) {
@@ -35,7 +47,7 @@ function addClientReferenceOwners(outDir, owners) {
 
 function readManifestAssets(outDir) {
   const manifestPath = path.join(outDir, '.vite', 'manifest.json');
-  if (!fs.existsSync(manifestPath)) return new Map();
+  if (!fs.existsSync(manifestPath)) throw new Error(`Vite manifest not found at ${manifestPath}. Check that the configured build output directory is correct.`);
   const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
   const owners = new Map();
   for (const [source, entry] of Object.entries(manifest)) {
@@ -43,7 +55,7 @@ function readManifestAssets(outDir) {
     for (const file of files) addOwner(owners, file, source, entry.name, entry.src);
   }
   addClientReferenceOwners(outDir, owners);
-  return owners;
+  return { manifest, owners };
 }
 
 function locateAssetDir() {
@@ -64,11 +76,93 @@ function walk(dir) {
   });
 }
 
-function classify(file, owners) {
-  const clues = `${file} ${(owners.get(file) ?? []).join(' ')}`.toLowerCase();
-  if (/three|village|tracker-3d|tracker-art|pole-scene|sleigh-scene|mini-scene/.test(clues)) return '3d';
-  if (/admin/.test(clues)) return 'admin';
-  return 'public';
+function categoryClue(value) {
+  const clue = value.toLowerCase();
+  if (/three|village|tracker-3d|tracker-art|pole-scene|sleigh-scene|mini-scene/.test(clue)) return '3d';
+  if (/admin/.test(clue)) return 'admin';
+  return null;
+}
+
+function reachableFiles(manifest, seedCategory, extraSeeds = [], referenceCategories = new Map()) {
+  const reachable = new Set();
+  const pending = Object.entries(manifest)
+    .filter(([key, entry]) => {
+      const clue = categoryClue(`${key} ${entry.name ?? ''} ${entry.src ?? ''}`) ?? referenceCategories.get(key);
+      return seedCategory === 'public' ? entry.isEntry && !clue : clue === seedCategory;
+    })
+    .map(([key]) => key);
+  pending.push(...extraSeeds);
+  while (pending.length) {
+    const key = pending.pop();
+    if (reachable.has(key) || !manifest[key]) continue;
+    reachable.add(key);
+    const entry = manifest[key];
+    pending.push(...(entry.imports ?? []));
+    const dynamicTargets = entry.dynamicImports ?? [];
+    if (seedCategory === 'public') {
+      if (extraSeeds.includes(key)) {
+        pending.push(...dynamicTargets.filter((target) => {
+          const targetEntry = manifest[target];
+          if (!targetEntry) return true;
+          return !categoryClue(`${target} ${targetEntry.name ?? ''} ${targetEntry.src ?? ''}`)
+            && !referenceCategories.has(target);
+        }));
+      }
+    } else {
+      pending.push(...dynamicTargets);
+    }
+  }
+  return new Set([...reachable].flatMap((key) => {
+    const entry = manifest[key];
+    return [entry.file, ...(entry.css ?? []), ...(entry.assets ?? [])].filter(Boolean).map(normalizeAssetPath);
+  }));
+}
+
+function clientReferenceSeeds(manifest, owners) {
+  const manifestKeysByFile = new Map();
+  for (const [key, entry] of Object.entries(manifest)) {
+    if (!entry.file) continue;
+    const normalizedFile = normalizeAssetPath(entry.file);
+    const keys = manifestKeysByFile.get(normalizedFile) ?? [];
+    keys.push(key);
+    manifestKeysByFile.set(normalizedFile, keys);
+  }
+
+  const seeds = { public: [], '3d': [], admin: [] };
+  const categoriesByKey = new Map();
+  for (const [file, sources] of owners) {
+    const sourceText = sources.join(' ');
+    const hintedCategory = categoryClue(sourceText);
+    const isPublicRoute = sources.some((source) => /^src\/app\//.test(source));
+    const tier = hintedCategory ?? (isPublicRoute ? 'public' : null);
+    if (!tier) continue;
+    const entryKeys = manifestKeysByFile.get(file) ?? [];
+    seeds[tier].push(...entryKeys);
+    for (const key of entryKeys) categoriesByKey.set(key, tier);
+  }
+  return { seeds, categoriesByKey };
+}
+
+function buildGraphCategories(manifest, owners) {
+  const byAsset = new Map();
+  const { seeds, categoriesByKey } = clientReferenceSeeds(manifest, owners);
+  for (const tier of ['public', '3d', 'admin']) {
+    for (const file of reachableFiles(manifest, tier, seeds[tier], categoriesByKey)) {
+      const categories = byAsset.get(file) ?? new Set();
+      categories.add(tier);
+      byAsset.set(file, categories);
+    }
+  }
+  return byAsset;
+}
+
+function classify(file, owners, graphCategories) {
+  const categories = graphCategories.get(normalizeAssetPath(file));
+  if (categories?.size === 1) return [...categories][0];
+  if (categories?.size > 1) return 'public';
+  // Fallback for assets absent from the Vite graph. Manifest-mapped shared assets default to public.
+  if (owners.has(normalizeAssetPath(file))) return 'public';
+  return categoryClue(`${file} ${(owners.get(normalizeAssetPath(file)) ?? []).join(' ')}`) ?? 'public';
 }
 
 function isClientAsset(file) {
@@ -76,7 +170,8 @@ function isClientAsset(file) {
 }
 
 export function measureAssets(outDir) {
-  const owners = readManifestAssets(outDir);
+  const { manifest, owners } = readManifestAssets(outDir);
+  const graphCategories = buildGraphCategories(manifest, owners);
   const staticDir = path.join(outDir, '_next', 'static');
   const scanDir = fs.existsSync(staticDir) ? staticDir : outDir;
   const totals = { public: { js: 0, css: 0 }, '3d': { js: 0, css: 0 }, admin: { js: 0, css: 0 } };
@@ -84,13 +179,14 @@ export function measureAssets(outDir) {
   for (const file of walk(scanDir)) {
     if (!isClientAsset(file)) continue;
     const ext = path.extname(file).toLowerCase();
-    const relativePath = path.relative(outDir, file).replaceAll('\\', '/');
-    const tier = classify(relativePath, owners);
+    const relativePath = normalizeAssetPath(path.relative(outDir, file));
+    const tier = classify(relativePath, owners, graphCategories);
     const kind = ext === '.css' ? 'css' : 'js';
     const gzipBytes = gzipSync(fs.readFileSync(file), { level: 9 }).byteLength;
     totals[tier][kind] += gzipBytes;
     assets.push({ file: relativePath, tier, kind, gzipBytes, owners: owners.get(relativePath) ?? [] });
   }
+  if (!assets.length) throw new Error(`No client JS or CSS assets found under ${scanDir}. Check the build output directory.`);
   assets.sort((a, b) => b.gzipBytes - a.gzipBytes);
   return { totals, assets };
 }

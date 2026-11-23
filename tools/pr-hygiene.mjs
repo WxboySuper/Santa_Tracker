@@ -6,9 +6,9 @@ const CHANGELOG_EXEMPT_TYPES = new Set(['docs', 'ci', 'chore', 'test']);
 
 export function parseConventionalTitle(title) {
   if (typeof title !== 'string') return null;
-  const match = /^(\w+)(?:\(([^()]+)\))?!?:\s+(.+\S)$/.exec(title.trim());
+  const match = /^(\w+)(?:\(([^()]+)\))?(!)?:\s+(.+\S)$/.exec(title.trim());
   if (!match || !TYPES.has(match[1])) return null;
-  return { type: match[1], scope: match[2] ?? null, subject: match[3] };
+  return { type: match[1], scope: match[2] ?? null, breaking: Boolean(match[3]), subject: match[4] };
 }
 
 export function isChangelogExempt({ parsedTitle, labels = [], author = '' }) {
@@ -23,44 +23,53 @@ function getPullRequest(event) {
   return event.pull_request;
 }
 
-function isDependabot(author) {
-  return /^dependabot(?:\[bot\])?$/i.test(author);
-}
-
 function titleFailures(parsedTitle) {
   if (parsedTitle) return [];
   return [`PR title must match Conventional Commits: type(scope): subject, with an optional ! before the colon for breaking changes. Allowed types: ${[...TYPES].join(', ')}.`];
 }
 
 async function listChangedFiles({ repository, pullNumber, token }) {
-  const names = [];
+  const changedFiles = [];
   for (let page = 1; ; page += 1) {
     const response = await fetch(`https://api.github.com/repos/${repository}/pulls/${pullNumber}/files?per_page=100&page=${page}`, {
       headers: { accept: 'application/vnd.github+json', authorization: `Bearer ${token}`, 'x-github-api-version': '2022-11-28' },
     });
     if (!response.ok) throw new Error(`GitHub API could not list PR files (${response.status} ${response.statusText})`);
     const files = await response.json();
-    names.push(...files.map(({ filename }) => filename));
-    if (files.length < 100) return names;
+    changedFiles.push(...files.map(({ filename, status, previous_filename }) => ({ filename, status, previous_filename })));
+    if (files.length < 100) return changedFiles;
   }
+}
+
+export function isChangelogUpdate(file) {
+  if (file.filename !== 'CHANGELOG.md') return false;
+  if (file.status === 'added' || file.status === 'modified') return true;
+  return file.status === 'renamed' && file.previous_filename !== 'CHANGELOG.md';
 }
 
 async function changelogFailure({ event, pr, parsedTitle, author, token }) {
   if (isChangelogExempt({ parsedTitle, labels: pr.labels ?? [], author })) return null;
   if (!token) throw new Error('GITHUB_TOKEN is required to check changed PR files.');
   const files = await listChangedFiles({ repository: event.repository.full_name, pullNumber: pr.number, token });
-  if (files.includes('CHANGELOG.md')) return null;
+  if (files.some(isChangelogUpdate)) return null;
   return 'CHANGELOG.md must be updated. Add the no-changelog label for an intentional omission. Docs, ci, chore, and test titles, plus Dependabot PRs, are exempt.';
+}
+
+function getTitleFailures(pr) {
+  return titleFailures(parseConventionalTitle(pr.title));
+}
+
+async function getChangelogFailures(event, pr, token) {
+  const parsedTitle = parseConventionalTitle(pr.title);
+  const author = pr.user?.login ?? '';
+  const failure = await changelogFailure({ event, pr, parsedTitle, author, token });
+  return failure ? [failure] : [];
 }
 
 export async function checkPullRequest(event, token = process.env.GITHUB_TOKEN) {
   const pr = getPullRequest(event);
-  const parsedTitle = parseConventionalTitle(pr.title);
-  const author = pr.user?.login ?? '';
-  if (isDependabot(author)) return { ignored: true, failures: [] };
-  const failures = titleFailures(parsedTitle);
-  const changelogError = await changelogFailure({ event, pr, parsedTitle, author, token });
-  if (changelogError) failures.push(changelogError);
+  const failures = getTitleFailures(pr);
+  failures.push(...await getChangelogFailures(event, pr, token));
   return { ignored: false, failures };
 }
 
