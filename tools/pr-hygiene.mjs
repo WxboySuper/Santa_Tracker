@@ -6,7 +6,7 @@ const CHANGELOG_EXEMPT_TYPES = new Set(['docs', 'ci', 'chore', 'test']);
 
 export function parseConventionalTitle(title) {
   if (typeof title !== 'string') return null;
-  const match = /^(\w+)(?:\(([^()]+)\))?:\s+(.+\S)$/.exec(title.trim());
+  const match = /^(\w+)(?:\(([^()]+)\))?!?:\s+(.+\S)$/.exec(title.trim());
   if (!match || !TYPES.has(match[1])) return null;
   return { type: match[1], scope: match[2] ?? null, subject: match[3] };
 }
@@ -16,6 +16,20 @@ export function isChangelogExempt({ parsedTitle, labels = [], author = '' }) {
   return normalizedLabels.includes('no-changelog')
     || CHANGELOG_EXEMPT_TYPES.has(parsedTitle?.type)
     || /^dependabot(?:\[bot\])?$/i.test(author);
+}
+
+function getPullRequest(event) {
+  if (!event.pull_request) throw new Error('Expected a pull_request event payload.');
+  return event.pull_request;
+}
+
+function isDependabot(author) {
+  return /^dependabot(?:\[bot\])?$/i.test(author);
+}
+
+function titleFailures(parsedTitle) {
+  if (parsedTitle) return [];
+  return [`PR title must match Conventional Commits: type(scope): subject, with an optional ! before the colon for breaking changes. Allowed types: ${[...TYPES].join(', ')}.`];
 }
 
 async function listChangedFiles({ repository, pullNumber, token }) {
@@ -31,24 +45,22 @@ async function listChangedFiles({ repository, pullNumber, token }) {
   }
 }
 
+async function changelogFailure({ event, pr, parsedTitle, author, token }) {
+  if (isChangelogExempt({ parsedTitle, labels: pr.labels ?? [], author })) return null;
+  if (!token) throw new Error('GITHUB_TOKEN is required to check changed PR files.');
+  const files = await listChangedFiles({ repository: event.repository.full_name, pullNumber: pr.number, token });
+  if (files.includes('CHANGELOG.md')) return null;
+  return 'CHANGELOG.md must be updated. Add the no-changelog label for an intentional omission. Docs, ci, chore, and test titles, plus Dependabot PRs, are exempt.';
+}
+
 export async function checkPullRequest(event, token = process.env.GITHUB_TOKEN) {
-  const pr = event.pull_request;
-  if (!pr) throw new Error('Expected a pull_request event payload.');
+  const pr = getPullRequest(event);
   const parsedTitle = parseConventionalTitle(pr.title);
   const author = pr.user?.login ?? '';
-  if (/^dependabot(?:\[bot\])?$/i.test(author)) return { ignored: true, failures: [] };
-  const failures = [];
-  if (!parsedTitle) {
-    failures.push(`PR title "${pr.title}" must match Conventional Commits: type(scope): subject. Allowed types: ${[...TYPES].join(', ')}.`);
-  }
-  const exempt = isChangelogExempt({ parsedTitle, labels: pr.labels ?? [], author });
-  if (!exempt) {
-    if (!token) throw new Error('GITHUB_TOKEN is required to check changed PR files.');
-    const files = await listChangedFiles({ repository: event.repository.full_name, pullNumber: pr.number, token });
-    if (!files.includes('CHANGELOG.md')) {
-      failures.push('CHANGELOG.md must be updated. Add the no-changelog label for an intentional omission. Docs, ci, chore, and test titles, plus Dependabot PRs, are exempt.');
-    }
-  }
+  if (isDependabot(author)) return { ignored: true, failures: [] };
+  const failures = titleFailures(parsedTitle);
+  const changelogError = await changelogFailure({ event, pr, parsedTitle, author, token });
+  if (changelogError) failures.push(changelogError);
   return { ignored: false, failures };
 }
 

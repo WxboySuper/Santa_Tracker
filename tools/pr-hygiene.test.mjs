@@ -1,11 +1,11 @@
 import { isChangelogExempt, parseConventionalTitle } from './pr-hygiene.mjs';
 
 describe('parseConventionalTitle', () => {
-  it.each(['feat: add tracker', 'fix(map): handle missing routes', 'revert: undo route import'])('accepts %s', (title) => {
+  it.each(['feat: add tracker', 'feat!: break API', 'feat(map)!: change route contract', 'fix(map): handle missing routes', 'revert: undo route import'])('accepts %s', (title) => {
     expect(parseConventionalTitle(title)).not.toBeNull();
   });
 
-  it.each(['Feature: add tracker', 'feat!: break API', 'wip: work', 'fix(scope): '])('rejects %s', (title) => {
+  it.each(['Feature: add tracker', 'feat!!: break API', 'wip: work', 'fix(scope): '])('rejects %s', (title) => {
     expect(parseConventionalTitle(title)).toBeNull();
   });
 });

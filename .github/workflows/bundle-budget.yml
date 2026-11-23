@@ -12,7 +12,15 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
+      # PR-head build code gets no token or secrets. Budget limits are loaded from the base commit below.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          path: .base
+          persist-credentials: false
       - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
         with:
           version: 10.30.3
@@ -22,6 +30,20 @@ jobs:
           cache: pnpm
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+      - name: Load trusted bundle budgets
+        run: |
+          set -euo pipefail
+          trusted_config=".base/tools/bundle-budget.config.json"
+          pr_config="tools/bundle-budget.config.json"
+          if test -f "$trusted_config"; then
+            if ! cmp -s "$trusted_config" "$pr_config"; then
+              echo "::warning::This PR changes tools/bundle-budget.config.json. The check still uses the base limits. An application owner must approve any budget increase."
+            fi
+            cp "$trusted_config" "$pr_config"
+            echo "::notice::Bundle limits loaded from the target base commit."
+          else
+            echo "::warning::No trusted bundle budget config exists in the target base yet. Using the PR's config for this bootstrap change only."
+          fi
       - name: Build client bundles
         working-directory: apps/web
         env:

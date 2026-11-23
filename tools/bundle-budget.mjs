@@ -7,6 +7,7 @@ import { fileURLToPath } from 'node:url';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const configPath = path.join(root, 'tools', 'bundle-budget.config.json');
 const appRoot = path.join(root, 'apps', 'web');
+const CLIENT_ASSET_EXTENSIONS = new Set(['.js', '.mjs', '.css']);
 
 export function compareBudgets(measured, budgets) {
   return Object.entries(budgets).flatMap(([tier, limits]) =>
@@ -18,28 +19,30 @@ export function compareBudgets(measured, budgets) {
   );
 }
 
+function addOwner(owners, file, ...sources) {
+  if (!file) return;
+  const list = owners.get(file) ?? [];
+  list.push(...sources.filter(Boolean));
+  owners.set(file, list);
+}
+
+function addClientReferenceOwners(outDir, owners) {
+  const referencesPath = path.join(outDir, '.vite', 'vinext-client-reference-sources.json');
+  if (!fs.existsSync(referencesPath)) return;
+  const references = JSON.parse(fs.readFileSync(referencesPath, 'utf8'));
+  for (const [source, file] of Object.entries(references)) addOwner(owners, file, source);
+}
+
 function readManifestAssets(outDir) {
   const manifestPath = path.join(outDir, '.vite', 'manifest.json');
   if (!fs.existsSync(manifestPath)) return new Map();
   const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
   const owners = new Map();
   for (const [source, entry] of Object.entries(manifest)) {
-    for (const file of [entry.file, ...(entry.css ?? []), ...(entry.assets ?? [])]) {
-      if (!file) continue;
-      const list = owners.get(file) ?? [];
-      list.push(source, entry.name ?? '', entry.src ?? '');
-      owners.set(file, list);
-    }
+    const files = [entry.file, ...(entry.css ?? []), ...(entry.assets ?? [])];
+    for (const file of files) addOwner(owners, file, source, entry.name, entry.src);
   }
-  const referencesPath = path.join(outDir, '.vite', 'vinext-client-reference-sources.json');
-  if (fs.existsSync(referencesPath)) {
-    const references = JSON.parse(fs.readFileSync(referencesPath, 'utf8'));
-    for (const [source, file] of Object.entries(references)) {
-      const list = owners.get(file) ?? [];
-      list.push(source);
-      owners.set(file, list);
-    }
-  }
+  addClientReferenceOwners(outDir, owners);
   return owners;
 }
 
@@ -68,6 +71,10 @@ function classify(file, owners) {
   return 'public';
 }
 
+function isClientAsset(file) {
+  return CLIENT_ASSET_EXTENSIONS.has(path.extname(file).toLowerCase());
+}
+
 export function measureAssets(outDir) {
   const owners = readManifestAssets(outDir);
   const staticDir = path.join(outDir, '_next', 'static');
@@ -75,8 +82,8 @@ export function measureAssets(outDir) {
   const totals = { public: { js: 0, css: 0 }, '3d': { js: 0, css: 0 }, admin: { js: 0, css: 0 } };
   const assets = [];
   for (const file of walk(scanDir)) {
+    if (!isClientAsset(file)) continue;
     const ext = path.extname(file).toLowerCase();
-    if (ext !== '.js' && ext !== '.mjs' && ext !== '.css') continue;
     const relativePath = path.relative(outDir, file).replaceAll('\\', '/');
     const tier = classify(relativePath, owners);
     const kind = ext === '.css' ? 'css' : 'js';
