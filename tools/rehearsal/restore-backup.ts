@@ -1,4 +1,4 @@
-import { readFile } from "node:fs/promises";
+import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { createFilesystemBackend } from "../../apps/web/src/lib/storage/filesystem-backend";
@@ -27,25 +27,35 @@ export interface RouteBackupExport {
   route: BackupLocation[];
 }
 
-export function parseRouteBackupExport(raw: string): RouteBackupExport {
-  const value = parseBackupJson(raw);
-  assertBackupEnvelope(value);
-  const route = value.route.map((item, index) => parseLocation(item, index));
-  return { backup_timestamp: value.backup_timestamp, total_locations: route.length, route };
+interface ValueAtIndex {
+  value: unknown;
+  index: number;
 }
 
-function parseBackupJson(raw: string): Record<string, unknown> {
+interface FieldAtIndex extends ValueAtIndex {
+  field: string;
+}
+
+export function parseRouteBackupExport({ raw }: { raw: string }): RouteBackupExport {
+  const value = parseBackupJson({ raw });
+  const envelope = assertBackupEnvelope({ value });
+  const route = envelope.route.map((item, index) => parseLocation({ value: item, index }));
+  return { backup_timestamp: envelope.backup_timestamp, total_locations: route.length, route };
+}
+
+function parseBackupJson({ raw }: { raw: string }): Record<string, unknown> {
   let value: unknown;
   try {
     value = JSON.parse(raw) as unknown;
   } catch {
     throw new Error("Backup file must contain valid JSON");
   }
-  if (!isRecord(value)) throw new Error("Backup file must be an admin route export");
-  return value;
+  const record = asRecord({ value });
+  if (!record) throw new Error("Backup file must be an admin route export");
+  return record;
 }
 
-function assertBackupEnvelope(value: Record<string, unknown>): asserts value is Record<string, unknown> & {
+function assertBackupEnvelope({ value }: { value: Record<string, unknown> }): Record<string, unknown> & {
   backup_timestamp: string;
   total_locations: number;
   route: unknown[];
@@ -54,43 +64,45 @@ function assertBackupEnvelope(value: Record<string, unknown>): asserts value is 
   if (!Array.isArray(value.route)) throw new Error("Backup file must be an admin route export");
   if (value.total_locations !== value.route.length) throw new Error("Backup total_locations must match the route");
   if (value.route.length === 0) throw new Error("Backup route must not be empty");
+  return value as Record<string, unknown> & { backup_timestamp: string; total_locations: number; route: unknown[] };
 }
 
-function parseLocation(value: unknown, index: number): BackupLocation {
-  if (!isRecord(value)) throw new Error(`Backup route item ${index} must be an object`);
-  if (typeof value.name !== "string" || !value.name.trim()) {
+function parseLocation({ value, index }: ValueAtIndex): BackupLocation {
+  const location = asRecord({ value });
+  if (!location) throw new Error(`Backup route item ${index} must be an object`);
+  if (typeof location.name !== "string" || !location.name.trim()) {
     throw new Error(`Backup route item ${index} needs a name`);
   }
-  const latitude = requiredNumber(value.latitude, index, "latitude", { min: -90, max: 90 });
-  const longitude = normalizeLongitude(finiteNumber(value.longitude, index, "longitude"));
-  const utcOffset = requiredNumber(value.utc_offset, index, "utc_offset", { min: -12, max: 14 });
-  validateOptionalFields(value, index);
+  const latitude = requiredNumber({ value: location.latitude, index, field: "latitude", range: { min: -90, max: 90 } });
+  const longitude = normalizeLongitude({ value: finiteNumber({ value: location.longitude, index, field: "longitude" }) });
+  const utcOffset = requiredNumber({ value: location.utc_offset, index, field: "utc_offset", range: { min: -12, max: 14 } });
+  validateOptionalFields({ value: location, index });
   return {
-    name: value.name,
+    name: location.name,
     latitude,
     longitude,
     utc_offset: utcOffset,
-    arrival_time: optionalString(value.arrival_time),
-    departure_time: optionalString(value.departure_time),
-    country: optionalString(value.country),
-    population: optionalNumber(value.population),
-    priority: optionalNumber(value.priority),
-    notes: optionalString(value.notes),
-    fun_facts: optionalString(value.fun_facts),
-    stop_duration: optionalNumber(value.stop_duration),
-    is_stop: typeof value.is_stop === "boolean" ? value.is_stop : true,
+    arrival_time: optionalString({ value: location.arrival_time }),
+    departure_time: optionalString({ value: location.departure_time }),
+    country: optionalString({ value: location.country }),
+    population: optionalNumber({ value: location.population }),
+    priority: optionalNumber({ value: location.priority }),
+    notes: optionalString({ value: location.notes }),
+    fun_facts: optionalString({ value: location.fun_facts }),
+    stop_duration: optionalNumber({ value: location.stop_duration }),
+    is_stop: typeof location.is_stop === "boolean" ? location.is_stop : true,
   };
 }
 
-function validateOptionalFields(value: Record<string, unknown>, index: number): void {
-  validateOptionalStrings(value, index);
-  validateOptionalNumbers(value, index);
+function validateOptionalFields({ value, index }: { value: Record<string, unknown>; index: number }): void {
+  validateOptionalStrings({ value, index });
+  validateOptionalNumbers({ value, index });
   if (value.is_stop != null && typeof value.is_stop !== "boolean") {
     throw new Error(`Backup route item ${index} has invalid is_stop`);
   }
 }
 
-function validateOptionalStrings(value: Record<string, unknown>, index: number): void {
+function validateOptionalStrings({ value, index }: { value: Record<string, unknown>; index: number }): void {
   const fields = ["arrival_time", "departure_time", "country", "notes", "fun_facts"] as const;
   for (const field of fields) {
     if (value[field] != null && typeof value[field] !== "string") {
@@ -99,48 +111,55 @@ function validateOptionalStrings(value: Record<string, unknown>, index: number):
   }
 }
 
-function validateOptionalNumbers(value: Record<string, unknown>, index: number): void {
-  const fields = ["population", "priority", "stop_duration"] as const;
-  for (const field of fields) {
-    const candidate = value[field];
-    if (candidate == null) continue;
-    if (typeof candidate !== "number") throw new Error(`Backup route item ${index} has invalid ${field}`);
-    if (!Number.isFinite(candidate)) throw new Error(`Backup route item ${index} has invalid ${field}`);
-    if (candidate < 0) throw new Error(`Backup route item ${index} has invalid ${field}`);
-    if (field === "priority" && (!Number.isInteger(candidate) || candidate > 3)) {
-      throw new Error(`Backup route item ${index} has invalid ${field}`);
-    }
+function validateOptionalNumbers({ value, index }: { value: Record<string, unknown>; index: number }): void {
+  validateNonNegativeNumber({ value: value.population, index, field: "population" });
+  validateNonNegativeNumber({ value: value.stop_duration, index, field: "stop_duration" });
+  validatePriority({ value: value.priority, index });
+}
+
+function validateNonNegativeNumber({ value, index, field }: FieldAtIndex): void {
+  if (value == null) return;
+  if (typeof value !== "number") throw new Error(`Backup route item ${index} has invalid ${field}`);
+  if (!Number.isFinite(value)) throw new Error(`Backup route item ${index} has invalid ${field}`);
+  if (value < 0) throw new Error(`Backup route item ${index} has invalid ${field}`);
+}
+
+function validatePriority({ value, index }: ValueAtIndex): void {
+  if (value == null) return;
+  if (typeof value !== "number" || !Number.isInteger(value) || value < 1 || value > 3) {
+    throw new Error(`Backup route item ${index} has invalid priority`);
   }
 }
 
-function finiteNumber(value: unknown, index: number, field: string): number {
+function finiteNumber({ value, index, field }: FieldAtIndex): number {
   if (typeof value !== "number" || !Number.isFinite(value)) {
     throw new Error(`Backup route item ${index} has invalid ${field}`);
   }
   return value;
 }
 
-function normalizeLongitude(value: number): number {
+function normalizeLongitude({ value }: { value: number }): number {
   return ((((value + 180) % 360) + 360) % 360) - 180;
 }
 
-function requiredNumber(value: unknown, index: number, field: string, range: { min: number; max: number }): number {
+function requiredNumber({ value, index, field, range }: FieldAtIndex & { range: { min: number; max: number } }): number {
   if (typeof value !== "number") throw new Error(`Backup route item ${index} has invalid ${field}`);
   if (!Number.isFinite(value)) throw new Error(`Backup route item ${index} has invalid ${field}`);
   if (value < range.min || value > range.max) throw new Error(`Backup route item ${index} has invalid ${field}`);
   return value;
 }
 
-function optionalString(value: unknown): string | null {
+function optionalString({ value }: { value: unknown }): string | null {
   return typeof value === "string" ? value : null;
 }
 
-function optionalNumber(value: unknown): number | null {
+function optionalNumber({ value }: { value: unknown }): number | null {
   return typeof value === "number" ? value : null;
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
+function asRecord({ value }: { value: unknown }): Record<string, unknown> | null {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) return null;
+  return value as Record<string, unknown>;
 }
 
 export function backupToRouteDocument(backup: RouteBackupExport): Record<string, unknown> {
@@ -157,31 +176,44 @@ export function backupToRouteDocument(backup: RouteBackupExport): Record<string,
         timezone_offset: location.utc_offset,
         region: location.country ?? null,
       },
+      population: location.population ?? null,
       schedule: {
         arrival_utc: location.arrival_time ?? null,
         departure_utc: location.departure_time ?? null,
       },
       stop_experience: { duration_seconds: location.is_stop === false ? 0 : (location.stop_duration ?? 0) * 60 },
-      notes: location.notes ?? location.fun_facts ?? null,
+      notes: location.notes ?? null,
+      fun_facts: location.fun_facts ?? null,
       priority: location.priority ?? null,
     })),
   };
 }
 
-export async function restoreBackupFile(inputPath: string, dataDir: string): Promise<{ versionId: string; locationCount: number }> {
+export async function restoreBackupFile({ inputPath, dataDir }: { inputPath: string; dataDir: string }): Promise<{ versionId: string; locationCount: number }> {
   if (!inputPath || !dataDir) throw new Error("Pass both --input and --data-dir");
   const root = path.resolve(dataDir);
-  const backup = parseRouteBackupExport(await readFile(path.resolve(inputPath), "utf8"));
+  await assertEmptyTargetDirectory({ root });
+  const backup = parseRouteBackupExport({ raw: await readFile(path.resolve(inputPath), "utf8") });
   const store = createVersionedSnapshotStore(createFilesystemBackend(root));
-  if (await store.readActive(DATASET_SANTA_ROUTE)) {
-    throw new Error(`Refusing to restore over an active route in ${root}; use an empty local data directory`);
-  }
   const version = await store.saveNewVersion(DATASET_SANTA_ROUTE, JSON.stringify(backupToRouteDocument(backup), null, 2));
   await store.activateVersion(DATASET_SANTA_ROUTE, version.versionId);
   return { versionId: version.versionId, locationCount: backup.total_locations };
 }
 
-function readOption(args: string[], name: string): string | undefined {
+async function assertEmptyTargetDirectory({ root }: { root: string }): Promise<void> {
+  let entries: string[];
+  try {
+    entries = await readdir(root);
+  } catch (error) {
+    if (asRecord({ value: error })?.code === "ENOENT") return;
+    throw error;
+  }
+  if (entries.length > 0) {
+    throw new Error(`Refusing to restore into non-empty local data directory ${root}; choose a completely empty directory`);
+  }
+}
+
+function readOption({ args, name }: { args: string[]; name: string }): string | undefined {
   const index = args.indexOf(name);
   if (index < 0) return undefined;
   const value = args[index + 1];
@@ -196,10 +228,10 @@ function isCliEntry(): boolean {
 
 if (isCliEntry()) {
   try {
-    const input = readOption(process.argv.slice(2), "--input");
-    const dataDir = readOption(process.argv.slice(2), "--data-dir");
+    const input = readOption({ args: process.argv.slice(2), name: "--input" });
+    const dataDir = readOption({ args: process.argv.slice(2), name: "--data-dir" });
     if (!input || !dataDir) throw new Error("Usage: pnpm exec tsx tools/rehearsal/restore-backup.ts --input <export.json> --data-dir <empty-local-dir>");
-    const result = await restoreBackupFile(input, dataDir);
+    const result = await restoreBackupFile({ inputPath: input, dataDir });
     console.log(`RESTORED local filesystem route locations=${result.locationCount} version=${result.versionId} data-dir=${path.resolve(dataDir)}`);
   } catch (error) {
     console.error(error instanceof Error ? error.message : String(error));

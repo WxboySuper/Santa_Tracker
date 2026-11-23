@@ -104,7 +104,10 @@ async function stopServer(child: ChildProcess): Promise<void> {
   if (child.exitCode != null) return;
   if (process.platform === "win32" && child.pid) {
     const killer = spawn("taskkill", ["/PID", String(child.pid), "/T", "/F"], { stdio: "ignore" });
-    await Promise.race([new Promise<void>(resolve => killer.once("exit", () => resolve())), delay(5_000)]);
+    await Promise.race([new Promise<void>(resolve => {
+      killer.once("exit", () => resolve());
+      killer.once("error", () => resolve());
+    }), delay(5_000)]);
     await Promise.race([new Promise<void>(resolve => child.once("exit", () => resolve())), delay(5_000)]);
     if (child.exitCode != null) return;
   }

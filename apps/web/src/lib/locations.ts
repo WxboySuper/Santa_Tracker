@@ -67,6 +67,8 @@ export interface RouteNode {
   schedule?: Schedule | null;
   transit_to_here?: TransitToHere | null;
   notes?: string | null;
+  fun_facts?: string | null;
+  population?: number | null;
   priority?: number | null;
 }
 
@@ -119,10 +121,14 @@ function normalizeLegacyLocation(entry: JsonRecord, idx: number): JsonRecord {
   const durationSeconds = optionalNumber(entry.stop_duration);
   return {
     id: entry.name || `node_${idx}`,
+    type: entry.type,
+    is_stop: entry.is_stop,
     location: { name: entry.name, lat, lng, timezone_offset: tz },
     schedule: { arrival_utc: entry.arrival_time, departure_utc: entry.departure_time },
     stop_experience: { duration_seconds: durationSeconds != null ? durationSeconds * 60 : null },
-    notes: entry.notes ?? entry.fun_facts,
+    notes: entry.notes,
+    fun_facts: entry.fun_facts,
+    population: entry.population,
     priority: entry.priority,
   };
 }
@@ -180,7 +186,9 @@ function parseLocationNode(value: unknown, idx: number): RouteNode | null {
       time_window_status: optionalString(schedule.time_window_status),
     },
     transit_to_here: parseTransit(entry.transit_to_here),
-    notes: optionalString(entry.notes) ?? optionalString(entry.fun_facts),
+    notes: optionalString(entry.notes),
+    fun_facts: optionalString(entry.fun_facts),
+    population: optionalNumber(entry.population),
     priority: optionalNumber(entry.priority),
   };
 }
@@ -206,9 +214,9 @@ function toLocationFromNode(node: RouteNode): LocationEntry {
     is_stop: node.is_stop ?? true,
     priority: node.priority ?? null,
     notes: node.notes ?? null,
-    fun_facts: node.notes ?? null,
+    fun_facts: node.fun_facts ?? node.notes ?? null,
     country: loc.region ?? null,
-    population: null,
+    population: node.population ?? null,
     id: node.id,
     type: node.type,
   };
@@ -235,10 +243,12 @@ function flattenRouteNode(node: RouteNode): JsonRecord {
     arrival_time: sched.arrival_utc ?? null,
     departure_time: sched.departure_utc ?? null,
     country: loc.region ?? null,
+    population: node.population ?? null,
     priority: node.priority ?? null,
-    is_stop: true,
+    notes: node.notes ?? null,
+    fun_facts: node.fun_facts ?? node.notes ?? null,
+    is_stop: node.is_stop ?? true,
   };
-  if (node.notes != null) { flat.notes = node.notes; flat.fun_facts = node.notes; }
   if (stop.duration_seconds != null) flat.stop_duration = Math.round(Number(stop.duration_seconds) / 60);
   return flat;
 }
@@ -365,6 +375,7 @@ function buildSantaRouteDocument(
     return {
       id: optionalString(item.id) ?? `node_${idx}_${(name || "unknown").toLowerCase().replace(/\s+/g, "_")}`,
       type: optionalString(item.type) ?? "DELIVERY",
+      is_stop: typeof item.is_stop === "boolean" ? item.is_stop : item.type === "FLYOVER" ? false : true,
       comment: optionalString(item.comment),
       location: {
         name,
@@ -386,7 +397,9 @@ function buildSantaRouteDocument(
         presents_delivered_at_stop: 0,
       },
       transit_to_here: null,
-      notes: optionalString(item.notes) ?? optionalString(item.fun_facts),
+      notes: optionalString(item.notes),
+      fun_facts: optionalString(item.fun_facts),
+      population: optionalNumber(item.population),
       priority: optionalNumber(item.priority),
     };
   });

@@ -5,7 +5,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { createFilesystemBackend } from "./filesystem-backend";
 import { createVersionedSnapshotStore } from "./versioned-store-core";
 import { DATASET_SANTA_ROUTE } from "./types";
-import { loadSantaRouteFromJson } from "../locations";
+import { loadSantaRouteFromJson, saveSantaRouteToJson } from "../locations";
 import { backupToRouteDocument, parseRouteBackupExport, restoreBackupFile } from "../../../../../tools/rehearsal/restore-backup";
 
 const roots: string[] = [];
@@ -25,27 +25,31 @@ const backup = {
   route: [{
     name: "North Pole", latitude: 90, longitude: 0, utc_offset: 0,
     arrival_time: "2026-12-24T10:00:00.000Z", departure_time: "2026-12-24T10:01:00.000Z",
-    country: null, population: null, priority: 1, notes: "Test note", fun_facts: "Test note", stop_duration: 1, is_stop: true,
+    country: null, population: 123, priority: 1, notes: "Independent note", fun_facts: "Separate fact", stop_duration: 1, is_stop: true,
   }],
 };
 
 describe("local filesystem backup restore", () => {
   it("validates the export and converts it into a route snapshot", async () => {
-    const parsed = parseRouteBackupExport(JSON.stringify(backup));
+    const parsed = parseRouteBackupExport({ raw: JSON.stringify(backup) });
     const document = backupToRouteDocument(parsed) as { route_nodes: { location: { name: string; lat: number; lng: number }; stop_experience: { duration_seconds: number } }[] };
     expect(document.route_nodes[0]?.location).toMatchObject({ name: "North Pole", lat: 90, lng: 0 });
     expect(document.route_nodes[0]?.stop_experience.duration_seconds).toBe(60);
-    const wrapped = parseRouteBackupExport(JSON.stringify({
+    const wrapped = parseRouteBackupExport({ raw: JSON.stringify({
       ...backup,
       route: [{ ...backup.route[0], longitude: 202.51, priority: 2, is_stop: false, stop_duration: 10 }],
-    }));
+    }) });
     const wrappedDocument = backupToRouteDocument(wrapped) as { route_nodes: { type: string; is_stop: boolean; location: { lng: number }; stop_experience: { duration_seconds: number } }[] };
     expect(wrappedDocument.route_nodes[0]).toMatchObject({ type: "FLYOVER", is_stop: false, location: { lng: -157.49 }, stop_experience: { duration_seconds: 0 } });
-    await expect(loadSantaRouteFromJson(wrappedDocument)).resolves.toMatchObject([{ longitude: -157.49, is_stop: false, stop_duration: 0 }]);
-    expect(() => parseRouteBackupExport(JSON.stringify({ ...backup, total_locations: 2 }))).toThrow("must match");
-    expect(() => parseRouteBackupExport(JSON.stringify({ ...backup, route: [{ ...backup.route[0], latitude: 91 }] }))).toThrow("invalid latitude");
-    expect(() => parseRouteBackupExport(JSON.stringify({ ...backup, route: [{ ...backup.route[0], stop_duration: -1 }] }))).toThrow("invalid stop_duration");
-    expect(() => parseRouteBackupExport(JSON.stringify({ ...backup, route: [{ ...backup.route[0], priority: 4 }] }))).toThrow("invalid priority");
+    await expect(loadSantaRouteFromJson(wrappedDocument)).resolves.toMatchObject([{
+      longitude: -157.49, is_stop: false, stop_duration: 0, population: 123,
+      notes: "Independent note", fun_facts: "Separate fact",
+    }]);
+    expect(() => parseRouteBackupExport({ raw: JSON.stringify({ ...backup, total_locations: 2 }) })).toThrow("must match");
+    expect(() => parseRouteBackupExport({ raw: JSON.stringify({ ...backup, route: [{ ...backup.route[0], latitude: 91 }] }) })).toThrow("invalid latitude");
+    expect(() => parseRouteBackupExport({ raw: JSON.stringify({ ...backup, route: [{ ...backup.route[0], stop_duration: -1 }] }) })).toThrow("invalid stop_duration");
+    expect(() => parseRouteBackupExport({ raw: JSON.stringify({ ...backup, route: [{ ...backup.route[0], priority: 0 }] }) })).toThrow("invalid priority");
+    expect(() => parseRouteBackupExport({ raw: JSON.stringify({ ...backup, route: [{ ...backup.route[0], priority: 4 }] }) })).toThrow("invalid priority");
   });
 
   it("writes and activates one version in an empty filesystem directory", async () => {
@@ -53,22 +57,55 @@ describe("local filesystem backup restore", () => {
     const input = path.join(parent, "export.json");
     const dataDir = path.join(parent, "restored-data");
     await fs.writeFile(input, JSON.stringify(backup));
-    const restored = await restoreBackupFile(input, dataDir);
+    const restored = await restoreBackupFile({ inputPath: input, dataDir });
     const store = createVersionedSnapshotStore(createFilesystemBackend(dataDir));
     const active = await store.readActive(DATASET_SANTA_ROUTE);
     expect(restored.locationCount).toBe(1);
     expect(restored.versionId).toBe((await store.readActiveVersion(DATASET_SANTA_ROUTE))?.versionId);
     expect(JSON.parse(active ?? "{}")).toEqual(backupToRouteDocument(backup));
+    await expect(loadSantaRouteFromJson(JSON.parse(active ?? "{}"))).resolves.toMatchObject([{
+      population: 123, notes: "Independent note", fun_facts: "Separate fact", is_stop: true,
+    }]);
   });
 
-  it("refuses to overwrite an active route", async () => {
+  it("refuses any non-empty target directory, including orphan history and other datasets", async () => {
     const parent = await tempDir();
     const input = path.join(parent, "export.json");
-    const dataDir = path.join(parent, "restored-data");
     await fs.writeFile(input, JSON.stringify(backup));
-    const store = createVersionedSnapshotStore(createFilesystemBackend(dataDir));
-    const existing = await store.saveNewVersion(DATASET_SANTA_ROUTE, "{} ");
-    await store.activateVersion(DATASET_SANTA_ROUTE, existing.versionId);
-    await expect(restoreBackupFile(input, dataDir)).rejects.toThrow("empty local data directory");
+    const orphanDir = path.join(parent, "orphan-history");
+    const orphanBackend = createFilesystemBackend(orphanDir);
+    await orphanBackend.write("santa-route/versions/orphan.json", "{}");
+    await expect(restoreBackupFile({ inputPath: input, dataDir: orphanDir })).rejects.toThrow("non-empty local data directory");
+
+    const otherDatasetDir = path.join(parent, "other-dataset");
+    const otherBackend = createFilesystemBackend(otherDatasetDir);
+    await otherBackend.write("advent-calendar/active.json", "{}");
+    await expect(restoreBackupFile({ inputPath: input, dataDir: otherDatasetDir })).rejects.toThrow("non-empty local data directory");
+  });
+
+  it("preserves is_stop on modern-node and legacy-flat read/write round trips", async () => {
+    const parent = await tempDir();
+    const modernPath = path.join(parent, "modern.json");
+    const legacyPath = path.join(parent, "legacy.json");
+    const modernNode = {
+      id: "flyover-modern", type: "DELIVERY", is_stop: false,
+      location: { name: "Modern", lat: 1, lng: 2, timezone_offset: 0 },
+      schedule: {}, stop_experience: { duration_seconds: 0 },
+    };
+    await saveSantaRouteToJson([modernNode], modernPath);
+    const modernRead = await loadSantaRouteFromJson(modernPath);
+    expect(modernRead[0]?.is_stop).toBe(false);
+    await saveSantaRouteToJson(modernRead, modernPath);
+    await expect(loadSantaRouteFromJson(modernPath)).resolves.toMatchObject([{ is_stop: false }]);
+
+    await fs.writeFile(legacyPath, JSON.stringify({ route: [{
+      name: "Legacy", latitude: 1, longitude: 2, utc_offset: 0, is_stop: false,
+    }] }));
+    const legacyRead = await loadSantaRouteFromJson(legacyPath);
+    expect(legacyRead[0]?.is_stop).toBe(false);
+    await saveSantaRouteToJson(legacyRead, legacyPath);
+    const legacySaved = JSON.parse(await fs.readFile(legacyPath, "utf8")) as { route: { is_stop: boolean }[] };
+    expect(legacySaved.route[0]?.is_stop).toBe(false);
+    await expect(loadSantaRouteFromJson(legacyPath)).resolves.toMatchObject([{ is_stop: false }]);
   });
 });

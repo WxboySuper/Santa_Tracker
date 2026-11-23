@@ -41,7 +41,7 @@ test("local backup export, snapshot rollback, and clean-directory restore preser
     expect(rolledBack.versionId).toBe(first.versionId);
     expect(await versionedStore.readActive(DATASET_SANTA_ROUTE)).toBe(originalSnapshot);
 
-    const restored = await restoreBackupFile(source, cleanRestoreData);
+    const restored = await restoreBackupFile({ inputPath: source, dataDir: cleanRestoreData });
     const cleanStore = createVersionedSnapshotStore(createFilesystemBackend(cleanRestoreData));
     const restoredSnapshot = await cleanStore.readActive(DATASET_SANTA_ROUTE);
     expect(restored.locationCount).toBe(backup.total_locations);
@@ -52,8 +52,11 @@ test("local backup export, snapshot rollback, and clean-directory restore preser
       location: { name: string; lat: number; lng: number; timezone_offset?: number | null; region?: string | null };
       schedule: { arrival_utc?: string | null; departure_utc?: string | null };
       stop_experience: { duration_seconds?: number | null };
+      population?: number | null;
       notes?: string | null;
+      fun_facts?: string | null;
       priority?: number | null;
+      is_stop?: boolean | null;
     }[]).map(node => ({
       name: node.location.name,
       latitude: node.location.lat,
@@ -62,12 +65,12 @@ test("local backup export, snapshot rollback, and clean-directory restore preser
       arrival_time: node.schedule.arrival_utc ?? null,
       departure_time: node.schedule.departure_utc ?? null,
       country: node.location.region ?? null,
-      population: null,
+      population: node.population ?? null,
       priority: node.priority ?? null,
       notes: node.notes ?? null,
-      fun_facts: node.notes ?? null,
+      fun_facts: node.fun_facts ?? node.notes ?? null,
       stop_duration: Math.round((node.stop_experience.duration_seconds ?? 0) / 60),
-      is_stop: true,
+      is_stop: node.is_stop ?? true,
     }));
     expect(restoredRoute).toEqual(backup.route);
     console.log(`BACKUP_RECOVERY versions=${first.versionId},${second.versionId} rollback=${rolledBack.versionId} restored=${restored.versionId} locations=${restored.locationCount}`);

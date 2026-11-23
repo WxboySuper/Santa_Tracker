@@ -1,4 +1,4 @@
-# Launch readiness rehearsal evidence, November 2026
+﻿# Launch readiness rehearsal evidence, November 2026
 
 This run used branch `docs/readiness-run-2026-11` from `origin/main` on 2026-11-23. All application requests in this report targeted `127.0.0.1`; test data used temporary local directories. No Wrangler command, deploy, production write, or public-host request was made.
 
@@ -56,13 +56,13 @@ pnpm exec playwright test e2e/map-outage.spec.ts --project=open
 pnpm exec playwright test e2e/open-season.spec.ts --project=open -g "the admin emergency switch hides and restores the tracker for visitors"
 ```
 
-The existing outage test passed with both public tile providers blocked. The new deterministic local spec blocks `tiles.openfreemap.org` and `tile.openstreetmap.org`, confirms a raster request follows the vector failure, waits for the text view, verifies the TV dashboard stays visible, and checks `/api/route` is unchanged across the outage. On the final post-rebase serial run, vector-to-raster took 197 ms and raster-to-text took 115 ms. The journey remains available in text mode. An earlier parallel map-plus-recovery run exceeded the map spec's 30-second timeout after it had logged fallback timings; serial execution passed both tests.
+The existing outage test passed with both public tile providers blocked. The new deterministic local spec blocks `tiles.openfreemap.org` and `tile.openstreetmap.org`, confirms a raster request follows the vector failure, waits for the text view, verifies the TV dashboard stays visible, and checks `/api/route` is unchanged across the outage. On the latest serial rerun, vector-to-raster took 145 ms and raster-to-text took 683 ms. The journey remains available in text mode. An earlier parallel map-plus-recovery run exceeded the map spec's 30-second timeout after it had logged fallback timings; serial execution passed both tests.
 
 The emergency switch test passed against the E2E suite's isolated filesystem store. It logged in with a generated local test password, hid the tracker, observed visitor `404` responses for `/tracker` and `/api/route`, then restored the flag and observed `/tracker` return `200`. No real secret or production backend was used.
 
 ## #326, snapshots and backup recovery
 
-The admin endpoint `GET /api/admin/backup/export` exports route locations. The new local-only restore script validates that format, converts it to the route snapshot format, and writes one version through the filesystem versioned store. It refuses to overwrite an active route. It has no R2 binding or Wrangler path.
+The admin endpoint `GET /api/admin/backup/export` exports route locations. The new local-only restore script validates that format, converts it to the route snapshot format, and writes one version through the filesystem versioned store. It refuses any non-empty target data directory, including orphan version history and other datasets. It has no R2 binding or Wrangler path.
 
 Command:
 
@@ -73,7 +73,7 @@ pnpm exec playwright test e2e/backup-restore.spec.ts --project=open
 The local drill passed against the isolated E2E filesystem fixture. It fetched the backup export through the authenticated admin API, saved and activated an original route snapshot, activated a changed snapshot, rolled back to the original version, and verified the active snapshot matched. It restored the backup through the script into a clean temporary data directory and verified the restored route document against the export. The export contained 185 locations.
 
 ```text
-BACKUP_RECOVERY versions=2026-11-23T20-23-57-540Z-7lsau8kv,2026-11-23T20-23-57-570Z-ojyygvqw rollback=2026-11-23T20-23-57-540Z-7lsau8kv restored=2026-11-23T20-23-57-625Z-ppx51kep locations=185
+BACKUP_RECOVERY versions=2026-11-23T20-43-28-140Z-ep14no7v,2026-11-23T20-43-28-157Z-v9anbvds rollback=2026-11-23T20-43-28-140Z-ep14no7v restored=2026-11-23T20-43-28-182Z-xhnbx9up locations=185
 ```
 
 For a standalone restore from an existing export, use:
@@ -99,7 +99,7 @@ Gaps found:
 - The built vinext preview requires the local R2 binding and had no active route snapshot; it does not use the app filesystem adapter. With the filesystem-only constraint, it could not provide a comparable load run.
 - `pnpm load:local` can now target an explicitly supplied loopback origin through `LOAD_ORIGIN`; it still starts Next dev by default.
 - The existing outage test covered both providers failing together. The new test adds a check that the raster request occurs after the vector failure and records local fallback timing.
-- OCR review found and fixed three restore mapping defects: longitudes outside ±180 are now normalized like the application; optional numeric values reject negatives and priority is restricted to integers 1–3; flyovers retain `is_stop: false`, use type `FLYOVER`, and restore with zero stop duration. Route flattening now preserves the stored `is_stop` value. Unit tests verify wrapped longitude and flyover semantics through the application route loader.
+- OCR review fixes now normalize longitude like the application, reject negative population and stop duration, restrict priority to integers 1-3, preserve flyover `is_stop`, population, notes, and fun facts, and reject any non-empty restore target. Unit tests cover wrapped longitude, invalid values, full-directory guards, and modern and legacy `is_stop` round-trips. The admin export keeps notes and fun facts separate.
 - There is no staging Worker rehearsal. Production R2 pointer restore, Worker rollback, cache purge, monitoring delivery, and edge load remain owner-run tasks.
 
 ## Repository checks
@@ -109,10 +109,10 @@ After the documentation and runner changes:
 ```text
 pnpm lint       PASS
 pnpm typecheck  PASS
-pnpm test       PASS, 80 files and 550 tests
+pnpm test       PASS, 80 files and 551 tests
 ```
 
-After rebasing again onto the latest `main`, the restore export parser was split into smaller validation helpers in response to CodeScene complexity findings. `pnpm lint` and `pnpm typecheck` passed. The full suite passed all 550 tests. The backup recovery E2E and map outage E2E passed after the latest rebase; restore recovery passed again after the mapping fixes. CodeScene still flags advisory complexity/argument-shape metrics in the restore helper; the route parser and location validation were simplified, but the quality gate remains an open code review item. CodeRabbit skipped review because the repository requires a `review` label.
+After the latest review fixes, `pnpm lint`, `pnpm typecheck`, and `pnpm test` passed. Vitest passed all 551 tests. Both targeted Playwright specs passed serially; recovery matched all 185 exported locations, and the map fallback took 145 ms then 683 ms. The restore helper now uses smaller validation functions and typed option objects in response to CodeScene findings. The new CodeScene analysis for this head is pending. CodeRabbit skipped review because the repository requires a `review` label.
 
 ## Owner checklist
 

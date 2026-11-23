@@ -96,7 +96,10 @@ async function stopServer() {
   if (child.exitCode != null) return;
   if (process.platform === "win32" && child.pid) {
     const killer = spawn("taskkill", ["/PID", String(child.pid), "/T", "/F"], { stdio: "ignore" });
-    await Promise.race([new Promise(resolve => killer.once("exit", resolve)), delay(5_000)]);
+    await Promise.race([new Promise(resolve => {
+      killer.once("exit", resolve);
+      killer.once("error", resolve);
+    }), delay(5_000)]);
     await Promise.race([new Promise(resolve => child.once("exit", resolve)), delay(5_000)]);
     if (child.exitCode != null) return;
   }
@@ -110,7 +113,7 @@ async function stopServer() {
 
 function parseLocalOrigin(value) {
   const url = new URL(value);
-  if (url.protocol !== "http:" || !["127.0.0.1", "localhost", "[::1]"].includes(url.hostname)) {
+  if (url.protocol !== "http:" || !["127.0.0.1", "localhost", "::1"].includes(url.hostname)) {
     throw new Error("LOAD_ORIGIN must use http and a loopback host");
   }
   return url.origin;

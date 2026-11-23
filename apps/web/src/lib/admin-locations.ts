@@ -54,7 +54,7 @@ function serializeLocationFields(location: LocationEntry): Record<string, unknow
     population: location.population,
     priority: location.priority,
     notes: location.notes,
-    fun_facts: location.notes,
+    fun_facts: location.fun_facts ?? location.notes,
     stop_duration: location.stop_duration,
     is_stop: location.is_stop,
   };
