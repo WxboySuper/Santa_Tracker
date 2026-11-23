@@ -28,12 +28,7 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
-          set -euo pipefail
-          if test -f tools/pr-hygiene.mjs; then
-            echo "available=true" >> "$GITHUB_OUTPUT"
-            echo "bootstrap=false" >> "$GITHUB_OUTPUT"
-          else
-            node --input-type=module <<'NODE'
+          node --input-type=module <<'NODE'
           import fs from 'node:fs';
 
           const files = [];
@@ -46,14 +41,27 @@ jobs:
             if (pageFiles.length < 100) break;
           }
 
-          if (!files.some((file) => file.filename === 'tools/pr-hygiene.mjs' && file.status === 'added')) {
+          const scriptPath = 'tools/pr-hygiene.mjs';
+          const removesScript = files.some((file) =>
+            (file.filename === scriptPath && file.status === 'removed') ||
+            (file.status === 'renamed' && file.previous_filename === scriptPath && file.filename !== scriptPath));
+          if (removesScript) {
+            console.error('::error::This PR deletes or renames tools/pr-hygiene.mjs. The trusted gate cannot be removed or renamed by a pull request.');
+            process.exit(1);
+          }
+
+          if (!fs.existsSync(scriptPath)) {
+            const addsScript = files.some((file) => file.filename === scriptPath && file.status === 'added');
+            if (addsScript) {
+              console.log('::notice::One-time bootstrap run: this PR adds tools/pr-hygiene.mjs, but the trusted base does not contain it.');
+              console.error('::error::Failing closed until the new gate script is reviewed and available from the base branch.');
+              process.exit(1);
+            }
             console.error('::error::No trusted PR hygiene script in base, and this PR does not add tools/pr-hygiene.mjs. Failing closed.');
             process.exit(1);
           }
-          fs.appendFileSync(process.env.GITHUB_OUTPUT, 'available=false\nbootstrap=true\n');
-          console.log('::notice::One-time bootstrap run: this PR adds tools/pr-hygiene.mjs. The gate will run from the trusted base after merge.');
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, 'available=true\n');
           NODE
-          fi
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: '22'
@@ -62,6 +70,3 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
         run: node tools/pr-hygiene.mjs
-      - name: Explain bootstrap skip
-        if: steps.gate.outputs.bootstrap == 'true'
-        run: echo "PR title and changelog checks are skipped for this one-time bootstrap PR."
