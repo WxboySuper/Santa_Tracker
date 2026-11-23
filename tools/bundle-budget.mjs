@@ -111,9 +111,10 @@ function locateAssetDir() {
 
 function walkEntry(dir, entry) {
   const full = path.join(dir, entry.name);
+  if (entry.isSymbolicLink()) {
+    throw new Error(`Client build output must not contain symbolic links: ${full}`);
+  }
   if (entry.isDirectory()) return walk(full);
-  if (entry.isSymbolicLink() && isClientAsset(full))
-    throw new Error(`Client asset must not be a symbolic link: ${full}`);
   return entry.isFile() ? [full] : [];
 }
 
@@ -254,8 +255,8 @@ function classify(file, owners, graphCategories) {
     `${file} ${(owners.get(normalizeAssetPath(file)) ?? []).join(' ')}`,
   );
   if (fallback) return [fallback];
-  // Fallback for assets absent from the Vite graph. Manifest-mapped shared assets default to public.
-  return ['public'];
+  // Assets outside the manifest graph are charged to every tier to keep unknown chunks visible.
+  return ['public', '3d', 'admin'];
 }
 
 function isClientAsset(file) {

@@ -113,7 +113,7 @@ describe('measureAssets', () => {
       const result = measureAssets(outDir);
       const tierFor = (name) => result.assets.find((asset) => asset.file.endsWith(name)).tier;
       expect(tierFor('entry.js')).toBe('public');
-      expect(tierFor('sw.js')).toBe('public');
+      expect(tierFor('sw.js')).toBe('public, 3d, admin');
       expect(tierFor('framework.js')).toBe('public, 3d');
       expect(tierFor('village.js')).toBe('3d');
       expect(tierFor('three.js')).toBe('3d');

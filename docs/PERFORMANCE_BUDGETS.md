@@ -1,14 +1,14 @@
 # Client bundle budgets
 
-The bundle budget check measures gzip-compressed JavaScript and CSS in the Vinext client build. It reads the Cloudflare client asset directory and follows Vite entry, import, and dynamic-import relationships to attribute chunks. A shared chunk is charged to every tier whose route graph reaches it, so shared dependencies cannot hide growth in a smaller 3D or admin budget. Filename clues are a fallback for assets with no route in the manifest graph.
+The bundle budget check measures gzip-compressed JavaScript and CSS in the Vinext client build. It reads the manifest-bearing client asset directory and follows Vite entry, import, and dynamic-import relationships to attribute chunks. A shared chunk is charged to every tier whose route graph reaches it, so shared dependencies cannot hide growth in a smaller 3D or admin budget. Filename clues are a fallback for assets with no route in the manifest graph. Assets outside the graph and without filename clues are charged to every tier, and symbolic links fail the scan.
 
 The tiers separate the strict public application from lazy 3D features and the admin UI:
 
 | Tier                                                                     | Measured JavaScript |    Budget | Measured CSS |   Budget |
 | ------------------------------------------------------------------------ | ------------------: | --------: | -----------: | -------: |
 | Public landing and tracker, plus shared chunks                           |           385.4 KiB | 424.0 KiB |     15.2 KiB | 16.7 KiB |
-| Lazy 3D chunks, including village and tracker scenes, plus shared chunks |           493.6 KiB | 543.0 KiB |      3.8 KiB |  4.2 KiB |
-| Admin chunks, including shared chunks                                    |           125.4 KiB | 138.0 KiB |        0 KiB |    0 KiB |
+| Lazy 3D chunks, including village and tracker scenes, plus shared chunks |           501.0 KiB | 551.0 KiB |     17.7 KiB | 19.5 KiB |
+| Admin chunks, including shared chunks                                    |           132.8 KiB | 146.0 KiB |     13.9 KiB | 15.3 KiB |
 
 These are the baseline measurements from the 2026-11-23 Vinext production build using manifest graph attribution. Budgets start at roughly 10 percent above each measured size. The scan includes client assets outside `_next/static`, such as the service worker and Advent mini-game files. Feature CSS is attributed when the build manifest identifies its source.
 
