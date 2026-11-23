@@ -62,5 +62,54 @@ describe('@santa-tracker/route-engine', () => {
     const b = deriveJourneyState(route, now);
     expect(a).toEqual(b);
   });
+
+  it('treats arrival as the start of a stop and departure as the start of transit', () => {
+    const route = validateRoute(makeRoute()).route!;
+    const firstArrival = Date.parse(route.stops[0]!.arrivalIso);
+    const firstDeparture = Date.parse(route.stops[0]!.departureIso);
+
+    expect(deriveJourneyState(route, new Date(firstArrival - 1))).toMatchObject({ currentIndex: null, nextIndex: 0, progress: 0 });
+    expect(deriveJourneyState(route, new Date(firstArrival))).toMatchObject({ currentIndex: 0, nextIndex: 1, progress: 0 });
+    expect(deriveJourneyState(route, new Date(firstArrival + 1)).currentIndex).toBe(0);
+    expect(deriveJourneyState(route, new Date(firstDeparture - 1)).currentIndex).toBe(0);
+    expect(deriveJourneyState(route, new Date(firstDeparture))).toMatchObject({ currentIndex: 0, nextIndex: 1 });
+    expect(deriveJourneyState(route, new Date(firstDeparture + 1)).currentIndex).toBe(0);
+  });
+
+  it('treats the final arrival as active and completes at final departure', () => {
+    const route = validateRoute(makeRoute()).route!;
+    const last = route.stops.at(-1)!;
+    const arrival = Date.parse(last.arrivalIso);
+    const departure = Date.parse(last.departureIso);
+
+    expect(deriveJourneyState(route, new Date(arrival - 1)).currentIndex).toBe(0);
+    expect(deriveJourneyState(route, new Date(arrival))).toMatchObject({ currentIndex: 1, nextIndex: null });
+    expect(deriveJourneyState(route, new Date(arrival + 1)).currentIndex).toBe(1);
+    expect(deriveJourneyState(route, new Date(departure - 1)).isComplete).toBe(false);
+    expect(deriveJourneyState(route, new Date(departure))).toMatchObject({ currentIndex: 1, nextIndex: null, progress: 1, isComplete: true });
+    expect(deriveJourneyState(route, new Date(departure + 1)).isComplete).toBe(true);
+  });
+
+  it('moves directly to the next stop when one departure equals the next arrival', () => {
+    const route = makeRoute();
+    route.stops[0]!.departureIso = route.stops[1]!.arrivalIso;
+    const parsed = validateRoute(route).route!;
+    const sharedInstant = new Date(parsed.stops[1]!.arrivalIso);
+
+    expect(deriveJourneyState(parsed, sharedInstant)).toMatchObject({ currentIndex: 1, nextIndex: null });
+  });
+
+  it('handles a route with one stop at each boundary', () => {
+    const route = makeRoute();
+    route.stops = [route.stops[0]!];
+    const parsed = validateRoute(route).route!;
+    const arrival = Date.parse(parsed.stops[0]!.arrivalIso);
+    const departure = Date.parse(parsed.stops[0]!.departureIso);
+
+    expect(deriveJourneyState(parsed, new Date(arrival - 1))).toMatchObject({ currentIndex: null, nextIndex: 0, progress: 0, isComplete: false });
+    expect(deriveJourneyState(parsed, new Date(arrival))).toMatchObject({ currentIndex: 0, nextIndex: null, progress: 0, isComplete: false });
+    expect(deriveJourneyState(parsed, new Date(departure - 1)).isComplete).toBe(false);
+    expect(deriveJourneyState(parsed, new Date(departure))).toMatchObject({ currentIndex: 0, nextIndex: null, progress: 1, isComplete: true });
+  });
 });
 
