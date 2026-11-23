@@ -7,7 +7,7 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'node',
-    include: ['packages/*/src/**/*.test.ts', 'packages/*/src/**/*.test.tsx', 'apps/web/src/**/*.test.ts', 'apps/web/src/**/*.test.tsx', 'e2e/**/*.test.ts'],
+    include: ['packages/*/src/**/*.test.ts', 'packages/*/src/**/*.test.tsx', 'apps/web/src/**/*.test.ts', 'apps/web/src/**/*.test.tsx', 'e2e/**/*.test.ts', 'tools/**/*.test.mjs'],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'lcov'],
