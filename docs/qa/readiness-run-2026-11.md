@@ -56,7 +56,7 @@ pnpm exec playwright test e2e/map-outage.spec.ts --project=open
 pnpm exec playwright test e2e/open-season.spec.ts --project=open -g "the admin emergency switch hides and restores the tracker for visitors"
 ```
 
-The existing outage test passed with both public tile providers blocked. The new deterministic local spec blocks `tiles.openfreemap.org` and `tile.openstreetmap.org`, confirms a raster request follows the vector failure, waits for the text view, verifies the TV dashboard stays visible, and checks `/api/route` is unchanged across the outage. On the final isolated post-rebase run, vector-to-raster took 212 ms and raster-to-text took 330 ms. The journey remains available in text mode. A parallel map-plus-recovery run exceeded the map spec's 30-second timeout after it had logged fallback timings; rerunning the map spec alone passed.
+The existing outage test passed with both public tile providers blocked. The new deterministic local spec blocks `tiles.openfreemap.org` and `tile.openstreetmap.org`, confirms a raster request follows the vector failure, waits for the text view, verifies the TV dashboard stays visible, and checks `/api/route` is unchanged across the outage. On the final post-rebase serial run, vector-to-raster took 197 ms and raster-to-text took 115 ms. The journey remains available in text mode. An earlier parallel map-plus-recovery run exceeded the map spec's 30-second timeout after it had logged fallback timings; serial execution passed both tests.
 
 The emergency switch test passed against the E2E suite's isolated filesystem store. It logged in with a generated local test password, hid the tracker, observed visitor `404` responses for `/tracker` and `/api/route`, then restored the flag and observed `/tracker` return `200`. No real secret or production backend was used.
 
@@ -73,7 +73,7 @@ pnpm exec playwright test e2e/backup-restore.spec.ts --project=open
 The local drill passed against the isolated E2E filesystem fixture. It fetched the backup export through the authenticated admin API, saved and activated an original route snapshot, activated a changed snapshot, rolled back to the original version, and verified the active snapshot matched. It restored the backup through the script into a clean temporary data directory and verified the restored route document against the export. The export contained 185 locations.
 
 ```text
-BACKUP_RECOVERY versions=2026-11-23T19-48-00-670Z-xmvaik9r,2026-11-23T19-48-00-792Z-jhn7dfpt rollback=2026-11-23T19-48-00-670Z-xmvaik9r restored=2026-11-23T19-48-00-997Z-a4apyl8g locations=185
+BACKUP_RECOVERY versions=2026-11-23T20-12-56-015Z-0s8ncnnu,2026-11-23T20-12-56-051Z-pugmd996 rollback=2026-11-23T20-12-56-015Z-0s8ncnnu restored=2026-11-23T20-12-56-168Z-41g16hxq locations=185
 ```
 
 For a standalone restore from an existing export, use:
@@ -111,7 +111,7 @@ pnpm typecheck  PASS
 pnpm test       PASS, 80 files and 550 tests
 ```
 
-After rebasing again onto the latest `main`, the restore export parser was split into smaller validation helpers in response to CodeScene complexity findings. `pnpm lint` and `pnpm typecheck` passed. One earlier full-suite attempt had a 5-second bootstrap test timeout while the suite spawned 79 workers; the retry passed. After the parser refactor, the full suite passed all 550 tests. The backup recovery E2E passed, and the map outage E2E passed alone with the timings above. CodeScene still flags advisory complexity/argument-shape metrics in the restore helper; the route parser and location validation were simplified, but the quality gate remains an open code review item. The other PR checks were passing or pending at the final check, and CodeRabbit skipped review because the repository requires a `review` label.
+After rebasing again onto the latest `main`, the restore export parser was split into smaller validation helpers in response to CodeScene complexity findings. `pnpm lint` and `pnpm typecheck` passed. The full suite passed all 550 tests. The backup recovery and map outage E2E tests passed serially with the results above. CodeScene still flags advisory complexity/argument-shape metrics in the restore helper; the route parser and location validation were simplified, but the quality gate remains an open code review item. CodeRabbit skipped review because the repository requires a `review` label.
 
 ## Owner checklist
 
