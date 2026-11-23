@@ -11,13 +11,9 @@ export function createClockSync(
   requestStartedAt: number,
   responseReceivedAt: number,
 ): ClockSync {
-  const serverMs = typeof serverTime === "string"
-    ? Date.parse(serverTime)
-    : serverTime instanceof Date ? serverTime.getTime() : serverTime;
-  if (!Number.isFinite(serverMs)) throw new RangeError("serverTime must be a valid timestamp");
-  if (!Number.isFinite(requestStartedAt) || !Number.isFinite(responseReceivedAt) || responseReceivedAt < requestStartedAt) {
-    throw new RangeError("request timestamps must be finite and in chronological order");
-  }
+  const serverMs = parseTimestamp(serverTime);
+  assertServerTimestamp(serverMs);
+  assertRequestInterval(requestStartedAt, responseReceivedAt);
 
   const offsetMs = serverMs - (requestStartedAt + responseReceivedAt) / 2;
   return {
@@ -29,25 +25,68 @@ export function createClockSync(
 
 /** Hold the previous progress when a clock correction would cause a large regression. */
 export function createMonotonicProgressGuard(tolerance = 0.01): (progress: number, version: string) => number {
-  if (!Number.isFinite(tolerance) || tolerance < 0 || tolerance > 1) {
-    throw new RangeError("tolerance must be between 0 and 1");
-  }
+  assertTolerance(tolerance);
 
   let previous: number | undefined;
   let previousVersion: string | undefined;
   return (progress, version) => {
-    if (!Number.isFinite(progress)) return previous ?? 0;
-    const next = Math.min(1, Math.max(0, progress));
-    if (previous === undefined || previousVersion !== version || next >= previous - tolerance) {
+    if (!Number.isFinite(progress)) return lastProgress(previous);
+    const next = clampProgress(progress);
+    if (shouldAcceptProgress(next, version, previous, previousVersion, tolerance)) {
       previous = next;
       previousVersion = version;
     }
-    return previous;
+    return lastProgress(previous);
   };
 }
 
+function parseTimestamp(value: string | Date | number): number {
+  if (typeof value === "string") return Date.parse(value);
+  if (value instanceof Date) return value.getTime();
+  return value;
+}
+
+function assertServerTimestamp(value: number): void {
+  if (!Number.isFinite(value)) throw new RangeError("serverTime must be a valid timestamp");
+}
+
+function assertRequestInterval(start: number, end: number): void {
+  if (!Number.isFinite(start)) throw new RangeError("request timestamps must be finite and in chronological order");
+  if (!Number.isFinite(end)) throw new RangeError("request timestamps must be finite and in chronological order");
+  if (end < start) throw new RangeError("request timestamps must be finite and in chronological order");
+}
+
+function assertTolerance(tolerance: number): void {
+  if (!Number.isFinite(tolerance)) throw new RangeError("tolerance must be between 0 and 1");
+  if (tolerance < 0) throw new RangeError("tolerance must be between 0 and 1");
+  if (tolerance > 1) throw new RangeError("tolerance must be between 0 and 1");
+}
+
+function shouldAcceptProgress(
+  next: number,
+  version: string,
+  previous: number | undefined,
+  previousVersion: string | undefined,
+  tolerance: number,
+): boolean {
+  if (previous === undefined) return true;
+  if (version !== previousVersion) return true;
+  return next >= previous - tolerance;
+}
+
+function lastProgress(previous: number | undefined): number {
+  if (previous === undefined) return 0;
+  return previous;
+}
+
+function clampProgress(progress: number): number {
+  return Math.min(1, Math.max(0, progress));
+}
+
 function timestampMs(value: Date | number): number {
-  const result = value instanceof Date ? value.getTime() : value;
+  let result: number;
+  if (value instanceof Date) result = value.getTime();
+  else result = value;
   if (!Number.isFinite(result)) throw new RangeError("time must be a valid timestamp");
   return result;
 }

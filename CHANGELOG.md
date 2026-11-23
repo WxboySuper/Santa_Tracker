@@ -2,7 +2,7 @@
 
 ## [Unreleased] — Authoritative tracker state and map fallback (#251, #253)
 
-- **Route snapshot metadata:** `GET /api/route` now returns an additive SHA-256 content version and server timestamp alongside the unchanged `route_nodes` field.
+- **Route snapshot metadata:** `GET /api/route` now returns an additive SHA-256 content version alongside the unchanged `route_nodes` field. `GET /api/time` provides a separate dynamic server timestamp with `Cache-Control: no-store`.
 - **Journey timing:** Adds exact arrival, departure, first-stop, last-stop, shared timestamp, and single-stop boundary coverage. Exports request midpoint clock sync and per-route progress guard helpers for the tracker client.
 - **Map adapter:** Makes OpenLayers teardown idempotent and ignores mount calls after teardown. Adds reusable contract tests for the fake and OpenLayers adapters, including provider failures and text fallback state.
 - **Docs and tests:** Documents the additive route fields and helper integration point; tests cover clock offset, route-version resets, fallback behavior, and map lifecycle.

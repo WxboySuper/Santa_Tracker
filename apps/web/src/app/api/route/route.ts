@@ -26,9 +26,8 @@ export async function GET(request: Request) {
   try {
     const route_nodes = await loadRouteNodesRaw();
     const version = await routeVersion(route_nodes);
-    const serverTime = new Date().toISOString();
     return NextResponse.json(
-      { route_nodes, version, serverTime },
+      { route_nodes, version },
       { status: 200, headers: { "Cache-Control": access === "open" ? PUBLIC_CACHE : NO_STORE } },
     );
   } catch (error: unknown) {

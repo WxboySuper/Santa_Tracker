@@ -26,10 +26,10 @@ describe("route API", () => {
     const response = await GET(request());
     expect(response.status).toBe(200);
     expect(response.headers.get("Cache-Control")).toContain("s-maxage=60");
-    const body = await response.json() as { route_nodes: unknown[]; version: string; serverTime: string };
+    const body = await response.json() as { route_nodes: unknown[]; version: string; serverTime?: unknown };
     expect(body.route_nodes).toEqual([{ id: "a" }]);
     expect(body.version).toMatch(/^sha256-[a-f0-9]{64}$/);
-    expect(Number.isNaN(Date.parse(body.serverTime))).toBe(false);
+    expect(body).not.toHaveProperty("serverTime");
   });
 
   it("serves an admin preview as private no-store so it cannot reach visitors", async () => {

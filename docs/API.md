@@ -19,6 +19,7 @@ The Next.js public surface intentionally exposes the following unauthenticated, 
 | Endpoint | Exposure | Data classification | Controls |
 |---|---|---|---|
 | `GET /api/route` | Public | Santa route locations and timing | Canonical route source, normalized coordinates, short-lived cache |
+| `GET /api/time` | Public | Current server timestamp | Dynamic response with `Cache-Control: no-store` |
 | `GET /api/health` | Public | Service status and timestamp | No secrets or internal error details; dynamic response |
 | `GET /api/advent/manifest` | Public when `ADVENT_ENABLED` is enabled | Advent titles, unlock times, and lock state | Feature gate; manifest never includes payloads |
 | `GET /api/advent/day/:id` | Public when `ADVENT_ENABLED` is enabled | One Advent day and unlocked payload | Feature gate; locked payloads are withheld server-side |
@@ -30,9 +31,8 @@ These endpoints do not perform mutations, require admin credentials, or return s
 The tracker route response keeps its existing `route_nodes` array and adds:
 
 - `version`: a `sha256-` prefixed digest of the served route nodes. Clients can use it to identify a route snapshot and reset cached progress when it changes.
-- `serverTime`: the server's ISO timestamp for the response. Clients can estimate clock offset from this value and the request round trip.
 
-Existing clients that read only `route_nodes` remain compatible. The pure `createClockSync` and `createMonotonicProgressGuard` helpers live in `apps/web/src/lib/tracker-clock-sync.ts`. The tracker data hook can record request start and response times, create the sync from `serverTime`, and pass server-adjusted time plus `version` to its progress guard. The React hook integration is left to the tracker UI owner.
+Existing clients that read only `route_nodes` remain compatible. `GET /api/time` returns `{ "serverTime": "..." }` separately with `Cache-Control: no-store`, so the clock sample is not served from the route CDN cache. The pure `createClockSync` and `createMonotonicProgressGuard` helpers live in `apps/web/src/lib/tracker-clock-sync.ts`. The tracker data hook can record request start and response times around `/api/time`, create the sync from its `serverTime`, and pass server-adjusted time plus the route `version` to its progress guard. The React hook integration is left to the tracker UI owner.
 
 ---
 
