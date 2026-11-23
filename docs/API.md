@@ -25,6 +25,15 @@ The Next.js public surface intentionally exposes the following unauthenticated, 
 
 These endpoints do not perform mutations, require admin credentials, or return secrets. Admin endpoints remain separately authenticated and are outside this public exposure classification. This review is complete for PR #346.
 
+### `GET /api/route`
+
+The tracker route response keeps its existing `route_nodes` array and adds:
+
+- `version`: a `sha256-` prefixed digest of the served route nodes. Clients can use it to identify a route snapshot and reset cached progress when it changes.
+- `serverTime`: the server's ISO timestamp for the response. Clients can estimate clock offset from this value and the request round trip.
+
+Existing clients that read only `route_nodes` remain compatible. The pure `createClockSync` and `createMonotonicProgressGuard` helpers live in `apps/web/src/lib/tracker-clock-sync.ts`. The tracker data hook can record request start and response times, create the sync from `serverTime`, and pass server-adjusted time plus `version` to its progress guard. The React hook integration is left to the tracker UI owner.
+
 ---
 
 ## 🎅 Santa Tracking API
