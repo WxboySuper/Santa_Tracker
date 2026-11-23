@@ -799,3 +799,16 @@
     border-radius: 1rem;
   }
 }
+
+/* WCAG 2.2 target size: the OpenLayers zoom buttons default to 22px, below the 24px minimum. */
+.ol-zoom .ol-zoom-in,
+.ol-zoom .ol-zoom-out {
+  width: 2.25rem;
+  height: 2.25rem;
+  font-size: 1.4rem;
+  line-height: 1;
+}
+
+.ol-zoom .ol-zoom-out {
+  margin-top: 2px;
+}

@@ -211,7 +211,8 @@ export class OpenLayersTrackerMap implements TrackerMapAdapter {
     const zoom = 3.6;
     const [x, y] = POLE_COORD;
     const dropPx = (map.getSize()?.[1] ?? 800) * 0.12;
-    view.animate({ center: [x ?? 0, (y ?? 0) + dropPx * view.getResolutionForZoom(zoom)], zoom, duration: 1400 });
+    const reduced = typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    view.animate({ center: [x ?? 0, (y ?? 0) + dropPx * view.getResolutionForZoom(zoom)], zoom, duration: reduced ? 0 : 1400 });
   }
 
   follow(): void { this.following = true; this.centerSanta(); }

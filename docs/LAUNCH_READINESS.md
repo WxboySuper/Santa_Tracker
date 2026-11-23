@@ -6,6 +6,8 @@ What has to be true before Advent opens (Nov 30 00:00 UTC; Day 1 at Dec 1 12:00 
 
 Operational procedures: [rollback runbook](ROLLBACK_RUNBOOK.md), [cache purge](CACHE_PURGE.md), and [uptime checks](UPTIME.md).
 
+See [2026 launch freeze gates](FREEZE_GATES.md) for proposed route, content, feature, and code freeze dates, required evidence, approvers, exceptions, and rollback conditions.
+
 - **Season gates.** The tracker and Advent return `404` with `Cache-Control: private, no-store` to visitors outside their windows. Admin sessions bypass. `SEASON_OVERRIDE=open` is local only and is not set in production.
 - **Data never changes by accident.** Ordinary pushes publish snapshots to R2 without moving the active pointer. Activation is an explicit manual dispatch (`activate_dataset`) of the deploy workflow. See [DEPLOY.md](DEPLOY.md).
 - **Smoke test after every deploy.** `tools/smoke-test.mjs` checks the production host, including an admin login and gated data.
