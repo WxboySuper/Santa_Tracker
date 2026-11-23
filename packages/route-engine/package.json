@@ -7,7 +7,9 @@
   "exports": {
     ".": "./src/index.ts",
     "./validate": "./src/validate.ts",
-    "./state": "./src/state.ts"
+    "./state": "./src/state.ts",
+    "./stats": "./src/stats.ts",
+    "./replay": "./src/replay.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
