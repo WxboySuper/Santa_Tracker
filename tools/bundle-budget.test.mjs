@@ -5,28 +5,34 @@ import { compareBudgets, measureAssets } from './bundle-budget.mjs';
 
 describe('compareBudgets', () => {
   it('passes assets at or below each tier limit', () => {
-    expect(compareBudgets({ public: { js: 100, css: 20 } }, { public: { js: 100, css: 25 } }))
-      .toEqual([
-        { tier: 'public', kind: 'js', actual: 100, limit: 100, passed: true },
-        { tier: 'public', kind: 'css', actual: 20, limit: 25, passed: true },
-      ]);
+    expect(
+      compareBudgets({ public: { js: 100, css: 20 } }, { public: { js: 100, css: 25 } }),
+    ).toEqual([
+      { tier: 'public', kind: 'js', actual: 100, limit: 100, passed: true },
+      { tier: 'public', kind: 'css', actual: 20, limit: 25, passed: true },
+    ]);
   });
 
   it('flags exceeded budgets', () => {
-    expect(compareBudgets({ '3d': { js: 101, css: 10 } }, { '3d': { js: 100, css: 10 } }))
-      .toEqual([
-        { tier: '3d', kind: 'js', actual: 101, limit: 100, passed: false },
-        { tier: '3d', kind: 'css', actual: 10, limit: 10, passed: true },
-      ]);
+    expect(compareBudgets({ '3d': { js: 101, css: 10 } }, { '3d': { js: 100, css: 10 } })).toEqual([
+      { tier: '3d', kind: 'js', actual: 101, limit: 100, passed: false },
+      { tier: '3d', kind: 'css', actual: 10, limit: 10, passed: true },
+    ]);
   });
 
   it('fails when a tier measurement is missing or empty against a non-zero budget', () => {
-    expect(() => compareBudgets({}, { public: { js: 1, css: 1 } })).toThrow('Missing bundle measurement for tier "public"');
-    expect(() => compareBudgets({ public: { js: 0, css: 0 } }, { public: { js: 1, css: 0 } })).toThrow('measured 0 bytes');
+    expect(() => compareBudgets({}, { public: { js: 1, css: 1 } })).toThrow(
+      'Missing bundle measurement for tier "public"',
+    );
+    expect(() =>
+      compareBudgets({ public: { js: 0, css: 0 } }, { public: { js: 1, css: 0 } }),
+    ).toThrow('measured 0 bytes');
   });
 
   it('fails when a type measurement is missing', () => {
-    expect(() => compareBudgets({ public: { js: 1 } }, { public: { js: 1, css: 1 } })).toThrow('Missing CSS measurement');
+    expect(() => compareBudgets({ public: { js: 1 } }, { public: { js: 1, css: 1 } })).toThrow(
+      'Missing CSS measurement',
+    );
   });
 });
 
@@ -36,27 +42,67 @@ function makeBuildOutput({ includeAssets = true } = {}) {
   fs.mkdirSync(path.join(outDir, '.vite'), { recursive: true });
   if (includeAssets) {
     fs.mkdirSync(staticDir, { recursive: true });
-    for (const name of ['entry.js', 'framework.js', 'village.js', 'three.js', 'admin.js', 'map.js', 'map-core.js', 'map-deep.js', 'unreachable-village.js']) {
-      fs.writeFileSync(path.join(staticDir, name), `export const ${name.replaceAll('.', '_')} = 'sample';`);
+    for (const name of [
+      'entry.js',
+      'framework.js',
+      'village.js',
+      'three.js',
+      'admin.js',
+      'map.js',
+      'map-core.js',
+      'map-deep.js',
+      'unreachable-village.js',
+    ]) {
+      fs.writeFileSync(
+        path.join(staticDir, name),
+        `export const ${name.replaceAll('.', '_')} = 'sample';`,
+      );
     }
     fs.writeFileSync(path.join(outDir, 'sw.js'), 'self.addEventListener("fetch", () => {});');
   }
-  fs.writeFileSync(path.join(outDir, '.vite', 'manifest.json'), JSON.stringify({
-    'src/main.ts': { file: '_next/static/chunks/entry.js', isEntry: true, imports: ['shared.js'], dynamicImports: ['src/components/village/village-world.ts', 'src/app/admin/page.tsx'] },
-    'shared.js': { file: '_next/static/chunks/framework.js' },
-    'src/components/village/village-world.ts': { file: '_next/static/chunks/village.js', imports: ['node_modules/three/build/three.module.js', 'shared.js'] },
-    'node_modules/three/build/three.module.js': { file: '_next/static/chunks/three.js' },
-    'virtual:admin-page': { file: '_next/static/chunks/admin.js', name: 'page', isDynamicEntry: true },
-    'virtual:tracker-map': { file: '_next/static/chunks/map.js', dynamicImports: ['src/lib/map-core.ts'] },
-    'src/lib/map-core.ts': { file: '_next/static/chunks/map-core.js', dynamicImports: ['src/lib/map-deep.ts'] },
-    'src/lib/map-deep.ts': { file: '_next/static/chunks/map-deep.js', dynamicImports: ['src/components/tracker-3d/tracker-art.ts'] },
-    'vendor-extra': { file: '_next/static/chunks/unreachable-village.js', name: 'vendor-extra' },
-  }));
-  fs.writeFileSync(path.join(outDir, '.vite', 'vinext-client-reference-sources.json'), JSON.stringify({
-    'src/app/(admin)/admin/page.tsx': '_next/static/chunks/admin.js',
-    'src/app/(public)/tracker/tracker-map.tsx': '_next/static/chunks/map.js',
-    'src/components/village/village-experience.tsx': '_next/static/chunks/village.js',
-  }));
+  fs.writeFileSync(
+    path.join(outDir, '.vite', 'manifest.json'),
+    JSON.stringify({
+      'src/main.ts': {
+        file: '_next/static/chunks/entry.js',
+        isEntry: true,
+        imports: ['shared.js'],
+        dynamicImports: ['src/components/village/village-world.ts', 'src/app/admin/page.tsx'],
+      },
+      'shared.js': { file: '_next/static/chunks/framework.js' },
+      'src/components/village/village-world.ts': {
+        file: '_next/static/chunks/village.js',
+        imports: ['node_modules/three/build/three.module.js', 'shared.js'],
+      },
+      'node_modules/three/build/three.module.js': { file: '_next/static/chunks/three.js' },
+      'virtual:admin-page': {
+        file: '_next/static/chunks/admin.js',
+        name: 'page',
+        isDynamicEntry: true,
+      },
+      'virtual:tracker-map': {
+        file: '_next/static/chunks/map.js',
+        dynamicImports: ['src/lib/map-core.ts'],
+      },
+      'src/lib/map-core.ts': {
+        file: '_next/static/chunks/map-core.js',
+        dynamicImports: ['src/lib/map-deep.ts'],
+      },
+      'src/lib/map-deep.ts': {
+        file: '_next/static/chunks/map-deep.js',
+        dynamicImports: ['src/components/tracker-3d/tracker-art.ts'],
+      },
+      'vendor-extra': { file: '_next/static/chunks/unreachable-village.js', name: 'vendor-extra' },
+    }),
+  );
+  fs.writeFileSync(
+    path.join(outDir, '.vite', 'vinext-client-reference-sources.json'),
+    JSON.stringify({
+      'src/app/(admin)/admin/page.tsx': '_next/static/chunks/admin.js',
+      'src/app/(public)/tracker/tracker-map.tsx': '_next/static/chunks/map.js',
+      'src/components/village/village-experience.tsx': '_next/static/chunks/village.js',
+    }),
+  );
   return outDir;
 }
 
@@ -68,7 +114,7 @@ describe('measureAssets', () => {
       const tierFor = (name) => result.assets.find((asset) => asset.file.endsWith(name)).tier;
       expect(tierFor('entry.js')).toBe('public');
       expect(tierFor('sw.js')).toBe('public');
-      expect(tierFor('framework.js')).toBe('public');
+      expect(tierFor('framework.js')).toBe('public, 3d');
       expect(tierFor('village.js')).toBe('3d');
       expect(tierFor('three.js')).toBe('3d');
       expect(tierFor('admin.js')).toBe('admin');
@@ -76,7 +122,9 @@ describe('measureAssets', () => {
       expect(tierFor('map-core.js')).toBe('public');
       expect(tierFor('map-deep.js')).toBe('public');
       expect(tierFor('unreachable-village.js')).toBe('3d');
-      expect(result.assets.find((asset) => asset.file.endsWith('framework.js')).owners).toContain('shared.js');
+      expect(result.assets.find((asset) => asset.file.endsWith('framework.js')).owners).toContain(
+        'shared.js',
+      );
     } finally {
       fs.rmSync(outDir, { recursive: true, force: true });
     }

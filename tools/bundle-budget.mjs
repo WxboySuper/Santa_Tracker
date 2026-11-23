@@ -4,8 +4,13 @@ import path from 'node:path';
 import { gzipSync } from 'node:zlib';
 import { fileURLToPath } from 'node:url';
 
-const root = path.resolve(process.env.BUNDLE_BUDGET_ROOT ?? path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..'));
-const configPath = path.resolve(process.env.BUNDLE_BUDGET_CONFIG ?? path.join(root, 'tools', 'bundle-budget.config.json'));
+const root = path.resolve(
+  process.env.BUNDLE_BUDGET_ROOT ??
+    path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..'),
+);
+const configPath = path.resolve(
+  process.env.BUNDLE_BUDGET_CONFIG ?? path.join(root, 'tools', 'bundle-budget.config.json'),
+);
 const appRoot = path.join(root, 'apps', 'web');
 const CLIENT_ASSET_EXTENSIONS = new Set(['.js', '.mjs', '.css']);
 const MAX_CLIENT_ASSET_BYTES = 50 * 1024 * 1024;
@@ -24,7 +29,9 @@ function assertMeasurementExists(tier, measurement) {
 
 function assertMeasurementHasBytes(tier, measurement, limits) {
   if (hasNoMeasuredBytes(measurement) && hasNonZeroBudget(limits)) {
-    throw new Error(`Bundle tier "${tier}" measured 0 bytes despite a non-zero budget. Check the build output and manifest.`);
+    throw new Error(
+      `Bundle tier "${tier}" measured 0 bytes despite a non-zero budget. Check the build output and manifest.`,
+    );
   }
 }
 
@@ -34,7 +41,8 @@ function validateTierMeasurement(tier, measurement, limits) {
 }
 
 function compareAssetKind(tier, kind, measurement, limits) {
-  if (typeof measurement[kind] !== 'number') throw new Error(`Missing ${kind.toUpperCase()} measurement for tier "${tier}".`);
+  if (typeof measurement[kind] !== 'number')
+    throw new Error(`Missing ${kind.toUpperCase()} measurement for tier "${tier}".`);
   const actual = measurement[kind];
   const limit = limits[kind];
   return { tier, kind, actual, limit, passed: actual <= limit };
@@ -69,7 +77,10 @@ function addClientReferenceOwners(outDir, owners) {
 
 function readManifestAssets(outDir) {
   const manifestPath = path.join(outDir, '.vite', 'manifest.json');
-  if (!fs.existsSync(manifestPath)) throw new Error(`Vite manifest not found at ${manifestPath}. Check that the configured build output directory is correct.`);
+  if (!fs.existsSync(manifestPath))
+    throw new Error(
+      `Vite manifest not found at ${manifestPath}. Check that the configured build output directory is correct.`,
+    );
   const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
   const owners = new Map();
   for (const [source, entry] of Object.entries(manifest)) {
@@ -88,15 +99,21 @@ function locateAssetDir() {
     path.join(appRoot, 'dist', 'client'),
     path.join(appRoot, 'dist'),
   ];
-  const found = candidates.find((candidate) => fs.existsSync(path.join(candidate, '.vite', 'manifest.json')));
-  if (!found) throw new Error('No client build output found. Run VINEXT_BUILD=1 vite build in apps/web first.');
+  const found = candidates.find((candidate) =>
+    fs.existsSync(path.join(candidate, '.vite', 'manifest.json')),
+  );
+  if (!found)
+    throw new Error(
+      'No client build output found. Run VINEXT_BUILD=1 vite build in apps/web first.',
+    );
   return found;
 }
 
 function walkEntry(dir, entry) {
   const full = path.join(dir, entry.name);
   if (entry.isDirectory()) return walk(full);
-  if (entry.isSymbolicLink() && isClientAsset(full)) throw new Error(`Client asset must not be a symbolic link: ${full}`);
+  if (entry.isSymbolicLink() && isClientAsset(full))
+    throw new Error(`Client asset must not be a symbolic link: ${full}`);
   return entry.isFile() ? [full] : [];
 }
 
@@ -106,19 +123,24 @@ function walk(dir) {
 
 function readClientAsset(file) {
   const size = fs.statSync(file).size;
-  if (size > MAX_CLIENT_ASSET_BYTES) throw new Error(`Client asset exceeds the ${MAX_CLIENT_ASSET_BYTES}-byte safety limit: ${file}`);
+  if (size > MAX_CLIENT_ASSET_BYTES)
+    throw new Error(
+      `Client asset exceeds the ${MAX_CLIENT_ASSET_BYTES}-byte safety limit: ${file}`,
+    );
   return fs.readFileSync(file);
 }
 
 function categoryClue(value) {
   const clue = value.toLowerCase();
-  if (/three|village|tracker-3d|tracker-art|pole-scene|sleigh-scene|mini-scene/.test(clue)) return '3d';
+  if (/three|village|tracker-3d|tracker-art|pole-scene|sleigh-scene|mini-scene/.test(clue))
+    return '3d';
   if (/admin/.test(clue)) return 'admin';
   return null;
 }
 
 function isGraphSeed(key, entry, tier, referenceCategories) {
-  const clue = categoryClue(`${key} ${entry.name ?? ''} ${entry.src ?? ''}`) ?? referenceCategories.get(key);
+  const clue =
+    categoryClue(`${key} ${entry.name ?? ''} ${entry.src ?? ''}`) ?? referenceCategories.get(key);
   return tier === 'public' ? entry.isEntry && !clue : clue === tier;
 }
 
@@ -132,7 +154,9 @@ function graphSeeds(manifest, tier, referenceSeeds, referenceCategories) {
 function isPublicDynamicTarget(target, { manifest, referenceCategories }) {
   const entry = manifest[target];
   if (!entry) return true;
-  const tier = categoryClue(`${target} ${entry.name ?? ''} ${entry.src ?? ''}`) ?? referenceCategories.get(target);
+  const tier =
+    categoryClue(`${target} ${entry.name ?? ''} ${entry.src ?? ''}`) ??
+    referenceCategories.get(target);
   return tier !== '3d' && tier !== 'admin';
 }
 
@@ -142,7 +166,7 @@ function graphNeighbors(key, context) {
   const imports = entry.imports ?? [];
   const dynamicImports = entry.dynamicImports ?? [];
   if (tier !== 'public') return [...imports, ...dynamicImports];
-  return [...imports, ...dynamicImports.filter((target) => isPublicDynamicTarget(target, context))];
+  return [...imports, ...dynamicImports].filter((target) => isPublicDynamicTarget(target, context));
 }
 
 function walkManifest(context, seeds) {
@@ -205,7 +229,8 @@ function clientReferenceSeeds(manifest, owners) {
   const manifestKeysByFile = indexManifestFiles(manifest);
   const seeds = { public: [], '3d': [], admin: [] };
   const categoriesByKey = new Map();
-  for (const [file, sources] of owners) addReferenceSeeds({ file, sources, manifestKeysByFile, seeds, categoriesByKey });
+  for (const [file, sources] of owners)
+    addReferenceSeeds({ file, sources, manifestKeysByFile, seeds, categoriesByKey });
   return { seeds, categoriesByKey };
 }
 
@@ -224,13 +249,13 @@ function buildGraphCategories(manifest, owners) {
 
 function classify(file, owners, graphCategories) {
   const categories = graphCategories.get(normalizeAssetPath(file));
-  if (categories?.size === 1) return [...categories][0];
-  if (categories?.size > 1) return 'public';
-  const fallback = categoryClue(`${file} ${(owners.get(normalizeAssetPath(file)) ?? []).join(' ')}`);
-  if (fallback) return fallback;
+  if (categories?.size) return [...categories];
+  const fallback = categoryClue(
+    `${file} ${(owners.get(normalizeAssetPath(file)) ?? []).join(' ')}`,
+  );
+  if (fallback) return [fallback];
   // Fallback for assets absent from the Vite graph. Manifest-mapped shared assets default to public.
-  if (owners.has(normalizeAssetPath(file))) return 'public';
-  return 'public';
+  return ['public'];
 }
 
 function isClientAsset(file) {
@@ -247,13 +272,23 @@ export function measureAssets(outDir) {
     if (!isClientAsset(file)) continue;
     const ext = path.extname(file).toLowerCase();
     const relativePath = normalizeAssetPath(path.relative(outDir, file));
-    const tier = classify(relativePath, owners, graphCategories);
+    const tiers = classify(relativePath, owners, graphCategories);
     const kind = ext === '.css' ? 'css' : 'js';
     const gzipBytes = gzipSync(readClientAsset(file), { level: 9 }).byteLength;
-    totals[tier][kind] += gzipBytes;
-    assets.push({ file: relativePath, tier, kind, gzipBytes, owners: owners.get(relativePath) ?? [] });
+    for (const tier of tiers) totals[tier][kind] += gzipBytes;
+    assets.push({
+      file: relativePath,
+      tier: tiers.join(', '),
+      tiers,
+      kind,
+      gzipBytes,
+      owners: owners.get(relativePath) ?? [],
+    });
   }
-  if (!assets.length) throw new Error(`No client JS or CSS assets found under ${scanDir}. Check the build output directory.`);
+  if (!assets.length)
+    throw new Error(
+      `No client JS or CSS assets found under ${scanDir}. Check the build output directory.`,
+    );
   assets.sort((a, b) => b.gzipBytes - a.gzipBytes);
   return { totals, assets };
 }
@@ -264,15 +299,24 @@ export function renderReport(measurement, budgets, results) {
     '',
     '| Tier | Asset type | Gzip size | Budget | Status |',
     '| --- | --- | ---: | ---: | --- |',
-    ...results.map(({ tier, kind, actual, limit, passed }) =>
-      `| ${tier} | ${kind.toUpperCase()} | ${(actual / 1024).toFixed(1)} KiB | ${(limit / 1024).toFixed(1)} KiB | ${passed ? 'pass' : 'over budget'} |`),
+    ...results.map(
+      ({ tier, kind, actual, limit, passed }) =>
+        `| ${tier} | ${kind.toUpperCase()} | ${(actual / 1024).toFixed(1)} KiB | ${(limit / 1024).toFixed(1)} KiB | ${passed ? 'pass' : 'over budget'} |`,
+    ),
     '',
     'Largest client assets (gzip):',
     '',
     '| Asset | Tier | Type | Gzip size | Source attribution |',
     '| --- | --- | --- | ---: | --- |',
-    ...measurement.assets.slice(0, 10).map((asset) =>
-      `| \`${asset.file}\` | ${asset.tier} | ${asset.kind.toUpperCase()} | ${(asset.gzipBytes / 1024).toFixed(1)} KiB | ${asset.owners.filter((owner) => owner && !owner.includes('node_modules')).slice(0, 3).join(', ') || 'shared chunk'} |`),
+    ...measurement.assets.slice(0, 10).map(
+      (asset) =>
+        `| \`${asset.file}\` | ${asset.tier} | ${asset.kind.toUpperCase()} | ${(asset.gzipBytes / 1024).toFixed(1)} KiB | ${
+          asset.owners
+            .filter((owner) => owner && !owner.includes('node_modules'))
+            .slice(0, 3)
+            .join(', ') || 'shared chunk'
+        } |`,
+    ),
   ];
   return lines.join('\n');
 }
@@ -284,12 +328,15 @@ function main() {
   const results = compareBudgets(measurement.totals, config.budgets);
   const report = renderReport(measurement, config.budgets, results);
   console.log(report);
-  if (process.env.GITHUB_STEP_SUMMARY) fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, `${report}\n`);
+  if (process.env.GITHUB_STEP_SUMMARY)
+    fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, `${report}\n`);
   if (results.some((result) => !result.passed)) process.exitCode = 1;
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  try { main(); } catch (error) {
+  try {
+    main();
+  } catch (error) {
     console.error(error instanceof Error ? error.message : String(error));
     process.exitCode = 1;
   }
