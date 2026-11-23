@@ -25,8 +25,10 @@ describe("Flask parity - locations", () => {
 
       const legacyPath = path.join(directory, "legacy.json");
       fs.writeFileSync(legacyPath, JSON.stringify({ route: [] }));
-      await saveSantaRouteToJson([{ name: "Legacy", latitude: 1, longitude: 2, type: "DELIVERY", is_stop: false }], legacyPath);
+      await saveSantaRouteToJson([{ name: "Legacy", latitude: 1, longitude: 2, type: "DELIVERY", is_stop: false, notes: 42, fun_facts: undefined }], legacyPath);
       expect(JSON.parse(fs.readFileSync(legacyPath, "utf8")).route[0].is_stop).toBe(false);
+      expect(JSON.parse(fs.readFileSync(legacyPath, "utf8")).route[0].notes).toBeNull();
+      expect(JSON.parse(fs.readFileSync(legacyPath, "utf8")).route[0].fun_facts).toBeNull();
     } finally {
       fs.rmSync(directory, { recursive: true, force: true });
     }

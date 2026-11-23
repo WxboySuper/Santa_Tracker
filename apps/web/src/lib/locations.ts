@@ -296,8 +296,8 @@ function flattenRouteNode(node: RouteNode): JsonRecord {
 }
 
 function flattenLegacyLocation(item: JsonRecord): JsonRecord {
-  const notes = "notes" in item ? item.notes : item.fun_facts ?? null;
-  const funFacts = "fun_facts" in item ? item.fun_facts : item.notes ?? null;
+  const notes = "notes" in item ? optionalString(item.notes) : optionalString(item.fun_facts);
+  const funFacts = "fun_facts" in item ? optionalString(item.fun_facts) : optionalString(item.notes);
   return {
     name: item.name,
     latitude: Number(item.latitude ?? item.lat),

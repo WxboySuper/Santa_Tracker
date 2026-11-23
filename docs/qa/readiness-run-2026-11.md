@@ -73,7 +73,7 @@ pnpm exec playwright test e2e/backup-restore.spec.ts --project=open
 The local drill passed against the isolated E2E filesystem fixture. It fetched the backup export through the authenticated admin API, saved and activated an original route snapshot, activated a changed snapshot, rolled back to the original version, and verified the active snapshot matched. It restored the backup through the script into a clean temporary data directory and verified the restored route document against the export. The export contained 185 locations.
 
 ```text
-BACKUP_RECOVERY versions=2026-11-23T21-50-44-639Z-xyz3f3be,2026-11-23T21-50-44-668Z-rh3hvf0e rollback=2026-11-23T21-50-44-639Z-xyz3f3be restored=2026-11-23T21-50-44-706Z-hxg2jx0b locations=185
+BACKUP_RECOVERY versions=2026-11-23T21-56-06-877Z-vk21y9rq,2026-11-23T21-56-06-897Z-8c7nmh2k rollback=2026-11-23T21-56-06-877Z-vk21y9rq restored=2026-11-23T21-56-06-931Z-b8wuqd00 locations=185
 ```
 
 For a standalone restore from an existing export, use:
@@ -112,7 +112,7 @@ pnpm typecheck  PASS
 pnpm test       PASS, 80 files and 555 tests
 ```
 
-After the latest review fixes, `pnpm lint`, `pnpm typecheck`, and `pnpm test` passed. Vitest passed all 555 tests. Both targeted Playwright specs passed serially; recovery matched all 185 exported locations, and map fallback took 216 ms then 694 ms. The test run produced a new local backup version pair and restored version recorded above. CodeRabbit skipped review because the repository requires a `review` label.
+After the latest review fixes, `pnpm lint`, `pnpm typecheck`, and `pnpm test` passed. Vitest passed all 555 tests. Both targeted Playwright specs passed serially; recovery matched all 185 exported locations, and map fallback took 180 ms then 194 ms. The test run produced a new local backup version pair and restored version recorded above. CodeRabbit skipped review because the repository requires a `review` label.
 
 ## Owner checklist
 
