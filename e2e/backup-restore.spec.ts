@@ -24,10 +24,18 @@ async function exportAfterFactUpdate(page: Page): Promise<RouteBackupExport> {
   expect(firstLocation).toBeDefined();
   const update = await page.request.put("/api/admin/locations/0", { data: { fun_facts: "Readiness recovery fact" } });
   expect(update.status()).toBe(200);
+  const distinctResponse = await page.request.get("/api/admin/backup/export");
+  expect(distinctResponse.status()).toBe(200);
+  const distinctBackup = await distinctResponse.json() as RouteBackupExport;
+  expect(distinctBackup.route[0]).toMatchObject({ notes: firstLocation?.notes, fun_facts: "Readiness recovery fact" });
+  const clearFact = await page.request.put("/api/admin/locations/0", { data: { fun_facts: null } });
+  expect(clearFact.status()).toBe(200);
+  const unrelatedUpdate = await page.request.put("/api/admin/locations/0", { data: { priority: 2 } });
+  expect(unrelatedUpdate.status()).toBe(200);
   const response = await page.request.get("/api/admin/backup/export");
   expect(response.status()).toBe(200);
   const backup = await response.json() as RouteBackupExport;
-  expect(backup.route[0]).toMatchObject({ notes: firstLocation?.notes, fun_facts: "Readiness recovery fact" });
+  expect(backup.route[0]).toMatchObject({ notes: firstLocation?.notes, fun_facts: null, priority: 2 });
   return backup;
 }
 

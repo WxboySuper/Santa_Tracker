@@ -135,15 +135,32 @@ describe("local filesystem backup restore", () => {
 
     await fs.writeFile(legacyPath, JSON.stringify({ route: [{
       name: "Legacy", latitude: 1, longitude: 2, utc_offset: 0, is_stop: false,
-      notes: "Legacy note", fun_facts: "Legacy fact", type: "DELIVERY",
+      notes: "Legacy note", fun_facts: "Legacy fact", type: "DELIVERY", country: "Canada", region: "Arctic",
     }] }));
     const legacyRead = await loadSantaRouteFromJson(legacyPath);
     expect(legacyRead[0]?.is_stop).toBe(false);
     await saveSantaRouteToJson(legacyRead, legacyPath);
-    const legacySaved = JSON.parse(await fs.readFile(legacyPath, "utf8")) as { route: { is_stop: boolean; notes: string; fun_facts: string }[] };
-    expect(legacySaved.route[0]).toMatchObject({ is_stop: false, notes: "Legacy note", fun_facts: "Legacy fact" });
+    const legacySaved = JSON.parse(await fs.readFile(legacyPath, "utf8")) as { route: { is_stop: boolean; notes: string; fun_facts: string; country: string; region: string }[] };
+    expect(legacySaved.route[0]).toMatchObject({
+      is_stop: false, notes: "Legacy note", fun_facts: "Legacy fact", country: "Canada", region: "Arctic",
+    });
     await expect(loadSantaRouteFromJson(legacyPath)).resolves.toMatchObject([{
-      is_stop: false, notes: "Legacy note", fun_facts: "Legacy fact",
+      is_stop: false, notes: "Legacy note", fun_facts: "Legacy fact", country: "Canada", region: "Arctic",
+    }]);
+
+    const factOnlyPath = path.join(parent, "fact-only.json");
+    await fs.writeFile(factOnlyPath, JSON.stringify({ route: [{
+      name: "Fact only", latitude: 1, longitude: 2, utc_offset: 0, fun_facts: "Fallback fact",
+    }] }));
+    await expect(loadSantaRouteFromJson(factOnlyPath)).resolves.toMatchObject([{
+      notes: "Fallback fact", fun_facts: "Fallback fact",
+    }]);
+    const noteOnlyPath = path.join(parent, "note-only.json");
+    await fs.writeFile(noteOnlyPath, JSON.stringify({ route: [{
+      name: "Note only", latitude: 1, longitude: 2, utc_offset: 0, notes: "Fallback note",
+    }] }));
+    await expect(loadSantaRouteFromJson(noteOnlyPath)).resolves.toMatchObject([{
+      notes: "Fallback note", fun_facts: "Fallback note",
     }]);
 
     const clearedFactPath = path.join(parent, "cleared-fact.json");

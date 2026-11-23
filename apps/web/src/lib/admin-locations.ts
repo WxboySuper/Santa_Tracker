@@ -155,7 +155,7 @@ function mergedLocation(existing: LocationEntry, payload: Record<string, unknown
   const notes = "notes" in payload ? payload.notes as LocationEntry["notes"] : existing.notes;
   const funFacts = "fun_facts" in payload
     ? payload.fun_facts as LocationEntry["fun_facts"]
-    : existing.fun_facts ?? existing.notes;
+    : existing.fun_facts;
   const updated: LocationEntry = {
     ...existing,
     name: orFallback(payload.name, existing.name),

@@ -129,7 +129,7 @@ function normalizeLegacyLocation(entry: JsonRecord, idx: number): JsonRecord {
       lat,
       lng,
       timezone_offset: tz,
-      ...("country" in entry ? { country: entry.country, region: entry.country } : {}),
+      ...normalizeLegacyLocationFields(entry),
     },
     schedule: { arrival_utc: entry.arrival_time, departure_utc: entry.departure_time },
     stop_experience: { duration_seconds: durationSeconds != null ? durationSeconds * 60 : null },
@@ -138,6 +138,14 @@ function normalizeLegacyLocation(entry: JsonRecord, idx: number): JsonRecord {
     population: entry.population,
     priority: entry.priority,
   };
+}
+
+function normalizeLegacyLocationFields(entry: JsonRecord): JsonRecord {
+  const fields: JsonRecord = {};
+  if ("country" in entry) fields.country = entry.country;
+  if ("region" in entry) fields.region = entry.region;
+  else if ("country" in entry) fields.region = entry.country;
+  return fields;
 }
 
 function parseTransit(value: unknown): TransitToHere | null {
@@ -158,7 +166,11 @@ function parseNodeIsStop(entry: JsonRecord): boolean {
 }
 
 function parseNodeFunFacts(entry: JsonRecord): string | null | undefined {
-  return "fun_facts" in entry ? optionalString(entry.fun_facts) : undefined;
+  return "fun_facts" in entry ? optionalString(entry.fun_facts) : optionalString(entry.notes);
+}
+
+function parseNodeNotes(entry: JsonRecord): string | null {
+  return "notes" in entry ? optionalString(entry.notes) : optionalString(entry.fun_facts);
 }
 
 function parseNodeCountry(location: JsonRecord): string | null | undefined {
@@ -211,7 +223,7 @@ function parseLocationNode(value: unknown, idx: number): RouteNode | null {
       time_window_status: optionalString(schedule.time_window_status),
     },
     transit_to_here: parseTransit(entry.transit_to_here),
-    notes: optionalString(entry.notes),
+    notes: parseNodeNotes(entry),
     fun_facts: parseNodeFunFacts(entry),
     population: optionalNumber(entry.population),
     priority: optionalNumber(entry.priority),
@@ -268,6 +280,7 @@ function flattenRouteNode(node: RouteNode): JsonRecord {
     arrival_time: sched.arrival_utc ?? null,
     departure_time: sched.departure_utc ?? null,
     country: loc.country !== undefined ? loc.country : loc.region ?? null,
+    region: loc.region ?? null,
     population: node.population ?? null,
     priority: node.priority ?? null,
     notes: node.notes ?? null,
@@ -279,7 +292,7 @@ function flattenRouteNode(node: RouteNode): JsonRecord {
 }
 
 function flattenLegacyLocation(item: JsonRecord): JsonRecord {
-  const notes = item.notes ?? item.fun_facts ?? null;
+  const notes = "notes" in item ? item.notes : item.fun_facts ?? null;
   const funFacts = "fun_facts" in item ? item.fun_facts : item.notes ?? null;
   return {
     name: item.name,
@@ -289,6 +302,7 @@ function flattenLegacyLocation(item: JsonRecord): JsonRecord {
     arrival_time: item.arrival_time ?? null,
     departure_time: item.departure_time ?? null,
     country: "country" in item ? item.country : item.region ?? null,
+    region: "region" in item ? item.region : item.country ?? null,
     population: item.population ?? null,
     priority: item.priority ?? null,
     notes,
@@ -406,7 +420,7 @@ function buildSantaRouteDocument(
       comment: optionalString(item.comment),
       location: {
         name,
-        region: optionalString(item.country) ?? optionalString(item.region),
+        region: optionalString(item.region) ?? optionalString(item.country),
         country: "country" in item ? optionalString(item.country) : optionalString(item.region),
         lat: Number(lat),
         lng: normalizeLng(Number(lng)),
