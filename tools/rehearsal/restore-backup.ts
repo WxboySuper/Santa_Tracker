@@ -51,15 +51,7 @@ function parseLocation(value: unknown, index: number): BackupLocation {
   const latitude = requiredNumber(value.latitude, index, "latitude", -90, 90);
   const longitude = requiredNumber(value.longitude, index, "longitude", -180, 180);
   const utcOffset = requiredNumber(value.utc_offset, index, "utc_offset", -12, 14);
-  for (const key of ["arrival_time", "departure_time", "country", "notes", "fun_facts"] as const) {
-    if (value[key] != null && typeof value[key] !== "string") throw new Error(`Backup route item ${index} has invalid ${key}`);
-  }
-  for (const key of ["population", "priority", "stop_duration"] as const) {
-    if (value[key] != null && (typeof value[key] !== "number" || !Number.isFinite(value[key]))) {
-      throw new Error(`Backup route item ${index} has invalid ${key}`);
-    }
-  }
-  if (value.is_stop != null && typeof value.is_stop !== "boolean") throw new Error(`Backup route item ${index} has invalid is_stop`);
+  validateOptionalFields(value, index);
   return {
     name: value.name,
     latitude,
@@ -75,6 +67,32 @@ function parseLocation(value: unknown, index: number): BackupLocation {
     stop_duration: optionalNumber(value.stop_duration),
     is_stop: typeof value.is_stop === "boolean" ? value.is_stop : true,
   };
+}
+
+function validateOptionalFields(value: Record<string, unknown>, index: number): void {
+  validateOptionalStrings(value, index);
+  validateOptionalNumbers(value, index);
+  if (value.is_stop != null && typeof value.is_stop !== "boolean") {
+    throw new Error(`Backup route item ${index} has invalid is_stop`);
+  }
+}
+
+function validateOptionalStrings(value: Record<string, unknown>, index: number): void {
+  const fields = ["arrival_time", "departure_time", "country", "notes", "fun_facts"] as const;
+  for (const field of fields) {
+    if (value[field] != null && typeof value[field] !== "string") {
+      throw new Error(`Backup route item ${index} has invalid ${field}`);
+    }
+  }
+}
+
+function validateOptionalNumbers(value: Record<string, unknown>, index: number): void {
+  const fields = ["population", "priority", "stop_duration"] as const;
+  for (const field of fields) {
+    if (value[field] != null && (typeof value[field] !== "number" || !Number.isFinite(value[field]))) {
+      throw new Error(`Backup route item ${index} has invalid ${field}`);
+    }
+  }
 }
 
 function requiredNumber(value: unknown, index: number, field: string, min: number, max: number): number {
