@@ -23,7 +23,7 @@ test("tracker opens immersive mode and lets a visitor choose a city", async ({ p
   await search.fill("London");
   await page.keyboard.press("Escape");
   await expect(page.getByRole("button", { name: "Exit immersive mode" })).toBeVisible();
-  await page.getByRole("button", { name: "London", exact: true }).click();
+  await page.getByRole("button", { name: "London", exact: true }).first().click();
   await expect(page.getByText(/Santa reaches you at/)).toBeVisible({ timeout: 15_000 });
   await page.keyboard.press("Escape");
   await expect(page.getByRole("button", { name: "Enter immersive mode" })).toBeVisible();
