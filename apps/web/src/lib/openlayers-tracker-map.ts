@@ -57,6 +57,7 @@ export class OpenLayersTrackerMap implements TrackerMapAdapter {
   ) {}
 
   async mount(element: HTMLElement): Promise<void> {
+    if (this.disposed) return;
     const map = new Map({ target: element, view: new View({ center: fromLonLat([0, 20]), zoom: 2, extent: VIEW_EXTENT }) });
     this.map = map;
     this.bindInput(element);
@@ -222,5 +223,17 @@ export class OpenLayersTrackerMap implements TrackerMapAdapter {
     if (!hasValidMapExtent(extent)) return;
     this.map?.getView().fit(extent, { padding: [32, 32, 32, 32] });
   }
-  destroy(): void { this.disposed = true; this.art?.dispose(); this.cancelStyle?.(); this.cleanupInput?.(); this.map?.setTarget(); this.map?.dispose(); }
+  destroy(): void {
+    if (this.disposed) return;
+    this.disposed = true;
+    this.art?.dispose();
+    this.cancelStyle?.();
+    this.cleanupInput?.();
+    this.map?.setTarget();
+    this.map?.dispose();
+    this.map = undefined;
+    this.art = undefined;
+    this.cleanupInput = undefined;
+    this.cancelStyle = undefined;
+  }
 }
