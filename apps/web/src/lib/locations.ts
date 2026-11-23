@@ -162,11 +162,15 @@ function parseTransit(value: unknown): TransitToHere | null {
 
 function parseNodeIsStop(entry: JsonRecord): boolean {
   if (typeof entry.is_stop === "boolean") return entry.is_stop;
-  return entry.type === "FLYOVER" ? false : true;
+  return !isFlyoverType(entry.type);
+}
+
+function isFlyoverType(value: unknown): boolean {
+  return typeof value === "string" && value.trim().toUpperCase() === "FLYOVER";
 }
 
 function serializedIsStop(value: unknown, type: unknown): boolean {
-  return typeof value === "boolean" ? value : type === "FLYOVER" ? false : true;
+  return typeof value === "boolean" ? value : !isFlyoverType(type);
 }
 
 function parseNodeFunFacts(entry: JsonRecord): string | null | undefined {
@@ -420,7 +424,7 @@ function buildSantaRouteDocument(
     return {
       id: optionalString(item.id) ?? `node_${idx}_${(name || "unknown").toLowerCase().replace(/\s+/g, "_")}`,
       type: optionalString(item.type) ?? "DELIVERY",
-      is_stop: typeof item.is_stop === "boolean" ? item.is_stop : item.type === "FLYOVER" ? false : true,
+      is_stop: serializedIsStop(item.is_stop, item.type),
       comment: optionalString(item.comment),
       location: {
         name,
@@ -443,8 +447,8 @@ function buildSantaRouteDocument(
         presents_delivered_at_stop: 0,
       },
       transit_to_here: null,
-      notes: optionalString(item.notes),
-      fun_facts: optionalString(item.fun_facts),
+      notes: "notes" in item ? optionalString(item.notes) : optionalString(item.fun_facts),
+      fun_facts: "fun_facts" in item ? optionalString(item.fun_facts) : optionalString(item.notes),
       population: optionalNumber(item.population),
       priority: optionalNumber(item.priority),
     };
@@ -526,7 +530,7 @@ export function createLocationFromPayload(data: JsonRecord): LocationEntry {
     notes,
     fun_facts: funFacts,
     stop_duration: optionalNumber(data.stop_duration),
-    is_stop: typeof data.is_stop === "boolean" ? data.is_stop : data.type === "FLYOVER" ? false : true,
+    is_stop: serializedIsStop(data.is_stop, data.type),
     region: optionalString(data.region) ?? optionalString(data.country),
   };
 }
