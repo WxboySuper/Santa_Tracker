@@ -1,0 +1,35 @@
+name: Bounded research
+description: Propose a timeboxed comparison, prototype, or technical/product decision
+title: "[Research]: "
+labels: ["type: research", "area: quality", "season: 2026"]
+assignees:
+  - WxboySuper
+body:
+  - type: textarea
+    id: question
+    attributes:
+      label: Question
+      description: State the decision or uncertainty this research will resolve.
+    validations:
+      required: true
+  - type: input
+    id: timebox
+    attributes:
+      label: Timebox
+      description: Give a fixed duration or deadline for the work.
+    validations:
+      required: true
+  - type: textarea
+    id: output
+    attributes:
+      label: Expected output
+      description: Name the concrete result, such as a comparison, prototype, or ADR.
+    validations:
+      required: true
+  - type: input
+    id: decision-owner
+    attributes:
+      label: Decision owner
+      description: Name who will make or approve the decision.
+    validations:
+      required: true

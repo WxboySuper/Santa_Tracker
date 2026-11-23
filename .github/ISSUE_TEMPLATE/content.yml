@@ -1,0 +1,35 @@
+name: Content or Advent copy
+description: Propose or revise world content, route copy, or Advent text
+title: "[Content]: "
+labels: ["type: content", "area: advent", "season: 2026"]
+assignees:
+  - WxboySuper
+body:
+  - type: textarea
+    id: content
+    attributes:
+      label: Content to add or change
+      description: Include the location, audience, and proposed copy or content brief.
+    validations:
+      required: true
+  - type: input
+    id: source
+    attributes:
+      label: Source
+      description: Link the source or evidence for factual claims and media rights.
+    validations:
+      required: true
+  - type: textarea
+    id: tone
+    attributes:
+      label: Tone note
+      description: Keep the voice warm, dry, specific, and adult. Note any context for this piece.
+      value: Warm, dry, specific, adult.
+    validations:
+      required: true
+  - type: input
+    id: owner-decision
+    attributes:
+      label: Owner decision needed
+      description: State the editorial decision needed, or write "No".
+      placeholder: "No"
