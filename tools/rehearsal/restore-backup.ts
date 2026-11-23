@@ -144,7 +144,18 @@ function validateNonNegativeNumber({ value, index, field }: FieldAtIndex): void 
 function validatePriority({ value, index }: ValueAtIndex): void {
   if (value == null) return;
   if (typeof value !== "number") throw new Error(`Backup route item ${index} has invalid priority`);
-  if (!Number.isInteger(value)) throw new Error(`Backup route item ${index} has invalid priority`);
+  validateIntegerPriority({ value, index });
+}
+
+function validateIntegerPriority({ value, index }: ValueAtIndex): void {
+  if (typeof value !== "number" || !Number.isInteger(value)) {
+    throw new Error(`Backup route item ${index} has invalid priority`);
+  }
+  validatePriorityRange({ value, index });
+}
+
+function validatePriorityRange({ value, index }: ValueAtIndex): void {
+  if (typeof value !== "number") throw new Error(`Backup route item ${index} has invalid priority`);
   if (value < 1 || value > 3) throw new Error(`Backup route item ${index} has invalid priority`);
 }
 
