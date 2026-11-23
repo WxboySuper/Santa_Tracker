@@ -151,12 +151,23 @@ function validateOptionalNumbers({ value, index }: { value: Record<string, unkno
 
 function validateNonNegativeNumber({ value, index, field }: FieldAtIndex): void {
   if (value == null) return;
-  if (typeof value !== "number") throw new Error(`Backup route item ${index} has invalid ${field}`);
-  if (!Number.isFinite(value)) throw new Error(`Backup route item ${index} has invalid ${field}`);
+  const numericValue = requireFiniteNumber({ value, index, field });
+  assertNonNegative({ value: numericValue, index, field });
+  validatePopulationInteger({ value: numericValue, index, field });
+}
+
+function requireFiniteNumber({ value, index, field }: FieldAtIndex): number {
+  if (typeof value !== "number" || !Number.isFinite(value)) throw new Error(`Backup route item ${index} has invalid ${field}`);
+  return value;
+}
+
+function assertNonNegative({ value, index, field }: FieldAtIndex & { value: number }): void {
   if (value < 0) throw new Error(`Backup route item ${index} has invalid ${field}`);
-  if (field === "population" && !Number.isInteger(value)) {
-    throw new Error(`Backup route item ${index} has invalid ${field}`);
-  }
+}
+
+function validatePopulationInteger({ value, index, field }: FieldAtIndex & { value: number }): void {
+  if (field !== "population") return;
+  if (!Number.isInteger(value)) throw new Error(`Backup route item ${index} has invalid ${field}`);
 }
 
 function validatePriority({ value, index }: ValueAtIndex): void {
@@ -270,23 +281,25 @@ async function assertEmptyTargetDirectory({ root }: { root: string }): Promise<v
   }
 }
 
-function readOption({ args, name }: { args: string[]; name: string }): string | undefined {
-  for (let index = 0; index < args.length; index += 1) {
-    const argument = args[index];
-    if (!argument) continue;
-    if (argument === name) {
-      const value = args[index + 1];
-      if (!value || value.startsWith("--")) throw new Error(`${name} needs a value`);
-      return value;
-    }
-    const prefix = `${name}=`;
-    if (argument.startsWith(prefix)) {
-      const value = argument.slice(prefix.length);
-      if (!value) throw new Error(`${name} needs a value`);
-      return value;
-    }
-  }
-  return undefined;
+export function readOption({ args, name }: { args: string[]; name: string }): string | undefined {
+  return readEqualsOption({ args, name }) ?? readSeparatedOption({ args, name });
+}
+
+function readEqualsOption({ args, name }: { args: string[]; name: string }): string | undefined {
+  const prefix = `${name}=`;
+  const argument = args.find(candidate => candidate.startsWith(prefix));
+  if (!argument) return undefined;
+  const value = argument.slice(prefix.length);
+  if (!value) throw new Error(`${name} needs a value`);
+  return value;
+}
+
+function readSeparatedOption({ args, name }: { args: string[]; name: string }): string | undefined {
+  const index = args.indexOf(name);
+  if (index < 0) return undefined;
+  const value = args[index + 1];
+  if (!value || value.startsWith("--")) throw new Error(`${name} needs a value`);
+  return value;
 }
 
 function isCliEntry(): boolean {

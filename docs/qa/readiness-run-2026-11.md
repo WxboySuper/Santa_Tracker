@@ -56,7 +56,7 @@ pnpm exec playwright test e2e/map-outage.spec.ts --project=open
 pnpm exec playwright test e2e/open-season.spec.ts --project=open -g "the admin emergency switch hides and restores the tracker for visitors"
 ```
 
-The existing outage test passed with both public tile providers blocked. The new deterministic local spec blocks `tiles.openfreemap.org` and `tile.openstreetmap.org`, confirms a raster request follows the vector failure, waits for the text view, verifies the TV dashboard stays visible, and checks `/api/route` is unchanged across the outage. On the latest serial rerun, vector-to-raster took 130 ms and raster-to-text took 83 ms. The journey remains available in text mode. An earlier parallel map-plus-recovery run exceeded the map spec's 30-second timeout after it had logged fallback timings; serial execution passed both tests.
+The existing outage test passed with both public tile providers blocked. The new deterministic local spec blocks `tiles.openfreemap.org` and `tile.openstreetmap.org`, confirms a raster request follows the vector failure, waits for the text view, verifies the TV dashboard stays visible, and checks `/api/route` is unchanged across the outage. On the latest serial rerun, vector-to-raster took 140 ms and raster-to-text took 163 ms. The journey remains available in text mode. An earlier parallel map-plus-recovery run exceeded the map spec's 30-second timeout after it had logged fallback timings; serial execution passed both tests.
 
 The emergency switch test passed against the E2E suite's isolated filesystem store. It logged in with a generated local test password, hid the tracker, observed visitor `404` responses for `/tracker` and `/api/route`, then restored the flag and observed `/tracker` return `200`. No real secret or production backend was used.
 
@@ -109,10 +109,10 @@ After the documentation and runner changes:
 ```text
 pnpm lint       PASS
 pnpm typecheck  PASS
-pnpm test       PASS, 80 files and 552 tests
+pnpm test       PASS, 80 files and 553 tests
 ```
 
-After the latest review fixes, `pnpm lint`, `pnpm typecheck`, and `pnpm test` passed. Vitest passed all 552 tests. Both targeted Playwright specs passed serially; recovery matched all 185 exported locations, and the map fallback took 130 ms then 83 ms. The restore helper now uses smaller validation functions and typed option objects in response to CodeScene findings. The latest CodeScene analysis on the earlier head passed. One initial `pnpm test` run hit a 5-second timeout in `bootstrap.test.ts`; the immediate rerun passed all 552 tests. CodeRabbit skipped review because the repository requires a `review` label.
+After the latest review fixes, `pnpm lint`, `pnpm typecheck`, and `pnpm test` passed. Vitest passed all 553 tests. Both targeted Playwright specs passed serially; recovery matched all 185 exported locations, and the map fallback took 130 ms then 83 ms. The restore helper now uses smaller validation functions and typed option objects in response to CodeScene findings. The latest CodeScene analysis on the earlier head passed. One initial `pnpm test` run hit a 5-second timeout in `bootstrap.test.ts`; the immediate rerun passed all 553 tests. CodeRabbit skipped review because the repository requires a `review` label.
 
 ## Owner checklist
 

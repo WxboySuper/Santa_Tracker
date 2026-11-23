@@ -7,7 +7,7 @@ import { createVersionedSnapshotStore } from "./versioned-store-core";
 import { DATASET_SANTA_ROUTE } from "./types";
 import { LegacyRouteFixtureSchema } from "../../../../../packages/contracts/src/schemas";
 import { createLocationFromPayload, loadSantaRouteFromJson, saveSantaRouteToJson } from "../locations";
-import { backupToRouteDocument, parseRouteBackupExport, restoreBackupFile } from "../../../../../tools/rehearsal/restore-backup";
+import { backupToRouteDocument, parseRouteBackupExport, readOption, restoreBackupFile } from "../../../../../tools/rehearsal/restore-backup";
 
 const roots: string[] = [];
 async function tempDir(): Promise<string> {
@@ -31,6 +31,12 @@ const backup = {
 };
 
 describe("local filesystem backup restore", () => {
+  it("reads both separated and equals-form CLI options", () => {
+    expect(readOption({ args: ["--input", "backup.json"], name: "--input" })).toBe("backup.json");
+    expect(readOption({ args: ["--input=backup.json"], name: "--input" })).toBe("backup.json");
+    expect(() => readOption({ args: ["--input="], name: "--input" })).toThrow("needs a value");
+  });
+
   it("validates the export and converts it into a route snapshot", async () => {
     const parsed = parseRouteBackupExport({ raw: JSON.stringify(backup) });
     const document = backupToRouteDocument(parsed) as { route_nodes: { location: { name: string; lat: number; lng: number }; stop_experience: { duration_seconds: number } }[] };

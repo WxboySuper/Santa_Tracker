@@ -152,6 +152,23 @@ function parseTransit(value: unknown): TransitToHere | null {
   };
 }
 
+function parseNodeIsStop(entry: JsonRecord): boolean {
+  if (typeof entry.is_stop === "boolean") return entry.is_stop;
+  return entry.type === "FLYOVER" ? false : true;
+}
+
+function parseNodeFunFacts(entry: JsonRecord): string | null | undefined {
+  return "fun_facts" in entry ? optionalString(entry.fun_facts) : undefined;
+}
+
+function parseNodeCountry(location: JsonRecord): string | null | undefined {
+  return "country" in location ? optionalString(location.country) : undefined;
+}
+
+function asRecordOrEmpty(value: unknown): JsonRecord {
+  return isRecord(value) ? value : {};
+}
+
 function parseLocationNode(value: unknown, idx: number): RouteNode | null {
   if (!isRecord(value)) return null;
   const entry = isLegacyLocation(value) ? normalizeLegacyLocation(value, idx) : value;
@@ -165,18 +182,18 @@ function parseLocationNode(value: unknown, idx: number): RouteNode | null {
   if (lat == null || lng == null) return null;
   const tz = safeFloat(loc.timezone_offset);
 
-  const stop = isRecord(entry.stop_experience) ? entry.stop_experience : {};
-  const schedule = isRecord(entry.schedule) ? entry.schedule : {};
+  const stop = asRecordOrEmpty(entry.stop_experience);
+  const schedule = asRecordOrEmpty(entry.schedule);
 
   return {
     id,
     type: optionalString(entry.type) ?? "DELIVERY",
-    is_stop: typeof entry.is_stop === "boolean" ? entry.is_stop : entry.type === "FLYOVER" ? false : true,
+    is_stop: parseNodeIsStop(entry),
     comment: optionalString(entry.comment),
     location: {
       name: optionalString(loc.name) ?? id,
       region: optionalString(loc.region),
-      country: "country" in loc ? optionalString(loc.country) : undefined,
+      country: parseNodeCountry(loc),
       lat,
       lng: normalizeLng(lng),
       timezone_offset: tz,
@@ -195,7 +212,7 @@ function parseLocationNode(value: unknown, idx: number): RouteNode | null {
     },
     transit_to_here: parseTransit(entry.transit_to_here),
     notes: optionalString(entry.notes),
-    fun_facts: "fun_facts" in entry ? optionalString(entry.fun_facts) : undefined,
+    fun_facts: parseNodeFunFacts(entry),
     population: optionalNumber(entry.population),
     priority: optionalNumber(entry.priority),
   };
