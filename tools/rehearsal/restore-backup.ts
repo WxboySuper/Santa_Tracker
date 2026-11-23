@@ -57,12 +57,13 @@ function assertBackupEnvelope(value: Record<string, unknown>): asserts value is 
 }
 
 function parseLocation(value: unknown, index: number): BackupLocation {
-  if (!isRecord(value) || typeof value.name !== "string" || !value.name.trim()) {
+  if (!isRecord(value)) throw new Error(`Backup route item ${index} must be an object`);
+  if (typeof value.name !== "string" || !value.name.trim()) {
     throw new Error(`Backup route item ${index} needs a name`);
   }
-  const latitude = requiredNumber(value.latitude, index, "latitude", -90, 90);
-  const longitude = requiredNumber(value.longitude, index, "longitude", -180, 180);
-  const utcOffset = requiredNumber(value.utc_offset, index, "utc_offset", -12, 14);
+  const latitude = requiredNumber(value.latitude, index, "latitude", { min: -90, max: 90 });
+  const longitude = requiredNumber(value.longitude, index, "longitude", { min: -180, max: 180 });
+  const utcOffset = requiredNumber(value.utc_offset, index, "utc_offset", { min: -12, max: 14 });
   validateOptionalFields(value, index);
   return {
     name: value.name,
@@ -101,16 +102,17 @@ function validateOptionalStrings(value: Record<string, unknown>, index: number):
 function validateOptionalNumbers(value: Record<string, unknown>, index: number): void {
   const fields = ["population", "priority", "stop_duration"] as const;
   for (const field of fields) {
-    if (value[field] != null && (typeof value[field] !== "number" || !Number.isFinite(value[field]))) {
-      throw new Error(`Backup route item ${index} has invalid ${field}`);
-    }
+    const candidate = value[field];
+    if (candidate == null) continue;
+    if (typeof candidate !== "number") throw new Error(`Backup route item ${index} has invalid ${field}`);
+    if (!Number.isFinite(candidate)) throw new Error(`Backup route item ${index} has invalid ${field}`);
   }
 }
 
-function requiredNumber(value: unknown, index: number, field: string, min: number, max: number): number {
-  if (typeof value !== "number" || !Number.isFinite(value) || value < min || value > max) {
-    throw new Error(`Backup route item ${index} has invalid ${field}`);
-  }
+function requiredNumber(value: unknown, index: number, field: string, range: { min: number; max: number }): number {
+  if (typeof value !== "number") throw new Error(`Backup route item ${index} has invalid ${field}`);
+  if (!Number.isFinite(value)) throw new Error(`Backup route item ${index} has invalid ${field}`);
+  if (value < range.min || value > range.max) throw new Error(`Backup route item ${index} has invalid ${field}`);
   return value;
 }
 

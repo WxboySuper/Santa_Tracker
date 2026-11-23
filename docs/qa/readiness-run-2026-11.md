@@ -111,7 +111,7 @@ pnpm typecheck  PASS
 pnpm test       PASS, 80 files and 550 tests
 ```
 
-After rebasing again onto the latest `main`, the restore export parser was split into smaller validation helpers in response to CodeScene complexity findings. `pnpm lint` and `pnpm typecheck` passed. One earlier full-suite attempt had a 5-second bootstrap test timeout while the suite spawned 79 workers; the retry passed. After the parser refactor, the full suite passed all 550 tests. The backup recovery E2E passed, and the map outage E2E passed alone with the timings above. PR checks for this final follow-up commit remain pending.
+After rebasing again onto the latest `main`, the restore export parser was split into smaller validation helpers in response to CodeScene complexity findings. `pnpm lint` and `pnpm typecheck` passed. One earlier full-suite attempt had a 5-second bootstrap test timeout while the suite spawned 79 workers; the retry passed. After the parser refactor, the full suite passed all 550 tests. The backup recovery E2E passed, and the map outage E2E passed alone with the timings above. CodeScene still flags advisory complexity/argument-shape metrics in the restore helper; the route parser and location validation were simplified, but the quality gate remains an open code review item. The other PR checks were passing or pending at the final check, and CodeRabbit skipped review because the repository requires a `review` label.
 
 ## Owner checklist
 
