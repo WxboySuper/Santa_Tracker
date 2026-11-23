@@ -56,7 +56,7 @@ pnpm exec playwright test e2e/map-outage.spec.ts --project=open
 pnpm exec playwright test e2e/open-season.spec.ts --project=open -g "the admin emergency switch hides and restores the tracker for visitors"
 ```
 
-The existing outage test passed with both public tile providers blocked. The new deterministic local spec blocks `tiles.openfreemap.org` and `tile.openstreetmap.org`, confirms a raster request follows the vector failure, waits for the text view, verifies the TV dashboard stays visible, and checks `/api/route` is unchanged across the outage. On the post-rebase run, vector-to-raster took 182 ms and raster-to-text took 239 ms. The journey remains available in text mode.
+The existing outage test passed with both public tile providers blocked. The new deterministic local spec blocks `tiles.openfreemap.org` and `tile.openstreetmap.org`, confirms a raster request follows the vector failure, waits for the text view, verifies the TV dashboard stays visible, and checks `/api/route` is unchanged across the outage. On the final isolated post-rebase run, vector-to-raster took 212 ms and raster-to-text took 330 ms. The journey remains available in text mode. A parallel map-plus-recovery run exceeded the map spec's 30-second timeout after it had logged fallback timings; rerunning the map spec alone passed.
 
 The emergency switch test passed against the E2E suite's isolated filesystem store. It logged in with a generated local test password, hid the tracker, observed visitor `404` responses for `/tracker` and `/api/route`, then restored the flag and observed `/tracker` return `200`. No real secret or production backend was used.
 
@@ -73,7 +73,7 @@ pnpm exec playwright test e2e/backup-restore.spec.ts --project=open
 The local drill passed against the isolated E2E filesystem fixture. It fetched the backup export through the authenticated admin API, saved and activated an original route snapshot, activated a changed snapshot, rolled back to the original version, and verified the active snapshot matched. It restored the backup through the script into a clean temporary data directory and verified the restored route document against the export. The export contained 185 locations.
 
 ```text
-BACKUP_RECOVERY versions=2026-11-23T19-36-13-883Z-r8a98zqb,2026-11-23T19-36-14-026Z-0tltieuq rollback=2026-11-23T19-36-13-883Z-r8a98zqb restored=2026-11-23T19-36-14-344Z-ekvu4k61 locations=185
+BACKUP_RECOVERY versions=2026-11-23T19-48-00-670Z-xmvaik9r,2026-11-23T19-48-00-792Z-jhn7dfpt rollback=2026-11-23T19-48-00-670Z-xmvaik9r restored=2026-11-23T19-48-00-997Z-a4apyl8g locations=185
 ```
 
 For a standalone restore from an existing export, use:
@@ -108,8 +108,10 @@ After the documentation and runner changes:
 ```text
 pnpm lint       PASS
 pnpm typecheck  PASS
-pnpm test       PASS, 76 files and 519 tests
+pnpm test       PASS on rerun, 79 files and 547 tests
 ```
+
+After rebasing again onto the latest `main` and simplifying the backup validator in response to the CodeScene complexity finding, `pnpm lint` and `pnpm typecheck` passed. The first `pnpm test` attempt had one 5-second bootstrap test timeout while the full suite spawned 79 workers; the retry passed all 547 tests. The backup recovery E2E passed, and the map outage E2E passed alone with the timings above. CodeScene's new-head review had reported complexity in `parseLocation`; validation was split into smaller helpers. The new-head review and CI checks were still running at the final PR status check.
 
 ## Owner checklist
 
