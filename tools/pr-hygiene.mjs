@@ -18,7 +18,7 @@ const CHANGELOG_EXEMPT_TYPES = new Set(['docs', 'ci', 'chore', 'test']);
 
 export function parseConventionalTitle(title) {
   if (typeof title !== 'string') return null;
-  const match = /^(\w+)(?:\(([^()]+)\))?(!)?:\s+(.+\S)$/.exec(title.trim());
+  const match = /^(\w+)(?:\(([^()]+)\))?(!)?:\s+(.*\S)$/.exec(title.trim());
   if (!match || !TYPES.has(match[1])) return null;
   return {
     type: match[1],
@@ -82,7 +82,7 @@ async function listChangedFiles({ repository, pullNumber, token }) {
 
 export function isChangelogUpdate(file) {
   if (file.filename !== 'CHANGELOG.md') return false;
-  if (file.status === 'added' || file.status === 'modified') return true;
+  if (['added', 'modified', 'changed', 'copied'].includes(file.status)) return true;
   return file.status === 'renamed' && file.previous_filename !== 'CHANGELOG.md';
 }
 

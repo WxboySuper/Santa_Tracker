@@ -7,6 +7,7 @@ import {
 
 describe('parseConventionalTitle', () => {
   it.each([
+    'feat: a',
     'feat: add tracker',
     'feat!: break API',
     'feat(map)!: change route contract',
@@ -48,6 +49,8 @@ describe('isChangelogUpdate', () => {
   it.each([
     [{ filename: 'CHANGELOG.md', status: 'added' }, true],
     [{ filename: 'CHANGELOG.md', status: 'modified' }, true],
+    [{ filename: 'CHANGELOG.md', status: 'changed' }, true],
+    [{ filename: 'CHANGELOG.md', status: 'copied' }, true],
     [{ filename: 'CHANGELOG.md', status: 'renamed', previous_filename: 'HISTORY.md' }, true],
     [{ filename: 'removed.md', status: 'renamed', previous_filename: 'CHANGELOG.md' }, false],
     [{ filename: 'CHANGELOG.md', status: 'removed' }, false],

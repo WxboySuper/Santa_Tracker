@@ -1,8 +1,9 @@
 name: Bundle budgets
 
+# Advisory only: the build output is produced from PR code, and this job is not a required check.
 on:
   # Load the workflow from the base branch; the build job runs PR code without a token.
-  pull_request_target:
+  pull_request:
     branches: [main]
 
 permissions:
