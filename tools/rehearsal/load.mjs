@@ -113,7 +113,7 @@ async function stopServer() {
 
 function parseLocalOrigin(value) {
   const url = new URL(value);
-  if (url.protocol !== "http:" || !["127.0.0.1", "localhost", "::1"].includes(url.hostname)) {
+  if (url.protocol !== "http:" || !["127.0.0.1", "localhost", "::1", "[::1]"].includes(url.hostname)) {
     throw new Error("LOAD_ORIGIN must use http and a loopback host");
   }
   return url.origin;

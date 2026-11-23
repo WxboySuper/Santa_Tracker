@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { createFilesystemBackend } from "./filesystem-backend";
 import { createVersionedSnapshotStore } from "./versioned-store-core";
 import { DATASET_SANTA_ROUTE } from "./types";
+import { LegacyRouteFixtureSchema } from "../../../../../packages/contracts/src/schemas";
 import { createLocationFromPayload, loadSantaRouteFromJson, saveSantaRouteToJson } from "../locations";
 import { backupToRouteDocument, parseRouteBackupExport, restoreBackupFile } from "../../../../../tools/rehearsal/restore-backup";
 
@@ -35,6 +36,10 @@ describe("local filesystem backup restore", () => {
     const document = backupToRouteDocument(parsed) as { route_nodes: { location: { name: string; lat: number; lng: number }; stop_experience: { duration_seconds: number } }[] };
     expect(document.route_nodes[0]?.location).toMatchObject({ name: "North Pole", lat: 90, lng: 0 });
     expect(document.route_nodes[0]?.stop_experience.duration_seconds).toBe(60);
+    expect(document.route_nodes[0]?.location).toMatchObject({ region: "Unknown" });
+    expect(LegacyRouteFixtureSchema.safeParse(document).success).toBe(true);
+    const priorYear = backupToRouteDocument({ ...parsed, backup_timestamp: "2025-12-24T00:00:00.000Z" }) as { meta: { year: number } };
+    expect(priorYear.meta.year).toBe(2025);
     const wrapped = parseRouteBackupExport({ raw: JSON.stringify({
       ...backup,
       route: [{ ...backup.route[0], longitude: 202.51, priority: 2, is_stop: false, stop_duration: 10 }],
@@ -67,6 +72,18 @@ describe("local filesystem backup restore", () => {
     await expect(loadSantaRouteFromJson(JSON.parse(active ?? "{}"))).resolves.toMatchObject([{
       population: 123, notes: "Independent note", fun_facts: "Separate fact", is_stop: true,
     }]);
+  });
+
+  it("rejects schema-invalid route times before creating a version", async () => {
+    const parent = await tempDir();
+    const input = path.join(parent, "invalid-export.json");
+    const dataDir = path.join(parent, "invalid-restore");
+    await fs.writeFile(input, JSON.stringify({
+      ...backup,
+      route: [{ ...backup.route[0], arrival_time: "not-a-date" }],
+    }));
+    await expect(restoreBackupFile({ inputPath: input, dataDir })).rejects.toThrow("Restored route is invalid");
+    await expect(fs.readdir(dataDir)).rejects.toMatchObject({ code: "ENOENT" });
   });
 
   it("refuses any non-empty target directory, including orphan history and other datasets", async () => {

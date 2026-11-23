@@ -59,6 +59,7 @@ export interface RouteNode {
   location: {
     name: string;
     region?: string | null;
+    country?: string | null;
     lat: number;
     lng: number;
     timezone_offset?: number | null;
@@ -123,7 +124,13 @@ function normalizeLegacyLocation(entry: JsonRecord, idx: number): JsonRecord {
     id: entry.name || `node_${idx}`,
     type: entry.type,
     is_stop: entry.is_stop,
-    location: { name: entry.name, lat, lng, timezone_offset: tz },
+    location: {
+      name: entry.name,
+      lat,
+      lng,
+      timezone_offset: tz,
+      ...("country" in entry ? { country: entry.country, region: entry.country } : {}),
+    },
     schedule: { arrival_utc: entry.arrival_time, departure_utc: entry.departure_time },
     stop_experience: { duration_seconds: durationSeconds != null ? durationSeconds * 60 : null },
     notes: entry.notes,
@@ -169,6 +176,7 @@ function parseLocationNode(value: unknown, idx: number): RouteNode | null {
     location: {
       name: optionalString(loc.name) ?? id,
       region: optionalString(loc.region),
+      country: "country" in loc ? optionalString(loc.country) : undefined,
       lat,
       lng: normalizeLng(lng),
       timezone_offset: tz,
@@ -215,7 +223,7 @@ function toLocationFromNode(node: RouteNode): LocationEntry {
     priority: node.priority ?? null,
     notes: node.notes ?? null,
     fun_facts: node.fun_facts ?? node.notes ?? null,
-    country: loc.region ?? null,
+    country: loc.country !== undefined ? loc.country : loc.region ?? null,
     population: node.population ?? null,
     id: node.id,
     type: node.type,
@@ -242,7 +250,7 @@ function flattenRouteNode(node: RouteNode): JsonRecord {
     utc_offset: loc.timezone_offset,
     arrival_time: sched.arrival_utc ?? null,
     departure_time: sched.departure_utc ?? null,
-    country: loc.region ?? null,
+    country: loc.country !== undefined ? loc.country : loc.region ?? null,
     population: node.population ?? null,
     priority: node.priority ?? null,
     notes: node.notes ?? null,
@@ -263,7 +271,7 @@ function flattenLegacyLocation(item: JsonRecord): JsonRecord {
     utc_offset: Number(item.utc_offset ?? item.timezone_offset),
     arrival_time: item.arrival_time ?? null,
     departure_time: item.departure_time ?? null,
-    country: item.country ?? item.region ?? null,
+    country: "country" in item ? item.country : item.region ?? null,
     population: item.population ?? null,
     priority: item.priority ?? null,
     notes,
@@ -382,6 +390,7 @@ function buildSantaRouteDocument(
       location: {
         name,
         region: optionalString(item.country) ?? optionalString(item.region),
+        country: "country" in item ? optionalString(item.country) : optionalString(item.region),
         lat: Number(lat),
         lng: normalizeLng(Number(lng)),
         timezone_offset: Number(tz),

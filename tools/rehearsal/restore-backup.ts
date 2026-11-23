@@ -196,7 +196,11 @@ function asRecord({ value }: { value: unknown }): Record<string, unknown> | null
 
 export function backupToRouteDocument(backup: RouteBackupExport): Record<string, unknown> {
   return {
-    meta: { year: 2026, route_version: "restored-from-admin-backup", generated_at: backup.backup_timestamp },
+    meta: {
+      year: new Date(backup.backup_timestamp).getUTCFullYear(),
+      route_version: "restored-from-admin-backup",
+      generated_at: backup.backup_timestamp,
+    },
     route_nodes: backup.route.map((location, index) => ({
       id: `backup-${index + 1}`,
       type: location.is_stop === false ? "FLYOVER" : "DELIVERY",
@@ -206,14 +210,16 @@ export function backupToRouteDocument(backup: RouteBackupExport): Record<string,
         lat: location.latitude,
         lng: location.longitude,
         timezone_offset: location.utc_offset,
-        region: location.country ?? null,
+        region: location.country || "Unknown",
+        country: location.country ?? null,
       },
       population: location.population ?? null,
       schedule: {
         arrival_utc: location.arrival_time ?? null,
         departure_utc: location.departure_time ?? null,
       },
-      stop_experience: { duration_seconds: location.is_stop === false ? 0 : (location.stop_duration ?? 0) * 60 },
+      transit_to_here: null,
+      stop_experience: { duration_seconds: location.is_stop === false ? 0 : Math.round((location.stop_duration ?? 0) * 60) },
       notes: location.notes ?? null,
       fun_facts: location.fun_facts ?? null,
       priority: location.priority ?? null,
@@ -226,10 +232,20 @@ export async function restoreBackupFile({ inputPath, dataDir }: { inputPath: str
   const root = path.resolve(dataDir);
   await assertEmptyTargetDirectory({ root });
   const backup = parseRouteBackupExport({ raw: await readFile(path.resolve(inputPath), "utf8") });
+  const document = backupToRouteDocument(backup);
+  assertRestoredRouteValid({ document });
   const store = createVersionedSnapshotStore(createFilesystemBackend(root));
-  const version = await store.saveNewVersion(DATASET_SANTA_ROUTE, JSON.stringify(backupToRouteDocument(backup), null, 2));
+  const version = await store.saveNewVersion(DATASET_SANTA_ROUTE, JSON.stringify(document, null, 2));
   await store.activateVersion(DATASET_SANTA_ROUTE, version.versionId);
   return { versionId: version.versionId, locationCount: backup.total_locations };
+}
+
+function assertRestoredRouteValid({ document }: { document: Record<string, unknown> }): void {
+  const parsed = LegacyRouteFixtureSchema.safeParse(document);
+  if (!parsed.success) {
+    const issue = parsed.error.issues[0]?.message ?? "schema mismatch";
+    throw new Error(`Restored route is invalid: ${issue}`);
+  }
 }
 
 async function assertEmptyTargetDirectory({ root }: { root: string }): Promise<void> {
