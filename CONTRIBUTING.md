@@ -35,6 +35,20 @@ The OCR workflow reviews pull requests and publishes inline findings and a summa
 
 The repo also contains configuration for CodeRabbit, CodeScene, and DeepSource. Those services are external integrations; their exact status requirements and label behavior are not defined by the application code here. Follow any review findings that appear on the PR. The checked-in CodeRabbit configuration has an empty `auto_review.labels` list, so this checkout does not verify a label-gated review rule.
 
+## How we use issue statuses
+
+Use GitHub issue statuses this way:
+
+- **Backlog** means deferred. The work is not committed for the next cycle.
+- **Todo** means the team has committed to do the work next.
+- **In progress** means someone is actively working on it.
+- **In review** means the work is waiting for review or a decision.
+- **Done** means the requested work is complete. Close the issue only when it is completed.
+- **Not planned** means the owner has decided not to do the work.
+- **Duplicate** means the owner has confirmed another issue tracks the same work.
+
+Only the owner sets **Not planned** or **Duplicate**. Contributors can explain why either status may fit, but should leave the status change to the owner.
+
 ## Making changes
 
 1. Keep changes focused and add tests for behavior changes.
