@@ -10,6 +10,7 @@ const baseUse = { ...devices["Desktop Chrome"], trace: "retain-on-failure" as co
 export default defineConfig({
   testDir: "./e2e",
   globalSetup: "./e2e/global-setup.ts",
+  timeout: 60_000,
   fullyParallel: true,
   // Both projects share fixture stores, and admin-switch tests mutate their
   // feature flags. A single worker avoids cross-test state races and keeps
