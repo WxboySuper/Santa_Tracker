@@ -46,6 +46,7 @@ describe("local filesystem backup restore", () => {
       notes: "Independent note", fun_facts: "Separate fact",
     }]);
     expect(() => parseRouteBackupExport({ raw: JSON.stringify({ ...backup, total_locations: 2 }) })).toThrow("must match");
+    expect(() => parseRouteBackupExport({ raw: JSON.stringify({ ...backup, backup_timestamp: "not-a-date" }) })).toThrow("valid ISO timestamp");
     expect(() => parseRouteBackupExport({ raw: JSON.stringify({ ...backup, route: [{ ...backup.route[0], latitude: 91 }] }) })).toThrow("invalid latitude");
     expect(() => parseRouteBackupExport({ raw: JSON.stringify({ ...backup, route: [{ ...backup.route[0], stop_duration: -1 }] }) })).toThrow("invalid stop_duration");
     expect(() => parseRouteBackupExport({ raw: JSON.stringify({ ...backup, route: [{ ...backup.route[0], priority: 0 }] }) })).toThrow("invalid priority");

@@ -1,6 +1,7 @@
 import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
+import { LegacyRouteFixtureSchema } from "../../packages/contracts/src/schemas";
 import { createFilesystemBackend } from "../../apps/web/src/lib/storage/filesystem-backend";
 import { createVersionedSnapshotStore } from "../../apps/web/src/lib/storage/versioned-store-core";
 import { DATASET_SANTA_ROUTE } from "../../apps/web/src/lib/storage/types";
@@ -68,7 +69,8 @@ function assertBackupEnvelope({ value }: { value: Record<string, unknown> }): Re
 }
 
 function assertBackupTimestamp({ value }: { value: Record<string, unknown> }): void {
-  if (typeof value.backup_timestamp !== "string") throw new Error("Backup file must be an admin route export");
+  const timestamp = LegacyRouteFixtureSchema.shape.meta.shape.generated_at.safeParse(value.backup_timestamp);
+  if (!timestamp.success) throw new Error("Backup file must be an admin route export with a valid ISO timestamp");
 }
 
 function assertBackupRoute({ value }: { value: Record<string, unknown> }): unknown[] {
