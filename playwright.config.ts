@@ -24,7 +24,7 @@ const matrixProfiles = [
   { name: "pixel-5", use: { ...devices["Pixel 5"], browserName: "chromium" as const } },
   { name: "ipad-gen-7", use: { ...devices["iPad (gen 7)"], browserName: "webkit" as const } },
   { name: "desktop-4k", use: { ...devices["Desktop Chrome"], viewport: { width: 3840, height: 2160 } } },
-  { name: "phone-landscape-740x360", use: { ...devices["Pixel 5"], viewport: { width: 740, height: 360 }, deviceScaleFactor: 1, isLandscape: true } },
+  { name: "phone-landscape-740x360", use: { ...devices["Pixel 5"], viewport: { width: 740, height: 360 }, deviceScaleFactor: 1 } },
 ];
 
 const matrixProjects = process.env.E2E_MATRIX === "1"
