@@ -190,7 +190,7 @@ function eligibleWindowedOptions(options: EligibleWindowedOptions): WindowedOpti
   return remaining.flatMap((place) => {
     const left = remaining.filter((candidate) => candidate.id !== place.id);
     const after = [...ordered, place];
-    if (!isWindowedCandidateEligible(place, ordered, after, left, config)) return [];
+    if (!isWindowedCandidateEligible({ place, ordered, after, left, config })) return [];
     return windowedOption({
       place,
       prior: options.prior,
@@ -202,7 +202,16 @@ function eligibleWindowedOptions(options: EligibleWindowedOptions): WindowedOpti
   });
 }
 
-function isWindowedCandidateEligible(place: Candidate, ordered: Candidate[], after: Candidate[], left: Candidate[], config: GeneratorConfig): boolean {
+type WindowedEligibility = {
+  place: Candidate;
+  ordered: Candidate[];
+  after: Candidate[];
+  left: Candidate[];
+  config: GeneratorConfig;
+};
+
+function isWindowedCandidateEligible(options: WindowedEligibility): boolean {
+  const { place, ordered, after, left, config } = options;
   if (!canAppend(place, ordered, config.maxCountryRun)) return false;
   return canCompleteCountryRuns(after, left, config.maxCountryRun);
 }
@@ -712,14 +721,17 @@ function updateAnnealingState(state: AnnealingState, candidate: Candidate[], sco
   state.bestScore = score;
 }
 
-function annealingStep(
-  state: AnnealingState,
-  iteration: number,
-  iterations: number,
-  assemble: (items: Candidate[]) => Candidate[],
-  config: GeneratorConfig,
-  random: () => number,
-): void {
+type AnnealingStepOptions = {
+  state: AnnealingState;
+  iteration: number;
+  iterations: number;
+  assemble: (items: Candidate[]) => Candidate[];
+  config: GeneratorConfig;
+  random: () => number;
+};
+
+function annealingStep(options: AnnealingStepOptions): void {
+  const { state, iteration, iterations, assemble, config, random } = options;
   const candidate = proposeAnnealingMove(state.current, random);
   if (!candidate) return;
   const assembled = assemble(candidate);
@@ -740,7 +752,9 @@ function annealRoute(
   const initialScore = routeScore(assemble(middle));
   const state: AnnealingState = { current: middle, currentScore: initialScore, best: middle, bestScore: initialScore };
   const iterations = 100_000;
-  for (let iteration = 0; iteration < iterations; iteration++) annealingStep(state, iteration, iterations, assemble, config, random);
+  for (let iteration = 0; iteration < iterations; iteration++) {
+    annealingStep({ state, iteration, iterations, assemble, config, random });
+  }
   return state.best;
 }
 
@@ -864,13 +878,13 @@ type AssignArrivalOptions = {
 function assignArrival(options: AssignArrivalOptions): number {
   const { sequence, timing, config, index, place, progress } = options;
   const earliest = earliestArrival(index, timing, progress);
-  const latest = latestArrival(index, timing, progress, config, earliest);
+  const latest = latestArrival({ index, timing, progress, config, earliest });
   const prior = sequence[index - 1];
   validateArrivalBounds(place, prior, earliest, latest);
-  const desired = desiredArrival(sequence.length, index, prior, place, progress, earliest, config);
+  const desired = desiredArrival({ ...options, prior, earliest });
   const exactOpening = exactArrivalAnchor(place, index, timing, config);
   const arrival = exactOpening ?? Math.min(latest, desired);
-  validateAssignedArrival(place, arrival, earliest, latest, progress.arrival, index, config);
+  validateAssignedArrival({ place, arrival, earliest, latest, previousArrival: progress.arrival, index, config });
   return arrival;
 }
 
@@ -887,7 +901,16 @@ function earliestArrival(index: number, timing: TimingBounds, progress: ArrivalP
   return Math.max(lower, progress.arrival + minimumGap);
 }
 
-function latestArrival(index: number, timing: TimingBounds, progress: ArrivalProgress, config: GeneratorConfig, earliest: number): number {
+type LatestArrivalOptions = {
+  index: number;
+  timing: TimingBounds;
+  progress: ArrivalProgress;
+  config: GeneratorConfig;
+  earliest: number;
+};
+
+function latestArrival(options: LatestArrivalOptions): number {
+  const { index, timing, progress, config, earliest } = options;
   const upper = timing.upper[index] ?? earliest;
   if (index === 0) return upper;
   return Math.min(upper, progress.arrival + config.maxArrivalGapMinutes * MINUTE_MS);
@@ -897,30 +920,28 @@ function validateArrivalBounds(place: Candidate, prior: Candidate | undefined, e
   if (earliest > latest) throw new Error(`${place.name} is unreachable from ${prior?.name ?? 'takeoff'} without violating an arrival gap`);
 }
 
-function desiredArrival(
-  total: number,
-  index: number,
-  prior: Candidate | undefined,
-  place: Candidate,
-  progress: ArrivalProgress,
-  earliest: number,
-  config: GeneratorConfig,
-): number {
+type DesiredArrivalOptions = AssignArrivalOptions & { prior: Candidate | undefined; earliest: number };
+
+function desiredArrival(options: DesiredArrivalOptions): number {
+  const { sequence, index, prior, place, progress, earliest, config } = options;
   const distance = prior ? haversineKm(prior, place) : haversineKm({ lat: 80, lng: 180 }, place);
   const travelMs = desiredTravelMs(distance, config, index === 0);
   const travelArrival = index === 0 ? TAKEOFF_MS + travelMs : progress.departure + travelMs;
-  return Math.max(earliest, travelArrival, timelineTarget(index, total), TAKEOFF_MS);
+  return Math.max(earliest, travelArrival, timelineTarget(index, sequence.length), TAKEOFF_MS);
 }
 
-function validateAssignedArrival(
-  place: Candidate,
-  arrival: number,
-  earliest: number,
-  latest: number,
-  previousArrival: number,
-  index: number,
-  config: GeneratorConfig,
-): void {
+type AssignedArrivalOptions = {
+  place: Candidate;
+  arrival: number;
+  earliest: number;
+  latest: number;
+  previousArrival: number;
+  index: number;
+  config: GeneratorConfig;
+};
+
+function validateAssignedArrival(options: AssignedArrivalOptions): void {
+  const { place, arrival, earliest, latest, previousArrival, index, config } = options;
   if (arrival < earliest || arrival > latest) throw new Error(`Opening stop ${place.name} cannot satisfy the propagated route timing bounds`);
   if (index === 0) return;
   if (arrival - previousArrival > config.maxArrivalGapMinutes * MINUTE_MS) {

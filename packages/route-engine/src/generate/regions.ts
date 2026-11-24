@@ -58,7 +58,8 @@ function africaSubregion(place: Candidate): string {
   return 'Central and Southern Africa';
 }
 
-function asiaSubregion(code: string): string {
+function asiaSubregion(place: Candidate): string {
+  const code = place.country;
   if (MIDDLE_EAST.has(code)) return 'Middle East';
   if (EAST_ASIA.has(code)) return 'East Asia';
   if (SOUTH_ASIA.has(code)) return 'South Asia';
@@ -66,31 +67,35 @@ function asiaSubregion(code: string): string {
   return 'Central Asia';
 }
 
-function northAmericaSubregion(code: string): string {
+function northAmericaSubregion(place: Candidate): string {
+  const code = place.country;
   if (CENTRAL_AMERICA.has(code)) return 'Central America';
   if (CARIBBEAN.has(code)) return 'Caribbean';
   if (code === 'GL') return 'Greenland';
   return 'Northern America';
 }
 
-function subregionFor(place: Candidate, continent: string): string {
-  const code = place.country;
+type SubregionOptions = { place: Candidate; continent: string };
+
+function subregionFor(options: SubregionOptions): string {
+  const { place, continent } = options;
   switch (continent) {
-    case 'Europe': return europeSubregion(code);
+    case 'Europe': return europeSubregion(place);
     case 'Africa': return africaSubregion(place);
-    case 'Asia': return asiaSubregion(code);
-    case 'North America': return northAmericaSubregion(code);
+    case 'Asia': return asiaSubregion(place);
+    case 'North America': return northAmericaSubregion(place);
     case 'South America': return 'South America';
-    case 'Oceania': return oceaniaSubregion(code);
+    case 'Oceania': return oceaniaSubregion(place);
     default: return continent;
   }
 }
 
-function europeSubregion(code: string): string {
-  return WESTERN_NORTHERN_EUROPE.has(code) ? 'Western and Northern Europe' : 'Southern and Eastern Europe';
+function europeSubregion(place: Candidate): string {
+  return WESTERN_NORTHERN_EUROPE.has(place.country) ? 'Western and Northern Europe' : 'Southern and Eastern Europe';
 }
 
-function oceaniaSubregion(code: string): string {
+function oceaniaSubregion(place: Candidate): string {
+  const code = place.country;
   if (code === 'AU') return 'Australia';
   if (code === 'NZ') return 'New Zealand';
   return 'Pacific Islands';
@@ -103,7 +108,7 @@ function isArcticPlace(code: string, latitude: number): boolean {
 export function classifyRegion(place: Candidate): RouteRegion {
   const code = place.country;
   const continent = continentFor(place);
-  const subregion = subregionFor(place, continent);
+  const subregion = subregionFor({ place, continent });
   const hawaii = code === 'US' && place.lat >= 18 && place.lat <= 23 && place.lng <= -150;
   const pacificIsland = PACIFIC_ISLANDS.has(code) || hawaii;
   return {

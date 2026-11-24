@@ -97,7 +97,7 @@ function transit({ from, to, fromDeparture, toArrival, description, cameraZoom =
 }
 
 function localTimeLabel(place: Candidate, arrival: number): string {
-  const minute = localMinute(new Date(arrival).toISOString(), place.utcOffsetMinutes ?? 0);
+  const minute = localMinute({ iso: new Date(arrival).toISOString(), timezoneOrOffset: place.utcOffsetMinutes ?? 0 });
   return `${Math.floor(minute / 60).toString().padStart(2, '0')}:${(minute % 60).toString().padStart(2, '0')}`;
 }
 
@@ -223,7 +223,7 @@ function validateArrivalWindow(route: Route, places: Candidate[], config: Genera
   route.stops.forEach((stop, index) => {
     const place = places[index];
     if (!place) throw new Error(`Missing candidate for route stop ${index + 1}`);
-    const minute = localMinute(stop.arrivalIso, place.utcOffsetMinutes ?? 0);
+    const minute = localMinute({ iso: stop.arrivalIso, timezoneOrOffset: place.utcOffsetMinutes ?? 0 });
     if (minute < config.arrivalStartMinute || minute > config.arrivalEndMinute) throw new Error(`${place.name} arrives outside its local window`);
   });
 }

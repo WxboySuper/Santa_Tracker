@@ -313,7 +313,7 @@ function timezoneOffsetFailures(node: RouteNode, place: Candidate, context: Rout
 function localArrivalFailures(node: RouteNode, place: Candidate, context: RouteAuditContext): string[] {
   const arrival = node.schedule.arrival_utc;
   if (!arrival) return [`${node.location.name}: missing arrival time`];
-  const local = localMinute(arrival, place.utcOffsetMinutes ?? Number.NaN);
+  const local = localMinute({ iso: arrival, timezoneOrOffset: place.utcOffsetMinutes ?? Number.NaN });
   const failures: string[] = [];
   if (local < 0) failures.push(`${node.location.name}: snapshot local arrival is not December 25`);
   if (local < context.config.arrivalStartMinute || local > context.config.arrivalEndMinute) failures.push(`${node.location.name}: outside the local arrival window`);
@@ -563,11 +563,9 @@ function addFlightWindowCheck(context: RouteAuditContext, view: AuditView, check
 }
 
 function deliveryLegAt(view: AuditView, index: number): AuditLeg | undefined {
-  const from = view.places[index - 1];
-  const to = view.places[index];
-  const fromNode = view.delivery[index - 1];
-  const toNode = view.delivery[index];
-  if (!from || !to || !fromNode || !toNode) return undefined;
+  const legContext = deliveryLegContextAt(view, index);
+  if (!legContext) return undefined;
+  const { from, to, fromNode, toNode } = legContext;
   const fromDeparture = Date.parse(fromNode.schedule.departure_utc);
   const toArrival = Date.parse(toNode.schedule.arrival_utc ?? '');
   const gapSeconds = (toArrival - fromDeparture) / 1000;
@@ -575,6 +573,25 @@ function deliveryLegAt(view: AuditView, index: number): AuditLeg | undefined {
   const eastward = ((to.lng - from.lng + 540) % 360) - 180;
   const km = haversineKm(from, to);
   return { km, kmh: legSpeedKmh(from, to, gapSeconds) ?? 0, gapMinutes, eastward, kind: 'delivery' };
+}
+
+type AuditDeliveryLegContext = {
+  from: Candidate;
+  to: Candidate;
+  fromNode: RouteNode;
+  toNode: RouteNode;
+};
+
+function deliveryLegContextAt(view: AuditView, index: number): AuditDeliveryLegContext | undefined {
+  const from = view.places[index - 1];
+  if (!from) return undefined;
+  const to = view.places[index];
+  if (!to) return undefined;
+  const fromNode = view.delivery[index - 1];
+  if (!fromNode) return undefined;
+  const toNode = view.delivery[index];
+  if (!toNode) return undefined;
+  return { from, to, fromNode, toNode };
 }
 
 function addDeliveryLegs(legs: AuditLeg[], view: AuditView): void {

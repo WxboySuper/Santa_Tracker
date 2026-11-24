@@ -24,21 +24,21 @@ describe('christmasArrival', () => {
   });
 
   it('handles valid zero-offset time zones', () => {
-    expect(christmasOffset('UTC')).toBe(0);
-    expect(christmasOffset('Africa/Abidjan')).toBe(0);
+    expect(christmasOffset({ timezone: 'UTC' })).toBe(0);
+    expect(christmasOffset({ timezone: 'Africa/Abidjan' })).toBe(0);
   });
 
   it('reads standard ICU long-offset forms', () => {
-    expect(christmasOffset('Asia/Kathmandu')).toBe(345);
-    expect(christmasOffset('Asia/Kolkata')).toBe(330);
-    expect(christmasOffset('America/St_Johns')).toBe(-210);
+    expect(christmasOffset({ timezone: 'Asia/Kathmandu' })).toBe(345);
+    expect(christmasOffset({ timezone: 'Asia/Kolkata' })).toBe(330);
+    expect(christmasOffset({ timezone: 'America/St_Johns' })).toBe(-210);
   });
 
   it('accepts UTC/GMT-prefixed and single-digit offset forms', () => {
-    expect(parseUtcOffset('GMT+5:30', 'test')).toBe(330);
-    expect(parseUtcOffset('UTC+05:30', 'test')).toBe(330);
-    expect(parseUtcOffset('GMT-4', 'test')).toBe(-240);
-    expect(parseUtcOffset('GMT+05:30:00', 'test')).toBe(330);
-    expect(parseUtcOffset('GMT', 'test')).toBe(0);
+    expect(parseUtcOffset({ rawOffset: 'GMT+5:30', timezone: 'test' })).toBe(330);
+    expect(parseUtcOffset({ rawOffset: 'UTC+05:30', timezone: 'test' })).toBe(330);
+    expect(parseUtcOffset({ rawOffset: 'GMT-4', timezone: 'test' })).toBe(-240);
+    expect(parseUtcOffset({ rawOffset: 'GMT+05:30:00', timezone: 'test' })).toBe(330);
+    expect(parseUtcOffset({ rawOffset: 'GMT', timezone: 'test' })).toBe(0);
   });
 });

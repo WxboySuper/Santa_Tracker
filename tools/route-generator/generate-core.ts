@@ -38,8 +38,14 @@ function fallbackForMissingFile<T>(error: unknown, fallback: T): T {
 }
 
 function isMissingFileError(error: unknown): boolean {
-  if (typeof error !== 'object' || error === null || !('code' in error)) return false;
+  if (typeof error !== 'object') return false;
+  if (error === null) return false;
+  if (!hasErrorCode(error)) return false;
   return error.code === 'ENOENT';
+}
+
+function hasErrorCode(error: object): error is { code: unknown } {
+  return 'code' in error;
 }
 
 function mergeOverrideFiles(base: RouteOverrides, extra: RouteOverrides): RouteOverrides {

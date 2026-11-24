@@ -67,7 +67,7 @@ export function buildReport(places: Candidate[], route: Route, config: Generator
     returnLeg(last, lastStop, returnArrival),
   ];
   const issues = routeTimingIssues(last.name, lastDeparture, returnArrival, takeoff);
-  return createRouteReport(places, route, config, legs, issues, lastDeparture, returnArrival);
+  return createRouteReport({ places, route, config, legs, issues, lastDeparture, returnArrival });
 }
 
 type ReportEndpoints = {
@@ -78,15 +78,16 @@ type ReportEndpoints = {
 };
 
 function reportEndpoints(places: Candidate[], route: Route): ReportEndpoints {
-  const first = places[0];
-  if (!first) throw new Error('Missing first route location');
-  const firstStop = route.stops[0];
-  if (!firstStop) throw new Error('Missing first route stop');
-  const last = places.at(-1);
-  if (!last) throw new Error('Missing final route location');
-  const lastStop = route.stops.at(-1);
-  if (!lastStop) throw new Error('Missing final route stop');
+  const first = requireValue(places[0], 'Missing first route location');
+  const firstStop = requireValue(route.stops[0], 'Missing first route stop');
+  const last = requireValue(places.at(-1), 'Missing final route location');
+  const lastStop = requireValue(route.stops.at(-1), 'Missing final route stop');
   return { first, firstStop, last, lastStop };
+}
+
+function requireValue<T>(value: T | undefined, message: string): T {
+  if (value === undefined) throw new Error(message);
+  return value;
 }
 
 function validateReportInput(places: Candidate[], route: Route): void {
@@ -118,14 +119,10 @@ function deliveryLegContext(places: Candidate[], route: Route, index: number): {
   fromStop: Route['stops'][number];
   toStop: Route['stops'][number];
 } {
-  const from = places[index - 1];
-  if (!from) throw new Error(`Missing origin for delivery leg ${index}`);
-  const to = places[index];
-  if (!to) throw new Error(`Missing destination for delivery leg ${index}`);
-  const fromStop = route.stops[index - 1];
-  if (!fromStop) throw new Error(`Missing origin stop for delivery leg ${index}`);
-  const toStop = route.stops[index];
-  if (!toStop) throw new Error(`Missing destination stop for delivery leg ${index}`);
+  const from = requireValue(places[index - 1], `Missing origin for delivery leg ${index}`);
+  const to = requireValue(places[index], `Missing destination for delivery leg ${index}`);
+  const fromStop = requireValue(route.stops[index - 1], `Missing origin stop for delivery leg ${index}`);
+  const toStop = requireValue(route.stops[index], `Missing destination stop for delivery leg ${index}`);
   return { from, to, fromStop, toStop };
 }
 
@@ -148,15 +145,18 @@ function routeTimingIssues(lastName: string, lastDeparture: number, returnArriva
   return issues;
 }
 
-function createRouteReport(
-  places: Candidate[],
-  route: Route,
-  config: GeneratorConfig,
-  legs: RouteLegReport[],
-  issues: string[],
-  lastDeparture: number,
-  returnArrival: number,
-): RouteReport {
+type CreateRouteReportOptions = {
+  places: Candidate[];
+  route: Route;
+  config: GeneratorConfig;
+  legs: RouteLegReport[];
+  issues: string[];
+  lastDeparture: number;
+  returnArrival: number;
+};
+
+function createRouteReport(options: CreateRouteReportOptions): RouteReport {
+  const { places, route, config, legs, issues, lastDeparture, returnArrival } = options;
 
   const speeds = legs.map((leg) => leg.kmh);
   const continentBalance = countsBy(places, (place) => classifyRegion(place).continent);
