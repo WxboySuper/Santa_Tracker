@@ -11,18 +11,16 @@ type ReviewMetricsContext = {
   countryNames: Record<string, string>;
 };
 
-async function assertReviewMetricsMatchStoredRoute({ document, continentBalance, subregionBalance, countryNames }: ReviewMetricsContext): Promise<void> {
-  const review = await readFile(resolve(process.cwd(), 'docs/planning/route-2026-draft/review.html'), 'utf8');
-  const docs = await readFile(resolve(process.cwd(), 'docs/ROUTE_GENERATOR.md'), 'utf8');
+type ReviewRouteNode = {
+  type: string;
+  candidate_id?: string;
+  location?: { name?: string; country_code?: string };
+  transit_to_here?: { distance_km?: number | null; speed_kmh?: number | null } | null;
+};
+
+function assertStoredStopRows(review: string, deliveryNodes: ReviewRouteNode[]): void {
   const stopTable = /<table id="stops">.*?<tbody>(.*?)<\/tbody>/s.exec(review)?.[1] ?? '';
   const rows = [...stopTable.matchAll(/<tr>(.*?)<\/tr>/gs)];
-  const routeNodes = (document as { route_nodes: {
-    type: string;
-    candidate_id?: string;
-    location?: { name?: string; country_code?: string };
-    transit_to_here?: { distance_km?: number | null; speed_kmh?: number | null } | null;
-  }[] }).route_nodes;
-  const deliveryNodes = routeNodes.filter((node) => node.type === 'DELIVERY');
   expect(rows).toHaveLength(deliveryNodes.length);
   for (const [index, match] of rows.entries()) {
     const cells = [...(match[1] ?? '').matchAll(/<td>(.*?)<\/td>/g)].map((cell) => cell[1]);
@@ -30,29 +28,66 @@ async function assertReviewMetricsMatchStoredRoute({ document, continentBalance,
     expect(cells[8], `stored km for stop ${index + 1}`).toBe(String(transit?.distance_km ?? ''));
     expect(cells[9], `stored speed for stop ${index + 1}`).toBe(String(transit?.speed_kmh ?? ''));
   }
+}
 
+function assertNamedRoutePlaces(review: string, deliveryNodes: ReviewRouteNode[]): void {
   const marquesas = deliveryNodes.find((node) => node.candidate_id === 'Q172697');
   expect(marquesas?.location?.country_code).toBe('PF');
   const tromso = deliveryNodes.find((node) => node.candidate_id === 'Q26087');
   expect(tromso?.location?.name).toBe('Troms\u00F8');
   expect(review).toContain('Troms\u00F8');
+}
+
+function assertRegionalTotals(review: string, continentBalance: Record<string, number>, subregionBalance: Record<string, number>): void {
   for (const [name, count] of Object.entries(continentBalance)) {
     expect(review).toContain(`<tr><td>${name}</td><td>${count}</td></tr>`);
   }
   expect(review).toContain(`<tr><td>Pacific Islands</td><td>${subregionBalance['Pacific Islands']}</td></tr>`);
-  const storedSpeeds = routeNodes.filter((node) => node.type !== 'START')
+}
+
+function storedSpeeds(routeNodes: ReviewRouteNode[]): number[] {
+  return routeNodes.filter((node) => node.type !== 'START')
     .map((node) => node.transit_to_here?.speed_kmh).filter((speed): speed is number => speed !== undefined && speed !== null)
     .sort((left, right) => left - right);
-  const percentile = (fraction: number): number => storedSpeeds[Math.ceil(storedSpeeds.length * fraction) - 1] ?? 0;
-  expect(review).toContain(`Stored leg speeds: median ${percentile(0.5).toLocaleString('en-US')} km/h, p90 ${percentile(0.9).toLocaleString('en-US')} km/h, maximum ${storedSpeeds.at(-1)?.toLocaleString('en-US')} km/h.`);
+}
+
+function percentile(values: number[], fraction: number): number {
+  return values[Math.ceil(values.length * fraction) - 1] ?? 0;
+}
+
+function assertStoredSpeedSummary(review: string, routeNodes: ReviewRouteNode[]): void {
+  const speeds = storedSpeeds(routeNodes);
+  const median = percentile(speeds, 0.5).toLocaleString('en-US');
+  const p90 = percentile(speeds, 0.9).toLocaleString('en-US');
+  const maximum = speeds.at(-1)?.toLocaleString('en-US');
+  expect(review).toContain(`Stored leg speeds: median ${median} km/h, p90 ${p90} km/h, maximum ${maximum} km/h.`);
+}
+
+function assertDocumentedRouteMetrics(docs: string): void {
   expect(docs).toContain('Stored per-leg speeds have a median of 10,474 km/h, a p90 of 19,967 km/h, and a maximum of 20,000 km/h.');
   expect(docs).toContain('Africa 23, Asia 51, Europe 20, North America 21, Oceania 26, and South America 19.');
   expect(docs).toContain('The Pacific Islands subregion and the Pacific-island quota each count 19 stops.');
+}
+
+function assertCountryLabels(countryNames: Record<string, string>): void {
   expect(countryNames.GB).toBe('United Kingdom');
   expect(countryNames.KR).toBe('South Korea');
   expect(countryNames.MM).toBe('Myanmar');
   expect(countryNames.WS).toBe('Samoa');
   expect(countryNames.AS).toBe('American Samoa');
+}
+
+async function assertReviewMetricsMatchStoredRoute({ document, continentBalance, subregionBalance, countryNames }: ReviewMetricsContext): Promise<void> {
+  const review = await readFile(resolve(process.cwd(), 'docs/planning/route-2026-draft/review.html'), 'utf8');
+  const docs = await readFile(resolve(process.cwd(), 'docs/ROUTE_GENERATOR.md'), 'utf8');
+  const routeNodes = (document as { route_nodes: ReviewRouteNode[] }).route_nodes;
+  const deliveryNodes = routeNodes.filter((node) => node.type === 'DELIVERY');
+  assertStoredStopRows(review, deliveryNodes);
+  assertNamedRoutePlaces(review, deliveryNodes);
+  assertRegionalTotals(review, continentBalance, subregionBalance);
+  assertStoredSpeedSummary(review, routeNodes);
+  assertDocumentedRouteMetrics(docs);
+  assertCountryLabels(countryNames);
 }
 
 describe('committed 2026 route draft', () => {
