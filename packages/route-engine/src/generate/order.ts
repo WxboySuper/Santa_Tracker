@@ -604,48 +604,81 @@ function seededRandom(seed: number): () => number {
   };
 }
 
+type AnnealingState = { current: Candidate[]; currentScore: number; best: Candidate[]; bestScore: number };
+
+function proposeAnnealingMove(current: Candidate[], random: () => number): Candidate[] | undefined {
+  const left = Math.floor(random() * current.length);
+  const right = Math.floor(random() * current.length);
+  if (left === right) return undefined;
+  const low = Math.min(left, right);
+  const high = Math.max(left, right);
+  const candidate = [...current];
+  const move = Math.floor(random() * 3);
+  if (move === 0) return swapRouteStops(candidate, low, high);
+  if (move === 1) return relocateRouteStop(candidate, low, high);
+  return reverseRouteSegment(candidate, low, high);
+}
+
+function swapRouteStops(candidate: Candidate[], low: number, high: number): Candidate[] {
+  [candidate[low], candidate[high]] = [candidate[high]!, candidate[low]!];
+  return candidate;
+}
+
+function relocateRouteStop(candidate: Candidate[], low: number, high: number): Candidate[] | undefined {
+  const [moved] = candidate.splice(low, 1);
+  if (!moved) return undefined;
+  candidate.splice(high, 0, moved);
+  return candidate;
+}
+
+function reverseRouteSegment(candidate: Candidate[], low: number, high: number): Candidate[] {
+  candidate.splice(low, high - low + 1, ...candidate.slice(low, high + 1).reverse());
+  return candidate;
+}
+
+function shouldConsiderAnnealingMove(candidateScore: number, state: AnnealingState, temperature: number, random: () => number): boolean {
+  if (candidateScore < state.currentScore) return true;
+  return random() < Math.exp((state.currentScore - candidateScore) / temperature);
+}
+
+function updateAnnealingState(state: AnnealingState, candidate: Candidate[], score: number): void {
+  state.current = candidate;
+  state.currentScore = score;
+  if (score + 0.01 >= state.bestScore) return;
+  state.best = candidate;
+  state.bestScore = score;
+}
+
+function annealingStep(
+  state: AnnealingState,
+  iteration: number,
+  iterations: number,
+  assemble: (items: Candidate[]) => Candidate[],
+  config: GeneratorConfig,
+  random: () => number,
+): void {
+  const candidate = proposeAnnealingMove(state.current, random);
+  if (!candidate) return;
+  const assembled = assemble(candidate);
+  const candidateScore = routeScore(assembled);
+  const temperature = 30_000 * (1 - iteration / iterations) + 1_000;
+  if (!shouldConsiderAnnealingMove(candidateScore, state, temperature, random)) return;
+  if (!hasValidCountryRuns(assembled, config.maxCountryRun)) return;
+  if (!hasFeasibleTiming(assembled, config)) return;
+  updateAnnealingState(state, candidate, candidateScore);
+}
+
 function annealRoute(
   middle: Candidate[],
   assemble: (items: Candidate[]) => Candidate[],
   config: GeneratorConfig,
 ): Candidate[] {
   const random = seededRandom(config.seed);
-  let current = middle;
-  let currentScore = routeScore(assemble(current));
-  let best = current;
-  let bestScore = currentScore;
+  const initialScore = routeScore(assemble(middle));
+  const state: AnnealingState = { current: middle, currentScore: initialScore, best: middle, bestScore: initialScore };
   const iterations = 100_000;
-  for (let iteration = 0; iteration < iterations; iteration++) {
-    const left = Math.floor(random() * current.length);
-    const right = Math.floor(random() * current.length);
-    if (left === right) continue;
-    const low = Math.min(left, right);
-    const high = Math.max(left, right);
-    const candidate = [...current];
-    const move = Math.floor(random() * 3);
-    if (move === 0) {
-      [candidate[low], candidate[high]] = [candidate[high]!, candidate[low]!];
-    } else if (move === 1) {
-      const [moved] = candidate.splice(low, 1);
-      if (!moved) continue;
-      candidate.splice(high, 0, moved);
-    } else {
-      candidate.splice(low, high - low + 1, ...candidate.slice(low, high + 1).reverse());
-    }
-    const assembled = assemble(candidate);
-    const candidateScore = routeScore(assembled);
-    const temperature = 30_000 * (1 - iteration / iterations) + 1_000;
-    const shouldConsider = candidateScore < currentScore
-      || random() < Math.exp((currentScore - candidateScore) / temperature);
-    if (!shouldConsider || !hasValidCountryRuns(assembled, config.maxCountryRun) || !hasFeasibleTiming(assembled, config)) continue;
-    current = candidate;
-    currentScore = candidateScore;
-    if (candidateScore + 0.01 < bestScore) {
-      best = candidate;
-      bestScore = candidateScore;
-    }
-  }
-  return best;
+  for (let iteration = 0; iteration < iterations; iteration++) annealingStep(state, iteration, iterations, assemble, config, random);
+  return state.best;
 }
 
 function timelineTarget(index: number, total: number): number {

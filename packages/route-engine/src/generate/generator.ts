@@ -35,10 +35,16 @@ function normalizeCandidateTimezones(pool: Candidate[], overrides: RouteOverride
 function normalizeCandidateTimezone(place: Candidate, overrides: RouteOverrides, tables: TimezoneTables): Candidate {
   const allowed = tables.zonesByCountry[place.country];
   if (!allowed) throw new Error(`No IANA timezone table for country ${place.country} (${place.name})`);
-  if (allowed.includes(place.timezone)) {
-    if (place.utcOffsetMinutes === undefined) throw new Error(`Missing snapshot UTC offset for ${place.name}`);
-    return place;
-  }
+  if (allowed.includes(place.timezone)) return requireSnapshotOffset(place);
+  return timezoneForMismatch(place, overrides, tables);
+}
+
+function requireSnapshotOffset(place: Candidate): Candidate {
+  if (place.utcOffsetMinutes === undefined) throw new Error(`Missing snapshot UTC offset for ${place.name}`);
+  return place;
+}
+
+function timezoneForMismatch(place: Candidate, overrides: RouteOverrides, tables: TimezoneTables): Candidate {
   if (overrides.timezone?.[place.id]) throw timezoneCountryError(place);
   return nearestCountryTimezone(place, tables);
 }
@@ -109,8 +115,16 @@ function startNode(): Record<string, unknown> {
 
 type DeliveryNodeResult = { node: Record<string, unknown>; stop: Route['stops'][number]; locationId: string };
 
-function buildDeliveryNode(place: Candidate, index: number, config: GeneratorConfig, tables: TimezoneTables | undefined,
-  priorLocation: LatLng, priorDeparture: number): DeliveryNodeResult {
+type DeliveryNodeOptions = {
+  place: Candidate;
+  index: number;
+  config: GeneratorConfig;
+  tables: TimezoneTables | undefined;
+  priorLocation: LatLng;
+  priorDeparture: number;
+};
+
+function buildDeliveryNode({ place, index, config, tables, priorLocation, priorDeparture }: DeliveryNodeOptions): DeliveryNodeResult {
   const stopArrival = place.plannedArrivalUtc
     ? Date.parse(place.plannedArrivalUtc)
     : Date.parse(christmasArrival(place.utcOffsetMinutes ?? 0, place.plannedMinute ?? config.arrivalStartMinute));
@@ -184,7 +198,7 @@ function buildDocument(places: Candidate[], config: GeneratorConfig, tables?: Ti
   let priorDeparture = takeoff;
   let priorLocation: LatLng = NORTH_POLE;
   for (const [index, place] of places.entries()) {
-    const result = buildDeliveryNode(place, index, config, tables, priorLocation, priorDeparture);
+    const result = buildDeliveryNode({ place, index, config, tables, priorLocation, priorDeparture });
     coordinates.set(result.locationId, place);
     stops.push(result.stop);
     routeNodes.push(result.node);
@@ -233,19 +247,22 @@ function validateIntegerSettings(config: GeneratorConfig): void {
 }
 
 function validateSpeedAndDistanceSettings(config: GeneratorConfig): void {
-  const positives: [number, string][] = [
-    [config.targetLegSpeedKmh, 'Invalid target leg speed'],
-    [config.maxLegSpeedKmh, 'Invalid maximum leg speed'],
-    [config.medianLegSpeedMinKmh, 'Invalid median minimum'],
-    [config.medianLegSpeedMaxKmh, 'Invalid median maximum'],
-    [config.p90LegSpeedMaxKmh, 'Invalid p90 speed maximum'],
-    [config.maxRouteDistanceKm, 'Invalid route distance maximum'],
-    [config.minStopSeparationKm, 'Invalid minimum stop separation'],
+  const positives: [number, string, boolean][] = [
+    [config.targetLegSpeedKmh, 'Invalid target leg speed', false],
+    [config.maxLegSpeedKmh, 'Invalid maximum leg speed', false],
+    [config.medianLegSpeedMinKmh, 'Invalid median minimum', false],
+    [config.medianLegSpeedMaxKmh, 'Invalid median maximum', false],
+    [config.p90LegSpeedMaxKmh, 'Invalid p90 speed maximum', false],
+    [config.maxRouteDistanceKm, 'Invalid route distance maximum', false],
+    [config.minStopSeparationKm, 'Invalid minimum stop separation', true],
   ];
-  for (const [value, message] of positives) {
-    const allowZero = message === 'Invalid minimum stop separation';
-    if (!Number.isFinite(value) || value < 0 || (!allowZero && value === 0)) throw new Error(message);
-  }
+  for (const [value, message, allowZero] of positives) assertNonNegativeSetting(value, message, allowZero);
+}
+
+function assertNonNegativeSetting(value: number, message: string, allowZero: boolean): void {
+  if (!Number.isFinite(value)) throw new Error(message);
+  if (value < 0) throw new Error(message);
+  if (!allowZero && value === 0) throw new Error(message);
 }
 
 function validateGeneratorConfig(config: GeneratorConfig): void {
@@ -255,8 +272,15 @@ function validateGeneratorConfig(config: GeneratorConfig): void {
   if (!config.generatedAt || Number.isNaN(Date.parse(config.generatedAt))) throw new Error('Invalid fixed generation date');
 }
 
-function validateBuiltRoute(route: Route, coordinates: Map<string, LatLng>,
-  routeEndUtc: string, ordered: Candidate[], config: GeneratorConfig): RouteReport {
+type BuiltRouteValidationOptions = {
+  route: Route;
+  coordinates: Map<string, LatLng>;
+  routeEndUtc: string;
+  ordered: Candidate[];
+  config: GeneratorConfig;
+};
+
+function validateBuiltRoute({ route, coordinates, routeEndUtc, ordered, config }: BuiltRouteValidationOptions): RouteReport {
   validateArrivalWindow(route, ordered, config);
   const validation = validateRoute(route);
   if (!validation.ok) throw new Error(`Invalid generated route: ${validation.issues.map((issue) => issue.message).join('; ')}`);
@@ -298,6 +322,6 @@ export function generateRoute(pool: Candidate[], config: GeneratorConfig, overri
   const chosen = chooseCandidates(normalizedPool, config, overrides, tables);
   const ordered = sweepOrder(chosen, config);
   const built = buildDocument(ordered, config, tables);
-  const report = validateBuiltRoute(built.route, built.coordinates, built.routeEndUtc, ordered, config);
+  const report = validateBuiltRoute({ route: built.route, coordinates: built.coordinates, routeEndUtc: built.routeEndUtc, ordered, config });
   return { document: built.document, route: built.route, locations: ordered, report };
 }

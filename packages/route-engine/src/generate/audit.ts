@@ -181,20 +181,46 @@ function createAuditView(document: unknown, context: RouteAuditContext): AuditVi
 }
 
 function addHeaderChecks(document: unknown, context: RouteAuditContext, view: AuditView, checks: AuditCheck[]): void {
+  addLegacySchemaCheck(document, checks);
+  addEndpointCheck(view, checks);
+  addCandidateIdentityCheck(view, checks);
+  addRequiredStopCheck(context, view, checks);
+  addMetadataCheck(document, context, checks);
+}
+
+function addLegacySchemaCheck(document: unknown, checks: AuditCheck[]): void {
   const validFixture = LegacyRouteFixtureSchema.safeParse(document).success;
   addCheck(checks, 'Legacy route schema', validFixture, validFixture ? 'Legacy route fixture parses.' : 'Legacy route fixture does not parse.');
+}
+
+function isNorthPoleNode(node: RouteNode | undefined): boolean {
+  if (!node) return false;
+  return node.location.lat === NORTH_POLE.lat && Math.abs(node.location.lng) === 180;
+}
+
+function hasNeutralCountryCode(node: RouteNode): boolean {
+  return node.location.country_code == null;
+}
+
+function hasNorthPoleEndpoints(view: AuditView): boolean {
   const { nodes, start, end } = view;
-  const northPoleEndpoints = !!start && !!end && nodes[0] === start && nodes.at(-1) === end
-    && start.location.lat === NORTH_POLE.lat && Math.abs(start.location.lng) === 180
-    && end.location.lat === NORTH_POLE.lat && Math.abs(end.location.lng) === 180
-    && start.location.country_code == null && end.location.country_code == null;
+  if (!start) return false;
+  if (!end) return false;
+  if (nodes[0] !== start || nodes.at(-1) !== end) return false;
+  return isNorthPoleNode(start) && isNorthPoleNode(end) && hasNeutralCountryCode(start) && hasNeutralCountryCode(end);
+}
+
+function addEndpointCheck(view: AuditView, checks: AuditCheck[]): void {
+  const { nodes, start, end } = view;
+  const northPoleEndpoints = hasNorthPoleEndpoints(view);
   addCheck(checks, 'North Pole start and end', northPoleEndpoints,
     start && end ? `${nodes.length} nodes begin at START and end at END.` : 'START or END node is missing.');
+}
+
+function addCandidateIdentityCheck(view: AuditView, checks: AuditCheck[]): void {
   const uniqueIds = new Set(view.delivery.map((node) => node.candidate_id)).size === view.delivery.length;
   addCheck(checks, 'Candidate identity', view.matched && uniqueIds,
     `${view.places.length}/${view.delivery.length} delivery nodes map to unique snapshot candidates.`);
-  addRequiredStopCheck(context, view, checks);
-  addMetadataCheck(document, context, checks);
 }
 
 function addRequiredStopCheck(context: RouteAuditContext, view: AuditView, checks: AuditCheck[]): void {
@@ -243,7 +269,10 @@ function addCategoryChecks(context: RouteAuditContext, view: AuditView, checks: 
 }
 
 function timezoneNodeIsComplete(node: RouteNode, place: Candidate | undefined): place is Candidate {
-  return place !== undefined && node.schedule.arrival_utc !== null && node.location.timezone !== undefined && node.location.country_code !== undefined;
+  if (!place) return false;
+  if (node.schedule.arrival_utc === null) return false;
+  if (!node.location.timezone) return false;
+  return node.location.country_code !== undefined;
 }
 
 function timezoneCountryFailures(node: RouteNode, place: Candidate, context: RouteAuditContext): string[] {
@@ -337,18 +366,20 @@ function addRegionalChecks(context: RouteAuditContext, places: Candidate[], chec
   const americas = count((region) => region.americas);
   const southAmerica = count((region) => region.southAmerica);
   const bolivia = places.filter((place) => place.country === 'BO').length;
-  addRegionCaps(failures, context, americas, southAmerica, bolivia);
+  addRegionCaps(failures, context, { americas, southAmerica, bolivia });
   const detail = failures.length ? failures.join('; ')
     : `${tests.map(([name, amount]) => `${name} ${amount}`).join(', ')}; Americas ${americas}/${context.config.total} (${(americas / context.config.total * 100).toFixed(1)}%), South America ${southAmerica}, Bolivia ${bolivia}.`;
   addCheck(checks, 'Regional quotas and Americas caps', failures.length === 0, detail);
 }
 
-function addRegionCaps(failures: string[], context: RouteAuditContext, americas: number, southAmerica: number, bolivia: number): void {
+type RegionTotals = { americas: number; southAmerica: number; bolivia: number };
+
+function addRegionCaps(failures: string[], context: RouteAuditContext, totals: RegionTotals): void {
   const maximumAmericas = Math.floor(context.config.total * context.config.maxAmericasPercent / 100);
-  if (americas > maximumAmericas) failures.push(`Americas ${americas}/${maximumAmericas}`);
-  if (southAmerica > context.config.maxSouthAmericaStops) failures.push(`South America ${southAmerica}/${context.config.maxSouthAmericaStops}`);
+  if (totals.americas > maximumAmericas) failures.push(`Americas ${totals.americas}/${maximumAmericas}`);
+  if (totals.southAmerica > context.config.maxSouthAmericaStops) failures.push(`South America ${totals.southAmerica}/${context.config.maxSouthAmericaStops}`);
   const boliviaCap = context.config.countryCaps.BO ?? 4;
-  if (bolivia > boliviaCap) failures.push(`Bolivia ${bolivia}/${boliviaCap}`);
+  if (totals.bolivia > boliviaCap) failures.push(`Bolivia ${totals.bolivia}/${boliviaCap}`);
 }
 
 function longestCountryRun(places: Candidate[]): number {
@@ -385,30 +416,65 @@ function minimumSeparationKm(places: Candidate[]): number {
   return minimum;
 }
 
+function duplicateStopCount(delivery: RouteNode[]): number {
+  const names = new Set(delivery.map((node) => `${node.location.name.trim().toLocaleLowerCase('en')}:${node.location.country_code}`));
+  const coords = new Set(delivery.map((node) => `${node.location.lat.toFixed(5)},${node.location.lng.toFixed(5)}`));
+  return delivery.length - names.size + delivery.length - coords.size;
+}
+
+function vetoedRouteStops(view: AuditView, context: RouteAuditContext): RouteNode[] {
+  return view.delivery.filter((node) => node.candidate_id && context.vetoIds.includes(node.candidate_id));
+}
+
+type CoordinateAuditSummary = {
+  vetoed: string[];
+  vetoNameStops: RouteNode[];
+  coordinateProblems: string[];
+  duplicateCount: number;
+  minSeparation: number;
+  minimumDistance: number;
+};
+
+function coordinateRulesPass({ vetoed, vetoNameStops, coordinateProblems, duplicateCount, minSeparation, minimumDistance }: CoordinateAuditSummary): boolean {
+  if (vetoed.length > 0) return false;
+  if (vetoNameStops.length > 0) return false;
+  if (coordinateProblems.length > 0) return false;
+  if (duplicateCount > 0) return false;
+  return minSeparation >= minimumDistance;
+}
+
 function addCoordinateChecks(context: RouteAuditContext, view: AuditView, checks: AuditCheck[]): void {
   const coordinateProblems = coordinateAuditFailures(view.places, context.pool, context.countryBoundsByCode);
-  const vetoed = view.delivery.filter((node) => node.candidate_id && context.vetoIds.includes(node.candidate_id)).map((node) => node.location.name);
-  const names = new Set(view.delivery.map((node) => `${node.location.name.trim().toLocaleLowerCase('en')}:${node.location.country_code}`));
-  const coords = new Set(view.delivery.map((node) => `${node.location.lat.toFixed(5)},${node.location.lng.toFixed(5)}`));
-  const duplicateCount = view.delivery.length - names.size + view.delivery.length - coords.size;
+  const vetoed = vetoedRouteStops(view, context).map((node) => node.location.name);
+  const duplicateCount = duplicateStopCount(view.delivery);
   const minSeparation = minimumSeparationKm(view.places);
   const vetoNames = ['Dzhankoy', 'Kursk', 'Zelenodolsk', 'Bikini Atoll', 'Point Barrow'];
   const vetoNameStops = view.delivery.filter((node) => vetoNames.includes(node.location.name));
-  const pass = vetoed.length === 0 && vetoNameStops.length === 0 && coordinateProblems.length === 0
-    && duplicateCount === 0 && minSeparation >= context.config.minStopSeparationKm;
+  const pass = coordinateRulesPass({ vetoed, vetoNameStops, coordinateProblems, duplicateCount, minSeparation,
+    minimumDistance: context.config.minStopSeparationKm });
   const detail = vetoed.length || vetoNameStops.length ? `Vetoed stop: ${[...vetoNames, ...vetoed].join(', ')}.`
     : coordinateProblems.length ? coordinateProblems.slice(0, 4).join('; ')
       : `country bounds and cross-source name coordinates pass; no duplicates; nearest pair ${human(minSeparation)} km apart (minimum ${context.config.minStopSeparationKm} km).`;
   addCheck(checks, 'Vetoes, coordinates, duplicates, and separation', pass, detail);
 }
 
+function firstFiveArePopulated(places: Candidate[], context: RouteAuditContext): boolean {
+  return places.slice(0, 5).every((place) => (place.population ?? 0) > 0
+    || place.worldCity === true || context.config.openingStopIds.includes(place.id));
+}
+
+function lastStopIsPopulated(place: Candidate | undefined, context: RouteAuditContext): boolean {
+  if (!place) return false;
+  return (place.population ?? 0) > 0 || place.worldCity === true || context.config.requiredStopIds.includes(place.id);
+}
+
 function addIslandCheck(context: RouteAuditContext, places: Candidate[], checks: AuditCheck[]): void {
   const islandIndices = places.flatMap((place, index) => context.config.uninhabitedIslandIds.includes(place.id) ? [index] : []);
-  const firstFivePopulated = places.slice(0, 5).every((place) => (place.population ?? 0) > 0
-    || place.worldCity === true || context.config.openingStopIds.includes(place.id));
+  const firstFivePopulated = firstFiveArePopulated(places, context);
   const last = places.at(-1);
-  const lastPopulated = !!last && ((last.population ?? 0) > 0 || last.worldCity === true || context.config.requiredStopIds.includes(last.id));
-  const pass = islandIndices.length <= 4 && islandIndices.every((index) => index >= 5) && firstFivePopulated && lastPopulated;
+  const lastPopulated = lastStopIsPopulated(last, context);
+  const withinIslandLimit = islandIndices.length <= 4 && islandIndices.every((index) => index >= 5);
+  const pass = withinIslandLimit && firstFivePopulated && lastPopulated;
   const detail = `${islandIndices.length} uninhabited-island stops; first five ${firstFivePopulated ? 'populated' : 'include an unpopulated place'}; last stop ${last?.name ?? 'missing'} ${lastPopulated ? 'is populated or iconic' : 'is not populated or iconic'}.`;
   addCheck(checks, 'Island, opening, and ending rules', pass, detail);
 }
@@ -454,20 +520,25 @@ function addFlightWindowCheck(context: RouteAuditContext, view: AuditView, check
     `last delivery departs ${Number.isFinite(lastDeparture) ? new Date(lastDeparture).toISOString() : 'invalid'}; return ${Number.isFinite(returnArrival) ? new Date(returnArrival).toISOString() : 'invalid'}.`);
 }
 
+function deliveryLegAt(view: AuditView, index: number): AuditLeg | undefined {
+  const from = view.places[index - 1];
+  const to = view.places[index];
+  const fromNode = view.delivery[index - 1];
+  const toNode = view.delivery[index];
+  if (!from || !to || !fromNode || !toNode) return undefined;
+  const fromDeparture = Date.parse(fromNode.schedule.departure_utc);
+  const toArrival = Date.parse(toNode.schedule.arrival_utc ?? '');
+  const gapSeconds = (toArrival - fromDeparture) / 1000;
+  const gapMinutes = (toArrival - Date.parse(fromNode.schedule.arrival_utc ?? '')) / 60_000;
+  const eastward = ((to.lng - from.lng + 540) % 360) - 180;
+  const km = haversineKm(from, to);
+  return { km, kmh: legSpeedKmh(from, to, gapSeconds) ?? 0, gapMinutes, eastward, kind: 'delivery' };
+}
+
 function addDeliveryLegs(legs: AuditLeg[], view: AuditView): void {
   for (let index = 1; index < view.places.length; index++) {
-    const from = view.places[index - 1];
-    const to = view.places[index];
-    const fromNode = view.delivery[index - 1];
-    const toNode = view.delivery[index];
-    if (!from || !to || !fromNode || !toNode) continue;
-    const fromDeparture = Date.parse(fromNode.schedule.departure_utc);
-    const toArrival = Date.parse(toNode.schedule.arrival_utc ?? '');
-    const gapSeconds = (toArrival - fromDeparture) / 1000;
-    const gapMinutes = (toArrival - Date.parse(fromNode.schedule.arrival_utc ?? '')) / 60_000;
-    const eastward = ((to.lng - from.lng + 540) % 360) - 180;
-    const km = haversineKm(from, to);
-    legs.push({ km, kmh: legSpeedKmh(from, to, gapSeconds) ?? 0, gapMinutes, eastward, kind: 'delivery' });
+    const leg = deliveryLegAt(view, index);
+    if (leg) legs.push(leg);
   }
 }
 
@@ -486,15 +557,22 @@ function buildAuditLegs(view: AuditView, takeoff: number): AuditLeg[] {
   return legs;
 }
 
-function addReturnLeg(legs: AuditLeg[], view: AuditView): void {
+function returnLegFromView(view: AuditView): AuditLeg | undefined {
   const lastPlace = view.places.at(-1);
   const lastNode = view.delivery.at(-1);
-  if (!lastPlace || !lastNode || !view.end) return;
+  if (!lastPlace) return undefined;
+  if (!lastNode) return undefined;
+  if (!view.end) return undefined;
   const fromDeparture = Date.parse(lastNode.schedule.departure_utc);
   const returnArrival = Date.parse(view.end.schedule.arrival_utc ?? '');
   const gapSeconds = (returnArrival - fromDeparture) / 1000;
   const km = haversineKm(lastPlace, NORTH_POLE);
-  legs.push({ km, kmh: legSpeedKmh(lastPlace, NORTH_POLE, gapSeconds) ?? 0, gapMinutes: gapSeconds / 60, eastward: 0, kind: 'return' });
+  return { km, kmh: legSpeedKmh(lastPlace, NORTH_POLE, gapSeconds) ?? 0, gapMinutes: gapSeconds / 60, eastward: 0, kind: 'return' };
+}
+
+function addReturnLeg(legs: AuditLeg[], view: AuditView): void {
+  const leg = returnLegFromView(view);
+  if (leg) legs.push(leg);
 }
 
 function addArrivalGapCheck(context: RouteAuditContext, view: AuditView, legs: AuditLeg[], checks: AuditCheck[]): void {

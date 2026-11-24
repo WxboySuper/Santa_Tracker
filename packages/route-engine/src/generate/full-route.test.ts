@@ -4,6 +4,41 @@ import { describe, expect, it } from 'vitest';
 import { auditRouteDocument } from './audit';
 import { generateDraft, loadGeneratorInputs } from '../../../../tools/route-generator/generate-core';
 
+type ReviewMetricsContext = {
+  document: unknown;
+  continentBalance: Record<string, number>;
+  countryNames: Record<string, string>;
+};
+
+async function assertReviewMetricsMatchStoredRoute({ document, continentBalance, countryNames }: ReviewMetricsContext): Promise<void> {
+  const review = await readFile(resolve(process.cwd(), 'docs/planning/route-2026-draft/review.html'), 'utf8');
+  const stopTable = /<table id="stops">.*?<tbody>(.*?)<\/tbody>/s.exec(review)?.[1] ?? '';
+  const rows = [...stopTable.matchAll(/<tr>(.*?)<\/tr>/gs)];
+  const routeNodes = (document as { route_nodes: {
+    type: string;
+    candidate_id?: string;
+    location?: { country_code?: string };
+    transit_to_here?: { distance_km?: number | null; speed_kmh?: number | null } | null;
+  }[] }).route_nodes;
+  const deliveryNodes = routeNodes.filter((node) => node.type === 'DELIVERY');
+  expect(rows).toHaveLength(deliveryNodes.length);
+  for (const [index, match] of rows.entries()) {
+    const cells = [...(match[1] ?? '').matchAll(/<td>(.*?)<\/td>/g)].map((cell) => cell[1]);
+    const transit = deliveryNodes[index]?.transit_to_here;
+    expect(cells[8], `stored km for stop ${index + 1}`).toBe(String(transit?.distance_km ?? ''));
+    expect(cells[9], `stored speed for stop ${index + 1}`).toBe(String(transit?.speed_kmh ?? ''));
+  }
+
+  const marquesas = deliveryNodes.find((node) => node.candidate_id === 'Q172697');
+  expect(marquesas?.location?.country_code).toBe('PF');
+  expect(review).toContain(`<tr><td>Oceania</td><td>${continentBalance.Oceania}</td></tr>`);
+  expect(countryNames.GB).toBe('United Kingdom');
+  expect(countryNames.KR).toBe('South Korea');
+  expect(countryNames.MM).toBe('Myanmar');
+  expect(countryNames.WS).toBe('Samoa');
+  expect(countryNames.AS).toBe('American Samoa');
+}
+
 describe('committed 2026 route draft', () => {
   it('passes the mechanical route checks directly', async () => {
     const inputs = await loadGeneratorInputs({ seed: 2026, total: 160 });
@@ -35,31 +70,10 @@ describe('committed 2026 route draft', () => {
       expect(check?.pass, `${name}: ${check?.detail ?? 'check missing'}`).toBe(true);
     }
 
-    const review = await readFile(resolve(process.cwd(), 'docs/planning/route-2026-draft/review.html'), 'utf8');
-    const stopTable = /<table id="stops">.*?<tbody>(.*?)<\/tbody>/s.exec(review)?.[1] ?? '';
-    const rows = [...stopTable.matchAll(/<tr>(.*?)<\/tr>/gs)];
-    const routeNodes = (document as { route_nodes: {
-      type: string;
-      candidate_id?: string;
-      location?: { country_code?: string };
-      transit_to_here?: { distance_km?: number | null; speed_kmh?: number | null } | null;
-    }[] }).route_nodes;
-    const deliveryNodes = routeNodes.filter((node) => node.type === 'DELIVERY');
-    expect(rows).toHaveLength(deliveryNodes.length);
-    for (const [index, match] of rows.entries()) {
-      const cells = [...(match[1] ?? '').matchAll(/<td>(.*?)<\/td>/g)].map((cell) => cell[1]);
-      const transit = deliveryNodes[index]?.transit_to_here;
-      expect(cells[8], `stored km for stop ${index + 1}`).toBe(String(transit?.distance_km ?? ''));
-      expect(cells[9], `stored speed for stop ${index + 1}`).toBe(String(transit?.speed_kmh ?? ''));
-    }
-
-    const marquesas = deliveryNodes.find((node) => node.candidate_id === 'Q172697');
-    expect(marquesas?.location?.country_code).toBe('PF');
-    expect(review).toContain(`<tr><td>Oceania</td><td>${generated.report.continentBalance.Oceania}</td></tr>`);
-    expect(inputs.countryNames.GB).toBe('United Kingdom');
-    expect(inputs.countryNames.KR).toBe('South Korea');
-    expect(inputs.countryNames.MM).toBe('Myanmar');
-    expect(inputs.countryNames.WS).toBe('Samoa');
-    expect(inputs.countryNames.AS).toBe('American Samoa');
+    await assertReviewMetricsMatchStoredRoute({
+      document,
+      continentBalance: generated.report.continentBalance,
+      countryNames: inputs.countryNames,
+    });
   }, 120_000);
 });
