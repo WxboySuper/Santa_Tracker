@@ -1,5 +1,11 @@
 # Changelog — per-PR exhaustive (enforced in CI)
 
+## [Unreleased] - Season modes and expiring overrides (issue #236)
+
+- **Season modes:** Adds a pure UTC-derived annual mode for off-season, preparation, Advent, flight, and post-season, sharing schedule boundaries with the existing feature gates without changing public access behavior.
+- **Admin override:** Adds a single-owner admin API to set and clear audited mode overrides with compare-and-set writes, required reasons, and a hard 48-hour expiry limit. Expired overrides are ignored and reported.
+- **Docs and tests:** Describes the mode schedule and emergency-switch relationship, with tests for each UTC boundary, expiry behavior, auth, validation, audit records, and storage conflicts.
+
 ## [Unreleased] — Authoritative tracker state and map fallback (#251, #253)
 
 - **Route snapshot metadata:** `GET /api/route` now returns an additive SHA-256 content version alongside the unchanged `route_nodes` field. `GET /api/time` provides a separate dynamic server timestamp with `Cache-Control: no-store`.

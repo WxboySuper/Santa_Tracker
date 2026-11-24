@@ -17,18 +17,38 @@ export type FeatureAccess = "open" | "admin" | "closed";
 
 const MINUTE_MS = 60_000;
 
+export interface SeasonSchedule {
+  preparationStartsAt: number;
+  adventStartsAt: number;
+  adventFeatureStartsAt: number;
+  flightStartsAt: number;
+  trackerStartsAt: number;
+  postSeasonStartsAt: number;
+  seasonEndsAt: number;
+}
+
+/** Shared UTC boundaries for the annual product schedule and feature gates. */
+export function seasonSchedule(year: number): SeasonSchedule {
+  const flightStartsAt = Date.UTC(year, 11, 24);
+  return {
+    preparationStartsAt: Date.UTC(year, 10, 1),
+    adventStartsAt: Date.UTC(year, 11, 1),
+    adventFeatureStartsAt: Date.UTC(year, 10, 30),
+    flightStartsAt,
+    trackerStartsAt: Date.UTC(year, 11, 24, 10, 0, 0) - TRACKER_LEAD_MS,
+    postSeasonStartsAt: Date.UTC(year, 11, 25),
+    seasonEndsAt: Date.UTC(year + 1, 0, 7),
+  };
+}
+
 /** The tracker opens this long before takeoff. */
 export const TRACKER_LEAD_MS = 10 * MINUTE_MS;
 
-function takeoff(year: number): number {
-  return Date.UTC(year, 11, 24, 10, 0, 0);
-}
-
 /** [start, end) in epoch ms for one season, keyed by the year its December falls in. */
 function windowFor(feature: SeasonFeature, year: number): readonly [number, number] {
-  const end = Date.UTC(year + 1, 0, 7, 0, 0, 0);
-  const start = feature === "tracker" ? takeoff(year) - TRACKER_LEAD_MS : Date.UTC(year, 10, 30, 0, 0, 0);
-  return [start, end];
+  const schedule = seasonSchedule(year);
+  const start = feature === "tracker" ? schedule.trackerStartsAt : schedule.adventFeatureStartsAt;
+  return [start, schedule.seasonEndsAt];
 }
 
 /** Whether `feature` is open to the public at `now`. */
