@@ -18,6 +18,7 @@ import { applyInitialCamera, bearingBetween, hasValidMapExtent, positionToView, 
 import { isMapInteractionKey } from "./tracker-map-adapter";
 import { createPolarCapLayer, POLE_COORD, VIEW_EXTENT } from "./tracker-polar-cap";
 import { styleDeadline } from "./tracker-map-timeout";
+import { prefersLowPerformance } from "./device-capability";
 import type { TrackerArt } from "../components/tracker-3d/tracker-art";
 
 const STYLE_URL = "https://tiles.openfreemap.org/styles/liberty";
@@ -85,6 +86,7 @@ export class OpenLayersTrackerMap implements TrackerMapAdapter {
 
   /** The 3D pole and sleigh are an enhancement; the plain marker stays if they cannot load. */
   private async mountArt(map: Map): Promise<void> {
+    if (prefersLowPerformance()) return; // Constrained device or data saver: keep the plain marker.
     try {
       const { TrackerArt } = await import("../components/tracker-3d/tracker-art");
       if (this.disposed) return;
