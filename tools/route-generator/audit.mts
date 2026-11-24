@@ -45,6 +45,8 @@ if (document !== undefined) {
     selected: generated.locations,
     zonesByCountry: inputs.tables.zonesByCountry,
     utcOffsetsByTimezone: inputs.tables.utcOffsetsByTimezone,
+    countryBoundsByCode: inputs.tables.countryBoundsByCode,
+    report: generated.report,
     vetoIds: [...inputs.overrides.veto ?? []],
   });
   checks.push(...mechanical.checks);

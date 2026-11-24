@@ -55,22 +55,27 @@ type SelectionState = {
 };
 
 function allowedCandidate(place: Candidate, state: SelectionState): boolean {
+  return meetsBasicSelectionLimits(place, state) && meetsRegionalSelectionLimits(place, state);
+}
+
+function meetsBasicSelectionLimits(place: Candidate, state: SelectionState): boolean {
   const { chosen, chosenIds, countryCounts, categoryCounts, quotas, config, forbidden } = state;
   if (chosenIds.has(place.id) || forbidden.has(place.id)) return false;
   if ((categoryCounts.get(place.category) ?? 0) >= (quotas[place.category] ?? 0)) return false;
   const countryCap = config.countryCaps[place.country] ?? config.maxStopsPerCountry;
   if ((countryCounts.get(place.country) ?? 0) >= countryCap) return false;
   const offsetCap = config.offsetCaps[String(place.utcOffsetMinutes)] ?? config.maxStopsPerUtcOffset;
-  if (chosen.filter((selected) => selected.utcOffsetMinutes === place.utcOffsetMinutes).length >= offsetCap) return false;
-  if (chosen.some((selected) => haversineKm(selected, place) < config.minStopSeparationKm)) return false;
+  const offsetCount = chosen.filter((selected) => selected.utcOffsetMinutes === place.utcOffsetMinutes).length;
+  return offsetCount < offsetCap && !chosen.some((selected) => haversineKm(selected, place) < config.minStopSeparationKm);
+}
 
-  if (config.total >= 100) {
-    const region = classifyRegion(place);
-    if (region.southAmerica && regionCount(chosen, (item) => classifyRegion(item).southAmerica) >= config.maxSouthAmericaStops) return false;
-    if (region.americas && regionCount(chosen, (item) => classifyRegion(item).americas) >= Math.floor(config.total * config.maxAmericasPercent / 100)) return false;
-    if (config.uninhabitedIslandIds.includes(place.id) && chosen.filter((item) => config.uninhabitedIslandIds.includes(item.id)).length >= 4) return false;
-  }
-  return true;
+function meetsRegionalSelectionLimits(place: Candidate, state: SelectionState): boolean {
+  if (state.config.total < 100) return true;
+  const region = classifyRegion(place);
+  if (region.southAmerica && regionCount(state.chosen, (item) => classifyRegion(item).southAmerica) >= state.config.maxSouthAmericaStops) return false;
+  if (region.americas && regionCount(state.chosen, (item) => classifyRegion(item).americas) >= Math.floor(state.config.total * state.config.maxAmericasPercent / 100)) return false;
+  const islandCount = state.chosen.filter((item) => state.config.uninhabitedIslandIds.includes(item.id)).length;
+  return !state.config.uninhabitedIslandIds.includes(place.id) || islandCount < 4;
 }
 
 function addCandidate(place: Candidate, state: SelectionState): boolean {
@@ -152,38 +157,54 @@ function reserveRegions(state: SelectionState, ranked: Candidate[]): void {
   }
 }
 
-function fillQuotas(state: SelectionState, ranked: Candidate[]): void {
-  const categoryOrder = ['cultural', 'nature', 'special', 'underserved', 'hub'];
-  for (const category of categoryOrder) {
-    while (remainingCategory(state, category) > 0) {
-      if (!pickRanked(state, (place) => place.category === category, ranked)) {
-        const unavailable = ranked.filter((place) => place.category === category && !state.chosenIds.has(place.id)).slice(0, 12).map((place) => {
-          const nearby = state.chosen.find((selected) => haversineKm(selected, place) < state.config.minStopSeparationKm);
-          const countryCap = state.config.countryCaps[place.country] ?? state.config.maxStopsPerCountry;
-          const reason = (state.countryCounts.get(place.country) ?? 0) >= countryCap
-            ? 'country cap'
-            : nearby ? `within ${Math.round(haversineKm(nearby, place))} km of ${nearby.name}` : 'regional cap';
-          const countryStops = (state.countryCounts.get(place.country) ?? 0) >= countryCap
-            ? `: ${state.chosen.filter((selected) => selected.country === place.country).map((selected) => selected.name).join(', ')}`
-            : '';
-          return `${place.name} (${reason}${countryStops})`;
-        });
-        throw new Error(`Cannot fill ${category} quota ${state.quotas[category] ?? 0}; selected ${state.categoryCounts.get(category) ?? 0}; candidates: ${unavailable.join('; ')}`);
-      }
-    }
+function quotaFailure(category: string, state: SelectionState, ranked: Candidate[]): Error {
+  const unavailable = ranked.filter((place) => place.category === category && !state.chosenIds.has(place.id))
+    .slice(0, 12).map((place) => describeUnavailableCandidate(place, state));
+  return new Error(`Cannot fill ${category} quota ${state.quotas[category] ?? 0}; selected ${state.categoryCounts.get(category) ?? 0}; candidates: ${unavailable.join('; ')}`);
+}
+
+function describeUnavailableCandidate(place: Candidate, state: SelectionState): string {
+  const nearby = state.chosen.find((selected) => haversineKm(selected, place) < state.config.minStopSeparationKm);
+  const countryCap = state.config.countryCaps[place.country] ?? state.config.maxStopsPerCountry;
+  const overCountryCap = (state.countryCounts.get(place.country) ?? 0) >= countryCap;
+  const reason = overCountryCap ? 'country cap'
+    : nearby ? `within ${Math.round(haversineKm(nearby, place))} km of ${nearby.name}` : 'regional cap';
+  const countryStops = overCountryCap
+    ? `: ${state.chosen.filter((selected) => selected.country === place.country).map((selected) => selected.name).join(', ')}`
+    : '';
+  return `${place.name} (${reason}${countryStops})`;
+}
+
+function fillCategoryQuota(category: string, state: SelectionState, ranked: Candidate[]): void {
+  while (remainingCategory(state, category) > 0) {
+    if (!pickRanked(state, (place) => place.category === category, ranked)) throw quotaFailure(category, state, ranked);
   }
 }
 
-function validateSelection(places: Candidate[], config: GeneratorConfig, quotas: Record<string, number>): void {
+function fillQuotas(state: SelectionState, ranked: Candidate[]): void {
+  for (const category of ['cultural', 'nature', 'special', 'underserved', 'hub']) fillCategoryQuota(category, state, ranked);
+}
+
+function validateCountAndCategories(places: Candidate[], config: GeneratorConfig, quotas: Record<string, number>): void {
   if (places.length !== config.total) throw new Error(`Unable to select ${config.total} candidates while preserving category quotas`);
   for (const [category, quota] of Object.entries(quotas)) {
     const count = places.filter((place) => place.category === category).length;
     if (count !== quota) throw new Error(`Selected ${count} ${category} stops, expected ${quota}`);
   }
-  for (const [country, count] of new Map([...new Set(places.map((place) => place.country))].map((code) => [code, countryCount(places, code)]))) {
+}
+
+function validateCountryCaps(places: Candidate[], config: GeneratorConfig): void {
+  for (const [country, count] of countryCounts(places)) {
     const cap = config.countryCaps[country] ?? config.maxStopsPerCountry;
     if (count > cap) throw new Error(`Country cap ${cap} exceeded for ${country}`);
   }
+}
+
+function countryCounts(places: Candidate[]): Map<string, number> {
+  return new Map([...new Set(places.map((place) => place.country))].map((country) => [country, countryCount(places, country)]));
+}
+
+function validateOffsetCaps(places: Candidate[], config: GeneratorConfig): void {
   for (const [offset, count] of Object.entries(places.reduce<Record<string, number>>((counts, place) => {
     const key = String(place.utcOffsetMinutes);
     counts[key] = (counts[key] ?? 0) + 1;
@@ -192,10 +213,16 @@ function validateSelection(places: Candidate[], config: GeneratorConfig, quotas:
     const cap = config.offsetCaps[offset] ?? config.maxStopsPerUtcOffset;
     if (count > cap) throw new Error(`UTC offset cap ${cap} exceeded for ${offset} minutes`);
   }
+}
+
+function validateCoreHubMinimum(places: Candidate[], config: GeneratorConfig): void {
   const coreHubCount = places.filter((place) => place.category === 'hub' && coreHub(place, config)).length;
   if (config.total >= 100 && coreHubCount < config.hubCoreMinimum) {
     throw new Error(`Core hub minimum ${config.hubCoreMinimum} not met; selected ${coreHubCount}`);
   }
+}
+
+function validateMinimumSeparation(places: Candidate[], config: GeneratorConfig): void {
   for (let left = 0; left < places.length; left++) {
     for (let right = left + 1; right < places.length; right++) {
       const first = places[left];
@@ -205,11 +232,23 @@ function validateSelection(places: Candidate[], config: GeneratorConfig, quotas:
       }
     }
   }
+}
+
+function validateRegionalCaps(places: Candidate[], config: GeneratorConfig): void {
   const selectedAmericas = places.filter((place) => classifyRegion(place).americas).length;
   const maximumAmericas = Math.floor(config.total * config.maxAmericasPercent / 100);
   if (config.total >= 100 && selectedAmericas > maximumAmericas) throw new Error(`Americas cap ${maximumAmericas} exceeded`);
   const selectedSouthAmerica = places.filter((place) => classifyRegion(place).southAmerica).length;
   if (config.total >= 100 && selectedSouthAmerica > config.maxSouthAmericaStops) throw new Error(`South America cap ${config.maxSouthAmericaStops} exceeded`);
+}
+
+function validateSelection(places: Candidate[], config: GeneratorConfig, quotas: Record<string, number>): void {
+  validateCountAndCategories(places, config, quotas);
+  validateCountryCaps(places, config);
+  validateOffsetCaps(places, config);
+  validateCoreHubMinimum(places, config);
+  validateMinimumSeparation(places, config);
+  validateRegionalCaps(places, config);
 }
 
 function isEligible(place: Candidate, zones?: ZoneTable): boolean {
@@ -219,73 +258,111 @@ function isEligible(place: Candidate, zones?: ZoneTable): boolean {
   return allowed?.includes(place.timezone) ?? false;
 }
 
-export function chooseCandidates(
-  pool: Candidate[],
-  config: GeneratorConfig,
-  overrides: RouteOverrides = {},
-  zones?: ZoneTable,
-): Candidate[] {
+type CandidateSelectionInputs = {
+  quotas: Record<string, number>;
+  veto: Set<string>;
+  classified: Candidate[];
+  byId: Map<string, Candidate>;
+  lockIds: string[];
+  selectionLockIds: string[];
+};
+
+function requiredCandidateIds(config: GeneratorConfig): string[] {
+  return [...new Set([...config.requiredStopIds, ...config.openingStopIds, ...Object.keys(config.arrivalAnchorMinutes)])];
+}
+
+function validateKnownLocks(pool: Candidate[], lockIds: string[]): void {
+  const available = new Set(pool.map((place) => place.id));
+  const missing = lockIds.find((id) => !available.has(id));
+  if (missing) throw new Error(`Unknown locked stop: ${missing}`);
+}
+
+function validateCategoryLocks(classified: Candidate[], lockIds: string[]): void {
+  const byId = new Map(classified.map((place) => [place.id, place]));
+  const invalid = lockIds.map((id) => byId.get(id)).find((place) => place?.category === 'unselected');
+  if (invalid) throw new Error(`Locked stop ${invalid.name} has no configured route category`);
+}
+
+function isSelectable(place: Candidate, quotas: Record<string, number>, veto: Set<string>, zones: ZoneTable | undefined,
+  lockedIds: Set<string>): boolean {
+  if (place.category === 'unselected' || veto.has(place.id)) return false;
+  if ((quotas[place.category] ?? 0) === 0) return false;
+  if (isEligible(place, zones)) return true;
+  if (lockedIds.has(place.id)) throw new Error(`Timezone ${place.timezone} for ${place.name} does not belong to country ${place.country}`);
+  return false;
+}
+
+function buildCandidateSelectionInputs(pool: Candidate[], config: GeneratorConfig, overrides: RouteOverrides, zones?: ZoneTable): CandidateSelectionInputs {
   if (new Set(pool.map((place) => place.id)).size !== pool.length) throw new Error('Candidate ids must be unique');
   const quotas = allocateQuotas(config.total, config.weights);
   const veto = new Set(overrides.veto ?? []);
-  const requiredIds = [...new Set([...config.requiredStopIds, ...config.openingStopIds, ...Object.keys(config.arrivalAnchorMinutes)])];
-  const invalidLocked = [...(overrides.lock ?? []), ...requiredIds, config.endStopId, ...config.ownerDecisionIds]
-    .filter((id) => !pool.some((place) => place.id === id));
-  if (invalidLocked.length) throw new Error(`Unknown locked stop: ${invalidLocked[0]}`);
-
-  const classified = pool.map((place) => ({ ...place, category: categoryOf(place, config) ?? 'unselected' }));
-  const invalidLockedPlace = [...(overrides.lock ?? []), ...requiredIds, config.endStopId, ...config.ownerDecisionIds]
-    .map((id) => classified.find((place) => place.id === id))
-    .find((place) => place?.category === 'unselected');
-  if (invalidLockedPlace) throw new Error(`Locked stop ${invalidLockedPlace.name} has no configured route category`);
-
-  const selectionPool = classified.filter((place) => {
-    if (place.category === 'unselected' || veto.has(place.id)) return false;
-    const cap = quotas[place.category] ?? 0;
-    if (cap === 0) return false;
-    if (!isEligible(place, zones)) {
-      if ((overrides.lock ?? []).includes(place.id) || requiredIds.includes(place.id) || place.id === config.endStopId || config.ownerDecisionIds.includes(place.id)) {
-        throw new Error(`Timezone ${place.timezone} for ${place.name} does not belong to country ${place.country}`);
-      }
-      return false;
-    }
-    return true;
-  });
-  const byId = new Map(selectionPool.map((place) => [place.id, place]));
+  const requiredIds = requiredCandidateIds(config);
   const lockIds = [...new Set([...(overrides.lock ?? []), ...requiredIds, config.endStopId, ...config.ownerDecisionIds])];
-  for (const id of lockIds) if (veto.has(id)) throw new Error(`Stop is both locked and vetoed: ${id}`);
+  validateKnownLocks(pool, lockIds);
+  const classified = pool.map((place) => ({ ...place, category: categoryOf(place, config) ?? 'unselected' }));
+  validateCategoryLocks(classified, lockIds);
+  const lockedIds = new Set(lockIds);
+  const selectionPool = classified.filter((place) => isSelectable(place, quotas, veto, zones, lockedIds));
+  const byId = new Map(selectionPool.map((place) => [place.id, place]));
+  const selectionLockIds = buildSelectionLockIds(lockIds, veto, overrides);
+  return { quotas, veto, classified, byId, lockIds, selectionLockIds };
+}
+
+function buildSelectionLockIds(lockIds: string[], veto: Set<string>, overrides: RouteOverrides): string[] {
   const swapTargets = new Set(Object.values(overrides.swap ?? {}));
   const swapSources = new Set(Object.keys(overrides.swap ?? {}));
   if ([...swapSources].some((id) => lockIds.includes(id))) throw new Error('A swap source cannot be locked in the final stop list');
   if ([...swapTargets].some((id) => !lockIds.includes(id))) throw new Error('A swap target must be locked in the final stop list');
   const selectionLockIds = lockIds.filter((id) => !swapTargets.has(id));
   for (const [source, target] of Object.entries(overrides.swap ?? {})) {
-    if (lockIds.includes(target)) selectionLockIds.push(source);
+    if (lockIds.includes(target)) selectionLockIds.push(veto.has(source) ? target : source);
   }
+  return selectionLockIds;
+}
 
-  const state: SelectionState = {
+function createSelectionState(inputs: CandidateSelectionInputs, config: GeneratorConfig): SelectionState {
+  return {
     chosen: [],
     chosenIds: new Set(),
     countryCounts: new Map(),
     categoryCounts: new Map(),
-    quotas,
-    pool: [...byId.values()],
+    quotas: inputs.quotas,
+    pool: [...inputs.byId.values()],
     config,
-    forbidden: veto,
+    forbidden: inputs.veto,
   };
-  addLockedStops(selectionLockIds, state);
+}
+
+function applyFinalOverrides(state: SelectionState, classified: Candidate[], byId: Map<string, Candidate>, overrides: RouteOverrides): Candidate[] {
+  if (Object.keys(overrides.swap ?? {}).length === 0) return state.chosen;
+  const selectedIds = applyOverrides(classified, state.chosen.map((place) => place.id), { ...overrides,
+    lock: [...new Set([...(overrides.lock ?? []), ...state.config.requiredStopIds, ...state.config.openingStopIds,
+      ...Object.keys(state.config.arrivalAnchorMinutes), state.config.endStopId, ...state.config.ownerDecisionIds])],
+  });
+  return selectedIds.map((id) => byId.get(id)).filter((place): place is Candidate => place !== undefined);
+}
+
+export function chooseCandidates(
+  pool: Candidate[],
+  config: GeneratorConfig,
+  overrides: RouteOverrides = {},
+  zones?: ZoneTable,
+): Candidate[] {
+  const inputs = buildCandidateSelectionInputs(pool, config, overrides, zones);
+  for (const id of inputs.lockIds) if (inputs.veto.has(id)) throw new Error(`Stop is both locked and vetoed: ${id}`);
+  const state = createSelectionState(inputs, config);
   const ranked = stableCandidates(state.pool, config.seed);
+  addLockedStops(inputs.selectionLockIds, state);
+  reserveRemainingCandidates(state, ranked, overrides);
+  const selected = applyFinalOverrides(state, inputs.classified, inputs.byId, overrides);
+  validateSelection(selected, config, inputs.quotas);
+  return selected;
+}
+
+function reserveRemainingCandidates(state: SelectionState, ranked: Candidate[], overrides: RouteOverrides): void {
   reserveRequiredCountries(state, ranked);
   if (Object.keys(overrides.swap ?? {}).length === 0) reserveHubCore(state, ranked);
   reserveOffsets(state, ranked);
   reserveRegions(state, ranked);
   fillQuotas(state, ranked);
-
-  let selectedIds = state.chosen.map((place) => place.id);
-  if (Object.keys(overrides.swap ?? {}).length > 0) {
-    selectedIds = applyOverrides(classified, selectedIds, { ...overrides, lock: lockIds });
-    state.chosen = selectedIds.map((id) => byId.get(id)).filter((place): place is Candidate => place !== undefined);
-  }
-  validateSelection(state.chosen, config, quotas);
-  return state.chosen;
 }

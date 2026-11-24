@@ -9,6 +9,7 @@ export type TimezoneTables = {
   zonePointsByCountry: Record<string, { timezone: string; lat: number; lng: number }[]>;
   utcOffsetsByTimezone: Record<string, number>;
   countryNames: Record<string, string>;
+  countryBoundsByCode: Record<string, { minLat: number; maxLat: number; minLng: number; maxLng: number }>;
 };
 
 export type GeneratorInputs = {
@@ -44,7 +45,7 @@ function mergeOverrideFiles(base: RouteOverrides, extra: RouteOverrides): RouteO
 }
 
 export async function loadGeneratorInputs(options: { seed?: number; total?: number; overrides?: RouteOverrides } = {}): Promise<GeneratorInputs> {
-  const [routeConfig, places, curated, draftOverrides, localOverrides, tables, countryNames] = await Promise.all([
+  const [routeConfig, places, curated, draftOverrides, localOverrides, tables, countryNames, countryBounds] = await Promise.all([
     readJson<Partial<GeneratorConfig>>(new URL('./config.json', import.meta.url)),
     readJson<Candidate[]>(new URL('./data/places.json', import.meta.url)),
     readJson<Candidate[]>(new URL('./data/curated.json', import.meta.url)),
@@ -52,6 +53,7 @@ export async function loadGeneratorInputs(options: { seed?: number; total?: numb
     readOptionalJson<RouteOverrides>(new URL('./overrides.json', import.meta.url), {}),
     readJson<TimezoneTables>(new URL('./data/country-zones.json', import.meta.url)),
     readJson<Record<string, string>>(new URL('./data/country-names.json', import.meta.url)),
+    readJson<{ boundsByCountry: TimezoneTables['countryBoundsByCode'] }>(new URL('./data/country-bounds.json', import.meta.url)),
   ]);
   const config = {
     ...DEFAULT_GENERATOR_LIMITS,
@@ -67,7 +69,7 @@ export async function loadGeneratorInputs(options: { seed?: number; total?: numb
     config,
     pool,
     overrides: mergeOverrideFiles(mergeOverrideFiles(draftOverrides, localOverrides), options.overrides ?? {}),
-    tables: { ...tables, countryNames },
+    tables: { ...tables, countryNames, countryBoundsByCode: countryBounds.boundsByCountry },
     countryNames,
   };
 }
@@ -101,15 +103,21 @@ export function renderReview(generated: GeneratedRoute, inputs: GeneratorInputs)
     type: string;
     location: { name: string; country_code: string; lat: number; lng: number; timezone_offset: number };
     schedule: { arrival_utc: string; departure_utc: string; local_arrival_time: string };
+    transit_to_here?: { distance_km?: number | null; speed_kmh?: number | null } | null;
     comment: string;
   }[];
   const stopRows = generated.locations.map((place, index) => {
     const node = deliveryNodes[index];
-    const leg = generated.report.legs[index];
     const country = countryNames[place.country] ?? place.country;
-    return `<tr><td>${index + 1}</td><td>${escapeHtml(place.name)}</td><td>${escapeHtml(country)}</td><td>${escapeHtml(node?.schedule.arrival_utc ?? '')}</td><td>${escapeHtml(node?.schedule.local_arrival_time ?? '')}</td><td>${escapeHtml(place.timezone)}</td><td>${place.lat.toFixed(5)}, ${place.lng.toFixed(5)}</td><td>${escapeHtml(place.category)}</td><td>${Math.round(leg?.km ?? 0)}</td><td>${Math.round(leg?.kmh ?? 0)}</td><td>${linkCell(place.source)}</td></tr>`;
+    return `<tr><td>${index + 1}</td><td>${escapeHtml(place.name)}</td><td>${escapeHtml(country)}</td><td>${escapeHtml(node?.schedule.arrival_utc ?? '')}</td><td>${escapeHtml(node?.schedule.local_arrival_time ?? '')}</td><td>${escapeHtml(place.timezone)}</td><td>${place.lat.toFixed(5)}, ${place.lng.toFixed(5)}</td><td>${escapeHtml(place.category)}</td><td>${node?.transit_to_here?.distance_km ?? ''}</td><td>${node?.transit_to_here?.speed_kmh ?? ''}</td><td>${linkCell(place.source)}</td></tr>`;
   });
-  const legRows = generated.report.legs.map((leg, index) => `<tr><td>${index + 1}</td><td>${escapeHtml(leg.kind)}</td><td>${escapeHtml(leg.from)}</td><td>${escapeHtml(leg.to)}</td><td>${Math.round(leg.km)}</td><td>${Math.round(leg.gapMinutes)}</td><td>${Math.round(leg.kmh)}</td></tr>`);
+  const transitNodes = generated.document.route_nodes.slice(1) as {
+    transit_to_here?: { distance_km?: number | null; speed_kmh?: number | null } | null;
+  }[];
+  const legRows = generated.report.legs.map((leg, index) => {
+    const transit = transitNodes[index]?.transit_to_here;
+    return `<tr><td>${index + 1}</td><td>${escapeHtml(leg.kind)}</td><td>${escapeHtml(leg.from)}</td><td>${escapeHtml(leg.to)}</td><td>${transit?.distance_km ?? ''}</td><td>${Math.round(leg.gapMinutes)}</td><td>${transit?.speed_kmh ?? ''}</td></tr>`;
+  });
   const categoryRows = Object.entries(generated.report.mix).map(([category, entry]) => `<tr><td>${escapeHtml(category)}</td><td>${entry.count}</td><td>${entry.target}</td></tr>`);
   const continentRows = Object.entries(generated.report.continentBalance).sort(([a], [b]) => a.localeCompare(b)).map(([name, count]) => `<tr><td>${escapeHtml(name)}</td><td>${count}</td></tr>`);
   const subregionRows = Object.entries(generated.report.subregionBalance).sort(([a], [b]) => a.localeCompare(b)).map(([name, count]) => `<tr><td>${escapeHtml(name)}</td><td>${count}</td></tr>`);

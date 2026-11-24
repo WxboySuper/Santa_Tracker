@@ -38,7 +38,7 @@ for (const [category, categoryIds] of Object.entries(seeds)) {
       throw new Error(`${id} lacks an English label, country, or Earth coordinates`);
     }
     const { latitude: lat, longitude: lng } = point;
-    const countryCode = countryCodeForName(country);
+    const countryCode = id === 'Q172697' ? 'PF' : countryCodeForName(country);
     const timezone = timezoneForCandidate(id, countryCode, lookup(lat, lng), lat, lng);
     places.push({ id, name, country: countryCode, lat, lng, timezone, utcOffsetMinutes: christmasUtcOffset(timezone), category, source: `https://www.wikidata.org/wiki/${id}` });
   }

@@ -12,7 +12,6 @@
       "location": {
         "name": "North Pole",
         "region": "Arctic",
-        "country_code": "AQ",
         "lat": 80,
         "lng": 180,
         "timezone_offset": 0
@@ -883,17 +882,17 @@
       "priority": 2
     },
     {
-      "id": "stop_dpaf91_023",
+      "id": "stop_fwgkpw_023",
       "type": "DELIVERY",
-      "comment": "hub",
-      "candidate_id": "ne-1159151377",
+      "comment": "nature",
+      "candidate_id": "Q4187",
       "location": {
-        "name": "Shenyang",
+        "name": "Wulingyuan",
         "region": "China",
         "country_code": "CN",
         "timezone": "Asia/Shanghai",
-        "lat": 41.8069251,
-        "lng": 123.4480277,
+        "lat": 29.345555555555556,
+        "lng": 110.46666666666667,
         "timezone_offset": 8
       },
       "schedule": {
@@ -909,34 +908,34 @@
         "presents_delivered_at_stop": 1
       },
       "transit_to_here": {
-        "description": "Flight to Shenyang",
+        "description": "Flight to Wulingyuan",
         "duration_seconds": 840,
-        "distance_km": 1421.87,
+        "distance_km": 1935.55,
         "speed_curve": "REGIONAL",
-        "speed_kmh": 6094,
+        "speed_kmh": 8295,
         "camera_zoom": 9
       },
-      "notes": "https://www.naturalearthdata.com/downloads/10m-cultural-vectors/10m-populated-places/",
+      "notes": "https://www.wikidata.org/wiki/Q4187",
       "priority": 2
     },
     {
-      "id": "stop_2eqjz_024",
+      "id": "stop_3ufqdy_024",
       "type": "DELIVERY",
-      "comment": "hub",
-      "candidate_id": "ne-1159146599",
+      "comment": "nature",
+      "candidate_id": "Q61535",
       "location": {
-        "name": "Daegu",
-        "region": "South Korea",
-        "country_code": "KR",
-        "timezone": "Asia/Seoul",
-        "lat": 35.8687346,
-        "lng": 128.6050255,
-        "timezone_offset": 9
+        "name": "Gunung Mulu National Park",
+        "region": "Malaysia",
+        "country_code": "MY",
+        "timezone": "Asia/Kuching",
+        "lat": 4.0425,
+        "lng": 114.8125,
+        "timezone_offset": 8
       },
       "schedule": {
-        "arrival_utc": "2026-12-24T16:25:33.195Z",
-        "departure_utc": "2026-12-24T16:26:33.195Z",
-        "local_arrival_time": "01:25",
+        "arrival_utc": "2026-12-24T16:37:17.354Z",
+        "departure_utc": "2026-12-24T16:38:17.354Z",
+        "local_arrival_time": "00:37",
         "time_window_status": "GREEN"
       },
       "stop_experience": {
@@ -946,34 +945,34 @@
         "presents_delivered_at_stop": 1
       },
       "transit_to_here": {
-        "description": "Flight to Daegu",
-        "duration_seconds": 274,
-        "distance_km": 796.82,
+        "description": "Flight to Gunung Mulu National Park",
+        "duration_seconds": 978,
+        "distance_km": 2850.61,
         "speed_curve": "REGIONAL",
-        "speed_kmh": 10469,
+        "speed_kmh": 10493,
         "camera_zoom": 9
       },
-      "notes": "https://www.naturalearthdata.com/downloads/10m-cultural-vectors/10m-populated-places/",
+      "notes": "https://www.wikidata.org/wiki/Q61535",
       "priority": 2
     },
     {
-      "id": "stop_593bbj_025",
+      "id": "stop_v1bh47_025",
       "type": "DELIVERY",
-      "comment": "cultural",
-      "candidate_id": "Q191763",
+      "comment": "nature",
+      "candidate_id": "Q4520",
       "location": {
-        "name": "Itsukushima Shrine",
-        "region": "Japan",
-        "country_code": "JP",
-        "timezone": "Asia/Tokyo",
-        "lat": 34.29577,
-        "lng": 132.320105,
-        "timezone_offset": 9
+        "name": "Komodo National Park",
+        "region": "Indonesia",
+        "country_code": "ID",
+        "timezone": "Asia/Makassar",
+        "lat": -8.651625,
+        "lng": 119.576569,
+        "timezone_offset": 8
       },
       "schedule": {
-        "arrival_utc": "2026-12-24T16:29:33.195Z",
-        "departure_utc": "2026-12-24T16:30:33.195Z",
-        "local_arrival_time": "01:29",
+        "arrival_utc": "2026-12-24T16:46:54.082Z",
+        "departure_utc": "2026-12-24T16:47:54.082Z",
+        "local_arrival_time": "00:46",
         "time_window_status": "GREEN"
       },
       "stop_experience": {
@@ -983,14 +982,14 @@
         "presents_delivered_at_stop": 1
       },
       "transit_to_here": {
-        "description": "Flight to Itsukushima Shrine",
-        "duration_seconds": 180,
-        "distance_km": 380.58,
+        "description": "Flight to Komodo National Park",
+        "duration_seconds": 517,
+        "distance_km": 1507.12,
         "speed_curve": "REGIONAL",
-        "speed_kmh": 7612,
+        "speed_kmh": 10494,
         "camera_zoom": 9
       },
-      "notes": "https://www.wikidata.org/wiki/Q191763",
+      "notes": "https://www.wikidata.org/wiki/Q4520",
       "priority": 2
     },
     {
@@ -1008,9 +1007,9 @@
         "timezone_offset": 8
       },
       "schedule": {
-        "arrival_utc": "2026-12-24T16:39:26.174Z",
-        "departure_utc": "2026-12-24T16:40:26.174Z",
-        "local_arrival_time": "00:39",
+        "arrival_utc": "2026-12-24T17:18:52.452Z",
+        "departure_utc": "2026-12-24T17:19:52.452Z",
+        "local_arrival_time": "01:18",
         "time_window_status": "GREEN"
       },
       "stop_experience": {
@@ -1021,17 +1020,128 @@
       },
       "transit_to_here": {
         "description": "Flight to Summer Palace",
-        "duration_seconds": 533,
-        "distance_km": 1554.52,
+        "duration_seconds": 1859,
+        "distance_km": 5420.24,
         "speed_curve": "REGIONAL",
-        "speed_kmh": 10500,
+        "speed_kmh": 10496,
         "camera_zoom": 9
       },
       "notes": "https://www.wikidata.org/wiki/Q4132",
       "priority": 2
     },
     {
-      "id": "stop_9ruqcz_027",
+      "id": "stop_dpaf91_027",
+      "type": "DELIVERY",
+      "comment": "hub",
+      "candidate_id": "ne-1159151377",
+      "location": {
+        "name": "Shenyang",
+        "region": "China",
+        "country_code": "CN",
+        "timezone": "Asia/Shanghai",
+        "lat": 41.8069251,
+        "lng": 123.4480277,
+        "timezone_offset": 8
+      },
+      "schedule": {
+        "arrival_utc": "2026-12-24T17:23:30.437Z",
+        "departure_utc": "2026-12-24T17:24:30.437Z",
+        "local_arrival_time": "01:23",
+        "time_window_status": "GREEN"
+      },
+      "stop_experience": {
+        "duration_seconds": 60,
+        "camera_zoom": 14,
+        "weather_condition": "clear",
+        "presents_delivered_at_stop": 1
+      },
+      "transit_to_here": {
+        "description": "Flight to Shenyang",
+        "duration_seconds": 218,
+        "distance_km": 635.79,
+        "speed_curve": "REGIONAL",
+        "speed_kmh": 10499,
+        "camera_zoom": 9
+      },
+      "notes": "https://www.naturalearthdata.com/downloads/10m-cultural-vectors/10m-populated-places/",
+      "priority": 2
+    },
+    {
+      "id": "stop_rhdewu_028",
+      "type": "DELIVERY",
+      "comment": "hub",
+      "candidate_id": "ne-1159151523",
+      "location": {
+        "name": "Seoul",
+        "region": "South Korea",
+        "country_code": "KR",
+        "timezone": "Asia/Seoul",
+        "lat": 37.568295,
+        "lng": 126.9977851,
+        "timezone_offset": 9
+      },
+      "schedule": {
+        "arrival_utc": "2026-12-24T17:27:42.639Z",
+        "departure_utc": "2026-12-24T17:28:42.639Z",
+        "local_arrival_time": "02:27",
+        "time_window_status": "GREEN"
+      },
+      "stop_experience": {
+        "duration_seconds": 60,
+        "camera_zoom": 14,
+        "weather_condition": "clear",
+        "presents_delivered_at_stop": 1
+      },
+      "transit_to_here": {
+        "description": "Flight to Seoul",
+        "duration_seconds": 193,
+        "distance_km": 560.59,
+        "speed_curve": "REGIONAL",
+        "speed_kmh": 10457,
+        "camera_zoom": 9
+      },
+      "notes": "https://www.naturalearthdata.com/downloads/10m-cultural-vectors/10m-populated-places/",
+      "priority": 1
+    },
+    {
+      "id": "stop_593bbj_029",
+      "type": "DELIVERY",
+      "comment": "cultural",
+      "candidate_id": "Q191763",
+      "location": {
+        "name": "Itsukushima Shrine",
+        "region": "Japan",
+        "country_code": "JP",
+        "timezone": "Asia/Tokyo",
+        "lat": 34.29577,
+        "lng": 132.320105,
+        "timezone_offset": 9
+      },
+      "schedule": {
+        "arrival_utc": "2026-12-24T17:32:08.876Z",
+        "departure_utc": "2026-12-24T17:33:08.876Z",
+        "local_arrival_time": "02:32",
+        "time_window_status": "GREEN"
+      },
+      "stop_experience": {
+        "duration_seconds": 60,
+        "camera_zoom": 14,
+        "weather_condition": "clear",
+        "presents_delivered_at_stop": 1
+      },
+      "transit_to_here": {
+        "description": "Flight to Itsukushima Shrine",
+        "duration_seconds": 207,
+        "distance_km": 601.52,
+        "speed_curve": "REGIONAL",
+        "speed_kmh": 10461,
+        "camera_zoom": 9
+      },
+      "notes": "https://www.wikidata.org/wiki/Q191763",
+      "priority": 2
+    },
+    {
+      "id": "stop_9ruqcz_030",
       "type": "DELIVERY",
       "comment": "nature",
       "candidate_id": "Q4111",
@@ -1045,9 +1155,9 @@
         "timezone_offset": 8
       },
       "schedule": {
-        "arrival_utc": "2026-12-24T16:48:04.250Z",
-        "departure_utc": "2026-12-24T16:49:04.250Z",
-        "local_arrival_time": "00:48",
+        "arrival_utc": "2026-12-24T17:48:07.829Z",
+        "departure_utc": "2026-12-24T17:49:07.829Z",
+        "local_arrival_time": "01:48",
         "time_window_status": "GREEN"
       },
       "stop_experience": {
@@ -1058,54 +1168,17 @@
       },
       "transit_to_here": {
         "description": "Flight to Jiuzhaigou Valley",
-        "duration_seconds": 459,
-        "distance_km": 1336.05,
+        "duration_seconds": 899,
+        "distance_km": 2621.94,
         "speed_curve": "REGIONAL",
-        "speed_kmh": 10479,
+        "speed_kmh": 10499,
         "camera_zoom": 9
       },
       "notes": "https://www.wikidata.org/wiki/Q4111",
       "priority": 2
     },
     {
-      "id": "stop_19ssgcc_028",
-      "type": "DELIVERY",
-      "comment": "nature",
-      "candidate_id": "Q23513",
-      "location": {
-        "name": "Phong Nha – Ke Bang National Park",
-        "region": "Vietnam",
-        "country_code": "VN",
-        "timezone": "Asia/Ho_Chi_Minh",
-        "lat": 17.533333333333,
-        "lng": 106.15,
-        "timezone_offset": 7
-      },
-      "schedule": {
-        "arrival_utc": "2026-12-24T17:20:00.000Z",
-        "departure_utc": "2026-12-24T17:21:00.000Z",
-        "local_arrival_time": "00:20",
-        "time_window_status": "GREEN"
-      },
-      "stop_experience": {
-        "duration_seconds": 60,
-        "camera_zoom": 14,
-        "weather_condition": "clear",
-        "presents_delivered_at_stop": 1
-      },
-      "transit_to_here": {
-        "description": "Flight to Phong Nha – Ke Bang National Park",
-        "duration_seconds": 1856,
-        "distance_km": 1756.51,
-        "speed_curve": "CRUISING",
-        "speed_kmh": 3407,
-        "camera_zoom": 9
-      },
-      "notes": "https://www.wikidata.org/wiki/Q23513",
-      "priority": 2
-    },
-    {
-      "id": "stop_1ho4ymw_029",
+      "id": "stop_1ho4ymw_031",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159151327",
@@ -1119,9 +1192,9 @@
         "timezone_offset": 8
       },
       "schedule": {
-        "arrival_utc": "2026-12-24T17:28:39.029Z",
-        "departure_utc": "2026-12-24T17:29:39.029Z",
-        "local_arrival_time": "01:28",
+        "arrival_utc": "2026-12-24T17:52:07.829Z",
+        "departure_utc": "2026-12-24T17:53:07.829Z",
+        "local_arrival_time": "01:52",
         "time_window_status": "GREEN"
       },
       "stop_experience": {
@@ -1132,33 +1205,33 @@
       },
       "transit_to_here": {
         "description": "Flight to Chongqing",
-        "duration_seconds": 460,
-        "distance_km": 1338.83,
+        "duration_seconds": 180,
+        "distance_km": 478.02,
         "speed_curve": "REGIONAL",
-        "speed_kmh": 10478,
+        "speed_kmh": 9560,
         "camera_zoom": 9
       },
       "notes": "https://www.naturalearthdata.com/downloads/10m-cultural-vectors/10m-populated-places/",
       "priority": 2
     },
     {
-      "id": "stop_fwgkpw_030",
+      "id": "stop_19ssgcc_032",
       "type": "DELIVERY",
       "comment": "nature",
-      "candidate_id": "Q4187",
+      "candidate_id": "Q23513",
       "location": {
-        "name": "Wulingyuan",
-        "region": "China",
-        "country_code": "CN",
-        "timezone": "Asia/Shanghai",
-        "lat": 29.345555555555556,
-        "lng": 110.46666666666667,
-        "timezone_offset": 8
+        "name": "Phong Nha – Ke Bang National Park",
+        "region": "Vietnam",
+        "country_code": "VN",
+        "timezone": "Asia/Ho_Chi_Minh",
+        "lat": 17.533333333333,
+        "lng": 106.15,
+        "timezone_offset": 7
       },
       "schedule": {
-        "arrival_utc": "2026-12-24T17:32:39.029Z",
-        "departure_utc": "2026-12-24T17:33:39.029Z",
-        "local_arrival_time": "01:32",
+        "arrival_utc": "2026-12-24T18:00:46.858Z",
+        "departure_utc": "2026-12-24T18:01:46.858Z",
+        "local_arrival_time": "01:00",
         "time_window_status": "GREEN"
       },
       "stop_experience": {
@@ -1168,18 +1241,18 @@
         "presents_delivered_at_stop": 1
       },
       "transit_to_here": {
-        "description": "Flight to Wulingyuan",
-        "duration_seconds": 180,
-        "distance_km": 375.84,
+        "description": "Flight to Phong Nha – Ke Bang National Park",
+        "duration_seconds": 460,
+        "distance_km": 1338.83,
         "speed_curve": "REGIONAL",
-        "speed_kmh": 7517,
+        "speed_kmh": 10478,
         "camera_zoom": 9
       },
-      "notes": "https://www.wikidata.org/wiki/Q4187",
+      "notes": "https://www.wikidata.org/wiki/Q23513",
       "priority": 2
     },
     {
-      "id": "stop_o512o4_031",
+      "id": "stop_o512o4_033",
       "type": "DELIVERY",
       "comment": "cultural",
       "candidate_id": "Q36160",
@@ -1193,9 +1266,9 @@
         "timezone_offset": 7
       },
       "schedule": {
-        "arrival_utc": "2026-12-24T17:42:17.905Z",
-        "departure_utc": "2026-12-24T17:43:17.905Z",
-        "local_arrival_time": "00:42",
+        "arrival_utc": "2026-12-24T18:04:46.858Z",
+        "departure_utc": "2026-12-24T18:05:46.858Z",
+        "local_arrival_time": "01:04",
         "time_window_status": "GREEN"
       },
       "stop_experience": {
@@ -1206,87 +1279,13 @@
       },
       "transit_to_here": {
         "description": "Flight to Hội An",
-        "duration_seconds": 519,
-        "distance_km": 1513.39,
-        "speed_curve": "REGIONAL",
-        "speed_kmh": 10497,
+        "duration_seconds": 180,
+        "distance_km": 296.52,
+        "speed_curve": "CRUISING",
+        "speed_kmh": 5930,
         "camera_zoom": 9
       },
       "notes": "https://www.wikidata.org/wiki/Q36160",
-      "priority": 2
-    },
-    {
-      "id": "stop_v1bh47_032",
-      "type": "DELIVERY",
-      "comment": "nature",
-      "candidate_id": "Q4520",
-      "location": {
-        "name": "Komodo National Park",
-        "region": "Indonesia",
-        "country_code": "ID",
-        "timezone": "Asia/Makassar",
-        "lat": -8.651625,
-        "lng": 119.576569,
-        "timezone_offset": 8
-      },
-      "schedule": {
-        "arrival_utc": "2026-12-24T18:00:24.890Z",
-        "departure_utc": "2026-12-24T18:01:24.890Z",
-        "local_arrival_time": "02:00",
-        "time_window_status": "GREEN"
-      },
-      "stop_experience": {
-        "duration_seconds": 60,
-        "camera_zoom": 14,
-        "weather_condition": "clear",
-        "presents_delivered_at_stop": 1
-      },
-      "transit_to_here": {
-        "description": "Flight to Komodo National Park",
-        "duration_seconds": 1027,
-        "distance_km": 2995.37,
-        "speed_curve": "REGIONAL",
-        "speed_kmh": 10500,
-        "camera_zoom": 9
-      },
-      "notes": "https://www.wikidata.org/wiki/Q4520",
-      "priority": 2
-    },
-    {
-      "id": "stop_3ufqdy_033",
-      "type": "DELIVERY",
-      "comment": "nature",
-      "candidate_id": "Q61535",
-      "location": {
-        "name": "Gunung Mulu National Park",
-        "region": "Malaysia",
-        "country_code": "MY",
-        "timezone": "Asia/Kuching",
-        "lat": 4.0425,
-        "lng": 114.8125,
-        "timezone_offset": 8
-      },
-      "schedule": {
-        "arrival_utc": "2026-12-24T18:10:01.618Z",
-        "departure_utc": "2026-12-24T18:11:01.618Z",
-        "local_arrival_time": "02:10",
-        "time_window_status": "GREEN"
-      },
-      "stop_experience": {
-        "duration_seconds": 60,
-        "camera_zoom": 14,
-        "weather_condition": "clear",
-        "presents_delivered_at_stop": 1
-      },
-      "transit_to_here": {
-        "description": "Flight to Gunung Mulu National Park",
-        "duration_seconds": 517,
-        "distance_km": 1507.12,
-        "speed_curve": "REGIONAL",
-        "speed_kmh": 10494,
-        "camera_zoom": 9
-      },
-      "notes": "https://www.wikidata.org/wiki/Q61535",
       "priority": 2
     },
     {
@@ -1304,9 +1303,9 @@
         "timezone_offset": 7
       },
       "schedule": {
-        "arrival_utc": "2026-12-24T18:18:59.124Z",
-        "departure_utc": "2026-12-24T18:19:59.124Z",
-        "local_arrival_time": "01:18",
+        "arrival_utc": "2026-12-24T18:20:45.000Z",
+        "departure_utc": "2026-12-24T18:21:45.000Z",
+        "local_arrival_time": "01:20",
         "time_window_status": "GREEN"
       },
       "stop_experience": {
@@ -1317,10 +1316,10 @@
       },
       "transit_to_here": {
         "description": "Flight to Borobudur Temple Compounds",
-        "duration_seconds": 478,
-        "distance_km": 1392.72,
+        "duration_seconds": 899,
+        "distance_km": 2619.58,
         "speed_curve": "REGIONAL",
-        "speed_kmh": 10489,
+        "speed_kmh": 10490,
         "camera_zoom": 9
       },
       "notes": "https://www.wikidata.org/wiki/Q29070",
@@ -1341,9 +1340,9 @@
         "timezone_offset": 7
       },
       "schedule": {
-        "arrival_utc": "2026-12-24T18:23:06.221Z",
-        "departure_utc": "2026-12-24T18:24:06.221Z",
-        "local_arrival_time": "01:23",
+        "arrival_utc": "2026-12-24T18:24:52.097Z",
+        "departure_utc": "2026-12-24T18:25:52.097Z",
+        "local_arrival_time": "01:24",
         "time_window_status": "GREEN"
       },
       "stop_experience": {
@@ -1378,9 +1377,9 @@
         "timezone_offset": 8
       },
       "schedule": {
-        "arrival_utc": "2026-12-24T18:29:18.052Z",
-        "departure_utc": "2026-12-24T18:30:18.052Z",
-        "local_arrival_time": "02:29",
+        "arrival_utc": "2026-12-24T18:31:03.928Z",
+        "departure_utc": "2026-12-24T18:32:03.928Z",
+        "local_arrival_time": "02:31",
         "time_window_status": "GREEN"
       },
       "stop_experience": {
@@ -1415,9 +1414,9 @@
         "timezone_offset": 7
       },
       "schedule": {
-        "arrival_utc": "2026-12-24T18:33:18.052Z",
-        "departure_utc": "2026-12-24T18:34:18.052Z",
-        "local_arrival_time": "01:33",
+        "arrival_utc": "2026-12-24T18:35:03.928Z",
+        "departure_utc": "2026-12-24T18:36:03.928Z",
+        "local_arrival_time": "01:35",
         "time_window_status": "GREEN"
       },
       "stop_experience": {
@@ -1452,9 +1451,9 @@
         "timezone_offset": 7
       },
       "schedule": {
-        "arrival_utc": "2026-12-24T18:44:38.761Z",
-        "departure_utc": "2026-12-24T18:45:38.761Z",
-        "local_arrival_time": "01:44",
+        "arrival_utc": "2026-12-24T18:46:24.637Z",
+        "departure_utc": "2026-12-24T18:47:24.637Z",
+        "local_arrival_time": "01:46",
         "time_window_status": "GREEN"
       },
       "stop_experience": {
@@ -1489,9 +1488,9 @@
         "timezone_offset": 6.5
       },
       "schedule": {
-        "arrival_utc": "2026-12-24T18:48:56.145Z",
-        "departure_utc": "2026-12-24T18:49:56.145Z",
-        "local_arrival_time": "01:18",
+        "arrival_utc": "2026-12-24T18:50:42.021Z",
+        "departure_utc": "2026-12-24T18:51:42.021Z",
+        "local_arrival_time": "01:20",
         "time_window_status": "GREEN"
       },
       "stop_experience": {
@@ -1526,9 +1525,9 @@
         "timezone_offset": 6.5
       },
       "schedule": {
-        "arrival_utc": "2026-12-24T18:52:56.145Z",
-        "departure_utc": "2026-12-24T18:53:56.145Z",
-        "local_arrival_time": "01:22",
+        "arrival_utc": "2026-12-24T18:54:42.021Z",
+        "departure_utc": "2026-12-24T18:55:42.021Z",
+        "local_arrival_time": "01:24",
         "time_window_status": "GREEN"
       },
       "stop_experience": {
@@ -1563,9 +1562,9 @@
         "timezone_offset": 5.5
       },
       "schedule": {
-        "arrival_utc": "2026-12-24T19:00:07.626Z",
-        "departure_utc": "2026-12-24T19:01:07.626Z",
-        "local_arrival_time": "00:30",
+        "arrival_utc": "2026-12-24T19:01:53.502Z",
+        "departure_utc": "2026-12-24T19:02:53.502Z",
+        "local_arrival_time": "00:31",
         "time_window_status": "GREEN"
       },
       "stop_experience": {
@@ -1600,9 +1599,9 @@
         "timezone_offset": 6
       },
       "schedule": {
-        "arrival_utc": "2026-12-24T19:12:57.216Z",
-        "departure_utc": "2026-12-24T19:13:57.216Z",
-        "local_arrival_time": "01:12",
+        "arrival_utc": "2026-12-24T19:14:43.092Z",
+        "departure_utc": "2026-12-24T19:15:43.092Z",
+        "local_arrival_time": "01:14",
         "time_window_status": "GREEN"
       },
       "stop_experience": {
@@ -1637,9 +1636,9 @@
         "timezone_offset": 7
       },
       "schedule": {
-        "arrival_utc": "2026-12-24T19:20:00.699Z",
-        "departure_utc": "2026-12-24T19:21:00.699Z",
-        "local_arrival_time": "02:20",
+        "arrival_utc": "2026-12-24T19:21:46.575Z",
+        "departure_utc": "2026-12-24T19:22:46.575Z",
+        "local_arrival_time": "02:21",
         "time_window_status": "GREEN"
       },
       "stop_experience": {
@@ -1674,9 +1673,9 @@
         "timezone_offset": 5
       },
       "schedule": {
-        "arrival_utc": "2026-12-24T19:24:00.699Z",
-        "departure_utc": "2026-12-24T19:25:00.699Z",
-        "local_arrival_time": "00:24",
+        "arrival_utc": "2026-12-24T19:25:46.575Z",
+        "departure_utc": "2026-12-24T19:26:46.575Z",
+        "local_arrival_time": "00:25",
         "time_window_status": "GREEN"
       },
       "stop_experience": {
@@ -1711,9 +1710,9 @@
         "timezone_offset": 5
       },
       "schedule": {
-        "arrival_utc": "2026-12-24T19:37:37.315Z",
-        "departure_utc": "2026-12-24T19:38:37.315Z",
-        "local_arrival_time": "00:37",
+        "arrival_utc": "2026-12-24T19:39:23.191Z",
+        "departure_utc": "2026-12-24T19:40:23.191Z",
+        "local_arrival_time": "00:39",
         "time_window_status": "GREEN"
       },
       "stop_experience": {
@@ -1748,9 +1747,9 @@
         "timezone_offset": 5
       },
       "schedule": {
-        "arrival_utc": "2026-12-24T19:42:54.288Z",
-        "departure_utc": "2026-12-24T19:43:54.288Z",
-        "local_arrival_time": "00:42",
+        "arrival_utc": "2026-12-24T19:44:40.164Z",
+        "departure_utc": "2026-12-24T19:45:40.164Z",
+        "local_arrival_time": "00:44",
         "time_window_status": "GREEN"
       },
       "stop_experience": {
@@ -1785,9 +1784,9 @@
         "timezone_offset": 5
       },
       "schedule": {
-        "arrival_utc": "2026-12-24T19:47:12.472Z",
-        "departure_utc": "2026-12-24T19:48:12.472Z",
-        "local_arrival_time": "00:47",
+        "arrival_utc": "2026-12-24T19:48:58.348Z",
+        "departure_utc": "2026-12-24T19:49:58.348Z",
+        "local_arrival_time": "00:48",
         "time_window_status": "GREEN"
       },
       "stop_experience": {
@@ -1822,9 +1821,9 @@
         "timezone_offset": 5
       },
       "schedule": {
-        "arrival_utc": "2026-12-24T19:52:37.576Z",
-        "departure_utc": "2026-12-24T19:53:37.576Z",
-        "local_arrival_time": "00:52",
+        "arrival_utc": "2026-12-24T19:54:23.452Z",
+        "departure_utc": "2026-12-24T19:55:23.452Z",
+        "local_arrival_time": "00:54",
         "time_window_status": "GREEN"
       },
       "stop_experience": {
@@ -1859,9 +1858,9 @@
         "timezone_offset": 5
       },
       "schedule": {
-        "arrival_utc": "2026-12-24T19:59:29.691Z",
-        "departure_utc": "2026-12-24T20:00:29.691Z",
-        "local_arrival_time": "00:59",
+        "arrival_utc": "2026-12-24T20:01:15.567Z",
+        "departure_utc": "2026-12-24T20:02:15.567Z",
+        "local_arrival_time": "01:01",
         "time_window_status": "GREEN"
       },
       "stop_experience": {
@@ -1882,22 +1881,22 @@
       "priority": 2
     },
     {
-      "id": "stop_1fjps39_050",
+      "id": "stop_udjexb_050",
       "type": "DELIVERY",
       "comment": "cultural",
-      "candidate_id": "Q167298",
+      "candidate_id": "Q9141",
       "location": {
-        "name": "Khajuraho Group of Monuments",
+        "name": "Taj Mahal",
         "region": "India",
         "country_code": "IN",
         "timezone": "Asia/Kolkata",
-        "lat": 24.85,
-        "lng": 79.93333333,
+        "lat": 27.175,
+        "lng": 78.04194444444444,
         "timezone_offset": 5.5
       },
       "schedule": {
-        "arrival_utc": "2026-12-24T20:07:23.486Z",
-        "departure_utc": "2026-12-24T20:08:23.486Z",
+        "arrival_utc": "2026-12-24T20:07:19.701Z",
+        "departure_utc": "2026-12-24T20:08:19.701Z",
         "local_arrival_time": "01:37",
         "time_window_status": "GREEN"
       },
@@ -1908,14 +1907,14 @@
         "presents_delivered_at_stop": 1
       },
       "transit_to_here": {
-        "description": "Flight to Khajuraho Group of Monuments",
-        "duration_seconds": 414,
-        "distance_km": 1206.9,
+        "description": "Flight to Taj Mahal",
+        "duration_seconds": 305,
+        "distance_km": 887.06,
         "speed_curve": "REGIONAL",
-        "speed_kmh": 10495,
+        "speed_kmh": 10470,
         "camera_zoom": 9
       },
-      "notes": "https://www.wikidata.org/wiki/Q167298",
+      "notes": "https://www.wikidata.org/wiki/Q9141",
       "priority": 2
     },
     {
@@ -1933,8 +1932,8 @@
         "timezone_offset": 5.75
       },
       "schedule": {
-        "arrival_utc": "2026-12-24T20:11:23.486Z",
-        "departure_utc": "2026-12-24T20:12:23.486Z",
+        "arrival_utc": "2026-12-24T20:11:19.701Z",
+        "departure_utc": "2026-12-24T20:12:19.701Z",
         "local_arrival_time": "01:56",
         "time_window_status": "GREEN"
       },
@@ -1947,31 +1946,68 @@
       "transit_to_here": {
         "description": "Flight to Lumbini",
         "duration_seconds": 180,
-        "distance_km": 443.68,
+        "distance_km": 518.11,
         "speed_curve": "REGIONAL",
-        "speed_kmh": 8874,
+        "speed_kmh": 10362,
         "camera_zoom": 9
       },
       "notes": "https://www.wikidata.org/wiki/Q9213",
       "priority": 2
     },
     {
-      "id": "stop_17xkujy_052",
+      "id": "stop_1fjps39_052",
       "type": "DELIVERY",
-      "comment": "hub",
-      "candidate_id": "ne-1159151611",
+      "comment": "cultural",
+      "candidate_id": "Q167298",
       "location": {
-        "name": "Mumbai",
+        "name": "Khajuraho Group of Monuments",
         "region": "India",
         "country_code": "IN",
         "timezone": "Asia/Kolkata",
-        "lat": 19.06840847529168,
-        "lng": 72.8758393972653,
+        "lat": 24.85,
+        "lng": 79.93333333,
         "timezone_offset": 5.5
       },
       "schedule": {
-        "arrival_utc": "2026-12-24T20:20:28.360Z",
-        "departure_utc": "2026-12-24T20:21:28.360Z",
+        "arrival_utc": "2026-12-24T20:15:19.701Z",
+        "departure_utc": "2026-12-24T20:16:19.701Z",
+        "local_arrival_time": "01:45",
+        "time_window_status": "GREEN"
+      },
+      "stop_experience": {
+        "duration_seconds": 60,
+        "camera_zoom": 14,
+        "weather_condition": "clear",
+        "presents_delivered_at_stop": 1
+      },
+      "transit_to_here": {
+        "description": "Flight to Khajuraho Group of Monuments",
+        "duration_seconds": 180,
+        "distance_km": 443.68,
+        "speed_curve": "REGIONAL",
+        "speed_kmh": 8874,
+        "camera_zoom": 9
+      },
+      "notes": "https://www.wikidata.org/wiki/Q167298",
+      "priority": 2
+    },
+    {
+      "id": "stop_54zhwv_053",
+      "type": "DELIVERY",
+      "comment": "cultural",
+      "candidate_id": "Q189616",
+      "location": {
+        "name": "Ellora Caves",
+        "region": "India",
+        "country_code": "IN",
+        "timezone": "Asia/Kolkata",
+        "lat": 20.026388888889,
+        "lng": 75.179166666667,
+        "timezone_offset": 5.5
+      },
+      "schedule": {
+        "arrival_utc": "2026-12-24T20:20:28.408Z",
+        "departure_utc": "2026-12-24T20:21:28.408Z",
         "local_arrival_time": "01:50",
         "time_window_status": "GREEN"
       },
@@ -1982,51 +2018,14 @@
         "presents_delivered_at_stop": 1
       },
       "transit_to_here": {
-        "description": "Flight to Mumbai",
-        "duration_seconds": 485,
-        "distance_km": 1414.21,
+        "description": "Flight to Ellora Caves",
+        "duration_seconds": 249,
+        "distance_km": 725.4,
         "speed_curve": "REGIONAL",
-        "speed_kmh": 10497,
+        "speed_kmh": 10488,
         "camera_zoom": 9
       },
-      "notes": "https://www.naturalearthdata.com/downloads/10m-cultural-vectors/10m-populated-places/",
-      "priority": 1
-    },
-    {
-      "id": "stop_14xe1zl_053",
-      "type": "DELIVERY",
-      "comment": "cultural",
-      "candidate_id": "Q9468",
-      "location": {
-        "name": "Dholavira",
-        "region": "India",
-        "country_code": "IN",
-        "timezone": "Asia/Kolkata",
-        "lat": 23.88611111,
-        "lng": 70.21666667,
-        "timezone_offset": 5.5
-      },
-      "schedule": {
-        "arrival_utc": "2026-12-24T20:24:54.823Z",
-        "departure_utc": "2026-12-24T20:25:54.823Z",
-        "local_arrival_time": "01:54",
-        "time_window_status": "GREEN"
-      },
-      "stop_experience": {
-        "duration_seconds": 60,
-        "camera_zoom": 14,
-        "weather_condition": "clear",
-        "presents_delivered_at_stop": 1
-      },
-      "transit_to_here": {
-        "description": "Flight to Dholavira",
-        "duration_seconds": 207,
-        "distance_km": 602.18,
-        "speed_curve": "REGIONAL",
-        "speed_kmh": 10473,
-        "camera_zoom": 9
-      },
-      "notes": "https://www.wikidata.org/wiki/Q9468",
+      "notes": "https://www.wikidata.org/wiki/Q189616",
       "priority": 2
     },
     {
@@ -2044,9 +2043,9 @@
         "timezone_offset": 5
       },
       "schedule": {
-        "arrival_utc": "2026-12-24T20:28:54.823Z",
-        "departure_utc": "2026-12-24T20:29:54.823Z",
-        "local_arrival_time": "01:28",
+        "arrival_utc": "2026-12-24T20:27:39.614Z",
+        "departure_utc": "2026-12-24T20:28:39.614Z",
+        "local_arrival_time": "01:27",
         "time_window_status": "GREEN"
       },
       "stop_experience": {
@@ -2057,33 +2056,33 @@
       },
       "transit_to_here": {
         "description": "Flight to Mohenjo-daro",
-        "duration_seconds": 180,
-        "distance_km": 435.84,
+        "duration_seconds": 372,
+        "distance_km": 1082.68,
         "speed_curve": "REGIONAL",
-        "speed_kmh": 8717,
+        "speed_kmh": 10478,
         "camera_zoom": 9
       },
       "notes": "https://www.wikidata.org/wiki/Q5725",
       "priority": 2
     },
     {
-      "id": "stop_54zhwv_055",
+      "id": "stop_17xkujy_055",
       "type": "DELIVERY",
-      "comment": "cultural",
-      "candidate_id": "Q189616",
+      "comment": "hub",
+      "candidate_id": "ne-1159151611",
       "location": {
-        "name": "Ellora Caves",
+        "name": "Mumbai",
         "region": "India",
         "country_code": "IN",
         "timezone": "Asia/Kolkata",
-        "lat": 20.026388888889,
-        "lng": 75.179166666667,
+        "lat": 19.06840847529168,
+        "lng": 72.8758393972653,
         "timezone_offset": 5.5
       },
       "schedule": {
-        "arrival_utc": "2026-12-24T20:36:06.029Z",
-        "departure_utc": "2026-12-24T20:37:06.029Z",
-        "local_arrival_time": "02:06",
+        "arrival_utc": "2026-12-24T20:34:35.506Z",
+        "departure_utc": "2026-12-24T20:35:35.506Z",
+        "local_arrival_time": "02:04",
         "time_window_status": "GREEN"
       },
       "stop_experience": {
@@ -2093,15 +2092,15 @@
         "presents_delivered_at_stop": 1
       },
       "transit_to_here": {
-        "description": "Flight to Ellora Caves",
-        "duration_seconds": 372,
-        "distance_km": 1082.68,
+        "description": "Flight to Mumbai",
+        "duration_seconds": 356,
+        "distance_km": 1038.02,
         "speed_curve": "REGIONAL",
-        "speed_kmh": 10478,
+        "speed_kmh": 10497,
         "camera_zoom": 9
       },
-      "notes": "https://www.wikidata.org/wiki/Q189616",
-      "priority": 2
+      "notes": "https://www.naturalearthdata.com/downloads/10m-cultural-vectors/10m-populated-places/",
+      "priority": 1
     },
     {
       "id": "stop_zil3je_056",
@@ -2118,9 +2117,9 @@
         "timezone_offset": 5.5
       },
       "schedule": {
-        "arrival_utc": "2026-12-24T20:40:10.868Z",
-        "departure_utc": "2026-12-24T20:41:10.868Z",
-        "local_arrival_time": "02:10",
+        "arrival_utc": "2026-12-24T20:38:48.675Z",
+        "departure_utc": "2026-12-24T20:39:48.675Z",
+        "local_arrival_time": "02:08",
         "time_window_status": "GREEN"
       },
       "stop_experience": {
@@ -2131,10 +2130,10 @@
       },
       "transit_to_here": {
         "description": "Flight to Hampi",
-        "duration_seconds": 185,
-        "distance_km": 539.11,
+        "duration_seconds": 194,
+        "distance_km": 563.41,
         "speed_curve": "REGIONAL",
-        "speed_kmh": 10491,
+        "speed_kmh": 10455,
         "camera_zoom": 9
       },
       "notes": "https://www.wikidata.org/wiki/Q26732",
@@ -2155,9 +2154,9 @@
         "timezone_offset": 5.5
       },
       "schedule": {
-        "arrival_utc": "2026-12-24T20:46:15.643Z",
-        "departure_utc": "2026-12-24T20:47:15.643Z",
-        "local_arrival_time": "02:16",
+        "arrival_utc": "2026-12-24T20:44:53.450Z",
+        "departure_utc": "2026-12-24T20:45:53.450Z",
+        "local_arrival_time": "02:14",
         "time_window_status": "GREEN"
       },
       "stop_experience": {
@@ -2192,9 +2191,9 @@
         "timezone_offset": 4
       },
       "schedule": {
-        "arrival_utc": "2026-12-24T21:10:20.697Z",
-        "departure_utc": "2026-12-24T21:11:20.697Z",
-        "local_arrival_time": "01:10",
+        "arrival_utc": "2026-12-24T21:08:58.504Z",
+        "departure_utc": "2026-12-24T21:09:58.504Z",
+        "local_arrival_time": "01:08",
         "time_window_status": "GREEN"
       },
       "stop_experience": {
@@ -2242,10 +2241,10 @@
       },
       "transit_to_here": {
         "description": "Flight to Maroantsetra",
-        "duration_seconds": 520,
+        "duration_seconds": 602,
         "distance_km": 975.79,
-        "speed_curve": "REGIONAL",
-        "speed_kmh": 6755,
+        "speed_curve": "CRUISING",
+        "speed_kmh": 5835,
         "camera_zoom": 9
       },
       "notes": "https://www.naturalearthdata.com/downloads/10m-cultural-vectors/10m-populated-places/",
@@ -3478,7 +3477,7 @@
       "comment": "special",
       "candidate_id": "Q26087",
       "location": {
-        "name": "Tromsø",
+        "name": "Troms?",
         "region": "Norway",
         "country_code": "NO",
         "timezone": "Europe/Oslo",
@@ -3499,7 +3498,7 @@
         "presents_delivered_at_stop": 1
       },
       "transit_to_here": {
-        "description": "Flight to Tromsø",
+        "description": "Flight to Troms?",
         "duration_seconds": 180,
         "distance_km": 305.45,
         "speed_curve": "REGIONAL",
@@ -4375,9 +4374,9 @@
         "timezone_offset": -2
       },
       "schedule": {
-        "arrival_utc": "2026-12-25T04:45:14.206Z",
-        "departure_utc": "2026-12-25T04:46:14.206Z",
-        "local_arrival_time": "02:45",
+        "arrival_utc": "2026-12-25T04:40:14.186Z",
+        "departure_utc": "2026-12-25T04:41:14.186Z",
+        "local_arrival_time": "02:40",
         "time_window_status": "GREEN"
       },
       "stop_experience": {
@@ -4388,10 +4387,10 @@
       },
       "transit_to_here": {
         "description": "Flight to Paamiut",
-        "duration_seconds": 495,
+        "duration_seconds": 195,
         "distance_km": 238.43,
         "speed_curve": "CRUISING",
-        "speed_kmh": 1734,
+        "speed_kmh": 4402,
         "camera_zoom": 9
       },
       "notes": "https://www.naturalearthdata.com/downloads/10m-cultural-vectors/10m-populated-places/",
@@ -4412,9 +4411,9 @@
         "timezone_offset": -3.5
       },
       "schedule": {
-        "arrival_utc": "2026-12-25T04:49:52.115Z",
-        "departure_utc": "2026-12-25T04:50:52.115Z",
-        "local_arrival_time": "01:19",
+        "arrival_utc": "2026-12-25T04:44:52.095Z",
+        "departure_utc": "2026-12-25T04:45:52.095Z",
+        "local_arrival_time": "01:14",
         "time_window_status": "GREEN"
       },
       "stop_experience": {
@@ -4449,9 +4448,9 @@
         "timezone_offset": -2
       },
       "schedule": {
-        "arrival_utc": "2026-12-25T04:56:00.000Z",
-        "departure_utc": "2026-12-25T04:57:00.000Z",
-        "local_arrival_time": "02:56",
+        "arrival_utc": "2026-12-25T04:50:59.980Z",
+        "departure_utc": "2026-12-25T04:51:59.980Z",
+        "local_arrival_time": "02:50",
         "time_window_status": "GREEN"
       },
       "stop_experience": {
@@ -4486,9 +4485,9 @@
         "timezone_offset": -2
       },
       "schedule": {
-        "arrival_utc": "2026-12-25T05:00:00.000Z",
-        "departure_utc": "2026-12-25T05:01:00.000Z",
-        "local_arrival_time": "03:00",
+        "arrival_utc": "2026-12-25T04:54:59.980Z",
+        "departure_utc": "2026-12-25T04:55:59.980Z",
+        "local_arrival_time": "02:54",
         "time_window_status": "GREEN"
       },
       "stop_experience": {
@@ -4523,9 +4522,9 @@
         "timezone_offset": -3
       },
       "schedule": {
-        "arrival_utc": "2026-12-25T05:23:30.917Z",
-        "departure_utc": "2026-12-25T05:24:30.917Z",
-        "local_arrival_time": "02:23",
+        "arrival_utc": "2026-12-25T05:17:10.655Z",
+        "departure_utc": "2026-12-25T05:18:10.655Z",
+        "local_arrival_time": "02:17",
         "time_window_status": "GREEN"
       },
       "stop_experience": {
@@ -4536,33 +4535,33 @@
       },
       "transit_to_here": {
         "description": "Flight to Groningen, Suriname",
-        "duration_seconds": 1351,
+        "duration_seconds": 1271,
         "distance_km": 7059.3,
         "speed_curve": "HYPERSONIC",
-        "speed_kmh": 18811,
+        "speed_kmh": 19995,
         "camera_zoom": 9
       },
       "notes": "https://www.naturalearthdata.com/downloads/10m-cultural-vectors/10m-populated-places/",
       "priority": 2
     },
     {
-      "id": "stop_48u2er_122",
+      "id": "stop_8ci49q_122",
       "type": "DELIVERY",
       "comment": "underserved",
-      "candidate_id": "ne-1159144867",
+      "candidate_id": "ne-1159127175",
       "location": {
-        "name": "Puerto Quijarro",
-        "region": "Bolivia",
-        "country_code": "BO",
-        "timezone": "America/La_Paz",
-        "lat": -17.7796008,
-        "lng": -57.7700245,
+        "name": "Corriverton",
+        "region": "Guyana",
+        "country_code": "GY",
+        "timezone": "America/Guyana",
+        "lat": 5.9000391,
+        "lng": -57.1699836,
         "timezone_offset": -4
       },
       "schedule": {
-        "arrival_utc": "2026-12-25T05:32:24.969Z",
-        "departure_utc": "2026-12-25T05:33:24.969Z",
-        "local_arrival_time": "01:32",
+        "arrival_utc": "2026-12-25T05:21:10.655Z",
+        "departure_utc": "2026-12-25T05:22:10.655Z",
+        "local_arrival_time": "01:21",
         "time_window_status": "GREEN"
       },
       "stop_experience": {
@@ -4572,18 +4571,55 @@
         "presents_delivered_at_stop": 1
       },
       "transit_to_here": {
-        "description": "Flight to Puerto Quijarro",
-        "duration_seconds": 475,
-        "distance_km": 2633.62,
-        "speed_curve": "HYPERSONIC",
-        "speed_kmh": 19960,
+        "description": "Flight to Corriverton",
+        "duration_seconds": 180,
+        "distance_km": 187.18,
+        "speed_curve": "CRUISING",
+        "speed_kmh": 3744,
         "camera_zoom": 9
       },
       "notes": "https://www.naturalearthdata.com/downloads/10m-cultural-vectors/10m-populated-places/",
       "priority": 2
     },
     {
-      "id": "stop_14cfaom_123",
+      "id": "stop_1o7m818_123",
+      "type": "DELIVERY",
+      "comment": "cultural",
+      "candidate_id": "Q33934",
+      "location": {
+        "name": "Jesuit Missions of Chiquitos",
+        "region": "Bolivia",
+        "country_code": "BO",
+        "timezone": "America/La_Paz",
+        "lat": -16.2748,
+        "lng": -62.5072,
+        "timezone_offset": -4
+      },
+      "schedule": {
+        "arrival_utc": "2026-12-25T05:29:46.901Z",
+        "departure_utc": "2026-12-25T05:30:46.901Z",
+        "local_arrival_time": "01:29",
+        "time_window_status": "GREEN"
+      },
+      "stop_experience": {
+        "duration_seconds": 60,
+        "camera_zoom": 14,
+        "weather_condition": "clear",
+        "presents_delivered_at_stop": 1
+      },
+      "transit_to_here": {
+        "description": "Flight to Jesuit Missions of Chiquitos",
+        "duration_seconds": 457,
+        "distance_km": 2534.7,
+        "speed_curve": "HYPERSONIC",
+        "speed_kmh": 19967,
+        "camera_zoom": 9
+      },
+      "notes": "https://www.wikidata.org/wiki/Q33934",
+      "priority": 2
+    },
+    {
+      "id": "stop_14cfaom_124",
       "type": "DELIVERY",
       "comment": "underserved",
       "candidate_id": "ne-1159144895",
@@ -4597,9 +4633,9 @@
         "timezone_offset": -4
       },
       "schedule": {
-        "arrival_utc": "2026-12-25T05:36:24.969Z",
-        "departure_utc": "2026-12-25T05:37:24.969Z",
-        "local_arrival_time": "01:36",
+        "arrival_utc": "2026-12-25T05:33:46.901Z",
+        "departure_utc": "2026-12-25T05:34:46.901Z",
+        "local_arrival_time": "01:33",
         "time_window_status": "GREEN"
       },
       "stop_experience": {
@@ -4611,16 +4647,16 @@
       "transit_to_here": {
         "description": "Flight to Puerto Suárez",
         "duration_seconds": 180,
-        "distance_km": 130.37,
-        "speed_curve": "CRUISING",
-        "speed_kmh": 2607,
+        "distance_km": 576.21,
+        "speed_curve": "REGIONAL",
+        "speed_kmh": 11524,
         "camera_zoom": 9
       },
       "notes": "https://www.naturalearthdata.com/downloads/10m-cultural-vectors/10m-populated-places/",
       "priority": 2
     },
     {
-      "id": "stop_2pcxc2_124",
+      "id": "stop_2pcxc2_125",
       "type": "DELIVERY",
       "comment": "underserved",
       "candidate_id": "ne-1159146417",
@@ -4634,9 +4670,9 @@
         "timezone_offset": -3
       },
       "schedule": {
-        "arrival_utc": "2026-12-25T05:40:24.969Z",
-        "departure_utc": "2026-12-25T05:41:24.969Z",
-        "local_arrival_time": "02:40",
+        "arrival_utc": "2026-12-25T05:37:46.901Z",
+        "departure_utc": "2026-12-25T05:38:46.901Z",
+        "local_arrival_time": "02:37",
         "time_window_status": "GREEN"
       },
       "stop_experience": {
@@ -4657,7 +4693,7 @@
       "priority": 2
     },
     {
-      "id": "stop_f2pen_125",
+      "id": "stop_f2pen_126",
       "type": "DELIVERY",
       "comment": "underserved",
       "candidate_id": "ne-1159122193",
@@ -4671,9 +4707,9 @@
         "timezone_offset": -3
       },
       "schedule": {
-        "arrival_utc": "2026-12-25T05:44:24.969Z",
-        "departure_utc": "2026-12-25T05:45:24.969Z",
-        "local_arrival_time": "02:44",
+        "arrival_utc": "2026-12-25T05:41:46.901Z",
+        "departure_utc": "2026-12-25T05:42:46.901Z",
+        "local_arrival_time": "02:41",
         "time_window_status": "GREEN"
       },
       "stop_experience": {
@@ -4694,7 +4730,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1qg2htb_126",
+      "id": "stop_1qg2htb_127",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159151559",
@@ -4708,9 +4744,9 @@
         "timezone_offset": -3
       },
       "schedule": {
-        "arrival_utc": "2026-12-25T05:48:30.932Z",
-        "departure_utc": "2026-12-25T05:49:30.932Z",
-        "local_arrival_time": "02:48",
+        "arrival_utc": "2026-12-25T05:45:52.864Z",
+        "departure_utc": "2026-12-25T05:46:52.864Z",
+        "local_arrival_time": "02:45",
         "time_window_status": "GREEN"
       },
       "stop_experience": {
@@ -4731,17 +4767,17 @@
       "priority": 1
     },
     {
-      "id": "stop_zhow4u_127",
+      "id": "stop_1i0giop_128",
       "type": "DELIVERY",
-      "comment": "cultural",
-      "candidate_id": "Q27964",
+      "comment": "special",
+      "candidate_id": "Q4078",
       "location": {
-        "name": "Churches of Chiloé",
+        "name": "Cape Horn",
         "region": "Chile",
         "country_code": "CL",
-        "timezone": "America/Santiago",
-        "lat": -42.5,
-        "lng": -73.766666666667,
+        "timezone": "America/Punta_Arenas",
+        "lat": -55.98,
+        "lng": -67.289166666667,
         "timezone_offset": -3
       },
       "schedule": {
@@ -4757,28 +4793,28 @@
         "presents_delivered_at_stop": 1
       },
       "transit_to_here": {
-        "description": "Flight to Churches of Chiloé",
-        "duration_seconds": 287,
-        "distance_km": 1592.22,
+        "description": "Flight to Cape Horn",
+        "duration_seconds": 445,
+        "distance_km": 2470.38,
         "speed_curve": "HYPERSONIC",
-        "speed_kmh": 19972,
+        "speed_kmh": 19985,
         "camera_zoom": 9
       },
-      "notes": "https://www.wikidata.org/wiki/Q27964",
+      "notes": "https://www.wikidata.org/wiki/Q4078",
       "priority": 2
     },
     {
-      "id": "stop_1i0giop_128",
+      "id": "stop_zhow4u_129",
       "type": "DELIVERY",
-      "comment": "special",
-      "candidate_id": "Q4078",
+      "comment": "cultural",
+      "candidate_id": "Q27964",
       "location": {
-        "name": "Cape Horn",
+        "name": "Churches of Chiloé",
         "region": "Chile",
         "country_code": "CL",
-        "timezone": "America/Punta_Arenas",
-        "lat": -55.98,
-        "lng": -67.289166666667,
+        "timezone": "America/Santiago",
+        "lat": -42.5,
+        "lng": -73.766666666667,
         "timezone_offset": -3
       },
       "schedule": {
@@ -4794,51 +4830,14 @@
         "presents_delivered_at_stop": 1
       },
       "transit_to_here": {
-        "description": "Flight to Cape Horn",
+        "description": "Flight to Churches of Chiloé",
         "duration_seconds": 283,
         "distance_km": 1569.26,
         "speed_curve": "HYPERSONIC",
         "speed_kmh": 19962,
         "camera_zoom": 9
       },
-      "notes": "https://www.wikidata.org/wiki/Q4078",
-      "priority": 2
-    },
-    {
-      "id": "stop_1o7m818_129",
-      "type": "DELIVERY",
-      "comment": "cultural",
-      "candidate_id": "Q33934",
-      "location": {
-        "name": "Jesuit Missions of Chiquitos",
-        "region": "Bolivia",
-        "country_code": "BO",
-        "timezone": "America/La_Paz",
-        "lat": -16.2748,
-        "lng": -62.5072,
-        "timezone_offset": -4
-      },
-      "schedule": {
-        "arrival_utc": "2026-12-25T06:29:20.491Z",
-        "departure_utc": "2026-12-25T06:30:20.491Z",
-        "local_arrival_time": "02:29",
-        "time_window_status": "GREEN"
-      },
-      "stop_experience": {
-        "duration_seconds": 60,
-        "camera_zoom": 14,
-        "weather_condition": "clear",
-        "presents_delivered_at_stop": 1
-      },
-      "transit_to_here": {
-        "description": "Flight to Jesuit Missions of Chiquitos",
-        "duration_seconds": 1701,
-        "distance_km": 4433.63,
-        "speed_curve": "REGIONAL",
-        "speed_kmh": 9383,
-        "camera_zoom": 9
-      },
-      "notes": "https://www.wikidata.org/wiki/Q33934",
+      "notes": "https://www.wikidata.org/wiki/Q27964",
       "priority": 2
     },
     {
@@ -4856,9 +4855,9 @@
         "timezone_offset": -4
       },
       "schedule": {
-        "arrival_utc": "2026-12-25T06:33:20.491Z",
-        "departure_utc": "2026-12-25T06:34:20.491Z",
-        "local_arrival_time": "02:33",
+        "arrival_utc": "2026-12-25T06:34:55.700Z",
+        "departure_utc": "2026-12-25T06:35:55.700Z",
+        "local_arrival_time": "02:34",
         "time_window_status": "GREEN"
       },
       "stop_experience": {
@@ -4869,10 +4868,10 @@
       },
       "transit_to_here": {
         "description": "Flight to Tiwanaku",
-        "duration_seconds": 180,
-        "distance_km": 658.41,
-        "speed_curve": "REGIONAL",
-        "speed_kmh": 13168,
+        "duration_seconds": 2036,
+        "distance_km": 2925.36,
+        "speed_curve": "CRUISING",
+        "speed_kmh": 5173,
         "camera_zoom": 9
       },
       "notes": "https://www.wikidata.org/wiki/Q61750",
@@ -4893,9 +4892,9 @@
         "timezone_offset": -5
       },
       "schedule": {
-        "arrival_utc": "2026-12-25T06:37:26.319Z",
-        "departure_utc": "2026-12-25T06:38:26.319Z",
-        "local_arrival_time": "01:37",
+        "arrival_utc": "2026-12-25T06:39:01.528Z",
+        "departure_utc": "2026-12-25T06:40:01.528Z",
+        "local_arrival_time": "01:39",
         "time_window_status": "GREEN"
       },
       "stop_experience": {
@@ -4930,9 +4929,9 @@
         "timezone_offset": -5
       },
       "schedule": {
-        "arrival_utc": "2026-12-25T06:42:24.791Z",
-        "departure_utc": "2026-12-25T06:43:24.791Z",
-        "local_arrival_time": "01:42",
+        "arrival_utc": "2026-12-25T06:44:00.000Z",
+        "departure_utc": "2026-12-25T06:45:00.000Z",
+        "local_arrival_time": "01:44",
         "time_window_status": "GREEN"
       },
       "stop_experience": {
@@ -4967,9 +4966,9 @@
         "timezone_offset": -5
       },
       "schedule": {
-        "arrival_utc": "2026-12-25T06:46:24.791Z",
-        "departure_utc": "2026-12-25T06:47:24.791Z",
-        "local_arrival_time": "01:46",
+        "arrival_utc": "2026-12-25T06:48:00.000Z",
+        "departure_utc": "2026-12-25T06:49:00.000Z",
+        "local_arrival_time": "01:48",
         "time_window_status": "GREEN"
       },
       "stop_experience": {
@@ -5004,9 +5003,9 @@
         "timezone_offset": -5
       },
       "schedule": {
-        "arrival_utc": "2026-12-25T06:50:24.791Z",
-        "departure_utc": "2026-12-25T06:51:24.791Z",
-        "local_arrival_time": "01:50",
+        "arrival_utc": "2026-12-25T06:52:00.000Z",
+        "departure_utc": "2026-12-25T06:53:00.000Z",
+        "local_arrival_time": "01:52",
         "time_window_status": "GREEN"
       },
       "stop_experience": {
@@ -5041,9 +5040,9 @@
         "timezone_offset": -4
       },
       "schedule": {
-        "arrival_utc": "2026-12-25T06:54:24.791Z",
-        "departure_utc": "2026-12-25T06:55:24.791Z",
-        "local_arrival_time": "02:54",
+        "arrival_utc": "2026-12-25T06:56:00.000Z",
+        "departure_utc": "2026-12-25T06:57:00.000Z",
+        "local_arrival_time": "02:56",
         "time_window_status": "GREEN"
       },
       "stop_experience": {
@@ -5064,7 +5063,44 @@
       "priority": 2
     },
     {
-      "id": "stop_1o8bz9h_136",
+      "id": "stop_upk7s2_136",
+      "type": "DELIVERY",
+      "comment": "hub",
+      "candidate_id": "ne-1159151493",
+      "location": {
+        "name": "Caracas",
+        "region": "Venezuela",
+        "country_code": "VE",
+        "timezone": "America/Caracas",
+        "lat": 10.5029444,
+        "lng": -66.9189831,
+        "timezone_offset": -4
+      },
+      "schedule": {
+        "arrival_utc": "2026-12-25T07:00:00.000Z",
+        "departure_utc": "2026-12-25T07:01:00.000Z",
+        "local_arrival_time": "03:00",
+        "time_window_status": "GREEN"
+      },
+      "stop_experience": {
+        "duration_seconds": 60,
+        "camera_zoom": 14,
+        "weather_condition": "clear",
+        "presents_delivered_at_stop": 1
+      },
+      "transit_to_here": {
+        "description": "Flight to Caracas",
+        "duration_seconds": 180,
+        "distance_km": 518.98,
+        "speed_curve": "REGIONAL",
+        "speed_kmh": 10380,
+        "camera_zoom": 9
+      },
+      "notes": "https://www.naturalearthdata.com/downloads/10m-cultural-vectors/10m-populated-places/",
+      "priority": 1
+    },
+    {
+      "id": "stop_1o8bz9h_137",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159151575",
@@ -5078,9 +5114,9 @@
         "timezone_offset": -5
       },
       "schedule": {
-        "arrival_utc": "2026-12-25T07:05:26.453Z",
-        "departure_utc": "2026-12-25T07:06:26.453Z",
-        "local_arrival_time": "02:05",
+        "arrival_utc": "2026-12-25T07:11:49.564Z",
+        "departure_utc": "2026-12-25T07:12:49.564Z",
+        "local_arrival_time": "02:11",
         "time_window_status": "GREEN"
       },
       "stop_experience": {
@@ -5091,17 +5127,17 @@
       },
       "transit_to_here": {
         "description": "Flight to New York",
-        "duration_seconds": 602,
-        "distance_km": 3342.56,
+        "duration_seconds": 650,
+        "distance_km": 3431.34,
         "speed_curve": "HYPERSONIC",
-        "speed_kmh": 19989,
+        "speed_kmh": 19004,
         "camera_zoom": 9
       },
       "notes": "https://www.naturalearthdata.com/downloads/10m-cultural-vectors/10m-populated-places/",
       "priority": 1
     },
     {
-      "id": "stop_1t4jjsi_137",
+      "id": "stop_1t4jjsi_138",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159151457",
@@ -5115,9 +5151,9 @@
         "timezone_offset": -5
       },
       "schedule": {
-        "arrival_utc": "2026-12-25T07:09:26.453Z",
-        "departure_utc": "2026-12-25T07:10:26.453Z",
-        "local_arrival_time": "02:09",
+        "arrival_utc": "2026-12-25T07:15:49.564Z",
+        "departure_utc": "2026-12-25T07:16:49.564Z",
+        "local_arrival_time": "02:15",
         "time_window_status": "GREEN"
       },
       "stop_experience": {
@@ -5138,7 +5174,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1s403z5_138",
+      "id": "stop_1s403z5_139",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159151557",
@@ -5152,9 +5188,9 @@
         "timezone_offset": -5
       },
       "schedule": {
-        "arrival_utc": "2026-12-25T07:13:26.453Z",
-        "departure_utc": "2026-12-25T07:14:26.453Z",
-        "local_arrival_time": "02:13",
+        "arrival_utc": "2026-12-25T07:19:49.564Z",
+        "departure_utc": "2026-12-25T07:20:49.564Z",
+        "local_arrival_time": "02:19",
         "time_window_status": "GREEN"
       },
       "stop_experience": {
@@ -5175,7 +5211,44 @@
       "priority": 1
     },
     {
-      "id": "stop_10dd1_139",
+      "id": "stop_u5l0e4_140",
+      "type": "DELIVERY",
+      "comment": "hub",
+      "candidate_id": "ne-1159151491",
+      "location": {
+        "name": "Chicago",
+        "region": "United States",
+        "country_code": "US",
+        "timezone": "America/Chicago",
+        "lat": 41.847961283364114,
+        "lng": -87.63523655322338,
+        "timezone_offset": -6
+      },
+      "schedule": {
+        "arrival_utc": "2026-12-25T07:23:49.564Z",
+        "departure_utc": "2026-12-25T07:24:49.564Z",
+        "local_arrival_time": "01:23",
+        "time_window_status": "GREEN"
+      },
+      "stop_experience": {
+        "duration_seconds": 60,
+        "camera_zoom": 14,
+        "weather_condition": "clear",
+        "presents_delivered_at_stop": 1
+      },
+      "transit_to_here": {
+        "description": "Flight to Chicago",
+        "duration_seconds": 180,
+        "distance_km": 702.53,
+        "speed_curve": "HYPERSONIC",
+        "speed_kmh": 14051,
+        "camera_zoom": 9
+      },
+      "notes": "https://www.naturalearthdata.com/downloads/10m-cultural-vectors/10m-populated-places/",
+      "priority": 1
+    },
+    {
+      "id": "stop_10dd1_141",
       "type": "DELIVERY",
       "comment": "cultural",
       "candidate_id": "Q5859",
@@ -5189,9 +5262,9 @@
         "timezone_offset": -6
       },
       "schedule": {
-        "arrival_utc": "2026-12-25T07:22:31.256Z",
-        "departure_utc": "2026-12-25T07:23:31.256Z",
-        "local_arrival_time": "01:22",
+        "arrival_utc": "2026-12-25T07:31:53.476Z",
+        "departure_utc": "2026-12-25T07:32:53.476Z",
+        "local_arrival_time": "01:31",
         "time_window_status": "GREEN"
       },
       "stop_experience": {
@@ -5202,17 +5275,17 @@
       },
       "transit_to_here": {
         "description": "Flight to Chichen Itza",
-        "duration_seconds": 485,
-        "distance_km": 2693.35,
+        "duration_seconds": 424,
+        "distance_km": 2355.06,
         "speed_curve": "HYPERSONIC",
-        "speed_kmh": 19992,
+        "speed_kmh": 19996,
         "camera_zoom": 9
       },
       "notes": "https://www.wikidata.org/wiki/Q5859",
       "priority": 2
     },
     {
-      "id": "stop_mdsa1g_140",
+      "id": "stop_mdsa1g_142",
       "type": "DELIVERY",
       "comment": "nature",
       "candidate_id": "Q28361",
@@ -5226,9 +5299,9 @@
         "timezone_offset": -6
       },
       "schedule": {
-        "arrival_utc": "2026-12-25T07:26:31.256Z",
-        "departure_utc": "2026-12-25T07:27:31.256Z",
-        "local_arrival_time": "01:26",
+        "arrival_utc": "2026-12-25T07:35:53.476Z",
+        "departure_utc": "2026-12-25T07:36:53.476Z",
+        "local_arrival_time": "01:35",
         "time_window_status": "GREEN"
       },
       "stop_experience": {
@@ -5249,23 +5322,23 @@
       "priority": 2
     },
     {
-      "id": "stop_1fh01zi_141",
+      "id": "stop_1rlb2r4_143",
       "type": "DELIVERY",
       "comment": "cultural",
-      "candidate_id": "Q172613",
+      "candidate_id": "Q214827",
       "location": {
-        "name": "Teotihuacan",
-        "region": "Mexico",
-        "country_code": "MX",
-        "timezone": "America/Mexico_City",
-        "lat": 19.6925,
-        "lng": -98.843888888889,
+        "name": "Copán",
+        "region": "Honduras",
+        "country_code": "HN",
+        "timezone": "America/Tegucigalpa",
+        "lat": 14.837963888888888,
+        "lng": -89.14244166666667,
         "timezone_offset": -6
       },
       "schedule": {
-        "arrival_utc": "2026-12-25T07:31:01.752Z",
-        "departure_utc": "2026-12-25T07:32:01.752Z",
-        "local_arrival_time": "01:31",
+        "arrival_utc": "2026-12-25T07:39:53.476Z",
+        "departure_utc": "2026-12-25T07:40:53.476Z",
+        "local_arrival_time": "01:39",
         "time_window_status": "GREEN"
       },
       "stop_experience": {
@@ -5275,23 +5348,60 @@
         "presents_delivered_at_stop": 1
       },
       "transit_to_here": {
-        "description": "Flight to Teotihuacan",
-        "duration_seconds": 211,
-        "distance_km": 1169.42,
-        "speed_curve": "HYPERSONIC",
-        "speed_kmh": 19952,
+        "description": "Flight to Copán",
+        "duration_seconds": 180,
+        "distance_km": 293.66,
+        "speed_curve": "CRUISING",
+        "speed_kmh": 5873,
         "camera_zoom": 9
       },
-      "notes": "https://www.wikidata.org/wiki/Q172613",
+      "notes": "https://www.wikidata.org/wiki/Q214827",
       "priority": 2
     },
     {
-      "id": "stop_gqk8iv_142",
+      "id": "stop_yn4ygb_144",
+      "type": "DELIVERY",
+      "comment": "cultural",
+      "candidate_id": "Q27985",
+      "location": {
+        "name": "Joya de Cerén",
+        "region": "El Salvador",
+        "country_code": "SV",
+        "timezone": "America/El_Salvador",
+        "lat": 13.827494444444444,
+        "lng": -89.35615833333334,
+        "timezone_offset": -6
+      },
+      "schedule": {
+        "arrival_utc": "2026-12-25T07:43:53.476Z",
+        "departure_utc": "2026-12-25T07:44:53.476Z",
+        "local_arrival_time": "01:43",
+        "time_window_status": "GREEN"
+      },
+      "stop_experience": {
+        "duration_seconds": 60,
+        "camera_zoom": 14,
+        "weather_condition": "clear",
+        "presents_delivered_at_stop": 1
+      },
+      "transit_to_here": {
+        "description": "Flight to Joya de Cerén",
+        "duration_seconds": 180,
+        "distance_km": 114.69,
+        "speed_curve": "CRUISING",
+        "speed_kmh": 2294,
+        "camera_zoom": 9
+      },
+      "notes": "https://www.wikidata.org/wiki/Q27985",
+      "priority": 2
+    },
+    {
+      "id": "stop_gqk8iv_145",
       "type": "DELIVERY",
       "comment": "special",
       "candidate_id": "Q9009773",
       "location": {
-        "name": "Isla de Pascua",
+        "name": "Easter Island (Rapa Nui)",
         "region": "Chile",
         "country_code": "CL",
         "timezone": "Pacific/Easter",
@@ -5300,9 +5410,9 @@
         "timezone_offset": -5
       },
       "schedule": {
-        "arrival_utc": "2026-12-25T07:48:00.000Z",
-        "departure_utc": "2026-12-25T07:49:00.000Z",
-        "local_arrival_time": "02:48",
+        "arrival_utc": "2026-12-25T08:00:00.000Z",
+        "departure_utc": "2026-12-25T08:01:00.000Z",
+        "local_arrival_time": "03:00",
         "time_window_status": "GREEN"
       },
       "stop_experience": {
@@ -5312,18 +5422,18 @@
         "presents_delivered_at_stop": 1
       },
       "transit_to_here": {
-        "description": "Flight to Isla de Pascua",
-        "duration_seconds": 959,
-        "distance_km": 5323.6,
+        "description": "Flight to Easter Island (Rapa Nui)",
+        "duration_seconds": 907,
+        "distance_km": 5036.24,
         "speed_curve": "HYPERSONIC",
-        "speed_kmh": 19984,
+        "speed_kmh": 19989,
         "camera_zoom": 9
       },
       "notes": "https://www.wikidata.org/wiki/Q9009773",
       "priority": 2
     },
     {
-      "id": "stop_uk4p61_143",
+      "id": "stop_uk4p61_146",
       "type": "DELIVERY",
       "comment": "nature",
       "candidate_id": "Q38095",
@@ -5337,9 +5447,9 @@
         "timezone_offset": -6
       },
       "schedule": {
-        "arrival_utc": "2026-12-25T08:00:00.000Z",
-        "departure_utc": "2026-12-25T08:01:00.000Z",
-        "local_arrival_time": "02:00",
+        "arrival_utc": "2026-12-25T08:12:00.000Z",
+        "departure_utc": "2026-12-25T08:13:00.000Z",
+        "local_arrival_time": "02:12",
         "time_window_status": "GREEN"
       },
       "stop_experience": {
@@ -5360,23 +5470,23 @@
       "priority": 2
     },
     {
-      "id": "stop_yn4ygb_144",
+      "id": "stop_1fh01zi_147",
       "type": "DELIVERY",
       "comment": "cultural",
-      "candidate_id": "Q27985",
+      "candidate_id": "Q172613",
       "location": {
-        "name": "Joya de Cerén",
-        "region": "El Salvador",
-        "country_code": "SV",
-        "timezone": "America/El_Salvador",
-        "lat": 13.827494444444444,
-        "lng": -89.35615833333334,
+        "name": "Teotihuacan",
+        "region": "Mexico",
+        "country_code": "MX",
+        "timezone": "America/Mexico_City",
+        "lat": 19.6925,
+        "lng": -98.843888888889,
         "timezone_offset": -6
       },
       "schedule": {
-        "arrival_utc": "2026-12-25T08:05:58.763Z",
-        "departure_utc": "2026-12-25T08:06:58.763Z",
-        "local_arrival_time": "02:05",
+        "arrival_utc": "2026-12-25T08:27:00.000Z",
+        "departure_utc": "2026-12-25T08:28:00.000Z",
+        "local_arrival_time": "02:27",
         "time_window_status": "GREEN"
       },
       "stop_experience": {
@@ -5386,125 +5496,14 @@
         "presents_delivered_at_stop": 1
       },
       "transit_to_here": {
-        "description": "Flight to Joya de Cerén",
-        "duration_seconds": 299,
-        "distance_km": 1617.04,
-        "speed_curve": "HYPERSONIC",
-        "speed_kmh": 19469,
+        "description": "Flight to Teotihuacan",
+        "duration_seconds": 840,
+        "distance_km": 2437.78,
+        "speed_curve": "REGIONAL",
+        "speed_kmh": 10448,
         "camera_zoom": 9
       },
-      "notes": "https://www.wikidata.org/wiki/Q27985",
-      "priority": 2
-    },
-    {
-      "id": "stop_1rlb2r4_145",
-      "type": "DELIVERY",
-      "comment": "cultural",
-      "candidate_id": "Q214827",
-      "location": {
-        "name": "Copán",
-        "region": "Honduras",
-        "country_code": "HN",
-        "timezone": "America/Tegucigalpa",
-        "lat": 14.837963888888888,
-        "lng": -89.14244166666667,
-        "timezone_offset": -6
-      },
-      "schedule": {
-        "arrival_utc": "2026-12-25T08:09:58.763Z",
-        "departure_utc": "2026-12-25T08:10:58.763Z",
-        "local_arrival_time": "02:09",
-        "time_window_status": "GREEN"
-      },
-      "stop_experience": {
-        "duration_seconds": 60,
-        "camera_zoom": 14,
-        "weather_condition": "clear",
-        "presents_delivered_at_stop": 1
-      },
-      "transit_to_here": {
-        "description": "Flight to Copán",
-        "duration_seconds": 180,
-        "distance_km": 114.69,
-        "speed_curve": "CRUISING",
-        "speed_kmh": 2294,
-        "camera_zoom": 9
-      },
-      "notes": "https://www.wikidata.org/wiki/Q214827",
-      "priority": 2
-    },
-    {
-      "id": "stop_u5l0e4_146",
-      "type": "DELIVERY",
-      "comment": "hub",
-      "candidate_id": "ne-1159151491",
-      "location": {
-        "name": "Chicago",
-        "region": "United States",
-        "country_code": "US",
-        "timezone": "America/Chicago",
-        "lat": 41.847961283364114,
-        "lng": -87.63523655322338,
-        "timezone_offset": -6
-      },
-      "schedule": {
-        "arrival_utc": "2026-12-25T08:20:00.000Z",
-        "departure_utc": "2026-12-25T08:21:00.000Z",
-        "local_arrival_time": "02:20",
-        "time_window_status": "GREEN"
-      },
-      "stop_experience": {
-        "duration_seconds": 60,
-        "camera_zoom": 14,
-        "weather_condition": "clear",
-        "presents_delivered_at_stop": 1
-      },
-      "transit_to_here": {
-        "description": "Flight to Chicago",
-        "duration_seconds": 542,
-        "distance_km": 3006.87,
-        "speed_curve": "HYPERSONIC",
-        "speed_kmh": 19972,
-        "camera_zoom": 9
-      },
-      "notes": "https://www.naturalearthdata.com/downloads/10m-cultural-vectors/10m-populated-places/",
-      "priority": 1
-    },
-    {
-      "id": "stop_shk8qb_147",
-      "type": "DELIVERY",
-      "comment": "hub",
-      "candidate_id": "ne-1159151483",
-      "location": {
-        "name": "Denver",
-        "region": "United States",
-        "country_code": "US",
-        "timezone": "America/Denver",
-        "lat": 39.7411339,
-        "lng": -104.9859618,
-        "timezone_offset": -7
-      },
-      "schedule": {
-        "arrival_utc": "2026-12-25T08:54:16.817Z",
-        "departure_utc": "2026-12-25T08:55:16.817Z",
-        "local_arrival_time": "01:54",
-        "time_window_status": "GREEN"
-      },
-      "stop_experience": {
-        "duration_seconds": 60,
-        "camera_zoom": 14,
-        "weather_condition": "clear",
-        "presents_delivered_at_stop": 1
-      },
-      "transit_to_here": {
-        "description": "Flight to Denver",
-        "duration_seconds": 1997,
-        "distance_km": 1476.64,
-        "speed_curve": "CRUISING",
-        "speed_kmh": 2662,
-        "camera_zoom": 9
-      },
-      "notes": "https://www.naturalearthdata.com/downloads/10m-cultural-vectors/10m-populated-places/",
+      "notes": "https://www.wikidata.org/wiki/Q172613",
       "priority": 2
     },
     {
@@ -5522,9 +5521,9 @@
         "timezone_offset": -6
       },
       "schedule": {
-        "arrival_utc": "2026-12-25T09:00:00.000Z",
-        "departure_utc": "2026-12-25T09:01:00.000Z",
-        "local_arrival_time": "03:00",
+        "arrival_utc": "2026-12-25T08:40:00.000Z",
+        "departure_utc": "2026-12-25T08:41:00.000Z",
+        "local_arrival_time": "02:40",
         "time_window_status": "GREEN"
       },
       "stop_experience": {
@@ -5535,33 +5534,33 @@
       },
       "transit_to_here": {
         "description": "Flight to Canadian Rocky Mountain Parks",
-        "duration_seconds": 284,
-        "distance_km": 1573.23,
+        "duration_seconds": 720,
+        "distance_km": 3849.73,
         "speed_curve": "HYPERSONIC",
-        "speed_kmh": 19942,
+        "speed_kmh": 19249,
         "camera_zoom": 9
       },
       "notes": "https://www.wikidata.org/wiki/Q72895",
       "priority": 2
     },
     {
-      "id": "stop_1nhd6zm_149",
+      "id": "stop_shk8qb_149",
       "type": "DELIVERY",
       "comment": "hub",
-      "candidate_id": "ne-1159150483",
+      "candidate_id": "ne-1159151483",
       "location": {
-        "name": "Las Vegas",
+        "name": "Denver",
         "region": "United States",
         "country_code": "US",
-        "timezone": "America/Los_Angeles",
-        "lat": 36.16476322583196,
-        "lng": -115.15136155601854,
-        "timezone_offset": -8
+        "timezone": "America/Denver",
+        "lat": 39.7411339,
+        "lng": -104.9859618,
+        "timezone_offset": -7
       },
       "schedule": {
-        "arrival_utc": "2026-12-25T09:20:00.000Z",
-        "departure_utc": "2026-12-25T09:21:00.000Z",
-        "local_arrival_time": "01:20",
+        "arrival_utc": "2026-12-25T09:10:00.000Z",
+        "departure_utc": "2026-12-25T09:11:00.000Z",
+        "local_arrival_time": "02:10",
         "time_window_status": "GREEN"
       },
       "stop_experience": {
@@ -5571,28 +5570,28 @@
         "presents_delivered_at_stop": 1
       },
       "transit_to_here": {
-        "description": "Flight to Las Vegas",
-        "duration_seconds": 1140,
-        "distance_km": 1700.1,
+        "description": "Flight to Denver",
+        "duration_seconds": 1740,
+        "distance_km": 1573.23,
         "speed_curve": "CRUISING",
-        "speed_kmh": 5369,
+        "speed_kmh": 3255,
         "camera_zoom": 9
       },
       "notes": "https://www.naturalearthdata.com/downloads/10m-cultural-vectors/10m-populated-places/",
       "priority": 2
     },
     {
-      "id": "stop_1hhp6sc_150",
+      "id": "stop_qxt14k_150",
       "type": "DELIVERY",
       "comment": "hub",
-      "candidate_id": "ne-1159150751",
+      "candidate_id": "ne-1159151569",
       "location": {
-        "name": "Tijuana",
-        "region": "Mexico",
-        "country_code": "MX",
-        "timezone": "America/Tijuana",
-        "lat": 32.5019634,
-        "lng": -117.0819418,
+        "name": "Los Angeles",
+        "region": "United States",
+        "country_code": "US",
+        "timezone": "America/Los_Angeles",
+        "lat": 34.049219260337075,
+        "lng": -118.23198647223317,
         "timezone_offset": -8
       },
       "schedule": {
@@ -5608,15 +5607,15 @@
         "presents_delivered_at_stop": 1
       },
       "transit_to_here": {
-        "description": "Flight to Tijuana",
-        "duration_seconds": 180,
-        "distance_km": 444.16,
+        "description": "Flight to Los Angeles",
+        "duration_seconds": 780,
+        "distance_km": 1335.21,
         "speed_curve": "REGIONAL",
-        "speed_kmh": 8883,
+        "speed_kmh": 6162,
         "camera_zoom": 9
       },
       "notes": "https://www.naturalearthdata.com/downloads/10m-cultural-vectors/10m-populated-places/",
-      "priority": 2
+      "priority": 1
     },
     {
       "id": "stop_1rk0wl7_151",
@@ -5647,9 +5646,9 @@
       "transit_to_here": {
         "description": "Flight to Vancouver",
         "duration_seconds": 900,
-        "distance_km": 1931.45,
+        "distance_km": 1740.19,
         "speed_curve": "REGIONAL",
-        "speed_kmh": 7726,
+        "speed_kmh": 6961,
         "camera_zoom": 9
       },
       "notes": "https://www.naturalearthdata.com/downloads/10m-cultural-vectors/10m-populated-places/",
@@ -5670,9 +5669,9 @@
         "timezone_offset": -9
       },
       "schedule": {
-        "arrival_utc": "2026-12-25T10:00:00.000Z",
-        "departure_utc": "2026-12-25T10:01:00.000Z",
-        "local_arrival_time": "01:00",
+        "arrival_utc": "2026-12-25T09:51:00.000Z",
+        "departure_utc": "2026-12-25T09:52:00.000Z",
+        "local_arrival_time": "00:51",
         "time_window_status": "GREEN"
       },
       "stop_experience": {
@@ -5683,10 +5682,10 @@
       },
       "transit_to_here": {
         "description": "Flight to Utqiagvik",
-        "duration_seconds": 1140,
+        "duration_seconds": 600,
         "distance_km": 2988.48,
-        "speed_curve": "REGIONAL",
-        "speed_kmh": 9437,
+        "speed_curve": "HYPERSONIC",
+        "speed_kmh": 17931,
         "camera_zoom": 9
       },
       "notes": "https://www.wikidata.org/wiki/Q79809",
@@ -5720,10 +5719,10 @@
       },
       "transit_to_here": {
         "description": "Flight to Honolulu",
-        "duration_seconds": 1140,
+        "duration_seconds": 1680,
         "distance_km": 5558.76,
-        "speed_curve": "HYPERSONIC",
-        "speed_kmh": 17554,
+        "speed_curve": "REGIONAL",
+        "speed_kmh": 11912,
         "camera_zoom": 9
       },
       "notes": "https://www.naturalearthdata.com/downloads/10m-cultural-vectors/10m-populated-places/",
@@ -5736,8 +5735,8 @@
       "candidate_id": "Q172697",
       "location": {
         "name": "Marquesas Islands",
-        "region": "France",
-        "country_code": "FR",
+        "region": "French Polynesia",
+        "country_code": "PF",
         "timezone": "Pacific/Marquesas",
         "lat": -8.9,
         "lng": -139.6,
@@ -5958,7 +5957,6 @@
       "location": {
         "name": "North Pole",
         "region": "Arctic",
-        "country_code": "AQ",
         "lat": 80,
         "lng": 180,
         "timezone_offset": 0

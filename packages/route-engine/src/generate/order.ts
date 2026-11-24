@@ -70,6 +70,15 @@ function canCompleteCountryRuns(ordered: Candidate[], remaining: Candidate[], ma
   const lastCountry = ordered.at(-1)?.country;
   let trailingRun = 0;
   for (let index = ordered.length - 1; index >= 0 && ordered[index]?.country === lastCountry; index--) trailingRun++;
+  return hasEnoughCountryRunCapacity(remaining, lastCountry, trailingRun, maximumRun);
+}
+
+function hasEnoughCountryRunCapacity(
+  remaining: Candidate[],
+  lastCountry: string | undefined,
+  trailingRun: number,
+  maximumRun: number,
+): boolean {
   const counts = new Map<string, number>();
   for (const place of remaining) counts.set(place.country, (counts.get(place.country) ?? 0) + 1);
   for (const [country, count] of counts) {
@@ -81,47 +90,19 @@ function canCompleteCountryRuns(ordered: Candidate[], remaining: Candidate[], ma
 }
 
 function routeByWindowedNearest(places: Candidate[], config: GeneratorConfig, urgencyWeight: number): Candidate[] | undefined {
-  const byId = new Map(places.map((place) => [place.id, place]));
-  const openings = config.openingStopIds.map((id) => byId.get(id)).filter((place): place is Candidate => place !== undefined);
-  const end = byId.get(config.endStopId);
-  if (openings.length !== config.openingStopIds.length || !end) return undefined;
-  const openingIds = new Set(config.openingStopIds);
-  let remaining = places.filter((place) => !openingIds.has(place.id) && place.id !== end.id);
-  const lastOpening = openings.at(-1);
-  if (!lastOpening) return undefined;
-  let previousArrival = Date.parse(christmasArrival(offset(lastOpening), config.arrivalAnchorMinutes[lastOpening.id] ?? config.arrivalStartMinute));
+  const initial = createWindowedRouteStart(places, config);
+  if (!initial) return undefined;
+  const { openings, end, remaining: initialRemaining, previousArrival: initialArrival } = initial;
+  let remaining = initialRemaining;
+  let previousArrival = initialArrival;
   const finalRoute: Candidate[] = [...openings];
 
   while (remaining.length > 0) {
     const prior = finalRoute.at(-1);
     if (!prior) return undefined;
-    const options = remaining.flatMap((place) => {
-      if (!canAppend(place, finalRoute, config.maxCountryRun)) return [];
-      const left = remaining.filter((candidate) => candidate.id !== place.id);
-      const after = [...finalRoute, place];
-      if (!canCompleteCountryRuns(after, left, config.maxCountryRun)) return [];
-      const window = windowFor(place, config);
-      const distance = haversineKm(prior, place);
-      const requiredGap = config.durationSeconds * 1000 + minimumTravelMs(distance, config);
-      const earliest = Math.max(window.lo, previousArrival + requiredGap);
-      const latest = Math.min(window.hi, previousArrival + config.maxArrivalGapMinutes * MINUTE_MS);
-      if (earliest > latest) return [];
-      const desired = Math.max(
-        earliest,
-        previousArrival + config.durationSeconds * 1000 + desiredTravelMs(distance, config, false),
-        timelineTarget(finalRoute.length, places.length),
-      );
-      return [{ place, distance, earliest, latest, desired, deadline: window.hi }];
-    });
+    const options = eligibleWindowedOptions(remaining, finalRoute, prior, previousArrival, places.length, config);
     if (options.length === 0) return undefined;
-    const firstDeadline = Math.min(...options.map((option) => option.deadline));
-    options.sort((left, right) => {
-      const leftScore = left.distance + (left.deadline - firstDeadline) / MINUTE_MS * urgencyWeight
-        + Math.max(0, left.desired - left.earliest) / MINUTE_MS * 3;
-      const rightScore = right.distance + (right.deadline - firstDeadline) / MINUTE_MS * urgencyWeight
-        + Math.max(0, right.desired - right.earliest) / MINUTE_MS * 3;
-      return leftScore - rightScore || left.place.id.localeCompare(right.place.id);
-    });
+    sortWindowedOptions(options, urgencyWeight);
     const next = options[0];
     if (!next) return undefined;
     const arrival = Math.min(next.latest, next.desired);
@@ -137,54 +118,138 @@ function routeByWindowedNearest(places: Candidate[], config: GeneratorConfig, ur
     : undefined;
 }
 
+interface WindowedRouteStart {
+  openings: Candidate[];
+  end: Candidate;
+  remaining: Candidate[];
+  previousArrival: number;
+}
+
+interface WindowedOption {
+  place: Candidate;
+  distance: number;
+  earliest: number;
+  latest: number;
+  desired: number;
+  deadline: number;
+}
+
+function createWindowedRouteStart(places: Candidate[], config: GeneratorConfig): WindowedRouteStart | undefined {
+  const byId = new Map(places.map((place) => [place.id, place]));
+  const openings = config.openingStopIds.map((id) => byId.get(id)).filter((place): place is Candidate => place !== undefined);
+  const end = byId.get(config.endStopId);
+  const lastOpening = openings.at(-1);
+  if (openings.length !== config.openingStopIds.length || !end || !lastOpening) return undefined;
+  const openingIds = new Set(config.openingStopIds);
+  return {
+    openings,
+    end,
+    remaining: places.filter((place) => !openingIds.has(place.id) && place.id !== end.id),
+    previousArrival: Date.parse(christmasArrival(offset(lastOpening), config.arrivalAnchorMinutes[lastOpening.id] ?? config.arrivalStartMinute)),
+  };
+}
+
+function eligibleWindowedOptions(
+  remaining: Candidate[],
+  ordered: Candidate[],
+  prior: Candidate,
+  previousArrival: number,
+  totalPlaces: number,
+  config: GeneratorConfig,
+): WindowedOption[] {
+  return remaining.flatMap((place) => {
+    const left = remaining.filter((candidate) => candidate.id !== place.id);
+    const after = [...ordered, place];
+    if (!canAppend(place, ordered, config.maxCountryRun)
+      || !canCompleteCountryRuns(after, left, config.maxCountryRun)) return [];
+    return windowedOption(place, prior, previousArrival, ordered.length, totalPlaces, config);
+  });
+}
+
+function windowedOption(
+  place: Candidate,
+  prior: Candidate,
+  previousArrival: number,
+  index: number,
+  totalPlaces: number,
+  config: GeneratorConfig,
+): WindowedOption[] {
+  const window = windowFor(place, config);
+  const distance = haversineKm(prior, place);
+  const requiredGap = config.durationSeconds * 1000 + minimumTravelMs(distance, config);
+  const earliest = Math.max(window.lo, previousArrival + requiredGap);
+  const latest = Math.min(window.hi, previousArrival + config.maxArrivalGapMinutes * MINUTE_MS);
+  if (earliest > latest) return [];
+  const desired = Math.max(
+    earliest,
+    previousArrival + config.durationSeconds * 1000 + desiredTravelMs(distance, config, false),
+    timelineTarget(index, totalPlaces),
+  );
+  return [{ place, distance, earliest, latest, desired, deadline: window.hi }];
+}
+
+function sortWindowedOptions(options: WindowedOption[], urgencyWeight: number): void {
+  const firstDeadline = Math.min(...options.map((option) => option.deadline));
+  const score = (option: WindowedOption): number => option.distance
+    + (option.deadline - firstDeadline) / MINUTE_MS * urgencyWeight
+    + Math.max(0, option.desired - option.earliest) / MINUTE_MS * 3;
+  options.sort((left, right) => score(left) - score(right) || left.place.id.localeCompare(right.place.id));
+}
+
 function improveOffsetBand(ordered: Candidate[], startIndex: number, endIndex: number, config: GeneratorConfig): void {
   let segment = ordered.slice(startIndex, endIndex);
   if (segment.length < 4) return;
   const prefix = ordered.slice(0, startIndex);
   const suffix = ordered.slice(endIndex);
-  const pathCost = (items: Candidate[]): number => {
-    let total = 0;
-    let prior: LatLng = prefix.at(-1) ?? { lat: 80, lng: 180 };
-    for (const item of items) {
-      total += edgeCost(prior, item);
-      prior = item;
-    }
-    const next = suffix[0];
-    if (next) total += edgeCost(prior, next);
-    else total += edgeCost(prior, { lat: 80, lng: 180 });
-    return total;
-  };
   for (let pass = 0; pass < 10; pass++) {
     let changed = false;
-    for (let left = 0; left < segment.length - 2; left++) {
-      for (let right = left + 1; right < segment.length; right++) {
-        const candidate = [...segment.slice(0, left), ...segment.slice(left, right + 1).reverse(), ...segment.slice(right + 1)];
-        if (!hasValidCountryRuns([...prefix, ...candidate, ...suffix], config.maxCountryRun)
-          || !hasValidAnchorOrder([...prefix, ...candidate, ...suffix], config)) continue;
-        if (pathCost(candidate) + 0.01 < pathCost(segment)) {
-          segment = candidate;
-          changed = true;
-        }
-      }
-    }
-    for (let from = 0; from < segment.length; from++) {
-      for (let to = 0; to < segment.length; to++) {
-        if (from === to) continue;
-        const candidate = [...segment];
-        const [moved] = candidate.splice(from, 1);
-        if (!moved) continue;
-        candidate.splice(to, 0, moved);
-        if (!hasValidCountryRuns([...prefix, ...candidate, ...suffix], config.maxCountryRun)
-          || !hasValidAnchorOrder([...prefix, ...candidate, ...suffix], config)) continue;
-        if (pathCost(candidate) + 0.01 < pathCost(segment)) {
-          segment = candidate;
-          changed = true;
-        }
-      }
-    }
+    const twoOpt = improveBandByTwoOpt(segment, prefix, suffix, config);
+    if (twoOpt !== segment) { segment = twoOpt; changed = true; }
+    const relocated = improveBandByRelocation(segment, prefix, suffix, config);
+    if (relocated !== segment) { segment = relocated; changed = true; }
     if (!changed) break;
   }
   ordered.splice(startIndex, endIndex - startIndex, ...segment);
+}
+
+function bandPathCost(items: Candidate[], prefix: Candidate[], suffix: Candidate[]): number {
+  let total = 0;
+  let prior: LatLng = prefix.at(-1) ?? { lat: 80, lng: 180 };
+  for (const item of items) { total += edgeCost(prior, item); prior = item; }
+  return total + edgeCost(prior, suffix[0] ?? { lat: 80, lng: 180 });
+}
+
+function validBandCandidate(candidate: Candidate[], prefix: Candidate[], suffix: Candidate[], config: GeneratorConfig): boolean {
+  const complete = [...prefix, ...candidate, ...suffix];
+  return hasValidCountryRuns(complete, config.maxCountryRun) && hasValidAnchorOrder(complete, config);
+}
+
+function improveBandByTwoOpt(segment: Candidate[], prefix: Candidate[], suffix: Candidate[], config: GeneratorConfig): Candidate[] {
+  let best = segment;
+  for (let left = 0; left < best.length - 2; left++) {
+    for (let right = left + 1; right < best.length; right++) {
+      const candidate = [...best.slice(0, left), ...best.slice(left, right + 1).reverse(), ...best.slice(right + 1)];
+      if (validBandCandidate(candidate, prefix, suffix, config)
+        && bandPathCost(candidate, prefix, suffix) + 0.01 < bandPathCost(best, prefix, suffix)) best = candidate;
+    }
+  }
+  return best;
+}
+
+function improveBandByRelocation(segment: Candidate[], prefix: Candidate[], suffix: Candidate[], config: GeneratorConfig): Candidate[] {
+  let best = segment;
+  for (let from = 0; from < best.length; from++) {
+    for (let to = 0; to < best.length; to++) {
+      if (from === to) continue;
+      const candidate = [...best];
+      const [moved] = candidate.splice(from, 1);
+      if (!moved) continue;
+      candidate.splice(to, 0, moved);
+      if (validBandCandidate(candidate, prefix, suffix, config)
+        && bandPathCost(candidate, prefix, suffix) + 0.01 < bandPathCost(best, prefix, suffix)) best = candidate;
+    }
+  }
+  return best;
 }
 
 function orderPriorities(places: Candidate[], config: GeneratorConfig): Candidate[] {
@@ -296,42 +361,78 @@ function minimumTravelMs(distanceKm: number, config: GeneratorConfig): number {
   );
 }
 
-export function hasFeasibleTiming(order: Candidate[], config: GeneratorConfig): boolean {
+interface TimingBounds {
+  lower: number[];
+  upper: number[];
+  minimumGaps: number[];
+  returnMs: number;
+}
+
+function sequenceForOrder(order: Candidate[], config: GeneratorConfig): Candidate[] | undefined {
   const byId = new Map(order.map((place) => [place.id, place]));
   const openingIds = new Set(config.openingStopIds);
   const openings = config.openingStopIds.map((id) => byId.get(id)).filter((place): place is Candidate => place !== undefined);
   const end = byId.get(config.endStopId);
-  if (openings.length !== config.openingStopIds.length || !end) return false;
-  const sequence = [...openings, ...order.filter((place) => !openingIds.has(place.id) && place.id !== end.id), end];
+  if (openings.length !== config.openingStopIds.length || !end) return undefined;
+  return [...openings, ...order.filter((place) => !openingIds.has(place.id) && place.id !== end.id), end];
+}
+
+function minimumGapAt(sequence: Candidate[], index: number, config: GeneratorConfig): number {
+  if (index === 0) {
+    const first = sequence[0];
+    return first ? Math.ceil(haversineKm({ lat: 80, lng: 180 }, first) / config.maxLegSpeedKmh * HOUR_MS) : 0;
+  }
+  const prior = sequence[index - 1];
+  const place = sequence[index];
+  if (!prior || !place) return 0;
+  return config.durationSeconds * 1000 + minimumTravelMs(haversineKm(prior, place), config);
+}
+
+function returnTravelMs(final: Candidate, config: GeneratorConfig): number {
+  return Math.ceil(haversineKm(final, { lat: 80, lng: 180 }) / config.targetLegSpeedKmh * 3_600) * 1_000;
+}
+
+function createTimingBounds(sequence: Candidate[], config: GeneratorConfig): TimingBounds | undefined {
   const lower = sequence.map((place) => windowFor(place, config).lo);
   const upper = sequence.map((place) => windowFor(place, config).hi);
-  const minimumGaps = sequence.map((place, index) => {
-    if (index === 0) return Math.ceil(haversineKm({ lat: 80, lng: 180 }, place) / config.maxLegSpeedKmh * HOUR_MS);
-    const prior = sequence[index - 1];
-    return prior ? config.durationSeconds * 1000 + minimumTravelMs(haversineKm(prior, place), config) : 0;
-  });
+  const minimumGaps = sequence.map((_, index) => minimumGapAt(sequence, index, config));
+  const firstLower = lower[0];
+  const firstUpper = upper[0];
+  if (firstLower === undefined || firstUpper === undefined) return undefined;
   const maximumGap = config.maxArrivalGapMinutes * MINUTE_MS;
-  lower[0] = Math.max(lower[0] ?? TAKEOFF_MS, TAKEOFF_MS + (minimumGaps[0] ?? 0));
-  upper[0] = Math.min(upper[0] ?? TAKEOFF_MS, TAKEOFF_MS + maximumGap);
+  lower[0] = Math.max(firstLower, TAKEOFF_MS + (minimumGaps[0] ?? 0));
+  upper[0] = Math.min(firstUpper, TAKEOFF_MS + maximumGap);
   const finalIndex = sequence.length - 1;
   const final = sequence[finalIndex];
-  if (!final) return false;
-  const returnMs = Math.ceil(haversineKm(final, { lat: 80, lng: 180 }) / config.targetLegSpeedKmh * 3_600) * 1_000;
+  if (!final) return undefined;
+  const returnMs = returnTravelMs(final, config);
   upper[finalIndex] = Math.min(
     upper[finalIndex] ?? TAKEOFF_MS,
     LAST_DEPARTURE_LIMIT_MS - config.durationSeconds * 1000,
     RETURN_ARRIVAL_LIMIT_MS - config.durationSeconds * 1000 - returnMs,
   );
+  return { lower, upper, minimumGaps, returnMs };
+}
 
+function hasForwardTimingPath(bounds: TimingBounds, config: GeneratorConfig): boolean {
+  const { lower, upper, minimumGaps } = bounds;
+  const maximumGap = config.maxArrivalGapMinutes * MINUTE_MS;
   let earliest = lower[0] ?? TAKEOFF_MS;
   let latest = upper[0] ?? TAKEOFF_MS;
   if (earliest > latest) return false;
-  for (let index = 1; index < sequence.length; index++) {
+  for (let index = 1; index < lower.length; index++) {
     earliest = Math.max(lower[index] ?? TAKEOFF_MS, earliest + (minimumGaps[index] ?? 0));
     latest = Math.min(upper[index] ?? TAKEOFF_MS, latest + maximumGap);
     if (earliest > latest) return false;
   }
   return true;
+}
+
+export function hasFeasibleTiming(order: Candidate[], config: GeneratorConfig): boolean {
+  const sequence = sequenceForOrder(order, config);
+  if (!sequence) return false;
+  const bounds = createTimingBounds(sequence, config);
+  return bounds !== undefined && hasForwardTimingPath(bounds, config);
 }
 
 function routeScore(order: Candidate[]): number {
@@ -351,54 +452,105 @@ function routeScore(order: Candidate[]): number {
   return distance + Math.max(0, eastwardLegs - 3) * 20_000;
 }
 
-function improveWholeRoute(order: Candidate[], config: GeneratorConfig): Candidate[] {
+interface RouteArrangement {
+  openings: Candidate[];
+  final: Candidate;
+  middle: Candidate[];
+  assemble: (middle: Candidate[]) => Candidate[];
+}
+
+function arrangeRoute(order: Candidate[], config: GeneratorConfig): RouteArrangement | undefined {
   const openingIds = new Set(config.openingStopIds);
   const openings = config.openingStopIds.map((id) => order.find((place) => place.id === id)).filter((place): place is Candidate => place !== undefined);
   const final = order.find((place) => place.id === config.endStopId);
-  if (openings.length !== config.openingStopIds.length || !final) return order;
-  let middle = order.filter((place) => !openingIds.has(place.id) && place.id !== final.id);
-  const assemble = (items: Candidate[]): Candidate[] => [...openings, ...items, final];
-  if (!hasFeasibleTiming(assemble(middle), config)) return order;
-  for (let pass = 0; pass < 20; pass++) {
-    let bestMiddle = middle;
-    let bestScore = routeScore(assemble(middle));
-    for (let left = 0; left < middle.length - 1; left++) {
-      for (let right = left + 1; right < middle.length; right++) {
-        const candidate = [...middle.slice(0, left), ...middle.slice(left, right + 1).reverse(), ...middle.slice(right + 1)];
-        const assembled = assemble(candidate);
-        const candidateScore = routeScore(assembled);
-        if (candidateScore + 0.01 >= bestScore) continue;
-        if (!hasValidCountryRuns(assembled, config.maxCountryRun) || !hasFeasibleTiming(assembled, config)) continue;
-        bestMiddle = candidate;
-        bestScore = candidateScore;
-      }
-    }
-    for (let from = 0; from < middle.length; from++) {
-      for (let to = 0; to < middle.length; to++) {
-        if (from === to) continue;
-        const candidate = [...middle];
-        const [moved] = candidate.splice(from, 1);
-        if (!moved) continue;
-        candidate.splice(to, 0, moved);
-        const assembled = assemble(candidate);
-        const candidateScore = routeScore(assembled);
-        if (candidateScore + 0.01 >= bestScore) continue;
-        if (!hasValidCountryRuns(assembled, config.maxCountryRun) || !hasFeasibleTiming(assembled, config)) continue;
-        bestMiddle = candidate;
-        bestScore = candidateScore;
-      }
-    }
-    if (bestMiddle === middle) break;
-    middle = bestMiddle;
-  }
+  if (openings.length !== config.openingStopIds.length || !final) return undefined;
+  const middle = order.filter((place) => !openingIds.has(place.id) && place.id !== final.id);
+  return { openings, final, middle, assemble: (items) => [...openings, ...items, final] };
+}
 
-  let randomState = (config.seed ^ 0x9e3779b9) >>> 0;
-  const random = (): number => {
+function improveWholeRoute(order: Candidate[], config: GeneratorConfig): Candidate[] {
+  const arrangement = arrangeRoute(order, config);
+  if (!arrangement || !hasFeasibleTiming(arrangement.assemble(arrangement.middle), config)) return order;
+  const middle = improveRouteWithLocalMoves(arrangement.middle, arrangement.assemble, config);
+  const annealed = annealRoute(middle, arrangement.assemble, config);
+  return arrangement.assemble(annealed);
+}
+
+function improveRouteWithLocalMoves(initial: Candidate[], assemble: (middle: Candidate[]) => Candidate[], config: GeneratorConfig): Candidate[] {
+  let middle = initial;
+  for (let pass = 0; pass < 20; pass++) {
+    const bestMiddle = improveRouteByTwoOpt(middle, assemble, config);
+    const relocated = improveRouteByRelocation(middle, bestMiddle, assemble, config);
+    if (relocated === middle) break;
+    middle = relocated;
+  }
+  return middle;
+}
+
+function isBetterFeasibleRoute(candidate: Candidate[], bestScore: number, assemble: (items: Candidate[]) => Candidate[], config: GeneratorConfig): boolean {
+  const complete = assemble(candidate);
+  return routeScore(complete) + 0.01 < bestScore
+    && hasValidCountryRuns(complete, config.maxCountryRun)
+    && hasFeasibleTiming(complete, config);
+}
+
+function improveRouteByTwoOpt(
+  middle: Candidate[],
+  assemble: (items: Candidate[]) => Candidate[],
+  config: GeneratorConfig,
+): Candidate[] {
+  let best = middle;
+  let bestScore = routeScore(assemble(best));
+  for (let left = 0; left < middle.length - 1; left++) {
+    for (let right = left + 1; right < middle.length; right++) {
+      const candidate = [...middle.slice(0, left), ...middle.slice(left, right + 1).reverse(), ...middle.slice(right + 1)];
+      if (!isBetterFeasibleRoute(candidate, bestScore, assemble, config)) continue;
+      best = candidate;
+      bestScore = routeScore(assemble(candidate));
+    }
+  }
+  return best;
+}
+
+function improveRouteByRelocation(
+  middle: Candidate[],
+  initialBest: Candidate[],
+  assemble: (items: Candidate[]) => Candidate[],
+  config: GeneratorConfig,
+): Candidate[] {
+  let best = initialBest;
+  let bestScore = routeScore(assemble(best));
+  for (let from = 0; from < middle.length; from++) {
+    for (let to = 0; to < middle.length; to++) {
+      if (from === to) continue;
+      const candidate = [...middle];
+      const [moved] = candidate.splice(from, 1);
+      if (!moved) continue;
+      candidate.splice(to, 0, moved);
+      if (!isBetterFeasibleRoute(candidate, bestScore, assemble, config)) continue;
+      best = candidate;
+      bestScore = routeScore(assemble(candidate));
+    }
+  }
+  return best;
+}
+
+function seededRandom(seed: number): () => number {
+  let randomState = (seed ^ 0x9e3779b9) >>> 0;
+  return (): number => {
     randomState ^= randomState << 13;
     randomState ^= randomState >>> 17;
     randomState ^= randomState << 5;
     return (randomState >>> 0) / 0x1_0000_0000;
   };
+}
+
+function annealRoute(
+  middle: Candidate[],
+  assemble: (items: Candidate[]) => Candidate[],
+  config: GeneratorConfig,
+): Candidate[] {
+  const random = seededRandom(config.seed);
   let current = middle;
   let currentScore = routeScore(assemble(current));
   let best = current;
@@ -434,7 +586,7 @@ function improveWholeRoute(order: Candidate[], config: GeneratorConfig): Candida
       bestScore = candidateScore;
     }
   }
-  return assemble(best);
+  return best;
 }
 
 function timelineTarget(index: number, total: number): number {
@@ -445,6 +597,16 @@ function timelineTarget(index: number, total: number): number {
 }
 
 function planTimes(places: Candidate[], config: GeneratorConfig): Candidate[] {
+  const sequence = createPlanSequence(places, config);
+  const bounds = createTimingBounds(sequence, config);
+  if (!bounds) throw new Error('Cannot schedule an empty route');
+  propagatePlanBounds(sequence, bounds, config);
+  const result = assignArrivalTimes(sequence, bounds, config);
+  validateRouteEnd(result, bounds.returnMs, config.durationSeconds);
+  return result;
+}
+
+function createPlanSequence(places: Candidate[], config: GeneratorConfig): Candidate[] {
   const priority = orderPriorities(places, config);
   const byId = new Map(places.map((place) => [place.id, place]));
   const openingIds = new Set(config.openingStopIds);
@@ -462,61 +624,69 @@ function planTimes(places: Candidate[], config: GeneratorConfig): Candidate[] {
     endStop,
   ];
   if (!hasValidCountryRuns(sequence, config.maxCountryRun)) throw new Error('Route order exceeds the consecutive-country run limit');
+  return sequence;
+}
 
-  const lower = sequence.map((place) => windowFor(place, config).lo);
-  const upper = sequence.map((place) => windowFor(place, config).hi);
-  const minimumGaps = sequence.map((place, index) => {
-    if (index === 0) return Math.ceil(haversineKm({ lat: 80, lng: 180 }, place) / config.maxLegSpeedKmh * HOUR_MS);
-    const prior = sequence[index - 1];
-    if (!prior) return 0;
-    return config.durationSeconds * 1000 + minimumTravelMs(haversineKm(prior, place), config);
-  });
-  lower[0] = Math.max(lower[0] ?? TAKEOFF_MS, TAKEOFF_MS + (minimumGaps[0] ?? 0));
-  upper[0] = Math.min(upper[0] ?? TAKEOFF_MS + config.maxArrivalGapMinutes * MINUTE_MS, TAKEOFF_MS + config.maxArrivalGapMinutes * MINUTE_MS);
-
-  const finalIndex = sequence.length - 1;
-  const final = sequence[finalIndex];
-  if (!final) throw new Error('Cannot schedule an empty route');
-  const returnMs = Math.ceil(haversineKm(final, { lat: 80, lng: 180 }) / config.targetLegSpeedKmh * 3_600) * 1_000;
-  upper[finalIndex] = Math.min(
-    upper[finalIndex] ?? TAKEOFF_MS + 28 * HOUR_MS,
-    LAST_DEPARTURE_LIMIT_MS - config.durationSeconds * 1000,
-    RETURN_ARRIVAL_LIMIT_MS - config.durationSeconds * 1000 - returnMs,
-  );
-
+function propagatePlanBounds(sequence: Candidate[], timing: TimingBounds, config: GeneratorConfig): void {
+  const { lower, upper, minimumGaps } = timing;
   for (let pass = 0; pass < sequence.length * 2; pass++) {
-    let changed = false;
-    for (let index = 1; index < sequence.length; index++) {
-      const gap = minimumGaps[index] ?? 0;
-      const newLower = Math.max(lower[index] ?? TAKEOFF_MS, (lower[index - 1] ?? TAKEOFF_MS) + gap);
-      const newUpper = Math.min(upper[index] ?? TAKEOFF_MS + 28 * HOUR_MS, (upper[index - 1] ?? TAKEOFF_MS + 28 * HOUR_MS) + config.maxArrivalGapMinutes * MINUTE_MS);
-      if (newLower !== lower[index] || newUpper !== upper[index]) changed = true;
-      lower[index] = newLower;
-      upper[index] = newUpper;
-    }
-    for (let index = sequence.length - 2; index >= 0; index--) {
-      const gap = minimumGaps[index + 1] ?? 0;
-      const newLower = Math.max(lower[index] ?? TAKEOFF_MS, (lower[index + 1] ?? TAKEOFF_MS) - config.maxArrivalGapMinutes * MINUTE_MS);
-      const newUpper = Math.min(upper[index] ?? TAKEOFF_MS + 28 * HOUR_MS, (upper[index + 1] ?? TAKEOFF_MS + 28 * HOUR_MS) - gap);
-      if (newLower !== lower[index] || newUpper !== upper[index]) changed = true;
-      lower[index] = newLower;
-      upper[index] = newUpper;
-    }
-    for (let index = 0; index < sequence.length; index++) {
-      if ((lower[index] ?? Infinity) > (upper[index] ?? -Infinity)) {
-        const place = sequence[index];
-        const prior = sequence[index - 1];
-        const nearby = sequence.slice(Math.max(0, index - 3), index + 5).map((item) => `${item.name}/UTC${offset(item)}/${new Date(windowFor(item, config).lo).toISOString()}–${new Date(windowFor(item, config).hi).toISOString()}`).join(' -> ');
-        const bounds = sequence.slice(Math.max(0, index - 16), index + 1).map((item, relative) => {
-          const at = Math.max(0, index - 16) + relative;
-          return `${item.name}/${offset(item)}:${new Date(lower[at] ?? 0).toISOString().slice(11, 16)}-${new Date(upper[at] ?? 0).toISOString().slice(11, 16)}`;
-        }).join(' ');
-        throw new Error(`No feasible timing interval for ${place?.name ?? `stop ${index + 1}`} after ${prior?.name ?? 'takeoff'}: ${new Date(lower[index] ?? 0).toISOString()} exceeds ${new Date(upper[index] ?? 0).toISOString()} by ${(lower[index] ?? 0) - (upper[index] ?? 0)} ms (minimum gap ${(minimumGaps[index] ?? 0) / MINUTE_MS} minutes, distance ${prior && place ? haversineKm(prior, place).toFixed(2) : 'n/a'} km); nearby ${nearby}; bounds ${bounds}`);
-      }
-    }
-    if (!changed) break;
+    const forwardChanged = propagateForwardBounds(lower, upper, minimumGaps, config);
+    const backwardChanged = propagateBackwardBounds(lower, upper, minimumGaps, config);
+    assertPlanBoundsFeasible(sequence, timing, config);
+    if (!forwardChanged && !backwardChanged) break;
   }
+}
 
+function propagateForwardBounds(lower: number[], upper: number[], minimumGaps: number[], config: GeneratorConfig): boolean {
+  let changed = false;
+  for (let index = 1; index < lower.length; index++) {
+    const gap = minimumGaps[index] ?? 0;
+    const newLower = Math.max(lower[index] ?? TAKEOFF_MS, (lower[index - 1] ?? TAKEOFF_MS) + gap);
+    const newUpper = Math.min(upper[index] ?? TAKEOFF_MS + 28 * HOUR_MS, (upper[index - 1] ?? TAKEOFF_MS + 28 * HOUR_MS) + config.maxArrivalGapMinutes * MINUTE_MS);
+    if (newLower !== lower[index] || newUpper !== upper[index]) changed = true;
+    lower[index] = newLower;
+    upper[index] = newUpper;
+  }
+  return changed;
+}
+
+function propagateBackwardBounds(lower: number[], upper: number[], minimumGaps: number[], config: GeneratorConfig): boolean {
+  let changed = false;
+  for (let index = lower.length - 2; index >= 0; index--) {
+    const gap = minimumGaps[index + 1] ?? 0;
+    const newLower = Math.max(lower[index] ?? TAKEOFF_MS, (lower[index + 1] ?? TAKEOFF_MS) - config.maxArrivalGapMinutes * MINUTE_MS);
+    const newUpper = Math.min(upper[index] ?? TAKEOFF_MS + 28 * HOUR_MS, (upper[index + 1] ?? TAKEOFF_MS + 28 * HOUR_MS) - gap);
+    if (newLower !== lower[index] || newUpper !== upper[index]) changed = true;
+    lower[index] = newLower;
+    upper[index] = newUpper;
+  }
+  return changed;
+}
+
+function assertPlanBoundsFeasible(sequence: Candidate[], timing: TimingBounds, config: GeneratorConfig): void {
+  for (let index = 0; index < sequence.length; index++) {
+    if ((timing.lower[index] ?? Infinity) > (timing.upper[index] ?? -Infinity)) {
+      throwPlanBoundsError(sequence, index, timing, config);
+    }
+  }
+}
+
+function throwPlanBoundsError(sequence: Candidate[], index: number, timing: TimingBounds, config: GeneratorConfig): never {
+  const { lower, upper, minimumGaps } = timing;
+  const place = sequence[index];
+  const prior = sequence[index - 1];
+  const nearby = sequence.slice(Math.max(0, index - 3), index + 5)
+    .map((item) => `${item.name}/UTC${offset(item)}/${new Date(windowFor(item, config).lo).toISOString()}–${new Date(windowFor(item, config).hi).toISOString()}`).join(' -> ');
+  const boundSummary = sequence.slice(Math.max(0, index - 16), index + 1).map((item, relative) => {
+    const at = Math.max(0, index - 16) + relative;
+    return `${item.name}/${offset(item)}:${new Date(lower[at] ?? 0).toISOString().slice(11, 16)}-${new Date(upper[at] ?? 0).toISOString().slice(11, 16)}`;
+  }).join(' ');
+  throw new Error(`No feasible timing interval for ${place?.name ?? `stop ${index + 1}`} after ${prior?.name ?? 'takeoff'}: ${new Date(lower[index] ?? 0).toISOString()} exceeds ${new Date(upper[index] ?? 0).toISOString()} by ${(lower[index] ?? 0) - (upper[index] ?? 0)} ms (minimum gap ${(minimumGaps[index] ?? 0) / MINUTE_MS} minutes, distance ${prior && place ? haversineKm(prior, place).toFixed(2) : 'n/a'} km); nearby ${nearby}; bounds ${boundSummary}`);
+}
+
+function assignArrivalTimes(sequence: Candidate[], timing: TimingBounds, config: GeneratorConfig): Candidate[] {
+  const { lower, upper, minimumGaps } = timing;
+  const openingIds = new Set(config.openingStopIds);
   const result: Candidate[] = [];
   let previousArrival = TAKEOFF_MS;
   let previousDeparture = TAKEOFF_MS;
@@ -548,13 +718,17 @@ function planTimes(places: Candidate[], config: GeneratorConfig): Candidate[] {
     previousArrival = arrival;
     previousDeparture = arrival + config.durationSeconds * 1000;
   }
-
-  if (previousDeparture > LAST_DEPARTURE_LIMIT_MS) throw new Error(`Last departure at ${new Date(previousDeparture).toISOString()} is later than takeoff plus 27 hours`);
-  const routeEnd = previousDeparture + returnMs;
-  if (routeEnd > RETURN_ARRIVAL_LIMIT_MS) throw new Error(`North Pole return at ${new Date(routeEnd).toISOString()} leaves less than 15 minutes inside the 28-hour flight window`);
   return result;
 }
 
+function validateRouteEnd(result: Candidate[], returnMs: number, durationSeconds: number): void {
+  const finalStop = result.at(-1);
+  if (!finalStop?.plannedArrivalUtc) throw new Error('Cannot validate an empty route schedule');
+  const lastDeparture = Date.parse(finalStop.plannedArrivalUtc) + durationSeconds * 1000;
+  if (lastDeparture > LAST_DEPARTURE_LIMIT_MS) throw new Error(`Last departure at ${new Date(lastDeparture).toISOString()} is later than takeoff plus 27 hours`);
+  const routeEnd = lastDeparture + returnMs;
+  if (routeEnd > RETURN_ARRIVAL_LIMIT_MS) throw new Error(`North Pole return at ${new Date(routeEnd).toISOString()} leaves less than 15 minutes inside the 28-hour flight window`);
+}
 export function sweepOrder(places: Candidate[], config: GeneratorConfig): Candidate[] {
   return planTimes(places, config);
 }

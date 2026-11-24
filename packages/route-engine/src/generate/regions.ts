@@ -37,10 +37,10 @@ export function classifyRegion(place: Candidate): RouteRegion {
   const code = place.country;
   let continent = 'Europe';
   if (code === 'AQ') continent = 'Antarctica';
-  else if (SOUTH_AMERICA.has(code) || (code === 'FR' && place.lng < -30 && place.lat < 15)) continent = 'South America';
+  else if (SOUTH_AMERICA.has(code)) continent = 'South America';
   else if (NORTH_AMERICA.has(code)) continent = 'North America';
-  else if (OCEANIA.has(code) || (code === 'FR' && place.lng > 120 && place.lat < 0)) continent = 'Oceania';
-  else if (AFRICA.has(code) || (code === 'FR' && place.lng > 30 && place.lng < 65 && place.lat < 0)) continent = 'Africa';
+  else if (OCEANIA.has(code)) continent = 'Oceania';
+  else if (AFRICA.has(code)) continent = 'Africa';
   else if (WESTERN_ASIA.has(code) || EAST_ASIA.has(code) || SOUTH_ASIA.has(code) || SOUTHEAST_ASIA.has(code) || MIDDLE_EAST.has(code) || code === 'RU' && place.lng >= 60) continent = 'Asia';
 
   let subregion = continent;

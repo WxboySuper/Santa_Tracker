@@ -60,7 +60,10 @@ export function applyOverrides(pool: readonly { id: string; category?: string }[
     const category = categories.get(id);
     categoryTargets.set(category, (categoryTargets.get(category) ?? 0) + 1);
   }
-  for (const [from, to] of swaps) applySwap(selected, from, to, { veto, locks, categories });
+  for (const [from, to] of swaps) {
+    if (veto.has(from) && !selected.includes(from) && selected.includes(to)) continue;
+    applySwap(selected, from, to, { veto, locks, categories });
+  }
   const result = selected.filter((id) => !veto.has(id));
   for (const id of locks) {
     if (result.includes(id)) continue;
