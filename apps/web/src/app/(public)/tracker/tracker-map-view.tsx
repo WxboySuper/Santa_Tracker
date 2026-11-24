@@ -41,8 +41,9 @@ export function JourneyPanel({ nodes, position, translator, locale, tv = false }
   const current = currentIndex === null ? undefined : timedNodes[currentIndex];
   const next = nextIndex === null ? undefined : timedNodes[nextIndex];
   const recent = currentIndex === null ? [] : timedNodes.slice(Math.max(0, currentIndex - 4), currentIndex + 1).reverse();
-  const sectionClass = tv ? "tracker-tv-map-text" : "absolute inset-0 overflow-auto bg-blue-950 px-6 pt-36 pb-8 text-white";
-  return <section className={sectionClass} aria-label={translator.t("tracker.textMode")}>
+  const sectionClass = tv ? "tracker-tv-map-text" : "absolute inset-0 overflow-auto bg-blue-950 px-6 pt-36 pb-8 text-white focus-visible:outline focus-visible:outline-4 focus-visible:outline-yellow-300";
+  // Focusable so keyboard users can scroll the text view on short screens (WCAG 2.1.1).
+  return <section className={sectionClass} aria-label={translator.t("tracker.textMode")} tabIndex={tv ? undefined : 0}>
     <dl className="mx-auto max-w-xl space-y-4">
       <div><dt>{translator.t("tracker.current")}</dt><dd className="text-2xl font-bold">{current?.location.name ?? translator.t("tracker.notStarted")}</dd></div>
       <div><dt>{translator.t("tracker.next")}</dt><dd>{next?.location.name ?? translator.t("tracker.complete")}</dd></div>
