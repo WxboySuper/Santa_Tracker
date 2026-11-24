@@ -5,7 +5,8 @@ import type { Candidate, GeneratorConfig } from './types';
 const MINUTE_MS = 60_000;
 const HOUR_MS = 3_600_000;
 const TAKEOFF_MS = Date.parse('2026-12-24T10:00:00.000Z');
-const ROUTE_END_MS = TAKEOFF_MS + 27 * HOUR_MS;
+const LAST_DEPARTURE_LIMIT_MS = TAKEOFF_MS + 27 * HOUR_MS;
+const RETURN_ARRIVAL_LIMIT_MS = TAKEOFF_MS + 27 * HOUR_MS + 45 * MINUTE_MS;
 
 function offset(place: Candidate): number {
   if (place.utcOffsetMinutes === undefined) throw new Error(`Missing snapshot UTC offset for ${place.name}`);
@@ -195,8 +196,7 @@ function orderPriorities(places: Candidate[], config: GeneratorConfig): Candidat
       throw new Error('Configured seed-2026 route order does not match the selected candidates');
     }
     const completeOrder = routeOrder as Candidate[];
-    if (!hasValidCountryRuns(completeOrder, config.maxCountryRun)) throw new Error('Configured seed-2026 order exceeds country-run limits');
-    const seeds = [completeOrder, ...[15, 40, 90]
+    const seeds = [...(hasValidCountryRuns(completeOrder, config.maxCountryRun) ? [completeOrder] : []), ...[15, 40, 90]
       .map((urgencyWeight) => routeByWindowedNearest(places, config, urgencyWeight))
       .filter((candidate): candidate is Candidate[] => candidate !== undefined)];
     const feasibleSeeds = seeds.filter((candidate) => hasFeasibleTiming(candidate, config)
@@ -316,11 +316,11 @@ export function hasFeasibleTiming(order: Candidate[], config: GeneratorConfig): 
   const finalIndex = sequence.length - 1;
   const final = sequence[finalIndex];
   if (!final) return false;
-  const returnMs = Math.ceil(haversineKm(final, { lat: 80, lng: 180 }) / config.targetLegSpeedKmh * HOUR_MS);
+  const returnMs = Math.ceil(haversineKm(final, { lat: 80, lng: 180 }) / config.targetLegSpeedKmh * 3_600) * 1_000;
   upper[finalIndex] = Math.min(
     upper[finalIndex] ?? TAKEOFF_MS,
-    ROUTE_END_MS - config.durationSeconds * 1000,
-    TAKEOFF_MS + 28 * HOUR_MS - config.durationSeconds * 1000 - returnMs,
+    LAST_DEPARTURE_LIMIT_MS - config.durationSeconds * 1000,
+    RETURN_ARRIVAL_LIMIT_MS - config.durationSeconds * 1000 - returnMs,
   );
 
   let earliest = lower[0] ?? TAKEOFF_MS;
@@ -477,11 +477,11 @@ function planTimes(places: Candidate[], config: GeneratorConfig): Candidate[] {
   const finalIndex = sequence.length - 1;
   const final = sequence[finalIndex];
   if (!final) throw new Error('Cannot schedule an empty route');
-  const returnMs = Math.ceil(haversineKm(final, { lat: 80, lng: 180 }) / config.targetLegSpeedKmh * HOUR_MS);
+  const returnMs = Math.ceil(haversineKm(final, { lat: 80, lng: 180 }) / config.targetLegSpeedKmh * 3_600) * 1_000;
   upper[finalIndex] = Math.min(
     upper[finalIndex] ?? TAKEOFF_MS + 28 * HOUR_MS,
-    ROUTE_END_MS - config.durationSeconds * 1000,
-    TAKEOFF_MS + 28 * HOUR_MS - config.durationSeconds * 1000 - returnMs,
+    LAST_DEPARTURE_LIMIT_MS - config.durationSeconds * 1000,
+    RETURN_ARRIVAL_LIMIT_MS - config.durationSeconds * 1000 - returnMs,
   );
 
   for (let pass = 0; pass < sequence.length * 2; pass++) {
@@ -549,9 +549,9 @@ function planTimes(places: Candidate[], config: GeneratorConfig): Candidate[] {
     previousDeparture = arrival + config.durationSeconds * 1000;
   }
 
-  if (previousDeparture > ROUTE_END_MS) throw new Error(`Last departure at ${new Date(previousDeparture).toISOString()} is later than takeoff plus 27 hours`);
+  if (previousDeparture > LAST_DEPARTURE_LIMIT_MS) throw new Error(`Last departure at ${new Date(previousDeparture).toISOString()} is later than takeoff plus 27 hours`);
   const routeEnd = previousDeparture + returnMs;
-  if (routeEnd > TAKEOFF_MS + 28 * HOUR_MS) throw new Error(`North Pole return at ${new Date(routeEnd).toISOString()} exceeds the 28-hour flight window`);
+  if (routeEnd > RETURN_ARRIVAL_LIMIT_MS) throw new Error(`North Pole return at ${new Date(routeEnd).toISOString()} leaves less than 15 minutes inside the 28-hour flight window`);
   return result;
 }
 

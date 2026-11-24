@@ -216,7 +216,7 @@ export function generateRoute(pool: Candidate[], config: GeneratorConfig, overri
     throw new Error(`Leg ${leg?.from} to ${leg?.to} requires ${Math.round(leg?.kmh ?? 0)} km/h, above ${config.maxLegSpeedKmh}`);
   }
   if (Date.parse(report.lastDepartureUtc) > Date.parse(TAKEOFF_UTC) + 27 * 3_600_000) throw new Error('Last delivery departure exceeds takeoff plus 27 hours');
-  if (Date.parse(routeEndUtc) > Date.parse(TAKEOFF_UTC) + 28 * 3_600_000) throw new Error('North Pole return exceeds the 28-hour flight window');
+  if (Date.parse(routeEndUtc) > Date.parse(TAKEOFF_UTC) + 27 * 3_600_000 + 45 * 60_000) throw new Error(`North Pole return at ${routeEndUtc} leaves less than 15 minutes inside the 28-hour flight window`);
   const placeNamesByLocationId = new Map<string, string>();
   ordered.forEach((place, index) => {
     const locationId = route.stops[index]?.locationId;

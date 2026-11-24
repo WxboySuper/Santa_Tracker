@@ -40,10 +40,25 @@ describe('chooseCandidates', () => {
     const western = initial.find((place) => place.timezone === 'America/New_York');
     const easternExtra = pool.find((place) => place.timezone === 'Asia/Kolkata' && !initial.some((selected) => selected.id === place.id));
     if (!western || !easternExtra) throw new Error('Expected west and east candidates for the swap test');
-    const swapped = chooseCandidates(pool, config, { swap: { [western.id]: easternExtra.id } });
+    const finalIds = initial.map((place) => place.id).filter((id) => id !== western.id).concat(easternExtra.id);
+    const swapped = chooseCandidates(pool, config, { lock: finalIds, swap: { [western.id]: easternExtra.id } });
     expect(swapped.map((place) => place.id)).toContain(easternExtra.id);
     expect(swapped.every((place) => place.category === 'hub')).toBe(true);
     expect(swapped.map((place) => place.id)).toHaveLength(10);
+  });
+
+  it('keeps a swapped final route locked while replacing the old stop', () => {
+    const config = { ...DEFAULT_GENERATOR_LIMITS, total: 10, maxStopsPerUtcOffset: 40, weights: { hub: 1 }, endStopId: 'place-19' };
+    const initial = chooseCandidates(pool, config, {});
+    const source = initial.find((place) => place.id !== config.endStopId);
+    const target = pool.find((place) => !initial.some((selected) => selected.id === place.id));
+    if (!source || !target) throw new Error('Expected a selected source and an available swap target');
+    const finalIds = initial.map((place) => place.id).filter((id) => id !== source.id).concat(target.id);
+    const swapped = chooseCandidates(pool, config, { lock: finalIds, swap: { [source.id]: target.id } });
+
+    expect(swapped.map((place) => place.id)).toHaveLength(10);
+    expect(swapped.map((place) => place.id)).toEqual(expect.arrayContaining(finalIds));
+    expect(swapped.map((place) => place.id)).not.toContain(source.id);
   });
 
   it('reserves a stop from every required country', () => {

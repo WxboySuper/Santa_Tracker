@@ -192,6 +192,10 @@ function validateSelection(places: Candidate[], config: GeneratorConfig, quotas:
     const cap = config.offsetCaps[offset] ?? config.maxStopsPerUtcOffset;
     if (count > cap) throw new Error(`UTC offset cap ${cap} exceeded for ${offset} minutes`);
   }
+  const coreHubCount = places.filter((place) => place.category === 'hub' && coreHub(place, config)).length;
+  if (config.total >= 100 && coreHubCount < config.hubCoreMinimum) {
+    throw new Error(`Core hub minimum ${config.hubCoreMinimum} not met; selected ${coreHubCount}`);
+  }
   for (let left = 0; left < places.length; left++) {
     for (let right = left + 1; right < places.length; right++) {
       const first = places[left];
@@ -250,6 +254,14 @@ export function chooseCandidates(
   const byId = new Map(selectionPool.map((place) => [place.id, place]));
   const lockIds = [...new Set([...(overrides.lock ?? []), ...requiredIds, config.endStopId, ...config.ownerDecisionIds])];
   for (const id of lockIds) if (veto.has(id)) throw new Error(`Stop is both locked and vetoed: ${id}`);
+  const swapTargets = new Set(Object.values(overrides.swap ?? {}));
+  const swapSources = new Set(Object.keys(overrides.swap ?? {}));
+  if ([...swapSources].some((id) => lockIds.includes(id))) throw new Error('A swap source cannot be locked in the final stop list');
+  if ([...swapTargets].some((id) => !lockIds.includes(id))) throw new Error('A swap target must be locked in the final stop list');
+  const selectionLockIds = lockIds.filter((id) => !swapTargets.has(id));
+  for (const [source, target] of Object.entries(overrides.swap ?? {})) {
+    if (lockIds.includes(target)) selectionLockIds.push(source);
+  }
 
   const state: SelectionState = {
     chosen: [],
@@ -261,17 +273,17 @@ export function chooseCandidates(
     config,
     forbidden: veto,
   };
-  addLockedStops(lockIds, state);
+  addLockedStops(selectionLockIds, state);
   const ranked = stableCandidates(state.pool, config.seed);
   reserveRequiredCountries(state, ranked);
-  reserveHubCore(state, ranked);
+  if (Object.keys(overrides.swap ?? {}).length === 0) reserveHubCore(state, ranked);
   reserveOffsets(state, ranked);
   reserveRegions(state, ranked);
   fillQuotas(state, ranked);
 
   let selectedIds = state.chosen.map((place) => place.id);
   if (Object.keys(overrides.swap ?? {}).length > 0) {
-    selectedIds = applyOverrides(state.pool, selectedIds, { ...overrides, lock: lockIds });
+    selectedIds = applyOverrides(classified, selectedIds, { ...overrides, lock: lockIds });
     state.chosen = selectedIds.map((id) => byId.get(id)).filter((place): place is Candidate => place !== undefined);
   }
   validateSelection(state.chosen, config, quotas);

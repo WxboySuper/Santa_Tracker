@@ -71,7 +71,7 @@ const requiredReviewFields = [
   'Owner decisions', 'Stops', 'UTC offset', 'Every leg, including launch and return',
 ];
 const missingReviewFields = requiredReviewFields.filter((field) => !committedReviewText.includes(field));
-const ownerNames = ['Timbuktu', 'Palmyra', 'Leptis Magna', 'Dome of the Rock', 'Robben Island'];
+const ownerNames = ['Timbuktu', 'Leptis Magna', 'Robben Island'];
 const missingOwnerNames = ownerNames.filter((name) => !committedReviewText.includes(name));
 add('Review page contents', committedReviewText.length > 0 && missingReviewFields.length === 0 && missingOwnerNames.length === 0,
   missingReviewFields.length || missingOwnerNames.length

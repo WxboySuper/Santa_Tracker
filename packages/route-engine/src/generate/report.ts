@@ -67,7 +67,7 @@ export function buildReport(places: Candidate[], route: Route, config: Generator
   }
   const lastDeparture = Date.parse(lastStop.departureIso);
   const returnDistance = haversineKm(last, NORTH_POLE);
-  const returnMs = Math.max(1_000, Math.ceil(returnDistance / config.targetLegSpeedKmh * 3_600_000));
+  const returnMs = Math.max(1_000, Math.ceil(returnDistance / config.targetLegSpeedKmh * 3_600) * 1_000);
   const returnArrival = lastDeparture + returnMs;
   legs.push(actualLeg(last, NORTH_POLE, last.name, 'North Pole', lastDeparture, returnArrival, 'return', returnMs / 60_000, 0));
 
@@ -80,7 +80,7 @@ export function buildReport(places: Candidate[], route: Route, config: Generator
   const routeEndUtc = new Date(returnArrival).toISOString();
   const issues: string[] = [];
   if (lastDeparture > takeoff + 27 * 3_600_000) issues.push(`Last delivery at ${last.name} departs after takeoff plus 27 hours`);
-  if (returnArrival > takeoff + 28 * 3_600_000) issues.push(`Return from ${last.name} reaches the North Pole after the 28-hour flight window`);
+  if (returnArrival > takeoff + 27 * 3_600_000 + 45 * 60_000) issues.push(`Return from ${last.name} leaves less than 15 minutes inside the 28-hour flight window`);
 
   return {
     seed: config.seed,

@@ -227,7 +227,7 @@ export function auditRouteDocument(document: unknown, context: RouteAuditContext
   const lastDeparture = Date.parse(delivery.at(-1)?.schedule.departure_utc ?? '');
   const returnArrival = Date.parse(end?.schedule.arrival_utc ?? '');
   add('Flight window and North Pole return', !!start && !!end && lastDeparture <= takeoff + 27 * 3_600_000
-    && returnArrival <= takeoff + 28 * 3_600_000,
+    && returnArrival <= takeoff + 27 * 3_600_000 + 45 * 60_000,
   `last delivery departs ${Number.isFinite(lastDeparture) ? new Date(lastDeparture).toISOString() : 'invalid'}; return ${Number.isFinite(returnArrival) ? new Date(returnArrival).toISOString() : 'invalid'}.`);
 
   if (matched && start && end && delivery.length === places.length && places.length > 0) {
