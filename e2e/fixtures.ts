@@ -1,5 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { expect, test as base } from "@playwright/test";
+import { getFixtureProjectName } from "./fixture-project";
 import { isHttpEndpointUrl, isRecord, isServerEndpointMap } from "./validation";
 
 type RuntimeConfig = { endpoints: Record<string, string>; adminPassword: string };
@@ -55,16 +56,6 @@ export async function getEndpointForProject(runtimeFile: string, projectName: st
     throw new Error(`Invalid endpoint for project ${projectName} in ${runtimeFile}: ${endpoint}`);
   }
   return endpoint;
-}
-
-export function getFixtureProjectName(project: { name: string; metadata?: unknown }): string {
-  const metadata = project.metadata;
-  if (isRecord(metadata) && "fixtureProject" in metadata) {
-    if (metadata.fixtureProject === "closed") return "closed";
-    if (metadata.fixtureProject === "open") return "open";
-    throw new Error(`Unknown fixtureProject for project ${project.name}: ${String(metadata.fixtureProject)}`);
-  }
-  return project.name;
 }
 
 const test = base.extend({

@@ -1,4 +1,5 @@
-import { expect, getFixtureProjectName, test } from "./fixtures";
+import { expect, test } from "./fixtures";
+import { getFixtureProjectName } from "./fixture-project";
 import { expectNoSeriousAxeIssues } from "./axe-check";
 
 test("key public pages pass serious and critical axe checks", async ({ page }, testInfo) => {

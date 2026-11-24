@@ -1,4 +1,5 @@
-import { expect, getFixtureProjectName, test } from './fixtures';
+import { expect, test } from './fixtures';
+import { getFixtureProjectName } from './fixture-project';
 import type { Page } from '@playwright/test';
 import { expectNoSeriousAxeIssues } from './axe-check';
 

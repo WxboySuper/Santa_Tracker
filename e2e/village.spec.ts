@@ -1,4 +1,5 @@
-import { expect, getFixtureProjectName, test } from './fixtures';
+import { expect, test } from './fixtures';
+import { getFixtureProjectName } from './fixture-project';
 
 test('the village preview is hidden from visitors', async ({ page }, testInfo) => {
   test.skip(getFixtureProjectName(testInfo.project) !== 'closed', 'closed-season behaviour');
