@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState, type RefObject } from 'react';
 import { countdownCaption, garlandBulbs } from '@/lib/countdown-captions';
 import { countdownTarget, getCountdownParts } from '@/lib/countdown';
+import { prefersLowPerformance } from '@/lib/device-capability';
 import { createNightScene, drawNightScene, type Bulbs, type NightScene } from './countdown-scene';
 
 const FRAME_MS = 1000 / 30;
@@ -24,7 +25,7 @@ function useDaysLeft(): number | null {
 
 type Painter = { redraw: () => void; stop: () => void };
 
-const prefersReducedMotion = (): boolean => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+const prefersReducedMotion = (): boolean => window.matchMedia('(prefers-reduced-motion: reduce)').matches || prefersLowPerformance();
 
 /** Owns the canvas size and the scene built for it. */
 function createSurface(canvas: HTMLCanvasElement, context: CanvasRenderingContext2D, onResize: () => void): { scene: () => NightScene | null; stop: () => void } {
