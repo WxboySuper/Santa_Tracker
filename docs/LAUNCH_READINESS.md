@@ -32,6 +32,8 @@ The Worker keeps the last successfully read, valid flag document in memory per i
 
 ## Gaps to close before December
 
+See the [November 2026 browser and accessibility matrix](qa/browser-matrix-2026-11.md) for automated browser and viewport results, saved screenshots, reproducible failures, and owner-run real-device and screen-reader checks.
+
 1. **Rollback rehearsal (gap).** The [rollback runbook](ROLLBACK_RUNBOOK.md) documents Worker rollback and recovery of a versioned R2 dataset. Rehearse against a non-live dataset before Dec 24; never run remote write commands from a developer workstation.
 2. **Rehearsal against a copy (gap).** There is no staging environment. Rehearse the Dec 24 flow locally with shifted schedule times (the Playwright suite in `e2e/` already does this for the tracker) and, if wanted, on a throwaway Worker name that does not share the production R2 bucket.
 3. **Load test (gap).** Run a local or throwaway-Worker load test of `/api/route` and the tracker page at a realistic burst (hundreds of requests per second for a few minutes) to confirm edge caching holds. Do not load-test the production hostname without the owner's approval.
