@@ -9,18 +9,25 @@ export interface SeasonModeConfig {
 
 export const DEFAULT_SEASON_MODE_CONFIG: SeasonModeConfig = { scheduleForYear: seasonSchedule };
 
+type ModeBoundary = keyof Pick<SeasonSchedule, "preparationStartsAt" | "adventStartsAt" | "flightStartsAt" | "postSeasonStartsAt" | "seasonEndsAt">;
+const MODE_WINDOWS = [
+  { mode: "preparation", start: "preparationStartsAt", end: "adventStartsAt" },
+  { mode: "advent", start: "adventStartsAt", end: "flightStartsAt" },
+  { mode: "flight", start: "flightStartsAt", end: "postSeasonStartsAt" },
+  { mode: "post-season", start: "postSeasonStartsAt", end: "seasonEndsAt" },
+] as const satisfies readonly { mode: SeasonMode; start: ModeBoundary; end: ModeBoundary }[];
+
+function modeWithinSchedule(timestamp: number, schedule: ReturnType<SeasonModeConfig["scheduleForYear"]>): SeasonMode | null {
+  return MODE_WINDOWS.find(window => timestamp >= schedule[window.start] && timestamp < schedule[window.end])?.mode ?? null;
+}
+
 /** Derives the annual product mode from shared UTC season boundaries. */
 export function seasonMode(now: Date, config: SeasonModeConfig = DEFAULT_SEASON_MODE_CONFIG): SeasonMode {
   const timestamp = now.getTime();
   const year = now.getUTCFullYear();
-  for (const scheduleYear of [year - 1, year]) {
-    const schedule = config.scheduleForYear(scheduleYear);
-    if (timestamp >= schedule.preparationStartsAt && timestamp < schedule.adventStartsAt) return "preparation";
-    if (timestamp >= schedule.adventStartsAt && timestamp < schedule.flightStartsAt) return "advent";
-    if (timestamp >= schedule.flightStartsAt && timestamp < schedule.postSeasonStartsAt) return "flight";
-    if (timestamp >= schedule.postSeasonStartsAt && timestamp < schedule.seasonEndsAt) return "post-season";
-  }
-  return "off-season";
+  return modeWithinSchedule(timestamp, config.scheduleForYear(year - 1))
+    ?? modeWithinSchedule(timestamp, config.scheduleForYear(year))
+    ?? "off-season";
 }
 
 export interface SeasonModeOverride {

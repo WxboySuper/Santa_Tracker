@@ -1,16 +1,26 @@
 import { NextResponse } from "next/server";
+import { z } from "zod";
 import { requireAdminAuth } from "@/lib/auth";
 import { clearSeasonOverride, readSeasonOverrideState, writeSeasonOverride, MAX_SEASON_OVERRIDE_MS } from "@/lib/season-overrides";
-import { effectiveSeasonMode, SEASON_MODES, seasonMode, type SeasonMode, type SeasonModeOverride } from "@/lib/season-mode";
+import { effectiveSeasonMode, SEASON_MODES, seasonMode, type SeasonModeOverride } from "@/lib/season-mode";
 
 export const dynamic = "force-dynamic";
 const NO_STORE = { "Cache-Control": "private, no-store" };
 const MAX_BODY_BYTES = 2_048;
 const ISO_DATE_TIME = /^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})(?:\.(\d{1,3}))?Z$/;
+const setRequestSchema = z.object({
+  mode: z.enum(SEASON_MODES),
+  expiresAt: z.string().regex(ISO_DATE_TIME).refine(isCanonicalTimestamp),
+  reason: z.string().trim().min(1).max(500),
+}).strict();
+
+type AccessResult = { ok: true; expectedUpdatedAt: string } | { ok: false; response: NextResponse };
+type BodyResult = { kind: "body"; value: unknown } | { kind: "too-large" } | { kind: "invalid" };
+type ByteResult = { kind: "bytes"; value: Uint8Array } | { kind: "too-large" } | { kind: "invalid" };
 
 export async function GET(request: Request) {
-  const auth = await requireAdminAuth(request);
-  if (!auth.ok) return json({ error: auth.error ?? "Unauthorized" }, auth.status ?? 401);
+  const authResponse = await authorizationError(request);
+  if (authResponse) return authResponse;
   try {
     const state = await readSeasonOverrideState();
     const now = new Date();
@@ -25,38 +35,54 @@ export async function GET(request: Request) {
 }
 
 export async function PUT(request: Request) {
-  const auth = await requireAdminAuth(request);
-  if (!auth.ok) return json({ error: auth.error ?? "Unauthorized" }, auth.status ?? 401);
-  const expectedUpdatedAt = parseEtag(request.headers.get("if-match"));
-  if (expectedUpdatedAt === null) return json({ error: "If-Match is required. Read the current season mode before replacing it." }, 428);
-  const parsed = await readJson(request);
-  if (parsed.kind !== "body") return json({ error: parsed.kind === "too-large" ? "Request body too large" : "Invalid JSON" }, parsed.kind === "too-large" ? 413 : 400);
-  if (!validSetBody(parsed.value)) return json({ error: "Expected a mode, UTC expiresAt, and non-empty reason" }, 400);
-
-  const now = new Date();
-  const expiry = Date.parse(parsed.value.expiresAt);
-  const duration = expiry - now.getTime();
-  if (duration <= 0) return json({ error: "expiresAt must be in the future" }, 400);
-  if (duration > MAX_SEASON_OVERRIDE_MS) return json({ error: "Season overrides may last at most 48 hours" }, 400);
-  const override: SeasonModeOverride = {
-    mode: parsed.value.mode,
-    setAt: now.toISOString(),
-    expiresAt: new Date(expiry).toISOString(),
-    reason: parsed.value.reason.trim(),
-    setBy: "admin",
-  };
-  return save(Promise.resolve().then(() => writeSeasonOverride(override, expectedUpdatedAt, "admin")), "set");
+  const access = await authorizeWithEtag(request, "Read the current season mode before replacing it.");
+  if (!access.ok) return access.response;
+  return setOverride(request, access.expectedUpdatedAt);
 }
 
 export async function DELETE(request: Request) {
-  const auth = await requireAdminAuth(request);
-  if (!auth.ok) return json({ error: auth.error ?? "Unauthorized" }, auth.status ?? 401);
-  const expectedUpdatedAt = parseEtag(request.headers.get("if-match"));
-  if (expectedUpdatedAt === null) return json({ error: "If-Match is required. Read the current season mode before clearing it." }, 428);
-  return save(Promise.resolve().then(() => clearSeasonOverride(expectedUpdatedAt, "admin")), "clear");
+  const access = await authorizeWithEtag(request, "Read the current season mode before clearing it.");
+  if (!access.ok) return access.response;
+  return saveState(clearSeasonOverride(access.expectedUpdatedAt, "admin"), "clear");
 }
 
-async function save(pending: Promise<Awaited<ReturnType<typeof writeSeasonOverride>>>, action: "set" | "clear"): Promise<NextResponse> {
+async function authorizationError(request: Request): Promise<NextResponse | null> {
+  const auth = await requireAdminAuth(request);
+  return auth.ok ? null : json({ error: auth.error ?? "Unauthorized" }, auth.status ?? 401);
+}
+
+async function authorizeWithEtag(request: Request, instruction: string): Promise<AccessResult> {
+  const authResponse = await authorizationError(request);
+  if (authResponse) return { ok: false, response: authResponse };
+  const expectedUpdatedAt = parseEtag(request.headers.get("if-match"));
+  if (expectedUpdatedAt === null) {
+    return { ok: false, response: json({ error: `If-Match is required. ${instruction}` }, 428) };
+  }
+  return { ok: true, expectedUpdatedAt };
+}
+
+async function setOverride(request: Request, expectedUpdatedAt: string): Promise<NextResponse> {
+  const body = await readJson(request);
+  if (body.kind !== "body") return bodyError(body);
+  const parsed = setRequestSchema.safeParse(body.value);
+  if (!parsed.success) return json({ error: "Expected a mode, UTC expiresAt, and non-empty reason" }, 400);
+  const now = new Date();
+  const override = createOverride(parsed.data, now);
+  if ("error" in override) return json({ error: override.error }, 400);
+  return saveState(Promise.resolve().then(() => writeSeasonOverride(override.value, expectedUpdatedAt, "admin")), "set");
+}
+
+function createOverride(input: z.infer<typeof setRequestSchema>, now: Date): { value: SeasonModeOverride } | { error: string } {
+  const expiry = Date.parse(input.expiresAt);
+  const duration = expiry - now.getTime();
+  if (duration <= 0) return { error: "expiresAt must be in the future" };
+  if (duration > MAX_SEASON_OVERRIDE_MS) return { error: "Season overrides may last at most 48 hours" };
+  return {
+    value: { mode: input.mode, setAt: now.toISOString(), expiresAt: new Date(expiry).toISOString(), reason: input.reason, setBy: "admin" },
+  };
+}
+
+async function saveState(pending: Promise<Awaited<ReturnType<typeof writeSeasonOverride>>>, action: "set" | "clear"): Promise<NextResponse> {
   try {
     const state = await pending;
     if (!state) return json({ error: "Season mode changed. Reload the current state before retrying." }, 412);
@@ -65,6 +91,10 @@ async function save(pending: Promise<Awaited<ReturnType<typeof writeSeasonOverri
     console.error(`Admin season mode ${action} failed`, error);
     return json({ error: "Unable to save season mode" }, 500);
   }
+}
+
+function bodyError(body: Exclude<BodyResult, { kind: "body" }>): NextResponse {
+  return json({ error: body.kind === "too-large" ? "Request body too large" : "Invalid JSON" }, body.kind === "too-large" ? 413 : 400);
 }
 
 function json(body: Record<string, unknown>, status: number): NextResponse {
@@ -77,15 +107,7 @@ function parseEtag(value: string | null): string | null {
   return match ? match[1] ?? null : null;
 }
 
-type ParsedRequest = { mode: SeasonMode; expiresAt: string; reason: string };
-function validSetBody(value: unknown): value is ParsedRequest {
-  if (!isRecord(value) || Object.keys(value).sort().join(",") !== "expiresAt,mode,reason") return false;
-  return typeof value.mode === "string" && (SEASON_MODES as readonly string[]).includes(value.mode)
-    && typeof value.expiresAt === "string" && isTimestamp(value.expiresAt)
-    && typeof value.reason === "string" && value.reason.trim().length > 0 && value.reason.length <= 500;
-}
-
-function isTimestamp(value: string): boolean {
+function isCanonicalTimestamp(value: string): boolean {
   const match = ISO_DATE_TIME.exec(value);
   if (!match) return false;
   const date = new Date(value);
@@ -93,41 +115,47 @@ function isTimestamp(value: string): boolean {
   return !Number.isNaN(date.getTime()) && date.toISOString() === `${match[1]}${fraction}Z`;
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
+async function readJson(request: Request): Promise<BodyResult> {
+  const headerError = validateJsonHeaders(request);
+  if (headerError) return headerError;
+  const bytes = await readCappedBody(request.body);
+  if (bytes.kind !== "bytes") return bytes;
+  try { return { kind: "body", value: JSON.parse(new TextDecoder().decode(bytes.value)) as unknown }; }
+  catch { return { kind: "invalid" }; }
 }
 
-async function readJson(request: Request): Promise<{ kind: "body"; value: unknown } | { kind: "too-large" } | { kind: "invalid" }> {
+function validateJsonHeaders(request: Request): Exclude<BodyResult, { kind: "body" }> | null {
   if (!request.headers.get("content-type")?.toLowerCase().startsWith("application/json")) return { kind: "invalid" };
   const length = Number(request.headers.get("content-length"));
-  if (Number.isFinite(length) && length > MAX_BODY_BYTES) return { kind: "too-large" };
-  if (!request.body) return parseJson(new Uint8Array());
-  const reader = request.body.getReader();
+  return Number.isFinite(length) && length > MAX_BODY_BYTES ? { kind: "too-large" } : null;
+}
+
+async function readCappedBody(body: ReadableStream<Uint8Array> | null): Promise<ByteResult> {
+  if (!body) return { kind: "bytes", value: new Uint8Array() };
+  const reader = body.getReader();
+  try { return await collectChunks(reader); }
+  catch { return { kind: "invalid" }; }
+  finally { reader.releaseLock(); }
+}
+
+async function collectChunks(reader: ReadableStreamDefaultReader<Uint8Array>): Promise<ByteResult> {
   const chunks: Uint8Array[] = [];
   let total = 0;
-  try {
-    while (true) {
-      const chunk = await reader.read();
-      if (chunk.done) break;
-      total += chunk.value.byteLength;
-      if (total > MAX_BODY_BYTES) {
-        void reader.cancel().catch(() => undefined);
-        return { kind: "too-large" };
-      }
-      chunks.push(chunk.value);
+  while (true) {
+    const chunk = await reader.read();
+    if (chunk.done) return { kind: "bytes", value: joinChunks(chunks, total) };
+    total += chunk.value.byteLength;
+    if (total > MAX_BODY_BYTES) {
+      void reader.cancel().catch(() => undefined);
+      return { kind: "too-large" };
     }
-  } catch {
-    return { kind: "invalid" };
-  } finally {
-    reader.releaseLock();
+    chunks.push(chunk.value);
   }
+}
+
+function joinChunks(chunks: Uint8Array[], total: number): Uint8Array {
   const bytes = new Uint8Array(total);
   let offset = 0;
   for (const chunk of chunks) { bytes.set(chunk, offset); offset += chunk.byteLength; }
-  return parseJson(bytes);
-}
-
-function parseJson(bytes: Uint8Array): { kind: "body"; value: unknown } | { kind: "invalid" } {
-  try { return { kind: "body", value: JSON.parse(new TextDecoder().decode(bytes)) as unknown }; }
-  catch { return { kind: "invalid" }; }
+  return bytes;
 }
