@@ -198,7 +198,7 @@ export function auditRouteDocument(document: unknown, context: RouteAuditContext
     const islandIndices = places.flatMap((place, index) => context.config.uninhabitedIslandIds.includes(place.id) ? [index] : []);
     const firstFivePopulated = places.slice(0, 5).every((place) => (place.population ?? 0) > 0 || place.worldCity === true || context.config.openingStopIds.includes(place.id));
     const last = places.at(-1);
-    const lastPopulatedOrIconic = !!last && ((last.population ?? 0) > 0 || last.worldCity === true || last.source?.includes('wikidata.org') === true);
+    const lastPopulatedOrIconic = !!last && ((last.population ?? 0) > 0 || last.worldCity === true || context.config.requiredStopIds.includes(last.id));
     add('Island, opening, and ending rules', islandIndices.length <= 4 && islandIndices.every((index) => index >= 5) && firstFivePopulated && lastPopulatedOrIconic,
       `${islandIndices.length} uninhabited-island stops; first five ${firstFivePopulated ? 'populated' : 'include an unpopulated place'}; last stop ${last?.name ?? 'missing'} ${lastPopulatedOrIconic ? 'is populated or iconic' : 'is not populated or iconic'}.`);
 
