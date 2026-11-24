@@ -7,11 +7,16 @@ export interface ArrivalEstimate { stop: RouteNode; at: Date }
 
 /** Finds the closest future stop for a coordinate or time-zone choice. */
 export function estimateArrival(place: ChosenPlace, route: RouteNode[], now: Date): ArrivalEstimate | null {
-  const candidates = route.filter(node => Date.parse(node.schedule?.arrival_utc ?? "") >= now.getTime());
+  const candidates = route.filter(node => isDeliveryStop(node) && Date.parse(node.schedule?.arrival_utc ?? "") >= now.getTime());
   if (!candidates.length) return null;
   const stop = candidates.reduce((nearest, node) => distance(place, node) < distance(place, nearest) ? node : nearest);
   const arrival = stop.schedule?.arrival_utc;
   return arrival ? { stop, at: new Date(arrival) } : null;
+}
+
+/** START and END are the North Pole, not somewhere a visitor can be visited. */
+function isDeliveryStop(node: RouteNode): boolean {
+  return node.type !== "START" && node.type !== "END";
 }
 
 /** Measures coordinate distance or time-zone offset when coordinates are absent. */

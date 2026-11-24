@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { useCallback, useEffect, useRef, useState, type Dispatch, type RefObject } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type Dispatch, type RefObject } from "react";
 import Countdown from "@/components/countdown";
 import type { createTranslator } from "@santa-tracker/localization";
 import type { RouteNode } from "@/lib/locations";
@@ -148,6 +148,8 @@ export function TrackerMapView(props: TrackerMapViewProps) {
   const immersive = viewMode === "immersive";
   const tv = viewMode === "tv";
   const stageRef = useRef<HTMLDivElement>(null);
+  // The journey indexes stops that have a schedule. START has none, so index the same list here or the TV and immersive views show the wrong stop.
+  const timedNodes = useMemo(() => routeNodesToContractRoute(nodes).timedNodes, [nodes]);
   const { visible, wake } = useIdleControls(viewMode, stageRef);
   useTvKeyboardExit(tv, toggleTv);
   return <>
@@ -158,14 +160,14 @@ export function TrackerMapView(props: TrackerMapViewProps) {
           <MapSurface mode={mode} tv element={element} nodes={nodes} position={position} translator={translator} locale={locale} />
           <TvMapAttribution translator={translator} />
         </div>
-        <TvTrackerDashboard locale={locale} nodes={nodes} position={position} translator={translator} />
+        <TvTrackerDashboard locale={locale} nodes={timedNodes} position={position} translator={translator} />
         <button className="tracker-tv-exit" type="button" onClick={toggleTv}>{translator.t("tracker.exitTv")}</button>
       </div> : <>
         <MapSurface mode={mode} element={element} nodes={nodes} position={position} translator={translator} locale={locale} />
         <TrackerControls mode={mode} following={following} dispatch={dispatch} translator={translator} adapter={adapter} setFollowing={setFollowing} immersive={immersive} visible={visible} toggleImmersive={toggleImmersive} toggleTv={toggleTv} />
         <MapInstructions mode={mode} translator={translator} />
         <TrackerStatus status={status} current={current} translator={translator} />
-        <CountdownLayer immersive={immersive} controlsVisible={visible} locale={locale} translator={translator} nodes={nodes} position={position} current={current} />
+        <CountdownLayer immersive={immersive} controlsVisible={visible} locale={locale} translator={translator} nodes={timedNodes} position={position} current={current} />
       </>}
     </div>
   </>;
