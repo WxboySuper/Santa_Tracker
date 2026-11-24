@@ -92,30 +92,51 @@ function hasEnoughCountryRunCapacity(
 function routeByWindowedNearest(places: Candidate[], config: GeneratorConfig, urgencyWeight: number): Candidate[] | undefined {
   const initial = createWindowedRouteStart(places, config);
   if (!initial) return undefined;
-  const { openings, end, remaining: initialRemaining, previousArrival: initialArrival } = initial;
-  let remaining = initialRemaining;
-  let previousArrival = initialArrival;
-  const finalRoute: Candidate[] = [...openings];
-
+  const route = [...initial.openings];
+  let remaining = initial.remaining;
+  let previousArrival = initial.previousArrival;
   while (remaining.length > 0) {
-    const prior = finalRoute.at(-1);
-    if (!prior) return undefined;
-    const options = eligibleWindowedOptions(remaining, finalRoute, prior, previousArrival, places.length, config);
-    if (options.length === 0) return undefined;
-    sortWindowedOptions(options, urgencyWeight);
-    const next = options[0];
+    const next = nextWindowedStop({ remaining, route, previousArrival, totalPlaces: places.length, config, urgencyWeight });
     if (!next) return undefined;
-    const arrival = Math.min(next.latest, next.desired);
-    if (arrival < next.earliest) return undefined;
-    finalRoute.push(next.place);
+    route.push(next.place);
     remaining = remaining.filter((place) => place.id !== next.place.id);
-    previousArrival = arrival;
+    previousArrival = next.arrival;
   }
+  route.push(initial.end);
+  return isFeasibleRouteOrder(route, config) ? route : undefined;
+}
 
-  finalRoute.push(end);
-  return hasValidCountryRuns(finalRoute, config.maxCountryRun) && hasFeasibleTiming(finalRoute, config)
-    ? finalRoute
-    : undefined;
+type NextWindowedStopOptions = {
+  remaining: Candidate[];
+  route: Candidate[];
+  previousArrival: number;
+  totalPlaces: number;
+  config: GeneratorConfig;
+  urgencyWeight: number;
+};
+
+type NextWindowedStop = { place: Candidate; arrival: number };
+
+function nextWindowedStop(options: NextWindowedStopOptions): NextWindowedStop | undefined {
+  const prior = options.route.at(-1);
+  if (!prior) return undefined;
+  const candidates = eligibleWindowedOptions({
+    remaining: options.remaining,
+    ordered: options.route,
+    prior,
+    previousArrival: options.previousArrival,
+    totalPlaces: options.totalPlaces,
+    config: options.config,
+  });
+  sortWindowedOptions(candidates, options.urgencyWeight);
+  return toNextWindowedStop(candidates[0]);
+}
+
+function toNextWindowedStop(option: WindowedOption | undefined): NextWindowedStop | undefined {
+  if (!option) return undefined;
+  const arrival = Math.min(option.latest, option.desired);
+  if (arrival < option.earliest) return undefined;
+  return { place: option.place, arrival };
 }
 
 interface WindowedRouteStart {
@@ -139,7 +160,9 @@ function createWindowedRouteStart(places: Candidate[], config: GeneratorConfig):
   const openings = config.openingStopIds.map((id) => byId.get(id)).filter((place): place is Candidate => place !== undefined);
   const end = byId.get(config.endStopId);
   const lastOpening = openings.at(-1);
-  if (openings.length !== config.openingStopIds.length || !end || !lastOpening) return undefined;
+  if (!hasCompleteWindowedStart(openings, config)) return undefined;
+  if (!end) return undefined;
+  if (!lastOpening) return undefined;
   const openingIds = new Set(config.openingStopIds);
   return {
     openings,
@@ -149,31 +172,52 @@ function createWindowedRouteStart(places: Candidate[], config: GeneratorConfig):
   };
 }
 
-function eligibleWindowedOptions(
-  remaining: Candidate[],
-  ordered: Candidate[],
-  prior: Candidate,
-  previousArrival: number,
-  totalPlaces: number,
-  config: GeneratorConfig,
-): WindowedOption[] {
+function hasCompleteWindowedStart(openings: Candidate[], config: GeneratorConfig): boolean {
+  return openings.length === config.openingStopIds.length;
+}
+
+type EligibleWindowedOptions = {
+  remaining: Candidate[];
+  ordered: Candidate[];
+  prior: Candidate;
+  previousArrival: number;
+  totalPlaces: number;
+  config: GeneratorConfig;
+};
+
+function eligibleWindowedOptions(options: EligibleWindowedOptions): WindowedOption[] {
+  const { remaining, ordered, config } = options;
   return remaining.flatMap((place) => {
     const left = remaining.filter((candidate) => candidate.id !== place.id);
     const after = [...ordered, place];
-    if (!canAppend(place, ordered, config.maxCountryRun)
-      || !canCompleteCountryRuns(after, left, config.maxCountryRun)) return [];
-    return windowedOption(place, prior, previousArrival, ordered.length, totalPlaces, config);
+    if (!isWindowedCandidateEligible(place, ordered, after, left, config)) return [];
+    return windowedOption({
+      place,
+      prior: options.prior,
+      previousArrival: options.previousArrival,
+      index: ordered.length,
+      totalPlaces: options.totalPlaces,
+      config,
+    });
   });
 }
 
-function windowedOption(
-  place: Candidate,
-  prior: Candidate,
-  previousArrival: number,
-  index: number,
-  totalPlaces: number,
-  config: GeneratorConfig,
-): WindowedOption[] {
+function isWindowedCandidateEligible(place: Candidate, ordered: Candidate[], after: Candidate[], left: Candidate[], config: GeneratorConfig): boolean {
+  if (!canAppend(place, ordered, config.maxCountryRun)) return false;
+  return canCompleteCountryRuns(after, left, config.maxCountryRun);
+}
+
+type WindowedOptionOptions = {
+  place: Candidate;
+  prior: Candidate;
+  previousArrival: number;
+  index: number;
+  totalPlaces: number;
+  config: GeneratorConfig;
+};
+
+function windowedOption(options: WindowedOptionOptions): WindowedOption[] {
+  const { place, prior, previousArrival, index, totalPlaces, config } = options;
   const window = windowFor(place, config);
   const distance = haversineKm(prior, place);
   const requiredGap = config.durationSeconds * 1000 + minimumTravelMs(distance, config);
@@ -385,17 +429,36 @@ function improveUnanchoredBands(ordered: Candidate[], ranges: [number, number][]
 }
 
 function chooseBestWindowedOrder(ordered: Candidate[], places: Candidate[], config: GeneratorConfig): Candidate[] {
-  if (!hasValidCountryRuns(ordered, config.maxCountryRun)) throw new Error('Route order exceeds the consecutive-country run limit');
-  let best: Candidate[] | undefined = hasFeasibleTiming(ordered, config) ? ordered : undefined;
-  let bestScore = best ? routeScore(best) : Number.POSITIVE_INFINITY;
-  const hasAdditionalAnchors = Object.keys(config.arrivalAnchorMinutes).some((id) => !config.openingStopIds.includes(id));
-  if (best && hasAdditionalAnchors) return improveWholeRoute(best, config);
-  for (const candidate of windowedCandidates(places, config)) {
-    const score = routeScore(candidate);
-    if (score < bestScore) { best = candidate; bestScore = score; }
-  }
+  assertCountryRuns(ordered, config);
+  const initialBest = initialFeasibleOrder(ordered, config);
+  if (initialBest && hasNonOpeningAnchors(config)) return improveWholeRoute(initialBest, config);
+  const best = bestWindowedCandidate(windowedCandidates(places, config), initialBest);
   if (!best) throw new Error('No route ordering satisfies all arrival windows and gap limits');
   return improveWholeRoute(best, config);
+}
+
+function assertCountryRuns(ordered: Candidate[], config: GeneratorConfig): void {
+  if (!hasValidCountryRuns(ordered, config.maxCountryRun)) throw new Error('Route order exceeds the consecutive-country run limit');
+}
+
+function initialFeasibleOrder(ordered: Candidate[], config: GeneratorConfig): Candidate[] | undefined {
+  return hasFeasibleTiming(ordered, config) ? ordered : undefined;
+}
+
+function hasNonOpeningAnchors(config: GeneratorConfig): boolean {
+  return Object.keys(config.arrivalAnchorMinutes).some((id) => !config.openingStopIds.includes(id));
+}
+
+function bestWindowedCandidate(candidates: Candidate[][], initial?: Candidate[]): Candidate[] | undefined {
+  let best = initial;
+  let bestScore = best ? routeScore(best) : Number.POSITIVE_INFINITY;
+  for (const candidate of candidates) {
+    const score = routeScore(candidate);
+    if (score >= bestScore) continue;
+    best = candidate;
+    bestScore = score;
+  }
+  return best;
 }
 
 function prioritizeOffsetBands(places: Candidate[], config: GeneratorConfig, byId: Map<string, Candidate>): Candidate[] {
@@ -702,21 +765,19 @@ function createPlanSequence(places: Candidate[], config: GeneratorConfig): Candi
   const priority = orderPriorities(places, config);
   const byId = new Map(places.map((place) => [place.id, place]));
   const openingIds = new Set(config.openingStopIds);
-  const openings = config.openingStopIds.map((id) => {
-    const place = byId.get(id);
-    if (!place) throw new Error(`Opening stop ${id} was not selected`);
-    return place;
-  });
-  const endStop = byId.get(config.endStopId);
-  if (!endStop) throw new Error(`Configured final stop ${config.endStopId} was not selected`);
-  if (openingIds.has(config.endStopId)) throw new Error('The configured final stop cannot also be an opening stop');
-  const sequence = [
-    ...openings,
-    ...priority.filter((place) => !openingIds.has(place.id) && place.id !== endStop.id),
-    endStop,
-  ];
+  const openings = openingStops(byId, config);
+  const endStop = finalStop(byId, config);
+  const middle = priority.filter((place) => !openingIds.has(place.id) && place.id !== endStop.id);
+  const sequence = [...openings, ...middle, endStop];
   if (!hasValidCountryRuns(sequence, config.maxCountryRun)) throw new Error('Route order exceeds the consecutive-country run limit');
   return sequence;
+}
+
+function finalStop(byId: Map<string, Candidate>, config: GeneratorConfig): Candidate {
+  const endStop = byId.get(config.endStopId);
+  if (!endStop) throw new Error(`Configured final stop ${config.endStopId} was not selected`);
+  if (config.openingStopIds.includes(endStop.id)) throw new Error('The configured final stop cannot also be an opening stop');
+  return endStop;
 }
 
 function propagatePlanBounds(sequence: Candidate[], timing: TimingBounds, config: GeneratorConfig): void {
@@ -776,41 +837,95 @@ function throwPlanBoundsError(sequence: Candidate[], index: number, timing: Timi
   throw new Error(`No feasible timing interval for ${place?.name ?? `stop ${index + 1}`} after ${prior?.name ?? 'takeoff'}: ${new Date(lower[index] ?? 0).toISOString()} exceeds ${new Date(upper[index] ?? 0).toISOString()} by ${(lower[index] ?? 0) - (upper[index] ?? 0)} ms (minimum gap ${(minimumGaps[index] ?? 0) / MINUTE_MS} minutes, distance ${prior && place ? haversineKm(prior, place).toFixed(2) : 'n/a'} km); nearby ${nearby}; bounds ${boundSummary}`);
 }
 
+type ArrivalProgress = { arrival: number; departure: number };
+
 function assignArrivalTimes(sequence: Candidate[], timing: TimingBounds, config: GeneratorConfig): Candidate[] {
-  const { lower, upper, minimumGaps } = timing;
-  const openingIds = new Set(config.openingStopIds);
   const result: Candidate[] = [];
-  let previousArrival = TAKEOFF_MS;
-  let previousDeparture = TAKEOFF_MS;
+  let progress: ArrivalProgress = { arrival: TAKEOFF_MS, departure: TAKEOFF_MS };
   for (let index = 0; index < sequence.length; index++) {
     const place = sequence[index];
     if (!place) throw new Error(`Missing candidate at route index ${index}`);
-    const exactOpening = config.arrivalAnchorMinutes[place.id] !== undefined
-      ? lower[index]
-      : openingIds.has(place.id) ? lower[index] : undefined;
-    const prior = sequence[index - 1];
-    const distance = prior ? haversineKm(prior, place) : haversineKm({ lat: 80, lng: 180 }, place);
-    const earliest = index === 0
-      ? Math.max(lower[index] ?? TAKEOFF_MS, TAKEOFF_MS + (minimumGaps[index] ?? 0))
-      : Math.max(lower[index] ?? TAKEOFF_MS, previousArrival + (minimumGaps[index] ?? 0));
-    const latest = index === 0
-      ? upper[index] ?? earliest
-      : Math.min(upper[index] ?? earliest, previousArrival + config.maxArrivalGapMinutes * MINUTE_MS);
-    if (earliest > latest) throw new Error(`${place.name} is unreachable from ${prior?.name ?? 'takeoff'} without violating an arrival gap`);
-    const desired = Math.max(
-      earliest,
-      index === 0 ? TAKEOFF_MS + desiredTravelMs(distance, config, true) : previousDeparture + desiredTravelMs(distance, config, false),
-      timelineTarget(index, sequence.length),
-      TAKEOFF_MS,
-    );
-    const arrival = exactOpening ?? Math.min(latest, desired);
-    if (arrival < earliest || arrival > latest) throw new Error(`Opening stop ${place.name} cannot satisfy the propagated route timing bounds`);
-    if (index > 0 && arrival - previousArrival > config.maxArrivalGapMinutes * MINUTE_MS) throw new Error(`Arrival gap before ${place.name} exceeds ${config.maxArrivalGapMinutes} minutes`);
+    const arrival = assignArrival({ sequence, timing, config, index, place, progress });
     result.push({ ...place, plannedArrivalUtc: new Date(arrival).toISOString() });
-    previousArrival = arrival;
-    previousDeparture = arrival + config.durationSeconds * 1000;
+    progress = { arrival, departure: arrival + config.durationSeconds * 1000 };
   }
   return result;
+}
+
+type AssignArrivalOptions = {
+  sequence: Candidate[];
+  timing: TimingBounds;
+  config: GeneratorConfig;
+  index: number;
+  place: Candidate;
+  progress: ArrivalProgress;
+};
+
+function assignArrival(options: AssignArrivalOptions): number {
+  const { sequence, timing, config, index, place, progress } = options;
+  const earliest = earliestArrival(index, timing, progress);
+  const latest = latestArrival(index, timing, progress, config, earliest);
+  const prior = sequence[index - 1];
+  validateArrivalBounds(place, prior, earliest, latest);
+  const desired = desiredArrival(sequence.length, index, prior, place, progress, earliest, config);
+  const exactOpening = exactArrivalAnchor(place, index, timing, config);
+  const arrival = exactOpening ?? Math.min(latest, desired);
+  validateAssignedArrival(place, arrival, earliest, latest, progress.arrival, index, config);
+  return arrival;
+}
+
+function exactArrivalAnchor(place: Candidate, index: number, timing: TimingBounds, config: GeneratorConfig): number | undefined {
+  if (config.arrivalAnchorMinutes[place.id] !== undefined) return timing.lower[index];
+  if (config.openingStopIds.includes(place.id)) return timing.lower[index];
+  return undefined;
+}
+
+function earliestArrival(index: number, timing: TimingBounds, progress: ArrivalProgress): number {
+  const lower = timing.lower[index] ?? TAKEOFF_MS;
+  const minimumGap = timing.minimumGaps[index] ?? 0;
+  if (index === 0) return Math.max(lower, TAKEOFF_MS + minimumGap);
+  return Math.max(lower, progress.arrival + minimumGap);
+}
+
+function latestArrival(index: number, timing: TimingBounds, progress: ArrivalProgress, config: GeneratorConfig, earliest: number): number {
+  const upper = timing.upper[index] ?? earliest;
+  if (index === 0) return upper;
+  return Math.min(upper, progress.arrival + config.maxArrivalGapMinutes * MINUTE_MS);
+}
+
+function validateArrivalBounds(place: Candidate, prior: Candidate | undefined, earliest: number, latest: number): void {
+  if (earliest > latest) throw new Error(`${place.name} is unreachable from ${prior?.name ?? 'takeoff'} without violating an arrival gap`);
+}
+
+function desiredArrival(
+  total: number,
+  index: number,
+  prior: Candidate | undefined,
+  place: Candidate,
+  progress: ArrivalProgress,
+  earliest: number,
+  config: GeneratorConfig,
+): number {
+  const distance = prior ? haversineKm(prior, place) : haversineKm({ lat: 80, lng: 180 }, place);
+  const travelMs = desiredTravelMs(distance, config, index === 0);
+  const travelArrival = index === 0 ? TAKEOFF_MS + travelMs : progress.departure + travelMs;
+  return Math.max(earliest, travelArrival, timelineTarget(index, total), TAKEOFF_MS);
+}
+
+function validateAssignedArrival(
+  place: Candidate,
+  arrival: number,
+  earliest: number,
+  latest: number,
+  previousArrival: number,
+  index: number,
+  config: GeneratorConfig,
+): void {
+  if (arrival < earliest || arrival > latest) throw new Error(`Opening stop ${place.name} cannot satisfy the propagated route timing bounds`);
+  if (index === 0) return;
+  if (arrival - previousArrival > config.maxArrivalGapMinutes * MINUTE_MS) {
+    throw new Error(`Arrival gap before ${place.name} exceeds ${config.maxArrivalGapMinutes} minutes`);
+  }
 }
 
 function validateRouteEnd(result: Candidate[], returnMs: number, durationSeconds: number): void {

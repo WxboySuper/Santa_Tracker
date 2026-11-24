@@ -56,11 +56,8 @@ function routeHours(route: Route): RouteReport['hourly'] {
 
 export function buildReport(places: Candidate[], route: Route, config: GeneratorConfig): RouteReport {
   validateReportInput(places, route);
-  const first = places[0];
-  const firstStop = route.stops[0];
-  const last = places.at(-1);
-  const lastStop = route.stops.at(-1);
-  if (!first || !firstStop || !last || !lastStop) throw new Error('Missing route endpoint');
+  const endpoints = reportEndpoints(places, route);
+  const { first, firstStop, last, lastStop } = endpoints;
   const takeoff = Date.parse(TAKEOFF_UTC);
   const lastDeparture = Date.parse(lastStop.departureIso);
   const returnArrival = lastDeparture + returnTravelTime(last, config);
@@ -71,6 +68,25 @@ export function buildReport(places: Candidate[], route: Route, config: Generator
   ];
   const issues = routeTimingIssues(last.name, lastDeparture, returnArrival, takeoff);
   return createRouteReport(places, route, config, legs, issues, lastDeparture, returnArrival);
+}
+
+type ReportEndpoints = {
+  first: Candidate;
+  firstStop: Route['stops'][number];
+  last: Candidate;
+  lastStop: Route['stops'][number];
+};
+
+function reportEndpoints(places: Candidate[], route: Route): ReportEndpoints {
+  const first = places[0];
+  if (!first) throw new Error('Missing first route location');
+  const firstStop = route.stops[0];
+  if (!firstStop) throw new Error('Missing first route stop');
+  const last = places.at(-1);
+  if (!last) throw new Error('Missing final route location');
+  const lastStop = route.stops.at(-1);
+  if (!lastStop) throw new Error('Missing final route stop');
+  return { first, firstStop, last, lastStop };
 }
 
 function validateReportInput(places: Candidate[], route: Route): void {
@@ -87,17 +103,30 @@ function launchLeg(first: Candidate, firstStop: Route['stops'][number], takeoff:
 function deliveryLegs(places: Candidate[], route: Route): RouteLegReport[] {
   const legs: RouteLegReport[] = [];
   for (let index = 1; index < places.length; index++) {
-    const from = places[index - 1];
-    const to = places[index];
-    const fromStop = route.stops[index - 1];
-    const toStop = route.stops[index];
-    if (!from || !to || !fromStop || !toStop) throw new Error(`Missing locations for delivery leg ${index}`);
+    const { from, to, fromStop, toStop } = deliveryLegContext(places, route, index);
     const gapMinutes = (Date.parse(toStop.arrivalIso) - Date.parse(fromStop.arrivalIso)) / 60_000;
     const longitudeDelta = ((to.lng - from.lng + 540) % 360) - 180;
     legs.push(actualLeg({ from, to, fromName: from.name, toName: to.name, fromDeparture: Date.parse(fromStop.departureIso),
       toArrival: Date.parse(toStop.arrivalIso), kind: 'delivery', gapMinutes, eastwardDegrees: longitudeDelta }));
   }
   return legs;
+}
+
+function deliveryLegContext(places: Candidate[], route: Route, index: number): {
+  from: Candidate;
+  to: Candidate;
+  fromStop: Route['stops'][number];
+  toStop: Route['stops'][number];
+} {
+  const from = places[index - 1];
+  if (!from) throw new Error(`Missing origin for delivery leg ${index}`);
+  const to = places[index];
+  if (!to) throw new Error(`Missing destination for delivery leg ${index}`);
+  const fromStop = route.stops[index - 1];
+  if (!fromStop) throw new Error(`Missing origin stop for delivery leg ${index}`);
+  const toStop = route.stops[index];
+  if (!toStop) throw new Error(`Missing destination stop for delivery leg ${index}`);
+  return { from, to, fromStop, toStop };
 }
 
 function returnTravelTime(last: Candidate, config: GeneratorConfig): number {

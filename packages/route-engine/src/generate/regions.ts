@@ -19,6 +19,14 @@ const SOUTH_ASIA = new Set(['AF', 'BD', 'BT', 'IN', 'MV', 'NP', 'PK', 'LK']);
 const SOUTHEAST_ASIA = new Set(['BN', 'ID', 'KH', 'LA', 'MM', 'MY', 'PH', 'SG', 'TH', 'TL', 'VN']);
 const CENTRAL_AMERICA = new Set(['BZ', 'CR', 'GT', 'HN', 'NI', 'PA', 'SV']);
 const CARIBBEAN = new Set(['AG', 'AI', 'AW', 'BB', 'BL', 'BM', 'BQ', 'BS', 'CU', 'CW', 'DM', 'DO', 'GD', 'GP', 'HT', 'JM', 'KN', 'KY', 'LC', 'MF', 'MQ', 'MS', 'PR', 'SX', 'TC', 'TT', 'VC', 'VG', 'VI']);
+const CONTINENT_GROUPS: [string, Set<string>][] = [
+  ['South America', SOUTH_AMERICA],
+  ['North America', NORTH_AMERICA],
+  ['Oceania', OCEANIA],
+  ['Africa', AFRICA],
+  ['Asia', new Set([...WESTERN_ASIA, ...EAST_ASIA, ...SOUTH_ASIA, ...SOUTHEAST_ASIA, ...MIDDLE_EAST])],
+];
+const AMERICAS = new Set(['North America', 'South America']);
 
 export type RouteRegion = {
   continent: string;
@@ -33,34 +41,71 @@ export type RouteRegion = {
   arctic: boolean;
 };
 
+function continentFor(place: Candidate): string {
+  if (place.country === 'AQ') return 'Antarctica';
+  if (isAsianRussia(place)) return 'Asia';
+  return CONTINENT_GROUPS.find(([, countries]) => countries.has(place.country))?.[0] ?? 'Europe';
+}
+
+function isAsianRussia(place: Candidate): boolean {
+  return place.country === 'RU' && place.lng >= 60;
+}
+
+function africaSubregion(place: Candidate): string {
+  if (place.lat >= 20) return 'Northern Africa';
+  if (place.lng < -15) return 'Western Africa';
+  if (place.lng > 30) return 'Eastern Africa';
+  return 'Central and Southern Africa';
+}
+
+function asiaSubregion(code: string): string {
+  if (MIDDLE_EAST.has(code)) return 'Middle East';
+  if (EAST_ASIA.has(code)) return 'East Asia';
+  if (SOUTH_ASIA.has(code)) return 'South Asia';
+  if (SOUTHEAST_ASIA.has(code)) return 'Southeast Asia';
+  return 'Central Asia';
+}
+
+function northAmericaSubregion(code: string): string {
+  if (CENTRAL_AMERICA.has(code)) return 'Central America';
+  if (CARIBBEAN.has(code)) return 'Caribbean';
+  if (code === 'GL') return 'Greenland';
+  return 'Northern America';
+}
+
+function subregionFor(place: Candidate, continent: string): string {
+  const code = place.country;
+  switch (continent) {
+    case 'Europe': return europeSubregion(code);
+    case 'Africa': return africaSubregion(place);
+    case 'Asia': return asiaSubregion(code);
+    case 'North America': return northAmericaSubregion(code);
+    case 'South America': return 'South America';
+    case 'Oceania': return oceaniaSubregion(code);
+    default: return continent;
+  }
+}
+
+function europeSubregion(code: string): string {
+  return WESTERN_NORTHERN_EUROPE.has(code) ? 'Western and Northern Europe' : 'Southern and Eastern Europe';
+}
+
+function oceaniaSubregion(code: string): string {
+  if (code === 'AU') return 'Australia';
+  if (code === 'NZ') return 'New Zealand';
+  return 'Pacific Islands';
+}
+
+function isArcticPlace(code: string, latitude: number): boolean {
+  return code === 'GL' || (code === 'CA' && latitude >= 65);
+}
+
 export function classifyRegion(place: Candidate): RouteRegion {
   const code = place.country;
-  let continent = 'Europe';
-  if (code === 'AQ') continent = 'Antarctica';
-  else if (SOUTH_AMERICA.has(code)) continent = 'South America';
-  else if (NORTH_AMERICA.has(code)) continent = 'North America';
-  else if (OCEANIA.has(code)) continent = 'Oceania';
-  else if (AFRICA.has(code)) continent = 'Africa';
-  else if (WESTERN_ASIA.has(code) || EAST_ASIA.has(code) || SOUTH_ASIA.has(code) || SOUTHEAST_ASIA.has(code) || MIDDLE_EAST.has(code) || code === 'RU' && place.lng >= 60) continent = 'Asia';
-
-  let subregion = continent;
-  if (continent === 'Europe') {
-    subregion = WESTERN_NORTHERN_EUROPE.has(code) ? 'Western and Northern Europe' : 'Southern and Eastern Europe';
-  } else if (continent === 'Africa') {
-    subregion = place.lat >= 20 ? 'Northern Africa' : place.lng < -15 ? 'Western Africa' : place.lng > 30 ? 'Eastern Africa' : 'Central and Southern Africa';
-  } else if (continent === 'Asia') {
-    subregion = MIDDLE_EAST.has(code) ? 'Middle East' : EAST_ASIA.has(code) ? 'East Asia' : SOUTH_ASIA.has(code) ? 'South Asia' : SOUTHEAST_ASIA.has(code) ? 'Southeast Asia' : 'Central Asia';
-  } else if (continent === 'North America') {
-    subregion = CENTRAL_AMERICA.has(code) ? 'Central America' : CARIBBEAN.has(code) ? 'Caribbean' : code === 'GL' ? 'Greenland' : 'Northern America';
-  } else if (continent === 'South America') {
-    subregion = 'South America';
-  } else if (continent === 'Oceania') {
-    subregion = code === 'AU' ? 'Australia' : code === 'NZ' ? 'New Zealand' : 'Pacific Islands';
-  }
-
+  const continent = continentFor(place);
+  const subregion = subregionFor(place, continent);
   const hawaii = code === 'US' && place.lat >= 18 && place.lat <= 23 && place.lng <= -150;
   const pacificIsland = PACIFIC_ISLANDS.has(code) || hawaii;
-  const arctic = code === 'GL' || code === 'CA' && place.lat >= 65;
   return {
     continent,
     subregion,
@@ -70,8 +115,8 @@ export function classifyRegion(place: Candidate): RouteRegion {
     africa: continent === 'Africa',
     middleEast: MIDDLE_EAST.has(code),
     southAmerica: continent === 'South America',
-    americas: continent === 'North America' || continent === 'South America',
-    arctic,
+    americas: AMERICAS.has(continent),
+    arctic: isArcticPlace(code, place.lat),
   };
 }
 

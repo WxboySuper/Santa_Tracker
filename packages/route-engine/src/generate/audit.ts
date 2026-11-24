@@ -279,10 +279,26 @@ function timezoneCountryFailures(node: RouteNode, place: Candidate, context: Rou
   const country = node.location.country_code;
   const zone = node.location.timezone;
   const allowed = country ? context.zonesByCountry[country] ?? [] : [];
-  if (country !== place.country || zone !== place.timezone || !allowed.includes(zone ?? '')) {
-    return [`${node.location.name}: ${zone} is not an allowed ${country} timezone`];
-  }
+  if (!matchesCandidateCountry(country, place)) return timezoneCountryError(node, country, zone);
+  if (!matchesCandidateTimezone(zone, place)) return timezoneCountryError(node, country, zone);
+  if (!isAllowedTimezone(zone, allowed)) return timezoneCountryError(node, country, zone);
   return [];
+}
+
+function matchesCandidateCountry(country: string | undefined, place: Candidate): boolean {
+  return country === place.country;
+}
+
+function matchesCandidateTimezone(zone: string | undefined, place: Candidate): boolean {
+  return zone === place.timezone;
+}
+
+function isAllowedTimezone(zone: string | undefined, allowed: string[]): boolean {
+  return allowed.includes(zone ?? '');
+}
+
+function timezoneCountryError(node: RouteNode, country: string | undefined, zone: string | undefined): string[] {
+  return [`${node.location.name}: ${zone} is not an allowed ${country} timezone`];
 }
 
 function timezoneOffsetFailures(node: RouteNode, place: Candidate, context: RouteAuditContext): string[] {
@@ -306,10 +322,10 @@ function localArrivalFailures(node: RouteNode, place: Candidate, context: RouteA
 
 function displayOffsetFailures(node: RouteNode, place: Candidate): string[] {
   const displayOffset = node.location.timezone_offset;
-  if (place.utcOffsetMinutes !== undefined && displayOffset !== undefined && displayOffset !== place.utcOffsetMinutes / 60) {
-    return [`${node.location.name}: display offset differs from the snapshot`];
-  }
-  return [];
+  if (place.utcOffsetMinutes === undefined) return [];
+  if (displayOffset === undefined) return [];
+  if (displayOffset === place.utcOffsetMinutes / 60) return [];
+  return [`${node.location.name}: display offset differs from the snapshot`];
 }
 
 function timezoneFailuresForNode(node: RouteNode, place: Candidate | undefined, context: RouteAuditContext): string[] {
@@ -473,20 +489,46 @@ function addIslandCheck(context: RouteAuditContext, places: Candidate[], checks:
   const firstFivePopulated = firstFiveArePopulated(places, context);
   const last = places.at(-1);
   const lastPopulated = lastStopIsPopulated(last, context);
-  const withinIslandLimit = islandIndices.length <= 4 && islandIndices.every((index) => index >= 5);
-  const pass = withinIslandLimit && firstFivePopulated && lastPopulated;
-  const detail = `${islandIndices.length} uninhabited-island stops; first five ${firstFivePopulated ? 'populated' : 'include an unpopulated place'}; last stop ${last?.name ?? 'missing'} ${lastPopulated ? 'is populated or iconic' : 'is not populated or iconic'}.`;
-  addCheck(checks, 'Island, opening, and ending rules', pass, detail);
+  const pass = islandLimitPasses(islandIndices) && firstFivePopulated && lastPopulated;
+  addCheck(checks, 'Island, opening, and ending rules', pass, islandCheckDetail(islandIndices.length, firstFivePopulated, last?.name, lastPopulated));
+}
+
+function islandLimitPasses(indices: number[]): boolean {
+  if (indices.length > 4) return false;
+  return indices.every((index) => index >= 5);
+}
+
+function islandCheckDetail(count: number, firstFivePopulated: boolean, lastName: string | undefined, lastPopulated: boolean): string {
+  const first = firstFivePopulated ? 'populated' : 'include an unpopulated place';
+  const last = lastPopulated ? 'is populated or iconic' : 'is not populated or iconic';
+  return `${count} uninhabited-island stops; first five ${first}; last stop ${lastName ?? 'missing'} ${last}.`;
 }
 
 function addExperienceCheck(view: AuditView, checks: AuditCheck[]): void {
-  const sourceFailures = view.delivery.filter((node) => !isTrustedSource(node.notes));
-  const experienceFailures = view.delivery.filter((node) => node.stop_experience?.presents_delivered_at_stop !== 1
-    || node.stop_experience.camera_zoom == null || !node.stop_experience.weather_condition);
-  const transitFailures = view.nodes.filter((node) => node.type !== 'START' && (node.transit_to_here?.duration_seconds == null
-    || node.transit_to_here?.distance_km == null || node.transit_to_here?.speed_kmh == null));
+  const sourceFailures = view.delivery.filter(hasMissingSource);
+  const experienceFailures = view.delivery.filter(hasIncompleteExperience);
+  const transitFailures = view.nodes.filter(hasMissingTransitMetrics);
   addCheck(checks, 'Source links and stop experience', sourceFailures.length === 0 && experienceFailures.length === 0 && transitFailures.length === 0,
     `${sourceFailures.length} missing source links; ${experienceFailures.length} incomplete delivery experiences; ${transitFailures.length} missing transit metrics.`);
+}
+
+function hasMissingSource(node: RouteNode): boolean {
+  return !isTrustedSource(node.notes);
+}
+
+function hasIncompleteExperience(node: RouteNode): boolean {
+  const experience = node.stop_experience;
+  if (experience?.presents_delivered_at_stop !== 1) return true;
+  if (experience.camera_zoom == null) return true;
+  return !experience.weather_condition;
+}
+
+function hasMissingTransitMetrics(node: RouteNode): boolean {
+  if (node.type === 'START') return false;
+  const transit = node.transit_to_here;
+  if (transit?.duration_seconds == null) return true;
+  if (transit.distance_km == null) return true;
+  return transit.speed_kmh == null;
 }
 
 function addUnmatchedSelectionChecks(checks: AuditCheck[]): void {
