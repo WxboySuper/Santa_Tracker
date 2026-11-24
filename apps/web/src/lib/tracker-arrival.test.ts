@@ -9,6 +9,15 @@ const route = [
 ] as RouteNode[];
 
 describe("estimateArrival", () => {
+  it("never points a visitor at the North Pole start or end", () => {
+    const withPole = [
+      { id: "end", type: "END", location: { name: "North Pole", lat: 89, lng: 0, timezone_offset: 0 }, schedule: { arrival_utc: "2026-12-25T14:00:00Z" } },
+      ...route,
+    ] as RouteNode[];
+    const result = estimateArrival({ name: "Svalbard", lat: 78, lng: 15 }, withPole, new Date("2026-12-25T00:00:00Z"));
+    expect(result?.stop.id).not.toBe("end");
+  });
+
   it("selects the nearest future stop by coordinates using the injected clock", () => {
     const result = estimateArrival({ name: "San Francisco", lat: 37.7, lng: -122.4 }, route, new Date("2026-12-25T00:00:00Z"));
     expect(result?.stop.location.name).toBe("West");
