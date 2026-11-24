@@ -39,7 +39,7 @@ for (const [category, categoryIds] of Object.entries(seeds)) {
     }
     const { latitude: lat, longitude: lng } = point;
     const countryCode = id === 'Q172697' ? 'PF' : countryCodeForName(country);
-    const timezone = timezoneForCandidate(id, countryCode, lookup(lat, lng), lat, lng);
+    const timezone = timezoneForCandidate({ id, country: countryCode, lookedUpTimezone: lookup(lat, lng), lat, lng });
     places.push({ id, name, country: countryCode, lat, lng, timezone, utcOffsetMinutes: christmasUtcOffset(timezone), category, source: `https://www.wikidata.org/wiki/${id}` });
   }
 }

@@ -101,10 +101,34 @@ function normalizedPlaceName(value: string): string {
   return value.normalize('NFKD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('en').replace(/[^a-z0-9]/g, '');
 }
 
+function sourceUrl(source: string | undefined): URL | undefined {
+  if (!source) return undefined;
+  try {
+    const url = new URL(source);
+    return url.protocol === 'https:' ? url : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 function sourceFamily(source: string | undefined): string {
-  if (source?.includes('wikidata.org')) return 'wikidata';
-  if (source?.includes('naturalearthdata.com')) return 'natural-earth';
+  const url = sourceUrl(source);
+  if (isWikidataSource(url)) return 'wikidata';
+  if (isNaturalEarthSource(url)) return 'natural-earth';
   return source ?? 'unknown';
+}
+
+function isWikidataSource(url: URL | undefined): boolean {
+  return url?.hostname === 'www.wikidata.org' && /^\/wiki\/Q\d+$/.test(url.pathname);
+}
+
+function isNaturalEarthSource(url: URL | undefined): boolean {
+  return url?.hostname === 'www.naturalearthdata.com' && url.pathname.startsWith('/downloads/');
+}
+
+function isTrustedSource(source: string | null | undefined): boolean {
+  const url = sourceUrl(source ?? undefined);
+  return isWikidataSource(url) || isNaturalEarthSource(url);
 }
 
 function sameCounts(left: Record<string, number>, right: Record<string, number>): boolean {
@@ -113,9 +137,17 @@ function sameCounts(left: Record<string, number>, right: Record<string, number>)
 }
 
 function canBeSelected(place: Candidate, config: GeneratorConfig, veto: Set<string>): boolean {
-  if (veto.has(place.id) || config.uninhabitedIslandIds.includes(place.id) || place.utcOffsetMinutes === undefined) return false;
+  if (isExcludedCandidate(place, config, veto)) return false;
   if (['cultural', 'nature', 'special'].includes(place.category)) return true;
-  return place.worldCity === true || (place.population ?? 0) >= config.hubPopulationMinimum || config.underservedCountries.includes(place.country);
+  if (place.worldCity === true) return true;
+  if ((place.population ?? 0) >= config.hubPopulationMinimum) return true;
+  return config.underservedCountries.includes(place.country);
+}
+
+function isExcludedCandidate(place: Candidate, config: GeneratorConfig, veto: Set<string>): boolean {
+  if (veto.has(place.id)) return true;
+  if (config.uninhabitedIslandIds.includes(place.id)) return true;
+  return place.utcOffsetMinutes === undefined;
 }
 
 type AuditView = {
@@ -210,27 +242,55 @@ function addCategoryChecks(context: RouteAuditContext, view: AuditView, checks: 
     `${coreHubs} of ${categoryCounts.hub ?? 0} hubs meet world-city or ${context.config.hubPopulationCore.toLocaleString()}+ population; all hubs meet ${context.config.hubPopulationMinimum.toLocaleString()}+ population or world-city status.`);
 }
 
-function timezoneFailuresForNode(node: RouteNode, place: Candidate | undefined, context: RouteAuditContext): string[] {
-  const failures: string[] = [];
-  const arrival = node.schedule.arrival_utc;
-  if (!place || !arrival || !node.location.timezone || !node.location.country_code) {
-    return [`${node.location.name}: missing candidate, time, country, or timezone`];
+function timezoneNodeIsComplete(node: RouteNode, place: Candidate | undefined): place is Candidate {
+  return place !== undefined && node.schedule.arrival_utc !== null && node.location.timezone !== undefined && node.location.country_code !== undefined;
+}
+
+function timezoneCountryFailures(node: RouteNode, place: Candidate, context: RouteAuditContext): string[] {
+  const country = node.location.country_code;
+  const zone = node.location.timezone;
+  const allowed = country ? context.zonesByCountry[country] ?? [] : [];
+  if (country !== place.country || zone !== place.timezone || !allowed.includes(zone ?? '')) {
+    return [`${node.location.name}: ${zone} is not an allowed ${country} timezone`];
   }
-  const allowed = context.zonesByCountry[node.location.country_code] ?? [];
-  if (node.location.country_code !== place.country || node.location.timezone !== place.timezone || !allowed.includes(node.location.timezone)) {
-    failures.push(`${node.location.name}: ${node.location.timezone} is not an allowed ${node.location.country_code} timezone`);
-  }
-  const zoneOffset = context.utcOffsetsByTimezone[node.location.timezone];
+  return [];
+}
+
+function timezoneOffsetFailures(node: RouteNode, place: Candidate, context: RouteAuditContext): string[] {
+  const zone = node.location.timezone ?? '';
+  const zoneOffset = context.utcOffsetsByTimezone[zone];
   if (zoneOffset === undefined || zoneOffset !== place.utcOffsetMinutes) {
-    failures.push(`${node.location.name}: snapshot offset ${place.utcOffsetMinutes} differs from ${node.location.timezone} offset ${zoneOffset ?? 'missing'}`);
+    return [`${node.location.name}: snapshot offset ${place.utcOffsetMinutes} differs from ${zone} offset ${zoneOffset ?? 'missing'}`];
   }
+  return [];
+}
+
+function localArrivalFailures(node: RouteNode, place: Candidate, context: RouteAuditContext): string[] {
+  const arrival = node.schedule.arrival_utc;
+  if (!arrival) return [`${node.location.name}: missing arrival time`];
   const local = localMinute(arrival, place.utcOffsetMinutes ?? Number.NaN);
+  const failures: string[] = [];
   if (local < 0) failures.push(`${node.location.name}: snapshot local arrival is not December 25`);
   if (local < context.config.arrivalStartMinute || local > context.config.arrivalEndMinute) failures.push(`${node.location.name}: outside the local arrival window`);
-  if (place.utcOffsetMinutes !== undefined && node.location.timezone_offset !== undefined && node.location.timezone_offset !== place.utcOffsetMinutes / 60) {
-    failures.push(`${node.location.name}: display offset differs from the snapshot`);
-  }
   return failures;
+}
+
+function displayOffsetFailures(node: RouteNode, place: Candidate): string[] {
+  const displayOffset = node.location.timezone_offset;
+  if (place.utcOffsetMinutes !== undefined && displayOffset !== undefined && displayOffset !== place.utcOffsetMinutes / 60) {
+    return [`${node.location.name}: display offset differs from the snapshot`];
+  }
+  return [];
+}
+
+function timezoneFailuresForNode(node: RouteNode, place: Candidate | undefined, context: RouteAuditContext): string[] {
+  if (!timezoneNodeIsComplete(node, place)) return [`${node.location.name}: missing candidate, time, country, or timezone`];
+  return [
+    ...timezoneCountryFailures(node, place, context),
+    ...timezoneOffsetFailures(node, place, context),
+    ...localArrivalFailures(node, place, context),
+    ...displayOffsetFailures(node, place),
+  ];
 }
 
 function addOffsetCoverageCheck(context: RouteAuditContext, counts: Map<number, number>, checks: AuditCheck[]): void {
@@ -354,7 +414,7 @@ function addIslandCheck(context: RouteAuditContext, places: Candidate[], checks:
 }
 
 function addExperienceCheck(view: AuditView, checks: AuditCheck[]): void {
-  const sourceFailures = view.delivery.filter((node) => !node.notes || !/^https?:\/\//.test(node.notes));
+  const sourceFailures = view.delivery.filter((node) => !isTrustedSource(node.notes));
   const experienceFailures = view.delivery.filter((node) => node.stop_experience?.presents_delivered_at_stop !== 1
     || node.stop_experience.camera_zoom == null || !node.stop_experience.weather_condition);
   const transitFailures = view.nodes.filter((node) => node.type !== 'START' && (node.transit_to_here?.duration_seconds == null

@@ -4,5 +4,5 @@ export function coordinatesFromGeometry(geometry: unknown): { lat: number; lng: 
 export function validEarthPoint(point: unknown): boolean;
 export function timezoneCorrection(id: string): string | undefined;
 export function countryCodeForName(value: string): string;
-export function timezoneForCandidate(id: string, country: string, lookedUpTimezone: string, lat: number, lng: number): string;
+export function timezoneForCandidate(options: { id: string; country: string; lookedUpTimezone: string; lat: number; lng: number }): string;
 export function christmasUtcOffset(timezone: string): number;

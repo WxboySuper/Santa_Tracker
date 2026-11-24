@@ -38,15 +38,29 @@ function localParts(iso: string, timezone: string): { year: number; month: numbe
 }
 
 /** Returns minutes after local midnight, or -1 when the arrival is not December 25. */
+function isDecemberTwentyFifth(year: number, month: number, day: number): boolean {
+  return year === 2026 && month === 12 && day === 25;
+}
+
+function minuteOfDay(hour: number, minute: number): number {
+  return hour * 60 + minute;
+}
+
+function localMinuteFromOffset(iso: string, offsetMinutes: number): number {
+  const local = new Date(Date.parse(iso) + offsetMinutes * 60_000);
+  if (!isDecemberTwentyFifth(local.getUTCFullYear(), local.getUTCMonth() + 1, local.getUTCDate())) return -1;
+  return minuteOfDay(local.getUTCHours(), local.getUTCMinutes());
+}
+
+function localMinuteFromTimezone(iso: string, timezone: string): number {
+  const local = localParts(iso, timezone);
+  if (!isDecemberTwentyFifth(local.year, local.month, local.day)) return -1;
+  return minuteOfDay(local.hour, local.minute);
+}
+
 export function localMinute(iso: string, timezoneOrOffset: string | number): number {
-  if (typeof timezoneOrOffset === 'number') {
-    const local = new Date(Date.parse(iso) + timezoneOrOffset * 60_000);
-    if (local.getUTCFullYear() !== 2026 || local.getUTCMonth() !== 11 || local.getUTCDate() !== 25) return -1;
-    return local.getUTCHours() * 60 + local.getUTCMinutes();
-  }
-  const local = localParts(iso, timezoneOrOffset);
-  if (local.year !== 2026 || local.month !== 12 || local.day !== 25) return -1;
-  return local.hour * 60 + local.minute;
+  if (typeof timezoneOrOffset === 'number') return localMinuteFromOffset(iso, timezoneOrOffset);
+  return localMinuteFromTimezone(iso, timezoneOrOffset);
 }
 
 export function localDate(iso: string, timezone: string): string {

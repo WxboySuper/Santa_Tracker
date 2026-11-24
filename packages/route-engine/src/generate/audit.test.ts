@@ -29,7 +29,7 @@ describe('auditRouteDocument', () => {
   it('rejects a stop outside its country bounds and an alternate-source coordinate mismatch', () => {
     const naturalEarth = {
       id: 'ne-1', name: 'Sample Town', country: 'AA', timezone: 'Etc/UTC',
-      lat: 8, lng: 8, category: 'underserved', source: 'https://naturalearthdata.com/place',
+      lat: 8, lng: 8, category: 'underserved', source: 'https://www.naturalearthdata.com/downloads/place',
     };
     const wikidata = {
       ...naturalEarth, id: 'Q1', lat: 2, lng: 2, source: 'https://www.wikidata.org/wiki/Q1',

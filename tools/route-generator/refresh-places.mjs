@@ -23,7 +23,7 @@ for (;;) {
   const { lat, lng } = coordinates;
   const id = `ne-${properties.ne_id}`;
   const country = countryCodeForName(properties.adm0name);
-  const timezone = timezoneForCandidate(id, country, lookup(lat, lng), lat, lng);
+  const timezone = timezoneForCandidate({ id, country, lookedUpTimezone: lookup(lat, lng), lat, lng });
   places.push({
     id, name: properties.name, country,
     lat, lng, population: properties.pop_max, worldCity: Boolean(properties.worldcity),

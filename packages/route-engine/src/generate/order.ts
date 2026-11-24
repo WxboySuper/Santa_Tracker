@@ -254,92 +254,143 @@ function improveBandByRelocation(segment: Candidate[], prefix: Candidate[], suff
 
 function orderPriorities(places: Candidate[], config: GeneratorConfig): Candidate[] {
   const byId = new Map(places.map((place) => [place.id, place]));
-  if (config.seed === 2026 && config.routeOrderIds?.length) {
-    const routeOrder = config.routeOrderIds.map((id) => byId.get(id));
-    if (routeOrder.length !== places.length || routeOrder.some((place) => !place)
-      || new Set(config.routeOrderIds).size !== config.routeOrderIds.length) {
-      throw new Error('Configured seed-2026 route order does not match the selected candidates');
-    }
-    const completeOrder = routeOrder as Candidate[];
-    const seeds = [...(hasValidCountryRuns(completeOrder, config.maxCountryRun) ? [completeOrder] : []), ...[15, 40, 90]
-      .map((urgencyWeight) => routeByWindowedNearest(places, config, urgencyWeight))
-      .filter((candidate): candidate is Candidate[] => candidate !== undefined)];
-    const feasibleSeeds = seeds.filter((candidate) => hasFeasibleTiming(candidate, config)
-      && hasValidCountryRuns(candidate, config.maxCountryRun));
-    feasibleSeeds.sort((left, right) => routeScore(left) - routeScore(right));
-    const bestSeed = feasibleSeeds[0];
-    if (bestSeed) return improveWholeRoute(bestSeed, config);
-    for (const urgencyWeight of [15, 40, 90]) {
-      const fallback = routeByWindowedNearest(places, config, urgencyWeight);
-      if (fallback) return improveWholeRoute(fallback, config);
-    }
-    throw new Error('Configured seed-2026 order and all windowed fallbacks violate arrival timing constraints');
+  if (usesConfiguredRouteOrder(config)) return prioritizeConfiguredRoute(places, config, byId);
+  return prioritizeOffsetBands(places, config, byId);
+}
+
+function usesConfiguredRouteOrder(config: GeneratorConfig): boolean {
+  return config.seed === 2026 && (config.routeOrderIds?.length ?? 0) > 0;
+}
+
+function configuredRouteOrder(places: Candidate[], config: GeneratorConfig, byId: Map<string, Candidate>): Candidate[] {
+  const ids = config.routeOrderIds ?? [];
+  const ordered = ids.map((id) => byId.get(id));
+  const invalid = ordered.length !== places.length || ordered.some((place) => place === undefined) || new Set(ids).size !== ids.length;
+  if (invalid) throw new Error('Configured seed-2026 route order does not match the selected candidates');
+  return ordered as Candidate[];
+}
+
+function windowedCandidates(places: Candidate[], config: GeneratorConfig): Candidate[][] {
+  return [15, 40, 90]
+    .map((urgencyWeight) => routeByWindowedNearest(places, config, urgencyWeight))
+    .filter((candidate): candidate is Candidate[] => candidate !== undefined);
+}
+
+function isFeasibleRouteOrder(candidate: Candidate[], config: GeneratorConfig): boolean {
+  return hasValidCountryRuns(candidate, config.maxCountryRun) && hasFeasibleTiming(candidate, config);
+}
+
+function bestFeasibleOrder(seeds: Candidate[][], config: GeneratorConfig): Candidate[] | undefined {
+  const feasible = seeds.filter((candidate) => isFeasibleRouteOrder(candidate, config));
+  feasible.sort((left, right) => routeScore(left) - routeScore(right));
+  return feasible[0];
+}
+
+function prioritizeConfiguredRoute(places: Candidate[], config: GeneratorConfig, byId: Map<string, Candidate>): Candidate[] {
+  const completeOrder = configuredRouteOrder(places, config, byId);
+  const seeds = hasValidCountryRuns(completeOrder, config.maxCountryRun) ? [completeOrder] : [];
+  const best = bestFeasibleOrder([...seeds, ...windowedCandidates(places, config)], config);
+  if (best) return improveWholeRoute(best, config);
+  const fallback = firstWindowedCandidate(places, config);
+  if (fallback) return improveWholeRoute(fallback, config);
+  throw new Error('Configured seed-2026 order and all windowed fallbacks violate arrival timing constraints');
+}
+
+function firstWindowedCandidate(places: Candidate[], config: GeneratorConfig): Candidate[] | undefined {
+  for (const urgencyWeight of [15, 40, 90]) {
+    const candidate = routeByWindowedNearest(places, config, urgencyWeight);
+    if (candidate) return candidate;
   }
-  const ordered: Candidate[] = [];
-  for (const id of config.openingStopIds) {
+  return undefined;
+}
+
+function openingStops(byId: Map<string, Candidate>, config: GeneratorConfig): Candidate[] {
+  return config.openingStopIds.map((id) => {
     const place = byId.get(id);
     if (!place) throw new Error(`Opening stop ${id} was not selected`);
-    ordered.push(place);
-    byId.delete(id);
-  }
+    return place;
+  });
+}
+
+function candidateBands(places: Candidate[], config: GeneratorConfig): Map<number, Candidate[]> {
+  const openingIds = new Set(config.openingStopIds);
   const bands = new Map<number, Candidate[]>();
-  for (const place of byId.values()) {
+  for (const place of places) {
+    if (openingIds.has(place.id)) continue;
     const band = bands.get(offset(place)) ?? [];
     band.push(place);
     bands.set(offset(place), band);
   }
-  const offsetGroups: number[][] = [];
-  const bandRanges: [number, number][] = [];
+  return bands;
+}
+
+function offsetGroups(bands: Map<number, Candidate[]>): number[][] {
+  const groups: number[][] = [];
   for (const timezoneOffset of [...bands.keys()].sort((left, right) => right - left)) {
-    const group = offsetGroups.at(-1);
+    const group = groups.at(-1);
     if (group && (group[0] ?? timezoneOffset) - timezoneOffset <= 60) group.push(timezoneOffset);
-    else offsetGroups.push([timezoneOffset]);
+    else groups.push([timezoneOffset]);
   }
-  for (const offsetGroup of offsetGroups) {
-    const remaining = offsetGroup.flatMap((timezoneOffset) => bands.get(timezoneOffset) ?? []);
-    const bandName = offsetGroup.join('/');
-    const segmentStart = ordered.length;
-    while (remaining.length > 0) {
-      const eligible = remaining.filter((place) => {
-        if (!canAppend(place, ordered, config.maxCountryRun)) return false;
-        const after = [...ordered, place];
-        return canCompleteCountryRuns(after, remaining.filter((candidate) => candidate.id !== place.id), config.maxCountryRun);
-      });
-      if (eligible.length === 0) {
-        throw new Error(`Cannot order the UTC${bandName} band after ${ordered.slice(-5).map((place) => `${place.name}/${place.country}`).join(' -> ')}; remaining ${remaining.map((place) => `${place.name}/${place.country}`).join(', ')}`);
-      }
-      const prior: LatLng = ordered.at(-1) ?? { lat: 80, lng: 180 };
-      eligible.sort((left, right) => {
-        const leftWindow = windowFor(left, config);
-        const rightWindow = windowFor(right, config);
-        const leftMidpoint = (leftWindow.lo + leftWindow.hi) / 2;
-        const rightMidpoint = (rightWindow.lo + rightWindow.hi) / 2;
-        return leftMidpoint - rightMidpoint || edgeCost(prior, left) - edgeCost(prior, right) || left.id.localeCompare(right.id);
-      });
-      const next = eligible[0];
-      if (!next) break;
-      ordered.push(next);
-      remaining.splice(remaining.findIndex((place) => place.id === next.id), 1);
+  return groups;
+}
+
+function bandCandidateEligible(place: Candidate, ordered: Candidate[], remaining: Candidate[], config: GeneratorConfig): boolean {
+  if (!canAppend(place, ordered, config.maxCountryRun)) return false;
+  const after = [...ordered, place];
+  const left = remaining.filter((candidate) => candidate.id !== place.id);
+  return canCompleteCountryRuns(after, left, config.maxCountryRun);
+}
+
+function compareBandCandidates(left: Candidate, right: Candidate, prior: LatLng, config: GeneratorConfig): number {
+  const leftWindow = windowFor(left, config);
+  const rightWindow = windowFor(right, config);
+  const leftMidpoint = (leftWindow.lo + leftWindow.hi) / 2;
+  const rightMidpoint = (rightWindow.lo + rightWindow.hi) / 2;
+  return leftMidpoint - rightMidpoint || edgeCost(prior, left) - edgeCost(prior, right) || left.id.localeCompare(right.id);
+}
+
+function fillOffsetGroup(
+  ordered: Candidate[],
+  bands: Map<number, Candidate[]>,
+  offsetGroup: number[],
+  config: GeneratorConfig,
+): [number, number] {
+  const remaining = offsetGroup.flatMap((timezoneOffset) => bands.get(timezoneOffset) ?? []);
+  const bandName = offsetGroup.join('/');
+  const start = ordered.length;
+  while (remaining.length > 0) {
+    const eligible = remaining.filter((place) => bandCandidateEligible(place, ordered, remaining, config));
+    if (eligible.length === 0) {
+      throw new Error(`Cannot order the UTC${bandName} band after ${ordered.slice(-5).map((place) => `${place.name}/${place.country}`).join(' -> ')}; remaining ${remaining.map((place) => `${place.name}/${place.country}`).join(', ')}`);
     }
-    bandRanges.push([segmentStart, ordered.length]);
+    const prior: LatLng = ordered.at(-1) ?? { lat: 80, lng: 180 };
+    eligible.sort((left, right) => compareBandCandidates(left, right, prior, config));
+    const next = eligible[0];
+    if (!next) break;
+    ordered.push(next);
+    remaining.splice(remaining.findIndex((place) => place.id === next.id), 1);
   }
-  if (hasFeasibleTiming(ordered, config)) {
-    for (const [startIndex, endIndex] of bandRanges) {
-      const segment = ordered.slice(startIndex, endIndex);
-      if (segment.some((place) => config.arrivalAnchorMinutes[place.id] !== undefined)) continue;
-      const before = [...ordered];
-      improveOffsetBand(ordered, startIndex, endIndex, config);
-      if (!hasFeasibleTiming(ordered, config)) ordered.splice(0, ordered.length, ...before);
-    }
+  return [start, ordered.length];
+}
+
+function improveUnanchoredBands(ordered: Candidate[], ranges: [number, number][], config: GeneratorConfig): void {
+  if (!hasFeasibleTiming(ordered, config)) return;
+  for (const [startIndex, endIndex] of ranges) {
+    const segment = ordered.slice(startIndex, endIndex);
+    if (segment.some((place) => config.arrivalAnchorMinutes[place.id] !== undefined)) continue;
+    const before = [...ordered];
+    improveOffsetBand(ordered, startIndex, endIndex, config);
+    if (!hasFeasibleTiming(ordered, config)) ordered.splice(0, ordered.length, ...before);
   }
+}
+
+function chooseBestWindowedOrder(ordered: Candidate[], places: Candidate[], config: GeneratorConfig): Candidate[] {
   if (!hasValidCountryRuns(ordered, config.maxCountryRun)) throw new Error('Route order exceeds the consecutive-country run limit');
   let best: Candidate[] | undefined = hasFeasibleTiming(ordered, config) ? ordered : undefined;
   let bestScore = best ? routeScore(best) : Number.POSITIVE_INFINITY;
   const hasAdditionalAnchors = Object.keys(config.arrivalAnchorMinutes).some((id) => !config.openingStopIds.includes(id));
   if (best && hasAdditionalAnchors) return improveWholeRoute(best, config);
-  for (const urgencyWeight of [15, 40, 90]) {
-    const candidate = routeByWindowedNearest(places, config, urgencyWeight);
-    if (!candidate) continue;
+  for (const candidate of windowedCandidates(places, config)) {
     const score = routeScore(candidate);
     if (score < bestScore) { best = candidate; bestScore = score; }
   }
@@ -347,6 +398,13 @@ function orderPriorities(places: Candidate[], config: GeneratorConfig): Candidat
   return improveWholeRoute(best, config);
 }
 
+function prioritizeOffsetBands(places: Candidate[], config: GeneratorConfig, byId: Map<string, Candidate>): Candidate[] {
+  const ordered = openingStops(byId, config);
+  const bands = candidateBands(places, config);
+  const ranges = offsetGroups(bands).map((group) => fillOffsetGroup(ordered, bands, group, config));
+  improveUnanchoredBands(ordered, ranges, config);
+  return chooseBestWindowedOrder(ordered, places, config);
+}
 function desiredTravelMs(distanceKm: number, config: GeneratorConfig, launch: boolean): number {
   const targetSpeed = config.targetLegSpeedKmh;
   const minimum = launch ? 0 : config.minArrivalGapMinutes * MINUTE_MS - config.durationSeconds * 1000;
@@ -470,7 +528,8 @@ function arrangeRoute(order: Candidate[], config: GeneratorConfig): RouteArrange
 
 function improveWholeRoute(order: Candidate[], config: GeneratorConfig): Candidate[] {
   const arrangement = arrangeRoute(order, config);
-  if (!arrangement || !hasFeasibleTiming(arrangement.assemble(arrangement.middle), config)) return order;
+  if (!arrangement) return order;
+  if (!hasFeasibleTiming(arrangement.assemble(arrangement.middle), config)) return order;
   const middle = improveRouteWithLocalMoves(arrangement.middle, arrangement.assemble, config);
   const annealed = annealRoute(middle, arrangement.assemble, config);
   return arrangement.assemble(annealed);

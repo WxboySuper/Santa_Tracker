@@ -28,9 +28,18 @@ async function readOptionalJson<T>(url: URL, fallback: T): Promise<T> {
   try {
     return await readJson<T>(url);
   } catch (error) {
-    if (typeof error === 'object' && error !== null && 'code' in error && error.code === 'ENOENT') return fallback;
-    throw error;
+    return fallbackForMissingFile(error, fallback);
   }
+}
+
+function fallbackForMissingFile<T>(error: unknown, fallback: T): T {
+  if (isMissingFileError(error)) return fallback;
+  throw error;
+}
+
+function isMissingFileError(error: unknown): boolean {
+  if (typeof error !== 'object' || error === null || !('code' in error)) return false;
+  return error.code === 'ENOENT';
 }
 
 function mergeOverrideFiles(base: RouteOverrides, extra: RouteOverrides): RouteOverrides {

@@ -77,19 +77,30 @@ function distanceKm(a, b) {
   return 12742 * Math.asin(Math.min(1, Math.sqrt(h)));
 }
 
-export function timezoneForCandidate(id, country, lookedUpTimezone, lat, lng) {
-  const explicit = routeOverrides.timezone?.[id] ?? timezoneCorrection(id);
+function timezoneForId(id) {
+  return routeOverrides.timezone?.[id] ?? timezoneCorrection(id);
+}
+
+function validateTimezoneOverride(explicit, allowed, country, id) {
+  if (!allowed.includes(explicit)) throw new Error(`Timezone override ${explicit} does not belong to ${country} (${id})`);
+  return explicit;
+}
+
+function nearestTimezone({ id, country, lat, lng }) {
+  const points = countryZoneData.zonePointsByCountry[country] ?? [];
+  const first = points[0];
+  if (!first) throw new Error(`No timezone representative point for ${country} (${id})`);
+  const candidate = { lat, lng };
+  return points.reduce((best, point) => distanceKm(candidate, point) < distanceKm(candidate, best) ? point : best, first).timezone;
+}
+
+export function timezoneForCandidate({ id, country, lookedUpTimezone, lat, lng }) {
   const allowed = countryZoneData.zonesByCountry[country];
   if (!allowed) throw new Error(`No IANA country timezone table for ${country} (${id})`);
-  if (explicit) {
-    if (!allowed.includes(explicit)) throw new Error(`Timezone override ${explicit} does not belong to ${country} (${id})`);
-    return explicit;
-  }
+  const explicit = timezoneForId(id);
+  if (explicit) return validateTimezoneOverride(explicit, allowed, country, id);
   if (allowed.includes(lookedUpTimezone)) return lookedUpTimezone;
-  const points = countryZoneData.zonePointsByCountry[country] ?? [];
-  if (points.length === 0) throw new Error(`No timezone representative point for ${country} (${id})`);
-  const candidate = { lat, lng };
-  return points.reduce((best, point) => distanceKm(candidate, point) < distanceKm(candidate, best) ? point : best, points[0]).timezone;
+  return nearestTimezone({ id, country, lat, lng });
 }
 
 export function christmasUtcOffset(timezone) {
