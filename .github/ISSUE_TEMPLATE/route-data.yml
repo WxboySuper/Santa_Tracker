@@ -1,0 +1,49 @@
+name: Route data
+description: Propose a route stop or correct its location data
+title: "[Route data]: "
+labels: ["type: implementation", "area: journey", "season: 2026"]
+assignees:
+  - WxboySuper
+body:
+  - type: input
+    id: stop-name
+    attributes:
+      label: Stop name
+    validations:
+      required: true
+  - type: input
+    id: country
+    attributes:
+      label: Country
+    validations:
+      required: true
+  - type: input
+    id: coordinates
+    attributes:
+      label: Coordinates
+      description: Provide latitude and longitude in decimal degrees.
+      placeholder: "Latitude, longitude"
+    validations:
+      required: true
+  - type: input
+    id: source
+    attributes:
+      label: Source
+      description: Link a reliable source for the location and spelling.
+    validations:
+      required: true
+  - type: dropdown
+    id: owner-decision
+    attributes:
+      label: Owner decision needed
+      options:
+        - "No"
+        - "Yes"
+    validations:
+      required: true
+  - type: textarea
+    id: change
+    attributes:
+      label: Proposed change and context
+    validations:
+      required: true

@@ -1,0 +1,28 @@
+name: Operations task
+description: Track infrastructure, deployment, monitoring, or runbook work
+title: "[Operations]: "
+labels: ["type: operations", "area: quality", "season: 2026"]
+assignees:
+  - WxboySuper
+body:
+  - type: textarea
+    id: runbook-step
+    attributes:
+      label: Runbook step
+      description: Describe the procedure to add, change, or follow.
+    validations:
+      required: true
+  - type: input
+    id: evidence-link
+    attributes:
+      label: Evidence link
+      description: Link the alert, log, dashboard, incident, or relevant documentation.
+    validations:
+      required: true
+  - type: textarea
+    id: rollback
+    attributes:
+      label: Rollback note
+      description: Explain how to reverse the change, or why rollback does not apply.
+    validations:
+      required: true
