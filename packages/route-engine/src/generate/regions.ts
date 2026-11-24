@@ -100,7 +100,6 @@ function isAsianRussia(place: Candidate): boolean {
 }
 
 function africaSubregion(place: Candidate): string {
-  if (!AFRICA.has(place.country)) throw new Error(`No explicit Africa subregion mapping for ${place.country}`);
   if (place.lat >= 20) return 'Northern Africa';
   if (place.lng < -15) return 'Western Africa';
   if (place.lng > 30) return 'Eastern Africa';
