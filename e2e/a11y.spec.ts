@@ -1,8 +1,8 @@
-import { expect, test } from "./fixtures";
+import { expect, getFixtureProjectName, test } from "./fixtures";
 import { expectNoSeriousAxeIssues } from "./axe-check";
 
 test("key public pages pass serious and critical axe checks", async ({ page }, testInfo) => {
-  test.skip(testInfo.project.name !== "open", "public route accessibility checks run with the open fixtures");
+  test.skip(getFixtureProjectName(testInfo.project) !== "open", "public route accessibility checks run with the open fixtures");
 
   await page.goto("/");
   await expect(page.getByRole("heading", { level: 1, name: "Santa Tracker" })).toBeVisible();

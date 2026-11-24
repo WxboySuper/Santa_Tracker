@@ -1,5 +1,10 @@
 # Changelog — per-PR exhaustive (enforced in CI)
 
+## [Unreleased] - Cross-browser readiness matrix (#324)
+
+- **Opt-in Playwright profiles:** Adds open and closed fixture runs for Firefox and WebKit desktop, iPhone 13, Pixel 5, and iPad emulation, a 3840x2160 desktop viewport, and a 740x360 landscape phone viewport. The default project set stays unchanged.
+- **Evidence:** Adds scratch screenshot capture and a QA report with reproducible findings, rerun commands, and owner-run device and screen-reader checks.
+
 ## [Unreleased] - Season modes and expiring overrides (issue #236)
 
 - **Season modes:** Adds a pure UTC-derived annual mode for off-season, preparation, Advent, flight, and post-season, sharing schedule boundaries with the existing feature gates without changing public access behavior.

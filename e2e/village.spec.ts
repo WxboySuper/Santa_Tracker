@@ -1,13 +1,13 @@
-import { expect, test } from './fixtures';
+import { expect, getFixtureProjectName, test } from './fixtures';
 
 test('the village preview is hidden from visitors', async ({ page }, testInfo) => {
-  test.skip(testInfo.project.name !== 'closed', 'closed-season behaviour');
+  test.skip(getFixtureProjectName(testInfo.project) !== 'closed', 'closed-season behaviour');
   const response = await page.goto('/village');
   expect(response?.status()).toBe(404);
 });
 
 test('the village preview opens, lists its places, and works without WebGL', async ({ page }, testInfo) => {
-  test.skip(testInfo.project.name !== 'open', 'preview is only reachable with the local override');
+  test.skip(getFixtureProjectName(testInfo.project) !== 'open', 'preview is only reachable with the local override');
   await page.goto('/village');
   await expect(page.getByRole('heading', { level: 1, name: 'Santa Tracker' })).toBeVisible();
   const menu = page.getByRole('navigation', { name: 'Places in the village' });
@@ -20,7 +20,7 @@ test('the village preview opens, lists its places, and works without WebGL', asy
 });
 
 test('the simple village view needs no WebGL and links to every open place', async ({ page }, testInfo) => {
-  test.skip(testInfo.project.name !== 'open', 'preview is only reachable with the local override');
+  test.skip(getFixtureProjectName(testInfo.project) !== 'open', 'preview is only reachable with the local override');
   await page.addInitScript(() => {
     HTMLCanvasElement.prototype.getContext = () => null;
   });

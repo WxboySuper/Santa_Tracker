@@ -57,13 +57,21 @@ export async function getEndpointForProject(runtimeFile: string, projectName: st
   return endpoint;
 }
 
+export function getFixtureProjectName(project: { name: string; metadata?: unknown }): string {
+  const metadata = project.metadata;
+  if (isRecord(metadata) && (metadata.fixtureProject === "closed" || metadata.fixtureProject === "open")) {
+    return metadata.fixtureProject;
+  }
+  return project.name;
+}
+
 const test = base.extend({
   // Playwright requires a destructured fixture object; this fixture has no dependencies.
   // eslint-disable-next-line no-empty-pattern
   baseURL: async ({}, use, testInfo) => {
     const runtimeFile = process.env.E2E_RUNTIME_FILE;
     if (!runtimeFile) throw new Error("E2E_RUNTIME_FILE is not configured");
-    const endpoint = await getEndpointForProject(runtimeFile, testInfo.project.name);
+    const endpoint = await getEndpointForProject(runtimeFile, getFixtureProjectName(testInfo.project));
     // eslint-disable-next-line react-hooks/rules-of-hooks -- Playwright's fixture callback is not a React hook.
     await use(endpoint);
   },
