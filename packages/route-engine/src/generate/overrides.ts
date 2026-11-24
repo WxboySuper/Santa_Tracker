@@ -2,6 +2,9 @@ export type RouteOverrides = {
   lock?: string[];
   veto?: string[];
   swap?: Record<string, string>;
+  timezone?: Record<string, string>;
+  utcOffsetMinutes?: Record<string, number>;
+  rename?: Record<string, string>;
 };
 
 function validateIds(known: Set<string>, ids: string[]): void {
@@ -45,7 +48,7 @@ export function applyOverrides(pool: readonly { id: string; category?: string }[
   const locks = new Set(overrides.lock ?? []);
   const veto = new Set(overrides.veto ?? []);
   const swaps = Object.entries(overrides.swap ?? {});
-  validateIds(known, [...selection, ...locks, ...veto, ...swaps.flat()]);
+  validateIds(known, [...selection, ...locks, ...veto, ...swaps.flat(), ...Object.keys(overrides.timezone ?? {}), ...Object.keys(overrides.utcOffsetMinutes ?? {}), ...Object.keys(overrides.rename ?? {})]);
   for (const id of locks) {
     if (veto.has(id)) throw new Error(`Stop is both locked and vetoed: ${id}`);
   }
@@ -72,4 +75,18 @@ export function applyOverrides(pool: readonly { id: string; category?: string }[
     result[replaceAt] = id;
   }
   return result;
+}
+
+export function applyCandidateOverrides<T extends { id: string; name: string; timezone: string; utcOffsetMinutes?: number }>(
+  pool: readonly T[],
+  overrides: RouteOverrides,
+): T[] {
+  const known = new Set(pool.map((place) => place.id));
+  validateIds(known, [...Object.keys(overrides.timezone ?? {}), ...Object.keys(overrides.utcOffsetMinutes ?? {}), ...Object.keys(overrides.rename ?? {})]);
+  return pool.map((place) => ({
+    ...place,
+    name: overrides.rename?.[place.id] ?? place.name,
+    timezone: overrides.timezone?.[place.id] ?? place.timezone,
+    utcOffsetMinutes: overrides.utcOffsetMinutes?.[place.id] ?? place.utcOffsetMinutes,
+  }));
 }

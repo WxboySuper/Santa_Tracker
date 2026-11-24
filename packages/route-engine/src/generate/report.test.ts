@@ -14,28 +14,29 @@ const route: Route = {
 
 describe('buildReport', () => {
   it('reports a route without inventing a leg', () => {
-    const report = buildReport([place], route, config, new Map([[createLocationId('location_one'), place]]));
+    const report = buildReport([place], route, config);
     expect(report.count).toBe(1);
-    expect(report.fastestLeg).toBeNull();
-    expect(report.longestLegs).toEqual([]);
+    expect(report.legs.map((leg) => leg.kind)).toEqual(['launch', 'return']);
+    expect(report.longestLegs).toHaveLength(2);
   });
 
   it('rejects incomplete routes or coordinate maps instead of reporting zero-distance legs', () => {
-    expect(() => buildReport([], { ...route, stops: [] }, config, new Map())).toThrow(/empty route/);
+    expect(() => buildReport([], { ...route, stops: [] }, config)).toThrow(/empty route/);
     const twoStops: Route = { ...route, stops: [firstStop, { ...firstStop, locationId: createLocationId('location_two'), arrivalIso: '2026-12-25T00:22:00.000Z', departureIso: '2026-12-25T00:23:00.000Z' }] };
-    expect(() => buildReport([place, place], twoStops, config, new Map([[createLocationId('location_one'), place]]))).toThrow(/Missing coordinates/);
+    expect(() => buildReport([place], twoStops, config)).toThrow(/do not match route stops/);
   });
 
   it('reports largest-remainder category targets that sum to the route total', () => {
     const reportConfig = { ...config, total: 2, weights: { hub: 1, cultural: 1, nature: 1 } };
-    const report = buildReport([place], route, reportConfig, new Map([[createLocationId('location_one'), place]]));
+    const report = buildReport([place], route, reportConfig);
 
     expect(Object.values(report.mix).map((entry) => entry.target)).toEqual([1, 1, 0]);
   });
 
-  it('does not count all hours as western coverage when the window is disabled', () => {
-    const reportConfig = { ...config, westernHours: 0, minimumStopsPerHour: 1 };
-    const report = buildReport([place], route, reportConfig, new Map([[createLocationId('location_one'), place]]));
-    expect(report.westernMinimum).toBe(0);
+  it('reports hourly arrivals, UTC offsets, and launch and return distance', () => {
+    const report = buildReport([place], route, config);
+    expect(report.hourly.at(-1)).toEqual({ hour: 14, count: 1 });
+    expect(report.offsetBalance).toEqual({ 'UTC+00:00': 1 });
+    expect(report.totalDistanceKm).toBeGreaterThan(0);
   });
 });

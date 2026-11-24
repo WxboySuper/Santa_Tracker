@@ -4,10 +4,10 @@ const MINUTE_MS = 60_000;
 const SECOND_MS = 1_000;
 
 /**
- * How long after takeoff the page keeps saying Santa is flying (covers Dec 24 in every timezone,
- * until Dec 25 12:00 UTC). After this the countdown rolls over to next year.
+ * How long after takeoff the page keeps saying Santa is flying, through Dec 25 14:00 UTC.
+ * After this the countdown rolls over to next year.
  */
-export const FLIGHT_WINDOW_MS = 26 * HOUR_MS;
+export const FLIGHT_WINDOW_MS = 28 * HOUR_MS;
 
 function takeoffForYear(year: number): number {
   return Date.UTC(year, 11, 24, 10, 0, 0);

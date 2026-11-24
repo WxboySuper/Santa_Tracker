@@ -1,6 +1,6 @@
 import { readFile, writeFile } from 'node:fs/promises';
 import lookup from '@photostructure/tz-lookup';
-import { claim, countryIdFor, timezoneCorrection, validEarthPoint } from './refresh-validation.mjs';
+import { christmasUtcOffset, claim, countryCodeForName, countryIdFor, timezoneForCandidate, validEarthPoint } from './refresh-validation.mjs';
 
 const seeds = JSON.parse(await readFile(new URL('./data/curated-seeds.json', import.meta.url), 'utf8'));
 const ids = Object.values(seeds).flat();
@@ -38,9 +38,9 @@ for (const [category, categoryIds] of Object.entries(seeds)) {
       throw new Error(`${id} lacks an English label, country, or Earth coordinates`);
     }
     const { latitude: lat, longitude: lng } = point;
-    const lookedUpTimezone = lookup(lat, lng);
-    const timezone = timezoneCorrection(id) ?? lookedUpTimezone;
-    places.push({ id, name, country, lat, lng, timezone, category, source: `https://www.wikidata.org/wiki/${id}` });
+    const countryCode = countryCodeForName(country);
+    const timezone = timezoneForCandidate(id, countryCode, lookup(lat, lng), lat, lng);
+    places.push({ id, name, country: countryCode, lat, lng, timezone, utcOffsetMinutes: christmasUtcOffset(timezone), category, source: `https://www.wikidata.org/wiki/${id}` });
   }
 }
 await writeFile(new URL('./data/curated.json', import.meta.url), `${JSON.stringify(places, null, 2)}\n`);

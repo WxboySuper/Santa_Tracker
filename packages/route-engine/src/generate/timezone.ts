@@ -10,22 +10,46 @@ export function parseUtcOffset(rawOffset: string, timezone: string): number {
   if (!match) throw new Error(`Invalid UTC offset for ${timezone}: ${rawOffset}`);
   const hours = Number(match[2]);
   const minutes = Number(match[3] ?? 0);
-  if (invalidUtcOffset(hours, minutes)) {
-    throw new Error(`Invalid UTC offset for ${timezone}: ${rawOffset}`);
-  }
+  if (invalidUtcOffset(hours, minutes)) throw new Error(`Invalid UTC offset for ${timezone}: ${rawOffset}`);
   return (match[1] === '-' ? -1 : 1) * (hours * 60 + minutes);
 }
 
-export function christmasOffset(timezone: string): number {
+/** Use the committed Dec 25 offset during generation. The IANA lookup is only a test or refresh fallback. */
+export function christmasOffset(timezone: string, snapshotOffsetMinutes?: number): number {
+  if (snapshotOffsetMinutes !== undefined) return snapshotOffsetMinutes;
   const parts = new Intl.DateTimeFormat('en-US', { timeZone: timezone, timeZoneName: 'longOffset' }).formatToParts(Date.UTC(2026, 11, 25));
   const rawOffset = parts.find((part) => part.type === 'timeZoneName')?.value;
   if (rawOffset == null) throw new Error(`Missing UTC offset for ${timezone}`);
   return parseUtcOffset(rawOffset, timezone);
 }
 
-export function localMinute(iso: string, timezone: string): number {
-  const parts = new Intl.DateTimeFormat('en-CA', { timeZone: timezone, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).formatToParts(new Date(iso));
+function localParts(iso: string, timezone: string): { year: number; month: number; day: number; hour: number; minute: number } {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: timezone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23',
+  }).formatToParts(new Date(iso));
   const value = (key: string): number => Number(parts.find((part) => part.type === key)?.value);
-  if (value('month') !== 12 || value('day') !== 25) return -1;
-  return value('hour') * 60 + value('minute');
+  return { year: value('year'), month: value('month'), day: value('day'), hour: value('hour'), minute: value('minute') };
+}
+
+/** Returns minutes after local midnight, or -1 when the arrival is not December 25. */
+export function localMinute(iso: string, timezoneOrOffset: string | number): number {
+  if (typeof timezoneOrOffset === 'number') {
+    const local = new Date(Date.parse(iso) + timezoneOrOffset * 60_000);
+    if (local.getUTCFullYear() !== 2026 || local.getUTCMonth() !== 11 || local.getUTCDate() !== 25) return -1;
+    return local.getUTCHours() * 60 + local.getUTCMinutes();
+  }
+  const local = localParts(iso, timezoneOrOffset);
+  if (local.year !== 2026 || local.month !== 12 || local.day !== 25) return -1;
+  return local.hour * 60 + local.minute;
+}
+
+export function localDate(iso: string, timezone: string): string {
+  const local = localParts(iso, timezone);
+  return `${local.year.toString().padStart(4, '0')}-${local.month.toString().padStart(2, '0')}-${local.day.toString().padStart(2, '0')}`;
 }

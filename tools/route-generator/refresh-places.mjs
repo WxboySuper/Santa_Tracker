@@ -2,7 +2,7 @@ import { writeFile } from 'node:fs/promises';
 import { unzipSync } from 'fflate';
 import shapefile from 'shapefile';
 import lookup from '@photostructure/tz-lookup';
-import { coordinatesFromGeometry } from './refresh-validation.mjs';
+import { christmasUtcOffset, coordinatesFromGeometry, countryCodeForName, timezoneForCandidate } from './refresh-validation.mjs';
 
 const url = 'https://naturalearth.s3.amazonaws.com/10m_cultural/ne_10m_populated_places_simple.zip';
 const response = await fetch(url);
@@ -21,10 +21,14 @@ for (;;) {
   if (!properties.name || !properties.adm0name || !properties.ne_id) continue;
   if (!coordinates) continue;
   const { lat, lng } = coordinates;
+  const id = `ne-${properties.ne_id}`;
+  const country = countryCodeForName(properties.adm0name);
+  const timezone = timezoneForCandidate(id, country, lookup(lat, lng), lat, lng);
   places.push({
-    id: `ne-${properties.ne_id}`, name: properties.name, country: properties.adm0name,
+    id, name: properties.name, country,
     lat, lng, population: properties.pop_max, worldCity: Boolean(properties.worldcity),
-    timezone: lookup(lat, lng),
+    timezone, utcOffsetMinutes: christmasUtcOffset(timezone),
+    source: 'https://www.naturalearthdata.com/downloads/10m-cultural-vectors/10m-populated-places/',
   });
 }
 places.sort((a, b) => a.id.localeCompare(b.id, 'en'));

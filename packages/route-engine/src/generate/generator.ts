@@ -1,17 +1,23 @@
 import { createLocationId, LegacyRouteFixtureSchema, SCHEMA_VERSION, type Route } from '@santa-tracker/contracts';
 import { validateRouteGeometry } from '../geometry-validate';
-import type { LatLng } from '../geo';
-import { haversineKm } from '../geo';
+import { haversineKm, legSpeedKmh, type LatLng } from '../geo';
 import { validateRoute } from '../validate';
+import { applyCandidateOverrides, type RouteOverrides } from './overrides';
 import { chooseCandidates } from './candidates';
 import { sweepOrder } from './order';
 import { buildReport } from './report';
 import { christmasArrival } from './sweep';
-import type { RouteOverrides } from './overrides';
-import { christmasOffset, localMinute } from './timezone';
-import type { Candidate, GeneratedRoute, GeneratorConfig } from './types';
+import { localMinute } from './timezone';
+import { DEFAULT_GENERATOR_LIMITS, NORTH_POLE, TAKEOFF_UTC, type Candidate, type GeneratedRoute, type GeneratorConfig } from './types';
 
-export { DEFAULT_GENERATOR_LIMITS } from './types';
+type TimezoneTables = {
+  zonesByCountry: Record<string, string[]>;
+  zonePointsByCountry?: Record<string, { timezone: string; lat: number; lng: number }[]>;
+  utcOffsetsByTimezone?: Record<string, number>;
+  countryNames?: Record<string, string>;
+};
+
+export { DEFAULT_GENERATOR_LIMITS };
 export type { Candidate, GeneratedRoute, GeneratorConfig, RouteReport } from './types';
 
 function stableHash(value: string, seed: number): number {
@@ -19,97 +25,207 @@ function stableHash(value: string, seed: number): number {
   for (const character of value) hash = Math.imul(hash ^ character.charCodeAt(0), 16777619) >>> 0;
   return hash;
 }
-type StopContext = { config: GeneratorConfig; prior?: Candidate; lastDeparture: number };
-function createStop(index: number, place: Candidate, context: StopContext) {
-  const { config, prior, lastDeparture } = context;
-  const target = Date.parse(christmasArrival(place.timezone, place.plannedMinute ?? config.arrivalStartMinute));
-  const distance = prior ? haversineKm(prior, place) : 0;
-  const speedLimit = config.allowFastLegs ? config.maxSpeedKmh : config.maxLegSpeedKmh;
-  const travel = Math.ceil(distance / speedLimit * 3_600_000) + 1;
-  const arrival = new Date(Math.max(target, lastDeparture + travel)).toISOString();
-  const minute = localMinute(arrival, place.timezone);
-  if (minute < config.arrivalStartMinute || minute > config.arrivalEndMinute) throw new Error(`${place.name} arrives outside its local window at ${arrival}`);
-  const departure = new Date(Date.parse(arrival) + config.durationSeconds * 1000).toISOString();
-  const id = `stop_${stableHash(place.id, config.seed).toString(36)}_${index}`;
-  return { id, arrival, departure, locationId: createLocationId(id) };
+
+function normalizeCandidateTimezones(pool: Candidate[], overrides: RouteOverrides, tables?: TimezoneTables): Candidate[] {
+  const applied = applyCandidateOverrides(pool, overrides);
+  if (!tables) return applied;
+  return applied.map((place) => {
+    const allowed = tables.zonesByCountry[place.country];
+    if (!allowed) throw new Error(`No IANA timezone table for country ${place.country} (${place.name})`);
+    if (allowed.includes(place.timezone)) {
+      if (place.utcOffsetMinutes === undefined) throw new Error(`Missing snapshot UTC offset for ${place.name}`);
+      return place;
+    }
+    const points = tables.zonePointsByCountry?.[place.country] ?? [];
+    if (overrides.timezone?.[place.id]) throw new Error(`Timezone ${place.timezone} for ${place.name} does not belong to country ${place.country}`);
+    if (points.length === 0) throw new Error(`Timezone ${place.timezone} for ${place.name} does not belong to country ${place.country}`);
+    const firstPoint = points[0];
+    if (!firstPoint) throw new Error(`No timezone representative point for ${place.name}`);
+    const nearest = points.reduce((best, point) => haversineKm(place, point) < haversineKm(place, best) ? point : best, firstPoint);
+    const utcOffsetMinutes = tables.utcOffsetsByTimezone?.[nearest.timezone];
+    if (utcOffsetMinutes === undefined) throw new Error(`Missing committed UTC offset for ${nearest.timezone}`);
+    return { ...place, timezone: nearest.timezone, utcOffsetMinutes };
+  });
 }
-function buildDocument(places: Candidate[], config: GeneratorConfig): { document: GeneratedRoute['document']; route: Route; coordinates: Map<string, LatLng> } {
-  const routeNodes: Record<string, unknown>[] = [];
+
+function humanCountry(code: string, tables?: TimezoneTables): string {
+  return tables?.countryNames?.[code] ?? code;
+}
+
+function speedCurve(kmh: number): string {
+  if (kmh < 6_000) return 'CRUISING';
+  if (kmh <= 14_000) return 'REGIONAL';
+  return 'HYPERSONIC';
+}
+
+function transit(from: LatLng, to: LatLng, fromDeparture: number, toArrival: number, description: string, cameraZoom = 9) {
+  const durationSeconds = Math.max(0, Math.ceil((toArrival - fromDeparture) / 1000));
+  const distanceKm = haversineKm(from, to);
+  const speedKmh = durationSeconds > 0 ? legSpeedKmh(from, to, durationSeconds) ?? 0 : 0;
+  return {
+    description,
+    duration_seconds: durationSeconds,
+    distance_km: Math.round(distanceKm * 100) / 100,
+    speed_curve: speedCurve(speedKmh),
+    speed_kmh: Math.round(speedKmh),
+    camera_zoom: cameraZoom,
+  };
+}
+
+function localTimeLabel(place: Candidate, arrival: number): string {
+  const minute = localMinute(new Date(arrival).toISOString(), place.utcOffsetMinutes ?? 0);
+  return `${Math.floor(minute / 60).toString().padStart(2, '0')}:${(minute % 60).toString().padStart(2, '0')}`;
+}
+
+function buildDocument(places: Candidate[], config: GeneratorConfig, tables?: TimezoneTables): { document: GeneratedRoute['document']; route: Route; coordinates: Map<string, LatLng>; routeEndUtc: string } {
+  const takeoff = Date.parse(TAKEOFF_UTC);
+  const routeNodes: Record<string, unknown>[] = [{
+    id: 'start_north_pole_2026',
+    type: 'START',
+    comment: 'START at the North Pole',
+    location: { name: 'North Pole', region: 'Arctic', country_code: 'AQ', lat: NORTH_POLE.lat, lng: NORTH_POLE.lng, timezone_offset: 0 },
+    schedule: { arrival_utc: null, departure_utc: TAKEOFF_UTC, local_arrival_time: null, time_window_status: 'TAKEOFF' },
+    stop_experience: { duration_seconds: 0, camera_zoom: 4, weather_condition: 'blizzard', presents_delivered_at_stop: 0 },
+    transit_to_here: null,
+  }];
   const stops: Route['stops'] = [];
   const coordinates = new Map<string, LatLng>();
-  let departureTime = 0;
-  let previous: Candidate | undefined;
+  let prior: Candidate | undefined;
+  let priorDeparture = takeoff;
+  let priorLocation: LatLng = NORTH_POLE;
   for (const [index, place] of places.entries()) {
-    const stop = createStop(index, place, { config, prior: previous, lastDeparture: departureTime });
-    coordinates.set(stop.locationId, place);
-    stops.push({ locationId: stop.locationId, arrivalIso: stop.arrival, departureIso: stop.departure, durationSeconds: config.durationSeconds });
-    routeNodes.push({ id: stop.id, type: 'DELIVERY', location: { name: place.name, region: place.country, lat: place.lat, lng: place.lng, timezone_offset: christmasOffset(place.timezone) / 60 }, schedule: { arrival_utc: stop.arrival, departure_utc: stop.departure, local_arrival_time: null, time_window_status: null }, stop_experience: { duration_seconds: config.durationSeconds, camera_zoom: null, weather_condition: null, presents_delivered_at_stop: 0 }, transit_to_here: null, comment: place.category, notes: place.source ?? null, priority: 2 });
-    departureTime = Date.parse(stop.departure);
-    previous = place;
+    const stopArrival = place.plannedArrivalUtc
+      ? Date.parse(place.plannedArrivalUtc)
+      : Date.parse(christmasArrival(place.utcOffsetMinutes ?? 0, place.plannedMinute ?? config.arrivalStartMinute));
+    const stopDeparture = stopArrival + config.durationSeconds * 1000;
+    const stopId = `stop_${stableHash(place.id, config.seed).toString(36)}_${index.toString().padStart(3, '0')}`;
+    const locationId = createLocationId(stopId);
+    coordinates.set(locationId, place);
+    stops.push({ locationId, arrivalIso: new Date(stopArrival).toISOString(), departureIso: new Date(stopDeparture).toISOString(), durationSeconds: config.durationSeconds });
+    routeNodes.push({
+      id: stopId,
+      type: 'DELIVERY',
+      comment: place.category,
+      candidate_id: place.id,
+      location: {
+        name: place.name,
+        region: humanCountry(place.country, tables),
+        country_code: place.country,
+        timezone: place.timezone,
+        lat: place.lat,
+        lng: place.lng,
+        timezone_offset: (place.utcOffsetMinutes ?? 0) / 60,
+      },
+      schedule: {
+        arrival_utc: new Date(stopArrival).toISOString(),
+        departure_utc: new Date(stopDeparture).toISOString(),
+        local_arrival_time: localTimeLabel(place, stopArrival),
+        time_window_status: 'GREEN',
+      },
+      stop_experience: { duration_seconds: config.durationSeconds, camera_zoom: 14, weather_condition: 'clear', presents_delivered_at_stop: 1 },
+      transit_to_here: transit(priorLocation, place, priorDeparture, stopArrival, prior ? `Flight to ${place.name}` : `Launch to ${place.name}`),
+      notes: place.source ?? null,
+      priority: place.worldCity ? 1 : 2,
+    });
+    prior = place;
+    priorDeparture = stopDeparture;
+    priorLocation = place;
   }
+
+  const last = places.at(-1);
+  if (!last) throw new Error('Cannot build an empty route');
+  const returnDistance = haversineKm(last, NORTH_POLE);
+  const returnSeconds = Math.max(1, Math.ceil(returnDistance / config.targetLegSpeedKmh * 3600));
+  const endArrival = priorDeparture + returnSeconds * 1000;
+  const endDeparture = endArrival + 1000;
+  routeNodes.push({
+    id: 'end_north_pole_2026',
+    type: 'END',
+    comment: 'END at the North Pole',
+    location: { name: 'North Pole', region: 'Arctic', country_code: 'AQ', lat: NORTH_POLE.lat, lng: NORTH_POLE.lng, timezone_offset: 0 },
+    schedule: { arrival_utc: new Date(endArrival).toISOString(), departure_utc: new Date(endDeparture).toISOString(), local_arrival_time: null, time_window_status: 'HOME' },
+    stop_experience: { duration_seconds: 0, camera_zoom: 4, weather_condition: 'blizzard', presents_delivered_at_stop: 0 },
+    transit_to_here: transit(last, NORTH_POLE, priorDeparture, endArrival, 'Return to the North Pole', 4),
+  });
   const route = { schemaVersion: SCHEMA_VERSION, season: 2026, stops } as Route;
-  const document = { meta: { year: 2026, route_version: '1.0', generated_at: '2026-12-24T00:00:00.000Z' }, route_nodes: routeNodes };
+  const document = {
+    meta: { year: 2026, route_version: '2026-draft-1', generated_at: config.generatedAt },
+    route_nodes: routeNodes,
+  };
   LegacyRouteFixtureSchema.parse(document);
-  return { document, route, coordinates };
+  return { document, route, coordinates, routeEndUtc: new Date(endArrival).toISOString() };
 }
-function geometrySpeedLimit(config: GeneratorConfig): number {
-  return config.allowFastLegs ? Number.MAX_VALUE : config.maxSpeedKmh;
+
+function validateArrivalWindow(route: Route, places: Candidate[], config: GeneratorConfig): void {
+  route.stops.forEach((stop, index) => {
+    const place = places[index];
+    if (!place) throw new Error(`Missing candidate for route stop ${index + 1}`);
+    const minute = localMinute(stop.arrivalIso, place.utcOffsetMinutes ?? 0);
+    if (minute < config.arrivalStartMinute || minute > config.arrivalEndMinute) throw new Error(`${place.name} arrives outside its local window`);
+  });
 }
-function validateGeneratedRoute(route: Route, coordinates: Map<string, LatLng>, config: GeneratorConfig): void {
+
+function validateGeneratorConfig(config: GeneratorConfig): void {
+  const integers: [number, number, string][] = [
+    [config.seed, Number.MIN_SAFE_INTEGER, 'Invalid seed'],
+    [config.total, 1, 'Invalid stop total'],
+    [config.arrivalStartMinute, 0, 'Invalid arrival window'],
+    [config.arrivalEndMinute, 0, 'Invalid arrival window'],
+    [config.durationSeconds, 1, 'Invalid stop duration'],
+    [config.maxCountryRun, 1, 'Invalid country run limit'],
+    [config.maxStopsPerCountry, 1, 'Invalid country total limit'],
+    [config.minArrivalGapMinutes, 1, 'Invalid minimum arrival gap'],
+    [config.maxArrivalGapMinutes, 1, 'Invalid maximum arrival gap'],
+  ];
+  for (const [value, minimum, message] of integers) {
+    if (!Number.isSafeInteger(value) || value < minimum) throw new Error(message);
+  }
+  if (config.arrivalEndMinute > 1439 || config.arrivalStartMinute > config.arrivalEndMinute) throw new Error('Invalid arrival window');
+  const positives: [number, string][] = [
+    [config.targetLegSpeedKmh, 'Invalid target leg speed'],
+    [config.maxLegSpeedKmh, 'Invalid maximum leg speed'],
+    [config.medianLegSpeedMinKmh, 'Invalid median minimum'],
+    [config.medianLegSpeedMaxKmh, 'Invalid median maximum'],
+    [config.p90LegSpeedMaxKmh, 'Invalid p90 speed maximum'],
+    [config.maxRouteDistanceKm, 'Invalid route distance maximum'],
+    [config.minStopSeparationKm, 'Invalid minimum stop separation'],
+  ];
+  for (const [value, message] of positives) {
+    const allowZero = message === 'Invalid minimum stop separation';
+    if (!Number.isFinite(value) || value < 0 || (!allowZero && value === 0)) throw new Error(message);
+  }
+  if (Object.keys(config.weights).length === 0) throw new Error('Category weights are required');
+  if (!config.generatedAt || Number.isNaN(Date.parse(config.generatedAt))) throw new Error('Invalid fixed generation date');
+}
+
+export function generateRoute(pool: Candidate[], config: GeneratorConfig, overrides: RouteOverrides = {}, tables?: TimezoneTables): GeneratedRoute {
+  validateGeneratorConfig(config);
+  const normalizedPool = normalizeCandidateTimezones(pool, overrides, tables);
+  const chosen = chooseCandidates(normalizedPool, config, overrides, tables);
+  const ordered = sweepOrder(chosen, config);
+  const { document, route, coordinates, routeEndUtc } = buildDocument(ordered, config, tables);
+  validateArrivalWindow(route, ordered, config);
   const validation = validateRoute(route);
   if (!validation.ok) throw new Error(`Invalid generated route: ${validation.issues.map((issue) => issue.message).join('; ')}`);
-  const geometry = validateRouteGeometry(route, coordinates, { maxSpeedKmh: geometrySpeedLimit(config) });
-  const errors = geometry.issues.filter((issue) => issue.severity === 'error').map((issue) => issue.message);
-  if (errors.length) throw new Error(`Invalid route geometry: ${errors.join('; ')}`);
-}
-function addReportWarnings(report: GeneratedRoute['report'], config: GeneratorConfig): void {
-  if (config.westernHours > 0 && report.westernMinimum < config.minimumStopsPerHour) report.issues.push(`Western hourly minimum ${report.westernMinimum} is below target ${config.minimumStopsPerHour}; sparse final time zones limit available verified stops.`);
-  const longLegs = report.flags.filter((flag) => flag.longGap > 0).length;
-  if (longLegs > 0) report.issues.push(`Distance threshold relaxed for ${longLegs} legs over ${config.maxGapKm} km to preserve the global stop mix and the 26-hour sweep.`);
-}
-function reorderedStopCount(before: Candidate[], after: Candidate[]): number {
-  return after.filter((place, index) => before[index]?.id !== place.id).length;
-}
-function requireIntegerAtLeast(value: number, minimum: number, message: string): void {
-  if (!Number.isSafeInteger(value)) throw new Error(message);
-  if (value < minimum) throw new Error(message);
-}
-function requireFiniteAtLeast(value: number, minimum: number, message: string): void {
-  if (!Number.isFinite(value)) throw new Error(message);
-  if (value < minimum) throw new Error(message);
-}
-function validateArrivalWindow(config: GeneratorConfig): void {
-  requireIntegerAtLeast(config.arrivalStartMinute, 0, 'Invalid arrival window');
-  requireIntegerAtLeast(config.arrivalEndMinute, 0, 'Invalid arrival window');
-  if (config.arrivalEndMinute > 1439) throw new Error('Invalid arrival window');
-  if (config.arrivalStartMinute > config.arrivalEndMinute) throw new Error('Invalid arrival window');
-}
-function validateGeneratorConfig(config: GeneratorConfig): void {
-  requireIntegerAtLeast(config.seed, Number.MIN_SAFE_INTEGER, 'Invalid seed');
-  requireIntegerAtLeast(config.total, 1, 'Invalid stop total');
-  if (Object.keys(config.weights).length === 0) throw new Error('Category weights are required');
-  validateArrivalWindow(config);
-  requireIntegerAtLeast(config.durationSeconds, 1, 'Invalid stop duration');
-  requireFiniteAtLeast(config.maxSpeedKmh, Number.MIN_VALUE, 'Invalid maximum speed');
-  requireFiniteAtLeast(config.maxLegSpeedKmh, Number.MIN_VALUE, 'Invalid maximum leg speed');
-  requireFiniteAtLeast(config.maxGapKm, 0, 'Invalid maximum gap');
-  requireIntegerAtLeast(config.maxCountryRun, 1, 'Invalid country run limit');
-  requireFiniteAtLeast(config.minimumStopsPerHour, 0, 'Invalid hourly minimum');
-  requireIntegerAtLeast(config.westernHours, 0, 'Invalid western hour count');
-}
-export function generateRoute(pool: Candidate[], config: GeneratorConfig, overrides: RouteOverrides = {}): GeneratedRoute {
-  validateGeneratorConfig(config);
-  const chosen = chooseCandidates(pool, config, overrides);
-  const ordered = sweepOrder(chosen, config);
-  const { document, route, coordinates } = buildDocument(ordered, config);
-  validateGeneratedRoute(route, coordinates, config);
-  const report = buildReport(ordered, route, config, coordinates);
-  report.reorderedStops = reorderedStopCount(chosen, ordered);
-  report.issues = validateRouteGeometry(route, coordinates, { maxSpeedKmh: geometrySpeedLimit(config) }).issues.map((issue) => issue.message);
-  addReportWarnings(report, config);
-  if (report.speedWarnings.length > 0) {
-    if (!config.allowFastLegs) throw new Error(`Leg speed ceiling ${config.maxLegSpeedKmh} km/h exceeded: ${report.speedWarnings.join('; ')}`);
-    report.issues.push(`--allow-fast-legs accepted ${report.speedWarnings.length} legs above ${config.maxLegSpeedKmh} km/h.`);
+  const geometry = validateRouteGeometry(route, coordinates, { maxSpeedKmh: config.maxLegSpeedKmh });
+  const geometryErrors = geometry.issues.filter((issue) => issue.severity === 'error');
+  if (geometryErrors.length > 0) throw new Error(`Invalid route geometry: ${geometryErrors.map((issue) => issue.message).join('; ')}`);
+  const report = buildReport(ordered, route, config);
+  if (report.maxLegSpeedKmh > config.maxLegSpeedKmh) {
+    const leg = report.legs.find((item) => item.kmh > config.maxLegSpeedKmh);
+    throw new Error(`Leg ${leg?.from} to ${leg?.to} requires ${Math.round(leg?.kmh ?? 0)} km/h, above ${config.maxLegSpeedKmh}`);
   }
+  if (Date.parse(report.lastDepartureUtc) > Date.parse(TAKEOFF_UTC) + 27 * 3_600_000) throw new Error('Last delivery departure exceeds takeoff plus 27 hours');
+  if (Date.parse(routeEndUtc) > Date.parse(TAKEOFF_UTC) + 28 * 3_600_000) throw new Error('North Pole return exceeds the 28-hour flight window');
+  const placeNamesByLocationId = new Map<string, string>();
+  ordered.forEach((place, index) => {
+    const locationId = route.stops[index]?.locationId;
+    if (locationId) placeNamesByLocationId.set(locationId, place.name);
+  });
+  report.issues.push(...geometry.issues.filter((issue) => issue.severity === 'warning').map((issue) => {
+    let message = issue.message;
+    for (const [locationId, name] of placeNamesByLocationId) message = message.replaceAll(locationId, name);
+    return message;
+  }));
   return { document, route, locations: ordered, report };
 }

@@ -46,6 +46,8 @@ export interface LocationEntry {
   notes?: string | null;
   fun_facts?: string | null;
   country?: string | null;
+  country_code?: string | null;
+  timezone?: string | null;
   population?: number | null;
   type?: string | null;
   id?: string | null;
@@ -53,11 +55,14 @@ export interface LocationEntry {
 
 export interface RouteNode {
   comment?: string | null;
+  candidate_id?: string | null;
   id: string;
   type: string;
   location: {
     name: string;
     region?: string | null;
+    country_code?: string | null;
+    timezone?: string | null;
     lat: number;
     lng: number;
     timezone_offset?: number | null;
@@ -157,10 +162,13 @@ function parseLocationNode(value: unknown, idx: number): RouteNode | null {
   return {
     id,
     type: optionalString(entry.type) ?? "DELIVERY",
+    candidate_id: optionalString(entry.candidate_id),
     comment: optionalString(entry.comment),
     location: {
       name: optionalString(loc.name) ?? id,
       region: optionalString(loc.region),
+      country_code: optionalString(loc.country_code),
+      timezone: optionalString(loc.timezone),
       lat,
       lng: normalizeLng(lng),
       timezone_offset: tz,
