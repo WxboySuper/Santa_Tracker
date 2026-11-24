@@ -2,10 +2,11 @@ import { describe, expect, it } from 'vitest';
 import { chooseCandidates } from './candidates';
 import { DEFAULT_GENERATOR_LIMITS, type Candidate } from './types';
 
+const countries = ['US', 'CA', 'MX', 'BZ', 'GT', 'HN', 'PA', 'SV', 'AR', 'BO', 'BR', 'CL', 'CO', 'EC', 'PE', 'PY', 'SR', 'VE', 'AU', 'NZ'];
 const pool: Candidate[] = Array.from({ length: 20 }, (_, index) => ({
   id: `place-${index}`,
   name: `Place ${index}`,
-  country: `Country ${index}`,
+  country: countries[index] ?? 'US',
   lat: index,
   lng: index,
   timezone: index < 10 ? 'America/New_York' : 'Asia/Kolkata',
@@ -62,8 +63,8 @@ describe('chooseCandidates', () => {
   });
 
   it('reserves a stop from every required country', () => {
-    const config = { ...DEFAULT_GENERATOR_LIMITS, total: 10, maxStopsPerUtcOffset: 40, weights: { hub: 1 }, endStopId: 'place-19', requiredCountries: ['Country 5'] };
+    const config = { ...DEFAULT_GENERATOR_LIMITS, total: 10, maxStopsPerUtcOffset: 40, weights: { hub: 1 }, endStopId: 'place-19', requiredCountries: [countries[5] ?? 'HN'] };
     const selected = chooseCandidates(pool, config, {});
-    expect(selected.some((place) => place.country === 'Country 5')).toBe(true);
+    expect(selected.some((place) => place.country === countries[5])).toBe(true);
   });
 });

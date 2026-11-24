@@ -23,9 +23,12 @@ type RouteNode = {
   id: string;
   type: string;
   candidate_id?: string;
+  name?: string;
+  label?: string;
   comment?: string;
   location: {
     name: string;
+    label?: string;
     country_code?: string;
     timezone?: string;
     lat: number;
@@ -163,6 +166,42 @@ type AuditLeg = { km: number; kmh: number; gapMinutes: number; eastward: number;
 
 function addCheck(checks: AuditCheck[], name: string, pass: boolean, detail: string): void {
   checks.push({ name, pass, detail });
+}
+
+function addNameAndRegionCheck(view: AuditView, checks: AuditCheck[]): void {
+  const failures: string[] = [];
+  const mappedCountries = new Set<string>();
+  for (const node of view.nodes) {
+    const labels = [node.location.name, node.location.label, node.name, node.label];
+    for (const label of labels) {
+      if (typeof label === 'string' && /[?\uFFFD]/u.test(label)) {
+        failures.push(`${node.location.name}: a name or label contains '?' or U+FFFD`);
+      }
+    }
+
+    const country = node.location.country_code;
+    if (!country) continue;
+    try {
+      classifyRegion({
+        id: node.candidate_id ?? node.id,
+        name: node.location.name,
+        country,
+        lat: node.location.lat,
+        lng: node.location.lng,
+        timezone: node.location.timezone ?? '',
+        category: node.comment ?? '',
+      });
+      mappedCountries.add(country);
+    } catch {
+      failures.push(`${node.location.name}: no explicit continent and subregion mapping for ${country}`);
+    }
+  }
+
+  const pass = view.delivery.length > 0 && failures.length === 0;
+  const detail = failures.length
+    ? failures.slice(0, 8).join('; ')
+    : `${view.delivery.length} delivery names and labels are clean; ${mappedCountries.size} route country codes map to explicit regions.`;
+  addCheck(checks, 'Clean names and explicit region mappings', pass, detail);
 }
 
 function createAuditView(document: unknown, context: RouteAuditContext): AuditView {
@@ -383,8 +422,12 @@ function addRegionalChecks(context: RouteAuditContext, places: Candidate[], chec
   const southAmerica = count((region) => region.southAmerica);
   const bolivia = places.filter((place) => place.country === 'BO').length;
   addRegionCaps(failures, context, { americas, southAmerica, bolivia });
-  const detail = failures.length ? failures.join('; ')
-    : `${tests.map(([name, amount]) => `${name} ${amount}`).join(', ')}; Americas ${americas}/${context.config.total} (${(americas / context.config.total * 100).toFixed(1)}%), South America ${southAmerica}, Bolivia ${bolivia}.`;
+  const continentSummary = Object.entries(continentCounts).sort(([left], [right]) => left.localeCompare(right))
+    .map(([name, amount]) => `${name} ${amount}`).join(', ');
+  const pacificSubregion = subregionCounts['Pacific Islands'] ?? 0;
+  const failureSummary = failures.length ? `${failures.join('; ')}. ` : '';
+  const detail = `${failureSummary}Continents: ${continentSummary}; Pacific Islands subregion ${pacificSubregion}; `
+    + `${tests.map(([name, amount]) => `${name} ${amount}`).join(', ')}; Americas ${americas}/${context.config.total} (${(americas / context.config.total * 100).toFixed(1)}%), South America ${southAmerica}, Bolivia ${bolivia}.`;
   addCheck(checks, 'Regional quotas and Americas caps', failures.length === 0, detail);
 }
 
@@ -668,11 +711,13 @@ function addSpeedCheck(context: RouteAuditContext, view: AuditView, legs: AuditL
   const maximum = Math.max(...speeds);
   const transitSpeeds = view.nodes.filter((node) => node.type !== 'START')
     .map((node) => node.transit_to_here?.speed_kmh).filter((speed): speed is number => speed !== undefined && speed !== null);
+  const storedMedian = percent(transitSpeeds, 0.5);
+  const storedP90 = percent(transitSpeeds, 0.9);
   const reportedMaximum = transitSpeeds.length ? Math.max(...transitSpeeds) : Number.POSITIVE_INFINITY;
   const pass = median >= context.config.medianLegSpeedMinKmh && median <= context.config.medianLegSpeedMaxKmh
     && p90 <= context.config.p90LegSpeedMaxKmh && maximum <= context.config.maxLegSpeedKmh && reportedMaximum <= context.config.maxLegSpeedKmh;
   addCheck(checks, 'Leg-speed targets', pass,
-    `median ${human(median)} km/h; p90 ${human(p90)} km/h; max ${human(maximum)} km/h calculated and ${human(reportedMaximum)} km/h stored.`);
+    `calculated median ${human(median)} km/h and p90 ${human(p90)} km/h; stored median ${human(storedMedian)} km/h, p90 ${human(storedP90)} km/h, max ${human(reportedMaximum)} km/h.`);
 }
 
 function addDistanceCheck(context: RouteAuditContext, legs: AuditLeg[], checks: AuditCheck[]): void {
@@ -703,6 +748,7 @@ export function auditRouteDocument(document: unknown, context: RouteAuditContext
   const checks: AuditCheck[] = [];
   const view = createAuditView(document, context);
   addHeaderChecks(document, context, view, checks);
+  addNameAndRegionCheck(view, checks);
   addSelectionChecks(context, view, checks);
   addFlightWindowCheck(context, view, checks);
   addPacingChecks(context, view, checks);

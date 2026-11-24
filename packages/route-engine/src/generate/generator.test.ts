@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { generateRoute, type Candidate, DEFAULT_GENERATOR_LIMITS } from './generator';
 
+const testCountries = ['US', 'CA', 'MX', 'BZ', 'GT', 'HN', 'PA', 'SV', 'AR', 'BO', 'BR', 'CL', 'CO', 'EC', 'PE', 'PY', 'SR', 'VE', 'AU', 'NZ', 'FJ', 'WS', 'GB', 'FR', 'JP'];
 const candidates: Candidate[] = Array.from({ length: 25 }, (_, index) => ({
-  id: `candidate-${index}`, name: `Place ${index}`, country: `A${String.fromCharCode(65 + index % 26)}`,
+  id: `candidate-${index}`, name: `Place ${index}`, country: testCountries[index] ?? 'US',
   lat: 80, lng: index * 2, timezone: 'Pacific/Kiritimati', utcOffsetMinutes: 840,
   population: index % 5 === 0 ? 2_000_000 : index % 5 === 2 ? 0 : 500_000,
   category: ['hub', 'cultural', 'underserved', 'nature', 'special'][index % 5] ?? 'hub',
@@ -10,7 +11,7 @@ const candidates: Candidate[] = Array.from({ length: 25 }, (_, index) => ({
 
 describe('generateRoute', () => {
   it('creates repeatable output that passes route and geometry validation', () => {
-    const config = { ...DEFAULT_GENERATOR_LIMITS, seed: 2026, total: 20, endStopId: candidates[0]!.id, openingStopIds: [candidates[1]!.id], maxStopsPerUtcOffset: 40, minStopSeparationKm: 0, underservedCountries: ['AC', 'AH', 'AM', 'AR', 'AW'], weights: { hub: 20, cultural: 20, underserved: 20, nature: 20, special: 20 }, maxLegSpeedKmh: 40000 };
+    const config = { ...DEFAULT_GENERATOR_LIMITS, seed: 2026, total: 20, endStopId: candidates[0]!.id, openingStopIds: [candidates[1]!.id], maxStopsPerUtcOffset: 40, minStopSeparationKm: 0, underservedCountries: [testCountries[2]!, testCountries[7]!, testCountries[12]!, testCountries[17]!, testCountries[22]!], weights: { hub: 20, cultural: 20, underserved: 20, nature: 20, special: 20 }, maxLegSpeedKmh: 40000 };
     const inputIds = candidates.map((place) => place.id);
     const first = generateRoute(candidates, config);
     const second = generateRoute(candidates, config);

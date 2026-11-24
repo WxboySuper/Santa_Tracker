@@ -111,6 +111,17 @@ function table(title: string, headers: string[], rows: string[]): string {
   return `<section><h2>${escapeHtml(title)}</h2><table><thead><tr>${head}</tr></thead><tbody>${rows.join('')}</tbody></table></section>`;
 }
 
+function storedSpeedPercentile(transitNodes: { transit_to_here?: { speed_kmh?: number | null } | null }[], fraction: number): number {
+  const speeds = transitNodes.map((node) => node.transit_to_here?.speed_kmh)
+    .filter((speed): speed is number => speed !== undefined && speed !== null)
+    .sort((left, right) => left - right);
+  return speeds[Math.max(0, Math.ceil(speeds.length * fraction) - 1)] ?? 0;
+}
+
+function maximumStoredSpeed(transitNodes: { transit_to_here?: { speed_kmh?: number | null } | null }[]): number {
+  return Math.max(0, ...transitNodes.map((node) => node.transit_to_here?.speed_kmh ?? 0));
+}
+
 export function renderReview(generated: GeneratedRoute, inputs: GeneratorInputs): string {
   const { config, countryNames } = inputs;
   const deliveryNodes = generated.document.route_nodes.slice(1, -1) as {
@@ -145,7 +156,7 @@ export function renderReview(generated: GeneratedRoute, inputs: GeneratorInputs)
   const warningRows = generated.report.issues.length
     ? generated.report.issues.map((issue) => `<li>${escapeHtml(issue)}</li>`)
     : ['<li>No generator warnings.</li>'];
-  const summary = `${generated.report.count} delivery stops. Total route length ${Math.round(generated.report.totalDistanceKm).toLocaleString('en-US')} km, including the launch and return. Median leg speed ${Math.round(generated.report.medianLegSpeedKmh).toLocaleString('en-US')} km/h, p90 ${Math.round(generated.report.p90LegSpeedKmh).toLocaleString('en-US')} km/h, maximum ${Math.round(generated.report.maxLegSpeedKmh).toLocaleString('en-US')} km/h. Last delivery departure ${escapeHtml(generated.report.lastDepartureUtc)}. North Pole return ${escapeHtml(generated.report.routeEndUtc)}.`;
+  const summary = `${generated.report.count} delivery stops. Total route length ${Math.round(generated.report.totalDistanceKm).toLocaleString('en-US')} km, including the launch and return. Stored leg speeds: median ${storedSpeedPercentile(transitNodes, 0.5).toLocaleString('en-US')} km/h, p90 ${storedSpeedPercentile(transitNodes, 0.9).toLocaleString('en-US')} km/h, maximum ${maximumStoredSpeed(transitNodes).toLocaleString('en-US')} km/h. Last delivery departure ${escapeHtml(generated.report.lastDepartureUtc)}. North Pole return ${escapeHtml(generated.report.routeEndUtc)}.`;
   const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>2026 Santa route draft review</title><style>body{font:15px/1.5 system-ui,sans-serif;margin:2rem;color:#17212b}h1,h2{color:#123b52}table{border-collapse:collapse;margin:1rem 0 2rem;width:100%;white-space:nowrap}th,td{border:1px solid #ccd5dc;padding:.4rem .55rem;text-align:left}th{background:#e7f0f4;cursor:pointer}section{overflow:auto}.summary{max-width:75rem}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(20rem,1fr));gap:1rem}#filter{padding:.6rem;width:min(28rem,90%)}a{color:#075985}</style></head><body><h1>2026 Santa route draft</h1><p class="summary">Seed ${config.seed}. Generated offline from committed snapshots. ${summary}</p><div class="grid">${table('Category mix',['Category','Actual','Target'],categoryRows)}${table('Stops by continent',['Continent','Stops'],continentRows)}${table('Stops by subregion',['Subregion','Stops'],subregionRows)}${table('Stops by UTC offset',['UTC offset','Stops'],offsetRows)}${table('Stops by UTC flight hour',['Hours after takeoff','Stops'],hourRows)}</div><h2>Warnings</h2><ul>${warningRows.join('')}</ul><h2>Owner decisions</h2><ul>${ownerRows.join('')}</ul><h2>Stops</h2><input id="filter" placeholder="Filter by stop, country, timezone, or source"><section><table id="stops"><thead><tr>${['Order','Name','Country','UTC arrival','Local arrival','Timezone','Lat, lon','Category','Leg km','Leg km/h','Source'].map((name) => `<th>${escapeHtml(name)}</th>`).join('')}</tr></thead><tbody>${stopRows.join('')}</tbody></table></section>${table('Every leg, including launch and return',['#','Type','From','To','Distance km','Arrival gap min','Speed km/h'],legRows)}<script>document.querySelectorAll('table').forEach(table=>table.querySelectorAll('th').forEach(th=>th.addEventListener('click',()=>{const body=table.tBodies[0];const index=[...table.querySelectorAll('th')].indexOf(th);const rows=[...body.rows];rows.sort((a,b)=>a.cells[index].textContent.localeCompare(b.cells[index].textContent,undefined,{numeric:true}));rows.forEach(row=>body.append(row))})));document.querySelector('#filter').addEventListener('input',event=>document.querySelectorAll('#stops tbody tr').forEach(row=>row.hidden=!row.textContent.toLowerCase().includes(event.target.value.toLowerCase())))</script></body></html>`;
   return html;
 }

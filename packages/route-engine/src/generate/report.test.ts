@@ -5,7 +5,7 @@ import type { Candidate } from './types';
 import { DEFAULT_GENERATOR_LIMITS } from './types';
 
 const config = { ...DEFAULT_GENERATOR_LIMITS, weights: { hub: 1 }, total: 1 };
-const place: Candidate = { id: 'one', name: 'One', country: 'Example', lat: 0, lng: 0, timezone: 'UTC', category: 'hub' };
+const place: Candidate = { id: 'one', name: 'One', country: 'GB', lat: 0, lng: 0, timezone: 'UTC', category: 'hub' };
 const firstStop = { locationId: createLocationId('location_one'), arrivalIso: '2026-12-25T00:20:00.000Z', departureIso: '2026-12-25T00:21:00.000Z', durationSeconds: 60 };
 const route: Route = {
   schemaVersion: SCHEMA_VERSION, season: 2026,

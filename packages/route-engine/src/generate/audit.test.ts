@@ -41,4 +41,39 @@ describe('auditRouteDocument', () => {
     expect(failures.join('; ')).toContain('outside the AA country bounds');
     expect(failures.join('; ')).toContain('alternate-source Q1');
   });
+
+  it('rejects damaged names and labels and country codes without explicit regions', () => {
+    const result = auditRouteDocument({ route_nodes: [
+      {
+        id: 'stop-1', type: 'DELIVERY', candidate_id: 'missing-1',
+        location: { name: 'Troms?', country_code: 'NO', lat: 69.65, lng: 18.96 },
+        schedule: { arrival_utc: '2026-12-24T23:40:00.000Z', departure_utc: '2026-12-24T23:41:00.000Z' },
+      },
+      {
+        id: 'stop-2', type: 'DELIVERY', candidate_id: 'missing-2', label: 'N\uFFFDdi',
+        location: { name: 'Nadi', country_code: 'FJ', lat: -17.78, lng: 177.44 },
+        schedule: { arrival_utc: '2026-12-24T23:45:00.000Z', departure_utc: '2026-12-24T23:46:00.000Z' },
+      },
+      {
+        id: 'stop-3', type: 'DELIVERY', candidate_id: 'missing-3',
+        location: { name: 'Unknown region', country_code: 'ZZ', lat: 0, lng: 0 },
+        schedule: { arrival_utc: '2026-12-24T23:50:00.000Z', departure_utc: '2026-12-24T23:51:00.000Z' },
+      },
+    ] }, {
+      config: { ...DEFAULT_GENERATOR_LIMITS, weights: { hub: 100 }, requiredStopIds: ['required-stop'], requiredCountries: ['US'] },
+      pool: [],
+      selected: [],
+      zonesByCountry: {},
+      utcOffsetsByTimezone: {},
+      countryBoundsByCode: {},
+      report: { continentBalance: {}, subregionBalance: {} },
+      vetoIds: [],
+    });
+
+    const check = result.checks.find((entry) => entry.name === 'Clean names and explicit region mappings');
+    expect(check?.pass).toBe(false);
+    expect(check?.detail).toContain("Troms?");
+    expect(check?.detail).toContain('U+FFFD');
+    expect(check?.detail).toContain('ZZ');
+  });
 });

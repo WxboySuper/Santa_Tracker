@@ -3,6 +3,11 @@ import type { Candidate } from './types';
 const WESTERN_NORTHERN_EUROPE = new Set([
   'AT', 'BE', 'CH', 'DE', 'DK', 'ES', 'FI', 'FR', 'GB', 'IE', 'IS', 'IT', 'LU', 'NL', 'NO', 'PT', 'SE',
 ]);
+const SOUTHERN_EASTERN_EUROPE = new Set([
+  'AD', 'AL', 'BA', 'BG', 'BY', 'CY', 'CZ', 'EE', 'GR', 'HR', 'HU', 'LI', 'LT', 'LV', 'MC', 'MD', 'ME', 'MK',
+  'MT', 'PL', 'RO', 'RS', 'RU', 'SI', 'SK', 'SM', 'UA', 'VA',
+]);
+const EUROPE = new Set([...WESTERN_NORTHERN_EUROPE, ...SOUTHERN_EASTERN_EUROPE]);
 const MIDDLE_EAST = new Set(['AE', 'BH', 'IR', 'IQ', 'IL', 'JO', 'KW', 'LB', 'OM', 'PS', 'QA', 'SA', 'SY', 'TR', 'YE']);
 const AFRICA = new Set([
   'AO', 'BF', 'BI', 'BJ', 'BW', 'CD', 'CF', 'CG', 'CI', 'CM', 'CV', 'DJ', 'DZ', 'EG', 'EH', 'ER', 'ET', 'GA', 'GH', 'GM', 'GN', 'GQ', 'GW', 'KE', 'KM', 'LR', 'LS', 'LY', 'MA', 'MG', 'ML', 'MR', 'MU', 'MW', 'MZ', 'NA', 'NE', 'NG', 'RW', 'SC', 'SD', 'SL', 'SN', 'SO', 'SS', 'ST', 'SZ', 'TD', 'TG', 'TN', 'TZ', 'UG', 'ZA', 'ZM', 'ZW',
@@ -11,20 +16,23 @@ const SOUTH_AMERICA = new Set(['AR', 'BO', 'BR', 'CL', 'CO', 'EC', 'FK', 'GF', '
 const NORTH_AMERICA = new Set([
   'AG', 'AI', 'AW', 'BB', 'BL', 'BM', 'BQ', 'BS', 'BZ', 'CA', 'CR', 'CU', 'CW', 'DM', 'DO', 'GD', 'GL', 'GP', 'GT', 'HN', 'HT', 'JM', 'KN', 'KY', 'LC', 'MF', 'MQ', 'MS', 'MX', 'NI', 'PA', 'PM', 'PR', 'SV', 'SX', 'TC', 'TT', 'US', 'VC', 'VG', 'VI',
 ]);
-const OCEANIA = new Set(['AS', 'AU', 'CK', 'FJ', 'FM', 'GU', 'KI', 'MH', 'MP', 'NC', 'NU', 'NZ', 'PF', 'PG', 'PW', 'SB', 'TK', 'TO', 'TV', 'VU', 'WF']);
-const PACIFIC_ISLANDS = new Set(['AS', 'CK', 'FJ', 'FM', 'GU', 'KI', 'MH', 'MP', 'NC', 'NU', 'PF', 'PG', 'PW', 'SB', 'TK', 'TO', 'TV', 'VU', 'WF']);
-const WESTERN_ASIA = new Set(['AM', 'AZ', 'GE', 'KZ', 'KG', 'TJ', 'TM', 'UZ']);
+const OCEANIA = new Set(['AS', 'AU', 'CK', 'FJ', 'FM', 'GU', 'KI', 'MH', 'MP', 'NC', 'NU', 'NZ', 'PF', 'PG', 'PW', 'SB', 'TK', 'TO', 'TV', 'VU', 'WF', 'WS']);
+const PACIFIC_ISLANDS = new Set(['AS', 'CK', 'FJ', 'FM', 'GU', 'KI', 'MH', 'MP', 'NC', 'NU', 'PF', 'PG', 'PW', 'SB', 'TK', 'TO', 'TV', 'VU', 'WF', 'WS']);
+const WESTERN_ASIA = new Set(['AM', 'AZ', 'GE']);
+const CENTRAL_ASIA = new Set(['KZ', 'KG', 'TJ', 'TM', 'UZ', 'RU']);
 const EAST_ASIA = new Set(['CN', 'HK', 'JP', 'KP', 'KR', 'MO', 'MN', 'TW']);
 const SOUTH_ASIA = new Set(['AF', 'BD', 'BT', 'IN', 'MV', 'NP', 'PK', 'LK']);
 const SOUTHEAST_ASIA = new Set(['BN', 'ID', 'KH', 'LA', 'MM', 'MY', 'PH', 'SG', 'TH', 'TL', 'VN']);
 const CENTRAL_AMERICA = new Set(['BZ', 'CR', 'GT', 'HN', 'NI', 'PA', 'SV']);
 const CARIBBEAN = new Set(['AG', 'AI', 'AW', 'BB', 'BL', 'BM', 'BQ', 'BS', 'CU', 'CW', 'DM', 'DO', 'GD', 'GP', 'HT', 'JM', 'KN', 'KY', 'LC', 'MF', 'MQ', 'MS', 'PR', 'SX', 'TC', 'TT', 'VC', 'VG', 'VI']);
+const NORTHERN_AMERICA = new Set([...NORTH_AMERICA].filter((code) => !CENTRAL_AMERICA.has(code) && !CARIBBEAN.has(code) && code !== 'GL'));
 const CONTINENT_GROUPS: [string, Set<string>][] = [
+  ['Europe', EUROPE],
   ['South America', SOUTH_AMERICA],
   ['North America', NORTH_AMERICA],
   ['Oceania', OCEANIA],
   ['Africa', AFRICA],
-  ['Asia', new Set([...WESTERN_ASIA, ...EAST_ASIA, ...SOUTH_ASIA, ...SOUTHEAST_ASIA, ...MIDDLE_EAST])],
+  ['Asia', new Set([...WESTERN_ASIA, ...CENTRAL_ASIA, ...EAST_ASIA, ...SOUTH_ASIA, ...SOUTHEAST_ASIA, ...MIDDLE_EAST])],
 ];
 const AMERICAS = new Set(['North America', 'South America']);
 
@@ -44,7 +52,9 @@ export type RouteRegion = {
 function continentFor(place: Candidate): string {
   if (place.country === 'AQ') return 'Antarctica';
   if (isAsianRussia(place)) return 'Asia';
-  return CONTINENT_GROUPS.find(([, countries]) => countries.has(place.country))?.[0] ?? 'Europe';
+  const continent = CONTINENT_GROUPS.find(([, countries]) => countries.has(place.country))?.[0];
+  if (!continent) throw new Error(`No explicit continent mapping for ${place.name} (${place.country})`);
+  return continent;
 }
 
 function isAsianRussia(place: Candidate): boolean {
@@ -52,6 +62,7 @@ function isAsianRussia(place: Candidate): boolean {
 }
 
 function africaSubregion(place: Candidate): string {
+  if (!AFRICA.has(place.country)) throw new Error(`No explicit Africa subregion mapping for ${place.country}`);
   if (place.lat >= 20) return 'Northern Africa';
   if (place.lng < -15) return 'Western Africa';
   if (place.lng > 30) return 'Eastern Africa';
@@ -64,7 +75,9 @@ function asiaSubregion(place: Candidate): string {
   if (EAST_ASIA.has(code)) return 'East Asia';
   if (SOUTH_ASIA.has(code)) return 'South Asia';
   if (SOUTHEAST_ASIA.has(code)) return 'Southeast Asia';
-  return 'Central Asia';
+  if (CENTRAL_ASIA.has(code)) return 'Central Asia';
+  if (WESTERN_ASIA.has(code)) return 'Western Asia';
+  throw new Error(`No explicit Asia subregion mapping for ${code}`);
 }
 
 function northAmericaSubregion(place: Candidate): string {
@@ -72,7 +85,8 @@ function northAmericaSubregion(place: Candidate): string {
   if (CENTRAL_AMERICA.has(code)) return 'Central America';
   if (CARIBBEAN.has(code)) return 'Caribbean';
   if (code === 'GL') return 'Greenland';
-  return 'Northern America';
+  if (NORTHERN_AMERICA.has(code)) return isHawaii(place) ? 'Pacific Islands' : 'Northern America';
+  throw new Error(`No explicit North America subregion mapping for ${code}`);
 }
 
 type SubregionOptions = { place: Candidate; continent: string };
@@ -84,21 +98,31 @@ function subregionFor(options: SubregionOptions): string {
     case 'Africa': return africaSubregion(place);
     case 'Asia': return asiaSubregion(place);
     case 'North America': return northAmericaSubregion(place);
-    case 'South America': return 'South America';
+    case 'South America':
+      if (SOUTH_AMERICA.has(place.country)) return 'South America';
+      throw new Error(`No explicit South America subregion mapping for ${place.country}`);
     case 'Oceania': return oceaniaSubregion(place);
-    default: return continent;
+    case 'Antarctica': return 'Antarctica';
+    default: throw new Error(`No explicit subregion mapping for ${place.name} (${place.country}, ${continent})`);
   }
 }
 
 function europeSubregion(place: Candidate): string {
-  return WESTERN_NORTHERN_EUROPE.has(place.country) ? 'Western and Northern Europe' : 'Southern and Eastern Europe';
+  if (WESTERN_NORTHERN_EUROPE.has(place.country)) return 'Western and Northern Europe';
+  if (SOUTHERN_EASTERN_EUROPE.has(place.country)) return 'Southern and Eastern Europe';
+  throw new Error(`No explicit Europe subregion mapping for ${place.country}`);
 }
 
 function oceaniaSubregion(place: Candidate): string {
   const code = place.country;
   if (code === 'AU') return 'Australia';
   if (code === 'NZ') return 'New Zealand';
-  return 'Pacific Islands';
+  if (PACIFIC_ISLANDS.has(code)) return 'Pacific Islands';
+  throw new Error(`No explicit Oceania subregion mapping for ${code}`);
+}
+
+function isHawaii(place: Candidate): boolean {
+  return place.country === 'US' && place.lat >= 18 && place.lat <= 23 && place.lng <= -150;
 }
 
 function isArcticPlace(code: string, latitude: number): boolean {
@@ -109,7 +133,7 @@ export function classifyRegion(place: Candidate): RouteRegion {
   const code = place.country;
   const continent = continentFor(place);
   const subregion = subregionFor({ place, continent });
-  const hawaii = code === 'US' && place.lat >= 18 && place.lat <= 23 && place.lng <= -150;
+  const hawaii = isHawaii(place);
   const pacificIsland = PACIFIC_ISLANDS.has(code) || hawaii;
   return {
     continent,
