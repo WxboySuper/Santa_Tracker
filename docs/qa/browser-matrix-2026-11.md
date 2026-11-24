@@ -26,34 +26,34 @@ Closed route and API gate checks passed on all eight browser/device profiles. Th
 ### Serious axe finding in tracker text view
 
 - Page: `/tracker`, after switching from map to text view.
-- Profile: Chromium mobile emulation at 740x360, `matrix-phone-landscape-740x360`.
+- Profile: Chromium mobile emulation at 740x360, `matrix-open-phone-landscape-740x360`.
 - Result: axe 4.14 reports `scrollable-region-focusable` with serious impact on `<section aria-label="Show text view">`. The scrollable region is not keyboard focusable.
-- Reproduction: set `E2E_MATRIX=1`, then run `pnpm e2e --project=matrix-phone-landscape-740x360 --grep 'key public pages pass serious and critical axe checks'`. This failed in the full matrix and again in an isolated rerun.
-- Screenshot: `C:\Users\super\AppData\Local\Temp\santa-tracker-browser-matrix-2026-11\matrix-phone-landscape-740x360\tracker-text.png`.
+- Reproduction: set `E2E_MATRIX=1`, then run `pnpm e2e --project=matrix-open-phone-landscape-740x360 --grep 'key public pages pass serious and critical axe checks'`. This failed in the full matrix and again in an isolated rerun.
+- Screenshot: `C:\Users\super\AppData\Local\Temp\santa-tracker-browser-matrix-2026-11\matrix-open-phone-landscape-740x360\tracker-text.png`.
 
 ### Skip link did not receive keyboard focus
 
 - Page: `/`.
 - Profiles and initial viewports: WebKit desktop, 1280x720; iPhone 13 emulation, 390x844; iPad (gen 7) emulation, 810x1080.
 - Result: `public-site.spec.ts` presses Tab once after navigation and does not find focus on the "Skip to content" link. It reproduced on all three profiles in the full run and targeted rerun.
-- Reproduction: set `E2E_MATRIX=1`, then run `pnpm e2e --project=matrix-webkit --project=matrix-iphone-13 --project=matrix-ipad-gen-7 --grep 'home works at narrow widths, with motion settings, and passes axe'`. The same failure occurs in the three `matrix-closed-*` variants.
-- Screenshots: `C:\Users\super\AppData\Local\Temp\santa-tracker-browser-matrix-2026-11\matrix-webkit\home.png`, `C:\Users\super\AppData\Local\Temp\santa-tracker-browser-matrix-2026-11\matrix-iphone-13\home.png`, and `C:\Users\super\AppData\Local\Temp\santa-tracker-browser-matrix-2026-11\matrix-ipad-gen-7\home.png`.
+- Reproduction: set `E2E_MATRIX=1`, then run `pnpm e2e --project=matrix-open-webkit --project=matrix-open-iphone-13 --project=matrix-open-ipad-gen-7 --grep 'home works at narrow widths, with motion settings, and passes axe'`. The same failure occurs in the three `matrix-closed-*` variants.
+- Screenshots: `C:\Users\super\AppData\Local\Temp\santa-tracker-browser-matrix-2026-11\matrix-open-webkit\home.png`, `C:\Users\super\AppData\Local\Temp\santa-tracker-browser-matrix-2026-11\matrix-open-iphone-13\home.png`, and `C:\Users\super\AppData\Local\Temp\santa-tracker-browser-matrix-2026-11\matrix-open-ipad-gen-7\home.png`.
 
 ### Escape did not leave tracker immersive mode
 
 - Page: `/tracker?mode=immersive`.
 - Profiles: WebKit desktop, iPhone 13 emulation, and iPad (gen 7) emulation. The existing spec sets the viewport to 1440x900 before this check, including in the emulated device projects.
 - Steps: search for London, press Escape to close the search results, select London, wait for the arrival text, then press Escape again. The expected "Enter immersive mode" button is absent. The same assertion failed on all three profiles in the full run and targeted rerun.
-- Reproduction: set `E2E_MATRIX=1`, then run `pnpm e2e --project=matrix-webkit --project=matrix-iphone-13 --project=matrix-ipad-gen-7 --grep 'tracker opens immersive mode and lets a visitor choose a city'`.
-- Screenshots: `C:\Users\super\AppData\Local\Temp\santa-tracker-browser-matrix-2026-11\matrix-webkit\tracker-after-escape.png`, `C:\Users\super\AppData\Local\Temp\santa-tracker-browser-matrix-2026-11\matrix-iphone-13\tracker-after-escape.png`, and `C:\Users\super\AppData\Local\Temp\santa-tracker-browser-matrix-2026-11\matrix-ipad-gen-7\tracker-after-escape.png`. These captures use the same 1440x900 viewport.
+- Reproduction: set `E2E_MATRIX=1`, then run `pnpm e2e --project=matrix-open-webkit --project=matrix-open-iphone-13 --project=matrix-open-ipad-gen-7 --grep 'tracker opens immersive mode and lets a visitor choose a city'`.
+- Screenshots: `C:\Users\super\AppData\Local\Temp\santa-tracker-browser-matrix-2026-11\matrix-open-webkit\tracker-after-escape.png`, `C:\Users\super\AppData\Local\Temp\santa-tracker-browser-matrix-2026-11\matrix-open-iphone-13\tracker-after-escape.png`, and `C:\Users\super\AppData\Local\Temp\santa-tracker-browser-matrix-2026-11\matrix-open-ipad-gen-7\tracker-after-escape.png`. These captures use the same 1440x900 viewport.
 
 ### Admin emergency switch was not available after login
 
 - Page: `/admin`, first viewport 1440x900 in the existing test.
 - Profiles: WebKit desktop, iPhone 13 emulation, and iPad (gen 7) emulation.
 - Steps: post the local E2E password to `/api/admin/login` and confirm HTTP 200, navigate to `/admin`, then find the `Hide tracker` switch. The switch was absent on all three profiles in the full run and targeted rerun. The screenshot shows the login form still displayed; the cause may be browser cookie handling and needs a real browser/device check.
-- Reproduction: set `E2E_MATRIX=1`, then run `pnpm e2e --project=matrix-webkit --project=matrix-iphone-13 --project=matrix-ipad-gen-7 --grep 'emergency switches work at desktop and mobile sizes with keyboard confirmation'`.
-- Screenshots: `C:\Users\super\AppData\Local\Temp\santa-tracker-browser-matrix-2026-11\matrix-webkit\admin-emergency-switches.png`, `C:\Users\super\AppData\Local\Temp\santa-tracker-browser-matrix-2026-11\matrix-iphone-13\admin-emergency-switches.png`, and `C:\Users\super\AppData\Local\Temp\santa-tracker-browser-matrix-2026-11\matrix-ipad-gen-7\admin-emergency-switches.png`.
+- Reproduction: set `E2E_MATRIX=1`, then run `pnpm e2e --project=matrix-open-webkit --project=matrix-open-iphone-13 --project=matrix-open-ipad-gen-7 --grep 'emergency switches work at desktop and mobile sizes with keyboard confirmation'`.
+- Screenshots: `C:\Users\super\AppData\Local\Temp\santa-tracker-browser-matrix-2026-11\matrix-open-webkit\admin-emergency-switches.png`, `C:\Users\super\AppData\Local\Temp\santa-tracker-browser-matrix-2026-11\matrix-open-iphone-13\admin-emergency-switches.png`, and `C:\Users\super\AppData\Local\Temp\santa-tracker-browser-matrix-2026-11\matrix-open-ipad-gen-7\admin-emergency-switches.png`.
 
 ### Authenticated Advent preview stayed gated
 
@@ -61,7 +61,7 @@ Closed route and API gate checks passed on all eight browser/device profiles. Th
 - Profiles and viewports: WebKit desktop, 1280x720; iPhone 13 emulation, 390x844; iPad (gen 7) emulation, 810x1080.
 - Steps: post the local password to `/api/admin/login`, confirm HTTP 200, open `/advent`, then count list items. The page had zero instead of 24. This repeated in the full run and targeted rerun on all three profiles. Visitor gating passed.
 - Reproduction: set `E2E_MATRIX=1`, then run `pnpm e2e --project=matrix-closed-webkit --project=matrix-closed-iphone-13 --project=matrix-closed-ipad-gen-7 --grep 'accessible Advent calendar in the closed project matches axe'`.
-- Supporting screenshots: `C:\Users\super\AppData\Local\Temp\santa-tracker-browser-matrix-2026-11\matrix-webkit\admin-emergency-switches.png`, `C:\Users\super\AppData\Local\Temp\santa-tracker-browser-matrix-2026-11\matrix-iphone-13\admin-emergency-switches.png`, and `C:\Users\super\AppData\Local\Temp\santa-tracker-browser-matrix-2026-11\matrix-ipad-gen-7\admin-emergency-switches.png` show the login form remains present after API login.
+- Supporting screenshots: `C:\Users\super\AppData\Local\Temp\santa-tracker-browser-matrix-2026-11\matrix-open-webkit\admin-emergency-switches.png`, `C:\Users\super\AppData\Local\Temp\santa-tracker-browser-matrix-2026-11\matrix-open-iphone-13\admin-emergency-switches.png`, and `C:\Users\super\AppData\Local\Temp\santa-tracker-browser-matrix-2026-11\matrix-open-ipad-gen-7\admin-emergency-switches.png` show the login form remains present after API login.
 
 ### One Chromium timeout did not recur
 
@@ -73,7 +73,7 @@ The full command ran 323 tests across the two default projects and 16 opt-in mat
 
 The screenshot capture passed for all eight open browser/device profiles. It saved seven PNGs per profile under the scratch folder shown above: home, tracker map, tracker text, Advent calendar, village static, the tracker state after Escape, and the admin emergency-switch page. The screenshots are not committed. The closed fixture variants intentionally return 404 for visitor requests, so content screenshots come from each profile's open fixture run.
 
-Local checks passed: `pnpm lint`, `pnpm typecheck`, and `pnpm test` (84 files, 573 tests). The full Playwright matrix did not pass because of the failures recorded above. After Playwright generated `playwright-report/` and `test-results/`, a second lint attempt scanned those generated JavaScript files and failed. The successful lint run was before those report folders existed.
+Local checks passed: `pnpm lint`, `pnpm typecheck`, and `pnpm test` (84 files, 577 tests). After Playwright generated `playwright-report/` and `test-results/`, a second bare `pnpm lint` scanned generated JavaScript and failed; `pnpm lint -- --ignore-pattern playwright-report/** --ignore-pattern test-results/**` passed with those artifacts present. The full Playwright matrix did not pass because of the failures recorded above.
 
 ## Commands to rerun
 
@@ -99,10 +99,10 @@ The following focused runs reproduce the confirmed findings:
 
 ```powershell
 $env:E2E_MATRIX = '1'
-pnpm e2e --project=matrix-phone-landscape-740x360 --grep 'key public pages pass serious and critical axe checks'
-pnpm e2e --project=matrix-webkit --project=matrix-iphone-13 --project=matrix-ipad-gen-7 --grep 'home works at narrow widths, with motion settings, and passes axe'
-pnpm e2e --project=matrix-webkit --project=matrix-iphone-13 --project=matrix-ipad-gen-7 --grep 'tracker opens immersive mode and lets a visitor choose a city'
-pnpm e2e --project=matrix-webkit --project=matrix-iphone-13 --project=matrix-ipad-gen-7 --grep 'emergency switches work at desktop and mobile sizes with keyboard confirmation'
+pnpm e2e --project=matrix-open-phone-landscape-740x360 --grep 'key public pages pass serious and critical axe checks'
+pnpm e2e --project=matrix-open-webkit --project=matrix-open-iphone-13 --project=matrix-open-ipad-gen-7 --grep 'home works at narrow widths, with motion settings, and passes axe'
+pnpm e2e --project=matrix-open-webkit --project=matrix-open-iphone-13 --project=matrix-open-ipad-gen-7 --grep 'tracker opens immersive mode and lets a visitor choose a city'
+pnpm e2e --project=matrix-open-webkit --project=matrix-open-iphone-13 --project=matrix-open-ipad-gen-7 --grep 'emergency switches work at desktop and mobile sizes with keyboard confirmation'
 pnpm e2e --project=matrix-closed-webkit --project=matrix-closed-iphone-13 --project=matrix-closed-ipad-gen-7 --grep 'accessible Advent calendar in the closed project matches axe'
 
 pnpm lint

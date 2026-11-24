@@ -59,8 +59,10 @@ export async function getEndpointForProject(runtimeFile: string, projectName: st
 
 export function getFixtureProjectName(project: { name: string; metadata?: unknown }): string {
   const metadata = project.metadata;
-  if (isRecord(metadata) && (metadata.fixtureProject === "closed" || metadata.fixtureProject === "open")) {
-    return metadata.fixtureProject;
+  if (isRecord(metadata) && "fixtureProject" in metadata) {
+    if (metadata.fixtureProject === "closed") return "closed";
+    if (metadata.fixtureProject === "open") return "open";
+    throw new Error(`Unknown fixtureProject for project ${project.name}: ${String(metadata.fixtureProject)}`);
   }
   return project.name;
 }
