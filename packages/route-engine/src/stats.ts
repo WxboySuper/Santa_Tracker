@@ -32,6 +32,13 @@ export type JourneyStats = {
   chimneysVisited: number;
 };
 
+type RouteLeg = { distanceKm: number; startMs: number; endMs: number; durationMs: number };
+type RouteInterval = { firstArrival: number; lastDeparture: number; boundedNow: number };
+type DistanceTotals = { totalKm: number; travelledKm: number };
+type FlightTotals = { elapsedMs: number; remainingMs: number };
+type SpeedStats = { currentKmh: number; averageKmh: number };
+type PlayfulStats = Pick<JourneyStats, 'presentsDelivered' | 'cookiesEaten' | 'reindeerSnacks' | 'chimneysVisited'>;
+
 const regionNames = new Intl.DisplayNames(['en'], { type: 'region' });
 const nameToCode = makeCountryNameIndex();
 const validCountryCodes = new Set(nameToCode.values());
@@ -42,73 +49,132 @@ export function deriveJourneyStats(
   now: Date | number,
   locations: readonly RouteStatsLocation[],
 ): JourneyStats {
-  const nowMs = timestampMs(now);
   const stops = route.stops;
   if (stops.length === 0) return emptyStats();
-  const locationById = new Map(locations.map(location => [location.id, location]));
-  const resolved = stops.map(stop => {
-    const location = locationById.get(stop.locationId);
-    if (!location) throw new RangeError(`Missing stats location for route stop ${stop.locationId}`);
-    return location;
-  });
-  const firstArrival = Date.parse(stops[0]!.arrivalIso);
-  const lastDeparture = Date.parse(stops.at(-1)!.departureIso);
-  const boundedTime = Math.min(lastDeparture, Math.max(firstArrival, nowMs));
-  const visitedIndexes = stops.flatMap((stop, index) => Date.parse(stop.arrivalIso) <= nowMs ? [index] : []);
-  const countriesVisited = [...new Set(visitedIndexes.map(index => normalizeCountryCode(resolved[index]!)).filter(isString))];
-  const timezones = new Set<string>();
-  for (const index of visitedIndexes) timezones.add(resolved[index]!.timezone);
 
-  let totalDistanceKm = 0;
-  let distanceTravelledKm = 0;
-  let elapsedFlightTimeMs = 0;
-  let remainingFlightTimeMs = 0;
-  let currentSpeedKmh = 0;
-  for (let index = 0; index < stops.length - 1; index++) {
-    const from = resolved[index]!;
-    const to = resolved[index + 1]!;
-    const distanceKm = haversineKm(from.coordinates, to.coordinates);
-    const startMs = Date.parse(stops[index]!.departureIso);
-    const endMs = Date.parse(stops[index + 1]!.arrivalIso);
-    const durationMs = Math.max(0, endMs - startMs);
-    const progress = durationMs === 0 ? (boundedTime >= endMs ? 1 : 0) : Math.min(1, Math.max(0, (boundedTime - startMs) / durationMs));
-    totalDistanceKm += distanceKm;
-    distanceTravelledKm += distanceKm * progress;
-    elapsedFlightTimeMs += Math.min(durationMs, Math.max(0, boundedTime - startMs));
-    remainingFlightTimeMs += Math.min(durationMs, Math.max(0, endMs - boundedTime));
-    if (durationMs > 0 && boundedTime >= startMs && boundedTime < endMs) currentSpeedKmh = distanceKm / (durationMs / 3_600_000);
-  }
+  const nowMs = timestampMs(now);
+  const locationsByStop = resolveLocations(stops, locations);
+  const interval = deriveRouteInterval(stops, nowMs);
+  const visitedIndexes = visitedStopIndexes(stops, nowMs);
+  const legs = deriveRouteLegs(stops, locationsByStop);
+  const distance = deriveDistance(legs, interval.boundedNow);
+  const flight = deriveFlightTime(legs, interval.boundedNow);
+  const journeyTime = deriveJourneyTime(interval);
+  const speed = deriveSpeed(legs, interval.boundedNow, distance.travelledKm, flight.elapsedMs);
+  const playful = derivePlayfulStats(visitedIndexes, locationsByStop);
 
-  const elapsedJourneyTimeMs = Math.max(0, boundedTime - firstArrival);
-  const remainingJourneyTimeMs = Math.max(0, lastDeparture - boundedTime);
-  const stopsVisited = visitedIndexes.length;
-  // The route file contains population only in location metadata. Treat absent values as 0.
-  // 20% of each visited stop's population is a deliberately theatrical present estimate.
-  const populationServed = visitedIndexes.reduce((sum, index) => sum + Math.max(0, resolved[index]!.population ?? 0), 0);
-  const presentsDelivered = Math.floor(populationServed * 0.2);
   return {
-    distanceTravelledKm,
-    distanceRemainingKm: Math.max(0, totalDistanceKm - distanceTravelledKm),
-    stopsVisited,
-    stopsRemaining: stops.length - stopsVisited,
-    countriesVisited,
-    timeZonesCrossed: timezones.size,
-    elapsedFlightTimeMs,
-    remainingFlightTimeMs,
-    elapsedJourneyTimeMs,
-    remainingJourneyTimeMs,
-    currentSpeedKmh,
-    averageSpeedKmh: elapsedFlightTimeMs > 0 ? distanceTravelledKm / (elapsedFlightTimeMs / 3_600_000) : 0,
-    presentsDelivered,
-    cookiesEaten: presentsDelivered * 2,
-    reindeerSnacks: stopsVisited * 9,
-    chimneysVisited: Math.ceil(presentsDelivered / 4),
+    distanceTravelledKm: distance.travelledKm,
+    distanceRemainingKm: Math.max(0, distance.totalKm - distance.travelledKm),
+    stopsVisited: visitedIndexes.length,
+    stopsRemaining: stops.length - visitedIndexes.length,
+    countriesVisited: deriveCountriesVisited(visitedIndexes, locationsByStop),
+    timeZonesCrossed: deriveTimeZonesCrossed(visitedIndexes, locationsByStop),
+    elapsedFlightTimeMs: flight.elapsedMs,
+    remainingFlightTimeMs: flight.remainingMs,
+    ...journeyTime,
+    currentSpeedKmh: speed.currentKmh,
+    averageSpeedKmh: speed.averageKmh,
+    ...playful,
   };
 }
 
 /** Format raw numeric stats for display without baking a locale into route logic. */
 export function formatStat(value: number, locale: string | string[] = 'en'): string {
   return new Intl.NumberFormat(locale, { maximumFractionDigits: 1 }).format(value);
+}
+
+function resolveLocations(stops: Route['stops'], locations: readonly RouteStatsLocation[]): RouteStatsLocation[] {
+  const byId = new Map(locations.map(location => [location.id, location]));
+  return stops.map(stop => {
+    const location = byId.get(stop.locationId);
+    if (!location) throw new RangeError(`Missing stats location for route stop ${stop.locationId}`);
+    return location;
+  });
+}
+
+function deriveRouteInterval(stops: Route['stops'], nowMs: number): RouteInterval {
+  const firstArrival = Date.parse(stops[0]!.arrivalIso);
+  const lastDeparture = Date.parse(stops.at(-1)!.departureIso);
+  return { firstArrival, lastDeparture, boundedNow: Math.min(lastDeparture, Math.max(firstArrival, nowMs)) };
+}
+
+function visitedStopIndexes(stops: Route['stops'], nowMs: number): number[] {
+  return stops.flatMap((stop, index) => Date.parse(stop.arrivalIso) <= nowMs ? [index] : []);
+}
+
+function deriveCountriesVisited(indexes: number[], locations: RouteStatsLocation[]): string[] {
+  return [...new Set(indexes.map(index => normalizeCountryCode(locations[index]!)).filter(isString))];
+}
+
+function deriveTimeZonesCrossed(indexes: number[], locations: RouteStatsLocation[]): number {
+  return new Set(indexes.map(index => locations[index]!.timezone)).size;
+}
+
+function deriveRouteLegs(stops: Route['stops'], locations: RouteStatsLocation[]): RouteLeg[] {
+  return stops.slice(0, -1).map((stop, index) => {
+    const nextStop = stops[index + 1]!;
+    const startMs = Date.parse(stop.departureIso);
+    const endMs = Date.parse(nextStop.arrivalIso);
+    return {
+      distanceKm: haversineKm(locations[index]!.coordinates, locations[index + 1]!.coordinates),
+      startMs,
+      endMs,
+      durationMs: Math.max(0, endMs - startMs),
+    };
+  });
+}
+
+function deriveDistance(legs: RouteLeg[], nowMs: number): DistanceTotals {
+  let totalKm = 0;
+  let travelledKm = 0;
+  for (const leg of legs) {
+    totalKm += leg.distanceKm;
+    travelledKm += leg.distanceKm * legProgress(leg, nowMs);
+  }
+  return { totalKm, travelledKm };
+}
+
+function deriveFlightTime(legs: RouteLeg[], nowMs: number): FlightTotals {
+  let elapsedMs = 0;
+  let remainingMs = 0;
+  for (const leg of legs) {
+    elapsedMs += Math.min(leg.durationMs, Math.max(0, nowMs - leg.startMs));
+    remainingMs += Math.min(leg.durationMs, Math.max(0, leg.endMs - nowMs));
+  }
+  return { elapsedMs, remainingMs };
+}
+
+function deriveJourneyTime(interval: RouteInterval): Pick<JourneyStats, 'elapsedJourneyTimeMs' | 'remainingJourneyTimeMs'> {
+  return {
+    elapsedJourneyTimeMs: Math.max(0, interval.boundedNow - interval.firstArrival),
+    remainingJourneyTimeMs: Math.max(0, interval.lastDeparture - interval.boundedNow),
+  };
+}
+
+function deriveSpeed(legs: RouteLeg[], nowMs: number, travelledKm: number, elapsedFlightMs: number): SpeedStats {
+  const activeLeg = legs.find(leg => leg.durationMs > 0 && nowMs >= leg.startMs && nowMs < leg.endMs);
+  return {
+    currentKmh: activeLeg ? activeLeg.distanceKm / (activeLeg.durationMs / 3_600_000) : 0,
+    averageKmh: elapsedFlightMs > 0 ? travelledKm / (elapsedFlightMs / 3_600_000) : 0,
+  };
+}
+
+function derivePlayfulStats(indexes: number[], locations: RouteStatsLocation[]): PlayfulStats {
+  // Estimate 20% of visited population receive presents. Missing population contributes 0.
+  const population = indexes.reduce((sum, index) => sum + Math.max(0, locations[index]!.population ?? 0), 0);
+  const presentsDelivered = Math.floor(population * 0.2);
+  return {
+    presentsDelivered,
+    cookiesEaten: presentsDelivered * 2,
+    reindeerSnacks: indexes.length * 9,
+    chimneysVisited: Math.ceil(presentsDelivered / 4),
+  };
+}
+
+function legProgress(leg: RouteLeg, nowMs: number): number {
+  if (leg.durationMs === 0) return nowMs >= leg.endMs ? 1 : 0;
+  return Math.min(1, Math.max(0, (nowMs - leg.startMs) / leg.durationMs));
 }
 
 function normalizeCountryCode(location: RouteStatsLocation): string | undefined {

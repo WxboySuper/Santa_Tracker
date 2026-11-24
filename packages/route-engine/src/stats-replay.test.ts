@@ -77,6 +77,36 @@ describe('replay controller', () => {
     expect(replay.at(0).journeyTimeMs).toBe(start);
   });
 
+  it('returns a neutral frame for an empty route', () => {
+    const emptyRoute: Route = { schemaVersion: SCHEMA_VERSION, season: 2026, stops: [] };
+    const replay = createReplay(emptyRoute, { locations: [] });
+    replay.play(10);
+    expect(replay.at(20)).toMatchObject({
+      journeyTimeMs: 0,
+      isPlaying: false,
+      state: { currentIndex: null, nextIndex: null, progress: 0, isComplete: false },
+      stats: { stopsVisited: 0, stopsRemaining: 0, distanceTravelledKm: 0 },
+    });
+  });
+
+  it('rejects invalid route timestamps with a clear error', () => {
+    const invalidRoute = {
+      ...route,
+      stops: route.stops.map((stop, index) => index === 0 ? { ...stop, arrivalIso: 'not-a-date' } : stop),
+    } as unknown as Route;
+    expect(() => createReplay(invalidRoute, { locations })).toThrow('replay route contains invalid ISO timestamps');
+  });
+
+  it('rejects non-finite seeks without changing the replay anchor', () => {
+    const replay = createReplay(route, { locations });
+    replay.seek(0.25);
+    const before = replay.at(0);
+    expect(() => replay.seek(Number.NaN)).toThrow(RangeError);
+    expect(() => replay.seek(Number.POSITIVE_INFINITY)).toThrow(RangeError);
+    expect(() => replay.seek(Number.NEGATIVE_INFINITY)).toThrow(RangeError);
+    expect(replay.at(0)).toEqual(before);
+  });
+
   it('pauses, seeks by fraction, changes speed, and resets from the injected wall clock', () => {
     const replay = createReplay(route, { locations, speed: 2, startAt: start + 300_000 });
     replay.play(1000);
