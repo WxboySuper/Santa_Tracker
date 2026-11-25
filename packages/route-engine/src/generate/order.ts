@@ -53,6 +53,15 @@ function cellCoordinates(key: string): [number, number, number] {
   return key.split(',').map(Number) as [number, number, number];
 }
 
+function adjacentCellKeys(x: number, y: number, z: number): string[] {
+  return Array.from({ length: 27 }, (_, index) => {
+    const dx = index % 3 - 1;
+    const dy = Math.floor(index / 3) % 3 - 1;
+    const dz = Math.floor(index / 9) - 1;
+    return `${x + dx},${y + dy},${z + dz}`;
+  });
+}
+
 class SeparationIndex {
   private readonly cells = new Map<string, Candidate[]>();
   private readonly cellSize: number;
@@ -71,20 +80,20 @@ class SeparationIndex {
   allows(place: Candidate): boolean {
     if (this.minimumKm <= 0) return true;
     const [x, y, z] = cellCoordinates(separationCell(place, this.cellSize));
-    for (let dx = -1; dx <= 1; dx++) {
-      for (let dy = -1; dy <= 1; dy++) {
-        for (let dz = -1; dz <= 1; dz++) {
-          for (const nearby of this.cells.get(`${x + dx},${y + dy},${z + dz}`) ?? []) {
-            if (haversineKm(nearby, place) < this.minimumKm) return false;
-          }
-        }
-      }
-    }
-    return true;
+    const nearby = adjacentCellKeys(x, y, z).flatMap((key) => this.cells.get(key) ?? []);
+    return nearby.every((candidate) => haversineKm(candidate, place) >= this.minimumKm);
   }
 }
 
-function candidateTiming(place: Candidate, prior: Candidate | LatLng, priorDeparture: number, index: number, config: GeneratorConfig): PlannedStop | undefined {
+type CandidateTimingOptions = {
+  place: Candidate;
+  prior: Candidate | LatLng;
+  priorDeparture: number;
+  index: number;
+  config: GeneratorConfig;
+};
+
+function candidateTiming({ place, prior, priorDeparture, index, config }: CandidateTimingOptions): PlannedStop | undefined {
   const distance = haversineKm(prior, place);
   const window = christmasWindow(place.utcOffsetMinutes ?? 0);
   const earliest = Math.max(window.startUtc, priorDeparture + travelMilliseconds(distance, planningSpeed(config)));
@@ -156,7 +165,7 @@ function optionScore(options: {
 }
 
 function canStartFromNorthPole(place: Candidate, config: GeneratorConfig): boolean {
-  return Boolean(candidateTiming(place, NORTH_POLE, Date.parse(TAKEOFF_UTC), 0, config));
+  return Boolean(candidateTiming({ place, prior: NORTH_POLE, priorDeparture: Date.parse(TAKEOFF_UTC), index: 0, config }));
 }
 
 type SweepState = {
@@ -183,7 +192,8 @@ function bestFeasibleStop(state: SweepState, randomRanks: Map<string, number>, c
   for (const candidate of state.remaining.values()) {
     if (!countryCapacity(candidate, state.countryCounts, config) || !state.separation.allows(candidate)) continue;
     if (!timingAndDetourAllows(candidate, state.route)) continue;
-    const stop = candidateTiming(candidate, state.prior, state.priorDeparture, state.route.length, config);
+    const stop = candidateTiming({ place: candidate, prior: state.prior, priorDeparture: state.priorDeparture,
+      index: state.route.length, config });
     if (!stop) continue;
     const score = optionScore({ stop, prior: state.prior, priorDeparture: state.priorDeparture,
       previousIdeal: previousIdeal(state.route), newCountry: !state.countryCounts.has(candidate.country),
@@ -234,7 +244,7 @@ function firstFeasibleStart(pool: Candidate[], config: GeneratorConfig): TimedCa
   const candidate = pool.filter((place) => canStartFromNorthPole(place, config))
     .sort((left, right) => (left.population ?? 0) - (right.population ?? 0) || left.id.localeCompare(right.id))[0];
   if (!candidate) throw new Error('No candidate can be reached within its local Christmas window and the return deadline');
-  const first = candidateTiming(candidate, NORTH_POLE, Date.parse(TAKEOFF_UTC), 0, config);
+  const first = candidateTiming({ place: candidate, prior: NORTH_POLE, priorDeparture: Date.parse(TAKEOFF_UTC), index: 0, config });
   if (!first) throw new Error(`Cannot schedule the first route stop: ${candidate.name}`);
   return first.place;
 }
@@ -254,7 +264,7 @@ function planOrder(order: Candidate[], config: GeneratorConfig): RoutePlan | und
   let prior: Candidate | LatLng = NORTH_POLE;
   let priorDeparture = Date.parse(TAKEOFF_UTC);
   for (const [index, place] of order.entries()) {
-    const stop = candidateTiming(place, prior, priorDeparture, index, config);
+    const stop = candidateTiming({ place, prior, priorDeparture, index, config });
     if (!stop || !timingAndDetourAllows(place, planned)) return undefined;
     planned.push(stop.place);
     arrivalTimes.push(stop.arrival);
@@ -309,16 +319,23 @@ function moveOrOpt(order: Candidate[], from: number, to: number): Candidate[] {
   return result;
 }
 
+function isEastwardAt(order: Candidate[], index: number): boolean {
+  return isEastwardDelta(longitudeDelta(order[index - 1]!, order[index]!));
+}
+
+function reducesBacktracking(order: Candidate[], eastward: number, detours: number): boolean {
+  if (eastwardCount(order) >= eastward) return false;
+  return detourCount(order) <= detours;
+}
+
 function reduceEastwardAt(best: TimedCandidate[], index: number, config: GeneratorConfig): TimedCandidate[] | undefined {
-  const from = best[index - 1];
-  const to = best[index];
-  if (!from || !to || longitudeDelta(from, to) <= 1) return undefined;
+  if (!isEastwardAt(best, index)) return undefined;
   const priorEastward = eastwardCount(best);
   const priorDetours = detourCount(best);
   const firstPosition = Math.max(0, index - 1 - 6);
   for (let target = index - 1; target >= firstPosition; target--) {
     const proposal = moveOrOpt(best, index, target);
-    if (eastwardCount(proposal) >= priorEastward || detourCount(proposal) > priorDetours) continue;
+    if (!reducesBacktracking(proposal, priorEastward, priorDetours)) continue;
     const plan = planOrder(proposal, config);
     if (plan) return plan.places;
   }
