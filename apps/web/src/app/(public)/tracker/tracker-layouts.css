@@ -82,6 +82,136 @@
   font-weight: 600;
 }
 
+/* Globe side panels: compact, in the top corners, so the centre stays clear for Santa and the route. */
+.tl-panel {
+  position: absolute;
+  top: calc(var(--tt-top) + 3.5rem);
+  z-index: 20;
+  width: min(17.5rem, calc(50vw - 1.5rem));
+  max-height: calc(100vh - var(--tt-top) - 5rem - var(--tt-dock, 0rem));
+  padding: 0.9rem 1rem 1rem;
+  overflow-y: auto;
+  border: var(--tt-border);
+  border-radius: var(--tt-radius);
+  background: var(--tt-panel);
+  box-shadow: var(--tt-shadow);
+  color: var(--tt-ink);
+  backdrop-filter: blur(8px);
+}
+
+.tl-panel-now { left: 1rem; }
+
+.tl-panel-here { right: 1rem; }
+
+.tl-panel-kicker {
+  margin: 0 0 0.55rem;
+  color: var(--tt-soft);
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.tl-panel-status {
+  margin: 0;
+  color: var(--tt-soft);
+  font-size: 0.82rem;
+}
+
+.tl-panel-title {
+  margin: 0.05rem 0 0;
+  font-size: 1.5rem;
+  font-weight: 600;
+  line-height: 1.15;
+}
+
+.tl-panel-sub {
+  margin: 0.1rem 0 0;
+  color: var(--tt-soft);
+  font-size: 0.85rem;
+}
+
+.tl-panel-next {
+  display: flex;
+  gap: 0.5rem;
+  align-items: baseline;
+  margin: 0.75rem 0 0;
+  padding: 0.5rem 0.6rem;
+  border-radius: calc(var(--tt-radius) - 4px);
+  background: color-mix(in srgb, var(--tt-accent) 12%, transparent);
+  font-size: 0.88rem;
+}
+
+.tl-next-label { color: var(--tt-soft); }
+
+.tl-next-eta {
+  margin-left: auto;
+  color: var(--tt-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+.tl-panel-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.6rem 0.75rem;
+  margin: 0.85rem 0 0;
+}
+
+.tl-panel-stats dt {
+  color: var(--tt-soft);
+  font-size: 0.7rem;
+}
+
+.tl-panel-stats dd {
+  margin: 0.05rem 0 0;
+  font-size: 1rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.tl-greeting {
+  margin: 0;
+  color: var(--tt-accent);
+  font-size: 1.6rem;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.tl-panel-note {
+  margin: 0.7rem 0 0;
+  padding-left: 0.6rem;
+  border-left: 2px solid var(--tt-accent);
+  color: var(--tt-soft);
+  font-size: 0.8rem;
+  line-height: 1.4;
+}
+
+.tl-panel-heading {
+  margin: 0.9rem 0 0.3rem;
+  color: var(--tt-soft);
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+.tl-panel-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.85rem;
+}
+
+.tl-panel-list li {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.3rem 0;
+  border-top: 1px solid color-mix(in srgb, var(--tt-ink) 8%, transparent);
+}
+
+.tl-li-time {
+  color: var(--tt-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+.tl-layout-globe .ol-zoom { display: none; }
+
 /* ---------- Map + live feed ---------- */
 .tl-stats-top {
   position: absolute;
