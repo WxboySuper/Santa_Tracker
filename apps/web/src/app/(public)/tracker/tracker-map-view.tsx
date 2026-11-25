@@ -10,11 +10,13 @@ import type { MapEvent, MapMode } from "./tracker-map-hooks";
 import { ImmersiveTrackerOverlays } from "./tracker-map-immersive";
 import { TvTrackerDashboard } from "./tracker-map-tv";
 import { JourneyCard, TrackerToolbar } from "./tracker-chrome";
+import type { TrackerThemeId } from "@/lib/tracker-theme";
 
 type Translator = ReturnType<typeof createTranslator>;
 
 /** Values shared by the standard and immersive tracker presentations. */
 interface TrackerMapViewProps {
+  theme: TrackerThemeId;
   adventEnabled: boolean;
   locale: string;
   translator: Translator;
@@ -41,7 +43,7 @@ export function JourneyPanel({ nodes, position, translator, locale, tv = false }
   const current = currentIndex === null ? undefined : timedNodes[currentIndex];
   const next = nextIndex === null ? undefined : timedNodes[nextIndex];
   const recent = currentIndex === null ? [] : timedNodes.slice(Math.max(0, currentIndex - 4), currentIndex + 1).reverse();
-  const sectionClass = tv ? "tracker-tv-map-text" : "storybook-textview";
+  const sectionClass = tv ? "tracker-tv-map-text" : "tt-textview";
   // Focusable so keyboard users can scroll the text view on short screens (WCAG 2.1.1).
   return <section className={sectionClass} aria-label={translator.t("tracker.textMode")} tabIndex={tv ? undefined : 0}>
     <dl className="mx-auto max-w-xl space-y-4">
@@ -56,10 +58,10 @@ export function JourneyPanel({ nodes, position, translator, locale, tv = false }
 
 /** Renders the standard site's navigation links. */
 function TrackerNav({ adventEnabled, translator }: { adventEnabled: boolean; translator: Translator }) {
-  return <nav className="storybook-nav">
-    <Link href="/" className="storybook-nav-link">{translator.t("nav.home")}</Link>
-    <Link href="/tracker" className="storybook-nav-link storybook-nav-active" aria-current="page">{translator.t("nav.tracker")}</Link>
-    {adventEnabled && <Link href="/advent" className="storybook-nav-link">{translator.t("nav.village")}</Link>}
+  return <nav className="tt-nav">
+    <Link href="/" className="tt-nav-link">{translator.t("nav.home")}</Link>
+    <Link href="/tracker" className="tt-nav-link tt-nav-active" aria-current="page">{translator.t("nav.tracker")}</Link>
+    {adventEnabled && <Link href="/advent" className="tt-nav-link">{translator.t("nav.village")}</Link>}
   </nav>;
 }
 
@@ -132,7 +134,7 @@ function isBackKey(key: string): boolean {
 
 /** Composes the standard map, text view, and immersive tracker presentation. */
 export function TrackerMapView(props: TrackerMapViewProps) {
-  const { adventEnabled, locale, translator, element, adapter, mode, dispatch, nodes, position, current, status, following, setFollowing, viewMode, toggleImmersive, toggleTv } = props;
+  const { theme, adventEnabled, locale, translator, element, adapter, mode, dispatch, nodes, position, current, status, following, setFollowing, viewMode, toggleImmersive, toggleTv } = props;
   const immersive = viewMode === "immersive";
   const tv = viewMode === "tv";
   const stageRef = useRef<HTMLDivElement>(null);
@@ -157,7 +159,7 @@ export function TrackerMapView(props: TrackerMapViewProps) {
         <TrackerStatus current={current} translator={translator} />
         {immersive
           ? <ImmersiveTrackerOverlays locale={locale} nodes={timedNodes} position={position} current={current} translator={translator} controlsVisible={visible} />
-          : <JourneyCard nodes={nodes} timedNodes={timedNodes} position={position} status={status} translator={translator} locale={locale} />}
+          : <JourneyCard theme={theme} nodes={nodes} timedNodes={timedNodes} position={position} status={status} translator={translator} locale={locale} />}
       </>}
     </div>
   </>;

@@ -7,6 +7,7 @@ import { validRouteNodes } from "@/lib/tracker-route-validation";
 import { localTimeAt } from "@/lib/tracker-local-time";
 import { useTrackerNow } from "@/lib/use-tracker-now";
 import TrackerMap from "../tracker-map";
+import { DEFAULT_TRACKER_THEME, isTrackerThemeId, TRACKER_THEME_IDS, trackerTheme, type TrackerThemeId } from "@/lib/tracker-theme";
 import "./route-demo.css";
 
 const SOURCE = "/api/demo-route";
@@ -83,7 +84,40 @@ function useDemoClock(start: number | null) {
   return { paused, rate, update };
 }
 
-function DemoControls({ nodes }: { nodes: RouteNode[] }) {
+const THEME_KEY = "santa-tracker-demo-theme";
+
+/** The demo's look, from ?theme= or the last one picked, kept in the URL so a reload or a shared link keeps it. */
+function useDemoTheme(): [TrackerThemeId, (theme: TrackerThemeId) => void] {
+  const [theme, setTheme] = useState<TrackerThemeId>(DEFAULT_TRACKER_THEME);
+  useEffect(() => {
+    const fromUrl = new URLSearchParams(window.location.search).get("theme");
+    const saved = window.localStorage.getItem(THEME_KEY);
+    const initial = [fromUrl, saved].find(isTrackerThemeId);
+    if (initial) setTheme(initial);
+  }, []);
+  const choose = useCallback((next: TrackerThemeId) => {
+    setTheme(next);
+    window.localStorage.setItem(THEME_KEY, next);
+    const url = new URL(window.location.href);
+    url.searchParams.set("theme", next);
+    window.history.replaceState(null, "", url);
+  }, []);
+  return [theme, choose];
+}
+
+function ThemePicker({ theme, onChange }: { theme: TrackerThemeId; onChange: (theme: TrackerThemeId) => void }) {
+  return (
+    <div className="route-demo-themes" role="group" aria-label="Look">
+      {TRACKER_THEME_IDS.map((id, index) => (
+        <button key={id} type="button" aria-pressed={theme === id} onClick={() => onChange(id)}>
+          {index + 1}. {trackerTheme(id).name}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function DemoControls({ nodes, theme, onTheme }: { nodes: RouteNode[]; theme: TrackerThemeId; onTheme: (theme: TrackerThemeId) => void }) {
   const bounds = useMemo(() => journeyBounds(nodes), [nodes]);
   const { paused, rate, update } = useDemoClock(bounds?.start ?? null);
   const now = useTrackerNow().getTime();
@@ -109,6 +143,7 @@ function DemoControls({ nodes }: { nodes: RouteNode[] }) {
   const position = Math.min(1, Math.max(0, (now - bounds.start + LEAD_IN_MS) / span));
   return (
     <div className="route-demo-bar" role="region" aria-label="Route demo controls">
+      <ThemePicker theme={theme} onChange={onTheme} />
       <div className="route-demo-row">
         <button type="button" className="route-demo-play" onClick={() => update({ paused: !paused })} aria-label={paused ? "Play" : "Pause"}>
           {paused ? "▶" : "❚❚"}
@@ -153,10 +188,13 @@ function DemoControls({ nodes }: { nodes: RouteNode[] }) {
 /** The real tracker flying the draft route, with playback controls along the bottom. */
 export default function RouteDemo({ locale }: { locale: string }) {
   const nodes = useDraftRoute();
+  const [theme, setTheme] = useDemoTheme();
   return (
     <>
-      <TrackerMap adventEnabled={false} locale={locale} routeSource={SOURCE} />
-      <DemoControls nodes={nodes} />
+      <TrackerMap key={theme} adventEnabled={false} locale={locale} routeSource={SOURCE} theme={theme} />
+      <div className={`tt-root tt-${theme}`}>
+        <DemoControls nodes={nodes} theme={theme} onTheme={setTheme} />
+      </div>
     </>
   );
 }

@@ -9,8 +9,9 @@ import { useMapAdapter, type MapEvent, type MapMode } from "./tracker-map-hooks"
 import { useTrackerViewMode } from "@/lib/tracker-view-mode";
 import { useRouteNodes, useSantaPosition } from "./tracker-map-data-hooks";
 import { TrackerMapView } from "./tracker-map-view";
+import { DEFAULT_TRACKER_THEME, setActiveTrackerTheme, themeFontsHref, trackerTheme, type TrackerThemeId } from "@/lib/tracker-theme";
 
-interface TrackerMapProps { adventEnabled: boolean; locale: string; routeSource?: string }
+interface TrackerMapProps { adventEnabled: boolean; locale: string; routeSource?: string; theme?: TrackerThemeId }
 interface TvModeContext {
   session: { current: { mode: MapMode; following: boolean } | null };
   mode: MapMode;
@@ -20,7 +21,9 @@ interface TvModeContext {
   adapter: { current: TrackerMapAdapter | null };
 }
 
-export default function TrackerMap({ adventEnabled, locale, routeSource }: TrackerMapProps) {
+export default function TrackerMap({ adventEnabled, locale, routeSource, theme = DEFAULT_TRACKER_THEME }: TrackerMapProps) {
+  // The map adapter reads the active theme when it mounts; the page remounts TrackerMap to change theme.
+  setActiveTrackerTheme(theme);
   const translator = useMemo(() => createTranslator({ locale }), [locale]);
   const element = useRef<HTMLDivElement>(null);
   const adapter = useRef<TrackerMapAdapter | null>(null);
@@ -44,7 +47,10 @@ export default function TrackerMap({ adventEnabled, locale, routeSource }: Track
   const timedNodes = routeNodesToContractRoute(nodes).timedNodes;
   const currentIndex = position?.journey.currentIndex;
   const current = currentIndex == null ? undefined : timedNodes[currentIndex];
-  return <TrackerMapView
+  return <div className={`tt-root tt-${theme}`}>
+    <link rel="stylesheet" href={themeFontsHref(trackerTheme(theme))} precedence="default" />
+    <TrackerMapView
+    theme={theme}
     adventEnabled={adventEnabled}
     locale={locale}
     translator={translator}
@@ -61,7 +67,8 @@ export default function TrackerMap({ adventEnabled, locale, routeSource }: Track
     viewMode={viewMode}
     toggleImmersive={toggleImmersive}
     toggleTv={toggleTv}
-  />;
+  />
+  </div>;
 }
 
 function enterTvMode({ session, mode, following, setFollowing, adapter }: TvModeContext): boolean {
