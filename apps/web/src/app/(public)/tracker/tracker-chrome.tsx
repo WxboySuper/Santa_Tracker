@@ -135,6 +135,19 @@ function eyebrow(info: Flying, translator: Translator): string {
   return translator.t(info.atStop ? "tracker.card.atStop" : "tracker.card.justLeft");
 }
 
+function QuietCard({ info, translator }: CardProps) {
+  return <>
+    <p className="tt-eyebrow">{eyebrow(info, translator)}</p>
+    <h2 className="tt-title">{info.current.location.name}</h2>
+    <p className="tt-sub">{info.current.location.region ? `${info.current.location.region} · ` : ""}{translator.t("tracker.card.local", { time: info.localTime })}</p>
+    {info.next && <p className="tt-next">{translator.t("tracker.card.next", { location: info.next.location.name })} · {info.nextIn}</p>}
+    <div className="tt-foot">
+      <Progress value={info.progress} label={translator.t("tracker.progress")} />
+      <span>{translator.t("tracker.card.stops", { done: info.done, total: info.total })}</span>
+    </div>
+  </>;
+}
+
 function ArcadeCard({ info, translator }: CardProps) {
   return <>
     <span className="tt-badge">{info.done} / {info.total}</span>
@@ -212,6 +225,8 @@ function KnitCard({ info, translator }: CardProps) {
 }
 
 const CARDS: Record<TrackerThemeId, (props: CardProps) => ReactNode> = {
+  night: QuietCard,
+  day: QuietCard,
   arcade: ArcadeCard,
   radar: RadarCard,
   lino: LinoCard,

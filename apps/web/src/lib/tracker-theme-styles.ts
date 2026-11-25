@@ -15,6 +15,12 @@ function markerBase(marker: MarkerPalette): Style[] {
   const fill = new Fill({ color: marker.fill });
   const stroke = new Stroke({ color: marker.stroke, width: 3 });
   switch (marker.kind) {
+    case "glow":
+      return [
+        // Two translucent discs stacked read as a soft glow.
+        new Style({ image: new Circle({ radius: 22, fill }) }),
+        new Style({ image: new Circle({ radius: 12, fill }) }),
+      ];
     case "badge":
       return [new Style({ image: new Circle({ radius: 21, fill, stroke }) })];
     case "block":
@@ -35,7 +41,8 @@ function markerBase(marker: MarkerPalette): Style[] {
 
 function sleighSize(marker: MarkerPalette): { width: number; height: number } {
   if (marker.kind === "pixel") return { width: 64, height: 30 };
-  if (marker.kind === "disc") return { width: 28, height: 13 };
+  if (marker.kind === "glow") return { width: 42, height: 20 };
+  if (marker.kind === "disc") return { width: 30, height: 14 };
   return { width: 36, height: 17 };
 }
 

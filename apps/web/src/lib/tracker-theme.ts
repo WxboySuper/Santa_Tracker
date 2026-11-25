@@ -3,7 +3,7 @@
  * journey card the page shows. The map adapter reads the active theme when it mounts; the page remounts the
  * tracker when the theme changes.
  */
-export const TRACKER_THEME_IDS = ["arcade", "radar", "lino", "poster", "knit"] as const;
+export const TRACKER_THEME_IDS = ["night", "day", "arcade", "radar", "lino", "poster", "knit"] as const;
 export type TrackerThemeId = (typeof TRACKER_THEME_IDS)[number];
 
 export interface MapPalette {
@@ -41,7 +41,7 @@ export interface TrailPalette {
   stopRadius: number;
 }
 
-export type MarkerKind = "badge" | "radar" | "block" | "disc" | "pixel";
+export type MarkerKind = "glow" | "badge" | "radar" | "block" | "disc" | "pixel";
 
 export interface MarkerPalette {
   kind: MarkerKind;
@@ -65,6 +65,22 @@ export interface TrackerTheme {
 }
 
 const THEMES: Record<TrackerThemeId, TrackerTheme> = {
+  night: {
+    id: "night",
+    name: "Quiet night",
+    fonts: ["Inter:wght@400;500;600"],
+    map: { land: "#232c38", water: "#151b24", green: "#232c38", greenOpacity: 0, ice: "#2a3442", sand: "#232c38", river: "#1b232e", border: "#3a4656", borderOpacity: 0.7, label: "#8793a3", labelSoft: "#6b7686", waterLabel: "#4d5866", halo: "#151b24", relief: 0, labels: true },
+    trail: { flown: "#f3d9a4", flownWidth: 1.8, casing: "rgba(243, 217, 164, 0.18)", casingWidth: 6, ahead: "rgba(200, 210, 225, 0.22)", aheadWidth: 1, aheadDash: [2, 5], stopDone: "#f3d9a4", stopDoneStroke: "#151b24", stopAhead: "#151b24", stopAheadStroke: "rgba(200, 210, 225, 0.3)", stopRadius: 2.4 },
+    marker: { kind: "glow", fill: "rgba(255, 214, 150, 0.35)", stroke: "#fff3dc", body: "#fff3dc", runner: "#f3d9a4", deer: "#fff3dc" },
+  },
+  day: {
+    id: "day",
+    name: "Quiet day",
+    fonts: ["Inter:wght@400;500;600"],
+    map: { land: "#f4f1ec", water: "#d9e2e7", green: "#e9ebdf", greenOpacity: 0.6, ice: "#fbfaf8", sand: "#efe9dc", river: "#c9d6dd", border: "#c7c1b7", borderOpacity: 0.8, label: "#6a6f76", labelSoft: "#8a8f96", waterLabel: "#8ea1ad", halo: "#f4f1ec", relief: 0, labels: true },
+    trail: { flown: "#b4233a", flownWidth: 1.8, casing: "rgba(255, 255, 255, 0.85)", casingWidth: 5, ahead: "rgba(60, 70, 80, 0.28)", aheadWidth: 1, aheadDash: [2, 5], stopDone: "#b4233a", stopDoneStroke: "#ffffff", stopAhead: "#ffffff", stopAheadStroke: "rgba(60, 70, 80, 0.35)", stopRadius: 2.4 },
+    marker: { kind: "glow", fill: "rgba(180, 35, 58, 0.16)", stroke: "#ffffff", body: "#b4233a", runner: "#6a6f76", deer: "#6a4b33" },
+  },
   arcade: {
     id: "arcade",
     name: "Arcade",
@@ -107,7 +123,7 @@ const THEMES: Record<TrackerThemeId, TrackerTheme> = {
   },
 };
 
-export const DEFAULT_TRACKER_THEME: TrackerThemeId = "arcade";
+export const DEFAULT_TRACKER_THEME: TrackerThemeId = "night";
 
 export function isTrackerThemeId(value: unknown): value is TrackerThemeId {
   return typeof value === "string" && (TRACKER_THEME_IDS as readonly string[]).includes(value);

@@ -208,6 +208,91 @@
   border-bottom: 1px dashed color-mix(in srgb, var(--tt-ink) 25%, transparent);
 }
 
+/* ---------- Quiet night / Quiet day: plain type, soft panels, nothing shouting ---------- */
+.tt-night,
+.tt-day {
+  --tt-font: "Inter", system-ui, sans-serif;
+  --tt-radius: 10px;
+  --tt-shadow: 0 1px 2px rgb(0 0 0 / 12%), 0 8px 24px rgb(0 0 0 / 10%);
+}
+
+.tt-night {
+  --tt-map-bg: #151b24;
+  --tt-panel: rgb(28 35 46 / 88%);
+  --tt-ink: #eef1f5;
+  --tt-soft: #9aa5b4;
+  --tt-accent: #f3d9a4;
+  --tt-accent-ink: #151b24;
+  --tt-accent-text: #9aa5b4;
+  --tt-border: 1px solid rgb(255 255 255 / 8%);
+  --tt-focus: #f3d9a4;
+}
+
+.tt-day {
+  --tt-map-bg: #d9e2e7;
+  --tt-panel: rgb(255 255 255 / 92%);
+  --tt-ink: #1f2329;
+  --tt-soft: #5f6670;
+  --tt-accent: #b4233a;
+  --tt-accent-ink: #fff;
+  --tt-accent-text: #5f6670;
+  --tt-border: 1px solid rgb(0 0 0 / 6%);
+  --tt-focus: #b4233a;
+}
+
+.tt-night .tt-card,
+.tt-day .tt-card {
+  width: min(19rem, calc(100vw - 2rem));
+  backdrop-filter: blur(8px);
+}
+
+.tt-night .tt-eyebrow,
+.tt-day .tt-eyebrow {
+  font-size: 0.8rem;
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.tt-night .tt-title,
+.tt-day .tt-title {
+  margin: 0.1rem 0 0.2rem;
+  font-size: 1.45rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.tt-night .tt-next,
+.tt-day .tt-next {
+  margin: 0.6rem 0 0;
+  font-size: 0.9rem;
+}
+
+.tt-night .tt-foot,
+.tt-day .tt-foot {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  margin-top: 0.75rem;
+  color: var(--tt-soft);
+  font-size: 0.78rem;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.tt-night .tt-progress,
+.tt-day .tt-progress {
+  flex: 1;
+  height: 2px;
+  margin: 0;
+}
+
+.tt-night .tt-tool,
+.tt-day .tt-tool {
+  width: 2.4rem;
+  height: 2.4rem;
+}
+
 /* ---------- 1. Arcade ---------- */
 .tt-arcade {
   --tt-font: "Fredoka", system-ui, sans-serif;
