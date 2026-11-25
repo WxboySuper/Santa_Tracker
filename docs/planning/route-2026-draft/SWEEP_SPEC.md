@@ -11,14 +11,17 @@ allows.
 
 1. **Westward sweep.** Move west with local midnight. An eastward leg is a defect unless its leg record has one of
    the reason codes below. The local-time window alone does not justify backtracking.
-2. **Local window 23:00 to 05:00.** Every delivery arrives between 23:00 on Dec 24 and 05:00 on Dec 25 at the
-   destination. Aim for 01:00 local time when travel allows.
-3. **Coverage first, then more stops.** Give each inhabited country or territory that the sweep passes at a
-   sensible time at least one stop, then add more places along the path. There is no fixed stop total. Pacing,
-   timing, the speed limits, separation and the return deadline determine the count.
-4. **Geography decides.** Drop or replace places that force a detour. Category weights choose among nearby places;
-   they do not set quotas.
-5. **No hand-pinned order.** The route order comes from the seeded sweep algorithm. It has no pinned stop sequence,
+2. **Use the full local window.** Deliver between 23:00 Dec 24 and 05:00 Dec 25 at each destination. Do not pin
+   arrivals to 01:00. South of 35 degrees latitude, stop by 02:30 local time because late-December nights are short.
+3. **Maximize stops, then country coverage.** There is no fixed total. Aim for 550-700 stops when the candidate pool,
+   timing, speed, separation, tier dwell and return deadline allow it. At least 500 stops is the current scale check.
+   Cover countries and territories along the sweep before adding extra stops where they fit.
+4. **Fill local clusters.** Process real UTC-offset bands, including half-hour and quarter-hour bands. Within a band,
+   favor short nearby hops and alternate the preferred latitude direction from band to band. Do not jump across a
+   region to collect a distant offset band.
+5. **Geography decides.** Drop or replace places that force a detour. Category and population weights choose among
+   nearby places; they do not set quotas.
+6. **No hand-pinned order.** The route order comes from the seeded sweep algorithm. It has no pinned stop sequence,
    arrival anchors, UTC-offset caps or fixed route total.
 
 ## Fixed constraints
@@ -34,14 +37,16 @@ allows.
 - Leg speed p90 is at most 20,000 km/h. No leg may exceed 25,000 km/h.
 - Stops must be at least 20 km apart. This lets nearby major-city pairs such as Mexico City and Teotihuacan both
   remain in the candidate pool without an exception list.
+- Local legs use a 4,000 km/h planning speed. Legs of at least 1,500 km use 19,000 km/h only for cross-continent,
+  island or polar crossings. Long overland legs keep the local speed.
 - Keep the current tone rules and sensitive-place veto list.
 - Expected landmark candidates include the Great Wall, Angkor and Machu Picchu.
 
 ## Country limit
 
-The generator allows at most six stops per country. This ceiling prevents the large populated-place inventories in
-countries such as the United States, China and India from taking over the route while the sweep passes many other
-countries and territories.
+The generator allows at most twelve stops per country. This ceiling prevents the large populated-place inventories
+in countries such as the United States, China and India from taking over the route while leaving room to add dense
+town and village clusters. The route prioritizes stop count, then country coverage, within this limit.
 
 ## Eastward legs
 
@@ -60,6 +65,8 @@ eastward legs and any detour flags in the review page.
 
 ## What the generator reports
 
-Report total stops, stop-tier counts, countries and territories covered, stops per continent, path length, leg speed
-median, p90 and maximum, local-arrival histogram, every eastward leg and its reason, detour flags, the 20 longest
-legs, and the share of the candidate snapshot's population estimate within 500 km of a stop.
+Report total stops, stop-tier counts, countries and territories covered, stops per continent and UTC-offset band,
+path length, leg speed median, p90 and maximum, local-arrival histogram, every eastward leg and its reason, detour
+flags, the 20 longest legs, and the share of the candidate snapshot's population estimate within 500 km of a stop.
+The current candidate snapshot has no state, province or territory identifier, so subnational coverage cannot be
+measured from these files.

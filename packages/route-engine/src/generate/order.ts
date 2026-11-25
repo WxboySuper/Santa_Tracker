@@ -1,6 +1,7 @@
 import { haversineKm, type LatLng } from '../geo';
 import {
   christmasWindow,
+  christmasArrival,
   detourRatio,
   eastwardLegReason,
   isEastwardDelta,
@@ -8,10 +9,19 @@ import {
   stopDurationSeconds,
   stopTier,
 } from './sweep';
+import { classifyRegion } from './regions';
 import { DEFAULT_GENERATOR_LIMITS, NORTH_POLE, RETURN_DEADLINE_UTC, TAKEOFF_UTC, type Candidate, type GeneratorConfig } from './types';
 
 const MINUTE_MS = 60_000;
 const EARTH_RADIUS_KM = 6_371;
+const LOCAL_CLUSTER_HOP_KM = 300;
+const FAST_CROSSING_KM = 1_500;
+const OCEAN_ISLAND_COUNTRIES = new Set([
+  'AS', 'AW', 'AX', 'BB', 'BL', 'BM', 'BQ', 'BS', 'CC', 'CK', 'CX', 'CW', 'DM', 'FO', 'GD', 'GG', 'GL',
+  'GP', 'GU', 'HK', 'HM', 'IM', 'IO', 'IS', 'JE', 'JM', 'KN', 'KY', 'LC', 'MF', 'MH', 'MP', 'MQ', 'MS',
+  'NF', 'NR', 'NU', 'PF', 'PN', 'PR', 'PW', 'RE', 'SC', 'SX', 'TC', 'TK', 'TO', 'TT', 'TV', 'VG', 'VI',
+  'WF', 'YT',
+]);
 
 type TimedCandidate = Candidate & { plannedArrivalUtc: string; plannedStopTier: NonNullable<Candidate['plannedStopTier']>; plannedStopDurationSeconds: number };
 type PlannedStop = { place: TimedCandidate; arrival: number; departure: number; eastwardDegrees: number };
@@ -28,12 +38,23 @@ function seededRandom(seed: number): () => number {
   };
 }
 
-function planningSpeed(config: GeneratorConfig): number {
-  return Math.min(config.maxLegSpeedKmh, config.p90LegSpeedMaxKmh * 0.95);
+function isOceanCrossing(from: Candidate | LatLng, to: Candidate | LatLng, distanceKm: number): boolean {
+  if (distanceKm < FAST_CROSSING_KM) return false;
+  if (!('country' in from) || !('country' in to)) return true;
+  if (OCEAN_ISLAND_COUNTRIES.has(from.country) || OCEAN_ISLAND_COUNTRIES.has(to.country)) return true;
+  const fromRegion = classifyRegion(from);
+  const toRegion = classifyRegion(to);
+  return fromRegion.pacificIsland || toRegion.pacificIsland || fromRegion.continent !== toRegion.continent;
 }
 
-function travelMilliseconds(distanceKm: number, speedKmh: number): number {
-  return Math.ceil(distanceKm / speedKmh * 3_600) * 1000;
+function planningSpeed(from: Candidate | LatLng, to: Candidate | LatLng, distanceKm: number, config: GeneratorConfig): number {
+  const target = isOceanCrossing(from, to, distanceKm) ? config.targetLegSpeedKmh : config.localLegSpeedKmh;
+  return Math.min(target, config.maxLegSpeedKmh, config.p90LegSpeedMaxKmh * 0.95);
+}
+
+export function scheduledTravelMilliseconds(from: Candidate | LatLng, to: Candidate | LatLng, config: GeneratorConfig): number {
+  const distance = haversineKm(from, to);
+  return Math.ceil(distance / planningSpeed(from, to, distance, config) * 3_600_000);
 }
 
 function countryCapacity(place: Candidate, counts: Map<string, number>, config: GeneratorConfig): boolean {
@@ -96,18 +117,21 @@ type CandidateTimingOptions = {
 function candidateTiming({ place, prior, priorDeparture, index, config }: CandidateTimingOptions): PlannedStop | undefined {
   const distance = haversineKm(prior, place);
   const window = christmasWindow(place.utcOffsetMinutes ?? 0);
-  const earliest = Math.max(window.startUtc, priorDeparture + travelMilliseconds(distance, planningSpeed(config)));
-  const arrival = Math.max(earliest, window.idealUtc);
-  if (arrival > window.endUtc) return undefined;
+  const latestArrival = place.lat < -35
+    ? Math.min(window.endUtc, Date.parse(christmasArrival({ timezoneOrOffset: place.utcOffsetMinutes ?? 0, minutesAfterMidnight: 150 })))
+    : window.endUtc;
+  const earliest = Math.max(window.startUtc, priorDeparture + scheduledTravelMilliseconds(prior, place, config));
+  const arrival = earliest;
+  if (arrival > latestArrival) return undefined;
 
   const reason = eastwardLegReason({ from: prior, to: place, destinationIndex: index, arrivalUtc: arrival });
   const eastwardDegrees = longitudeDelta(prior, place);
-  if (isEastwardDelta(eastwardDegrees) && !reason) return undefined;
+  if (isEastwardDelta(eastwardDegrees) && !(index === 0 && reason === 'dateline')) return undefined;
 
   const tier = stopTier(place);
   const durationSeconds = stopDurationSeconds(tier);
   const departure = arrival + durationSeconds * 1000;
-  const returnArrival = departure + travelMilliseconds(haversineKm(place, NORTH_POLE), planningSpeed(config));
+  const returnArrival = departure + scheduledTravelMilliseconds(place, NORTH_POLE, config);
   if (returnArrival > Date.parse(RETURN_DEADLINE_UTC)) return undefined;
   return {
     place: { ...place, plannedArrivalUtc: new Date(arrival).toISOString(), plannedStopTier: tier, plannedStopDurationSeconds: durationSeconds },
@@ -137,31 +161,36 @@ function optionScore(options: {
   previousIdeal?: number;
   newCountry: boolean;
   isLaunch: boolean;
+  latitudeDirection: -1 | 1;
   randomRank: number;
   config: GeneratorConfig;
 }): number {
-  const { stop, prior, priorDeparture, previousIdeal, newCountry, isLaunch, randomRank, config } = options;
+  const { stop, prior, priorDeparture, previousIdeal, newCountry, isLaunch, latitudeDirection, randomRank, config } = options;
   const place = stop.place;
   const distance = haversineKm(prior, place);
   const westwardDegrees = Math.max(0, -stop.eastwardDegrees);
+  const latitudeProgress = Math.max(0, (place.lat - prior.lat) * latitudeDirection);
   const idleMinutes = Math.max(0, stop.arrival - priorDeparture) / MINUTE_MS;
-  const lateMinutes = Math.max(0, stop.arrival - christmasWindow(place.utcOffsetMinutes ?? 0).idealUtc) / MINUTE_MS;
-  const offsetProgress = previousIdeal === undefined ? 0 : Math.max(0, (previousIdeal - christmasWindow(place.utcOffsetMinutes ?? 0).idealUtc) / MINUTE_MS);
+  const offsetProgress = previousIdeal === undefined ? 0 : Math.max(0, (christmasWindow(place.utcOffsetMinutes ?? 0).idealUtc - previousIdeal) / MINUTE_MS);
   const category = categoryPreference(place, config);
   const populationTie = Math.log10((place.population ?? 0) + 1);
+  const dwellReward = (60 - place.plannedStopDurationSeconds) * 3;
   const launchBandPenalty = isLaunch ? Math.min(Math.abs(180 - place.lng), Math.abs(-180 - place.lng)) * 35 : 0;
-  const eastwardPenalty = isEastwardDelta(stop.eastwardDegrees) ? 8_000 : 0;
-  return (newCountry ? 15_000 : 0)
+  const eastwardPenalty = isEastwardDelta(stop.eastwardDegrees) ? 100_000 : 0;
+  const localClusterBonus = distance <= LOCAL_CLUSTER_HOP_KM ? 1_000_000 : 0;
+  return localClusterBonus
+    + (newCountry ? 10_000 : 0)
     + westwardDegrees * 5
-    + offsetProgress * 2
-    - distance * 0.25
+    + latitudeProgress * 75
+    + Math.min(offsetProgress, 60) * 2
+    - distance * 2
     - eastwardPenalty
     - launchBandPenalty
-    - idleMinutes * 5
-    - lateMinutes * 10
-    + category * 2
-    + populationTie * 0.5
-    + randomRank * 0.01;
+    - idleMinutes * 250
+    + dwellReward
+    + category * 0.1
+    + populationTie * 2
+    + randomRank * 25;
 }
 
 function canStartFromNorthPole(place: Candidate, config: GeneratorConfig): boolean {
@@ -177,27 +206,32 @@ type SweepState = {
   priorDeparture: number;
 };
 
+function betterPlannedStop(candidate: PlannedStop, score: number, best: PlannedStop | undefined, bestScore: number): boolean {
+  return score > bestScore || (score === bestScore && candidate.place.id.localeCompare(best?.place.id ?? '') < 0);
+}
+
 function previousIdeal(route: TimedCandidate[]): number | undefined {
   const last = route.at(-1);
   return last?.utcOffsetMinutes === undefined ? undefined : christmasWindow(last.utcOffsetMinutes).idealUtc;
 }
 
-function betterPlannedStop(candidate: PlannedStop, score: number, best: PlannedStop | undefined, bestScore: number): boolean {
-  return score > bestScore || (score === bestScore && candidate.place.id.localeCompare(best?.place.id ?? '') < 0);
-}
-
-function bestFeasibleStop(state: SweepState, randomRanks: Map<string, number>, config: GeneratorConfig): PlannedStop | undefined {
+function bestFeasibleStop(state: SweepState, candidates: Candidate[], bandIndices: Map<string, number>,
+  randomRanks: Map<string, number>, config: GeneratorConfig): PlannedStop | undefined {
   let best: PlannedStop | undefined;
   let bestScore = Number.NEGATIVE_INFINITY;
-  for (const candidate of state.remaining.values()) {
+  for (const candidate of candidates) {
+    if (!state.remaining.has(candidate.id)) continue;
     if (!countryCapacity(candidate, state.countryCounts, config) || !state.separation.allows(candidate)) continue;
     if (!timingAndDetourAllows(candidate, state.route)) continue;
     const stop = candidateTiming({ place: candidate, prior: state.prior, priorDeparture: state.priorDeparture,
       index: state.route.length, config });
     if (!stop) continue;
-    const score = optionScore({ stop, prior: state.prior, priorDeparture: state.priorDeparture,
-      previousIdeal: previousIdeal(state.route), newCountry: !state.countryCounts.has(candidate.country),
-      isLaunch: state.route.length === 0, randomRank: randomRanks.get(candidate.id) ?? 0, config });
+    const score = optionScore({ stop, prior: state.prior,
+      priorDeparture: state.priorDeparture, previousIdeal: previousIdeal(state.route),
+      newCountry: !state.countryCounts.has(candidate.country),
+      isLaunch: state.route.length === 0,
+      latitudeDirection: (bandIndices.get(candidate.id) ?? 0) % 2 === 0 ? -1 : 1,
+      randomRank: randomRanks.get(candidate.id) ?? 0, config });
     if (!betterPlannedStop(stop, score, best, bestScore)) continue;
     best = stop;
     bestScore = score;
@@ -232,10 +266,23 @@ function seededCandidateRanks(pool: Candidate[], seed: number): Map<string, numb
   return randomRanks;
 }
 
-function executeGreedySweep(state: SweepState, randomRanks: Map<string, number>, config: GeneratorConfig): void {
-  // The pool is a set of options; end when none can be appended within the route constraints.
+function offsetBands(pool: Candidate[]): Candidate[][] {
+  const bands = new Map<number, Candidate[]>();
+  for (const place of pool) {
+    const offset = place.utcOffsetMinutes ?? 0;
+    const band = bands.get(offset) ?? [];
+    band.push(place);
+    bands.set(offset, band);
+  }
+  return [...bands.entries()].sort(([left], [right]) => right - left).map(([, places]) => places);
+}
+
+function executeGreedySweep(state: SweepState, bands: Candidate[][], randomRanks: Map<string, number>, config: GeneratorConfig): void {
+  const bandIndices = new Map<string, number>();
+  bands.forEach((band, index) => band.forEach((place) => bandIndices.set(place.id, index)));
+  // Offset bands guide the alternating latitude preference; local proximity keeps the path connected.
   while (state.remaining.size > 0) {
-    const next = bestFeasibleStop(state, randomRanks, config);
+    const next = bestFeasibleStop(state, [...state.remaining.values()], bandIndices, randomRanks, config);
     if (!next) break;
     advanceSweep(state, next);
   }
@@ -243,7 +290,8 @@ function executeGreedySweep(state: SweepState, randomRanks: Map<string, number>,
 
 function firstFeasibleStart(pool: Candidate[], config: GeneratorConfig): TimedCandidate {
   const candidate = pool.filter((place) => canStartFromNorthPole(place, config))
-    .sort((left, right) => (left.population ?? 0) - (right.population ?? 0) || left.id.localeCompare(right.id))[0];
+    .sort((left, right) => (right.utcOffsetMinutes ?? 0) - (left.utcOffsetMinutes ?? 0)
+      || left.id.localeCompare(right.id))[0];
   if (!candidate) throw new Error('No candidate can be reached within its local Christmas window and the return deadline');
   const first = candidateTiming({ place: candidate, prior: NORTH_POLE, priorDeparture: Date.parse(TAKEOFF_UTC), index: 0, config });
   if (!first) throw new Error(`Cannot schedule the first route stop: ${candidate.name}`);
@@ -253,9 +301,11 @@ function firstFeasibleStart(pool: Candidate[], config: GeneratorConfig): TimedCa
 function greedySweep(pool: Candidate[], config: GeneratorConfig): TimedCandidate[] {
   const state = initialSweepState(pool, config);
   const randomRanks = seededCandidateRanks(pool, config.seed);
-  executeGreedySweep(state, randomRanks, config);
-  if (state.route.length > 0) return state.route;
-  return [firstFeasibleStart(pool, config)];
+  const first = firstFeasibleStart(pool, config);
+  advanceSweep(state, { place: first, arrival: Date.parse(first.plannedArrivalUtc),
+    departure: Date.parse(first.plannedArrivalUtc) + first.plannedStopDurationSeconds * 1000, eastwardDegrees: longitudeDelta(NORTH_POLE, first) });
+  executeGreedySweep(state, offsetBands(pool), randomRanks, config);
+  return state.route;
 }
 
 function planOrder(order: Candidate[], config: GeneratorConfig): RoutePlan | undefined {
@@ -277,7 +327,7 @@ function planOrder(order: Candidate[], config: GeneratorConfig): RoutePlan | und
   const final = planned.at(-1);
   const finalDeparture = departures.at(-1);
   if (!final || finalDeparture === undefined) return undefined;
-  if (finalDeparture + travelMilliseconds(haversineKm(final, NORTH_POLE), planningSpeed(config)) > Date.parse(RETURN_DEADLINE_UTC)) return undefined;
+  if (finalDeparture + scheduledTravelMilliseconds(final, NORTH_POLE, config) > Date.parse(RETURN_DEADLINE_UTC)) return undefined;
   return { places: planned, arrivalTimes, departures };
 }
 
@@ -373,6 +423,10 @@ function localProposal(order: Candidate[], first: number, second: number, random
   return moveOrOpt(order, first, second);
 }
 
+function sameOffsetBand(order: Candidate[], first: number, second: number): boolean {
+  return order[first]?.utcOffsetMinutes === order[second]?.utcOffsetMinutes;
+}
+
 function improvesSweep(cost: RouteCost, current: RouteCost): boolean {
   if (cost.eastward > current.eastward || cost.detours > current.detours) return false;
   return cost.eastward < current.eastward || cost.detours < current.detours;
@@ -396,6 +450,7 @@ function improveWithLocalSearch(initial: TimedCandidate[], config: GeneratorConf
   for (let attempt = 0; attempt < attempts; attempt++) {
     const first = Math.floor(random() * best.length);
     const second = Math.floor(random() * best.length);
+    if (!sameOffsetBand(best, first, second)) continue;
     const proposal = localProposal(best, first, second, random);
     const cost = routeCost(proposal);
     if (!canAcceptLocalProposal(cost, bestCost)) continue;
@@ -420,7 +475,7 @@ function insertionPositions(order: Candidate[], place: Candidate): { index: numb
   return positions.sort((left, right) => left.addedDistance - right.addedDistance || left.index - right.index);
 }
 
-type RankedInsertion = { place: Candidate; positions: { index: number; addedDistance: number }[] };
+type RankedInsertion = { place: Candidate; positions: { index: number; addedDistance: number }[]; dwellSeconds: number };
 type InsertionState = { route: TimedCandidate[]; counts: Map<string, number>; separation: SeparationIndex };
 
 function rankInsertions(initial: TimedCandidate[], pool: Candidate[], seed: number): RankedInsertion[] {
@@ -432,10 +487,12 @@ function rankInsertions(initial: TimedCandidate[], pool: Candidate[], seed: numb
     place,
     newCountry: !initiallyCovered.has(place.country),
     positions: insertionPositions(initial, place),
+    dwellSeconds: stopDurationSeconds(stopTier(place)),
     random: tieBreaks.get(place.id) ?? 0,
   })).sort((left, right) => Number(right.newCountry) - Number(left.newCountry)
-    || (left.positions[0]?.addedDistance ?? Number.POSITIVE_INFINITY) - (right.positions[0]?.addedDistance ?? Number.POSITIVE_INFINITY)
-    || left.random - right.random).map(({ place, positions }) => ({ place, positions }));
+    || (left.positions[0]?.addedDistance ?? Number.POSITIVE_INFINITY) + left.dwellSeconds * 1.1
+      - ((right.positions[0]?.addedDistance ?? Number.POSITIVE_INFINITY) + right.dwellSeconds * 1.1)
+    || left.random - right.random).map(({ place, positions, dwellSeconds }) => ({ place, positions, dwellSeconds }));
 }
 
 function insertionState(initial: TimedCandidate[], minimumSeparationKm: number): InsertionState {
@@ -454,7 +511,11 @@ function insertionPlanIsAcceptable(plan: RoutePlan | undefined, eastward: number
 function addAtFeasiblePosition(state: InsertionState, place: Candidate, positions: RankedInsertion['positions'], config: GeneratorConfig): boolean {
   const priorEastward = eastwardCount(state.route);
   const priorDetours = detourCount(state.route);
-  for (const { index } of positions.slice(0, 5)) {
+  for (const { index } of positions.slice(0, 8)) {
+    const before = index > 0 ? state.route[index - 1] : undefined;
+    const after = state.route[index];
+    if (before && before.utcOffsetMinutes !== place.utcOffsetMinutes) continue;
+    if (after && after.utcOffsetMinutes !== place.utcOffsetMinutes) continue;
     const proposal = [...state.route.slice(0, index), place, ...state.route.slice(index)];
     const plan = planOrder(proposal, config);
     if (!insertionPlanIsAcceptable(plan, priorEastward, priorDetours)) continue;
@@ -469,7 +530,7 @@ function addAtFeasiblePosition(state: InsertionState, place: Candidate, position
 function tryInsertCandidate(state: InsertionState, item: RankedInsertion, config: GeneratorConfig): void {
   if (!countryCapacity(item.place, state.counts, config)) return;
   if (!state.separation.allows(item.place)) return;
-  addAtFeasiblePosition(state, item.place, item.positions, config);
+  addAtFeasiblePosition(state, item.place, insertionPositions(state.route, item.place), config);
 }
 
 function insertFeasibleCandidates(initial: TimedCandidate[], pool: Candidate[], config: GeneratorConfig): TimedCandidate[] {
@@ -485,7 +546,9 @@ export function sweepOrder(places: Candidate[], config: GeneratorConfig = DEFAUL
   const initial = greedySweep(places, config);
   const improved = improveWithLocalSearch(initial, config);
   const expanded = insertFeasibleCandidates(improved, places, config);
-  const finalOrder = improveWithLocalSearch(expanded, config);
+  const compacted = improveWithLocalSearch(expanded, config);
+  const filled = insertFeasibleCandidates(compacted, places, config);
+  const finalOrder = improveWithLocalSearch(filled, config);
   const plan = planOrder(finalOrder, config);
   if (!plan) throw new Error('No route ordering satisfies the local Christmas window, speed limits, separation, and return deadline');
   return plan.places;

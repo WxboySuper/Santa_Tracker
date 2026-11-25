@@ -27,11 +27,13 @@ export type Candidate = LatLng & {
 export type GeneratorConfig = {
   seed: number;
   weights: Record<string, number>;
+  /** Local legs use a slower pace so dense regional chains take real flight time. */
+  localLegSpeedKmh: number;
   targetLegSpeedKmh: number;
   maxLegSpeedKmh: number;
   p90LegSpeedMaxKmh: number;
   minStopSeparationKm: number;
-  /** A six-stop ceiling keeps large countries from taking over the route. */
+  /** A twelve-stop ceiling leaves room for dense clusters without letting large country inventories dominate. */
   maxStopsPerCountry: number;
   underservedCountries: string[];
   generatedAt: string;
@@ -97,11 +99,12 @@ export const NORTH_POLE = { lat: 80, lng: 180 } as const;
 export const DEFAULT_GENERATOR_LIMITS: GeneratorConfig = {
   seed: 2026,
   weights: { hub: 30, cultural: 27.5, underserved: 25, nature: 12, special: 5.5 },
+  localLegSpeedKmh: 4_000,
   targetLegSpeedKmh: 19_000,
   maxLegSpeedKmh: 25_000,
   p90LegSpeedMaxKmh: 20_000,
   minStopSeparationKm: 20,
-  maxStopsPerCountry: 6,
+  maxStopsPerCountry: 12,
   underservedCountries: [],
   generatedAt: '2026-11-23T00:00:00.000Z',
 };

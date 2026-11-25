@@ -12,9 +12,9 @@ type ReviewRouteNode = {
   comment?: string;
   notes?: string | null;
   location?: { name?: string; country_code?: string; timezone?: string; timezone_offset?: number; lat?: number; lng?: number };
-  schedule?: { arrival_utc?: string | null };
+  schedule?: { arrival_utc?: string | null; departure_utc?: string | null };
   stop_experience?: { stop_tier?: string; duration_seconds?: number };
-  transit_to_here?: { distance_km?: number | null; speed_kmh?: number | null; eastward_reason?: string } | null;
+  transit_to_here?: { distance_km?: number | null; speed_kmh?: number | null; duration_seconds?: number; eastward_reason?: string } | null;
 };
 
 type LegacyLocation = { name: string; country_code: string; timezone: string; timezone_offset?: number; lat: number; lng: number };
@@ -62,17 +62,21 @@ describe('committed 2026 route draft', () => {
       readFile(routePath, 'utf8'), readFile(reviewPath, 'utf8'), readFile(docsPath, 'utf8'),
     ]);
     expect(storedRoute).toBe(serializeDraft(generated));
+    expect(generated.report.count).toBeGreaterThanOrEqual(500);
 
     const routeNodes = (JSON.parse(storedRoute) as { route_nodes: ReviewRouteNode[] }).route_nodes;
     const deliveries = routeNodes.filter((node) => node.type === 'DELIVERY');
     expect(deliveries).toHaveLength(generated.report.count);
     expect(new Set(deliveries.map((node) => node.candidate_id)).size).toBe(deliveries.length);
-    deliveries.forEach((node) => {
+    deliveries.forEach((node, index) => {
       const place = inputs.pool.find((candidate) => candidate.id === node.candidate_id);
       expect(place).toBeDefined();
       expect(isInChristmasWindow({ iso: node.schedule?.arrival_utc ?? '', timezoneOrOffset: place?.utcOffsetMinutes ?? 0 })).toBe(true);
       expect(node.stop_experience?.duration_seconds).toBeGreaterThan(0);
       expect(node.stop_experience?.stop_tier).toBeDefined();
+      const priorDeparture = Date.parse(routeNodes[index]?.schedule?.departure_utc ?? '');
+      const arrival = Date.parse(node.schedule?.arrival_utc ?? '');
+      expect(arrival - priorDeparture).toBeGreaterThanOrEqual((node.transit_to_here?.duration_seconds ?? 0) * 1000);
     });
 
     expect(generated.report.p90LegSpeedKmh).toBeLessThanOrEqual(inputs.config.p90LegSpeedMaxKmh);
@@ -80,6 +84,7 @@ describe('committed 2026 route draft', () => {
     expect(Date.parse(generated.report.routeEndUtc)).toBeLessThanOrEqual(Date.parse('2026-12-25T14:00:00.000Z'));
     expect(generated.report.eastwardLegs.every((leg) => ['dateline', 'offset-anomaly', 'return'].includes(leg.eastwardReason ?? ''))).toBe(true);
     expect(generated.report.detours).toEqual([]);
+    expect(Object.keys(generated.report.localArrivalHistogram).length).toBeGreaterThanOrEqual(5);
 
     const stopTable = /<table id="stops">.*?<tbody>(.*?)<\/tbody>/s.exec(review)?.[1] ?? '';
     expect([...stopTable.matchAll(/<tr>/g)]).toHaveLength(deliveries.length);
@@ -100,7 +105,7 @@ describe('committed 2026 route draft', () => {
       vetoIds: inputs.overrides.veto ?? [],
     });
     expect(audit.pass, audit.checks.filter((check) => !check.pass).map((check) => `${check.name}: ${check.detail}`).join('\n')).toBe(true);
-  }, 120_000);
+  }, 240_000);
 
   it('rejects the frozen pre-sweep route with the updated audit', async () => {
     const inputs = await loadGeneratorInputs({ seed: 2026 });

@@ -9,6 +9,7 @@ import {
   longitudeDelta,
   stopTier,
 } from './sweep';
+import { scheduledTravelMilliseconds } from './order';
 import { DEFAULT_GENERATOR_LIMITS, NORTH_POLE, TAKEOFF_UTC, type Candidate, type GeneratorConfig, type RouteDetourReport, type RouteLegReport, type RouteReport, type StopTier } from './types';
 
 function countsBy(places: Candidate[], key: (place: Candidate) => string): Record<string, number> {
@@ -154,7 +155,7 @@ export function buildReport(places: Candidate[], route: Route, config: Generator
   const last = requireValue(places.at(-1), 'Missing final route location');
   const lastStop = requireValue(route.stops.at(-1), 'Missing final route stop');
   const lastDeparture = Date.parse(lastStop.departureIso);
-  const routeEnd = lastDeparture + travelMilliseconds(haversineKm(last, NORTH_POLE), Math.min(config.maxLegSpeedKmh, config.p90LegSpeedMaxKmh * 0.95));
+  const routeEnd = lastDeparture + scheduledTravelMilliseconds(last, NORTH_POLE, config);
   const legs = [launchLeg(first, firstStop), ...deliveryLegs(places, route), returnLeg(last, lastStop, routeEnd)];
   const speeds = legs.map((leg) => leg.kmh);
   const coverage = populationCoverage(places, pool);
@@ -187,8 +188,4 @@ export function buildReport(places: Candidate[], route: Route, config: Generator
     lastDepartureUtc: new Date(lastDeparture).toISOString(),
     routeEndUtc: new Date(routeEnd).toISOString(),
   };
-}
-
-function travelMilliseconds(distanceKm: number, speedKmh: number): number {
-  return Math.ceil(distanceKm / speedKmh * 3_600_000);
 }

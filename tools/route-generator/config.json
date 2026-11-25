@@ -6,11 +6,12 @@
     "nature": 12,
     "special": 5.5
   },
+  "localLegSpeedKmh": 4000,
   "targetLegSpeedKmh": 19000,
   "maxLegSpeedKmh": 25000,
   "p90LegSpeedMaxKmh": 20000,
   "minStopSeparationKm": 20,
-  "maxStopsPerCountry": 6,
+  "maxStopsPerCountry": 12,
   "underservedCountries": [
     "DZ",
     "AO",

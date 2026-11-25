@@ -17,9 +17,10 @@ writes a North Pole `START`, a timed delivery node for every selected stop and a
 ## Sweep and pacing
 
 Takeoff is 2026-12-24 10:00 UTC. The route follows local midnight west and must return by 2026-12-25 14:00 UTC.
-Every delivery arrives between 23:00 Dec 24 and 05:00 Dec 25 at its destination. The scheduler aims for 01:00
-local time when travel allows, then selects feasible stops to expand country coverage and stop count. There is no
-fixed route total, hand-pinned order, arrival anchor, UTC-offset cap or category quota.
+Every delivery arrives between 23:00 Dec 24 and 05:00 Dec 25 at its destination. The scheduler uses the full
+window instead of anchoring arrivals at 01:00. Stops south of 35 degrees latitude must arrive by 02:30 local time.
+The generator maximizes stops, then country coverage, with a scale target of 550-700 and a 500-stop floor. There is
+no fixed route total, hand-pinned order, arrival anchor, UTC-offset cap or category quota.
 
 Stop dwell is tiered: `major` 60 seconds, `city` 30 seconds, `town` 10 seconds and `hop` 3 seconds. A major stop
 has population at least 1,000,000, is a national capital with population at least 250,000, or is a curated
@@ -31,12 +32,17 @@ cannot be identified from those snapshots yet.
 
 Each arrival can follow the previous stop's dwell as soon as travel at the planned speed permits. There is no extra
 minimum gap. The p90 leg speed is at most 20,000 km/h and no leg exceeds 25,000 km/h. Stops must be at least
-20 km apart. The generator allows at most six stops per country to keep large populated-place inventories from
-crowding out other countries and territories.
+20 km apart. Local legs use 4,000 km/h. Legs of at least 1,500 km use 19,000 km/h only for cross-continent, island
+or polar crossings. Long overland legs use the local speed. The generator allows at most twelve stops per country
+to limit country flooding while leaving room for dense local clusters.
 
-The seeded greedy sweep favors a newly covered country, westward progress, short legs and local arrival timing.
-Constrained 2-opt and or-opt moves improve the sequence while preserving speed, time-window, separation and return
-limits; they never add eastward legs or detours.
+The seeded sweep assigns each exact UTC offset, including half-hour and quarter-hour offsets, a band. At each step
+it ranks feasible candidates across the remaining pool, with local proximity first, then new countries, a
+north-to-south or south-to-north preference that alternates by band, and shorter dwell tiers. This keeps dense
+clusters together without waiting to empty a whole band before moving west. Constrained 2-opt and or-opt moves
+consider stops within one offset band and preserve speed, local windows, separation, westward progress, the return
+deadline and detour limits. The generator rejects all eastward delivery legs; only the initial date-line launch or
+final return can be eastward.
 
 ## Eastward legs and detours
 
@@ -60,6 +66,9 @@ allow-list, timezone points and committed UTC offsets for Christmas 2026. The au
 against committed country bounds and verifies timezone-country membership. The refresh scripts are available at
 `tools/route-generator/refresh-country-bounds.mjs`, `refresh-curated.mjs` and `refresh-places.mjs`; refresh results
 must be checked against the committed country bounds and zone allow-lists.
+
+The current place and curated snapshots have no state, province or territory identifier. The generator cannot
+verify US state, Canadian province or Australian state coverage until the source data includes those fields.
 
 The generated HTML review includes stop and tier totals, country and continent coverage, path length, median, p90
 and maximum leg speeds, local-arrival histogram, every eastward leg with its reason, detour flags, the 20 longest

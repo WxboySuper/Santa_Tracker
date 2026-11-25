@@ -4,7 +4,7 @@ import { haversineKm, legSpeedKmh, type LatLng } from '../geo';
 import { validateRoute } from '../validate';
 import { applyCandidateOverrides, type RouteOverrides } from './overrides';
 import { chooseCandidates } from './candidates';
-import { sweepOrder } from './order';
+import { scheduledTravelMilliseconds, sweepOrder } from './order';
 import { buildReport } from './report';
 import { eastwardLegReason, isEastwardDelta, isInChristmasWindow, localClock, longitudeDelta, stopDurationSeconds, stopTier } from './sweep';
 import { DEFAULT_GENERATOR_LIMITS, NORTH_POLE, RETURN_DEADLINE_UTC, TAKEOFF_UTC, type Candidate, type GeneratedRoute, type GeneratorConfig, type RouteReport } from './types';
@@ -83,7 +83,7 @@ type TransitOptions = {
 };
 
 function transit({ from, to, fromDeparture, toArrival, description, cameraZoom = 9, eastwardReason }: TransitOptions) {
-  const durationSeconds = Math.max(0, Math.ceil((toArrival - fromDeparture) / 1000));
+  const durationSeconds = Math.max(0, Math.floor((toArrival - fromDeparture) / 1000));
   const distanceKm = haversineKm(from, to);
   const speedKmh = durationSeconds > 0 ? legSpeedKmh(from, to, durationSeconds) ?? 0 : 0;
   const result: Record<string, unknown> = {
@@ -181,9 +181,7 @@ function buildDeliveryNode({ place, index, config, tables, priorLocation, priorD
 }
 
 function endNode(last: Candidate, priorDeparture: number, config: GeneratorConfig): { node: Record<string, unknown>; routeEndUtc: string } {
-  const returnDistance = haversineKm(last, NORTH_POLE);
-  const returnSpeed = Math.min(config.maxLegSpeedKmh, config.p90LegSpeedMaxKmh * 0.95);
-  const returnSeconds = Math.max(1, Math.ceil(returnDistance / returnSpeed * 3600));
+  const returnSeconds = Math.max(1, Math.ceil(scheduledTravelMilliseconds(last, NORTH_POLE, config) / 1000));
   const endArrival = priorDeparture + returnSeconds * 1000;
   const endDeparture = endArrival + 1000;
   return {
@@ -254,6 +252,7 @@ function assertSafeIntegerSetting(value: number, minimum: number, message: strin
 
 function validateSpeedAndDistanceSettings(config: GeneratorConfig): void {
   const positives: [number, string, boolean][] = [
+    [config.localLegSpeedKmh, 'Invalid local leg speed', false],
     [config.targetLegSpeedKmh, 'Invalid target leg speed', false],
     [config.maxLegSpeedKmh, 'Invalid maximum leg speed', false],
     [config.p90LegSpeedMaxKmh, 'Invalid p90 speed maximum', false],
