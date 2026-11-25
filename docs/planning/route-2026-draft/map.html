@@ -51,7 +51,7 @@ function show(k){
   map.setPaintProperty('pts','circle-stroke-opacity',['case',on,1,0.2]);}
  const n=nodes[k];clock.textContent=k+'. '+n.name+' - '+t(n.arr||n.dep);
  [...list.children].forEach((li,i)=>li.classList.toggle('on',i===k));}
-map.on('load',()=>{
+let drawn=false;function drawRoute(){if(drawn||!map.isStyleLoaded())return;drawn=true;
  map.addSource('legs',{type:'geojson',data:{type:'FeatureCollection',features:legs}});
  map.addSource('pts',{type:'geojson',data:{type:'FeatureCollection',features:pts}});
  map.addLayer({id:'legs',type:'line',source:'legs',paint:{'line-color':'#b00020','line-width':2}});
@@ -62,7 +62,8 @@ map.on('load',()=>{
  map.on('mouseleave','pts',()=>map.getCanvas().style.cursor='');
  const b=new maplibregl.LngLatBounds();nodes.forEach(n=>b.extend([n.ulng,n.lat]));map.fitBounds(b,{padding:30,duration:0});
  show(+scrub.value);
-});
+}
+map.on('style.load',drawRoute);map.on('load',drawRoute);
 nodes.forEach((n,i)=>{const li=document.createElement('li');li.innerHTML=n.name+' <small>'+n.region+' &middot; '+(n.local?'local '+n.local:t(n.dep))+'</small>';
  li.onclick=()=>{map.flyTo({center:[n.ulng,n.lat],zoom:5});popup(i);};list.appendChild(li);});
 scrub.oninput=()=>show(+scrub.value);show(+scrub.value);
