@@ -10,7 +10,7 @@ import { useTrackerViewMode } from "@/lib/tracker-view-mode";
 import { useRouteNodes, useSantaPosition } from "./tracker-map-data-hooks";
 import { TrackerMapView } from "./tracker-map-view";
 
-interface TrackerMapProps { adventEnabled: boolean; locale: string }
+interface TrackerMapProps { adventEnabled: boolean; locale: string; routeSource?: string }
 interface TvModeContext {
   session: { current: { mode: MapMode; following: boolean } | null };
   mode: MapMode;
@@ -20,12 +20,12 @@ interface TvModeContext {
   adapter: { current: TrackerMapAdapter | null };
 }
 
-export default function TrackerMap({ adventEnabled, locale }: TrackerMapProps) {
+export default function TrackerMap({ adventEnabled, locale, routeSource }: TrackerMapProps) {
   const translator = useMemo(() => createTranslator({ locale }), [locale]);
   const element = useRef<HTMLDivElement>(null);
   const adapter = useRef<TrackerMapAdapter | null>(null);
   const [mode, dispatch] = useReducer(mapModeReducer, "vector");
-  const [nodes, status] = useRouteNodes(translator);
+  const [nodes, status] = useRouteNodes(translator, routeSource);
   const position = useSantaPosition(nodes);
   const [following, setFollowing] = useState(true);
   const tvSession = useRef<{ mode: MapMode; following: boolean } | null>(null);

@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { DEFAULT_LOCALE, createTranslator } from "@santa-tracker/localization";
 import { countdownTarget, formatCountdown } from "@/lib/countdown";
+import { useTrackerNow } from "@/lib/use-tracker-now";
 
 interface CountdownProps {
   className?: string;
@@ -18,15 +19,10 @@ export default function Countdown({ className, flyingText, locale = DEFAULT_LOCA
     setValue(translator.t("countdown.loading"));
   }, [translator]);
 
+  const now = useTrackerNow();
   useEffect(() => {
-    const update = () => {
-      const now = new Date();
-      setValue(formatCountdown(countdownTarget(now), now, flyingText ?? translator.t("countdown.onHisWay")));
-    };
-    update();
-    const timer = window.setInterval(update, 1_000);
-    return () => window.clearInterval(timer);
-  }, [flyingText, translator]);
+    setValue(formatCountdown(countdownTarget(now), now, flyingText ?? translator.t("countdown.onHisWay")));
+  }, [flyingText, now, translator]);
 
   return <div className={className} aria-live="polite">{value}</div>;
 }

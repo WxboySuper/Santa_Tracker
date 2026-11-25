@@ -1,0 +1,93 @@
+/* Route demo playback bar: a dark glass strip along the bottom, above the tracker. */
+.route-demo-bar {
+  position: fixed;
+  /* Right-aligned so the tracker's own notices in the bottom-left stay readable. */
+  right: 1rem;
+  bottom: 2.25rem;
+  z-index: 60;
+  width: min(50rem, calc(100vw - 2rem));
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid rgb(255 255 255 / 0.15);
+  border-radius: 1rem;
+  background: rgb(10 18 40 / 0.82);
+  backdrop-filter: blur(10px);
+  color: #f5f1e6;
+  font-size: 0.9rem;
+  box-shadow: 0 8px 30px rgb(0 0 0 / 0.35);
+}
+
+.route-demo-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.route-demo-bar button {
+  min-width: 2.25rem;
+  min-height: 2.25rem;
+  border-radius: 0.6rem;
+  background: rgb(255 255 255 / 0.1);
+  color: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.route-demo-bar button:hover { background: rgb(255 255 255 / 0.2); }
+
+.route-demo-bar button:focus-visible,
+.route-demo-scrub:focus-visible {
+  outline: 3px solid #fcd34d;
+  outline-offset: 2px;
+}
+
+.route-demo-play {
+  background: #b91c1c !important;
+  min-width: 2.75rem !important;
+}
+
+.route-demo-step { font-size: 1.25rem; line-height: 1; }
+
+.route-demo-speeds {
+  display: flex;
+  gap: 0.25rem;
+  margin-left: 0.25rem;
+}
+
+.route-demo-speed { padding: 0 0.6rem; font-variant-numeric: tabular-nums; }
+
+.route-demo-speed[aria-pressed="true"] {
+  background: #fcd34d !important;
+  color: #1c1917 !important;
+}
+
+.route-demo-clock {
+  margin-left: auto;
+  font-variant-numeric: tabular-nums;
+  color: #fde68a;
+}
+
+.route-demo-scrub {
+  width: 100%;
+  accent-color: #dc2626;
+}
+
+.route-demo-readout {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.35rem 0.9rem;
+  min-height: 1.5rem;
+}
+
+.route-demo-readout strong { font-size: 1.05rem; }
+
+.route-demo-readout span { color: rgb(245 241 230 / 0.75); }
+
+.route-demo-count {
+  margin-left: auto;
+  font-variant-numeric: tabular-nums;
+}
