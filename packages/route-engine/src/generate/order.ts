@@ -206,6 +206,14 @@ type SweepState = {
   priorDeparture: number;
 };
 
+type SweepRanking = {
+  bandIndices: Map<string, number>;
+  randomRanks: Map<string, number>;
+  config: GeneratorConfig;
+};
+
+type RankedStop = { stop: PlannedStop; score: number };
+
 function betterPlannedStop(candidate: PlannedStop, score: number, best: PlannedStop | undefined, bestScore: number): boolean {
   return score > bestScore || (score === bestScore && candidate.place.id.localeCompare(best?.place.id ?? '') < 0);
 }
@@ -215,28 +223,37 @@ function previousIdeal(route: TimedCandidate[]): number | undefined {
   return last?.utcOffsetMinutes === undefined ? undefined : christmasWindow(last.utcOffsetMinutes).idealUtc;
 }
 
-function bestFeasibleStop(state: SweepState, candidates: Candidate[], bandIndices: Map<string, number>,
-  randomRanks: Map<string, number>, config: GeneratorConfig): PlannedStop | undefined {
-  let best: PlannedStop | undefined;
-  let bestScore = Number.NEGATIVE_INFINITY;
-  for (const candidate of candidates) {
-    if (!state.remaining.has(candidate.id)) continue;
-    if (!countryCapacity(candidate, state.countryCounts, config) || !state.separation.allows(candidate)) continue;
-    if (!timingAndDetourAllows(candidate, state.route)) continue;
-    const stop = candidateTiming({ place: candidate, prior: state.prior, priorDeparture: state.priorDeparture,
-      index: state.route.length, config });
-    if (!stop) continue;
-    const score = optionScore({ stop, prior: state.prior,
-      priorDeparture: state.priorDeparture, previousIdeal: previousIdeal(state.route),
-      newCountry: !state.countryCounts.has(candidate.country),
-      isLaunch: state.route.length === 0,
-      latitudeDirection: (bandIndices.get(candidate.id) ?? 0) % 2 === 0 ? -1 : 1,
-      randomRank: randomRanks.get(candidate.id) ?? 0, config });
-    if (!betterPlannedStop(stop, score, best, bestScore)) continue;
-    best = stop;
-    bestScore = score;
+function candidateCanExtendRoute(state: SweepState, place: Candidate, config: GeneratorConfig): boolean {
+  return state.remaining.has(place.id)
+    && countryCapacity(place, state.countryCounts, config)
+    && state.separation.allows(place)
+    && timingAndDetourAllows(place, state.route);
+}
+
+function scoreFeasibleCandidate(state: SweepState, place: Candidate, ranking: SweepRanking): RankedStop | undefined {
+  const { config, bandIndices, randomRanks } = ranking;
+  if (!candidateCanExtendRoute(state, place, config)) return undefined;
+  const stop = candidateTiming({ place, prior: state.prior, priorDeparture: state.priorDeparture,
+    index: state.route.length, config });
+  if (!stop) return undefined;
+  const score = optionScore({ stop, prior: state.prior,
+    priorDeparture: state.priorDeparture, previousIdeal: previousIdeal(state.route),
+    newCountry: !state.countryCounts.has(place.country),
+    isLaunch: state.route.length === 0,
+    latitudeDirection: (bandIndices.get(place.id) ?? 0) % 2 === 0 ? -1 : 1,
+    randomRank: randomRanks.get(place.id) ?? 0, config });
+  return { stop, score };
+}
+
+function bestFeasibleStop(state: SweepState, candidates: Candidate[], ranking: SweepRanking): PlannedStop | undefined {
+  let best: RankedStop | undefined;
+  for (const place of candidates) {
+    const candidate = scoreFeasibleCandidate(state, place, ranking);
+    if (!candidate) continue;
+    if (best && !betterPlannedStop(candidate.stop, candidate.score, best.stop, best.score)) continue;
+    best = candidate;
   }
-  return best;
+  return best?.stop;
 }
 
 function advanceSweep(state: SweepState, stop: PlannedStop): void {
@@ -280,10 +297,11 @@ function offsetBands(pool: Candidate[]): Candidate[][] {
 function executeGreedySweep(state: SweepState, bands: Candidate[][], randomRanks: Map<string, number>, config: GeneratorConfig): void {
   const bandIndices = new Map<string, number>();
   bands.forEach((band, index) => band.forEach((place) => bandIndices.set(place.id, index)));
+  const ranking: SweepRanking = { bandIndices, randomRanks, config };
   // Exact-offset bands set the alternating latitude preference. Candidates can
   // interleave where their local windows overlap to keep the route connected.
   while (state.remaining.size > 0) {
-    const next = bestFeasibleStop(state, [...state.remaining.values()], bandIndices, randomRanks, config);
+    const next = bestFeasibleStop(state, [...state.remaining.values()], ranking);
     if (!next) break;
     advanceSweep(state, next);
   }

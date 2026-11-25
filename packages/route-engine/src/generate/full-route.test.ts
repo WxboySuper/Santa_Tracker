@@ -51,6 +51,68 @@ function legacySelected(nodes: ReviewRouteNode[]): Candidate[] {
   });
 }
 
+type GeneratorInputs = Awaited<ReturnType<typeof loadGeneratorInputs>>;
+type GeneratedDraft = ReturnType<typeof generateDraft>;
+
+function expectDeliveriesAreTimed(deliveries: ReviewRouteNode[], routeNodes: ReviewRouteNode[], inputs: GeneratorInputs,
+  expectedCount: number): void {
+  expect(deliveries).toHaveLength(expectedCount);
+  expect(new Set(deliveries.map((node) => node.candidate_id)).size).toBe(deliveries.length);
+  deliveries.forEach((node, index) => {
+    const place = inputs.pool.find((candidate) => candidate.id === node.candidate_id);
+    expect(place).toBeDefined();
+    expect(isInChristmasWindow({ iso: node.schedule?.arrival_utc ?? '', timezoneOrOffset: place?.utcOffsetMinutes ?? 0 })).toBe(true);
+    expect(node.stop_experience?.duration_seconds).toBeGreaterThan(0);
+    expect(node.stop_experience?.stop_tier).toBeDefined();
+    const priorDeparture = Date.parse(routeNodes[index]?.schedule?.departure_utc ?? '');
+    const arrival = Date.parse(node.schedule?.arrival_utc ?? '');
+    expect(arrival - priorDeparture).toBeGreaterThanOrEqual((node.transit_to_here?.duration_seconds ?? 0) * 1000);
+  });
+}
+
+function expectReportMeetsFlightLimits(generated: GeneratedDraft, inputs: GeneratorInputs): void {
+  const report = generated.report;
+  expect(report.p90LegSpeedKmh).toBeLessThanOrEqual(inputs.config.p90LegSpeedMaxKmh);
+  expect(report.maxLegSpeedKmh).toBeLessThanOrEqual(inputs.config.maxLegSpeedKmh);
+  expect(Date.parse(report.routeEndUtc)).toBeLessThanOrEqual(Date.parse('2026-12-25T14:00:00.000Z'));
+  expect(report.eastwardLegs.every((leg) => ['dateline', 'offset-anomaly', 'return'].includes(leg.eastwardReason ?? ''))).toBe(true);
+  expect(report.detours).toEqual([]);
+  expect(Object.keys(report.localArrivalHistogram).length).toBeGreaterThanOrEqual(5);
+  expect(report.localArrivalMin).toMatch(/^23:|^00:/);
+  expect(report.localArrivalMax).toMatch(/^0[0-5]:/);
+  expect(report.deliveryLegCount).toBe(report.count - 1);
+  expect(report.shortDeliveryLegCount).toBeGreaterThan(400);
+  expect(report.uncoveredCountryCodes.length).toBeGreaterThan(0);
+  expect(Object.keys(report.offsetBalance).length).toBeGreaterThan(10);
+}
+
+function expectReviewIncludesReport(review: string, docs: string, deliveries: ReviewRouteNode[], generated: GeneratedDraft): void {
+  const stopTable = /<table id="stops">.*?<tbody>(.*?)<\/tbody>/s.exec(review)?.[1] ?? '';
+  expect([...stopTable.matchAll(/<tr>/g)]).toHaveLength(deliveries.length);
+  expect(review).toContain('Every eastward leg and its reason');
+  expect(review).toContain('Detour checks');
+  expect(review).toContain('Local arrival histogram');
+  expect(review).toContain('Stop tiers');
+  expect(review).toContain('Candidate countries not reached');
+  expect(review).toContain(generated.report.subnationalCoverageNote);
+  expect(docs).toContain('fixed route total');
+}
+
+function expectAuditPasses(storedRoute: string, generated: GeneratedDraft, inputs: GeneratorInputs): void {
+  const audit = auditRouteDocument(JSON.parse(storedRoute) as unknown, {
+    config: inputs.config,
+    pool: inputs.pool,
+    selected: generated.locations,
+    zonesByCountry: inputs.tables.zonesByCountry,
+    utcOffsetsByTimezone: inputs.tables.utcOffsetsByTimezone,
+    countryBoundsByCode: inputs.tables.countryBoundsByCode,
+    report: generated.report,
+    vetoIds: inputs.overrides.veto ?? [],
+  });
+  const failures = audit.checks.filter((check) => !check.pass).map((check) => `${check.name}: ${check.detail}`);
+  expect(audit.pass, failures.join('\n')).toBe(true);
+}
+
 describe('committed 2026 route draft', () => {
   it('matches seeded generation, the local window, tier dwell and review report', async () => {
     const inputs = await loadGeneratorInputs({ seed: 2026 });
@@ -65,56 +127,12 @@ describe('committed 2026 route draft', () => {
     expect(generated.report.count).toBeGreaterThanOrEqual(500);
     expect(generated.report.candidateCount).toBeGreaterThan(generated.report.count);
     expect(generated.report.unselectedCandidateCount).toBe(generated.report.candidateCount - generated.report.count);
-
     const routeNodes = (JSON.parse(storedRoute) as { route_nodes: ReviewRouteNode[] }).route_nodes;
     const deliveries = routeNodes.filter((node) => node.type === 'DELIVERY');
-    expect(deliveries).toHaveLength(generated.report.count);
-    expect(new Set(deliveries.map((node) => node.candidate_id)).size).toBe(deliveries.length);
-    deliveries.forEach((node, index) => {
-      const place = inputs.pool.find((candidate) => candidate.id === node.candidate_id);
-      expect(place).toBeDefined();
-      expect(isInChristmasWindow({ iso: node.schedule?.arrival_utc ?? '', timezoneOrOffset: place?.utcOffsetMinutes ?? 0 })).toBe(true);
-      expect(node.stop_experience?.duration_seconds).toBeGreaterThan(0);
-      expect(node.stop_experience?.stop_tier).toBeDefined();
-      const priorDeparture = Date.parse(routeNodes[index]?.schedule?.departure_utc ?? '');
-      const arrival = Date.parse(node.schedule?.arrival_utc ?? '');
-      expect(arrival - priorDeparture).toBeGreaterThanOrEqual((node.transit_to_here?.duration_seconds ?? 0) * 1000);
-    });
-
-    expect(generated.report.p90LegSpeedKmh).toBeLessThanOrEqual(inputs.config.p90LegSpeedMaxKmh);
-    expect(generated.report.maxLegSpeedKmh).toBeLessThanOrEqual(inputs.config.maxLegSpeedKmh);
-    expect(Date.parse(generated.report.routeEndUtc)).toBeLessThanOrEqual(Date.parse('2026-12-25T14:00:00.000Z'));
-    expect(generated.report.eastwardLegs.every((leg) => ['dateline', 'offset-anomaly', 'return'].includes(leg.eastwardReason ?? ''))).toBe(true);
-    expect(generated.report.detours).toEqual([]);
-    expect(Object.keys(generated.report.localArrivalHistogram).length).toBeGreaterThanOrEqual(5);
-    expect(generated.report.localArrivalMin).toMatch(/^23:|^00:/);
-    expect(generated.report.localArrivalMax).toMatch(/^0[0-5]:/);
-    expect(generated.report.deliveryLegCount).toBe(generated.report.count - 1);
-    expect(generated.report.shortDeliveryLegCount).toBeGreaterThan(400);
-    expect(generated.report.uncoveredCountryCodes.length).toBeGreaterThan(0);
-    expect(Object.keys(generated.report.offsetBalance).length).toBeGreaterThan(10);
-
-    const stopTable = /<table id="stops">.*?<tbody>(.*?)<\/tbody>/s.exec(review)?.[1] ?? '';
-    expect([...stopTable.matchAll(/<tr>/g)]).toHaveLength(deliveries.length);
-    expect(review).toContain('Every eastward leg and its reason');
-    expect(review).toContain('Detour checks');
-    expect(review).toContain('Local arrival histogram');
-    expect(review).toContain('Stop tiers');
-    expect(review).toContain('Candidate countries not reached');
-    expect(review).toContain(generated.report.subnationalCoverageNote);
-    expect(docs).toContain('fixed route total');
-
-    const audit = auditRouteDocument(JSON.parse(storedRoute) as unknown, {
-      config: inputs.config,
-      pool: inputs.pool,
-      selected: generated.locations,
-      zonesByCountry: inputs.tables.zonesByCountry,
-      utcOffsetsByTimezone: inputs.tables.utcOffsetsByTimezone,
-      countryBoundsByCode: inputs.tables.countryBoundsByCode,
-      report: generated.report,
-      vetoIds: inputs.overrides.veto ?? [],
-    });
-    expect(audit.pass, audit.checks.filter((check) => !check.pass).map((check) => `${check.name}: ${check.detail}`).join('\n')).toBe(true);
+    expectDeliveriesAreTimed(deliveries, routeNodes, inputs, generated.report.count);
+    expectReportMeetsFlightLimits(generated, inputs);
+    expectReviewIncludesReport(review, docs, deliveries, generated);
+    expectAuditPasses(storedRoute, generated, inputs);
   }, 240_000);
 
   it('rejects the frozen pre-sweep route with the updated audit', async () => {
