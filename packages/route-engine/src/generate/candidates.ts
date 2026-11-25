@@ -2,6 +2,7 @@ import { applyCandidateOverrides, type RouteOverrides } from './overrides';
 import type { Candidate, GeneratorConfig } from './types';
 
 export type CandidateSelection = { candidates: Candidate[]; invalidCandidateIds: string[] };
+type CandidateRows = { candidates: Candidate[]; rowLabels: string[]; invalidCandidateIds: string[] };
 
 function routeCategory(place: Candidate, config: GeneratorConfig): string {
   if (['cultural', 'nature', 'special'].includes(place.category)) return place.category;
@@ -42,43 +43,55 @@ function rowLabel(value: unknown, index: number): string {
   return `row-${index + 1}`;
 }
 
-function wikidataCandidate(place: Candidate): boolean {
-  return /^Q\d+$/.test(place.id) || /wikidata\.org\/wiki\/Q\d+/.test(place.source ?? '');
-}
-
-/** Return the full eligible pool. The old route lock describes a reviewed selection, not this sweep. */
-export function chooseCandidates(pool: Candidate[], config: GeneratorConfig, overrides: RouteOverrides = {}): CandidateSelection {
-  const vetoed = new Set(overrides.veto ?? []);
-  const records: { place: Candidate; rowLabel: string }[] = [];
+function collectCandidateRows(pool: Candidate[]): CandidateRows {
+  const candidates: Candidate[] = [];
+  const rowLabels: string[] = [];
   const invalidCandidateIds: string[] = [];
   for (const [index, place] of pool.entries()) {
     if (!isCandidateRecord(place)) {
       invalidCandidateIds.push(rowLabel(place, index));
       continue;
     }
-    records.push({ place, rowLabel: rowLabel(place, index) });
+    candidates.push(place);
+    rowLabels.push(rowLabel(place, index));
   }
-  const updated = applyCandidateOverrides(records.map(({ place }) => place), overrides);
-  const seen = new Set<string>();
-  const result: Candidate[] = [];
-  for (const [index, place] of updated.entries()) {
-    if (hasNonEmptyText(place.id) && vetoed.has(place.id)) continue;
-    if (!validCandidate(place)) {
-      invalidCandidateIds.push(records[index]?.rowLabel ?? `row-${index + 1}`);
-      continue;
-    }
-    if (shouldSkipCandidate(place, vetoed, seen)) continue;
-    seen.add(place.id);
-    result.push(enrichCandidate(place, config));
-  }
-  if (result.length === 0) throw new Error('No eligible route candidates remain after vetoes and validation');
-  return { candidates: result, invalidCandidateIds };
+  return { candidates, rowLabels, invalidCandidateIds };
 }
 
-function shouldSkipCandidate(place: Candidate, vetoed: Set<string>, seen: Set<string>): boolean {
-  if (vetoed.has(place.id)) return true;
-  if (seen.has(place.id)) return true;
-  return false;
+function wikidataCandidate(place: Candidate): boolean {
+  return /^Q\d+$/.test(place.id) || /wikidata\.org\/wiki\/Q\d+/.test(place.source ?? '');
+}
+
+function isVetoedCandidate(place: Candidate, vetoed: Set<string>): boolean {
+  return hasNonEmptyText(place.id) && vetoed.has(place.id);
+}
+
+function validateAndEnrichCandidates(updated: Candidate[], rowLabels: string[], vetoed: Set<string>, config: GeneratorConfig): CandidateSelection {
+  const seen = new Set<string>();
+  const candidates: Candidate[] = [];
+  const invalidCandidateIds: string[] = [];
+  for (const [index, place] of updated.entries()) {
+    if (isVetoedCandidate(place, vetoed)) continue;
+    if (!validCandidate(place)) {
+      invalidCandidateIds.push(rowLabels[index] ?? `row-${index + 1}`);
+      continue;
+    }
+    if (seen.has(place.id)) continue;
+    seen.add(place.id);
+    candidates.push(enrichCandidate(place, config));
+  }
+  return { candidates, invalidCandidateIds };
+}
+
+/** Return the full eligible pool. The old route lock describes a reviewed selection, not this sweep. */
+export function chooseCandidates(pool: Candidate[], config: GeneratorConfig, overrides: RouteOverrides = {}): CandidateSelection {
+  const vetoed = new Set(overrides.veto ?? []);
+  const rows = collectCandidateRows(pool);
+  const updated = applyCandidateOverrides(rows.candidates, overrides);
+  const selection = validateAndEnrichCandidates(updated, rows.rowLabels, vetoed, config);
+  const invalidCandidateIds = [...rows.invalidCandidateIds, ...selection.invalidCandidateIds];
+  if (selection.candidates.length === 0) throw new Error('No eligible route candidates remain after vetoes and validation');
+  return { ...selection, invalidCandidateIds };
 }
 
 function enrichCandidate(place: Candidate, config: GeneratorConfig): Candidate {
