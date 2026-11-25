@@ -88,6 +88,7 @@ const LegacyScheduleSchema = z.object({
 
 const LegacyStopExperienceSchema = z.object({
   duration_seconds: z.number().int().nonnegative().nullable().optional(),
+  stop_tier: z.enum(['major', 'city', 'town', 'hop']).optional(),
   camera_zoom: z.number().int().nullable().optional(),
   weather_condition: z.string().min(1).nullable().optional(),
   presents_delivered_at_stop: z.number().int().nonnegative().nullable().optional(),
@@ -100,6 +101,7 @@ const LegacyTransitSchema = z.object({
   speed_curve: z.string().min(1).nullable().optional(),
   speed_kmh: z.number().nonnegative().nullable().optional(),
   camera_zoom: z.number().int().nullable().optional(),
+  eastward_reason: z.enum(['dateline', 'offset-anomaly', 'return']).optional(),
 });
 
 export const LegacyRouteNodeSchema = z.object({

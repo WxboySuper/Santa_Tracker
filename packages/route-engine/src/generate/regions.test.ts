@@ -32,4 +32,25 @@ describe('classifyRegion', () => {
       expect(() => classifyRegion(candidate(country, routeNode?.location.name, routeNode?.location.lat, routeNode?.location.lng))).not.toThrow();
     }
   });
+
+  it('maps every country code in the candidate snapshots', async () => {
+    type SnapshotPlace = { id: string; name: string; country: string; lat: number; lng: number; timezone: string; category?: string };
+    const [placesText, curatedText] = await Promise.all([
+      readFile(new URL('../../../../tools/route-generator/data/places.json', import.meta.url), 'utf8'),
+      readFile(new URL('../../../../tools/route-generator/data/curated.json', import.meta.url), 'utf8'),
+    ]);
+    const places = [...JSON.parse(placesText) as SnapshotPlace[], ...JSON.parse(curatedText) as SnapshotPlace[]];
+    const examples = new Map<string, SnapshotPlace>();
+    places.forEach((place) => examples.set(place.country, place));
+
+    const unmapped: string[] = [];
+    for (const [country, place] of examples) {
+      try {
+        classifyRegion({ ...place, category: place.category ?? 'populated' });
+      } catch (error) {
+        unmapped.push(`${country}: ${error instanceof Error ? error.message : String(error)}`);
+      }
+    }
+    expect(unmapped).toEqual([]);
+  });
 });

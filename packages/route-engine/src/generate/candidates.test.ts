@@ -2,69 +2,27 @@ import { describe, expect, it } from 'vitest';
 import { chooseCandidates } from './candidates';
 import { DEFAULT_GENERATOR_LIMITS, type Candidate } from './types';
 
-const countries = ['US', 'CA', 'MX', 'BZ', 'GT', 'HN', 'PA', 'SV', 'AR', 'BO', 'BR', 'CL', 'CO', 'EC', 'PE', 'PY', 'SR', 'VE', 'AU', 'NZ'];
-const pool: Candidate[] = Array.from({ length: 20 }, (_, index) => ({
-  id: `place-${index}`,
-  name: `Place ${index}`,
-  country: countries[index] ?? 'US',
-  lat: index,
-  lng: index,
-  timezone: index < 10 ? 'America/New_York' : 'Asia/Kolkata',
-  utcOffsetMinutes: index < 10 ? -300 : 330,
-  category: 'hub',
-  population: 2_000_000,
-}));
+const pool: Candidate[] = [
+  { id: 'city-a', name: 'City A', country: 'AA', lat: 1, lng: 1, timezone: 'UTC', utcOffsetMinutes: 0, category: 'populated', population: 300_000 },
+  { id: 'town-b', name: 'Town B', country: 'BB', lat: 2, lng: 2, timezone: 'UTC', utcOffsetMinutes: 0, category: 'populated', population: 20_000 },
+  { id: 'landmark-c', name: 'Landmark C', country: 'CC', lat: 3, lng: 3, timezone: 'UTC', utcOffsetMinutes: 0, category: 'cultural', source: 'https://www.wikidata.org/wiki/Q3' },
+];
 
 describe('chooseCandidates', () => {
-  it('filters vetoed ids before category quota selection', () => {
-    const config = { ...DEFAULT_GENERATOR_LIMITS, total: 10, maxStopsPerUtcOffset: 40, weights: { hub: 1 }, endStopId: 'place-19' };
-    const first = chooseCandidates(pool, config, {});
-    const vetoedWest = first.find((place) => place.timezone === 'America/New_York');
-    if (!vetoedWest) throw new Error('Expected a western candidate in the initial selection');
-
-    const selected = chooseCandidates(pool, config, { veto: [vetoedWest.id] });
-
-    expect(selected.map((place) => place.id)).not.toContain(vetoedWest.id);
-    expect(selected).toHaveLength(10);
-    expect(selected.every((place) => place.category === 'hub')).toBe(true);
+  it('keeps the full pool and classifies populated places for tie-breaking', () => {
+    const result = chooseCandidates(pool, { ...DEFAULT_GENERATOR_LIMITS, underservedCountries: ['BB'] });
+    expect(result.map((place) => place.id)).toEqual(['city-a', 'town-b', 'landmark-c']);
+    expect(result.map((place) => place.category)).toEqual(['hub', 'underserved', 'cultural']);
   });
 
-  it('selects from the configured category without a regional preference quota', () => {
-    const config = { ...DEFAULT_GENERATOR_LIMITS, total: 1, maxStopsPerUtcOffset: 40, weights: { hub: 1 }, endStopId: 'place-0' };
-    const selected = chooseCandidates(pool, config, {});
-    expect(selected[0]?.timezone).toBe('America/New_York');
+  it('applies the sensitive-place veto without restoring an old route lock', () => {
+    const result = chooseCandidates(pool, DEFAULT_GENERATOR_LIMITS, { lock: ['city-a'], veto: ['city-a'] });
+    expect(result.map((place) => place.id)).toEqual(['town-b', 'landmark-c']);
   });
 
-  it('preserves category quota after a same-category swap', () => {
-    const config = { ...DEFAULT_GENERATOR_LIMITS, total: 10, maxStopsPerUtcOffset: 40, weights: { hub: 1 }, endStopId: 'place-19' };
-    const initial = chooseCandidates(pool, config, {});
-    const western = initial.find((place) => place.timezone === 'America/New_York');
-    const easternExtra = pool.find((place) => place.timezone === 'Asia/Kolkata' && !initial.some((selected) => selected.id === place.id));
-    if (!western || !easternExtra) throw new Error('Expected west and east candidates for the swap test');
-    const finalIds = initial.map((place) => place.id).filter((id) => id !== western.id).concat(easternExtra.id);
-    const swapped = chooseCandidates(pool, config, { lock: finalIds, swap: { [western.id]: easternExtra.id } });
-    expect(swapped.map((place) => place.id)).toContain(easternExtra.id);
-    expect(swapped.every((place) => place.category === 'hub')).toBe(true);
-    expect(swapped.map((place) => place.id)).toHaveLength(10);
-  });
-
-  it('keeps a swapped final route locked while replacing the old stop', () => {
-    const config = { ...DEFAULT_GENERATOR_LIMITS, total: 10, maxStopsPerUtcOffset: 40, weights: { hub: 1 }, endStopId: 'place-19' };
-    const initial = chooseCandidates(pool, config, {});
-    const source = initial.find((place) => place.id !== config.endStopId);
-    const target = pool.find((place) => !initial.some((selected) => selected.id === place.id));
-    if (!source || !target) throw new Error('Expected a selected source and an available swap target');
-    const finalIds = initial.map((place) => place.id).filter((id) => id !== source.id).concat(target.id);
-    const swapped = chooseCandidates(pool, config, { lock: finalIds, swap: { [source.id]: target.id } });
-
-    expect(swapped.map((place) => place.id)).toHaveLength(10);
-    expect(swapped.map((place) => place.id)).toEqual(expect.arrayContaining(finalIds));
-    expect(swapped.map((place) => place.id)).not.toContain(source.id);
-  });
-
-  it('reserves a stop from every required country', () => {
-    const config = { ...DEFAULT_GENERATOR_LIMITS, total: 10, maxStopsPerUtcOffset: 40, weights: { hub: 1 }, endStopId: 'place-19', requiredCountries: [countries[5] ?? 'HN'] };
-    const selected = chooseCandidates(pool, config, {});
-    expect(selected.some((place) => place.country === countries[5])).toBe(true);
+  it('applies owner rename and timezone overrides to candidates', () => {
+    const result = chooseCandidates(pool, DEFAULT_GENERATOR_LIMITS, { rename: { 'city-a': 'Renamed City' }, timezone: { 'city-a': 'Etc/UTC' } });
+    expect(result[0]?.name).toBe('Renamed City');
+    expect(result[0]?.timezone).toBe('Etc/UTC');
   });
 });

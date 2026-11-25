@@ -1,28 +1,28 @@
 import type { Candidate } from './types';
 
 const WESTERN_NORTHERN_EUROPE = new Set([
-  'AT', 'BE', 'CH', 'DE', 'DK', 'ES', 'FI', 'FR', 'GB', 'IE', 'IS', 'IT', 'LU', 'NL', 'NO', 'PT', 'SE',
+  'AT', 'AX', 'BE', 'CH', 'DE', 'DK', 'ES', 'FI', 'FO', 'FR', 'GB', 'GG', 'GI', 'IE', 'IM', 'IS', 'IT', 'JE', 'LU', 'NL', 'NO', 'PT', 'SE', 'SJ',
 ]);
 const SOUTHERN_EASTERN_EUROPE = new Set([
   'AD', 'AL', 'BA', 'BG', 'BY', 'CY', 'CZ', 'EE', 'GR', 'HR', 'HU', 'LI', 'LT', 'LV', 'MC', 'MD', 'ME', 'MK',
-  'MT', 'PL', 'RO', 'RS', 'RU', 'SI', 'SK', 'SM', 'UA', 'VA',
+  'MT', 'PL', 'RO', 'RS', 'RU', 'SI', 'SK', 'SM', 'UA', 'VA', 'XK',
 ]);
 const EUROPE = new Set([...WESTERN_NORTHERN_EUROPE, ...SOUTHERN_EASTERN_EUROPE]);
 const MIDDLE_EAST = new Set(['AE', 'BH', 'IR', 'IQ', 'IL', 'JO', 'KW', 'LB', 'OM', 'PS', 'QA', 'SA', 'SY', 'TR', 'YE']);
 const AFRICA = new Set([
-  'AO', 'BF', 'BI', 'BJ', 'BW', 'CD', 'CF', 'CG', 'CI', 'CM', 'CV', 'DJ', 'DZ', 'EG', 'EH', 'ER', 'ET', 'GA', 'GH', 'GM', 'GN', 'GQ', 'GW', 'KE', 'KM', 'LR', 'LS', 'LY', 'MA', 'MG', 'ML', 'MR', 'MU', 'MW', 'MZ', 'NA', 'NE', 'NG', 'RW', 'SC', 'SD', 'SL', 'SN', 'SO', 'SS', 'ST', 'SZ', 'TD', 'TG', 'TN', 'TZ', 'UG', 'ZA', 'ZM', 'ZW',
+  'AO', 'BF', 'BI', 'BJ', 'BW', 'CD', 'CF', 'CG', 'CI', 'CM', 'CV', 'DJ', 'DZ', 'EG', 'EH', 'ER', 'ET', 'GA', 'GH', 'GM', 'GN', 'GQ', 'GW', 'KE', 'KM', 'LR', 'LS', 'LY', 'MA', 'MG', 'ML', 'MR', 'MU', 'MW', 'MZ', 'NA', 'NE', 'NG', 'RE', 'RW', 'SC', 'SD', 'SH', 'SL', 'SN', 'SO', 'SS', 'ST', 'SZ', 'TD', 'TG', 'TN', 'TZ', 'UG', 'YT', 'ZA', 'ZM', 'ZW',
 ]);
-const SOUTH_AMERICA = new Set(['AR', 'BO', 'BR', 'CL', 'CO', 'EC', 'FK', 'GF', 'GY', 'PE', 'PY', 'SR', 'UY', 'VE']);
+const SOUTH_AMERICA = new Set(['AR', 'BO', 'BR', 'CL', 'CO', 'EC', 'FK', 'GF', 'GS', 'GY', 'PE', 'PY', 'SR', 'UY', 'VE']);
 const NORTH_AMERICA = new Set([
   'AG', 'AI', 'AW', 'BB', 'BL', 'BM', 'BQ', 'BS', 'BZ', 'CA', 'CR', 'CU', 'CW', 'DM', 'DO', 'GD', 'GL', 'GP', 'GT', 'HN', 'HT', 'JM', 'KN', 'KY', 'LC', 'MF', 'MQ', 'MS', 'MX', 'NI', 'PA', 'PM', 'PR', 'SV', 'SX', 'TC', 'TT', 'US', 'VC', 'VG', 'VI',
 ]);
-const OCEANIA = new Set(['AS', 'AU', 'CK', 'FJ', 'FM', 'GU', 'KI', 'MH', 'MP', 'NC', 'NU', 'NZ', 'PF', 'PG', 'PW', 'SB', 'TK', 'TO', 'TV', 'VU', 'WF', 'WS']);
-const PACIFIC_ISLANDS = new Set(['AS', 'CK', 'FJ', 'FM', 'GU', 'KI', 'MH', 'MP', 'NC', 'NU', 'PF', 'PG', 'PW', 'SB', 'TK', 'TO', 'TV', 'VU', 'WF', 'WS']);
+const OCEANIA = new Set(['AS', 'AU', 'CK', 'FJ', 'FM', 'GU', 'KI', 'MH', 'MP', 'NC', 'NF', 'NR', 'NU', 'NZ', 'PF', 'PG', 'PN', 'PW', 'SB', 'TK', 'TO', 'TV', 'VU', 'WF', 'WS']);
+const PACIFIC_ISLANDS = new Set(['AS', 'CK', 'FJ', 'FM', 'GU', 'KI', 'MH', 'MP', 'NC', 'NF', 'NR', 'NU', 'PF', 'PG', 'PN', 'PW', 'SB', 'TK', 'TO', 'TV', 'VU', 'WF', 'WS']);
 const WESTERN_ASIA = new Set(['AM', 'AZ', 'GE']);
 const CENTRAL_ASIA = new Set(['KZ', 'KG', 'TJ', 'TM', 'UZ', 'RU']);
 const EAST_ASIA = new Set(['CN', 'HK', 'JP', 'KP', 'KR', 'MO', 'MN', 'TW']);
 const SOUTH_ASIA = new Set(['AF', 'BD', 'BT', 'IN', 'MV', 'NP', 'PK', 'LK']);
-const SOUTHEAST_ASIA = new Set(['BN', 'ID', 'KH', 'LA', 'MM', 'MY', 'PH', 'SG', 'TH', 'TL', 'VN']);
+const SOUTHEAST_ASIA = new Set(['BN', 'CC', 'CX', 'ID', 'KH', 'LA', 'MM', 'MY', 'PH', 'SG', 'TH', 'TL', 'VN']);
 const CENTRAL_AMERICA = new Set(['BZ', 'CR', 'GT', 'HN', 'NI', 'PA', 'SV']);
 const CARIBBEAN = new Set(['AG', 'AI', 'AW', 'BB', 'BL', 'BM', 'BQ', 'BS', 'CU', 'CW', 'DM', 'DO', 'GD', 'GP', 'HT', 'JM', 'KN', 'KY', 'LC', 'MF', 'MQ', 'MS', 'PR', 'SX', 'TC', 'TT', 'VC', 'VG', 'VI']);
 const NORTHERN_AMERICA = new Set([...NORTH_AMERICA].filter((code) => !CENTRAL_AMERICA.has(code) && !CARIBBEAN.has(code) && code !== 'GL'));

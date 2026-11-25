@@ -6,9 +6,8 @@ import { applyCandidateOverrides, type RouteOverrides } from './overrides';
 import { chooseCandidates } from './candidates';
 import { sweepOrder } from './order';
 import { buildReport } from './report';
-import { christmasArrival } from './sweep';
-import { localMinute } from './timezone';
-import { DEFAULT_GENERATOR_LIMITS, NORTH_POLE, TAKEOFF_UTC, type Candidate, type GeneratedRoute, type GeneratorConfig, type RouteReport } from './types';
+import { eastwardLegReason, isEastwardDelta, isInChristmasWindow, localClock, longitudeDelta, stopDurationSeconds, stopTier } from './sweep';
+import { DEFAULT_GENERATOR_LIMITS, NORTH_POLE, RETURN_DEADLINE_UTC, TAKEOFF_UTC, type Candidate, type GeneratedRoute, type GeneratorConfig, type RouteReport } from './types';
 
 type TimezoneTables = {
   zonesByCountry: Record<string, string[]>;
@@ -74,19 +73,20 @@ function speedCurve(kmh: number): string {
 }
 
 type TransitOptions = {
-  from: LatLng;
+  from: LatLng & { utcOffsetMinutes?: number };
   to: LatLng;
   fromDeparture: number;
   toArrival: number;
   description: string;
   cameraZoom?: number;
+  eastwardReason?: 'dateline' | 'offset-anomaly' | 'return';
 };
 
-function transit({ from, to, fromDeparture, toArrival, description, cameraZoom = 9 }: TransitOptions) {
+function transit({ from, to, fromDeparture, toArrival, description, cameraZoom = 9, eastwardReason }: TransitOptions) {
   const durationSeconds = Math.max(0, Math.ceil((toArrival - fromDeparture) / 1000));
   const distanceKm = haversineKm(from, to);
   const speedKmh = durationSeconds > 0 ? legSpeedKmh(from, to, durationSeconds) ?? 0 : 0;
-  return {
+  const result: Record<string, unknown> = {
     description,
     duration_seconds: durationSeconds,
     distance_km: Math.round(distanceKm * 100) / 100,
@@ -94,11 +94,16 @@ function transit({ from, to, fromDeparture, toArrival, description, cameraZoom =
     speed_kmh: Math.round(speedKmh),
     camera_zoom: cameraZoom,
   };
+  if (isEastwardDelta(longitudeDelta(from, to))) {
+    if (!eastwardReason) throw new Error(`Unjustified eastward leg to ${'name' in to ? to.name : 'North Pole'}`);
+    result.eastward_reason = eastwardReason;
+  }
+  return result;
 }
 
 function localTimeLabel(place: Candidate, arrival: number): string {
-  const minute = localMinute({ iso: new Date(arrival).toISOString(), timezoneOrOffset: place.utcOffsetMinutes ?? 0 });
-  return `${Math.floor(minute / 60).toString().padStart(2, '0')}:${(minute % 60).toString().padStart(2, '0')}`;
+  const local = localClock(new Date(arrival).toISOString(), place.utcOffsetMinutes ?? 0);
+  return `${local.hour.toString().padStart(2, '0')}:${local.minute.toString().padStart(2, '0')}`;
 }
 
 function startNode(): Record<string, unknown> {
@@ -120,22 +125,25 @@ type DeliveryNodeOptions = {
   index: number;
   config: GeneratorConfig;
   tables: TimezoneTables | undefined;
-  priorLocation: LatLng;
+  priorLocation: Candidate | LatLng;
   priorDeparture: number;
 };
 
 function buildDeliveryNode({ place, index, config, tables, priorLocation, priorDeparture }: DeliveryNodeOptions): DeliveryNodeResult {
   const stopArrival = place.plannedArrivalUtc
     ? Date.parse(place.plannedArrivalUtc)
-    : Date.parse(christmasArrival(place.utcOffsetMinutes ?? 0, place.plannedMinute ?? config.arrivalStartMinute));
-  const stopDeparture = stopArrival + config.durationSeconds * 1000;
+    : Number.NaN;
+  const tier = place.plannedStopTier ?? stopTier(place);
+  const durationSeconds = place.plannedStopDurationSeconds ?? stopDurationSeconds(tier);
+  if (!Number.isFinite(stopArrival)) throw new Error(`Missing sweep arrival for ${place.name}`);
+  const stopDeparture = stopArrival + durationSeconds * 1000;
   const stopId = `stop_${stableHash(place.id, config.seed).toString(36)}_${index.toString().padStart(3, '0')}`;
   const locationId = createLocationId(stopId);
   const stop: Route['stops'][number] = {
     locationId,
     arrivalIso: new Date(stopArrival).toISOString(),
     departureIso: new Date(stopDeparture).toISOString(),
-    durationSeconds: config.durationSeconds,
+    durationSeconds,
   };
   const node: Record<string, unknown> = {
     id: stopId,
@@ -157,13 +165,14 @@ function buildDeliveryNode({ place, index, config, tables, priorLocation, priorD
       local_arrival_time: localTimeLabel(place, stopArrival),
       time_window_status: 'GREEN',
     },
-    stop_experience: { duration_seconds: config.durationSeconds, camera_zoom: 14, weather_condition: 'clear', presents_delivered_at_stop: 1 },
+    stop_experience: { duration_seconds: durationSeconds, stop_tier: tier, camera_zoom: 14, weather_condition: 'clear', presents_delivered_at_stop: 1 },
     transit_to_here: transit({
       from: priorLocation,
       to: place,
       fromDeparture: priorDeparture,
       toArrival: stopArrival,
       description: index === 0 ? `Launch to ${place.name}` : `Flight to ${place.name}`,
+      eastwardReason: eastwardLegReason({ from: priorLocation, to: place, destinationIndex: index, arrivalUtc: stopArrival }),
     }),
     notes: place.source ?? null,
     priority: place.worldCity ? 1 : 2,
@@ -173,7 +182,8 @@ function buildDeliveryNode({ place, index, config, tables, priorLocation, priorD
 
 function endNode(last: Candidate, priorDeparture: number, config: GeneratorConfig): { node: Record<string, unknown>; routeEndUtc: string } {
   const returnDistance = haversineKm(last, NORTH_POLE);
-  const returnSeconds = Math.max(1, Math.ceil(returnDistance / config.targetLegSpeedKmh * 3600));
+  const returnSpeed = Math.min(config.maxLegSpeedKmh, config.p90LegSpeedMaxKmh * 0.95);
+  const returnSeconds = Math.max(1, Math.ceil(returnDistance / returnSpeed * 3600));
   const endArrival = priorDeparture + returnSeconds * 1000;
   const endDeparture = endArrival + 1000;
   return {
@@ -185,7 +195,8 @@ function endNode(last: Candidate, priorDeparture: number, config: GeneratorConfi
       location: { name: 'North Pole', region: 'Arctic', lat: NORTH_POLE.lat, lng: NORTH_POLE.lng, timezone_offset: 0 },
       schedule: { arrival_utc: new Date(endArrival).toISOString(), departure_utc: new Date(endDeparture).toISOString(), local_arrival_time: null, time_window_status: 'HOME' },
       stop_experience: { duration_seconds: 0, camera_zoom: 4, weather_condition: 'blizzard', presents_delivered_at_stop: 0 },
-      transit_to_here: transit({ from: last, to: NORTH_POLE, fromDeparture: priorDeparture, toArrival: endArrival, description: 'Return to the North Pole', cameraZoom: 4 }),
+      transit_to_here: transit({ from: last, to: NORTH_POLE, fromDeparture: priorDeparture, toArrival: endArrival, description: 'Return to the North Pole', cameraZoom: 4,
+        eastwardReason: isEastwardDelta(longitudeDelta(last, NORTH_POLE)) ? 'return' : undefined }),
     },
   };
 }
@@ -196,7 +207,7 @@ function buildDocument(places: Candidate[], config: GeneratorConfig, tables?: Ti
   const stops: Route['stops'] = [];
   const coordinates = new Map<string, LatLng>();
   let priorDeparture = takeoff;
-  let priorLocation: LatLng = NORTH_POLE;
+  let priorLocation: Candidate | LatLng = NORTH_POLE;
   for (const [index, place] of places.entries()) {
     const result = buildDeliveryNode({ place, index, config, tables, priorLocation, priorDeparture });
     coordinates.set(result.locationId, place);
@@ -223,40 +234,34 @@ function validateArrivalWindow(route: Route, places: Candidate[], config: Genera
   route.stops.forEach((stop, index) => {
     const place = places[index];
     if (!place) throw new Error(`Missing candidate for route stop ${index + 1}`);
-    const minute = localMinute({ iso: stop.arrivalIso, timezoneOrOffset: place.utcOffsetMinutes ?? 0 });
-    if (minute < config.arrivalStartMinute || minute > config.arrivalEndMinute) throw new Error(`${place.name} arrives outside its local window`);
+    if (!isInChristmasWindow(stop.arrivalIso, place.utcOffsetMinutes ?? 0)) throw new Error(`${place.name} arrives outside its local window`);
   });
 }
 
 function validateIntegerSettings(config: GeneratorConfig): void {
   const integers: [number, number, string][] = [
     [config.seed, Number.MIN_SAFE_INTEGER, 'Invalid seed'],
-    [config.total, 1, 'Invalid stop total'],
     [config.arrivalStartMinute, 0, 'Invalid arrival window'],
     [config.arrivalEndMinute, 0, 'Invalid arrival window'],
-    [config.durationSeconds, 1, 'Invalid stop duration'],
-    [config.maxCountryRun, 1, 'Invalid country run limit'],
     [config.maxStopsPerCountry, 1, 'Invalid country total limit'],
-    [config.minArrivalGapMinutes, 1, 'Invalid minimum arrival gap'],
-    [config.maxArrivalGapMinutes, 1, 'Invalid maximum arrival gap'],
   ];
   for (const [value, minimum, message] of integers) {
     if (!Number.isSafeInteger(value) || value < minimum) throw new Error(message);
   }
-  if (config.arrivalEndMinute > 1439 || config.arrivalStartMinute > config.arrivalEndMinute) throw new Error('Invalid arrival window');
+  if (config.arrivalStartMinute >= 1440 || config.arrivalEndMinute > 1439 || config.arrivalStartMinute <= config.arrivalEndMinute) {
+    throw new Error('Arrival window must cross midnight');
+  }
 }
 
 function validateSpeedAndDistanceSettings(config: GeneratorConfig): void {
   const positives: [number, string, boolean][] = [
     [config.targetLegSpeedKmh, 'Invalid target leg speed', false],
     [config.maxLegSpeedKmh, 'Invalid maximum leg speed', false],
-    [config.medianLegSpeedMinKmh, 'Invalid median minimum', false],
-    [config.medianLegSpeedMaxKmh, 'Invalid median maximum', false],
     [config.p90LegSpeedMaxKmh, 'Invalid p90 speed maximum', false],
-    [config.maxRouteDistanceKm, 'Invalid route distance maximum', false],
-    [config.minStopSeparationKm, 'Invalid minimum stop separation', true],
+    [config.minStopSeparationKm, 'Invalid minimum stop separation', false],
   ];
   for (const [value, message, allowZero] of positives) assertNonNegativeSetting(value, message, allowZero);
+  if (config.p90LegSpeedMaxKmh > config.maxLegSpeedKmh) throw new Error('p90 speed limit cannot exceed the hard speed limit');
 }
 
 function assertNonNegativeSetting(value: number, message: string, allowZero: boolean): void {
@@ -277,17 +282,18 @@ type BuiltRouteValidationOptions = {
   coordinates: Map<string, LatLng>;
   routeEndUtc: string;
   ordered: Candidate[];
+  pool: Candidate[];
   config: GeneratorConfig;
 };
 
-function validateBuiltRoute({ route, coordinates, routeEndUtc, ordered, config }: BuiltRouteValidationOptions): RouteReport {
+function validateBuiltRoute({ route, coordinates, routeEndUtc, ordered, pool, config }: BuiltRouteValidationOptions): RouteReport {
   validateArrivalWindow(route, ordered, config);
   const validation = validateRoute(route);
   if (!validation.ok) throw new Error(`Invalid generated route: ${validation.issues.map((issue) => issue.message).join('; ')}`);
   const geometry = validateRouteGeometry(route, coordinates, { maxSpeedKmh: config.maxLegSpeedKmh });
   const geometryErrors = geometry.issues.filter((issue) => issue.severity === 'error');
   if (geometryErrors.length > 0) throw new Error(`Invalid route geometry: ${geometryErrors.map((issue) => issue.message).join('; ')}`);
-  const report = buildReport(ordered, route, config);
+  const report = buildReport(ordered, route, config, pool);
   validateRouteLimits(report, routeEndUtc, config);
   addGeometryWarnings(report, geometry.issues, route, ordered);
   return report;
@@ -298,8 +304,9 @@ function validateRouteLimits(report: RouteReport, routeEndUtc: string, config: G
     const leg = report.legs.find((item) => item.kmh > config.maxLegSpeedKmh);
     throw new Error(`Leg ${leg?.from} to ${leg?.to} requires ${Math.round(leg?.kmh ?? 0)} km/h, above ${config.maxLegSpeedKmh}`);
   }
-  if (Date.parse(report.lastDepartureUtc) > Date.parse(TAKEOFF_UTC) + 27 * 3_600_000) throw new Error('Last delivery departure exceeds takeoff plus 27 hours');
-  if (Date.parse(routeEndUtc) > Date.parse(TAKEOFF_UTC) + 27 * 3_600_000 + 45 * 60_000) throw new Error(`North Pole return at ${routeEndUtc} leaves less than 15 minutes inside the 28-hour flight window`);
+  if (report.p90LegSpeedKmh > config.p90LegSpeedMaxKmh) throw new Error(`Route p90 ${Math.round(report.p90LegSpeedKmh)} km/h exceeds ${config.p90LegSpeedMaxKmh}`);
+  if (Date.parse(routeEndUtc) > Date.parse(RETURN_DEADLINE_UTC)) throw new Error(`North Pole return at ${routeEndUtc} exceeds the 28-hour flight window`);
+  if (report.detours.length > 0) throw new Error(`Route contains detours over 2.5x: ${report.detours.map((item) => item.via).join(', ')}`);
 }
 
 function addGeometryWarnings(report: RouteReport, geometryIssues: ReturnType<typeof validateRouteGeometry>['issues'],
@@ -319,9 +326,9 @@ function addGeometryWarnings(report: RouteReport, geometryIssues: ReturnType<typ
 export function generateRoute(pool: Candidate[], config: GeneratorConfig, overrides: RouteOverrides = {}, tables?: TimezoneTables): GeneratedRoute {
   validateGeneratorConfig(config);
   const normalizedPool = normalizeCandidateTimezones(pool, overrides, tables);
-  const chosen = chooseCandidates(normalizedPool, config, overrides, tables);
+  const chosen = chooseCandidates(normalizedPool, config, overrides);
   const ordered = sweepOrder(chosen, config);
   const built = buildDocument(ordered, config, tables);
-  const report = validateBuiltRoute({ route: built.route, coordinates: built.coordinates, routeEndUtc: built.routeEndUtc, ordered, config });
+  const report = validateBuiltRoute({ route: built.route, coordinates: built.coordinates, routeEndUtc: built.routeEndUtc, ordered, pool: chosen, config });
   return { document: built.document, route: built.route, locations: ordered, report };
 }

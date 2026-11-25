@@ -1,6 +1,9 @@
 import type { Route } from '@santa-tracker/contracts';
 import type { LatLng } from '../geo';
 
+export type StopTier = 'major' | 'city' | 'town' | 'hop';
+export type EastwardReason = 'dateline' | 'offset-anomaly' | 'return';
+
 export type Candidate = LatLng & {
   id: string;
   name: string;
@@ -11,57 +14,30 @@ export type Candidate = LatLng & {
   category: string;
   population?: number;
   worldCity?: boolean;
+  capital?: boolean;
+  isCapital?: boolean;
+  isNationalCapital?: boolean;
+  headlineLandmark?: boolean;
   source?: string;
-  plannedMinute?: number;
   plannedArrivalUtc?: string;
-};
-
-export type RegionalMinimums = {
-  westernNorthernEurope: number;
-  australiaNewZealand: number;
-  pacificIslands: number;
-  africa: number;
-  middleEast: number;
-  arctic: number;
+  plannedStopTier?: StopTier;
+  plannedStopDurationSeconds?: number;
 };
 
 export type GeneratorConfig = {
   seed: number;
-  total: number;
   weights: Record<string, number>;
+  /** Local minute on Dec 24, 2026. 1380 means 23:00. */
   arrivalStartMinute: number;
+  /** Local minute on Dec 25, 2026. 300 means 05:00. */
   arrivalEndMinute: number;
-  durationSeconds: number;
   targetLegSpeedKmh: number;
   maxLegSpeedKmh: number;
-  maxCountryRun: number;
-  maxStopsPerCountry: number;
-  countryCaps: Record<string, number>;
-  maxStopsPerUtcOffset: number;
-  offsetCaps: Record<string, number>;
-  minArrivalGapMinutes: number;
-  maxArrivalGapMinutes: number;
-  medianLegSpeedMinKmh: number;
-  medianLegSpeedMaxKmh: number;
   p90LegSpeedMaxKmh: number;
-  maxRouteDistanceKm: number;
   minStopSeparationKm: number;
-  minimumStopsPerHour: number;
-  hubCoreMinimum: number;
-  hubPopulationCore: number;
-  hubPopulationMinimum: number;
-  maxAmericasPercent: number;
-  maxSouthAmericaStops: number;
-  regionalMinimums: RegionalMinimums;
+  /** A six-stop ceiling keeps large countries from taking over the route. */
+  maxStopsPerCountry: number;
   underservedCountries: string[];
-  requiredCountries: string[];
-  requiredStopIds: string[];
-  openingStopIds: string[];
-  arrivalAnchorMinutes: Record<string, number>;
-  routeOrderIds?: string[];
-  endStopId: string;
-  uninhabitedIslandIds: string[];
-  ownerDecisionIds: string[];
   generatedAt: string;
 };
 
@@ -80,73 +56,58 @@ export type RouteLegReport = {
   gapMinutes: number;
   kind: 'launch' | 'delivery' | 'return';
   eastwardDegrees: number;
+  eastwardReason?: EastwardReason;
+};
+
+export type RouteDetourReport = {
+  via: string;
+  from: string;
+  to: string;
+  ratio: number;
 };
 
 export type RouteReport = {
   seed: number;
   count: number;
-  mix: Record<string, { count: number; target: number }>;
+  countriesCovered: number;
+  countryCodes: string[];
+  mix: Record<string, number>;
+  stopTiers: Record<StopTier, number>;
   continentBalance: Record<string, number>;
   subregionBalance: Record<string, number>;
   offsetBalance: Record<string, number>;
   hourly: { hour: number; count: number }[];
+  localArrivalHistogram: Record<string, number>;
   legs: RouteLegReport[];
+  eastwardLegs: RouteLegReport[];
+  detours: RouteDetourReport[];
   longestLegs: RouteLegReport[];
   issues: string[];
   medianLegSpeedKmh: number;
   p90LegSpeedKmh: number;
   maxLegSpeedKmh: number;
   totalDistanceKm: number;
-  eastwardLegsOverEightDegrees: number;
-  uninhabitedIslandStops: number;
+  populationWithin500Km: number;
+  worldPopulationEstimate: number;
+  populationCoverageWithin500Km: number;
   lastDepartureUtc: string;
   routeEndUtc: string;
 };
 
 export const TAKEOFF_UTC = '2026-12-24T10:00:00.000Z';
+export const RETURN_DEADLINE_UTC = '2026-12-25T14:00:00.000Z';
 export const NORTH_POLE = { lat: 80, lng: 180 } as const;
 
-export const DEFAULT_GENERATOR_LIMITS: Omit<GeneratorConfig, 'weights'> = {
+export const DEFAULT_GENERATOR_LIMITS: GeneratorConfig = {
   seed: 2026,
-  total: 160,
-  arrivalStartMinute: 20,
-  arrivalEndMinute: 180,
-  durationSeconds: 60,
-  targetLegSpeedKmh: 14_000,
+  weights: { hub: 30, cultural: 27.5, underserved: 25, nature: 12, special: 5.5 },
+  arrivalStartMinute: 23 * 60,
+  arrivalEndMinute: 5 * 60,
+  targetLegSpeedKmh: 19_000,
   maxLegSpeedKmh: 25_000,
-  maxCountryRun: 2,
-  maxStopsPerCountry: 6,
-  countryCaps: {},
-  maxStopsPerUtcOffset: 8,
-  offsetCaps: {},
-  minArrivalGapMinutes: 4,
-  maxArrivalGapMinutes: 40,
-  medianLegSpeedMinKmh: 6_000,
-  medianLegSpeedMaxKmh: 14_000,
   p90LegSpeedMaxKmh: 20_000,
-  maxRouteDistanceKm: 245_000,
-  minStopSeparationKm: 100,
-  minimumStopsPerHour: 4,
-  hubCoreMinimum: 42,
-  hubPopulationCore: 1_500_000,
-  hubPopulationMinimum: 250_000,
-  maxAmericasPercent: 35,
-  maxSouthAmericaStops: 20,
-  regionalMinimums: {
-    westernNorthernEurope: 14,
-    australiaNewZealand: 8,
-    pacificIslands: 6,
-    africa: 22,
-    middleEast: 8,
-    arctic: 1,
-  },
+  minStopSeparationKm: 20,
+  maxStopsPerCountry: 6,
   underservedCountries: [],
-  requiredCountries: [],
-  requiredStopIds: [],
-  openingStopIds: [],
-  arrivalAnchorMinutes: {},
-  endStopId: 'ne-1159150429',
-  uninhabitedIslandIds: [],
-  ownerDecisionIds: [],
   generatedAt: '2026-11-23T00:00:00.000Z',
 };

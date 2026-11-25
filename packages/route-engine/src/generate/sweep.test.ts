@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { christmasArrival } from './sweep';
+import { christmasArrival, christmasWindow, isInChristmasWindow, stopDurationSeconds, stopTier } from './sweep';
 import { christmasOffset, parseUtcOffset } from './timezone';
+import type { Candidate } from './types';
 
 describe('christmasArrival', () => {
   it('places the date-line extremes on their respective Christmas days', () => {
@@ -26,6 +27,33 @@ describe('christmasArrival', () => {
   it('handles valid zero-offset time zones', () => {
     expect(christmasOffset({ timezone: 'UTC' })).toBe(0);
     expect(christmasOffset({ timezone: 'Africa/Abidjan' })).toBe(0);
+  });
+
+  it('builds the overnight 23:00 to 05:00 local window', () => {
+    expect(christmasWindow(840)).toEqual({
+      startUtc: Date.parse('2026-12-24T09:00:00.000Z'),
+      idealUtc: Date.parse('2026-12-24T11:00:00.000Z'),
+      endUtc: Date.parse('2026-12-24T15:00:00.000Z'),
+    });
+    expect(isInChristmasWindow('2026-12-24T09:00:00.000Z', 840)).toBe(true);
+    expect(isInChristmasWindow('2026-12-24T15:00:00.000Z', 840)).toBe(true);
+    expect(isInChristmasWindow('2026-12-24T15:01:00.000Z', 840)).toBe(false);
+  });
+
+  it('assigns dwell from population, capital and curated landmark tier', () => {
+    const candidate = (overrides: Partial<Candidate>): Candidate => ({
+      id: 'place', name: 'Place', country: 'AA', lat: 0, lng: 0, timezone: 'UTC', category: 'populated', ...overrides,
+    });
+    expect(stopTier(candidate({ population: 1_000_000 }))).toBe('major');
+    expect(stopTier(candidate({ population: 250_000, capital: true }))).toBe('major');
+    expect(stopTier(candidate({ population: 250_000, isNationalCapital: true }))).toBe('major');
+    expect(stopTier(candidate({ population: 30_000, capital: true }))).toBe('city');
+    expect(stopTier(candidate({ id: 'Q1', category: 'cultural' }))).toBe('major');
+    expect(stopTier(candidate({ id: 'Q2', category: 'nature' }))).toBe('city');
+    expect(stopTier(candidate({ population: 5_000 }))).toBe('town');
+    expect(stopTier(candidate({ population: 0 }))).toBe('hop');
+    expect(['major', 'city', 'town', 'hop'].map((tier) => stopDurationSeconds(tier as 'major' | 'city' | 'town' | 'hop')))
+      .toEqual([60, 30, 10, 3]);
   });
 
   it('reads standard ICU long-offset forms', () => {
