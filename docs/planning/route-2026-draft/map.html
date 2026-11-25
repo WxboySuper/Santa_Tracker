@@ -50,7 +50,14 @@ const P=(lng,lat)=>proj.fromLonLat([lng,Math.max(-85,Math.min(85,lat))]);
 const legFeatures=nodes.slice(1).map((n,i)=>{const f=new Feature(new ol.geom.LineString(gc(nodes[i],n,32).map(([a,b])=>P(a,b))));f.set('i',i+1);return f;});
 const ptFeatures=nodes.map((n,i)=>{const f=new Feature(new ol.geom.Point(P(n.ulng,n.lat)));f.set('i',i);return f;});
 const S=ol.style;
-const legStyle=(f)=>new S.Style({stroke:new S.Stroke({color:f.get('i')<=k?'rgba(176,0,32,.8)':'rgba(176,0,32,.08)',width:2})});
+// Each leg carries arrowheads pointing the way Santa flies (one mid-leg, three on long legs).
+const arrowAt=(cs,frac,on)=>{const j=Math.min(cs.length-2,Math.max(0,Math.floor((cs.length-1)*frac)));const a=cs[j],b=cs[j+1];
+ return new S.Style({geometry:new ol.geom.Point([(a[0]+b[0])/2,(a[1]+b[1])/2]),
+  image:new S.RegularShape({points:3,radius:6,rotation:Math.atan2(b[0]-a[0],b[1]-a[1]),rotateWithView:true,
+   fill:new S.Fill({color:on?'#b00020':'rgba(176,0,32,.1)'}),stroke:new S.Stroke({color:on?'#fff':'rgba(255,255,255,.1)',width:1})})});};
+const legStyle=(f)=>{const on=f.get('i')<=k;const g=f.getGeometry();const cs=g.getCoordinates();
+ const fracs=g.getLength()>4e6?[0.25,0.5,0.75]:[0.5];
+ return [new S.Style({stroke:new S.Stroke({color:on?'rgba(176,0,32,.8)':'rgba(176,0,32,.08)',width:2})}),...fracs.map(fr=>arrowAt(cs,fr,on))];};
 const ptStyle=(f)=>{const i=f.get('i'),n=nodes[i],on=i<=k;
  return new S.Style({image:new S.Circle({radius:n.cat==='pole'?8:5,fill:new S.Fill({color:on?colors[n.cat]:'rgba(150,150,150,.25)'}),stroke:new S.Stroke({color:on?'#fff':'rgba(255,255,255,.3)',width:1})}),
   text:showNames?new S.Text({text:i+'. '+n.name,offsetX:8,textAlign:'left',font:'11px system-ui,sans-serif',fill:new S.Fill({color:'#222'}),stroke:new S.Stroke({color:'#fff',width:3})}):undefined});};
