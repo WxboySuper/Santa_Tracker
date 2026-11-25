@@ -17,22 +17,27 @@ type ReviewRouteNode = {
   transit_to_here?: { distance_km?: number | null; speed_kmh?: number | null; eastward_reason?: string } | null;
 };
 
+function legacyCandidate(node: ReviewRouteNode): Candidate | undefined {
+  const location = node.location;
+  if (node.type !== 'DELIVERY' || !node.candidate_id || !location?.name || !location.country_code
+    || !location.timezone || location.lat === undefined || location.lng === undefined) return undefined;
+  return {
+    id: node.candidate_id,
+    name: location.name,
+    country: location.country_code,
+    timezone: location.timezone,
+    utcOffsetMinutes: (location.timezone_offset ?? 0) * 60,
+    category: node.comment ?? 'populated',
+    source: node.notes ?? undefined,
+    lat: location.lat,
+    lng: location.lng,
+  };
+}
+
 function legacySelected(nodes: ReviewRouteNode[]): Candidate[] {
   return nodes.flatMap((node) => {
-    const location = node.location;
-    if (node.type !== 'DELIVERY' || !node.candidate_id || !location?.name || !location.country_code
-      || !location.timezone || location.lat === undefined || location.lng === undefined) return [];
-    return [{
-      id: node.candidate_id,
-      name: location.name,
-      country: location.country_code,
-      timezone: location.timezone,
-      utcOffsetMinutes: (location.timezone_offset ?? 0) * 60,
-      category: node.comment ?? 'populated',
-      source: node.notes ?? undefined,
-      lat: location.lat,
-      lng: location.lng,
-    }];
+    const place = legacyCandidate(node);
+    return place ? [place] : [];
   });
 }
 

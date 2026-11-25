@@ -40,14 +40,26 @@ export function christmasWindow(offsetMinutes: number): ChristmasWindow {
 }
 
 export function stopTier(place: Candidate): StopTier {
-  const population = place.population;
-  const capital = place.capital === true || place.isCapital === true || place.isNationalCapital === true || place.category === 'capital';
-  const curated = /^Q\d+$/.test(place.id) || place.source?.includes('wikidata.org/wiki/Q') === true;
-  const headlineLandmark = place.headlineLandmark === true || (curated && (place.category === 'special' || place.category === 'cultural'));
-  if (headlineLandmark || (population ?? 0) >= 1_000_000 || (capital && (population ?? 0) >= 250_000)) return 'major';
-  if (capital || curated || (population ?? 0) >= 100_000) return 'city';
-  if ((population ?? 0) >= 5_000) return 'town';
+  const population = place.population ?? 0;
+  const capital = isCapital(place);
+  const curated = isCurated(place);
+  if (isHeadlineLandmark(place, curated) || population >= 1_000_000 || (capital && population >= 250_000)) return 'major';
+  if (capital || curated || population >= 100_000) return 'city';
+  if (population >= 5_000) return 'town';
   return 'hop';
+}
+
+function isCapital(place: Candidate): boolean {
+  return place.capital === true || place.isCapital === true || place.isNationalCapital === true || place.category === 'capital';
+}
+
+function isCurated(place: Candidate): boolean {
+  return /^Q\d+$/.test(place.id) || place.source?.includes('wikidata.org/wiki/Q') === true;
+}
+
+function isHeadlineLandmark(place: Candidate, curated: boolean): boolean {
+  if (place.headlineLandmark === true) return true;
+  return curated && (place.category === 'special' || place.category === 'cultural');
 }
 
 export function stopDurationSeconds(tier: StopTier): number {

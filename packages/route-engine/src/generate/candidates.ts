@@ -8,10 +8,17 @@ function routeCategory(place: Candidate, config: GeneratorConfig): string {
   return 'populated';
 }
 
-function validCandidate(place: Candidate): boolean {
-  return Boolean(place.id && place.name.trim() && place.country && place.timezone)
-    && Number.isFinite(place.lat) && Number.isFinite(place.lng)
+function hasCandidateIdentity(place: Candidate): boolean {
+  return Boolean(place.id && place.name.trim() && place.country && place.timezone);
+}
+
+function hasValidCoordinates(place: Candidate): boolean {
+  return Number.isFinite(place.lat) && Number.isFinite(place.lng)
     && place.lat >= -90 && place.lat <= 90 && place.lng >= -180 && place.lng <= 180;
+}
+
+function validCandidate(place: Candidate): boolean {
+  return hasCandidateIdentity(place) && hasValidCoordinates(place);
 }
 
 function wikidataCandidate(place: Candidate): boolean {

@@ -159,45 +159,70 @@ function canStartFromNorthPole(place: Candidate, config: GeneratorConfig): boole
   return Boolean(candidateTiming(place, NORTH_POLE, Date.parse(TAKEOFF_UTC), 0, config));
 }
 
+type SweepState = {
+  remaining: Map<string, Candidate>;
+  route: TimedCandidate[];
+  countryCounts: Map<string, number>;
+  separation: SeparationIndex;
+  prior: Candidate | LatLng;
+  priorDeparture: number;
+};
+
+function previousIdeal(route: TimedCandidate[]): number | undefined {
+  const last = route.at(-1);
+  return last?.utcOffsetMinutes === undefined ? undefined : christmasWindow(last.utcOffsetMinutes).idealUtc;
+}
+
+function betterPlannedStop(candidate: PlannedStop, score: number, best: PlannedStop | undefined, bestScore: number): boolean {
+  return score > bestScore || (score === bestScore && candidate.place.id.localeCompare(best?.place.id ?? '') < 0);
+}
+
+function bestFeasibleStop(state: SweepState, randomRanks: Map<string, number>, config: GeneratorConfig): PlannedStop | undefined {
+  let best: PlannedStop | undefined;
+  let bestScore = Number.NEGATIVE_INFINITY;
+  for (const candidate of state.remaining.values()) {
+    if (!countryCapacity(candidate, state.countryCounts, config) || !state.separation.allows(candidate)) continue;
+    if (!timingAndDetourAllows(candidate, state.route)) continue;
+    const stop = candidateTiming(candidate, state.prior, state.priorDeparture, state.route.length, config);
+    if (!stop) continue;
+    const score = optionScore({ stop, prior: state.prior, priorDeparture: state.priorDeparture,
+      previousIdeal: previousIdeal(state.route), newCountry: !state.countryCounts.has(candidate.country),
+      isLaunch: state.route.length === 0, randomRank: randomRanks.get(candidate.id) ?? 0, config });
+    if (!betterPlannedStop(stop, score, best, bestScore)) continue;
+    best = stop;
+    bestScore = score;
+  }
+  return best;
+}
+
+function advanceSweep(state: SweepState, stop: PlannedStop): void {
+  state.route.push(stop.place);
+  state.remaining.delete(stop.place.id);
+  state.countryCounts.set(stop.place.country, (state.countryCounts.get(stop.place.country) ?? 0) + 1);
+  state.separation.add(stop.place);
+  state.prior = stop.place;
+  state.priorDeparture = stop.departure;
+}
+
 function greedySweep(pool: Candidate[], config: GeneratorConfig): TimedCandidate[] {
   const random = seededRandom(config.seed);
   const randomRanks = new Map<string, number>();
   for (const place of [...pool].sort((a, b) => a.id.localeCompare(b.id))) randomRanks.set(place.id, random());
+  const state: SweepState = {
+    remaining: new Map(pool.map((place) => [place.id, place])),
+    route: [],
+    countryCounts: new Map(),
+    separation: new SeparationIndex(config.minStopSeparationKm),
+    prior: NORTH_POLE,
+    priorDeparture: Date.parse(TAKEOFF_UTC),
+  };
 
-  const remaining = new Map(pool.map((place) => [place.id, place]));
-  const route: TimedCandidate[] = [];
-  const countryCounts = new Map<string, number>();
-  const separation = new SeparationIndex(config.minStopSeparationKm);
-  let prior: Candidate | LatLng = NORTH_POLE;
-  let priorDeparture = Date.parse(TAKEOFF_UTC);
-
-  while (remaining.size > 0) {
-    let best: PlannedStop | undefined;
-    let bestScore = Number.NEGATIVE_INFINITY;
-    for (const candidate of remaining.values()) {
-      if (!countryCapacity(candidate, countryCounts, config) || !separation.allows(candidate)) continue;
-      if (!timingAndDetourAllows(candidate, route)) continue;
-      const stop = candidateTiming(candidate, prior, priorDeparture, route.length, config);
-      if (!stop) continue;
-      const newCountry = !countryCounts.has(candidate.country);
-      const previousIdeal = route.at(-1)?.utcOffsetMinutes === undefined
-        ? undefined
-        : christmasWindow(route.at(-1)?.utcOffsetMinutes ?? 0).idealUtc;
-      const score = optionScore({ stop, prior, priorDeparture, previousIdeal, newCountry, isLaunch: route.length === 0,
-        randomRank: randomRanks.get(candidate.id) ?? 0, config });
-      if (score > bestScore || (score === bestScore && candidate.id.localeCompare(best?.place.id ?? '') < 0)) {
-        best = stop;
-        bestScore = score;
-      }
-    }
-    if (!best) break;
-    route.push(best.place);
-    remaining.delete(best.place.id);
-    countryCounts.set(best.place.country, (countryCounts.get(best.place.country) ?? 0) + 1);
-    separation.add(best.place);
-    prior = best.place;
-    priorDeparture = best.departure;
+  while (state.remaining.size > 0) {
+    const next = bestFeasibleStop(state, randomRanks, config);
+    if (!next) break;
+    advanceSweep(state, next);
   }
+  const { route } = state;
   if (route.length === 0) {
     const candidate = pool.filter((place) => canStartFromNorthPole(place, config))
       .sort((left, right) => (left.population ?? 0) - (right.population ?? 0) || left.id.localeCompare(right.id))[0];

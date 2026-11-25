@@ -299,14 +299,35 @@ function validateBuiltRoute({ route, coordinates, routeEndUtc, ordered, pool, co
   return report;
 }
 
-function validateRouteLimits(report: RouteReport, routeEndUtc: string, config: GeneratorConfig): void {
-  if (report.maxLegSpeedKmh > config.maxLegSpeedKmh) {
-    const leg = report.legs.find((item) => item.kmh > config.maxLegSpeedKmh);
-    throw new Error(`Leg ${leg?.from} to ${leg?.to} requires ${Math.round(leg?.kmh ?? 0)} km/h, above ${config.maxLegSpeedKmh}`);
+function validateMaximumSpeed(report: RouteReport, config: GeneratorConfig): void {
+  if (report.maxLegSpeedKmh <= config.maxLegSpeedKmh) return;
+  const leg = report.legs.find((item) => item.kmh > config.maxLegSpeedKmh);
+  throw new Error(`Leg ${leg?.from} to ${leg?.to} requires ${Math.round(leg?.kmh ?? 0)} km/h, above ${config.maxLegSpeedKmh}`);
+}
+
+function validateP90Speed(report: RouteReport, config: GeneratorConfig): void {
+  if (report.p90LegSpeedKmh > config.p90LegSpeedMaxKmh) {
+    throw new Error(`Route p90 ${Math.round(report.p90LegSpeedKmh)} km/h exceeds ${config.p90LegSpeedMaxKmh}`);
   }
-  if (report.p90LegSpeedKmh > config.p90LegSpeedMaxKmh) throw new Error(`Route p90 ${Math.round(report.p90LegSpeedKmh)} km/h exceeds ${config.p90LegSpeedMaxKmh}`);
-  if (Date.parse(routeEndUtc) > Date.parse(RETURN_DEADLINE_UTC)) throw new Error(`North Pole return at ${routeEndUtc} exceeds the 28-hour flight window`);
-  if (report.detours.length > 0) throw new Error(`Route contains detours over 2.5x: ${report.detours.map((item) => item.via).join(', ')}`);
+}
+
+function validateReturnDeadline(routeEndUtc: string): void {
+  if (Date.parse(routeEndUtc) > Date.parse(RETURN_DEADLINE_UTC)) {
+    throw new Error(`North Pole return at ${routeEndUtc} exceeds the 28-hour flight window`);
+  }
+}
+
+function validateNoDetours(report: RouteReport): void {
+  if (report.detours.length > 0) {
+    throw new Error(`Route contains detours over 2.5x: ${report.detours.map((item) => item.via).join(', ')}`);
+  }
+}
+
+function validateRouteLimits(report: RouteReport, routeEndUtc: string, config: GeneratorConfig): void {
+  validateMaximumSpeed(report, config);
+  validateP90Speed(report, config);
+  validateReturnDeadline(routeEndUtc);
+  validateNoDetours(report);
 }
 
 function addGeometryWarnings(report: RouteReport, geometryIssues: ReturnType<typeof validateRouteGeometry>['issues'],
