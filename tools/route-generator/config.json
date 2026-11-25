@@ -6,8 +6,6 @@
     "nature": 12,
     "special": 5.5
   },
-  "arrivalStartMinute": 1380,
-  "arrivalEndMinute": 300,
   "targetLegSpeedKmh": 19000,
   "maxLegSpeedKmh": 25000,
   "p90LegSpeedMaxKmh": 20000,

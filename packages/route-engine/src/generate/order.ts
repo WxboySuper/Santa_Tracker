@@ -233,6 +233,7 @@ function seededCandidateRanks(pool: Candidate[], seed: number): Map<string, numb
 }
 
 function executeGreedySweep(state: SweepState, randomRanks: Map<string, number>, config: GeneratorConfig): void {
+  // The pool is a set of options; end when none can be appended within the route constraints.
   while (state.remaining.size > 0) {
     const next = bestFeasibleStop(state, randomRanks, config);
     if (!next) break;

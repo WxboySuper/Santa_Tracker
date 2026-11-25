@@ -51,4 +51,12 @@ describe('generateRoute midnight sweep', () => {
     expect(() => generateRoute(candidates, { ...config, maxLegSpeedKmh: 1, p90LegSpeedMaxKmh: 1 }))
       .toThrow(/No candidate can be reached|No route ordering satisfies/);
   });
+
+  it('treats the candidate pool as options and respects the country stop ceiling', () => {
+    const sameCountry = candidates.slice(0, 2).map((place) => ({ ...place, country: 'FJ' }));
+    const generated = generateRoute(sameCountry, { ...config, maxStopsPerCountry: 1 });
+    expect(generated.locations).toHaveLength(1);
+    expect(generated.report.count).toBe(1);
+    expect(generated.report.countriesCovered).toBe(1);
+  });
 });
