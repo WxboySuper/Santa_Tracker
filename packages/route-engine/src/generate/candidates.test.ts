@@ -26,13 +26,13 @@ describe('chooseCandidates', () => {
     expect(result[0]?.timezone).toBe('Etc/UTC');
   });
 
-  it('does not assume UTC when a candidate offset is missing', () => {
+  it('rejects a candidate with no UTC offset instead of silently dropping it', () => {
     const { utcOffsetMinutes: _offset, ...missingOffset } = pool[0]!;
-    expect(() => chooseCandidates([missingOffset], DEFAULT_GENERATOR_LIMITS)).toThrow('No eligible route candidates');
+    expect(() => chooseCandidates([missingOffset], DEFAULT_GENERATOR_LIMITS)).toThrow('Invalid route candidate');
   });
 
-  it('skips malformed names instead of throwing while validating the pool', () => {
+  it('rejects malformed names with a candidate validation error', () => {
     const malformed = { ...pool[0], name: null } as unknown as Candidate;
-    expect(() => chooseCandidates([malformed], DEFAULT_GENERATOR_LIMITS)).toThrow('No eligible route candidates');
+    expect(() => chooseCandidates([malformed], DEFAULT_GENERATOR_LIMITS)).toThrow('Invalid route candidate');
   });
 });

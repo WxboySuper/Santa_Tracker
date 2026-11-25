@@ -59,6 +59,36 @@ describe('midnight sweep ordering', () => {
     })).toBe('offset-anomaly');
   });
 
+  it('keeps long Hong Kong to mainland China legs at regional speed', () => {
+    const hongKong: Candidate = {
+      id: 'hong-kong', name: 'Hong Kong', country: 'HK', lat: 22.3193, lng: 114.1694,
+      timezone: 'Asia/Hong_Kong', utcOffsetMinutes: 480, category: 'populated', population: 7_000_000,
+    };
+    const beijing: Candidate = {
+      id: 'beijing', name: 'Beijing', country: 'CN', lat: 39.9042, lng: 116.4074,
+      timezone: 'Asia/Shanghai', utcOffsetMinutes: 480, category: 'populated', population: 21_000_000,
+    };
+    const distance = haversineKm(hongKong, beijing);
+    const travel = scheduledTravelMilliseconds(hongKong, beijing, DEFAULT_GENERATOR_LIMITS);
+    expect(distance).toBeGreaterThan(1_500);
+    expect(distance / (travel / 3_600_000)).toBeLessThanOrEqual(DEFAULT_GENERATOR_LIMITS.localLegSpeedKmh);
+  });
+
+  it('selects the feasible subset when the per-country cap prevents full-pool inclusion', () => {
+    const places: Candidate[] = Array.from({ length: 13 }, (_, index) => ({
+      id: `same-country-${index}`,
+      name: `Place ${index}`,
+      country: 'AA',
+      lat: 1 + index * 0.3,
+      lng: 177,
+      timezone: 'Pacific/Fiji',
+      utcOffsetMinutes: 780,
+      category: 'populated',
+      population: 20_000,
+    }));
+    expect(sweepOrder(places)).toHaveLength(DEFAULT_GENERATOR_LIMITS.maxStopsPerCountry);
+  });
+
   it('keeps every arrival in its window and south-of-35 arrivals before 02:30', () => {
     const ordered = sweepOrder(testPlaces);
     for (const place of ordered) {

@@ -53,7 +53,10 @@ export function chooseCandidates(pool: Candidate[], config: GeneratorConfig, ove
 function shouldSkipCandidate(place: Candidate, vetoed: Set<string>, seen: Set<string>): boolean {
   if (vetoed.has(place.id)) return true;
   if (seen.has(place.id)) return true;
-  return !validCandidate(place);
+  if (!validCandidate(place)) {
+    throw new Error('Invalid route candidate: identity, coordinates, timezone and integer UTC offset are required');
+  }
+  return false;
 }
 
 function enrichCandidate(place: Candidate, config: GeneratorConfig): Candidate {

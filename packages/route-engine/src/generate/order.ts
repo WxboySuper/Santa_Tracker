@@ -18,7 +18,7 @@ const LOCAL_CLUSTER_HOP_KM = 300;
 const FAST_CROSSING_KM = 1_500;
 const OCEAN_ISLAND_COUNTRIES = new Set([
   'AS', 'AW', 'AX', 'BB', 'BL', 'BM', 'BQ', 'BS', 'CC', 'CK', 'CX', 'CW', 'DM', 'FO', 'GD', 'GG', 'GL',
-  'GP', 'GU', 'HK', 'HM', 'IM', 'IO', 'IS', 'JE', 'JM', 'KN', 'KY', 'LC', 'MF', 'MH', 'MP', 'MQ', 'MS',
+  'GP', 'GU', 'HM', 'IM', 'IO', 'IS', 'JE', 'JM', 'KN', 'KY', 'LC', 'MF', 'MH', 'MP', 'MQ', 'MS',
   'NF', 'NR', 'NU', 'PF', 'PN', 'PR', 'PW', 'RE', 'SC', 'SX', 'TC', 'TK', 'TO', 'TT', 'TV', 'VG', 'VI',
   'WF', 'YT',
 ]);
@@ -311,6 +311,8 @@ function executeGreedySweep(state: SweepState, bands: Candidate[][], randomRanks
   const ranking: SweepRanking = { bandIndices, randomRanks, config };
   // Exact-offset bands set alternating latitude preferences. Adjacent windows
   // may interleave when that keeps a dense regional cluster connected.
+  // This is a subset selector: stranded candidates remain available to later
+  // insertion passes and are counted as unselected in the route report.
   while (state.remaining.size > 0) {
     const next = bestFeasibleStop(state, [...state.remaining.values()], ranking);
     if (!next) break;
