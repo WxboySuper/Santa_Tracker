@@ -25,3 +25,21 @@ export function shortDuration(ms: number): string {
   const rest = minutes % 60;
   return rest ? `${hours} h ${rest} min` : `${hours} h`;
 }
+
+/** Day of month and hour at a stop at the given instant, for festive framing ("Christmas Eve" or "Christmas morning"). */
+export function localDayHour(node: RouteNode, at: number): { day: number; hour: number } {
+  const zone = (node.location as { timezone?: string }).timezone;
+  const shifted = (timeZone: string) => {
+    const parts = new Intl.DateTimeFormat("en-GB", { timeZone, day: "numeric", hour: "numeric", hourCycle: "h23" }).formatToParts(at);
+    return { day: Number(parts.find(p => p.type === "day")?.value), hour: Number(parts.find(p => p.type === "hour")?.value) };
+  };
+  if (zone) {
+    try {
+      return shifted(zone);
+    } catch {
+      // Unknown zone: fall back to the fixed offset.
+    }
+  }
+  const date = new Date(at + (node.location.timezone_offset ?? 0) * HOUR_MS);
+  return { day: date.getUTCDate(), hour: date.getUTCHours() };
+}

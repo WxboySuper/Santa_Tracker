@@ -4,7 +4,8 @@ import type { SantaPosition } from "@/lib/tracker-position";
 import type { TrackerLayoutId } from "@/lib/tracker-layout";
 import type { TrackerThemeId } from "@/lib/tracker-theme";
 import { formatNumber, journeyStats, type JourneyStats, type StopLine } from "@/lib/tracker-journey-stats";
-import { localTimeAt, shortDuration } from "@/lib/tracker-local-time";
+import { localDayHour, localTimeAt, shortDuration } from "@/lib/tracker-local-time";
+import { christmasInJanuary, festiveMoment, greetingFor } from "@/lib/tracker-festive";
 import { bearingBetween } from "@/lib/tracker-map-geometry";
 import { useTrackerNow } from "@/lib/use-tracker-now";
 import { JourneyCard } from "./tracker-chrome";
@@ -80,17 +81,61 @@ function nextLine(flight: Flight, translator: Translator): string | null {
   return `${translator.t("tracker.card.next", { location: flight.next.location.name })} · ${shortDuration(arrival(flight.next) - flight.now)}`;
 }
 
-/** Globe: a location line and a row of headline numbers along the bottom, over the 3D Earth. */
-function GlobeChrome({ flight, translator }: { flight: Flight; translator: Translator }) {
-  const where = translator.t(flight.atStop ? "tracker.globe.at" : "tracker.globe.over", { location: place(flight.current) });
-  return <section className="tl-globe" aria-label={translator.t("tracker.card.label")}>
-    <p className="tl-globe-where">
-      <strong>{where}</strong>
-      <span>{translator.t("tracker.card.local", { time: localTimeAt(flight.current, flight.now) })}</span>
-      {nextLine(flight, translator) && <span>{nextLine(flight, translator)}</span>}
-    </p>
-    <StatsRow flight={flight} translator={translator} className="tl-stats tl-stats-globe" />
+/** "Thu 24 Dec, 15:55" in UTC: the night spans two dates, so the date is part of the time. */
+function utcClock(at: number): string {
+  return new Intl.DateTimeFormat("en-GB", { timeZone: "UTC", weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }).format(at);
+}
+
+/** Globe, left edge: where Santa is right now and the headline numbers. */
+function NowPanel({ flight, translator }: { flight: Flight; translator: Translator }) {
+  const { stats, current, now } = flight;
+  const cells: [string, string][] = [
+    [translator.t("tracker.stats.stops"), `${formatNumber(stats.done)} / ${formatNumber(stats.total)}`],
+    [translator.t("tracker.stats.countries"), formatNumber(stats.countries)],
+    [translator.t("tracker.stats.distance"), translator.t("tracker.stats.km", { value: formatNumber(stats.distanceKm) })],
+    [translator.t("tracker.stats.speed"), stats.speedKmh ? translator.t("tracker.stats.kmh", { value: formatNumber(stats.speedKmh) }) : translator.t("tracker.stats.landed")],
+  ];
+  return <section className="tl-panel tl-panel-now" aria-label={translator.t("tracker.card.label")}>
+    <p className="tl-panel-kicker">{translator.t("tracker.globe.kicker", { time: utcClock(now) })}</p>
+    <p className="tl-panel-status">{translator.t(flight.atStop ? "tracker.card.atStop" : "tracker.card.justLeft")}</p>
+    <h2 className="tl-panel-title">{current.location.name}</h2>
+    <p className="tl-panel-sub">{current.location.region}</p>
+    {flight.next && <p className="tl-panel-next">
+      <span className="tl-next-label">{translator.t("tracker.card.nextShort")}</span>
+      <b>{flight.next.location.name}</b>
+      <span className="tl-next-eta">{shortDuration(arrival(flight.next) - now)}</span>
+    </p>}
+    <dl className="tl-panel-stats">{cells.map(([k, v]) => <div key={k}><dt>{k}</dt><dd>{v}</dd></div>)}</dl>
   </section>;
+}
+
+/** Globe, right edge: the festive side of the place Santa is over, and what is coming up. */
+function HerePanel({ flight, translator }: { flight: Flight; translator: Translator }) {
+  const { current, now, stats } = flight;
+  const code = (current.location as { country_code?: string }).country_code;
+  const greeting = greetingFor(code);
+  const { day, hour } = localDayHour(current, now);
+  const moment = festiveMoment(day, hour);
+  return <section className="tl-panel tl-panel-here" aria-label={translator.t("tracker.here.label")}>
+    <p className="tl-panel-kicker">{translator.t(`tracker.here.${moment}`, { time: localTimeAt(current, now) })}</p>
+    <p className="tl-greeting" lang={greeting.language === "English" ? "en" : undefined}>{greeting.text}</p>
+    <p className="tl-panel-sub">{translator.t("tracker.here.in", { language: greeting.language })}</p>
+    {christmasInJanuary(code) && <p className="tl-panel-note">{translator.t("tracker.here.january")}</p>}
+    {stats.upcoming.length > 0 && <>
+      <h3 className="tl-panel-heading">{translator.t("tracker.feed.upcoming")}</h3>
+      <ol className="tl-panel-list">
+        {stats.upcoming.slice(0, 4).map(line => <li key={line.node.id}><span>{line.node.location.name}</span><span className="tl-li-time">{line.local}</span></li>)}
+      </ol>
+    </>}
+  </section>;
+}
+
+/** Globe: two compact panels in the top corners; the middle of the screen stays clear for Santa and his route. */
+function GlobeChrome({ flight, translator }: { flight: Flight; translator: Translator }) {
+  return <>
+    <NowPanel flight={flight} translator={translator} />
+    <HerePanel flight={flight} translator={translator} />
+  </>;
 }
 
 function FeedItem({ line, now, translator }: { line: StopLine; now: number; translator: Translator }) {
