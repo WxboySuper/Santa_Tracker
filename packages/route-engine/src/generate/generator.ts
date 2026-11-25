@@ -245,12 +245,18 @@ function validateIntegerSettings(config: GeneratorConfig): void {
     [config.arrivalEndMinute, 0, 'Invalid arrival window'],
     [config.maxStopsPerCountry, 1, 'Invalid country total limit'],
   ];
-  for (const [value, minimum, message] of integers) {
-    if (!Number.isSafeInteger(value) || value < minimum) throw new Error(message);
-  }
-  if (config.arrivalStartMinute >= 1440 || config.arrivalEndMinute > 1439 || config.arrivalStartMinute <= config.arrivalEndMinute) {
-    throw new Error('Arrival window must cross midnight');
-  }
+  for (const [value, minimum, message] of integers) assertSafeIntegerSetting(value, minimum, message);
+  validateArrivalWindowSettings(config.arrivalStartMinute, config.arrivalEndMinute);
+}
+
+function assertSafeIntegerSetting(value: number, minimum: number, message: string): void {
+  if (!Number.isSafeInteger(value) || value < minimum) throw new Error(message);
+}
+
+function validateArrivalWindowSettings(startMinute: number, endMinute: number): void {
+  if (startMinute >= 1440) throw new Error('Arrival window must cross midnight');
+  if (endMinute > 1439) throw new Error('Arrival window must cross midnight');
+  if (startMinute <= endMinute) throw new Error('Arrival window must cross midnight');
 }
 
 function validateSpeedAndDistanceSettings(config: GeneratorConfig): void {

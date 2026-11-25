@@ -25,4 +25,9 @@ describe('chooseCandidates', () => {
     expect(result[0]?.name).toBe('Renamed City');
     expect(result[0]?.timezone).toBe('Etc/UTC');
   });
+
+  it('does not assume UTC when a candidate offset is missing', () => {
+    const { utcOffsetMinutes: _offset, ...missingOffset } = pool[0]!;
+    expect(() => chooseCandidates([missingOffset], DEFAULT_GENERATOR_LIMITS)).toThrow('No eligible route candidates');
+  });
 });

@@ -9,16 +9,22 @@ function routeCategory(place: Candidate, config: GeneratorConfig): string {
 }
 
 function hasCandidateIdentity(place: Candidate): boolean {
-  return Boolean(place.id && place.name.trim() && place.country && place.timezone);
+  if (!place.id) return false;
+  if (!place.name.trim()) return false;
+  if (!place.country) return false;
+  return Boolean(place.timezone);
 }
 
 function hasValidCoordinates(place: Candidate): boolean {
-  return Number.isFinite(place.lat) && Number.isFinite(place.lng)
-    && place.lat >= -90 && place.lat <= 90 && place.lng >= -180 && place.lng <= 180;
+  if (!Number.isFinite(place.lat) || !Number.isFinite(place.lng)) return false;
+  if (place.lat < -90 || place.lat > 90) return false;
+  return place.lng >= -180 && place.lng <= 180;
 }
 
 function validCandidate(place: Candidate): boolean {
-  return hasCandidateIdentity(place) && hasValidCoordinates(place);
+  if (!hasCandidateIdentity(place)) return false;
+  if (!hasValidCoordinates(place)) return false;
+  return Number.isInteger(place.utcOffsetMinutes);
 }
 
 function wikidataCandidate(place: Candidate): boolean {
@@ -32,17 +38,24 @@ export function chooseCandidates(pool: Candidate[], config: GeneratorConfig, ove
   const seen = new Set<string>();
   const result: Candidate[] = [];
   for (const place of updated) {
-    if (vetoed.has(place.id) || seen.has(place.id) || !validCandidate(place)) continue;
+    if (shouldSkipCandidate(place, vetoed, seen)) continue;
     seen.add(place.id);
-    const category = routeCategory(place, config);
-    result.push({
-      ...place,
-      utcOffsetMinutes: place.utcOffsetMinutes ?? 0,
-      category,
-      isNationalCapital: place.isNationalCapital ?? place.isCapital ?? place.capital ?? (place.category === 'capital'),
-      headlineLandmark: place.headlineLandmark ?? (wikidataCandidate(place) && (category === 'special' || category === 'cultural')),
-    });
+    result.push(enrichCandidate(place, config));
   }
   if (result.length === 0) throw new Error('No eligible route candidates remain after vetoes and validation');
   return result;
+}
+
+function shouldSkipCandidate(place: Candidate, vetoed: Set<string>, seen: Set<string>): boolean {
+  if (vetoed.has(place.id)) return true;
+  if (seen.has(place.id)) return true;
+  return !validCandidate(place);
+}
+
+function enrichCandidate(place: Candidate, config: GeneratorConfig): Candidate {
+  const category = routeCategory(place, config);
+  const isNationalCapital = place.isNationalCapital ?? place.isCapital ?? place.capital ?? (place.category === 'capital');
+  const headlineLandmark = place.headlineLandmark ??
+    (wikidataCandidate(place) && (category === 'special' || category === 'cultural'));
+  return { ...place, utcOffsetMinutes: place.utcOffsetMinutes, category, isNationalCapital, headlineLandmark };
 }

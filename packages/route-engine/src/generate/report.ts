@@ -96,13 +96,11 @@ function returnLeg(last: Candidate, lastStop: Route['stops'][number], routeEnd: 
     eastwardDegrees: eastward, eastwardReason: isEastwardDelta(eastward) ? 'return' : undefined });
 }
 
-function detourAt(places: Candidate[], index: number): RouteDetourReport | undefined {
-  const from = places[index - 1];
-  const via = places[index];
-  const to = places[index + 1];
-  if (!from || !via || !to) return undefined;
+function detourAt(places: Candidate[], index: number): RouteDetourReport {
+  const from = places[index - 1]!;
+  const via = places[index]!;
+  const to = places[index + 1]!;
   const ratio = detourRatio(from, via, to);
-  if (ratio <= 2.5) return undefined;
   return { from: from.name, via: via.name, to: to.name, ratio };
 }
 
@@ -110,7 +108,7 @@ function detours(places: Candidate[]): RouteDetourReport[] {
   const result: RouteDetourReport[] = [];
   for (let index = 1; index < places.length - 1; index++) {
     const detour = detourAt(places, index);
-    if (detour) result.push(detour);
+    if (detour.ratio > 2.5) result.push(detour);
   }
   return result;
 }

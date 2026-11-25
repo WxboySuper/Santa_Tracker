@@ -41,12 +41,19 @@ export function christmasWindow(offsetMinutes: number): ChristmasWindow {
 
 export function stopTier(place: Candidate): StopTier {
   const population = place.population ?? 0;
-  const capital = isCapital(place);
-  const curated = isCurated(place);
-  if (isHeadlineLandmark(place, curated) || population >= 1_000_000 || (capital && population >= 250_000)) return 'major';
-  if (capital || curated || population >= 100_000) return 'city';
+  if (isMajorStop(place, population)) return 'major';
+  if (isCityStop(place, population)) return 'city';
   if (population >= 5_000) return 'town';
   return 'hop';
+}
+
+function isMajorStop(place: Candidate, population: number): boolean {
+  const capitalWithPopulation = isCapital(place) && population >= 250_000;
+  return isHeadlineLandmark(place, isCurated(place)) || population >= 1_000_000 || capitalWithPopulation;
+}
+
+function isCityStop(place: Candidate, population: number): boolean {
+  return isCapital(place) || isCurated(place) || population >= 100_000;
 }
 
 function isCapital(place: Candidate): boolean {
@@ -91,9 +98,16 @@ export function localClock(iso: string, timezoneOrOffset: string | number): Loca
 export function localMinuteInChristmasWindow(iso: string, timezoneOrOffset: string | number): number {
   const local = localClock(iso, timezoneOrOffset);
   const minute = local.hour * 60 + local.minute;
-  if (local.year === 2026 && local.month === 12 && local.day === 24 && minute >= 23 * 60) return minute;
-  if (local.year === 2026 && local.month === 12 && local.day === 25 && minute <= 5 * 60) return minute;
+  if (isLateChristmasEve(local, minute) || isEarlyChristmasDay(local, minute)) return minute;
   return -1;
+}
+
+function isLateChristmasEve(local: LocalClock, minute: number): boolean {
+  return local.year === 2026 && local.month === 12 && local.day === 24 && minute >= 23 * 60;
+}
+
+function isEarlyChristmasDay(local: LocalClock, minute: number): boolean {
+  return local.year === 2026 && local.month === 12 && local.day === 25 && minute <= 5 * 60;
 }
 
 export function isInChristmasWindow(iso: string, timezoneOrOffset: string | number): boolean {

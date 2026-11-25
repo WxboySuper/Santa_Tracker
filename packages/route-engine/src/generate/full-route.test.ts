@@ -17,10 +17,20 @@ type ReviewRouteNode = {
   transit_to_here?: { distance_km?: number | null; speed_kmh?: number | null; eastward_reason?: string } | null;
 };
 
+type LegacyLocation = { name: string; country_code: string; timezone: string; timezone_offset?: number; lat: number; lng: number };
+
+function hasLegacyDeliveryIdentity(node: ReviewRouteNode): node is ReviewRouteNode & { candidate_id: string } {
+  return node.type === 'DELIVERY' && Boolean(node.candidate_id);
+}
+
+function hasLegacyLocation(location: ReviewRouteNode['location']): location is LegacyLocation {
+  return Boolean(location?.name && location.country_code && location.timezone)
+    && location?.lat !== undefined && location?.lng !== undefined;
+}
+
 function legacyCandidate(node: ReviewRouteNode): Candidate | undefined {
   const location = node.location;
-  if (node.type !== 'DELIVERY' || !node.candidate_id || !location?.name || !location.country_code
-    || !location.timezone || location.lat === undefined || location.lng === undefined) return undefined;
+  if (!hasLegacyDeliveryIdentity(node) || !hasLegacyLocation(location)) return undefined;
   return {
     id: node.candidate_id,
     name: location.name,

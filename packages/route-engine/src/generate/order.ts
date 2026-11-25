@@ -204,11 +204,8 @@ function advanceSweep(state: SweepState, stop: PlannedStop): void {
   state.priorDeparture = stop.departure;
 }
 
-function greedySweep(pool: Candidate[], config: GeneratorConfig): TimedCandidate[] {
-  const random = seededRandom(config.seed);
-  const randomRanks = new Map<string, number>();
-  for (const place of [...pool].sort((a, b) => a.id.localeCompare(b.id))) randomRanks.set(place.id, random());
-  const state: SweepState = {
+function initialSweepState(pool: Candidate[], config: GeneratorConfig): SweepState {
+  return {
     remaining: new Map(pool.map((place) => [place.id, place])),
     route: [],
     countryCounts: new Map(),
@@ -216,22 +213,38 @@ function greedySweep(pool: Candidate[], config: GeneratorConfig): TimedCandidate
     prior: NORTH_POLE,
     priorDeparture: Date.parse(TAKEOFF_UTC),
   };
+}
 
+function seededCandidateRanks(pool: Candidate[], seed: number): Map<string, number> {
+  const random = seededRandom(seed);
+  const randomRanks = new Map<string, number>();
+  for (const place of [...pool].sort((a, b) => a.id.localeCompare(b.id))) randomRanks.set(place.id, random());
+  return randomRanks;
+}
+
+function executeGreedySweep(state: SweepState, randomRanks: Map<string, number>, config: GeneratorConfig): void {
   while (state.remaining.size > 0) {
     const next = bestFeasibleStop(state, randomRanks, config);
     if (!next) break;
     advanceSweep(state, next);
   }
-  const { route } = state;
-  if (route.length === 0) {
-    const candidate = pool.filter((place) => canStartFromNorthPole(place, config))
-      .sort((left, right) => (left.population ?? 0) - (right.population ?? 0) || left.id.localeCompare(right.id))[0];
-    if (!candidate) throw new Error('No candidate can be reached within its local Christmas window and the return deadline');
-    const first = candidateTiming(candidate, NORTH_POLE, Date.parse(TAKEOFF_UTC), 0, config);
-    if (!first) throw new Error(`Cannot schedule the first route stop: ${candidate.name}`);
-    return [first.place];
-  }
-  return route;
+}
+
+function firstFeasibleStart(pool: Candidate[], config: GeneratorConfig): TimedCandidate {
+  const candidate = pool.filter((place) => canStartFromNorthPole(place, config))
+    .sort((left, right) => (left.population ?? 0) - (right.population ?? 0) || left.id.localeCompare(right.id))[0];
+  if (!candidate) throw new Error('No candidate can be reached within its local Christmas window and the return deadline');
+  const first = candidateTiming(candidate, NORTH_POLE, Date.parse(TAKEOFF_UTC), 0, config);
+  if (!first) throw new Error(`Cannot schedule the first route stop: ${candidate.name}`);
+  return first.place;
+}
+
+function greedySweep(pool: Candidate[], config: GeneratorConfig): TimedCandidate[] {
+  const state = initialSweepState(pool, config);
+  const randomRanks = seededCandidateRanks(pool, config.seed);
+  executeGreedySweep(state, randomRanks, config);
+  if (state.route.length > 0) return state.route;
+  return [firstFeasibleStart(pool, config)];
 }
 
 function planOrder(order: Candidate[], config: GeneratorConfig): RoutePlan | undefined {
@@ -260,10 +273,10 @@ function planOrder(order: Candidate[], config: GeneratorConfig): RoutePlan | und
 function detourCount(order: Candidate[]): number {
   let count = 0;
   for (let index = 1; index < order.length - 1; index++) {
-    const from = order[index - 1];
-    const via = order[index];
-    const to = order[index + 1];
-    if (from && via && to && detourRatio(from, via, to) > 2.5) count++;
+    const from = order[index - 1]!;
+    const via = order[index]!;
+    const to = order[index + 1]!;
+    if (detourRatio(from, via, to) > 2.5) count++;
   }
   return count;
 }
@@ -296,66 +309,82 @@ function moveOrOpt(order: Candidate[], from: number, to: number): Candidate[] {
   return result;
 }
 
+function reduceEastwardAt(best: TimedCandidate[], index: number, config: GeneratorConfig): TimedCandidate[] | undefined {
+  const from = best[index - 1];
+  const to = best[index];
+  if (!from || !to || longitudeDelta(from, to) <= 1) return undefined;
+  const priorEastward = eastwardCount(best);
+  const priorDetours = detourCount(best);
+  const firstPosition = Math.max(0, index - 1 - 6);
+  for (let target = index - 1; target >= firstPosition; target--) {
+    const proposal = moveOrOpt(best, index, target);
+    if (eastwardCount(proposal) >= priorEastward || detourCount(proposal) > priorDetours) continue;
+    const plan = planOrder(proposal, config);
+    if (plan) return plan.places;
+  }
+  return undefined;
+}
+
+function findEastwardReduction(best: TimedCandidate[], config: GeneratorConfig): TimedCandidate[] | undefined {
+  for (let index = 1; index < best.length; index++) {
+    const reduced = reduceEastwardAt(best, index, config);
+    if (reduced) return reduced;
+  }
+  return undefined;
+}
+
 function reduceEastwardMoves(initial: TimedCandidate[], config: GeneratorConfig): TimedCandidate[] {
   let best = [...initial];
-  let changed = true;
-  while (changed) {
-    changed = false;
-    const priorEastward = eastwardCount(best);
-    const priorDetours = detourCount(best);
-    for (let index = 1; index < best.length; index++) {
-      const from = best[index - 1];
-      const to = best[index];
-      if (!from || !to || longitudeDelta(from, to) <= 1) continue;
-      const firstPosition = Math.max(0, index - 1 - 6);
-      for (let target = index - 1; target >= firstPosition; target--) {
-        const proposal = moveOrOpt(best, index, target);
-        if (eastwardCount(proposal) >= priorEastward || detourCount(proposal) > priorDetours) continue;
-        const plan = planOrder(proposal, config);
-        if (!plan) continue;
-        best = plan.places;
-        changed = true;
-        break;
-      }
-      if (changed) break;
-    }
+  while (true) {
+    const improved = findEastwardReduction(best, config);
+    if (!improved) return best;
+    best = improved;
   }
-  return best;
+}
+
+type RouteCost = { distance: number; eastward: number; detours: number };
+
+function routeCost(order: Candidate[]): RouteCost {
+  return { distance: pathDistance(order), eastward: eastwardCount(order), detours: detourCount(order) };
+}
+
+function localProposal(order: Candidate[], first: number, second: number, random: () => number): Candidate[] {
+  if (random() < 0.5 && first !== second) {
+    return moveTwoOpt(order, Math.min(first, second), Math.max(first, second));
+  }
+  return moveOrOpt(order, first, second);
+}
+
+function improvesSweep(cost: RouteCost, current: RouteCost): boolean {
+  if (cost.eastward > current.eastward || cost.detours > current.detours) return false;
+  return cost.eastward < current.eastward || cost.detours < current.detours;
+}
+
+function improvesPath(cost: RouteCost, current: RouteCost): boolean {
+  return cost.distance < current.distance - 0.01;
+}
+
+function canAcceptLocalProposal(cost: RouteCost, current: RouteCost): boolean {
+  return improvesSweep(cost, current) || improvesPath(cost, current);
 }
 
 function improveWithLocalSearch(initial: TimedCandidate[], config: GeneratorConfig): TimedCandidate[] {
   if (initial.length < 4) return initial;
   const random = seededRandom(config.seed ^ 0x5f3759df);
   let best = reduceEastwardMoves(initial, config);
-  let bestDistance = pathDistance(best);
-  let bestEastward = eastwardCount(best);
-  let bestDetours = detourCount(best);
+  let bestCost = routeCost(best);
   const attempts = Math.min(2_000, Math.max(150, best.length * 2));
 
   for (let attempt = 0; attempt < attempts; attempt++) {
     const first = Math.floor(random() * best.length);
     const second = Math.floor(random() * best.length);
-    let proposal: Candidate[];
-    if (random() < 0.5 && first !== second) {
-      const left = Math.min(first, second);
-      const right = Math.max(first, second);
-      proposal = moveTwoOpt(best, left, right);
-    } else {
-      proposal = moveOrOpt(best, first, second);
-    }
-
-    const distance = pathDistance(proposal);
-    const eastward = eastwardCount(proposal);
-    const detours = detourCount(proposal);
-    if (eastward > bestEastward || detours > bestDetours) continue;
-    const reducesBacktracking = eastward < bestEastward || detours < bestDetours;
-    if (!reducesBacktracking && distance >= bestDistance - 0.01) continue;
+    const proposal = localProposal(best, first, second, random);
+    const cost = routeCost(proposal);
+    if (!canAcceptLocalProposal(cost, bestCost)) continue;
     const planned = planOrder(proposal, config);
     if (!planned) continue;
     best = planned.places;
-    bestDistance = distance;
-    bestEastward = eastwardCount(best);
-    bestDetours = detourCount(best);
+    bestCost = cost;
   }
   return best;
 }
@@ -373,43 +402,63 @@ function insertionPositions(order: Candidate[], place: Candidate): { index: numb
   return positions.sort((left, right) => left.addedDistance - right.addedDistance || left.index - right.index);
 }
 
-function insertFeasibleCandidates(initial: TimedCandidate[], pool: Candidate[], config: GeneratorConfig): TimedCandidate[] {
-  let route = [...initial];
-  const initiallyCovered = new Set(route.map((place) => place.country));
-  const random = seededRandom(config.seed ^ 0x27d4eb2d);
+type RankedInsertion = { place: Candidate; positions: { index: number; addedDistance: number }[] };
+type InsertionState = { route: TimedCandidate[]; counts: Map<string, number>; separation: SeparationIndex };
+
+function rankInsertions(initial: TimedCandidate[], pool: Candidate[], seed: number): RankedInsertion[] {
+  const initiallyCovered = new Set(initial.map((place) => place.country));
+  const random = seededRandom(seed ^ 0x27d4eb2d);
   const tieBreaks = new Map<string, number>();
   for (const place of [...pool].sort((left, right) => left.id.localeCompare(right.id))) tieBreaks.set(place.id, random());
-
-  const remaining = pool.filter((place) => !route.some((selected) => selected.id === place.id));
-  const ranked = remaining.map((place) => ({
+  return pool.filter((place) => !initial.some((selected) => selected.id === place.id)).map((place) => ({
     place,
     newCountry: !initiallyCovered.has(place.country),
-    positions: insertionPositions(route, place),
+    positions: insertionPositions(initial, place),
     random: tieBreaks.get(place.id) ?? 0,
   })).sort((left, right) => Number(right.newCountry) - Number(left.newCountry)
     || (left.positions[0]?.addedDistance ?? Number.POSITIVE_INFINITY) - (right.positions[0]?.addedDistance ?? Number.POSITIVE_INFINITY)
-    || left.random - right.random);
+    || left.random - right.random).map(({ place, positions }) => ({ place, positions }));
+}
 
+function insertionState(initial: TimedCandidate[], minimumSeparationKm: number): InsertionState {
   const counts = new Map<string, number>();
-  for (const place of route) counts.set(place.country, (counts.get(place.country) ?? 0) + 1);
-  const separation = new SeparationIndex(config.minStopSeparationKm);
-  for (const place of route) separation.add(place);
+  for (const place of initial) counts.set(place.country, (counts.get(place.country) ?? 0) + 1);
+  const separation = new SeparationIndex(minimumSeparationKm);
+  for (const place of initial) separation.add(place);
+  return { route: [...initial], counts, separation };
+}
 
-  for (const { place, positions } of ranked) {
-    if (!countryCapacity(place, counts, config) || !separation.allows(place)) continue;
-    const priorEastward = eastwardCount(route);
-    const priorDetours = detourCount(route);
-    for (const { index } of positions.slice(0, 5)) {
-      const proposal = [...route.slice(0, index), place, ...route.slice(index)];
-      const plan = planOrder(proposal, config);
-      if (!plan || eastwardCount(plan.places) > priorEastward || detourCount(plan.places) > priorDetours) continue;
-      route = plan.places;
-      counts.set(place.country, (counts.get(place.country) ?? 0) + 1);
-      separation.add(place);
-      break;
-    }
+function insertionPlanIsAcceptable(plan: RoutePlan | undefined, eastward: number, detours: number): plan is RoutePlan {
+  if (!plan) return false;
+  return eastwardCount(plan.places) <= eastward && detourCount(plan.places) <= detours;
+}
+
+function addAtFeasiblePosition(state: InsertionState, place: Candidate, positions: RankedInsertion['positions'], config: GeneratorConfig): boolean {
+  const priorEastward = eastwardCount(state.route);
+  const priorDetours = detourCount(state.route);
+  for (const { index } of positions.slice(0, 5)) {
+    const proposal = [...state.route.slice(0, index), place, ...state.route.slice(index)];
+    const plan = planOrder(proposal, config);
+    if (!insertionPlanIsAcceptable(plan, priorEastward, priorDetours)) continue;
+    state.route = plan.places;
+    state.counts.set(place.country, (state.counts.get(place.country) ?? 0) + 1);
+    state.separation.add(place);
+    return true;
   }
-  return route;
+  return false;
+}
+
+function tryInsertCandidate(state: InsertionState, item: RankedInsertion, config: GeneratorConfig): void {
+  if (!countryCapacity(item.place, state.counts, config)) return;
+  if (!state.separation.allows(item.place)) return;
+  addAtFeasiblePosition(state, item.place, item.positions, config);
+}
+
+function insertFeasibleCandidates(initial: TimedCandidate[], pool: Candidate[], config: GeneratorConfig): TimedCandidate[] {
+  const state = insertionState(initial, config.minStopSeparationKm);
+  const ranked = rankInsertions(initial, pool, config.seed);
+  for (const item of ranked) tryInsertCandidate(state, item, config);
+  return state.route;
 }
 
 /** Greedy time-stepped midnight sweep followed by constrained 2-opt/or-opt improvements. */
