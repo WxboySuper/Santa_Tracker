@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState, type Dispatch, type RefObject } from "react";
-import Countdown from "@/components/countdown";
 import type { createTranslator } from "@santa-tracker/localization";
 import type { RouteNode } from "@/lib/locations";
 import { routeNodesToContractRoute } from "@/lib/route-bridge";
@@ -10,6 +9,7 @@ import type { TrackerViewMode } from "@/lib/tracker-view-mode";
 import type { MapEvent, MapMode } from "./tracker-map-hooks";
 import { ImmersiveTrackerOverlays } from "./tracker-map-immersive";
 import { TvTrackerDashboard } from "./tracker-map-tv";
+import { JourneyCard, TrackerToolbar } from "./tracker-chrome";
 
 type Translator = ReturnType<typeof createTranslator>;
 
@@ -41,7 +41,7 @@ export function JourneyPanel({ nodes, position, translator, locale, tv = false }
   const current = currentIndex === null ? undefined : timedNodes[currentIndex];
   const next = nextIndex === null ? undefined : timedNodes[nextIndex];
   const recent = currentIndex === null ? [] : timedNodes.slice(Math.max(0, currentIndex - 4), currentIndex + 1).reverse();
-  const sectionClass = tv ? "tracker-tv-map-text" : "absolute inset-0 overflow-auto bg-blue-950 px-6 pt-36 pb-8 text-white focus-visible:outline focus-visible:outline-4 focus-visible:outline-yellow-300";
+  const sectionClass = tv ? "tracker-tv-map-text" : "storybook-textview";
   // Focusable so keyboard users can scroll the text view on short screens (WCAG 2.1.1).
   return <section className={sectionClass} aria-label={translator.t("tracker.textMode")} tabIndex={tv ? undefined : 0}>
     <dl className="mx-auto max-w-xl space-y-4">
@@ -56,23 +56,11 @@ export function JourneyPanel({ nodes, position, translator, locale, tv = false }
 
 /** Renders the standard site's navigation links. */
 function TrackerNav({ adventEnabled, translator }: { adventEnabled: boolean; translator: Translator }) {
-  return <nav className="glass-nav fixed top-4 left-1/2 -translate-x-1/2 z-40 bg-white/20 backdrop-blur-md rounded-full px-6 py-2 flex gap-4">
-    <Link href="/" className="nav-link text-white/80 hover:text-white">{translator.t("nav.home")}</Link>
-    <Link href="/tracker" className="nav-link nav-link-active text-white font-semibold">{translator.t("nav.tracker")}</Link>
-    {adventEnabled && <Link href="/advent" className="nav-link text-white/80 hover:text-white">{translator.t("nav.village")}</Link>}
+  return <nav className="storybook-nav">
+    <Link href="/" className="storybook-nav-link">{translator.t("nav.home")}</Link>
+    <Link href="/tracker" className="storybook-nav-link storybook-nav-active" aria-current="page">{translator.t("nav.tracker")}</Link>
+    {adventEnabled && <Link href="/advent" className="storybook-nav-link">{translator.t("nav.village")}</Link>}
   </nav>;
-}
-
-/** Renders map/text switching and the existing return-to-Santa control. */
-function MapControls({ mode, following, dispatch, translator, adapter, setFollowing }: { mode: MapMode; following: boolean; dispatch: Dispatch<MapEvent>; translator: Translator; adapter: RefObject<TrackerMapAdapter | null>; setFollowing: (value: boolean) => void }) {
-  const switchMode = () => { dispatch(mode === "text" ? "showMap" : "showText"); setFollowing(true); };
-  const returnToSanta = () => { adapter.current?.follow(); setFollowing(true); };
-  const visitPole = () => { adapter.current?.visitPole(); setFollowing(false); };
-  return <div className="absolute top-20 left-4 z-10 flex flex-col items-start gap-2 text-white">
-    <button className="rounded bg-blue-900 px-3 py-2 focus-visible:outline focus-visible:outline-4 focus-visible:outline-yellow-300" onClick={switchMode}>{translator.t(mode === "text" ? "tracker.mapMode" : "tracker.textMode")}</button>
-    {mode !== "text" && <button className="rounded bg-blue-900 px-3 py-2 focus-visible:outline focus-visible:outline-4 focus-visible:outline-yellow-300" onClick={visitPole}>{translator.t("tracker.northPole")}</button>}
-    {mode !== "text" && !following && <button className="rounded bg-blue-900 px-3 py-2 focus-visible:outline focus-visible:outline-4 focus-visible:outline-yellow-300" onClick={returnToSanta}>{translator.t("tracker.return")}</button>}
-  </div>;
 }
 
 /** Hides immersive controls after idle and restores them on activity. */
@@ -164,10 +152,12 @@ export function TrackerMapView(props: TrackerMapViewProps) {
         <button className="tracker-tv-exit" type="button" onClick={toggleTv}>{translator.t("tracker.exitTv")}</button>
       </div> : <>
         <MapSurface mode={mode} element={element} nodes={nodes} position={position} translator={translator} locale={locale} />
-        <TrackerControls mode={mode} following={following} dispatch={dispatch} translator={translator} adapter={adapter} setFollowing={setFollowing} immersive={immersive} visible={visible} toggleImmersive={toggleImmersive} toggleTv={toggleTv} />
+        <TrackerToolbar mode={mode} following={following} dispatch={dispatch} translator={translator} adapter={adapter} setFollowing={setFollowing} immersive={immersive} hidden={immersive && !visible} toggleImmersive={toggleImmersive} toggleTv={toggleTv} />
         <MapInstructions mode={mode} translator={translator} />
-        <TrackerStatus status={status} current={current} translator={translator} />
-        <CountdownLayer immersive={immersive} controlsVisible={visible} locale={locale} translator={translator} nodes={timedNodes} position={position} current={current} />
+        <TrackerStatus current={current} translator={translator} />
+        {immersive
+          ? <ImmersiveTrackerOverlays locale={locale} nodes={timedNodes} position={position} current={current} translator={translator} controlsVisible={visible} />
+          : <JourneyCard nodes={nodes} timedNodes={timedNodes} position={position} status={status} translator={translator} locale={locale} />}
       </>}
     </div>
   </>;
@@ -200,43 +190,14 @@ function MapSurface({ mode, element, nodes, position, translator, locale, tv = f
   return <div ref={element} className="h-full w-full bg-blue-950 focus-visible:outline focus-visible:outline-4 focus-visible:outline-yellow-300" aria-label={translator.t("tracker.mapLabel")} aria-describedby={tv ? undefined : "map-instructions"} role="application" tabIndex={0} />;
 }
 
-/** Groups standard map controls with the immersive mode toggle. */
-function TrackerControls({ mode, following, dispatch, translator, adapter, setFollowing, immersive, visible, toggleImmersive, toggleTv }: { mode: MapMode; following: boolean; dispatch: Dispatch<MapEvent>; translator: Translator; adapter: RefObject<TrackerMapAdapter | null>; setFollowing: (value: boolean) => void; immersive: boolean; visible: boolean; toggleImmersive: () => void; toggleTv: () => void }) {
-  const hidden = immersive && !visible;
-  return <>
-    <div className={hidden ? "tracker-controls tracker-controls-hidden" : "tracker-controls"}>
-      <MapControls mode={mode} following={following} dispatch={dispatch} translator={translator} adapter={adapter} setFollowing={setFollowing} />
-    </div>
-    <button className="absolute top-20 right-4 z-20 rounded bg-blue-900 px-3 py-2 text-white focus-visible:outline focus-visible:outline-4 focus-visible:outline-yellow-300" onClick={toggleImmersive}>{translator.t(immersive ? "tracker.exitImmersive" : "tracker.immersive")}</button>
-    {!immersive && <button className="absolute top-32 right-4 z-20 rounded bg-blue-900 px-3 py-2 text-white focus-visible:outline focus-visible:outline-4 focus-visible:outline-yellow-300" onClick={toggleTv}>{translator.t("tracker.tv")}</button>}
-  </>;
-}
-
 /** Displays map keyboard instructions when the map is visible. */
 function MapInstructions({ mode, translator }: { mode: MapMode; translator: Translator }) {
   if (mode === "text") return null;
-  return <p id="map-instructions" className="absolute left-4 bottom-16 z-10 max-w-[calc(100%-2rem)] rounded bg-black/70 px-3 py-2 text-sm text-white">{translator.t("tracker.instructions")}</p>;
+  return <p id="map-instructions" className="sr-only">{translator.t("tracker.instructions")}</p>;
 }
 
-/** Announces route loading and current stop changes to screen readers. */
-function TrackerStatus({ status, current, translator }: { status: string; current?: RouteNode; translator: Translator }) {
+/** Announces current stop changes to screen readers; loading status is shown in the journey card. */
+function TrackerStatus({ current, translator }: { current?: RouteNode; translator: Translator }) {
   const announcement = current ? translator.t("tracker.announcement", { location: current.location.name }) : "";
-  return <>
-    <p className="absolute left-4 bottom-4 z-10 rounded bg-black/70 px-3 py-2 text-sm text-white">{status}</p>
-    <p className="sr-only" aria-live="polite">{announcement}</p>
-  </>;
-}
-
-/** Selects the standard countdown or immersive journey overlays. */
-function CountdownLayer({ immersive, controlsVisible, ...props }: { immersive: boolean; controlsVisible: boolean; locale: string; translator: Translator; nodes: RouteNode[]; position: SantaPosition | null; current?: RouteNode }) {
-  if (!immersive) return <CountdownHud locale={props.locale} translator={props.translator} />;
-  return <ImmersiveTrackerOverlays locale={props.locale} nodes={props.nodes} position={props.position} current={props.current} translator={props.translator} controlsVisible={controlsVisible} />;
-}
-
-/** Shows the takeoff countdown in the standard tracker. */
-function CountdownHud({ locale, translator }: { locale: string; translator: Translator }) {
-  return <div className="countdown-hud absolute top-44 right-4 bg-black/40 backdrop-blur-md rounded-xl p-4 text-white">
-    <p className="countdown-hud-label text-xs opacity-70">{translator.t("home.countdown")}</p>
-    <Countdown locale={locale} className="countdown-hud-value font-mono text-lg" flyingText={translator.t("countdown.flying")} />
-  </div>;
+  return <p className="sr-only" aria-live="polite">{announcement}</p>;
 }

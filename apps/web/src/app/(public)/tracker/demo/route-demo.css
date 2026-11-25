@@ -1,91 +1,106 @@
-/* Route demo playback bar: a dark glass strip along the bottom, above the tracker. */
+/* Route demo player: a slim parchment strip matching the storybook tracker, bottom right. */
 .route-demo-bar {
   position: fixed;
-  /* Right-aligned so the tracker's own notices in the bottom-left stay readable. */
   right: 1rem;
-  bottom: 2.25rem;
+  bottom: 1.75rem;
   z-index: 60;
-  width: min(50rem, calc(100vw - 2rem));
+  width: min(40rem, calc(100vw - 25rem));
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
-  padding: 0.75rem 1rem;
-  border: 1px solid rgb(255 255 255 / 0.15);
+  gap: 0.45rem;
+  padding: 0.6rem 0.85rem 0.65rem;
+  border: 1px solid var(--story-paper-edge, #e6d3ad);
   border-radius: 1rem;
-  background: rgb(10 18 40 / 0.82);
-  backdrop-filter: blur(10px);
-  color: #f5f1e6;
+  background: color-mix(in srgb, var(--story-paper, #fbf3e1) 95%, transparent);
+  box-shadow: 0 10px 30px rgb(63 44 29 / 22%);
+  color: var(--story-ink, #3f2c1d);
+  font-family: var(--story-serif, Georgia, serif);
   font-size: 0.9rem;
-  box-shadow: 0 8px 30px rgb(0 0 0 / 0.35);
 }
 
 .route-demo-row {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.3rem;
 }
 
 .route-demo-bar button {
-  min-width: 2.25rem;
-  min-height: 2.25rem;
+  min-width: 2.1rem;
+  min-height: 2.1rem;
+  padding: 0 0.5rem;
   border-radius: 0.6rem;
-  background: rgb(255 255 255 / 0.1);
   color: inherit;
-  font-weight: 600;
   cursor: pointer;
 }
 
-.route-demo-bar button:hover { background: rgb(255 255 255 / 0.2); }
-
-.route-demo-bar button:focus-visible,
-.route-demo-scrub:focus-visible {
-  outline: 3px solid #fcd34d;
-  outline-offset: 2px;
-}
-
-.route-demo-play {
-  background: #b91c1c !important;
-  min-width: 2.75rem !important;
-}
-
-.route-demo-step { font-size: 1.25rem; line-height: 1; }
-
-.route-demo-speeds {
-  display: flex;
-  gap: 0.25rem;
-  margin-left: 0.25rem;
-}
-
-.route-demo-speed { padding: 0 0.6rem; font-variant-numeric: tabular-nums; }
-
-.route-demo-speed[aria-pressed="true"] {
-  background: #fcd34d !important;
-  color: #1c1917 !important;
-}
-
-.route-demo-clock {
-  margin-left: auto;
-  font-variant-numeric: tabular-nums;
-  color: #fde68a;
+.route-demo-bar button:hover {
+  background: rgb(164 22 26 / 10%);
+  color: var(--story-red, #a4161a);
 }
 
 .route-demo-scrub {
   width: 100%;
-  accent-color: #dc2626;
+  accent-color: var(--story-red, #a4161a);
 }
+
+.route-demo-bar button:focus-visible,
+.route-demo-scrub:focus-visible {
+  outline: 3px solid var(--story-gold, #c9971c);
+  outline-offset: 2px;
+}
+
+.route-demo-play {
+  min-width: 2.4rem !important;
+  border-radius: 999px !important;
+  background: var(--story-red, #a4161a) !important;
+  color: #fff8e7 !important;
+}
+
+.route-demo-step {
+  font-size: 1.2rem;
+  line-height: 1;
+}
+
+.route-demo-speeds {
+  display: flex;
+  gap: 0.1rem;
+  margin-left: 0.35rem;
+  padding: 0.15rem;
+  border-radius: 0.7rem;
+  background: rgb(230 211 173 / 55%);
+}
+
+.route-demo-speed {
+  min-height: 1.8rem !important;
+  font-size: 0.85rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.route-demo-speed[aria-pressed="true"] {
+  background: var(--story-paper, #fbf3e1) !important;
+  color: var(--story-red, #a4161a) !important;
+  box-shadow: 0 1px 3px rgb(63 44 29 / 20%);
+  font-weight: 600;
+}
+
+.route-demo-clock {
+  margin-left: auto;
+  color: var(--story-ink-soft, #7a5f45);
+  font-variant-numeric: tabular-nums;
+}
+
 
 .route-demo-readout {
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
-  gap: 0.35rem 0.9rem;
-  min-height: 1.5rem;
+  gap: 0.2rem 0.75rem;
+  color: var(--story-ink-soft, #7a5f45);
+  font-size: 0.85rem;
 }
 
-.route-demo-readout strong { font-size: 1.05rem; }
-
-.route-demo-readout span { color: rgb(245 241 230 / 0.75); }
+.route-demo-readout strong { color: var(--story-ink, #3f2c1d); }
 
 .route-demo-count {
   margin-left: auto;

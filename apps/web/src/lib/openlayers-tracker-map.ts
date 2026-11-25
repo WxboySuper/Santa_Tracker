@@ -8,7 +8,7 @@ import VectorLayer from "ol/layer/Vector.js";
 import OSM from "ol/source/OSM.js";
 import VectorSource from "ol/source/Vector.js";
 import { fromLonLat } from "ol/proj.js";
-import { Circle, Fill, Stroke, Style } from "ol/style.js";
+import { Circle, Fill, Icon, Stroke, Style } from "ol/style.js";
 import { apply } from "ol-mapbox-style";
 import type { RouteNode } from "./locations";
 import type { SantaPosition } from "./tracker-position";
@@ -20,17 +20,47 @@ import { createPolarCapLayer, POLE_COORD, VIEW_EXTENT } from "./tracker-polar-ca
 import { styleDeadline } from "./tracker-map-timeout";
 import { prefersLowPerformance } from "./device-capability";
 import type { TrackerArt } from "../components/tracker-3d/tracker-art";
+import { storybookStyle, STORYBOOK, type MapStyleJson } from "./storybook-map-style";
+import { headingWest, SLEIGH_EAST, SLEIGH_WEST } from "./tracker-sleigh-icon";
 
 const STYLE_URL = "https://tiles.openfreemap.org/styles/liberty";
 const VECTOR_TIMEOUT_MS = 6000;
 const TILE_ERROR_LIMIT = 4;
 
+// Storybook trail: the flown path is a red ribbon on a parchment casing; the path ahead is a faint dotted ink line.
+const FLOWN_STYLE = [
+  new Style({ stroke: new Stroke({ color: "rgba(255, 248, 231, 0.9)", width: 6, lineCap: "round" }) }),
+  new Style({ stroke: new Stroke({ color: "#a4161a", width: 2.75, lineCap: "round" }) }),
+];
+const AHEAD_STYLE = new Style({ stroke: new Stroke({ color: "rgba(74, 53, 36, 0.55)", width: 1.6, lineCap: "round", lineDash: [1, 6] }) });
+const VISITED_STOP = new Style({ image: new Circle({ radius: 2.6, fill: new Fill({ color: "#a4161a" }), stroke: new Stroke({ color: "#fff8e7", width: 1 }) }) });
+const UPCOMING_STOP = new Style({ image: new Circle({ radius: 2, fill: new Fill({ color: STORYBOOK.land }), stroke: new Stroke({ color: "rgba(74, 53, 36, 0.6)", width: 1 }) }) });
+const SLEIGH_GLOW = [
+  new Style({ image: new Circle({ radius: 22, fill: new Fill({ color: "rgba(255, 196, 92, 0.18)" }) }) }),
+  new Style({ image: new Circle({ radius: 13, fill: new Fill({ color: "rgba(255, 214, 128, 0.38)" }) }) }),
+];
+// Built on first use: Icon needs the browser's Image, which unit tests do not have.
+let sleighStyles: { east: Style[]; west: Style[] } | undefined;
+function sleighStyle(west: boolean): Style[] {
+  sleighStyles ??= {
+    east: [...SLEIGH_GLOW, new Style({ image: new Icon({ src: SLEIGH_EAST, width: 52, height: 24 }) })],
+    west: [...SLEIGH_GLOW, new Style({ image: new Icon({ src: SLEIGH_WEST, width: 52, height: 24 }) })],
+  };
+  return west ? sleighStyles.west : sleighStyles.east;
+}
+
 function drawLeg(source: VectorSource, from: { lat: number; lng: number }, to: { lat: number; lng: number }, completed: boolean): void {
   for (const piece of splitGreatCircle(from, to)) {
     const line = new Feature(new LineString(piece.map(point => fromLonLat(positionToView(point)))));
-    line.setStyle(new Style({ stroke: new Stroke({ color: "#fbbf24", width: 3, lineDash: completed ? undefined : [8, 8] }) }));
+    line.setStyle(completed ? FLOWN_STYLE : AHEAD_STYLE);
     source.addFeature(line);
   }
+}
+
+async function fetchStorybookStyle(signal: AbortSignal): Promise<MapStyleJson> {
+  const response = await fetch(STYLE_URL, { signal });
+  if (!response.ok) throw new Error(`Map style request failed: ${response.status}`);
+  return storybookStyle(await response.json() as MapStyleJson);
 }
 
 export class StyleLoadError extends Error {
@@ -42,6 +72,7 @@ export class OpenLayersTrackerMap implements TrackerMapAdapter {
   private route = new VectorSource();
   private activeLeg = new VectorSource();
   private marker = new VectorSource();
+  private stops = new VectorSource();
   private nodes: RouteNode[] = [];
   private position?: SantaPosition;
   private following = true;
@@ -74,6 +105,7 @@ export class OpenLayersTrackerMap implements TrackerMapAdapter {
     map.addLayer(createPolarCapLayer());
     map.addLayer(new VectorLayer({ source: this.route }));
     map.addLayer(new VectorLayer({ source: this.activeLeg }));
+    map.addLayer(new VectorLayer({ source: this.stops }));
     map.addLayer(new VectorLayer({ source: this.marker }));
     this.drawRoute();
     this.drawMarker();
@@ -90,7 +122,7 @@ export class OpenLayersTrackerMap implements TrackerMapAdapter {
     try {
       const { TrackerArt } = await import("../components/tracker-3d/tracker-art");
       if (this.disposed) return;
-      const art = new TrackerArt(map, () => this.drawMarker());
+      const art = new TrackerArt(map);
       art.mount();
       this.art = art;
       this.drawMarker();
@@ -107,7 +139,8 @@ export class OpenLayersTrackerMap implements TrackerMapAdapter {
       deadline.cancel();
     };
     try {
-      await Promise.race([apply(map, STYLE_URL, { transformRequest: url => new Request(url, { signal: controller.signal }) }), deadline.promise]);
+      const load = fetchStorybookStyle(controller.signal).then(style => apply(map, style as unknown as object, { transformRequest: url => new Request(url, { signal: controller.signal }) }));
+      await Promise.race([load, deadline.promise]);
     } catch (error) {
       controller.abort();
       throw error;
@@ -161,11 +194,23 @@ export class OpenLayersTrackerMap implements TrackerMapAdapter {
 
   private drawRoute(): void {
     this.route.clear();
+    this.drawStops();
     this.nodes.slice(1).forEach((node, index) => {
       if (index === this.position?.journey.currentIndex) return;
       const previous = this.nodes[index];
       if (!previous) return;
       drawLeg(this.route, previous.location, node.location, index < (this.position?.journey.currentIndex ?? -1));
+    });
+  }
+
+  private drawStops(): void {
+    this.stops.clear();
+    const reached = this.position?.journey.currentIndex ?? -1;
+    this.nodes.forEach((node, index) => {
+      if (node.type !== "DELIVERY") return;
+      const dot = new Feature(new Point(fromLonLat(positionToView(node.location))));
+      dot.setStyle(index <= reached ? VISITED_STOP : UPCOMING_STOP);
+      this.stops.addFeature(dot);
     });
   }
 
@@ -183,20 +228,12 @@ export class OpenLayersTrackerMap implements TrackerMapAdapter {
   private drawMarker(): void {
     this.marker.clear();
     if (!this.position) return;
-    if (this.drawSleighArt(this.position)) return;
-    const marker = new Feature(new Point(fromLonLat(positionToView(this.position))));
-    marker.setStyle(new Style({ image: new Circle({ radius: 9, fill: new Fill({ color: "#dc2626" }), stroke: new Stroke({ color: "white", width: 3 }) }) }));
-    this.marker.addFeature(marker);
-  }
-
-  private drawSleighArt(position: SantaPosition): boolean {
-    if (!this.art?.sleighReady) return false;
-    const index = position.journey.currentIndex;
+    const index = this.position.journey.currentIndex;
     const next = index == null ? undefined : this.nodes[index + 1];
-    const bearing = next ? bearingBetween(position, next.location) : 0;
-    const [lng, lat] = positionToView(position);
-    this.art.setSleigh([lng, lat], bearing);
-    return true;
+    const west = next ? headingWest(bearingBetween(this.position, next.location)) : false;
+    const marker = new Feature(new Point(fromLonLat(positionToView(this.position))));
+    marker.setStyle(sleighStyle(west));
+    this.marker.addFeature(marker);
   }
 
   private centerSanta(): void {

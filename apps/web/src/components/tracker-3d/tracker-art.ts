@@ -1,11 +1,9 @@
 import type Map from 'ol/Map.js';
 import Overlay from 'ol/Overlay.js';
 import type { Scene } from 'three';
-import { fromLonLat } from 'ol/proj.js';
 import { POLE_COORD } from '../../lib/tracker-polar-cap';
 import { mountMiniScene, type MiniScene, type SceneRig } from './mini-scene';
 import { buildPoleScene } from './pole-scene';
-import { buildSleighScene } from './sleigh-scene';
 
 
 type Piece = {
@@ -23,7 +21,6 @@ type PieceSpec = {
 };
 
 const POLE: PieceSpec = { size: 300, fov: 44, cameraPosition: [0, 5.0, 15.5], cameraTarget: [0, 3.3, 0], offset: [0, -78], build: buildPoleScene };
-const SLEIGH: PieceSpec = { size: 200, fov: 24, cameraPosition: [0, 12.5, 10.5], cameraTarget: [0, 0, 0.5], offset: [0, 0], build: buildSleighScene };
 
 function canvasElement(size: number): { wrapper: HTMLDivElement; canvas: HTMLCanvasElement } {
   const wrapper = document.createElement('div');
@@ -38,66 +35,30 @@ function canvasElement(size: number): { wrapper: HTMLDivElement; canvas: HTMLCan
   return { wrapper, canvas };
 }
 
-/** Custom 3D map elements: the North Pole station and the sleigh marker. */
+/**
+ * The 3D North Pole station above the map. Santa himself is a small 2D storybook sleigh drawn by the map layer,
+ * so he reads as a marker at every zoom.
+ */
 export class TrackerArt {
   private pole?: Piece;
-  private sleigh?: Piece;
-  private lost = false;
 
-  constructor(
-    private readonly map: Map,
-    private readonly onSleighLost: () => void,
-  ) {}
-
-  /** True once the sleigh is drawn in 3D, so the plain dot can be dropped. */
-  get sleighReady(): boolean {
-    return Boolean(this.sleigh) && !this.lost;
-  }
+  constructor(private readonly map: Map) {}
 
   mount(): void {
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    this.pole = this.piece(POLE, POLE_COORD, reducedMotion, () => this.removePole());
-    this.sleigh = this.piece(SLEIGH, undefined, reducedMotion, () => this.loseSleigh());
-  }
-
-  private piece(spec: PieceSpec, coordinate: [number, number] | undefined, reducedMotion: boolean, onLost: () => void): Piece | undefined {
-    const { wrapper, canvas } = canvasElement(spec.size);
-    const scene = mountMiniScene(canvas, { ...spec, reducedMotion, onLost });
-    if (!scene) return undefined;
-    const overlay = new Overlay({ element: wrapper, positioning: 'center-center', offset: spec.offset, stopEvent: false });
-    if (coordinate) overlay.setPosition(coordinate);
+    const { wrapper, canvas } = canvasElement(POLE.size);
+    const scene = mountMiniScene(canvas, { ...POLE, reducedMotion, onLost: () => this.dispose() });
+    if (!scene) return;
+    const overlay = new Overlay({ element: wrapper, positioning: 'center-center', offset: POLE.offset, stopEvent: false });
+    overlay.setPosition(POLE_COORD);
     this.map.addOverlay(overlay);
-    return { overlay, scene };
-  }
-
-  setSleigh(lonLat: [number, number], bearing: number): void {
-    if (!this.sleigh) return;
-    this.sleigh.overlay.setPosition(fromLonLat(lonLat));
-    this.sleigh.scene.rig.setHeading?.(bearing);
-  }
-
-  private removePole(): void {
-    this.drop(this.pole);
-    this.pole = undefined;
-  }
-
-  private loseSleigh(): void {
-    this.lost = true;
-    this.drop(this.sleigh);
-    this.sleigh = undefined;
-    this.onSleighLost();
-  }
-
-  private drop(piece: Piece | undefined): void {
-    if (!piece) return;
-    this.map.removeOverlay(piece.overlay);
-    piece.scene.dispose();
+    this.pole = { overlay, scene };
   }
 
   dispose(): void {
-    this.drop(this.pole);
-    this.drop(this.sleigh);
+    if (!this.pole) return;
+    this.map.removeOverlay(this.pole.overlay);
+    this.pole.scene.dispose();
     this.pole = undefined;
-    this.sleigh = undefined;
   }
 }

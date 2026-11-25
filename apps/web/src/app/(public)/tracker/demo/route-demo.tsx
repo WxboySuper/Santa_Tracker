@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import type { RouteNode } from "@/lib/locations";
 import { demoClockSettings, setDemoClock } from "@/lib/tracker-clock";
 import { validRouteNodes } from "@/lib/tracker-route-validation";
+import { localTimeAt } from "@/lib/tracker-local-time";
 import { useTrackerNow } from "@/lib/use-tracker-now";
 import TrackerMap from "../tracker-map";
 import "./route-demo.css";
@@ -53,17 +54,6 @@ function currentStopIndex(stops: Stop[], now: number): number {
 
 function formatUtc(ms: number): string {
   return new Intl.DateTimeFormat("en-GB", { timeZone: "UTC", weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }).format(ms);
-}
-
-function localTimeAt(node: RouteNode, ms: number): string {
-  const zone = (node.location as { timezone?: string }).timezone;
-  if (zone) {
-    try {
-      return new Intl.DateTimeFormat("en-GB", { timeZone: zone, hour: "2-digit", minute: "2-digit" }).format(ms);
-    } catch { /* fall back to the offset */ }
-  }
-  const offset = node.location.timezone_offset ?? 0;
-  return new Intl.DateTimeFormat("en-GB", { timeZone: "UTC", hour: "2-digit", minute: "2-digit" }).format(ms + offset * 3_600_000);
 }
 
 function stopTier(node: RouteNode): string | null {
