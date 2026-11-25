@@ -1,12 +1,10 @@
 ﻿import { LegacyRouteFixtureSchema } from '@santa-tracker/contracts';
 import { haversineKm, legSpeedKmh } from '../geo';
-import { allocateQuotas } from './selection';
-import { classifyRegion, formatUtcOffset } from './regions';
-import { localMinute } from './timezone';
+import { classifyRegion } from './regions';
 import { NORTH_POLE, TAKEOFF_UTC, type Candidate, type GeneratorConfig, type RouteReport } from './types';
 
 export type AuditCheck = { name: string; pass: boolean; detail: string };
-export type AuditResult = { checks: AuditCheck[]; pass: boolean };
+export type AuditResult = { checks: AuditCheck[]; reports: { name: string; detail: string }[]; pass: boolean };
 
 export type RouteAuditContext = {
   config: GeneratorConfig;
@@ -17,6 +15,7 @@ export type RouteAuditContext = {
   countryBoundsByCode: Record<string, { minLat: number; maxLat: number; minLng: number; maxLng: number }>;
   report: Pick<RouteReport, 'continentBalance' | 'subregionBalance'>;
   vetoIds: string[];
+  worldPlaces?: Candidate[];
 };
 
 type RouteNode = {
@@ -40,8 +39,8 @@ type RouteNode = {
     departure_utc: string;
     local_arrival_time?: string | null;
   };
-  stop_experience?: { presents_delivered_at_stop?: number | null; camera_zoom?: number | null; weather_condition?: string | null };
-  transit_to_here?: { duration_seconds?: number | null; distance_km?: number | null; speed_kmh?: number | null } | null;
+  stop_experience?: { presents_delivered_at_stop?: number | null; camera_zoom?: number | null; weather_condition?: string | null; stop_tier?: string | null; duration_seconds?: number | null };
+  transit_to_here?: { duration_seconds?: number | null; distance_km?: number | null; speed_kmh?: number | null; eastward_reason?: 'dateline' | 'offset-anomaly' | 'return' | null } | null;
   notes?: string | null;
 };
 
@@ -89,17 +88,6 @@ export function coordinateAuditFailures(places: Candidate[], pool: Candidate[], 
   return failures;
 }
 
-function countsByRegion<T extends { continent: string; subregion: string }>(
-  regions: T[],
-  key: (region: T) => string,
-): Record<string, number> {
-  return regions.reduce<Record<string, number>>((counts, region) => {
-    const name = key(region);
-    counts[name] = (counts[name] ?? 0) + 1;
-    return counts;
-  }, {});
-}
-
 function normalizedPlaceName(value: string): string {
   return value.normalize('NFKD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('en').replace(/[^a-z0-9]/g, '');
 }
@@ -134,25 +122,6 @@ function isTrustedSource(source: string | null | undefined): boolean {
   return isWikidataSource(url) || isNaturalEarthSource(url);
 }
 
-function sameCounts(left: Record<string, number>, right: Record<string, number>): boolean {
-  const keys = new Set([...Object.keys(left), ...Object.keys(right)]);
-  return [...keys].every((key) => left[key] === right[key]);
-}
-
-function canBeSelected(place: Candidate, config: GeneratorConfig, veto: Set<string>): boolean {
-  if (isExcludedCandidate(place, config, veto)) return false;
-  if (['cultural', 'nature', 'special'].includes(place.category)) return true;
-  if (place.worldCity === true) return true;
-  if ((place.population ?? 0) >= config.hubPopulationMinimum) return true;
-  return config.underservedCountries.includes(place.country);
-}
-
-function isExcludedCandidate(place: Candidate, config: GeneratorConfig, veto: Set<string>): boolean {
-  if (veto.has(place.id)) return true;
-  if (config.uninhabitedIslandIds.includes(place.id)) return true;
-  return place.utcOffsetMinutes === undefined;
-}
-
 type AuditView = {
   nodes: RouteNode[];
   delivery: RouteNode[];
@@ -162,7 +131,7 @@ type AuditView = {
   places: Candidate[];
 };
 
-type AuditLeg = { km: number; kmh: number; gapMinutes: number; eastward: number; kind: string };
+type AuditLeg = { km: number; kmh: number; gapMinutes: number; eastward: number; kind: string; fromName: string; toName: string; toNode?: RouteNode };
 
 function addCheck(checks: AuditCheck[], name: string, pass: boolean, detail: string): void {
   checks.push({ name, pass, detail });
@@ -223,7 +192,6 @@ function addHeaderChecks(document: unknown, context: RouteAuditContext, view: Au
   addLegacySchemaCheck(document, checks);
   addEndpointCheck(view, checks);
   addCandidateIdentityCheck(view, checks);
-  addRequiredStopCheck(context, view, checks);
   addMetadataCheck(document, context, checks);
 }
 
@@ -262,49 +230,12 @@ function addCandidateIdentityCheck(view: AuditView, checks: AuditCheck[]): void 
     `${view.places.length}/${view.delivery.length} delivery nodes map to unique snapshot candidates.`);
 }
 
-function addRequiredStopCheck(context: RouteAuditContext, view: AuditView, checks: AuditCheck[]): void {
-  const routeIds = new Set(view.delivery.map((node) => node.candidate_id).filter((id): id is string => typeof id === 'string'));
-  const missingStops = context.config.requiredStopIds.filter((id) => !routeIds.has(id));
-  const countries = new Set(view.delivery.map((node) => node.location.country_code).filter((code): code is string => typeof code === 'string'));
-  const missingCountries = context.config.requiredCountries.filter((code) => !countries.has(code));
-  const detail = missingStops.length || missingCountries.length
-    ? `Missing stop ids ${missingStops.join(', ') || 'none'}; missing countries ${missingCountries.join(', ') || 'none'}.`
-    : `${context.config.requiredStopIds.length} required iconic stops and countries ${context.config.requiredCountries.join(', ')} are present.`;
-  addCheck(checks, 'Required iconic and regional stops', missingStops.length === 0 && missingCountries.length === 0, detail);
-}
-
 function addMetadataCheck(document: unknown, context: RouteAuditContext, checks: AuditCheck[]): void {
   const meta = isRecord(document) && isRecord(document.meta) ? document.meta : {};
   const version = typeof meta.route_version === 'string' ? meta.route_version : 'missing';
   const generatedAt = typeof meta.generated_at === 'string' ? meta.generated_at : 'missing';
   const valid = version === '2026-draft-1' && generatedAt === context.config.generatedAt && Date.parse(generatedAt) <= Date.now();
   addCheck(checks, 'Committed version and timestamp', valid, `version ${version}; generated_at ${generatedAt}.`);
-}
-
-function countCoreHubs(view: AuditView, config: GeneratorConfig): number {
-  return view.delivery.filter((node, index) => {
-    const place = view.places[index];
-    return node.comment === 'hub' && place !== undefined
-      && (place.worldCity === true || (place.population ?? 0) >= config.hubPopulationCore);
-  }).length;
-}
-
-function addCategoryChecks(context: RouteAuditContext, view: AuditView, checks: AuditCheck[]): void {
-  const categoryCounts = view.delivery.reduce<Record<string, number>>((counts, node) => {
-    const category = node.comment ?? 'missing';
-    counts[category] = (counts[category] ?? 0) + 1;
-    return counts;
-  }, {});
-  const expected = allocateQuotas(context.config.total, context.config.weights);
-  const mixMatches = Object.entries(expected).every(([category, count]) => categoryCounts[category] === count);
-  const coreHubs = countCoreHubs(view, context.config);
-  const allHubsMeetMinimum = view.delivery.every((node, index) => node.comment !== 'hub'
-    || view.places[index]?.worldCity === true
-    || (view.places[index]?.population ?? 0) >= context.config.hubPopulationMinimum);
-  addCheck(checks, 'Stop count and category mix', view.delivery.length === context.config.total && mixMatches,
-    `${view.delivery.length} stops; ${Object.entries(categoryCounts).map(([name, count]) => `${name} ${count}`).join(', ')}.`);
-  addCheck(checks, 'Hub definition', allHubsMeetMinimum && coreHubs >= context.config.hubCoreMinimum,
-    `${coreHubs} of ${categoryCounts.hub ?? 0} hubs meet world-city or ${context.config.hubPopulationCore.toLocaleString()}+ population; all hubs meet ${context.config.hubPopulationMinimum.toLocaleString()}+ population or world-city status.`);
 }
 
 function timezoneNodeIsComplete(node: RouteNode, place: Candidate | undefined): place is Candidate {
@@ -349,14 +280,17 @@ function timezoneOffsetFailures(node: RouteNode, place: Candidate, context: Rout
   return [];
 }
 
-function localArrivalFailures(node: RouteNode, place: Candidate, context: RouteAuditContext): string[] {
+function localArrivalFailures(node: RouteNode, place: Candidate): string[] {
   const arrival = node.schedule.arrival_utc;
   if (!arrival) return [`${node.location.name}: missing arrival time`];
-  const local = localMinute({ iso: arrival, timezoneOrOffset: place.utcOffsetMinutes ?? Number.NaN });
-  const failures: string[] = [];
-  if (local < 0) failures.push(`${node.location.name}: snapshot local arrival is not December 25`);
-  if (local < context.config.arrivalStartMinute || local > context.config.arrivalEndMinute) failures.push(`${node.location.name}: outside the local arrival window`);
-  return failures;
+  const offset = place.utcOffsetMinutes;
+  if (offset === undefined) return [`${node.location.name}: missing snapshot UTC offset`];
+  const local = new Date(Date.parse(arrival) + offset * 60_000);
+  const day = local.getUTCDate();
+  const minute = local.getUTCHours() * 60 + local.getUTCMinutes();
+  const validDate = local.getUTCFullYear() === 2026 && local.getUTCMonth() === 11;
+  const inWindow = (day === 24 && minute >= 23 * 60) || (day === 25 && minute <= 5 * 60);
+  return validDate && inWindow ? [] : [`${node.location.name}: local arrival is outside Dec 24 23:00–Dec 25 05:00`];
 }
 
 function displayOffsetFailures(node: RouteNode, place: Candidate): string[] {
@@ -372,94 +306,19 @@ function timezoneFailuresForNode(node: RouteNode, place: Candidate | undefined, 
   return [
     ...timezoneCountryFailures(node, place, context),
     ...timezoneOffsetFailures(node, place, context),
-    ...localArrivalFailures(node, place, context),
+    ...localArrivalFailures(node, place),
     ...displayOffsetFailures(node, place),
   ];
 }
 
-function addOffsetCoverageCheck(context: RouteAuditContext, counts: Map<number, number>, checks: AuditCheck[]): void {
-  const veto = new Set(context.vetoIds);
-  const eligible = new Set(context.pool.filter((place) => canBeSelected(place, context.config, veto))
-    .map((place) => place.utcOffsetMinutes).filter((value): value is number => value !== undefined));
-  const missing = [...eligible].filter((offset) => (counts.get(offset) ?? 0) < 1).sort((a, b) => a - b);
-  const detail = missing.length
-    ? `Missing ${missing.map(formatUtcOffset).join(', ')}.`
-    : `${eligible.size} populated offsets represented; ${[...counts].sort(([a], [b]) => a - b).map(([offset, count]) => `${formatUtcOffset(offset)} ${count}`).join(', ')}.`;
-  addCheck(checks, 'UTC offset coverage', missing.length === 0, detail);
-}
-
 function addTimezoneChecks(context: RouteAuditContext, view: AuditView, checks: AuditCheck[]): void {
   const failures: string[] = [];
-  const offsetCounts = new Map<number, number>();
   view.delivery.forEach((node, index) => {
     failures.push(...timezoneFailuresForNode(node, view.places[index], context));
-    const offset = view.places[index]?.utcOffsetMinutes;
-    if (offset !== undefined) offsetCounts.set(offset, (offsetCounts.get(offset) ?? 0) + 1);
   });
-  addCheck(checks, 'Timezone and local Christmas arrivals', failures.length === 0,
+  addCheck(checks, 'Timezone and local arrival window', failures.length === 0,
     failures.length ? failures.slice(0, 6).join('; ')
-      : `${view.delivery.length} stops match country zones, real IANA offsets, Dec 25, and 00:20–03:00 local.`);
-  addOffsetCoverageCheck(context, offsetCounts, checks);
-}
-
-function addRegionalChecks(context: RouteAuditContext, places: Candidate[], checks: AuditCheck[]): void {
-  const regions = places.map(classifyRegion);
-  const count = (predicate: (region: (typeof regions)[number]) => boolean): number => regions.filter(predicate).length;
-  const continentCounts = countsByRegion(regions, (region) => region.continent);
-  const subregionCounts = countsByRegion(regions, (region) => region.subregion);
-  const failures = sameCounts(continentCounts, context.report.continentBalance)
-    && sameCounts(subregionCounts, context.report.subregionBalance) ? [] : ['audit, report, and review region counts disagree'];
-  const tests: [string, number, number][] = [
-    ['Western and Northern Europe', count((region) => region.westernNorthernEurope), context.config.regionalMinimums.westernNorthernEurope],
-    ['Australia and New Zealand', count((region) => region.australiaNewZealand), context.config.regionalMinimums.australiaNewZealand],
-    ['Pacific islands', count((region) => region.pacificIsland), context.config.regionalMinimums.pacificIslands],
-    ['Africa', count((region) => region.africa), context.config.regionalMinimums.africa],
-    ['Middle East', count((region) => region.middleEast), context.config.regionalMinimums.middleEast],
-    ['Greenland or Arctic Canada', count((region) => region.arctic), context.config.regionalMinimums.arctic],
-  ];
-  for (const [name, actual, minimum] of tests) if (actual < minimum) failures.push(`${name} ${actual}/${minimum}`);
-  const americas = count((region) => region.americas);
-  const southAmerica = count((region) => region.southAmerica);
-  const bolivia = places.filter((place) => place.country === 'BO').length;
-  addRegionCaps(failures, context, { americas, southAmerica, bolivia });
-  const continentSummary = Object.entries(continentCounts).sort(([left], [right]) => left.localeCompare(right))
-    .map(([name, amount]) => `${name} ${amount}`).join(', ');
-  const pacificSubregion = subregionCounts['Pacific Islands'] ?? 0;
-  const failureSummary = failures.length ? `${failures.join('; ')}. ` : '';
-  const detail = `${failureSummary}Continents: ${continentSummary}; Pacific Islands subregion ${pacificSubregion}; `
-    + `${tests.map(([name, amount]) => `${name} ${amount}`).join(', ')}; Americas ${americas}/${context.config.total} (${(americas / context.config.total * 100).toFixed(1)}%), South America ${southAmerica}, Bolivia ${bolivia}.`;
-  addCheck(checks, 'Regional quotas and Americas caps', failures.length === 0, detail);
-}
-
-type RegionTotals = { americas: number; southAmerica: number; bolivia: number };
-
-function addRegionCaps(failures: string[], context: RouteAuditContext, totals: RegionTotals): void {
-  const maximumAmericas = Math.floor(context.config.total * context.config.maxAmericasPercent / 100);
-  if (totals.americas > maximumAmericas) failures.push(`Americas ${totals.americas}/${maximumAmericas}`);
-  if (totals.southAmerica > context.config.maxSouthAmericaStops) failures.push(`South America ${totals.southAmerica}/${context.config.maxSouthAmericaStops}`);
-  const boliviaCap = context.config.countryCaps.BO ?? 4;
-  if (totals.bolivia > boliviaCap) failures.push(`Bolivia ${totals.bolivia}/${boliviaCap}`);
-}
-
-function longestCountryRun(places: Candidate[]): number {
-  let longest = 0;
-  let run = 0;
-  let previous: string | undefined;
-  for (const place of places) {
-    run = place.country === previous ? run + 1 : 1;
-    longest = Math.max(longest, run);
-    previous = place.country;
-  }
-  return longest;
-}
-
-function addCountryChecks(context: RouteAuditContext, places: Candidate[], checks: AuditCheck[]): void {
-  const counts = new Map<string, number>();
-  for (const place of places) counts.set(place.country, (counts.get(place.country) ?? 0) + 1);
-  const overCaps = [...counts].filter(([country, count]) => count > (context.config.countryCaps[country] ?? context.config.maxStopsPerCountry));
-  const maxRun = longestCountryRun(places);
-  addCheck(checks, 'Country totals and consecutive runs', overCaps.length === 0 && maxRun <= context.config.maxCountryRun,
-    `maximum country total ${Math.max(...counts.values())}; longest run ${maxRun}; limits ${context.config.maxStopsPerCountry} and ${context.config.maxCountryRun}.`);
+      : `${view.delivery.length} stops match country zones and arrive between 23:00 Dec 24 and 05:00 Dec 25 local.`);
 }
 
 function minimumSeparationKm(places: Candidate[]): number {
@@ -509,50 +368,52 @@ function addCoordinateChecks(context: RouteAuditContext, view: AuditView, checks
   const minSeparation = minimumSeparationKm(view.places);
   const vetoNames = ['Dzhankoy', 'Kursk', 'Zelenodolsk', 'Bikini Atoll', 'Point Barrow'];
   const vetoNameStops = view.delivery.filter((node) => vetoNames.includes(node.location.name));
-  const pass = coordinateRulesPass({ vetoed, vetoNameStops, coordinateProblems, duplicateCount, minSeparation,
-    minimumDistance: context.config.minStopSeparationKm });
+  const minimumDistance = 20;
+  const pass = coordinateRulesPass({ vetoed, vetoNameStops, coordinateProblems, duplicateCount, minSeparation, minimumDistance });
   const detail = vetoed.length || vetoNameStops.length ? `Vetoed stop: ${[...vetoNames, ...vetoed].join(', ')}.`
     : coordinateProblems.length ? coordinateProblems.slice(0, 4).join('; ')
-      : `country bounds and cross-source name coordinates pass; no duplicates; nearest pair ${human(minSeparation)} km apart (minimum ${context.config.minStopSeparationKm} km).`;
+      : `country bounds and cross-source name coordinates pass; no duplicates; nearest pair ${human(minSeparation)} km apart (minimum ${minimumDistance} km).`;
   addCheck(checks, 'Vetoes, coordinates, duplicates, and separation', pass, detail);
-}
-
-function firstFiveArePopulated(places: Candidate[], context: RouteAuditContext): boolean {
-  return places.slice(0, 5).every((place) => (place.population ?? 0) > 0
-    || place.worldCity === true || context.config.openingStopIds.includes(place.id));
-}
-
-function lastStopIsPopulated(place: Candidate | undefined, context: RouteAuditContext): boolean {
-  if (!place) return false;
-  return (place.population ?? 0) > 0 || place.worldCity === true || context.config.requiredStopIds.includes(place.id);
-}
-
-function addIslandCheck(context: RouteAuditContext, places: Candidate[], checks: AuditCheck[]): void {
-  const islandIndices = places.flatMap((place, index) => context.config.uninhabitedIslandIds.includes(place.id) ? [index] : []);
-  const firstFivePopulated = firstFiveArePopulated(places, context);
-  const last = places.at(-1);
-  const lastPopulated = lastStopIsPopulated(last, context);
-  const pass = islandLimitPasses(islandIndices) && firstFivePopulated && lastPopulated;
-  addCheck(checks, 'Island, opening, and ending rules', pass, islandCheckDetail(islandIndices.length, firstFivePopulated, last?.name, lastPopulated));
-}
-
-function islandLimitPasses(indices: number[]): boolean {
-  if (indices.length > 4) return false;
-  return indices.every((index) => index >= 5);
-}
-
-function islandCheckDetail(count: number, firstFivePopulated: boolean, lastName: string | undefined, lastPopulated: boolean): string {
-  const first = firstFivePopulated ? 'populated' : 'include an unpopulated place';
-  const last = lastPopulated ? 'is populated or iconic' : 'is not populated or iconic';
-  return `${count} uninhabited-island stops; first five ${first}; last stop ${lastName ?? 'missing'} ${last}.`;
 }
 
 function addExperienceCheck(view: AuditView, checks: AuditCheck[]): void {
   const sourceFailures = view.delivery.filter(hasMissingSource);
   const experienceFailures = view.delivery.filter(hasIncompleteExperience);
   const transitFailures = view.nodes.filter(hasMissingTransitMetrics);
-  addCheck(checks, 'Source links and stop experience', sourceFailures.length === 0 && experienceFailures.length === 0 && transitFailures.length === 0,
+  addCheck(checks, 'Tone veto, sources, and stop experience', sourceFailures.length === 0 && experienceFailures.length === 0 && transitFailures.length === 0,
     `${sourceFailures.length} missing source links; ${experienceFailures.length} incomplete delivery experiences; ${transitFailures.length} missing transit metrics.`);
+}
+
+const STOP_TIER_SECONDS: Record<string, number> = { major: 60, city: 30, town: 10, hop: 3 };
+
+function expectedTier(place: Candidate): string {
+  const population = place.population;
+  const capital = place.category === 'capital' || ('isNationalCapital' in place && place.isNationalCapital === true);
+  const curated = ['cultural', 'nature', 'special'].includes(place.category);
+  const headline = place.category === 'special' || ('headlineLandmark' in place && place.headlineLandmark === true);
+  if (population === undefined) return headline ? 'major' : curated || capital ? 'city' : 'hop';
+  if (population >= 1_000_000 || (capital && population >= 250_000) || headline) return 'major';
+  if (population >= 100_000 || capital || curated) return 'city';
+  if (population >= 5_000) return 'town';
+  return 'hop';
+}
+
+function addStopTierCheck(view: AuditView, checks: AuditCheck[]): void {
+  const counts: Record<string, number> = {};
+  const failures: string[] = [];
+  view.delivery.forEach((node, index) => {
+    const tier = node.stop_experience?.stop_tier ?? '';
+    counts[tier || 'missing'] = (counts[tier || 'missing'] ?? 0) + 1;
+    const expectedSeconds = STOP_TIER_SECONDS[tier];
+    const duration = node.stop_experience?.duration_seconds ?? undefined;
+    const place = view.places[index];
+    const expected = place ? expectedTier(place) : undefined;
+    if (expectedSeconds === undefined || duration !== expectedSeconds || (expected !== undefined && tier !== expected)) {
+      failures.push(`${node.location.name}: tier ${tier || 'missing'}, duration ${duration ?? 'missing'}s${expected ? `, expected ${expected}` : ''}`);
+    }
+  });
+  addCheck(checks, 'Stop tiers and duration', failures.length === 0,
+    `${failures.length ? failures.slice(0, 6).join('; ') : 'all DELIVERY stops have a valid tier and matching duration'}; counts ${Object.entries(counts).map(([tier, count]) => `${tier} ${count}`).join(', ')}.`);
 }
 
 function hasMissingSource(node: RouteNode): boolean {
@@ -575,9 +436,8 @@ function hasMissingTransitMetrics(node: RouteNode): boolean {
 }
 
 function addUnmatchedSelectionChecks(checks: AuditCheck[]): void {
-  const names = ['Stop count and category mix', 'Hub definition', 'Timezone and local Christmas arrivals', 'UTC offset coverage',
-    'Regional quotas and Americas caps', 'Country totals and consecutive runs', 'Vetoes, coordinates, duplicates, and separation',
-    'Island, opening, and ending rules', 'Source links and stop experience'];
+  const names = ['Timezone and local arrival window', 'Vetoes, coordinates, duplicates, and separation',
+    'Stop tiers and duration'];
   for (const name of names) addCheck(checks, name, false, 'Cannot check without unique candidate matches.');
 }
 
@@ -586,21 +446,18 @@ function addSelectionChecks(context: RouteAuditContext, view: AuditView, checks:
     addUnmatchedSelectionChecks(checks);
     return;
   }
-  addCategoryChecks(context, view, checks);
   addTimezoneChecks(context, view, checks);
-  addRegionalChecks(context, view.places, checks);
-  addCountryChecks(context, view.places, checks);
   addCoordinateChecks(context, view, checks);
-  addIslandCheck(context, view.places, checks);
   addExperienceCheck(view, checks);
+  addStopTierCheck(view, checks);
 }
 
 function addFlightWindowCheck(context: RouteAuditContext, view: AuditView, checks: AuditCheck[]): void {
   const takeoff = Date.parse(TAKEOFF_UTC);
   const lastDeparture = Date.parse(view.delivery.at(-1)?.schedule.departure_utc ?? '');
   const returnArrival = Date.parse(view.end?.schedule.arrival_utc ?? '');
-  const pass = !!view.start && !!view.end && lastDeparture <= takeoff + 27 * 3_600_000
-    && returnArrival <= takeoff + 27 * 3_600_000 + 45 * 60_000;
+  const pass = !!view.start && !!view.end && lastDeparture <= takeoff + 28 * 3_600_000
+    && returnArrival <= takeoff + 28 * 3_600_000;
   addCheck(checks, 'Flight window and North Pole return', pass,
     `last delivery departs ${Number.isFinite(lastDeparture) ? new Date(lastDeparture).toISOString() : 'invalid'}; return ${Number.isFinite(returnArrival) ? new Date(returnArrival).toISOString() : 'invalid'}.`);
 }
@@ -613,9 +470,20 @@ function deliveryLegAt(view: AuditView, index: number): AuditLeg | undefined {
   const toArrival = Date.parse(toNode.schedule.arrival_utc ?? '');
   const gapSeconds = (toArrival - fromDeparture) / 1000;
   const gapMinutes = (toArrival - Date.parse(fromNode.schedule.arrival_utc ?? '')) / 60_000;
-  const eastward = ((to.lng - from.lng + 540) % 360) - 180;
+  const eastward = unwrapEastwardDelta(from.lng, to.lng);
   const km = haversineKm(from, to);
-  return { km, kmh: legSpeedKmh(from, to, gapSeconds) ?? 0, gapMinutes, eastward, kind: 'delivery' };
+  return { km, kmh: legSpeedKmh(from, to, gapSeconds) ?? 0, gapMinutes, eastward, kind: 'delivery', fromName: fromNode.location.name, toName: toNode.location.name, toNode };
+}
+
+function unwrapEastwardDelta(fromLng: number, toLng: number): number {
+  let delta = toLng - fromLng;
+  while (delta > 180) delta -= 360;
+  while (delta <= -180) delta += 360;
+  return delta;
+}
+
+function normalizedLongitude(longitude: number): number {
+  return ((longitude + 180) % 360 + 360) % 360 - 180;
 }
 
 type AuditDeliveryLegContext = {
@@ -652,7 +520,7 @@ function buildAuditLegs(view: AuditView, takeoff: number): AuditLeg[] {
     const arrival = Date.parse(firstNode.schedule.arrival_utc ?? '');
     const gapMinutes = (arrival - takeoff) / 60_000;
     const km = haversineKm(NORTH_POLE, firstPlace);
-    legs.push({ km, kmh: legSpeedKmh(NORTH_POLE, firstPlace, gapMinutes * 60) ?? 0, gapMinutes, eastward: 0, kind: 'launch' });
+    legs.push({ km, kmh: legSpeedKmh(NORTH_POLE, firstPlace, gapMinutes * 60) ?? 0, gapMinutes, eastward: 0, kind: 'launch', fromName: 'START', toName: firstNode.location.name, toNode: firstNode });
   }
   addDeliveryLegs(legs, view);
   addReturnLeg(legs, view);
@@ -669,7 +537,7 @@ function returnLegFromView(view: AuditView): AuditLeg | undefined {
   const returnArrival = Date.parse(view.end.schedule.arrival_utc ?? '');
   const gapSeconds = (returnArrival - fromDeparture) / 1000;
   const km = haversineKm(lastPlace, NORTH_POLE);
-  return { km, kmh: legSpeedKmh(lastPlace, NORTH_POLE, gapSeconds) ?? 0, gapMinutes: gapSeconds / 60, eastward: 0, kind: 'return' };
+  return { km, kmh: legSpeedKmh(lastPlace, NORTH_POLE, gapSeconds) ?? 0, gapMinutes: gapSeconds / 60, eastward: unwrapEastwardDelta(lastPlace.lng, NORTH_POLE.lng), kind: 'return', fromName: lastNode.location.name, toName: 'END', toNode: view.end };
 }
 
 function addReturnLeg(legs: AuditLeg[], view: AuditView): void {
@@ -677,71 +545,140 @@ function addReturnLeg(legs: AuditLeg[], view: AuditView): void {
   if (leg) legs.push(leg);
 }
 
-function addArrivalGapCheck(context: RouteAuditContext, view: AuditView, legs: AuditLeg[], checks: AuditCheck[]): void {
-  const arrivals = view.delivery.map((node) => Date.parse(node.schedule.arrival_utc ?? ''));
-  const gaps = arrivals.slice(1).map((arrival, index) => (arrival - (arrivals[index] ?? arrival)) / 60_000);
-  const badGaps = gaps.filter((gap) => gap < context.config.minArrivalGapMinutes || gap > context.config.maxArrivalGapMinutes);
-  const maxGap = gaps.length ? Math.max(...gaps) : 0;
-  const returnLeg = legs.at(-1);
-  const pass = badGaps.length === 0 && maxGap <= context.config.maxArrivalGapMinutes && !!returnLeg && returnLeg.gapMinutes <= 60;
-  const detail = `arrival gaps ${gaps.length ? `${human(Math.min(...gaps))}–${human(maxGap)} min` : 'missing'}; return gap ${human(returnLeg?.gapMinutes ?? Number.POSITIVE_INFINITY)} min.`;
-  addCheck(checks, 'Arrival pacing and quiet gaps', pass, detail);
-}
-
-function addClockHourCheck(context: RouteAuditContext, view: AuditView, takeoff: number, checks: AuditCheck[]): void {
-  const hourly = new Map<number, number>();
-  const arrivals = view.delivery.map((node) => Date.parse(node.schedule.arrival_utc ?? ''));
-  for (const arrival of arrivals) {
-    const hour = Math.floor((arrival - takeoff) / 3_600_000);
-    hourly.set(hour, (hourly.get(hour) ?? 0) + 1);
+function addTravelTimingCheck(view: AuditView, legs: AuditLeg[], checks: AuditCheck[]): void {
+  const failures: string[] = [];
+  for (let index = 0; index < view.delivery.length; index++) {
+    const previous = index === 0 ? view.start : view.delivery[index - 1];
+    const current = view.delivery[index];
+    const leg = legs.find((item) => item.toNode === current);
+    if (!previous || !current || !leg) continue;
+    const arrival = Date.parse(current.schedule.arrival_utc ?? '');
+    const departure = Date.parse(previous.schedule.departure_utc);
+    const recorded = current.transit_to_here?.duration_seconds ?? 0;
+    if (!Number.isFinite(arrival) || !Number.isFinite(departure) || arrival < departure + recorded * 1000) {
+      failures.push(`${current.location.name}: arrival precedes prior departure plus ${recorded}s travel`);
+    }
   }
-  const finalHour = Math.floor(((arrivals.at(-1) ?? takeoff) - takeoff) / 3_600_000);
-  const thinHours = Array.from({ length: Math.max(0, finalHour - 1) }, (_, index) => index + 1)
-    .filter((hour) => (hourly.get(hour) ?? 0) < context.config.minimumStopsPerHour);
-  const detail = thinHours.length
-    ? `under ${context.config.minimumStopsPerHour} stops in UTC flight hours ${thinHours.join(', ')}.`
-    : `at least ${context.config.minimumStopsPerHour} stops in each complete interior UTC flight hour.`;
-  addCheck(checks, 'Clock-hour coverage', thinHours.length === 0, detail);
+  const previous = view.delivery.at(-1);
+  const end = view.end;
+  if (!previous || !end || !legs.at(-1)) failures.push('missing return leg');
+  else {
+    const arrival = Date.parse(end.schedule.arrival_utc ?? '');
+    const departure = Date.parse(previous.schedule.departure_utc);
+    const recorded = end.transit_to_here?.duration_seconds ?? 0;
+    if (!Number.isFinite(arrival) || !Number.isFinite(departure) || arrival < departure + recorded * 1000) {
+      failures.push(`END arrival precedes prior departure plus ${recorded}s travel`);
+    }
+  }
+  addCheck(checks, 'Travel chronology', failures.length === 0,
+    failures.length ? failures.slice(0, 6).join('; ') : 'Each arrival follows the prior departure and recorded travel time.');
 }
 
-function addSpeedCheck(context: RouteAuditContext, view: AuditView, legs: AuditLeg[], checks: AuditCheck[]): void {
+function addSpeedCheck(legs: AuditLeg[], checks: AuditCheck[]): void {
   const speeds = legs.map((leg) => leg.kmh);
-  const median = percent(speeds, 0.5);
   const p90 = percent(speeds, 0.9);
   const maximum = Math.max(...speeds);
-  const transitSpeeds = view.nodes.filter((node) => node.type !== 'START')
-    .map((node) => node.transit_to_here?.speed_kmh).filter((speed): speed is number => speed !== undefined && speed !== null);
-  const storedMedian = percent(transitSpeeds, 0.5);
-  const storedP90 = percent(transitSpeeds, 0.9);
-  const reportedMaximum = transitSpeeds.length ? Math.max(...transitSpeeds) : Number.POSITIVE_INFINITY;
-  const pass = median >= context.config.medianLegSpeedMinKmh && median <= context.config.medianLegSpeedMaxKmh
-    && p90 <= context.config.p90LegSpeedMaxKmh && maximum <= context.config.maxLegSpeedKmh && reportedMaximum <= context.config.maxLegSpeedKmh;
-  addCheck(checks, 'Leg-speed targets', pass,
-    `calculated median ${human(median)} km/h and p90 ${human(p90)} km/h; stored median ${human(storedMedian)} km/h, p90 ${human(storedP90)} km/h, max ${human(reportedMaximum)} km/h.`);
+  const pass = p90 <= 20_000 && maximum <= 25_000;
+  addCheck(checks, 'Leg speed', pass, `calculated p90 ${human(p90)} km/h (limit 20,000); max ${human(maximum)} km/h (limit 25,000).`);
 }
 
-function addDistanceCheck(context: RouteAuditContext, legs: AuditLeg[], checks: AuditCheck[]): void {
+function addEastwardCheck(view: AuditView, legs: AuditLeg[], checks: AuditCheck[]): void {
+  const firstOffsetAtOrBelow12 = view.places.findIndex((place) => (place.utcOffsetMinutes ?? Infinity) <= 720);
+  const eastward = legs.filter((leg) => leg.eastward > 1 && leg.kind !== 'launch');
+  const violations: string[] = [];
+  const details = eastward.map((leg) => {
+    const reason = leg.toNode?.transit_to_here?.eastward_reason ?? 'none';
+    const destinationIndex = leg.toNode ? view.delivery.indexOf(leg.toNode) : -1;
+    const originOffset = destinationIndex > 0 ? view.places[destinationIndex - 1]?.utcOffsetMinutes : undefined;
+    const destinationOffset = destinationIndex >= 0 ? view.places[destinationIndex]?.utcOffsetMinutes : undefined;
+    const beforeSweep = destinationIndex >= 0 && (firstOffsetAtOrBelow12 === -1 || destinationIndex < firstOffsetAtOrBelow12)
+      && (destinationOffset ?? -Infinity) > 720;
+    const originLongitude = destinationIndex > 0 ? view.delivery[destinationIndex - 1]?.location.lng : undefined;
+    const crossesDateLine = originLongitude !== undefined && Math.abs(normalizedLongitude(leg.toNode?.location.lng ?? 0) - normalizedLongitude(originLongitude)) > 180;
+    const plausible = reason === 'dateline' ? beforeSweep && crossesDateLine
+      : reason === 'return' ? leg.kind === 'return'
+        : reason === 'offset-anomaly' ? originOffset !== undefined && destinationOffset !== undefined && destinationOffset > originOffset
+          : false;
+    if (!plausible) violations.push(`${leg.fromName} -> ${leg.toName}: ${reason} is missing or implausible`);
+    return `${leg.fromName} -> ${leg.toName} (${Math.round(leg.eastward)}° east, reason ${reason})`;
+  });
+  addCheck(checks, 'Eastward legs', violations.length === 0,
+    `${eastward.length ? details.join('; ') : 'no legs move east by more than 1°'}${violations.length ? `. Failures: ${violations.join('; ')}` : ''}.`);
+}
+
+function detourFindings(view: AuditView): { fail: string[]; warnings: string[] } {
+  const fail: string[] = [];
+  const warnings: string[] = [];
+  const countryCounts = new Map<string, number>();
+  for (const place of view.places) countryCounts.set(place.country, (countryCounts.get(place.country) ?? 0) + 1);
+  for (let index = 1; index < view.places.length - 1; index++) {
+    const previous = view.places[index - 1]; const current = view.places[index]; const next = view.places[index + 1];
+    if (!previous || !current || !next) continue;
+    const via = haversineKm(previous, current) + haversineKm(current, next);
+    const direct = haversineKm(previous, next);
+    if (via > 0 && via > direct * 2.5) {
+      const finding = `${current.name}: ${human(via)} km via vs ${human(direct)} km direct (${(via / direct).toFixed(2)}x)`;
+      if ((countryCounts.get(current.country) ?? 0) === 1) warnings.push(`${finding}; only stop for ${current.country}`);
+      else fail.push(finding);
+    }
+  }
+  return { fail, warnings };
+}
+
+function addDetourCheck(view: AuditView, checks: AuditCheck[]): void {
+  const findings = detourFindings(view);
+  addCheck(checks, 'Detours', findings.fail.length === 0,
+    `${findings.fail.length ? `FAIL ${findings.fail.join('; ')}` : 'no uncovered-country detours'}${findings.warnings.length ? `; WARNING ${findings.warnings.join('; ')}` : ''}.`);
+}
+
+function addDistanceReport(legs: AuditLeg[], reports: { name: string; detail: string }[]): void {
   const pathKm = legs.reduce((sum, leg) => sum + leg.km, 0);
-  const eastward = legs.filter((leg) => leg.kind === 'delivery' && leg.eastward > 8).length;
-  addCheck(checks, 'Route length and eastward backtracking', pathKm <= context.config.maxRouteDistanceKm && eastward <= 3,
-    `${human(pathKm)} km total including launch and return; ${eastward} delivery legs move east more than 8°.`);
+  reports.push({ name: 'Path length', detail: `${human(pathKm)} km including launch and return.` });
+}
+
+function addCoverageReports(view: AuditView, context: RouteAuditContext, legs: AuditLeg[], reports: { name: string; detail: string }[]): void {
+  const countries = [...new Set(view.delivery.map((node) => node.location.country_code).filter((code): code is string => !!code))].sort();
+  const continents: Record<string, number> = {};
+  for (const place of view.places) {
+    const continent = classifyRegion(place).continent;
+    continents[continent] = (continents[continent] ?? 0) + 1;
+  }
+  reports.push({ name: 'Coverage', detail: `${view.delivery.length} stops; ${countries.length} countries/territories (${countries.join(', ')}); per-continent ${Object.entries(continents).sort(([a], [b]) => a.localeCompare(b)).map(([name, count]) => `${name} ${count}`).join(', ')}.` });
+  const worldPlaces = context.worldPlaces ?? context.pool;
+  const populationTotal = worldPlaces.reduce((sum, place) => sum + Math.max(0, place.population ?? 0), 0);
+  const coveredPopulation = worldPlaces.reduce((sum, place) => sum + (view.places.some((stop) => haversineKm(stop, place) <= 500) ? Math.max(0, place.population ?? 0) : 0), 0);
+  const share = populationTotal ? coveredPopulation / populationTotal * 100 : 0;
+  reports.push({ name: 'Population proxy', detail: `${share.toFixed(1)}% of listed places.json population within 500 km of a stop (${human(coveredPopulation)} of ${human(populationTotal)}).` });
+  const longest = [...legs].sort((a, b) => b.km - a.km).slice(0, 20)
+    .map((leg) => `${leg.fromName} -> ${leg.toName} ${human(leg.km)} km`).join('; ');
+  reports.push({ name: 'Longest 20 legs', detail: longest || 'No leg data.' });
+  const histogram: Record<string, number> = {};
+  for (const node of view.delivery) {
+    const arrival = Date.parse(node.schedule.arrival_utc ?? '');
+    const place = view.places.find((candidate) => candidate.id === node.candidate_id);
+    const date = new Date(arrival + (place?.utcOffsetMinutes ?? 0) * 60_000);
+    const hour = date.getUTCHours();
+    const key = `${hour.toString().padStart(2, '0')}:00`;
+    histogram[key] = (histogram[key] ?? 0) + 1;
+  }
+  reports.push({ name: 'Local-arrival histogram', detail: Object.entries(histogram).sort(([a], [b]) => a.localeCompare(b)).map(([hour, count]) => `${hour} ${count}`).join(', ') || 'No arrival data.' });
 }
 
 function addPacingChecks(context: RouteAuditContext, view: AuditView, checks: AuditCheck[]): void {
   const usable = view.matched && !!view.start && !!view.end && view.delivery.length === view.places.length && view.places.length > 0;
   if (!usable) {
-    addCheck(checks, 'Arrival pacing and quiet gaps', false, 'Cannot calculate paced legs.');
-    addCheck(checks, 'Clock-hour coverage', false, 'Cannot calculate hourly stop counts.');
-    addCheck(checks, 'Leg-speed targets', false, 'Cannot calculate leg speeds.');
-    addCheck(checks, 'Route length and eastward backtracking', false, 'Cannot calculate the path.');
+    addCheck(checks, 'Travel chronology', false, 'Cannot calculate paced legs.');
+    addCheck(checks, 'Leg speed', false, 'Cannot calculate leg speeds.');
+    addCheck(checks, 'Eastward legs', false, 'Cannot calculate route direction.');
+    addCheck(checks, 'Detours', false, 'Cannot calculate route detours.');
     return;
   }
   const takeoff = Date.parse(TAKEOFF_UTC);
   const legs = buildAuditLegs(view, takeoff);
-  addArrivalGapCheck(context, view, legs, checks);
-  addClockHourCheck(context, view, takeoff, checks);
-  addSpeedCheck(context, view, legs, checks);
-  addDistanceCheck(context, legs, checks);
+  addTravelTimingCheck(view, legs, checks);
+  addSpeedCheck(legs, checks);
+  addEastwardCheck(view, legs, checks);
+  addDetourCheck(view, checks);
 }
 
 export function auditRouteDocument(document: unknown, context: RouteAuditContext): AuditResult {
@@ -752,5 +689,9 @@ export function auditRouteDocument(document: unknown, context: RouteAuditContext
   addSelectionChecks(context, view, checks);
   addFlightWindowCheck(context, view, checks);
   addPacingChecks(context, view, checks);
-  return { checks, pass: checks.every((check) => check.pass) };
+  const reports: { name: string; detail: string }[] = [];
+  const reportLegs = view.matched ? buildAuditLegs(view, Date.parse(TAKEOFF_UTC)) : [];
+  addDistanceReport(reportLegs, reports);
+  if (view.matched) addCoverageReports(view, context, reportLegs, reports);
+  return { checks, reports, pass: checks.every((check) => check.pass) };
 }

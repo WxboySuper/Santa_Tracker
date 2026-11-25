@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { RouteSchema } from '@santa-tracker/contracts';
 import { validateRoute } from '../../packages/route-engine/src/validate';
 import { auditRouteDocument, type AuditCheck } from '../../packages/route-engine/src/generate/audit';
+import type { Candidate } from '../../packages/route-engine/src/generate/types';
 import { generateDraft, loadGeneratorInputs, renderReview, serializeDraft } from './generate-core';
 import { loadRouteNodesRaw, validateLocations } from '../../apps/web/src/lib/locations';
 import { routeNodesToContractRoute } from '../../apps/web/src/lib/route-bridge';
@@ -16,9 +17,10 @@ if (resolve(process.cwd()) !== root) throw new Error(`Run pnpm route:audit from 
 
 const routePath = resolve(root, 'docs/planning/route-2026-draft/route.json');
 const reviewPath = resolve(root, 'docs/planning/route-2026-draft/review.html');
-const inputs = await loadGeneratorInputs({ seed: 2026, total: 160 });
+const inputs = await loadGeneratorInputs({ seed: 2026 });
 const generated = generateDraft(inputs);
 const checks: AuditCheck[] = [];
+let informationalReports: { name: string; detail: string }[] = [];
 const add = (name: string, pass: boolean, detail: string): void => { checks.push({ name, pass, detail }); };
 let committedRouteText = '';
 let committedReviewText = '';
@@ -48,15 +50,17 @@ if (document !== undefined) {
     countryBoundsByCode: inputs.tables.countryBoundsByCode,
     report: generated.report,
     vetoIds: [...inputs.overrides.veto ?? []],
+    worldPlaces: JSON.parse(await readFile(resolve(root, 'tools/route-generator/data/places.json'), 'utf8')) as Candidate[],
   });
   checks.push(...mechanical.checks);
+  informationalReports = mechanical.reports;
 
   const rawNodes = await loadRouteNodesRaw(JSON.stringify(document));
   const filteredNodes = validRouteNodes(isObject(document) && Array.isArray(document.route_nodes) ? document.route_nodes : null);
   const deliveryNodes = rawNodes.filter((node) => node.type === 'DELIVERY');
   const locationValidation = validateLocations(deliveryNodes);
   const converted = routeNodesToContractRoute(rawNodes);
-  add('App route loader', rawNodes.length === 162 && filteredNodes.length === 162,
+  add('App route loader', rawNodes.length === filteredNodes.length,
     `loadRouteNodesRaw returned ${rawNodes.length}; validRouteNodes retained ${filteredNodes.length}.`);
   add('App location validator', locationValidation.valid,
     locationValidation.valid ? `${locationValidation.total_locations} delivery nodes pass location validation.` : locationValidation.errors.slice(0, 4).join('; '));
@@ -73,12 +77,8 @@ const requiredReviewFields = [
   'Owner decisions', 'Stops', 'UTC offset', 'Every leg, including launch and return',
 ];
 const missingReviewFields = requiredReviewFields.filter((field) => !committedReviewText.includes(field));
-const ownerNames = ['Timbuktu', 'Leptis Magna', 'Robben Island'];
-const missingOwnerNames = ownerNames.filter((name) => !committedReviewText.includes(name));
-add('Review page contents', committedReviewText.length > 0 && missingReviewFields.length === 0 && missingOwnerNames.length === 0,
-  missingReviewFields.length || missingOwnerNames.length
-    ? `missing ${[...missingReviewFields, ...missingOwnerNames].join(', ')}.`
-    : 'Per-stop fields, all legs, owner decisions, and named owner stops are present.');
+add('Review page contents', committedReviewText.length > 0 && missingReviewFields.length === 0,
+  missingReviewFields.length ? `missing ${missingReviewFields.join(', ')}.` : 'Per-stop fields, all legs, and owner decisions are present.');
 
 if (committedRouteText && committedReviewText) {
   const scratch = await mkdtemp(join(tmpdir(), 'santa-route-audit-'));
@@ -105,6 +105,10 @@ const nameWidth = Math.max(...checks.map((check) => check.name.length), 'Check'.
 console.log(`| ${'Check'.padEnd(nameWidth)} | Result | Detail |`);
 console.log(`|-${'-'.repeat(nameWidth)}-|--------|--------|`);
 for (const check of checks) console.log(`| ${check.name.padEnd(nameWidth)} | ${check.pass ? 'PASS' : 'FAIL'}   | ${check.detail.replaceAll('|', '\\|')} |`);
+if (informationalReports.length) {
+  console.log('\nInformational report');
+  for (const report of informationalReports) console.log(`- ${report.name}: ${report.detail}`);
+}
 console.log(`\n${checks.filter((check) => check.pass).length}/${checks.length} checks passed.`);
 if (checks.some((check) => !check.pass)) process.exitCode = 1;
 

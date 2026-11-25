@@ -1,5 +1,4 @@
 import { readFile } from 'node:fs/promises';
-import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { classifyRegion } from './regions';
 import type { Candidate } from './types';
@@ -22,7 +21,7 @@ describe('classifyRegion', () => {
   });
 
   it('maps every country code in the committed route', async () => {
-    const text = await readFile(resolve(process.cwd(), 'docs/planning/route-2026-draft/route.json'), 'utf8');
+    const text = await readFile(new URL('../../../../docs/planning/route-2026-draft/route.json', import.meta.url), 'utf8');
     const document = JSON.parse(text) as {
       route_nodes: { id: string; type: string; location: { name: string; country_code?: string | null; lat: number; lng: number } }[];
     };
