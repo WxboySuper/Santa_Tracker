@@ -25,6 +25,19 @@ describe('midnight sweep ordering', () => {
     for (let index = 1; index < ordered.length; index++) {
       expect(ordered[index - 1]?.utcOffsetMinutes).toBeGreaterThanOrEqual(ordered[index]?.utcOffsetMinutes ?? -Infinity);
     }
+    expect(new Set(ordered.map((place) => place.country))).toEqual(new Set(testPlaces.map((place) => place.country)));
+  });
+
+  it('sweeps north-to-south within a band, then reverses latitude direction in the next band', () => {
+    const places: Candidate[] = [
+      { id: 'north-a', name: 'Northern island', country: 'KI', lat: 10, lng: 170, timezone: 'Etc/GMT-14', utcOffsetMinutes: 840, category: 'populated', population: 10_000 },
+      { id: 'south-a', name: 'Southern island', country: 'KI', lat: -9, lng: 170, timezone: 'Etc/GMT-14', utcOffsetMinutes: 840, category: 'populated', population: 10_000 },
+      { id: 'north-b', name: 'Northern atoll', country: 'KI', lat: 9, lng: 150, timezone: 'Etc/GMT-13', utcOffsetMinutes: 780, category: 'populated', population: 10_000 },
+      { id: 'south-b', name: 'Southern atoll', country: 'KI', lat: -8, lng: 150, timezone: 'Etc/GMT-13', utcOffsetMinutes: 780, category: 'populated', population: 10_000 },
+    ];
+    const ordered = sweepOrder(places);
+    expect(ordered.slice(0, 2).map((place) => place.id)).toEqual(['north-a', 'south-a']);
+    expect(ordered.slice(2, 4).map((place) => place.id)).toEqual(['south-b', 'north-b']);
   });
 
   it('keeps every arrival in its window and south-of-35 arrivals before 02:30', () => {

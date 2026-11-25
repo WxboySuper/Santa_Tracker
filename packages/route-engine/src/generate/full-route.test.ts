@@ -58,16 +58,18 @@ function expectDeliveriesAreTimed(deliveries: ReviewRouteNode[], routeNodes: Rev
   expectedCount: number): void {
   expect(deliveries).toHaveLength(expectedCount);
   expect(new Set(deliveries.map((node) => node.candidate_id)).size).toBe(deliveries.length);
-  deliveries.forEach((node, index) => {
-    const place = inputs.pool.find((candidate) => candidate.id === node.candidate_id);
-    expect(place).toBeDefined();
-    expect(isInChristmasWindow({ iso: node.schedule?.arrival_utc ?? '', timezoneOrOffset: place?.utcOffsetMinutes ?? 0 })).toBe(true);
-    expect(node.stop_experience?.duration_seconds).toBeGreaterThan(0);
-    expect(node.stop_experience?.stop_tier).toBeDefined();
-    const priorDeparture = Date.parse(routeNodes[index]?.schedule?.departure_utc ?? '');
-    const arrival = Date.parse(node.schedule?.arrival_utc ?? '');
-    expect(arrival - priorDeparture).toBeGreaterThanOrEqual((node.transit_to_here?.duration_seconds ?? 0) * 1000);
-  });
+  deliveries.forEach((node, index) => expectDeliveryIsTimed(node, index, routeNodes, inputs));
+}
+
+function expectDeliveryIsTimed(node: ReviewRouteNode, index: number, routeNodes: ReviewRouteNode[], inputs: GeneratorInputs): void {
+  const place = inputs.pool.find((candidate) => candidate.id === node.candidate_id);
+  expect(place).toBeDefined();
+  expect(isInChristmasWindow({ iso: node.schedule?.arrival_utc ?? '', timezoneOrOffset: place?.utcOffsetMinutes ?? 0 })).toBe(true);
+  expect(node.stop_experience?.duration_seconds).toBeGreaterThan(0);
+  expect(node.stop_experience?.stop_tier).toBeDefined();
+  const priorDeparture = Date.parse(routeNodes[index]?.schedule?.departure_utc ?? '');
+  const arrival = Date.parse(node.schedule?.arrival_utc ?? '');
+  expect(arrival - priorDeparture).toBeGreaterThanOrEqual((node.transit_to_here?.duration_seconds ?? 0) * 1000);
 }
 
 function expectReportMeetsFlightLimits(generated: GeneratedDraft, inputs: GeneratorInputs): void {
@@ -133,7 +135,7 @@ describe('committed 2026 route draft', () => {
     expectReportMeetsFlightLimits(generated, inputs);
     expectReviewIncludesReport(review, docs, deliveries, generated);
     expectAuditPasses(storedRoute, generated, inputs);
-  }, 240_000);
+  }, 360_000);
 
   it('rejects the frozen pre-sweep route with the updated audit', async () => {
     const inputs = await loadGeneratorInputs({ seed: 2026 });

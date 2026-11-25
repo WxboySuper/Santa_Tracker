@@ -20,9 +20,9 @@ Takeoff is 2026-12-24 10:00 UTC. The route follows local midnight west and must 
 Every delivery arrives between 23:00 Dec 24 and 05:00 Dec 25 at its destination. The scheduler uses the full
 window instead of anchoring arrivals at 01:00. Stops south of 35 degrees latitude must arrive by 02:30 local time.
 The generator targets 550-700 delivery stops, with a readability ceiling near 1,000. It has no fixed route total,
-hand-pinned order, arrival anchor, UTC-offset cap or category quota. It prioritizes feasible country coverage in
-the local path, then uses population-weighted fill. It reports candidate countries it could not reach within the
-route constraints.
+hand-pinned order, arrival anchor, UTC-offset cap or category quota. It favors a new country when its candidate fits
+the current local cluster, fills dense clusters with short hops, then attempts one stop per remaining country in an
+adjacent UTC-offset band. It reports countries it could not add while preserving the route constraints.
 
 Stop dwell is tiered: `major` 60 seconds, `city` 30 seconds, `town` 10 seconds and `hop` 3 seconds. A major stop
 has population at least 1,000,000, is a national capital with population at least 250,000, or is a curated
@@ -35,17 +35,18 @@ cannot be identified from those snapshots yet.
 Each arrival can follow the previous stop's dwell as soon as travel at the planned speed permits. There is no extra
 minimum gap. The p90 leg speed is at most 20,000 km/h and no leg exceeds 25,000 km/h. Stops must be at least
 20 km apart. Local legs use 4,000 km/h. Legs of at least 1,500 km use 19,000 km/h only for cross-continent, island
-or polar crossings. Long overland legs use the local speed. The generator allows at most twelve stops per country
-to limit country flooding while leaving room for dense local clusters.
+or polar crossings. Long overland legs use the local speed. The generator allows at most twelve stops per country.
+Many countries reach that ceiling in the current draft, so it limits large place inventories while leaving room for
+dense local clusters.
 
 The seeded sweep buckets candidates by their committed Dec 24-25 UTC offset, including half-hour and quarter-hour
-offsets. It moves west with local midnight. Neighboring bands can interleave while their six-hour arrival windows
-overlap if a nearby cluster avoids a long regional deadhead. The nearest-neighbor open path gives feasible new
-countries priority, then favors nearby stops and shorter dwell. It alternates the preferred north-to-south and
-south-to-north latitude direction by band. Constrained 2-opt and or-opt moves stay inside one contiguous offset
-band and reduce path length without adding eastward legs or detours. Candidate fill weighs country coverage,
-population, category and extra path distance. The generator rejects unjustified eastward delivery legs; the initial
-date-line launch may be marked `dateline`, and the final return may be marked `return`.
+offsets. It moves west with local midnight and alternates its north-to-south or south-to-north latitude preference
+by band. Neighboring bands can interleave while their six-hour arrival windows overlap if a nearby cluster avoids
+a long regional deadhead. The nearest-neighbor open path gives feasible new countries priority, then favors nearby
+stops and shorter dwell. Constrained 2-opt and or-opt moves stay inside one contiguous offset band and reduce path
+length without adding eastward legs or detours. Candidate fill weighs country coverage, population, category and
+extra path distance. The generator rejects unjustified eastward delivery legs; the initial date-line launch may be
+marked `dateline`, and the final return may be marked `return`.
 
 ## Eastward legs and detours
 

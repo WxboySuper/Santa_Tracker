@@ -114,25 +114,35 @@ type CandidateTimingOptions = {
   config: GeneratorConfig;
 };
 
-function candidateTiming({ place, prior, priorDeparture, index, config }: CandidateTimingOptions): PlannedStop | undefined {
-  const distance = haversineKm(prior, place);
-  const window = christmasWindow(place.utcOffsetMinutes ?? 0);
-  const latestArrival = place.lat < -35
-    ? Math.min(window.endUtc, Date.parse(christmasArrival({ timezoneOrOffset: place.utcOffsetMinutes ?? 0, minutesAfterMidnight: 150 })))
-    : window.endUtc;
-  const earliest = Math.max(window.startUtc, priorDeparture + scheduledTravelMilliseconds(prior, place, config));
-  const arrival = earliest;
-  if (arrival > latestArrival) return undefined;
+function latestLocalArrival(place: Candidate, window: ReturnType<typeof christmasWindow>): number {
+  if (place.lat >= -35) return window.endUtc;
+  const southernLimit = Date.parse(christmasArrival({ timezoneOrOffset: place.utcOffsetMinutes ?? 0, minutesAfterMidnight: 150 }));
+  return Math.min(window.endUtc, southernLimit);
+}
 
+function deliveryLongitudeIsAllowed(prior: Candidate | LatLng, place: Candidate, index: number, arrival: number): boolean {
+  const degrees = longitudeDelta(prior, place);
+  if (!isEastwardDelta(degrees)) return true;
   const reason = eastwardLegReason({ from: prior, to: place, destinationIndex: index, arrivalUtc: arrival });
-  const eastwardDegrees = longitudeDelta(prior, place);
-  if (isEastwardDelta(eastwardDegrees) && !(index === 0 && reason === 'dateline')) return undefined;
+  return index === 0 && reason === 'dateline';
+}
 
+function returnFitsDeadline(place: Candidate, departure: number, config: GeneratorConfig): boolean {
+  const returnArrival = departure + scheduledTravelMilliseconds(place, NORTH_POLE, config);
+  return returnArrival <= Date.parse(RETURN_DEADLINE_UTC);
+}
+
+function candidateTiming({ place, prior, priorDeparture, index, config }: CandidateTimingOptions): PlannedStop | undefined {
+  const window = christmasWindow(place.utcOffsetMinutes ?? 0);
+  const arrival = Math.max(window.startUtc, priorDeparture + scheduledTravelMilliseconds(prior, place, config));
+  if (arrival > latestLocalArrival(place, window)) return undefined;
+  if (!deliveryLongitudeIsAllowed(prior, place, index, arrival)) return undefined;
+
+  const eastwardDegrees = longitudeDelta(prior, place);
   const tier = stopTier(place);
   const durationSeconds = stopDurationSeconds(tier);
   const departure = arrival + durationSeconds * 1000;
-  const returnArrival = departure + scheduledTravelMilliseconds(place, NORTH_POLE, config);
-  if (returnArrival > Date.parse(RETURN_DEADLINE_UTC)) return undefined;
+  if (!returnFitsDeadline(place, departure, config)) return undefined;
   return {
     place: { ...place, plannedArrivalUtc: new Date(arrival).toISOString(), plannedStopTier: tier, plannedStopDurationSeconds: durationSeconds },
     arrival,
@@ -298,8 +308,8 @@ function executeGreedySweep(state: SweepState, bands: Candidate[][], randomRanks
   const bandIndices = new Map<string, number>();
   bands.forEach((band, index) => band.forEach((place) => bandIndices.set(place.id, index)));
   const ranking: SweepRanking = { bandIndices, randomRanks, config };
-  // Exact-offset bands set the alternating latitude preference. Candidates can
-  // interleave where their local windows overlap to keep the route connected.
+  // Exact-offset bands set alternating latitude preferences. Adjacent windows
+  // may interleave when that keeps a dense regional cluster connected.
   while (state.remaining.size > 0) {
     const next = bestFeasibleStop(state, [...state.remaining.values()], ranking);
     if (!next) break;
@@ -320,10 +330,11 @@ function firstFeasibleStart(pool: Candidate[], config: GeneratorConfig): TimedCa
 function greedySweep(pool: Candidate[], config: GeneratorConfig): TimedCandidate[] {
   const state = initialSweepState(pool, config);
   const randomRanks = seededCandidateRanks(pool, config.seed);
+  const bands = offsetBands(pool);
   const first = firstFeasibleStart(pool, config);
   advanceSweep(state, { place: first, arrival: Date.parse(first.plannedArrivalUtc),
     departure: Date.parse(first.plannedArrivalUtc) + first.plannedStopDurationSeconds * 1000, eastwardDegrees: longitudeDelta(NORTH_POLE, first) });
-  executeGreedySweep(state, offsetBands(pool), randomRanks, config);
+  executeGreedySweep(state, bands, randomRanks, config);
   return state.route;
 }
 
@@ -535,14 +546,23 @@ function insertionPlanIsAcceptable(plan: RoutePlan | undefined, eastward: number
   return eastwardCount(plan.places) <= eastward && detourCount(plan.places) <= detours;
 }
 
-function addAtFeasiblePosition(state: InsertionState, place: Candidate, positions: RankedInsertion['positions'], config: GeneratorConfig): boolean {
+function placeFitsNeighborBand(state: InsertionState, place: Candidate, index: number, spreadMinutes: number): boolean {
+  const before = index > 0 ? state.route[index - 1] : undefined;
+  const after = state.route[index];
+  const neighbors = [before, after].filter((candidate): candidate is TimedCandidate => candidate !== undefined);
+  return neighbors.every((candidate) => Math.abs((candidate.utcOffsetMinutes ?? 0) - (place.utcOffsetMinutes ?? 0)) <= spreadMinutes);
+}
+
+function insertionOptions(state: InsertionState, place: Candidate, positions: RankedInsertion['positions'], spreadMinutes: number): RankedInsertion['positions'] {
+  if (spreadMinutes === 0) return positions.slice(0, 8).filter(({ index }) => placeFitsNeighborBand(state, place, index, spreadMinutes));
+  return positions.filter(({ index }) => placeFitsNeighborBand(state, place, index, spreadMinutes)).slice(0, 2);
+}
+
+function addAtFeasiblePosition(state: InsertionState, place: Candidate, positions: RankedInsertion['positions'], config: GeneratorConfig,
+  bandSpreadMinutes: number): boolean {
   const priorEastward = eastwardCount(state.route);
   const priorDetours = detourCount(state.route);
-  for (const { index } of positions.slice(0, 8)) {
-    const before = index > 0 ? state.route[index - 1] : undefined;
-    const after = state.route[index];
-    if (before && before.utcOffsetMinutes !== place.utcOffsetMinutes) continue;
-    if (after && after.utcOffsetMinutes !== place.utcOffsetMinutes) continue;
+  for (const { index } of insertionOptions(state, place, positions, bandSpreadMinutes)) {
     const proposal = [...state.route.slice(0, index), place, ...state.route.slice(index)];
     const plan = planOrder(proposal, config);
     if (!insertionPlanIsAcceptable(plan, priorEastward, priorDetours)) continue;
@@ -554,16 +574,21 @@ function addAtFeasiblePosition(state: InsertionState, place: Candidate, position
   return false;
 }
 
-function tryInsertCandidate(state: InsertionState, item: RankedInsertion, config: GeneratorConfig): void {
+function tryInsertCandidate(state: InsertionState, item: RankedInsertion, config: GeneratorConfig, bandSpreadMinutes: number,
+  coverageOnly: boolean): void {
+  if (coverageOnly && state.counts.has(item.place.country)) return;
   if (!countryCapacity(item.place, state.counts, config)) return;
   if (!state.separation.allows(item.place)) return;
-  addAtFeasiblePosition(state, item.place, insertionPositions(state.route, item.place), config);
+  addAtFeasiblePosition(state, item.place, insertionPositions(state.route, item.place), config, bandSpreadMinutes);
 }
 
-function insertFeasibleCandidates(initial: TimedCandidate[], pool: Candidate[], config: GeneratorConfig): TimedCandidate[] {
+function insertFeasibleCandidates(initial: TimedCandidate[], pool: Candidate[], config: GeneratorConfig,
+  bandSpreadMinutes = 0, coverageOnly = false): TimedCandidate[] {
   const state = insertionState(initial, config.minStopSeparationKm);
-  const ranked = rankInsertions(initial, pool, config);
-  for (const item of ranked) tryInsertCandidate(state, item, config);
+  const initialCountries = new Set(initial.map((place) => place.country));
+  const candidates = coverageOnly ? pool.filter((place) => !initialCountries.has(place.country)) : pool;
+  const ranked = rankInsertions(initial, candidates, config);
+  for (const item of ranked) tryInsertCandidate(state, item, config, bandSpreadMinutes, coverageOnly);
   return state.route;
 }
 
@@ -575,7 +600,8 @@ export function sweepOrder(places: Candidate[], config: GeneratorConfig = DEFAUL
   const expanded = insertFeasibleCandidates(improved, places, config);
   const compacted = improveWithLocalSearch(expanded, config);
   const filled = insertFeasibleCandidates(compacted, places, config);
-  const finalOrder = improveWithLocalSearch(filled, config);
+  const countryCoverage = insertFeasibleCandidates(filled, places, config, 60, true);
+  const finalOrder = improveWithLocalSearch(countryCoverage, config);
   const plan = planOrder(finalOrder, config);
   if (!plan) throw new Error('No route ordering satisfies the local Christmas window, speed limits, separation, and return deadline');
   return plan.places;
