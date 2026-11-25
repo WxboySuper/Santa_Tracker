@@ -59,4 +59,11 @@ describe('generateRoute midnight sweep', () => {
     expect(generated.report.count).toBe(1);
     expect(generated.report.countriesCovered).toBe(1);
   });
+
+  it('skips and reports a malformed raw candidate while generating the valid route', () => {
+    const generated = generateRoute([candidates[0]!, null as unknown as Candidate], config);
+    expect(generated.report.count).toBe(1);
+    expect(generated.report.invalidCandidateIds).toEqual(['row-2']);
+    expect(generated.report.issues).toContain('Invalid candidate row skipped: row-2');
+  });
 });

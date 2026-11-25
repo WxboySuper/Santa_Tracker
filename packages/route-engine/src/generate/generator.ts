@@ -2,7 +2,7 @@ import { createLocationId, LegacyRouteFixtureSchema, SCHEMA_VERSION, type Route 
 import { validateRouteGeometry } from '../geometry-validate';
 import { haversineKm, legSpeedKmh, type LatLng } from '../geo';
 import { validateRoute } from '../validate';
-import { applyCandidateOverrides, type RouteOverrides } from './overrides';
+import type { RouteOverrides } from './overrides';
 import { chooseCandidates } from './candidates';
 import { scheduledTravelMilliseconds, sweepOrder } from './order';
 import { buildReport } from './report';
@@ -25,10 +25,19 @@ function stableHash(value: string, seed: number): number {
   return hash;
 }
 
-function normalizeCandidateTimezones(pool: Candidate[], overrides: RouteOverrides, tables?: TimezoneTables): Candidate[] {
-  const applied = applyCandidateOverrides(pool, overrides);
-  if (!tables) return applied;
-  return applied.map((place) => normalizeCandidateTimezone(place, overrides, tables));
+function normalizeCandidateTimezones(pool: Candidate[], overrides: RouteOverrides, tables?: TimezoneTables): { candidates: Candidate[]; invalidCandidateIds: string[] } {
+  if (!tables) return { candidates: pool, invalidCandidateIds: [] };
+  const candidates: Candidate[] = [];
+  const invalidCandidateIds: string[] = [];
+  for (const place of pool) {
+    try {
+      candidates.push(normalizeCandidateTimezone(place, overrides, tables));
+    } catch (error) {
+      if (!(error instanceof Error) || !error.message.startsWith('No IANA timezone table for country ')) throw error;
+      invalidCandidateIds.push(place.id);
+    }
+  }
+  return { candidates, invalidCandidateIds };
 }
 
 function normalizeCandidateTimezone(place: Candidate, overrides: RouteOverrides, tables: TimezoneTables): Candidate {
@@ -344,10 +353,14 @@ function addGeometryWarnings(report: RouteReport, geometryIssues: ReturnType<typ
 
 export function generateRoute(pool: Candidate[], config: GeneratorConfig, overrides: RouteOverrides = {}, tables?: TimezoneTables): GeneratedRoute {
   validateGeneratorConfig(config);
-  const normalizedPool = normalizeCandidateTimezones(pool, overrides, tables);
-  const chosen = chooseCandidates(normalizedPool, config, overrides);
+  const selection = chooseCandidates(pool, config, overrides);
+  const normalized = normalizeCandidateTimezones(selection.candidates, overrides, tables);
+  const chosen = normalized.candidates;
+  if (chosen.length === 0) throw new Error('No eligible route candidates remain after timezone validation');
   const ordered = sweepOrder(chosen, config);
   const built = buildDocument(ordered, config, tables);
   const report = validateBuiltRoute({ route: built.route, coordinates: built.coordinates, routeEndUtc: built.routeEndUtc, ordered, pool: chosen, config });
+  report.invalidCandidateIds = [...selection.invalidCandidateIds, ...normalized.invalidCandidateIds];
+  report.issues.push(...report.invalidCandidateIds.map((id) => `Invalid candidate row skipped: ${id}`));
   return { document: built.document, route: built.route, locations: ordered, report };
 }

@@ -184,6 +184,7 @@ export function buildReport(places: Candidate[], route: Route, config: Generator
     seed: config.seed,
     count: places.length,
     candidateCount: pool.length,
+    invalidCandidateIds: [],
     unselectedCandidateCount: Math.max(0, pool.length - places.length),
     countriesCovered: countryCodes.length,
     countryCodes,

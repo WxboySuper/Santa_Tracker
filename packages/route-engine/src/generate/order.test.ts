@@ -59,6 +59,19 @@ describe('midnight sweep ordering', () => {
     })).toBe('offset-anomaly');
   });
 
+  it('does not treat a same-offset eastward jog as a justified exception', () => {
+    const from: Candidate = {
+      id: 'west', name: 'West', country: 'AA', lat: 10, lng: 20,
+      timezone: 'Etc/UTC', utcOffsetMinutes: 0, category: 'populated', population: 20_000,
+    };
+    const to: Candidate = {
+      id: 'east', name: 'East', country: 'AA', lat: 10, lng: 24,
+      timezone: 'Etc/UTC', utcOffsetMinutes: 0, category: 'populated', population: 20_000,
+    };
+    expect(longitudeDelta(from, to)).toBeGreaterThan(1);
+    expect(eastwardLegReason({ from, to, destinationIndex: 8, arrivalUtc: Date.parse('2026-12-25T00:00:00Z') })).toBeUndefined();
+  });
+
   it('keeps long Hong Kong to mainland China legs at regional speed', () => {
     const hongKong: Candidate = {
       id: 'hong-kong', name: 'Hong Kong', country: 'HK', lat: 22.3193, lng: 114.1694,

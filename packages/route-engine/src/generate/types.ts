@@ -68,6 +68,7 @@ export type RouteReport = {
   seed: number;
   count: number;
   candidateCount: number;
+  invalidCandidateIds: string[];
   unselectedCandidateCount: number;
   countriesCovered: number;
   countryCodes: string[];

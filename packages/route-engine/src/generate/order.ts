@@ -124,6 +124,8 @@ function latestLocalArrival(place: Candidate, window: ReturnType<typeof christma
 function deliveryLongitudeIsAllowed(prior: Candidate | LatLng, place: Candidate, index: number, arrival: number): boolean {
   const degrees = longitudeDelta(prior, place);
   if (!isEastwardDelta(degrees)) return true;
+  // A small-looking eastward jog is still a reversal; only the owner's two
+  // documented exceptions make an eastward delivery leg admissible.
   const reason = eastwardLegReason({ from: prior, to: place, destinationIndex: index, arrivalUtc: arrival });
   return reason === 'dateline' || reason === 'offset-anomaly';
 }
@@ -216,6 +218,7 @@ type SweepState = {
   prior: Candidate | LatLng;
   priorDeparture: number;
 };
+type GreedySelection = { selected: TimedCandidate[]; unselected: Candidate[] };
 
 type SweepRanking = {
   bandIndices: Map<string, number>;
@@ -315,6 +318,8 @@ function executeGreedySweep(state: SweepState, bands: Candidate[][], randomRanks
   // insertion passes and are counted as unselected in the route report.
   while (state.remaining.size > 0) {
     const next = bestFeasibleStop(state, [...state.remaining.values()], ranking);
+    // This ends the greedy phase, not candidate processing: the caller sends
+    // the remainder to constrained insertion passes.
     if (!next) break;
     advanceSweep(state, next);
   }
@@ -330,7 +335,7 @@ function firstFeasibleStart(pool: Candidate[], config: GeneratorConfig): TimedCa
   return first.place;
 }
 
-function greedySweep(pool: Candidate[], config: GeneratorConfig): TimedCandidate[] {
+function greedySweep(pool: Candidate[], config: GeneratorConfig): GreedySelection {
   const state = initialSweepState(pool, config);
   const randomRanks = seededCandidateRanks(pool, config.seed);
   const bands = offsetBands(pool);
@@ -338,7 +343,7 @@ function greedySweep(pool: Candidate[], config: GeneratorConfig): TimedCandidate
   advanceSweep(state, { place: first, arrival: Date.parse(first.plannedArrivalUtc),
     departure: Date.parse(first.plannedArrivalUtc) + first.plannedStopDurationSeconds * 1000, eastwardDegrees: longitudeDelta(NORTH_POLE, first) });
   executeGreedySweep(state, bands, randomRanks, config);
-  return state.route;
+  return { selected: state.route, unselected: [...state.remaining.values()] };
 }
 
 function planOrder(order: Candidate[], config: GeneratorConfig): RoutePlan | undefined {
@@ -603,10 +608,11 @@ function insertFeasibleCandidates(initial: TimedCandidate[], pool: Candidate[], 
 /** Greedy time-stepped midnight sweep followed by constrained 2-opt/or-opt improvements. */
 export function sweepOrder(places: Candidate[], config: GeneratorConfig = DEFAULT_GENERATOR_LIMITS): Candidate[] {
   if (places.length === 0) throw new Error('Cannot order an empty route');
-  const initial = greedySweep(places, config);
+  const greedy = greedySweep(places, config);
+  const initial = greedy.selected;
   const improved = improveWithLocalSearch(initial, config);
   const densePass: InsertionPass = { config, bandSpreadMinutes: 0, coverageOnly: false, maxPositionAttempts: 8 };
-  const expanded = insertFeasibleCandidates(improved, places, densePass);
+  const expanded = insertFeasibleCandidates(improved, greedy.unselected, densePass);
   const compacted = improveWithLocalSearch(expanded, config);
   const filled = insertFeasibleCandidates(compacted, places, densePass);
   const countryPass: InsertionPass = { config, bandSpreadMinutes: 60, coverageOnly: true, maxPositionAttempts: 2 };
