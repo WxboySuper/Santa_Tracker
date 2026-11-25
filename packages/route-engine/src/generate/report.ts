@@ -118,7 +118,7 @@ function localArrivalHistogram(places: Candidate[], route: Route): Record<string
   places.forEach((place, index) => {
     const stop = route.stops[index];
     if (!stop) return;
-    const local = localClock(stop.arrivalIso, place.utcOffsetMinutes ?? 0);
+    const local = localClock({ iso: stop.arrivalIso, timezoneOrOffset: place.utcOffsetMinutes ?? 0 });
     const hour = `${local.hour.toString().padStart(2, '0')}:00`;
     histogram[hour] = (histogram[hour] ?? 0) + 1;
   });

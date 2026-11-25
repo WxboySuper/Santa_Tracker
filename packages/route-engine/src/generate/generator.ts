@@ -102,7 +102,7 @@ function transit({ from, to, fromDeparture, toArrival, description, cameraZoom =
 }
 
 function localTimeLabel(place: Candidate, arrival: number): string {
-  const local = localClock(new Date(arrival).toISOString(), place.utcOffsetMinutes ?? 0);
+  const local = localClock({ iso: new Date(arrival).toISOString(), timezoneOrOffset: place.utcOffsetMinutes ?? 0 });
   return `${local.hour.toString().padStart(2, '0')}:${local.minute.toString().padStart(2, '0')}`;
 }
 
@@ -234,7 +234,9 @@ function validateArrivalWindow(route: Route, places: Candidate[], config: Genera
   route.stops.forEach((stop, index) => {
     const place = places[index];
     if (!place) throw new Error(`Missing candidate for route stop ${index + 1}`);
-    if (!isInChristmasWindow(stop.arrivalIso, place.utcOffsetMinutes ?? 0)) throw new Error(`${place.name} arrives outside its local window`);
+    if (!isInChristmasWindow({ iso: stop.arrivalIso, timezoneOrOffset: place.utcOffsetMinutes ?? 0 })) {
+      throw new Error(`${place.name} arrives outside its local window`);
+    }
   });
 }
 

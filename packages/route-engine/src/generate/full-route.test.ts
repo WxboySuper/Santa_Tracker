@@ -70,7 +70,7 @@ describe('committed 2026 route draft', () => {
     deliveries.forEach((node) => {
       const place = inputs.pool.find((candidate) => candidate.id === node.candidate_id);
       expect(place).toBeDefined();
-      expect(isInChristmasWindow(node.schedule?.arrival_utc ?? '', place?.utcOffsetMinutes ?? 0)).toBe(true);
+      expect(isInChristmasWindow({ iso: node.schedule?.arrival_utc ?? '', timezoneOrOffset: place?.utcOffsetMinutes ?? 0 })).toBe(true);
       expect(node.stop_experience?.duration_seconds).toBeGreaterThan(0);
       expect(node.stop_experience?.stop_tier).toBeDefined();
     });

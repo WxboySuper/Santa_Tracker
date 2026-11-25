@@ -30,13 +30,13 @@ describe('generateRoute midnight sweep', () => {
     for (const [index, place] of generated.locations.entries()) {
       const stop = generated.route.stops[index];
       if (!stop) throw new Error('Expected a route stop');
-      expect(isInChristmasWindow(stop.arrivalIso, place.utcOffsetMinutes ?? 0)).toBe(true);
+      expect(isInChristmasWindow({ iso: stop.arrivalIso, timezoneOrOffset: place.utcOffsetMinutes ?? 0 })).toBe(true);
       expect(stop.departureIso).toBe(new Date(Date.parse(stop.arrivalIso) + (place.plannedStopDurationSeconds ?? 0) * 1000).toISOString());
       const node = generated.document.route_nodes[index + 1] as { stop_experience: { stop_tier: string; duration_seconds: number } };
       expect(node.stop_experience.stop_tier).toBe(place.plannedStopTier);
       expect(node.stop_experience.duration_seconds).toBe(place.plannedStopDurationSeconds);
     }
-    const firstLocal = localClock(generated.route.stops[0]!.arrivalIso, 840);
+    const firstLocal = localClock({ iso: generated.route.stops[0]!.arrivalIso, timezoneOrOffset: 840 });
     expect(firstLocal.hour).toBeGreaterThanOrEqual(0);
     expect(firstLocal.hour).toBeLessThanOrEqual(5);
   });

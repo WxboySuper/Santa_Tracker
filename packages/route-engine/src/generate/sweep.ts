@@ -6,6 +6,8 @@ const LOCAL_MIDNIGHT = Date.UTC(2026, 11, 25);
 
 export type ChristmasWindow = { startUtc: number; idealUtc: number; endUtc: number };
 export type LocalClock = { year: number; month: number; day: number; hour: number; minute: number };
+type ZonedMinute = { timezoneOrOffset: string | number; minutesAfterMidnight: number };
+type ZonedInstant = { iso: string; timezoneOrOffset: string | number };
 
 function validateMinute(minutesAfterMidnight: number): void {
   if (!Number.isInteger(minutesAfterMidnight)) throw new Error('Arrival minute must be an integer');
@@ -13,7 +15,7 @@ function validateMinute(minutesAfterMidnight: number): void {
 }
 
 /** Resolve a Christmas local time from the committed December UTC offset or an IANA zone. */
-export function christmasArrival(timezoneOrOffset: string | number, minutesAfterMidnight: number): string {
+export function christmasArrival({ timezoneOrOffset, minutesAfterMidnight }: ZonedMinute): string {
   validateMinute(minutesAfterMidnight);
   if (typeof timezoneOrOffset === 'number') {
     return new Date(LOCAL_MIDNIGHT + minutesAfterMidnight * MINUTE_MS - timezoneOrOffset * MINUTE_MS).toISOString();
@@ -31,11 +33,11 @@ export function christmasArrival(timezoneOrOffset: string | number, minutesAfter
 }
 
 export function christmasWindow(offsetMinutes: number): ChristmasWindow {
-  const midnight = Date.parse(christmasArrival(offsetMinutes, 0));
+  const midnight = Date.parse(christmasArrival({ timezoneOrOffset: offsetMinutes, minutesAfterMidnight: 0 }));
   return {
     startUtc: midnight - 60 * MINUTE_MS,
-    idealUtc: Date.parse(christmasArrival(offsetMinutes, 60)),
-    endUtc: Date.parse(christmasArrival(offsetMinutes, 5 * 60)),
+    idealUtc: Date.parse(christmasArrival({ timezoneOrOffset: offsetMinutes, minutesAfterMidnight: 60 })),
+    endUtc: Date.parse(christmasArrival({ timezoneOrOffset: offsetMinutes, minutesAfterMidnight: 5 * 60 })),
   };
 }
 
@@ -78,7 +80,7 @@ export function stopDurationSeconds(tier: StopTier): number {
   }
 }
 
-export function localClock(iso: string, timezoneOrOffset: string | number): LocalClock {
+export function localClock({ iso, timezoneOrOffset }: ZonedInstant): LocalClock {
   const instant = Date.parse(iso);
   if (!Number.isFinite(instant)) throw new Error(`Invalid arrival time: ${iso}`);
   if (typeof timezoneOrOffset === 'number') {
@@ -95,8 +97,8 @@ export function localClock(iso: string, timezoneOrOffset: string | number): Loca
   return { year: value('year'), month: value('month'), day: value('day'), hour: value('hour'), minute: value('minute') };
 }
 
-export function localMinuteInChristmasWindow(iso: string, timezoneOrOffset: string | number): number {
-  const local = localClock(iso, timezoneOrOffset);
+export function localMinuteInChristmasWindow({ iso, timezoneOrOffset }: ZonedInstant): number {
+  const local = localClock({ iso, timezoneOrOffset });
   const minute = local.hour * 60 + local.minute;
   if (isLateChristmasEve(local, minute) || isEarlyChristmasDay(local, minute)) return minute;
   return -1;
@@ -110,8 +112,8 @@ function isEarlyChristmasDay(local: LocalClock, minute: number): boolean {
   return local.year === 2026 && local.month === 12 && local.day === 25 && minute <= 5 * 60;
 }
 
-export function isInChristmasWindow(iso: string, timezoneOrOffset: string | number): boolean {
-  return localMinuteInChristmasWindow(iso, timezoneOrOffset) >= 0;
+export function isInChristmasWindow(options: ZonedInstant): boolean {
+  return localMinuteInChristmasWindow(options) >= 0;
 }
 
 export function longitudeDelta(from: LatLng, to: LatLng): number {
@@ -144,8 +146,8 @@ export function eastwardLegReason(options: {
   if (fromOffset === undefined || toOffset === undefined) return undefined;
   const offsetJump = toOffset - fromOffset;
   const longitudeClockChange = eastward * 4;
-  const destinationIdealUtc = Date.parse(christmasArrival(toOffset, 60));
-  const sourceIdealUtc = Date.parse(christmasArrival(fromOffset, 60));
+  const destinationIdealUtc = Date.parse(christmasArrival({ timezoneOrOffset: toOffset, minutesAfterMidnight: 60 }));
+  const sourceIdealUtc = Date.parse(christmasArrival({ timezoneOrOffset: fromOffset, minutesAfterMidnight: 60 }));
   const window = christmasWindow(toOffset);
   const destinationInWindow = arrivalUtc !== undefined && arrivalUtc >= window.startUtc && arrivalUtc <= window.endUtc;
   if (offsetJump > longitudeClockChange + 20 && destinationIdealUtc < sourceIdealUtc
