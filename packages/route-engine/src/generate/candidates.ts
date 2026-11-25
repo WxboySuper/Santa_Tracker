@@ -8,11 +8,15 @@ function routeCategory(place: Candidate, config: GeneratorConfig): string {
   return 'populated';
 }
 
+function hasNonEmptyText(value: unknown): value is string {
+  return typeof value === 'string' && value.trim().length > 0;
+}
+
 function hasCandidateIdentity(place: Candidate): boolean {
-  if (typeof place.id !== 'string' || !place.id) return false;
-  if (typeof place.name !== 'string' || !place.name.trim()) return false;
-  if (typeof place.country !== 'string' || !place.country) return false;
-  return typeof place.timezone === 'string' && Boolean(place.timezone);
+  return hasNonEmptyText(place.id)
+    && hasNonEmptyText(place.name)
+    && hasNonEmptyText(place.country)
+    && hasNonEmptyText(place.timezone);
 }
 
 function hasValidCoordinates(place: Candidate): boolean {
