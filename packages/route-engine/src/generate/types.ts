@@ -67,8 +67,11 @@ export type RouteDetourReport = {
 export type RouteReport = {
   seed: number;
   count: number;
+  candidateCount: number;
+  unselectedCandidateCount: number;
   countriesCovered: number;
   countryCodes: string[];
+  uncoveredCountryCodes: string[];
   mix: Record<string, number>;
   stopTiers: Record<StopTier, number>;
   continentBalance: Record<string, number>;
@@ -76,6 +79,12 @@ export type RouteReport = {
   offsetBalance: Record<string, number>;
   hourly: { hour: number; count: number }[];
   localArrivalHistogram: Record<string, number>;
+  localArrivalMin: string;
+  localArrivalMax: string;
+  shortDeliveryLegCount: number;
+  deliveryLegCount: number;
+  shareDeliveryLegsUnder300Km: number;
+  subnationalCoverageNote: string;
   legs: RouteLegReport[];
   eastwardLegs: RouteLegReport[];
   detours: RouteDetourReport[];

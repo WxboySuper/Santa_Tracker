@@ -20,6 +20,13 @@ describe('midnight sweep ordering', () => {
     }
   });
 
+  it('finishes real UTC-offset bands in westward order', () => {
+    const ordered = sweepOrder(testPlaces);
+    for (let index = 1; index < ordered.length; index++) {
+      expect(ordered[index - 1]?.utcOffsetMinutes).toBeGreaterThanOrEqual(ordered[index]?.utcOffsetMinutes ?? -Infinity);
+    }
+  });
+
   it('keeps every arrival in its window and south-of-35 arrivals before 02:30', () => {
     const ordered = sweepOrder(testPlaces);
     for (const place of ordered) {

@@ -63,6 +63,8 @@ describe('committed 2026 route draft', () => {
     ]);
     expect(storedRoute).toBe(serializeDraft(generated));
     expect(generated.report.count).toBeGreaterThanOrEqual(500);
+    expect(generated.report.candidateCount).toBeGreaterThan(generated.report.count);
+    expect(generated.report.unselectedCandidateCount).toBe(generated.report.candidateCount - generated.report.count);
 
     const routeNodes = (JSON.parse(storedRoute) as { route_nodes: ReviewRouteNode[] }).route_nodes;
     const deliveries = routeNodes.filter((node) => node.type === 'DELIVERY');
@@ -85,6 +87,12 @@ describe('committed 2026 route draft', () => {
     expect(generated.report.eastwardLegs.every((leg) => ['dateline', 'offset-anomaly', 'return'].includes(leg.eastwardReason ?? ''))).toBe(true);
     expect(generated.report.detours).toEqual([]);
     expect(Object.keys(generated.report.localArrivalHistogram).length).toBeGreaterThanOrEqual(5);
+    expect(generated.report.localArrivalMin).toMatch(/^23:|^00:/);
+    expect(generated.report.localArrivalMax).toMatch(/^0[0-5]:/);
+    expect(generated.report.deliveryLegCount).toBe(generated.report.count - 1);
+    expect(generated.report.shortDeliveryLegCount).toBeGreaterThan(400);
+    expect(generated.report.uncoveredCountryCodes.length).toBeGreaterThan(0);
+    expect(Object.keys(generated.report.offsetBalance).length).toBeGreaterThan(10);
 
     const stopTable = /<table id="stops">.*?<tbody>(.*?)<\/tbody>/s.exec(review)?.[1] ?? '';
     expect([...stopTable.matchAll(/<tr>/g)]).toHaveLength(deliveries.length);
@@ -92,6 +100,8 @@ describe('committed 2026 route draft', () => {
     expect(review).toContain('Detour checks');
     expect(review).toContain('Local arrival histogram');
     expect(review).toContain('Stop tiers');
+    expect(review).toContain('Candidate countries not reached');
+    expect(review).toContain(generated.report.subnationalCoverageNote);
     expect(docs).toContain('fixed route total');
 
     const audit = auditRouteDocument(JSON.parse(storedRoute) as unknown, {

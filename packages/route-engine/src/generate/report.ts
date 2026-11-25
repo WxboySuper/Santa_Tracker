@@ -126,6 +126,21 @@ function localArrivalHistogram(places: Candidate[], route: Route): Record<string
   return Object.fromEntries(Object.entries(histogram).sort(([left], [right]) => left.localeCompare(right)));
 }
 
+function localArrivalRange(places: Candidate[], route: Route): { min: string; max: string } {
+  const arrivals = places.flatMap((place, index) => {
+    const stop = route.stops[index];
+    if (!stop) return [];
+    const local = localClock({ iso: stop.arrivalIso, timezoneOrOffset: place.utcOffsetMinutes ?? 0 });
+    const minute = local.hour * 60 + local.minute;
+    const sweepMinute = minute >= 23 * 60 ? minute - 24 * 60 : minute;
+    return [{ minute: sweepMinute, label: `${local.hour.toString().padStart(2, '0')}:${local.minute.toString().padStart(2, '0')}` }];
+  }).sort((left, right) => left.minute - right.minute);
+  const first = arrivals[0];
+  const last = arrivals.at(-1);
+  if (!first || !last) throw new Error('Cannot report an empty local arrival range');
+  return { min: first.label, max: last.label };
+}
+
 function populationCoverage(places: Candidate[], pool: Candidate[]): { covered: number; total: number; share: number } {
   const populated = pool.filter((place) => (place.population ?? 0) > 0);
   const total = populated.reduce((sum, place) => sum + (place.population ?? 0), 0);
@@ -161,11 +176,18 @@ export function buildReport(places: Candidate[], route: Route, config: Generator
   const coverage = populationCoverage(places, pool);
   const mix = countsBy(places, (place) => place.category);
   const countryCodes = [...new Set(places.map((place) => place.country))].sort();
+  const candidateCountryCodes = [...new Set(pool.map((place) => place.country))].sort();
+  const deliveryLegCount = Math.max(0, places.length - 1);
+  const shortDeliveryLegCount = legs.filter((leg) => leg.kind === 'delivery' && leg.km < 300).length;
+  const arrivals = localArrivalRange(places, route);
   return {
     seed: config.seed,
     count: places.length,
+    candidateCount: pool.length,
+    unselectedCandidateCount: Math.max(0, pool.length - places.length),
     countriesCovered: countryCodes.length,
     countryCodes,
+    uncoveredCountryCodes: candidateCountryCodes.filter((code) => !countryCodes.includes(code)),
     mix,
     stopTiers: tierCounts(places),
     continentBalance: countsBy(places, (place) => classifyRegion(place).continent),
@@ -173,6 +195,12 @@ export function buildReport(places: Candidate[], route: Route, config: Generator
     offsetBalance: countsBy(places, (place) => formatUtcOffset(place.utcOffsetMinutes ?? 0)),
     hourly: routeHours(route),
     localArrivalHistogram: localArrivalHistogram(places, route),
+    localArrivalMin: arrivals.min,
+    localArrivalMax: arrivals.max,
+    shortDeliveryLegCount,
+    deliveryLegCount,
+    shareDeliveryLegsUnder300Km: deliveryLegCount > 0 ? shortDeliveryLegCount / deliveryLegCount : 0,
+    subnationalCoverageNote: 'Unavailable: candidate data has no US state, Canadian province or Australian state/territory field.',
     legs,
     eastwardLegs: legs.filter((leg) => isEastwardDelta(leg.eastwardDegrees)),
     detours: detours(places),

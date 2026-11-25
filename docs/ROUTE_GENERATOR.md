@@ -19,8 +19,10 @@ writes a North Pole `START`, a timed delivery node for every selected stop and a
 Takeoff is 2026-12-24 10:00 UTC. The route follows local midnight west and must return by 2026-12-25 14:00 UTC.
 Every delivery arrives between 23:00 Dec 24 and 05:00 Dec 25 at its destination. The scheduler uses the full
 window instead of anchoring arrivals at 01:00. Stops south of 35 degrees latitude must arrive by 02:30 local time.
-The generator maximizes stops, then country coverage, with a scale target of 550-700 and a 500-stop floor. There is
-no fixed route total, hand-pinned order, arrival anchor, UTC-offset cap or category quota.
+The generator targets 550-700 delivery stops, with a readability ceiling near 1,000. It has no fixed route total,
+hand-pinned order, arrival anchor, UTC-offset cap or category quota. It prioritizes feasible country coverage in
+the local path, then uses population-weighted fill. It reports candidate countries it could not reach within the
+route constraints.
 
 Stop dwell is tiered: `major` 60 seconds, `city` 30 seconds, `town` 10 seconds and `hop` 3 seconds. A major stop
 has population at least 1,000,000, is a national capital with population at least 250,000, or is a curated
@@ -36,13 +38,14 @@ minimum gap. The p90 leg speed is at most 20,000 km/h and no leg exceeds 25,000 
 or polar crossings. Long overland legs use the local speed. The generator allows at most twelve stops per country
 to limit country flooding while leaving room for dense local clusters.
 
-The seeded sweep assigns each exact UTC offset, including half-hour and quarter-hour offsets, a band. At each step
-it ranks feasible candidates across the remaining pool, with local proximity first, then new countries, a
-north-to-south or south-to-north preference that alternates by band, and shorter dwell tiers. This keeps dense
-clusters together without waiting to empty a whole band before moving west. Constrained 2-opt and or-opt moves
-consider stops within one offset band and preserve speed, local windows, separation, westward progress, the return
-deadline and detour limits. The generator rejects all eastward delivery legs; only the initial date-line launch or
-final return can be eastward.
+The seeded sweep buckets candidates by their committed Dec 24-25 UTC offset, including half-hour and quarter-hour
+offsets. It moves west with local midnight. Neighboring bands can interleave while their six-hour arrival windows
+overlap if a nearby cluster avoids a long regional deadhead. The nearest-neighbor open path gives feasible new
+countries priority, then favors nearby stops and shorter dwell. It alternates the preferred north-to-south and
+south-to-north latitude direction by band. Constrained 2-opt and or-opt moves stay inside one contiguous offset
+band and reduce path length without adding eastward legs or detours. Candidate fill weighs country coverage,
+population, category and extra path distance. The generator rejects unjustified eastward delivery legs; the initial
+date-line launch may be marked `dateline`, and the final return may be marked `return`.
 
 ## Eastward legs and detours
 
@@ -68,12 +71,15 @@ against committed country bounds and verifies timezone-country membership. The r
 must be checked against the committed country bounds and zone allow-lists.
 
 The current place and curated snapshots have no state, province or territory identifier. The generator cannot
-verify US state, Canadian province or Australian state coverage until the source data includes those fields.
+verify US state, Canadian province or Australian state/territory coverage until the source data includes those
+fields. The review reports this data gap and lists candidate country codes not reached by the route.
 
-The generated HTML review includes stop and tier totals, country and continent coverage, path length, median, p90
-and maximum leg speeds, local-arrival histogram, every eastward leg with its reason, detour flags, the 20 longest
-legs and the share of the snapshot population estimate within 500 km of a stop. That population share is a proxy
-based on the place records, not a gridded world-population estimate.
+The generated HTML review includes delivery and eligible-candidate totals, the unselected candidate count, stop and
+tier totals, country and continent coverage, UTC-offset band counts, uncovered candidate countries, path length,
+median/p90/maximum leg speeds, local-arrival min/max and histogram, the share of delivery legs under 300 km, every
+eastward leg with its reason, detour flags, the 20 longest legs and the share of the snapshot population estimate
+within 500 km of a stop. That population share is a proxy based on the place records, not a gridded world-population
+estimate.
 
 `pnpm route:audit` checks the draft schema, endpoints, candidate identity, tier and dwell, local arrival window,
 tone vetoes, source and coordinate data, duplicate locations, 20 km separation, travel chronology, speed, return

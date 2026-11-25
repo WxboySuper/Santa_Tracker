@@ -280,7 +280,8 @@ function offsetBands(pool: Candidate[]): Candidate[][] {
 function executeGreedySweep(state: SweepState, bands: Candidate[][], randomRanks: Map<string, number>, config: GeneratorConfig): void {
   const bandIndices = new Map<string, number>();
   bands.forEach((band, index) => band.forEach((place) => bandIndices.set(place.id, index)));
-  // Offset bands guide the alternating latitude preference; local proximity keeps the path connected.
+  // Exact-offset bands set the alternating latitude preference. Candidates can
+  // interleave where their local windows overlap to keep the route connected.
   while (state.remaining.size > 0) {
     const next = bestFeasibleStop(state, [...state.remaining.values()], bandIndices, randomRanks, config);
     if (!next) break;
@@ -424,7 +425,11 @@ function localProposal(order: Candidate[], first: number, second: number, random
 }
 
 function sameOffsetBand(order: Candidate[], first: number, second: number): boolean {
-  return order[first]?.utcOffsetMinutes === order[second]?.utcOffsetMinutes;
+  const offset = order[first]?.utcOffsetMinutes;
+  if (offset === undefined || order[second]?.utcOffsetMinutes !== offset) return false;
+  const start = Math.min(first, second);
+  const end = Math.max(first, second);
+  return order.slice(start, end + 1).every((place) => place.utcOffsetMinutes === offset);
 }
 
 function improvesSweep(cost: RouteCost, current: RouteCost): boolean {
@@ -478,9 +483,9 @@ function insertionPositions(order: Candidate[], place: Candidate): { index: numb
 type RankedInsertion = { place: Candidate; positions: { index: number; addedDistance: number }[]; dwellSeconds: number };
 type InsertionState = { route: TimedCandidate[]; counts: Map<string, number>; separation: SeparationIndex };
 
-function rankInsertions(initial: TimedCandidate[], pool: Candidate[], seed: number): RankedInsertion[] {
+function rankInsertions(initial: TimedCandidate[], pool: Candidate[], config: GeneratorConfig): RankedInsertion[] {
   const initiallyCovered = new Set(initial.map((place) => place.country));
-  const random = seededRandom(seed ^ 0x27d4eb2d);
+  const random = seededRandom(config.seed ^ 0x27d4eb2d);
   const tieBreaks = new Map<string, number>();
   for (const place of [...pool].sort((left, right) => left.id.localeCompare(right.id))) tieBreaks.set(place.id, random());
   return pool.filter((place) => !initial.some((selected) => selected.id === place.id)).map((place) => ({
@@ -488,10 +493,14 @@ function rankInsertions(initial: TimedCandidate[], pool: Candidate[], seed: numb
     newCountry: !initiallyCovered.has(place.country),
     positions: insertionPositions(initial, place),
     dwellSeconds: stopDurationSeconds(stopTier(place)),
+    populationPriority: Math.log10((place.population ?? 0) + 1) * 20,
+    categoryPriority: categoryPreference(place, config) * 2,
     random: tieBreaks.get(place.id) ?? 0,
   })).sort((left, right) => Number(right.newCountry) - Number(left.newCountry)
-    || (left.positions[0]?.addedDistance ?? Number.POSITIVE_INFINITY) + left.dwellSeconds * 1.1
-      - ((right.positions[0]?.addedDistance ?? Number.POSITIVE_INFINITY) + right.dwellSeconds * 1.1)
+    || ((left.positions[0]?.addedDistance ?? Number.POSITIVE_INFINITY) + left.dwellSeconds * 1.1
+      - left.populationPriority - left.categoryPriority)
+      - ((right.positions[0]?.addedDistance ?? Number.POSITIVE_INFINITY) + right.dwellSeconds * 1.1
+        - right.populationPriority - right.categoryPriority)
     || left.random - right.random).map(({ place, positions, dwellSeconds }) => ({ place, positions, dwellSeconds }));
 }
 
@@ -535,7 +544,7 @@ function tryInsertCandidate(state: InsertionState, item: RankedInsertion, config
 
 function insertFeasibleCandidates(initial: TimedCandidate[], pool: Candidate[], config: GeneratorConfig): TimedCandidate[] {
   const state = insertionState(initial, config.minStopSeparationKm);
-  const ranked = rankInsertions(initial, pool, config.seed);
+  const ranked = rankInsertions(initial, pool, config);
   for (const item of ranked) tryInsertCandidate(state, item, config);
   return state.route;
 }

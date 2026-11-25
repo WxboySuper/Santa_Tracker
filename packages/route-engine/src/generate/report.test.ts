@@ -10,12 +10,22 @@ const route: Route = { schemaVersion: SCHEMA_VERSION, season: 2026, stops: [firs
 
 describe('buildReport', () => {
   it('reports countries, tiers, histogram, population coverage and launch and return legs', () => {
-    const report = buildReport([place], route, DEFAULT_GENERATOR_LIMITS);
+    const pool = [place, { ...place, id: 'two', name: 'Two', country: 'US', lat: 0, lng: 1 }];
+    const report = buildReport([place], route, DEFAULT_GENERATOR_LIMITS, pool);
     expect(report.count).toBe(1);
+    expect(report.candidateCount).toBe(2);
+    expect(report.unselectedCandidateCount).toBe(1);
     expect(report.countriesCovered).toBe(1);
     expect(report.countryCodes).toEqual(['GB']);
+    expect(report.uncoveredCountryCodes).toEqual(['US']);
     expect(report.stopTiers.city).toBe(1);
     expect(report.localArrivalHistogram).toEqual({ '01:00': 1 });
+    expect(report.localArrivalMin).toBe('01:00');
+    expect(report.localArrivalMax).toBe('01:00');
+    expect(report.shortDeliveryLegCount).toBe(0);
+    expect(report.deliveryLegCount).toBe(0);
+    expect(report.shareDeliveryLegsUnder300Km).toBe(0);
+    expect(report.subnationalCoverageNote).toContain('no US state');
     expect(report.legs.map((leg) => leg.kind)).toEqual(['launch', 'return']);
     expect(report.longestLegs).toHaveLength(2);
     expect(report.populationCoverageWithin500Km).toBe(1);
