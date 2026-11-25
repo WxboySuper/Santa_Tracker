@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 
 const countryCodeData = JSON.parse(readFileSync(new URL('./data/country-codes.json', import.meta.url), 'utf8'));
 const countryZoneData = JSON.parse(readFileSync(new URL('./data/country-zones.json', import.meta.url), 'utf8'));
+const countryBoundsData = JSON.parse(readFileSync(new URL('./data/country-bounds.json', import.meta.url), 'utf8'));
 const draftOverrides = JSON.parse(readFileSync(new URL('./data/route-2026-overrides.json', import.meta.url), 'utf8'));
 let localOverrides = {};
 try {
@@ -111,4 +112,12 @@ export function christmasUtcOffset(timezone) {
   }).formatToParts(new Date(instant));
   const value = (type) => Number(parts.find((part) => part.type === type)?.value);
   return Math.round((Date.UTC(value('year'), value('month') - 1, value('day'), value('hour'), value('minute'), value('second')) - instant) / 60_000);
+}
+
+export function withinCountryBounds(country, lat, lng) {
+  const bounds = countryBoundsData.boundsByCountry[country];
+  return Boolean(bounds
+    && Number.isFinite(lat) && Number.isFinite(lng)
+    && lat >= bounds.minLat && lat <= bounds.maxLat
+    && lng >= bounds.minLng && lng <= bounds.maxLng);
 }

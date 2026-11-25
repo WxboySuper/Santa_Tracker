@@ -6,3 +6,4 @@ export function timezoneCorrection(id: string): string | undefined;
 export function countryCodeForName(value: string): string;
 export function timezoneForCandidate(options: { id: string; country: string; lookedUpTimezone: string; lat: number; lng: number }): string;
 export function christmasUtcOffset(timezone: string): number;
+export function withinCountryBounds(country: string, lat: number, lng: number): boolean;

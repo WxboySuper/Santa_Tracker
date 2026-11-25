@@ -1,8 +1,8 @@
-import { writeFile } from 'node:fs/promises';
+import { readFile, writeFile } from 'node:fs/promises';
 import { unzipSync } from 'fflate';
 import shapefile from 'shapefile';
 import lookup from '@photostructure/tz-lookup';
-import { christmasUtcOffset, coordinatesFromGeometry, countryCodeForName, timezoneForCandidate } from './refresh-validation.mjs';
+import { christmasUtcOffset, coordinatesFromGeometry, countryCodeForName, timezoneForCandidate, withinCountryBounds } from './refresh-validation.mjs';
 
 const url = 'https://naturalearth.s3.amazonaws.com/10m_cultural/ne_10m_populated_places_simple.zip';
 const response = await fetch(url);
@@ -12,6 +12,14 @@ const shp = files['ne_10m_populated_places_simple.shp'];
 const dbf = files['ne_10m_populated_places_simple.dbf'];
 if (!shp || !dbf) throw new Error('Natural Earth archive is missing its shapefile');
 const source = await shapefile.open(shp.buffer, dbf.buffer, { encoding: 'utf-8' });
+const curated = JSON.parse(await readFile(new URL('./data/curated.json', import.meta.url), 'utf8'));
+const normalizeName = (value) => value.normalize('NFKD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]/g, '');
+const curatedByName = new Map();
+for (const place of curated) {
+  const key = `${place.country}:${normalizeName(place.name)}`;
+  if (!curatedByName.has(key)) curatedByName.set(key, []);
+  curatedByName.get(key).push(place);
+}
 const places = [];
 for (;;) {
   const item = await source.read();
@@ -23,6 +31,9 @@ for (;;) {
   const { lat, lng } = coordinates;
   const id = `ne-${properties.ne_id}`;
   const country = countryCodeForName(properties.adm0name);
+  if (!withinCountryBounds(country, lat, lng)) continue;
+  const key = `${country}:${normalizeName(properties.name)}`;
+  if ((curatedByName.get(key) ?? []).some((place) => distanceKm({ lat, lng }, place) < 100)) continue;
   const timezone = timezoneForCandidate({ id, country, lookedUpTimezone: lookup(lat, lng), lat, lng });
   places.push({
     id, name: properties.name, country,
@@ -32,5 +43,25 @@ for (;;) {
   });
 }
 places.sort((a, b) => a.id.localeCompare(b.id, 'en'));
-await writeFile(new URL('./data/places.json', import.meta.url), `${JSON.stringify(places)}\n`);
-process.stdout.write(`Wrote ${places.length} populated places\n`);
+const uniquePlaces = [];
+for (const place of places) {
+  const key = `${place.country}:${normalizeName(place.name)}`;
+  const duplicateIndex = uniquePlaces.findIndex((candidate) => `${candidate.country}:${normalizeName(candidate.name)}` === key
+    && distanceKm(place, candidate) < 100);
+  if (duplicateIndex < 0) {
+    uniquePlaces.push(place);
+  } else if ((place.population ?? 0) > (uniquePlaces[duplicateIndex].population ?? 0)) {
+    uniquePlaces[duplicateIndex] = place;
+  }
+}
+uniquePlaces.sort((a, b) => a.id.localeCompare(b.id, 'en'));
+await writeFile(new URL('./data/places.json', import.meta.url), `${JSON.stringify(uniquePlaces)}\n`);
+process.stdout.write(`Wrote ${uniquePlaces.length} populated places\n`);
+
+function distanceKm(a, b) {
+  const radians = (value) => value * Math.PI / 180;
+  const dLat = radians(b.lat - a.lat);
+  const dLng = radians(b.lng - a.lng);
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(radians(a.lat)) * Math.cos(radians(b.lat)) * Math.sin(dLng / 2) ** 2;
+  return 12742 * Math.asin(Math.min(1, Math.sqrt(h)));
+}
