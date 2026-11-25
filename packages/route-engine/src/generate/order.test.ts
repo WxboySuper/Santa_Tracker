@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { haversineKm } from '../geo';
-import { isInChristmasWindow, localClock, longitudeDelta } from './sweep';
+import { eastwardLegReason, isInChristmasWindow, localClock, longitudeDelta } from './sweep';
 import { DEFAULT_GENERATOR_LIMITS, type Candidate } from './types';
 import { scheduledTravelMilliseconds, sweepOrder } from './order';
 
@@ -40,6 +40,25 @@ describe('midnight sweep ordering', () => {
     expect(ordered.slice(2, 4).map((place) => place.id)).toEqual(['south-b', 'north-b']);
   });
 
+  it('keeps an eastward move when the destination offset justifies it', () => {
+    const places: Candidate[] = [
+      { id: 'launch', name: 'Kiritimati', country: 'KI', lat: 1.87, lng: -157.4, timezone: 'Pacific/Kiritimati', utcOffsetMinutes: 840, category: 'populated', population: 7_380 },
+      { id: 'source', name: 'Western Australia', country: 'AU', lat: -10, lng: 160, timezone: 'Australia/Brisbane', utcOffsetMinutes: 600, category: 'populated', population: 500_000 },
+      { id: 'offset-anomaly', name: 'Southern atoll', country: 'KI', lat: -80, lng: 162, timezone: 'Pacific/Norfolk', utcOffsetMinutes: 660, category: 'populated', population: 10_000 },
+    ];
+    const ordered = sweepOrder(places);
+    expect(ordered.map((place) => place.id)).toEqual(['launch', 'source', 'offset-anomaly']);
+    const from = ordered[1]!;
+    const to = ordered[2]!;
+    expect(longitudeDelta(from, to)).toBeGreaterThan(1);
+    expect(eastwardLegReason({
+      from,
+      to,
+      destinationIndex: 2,
+      arrivalUtc: Date.parse(to.plannedArrivalUtc ?? ''),
+    })).toBe('offset-anomaly');
+  });
+
   it('keeps every arrival in its window and south-of-35 arrivals before 02:30', () => {
     const ordered = sweepOrder(testPlaces);
     for (const place of ordered) {
@@ -57,8 +76,12 @@ describe('midnight sweep ordering', () => {
   it('schedules local hops and ocean legs below the p90 and hard speed limits', () => {
     const local = haversineKm(testPlaces[2]!, testPlaces[3]!);
     const ocean = haversineKm(testPlaces[0]!, testPlaces[3]!);
-    const localSpeed = local / (scheduledTravelMilliseconds(testPlaces[2]!, testPlaces[3]!, DEFAULT_GENERATOR_LIMITS) / 3_600_000);
-    const oceanSpeed = ocean / (scheduledTravelMilliseconds(testPlaces[0]!, testPlaces[3]!, DEFAULT_GENERATOR_LIMITS) / 3_600_000);
+    const localTravel = scheduledTravelMilliseconds(testPlaces[2]!, testPlaces[3]!, DEFAULT_GENERATOR_LIMITS);
+    const oceanTravel = scheduledTravelMilliseconds(testPlaces[0]!, testPlaces[3]!, DEFAULT_GENERATOR_LIMITS);
+    expect(localTravel % 1000).toBe(0);
+    expect(oceanTravel % 1000).toBe(0);
+    const localSpeed = local / (localTravel / 3_600_000);
+    const oceanSpeed = ocean / (oceanTravel / 3_600_000);
     expect(localSpeed).toBeLessThanOrEqual(DEFAULT_GENERATOR_LIMITS.p90LegSpeedMaxKmh);
     expect(oceanSpeed).toBeLessThanOrEqual(DEFAULT_GENERATOR_LIMITS.p90LegSpeedMaxKmh);
     expect(Math.max(localSpeed, oceanSpeed)).toBeLessThanOrEqual(DEFAULT_GENERATOR_LIMITS.maxLegSpeedKmh);

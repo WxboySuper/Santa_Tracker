@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { christmasArrival, christmasWindow, isInChristmasWindow, stopDurationSeconds, stopTier } from './sweep';
+import { christmasArrival, christmasWindow, eastwardLegReason, isInChristmasWindow, stopDurationSeconds, stopTier } from './sweep';
 import { christmasOffset, parseUtcOffset } from './timezone';
 import type { Candidate } from './types';
 
@@ -38,6 +38,19 @@ describe('christmasArrival', () => {
     expect(isInChristmasWindow({ iso: '2026-12-24T09:00:00.000Z', timezoneOrOffset: 840 })).toBe(true);
     expect(isInChristmasWindow({ iso: '2026-12-24T15:00:00.000Z', timezoneOrOffset: 840 })).toBe(true);
     expect(isInChristmasWindow({ iso: '2026-12-24T15:01:00.000Z', timezoneOrOffset: 840 })).toBe(false);
+  });
+
+  it('labels eastward moves whose destination offset advances local midnight', () => {
+    const destination: Candidate = {
+      id: 'western-china', name: 'Western China', country: 'CN', lat: 35, lng: 2,
+      timezone: 'Asia/Shanghai', utcOffsetMinutes: 480, category: 'populated',
+    };
+    expect(eastwardLegReason({
+      from: { lat: 35, lng: 0, utcOffsetMinutes: 300 },
+      to: destination,
+      destinationIndex: 4,
+      arrivalUtc: Date.parse('2026-12-24T18:30:00.000Z'),
+    })).toBe('offset-anomaly');
   });
 
   it('assigns dwell from population, capital and curated landmark tier', () => {

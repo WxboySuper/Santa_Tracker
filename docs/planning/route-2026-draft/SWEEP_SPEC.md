@@ -40,7 +40,8 @@ Report that data gap.
 - A stop can begin after the prior stop's dwell and travel time. There is no extra arrival gap.
 - Keep p90 leg speed at or below 20,000 km/h and every leg at or below 25,000 km/h. The generator uses a smooth
   4,000 km/h pace for local legs and 19,000 km/h for long ocean, island, cross-continent and polar crossings.
-  Transit time follows distance at that pace; dwell time comes out before the next leg.
+  Transit time follows distance at that pace, rounded up to a whole second so the stored transit duration never
+  understates the schedule; dwell time comes out before the next leg.
 - Stops must be at least 20 km apart. This permits nearby pairs such as Mexico City and Teotihuacan without an
   exception list.
 

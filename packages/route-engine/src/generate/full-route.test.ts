@@ -64,9 +64,21 @@ function expectDeliveriesAreTimed(deliveries: ReviewRouteNode[], routeNodes: Rev
 function expectDeliveryIsTimed(node: ReviewRouteNode, index: number, routeNodes: ReviewRouteNode[], inputs: GeneratorInputs): void {
   const place = inputs.pool.find((candidate) => candidate.id === node.candidate_id);
   expect(place).toBeDefined();
-  expect(isInChristmasWindow({ iso: node.schedule?.arrival_utc ?? '', timezoneOrOffset: place?.utcOffsetMinutes ?? 0 })).toBe(true);
+  expectArrivalIsInWindow(node.schedule?.arrival_utc ?? '', place?.utcOffsetMinutes ?? 0);
+  expectStopHasTierAndDwell(node);
+  expectArrivalFollowsTravel(node, index, routeNodes);
+}
+
+function expectArrivalIsInWindow(iso: string, utcOffsetMinutes: number): void {
+  expect(isInChristmasWindow({ iso, timezoneOrOffset: utcOffsetMinutes })).toBe(true);
+}
+
+function expectStopHasTierAndDwell(node: ReviewRouteNode): void {
   expect(node.stop_experience?.duration_seconds).toBeGreaterThan(0);
   expect(node.stop_experience?.stop_tier).toBeDefined();
+}
+
+function expectArrivalFollowsTravel(node: ReviewRouteNode, index: number, routeNodes: ReviewRouteNode[]): void {
   const priorDeparture = Date.parse(routeNodes[index]?.schedule?.departure_utc ?? '');
   const arrival = Date.parse(node.schedule?.arrival_utc ?? '');
   expect(arrival - priorDeparture).toBeGreaterThanOrEqual((node.transit_to_here?.duration_seconds ?? 0) * 1000);

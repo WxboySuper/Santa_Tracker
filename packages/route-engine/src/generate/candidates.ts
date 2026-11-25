@@ -9,10 +9,10 @@ function routeCategory(place: Candidate, config: GeneratorConfig): string {
 }
 
 function hasCandidateIdentity(place: Candidate): boolean {
-  if (!place.id) return false;
-  if (!place.name.trim()) return false;
-  if (!place.country) return false;
-  return Boolean(place.timezone);
+  if (typeof place.id !== 'string' || !place.id) return false;
+  if (typeof place.name !== 'string' || !place.name.trim()) return false;
+  if (typeof place.country !== 'string' || !place.country) return false;
+  return typeof place.timezone === 'string' && Boolean(place.timezone);
 }
 
 function hasValidCoordinates(place: Candidate): boolean {

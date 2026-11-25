@@ -54,7 +54,8 @@ function planningSpeed(from: Candidate | LatLng, to: Candidate | LatLng, distanc
 
 export function scheduledTravelMilliseconds(from: Candidate | LatLng, to: Candidate | LatLng, config: GeneratorConfig): number {
   const distance = haversineKm(from, to);
-  return Math.ceil(distance / planningSpeed(from, to, distance, config) * 3_600_000);
+  const travelSeconds = Math.ceil(distance / planningSpeed(from, to, distance, config) * 3_600);
+  return travelSeconds * 1000;
 }
 
 function countryCapacity(place: Candidate, counts: Map<string, number>, config: GeneratorConfig): boolean {
@@ -124,7 +125,7 @@ function deliveryLongitudeIsAllowed(prior: Candidate | LatLng, place: Candidate,
   const degrees = longitudeDelta(prior, place);
   if (!isEastwardDelta(degrees)) return true;
   const reason = eastwardLegReason({ from: prior, to: place, destinationIndex: index, arrivalUtc: arrival });
-  return index === 0 && reason === 'dateline';
+  return reason === 'dateline' || reason === 'offset-anomaly';
 }
 
 function returnFitsDeadline(place: Candidate, departure: number, config: GeneratorConfig): boolean {
@@ -511,6 +512,12 @@ function insertionPositions(order: Candidate[], place: Candidate): { index: numb
 
 type RankedInsertion = { place: Candidate; positions: { index: number; addedDistance: number }[]; dwellSeconds: number };
 type InsertionState = { route: TimedCandidate[]; counts: Map<string, number>; separation: SeparationIndex };
+type InsertionPass = {
+  config: GeneratorConfig;
+  bandSpreadMinutes: number;
+  coverageOnly: boolean;
+  maxPositionAttempts: number;
+};
 
 function rankInsertions(initial: TimedCandidate[], pool: Candidate[], config: GeneratorConfig): RankedInsertion[] {
   const initiallyCovered = new Set(initial.map((place) => place.country));
@@ -546,25 +553,26 @@ function insertionPlanIsAcceptable(plan: RoutePlan | undefined, eastward: number
   return eastwardCount(plan.places) <= eastward && detourCount(plan.places) <= detours;
 }
 
-function placeFitsNeighborBand(state: InsertionState, place: Candidate, index: number, spreadMinutes: number): boolean {
+function placeFitsNeighborBand(state: InsertionState, place: Candidate, index: number, pass: InsertionPass): boolean {
   const before = index > 0 ? state.route[index - 1] : undefined;
   const after = state.route[index];
   const neighbors = [before, after].filter((candidate): candidate is TimedCandidate => candidate !== undefined);
-  return neighbors.every((candidate) => Math.abs((candidate.utcOffsetMinutes ?? 0) - (place.utcOffsetMinutes ?? 0)) <= spreadMinutes);
+  return neighbors.every((candidate) => Math.abs((candidate.utcOffsetMinutes ?? 0) - (place.utcOffsetMinutes ?? 0)) <= pass.bandSpreadMinutes);
 }
 
-function insertionOptions(state: InsertionState, place: Candidate, positions: RankedInsertion['positions'], spreadMinutes: number): RankedInsertion['positions'] {
-  if (spreadMinutes === 0) return positions.slice(0, 8).filter(({ index }) => placeFitsNeighborBand(state, place, index, spreadMinutes));
-  return positions.filter(({ index }) => placeFitsNeighborBand(state, place, index, spreadMinutes)).slice(0, 2);
+function insertionOptions(state: InsertionState, place: Candidate, positions: RankedInsertion['positions'], pass: InsertionPass): RankedInsertion['positions'] {
+  if (pass.bandSpreadMinutes === 0) {
+    return positions.slice(0, pass.maxPositionAttempts).filter(({ index }) => placeFitsNeighborBand(state, place, index, pass));
+  }
+  return positions.filter(({ index }) => placeFitsNeighborBand(state, place, index, pass)).slice(0, pass.maxPositionAttempts);
 }
 
-function addAtFeasiblePosition(state: InsertionState, place: Candidate, positions: RankedInsertion['positions'], config: GeneratorConfig,
-  bandSpreadMinutes: number): boolean {
+function addAtFeasiblePosition(state: InsertionState, place: Candidate, positions: RankedInsertion['positions'], pass: InsertionPass): boolean {
   const priorEastward = eastwardCount(state.route);
   const priorDetours = detourCount(state.route);
-  for (const { index } of insertionOptions(state, place, positions, bandSpreadMinutes)) {
+  for (const { index } of insertionOptions(state, place, positions, pass)) {
     const proposal = [...state.route.slice(0, index), place, ...state.route.slice(index)];
-    const plan = planOrder(proposal, config);
+    const plan = planOrder(proposal, pass.config);
     if (!insertionPlanIsAcceptable(plan, priorEastward, priorDetours)) continue;
     state.route = plan.places;
     state.counts.set(place.country, (state.counts.get(place.country) ?? 0) + 1);
@@ -574,21 +582,19 @@ function addAtFeasiblePosition(state: InsertionState, place: Candidate, position
   return false;
 }
 
-function tryInsertCandidate(state: InsertionState, item: RankedInsertion, config: GeneratorConfig, bandSpreadMinutes: number,
-  coverageOnly: boolean): void {
-  if (coverageOnly && state.counts.has(item.place.country)) return;
-  if (!countryCapacity(item.place, state.counts, config)) return;
+function tryInsertCandidate(state: InsertionState, item: RankedInsertion, pass: InsertionPass): void {
+  if (pass.coverageOnly && state.counts.has(item.place.country)) return;
+  if (!countryCapacity(item.place, state.counts, pass.config)) return;
   if (!state.separation.allows(item.place)) return;
-  addAtFeasiblePosition(state, item.place, insertionPositions(state.route, item.place), config, bandSpreadMinutes);
+  addAtFeasiblePosition(state, item.place, insertionPositions(state.route, item.place), pass);
 }
 
-function insertFeasibleCandidates(initial: TimedCandidate[], pool: Candidate[], config: GeneratorConfig,
-  bandSpreadMinutes = 0, coverageOnly = false): TimedCandidate[] {
-  const state = insertionState(initial, config.minStopSeparationKm);
+function insertFeasibleCandidates(initial: TimedCandidate[], pool: Candidate[], pass: InsertionPass): TimedCandidate[] {
+  const state = insertionState(initial, pass.config.minStopSeparationKm);
   const initialCountries = new Set(initial.map((place) => place.country));
-  const candidates = coverageOnly ? pool.filter((place) => !initialCountries.has(place.country)) : pool;
-  const ranked = rankInsertions(initial, candidates, config);
-  for (const item of ranked) tryInsertCandidate(state, item, config, bandSpreadMinutes, coverageOnly);
+  const candidates = pass.coverageOnly ? pool.filter((place) => !initialCountries.has(place.country)) : pool;
+  const ranked = rankInsertions(initial, candidates, pass.config);
+  for (const item of ranked) tryInsertCandidate(state, item, pass);
   return state.route;
 }
 
@@ -597,10 +603,12 @@ export function sweepOrder(places: Candidate[], config: GeneratorConfig = DEFAUL
   if (places.length === 0) throw new Error('Cannot order an empty route');
   const initial = greedySweep(places, config);
   const improved = improveWithLocalSearch(initial, config);
-  const expanded = insertFeasibleCandidates(improved, places, config);
+  const densePass: InsertionPass = { config, bandSpreadMinutes: 0, coverageOnly: false, maxPositionAttempts: 8 };
+  const expanded = insertFeasibleCandidates(improved, places, densePass);
   const compacted = improveWithLocalSearch(expanded, config);
-  const filled = insertFeasibleCandidates(compacted, places, config);
-  const countryCoverage = insertFeasibleCandidates(filled, places, config, 60, true);
+  const filled = insertFeasibleCandidates(compacted, places, densePass);
+  const countryPass: InsertionPass = { config, bandSpreadMinutes: 60, coverageOnly: true, maxPositionAttempts: 2 };
+  const countryCoverage = insertFeasibleCandidates(filled, places, countryPass);
   const finalOrder = improveWithLocalSearch(countryCoverage, config);
   const plan = planOrder(finalOrder, config);
   if (!plan) throw new Error('No route ordering satisfies the local Christmas window, speed limits, separation, and return deadline');

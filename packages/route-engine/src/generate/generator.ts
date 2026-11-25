@@ -83,7 +83,7 @@ type TransitOptions = {
 };
 
 function transit({ from, to, fromDeparture, toArrival, description, cameraZoom = 9, eastwardReason }: TransitOptions) {
-  const durationSeconds = Math.max(0, Math.floor((toArrival - fromDeparture) / 1000));
+  const durationSeconds = Math.max(0, Math.ceil((toArrival - fromDeparture) / 1000));
   const distanceKm = haversineKm(from, to);
   const speedKmh = durationSeconds > 0 ? legSpeedKmh(from, to, durationSeconds) ?? 0 : 0;
   const result: Record<string, unknown> = {

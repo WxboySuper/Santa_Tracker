@@ -30,4 +30,9 @@ describe('chooseCandidates', () => {
     const { utcOffsetMinutes: _offset, ...missingOffset } = pool[0]!;
     expect(() => chooseCandidates([missingOffset], DEFAULT_GENERATOR_LIMITS)).toThrow('No eligible route candidates');
   });
+
+  it('skips malformed names instead of throwing while validating the pool', () => {
+    const malformed = { ...pool[0], name: null } as unknown as Candidate;
+    expect(() => chooseCandidates([malformed], DEFAULT_GENERATOR_LIMITS)).toThrow('No eligible route candidates');
+  });
 });
