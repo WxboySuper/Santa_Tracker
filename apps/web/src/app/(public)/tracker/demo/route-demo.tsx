@@ -97,7 +97,7 @@ function DemoControls({ nodes }: { nodes: RouteNode[] }) {
   const bounds = useMemo(() => journeyBounds(nodes), [nodes]);
   const { paused, rate, update } = useDemoClock(bounds?.start ?? null);
   const now = useTrackerNow().getTime();
-  const stops = bounds?.stops ?? [];
+  const stops = useMemo(() => bounds?.stops ?? [], [bounds]);
   const index = currentStopIndex(stops, now);
   const current = index >= 0 ? stops[index] : null;
   const seekStop = useCallback((target: number) => {
