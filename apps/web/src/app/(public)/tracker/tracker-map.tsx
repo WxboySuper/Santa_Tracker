@@ -9,8 +9,10 @@ import { useMapAdapter, type MapEvent, type MapMode } from "./tracker-map-hooks"
 import { useTrackerViewMode } from "@/lib/tracker-view-mode";
 import { useRouteNodes, useSantaPosition } from "./tracker-map-data-hooks";
 import { TrackerMapView } from "./tracker-map-view";
+import { DEFAULT_TRACKER_LAYOUT, type TrackerLayoutId } from "@/lib/tracker-layout";
+import { DEFAULT_TRACKER_THEME, setActiveTrackerTheme, themeFontsHref, trackerTheme, type TrackerThemeId } from "@/lib/tracker-theme";
 
-interface TrackerMapProps { adventEnabled: boolean; locale: string; routeSource?: string }
+interface TrackerMapProps { adventEnabled: boolean; locale: string; routeSource?: string; theme?: TrackerThemeId; layout?: TrackerLayoutId }
 interface TvModeContext {
   session: { current: { mode: MapMode; following: boolean } | null };
   mode: MapMode;
@@ -20,7 +22,9 @@ interface TvModeContext {
   adapter: { current: TrackerMapAdapter | null };
 }
 
-export default function TrackerMap({ adventEnabled, locale, routeSource }: TrackerMapProps) {
+export default function TrackerMap({ adventEnabled, locale, routeSource, theme = DEFAULT_TRACKER_THEME, layout = DEFAULT_TRACKER_LAYOUT }: TrackerMapProps) {
+  // The map adapter reads the active theme when it mounts; the page remounts TrackerMap to change theme.
+  setActiveTrackerTheme(theme);
   const translator = useMemo(() => createTranslator({ locale }), [locale]);
   const element = useRef<HTMLDivElement>(null);
   const adapter = useRef<TrackerMapAdapter | null>(null);
@@ -30,6 +34,11 @@ export default function TrackerMap({ adventEnabled, locale, routeSource }: Track
   const [following, setFollowing] = useState(true);
   const tvSession = useRef<{ mode: MapMode; following: boolean } | null>(null);
   const { viewMode, toggleImmersive, toggleTv } = useTrackerViewMode();
+  const [globeFailed, setGlobeFailed] = useState(false);
+  const onGlobeUnavailable = useCallback(() => setGlobeFailed(true), []);
+  // The globe replaces the flat map (not in TV mode, and not if WebGL is unavailable, when the single card is used).
+  const globe = layout === "globe" && !globeFailed && viewMode !== "tv";
+  const shownLayout: TrackerLayoutId = layout === "globe" && !globe ? "card" : layout;
   useEffect(() => {
     const context = { session: tvSession, mode, following, setFollowing, dispatch, adapter };
     if (viewMode === "tv") {
@@ -40,11 +49,18 @@ export default function TrackerMap({ adventEnabled, locale, routeSource }: Track
     restoreTrackerMode(context);
   }, [adapter, dispatch, following, mode, viewMode]);
   const stopFollowing = useCallback(() => setFollowing(false), []);
-  useMapAdapter({ mode, element, nodes, position, dispatch, stopFollowing, adapter });
+  // While the globe is up the flat map adapter stays idle ("text" means no interactive map to mount).
+  useMapAdapter({ mode: globe ? "text" : mode, element, nodes, position, dispatch, stopFollowing, adapter });
   const timedNodes = routeNodesToContractRoute(nodes).timedNodes;
   const currentIndex = position?.journey.currentIndex;
   const current = currentIndex == null ? undefined : timedNodes[currentIndex];
-  return <TrackerMapView
+  return <div className={`tt-root tt-${theme} tl-layout-${shownLayout}`}>
+    <link rel="stylesheet" href={themeFontsHref(trackerTheme(theme))} precedence="default" />
+    <TrackerMapView
+    theme={theme}
+    layout={shownLayout}
+    globe={globe}
+    onGlobeUnavailable={onGlobeUnavailable}
     adventEnabled={adventEnabled}
     locale={locale}
     translator={translator}
@@ -61,7 +77,8 @@ export default function TrackerMap({ adventEnabled, locale, routeSource }: Track
     viewMode={viewMode}
     toggleImmersive={toggleImmersive}
     toggleTv={toggleTv}
-  />;
+  />
+  </div>;
 }
 
 function enterTvMode({ session, mode, following, setFollowing, adapter }: TvModeContext): boolean {

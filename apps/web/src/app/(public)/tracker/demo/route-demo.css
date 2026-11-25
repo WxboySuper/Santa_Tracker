@@ -1,24 +1,54 @@
-/* Route demo player: a slim parchment strip matching the storybook tracker, bottom right. */
+/* Route demo player, drawn in the active tracker theme (the --tt-* variables), bottom right. */
 .route-demo-bar {
   position: fixed;
-  right: 1rem;
-  bottom: 1.75rem;
+  right: 0;
+  bottom: 0;
+  left: 0;
   z-index: 60;
-  width: min(40rem, calc(100vw - 25rem));
+  display: grid;
+  grid-template-areas:
+    'pick pick'
+    'ctl scrub';
+  grid-template-columns: auto 1fr;
+  gap: 0.35rem 1rem;
+  align-items: center;
+  height: var(--tt-dock, 5.75rem);
+  padding: 0.45rem 1rem;
+  border-top: var(--tt-border, 1px solid #ccc);
+  background: var(--tt-panel, #fff);
+  color: var(--tt-ink, #111);
+  font-family: var(--tt-font, system-ui, sans-serif);
+  font-size: 0.82rem;
+  box-sizing: border-box;
+}
+
+.route-demo-pickers {
   display: flex;
-  flex-direction: column;
-  gap: 0.45rem;
-  padding: 0.6rem 0.85rem 0.65rem;
-  border: 1px solid var(--story-paper-edge, #e6d3ad);
-  border-radius: 1rem;
-  background: color-mix(in srgb, var(--story-paper, #fbf3e1) 95%, transparent);
-  box-shadow: 0 10px 30px rgb(63 44 29 / 22%);
-  color: var(--story-ink, #3f2c1d);
-  font-family: var(--story-serif, Georgia, serif);
-  font-size: 0.9rem;
+  flex-wrap: wrap;
+  grid-area: pick;
+  gap: 0.25rem 1.25rem;
+}
+
+.route-demo-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.15rem;
+  align-items: center;
+}
+
+.route-demo-picker span {
+  margin-right: 0.3rem;
+  color: var(--tt-soft, #555);
+}
+
+.route-demo-picker button[aria-pressed='true'],
+.route-demo-speed[aria-pressed='true'] {
+  background: var(--tt-accent, #c00);
+  color: var(--tt-accent-ink, #fff);
 }
 
 .route-demo-row {
+  grid-area: ctl;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -27,34 +57,19 @@
 
 .route-demo-bar button {
   min-width: 2.1rem;
-  min-height: 2.1rem;
-  padding: 0 0.5rem;
-  border-radius: 0.6rem;
+  min-height: 2rem;
+  padding: 0 0.55rem;
+  border-radius: min(var(--tt-radius, 12px), 10px);
   color: inherit;
   cursor: pointer;
 }
 
-.route-demo-bar button:hover {
-  background: rgb(164 22 26 / 10%);
-  color: var(--story-red, #a4161a);
-}
-
-.route-demo-scrub {
-  width: 100%;
-  accent-color: var(--story-red, #a4161a);
-}
-
-.route-demo-bar button:focus-visible,
-.route-demo-scrub:focus-visible {
-  outline: 3px solid var(--story-gold, #c9971c);
-  outline-offset: 2px;
-}
+.route-demo-bar button:hover { color: var(--tt-accent, #c00); }
 
 .route-demo-play {
-  min-width: 2.4rem !important;
-  border-radius: 999px !important;
-  background: var(--story-red, #a4161a) !important;
-  color: #fff8e7 !important;
+  min-width: 2.4rem;
+  background: var(--tt-accent, #c00);
+  color: var(--tt-accent-ink, #fff);
 }
 
 .route-demo-step {
@@ -66,41 +81,38 @@
   display: flex;
   gap: 0.1rem;
   margin-left: 0.35rem;
-  padding: 0.15rem;
-  border-radius: 0.7rem;
-  background: rgb(230 211 173 / 55%);
 }
 
-.route-demo-speed {
-  min-height: 1.8rem !important;
-  font-size: 0.85rem;
-  font-variant-numeric: tabular-nums;
-}
-
-.route-demo-speed[aria-pressed="true"] {
-  background: var(--story-paper, #fbf3e1) !important;
-  color: var(--story-red, #a4161a) !important;
-  box-shadow: 0 1px 3px rgb(63 44 29 / 20%);
-  font-weight: 600;
-}
+.route-demo-speed { font-variant-numeric: tabular-nums; }
 
 .route-demo-clock {
-  margin-left: auto;
-  color: var(--story-ink-soft, #7a5f45);
+  margin-left: 0.5rem;
+  color: var(--tt-soft, #555);
   font-variant-numeric: tabular-nums;
 }
 
+.route-demo-scrub {
+  grid-area: scrub;
+  width: 100%;
+  accent-color: var(--tt-accent, #c00);
+}
 
+.route-demo-bar button:focus-visible,
+.route-demo-scrub:focus-visible {
+  outline: 3px solid var(--tt-focus, #fcd34d);
+  outline-offset: 2px;
+}
+
+/* Every layout shows where Santa is, so the docked player keeps only the controls. */
 .route-demo-readout {
-  display: flex;
+  display: none;
   flex-wrap: wrap;
   align-items: baseline;
   gap: 0.2rem 0.75rem;
-  color: var(--story-ink-soft, #7a5f45);
-  font-size: 0.85rem;
+  color: var(--tt-soft, #555);
 }
 
-.route-demo-readout strong { color: var(--story-ink, #3f2c1d); }
+.route-demo-readout strong { color: var(--tt-ink, #111); }
 
 .route-demo-count {
   margin-left: auto;

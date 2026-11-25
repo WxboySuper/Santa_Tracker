@@ -26,13 +26,12 @@ export function countryIdFor(entity, administrativeEntities) {
   return administrativeCountry ?? claim(entity, 'P17')?.id;
 }
 
+function withinRange(value, minimum, maximum) {
+  return Number.isFinite(value) && value >= minimum && value <= maximum;
+}
+
 function validCoordinates(lng, lat) {
-  if (!Number.isFinite(lng)) return false;
-  if (!Number.isFinite(lat)) return false;
-  if (lng < -180) return false;
-  if (lng > 180) return false;
-  if (lat < -90) return false;
-  return lat <= 90;
+  return withinRange(lng, -180, 180) && withinRange(lat, -90, 90);
 }
 
 export function coordinatesFromGeometry(geometry) {
@@ -47,10 +46,7 @@ export function coordinatesFromGeometry(geometry) {
 export function validEarthPoint(point) {
   if (!point) return false;
   if (point.globe !== 'http://www.wikidata.org/entity/Q2') return false;
-  if (!Number.isFinite(point.latitude)) return false;
-  if (!Number.isFinite(point.longitude)) return false;
-  if (point.latitude < -90 || point.latitude > 90) return false;
-  return point.longitude >= -180 ? point.longitude <= 180 : false;
+  return withinRange(point.latitude, -90, 90) && withinRange(point.longitude, -180, 180);
 }
 
 export function timezoneCorrection(id) {
@@ -105,19 +101,14 @@ export function timezoneForCandidate({ id, country, lookedUpTimezone, lat, lng }
 }
 
 export function christmasUtcOffset(timezone) {
-  const instant = Date.UTC(2026, 11, 25);
-  const parts = new Intl.DateTimeFormat('en-US', {
-    timeZone: timezone,
-    year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23',
-  }).formatToParts(new Date(instant));
-  const value = (type) => Number(parts.find((part) => part.type === type)?.value);
-  return Math.round((Date.UTC(value('year'), value('month') - 1, value('day'), value('hour'), value('minute'), value('second')) - instant) / 60_000);
+  const offset = countryZoneData.utcOffsetsByTimezone[timezone];
+  if (!Number.isFinite(offset)) throw new Error(`No committed Christmas 2026 offset for timezone ${timezone}`);
+  return offset;
 }
 
 export function withinCountryBounds(country, lat, lng) {
   const bounds = countryBoundsData.boundsByCountry[country];
-  return Boolean(bounds
-    && Number.isFinite(lat) && Number.isFinite(lng)
-    && lat >= bounds.minLat && lat <= bounds.maxLat
-    && lng >= bounds.minLng && lng <= bounds.maxLng);
+  return Boolean(bounds)
+    && withinRange(lat, bounds.minLat, bounds.maxLat)
+    && withinRange(lng, bounds.minLng, bounds.maxLng);
 }

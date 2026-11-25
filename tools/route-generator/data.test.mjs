@@ -21,6 +21,25 @@ function distanceKm(a, b) {
   return 12742 * Math.asin(Math.min(1, Math.sqrt(h)));
 }
 
+function assertNoNearbyDuplicateNames(group) {
+  for (let i = 0; i < group.length; i += 1) {
+    for (let j = i + 1; j < group.length; j += 1) {
+      expect(distanceKm(group[i], group[j]), `${group[i].name} appears twice within 100 km`).toBeGreaterThanOrEqual(100);
+    }
+  }
+}
+
+function assertUniqueNearbyNames(places) {
+  const groups = new Map();
+  for (const place of places) {
+    const key = `${place.country}:${normalizedName(place.name)}`;
+    const group = groups.get(key) ?? [];
+    group.push(place);
+    groups.set(key, group);
+  }
+  for (const group of groups.values()) assertNoNearbyDuplicateNames(group);
+}
+
 describe('route candidate data', () => {
   it('covers every permanently inhabited ISO 3166-1 country and territory', () => {
     const covered = new Set(all.map((place) => place.country));
@@ -39,18 +58,6 @@ describe('route candidate data', () => {
 
   it('keeps Tromsø spelled correctly and removes duplicate nearby names', () => {
     expect(curated.find((place) => place.id === 'Q26087')?.name).toMatch(/^Tromsø(?: Municipality)?$/);
-    const groups = new Map();
-    for (const place of all) {
-      const key = `${place.country}:${normalizedName(place.name)}`;
-      if (!groups.has(key)) groups.set(key, []);
-      groups.get(key).push(place);
-    }
-    for (const group of groups.values()) {
-      for (let i = 0; i < group.length; i += 1) {
-        for (let j = i + 1; j < group.length; j += 1) {
-          expect(distanceKm(group[i], group[j]), `${group[i].name} appears twice within 100 km`).toBeGreaterThanOrEqual(100);
-        }
-      }
-    }
+    assertUniqueNearbyNames(all);
   });
 });
