@@ -1,10 +1,17 @@
 import { readFile, writeFile } from 'node:fs/promises';
 import lookup from '@photostructure/tz-lookup';
-import { christmasUtcOffset, claim, countryCodeForName, countryIdFor, timezoneForCandidate, validEarthPoint } from './refresh-validation.mjs';
+import { christmasUtcOffset, claim, countryCodeForName, countryIdFor, timezoneForCandidate, validEarthPoint, withinCountryBounds } from './refresh-validation.mjs';
 
 const seeds = JSON.parse(await readFile(new URL('./data/curated-seeds.json', import.meta.url), 'utf8'));
 const ids = Object.values(seeds).flat();
 if (new Set(ids).size !== ids.length) throw new Error('Duplicate curated QID');
+const countryOverrides = {
+  Q30994: 'AI', Q34112: 'BL', Q331584: 'BQ', Q217610: 'BQ', Q475718: 'BQ',
+  Q48675: 'CC', Q30980: 'CX', Q44401: 'GF', Q174262: 'GG', Q167024: 'GP',
+  Q147738: 'JE', Q200605: 'MF', Q81621: 'MQ', Q31006: 'MS', Q2740764: 'NF',
+  Q31026: 'NR', Q48273: 'PN', Q47045: 'RE', Q30970: 'SH', Q30958: 'SX',
+  Q179431: 'VG', Q31002: 'WF', Q132676: 'YT', Q185678: 'PM',
+};
 
 async function entities(idsToFetch) {
   const result = {};
@@ -38,7 +45,8 @@ for (const [category, categoryIds] of Object.entries(seeds)) {
       throw new Error(`${id} lacks an English label, country, or Earth coordinates`);
     }
     const { latitude: lat, longitude: lng } = point;
-    const countryCode = id === 'Q172697' ? 'PF' : countryCodeForName(country);
+    const countryCode = countryOverrides[id] ?? (id === 'Q172697' ? 'PF' : countryCodeForName(country));
+    if (!withinCountryBounds(countryCode, lat, lng)) throw new Error(`${id} coordinates fall outside ${countryCode} country bounds`);
     const timezone = timezoneForCandidate({ id, country: countryCode, lookedUpTimezone: lookup(lat, lng), lat, lng });
     places.push({ id, name, country: countryCode, lat, lng, timezone, utcOffsetMinutes: christmasUtcOffset(timezone), category, source: `https://www.wikidata.org/wiki/${id}` });
   }

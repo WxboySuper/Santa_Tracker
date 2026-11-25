@@ -42,12 +42,15 @@ To let selection choose stops again, edit the committed override file in a worki
 
 The refresh scripts use the exact `@photostructure/tz-lookup` 11.8.0 dependency pinned in `package.json` and `pnpm-lock.yaml`. Coordinate lookup can be wrong near timezone borders, so refresh is only a starting point. Validate each result against the country allow-list and correct border cases through the override mechanism. The audit rejects a timezone-country mismatch, a timezone outside the country's IANA list, a snapshot offset inconsistent with its IANA zone record, or a local arrival outside December 25, 00:20–03:00.
 
-The populated-place snapshot is Natural Earth's public-domain populated-places data. Curated cultural, nature, and special candidates use sourced Wikidata IDs and links; the snapshot includes coordinates and ISO alpha-2 country codes. Do not invent coordinates. Refresh snapshots only when intentionally changing the data source, then review all derived changes:
+The populated-place snapshot is Natural Earth's public-domain populated-places data. Curated cultural, nature, and special candidates use sourced Wikidata IDs and links. The snapshot includes the Great Wall, Angkor Wat, Machu Picchu, Mexico City, and principal towns for inhabited territories missing from Natural Earth's city list. `tools/route-generator/data/COVERAGE.md` lists every ISO 3166-1 country or territory, its candidate and Dec 25, 2026 timezone offset, and ISO entries without permanent civilian populations. Country bounds combine Natural Earth admin-0 countries and map units, with documented adjustments for northern Cyprus, Flying Fish Cove, Cape Horn, and remote territories attached to Australia, France, the UK, and the US. Do not invent candidate coordinates.
 
 ```sh
-node tools/route-generator/refresh-places.mjs
+node tools/route-generator/refresh-country-bounds.mjs
 node tools/route-generator/refresh-curated.mjs
+node tools/route-generator/refresh-places.mjs
 ```
+
+The refresh checks candidate coordinates against committed country bounds and removes a duplicate named place when its Natural Earth and Wikidata points are within 100 km. Mexico City is 48.5 km from Teotihuacan, inside the 100 km separation rule. Both remain candidates for the generator to resolve.
 
 ## Ordering and pacing
 

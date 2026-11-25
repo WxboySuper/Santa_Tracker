@@ -671,6 +671,94 @@
     "source": "https://www.wikidata.org/wiki/Q243"
   },
   {
+    "id": "Q4078",
+    "name": "Cape Horn",
+    "country": "CL",
+    "lat": -55.98,
+    "lng": -67.289166666667,
+    "timezone": "America/Punta_Arenas",
+    "utcOffsetMinutes": -180,
+    "category": "cultural",
+    "source": "https://www.wikidata.org/wiki/Q4078"
+  },
+  {
+    "id": "Q10285",
+    "name": "Colosseum",
+    "country": "IT",
+    "lat": 41.890277777778,
+    "lng": 12.492222222222,
+    "timezone": "Europe/Rome",
+    "utcOffsetMinutes": 60,
+    "category": "cultural",
+    "source": "https://www.wikidata.org/wiki/Q10285"
+  },
+  {
+    "id": "Q12495",
+    "name": "Burj Khalifa",
+    "country": "AE",
+    "lat": 25.197222222222223,
+    "lng": 55.274166666666666,
+    "timezone": "Asia/Dubai",
+    "utcOffsetMinutes": 240,
+    "category": "cultural",
+    "source": "https://www.wikidata.org/wiki/Q12495"
+  },
+  {
+    "id": "Q12501",
+    "name": "Great Wall of China",
+    "country": "CN",
+    "lat": 40.43138888888889,
+    "lng": 116.56444444444445,
+    "timezone": "Asia/Shanghai",
+    "utcOffsetMinutes": 480,
+    "category": "cultural",
+    "source": "https://www.wikidata.org/wiki/Q12501"
+  },
+  {
+    "id": "Q43473",
+    "name": "Angkor Wat",
+    "country": "KH",
+    "lat": 13.4125,
+    "lng": 103.86666666667,
+    "timezone": "Asia/Phnom_Penh",
+    "utcOffsetMinutes": 420,
+    "category": "cultural",
+    "source": "https://www.wikidata.org/wiki/Q43473"
+  },
+  {
+    "id": "Q44440",
+    "name": "Golden Gate Bridge",
+    "country": "US",
+    "lat": 37.819722222222,
+    "lng": -122.47861111111,
+    "timezone": "America/Los_Angeles",
+    "utcOffsetMinutes": -480,
+    "category": "cultural",
+    "source": "https://www.wikidata.org/wiki/Q44440"
+  },
+  {
+    "id": "Q79961",
+    "name": "Christ the Redeemer",
+    "country": "BR",
+    "lat": -22.951915648887244,
+    "lng": -43.21046412278801,
+    "timezone": "America/Sao_Paulo",
+    "utcOffsetMinutes": -180,
+    "category": "cultural",
+    "source": "https://www.wikidata.org/wiki/Q79961"
+  },
+  {
+    "id": "Q676203",
+    "name": "Machu Picchu",
+    "country": "PE",
+    "lat": -13.163333333333334,
+    "lng": -72.54555555555555,
+    "timezone": "America/Lima",
+    "utcOffsetMinutes": -300,
+    "category": "cultural",
+    "source": "https://www.wikidata.org/wiki/Q676203"
+  },
+  {
     "id": "Q5513",
     "name": "Lake Baikal",
     "country": "RU",
@@ -902,17 +990,6 @@
     "source": "https://www.wikidata.org/wiki/Q122082"
   },
   {
-    "id": "Q131198",
-    "name": "Heard Island and McDonald Islands",
-    "country": "AU",
-    "lat": -53.07833333333333,
-    "lng": 73.5075,
-    "timezone": "Australia/Perth",
-    "utcOffsetMinutes": 480,
-    "category": "nature",
-    "source": "https://www.wikidata.org/wiki/Q131198"
-  },
-  {
     "id": "Q172697",
     "name": "Marquesas Islands",
     "country": "PF",
@@ -1045,6 +1122,28 @@
     "source": "https://www.wikidata.org/wiki/Q242176"
   },
   {
+    "id": "Q127335",
+    "name": "Tabuaeran",
+    "country": "KI",
+    "lat": 3.87727,
+    "lng": -159.33746,
+    "timezone": "Pacific/Kiritimati",
+    "utcOffsetMinutes": 840,
+    "category": "nature",
+    "source": "https://www.wikidata.org/wiki/Q127335"
+  },
+  {
+    "id": "Q39231",
+    "name": "Mount Fuji",
+    "country": "JP",
+    "lat": 35.36055555555556,
+    "lng": 138.7275,
+    "timezone": "Asia/Tokyo",
+    "utcOffsetMinutes": 540,
+    "category": "nature",
+    "source": "https://www.wikidata.org/wiki/Q39231"
+  },
+  {
     "id": "Q2900",
     "name": "Quito",
     "country": "EC",
@@ -1144,28 +1243,6 @@
     "source": "https://www.wikidata.org/wiki/Q79809"
   },
   {
-    "id": "Q46879",
-    "name": "Baker Island",
-    "country": "US",
-    "lat": 0.194722,
-    "lng": -176.479444,
-    "timezone": "Pacific/Pago_Pago",
-    "utcOffsetMinutes": -660,
-    "category": "special",
-    "source": "https://www.wikidata.org/wiki/Q46879"
-  },
-  {
-    "id": "Q131305",
-    "name": "Howland Island",
-    "country": "US",
-    "lat": 0.80666666666667,
-    "lng": -176.61638888889,
-    "timezone": "Pacific/Pago_Pago",
-    "utcOffsetMinutes": -660,
-    "category": "special",
-    "source": "https://www.wikidata.org/wiki/Q131305"
-  },
-  {
     "id": "Q26087",
     "name": "Tromsø Municipality",
     "country": "NO",
@@ -1210,17 +1287,6 @@
     "source": "https://www.wikidata.org/wiki/Q9009773"
   },
   {
-    "id": "Q4078",
-    "name": "Cape Horn",
-    "country": "CL",
-    "lat": -55.98,
-    "lng": -67.289166666667,
-    "timezone": "America/Punta_Arenas",
-    "utcOffsetMinutes": -180,
-    "category": "special",
-    "source": "https://www.wikidata.org/wiki/Q4078"
-  },
-  {
     "id": "Q1343019",
     "name": "Point Barrow",
     "country": "US",
@@ -1230,28 +1296,6 @@
     "utcOffsetMinutes": -540,
     "category": "special",
     "source": "https://www.wikidata.org/wiki/Q1343019"
-  },
-  {
-    "id": "Q46772",
-    "name": "Kerguelen Islands",
-    "country": "FR",
-    "lat": -49.25,
-    "lng": 69.15,
-    "timezone": "Indian/Kerguelen",
-    "utcOffsetMinutes": 300,
-    "category": "special",
-    "source": "https://www.wikidata.org/wiki/Q46772"
-  },
-  {
-    "id": "Q35086",
-    "name": "South Georgia and the South Sandwich Islands",
-    "country": "GB",
-    "lat": -54.25,
-    "lng": -36.75,
-    "timezone": "Atlantic/South_Georgia",
-    "utcOffsetMinutes": -120,
-    "category": "special",
-    "source": "https://www.wikidata.org/wiki/Q35086"
   },
   {
     "id": "Q25923",
@@ -1276,14 +1320,333 @@
     "source": "https://www.wikidata.org/wiki/Q223379"
   },
   {
-    "id": "Q127335",
-    "name": "Tabuaeran",
-    "country": "KI",
-    "lat": 3.8772694,
-    "lng": -159.3374611,
-    "timezone": "Pacific/Kiritimati",
-    "utcOffsetMinutes": 840,
-    "category": "nature",
-    "source": "https://www.wikidata.org/wiki/Q127335"
+    "id": "Q1489",
+    "name": "Mexico City",
+    "country": "MX",
+    "lat": 19.353773,
+    "lng": -99.13589,
+    "timezone": "America/Mexico_City",
+    "utcOffsetMinutes": -360,
+    "category": "special",
+    "source": "https://www.wikidata.org/wiki/Q1489"
+  },
+  {
+    "id": "Q30958",
+    "name": "Philipsburg",
+    "country": "SX",
+    "lat": 18.024166666667,
+    "lng": -63.043333333333,
+    "timezone": "America/Lower_Princes",
+    "utcOffsetMinutes": -240,
+    "category": "special",
+    "source": "https://www.wikidata.org/wiki/Q30958"
+  },
+  {
+    "id": "Q30970",
+    "name": "Jamestown",
+    "country": "SH",
+    "lat": -15.925138888888888,
+    "lng": -5.7179166666666665,
+    "timezone": "Atlantic/St_Helena",
+    "utcOffsetMinutes": 0,
+    "category": "special",
+    "source": "https://www.wikidata.org/wiki/Q30970"
+  },
+  {
+    "id": "Q30980",
+    "name": "Flying Fish Cove",
+    "country": "CX",
+    "lat": -10.421666666667,
+    "lng": 105.67805555556,
+    "timezone": "Indian/Christmas",
+    "utcOffsetMinutes": 420,
+    "category": "special",
+    "source": "https://www.wikidata.org/wiki/Q30980"
+  },
+  {
+    "id": "Q30994",
+    "name": "The Valley",
+    "country": "AI",
+    "lat": 18.220833333333,
+    "lng": -63.051666666667,
+    "timezone": "America/Anguilla",
+    "utcOffsetMinutes": -240,
+    "category": "special",
+    "source": "https://www.wikidata.org/wiki/Q30994"
+  },
+  {
+    "id": "Q31002",
+    "name": "Mata-Utu",
+    "country": "WF",
+    "lat": -13.2827,
+    "lng": -176.1737,
+    "timezone": "Pacific/Wallis",
+    "utcOffsetMinutes": 720,
+    "category": "special",
+    "source": "https://www.wikidata.org/wiki/Q31002"
+  },
+  {
+    "id": "Q31006",
+    "name": "Brades",
+    "country": "MS",
+    "lat": 16.792777777778,
+    "lng": -62.210555555556,
+    "timezone": "America/Montserrat",
+    "utcOffsetMinutes": -240,
+    "category": "special",
+    "source": "https://www.wikidata.org/wiki/Q31006"
+  },
+  {
+    "id": "Q31026",
+    "name": "Yaren District",
+    "country": "NR",
+    "lat": -0.5477,
+    "lng": 166.920867,
+    "timezone": "Pacific/Nauru",
+    "utcOffsetMinutes": 720,
+    "category": "special",
+    "source": "https://www.wikidata.org/wiki/Q31026"
+  },
+  {
+    "id": "Q34112",
+    "name": "Gustavia",
+    "country": "BL",
+    "lat": 17.898611111111,
+    "lng": -62.849166666667,
+    "timezone": "America/St_Barthelemy",
+    "utcOffsetMinutes": -240,
+    "category": "special",
+    "source": "https://www.wikidata.org/wiki/Q34112"
+  },
+  {
+    "id": "Q44401",
+    "name": "Cayenne",
+    "country": "GF",
+    "lat": 4.9386111111111,
+    "lng": -52.335,
+    "timezone": "America/Cayenne",
+    "utcOffsetMinutes": -180,
+    "category": "special",
+    "source": "https://www.wikidata.org/wiki/Q44401"
+  },
+  {
+    "id": "Q47045",
+    "name": "Saint-Denis",
+    "country": "RE",
+    "lat": -20.878888888889,
+    "lng": 55.448055555556,
+    "timezone": "Indian/Reunion",
+    "utcOffsetMinutes": 240,
+    "category": "special",
+    "source": "https://www.wikidata.org/wiki/Q47045"
+  },
+  {
+    "id": "Q48273",
+    "name": "Adamstown",
+    "country": "PN",
+    "lat": -25.066666666667,
+    "lng": -130.1,
+    "timezone": "Pacific/Pitcairn",
+    "utcOffsetMinutes": -480,
+    "category": "special",
+    "source": "https://www.wikidata.org/wiki/Q48273"
+  },
+  {
+    "id": "Q48675",
+    "name": "West Island",
+    "country": "CC",
+    "lat": -12.186944444444,
+    "lng": 96.828333333333,
+    "timezone": "Indian/Cocos",
+    "utcOffsetMinutes": 390,
+    "category": "special",
+    "source": "https://www.wikidata.org/wiki/Q48675"
+  },
+  {
+    "id": "Q81621",
+    "name": "Fort-de-France",
+    "country": "MQ",
+    "lat": 14.6,
+    "lng": -61.06666666666667,
+    "timezone": "America/Martinique",
+    "utcOffsetMinutes": -240,
+    "category": "special",
+    "source": "https://www.wikidata.org/wiki/Q81621"
+  },
+  {
+    "id": "Q132676",
+    "name": "Mamoudzou",
+    "country": "YT",
+    "lat": -12.781388888889,
+    "lng": 45.231666666667,
+    "timezone": "Indian/Mayotte",
+    "utcOffsetMinutes": 180,
+    "category": "special",
+    "source": "https://www.wikidata.org/wiki/Q132676"
+  },
+  {
+    "id": "Q147738",
+    "name": "Saint Helier",
+    "country": "JE",
+    "lat": 49.185833333333335,
+    "lng": -2.11,
+    "timezone": "Europe/Jersey",
+    "utcOffsetMinutes": 0,
+    "category": "special",
+    "source": "https://www.wikidata.org/wiki/Q147738"
+  },
+  {
+    "id": "Q167024",
+    "name": "Basse-Terre",
+    "country": "GP",
+    "lat": 15.996944444444,
+    "lng": -61.732777777778,
+    "timezone": "America/Guadeloupe",
+    "utcOffsetMinutes": -240,
+    "category": "special",
+    "source": "https://www.wikidata.org/wiki/Q167024"
+  },
+  {
+    "id": "Q174262",
+    "name": "Saint Peter Port",
+    "country": "GG",
+    "lat": 49.46,
+    "lng": -2.55194,
+    "timezone": "Europe/Guernsey",
+    "utcOffsetMinutes": 0,
+    "category": "special",
+    "source": "https://www.wikidata.org/wiki/Q174262"
+  },
+  {
+    "id": "Q179431",
+    "name": "Road Town",
+    "country": "VG",
+    "lat": 18.433333333333,
+    "lng": -64.616666666667,
+    "timezone": "America/Tortola",
+    "utcOffsetMinutes": -240,
+    "category": "special",
+    "source": "https://www.wikidata.org/wiki/Q179431"
+  },
+  {
+    "id": "Q185678",
+    "name": "Saint-Pierre",
+    "country": "PM",
+    "lat": 46.777777777778,
+    "lng": -56.177777777778,
+    "timezone": "America/Miquelon",
+    "utcOffsetMinutes": -180,
+    "category": "special",
+    "source": "https://www.wikidata.org/wiki/Q185678"
+  },
+  {
+    "id": "Q200605",
+    "name": "Marigot",
+    "country": "MF",
+    "lat": 18.066666666667,
+    "lng": -63.084722222222,
+    "timezone": "America/Marigot",
+    "utcOffsetMinutes": -240,
+    "category": "special",
+    "source": "https://www.wikidata.org/wiki/Q200605"
+  },
+  {
+    "id": "Q217610",
+    "name": "Oranjestad",
+    "country": "BQ",
+    "lat": 17.4825,
+    "lng": -62.98583333333333,
+    "timezone": "America/Kralendijk",
+    "utcOffsetMinutes": -240,
+    "category": "special",
+    "source": "https://www.wikidata.org/wiki/Q217610"
+  },
+  {
+    "id": "Q331584",
+    "name": "Kralendijk",
+    "country": "BQ",
+    "lat": 12.150833333333,
+    "lng": -68.276666666667,
+    "timezone": "America/Kralendijk",
+    "utcOffsetMinutes": -240,
+    "category": "special",
+    "source": "https://www.wikidata.org/wiki/Q331584"
+  },
+  {
+    "id": "Q475718",
+    "name": "The Bottom",
+    "country": "BQ",
+    "lat": 17.626111111111,
+    "lng": -63.249166666667,
+    "timezone": "America/Kralendijk",
+    "utcOffsetMinutes": -240,
+    "category": "special",
+    "source": "https://www.wikidata.org/wiki/Q475718"
+  },
+  {
+    "id": "Q2740764",
+    "name": "Burnt Pine",
+    "country": "NF",
+    "lat": -29.033333333333,
+    "lng": 167.95,
+    "timezone": "Pacific/Norfolk",
+    "utcOffsetMinutes": 720,
+    "category": "special",
+    "source": "https://www.wikidata.org/wiki/Q2740764"
+  },
+  {
+    "id": "Q131198",
+    "name": "Heard Island and McDonald Islands",
+    "country": "AU",
+    "lat": -53.07833333333333,
+    "lng": 73.5075,
+    "timezone": "Australia/Perth",
+    "utcOffsetMinutes": 480,
+    "category": "special",
+    "source": "https://www.wikidata.org/wiki/Q131198"
+  },
+  {
+    "id": "Q131305",
+    "name": "Howland Island",
+    "country": "US",
+    "lat": 0.80666666666667,
+    "lng": -176.61638888889,
+    "timezone": "Pacific/Pago_Pago",
+    "utcOffsetMinutes": -660,
+    "category": "special",
+    "source": "https://www.wikidata.org/wiki/Q131305"
+  },
+  {
+    "id": "Q35086",
+    "name": "South Georgia and the South Sandwich Islands",
+    "country": "GB",
+    "lat": -54.25,
+    "lng": -36.75,
+    "timezone": "Atlantic/South_Georgia",
+    "utcOffsetMinutes": -120,
+    "category": "special",
+    "source": "https://www.wikidata.org/wiki/Q35086"
+  },
+  {
+    "id": "Q46772",
+    "name": "Kerguelen Islands",
+    "country": "FR",
+    "lat": -49.25,
+    "lng": 69.15,
+    "timezone": "Indian/Kerguelen",
+    "utcOffsetMinutes": 300,
+    "category": "special",
+    "source": "https://www.wikidata.org/wiki/Q46772"
+  },
+  {
+    "id": "Q46879",
+    "name": "Baker Island",
+    "country": "US",
+    "lat": 0.194722,
+    "lng": -176.479444,
+    "timezone": "Pacific/Pago_Pago",
+    "utcOffsetMinutes": -660,
+    "category": "special",
+    "source": "https://www.wikidata.org/wiki/Q46879"
   }
 ]
