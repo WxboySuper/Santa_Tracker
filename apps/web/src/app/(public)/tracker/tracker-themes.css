@@ -96,7 +96,7 @@
 .tt-card {
   position: absolute;
   left: 1rem;
-  bottom: var(--tt-bottom);
+  bottom: calc(var(--tt-bottom) + var(--tt-dock, 0rem));
   z-index: 20;
   width: min(21rem, calc(100vw - 2rem));
   padding: 0.9rem 1.1rem 1rem;
@@ -437,7 +437,7 @@
 .tt-radar .tt-ticker {
   position: absolute;
   right: 0;
-  bottom: 0;
+  bottom: var(--tt-dock, 0);
   left: 0;
   z-index: 20;
   display: flex;
@@ -706,7 +706,7 @@
 
 .tt-knit .tt-fairisle-top { top: 0; }
 
-.tt-knit .tt-fairisle-bottom { bottom: 0; }
+.tt-knit .tt-fairisle-bottom { bottom: var(--tt-dock, 0); }
 
 .tt-knit .tt-title {
   font-size: 1.5rem;
