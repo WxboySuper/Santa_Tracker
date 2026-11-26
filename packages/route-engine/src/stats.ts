@@ -300,7 +300,8 @@ function utcOffsetBand({ location, season }: { location: RouteStatsLocation; sea
   try {
     parts = new Intl.DateTimeFormat('en-US', { timeZone: location.timezone, timeZoneName: 'longOffset' }).formatToParts(referenceTime);
   } catch {
-    throw new RangeError(`invalid timezone: ${location.timezone}`);
+    utcOffsetBands.set(cacheKey, 0);
+    return 0;
   }
   const offset = parts.find(part => part.type === 'timeZoneName')?.value ?? 'GMT';
   const match = /^GMT([+-])(\d{2}):(\d{2})$/.exec(offset);

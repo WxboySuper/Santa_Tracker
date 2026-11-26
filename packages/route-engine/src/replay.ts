@@ -106,11 +106,21 @@ export function createReplay(route: Route, options: ReplayOptions): ReplayContro
 }
 
 function fractionTarget({ fraction, firstArrival, lastDeparture }: { fraction: number; firstArrival?: number; lastDeparture?: number }): number {
+  validateFraction({ fraction });
+  const bounds = routeBounds({ firstArrival, lastDeparture });
+  return bounds === undefined ? 0 : bounds.firstArrival + fraction * (bounds.lastDeparture - bounds.firstArrival);
+}
+
+function validateFraction({ fraction }: { fraction: number }): void {
   if (!Number.isFinite(fraction)) throw new RangeError('replay fraction must be between 0 and 1');
   if (fraction < 0) throw new RangeError('replay fraction must be between 0 and 1');
   if (fraction > 1) throw new RangeError('replay fraction must be between 0 and 1');
-  if (firstArrival === undefined || lastDeparture === undefined) return 0;
-  return firstArrival + fraction * (lastDeparture - firstArrival);
+}
+
+function routeBounds({ firstArrival, lastDeparture }: { firstArrival?: number; lastDeparture?: number }): { firstArrival: number; lastDeparture: number } | undefined {
+  if (firstArrival === undefined) return undefined;
+  if (lastDeparture === undefined) return undefined;
+  return { firstArrival, lastDeparture };
 }
 
 function validateSpeed({ speed }: { speed: number }): number {
