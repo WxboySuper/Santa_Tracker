@@ -21,6 +21,11 @@ describe('midnight sweep ordering', () => {
       .toThrow(/Missing category tie-break weight for mispeled/);
   });
 
+  it('validates category weights before starting the sweep', () => {
+    const unweighted = { ...testPlaces[0]!, category: 'mispeled' };
+    expect(() => sweepOrder([unweighted])).toThrow(/Missing category tie-break weight for mispeled/);
+  });
+
   it('rejects removed route-order config instead of silently ignoring it', () => {
     const legacyConfig = { ...DEFAULT_GENERATOR_LIMITS, routeOrderIds: ['ki'] } as typeof DEFAULT_GENERATOR_LIMITS;
     expect(() => sweepOrder(testPlaces, legacyConfig)).toThrow(/routeOrderIds/);
@@ -127,6 +132,11 @@ describe('midnight sweep ordering', () => {
     const capped = { ...DEFAULT_GENERATOR_LIMITS, maxStopsPerCountry: 1 };
     const sameCountry = { ...testPlaces[1]!, country: 'KI', utcOffsetMinutes: testPlaces[0]!.utcOffsetMinutes };
     expect(hasFeasibleTiming([testPlaces[0]!, sameCountry], capped)).toBe(false);
+  });
+
+  it('returns false for malformed offsets in feasibility probes', () => {
+    const { utcOffsetMinutes: _offset, ...missingOffset } = testPlaces[0]!;
+    expect(hasFeasibleTiming([missingOffset as Candidate])).toBe(false);
   });
 
   it('keeps long Hong Kong to mainland China legs at regional speed', () => {

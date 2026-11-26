@@ -2,6 +2,7 @@ import { haversineKm, type LatLng } from '../geo';
 import { christmasWindow, isEastwardDelta, longitudeDelta } from './sweep';
 import { compareStableIds } from './selection';
 import { admin1UnitFor } from './admin1';
+import { isInvalidCandidateTimezoneError } from './timezone-error';
 import { bandMaximumStops, insertAdmin1Coverage, insertCountryCoverage, insertFeasibleCandidates, insertOffsetBandCoverage, mandatoryLaunch, selectMandatoryRepresentatives, type InsertionPass } from './order-coverage';
 import { bandedBoustrophedonOrder, improveWithLocalSearch, reduceCoverageDetours, reduceHardDetoursWithinBands } from './order-path';
 import {
@@ -338,19 +339,24 @@ function sweepOffsetBand({ state, band, ranking, bandCaps, routeBandCounts, incl
 
 type GreedySweepOptions = {
   state: SweepState;
+  pool: Candidate[];
   bands: Candidate[][];
   randomRanks: Map<string, number>;
   config: GeneratorConfig;
   includeDenseFill: boolean;
 };
 
-function executeGreedySweep({ state, bands, randomRanks, config, includeDenseFill }: GreedySweepOptions): void {
+function executeGreedySweep({ state, pool, bands, randomRanks, config, includeDenseFill }: GreedySweepOptions): void {
   const bandIndices = new Map<string, number>();
   bands.forEach((band, index) => band.forEach((place) => bandIndices.set(place.id, index)));
   const ranking: SweepRanking = { bandIndices, randomRanks, config };
   // The launch was selected before the sweep starts, so count it against its band's allocation.
-  const bandCaps = bandMaximumStops([...state.remaining.values()], state.route, MAX_ROUTE_STOPS);
+  const bandCaps = bandMaximumStops(pool, state.route, MAX_ROUTE_STOPS);
   const routeBandCounts = new Map<number, number>();
+  for (const place of state.route) {
+    const offset = requiredSnapshotOffset(place);
+    routeBandCounts.set(offset, (routeBandCounts.get(offset) ?? 0) + 1);
+  }
   for (const band of bands) sweepOffsetBand({ state, band, ranking, bandCaps, routeBandCounts, includeDenseFill });
 }
 
@@ -371,7 +377,7 @@ function greedySweep(pool: Candidate[], config: GeneratorConfig, includeDenseFil
   const first = firstFeasibleStart(pool, config);
   advanceSweep(state, { place: first, arrival: Date.parse(first.plannedArrivalUtc),
     departure: Date.parse(first.plannedArrivalUtc) + first.plannedStopDurationSeconds * 1000, eastwardDegrees: longitudeDelta(NORTH_POLE, first) });
-  executeGreedySweep({ state, bands, randomRanks, config, includeDenseFill });
+  executeGreedySweep({ state, pool, bands, randomRanks, config, includeDenseFill });
   return { selected: state.route, unselected: [...state.remaining.values()] };
 }
 
@@ -447,6 +453,7 @@ export function sweepOrder(places: Candidate[], config: GeneratorConfig = DEFAUL
   assertNoRemovedSweepConfig(config);
   if (places.length === 0) throw new Error('Cannot order an empty route');
   places.forEach(requiredSnapshotOffset);
+  places.forEach((place) => categoryPreference(place, config));
   const mandatoryRoute = planMandatoryRoute(places, config);
   if (mandatoryRoute) {
     const expanded = expandMandatoryRoute(mandatoryRoute, places, config);
@@ -459,5 +466,10 @@ export function sweepOrder(places: Candidate[], config: GeneratorConfig = DEFAUL
 }
 
 export function hasFeasibleTiming(order: Candidate[], config: GeneratorConfig = DEFAULT_GENERATOR_LIMITS): boolean {
-  return planOrder(order, config) !== undefined;
+  try {
+    return planOrder(order, config) !== undefined;
+  } catch (error) {
+    if (isInvalidCandidateTimezoneError(error)) return false;
+    throw error;
+  }
 }

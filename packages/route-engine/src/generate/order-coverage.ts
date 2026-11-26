@@ -163,7 +163,9 @@ export function insertCountryCoverage(initial: TimedCandidate[], pool: Candidate
     const before = state.counts.size;
     const groups = rankCountryCoverageGroups(state, pool, pass);
     replaceOneStopWithTwoCountries(state, groups, pass);
-    insertCountryCoverageGroups(state, groups, pass);
+    // Replacement mutates the selected route and country counts, so rank the
+    // remaining countries against the updated state before inserting them.
+    insertCountryCoverageGroups(state, rankCountryCoverageGroups(state, pool, pass), pass);
     if (state.counts.size === before) break;
   }
   return state.route;
@@ -214,6 +216,9 @@ function tryCountryRepresentative(state: InsertionState, place: Candidate, pass:
 }
 
 function stateWithoutStop(state: InsertionState, place: TimedCandidate, pass: InsertionPass): InsertionState | undefined {
+  // Keep the launch fixed. A singleton country stop may be exchanged only
+  // when the caller proves the replacement covers more countries overall.
+  if (state.route[0]?.id === place.id) return undefined;
   if (isFinalRequiredAdmin1OrOffsetStop(state, place)) return undefined;
   const remaining = state.route.filter((selected) => selected.id !== place.id);
   if (!planTiming(remaining, pass.config)) return undefined;

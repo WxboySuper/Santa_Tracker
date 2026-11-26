@@ -95,12 +95,23 @@ type CandidateValidation =
   | { kind: 'duplicate'; id: string }
   | { kind: 'accepted'; place: Candidate; duplicateId?: string };
 
-function validateCandidateForSelection(place: Candidate, label: string, state: CandidateValidationState): CandidateValidation {
+type CandidateRowIdentity = { id?: string; duplicateId?: string; alreadyAccepted: boolean };
+
+function trackCandidateRowIdentity(place: Candidate, state: CandidateValidationState): CandidateRowIdentity {
   const id = hasNonEmptyText(place.id) ? place.id : undefined;
   const duplicateRow = id !== undefined && state.seenRows.has(id);
   if (id !== undefined) state.seenRows.add(id);
-  if (id !== undefined && state.acceptedIds.has(id)) return { kind: 'duplicate', id };
-  const duplicateId = duplicateRow ? id : undefined;
+  return {
+    id,
+    duplicateId: duplicateRow ? id : undefined,
+    alreadyAccepted: id !== undefined && state.acceptedIds.has(id),
+  };
+}
+
+function validateCandidateForSelection(place: Candidate, label: string, state: CandidateValidationState): CandidateValidation {
+  const identity = trackCandidateRowIdentity(place, state);
+  if (identity.alreadyAccepted && identity.id) return { kind: 'duplicate', id: identity.id };
+  const { id, duplicateId } = identity;
   if (isVetoedCandidate(place, state.vetoed)) return { kind: 'vetoed', duplicateId };
   const resolved = candidateWithResolvedOffset(place, state.options);
   if (!resolved || !validCandidate(resolved)) return { kind: 'invalid', id: label, duplicateId };
@@ -120,24 +131,28 @@ function recordDuplicateCandidateId(id: string, duplicateIds: string[], duplicat
   duplicateIds.push(id);
 }
 
+type CandidateValidationOutput = { candidates: Candidate[]; invalidCandidateIds: string[]; duplicateCandidateIds: string[];
+  invalidSeen: Set<string>; duplicateSeen: Set<string> };
+
+function recordCandidateValidation(result: CandidateValidation, output: CandidateValidationOutput): void {
+  const duplicateId = result.kind === 'duplicate' ? result.id : result.duplicateId;
+  if (duplicateId) recordDuplicateCandidateId(duplicateId, output.duplicateCandidateIds, output.duplicateSeen);
+  if (result.kind === 'vetoed') return;
+  if (result.kind === 'invalid') recordInvalidCandidateId(result.id, output.invalidCandidateIds, output.invalidSeen);
+  if (result.kind === 'accepted') output.candidates.push(result.place);
+}
+
 function validateAndEnrichCandidates({ updated, rowLabels, vetoed, config, options }: CandidateValidationOptions): CandidateSelection {
-  const seenRows = new Set<string>();
-  const acceptedIds = new Set<string>();
-  const invalidSeen = new Set<string>();
-  const duplicateSeen = new Set<string>();
-  const candidates: Candidate[] = [];
-  const invalidCandidateIds: string[] = [];
-  const duplicateCandidateIds: string[] = [];
-  const state: CandidateValidationState = { vetoed, seenRows, acceptedIds, config, options };
+  const output: CandidateValidationOutput = {
+    candidates: [], invalidCandidateIds: [], duplicateCandidateIds: [], invalidSeen: new Set(), duplicateSeen: new Set(),
+  };
+  const state: CandidateValidationState = { vetoed, seenRows: new Set(), acceptedIds: new Set(), config, options };
   for (const [index, place] of updated.entries()) {
     const result = validateCandidateForSelection(place, rowLabels[index] ?? `row-${index + 1}`, state);
-    const duplicateId = result.kind === 'duplicate' ? result.id : result.duplicateId;
-    if (duplicateId) recordDuplicateCandidateId(duplicateId, duplicateCandidateIds, duplicateSeen);
-    if (result.kind === 'vetoed') continue;
-    if (result.kind === 'invalid') recordInvalidCandidateId(result.id, invalidCandidateIds, invalidSeen);
-    if (result.kind === 'accepted') candidates.push(result.place);
+    recordCandidateValidation(result, output);
   }
-  return { candidates, invalidCandidateIds, duplicateCandidateIds };
+  return { candidates: output.candidates, invalidCandidateIds: output.invalidCandidateIds,
+    duplicateCandidateIds: output.duplicateCandidateIds };
 }
 
 /** Return the full eligible pool. The old route lock describes a reviewed selection, not this sweep. */

@@ -10,7 +10,7 @@ import {
   longitudeDelta,
   stopTier,
 } from './sweep';
-import { scheduledTravelMilliseconds } from './order';
+import { requiredSnapshotOffset, scheduledTravelMilliseconds } from './order';
 import { admin1Coverage } from './admin1';
 import { NORTH_POLE, RETURN_DEADLINE_UTC, TAKEOFF_UTC, type Candidate, type GeneratorConfig, type RouteDetourReport, type RouteLegReport, type RouteReport, type StopTier } from './types';
 
@@ -132,7 +132,7 @@ function localArrivalHistogram(places: Candidate[], route: Route): Record<string
   places.forEach((place, index) => {
     const stop = route.stops[index];
     if (!stop) return;
-    const local = localClock({ iso: stop.arrivalIso, timezoneOrOffset: place.utcOffsetMinutes ?? 0 });
+    const local = localClock({ iso: stop.arrivalIso, timezoneOrOffset: requiredSnapshotOffset(place) });
     const hour = `${local.hour.toString().padStart(2, '0')}:00`;
     histogram[hour] = (histogram[hour] ?? 0) + 1;
   });
@@ -143,7 +143,7 @@ function localArrivalRange(places: Candidate[], route: Route): { min: string; ma
   const arrivals = places.flatMap((place, index) => {
     const stop = route.stops[index];
     if (!stop) return [];
-    const local = localClock({ iso: stop.arrivalIso, timezoneOrOffset: place.utcOffsetMinutes ?? 0 });
+    const local = localClock({ iso: stop.arrivalIso, timezoneOrOffset: requiredSnapshotOffset(place) });
     const minute = local.hour * 60 + local.minute;
     const sweepMinute = minute >= 23 * 60 ? minute - 24 * 60 : minute;
     return [{ minute: sweepMinute, label: `${local.hour.toString().padStart(2, '0')}:${local.minute.toString().padStart(2, '0')}` }];
@@ -347,7 +347,7 @@ export function buildReport(places: Candidate[], route: Route, { config, pool, i
     stopTiers: tierCounts(places),
     continentBalance: countsBy(places, (place) => classifyRegion(place).continent),
     subregionBalance: countsBy(places, (place) => classifyRegion(place).subregion),
-    offsetBalance: countsBy(places, (place) => formatUtcOffset(place.utcOffsetMinutes ?? 0)),
+    offsetBalance: countsBy(places, (place) => formatUtcOffset(requiredSnapshotOffset(place))),
     offsetPopulationShare: offsetShares(pool, bandPopulation),
     offsetLandCoverageShare: offsetShares(pool, bandLandCellCount),
     hourly: routeHours(route),

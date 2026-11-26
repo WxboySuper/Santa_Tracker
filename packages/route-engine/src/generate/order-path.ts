@@ -156,11 +156,11 @@ function localProposal(order: Candidate[], first: number, second: number, random
 }
 
 function sameOffsetBand(order: Candidate[], first: number, second: number): boolean {
-  const offset = order[first]?.utcOffsetMinutes;
-  if (offset === undefined || order[second]?.utcOffsetMinutes !== offset) return false;
+  const offset = requiredSnapshotOffset(order[first]!);
+  if (requiredSnapshotOffset(order[second]!) !== offset) return false;
   const start = Math.min(first, second);
   const end = Math.max(first, second);
-  return order.slice(start, end + 1).every((place) => place.utcOffsetMinutes === offset);
+  return order.slice(start, end + 1).every((place) => requiredSnapshotOffset(place) === offset);
 }
 
 function improvesSweep(cost: RouteCost, current: RouteCost): boolean {

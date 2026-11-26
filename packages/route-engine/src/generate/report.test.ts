@@ -5,7 +5,7 @@ import { buildReport } from './report';
 import type { Candidate } from './types';
 import { DEFAULT_GENERATOR_LIMITS, NORTH_POLE, TAKEOFF_UTC } from './types';
 
-const place: Candidate = { id: 'one', name: 'One', country: 'GB', lat: 0, lng: 0, timezone: 'UTC', category: 'hub', population: 100_000 };
+const place: Candidate = { id: 'one', name: 'One', country: 'GB', lat: 0, lng: 0, timezone: 'UTC', utcOffsetMinutes: 0, category: 'hub', population: 100_000 };
 const firstStop = { locationId: createLocationId('location_one'), arrivalIso: '2026-12-25T01:00:00.000Z', departureIso: '2026-12-25T01:00:30.000Z', durationSeconds: 30 };
 const route: Route = { schemaVersion: SCHEMA_VERSION, season: 2026, stops: [firstStop] };
 const cleanValidation = { invalidCandidateIds: [], duplicateCandidateIds: [] };
@@ -44,6 +44,15 @@ describe('buildReport', () => {
     expect(() => buildReport([place], twoStops, { config: DEFAULT_GENERATOR_LIMITS, pool: [place], ...cleanValidation })).toThrow(/do not match route stops/);
     const nullStop: Route = { ...route, stops: [null] as unknown as Route['stops'] };
     expect(() => buildReport([place], nullStop, { config: DEFAULT_GENERATOR_LIMITS, pool: [place], ...cleanValidation })).toThrow(/Missing first route stop/);
+  });
+
+  it('rejects a missing snapshot offset instead of reporting arrivals in UTC', () => {
+    const { utcOffsetMinutes: _offset, ...missingOffset } = place;
+    expect(() => buildReport([missingOffset], route, {
+      config: DEFAULT_GENERATOR_LIMITS,
+      pool: [missingOffset],
+      ...cleanValidation,
+    })).toThrow(/Missing snapshot UTC offset/);
   });
 
   it('measures delivery speed over the scheduled departure-to-arrival interval', () => {

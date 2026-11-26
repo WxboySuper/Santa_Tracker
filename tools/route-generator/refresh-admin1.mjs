@@ -51,7 +51,7 @@ function enrichCandidate(place, context) {
   if (admin1Code === undefined) return candidateWithAdmin1Code(place, place.admin1Code);
   if (admin1Code === null) {
     context.unassigned.push(`${place.country} ${place.id} ${place.name}`);
-    return candidateWithAdmin1Code(place, undefined, false);
+    return candidateWithAdmin1Code(place, place.admin1Code);
   }
   context.assigned.push(admin1Code);
   return candidateWithAdmin1Code(place, admin1Code);
