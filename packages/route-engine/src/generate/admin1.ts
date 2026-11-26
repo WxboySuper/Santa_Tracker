@@ -30,8 +30,15 @@ export type Admin1Coverage = Record<RequiredAdmin1Country, {
   missingCodes: string[];
 }>;
 
+function coveredAdmin1Codes(places: Candidate[]): Set<string> {
+  return new Set(places.flatMap((place) => {
+    const unit = admin1UnitFor(place);
+    return unit ? [unit] : [];
+  }));
+}
+
 export function admin1Coverage(places: Candidate[]): Admin1Coverage {
-  const covered = new Set(places.flatMap((place) => place.admin1Code ? [place.admin1Code] : []));
+  const covered = coveredAdmin1Codes(places);
   return Object.fromEntries(Object.entries(REQUIRED_ADMIN1_UNITS).map(([country, units]) => {
     const coveredCodes = units.filter((code) => covered.has(code));
     const missingCodes = units.filter((code) => !covered.has(code));
@@ -40,6 +47,11 @@ export function admin1Coverage(places: Candidate[]): Admin1Coverage {
 }
 
 export function admin1UnitFor(place: Candidate): string | undefined {
-  if (place.country !== 'US' && place.country !== 'CA' && place.country !== 'AU') return undefined;
-  return place.admin1Code ?? undefined;
+  const country = place.country as RequiredAdmin1Country;
+  const units: readonly string[] | undefined = REQUIRED_ADMIN1_UNITS[country];
+  if (!units) return undefined;
+  const code = place.admin1Code;
+  if (!code) return undefined;
+  if (!code.startsWith(`${country}-`)) return undefined;
+  return units.includes(code) ? code : undefined;
 }

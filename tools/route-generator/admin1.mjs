@@ -38,8 +38,33 @@ function pointInPolygon(point, rings) {
 }
 
 function pointInFeature(point, feature) {
-  const polygons = feature.geometry.type === 'Polygon' ? [feature.geometry.coordinates] : feature.geometry.coordinates;
-  return polygons.some((polygon) => pointInPolygon(point, polygon));
+  const geometry = feature?.geometry;
+  if (!geometry || !Array.isArray(geometry.coordinates)) return false;
+  if (geometry.type === 'Polygon') return pointInPolygon(point, geometry.coordinates);
+  if (geometry.type === 'MultiPolygon') return geometry.coordinates.some((polygon) => pointInPolygon(point, polygon));
+  return false;
+}
+
+function normalizeAdmin1Feature(value) {
+  if (!value || typeof value !== 'object') return undefined;
+  const properties = value.properties ?? {};
+  const country = clean(properties.iso_a2);
+  const code = clean(properties.iso_3166_2);
+  if (!ADMIN1_COUNTRIES.has(country)) return undefined;
+  if (!code) return undefined;
+  if (!value.geometry) return undefined;
+  return { country, code, name: clean(properties.name), geometry: value.geometry };
+}
+
+async function readAdmin1Features(source) {
+  const features = [];
+  for (;;) {
+    const item = await source.read();
+    if (item.done) break;
+    const feature = normalizeAdmin1Feature(item.value);
+    if (feature) features.push(feature);
+  }
+  return features;
 }
 
 export async function loadAdmin1Features() {
@@ -50,21 +75,18 @@ export async function loadAdmin1Features() {
   const dbfName = Object.keys(files).find((name) => name.endsWith('.dbf'));
   if (!shpName || !dbfName) throw new Error('Natural Earth admin-1 archive is missing its shapefile');
   const source = await shapefile.open(files[shpName].buffer, files[dbfName].buffer, { encoding: 'utf-8' });
-  const features = [];
-  for (;;) {
-    const item = await source.read();
-    if (item.done) break;
-    const properties = item.value.properties;
-    const country = clean(properties.iso_a2);
-    const code = clean(properties.iso_3166_2);
-    if (!ADMIN1_COUNTRIES.has(country) || !code || !item.value.geometry) continue;
-    features.push({ country, code, name: clean(properties.name), geometry: item.value.geometry });
-  }
+  const features = await readAdmin1Features(source);
   return features.sort((left, right) => left.country.localeCompare(right.country) || left.code.localeCompare(right.code));
 }
 
 export function admin1CodeAt(place, features) {
+  if (!place || typeof place !== 'object') throw new TypeError('Admin-1 lookup requires a candidate object');
   if (!ADMIN1_COUNTRIES.has(place.country)) return undefined;
+  if (!Number.isFinite(place.lat)) throw new TypeError(`Candidate ${place.id ?? '(unknown)'} has a non-finite latitude`);
+  if (!Number.isFinite(place.lng)) throw new TypeError(`Candidate ${place.id ?? '(unknown)'} has a non-finite longitude`);
+  if (place.lat < -90 || place.lat > 90) throw new RangeError(`Candidate ${place.id ?? '(unknown)'} latitude is out of range`);
+  if (place.lng < -180 || place.lng > 180) throw new RangeError(`Candidate ${place.id ?? '(unknown)'} longitude is out of range`);
+  if (!Array.isArray(features)) throw new TypeError('Admin-1 lookup requires a feature array');
   const point = [place.lng, place.lat];
   return features.find((feature) => feature.country === place.country && pointInFeature(point, feature))?.code ?? null;
 }

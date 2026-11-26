@@ -66,22 +66,31 @@ function countryCapacity(place: Candidate, counts: Map<string, number>, config: 
   return (counts.get(place.country) ?? 0) < config.maxStopsPerCountry;
 }
 
+function requiredCoverageAllowsCountryCap(place: Candidate, countryCounts: Map<string, number>, coveredAdmin1: Set<string>,
+  coveredOffsets: Set<number>, config: GeneratorConfig): boolean {
+  const unit = admin1UnitFor(place);
+  const addsRequiredAdmin1 = unit !== undefined && REQUIRED_ADMIN1_CODES.has(unit) && !coveredAdmin1.has(unit);
+  const addsRequiredOffsetBand = !coveredOffsets.has(requiredSnapshotOffset(place));
+  return countryCapacity(place, countryCounts, config) || addsRequiredAdmin1 || addsRequiredOffsetBand;
+}
+
+function recordSelectionCoverage(place: Candidate, countryCounts: Map<string, number>, coveredAdmin1: Set<string>,
+  coveredOffsets: Set<number>): void {
+  countryCounts.set(place.country, (countryCounts.get(place.country) ?? 0) + 1);
+  const unit = admin1UnitFor(place);
+  if (unit) coveredAdmin1.add(unit);
+  coveredOffsets.add(requiredSnapshotOffset(place));
+}
+
 function selectionConstraintsAllow(order: Candidate[], config: GeneratorConfig): boolean {
   const separation = new SeparationIndex(config.minStopSeparationKm);
   const countryCounts = new Map<string, number>();
   const coveredAdmin1 = new Set<string>();
   const coveredOffsets = new Set<number>();
   for (const place of order) {
-    if (!separation.allows(place)) return false;
-    const unit = admin1UnitFor(place);
-    const addsRequiredAdmin1 = unit !== undefined && REQUIRED_ADMIN1_CODES.has(unit) && !coveredAdmin1.has(unit);
-    const offset = requiredSnapshotOffset(place);
-    const addsRequiredOffsetBand = !coveredOffsets.has(offset);
-    if (!countryCapacity(place, countryCounts, config) && !addsRequiredAdmin1 && !addsRequiredOffsetBand) return false;
+    if (!separation.allows(place) || !requiredCoverageAllowsCountryCap(place, countryCounts, coveredAdmin1, coveredOffsets, config)) return false;
     separation.add(place);
-    countryCounts.set(place.country, (countryCounts.get(place.country) ?? 0) + 1);
-    if (unit) coveredAdmin1.add(unit);
-    coveredOffsets.add(offset);
+    recordSelectionCoverage(place, countryCounts, coveredAdmin1, coveredOffsets);
   }
   return true;
 }
@@ -199,6 +208,31 @@ function categoryPreference(place: Candidate, config: GeneratorConfig): number {
   return config.weights[place.category] ?? 0;
 }
 
+function scoreCoverage(newCountry: boolean, newAdmin1: boolean): number {
+  return Number(newCountry) * 100_000_000 + Number(newAdmin1) * 100_000_000;
+}
+
+function scoreOffsetProgress(place: Candidate, previousIdeal?: number): number {
+  if (previousIdeal === undefined) return 0;
+  const delta = (christmasWindow(requiredSnapshotOffset(place)).idealUtc - previousIdeal) / MINUTE_MS;
+  return Math.min(Math.max(0, delta), 60) * 2;
+}
+
+function scoreBandContinuity(place: Candidate, prior: Candidate | LatLng): number {
+  const priorOffset = 'utcOffsetMinutes' in prior ? prior.utcOffsetMinutes : undefined;
+  if (priorOffset === undefined) return 0;
+  return -Math.abs(requiredSnapshotOffset(place) - priorOffset) * 5_000;
+}
+
+function scoreLaunchPenalty(place: Candidate, isLaunch: boolean): number {
+  if (!isLaunch) return 0;
+  return Math.min(Math.abs(180 - place.lng), Math.abs(-180 - place.lng)) * 35;
+}
+
+function scoreLocalCluster(distance: number): number {
+  return distance <= LOCAL_CLUSTER_HOP_KM ? 5_000_000 : 0;
+}
+
 function optionScore(options: {
   stop: PlannedStop;
   prior: Candidate | LatLng;
@@ -217,28 +251,21 @@ function optionScore(options: {
   const westwardDegrees = Math.max(0, -stop.eastwardDegrees);
   const latitudeProgress = Math.max(0, (place.lat - prior.lat) * latitudeDirection);
   const idleMinutes = Math.max(0, stop.arrival - priorDeparture) / MINUTE_MS;
-  const offsetProgress = previousIdeal === undefined ? 0 : Math.max(0, (christmasWindow(requiredSnapshotOffset(place)).idealUtc - previousIdeal) / MINUTE_MS);
   const category = categoryPreference(place, config);
   const populationTie = Math.log10((place.population ?? 0) + 1);
   const dwellReward = (60 - place.plannedStopDurationSeconds) * 3;
-  const launchBandPenalty = isLaunch ? Math.min(Math.abs(180 - place.lng), Math.abs(-180 - place.lng)) * 35 : 0;
   const eastwardPenalty = isEastwardDelta(stop.eastwardDegrees) ? 100_000 : 0;
-  const localClusterBonus = distance <= LOCAL_CLUSTER_HOP_KM ? 5_000_000 : 0;
-  const priorOffset = 'utcOffsetMinutes' in prior ? prior.utcOffsetMinutes : undefined;
-  const offsetDelta = priorOffset === undefined ? 0 : Math.abs(requiredSnapshotOffset(place) - priorOffset);
-  const bandContinuity = -offsetDelta * 5_000;
-  return localClusterBonus
+  return scoreLocalCluster(distance)
     // Reward nearby mandatory coverage while keeping distant jumps behind a
     // short regional chain. The idle penalty keeps later-offset islands late.
-    + (newCountry ? 100_000_000 : 0)
-    + (newAdmin1 ? 100_000_000 : 0)
-    + bandContinuity
+    + scoreCoverage(newCountry, newAdmin1)
+    + scoreBandContinuity(place, prior)
     + westwardDegrees * 5
     + latitudeProgress * 75
-    + Math.min(offsetProgress, 60) * 2
+    + scoreOffsetProgress(place, previousIdeal)
     - distance * 200
     - eastwardPenalty
-    - launchBandPenalty
+    - scoreLaunchPenalty(place, isLaunch)
     - idleMinutes * 10_000
     + dwellReward
     + category * 0.1
@@ -280,18 +307,17 @@ function previousIdeal(route: TimedCandidate[]): number | undefined {
 }
 
 function candidateCanExtendRoute(state: SweepState, place: Candidate, config: GeneratorConfig): boolean {
-  const unit = admin1UnitFor(place);
-  const addsRequiredAdmin1 = unit !== undefined && REQUIRED_ADMIN1_CODES.has(unit) && !state.admin1Counts.has(unit);
-  const offset = requiredSnapshotOffset(place);
-  const addsRequiredOffsetBand = !state.bandCounts.has(offset);
+  if (!state.remaining.has(place.id) || !state.separation.allows(place)) return false;
+  const addsRequiredAdmin1 = isNewRequiredAdmin1(place, state.admin1Counts);
+  const addsRequiredOffsetBand = !state.bandCounts.has(requiredSnapshotOffset(place));
   const addsCountryCoverage = !state.countryCounts.has(place.country);
-  return state.remaining.has(place.id)
-    && (countryCapacity(place, state.countryCounts, config) || addsRequiredAdmin1 || addsRequiredOffsetBand)
-    && state.separation.allows(place)
-    // Coverage candidates must be reachable even when the temporary append
-    // would look like a detour; optimize that transition after the coverage
-    // pass. Optional dense fill remains detour constrained.
-    && (addsCountryCoverage || addsRequiredAdmin1 || timingAndDetourAllows(place, state.route));
+  if (!countryCapacity(place, state.countryCounts, config) && !addsRequiredAdmin1 && !addsRequiredOffsetBand) return false;
+  return addsCountryCoverage || addsRequiredAdmin1 || timingAndDetourAllows(place, state.route);
+}
+
+function isNewRequiredAdmin1(place: Candidate, coveredAdmin1: Map<string, number>): boolean {
+  const unit = admin1UnitFor(place);
+  return unit !== undefined && REQUIRED_ADMIN1_CODES.has(unit) && !coveredAdmin1.has(unit);
 }
 
 function scoreFeasibleCandidate(state: SweepState, place: Candidate, ranking: SweepRanking): RankedStop | undefined {
@@ -303,10 +329,7 @@ function scoreFeasibleCandidate(state: SweepState, place: Candidate, ranking: Sw
   const score = optionScore({ stop, prior: state.prior,
     priorDeparture: state.priorDeparture, previousIdeal: previousIdeal(state.route),
     newCountry: !state.countryCounts.has(place.country),
-    newAdmin1: (() => {
-      const unit = admin1UnitFor(place);
-      return unit !== undefined && REQUIRED_ADMIN1_CODES.has(unit) && !state.admin1Counts.has(unit);
-    })(),
+    newAdmin1: isNewRequiredAdmin1(place, state.admin1Counts),
     isLaunch: state.route.length === 0,
     latitudeDirection: (bandIndices.get(place.id) ?? 0) % 2 === 0 ? -1 : 1,
     randomRank: randomRanks.get(place.id) ?? 0, config });
@@ -368,33 +391,69 @@ function offsetBands(pool: Candidate[]): Candidate[][] {
   return [...bands.entries()].sort(([left], [right]) => right - left).map(([, places]) => places);
 }
 
-function executeGreedySweep(state: SweepState, bands: Candidate[][], randomRanks: Map<string, number>,
-  config: GeneratorConfig, includeDenseFill: boolean): void {
+function mandatoryCandidatesInBand(state: SweepState, available: Candidate[]): Candidate[] {
+  return available.filter((place) => candidateIsMandatoryCoverage(state, place));
+}
+
+function candidateIsMandatoryCoverage(state: SweepState, place: Candidate): boolean {
+  const unit = admin1UnitFor(place);
+  return !state.countryCounts.has(place.country)
+    || (unit !== undefined && REQUIRED_ADMIN1_CODES.has(unit) && !state.admin1Counts.has(unit))
+    || !state.bandCounts.has(requiredSnapshotOffset(place));
+}
+
+type SweepChoiceOptions = {
+  state: SweepState;
+  available: Candidate[];
+  ranking: SweepRanking;
+  withinBandBudget: boolean;
+  includeDenseFill: boolean;
+};
+
+function chooseSweepCandidate({ state, available, ranking, withinBandBudget, includeDenseFill }: SweepChoiceOptions): PlannedStop | undefined {
+  const mandatory = mandatoryCandidatesInBand(state, available);
+  const nextMandatory = mandatory.length > 0 ? bestFeasibleStop(state, mandatory, ranking) : undefined;
+  return nextMandatory ?? (includeDenseFill && withinBandBudget ? bestFeasibleStop(state, available, ranking) : undefined);
+}
+
+type SweepBandOptions = {
+  state: SweepState;
+  band: Candidate[];
+  ranking: SweepRanking;
+  bandCaps: Map<number, number>;
+  routeBandCounts: Map<number, number>;
+  includeDenseFill: boolean;
+};
+
+function sweepOffsetBand({ state, band, ranking, bandCaps, routeBandCounts, includeDenseFill }: SweepBandOptions): void {
+  const offset = band[0] ? requiredSnapshotOffset(band[0]) : undefined;
+  if (offset === undefined) return;
+  while (state.remaining.size > 0 && state.route.length < MAX_ROUTE_STOPS) {
+    const available = band.filter((place) => state.remaining.has(place.id));
+    if (available.length === 0) break;
+    const withinBandBudget = (routeBandCounts.get(offset) ?? 0) < (bandCaps.get(offset) ?? 0);
+    const next = chooseSweepCandidate({ state, available, ranking, withinBandBudget, includeDenseFill });
+    if (!next) break;
+    advanceSweep(state, next);
+    routeBandCounts.set(offset, (routeBandCounts.get(offset) ?? 0) + 1);
+  }
+}
+
+type GreedySweepOptions = {
+  state: SweepState;
+  bands: Candidate[][];
+  randomRanks: Map<string, number>;
+  config: GeneratorConfig;
+  includeDenseFill: boolean;
+};
+
+function executeGreedySweep({ state, bands, randomRanks, config, includeDenseFill }: GreedySweepOptions): void {
   const bandIndices = new Map<string, number>();
   bands.forEach((band, index) => band.forEach((place) => bandIndices.set(place.id, index)));
   const ranking: SweepRanking = { bandIndices, randomRanks, config };
   const bandCaps = bandMaximumStops([...state.remaining.values()], [], MAX_ROUTE_STOPS);
   const routeBandCounts = new Map<number, number>();
-  for (const band of bands) {
-    const offset = band[0] ? requiredSnapshotOffset(band[0]) : undefined;
-    if (offset === undefined) continue;
-    while (state.remaining.size > 0 && state.route.length < MAX_ROUTE_STOPS) {
-      const available = band.filter((place) => state.remaining.has(place.id));
-      if (available.length === 0) break;
-      const mandatory = available.filter((place) => {
-        const unit = admin1UnitFor(place);
-        return !state.countryCounts.has(place.country)
-          || (unit !== undefined && REQUIRED_ADMIN1_CODES.has(unit) && !state.admin1Counts.has(unit))
-          || !state.bandCounts.has(requiredSnapshotOffset(place));
-      });
-      const nextMandatory = mandatory.length > 0 ? bestFeasibleStop(state, mandatory, ranking) : undefined;
-      const withinBandBudget = (routeBandCounts.get(offset) ?? 0) < (bandCaps.get(offset) ?? 0);
-      const next = nextMandatory ?? (includeDenseFill && withinBandBudget ? bestFeasibleStop(state, available, ranking) : undefined);
-      if (!next) break;
-      advanceSweep(state, next);
-      routeBandCounts.set(offset, (routeBandCounts.get(offset) ?? 0) + 1);
-    }
-  }
+  for (const band of bands) sweepOffsetBand({ state, band, ranking, bandCaps, routeBandCounts, includeDenseFill });
 }
 
 function firstFeasibleStart(pool: Candidate[], config: GeneratorConfig): TimedCandidate {
@@ -414,7 +473,7 @@ function greedySweep(pool: Candidate[], config: GeneratorConfig, includeDenseFil
   const first = firstFeasibleStart(pool, config);
   advanceSweep(state, { place: first, arrival: Date.parse(first.plannedArrivalUtc),
     departure: Date.parse(first.plannedArrivalUtc) + first.plannedStopDurationSeconds * 1000, eastwardDegrees: longitudeDelta(NORTH_POLE, first) });
-  executeGreedySweep(state, bands, randomRanks, config, includeDenseFill);
+  executeGreedySweep({ state, bands, randomRanks, config, includeDenseFill });
   return { selected: state.route, unselected: [...state.remaining.values()] };
 }
 
@@ -678,6 +737,18 @@ function insertionOptions(state: InsertionState, place: Candidate, positions: Ra
   return positions.filter(({ index }) => placeFitsNeighborBand(state, place, index, pass)).slice(0, pass.maxPositionAttempts);
 }
 
+function insertionCoverageAllowsCandidate(state: InsertionState, place: Candidate, config: GeneratorConfig): boolean {
+  const unit = admin1UnitFor(place);
+  const addsRequiredAdmin1 = unit !== undefined && REQUIRED_ADMIN1_CODES.has(unit) && !state.admin1Counts.has(unit);
+  const addsRequiredOffset = !state.bandCounts.has(requiredSnapshotOffset(place));
+  return countryCapacity(place, state.counts, config) || addsRequiredAdmin1 || addsRequiredOffset;
+}
+
+function passesInsertionCandidateGates(state: InsertionState, item: RankedInsertion, pass: InsertionPass): boolean {
+  if (pass.coverageOnly && state.counts.has(item.place.country)) return false;
+  return insertionCoverageAllowsCandidate(state, item.place, pass.config) && state.separation.allows(item.place);
+}
+
 function addAtFeasiblePosition(state: InsertionState, place: Candidate, positions: RankedInsertion['positions'], pass: InsertionPass): boolean {
   if (pass.maxStops !== undefined && state.route.length >= pass.maxStops) return false;
   const offset = requiredSnapshotOffset(place);
@@ -704,17 +775,9 @@ function addAtFeasiblePosition(state: InsertionState, place: Candidate, position
 }
 
 function tryInsertCandidate(state: InsertionState, item: RankedInsertion, pass: InsertionPass): void {
-  if (pass.coverageOnly && state.counts.has(item.place.country)) return;
-  const unit = admin1UnitFor(item.place);
-  const addsRequiredAdmin1Coverage = unit !== undefined
-    && REQUIRED_ADMIN1_CODES.has(unit)
-    && !state.admin1Counts.has(unit);
-  const offset = requiredSnapshotOffset(item.place);
-  const addsRequiredOffsetBand = !state.bandCounts.has(offset);
   // The country ceiling applies to optional dense fill. Mandatory country,
   // admin-1, and one-per-offset coverage may exceed it when needed.
-  if (!countryCapacity(item.place, state.counts, pass.config) && !addsRequiredAdmin1Coverage && !addsRequiredOffsetBand) return;
-  if (!state.separation.allows(item.place)) return;
+  if (!passesInsertionCandidateGates(state, item, pass)) return;
   addAtFeasiblePosition(state, item.place, insertionPositions(state.route, item.place), pass);
 }
 
@@ -808,49 +871,67 @@ function insertCountryCoverageGroups(state: InsertionState, groups: CountryCover
 type Admin1CoverageCandidate = { place: Candidate; rank: number };
 type Admin1CoverageGroup = { unit: string; rank: number; candidates: Admin1CoverageCandidate[] };
 
+function rankAdmin1Place(state: InsertionState, place: Candidate, unit: string, pass: InsertionPass): Admin1CoverageCandidate | undefined {
+  if (admin1UnitFor(place) !== unit) return undefined;
+  const addedDistance = bestBandInsertionPosition(state, place, pass);
+  if (!Number.isFinite(addedDistance)) return undefined;
+  const rank = addedDistance + stopDurationSeconds(stopTier(place)) * 1.1
+    - Math.log10((place.population ?? 0) + 1) * 20
+    - categoryPreference(place, pass.config) * 2;
+  return { place, rank };
+}
+
+function rankAdmin1CoverageGroup(state: InsertionState, pool: Candidate[], unit: string, pass: InsertionPass): Admin1CoverageGroup | undefined {
+  const candidates = pool.flatMap((place) => {
+    const candidate = rankAdmin1Place(state, place, unit, pass);
+    return candidate ? [candidate] : [];
+  }).sort((left, right) => left.rank - right.rank || compareStableIds(left.place.id, right.place.id));
+  if (candidates.length === 0) return undefined;
+  return { unit, rank: candidates[0]!.rank, candidates };
+}
+
 function rankAdmin1CoverageGroups(state: InsertionState, pool: Candidate[], pass: InsertionPass): Admin1CoverageGroup[] {
-  const groups = new Map<string, Admin1CoverageGroup>();
-  for (const unit of REQUIRED_ADMIN1_CODES) {
-    if (state.admin1Counts.has(unit)) continue;
-    for (const place of pool) {
-      if (admin1UnitFor(place) !== unit) continue;
-      const addedDistance = bestBandInsertionPosition(state, place, pass);
-      if (!Number.isFinite(addedDistance)) continue;
-      const rank = addedDistance + stopDurationSeconds(stopTier(place)) * 1.1
-        - Math.log10((place.population ?? 0) + 1) * 20
-        - categoryPreference(place, pass.config) * 2;
-      const group = groups.get(unit) ?? { unit, rank: Number.POSITIVE_INFINITY, candidates: [] };
-      group.candidates.push({ place, rank });
-      group.rank = Math.min(group.rank, rank);
-      groups.set(unit, group);
-    }
+  return [...REQUIRED_ADMIN1_CODES].flatMap((unit) => {
+    if (state.admin1Counts.has(unit)) return [];
+    const group = rankAdmin1CoverageGroup(state, pool, unit, pass);
+    return group ? [group] : [];
+  }).sort((left, right) => left.rank - right.rank || compareStableIds(left.unit, right.unit));
+}
+
+function insertAdmin1Group(state: InsertionState, group: Admin1CoverageGroup, pass: InsertionPass): void {
+  if (state.admin1Counts.has(group.unit)) return;
+  for (const candidate of group.candidates.slice(0, 20)) {
+    if (!state.separation.allows(candidate.place)) continue;
+    if (tryCountryRepresentative(state, candidate.place, pass)) break;
   }
-  return [...groups.values()].map((group) => ({
-    ...group,
-    candidates: group.candidates.sort((left, right) => left.rank - right.rank || compareStableIds(left.place.id, right.place.id)),
-  })).sort((left, right) => left.rank - right.rank || compareStableIds(left.unit, right.unit));
+}
+
+function admin1CoverageAttempt(state: InsertionState, pool: Candidate[], pass: InsertionPass): boolean {
+  const before = state.admin1Counts.size;
+  const groups = rankAdmin1CoverageGroups(state, pool, pass);
+  for (const group of groups) insertAdmin1Group(state, group, pass);
+  return state.admin1Counts.size > before;
 }
 
 function insertAdmin1Coverage(initial: TimedCandidate[], pool: Candidate[], config: GeneratorConfig): TimedCandidate[] {
-  const pass: InsertionPass = {
-    config,
-    bandSpreadMinutes: Number.POSITIVE_INFINITY,
-    coverageOnly: false,
-    maxPositionAttempts: 40,
-    maxStops: MAX_ROUTE_STOPS,
-  };
+  const pass: InsertionPass = { config, bandSpreadMinutes: Number.POSITIVE_INFINITY, coverageOnly: false,
+    maxPositionAttempts: 40, maxStops: MAX_ROUTE_STOPS };
   const state = insertionState(initial, config.minStopSeparationKm);
   for (let attempt = 0; attempt < 2; attempt++) {
-    const before = state.admin1Counts.size;
-    const groups = rankAdmin1CoverageGroups(state, pool, pass);
-    for (const group of groups) {
-      if (state.admin1Counts.has(group.unit)) continue;
-      for (const candidate of group.candidates.slice(0, 20)) {
-        if (!state.separation.allows(candidate.place)) continue;
-        if (tryCountryRepresentative(state, candidate.place, pass)) break;
-      }
-    }
-    if (state.admin1Counts.size === before) break;
+    if (!admin1CoverageAttempt(state, pool, pass)) break;
+  }
+  return state.route;
+}
+
+function insertOffsetBand(route: TimedCandidate[], pool: Candidate[], config: GeneratorConfig, offset: number): TimedCandidate[] {
+  if (route.some((place) => requiredSnapshotOffset(place) === offset)) return route;
+  const state = insertionState(route, config.minStopSeparationKm);
+  const pass: InsertionPass = { config, bandSpreadMinutes: 60, coverageOnly: false,
+    maxPositionAttempts: 40, maxStops: MAX_ROUTE_STOPS, maxStopsByBand: new Map([[offset, 1]]) };
+  const candidates = rankInsertions(route, pool.filter((place) => requiredSnapshotOffset(place) === offset), config);
+  for (const item of candidates) {
+    tryInsertCandidate(state, item, pass);
+    if (state.bandCounts.has(offset)) break;
   }
   return state.route;
 }
@@ -858,24 +939,7 @@ function insertAdmin1Coverage(initial: TimedCandidate[], pool: Candidate[], conf
 function insertOffsetBandCoverage(initial: TimedCandidate[], pool: Candidate[], config: GeneratorConfig): TimedCandidate[] {
   let route = initial;
   const offsets = [...new Set(pool.map(requiredSnapshotOffset))].sort((left, right) => right - left);
-  for (const offset of offsets) {
-    if (route.some((place) => requiredSnapshotOffset(place) === offset)) continue;
-    const state = insertionState(route, config.minStopSeparationKm);
-    const pass: InsertionPass = {
-      config,
-      bandSpreadMinutes: 60,
-      coverageOnly: false,
-      maxPositionAttempts: 40,
-      maxStops: MAX_ROUTE_STOPS,
-      maxStopsByBand: new Map([[offset, 1]]),
-    };
-    const candidates = rankInsertions(route, pool.filter((place) => requiredSnapshotOffset(place) === offset), config);
-    for (const item of candidates) {
-      tryInsertCandidate(state, item, pass);
-      if (state.bandCounts.has(offset)) break;
-    }
-    route = state.route;
-  }
+  for (const offset of offsets) route = insertOffsetBand(route, pool, config, offset);
   return route;
 }
 
@@ -884,7 +948,7 @@ function placeImportance(place: Candidate, config: GeneratorConfig): number {
     + (place.worldCity ? 5 : 0) + (place.capital || place.isCapital || place.isNationalCapital ? 10 : 0);
 }
 
-function bandMaximumStops(pool: Candidate[], mandatory: TimedCandidate[], maxStops: number): Map<number, number> {
+function placesByOffset(pool: Candidate[]): Map<number, Candidate[]> {
   const bandPlaces = new Map<number, Candidate[]>();
   for (const place of pool) {
     const offset = requiredSnapshotOffset(place);
@@ -892,6 +956,10 @@ function bandMaximumStops(pool: Candidate[], mandatory: TimedCandidate[], maxSto
     rows.push(place);
     bandPlaces.set(offset, rows);
   }
+  return bandPlaces;
+}
+
+function denseFillBandWeights(bandPlaces: Map<number, Candidate[]>): { offset: number; weight: number }[] {
   const populationByBand = new Map<number, number>();
   const cellsByBand = new Map<number, number>();
   for (const [offset, rows] of bandPlaces) {
@@ -904,13 +972,15 @@ function bandMaximumStops(pool: Candidate[], mandatory: TimedCandidate[], maxSto
   }
   const totalPopulation = [...populationByBand.values()].reduce((sum, value) => sum + value, 0);
   const totalCells = [...cellsByBand.values()].reduce((sum, value) => sum + value, 0);
-  const weights = [...bandPlaces.keys()].map((offset) => ({
+  return [...bandPlaces.keys()].map((offset) => ({
     offset,
     weight: 0.5 * ((populationByBand.get(offset) ?? 0) / (totalPopulation || 1))
       + 0.5 * ((cellsByBand.get(offset) ?? 0) / (totalCells || 1)),
   }));
+}
+
+function allocateBandFill(weights: { offset: number; weight: number }[], remaining: number): { offset: number; count: number }[] {
   const weightTotal = weights.reduce((sum, item) => sum + item.weight, 0) || 1;
-  const remaining = Math.max(0, maxStops - mandatory.length);
   const allocations = weights.map(({ offset, weight }) => {
     const exact = remaining * weight / weightTotal;
     return { offset, count: Math.floor(exact), remainder: exact - Math.floor(exact) };
@@ -921,65 +991,87 @@ function bandMaximumStops(pool: Candidate[], mandatory: TimedCandidate[], maxSto
     item.count++;
     unassigned--;
   }
+  return allocations;
+}
+
+function mandatoryCountsByBand(mandatory: TimedCandidate[]): Map<number, number> {
   const current = new Map<number, number>();
   for (const place of mandatory) {
     const offset = requiredSnapshotOffset(place);
     current.set(offset, (current.get(offset) ?? 0) + 1);
   }
+  return current;
+}
+
+function bandMaximumStops(pool: Candidate[], mandatory: TimedCandidate[], maxStops: number): Map<number, number> {
+  const bandPlaces = placesByOffset(pool);
+  const weights = denseFillBandWeights(bandPlaces);
+  const remaining = Math.max(0, maxStops - mandatory.length);
+  const allocations = allocateBandFill(weights, remaining);
+  const current = mandatoryCountsByBand(mandatory);
   return new Map(allocations.map((item) => [item.offset, (current.get(item.offset) ?? 0) + item.count]));
 }
 
 type MandatoryGroup = { key: string; candidates: Candidate[] };
 
+type RepresentativeSelection = {
+  separation: SeparationIndex;
+  selected: Candidate[];
+  selectedIds: Set<string>;
+  coveredCountries: Set<string>;
+  coveredAdmin1: Set<string>;
+};
+
 function representativeRank(place: Candidate, config: GeneratorConfig): number {
   return placeImportance(place, config) + (place.category === 'capital' ? 15 : 0);
 }
 
+function orderedMandatoryGroups(pool: Candidate[], keys: string[], keyOf: (place: Candidate) => string | undefined): MandatoryGroup[] {
+  return keys.map((key) => ({ key, candidates: pool.filter((place) => keyOf(place) === key) }))
+    .sort((left, right) => left.candidates.length - right.candidates.length || compareStableIds(left.key, right.key));
+}
+
+function chooseMandatoryRepresentative(group: MandatoryGroup, covered: Set<string>, selection: RepresentativeSelection,
+  config: GeneratorConfig): void {
+  if (covered.has(group.key)) return;
+  const ordered = group.candidates.sort((left, right) => representativeRank(right, config) - representativeRank(left, config)
+    || compareStableIds(left.id, right.id));
+  for (const place of ordered) {
+    if (selection.selectedIds.has(place.id) || !selection.separation.allows(place)) continue;
+    selection.selected.push(place);
+    selection.selectedIds.add(place.id);
+    selection.separation.add(place);
+    selection.coveredCountries.add(place.country);
+    const unit = admin1UnitFor(place);
+    if (unit) selection.coveredAdmin1.add(unit);
+    covered.add(group.key);
+    return;
+  }
+}
+
+function selectRepresentatives(groups: MandatoryGroup[], covered: Set<string>, selection: RepresentativeSelection,
+  config: GeneratorConfig): void {
+  for (const group of groups) chooseMandatoryRepresentative(group, covered, selection, config);
+}
+
 function selectMandatoryRepresentatives(pool: Candidate[], config: GeneratorConfig): Candidate[] {
-  const separation = new SeparationIndex(config.minStopSeparationKm);
-  const selected: Candidate[] = [];
-  const selectedIds = new Set<string>();
-  const coveredCountries = new Set<string>();
-  const coveredAdmin1 = new Set<string>();
-  const chooseGroup = (group: MandatoryGroup, covered: Set<string>): void => {
-    if (covered.has(group.key)) return;
-    const ordered = group.candidates.sort((left, right) => representativeRank(right, config) - representativeRank(left, config)
-      || compareStableIds(left.id, right.id));
-    for (const place of ordered) {
-      if (selectedIds.has(place.id) || !separation.allows(place)) continue;
-      selected.push(place);
-      selectedIds.add(place.id);
-      separation.add(place);
-      coveredCountries.add(place.country);
-      const unit = admin1UnitFor(place);
-      if (unit) coveredAdmin1.add(unit);
-      covered.add(group.key);
-      return;
-    }
+  const selection: RepresentativeSelection = {
+    separation: new SeparationIndex(config.minStopSeparationKm),
+    selected: [],
+    selectedIds: new Set(),
+    coveredCountries: new Set(),
+    coveredAdmin1: new Set(),
   };
-
-  const adminGroups = [...REQUIRED_ADMIN1_CODES].map((unit) => ({
-    key: unit,
-    candidates: pool.filter((place) => admin1UnitFor(place) === unit),
-  })).sort((left, right) => left.candidates.length - right.candidates.length || compareStableIds(left.key, right.key));
-  for (const group of adminGroups) chooseGroup(group, coveredAdmin1);
-
-  const countryGroups = [...new Set(pool.map((place) => place.country))].map((country) => ({
-    key: country,
-    candidates: pool.filter((place) => place.country === country),
-  })).sort((left, right) => left.candidates.length - right.candidates.length || compareStableIds(left.key, right.key));
-  for (const group of countryGroups) chooseGroup(group, coveredCountries);
-
-  // Reserve one reachable representative for every real UTC offset band so a
-  // low-population sub-band (for example a half-hour zone) cannot disappear
-  // under weighted fill alone.
-  const coveredOffsets = new Set(selected.map((place) => String(requiredSnapshotOffset(place))));
-  const offsetGroups = [...new Set(pool.map(requiredSnapshotOffset))].map((offset) => ({
-    key: String(offset),
-    candidates: pool.filter((place) => requiredSnapshotOffset(place) === offset),
-  })).sort((left, right) => left.candidates.length - right.candidates.length || Number(right.key) - Number(left.key));
-  for (const group of offsetGroups) chooseGroup(group, coveredOffsets);
-  return selected;
+  const adminGroups = orderedMandatoryGroups(pool, [...REQUIRED_ADMIN1_CODES], admin1UnitFor);
+  selectRepresentatives(adminGroups, selection.coveredAdmin1, selection, config);
+  const countryCodes = [...new Set(pool.map((place) => place.country))];
+  selectRepresentatives(orderedMandatoryGroups(pool, countryCodes, (place) => place.country), selection.coveredCountries, selection, config);
+  const coveredOffsets = new Set(selection.selected.map((place) => String(requiredSnapshotOffset(place))));
+  const offsetCodes = [...new Set(pool.map((place) => String(requiredSnapshotOffset(place))))];
+  const offsetGroups = orderedMandatoryGroups(pool, offsetCodes, (place) => String(requiredSnapshotOffset(place)))
+    .sort((left, right) => left.candidates.length - right.candidates.length || Number(right.key) - Number(left.key));
+  selectRepresentatives(offsetGroups, coveredOffsets, selection, config);
+  return selection.selected;
 }
 
 function mandatoryLaunch(representatives: Candidate[], pool: Candidate[], config: GeneratorConfig): {
@@ -987,29 +1079,45 @@ function mandatoryLaunch(representatives: Candidate[], pool: Candidate[], config
   representatives: Candidate[];
 } | undefined {
   const maxOffset = Math.max(...pool.map(requiredSnapshotOffset));
-  const launchCandidates = pool.filter((place) => requiredSnapshotOffset(place) === maxOffset && canStartFromNorthPole(place, config))
-    .sort((left, right) => {
-      const normalizedLeft = left.lng < 0 ? left.lng + 360 : left.lng;
-      const normalizedRight = right.lng < 0 ? right.lng + 360 : right.lng;
-      return normalizedRight - normalizedLeft || right.lat - left.lat || compareStableIds(left.id, right.id);
-    });
-  for (const launch of launchCandidates) {
-    const existingIndex = representatives.findIndex((place) => place.country === launch.country);
-    const existing = existingIndex < 0 ? undefined : representatives[existingIndex];
-    const existingUnit = existing ? admin1UnitFor(existing) : undefined;
-    const launchAlreadySelected = representatives.some((place) => place.id === launch.id);
-    if (!launchAlreadySelected && existingUnit && REQUIRED_ADMIN1_CODES.has(existingUnit)
-      && launch.admin1Code !== existing?.admin1Code) continue;
-    const others = launchAlreadySelected
-      ? representatives.filter((place) => place.id !== launch.id)
-      : representatives.filter((place) => place.id !== existing?.id);
-    const separation = new SeparationIndex(config.minStopSeparationKm);
-    for (const place of others) separation.add(place);
-    if (!separation.allows(launch)) continue;
-    const nextRepresentatives = launchAlreadySelected ? [...others] : [...others, launch];
-    return { launch, representatives: nextRepresentatives };
-  }
-  return undefined;
+  const launchCandidates = pool.filter((place) => requiredSnapshotOffset(place) === maxOffset && canStartFromNorthPole(place, config));
+  return launchCandidates.sort(compareLaunchPreference).map((launch) => launchWithRepresentatives(launch, representatives, config))
+    .find((candidate): candidate is { launch: Candidate; representatives: Candidate[] } => candidate !== undefined);
+}
+
+function compareLaunchPreference(left: Candidate, right: Candidate): number {
+  const leftLongitude = left.lng < 0 ? left.lng + 360 : left.lng;
+  const rightLongitude = right.lng < 0 ? right.lng + 360 : right.lng;
+  return rightLongitude - leftLongitude || right.lat - left.lat || compareStableIds(left.id, right.id);
+}
+
+function launchMatchesRequiredAdmin1(launch: Candidate, existing: Candidate | undefined, alreadySelected: boolean): boolean {
+  const unit = existing ? admin1UnitFor(existing) : undefined;
+  return alreadySelected || !unit || !REQUIRED_ADMIN1_CODES.has(unit) || launch.admin1Code === existing?.admin1Code;
+}
+
+function launchRepresentativePool(launch: Candidate, representatives: Candidate[], alreadySelected: boolean,
+  existing: Candidate | undefined): Candidate[] {
+  return alreadySelected
+    ? representatives.filter((place) => place.id !== launch.id)
+    : representatives.filter((place) => place.id !== existing?.id);
+}
+
+function launchIsSeparated(launch: Candidate, others: Candidate[], minimumKm: number): boolean {
+  const separation = new SeparationIndex(minimumKm);
+  for (const place of others) separation.add(place);
+  return separation.allows(launch);
+}
+
+function launchWithRepresentatives(launch: Candidate, representatives: Candidate[], config: GeneratorConfig): {
+  launch: Candidate;
+  representatives: Candidate[];
+} | undefined {
+  const existing = representatives.find((place) => place.country === launch.country);
+  const alreadySelected = representatives.some((place) => place.id === launch.id);
+  if (!launchMatchesRequiredAdmin1(launch, existing, alreadySelected)) return undefined;
+  const others = launchRepresentativePool(launch, representatives, alreadySelected, existing);
+  if (!launchIsSeparated(launch, others, config.minStopSeparationKm)) return undefined;
+  return { launch, representatives: alreadySelected ? others : [...others, launch] };
 }
 
 function unwrappedWestwardLongitude(place: Candidate, launch: Candidate): number {
@@ -1061,66 +1169,103 @@ function betterBandProposal(candidate: { prefix: number; detours: number; eastwa
   return candidate.distance < current.distance - 0.01;
 }
 
+type BandPathScore = { prefix: number; detours: number; eastward: number; distance: number };
+type BandPathSearch = { best?: Candidate[]; bestScore: BandPathScore };
+
+function bandPathScore(order: Candidate[], config: GeneratorConfig): BandPathScore {
+  return { prefix: timingPrefixLength(order, config), detours: detourCount(order),
+    eastward: eastwardCount(order), distance: pathDistance(order) };
+}
+
+type BandProposalOptions = { proposal: Candidate[]; current: BandPathScore; search: BandPathSearch; config: GeneratorConfig };
+
+function considerBandProposal({ proposal, current, search, config }: BandProposalOptions): void {
+  const score = bandPathScore(proposal, config);
+  if (score.detours > current.detours || score.eastward > current.eastward) return;
+  if (!betterBandProposal(score, search.bestScore)) return;
+  search.best = proposal;
+  search.bestScore = score;
+}
+
+function bandSegment(order: Candidate[], source: number, sweepBandById: Map<string, number>): { band: number; start: number; end: number } | undefined {
+  const band = sweepBandById.get(order[source]?.id ?? '');
+  if (band === undefined) return undefined;
+  let start = source;
+  let end = source;
+  while (start > 1 && sweepBandById.get(order[start - 1]?.id ?? '') === band) start--;
+  while (end < order.length - 2 && sweepBandById.get(order[end + 1]?.id ?? '') === band) end++;
+  return { band, start, end };
+}
+
+type BandRepairOptions = {
+  order: Candidate[];
+  firstFailure: number;
+  search: BandPathSearch;
+  current: BandPathScore;
+  sweepBandById: Map<string, number>;
+  config: GeneratorConfig;
+};
+
+function tryBandOrOptRepairs({ order, firstFailure, search, current, sweepBandById, config }: BandRepairOptions): void {
+  for (const source of [firstFailure - 2, firstFailure - 1, firstFailure]) {
+    if (source < 1 || source >= order.length - 1) continue;
+    const segment = bandSegment(order, source, sweepBandById);
+    if (!segment) continue;
+    for (let target = segment.start; target <= segment.end; target++) {
+      if (target !== source) considerBandProposal({ proposal: moveOrOpt(order, source, target), current, search, config });
+    }
+  }
+}
+
+function segmentHasOneBand(order: Candidate[], left: number, right: number, band: number,
+  sweepBandById: Map<string, number>): boolean {
+  return order.slice(left, right + 1).every((place) => sweepBandById.get(place.id) === band);
+}
+
+function tryBandTwoOptRepairs({ order, firstFailure, search, current, sweepBandById, config }: BandRepairOptions): void {
+  const leftMin = Math.max(1, firstFailure - 8);
+  const rightMax = Math.min(order.length - 2, firstFailure + 8);
+  for (let left = leftMin; left <= firstFailure; left++) {
+    for (let right = Math.max(firstFailure, left + 1); right <= rightMax; right++) {
+      const band = sweepBandById.get(order[left]?.id ?? '');
+      if (band === undefined || !segmentHasOneBand(order, left, right, band, sweepBandById)) continue;
+      considerBandProposal({ proposal: moveTwoOpt(order, left, right), current, search, config });
+    }
+  }
+}
+
+function firstHardDetourIndex(order: Candidate[]): number {
+  return order.findIndex((place, index) => {
+    const before = order[index - 1];
+    const after = order[index + 1];
+    return !!before && !!after && detourRatio(before, place, after) > 2.5;
+  });
+}
+
+function tryDetourOrOptRepairs({ order, search, current, sweepBandById, config }: Omit<BandRepairOptions, 'firstFailure'>): void {
+  const detourIndex = firstHardDetourIndex(order);
+  if (detourIndex <= 0) return;
+  const segment = bandSegment(order, detourIndex, sweepBandById);
+  if (!segment) return;
+  for (let target = segment.start; target <= segment.end; target++) {
+    if (target !== detourIndex) considerBandProposal({ proposal: moveOrOpt(order, detourIndex, target), current, search, config });
+  }
+}
+
 function improveBandedPath(initial: Candidate[], config: GeneratorConfig, sweepBandById: Map<string, number>): Candidate[] {
   let order = [...initial];
   for (let pass = 0; pass < 100; pass++) {
-    const current = { prefix: timingPrefixLength(order, config), detours: detourCount(order),
-      eastward: eastwardCount(order), distance: pathDistance(order) };
-    let best: Candidate[] | undefined;
-    let bestScore = current;
-    const consider = (proposal: Candidate[]): void => {
-      const score = { prefix: timingPrefixLength(proposal, config), detours: detourCount(proposal),
-        eastward: eastwardCount(proposal), distance: pathDistance(proposal) };
-      if (score.detours > current.detours || score.eastward > current.eastward) return;
-      if (!betterBandProposal(score, bestScore)) return;
-      best = proposal;
-      bestScore = score;
-    };
-
+    const current = bandPathScore(order, config);
+    const search: BandPathSearch = { bestScore: current };
     if (current.prefix < order.length) {
-      const firstFailure = current.prefix;
-      for (const source of [firstFailure - 2, firstFailure - 1, firstFailure]) {
-        if (source < 1 || source >= order.length - 1) continue;
-        const band = sweepBandById.get(order[source]?.id ?? '');
-        if (band === undefined) continue;
-        let start = source;
-        let end = source;
-        while (start > 1 && sweepBandById.get(order[start - 1]?.id ?? '') === band) start--;
-        while (end < order.length - 2 && sweepBandById.get(order[end + 1]?.id ?? '') === band) end++;
-        for (let target = start; target <= end; target++) {
-          if (target !== source) consider(moveOrOpt(order, source, target));
-        }
-      }
-      const leftMin = Math.max(1, firstFailure - 8);
-      const rightMax = Math.min(order.length - 2, firstFailure + 8);
-      for (let left = leftMin; left <= firstFailure; left++) {
-        for (let right = Math.max(firstFailure, left + 1); right <= rightMax; right++) {
-          const band = sweepBandById.get(order[left]?.id ?? '');
-          if (band === undefined || order.slice(left, right + 1).some((place) => sweepBandById.get(place.id) !== band)) continue;
-          consider(moveTwoOpt(order, left, right));
-        }
-      }
+      const options = { order, firstFailure: current.prefix, search, current, sweepBandById, config };
+      tryBandOrOptRepairs(options);
+      tryBandTwoOptRepairs(options);
     } else {
-      const detourIndex = order.findIndex((place, index) => {
-        const before = order[index - 1];
-        const after = order[index + 1];
-        return !!before && !!after && detourRatio(before, place, after) > 2.5;
-      });
-      if (detourIndex > 0) {
-        const band = sweepBandById.get(order[detourIndex]?.id ?? '');
-        if (band !== undefined) {
-          let start = detourIndex;
-          let end = detourIndex;
-          while (start > 1 && sweepBandById.get(order[start - 1]?.id ?? '') === band) start--;
-          while (end < order.length - 2 && sweepBandById.get(order[end + 1]?.id ?? '') === band) end++;
-          for (let target = start; target <= end; target++) {
-            if (target !== detourIndex) consider(moveOrOpt(order, detourIndex, target));
-          }
-        }
-      }
+      tryDetourOrOptRepairs({ order, search, current, sweepBandById, config });
     }
-    if (!best) return order;
-    order = best;
+    if (!search.best) return order;
+    order = search.best;
   }
   return order;
 }
@@ -1138,42 +1283,65 @@ function hasReasonedTiming(order: Candidate[], config: GeneratorConfig): boolean
   return !!last && departure + scheduledTravelMilliseconds(last, NORTH_POLE, config) <= Date.parse(RETURN_DEADLINE_UTC);
 }
 
+function countryStopCounts(order: Candidate[]): Map<string, number> {
+  const counts = new Map<string, number>();
+  for (const place of order) counts.set(place.country, (counts.get(place.country) ?? 0) + 1);
+  return counts;
+}
+
+function isHardDetourAt(order: Candidate[], index: number): boolean {
+  const via = order[index];
+  const before = order[index - 1];
+  const after = order[index + 1];
+  return !!via && !!before && !!after && detourRatio(before, via, after) > 2.5;
+}
+
+function isRepeatedCountryDetour(order: Candidate[], index: number, counts: Map<string, number>): boolean {
+  const via = order[index];
+  return isHardDetourAt(order, index) && !!via && (counts.get(via.country) ?? 0) >= 2;
+}
+
+function moveCoverageDetourToTail<T extends Candidate>(order: T[], currentCount: number,
+  counts: Map<string, number>, config: GeneratorConfig): T[] | undefined {
+  for (let index = 1; index < order.length - 1; index++) {
+    const via = order[index];
+    if (!via || !isRepeatedCountryDetour(order, index, counts)) continue;
+    // An isolated required place such as Hawaii can be moved to the route
+    // tail, where its North Pole return leg replaces the detour. Any new
+    // reversal still has to pass the offset-anomaly timing rule.
+    const proposal = [...order.slice(0, index), ...order.slice(index + 1), via];
+    if (hardDetourCount(proposal) < currentCount && hasReasonedTiming(proposal, config)) return proposal;
+  }
+  return undefined;
+}
+
+function repositionCoverageDetour<T extends Candidate>(order: T[], currentCount: number,
+  currentEastward: number, config: GeneratorConfig): T[] | undefined {
+  for (let index = 1; index < order.length - 1; index++) {
+    if (!isHardDetourAt(order, index)) continue;
+    for (let target = 1; target < order.length; target++) {
+      if (target === index) continue;
+      const proposal = moveOrOpt(order, index, target);
+      if (eastwardCount(proposal) > currentEastward) continue;
+      if (hardDetourCount(proposal) >= currentCount || !hasReasonedTiming(proposal, config)) continue;
+      return proposal;
+    }
+  }
+  return undefined;
+}
+
+function improveOneCoverageDetour<T extends Candidate>(order: T[], config: GeneratorConfig): T[] | undefined {
+  const currentCount = hardDetourCount(order);
+  if (currentCount === 0) return undefined;
+  const countryCounts = countryStopCounts(order);
+  return moveCoverageDetourToTail(order, currentCount, countryCounts, config)
+    ?? repositionCoverageDetour(order, currentCount, eastwardCount(order), config);
+}
+
 function reduceCoverageDetours<T extends Candidate>(initial: T[], config: GeneratorConfig): T[] {
   let order = [...initial];
   while (true) {
-    const currentCount = hardDetourCount(order);
-    if (currentCount === 0) return order;
-    const currentEastward = eastwardCount(order);
-    let improved: T[] | undefined;
-    const countries = new Map<string, number>();
-    for (const place of order) countries.set(place.country, (countries.get(place.country) ?? 0) + 1);
-    for (let index = 1; index < order.length - 1 && !improved; index++) {
-      const via = order[index];
-      const before = order[index - 1];
-      const after = order[index + 1];
-      if (!via || !before || !after || (countries.get(via.country) ?? 0) < 2 || detourRatio(before, via, after) <= 2.5) continue;
-      // An isolated required place such as Hawaii can be moved to the route
-      // tail, where its North Pole return leg replaces the detour. Any new
-      // reversal still has to pass the offset-anomaly timing rule.
-      const proposal = [...order.slice(0, index), ...order.slice(index + 1), via];
-      if (hardDetourCount(proposal) < currentCount && hasReasonedTiming(proposal, config)) improved = proposal;
-    }
-    for (let index = 1; index < order.length - 1 && !improved; index++) {
-      const via = order[index];
-      const before = order[index - 1];
-      const after = order[index + 1];
-      if (!via || !before || !after || detourRatio(before, via, after) <= 2.5) continue;
-      const firstTarget = 1;
-      const lastTarget = order.length - 1;
-      for (let target = firstTarget; target <= lastTarget; target++) {
-        if (target === index) continue;
-        const proposal = moveOrOpt(order, index, target);
-        if (eastwardCount(proposal) > currentEastward) continue;
-        if (hardDetourCount(proposal) >= currentCount || !hasReasonedTiming(proposal, config)) continue;
-        improved = proposal;
-        break;
-      }
-    }
+    const improved = improveOneCoverageDetour(order, config);
     if (!improved) return order;
     order = improved;
   }
@@ -1192,52 +1360,63 @@ function planMandatoryRoute(pool: Candidate[], config: GeneratorConfig): TimedCa
   return planOrder(improveWithLocalSearch(initialPlan.places, config), config)?.places;
 }
 
-/** Greedy time-stepped midnight sweep followed by constrained 2-opt/or-opt improvements. */
-export function sweepOrder(places: Candidate[], config: GeneratorConfig = DEFAULT_GENERATOR_LIMITS): Candidate[] {
-  if (places.length === 0) throw new Error('Cannot order an empty route');
-  places.forEach(requiredSnapshotOffset);
-  const mandatoryRoute = planMandatoryRoute(places, config);
-  if (mandatoryRoute) {
-    const densePass: InsertionPass = {
-      config,
-      bandSpreadMinutes: 60,
-      coverageOnly: false,
-      maxPositionAttempts: 24,
-      maxStops: MAX_ROUTE_STOPS,
-      maxStopsByBand: bandMaximumStops(places, mandatoryRoute, MAX_ROUTE_STOPS),
-    };
-    const expanded = insertFeasibleCandidates(mandatoryRoute, places, densePass);
-    const finalOrder = improveWithLocalSearch(expanded, config);
-    const planned = planOrder(finalOrder, config);
-    if (planned) return planned.places;
-  }
-
-  // Reserve coverage before spending time on dense fill. The sweep traverses
-  // the exact UTC bands first, then insertion uses the remaining route slack
-  // to place any country or admin-1 representative the band pass could not
-  // reach directly.
-  const greedy = greedySweep(places, config, false);
-  const initial = greedy.selected;
-  const improved = improveWithLocalSearch(initial, config);
-  const countryCoverage = insertCountryCoverage(improved, places, config);
-  const adminCoverage = insertAdmin1Coverage(countryCoverage, places, config);
-  const offsetCoverage = insertOffsetBandCoverage(adminCoverage, places, config);
-  const mandatory = improveWithLocalSearch(offsetCoverage, config);
-  if (mandatory.length > MAX_ROUTE_STOPS) throw new Error(`Mandatory coverage requires ${mandatory.length} stops, above the ${MAX_ROUTE_STOPS}-stop route ceiling`);
+function expandMandatoryRoute(initial: TimedCandidate[], pool: Candidate[], config: GeneratorConfig): Candidate[] | undefined {
   const densePass: InsertionPass = {
     config,
     bandSpreadMinutes: 60,
     coverageOnly: false,
     maxPositionAttempts: 24,
     maxStops: MAX_ROUTE_STOPS,
-    maxStopsByBand: bandMaximumStops(places, mandatory, MAX_ROUTE_STOPS),
+    maxStopsByBand: bandMaximumStops(pool, initial, MAX_ROUTE_STOPS),
   };
-  const expanded = insertFeasibleCandidates(mandatory, places, densePass);
+  const expanded = insertFeasibleCandidates(initial, pool, densePass);
+  return planOrder(improveWithLocalSearch(expanded, config), config)?.places;
+}
+
+function greedyCoverageRoute(pool: Candidate[], config: GeneratorConfig): TimedCandidate[] {
+  // Reserve coverage before spending time on dense fill. The sweep traverses
+  // the exact UTC bands first, then insertion uses the remaining route slack
+  // to place any country or admin-1 representative the band pass could not
+  // reach directly.
+  const greedy = greedySweep(pool, config, false);
+  const initial = greedy.selected;
+  const improved = improveWithLocalSearch(initial, config);
+  const countryCoverage = insertCountryCoverage(improved, pool, config);
+  const adminCoverage = insertAdmin1Coverage(countryCoverage, pool, config);
+  const offsetCoverage = insertOffsetBandCoverage(adminCoverage, pool, config);
+  const mandatory = improveWithLocalSearch(offsetCoverage, config);
+  if (mandatory.length > MAX_ROUTE_STOPS) throw new Error(`Mandatory coverage requires ${mandatory.length} stops, above the ${MAX_ROUTE_STOPS}-stop route ceiling`);
+  return mandatory;
+}
+
+function expandGreedyCoverageRoute(mandatory: TimedCandidate[], pool: Candidate[], config: GeneratorConfig): Candidate[] | undefined {
+  const densePass: InsertionPass = {
+    config,
+    bandSpreadMinutes: 60,
+    coverageOnly: false,
+    maxPositionAttempts: 24,
+    maxStops: MAX_ROUTE_STOPS,
+    maxStopsByBand: bandMaximumStops(pool, mandatory, MAX_ROUTE_STOPS),
+  };
+  const expanded = insertFeasibleCandidates(mandatory, pool, densePass);
   const optimized = improveWithLocalSearch(expanded, config);
   const finalOrder = reduceCoverageDetours(optimized, config);
-  const plan = planOrder(finalOrder, config);
-  if (!plan) throw new Error('No route ordering satisfies the local Christmas window, speed limits, separation, and return deadline');
-  return plan.places;
+  return planOrder(finalOrder, config)?.places;
+}
+
+/** Greedy time-stepped midnight sweep followed by constrained 2-opt/or-opt improvements. */
+export function sweepOrder(places: Candidate[], config: GeneratorConfig = DEFAULT_GENERATOR_LIMITS): Candidate[] {
+  if (places.length === 0) throw new Error('Cannot order an empty route');
+  places.forEach(requiredSnapshotOffset);
+  const mandatoryRoute = planMandatoryRoute(places, config);
+  if (mandatoryRoute) {
+    const expanded = expandMandatoryRoute(mandatoryRoute, places, config);
+    if (expanded) return expanded;
+  }
+  const mandatory = greedyCoverageRoute(places, config);
+  const route = expandGreedyCoverageRoute(mandatory, places, config);
+  if (!route) throw new Error('No route ordering satisfies the local Christmas window, speed limits, separation, and return deadline');
+  return route;
 }
 
 export function hasFeasibleTiming(order: Candidate[], config: GeneratorConfig = DEFAULT_GENERATOR_LIMITS): boolean {

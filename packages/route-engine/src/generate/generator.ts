@@ -237,8 +237,7 @@ function endNode(last: Candidate, priorDeparture: number, config: GeneratorConfi
   };
 }
 
-function buildDocument(places: Candidate[], config: GeneratorConfig, tables?: TimezoneTables): { document: GeneratedRoute['document']; route: Route; coordinates: Map<string, LatLng>; routeEndUtc: string } {
-  const takeoff = Date.parse(TAKEOFF_UTC);
+function displayNamesFor(places: Candidate[], tables?: TimezoneTables): Map<string, string> {
   const namesByLabel = new Map<string, Candidate[]>();
   for (const place of places) {
     const candidates = namesByLabel.get(place.name) ?? [];
@@ -257,10 +256,15 @@ function buildDocument(places: Candidate[], config: GeneratorConfig, tables?: Ti
       displayNames.set(place.id, `${name} (${suffix})`);
     }
   }
+  return displayNames;
+}
+
+function buildDeliveryNodes(places: Candidate[], config: GeneratorConfig, tables: TimezoneTables | undefined,
+  displayNames: Map<string, string>): { routeNodes: Record<string, unknown>[]; stops: Route['stops']; coordinates: Map<string, LatLng>; priorDeparture: number } {
   const routeNodes: Record<string, unknown>[] = [startNode()];
   const stops: Route['stops'] = [];
   const coordinates = new Map<string, LatLng>();
-  let priorDeparture = takeoff;
+  let priorDeparture = Date.parse(TAKEOFF_UTC);
   let priorLocation: Candidate | LatLng = NORTH_POLE;
   for (const [index, place] of places.entries()) {
     const result = buildDeliveryNode({ place, displayName: displayNames.get(place.id) ?? place.name, index, config, tables, priorLocation });
@@ -270,18 +274,22 @@ function buildDocument(places: Candidate[], config: GeneratorConfig, tables?: Ti
     priorDeparture = Date.parse(result.stop.departureIso);
     priorLocation = place;
   }
+  return { routeNodes, stops, coordinates, priorDeparture };
+}
 
+function buildDocument(places: Candidate[], config: GeneratorConfig, tables?: TimezoneTables): { document: GeneratedRoute['document']; route: Route; coordinates: Map<string, LatLng>; routeEndUtc: string } {
   const last = places.at(-1);
   if (!last) throw new Error('Cannot build an empty route');
-  const ending = endNode(last, priorDeparture, config);
-  routeNodes.push(ending.node);
-  const route = { schemaVersion: SCHEMA_VERSION, season: 2026, stops } as Route;
+  const deliveries = buildDeliveryNodes(places, config, tables, displayNamesFor(places, tables));
+  const ending = endNode(last, deliveries.priorDeparture, config);
+  deliveries.routeNodes.push(ending.node);
+  const route = { schemaVersion: SCHEMA_VERSION, season: 2026, stops: deliveries.stops } as Route;
   const document = {
     meta: { year: 2026, route_version: '2026-draft-1', generated_at: config.generatedAt },
-    route_nodes: routeNodes,
+    route_nodes: deliveries.routeNodes,
   };
   LegacyRouteFixtureSchema.parse(document);
-  return { document, route, coordinates, routeEndUtc: ending.routeEndUtc };
+  return { document, route, coordinates: deliveries.coordinates, routeEndUtc: ending.routeEndUtc };
 }
 
 function validateArrivalWindow(route: Route, places: Candidate[]): void {
