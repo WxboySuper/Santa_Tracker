@@ -45,7 +45,7 @@ for (const id of [...new Set(requested)]) {
   }
   const entityResult = qid ? await cachedJson('wikidata-' + qid, 'https://www.wikidata.org/wiki/Special:EntityData/' + qid + '.json') : null;
   const entity = entityResult?.entities?.[qid];
-  if (!entity && !candidate) throw new Error('Unknown candidate place ID: ' + id);
+  if (!entity) throw new Error('No Wikidata entity found for candidate place ID: ' + id);
   const title = entity?.sitelinks?.enwiki?.title ?? candidate?.name;
   let wikipedia = null;
   if (title) {
@@ -64,7 +64,9 @@ for (const id of [...new Set(requested)]) {
     const license = metadata.LicenseShortName?.value ?? '';
     const author = plainText(metadata.Artist?.value);
     const normalizedLicense = license.startsWith('CC0') ? 'CC0' : /public domain/i.test(license) ? 'Public domain' : /^CC BY-SA/.test(license) ? 'CC BY-SA' : /^CC BY/.test(license) ? 'CC BY' : null;
-    if (info && normalizedLicense && author && metadata.LicenseUrl?.value) photo = { url: info.thumburl ?? info.url, width: info.thumbwidth ?? info.width, height: info.thumbheight ?? info.height, author, license: normalizedLicense, license_url: metadata.LicenseUrl.value, source_page: 'https://commons.wikimedia.org/wiki/File:' + encodeURIComponent(commonsFile.replaceAll(' ', '_')) };
+    const licenseUrl = String(metadata.LicenseUrl?.value ?? '').replace(/^http:\/\//, 'https://');
+    const photoUrl = String(info?.thumburl ?? info?.url ?? '').replace(/^http:\/\//, 'https://');
+    if (info && normalizedLicense && author && licenseUrl.startsWith('https://') && photoUrl.startsWith('https://')) photo = { url: photoUrl, width: info.thumbwidth ?? info.width, height: info.thumbheight ?? info.height, author, license: normalizedLicense, license_url: licenseUrl, source_page: 'https://commons.wikimedia.org/wiki/File:' + encodeURIComponent(commonsFile.replaceAll(' ', '_')) };
   }
   const pages = Object.values(wikipedia?.query?.pages ?? {});
   const page = pages[0];
@@ -72,7 +74,7 @@ for (const id of [...new Set(requested)]) {
   const wikidataSource = qid ? 'https://www.wikidata.org/wiki/' + qid : null;
   const sources = [wikidataSource, page?.fullurl, candidate?.source].filter((source) => typeof source === 'string' && source.startsWith('https://'));
   if (!sources.length) throw new Error('No verified HTTPS source found for candidate place ID: ' + id);
-  const draft = { place_id: id, country: candidate?.country ?? entity?.claims?.P17?.[0]?.mainsnak?.datavalue?.value?.id ?? null, label: entity?.labels?.en?.value ?? candidate?.name ?? id, description: entity?.descriptions?.en?.value ?? null, wikipedia_extract: page?.extract ?? null, wikipedia_source: page?.fullurl ?? null, wikidata_source: wikidataSource, notable_award_qids: facts, photo, note: null, topic_key: null, sources, review_status: 'draft' };
+  const draft = { place_id: id, country: candidate.country, label: entity.labels?.en?.value ?? candidate.name ?? id, description: entity.descriptions?.en?.value ?? null, wikipedia_extract: page?.extract ?? null, wikipedia_source: page?.fullurl ?? null, wikidata_source: wikidataSource, notable_award_qids: facts, photo, note: null, topic_key: null, sources, review_status: 'draft' };
   await writeFile(resolve(output, id + '.json'), JSON.stringify(draft, null, 2) + '\n');
 }
 console.log('Wrote ' + new Set(requested).size + ' research drafts to ' + output);
