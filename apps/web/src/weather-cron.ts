@@ -1,5 +1,5 @@
 import { loadRouteNodesRaw } from "./lib/locations";
-import { refreshWeather } from "./lib/weather-refresh";
+import { isWeatherRefreshOpen, refreshWeather } from "./lib/weather-refresh";
 import { WeatherFallbackBudget } from "./lib/weather-budget";
 import type { WeatherKV } from "./lib/weather";
 
@@ -17,7 +17,7 @@ export default {
     return limiter.fetch("https://weather-budget/consume", { method: "POST" });
   },
   async scheduled(event: { scheduledTime: number }, env: CronEnv): Promise<void> {
-    if (env.WEATHER_ENABLED === "false") return;
+    if (env.WEATHER_ENABLED === "false" || !isWeatherRefreshOpen(event.scheduledTime)) return;
     const route = await loadRouteNodesRaw();
     const limiter = env.WEATHER_FALLBACK_BUDGET.get(env.WEATHER_FALLBACK_BUDGET.idFromName("global"));
     const provider = async (input: RequestInfo | URL, init?: RequestInit) => {

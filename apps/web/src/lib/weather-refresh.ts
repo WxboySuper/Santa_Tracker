@@ -21,7 +21,9 @@ export function weatherRoutePoints(route: RouteNode[], now: number): WeatherPoin
     index,
     at: Date.parse(node.schedule?.arrival_utc ?? node.schedule?.departure_utc ?? ""),
   })).filter(entry => Number.isFinite(entry.at));
-  const current = scheduled.filter(entry => entry.at <= now).at(-1) ?? scheduled[0];
+  const current = scheduled.reduce<typeof scheduled[number] | undefined>((latest, entry) =>
+    entry.at <= now && (!latest || entry.at > latest.at) ? entry : latest,
+  undefined) ?? scheduled[0];
   const upcoming = scheduled.filter(entry => entry.at >= now && entry.at <= now + WEATHER_LOOKAHEAD_MS);
   const selected = [...(current ? [current] : []), ...upcoming].map(entry => entry.node.location);
   return [...new Map(selected.map(point => {
