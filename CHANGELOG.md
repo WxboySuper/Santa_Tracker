@@ -4,7 +4,20 @@
 
 - **Scheduled weather refresh:** Adds a 15-minute Worker cron that runs from 30 minutes before takeoff through the 26-hour flight and replay window. It reads the active route, fetches upcoming and current stop weather in batches of at most 50 cells, and stores results in shared KV for 30 minutes.
 - **Global provider limit:** `/api/weather` checks shared KV first. Both cron and request-time provider calls pass through one Durable Object budget capped at 900 per UTC day and 300 per minute. Missing data returns `null` when the budget or bindings are unavailable.
-- **Emergency switch and setup:** `WEATHER_ENABLED=false` disables both cron refresh and the endpoint. The launch runbook documents KV provisioning and the config ID update required before deployment.
+- **Emergency switch and setup:** `WEATHER_ENABLED=false` disables both cron refresh and the endpoint. The launch runbook documents KV provisioning and the GitHub repository variable required before deployment.
+
+## [Unreleased] - Representative city stop cards batch 1
+
+- **Candidate coverage:** Adds draft cards for the top 100 country or territory candidates by population, keyed to stable generator place IDs.
+- **Research quality:** Adds original, source-linked cultural notes and permissively licensed landscape photos where matching attribution metadata is available; unsupported notes remain null.
+- **Research matching:** Audits Wikidata entities against candidate coordinates and retains only supported source and photo metadata.
+- **Topic uniqueness:** Keeps country/topic duplicates subject to the per-card exemption rule.
+
+## [Unreleased] - Source-backed stop card contract (#260)
+
+- **Card schema:** Defines stable place IDs, concise sourced notes, unique topic keys, review status, and fully attributed permissive-license photos.
+- **Validation:** Adds CI checks for missing sources, repeated place IDs or topics, near-duplicate notes, and unlicensed or unattributed photos.
+- **Research tooling:** Adds a cached, rate-limited research script for Wikidata entities, Wikipedia summaries, and Wikimedia Commons image license metadata.
 
 ## [Unreleased] - Advent fallback library and takedown lock (#270, #421)
 
@@ -23,7 +36,6 @@
 - **Weather endpoint:** Adds `GET /api/weather?lat={latitude}&lon={longitude}` with Celsius and Fahrenheit temperatures, the provider's numeric weather code, and a short label.
 - **Caching and failure handling:** Rounds coordinates to a 0.25 degree grid, caches at the edge for 12 minutes, times out provider calls, and returns `null` when weather is unavailable.
 - **Provider terms:** Uses Open-Meteo. Its no-key free endpoint permits non-commercial use within published rate limits; weather data is CC BY 4.0 and requires attribution. Commercial use needs a paid plan. See https://open-meteo.com/en/terms.
-
 ## [Unreleased] - Cross-browser readiness matrix (#324)
 
 - **Opt-in Playwright profiles:** Adds open and closed fixture runs for Firefox and WebKit desktop, iPhone 13, Pixel 5, and iPad emulation, a 3840x2160 desktop viewport, and a 740x360 landscape phone viewport. The default project set stays unchanged.
