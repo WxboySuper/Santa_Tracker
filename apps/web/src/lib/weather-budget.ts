@@ -45,5 +45,15 @@ export class WeatherFallbackBudget {
       if (key.slice("day:".length) < new Date(now).toISOString().slice(0, 10)) expired.push(key);
     }
     if (expired.length) await this.state.storage.delete(expired);
+
+    const remainingMinutes = [...keys.keys()].filter(key => !expired.includes(key));
+    const cleanupTimes = remainingMinutes
+      .map(key => (Number(key.slice("minute:".length)) + 2) * 60_000)
+      .filter(timestamp => Number.isFinite(timestamp) && timestamp > now);
+    const currentDayKey = `day:${new Date(now).toISOString().slice(0, 10)}`;
+    if (daily.has(currentDayKey) && !expired.includes(currentDayKey)) {
+      cleanupTimes.push(Date.parse(`${currentDayKey.slice("day:".length)}T00:00:00.000Z`) + 24 * 60 * 60_000);
+    }
+    if (cleanupTimes.length) await this.state.storage.setAlarm(Math.min(...cleanupTimes));
   }
 }

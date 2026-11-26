@@ -17,6 +17,7 @@ describe("global weather provider budget", () => {
       delete(keys: string[]): Promise<void>;
     };
     let transactions = 0;
+    let alarmAt: number | null = null;
     let transactionQueue = Promise.resolve();
     const storage: TestStorage = {
       get: async (key: string) => values.get(key),
@@ -27,8 +28,8 @@ describe("global weather provider budget", () => {
         transactionQueue = result.then(() => undefined, () => undefined);
         return result;
       },
-      getAlarm: async () => null,
-      setAlarm: async () => undefined,
+      getAlarm: async () => alarmAt,
+      setAlarm: async (timestamp: number) => { alarmAt = timestamp; },
       list: async ({ prefix }: { prefix: string }) => new Map([...values].filter(([key]) => key.startsWith(prefix))),
       delete: async (keys: string[]) => { for (const key of keys) values.delete(key); },
     };
@@ -40,6 +41,8 @@ describe("global weather provider budget", () => {
     expect(responses.filter(response => response.status === 204)).toHaveLength(900);
     expect(responses.at(-1)?.status).toBe(429);
     expect(transactions).toBe(901);
+    await budget.alarm();
+    expect(alarmAt).toBe((Math.floor(start / 60_000) + 4) * 60_000);
     vi.restoreAllMocks();
   });
 });

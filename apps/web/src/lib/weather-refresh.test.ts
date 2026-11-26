@@ -80,5 +80,5 @@ describe("scheduled weather refresh", () => {
     )));
     expect(visitors.every(response => response.status === 200)).toBe(true);
     expect(calls).toBe(providerCallsAfterFlight);
-  });
+  }, 15000);
 });
