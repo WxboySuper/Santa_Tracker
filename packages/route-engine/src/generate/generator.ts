@@ -61,7 +61,7 @@ function isSupportedIanaTimezone(timezone: string): boolean {
 
 function validateCandidateIanaTimezone(place: Candidate, overrides: RouteOverrides): Candidate {
   if (isSupportedIanaTimezone(place.timezone)) return place;
-  if (overrides.timezone?.[place.id]) throw new InvalidCandidateTimezoneError(`Invalid IANA timezone override for ${place.name}: ${place.timezone}`);
+  if (overrides.timezone?.[place.id]) throw new Error(`Invalid IANA timezone override for ${place.name}: ${place.timezone}`);
   throw new InvalidCandidateTimezoneError(`Invalid candidate IANA time zone: ${place.name} (${place.timezone})`);
 }
 
@@ -79,7 +79,9 @@ function requireSnapshotOffset(place: Candidate): Candidate {
 }
 
 function timezoneForMismatch(place: Candidate, overrides: RouteOverrides, tables: TimezoneTables): Candidate {
-  if (overrides.timezone?.[place.id]) throw timezoneCountryError(place);
+  if (overrides.timezone?.[place.id]) {
+    throw new Error(`Timezone override ${place.timezone} for ${place.name} does not belong to country ${place.country}`);
+  }
   return nearestCountryTimezone(place, tables);
 }
 

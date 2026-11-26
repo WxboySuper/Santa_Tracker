@@ -126,14 +126,22 @@ describe('generateRoute midnight sweep', () => {
     expect(generated.report.invalidCandidateIds).toEqual(['unrecoverable-zone']);
   });
 
-  it('reports an invalid timezone override and continues with valid candidates', () => {
+  it('fails fast for an invalid timezone override', () => {
     const tables = {
       zonesByCountry: { FJ: ['Pacific/Kiritimati'], WS: ['Pacific/Kiritimati'] },
       utcOffsetsByTimezone: { 'Pacific/Kiritimati': 840 },
     };
-    const generated = generateRoute(candidates.slice(0, 2), config, { timezone: { 'pacific-a': 'Not/A_Zone' } }, tables);
-    expect(generated.report.invalidCandidateIds).toEqual(['pacific-a']);
-    expect(generated.locations.map((place) => place.id)).toEqual(['pacific-b']);
+    expect(() => generateRoute(candidates.slice(0, 2), config, { timezone: { 'pacific-a': 'Not/A_Zone' } }, tables))
+      .toThrow('Invalid IANA timezone override for Pacific A: Not/A_Zone');
+  });
+
+  it('fails fast when a timezone override does not match its country', () => {
+    const tables = {
+      zonesByCountry: { FJ: ['Pacific/Kiritimati'], WS: ['Pacific/Apia'] },
+      utcOffsetsByTimezone: { 'Pacific/Kiritimati': 840, 'Pacific/Apia': 780 },
+    };
+    expect(() => generateRoute(candidates.slice(0, 2), config, { timezone: { 'pacific-a': 'America/New_York' } }, tables))
+      .toThrow('Timezone override America/New_York for Pacific A does not belong to country FJ');
   });
 
   it('recovers a missing UTC offset before candidate validation when timezone tables can resolve it', () => {
