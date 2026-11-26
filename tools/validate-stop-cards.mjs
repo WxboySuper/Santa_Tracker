@@ -13,7 +13,8 @@ const photoKeys = new Set(['url', 'width', 'height', 'author', 'license', 'licen
 const extraKeys = (value, allowed) => Object.keys(value).filter((key) => !allowed.has(key));
 /** An absolute https:// URL with a host, as the schema's format: uri plus ^https:// requires. */
 function isHttpsUrl(value) {
-  if (typeof value !== 'string') return false;
+  // No surrounding or embedded whitespace: new URL() would quietly trim it, but the schema pattern rejects it.
+  if (typeof value !== 'string' || /\s/.test(value)) return false;
   try {
     const url = new URL(value);
     return url.protocol === 'https:' && url.hostname.length > 0;

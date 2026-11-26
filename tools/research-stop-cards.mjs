@@ -1,4 +1,5 @@
 import { access, mkdir, readFile, writeFile } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
 import { resolve } from 'node:path';
 import { permissiveLicense } from './stop-card-license.mjs';
 
@@ -32,8 +33,9 @@ function plainText(value) {
   return text.replace(/\s+/g, ' ').trim();
 }
 
-async function cachedJson(key, url) {
-  const path = resolve(cacheDir, key + '.json');
+/** Responses are cached by the exact request URL, so a changed query, file or title never reuses a stale answer. */
+async function cachedJson(url) {
+  const path = resolve(cacheDir, createHash('sha256').update(String(url)).digest('hex') + '.json');
   try { return JSON.parse(await readFile(path, 'utf8')); } catch { /* Cache miss */ }
   const response = await fetch(url, { headers: { 'User-Agent': userAgent, Accept: 'application/json' } });
   if (!response.ok) throw new Error('Research API returned ' + response.status + ' for ' + url);
@@ -60,7 +62,7 @@ function distanceKm(lat1, lng1, lat2, lng2) {
 async function entityFor(qid) {
   // The id becomes a cache file name and a URL path, so accept only a Wikidata item id.
   if (!wikidataId.test(String(qid))) throw new Error('Invalid Wikidata entity id ' + qid);
-  const result = await cachedJson('wikidata-' + qid, 'https://www.wikidata.org/wiki/Special:EntityData/' + qid + '.json');
+  const result = await cachedJson('https://www.wikidata.org/wiki/Special:EntityData/' + qid + '.json');
   return result.entities?.[qid] ?? null;
 }
 
@@ -76,10 +78,10 @@ function nearCandidate(entity, candidate) {
   return distanceKm(candidate.lat, candidate.lng, coordinate.latitude, coordinate.longitude) <= MATCH_RADIUS_KM;
 }
 
-async function searchHits(id, name) {
+async function searchHits(name) {
   const search = new URL('https://www.wikidata.org/w/api.php');
   search.search = new URLSearchParams({ action: 'wbsearchentities', format: 'json', language: 'en', limit: '10', search: name }).toString();
-  const matches = await cachedJson('wikidata-search-' + id, search);
+  const matches = await cachedJson(search);
   const wanted = String(name).toLocaleLowerCase('en');
   return (matches.search ?? []).filter((hit) => wikidataId.test(String(hit.id)) && String(hit.label ?? '').toLocaleLowerCase('en') === wanted);
 }
@@ -92,7 +94,7 @@ async function searchHits(id, name) {
 async function resolveEntity(id, candidate) {
   const recorded = recordedQid(id, candidate);
   if (recorded) return { qid: recorded, entity: await entityFor(recorded) };
-  for (const hit of await searchHits(id, candidate.name)) {
+  for (const hit of await searchHits(candidate.name)) {
     const entity = await entityFor(hit.id);
     if (nearCandidate(entity, candidate)) return { qid: hit.id, entity };
   }
@@ -125,22 +127,22 @@ function publishable(photo) {
   return checks.every(Boolean);
 }
 
-async function commonsPhoto(id, entity) {
+async function commonsPhoto(entity) {
   const commonsFile = firstClaim(entity, 'P18');
   if (!commonsFile) return null;
   const params = new URLSearchParams({ action: 'query', format: 'json', prop: 'imageinfo', iiprop: 'url|size|extmetadata', titles: 'File:' + commonsFile });
-  const result = await cachedJson('commons-' + id, 'https://commons.wikimedia.org/w/api.php?' + params);
+  const result = await cachedJson('https://commons.wikimedia.org/w/api.php?' + params);
   const info = Object.values(result.query?.pages ?? {})[0]?.imageinfo?.[0];
   if (!info) return null;
   const photo = photoFields(info, commonsFile);
   return publishable(photo) ? photo : null;
 }
 
-async function wikipediaPage(id, title) {
+async function wikipediaPage(title) {
   if (!title) return undefined;
   const url = new URL('https://en.wikipedia.org/w/api.php');
   url.search = new URLSearchParams({ action: 'query', format: 'json', prop: 'extracts|info', exintro: '1', explaintext: '1', inprop: 'url', titles: title }).toString();
-  const result = await cachedJson('wikipedia-' + id, url);
+  const result = await cachedJson(url);
   return Object.values(result.query?.pages ?? {})[0];
 }
 
@@ -156,22 +158,24 @@ function pageText(page = {}) {
   return { wikipedia_extract: page.extract ?? null, wikipedia_source: page.fullurl ?? null };
 }
 
+/**
+ * A research draft has two parts. `card` holds exactly the fields content/stop-cards.json accepts, so a curator writes
+ * the note and topic and copies it across as is. `research` holds the material the note is written from, never published.
+ */
 function buildDraft({ id, candidate, match, page, photo }) {
   const wikidataSource = 'https://www.wikidata.org/wiki/' + match.qid;
   const text = pageText(page);
-  return {
+  const card = {
     place_id: id,
     country: candidate.country,
-    ...entityText(match.entity, candidate),
-    ...text,
-    wikidata_source: wikidataSource,
-    notable_award_qids: awardIds(match.entity),
-    photo,
     note: null,
-    topic_key: null,
     sources: [wikidataSource, text.wikipedia_source, candidate.source].filter(isHttps),
+    topic_key: null,
+    photo,
     review_status: 'draft',
   };
+  const research = { ...entityText(match.entity, candidate), ...text, wikidata_source: wikidataSource, notable_award_qids: awardIds(match.entity) };
+  return { card, research };
 }
 
 async function researchPlace(id) {
@@ -182,8 +186,9 @@ async function researchPlace(id) {
   if (!force && await exists(target)) return 'kept';
   const match = await resolveEntity(id, candidate);
   if (!match.entity) throw new Error('no Wikidata entity found');
-  const page = await wikipediaPage(id, match.entity.sitelinks?.enwiki?.title ?? candidate.name);
-  const photo = await commonsPhoto(id, match.entity);
+  // Only the article the verified Wikidata item links to: a bare name search could land on a different place.
+  const page = await wikipediaPage(match.entity.sitelinks?.enwiki?.title);
+  const photo = await commonsPhoto(match.entity);
   await writeFile(target, JSON.stringify(buildDraft({ id, candidate, match, page, photo }), null, 2) + '\n');
   return 'written';
 }
