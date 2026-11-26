@@ -1,12 +1,18 @@
+import { writeSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
+
+/** Report a fatal problem and stop. The write is synchronous so the message is never cut off by the exit. */
+function fail(message) {
+  writeSync(2, `Stop card validation failed:\n- ${message}\n`);
+  process.exit(1);
+}
 
 const dataPath = process.argv[2] ?? new URL('../content/stop-cards.json', import.meta.url);
 let cards;
 try {
   cards = JSON.parse(await readFile(dataPath, 'utf8'));
 } catch (error) {
-  process.stderr.write(`Stop card validation failed:\n- could not load ${String(dataPath)}: ${error.message}\n`);
-  process.exit(1);
+  fail(`could not load ${String(dataPath)}: ${error.message}`);
 }
 const cardKeys = new Set(['place_id', 'country', 'note', 'sources', 'topic_key', 'photo', 'review_status', 'allow_duplicate_topic']);
 const photoKeys = new Set(['url', 'width', 'height', 'author', 'license', 'license_url', 'source_page']);
@@ -33,8 +39,7 @@ function similarity(left, right) {
   return shared / (a.size + b.size - shared);
 }
 if (!Array.isArray(cards)) {
-  process.stderr.write('Stop card validation failed:\n- stop cards must be a JSON array\n');
-  process.exit(1);
+  fail('stop cards must be a JSON array');
 }
 const placeIds = new Set(); const topics = new Map();
 for (const [index, card] of cards.entries()) {
@@ -51,7 +56,7 @@ for (const [index, card] of cards.entries()) {
   if (card.topic_key !== null && (typeof card.topic_key !== 'string' || !/^[a-z0-9][a-z0-9._-]*$/.test(card.topic_key))) errors.push(prefix + ': topic_key must use lowercase letters, digits, dots, dashes, or underscores');
   if (card.note !== null && (typeof card.topic_key !== 'string' || !/^[a-z0-9][a-z0-9._-]*$/.test(card.topic_key))) errors.push(prefix + ': a note requires a valid topic_key');
   if (typeof card.note === 'string') {
-    for (let prior = 0; prior < index; prior++) if (typeof cards[prior].note === 'string' && similarity(card.note, cards[prior].note) >= 0.72) errors.push(prefix + ': note duplicates or closely matches cards[' + prior + ']');
+    for (let prior = 0; prior < index; prior++) if (typeof cards[prior]?.note === 'string' && similarity(card.note, cards[prior].note) >= 0.72) errors.push(prefix + ': note duplicates or closely matches cards[' + prior + ']');
   }
   // Topic keys are unique per country whether or not the note is written yet. The first holder of a key keeps it.
   for (const key of extraKeys(card, cardKeys)) errors.push(prefix + ': unknown field ' + key);
