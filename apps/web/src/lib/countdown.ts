@@ -9,7 +9,7 @@ const SECOND_MS = 1_000;
  */
 export const FLIGHT_WINDOW_MS = 26 * HOUR_MS;
 
-function takeoffForYear(year: number): number {
+export function takeoffForYear(year: number): number {
   return Date.UTC(year, 11, 24, 10, 0, 0);
 }
 
