@@ -14,6 +14,13 @@ export interface VersionedStoreBackend {
   list(prefix: string): Promise<string[]>;
 }
 
+interface ActivationRequest {
+  dataset: string;
+  versionId: string;
+  action: ActivationAuditEntry["action"];
+  details: Omit<ActivationAuditEntry, "versionId" | "previousVersionId" | "at" | "action">;
+}
+
 function activeKey(dataset: string): string {
   return `${dataset}/active.json`;
 }
@@ -42,12 +49,7 @@ export function createVersionedSnapshotStore(backend: VersionedStoreBackend): Ve
     return match ? `${match[1]}:${match[2]}:${match[3]}.${match[4]}Z` : versionId;
   }
 
-  async function activate(
-    dataset: string,
-    versionId: string,
-    action: ActivationAuditEntry["action"],
-    details: Omit<ActivationAuditEntry, "versionId" | "previousVersionId" | "at" | "action">,
-  ): Promise<void> {
+  async function activate({ dataset, versionId, action, details }: ActivationRequest): Promise<void> {
     const body = await backend.read(versionKey(dataset, versionId));
     if (body === null) throw new Error(`Unknown version ${versionId} for ${dataset}`);
     const current = await readPointer(dataset);
@@ -96,7 +98,7 @@ export function createVersionedSnapshotStore(backend: VersionedStoreBackend): Ve
     },
 
     async activateVersion(dataset, versionId, details = { actor: "system", reason: "Version activated", checksum: "" }) {
-      await activate(dataset, versionId, "activate", details);
+      await activate({ dataset, versionId, action: "activate", details });
     },
 
     async rollback(dataset, details = { actor: "system", reason: "Rollback to previous version", checksum: "" }) {
@@ -109,9 +111,10 @@ export function createVersionedSnapshotStore(backend: VersionedStoreBackend): Ve
         .sort()
         .reverse();
       const idx = versionIds.indexOf(current.versionId);
-      const previousId = idx >= 0 ? versionIds[idx + 1] : versionIds[1];
+      if (idx < 0) throw new Error(`Active version ${current.versionId} is missing for ${dataset}`);
+      const previousId = versionIds[idx + 1];
       if (!previousId) throw new Error(`No prior version to roll back for ${dataset}`);
-      await activate(dataset, previousId, "rollback", details);
+      await activate({ dataset, versionId: previousId, action: "rollback", details });
       return { versionId: previousId, createdAt: createdAtFromVersionId(previousId) };
     },
 

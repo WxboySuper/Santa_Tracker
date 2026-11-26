@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { validateRouteSnapshot } from "./route-snapshot-release";
+import { isSafeVersionId } from "./route-snapshot-admin";
 
 const validRoute = JSON.stringify({
   meta: { year: 2026, route_version: "test", generated_at: "2026-11-01T00:00:00Z" },
@@ -14,6 +15,12 @@ const validRoute = JSON.stringify({
 });
 
 describe("route snapshot validation", () => {
+  it("rejects path-like snapshot ids at the API boundary", () => {
+    expect(isSafeVersionId("2026-11-26T16-09-48-123Z-a1b2c3d4")).toBe(true);
+    expect(isSafeVersionId("../active")).toBe(false);
+    expect(isSafeVersionId("..\\active")).toBe(false);
+    expect(isSafeVersionId("santa-route/versions/secret")).toBe(false);
+  });
   it("returns route season, schema, and a stable content checksum", async () => {
     const result = await validateRouteSnapshot(validRoute);
     expect(result).toMatchObject({ valid: true, issueCount: 0, schema: "legacy-route-v1", season: 2026 });

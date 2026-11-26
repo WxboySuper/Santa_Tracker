@@ -62,4 +62,12 @@ describe("versioned snapshot store", () => {
       Date.parse(versions[1]?.createdAt ?? ""),
     );
   });
+
+  it("refuses rollback when the active pointer references no listed version", async () => {
+    const backend = createFilesystemBackend(root);
+    const store = createVersionedSnapshotStore(backend);
+    await store.saveNewVersion("santa-route", JSON.stringify({ v: 1 }));
+    await backend.write("santa-route/active.json", JSON.stringify({ versionId: "missing-version", updatedAt: "2026-01-01T00:00:00.000Z" }));
+    await expect(store.rollback("santa-route")).rejects.toThrow("Active version missing-version is missing");
+  });
 });
