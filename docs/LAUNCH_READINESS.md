@@ -45,7 +45,8 @@ See the [November 2026 browser and accessibility matrix](qa/browser-matrix-2026-
 
 | When | Check |
 | --- | --- |
-| By Nov 25 | Route approved and activated; emergency switch and rollback runbook done and rehearsed. |
+| By Nov 25 | Emergency switch and rollback runbook done and rehearsed. |
+| Dec 5, 18:00 UTC | Route freeze: route approved and activated (see [freeze gates](FREEZE_GATES.md)). |
 | Nov 29 | Dry run: admin sees `/advent` and every day; visitors still get `404`. Smoke test green. |
 | Nov 30 00:00 UTC | Advent window opens. Check `/advent` as a visitor within 10 minutes. |
 | Dec 1 12:00 UTC | Day 1 unlocks. Check the door on a phone. |

@@ -1,5 +1,10 @@
 # Changelog — per-PR exhaustive (enforced in CI)
 
+## [Unreleased] - Route freeze moved to Dec 5 (#321)
+
+- **Freeze gates:** Records the owner's 2026-11-26 decision to move the route freeze from Nov 25 to Dec 5, 18:00 UTC. The other gates are unchanged.
+- **Launch readiness:** Moves route approval and activation in the dates table to the Dec 5 freeze.
+
 ## [Unreleased] - Current stop weather API (#320)
 
 - **Weather endpoint:** Adds `GET /api/weather?lat={latitude}&lon={longitude}` with Celsius and Fahrenheit temperatures, the provider's numeric weather code, and a short label.
