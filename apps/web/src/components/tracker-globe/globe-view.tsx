@@ -32,6 +32,19 @@ function globeAdapter(globe: GlobeHandle): TrackerMapAdapter {
 }
 
 /** The 3D globe layout's map surface. Falls back to the flat map when WebGL is unavailable. */
+const TURN = 0.12;
+/** Arrow keys turn the globe and plus/minus zoom, matching the map's keyboard instructions. */
+const GLOBE_KEYS: Record<string, { east?: number; north?: number; zoom?: number }> = {
+  ArrowLeft: { east: -TURN },
+  ArrowRight: { east: TURN },
+  ArrowUp: { north: TURN },
+  ArrowDown: { north: -TURN },
+  "+": { zoom: 0.85 },
+  "=": { zoom: 0.85 },
+  "-": { zoom: 1.18 },
+  _: { zoom: 1.18 },
+};
+
 export function GlobeView({ nodes, position, adapter, label, onStopFollowing, onUnavailable }: GlobeViewProps) {
   const canvas = useRef<HTMLCanvasElement>(null);
   const globe = useRef<GlobeHandle | null>(null);
@@ -57,5 +70,18 @@ export function GlobeView({ nodes, position, adapter, label, onStopFollowing, on
   useEffect(() => { globe.current?.setRoute(nodes); }, [nodes]);
   useEffect(() => { globe.current?.setPosition(position, trackerNow()); }, [position]);
 
-  return <canvas ref={canvas} className="tt-globe" role="img" aria-label={label} />;
+  return <canvas
+    ref={canvas}
+    className="tt-globe"
+    role="application"
+    aria-label={label}
+    aria-describedby="map-instructions"
+    tabIndex={0}
+    onKeyDown={event => {
+      const step = GLOBE_KEYS[event.key];
+      if (!step || !globe.current) return;
+      event.preventDefault();
+      globe.current.nudge(step);
+    }}
+  />;
 }

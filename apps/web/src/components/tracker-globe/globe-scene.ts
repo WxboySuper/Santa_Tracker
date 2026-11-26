@@ -126,6 +126,8 @@ export interface GlobeHandle {
   setPosition(position: SantaPosition | null, now: Date): void;
   follow(): void;
   visitPole(): void;
+  /** Keyboard control: turn the globe by a step east/west and north/south, and zoom in or out (factor below 1 zooms in). */
+  nudge(step: { east?: number; north?: number; zoom?: number }): void;
   dispose(): void;
 }
 
@@ -305,6 +307,15 @@ export function createGlobe(canvas: HTMLCanvasElement, theme: TrackerTheme, onSt
     visitPole() {
       stopFollowing();
       camera.position.set(0, 2.2, 0.9);
+    },
+    nudge({ east = 0, north = 0, zoom = 1 }) {
+      stopFollowing();
+      const spherical = new THREE.Spherical().setFromVector3(camera.position.clone().sub(controls.target));
+      spherical.theta -= east;
+      spherical.phi = THREE.MathUtils.clamp(spherical.phi - north, 0.05, Math.PI - 0.05);
+      spherical.radius = THREE.MathUtils.clamp(spherical.radius * zoom, controls.minDistance, controls.maxDistance);
+      camera.position.setFromSpherical(spherical).add(controls.target);
+      controls.update();
     },
     dispose() {
       disposed = true;
