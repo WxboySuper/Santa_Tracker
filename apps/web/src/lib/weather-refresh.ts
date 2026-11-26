@@ -17,7 +17,9 @@ export function weatherRoutePoints(route: RouteNode[], now: number): WeatherPoin
     entry.at <= now && (!latest || entry.at > latest.at) ? entry : latest,
   undefined) ?? scheduled[0];
   const upcoming = scheduled.filter(entry => entry.at >= now && entry.at <= now + WEATHER_LOOKAHEAD_MS);
-  const selected = [...(current ? [current] : []), ...upcoming].map(entry => entry.node.location);
+  const selected = [...(current ? [current] : []), ...upcoming].map(entry => entry.node.location)
+    .filter(point => Number.isFinite(point.lat) && Number.isFinite(point.lng)
+      && point.lat >= -90 && point.lat <= 90 && point.lng >= -180 && point.lng <= 180);
   return [...new Map(selected.map(point => {
     const normalized = { lat: point.lat, lon: point.lng };
     return [weatherCellKey(normalized), normalized] as const;

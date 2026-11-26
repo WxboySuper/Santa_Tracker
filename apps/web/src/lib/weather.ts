@@ -83,7 +83,9 @@ async function fetchWeatherBatches(
   return results;
 }
 function getUniqueWeatherPoints(points: WeatherPoint[]): [string, WeatherPoint][] {
-  return [...new Map(points.map(point => {
+  const validPoints = points.filter(point => Number.isFinite(point.lat) && Number.isFinite(point.lon)
+    && point.lat >= -90 && point.lat <= 90 && point.lon >= -180 && point.lon <= 180);
+  return [...new Map(validPoints.map(point => {
     const cell = rounded(point);
     return [weatherCellKey(cell), cell] as const;
   })).entries()];
