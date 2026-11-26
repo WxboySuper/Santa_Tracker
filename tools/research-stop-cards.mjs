@@ -12,6 +12,16 @@ const userAgent = 'SantaTrackerStopCardResearch/1.0 (candidate content research 
 await mkdir(cacheDir, { recursive: true });
 await mkdir(output, { recursive: true });
 const sleep = (ms) => new Promise((resolveSleep) => setTimeout(resolveSleep, ms));
+function plainText(value) {
+  let text = '';
+  let insideTag = false;
+  for (const character of String(value ?? '')) {
+    if (character === '<') { insideTag = true; continue; }
+    if (character === '>') { insideTag = false; continue; }
+    if (!insideTag) text += character;
+  }
+  return text.replace(/\s+/g, ' ').trim();
+}
 async function cachedJson(key, url) {
   const path = resolve(cacheDir, key + '.json');
   try { return JSON.parse(await readFile(path, 'utf8')); } catch { /* Cache miss */ }
@@ -50,7 +60,7 @@ for (const id of [...new Set(requested)]) {
     const info = page?.imageinfo?.[0];
     const metadata = info?.extmetadata ?? {};
     const license = metadata.LicenseShortName?.value ?? '';
-    const author = metadata.Artist?.value?.replace(/<[^>]+>/g, '').trim() ?? '';
+    const author = plainText(metadata.Artist?.value);
     const normalizedLicense = license.startsWith('CC0') ? 'CC0' : /public domain/i.test(license) ? 'Public domain' : /^CC BY-SA/.test(license) ? 'CC BY-SA' : /^CC BY/.test(license) ? 'CC BY' : null;
     if (info && normalizedLicense && author && metadata.LicenseUrl?.value) photo = { url: info.thumburl ?? info.url, width: info.thumbwidth ?? info.width, height: info.thumbheight ?? info.height, author, license: normalizedLicense, license_url: metadata.LicenseUrl.value, source_page: 'https://commons.wikimedia.org/wiki/File:' + encodeURIComponent(commonsFile.replaceAll(' ', '_')) };
   }
