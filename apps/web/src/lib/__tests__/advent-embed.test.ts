@@ -67,11 +67,11 @@ describe("renderDayContent: game", () => {
   });
 
   it("falls back instead of embedding an unsafe or missing URL", () => {
-    expect(render(day({ payload: { url: "https://evil.example/" } }))).toContain("FALLBACK");
-    expect(render(day({ payload: { url: "javascript:alert(1)" } }))).toContain("FALLBACK");
-    expect(render(day({ payload: {} }))).toContain("FALLBACK");
-    expect(render(day({ payload: undefined }))).toContain("FALLBACK");
-    expect(render(day({ payload: { url: "https://evil.example/" } }))).not.toContain("<iframe");
+    for (const payload of [{ url: "https://evil.example/" }, { url: "javascript:alert(1)" }, {}, undefined]) {
+      const html = render(day({ payload }));
+      expect(html).toContain("Secret message");
+      expect(html).not.toContain("<iframe");
+    }
   });
 });
 

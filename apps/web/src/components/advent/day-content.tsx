@@ -4,6 +4,8 @@ import { safeEmbedPath } from "@/lib/advent-ui";
 import { parseQuiz } from "@/lib/advent-quiz";
 import { AdventQuiz } from "./advent-quiz";
 import { renderActivity as dispatchActivity } from "./activities";
+import { getAdventFallbackActivity } from "./activities/fallback-activities";
+import { isAdventFallbacksEnabled } from "@/lib/config";
 
 type ContentType = AdventPublicDay["content_type"];
 type Renderer = (day: AdventPublicDay, locale: string) => ReactNode;
@@ -88,5 +90,11 @@ const renderers: Partial<Record<ContentType, Renderer>> = {
 
 /** The content for a day, or `fallback` when the type has no renderer or the payload is unusable. */
 export function renderDayContent(day: AdventPublicDay, fallback: ReactNode, locale = "en"): ReactNode {
-  return renderers[day.content_type]?.(day, locale) ?? fallback;
+  const rendered = renderers[day.content_type]?.(day, locale);
+  if (rendered !== null && rendered !== undefined) return rendered;
+  if (!isAdventFallbacksEnabled()) return fallback;
+  const activity = getAdventFallbackActivity(day.day);
+  return activity
+    ? dispatchActivity({ ...day, content_type: "activity", payload: activity }, fallback, locale)
+    : fallback;
 }

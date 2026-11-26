@@ -1,5 +1,11 @@
 # Changelog — per-PR exhaustive (enforced in CI)
 
+## [Unreleased] - Advent fallback library and takedown lock (#270, #421)
+
+- Added a day-specific fallback activity for all 24 Advent dates using the existing typed activity modules. The fallback flag is on by default and in the Cloudflare Worker config; authenticated previews expose fallback payloads only for unlocked days.
+- Documented the exceptional takedown procedure in launch readiness and clarified the API contract for live, preview, and archive reads.
+- Added tests for every day's fallback and for hiding a past takedown-locked day from live, preview, and archive reads.
+
 ## [Unreleased] - Cross-browser readiness matrix (#324)
 
 - **Opt-in Playwright profiles:** Adds open and closed fixture runs for Firefox and WebKit desktop, iPhone 13, Pixel 5, and iPad emulation, a 3840x2160 desktop viewport, and a 740x360 landscape phone viewport. The default project set stays unchanged.

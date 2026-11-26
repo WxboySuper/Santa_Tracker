@@ -26,6 +26,7 @@ export default defineConfig({
       // SECRET_KEY and ADMIN_PASSWORD are set separately with `wrangler secret put`.
       SANTA_STORAGE_BACKEND: bindings.text("r2"),
       ADVENT_ENABLED: bindings.text("true"),
+      ADVENT_FALLBACKS_ENABLED: bindings.text("true"),
     },
   }),
 });

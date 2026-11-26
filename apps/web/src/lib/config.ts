@@ -24,6 +24,10 @@ export function isAdventEnabled(): boolean {
   return process.env.ADVENT_ENABLED === "True" || process.env.ADVENT_ENABLED === "true";
 }
 
+export function isAdventFallbacksEnabled(): boolean {
+  return process.env.ADVENT_FALLBACKS_ENABLED !== "false";
+}
+
 export function getSantaRoutePath(): string {
   if (process.env.SANTA_ROUTE_PATH) return process.env.SANTA_ROUTE_PATH;
   return getDataPath("santa_route.json");

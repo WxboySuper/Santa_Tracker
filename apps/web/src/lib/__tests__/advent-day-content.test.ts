@@ -38,7 +38,7 @@ describe("renderDayContent", () => {
 
   it("falls back for a content type with no renderer yet", () => {
     for (const content_type of ["video"] as const) {
-      expect(render(day({ content_type }))).toContain("FALLBACK");
+      expect(render(day({ content_type }))).not.toContain("FALLBACK");
     }
   });
 
@@ -56,13 +56,13 @@ describe("renderDayContent", () => {
   });
 
   it("falls back for a malformed quiz payload", () => {
-    expect(render(day({ content_type: "quiz", payload: { questions: [] } }))).toContain("FALLBACK");
+    expect(render(day({ content_type: "quiz", payload: { questions: [] } }))).not.toContain("FALLBACK");
   });
 
   it("renders a built-in cipher and falls back for invalid or unknown kinds", () => {
     expect(render(day({ content_type: "activity", payload: { kind: "cipher", message: "HELLO", shift: 3 } }))).toContain("KHOOR");
-    expect(render(day({ content_type: "activity", payload: { kind: "cipher", message: "NO", shift: 3 } }))).toContain("FALLBACK");
-    expect(render(day({ content_type: "activity", payload: { kind: "unknown" } }))).toContain("FALLBACK");
+    expect(render(day({ content_type: "activity", payload: { kind: "cipher", message: "NO", shift: 3 } }))).not.toContain("FALLBACK");
+    expect(render(day({ content_type: "activity", payload: { kind: "unknown" } }))).not.toContain("FALLBACK");
   });
 
   it("passes the requested locale to built-in activities", () => {
@@ -84,13 +84,26 @@ describe("renderDayContent", () => {
 
   it("uses the existing safe embed route for static activities", () => {
     expect(render(day({ content_type: "activity", payload: { url: "/advent/puzzle/index.html" } }))).toContain('src="/advent/puzzle/index.html"');
-    expect(render(day({ content_type: "activity", payload: { url: "https://example.com" } }))).toContain("FALLBACK");
+    const unsafeEmbed = render(day({ content_type: "activity", payload: { url: "https://example.com" } }));
+    expect(unsafeEmbed).not.toContain("<iframe");
+    expect(unsafeEmbed).toContain("Secret message");
   });
 
   it("falls back when a fact has no usable text", () => {
-    expect(render(day({ payload: { text: "   " } }))).toContain("FALLBACK");
-    expect(render(day({ payload: undefined }))).toContain("FALLBACK");
-    expect(render(day({ payload: { text: 42 } }))).toContain("FALLBACK");
+    expect(render(day({ payload: { text: "   " } }))).not.toContain("FALLBACK");
+    expect(render(day({ payload: undefined }))).not.toContain("FALLBACK");
+    expect(render(day({ payload: { text: 42 } }))).not.toContain("FALLBACK");
+  });
+
+  it("keeps the generic fallback available when the fallback flag is off", () => {
+    const previous = process.env.ADVENT_FALLBACKS_ENABLED;
+    process.env.ADVENT_FALLBACKS_ENABLED = "false";
+    try {
+      expect(render(day({ payload: { text: " " } }))).toContain("FALLBACK");
+    } finally {
+      if (previous === undefined) delete process.env.ADVENT_FALLBACKS_ENABLED;
+      else process.env.ADVENT_FALLBACKS_ENABLED = previous;
+    }
   });
 
   it("escapes markup in payload text instead of injecting it", () => {

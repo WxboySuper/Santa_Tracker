@@ -20,6 +20,7 @@ bucket_name = "santa-tracker-snapshots"
 
 [vars]
 ADVENT_ENABLED = "true"
+ADVENT_FALLBACKS_ENABLED = "true"
 SANTA_STORAGE_BACKEND = "r2"
 # Set via `wrangler secret put`:
 # - SECRET_KEY

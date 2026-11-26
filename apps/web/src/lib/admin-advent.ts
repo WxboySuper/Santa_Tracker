@@ -13,6 +13,7 @@ import {
 } from "./advent";
 import { badRequest, isRecord, notFoundAwareError, type AdminApiResult } from "./admin-api";
 import { withWriteLock } from "./file-lock";
+import { getAdventFallbackActivity } from "@/components/advent/activities/fallback-activities";
 
 const NOT_FOUND_BODY = { error: "Advent calendar data not found" };
 const INVALID_DATA_MESSAGE = "Invalid data provided";
@@ -168,6 +169,7 @@ export async function previewAdminAdventDays(previewTime: Date): Promise<AdminAp
           });
           return {
             ...preview,
+            fallback_activity: isUnlockedAtPreviewTime ? getAdventFallbackActivity(day.day) : undefined,
             is_unlocked_at_preview_time: isUnlockedAtPreviewTime,
             is_unlocked_override: day.is_unlocked_override ?? null,
           };

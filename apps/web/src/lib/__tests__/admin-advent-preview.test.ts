@@ -37,10 +37,12 @@ describe("admin Advent preview", () => {
     expect(result.status).toBe(200);
     expect(body.days[0]).toMatchObject({ is_unlocked_at_preview_time: false, is_unlocked_override: false });
     expect(body.days[0]?.payload).toBeUndefined();
+    expect(body.days[0]?.fallback_activity).toBeUndefined();
     expect(body.days[1]).toMatchObject({
       is_unlocked_at_preview_time: true,
       is_unlocked_override: true,
       payload: { text: "shown" },
+      fallback_activity: { kind: "jigsaw", scene: "cabin", pieces: 12 },
     });
   });
 });
