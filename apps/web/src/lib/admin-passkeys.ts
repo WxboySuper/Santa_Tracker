@@ -66,16 +66,23 @@ export async function createRegistrationChallenge(input: { request: Request; ses
 export async function finishRegistration(input: { request: Request; challengeId: string; sessionId: string; response: RegistrationResponseJSON }): Promise<{ recoveryCodes: string[] | null }> {
   const challenge = await consumeAuthChallenge(input.challengeId, "registration");
   if (!challenge || challenge.sessionId !== input.sessionId) throw new Error("Registration challenge expired or unavailable");
-  const { rpId, origin } = webAuthnSettings(input.request);
-  const verification = await verifyRegistrationResponse({ response: input.response, expectedChallenge: challenge.challenge, expectedOrigin: origin, expectedRPID: rpId, requireUserVerification: true });
-  if (!verification.verified) throw new Error("Passkey registration could not be verified");
-  const state = await readAdminAuthState();
-  const recoveryCodes = state.recoveryCodeHashes.length === 0 ? generateRecoveryCodes() : null;
+  const credential = await verifyRegistration(input, challenge.challenge);
+  const recoveryCodes = await generateFirstRecoverySet();
   const hashes = recoveryCodes ? await Promise.all(recoveryCodes.map(code => hashRecoveryCode({ code: normalizeRecoveryCode({ code }) }))) : null;
-  const credential = verification.registrationInfo.credential;
   const recoveryCodesStored = await installPasskey({ id: credential.id, publicKey: encodeBase64Url(credential.publicKey), counter: credential.counter, transports: credential.transports }, hashes);
   await appendAuthAudit({ action: "passkey_registration", result: "success", sessionId: input.sessionId });
   return { recoveryCodes: recoveryCodesStored ? recoveryCodes : null };
+}
+
+async function verifyRegistration(input: { request: Request; response: RegistrationResponseJSON }, challenge: string) {
+  const { rpId, origin } = webAuthnSettings(input.request);
+  const result = await verifyRegistrationResponse({ response: input.response, expectedChallenge: challenge, expectedOrigin: origin, expectedRPID: rpId, requireUserVerification: true });
+  if (!result.verified) throw new Error("Passkey registration could not be verified");
+  return result.registrationInfo.credential;
+}
+
+async function generateFirstRecoverySet(): Promise<string[] | null> {
+  return (await readAdminAuthState()).recoveryCodeHashes.length === 0 ? generateRecoveryCodes() : null;
 }
 
 export async function createAuthenticationChallenge(request: Request): Promise<{ challenge: AdminAuthChallenge; options: Awaited<ReturnType<typeof generateAuthenticationOptions>> }> {

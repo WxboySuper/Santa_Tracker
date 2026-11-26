@@ -105,14 +105,12 @@ export async function loginAdmin(payload: unknown, ip?: string): Promise<AdminAp
 
 async function issueSessionToken(payload: unknown, ip?: string): Promise<AdminApiResult> {
   const password = extractPassword(payload);
-  if (ip) {
-    const lockout = checkLoginRateLimitNow(ip);
-    if (lockout) return { status: 429, body: { error: "Too many login attempts, please try again later" } };
-  }
+  const lockout = ip ? checkLoginRateLimitNow(ip) : null;
+  if (lockout) return throttleResult();
   if (!password) {
     const limit = ip ? await recordLoginAttempt(ip) : null;
     await appendAuthAudit({ action: "password_login", result: "failure" });
-    return limit ? { status: 429, body: { error: "Too many login attempts, please try again later" } } : badRequest("Password required");
+    return limit ? throttleResult() : badRequest("Password required");
   }
   const adminPassword = getAdminPassword();
   if (!adminPassword) {
@@ -127,6 +125,10 @@ async function issueSessionToken(payload: unknown, ip?: string): Promise<AdminAp
   } catch {
     return { status: 500, body: { error: "Failed to create session" } };
   }
+}
+
+function throttleResult(): AdminApiResult {
+  return { status: 429, body: { error: "Too many login attempts, please try again later" } };
 }
 
 async function rejectPasswordLogin(ip: string | undefined, action: string, equalizeStateRead: boolean): Promise<AdminApiResult> {

@@ -125,15 +125,23 @@ function isMutation(input: { method: string }): boolean {
 
 function hasValidCsrf(input: { request: Request; expected: string }): boolean {
   const { request, expected } = input;
+  if (!hasExpectedOrigin(request)) return false;
+  const supplied = request.headers.get("x-csrf-token");
+  const cookieValue = csrfCookieValue(request);
+  if (!supplied || !cookieValue) return false;
+  try { return decodeURIComponent(cookieValue) === supplied && supplied === expected; }
+  catch { return false; }
+}
+
+function hasExpectedOrigin(request: Request): boolean {
   const origin = request.headers.get("origin");
   const allowedOrigin = expectedOrigin(request);
-  if (!origin || !allowedOrigin || origin !== allowedOrigin) return false;
-  const supplied = request.headers.get("x-csrf-token");
+  return Boolean(origin && allowedOrigin && origin === allowedOrigin);
+}
+
+function csrfCookieValue(request: Request): string | null {
   const cookieHeader = request.headers.get("cookie") ?? "";
-  const match = /(?:^|;\s*)admin_csrf=([^;]*)/.exec(cookieHeader);
-  if (!supplied || !match?.[1]) return false;
-  try { return decodeURIComponent(match[1]) === supplied && supplied === expected; }
-  catch { return false; }
+  return /(?:^|;\s*)admin_csrf=([^;]*)/.exec(cookieHeader)?.[1] ?? null;
 }
 
 function expectedOrigin(request: Request): string | null {

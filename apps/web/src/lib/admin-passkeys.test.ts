@@ -20,7 +20,7 @@ async function registerPasskeyForTest(counter: number) {
   vi.mocked(verifyRegistrationResponse).mockResolvedValue({
     verified: true,
     registrationInfo: {
-      credential: { id: "credential-one", publicKey: Uint8Array.from([1, 2, 3]), counter },
+      credential: { id: "credential-one", publicKey: Uint8Array.from([1, 2, 3]), counter, transports: ["internal"] },
       credentialType: "public-key", fmt: "none", aaguid: "", attestationObject: new Uint8Array(), userVerified: true,
       credentialDeviceType: "singleDevice", credentialBackedUp: false, origin: "https://example.test", rpID: "example.test",
     },
@@ -50,16 +50,7 @@ describe("admin passkey service", () => {
   });
 
   it("registers a passkey and returns one-time recovery codes", async () => {
-    const { challenge } = await createRegistrationChallenge({ request, sessionId: "session-one" });
-    vi.mocked(verifyRegistrationResponse).mockResolvedValue({
-      verified: true,
-      registrationInfo: {
-        credential: { id: "credential-one", publicKey: Uint8Array.from([1, 2, 3]), counter: 0, transports: ["internal"] },
-        credentialType: "public-key", fmt: "none", aaguid: "", attestationObject: new Uint8Array(), userVerified: true,
-        credentialDeviceType: "multiDevice", credentialBackedUp: true, origin: "https://example.test", rpID: "example.test",
-      },
-    });
-    const result = await finishRegistration({ request, challengeId: challenge.id, sessionId: "session-one", response: { id: "credential-one" } as RegistrationResponseJSON });
+    const result = await registerPasskeyForTest(0);
     expect(result.recoveryCodes).toHaveLength(10);
     expect((await readAdminAuthState()).passkeys).toHaveLength(1);
     expect((await readAdminAuthState()).recoveryCodeHashes).toHaveLength(10);

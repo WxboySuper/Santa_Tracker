@@ -29,17 +29,29 @@ function storageUnavailable() {
 
 async function processLogin(req: Request, ip: string) {
   const payload = await readCappedJsonBody(req);
-  if (payload.kind === "too-large") {
-    const result = await loginAdmin(null, ip);
-    if (result.status === 429) return throttledResponse((await checkLoginRateLimit(ip))?.retryAfterSeconds ?? 900);
-    return NextResponse.json({ error: "Request body too large" }, { status: 413 });
-  }
-  if (payload.kind === "invalid") {
-    const result = await loginAdmin(null, ip);
-    if (result.status === 429) return throttledResponse((await checkLoginRateLimit(ip))?.retryAfterSeconds ?? 900);
-    return respondWith(result);
-  }
+  if (payload.kind === "too-large") return handleOversizedLogin(ip);
+  if (payload.kind === "invalid") return handleMalformedLogin(ip);
   return verifyLogin(req, ip, payload.value);
+}
+
+async function handleOversizedLogin(ip: string) {
+  const result = await countInvalidLogin(ip);
+  if (result.status === 429) return throttledResponse(await getRetryAfter(ip));
+  return NextResponse.json({ error: "Request body too large" }, { status: 413 });
+}
+
+async function handleMalformedLogin(ip: string) {
+  const result = await countInvalidLogin(ip);
+  if (result.status === 429) return throttledResponse(await getRetryAfter(ip));
+  return respondWith(result);
+}
+
+async function countInvalidLogin(ip: string) {
+  return loginAdmin(null, ip);
+}
+
+async function getRetryAfter(ip: string): Promise<number> {
+  return (await checkLoginRateLimit(ip))?.retryAfterSeconds ?? 900;
 }
 
 async function verifyLogin(req: Request, ip: string, payload: unknown) {

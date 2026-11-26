@@ -4,6 +4,12 @@ import { createAdminToken, getAdminTokenCsrfToken, getAdminTokenSessionId, requi
 import { POST as logout } from "@/app/api/admin/logout/route";
 import { DELETE as revokeSession } from "@/app/api/admin/sessions/route";
 
+async function createCookieSession() {
+  const token = await createAdminToken();
+  const csrf = await getAdminTokenCsrfToken({ token });
+  return { token, csrf, cookie: `admin_token=${token}; admin_csrf=${csrf}` };
+}
+
 describe("admin session and CSRF enforcement", () => {
   beforeEach(async () => { await resetAdminAuthStateForTests(); });
   afterEach(() => vi.unstubAllEnvs());
@@ -24,22 +30,19 @@ describe("admin session and CSRF enforcement", () => {
   });
 
   it("requires CSRF to log out an active cookie session and then revokes it", async () => {
-    const token = await createAdminToken();
-    const csrf = await getAdminTokenCsrfToken({ token });
-    const denied = await logout(new Request("https://example.test/api/admin/logout", { method: "POST", headers: { cookie: `admin_token=${token}; admin_csrf=${csrf}` } }));
+    const { token, csrf, cookie } = await createCookieSession();
+    const denied = await logout(new Request("https://example.test/api/admin/logout", { method: "POST", headers: { cookie } }));
     expect(denied.status).toBe(403);
     const accepted = await logout(new Request("https://example.test/api/admin/logout", {
       method: "POST",
-      headers: { cookie: `admin_token=${token}; admin_csrf=${csrf}`, origin: "https://example.test", "x-csrf-token": csrf! },
+      headers: { cookie, origin: "https://example.test", "x-csrf-token": csrf! },
     }));
     expect(accepted.status).toBe(200);
     expect(await verifyAdminToken({ token })).toBe(false);
   });
 
   it("requires origin and double-submit CSRF token for cookie mutations", async () => {
-    const token = await createAdminToken();
-    const csrf = await getAdminTokenCsrfToken({ token });
-    const cookie = `admin_token=${token}; admin_csrf=${csrf}`;
+    const { csrf, cookie } = await createCookieSession();
     expect((await requireAdminAuth(new Request("https://example.test/api/admin/flags", { method: "POST", headers: { cookie } }))).status).toBe(403);
     expect((await requireAdminAuth(new Request("https://example.test/api/admin/flags", { method: "POST", headers: { cookie, origin: "https://attacker.test", "x-csrf-token": csrf! } }))).status).toBe(403);
     expect((await requireAdminAuth(new Request("https://example.test/api/admin/flags", { method: "POST", headers: { cookie, origin: "https://example.test", "x-csrf-token": csrf! } }))).ok).toBe(true);
@@ -58,12 +61,11 @@ describe("admin session and CSRF enforcement", () => {
   });
 
   it("rejects revoking the current session and directs the owner to logout", async () => {
-    const token = await createAdminToken();
-    const csrf = await getAdminTokenCsrfToken({ token });
+    const { token, csrf, cookie } = await createCookieSession();
     const sessionId = await getAdminTokenSessionId({ token });
     const response = await revokeSession(new Request("https://example.test/api/admin/sessions", {
       method: "DELETE",
-      headers: { cookie: `admin_token=${token}; admin_csrf=${csrf}`, origin: "https://example.test", "x-csrf-token": csrf!, "content-type": "application/json" },
+      headers: { cookie, origin: "https://example.test", "x-csrf-token": csrf!, "content-type": "application/json" },
       body: JSON.stringify({ sessionId }),
     }));
     expect(response.status).toBe(400);
@@ -72,22 +74,20 @@ describe("admin session and CSRF enforcement", () => {
 
   it("derives the CSRF origin from the request when production WebAuthn origin is unset", async () => {
     vi.stubEnv("ADMIN_WEBAUTHN_ORIGIN", "");
-    const token = await createAdminToken();
-    const csrf = await getAdminTokenCsrfToken({ token });
+    const { token, csrf, cookie } = await createCookieSession();
     const response = await requireAdminAuth(new Request("https://example.test/api/admin/flags", {
       method: "POST",
-      headers: { cookie: `admin_token=${token}; admin_csrf=${csrf}`, origin: "https://example.test", "x-csrf-token": csrf! },
+      headers: { cookie, origin: "https://example.test", "x-csrf-token": csrf! },
     }));
     expect(response.ok).toBe(true);
   });
 
   it("fails closed on an invalid configured origin without throwing", async () => {
     vi.stubEnv("ADMIN_WEBAUTHN_ORIGIN", "not a URL");
-    const token = await createAdminToken();
-    const csrf = await getAdminTokenCsrfToken({ token });
+    const { csrf, cookie } = await createCookieSession();
     const response = await requireAdminAuth(new Request("https://example.test/api/admin/flags", {
       method: "POST",
-      headers: { cookie: `admin_token=${token}; admin_csrf=${csrf}`, origin: "https://example.test", "x-csrf-token": csrf! },
+      headers: { cookie, origin: "https://example.test", "x-csrf-token": csrf! },
     }));
     expect(response.status).toBe(403);
   });
