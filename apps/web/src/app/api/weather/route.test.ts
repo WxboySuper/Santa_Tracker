@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
-import { fetchWeather, GET } from "./route";
+import { fetchWeather } from "@/lib/weather";
+import { GET } from "./route";
 
 describe("weather API", () => {
   it("rounds coordinates to the grid and converts temperature", async () => {
