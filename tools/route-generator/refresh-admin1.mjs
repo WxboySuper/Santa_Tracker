@@ -9,8 +9,9 @@ function isSupportedExistingCode(place, code) {
 
 function candidateWithAdmin1Code(place, code, preserveExisting = true) {
   const candidate = { ...place };
-  delete candidate.admin1Code;
   if (code && isSupportedExistingCode(place, code)) return { ...candidate, admin1Code: code };
+  if (preserveExisting && place.admin1Code === null) return { ...candidate, admin1Code: null };
+  delete candidate.admin1Code;
   return preserveExisting && isSupportedExistingCode(place, place.admin1Code) ? { ...candidate, admin1Code: place.admin1Code } : candidate;
 }
 
@@ -20,7 +21,7 @@ function hasSupportedAdmin1Code(candidate) {
 
 function validateEnrichedCandidate(candidate, file) {
   if (!candidate || typeof candidate !== 'object') throw new TypeError(`${file} contains a non-object candidate`);
-  if (candidate.admin1Code === undefined) return;
+  if (candidate.admin1Code === undefined || candidate.admin1Code === null) return;
   if (!hasSupportedAdmin1Code(candidate)) {
     throw new Error(`${file} has an unsupported admin1Code for ${candidate.country} candidate ${candidate.id}`);
   }

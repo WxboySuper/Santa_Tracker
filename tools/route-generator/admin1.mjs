@@ -110,7 +110,8 @@ async function openAdmin1Source(files) {
   const dbfName = Object.keys(files).find((name) => name.endsWith('.dbf'));
   if (!shpName) throw new Error('Natural Earth admin-1 archive is missing its .shp file');
   if (!dbfName) throw new Error('Natural Earth admin-1 archive is missing its .dbf file');
-  return shapefile.open(files[shpName].buffer, files[dbfName].buffer, { encoding: 'utf-8' });
+  const exactBuffer = (view) => view.buffer.slice(view.byteOffset, view.byteOffset + view.byteLength);
+  return shapefile.open(exactBuffer(files[shpName]), exactBuffer(files[dbfName]), { encoding: 'utf-8' });
 }
 
 function sortAdmin1Features(features) {
@@ -153,13 +154,11 @@ function candidatePoint(place) {
 export function isSupportedAdmin1Code(country, code) {
   if (typeof country !== 'string') return false;
   if (typeof code !== 'string') return false;
+  if (!ADMIN1_COUNTRIES.has(country)) return false;
   const prefix = `${country}-`;
   if (!code.startsWith(prefix)) return false;
   if (!/^[A-Z0-9~]+$/.test(code.slice(prefix.length))) return false;
-  if (ADMIN1_COUNTRIES.has(country)) {
-    if (!SUPPORTED_TARGET_ADMIN1_CODES.has(code)) return false;
-  }
-  return true;
+  return SUPPORTED_TARGET_ADMIN1_CODES.has(code);
 }
 
 function requireAdmin1Features(features) {

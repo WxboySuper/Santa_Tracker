@@ -111,13 +111,15 @@ function passesInsertionCandidateGates(state: InsertionState, item: RankedInsert
 function addAtFeasiblePosition(state: InsertionState, place: Candidate, positions: RankedInsertion['positions'], pass: InsertionPass): boolean {
   if (pass.maxStops !== undefined && state.route.length >= pass.maxStops) return false;
   const offset = requiredSnapshotOffset(place);
-  if (pass.maxStopsByBand && (state.bandCounts.get(offset) ?? 0) >= (pass.maxStopsByBand.get(offset) ?? 0)) return false;
   const priorEastward = eastwardCount(state.route);
   const priorDetours = hardDetourCount(state.route);
   const unit = admin1UnitFor(place);
   const addsRequiredAdmin1 = unit !== undefined && REQUIRED_ADMIN1_CODES.has(unit) && !state.admin1Counts.has(unit);
   const addsRequiredOffsetBand = !state.bandCounts.has(offset);
-  const coverageTradeoff = !state.counts.has(place.country) || addsRequiredAdmin1 || addsRequiredOffsetBand;
+  const addsCountryCoverage = !state.counts.has(place.country);
+  const coverageTradeoff = addsCountryCoverage || addsRequiredAdmin1 || addsRequiredOffsetBand;
+  if (!coverageTradeoff && pass.maxStopsByBand
+    && (state.bandCounts.get(offset) ?? 0) >= (pass.maxStopsByBand.get(offset) ?? 0)) return false;
   for (const { index } of insertionOptions(state, place, positions, pass)) {
     const proposal = [...state.route.slice(0, index), place, ...state.route.slice(index)];
     const plan = planTiming(proposal, pass.config);

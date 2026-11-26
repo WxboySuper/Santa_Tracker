@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { allocateBandFill, bandMaximumStops, insertCountryCoverage, mandatoryLaunch } from './order-coverage';
+import { allocateBandFill, bandMaximumStops, insertCountryCoverage, insertFeasibleCandidates, mandatoryLaunch } from './order-coverage';
 import { planTiming } from './order-shared';
 import { DEFAULT_GENERATOR_LIMITS, type Candidate } from './types';
 
@@ -46,6 +46,38 @@ describe('band fill allocation', () => {
 
     expect(caps.get(0)).toBeGreaterThanOrEqual(1);
     expect([...caps.values()].reduce((sum, count) => sum + count, 0)).toBe(11);
+  });
+
+  it('lets mandatory admin-1 coverage exceed a dense-fill band cap', () => {
+    const config = { ...DEFAULT_GENERATOR_LIMITS, maxStopsPerCountry: 1 };
+    const makePlace = (id: string, lat: number, lng: number, admin1Code?: string): Candidate => ({
+      id,
+      name: id,
+      country: 'US',
+      lat,
+      lng,
+      timezone: 'America/Chicago',
+      utcOffsetMinutes: -360,
+      category: 'populated',
+      population: 10_000,
+      ...(admin1Code ? { admin1Code } : {}),
+    });
+    const launch = makePlace('launch', 29.7604, -180);
+    const requiredState = makePlace('required-state', 30.2672, 179.5, 'US-TX');
+    const initial = planTiming([launch], config);
+    expect(initial).toBeDefined();
+    if (!initial) throw new Error('Expected a feasible initial stop');
+
+    const expanded = insertFeasibleCandidates(initial.places, [launch, requiredState], {
+      config,
+      bandSpreadMinutes: 0,
+      coverageOnly: false,
+      maxPositionAttempts: 40,
+      maxStops: 700,
+      maxStopsByBand: new Map([[-360, 1]]),
+    });
+
+    expect(expanded.map((place) => place.id)).toContain('required-state');
   });
 
   it('preserves every existing country when replacing one stop with two near the route ceiling', () => {
