@@ -18,9 +18,16 @@ run_worker_first = ["/*", "!/_next/static/*", "!/*/_next/static/*"]
 binding = "SANTA_SNAPSHOTS"
 bucket_name = "santa-tracker-snapshots"
 
+[[durable_objects.bindings]]
+name = "WEATHER_FALLBACK_BUDGET"
+class_name = "WeatherFallbackBudget"
+script_name = "santa-weather-cron"
+
 [vars]
 ADVENT_ENABLED = "true"
+ADVENT_FALLBACKS_ENABLED = "true"
 SANTA_STORAGE_BACKEND = "r2"
+WEATHER_ENABLED = "true"
 # Set via `wrangler secret put`:
 # - SECRET_KEY
 # - ADMIN_PASSWORD
