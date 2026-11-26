@@ -14,7 +14,7 @@ Archived reads use `GET /api/advent/archive/:day`. A day is available after its 
 
 ## Fallback activities
 
-When a day has missing, invalid, or unsupported authored content, the page uses the explicit day-specific activity from the built-in fallback library. It reuses the existing typed cipher, jigsaw, snowflake, light-show, postcard, word-search, maze, and time-zone activities. `ADVENT_FALLBACKS_ENABLED` defaults to `true` and is set to `true` in the Cloudflare Worker configuration. Keep it enabled for launch. Setting it to `false` restores the generic fallback message instead. Authenticated preview responses include `fallback_activity` for unlocked days; this field is never returned by public reads.
+When a day has missing, invalid, or unsupported authored content, the page uses the explicit day-specific activity from the built-in fallback library. It reuses the existing typed cipher, jigsaw, snowflake, light-show, postcard, word-search, maze, and time-zone activities. `ADVENT_FALLBACKS_ENABLED` defaults to `true` and is set to `true` in the Cloudflare Worker configuration. Keep it enabled for launch. Setting it to `false` in any letter case restores the generic fallback message instead. Authenticated preview responses include `fallback_activity` for unlocked days only while the flag is enabled; this field is never returned by public reads.
 
 ## Features
 

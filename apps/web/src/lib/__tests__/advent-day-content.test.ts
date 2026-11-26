@@ -95,9 +95,9 @@ describe("renderDayContent", () => {
     expect(render(day({ payload: { text: 42 } }))).not.toContain("FALLBACK");
   });
 
-  it("keeps the generic fallback available when the fallback flag is off", () => {
+  it.each(["false", "False", "FALSE"])("keeps the generic fallback when the flag is %s", (disabledValue) => {
     const previous = process.env.ADVENT_FALLBACKS_ENABLED;
-    process.env.ADVENT_FALLBACKS_ENABLED = "false";
+    process.env.ADVENT_FALLBACKS_ENABLED = disabledValue;
     try {
       expect(render(day({ payload: { text: " " } }))).toContain("FALLBACK");
     } finally {
