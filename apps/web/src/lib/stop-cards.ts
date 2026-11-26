@@ -15,9 +15,17 @@ interface StopCardRecord {
   review_status: "draft" | "approved" | "stale";
 }
 
+function hostOf(url: string): string {
+  try {
+    return new URL(url).hostname.toLowerCase();
+  } catch {
+    return "";
+  }
+}
+
 /** The most readable source to credit beside a note: Wikipedia or an official page before the Wikidata entry. */
 function displaySource(sources: string[]): string | null {
-  return sources.find(source => !source.includes("wikidata.org")) ?? sources[0] ?? null;
+  return sources.find(source => hostOf(source) !== "www.wikidata.org" && hostOf(source) !== "wikidata.org") ?? sources[0] ?? null;
 }
 
 function toView(card: StopCardRecord): StopCardView {

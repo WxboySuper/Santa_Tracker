@@ -113,7 +113,6 @@ function NowPanel({ flight, translator }: { flight: Flight; translator: Translat
   </section>;
 }
 
-/** Globe, right edge: the festive side of the place Santa is over, and what is coming up. */
 /** Fahrenheit for readers whose browser region uses it; everyone else gets Celsius. */
 function prefersFahrenheit(): boolean {
   if (typeof navigator === "undefined") return false;
@@ -137,13 +136,15 @@ function WeatherLine({ node, next, translator }: { node: RouteNode; next?: Route
   </p>;
 }
 
+/** "Wikipedia" for any Wikipedia language edition, otherwise the site's host name. */
 function sourceName(url: string): string {
+  let host: string;
   try {
-    const host = new URL(url).hostname.replace(/^www\./, "");
-    return host.endsWith("wikipedia.org") ? "Wikipedia" : host;
+    host = new URL(url).hostname.toLowerCase().replace(/^www\./, "");
   } catch {
     return url;
   }
+  return host === "wikipedia.org" || host.endsWith(".wikipedia.org") ? "Wikipedia" : host;
 }
 
 /** A photo of the place, edge to edge across the top of the panel, with the credit its license asks for. */
@@ -159,31 +160,46 @@ function PlacePhoto({ photo, place }: { photo: NonNullable<StopCardView["photo"]
   </figure>;
 }
 
+function PlaceNote({ card }: { card: StopCardView }) {
+  if (!card.note) return null;
+  return <p className="tl-place-note">
+    {card.note}
+    {card.source && <> <a className="tl-place-source" href={card.source} target="_blank" rel="noreferrer">{sourceName(card.source)}</a></>}
+  </p>;
+}
+
+function UpcomingList({ upcoming, limit, translator }: { upcoming: StopLine[]; limit: number; translator: Translator }) {
+  if (!upcoming.length) return null;
+  return <>
+    <h3 className="tl-panel-heading">{translator.t("tracker.feed.upcoming")}</h3>
+    <ol className="tl-panel-list">
+      {upcoming.slice(0, limit).map(line => <li key={line.node.id}><span>{line.node.location.name}</span><span className="tl-li-time">{line.local}</span></li>)}
+    </ol>
+  </>;
+}
+
+function GreetingLines({ code, translator }: { code: string | undefined; translator: Translator }) {
+  const greeting = greetingFor(code);
+  return <>
+    <p className="tl-greeting" lang={greeting.language === "English" ? "en" : undefined}>{greeting.text}</p>
+    <p className="tl-panel-sub">{translator.t("tracker.here.in", { language: greeting.language })}</p>
+  </>;
+}
+
 /** Globe, right edge: the festive side of the place Santa is over, and what is coming up. */
 function HerePanel({ flight, translator }: { flight: Flight; translator: Translator }) {
   const { current, now, stats } = flight;
   const code = (current.location as { country_code?: string }).country_code;
-  const greeting = greetingFor(code);
   const { day, hour } = localDayHour(current, now);
-  const moment = festiveMoment(day, hour);
   const card = useStopCard(current);
   return <section className="tl-panel tl-panel-here" aria-label={translator.t("tracker.here.label")}>
     {card?.photo && <PlacePhoto key={current.id} photo={card.photo} place={current.location.name} />}
-    <p className="tl-panel-kicker">{translator.t(`tracker.here.${moment}`, { time: localTimeAt(current, now) })}</p>
+    <p className="tl-panel-kicker">{translator.t(`tracker.here.${festiveMoment(day, hour)}`, { time: localTimeAt(current, now) })}</p>
     <WeatherLine node={current} next={flight.next} translator={translator} />
-    <p className="tl-greeting" lang={greeting.language === "English" ? "en" : undefined}>{greeting.text}</p>
-    <p className="tl-panel-sub">{translator.t("tracker.here.in", { language: greeting.language })}</p>
-    {card?.note && <p className="tl-place-note">
-      {card.note}
-      {card.source && <> <a className="tl-place-source" href={card.source} target="_blank" rel="noreferrer">{sourceName(card.source)}</a></>}
-    </p>}
+    <GreetingLines code={code} translator={translator} />
+    {card && <PlaceNote card={card} />}
     {christmasInJanuary(code) && <p className="tl-panel-note">{translator.t("tracker.here.january")}</p>}
-    {stats.upcoming.length > 0 && <>
-      <h3 className="tl-panel-heading">{translator.t("tracker.feed.upcoming")}</h3>
-      <ol className="tl-panel-list">
-        {stats.upcoming.slice(0, card?.note ? 3 : 4).map(line => <li key={line.node.id}><span>{line.node.location.name}</span><span className="tl-li-time">{line.local}</span></li>)}
-      </ol>
-    </>}
+    <UpcomingList upcoming={stats.upcoming} limit={card?.note ? 3 : 4} translator={translator} />
   </section>;
 }
 
