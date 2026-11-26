@@ -142,7 +142,13 @@ function localArrivalRange(places: Candidate[], route: Route): { min: string; ma
 }
 
 function populationCoverage(places: Candidate[], pool: Candidate[]): { covered: number; total: number; share: number } {
-  const populated = pool.filter((place) => (place.population ?? 0) > 0);
+  const seen = new Set<string>();
+  const populated = pool.filter((place) => {
+    if (!place || !place.id || !Number.isFinite(place.population) || (place.population ?? 0) <= 0
+      || !Number.isFinite(place.lat) || !Number.isFinite(place.lng) || seen.has(place.id)) return false;
+    seen.add(place.id);
+    return true;
+  });
   const total = populated.reduce((sum, place) => sum + (place.population ?? 0), 0);
   let covered = 0;
   for (const candidate of populated) {
@@ -176,7 +182,8 @@ export function buildReport(places: Candidate[], route: Route, config: Generator
   const coverage = populationCoverage(places, pool);
   const mix = countsBy(places, (place) => place.category);
   const countryCodes = [...new Set(places.map((place) => place.country))].sort();
-  const candidateCountryCodes = [...new Set(pool.map((place) => place.country))].sort();
+  const candidateCountryCodes = [...new Set(pool.flatMap((place) =>
+    typeof place?.country === 'string' && place.country.trim() ? [place.country] : []))].sort();
   const deliveryLegCount = Math.max(0, places.length - 1);
   const shortDeliveryLegCount = legs.filter((leg) => leg.kind === 'delivery' && leg.km < 300).length;
   const arrivals = localArrivalRange(places, route);

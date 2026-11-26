@@ -405,7 +405,7 @@ export function generateRoute(pool: Candidate[], config: GeneratorConfig, overri
   if (chosen.length === 0) throw new Error('No eligible route candidates remain after timezone validation');
   const ordered = sweepOrder(chosen, config);
   const built = buildDocument(ordered, config, tables);
-  const report = validateBuiltRoute({ route: built.route, coordinates: built.coordinates, routeEndUtc: built.routeEndUtc, ordered, pool: chosen, config });
+  const report = validateBuiltRoute({ route: built.route, coordinates: built.coordinates, routeEndUtc: built.routeEndUtc, ordered, pool, config });
   report.invalidCandidateIds = [...selection.invalidCandidateIds, ...normalized.invalidCandidateIds];
   report.issues.push(...report.invalidCandidateIds.map((id) => `Invalid candidate row skipped: ${id}`));
   report.issues.push(...selection.duplicateCandidateIds.map((id) => `Duplicate candidate ID skipped: ${id}`));

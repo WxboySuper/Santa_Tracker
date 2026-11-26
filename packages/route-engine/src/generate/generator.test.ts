@@ -98,7 +98,7 @@ describe('generateRoute midnight sweep', () => {
   });
 
   it('reports an invalid candidate IANA timezone without aborting remaining valid places', () => {
-    const invalidTimezoneCandidate = { ...candidates[0]!, id: 'bad-timezone', timezone: 'Not/A_Zone' };
+    const invalidTimezoneCandidate = { ...candidates[0]!, id: 'bad-timezone', country: 'WS', timezone: 'Not/A_Zone' };
     const tables = {
       zonesByCountry: { FJ: ['Pacific/Kiritimati'] },
       zonePointsByCountry: { FJ: [{ timezone: 'Pacific/Kiritimati', lat: 80, lng: 170 }] },
@@ -108,6 +108,9 @@ describe('generateRoute midnight sweep', () => {
     const generated = generateRoute([candidates[0]!, invalidTimezoneCandidate], config, {}, tables);
     expect(generated.report.count).toBe(1);
     expect(generated.report.invalidCandidateIds).toEqual(['bad-timezone']);
+    expect(generated.report.candidateCount).toBe(2);
+    expect(generated.report.unselectedCandidateCount).toBe(1);
+    expect(generated.report.uncoveredCountryCodes).toContain('WS');
   });
 
   it('reports a timezone mismatch when the country table has no recovery point', () => {
