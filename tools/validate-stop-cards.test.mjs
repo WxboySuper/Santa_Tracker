@@ -39,4 +39,14 @@ describe('stop card validation', () => {
     expect(result.stderr).toContain('unsupported photo license');
     expect(result.stderr).toContain('attribution is required');
   });
+  it('reports malformed records without crashing and checks required country and topic keys', async () => {
+    const card = validCard('Q4', null);
+    card.country = '';
+    card.topic_key = 'Bad Topic';
+    const result = await validate([null, card]);
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain('place_id is required');
+    expect(result.stderr).toContain('country is required');
+    expect(result.stderr).toContain('topic_key');
+  });
 });

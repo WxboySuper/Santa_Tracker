@@ -34,6 +34,7 @@ async function cachedJson(key, url) {
 }
 for (const id of [...new Set(requested)]) {
   const candidate = candidateById.get(id);
+  if (!candidate) throw new Error('Unknown candidate place ID: ' + id);
   let qid = /^Q\d+$/.test(id) ? id : candidate?.source?.match(/wikidata\.org\/wiki\/(Q\d+)/)?.[1];
   if (!qid && candidate) {
     const search = new URL('https://www.wikidata.org/w/api.php');
@@ -69,6 +70,7 @@ for (const id of [...new Set(requested)]) {
   const facts = (entity?.claims?.P166 ?? []).slice(0, 10).map((claim) => claim.mainsnak?.datavalue?.value?.id).filter(Boolean);
   const wikidataSource = qid ? 'https://www.wikidata.org/wiki/' + qid : null;
   const sources = [wikidataSource, page?.fullurl, candidate?.source].filter((source) => typeof source === 'string' && source.startsWith('https://'));
+  if (!sources.length) throw new Error('No verified HTTPS source found for candidate place ID: ' + id);
   const draft = { place_id: id, country: candidate?.country ?? entity?.claims?.P17?.[0]?.mainsnak?.datavalue?.value?.id ?? null, label: entity?.labels?.en?.value ?? candidate?.name ?? id, description: entity?.descriptions?.en?.value ?? null, wikipedia_extract: page?.extract ?? null, wikipedia_source: page?.fullurl ?? null, wikidata_source: wikidataSource, notable_award_qids: facts, photo, note: null, topic_key: null, sources, review_status: 'draft' };
   await writeFile(resolve(output, id + '.json'), JSON.stringify(draft, null, 2) + '\n');
 }

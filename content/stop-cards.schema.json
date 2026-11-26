@@ -16,7 +16,6 @@
       "license_url": { "type": "string", "format": "uri" }, "source_page": { "type": "string", "format": "uri" }
     } },
     "review_status": { "enum": ["draft", "approved", "stale"] },
-    "allow_duplicate_topic": { "type": "boolean" },
-    "country": { "type": "string" }
+    "allow_duplicate_topic": { "type": "boolean" }
   }
 }

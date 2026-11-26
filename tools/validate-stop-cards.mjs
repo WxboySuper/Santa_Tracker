@@ -16,11 +16,13 @@ if (!Array.isArray(cards)) throw new Error('Stop cards must be a JSON array');
 const placeIds = new Set(); const topics = new Map();
 for (const [index, card] of cards.entries()) {
   const prefix = 'cards[' + index + ']';
-  if (!card || typeof card !== 'object' || typeof card.place_id !== 'string' || !card.place_id.trim()) errors.push(prefix + ': place_id is required');
-  else if (placeIds.has(card.place_id)) errors.push(prefix + ': duplicate place_id ' + card.place_id); else placeIds.add(card.place_id);
+  if (!card || typeof card !== 'object' || typeof card.place_id !== 'string' || !card.place_id.trim()) { errors.push(prefix + ': place_id is required'); continue; }
+  if (placeIds.has(card.place_id)) errors.push(prefix + ': duplicate place_id ' + card.place_id); else placeIds.add(card.place_id);
+  if (typeof card.country !== 'string' || !card.country.trim()) errors.push(prefix + ': country is required');
   if (!Array.isArray(card.sources) || card.sources.length === 0 || card.sources.some((source) => typeof source !== 'string' || !/^https:\/\//.test(source))) errors.push(prefix + ': at least one HTTPS source URL is required');
   if (card.note !== null && (typeof card.note !== 'string' || card.note.length < 40 || card.note.length > 280)) errors.push(prefix + ': note must be null or 40 to 280 characters');
-  if (card.note !== null && (typeof card.topic_key !== 'string' || !card.topic_key.trim())) errors.push(prefix + ': a note requires a topic_key');
+  if (card.topic_key !== null && (typeof card.topic_key !== 'string' || !/^[a-z0-9][a-z0-9._-]*$/.test(card.topic_key))) errors.push(prefix + ': topic_key must use lowercase letters, digits, dots, dashes, or underscores');
+  if (card.note !== null && (typeof card.topic_key !== 'string' || !/^[a-z0-9][a-z0-9._-]*$/.test(card.topic_key))) errors.push(prefix + ': a note requires a valid topic_key');
   if (typeof card.note === 'string') {
     for (let prior = 0; prior < index; prior++) if (typeof cards[prior].note === 'string' && similarity(card.note, cards[prior].note) >= 0.72) errors.push(prefix + ': note duplicates or closely matches cards[' + prior + ']');
     const country = String(card.country ?? '').toLocaleLowerCase('en');
