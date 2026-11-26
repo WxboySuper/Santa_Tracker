@@ -5448,13 +5448,12 @@
   {
     "place_id": "ne-1159151569",
     "country": "United States of America",
-    "note": "Los Angeles remains a center of film and television production, with Hollywood studios and working crews shaping the city’s daily creative life. Film premieres and screenings are part of its regular cultural calendar.",
+    "note": "Each night from December 16 to Christmas Eve, Olvera Street’s Las Posadas procession retraces Mary and Joseph’s search for shelter, ending with piñatas, champurrado and pan dulce.",
     "sources": [
       "https://www.wikidata.org/wiki/Q65",
-      "https://en.wikipedia.org/wiki/Los_Angeles",
-      "https://en.wikipedia.org/wiki/Culture_of_Los_Angeles"
+      "https://elpueblo.lacity.gov/articles/las-posadas"
     ],
-    "topic_key": "los-angeles-film-production",
+    "topic_key": "las-posadas",
     "photo": {
       "url": "https://upload.wikimedia.org/wikipedia/commons/6/69/Los_Angeles_with_Mount_Baldy.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
       "width": 8267,
