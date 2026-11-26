@@ -144,12 +144,12 @@ export function renderReview(generated: GeneratedRoute, inputs: GeneratorInputs)
     : ['<li>No generator warnings.</li>'];
   const ownerDecisionRows = [
     ['Sweep', 'Process exact UTC-offset bands westward. Alternate north-to-south and south-to-north latitude preference by band.'],
-    ['Selection', 'Favor uncovered countries within local clusters, then fill with population-weighted short hops.'],
+    ['Selection', 'Reserve a feasible stop for every country or territory first, then fill dense local clusters with population-weighted hops.'],
     ['Arrival window', 'Use 23:00-05:00 local. South of 35 degrees south, arrive by 02:30.'],
     ['Pacing', '20,000 km/h p90 and 25,000 km/h hard maximum; no extra arrival gap.'],
     ['Separation', 'Keep selected stops at least 20 km apart.'],
     ['Dwell', 'Major 60 s, city 30 s, town 10 s, hop 3 s.'],
-    ['Country limit', 'At most twelve stops per country, leaving room for dense clusters without letting large inventories dominate.'],
+    ['Country limit', 'At most twelve stops per country, so large inventories cannot consume the dense-fill budget.'],
   ].map(([decision, applied]) => `<tr><td>${escapeHtml(decision ?? '')}</td><td>${escapeHtml(applied ?? '')}</td></tr>`);
   const tierSummary = Object.entries(generated.report.stopTiers).map(([tier, count]) => `${tier} ${count}`).join(', ');
   const coverage = (generated.report.populationCoverageWithin500Km * 100).toLocaleString('en-US', { maximumFractionDigits: 1 });

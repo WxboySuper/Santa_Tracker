@@ -33,7 +33,7 @@ export type GeneratorConfig = {
   maxLegSpeedKmh: number;
   p90LegSpeedMaxKmh: number;
   minStopSeparationKm: number;
-  /** A twelve-stop ceiling leaves room for dense clusters without letting large country inventories dominate. */
+  /** A twelve-stop ceiling keeps large national inventories from consuming the dense-fill budget. */
   maxStopsPerCountry: number;
   underservedCountries: string[];
   generatedAt: string;

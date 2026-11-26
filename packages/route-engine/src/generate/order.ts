@@ -311,14 +311,14 @@ function executeGreedySweep(state: SweepState, bands: Candidate[][], randomRanks
   const bandIndices = new Map<string, number>();
   bands.forEach((band, index) => band.forEach((place) => bandIndices.set(place.id, index)));
   const ranking: SweepRanking = { bandIndices, randomRanks, config };
-  // Exact-offset bands set alternating latitude preferences. Adjacent windows
-  // may interleave when that keeps a dense regional cluster connected.
-  // This is a subset selector: stranded candidates remain available to later
-  // insertion passes and are counted as unselected in the route report.
+  // Exact-offset bands set alternating latitude preferences. The six-hour
+  // windows overlap, so a nearby stop in an adjacent band can interleave when
+  // it keeps the local cluster together. The band direction still advances
+  // westward as feasible stops are consumed.
   while (state.remaining.size > 0) {
     const next = bestFeasibleStop(state, [...state.remaining.values()], ranking);
-    // This ends the greedy phase, not candidate processing: the caller sends
-    // the remainder to constrained insertion passes.
+    // This ends the greedy phase, not candidate processing: stranded
+    // candidates remain available to constrained insertion passes.
     if (!next) break;
     advanceSweep(state, next);
   }
@@ -562,8 +562,8 @@ function insertionPlanIsAcceptable(plan: RoutePlan | undefined, eastward: number
 function placeFitsNeighborBand(state: InsertionState, place: Candidate, index: number, pass: InsertionPass): boolean {
   const before = index > 0 ? state.route[index - 1] : undefined;
   const after = state.route[index];
-  const neighbors = [before, after].filter((candidate): candidate is TimedCandidate => candidate !== undefined);
   const offset = requiredSnapshotOffset(place);
+  const neighbors = [before, after].filter((candidate): candidate is TimedCandidate => candidate !== undefined);
   return neighbors.every((candidate) => Math.abs(requiredSnapshotOffset(candidate) - offset) <= pass.bandSpreadMinutes);
 }
 
@@ -605,6 +605,63 @@ function insertFeasibleCandidates(initial: TimedCandidate[], pool: Candidate[], 
   return state.route;
 }
 
+function insertCountryCoverage(initial: TimedCandidate[], pool: Candidate[], config: GeneratorConfig): TimedCandidate[] {
+  const pass: InsertionPass = {
+    config,
+    // One adjacent band on either side keeps inserted stops in the westward
+    // chronology while allowing half-hour and quarter-hour bands to fit.
+    bandSpreadMinutes: 60,
+    coverageOnly: true,
+    // Try a few feasible splice points without making an uncovered country
+    // evaluate every possible position in the full route.
+    maxPositionAttempts: 12,
+  };
+  const state = insertionState(initial, config.minStopSeparationKm);
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const before = state.counts.size;
+    const groups = rankCountryCoverageGroups(state, pool, pass);
+    for (const group of groups) {
+      if (state.counts.has(group.country)) continue;
+      // Keep a short list of geographically plausible representatives for
+      // each code. If one cannot fit, try the next candidate from that code.
+      for (const item of group.candidates.slice(0, 8)) {
+        if (!state.separation.allows(item.place)) continue;
+        if (addAtFeasiblePosition(state, item.place,
+          insertionPositions(state.route, item.place), pass)) break;
+      }
+    }
+    if (state.counts.size === before) break;
+  }
+  return state.route;
+}
+
+type CountryCoverageCandidate = RankedInsertion & { rank: number };
+type CountryCoverageGroup = { country: string; rank: number; candidates: CountryCoverageCandidate[] };
+
+function rankCountryCoverageGroups(state: InsertionState, pool: Candidate[], pass: InsertionPass): CountryCoverageGroup[] {
+  const initialIds = new Set(state.route.map((place) => place.id));
+  const groups = new Map<string, CountryCoverageGroup>();
+  for (const place of pool) {
+    if (initialIds.has(place.id) || state.counts.has(place.country)) continue;
+    const positions = insertionPositions(state.route, place);
+    const nearest = positions.find(({ index }) => placeFitsNeighborBand(state, place, index, pass));
+    if (!nearest) continue;
+    const dwellSeconds = stopDurationSeconds(stopTier(place));
+    const rank = nearest.addedDistance + dwellSeconds * 1.1
+      - Math.log10((place.population ?? 0) + 1) * 20
+      - categoryPreference(place, pass.config) * 2;
+    const candidate: RankedInsertion = { place, positions, dwellSeconds };
+    const group = groups.get(place.country) ?? { country: place.country, rank: Number.POSITIVE_INFINITY, candidates: [] };
+    group.candidates.push({ ...candidate, rank });
+    group.rank = Math.min(group.rank, rank);
+    groups.set(place.country, group);
+  }
+  return [...groups.values()].map((group) => ({
+    ...group,
+    candidates: group.candidates.sort((left, right) => left.rank - right.rank || left.place.id.localeCompare(right.place.id)),
+  })).sort((left, right) => left.rank - right.rank || left.country.localeCompare(right.country));
+}
+
 /** Greedy time-stepped midnight sweep followed by constrained 2-opt/or-opt improvements. */
 export function sweepOrder(places: Candidate[], config: GeneratorConfig = DEFAULT_GENERATOR_LIMITS): Candidate[] {
   if (places.length === 0) throw new Error('Cannot order an empty route');
@@ -612,12 +669,14 @@ export function sweepOrder(places: Candidate[], config: GeneratorConfig = DEFAUL
   const greedy = greedySweep(places, config);
   const initial = greedy.selected;
   const improved = improveWithLocalSearch(initial, config);
+  // Try to secure one stop per still-uncovered candidate country before dense
+  // population-weighted filling spends the remaining time budget.
+  const coverageFirst = insertCountryCoverage(improved, places, config);
   const densePass: InsertionPass = { config, bandSpreadMinutes: 0, coverageOnly: false, maxPositionAttempts: 8 };
-  const expanded = insertFeasibleCandidates(improved, greedy.unselected, densePass);
+  const expanded = insertFeasibleCandidates(coverageFirst, places, densePass);
   const compacted = improveWithLocalSearch(expanded, config);
   const filled = insertFeasibleCandidates(compacted, places, densePass);
-  const countryPass: InsertionPass = { config, bandSpreadMinutes: 60, coverageOnly: true, maxPositionAttempts: 2 };
-  const countryCoverage = insertFeasibleCandidates(filled, places, countryPass);
+  const countryCoverage = insertCountryCoverage(filled, places, config);
   const finalOrder = improveWithLocalSearch(countryCoverage, config);
   const plan = planOrder(finalOrder, config);
   if (!plan) throw new Error('No route ordering satisfies the local Christmas window, speed limits, separation, and return deadline');

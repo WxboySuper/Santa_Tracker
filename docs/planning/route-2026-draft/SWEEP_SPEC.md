@@ -6,16 +6,17 @@ flight window allows. Tiny hops are welcome because they add coverage.
 ## Route objective
 
 1. Bucket places by their committed Dec 24-25 UTC offset, including half-hour and quarter-hour offsets as separate
-   bands. Follow bands westward as local midnight moves. Use an open nearest-neighbor path and alternate the
-   preferred latitude direction north-to-south, then south-to-north, from one band to the next. Constrained 2-opt
-   and or-opt improvements stay within contiguous same-band segments. Neighboring six-hour arrival windows
-   overlap, so nearby stops in adjacent bands may interleave when that avoids a long regional deadhead.
-2. Prefer an uncovered country or territory when its candidate fits the current local cluster. Fill dense regions
-   with short, population-weighted hops, then try one stop per still-uncovered country in an adjacent offset band.
-   Each insertion must leave the complete route feasible. Add nearby towns and villages, plus feasible remote bridge
-   stops that shorten gaps between regions. Respect the 20 km separation rule throughout.
-3. The candidate snapshots have no state, province or territory fields. Report this gap and list candidate countries
-   the route could not reach. The route cannot claim subnational coverage without those identifiers.
+   bands. Finish each band before moving west to the next. Within a band, use an open nearest-neighbor path and
+   alternate the preferred latitude direction north-to-south, then south-to-north, from one band to the next.
+   Constrained 2-opt and or-opt improvements stay within contiguous same-band segments.
+2. Reserve one feasible stop for every country or territory before population-weighted dense filling. Where the
+   candidate snapshot has admin identifiers, also reserve at least one stop per US state, Canadian
+   province/territory, and Australian state/territory. If a required representative cannot fit the complete route,
+   report it as uncovered. Then fill dense regions with short, population-weighted hops, including nearby towns and
+   villages and feasible remote bridge stops that shorten gaps between regions. Respect 20 km separation throughout.
+3. The candidate snapshots currently have no state, province, territory, or other subnational identifiers. Report
+   this data gap and do not claim subnational coverage without those identifiers. List candidate countries or
+   territories the route could not reach.
 4. Maximize stop count subject to the local-time window, dwell, speed and return constraints. Target 550-700 stops;
    the readability ceiling is about 1,000. There is no fixed route total, pinned sequence, arrival anchor, offset cap
    or category quota.
@@ -47,10 +48,9 @@ Report that data gap.
 
 ## Country limit
 
-The generator allows at most twelve stops per country. This ceiling is needed because many countries reach it in the
-current route. It limits a single inventory while leaving room for dense local clusters. The seeded selection favors
-feasible uncovered countries inside the local path, fills dense clusters, then attempts a one-stop country coverage
-pass across adjacent offset bands. Unreachable countries remain in the report.
+The generator allows at most twelve stops per country. This ceiling keeps the largest national inventories from
+using the dense-fill budget after every country has had a representative selected. The seeded sweep prioritizes
+feasible country coverage, then fills dense clusters. Unreachable countries remain in the report.
 
 ## Eastward legs and detours
 
