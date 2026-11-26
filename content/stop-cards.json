@@ -2044,12 +2044,12 @@
   {
     "place_id": "ne-1159150567",
     "country": "Turkmenistan",
-    "note": "Ashgabat's post-Soviet White City renewal wrapped major projects in white marble. The capital's skyline takes its building material seriously, right down to the monumental scale.",
+    "note": "Ashgabat marks Turkmen Carpet Day on the last Sunday of May, with exhibitions of handwoven carpets at the National Museum of Turkmen Carpet and awards for master weavers.",
     "sources": [
       "https://www.wikidata.org/wiki/Q23438",
-      "https://en.wikipedia.org/wiki/Ashgabat"
+      "https://en.wikipedia.org/wiki/Turkmen_rug"
     ],
-    "topic_key": "white-city",
+    "topic_key": "carpet-day",
     "photo": {
       "url": "https://upload.wikimedia.org/wikipedia/commons/e/ea/Neutrality-Road-Ashgabat-2015.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
       "width": 5106,
@@ -2374,12 +2374,12 @@
   {
     "place_id": "ne-1159150877",
     "country": "Estonia",
-    "note": "Tallinn, then known as Reval, received Lübeck city rights in 1248. The medieval charter helped shape a trading town whose old name still turns up in the city's history.",
+    "note": "Tallinn’s Christmas market fills Town Hall Square in the Old Town each Advent, around a tree on the spot linked to the Brotherhood of Blackheads’ Christmas tree of 1441.",
     "sources": [
       "https://www.wikidata.org/wiki/Q1770",
-      "https://en.wikipedia.org/wiki/Tallinn"
+      "https://en.wikipedia.org/wiki/Tallinn_Christmas_Market"
     ],
-    "topic_key": "tallinn-lubeck-rights",
+    "topic_key": "christmas-market",
     "photo": {
       "url": "https://upload.wikimedia.org/wikipedia/commons/9/92/Tallinna_vanalinn_2015.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
       "width": 2808,
