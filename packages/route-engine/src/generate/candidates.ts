@@ -12,6 +12,7 @@ type CandidateValidationOptions = {
   config: GeneratorConfig;
   options: CandidateSelectionOptions;
 };
+type CandidateValidationState = Pick<CandidateValidationOptions, 'vetoed' | 'config' | 'options'> & { seen: Set<string> };
 
 function routeCategory(place: Candidate, config: GeneratorConfig): string {
   if (place.category === 'capital') return 'capital';
@@ -76,21 +77,26 @@ function isVetoedCandidate(place: Candidate, vetoed: Set<string>): boolean {
   return hasNonEmptyText(place.id) && vetoed.has(place.id);
 }
 
+function candidateWithResolvedOffset(place: Candidate, options: CandidateSelectionOptions): Candidate | undefined {
+  if (!hasCandidateIdentity(place)) return undefined;
+  if (!hasValidCoordinates(place)) return undefined;
+  if (Number.isInteger(place.utcOffsetMinutes)) return place;
+  return options.recoverMissingUtcOffset?.(place);
+}
+
 type CandidateValidation =
   | { kind: 'vetoed' }
   | { kind: 'invalid'; id: string }
   | { kind: 'duplicate'; id: string }
   | { kind: 'accepted'; place: Candidate };
 
-function validateCandidateForSelection(place: Candidate, label: string, vetoed: Set<string>, seen: Set<string>,
-  config: GeneratorConfig, options: CandidateSelectionOptions): CandidateValidation {
-  if (isVetoedCandidate(place, vetoed)) return { kind: 'vetoed' };
-  if (!hasCandidateIdentity(place) || !hasValidCoordinates(place)) return { kind: 'invalid', id: label };
-  const resolved = Number.isInteger(place.utcOffsetMinutes) ? place : options.recoverMissingUtcOffset?.(place);
+function validateCandidateForSelection(place: Candidate, label: string, state: CandidateValidationState): CandidateValidation {
+  if (isVetoedCandidate(place, state.vetoed)) return { kind: 'vetoed' };
+  const resolved = candidateWithResolvedOffset(place, state.options);
   if (!resolved || !validCandidate(resolved)) return { kind: 'invalid', id: label };
-  if (seen.has(resolved.id)) return { kind: 'duplicate', id: resolved.id };
-  seen.add(resolved.id);
-  return { kind: 'accepted', place: enrichCandidate(resolved, config) };
+  if (state.seen.has(resolved.id)) return { kind: 'duplicate', id: resolved.id };
+  state.seen.add(resolved.id);
+  return { kind: 'accepted', place: enrichCandidate(resolved, state.config) };
 }
 
 function validateAndEnrichCandidates({ updated, rowLabels, vetoed, config, options }: CandidateValidationOptions): CandidateSelection {
@@ -98,9 +104,9 @@ function validateAndEnrichCandidates({ updated, rowLabels, vetoed, config, optio
   const candidates: Candidate[] = [];
   const invalidCandidateIds: string[] = [];
   const duplicateCandidateIds: string[] = [];
+  const state: CandidateValidationState = { vetoed, seen, config, options };
   for (const [index, place] of updated.entries()) {
-    const result = validateCandidateForSelection(place, rowLabels[index] ?? `row-${index + 1}`,
-      vetoed, seen, config, options);
+    const result = validateCandidateForSelection(place, rowLabels[index] ?? `row-${index + 1}`, state);
     if (result.kind === 'vetoed') continue;
     if (result.kind === 'invalid') invalidCandidateIds.push(result.id);
     if (result.kind === 'duplicate') {

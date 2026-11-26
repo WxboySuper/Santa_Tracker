@@ -90,16 +90,31 @@ function timezoneCountryError(place: Candidate): InvalidCandidateTimezoneError {
 }
 
 function nearestCountryTimezone(place: Candidate, tables: TimezoneTables, offsetOverride?: number): Candidate {
+  const nearest = nearestZonePoint(place, tables);
+  const utcOffsetMinutes = resolvedTimezoneOffset(place, nearest.timezone, tables, offsetOverride);
+  return { ...place, timezone: nearest.timezone, utcOffsetMinutes };
+}
+
+function nearestZonePoint(place: Candidate, tables: TimezoneTables): NonNullable<TimezoneTables['zonePointsByCountry']>[string][number] {
   const points = tables.zonePointsByCountry?.[place.country] ?? [];
   const first = points[0];
   if (!first) throw timezoneCountryError(place);
-  const nearest = points.reduce((best, point) => haversineKm(place, point) < haversineKm(place, best) ? point : best, first);
-  const utcOffsetMinutes = offsetOverride ?? tables.utcOffsetsByTimezone?.[nearest.timezone];
-  if (utcOffsetMinutes === undefined) throw new InvalidCandidateTimezoneError(`Missing committed UTC offset for ${nearest.timezone}`);
-  if (!Number.isInteger(utcOffsetMinutes) || utcOffsetMinutes < -720 || utcOffsetMinutes > 840) {
+  return points.reduce((best, point) => haversineKm(place, point) < haversineKm(place, best) ? point : best, first);
+}
+
+function resolvedTimezoneOffset(place: Candidate, timezone: string, tables: TimezoneTables, override?: number): number {
+  const utcOffsetMinutes = override ?? tables.utcOffsetsByTimezone?.[timezone];
+  if (utcOffsetMinutes === undefined) throw new InvalidCandidateTimezoneError(`Missing committed UTC offset for ${timezone}`);
+  if (!isValidSnapshotOffset(utcOffsetMinutes)) {
     throw new InvalidCandidateTimezoneError(`Invalid snapshot UTC offset override for ${place.name}: ${utcOffsetMinutes}`);
   }
-  return { ...place, timezone: nearest.timezone, utcOffsetMinutes };
+  return utcOffsetMinutes;
+}
+
+function isValidSnapshotOffset(offset: number): boolean {
+  if (!Number.isInteger(offset)) return false;
+  if (offset < -720) return false;
+  return offset <= 840;
 }
 
 function humanCountry(code: string, tables?: TimezoneTables): string {
