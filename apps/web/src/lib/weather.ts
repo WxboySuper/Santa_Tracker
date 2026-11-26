@@ -24,11 +24,16 @@ export async function fetchWeather(lat: number, lon: number, fetcher: WeatherFet
     return validWeather(data) ? displayWeather(data.current.temperature_2m, data.current.weather_code) : null;
   } catch { return null; } finally { clearTimeout(timer); }
 }
+function parseCoordinate(value: string | null, minimum: number, maximum: number): number | null {
+  if (value === null || value.trim() === "") return null;
+  const coordinate = Number(value);
+  if (!Number.isFinite(coordinate) || coordinate < minimum || coordinate > maximum) return null;
+  return coordinate;
+}
 function parseCoordinates(params: URLSearchParams): { lat: number; lon: number } | null {
-  const latRaw = params.get("lat"); const lonRaw = params.get("lon");
-  const lat = latRaw === null || latRaw.trim() === "" ? NaN : Number(latRaw);
-  const lon = lonRaw === null || lonRaw.trim() === "" ? NaN : Number(lonRaw);
-  if (!Number.isFinite(lat) || !Number.isFinite(lon) || lat < -90 || lat > 90 || lon < -180 || lon > 180) return null;
+  const lat = parseCoordinate(params.get("lat"), -90, 90);
+  const lon = parseCoordinate(params.get("lon"), -180, 180);
+  if (lat === null || lon === null) return null;
   return { lat, lon };
 }
 async function cachedWeather(key: Request, cache: Cache | undefined): Promise<Response | null> {
