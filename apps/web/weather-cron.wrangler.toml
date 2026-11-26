@@ -1,0 +1,24 @@
+name = "santa-weather-cron"
+main = "src/weather-cron.ts"
+compatibility_date = "2026-10-05"
+compatibility_flags = ["nodejs_compat"]
+workers_dev = false
+
+[vars]
+WEATHER_ENABLED = "true"
+SANTA_STORAGE_BACKEND = "r2"
+
+[[r2_buckets]]
+binding = "SANTA_SNAPSHOTS"
+bucket_name = "santa-tracker-snapshots"
+
+[[durable_objects.bindings]]
+name = "WEATHER_FALLBACK_BUDGET"
+class_name = "WeatherFallbackBudget"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["WeatherFallbackBudget"]
+
+[triggers]
+crons = ["*/15 * * * *"]
