@@ -16,6 +16,7 @@ const repo = {
   read: vi.fn(),
   readWithStatus: vi.fn(),
   replace: vi.fn(),
+  repair: vi.fn(),
 };
 
 describe("/api/admin/season-config", () => {
@@ -33,8 +34,8 @@ describe("/api/admin/season-config", () => {
     });
   });
 
-  it("surfaces corrupt storage in GET without an epoch ETag", async () => {
-    repo.readWithStatus.mockResolvedValue({ state: defaultSeasonConfigState("preview"), corrupt: true });
+  it("surfaces corrupt storage in GET with a content-specific repair ETag", async () => {
+    repo.readWithStatus.mockResolvedValue({ state: defaultSeasonConfigState("preview"), corrupt: true, etag: '"corrupt-token"' });
     const log = vi.spyOn(console, "error").mockImplementation(() => undefined);
 
     const response = await GET(new Request("https://example.test/api/admin/season-config?environment=preview"));
@@ -42,7 +43,7 @@ describe("/api/admin/season-config", () => {
 
     expect(response.status).toBe(200);
     expect(body.corrupt).toBe(true);
-    expect(response.headers.get("etag")).toBeNull();
+    expect(response.headers.get("etag")).toBe('"corrupt-token"');
     expect(log).toHaveBeenCalledWith("Stored admin season configuration is corrupt", { environment: "preview" });
     log.mockRestore();
   });
@@ -62,6 +63,20 @@ describe("/api/admin/season-config", () => {
     expect(response.status).toBe(409);
     expect(body.corrupt).toBe(true);
     log.mockRestore();
+  });
+
+  it("supports explicit repair against the corrupt-state ETag", async () => {
+    repo.repair.mockResolvedValue({ ...defaultSeasonConfigState("preview"), updatedAt: "2026-11-26T12:00:00.000Z" });
+    const request = new Request("https://example.test/api/admin/season-config?environment=preview", {
+      method: "PUT",
+      headers: { "content-type": "application/json", "if-match": '"corrupt-token"' },
+      body: JSON.stringify({ overrides: {}, reason: "Restore known config", repair: true }),
+    });
+
+    const response = await PUT(request);
+
+    expect(response.status).toBe(200);
+    expect(repo.repair).toHaveBeenCalledWith("preview", "corrupt-token", {}, "admin", "Repair corrupt configuration: Restore known config");
   });
 
   it("caps streamed PUT bodies when Content-Length is absent", async () => {

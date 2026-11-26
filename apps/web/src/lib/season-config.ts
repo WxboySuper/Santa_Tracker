@@ -93,8 +93,9 @@ export function inspectSeasonConfig(raw: string | null, environment: SeasonConfi
 
 export interface SeasonConfigRepository {
   read(environment: SeasonConfigEnvironment): Promise<SeasonConfigState>;
-  readWithStatus(environment: SeasonConfigEnvironment): Promise<{ state: SeasonConfigState; corrupt: boolean }>;
+  readWithStatus(environment: SeasonConfigEnvironment): Promise<{ state: SeasonConfigState; corrupt: boolean; etag: string }>;
   replace(environment: SeasonConfigEnvironment, expectedUpdatedAt: string, overrides: FeatureFlagOverrides, actor: string, reason: string): Promise<SeasonConfigState | null>;
+  repair(environment: SeasonConfigEnvironment, expectedCorruptEtag: string, overrides: FeatureFlagOverrides, actor: string, reason: string): Promise<SeasonConfigState | null>;
 }
 
 export class SeasonConfigCorruptError extends Error {
@@ -111,7 +112,11 @@ export function createSeasonConfigRepository(
   now: () => number = Date.now,
   lock: Lock = withWriteLock,
 ): SeasonConfigRepository {
-  const readWithStatus = async (environment: SeasonConfigEnvironment) => inspectSeasonConfig(await store.read(seasonConfigStorageKey(environment)), environment);
+  const readWithStatus = async (environment: SeasonConfigEnvironment) => {
+    const raw = await store.read(seasonConfigStorageKey(environment));
+    const inspected = inspectSeasonConfig(raw, environment);
+    return { ...inspected, etag: raw !== null && inspected.corrupt ? `"corrupt-${await hashCorruptValue(raw)}"` : `"${inspected.state.updatedAt}"` };
+  };
   return {
     async read(environment) { return (await readWithStatus(environment)).state; },
     readWithStatus,
@@ -133,19 +138,44 @@ export function createSeasonConfigRepository(
         return next;
       });
     },
+    repair(environment, expectedCorruptEtag, overrides, actor, reason) {
+      return lock(async () => {
+        const key = seasonConfigStorageKey(environment);
+        const raw = await store.read(key);
+        if (raw === null) return null;
+        const inspected = inspectSeasonConfig(raw, environment);
+        if (!inspected.corrupt || `corrupt-${await hashCorruptValue(raw)}` !== expectedCorruptEtag) return null;
+        const token = await hashCorruptValue(raw);
+        await store.write(seasonConfigCorruptBackupKey(environment, token), raw);
+        const at = new Date(Math.max(now(), Date.parse(inspected.state.updatedAt) + 1 || 0)).toISOString();
+        const next: SeasonConfigState = {
+          version: 1,
+          environment,
+          overrides,
+          updatedAt: at,
+          audit: [{ actor, at, reason, previous: {}, next: overrides }],
+        };
+        await store.write(key, JSON.stringify(next));
+        return next;
+      });
+    },
   };
 }
 
-let repository: SeasonConfigRepository | null = null;
-function getRepository(): SeasonConfigRepository {
-  if (!repository) repository = createSeasonConfigRepository(getKeyValueStore(getSantaSnapshotsBucket()));
-  return repository;
+export function seasonConfigCorruptBackupKey(environment: SeasonConfigEnvironment, digest: string): string {
+  return `season/config/corrupt-backups/${environment}/${digest}.json`;
+}
+
+async function hashCorruptValue(value: string): Promise<string> {
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value));
+  return Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, "0")).join("");
 }
 
 export async function readEffectiveSeasonConfig(
   environment: SeasonConfigEnvironment,
   at: Date,
   candidateOverrides?: FeatureFlagOverrides,
+  repository: SeasonConfigRepository = createSeasonConfigRepository(getKeyValueStore(getSantaSnapshotsBucket())),
 ): Promise<{
   environment: SeasonConfigEnvironment;
   updatedAt: string;
@@ -155,7 +185,7 @@ export async function readEffectiveSeasonConfig(
   corrupt: boolean;
 }> {
   const [stored, seasonOverride, active] = await Promise.all([
-    getRepository().readWithStatus(environment),
+    repository.readWithStatus(environment),
     readSeasonOverrideState(),
     getSnapshotStore(getSantaSnapshotsBucket()).readActiveVersion(DATASET_SANTA_ROUTE),
   ]);

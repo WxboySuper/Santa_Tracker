@@ -17,11 +17,11 @@ export async function getSeasonConfig(request: Request): Promise<Response> {
 async function readSeasonConfig(environment: SeasonConfigEnvironment, at: Date): Promise<Response> {
   try {
     const repository = createSeasonConfigRepository(getKeyValueStore(getSantaSnapshotsBucket()));
-    const { state, corrupt: storedCorrupt } = await repository.readWithStatus(environment);
-    const effective = await readEffectiveSeasonConfig(environment, at);
+    const { state, corrupt: storedCorrupt, etag } = await repository.readWithStatus(environment);
+    const effective = await readEffectiveSeasonConfig(environment, at, undefined, repository);
     const corrupt = storedCorrupt || effective.corrupt;
     if (corrupt) console.error("Stored admin season configuration is corrupt", { environment });
-    return NextResponse.json({ state, effective, corrupt }, { headers: corrupt ? NO_STORE : { ...NO_STORE, ETag: `"${state.updatedAt}"` } });
+    return NextResponse.json({ state, effective, corrupt }, { headers: { ...NO_STORE, ETag: etag } });
   } catch (error) {
     console.error("Admin season config read failed", error);
     return NextResponse.json({ error: "Unable to read season configuration" }, { status: 500, headers: NO_STORE });

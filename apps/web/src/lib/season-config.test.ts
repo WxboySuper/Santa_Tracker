@@ -32,6 +32,25 @@ describe("season configuration", () => {
     await expect(repository.replace("preview", defaultSeasonConfigState("preview").updatedAt, {}, "admin", "replace")).rejects.toBeInstanceOf(SeasonConfigCorruptError);
   });
 
+  it("repairs corrupt storage only with its ETag and preserves the corrupt value as a backup", async () => {
+    const valuesByKey = new Map<string, string>([[seasonConfigStorageKey("preview"), "not-json"]]);
+    const repository = createSeasonConfigRepository({
+      async read(key) { return valuesByKey.get(key) ?? null; },
+      async write(key, body) { valuesByKey.set(key, body); },
+    }, () => Date.parse("2026-11-26T12:00:00.000Z"), async work => work());
+    const inspected = await repository.readWithStatus("preview");
+    expect(inspected.corrupt).toBe(true);
+    expect(inspected.etag).toMatch(/^"corrupt-[a-f0-9]{64}"$/);
+    const expected = inspected.etag.slice(1, -1);
+
+    expect(await repository.repair("preview", "corrupt-wrong", {}, "admin", "Repair corrupt configuration: test")).toBeNull();
+    const repaired = await repository.repair("preview", expected, {}, "admin", "Repair corrupt configuration: test");
+
+    expect(repaired?.audit[0]?.reason).toBe("Repair corrupt configuration: test");
+    expect([...valuesByKey.entries()].some(([key, value]) => key.startsWith("season/config/corrupt-backups/preview/") && value === "not-json")).toBe(true);
+    expect((await repository.readWithStatus("preview")).corrupt).toBe(false);
+  });
+
   it("reverts expired feature overrides to registry defaults", () => {
     const overrides = parseFeatureFlagOverrides({
       mapEnabled: { enabled: false, expiresAt: "2026-11-26T00:00:00.000Z" },

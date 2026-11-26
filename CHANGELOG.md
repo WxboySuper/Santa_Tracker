@@ -81,7 +81,7 @@
 
 ## [Unreleased] - Environment-aware seasonal configuration (#301)
 
-- **Corruption visibility:** Flags invalid JSON, schema-invalid data, and environment mismatches in admin reads and previews; runtime reads use safe defaults, and writes refuse to replace corrupt stored data.
+- **Corruption handling:** Flags invalid JSON, schema-invalid data, and environment mismatches in admin reads and previews; runtime reads use safe defaults, normal writes refuse corrupt data, and an explicit ETag-guarded repair preserves the original bytes under a backup key.
 - **Bounded request bodies:** Caps streamed preview and update bodies at 8 KiB regardless of `Content-Length`.
 - **Typed flags:** Promotes the feature registry from scaffold-only metadata to strict, typed configuration and includes the effective seasonal config in canonical immutable snapshots.
 - **Environment controls:** Adds separate development, preview, and production flag overrides with compare-and-set writes, operator reasons, audit history, and per-flag expiry. Unknown persisted flags fall back to registry defaults; expired flags stop applying.

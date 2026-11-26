@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
 import { requireAdminAuth } from "./auth";
-import { readEffectiveSeasonConfig } from "./season-config";
+import { createSeasonConfigRepository, readEffectiveSeasonConfig } from "./season-config";
 import { readPreviewBody } from "./season-config-request";
+import { getKeyValueStore } from "./storage";
+import { getSantaSnapshotsBucket } from "./cloudflare-bindings";
 
 const NO_STORE = { "Cache-Control": "private, no-store" };
 
@@ -11,12 +13,14 @@ export async function previewSeasonConfig(request: Request): Promise<Response> {
   const body = await readPreviewBody(request);
   if (body.kind === "too-large") return NextResponse.json({ error: "Request body exceeds 8192 bytes" }, { status: 413, headers: NO_STORE });
   if (body.kind === "invalid") return NextResponse.json({ error: "Expected environment, timestamp, and known feature flag overrides" }, { status: 400, headers: NO_STORE });
-  return createSeasonPreview(body.value.environment, body.value.at, body.value.overrides);
+  const bucket = getSantaSnapshotsBucket();
+  const repository = createSeasonConfigRepository(getKeyValueStore(bucket));
+  return createSeasonPreview(body.value.environment, body.value.at, body.value.overrides, repository);
 }
 
-async function createSeasonPreview(environment: Parameters<typeof readEffectiveSeasonConfig>[0], at: Date, overrides: Parameters<typeof readEffectiveSeasonConfig>[2]): Promise<Response> {
+async function createSeasonPreview(environment: Parameters<typeof readEffectiveSeasonConfig>[0], at: Date, overrides: Parameters<typeof readEffectiveSeasonConfig>[2], repository: Parameters<typeof readEffectiveSeasonConfig>[3]): Promise<Response> {
   try {
-    const effective = await readEffectiveSeasonConfig(environment, at, overrides);
+    const effective = await readEffectiveSeasonConfig(environment, at, overrides, repository);
     if (effective.corrupt) console.error("Stored admin season configuration is corrupt during preview", { environment });
     return NextResponse.json({ preview: effective, corrupt: effective.corrupt }, { headers: NO_STORE });
   } catch (error) {

@@ -1,7 +1,7 @@
 import { parseFeatureFlagOverrides, SEASON_CONFIG_ENVIRONMENTS, type SeasonConfigEnvironment } from "./season-config";
 import { readCappedJson } from "./admin-json";
 
-export type UpdateBody = { overrides: NonNullable<ReturnType<typeof parseFeatureFlagOverrides>>; reason: string };
+export type UpdateBody = { overrides: NonNullable<ReturnType<typeof parseFeatureFlagOverrides>>; reason: string; repair: boolean };
 export type UpdateBodyResult = { kind: "body"; value: UpdateBody } | { kind: "invalid" } | { kind: "too-large" };
 export type PreviewBody = {
   environment: SeasonConfigEnvironment;
@@ -30,11 +30,16 @@ async function readJsonBody(request: Request): Promise<JsonBodyResult> {
 }
 
 function parseUpdateValue(value: unknown): UpdateBodyResult {
-  if (!isRecord(value) || Object.keys(value).sort().join(",") !== "overrides,reason") return { kind: "invalid" };
+  if (!isRecord(value)) return { kind: "invalid" };
+  const keys = Object.keys(value).sort().join(",");
+  if (keys !== "overrides,reason" && keys !== "overrides,reason,repair") return { kind: "invalid" };
+  if ("repair" in value && typeof value.repair !== "boolean") return { kind: "invalid" };
   const overrides = parseFeatureFlagOverrides(value.overrides);
   if (!overrides || typeof value.reason !== "string") return { kind: "invalid" };
   const reason = value.reason.trim();
-  return reason.length > 0 && reason.length <= 500 ? { kind: "body", value: { overrides, reason } } : { kind: "invalid" };
+  return reason.length > 0 && reason.length <= 500
+    ? { kind: "body", value: { overrides, reason, repair: value.repair === true } }
+    : { kind: "invalid" };
 }
 
 function parsePreviewValue(value: unknown): PreviewBodyResult {
