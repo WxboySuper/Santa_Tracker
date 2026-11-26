@@ -130,12 +130,7 @@ function deliveryLongitudeIsAllowed(prior: Candidate | LatLng, place: Candidate,
   return reason === 'dateline' || reason === 'offset-anomaly';
 }
 
-function returnFitsDeadline(place: Candidate, departure: number, config: GeneratorConfig): boolean {
-  const returnArrival = departure + scheduledTravelMilliseconds(place, NORTH_POLE, config);
-  return returnArrival <= Date.parse(RETURN_DEADLINE_UTC);
-}
-
-function candidateTiming({ place, prior, priorDeparture, index, config }: CandidateTimingOptions): PlannedStop | undefined {
+export function candidateTiming({ place, prior, priorDeparture, index, config }: CandidateTimingOptions): PlannedStop | undefined {
   const window = christmasWindow(place.utcOffsetMinutes ?? 0);
   const arrival = Math.max(window.startUtc, priorDeparture + scheduledTravelMilliseconds(prior, place, config));
   if (arrival > latestLocalArrival(place, window)) return undefined;
@@ -145,7 +140,6 @@ function candidateTiming({ place, prior, priorDeparture, index, config }: Candid
   const tier = stopTier(place);
   const durationSeconds = stopDurationSeconds(tier);
   const departure = arrival + durationSeconds * 1000;
-  if (!returnFitsDeadline(place, departure, config)) return undefined;
   return {
     place: { ...place, plannedArrivalUtc: new Date(arrival).toISOString(), plannedStopTier: tier, plannedStopDurationSeconds: durationSeconds },
     arrival,

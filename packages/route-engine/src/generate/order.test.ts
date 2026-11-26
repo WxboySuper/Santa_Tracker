@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { haversineKm } from '../geo';
 import { eastwardLegReason, isInChristmasWindow, localClock, longitudeDelta } from './sweep';
-import { DEFAULT_GENERATOR_LIMITS, type Candidate } from './types';
-import { scheduledTravelMilliseconds, sweepOrder } from './order';
+import { DEFAULT_GENERATOR_LIMITS, NORTH_POLE, type Candidate } from './types';
+import { candidateTiming, scheduledTravelMilliseconds, sweepOrder } from './order';
 
 const testPlaces: Candidate[] = [
   { id: 'ki', name: 'Kiritimati', country: 'KI', lat: 1.87, lng: -157.4, timezone: 'Pacific/Kiritimati', utcOffsetMinutes: 840, category: 'populated', population: 7_380 },
@@ -128,6 +128,35 @@ describe('midnight sweep ordering', () => {
     expect(localSpeed).toBeLessThanOrEqual(DEFAULT_GENERATOR_LIMITS.p90LegSpeedMaxKmh);
     expect(oceanSpeed).toBeLessThanOrEqual(DEFAULT_GENERATOR_LIMITS.p90LegSpeedMaxKmh);
     expect(Math.max(localSpeed, oceanSpeed)).toBeLessThanOrEqual(DEFAULT_GENERATOR_LIMITS.maxLegSpeedKmh);
+  });
+
+  it('allows a late intermediate stop when a faster final segment still meets the return deadline', () => {
+    const prior = { lat: 68.1, lng: -170, utcOffsetMinutes: -660 };
+    const intermediate: Candidate = {
+      id: 'late-intermediate', name: 'Late intermediate', country: 'AS', lat: 67.8, lng: -170,
+      timezone: 'Pacific/Pago_Pago', utcOffsetMinutes: -660, category: 'populated', population: 1_000,
+    };
+    const final: Candidate = {
+      id: 'poleward-finale', name: 'Poleward finale', country: 'AS', lat: 64, lng: -171,
+      timezone: 'Pacific/Pago_Pago', utcOffsetMinutes: -660, category: 'populated', population: 1_000,
+    };
+    const lateDeparture = Date.parse('2026-12-25T13:40:00.000Z');
+    const plannedIntermediate = candidateTiming({ place: intermediate, prior, priorDeparture: lateDeparture, index: 2,
+      config: DEFAULT_GENERATOR_LIMITS });
+    expect(plannedIntermediate).toBeDefined();
+    if (!plannedIntermediate) throw new Error('Expected a feasible intermediate stop');
+
+    const directReturn = plannedIntermediate.departure
+      + scheduledTravelMilliseconds(intermediate, NORTH_POLE, DEFAULT_GENERATOR_LIMITS);
+    expect(directReturn).toBeGreaterThan(Date.parse('2026-12-25T14:00:00.000Z'));
+
+    const plannedFinal = candidateTiming({ place: final, prior: intermediate,
+      priorDeparture: plannedIntermediate.departure, index: 3, config: DEFAULT_GENERATOR_LIMITS });
+    expect(plannedFinal).toBeDefined();
+    if (!plannedFinal) throw new Error('Expected a feasible final stop');
+    const actualReturn = plannedFinal.departure
+      + scheduledTravelMilliseconds(final, NORTH_POLE, DEFAULT_GENERATOR_LIMITS);
+    expect(actualReturn).toBeLessThanOrEqual(Date.parse('2026-12-25T14:00:00.000Z'));
   });
 
   it('produces the same candidate order for the same seed', () => {

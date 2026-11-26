@@ -297,7 +297,13 @@ function assertNonNegativeSetting(value: number, message: string, allowZero: boo
 function validateGeneratorConfig(config: GeneratorConfig): void {
   validateIntegerSettings(config);
   validateSpeedAndDistanceSettings(config);
-  if (Object.keys(config.weights).length === 0) throw new Error('Category weights are required');
+  const weightEntries = Object.entries(config.weights);
+  if (weightEntries.length === 0) throw new Error('Category weights are required');
+  if (weightEntries.some(([, weight]) => !Number.isFinite(weight) || weight < 0)) {
+    throw new Error('Category weights must be finite and non-negative');
+  }
+  const totalWeight = weightEntries.reduce((total, [, weight]) => total + weight, 0);
+  if (!Number.isFinite(totalWeight) || totalWeight <= 0) throw new Error('Category weights must have a finite positive total');
   if (!config.generatedAt || Number.isNaN(Date.parse(config.generatedAt))) throw new Error('Invalid fixed generation date');
 }
 

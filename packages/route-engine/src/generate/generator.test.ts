@@ -54,6 +54,20 @@ describe('generateRoute midnight sweep', () => {
       .toThrow(/No candidate can be reached|No route ordering satisfies/);
   });
 
+  it('rejects invalid category weights before planning the sweep', () => {
+    const invalidWeights: Record<string, number>[] = [
+      {},
+      { hub: -1 },
+      { hub: Number.NaN },
+      { hub: Number.POSITIVE_INFINITY },
+      { hub: 0, cultural: 0 },
+      { hub: Number.MAX_VALUE, cultural: Number.MAX_VALUE },
+    ];
+    for (const weights of invalidWeights) {
+      expect(() => generateRoute(candidates, { ...config, weights })).toThrow(/Category weights/);
+    }
+  });
+
   it('treats the candidate pool as options and respects the country stop ceiling', () => {
     const sameCountry = candidates.slice(0, 2).map((place) => ({ ...place, country: 'FJ' }));
     const generated = generateRoute(sameCountry, { ...config, maxStopsPerCountry: 1 });
