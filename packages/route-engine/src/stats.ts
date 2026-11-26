@@ -1,5 +1,5 @@
 import type { Route } from '@santa-tracker/contracts';
-import { haversineKm } from './geo';
+import { haversineKm, type LatLng } from './geo';
 
 /** Immutable location details joined to a route stop by `id`. */
 export type RouteStatsLocation = {
@@ -100,8 +100,16 @@ function resolveLocations(stops: Route['stops'], locations: readonly RouteStatsL
   return stops.map(stop => {
     const location = byId.get(stop.locationId);
     if (!location) throw new RangeError(`Missing stats location for route stop ${stop.locationId}`);
+    assertValidCoordinates({ coordinates: location.coordinates, locationId: location.id });
     return location;
   });
+}
+
+function assertValidCoordinates({ coordinates, locationId }: { coordinates: LatLng; locationId: string }): void {
+  const { lat, lng } = coordinates;
+  if (!Number.isFinite(lat) || lat < -90 || lat > 90 || !Number.isFinite(lng) || lng < -180 || lng > 180) {
+    throw new RangeError(`invalid coordinates for stats location ${locationId}`);
+  }
 }
 
 function deriveRouteInterval({ stops, nowMs }: { stops: Route['stops']; nowMs: number }): RouteInterval {

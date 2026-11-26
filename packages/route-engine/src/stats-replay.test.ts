@@ -154,6 +154,13 @@ describe('journey stats', () => {
     const invalidTimezoneLocations = locations.map(location => ({ ...location, timezone: 'Invalid/Zone' }));
     expect(deriveJourneyStats(route, landing, invalidTimezoneLocations).presentsDelivered).toBe(PRESENTS_TOTAL);
   });
+
+  it('rejects invalid location coordinates before they can corrupt distance stats', () => {
+    const invalidCoordinates = locations.map((location, index) => index === 0
+      ? { ...location, coordinates: { lat: Number.NaN, lng: location.coordinates.lng } }
+      : location);
+    expect(() => deriveJourneyStats(route, start, invalidCoordinates)).toThrow('invalid coordinates for stats location a');
+  });
 });
 
 describe('replay controller', () => {
