@@ -18,6 +18,7 @@ function makeFixture(name = "Auckland") {
 
 function setup() {
   const files = new Map<string, string>();
+  let lastLock: Promise<void> = Promise.resolve();
   const backend: VersionedStoreBackend = {
     async read(key) { return files.get(key) ?? null; },
     async write(key, body) { files.set(key, body); },
@@ -26,11 +27,19 @@ function setup() {
   };
   let manifest: string | null = null;
   const store = createVersionedSnapshotStore(backend);
+  async function withLock<T>(fn: () => Promise<T>): Promise<T> {
+    const previous = lastLock;
+    let release!: () => void;
+    lastLock = new Promise<void>(resolve => { release = resolve; });
+    await previous;
+    try { return await fn(); }
+    finally { release(); }
+  }
   const service = createRouteDraftService(
     store,
     async () => manifest,
     async body => { manifest = body; },
-    async fn => fn(),
+    withLock,
   );
   return { store, service };
 }
@@ -79,5 +88,18 @@ describe("route draft revisions", () => {
     expect(saved.source).toBe("draft");
     expect(saved.validation.valid).toBe(false);
     expect(saved.validation.issues.length).toBeGreaterThan(0);
+  });
+
+  it("allows only one concurrent save for the same revision token", async () => {
+    const { service } = setup();
+    const initial = await service.getState();
+    const results = await Promise.allSettled([
+      service.save(makeFixture("First concurrent save"), initial.etag),
+      service.save(makeFixture("Second concurrent save"), initial.etag),
+    ]);
+
+    expect(results.filter(result => result.status === "fulfilled")).toHaveLength(1);
+    const rejected = results.find(result => result.status === "rejected");
+    expect(rejected).toMatchObject({ status: "rejected", reason: { status: 412 } });
   });
 });
