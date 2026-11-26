@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { AuthenticationResponseJSON, RegistrationResponseJSON } from "@simplewebauthn/server";
 import { verifyAuthenticationResponse, verifyRegistrationResponse } from "@simplewebauthn/server";
-import { consumeAuthChallenge, createAdminSession, deletePasskey, installPasskey, resetAdminAuthStateForTests, readAdminAuthState } from "./admin-auth-state";
+import { consumeAuthChallenge, createAdminSession, deletePasskey, installPasskey, parseAdminAuthState, resetAdminAuthStateForTests, readAdminAuthState } from "./admin-auth-state";
 import { authorizeRecoverySessionForPasskeyManagement, createAuthenticationChallenge, createRegistrationChallenge, finishAuthentication, finishRegistration, loginWithRecoveryCode, PasskeyRegistrationConflictError, webAuthnSettings } from "./admin-passkeys";
 import { getAdminTokenSessionId, requirePasskeyManagementAuth, verifyAdminToken } from "./auth";
 import { loginAdmin } from "./admin-login";
@@ -47,6 +47,19 @@ describe("admin passkey service", () => {
   it("requires HTTPS for the production WebAuthn origin", () => {
     vi.stubEnv("ADMIN_WEBAUTHN_ORIGIN", "http://example.test");
     expect(() => webAuthnSettings(request, true)).toThrow("must use HTTPS in production");
+  });
+
+  it("treats legacy sessions without an auth method as password sessions", () => {
+    const state = parseAdminAuthState(JSON.stringify({
+      version: 1,
+      passkeys: [],
+      recoveryCodeHashes: [],
+      sessions: [{ id: "legacy-session", csrfToken: "legacy-csrf", createdAt: 1, expiresAt: 2, revokedAt: null }],
+      challenges: [],
+      audit: [],
+    }));
+
+    expect(state.sessions[0]?.authMethod).toBe("password");
   });
 
   it("keeps a challenge available when a consumer requests the wrong purpose", async () => {

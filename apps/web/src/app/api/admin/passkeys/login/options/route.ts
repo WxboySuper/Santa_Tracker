@@ -1,4 +1,4 @@
-import { checkLoginRateLimit, recordLoginAttempt } from "@/lib/admin-login";
+import { checkLoginRateLimit } from "@/lib/admin-login";
 import { createAuthenticationChallenge, recordPasskeyFailure, webAuthnSettings } from "@/lib/admin-passkeys";
 import { setChallengeCookie, tooManyAttempts } from "@/lib/admin-passkey-http";
 import { NextResponse } from "next/server";
@@ -17,8 +17,6 @@ async function processLoginOptions(request: Request): Promise<Response> {
   const throttleKey = `passkey-options:${ip}`;
   const locked = await checkLoginRateLimit(throttleKey);
   if (locked) return throttled(locked.retryAfterSeconds);
-  const throttle = await recordLoginAttempt(throttleKey);
-  if (throttle) return tooManyAttempts(throttle.retryAfterSeconds);
   return createOptions(request);
 }
 

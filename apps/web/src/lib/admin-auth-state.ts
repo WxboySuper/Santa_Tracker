@@ -58,7 +58,7 @@ function getAdapter(): StateAdapter {
   if (process.env.NODE_ENV === "test") {
     return {
       async read() { return JSON.stringify(testState); },
-      async write(value) { testState = parseState(value); },
+      async write(value) { testState = parseAdminAuthState(value); },
     };
   }
   const bucket = getSantaSnapshotsBucket();
@@ -66,7 +66,7 @@ function getAdapter(): StateAdapter {
   return { read: () => store.read(STATE_KEY), write: value => store.write(STATE_KEY, value) };
 }
 
-function parseState(raw: string | null): AdminAuthState {
+export function parseAdminAuthState(raw: string | null): AdminAuthState {
   if (!raw) return emptyState();
   const value = parseJsonState(raw);
   if (!isAdminAuthState(value)) throw corruptStateError();
@@ -74,7 +74,7 @@ function parseState(raw: string | null): AdminAuthState {
     version: 1,
     passkeys: value.passkeys.slice(0, 10),
     recoveryCodeHashes: value.recoveryCodeHashes,
-    sessions: value.sessions.map(session => ({ ...session, authMethod: session.authMethod ?? "recovery" })),
+    sessions: value.sessions.map(session => ({ ...session, authMethod: session.authMethod ?? "password" })),
     challenges: value.challenges,
     audit: value.audit.slice(-MAX_AUDIT_EVENTS),
   };
@@ -234,7 +234,7 @@ function hasValidAuditSessionId(value: unknown): value is string | undefined {
 async function mutateState<T>(update: (state: AdminAuthState) => T | Promise<T>): Promise<T> {
   return withWriteLock(async () => {
     const adapter = getAdapter();
-    const state = parseState(await adapter.read());
+    const state = parseAdminAuthState(await adapter.read());
     const result = await update(state);
     state.sessions = state.sessions.filter(session => session.expiresAt > Date.now()).slice(-MAX_SESSIONS);
     state.challenges = state.challenges.filter(challenge => challenge.expiresAt > Date.now()).slice(-MAX_CHALLENGES);
@@ -245,7 +245,7 @@ async function mutateState<T>(update: (state: AdminAuthState) => T | Promise<T>)
 }
 
 export async function readAdminAuthState(): Promise<AdminAuthState> {
-  return parseState(await getAdapter().read());
+  return parseAdminAuthState(await getAdapter().read());
 }
 
 export async function appendAuthAudit(event: Omit<AdminAuthAuditEvent, "at"> & { at?: string }): Promise<void> {
