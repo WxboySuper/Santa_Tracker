@@ -66,12 +66,13 @@ describe('midnight sweep ordering', () => {
       priorDeparture: Date.parse('2026-12-24T14:00:00.000Z'), index: 2, config: DEFAULT_GENERATOR_LIMITS })).toBeUndefined();
   });
 
-  it('justifies an eastward launch across the date line into UTC+12', () => {
-    const first: Candidate = { id: 'utc12-launch', name: 'UTC+12 island', country: 'KI', lat: 1, lng: -170,
-      timezone: 'Pacific/Tarawa', utcOffsetMinutes: 720, category: 'populated', population: 5_000 };
+  it('justifies a polar launch across the date line without treating pole longitude as route progress', () => {
+    const first: Candidate = { id: 'polar-launch', name: 'Date-line island', country: 'KI', lat: 1, lng: -178,
+      timezone: 'Etc/GMT-11', utcOffsetMinutes: 660, category: 'populated', population: 5_000 };
     const planned = candidateTiming({ place: first, prior: NORTH_POLE, priorDeparture: Date.parse('2026-12-24T10:00:00.000Z'),
       index: 0, config: DEFAULT_GENERATOR_LIMITS });
     expect(planned).toBeDefined();
+    expect(longitudeDelta(NORTH_POLE, first)).toBeGreaterThan(1);
     expect(eastwardLegReason({ from: NORTH_POLE, to: first, destinationIndex: 0, arrivalUtc: planned?.arrival })).toBe('dateline');
   });
 

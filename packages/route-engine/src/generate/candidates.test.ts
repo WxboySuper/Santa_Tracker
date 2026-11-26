@@ -38,6 +38,13 @@ describe('chooseCandidates', () => {
     expect(result.candidates[0]?.isNationalCapital).toBe(true);
   });
 
+  it('preserves capital category for reporting and hub-equivalent ranking', () => {
+    const capital: Candidate = { ...pool[0]!, id: 'capital-a', category: 'capital', population: 300_000 };
+    const result = chooseCandidates([capital], DEFAULT_GENERATOR_LIMITS);
+    expect(result.candidates[0]?.category).toBe('capital');
+    expect(result.candidates[0]?.isNationalCapital).toBe(true);
+  });
+
   it('reports invalid candidate rows without discarding the valid pool', () => {
     const { utcOffsetMinutes: _offset, ...missingOffset } = pool[0]!;
     const invalid = { ...missingOffset, id: 'missing-offset' };

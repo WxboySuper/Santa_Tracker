@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { legSpeedKmh } from '../geo';
 import { generateRoute, type Candidate, DEFAULT_GENERATOR_LIMITS } from './generator';
 import { isInChristmasWindow, localClock } from './sweep';
 import { scheduledTravelMilliseconds } from './order';
@@ -94,7 +95,9 @@ describe('generateRoute midnight sweep', () => {
     const scheduleGapSeconds = (Date.parse(generated.route.stops[0]!.arrivalIso) - Date.parse('2026-12-24T10:00:00.000Z')) / 1000;
     expect(scheduleGapSeconds).toBeGreaterThan(expectedTravelSeconds);
     expect(node.transit_to_here.duration_seconds).toBe(expectedTravelSeconds);
-    expect(node.transit_to_here.speed_kmh).toBe(Math.round(generated.report.legs[0]!.kmh));
+    expect(node.transit_to_here.speed_kmh).toBe(Math.round(legSpeedKmh(NORTH_POLE, lateWindowStop, expectedTravelSeconds) ?? 0));
+    expect(generated.report.legs[0]?.kmh).toBe(legSpeedKmh(NORTH_POLE, lateWindowStop, scheduleGapSeconds));
+    expect(node.transit_to_here.speed_kmh).toBeGreaterThan(Math.round(generated.report.legs[0]!.kmh));
   });
 
   it('reports an invalid candidate IANA timezone without aborting remaining valid places', () => {
@@ -156,6 +159,19 @@ describe('generateRoute midnight sweep', () => {
     const generated = generateRoute([recoverable], config, {}, tables);
     expect(generated.locations[0]?.utcOffsetMinutes).toBe(840);
     expect(generated.report.invalidCandidateIds).toEqual([]);
+  });
+
+  it('preserves an explicit UTC offset override during country-timezone recovery', () => {
+    const mismatched = { ...candidates[0]!, timezone: 'America/New_York' };
+    const tables = {
+      zonesByCountry: { FJ: ['Pacific/Kiritimati'] },
+      zonePointsByCountry: { FJ: [{ timezone: 'Pacific/Kiritimati', lat: 80, lng: 170 }] },
+      utcOffsetsByTimezone: { 'Pacific/Kiritimati': 840 },
+      countryNames: { FJ: 'Fiji' },
+    };
+    const generated = generateRoute([mismatched], config, { utcOffsetMinutes: { 'pacific-a': 720 } }, tables);
+    expect(generated.locations[0]?.timezone).toBe('Pacific/Kiritimati');
+    expect(generated.locations[0]?.utcOffsetMinutes).toBe(720);
   });
 
   it('reports a missing snapshot offset when its valid timezone cannot recover it', () => {

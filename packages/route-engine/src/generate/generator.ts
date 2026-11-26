@@ -82,19 +82,19 @@ function timezoneForMismatch(place: Candidate, overrides: RouteOverrides, tables
   if (overrides.timezone?.[place.id]) {
     throw new Error(`Timezone override ${place.timezone} for ${place.name} does not belong to country ${place.country}`);
   }
-  return nearestCountryTimezone(place, tables);
+  return nearestCountryTimezone(place, tables, overrides.utcOffsetMinutes?.[place.id]);
 }
 
 function timezoneCountryError(place: Candidate): InvalidCandidateTimezoneError {
   return new InvalidCandidateTimezoneError(`Timezone ${place.timezone} for ${place.name} does not belong to country ${place.country}`);
 }
 
-function nearestCountryTimezone(place: Candidate, tables: TimezoneTables): Candidate {
+function nearestCountryTimezone(place: Candidate, tables: TimezoneTables, offsetOverride?: number): Candidate {
   const points = tables.zonePointsByCountry?.[place.country] ?? [];
   const first = points[0];
   if (!first) throw timezoneCountryError(place);
   const nearest = points.reduce((best, point) => haversineKm(place, point) < haversineKm(place, best) ? point : best, first);
-  const utcOffsetMinutes = tables.utcOffsetsByTimezone?.[nearest.timezone];
+  const utcOffsetMinutes = offsetOverride ?? tables.utcOffsetsByTimezone?.[nearest.timezone];
   if (utcOffsetMinutes === undefined) throw new InvalidCandidateTimezoneError(`Missing committed UTC offset for ${nearest.timezone}`);
   return { ...place, timezone: nearest.timezone, utcOffsetMinutes };
 }

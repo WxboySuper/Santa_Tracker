@@ -14,6 +14,7 @@ type CandidateValidationOptions = {
 };
 
 function routeCategory(place: Candidate, config: GeneratorConfig): string {
+  if (place.category === 'capital') return 'capital';
   if (['cultural', 'nature', 'special'].includes(place.category)) return place.category;
   if (place.worldCity || (place.population ?? 0) >= 250_000) return 'hub';
   if (config.underservedCountries.includes(place.country)) return 'underserved';

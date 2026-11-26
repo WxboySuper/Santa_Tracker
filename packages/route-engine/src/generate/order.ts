@@ -178,6 +178,7 @@ function timingAndDetourAllows(place: Candidate, route: Candidate[]): boolean {
 }
 
 function categoryPreference(place: Candidate, config: GeneratorConfig): number {
+  if (place.category === 'capital') return config.weights.hub ?? 0;
   return config.weights[place.category] ?? 0;
 }
 
