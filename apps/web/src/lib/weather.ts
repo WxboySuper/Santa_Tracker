@@ -25,9 +25,12 @@ export async function fetchWeather(lat: number, lon: number, fetcher: WeatherFet
   } catch { return null; } finally { clearTimeout(timer); }
 }
 function parseCoordinate(value: string | null, minimum: number, maximum: number): number | null {
-  if (value === null || value.trim() === "") return null;
+  if (value === null) return null;
+  if (value.trim() === "") return null;
   const coordinate = Number(value);
-  if (!Number.isFinite(coordinate) || coordinate < minimum || coordinate > maximum) return null;
+  if (!Number.isFinite(coordinate)) return null;
+  if (coordinate < minimum) return null;
+  if (coordinate > maximum) return null;
   return coordinate;
 }
 function parseCoordinates(params: URLSearchParams): { lat: number; lon: number } | null {
@@ -52,6 +55,8 @@ export async function getWeatherResponse(request: Request): Promise<Response> {
   const weather = await fetchWeather(lat, lon);
   if (!weather) return NextResponse.json(null, { status: 502, headers: { "Cache-Control": "no-store" } });
   const response = NextResponse.json(weather, { status: 200, headers: { "Cache-Control": `public, max-age=0, s-maxage=${CACHE_SECONDS}`, "CDN-Cache-Control": `public, max-age=${CACHE_SECONDS}` } });
-  if (cache) await cache.put(keyRequest, response.clone());
+  if (cache) {
+    try { await cache.put(keyRequest, response.clone()); } catch { /* A cache outage must not hide a fresh weather result. */ }
+  }
   return response;
 }
