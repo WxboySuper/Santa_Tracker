@@ -22,6 +22,10 @@ export function weatherCellKey(point: WeatherPoint): string {
   const cell = rounded(point);
   return `cell:${cell.lat.toFixed(2)}:${cell.lon.toFixed(2)}`;
 }
+const PUBLIC_WEATHER_HEADERS = { "Cache-Control": "public, max-age=0, s-maxage=720" };
+function nullWeather(status = 200): Response {
+  return NextResponse.json(null, { status, headers: { "Cache-Control": "no-store" } });
+}
 function displayWeather(temperatureC: number, code: number): WeatherResult {
   return { temperatureC, temperatureF: Math.round((temperatureC * 9 / 5 + 32) * 10) / 10, code, label: labels[code] ?? "Weather" };
 }
@@ -100,19 +104,33 @@ export async function getWeatherResponse(
   const store = options.store ?? bindings?.weather ?? null;
   const budget = options.budget ?? bindings?.budget ?? null;
   const key = weatherCellKey(point);
-  if (store) {
-    try {
-      const value = await store.get(key);
-      if (value) return NextResponse.json(JSON.parse(value), { headers: { "Cache-Control": "public, max-age=0, s-maxage=720" } });
-    } catch { /* A KV outage falls through to the bounded fallback. */ }
-  }
-  if (!budget) return NextResponse.json(null, { headers: { "Cache-Control": "no-store" } });
+  const cached = await readWeatherFromStore(store, key);
+  if (cached) return cached;
+  return fetchWeatherFallback(budget, store, key, point, options.fetcher);
+}
+
+async function readWeatherFromStore(store: WeatherKV | null, key: string): Promise<Response | null> {
+  if (!store) return null;
+  try {
+    const value = await store.get(key);
+    return value ? NextResponse.json(JSON.parse(value), { headers: PUBLIC_WEATHER_HEADERS }) : null;
+  } catch { return null; }
+}
+
+async function fetchWeatherFallback(
+  budget: FallbackBudget | null,
+  store: WeatherKV | null,
+  key: string,
+  point: WeatherPoint,
+  fetcher?: WeatherFetch,
+): Promise<Response> {
+  if (!budget) return nullWeather();
   try {
     const permission = await budget.fetch("https://weather-budget/consume", { method: "POST" });
-    if (!permission.ok) return NextResponse.json(null, { headers: { "Cache-Control": "no-store" } });
-    const weather = await fetchWeather(point.lat, point.lon, options.fetcher);
-    if (!weather) return NextResponse.json(null, { status: 502, headers: { "Cache-Control": "no-store" } });
+    if (!permission.ok) return nullWeather();
+    const weather = await fetchWeather(point.lat, point.lon, fetcher);
+    if (!weather) return nullWeather(502);
     try { await store?.put(key, JSON.stringify(weather), { expirationTtl: WEATHER_TTL_SECONDS }); } catch { /* Keep the response even if KV is down. */ }
-    return NextResponse.json(weather, { headers: { "Cache-Control": "public, max-age=0, s-maxage=720" } });
-  } catch { return NextResponse.json(null, { headers: { "Cache-Control": "no-store" } }); }
+    return NextResponse.json(weather, { headers: PUBLIC_WEATHER_HEADERS });
+  } catch { return nullWeather(); }
 }

@@ -39,19 +39,13 @@ describe("weather API", () => {
     expect(await response.json()).toBeNull();
     vi.unstubAllGlobals();
   });
-  it("returns fresh weather if the edge cache write fails", async () => {
+  it.each(["read", "write"] as const)("returns fresh weather if the KV %s fails", async failure => {
+    const store: WeatherKV = {
+      get: async () => { if (failure === "read") throw new Error("KV offline"); return null; },
+      put: async () => { if (failure === "write") throw new Error("KV offline"); },
+    };
     const response = await getWeatherResponse(new Request("https://example.test/api/weather?lat=0&lon=0"), {
-      store: { get: async () => null, put: async () => { throw new Error("cache offline"); } },
-      budget: { fetch: async () => new Response(null, { status: 204 }) },
-      fetcher: async () => Response.json({ current: { temperature_2m: 10, weather_code: 3 } }),
-    });
-    expect(response.status).toBe(200);
-    expect((await response.json() as WeatherResult).label).toBe("Overcast");
-    vi.unstubAllGlobals();
-  });
-  it("fetches fresh weather if the edge cache read fails", async () => {
-    const response = await getWeatherResponse(new Request("https://example.test/api/weather?lat=0&lon=0"), {
-      store: { get: async () => { throw new Error("cache offline"); }, put: async () => undefined },
+      store,
       budget: { fetch: async () => new Response(null, { status: 204 }) },
       fetcher: async () => Response.json({ current: { temperature_2m: 10, weather_code: 3 } }),
     });
