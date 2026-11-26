@@ -50,7 +50,8 @@ export async function getWeatherResponse(request: Request): Promise<Response> {
   const key = new URL(request.url); key.search = new URLSearchParams({ lat: String(lat), lon: String(lon) }).toString();
   const cache = (globalThis as typeof globalThis & { caches?: { default?: Cache } }).caches?.default;
   const keyRequest = new Request(key.toString());
-  const cached = await cachedWeather(keyRequest, cache);
+  let cached: Response | null = null;
+  try { cached = await cachedWeather(keyRequest, cache); } catch { cached = null; }
   if (cached) return cached;
   const weather = await fetchWeather(lat, lon);
   if (!weather) return NextResponse.json(null, { status: 502, headers: { "Cache-Control": "no-store" } });

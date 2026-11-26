@@ -42,4 +42,12 @@ describe("weather API", () => {
     expect((await response.json()).label).toBe("Overcast");
     vi.unstubAllGlobals();
   });
+  it("fetches fresh weather if the edge cache read fails", async () => {
+    vi.stubGlobal("fetch", async () => Response.json({ current: { temperature_2m: 10, weather_code: 3 } }));
+    vi.stubGlobal("caches", { default: { match: async () => { throw new Error("cache offline"); }, put: async () => undefined } });
+    const response = await GET(new Request("https://example.test/api/weather?lat=0&lon=0"));
+    expect(response.status).toBe(200);
+    expect((await response.json()).label).toBe("Overcast");
+    vi.unstubAllGlobals();
+  });
 });
