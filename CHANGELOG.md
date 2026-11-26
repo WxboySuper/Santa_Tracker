@@ -12,6 +12,19 @@
 - **Research quality:** Adds 80 original, source-linked cultural notes and 83 permissively licensed, fully attributed photos; 13 cards remain without a sourced note.
 - **Entity matching:** Leaves seven candidates unresolved where the research tool could not verify a matching Wikidata entity by exact English label and location.
 
+## [Unreleased] - Weather cron Worker no longer bundles Next.js (#542)
+
+- **Weather:** `lib/weather.ts` builds responses with the standard `Response.json` instead of `NextResponse`. The weather cron Worker imports this module, and `next/server` pulled Next's Node-only code (`__dirname`) into its bundle, so Cloudflare rejected the upload. The cron bundle drops from 242 KiB to 35 KiB. The `/api/weather` responses are unchanged.
+
+## [Unreleased] - Fix weather cron deploy order (#542)
+
+- **Deploy:** Deploys the weather cron Worker before the vinext app build. Wrangler refuses to deploy while the build's `.cloudflare/output` exists, which failed the first deploy after #545 before the app Worker was updated.
+
+## [Unreleased] - Bounded weather provider calls (#542)
+
+- **Scheduled weather refresh:** Adds a 15-minute Worker cron that runs from 30 minutes before takeoff through the 26-hour flight and replay window. It reads the active route, fetches upcoming and current stop weather in batches of at most 50 cells, and stores results in shared KV for 30 minutes.
+- **Global provider limit:** `/api/weather` checks shared KV first. Both cron and request-time provider calls pass through one Durable Object budget capped at 900 per UTC day and 300 per minute. Missing data returns `null` when the budget or bindings are unavailable.
+- **Emergency switch and setup:** `WEATHER_ENABLED=false` disables both cron refresh and the endpoint. The launch runbook documents KV provisioning and the GitHub repository variable required before deployment.
 ## [Unreleased] - Representative city stop cards batch 1
 
 - **Candidate coverage:** Adds draft cards for the top 100 country or territory candidates by population, keyed to stable generator place IDs.
