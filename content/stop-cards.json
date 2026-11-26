@@ -1,1 +1,1425 @@
-[]
+[
+  {
+    "place_id": "ne-1159139075",
+    "country": "Poland",
+    "note": "Katowice’s Silesian Museum occupies the site of a former coal mine; its galleries and observation tower make the city’s industrial past part of the present skyline.",
+    "sources": [
+      "https://www.wikidata.org/wiki/Q588",
+      "https://en.wikipedia.org/wiki/Katowice",
+      "https://en.wikipedia.org/wiki/Silesian_Museum"
+    ],
+    "topic_key": "silesian-museum",
+    "photo": null,
+    "review_status": "draft"
+  },
+  {
+    "place_id": "ne-1159149365",
+    "country": "Cameroon",
+    "note": "Douala’s Sawa communities gather for Ngondo, a water-centred festival on the Wouri River with music, dance and a ceremonial canoe procession.",
+    "sources": [
+      "https://www.wikidata.org/wiki/Q132830",
+      "https://en.wikipedia.org/wiki/Douala",
+      "https://en.wikipedia.org/wiki/Ngondo"
+    ],
+    "topic_key": "ngondo-festival",
+    "photo": null,
+    "review_status": "draft"
+  },
+  {
+    "place_id": "ne-1159149457",
+    "country": "Netherlands",
+    "note": "On Prinsjesdag, the Dutch monarch travels from Noordeinde Palace to the Ridderzaal in a state procession before reading the government’s plans for the year.",
+    "sources": [
+      "https://www.wikidata.org/wiki/Q36600",
+      "https://en.wikipedia.org/wiki/The_Hague",
+      "https://en.wikipedia.org/wiki/Prinsjesdag"
+    ],
+    "topic_key": "prinsjesdag-procession",
+    "photo": null,
+    "review_status": "draft"
+  },
+  {
+    "place_id": "ne-1159149469",
+    "country": "Qatar",
+    "note": "Souq Waqif keeps Doha’s old market trades close at hand: spice stalls, textiles and the falcon market sit among cafés in the restored bazaar.",
+    "sources": [
+      "https://www.wikidata.org/wiki/Q3861",
+      "https://en.wikipedia.org/wiki/Doha",
+      "https://en.wikipedia.org/wiki/Souq_Waqif"
+    ],
+    "topic_key": "souq-waqif-market",
+    "photo": {
+      "url": "https://upload.wikimedia.org/wikipedia/commons/8/86/Doha_skyline_in_the_morning_%2812544910974%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "width": 4808,
+      "height": 3878,
+      "author": "Francisco Anzola",
+      "license": "CC BY",
+      "license_url": "https://creativecommons.org/licenses/by/2.0",
+      "source_page": "https://commons.wikimedia.org/wiki/File:Doha_skyline_in_the_morning_(12544910974).jpg"
+    },
+    "review_status": "draft"
+  },
+  {
+    "place_id": "ne-1159149765",
+    "country": "Malaysia",
+    "note": "George Town’s shophouses, clan jetties and hawker stalls sit within a UNESCO-listed historic city, where Chinese, Malay, Indian and European influences meet.",
+    "sources": [
+      "https://www.wikidata.org/wiki/Q61092",
+      "https://en.wikipedia.org/wiki/George_Town,_Penang"
+    ],
+    "topic_key": "heritage-shophouses",
+    "photo": {
+      "url": "https://upload.wikimedia.org/wikipedia/commons/5/5d/Skyline_of_George_Town%2C_Penang_at_night_January_2025_02-01.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "width": 7979,
+      "height": 5984,
+      "author": "HundenvonPenang",
+      "license": "CC BY-SA",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+      "source_page": "https://commons.wikimedia.org/wiki/File:Skyline_of_George_Town,_Penang_at_night_January_2025_02-01.jpg"
+    },
+    "review_status": "draft"
+  },
+  {
+    "place_id": "ne-1159150469",
+    "country": "Uruguay",
+    "note": "Montevideo’s Carnival runs for weeks, with candombe comparsas bringing hand drums and dancing through neighbourhood streets in a tradition shaped by Afro-Uruguayan communities.",
+    "sources": [
+      "https://www.wikidata.org/wiki/Q1335",
+      "https://en.wikipedia.org/wiki/Montevideo",
+      "https://en.wikipedia.org/wiki/Candombe"
+    ],
+    "topic_key": "candombe-carnival",
+    "photo": null,
+    "review_status": "draft"
+  },
+  {
+    "place_id": "ne-1159150535",
+    "country": "Togo",
+    "note": "Lomé’s Grand Marché became known for the Nana Benz, women traders whose success in the West African wax-print trade helped shape the city’s commercial life.",
+    "sources": [
+      "https://www.wikidata.org/wiki/Q3792",
+      "https://en.wikipedia.org/wiki/Lom%C3%A9",
+      "https://en.wikipedia.org/wiki/Nana_Benz"
+    ],
+    "topic_key": "nana-benz-trade",
+    "photo": null,
+    "review_status": "draft"
+  },
+  {
+    "place_id": "ne-1159150537",
+    "country": "Tunisia",
+    "note": "The medina of Tunis is a dense weave of covered souks, mosques and courtyards; its narrow lanes still follow the layout of the historic walled city.",
+    "sources": [
+      "https://www.wikidata.org/wiki/Q3572",
+      "https://en.wikipedia.org/wiki/Tunis",
+      "https://en.wikipedia.org/wiki/Medina_of_Tunis"
+    ],
+    "topic_key": "medina-souks",
+    "photo": null,
+    "review_status": "draft"
+  },
+  {
+    "place_id": "ne-1159150571",
+    "country": "Zambia",
+    "note": "Lusaka’s Kabwata Cultural Village brings Zambian woodcarving, basketry and other craftwork into one open-air market, with makers selling directly from their stalls.",
+    "sources": [
+      "https://www.wikidata.org/wiki/Q3881",
+      "https://en.wikipedia.org/wiki/Lusaka",
+      "https://en.wikipedia.org/wiki/Kabwata_Cultural_Village"
+    ],
+    "topic_key": "kabwata-crafts",
+    "photo": null,
+    "review_status": "draft"
+  },
+  {
+    "place_id": "ne-1159150573",
+    "country": "Zimbabwe",
+    "note": "Mbare Musika is Harare’s major open-air market, where produce arrives from farming districts and traders sell everything from vegetables to household goods.",
+    "sources": [
+      "https://www.wikidata.org/wiki/Q3921",
+      "https://en.wikipedia.org/wiki/Harare",
+      "https://en.wikipedia.org/wiki/Mbare_Musika"
+    ],
+    "topic_key": "mbare-market",
+    "photo": {
+      "url": "https://upload.wikimedia.org/wikipedia/commons/8/8c/Harare_skyline.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "width": 800,
+      "height": 442,
+      "author": "Radozw at Serbian Wikipedia",
+      "license": "CC BY-SA",
+      "license_url": "https://creativecommons.org/licenses/by-sa/3.0/",
+      "source_page": "https://commons.wikimedia.org/wiki/File:Harare_skyline.jpg"
+    },
+    "review_status": "draft"
+  },
+  {
+    "place_id": "ne-1159150589",
+    "country": "Haiti",
+    "note": "Port-au-Prince Carnival fills the season before Lent with rara bands, costumed groups and processions; the music tends to travel farther than the schedule.",
+    "sources": [
+      "https://www.wikidata.org/wiki/Q34261",
+      "https://en.wikipedia.org/wiki/Port-au-Prince",
+      "https://en.wikipedia.org/wiki/Haitian_Carnival"
+    ],
+    "topic_key": "haitian-carnival",
+    "photo": null,
+    "review_status": "draft"
+  },
+  {
+    "place_id": "ne-1159150593",
+    "country": "Uganda",
+    "note": "In Kampala, a “rolex” is an omelette rolled inside chapati, cooked to order at roadside stalls. The name is more useful than the watch comparison.",
+    "sources": [
+      "https://www.wikidata.org/wiki/Q3894",
+      "https://en.wikipedia.org/wiki/Kampala",
+      "https://en.wikipedia.org/wiki/Rolled_egg"
+    ],
+    "topic_key": "rolex-street-food",
+    "photo": null,
+    "review_status": "draft"
+  },
+  {
+    "place_id": "ne-1159150621",
+    "country": "Paraguay",
+    "note": null,
+    "sources": [
+      "https://www.wikidata.org/wiki/Q2933",
+      "https://en.wikipedia.org/wiki/Asunci%C3%B3n"
+    ],
+    "topic_key": null,
+    "photo": null,
+    "review_status": "draft"
+  },
+  {
+    "place_id": "ne-1159150667",
+    "country": "Panama",
+    "note": "Casco Viejo preserves Panama City’s colonial-era streets and plazas beside the modern centre; its churches, balconies and restored houses are an unusually compact history lesson.",
+    "sources": [
+      "https://www.wikidata.org/wiki/Q3306",
+      "https://en.wikipedia.org/wiki/Panama_City",
+      "https://en.wikipedia.org/wiki/Casco_Viejo,_Panama"
+    ],
+    "topic_key": "casco-viejo",
+    "photo": null,
+    "review_status": "draft"
+  },
+  {
+    "place_id": "ne-1159150683",
+    "country": "Mozambique",
+    "note": "Maputo’s central railway station pairs a green dome and wrought-iron details with a working rail terminus; it was designed during the city’s Portuguese colonial period.",
+    "sources": [
+      "https://www.wikidata.org/wiki/Q3889",
+      "https://en.wikipedia.org/wiki/Maputo",
+      "https://en.wikipedia.org/wiki/Maputo_railway_station"
+    ],
+    "topic_key": "railway-station",
+    "photo": null,
+    "review_status": "draft"
+  },
+  {
+    "place_id": "ne-1159150835",
+    "country": "Madagascar",
+    "note": "Antananarivo’s Rova stands above the old city on Analamanga hill, a royal compound whose surviving palaces and tombs carry the history of the Merina kingdom.",
+    "sources": [
+      "https://www.wikidata.org/wiki/Q3915",
+      "https://en.wikipedia.org/wiki/Antananarivo",
+      "https://en.wikipedia.org/wiki/Rova_of_Antananarivo"
+    ],
+    "topic_key": "rova-royal-compound",
+    "photo": null,
+    "review_status": "draft"
+  },
+  {
+    "place_id": "ne-1159150849",
+    "country": "Costa Rica",
+    "note": "San José’s Central Market has traded under one roof since the 19th century; its stalls mix fruit, herbs, cooked meals and the patient art of choosing a coffee.",
+    "sources": [
+      "https://www.wikidata.org/wiki/Q3070",
+      "https://en.wikipedia.org/wiki/San_Jos%C3%A9,_Costa_Rica",
+      "https://en.wikipedia.org/wiki/San_Jos%C3%A9_Central_Market"
+    ],
+    "topic_key": "central-market",
+    "photo": {
+      "url": "https://upload.wikimedia.org/wikipedia/commons/2/24/Cityscape_of_San_Jos%C3%A9%2C_Costa_Rica_%28253552473%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "width": 2048,
+      "height": 1365,
+      "author": "Xlionheartx",
+      "license": "CC BY",
+      "license_url": "https://creativecommons.org/licenses/by/3.0",
+      "source_page": "https://commons.wikimedia.org/wiki/File:Cityscape_of_San_Jos%C3%A9,_Costa_Rica_(253552473).jpg"
+    },
+    "review_status": "draft"
+  },
+  {
+    "place_id": "ne-1159150853",
+    "country": "El Salvador",
+    "note": null,
+    "sources": [
+      "https://www.wikidata.org/wiki/Q3110",
+      "https://en.wikipedia.org/wiki/San_Salvador"
+    ],
+    "topic_key": null,
+    "photo": null,
+    "review_status": "draft"
+  },
+  {
+    "place_id": "ne-1159150945",
+    "country": "Mali",
+    "note": "Bamako is one of the centres of bogolanfini, Mali’s mud-cloth tradition: artisans dye cotton with fermented mud to build dark patterns one layer at a time.",
+    "sources": [
+      "https://www.wikidata.org/wiki/Q3703",
+      "https://en.wikipedia.org/wiki/Bamako",
+      "https://en.wikipedia.org/wiki/Bogolanfini"
+    ],
+    "topic_key": "bogolanfini-cloth",
+    "photo": null,
+    "review_status": "draft"
+  },
+  {
+    "place_id": "ne-1159150957",
+    "country": "Lebanon",
+    "note": "Beirut’s old central district brings Ottoman and French Mandate buildings into the same short walk, a streetscape repeatedly rebuilt after conflict and reconstruction.",
+    "sources": [
+      "https://www.wikidata.org/wiki/Q3820",
+      "https://en.wikipedia.org/wiki/Beirut",
+      "https://en.wikipedia.org/wiki/Beirut_Central_District"
+    ],
+    "topic_key": "central-district-history",
+    "photo": null,
+    "review_status": "draft"
+  },
+  {
+    "place_id": "ne-1159150969",
+    "country": "Kazakhstan",
+    "note": "Almaty takes its name from the apple, and wild Malus sieversii still grows in the nearby Tian Shan foothills; the region is central to the apple’s ancestry.",
+    "sources": [
+      "https://www.wikidata.org/wiki/Q35493",
+      "https://en.wikipedia.org/wiki/Almaty",
+      "https://en.wikipedia.org/wiki/Malus_sieversii"
+    ],
+    "topic_key": "wild-apple-origin",
+    "photo": null,
+    "review_status": "draft"
+  },
+  {
+    "place_id": "ne-1159150993",
+    "country": "Congo (Brazzaville)",
+    "note": "Brazzaville’s Poto-Poto art school has trained painters since the 1950s, helping turn the neighbourhood into a recognised centre for modern Congolese art.",
+    "sources": [
+      "https://www.wikidata.org/wiki/Q3844",
+      "https://en.wikipedia.org/wiki/Brazzaville",
+      "https://en.wikipedia.org/wiki/Poto-Poto_School_of_Painting"
+    ],
+    "topic_key": "poto-poto-art",
+    "photo": null,
+    "review_status": "draft"
+  },
+  {
+    "place_id": "ne-1159150997",
+    "country": "Guinea",
+    "note": null,
+    "sources": [
+      "https://www.wikidata.org/wiki/Q3733",
+      "https://en.wikipedia.org/wiki/Conakry"
+    ],
+    "topic_key": null,
+    "photo": null,
+    "review_status": "draft"
+  },
+  {
+    "place_id": "ne-1159151123",
+    "country": "Azerbaijan",
+    "note": "Baku’s walled Old City, Icherisheher, keeps the Maiden Tower and Palace of the Shirvanshahs within a walkable medieval street plan above the Caspian.",
+    "sources": [
+      "https://www.wikidata.org/wiki/Q9248",
+      "https://en.wikipedia.org/wiki/Baku",
+      "https://en.wikipedia.org/wiki/Old_City_(Baku)"
+    ],
+    "topic_key": "icherisheher-old-city",
+    "photo": null,
+    "review_status": "draft"
+  },
+  {
+    "place_id": "ne-1159151127",
+    "country": "Cambodia",
+    "note": "Phnom Penh’s Central Market sits beneath a bright yellow Art Deco dome. Its covered wings still make a practical place to browse jewellery, fabric and produce.",
+    "sources": [
+      "https://www.wikidata.org/wiki/Q1850",
+      "https://en.wikipedia.org/wiki/Phnom_Penh",
+      "https://en.wikipedia.org/wiki/Central_Market,_Phnom_Penh"
+    ],
+    "topic_key": "central-market-dome",
+    "photo": {
+      "url": "https://upload.wikimedia.org/wikipedia/commons/b/b8/Phnom_Penh_aerial.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "width": 1280,
+      "height": 851,
+      "author": "KY Geologist",
+      "license": "CC BY",
+      "license_url": "https://creativecommons.org/licenses/by/2.0",
+      "source_page": "https://commons.wikimedia.org/wiki/File:Phnom_Penh_aerial.jpg"
+    },
+    "review_status": "draft"
+  },
+  {
+    "place_id": "ne-1159151135",
+    "country": "Bolivia",
+    "note": "Santa Cruz de la Sierra’s Carnival is led by comparsas, neighbourhood groups that organise costumes, music and dance for the city’s annual parade season.",
+    "sources": [
+      "https://www.wikidata.org/wiki/Q170688",
+      "https://en.wikipedia.org/wiki/Santa_Cruz_de_la_Sierra",
+      "https://en.wikipedia.org/wiki/Carnival_in_Bolivia"
+    ],
+    "topic_key": "cruceno-carnival",
+    "photo": {
+      "url": "https://upload.wikimedia.org/wikipedia/commons/f/fc/Northern_Skyline_Santa_Cruz.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "width": 4000,
+      "height": 3000,
+      "author": "Rodolfo Barriga",
+      "license": "CC BY-SA",
+      "license_url": "https://creativecommons.org/licenses/by-sa/3.0",
+      "source_page": "https://commons.wikimedia.org/wiki/File:Northern_Skyline_Santa_Cruz.jpg"
+    },
+    "review_status": "draft"
+  },
+  {
+    "place_id": "ne-1159151147",
+    "country": "Bulgaria",
+    "note": "Sofia marks Baba Marta on 1 March by exchanging martenitsi, red-and-white yarn charms worn until the first sign of spring appears.",
+    "sources": [
+      "https://www.wikidata.org/wiki/Q472",
+      "https://en.wikipedia.org/wiki/Sofia",
+      "https://en.wikipedia.org/wiki/Martenitsa"
+    ],
+    "topic_key": "baba-marta",
+    "photo": null,
+    "review_status": "draft"
+  },
+  {
+    "place_id": "ne-1159151149",
+    "country": "Belarus",
+    "note": "Kamarouka Market is one of Minsk’s familiar food markets, with seasonal berries, pickles and preserves laid out in a city where winter stores are taken seriously.",
+    "sources": [
+      "https://www.wikidata.org/wiki/Q2280",
+      "https://en.wikipedia.org/wiki/Minsk",
+      "https://en.wikipedia.org/wiki/Komarovsky_Market"
+    ],
+    "topic_key": "kamarouka-market",
+    "photo": null,
+    "review_status": "draft"
+  },
+  {
+    "place_id": "ne-1159151181",
+    "country": "Puerto Rico",
+    "note": "Old San Juan’s blue-grey adoquín paving stones were made from furnace slag and used as ship ballast; they now give the historic streets their distinct, slightly uneven finish.",
+    "sources": [
+      "https://www.wikidata.org/wiki/Q41211",
+      "https://en.wikipedia.org/wiki/San_Juan,_Puerto_Rico",
+      "https://en.wikipedia.org/wiki/Old_San_Juan"
+    ],
+    "topic_key": "adoquin-streets",
+    "photo": null,
+    "review_status": "draft"
+  },
+  {
+    "place_id": "ne-1159151253",
+    "country": "Vietnam",
+    "note": "Ho Chi Minh City’s “Cafe Apartment” turns a 1960s apartment block on Nguyễn Huệ into a stack of small cafés and shops, each reached by a lift or a long stairwell.",
+    "sources": [
+      "https://www.wikidata.org/wiki/Q1854",
+      "https://en.wikipedia.org/wiki/Ho_Chi_Minh_City",
+      "https://en.wikipedia.org/wiki/Cafe_Apartment"
+    ],
+    "topic_key": "cafe-apartment",
+    "photo": null,
+    "review_status": "draft"
+  },
+  {
+    "place_id": "ne-1159151257",
+    "country": "Hungary",
+    "note": "Budapest’s ruin bars began in the 2000s in the city’s old Jewish Quarter, adapting vacant buildings and courtyards into informal bars with furniture that rarely matches.",
+    "sources": [
+      "https://www.wikidata.org/wiki/Q1781",
+      "https://en.wikipedia.org/wiki/Budapest",
+      "https://en.wikipedia.org/wiki/Ruin_bar"
+    ],
+    "topic_key": "ruin-bars",
+    "photo": null,
+    "review_status": "draft"
+  },
+  {
+    "place_id": "ne-1159151259",
+    "country": "Yemen",
+    "note": "Old Sana’a is known for tower houses decorated with geometric brickwork and white gypsum patterns; many rise several storeys above ground-floor shops.",
+    "sources": [
+      "https://www.wikidata.org/wiki/Q2471",
+      "https://en.wikipedia.org/wiki/Sanaa",
+      "https://en.wikipedia.org/wiki/Old_City_of_Sana%27a"
+    ],
+    "topic_key": "tower-houses",
+    "photo": null,
+    "review_status": "draft"
+  },
+  {
+    "place_id": "ne-1159151263",
+    "country": "Romania",
+    "note": "Bucharest’s Caru’ cu Bere opened in the 19th century; its stained glass, carved wood and painted ceiling make the dining room almost as memorable as the menu.",
+    "sources": [
+      "https://www.wikidata.org/wiki/Q19660",
+      "https://en.wikipedia.org/wiki/Bucharest",
+      "https://en.wikipedia.org/wiki/Caru%27_cu_Bere"
+    ],
+    "topic_key": "caru-cu-bere",
+    "photo": {
+      "url": "https://upload.wikimedia.org/wikipedia/commons/d/d3/Bucharest-Skyline-01.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "width": 3840,
+      "height": 2160,
+      "author": "seisdeagosto",
+      "license": "CC BY-SA",
+      "license_url": "https://creativecommons.org/licenses/by-sa/2.0",
+      "source_page": "https://commons.wikimedia.org/wiki/File:Bucharest-Skyline-01.jpg"
+    },
+    "review_status": "draft"
+  },
+  {
+    "place_id": "ne-1159151267",
+    "country": "Syria",
+    "note": "Aleppo’s laurel-oil soap is traditionally made by slow-cooking olive and laurel oils, then curing the cut bars for months before they reach the market.",
+    "sources": [
+      "https://www.wikidata.org/wiki/Q41183",
+      "https://en.wikipedia.org/wiki/Aleppo",
+      "https://en.wikipedia.org/wiki/Aleppo_soap"
+    ],
+    "topic_key": "aleppo-soap",
+    "photo": null,
+    "review_status": "draft"
+  },
+  {
+    "place_id": "ne-1159151273",
+    "country": "Portugal",
+    "note": "Lisbon’s fado houses are closely tied to the old neighbourhoods of Alfama and Mouraria, where singers perform the city’s plaintive urban song with Portuguese guitar.",
+    "sources": [
+      "https://www.wikidata.org/wiki/Q597",
+      "https://en.wikipedia.org/wiki/Lisbon",
+      "https://en.wikipedia.org/wiki/Fado"
+    ],
+    "topic_key": "fado-neighbourhoods",
+    "photo": null,
+    "review_status": "draft"
+  },
+  {
+    "place_id": "ne-1159151275",
+    "country": "Sudan",
+    "note": null,
+    "sources": [
+      "https://www.wikidata.org/wiki/Q1963",
+      "https://en.wikipedia.org/wiki/Khartoum"
+    ],
+    "topic_key": null,
+    "photo": null,
+    "review_status": "draft"
+  },
+  {
+    "place_id": "ne-1159151287",
+    "country": "Pakistan",
+    "note": "Burns Road is Karachi’s best-known food street, where evening crowds gather for nihari, kebabs and sweets at shops that stay busy well past dinner.",
+    "sources": [
+      "https://www.wikidata.org/wiki/Q8660",
+      "https://en.wikipedia.org/wiki/Karachi",
+      "https://en.wikipedia.org/wiki/Burns_Road"
+    ],
+    "topic_key": "burns-road-food",
+    "photo": null,
+    "review_status": "draft"
+  },
+  {
+    "place_id": "ne-1159151303",
+    "country": "North Korea",
+    "note": "Pyongyang’s naengmyeon, cold buckwheat noodles in chilled broth, is a city speciality. At Okryu-gwan, the ritual includes scissors for making the long noodles manageable.",
+    "sources": [
+      "https://www.wikidata.org/wiki/Q18808",
+      "https://en.wikipedia.org/wiki/Pyongyang",
+      "https://en.wikipedia.org/wiki/Pyongyang_naengmyeon"
+    ],
+    "topic_key": "pyongyang-naengmyeon",
+    "photo": null,
+    "review_status": "draft"
+  },
+  {
+    "place_id": "ne-1159151305",
+    "country": "Tanzania",
+    "note": "Kariakoo Market is Dar es Salaam’s busiest trading district, with dense streets of produce, household goods and the ordinary negotiations that keep a port city supplied.",
+    "sources": [
+      "https://www.wikidata.org/wiki/Q1960",
+      "https://en.wikipedia.org/wiki/Dar_es_Salaam",
+      "https://en.wikipedia.org/wiki/Kariakoo"
+    ],
+    "topic_key": "kariakoo-market",
+    "photo": null,
+    "review_status": "draft"
+  },
+  {
+    "place_id": "ne-1159151341",
+    "country": "Ecuador",
+    "note": "Guayaquil’s Malecón 2000 follows the Guayas River through gardens, monuments and public spaces, turning the waterfront into the city’s long outdoor promenade.",
+    "sources": [
+      "https://www.wikidata.org/wiki/Q43509",
+      "https://en.wikipedia.org/wiki/Guayaquil",
+      "https://en.wikipedia.org/wiki/Malec%C3%B3n_2000"
+    ],
+    "topic_key": "malecon-promenade",
+    "photo": null,
+    "review_status": "draft"
+  },
+  {
+    "place_id": "ne-1159151347",
+    "country": "Cuba",
+    "note": "Havana’s annual carnival brings comparsas, conga rhythms and elaborate costumes along the Malecón, where the city’s sea wall becomes the parade route.",
+    "sources": [
+      "https://www.wikidata.org/wiki/Q1563",
+      "https://en.wikipedia.org/wiki/Havana",
+      "https://en.wikipedia.org/wiki/Carnival_in_Cuba"
+    ],
+    "topic_key": "havana-carnival",
+    "photo": null,
+    "review_status": "draft"
+  },
+  {
+    "place_id": "ne-1159151359",
+    "country": "Czechia",
+    "note": "Prague’s Astronomical Clock has marked the Old Town Square since the 15th century. At the hour, a small procession of figures draws a crowd that knows exactly how long it lasts.",
+    "sources": [
+      "https://www.wikidata.org/wiki/Q1085",
+      "https://en.wikipedia.org/wiki/Prague",
+      "https://en.wikipedia.org/wiki/Prague_astronomical_clock"
+    ],
+    "topic_key": "astronomical-clock",
+    "photo": null,
+    "review_status": "draft"
+  },
+  {
+    "place_id": "ne-1159151361",
+    "country": "Kuwait",
+    "note": "Souq Al-Mubarakiya is Kuwait City’s old market district, where spice shops, dates and traditional coffee still sit alongside the newer storefronts.",
+    "sources": [
+      "https://www.wikidata.org/wiki/Q35178",
+      "https://en.wikipedia.org/wiki/Kuwait_City",
+      "https://en.wikipedia.org/wiki/Souq_Al-Mubarakiya"
+    ],
+    "topic_key": "mubarakiya-souq",
+    "photo": null,
+    "review_status": "draft"
+  },
+  {
+    "place_id": "ne-1159151401",
+    "country": "Dominican Republic",
+    "note": "Santo Domingo’s Colonial City keeps the Americas’ first cathedral and a grid of 16th-century streets within its old walls, making the Spanish colonial period unusually legible.",
+    "sources": [
+      "https://www.wikidata.org/wiki/Q34820",
+      "https://en.wikipedia.org/wiki/Santo_Domingo",
+      "https://en.wikipedia.org/wiki/Colonial_City_of_Santo_Domingo"
+    ],
+    "topic_key": "colonial-city",
+    "photo": null,
+    "review_status": "draft"
+  },
+  {
+    "place_id": "ne-1159151403",
+    "country": "Ghana",
+    "note": "Accra’s Homowo festival recalls a Ga harvest after famine; the season includes kpokpoi, a steamed maize dish scattered at family homes and community shrines.",
+    "sources": [
+      "https://www.wikidata.org/wiki/Q3761",
+      "https://en.wikipedia.org/wiki/Accra",
+      "https://en.wikipedia.org/wiki/Homowo"
+    ],
+    "topic_key": "homowo-harvest",
+    "photo": null,
+    "review_status": "draft"
+  },
+  {
+    "place_id": "ne-1159151415",
+    "country": "Libya",
+    "note": "Tripoli’s Arch of Marcus Aurelius is a Roman monument from the 2nd century, standing amid the lanes of the old medina close to the Mediterranean harbour.",
+    "sources": [
+      "https://www.wikidata.org/wiki/Q3579",
+      "https://en.wikipedia.org/wiki/Tripoli,_Libya",
+      "https://en.wikipedia.org/wiki/Arch_of_Marcus_Aurelius,_Tripoli"
+    ],
+    "topic_key": "marcus-aurelius-arch",
+    "photo": null,
+    "review_status": "draft"
+  },
+  {
+    "place_id": "ne-1159151417",
+    "country": "Israel",
+    "note": "Tel Aviv’s White City district contains thousands of modernist buildings, many by architects trained at the Bauhaus; the ensemble earned UNESCO World Heritage status.",
+    "sources": [
+      "https://www.wikidata.org/wiki/Q33935",
+      "https://en.wikipedia.org/wiki/Tel_Aviv",
+      "https://en.wikipedia.org/wiki/White_City_(Tel_Aviv)"
+    ],
+    "topic_key": "white-city-bauhaus",
+    "photo": null,
+    "review_status": "draft"
+  },
+  {
+    "place_id": "ne-1159151439",
+    "country": "Ivory Coast",
+    "note": "Abidjan’s maquis are open-air restaurants where grilled fish, attiéké and a cold drink make a long meal out of an ordinary evening.",
+    "sources": [
+      "https://www.wikidata.org/wiki/Q1515",
+      "https://en.wikipedia.org/wiki/Abidjan",
+      "https://en.wikipedia.org/wiki/Atti%C3%A9k%C3%A9"
+    ],
+    "topic_key": "maquis-restaurants",
+    "photo": null,
+    "review_status": "draft"
+  },
+  {
+    "place_id": "ne-1159151465",
+    "country": "Belgium",
+    "note": "Brussels’ comic-strip route turns building façades into murals, with Tintin, the Smurfs and other Belgian characters appearing between the ordinary errands.",
+    "sources": [
+      "https://www.wikidata.org/wiki/Q239",
+      "https://en.wikipedia.org/wiki/Brussels",
+      "https://en.wikipedia.org/wiki/Belgian_Comic_Strip_Center"
+    ],
+    "topic_key": "comic-strip-route",
+    "photo": null,
+    "review_status": "draft"
+  },
+  {
+    "place_id": "ne-1159151467",
+    "country": "Bangladesh",
+    "note": "Dhaka’s painted cycle rickshaws are a moving gallery of flowers, film stars and landscapes. The city’s rickshaw art was added to UNESCO’s intangible heritage list in 2023.",
+    "sources": [
+      "https://www.wikidata.org/wiki/Q1354",
+      "https://en.wikipedia.org/wiki/Dhaka",
+      "https://ich.unesco.org/en/RL/rickshaw-and-rickshaw-painting-in-dhaka-01886"
+    ],
+    "topic_key": "rickshaw-art",
+    "photo": null,
+    "review_status": "draft"
+  },
+  {
+    "place_id": "ne-1159151469",
+    "country": "Angola",
+    "note": null,
+    "sources": [
+      "https://www.wikidata.org/wiki/Q3897",
+      "https://en.wikipedia.org/wiki/Luanda"
+    ],
+    "topic_key": null,
+    "photo": null,
+    "review_status": "draft"
+  },
+  {
+    "place_id": "ne-1159151471",
+    "country": "Algeria",
+    "note": "The Casbah of Algiers climbs a hillside above the bay in tight lanes of Ottoman-era houses, mosques and courtyards, its layout largely shaped for walking.",
+    "sources": [
+      "https://www.wikidata.org/wiki/Q3561",
+      "https://en.wikipedia.org/wiki/Algiers",
+      "https://en.wikipedia.org/wiki/Casbah_of_Algiers"
+    ],
+    "topic_key": "casbah-hillside",
+    "photo": null,
+    "review_status": "draft"
+  },
+  {
+    "place_id": "ne-1159151477",
+    "country": "Myanmar",
+    "note": "Yangon’s Shwedagon Pagoda is a gilded Buddhist stupa visited by worshippers who circle its base and pray at the planetary posts linked to their day of birth.",
+    "sources": [
+      "https://www.wikidata.org/wiki/Q37995",
+      "https://en.wikipedia.org/wiki/Yangon",
+      "https://en.wikipedia.org/wiki/Shwedagon_Pagoda"
+    ],
+    "topic_key": "shwedagon-pagoda",
+    "photo": null,
+    "review_status": "draft"
+  },
+  {
+    "place_id": "ne-1159151493",
+    "country": "Venezuela",
+    "note": null,
+    "sources": [
+      "https://www.wikidata.org/wiki/Q1533",
+      "https://en.wikipedia.org/wiki/Caracas"
+    ],
+    "topic_key": null,
+    "photo": null,
+    "review_status": "draft"
+  },
+  {
+    "place_id": "ne-1159151495",
+    "country": "Ukraine",
+    "note": "Kyiv marks City Day in late May with concerts and public events across the capital. Its first observance in 1982 marked the city’s 1,500th anniversary.",
+    "sources": [
+      "https://www.wikidata.org/wiki/Q1899",
+      "https://en.wikipedia.org/wiki/Kyiv",
+      "https://en.wikipedia.org/wiki/Kyiv_Day"
+    ],
+    "topic_key": "kyiv-day",
+    "photo": null,
+    "review_status": "draft"
+  },
+  {
+    "place_id": "ne-1159151497",
+    "country": "United Arab Emirates",
+    "note": "Traditional abras still ferry passengers across Dubai Creek between Deira and Bur Dubai; the wooden boats keep the old trading waterway in daily use.",
+    "sources": [
+      "https://www.wikidata.org/wiki/Q612",
+      "https://en.wikipedia.org/wiki/Dubai",
+      "https://en.wikipedia.org/wiki/Abras_of_Dubai"
+    ],
+    "topic_key": "creek-abras",
+    "photo": {
+      "url": "https://upload.wikimedia.org/wikipedia/commons/4/46/Dubai_Skyline_mit_Burj_Khalifa_%28cropped%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "width": 5289,
+      "height": 2187,
+      "author": "Tim Reckmann from Hamm, Deutschland",
+      "license": "CC BY-SA",
+      "license_url": "https://creativecommons.org/licenses/by-sa/3.0",
+      "source_page": "https://commons.wikimedia.org/wiki/File:Dubai_Skyline_mit_Burj_Khalifa_(cropped).jpg"
+    },
+    "review_status": "draft"
+  },
+  {
+    "place_id": "ne-1159151501",
+    "country": "Uzbekistan",
+    "note": "Tashkent’s Chorsu Bazaar gathers bread, produce and dried fruit beneath a large blue dome, continuing the city’s role as a market stop on old Central Asian trade routes.",
+    "sources": [
+      "https://www.wikidata.org/wiki/Q269",
+      "https://en.wikipedia.org/wiki/Tashkent",
+      "https://en.wikipedia.org/wiki/Chorsu_Bazaar"
+    ],
+    "topic_key": "chorsu-bazaar",
+    "photo": null,
+    "review_status": "draft"
+  },
+  {
+    "place_id": "ne-1159151503",
+    "country": "Spain",
+    "note": "Madrid’s San Isidro festival honours the city’s patron in May; locals head to the Pradera dressed as chulapos and chulapas for music, dancing and rosquillas.",
+    "sources": [
+      "https://www.wikidata.org/wiki/Q2807",
+      "https://en.wikipedia.org/wiki/Madrid",
+      "https://en.wikipedia.org/wiki/San_Isidro_Labrador"
+    ],
+    "topic_key": "san-isidro-festival",
+    "photo": null,
+    "review_status": "draft"
+  },
+  {
+    "place_id": "ne-1159151505",
+    "country": "Switzerland",
+    "note": "Geneva’s L’Escalade commemorates the failed Savoyard attack of 1602. Each December, the old town fills with historical costumes and chocolate cauldrons.",
+    "sources": [
+      "https://www.wikidata.org/wiki/Q71",
+      "https://en.wikipedia.org/wiki/Geneva",
+      "https://en.wikipedia.org/wiki/L%27Escalade"
+    ],
+    "topic_key": "escalade-festival",
+    "photo": null,
+    "review_status": "draft"
+  },
+  {
+    "place_id": "ne-1159151507",
+    "country": "Sweden",
+    "note": "Stockholm’s Lucia processions bring candle crowns, white robes and saffron buns to schools, churches and workplaces on 13 December, in the darkest part of the year.",
+    "sources": [
+      "https://www.wikidata.org/wiki/Q1754",
+      "https://en.wikipedia.org/wiki/Stockholm",
+      "https://en.wikipedia.org/wiki/Saint_Lucy%27s_Day"
+    ],
+    "topic_key": "lucia-procession",
+    "photo": null,
+    "review_status": "draft"
+  },
+  {
+    "place_id": "ne-1159151509",
+    "country": "Thailand",
+    "note": "Bangkok’s Pak Khlong Talat flower market trades through the night, with jasmine garlands and marigolds arriving for temples, ceremonies and early-morning offerings.",
+    "sources": [
+      "https://www.wikidata.org/wiki/Q1861",
+      "https://en.wikipedia.org/wiki/Bangkok",
+      "https://en.wikipedia.org/wiki/Pak_Khlong_Talat"
+    ],
+    "topic_key": "flower-market",
+    "photo": null,
+    "review_status": "draft"
+  },
+  {
+    "place_id": "ne-1159151511",
+    "country": "Peru",
+    "note": "Lima’s October procession of the Lord of Miracles draws purple-clad devotees behind a painted image through the historic centre over several days.",
+    "sources": [
+      "https://www.wikidata.org/wiki/Q2868",
+      "https://en.wikipedia.org/wiki/Lima",
+      "https://en.wikipedia.org/wiki/Lord_of_Miracles"
+    ],
+    "topic_key": "lord-of-miracles",
+    "photo": null,
+    "review_status": "draft"
+  },
+  {
+    "place_id": "ne-1159151513",
+    "country": "Senegal",
+    "note": "Dakar hosts Dak’Art, a biennial of contemporary African art that fills galleries and public venues with work from across the continent and its diaspora.",
+    "sources": [
+      "https://www.wikidata.org/wiki/Q3718",
+      "https://en.wikipedia.org/wiki/Dakar",
+      "https://en.wikipedia.org/wiki/Dak%27Art"
+    ],
+    "topic_key": "dakart-biennale",
+    "photo": null,
+    "review_status": "draft"
+  },
+  {
+    "place_id": "ne-1159151515",
+    "country": "South Africa",
+    "note": "Johannesburg’s Maboneng Precinct repurposed former warehouses into studios, galleries and cafés, making the area a visible chapter in the city’s post-industrial reinvention.",
+    "sources": [
+      "https://www.wikidata.org/wiki/Q34647",
+      "https://en.wikipedia.org/wiki/Johannesburg",
+      "https://en.wikipedia.org/wiki/Maboneng_Precinct"
+    ],
+    "topic_key": "maboneng-precinct",
+    "photo": null,
+    "review_status": "draft"
+  },
+  {
+    "place_id": "ne-1159151521",
+    "country": "Morocco",
+    "note": "Casablanca’s Habous quarter was planned in the 1920s with Moroccan arches and French urban design, including bookshops, bakeries and a well-known olive market.",
+    "sources": [
+      "https://www.wikidata.org/wiki/Q7903",
+      "https://en.wikipedia.org/wiki/Casablanca",
+      "https://en.wikipedia.org/wiki/Habous"
+    ],
+    "topic_key": "habous-quarter",
+    "photo": null,
+    "review_status": "draft"
+  },
+  {
+    "place_id": "ne-1159151523",
+    "country": "South Korea",
+    "note": "At midnight on New Year’s Eve, Seoul’s Bosingak bell is struck 33 times in a public ceremony near Jongno, carrying an old Buddhist count into the city calendar.",
+    "sources": [
+      "https://www.wikidata.org/wiki/Q8684",
+      "https://en.wikipedia.org/wiki/Seoul",
+      "https://en.wikipedia.org/wiki/Bosingak"
+    ],
+    "topic_key": "bosingak-new-year",
+    "photo": null,
+    "review_status": "draft"
+  },
+  {
+    "place_id": "ne-1159151525",
+    "country": "Philippines",
+    "note": "Every 9 January, Manila’s Black Nazarene procession draws millions through Quiapo. The image’s devotees walk barefoot and reach toward the carriage for a cloth to touch it.",
+    "sources": [
+      "https://www.wikidata.org/wiki/Q1461",
+      "https://en.wikipedia.org/wiki/Manila",
+      "https://en.wikipedia.org/wiki/Black_Nazarene"
+    ],
+    "topic_key": "black-nazarene-procession",
+    "photo": null,
+    "review_status": "draft"
+  },
+  {
+    "place_id": "ne-1159151529",
+    "country": "Germany",
+    "note": "Berlin claims currywurst as a postwar street-food invention: sausage, curry-spiced ketchup and a paper tray, usually eaten standing up and without ceremony.",
+    "sources": [
+      "https://www.wikidata.org/wiki/Q64",
+      "https://en.wikipedia.org/wiki/Berlin",
+      "https://en.wikipedia.org/wiki/Currywurst"
+    ],
+    "topic_key": "currywurst",
+    "photo": {
+      "url": "https://upload.wikimedia.org/wikipedia/commons/8/83/Cityscape_Berlin.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "width": 4496,
+      "height": 2300,
+      "author": "Thomas Wolf, www.foto-tw.de",
+      "license": "CC BY-SA",
+      "license_url": "https://creativecommons.org/licenses/by-sa/3.0",
+      "source_page": "https://commons.wikimedia.org/wiki/File:Cityscape_Berlin.jpg"
+    },
+    "review_status": "draft"
+  },
+  {
+    "place_id": "ne-1159151539",
+    "country": "Congo (Kinshasa)",
+    "note": "Congolese rumba grew through the music scenes of Kinshasa and Brazzaville, where guitars and dance bands reshaped Cuban son into a sound now recognised by UNESCO.",
+    "sources": [
+      "https://www.wikidata.org/wiki/Q3838",
+      "https://en.wikipedia.org/wiki/Kinshasa",
+      "https://ich.unesco.org/en/RL/congolese-rumba-01711"
+    ],
+    "topic_key": "congolese-rumba",
+    "photo": null,
+    "review_status": "draft"
+  },
+  {
+    "place_id": "ne-1159151545",
+    "country": "Greece",
+    "note": "Athens hosted the first modern Olympic Games in 1896, with the Panathenaic Stadium rebuilt in marble for the opening ceremony and the finish of the marathon.",
+    "sources": [
+      "https://www.wikidata.org/wiki/Q1524",
+      "https://en.wikipedia.org/wiki/Athens",
+      "https://en.wikipedia.org/wiki/1896_Summer_Olympics"
+    ],
+    "topic_key": "1896-olympics",
+    "photo": null,
+    "review_status": "draft"
+  },
+  {
+    "place_id": "ne-1159151547",
+    "country": "Iraq",
+    "note": "Baghdad’s Mutanabbi Street has long been the city’s booksellers’ row; on Fridays, stalls and cafés draw readers to browse in the open air.",
+    "sources": [
+      "https://www.wikidata.org/wiki/Q1530",
+      "https://en.wikipedia.org/wiki/Baghdad",
+      "https://en.wikipedia.org/wiki/Mutanabbi_Street"
+    ],
+    "topic_key": "mutanabbi-street-books",
+    "photo": null,
+    "review_status": "draft"
+  },
+  {
+    "place_id": "ne-1159151549",
+    "country": "Ethiopia",
+    "note": "Addis Ababa’s Mercato is a sprawling open-air trading district where coffee, spices, household goods and produce are sold in neighbourhoods of specialised stalls.",
+    "sources": [
+      "https://www.wikidata.org/wiki/Q3624",
+      "https://en.wikipedia.org/wiki/Addis_Ababa",
+      "https://en.wikipedia.org/wiki/Mercato,_Addis_Ababa"
+    ],
+    "topic_key": "mercato-market",
+    "photo": null,
+    "review_status": "draft"
+  },
+  {
+    "place_id": "ne-1159151551",
+    "country": "Iran",
+    "note": "Tehran’s Grand Bazaar is a network of covered passages and courtyards, with separate lanes for carpets, copperware, spices and the practical business of lunch.",
+    "sources": [
+      "https://www.wikidata.org/wiki/Q3616",
+      "https://en.wikipedia.org/wiki/Tehran",
+      "https://en.wikipedia.org/wiki/Grand_Bazaar,_Tehran"
+    ],
+    "topic_key": "grand-bazaar",
+    "photo": null,
+    "review_status": "draft"
+  },
+  {
+    "place_id": "ne-1159151557",
+    "country": "Canada",
+    "note": "Toronto’s Caribbean Carnival grew from the city’s Caribbean communities and now fills the summer with steelpan, mas bands and a large lakeside parade.",
+    "sources": [
+      "https://www.wikidata.org/wiki/Q172",
+      "https://en.wikipedia.org/wiki/Toronto",
+      "https://en.wikipedia.org/wiki/Toronto_Caribbean_Carnival"
+    ],
+    "topic_key": "caribbean-carnival",
+    "photo": {
+      "url": "https://upload.wikimedia.org/wikipedia/commons/3/3c/Sunset_Toronto_Skyline_Panorama_Crop_from_Snake_Island.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "width": 6759,
+      "height": 3001,
+      "author": "Jchmrt",
+      "license": "CC BY-SA",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+      "source_page": "https://commons.wikimedia.org/wiki/File:Sunset_Toronto_Skyline_Panorama_Crop_from_Snake_Island.jpg"
+    },
+    "review_status": "draft"
+  },
+  {
+    "place_id": "ne-1159151559",
+    "country": "Argentina",
+    "note": "Buenos Aires is closely tied to tango, which grew in the port city’s working-class districts; milongas still turn social dancing into a regular late-night appointment.",
+    "sources": [
+      "https://www.wikidata.org/wiki/Q1486",
+      "https://en.wikipedia.org/wiki/Buenos_Aires",
+      "https://en.wikipedia.org/wiki/Tango"
+    ],
+    "topic_key": "tango-milongas",
+    "photo": null,
+    "review_status": "draft"
+  },
+  {
+    "place_id": "ne-1159151561",
+    "country": "Afghanistan",
+    "note": "Kabul’s Gardens of Babur are a terraced historic garden and the burial place of the Mughal emperor Babur, restored as a public refuge inside the city.",
+    "sources": [
+      "https://www.wikidata.org/wiki/Q5838",
+      "https://en.wikipedia.org/wiki/Kabul",
+      "https://en.wikipedia.org/wiki/Gardens_of_Babur"
+    ],
+    "topic_key": "gardens-of-babur",
+    "photo": null,
+    "review_status": "draft"
+  },
+  {
+    "place_id": "ne-1159151563",
+    "country": "Austria",
+    "note": "Vienna’s coffeehouses are part of the city’s cultural heritage: marble tables, newspapers on wooden holders and the unhurried expectation that one coffee may last.",
+    "sources": [
+      "https://www.wikidata.org/wiki/Q1741",
+      "https://en.wikipedia.org/wiki/Vienna",
+      "https://en.wikipedia.org/wiki/Viennese_coffee_house"
+    ],
+    "topic_key": "viennese-coffeehouse",
+    "photo": null,
+    "review_status": "draft"
+  },
+  {
+    "place_id": "ne-1159151567",
+    "country": "Taiwan",
+    "note": "Taipei’s Shilin Night Market is a maze of food stalls and small shops; oyster omelettes and pepper buns are among the usual reasons to arrive hungry.",
+    "sources": [
+      "https://www.wikidata.org/wiki/Q1867",
+      "https://en.wikipedia.org/wiki/Taipei",
+      "https://en.wikipedia.org/wiki/Shilin_Night_Market"
+    ],
+    "topic_key": "shilin-night-market",
+    "photo": {
+      "url": "https://upload.wikimedia.org/wikipedia/commons/d/db/20260204_Taipei%2C_Taiwan_Skyline.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "width": 5712,
+      "height": 3213,
+      "author": "Heeheemalu",
+      "license": "CC BY-SA",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+      "source_page": "https://commons.wikimedia.org/wiki/File:20260204_Taipei,_Taiwan_Skyline.jpg"
+    },
+    "review_status": "draft"
+  },
+  {
+    "place_id": "ne-1159151575",
+    "country": "United States of America",
+    "note": "New York’s Greenwich Village Halloween Parade began as a neighbourhood puppet walk in 1974 and has grown into a yearly procession of elaborate costumes downtown.",
+    "sources": [
+      "https://www.wikidata.org/wiki/Q60",
+      "https://en.wikipedia.org/wiki/New_York_City",
+      "https://en.wikipedia.org/wiki/Village_Halloween_Parade"
+    ],
+    "topic_key": "village-halloween-parade",
+    "photo": {
+      "url": "https://upload.wikimedia.org/wikipedia/commons/2/2b/NYC_Downtown_Manhattan_Skyline_seen_from_Paulus_Hook_2019-12-20_IMG_7347_FRD_%28cropped%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "width": 3869,
+      "height": 1551,
+      "author": "Fred Hsu on en.wikipedia",
+      "license": "CC BY-SA",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+      "source_page": "https://commons.wikimedia.org/wiki/File:NYC_Downtown_Manhattan_Skyline_seen_from_Paulus_Hook_2019-12-20_IMG_7347_FRD_(cropped).jpg"
+    },
+    "review_status": "draft"
+  },
+  {
+    "place_id": "ne-1159151577",
+    "country": "United Kingdom",
+    "note": "Notting Hill Carnival began in 1966 as a celebration of Caribbean culture in west London; steel bands and mas costumes now fill the August bank holiday streets.",
+    "sources": [
+      "https://www.wikidata.org/wiki/Q84",
+      "https://en.wikipedia.org/wiki/London",
+      "https://en.wikipedia.org/wiki/Notting_Hill_Carnival"
+    ],
+    "topic_key": "notting-hill-carnival",
+    "photo": {
+      "url": "https://upload.wikimedia.org/wikipedia/commons/6/67/London_Skyline_%28125508655%29.jpeg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "width": 2048,
+      "height": 1152,
+      "author": "Ilya Grigorik",
+      "license": "CC BY-SA",
+      "license_url": "https://creativecommons.org/licenses/by-sa/3.0",
+      "source_page": "https://commons.wikimedia.org/wiki/File:London_Skyline_(125508655).jpeg"
+    },
+    "review_status": "draft"
+  },
+  {
+    "place_id": "ne-1159151579",
+    "country": "Turkey",
+    "note": "Istanbul’s Grand Bazaar has traded since the 15th century. Its covered lanes hold thousands of shops, though a visitor can still spend most of an hour finding the exit.",
+    "sources": [
+      "https://www.wikidata.org/wiki/Q406",
+      "https://en.wikipedia.org/wiki/Istanbul",
+      "https://en.wikipedia.org/wiki/Grand_Bazaar,_Istanbul"
+    ],
+    "topic_key": "grand-bazaar",
+    "photo": null,
+    "review_status": "draft"
+  },
+  {
+    "place_id": "ne-1159151581",
+    "country": "Saudi Arabia",
+    "note": "Riyadh’s Masmak Fortress is a mud-brick citadel at the heart of the old city; its capture in 1902 became a pivotal episode in the founding of modern Saudi Arabia.",
+    "sources": [
+      "https://www.wikidata.org/wiki/Q3692",
+      "https://en.wikipedia.org/wiki/Riyadh",
+      "https://en.wikipedia.org/wiki/Masmak_Fortress"
+    ],
+    "topic_key": "masmak-fortress",
+    "photo": {
+      "url": "https://upload.wikimedia.org/wikipedia/commons/2/20/Riyadh_Skyline.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "width": 4109,
+      "height": 2311,
+      "author": "B.alotaby",
+      "license": "CC BY-SA",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+      "source_page": "https://commons.wikimedia.org/wiki/File:Riyadh_Skyline.jpg"
+    },
+    "review_status": "draft"
+  },
+  {
+    "place_id": "ne-1159151585",
+    "country": "Russia",
+    "note": "Moscow’s GUM department store faces Red Square beneath a glass roof; its long arcade has served as one of the city’s grandest shopping addresses since the late 19th century.",
+    "sources": [
+      "https://www.wikidata.org/wiki/Q649",
+      "https://en.wikipedia.org/wiki/Moscow",
+      "https://en.wikipedia.org/wiki/GUM_(department_store)",
+      "https://gumrussia.com/history/"
+    ],
+    "topic_key": "gum-department-store",
+    "photo": null,
+    "review_status": "draft"
+  },
+  {
+    "place_id": "ne-1159151587",
+    "country": "Mexico",
+    "note": "Mexico City’s Día de Muertos parade is a recent civic tradition, first held in 2016 after a fictional procession in a James Bond film gave the city an idea.",
+    "sources": [
+      "https://www.wikidata.org/wiki/Q1489",
+      "https://en.wikipedia.org/wiki/Mexico_City",
+      "https://en.wikipedia.org/wiki/Day_of_the_Dead_Parade"
+    ],
+    "topic_key": "day-of-dead-parade",
+    "photo": null,
+    "review_status": "draft"
+  },
+  {
+    "place_id": "ne-1159151591",
+    "country": "Nigeria",
+    "note": "Lagos’ Eyo festival brings white-robed masqueraders and staff-bearing processions through Lagos Island, a public tradition associated with the city’s Yoruba heritage.",
+    "sources": [
+      "https://www.wikidata.org/wiki/Q8673",
+      "https://en.wikipedia.org/wiki/Lagos",
+      "https://en.wikipedia.org/wiki/Eyo_festival"
+    ],
+    "topic_key": "eyo-festival",
+    "photo": null,
+    "review_status": "draft"
+  },
+  {
+    "place_id": "ne-1159151593",
+    "country": "Italy",
+    "note": "Rome’s carciofi alla giudia—Jewish-style fried artichokes—are a Roman Jewish speciality, traditionally served crisp and opened like a flower in the city’s old ghetto.",
+    "sources": [
+      "https://www.wikidata.org/wiki/Q220",
+      "https://en.wikipedia.org/wiki/Rome",
+      "https://en.wikipedia.org/wiki/Carciofi_alla_giudia"
+    ],
+    "topic_key": "jewish-artichokes",
+    "photo": null,
+    "review_status": "draft"
+  },
+  {
+    "place_id": "ne-1159151597",
+    "country": "Kenya",
+    "note": null,
+    "sources": [
+      "https://www.wikidata.org/wiki/Q3870",
+      "https://en.wikipedia.org/wiki/Nairobi"
+    ],
+    "topic_key": null,
+    "photo": null,
+    "review_status": "draft"
+  },
+  {
+    "place_id": "ne-1159151599",
+    "country": "Indonesia",
+    "note": "Ondel-ondel, the large painted Betawi puppets, once guarded villages from misfortune; in Jakarta they now appear in street performances and at celebrations.",
+    "sources": [
+      "https://www.wikidata.org/wiki/Q3630",
+      "https://en.wikipedia.org/wiki/Jakarta",
+      "https://en.wikipedia.org/wiki/Ondel-ondel"
+    ],
+    "topic_key": "ondel-ondel-puppets",
+    "photo": null,
+    "review_status": "draft"
+  },
+  {
+    "place_id": "ne-1159151601",
+    "country": "Colombia",
+    "note": "Bogotá’s Ciclovía closes major roads to cars on Sundays and holidays, giving cyclists, runners and walkers several hours of unusually generous street space.",
+    "sources": [
+      "https://www.wikidata.org/wiki/Q2841",
+      "https://en.wikipedia.org/wiki/Bogot%C3%A1",
+      "https://en.wikipedia.org/wiki/Ciclov%C3%ADa"
+    ],
+    "topic_key": "ciclovia",
+    "photo": null,
+    "review_status": "draft"
+  },
+  {
+    "place_id": "ne-1159151603",
+    "country": "Egypt",
+    "note": "Cairo’s Khan el-Khalili bazaar has served the city since the 14th century; its alleys are still known for metalwork, spices, lamps and the slow art of bargaining.",
+    "sources": [
+      "https://www.wikidata.org/wiki/Q85",
+      "https://en.wikipedia.org/wiki/Cairo",
+      "https://en.wikipedia.org/wiki/Khan_el-Khalili"
+    ],
+    "topic_key": "khan-el-khalili",
+    "photo": {
+      "url": "https://upload.wikimedia.org/wikipedia/commons/c/ca/Cairo_Skyline_%282020%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "width": 1150,
+      "height": 678,
+      "author": "Faris El-Gwely",
+      "license": "CC BY",
+      "license_url": "https://creativecommons.org/licenses/by/4.0",
+      "source_page": "https://commons.wikimedia.org/wiki/File:Cairo_Skyline_(2020).jpg"
+    },
+    "review_status": "draft"
+  },
+  {
+    "place_id": "ne-1159151605",
+    "country": "China",
+    "note": "Shanghai’s Yuyuan Garden Lantern Festival lights the old city for Lunar New Year, with lantern displays and riddles set among the garden’s pavilions and bridges.",
+    "sources": [
+      "https://www.wikidata.org/wiki/Q8686",
+      "https://en.wikipedia.org/wiki/Shanghai",
+      "https://en.wikipedia.org/wiki/Yuyuan_Garden",
+      "https://english.shanghai.gov.cn/en-FestivalsCelebrations/20260116/4c8ad473d9734ec082dc89bee83e6430.html"
+    ],
+    "topic_key": "yuyuan-lantern-festival",
+    "photo": null,
+    "review_status": "draft"
+  },
+  {
+    "place_id": "ne-1159151609",
+    "country": "Japan",
+    "note": "Tokyo’s Fukagawa Hachiman Festival brings portable shrines through the streets; in the main festival year, held every three years, spectators douse the carriers with water.",
+    "sources": [
+      "https://www.wikidata.org/wiki/Q1490",
+      "https://en.wikipedia.org/wiki/Tokyo",
+      "https://www.gotokyo.org/en/spot/ev093/index.html",
+      "https://www.fukagawa-kanko.com/en/festival/"
+    ],
+    "topic_key": "fukagawa-matsuri",
+    "photo": null,
+    "review_status": "draft"
+  },
+  {
+    "place_id": "ne-1159151611",
+    "country": "India",
+    "note": "Mumbai’s Ganesh Chaturthi fills neighbourhoods with temporary shrines; the celebration ends with processions carrying Ganesha images to the sea for immersion.",
+    "sources": [
+      "https://www.wikidata.org/wiki/Q1156",
+      "https://en.wikipedia.org/wiki/Mumbai",
+      "https://en.wikipedia.org/wiki/Ganesh_Chaturthi"
+    ],
+    "topic_key": "ganesh-visarjan",
+    "photo": null,
+    "review_status": "draft"
+  },
+  {
+    "place_id": "ne-1159151613",
+    "country": "France",
+    "note": "Paris’ bouquinistes have sold used books and prints from green boxes along the Seine for centuries; the riverside stalls are part bookshop, part weather report.",
+    "sources": [
+      "https://www.wikidata.org/wiki/Q90",
+      "https://en.wikipedia.org/wiki/Paris",
+      "https://en.wikipedia.org/wiki/Bouquinistes_of_Paris"
+    ],
+    "topic_key": "seine-bouquinistes",
+    "photo": null,
+    "review_status": "draft"
+  },
+  {
+    "place_id": "ne-1159151615",
+    "country": "Chile",
+    "note": "Cueca, Chile’s national dance, is performed in Santiago’s fondas during September’s Fiestas Patrias, with handkerchiefs, quick footwork and a polite amount of competition.",
+    "sources": [
+      "https://www.wikidata.org/wiki/Q2887",
+      "https://en.wikipedia.org/wiki/Santiago",
+      "https://en.wikipedia.org/wiki/Cueca"
+    ],
+    "topic_key": "cueca-fiestas-patrias",
+    "photo": null,
+    "review_status": "draft"
+  },
+  {
+    "place_id": "ne-1159151621",
+    "country": "Brazil",
+    "note": "São Paulo’s Liberdade district grew around the city’s Japanese community; its lanterns, markets and annual Tanabata celebration make the neighbourhood’s history visible.",
+    "sources": [
+      "https://www.wikidata.org/wiki/Q174",
+      "https://en.wikipedia.org/wiki/S%C3%A3o_Paulo",
+      "https://en.wikipedia.org/wiki/Liberdade_(district_of_S%C3%A3o_Paulo)"
+    ],
+    "topic_key": "liberdade-tanabata",
+    "photo": {
+      "url": "https://upload.wikimedia.org/wikipedia/commons/f/ff/Sao_Paulo_Skyline_in_Brazil.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "width": 1024,
+      "height": 682,
+      "author": "Thomas Hobbs",
+      "license": "CC BY-SA",
+      "license_url": "https://creativecommons.org/licenses/by-sa/2.0",
+      "source_page": "https://commons.wikimedia.org/wiki/File:Sao_Paulo_Skyline_in_Brazil.jpg"
+    },
+    "review_status": "draft"
+  },
+  {
+    "place_id": "ne-1159151623",
+    "country": "Australia",
+    "note": "Sydney’s New Year’s Eve fireworks use the Harbour Bridge and Opera House as a shared backdrop, with the city’s midnight display watched from both shorelines.",
+    "sources": [
+      "https://www.wikidata.org/wiki/Q3130",
+      "https://en.wikipedia.org/wiki/Sydney",
+      "https://en.wikipedia.org/wiki/Sydney_New_Year%27s_Eve"
+    ],
+    "topic_key": "harbour-new-year",
+    "photo": null,
+    "review_status": "draft"
+  },
+  {
+    "place_id": "ne-1159151627",
+    "country": "Singapore",
+    "note": "Singapore’s hawker centres bring independent food stalls under one roof; the city’s hawker culture was added to UNESCO’s intangible cultural heritage list in 2020.",
+    "sources": [
+      "https://www.wikidata.org/wiki/Q334",
+      "https://en.wikipedia.org/wiki/Singapore",
+      "https://ich.unesco.org/en/RL/hawker-culture-in-singapore-community-dining-and-culinary-practices-in-a-multicultural-urban-context-01568"
+    ],
+    "topic_key": "hawker-centres",
+    "photo": null,
+    "review_status": "draft"
+  },
+  {
+    "place_id": "ne-1159151629",
+    "country": "Hong Kong S.A.R.",
+    "note": "Hong Kong’s Tai Hang Fire Dragon Dance dates to the 19th century; during Mid-Autumn Festival, performers carry an incense-studded dragon through the neighbourhood.",
+    "sources": [
+      "https://www.wikidata.org/wiki/Q8646",
+      "https://en.wikipedia.org/wiki/Hong_Kong",
+      "https://en.wikipedia.org/wiki/Tai_Hang_Fire_Dragon_Dance"
+    ],
+    "topic_key": "fire-dragon-dance",
+    "photo": null,
+    "review_status": "draft"
+  },
+  {
+    "place_id": "ne-1159151703",
+    "country": "New Zealand",
+    "note": "Auckland’s Pasifika Festival gathers Pacific Island communities for a day of music, dance, food and craft, with village stages representing different island traditions.",
+    "sources": [
+      "https://www.wikidata.org/wiki/Q37100",
+      "https://en.wikipedia.org/wiki/Auckland",
+      "https://en.wikipedia.org/wiki/Pasifika_Festival"
+    ],
+    "topic_key": "pasifika-festival",
+    "photo": null,
+    "review_status": "draft"
+  }
+]
