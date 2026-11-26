@@ -144,7 +144,7 @@ async function createPasswordSession(): Promise<AdminApiResult> {
     const token = await createAdminToken();
     return { status: 200, body: { token } };
   } catch {
-    return { status: 500, body: { error: "Failed to create session" } };
+    return { status: 503, body: { error: "Admin authentication storage is unavailable" } };
   }
 }
 

@@ -266,7 +266,7 @@ describe("admin login route", () => {
     expect(refreshed.headers.get("set-cookie")).toContain(`Max-Age=${ADMIN_SESSION_TTL_SECONDS}`);
   });
 
-  it("returns a server error when token signing fails", async () => {
+  it("returns storage unavailable when a password session cannot be created", async () => {
     vi.spyOn(auth, "createAdminToken").mockRejectedValue(new Error("signing failed"));
     const response = await POST(new Request("https://example.test/api/admin/login", {
       method: "POST",
@@ -274,7 +274,7 @@ describe("admin login route", () => {
       body: JSON.stringify({ password: "correct horse" }),
     }));
 
-    expect(response.status).toBe(500);
-    expect(await response.json()).toEqual({ error: "Failed to create session" });
+    expect(response.status).toBe(503);
+    expect(await response.json()).toEqual({ error: "Admin authentication storage is unavailable" });
   });
 });
