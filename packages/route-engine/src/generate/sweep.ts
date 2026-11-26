@@ -141,7 +141,12 @@ export function eastwardLegReason(options: {
   const fromOffset = offsetFor(from);
   const toOffset = offsetFor(to);
   const nearDateline = Math.abs(from.lng) >= 150 && Math.abs(to.lng) >= 150;
-  if (destinationIndex < 5 && nearDateline && toOffset !== undefined && toOffset >= 13 * 60) return 'dateline';
+  const stillBeforeWestwardSweep = fromOffset === undefined
+    ? destinationIndex === 0
+    : fromOffset > 12 * 60;
+  if (destinationIndex < 5 && stillBeforeWestwardSweep && nearDateline && toOffset !== undefined && toOffset >= 13 * 60) {
+    return 'dateline';
+  }
 
   if (fromOffset === undefined || toOffset === undefined) return undefined;
   const offsetJump = toOffset - fromOffset;

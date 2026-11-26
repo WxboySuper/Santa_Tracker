@@ -41,22 +41,29 @@ describe('midnight sweep ordering', () => {
   });
 
   it('keeps an eastward move when the destination offset justifies it', () => {
-    const places: Candidate[] = [
-      { id: 'launch', name: 'Kiritimati', country: 'KI', lat: 1.87, lng: -157.4, timezone: 'Pacific/Kiritimati', utcOffsetMinutes: 840, category: 'populated', population: 7_380 },
-      { id: 'source', name: 'Western Australia', country: 'AU', lat: -10, lng: 160, timezone: 'Australia/Brisbane', utcOffsetMinutes: 600, category: 'populated', population: 500_000 },
-      { id: 'offset-anomaly', name: 'Southern atoll', country: 'KI', lat: -80, lng: 162, timezone: 'Pacific/Norfolk', utcOffsetMinutes: 660, category: 'populated', population: 10_000 },
-    ];
-    const ordered = sweepOrder(places);
-    expect(ordered.map((place) => place.id)).toEqual(['launch', 'source', 'offset-anomaly']);
-    const from = ordered[1]!;
-    const to = ordered[2]!;
+    const from: Candidate = { id: 'source', name: 'Western Australia', country: 'AU', lat: -10, lng: 160,
+      timezone: 'Australia/Brisbane', utcOffsetMinutes: 600, category: 'populated', population: 500_000 };
+    const to: Candidate = { id: 'offset-anomaly', name: 'Southern atoll', country: 'KI', lat: -80, lng: 162,
+      timezone: 'Pacific/Norfolk', utcOffsetMinutes: 660, category: 'populated', population: 10_000 };
+    const planned = candidateTiming({ place: to, prior: from, priorDeparture: Date.parse('2026-12-24T14:00:00.000Z'),
+      index: 2, config: DEFAULT_GENERATOR_LIMITS });
+    expect(planned).toBeDefined();
     expect(longitudeDelta(from, to)).toBeGreaterThan(1);
     expect(eastwardLegReason({
       from,
       to,
       destinationIndex: 2,
-      arrivalUtc: Date.parse(to.plannedArrivalUtc ?? ''),
+      arrivalUtc: planned?.arrival,
     })).toBe('offset-anomaly');
+  });
+
+  it('does not allow a dateline exception after the route enters UTC+12', () => {
+    const source: Candidate = { id: 'utc12-source', name: 'Tarawa', country: 'KI', lat: 1.45, lng: 173,
+      timezone: 'Pacific/Tarawa', utcOffsetMinutes: 720, category: 'populated', population: 50_000 };
+    const destination: Candidate = { id: 'utc14-destination', name: 'Kiritimati', country: 'KI', lat: 1.87, lng: -157.4,
+      timezone: 'Pacific/Kiritimati', utcOffsetMinutes: 840, category: 'populated', population: 7_380 };
+    expect(candidateTiming({ place: destination, prior: source,
+      priorDeparture: Date.parse('2026-12-24T14:00:00.000Z'), index: 2, config: DEFAULT_GENERATOR_LIMITS })).toBeUndefined();
   });
 
   it('does not treat a same-offset eastward jog as a justified exception', () => {
@@ -70,6 +77,13 @@ describe('midnight sweep ordering', () => {
     };
     expect(longitudeDelta(from, to)).toBeGreaterThan(1);
     expect(eastwardLegReason({ from, to, destinationIndex: 8, arrivalUtc: Date.parse('2026-12-25T00:00:00Z') })).toBeUndefined();
+  });
+
+  it('keeps coincident candidates out of a separated route', () => {
+    const samePlace = { ...testPlaces[0]!, id: 'duplicate-coordinate', country: 'KI' };
+    const ordered = sweepOrder([testPlaces[0]!, samePlace]);
+    expect(ordered).toHaveLength(1);
+    expect(haversineKm(ordered[0]!, samePlace)).toBe(0);
   });
 
   it('keeps long Hong Kong to mainland China legs at regional speed', () => {

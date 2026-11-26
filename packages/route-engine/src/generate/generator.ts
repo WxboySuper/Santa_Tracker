@@ -83,8 +83,8 @@ function timezoneForMismatch(place: Candidate, overrides: RouteOverrides, tables
   return nearestCountryTimezone(place, tables);
 }
 
-function timezoneCountryError(place: Candidate): Error {
-  return new Error(`Timezone ${place.timezone} for ${place.name} does not belong to country ${place.country}`);
+function timezoneCountryError(place: Candidate): InvalidCandidateTimezoneError {
+  return new InvalidCandidateTimezoneError(`Timezone ${place.timezone} for ${place.name} does not belong to country ${place.country}`);
 }
 
 function nearestCountryTimezone(place: Candidate, tables: TimezoneTables): Candidate {

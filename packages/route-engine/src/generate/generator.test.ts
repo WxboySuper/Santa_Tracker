@@ -110,6 +110,19 @@ describe('generateRoute midnight sweep', () => {
     expect(generated.report.invalidCandidateIds).toEqual(['bad-timezone']);
   });
 
+  it('reports a timezone mismatch when the country table has no recovery point', () => {
+    const unrecoverable = { ...candidates[0]!, id: 'unrecoverable-zone', timezone: 'America/New_York' };
+    const tables = {
+      zonesByCountry: { FJ: ['Pacific/Kiritimati'] },
+      zonePointsByCountry: { FJ: [] },
+      utcOffsetsByTimezone: { 'Pacific/Kiritimati': 840 },
+      countryNames: { FJ: 'Fiji' },
+    };
+    const generated = generateRoute([candidates[0]!, unrecoverable], config, {}, tables);
+    expect(generated.report.count).toBe(1);
+    expect(generated.report.invalidCandidateIds).toEqual(['unrecoverable-zone']);
+  });
+
   it('rejects an invalid timezone override before route scheduling', () => {
     const tables = {
       zonesByCountry: { FJ: ['Pacific/Kiritimati'] },

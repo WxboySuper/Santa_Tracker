@@ -108,7 +108,7 @@ export const NORTH_POLE = { lat: 80, lng: 180 } as const;
 
 export const DEFAULT_GENERATOR_LIMITS: GeneratorConfig = {
   seed: 2026,
-  weights: { hub: 30, cultural: 27.5, underserved: 25, nature: 12, special: 5.5 },
+  weights: { hub: 30, cultural: 27.5, underserved: 25, nature: 12, special: 5.5, populated: 0 },
   localLegSpeedKmh: 4_000,
   targetLegSpeedKmh: 19_000,
   maxLegSpeedKmh: 25_000,

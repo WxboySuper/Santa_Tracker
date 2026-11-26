@@ -6,9 +6,11 @@ flight window allows. Tiny hops are welcome because they add coverage.
 ## Route objective
 
 1. Bucket places by their committed Dec 24-25 UTC offset, including half-hour and quarter-hour offsets as separate
-   bands. Finish each band before moving west to the next. Within a band, use an open nearest-neighbor path and
-   alternate the preferred latitude direction north-to-south, then south-to-north, from one band to the next.
-   Constrained 2-opt and or-opt improvements stay within contiguous same-band segments.
+   bands. Advance bands westward as local midnight moves. Within the active band, choose an open nearest-neighbor
+   path and alternate the preferred latitude direction north-to-south, then south-to-north, from one band to the
+   next. A nearby stop from an adjacent higher-offset band may interleave when its overlapping local window and
+   offset anomaly make the move feasible. Constrained 2-opt and or-opt improvements stay within contiguous same-band
+   segments.
 2. Reserve one feasible stop for every country or territory before population-weighted dense filling. Where the
    candidate snapshot has admin identifiers, also reserve at least one stop per US state, Canadian
    province/territory, and Australian state/territory. If a required representative cannot fit the complete route,
@@ -39,10 +41,11 @@ Report that data gap.
 - Town stops dwell 10 seconds: population 5,000-99,999.
 - Hop stops dwell 3 seconds: population below 5,000 or unknown.
 - A stop can begin after the prior stop's dwell and travel time. There is no extra arrival gap.
-- Keep p90 leg speed at or below 20,000 km/h and every leg at or below 25,000 km/h. The generator uses a smooth
-  4,000 km/h pace for local legs and 19,000 km/h for long ocean, island, cross-continent and polar crossings.
-  Transit time follows distance at that pace, rounded up to a whole second so the stored transit duration never
-  understates the schedule; dwell time comes out before the next leg.
+- Keep p90 leg speed at or below 20,000 km/h and every leg at or below 25,000 km/h. Transit duration is proportional
+  to leg distance at a smooth pace, so local legs within a region use the same speed. The generator uses 4,000 km/h
+  for local legs and 19,000 km/h for long ocean, island, cross-continent and polar crossings. Sparse bands can leave
+  time for long crossings. Transit time rounds up to whole seconds so it never understates the schedule; stop dwell
+  comes out before the next leg, and any local-window wait stays in the schedule gap.
 - Stops must be at least 20 km apart. This permits nearby pairs such as Mexico City and Teotihuacan without an
   exception list.
 

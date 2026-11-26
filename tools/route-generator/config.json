@@ -4,7 +4,8 @@
     "cultural": 27.5,
     "underserved": 25,
     "nature": 12,
-    "special": 5.5
+    "special": 5.5,
+    "populated": 0
   },
   "localLegSpeedKmh": 4000,
   "targetLegSpeedKmh": 19000,

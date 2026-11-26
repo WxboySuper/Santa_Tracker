@@ -159,6 +159,9 @@ function timingAndDetourAllows(place: Candidate, route: Candidate[]): boolean {
   if (route.length < 2) return true;
   const beforePrior = route.at(-2);
   if (!beforePrior) return true;
+  // Route selection enforces 20 km separation, so a zero-length direct span
+  // cannot occur in a valid sequence. Infinity remains a fail-closed guard
+  // for a corrupted sequence supplied by a future caller.
   return detourRatio(beforePrior, prior, place) <= 2.5;
 }
 
@@ -311,10 +314,9 @@ function executeGreedySweep(state: SweepState, bands: Candidate[][], randomRanks
   const bandIndices = new Map<string, number>();
   bands.forEach((band, index) => band.forEach((place) => bandIndices.set(place.id, index)));
   const ranking: SweepRanking = { bandIndices, randomRanks, config };
-  // Exact-offset bands set alternating latitude preferences. The six-hour
-  // windows overlap, so a nearby stop in an adjacent band can interleave when
-  // it keeps the local cluster together. The band direction still advances
-  // westward as feasible stops are consumed.
+  // Bands define the alternating latitude direction. Their six-hour windows
+  // overlap, so the nearest feasible local cluster may pull a stop from a
+  // neighboring band forward without skipping the active regional path.
   while (state.remaining.size > 0) {
     const next = bestFeasibleStop(state, [...state.remaining.values()], ranking);
     // This ends the greedy phase, not candidate processing: stranded
@@ -608,51 +610,54 @@ function insertFeasibleCandidates(initial: TimedCandidate[], pool: Candidate[], 
 function insertCountryCoverage(initial: TimedCandidate[], pool: Candidate[], config: GeneratorConfig): TimedCandidate[] {
   const pass: InsertionPass = {
     config,
-    // One adjacent band on either side keeps inserted stops in the westward
-    // chronology while allowing half-hour and quarter-hour bands to fit.
-    bandSpreadMinutes: 60,
+    // Overlapping local windows make a feasible country representative
+    // possible outside the two nearest offset bands. planOrder still checks
+    // every arrival, eastward exception, detour, speed and return constraint.
+    bandSpreadMinutes: Number.POSITIVE_INFINITY,
     coverageOnly: true,
     // Try a few feasible splice points without making an uncovered country
     // evaluate every possible position in the full route.
-    maxPositionAttempts: 12,
+    maxPositionAttempts: 20,
   };
   const state = insertionState(initial, config.minStopSeparationKm);
   for (let attempt = 0; attempt < 3; attempt++) {
     const before = state.counts.size;
     const groups = rankCountryCoverageGroups(state, pool, pass);
-    for (const group of groups) {
-      if (state.counts.has(group.country)) continue;
-      // Keep a short list of geographically plausible representatives for
-      // each code. If one cannot fit, try the next candidate from that code.
-      for (const item of group.candidates.slice(0, 8)) {
-        if (!state.separation.allows(item.place)) continue;
-        if (addAtFeasiblePosition(state, item.place,
-          insertionPositions(state.route, item.place), pass)) break;
-      }
-    }
+    insertCountryCoverageGroups(state, groups, pass);
     if (state.counts.size === before) break;
   }
   return state.route;
 }
 
-type CountryCoverageCandidate = RankedInsertion & { rank: number };
+type CountryCoverageCandidate = { place: Candidate; rank: number };
 type CountryCoverageGroup = { country: string; rank: number; candidates: CountryCoverageCandidate[] };
+
+function bestBandInsertionPosition(state: InsertionState, place: Candidate, pass: InsertionPass): number {
+  let best = Number.POSITIVE_INFINITY;
+  for (let index = 0; index <= state.route.length; index++) {
+    if (!placeFitsNeighborBand(state, place, index, pass)) continue;
+    const from = index === 0 ? NORTH_POLE : state.route[index - 1];
+    const to = index === state.route.length ? NORTH_POLE : state.route[index];
+    if (!from || !to) continue;
+    const added = haversineKm(from, place) + haversineKm(place, to) - haversineKm(from, to);
+    best = Math.min(best, added);
+  }
+  return best;
+}
 
 function rankCountryCoverageGroups(state: InsertionState, pool: Candidate[], pass: InsertionPass): CountryCoverageGroup[] {
   const initialIds = new Set(state.route.map((place) => place.id));
   const groups = new Map<string, CountryCoverageGroup>();
   for (const place of pool) {
     if (initialIds.has(place.id) || state.counts.has(place.country)) continue;
-    const positions = insertionPositions(state.route, place);
-    const nearest = positions.find(({ index }) => placeFitsNeighborBand(state, place, index, pass));
-    if (!nearest) continue;
+    const addedDistance = bestBandInsertionPosition(state, place, pass);
+    if (!Number.isFinite(addedDistance)) continue;
     const dwellSeconds = stopDurationSeconds(stopTier(place));
-    const rank = nearest.addedDistance + dwellSeconds * 1.1
+    const rank = addedDistance + dwellSeconds * 1.1
       - Math.log10((place.population ?? 0) + 1) * 20
       - categoryPreference(place, pass.config) * 2;
-    const candidate: RankedInsertion = { place, positions, dwellSeconds };
     const group = groups.get(place.country) ?? { country: place.country, rank: Number.POSITIVE_INFINITY, candidates: [] };
-    group.candidates.push({ ...candidate, rank });
+    group.candidates.push({ place, rank });
     group.rank = Math.min(group.rank, rank);
     groups.set(place.country, group);
   }
@@ -660,6 +665,25 @@ function rankCountryCoverageGroups(state: InsertionState, pool: Candidate[], pas
     ...group,
     candidates: group.candidates.sort((left, right) => left.rank - right.rank || left.place.id.localeCompare(right.place.id)),
   })).sort((left, right) => left.rank - right.rank || left.country.localeCompare(right.country));
+}
+
+function tryCountryRepresentative(state: InsertionState, place: Candidate, pass: InsertionPass): boolean {
+  if (!state.separation.allows(place)) return false;
+  const positions = insertionPositions(state.route, place);
+  return addAtFeasiblePosition(state, place, positions, pass);
+}
+
+function insertCountryGroup(state: InsertionState, group: CountryCoverageGroup, pass: InsertionPass): void {
+  if (state.counts.has(group.country)) return;
+  // Try only the best few representatives. Failed candidates fall through to
+  // the next one in the same country without spending the whole route budget.
+  for (const candidate of group.candidates.slice(0, 8)) {
+    if (tryCountryRepresentative(state, candidate.place, pass)) return;
+  }
+}
+
+function insertCountryCoverageGroups(state: InsertionState, groups: CountryCoverageGroup[], pass: InsertionPass): void {
+  for (const group of groups) insertCountryGroup(state, group, pass);
 }
 
 /** Greedy time-stepped midnight sweep followed by constrained 2-opt/or-opt improvements. */
