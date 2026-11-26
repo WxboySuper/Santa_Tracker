@@ -70,4 +70,14 @@ describe("versioned snapshot store", () => {
     await backend.write("santa-route/active.json", JSON.stringify({ versionId: "missing-version", updatedAt: "2026-01-01T00:00:00.000Z" }));
     await expect(store.rollback("santa-route")).rejects.toThrow("Active version missing-version is missing");
   });
+
+  it("refuses rollback if the validated previous version is no longer the immediate predecessor", async () => {
+    const store = createVersionedSnapshotStore(createFilesystemBackend(root));
+    const first = await store.saveNewVersion("santa-route", JSON.stringify({ v: 1 }));
+    const second = await store.saveNewVersion("santa-route", JSON.stringify({ v: 2 }));
+    await store.activateVersion("santa-route", second.versionId);
+    await expect(store.rollback("santa-route", undefined, "unexpected-version")).rejects.toThrow("Previous version changed");
+    expect(await store.readActiveVersion("santa-route")).toMatchObject({ versionId: second.versionId });
+    expect(await store.readVersion("santa-route", first.versionId)).toBe(JSON.stringify({ v: 1 }));
+  });
 });

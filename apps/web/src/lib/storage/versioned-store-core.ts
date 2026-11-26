@@ -101,7 +101,7 @@ export function createVersionedSnapshotStore(backend: VersionedStoreBackend): Ve
       await activate({ dataset, versionId, action: "activate", details });
     },
 
-    async rollback(dataset, details = { actor: "system", reason: "Rollback to previous version", checksum: "" }) {
+    async rollback(dataset, details = { actor: "system", reason: "Rollback to previous version", checksum: "" }, expectedPreviousVersionId) {
       const current = await readPointer(dataset);
       if (!current) throw new Error(`No active version for ${dataset}`);
       const keys = await backend.list(versionsPrefix(dataset));
@@ -114,6 +114,9 @@ export function createVersionedSnapshotStore(backend: VersionedStoreBackend): Ve
       if (idx < 0) throw new Error(`Active version ${current.versionId} is missing for ${dataset}`);
       const previousId = versionIds[idx + 1];
       if (!previousId) throw new Error(`No prior version to roll back for ${dataset}`);
+      if (expectedPreviousVersionId !== undefined && expectedPreviousVersionId !== previousId) {
+        throw new Error(`Previous version changed for ${dataset}`);
+      }
       await activate({ dataset, versionId: previousId, action: "rollback", details });
       return { versionId: previousId, createdAt: createdAtFromVersionId(previousId) };
     },

@@ -26,7 +26,7 @@ export interface VersionedSnapshotStore {
   readVersion(dataset: string, versionId: string): Promise<string | null>;
   saveNewVersion(dataset: string, body: string): Promise<SnapshotVersion>;
   activateVersion(dataset: string, versionId: string, audit?: Omit<ActivationAuditEntry, "versionId" | "previousVersionId" | "at" | "action">): Promise<void>;
-  rollback(dataset: string, audit?: Omit<ActivationAuditEntry, "versionId" | "previousVersionId" | "at" | "action">): Promise<SnapshotVersion>;
+  rollback(dataset: string, audit?: Omit<ActivationAuditEntry, "versionId" | "previousVersionId" | "at" | "action">, expectedPreviousVersionId?: string): Promise<SnapshotVersion>;
   listVersions(dataset: string): Promise<SnapshotVersion[]>;
   deleteDataset(dataset: string): Promise<boolean>;
 }

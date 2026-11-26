@@ -82,7 +82,7 @@ export async function rollbackSnapshot(input: {
       actor: "admin",
       reason,
       checksum: validation.report.checksum,
-    });
+    }, prior.versionId);
     return { kind: "rolled-back", snapshot, active: await store.readActiveVersion(DATASET_SANTA_ROUTE), report: validation.report };
   });
 }
