@@ -57,6 +57,13 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      # The owner creates the KV namespace once and stores its ID as a repository variable.
+      # This script adds the binding to the two local Wrangler configs for this deploy job only.
+      - name: Configure weather KV bindings
+        run: node tools/configure-weather-kv.mjs
+        env:
+          WEATHER_CACHE_NAMESPACE_ID: ${{ vars.WEATHER_CACHE_NAMESPACE_ID }}
+
       - name: Publish route and Advent snapshots to R2
         run: pnpm santa:publish:remote
         env:
@@ -69,6 +76,13 @@ jobs:
           SECRET_KEY: ${{ secrets.SECRET_KEY }}
           ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
           ADVENT_ENABLED: "true"
+          WEATHER_CACHE_NAMESPACE_ID: ${{ vars.WEATHER_CACHE_NAMESPACE_ID }}
+      - name: Deploy weather cron Worker
+        working-directory: apps/web
+        run: pnpm exec wrangler deploy --config weather-cron.wrangler.toml
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          WEATHER_CACHE_NAMESPACE_ID: ${{ vars.WEATHER_CACHE_NAMESPACE_ID }}
 
       - name: Deploy to Cloudflare Workers
         run: pnpm --filter @santa-tracker/web deploy:vinext
@@ -77,6 +91,7 @@ jobs:
           SECRET_KEY: ${{ secrets.SECRET_KEY }}
           ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
           ADVENT_ENABLED: "true"
+          WEATHER_CACHE_NAMESPACE_ID: ${{ vars.WEATHER_CACHE_NAMESPACE_ID }}
 
       # Runs only after the build and deploy have succeeded, so a failed build can never leave live data
       # replaced. The smoke test below then checks the new data. The previous version stays in R2.
