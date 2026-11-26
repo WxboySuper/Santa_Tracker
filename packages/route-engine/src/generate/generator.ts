@@ -294,16 +294,20 @@ function assertNonNegativeSetting(value: number, message: string, allowZero: boo
   if (!allowZero && value === 0) throw new Error(message);
 }
 
+function validateCategoryWeights(weights: Record<string, number>): void {
+  const entries = Object.entries(weights);
+  if (entries.length === 0) throw new Error('Category weights are required');
+  if (entries.some(([, weight]) => !Number.isFinite(weight) || weight < 0)) {
+    throw new Error('Category weights must be finite and non-negative');
+  }
+  const total = entries.reduce((sum, [, weight]) => sum + weight, 0);
+  if (!Number.isFinite(total) || total <= 0) throw new Error('Category weights must have a finite positive total');
+}
+
 function validateGeneratorConfig(config: GeneratorConfig): void {
   validateIntegerSettings(config);
   validateSpeedAndDistanceSettings(config);
-  const weightEntries = Object.entries(config.weights);
-  if (weightEntries.length === 0) throw new Error('Category weights are required');
-  if (weightEntries.some(([, weight]) => !Number.isFinite(weight) || weight < 0)) {
-    throw new Error('Category weights must be finite and non-negative');
-  }
-  const totalWeight = weightEntries.reduce((total, [, weight]) => total + weight, 0);
-  if (!Number.isFinite(totalWeight) || totalWeight <= 0) throw new Error('Category weights must have a finite positive total');
+  validateCategoryWeights(config.weights);
   if (!config.generatedAt || Number.isNaN(Date.parse(config.generatedAt))) throw new Error('Invalid fixed generation date');
 }
 

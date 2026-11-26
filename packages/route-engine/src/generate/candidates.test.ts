@@ -27,6 +27,12 @@ describe('chooseCandidates', () => {
     expect(result.candidates[0]?.timezone).toBe('Etc/UTC');
   });
 
+  it('combines capital aliases with OR semantics', () => {
+    const capital: Candidate = { ...pool[1]!, isNationalCapital: false, isCapital: true };
+    const result = chooseCandidates([capital], DEFAULT_GENERATOR_LIMITS);
+    expect(result.candidates[0]?.isNationalCapital).toBe(true);
+  });
+
   it('reports invalid candidate rows without discarding the valid pool', () => {
     const { utcOffsetMinutes: _offset, ...missingOffset } = pool[0]!;
     const invalid = { ...missingOffset, id: 'missing-offset' };

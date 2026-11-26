@@ -99,7 +99,7 @@ export function chooseCandidates(pool: Candidate[], config: GeneratorConfig, ove
 
 function enrichCandidate(place: Candidate, config: GeneratorConfig): Candidate {
   const category = routeCategory(place, config);
-  const isNationalCapital = place.isNationalCapital ?? place.isCapital ?? place.capital ?? (place.category === 'capital');
+  const isNationalCapital = Boolean(place.isNationalCapital || place.isCapital || place.capital || place.category === 'capital');
   const headlineLandmark = place.headlineLandmark ??
     (wikidataCandidate(place) && (category === 'special' || category === 'cultural'));
   return { ...place, utcOffsetMinutes: place.utcOffsetMinutes, category, isNationalCapital, headlineLandmark };
