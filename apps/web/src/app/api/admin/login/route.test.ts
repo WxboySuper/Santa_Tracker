@@ -148,6 +148,27 @@ describe("admin login route", () => {
     expect(response.headers.get("Retry-After")).toBe("900");
   });
 
+  it("returns storage unavailable if revoking a late-throttled login fails", async () => {
+    let finishSigning: ((token: string) => void) | undefined;
+    vi.spyOn(auth, "createAdminToken").mockImplementation(() => new Promise((resolve) => {
+      finishSigning = resolve;
+    }));
+    vi.spyOn(auth, "revokeAdminToken").mockRejectedValue(new Error("storage unavailable"));
+    vi.spyOn(adminLogin, "checkLoginRateLimit").mockResolvedValueOnce(null).mockResolvedValueOnce({ retryAfterSeconds: 60 });
+    const pendingLogin = POST(new Request("https://example.test/api/admin/login", {
+      method: "POST",
+      headers: { "cf-connecting-ip": "198.51.100.68", "content-type": "application/json" },
+      body: JSON.stringify({ password: "correct horse" }),
+    }));
+    await vi.waitFor(() => expect(finishSigning).toBeTypeOf("function"));
+    finishSigning!("late-token");
+
+    const response = await pendingLogin;
+    expect(response.status).toBe(503);
+    expect(await response.json()).toEqual({ error: "Admin authentication storage is unavailable" });
+    expect(response.headers.get("set-cookie")).toBeNull();
+  });
+
   it("counts an asynchronous password failure toward the per-IP lockout", async () => {
     const login = vi.spyOn(adminLogin, "loginAdmin").mockResolvedValue({ status: 401, body: { error: "Invalid password" } });
     const headers = { "cf-connecting-ip": "198.51.100.66", "content-type": "application/json" };

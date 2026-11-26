@@ -79,15 +79,27 @@ async function completeAsyncLogin(req: Request, login: Promise<Awaited<ReturnTyp
   if (result.status !== 200) return setLoginCookie(req, result, ip);
   const lockout = await checkLoginRateLimit(ip);
   if (lockout) {
-    await revokeResultToken(result);
+    const revokeFailure = await revokeThrottledLogin(result);
+    if (revokeFailure) return revokeFailure;
     return throttledResponse(lockout.retryAfterSeconds);
   }
   const syncLockout = checkLoginRateLimitNow(ip);
   if (syncLockout) {
-    await revokeResultToken(result);
+    const revokeFailure = await revokeThrottledLogin(result);
+    if (revokeFailure) return revokeFailure;
     return throttledResponse(syncLockout.retryAfterSeconds);
   }
   return setLoginCookie(req, result, ip);
+}
+
+async function revokeThrottledLogin(result: Awaited<ReturnType<typeof loginAdmin>>): Promise<Response | null> {
+  try {
+    await revokeResultToken(result);
+    return null;
+  } catch (error) {
+    console.error("Failed to revoke admin session after throttled login", error);
+    return storageUnavailable();
+  }
 }
 
 async function failedLoginLimit(ip: string, result: Awaited<ReturnType<typeof loginAdmin>>) {

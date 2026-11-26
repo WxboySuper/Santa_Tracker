@@ -7,12 +7,15 @@ import { tokenFromRequest } from "@/lib/admin-passkey-http";
 export async function POST(request: Request) {
   const token = tokenFromRequest(request);
   if (token) {
+    const sessionId = await getAdminTokenSessionId({ token });
     try {
-      const sessionId = await getAdminTokenSessionId({ token });
       await revokeAdminToken({ token });
-      if (sessionId) await appendAuthAudit({ action: "logout", result: "success", sessionId });
     } catch {
-      return clearAuthCookies(NextResponse.json({ error: "Admin authentication storage is unavailable" }, { status: 503 }));
+      return NextResponse.json({ error: "Admin authentication storage is unavailable; retry logout" }, { status: 503 });
+    }
+    if (sessionId) {
+      try { await appendAuthAudit({ action: "logout", result: "success", sessionId }); }
+      catch (error) { console.error("Admin logout succeeded but its audit event could not be stored", error); }
     }
   }
   return clearAuthCookies(NextResponse.json({ message: "Logged out" }, { status: 200 }));
