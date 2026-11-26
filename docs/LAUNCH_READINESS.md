@@ -30,6 +30,19 @@ The Worker caches the flag read for up to 7 seconds. `/api/route` has a 60-secon
 
 The Worker keeps the last successfully read, valid flag document in memory per isolate. If a later storage read fails or returns corrupt data, it continues using that last-known-good document, so a saved hide survives a transient storage problem. Failed reads are cached for at most 7 seconds before retrying. On a cold isolate with no valid read yet, or when the key is missing, defaults preserve the regular season schedule; storage trouble on startup never hides a feature by accident. Requests continue using the normal season rules.
 
+## Exceptional Advent takedown
+
+Use this procedure when a published day presents a credible safety, privacy, rights, or material factual risk. `is_unlocked_override: false` hides the day from live, admin preview, and archive reads. Do not add a separate archive control or delete the schedule and payload as the first response.
+
+1. Record the day, affected content, reason, reporter or source, and time in the incident log.
+2. In the authenticated Advent admin workflow, set that day's `is_unlocked_override` to `false` and save it. Record the reason as an archive takedown. The admin label should make clear that this existing lock also hides archive reads.
+3. As an anonymous visitor, verify `/api/advent/day/:day` and `/api/advent/archive/:day` return a locked response with no payload. Also verify the public day page does not show the withdrawn content. For the admin preview check, request `/api/admin/advent/preview?at=<current-or-later-UTC-time>` and confirm the day is locked and omits both `payload` and `fallback_activity`.
+4. Record who changed the override, when it changed, the verification evidence, and whether the withdrawal is temporary or permanent. Keep the schedule and payload for review and restoration.
+5. For a correction, prepare replacement content and review its sources. Only the owner may approve restoration after a safety, privacy, or rights-based withdrawal. Clear the override after that approval.
+6. If the override does not hide all read paths, turn on **Hide Advent** in the [emergency switch](#emergency-switch), then follow the [rollback runbook](ROLLBACK_RUNBOOK.md). Check cache behavior before declaring the takedown complete.
+
+Style disagreement or an unverified complaint alone is not a reason to remove an archive entry. If the risk is plausible, hide the day while the owner reviews the report.
+
 ## Gaps to close before December
 
 See the [November 2026 browser and accessibility matrix](qa/browser-matrix-2026-11.md) for automated browser and viewport results, saved screenshots, reproducible failures, and owner-run real-device and screen-reader checks.
