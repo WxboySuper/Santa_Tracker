@@ -4,14 +4,14 @@ Takeoff is scheduled for **2026-12-24 10:00 UTC**. These proposed dates leave ti
 
 | Gate | Freeze date, UTC | Required evidence | Approver |
 | --- | --- | --- | --- |
-| Route freeze | Nov 25, 18:00 | Generated report and final route snapshot; regional pacing and confidence report; source review for every stop; geometry and local-time validation; replay simulation; replacement snapshot and rollback rehearsal. | Product/route owner |
+| Route freeze | Dec 5, 18:00 | Generated report and final route snapshot; regional pacing and confidence report; source review for every stop; geometry and local-time validation; replay simulation; replacement snapshot and rollback rehearsal. | Product/route owner |
 | Content freeze | Dec 1, 18:00 | Advent day-by-day inventory; source and rights review; copy and accessibility review; links and media checked; all 24 days have a complete fallback or approved activity; archive/takedown procedure confirmed. | Editorial owner |
 | Feature freeze | Dec 3, 18:00 | Launch-blocker and core scope complete; critical flows work in supported browsers; feature flags and emergency switches recorded; no open critical accessibility or security issue; rehearsal evidence attached. | Product owner |
 | Code freeze | Dec 10, 18:00 | Release candidate SHA; required checks green; dependency and security review complete; smoke, browser, mobile, load, and rollback evidence; deploy and rollback instructions current. | Engineering owner and release owner |
 | Launch readiness | Dec 23, 18:00 | Production health checks and alerts verified; route and Advent pointers verified; emergency switches tested; owner and backup operator available; final no-map and service-failure checks complete. | Release owner |
 | Takeoff | Dec 24, 10:00 | `/api/health`, route API, tracker shell, current location, ETA, map and no-map mode observed. Confirm launch log has no unresolved blocker. | Release owner |
 
-The dates align with the existing Nov 25 route checkpoint and Dec 23 rehearsal in [launch readiness](LAUNCH_READINESS.md). They are proposed operational gates, not existing repository automation.
+The owner set these dates on 2026-11-26. The route freeze moved from Nov 25 to Dec 5 while the route rework finishes; it falls after the feature freeze so stop content can be written against the final stop list before the code freeze. The Dec 23 rehearsal matches [launch readiness](LAUNCH_READINESS.md). These are operational gates, not repository automation.
 
 ## Change classes
 
