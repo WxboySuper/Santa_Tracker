@@ -64,8 +64,9 @@ export class WeatherFallbackBudget {
   private async scheduleMinuteCleanup({ minute }: { minute: number }): Promise<void> {
     const existingAlarm = await this.state.storage.getAlarm();
     const cleanupAt = (minute + 2) * 60_000;
-    const alarmExpired = existingAlarm !== null && existingAlarm <= Date.now();
-    if (existingAlarm === null || alarmExpired || existingAlarm > cleanupAt) await this.state.storage.setAlarm(cleanupAt);
+    if (existingAlarm === null) return this.state.storage.setAlarm(cleanupAt);
+    if (existingAlarm <= Date.now()) return this.state.storage.setAlarm(cleanupAt);
+    if (existingAlarm > cleanupAt) await this.state.storage.setAlarm(cleanupAt);
   }
 
   async alarm(): Promise<void> {
