@@ -2,9 +2,19 @@ import type { ActivationAuditEntry, ActivePointer, SnapshotVersion, VersionedSna
 
 const MAX_ACTIVATION_AUDIT_ENTRIES = 1_000;
 
+let lastStamp = "";
+let sequence = 0;
+
+/**
+ * Version IDs sort in creation order. Two IDs made in the same millisecond share a timestamp, so a zero-padded
+ * sequence follows it; without it the random suffix decided which counted as "newer" and rollback could pick the
+ * wrong previous version.
+ */
 export function makeVersionId(): string {
   const stamp = new Date().toISOString().replace(/[:.]/g, "-");
-  return `${stamp}-${Math.random().toString(36).slice(2, 10)}`;
+  sequence = stamp === lastStamp ? sequence + 1 : 0;
+  lastStamp = stamp;
+  return `${stamp}-${String(sequence).padStart(4, "0")}-${Math.random().toString(36).slice(2, 10)}`;
 }
 
 export interface VersionedStoreBackend {

@@ -1,5 +1,10 @@
 # Changelog — per-PR exhaustive (enforced in CI)
 
+## [Unreleased] - Version IDs sort in creation order
+
+- **Snapshots:** Version IDs created in the same millisecond now carry a zero-padded sequence after the timestamp, so they always sort in creation order. Before this, the random suffix decided which one counted as newer: rollback could select the wrong previous version, and a #539 test failed intermittently on `main`.
+- **Tests:** Adds a fake-clock test that IDs made within one millisecond sort in creation order.
+
 ## [Unreleased] - Route draft autosave and restore points (#296)
 
 - **Draft isolation:** Adds authenticated route draft autosave APIs backed by a separate immutable version dataset, with `If-Match` protection, a 5 MB/100-level data limit, and validation feedback for incomplete edits.
