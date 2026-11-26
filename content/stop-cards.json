@@ -2333,12 +2333,12 @@
   {
     "place_id": "ne-1159150877",
     "country": "Estonia",
-    "note": "Vilnian Baroque takes its name from Vilnius, whose Old Town became a UNESCO World Heritage Site in 1994. The architectural adjective is local, for once.",
+    "note": "Tallinn, then known as Reval, received Lübeck city rights in 1248. The medieval charter helped shape a trading town whose old name still turns up in the city's history.",
     "sources": [
       "https://www.wikidata.org/wiki/Q1770",
       "https://en.wikipedia.org/wiki/Tallinn"
     ],
-    "topic_key": "vilnius-baroque",
+    "topic_key": "tallinn-lubeck-rights",
     "photo": {
       "url": "https://upload.wikimedia.org/wikipedia/commons/9/92/Tallinna_vanalinn_2015.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
       "width": 2808,
