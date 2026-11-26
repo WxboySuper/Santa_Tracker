@@ -188,11 +188,25 @@ function isSafeTimestamp(value: unknown): value is number {
 
 function isChallenge(value: unknown): value is AdminAuthChallenge {
   if (!isRecord(value)) return false;
-  return typeof value.id === "string" && value.id.length <= 128
-    && typeof value.challenge === "string" && value.challenge.length <= 1024
-    && (value.purpose === "registration" || value.purpose === "authentication")
-    && (value.sessionId === null || (typeof value.sessionId === "string" && value.sessionId.length <= 128))
+  return hasChallengeId(value.id) && hasChallengeValue(value.challenge)
+    && isChallengePurpose(value.purpose) && hasChallengeSession(value.sessionId)
     && Number.isSafeInteger(value.expiresAt);
+}
+
+function hasChallengeId(value: unknown): value is string {
+  return typeof value === "string" && value.length <= 128;
+}
+
+function hasChallengeValue(value: unknown): value is string {
+  return typeof value === "string" && value.length <= 1024;
+}
+
+function isChallengePurpose(value: unknown): value is AdminAuthChallenge["purpose"] {
+  return value === "registration" || value === "authentication";
+}
+
+function hasChallengeSession(value: unknown): value is string | null {
+  return value === null || (typeof value === "string" && value.length <= 128);
 }
 
 function isAuditEvent(value: unknown): value is AdminAuthAuditEvent {
