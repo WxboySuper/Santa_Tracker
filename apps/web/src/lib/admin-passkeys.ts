@@ -71,18 +71,27 @@ export async function finishRegistration(input: { request: Request; challengeId:
   if (!challenge || challenge.sessionId !== input.sessionId) throw new PasskeyRequestError("Registration challenge expired or unavailable");
   const credential = await verifyRegistration(input, challenge.challenge);
   const recoveryCodes = await generateFirstRecoverySet();
-  const hashes = recoveryCodes ? await Promise.all(recoveryCodes.map(code => hashRecoveryCode({ code: normalizeRecoveryCode({ code }) }))) : null;
-  let recoveryCodesStored: boolean;
+  const hashes = await hashRecoverySet(recoveryCodes);
+  const recoveryCodesStored = await installRegistrationCredential(credential, hashes);
+  await appendAuthAudit({ action: "passkey_registration", result: "success", sessionId: input.sessionId });
+  if (!recoveryCodesStored) return { recoveryCodes: null };
+  return { recoveryCodes };
+}
+
+async function hashRecoverySet(codes: string[] | null): Promise<string[] | null> {
+  if (!codes) return null;
+  return Promise.all(codes.map(code => hashRecoveryCode({ code: normalizeRecoveryCode({ code }) })));
+}
+
+async function installRegistrationCredential(credential: Awaited<ReturnType<typeof verifyRegistration>>, hashes: string[] | null): Promise<boolean> {
   try {
-    recoveryCodesStored = await installPasskey({ id: credential.id, publicKey: encodeBase64Url(credential.publicKey), counter: credential.counter, transports: credential.transports }, hashes);
+    return await installPasskey({ id: credential.id, publicKey: encodeBase64Url(credential.publicKey), counter: credential.counter, transports: credential.transports }, hashes);
   } catch (error) {
     if (error instanceof Error && (error.message === "Passkey is already registered" || error.message === "Passkey limit reached")) {
       throw new PasskeyRegistrationConflictError(error.message);
     }
     throw error;
   }
-  await appendAuthAudit({ action: "passkey_registration", result: "success", sessionId: input.sessionId });
-  return { recoveryCodes: recoveryCodesStored ? recoveryCodes : null };
 }
 
 async function verifyRegistration(input: { request: Request; response: RegistrationResponseJSON }, challenge: string) {
@@ -95,7 +104,8 @@ async function verifyRegistration(input: { request: Request; response: Registrat
 }
 
 async function generateFirstRecoverySet(): Promise<string[] | null> {
-  return (await readAdminAuthState()).recoveryCodeHashes.length === 0 ? generateRecoveryCodes() : null;
+  if ((await readAdminAuthState()).recoveryCodeHashes.length > 0) return null;
+  return generateRecoveryCodes();
 }
 
 export async function createAuthenticationChallenge(request: Request): Promise<{ challenge: AdminAuthChallenge; options: Awaited<ReturnType<typeof generateAuthenticationOptions>> }> {
@@ -120,8 +130,7 @@ export async function finishAuthentication(input: { request: Request; challengeI
   if (!credential) throw new PasskeyRequestError("Unknown passkey");
   const newCounter = await verifyAuthentication(input, challenge.challenge, credential);
   await ensureCounterAdvances(credential.counter, newCounter);
-  const counterToStore = newCounter === 0 && credential.counter !== 0 ? credential.counter : newCounter;
-  await updatePasskeyCounter(credential.id, counterToStore);
+  await updatePasskeyCounter(credential.id, newCounter);
   const token = await createAdminToken({ authMethod: "passkey" });
   await appendAuthAudit({ action: "passkey_login", result: "success" });
   return token;
@@ -145,8 +154,7 @@ async function verifyAuthentication(input: { request: Request; response: Authent
 }
 
 async function ensureCounterAdvances(previous: number, next: number): Promise<void> {
-  if (previous === 0) return;
-  if (next === 0) return;
+  if (previous === 0 && next === 0) return;
   if (next > previous) return;
   await appendAuthAudit({ action: "passkey_login", result: "failure" });
   throw new PasskeyRequestError("Passkey counter did not advance");

@@ -297,7 +297,14 @@ export async function installPasskey(passkey: StoredPasskey, recoveryCodeHashes:
   return mutateState(state => {
     if (state.passkeys.some(item => item.id === passkey.id)) throw new Error("Passkey is already registered");
     if (state.passkeys.length >= 10) throw new Error("Passkey limit reached");
+    const firstPasskey = state.passkeys.length === 0;
     state.passkeys.push(passkey);
+    if (firstPasskey) {
+      const now = Date.now();
+      for (const session of state.sessions) {
+        if (session.authMethod === "password" && session.revokedAt === null) session.revokedAt = now;
+      }
+    }
     if (state.recoveryCodeHashes.length === 0 && recoveryCodeHashes) {
       state.recoveryCodeHashes = recoveryCodeHashes;
       return true;

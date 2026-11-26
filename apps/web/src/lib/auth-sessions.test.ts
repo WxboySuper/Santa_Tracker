@@ -45,16 +45,11 @@ describe("admin session and CSRF enforcement", () => {
     expect(await readActiveSession(session.id, now + 2000)).toBeNull();
   });
 
-  it("requires CSRF to log out an active cookie session and then revokes it", async () => {
-    const { token, csrf, cookie } = await createCookieSession();
-    const denied = await logout(new Request("https://example.test/api/admin/logout", { method: "POST", headers: { cookie } }));
-    expect(denied.status).toBe(403);
-    expect(await verifyAdminToken({ token })).toBe(true);
-    const accepted = await logout(new Request("https://example.test/api/admin/logout", {
-      method: "POST",
-      headers: { cookie, origin: "https://example.test" },
-    }));
-    expect(accepted.status).toBe(200);
+  it("allows logout without CSRF material and revokes the active cookie session", async () => {
+    const { token, cookie } = await createCookieSession();
+    const response = await logout(new Request("https://example.test/api/admin/logout", { method: "POST", headers: { cookie } }));
+    expect(response.status).toBe(200);
+    expect(response.headers.get("set-cookie")).toContain("admin_token=;");
     expect(await verifyAdminToken({ token })).toBe(false);
   });
 

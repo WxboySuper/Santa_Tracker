@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getAdminTokenSessionId, requireAdminLogoutAuth, revokeAdminToken, shouldUseSecureAdminCookie, verifyAdminToken } from "@/lib/auth";
+import { getAdminTokenSessionId, revokeAdminToken, shouldUseSecureAdminCookie } from "@/lib/auth";
 import { appendAuthAudit } from "@/lib/admin-auth-state";
 import { tokenFromRequest } from "@/lib/admin-passkey-http";
 
@@ -8,13 +8,6 @@ export async function POST(request: Request) {
   const token = tokenFromRequest(request);
   if (token) {
     try {
-      if (await verifyAdminToken({ token })) {
-        const auth = await requireAdminLogoutAuth(request);
-        if (!auth.ok) {
-          const denied = NextResponse.json({ error: auth.error }, { status: auth.status });
-          return auth.status === 503 ? clearAuthCookies(denied) : denied;
-        }
-      }
       const sessionId = await getAdminTokenSessionId({ token });
       await revokeAdminToken({ token });
       if (sessionId) await appendAuthAudit({ action: "logout", result: "success", sessionId });

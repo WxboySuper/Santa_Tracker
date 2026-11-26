@@ -1,5 +1,5 @@
 import { checkLoginRateLimit, clearLoginAttempts, recordLoginAttempt } from "@/lib/admin-login";
-import { recordPasskeyFailure, loginWithRecoveryCode, webAuthnSettings } from "@/lib/admin-passkeys";
+import { PasskeyRequestError, recordPasskeyFailure, loginWithRecoveryCode, webAuthnSettings } from "@/lib/admin-passkeys";
 import { readCappedJson } from "@/lib/admin-json";
 import { responseWithSession, tooManyAttempts } from "@/lib/admin-passkey-http";
 import { getAdminClientIp } from "@/lib/admin-client-ip";
@@ -21,7 +21,11 @@ async function processRecoveryLogin(request: Request): Promise<Response> {
     await clearLoginAttempts(ip);
     return responseWithSession(token, { authenticated: true, recoveryCodeUsed: true });
   } catch (error) {
-    if (error instanceof Error && error.message === "Invalid recovery code") return failure(ip, "Invalid recovery code", 401);
+    if (error instanceof PasskeyRequestError && error.message === "Invalid recovery code") return failure(ip, "Invalid recovery code", 401);
+    if (error instanceof PasskeyRequestError && error.message === "Recovery codes are not configured") {
+      await recordPasskeyFailure({ action: "recovery_login_unconfigured" });
+      return Response.json({ error: error.message }, { status: 409, headers: { "Cache-Control": "no-store" } });
+    }
     return Response.json({ error: "Admin authentication storage is unavailable" }, { status: 503 });
   }
 }

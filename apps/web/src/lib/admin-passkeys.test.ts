@@ -111,11 +111,11 @@ describe("admin passkey service", () => {
     await expect(finishAuthentication({ request, challengeId: authentication.challenge.id, response: { id: "credential-one" } as AuthenticationResponseJSON })).rejects.toThrow("Passkey counter did not advance");
   });
 
-  it("does not overwrite a non-zero signature counter with an unsupported zero", async () => {
+  it("rejects a non-zero signature counter that regresses to zero", async () => {
     await registerPasskeyForTest(2);
     const authentication = await createAuthenticationChallenge(request);
     mockAuthenticationCounter(0);
-    await finishAuthentication({ request, challengeId: authentication.challenge.id, response: { id: "credential-one" } as AuthenticationResponseJSON });
+    await expect(finishAuthentication({ request, challengeId: authentication.challenge.id, response: { id: "credential-one" } as AuthenticationResponseJSON })).rejects.toThrow("Passkey counter did not advance");
     expect((await readAdminAuthState()).passkeys[0]?.counter).toBe(2);
   });
 

@@ -148,6 +148,11 @@ async function setLoginCookie(req: Request, result: Awaited<ReturnType<typeof lo
   }
   if (result.status !== 200) return respondWith(result);
   await clearLoginAttempts(ip);
+  try { await appendAuthAudit({ action: "password_login", result: "success" }); }
+  catch {
+    try { await revokeResultToken(result); } catch { /* the 503 response still clears no credentials to the caller */ }
+    return storageUnavailable();
+  }
   const response = respondWith(result);
   const token = result.body.token;
   if (typeof token !== "string") return response;

@@ -1,22 +1,18 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { getAdminTokenSessionId, requireAdminLogoutAuth, revokeAdminToken, verifyAdminToken } from "@/lib/auth";
+import { getAdminTokenSessionId, revokeAdminToken } from "@/lib/auth";
 import { appendAuthAudit } from "@/lib/admin-auth-state";
 import { POST } from "./route";
 
 vi.mock("@/lib/auth", () => ({
   getAdminTokenSessionId: vi.fn(),
-  requireAdminLogoutAuth: vi.fn(),
   revokeAdminToken: vi.fn(),
   shouldUseSecureAdminCookie: vi.fn(() => true),
-  verifyAdminToken: vi.fn(),
 }));
 vi.mock("@/lib/admin-auth-state", () => ({ appendAuthAudit: vi.fn() }));
 
 describe("POST /api/admin/logout", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(verifyAdminToken).mockResolvedValue(true);
-    vi.mocked(requireAdminLogoutAuth).mockResolvedValue({ ok: true });
     vi.mocked(getAdminTokenSessionId).mockResolvedValue("session-one");
     vi.mocked(revokeAdminToken).mockRejectedValue(new Error("storage unavailable"));
   });

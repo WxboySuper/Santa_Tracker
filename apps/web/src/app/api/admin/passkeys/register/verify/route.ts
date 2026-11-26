@@ -14,6 +14,19 @@ export async function POST(request: Request): Promise<Response> {
 }
 
 async function processRegistration(request: Request): Promise<Response> {
+  const parsed = await readRegistrationInput(request);
+  if (parsed instanceof Response) return parsed;
+  try {
+    const result = await finishRegistration({ request, challengeId: parsed.challengeId, sessionId: parsed.sessionId, response: parsed.response });
+    return clearChallengeCookie(NextResponse.json({ registered: true, recoveryCodes: result.recoveryCodes }, { headers: { "Cache-Control": "no-store" } }));
+  } catch (error) {
+    if (error instanceof PasskeyRequestError) return registrationFailure(error.message, 400);
+    if (error instanceof PasskeyRegistrationConflictError) return clearChallengeCookie(NextResponse.json({ error: error.message }, { status: 409 }));
+    return clearChallengeCookie(NextResponse.json({ error: "Admin authentication storage is unavailable" }, { status: 503 }));
+  }
+}
+
+async function readRegistrationInput(request: Request): Promise<{ sessionId: string; challengeId: string; response: RegistrationResponseJSON } | Response> {
   const token = tokenFromRequest(request);
   const sessionId = token ? await getAdminTokenSessionId({ token }) : null;
   const challengeId = challengeIdFromRequest(request);
@@ -27,15 +40,7 @@ async function processRegistration(request: Request): Promise<Response> {
   if (!isRegistrationResponse(input.value)) {
     return registrationFailure("Invalid passkey response", 400);
   }
-  try {
-    const result = await finishRegistration({ request, challengeId, sessionId, response: input.value });
-    const response = clearChallengeCookie(NextResponse.json({ registered: true, recoveryCodes: result.recoveryCodes }, { headers: { "Cache-Control": "no-store" } }));
-    return response;
-  } catch (error) {
-    if (error instanceof PasskeyRequestError) return registrationFailure(error.message, 400);
-    if (error instanceof PasskeyRegistrationConflictError) return clearChallengeCookie(NextResponse.json({ error: error.message }, { status: 409 }));
-    return clearChallengeCookie(NextResponse.json({ error: "Admin authentication storage is unavailable" }, { status: 503 }));
-  }
+  return { sessionId, challengeId, response: input.value };
 }
 
 async function registrationFailure(message: string, status: number): Promise<Response> {

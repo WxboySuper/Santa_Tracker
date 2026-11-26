@@ -141,7 +141,6 @@ async function validatePasswordLogin(payload: unknown, ip?: string): Promise<Adm
 async function createPasswordSession(): Promise<AdminApiResult> {
   try {
     const token = await createAdminToken();
-    await appendAuthAudit({ action: "password_login", result: "success" });
     return { status: 200, body: { token } };
   } catch {
     return { status: 500, body: { error: "Failed to create session" } };
