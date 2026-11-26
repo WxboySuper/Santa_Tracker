@@ -113,7 +113,8 @@ function parseWeatherRow(row: unknown, requested: Set<string>): [string, Weather
   if (!hasNumericCoordinates(coordinates)) return null;
   if (!validCurrent(coordinates.current)) return null;
   const key = weatherCellKey({ lat: coordinates.latitude, lon: coordinates.longitude });
-  return requested.has(key) ? [key, displayWeather(coordinates.current)] : null;
+  if (!requested.has(key)) return null;
+  return [key, displayWeather(coordinates.current)];
 }
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value && typeof value === "object");

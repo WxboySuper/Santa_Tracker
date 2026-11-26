@@ -261,7 +261,8 @@ function flattenLegacyLocation(item: JsonRecord): JsonRecord {
 }
 
 async function getRouteStore(bucket?: R2BucketLike | null) {
-  const store = getSnapshotStore(bucket ?? getSantaSnapshotsBucket());
+  if (bucket === null) throw new Error("Missing SANTA_SNAPSHOTS binding");
+  const store = getSnapshotStore(bucket === undefined ? getSantaSnapshotsBucket() : bucket);
   await ensureStoreBootstrapped(store);
   return store;
 }
