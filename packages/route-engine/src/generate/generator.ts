@@ -33,14 +33,32 @@ function normalizeCandidateTimezones(pool: Candidate[], overrides: RouteOverride
     try {
       candidates.push(normalizeCandidateTimezone(place, overrides, tables));
     } catch (error) {
-      if (!(error instanceof Error) || !error.message.startsWith('No IANA timezone table for country ')) throw error;
+      if (!isInvalidCandidateTimezoneError(error)) throw error;
       invalidCandidateIds.push(place.id);
     }
   }
   return { candidates, invalidCandidateIds };
 }
 
+function isInvalidCandidateTimezoneError(error: unknown): error is Error {
+  if (!(error instanceof Error)) return false;
+  return error.message.startsWith('No IANA timezone table for country ')
+    || error.message.startsWith('Invalid candidate IANA time zone:');
+}
+
+function isSupportedIanaTimezone(timezone: string): boolean {
+  try {
+    new Intl.DateTimeFormat('en-US', { timeZone: timezone });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 function normalizeCandidateTimezone(place: Candidate, overrides: RouteOverrides, tables: TimezoneTables): Candidate {
+  if (!isSupportedIanaTimezone(place.timezone) && !overrides.timezone?.[place.id]) {
+    throw new Error(`Invalid candidate IANA time zone: ${place.name} (${place.timezone})`);
+  }
   const allowed = tables.zonesByCountry[place.country];
   if (!allowed) throw new Error(`No IANA timezone table for country ${place.country} (${place.name})`);
   if (allowed.includes(place.timezone)) return requireSnapshotOffset(place);
@@ -84,15 +102,14 @@ function speedCurve(kmh: number): string {
 type TransitOptions = {
   from: LatLng & { utcOffsetMinutes?: number };
   to: LatLng;
-  fromDeparture: number;
-  toArrival: number;
+  travelDurationMilliseconds: number;
   description: string;
   cameraZoom?: number;
   eastwardReason?: 'dateline' | 'offset-anomaly' | 'return';
 };
 
-function transit({ from, to, fromDeparture, toArrival, description, cameraZoom = 9, eastwardReason }: TransitOptions) {
-  const durationSeconds = Math.max(0, Math.ceil((toArrival - fromDeparture) / 1000));
+function transit({ from, to, travelDurationMilliseconds, description, cameraZoom = 9, eastwardReason }: TransitOptions) {
+  const durationSeconds = Math.max(0, Math.ceil(travelDurationMilliseconds / 1000));
   const distanceKm = haversineKm(from, to);
   const speedKmh = durationSeconds > 0 ? legSpeedKmh(from, to, durationSeconds) ?? 0 : 0;
   const result: Record<string, unknown> = {
@@ -135,10 +152,9 @@ type DeliveryNodeOptions = {
   config: GeneratorConfig;
   tables: TimezoneTables | undefined;
   priorLocation: Candidate | LatLng;
-  priorDeparture: number;
 };
 
-function buildDeliveryNode({ place, index, config, tables, priorLocation, priorDeparture }: DeliveryNodeOptions): DeliveryNodeResult {
+function buildDeliveryNode({ place, index, config, tables, priorLocation }: DeliveryNodeOptions): DeliveryNodeResult {
   const stopArrival = place.plannedArrivalUtc
     ? Date.parse(place.plannedArrivalUtc)
     : Number.NaN;
@@ -178,8 +194,7 @@ function buildDeliveryNode({ place, index, config, tables, priorLocation, priorD
     transit_to_here: transit({
       from: priorLocation,
       to: place,
-      fromDeparture: priorDeparture,
-      toArrival: stopArrival,
+      travelDurationMilliseconds: scheduledTravelMilliseconds(priorLocation, place, config),
       description: index === 0 ? `Launch to ${place.name}` : `Flight to ${place.name}`,
       eastwardReason: eastwardLegReason({ from: priorLocation, to: place, destinationIndex: index, arrivalUtc: stopArrival }),
     }),
@@ -202,7 +217,7 @@ function endNode(last: Candidate, priorDeparture: number, config: GeneratorConfi
       location: { name: 'North Pole', region: 'Arctic', lat: NORTH_POLE.lat, lng: NORTH_POLE.lng, timezone_offset: 0 },
       schedule: { arrival_utc: new Date(endArrival).toISOString(), departure_utc: new Date(endDeparture).toISOString(), local_arrival_time: null, time_window_status: 'HOME' },
       stop_experience: { duration_seconds: 0, camera_zoom: 4, weather_condition: 'blizzard', presents_delivered_at_stop: 0 },
-      transit_to_here: transit({ from: last, to: NORTH_POLE, fromDeparture: priorDeparture, toArrival: endArrival, description: 'Return to the North Pole', cameraZoom: 4,
+      transit_to_here: transit({ from: last, to: NORTH_POLE, travelDurationMilliseconds: scheduledTravelMilliseconds(last, NORTH_POLE, config), description: 'Return to the North Pole', cameraZoom: 4,
         eastwardReason: isEastwardDelta(longitudeDelta(last, NORTH_POLE)) ? 'return' : undefined }),
     },
   };
@@ -216,7 +231,7 @@ function buildDocument(places: Candidate[], config: GeneratorConfig, tables?: Ti
   let priorDeparture = takeoff;
   let priorLocation: Candidate | LatLng = NORTH_POLE;
   for (const [index, place] of places.entries()) {
-    const result = buildDeliveryNode({ place, index, config, tables, priorLocation, priorDeparture });
+    const result = buildDeliveryNode({ place, index, config, tables, priorLocation });
     coordinates.set(result.locationId, place);
     stops.push(result.stop);
     routeNodes.push(result.node);

@@ -25,8 +25,7 @@ type ActualLegOptions = {
   to: Candidate | LatLng;
   fromName: string;
   toName: string;
-  fromDeparture: number;
-  toArrival: number;
+  travelDurationSeconds: number;
   kind: RouteLegReport['kind'];
   gapMinutes: number;
   eastwardDegrees: number;
@@ -34,9 +33,9 @@ type ActualLegOptions = {
 };
 
 function actualLeg(options: ActualLegOptions): RouteLegReport {
-  const { from, to, fromName, toName, fromDeparture, toArrival, kind, gapMinutes, eastwardDegrees, eastwardReason } = options;
+  const { from, to, fromName, toName, travelDurationSeconds, kind, gapMinutes, eastwardDegrees, eastwardReason } = options;
   const km = haversineKm(from, to);
-  const kmh = legSpeedKmh(from, to, (toArrival - fromDeparture) / 1000) ?? 0;
+  const kmh = legSpeedKmh(from, to, travelDurationSeconds) ?? 0;
   const leg: RouteLegReport = { from: fromName, to: toName, km, kmh, gapMinutes, kind, eastwardDegrees };
   if (isEastwardDelta(eastwardDegrees)) {
     if (!eastwardReason) throw new Error(`Unjustified eastward leg from ${fromName} to ${toName}`);
@@ -61,7 +60,7 @@ function routeHours(route: Route): RouteReport['hourly'] {
   }));
 }
 
-function deliveryLegs(places: Candidate[], route: Route): RouteLegReport[] {
+function deliveryLegs(places: Candidate[], route: Route, config: GeneratorConfig): RouteLegReport[] {
   const legs: RouteLegReport[] = [];
   for (let index = 1; index < places.length; index++) {
     const from = requireValue(places[index - 1], `Missing origin for delivery leg ${index}`);
@@ -69,31 +68,31 @@ function deliveryLegs(places: Candidate[], route: Route): RouteLegReport[] {
     const fromStop = requireValue(route.stops[index - 1], `Missing origin stop for delivery leg ${index}`);
     const toStop = requireValue(route.stops[index], `Missing destination stop for delivery leg ${index}`);
     const arrival = Date.parse(toStop.arrivalIso);
-    const departure = Date.parse(fromStop.departureIso);
     const eastward = longitudeDelta(from, to);
     const reason = eastwardLegReason({ from, to, destinationIndex: index, arrivalUtc: arrival });
-    legs.push(actualLeg({ from, to, fromName: from.name, toName: to.name, fromDeparture: departure, toArrival: arrival,
+    legs.push(actualLeg({ from, to, fromName: from.name, toName: to.name,
+      travelDurationSeconds: scheduledTravelMilliseconds(from, to, config) / 1000,
       kind: 'delivery', gapMinutes: (arrival - Date.parse(fromStop.arrivalIso)) / 60_000,
       eastwardDegrees: eastward, eastwardReason: reason }));
   }
   return legs;
 }
 
-function launchLeg(first: Candidate, firstStop: Route['stops'][number]): RouteLegReport {
-  const takeoff = Date.parse(TAKEOFF_UTC);
+function launchLeg(first: Candidate, firstStop: Route['stops'][number], config: GeneratorConfig): RouteLegReport {
   const arrival = Date.parse(firstStop.arrivalIso);
   const eastward = longitudeDelta(NORTH_POLE, first);
   const reason = eastwardLegReason({ from: NORTH_POLE, to: first, destinationIndex: 0, arrivalUtc: arrival });
-  return actualLeg({ from: NORTH_POLE, to: first, fromName: 'North Pole', toName: first.name, fromDeparture: takeoff,
-    toArrival: arrival, kind: 'launch', gapMinutes: (arrival - takeoff) / 60_000,
+  return actualLeg({ from: NORTH_POLE, to: first, fromName: 'North Pole', toName: first.name,
+    travelDurationSeconds: scheduledTravelMilliseconds(NORTH_POLE, first, config) / 1000,
+    kind: 'launch', gapMinutes: (arrival - Date.parse(TAKEOFF_UTC)) / 60_000,
     eastwardDegrees: eastward, eastwardReason: reason });
 }
 
-function returnLeg(last: Candidate, lastStop: Route['stops'][number], routeEnd: number): RouteLegReport {
-  const departure = Date.parse(lastStop.departureIso);
+function returnLeg(last: Candidate, lastStop: Route['stops'][number], routeEnd: number, config: GeneratorConfig): RouteLegReport {
   const eastward = longitudeDelta(last, NORTH_POLE);
-  return actualLeg({ from: last, to: NORTH_POLE, fromName: last.name, toName: 'North Pole', fromDeparture: departure,
-    toArrival: routeEnd, kind: 'return', gapMinutes: (routeEnd - departure) / 60_000,
+  return actualLeg({ from: last, to: NORTH_POLE, fromName: last.name, toName: 'North Pole',
+    travelDurationSeconds: scheduledTravelMilliseconds(last, NORTH_POLE, config) / 1000,
+    kind: 'return', gapMinutes: (routeEnd - Date.parse(lastStop.departureIso)) / 60_000,
     eastwardDegrees: eastward, eastwardReason: isEastwardDelta(eastward) ? 'return' : undefined });
 }
 
@@ -171,7 +170,7 @@ export function buildReport(places: Candidate[], route: Route, config: Generator
   const lastStop = requireValue(route.stops.at(-1), 'Missing final route stop');
   const lastDeparture = Date.parse(lastStop.departureIso);
   const routeEnd = lastDeparture + scheduledTravelMilliseconds(last, NORTH_POLE, config);
-  const legs = [launchLeg(first, firstStop), ...deliveryLegs(places, route), returnLeg(last, lastStop, routeEnd)];
+  const legs = [launchLeg(first, firstStop, config), ...deliveryLegs(places, route, config), returnLeg(last, lastStop, routeEnd, config)];
   const speeds = legs.map((leg) => leg.kmh);
   const coverage = populationCoverage(places, pool);
   const mix = countsBy(places, (place) => place.category);

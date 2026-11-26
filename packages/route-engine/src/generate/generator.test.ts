@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { generateRoute, type Candidate, DEFAULT_GENERATOR_LIMITS } from './generator';
 import { isInChristmasWindow, localClock } from './sweep';
+import { scheduledTravelMilliseconds } from './order';
+import { NORTH_POLE } from './types';
 
 const candidates: Candidate[] = [
   { id: 'pacific-a', name: 'Pacific A', country: 'FJ', lat: 80, lng: 170, timezone: 'Pacific/Kiritimati', utcOffsetMinutes: 840, population: 1_200_000, category: 'hub' },
@@ -65,5 +67,32 @@ describe('generateRoute midnight sweep', () => {
     expect(generated.report.count).toBe(1);
     expect(generated.report.invalidCandidateIds).toEqual(['row-2']);
     expect(generated.report.issues).toContain('Invalid candidate row skipped: row-2');
+  });
+
+  it('records flight time and speed separately from a local-window wait', () => {
+    const lateWindowStop: Candidate = {
+      id: 'late-window-stop', name: 'Late Window Stop', country: 'US', lat: 70, lng: 170,
+      timezone: 'Etc/GMT+12', utcOffsetMinutes: -720, category: 'populated', population: 5_000,
+    };
+    const generated = generateRoute([lateWindowStop], config);
+    const node = generated.document.route_nodes[1] as { transit_to_here: { duration_seconds: number; speed_kmh: number } };
+    const expectedTravelSeconds = scheduledTravelMilliseconds(NORTH_POLE, lateWindowStop, config) / 1000;
+    const scheduleGapSeconds = (Date.parse(generated.route.stops[0]!.arrivalIso) - Date.parse('2026-12-24T10:00:00.000Z')) / 1000;
+    expect(scheduleGapSeconds).toBeGreaterThan(expectedTravelSeconds);
+    expect(node.transit_to_here.duration_seconds).toBe(expectedTravelSeconds);
+    expect(node.transit_to_here.speed_kmh).toBe(Math.round(generated.report.legs[0]!.kmh));
+  });
+
+  it('reports an invalid candidate IANA timezone without aborting remaining valid places', () => {
+    const invalidTimezoneCandidate = { ...candidates[0]!, id: 'bad-timezone', timezone: 'Not/A_Zone' };
+    const tables = {
+      zonesByCountry: { FJ: ['Pacific/Kiritimati'] },
+      zonePointsByCountry: { FJ: [{ timezone: 'Pacific/Kiritimati', lat: 80, lng: 170 }] },
+      utcOffsetsByTimezone: { 'Pacific/Kiritimati': 840 },
+      countryNames: { FJ: 'Fiji' },
+    };
+    const generated = generateRoute([candidates[0]!, invalidTimezoneCandidate], config, {}, tables);
+    expect(generated.report.count).toBe(1);
+    expect(generated.report.invalidCandidateIds).toEqual(['bad-timezone']);
   });
 });

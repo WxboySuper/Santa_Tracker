@@ -47,4 +47,11 @@ describe('chooseCandidates', () => {
     expect(result.candidates.map((place) => place.id)).toEqual(['city-a']);
     expect(result.invalidCandidateIds).toEqual(['row-2']);
   });
+
+  it('reports duplicate candidate identities instead of silently shrinking the pool', () => {
+    const duplicate = { ...pool[0]!, name: 'Duplicate city row' };
+    const result = chooseCandidates([pool[0]!, duplicate], DEFAULT_GENERATOR_LIMITS);
+    expect(result.candidates.map((place) => place.id)).toEqual(['city-a']);
+    expect(result.invalidCandidateIds).toEqual(['city-a (duplicate candidate ID)']);
+  });
 });

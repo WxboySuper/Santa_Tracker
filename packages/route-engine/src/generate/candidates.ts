@@ -76,7 +76,10 @@ function validateAndEnrichCandidates(updated: Candidate[], rowLabels: string[], 
       invalidCandidateIds.push(rowLabels[index] ?? `row-${index + 1}`);
       continue;
     }
-    if (seen.has(place.id)) continue;
+    if (seen.has(place.id)) {
+      invalidCandidateIds.push(`${rowLabels[index] ?? place.id} (duplicate candidate ID)`);
+      continue;
+    }
     seen.add(place.id);
     candidates.push(enrichCandidate(place, config));
   }

@@ -1998,10 +1998,10 @@
       },
       "transit_to_here": {
         "description": "Flight to Jayapura",
-        "duration_seconds": 1317,
+        "duration_seconds": 63,
         "distance_km": 69.33,
         "speed_curve": "CRUISING",
-        "speed_kmh": 190,
+        "speed_kmh": 3962,
         "camera_zoom": 9
       },
       "notes": "https://www.naturalearthdata.com/downloads/10m-cultural-vectors/10m-populated-places/",
@@ -2112,10 +2112,10 @@
       },
       "transit_to_here": {
         "description": "Flight to General Santos",
-        "duration_seconds": 2359,
+        "duration_seconds": 950,
         "distance_km": 1054.73,
         "speed_curve": "CRUISING",
-        "speed_kmh": 1610,
+        "speed_kmh": 3997,
         "camera_zoom": 9
       },
       "notes": "https://www.naturalearthdata.com/downloads/10m-cultural-vectors/10m-populated-places/",
@@ -2568,10 +2568,10 @@
       },
       "transit_to_here": {
         "description": "Flight to Banyuwangi",
-        "duration_seconds": 609,
+        "duration_seconds": 73,
         "distance_km": 80.27,
         "speed_curve": "CRUISING",
-        "speed_kmh": 475,
+        "speed_kmh": 3959,
         "camera_zoom": 9
       },
       "notes": "https://www.naturalearthdata.com/downloads/10m-cultural-vectors/10m-populated-places/",
