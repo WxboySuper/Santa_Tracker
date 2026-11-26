@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { createLocationId, SCHEMA_VERSION, type Route } from '@santa-tracker/contracts';
+import { legSpeedKmh } from '../geo';
 import { buildReport } from './report';
 import type { Candidate } from './types';
-import { DEFAULT_GENERATOR_LIMITS } from './types';
+import { DEFAULT_GENERATOR_LIMITS, NORTH_POLE, TAKEOFF_UTC } from './types';
 
 const place: Candidate = { id: 'one', name: 'One', country: 'GB', lat: 0, lng: 0, timezone: 'UTC', category: 'hub', population: 100_000 };
 const firstStop = { locationId: createLocationId('location_one'), arrivalIso: '2026-12-25T01:00:00.000Z', departureIso: '2026-12-25T01:00:30.000Z', durationSeconds: 30 };
@@ -27,6 +28,11 @@ describe('buildReport', () => {
     expect(report.shareDeliveryLegsUnder300Km).toBe(0);
     expect(report.subnationalCoverageNote).toContain('no US state');
     expect(report.legs.map((leg) => leg.kind)).toEqual(['launch', 'return']);
+    expect(report.legs[0]?.kmh).toBe(legSpeedKmh(
+      NORTH_POLE,
+      place,
+      (Date.parse(firstStop.arrivalIso) - Date.parse(TAKEOFF_UTC)) / 1000,
+    ));
     expect(report.longestLegs).toHaveLength(2);
     expect(report.populationCoverageWithin500Km).toBe(1);
   });
@@ -35,5 +41,23 @@ describe('buildReport', () => {
     expect(() => buildReport([], { ...route, stops: [] })).toThrow(/empty route/);
     const twoStops: Route = { ...route, stops: [firstStop, { ...firstStop, locationId: createLocationId('location_two'), arrivalIso: '2026-12-25T01:01:00.000Z', departureIso: '2026-12-25T01:01:30.000Z' }] };
     expect(() => buildReport([place], twoStops)).toThrow(/do not match route stops/);
+  });
+
+  it('measures delivery speed over the scheduled departure-to-arrival interval', () => {
+    const next: Candidate = { ...place, id: 'two', name: 'Two', country: 'US', lat: 0.5, lng: 1 };
+    const secondStop = {
+      ...firstStop,
+      locationId: createLocationId('location_two'),
+      arrivalIso: '2026-12-25T02:00:00.000Z',
+      departureIso: '2026-12-25T02:00:30.000Z',
+    };
+    const twoStopRoute: Route = { ...route, stops: [firstStop, secondStop] };
+    const report = buildReport([place, next], twoStopRoute);
+    const delivery = report.legs.find((leg) => leg.kind === 'delivery');
+    expect(delivery?.kmh).toBe(legSpeedKmh(
+      place,
+      next,
+      (Date.parse(secondStop.arrivalIso) - Date.parse(firstStop.departureIso)) / 1000,
+    ));
   });
 });
