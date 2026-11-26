@@ -95,14 +95,21 @@ async function readRouteDraftSource(store: VersionedSnapshotStore): Promise<Rout
 
 function parseDraftEnvelope(raw: string | null): DraftEnvelope | null {
   if (!raw) return null;
+  let value: unknown;
   try {
-    const value: unknown = JSON.parse(raw);
-    if (typeof value !== "object" || value === null || !("data" in value) || !("savedAt" in value)) return null;
-    if (typeof value.savedAt !== "string") return null;
-    return { data: value.data, savedAt: value.savedAt };
-  } catch {
-    return null;
-  }
+    value = JSON.parse(raw);
+  } catch { return null; }
+  if (!isRecord(value)) return null;
+  if (!("data" in value)) return null;
+  if (!("savedAt" in value)) return null;
+  if (typeof value.savedAt !== "string") return null;
+  return { data: value.data, savedAt: value.savedAt };
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  if (typeof value !== "object") return false;
+  if (value === null) return false;
+  return !Array.isArray(value);
 }
 
 function requireRevisionEnvelope(raw: string | null): DraftEnvelope {

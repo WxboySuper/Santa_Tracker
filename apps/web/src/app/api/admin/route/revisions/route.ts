@@ -8,13 +8,19 @@ export async function GET(request: Request): Promise<Response> {
   const query = new URL(request.url).searchParams;
   const left = query.get("left");
   const right = query.get("right");
-  if (hasIncompleteComparison(left, right)) return Response.json({ error: "Both left and right revision IDs are required" }, { status: 400 });
+  if (hasInvalidComparison(left, right)) return Response.json({ error: "Both left and right revision IDs must be valid" }, { status: 400 });
   return readRevisions(left, right);
 }
 
-function hasIncompleteComparison(left: string | null, right: string | null): boolean {
+function hasInvalidComparison(left: string | null, right: string | null): boolean {
   if (left === null) return right !== null;
-  return right === null;
+  if (right === null) return true;
+  if (!isRevisionId(left)) return true;
+  return !isRevisionId(right);
+}
+
+function isRevisionId(value: string): boolean {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
 }
 
 async function readRevisions(left: string | null, right: string | null): Promise<Response> {

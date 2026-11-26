@@ -8,7 +8,9 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
   const ifMatch = request.headers.get("if-match");
   if (!ifMatch) return Response.json({ error: "If-Match is required" }, { status: 428 });
   const { id } = await context.params;
-  if (!/^[0-9a-f-]{36}$/i.test(id)) return Response.json({ error: "Invalid revision ID" }, { status: 400 });
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id)) {
+    return Response.json({ error: "Invalid revision ID" }, { status: 400 });
+  }
   return restoreRevision(id, ifMatch);
 }
 
