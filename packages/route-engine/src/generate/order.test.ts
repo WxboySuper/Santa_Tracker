@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { haversineKm } from '../geo';
 import { eastwardLegReason, isInChristmasWindow, localClock, longitudeDelta } from './sweep';
 import { DEFAULT_GENERATOR_LIMITS, NORTH_POLE, type Candidate } from './types';
-import { candidateTiming, hasFeasibleTiming, scheduledTravelMilliseconds, sweepOrder } from './order';
+import { candidateTiming, hasFeasibleTiming, longitudeDelta as orderLongitudeDelta, scheduledTravelMilliseconds, sweepOrder } from './order';
 
 const testPlaces: Candidate[] = [
   { id: 'ki', name: 'Kiritimati', country: 'KI', lat: 1.87, lng: -157.4, timezone: 'Pacific/Kiritimati', utcOffsetMinutes: 840, category: 'populated', population: 7_380 },
@@ -12,6 +12,10 @@ const testPlaces: Candidate[] = [
 ];
 
 describe('midnight sweep ordering', () => {
+  it('keeps longitudeDelta available from the order module', () => {
+    expect(orderLongitudeDelta(testPlaces[0]!, testPlaces[1]!)).toBe(longitudeDelta(testPlaces[0]!, testPlaces[1]!));
+  });
+
   it('starts in the earliest reachable offset band and keeps delivery legs westward', () => {
     const ordered = sweepOrder(testPlaces);
     expect(ordered[0]?.id).toBe('ki');

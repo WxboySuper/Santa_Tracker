@@ -38,6 +38,7 @@ export {
   timingAndDetourAllows,
   REQUIRED_ADMIN1_CODES,
 } from './order-shared';
+export { longitudeDelta } from './sweep';
 export type { PlannedStop, RoutePlan, TimedCandidate } from './order-shared';
 
 const MINUTE_MS = 60_000;
@@ -354,6 +355,8 @@ function greedySweep(pool: Candidate[], config: GeneratorConfig, includeDenseFil
 }
 
 function planOrder(order: Candidate[], config: GeneratorConfig): RoutePlan | undefined {
+  // Timing and the return deadline are checked by planTiming. Detours use a
+  // separate gate so singleton-country coverage can remain feasible.
   if (!selectionConstraintsAllow(order, config)) return undefined;
   return planTiming(order, config);
 }
@@ -371,7 +374,7 @@ function planMandatoryRoute(pool: Candidate[], config: GeneratorConfig): TimedCa
   return planOrder(improveWithLocalSearch(initialPlan.places, config), config)?.places;
 }
 
-function expandMandatoryRoute(initial: TimedCandidate[], pool: Candidate[], config: GeneratorConfig): Candidate[] | undefined {
+function expandMandatoryRoute(initial: TimedCandidate[], pool: Candidate[], config: GeneratorConfig): TimedCandidate[] | undefined {
   const densePass: InsertionPass = {
     config,
     bandSpreadMinutes: 60,
@@ -400,7 +403,7 @@ function greedyCoverageRoute(pool: Candidate[], config: GeneratorConfig): TimedC
   return mandatory;
 }
 
-function expandGreedyCoverageRoute(mandatory: TimedCandidate[], pool: Candidate[], config: GeneratorConfig): Candidate[] | undefined {
+function expandGreedyCoverageRoute(mandatory: TimedCandidate[], pool: Candidate[], config: GeneratorConfig): TimedCandidate[] | undefined {
   const densePass: InsertionPass = {
     config,
     bandSpreadMinutes: 60,
@@ -416,7 +419,7 @@ function expandGreedyCoverageRoute(mandatory: TimedCandidate[], pool: Candidate[
 }
 
 /** Greedy time-stepped midnight sweep followed by constrained 2-opt/or-opt improvements. */
-export function sweepOrder(places: Candidate[], config: GeneratorConfig = DEFAULT_GENERATOR_LIMITS): Candidate[] {
+export function sweepOrder(places: Candidate[], config: GeneratorConfig = DEFAULT_GENERATOR_LIMITS): TimedCandidate[] {
   if (places.length === 0) throw new Error('Cannot order an empty route');
   places.forEach(requiredSnapshotOffset);
   const mandatoryRoute = planMandatoryRoute(places, config);

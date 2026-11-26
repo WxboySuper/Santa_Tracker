@@ -11,3 +11,4 @@ export function admin1CodeAt(
   place: { id?: string; country: string; lat: number; lng: number },
   features: Admin1BoundaryFeature[],
 ): string | undefined | null;
+export function isSupportedAdmin1Code(country: string, code: unknown): boolean;

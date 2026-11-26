@@ -12,7 +12,14 @@ import {
 } from './sweep';
 import { scheduledTravelMilliseconds } from './order';
 import { admin1Coverage } from './admin1';
-import { DEFAULT_GENERATOR_LIMITS, NORTH_POLE, TAKEOFF_UTC, type Candidate, type GeneratorConfig, type RouteDetourReport, type RouteLegReport, type RouteReport, type StopTier } from './types';
+import { NORTH_POLE, RETURN_DEADLINE_UTC, TAKEOFF_UTC, type Candidate, type GeneratorConfig, type RouteDetourReport, type RouteLegReport, type RouteReport, type StopTier } from './types';
+
+export type BuildReportOptions = {
+  config: GeneratorConfig;
+  pool: Candidate[];
+  invalidCandidateIds: string[];
+  duplicateCandidateIds: string[];
+};
 
 function countsBy(places: Candidate[], key: (place: Candidate) => string): Record<string, number> {
   return places.reduce<Record<string, number>>((counts, place) => {
@@ -266,10 +273,18 @@ function uncoveredCountryReasons(uncovered: string[], pool: Candidate[], selecte
 function subnationalNote(coverage: RouteReport['admin1Coverage']): string {
   const summaries = Object.entries(coverage).map(([country, entry]) => `${country} ${entry.covered}/${entry.required}`);
   const missing = Object.entries(coverage).flatMap(([country, entry]) => entry.missingCodes.map((code) => `${country} ${code}`));
-  const noUsStates = coverage.US.covered === 0 ? ' There is no US state coverage.' : '';
+  const noUsStates = coverage.US?.covered === 0 ? ' There is no US state coverage.' : '';
   return missing.length
     ? `Natural Earth admin-1 coverage: ${summaries.join(', ')}. Missing: ${missing.join(', ')}.${noUsStates}`
     : `Natural Earth admin-1 coverage complete: ${summaries.join(', ')}.`;
+}
+
+function routeTimingIssues(lastDeparture: number, routeEnd: number): string[] {
+  const issues: string[] = [];
+  const lastDepartureLimit = Date.parse(TAKEOFF_UTC) + 27 * 60 * 60_000;
+  if (lastDeparture > lastDepartureLimit) issues.push('Last delivery departs after the 27-hour delivery window.');
+  if (routeEnd > Date.parse(RETURN_DEADLINE_UTC)) issues.push('North Pole return exceeds the 28-hour flight window.');
+  return issues;
 }
 
 function legDistanceSummary(places: Candidate[], legs: RouteLegReport[]): {
@@ -298,7 +313,7 @@ function speedSummary(legs: RouteLegReport[]): {
   };
 }
 
-export function buildReport(places: Candidate[], route: Route, config: GeneratorConfig = DEFAULT_GENERATOR_LIMITS, pool: Candidate[] = places): RouteReport {
+export function buildReport(places: Candidate[], route: Route, { config, pool, invalidCandidateIds, duplicateCandidateIds }: BuildReportOptions): RouteReport {
   if (places.length === 0 || route.stops.length === 0) throw new Error('Cannot report an empty route');
   if (places.length !== route.stops.length) throw new Error('Report locations do not match route stops');
   const routeLegSummary = buildRouteLegs(places, route, config);
@@ -312,11 +327,16 @@ export function buildReport(places: Candidate[], route: Route, config: Generator
   const legDistances = legDistanceSummary(places, legs);
   const speeds = speedSummary(legs);
   const arrivals = localArrivalRange(places, route);
+  const timingIssues = routeTimingIssues(lastDeparture, routeEnd);
+  const candidateIssues = [
+    ...invalidCandidateIds.map((id) => `Invalid candidate row skipped: ${id}`),
+    ...duplicateCandidateIds.map((id) => `Duplicate candidate ID skipped: ${id}`),
+  ];
   return {
     seed: config.seed,
     count: places.length,
     candidateCount: pool.length,
-    invalidCandidateIds: [],
+    invalidCandidateIds,
     unselectedCandidateCount: Math.max(0, pool.length - places.length),
     countriesCovered: coveredCountries.length,
     countryCodes: coveredCountries,
@@ -340,7 +360,7 @@ export function buildReport(places: Candidate[], route: Route, config: Generator
     eastwardLegs: legs.filter((leg) => isEastwardDelta(leg.eastwardDegrees)),
     detours: detours(places),
     longestLegs: [...legs].sort((left, right) => right.km - left.km).slice(0, 20),
-    issues: [],
+    issues: [...candidateIssues, ...timingIssues],
     ...speeds,
     totalDistanceKm: legs.reduce((total, leg) => total + leg.km, 0),
     populationWithin500Km: coverage.covered,

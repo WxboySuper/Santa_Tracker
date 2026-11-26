@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { canAcceptLocalProposal, detourCount, eastwardCount, type RouteCost } from './order-path';
+import { hardDetourCount } from './order-shared';
 
 describe('local route proposals', () => {
   it('counts zero eastward legs for an empty route', () => {
@@ -18,6 +19,7 @@ describe('local route proposals', () => {
       { id: 'c', name: 'C', country: 'CC', lat: 0, lng: 1, timezone: 'Etc/UTC', utcOffsetMinutes: 0, category: 'populated', population: 1 },
     ];
     expect(detourCount(route)).toBe(1);
+    expect(hardDetourCount(route)).toBe(0);
   });
 
   it('rejects a shorter path when it adds an eastward leg or detour', () => {

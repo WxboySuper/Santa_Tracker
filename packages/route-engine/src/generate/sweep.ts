@@ -94,7 +94,9 @@ export function localClock({ iso, timezoneOrOffset }: ZonedInstant): LocalClock 
     if (!part) throw new Error(`Missing ${name} in formatted time`);
     return Number(part.value);
   };
-  return { year: value('year'), month: value('month'), day: value('day'), hour: value('hour') % 24, minute: value('minute') };
+  const date = new Date(Date.UTC(value('year'), value('month') - 1, value('day'), value('hour'), value('minute')));
+  return { year: date.getUTCFullYear(), month: date.getUTCMonth() + 1, day: date.getUTCDate(),
+    hour: date.getUTCHours(), minute: date.getUTCMinutes() };
 }
 
 export function localMinuteInChristmasWindow({ iso, timezoneOrOffset }: ZonedInstant): number {

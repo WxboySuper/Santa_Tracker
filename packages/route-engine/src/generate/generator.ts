@@ -6,7 +6,8 @@ import type { RouteOverrides } from './overrides';
 import { chooseCandidates } from './candidates';
 import { scheduledTravelMilliseconds, sweepOrder } from './order';
 import { buildReport } from './report';
-import { eastwardLegReason, isEastwardDelta, isInChristmasWindow, isInSouthernChristmasWindow, localClock, longitudeDelta, stopDurationSeconds, stopTier } from './sweep';
+import { eastwardLegReason, isEastwardDelta, isInChristmasWindow, isInSouthernChristmasWindow, localClock, longitudeDelta } from './sweep';
+import type { TimedCandidate } from './order-shared';
 import { DEFAULT_GENERATOR_LIMITS, NORTH_POLE, RETURN_DEADLINE_UTC, TAKEOFF_UTC, type Candidate, type GeneratedRoute, type GeneratorConfig, type RouteReport } from './types';
 
 type TimezoneTables = {
@@ -182,7 +183,7 @@ function startNode(): Record<string, unknown> {
 type DeliveryNodeResult = { node: Record<string, unknown>; stop: Route['stops'][number]; locationId: string };
 
 type DeliveryNodeOptions = {
-  place: Candidate;
+  place: TimedCandidate;
   displayName: string;
   index: number;
   config: GeneratorConfig;
@@ -191,11 +192,9 @@ type DeliveryNodeOptions = {
 };
 
 function buildDeliveryNode({ place, displayName, index, config, tables, priorLocation }: DeliveryNodeOptions): DeliveryNodeResult {
-  const stopArrival = place.plannedArrivalUtc
-    ? Date.parse(place.plannedArrivalUtc)
-    : Number.NaN;
-  const tier = place.plannedStopTier ?? stopTier(place);
-  const durationSeconds = place.plannedStopDurationSeconds ?? stopDurationSeconds(tier);
+  const stopArrival = Date.parse(place.plannedArrivalUtc);
+  const tier = place.plannedStopTier;
+  const durationSeconds = place.plannedStopDurationSeconds;
   if (!Number.isFinite(stopArrival)) throw new Error(`Missing sweep arrival for ${place.name}`);
   const stopDeparture = stopArrival + durationSeconds * 1000;
   const stopId = `stop_${stableHash(place.id, config.seed).toString(36)}_${index.toString().padStart(3, '0')}`;
@@ -282,7 +281,7 @@ function displayNamesFor(places: Candidate[], tables?: TimezoneTables): Map<stri
   return displayNames;
 }
 
-function buildDeliveryNodes(places: Candidate[], config: GeneratorConfig, tables: TimezoneTables | undefined,
+function buildDeliveryNodes(places: TimedCandidate[], config: GeneratorConfig, tables: TimezoneTables | undefined,
   displayNames: Map<string, string>): { routeNodes: Record<string, unknown>[]; stops: Route['stops']; coordinates: Map<string, LatLng>; priorDeparture: number } {
   const routeNodes: Record<string, unknown>[] = [startNode()];
   const stops: Route['stops'] = [];
@@ -300,7 +299,7 @@ function buildDeliveryNodes(places: Candidate[], config: GeneratorConfig, tables
   return { routeNodes, stops, coordinates, priorDeparture };
 }
 
-function buildDocument(places: Candidate[], config: GeneratorConfig, tables?: TimezoneTables): { document: GeneratedRoute['document']; route: Route; coordinates: Map<string, LatLng>; routeEndUtc: string } {
+function buildDocument(places: TimedCandidate[], config: GeneratorConfig, tables?: TimezoneTables): { document: GeneratedRoute['document']; route: Route; coordinates: Map<string, LatLng>; routeEndUtc: string } {
   const last = places.at(-1);
   if (!last) throw new Error('Cannot build an empty route');
   const deliveries = buildDeliveryNodes(places, config, tables, displayNamesFor(places, tables));
@@ -391,16 +390,19 @@ type BuiltRouteValidationOptions = {
   ordered: Candidate[];
   pool: Candidate[];
   config: GeneratorConfig;
+  invalidCandidateIds: string[];
+  duplicateCandidateIds: string[];
 };
 
-function validateBuiltRoute({ route, coordinates, routeEndUtc, ordered, pool, config }: BuiltRouteValidationOptions): RouteReport {
+function validateBuiltRoute({ route, coordinates, routeEndUtc, ordered, pool, config,
+  invalidCandidateIds, duplicateCandidateIds }: BuiltRouteValidationOptions): RouteReport {
   validateArrivalWindow(route, ordered);
   const validation = validateRoute(route);
   if (!validation.ok) throw new Error(`Invalid generated route: ${validation.issues.map((issue) => issue.message).join('; ')}`);
   const geometry = validateRouteGeometry(route, coordinates, { maxSpeedKmh: config.maxLegSpeedKmh });
   const geometryErrors = geometry.issues.filter((issue) => issue.severity === 'error');
   if (geometryErrors.length > 0) throw new Error(`Invalid route geometry: ${geometryErrors.map((issue) => issue.message).join('; ')}`);
-  const report = buildReport(ordered, route, config, pool);
+  const report = buildReport(ordered, route, { config, pool, invalidCandidateIds, duplicateCandidateIds });
   validateRouteLimits(report, routeEndUtc, config);
   addGeometryWarnings(report, geometry.issues, route, ordered);
   return report;
@@ -470,9 +472,8 @@ export function generateRoute(pool: Candidate[], config: GeneratorConfig, overri
   if (chosen.length === 0) throw new Error('No eligible route candidates remain after timezone validation');
   const ordered = sweepOrder(chosen, config);
   const built = buildDocument(ordered, config, tables);
-  const report = validateBuiltRoute({ route: built.route, coordinates: built.coordinates, routeEndUtc: built.routeEndUtc, ordered, pool, config });
-  report.invalidCandidateIds = [...selection.invalidCandidateIds, ...normalized.invalidCandidateIds];
-  report.issues.push(...report.invalidCandidateIds.map((id) => `Invalid candidate row skipped: ${id}`));
-  report.issues.push(...selection.duplicateCandidateIds.map((id) => `Duplicate candidate ID skipped: ${id}`));
+  const report = validateBuiltRoute({ route: built.route, coordinates: built.coordinates, routeEndUtc: built.routeEndUtc,
+    ordered, pool, config, invalidCandidateIds: [...selection.invalidCandidateIds, ...normalized.invalidCandidateIds],
+    duplicateCandidateIds: selection.duplicateCandidateIds });
   return { document: built.document, route: built.route, locations: ordered, report };
 }

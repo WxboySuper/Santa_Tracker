@@ -192,6 +192,8 @@ export function planTiming(order: Candidate[], config: GeneratorConfig): RoutePl
 }
 
 export function hardDetourCount(order: Candidate[]): number {
+  // Singleton-country visits are mandatory coverage; only repeated-country
+  // detours are hard violations during coverage insertion and route planning.
   const countryCounts = new Map<string, number>();
   for (const place of order) countryCounts.set(place.country, (countryCounts.get(place.country) ?? 0) + 1);
   return order.reduce((count, via, index) => {

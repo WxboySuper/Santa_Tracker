@@ -91,11 +91,13 @@ type CandidateValidation =
   | { kind: 'accepted'; place: Candidate };
 
 function validateCandidateForSelection(place: Candidate, label: string, state: CandidateValidationState): CandidateValidation {
+  if (hasNonEmptyText(place.id)) {
+    if (state.seen.has(place.id)) return { kind: 'duplicate', id: place.id };
+    state.seen.add(place.id);
+  }
   if (isVetoedCandidate(place, state.vetoed)) return { kind: 'vetoed' };
   const resolved = candidateWithResolvedOffset(place, state.options);
   if (!resolved || !validCandidate(resolved)) return { kind: 'invalid', id: label };
-  if (state.seen.has(resolved.id)) return { kind: 'duplicate', id: resolved.id };
-  state.seen.add(resolved.id);
   return { kind: 'accepted', place: enrichCandidate(resolved, state.config) };
 }
 
@@ -110,7 +112,6 @@ function validateAndEnrichCandidates({ updated, rowLabels, vetoed, config, optio
     if (result.kind === 'vetoed') continue;
     if (result.kind === 'invalid') invalidCandidateIds.push(result.id);
     if (result.kind === 'duplicate') {
-      invalidCandidateIds.push(result.id);
       duplicateCandidateIds.push(result.id);
     }
     if (result.kind === 'accepted') candidates.push(result.place);

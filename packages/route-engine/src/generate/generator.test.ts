@@ -205,7 +205,7 @@ describe('generateRoute midnight sweep', () => {
   it('keeps duplicate IDs raw in the report and describes the duplicate separately', () => {
     const duplicate = { ...candidates[0]!, name: 'Duplicate Pacific A' };
     const generated = generateRoute([candidates[0]!, duplicate], config);
-    expect(generated.report.invalidCandidateIds).toEqual(['pacific-a']);
+    expect(generated.report.invalidCandidateIds).toEqual([]);
     expect(generated.report.issues).toContain('Duplicate candidate ID skipped: pacific-a');
   });
 });

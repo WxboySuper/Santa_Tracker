@@ -5,6 +5,8 @@ import { NORTH_POLE, RETURN_DEADLINE_UTC, TAKEOFF_UTC, type Candidate, type Gene
 import { candidateTiming, hardDetourCount, planTiming, requiredSnapshotOffset, scheduledTravelMilliseconds, seededRandom, type TimedCandidate } from './order-shared';
 
 export function detourCount(order: Candidate[]): number {
+  // Local search tracks every geometric detour. hardDetourCount separately
+  // exempts singleton-country visits that exist only for mandatory coverage.
   let count = 0;
   for (let index = 1; index < order.length - 1; index++) {
     const from = order[index - 1]!;

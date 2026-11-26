@@ -1,14 +1,12 @@
 import { copyFile, readFile, rename, rm, writeFile } from 'node:fs/promises';
 import requiredAdmin1Units from '../../packages/route-engine/src/generate/admin1-units.json' with { type: 'json' };
-import { admin1CodeAt, loadAdmin1Features } from './admin1.mjs';
+import { admin1CodeAt, isSupportedAdmin1Code, loadAdmin1Features } from './admin1.mjs';
 
 const DATA_FILES = ['places.json', 'curated.json'];
 const REQUIRED_ADMIN1_CODES = new Set(Object.values(requiredAdmin1Units).flat());
-const TARGET_COUNTRIES = new Set(['US', 'CA', 'AU']);
 
 function isSupportedExistingCode(place, code) {
-  if (typeof code !== 'string' || !code.startsWith(`${place.country}-`)) return false;
-  return !TARGET_COUNTRIES.has(place.country) || REQUIRED_ADMIN1_CODES.has(code);
+  return isSupportedAdmin1Code(place.country, code);
 }
 
 function candidateWithAdmin1Code(place, code) {

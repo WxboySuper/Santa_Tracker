@@ -148,6 +148,11 @@ function candidatePoint(place) {
   return [place.lng, place.lat];
 }
 
+export function isSupportedAdmin1Code(country, code) {
+  if (typeof country !== 'string' || typeof code !== 'string' || !code.startsWith(`${country}-`)) return false;
+  return /^[A-Z0-9~]+$/.test(code.slice(country.length + 1));
+}
+
 function requireAdmin1Features(features) {
   if (!Array.isArray(features)) throw new TypeError('Admin-1 lookup requires a feature array');
   return features;
@@ -159,8 +164,8 @@ function findAdmin1Feature(place, point, features) {
 
 export function admin1CodeAt(candidate, featureRows) {
   const place = requireCandidate(candidate);
-  if (!ADMIN1_COUNTRIES.has(place.country)) return undefined;
   const point = candidatePoint(place);
+  if (!ADMIN1_COUNTRIES.has(place.country)) return undefined;
   const features = requireAdmin1Features(featureRows);
   return findAdmin1Feature(place, point, features)?.code ?? null;
 }
