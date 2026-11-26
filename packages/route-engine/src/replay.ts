@@ -126,9 +126,16 @@ function isSpeedWithinBounds(speed: number): boolean {
 }
 
 function validateRouteTimestamps(route: Route): void {
+  let previousArrival = Number.NEGATIVE_INFINITY;
+  let previousDeparture = Number.NEGATIVE_INFINITY;
   for (const stop of route.stops) {
-    parseRouteTimestamp(stop.arrivalIso);
-    parseRouteTimestamp(stop.departureIso);
+    const arrival = parseRouteTimestamp(stop.arrivalIso);
+    const departure = parseRouteTimestamp(stop.departureIso);
+    if (departure <= arrival) throw new RangeError('replay route departure must be after arrival');
+    if (arrival <= previousArrival) throw new RangeError('replay route arrivals must be strictly increasing');
+    if (arrival < previousDeparture) throw new RangeError('replay route stops must not overlap');
+    previousArrival = arrival;
+    previousDeparture = departure;
   }
 }
 

@@ -138,6 +138,17 @@ describe('journey stats', () => {
     } as unknown as Route;
     expect(() => deriveJourneyStats(malformedRoute, start, locations)).toThrow('route contains invalid ISO timestamps');
   });
+
+  it('rejects overlapping and out-of-order schedules in stats and replay', () => {
+    const overlappingRoute = {
+      ...route,
+      stops: route.stops.map((stop, index) => index === 1
+        ? { ...stop, arrivalIso: new Date(start + 500_000).toISOString() }
+        : stop),
+    } as unknown as Route;
+    expect(() => deriveJourneyStats(overlappingRoute, start, locations)).toThrow('route stops must not overlap');
+    expect(() => createReplay(overlappingRoute, { locations })).toThrow('replay route stops must not overlap');
+  });
 });
 
 describe('replay controller', () => {

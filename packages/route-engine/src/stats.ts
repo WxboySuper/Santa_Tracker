@@ -61,6 +61,7 @@ export function deriveJourneyStats(
 
   const nowMs = timestampMs({ value: now });
   const locationsByStop = resolveLocations(stops, locations);
+  validateRouteTimeline(stops);
   const interval = deriveRouteInterval({ stops, nowMs });
   const visitedIndexes = visitedStopIndexes({ stops, locations: locationsByStop, nowMs });
   const legs = deriveRouteLegs(stops, locationsByStop);
@@ -202,32 +203,33 @@ function deliveredPresents({ stops, routeLocations, candidatePool, nowMs, season
   if (nowMs < takeoffMs) return 0;
 
   const allocations = allocatePresents(deliveryIndexes, routeLocations, candidatePool, season);
-  let delivered = 0;
-  for (const [deliveryNumber, routeIndex] of deliveryIndexes.entries()) {
-    const stop = stops[routeIndex]!;
-    const arrivalMs = routeTimestampMs(stop.arrivalIso);
-    const departureMs = routeTimestampMs(stop.departureIso);
-    const previousIndex = findPreviousRouteStop({ locations: routeLocations, index: routeIndex });
-    const inboundStartMs = previousIndex === undefined ? arrivalMs : routeTimestampMs(stops[previousIndex]!.departureIso);
-    const hasInboundFlight = previousIndex !== undefined && arrivalMs > inboundStartMs;
-    const allocation = allocations[deliveryNumber] ?? 0;
-    if (nowMs >= departureMs) {
-      delivered += allocation;
-      continue;
-    }
-    if (nowMs < arrivalMs) {
-      const inboundProgress = hasInboundFlight ? linearProgress({ nowMs, startMs: inboundStartMs, endMs: arrivalMs }) : 0;
-      delivered += allocation * 0.3 * inboundProgress;
-      break;
-    }
-    const dwellProgress = linearProgress({ nowMs, startMs: arrivalMs, endMs: departureMs });
-    delivered += allocation * (hasInboundFlight ? 0.3 + 0.7 * dwellProgress : dwellProgress);
-    break;
-  }
+  const delivered = deliveryIndexes.reduce((sum, routeIndex, deliveryNumber) => sum + allocations[deliveryNumber]! * stopDeliveryProgress({
+    stops, routeLocations, routeIndex, nowMs,
+  }), 0);
   // Flooring keeps the visible counter integer-valued; the underlying schedule is linear.
   if (deliveryIndexes.every(index => nowMs >= routeTimestampMs(stops[index]!.departureIso))) return PRESENTS_TOTAL;
   const roundingTolerance = Number.EPSILON * PRESENTS_TOTAL * 2;
   return Math.min(PRESENTS_TOTAL, Math.floor(delivered + roundingTolerance));
+}
+
+function stopDeliveryProgress({ stops, routeLocations, routeIndex, nowMs }: {
+  stops: Route['stops'];
+  routeLocations: RouteStatsLocation[];
+  routeIndex: number;
+  nowMs: number;
+}): number {
+  const stop = stops[routeIndex]!;
+  const arrivalMs = routeTimestampMs(stop.arrivalIso);
+  const departureMs = routeTimestampMs(stop.departureIso);
+  if (nowMs >= departureMs) return 1;
+  const previousIndex = findPreviousRouteStop({ locations: routeLocations, index: routeIndex });
+  const inboundStartMs = previousIndex === undefined ? arrivalMs : routeTimestampMs(stops[previousIndex]!.departureIso);
+  const hasInboundFlight = previousIndex !== undefined && arrivalMs > inboundStartMs;
+  if (nowMs < arrivalMs) {
+    return hasInboundFlight ? 0.3 * linearProgress({ nowMs, startMs: inboundStartMs, endMs: arrivalMs }) : 0;
+  }
+  const dwellProgress = linearProgress({ nowMs, startMs: arrivalMs, endMs: departureMs });
+  return hasInboundFlight ? 0.3 + 0.7 * dwellProgress : dwellProgress;
 }
 
 function allocatePresents(
@@ -381,6 +383,20 @@ function routeTimestampMs(value: string): number {
   const result = Date.parse(value);
   if (!Number.isFinite(result)) throw new RangeError('route contains invalid ISO timestamps');
   return result;
+}
+
+function validateRouteTimeline(stops: Route['stops']): void {
+  let previousArrival = -Infinity;
+  let previousDeparture = -Infinity;
+  for (const stop of stops) {
+    const arrival = routeTimestampMs(stop.arrivalIso);
+    const departure = routeTimestampMs(stop.departureIso);
+    if (departure <= arrival) throw new RangeError('route departure must be after arrival');
+    if (arrival <= previousArrival) throw new RangeError('route arrivals must be strictly increasing');
+    if (arrival < previousDeparture) throw new RangeError('route stops must not overlap');
+    previousArrival = arrival;
+    previousDeparture = departure;
+  }
 }
 
 function isString(value: string | undefined): value is string { return value !== undefined; }
