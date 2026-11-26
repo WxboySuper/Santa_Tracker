@@ -25,12 +25,13 @@ for (const [index, card] of cards.entries()) {
   if (card.note !== null && (typeof card.topic_key !== 'string' || !/^[a-z0-9][a-z0-9._-]*$/.test(card.topic_key))) errors.push(prefix + ': a note requires a valid topic_key');
   if (typeof card.note === 'string') {
     for (let prior = 0; prior < index; prior++) if (typeof cards[prior].note === 'string' && similarity(card.note, cards[prior].note) >= 0.72) errors.push(prefix + ': note duplicates or closely matches cards[' + prior + ']');
-    const country = String(card.country ?? '').toLocaleLowerCase('en');
-    if (country && card.topic_key && !card.allow_duplicate_topic) {
-      const key = country + ':' + card.topic_key;
-      if (topics.has(key) && !cards[topics.get(key)].allow_duplicate_topic) errors.push(prefix + ': topic_key ' + card.topic_key + ' already used in ' + card.country);
-      else topics.set(key, index);
-    }
+  }
+  // Topic keys are unique per country whether or not the note is written yet. The first holder of a key keeps it.
+  const country = String(card.country ?? '').toLocaleLowerCase('en');
+  if (country && typeof card.topic_key === 'string' && card.topic_key && !card.allow_duplicate_topic) {
+    const key = country + ':' + card.topic_key;
+    if (!topics.has(key)) topics.set(key, index);
+    else if (!cards[topics.get(key)].allow_duplicate_topic) errors.push(prefix + ': topic_key ' + card.topic_key + ' already used in ' + card.country);
   }
   if (!['draft', 'approved', 'stale'].includes(card.review_status)) errors.push(prefix + ': invalid review_status');
   if (card.photo !== null) {

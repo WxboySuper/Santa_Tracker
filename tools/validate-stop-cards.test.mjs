@@ -49,4 +49,13 @@ describe('stop card validation', () => {
     expect(result.stderr).toContain('country is required');
     expect(result.stderr).toContain('topic_key');
   });
+  it('checks topic keys per country even when notes are still null, across three or more cards', async () => {
+    const first = validCard('Q5', null, 'market');
+    const exempt = { ...validCard('Q6', null, 'market'), allow_duplicate_topic: true };
+    const third = validCard('Q7', null, 'market');
+    const result = await validate([first, exempt, third]);
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain('cards[2]: topic_key market already used');
+    expect(result.stderr).not.toContain('cards[1]');
+  });
 });

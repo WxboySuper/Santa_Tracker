@@ -42,6 +42,8 @@ for (const id of [...new Set(requested)]) {
     search.search = new URLSearchParams({ action: 'wbsearchentities', format: 'json', language: 'en', limit: '10', search: candidate.name + ' ' + candidate.country }).toString();
     const matches = await cachedJson('wikidata-search-' + id, search);
     qid = matches.search?.[0]?.id;
+    // The id comes from an external response and becomes a cache file name and URL path, so accept only a Wikidata item id.
+    if (qid !== undefined && !/^Q\d+$/.test(String(qid))) throw new Error('Invalid Wikidata entity id for candidate place ID: ' + id);
   }
   const entityResult = qid ? await cachedJson('wikidata-' + qid, 'https://www.wikidata.org/wiki/Special:EntityData/' + qid + '.json') : null;
   const entity = entityResult?.entities?.[qid];
@@ -66,7 +68,10 @@ for (const id of [...new Set(requested)]) {
     const normalizedLicense = license.startsWith('CC0') ? 'CC0' : /public domain/i.test(license) ? 'Public domain' : /^CC BY-SA/.test(license) ? 'CC BY-SA' : /^CC BY/.test(license) ? 'CC BY' : null;
     const licenseUrl = String(metadata.LicenseUrl?.value ?? '').replace(/^http:\/\//, 'https://');
     const photoUrl = String(info?.thumburl ?? info?.url ?? '').replace(/^http:\/\//, 'https://');
-    if (info && normalizedLicense && author && licenseUrl.startsWith('https://') && photoUrl.startsWith('https://')) photo = { url: photoUrl, width: info.thumbwidth ?? info.width, height: info.thumbheight ?? info.height, author, license: normalizedLicense, license_url: licenseUrl, source_page: 'https://commons.wikimedia.org/wiki/File:' + encodeURIComponent(commonsFile.replaceAll(' ', '_')) };
+    const width = info?.thumbwidth ?? info?.width;
+    const height = info?.thumbheight ?? info?.height;
+    const sized = Number.isInteger(width) && width >= 1 && Number.isInteger(height) && height >= 1;
+    if (info && sized && normalizedLicense && author && licenseUrl.startsWith('https://') && photoUrl.startsWith('https://')) photo = { url: photoUrl, width, height, author, license: normalizedLicense, license_url: licenseUrl, source_page: 'https://commons.wikimedia.org/wiki/File:' + encodeURIComponent(commonsFile.replaceAll(' ', '_')) };
   }
   const pages = Object.values(wikipedia?.query?.pages ?? {});
   const page = pages[0];
