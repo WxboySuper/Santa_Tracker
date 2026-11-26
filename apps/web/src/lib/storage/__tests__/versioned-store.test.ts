@@ -1,9 +1,9 @@
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createFilesystemBackend } from "../filesystem-backend";
-import { createVersionedSnapshotStore } from "../versioned-store-core";
+import { createVersionedSnapshotStore, makeVersionId } from "../versioned-store-core";
 
 describe("versioned snapshot store", () => {
   let root: string;
@@ -79,5 +79,15 @@ describe("versioned snapshot store", () => {
     await expect(store.rollback("santa-route", undefined, "unexpected-version")).rejects.toThrow("Previous version changed");
     expect(await store.readActiveVersion("santa-route")).toMatchObject({ versionId: second.versionId });
     expect(await store.readVersion("santa-route", first.versionId)).toBe(JSON.stringify({ v: 1 }));
+  });
+  it("orders version IDs made in the same millisecond by creation", () => {
+    vi.useFakeTimers();
+    try {
+      vi.setSystemTime(new Date("2026-12-24T10:00:00.000Z"));
+      const ids = Array.from({ length: 20 }, () => makeVersionId());
+      expect([...ids].sort()).toEqual(ids);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
