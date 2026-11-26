@@ -76,7 +76,7 @@ jobs:
         && contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.comment.author_association)
       )
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 35
     steps:
       - name: Resolve PR refs for manual comments
         id: pr-refs
@@ -138,10 +138,8 @@ jobs:
         env:
           EVENT_NAME: ${{ github.event_name }}
           PR_DRAFT: ${{ github.event.pull_request.draft }}
-          # GitHub's contains() ignores case, so this keeps the old job-level
-          # behavior: "wip: feature" and "Hold: investigation" skip the
-          # review just like "WIP: feature" and "HOLD" did.
-          PR_TITLE_HOLDS: ${{ contains(github.event.pull_request.title, 'HOLD') || contains(github.event.pull_request.title, 'WIP') }}
+          # Pass the title to bash so it can match HOLD/WIP as whole words.
+          PR_TITLE: ${{ github.event.pull_request.title }}
           # A fork head is attacker-controlled. This run holds a write-scoped
           # token and the OPENCODE_API_KEY secret, and a synchronize event
           # lets a fork author re-arm it on every push, so the automatic
@@ -150,7 +148,7 @@ jobs:
           PR_HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
           REPOSITORY: ${{ github.repository }}
         run: |
-          # A draft PR, a HOLD/WIP title, or a fork head is not ready for
+          # A draft PR, a whole-word HOLD/WIP title, or a fork head is not ready for
           # review. The job still runs so the required check reports on this
           # head SHA; only the review itself is skipped.
           skip=false
@@ -159,7 +157,7 @@ jobs:
             if [ "$PR_DRAFT" = "true" ]; then
               skip=true
               reason="draft pull request"
-            elif [ "$PR_TITLE_HOLDS" = "true" ]; then
+            elif printf '%s' "$PR_TITLE" | grep -qiE '(^|[^A-Za-z])(HOLD|WIP)([^A-Za-z]|$)'; then
               skip=true
               reason="HOLD/WIP title"
             elif [ "$PR_HEAD_REPO" != "$REPOSITORY" ]; then
@@ -406,8 +404,17 @@ jobs:
             const severityOf = (comment) => String(
               comment.severity || comment.priority || comment.level || '',
             ).toLowerCase();
-            const isBlocking = (comment) =>
-              /\bcritical\b|\bhigh\b|\bmedium\b|^p0$|^p1$|^p2$|\bblocker\b/.test(severityOf(comment));
+            const isBlocking = (comment) => {
+              const severity = severityOf(comment);
+              if (/\bcritical\b|\bhigh\b|\bmedium\b|^p0$|^p1$|^p2$|\bblocker\b/.test(severity)) {
+                return true;
+              }
+              if (/^(low|info|informational|note|p3|p4)$/.test(severity)) {
+                return false;
+              }
+              // Empty and unrecognized severities fail closed.
+              return true;
+            };
             const blocking = comments.filter(isBlocking);
             if (blocking.length) {
               core.setFailed(`OCR reported ${blocking.length} medium-or-higher finding(s).`);
