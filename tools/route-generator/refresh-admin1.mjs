@@ -13,12 +13,17 @@ function candidateWithAdmin1Code(place, code) {
     : candidate;
 }
 
+function hasSupportedAdmin1Code(candidate) {
+  const code = candidate.admin1Code;
+  if (typeof code !== 'string') return false;
+  if (!code.startsWith(`${candidate.country}-`)) return false;
+  return REQUIRED_ADMIN1_CODES.has(code);
+}
+
 function validateEnrichedCandidate(candidate, file) {
   if (!candidate || typeof candidate !== 'object') throw new TypeError(`${file} contains a non-object candidate`);
   if (candidate.admin1Code === undefined) return;
-  if (typeof candidate.admin1Code !== 'string'
-    || !candidate.admin1Code.startsWith(`${candidate.country}-`)
-    || !REQUIRED_ADMIN1_CODES.has(candidate.admin1Code)) {
+  if (!hasSupportedAdmin1Code(candidate)) {
     throw new Error(`${file} has an unsupported admin1Code for ${candidate.country} candidate ${candidate.id}`);
   }
 }
@@ -33,7 +38,7 @@ function formatCandidateError(place, error) {
   return `${place.country ?? '(unknown)'} ${place.id ?? '(unknown)'} ${place.name ?? '(unnamed)'}: ${message}`;
 }
 
-function enrichCandidate(place, file, featurePolygons, assigned, unassigned, lookupErrors) {
+function enrichCandidate(place, { file, featurePolygons, assigned, unassigned, lookupErrors }) {
   if (!place || typeof place !== 'object') throw new TypeError(`${file} contains a non-object candidate`);
   let admin1Code;
   try {
@@ -58,7 +63,8 @@ async function prepareDataFile(file, featurePolygons) {
   const assigned = [];
   const unassigned = [];
   const lookupErrors = [];
-  const enriched = source.map((place) => enrichCandidate(place, file, featurePolygons, assigned, unassigned, lookupErrors));
+  const context = { file, featurePolygons, assigned, unassigned, lookupErrors };
+  const enriched = source.map((place) => enrichCandidate(place, context));
   if (lookupErrors.length > 0) throw new Error(`${file} has invalid candidate coordinates:\n${lookupErrors.map((entry) => `- ${entry}`).join('\n')}`);
   validateEnrichedCandidates(enriched, file);
   const indentation = file === 'places.json' ? 0 : 2;
