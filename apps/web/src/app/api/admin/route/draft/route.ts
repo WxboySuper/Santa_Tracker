@@ -2,8 +2,8 @@ import { requireAdminAuth } from "@/lib/auth";
 import { getRouteDraftService } from "@/lib/route-drafts";
 
 export async function GET(request: Request): Promise<Response> {
-  const auth = await requireAdminAuth(request);
-  if (!auth.ok) return Response.json({ error: auth.error }, { status: auth.status });
+  const denied = await authFailure(request);
+  if (denied) return denied;
   try {
     const state = await getRouteDraftService().getState();
     return Response.json(state, { headers: { ETag: state.etag, "Cache-Control": "no-store" } });
@@ -13,24 +13,55 @@ export async function GET(request: Request): Promise<Response> {
 }
 
 export async function PUT(request: Request): Promise<Response> {
-  const auth = await requireAdminAuth(request);
-  if (!auth.ok) return Response.json({ error: auth.error }, { status: auth.status });
+  const denied = await authFailure(request);
+  if (denied) return denied;
   const ifMatch = request.headers.get("if-match");
   if (!ifMatch) return Response.json({ error: "If-Match is required" }, { status: 428 });
+  const input = await readDraftInput(request);
+  if (input.error) return Response.json({ error: input.error }, { status: 400 });
+  return saveDraft(input.data, ifMatch);
+}
+
+async function authFailure(request: Request): Promise<Response | null> {
+  const auth = await requireAdminAuth(request);
+  return auth.ok ? null : Response.json({ error: auth.error }, { status: auth.status });
+}
+
+async function readDraftInput(request: Request): Promise<{ data: unknown; error?: never } | { data?: never; error: string }> {
   let body: unknown;
-  try { body = await request.json(); } catch { return Response.json({ error: "Request body must be valid JSON" }, { status: 400 }); }
-  if (!body || typeof body !== "object" || Array.isArray(body) || !("data" in body)) {
-    return Response.json({ error: "Request body must contain data" }, { status: 400 });
-  }
+  try { body = await request.json(); }
+  catch { return { error: "Request body must be valid JSON" }; }
+  if (!isDraftInput(body)) return { error: "Request body must contain data" };
+  return { data: body.data };
+}
+
+function isDraftInput(body: unknown): body is { data: unknown } {
+  return typeof body === "object" && body !== null && !Array.isArray(body) && "data" in body;
+}
+
+async function saveDraft(data: unknown, ifMatch: string): Promise<Response> {
   try {
-    const state = await getRouteDraftService().save((body as { data: unknown }).data, ifMatch);
+    const state = await getRouteDraftService().save(data, ifMatch);
     return Response.json({ state, saved: true }, { headers: { ETag: state.etag, "Cache-Control": "no-store" } });
   } catch (error) {
-    const status = typeof error === "object" && error !== null && "status" in error ? Number(error.status) : 500;
-    if (status === 412 && "current" in (error as object)) {
-      const current = (error as { current: unknown }).current;
-      return Response.json({ error: "Draft changed since it was read", saved: false, current }, { status, headers: { "Cache-Control": "no-store" } });
-    }
-    return Response.json({ error: status === 412 ? "Draft changed since it was read" : "Unable to save route draft", saved: false }, { status });
+    return saveFailure(error);
   }
+}
+
+function saveFailure(error: unknown): Response {
+  const status = statusOf(error);
+  const current = currentState(error);
+  if (status === 412 && current !== undefined) {
+    return Response.json({ error: "Draft changed since it was read", saved: false, current }, { status, headers: { "Cache-Control": "no-store" } });
+  }
+  const message = status === 412 ? "Draft changed since it was read" : "Unable to save route draft";
+  return Response.json({ error: message, saved: false }, { status });
+}
+
+function statusOf(error: unknown): number {
+  return typeof error === "object" && error !== null && "status" in error ? Number(error.status) : 500;
+}
+
+function currentState(error: unknown): unknown {
+  return typeof error === "object" && error !== null && "current" in error ? error.current : undefined;
 }

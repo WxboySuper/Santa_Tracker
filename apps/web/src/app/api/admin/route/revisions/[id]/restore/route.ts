@@ -2,12 +2,21 @@ import { requireAdminAuth } from "@/lib/auth";
 import { getRouteDraftService } from "@/lib/route-drafts";
 
 export async function POST(request: Request, context: { params: Promise<{ id: string }> }): Promise<Response> {
-  const auth = await requireAdminAuth(request);
-  if (!auth.ok) return Response.json({ error: auth.error }, { status: auth.status });
+  const denied = await authFailure(request);
+  if (denied) return denied;
   const ifMatch = request.headers.get("if-match");
   if (!ifMatch) return Response.json({ error: "If-Match is required" }, { status: 428 });
   const { id } = await context.params;
   if (!/^[0-9a-f-]{36}$/i.test(id)) return Response.json({ error: "Invalid revision ID" }, { status: 400 });
+  return restoreRevision(id, ifMatch);
+}
+
+async function authFailure(request: Request): Promise<Response | null> {
+  const auth = await requireAdminAuth(request);
+  return auth.ok ? null : Response.json({ error: auth.error }, { status: auth.status });
+}
+
+async function restoreRevision(id: string, ifMatch: string): Promise<Response> {
   try {
     const state = await getRouteDraftService().restoreRevision(id, ifMatch);
     return Response.json({ state, restored: true }, { headers: { ETag: state.etag, "Cache-Control": "no-store" } });

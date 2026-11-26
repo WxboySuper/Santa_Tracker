@@ -37,6 +37,12 @@ interface DraftEnvelope {
   savedAt: string;
 }
 
+interface RouteDraftSource {
+  versionId: string | null;
+  raw: string | null;
+  source: RouteDraftState["source"];
+}
+
 function etagFor(versionId: string | null, source: RouteDraftState["source"]): string {
   return `"${source === "published" ? `published:${versionId}` : versionId ?? "empty"}"`;
 }
@@ -69,42 +75,59 @@ function parseRevisions(raw: string | null): NamedRouteRevision[] {
   }
 }
 
-export function createRouteDraftService(store: VersionedSnapshotStore, readManifest: () => Promise<string | null>, writeManifest: (body: string) => Promise<void>, lock: <T>(fn: () => Promise<T>) => Promise<T> = fn => fn()): RouteDraftService {
-  async function readPublished(): Promise<{ versionId: string | null; body: string | null }> {
-    const pointer = await store.readActiveVersion("santa-route");
-    if (!pointer) return { versionId: null, body: null };
-    return { versionId: pointer.versionId, body: await store.readVersion("santa-route", pointer.versionId) };
-  }
-
-  async function readState(): Promise<RouteDraftState> {
-    const pointer = await store.readActiveVersion(DATASET_ROUTE_DRAFT);
-    const source = pointer ? "draft" : "published";
-    const fallback = pointer ? null : await readPublished();
-    const versionId = pointer?.versionId ?? fallback?.versionId ?? null;
-    const raw = pointer
-      ? await store.readVersion(DATASET_ROUTE_DRAFT, pointer.versionId)
-      : fallback?.body ?? null;
-    let envelope: DraftEnvelope | null = null;
-    if (raw) {
-      try {
-        const parsed: unknown = JSON.parse(raw);
-        if (typeof parsed === "object" && parsed !== null && "data" in parsed && "savedAt" in parsed) envelope = parsed as DraftEnvelope;
-      } catch { /* invalid stored data is reported as unavailable */ }
-    }
-    let publishedData: unknown = null;
-    if (!envelope && raw && source === "published") {
-      try { publishedData = JSON.parse(raw); } catch { /* validation below reports an unusable empty payload */ }
-    }
-    const data = envelope?.data ?? publishedData;
-    const resolvedSource: RouteDraftState["source"] = envelope ? source : pointer ? "draft" : versionId ? "published" : "empty";
+async function readRouteDraftSource(store: VersionedSnapshotStore): Promise<RouteDraftSource> {
+  const draftPointer = await store.readActiveVersion(DATASET_ROUTE_DRAFT);
+  if (draftPointer) {
     return {
-      versionId,
-      etag: etagFor(versionId, resolvedSource),
-      data,
-      savedAt: envelope?.savedAt ?? null,
-      validation: validate(data),
-      source: resolvedSource,
+      versionId: draftPointer.versionId,
+      raw: await store.readVersion(DATASET_ROUTE_DRAFT, draftPointer.versionId),
+      source: "draft",
     };
+  }
+  const publishedPointer = await store.readActiveVersion("santa-route");
+  if (!publishedPointer) return { versionId: null, raw: null, source: "empty" };
+  return {
+    versionId: publishedPointer.versionId,
+    raw: await store.readVersion("santa-route", publishedPointer.versionId),
+    source: "published",
+  };
+}
+
+function parseDraftEnvelope(raw: string | null): DraftEnvelope | null {
+  if (!raw) return null;
+  try {
+    const value: unknown = JSON.parse(raw);
+    if (typeof value !== "object" || value === null || !("data" in value) || !("savedAt" in value)) return null;
+    if (typeof value.savedAt !== "string") return null;
+    return { data: value.data, savedAt: value.savedAt };
+  } catch {
+    return null;
+  }
+}
+
+function readSourceData(source: RouteDraftSource, envelope: DraftEnvelope | null): unknown {
+  if (envelope) return envelope.data;
+  if (source.source !== "published" || !source.raw) return null;
+  try { return JSON.parse(source.raw) as unknown; }
+  catch { return null; }
+}
+
+function makeRouteDraftState(source: RouteDraftSource): RouteDraftState {
+  const envelope = parseDraftEnvelope(source.raw);
+  const data = readSourceData(source, envelope);
+  return {
+    versionId: source.versionId,
+    etag: etagFor(source.versionId, source.source),
+    data,
+    savedAt: envelope?.savedAt ?? null,
+    validation: validate(data),
+    source: source.source,
+  };
+}
+
+export function createRouteDraftService(store: VersionedSnapshotStore, readManifest: () => Promise<string | null>, writeManifest: (body: string) => Promise<void>, lock: <T>(fn: () => Promise<T>) => Promise<T> = fn => fn()): RouteDraftService {
+  async function readState(): Promise<RouteDraftState> {
+    return makeRouteDraftState(await readRouteDraftSource(store));
   }
 
   function ensureFresh(expectedEtag: string, current: RouteDraftState): void {
