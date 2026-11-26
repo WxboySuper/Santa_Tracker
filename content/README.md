@@ -6,4 +6,4 @@ Each record has `country`, `note`, `sources`, `topic_key`, `photo`, and `review_
 
 Accepted review states are `draft`, `approved`, and `stale`. Only approved notes should be shown to users. `allow_duplicate_topic: true` records an explicit country-level exception. The validator also checks note similarity using normalized three-word shingles with a Jaccard threshold of 0.72.
 
-Validate the data with `pnpm content:validate`. Research drafts can be generated with `node tools/research-stop-cards.mjs content/drafts <candidate-id> ...`. The research tool never writes approved notes. A person must write and source each note in original language.
+Validate the data with `pnpm content:validate`. Research drafts can be generated with `node tools/research-stop-cards.mjs [output-dir] <candidate-id> ...` (the output directory defaults to `content/drafts`). The research tool never writes approved notes. A person must write and source each note in original language.

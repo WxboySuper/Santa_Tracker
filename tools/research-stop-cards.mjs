@@ -4,10 +4,13 @@ import { permissiveLicense } from './stop-card-license.mjs';
 
 const args = process.argv.slice(2);
 const cacheDir = resolve('.cache/stop-card-research');
-const output = resolve(args[0] ?? 'content/drafts');
-const requested = args.slice(1);
-if (!requested.length) throw new Error('Usage: node tools/research-stop-cards.mjs <output-dir> <candidate place ID> [place ID ...]');
-if (requested.some((id) => !/^(?:Q\d+|ne-\d+)$/.test(id))) throw new Error('Candidate IDs must be Wikidata QIDs or Natural Earth ne- IDs');
+const placeId = /^(?:Q\d+|ne-\d+)$/;
+// The output directory is optional: if the first argument is already a place ID, every argument is an ID.
+const hasOutput = args.length > 0 && !placeId.test(args[0]);
+const output = resolve(hasOutput ? args[0] : 'content/drafts');
+const requested = hasOutput ? args.slice(1) : args;
+if (!requested.length) throw new Error('Usage: node tools/research-stop-cards.mjs [output-dir] <candidate place ID> [place ID ...]');
+if (requested.some((id) => !placeId.test(id))) throw new Error('Candidate IDs must be Wikidata QIDs or Natural Earth ne- IDs');
 const candidates = await Promise.all(['places.json', 'curated.json'].map(async (file) => JSON.parse(await readFile(new URL('./route-generator/data/' + file, import.meta.url), 'utf8'))));
 const candidateById = new Map(candidates.flat().map((place) => [place.id, place]));
 const userAgent = 'SantaTrackerStopCardResearch/1.0 (candidate content research tool)';
