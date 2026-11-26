@@ -149,8 +149,11 @@ function candidatePoint(place) {
 }
 
 export function isSupportedAdmin1Code(country, code) {
-  if (typeof country !== 'string' || typeof code !== 'string' || !code.startsWith(`${country}-`)) return false;
-  return /^[A-Z0-9~]+$/.test(code.slice(country.length + 1));
+  if (typeof country !== 'string') return false;
+  if (typeof code !== 'string') return false;
+  const prefix = `${country}-`;
+  if (!code.startsWith(prefix)) return false;
+  return /^[A-Z0-9~]+$/.test(code.slice(prefix.length));
 }
 
 function requireAdmin1Features(features) {

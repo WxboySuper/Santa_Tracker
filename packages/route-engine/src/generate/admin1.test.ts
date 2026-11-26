@@ -35,6 +35,8 @@ describe('admin-1 coverage', () => {
     expect(isSupportedAdmin1Code('AU', 'AU-X03~')).toBe(true);
     expect(isSupportedAdmin1Code('US', 'AU-X03~')).toBe(false);
     expect(isSupportedAdmin1Code('US', 'US-')).toBe(false);
+    expect(isSupportedAdmin1Code(null as unknown as string, 'US-CA')).toBe(false);
+    expect(isSupportedAdmin1Code('US', null as unknown as string)).toBe(false);
   });
 
   it('ignores unsupported boundary geometry and validates target-country coordinates', () => {
