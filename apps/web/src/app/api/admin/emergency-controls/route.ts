@@ -109,7 +109,9 @@ function parseControlValues(value: Record<string, unknown>): EmergencyControlVal
 }
 
 function parseReason(value: unknown): string | null {
-  if (typeof value !== "string" || value.trim().length === 0 || value.length > 500) return null;
+  if (typeof value !== "string") return null;
+  if (value.trim().length === 0) return null;
+  if (value.length > 500) return null;
   return value.trim();
 }
 
