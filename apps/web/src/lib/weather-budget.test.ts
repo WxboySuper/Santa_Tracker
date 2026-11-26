@@ -39,11 +39,15 @@ describe("global weather provider budget", () => {
     const fallback = new Request("https://weather-budget/consume?source=fallback&cell=cell:0.00:0.00", { method: "POST" });
     expect((await budget.fetch(fallback)).status).toBe(204);
     expect((await budget.fetch(fallback)).status).toBe(429);
+    const fallbackBurst = await Promise.all(Array.from({ length: 100 }, (_, index) => budget.fetch(
+      new Request(`https://weather-budget/consume?source=fallback&cell=cell:0.00:${String(index + 1).padStart(2, "0")}.00`, { method: "POST" }),
+    )));
+    expect(fallbackBurst.filter(response => response.status === 204)).toHaveLength(49);
     const consume = new Request("https://weather-budget/consume", { method: "POST" });
     const responses = await Promise.all(Array.from({ length: 901 }, () => budget.fetch(consume)));
-    expect(responses.filter(response => response.status === 204)).toHaveLength(899);
+    expect(responses.filter(response => response.status === 204)).toHaveLength(850);
     expect(responses.at(-1)?.status).toBe(429);
-    expect(transactions).toBe(903);
+    expect(transactions).toBe(1003);
     await budget.alarm();
     expect(alarmAt).toBeGreaterThan(Date.now());
     const staleAlarm = Date.now() - 1;

@@ -28,7 +28,7 @@ export function weatherCellKey(point: WeatherPoint): string {
 export function weatherRouteCellKey(point: WeatherPoint): string {
   return `route:${weatherCellKey(point)}`;
 }
-const PUBLIC_WEATHER_HEADERS = { "Cache-Control": "public, max-age=0, s-maxage=720" };
+const PUBLIC_WEATHER_HEADERS = { "Cache-Control": "no-store" };
 function nullWeather(init: ResponseInit = {}): Response {
   return NextResponse.json(null, { ...init, headers: { "Cache-Control": "no-store", ...init.headers } });
 }
