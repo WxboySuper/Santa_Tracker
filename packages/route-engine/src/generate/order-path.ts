@@ -45,6 +45,51 @@ function moveOrOpt<T extends Candidate>(order: T[], from: number, to: number): T
   return result;
 }
 
+type HardDetourRepairOptions = {
+  initial: TimedCandidate[];
+  config: GeneratorConfig;
+  accepts: (order: Candidate[]) => boolean;
+};
+
+function sameBandBounds(order: Candidate[], index: number): { start: number; end: number } {
+  const offset = requiredSnapshotOffset(order[index]!);
+  let start = index;
+  let end = index;
+  while (start > 0 && requiredSnapshotOffset(order[start - 1]!) === offset) start--;
+  while (end < order.length - 1 && requiredSnapshotOffset(order[end + 1]!) === offset) end++;
+  return { start, end };
+}
+
+/** Use same-band 2-opt to remove repeated-country detours missed by single-stop moves. */
+export function reduceHardDetoursWithinBands({ initial, config, accepts }: HardDetourRepairOptions): TimedCandidate[] {
+  let order: TimedCandidate[] = [...initial];
+  while (hardDetourCount(order) > 0) {
+    const currentHardDetours = hardDetourCount(order);
+    const currentEastward = eastwardCount(order);
+    let best: TimedCandidate[] | undefined;
+    let bestDistance = Number.POSITIVE_INFINITY;
+    for (const index of hardDetourIndexes(order)) {
+      const { start, end } = sameBandBounds(order, index);
+      for (let left = start; left <= index; left++) {
+        for (let right = index; right <= end; right++) {
+          if (right - left < 2) continue;
+          const proposal = moveTwoOpt(order, left, right);
+          if (hardDetourCount(proposal) >= currentHardDetours || eastwardCount(proposal) > currentEastward) continue;
+          const distance = pathDistance(proposal);
+          if (distance >= bestDistance || !accepts(proposal)) continue;
+          const plan = planTiming(proposal, config);
+          if (!plan) continue;
+          best = plan.places;
+          bestDistance = distance;
+        }
+      }
+    }
+    if (!best) return order;
+    order = best;
+  }
+  return order;
+}
+
 function isEastwardAt(order: Candidate[], index: number): boolean {
   return isEastwardDelta(longitudeDelta(order[index - 1]!, order[index]!));
 }
@@ -85,10 +130,10 @@ function reduceEastwardMoves(initial: TimedCandidate[], config: GeneratorConfig)
   }
 }
 
-export type RouteCost = { distance: number; eastward: number; detours: number };
+export type RouteCost = { distance: number; eastward: number; detours: number; hardDetours?: number };
 
 function routeCost(order: Candidate[]): RouteCost {
-  return { distance: pathDistance(order), eastward: eastwardCount(order), detours: detourCount(order) };
+  return { distance: pathDistance(order), eastward: eastwardCount(order), detours: detourCount(order), hardDetours: hardDetourCount(order) };
 }
 
 function localProposal(order: Candidate[], first: number, second: number, random: () => number): Candidate[] {
@@ -107,7 +152,11 @@ function sameOffsetBand(order: Candidate[], first: number, second: number): bool
 }
 
 function improvesSweep(cost: RouteCost, current: RouteCost): boolean {
-  if (cost.eastward > current.eastward || cost.detours > current.detours) return false;
+  const hardDetours = cost.hardDetours ?? cost.detours;
+  const currentHardDetours = current.hardDetours ?? current.detours;
+  if (cost.eastward > current.eastward || hardDetours > currentHardDetours) return false;
+  if (hardDetours < currentHardDetours) return true;
+  if (cost.detours > current.detours) return false;
   return cost.eastward < current.eastward || cost.detours < current.detours;
 }
 
@@ -116,7 +165,14 @@ function improvesPath(cost: RouteCost, current: RouteCost): boolean {
 }
 
 export function canAcceptLocalProposal(cost: RouteCost, current: RouteCost): boolean {
-  if (cost.eastward > current.eastward || cost.detours > current.detours) return false;
+  const hardDetours = cost.hardDetours ?? cost.detours;
+  const currentHardDetours = current.hardDetours ?? current.detours;
+  if (cost.eastward > current.eastward || hardDetours > currentHardDetours) return false;
+  // The audit treats repeated-country detours as violations. A singleton
+  // detour is an explicit mandatory-coverage warning, so allow that tradeoff
+  // when it removes a hard detour without adding eastward legs.
+  if (hardDetours < currentHardDetours) return true;
+  if (cost.detours > current.detours) return false;
   return improvesSweep(cost, current) || improvesPath(cost, current);
 }
 
@@ -183,27 +239,29 @@ function timingPrefixLength(order: Candidate[], config: GeneratorConfig): number
     ? order.length : order.length - 1;
 }
 
-function betterBandProposal(candidate: { prefix: number; detours: number; eastward: number; distance: number },
-  current: { prefix: number; detours: number; eastward: number; distance: number }): boolean {
+function betterBandProposal(candidate: { prefix: number; detours: number; hardDetours: number; eastward: number; distance: number },
+  current: { prefix: number; detours: number; hardDetours: number; eastward: number; distance: number }): boolean {
   if (candidate.prefix !== current.prefix) return candidate.prefix > current.prefix;
+  if (candidate.hardDetours !== current.hardDetours) return candidate.hardDetours < current.hardDetours;
   if (candidate.detours !== current.detours) return candidate.detours < current.detours;
   if (candidate.eastward !== current.eastward) return candidate.eastward < current.eastward;
   return candidate.distance < current.distance - 0.01;
 }
 
-type BandPathScore = { prefix: number; detours: number; eastward: number; distance: number };
+type BandPathScore = { prefix: number; detours: number; hardDetours: number; eastward: number; distance: number };
 type BandPathSearch = { best?: Candidate[]; bestScore: BandPathScore };
 
 function bandPathScore(order: Candidate[], config: GeneratorConfig): BandPathScore {
   return { prefix: timingPrefixLength(order, config), detours: detourCount(order),
-    eastward: eastwardCount(order), distance: pathDistance(order) };
+    hardDetours: hardDetourCount(order), eastward: eastwardCount(order), distance: pathDistance(order) };
 }
 
 type BandProposalOptions = { proposal: Candidate[]; current: BandPathScore; search: BandPathSearch; config: GeneratorConfig };
 
 function considerBandProposal({ proposal, current, search, config }: BandProposalOptions): void {
   const score = bandPathScore(proposal, config);
-  if (score.detours > current.detours || score.eastward > current.eastward) return;
+  if (score.hardDetours > current.hardDetours || score.eastward > current.eastward) return;
+  if (score.hardDetours === current.hardDetours && score.detours > current.detours) return;
   if (!betterBandProposal(score, search.bestScore)) return;
   search.best = proposal;
   search.bestScore = score;
@@ -217,7 +275,7 @@ function bandSegmentStart(order: Candidate[], source: number, band: number, swee
 
 function bandSegmentEnd(order: Candidate[], source: number, band: number, sweepBandById: Map<string, number>): number {
   let end = source;
-  while (end < order.length - 2 && sweepBandById.get(order[end + 1]?.id ?? '') === band) end++;
+  while (end < order.length - 1 && sweepBandById.get(order[end + 1]?.id ?? '') === band) end++;
   return end;
 }
 
@@ -338,9 +396,9 @@ function isRepeatedCountryDetour(order: Candidate[], index: number, counts: Map<
   return isHardDetourAt(order, index) && !!via && (counts.get(via.country) ?? 0) >= 2;
 }
 
-function moveCoverageDetourToTail<T extends Candidate>(order: T[], currentCount: number,
-  counts: Map<string, number>, config: GeneratorConfig): T[] | undefined {
-  const currentEastward = eastwardCount(order);
+function moveCoverageDetourToTail(order: Candidate[], currentCount: number,
+  counts: Map<string, number>, currentEastward: number, eastwardLimit: number, config: GeneratorConfig,
+  accepts: (order: Candidate[]) => boolean): Candidate[] | undefined {
   for (let index = 1; index < order.length - 1; index++) {
     const via = order[index];
     if (!via || !isRepeatedCountryDetour(order, index, counts)) continue;
@@ -348,63 +406,80 @@ function moveCoverageDetourToTail<T extends Candidate>(order: T[], currentCount:
     // tail, where its North Pole return leg replaces the detour. Any new
     // reversal still has to pass the offset-anomaly timing rule.
     const proposal = [...order.slice(0, index), ...order.slice(index + 1), via];
-    if (acceptsDetourReposition(proposal, currentCount, currentEastward, config)) return proposal;
+    const repaired = repairDetourReposition(proposal, currentCount, currentEastward, eastwardLimit, config, accepts);
+    if (repaired) return repaired;
   }
   return undefined;
 }
 
-function repositionCoverageDetour<T extends Candidate>(order: T[], currentCount: number,
-  currentEastward: number, config: GeneratorConfig): T[] | undefined {
+function repositionCoverageDetour(order: Candidate[], currentCount: number,
+  currentEastward: number, eastwardLimit: number, config: GeneratorConfig,
+  accepts: (order: Candidate[]) => boolean): Candidate[] | undefined {
   for (const index of hardDetourIndexes(order)) {
-    const proposal = repositionDetourAt({ order, index, currentCount, currentEastward, config });
+    const proposal = repositionDetourAt({ order, index, currentCount, currentEastward, eastwardLimit, config, accepts });
     if (proposal) return proposal;
   }
   return undefined;
 }
 
 function hardDetourIndexes(order: Candidate[]): number[] {
-  return order.map((_, index) => index).filter((index) => isHardDetourAt(order, index));
+  const counts = countryStopCounts(order);
+  return order.map((_, index) => index).filter((index) => isRepeatedCountryDetour(order, index, counts));
 }
 
 function repositionTargets(order: Candidate[], index: number): number[] {
   return order.map((_, target) => target).filter((target) => target > 0 && target !== index);
 }
 
-function acceptsDetourReposition(proposal: Candidate[], currentCount: number,
-  currentEastward: number, config: GeneratorConfig): boolean {
-  if (eastwardCount(proposal) > currentEastward) return false;
-  if (hardDetourCount(proposal) >= currentCount) return false;
-  return hasReasonedTiming(proposal, config);
+function repairDetourReposition(proposal: Candidate[], currentCount: number,
+  currentEastward: number, eastwardLimit: number, config: GeneratorConfig,
+  accepts: (order: Candidate[]) => boolean): Candidate[] | undefined {
+  if (hardDetourCount(proposal) >= currentCount) return undefined;
+  const initialPlan = planTiming(proposal, config);
+  if (!initialPlan) return undefined;
+  const repaired = eastwardCount(initialPlan.places) > currentEastward
+    ? reduceEastwardMoves(initialPlan.places, config) : initialPlan.places;
+  if (hardDetourCount(repaired) >= currentCount || eastwardCount(repaired) > eastwardLimit) return undefined;
+  return hasReasonedTiming(repaired, config) && accepts(repaired) ? repaired : undefined;
 }
 
-type DetourRepositionOptions<T extends Candidate> = {
-  order: T[];
+type DetourRepositionOptions = {
+  order: Candidate[];
   index: number;
   currentCount: number;
   currentEastward: number;
+  eastwardLimit: number;
   config: GeneratorConfig;
+  accepts: (order: Candidate[]) => boolean;
 };
 
-function repositionDetourAt<T extends Candidate>({ order, index, currentCount, currentEastward, config }: DetourRepositionOptions<T>): T[] | undefined {
+function repositionDetourAt({ order, index, currentCount, currentEastward, eastwardLimit, config, accepts }: DetourRepositionOptions): Candidate[] | undefined {
   for (const target of repositionTargets(order, index)) {
     const proposal = moveOrOpt(order, index, target);
-    if (acceptsDetourReposition(proposal, currentCount, currentEastward, config)) return proposal;
+    const repaired = repairDetourReposition(proposal, currentCount, currentEastward, eastwardLimit, config, accepts);
+    if (repaired) return repaired;
   }
   return undefined;
 }
 
-function improveOneCoverageDetour<T extends Candidate>(order: T[], config: GeneratorConfig): T[] | undefined {
+function improveOneCoverageDetour(order: Candidate[], config: GeneratorConfig,
+  eastwardLimit: number, accepts: (order: Candidate[]) => boolean): Candidate[] | undefined {
   const currentCount = hardDetourCount(order);
   if (currentCount === 0) return undefined;
   const countryCounts = countryStopCounts(order);
-  return moveCoverageDetourToTail(order, currentCount, countryCounts, config)
-    ?? repositionCoverageDetour(order, currentCount, eastwardCount(order), config);
+  const currentEastward = eastwardCount(order);
+  return moveCoverageDetourToTail(order, currentCount, countryCounts, currentEastward, eastwardLimit, config, accepts)
+    ?? repositionCoverageDetour(order, currentCount, currentEastward, eastwardLimit, config, accepts);
 }
 
-export function reduceCoverageDetours(initial: Candidate[], config: GeneratorConfig): Candidate[] {
+export function reduceCoverageDetours(initial: Candidate[], config: GeneratorConfig,
+  accepts: (order: Candidate[]) => boolean = () => true): Candidate[] {
   let order = [...initial];
+  // A required remote coverage stop can need one offset-anomaly reposition;
+  // the overall repair may use at most one extra reasoned eastward leg.
+  const eastwardLimit = eastwardCount(order) + 1;
   while (true) {
-    const improved = improveOneCoverageDetour(order, config);
+    const improved = improveOneCoverageDetour(order, config, eastwardLimit, accepts);
     if (!improved) return order;
     order = improved;
   }

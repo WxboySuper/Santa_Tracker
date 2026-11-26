@@ -214,15 +214,16 @@ function tryCountryRepresentative(state: InsertionState, place: Candidate, pass:
 }
 
 function stateWithoutStop(state: InsertionState, place: TimedCandidate, pass: InsertionPass): InsertionState | undefined {
-  if (isFinalRequiredAdmin1Stop(state, place)) return undefined;
+  if (isFinalRequiredAdmin1OrOffsetStop(state, place)) return undefined;
   const remaining = state.route.filter((selected) => selected.id !== place.id);
   if (!planTiming(remaining, pass.config)) return undefined;
   return insertionState(remaining, pass.config.minStopSeparationKm);
 }
 
-function isFinalRequiredAdmin1Stop(state: InsertionState, place: Candidate): boolean {
+function isFinalRequiredAdmin1OrOffsetStop(state: InsertionState, place: Candidate): boolean {
   const unit = admin1UnitFor(place);
-  return unit !== undefined && REQUIRED_ADMIN1_CODES.has(unit) && state.admin1Counts.get(unit) === 1;
+  if (unit !== undefined && REQUIRED_ADMIN1_CODES.has(unit) && state.admin1Counts.get(unit) === 1) return true;
+  return state.bandCounts.get(requiredSnapshotOffset(place)) === 1;
 }
 
 function trySecondCountry(afterFirst: InsertionState, candidates: CountryCoverageCandidate[], pass: InsertionPass): InsertionState | undefined {
@@ -255,7 +256,9 @@ function tryCountryPairAfterRemoving(state: InsertionState, existing: TimedCandi
   if (!base) return undefined;
   for (const [first, second] of candidateCountryPairs(groups)) {
     const attempt = tryCountryPair(base, first, second, pass);
-    if (attempt) return attempt;
+    // Replacing the final stop for one country is allowed only when the pair
+    // covers both missing countries and increases total country coverage.
+    if (attempt && attempt.counts.size > state.counts.size) return attempt;
   }
   return undefined;
 }
@@ -297,8 +300,10 @@ function rankAdmin1Place(state: InsertionState, place: Candidate, unit: string, 
   return { place, rank };
 }
 
-function rankAdmin1CoverageGroup(state: InsertionState, pool: Candidate[], selectedIds: Set<string>,
-  unit: string, pass: InsertionPass): Admin1CoverageGroup | undefined {
+type Admin1CoverageRanking = { state: InsertionState; pool: Candidate[]; selectedIds: Set<string>;
+  unit: string; pass: InsertionPass };
+
+function rankAdmin1CoverageGroup({ state, pool, selectedIds, unit, pass }: Admin1CoverageRanking): Admin1CoverageGroup | undefined {
   const candidates = pool.flatMap((place) => {
     if (selectedIds.has(place.id)) return [];
     const candidate = rankAdmin1Place(state, place, unit, pass);
@@ -312,7 +317,7 @@ function rankAdmin1CoverageGroups(state: InsertionState, pool: Candidate[], pass
   const selectedIds = new Set(state.route.map((place) => place.id));
   return [...REQUIRED_ADMIN1_CODES].flatMap((unit) => {
     if (state.admin1Counts.has(unit)) return [];
-    const group = rankAdmin1CoverageGroup(state, pool, selectedIds, unit, pass);
+    const group = rankAdmin1CoverageGroup({ state, pool, selectedIds, unit, pass });
     return group ? [group] : [];
   }).sort((left, right) => left.rank - right.rank || compareStableIds(left.unit, right.unit));
 }

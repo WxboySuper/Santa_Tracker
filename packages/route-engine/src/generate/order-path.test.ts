@@ -29,4 +29,11 @@ describe('local route proposals', () => {
     expect(canAcceptLocalProposal({ distance: 90, eastward: 0, detours: 1 }, current)).toBe(false);
     expect(canAcceptLocalProposal({ distance: 99, eastward: 0, detours: 0 }, current)).toBe(true);
   });
+
+  it('allows a hard-detour reduction when the only extra turn is an isolated coverage detour', () => {
+    const current: RouteCost = { distance: 100, eastward: 0, detours: 1, hardDetours: 1 };
+    const proposal: RouteCost = { distance: 110, eastward: 0, detours: 2, hardDetours: 0 };
+    expect(canAcceptLocalProposal(proposal, current)).toBe(true);
+    expect(canAcceptLocalProposal({ ...proposal, eastward: 1 }, current)).toBe(false);
+  });
 });

@@ -6,7 +6,7 @@ import type { RouteOverrides } from './overrides';
 import { chooseCandidates } from './candidates';
 import { scheduledTravelMilliseconds, sweepOrder } from './order';
 import { buildReport } from './report';
-import { eastwardLegReason, isEastwardDelta, isInChristmasWindow, isInSouthernChristmasWindow, localClock, longitudeDelta } from './sweep';
+import { eastwardLegReason, isEastwardDelta, isInChristmasWindow, isInSouthernChristmasWindow, localClock, longitudeDelta, stopDurationSeconds } from './sweep';
 import type { TimedCandidate } from './order-shared';
 import { DEFAULT_GENERATOR_LIMITS, NORTH_POLE, RETURN_DEADLINE_UTC, TAKEOFF_UTC, type Candidate, type GeneratedRoute, type GeneratorConfig, type RouteReport } from './types';
 
@@ -196,6 +196,9 @@ function buildDeliveryNode({ place, displayName, index, config, tables, priorLoc
   const tier = place.plannedStopTier;
   const durationSeconds = place.plannedStopDurationSeconds;
   if (!Number.isFinite(stopArrival)) throw new Error(`Missing sweep arrival for ${place.name}`);
+  if (!Number.isFinite(durationSeconds) || durationSeconds !== stopDurationSeconds(tier)) {
+    throw new Error(`Invalid sweep duration for ${place.name}: ${String(durationSeconds)}s for ${tier} tier`);
+  }
   const stopDeparture = stopArrival + durationSeconds * 1000;
   const stopId = `stop_${stableHash(place.id, config.seed).toString(36)}_${index.toString().padStart(3, '0')}`;
   const locationId = createLocationId(stopId);

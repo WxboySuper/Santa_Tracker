@@ -31,122 +31,46 @@
       "transit_to_here": null
     },
     {
-      "id": "stop_13foj7x_000",
+      "id": "stop_t9mp07_000",
       "type": "DELIVERY",
-      "comment": "populated",
-      "candidate_id": "ne-1159151737",
+      "comment": "nature",
+      "candidate_id": "Q127335",
       "location": {
-        "name": "Waitangi",
-        "region": "New Zealand",
-        "country_code": "NZ",
-        "timezone": "Pacific/Chatham",
-        "lat": -44.03266464895095,
-        "lng": -176.35075368252146,
-        "timezone_offset": 13.75
+        "name": "Tabuaeran",
+        "region": "Kiribati",
+        "country_code": "KI",
+        "timezone": "Pacific/Kiritimati",
+        "lat": 3.87727,
+        "lng": -159.33746,
+        "timezone_offset": 14
       },
       "schedule": {
-        "arrival_utc": "2026-12-24T10:43:34.000Z",
-        "departure_utc": "2026-12-24T10:43:37.000Z",
-        "local_arrival_time": "00:28",
+        "arrival_utc": "2026-12-24T10:26:58.000Z",
+        "departure_utc": "2026-12-24T10:27:28.000Z",
+        "local_arrival_time": "00:26",
         "time_window_status": "GREEN"
       },
       "stop_experience": {
-        "duration_seconds": 3,
-        "stop_tier": "hop",
+        "duration_seconds": 30,
+        "stop_tier": "city",
         "camera_zoom": 14,
         "weather_condition": "clear",
         "presents_delivered_at_stop": 1
       },
       "transit_to_here": {
-        "description": "Launch to Waitangi",
-        "duration_seconds": 2614,
-        "distance_km": 13793.77,
+        "description": "Launch to Tabuaeran",
+        "duration_seconds": 1618,
+        "distance_km": 8537.51,
         "speed_curve": "HYPERSONIC",
-        "speed_kmh": 18997,
+        "speed_kmh": 18996,
         "camera_zoom": 9,
         "eastward_reason": "dateline"
       },
-      "notes": "https://www.naturalearthdata.com/downloads/10m-cultural-vectors/10m-populated-places/",
+      "notes": "https://www.wikidata.org/wiki/Q127335",
       "priority": 2
     },
     {
-      "id": "stop_18i211j_001",
-      "type": "DELIVERY",
-      "comment": "populated",
-      "candidate_id": "ne-1159151667",
-      "location": {
-        "name": "Gisborne",
-        "region": "New Zealand",
-        "country_code": "NZ",
-        "timezone": "Pacific/Auckland",
-        "lat": -38.6633332,
-        "lng": 178.0180813,
-        "timezone_offset": 13
-      },
-      "schedule": {
-        "arrival_utc": "2026-12-24T10:46:28.000Z",
-        "departure_utc": "2026-12-24T10:46:38.000Z",
-        "local_arrival_time": "23:46",
-        "time_window_status": "GREEN"
-      },
-      "stop_experience": {
-        "duration_seconds": 10,
-        "stop_tier": "town",
-        "camera_zoom": 14,
-        "weather_condition": "clear",
-        "presents_delivered_at_stop": 1
-      },
-      "transit_to_here": {
-        "description": "Flight to Gisborne",
-        "duration_seconds": 171,
-        "distance_km": 759.48,
-        "speed_curve": "HYPERSONIC",
-        "speed_kmh": 15989,
-        "camera_zoom": 9
-      },
-      "notes": "https://www.naturalearthdata.com/downloads/10m-cultural-vectors/10m-populated-places/",
-      "priority": 2
-    },
-    {
-      "id": "stop_1p5g6ye_002",
-      "type": "DELIVERY",
-      "comment": "populated",
-      "candidate_id": "ne-1159146079",
-      "location": {
-        "name": "Zucchelli Station",
-        "region": "Antarctica",
-        "country_code": "AQ",
-        "timezone": "Antarctica/McMurdo",
-        "lat": -74.6191926,
-        "lng": 164.2190271,
-        "timezone_offset": 13
-      },
-      "schedule": {
-        "arrival_utc": "2026-12-24T10:59:28.000Z",
-        "departure_utc": "2026-12-24T10:59:31.000Z",
-        "local_arrival_time": "23:59",
-        "time_window_status": "GREEN"
-      },
-      "stop_experience": {
-        "duration_seconds": 3,
-        "stop_tier": "hop",
-        "camera_zoom": 14,
-        "weather_condition": "clear",
-        "presents_delivered_at_stop": 1
-      },
-      "transit_to_here": {
-        "description": "Flight to Zucchelli Station",
-        "duration_seconds": 770,
-        "distance_km": 4062.52,
-        "speed_curve": "HYPERSONIC",
-        "speed_kmh": 18994,
-        "camera_zoom": 9
-      },
-      "notes": "https://www.naturalearthdata.com/downloads/10m-cultural-vectors/10m-populated-places/",
-      "priority": 2
-    },
-    {
-      "id": "stop_7d70pt_003",
+      "id": "stop_7d70pt_001",
       "type": "DELIVERY",
       "comment": "underserved",
       "candidate_id": "ne-1159151197",
@@ -160,9 +84,9 @@
         "timezone_offset": 13
       },
       "schedule": {
-        "arrival_utc": "2026-12-24T11:21:23.000Z",
-        "departure_utc": "2026-12-24T11:21:33.000Z",
-        "local_arrival_time": "00:21",
+        "arrival_utc": "2026-12-24T10:35:03.000Z",
+        "departure_utc": "2026-12-24T10:35:13.000Z",
+        "local_arrival_time": "23:35",
         "time_window_status": "GREEN"
       },
       "stop_experience": {
@@ -174,12 +98,87 @@
       },
       "transit_to_here": {
         "description": "Flight to Apia",
-        "duration_seconds": 1312,
-        "distance_km": 6920.39,
+        "duration_seconds": 455,
+        "distance_km": 2400.02,
         "speed_curve": "HYPERSONIC",
         "speed_kmh": 18989,
-        "camera_zoom": 9,
-        "eastward_reason": "dateline"
+        "camera_zoom": 9
+      },
+      "notes": "https://www.naturalearthdata.com/downloads/10m-cultural-vectors/10m-populated-places/",
+      "priority": 2
+    },
+    {
+      "id": "stop_13foj7x_002",
+      "type": "DELIVERY",
+      "comment": "populated",
+      "candidate_id": "ne-1159151737",
+      "location": {
+        "name": "Waitangi",
+        "region": "New Zealand",
+        "country_code": "NZ",
+        "timezone": "Pacific/Chatham",
+        "lat": -44.03266464895095,
+        "lng": -176.35075368252146,
+        "timezone_offset": 13.75
+      },
+      "schedule": {
+        "arrival_utc": "2026-12-24T10:45:55.000Z",
+        "departure_utc": "2026-12-24T10:45:58.000Z",
+        "local_arrival_time": "00:30",
+        "time_window_status": "GREEN"
+      },
+      "stop_experience": {
+        "duration_seconds": 3,
+        "stop_tier": "hop",
+        "camera_zoom": 14,
+        "weather_condition": "clear",
+        "presents_delivered_at_stop": 1
+      },
+      "transit_to_here": {
+        "description": "Flight to Waitangi",
+        "duration_seconds": 642,
+        "distance_km": 3385.91,
+        "speed_curve": "HYPERSONIC",
+        "speed_kmh": 18986,
+        "camera_zoom": 9
+      },
+      "notes": "https://www.naturalearthdata.com/downloads/10m-cultural-vectors/10m-populated-places/",
+      "priority": 2
+    },
+    {
+      "id": "stop_1p5g6ye_003",
+      "type": "DELIVERY",
+      "comment": "populated",
+      "candidate_id": "ne-1159146079",
+      "location": {
+        "name": "Zucchelli Station",
+        "region": "Antarctica",
+        "country_code": "AQ",
+        "timezone": "Antarctica/McMurdo",
+        "lat": -74.6191926,
+        "lng": 164.2190271,
+        "timezone_offset": 13
+      },
+      "schedule": {
+        "arrival_utc": "2026-12-24T10:57:08.000Z",
+        "departure_utc": "2026-12-24T10:57:11.000Z",
+        "local_arrival_time": "23:57",
+        "time_window_status": "GREEN"
+      },
+      "stop_experience": {
+        "duration_seconds": 3,
+        "stop_tier": "hop",
+        "camera_zoom": 14,
+        "weather_condition": "clear",
+        "presents_delivered_at_stop": 1
+      },
+      "transit_to_here": {
+        "description": "Flight to Zucchelli Station",
+        "duration_seconds": 670,
+        "distance_km": 3534.69,
+        "speed_curve": "HYPERSONIC",
+        "speed_kmh": 18992,
+        "camera_zoom": 9
       },
       "notes": "https://www.naturalearthdata.com/downloads/10m-cultural-vectors/10m-populated-places/",
       "priority": 2
@@ -199,9 +198,9 @@
         "timezone_offset": 13
       },
       "schedule": {
-        "arrival_utc": "2026-12-24T11:23:45.000Z",
-        "departure_utc": "2026-12-24T11:23:55.000Z",
-        "local_arrival_time": "00:23",
+        "arrival_utc": "2026-12-24T11:17:17.000Z",
+        "departure_utc": "2026-12-24T11:17:27.000Z",
+        "local_arrival_time": "00:17",
         "time_window_status": "GREEN"
       },
       "stop_experience": {
@@ -213,11 +212,12 @@
       },
       "transit_to_here": {
         "description": "Flight to Neiafu",
-        "duration_seconds": 132,
-        "distance_km": 585.13,
+        "duration_seconds": 1206,
+        "distance_km": 6360.69,
         "speed_curve": "HYPERSONIC",
-        "speed_kmh": 15958,
-        "camera_zoom": 9
+        "speed_kmh": 18987,
+        "camera_zoom": 9,
+        "eastward_reason": "dateline"
       },
       "notes": "https://www.naturalearthdata.com/downloads/10m-cultural-vectors/10m-populated-places/",
       "priority": 2
@@ -237,9 +237,9 @@
         "timezone_offset": 13
       },
       "schedule": {
-        "arrival_utc": "2026-12-24T11:25:04.000Z",
-        "departure_utc": "2026-12-24T11:25:14.000Z",
-        "local_arrival_time": "00:25",
+        "arrival_utc": "2026-12-24T11:18:36.000Z",
+        "departure_utc": "2026-12-24T11:18:46.000Z",
+        "local_arrival_time": "00:18",
         "time_window_status": "GREEN"
       },
       "stop_experience": {
@@ -261,198 +261,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1l4gbzt_006",
-      "type": "DELIVERY",
-      "comment": "underserved",
-      "candidate_id": "ne-1159147217",
-      "location": {
-        "name": "Labasa",
-        "region": "Fiji",
-        "country_code": "FJ",
-        "timezone": "Pacific/Fiji",
-        "lat": -16.4165832,
-        "lng": 179.3833036,
-        "timezone_offset": 12
-      },
-      "schedule": {
-        "arrival_utc": "2026-12-24T11:28:09.000Z",
-        "departure_utc": "2026-12-24T11:28:19.000Z",
-        "local_arrival_time": "23:28",
-        "time_window_status": "GREEN"
-      },
-      "stop_experience": {
-        "duration_seconds": 10,
-        "stop_tier": "town",
-        "camera_zoom": 14,
-        "weather_condition": "clear",
-        "presents_delivered_at_stop": 1
-      },
-      "transit_to_here": {
-        "description": "Flight to Labasa",
-        "duration_seconds": 175,
-        "distance_km": 773.39,
-        "speed_curve": "HYPERSONIC",
-        "speed_kmh": 15910,
-        "camera_zoom": 9
-      },
-      "notes": "https://www.naturalearthdata.com/downloads/10m-cultural-vectors/10m-populated-places/",
-      "priority": 2
-    },
-    {
-      "id": "stop_152aeoi_007",
-      "type": "DELIVERY",
-      "comment": "underserved",
-      "candidate_id": "ne-1159141885",
-      "location": {
-        "name": "Lautoka",
-        "region": "Fiji",
-        "country_code": "FJ",
-        "timezone": "Pacific/Fiji",
-        "lat": -17.6160966,
-        "lng": 177.4666247,
-        "timezone_offset": 12
-      },
-      "schedule": {
-        "arrival_utc": "2026-12-24T11:29:14.000Z",
-        "departure_utc": "2026-12-24T11:29:24.000Z",
-        "local_arrival_time": "23:29",
-        "time_window_status": "GREEN"
-      },
-      "stop_experience": {
-        "duration_seconds": 10,
-        "stop_tier": "town",
-        "camera_zoom": 14,
-        "weather_condition": "clear",
-        "presents_delivered_at_stop": 1
-      },
-      "transit_to_here": {
-        "description": "Flight to Lautoka",
-        "duration_seconds": 55,
-        "distance_km": 243.56,
-        "speed_curve": "HYPERSONIC",
-        "speed_kmh": 15942,
-        "camera_zoom": 9
-      },
-      "notes": "https://www.naturalearthdata.com/downloads/10m-cultural-vectors/10m-populated-places/",
-      "priority": 2
-    },
-    {
-      "id": "stop_bf8ph0_008",
-      "type": "DELIVERY",
-      "comment": "underserved",
-      "candidate_id": "ne-1159150917",
-      "location": {
-        "name": "Suva",
-        "region": "Fiji",
-        "country_code": "FJ",
-        "timezone": "Pacific/Fiji",
-        "lat": -18.1330159,
-        "lng": 178.4417073,
-        "timezone_offset": 12
-      },
-      "schedule": {
-        "arrival_utc": "2026-12-24T11:29:51.000Z",
-        "departure_utc": "2026-12-24T11:30:21.000Z",
-        "local_arrival_time": "23:29",
-        "time_window_status": "GREEN"
-      },
-      "stop_experience": {
-        "duration_seconds": 30,
-        "stop_tier": "city",
-        "camera_zoom": 14,
-        "weather_condition": "clear",
-        "presents_delivered_at_stop": 1
-      },
-      "transit_to_here": {
-        "description": "Flight to Suva",
-        "duration_seconds": 27,
-        "distance_km": 118.12,
-        "speed_curve": "HYPERSONIC",
-        "speed_kmh": 15749,
-        "camera_zoom": 9
-      },
-      "notes": "https://www.naturalearthdata.com/downloads/10m-cultural-vectors/10m-populated-places/",
-      "priority": 2
-    },
-    {
-      "id": "stop_t9mp07_009",
-      "type": "DELIVERY",
-      "comment": "nature",
-      "candidate_id": "Q127335",
-      "location": {
-        "name": "Tabuaeran",
-        "region": "Kiribati",
-        "country_code": "KI",
-        "timezone": "Pacific/Kiritimati",
-        "lat": 3.87727,
-        "lng": -159.33746,
-        "timezone_offset": 14
-      },
-      "schedule": {
-        "arrival_utc": "2026-12-24T11:41:16.000Z",
-        "departure_utc": "2026-12-24T11:41:46.000Z",
-        "local_arrival_time": "01:41",
-        "time_window_status": "GREEN"
-      },
-      "stop_experience": {
-        "duration_seconds": 30,
-        "stop_tier": "city",
-        "camera_zoom": 14,
-        "weather_condition": "clear",
-        "presents_delivered_at_stop": 1
-      },
-      "transit_to_here": {
-        "description": "Flight to Tabuaeran",
-        "duration_seconds": 655,
-        "distance_km": 3452.83,
-        "speed_curve": "HYPERSONIC",
-        "speed_kmh": 18977,
-        "camera_zoom": 9,
-        "eastward_reason": "offset-anomaly"
-      },
-      "notes": "https://www.wikidata.org/wiki/Q127335",
-      "priority": 2
-    },
-    {
-      "id": "stop_zju3ib_010",
-      "type": "DELIVERY",
-      "comment": "populated",
-      "candidate_id": "ne-1159151739",
-      "location": {
-        "name": "Atafu",
-        "region": "Tokelau",
-        "country_code": "TK",
-        "timezone": "Pacific/Fakaofo",
-        "lat": -8.5486182,
-        "lng": -172.4976654,
-        "timezone_offset": 13
-      },
-      "schedule": {
-        "arrival_utc": "2026-12-24T11:48:07.000Z",
-        "departure_utc": "2026-12-24T11:48:10.000Z",
-        "local_arrival_time": "00:48",
-        "time_window_status": "GREEN"
-      },
-      "stop_experience": {
-        "duration_seconds": 3,
-        "stop_tier": "hop",
-        "camera_zoom": 14,
-        "weather_condition": "clear",
-        "presents_delivered_at_stop": 1
-      },
-      "transit_to_here": {
-        "description": "Flight to Atafu",
-        "duration_seconds": 381,
-        "distance_km": 2009.6,
-        "speed_curve": "HYPERSONIC",
-        "speed_kmh": 18988,
-        "camera_zoom": 9
-      },
-      "notes": "https://www.naturalearthdata.com/downloads/10m-cultural-vectors/10m-populated-places/",
-      "priority": 2
-    },
-    {
-      "id": "stop_15wubic_011",
+      "id": "stop_15wubic_006",
       "type": "DELIVERY",
       "comment": "special",
       "candidate_id": "Q31002",
@@ -466,9 +275,9 @@
         "timezone_offset": 12
       },
       "schedule": {
-        "arrival_utc": "2026-12-24T11:50:39.000Z",
-        "departure_utc": "2026-12-24T11:51:39.000Z",
-        "local_arrival_time": "23:50",
+        "arrival_utc": "2026-12-24T11:22:04.000Z",
+        "departure_utc": "2026-12-24T11:23:04.000Z",
+        "local_arrival_time": "23:22",
         "time_window_status": "GREEN"
       },
       "stop_experience": {
@@ -480,17 +289,17 @@
       },
       "transit_to_here": {
         "description": "Flight to Mata-Utu",
-        "duration_seconds": 149,
-        "distance_km": 661.88,
+        "duration_seconds": 198,
+        "distance_km": 879.36,
         "speed_curve": "HYPERSONIC",
-        "speed_kmh": 15992,
+        "speed_kmh": 15988,
         "camera_zoom": 9
       },
       "notes": "https://www.wikidata.org/wiki/Q31002",
       "priority": 2
     },
     {
-      "id": "stop_n204up_012",
+      "id": "stop_n204up_007",
       "type": "DELIVERY",
       "comment": "underserved",
       "candidate_id": "ne-1159149071",
@@ -504,9 +313,9 @@
         "timezone_offset": 12
       },
       "schedule": {
-        "arrival_utc": "2026-12-24T11:54:24.000Z",
-        "departure_utc": "2026-12-24T11:54:27.000Z",
-        "local_arrival_time": "23:54",
+        "arrival_utc": "2026-12-24T11:25:49.000Z",
+        "departure_utc": "2026-12-24T11:25:52.000Z",
+        "local_arrival_time": "23:25",
         "time_window_status": "GREEN"
       },
       "stop_experience": {
@@ -528,23 +337,62 @@
       "priority": 2
     },
     {
-      "id": "stop_1o8m1ay_013",
+      "id": "stop_zju3ib_008",
+      "type": "DELIVERY",
+      "comment": "populated",
+      "candidate_id": "ne-1159151739",
+      "location": {
+        "name": "Atafu",
+        "region": "Tokelau",
+        "country_code": "TK",
+        "timezone": "Pacific/Fakaofo",
+        "lat": -8.5486182,
+        "lng": -172.4976654,
+        "timezone_offset": 13
+      },
+      "schedule": {
+        "arrival_utc": "2026-12-24T11:29:18.000Z",
+        "departure_utc": "2026-12-24T11:29:21.000Z",
+        "local_arrival_time": "00:29",
+        "time_window_status": "GREEN"
+      },
+      "stop_experience": {
+        "duration_seconds": 3,
+        "stop_tier": "hop",
+        "camera_zoom": 14,
+        "weather_condition": "clear",
+        "presents_delivered_at_stop": 1
+      },
+      "transit_to_here": {
+        "description": "Flight to Atafu",
+        "duration_seconds": 206,
+        "distance_km": 911.12,
+        "speed_curve": "HYPERSONIC",
+        "speed_kmh": 15922,
+        "camera_zoom": 9,
+        "eastward_reason": "offset-anomaly"
+      },
+      "notes": "https://www.naturalearthdata.com/downloads/10m-cultural-vectors/10m-populated-places/",
+      "priority": 2
+    },
+    {
+      "id": "stop_1l4gbzt_009",
       "type": "DELIVERY",
       "comment": "underserved",
-      "candidate_id": "ne-1159149063",
+      "candidate_id": "ne-1159147217",
       "location": {
-        "name": "Majuro",
-        "region": "Marshall Islands",
-        "country_code": "MH",
-        "timezone": "Pacific/Majuro",
-        "lat": 7.1030043,
-        "lng": 171.3800002,
+        "name": "Labasa",
+        "region": "Fiji",
+        "country_code": "FJ",
+        "timezone": "Pacific/Fiji",
+        "lat": -16.4165832,
+        "lng": 179.3833036,
         "timezone_offset": 12
       },
       "schedule": {
-        "arrival_utc": "2026-12-24T12:00:35.000Z",
-        "departure_utc": "2026-12-24T12:00:45.000Z",
-        "local_arrival_time": "00:00",
+        "arrival_utc": "2026-12-24T11:34:01.000Z",
+        "departure_utc": "2026-12-24T11:34:11.000Z",
+        "local_arrival_time": "23:34",
         "time_window_status": "GREEN"
       },
       "stop_experience": {
@@ -555,18 +403,94 @@
         "presents_delivered_at_stop": 1
       },
       "transit_to_here": {
-        "description": "Flight to Majuro",
-        "duration_seconds": 368,
-        "distance_km": 1941.93,
+        "description": "Flight to Labasa",
+        "duration_seconds": 280,
+        "distance_km": 1241.34,
         "speed_curve": "HYPERSONIC",
-        "speed_kmh": 18997,
+        "speed_kmh": 15960,
         "camera_zoom": 9
       },
       "notes": "https://www.naturalearthdata.com/downloads/10m-cultural-vectors/10m-populated-places/",
       "priority": 2
     },
     {
-      "id": "stop_stdm14_014",
+      "id": "stop_bf8ph0_010",
+      "type": "DELIVERY",
+      "comment": "underserved",
+      "candidate_id": "ne-1159150917",
+      "location": {
+        "name": "Suva",
+        "region": "Fiji",
+        "country_code": "FJ",
+        "timezone": "Pacific/Fiji",
+        "lat": -18.1330159,
+        "lng": 178.4417073,
+        "timezone_offset": 12
+      },
+      "schedule": {
+        "arrival_utc": "2026-12-24T11:35:00.000Z",
+        "departure_utc": "2026-12-24T11:35:30.000Z",
+        "local_arrival_time": "23:35",
+        "time_window_status": "GREEN"
+      },
+      "stop_experience": {
+        "duration_seconds": 30,
+        "stop_tier": "city",
+        "camera_zoom": 14,
+        "weather_condition": "clear",
+        "presents_delivered_at_stop": 1
+      },
+      "transit_to_here": {
+        "description": "Flight to Suva",
+        "duration_seconds": 49,
+        "distance_km": 215.46,
+        "speed_curve": "HYPERSONIC",
+        "speed_kmh": 15829,
+        "camera_zoom": 9
+      },
+      "notes": "https://www.naturalearthdata.com/downloads/10m-cultural-vectors/10m-populated-places/",
+      "priority": 2
+    },
+    {
+      "id": "stop_13ybzwm_011",
+      "type": "DELIVERY",
+      "comment": "underserved",
+      "candidate_id": "ne-1159141881",
+      "location": {
+        "name": "Nadi",
+        "region": "Fiji",
+        "country_code": "FJ",
+        "timezone": "Pacific/Fiji",
+        "lat": -17.7995996,
+        "lng": 177.4166019,
+        "timezone_offset": 12
+      },
+      "schedule": {
+        "arrival_utc": "2026-12-24T11:35:56.000Z",
+        "departure_utc": "2026-12-24T11:36:06.000Z",
+        "local_arrival_time": "23:35",
+        "time_window_status": "GREEN"
+      },
+      "stop_experience": {
+        "duration_seconds": 10,
+        "stop_tier": "town",
+        "camera_zoom": 14,
+        "weather_condition": "clear",
+        "presents_delivered_at_stop": 1
+      },
+      "transit_to_here": {
+        "description": "Flight to Nadi",
+        "duration_seconds": 26,
+        "distance_km": 114.59,
+        "speed_curve": "HYPERSONIC",
+        "speed_kmh": 15866,
+        "camera_zoom": 9
+      },
+      "notes": "https://www.naturalearthdata.com/downloads/10m-cultural-vectors/10m-populated-places/",
+      "priority": 2
+    },
+    {
+      "id": "stop_stdm14_012",
       "type": "DELIVERY",
       "comment": "underserved",
       "candidate_id": "ne-1159150579",
@@ -580,9 +504,9 @@
         "timezone_offset": 11
       },
       "schedule": {
-        "arrival_utc": "2026-12-24T12:09:33.000Z",
-        "departure_utc": "2026-12-24T12:09:43.000Z",
-        "local_arrival_time": "23:09",
+        "arrival_utc": "2026-12-24T12:00:00.000Z",
+        "departure_utc": "2026-12-24T12:00:10.000Z",
+        "local_arrival_time": "23:00",
         "time_window_status": "GREEN"
       },
       "stop_experience": {
@@ -594,17 +518,17 @@
       },
       "transit_to_here": {
         "description": "Flight to Port Vila",
-        "duration_seconds": 528,
-        "distance_km": 2782.1,
+        "duration_seconds": 217,
+        "distance_km": 963.55,
         "speed_curve": "HYPERSONIC",
-        "speed_kmh": 18969,
+        "speed_kmh": 15985,
         "camera_zoom": 9
       },
       "notes": "https://www.naturalearthdata.com/downloads/10m-cultural-vectors/10m-populated-places/",
       "priority": 2
     },
     {
-      "id": "stop_que17c_015",
+      "id": "stop_que17c_013",
       "type": "DELIVERY",
       "comment": "special",
       "candidate_id": "Q2740764",
@@ -618,9 +542,9 @@
         "timezone_offset": 12
       },
       "schedule": {
-        "arrival_utc": "2026-12-24T12:14:26.000Z",
-        "departure_utc": "2026-12-24T12:15:26.000Z",
-        "local_arrival_time": "00:14",
+        "arrival_utc": "2026-12-24T12:04:53.000Z",
+        "departure_utc": "2026-12-24T12:05:53.000Z",
+        "local_arrival_time": "00:04",
         "time_window_status": "GREEN"
       },
       "stop_experience": {
@@ -642,7 +566,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1tioctw_016",
+      "id": "stop_1tioctw_014",
       "type": "DELIVERY",
       "comment": "underserved",
       "candidate_id": "ne-1159146907",
@@ -656,9 +580,9 @@
         "timezone_offset": 11
       },
       "schedule": {
-        "arrival_utc": "2026-12-24T12:18:19.000Z",
-        "departure_utc": "2026-12-24T12:18:29.000Z",
-        "local_arrival_time": "23:18",
+        "arrival_utc": "2026-12-24T12:08:46.000Z",
+        "departure_utc": "2026-12-24T12:08:56.000Z",
+        "local_arrival_time": "23:08",
         "time_window_status": "GREEN"
       },
       "stop_experience": {
@@ -680,7 +604,7 @@
       "priority": 2
     },
     {
-      "id": "stop_xsqpgn_017",
+      "id": "stop_xsqpgn_015",
       "type": "DELIVERY",
       "comment": "underserved",
       "candidate_id": "ne-1159134859",
@@ -694,9 +618,9 @@
         "timezone_offset": 11
       },
       "schedule": {
-        "arrival_utc": "2026-12-24T12:21:19.000Z",
-        "departure_utc": "2026-12-24T12:21:29.000Z",
-        "local_arrival_time": "23:21",
+        "arrival_utc": "2026-12-24T12:11:46.000Z",
+        "departure_utc": "2026-12-24T12:11:56.000Z",
+        "local_arrival_time": "23:11",
         "time_window_status": "GREEN"
       },
       "stop_experience": {
@@ -718,7 +642,46 @@
       "priority": 2
     },
     {
-      "id": "stop_5a4gy2_018",
+      "id": "stop_1o8m1ay_016",
+      "type": "DELIVERY",
+      "comment": "underserved",
+      "candidate_id": "ne-1159149063",
+      "location": {
+        "name": "Majuro",
+        "region": "Marshall Islands",
+        "country_code": "MH",
+        "timezone": "Pacific/Majuro",
+        "lat": 7.1030043,
+        "lng": 171.3800002,
+        "timezone_offset": 12
+      },
+      "schedule": {
+        "arrival_utc": "2026-12-24T12:20:01.000Z",
+        "departure_utc": "2026-12-24T12:20:11.000Z",
+        "local_arrival_time": "00:20",
+        "time_window_status": "GREEN"
+      },
+      "stop_experience": {
+        "duration_seconds": 10,
+        "stop_tier": "town",
+        "camera_zoom": 14,
+        "weather_condition": "clear",
+        "presents_delivered_at_stop": 1
+      },
+      "transit_to_here": {
+        "description": "Flight to Majuro",
+        "duration_seconds": 485,
+        "distance_km": 2557.01,
+        "speed_curve": "HYPERSONIC",
+        "speed_kmh": 18980,
+        "camera_zoom": 9,
+        "eastward_reason": "offset-anomaly"
+      },
+      "notes": "https://www.naturalearthdata.com/downloads/10m-cultural-vectors/10m-populated-places/",
+      "priority": 2
+    },
+    {
+      "id": "stop_5a4gy2_017",
       "type": "DELIVERY",
       "comment": "special",
       "candidate_id": "Q31026",
@@ -732,9 +695,9 @@
         "timezone_offset": 12
       },
       "schedule": {
-        "arrival_utc": "2026-12-24T12:26:45.000Z",
-        "departure_utc": "2026-12-24T12:27:45.000Z",
-        "local_arrival_time": "00:26",
+        "arrival_utc": "2026-12-24T12:23:53.000Z",
+        "departure_utc": "2026-12-24T12:24:53.000Z",
+        "local_arrival_time": "00:23",
         "time_window_status": "GREEN"
       },
       "stop_experience": {
@@ -746,17 +709,17 @@
       },
       "transit_to_here": {
         "description": "Flight to Yaren District",
-        "duration_seconds": 316,
-        "distance_km": 1664.26,
+        "duration_seconds": 222,
+        "distance_km": 984.08,
         "speed_curve": "HYPERSONIC",
-        "speed_kmh": 18960,
+        "speed_kmh": 15958,
         "camera_zoom": 9
       },
       "notes": "https://www.wikidata.org/wiki/Q31026",
       "priority": 2
     },
     {
-      "id": "stop_1nomtx0_019",
+      "id": "stop_1nomtx0_018",
       "type": "DELIVERY",
       "comment": "underserved",
       "candidate_id": "ne-1159149061",
@@ -770,9 +733,9 @@
         "timezone_offset": 11
       },
       "schedule": {
-        "arrival_utc": "2026-12-24T12:32:33.000Z",
-        "departure_utc": "2026-12-24T12:32:36.000Z",
-        "local_arrival_time": "23:32",
+        "arrival_utc": "2026-12-24T12:29:41.000Z",
+        "departure_utc": "2026-12-24T12:29:44.000Z",
+        "local_arrival_time": "23:29",
         "time_window_status": "GREEN"
       },
       "stop_experience": {
@@ -794,7 +757,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1hq37xk_020",
+      "id": "stop_1hq37xk_019",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159138227",
@@ -808,9 +771,9 @@
         "timezone_offset": 12
       },
       "schedule": {
-        "arrival_utc": "2026-12-24T12:47:59.000Z",
-        "departure_utc": "2026-12-24T12:48:02.000Z",
-        "local_arrival_time": "00:47",
+        "arrival_utc": "2026-12-24T12:45:07.000Z",
+        "departure_utc": "2026-12-24T12:45:10.000Z",
+        "local_arrival_time": "00:45",
         "time_window_status": "GREEN"
       },
       "stop_experience": {
@@ -832,7 +795,7 @@
       "priority": 2
     },
     {
-      "id": "stop_qreljg_021",
+      "id": "stop_qreljg_020",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159146019",
@@ -846,8 +809,8 @@
         "timezone_offset": 10
       },
       "schedule": {
-        "arrival_utc": "2026-12-24T13:00:50.000Z",
-        "departure_utc": "2026-12-24T13:00:53.000Z",
+        "arrival_utc": "2026-12-24T13:00:00.000Z",
+        "departure_utc": "2026-12-24T13:00:03.000Z",
         "local_arrival_time": "23:00",
         "time_window_status": "GREEN"
       },
@@ -870,7 +833,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1mkof54_022",
+      "id": "stop_1mkof54_021",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159149065",
@@ -884,9 +847,9 @@
         "timezone_offset": 10
       },
       "schedule": {
-        "arrival_utc": "2026-12-24T13:01:43.000Z",
-        "departure_utc": "2026-12-24T13:02:13.000Z",
-        "local_arrival_time": "23:01",
+        "arrival_utc": "2026-12-24T13:00:53.000Z",
+        "departure_utc": "2026-12-24T13:01:23.000Z",
+        "local_arrival_time": "23:00",
         "time_window_status": "GREEN"
       },
       "stop_experience": {
@@ -908,7 +871,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1d1jkqm_023",
+      "id": "stop_1d1jkqm_022",
       "type": "DELIVERY",
       "comment": "underserved",
       "candidate_id": "ne-1159116355",
@@ -922,8 +885,8 @@
         "timezone_offset": 10
       },
       "schedule": {
-        "arrival_utc": "2026-12-24T13:08:54.000Z",
-        "departure_utc": "2026-12-24T13:08:57.000Z",
+        "arrival_utc": "2026-12-24T13:08:04.000Z",
+        "departure_utc": "2026-12-24T13:08:07.000Z",
         "local_arrival_time": "23:08",
         "time_window_status": "GREEN"
       },
@@ -946,7 +909,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1wxaeuh_024",
+      "id": "stop_1wxaeuh_023",
       "type": "DELIVERY",
       "comment": "underserved",
       "candidate_id": "ne-1159149497",
@@ -960,9 +923,9 @@
         "timezone_offset": 10
       },
       "schedule": {
-        "arrival_utc": "2026-12-24T13:09:13.000Z",
-        "departure_utc": "2026-12-24T13:09:23.000Z",
-        "local_arrival_time": "23:09",
+        "arrival_utc": "2026-12-24T13:08:23.000Z",
+        "departure_utc": "2026-12-24T13:08:33.000Z",
+        "local_arrival_time": "23:08",
         "time_window_status": "GREEN"
       },
       "stop_experience": {
@@ -984,7 +947,7 @@
       "priority": 2
     },
     {
-      "id": "stop_czawnx_025",
+      "id": "stop_czawnx_024",
       "type": "DELIVERY",
       "comment": "underserved",
       "candidate_id": "ne-1159116387",
@@ -998,9 +961,9 @@
         "timezone_offset": 10
       },
       "schedule": {
-        "arrival_utc": "2026-12-24T13:09:42.000Z",
-        "departure_utc": "2026-12-24T13:09:52.000Z",
-        "local_arrival_time": "23:09",
+        "arrival_utc": "2026-12-24T13:08:52.000Z",
+        "departure_utc": "2026-12-24T13:09:02.000Z",
+        "local_arrival_time": "23:08",
         "time_window_status": "GREEN"
       },
       "stop_experience": {
@@ -1022,7 +985,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1wdb7gj_026",
+      "id": "stop_1wdb7gj_025",
       "type": "DELIVERY",
       "comment": "underserved",
       "candidate_id": "ne-1159149495",
@@ -1036,9 +999,9 @@
         "timezone_offset": 10
       },
       "schedule": {
-        "arrival_utc": "2026-12-24T13:10:03.000Z",
-        "departure_utc": "2026-12-24T13:10:13.000Z",
-        "local_arrival_time": "23:10",
+        "arrival_utc": "2026-12-24T13:09:13.000Z",
+        "departure_utc": "2026-12-24T13:09:23.000Z",
+        "local_arrival_time": "23:09",
         "time_window_status": "GREEN"
       },
       "stop_experience": {
@@ -1060,7 +1023,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1aw88ew_027",
+      "id": "stop_1aw88ew_026",
       "type": "DELIVERY",
       "comment": "underserved",
       "candidate_id": "ne-1159116407",
@@ -1074,9 +1037,9 @@
         "timezone_offset": 10
       },
       "schedule": {
-        "arrival_utc": "2026-12-24T13:11:01.000Z",
-        "departure_utc": "2026-12-24T13:11:11.000Z",
-        "local_arrival_time": "23:11",
+        "arrival_utc": "2026-12-24T13:10:11.000Z",
+        "departure_utc": "2026-12-24T13:10:21.000Z",
+        "local_arrival_time": "23:10",
         "time_window_status": "GREEN"
       },
       "stop_experience": {
@@ -1098,7 +1061,7 @@
       "priority": 2
     },
     {
-      "id": "stop_r7b8dg_028",
+      "id": "stop_r7b8dg_027",
       "type": "DELIVERY",
       "comment": "underserved",
       "candidate_id": "ne-1159136841",
@@ -1112,9 +1075,9 @@
         "timezone_offset": 11
       },
       "schedule": {
-        "arrival_utc": "2026-12-24T13:15:44.000Z",
-        "departure_utc": "2026-12-24T13:15:54.000Z",
-        "local_arrival_time": "00:15",
+        "arrival_utc": "2026-12-24T13:14:54.000Z",
+        "departure_utc": "2026-12-24T13:15:04.000Z",
+        "local_arrival_time": "00:14",
         "time_window_status": "GREEN"
       },
       "stop_experience": {
@@ -1137,7 +1100,7 @@
       "priority": 2
     },
     {
-      "id": "stop_6y1z4m_029",
+      "id": "stop_6y1z4m_028",
       "type": "DELIVERY",
       "comment": "underserved",
       "candidate_id": "ne-1159116427",
@@ -1151,8 +1114,8 @@
         "timezone_offset": 11
       },
       "schedule": {
-        "arrival_utc": "2026-12-24T13:16:51.000Z",
-        "departure_utc": "2026-12-24T13:17:01.000Z",
+        "arrival_utc": "2026-12-24T13:16:01.000Z",
+        "departure_utc": "2026-12-24T13:16:11.000Z",
         "local_arrival_time": "00:16",
         "time_window_status": "GREEN"
       },
@@ -1175,7 +1138,7 @@
       "priority": 2
     },
     {
-      "id": "stop_pipc41_030",
+      "id": "stop_pipc41_029",
       "type": "DELIVERY",
       "comment": "underserved",
       "candidate_id": "ne-1159136833",
@@ -1189,9 +1152,9 @@
         "timezone_offset": 11
       },
       "schedule": {
-        "arrival_utc": "2026-12-24T13:17:31.000Z",
-        "departure_utc": "2026-12-24T13:17:34.000Z",
-        "local_arrival_time": "00:17",
+        "arrival_utc": "2026-12-24T13:16:41.000Z",
+        "departure_utc": "2026-12-24T13:16:44.000Z",
+        "local_arrival_time": "00:16",
         "time_window_status": "GREEN"
       },
       "stop_experience": {
@@ -1213,7 +1176,7 @@
       "priority": 2
     },
     {
-      "id": "stop_zmun88_031",
+      "id": "stop_zmun88_030",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159145335",
@@ -1228,9 +1191,9 @@
         "timezone_offset": 11
       },
       "schedule": {
-        "arrival_utc": "2026-12-24T13:25:34.000Z",
-        "departure_utc": "2026-12-24T13:25:44.000Z",
-        "local_arrival_time": "00:25",
+        "arrival_utc": "2026-12-24T13:24:44.000Z",
+        "departure_utc": "2026-12-24T13:24:54.000Z",
+        "local_arrival_time": "00:24",
         "time_window_status": "GREEN"
       },
       "stop_experience": {
@@ -1252,7 +1215,7 @@
       "priority": 2
     },
     {
-      "id": "stop_19llm7r_032",
+      "id": "stop_19llm7r_031",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159151623",
@@ -1267,9 +1230,9 @@
         "timezone_offset": 11
       },
       "schedule": {
-        "arrival_utc": "2026-12-24T13:28:15.000Z",
-        "departure_utc": "2026-12-24T13:29:15.000Z",
-        "local_arrival_time": "00:28",
+        "arrival_utc": "2026-12-24T13:27:25.000Z",
+        "departure_utc": "2026-12-24T13:28:25.000Z",
+        "local_arrival_time": "00:27",
         "time_window_status": "GREEN"
       },
       "stop_experience": {
@@ -1291,7 +1254,7 @@
       "priority": 1
     },
     {
-      "id": "stop_cybrat_033",
+      "id": "stop_cybrat_032",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159147785",
@@ -1306,9 +1269,9 @@
         "timezone_offset": 11
       },
       "schedule": {
-        "arrival_utc": "2026-12-24T13:29:31.000Z",
-        "departure_utc": "2026-12-24T13:30:01.000Z",
-        "local_arrival_time": "00:29",
+        "arrival_utc": "2026-12-24T13:28:41.000Z",
+        "departure_utc": "2026-12-24T13:29:11.000Z",
+        "local_arrival_time": "00:28",
         "time_window_status": "GREEN"
       },
       "stop_experience": {
@@ -1330,7 +1293,7 @@
       "priority": 2
     },
     {
-      "id": "stop_10qt204_034",
+      "id": "stop_10qt204_033",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159145331",
@@ -1345,9 +1308,9 @@
         "timezone_offset": 11
       },
       "schedule": {
-        "arrival_utc": "2026-12-24T13:30:43.000Z",
-        "departure_utc": "2026-12-24T13:30:53.000Z",
-        "local_arrival_time": "00:30",
+        "arrival_utc": "2026-12-24T13:29:53.000Z",
+        "departure_utc": "2026-12-24T13:30:03.000Z",
+        "local_arrival_time": "00:29",
         "time_window_status": "GREEN"
       },
       "stop_experience": {
@@ -1369,7 +1332,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1rxy9oq_035",
+      "id": "stop_1rxy9oq_034",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159150403",
@@ -1384,8 +1347,8 @@
         "timezone_offset": 11
       },
       "schedule": {
-        "arrival_utc": "2026-12-24T13:31:58.000Z",
-        "departure_utc": "2026-12-24T13:32:08.000Z",
+        "arrival_utc": "2026-12-24T13:31:08.000Z",
+        "departure_utc": "2026-12-24T13:31:18.000Z",
         "local_arrival_time": "00:31",
         "time_window_status": "GREEN"
       },
@@ -1408,7 +1371,7 @@
       "priority": 2
     },
     {
-      "id": "stop_clr2z0_036",
+      "id": "stop_clr2z0_035",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159145641",
@@ -1423,8 +1386,8 @@
         "timezone_offset": 11
       },
       "schedule": {
-        "arrival_utc": "2026-12-24T13:32:57.000Z",
-        "departure_utc": "2026-12-24T13:33:27.000Z",
+        "arrival_utc": "2026-12-24T13:32:07.000Z",
+        "departure_utc": "2026-12-24T13:32:37.000Z",
         "local_arrival_time": "00:32",
         "time_window_status": "GREEN"
       },
@@ -1447,7 +1410,7 @@
       "priority": 2
     },
     {
-      "id": "stop_crmbip_037",
+      "id": "stop_crmbip_036",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159145831",
@@ -1462,9 +1425,9 @@
         "timezone_offset": 11
       },
       "schedule": {
-        "arrival_utc": "2026-12-24T13:34:36.000Z",
-        "departure_utc": "2026-12-24T13:34:39.000Z",
-        "local_arrival_time": "00:34",
+        "arrival_utc": "2026-12-24T13:33:46.000Z",
+        "departure_utc": "2026-12-24T13:33:49.000Z",
+        "local_arrival_time": "00:33",
         "time_window_status": "GREEN"
       },
       "stop_experience": {
@@ -1486,7 +1449,7 @@
       "priority": 2
     },
     {
-      "id": "stop_c77ouc_038",
+      "id": "stop_c77ouc_037",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159145533",
@@ -1501,9 +1464,9 @@
         "timezone_offset": 11
       },
       "schedule": {
-        "arrival_utc": "2026-12-24T13:37:01.000Z",
-        "departure_utc": "2026-12-24T13:37:04.000Z",
-        "local_arrival_time": "00:37",
+        "arrival_utc": "2026-12-24T13:36:11.000Z",
+        "departure_utc": "2026-12-24T13:36:14.000Z",
+        "local_arrival_time": "00:36",
         "time_window_status": "GREEN"
       },
       "stop_experience": {
@@ -1525,7 +1488,7 @@
       "priority": 2
     },
     {
-      "id": "stop_9f8ien_039",
+      "id": "stop_9f8ien_038",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159145529",
@@ -1540,9 +1503,9 @@
         "timezone_offset": 10.5
       },
       "schedule": {
-        "arrival_utc": "2026-12-24T13:37:27.000Z",
-        "departure_utc": "2026-12-24T13:37:30.000Z",
-        "local_arrival_time": "00:07",
+        "arrival_utc": "2026-12-24T13:36:37.000Z",
+        "departure_utc": "2026-12-24T13:36:40.000Z",
+        "local_arrival_time": "00:06",
         "time_window_status": "GREEN"
       },
       "stop_experience": {
@@ -1564,7 +1527,7 @@
       "priority": 2
     },
     {
-      "id": "stop_hfunpb_040",
+      "id": "stop_hfunpb_039",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159145767",
@@ -1579,9 +1542,9 @@
         "timezone_offset": 10
       },
       "schedule": {
-        "arrival_utc": "2026-12-24T13:42:04.000Z",
-        "departure_utc": "2026-12-24T13:42:07.000Z",
-        "local_arrival_time": "23:42",
+        "arrival_utc": "2026-12-24T13:41:14.000Z",
+        "departure_utc": "2026-12-24T13:41:17.000Z",
+        "local_arrival_time": "23:41",
         "time_window_status": "GREEN"
       },
       "stop_experience": {
@@ -1603,7 +1566,7 @@
       "priority": 2
     },
     {
-      "id": "stop_130absj_041",
+      "id": "stop_130absj_040",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159151159",
@@ -1618,9 +1581,9 @@
         "timezone_offset": 9.5
       },
       "schedule": {
-        "arrival_utc": "2026-12-24T13:44:24.000Z",
-        "departure_utc": "2026-12-24T13:44:34.000Z",
-        "local_arrival_time": "23:14",
+        "arrival_utc": "2026-12-24T13:43:34.000Z",
+        "departure_utc": "2026-12-24T13:43:44.000Z",
+        "local_arrival_time": "23:13",
         "time_window_status": "GREEN"
       },
       "stop_experience": {
@@ -1642,7 +1605,7 @@
       "priority": 2
     },
     {
-      "id": "stop_cz01ee_042",
+      "id": "stop_cz01ee_041",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159147735",
@@ -1681,7 +1644,7 @@
       "priority": 2
     },
     {
-      "id": "stop_s9een6_043",
+      "id": "stop_s9een6_042",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159150577",
@@ -1719,7 +1682,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1favl72_044",
+      "id": "stop_1favl72_043",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159149823",
@@ -1757,7 +1720,7 @@
       "priority": 2
     },
     {
-      "id": "stop_67k1o8_045",
+      "id": "stop_67k1o8_044",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159148189",
@@ -1795,7 +1758,7 @@
       "priority": 2
     },
     {
-      "id": "stop_vmbohb_046",
+      "id": "stop_vmbohb_045",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159137973",
@@ -1833,7 +1796,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1copbou_047",
+      "id": "stop_1copbou_046",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159149607",
@@ -1871,7 +1834,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1gx1pat_048",
+      "id": "stop_1gx1pat_047",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159150727",
@@ -1909,7 +1872,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1ulvchb_049",
+      "id": "stop_1ulvchb_048",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159137991",
@@ -1947,7 +1910,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1apsnuf_050",
+      "id": "stop_1apsnuf_049",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159148193",
@@ -1985,7 +1948,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1u1zalc_051",
+      "id": "stop_1u1zalc_050",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159137987",
@@ -2023,7 +1986,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1thwxpf_052",
+      "id": "stop_1thwxpf_051",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159137995",
@@ -2061,7 +2024,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1v5xpd8_053",
+      "id": "stop_1v5xpd8_052",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159137983",
@@ -2099,7 +2062,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1f9434z_054",
+      "id": "stop_1f9434z_053",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159150721",
@@ -2137,7 +2100,7 @@
       "priority": 2
     },
     {
-      "id": "stop_3zn84g_055",
+      "id": "stop_3zn84g_054",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159148181",
@@ -2175,7 +2138,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1hzca53_056",
+      "id": "stop_1hzca53_055",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159146601",
@@ -2213,7 +2176,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1emth6g_057",
+      "id": "stop_1emth6g_056",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159139369",
@@ -2251,7 +2214,7 @@
       "priority": 2
     },
     {
-      "id": "stop_10ncv1e_058",
+      "id": "stop_10ncv1e_057",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159148275",
@@ -2289,7 +2252,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1cyvv0m_059",
+      "id": "stop_1cyvv0m_058",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159139363",
@@ -2327,7 +2290,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1mdqh0m_060",
+      "id": "stop_1mdqh0m_059",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159146053",
@@ -2366,7 +2329,7 @@
       "priority": 2
     },
     {
-      "id": "stop_mi0xgr_061",
+      "id": "stop_mi0xgr_060",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159149073",
@@ -2404,7 +2367,7 @@
       "priority": 2
     },
     {
-      "id": "stop_swz3n_062",
+      "id": "stop_swz3n_061",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159147123",
@@ -2442,7 +2405,7 @@
       "priority": 2
     },
     {
-      "id": "stop_16u2wrl_063",
+      "id": "stop_16u2wrl_062",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159141101",
@@ -2480,7 +2443,7 @@
       "priority": 2
     },
     {
-      "id": "stop_2oj9fj_064",
+      "id": "stop_2oj9fj_063",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159150893",
@@ -2518,7 +2481,7 @@
       "priority": 2
     },
     {
-      "id": "stop_163aeuq_065",
+      "id": "stop_163aeuq_064",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159135293",
@@ -2556,7 +2519,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1ula7vp_066",
+      "id": "stop_1ula7vp_065",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159137935",
@@ -2594,7 +2557,7 @@
       "priority": 2
     },
     {
-      "id": "stop_3a94zm_067",
+      "id": "stop_3a94zm_066",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159149597",
@@ -2632,7 +2595,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1thbt3t_068",
+      "id": "stop_1thbt3t_067",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159137931",
@@ -2670,7 +2633,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1vmzeqw_069",
+      "id": "stop_1vmzeqw_068",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159146381",
@@ -2708,7 +2671,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1oa6zfq_070",
+      "id": "stop_1oa6zfq_069",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159139161",
@@ -2746,7 +2709,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1liarcx_071",
+      "id": "stop_1liarcx_070",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159129631",
@@ -2784,7 +2747,7 @@
       "priority": 2
     },
     {
-      "id": "stop_tjamh6_072",
+      "id": "stop_tjamh6_071",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159146013",
@@ -2822,7 +2785,7 @@
       "priority": 2
     },
     {
-      "id": "stop_rvd0bc_073",
+      "id": "stop_rvd0bc_072",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159146015",
@@ -2860,7 +2823,7 @@
       "priority": 2
     },
     {
-      "id": "stop_rekmzo_074",
+      "id": "stop_rekmzo_073",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159127519",
@@ -2898,7 +2861,7 @@
       "priority": 2
     },
     {
-      "id": "stop_2q9xlo_075",
+      "id": "stop_2q9xlo_074",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159149595",
@@ -2936,7 +2899,7 @@
       "priority": 2
     },
     {
-      "id": "stop_p5zjcb_076",
+      "id": "stop_p5zjcb_075",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159127569",
@@ -2974,7 +2937,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1theyls_077",
+      "id": "stop_1theyls_076",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159137925",
@@ -3012,7 +2975,7 @@
       "priority": 2
     },
     {
-      "id": "stop_16n6gqp_078",
+      "id": "stop_16n6gqp_077",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159135289",
@@ -3050,7 +3013,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1h5u7fb_079",
+      "id": "stop_1h5u7fb_078",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159149745",
@@ -3088,7 +3051,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1glv01d_080",
+      "id": "stop_1glv01d_079",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159149743",
@@ -3126,7 +3089,7 @@
       "priority": 2
     },
     {
-      "id": "stop_j8o0v6_081",
+      "id": "stop_j8o0v6_080",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159149931",
@@ -3164,7 +3127,7 @@
       "priority": 2
     },
     {
-      "id": "stop_nflsdv_082",
+      "id": "stop_nflsdv_081",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159149103",
@@ -3202,7 +3165,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1jyppz2_083",
+      "id": "stop_1jyppz2_082",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159132393",
@@ -3240,7 +3203,7 @@
       "priority": 2
     },
     {
-      "id": "stop_fsbj0a_084",
+      "id": "stop_fsbj0a_083",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159122837",
@@ -3278,7 +3241,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1aas57j_085",
+      "id": "stop_1aas57j_084",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159122805",
@@ -3316,7 +3279,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1ilhb9h_086",
+      "id": "stop_1ilhb9h_085",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159146175",
@@ -3354,7 +3317,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1i1i3vj_087",
+      "id": "stop_1i1i3vj_086",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159146177",
@@ -3392,7 +3355,7 @@
       "priority": 2
     },
     {
-      "id": "stop_layd4k_088",
+      "id": "stop_layd4k_087",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159146169",
@@ -3430,7 +3393,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1gxjp3n_089",
+      "id": "stop_1gxjp3n_088",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159146173",
@@ -3468,7 +3431,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1o69b10_090",
+      "id": "stop_1o69b10_089",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159151213",
@@ -3506,7 +3469,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1jpfq1d_091",
+      "id": "stop_1jpfq1d_090",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159146179",
@@ -3544,7 +3507,7 @@
       "priority": 2
     },
     {
-      "id": "stop_p3mk1o_092",
+      "id": "stop_p3mk1o_091",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159149111",
@@ -3582,7 +3545,7 @@
       "priority": 2
     },
     {
-      "id": "stop_qqzr8l_093",
+      "id": "stop_qqzr8l_092",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159150459",
@@ -3620,7 +3583,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1h45r8y_094",
+      "id": "stop_1h45r8y_093",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159151329",
@@ -3658,7 +3621,7 @@
       "priority": 2
     },
     {
-      "id": "stop_5p77lr_095",
+      "id": "stop_5p77lr_094",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159139687",
@@ -3696,7 +3659,7 @@
       "priority": 2
     },
     {
-      "id": "stop_16vzf1y_096",
+      "id": "stop_16vzf1y_095",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159139679",
@@ -3734,7 +3697,7 @@
       "priority": 2
     },
     {
-      "id": "stop_t2skp_097",
+      "id": "stop_t2skp_096",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159139735",
@@ -3772,7 +3735,7 @@
       "priority": 2
     },
     {
-      "id": "stop_o0zfrk_098",
+      "id": "stop_o0zfrk_097",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159129799",
@@ -3810,7 +3773,7 @@
       "priority": 2
     },
     {
-      "id": "stop_17xo01x_099",
+      "id": "stop_17xo01x_098",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159151629",
@@ -3848,7 +3811,7 @@
       "priority": 1
     },
     {
-      "id": "stop_1j7gmma_100",
+      "id": "stop_1j7gmma_099",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159149085",
@@ -3886,7 +3849,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1gyfgdn_101",
+      "id": "stop_1gyfgdn_100",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159136567",
@@ -3924,7 +3887,7 @@
       "priority": 2
     },
     {
-      "id": "stop_18xuc73_102",
+      "id": "stop_18xuc73_101",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159151083",
@@ -3962,7 +3925,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1i2dv5j_103",
+      "id": "stop_1i2dv5j_102",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159136563",
@@ -4000,7 +3963,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1yoh30r_104",
+      "id": "stop_1yoh30r_103",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159148337",
@@ -4038,7 +4001,7 @@
       "priority": 2
     },
     {
-      "id": "stop_bcaib4_105",
+      "id": "stop_bcaib4_104",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159149803",
@@ -4076,7 +4039,7 @@
       "priority": 2
     },
     {
-      "id": "stop_xbkoww_106",
+      "id": "stop_xbkoww_105",
       "type": "DELIVERY",
       "comment": "special",
       "candidate_id": "Q30980",
@@ -4114,7 +4077,7 @@
       "priority": 2
     },
     {
-      "id": "stop_2ydm46_107",
+      "id": "stop_2ydm46_106",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159117415",
@@ -4152,7 +4115,7 @@
       "priority": 2
     },
     {
-      "id": "stop_ylqfuf_108",
+      "id": "stop_ylqfuf_107",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159148315",
@@ -4190,7 +4153,7 @@
       "priority": 2
     },
     {
-      "id": "stop_d0973d_109",
+      "id": "stop_d0973d_108",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159136507",
@@ -4228,7 +4191,7 @@
       "priority": 2
     },
     {
-      "id": "stop_fsvl08_110",
+      "id": "stop_fsvl08_109",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159149883",
@@ -4266,7 +4229,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1hithd9_111",
+      "id": "stop_1hithd9_110",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159136525",
@@ -4304,7 +4267,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1e6y91l_112",
+      "id": "stop_1e6y91l_111",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159136529",
@@ -4342,7 +4305,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1i2vu96_113",
+      "id": "stop_1i2vu96_112",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159136533",
@@ -4380,7 +4343,7 @@
       "priority": 2
     },
     {
-      "id": "stop_6ldo1m_114",
+      "id": "stop_6ldo1m_113",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159146479",
@@ -4418,7 +4381,7 @@
       "priority": 2
     },
     {
-      "id": "stop_18hn7fv_115",
+      "id": "stop_18hn7fv_114",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159151627",
@@ -4456,7 +4419,7 @@
       "priority": 1
     },
     {
-      "id": "stop_9ww6hn_116",
+      "id": "stop_9ww6hn_115",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159135247",
@@ -4494,7 +4457,7 @@
       "priority": 2
     },
     {
-      "id": "stop_15jq12g_117",
+      "id": "stop_15jq12g_116",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159135259",
@@ -4532,7 +4495,7 @@
       "priority": 2
     },
     {
-      "id": "stop_16ojcdx_118",
+      "id": "stop_16ojcdx_117",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159149589",
@@ -4570,7 +4533,7 @@
       "priority": 2
     },
     {
-      "id": "stop_i00bnj_119",
+      "id": "stop_i00bnj_118",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159116631",
@@ -4608,7 +4571,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1hhad6o_120",
+      "id": "stop_1hhad6o_119",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159150719",
@@ -4646,7 +4609,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1vntzuf_121",
+      "id": "stop_1vntzuf_120",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159146379",
@@ -4684,7 +4647,7 @@
       "priority": 2
     },
     {
-      "id": "stop_14frmak_122",
+      "id": "stop_14frmak_121",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159135255",
@@ -4722,7 +4685,7 @@
       "priority": 2
     },
     {
-      "id": "stop_45zlgw_123",
+      "id": "stop_45zlgw_122",
       "type": "DELIVERY",
       "comment": "cultural",
       "candidate_id": "Q5724",
@@ -4760,7 +4723,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1lyok1g_124",
+      "id": "stop_1lyok1g_123",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159116601",
@@ -4798,7 +4761,7 @@
       "priority": 2
     },
     {
-      "id": "stop_13bt7io_125",
+      "id": "stop_13bt7io_124",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159135251",
@@ -4836,7 +4799,7 @@
       "priority": 2
     },
     {
-      "id": "stop_b6om25_126",
+      "id": "stop_b6om25_125",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159148173",
@@ -4874,7 +4837,7 @@
       "priority": 2
     },
     {
-      "id": "stop_llzq5u_127",
+      "id": "stop_llzq5u_126",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159148521",
@@ -4912,7 +4875,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1nwk1dz_128",
+      "id": "stop_1nwk1dz_127",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159148517",
@@ -4950,7 +4913,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1e15t05_129",
+      "id": "stop_1e15t05_128",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159150165",
@@ -4988,7 +4951,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1f547s1_130",
+      "id": "stop_1f547s1_129",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159150169",
@@ -5026,7 +4989,7 @@
       "priority": 2
     },
     {
-      "id": "stop_140odkl_131",
+      "id": "stop_140odkl_130",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159142957",
@@ -5064,7 +5027,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1tn4ov6_132",
+      "id": "stop_1tn4ov6_131",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159141791",
@@ -5102,7 +5065,7 @@
       "priority": 2
     },
     {
-      "id": "stop_czzpt6_133",
+      "id": "stop_czzpt6_132",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159150007",
@@ -5140,7 +5103,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1nm6y53_134",
+      "id": "stop_1nm6y53_133",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159151201",
@@ -5178,7 +5141,7 @@
       "priority": 2
     },
     {
-      "id": "stop_ffu86q_135",
+      "id": "stop_ffu86q_134",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159149711",
@@ -5217,7 +5180,7 @@
       "priority": 2
     },
     {
-      "id": "stop_apun6s_136",
+      "id": "stop_apun6s_135",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159139611",
@@ -5255,7 +5218,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1ondm85_137",
+      "id": "stop_1ondm85_136",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159129781",
@@ -5293,7 +5256,7 @@
       "priority": 2
     },
     {
-      "id": "stop_egqgy_138",
+      "id": "stop_egqgy_137",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159147029",
@@ -5331,7 +5294,7 @@
       "priority": 2
     },
     {
-      "id": "stop_yfxuw_139",
+      "id": "stop_yfxuw_138",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159147027",
@@ -5369,7 +5332,7 @@
       "priority": 2
     },
     {
-      "id": "stop_p9dfv3_140",
+      "id": "stop_p9dfv3_139",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159151533",
@@ -5407,7 +5370,7 @@
       "priority": 2
     },
     {
-      "id": "stop_yurxdd_141",
+      "id": "stop_yurxdd_140",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159146881",
@@ -5445,7 +5408,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1i2fq7h_142",
+      "id": "stop_1i2fq7h_141",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159134695",
@@ -5483,7 +5446,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1eslkcz_143",
+      "id": "stop_1eslkcz_142",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159113041",
@@ -5521,7 +5484,7 @@
       "priority": 2
     },
     {
-      "id": "stop_193mo2n_144",
+      "id": "stop_193mo2n_143",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159134583",
@@ -5559,7 +5522,7 @@
       "priority": 2
     },
     {
-      "id": "stop_ly5ptj_145",
+      "id": "stop_ly5ptj_144",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159113001",
@@ -5597,7 +5560,7 @@
       "priority": 2
     },
     {
-      "id": "stop_766b0f_146",
+      "id": "stop_766b0f_145",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159119393",
@@ -5635,7 +5598,7 @@
       "priority": 2
     },
     {
-      "id": "stop_snosym_147",
+      "id": "stop_snosym_146",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159139143",
@@ -5673,7 +5636,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1d0qihg_148",
+      "id": "stop_1d0qihg_147",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159134551",
@@ -5711,7 +5674,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1astoxo_149",
+      "id": "stop_1astoxo_148",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159134559",
@@ -5749,7 +5712,7 @@
       "priority": 2
     },
     {
-      "id": "stop_v10zs6_150",
+      "id": "stop_v10zs6_149",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159146329",
@@ -5787,7 +5750,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1pftetn_151",
+      "id": "stop_1pftetn_150",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159115425",
@@ -5825,7 +5788,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1cg30zx_152",
+      "id": "stop_1cg30zx_151",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159134527",
@@ -5863,7 +5826,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1rcihe_153",
+      "id": "stop_1rcihe_152",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159149409",
@@ -5901,7 +5864,7 @@
       "priority": 2
     },
     {
-      "id": "stop_mtrprz_154",
+      "id": "stop_mtrprz_153",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159144643",
@@ -5939,7 +5902,7 @@
       "priority": 2
     },
     {
-      "id": "stop_8n0wv8_155",
+      "id": "stop_8n0wv8_154",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159134483",
@@ -5977,7 +5940,7 @@
       "priority": 2
     },
     {
-      "id": "stop_3nt6zc_156",
+      "id": "stop_3nt6zc_155",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159134469",
@@ -6015,7 +5978,7 @@
       "priority": 2
     },
     {
-      "id": "stop_8nivyv_157",
+      "id": "stop_8nivyv_156",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159134473",
@@ -6053,7 +6016,7 @@
       "priority": 2
     },
     {
-      "id": "stop_83jokx_158",
+      "id": "stop_83jokx_157",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159134475",
@@ -6091,7 +6054,7 @@
       "priority": 2
     },
     {
-      "id": "stop_lxvf2v_159",
+      "id": "stop_lxvf2v_158",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159149059",
@@ -6129,7 +6092,7 @@
       "priority": 2
     },
     {
-      "id": "stop_109zmub_160",
+      "id": "stop_109zmub_159",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159115007",
@@ -6167,7 +6130,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1b7efv_161",
+      "id": "stop_1b7efv_160",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159115029",
@@ -6205,7 +6168,7 @@
       "priority": 2
     },
     {
-      "id": "stop_u4eadc_162",
+      "id": "stop_u4eadc_161",
       "type": "DELIVERY",
       "comment": "special",
       "candidate_id": "Q48675",
@@ -6243,7 +6206,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1ffyl9y_163",
+      "id": "stop_1ffyl9y_162",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159145939",
@@ -6281,7 +6244,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1mxz47a_164",
+      "id": "stop_1mxz47a_163",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159150425",
@@ -6319,7 +6282,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1wg8h48_165",
+      "id": "stop_1wg8h48_164",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159151473",
@@ -6357,7 +6320,7 @@
       "priority": 2
     },
     {
-      "id": "stop_o0nmtg_166",
+      "id": "stop_o0nmtg_165",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159145159",
@@ -6395,7 +6358,7 @@
       "priority": 2
     },
     {
-      "id": "stop_l5qy46_167",
+      "id": "stop_l5qy46_166",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159144671",
@@ -6433,7 +6396,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1at2c7x_168",
+      "id": "stop_1at2c7x_167",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159121217",
@@ -6471,7 +6434,7 @@
       "priority": 2
     },
     {
-      "id": "stop_dsifpn_169",
+      "id": "stop_dsifpn_168",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159142865",
@@ -6509,7 +6472,7 @@
       "priority": 2
     },
     {
-      "id": "stop_9nwgvh_170",
+      "id": "stop_9nwgvh_169",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159147851",
@@ -6547,7 +6510,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1o1xiz6_171",
+      "id": "stop_1o1xiz6_170",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159150421",
@@ -6585,7 +6548,7 @@
       "priority": 2
     },
     {
-      "id": "stop_iyb5ta_172",
+      "id": "stop_iyb5ta_171",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159150155",
@@ -6623,7 +6586,7 @@
       "priority": 2
     },
     {
-      "id": "stop_7eukow_173",
+      "id": "stop_7eukow_172",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159116313",
@@ -6661,7 +6624,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1bba4ov_174",
+      "id": "stop_1bba4ov_173",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159150655",
@@ -6699,7 +6662,7 @@
       "priority": 2
     },
     {
-      "id": "stop_167091y_175",
+      "id": "stop_167091y_174",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159141809",
@@ -6737,7 +6700,7 @@
       "priority": 2
     },
     {
-      "id": "stop_3thn3w_176",
+      "id": "stop_3thn3w_175",
       "type": "DELIVERY",
       "comment": "underserved",
       "candidate_id": "ne-1159146473",
@@ -6775,7 +6738,7 @@
       "priority": 2
     },
     {
-      "id": "stop_d0q3kl_177",
+      "id": "stop_d0q3kl_176",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159149875",
@@ -6813,7 +6776,7 @@
       "priority": 2
     },
     {
-      "id": "stop_69m1s7_178",
+      "id": "stop_69m1s7_177",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1730025033",
@@ -6851,7 +6814,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1rxo3k4_179",
+      "id": "stop_1rxo3k4_178",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159149155",
@@ -6889,7 +6852,7 @@
       "priority": 2
     },
     {
-      "id": "stop_eem4ak_180",
+      "id": "stop_eem4ak_179",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159128309",
@@ -6927,7 +6890,7 @@
       "priority": 2
     },
     {
-      "id": "stop_cqi74s_181",
+      "id": "stop_cqi74s_180",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159128323",
@@ -6965,7 +6928,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1cfboyq_182",
+      "id": "stop_1cfboyq_181",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159150645",
@@ -7003,7 +6966,7 @@
       "priority": 2
     },
     {
-      "id": "stop_d9t4f5_183",
+      "id": "stop_d9t4f5_182",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159128399",
@@ -7041,7 +7004,7 @@
       "priority": 2
     },
     {
-      "id": "stop_39ifpy_184",
+      "id": "stop_39ifpy_183",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159146475",
@@ -7079,7 +7042,7 @@
       "priority": 2
     },
     {
-      "id": "stop_ycw83u_185",
+      "id": "stop_ycw83u_184",
       "type": "DELIVERY",
       "comment": "underserved",
       "candidate_id": "ne-1159146325",
@@ -7117,7 +7080,7 @@
       "priority": 2
     },
     {
-      "id": "stop_x8xtby_186",
+      "id": "stop_x8xtby_185",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159146321",
@@ -7155,7 +7118,7 @@
       "priority": 2
     },
     {
-      "id": "stop_woyly0_187",
+      "id": "stop_woyly0_186",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159146323",
@@ -7193,7 +7156,7 @@
       "priority": 2
     },
     {
-      "id": "stop_595bx4_188",
+      "id": "stop_595bx4_187",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159134339",
@@ -7231,7 +7194,7 @@
       "priority": 2
     },
     {
-      "id": "stop_11tqpiy_189",
+      "id": "stop_11tqpiy_188",
       "type": "DELIVERY",
       "comment": "underserved",
       "candidate_id": "ne-1159129599",
@@ -7269,7 +7232,7 @@
       "priority": 2
     },
     {
-      "id": "stop_ji77p9_190",
+      "id": "stop_ji77p9_189",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159150143",
@@ -7307,7 +7270,7 @@
       "priority": 2
     },
     {
-      "id": "stop_12uvkz0_191",
+      "id": "stop_12uvkz0_190",
       "type": "DELIVERY",
       "comment": "underserved",
       "candidate_id": "ne-1159127137",
@@ -7345,7 +7308,7 @@
       "priority": 2
     },
     {
-      "id": "stop_nlco7a_192",
+      "id": "stop_nlco7a_191",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159151501",
@@ -7383,7 +7346,7 @@
       "priority": 2
     },
     {
-      "id": "stop_12uyqgz_193",
+      "id": "stop_12uyqgz_192",
       "type": "DELIVERY",
       "comment": "underserved",
       "candidate_id": "ne-1159127107",
@@ -7421,7 +7384,7 @@
       "priority": 2
     },
     {
-      "id": "stop_147xkbk_194",
+      "id": "stop_147xkbk_193",
       "type": "DELIVERY",
       "comment": "underserved",
       "candidate_id": "ne-1159134357",
@@ -7459,7 +7422,7 @@
       "priority": 2
     },
     {
-      "id": "stop_w52g37_195",
+      "id": "stop_w52g37_194",
       "type": "DELIVERY",
       "comment": "underserved",
       "candidate_id": "ne-1159127051",
@@ -7497,7 +7460,7 @@
       "priority": 2
     },
     {
-      "id": "stop_w55out_196",
+      "id": "stop_w55out_195",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159150569",
@@ -7535,7 +7498,7 @@
       "priority": 2
     },
     {
-      "id": "stop_x940d2_197",
+      "id": "stop_x940d2_196",
       "type": "DELIVERY",
       "comment": "underserved",
       "candidate_id": "ne-1159127041",
@@ -7573,7 +7536,7 @@
       "priority": 2
     },
     {
-      "id": "stop_318idc_198",
+      "id": "stop_318idc_197",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159134331",
@@ -7611,7 +7574,7 @@
       "priority": 2
     },
     {
-      "id": "stop_456x58_199",
+      "id": "stop_456x58_198",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159134335",
@@ -7649,7 +7612,7 @@
       "priority": 2
     },
     {
-      "id": "stop_9ovtip_200",
+      "id": "stop_9ovtip_199",
       "type": "DELIVERY",
       "comment": "underserved",
       "candidate_id": "ne-1159134325",
@@ -7687,7 +7650,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1mwony9_201",
+      "id": "stop_1mwony9_200",
       "type": "DELIVERY",
       "comment": "underserved",
       "candidate_id": "ne-1159144609",
@@ -7725,7 +7688,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1vuzzze_202",
+      "id": "stop_1vuzzze_201",
       "type": "DELIVERY",
       "comment": "underserved",
       "candidate_id": "ne-1159132177",
@@ -7763,7 +7726,7 @@
       "priority": 2
     },
     {
-      "id": "stop_15gtwtg_203",
+      "id": "stop_15gtwtg_202",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159150319",
@@ -7801,7 +7764,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1hcm7q5_204",
+      "id": "stop_1hcm7q5_203",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159150129",
@@ -7839,7 +7802,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1g5wey6_205",
+      "id": "stop_1g5wey6_204",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159126943",
@@ -7877,7 +7840,7 @@
       "priority": 2
     },
     {
-      "id": "stop_tllt06_206",
+      "id": "stop_tllt06_205",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159151497",
@@ -7915,7 +7878,7 @@
       "priority": 1
     },
     {
-      "id": "stop_x943mp_207",
+      "id": "stop_x943mp_206",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159150565",
@@ -7953,7 +7916,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1qfi7s_208",
+      "id": "stop_1qfi7s_207",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159146587",
@@ -7991,7 +7954,7 @@
       "priority": 2
     },
     {
-      "id": "stop_xxtwcg_209",
+      "id": "stop_xxtwcg_208",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159149469",
@@ -8029,7 +7992,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1l5whni_210",
+      "id": "stop_1l5whni_209",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159128295",
@@ -8067,7 +8030,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1klu4rl_211",
+      "id": "stop_1klu4rl_210",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159128287",
@@ -8105,7 +8068,7 @@
       "priority": 2
     },
     {
-      "id": "stop_sywksd_212",
+      "id": "stop_sywksd_211",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159150451",
@@ -8143,7 +8106,7 @@
       "priority": 2
     },
     {
-      "id": "stop_rooyjc_213",
+      "id": "stop_rooyjc_212",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159136395",
@@ -8181,7 +8144,7 @@
       "priority": 2
     },
     {
-      "id": "stop_urjaxq_214",
+      "id": "stop_urjaxq_213",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159128453",
@@ -8219,7 +8182,7 @@
       "priority": 2
     },
     {
-      "id": "stop_3kqwgr_215",
+      "id": "stop_3kqwgr_214",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159142627",
@@ -8257,7 +8220,7 @@
       "priority": 2
     },
     {
-      "id": "stop_11fkq3b_216",
+      "id": "stop_11fkq3b_215",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159142649",
@@ -8295,7 +8258,7 @@
       "priority": 2
     },
     {
-      "id": "stop_d5edd2_217",
+      "id": "stop_d5edd2_216",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159151361",
@@ -8333,7 +8296,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1is8url_218",
+      "id": "stop_1is8url_217",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159148667",
@@ -8371,7 +8334,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1dgrs0j_219",
+      "id": "stop_1dgrs0j_218",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159150127",
@@ -8409,7 +8372,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1e0qzeh_220",
+      "id": "stop_1e0qzeh_219",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159150125",
@@ -8447,7 +8410,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1jwse53_221",
+      "id": "stop_1jwse53_220",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159148683",
@@ -8485,7 +8448,7 @@
       "priority": 2
     },
     {
-      "id": "stop_180rgdm_222",
+      "id": "stop_180rgdm_221",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159151123",
@@ -8523,7 +8486,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1ur1l7i_223",
+      "id": "stop_1ur1l7i_222",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159132173",
@@ -8561,6 +8524,44 @@
       "priority": 2
     },
     {
+      "id": "stop_2bjsz3_223",
+      "type": "DELIVERY",
+      "comment": "populated",
+      "candidate_id": "ne-1159120533",
+      "location": {
+        "name": "Yeghegnadzor",
+        "region": "Armenia",
+        "country_code": "AM",
+        "timezone": "Asia/Yerevan",
+        "lat": 39.7611111,
+        "lng": 45.3333333,
+        "timezone_offset": 4
+      },
+      "schedule": {
+        "arrival_utc": "2026-12-24T20:39:03.000Z",
+        "departure_utc": "2026-12-24T20:39:13.000Z",
+        "local_arrival_time": "00:39",
+        "time_window_status": "GREEN"
+      },
+      "stop_experience": {
+        "duration_seconds": 10,
+        "stop_tier": "town",
+        "camera_zoom": 14,
+        "weather_condition": "clear",
+        "presents_delivered_at_stop": 1
+      },
+      "transit_to_here": {
+        "description": "Flight to Yeghegnadzor",
+        "duration_seconds": 85,
+        "distance_km": 376.22,
+        "speed_curve": "HYPERSONIC",
+        "speed_kmh": 15934,
+        "camera_zoom": 9
+      },
+      "notes": "https://www.naturalearthdata.com/downloads/10m-cultural-vectors/10m-populated-places/",
+      "priority": 2
+    },
+    {
       "id": "stop_1ejegmt_224",
       "type": "DELIVERY",
       "comment": "populated",
@@ -8575,8 +8576,8 @@
         "timezone_offset": 4
       },
       "schedule": {
-        "arrival_utc": "2026-12-24T20:39:08.000Z",
-        "departure_utc": "2026-12-24T20:39:38.000Z",
+        "arrival_utc": "2026-12-24T20:39:59.000Z",
+        "departure_utc": "2026-12-24T20:40:29.000Z",
         "local_arrival_time": "00:39",
         "time_window_status": "GREEN"
       },
@@ -8589,44 +8590,6 @@
       },
       "transit_to_here": {
         "description": "Flight to Rustavi",
-        "duration_seconds": 90,
-        "distance_km": 399.34,
-        "speed_curve": "HYPERSONIC",
-        "speed_kmh": 15973,
-        "camera_zoom": 9
-      },
-      "notes": "https://www.naturalearthdata.com/downloads/10m-cultural-vectors/10m-populated-places/",
-      "priority": 2
-    },
-    {
-      "id": "stop_2bjsz3_225",
-      "type": "DELIVERY",
-      "comment": "populated",
-      "candidate_id": "ne-1159120533",
-      "location": {
-        "name": "Yeghegnadzor",
-        "region": "Armenia",
-        "country_code": "AM",
-        "timezone": "Asia/Yerevan",
-        "lat": 39.7611111,
-        "lng": 45.3333333,
-        "timezone_offset": 4
-      },
-      "schedule": {
-        "arrival_utc": "2026-12-24T20:40:24.000Z",
-        "departure_utc": "2026-12-24T20:40:34.000Z",
-        "local_arrival_time": "00:40",
-        "time_window_status": "GREEN"
-      },
-      "stop_experience": {
-        "duration_seconds": 10,
-        "stop_tier": "town",
-        "camera_zoom": 14,
-        "weather_condition": "clear",
-        "presents_delivered_at_stop": 1
-      },
-      "transit_to_here": {
-        "description": "Flight to Yeghegnadzor",
         "duration_seconds": 46,
         "distance_km": 202.59,
         "speed_curve": "HYPERSONIC",
@@ -8637,7 +8600,7 @@
       "priority": 2
     },
     {
-      "id": "stop_wyktsj_226",
+      "id": "stop_wyktsj_225",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159142681",
@@ -8651,8 +8614,8 @@
         "timezone_offset": 3.5
       },
       "schedule": {
-        "arrival_utc": "2026-12-24T20:41:06.000Z",
-        "departure_utc": "2026-12-24T20:41:36.000Z",
+        "arrival_utc": "2026-12-24T20:41:46.000Z",
+        "departure_utc": "2026-12-24T20:42:16.000Z",
         "local_arrival_time": "00:11",
         "time_window_status": "GREEN"
       },
@@ -8665,17 +8628,17 @@
       },
       "transit_to_here": {
         "description": "Flight to Khvoy",
-        "duration_seconds": 32,
-        "distance_km": 140.39,
+        "duration_seconds": 77,
+        "distance_km": 338.1,
         "speed_curve": "HYPERSONIC",
-        "speed_kmh": 15794,
+        "speed_kmh": 15807,
         "camera_zoom": 9
       },
       "notes": "https://www.naturalearthdata.com/downloads/10m-cultural-vectors/10m-populated-places/",
       "priority": 2
     },
     {
-      "id": "stop_zw0rnq_227",
+      "id": "stop_zw0rnq_226",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159135367",
@@ -8689,8 +8652,8 @@
         "timezone_offset": 3
       },
       "schedule": {
-        "arrival_utc": "2026-12-24T20:42:07.000Z",
-        "departure_utc": "2026-12-24T20:42:37.000Z",
+        "arrival_utc": "2026-12-24T20:42:47.000Z",
+        "departure_utc": "2026-12-24T20:43:17.000Z",
         "local_arrival_time": "23:42",
         "time_window_status": "GREEN"
       },
@@ -8713,7 +8676,7 @@
       "priority": 2
     },
     {
-      "id": "stop_jnx3wq_228",
+      "id": "stop_jnx3wq_227",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159122521",
@@ -8727,8 +8690,8 @@
         "timezone_offset": 3
       },
       "schedule": {
-        "arrival_utc": "2026-12-24T20:43:19.000Z",
-        "departure_utc": "2026-12-24T20:43:49.000Z",
+        "arrival_utc": "2026-12-24T20:43:59.000Z",
+        "departure_utc": "2026-12-24T20:44:29.000Z",
         "local_arrival_time": "23:43",
         "time_window_status": "GREEN"
       },
@@ -8751,7 +8714,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1cvgugz_229",
+      "id": "stop_1cvgugz_228",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159142267",
@@ -8765,9 +8728,9 @@
         "timezone_offset": 3
       },
       "schedule": {
-        "arrival_utc": "2026-12-24T20:43:59.000Z",
-        "departure_utc": "2026-12-24T20:44:29.000Z",
-        "local_arrival_time": "23:43",
+        "arrival_utc": "2026-12-24T20:44:39.000Z",
+        "departure_utc": "2026-12-24T20:45:09.000Z",
+        "local_arrival_time": "23:44",
         "time_window_status": "GREEN"
       },
       "stop_experience": {
@@ -8789,7 +8752,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1ez9dg9_230",
+      "id": "stop_1ez9dg9_229",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159126205",
@@ -8803,9 +8766,9 @@
         "timezone_offset": 3
       },
       "schedule": {
-        "arrival_utc": "2026-12-24T20:44:59.000Z",
-        "departure_utc": "2026-12-24T20:45:29.000Z",
-        "local_arrival_time": "23:44",
+        "arrival_utc": "2026-12-24T20:45:39.000Z",
+        "departure_utc": "2026-12-24T20:46:09.000Z",
+        "local_arrival_time": "23:45",
         "time_window_status": "GREEN"
       },
       "stop_experience": {
@@ -8827,7 +8790,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1jg2dh3_231",
+      "id": "stop_1jg2dh3_230",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159133915",
@@ -8841,8 +8804,8 @@
         "timezone_offset": 3
       },
       "schedule": {
-        "arrival_utc": "2026-12-24T20:46:17.000Z",
-        "departure_utc": "2026-12-24T20:46:47.000Z",
+        "arrival_utc": "2026-12-24T20:46:57.000Z",
+        "departure_utc": "2026-12-24T20:47:27.000Z",
         "local_arrival_time": "23:46",
         "time_window_status": "GREEN"
       },
@@ -8865,7 +8828,7 @@
       "priority": 2
     },
     {
-      "id": "stop_hpps8m_232",
+      "id": "stop_hpps8m_231",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159133909",
@@ -8879,8 +8842,8 @@
         "timezone_offset": 3
       },
       "schedule": {
-        "arrival_utc": "2026-12-24T20:47:15.000Z",
-        "departure_utc": "2026-12-24T20:47:25.000Z",
+        "arrival_utc": "2026-12-24T20:47:55.000Z",
+        "departure_utc": "2026-12-24T20:48:05.000Z",
         "local_arrival_time": "23:47",
         "time_window_status": "GREEN"
       },
@@ -8903,7 +8866,7 @@
       "priority": 2
     },
     {
-      "id": "stop_16mh8nn_233",
+      "id": "stop_16mh8nn_232",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159143163",
@@ -8917,8 +8880,8 @@
         "timezone_offset": 3
       },
       "schedule": {
-        "arrival_utc": "2026-12-24T20:48:03.000Z",
-        "departure_utc": "2026-12-24T20:48:13.000Z",
+        "arrival_utc": "2026-12-24T20:48:43.000Z",
+        "departure_utc": "2026-12-24T20:48:53.000Z",
         "local_arrival_time": "23:48",
         "time_window_status": "GREEN"
       },
@@ -8941,7 +8904,7 @@
       "priority": 2
     },
     {
-      "id": "stop_gqed1s_234",
+      "id": "stop_gqed1s_233",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159136221",
@@ -8955,8 +8918,8 @@
         "timezone_offset": 3
       },
       "schedule": {
-        "arrival_utc": "2026-12-24T20:49:07.000Z",
-        "departure_utc": "2026-12-24T20:49:37.000Z",
+        "arrival_utc": "2026-12-24T20:49:47.000Z",
+        "departure_utc": "2026-12-24T20:50:17.000Z",
         "local_arrival_time": "23:49",
         "time_window_status": "GREEN"
       },
@@ -8979,7 +8942,7 @@
       "priority": 2
     },
     {
-      "id": "stop_19sayom_235",
+      "id": "stop_19sayom_234",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159147959",
@@ -8993,8 +8956,8 @@
         "timezone_offset": 3
       },
       "schedule": {
-        "arrival_utc": "2026-12-24T20:52:13.000Z",
-        "departure_utc": "2026-12-24T20:52:23.000Z",
+        "arrival_utc": "2026-12-24T20:52:53.000Z",
+        "departure_utc": "2026-12-24T20:53:03.000Z",
         "local_arrival_time": "23:52",
         "time_window_status": "GREEN"
       },
@@ -9017,7 +8980,7 @@
       "priority": 2
     },
     {
-      "id": "stop_xxnlci_236",
+      "id": "stop_xxnlci_235",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159149445",
@@ -9031,8 +8994,8 @@
         "timezone_offset": 3
       },
       "schedule": {
-        "arrival_utc": "2026-12-24T20:53:17.000Z",
-        "departure_utc": "2026-12-24T20:53:47.000Z",
+        "arrival_utc": "2026-12-24T20:53:57.000Z",
+        "departure_utc": "2026-12-24T20:54:27.000Z",
         "local_arrival_time": "23:53",
         "time_window_status": "GREEN"
       },
@@ -9055,7 +9018,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1qchhl7_237",
+      "id": "stop_1qchhl7_236",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159129743",
@@ -9069,9 +9032,9 @@
         "timezone_offset": 3
       },
       "schedule": {
-        "arrival_utc": "2026-12-24T20:55:20.000Z",
-        "departure_utc": "2026-12-24T20:55:50.000Z",
-        "local_arrival_time": "23:55",
+        "arrival_utc": "2026-12-24T20:56:00.000Z",
+        "departure_utc": "2026-12-24T20:56:30.000Z",
+        "local_arrival_time": "23:56",
         "time_window_status": "GREEN"
       },
       "stop_experience": {
@@ -9093,7 +9056,7 @@
       "priority": 2
     },
     {
-      "id": "stop_bvllg4_238",
+      "id": "stop_bvllg4_237",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159117307",
@@ -9107,9 +9070,9 @@
         "timezone_offset": 3
       },
       "schedule": {
-        "arrival_utc": "2026-12-24T20:55:57.000Z",
-        "departure_utc": "2026-12-24T20:56:07.000Z",
-        "local_arrival_time": "23:55",
+        "arrival_utc": "2026-12-24T20:56:37.000Z",
+        "departure_utc": "2026-12-24T20:56:47.000Z",
+        "local_arrival_time": "23:56",
         "time_window_status": "GREEN"
       },
       "stop_experience": {
@@ -9131,7 +9094,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1qbzihk_239",
+      "id": "stop_1qbzihk_238",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159129733",
@@ -9145,8 +9108,8 @@
         "timezone_offset": 3
       },
       "schedule": {
-        "arrival_utc": "2026-12-24T20:56:18.000Z",
-        "departure_utc": "2026-12-24T20:56:48.000Z",
+        "arrival_utc": "2026-12-24T20:56:58.000Z",
+        "departure_utc": "2026-12-24T20:57:28.000Z",
         "local_arrival_time": "23:56",
         "time_window_status": "GREEN"
       },
@@ -9169,7 +9132,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1sqxwuy_240",
+      "id": "stop_1sqxwuy_239",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159114421",
@@ -9183,9 +9146,9 @@
         "timezone_offset": 3
       },
       "schedule": {
-        "arrival_utc": "2026-12-24T20:56:54.000Z",
-        "departure_utc": "2026-12-24T20:57:24.000Z",
-        "local_arrival_time": "23:56",
+        "arrival_utc": "2026-12-24T20:57:34.000Z",
+        "departure_utc": "2026-12-24T20:58:04.000Z",
+        "local_arrival_time": "23:57",
         "time_window_status": "GREEN"
       },
       "stop_experience": {
@@ -9207,7 +9170,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1g4755f_241",
+      "id": "stop_1g4755f_240",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159133919",
@@ -9221,9 +9184,9 @@
         "timezone_offset": 3
       },
       "schedule": {
-        "arrival_utc": "2026-12-24T20:57:34.000Z",
-        "departure_utc": "2026-12-24T20:57:44.000Z",
-        "local_arrival_time": "23:57",
+        "arrival_utc": "2026-12-24T20:58:14.000Z",
+        "departure_utc": "2026-12-24T20:58:24.000Z",
+        "local_arrival_time": "23:58",
         "time_window_status": "GREEN"
       },
       "stop_experience": {
@@ -9245,7 +9208,7 @@
       "priority": 2
     },
     {
-      "id": "stop_10fwtjp_242",
+      "id": "stop_10fwtjp_241",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159135375",
@@ -9259,8 +9222,8 @@
         "timezone_offset": 3
       },
       "schedule": {
-        "arrival_utc": "2026-12-24T20:58:03.000Z",
-        "departure_utc": "2026-12-24T20:58:06.000Z",
+        "arrival_utc": "2026-12-24T20:58:43.000Z",
+        "departure_utc": "2026-12-24T20:58:46.000Z",
         "local_arrival_time": "23:58",
         "time_window_status": "GREEN"
       },
@@ -9283,7 +9246,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1db8lsg_243",
+      "id": "stop_1db8lsg_242",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159126233",
@@ -9297,9 +9260,9 @@
         "timezone_offset": 3
       },
       "schedule": {
-        "arrival_utc": "2026-12-24T20:58:23.000Z",
-        "departure_utc": "2026-12-24T20:58:53.000Z",
-        "local_arrival_time": "23:58",
+        "arrival_utc": "2026-12-24T20:59:03.000Z",
+        "departure_utc": "2026-12-24T20:59:33.000Z",
+        "local_arrival_time": "23:59",
         "time_window_status": "GREEN"
       },
       "stop_experience": {
@@ -9321,7 +9284,7 @@
       "priority": 2
     },
     {
-      "id": "stop_dpj23t_244",
+      "id": "stop_dpj23t_243",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159148623",
@@ -9359,7 +9322,7 @@
       "priority": 2
     },
     {
-      "id": "stop_y26vpa_245",
+      "id": "stop_y26vpa_244",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159151417",
@@ -9397,7 +9360,7 @@
       "priority": 2
     },
     {
-      "id": "stop_mb99n0_246",
+      "id": "stop_mb99n0_245",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159150445",
@@ -9435,7 +9398,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1bul8k9_247",
+      "id": "stop_1bul8k9_246",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159121859",
@@ -9473,7 +9436,7 @@
       "priority": 2
     },
     {
-      "id": "stop_578cd6_248",
+      "id": "stop_578cd6_247",
       "type": "DELIVERY",
       "comment": "underserved",
       "candidate_id": "ne-1159140521",
@@ -9512,7 +9475,7 @@
       "priority": 2
     },
     {
-      "id": "stop_19ub6zf_249",
+      "id": "stop_19ub6zf_248",
       "type": "DELIVERY",
       "comment": "underserved",
       "candidate_id": "ne-1159150963",
@@ -9550,7 +9513,7 @@
       "priority": 2
     },
     {
-      "id": "stop_ief4pl_250",
+      "id": "stop_ief4pl_249",
       "type": "DELIVERY",
       "comment": "underserved",
       "candidate_id": "ne-1159136257",
@@ -9588,7 +9551,7 @@
       "priority": 2
     },
     {
-      "id": "stop_x9quz8_251",
+      "id": "stop_x9quz8_250",
       "type": "DELIVERY",
       "comment": "underserved",
       "candidate_id": "ne-1159135439",
@@ -9626,7 +9589,7 @@
       "priority": 2
     },
     {
-      "id": "stop_14pnp9t_252",
+      "id": "stop_14pnp9t_251",
       "type": "DELIVERY",
       "comment": "underserved",
       "candidate_id": "ne-1159118305",
@@ -9664,7 +9627,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1axoh5p_253",
+      "id": "stop_1axoh5p_252",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159150907",
@@ -9702,7 +9665,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1dl50h3_254",
+      "id": "stop_1dl50h3_253",
       "type": "DELIVERY",
       "comment": "special",
       "candidate_id": "Q132676",
@@ -9741,7 +9704,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1hjj0gg_255",
+      "id": "stop_1hjj0gg_254",
       "type": "DELIVERY",
       "comment": "underserved",
       "candidate_id": "ne-1159149083",
@@ -9779,7 +9742,7 @@
       "priority": 2
     },
     {
-      "id": "stop_7x683r_256",
+      "id": "stop_7x683r_255",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159151191",
@@ -9818,7 +9781,7 @@
       "priority": 2
     },
     {
-      "id": "stop_d084gy_257",
+      "id": "stop_d084gy_256",
       "type": "DELIVERY",
       "comment": "underserved",
       "candidate_id": "ne-1159149805",
@@ -9856,7 +9819,7 @@
       "priority": 2
     },
     {
-      "id": "stop_lra292_258",
+      "id": "stop_lra292_257",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159150443",
@@ -9895,7 +9858,7 @@
       "priority": 2
     },
     {
-      "id": "stop_qt3d1u_259",
+      "id": "stop_qt3d1u_258",
       "type": "DELIVERY",
       "comment": "special",
       "candidate_id": "Q47045",
@@ -9933,7 +9896,7 @@
       "priority": 2
     },
     {
-      "id": "stop_k7ubk7_260",
+      "id": "stop_k7ubk7_259",
       "type": "DELIVERY",
       "comment": "underserved",
       "candidate_id": "ne-1159135773",
@@ -9971,7 +9934,7 @@
       "priority": 2
     },
     {
-      "id": "stop_12vj8pj_261",
+      "id": "stop_12vj8pj_260",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159149385",
@@ -10009,7 +9972,7 @@
       "priority": 2
     },
     {
-      "id": "stop_s0ll2a_262",
+      "id": "stop_s0ll2a_261",
       "type": "DELIVERY",
       "comment": "underserved",
       "candidate_id": "ne-1159145221",
@@ -10047,7 +10010,7 @@
       "priority": 2
     },
     {
-      "id": "stop_w2q1qo_263",
+      "id": "stop_w2q1qo_262",
       "type": "DELIVERY",
       "comment": "underserved",
       "candidate_id": "ne-1159136625",
@@ -10085,7 +10048,7 @@
       "priority": 2
     },
     {
-      "id": "stop_3f6z59_264",
+      "id": "stop_3f6z59_263",
       "type": "DELIVERY",
       "comment": "underserved",
       "candidate_id": "ne-1159149413",
@@ -10123,7 +10086,7 @@
       "priority": 2
     },
     {
-      "id": "stop_4d206z_265",
+      "id": "stop_4d206z_264",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159150831",
@@ -10161,7 +10124,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1lzlaxk_266",
+      "id": "stop_1lzlaxk_265",
       "type": "DELIVERY",
       "comment": "underserved",
       "candidate_id": "ne-1159135691",
@@ -10200,7 +10163,7 @@
       "priority": 2
     },
     {
-      "id": "stop_kp81q3_267",
+      "id": "stop_kp81q3_266",
       "type": "DELIVERY",
       "comment": "underserved",
       "candidate_id": "ne-1159135027",
@@ -10238,7 +10201,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1t1ds5z_268",
+      "id": "stop_1t1ds5z_267",
       "type": "DELIVERY",
       "comment": "underserved",
       "candidate_id": "ne-1159146043",
@@ -10277,7 +10240,7 @@
       "priority": 2
     },
     {
-      "id": "stop_cae7ed_269",
+      "id": "stop_cae7ed_268",
       "type": "DELIVERY",
       "comment": "underserved",
       "candidate_id": "ne-1159118161",
@@ -10315,7 +10278,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1iymevp_270",
+      "id": "stop_1iymevp_269",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159147491",
@@ -10353,7 +10316,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1hivk8t_271",
+      "id": "stop_1hivk8t_270",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159149853",
@@ -10391,7 +10354,7 @@
       "priority": 2
     },
     {
-      "id": "stop_ds001q_272",
+      "id": "stop_ds001q_271",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159140381",
@@ -10429,7 +10392,7 @@
       "priority": 2
     },
     {
-      "id": "stop_11i904c_273",
+      "id": "stop_11i904c_272",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159130685",
@@ -10467,7 +10430,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1kfobf4_274",
+      "id": "stop_1kfobf4_273",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159120077",
@@ -10505,7 +10468,7 @@
       "priority": 2
     },
     {
-      "id": "stop_e41a31_275",
+      "id": "stop_e41a31_274",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159150073",
@@ -10543,7 +10506,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1hpwkb8_276",
+      "id": "stop_1hpwkb8_275",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159149757",
@@ -10581,7 +10544,7 @@
       "priority": 2
     },
     {
-      "id": "stop_f6akh3_277",
+      "id": "stop_f6akh3_276",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159144045",
@@ -10619,7 +10582,7 @@
       "priority": 2
     },
     {
-      "id": "stop_n7ir8m_278",
+      "id": "stop_n7ir8m_277",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159136371",
@@ -10657,7 +10620,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1wrx660_279",
+      "id": "stop_1wrx660_278",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159135471",
@@ -10695,7 +10658,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1uthl12_280",
+      "id": "stop_1uthl12_279",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159139095",
@@ -10733,7 +10696,7 @@
       "priority": 2
     },
     {
-      "id": "stop_4gymob_281",
+      "id": "stop_4gymob_280",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159148225",
@@ -10771,7 +10734,7 @@
       "priority": 2
     },
     {
-      "id": "stop_2aazmz_282",
+      "id": "stop_2aazmz_281",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159129505",
@@ -10809,7 +10772,7 @@
       "priority": 2
     },
     {
-      "id": "stop_wjizzy_283",
+      "id": "stop_wjizzy_282",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159140693",
@@ -10847,7 +10810,7 @@
       "priority": 2
     },
     {
-      "id": "stop_p9veyq_284",
+      "id": "stop_p9veyq_283",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159151563",
@@ -10885,7 +10848,7 @@
       "priority": 1
     },
     {
-      "id": "stop_1meaedf_285",
+      "id": "stop_1meaedf_284",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159135827",
@@ -10923,7 +10886,7 @@
       "priority": 2
     },
     {
-      "id": "stop_10k4inn_286",
+      "id": "stop_10k4inn_285",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159150875",
@@ -10961,7 +10924,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1s69l4o_287",
+      "id": "stop_1s69l4o_286",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159148453",
@@ -11000,7 +10963,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1yodxis_288",
+      "id": "stop_1yodxis_287",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159148307",
@@ -11038,7 +11001,7 @@
       "priority": 2
     },
     {
-      "id": "stop_11nzrxk_289",
+      "id": "stop_11nzrxk_288",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159150809",
@@ -11076,7 +11039,7 @@
       "priority": 2
     },
     {
-      "id": "stop_7p3jil_290",
+      "id": "stop_7p3jil_289",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159150811",
@@ -11114,7 +11077,7 @@
       "priority": 2
     },
     {
-      "id": "stop_we99jg_291",
+      "id": "stop_we99jg_290",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159151419",
@@ -11152,7 +11115,7 @@
       "priority": 1
     },
     {
-      "id": "stop_c17mc8_292",
+      "id": "stop_c17mc8_291",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159119239",
@@ -11190,7 +11153,7 @@
       "priority": 2
     },
     {
-      "id": "stop_15jkrug_293",
+      "id": "stop_15jkrug_292",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159146433",
@@ -11228,7 +11191,7 @@
       "priority": 2
     },
     {
-      "id": "stop_3ww9se_294",
+      "id": "stop_3ww9se_293",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159148253",
@@ -11266,7 +11229,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1omscs4_295",
+      "id": "stop_1omscs4_294",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159145115",
@@ -11305,7 +11268,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1s9e7t3_296",
+      "id": "stop_1s9e7t3_295",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159147523",
@@ -11343,7 +11306,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1pfx0j4_297",
+      "id": "stop_1pfx0j4_296",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159136931",
@@ -11381,7 +11344,7 @@
       "priority": 2
     },
     {
-      "id": "stop_3fa4n8_298",
+      "id": "stop_3fa4n8_297",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159149403",
@@ -11419,7 +11382,7 @@
       "priority": 2
     },
     {
-      "id": "stop_xvyheh_299",
+      "id": "stop_xvyheh_298",
       "type": "DELIVERY",
       "comment": "nature",
       "candidate_id": "Q122082",
@@ -11457,7 +11420,7 @@
       "priority": 2
     },
     {
-      "id": "stop_kpvon_300",
+      "id": "stop_kpvon_299",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159119151",
@@ -11495,7 +11458,7 @@
       "priority": 2
     },
     {
-      "id": "stop_x3f1vx_301",
+      "id": "stop_x3f1vx_300",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159140689",
@@ -11533,7 +11496,7 @@
       "priority": 2
     },
     {
-      "id": "stop_16wb2i3_302",
+      "id": "stop_16wb2i3_301",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159151177",
@@ -11571,7 +11534,7 @@
       "priority": 2
     },
     {
-      "id": "stop_15jwnig_303",
+      "id": "stop_15jwnig_302",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159149511",
@@ -11609,7 +11572,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1fm3qht_304",
+      "id": "stop_1fm3qht_303",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159139515",
@@ -11647,7 +11610,7 @@
       "priority": 2
     },
     {
-      "id": "stop_5p9ejz_305",
+      "id": "stop_5p9ejz_304",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159151199",
@@ -11685,7 +11648,7 @@
       "priority": 2
     },
     {
-      "id": "stop_10k1d5o_306",
+      "id": "stop_10k1d5o_305",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159150805",
@@ -11723,7 +11686,7 @@
       "priority": 2
     },
     {
-      "id": "stop_7p0sfa_307",
+      "id": "stop_7p0sfa_306",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159127243",
@@ -11761,7 +11724,7 @@
       "priority": 1
     },
     {
-      "id": "stop_1ltr9mo_308",
+      "id": "stop_1ltr9mo_307",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159146051",
@@ -11799,7 +11762,7 @@
       "priority": 2
     },
     {
-      "id": "stop_fv3nd5_309",
+      "id": "stop_fv3nd5_308",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159145097",
@@ -11837,7 +11800,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1ho7ahq_310",
+      "id": "stop_1ho7ahq_309",
       "type": "DELIVERY",
       "comment": "underserved",
       "candidate_id": "ne-1159148613",
@@ -11876,7 +11839,7 @@
       "priority": 2
     },
     {
-      "id": "stop_pw7906_311",
+      "id": "stop_pw7906_310",
       "type": "DELIVERY",
       "comment": "underserved",
       "candidate_id": "ne-1159148415",
@@ -11914,7 +11877,7 @@
       "priority": 2
     },
     {
-      "id": "stop_wtp6km_312",
+      "id": "stop_wtp6km_311",
       "type": "DELIVERY",
       "comment": "underserved",
       "candidate_id": "ne-1159149441",
@@ -11952,7 +11915,7 @@
       "priority": 2
     },
     {
-      "id": "stop_12wm8sc_313",
+      "id": "stop_12wm8sc_312",
       "type": "DELIVERY",
       "comment": "underserved",
       "candidate_id": "ne-1159148299",
@@ -11990,7 +11953,7 @@
       "priority": 2
     },
     {
-      "id": "stop_dmqleu_314",
+      "id": "stop_dmqleu_313",
       "type": "DELIVERY",
       "comment": "underserved",
       "candidate_id": "ne-1159141391",
@@ -12028,7 +11991,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1gczmfb_315",
+      "id": "stop_1gczmfb_314",
       "type": "DELIVERY",
       "comment": "underserved",
       "candidate_id": "ne-1159144063",
@@ -12066,7 +12029,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1jh3cwp_316",
+      "id": "stop_1jh3cwp_315",
       "type": "DELIVERY",
       "comment": "underserved",
       "candidate_id": "ne-1159139267",
@@ -12104,7 +12067,7 @@
       "priority": 2
     },
     {
-      "id": "stop_14kq2nb_317",
+      "id": "stop_14kq2nb_316",
       "type": "DELIVERY",
       "comment": "special",
       "candidate_id": "Q30970",
@@ -12142,7 +12105,7 @@
       "priority": 2
     },
     {
-      "id": "stop_qr551j_318",
+      "id": "stop_qr551j_317",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159146029",
@@ -12180,7 +12143,7 @@
       "priority": 2
     },
     {
-      "id": "stop_bkmvl7_319",
+      "id": "stop_bkmvl7_318",
       "type": "DELIVERY",
       "comment": "underserved",
       "candidate_id": "ne-1159148009",
@@ -12219,7 +12182,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1in29pj_320",
+      "id": "stop_1in29pj_319",
       "type": "DELIVERY",
       "comment": "underserved",
       "candidate_id": "ne-1159144759",
@@ -12257,7 +12220,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1xuzdjc_321",
+      "id": "stop_1xuzdjc_320",
       "type": "DELIVERY",
       "comment": "underserved",
       "candidate_id": "ne-1159134803",
@@ -12296,7 +12259,7 @@
       "priority": 2
     },
     {
-      "id": "stop_rn9huf_322",
+      "id": "stop_rn9huf_321",
       "type": "DELIVERY",
       "comment": "underserved",
       "candidate_id": "ne-1159147567",
@@ -12334,7 +12297,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1e18yi4_323",
+      "id": "stop_1e18yi4_322",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159150171",
@@ -12372,7 +12335,7 @@
       "priority": 2
     },
     {
-      "id": "stop_l1xd9x_324",
+      "id": "stop_l1xd9x_323",
       "type": "DELIVERY",
       "comment": "underserved",
       "candidate_id": "ne-1159148533",
@@ -12410,7 +12373,7 @@
       "priority": 2
     },
     {
-      "id": "stop_abaap4_325",
+      "id": "stop_abaap4_324",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159150913",
@@ -12448,7 +12411,7 @@
       "priority": 2
     },
     {
-      "id": "stop_9vaz8l_326",
+      "id": "stop_9vaz8l_325",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159140317",
@@ -12486,7 +12449,7 @@
       "priority": 2
     },
     {
-      "id": "stop_emwhor_327",
+      "id": "stop_emwhor_326",
       "type": "DELIVERY",
       "comment": "underserved",
       "candidate_id": "ne-1159144023",
@@ -12524,7 +12487,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1j3paqf_328",
+      "id": "stop_1j3paqf_327",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159121905",
@@ -12562,7 +12525,7 @@
       "priority": 2
     },
     {
-      "id": "stop_9dvvfy_329",
+      "id": "stop_9dvvfy_328",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159138777",
@@ -12600,7 +12563,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1le12jx_330",
+      "id": "stop_1le12jx_329",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159116677",
@@ -12638,7 +12601,7 @@
       "priority": 2
     },
     {
-      "id": "stop_8tqd22_331",
+      "id": "stop_8tqd22_330",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159138759",
@@ -12676,7 +12639,7 @@
       "priority": 2
     },
     {
-      "id": "stop_evrvat_332",
+      "id": "stop_evrvat_331",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159149703",
@@ -12714,7 +12677,7 @@
       "priority": 2
     },
     {
-      "id": "stop_16c8pm6_333",
+      "id": "stop_16c8pm6_332",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159151141",
@@ -12752,7 +12715,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1mjq91n_334",
+      "id": "stop_1mjq91n_333",
       "type": "DELIVERY",
       "comment": "underserved",
       "candidate_id": "ne-1159120959",
@@ -12790,7 +12753,7 @@
       "priority": 2
     },
     {
-      "id": "stop_bjgagu_335",
+      "id": "stop_bjgagu_334",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159143133",
@@ -12828,7 +12791,7 @@
       "priority": 2
     },
     {
-      "id": "stop_ijbksr_336",
+      "id": "stop_ijbksr_335",
       "type": "DELIVERY",
       "comment": "underserved",
       "candidate_id": "ne-1159135795",
@@ -12867,7 +12830,7 @@
       "priority": 2
     },
     {
-      "id": "stop_3pw6zd_337",
+      "id": "stop_3pw6zd_336",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159150345",
@@ -12905,7 +12868,7 @@
       "priority": 2
     },
     {
-      "id": "stop_lxdjxc_338",
+      "id": "stop_lxdjxc_337",
       "type": "DELIVERY",
       "comment": "underserved",
       "candidate_id": "ne-1159141663",
@@ -12943,7 +12906,7 @@
       "priority": 2
     },
     {
-      "id": "stop_qf8z2v_339",
+      "id": "stop_qf8z2v_338",
       "type": "DELIVERY",
       "comment": "underserved",
       "candidate_id": "ne-1159133821",
@@ -12981,7 +12944,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1xvs6rn_340",
+      "id": "stop_1xvs6rn_339",
       "type": "DELIVERY",
       "comment": "underserved",
       "candidate_id": "ne-1159144957",
@@ -13019,7 +12982,7 @@
       "priority": 2
     },
     {
-      "id": "stop_pxj8kw_341",
+      "id": "stop_pxj8kw_340",
       "type": "DELIVERY",
       "comment": "underserved",
       "candidate_id": "ne-1159121755",
@@ -13057,7 +13020,7 @@
       "priority": 2
     },
     {
-      "id": "stop_hcz0vi_342",
+      "id": "stop_hcz0vi_341",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159150605",
@@ -13095,7 +13058,7 @@
       "priority": 2
     },
     {
-      "id": "stop_jdwlm4_343",
+      "id": "stop_jdwlm4_342",
       "type": "DELIVERY",
       "comment": "underserved",
       "candidate_id": "ne-1159148545",
@@ -13133,7 +13096,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1otn6hp_344",
+      "id": "stop_1otn6hp_343",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159133849",
@@ -13172,7 +13135,7 @@
       "priority": 2
     },
     {
-      "id": "stop_jpvg14_345",
+      "id": "stop_jpvg14_344",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159149029",
@@ -13210,7 +13173,7 @@
       "priority": 2
     },
     {
-      "id": "stop_o5yjml_346",
+      "id": "stop_o5yjml_345",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159149075",
@@ -13248,7 +13211,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1bg5fch_347",
+      "id": "stop_1bg5fch_346",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159147943",
@@ -13287,7 +13250,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1xgohmt_348",
+      "id": "stop_1xgohmt_347",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159149435",
@@ -13325,7 +13288,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1jgh0sw_349",
+      "id": "stop_1jgh0sw_348",
       "type": "DELIVERY",
       "comment": "special",
       "candidate_id": "Q174262",
@@ -13363,7 +13326,7 @@
       "priority": 2
     },
     {
-      "id": "stop_12vq15i_350",
+      "id": "stop_12vq15i_349",
       "type": "DELIVERY",
       "comment": "special",
       "candidate_id": "Q147738",
@@ -13401,7 +13364,7 @@
       "priority": 2
     },
     {
-      "id": "stop_qqqbfv_351",
+      "id": "stop_qqqbfv_350",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159146061",
@@ -13440,7 +13403,7 @@
       "priority": 2
     },
     {
-      "id": "stop_q4kgfj_352",
+      "id": "stop_q4kgfj_351",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159146951",
@@ -13478,7 +13441,7 @@
       "priority": 2
     },
     {
-      "id": "stop_3q6pws_353",
+      "id": "stop_3q6pws_352",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159143041",
@@ -13516,7 +13479,7 @@
       "priority": 2
     },
     {
-      "id": "stop_bbola6_354",
+      "id": "stop_bbola6_353",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159130005",
@@ -13554,7 +13517,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1umm750_355",
+      "id": "stop_1umm750_354",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159129997",
@@ -13592,7 +13555,7 @@
       "priority": 2
     },
     {
-      "id": "stop_xhozio_356",
+      "id": "stop_xhozio_355",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159140563",
@@ -13630,7 +13593,7 @@
       "priority": 2
     },
     {
-      "id": "stop_oe2w8s_357",
+      "id": "stop_oe2w8s_356",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159147229",
@@ -13668,7 +13631,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1i2raoq_358",
+      "id": "stop_1i2raoq_357",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159135709",
@@ -13706,7 +13669,7 @@
       "priority": 2
     },
     {
-      "id": "stop_nlzc8n_359",
+      "id": "stop_nlzc8n_358",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159149077",
@@ -13744,7 +13707,7 @@
       "priority": 2
     },
     {
-      "id": "stop_opb2z6_360",
+      "id": "stop_opb2z6_359",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159151505",
@@ -13782,7 +13745,7 @@
       "priority": 1
     },
     {
-      "id": "stop_16nj6mc_361",
+      "id": "stop_16nj6mc_360",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159146437",
@@ -13820,7 +13783,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1jzauko_362",
+      "id": "stop_1jzauko_361",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159132333",
@@ -13858,7 +13821,7 @@
       "priority": 2
     },
     {
-      "id": "stop_mr84rz_363",
+      "id": "stop_mr84rz_362",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159136871",
@@ -13896,7 +13859,7 @@
       "priority": 2
     },
     {
-      "id": "stop_sge4he_364",
+      "id": "stop_sge4he_363",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159132155",
@@ -13934,7 +13897,7 @@
       "priority": 2
     },
     {
-      "id": "stop_r5yx6i_365",
+      "id": "stop_r5yx6i_364",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159147223",
@@ -13972,7 +13935,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1kbf1e6_366",
+      "id": "stop_1kbf1e6_365",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159149089",
@@ -14010,7 +13973,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1r7x78w_367",
+      "id": "stop_1r7x78w_366",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159146301",
@@ -14048,7 +14011,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1b0ip6n_368",
+      "id": "stop_1b0ip6n_367",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159141943",
@@ -14086,7 +14049,7 @@
       "priority": 2
     },
     {
-      "id": "stop_nzc9ls_369",
+      "id": "stop_nzc9ls_368",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159146037",
@@ -14124,7 +14087,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1fr2qpo_370",
+      "id": "stop_1fr2qpo_369",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159135097",
@@ -14162,7 +14125,7 @@
       "priority": 2
     },
     {
-      "id": "stop_lyv1gy_371",
+      "id": "stop_lyv1gy_370",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159129689",
@@ -14200,7 +14163,7 @@
       "priority": 2
     },
     {
-      "id": "stop_13vn5om_372",
+      "id": "stop_13vn5om_371",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159146439",
@@ -14239,7 +14202,7 @@
       "priority": 2
     },
     {
-      "id": "stop_qomtbg_373",
+      "id": "stop_qomtbg_372",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159146943",
@@ -14277,7 +14240,7 @@
       "priority": 2
     },
     {
-      "id": "stop_wpgl1n_374",
+      "id": "stop_wpgl1n_373",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159146353",
@@ -14315,7 +14278,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1c04mqf_375",
+      "id": "stop_1c04mqf_374",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159147945",
@@ -14353,7 +14316,7 @@
       "priority": 2
     },
     {
-      "id": "stop_yfcvzn_376",
+      "id": "stop_yfcvzn_375",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159148261",
@@ -14391,7 +14354,7 @@
       "priority": 2
     },
     {
-      "id": "stop_dk5872_377",
+      "id": "stop_dk5872_376",
       "type": "DELIVERY",
       "comment": "underserved",
       "candidate_id": "ne-1159150065",
@@ -14429,7 +14392,7 @@
       "priority": 2
     },
     {
-      "id": "stop_49205g_378",
+      "id": "stop_49205g_377",
       "type": "DELIVERY",
       "comment": "underserved",
       "candidate_id": "ne-1159136153",
@@ -14467,7 +14430,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1l2oj39_379",
+      "id": "stop_1l2oj39_378",
       "type": "DELIVERY",
       "comment": "underserved",
       "candidate_id": "ne-1159118969",
@@ -14505,7 +14468,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1m0kt43_380",
+      "id": "stop_1m0kt43_379",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159117063",
@@ -14543,7 +14506,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1mi8jd7_381",
+      "id": "stop_1mi8jd7_380",
       "type": "DELIVERY",
       "comment": "underserved",
       "candidate_id": "ne-1159151205",
@@ -14581,7 +14544,7 @@
       "priority": 2
     },
     {
-      "id": "stop_154j2c4_382",
+      "id": "stop_154j2c4_381",
       "type": "DELIVERY",
       "comment": "underserved",
       "candidate_id": "ne-1159148291",
@@ -14620,7 +14583,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1bbyesg_383",
+      "id": "stop_1bbyesg_382",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159150625",
@@ -14658,7 +14621,7 @@
       "priority": 2
     },
     {
-      "id": "stop_17o9tp3_384",
+      "id": "stop_17o9tp3_383",
       "type": "DELIVERY",
       "comment": "underserved",
       "candidate_id": "ne-1159143071",
@@ -14696,7 +14659,7 @@
       "priority": 2
     },
     {
-      "id": "stop_n9jcva_385",
+      "id": "stop_n9jcva_384",
       "type": "DELIVERY",
       "comment": "underserved",
       "candidate_id": "ne-1159147249",
@@ -14734,7 +14697,7 @@
       "priority": 2
     },
     {
-      "id": "stop_12ek8iv_386",
+      "id": "stop_12ek8iv_385",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159148935",
@@ -14773,7 +14736,7 @@
       "priority": 2
     },
     {
-      "id": "stop_yfo0oz_387",
+      "id": "stop_yfo0oz_386",
       "type": "DELIVERY",
       "comment": "special",
       "candidate_id": "Q185678",
@@ -14811,7 +14774,7 @@
       "priority": 2
     },
     {
-      "id": "stop_8wd3py_388",
+      "id": "stop_8wd3py_387",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159151075",
@@ -14850,7 +14813,7 @@
       "priority": 2
     },
     {
-      "id": "stop_7x9dlq_389",
+      "id": "stop_7x9dlq_388",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159151185",
@@ -14888,7 +14851,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1ezxs0f_390",
+      "id": "stop_1ezxs0f_389",
       "type": "DELIVERY",
       "comment": "special",
       "candidate_id": "Q179431",
@@ -14926,7 +14889,7 @@
       "priority": 2
     },
     {
-      "id": "stop_oj8bhr_391",
+      "id": "stop_oj8bhr_390",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159146021",
@@ -14964,7 +14927,7 @@
       "priority": 2
     },
     {
-      "id": "stop_nf9wpv_392",
+      "id": "stop_nf9wpv_391",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159146025",
@@ -15002,7 +14965,7 @@
       "priority": 2
     },
     {
-      "id": "stop_11spl0z_393",
+      "id": "stop_11spl0z_392",
       "type": "DELIVERY",
       "comment": "underserved",
       "candidate_id": "ne-1159133641",
@@ -15041,7 +15004,7 @@
       "priority": 2
     },
     {
-      "id": "stop_8ci49q_394",
+      "id": "stop_8ci49q_393",
       "type": "DELIVERY",
       "comment": "underserved",
       "candidate_id": "ne-1159127175",
@@ -15079,7 +15042,7 @@
       "priority": 2
     },
     {
-      "id": "stop_16km0le_395",
+      "id": "stop_16km0le_394",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159150339",
@@ -15117,7 +15080,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1nhv639_396",
+      "id": "stop_1nhv639_395",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159150433",
@@ -15155,7 +15118,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1mxvypb_397",
+      "id": "stop_1mxvypb_396",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159150431",
@@ -15193,7 +15156,7 @@
       "priority": 2
     },
     {
-      "id": "stop_mv8h0y_398",
+      "id": "stop_mv8h0y_397",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159150447",
@@ -15231,7 +15194,7 @@
       "priority": 2
     },
     {
-      "id": "stop_yyxded_399",
+      "id": "stop_yyxded_398",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159149307",
@@ -15269,7 +15232,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1j314od_400",
+      "id": "stop_1j314od_399",
       "type": "DELIVERY",
       "comment": "special",
       "candidate_id": "Q44401",
@@ -15308,7 +15271,7 @@
       "priority": 2
     },
     {
-      "id": "stop_8vcbvj_401",
+      "id": "stop_8vcbvj_400",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159148755",
@@ -15346,7 +15309,7 @@
       "priority": 2
     },
     {
-      "id": "stop_vy51s4_402",
+      "id": "stop_vy51s4_401",
       "type": "DELIVERY",
       "comment": "underserved",
       "candidate_id": "ne-1159136049",
@@ -15384,7 +15347,7 @@
       "priority": 2
     },
     {
-      "id": "stop_s6o0xq_403",
+      "id": "stop_s6o0xq_402",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159131943",
@@ -15422,7 +15385,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1xwa5va_404",
+      "id": "stop_1xwa5va_403",
       "type": "DELIVERY",
       "comment": "underserved",
       "candidate_id": "ne-1159144907",
@@ -15460,7 +15423,7 @@
       "priority": 2
     },
     {
-      "id": "stop_ee4xx9_405",
+      "id": "stop_ee4xx9_404",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159132411",
@@ -15499,7 +15462,7 @@
       "priority": 2
     },
     {
-      "id": "stop_zt64b_406",
+      "id": "stop_zt64b_405",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159144229",
@@ -15537,7 +15500,7 @@
       "priority": 2
     },
     {
-      "id": "stop_4m5kvm_407",
+      "id": "stop_4m5kvm_406",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159151101",
@@ -15575,7 +15538,7 @@
       "priority": 2
     },
     {
-      "id": "stop_8h8kzo_408",
+      "id": "stop_8h8kzo_407",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159151183",
@@ -15613,7 +15576,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1qg2htb_409",
+      "id": "stop_1qg2htb_408",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159151559",
@@ -15651,7 +15614,7 @@
       "priority": 1
     },
     {
-      "id": "stop_8agu5u_410",
+      "id": "stop_8agu5u_409",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159132407",
@@ -15689,7 +15652,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1iybcwm_411",
+      "id": "stop_1iybcwm_410",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159112629",
@@ -15727,7 +15690,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1lqsify_412",
+      "id": "stop_1lqsify_411",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159112647",
@@ -15765,7 +15728,7 @@
       "priority": 2
     },
     {
-      "id": "stop_tk7mqs_413",
+      "id": "stop_tk7mqs_412",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159149191",
@@ -15803,7 +15766,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1q0br6p_414",
+      "id": "stop_1q0br6p_413",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159112703",
@@ -15841,7 +15804,7 @@
       "priority": 2
     },
     {
-      "id": "stop_c2rhnh_415",
+      "id": "stop_c2rhnh_414",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159122991",
@@ -15879,7 +15842,7 @@
       "priority": 2
     },
     {
-      "id": "stop_cq7brf_416",
+      "id": "stop_cq7brf_415",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159132417",
@@ -15917,7 +15880,7 @@
       "priority": 2
     },
     {
-      "id": "stop_iw5ubw_417",
+      "id": "stop_iw5ubw_416",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159112663",
@@ -15955,7 +15918,7 @@
       "priority": 2
     },
     {
-      "id": "stop_vn6yey_418",
+      "id": "stop_vn6yey_417",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159147335",
@@ -15993,7 +15956,7 @@
       "priority": 2
     },
     {
-      "id": "stop_v37r10_419",
+      "id": "stop_v37r10_418",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159147337",
@@ -16031,7 +15994,7 @@
       "priority": 2
     },
     {
-      "id": "stop_gcvuzu_420",
+      "id": "stop_gcvuzu_419",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159122895",
@@ -16069,7 +16032,7 @@
       "priority": 2
     },
     {
-      "id": "stop_7v6tvn_421",
+      "id": "stop_7v6tvn_420",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159147699",
@@ -16107,7 +16070,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1ylmqzj_422",
+      "id": "stop_1ylmqzj_421",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159148971",
@@ -16145,7 +16108,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1x4c4mp_423",
+      "id": "stop_1x4c4mp_422",
       "type": "DELIVERY",
       "comment": "underserved",
       "candidate_id": "ne-1159136077",
@@ -16183,7 +16146,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1uhbhnu_424",
+      "id": "stop_1uhbhnu_423",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159131921",
@@ -16221,7 +16184,7 @@
       "priority": 2
     },
     {
-      "id": "stop_11mj6yf_425",
+      "id": "stop_11mj6yf_424",
       "type": "DELIVERY",
       "comment": "underserved",
       "candidate_id": "ne-1159122179",
@@ -16259,7 +16222,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1545an3_426",
+      "id": "stop_1545an3_425",
       "type": "DELIVERY",
       "comment": "underserved",
       "candidate_id": "ne-1159128025",
@@ -16297,7 +16260,7 @@
       "priority": 2
     },
     {
-      "id": "stop_pz60zm_427",
+      "id": "stop_pz60zm_426",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159131903",
@@ -16335,7 +16298,7 @@
       "priority": 2
     },
     {
-      "id": "stop_3i763q_428",
+      "id": "stop_3i763q_427",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159151105",
@@ -16373,7 +16336,7 @@
       "priority": 2
     },
     {
-      "id": "stop_12qnqgf_429",
+      "id": "stop_12qnqgf_428",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159144269",
@@ -16411,7 +16374,7 @@
       "priority": 2
     },
     {
-      "id": "stop_a33nff_430",
+      "id": "stop_a33nff_429",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159147691",
@@ -16449,7 +16412,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1w8sr2e_431",
+      "id": "stop_1w8sr2e_430",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159150281",
@@ -16487,7 +16450,7 @@
       "priority": 2
     },
     {
-      "id": "stop_130kupy_432",
+      "id": "stop_130kupy_431",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159142075",
@@ -16525,7 +16488,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1yxpsew_433",
+      "id": "stop_1yxpsew_432",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159130551",
@@ -16563,7 +16526,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1pk2ty5_434",
+      "id": "stop_1pk2ty5_433",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159148551",
@@ -16601,7 +16564,7 @@
       "priority": 2
     },
     {
-      "id": "stop_40y17z_435",
+      "id": "stop_40y17z_434",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159142083",
@@ -16639,7 +16602,7 @@
       "priority": 2
     },
     {
-      "id": "stop_hwv2rh_436",
+      "id": "stop_hwv2rh_435",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159150613",
@@ -16677,7 +16640,7 @@
       "priority": 2
     },
     {
-      "id": "stop_16nmc4b_437",
+      "id": "stop_16nmc4b_436",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159146407",
@@ -16715,7 +16678,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1hwh8jd_438",
+      "id": "stop_1hwh8jd_437",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159135915",
@@ -16753,7 +16716,7 @@
       "priority": 2
     },
     {
-      "id": "stop_9zz0r0_439",
+      "id": "stop_9zz0r0_438",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159148721",
@@ -16791,7 +16754,7 @@
       "priority": 2
     },
     {
-      "id": "stop_ibu06j_440",
+      "id": "stop_ibu06j_439",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159140203",
@@ -16829,7 +16792,7 @@
       "priority": 2
     },
     {
-      "id": "stop_jx6a7s_441",
+      "id": "stop_jx6a7s_440",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159124491",
@@ -16867,7 +16830,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1yfvlg7_442",
+      "id": "stop_1yfvlg7_441",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159149271",
@@ -16905,7 +16868,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1aqku5v_443",
+      "id": "stop_1aqku5v_442",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159124515",
@@ -16943,7 +16906,7 @@
       "priority": 2
     },
     {
-      "id": "stop_i0puog_444",
+      "id": "stop_i0puog_443",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159141577",
@@ -16981,7 +16944,7 @@
       "priority": 2
     },
     {
-      "id": "stop_uhglzw_445",
+      "id": "stop_uhglzw_444",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159146363",
@@ -17019,7 +16982,7 @@
       "priority": 2
     },
     {
-      "id": "stop_5130sh_446",
+      "id": "stop_5130sh_445",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159113331",
@@ -17057,7 +17020,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1r3i0t1_447",
+      "id": "stop_1r3i0t1_446",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159124647",
@@ -17096,7 +17059,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1yhsp0m_448",
+      "id": "stop_1yhsp0m_447",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159146255",
@@ -17135,7 +17098,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1o8bz9h_449",
+      "id": "stop_1o8bz9h_448",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159151575",
@@ -17174,7 +17137,7 @@
       "priority": 1
     },
     {
-      "id": "stop_ye15qt_450",
+      "id": "stop_ye15qt_449",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159146287",
@@ -17213,7 +17176,7 @@
       "priority": 2
     },
     {
-      "id": "stop_hzhy3d_451",
+      "id": "stop_hzhy3d_450",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159151243",
@@ -17252,7 +17215,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1npi09k_452",
+      "id": "stop_1npi09k_451",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159125621",
@@ -17291,7 +17254,7 @@
       "priority": 2
     },
     {
-      "id": "stop_xdqsg5_453",
+      "id": "stop_xdqsg5_452",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159125473",
@@ -17330,7 +17293,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1w46m5k_454",
+      "id": "stop_1w46m5k_453",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159133455",
@@ -17369,7 +17332,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1mked3n_455",
+      "id": "stop_1mked3n_454",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159151573",
@@ -17408,7 +17371,7 @@
       "priority": 1
     },
     {
-      "id": "stop_1xcib9x_456",
+      "id": "stop_1xcib9x_455",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159149299",
@@ -17447,7 +17410,7 @@
       "priority": 2
     },
     {
-      "id": "stop_l4k0up_457",
+      "id": "stop_l4k0up_456",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159147433",
@@ -17486,7 +17449,7 @@
       "priority": 2
     },
     {
-      "id": "stop_zzupli_458",
+      "id": "stop_zzupli_457",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159143933",
@@ -17526,7 +17489,7 @@
       "priority": 2
     },
     {
-      "id": "stop_kkzn2f_459",
+      "id": "stop_kkzn2f_458",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159147479",
@@ -17565,7 +17528,7 @@
       "priority": 2
     },
     {
-      "id": "stop_11ul14x_460",
+      "id": "stop_11ul14x_459",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159148933",
@@ -17605,7 +17568,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1grk6fg_461",
+      "id": "stop_1grk6fg_460",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159147405",
@@ -17644,7 +17607,7 @@
       "priority": 2
     },
     {
-      "id": "stop_vh9atu_462",
+      "id": "stop_vh9atu_461",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159124619",
@@ -17683,7 +17646,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1xxthmo_463",
+      "id": "stop_1xxthmo_462",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159146257",
@@ -17722,7 +17685,7 @@
       "priority": 2
     },
     {
-      "id": "stop_104pe96_464",
+      "id": "stop_104pe96_463",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159143887",
@@ -17761,7 +17724,7 @@
       "priority": 2
     },
     {
-      "id": "stop_xi4itd_465",
+      "id": "stop_xi4itd_464",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159151401",
@@ -17799,7 +17762,7 @@
       "priority": 2
     },
     {
-      "id": "stop_cgc2kz_466",
+      "id": "stop_cgc2kz_465",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159149837",
@@ -17837,7 +17800,7 @@
       "priority": 2
     },
     {
-      "id": "stop_ojbgzq_467",
+      "id": "stop_ojbgzq_466",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159146035",
@@ -17875,7 +17838,7 @@
       "priority": 2
     },
     {
-      "id": "stop_j4o9gc_468",
+      "id": "stop_j4o9gc_467",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159141573",
@@ -17913,7 +17876,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1535dv8_469",
+      "id": "stop_1535dv8_468",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159113347",
@@ -17951,7 +17914,7 @@
       "priority": 2
     },
     {
-      "id": "stop_v0m5hb_470",
+      "id": "stop_v0m5hb_469",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159150589",
@@ -17989,7 +17952,7 @@
       "priority": 2
     },
     {
-      "id": "stop_16r65j1_471",
+      "id": "stop_16r65j1_470",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159113371",
@@ -18027,7 +17990,7 @@
       "priority": 2
     },
     {
-      "id": "stop_103jvcl_472",
+      "id": "stop_103jvcl_471",
       "type": "DELIVERY",
       "comment": "special",
       "candidate_id": "Q30994",
@@ -18066,7 +18029,7 @@
       "priority": 2
     },
     {
-      "id": "stop_13glcvh_473",
+      "id": "stop_13glcvh_472",
       "type": "DELIVERY",
       "comment": "special",
       "candidate_id": "Q30958",
@@ -18104,7 +18067,7 @@
       "priority": 2
     },
     {
-      "id": "stop_5x9kfr_474",
+      "id": "stop_5x9kfr_473",
       "type": "DELIVERY",
       "comment": "special",
       "candidate_id": "Q34112",
@@ -18142,7 +18105,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1ltxjxf_475",
+      "id": "stop_1ltxjxf_474",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159150435",
@@ -18180,7 +18143,7 @@
       "priority": 2
     },
     {
-      "id": "stop_rayymj_476",
+      "id": "stop_rayymj_475",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159150457",
@@ -18218,7 +18181,7 @@
       "priority": 2
     },
     {
-      "id": "stop_14svwqg_477",
+      "id": "stop_14svwqg_476",
       "type": "DELIVERY",
       "comment": "special",
       "candidate_id": "Q31006",
@@ -18256,7 +18219,7 @@
       "priority": 2
     },
     {
-      "id": "stop_71avw_478",
+      "id": "stop_71avw_477",
       "type": "DELIVERY",
       "comment": "special",
       "candidate_id": "Q167024",
@@ -18294,7 +18257,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1gf0ayw_479",
+      "id": "stop_1gf0ayw_478",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159149847",
@@ -18332,7 +18295,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1xp7hvk_480",
+      "id": "stop_1xp7hvk_479",
       "type": "DELIVERY",
       "comment": "special",
       "candidate_id": "Q81621",
@@ -18370,7 +18333,7 @@
       "priority": 2
     },
     {
-      "id": "stop_917sdm_481",
+      "id": "stop_917sdm_480",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159151181",
@@ -18408,7 +18371,7 @@
       "priority": 2
     },
     {
-      "id": "stop_s9hk55_482",
+      "id": "stop_s9hk55_481",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159150507",
@@ -18446,7 +18409,7 @@
       "priority": 2
     },
     {
-      "id": "stop_tq79xi_483",
+      "id": "stop_tq79xi_482",
       "type": "DELIVERY",
       "comment": "special",
       "candidate_id": "Q331584",
@@ -18484,7 +18447,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1mxpoek_484",
+      "id": "stop_1mxpoek_483",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159146055",
@@ -18522,7 +18485,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1nhovsi_485",
+      "id": "stop_1nhovsi_484",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159146057",
@@ -18560,7 +18523,7 @@
       "priority": 2
     },
     {
-      "id": "stop_nufg_486",
+      "id": "stop_nufg_485",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159146253",
@@ -18598,7 +18561,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1cf1fpz_487",
+      "id": "stop_1cf1fpz_486",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159133195",
@@ -18636,7 +18599,7 @@
       "priority": 2
     },
     {
-      "id": "stop_j44myu_488",
+      "id": "stop_j44myu_487",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159151237",
@@ -18674,7 +18637,7 @@
       "priority": 2
     },
     {
-      "id": "stop_rpicr7_489",
+      "id": "stop_rpicr7_488",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159150505",
@@ -18712,7 +18675,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1tiribv_490",
+      "id": "stop_1tiribv_489",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159146937",
@@ -18750,7 +18713,7 @@
       "priority": 2
     },
     {
-      "id": "stop_u002jh_491",
+      "id": "stop_u002jh_490",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159146917",
@@ -18788,7 +18751,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1iygp8u_492",
+      "id": "stop_1iygp8u_491",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159140217",
@@ -18826,7 +18789,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1pmjw5l_493",
+      "id": "stop_1pmjw5l_492",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159129961",
@@ -18864,7 +18827,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1u2qppt_494",
+      "id": "stop_1u2qppt_493",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159146935",
@@ -18902,7 +18865,7 @@
       "priority": 2
     },
     {
-      "id": "stop_w7jpml_495",
+      "id": "stop_w7jpml_494",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159129943",
@@ -18940,7 +18903,7 @@
       "priority": 2
     },
     {
-      "id": "stop_15k3o53_496",
+      "id": "stop_15k3o53_495",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159150857",
@@ -18978,7 +18941,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1kzhzu7_497",
+      "id": "stop_1kzhzu7_496",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159140193",
@@ -19016,7 +18979,7 @@
       "priority": 2
     },
     {
-      "id": "stop_tg0v5j_498",
+      "id": "stop_tg0v5j_497",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159146915",
@@ -19054,7 +19017,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1pkrp6s_499",
+      "id": "stop_1pkrp6s_498",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159136885",
@@ -19092,7 +19055,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1siuqre_500",
+      "id": "stop_1siuqre_499",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159122385",
@@ -19130,7 +19093,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1i2xx4q_501",
+      "id": "stop_1i2xx4q_500",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159149841",
@@ -19168,7 +19131,7 @@
       "priority": 2
     },
     {
-      "id": "stop_npzxsr_502",
+      "id": "stop_npzxsr_501",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159140153",
@@ -19206,7 +19169,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1pak3s2_503",
+      "id": "stop_1pak3s2_502",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159140037",
@@ -19244,7 +19207,7 @@
       "priority": 2
     },
     {
-      "id": "stop_dkahcv_504",
+      "id": "stop_dkahcv_503",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159149833",
@@ -19282,7 +19245,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1aw67yj_505",
+      "id": "stop_1aw67yj_504",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159147941",
@@ -19320,7 +19283,7 @@
       "priority": 2
     },
     {
-      "id": "stop_14zieyj_506",
+      "id": "stop_14zieyj_505",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159146421",
@@ -19358,7 +19321,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1xblar0_507",
+      "id": "stop_1xblar0_506",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159134869",
@@ -19396,7 +19359,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1m2rgqh_508",
+      "id": "stop_1m2rgqh_507",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159117775",
@@ -19435,7 +19398,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1642vj1_509",
+      "id": "stop_1642vj1_508",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159150855",
@@ -19473,7 +19436,7 @@
       "priority": 2
     },
     {
-      "id": "stop_d0b9yx_510",
+      "id": "stop_d0b9yx_509",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159149835",
@@ -19511,7 +19474,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1nz2lye_511",
+      "id": "stop_1nz2lye_510",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159146923",
@@ -19549,7 +19512,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1oj1tcc_512",
+      "id": "stop_1oj1tcc_511",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159146925",
@@ -19587,7 +19550,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1isfrdy_513",
+      "id": "stop_1isfrdy_512",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159140103",
@@ -19625,7 +19588,7 @@
       "priority": 2
     },
     {
-      "id": "stop_p6yvi7_514",
+      "id": "stop_p6yvi7_513",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159140085",
@@ -19663,7 +19626,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1nf3ekg_515",
+      "id": "stop_1nf3ekg_514",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159146921",
@@ -19701,7 +19664,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1n27qr5_516",
+      "id": "stop_1n27qr5_515",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159151207",
@@ -19739,7 +19702,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1hvil7c_517",
+      "id": "stop_1hvil7c_516",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159147409",
@@ -19778,7 +19741,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1hnynmy_518",
+      "id": "stop_1hnynmy_517",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159151347",
@@ -19816,7 +19779,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1pmn1nk_519",
+      "id": "stop_1pmn1nk_518",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159129975",
@@ -19854,7 +19817,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1syi9z8_520",
+      "id": "stop_1syi9z8_519",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159129979",
@@ -19892,7 +19855,7 @@
       "priority": 2
     },
     {
-      "id": "stop_p3aodo_521",
+      "id": "stop_p3aodo_520",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159146033",
@@ -19930,7 +19893,7 @@
       "priority": 2
     },
     {
-      "id": "stop_12d9pm_522",
+      "id": "stop_12d9pm_521",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159134863",
@@ -19968,7 +19931,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1yzfrev_523",
+      "id": "stop_1yzfrev_522",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159134877",
@@ -20006,7 +19969,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1uvk1kp_524",
+      "id": "stop_1uvk1kp_523",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159115603",
@@ -20044,7 +20007,7 @@
       "priority": 2
     },
     {
-      "id": "stop_16kvr68_525",
+      "id": "stop_16kvr68_524",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159113299",
@@ -20082,7 +20045,7 @@
       "priority": 2
     },
     {
-      "id": "stop_xsi6f1_526",
+      "id": "stop_xsi6f1_525",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159150583",
@@ -20120,7 +20083,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1uicpm4_527",
+      "id": "stop_1uicpm4_526",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159134887",
@@ -20158,7 +20121,7 @@
       "priority": 2
     },
     {
-      "id": "stop_13ffwyk_528",
+      "id": "stop_13ffwyk_527",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159127151",
@@ -20196,7 +20159,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1v15p9n_529",
+      "id": "stop_1v15p9n_528",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159117687",
@@ -20234,7 +20197,7 @@
       "priority": 2
     },
     {
-      "id": "stop_qtywlz_530",
+      "id": "stop_qtywlz_529",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159129893",
@@ -20272,7 +20235,7 @@
       "priority": 2
     },
     {
-      "id": "stop_pyxvpi_531",
+      "id": "stop_pyxvpi_530",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159117693",
@@ -20310,7 +20273,7 @@
       "priority": 2
     },
     {
-      "id": "stop_9apf17_532",
+      "id": "stop_9apf17_531",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159113221",
@@ -20348,7 +20311,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1tydi86_533",
+      "id": "stop_1tydi86_532",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159134881",
@@ -20386,7 +20349,7 @@
       "priority": 2
     },
     {
-      "id": "stop_78gjzv_534",
+      "id": "stop_78gjzv_533",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159127165",
@@ -20424,7 +20387,7 @@
       "priority": 2
     },
     {
-      "id": "stop_c39q2i_535",
+      "id": "stop_c39q2i_534",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159113253",
@@ -20462,7 +20425,7 @@
       "priority": 2
     },
     {
-      "id": "stop_xti5bi_536",
+      "id": "stop_xti5bi_535",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159146347",
@@ -20500,7 +20463,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1xgih5_537",
+      "id": "stop_1xgih5_536",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159147187",
@@ -20538,7 +20501,7 @@
       "priority": 2
     },
     {
-      "id": "stop_rrawbo_538",
+      "id": "stop_rrawbo_537",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159130393",
@@ -20576,7 +20539,7 @@
       "priority": 2
     },
     {
-      "id": "stop_10y89u0_539",
+      "id": "stop_10y89u0_538",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159144457",
@@ -20614,7 +20577,7 @@
       "priority": 2
     },
     {
-      "id": "stop_rx01p2_540",
+      "id": "stop_rx01p2_539",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159132137",
@@ -20652,7 +20615,7 @@
       "priority": 2
     },
     {
-      "id": "stop_cln94q_541",
+      "id": "stop_cln94q_540",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159122697",
@@ -20690,7 +20653,7 @@
       "priority": 2
     },
     {
-      "id": "stop_6u2efe_542",
+      "id": "stop_6u2efe_541",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159151109",
@@ -20728,7 +20691,7 @@
       "priority": 2
     },
     {
-      "id": "stop_za7i67_543",
+      "id": "stop_za7i67_542",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159144449",
@@ -20766,7 +20729,7 @@
       "priority": 2
     },
     {
-      "id": "stop_12m5vzu_544",
+      "id": "stop_12m5vzu_543",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159144451",
@@ -20804,7 +20767,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1670zii_545",
+      "id": "stop_1670zii_544",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159122709",
@@ -20842,7 +20805,7 @@
       "priority": 2
     },
     {
-      "id": "stop_103vmr3_546",
+      "id": "stop_103vmr3_545",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159148207",
@@ -20881,7 +20844,7 @@
       "priority": 2
     },
     {
-      "id": "stop_12xqqmm_547",
+      "id": "stop_12xqqmm_546",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159138621",
@@ -20919,7 +20882,7 @@
       "priority": 2
     },
     {
-      "id": "stop_icnzwz_548",
+      "id": "stop_icnzwz_547",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159147439",
@@ -20958,7 +20921,7 @@
       "priority": 2
     },
     {
-      "id": "stop_2sjvd6_549",
+      "id": "stop_2sjvd6_548",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159146259",
@@ -20997,7 +20960,7 @@
       "priority": 2
     },
     {
-      "id": "stop_v9g9o1_550",
+      "id": "stop_v9g9o1_549",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159151489",
@@ -21037,7 +21000,7 @@
       "priority": 1
     },
     {
-      "id": "stop_1vo0a56_551",
+      "id": "stop_1vo0a56_550",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159150519",
@@ -21076,7 +21039,7 @@
       "priority": 2
     },
     {
-      "id": "stop_t9dn1k_552",
+      "id": "stop_t9dn1k_551",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159133419",
@@ -21115,7 +21078,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1mlamo2_553",
+      "id": "stop_1mlamo2_552",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159125977",
@@ -21154,7 +21117,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1dapymk_554",
+      "id": "stop_1dapymk_553",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159125089",
@@ -21193,7 +21156,7 @@
       "priority": 2
     },
     {
-      "id": "stop_ym5e5l_555",
+      "id": "stop_ym5e5l_554",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159132907",
@@ -21232,7 +21195,7 @@
       "priority": 2
     },
     {
-      "id": "stop_433ncq_556",
+      "id": "stop_433ncq_555",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159132955",
@@ -21271,7 +21234,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1at7cru_557",
+      "id": "stop_1at7cru_556",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159123799",
@@ -21310,7 +21273,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1odiv10_558",
+      "id": "stop_1odiv10_557",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159133341",
@@ -21349,7 +21312,7 @@
       "priority": 2
     },
     {
-      "id": "stop_strq03_559",
+      "id": "stop_strq03_558",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159149253",
@@ -21388,7 +21351,7 @@
       "priority": 2
     },
     {
-      "id": "stop_icufoq_560",
+      "id": "stop_icufoq_559",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159124215",
@@ -21427,7 +21390,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1fnejl5_561",
+      "id": "stop_1fnejl5_560",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159133009",
@@ -21466,7 +21429,7 @@
       "priority": 2
     },
     {
-      "id": "stop_3j1agt_562",
+      "id": "stop_3j1agt_561",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159132947",
@@ -21505,7 +21468,7 @@
       "priority": 2
     },
     {
-      "id": "stop_z61g1k_563",
+      "id": "stop_z61g1k_562",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159132979",
@@ -21544,7 +21507,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1ltfkts_564",
+      "id": "stop_1ltfkts_563",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159150485",
@@ -21583,7 +21546,7 @@
       "priority": 2
     },
     {
-      "id": "stop_116oma3_565",
+      "id": "stop_116oma3_564",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159146201",
@@ -21622,7 +21585,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1qpcefr_566",
+      "id": "stop_1qpcefr_565",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159133555",
@@ -21662,7 +21625,7 @@
       "priority": 2
     },
     {
-      "id": "stop_12vaiji_567",
+      "id": "stop_12vaiji_566",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159146277",
@@ -21701,7 +21664,7 @@
       "priority": 2
     },
     {
-      "id": "stop_9g95lx_568",
+      "id": "stop_9g95lx_567",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159151063",
@@ -21740,7 +21703,7 @@
       "priority": 2
     },
     {
-      "id": "stop_19h91m1_569",
+      "id": "stop_19h91m1_568",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159132459",
@@ -21779,7 +21742,7 @@
       "priority": 2
     },
     {
-      "id": "stop_ofa2b9_570",
+      "id": "stop_ofa2b9_569",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159133513",
@@ -21818,7 +21781,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1xvt8ka_571",
+      "id": "stop_1xvt8ka_570",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159149207",
@@ -21857,7 +21820,7 @@
       "priority": 2
     },
     {
-      "id": "stop_jgc14h_572",
+      "id": "stop_jgc14h_571",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159133045",
@@ -21896,7 +21859,7 @@
       "priority": 2
     },
     {
-      "id": "stop_xv5z94_573",
+      "id": "stop_xv5z94_572",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159150229",
@@ -21935,7 +21898,7 @@
       "priority": 2
     },
     {
-      "id": "stop_6m2m7g_574",
+      "id": "stop_6m2m7g_573",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159143647",
@@ -21974,7 +21937,7 @@
       "priority": 2
     },
     {
-      "id": "stop_3icngj_575",
+      "id": "stop_3icngj_574",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159148845",
@@ -22013,7 +21976,7 @@
       "priority": 2
     },
     {
-      "id": "stop_v3pq4n_576",
+      "id": "stop_v3pq4n_575",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159147347",
@@ -22052,7 +22015,7 @@
       "priority": 2
     },
     {
-      "id": "stop_njhlnm_577",
+      "id": "stop_njhlnm_576",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159131415",
@@ -22091,7 +22054,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1qtbkt9_578",
+      "id": "stop_1qtbkt9_577",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159150477",
@@ -22130,7 +22093,7 @@
       "priority": 2
     },
     {
-      "id": "stop_st6leh_579",
+      "id": "stop_st6leh_578",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159149233",
@@ -22169,7 +22132,7 @@
       "priority": 2
     },
     {
-      "id": "stop_txbb6b_580",
+      "id": "stop_txbb6b_579",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159149217",
@@ -22208,7 +22171,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1u26afe_581",
+      "id": "stop_1u26afe_580",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159147379",
@@ -22247,7 +22210,7 @@
       "priority": 2
     },
     {
-      "id": "stop_xvca92_582",
+      "id": "stop_xvca92_581",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159150245",
@@ -22287,7 +22250,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1n291g0_583",
+      "id": "stop_1n291g0_582",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159131439",
@@ -22326,7 +22289,7 @@
       "priority": 2
     },
     {
-      "id": "stop_12fvh5s_584",
+      "id": "stop_12fvh5s_583",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159148893",
@@ -22365,7 +22328,7 @@
       "priority": 2
     },
     {
-      "id": "stop_17v4vau_585",
+      "id": "stop_17v4vau_584",
       "type": "DELIVERY",
       "comment": "special",
       "candidate_id": "Q48273",
@@ -22403,7 +22366,7 @@
       "priority": 2
     },
     {
-      "id": "stop_einm8u_586",
+      "id": "stop_einm8u_585",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159126305",
@@ -22442,7 +22405,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1phdc35_587",
+      "id": "stop_1phdc35_586",
       "type": "DELIVERY",
       "comment": "nature",
       "candidate_id": "Q351",
@@ -22482,7 +22445,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1b03fff_588",
+      "id": "stop_1b03fff_587",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159149671",
@@ -22520,7 +22483,7 @@
       "priority": 2
     },
     {
-      "id": "stop_nkm00e_589",
+      "id": "stop_nkm00e_588",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159129111",
@@ -22558,7 +22521,7 @@
       "priority": 2
     },
     {
-      "id": "stop_gkkf6k_590",
+      "id": "stop_gkkf6k_589",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159138289",
@@ -22596,7 +22559,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1h6yln5_591",
+      "id": "stop_1h6yln5_590",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159138291",
@@ -22634,7 +22597,7 @@
       "priority": 2
     },
     {
-      "id": "stop_jcgg4a_592",
+      "id": "stop_jcgg4a_591",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159138283",
@@ -22672,7 +22635,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1cpsecf_593",
+      "id": "stop_1cpsecf_592",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159138275",
@@ -22710,7 +22673,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1lz3cx7_594",
+      "id": "stop_1lz3cx7_593",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159129101",
@@ -22748,7 +22711,7 @@
       "priority": 2
     },
     {
-      "id": "stop_bzpwns_595",
+      "id": "stop_bzpwns_594",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159146785",
@@ -22786,7 +22749,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1hhp6sc_596",
+      "id": "stop_1hhp6sc_595",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159150751",
@@ -22824,7 +22787,7 @@
       "priority": 2
     },
     {
-      "id": "stop_woty7s_597",
+      "id": "stop_woty7s_596",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159123519",
@@ -22863,7 +22826,7 @@
       "priority": 2
     },
     {
-      "id": "stop_12updxw_598",
+      "id": "stop_12updxw_597",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159146217",
@@ -22903,7 +22866,7 @@
       "priority": 2
     },
     {
-      "id": "stop_clp80l_599",
+      "id": "stop_clp80l_598",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159149659",
@@ -22941,7 +22904,7 @@
       "priority": 2
     },
     {
-      "id": "stop_mezxef_600",
+      "id": "stop_mezxef_599",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159146195",
@@ -22980,7 +22943,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1c5w99e_601",
+      "id": "stop_1c5w99e_600",
       "type": "DELIVERY",
       "comment": "nature",
       "candidate_id": "Q172697",
@@ -23018,7 +22981,7 @@
       "priority": 2
     },
     {
-      "id": "stop_nf7oew_602",
+      "id": "stop_nf7oew_601",
       "type": "DELIVERY",
       "comment": "underserved",
       "candidate_id": "ne-1159150449",
@@ -23056,7 +23019,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1u20pvs_603",
+      "id": "stop_1u20pvs_602",
       "type": "DELIVERY",
       "comment": "special",
       "candidate_id": "Q223379",
@@ -23094,7 +23057,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1q9uciy_604",
+      "id": "stop_1q9uciy_603",
       "type": "DELIVERY",
       "comment": "underserved",
       "candidate_id": "ne-1159150429",
@@ -23132,7 +23095,7 @@
       "priority": 2
     },
     {
-      "id": "stop_140c0pg_605",
+      "id": "stop_140c0pg_604",
       "type": "DELIVERY",
       "comment": "underserved",
       "candidate_id": "ne-1159151741",
@@ -23170,7 +23133,7 @@
       "priority": 2
     },
     {
-      "id": "stop_c5gorx_606",
+      "id": "stop_c5gorx_605",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159132499",

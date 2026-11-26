@@ -3,7 +3,7 @@ import { christmasWindow, isEastwardDelta, longitudeDelta } from './sweep';
 import { compareStableIds } from './selection';
 import { admin1UnitFor } from './admin1';
 import { bandMaximumStops, insertAdmin1Coverage, insertCountryCoverage, insertFeasibleCandidates, insertOffsetBandCoverage, mandatoryLaunch, selectMandatoryRepresentatives, type InsertionPass } from './order-coverage';
-import { bandedBoustrophedonOrder, improveWithLocalSearch, reduceCoverageDetours } from './order-path';
+import { bandedBoustrophedonOrder, improveWithLocalSearch, reduceCoverageDetours, reduceHardDetoursWithinBands } from './order-path';
 import {
   candidateTiming,
   canStartFromNorthPole,
@@ -387,7 +387,7 @@ function planMandatoryRoute(pool: Candidate[], config: GeneratorConfig): TimedCa
   const { representatives, launch } = mandatory;
   if (representatives.length === 0 || representatives.length > MAX_ROUTE_STOPS) return undefined;
   const ordered = bandedBoustrophedonOrder(representatives, launch, config);
-  const detourFree = reduceCoverageDetours(ordered, config);
+  const detourFree = reduceCoverageDetours(ordered, config, (proposal) => selectionConstraintsAllow(proposal, config));
   if (hardDetourCount(detourFree) > 0) return undefined;
   const initialPlan = planOrder(detourFree, config);
   if (!initialPlan) return undefined;
@@ -434,8 +434,12 @@ function expandGreedyCoverageRoute(mandatory: TimedCandidate[], pool: Candidate[
   };
   const expanded = insertFeasibleCandidates(mandatory, pool, densePass);
   const optimized = improveWithLocalSearch(expanded, config);
-  const finalOrder = reduceCoverageDetours(optimized, config);
-  return planOrder(finalOrder, config)?.places;
+  const hardDetourRepaired = reduceHardDetoursWithinBands({ initial: optimized, config,
+    accepts: (proposal) => selectionConstraintsAllow(proposal, config) });
+  const finalOrder = reduceCoverageDetours(hardDetourRepaired, config,
+    (proposal) => selectionConstraintsAllow(proposal, config));
+  const plan = planOrder(finalOrder, config);
+  return plan?.places;
 }
 
 /** Greedy time-stepped midnight sweep followed by constrained 2-opt/or-opt improvements. */
