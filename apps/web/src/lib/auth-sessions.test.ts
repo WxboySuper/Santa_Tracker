@@ -71,7 +71,6 @@ describe("admin session and CSRF enforcement", () => {
   });
 
   it("derives the CSRF origin from the request when production WebAuthn origin is unset", async () => {
-    vi.stubEnv("NODE_ENV", "production");
     vi.stubEnv("ADMIN_WEBAUTHN_ORIGIN", "");
     const token = await createAdminToken();
     const csrf = await getAdminTokenCsrfToken({ token });
@@ -80,5 +79,16 @@ describe("admin session and CSRF enforcement", () => {
       headers: { cookie: `admin_token=${token}; admin_csrf=${csrf}`, origin: "https://example.test", "x-csrf-token": csrf! },
     }));
     expect(response.ok).toBe(true);
+  });
+
+  it("fails closed on an invalid configured origin without throwing", async () => {
+    vi.stubEnv("ADMIN_WEBAUTHN_ORIGIN", "not a URL");
+    const token = await createAdminToken();
+    const csrf = await getAdminTokenCsrfToken({ token });
+    const response = await requireAdminAuth(new Request("https://example.test/api/admin/flags", {
+      method: "POST",
+      headers: { cookie: `admin_token=${token}; admin_csrf=${csrf}`, origin: "https://example.test", "x-csrf-token": csrf! },
+    }));
+    expect(response.status).toBe(403);
   });
 });

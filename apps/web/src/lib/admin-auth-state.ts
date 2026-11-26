@@ -239,12 +239,16 @@ export async function consumeAuthChallenge(id: string, purpose: AdminAuthChallen
   });
 }
 
-export async function installPasskey(passkey: StoredPasskey, recoveryCodeHashes: string[] | null): Promise<void> {
-  await mutateState(state => {
+export async function installPasskey(passkey: StoredPasskey, recoveryCodeHashes: string[] | null): Promise<boolean> {
+  return mutateState(state => {
     if (state.passkeys.some(item => item.id === passkey.id)) throw new Error("Passkey is already registered");
     if (state.passkeys.length >= 10) throw new Error("Passkey limit reached");
     state.passkeys.push(passkey);
-    if (recoveryCodeHashes) state.recoveryCodeHashes = recoveryCodeHashes;
+    if (state.recoveryCodeHashes.length === 0 && recoveryCodeHashes) {
+      state.recoveryCodeHashes = recoveryCodeHashes;
+      return true;
+    }
+    return false;
   });
 }
 

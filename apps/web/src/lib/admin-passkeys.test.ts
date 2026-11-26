@@ -39,9 +39,8 @@ describe("admin passkey service", () => {
   afterEach(() => vi.unstubAllEnvs());
 
   it("requires HTTPS for the production WebAuthn origin", () => {
-    vi.stubEnv("NODE_ENV", "production");
     vi.stubEnv("ADMIN_WEBAUTHN_ORIGIN", "http://example.test");
-    expect(() => webAuthnSettings(request)).toThrow("must use HTTPS in production");
+    expect(() => webAuthnSettings(request, true)).toThrow("must use HTTPS in production");
   });
 
   it("keeps a challenge available when a consumer requests the wrong purpose", async () => {
@@ -95,6 +94,27 @@ describe("admin passkey service", () => {
       authenticationInfo: { credentialID: "credential-one", newCounter: 2, userVerified: true, credentialDeviceType: "singleDevice", credentialBackedUp: false, origin: "https://example.test", rpID: "example.test" },
     });
     await expect(finishAuthentication({ request, challengeId: authentication.challenge.id, response: { id: "credential-one" } as AuthenticationResponseJSON })).rejects.toThrow("Passkey counter did not advance");
+  });
+
+  it("does not overwrite a non-zero signature counter with an unsupported zero", async () => {
+    await registerPasskeyForTest(2);
+    const authentication = await createAuthenticationChallenge(request);
+    vi.mocked(verifyAuthenticationResponse).mockResolvedValue({
+      verified: true,
+      authenticationInfo: { credentialID: "credential-one", newCounter: 0, userVerified: true, credentialDeviceType: "singleDevice", credentialBackedUp: false, origin: "https://example.test", rpID: "example.test" },
+    });
+    await finishAuthentication({ request, challengeId: authentication.challenge.id, response: { id: "credential-one" } as AuthenticationResponseJSON });
+    expect((await readAdminAuthState()).passkeys[0]?.counter).toBe(2);
+  });
+
+  it("initializes recovery codes only once when passkeys register concurrently", async () => {
+    const [first, second] = await Promise.all([
+      installPasskey({ id: "credential-one", publicKey: "AQID", counter: 0 }, ["first-hash"]),
+      installPasskey({ id: "credential-two", publicKey: "BAUG", counter: 0 }, ["second-hash"]),
+    ]);
+    expect([first, second].filter(Boolean)).toHaveLength(1);
+    expect((await readAdminAuthState()).recoveryCodeHashes).toHaveLength(1);
+    expect(["first-hash", "second-hash"]).toContain((await readAdminAuthState()).recoveryCodeHashes[0]);
   });
 
   it("disables password login after passkey setup without revealing password correctness", async () => {

@@ -86,7 +86,7 @@ describe("admin login route", () => {
     expect(response.status).toBe(413);
   });
 
-  it("does not count malformed JSON as a failed password attempt", async () => {
+  it("counts malformed JSON toward the per-IP authentication limit", async () => {
     const headers = { "cf-connecting-ip": "198.51.100.54", "content-type": "application/json" };
     for (let index = 0; index < 4; index += 1) {
       const response = await POST(new Request("http://example.test/api/admin/login", {
@@ -97,7 +97,8 @@ describe("admin login route", () => {
     const malformed = await POST(new Request("http://example.test/api/admin/login", {
       method: "POST", headers, body: "{",
     }));
-    expect(malformed.status).toBe(400);
+    expect(malformed.status).toBe(429);
+    expect(malformed.headers.get("Retry-After")).toBe("900");
 
     const fifthFailure = await POST(new Request("http://example.test/api/admin/login", {
       method: "POST", headers, body: JSON.stringify({ password: "wrong" }),

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { createLoginThrottle } from "./admin-login-throttle";
 import { PersistentAdminThrottleStore } from "./admin-login";
+import { getAdminClientIp } from "./admin-client-ip";
 
 function makeAdapter() {
   const values = new Map<string, string>();
@@ -29,5 +30,10 @@ describe("persistent admin login throttle", () => {
     expect(results.filter(result => result === null)).toHaveLength(4);
     expect(results.filter(result => result?.retryAfterSeconds === 900)).toHaveLength(6);
     expect((await first.check({ ip: "203.0.113.1" }))?.retryAfterSeconds).toBe(900);
+  });
+
+  it("trusts the Cloudflare client IP in production and ignores client x-real-ip", () => {
+    expect(getAdminClientIp(new Request("https://example.test", { headers: { "x-real-ip": "203.0.113.88" } }), true)).toBeNull();
+    expect(getAdminClientIp(new Request("https://example.test", { headers: { "cf-connecting-ip": "203.0.113.9", "x-real-ip": "203.0.113.88" } }), true)).toBe("203.0.113.9");
   });
 });

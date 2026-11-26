@@ -29,8 +29,16 @@ function storageUnavailable() {
 
 async function processLogin(req: Request, ip: string) {
   const payload = await readCappedJsonBody(req);
-  if (payload.kind === "too-large") return NextResponse.json({ error: "Request body too large" }, { status: 413 });
-  if (payload.kind === "invalid") return respondWith(await loginAdmin(null, ip));
+  if (payload.kind === "too-large") {
+    const result = await loginAdmin(null, ip);
+    if (result.status === 429) return throttledResponse((await checkLoginRateLimit(ip))?.retryAfterSeconds ?? 900);
+    return NextResponse.json({ error: "Request body too large" }, { status: 413 });
+  }
+  if (payload.kind === "invalid") {
+    const result = await loginAdmin(null, ip);
+    if (result.status === 429) return throttledResponse((await checkLoginRateLimit(ip))?.retryAfterSeconds ?? 900);
+    return respondWith(result);
+  }
   return verifyLogin(req, ip, payload.value);
 }
 

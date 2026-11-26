@@ -126,7 +126,8 @@ function isMutation(input: { method: string }): boolean {
 function hasValidCsrf(input: { request: Request; expected: string }): boolean {
   const { request, expected } = input;
   const origin = request.headers.get("origin");
-  if (!origin || origin !== expectedOrigin(request)) return false;
+  const allowedOrigin = expectedOrigin(request);
+  if (!origin || !allowedOrigin || origin !== allowedOrigin) return false;
   const supplied = request.headers.get("x-csrf-token");
   const cookieHeader = request.headers.get("cookie") ?? "";
   const match = /(?:^|;\s*)admin_csrf=([^;]*)/.exec(cookieHeader);
@@ -135,9 +136,10 @@ function hasValidCsrf(input: { request: Request; expected: string }): boolean {
   catch { return false; }
 }
 
-function expectedOrigin(request: Request): string {
+function expectedOrigin(request: Request): string | null {
   const configured = process.env.ADMIN_WEBAUTHN_ORIGIN;
-  return configured ? new URL(configured).origin : new URL(request.url).origin;
+  try { return configured ? new URL(configured).origin : new URL(request.url).origin; }
+  catch { return null; }
 }
 
 export function maskToken(input: { token: string }): string {

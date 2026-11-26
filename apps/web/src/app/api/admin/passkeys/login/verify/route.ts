@@ -29,6 +29,7 @@ async function processLoginVerification(request: Request): Promise<Response> {
   try {
     const token = await finishAuthentication({ request, challengeId, response: input.value });
     await clearLoginAttempts(ip);
+    await clearLoginAttempts(`passkey-options:${ip}`);
     const response = await responseWithSession(token, { authenticated: true });
     return clearChallengeCookie(response);
   } catch {

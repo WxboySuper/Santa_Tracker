@@ -12,13 +12,13 @@ import { createAdminToken } from "./auth";
 const CHALLENGE_TTL_MS = 5 * 60 * 1000;
 const RECOVERY_CODE_COUNT = 10;
 
-export function webAuthnSettings(request: Request): { rpId: string; origin: string } {
+export function webAuthnSettings(request: Request, isProduction = process.env.NODE_ENV === "production"): { rpId: string; origin: string } {
   const url = new URL(request.url);
-  const rpId = process.env.ADMIN_WEBAUTHN_RP_ID ?? (process.env.NODE_ENV === "production" ? "" : url.hostname);
-  const origin = process.env.ADMIN_WEBAUTHN_ORIGIN ?? (process.env.NODE_ENV === "production" ? "" : url.origin);
+  const rpId = process.env.ADMIN_WEBAUTHN_RP_ID ?? (isProduction ? "" : url.hostname);
+  const origin = process.env.ADMIN_WEBAUTHN_ORIGIN ?? (isProduction ? "" : url.origin);
   const expectedOrigin = parseExpectedOrigin({ origin });
   validateRpId({ hostname: url.hostname, rpId });
-  if (process.env.NODE_ENV === "production" && expectedOrigin.protocol !== "https:") throw new Error("WebAuthn origin must use HTTPS in production");
+  if (isProduction && expectedOrigin.protocol !== "https:") throw new Error("WebAuthn origin must use HTTPS in production");
   return { rpId, origin };
 }
 
@@ -73,9 +73,9 @@ export async function finishRegistration(input: { request: Request; challengeId:
   const recoveryCodes = state.recoveryCodeHashes.length === 0 ? generateRecoveryCodes() : null;
   const hashes = recoveryCodes ? await Promise.all(recoveryCodes.map(code => hashRecoveryCode({ code: normalizeRecoveryCode({ code }) }))) : null;
   const credential = verification.registrationInfo.credential;
-  await installPasskey({ id: credential.id, publicKey: encodeBase64Url(credential.publicKey), counter: credential.counter, transports: credential.transports }, hashes);
+  const recoveryCodesStored = await installPasskey({ id: credential.id, publicKey: encodeBase64Url(credential.publicKey), counter: credential.counter, transports: credential.transports }, hashes);
   await appendAuthAudit({ action: "passkey_registration", result: "success", sessionId: input.sessionId });
-  return { recoveryCodes };
+  return { recoveryCodes: recoveryCodesStored ? recoveryCodes : null };
 }
 
 export async function createAuthenticationChallenge(request: Request): Promise<{ challenge: AdminAuthChallenge; options: Awaited<ReturnType<typeof generateAuthenticationOptions>> }> {
@@ -100,7 +100,8 @@ export async function finishAuthentication(input: { request: Request; challengeI
   if (!credential) throw new Error("Unknown passkey");
   const newCounter = await verifyAuthentication(input, challenge.challenge, credential);
   await ensureCounterAdvances(credential.counter, newCounter);
-  await updatePasskeyCounter(credential.id, newCounter);
+  const counterToStore = newCounter === 0 && credential.counter !== 0 ? credential.counter : newCounter;
+  await updatePasskeyCounter(credential.id, counterToStore);
   const token = await createAdminToken();
   await appendAuthAudit({ action: "passkey_login", result: "success" });
   return token;

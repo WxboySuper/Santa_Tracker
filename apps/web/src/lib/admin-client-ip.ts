@@ -2,12 +2,11 @@ import { isIP } from "node:net";
 
 const MAX_IP_LENGTH = 45;
 
-export function getAdminClientIp(request: Request): string | null {
+export function getAdminClientIp(request: Request, isProduction = process.env.NODE_ENV === "production"): string | null {
   const cloudflareIp = normalizeIp(request.headers.get("cf-connecting-ip"));
   if (cloudflareIp) return cloudflareIp;
-  const realIp = normalizeIp(request.headers.get("x-real-ip"));
-  if (realIp) return realIp;
-  return process.env.NODE_ENV !== "production" ? "unknown" : null;
+  if (!isProduction) return normalizeIp(request.headers.get("x-real-ip")) ?? "unknown";
+  return null;
 }
 
 function normalizeIp(header: string | null): string | null {

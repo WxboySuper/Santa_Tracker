@@ -14,21 +14,22 @@ export async function POST(request: Request): Promise<Response> {
 async function processLoginOptions(request: Request): Promise<Response> {
   const ip = getAdminClientIp(request);
   if (!ip) return throttled(60);
-  const locked = await checkLoginRateLimit(ip);
+  const throttleKey = `passkey-options:${ip}`;
+  const locked = await checkLoginRateLimit(throttleKey);
   if (locked) return throttled(locked.retryAfterSeconds);
-  return createOptions(request, ip);
+  const throttle = await recordLoginAttempt(throttleKey);
+  if (throttle) return tooManyAttempts(throttle.retryAfterSeconds);
+  return createOptions(request);
 }
 
 function storageUnavailable(): Response {
   return NextResponse.json({ error: "Admin authentication storage is unavailable" }, { status: 503 });
 }
 
-async function createOptions(request: Request, ip: string): Promise<Response> {
+async function createOptions(request: Request): Promise<Response> {
   try {
     const settings = webAuthnSettings(request);
     if (request.headers.get("origin") !== settings.origin) return invalidOrigin();
-    const throttle = await recordLoginAttempt(ip);
-    if (throttle) return tooManyAttempts(throttle.retryAfterSeconds);
     const result = await createAuthenticationChallenge(request);
     return setChallengeCookie(NextResponse.json({ options: result.options }, { headers: { "Cache-Control": "no-store" } }), result.challenge.id);
   } catch (error) {
