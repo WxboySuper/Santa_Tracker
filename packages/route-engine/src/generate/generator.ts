@@ -121,6 +121,8 @@ function transit({ from, to, travelDurationMilliseconds, description, cameraZoom
     camera_zoom: cameraZoom,
   };
   if (isEastwardDelta(longitudeDelta(from, to))) {
+    // Candidate timing rejects this path before document building. Keep this
+    // fail-closed guard so a future caller cannot persist an unaudited reversal.
     if (!eastwardReason) throw new Error(`Unjustified eastward leg to ${'name' in to ? to.name : 'North Pole'}`);
     result.eastward_reason = eastwardReason;
   }
