@@ -6,6 +6,8 @@ Use this when a deploy, route snapshot, calendar, or feature flag causes a produ
 
 If the admin site still works, open `/admin`, use **Emergency switches**, turn on **Hide tracker** or **Hide Advent**, and confirm. The flag is stored at `emergency/feature-flags.json` in the configured store. In production that is the `santa-tracker-snapshots` R2 bucket. A Worker isolate may keep the previous flag for up to 7 seconds.
 
+For map delivery or optional tracker-feature failures, use the admin emergency-controls API to enable no-map mode, simplified tracker mode, or the relevant optional-feature kill. The control is stored separately at `emergency/launch-controls.json`; each update requires a current ETag and an incident reason. See [Emergency controls](EMERGENCY_CONTROLS.md).
+
 The public `/api/route` response can remain at the edge for up to 120 seconds. Purge that URL after hiding the tracker. Follow [Cache purge instructions](CACHE_PURGE.md). Verify in a private browser window that `/tracker` and `/api/route` return 404. The API 404 must have `Cache-Control: private, no-store`.
 
 If the Worker or admin page is failing, use the Cloudflare Workers rollback below first. Then hide the feature in `/admin` and purge `/api/route` if needed.
@@ -42,7 +44,7 @@ aws s3api put-object --bucket santa-tracker-snapshots --key santa-route/active.j
 
 Use `advent-calendar/active.json` for Advent. Do not upload a new version file or overwrite a file under `versions/`; those files are historical snapshots. Do not run the example from this checkout.
 
-The emergency flag is separate from both active pointers and is not versioned. Prefer the `/admin` Emergency switches panel to restore its value. If the application cannot reach that panel, inspect `emergency/feature-flags.json` in R2 and restore a known-good JSON document using the same controlled R2 API process. Preserve the other feature's flag value. Do not reset the entire file to defaults during an incident.
+Emergency flags and controls are separate from active pointers and are not route snapshots. Prefer the admin APIs to restore them. If the application cannot reach those APIs, inspect `emergency/feature-flags.json` and `emergency/launch-controls.json` in R2 and restore only the affected values with the same controlled R2 process. Preserve the other feature values. Do not reset either file to defaults during an incident.
 
 ## 4. Verify and record recovery
 
