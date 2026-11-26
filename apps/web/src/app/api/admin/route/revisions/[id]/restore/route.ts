@@ -1,4 +1,5 @@
 import { requireAdminAuth } from "@/lib/auth";
+import { draftConflictResponse, statusFromError } from "@/lib/route-draft-errors";
 import { getRouteDraftService } from "@/lib/route-drafts";
 
 export async function POST(request: Request, context: { params: Promise<{ id: string }> }): Promise<Response> {
@@ -21,7 +22,10 @@ async function restoreRevision(id: string, ifMatch: string): Promise<Response> {
     const state = await getRouteDraftService().restoreRevision(id, ifMatch);
     return Response.json({ state, restored: true }, { headers: { ETag: state.etag, "Cache-Control": "no-store" } });
   } catch (error) {
-    const status = typeof error === "object" && error !== null && "status" in error ? Number(error.status) : 500;
-    return Response.json({ error: status === 412 ? "Draft changed since it was read" : status === 404 ? "Named revision not found" : "Unable to restore named revision" }, { status });
+    const conflict = draftConflictResponse(error);
+    if (conflict) return conflict;
+    const status = statusFromError(error);
+    const message = status === 404 ? "Named revision not found" : status === 410 ? "Named revision content is unavailable" : "Unable to restore named revision";
+    return Response.json({ error: message }, { status });
   }
 }

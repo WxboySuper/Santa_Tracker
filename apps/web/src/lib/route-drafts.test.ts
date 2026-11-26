@@ -41,7 +41,7 @@ function setup() {
     async body => { manifest = body; },
     withLock,
   );
-  return { store, service };
+  return { files, store, service };
 }
 
 describe("route draft revisions", () => {
@@ -101,5 +101,16 @@ describe("route draft revisions", () => {
     expect(results.filter(result => result.status === "fulfilled")).toHaveLength(1);
     const rejected = results.find(result => result.status === "rejected");
     expect(rejected).toMatchObject({ status: "rejected", reason: { status: 412 } });
+  });
+
+  it("reports corrupt immutable revision content as unavailable", async () => {
+    const { files, service } = setup();
+    const initial = await service.getState();
+    const saved = await service.save(makeFixture("Saved"), initial.etag);
+    const revision = await service.createRevision("Saved point", saved.etag);
+    files.set(`santa-route-draft/versions/${revision.versionId}.json`, "not-json");
+
+    await expect(service.compareRevisions(revision.id, revision.id)).rejects.toMatchObject({ status: 410 });
+    await expect(service.restoreRevision(revision.id, saved.etag)).rejects.toMatchObject({ status: 410 });
   });
 });

@@ -1,4 +1,5 @@
 import { requireAdminAuth } from "@/lib/auth";
+import { draftConflictResponse, statusFromError } from "@/lib/route-draft-errors";
 import { getRouteDraftService } from "@/lib/route-drafts";
 
 export async function GET(request: Request): Promise<Response> {
@@ -24,8 +25,9 @@ async function readRevisions(left: string | null, right: string | null): Promise
     }
     return Response.json({ revisions: await service.listRevisions() }, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
-    const status = typeof error === "object" && error !== null && "status" in error ? Number(error.status) : 500;
-    return Response.json({ error: status === 404 ? "Named revision not found" : "Unable to load route revisions" }, { status });
+    const status = statusFromError(error);
+    const message = status === 404 ? "Named revision not found" : status === 410 ? "Named revision content is unavailable" : "Unable to load route revisions";
+    return Response.json({ error: message }, { status });
   }
 }
 
@@ -69,7 +71,14 @@ async function createRevision(name: string, ifMatch: string): Promise<Response> 
     const revision = await getRouteDraftService().createRevision(name, ifMatch);
     return Response.json({ revision }, { status: 201, headers: { "Cache-Control": "no-store" } });
   } catch (error) {
-    const status = typeof error === "object" && error !== null && "status" in error ? Number(error.status) : 500;
-    return Response.json({ error: status === 412 ? "Draft changed since it was read" : status === 409 ? "Save a draft before creating a named revision" : "Unable to create named revision" }, { status });
+    const conflict = draftConflictResponse(error);
+    if (conflict) return conflict;
+    return revisionFailure(error);
   }
+}
+
+function revisionFailure(error: unknown): Response {
+  const status = statusFromError(error);
+  const message = status === 409 ? "Save a draft before creating a named revision" : "Unable to create named revision";
+  return Response.json({ error: message }, { status });
 }

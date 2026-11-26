@@ -105,6 +105,12 @@ function parseDraftEnvelope(raw: string | null): DraftEnvelope | null {
   }
 }
 
+function requireRevisionEnvelope(raw: string | null): DraftEnvelope {
+  const envelope = parseDraftEnvelope(raw);
+  if (!envelope) throw Object.assign(new Error("Named revision content is unavailable"), { status: 410 });
+  return envelope;
+}
+
 function readSourceData(source: RouteDraftSource, envelope: DraftEnvelope | null): unknown {
   if (envelope) return envelope.data;
   if (source.source !== "published" || !source.raw) return null;
@@ -165,11 +171,12 @@ export function createRouteDraftService(store: VersionedSnapshotStore, readManif
         store.readVersion(DATASET_ROUTE_DRAFT, left.versionId),
         store.readVersion(DATASET_ROUTE_DRAFT, right.versionId),
       ]);
-      if (!leftRaw || !rightRaw) throw Object.assign(new Error("Named revision content is unavailable"), { status: 410 });
+      const leftEnvelope = requireRevisionEnvelope(leftRaw);
+      const rightEnvelope = requireRevisionEnvelope(rightRaw);
       return {
         left, right,
-        leftData: (JSON.parse(leftRaw) as DraftEnvelope).data,
-        rightData: (JSON.parse(rightRaw) as DraftEnvelope).data,
+        leftData: leftEnvelope.data,
+        rightData: rightEnvelope.data,
       };
     },
 
@@ -196,8 +203,7 @@ export function createRouteDraftService(store: VersionedSnapshotStore, readManif
         const revision = (await readRevisions()).find(item => item.id === revisionId);
         if (!revision) throw Object.assign(new Error("Named revision not found"), { status: 404 });
         const raw = await store.readVersion(DATASET_ROUTE_DRAFT, revision.versionId);
-        if (!raw) throw Object.assign(new Error("Named revision content is unavailable"), { status: 410 });
-        const envelope = JSON.parse(raw) as DraftEnvelope;
+        const envelope = requireRevisionEnvelope(raw);
         const version = await store.saveNewVersion(DATASET_ROUTE_DRAFT, JSON.stringify({ ...envelope, savedAt: new Date().toISOString() }));
         await store.activateVersion(DATASET_ROUTE_DRAFT, version.versionId);
         return readState();

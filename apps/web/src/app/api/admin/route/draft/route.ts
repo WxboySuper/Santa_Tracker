@@ -1,4 +1,5 @@
 import { requireAdminAuth } from "@/lib/auth";
+import { draftConflictResponse, statusFromError } from "@/lib/route-draft-errors";
 import { getRouteDraftService } from "@/lib/route-drafts";
 
 export async function GET(request: Request): Promise<Response> {
@@ -49,19 +50,9 @@ async function saveDraft(data: unknown, ifMatch: string): Promise<Response> {
 }
 
 function saveFailure(error: unknown): Response {
-  const status = statusOf(error);
-  const current = currentState(error);
-  if (status === 412 && current !== undefined) {
-    return Response.json({ error: "Draft changed since it was read", saved: false, current }, { status, headers: { "Cache-Control": "no-store" } });
-  }
+  const conflict = draftConflictResponse(error);
+  if (conflict) return conflict;
+  const status = statusFromError(error);
   const message = status === 412 ? "Draft changed since it was read" : "Unable to save route draft";
   return Response.json({ error: message, saved: false }, { status });
-}
-
-function statusOf(error: unknown): number {
-  return typeof error === "object" && error !== null && "status" in error ? Number(error.status) : 500;
-}
-
-function currentState(error: unknown): unknown {
-  return typeof error === "object" && error !== null && "current" in error ? error.current : undefined;
 }
