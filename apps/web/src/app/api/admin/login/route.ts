@@ -74,22 +74,25 @@ async function verifyLogin(req: Request, ip: string, payload: unknown) {
 
 async function completeAsyncLogin(req: Request, login: Promise<Awaited<ReturnType<typeof loginAdmin>>>, ip: string) {
   const result = await login;
+  const rejection = await asyncLoginRejection(result, ip);
+  if (rejection) return rejection;
+  return setLoginCookie(req, result, ip);
+}
+
+async function asyncLoginRejection(result: Awaited<ReturnType<typeof loginAdmin>>, ip: string): Promise<Response | null> {
   const failure = await failedLoginLimit(ip, result);
   if (failure) return throttledResponse(failure.retryAfterSeconds);
-  if (result.status !== 200) return setLoginCookie(req, result, ip);
+  if (result.status !== 200) return null;
   const lockout = await checkLoginRateLimit(ip);
-  if (lockout) {
-    const revokeFailure = await revokeThrottledLogin(result);
-    if (revokeFailure) return revokeFailure;
-    return throttledResponse(lockout.retryAfterSeconds);
-  }
+  if (lockout) return throttledLoginResponse(result, lockout.retryAfterSeconds);
   const syncLockout = checkLoginRateLimitNow(ip);
-  if (syncLockout) {
-    const revokeFailure = await revokeThrottledLogin(result);
-    if (revokeFailure) return revokeFailure;
-    return throttledResponse(syncLockout.retryAfterSeconds);
-  }
-  return setLoginCookie(req, result, ip);
+  if (syncLockout) return throttledLoginResponse(result, syncLockout.retryAfterSeconds);
+  return null;
+}
+
+async function throttledLoginResponse(result: Awaited<ReturnType<typeof loginAdmin>>, retryAfterSeconds: number): Promise<Response> {
+  const revokeFailure = await revokeThrottledLogin(result);
+  return revokeFailure ?? throttledResponse(retryAfterSeconds);
 }
 
 async function revokeThrottledLogin(result: Awaited<ReturnType<typeof loginAdmin>>): Promise<Response | null> {
