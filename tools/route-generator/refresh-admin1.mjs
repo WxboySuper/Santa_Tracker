@@ -9,16 +9,18 @@ function candidateWithAdmin1Code(place, code) {
   return code ? { ...candidate, admin1Code: code } : candidate;
 }
 
+function validateEnrichedCandidate(candidate, file) {
+  if (!candidate || typeof candidate !== 'object') throw new TypeError(`${file} contains a non-object candidate`);
+  if (candidate.admin1Code === undefined) return;
+  if (typeof candidate.admin1Code !== 'string') throw new TypeError(`${file} has a non-string admin1Code for ${candidate.id}`);
+  if (!candidate.admin1Code.startsWith(`${candidate.country}-`)) {
+    throw new Error(`${file} has mismatched admin1Code ${candidate.admin1Code} for ${candidate.country} candidate ${candidate.id}`);
+  }
+}
+
 function validateEnrichedCandidates(candidates, file) {
   if (!Array.isArray(candidates)) throw new TypeError(`${file} must contain a JSON array`);
-  for (const candidate of candidates) {
-    if (!candidate || typeof candidate !== 'object') throw new TypeError(`${file} contains a non-object candidate`);
-    if (candidate.admin1Code === undefined) continue;
-    if (typeof candidate.admin1Code !== 'string') throw new TypeError(`${file} has a non-string admin1Code for ${candidate.id}`);
-    if (!candidate.admin1Code.startsWith(`${candidate.country}-`)) {
-      throw new Error(`${file} has mismatched admin1Code ${candidate.admin1Code} for ${candidate.country} candidate ${candidate.id}`);
-    }
-  }
+  for (const candidate of candidates) validateEnrichedCandidate(candidate, file);
 }
 
 async function enrichDataFile(file, featurePolygons) {

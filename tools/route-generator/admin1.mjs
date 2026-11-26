@@ -3,38 +3,64 @@ import shapefile from 'shapefile';
 
 export const ADMIN1_BOUNDARY_SOURCE = 'https://naturalearth.s3.amazonaws.com/10m_cultural/ne_10m_admin_1_states_provinces.zip';
 const ADMIN1_COUNTRIES = new Set(['US', 'CA', 'AU']);
+const GEOMETRY_TOLERANCE = 1e-9;
 
 function clean(value) {
   return typeof value === 'string' ? value.replaceAll('\0', '').trim() : '';
 }
 
+function validPoint(point) {
+  return Array.isArray(point) && Number.isFinite(point[0]) && Number.isFinite(point[1]);
+}
+
+function crossProduct(point, start, end) {
+  return (point[1] - start[1]) * (end[0] - start[0]) - (point[0] - start[0]) * (end[1] - start[1]);
+}
+
+function dotProduct(point, start, end) {
+  return (point[0] - start[0]) * (end[0] - start[0]) + (point[1] - start[1]) * (end[1] - start[1]);
+}
+
+function segmentLengthSquared(start, end) {
+  return (end[0] - start[0]) ** 2 + (end[1] - start[1]) ** 2;
+}
+
 function pointOnSegment(point, start, end) {
-  const cross = (point[1] - start[1]) * (end[0] - start[0]) - (point[0] - start[0]) * (end[1] - start[1]);
-  if (Math.abs(cross) > 1e-9) return false;
-  const dot = (point[0] - start[0]) * (end[0] - start[0]) + (point[1] - start[1]) * (end[1] - start[1]);
-  if (dot < -1e-9) return false;
-  const lengthSquared = (end[0] - start[0]) ** 2 + (end[1] - start[1]) ** 2;
-  if (lengthSquared < 1e-18) return Math.hypot(point[0] - start[0], point[1] - start[1]) < 1e-9;
-  return dot <= lengthSquared + 1e-9;
+  if (!validPoint(point) || !validPoint(start) || !validPoint(end)) return false;
+  if (Math.abs(crossProduct(point, start, end)) > GEOMETRY_TOLERANCE) return false;
+  const dot = dotProduct(point, start, end);
+  if (dot < -GEOMETRY_TOLERANCE) return false;
+  const lengthSquared = segmentLengthSquared(start, end);
+  if (lengthSquared < GEOMETRY_TOLERANCE ** 2) return Math.hypot(point[0] - start[0], point[1] - start[1]) < GEOMETRY_TOLERANCE;
+  return dot <= lengthSquared + GEOMETRY_TOLERANCE;
+}
+
+function crossesRay(point, start, end) {
+  const startAbove = start[1] > point[1];
+  const endAbove = end[1] > point[1];
+  if (startAbove === endAbove) return false;
+  const crossingLongitude = ((end[0] - start[0]) * (point[1] - start[1])) / (end[1] - start[1]) + start[0];
+  return point[0] < crossingLongitude;
 }
 
 function pointInRing(point, ring) {
+  if (!validPoint(point) || !Array.isArray(ring)) return false;
   let inside = false;
   for (let index = 0, prior = ring.length - 1; index < ring.length; prior = index++) {
     const start = ring[prior];
     const end = ring[index];
-    if (!start || !end) continue;
+    if (!validPoint(start) || !validPoint(end)) continue;
     if (pointOnSegment(point, start, end)) return true;
-    const crosses = (start[1] > point[1]) !== (end[1] > point[1])
-      && point[0] < ((end[0] - start[0]) * (point[1] - start[1])) / (end[1] - start[1]) + start[0];
-    if (crosses) inside = !inside;
+    if (crossesRay(point, start, end)) inside = !inside;
   }
   return inside;
 }
 
 function pointInPolygon(point, rings) {
+  if (!Array.isArray(rings)) return false;
   const [outer, ...holes] = rings;
-  return !!outer && pointInRing(point, outer) && !holes.some((hole) => pointInRing(point, hole));
+  if (!outer || !pointInRing(point, outer)) return false;
+  return !holes.some((hole) => pointInRing(point, hole));
 }
 
 function pointInFeature(point, feature) {
@@ -67,26 +93,56 @@ async function readAdmin1Features(source) {
   return features;
 }
 
-export async function loadAdmin1Features() {
+async function downloadAdmin1Archive() {
   const response = await fetch(ADMIN1_BOUNDARY_SOURCE);
   if (!response.ok) throw new Error(`Natural Earth admin-1 download failed: ${response.status}`);
-  const files = unzipSync(new Uint8Array(await response.arrayBuffer()));
+  return unzipSync(new Uint8Array(await response.arrayBuffer()));
+}
+
+async function openAdmin1Source(files) {
   const shpName = Object.keys(files).find((name) => name.endsWith('.shp'));
   const dbfName = Object.keys(files).find((name) => name.endsWith('.dbf'));
-  if (!shpName || !dbfName) throw new Error('Natural Earth admin-1 archive is missing its shapefile');
-  const source = await shapefile.open(files[shpName].buffer, files[dbfName].buffer, { encoding: 'utf-8' });
-  const features = await readAdmin1Features(source);
+  if (!shpName) throw new Error('Natural Earth admin-1 archive is missing its .shp file');
+  if (!dbfName) throw new Error('Natural Earth admin-1 archive is missing its .dbf file');
+  return shapefile.open(files[shpName].buffer, files[dbfName].buffer, { encoding: 'utf-8' });
+}
+
+function sortAdmin1Features(features) {
   return features.sort((left, right) => left.country.localeCompare(right.country) || left.code.localeCompare(right.code));
 }
 
-export function admin1CodeAt(place, features) {
+export async function loadAdmin1Features() {
+  const archive = await downloadAdmin1Archive();
+  const source = await openAdmin1Source(archive);
+  return sortAdmin1Features(await readAdmin1Features(source));
+}
+
+function requireCandidate(place) {
   if (!place || typeof place !== 'object') throw new TypeError('Admin-1 lookup requires a candidate object');
-  if (!ADMIN1_COUNTRIES.has(place.country)) return undefined;
+  return place;
+}
+
+function candidatePoint(place) {
   if (!Number.isFinite(place.lat)) throw new TypeError(`Candidate ${place.id ?? '(unknown)'} has a non-finite latitude`);
   if (!Number.isFinite(place.lng)) throw new TypeError(`Candidate ${place.id ?? '(unknown)'} has a non-finite longitude`);
   if (place.lat < -90 || place.lat > 90) throw new RangeError(`Candidate ${place.id ?? '(unknown)'} latitude is out of range`);
   if (place.lng < -180 || place.lng > 180) throw new RangeError(`Candidate ${place.id ?? '(unknown)'} longitude is out of range`);
+  return [place.lng, place.lat];
+}
+
+function requireAdmin1Features(features) {
   if (!Array.isArray(features)) throw new TypeError('Admin-1 lookup requires a feature array');
-  const point = [place.lng, place.lat];
-  return features.find((feature) => feature.country === place.country && pointInFeature(point, feature))?.code ?? null;
+  return features;
+}
+
+function findAdmin1Feature(place, point, features) {
+  return features.find((feature) => feature?.country === place.country && pointInFeature(point, feature));
+}
+
+export function admin1CodeAt(candidate, featureRows) {
+  const place = requireCandidate(candidate);
+  if (!ADMIN1_COUNTRIES.has(place.country)) return undefined;
+  const point = candidatePoint(place);
+  const features = requireAdmin1Features(featureRows);
+  return findAdmin1Feature(place, point, features)?.code ?? null;
 }
