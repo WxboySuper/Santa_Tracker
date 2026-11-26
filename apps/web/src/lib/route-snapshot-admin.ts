@@ -16,19 +16,18 @@ type ValidationResult = { kind: "missing" } | { kind: "validated"; report: Route
 type ActivationResult = Extract<SnapshotOperationResult, { kind: "conflict" | "missing" | "invalid" | "activated" }>;
 type RollbackResult = Extract<SnapshotOperationResult, { kind: "conflict" | "missing" | "invalid" | "no-prior" | "rolled-back" }>;
 
-export function isSafeVersionId(value: string): boolean {
+export function isSafeVersionId({ value }: { value: string }): boolean {
   return /^[A-Za-z0-9_-][A-Za-z0-9._-]{0,127}$/.test(value) && !value.includes("..");
 }
 
 export async function readSnapshotVersionId(request: Request): Promise<string | null> {
-  if (!request.headers.get("content-type")?.toLowerCase().startsWith("application/json")) return null;
+  if (!isJsonRequest(request)) return null;
   const value = await request.json().catch(() => null) as unknown;
-  if (!isRecord(value) || typeof value.versionId !== "string" || !isSafeVersionId(value.versionId)) return null;
-  return value.versionId;
+  return snapshotVersionId(value);
 }
 
 export async function readSnapshotReason(request: Request): Promise<string | null> {
-  if (!request.headers.get("content-type")?.toLowerCase().startsWith("application/json")) return null;
+  if (!isJsonRequest(request)) return null;
   const value = await request.json().catch(() => null) as unknown;
   if (!isRecord(value) || typeof value.reason !== "string") return null;
   const reason = value.reason.trim();
@@ -41,14 +40,15 @@ export async function validateSnapshotVersion(store: VersionedSnapshotStore, ver
   return { kind: "validated", report: await validateRouteSnapshot(body) };
 }
 
-export async function activateSnapshot(
-  store: VersionedSnapshotStore,
-  versionId: string,
-  expectedUpdatedAt: string,
-  reason: string,
-): Promise<ActivationResult> {
+export async function activateSnapshot(input: {
+  store: VersionedSnapshotStore;
+  versionId: string;
+  expectedUpdatedAt: string;
+  reason: string;
+}): Promise<ActivationResult> {
+  const { store, versionId, expectedUpdatedAt, reason } = input;
   return withWriteLock(async () => {
-    if (!(await matchesActivePointer(store, expectedUpdatedAt))) return { kind: "conflict" };
+    if (!(await matchesActivePointer({ store, expectedUpdatedAt }))) return { kind: "conflict" };
     const validation = await validateSnapshotVersion(store, versionId);
     if (validation.kind !== "validated") return validation;
     if (!validation.report.valid) return { kind: "invalid", report: validation.report };
@@ -61,11 +61,12 @@ export async function activateSnapshot(
   });
 }
 
-export async function rollbackSnapshot(
-  store: VersionedSnapshotStore,
-  expectedUpdatedAt: string,
-  reason: string,
-): Promise<RollbackResult> {
+export async function rollbackSnapshot(input: {
+  store: VersionedSnapshotStore;
+  expectedUpdatedAt: string;
+  reason: string;
+}): Promise<RollbackResult> {
+  const { store, expectedUpdatedAt, reason } = input;
   return withWriteLock(async () => {
     const active = await store.readActiveVersion(DATASET_SANTA_ROUTE);
     if (!active || active.updatedAt !== expectedUpdatedAt) return { kind: "conflict" };
@@ -110,9 +111,19 @@ function response(body: Record<string, unknown>, status: number): NextResponse {
   return NextResponse.json(body, { status, headers: NO_STORE });
 }
 
-async function matchesActivePointer(store: VersionedSnapshotStore, expectedUpdatedAt: string): Promise<boolean> {
+async function matchesActivePointer({ store, expectedUpdatedAt }: { store: VersionedSnapshotStore; expectedUpdatedAt: string }): Promise<boolean> {
   const active = await store.readActiveVersion(DATASET_SANTA_ROUTE);
   return (active?.updatedAt ?? "") === expectedUpdatedAt;
+}
+
+function isJsonRequest(request: Request): boolean {
+  return request.headers.get("content-type")?.toLowerCase().startsWith("application/json") === true;
+}
+
+function snapshotVersionId(value: unknown): string | null {
+  if (!isRecord(value)) return null;
+  if (typeof value.versionId !== "string") return null;
+  return isSafeVersionId({ value: value.versionId }) ? value.versionId : null;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

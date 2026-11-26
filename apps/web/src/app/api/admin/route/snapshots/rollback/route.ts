@@ -16,7 +16,7 @@ export async function POST(request: Request) {
   if (reason === null) return NextResponse.json({ error: "A non-empty reason of at most 500 characters is required" }, { status: 400, headers: NO_STORE });
   try {
     const store = getSnapshotStore(getSantaSnapshotsBucket());
-    const result = await rollbackSnapshot(store, expectedUpdatedAt, reason);
+    const result = await rollbackSnapshot({ store, expectedUpdatedAt, reason });
     return rollbackResponse(result);
   } catch (error) {
     console.error("Admin route snapshot rollback failed", error);

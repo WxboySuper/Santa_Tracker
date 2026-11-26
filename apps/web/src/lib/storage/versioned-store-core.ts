@@ -61,7 +61,7 @@ export function createVersionedSnapshotStore(backend: VersionedStoreBackend): Ve
       actor: details.actor,
       at,
       reason: details.reason,
-      checksum: details.checksum || await checksum(body),
+      checksum: details.checksum || await checksum({ value: body }),
     };
     const pointer: ActivePointer = {
       versionId,
@@ -71,7 +71,7 @@ export function createVersionedSnapshotStore(backend: VersionedStoreBackend): Ve
     await backend.write(activeKey(dataset), JSON.stringify(pointer, null, 2));
   }
 
-  async function checksum(value: string): Promise<string> {
+  async function checksum({ value }: { value: string }): Promise<string> {
     const bytes = new TextEncoder().encode(value);
     const digest = await globalThis.crypto.subtle.digest("SHA-256", bytes);
     return [...new Uint8Array(digest)].map(byte => byte.toString(16).padStart(2, "0")).join("");

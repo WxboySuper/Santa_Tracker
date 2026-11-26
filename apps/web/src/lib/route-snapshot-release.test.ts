@@ -16,10 +16,10 @@ const validRoute = JSON.stringify({
 
 describe("route snapshot validation", () => {
   it("rejects path-like snapshot ids at the API boundary", () => {
-    expect(isSafeVersionId("2026-11-26T16-09-48-123Z-a1b2c3d4")).toBe(true);
-    expect(isSafeVersionId("../active")).toBe(false);
-    expect(isSafeVersionId("..\\active")).toBe(false);
-    expect(isSafeVersionId("santa-route/versions/secret")).toBe(false);
+    expect(isSafeVersionId({ value: "2026-11-26T16-09-48-123Z-a1b2c3d4" })).toBe(true);
+    expect(isSafeVersionId({ value: "../active" })).toBe(false);
+    expect(isSafeVersionId({ value: "..\\active" })).toBe(false);
+    expect(isSafeVersionId({ value: "santa-route/versions/secret" })).toBe(false);
   });
   it("returns route season, schema, and a stable content checksum", async () => {
     const result = await validateRouteSnapshot(validRoute);
