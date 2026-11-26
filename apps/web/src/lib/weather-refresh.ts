@@ -1,4 +1,4 @@
-import { fetchWeatherBatch, WEATHER_TTL_SECONDS, weatherCellKey, type WeatherKV, type WeatherPoint } from "./weather";
+import { fetchWeatherBatch, parseWeatherValue, WEATHER_TTL_SECONDS, weatherCellKey, type WeatherKV, type WeatherPoint } from "./weather";
 import { isWeatherRefreshOpen } from "./weather-window";
 import type { RouteNode } from "./locations";
 
@@ -35,7 +35,7 @@ export async function refreshWeather(
   const missing: WeatherPoint[] = [];
   for (const point of points) {
     try {
-      if (!await store.get(weatherCellKey(point))) missing.push(point);
+      if (!parseWeatherValue(await store.get(weatherCellKey(point)))) missing.push(point);
     } catch { missing.push(point); }
   }
   const results = await fetchWeatherBatch(missing, fetcher, WEATHER_BATCH_SIZE);
