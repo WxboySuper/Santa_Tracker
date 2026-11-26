@@ -24,7 +24,7 @@ function getLockFile(): LockFile {
 
 async function ensureLockDir(lock: LockFile): Promise<void> {
   const dir = path.dirname(lock.path);
-  await fs.mkdir(dir, { recursive: true }).catch(() => undefined);
+  await fs.mkdir(dir, { recursive: true });
 }
 
 async function tryCreate(lock: LockFile): Promise<boolean> {
@@ -176,7 +176,7 @@ export async function withWriteLock<T>(fn: () => Promise<T>): Promise<T> {
     if (process.env.SANTA_STORAGE_BACKEND === "r2") {
       releaseLock = await acquireR2Lock();
     } else {
-      releaseLock = await acquireFsLock(getLockFile()).catch(() => null);
+      releaseLock = await acquireFsLock(getLockFile());
     }
     return await fn();
   } finally {
