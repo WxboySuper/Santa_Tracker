@@ -116,6 +116,12 @@ export function isInChristmasWindow(options: ZonedInstant): boolean {
   return localMinuteInChristmasWindow(options) >= 0;
 }
 
+export function isInSouthernChristmasWindow(options: ZonedInstant): boolean {
+  const local = localClock(options);
+  const minute = local.hour * 60 + local.minute;
+  return isInChristmasWindow(options) && (minute >= 23 * 60 || minute <= 150);
+}
+
 export function longitudeDelta(from: LatLng, to: LatLng): number {
   return ((to.lng - from.lng + 540) % 360) - 180;
 }

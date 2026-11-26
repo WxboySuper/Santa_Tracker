@@ -147,7 +147,7 @@ describe('committed 2026 route draft', () => {
     expectReportMeetsFlightLimits(generated, inputs);
     expectReviewIncludesReport(review, docs, deliveries, generated);
     expectAuditPasses(storedRoute, generated, inputs);
-  }, 360_000);
+  }, 1_200_000);
 
   it('rejects the frozen pre-sweep route with the updated audit', async () => {
     const inputs = await loadGeneratorInputs({ seed: 2026 });

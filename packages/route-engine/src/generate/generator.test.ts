@@ -123,15 +123,14 @@ describe('generateRoute midnight sweep', () => {
     expect(generated.report.invalidCandidateIds).toEqual(['unrecoverable-zone']);
   });
 
-  it('rejects an invalid timezone override before route scheduling', () => {
+  it('reports an invalid timezone override and continues with valid candidates', () => {
     const tables = {
-      zonesByCountry: { FJ: ['Pacific/Kiritimati'] },
-      zonePointsByCountry: { FJ: [{ timezone: 'Pacific/Kiritimati', lat: 80, lng: 170 }] },
+      zonesByCountry: { FJ: ['Pacific/Kiritimati'], WS: ['Pacific/Kiritimati'] },
       utcOffsetsByTimezone: { 'Pacific/Kiritimati': 840 },
-      countryNames: { FJ: 'Fiji' },
     };
-    expect(() => generateRoute([candidates[0]!], config, { timezone: { 'pacific-a': 'Not/A_Zone' } }, tables))
-      .toThrow(/Invalid IANA timezone override/);
+    const generated = generateRoute(candidates.slice(0, 2), config, { timezone: { 'pacific-a': 'Not/A_Zone' } }, tables);
+    expect(generated.report.invalidCandidateIds).toEqual(['pacific-a']);
+    expect(generated.locations.map((place) => place.id)).toEqual(['pacific-b']);
   });
 
   it('recovers a missing UTC offset before candidate validation when timezone tables can resolve it', () => {

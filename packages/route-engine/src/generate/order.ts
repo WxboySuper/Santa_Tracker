@@ -571,9 +571,6 @@ function placeFitsNeighborBand(state: InsertionState, place: Candidate, index: n
 }
 
 function insertionOptions(state: InsertionState, place: Candidate, positions: RankedInsertion['positions'], pass: InsertionPass): RankedInsertion['positions'] {
-  if (pass.bandSpreadMinutes === 0) {
-    return positions.slice(0, pass.maxPositionAttempts).filter(({ index }) => placeFitsNeighborBand(state, place, index, pass));
-  }
   return positions.filter(({ index }) => placeFitsNeighborBand(state, place, index, pass)).slice(0, pass.maxPositionAttempts);
 }
 

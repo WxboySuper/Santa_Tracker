@@ -100,6 +100,9 @@ function validateAndEnrichCandidates({ updated, rowLabels, vetoed, config, optio
 /** Return the full eligible pool. The old route lock describes a reviewed selection, not this sweep. */
 export function chooseCandidates(pool: Candidate[], config: GeneratorConfig, overrides: RouteOverrides = {},
   options: CandidateSelectionOptions = {}): CandidateSelection {
+  if ((overrides.lock?.length ?? 0) > 0 || Object.keys(overrides.swap ?? {}).length > 0) {
+    throw new Error('Lock and swap selection overrides are unsupported by the midnight sweep');
+  }
   const vetoed = new Set(overrides.veto ?? []);
   const rows = collectCandidateRows(pool);
   const updated = applyCandidateOverrides(rows.candidates, overrides);

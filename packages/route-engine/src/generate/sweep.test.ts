@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { christmasArrival, christmasWindow, eastwardLegReason, isInChristmasWindow, localClock, stopDurationSeconds, stopTier } from './sweep';
+import { christmasArrival, christmasWindow, eastwardLegReason, isInChristmasWindow, isInSouthernChristmasWindow, localClock, stopDurationSeconds, stopTier } from './sweep';
 import { christmasOffset, parseUtcOffset } from './timezone';
 import type { Candidate } from './types';
 
@@ -42,6 +42,12 @@ describe('christmasArrival', () => {
     expect(isInChristmasWindow({ iso: '2026-12-24T09:00:00.000Z', timezoneOrOffset: 840 })).toBe(true);
     expect(isInChristmasWindow({ iso: '2026-12-24T15:00:00.000Z', timezoneOrOffset: 840 })).toBe(true);
     expect(isInChristmasWindow({ iso: '2026-12-24T15:01:00.000Z', timezoneOrOffset: 840 })).toBe(false);
+  });
+
+  it('enforces the 02:30 southern arrival limit', () => {
+    expect(isInSouthernChristmasWindow({ iso: '2026-12-25T02:30:00.000Z', timezoneOrOffset: 0 })).toBe(true);
+    expect(isInSouthernChristmasWindow({ iso: '2026-12-25T02:31:00.000Z', timezoneOrOffset: 0 })).toBe(false);
+    expect(isInSouthernChristmasWindow({ iso: '2026-12-24T23:00:00.000Z', timezoneOrOffset: 0 })).toBe(true);
   });
 
   it('labels eastward moves whose destination offset advances local midnight', () => {

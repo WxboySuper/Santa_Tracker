@@ -16,9 +16,14 @@ describe('chooseCandidates', () => {
     expect(result.invalidCandidateIds).toEqual([]);
   });
 
-  it('applies the sensitive-place veto without restoring an old route lock', () => {
-    const result = chooseCandidates(pool, DEFAULT_GENERATOR_LIMITS, { lock: ['city-a'], veto: ['city-a'] });
+  it('applies a candidate veto', () => {
+    const result = chooseCandidates(pool, DEFAULT_GENERATOR_LIMITS, { veto: ['city-a'] });
     expect(result.candidates.map((place) => place.id)).toEqual(['town-b', 'landmark-c']);
+  });
+
+  it('rejects stale selection locks and swaps instead of ignoring them', () => {
+    expect(() => chooseCandidates(pool, DEFAULT_GENERATOR_LIMITS, { lock: ['city-a'] })).toThrow(/Lock and swap/);
+    expect(() => chooseCandidates(pool, DEFAULT_GENERATOR_LIMITS, { swap: { 'city-a': 'town-b' } })).toThrow(/Lock and swap/);
   });
 
   it('applies owner rename and timezone overrides to candidates', () => {

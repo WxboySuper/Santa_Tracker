@@ -59,6 +59,17 @@ function mergeOverrideFiles(base: RouteOverrides, extra: RouteOverrides): RouteO
   };
 }
 
+function keepSweepOverrides(overrides: RouteOverrides): RouteOverrides {
+  // The committed route-2026 override snapshot still contains reviewed-route
+  // locks and swaps. Those pins belong to the superseded fixed sequence.
+  return {
+    veto: overrides.veto,
+    timezone: overrides.timezone,
+    utcOffsetMinutes: overrides.utcOffsetMinutes,
+    rename: overrides.rename,
+  };
+}
+
 export async function loadGeneratorInputs(options: { seed?: number; overrides?: RouteOverrides } = {}): Promise<GeneratorInputs> {
   const [routeConfig, places, curated, draftOverrides, localOverrides, tables, countryNames, countryBounds] = await Promise.all([
     readJson<Partial<GeneratorConfig>>(new URL('./config.json', import.meta.url)),
@@ -82,7 +93,7 @@ export async function loadGeneratorInputs(options: { seed?: number; overrides?: 
   return {
     config,
     pool,
-    overrides: mergeOverrideFiles(mergeOverrideFiles(draftOverrides, localOverrides), options.overrides ?? {}),
+    overrides: mergeOverrideFiles(mergeOverrideFiles(keepSweepOverrides(draftOverrides), localOverrides), options.overrides ?? {}),
     tables: { ...tables, countryNames, countryBoundsByCode: countryBounds.boundsByCountry },
     countryNames,
   };

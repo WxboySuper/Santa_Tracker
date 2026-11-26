@@ -6,7 +6,7 @@ import type { RouteOverrides } from './overrides';
 import { chooseCandidates } from './candidates';
 import { scheduledTravelMilliseconds, sweepOrder } from './order';
 import { buildReport } from './report';
-import { eastwardLegReason, isEastwardDelta, isInChristmasWindow, localClock, longitudeDelta, stopDurationSeconds, stopTier } from './sweep';
+import { eastwardLegReason, isEastwardDelta, isInChristmasWindow, isInSouthernChristmasWindow, localClock, longitudeDelta, stopDurationSeconds, stopTier } from './sweep';
 import { DEFAULT_GENERATOR_LIMITS, NORTH_POLE, RETURN_DEADLINE_UTC, TAKEOFF_UTC, type Candidate, type GeneratedRoute, type GeneratorConfig, type RouteReport } from './types';
 
 type TimezoneTables = {
@@ -61,7 +61,7 @@ function isSupportedIanaTimezone(timezone: string): boolean {
 
 function validateCandidateIanaTimezone(place: Candidate, overrides: RouteOverrides): Candidate {
   if (isSupportedIanaTimezone(place.timezone)) return place;
-  if (overrides.timezone?.[place.id]) throw new Error(`Invalid IANA timezone override for ${place.name}: ${place.timezone}`);
+  if (overrides.timezone?.[place.id]) throw new InvalidCandidateTimezoneError(`Invalid IANA timezone override for ${place.name}: ${place.timezone}`);
   throw new InvalidCandidateTimezoneError(`Invalid candidate IANA time zone: ${place.name} (${place.timezone})`);
 }
 
@@ -268,6 +268,9 @@ function validateArrivalWindow(route: Route, places: Candidate[], config: Genera
     if (!place) throw new Error(`Missing candidate for route stop ${index + 1}`);
     if (!isInChristmasWindow({ iso: stop.arrivalIso, timezoneOrOffset: place.utcOffsetMinutes ?? 0 })) {
       throw new Error(`${place.name} arrives outside its local window`);
+    }
+    if (place.lat < -35 && !isInSouthernChristmasWindow({ iso: stop.arrivalIso, timezoneOrOffset: place.utcOffsetMinutes ?? 0 })) {
+      throw new Error(`${place.name} arrives after the southern 02:30 local limit`);
     }
   });
 }
