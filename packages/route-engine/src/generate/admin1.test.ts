@@ -30,6 +30,13 @@ describe('admin-1 coverage', () => {
     expect(admin1UnitFor(candidate('AU', null))).toBeUndefined();
   });
 
+  it('recognizes preserved external codes without counting them as required coverage', () => {
+    const puertoRico = candidate('US', 'US-PR');
+
+    expect(admin1UnitFor(puertoRico)).toBe('US-PR');
+    expect(admin1Coverage([puertoRico]).US.covered).toBe(0);
+  });
+
   it('recognizes valid territory and external-territory admin-1 codes', () => {
     expect(isSupportedAdmin1Code('US', 'US-PR')).toBe(true);
     expect(isSupportedAdmin1Code('AU', 'AU-X03~')).toBe(true);
@@ -54,6 +61,21 @@ describe('admin-1 coverage', () => {
       geometry: { type: 'GeometryCollection', geometries: [] } }];
     expect(admin1CodeAt(candidate('US', null), features)).toBeNull();
     expect(() => admin1CodeAt({ ...candidate('US', null), lat: Number.NaN }, features)).toThrow(/non-finite latitude/);
+  });
+
+  it('rejects a point that falls on multiple admin-1 units instead of assigning the first code', () => {
+    const polygon = (minLng: number, maxLng: number) => ({
+      type: 'Polygon',
+      coordinates: [[
+        [minLng, -1], [maxLng, -1], [maxLng, 1], [minLng, 1], [minLng, -1],
+      ]],
+    });
+    const features = [
+      { country: 'US', code: 'US-CA', name: 'California', geometry: polygon(-1, 0) },
+      { country: 'US', code: 'US-NV', name: 'Nevada', geometry: polygon(0, 1) },
+    ];
+
+    expect(() => admin1CodeAt(candidate('US', null), features)).toThrow(/ambiguous admin-1 border.*US-CA.*US-NV/);
   });
 
   it('validates coordinates before skipping countries without admin-1 coverage', () => {

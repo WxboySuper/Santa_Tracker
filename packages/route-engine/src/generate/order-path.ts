@@ -342,11 +342,8 @@ function tryBandTwoOptRepairs({ order, firstFailure, search, current, sweepBandB
 }
 
 function firstHardDetourIndex(order: Candidate[]): number {
-  return order.findIndex((place, index) => {
-    const before = order[index - 1];
-    const after = order[index + 1];
-    return !!before && !!after && detourRatio(before, place, after) > 2.5;
-  });
+  const countryCounts = countryStopCounts(order);
+  return order.findIndex((_, index) => isRepeatedCountryDetour(order, index, countryCounts));
 }
 
 function tryDetourOrOptRepairs({ order, search, current, sweepBandById, config }: Omit<BandRepairOptions, 'firstFailure'>): void {

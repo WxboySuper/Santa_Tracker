@@ -24,19 +24,28 @@ describe('band fill allocation', () => {
   });
 
   it('chooses a populated launch without using undefined pole longitude as a direction', () => {
-    const candidate = (id: string, lng: number, population: number): Candidate => ({
-      id,
-      name: id,
+    const west: Candidate = {
+      id: 'west-populated',
+      name: 'West populated',
       country: 'KI',
       lat: 1,
-      lng,
+      lng: -140,
       timezone: 'Pacific/Kiritimati',
       utcOffsetMinutes: 840,
       category: 'populated',
-      population,
-    });
-    const west = candidate('west-populated', -140, 100_000);
-    const east = candidate('east-sparse', 170, 5_000);
+      population: 100_000,
+    };
+    const east: Candidate = {
+      id: 'east-sparse',
+      name: 'East sparse',
+      country: 'KI',
+      lat: 1,
+      lng: 170,
+      timezone: 'Pacific/Kiritimati',
+      utcOffsetMinutes: 840,
+      category: 'populated',
+      population: 5_000,
+    };
 
     expect(mandatoryLaunch([west, east], [west, east], DEFAULT_GENERATOR_LIMITS)?.launch.id).toBe(west.id);
   });

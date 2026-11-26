@@ -167,7 +167,13 @@ function requireAdmin1Features(features) {
 }
 
 function findAdmin1Feature(place, point, features) {
-  return features.find((feature) => feature?.country === place.country && pointInFeature(point, feature));
+  const matches = features.filter((feature) => feature?.country === place.country && pointInFeature(point, feature));
+  const byCode = new Map(matches.map((feature) => [feature.code, feature]));
+  if (byCode.size > 1) {
+    const codes = [...byCode.keys()].sort(compareText).join(', ');
+    throw new Error(`Candidate ${place.id ?? '(unknown)'} lies on an ambiguous admin-1 border: ${codes}`);
+  }
+  return byCode.values().next().value;
 }
 
 export function admin1CodeAt(candidate, featureRows) {

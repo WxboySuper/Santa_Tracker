@@ -2,6 +2,12 @@ import type { Candidate } from './types';
 import requiredAdmin1Units from './admin1-units.json';
 
 export const REQUIRED_ADMIN1_UNITS = requiredAdmin1Units;
+// These valid external codes are preserved in candidate data, but are not
+// part of the owner's required state/province/territory coverage set.
+const OPTIONAL_EXTERNAL_ADMIN1_CODES: Partial<Record<RequiredAdmin1Country, readonly string[]>> = {
+  US: ['US-PR'],
+  AU: ['AU-X03~'],
+};
 
 export type RequiredAdmin1Country = keyof typeof REQUIRED_ADMIN1_UNITS;
 export type Admin1Coverage = Record<RequiredAdmin1Country, {
@@ -34,5 +40,5 @@ export function admin1UnitFor(place: Candidate): string | undefined {
   const code = place.admin1Code;
   if (!code) return undefined;
   if (!code.startsWith(`${country}-`)) return undefined;
-  return units.includes(code) ? code : undefined;
+  return units.includes(code) || OPTIONAL_EXTERNAL_ADMIN1_CODES[country]?.includes(code) ? code : undefined;
 }

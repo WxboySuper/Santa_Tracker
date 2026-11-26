@@ -2,6 +2,7 @@ import { copyFile, readFile, rename, rm, writeFile } from 'node:fs/promises';
 import { admin1CodeAt, isSupportedAdmin1Code, loadAdmin1Features } from './admin1.mjs';
 
 const DATA_FILES = ['places.json', 'curated.json'];
+const TRANSACTION_MARKER = new URL('./data/.admin1-refresh-transaction.json', import.meta.url);
 
 function isSupportedExistingCode(place, code) {
   return isSupportedAdmin1Code(place.country, code);
@@ -80,7 +81,12 @@ async function stageDataFiles(prepared) {
 }
 
 async function installDataFiles(prepared) {
+  if (prepared.length !== DATA_FILES.length || prepared.some(({ file }) => !DATA_FILES.includes(file))) {
+    throw new Error('refusing to install an incomplete admin-1 data set');
+  }
   for (const { path, backup } of prepared) await copyFile(path, backup);
+  const manifest = prepared.map(({ file }) => ({ file, backup: `.${file}.${process.pid}.bak` }));
+  await writeFile(TRANSACTION_MARKER, `${JSON.stringify(manifest)}\n`, { encoding: 'utf8', flag: 'wx' });
   const installed = [];
   try {
     for (const item of prepared) {
@@ -89,16 +95,44 @@ async function installDataFiles(prepared) {
     }
   } catch (error) {
     for (const item of installed.reverse()) await copyFile(item.backup, item.path);
+    await rm(TRANSACTION_MARKER, { force: true });
     throw error;
   }
+  await rm(TRANSACTION_MARKER, { force: true });
+}
+
+async function recoverInterruptedInstall() {
+  let manifest;
+  try {
+    manifest = JSON.parse(await readFile(TRANSACTION_MARKER, 'utf8'));
+  } catch (error) {
+    if (error?.code === 'ENOENT') return;
+    throw error;
+  }
+  if (!Array.isArray(manifest) || manifest.length !== DATA_FILES.length) {
+    throw new Error('admin-1 refresh marker is invalid; refusing to read candidate data');
+  }
+  for (const entry of manifest) {
+    const backupPrefix = `.${entry?.file}.`;
+    const backupPid = typeof entry?.backup === 'string' && entry.backup.startsWith(backupPrefix)
+      ? entry.backup.slice(backupPrefix.length, -4)
+      : '';
+    if (!DATA_FILES.includes(entry?.file) || !/^\d+$/.test(backupPid) || !entry.backup.endsWith('.bak')) {
+      throw new Error('admin-1 refresh marker contains an invalid backup path');
+    }
+    await copyFile(new URL(`./data/${entry.backup}`, import.meta.url), new URL(`./data/${entry.file}`, import.meta.url));
+  }
+  await rm(TRANSACTION_MARKER, { force: true });
 }
 
 async function cleanupStagedFiles(prepared) {
-  await Promise.all(prepared.flatMap(({ temporary, backup }) => [temporary, backup])
-    .map((path) => rm(path, { force: true })));
+  const pending = await readFile(TRANSACTION_MARKER, 'utf8').then(() => true, (error) => error?.code !== 'ENOENT');
+  const paths = prepared.flatMap(({ temporary, backup }) => pending ? [temporary] : [temporary, backup]);
+  await Promise.all(paths.map((path) => rm(path, { force: true })));
 }
 
 async function main() {
+  await recoverInterruptedInstall();
   const featurePolygons = await loadAdmin1Features();
   const prepared = [];
   try {

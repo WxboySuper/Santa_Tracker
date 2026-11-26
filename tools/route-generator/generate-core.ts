@@ -32,6 +32,16 @@ async function readOptionalJson<T>(url: URL, fallback: T): Promise<T> {
   }
 }
 
+async function assertNoInterruptedAdmin1Refresh(): Promise<void> {
+  try {
+    await readFile(new URL('./data/.admin1-refresh-transaction.json', import.meta.url), 'utf8');
+  } catch (error) {
+    if (isMissingFileError(error)) return;
+    throw error;
+  }
+  throw new Error('An admin-1 refresh was interrupted. Run node tools/route-generator/refresh-admin1.mjs to recover candidate data before generating a route.');
+}
+
 function fallbackForMissingFile<T>(error: unknown, fallback: T): T {
   if (isMissingFileError(error)) return fallback;
   throw error;
@@ -71,6 +81,7 @@ function keepSweepOverrides(overrides: RouteOverrides): RouteOverrides {
 }
 
 export async function loadGeneratorInputs(options: { seed?: number; overrides?: RouteOverrides } = {}): Promise<GeneratorInputs> {
+  await assertNoInterruptedAdmin1Refresh();
   const [routeConfig, places, curated, draftOverrides, localOverrides, tables, countryNames, countryBounds] = await Promise.all([
     readJson<Partial<GeneratorConfig>>(new URL('./config.json', import.meta.url)),
     readJson<Candidate[]>(new URL('./data/places.json', import.meta.url)),
@@ -81,6 +92,7 @@ export async function loadGeneratorInputs(options: { seed?: number; overrides?: 
     readJson<Record<string, string>>(new URL('./data/country-names.json', import.meta.url)),
     readJson<{ boundsByCountry: TimezoneTables['countryBoundsByCode'] }>(new URL('./data/country-bounds.json', import.meta.url)),
   ]);
+  await assertNoInterruptedAdmin1Refresh();
   const config = {
     ...DEFAULT_GENERATOR_LIMITS,
     ...routeConfig,
