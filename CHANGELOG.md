@@ -67,6 +67,13 @@
 - **Weather endpoint:** Adds `GET /api/weather?lat={latitude}&lon={longitude}` with Celsius and Fahrenheit temperatures, the provider's numeric weather code, and a short label.
 - **Caching and failure handling:** Rounds coordinates to a 0.25 degree grid, caches at the edge for 12 minutes, times out provider calls, and returns `null` when weather is unavailable.
 - **Provider terms:** Uses Open-Meteo. Its no-key free endpoint permits non-commercial use within published rate limits; weather data is CC BY 4.0 and requires attribution. Commercial use needs a paid plan. See https://open-meteo.com/en/terms.
+
+## [Unreleased] - Launch-day emergency controls API (#303)
+
+- **Emergency switches:** Adds audited, compare-and-set controls for no-map mode, simplified tracker mode, and weather/soundscape kills. Updates require an operator reason and retain the prior and next values.
+- **Runtime contract:** Adds a safe public projection at `GET /api/runtime-controls`; malformed stored controls fail closed to no-map, simplified mode, and disabled optional features.
+- **Docs and tests:** Documents the admin and runtime API contracts and tests defaults, fail-safe parsing, audit history, and stale-write rejection.
+
 ## [Unreleased] - Cross-browser readiness matrix (#324)
 
 - **Opt-in Playwright profiles:** Adds open and closed fixture runs for Firefox and WebKit desktop, iPhone 13, Pixel 5, and iPad emulation, a 3840x2160 desktop viewport, and a 740x360 landscape phone viewport. The default project set stays unchanged.
