@@ -1,4 +1,4 @@
-import { applyCandidateOverrides, type RouteOverrides } from './overrides';
+import { applyCandidateOverrides, assertNoLegacySelectionOverrides, type RouteOverrides } from './overrides';
 import type { Candidate, GeneratorConfig } from './types';
 
 export type CandidateSelection = { candidates: Candidate[]; invalidCandidateIds: string[]; duplicateCandidateIds: string[] };
@@ -100,9 +100,7 @@ function validateAndEnrichCandidates({ updated, rowLabels, vetoed, config, optio
 /** Return the full eligible pool. The old route lock describes a reviewed selection, not this sweep. */
 export function chooseCandidates(pool: Candidate[], config: GeneratorConfig, overrides: RouteOverrides = {},
   options: CandidateSelectionOptions = {}): CandidateSelection {
-  if ((overrides.lock?.length ?? 0) > 0 || Object.keys(overrides.swap ?? {}).length > 0) {
-    throw new Error('Lock and swap selection overrides are unsupported by the midnight sweep');
-  }
+  assertNoLegacySelectionOverrides(overrides);
   const vetoed = new Set(overrides.veto ?? []);
   const rows = collectCandidateRows(pool);
   const updated = applyCandidateOverrides(rows.candidates, overrides);
