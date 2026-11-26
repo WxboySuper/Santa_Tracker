@@ -39,7 +39,11 @@ const placeIds = new Set(); const topics = new Map();
 for (const [index, card] of cards.entries()) {
   const prefix = 'cards[' + index + ']';
   if (!card || typeof card !== 'object' || typeof card.place_id !== 'string' || !card.place_id.trim()) { errors.push(prefix + ': place_id is required'); continue; }
-  if (placeIds.has(card.place_id)) errors.push(prefix + ': duplicate place_id ' + card.place_id); else placeIds.add(card.place_id);
+  // IDs and countries must not carry padding, which would let ' Q1 ' slip past the duplicate checks.
+  if (card.place_id !== card.place_id.trim()) errors.push(prefix + ': place_id must not have leading or trailing spaces');
+  if (typeof card.country === 'string' && card.country !== card.country.trim()) errors.push(prefix + ': country must not have leading or trailing spaces');
+  const placeKey = card.place_id.trim();
+  if (placeIds.has(placeKey)) errors.push(prefix + ': duplicate place_id ' + placeKey); else placeIds.add(placeKey);
   if (typeof card.country !== 'string' || !card.country.trim()) errors.push(prefix + ': country is required');
   if (!Array.isArray(card.sources) || card.sources.length === 0 || card.sources.some((source) => !isHttpsUrl(source))) errors.push(prefix + ': at least one HTTPS source URL is required');
   if (card.note !== null && (typeof card.note !== 'string' || card.note.length < 40 || card.note.length > 280)) errors.push(prefix + ': note must be null or 40 to 280 characters');

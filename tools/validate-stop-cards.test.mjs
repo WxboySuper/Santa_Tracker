@@ -87,4 +87,10 @@ describe('stop card validation', () => {
     expect(result.status).toBe(1);
     expect(result.stderr).toContain('cards[1]: topic_key bells already used');
   });
+  it('rejects padded place IDs and treats them as duplicates of the trimmed ID', async () => {
+    const result = await validate([validCard('Q13', null, 'river'), validCard(' Q13 ', null, 'canal')]);
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain('place_id must not have leading or trailing spaces');
+    expect(result.stderr).toContain('duplicate place_id Q13');
+  });
 });
