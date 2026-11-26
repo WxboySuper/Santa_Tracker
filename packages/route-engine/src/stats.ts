@@ -105,11 +105,31 @@ function resolveLocations(stops: Route['stops'], locations: readonly RouteStatsL
   });
 }
 
+/** Validate replay metadata once at controller creation, rather than failing during a frame. */
+export function validateJourneyStatsLocations(
+  route: Route,
+  locations: readonly RouteStatsLocation[],
+  candidatePool: readonly RouteStatsLocation[] = locations,
+): void {
+  resolveLocations(route.stops, locations);
+  for (const location of candidatePool) {
+    assertValidCoordinates({ coordinates: location.coordinates, locationId: location.id });
+  }
+}
+
 function assertValidCoordinates({ coordinates, locationId }: { coordinates: LatLng; locationId: string }): void {
   const { lat, lng } = coordinates;
-  if (!Number.isFinite(lat) || lat < -90 || lat > 90 || !Number.isFinite(lng) || lng < -180 || lng > 180) {
+  if (!isValidLatitude({ value: lat }) || !isValidLongitude({ value: lng })) {
     throw new RangeError(`invalid coordinates for stats location ${locationId}`);
   }
+}
+
+function isValidLatitude({ value }: { value: number }): boolean {
+  return Number.isFinite(value) && value >= -90 && value <= 90;
+}
+
+function isValidLongitude({ value }: { value: number }): boolean {
+  return Number.isFinite(value) && value >= -180 && value <= 180;
 }
 
 function deriveRouteInterval({ stops, nowMs }: { stops: Route['stops']; nowMs: number }): RouteInterval {

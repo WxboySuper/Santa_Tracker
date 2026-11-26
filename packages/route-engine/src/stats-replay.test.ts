@@ -161,6 +161,17 @@ describe('journey stats', () => {
       : location);
     expect(() => deriveJourneyStats(route, start, invalidCoordinates)).toThrow('invalid coordinates for stats location a');
   });
+
+  it('validates replay locations and candidate-pool coordinates at construction', () => {
+    const invalidCoordinates = locations.map((location, index) => index === 0
+      ? { ...location, coordinates: { lat: 91, lng: location.coordinates.lng } }
+      : location);
+    expect(() => createReplay(route, { locations: invalidCoordinates })).toThrow('invalid coordinates for stats location a');
+    expect(() => createReplay(route, { locations: locations.slice(1) })).toThrow('Missing stats location for route stop a');
+
+    const invalidCandidatePool = [{ ...locations[0]!, coordinates: { lat: 0, lng: 181 } }];
+    expect(() => createReplay(route, { locations, candidatePool: invalidCandidatePool })).toThrow('invalid coordinates for stats location a');
+  });
 });
 
 describe('replay controller', () => {

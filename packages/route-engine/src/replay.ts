@@ -1,6 +1,6 @@
 import type { Route } from '@santa-tracker/contracts';
 import { deriveJourneyState } from './state';
-import { deriveJourneyStats, type JourneyStats, type RouteStatsLocation } from './stats';
+import { deriveJourneyStats, validateJourneyStatsLocations, type JourneyStats, type RouteStatsLocation } from './stats';
 
 export const MIN_REPLAY_SPEED = 0.5;
 export const MAX_REPLAY_SPEED = 64;
@@ -36,6 +36,7 @@ export function createReplay(route: Route, options: ReplayOptions): ReplayContro
   const replayRoute: Route = { ...route, stops: route.stops.map(stop => ({ ...stop })) };
   const replayLocations = options.locations.map(location => ({ ...location, coordinates: { ...location.coordinates } }));
   const replayCandidatePool = (options.candidatePool ?? options.locations).map(location => ({ ...location, coordinates: { ...location.coordinates } }));
+  validateJourneyStatsLocations(replayRoute, replayLocations, replayCandidatePool);
   const hasRoute = replayRoute.stops.length > 0;
   const firstArrival = hasRoute ? parseRouteTimestamp({ value: replayRoute.stops[0]!.arrivalIso }) : undefined;
   const lastDeparture = hasRoute ? parseRouteTimestamp({ value: replayRoute.stops.at(-1)!.departureIso }) : undefined;
