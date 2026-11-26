@@ -47,7 +47,7 @@ describe("scheduled weather refresh", () => {
     expect(result.size).toBe(121);
     const first = points[0]!;
     await expect(fetchWeatherBatch(points.slice(0, 2), async () => Response.json({ latitude: first.lat, longitude: first.lon, current: { temperature_2m: 2, weather_code: 0 } })))
-      .rejects.toThrow("Open-Meteo returned 1 rows for a 2-cell batch");
+      .rejects.toThrow("Open-Meteo returned 0 rows for a 2-cell batch");
   });
 
   it("keeps the simulated full-flight provider call total under 1,000 regardless of visitor count", async () => {

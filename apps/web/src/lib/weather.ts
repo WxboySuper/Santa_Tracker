@@ -35,6 +35,9 @@ function validCurrent(value: unknown): value is { temperature_2m: number; weathe
   const current = value as Record<string, unknown>;
   return typeof current.temperature_2m === "number" && Number.isFinite(current.temperature_2m) && typeof current.weather_code === "number" && Number.isInteger(current.weather_code);
 }
+function finiteNumber(value: unknown): value is number {
+  return typeof value === "number" && Number.isFinite(value);
+}
 function providerUrl(points: WeatherPoint[]): string {
   const url = new URL("https://api.open-meteo.com/v1/forecast");
   url.search = new URLSearchParams({
@@ -62,30 +65,42 @@ export async function fetchWeather(lat: number, lon: number, fetcher: WeatherFet
 export async function fetchWeatherBatch(
   points: WeatherPoint[], fetcher: WeatherFetch = fetch, batchSize = 50,
 ): Promise<Map<string, WeatherResult>> {
-  const unique = [...new Map(points.map(point => {
-    const cell = rounded(point);
-    return [weatherCellKey(cell), cell] as const;
-  })).entries()];
+  const unique = getUniqueWeatherPoints(points);
   const results = new Map<string, WeatherResult>();
   for (let start = 0; start < unique.length; start += batchSize) {
     const batch = unique.slice(start, start + batchSize);
     const body = await fetchJson(providerUrl(batch.map(([, point]) => point)), fetcher);
-    const rows = Array.isArray(body) ? body : [body];
-    if (rows.length !== batch.length) {
-      throw new Error(`Open-Meteo returned ${rows.length} rows for a ${batch.length}-cell batch`);
-    }
-    const requestedKeys = new Set(batch.map(([key]) => key));
-    for (const row of rows) {
-      if (!row || typeof row !== "object") continue;
-      const coordinates = row as { latitude?: unknown; longitude?: unknown; current?: unknown };
-      if (typeof coordinates.latitude !== "number" || typeof coordinates.longitude !== "number") continue;
-      const key = weatherCellKey({ lat: coordinates.latitude, lon: coordinates.longitude });
-      if (requestedKeys.has(key) && validCurrent(coordinates.current)) {
-        results.set(key, displayWeather(coordinates.current.temperature_2m, coordinates.current.weather_code));
-      }
-    }
+    for (const [key, weather] of parseWeatherBatch(body, batch)) results.set(key, weather);
   }
   return results;
+}
+function getUniqueWeatherPoints(points: WeatherPoint[]): [string, WeatherPoint][] {
+  return [...new Map(points.map(point => {
+    const cell = rounded(point);
+    return [weatherCellKey(cell), cell] as const;
+  })).entries()];
+}
+function parseWeatherBatch(body: unknown, batch: [string, WeatherPoint][]): Map<string, WeatherResult> {
+  if (!Array.isArray(body) || body.length !== batch.length) {
+    const count = Array.isArray(body) ? body.length : 0;
+    throw new Error(`Open-Meteo returned ${count} rows for a ${batch.length}-cell batch`);
+  }
+  const requested = new Set(batch.map(([key]) => key));
+  const results = new Map<string, WeatherResult>();
+  for (const row of body) {
+    const parsed = parseWeatherRow(row, requested);
+    if (!parsed || results.has(parsed[0])) throw new Error("Open-Meteo returned an invalid or duplicate weather row");
+    results.set(...parsed);
+  }
+  if (results.size !== batch.length) throw new Error("Open-Meteo omitted a requested weather cell");
+  return results;
+}
+function parseWeatherRow(row: unknown, requested: Set<string>): [string, WeatherResult] | null {
+  if (!row || typeof row !== "object") return null;
+  const coordinates = row as { latitude?: unknown; longitude?: unknown; current?: unknown };
+  if (!finiteNumber(coordinates.latitude) || !finiteNumber(coordinates.longitude) || !validCurrent(coordinates.current)) return null;
+  const key = weatherCellKey({ lat: coordinates.latitude, lon: coordinates.longitude });
+  return requested.has(key) ? [key, displayWeather(coordinates.current.temperature_2m, coordinates.current.weather_code)] : null;
 }
 function parseCoordinate(value: string | null, min: number, max: number): number | null {
   if (value === null || value.trim() === "") return null;
@@ -120,7 +135,12 @@ function resolveWeatherBindings(options: { store?: WeatherKV | null; budget?: Fa
 }
 
 function weatherIsDisabled(enabled?: boolean): boolean {
-  return enabled === false || process.env.WEATHER_ENABLED === "false";
+  if (enabled === false || process.env.WEATHER_ENABLED === "false") return true;
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { env } = require("cloudflare:workers") as { env: { WEATHER_ENABLED?: string } };
+    return env.WEATHER_ENABLED === "false";
+  } catch { return false; }
 }
 
 export async function getWeatherResponse(
@@ -141,8 +161,8 @@ export async function getWeatherResponse(
 function isWeatherResult(value: unknown): value is WeatherResult {
   if (!value || typeof value !== "object") return false;
   const weather = value as Record<string, unknown>;
-  return typeof weather.temperatureC === "number" && Number.isFinite(weather.temperatureC)
-    && typeof weather.temperatureF === "number" && Number.isFinite(weather.temperatureF)
+  return finiteNumber(weather.temperatureC)
+    && finiteNumber(weather.temperatureF)
     && typeof weather.code === "number" && Number.isInteger(weather.code)
     && typeof weather.label === "string";
 }
