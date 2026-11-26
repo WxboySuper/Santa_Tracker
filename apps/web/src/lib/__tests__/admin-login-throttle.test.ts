@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { createLoginThrottle, InMemoryThrottleStore, type ThrottleStore } from "../admin-login-throttle";
+import { PersistentAdminThrottleStore } from "../admin-login";
 
 const MINUTE = 60_000;
 
@@ -119,5 +120,20 @@ describe("admin login throttle", () => {
     expect(await store.get({ key: "ip:locked-b" })).toBeDefined();
     now += 15 * MINUTE;
     expect(await throttle.check({ ip: "new" })).toBeNull();
+  });
+
+  it("does not evict a persistent active lockout to make room for a new key", async () => {
+    const now = Date.now();
+    const active = { attempts: [now], lockoutUntil: now + 60_000, lockoutLevel: 1, lastLockoutAt: now };
+    let stored = JSON.stringify(Object.fromEntries(Array.from({ length: 10_000 }, (_, index) => [`ip:${index}`, active])));
+    const storage = {
+      async read() { return stored; },
+      async write(_key: string, value: string) { stored = value; },
+    };
+    const store = new PersistentAdminThrottleStore(storage, async action => action());
+
+    await expect(store.update({ key: "ip:new", transform: () => active })).rejects.toThrow("no eligible IP state to evict");
+    expect(JSON.parse(stored)).toHaveProperty("ip:0");
+    expect(JSON.parse(stored)).not.toHaveProperty("ip:new");
   });
 });

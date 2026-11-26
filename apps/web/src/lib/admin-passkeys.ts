@@ -6,7 +6,7 @@ import {
   type AuthenticationResponseJSON,
   type RegistrationResponseJSON,
 } from "@simplewebauthn/server";
-import { appendAuthAudit, consumeAuthChallenge, consumeRecoveryCode, deletePasskey, installPasskey, readAdminAuthState, readPasskey, saveAuthChallenge, updatePasskeyCounter, replaceRecoveryCodes, updateAdminSessionAuthMethod, type AdminAuthChallenge, type StoredPasskey } from "./admin-auth-state";
+import { appendAuthAudit, consumeAuthChallenge, consumeRecoveryCode, consumeRecoveryCodeForSession, deletePasskey, installPasskey, readAdminAuthState, readPasskey, saveAuthChallenge, updatePasskeyCounter, replaceRecoveryCodes, type AdminAuthChallenge, type StoredPasskey } from "./admin-auth-state";
 import { createAdminToken } from "./auth";
 
 const CHALLENGE_TTL_MS = 5 * 60 * 1000;
@@ -158,13 +158,11 @@ export async function loginWithRecoveryCode(input: { code: string }): Promise<st
 
 export async function authorizeRecoverySessionForPasskeyManagement(input: { code: string; sessionId: string }): Promise<boolean> {
   const hash = await hashRecoveryCode({ code: normalizeRecoveryCode(input) });
-  const consumed = await consumeRecoveryCode(hash);
+  const consumed = await consumeRecoveryCodeForSession(hash, input.sessionId);
   if (!consumed) {
     await appendAuthAudit({ action: "recovery_management_authorize", result: "failure", sessionId: input.sessionId });
     return false;
   }
-  const updated = await updateAdminSessionAuthMethod(input.sessionId, "recovery_confirmed");
-  if (!updated) return false;
   await appendAuthAudit({ action: "recovery_management_authorize", result: "success", sessionId: input.sessionId });
   return true;
 }

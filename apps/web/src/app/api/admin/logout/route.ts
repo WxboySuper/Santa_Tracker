@@ -10,9 +10,7 @@ export async function POST(request: Request) {
     try {
       if (await verifyAdminToken({ token })) {
         const auth = await requireAdminAuth(request);
-        if (!auth.ok && auth.error !== "CSRF validation failed") {
-          return NextResponse.json({ error: auth.error }, { status: auth.status });
-        }
+        if (!auth.ok) return NextResponse.json({ error: auth.error }, { status: auth.status });
       }
       const sessionId = await getAdminTokenSessionId({ token });
       await revokeAdminToken({ token });

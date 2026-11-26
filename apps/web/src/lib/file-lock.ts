@@ -34,9 +34,14 @@ async function tryCreate(lock: LockFile): Promise<boolean> {
     return true;
   } catch (error: unknown) {
     const code = (error as NodeJS.ErrnoException).code;
-    if (code === "EEXIST") return false;
+    if (code === "EEXIST" || (code === "EPERM" && await lockFileExists(lock))) return false;
     throw error;
   }
+}
+
+async function lockFileExists(lock: LockFile): Promise<boolean> {
+  try { await fs.access(lock.path); return true; }
+  catch { return false; }
 }
 
 async function isStale(lock: LockFile, timeoutMs: number): Promise<boolean> {

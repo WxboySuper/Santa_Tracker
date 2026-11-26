@@ -1,8 +1,8 @@
 # Admin passkey authentication
 
-Admin sessions are signed, 12-hour cookies backed by a persisted session record. Logging out or revoking a session invalidates it immediately. Cookie-backed mutations require an exact `Origin` and an `X-CSRF-Token` header matching the `admin_csrf` cookie. Logout is the exception: it revokes only the session presented by the caller even if the CSRF check fails, so a browser can always end its own session. A cross-site request can at most sign the owner out. Other cookie mutations still fail on missing or invalid CSRF. Explicit `Authorization: Bearer` requests remain available for API clients and can log out the presented bearer session.
+Admin sessions are signed, 12-hour cookies backed by a persisted session record. Logging out or revoking a session invalidates it immediately. Cookie-backed mutations require an exact `Origin` and an `X-CSRF-Token` header matching the `admin_csrf` cookie. Explicit `Authorization: Bearer` requests remain available for API clients and can log out the presented bearer session.
 
-Configure `ADMIN_WEBAUTHN_RP_ID` to the admin site's hostname and `ADMIN_WEBAUTHN_ORIGIN` to its exact HTTPS origin. Production requests fail closed when these values are missing or the request host does not match the relying-party ID. Local development may use the request host and origin.
+Configure `ADMIN_WEBAUTHN_RP_ID` to the admin site's hostname and `ADMIN_WEBAUTHN_ORIGIN` to its exact HTTPS origin. Set `ADMIN_CSRF_ORIGIN` when the admin page's public origin differs from the WebAuthn origin. Cookie-authenticated browser mutations must send the exact public `Origin` and `X-CSRF-Token` matching the `admin_csrf` cookie. Production WebAuthn requests fail closed when required values are missing or the request host does not match the relying-party ID. Local development may use the request host and origin.
 
 ## Passkey setup and login
 

@@ -74,7 +74,7 @@ function parseState(raw: string | null): AdminAuthState {
     version: 1,
     passkeys: value.passkeys.slice(0, 10),
     recoveryCodeHashes: value.recoveryCodeHashes,
-    sessions: value.sessions.map(session => ({ ...session, authMethod: isAuthMethod(session.authMethod) ? session.authMethod : "password" })),
+    sessions: value.sessions.map(session => ({ ...session, authMethod: session.authMethod ?? "recovery" })),
     challenges: value.challenges,
     audit: value.audit.slice(-MAX_AUDIT_EVENTS),
   };
@@ -297,6 +297,18 @@ export async function consumeRecoveryCode(hash: string): Promise<boolean> {
     const index = state.recoveryCodeHashes.indexOf(hash);
     if (index < 0) return false;
     state.recoveryCodeHashes.splice(index, 1);
+    return true;
+  });
+}
+
+export async function consumeRecoveryCodeForSession(hash: string, sessionId: string): Promise<boolean> {
+  return mutateState(state => {
+    const session = state.sessions.find(item => item.id === sessionId && item.revokedAt === null && item.expiresAt > Date.now() && item.authMethod === "recovery");
+    if (!session) return false;
+    const codeIndex = state.recoveryCodeHashes.indexOf(hash);
+    if (codeIndex < 0) return false;
+    state.recoveryCodeHashes.splice(codeIndex, 1);
+    session.authMethod = "recovery_confirmed";
     return true;
   });
 }

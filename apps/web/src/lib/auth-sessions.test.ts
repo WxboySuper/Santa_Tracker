@@ -29,12 +29,17 @@ describe("admin session and CSRF enforcement", () => {
     expect(await readActiveSession(session.id, now + 2000)).toBeNull();
   });
 
-  it("lets the browser revoke its own session when logout lacks CSRF headers", async () => {
+  it("requires CSRF to log out an active cookie session and then revokes it", async () => {
     const { token, csrf, cookie } = await createCookieSession();
     const denied = await logout(new Request("https://example.test/api/admin/logout", { method: "POST", headers: { cookie } }));
-    expect(denied.status).toBe(200);
+    expect(denied.status).toBe(403);
+    expect(await verifyAdminToken({ token })).toBe(true);
+    const accepted = await logout(new Request("https://example.test/api/admin/logout", {
+      method: "POST",
+      headers: { cookie, origin: "https://example.test", "x-csrf-token": csrf! },
+    }));
+    expect(accepted.status).toBe(200);
     expect(await verifyAdminToken({ token })).toBe(false);
-    expect(csrf).toBeTruthy();
   });
 
   it("requires origin and double-submit CSRF token for cookie mutations", async () => {
@@ -74,6 +79,16 @@ describe("admin session and CSRF enforcement", () => {
     const response = await requireAdminAuth(new Request("https://example.test/api/admin/flags", {
       method: "POST",
       headers: { cookie, origin: "https://example.test", "x-csrf-token": csrf! },
+    }));
+    expect(response.ok).toBe(true);
+  });
+
+  it("uses the configured public CSRF origin when it differs from the WebAuthn origin", async () => {
+    vi.stubEnv("ADMIN_CSRF_ORIGIN", "https://admin.example.test");
+    const { csrf, cookie } = await createCookieSession();
+    const response = await requireAdminAuth(new Request("https://worker.internal/api/admin/flags", {
+      method: "POST",
+      headers: { cookie, origin: "https://admin.example.test", "x-csrf-token": csrf! },
     }));
     expect(response.ok).toBe(true);
   });

@@ -15,8 +15,8 @@ export async function POST(request: Request): Promise<Response> {
     const result = await createRegistrationChallenge({ request, sessionId });
     const response = setChallengeCookie(NextResponse.json({ options: result.options }, { headers: { "Cache-Control": "no-store" } }), result.challenge.id);
     return response;
-  } catch (error) {
-    await recordPasskeyFailure({ action: "passkey_registration_options" });
-    return Response.json({ error: error instanceof Error ? error.message : "Unable to start passkey registration" }, { status: 503 });
+  } catch {
+    try { await recordPasskeyFailure({ action: "passkey_registration_options" }); } catch { /* keep the storage error response if audit storage is unavailable */ }
+    return Response.json({ error: "Unable to start passkey registration" }, { status: 503 });
   }
 }

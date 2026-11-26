@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { AuthenticationResponseJSON, RegistrationResponseJSON } from "@simplewebauthn/server";
 import { verifyAuthenticationResponse, verifyRegistrationResponse } from "@simplewebauthn/server";
-import { consumeAuthChallenge, deletePasskey, installPasskey, resetAdminAuthStateForTests, readAdminAuthState } from "./admin-auth-state";
+import { consumeAuthChallenge, createAdminSession, deletePasskey, installPasskey, resetAdminAuthStateForTests, readAdminAuthState } from "./admin-auth-state";
 import { authorizeRecoverySessionForPasskeyManagement, createAuthenticationChallenge, createRegistrationChallenge, finishAuthentication, finishRegistration, loginWithRecoveryCode, webAuthnSettings } from "./admin-passkeys";
 import { getAdminTokenSessionId, requirePasskeyManagementAuth, verifyAdminToken } from "./auth";
 import { loginAdmin } from "./admin-login";
@@ -80,6 +80,13 @@ describe("admin passkey service", () => {
     expect(await authorizeRecoverySessionForPasskeyManagement({ code: recoveryCodes![1]!, sessionId: sessionId! })).toBe(true);
     expect((await requirePasskeyManagementAuth(requestWithRecoverySession)).ok).toBe(true);
     expect((await readAdminAuthState()).recoveryCodeHashes).toHaveLength(8);
+  });
+
+  it("does not consume a recovery code when its session has expired", async () => {
+    const { recoveryCodes } = await registerPasskeyForTest(0);
+    const session = await createAdminSession(Date.now() - 10_000, 1, "recovery");
+    expect(await authorizeRecoverySessionForPasskeyManagement({ code: recoveryCodes![0]!, sessionId: session.id })).toBe(false);
+    expect((await readAdminAuthState()).recoveryCodeHashes).toHaveLength(10);
   });
 
   it("verifies a passkey login and advances its signature counter", async () => {

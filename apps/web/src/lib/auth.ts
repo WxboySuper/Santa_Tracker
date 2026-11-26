@@ -155,7 +155,7 @@ function csrfCookieValue(request: Request): string | null {
 }
 
 function expectedOrigin(request: Request): string | null {
-  const configured = process.env.ADMIN_WEBAUTHN_ORIGIN;
+  const configured = process.env.ADMIN_CSRF_ORIGIN ?? process.env.ADMIN_WEBAUTHN_ORIGIN;
   try { return configured ? new URL(configured).origin : new URL(request.url).origin; }
   catch { return null; }
 }
