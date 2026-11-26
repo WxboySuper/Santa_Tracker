@@ -1,4 +1,4 @@
-import { fetchWeatherBatch, WEATHER_TTL_SECONDS, weatherCellKey, type WeatherKV, type WeatherPoint } from "./weather";
+import { fetchWeatherBatch, WEATHER_TTL_SECONDS, weatherCellKey, weatherRouteCellKey, type WeatherKV, type WeatherPoint } from "./weather";
 import { isWeatherRefreshOpen } from "./weather-window";
 import type { RouteNode } from "./locations";
 
@@ -25,9 +25,13 @@ function getScheduledRouteStops(route: RouteNode[]): ScheduledRouteStop[] {
 }
 
 function findCurrentRouteStop(scheduled: ScheduledRouteStop[], now: number): ScheduledRouteStop | undefined {
-  return scheduled.reduce<ScheduledRouteStop | undefined>((latest, entry) =>
+  const current = scheduled.reduce<ScheduledRouteStop | undefined>((latest, entry) =>
     entry.at <= now && (!latest || entry.at > latest.at) ? entry : latest,
-  undefined) ?? scheduled[0];
+  undefined);
+  if (current) return current;
+  return scheduled.reduce<ScheduledRouteStop | undefined>((earliest, entry) =>
+    !earliest || entry.at < earliest.at ? entry : earliest,
+  undefined);
 }
 
 function getUpcomingRouteStops(scheduled: ScheduledRouteStop[], now: number): ScheduledRouteStop[] {
@@ -51,6 +55,9 @@ export async function refreshWeather(
 ): Promise<number> {
   if (!isWeatherRefreshOpen(now)) return 0;
   const points = weatherRoutePoints(route, now);
+  await Promise.all(points.map(async point => {
+    try { await store.put(weatherRouteCellKey(point), "1", { expirationTtl: WEATHER_TTL_SECONDS }); } catch { /* Keep fallback closed if KV is unavailable. */ }
+  }));
   const results = await fetchWeatherBatch(points, fetcher, WEATHER_BATCH_SIZE);
   let storedCells = 0;
   for (const [key, value] of results) {

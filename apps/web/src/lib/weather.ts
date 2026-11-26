@@ -25,6 +25,9 @@ export function weatherCellKey(point: WeatherPoint): string {
   const cell = rounded(point);
   return `cell:${cell.lat.toFixed(2)}:${cell.lon.toFixed(2)}`;
 }
+export function weatherRouteCellKey(point: WeatherPoint): string {
+  return `route:${weatherCellKey(point)}`;
+}
 const PUBLIC_WEATHER_HEADERS = { "Cache-Control": "public, max-age=0, s-maxage=720" };
 function nullWeather(init: ResponseInit = {}): Response {
   return NextResponse.json(null, { ...init, headers: { "Cache-Control": "no-store", ...init.headers } });
@@ -184,7 +187,13 @@ export async function getWeatherResponse(
   const cached = await readWeatherFromStore(store, key);
   if (cached) return cached;
   if (!isWeatherRefreshOpen(options.now ?? Date.now())) return nullWeather();
+  if (!await isWeatherRouteCellAllowed(store, key)) return nullWeather();
   return fetchWeatherFallback({ budget, store, key, point, fetcher: options.fetcher });
+}
+
+async function isWeatherRouteCellAllowed(store: WeatherKV | null, key: string): Promise<boolean> {
+  if (!store) return false;
+  try { return (await store.get(`route:${key}`)) === "1"; } catch { return false; }
 }
 
 function isWeatherResult(value: unknown): value is WeatherResult {
@@ -234,7 +243,7 @@ async function fetchWeatherFallback({ budget, store, key, point, fetcher }: Weat
     return nullWeather();
   }
   try {
-    const permission = await budget.fetch("https://weather-budget/consume", { method: "POST" });
+    const permission = await budget.fetch(`https://weather-budget/consume?source=fallback&cell=${encodeURIComponent(key)}`, { method: "POST" });
     if (!permission.ok) {
       console.warn("Weather fallback denied by global provider budget", permission.status);
       return nullWeather();
