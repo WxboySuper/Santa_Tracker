@@ -17,6 +17,7 @@ describe("weather API", () => {
   it("rejects invalid coordinates and returns the contract", async () => {
     const invalid = await GET(new Request("https://example.test/api/weather?lat=91&lon=0"));
     expect(invalid.status).toBe(400);
+    expect((await GET(new Request("https://example.test/api/weather?lat=0"))).status).toBe(400);
     vi.stubGlobal("fetch", async () => Response.json({ current: { temperature_2m: 10, weather_code: 3 } }));
     const valid = await GET(new Request("https://example.test/api/weather?lat=0&lon=0"));
     expect(valid.status).toBe(200);

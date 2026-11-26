@@ -25,6 +25,7 @@ export async function fetchWeather(lat: number, lon: number, fetcher: WeatherFet
 }
 export async function GET(request: Request) {
   const params = new URL(request.url).searchParams;
+  if (!params.has("lat") || !params.has("lon")) return NextResponse.json({ error: "Invalid coordinates" }, { status: 400 });
   const lat = Number(params.get("lat"));
   const lon = Number(params.get("lon"));
   if (!Number.isFinite(lat) || !Number.isFinite(lon) || lat < -90 || lat > 90 || lon < -180 || lon > 180) return NextResponse.json({ error: "Invalid coordinates" }, { status: 400 });
