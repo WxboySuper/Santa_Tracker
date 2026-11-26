@@ -87,8 +87,9 @@ async function installRegistrationCredential(credential: Awaited<ReturnType<type
   try {
     return await installPasskey({ id: credential.id, publicKey: encodeBase64Url(credential.publicKey), counter: credential.counter, transports: credential.transports }, hashes);
   } catch (error) {
-    if (error instanceof Error && (error.message === "Passkey is already registered" || error.message === "Passkey limit reached")) {
-      throw new PasskeyRegistrationConflictError(error.message);
+    if (error instanceof Error) {
+      if (error.message === "Passkey is already registered") throw new PasskeyRegistrationConflictError(error.message);
+      if (error.message === "Passkey limit reached") throw new PasskeyRegistrationConflictError(error.message);
     }
     throw error;
   }

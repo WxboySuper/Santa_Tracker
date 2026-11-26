@@ -7,12 +7,6 @@ import { getSantaSnapshotsBucket } from "./cloudflare-bindings";
 import { withWriteLock } from "./file-lock";
 import { getKeyValueStore, type KeyValueStore } from "./storage";
 
-const loginThrottle = createLoginThrottle({ store: createThrottleStore() });
-
-export const checkLoginRateLimit = (ip: string) => loginThrottle.check({ ip });
-export const checkLoginRateLimitNow = (ip: string) => loginThrottle.checkNow({ ip });
-export const recordLoginAttempt = (ip: string) => loginThrottle.recordFailure({ ip });
-export const clearLoginAttempts = (ip: string) => loginThrottle.clear({ ip });
 const recordedFailures = new WeakSet<object>();
 
 export function wasLoginAttemptRecorded(result: AdminApiResult): boolean {
@@ -70,6 +64,13 @@ export class PersistentAdminThrottleStore implements ThrottleStore {
     });
   }
 }
+
+const loginThrottle = createLoginThrottle({ store: createThrottleStore() });
+
+export const checkLoginRateLimit = (ip: string) => loginThrottle.check({ ip });
+export const checkLoginRateLimitNow = (ip: string) => loginThrottle.checkNow({ ip });
+export const recordLoginAttempt = (ip: string) => loginThrottle.recordFailure({ ip });
+export const clearLoginAttempts = (ip: string) => loginThrottle.clear({ ip });
 
 const THROTTLE_KEY = "admin-auth/login-throttle.json";
 const MAX_THROTTLE_KEYS = 10_000;

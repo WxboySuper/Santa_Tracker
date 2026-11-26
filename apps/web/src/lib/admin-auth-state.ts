@@ -299,18 +299,19 @@ export async function installPasskey(passkey: StoredPasskey, recoveryCodeHashes:
     if (state.passkeys.length >= 10) throw new Error("Passkey limit reached");
     const firstPasskey = state.passkeys.length === 0;
     state.passkeys.push(passkey);
-    if (firstPasskey) {
-      const now = Date.now();
-      for (const session of state.sessions) {
-        if (session.authMethod === "password" && session.revokedAt === null) session.revokedAt = now;
-      }
-    }
+    if (firstPasskey) revokePasswordSessions(state, Date.now());
     if (state.recoveryCodeHashes.length === 0 && recoveryCodeHashes) {
       state.recoveryCodeHashes = recoveryCodeHashes;
       return true;
     }
     return false;
   });
+}
+
+function revokePasswordSessions(state: AdminAuthState, now: number): void {
+  for (const session of state.sessions) {
+    if (session.authMethod === "password" && session.revokedAt === null) session.revokedAt = now;
+  }
 }
 
 export async function readPasskey(id: string): Promise<StoredPasskey | null> {

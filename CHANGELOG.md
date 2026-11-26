@@ -4,7 +4,7 @@
 
 - **WebAuthn owner authentication:** Adds passkey registration and login ceremonies, one-time recovery codes stored as hashes, and disables existing password sessions after a passkey is registered.
 - **Session safety:** Makes signed admin sessions persisted, expiring, and revocable; adds session listing/revocation, double-submit CSRF checks for cookie mutations, shared login throttling, and bounded auth audit records. Recovery sessions need a second code before passkey or session management; logout remains available to revoke a valid session and clear cookies.
-- **Authentication edge cases:** Revokes old password sessions atomically during first passkey setup, rejects signature-counter regressions including a reset to zero, returns accurate recovery and registration conflict statuses, and records password-login success only after post-login throttling accepts the session.
+- **Authentication edge cases:** Revokes old password sessions atomically during first passkey setup, rejects signature-counter regressions including a reset to zero, returns accurate recovery and registration conflict statuses, records password-login success only after post-login throttling accepts the session, and initializes the persistent throttle after its class declaration so production builds do not hit a temporal dead zone.
 - **Documentation and tests:** Documents API and origin/RP-ID configuration; tests registration, authentication, one-time recovery, recovery step-up, session revocation, CSRF, and throttling.
 
 ## [Unreleased] - Version IDs sort in creation order
