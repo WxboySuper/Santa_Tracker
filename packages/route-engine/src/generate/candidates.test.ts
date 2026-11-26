@@ -74,13 +74,13 @@ describe('chooseCandidates', () => {
     expect(result.duplicateCandidateIds).toEqual(['city-a']);
   });
 
-  it('records an invalid first row before rejecting a later duplicate ID', () => {
+  it('does not let an invalid first row block a later valid row with the same ID', () => {
     const invalidFirst = { ...pool[0]!, lat: Number.NaN };
     const duplicate = { ...pool[0]!, name: 'Duplicate city row' };
     const result = chooseCandidates([invalidFirst, pool[1]!, duplicate], DEFAULT_GENERATOR_LIMITS);
 
-    expect(result.candidates.map((place) => place.id)).toEqual(['town-b']);
+    expect(result.candidates.map((place) => place.id)).toEqual(['town-b', 'city-a']);
     expect(result.invalidCandidateIds).toEqual(['city-a']);
-    expect(result.duplicateCandidateIds).toEqual(['city-a']);
+    expect(result.duplicateCandidateIds).toEqual([]);
   });
 });

@@ -91,13 +91,12 @@ type CandidateValidation =
   | { kind: 'accepted'; place: Candidate };
 
 function validateCandidateForSelection(place: Candidate, label: string, state: CandidateValidationState): CandidateValidation {
-  if (hasNonEmptyText(place.id)) {
-    if (state.seen.has(place.id)) return { kind: 'duplicate', id: place.id };
-    state.seen.add(place.id);
-  }
+  const id = hasNonEmptyText(place.id) ? place.id : undefined;
+  if (id && state.seen.has(id)) return { kind: 'duplicate', id };
   if (isVetoedCandidate(place, state.vetoed)) return { kind: 'vetoed' };
   const resolved = candidateWithResolvedOffset(place, state.options);
   if (!resolved || !validCandidate(resolved)) return { kind: 'invalid', id: label };
+  if (id) state.seen.add(id);
   return { kind: 'accepted', place: enrichCandidate(resolved, state.config) };
 }
 

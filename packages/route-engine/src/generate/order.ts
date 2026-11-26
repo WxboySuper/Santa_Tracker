@@ -43,6 +43,26 @@ export type { PlannedStop, RoutePlan, TimedCandidate } from './order-shared';
 
 const MINUTE_MS = 60_000;
 const LOCAL_CLUSTER_HOP_KM = 300;
+const REMOVED_SWEEP_CONFIG_KEYS = [
+  'arrivalAnchorMinutes',
+  'categoryQuotas',
+  'endStopId',
+  'fixedTotal',
+  'maxCountryRun',
+  'maxStopsPerUtcOffset',
+  'offsetCaps',
+  'openingStopIds',
+  'routeOrderIds',
+  'total',
+] as const;
+
+function assertNoRemovedSweepConfig(config: GeneratorConfig): void {
+  const values = config as unknown as Record<string, unknown>;
+  const removed = REMOVED_SWEEP_CONFIG_KEYS.filter((key) => key in values);
+  if (removed.length > 0) {
+    throw new Error(`Unsupported legacy sweep config keys: ${removed.join(', ')}`);
+  }
+}
 
 type CoverageCapOptions = { place: Candidate; countryCounts: Map<string, number>; coveredAdmin1: Set<string>;
   coveredOffsets: Set<number>; config: GeneratorConfig };
@@ -420,6 +440,7 @@ function expandGreedyCoverageRoute(mandatory: TimedCandidate[], pool: Candidate[
 
 /** Greedy time-stepped midnight sweep followed by constrained 2-opt/or-opt improvements. */
 export function sweepOrder(places: Candidate[], config: GeneratorConfig = DEFAULT_GENERATOR_LIMITS): TimedCandidate[] {
+  assertNoRemovedSweepConfig(config);
   if (places.length === 0) throw new Error('Cannot order an empty route');
   places.forEach(requiredSnapshotOffset);
   const mandatoryRoute = planMandatoryRoute(places, config);

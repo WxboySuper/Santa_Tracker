@@ -5,6 +5,8 @@ import requiredAdmin1Units from '../../packages/route-engine/src/generate/admin1
 export const ADMIN1_BOUNDARY_SOURCE = 'https://naturalearth.s3.amazonaws.com/10m_cultural/ne_10m_admin_1_states_provinces.zip';
 const ADMIN1_COUNTRIES = new Set(['US', 'CA', 'AU']);
 const REQUIRED_ADMIN1_CODES = new Set(Object.values(requiredAdmin1Units).flat());
+const PRESERVED_EXTERNAL_ADMIN1_CODES = new Set(['US-PR', 'AU-X03~']);
+const SUPPORTED_TARGET_ADMIN1_CODES = new Set([...REQUIRED_ADMIN1_CODES, ...PRESERVED_EXTERNAL_ADMIN1_CODES]);
 const GEOMETRY_TOLERANCE = 1e-9;
 
 function clean(value) {
@@ -153,7 +155,11 @@ export function isSupportedAdmin1Code(country, code) {
   if (typeof code !== 'string') return false;
   const prefix = `${country}-`;
   if (!code.startsWith(prefix)) return false;
-  return /^[A-Z0-9~]+$/.test(code.slice(prefix.length));
+  if (!/^[A-Z0-9~]+$/.test(code.slice(prefix.length))) return false;
+  if (ADMIN1_COUNTRIES.has(country)) {
+    if (!SUPPORTED_TARGET_ADMIN1_CODES.has(code)) return false;
+  }
+  return true;
 }
 
 function requireAdmin1Features(features) {

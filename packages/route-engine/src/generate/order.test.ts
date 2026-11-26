@@ -16,6 +16,11 @@ describe('midnight sweep ordering', () => {
     expect(orderLongitudeDelta(testPlaces[0]!, testPlaces[1]!)).toBe(longitudeDelta(testPlaces[0]!, testPlaces[1]!));
   });
 
+  it('rejects removed route-order config instead of silently ignoring it', () => {
+    const legacyConfig = { ...DEFAULT_GENERATOR_LIMITS, routeOrderIds: ['ki'] } as typeof DEFAULT_GENERATOR_LIMITS;
+    expect(() => sweepOrder(testPlaces, legacyConfig)).toThrow(/routeOrderIds/);
+  });
+
   it('starts in the earliest reachable offset band and keeps delivery legs westward', () => {
     const ordered = sweepOrder(testPlaces);
     expect(ordered[0]?.id).toBe('ki');
