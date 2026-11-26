@@ -89,11 +89,28 @@ function joinChunks(chunks: Uint8Array[], total: number): Uint8Array {
 }
 
 function parseEmergencyPayload(value: unknown): { values: EmergencyControlValues; reason: string } | null {
-  if (!isRecord(value) || !hasExactKeys(value, "killedFeatures,noMap,reason,simplifiedTracker")) return null;
+  const record = parseEmergencyRecord(value);
+  if (!record) return null;
+  const values = parseControlValues(record);
+  const reason = parseReason(record.reason);
+  return values && reason ? { values, reason } : null;
+}
+
+function parseEmergencyRecord(value: unknown): Record<string, unknown> | null {
+  if (!isRecord(value)) return null;
+  return hasExactKeys(value, "killedFeatures,noMap,reason,simplifiedTracker") ? value : null;
+}
+
+function parseControlValues(value: Record<string, unknown>): EmergencyControlValues | null {
+  if (typeof value.noMap !== "boolean" || typeof value.simplifiedTracker !== "boolean") return null;
   const killedFeatures = parseKilledFeatures(value.killedFeatures);
-  if (!killedFeatures || typeof value.noMap !== "boolean" || typeof value.simplifiedTracker !== "boolean") return null;
-  if (typeof value.reason !== "string" || value.reason.trim().length === 0 || value.reason.length > 500) return null;
-  return { values: { noMap: value.noMap, simplifiedTracker: value.simplifiedTracker, killedFeatures }, reason: value.reason.trim() };
+  if (!killedFeatures) return null;
+  return { noMap: value.noMap, simplifiedTracker: value.simplifiedTracker, killedFeatures };
+}
+
+function parseReason(value: unknown): string | null {
+  if (typeof value !== "string" || value.trim().length === 0 || value.length > 500) return null;
+  return value.trim();
 }
 
 function parseKilledFeatures(value: unknown): EmergencyControlValues["killedFeatures"] | null {
