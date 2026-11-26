@@ -7,13 +7,19 @@ import { tokenFromRequest } from "@/lib/admin-passkey-http";
 export async function POST(request: Request) {
   const token = tokenFromRequest(request);
   if (token) {
-    if (await verifyAdminToken({ token })) {
-      const auth = await requireAdminAuth(request);
-      if (!auth.ok) return NextResponse.json({ error: auth.error }, { status: auth.status });
+    try {
+      if (await verifyAdminToken({ token })) {
+        const auth = await requireAdminAuth(request);
+        if (!auth.ok && auth.error !== "CSRF validation failed") {
+          return NextResponse.json({ error: auth.error }, { status: auth.status });
+        }
+      }
+      const sessionId = await getAdminTokenSessionId({ token });
+      await revokeAdminToken({ token });
+      if (sessionId) await appendAuthAudit({ action: "logout", result: "success", sessionId });
+    } catch {
+      return NextResponse.json({ error: "Admin authentication storage is unavailable" }, { status: 503 });
     }
-    const sessionId = await getAdminTokenSessionId({ token });
-    await revokeAdminToken({ token });
-    if (sessionId) await appendAuthAudit({ action: "logout", result: "success", sessionId });
   }
   const response = NextResponse.json({ message: "Logged out" }, { status: 200 });
   response.cookies.set("admin_token", "", {

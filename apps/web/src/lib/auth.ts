@@ -16,9 +16,9 @@ function getSecret(): Uint8Array {
   return new TextEncoder().encode(getSecretKey());
 }
 
-export async function createAdminToken(): Promise<string> {
+export async function createAdminToken(input: { authMethod?: "password" | "passkey" | "recovery" | "recovery_confirmed" } = {}): Promise<string> {
   const secret = getSecret();
-  const session = await createAdminSession();
+  const session = await createAdminSession(Date.now(), ADMIN_SESSION_TTL_SECONDS, input.authMethod ?? "password");
   const jwt = await new jose.SignJWT({ admin: true, csrf: session.csrfToken })
     .setProtectedHeader({ alg })
     .setJti(session.id)
@@ -29,16 +29,16 @@ export async function createAdminToken(): Promise<string> {
 }
 
 export async function verifyAdminToken(input: { token: string }): Promise<boolean> {
-  const secret = getSecret();
+  let payload: jose.JWTPayload;
   try {
-    const { payload } = await jose.jwtVerify(input.token, secret);
-    if (payload.admin !== true || typeof payload.jti !== "string") return false;
-    return (await readActiveSession(payload.jti)) !== null;
+    ({ payload } = await jose.jwtVerify(input.token, getSecret()));
   } catch {
     // Do NOT fallback to raw password comparison — security fix per audit
     // Previously Flask accepted raw ADMIN_PASSWORD as bearer token; we remove that.
     return false;
   }
+  if (payload.admin !== true || typeof payload.jti !== "string") return false;
+  return (await readActiveSession(payload.jti)) !== null;
 }
 
 export async function getAdminTokenCsrfToken(input: { token: string }): Promise<string | null> {
@@ -56,10 +56,11 @@ export async function getAdminTokenSessionId(input: { token: string }): Promise<
 }
 
 export async function revokeAdminToken(input: { token: string }): Promise<void> {
+  let payload: jose.JWTPayload;
   try {
-    const { payload } = await jose.jwtVerify(input.token, getSecret());
-    if (typeof payload.jti === "string") await revokeAdminSession(payload.jti);
-  } catch { /* invalid or expired tokens need no revocation record */ }
+    ({ payload } = await jose.jwtVerify(input.token, getSecret()));
+  } catch { return; }
+  if (typeof payload.jti === "string") await revokeAdminSession(payload.jti);
 }
 
 export function verifyAdminPassword(input: { password: string }): boolean {
@@ -74,13 +75,13 @@ export function verifyAdminPassword(input: { password: string }): boolean {
   return diff === 0;
 }
 
-export async function requireAdminAuth(request: Request): Promise<{ ok: boolean; error?: string; status?: number }> {
+export async function requireAdminAuth(request: Request): Promise<{ ok: boolean; error?: string; status?: number; authMethod?: "password" | "passkey" | "recovery" | "recovery_confirmed" }> {
   const credential = readAdminCredential(request);
   if (credential.invalid) return { ok: false, error: "Invalid credentials", status: 403 };
   if (!credential.token) {
     return { ok: false, error: "Authentication required", status: 401 };
   }
-  let claims: { csrf: string } | null;
+  let claims: { csrf: string; authMethod: "password" | "passkey" | "recovery" | "recovery_confirmed" } | null;
   try { claims = await verifyAdminTokenClaims({ token: credential.token }); }
   catch { return { ok: false, error: "Admin authentication storage is unavailable", status: 503 }; }
   if (!claims) {
@@ -90,7 +91,14 @@ export async function requireAdminAuth(request: Request): Promise<{ ok: boolean;
     await appendAuthAudit({ action: "csrf_rejected", result: "failure" });
     return { ok: false, error: "CSRF validation failed", status: 403 };
   }
-  return { ok: true };
+  return { ok: true, authMethod: claims.authMethod };
+}
+
+export async function requirePasskeyManagementAuth(request: Request): Promise<{ ok: boolean; error?: string; status?: number; authMethod?: "password" | "passkey" | "recovery" | "recovery_confirmed" }> {
+  const auth = await requireAdminAuth(request);
+  if (!auth.ok) return auth;
+  if (auth.authMethod === "recovery") return { ok: false, error: "Use a second recovery code to authorize passkey management", status: 403 };
+  return auth;
 }
 
 function requiresCsrf(request: Request, credential: { cookieAuth: boolean }): boolean {
@@ -107,12 +115,14 @@ function readAdminCredential(request: Request): { token: string | null; cookieAu
   catch { return { token: null, cookieAuth: true, invalid: true }; }
 }
 
-async function verifyAdminTokenClaims(input: { token: string }): Promise<{ csrf: string } | null> {
+async function verifyAdminTokenClaims(input: { token: string }): Promise<{ csrf: string; authMethod: "password" | "passkey" | "recovery" | "recovery_confirmed" } | null> {
+  let payload: jose.JWTPayload;
   try {
-    const { payload } = await jose.jwtVerify(input.token, getSecret());
-    if (!hasAdminSessionClaims(payload)) return null;
-    return await readActiveSession(payload.jti) ? { csrf: payload.csrf } : null;
+    ({ payload } = await jose.jwtVerify(input.token, getSecret()));
   } catch { return null; }
+  if (!hasAdminSessionClaims(payload)) return null;
+  const session = await readActiveSession(payload.jti);
+  return session ? { csrf: payload.csrf, authMethod: session.authMethod } : null;
 }
 
 function hasAdminSessionClaims(payload: jose.JWTPayload): payload is jose.JWTPayload & { admin: true; jti: string; csrf: string } {

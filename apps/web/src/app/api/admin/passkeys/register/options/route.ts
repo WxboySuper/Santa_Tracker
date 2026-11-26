@@ -1,4 +1,4 @@
-import { getAdminTokenSessionId, requireAdminAuth } from "@/lib/auth";
+import { getAdminTokenSessionId, requirePasskeyManagementAuth } from "@/lib/auth";
 import { recordPasskeyFailure, createRegistrationChallenge } from "@/lib/admin-passkeys";
 import { authError, setChallengeCookie, tokenFromRequest } from "@/lib/admin-passkey-http";
 import { NextResponse } from "next/server";
@@ -6,7 +6,7 @@ import { NextResponse } from "next/server";
 export const dynamic = "force-dynamic";
 
 export async function POST(request: Request): Promise<Response> {
-  const auth = await requireAdminAuth(request);
+  const auth = await requirePasskeyManagementAuth(request);
   if (!auth.ok) return authError(auth.error, auth.status);
   const token = tokenFromRequest(request);
   const sessionId = token ? await getAdminTokenSessionId({ token }) : null;

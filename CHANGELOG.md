@@ -3,8 +3,9 @@
 ## [Unreleased] - Admin passkeys and recovery (#295)
 
 - **WebAuthn owner authentication:** Adds passkey registration and login ceremonies, a single-owner account model with multiple passkeys, one-use recovery codes stored as hashes, and password-login cutoff after the first registered passkey.
-- **Session safety:** Makes signed admin sessions persisted, expiring, and revocable; adds session listing/revocation, double-submit CSRF checks for cookie mutations, shared login throttling, and bounded auth audit records. Filesystem lock errors fail closed instead of allowing concurrent writes.
-- **Documentation and tests:** Documents the API and origin/RP-ID configuration; tests registration, authentication, one-time recovery, session revocation, CSRF, and concurrent password-login throttling.
+- **Session safety:** Makes signed admin sessions persisted, expiring, and revocable; adds session listing/revocation, double-submit CSRF checks for cookie mutations, shared login throttling, and bounded auth audit records. Recovery sessions need a second code before passkey changes. Logout always revokes only its presented session so the current dashboard caller can sign out. Filesystem lock errors fail closed instead of allowing concurrent writes.
+- **State limits:** Bounds stored session, challenge, audit, and public-key sizes. Existing sessions without an authentication method load as password sessions.
+- **Documentation and tests:** Documents the API and origin/RP-ID configuration; tests registration, authentication, one-time recovery, recovery step-up, session revocation, CSRF, and concurrent password-login throttling.
 
 ## [Unreleased] - Source-backed stop card contract (#260)
 

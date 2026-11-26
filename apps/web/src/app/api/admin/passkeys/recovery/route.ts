@@ -13,7 +13,7 @@ export async function POST(request: Request): Promise<Response> {
 
 async function processRecoveryLogin(request: Request): Promise<Response> {
   const ip = getAdminClientIp(request);
-  if (!ip) { await recordPasskeyFailure({ action: "recovery_login_throttled" }); return tooManyAttempts(60); }
+  if (!ip) return Response.json({ error: "Admin authentication is unavailable" }, { status: 503 });
   const locked = await checkLoginRateLimit(ip);
   if (locked) { await recordPasskeyFailure({ action: "recovery_login_throttled" }); return tooManyAttempts(locked.retryAfterSeconds); }
   try {
@@ -27,7 +27,10 @@ async function processRecoveryLogin(request: Request): Promise<Response> {
     const token = await loginWithRecoveryCode({ code: input.value.code });
     await clearLoginAttempts(ip);
     return responseWithSession(token, { authenticated: true, recoveryCodeUsed: true });
-  } catch { return failure(ip, "Invalid recovery code", 401); }
+  } catch (error) {
+    if (error instanceof Error && error.message === "Invalid recovery code") return failure(ip, "Invalid recovery code", 401);
+    return Response.json({ error: "Admin authentication storage is unavailable" }, { status: 503 });
+  }
 }
 async function failure(ip: string, message: string, status: number): Promise<Response> {
   await recordPasskeyFailure({ action: "recovery_login" });

@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getAdminClientIp } from "@/lib/admin-client-ip";
 import { checkLoginRateLimit, checkLoginRateLimitNow, clearLoginAttempts, loginAdmin, recordLoginAttempt, wasLoginAttemptRecorded } from "@/lib/admin-login";
 import { respondWith } from "@/lib/admin-api";
-import { ADMIN_SESSION_TTL_SECONDS, getAdminTokenCsrfToken, shouldUseSecureAdminCookie } from "@/lib/auth";
+import { ADMIN_SESSION_TTL_SECONDS, getAdminTokenCsrfToken, revokeAdminToken, shouldUseSecureAdminCookie } from "@/lib/auth";
 import { appendAuthAudit } from "@/lib/admin-auth-state";
 
 const MAX_LOGIN_BODY_BYTES = 4096;
@@ -17,7 +17,7 @@ export async function POST(req: Request) {
 
 async function processLoginRequest(req: Request) {
   const ip = getClientIp(req);
-  if (!ip) return throttledResponse(60);
+  if (!ip) return storageUnavailable();
   const lockout = await checkLoginRateLimit(ip);
   if (lockout) return throttledResponse(lockout.retryAfterSeconds);
   return processLogin(req, ip);
@@ -75,9 +75,15 @@ async function completeAsyncLogin(req: Request, login: Promise<Awaited<ReturnTyp
   if (failure) return throttledResponse(failure.retryAfterSeconds);
   if (result.status !== 200) return setLoginCookie(req, result, ip);
   const lockout = await checkLoginRateLimit(ip);
-  if (lockout) return throttledResponse(lockout.retryAfterSeconds);
+  if (lockout) {
+    await revokeResultToken(result);
+    return throttledResponse(lockout.retryAfterSeconds);
+  }
   const syncLockout = checkLoginRateLimitNow(ip);
-  if (syncLockout) return throttledResponse(syncLockout.retryAfterSeconds);
+  if (syncLockout) {
+    await revokeResultToken(result);
+    return throttledResponse(syncLockout.retryAfterSeconds);
+  }
   return setLoginCookie(req, result, ip);
 }
 
@@ -161,9 +167,14 @@ async function setLoginCookie(req: Request, result: Awaited<ReturnType<typeof lo
 }
 
 async function throttledResponse(retryAfterSeconds: number) {
-  await appendAuthAudit({ action: "password_login_throttled", result: "failure" });
+  try { await appendAuthAudit({ action: "password_login_throttled", result: "failure" }); } catch { /* preserve the rate-limit response during audit storage failures */ }
   return NextResponse.json({ error: "Too many login attempts, please try again later" }, {
     status: 429,
     headers: { "Retry-After": String(retryAfterSeconds) },
   });
+}
+
+async function revokeResultToken(result: Awaited<ReturnType<typeof loginAdmin>>) {
+  if (result.status !== 200 || typeof result.body.token !== "string") return;
+  await revokeAdminToken({ token: result.body.token });
 }

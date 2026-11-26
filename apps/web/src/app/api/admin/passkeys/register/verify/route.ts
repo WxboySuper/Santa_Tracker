@@ -1,6 +1,6 @@
 import type { RegistrationResponseJSON } from "@simplewebauthn/server";
-import { getAdminTokenSessionId, requireAdminAuth } from "@/lib/auth";
-import { finishRegistration, recordPasskeyFailure } from "@/lib/admin-passkeys";
+import { getAdminTokenSessionId, requirePasskeyManagementAuth } from "@/lib/auth";
+import { finishRegistration, PasskeyRequestError, recordPasskeyFailure } from "@/lib/admin-passkeys";
 import { authError, challengeIdFromRequest, clearChallengeCookie, tokenFromRequest } from "@/lib/admin-passkey-http";
 import { readCappedJson } from "@/lib/admin-json";
 import { NextResponse } from "next/server";
@@ -8,7 +8,7 @@ import { NextResponse } from "next/server";
 export const dynamic = "force-dynamic";
 
 export async function POST(request: Request): Promise<Response> {
-  const auth = await requireAdminAuth(request);
+  const auth = await requirePasskeyManagementAuth(request);
   if (!auth.ok) return authError(auth.error, auth.status);
   return processRegistration(request);
 }
@@ -32,7 +32,8 @@ async function processRegistration(request: Request): Promise<Response> {
     const response = clearChallengeCookie(NextResponse.json({ registered: true, recoveryCodes: result.recoveryCodes }, { headers: { "Cache-Control": "no-store" } }));
     return response;
   } catch (error) {
-    return registrationFailure(error instanceof Error ? error.message : "Unable to verify passkey", 400);
+    if (error instanceof PasskeyRequestError) return registrationFailure(error.message, 400);
+    return clearChallengeCookie(NextResponse.json({ error: "Admin authentication storage is unavailable" }, { status: 503 }));
   }
 }
 

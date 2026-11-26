@@ -85,7 +85,8 @@ function evictThrottleEntry(values: Record<string, ThrottleState>): void {
   const now = Date.now();
   const candidates = Object.entries(values).filter(([, state]) => state.lockoutUntil <= now);
   candidates.sort((left, right) => latestAttempt(left[1]) - latestAttempt(right[1]));
-  const candidate = candidates[0]?.[0];
+  const oldestEntry = Object.entries(values).sort((left, right) => latestAttempt(left[1]) - latestAttempt(right[1]))[0];
+  const candidate = candidates[0]?.[0] ?? oldestEntry?.[0];
   if (!candidate) throw new ThrottleStoreFullError();
   Reflect.deleteProperty(values, candidate);
 }

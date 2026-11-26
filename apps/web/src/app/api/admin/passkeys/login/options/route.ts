@@ -13,7 +13,7 @@ export async function POST(request: Request): Promise<Response> {
 
 async function processLoginOptions(request: Request): Promise<Response> {
   const ip = getAdminClientIp(request);
-  if (!ip) return throttled(60);
+  if (!ip) return storageUnavailable();
   const throttleKey = `passkey-options:${ip}`;
   const locked = await checkLoginRateLimit(throttleKey);
   if (locked) return throttled(locked.retryAfterSeconds);

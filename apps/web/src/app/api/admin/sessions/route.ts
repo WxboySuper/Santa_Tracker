@@ -7,9 +7,11 @@ export const dynamic = "force-dynamic";
 export async function GET(request: Request): Promise<Response> {
   const denied = await authorize(request);
   if (denied) return denied;
-  const currentId = await getAdminTokenSessionId({ token: getRequestToken(request) });
-  const sessions = await listActiveAdminSessions();
-  return Response.json({ sessions: sessions.map(({ id, createdAt, expiresAt }) => ({ id, createdAt, expiresAt, current: id === currentId })) }, { headers: { "Cache-Control": "no-store" } });
+  try {
+    const currentId = await getAdminTokenSessionId({ token: getRequestToken(request) });
+    const sessions = await listActiveAdminSessions();
+    return Response.json({ sessions: sessions.map(({ id, createdAt, expiresAt }) => ({ id, createdAt, expiresAt, current: id === currentId })) }, { headers: { "Cache-Control": "no-store" } });
+  } catch { return storageUnavailable(); }
 }
 
 export async function DELETE(request: Request): Promise<Response> {
@@ -18,12 +20,18 @@ export async function DELETE(request: Request): Promise<Response> {
   const input = await readCappedJson(request, 1024);
   if (!input.ok) return Response.json({ error: input.error }, { status: input.status });
   if (!isSessionInput(input.value)) return Response.json({ error: "A session ID is required" }, { status: 400 });
-  const currentId = await getAdminTokenSessionId({ token: getRequestToken(request) });
-  if (input.value.sessionId === currentId) return Response.json({ error: "Use logout to end the current session" }, { status: 400 });
-  const revoked = await revokeAdminSession(input.value.sessionId);
-  if (!revoked) return Response.json({ error: "Session not found or already revoked" }, { status: 404 });
-  await appendAuthAudit({ action: "session_revoke", result: "success", sessionId: input.value.sessionId });
-  return Response.json({ revoked: true }, { headers: { "Cache-Control": "no-store" } });
+  try {
+    const currentId = await getAdminTokenSessionId({ token: getRequestToken(request) });
+    if (input.value.sessionId === currentId) return Response.json({ error: "Use logout to end the current session" }, { status: 400 });
+    const revoked = await revokeAdminSession(input.value.sessionId);
+    if (!revoked) return Response.json({ error: "Session not found or already revoked" }, { status: 404 });
+    await appendAuthAudit({ action: "session_revoke", result: "success", sessionId: input.value.sessionId });
+    return Response.json({ revoked: true }, { headers: { "Cache-Control": "no-store" } });
+  } catch { return storageUnavailable(); }
+}
+
+function storageUnavailable(): Response {
+  return Response.json({ error: "Admin authentication storage is unavailable" }, { status: 503 });
 }
 
 async function authorize(request: Request): Promise<Response | null> {

@@ -1,6 +1,6 @@
 # Admin passkey authentication
 
-Admin sessions are signed, 12-hour cookies backed by a persisted session record. Logging out or revoking a session invalidates it immediately. Cookie-backed mutations require an exact `Origin` and an `X-CSRF-Token` header matching the `admin_csrf` cookie. A failed CSRF check blocks logout and leaves the session active so a cross-site request cannot force the owner out. Explicit `Authorization: Bearer` requests remain available for API clients and can log out the presented bearer session.
+Admin sessions are signed, 12-hour cookies backed by a persisted session record. Logging out or revoking a session invalidates it immediately. Cookie-backed mutations require an exact `Origin` and an `X-CSRF-Token` header matching the `admin_csrf` cookie. Logout is the exception: it revokes only the session presented by the caller even if the CSRF check fails, so a browser can always end its own session. A cross-site request can at most sign the owner out. Other cookie mutations still fail on missing or invalid CSRF. Explicit `Authorization: Bearer` requests remain available for API clients and can log out the presented bearer session.
 
 Configure `ADMIN_WEBAUTHN_RP_ID` to the admin site's hostname and `ADMIN_WEBAUTHN_ORIGIN` to its exact HTTPS origin. Production requests fail closed when these values are missing or the request host does not match the relying-party ID. Local development may use the request host and origin.
 
@@ -10,9 +10,9 @@ Before a passkey is registered, the existing password login can create an owner 
 
 Once a passkey exists, password login is disabled. Begin login with `POST /api/admin/passkeys/login/options`; submit the returned challenge response to `POST /api/admin/passkeys/login/verify`. Both requests require the same short-lived challenge cookie. A successful assertion sets a new admin session and CSRF cookie.
 
-Use one recovery code with `POST /api/admin/passkeys/recovery` and `{ "code": "..." }` if no passkey is available. Each code is consumed atomically after one successful use. Authenticated owners can replace the recovery set with `POST /api/admin/passkeys` and view the number of unused codes with `GET /api/admin/passkeys`. The replacement codes are returned once.
+Use one recovery code with `POST /api/admin/passkeys/recovery` and `{ "code": "..." }` if no passkey is available. Each code is consumed atomically after one successful use. A recovery session cannot add or remove passkeys or rotate recovery codes until it submits a second unused code to `POST /api/admin/passkeys/recovery/authorize-management`. This changes only that session's permission and consumes the second code. Authenticated owners can replace the recovery set with `POST /api/admin/passkeys` and view the number of unused codes with `GET /api/admin/passkeys`. The replacement codes are returned once.
 
-`GET /api/admin/passkeys` lists registered credential IDs and transports. `DELETE /api/admin/passkeys` accepts `{ "id": "<credential-id>" }`; at least one passkey must remain registered.
+`GET /api/admin/passkeys` lists registered credential IDs and transports. `DELETE /api/admin/passkeys` accepts `{ "id": "<credential-id>" }`; at least one passkey must remain registered. Browser clients must send the session's `Origin` and `X-CSRF-Token` header with every cookie-authenticated mutation.
 
 ## Sessions, throttling, and audit
 

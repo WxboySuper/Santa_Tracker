@@ -2,8 +2,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { AuthenticationResponseJSON, RegistrationResponseJSON } from "@simplewebauthn/server";
 import { verifyAuthenticationResponse, verifyRegistrationResponse } from "@simplewebauthn/server";
 import { consumeAuthChallenge, deletePasskey, installPasskey, resetAdminAuthStateForTests, readAdminAuthState } from "./admin-auth-state";
-import { createAuthenticationChallenge, createRegistrationChallenge, finishAuthentication, finishRegistration, loginWithRecoveryCode, webAuthnSettings } from "./admin-passkeys";
-import { verifyAdminToken } from "./auth";
+import { authorizeRecoverySessionForPasskeyManagement, createAuthenticationChallenge, createRegistrationChallenge, finishAuthentication, finishRegistration, loginWithRecoveryCode, webAuthnSettings } from "./admin-passkeys";
+import { getAdminTokenSessionId, requirePasskeyManagementAuth, verifyAdminToken } from "./auth";
 import { loginAdmin } from "./admin-login";
 
 vi.mock("@simplewebauthn/server", () => ({
@@ -68,6 +68,18 @@ describe("admin passkey service", () => {
     expect(await verifyAdminToken({ token })).toBe(true);
     await expect(loginWithRecoveryCode({ code: recoveryCodes![0]! })).rejects.toThrow("Invalid recovery code");
     expect((await readAdminAuthState()).recoveryCodeHashes).toHaveLength(9);
+  });
+
+  it("requires a second recovery code before a recovery session can manage passkeys", async () => {
+    const { recoveryCodes } = await registerPasskeyForTest(0);
+    const token = await loginWithRecoveryCode({ code: recoveryCodes![0]! });
+    const requestWithRecoverySession = new Request("https://example.test/api/admin/passkeys", { headers: { authorization: `Bearer ${token}` } });
+    expect((await requirePasskeyManagementAuth(requestWithRecoverySession)).status).toBe(403);
+    const sessionId = await getAdminTokenSessionId({ token });
+    expect(sessionId).toBeTruthy();
+    expect(await authorizeRecoverySessionForPasskeyManagement({ code: recoveryCodes![1]!, sessionId: sessionId! })).toBe(true);
+    expect((await requirePasskeyManagementAuth(requestWithRecoverySession)).ok).toBe(true);
+    expect((await readAdminAuthState()).recoveryCodeHashes).toHaveLength(8);
   });
 
   it("verifies a passkey login and advances its signature counter", async () => {

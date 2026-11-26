@@ -20,6 +20,7 @@ export interface AdminSessionRecord {
   createdAt: number;
   expiresAt: number;
   revokedAt: number | null;
+  authMethod: "password" | "passkey" | "recovery" | "recovery_confirmed";
 }
 
 export interface AdminAuthChallenge {
@@ -73,7 +74,7 @@ function parseState(raw: string | null): AdminAuthState {
     version: 1,
     passkeys: value.passkeys.slice(0, 10),
     recoveryCodeHashes: value.recoveryCodeHashes,
-    sessions: value.sessions,
+    sessions: value.sessions.map(session => ({ ...session, authMethod: isAuthMethod(session.authMethod) ? session.authMethod : "password" })),
     challenges: value.challenges,
     audit: value.audit.slice(-MAX_AUDIT_EVENTS),
   };
@@ -94,7 +95,11 @@ function hasAuthStateEnvelope(value: unknown): value is AdminAuthCollections & {
 }
 
 function hasSafeCounts(value: AdminAuthCollections): boolean {
-  return value.passkeys.length <= 10 && value.recoveryCodeHashes.length <= 10;
+  return value.passkeys.length <= 10
+    && value.recoveryCodeHashes.length <= 10
+    && value.sessions.length <= MAX_SESSIONS
+    && value.challenges.length <= MAX_CHALLENGES
+    && value.audit.length <= MAX_AUDIT_EVENTS;
 }
 
 function hasValidEntries(value: AdminAuthCollections): boolean {
@@ -148,7 +153,7 @@ function isValidPasskeyId(value: unknown): value is string {
 }
 
 function isValidPublicKey(value: unknown): value is string {
-  return typeof value === "string" && /^[A-Za-z0-9_-]+$/.test(value);
+  return typeof value === "string" && value.length <= 16_384 && /^[A-Za-z0-9_-]+$/.test(value);
 }
 
 function isValidCounter(value: unknown): value is number {
@@ -157,7 +162,11 @@ function isValidCounter(value: unknown): value is number {
 
 function isSession(value: unknown): value is AdminSessionRecord {
   if (!isRecord(value)) return false;
-  return hasSessionIdentity(value) && hasValidSessionTimes(value) && isValidRevocationTime(value.revokedAt);
+  return hasSessionIdentity(value) && hasValidSessionTimes(value) && isValidRevocationTime(value.revokedAt) && (value.authMethod === undefined || isAuthMethod(value.authMethod));
+}
+
+function isAuthMethod(value: unknown): value is AdminSessionRecord["authMethod"] {
+  return value === "password" || value === "passkey" || value === "recovery" || value === "recovery_confirmed";
 }
 
 function hasSessionIdentity(value: Record<string, unknown>): boolean {
@@ -207,10 +216,19 @@ export async function appendAuthAudit(event: Omit<AdminAuthAuditEvent, "at"> & {
   await mutateState(state => { state.audit.push({ ...event, at: event.at ?? new Date().toISOString() }); });
 }
 
-export async function createAdminSession(now = Date.now(), ttlSeconds = 12 * 60 * 60): Promise<AdminSessionRecord> {
-  const session: AdminSessionRecord = { id: crypto.randomUUID(), csrfToken: randomToken(), createdAt: now, expiresAt: now + ttlSeconds * 1000, revokedAt: null };
+export async function createAdminSession(now = Date.now(), ttlSeconds = 12 * 60 * 60, authMethod: AdminSessionRecord["authMethod"] = "password"): Promise<AdminSessionRecord> {
+  const session: AdminSessionRecord = { id: crypto.randomUUID(), csrfToken: randomToken(), createdAt: now, expiresAt: now + ttlSeconds * 1000, revokedAt: null, authMethod };
   await mutateState(state => { state.sessions.push(session); });
   return session;
+}
+
+export async function updateAdminSessionAuthMethod(id: string, authMethod: AdminSessionRecord["authMethod"]): Promise<boolean> {
+  return mutateState(state => {
+    const session = state.sessions.find(item => item.id === id && item.revokedAt === null && item.expiresAt > Date.now());
+    if (!session) return false;
+    session.authMethod = authMethod;
+    return true;
+  });
 }
 
 export async function readActiveSession(id: string, now = Date.now()): Promise<AdminSessionRecord | null> {

@@ -1,6 +1,6 @@
 import type { AuthenticationResponseJSON } from "@simplewebauthn/server";
 import { checkLoginRateLimit, clearLoginAttempts, recordLoginAttempt } from "@/lib/admin-login";
-import { finishAuthentication, recordPasskeyFailure, webAuthnSettings } from "@/lib/admin-passkeys";
+import { finishAuthentication, PasskeyRequestError, recordPasskeyFailure, webAuthnSettings } from "@/lib/admin-passkeys";
 import { challengeIdFromRequest, clearChallengeCookie, responseWithSession, tooManyAttempts } from "@/lib/admin-passkey-http";
 import { readCappedJson } from "@/lib/admin-json";
 import { NextResponse } from "next/server";
@@ -15,7 +15,7 @@ export async function POST(request: Request): Promise<Response> {
 
 async function processLoginVerification(request: Request): Promise<Response> {
   const ip = getAdminClientIp(request);
-  if (!ip) { await recordPasskeyFailure({ action: "passkey_login_throttled" }); return tooManyAttempts(60); }
+  if (!ip) return NextResponse.json({ error: "Admin authentication is unavailable" }, { status: 503 });
   const locked = await checkLoginRateLimit(ip);
   if (locked) { await recordPasskeyFailure({ action: "passkey_login_throttled" }); return tooManyAttempts(locked.retryAfterSeconds); }
   let settings: ReturnType<typeof webAuthnSettings>;
@@ -32,8 +32,9 @@ async function processLoginVerification(request: Request): Promise<Response> {
     await clearLoginAttempts(`passkey-options:${ip}`);
     const response = await responseWithSession(token, { authenticated: true });
     return clearChallengeCookie(response);
-  } catch {
-    return failed(ip, "Invalid passkey response", 401);
+  } catch (error) {
+    if (error instanceof PasskeyRequestError) return failed(ip, "Invalid passkey response", 401);
+    return NextResponse.json({ error: "Admin authentication storage is unavailable" }, { status: 503 });
   }
 }
 async function failed(ip: string, message: string, status: number): Promise<Response> {
