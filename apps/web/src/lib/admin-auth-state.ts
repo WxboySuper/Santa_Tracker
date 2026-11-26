@@ -197,10 +197,24 @@ function isChallenge(value: unknown): value is AdminAuthChallenge {
 
 function isAuditEvent(value: unknown): value is AdminAuthAuditEvent {
   if (!isRecord(value)) return false;
-  return typeof value.action === "string" && value.action.length <= 80
-    && (value.result === "success" || value.result === "failure")
-    && typeof value.at === "string" && value.at.length <= 40 && !Number.isNaN(Date.parse(value.at))
-    && (value.sessionId === undefined || (typeof value.sessionId === "string" && value.sessionId.length <= 128));
+  return hasValidAuditAction(value.action) && isAuditResult(value.result)
+    && hasValidAuditTimestamp(value.at) && hasValidAuditSessionId(value.sessionId);
+}
+
+function hasValidAuditAction(value: unknown): value is string {
+  return typeof value === "string" && value.length <= 80;
+}
+
+function isAuditResult(value: unknown): value is AdminAuthAuditEvent["result"] {
+  return value === "success" || value === "failure";
+}
+
+function hasValidAuditTimestamp(value: unknown): value is string {
+  return typeof value === "string" && value.length <= 40 && !Number.isNaN(Date.parse(value));
+}
+
+function hasValidAuditSessionId(value: unknown): value is string | undefined {
+  return value === undefined || (typeof value === "string" && value.length <= 128);
 }
 
 async function mutateState<T>(update: (state: AdminAuthState) => T | Promise<T>): Promise<T> {
