@@ -1,4 +1,3 @@
-import { NextResponse } from "next/server";
 import { isWeatherRefreshOpen } from "./weather-window";
 
 export const WEATHER_GRID = 0.25;
@@ -30,7 +29,7 @@ export function weatherRouteCellKey(point: WeatherPoint): string {
 }
 const PUBLIC_WEATHER_HEADERS = { "Cache-Control": "no-store" };
 function nullWeather(init: ResponseInit = {}): Response {
-  return NextResponse.json(null, { ...init, headers: { "Cache-Control": "no-store", ...init.headers } });
+  return Response.json(null, { ...init, headers: { "Cache-Control": "no-store", ...init.headers } });
 }
 function displayWeather(current: WeatherCurrent): WeatherResult {
   const temperatureC = current.temperature_2m;
@@ -181,7 +180,7 @@ export async function getWeatherResponse(
 ): Promise<Response> {
   if (weatherIsDisabled(options.enabled)) return nullWeather();
   const point = getWeatherPoint(request);
-  if (!point) return NextResponse.json({ error: "Invalid coordinates" }, { status: 400 });
+  if (!point) return Response.json({ error: "Invalid coordinates" }, { status: 400 });
   const { store, budget } = resolveWeatherBindings(options);
   const key = weatherCellKey(point);
   const cached = await readWeatherFromStore(store, key);
@@ -221,7 +220,7 @@ async function readWeatherFromStore(store: WeatherKV | null, key: string): Promi
     const value = await store.get(key);
     if (!value) return null;
     const parsed = parseWeatherValue(value);
-    return parsed ? NextResponse.json(parsed, { headers: PUBLIC_WEATHER_HEADERS }) : null;
+    return parsed ? Response.json(parsed, { headers: PUBLIC_WEATHER_HEADERS }) : null;
   } catch { return null; }
 }
 
@@ -251,7 +250,7 @@ async function fetchWeatherFallback({ budget, store, key, point, fetcher }: Weat
     const weather = await fetchWeather(point, fetcher);
     if (!weather) return nullWeather({ status: 502 });
     await cacheWeatherResult(store, key, weather);
-    return NextResponse.json(weather, { headers: PUBLIC_WEATHER_HEADERS });
+    return Response.json(weather, { headers: PUBLIC_WEATHER_HEADERS });
   } catch (error) {
     console.error("Weather fallback failed", error);
     return nullWeather();

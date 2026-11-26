@@ -1,5 +1,9 @@
 # Changelog — per-PR exhaustive (enforced in CI)
 
+## [Unreleased] - Weather cron Worker no longer bundles Next.js (#542)
+
+- **Weather:** `lib/weather.ts` builds responses with the standard `Response.json` instead of `NextResponse`. The weather cron Worker imports this module, and `next/server` pulled Next's Node-only code (`__dirname`) into its bundle, so Cloudflare rejected the upload. The cron bundle drops from 242 KiB to 35 KiB. The `/api/weather` responses are unchanged.
+
 ## [Unreleased] - Fix weather cron deploy order (#542)
 
 - **Deploy:** Deploys the weather cron Worker before the vinext app build. Wrangler refuses to deploy while the build's `.cloudflare/output` exists, which failed the first deploy after #545 before the app Worker was updated.
