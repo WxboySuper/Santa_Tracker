@@ -1425,10 +1425,11 @@
   {
     "place_id": "ne-1159151173",
     "country": "Burkina Faso",
-    "note": "The Moro-Naba Ceremony takes place at the Moro-Naba Palace in Ouagadougou. The city's palace precinct still anchors a weekly ceremony, with a name worth learning before the coffee cools.",
+    "note": "Ouagadougou’s weekly Moro-Naba ceremony takes place at the palace on Friday mornings. The ritual includes a symbolic departure for war and return to the capital, accompanied by drumming.",
     "sources": [
       "https://www.wikidata.org/wiki/Q3777",
-      "https://en.wikipedia.org/wiki/Ouagadougou"
+      "https://en.wikipedia.org/wiki/Ouagadougou",
+      "https://www.burkinafaso.travel/en/experience/cultural-tourism"
     ],
     "topic_key": "moro-naba-ceremony",
     "photo": {
@@ -1445,12 +1446,14 @@
   {
     "place_id": "ne-1159151419",
     "country": "Finland",
-    "note": "Helsinki was World Design Capital in 2012 and joined UNESCO's Creative Cities Network as a City of Design in 2014. Its design reputation has an official paper trail.",
+    "note": "Public saunas remain part of everyday life in Helsinki, with more than 60 open to residents and visitors. Some are neighborhood bathhouses; others sit beside the sea and pair heat with a cold-water swim.",
     "sources": [
       "https://www.wikidata.org/wiki/Q1757",
-      "https://en.wikipedia.org/wiki/Helsinki"
+      "https://en.wikipedia.org/wiki/Helsinki",
+      "https://www.myhelsinki.fi/see-and-do/activities/saunas-in-helsinki/",
+      "https://www.myhelsinki.fi/visit-helsinki/why-helsinki/helsinki-saunas/"
     ],
-    "topic_key": "helsinki-design",
+    "topic_key": "helsinki-public-saunas",
     "photo": {
       "url": "https://upload.wikimedia.org/wikipedia/commons/9/9b/Helsinki_Lutheran_Cathedral_%28panoraaman%C3%A4k%C3%B6ala%29-2_%28s%C3%A4%C3%A4t%C3%B6%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
       "width": 2373,
@@ -1465,12 +1468,13 @@
   {
     "place_id": "ne-1159151119",
     "country": "Armenia",
-    "note": "King Argishti I founded the fortress of Erebuni in 782 BCE; its name is linked to Yerevan's beginnings. The capital's origin story starts with a fortress, not a ribbon-cutting.",
+    "note": "Yerevan hosts the Golden Apricot International Film Festival each summer, with screenings at cinemas across the capital. Armenian and international films share the programme.",
     "sources": [
       "https://www.wikidata.org/wiki/Q1953",
-      "https://en.wikipedia.org/wiki/Yerevan"
+      "https://en.wikipedia.org/wiki/Yerevan",
+      "https://escs.gov.am/en/articles/news/long-awaited-golden-apricot-film-festival-returns-july-1219"
     ],
-    "topic_key": "erebuni-fortress",
+    "topic_key": "yerevan-golden-apricot",
     "photo": {
       "url": "https://upload.wikimedia.org/wikipedia/commons/f/fe/Mount_Ararat_and_the_Yerevan_skyline_in_spring_%2828mm%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
       "width": 5184,
@@ -1485,12 +1489,13 @@
   {
     "place_id": "ne-1159150715",
     "country": "Somalia",
-    "note": "Mogadishu, also called Xamar, has served as an Indian Ocean trading port for millennia. Its coastal history ran through medieval sultanates and the long-distance gold trade.",
+    "note": "Mogadishu’s coastal food culture includes fresh fish from the Indian Ocean, often grilled and served with rice or pasta. The city’s fish market and restaurants draw on a working shoreline.",
     "sources": [
       "https://www.wikidata.org/wiki/Q2449",
-      "https://en.wikipedia.org/wiki/Mogadishu"
+      "https://en.wikipedia.org/wiki/Mogadishu",
+      "https://en.wikipedia.org/wiki/Somali_cuisine"
     ],
-    "topic_key": "mogadishu-indian-ocean-port",
+    "topic_key": "mogadishu-fish-cuisine",
     "photo": {
       "url": "https://upload.wikimedia.org/wikipedia/commons/2/21/Pictures_from_an_armed_convoy_trip_in_Mogadishu.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
       "width": 886,
@@ -1505,12 +1510,13 @@
   {
     "place_id": "ne-1159150961",
     "country": "Georgia",
-    "note": "Tbilisi's streets bring together medieval, neoclassical, Art Nouveau, Stalinist and modern buildings. A walk through the centre doubles as a compressed architectural timeline.",
+    "note": "Tbilisoba is the capital’s annual autumn festival, with regional foods and wines, folk music, crafts and markets in the city’s historic districts. It has been held since 1979.",
     "sources": [
       "https://www.wikidata.org/wiki/Q994",
-      "https://en.wikipedia.org/wiki/Tbilisi"
+      "https://en.wikipedia.org/wiki/Tbilisi",
+      "https://georgia.travel/tbilisoba"
     ],
-    "topic_key": "tbilisi-architecture",
+    "topic_key": "tbilisoba",
     "photo": {
       "url": "https://upload.wikimedia.org/wikipedia/commons/4/45/View_of_Tbilisi_from_Tabori_Church_2023-10-08-2.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
       "width": 4753,
@@ -1525,12 +1531,13 @@
   {
     "place_id": "ne-1159151079",
     "country": "Serbia",
-    "note": "The Vinča culture developed in the Belgrade area around the sixth millennium BCE. The city has had a long time to accumulate local history, even before it acquired a Roman name.",
+    "note": "Belgrade’s BEMUS festival brings classical music to the city each autumn. Founded in 1969, it presents Serbian and international musicians, including young performers.",
     "sources": [
       "https://www.wikidata.org/wiki/Q3711",
-      "https://en.wikipedia.org/wiki/Belgrade"
+      "https://en.wikipedia.org/wiki/Belgrade",
+      "https://www.serbia.travel/tr/events/bemus-belgrade-music-festival/"
     ],
-    "topic_key": "vinca-culture",
+    "topic_key": "bemus-music-festival",
     "photo": {
       "url": "https://upload.wikimedia.org/wikipedia/commons/0/02/Beograd_collage.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
       "width": 1024,
@@ -1545,12 +1552,13 @@
   {
     "place_id": "ne-1159150609",
     "country": "Tajikistan",
-    "note": "From the seventeenth century into the early twentieth, Dushanbe grew as a market district under several regional powers. The capital's commercial beginnings were modest and practical.",
+    "note": "Dushanbe’s autumn Mehrgon festival marks the harvest with stalls of fruit and vegetables, traditional food, music and dance. The celebration is held at Ferdowsi Park in the capital.",
     "sources": [
       "https://www.wikidata.org/wiki/Q9365",
-      "https://en.wikipedia.org/wiki/Dushanbe"
+      "https://en.wikipedia.org/wiki/Dushanbe",
+      "https://ichcourier.ichcap.org/board.es?act=view&b_list=12&bid=A102&list_no=209&mid=a10100000000"
     ],
-    "topic_key": "dushanbe-market",
+    "topic_key": "mehrgon-harvest-festival",
     "photo": {
       "url": "https://upload.wikimedia.org/wikipedia/commons/9/9c/Tehron_Street_Dushanbe.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
       "width": 3444,
@@ -1565,12 +1573,13 @@
   {
     "place_id": "ne-1159150807",
     "country": "Jordan",
-    "note": "Amman's story reaches back to ʿAin Ghazal, an eighth-millennium BCE settlement known for some of the world's oldest human statues. The capital has deep archaeological roots beneath its modern hills.",
+    "note": "Amman’s annual International Date Festival gathers Jordanian growers and producers to sell dates and related products. The event brings a familiar food crop into the capital’s public calendar.",
     "sources": [
       "https://www.wikidata.org/wiki/Q3805",
-      "https://en.wikipedia.org/wiki/Amman"
+      "https://en.wikipedia.org/wiki/Amman",
+      "https://www.jordannews.jo/Section-109/News/Amman-International-Date-Festival-"
     ],
-    "topic_key": "amman-ain-ghazal",
+    "topic_key": "amman-date-festival",
     "photo": {
       "url": "https://upload.wikimedia.org/wikipedia/commons/6/66/Amman.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
       "width": 1800,
@@ -1585,12 +1594,13 @@
   {
     "place_id": "ne-1159151309",
     "country": "Ireland",
-    "note": "Dublin's settlement history includes both Gaelic communities and Vikings, before the Kingdom of Dublin became Ireland's principal settlement by the twelfth century. The city has had several names on its paperwork.",
+    "note": "Dublin marks Bloomsday each June 16 with readings, walks and performances inspired by James Joyce’s Ulysses. The city turns a novel’s one-day route into an annual literary gathering.",
     "sources": [
       "https://www.wikidata.org/wiki/Q1761",
-      "https://en.wikipedia.org/wiki/Dublin"
+      "https://en.wikipedia.org/wiki/Dublin",
+      "https://www.dublincityofliterature.ie/whats-on/bloomsday-festival-2026"
     ],
-    "topic_key": "dublin-viking-settlement",
+    "topic_key": "bloomsday-dublin",
     "photo": {
       "url": "https://upload.wikimedia.org/wikipedia/commons/9/92/Dublin_-_aerial_-_2025-07-07_01.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
       "width": 4032,
@@ -1605,12 +1615,13 @@
   {
     "place_id": "ne-1159151311",
     "country": "Liberia",
-    "note": "Monrovia was founded on Cape Mesurado in 1822 as a settlement for free people of color from the United States. Its origins sit within a complicated Atlantic history, which the port still carries.",
+    "note": "Monrovia’s Kru and Vai communities have long shaped the capital’s coastal food and music traditions. Liberian rice dishes such as jollof and palm-butter stew are common at family tables and public gatherings.",
     "sources": [
       "https://www.wikidata.org/wiki/Q3748",
-      "https://en.wikipedia.org/wiki/Monrovia"
+      "https://en.wikipedia.org/wiki/Monrovia",
+      "https://www.britannica.com/place/Liberia/Cultural-life"
     ],
-    "topic_key": "monrovia-cape-mesurado",
+    "topic_key": "monrovia-liberian-food",
     "photo": {
       "url": "https://upload.wikimedia.org/wikipedia/commons/2/25/Liberia%2C_Africa_-_panoramio_%28256%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
       "width": 4928,
@@ -1625,12 +1636,13 @@
   {
     "place_id": "ne-1159150909",
     "country": "Guatemala",
-    "note": "Guatemala City grew beside Kaminaljuyu, a major Maya settlement occupied from about 1500 BCE to 1200 CE. The modern capital shares its valley with a much older city beneath the urban grid.",
+    "note": "Guatemala City’s Semana Santa processions bring religious images through the streets on carpets of colored sawdust, flowers and fruit. The alfombras are made by local families and groups before the processions pass.",
     "sources": [
       "https://www.wikidata.org/wiki/Q1555",
-      "https://en.wikipedia.org/wiki/Guatemala_City"
+      "https://en.wikipedia.org/wiki/Guatemala_City",
+      "https://www.guatemala.com/en/travel/guatemala-city/holy-week-in-guatemala-city.html"
     ],
-    "topic_key": "kaminaljuyu",
+    "topic_key": "guatemala-city-semana-santa",
     "photo": {
       "url": "https://upload.wikimedia.org/wikipedia/commons/4/49/Buildings_in_Guatemala_City.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
       "width": 1792,
@@ -1645,12 +1657,13 @@
   {
     "place_id": "ne-1159150863",
     "country": "Chad",
-    "note": "Founded as Fort-Lamy in 1900, Chad's capital took the name N'Djamena in 1973. The renaming put local Chadian heritage directly onto the city map.",
+    "note": "N’Djamena’s central market is a daily meeting point for traders selling produce, textiles and household goods from across Chad. Local ingredients such as millet, sorghum and dried fish shape the city’s food stalls.",
     "sources": [
       "https://www.wikidata.org/wiki/Q3659",
-      "https://en.wikipedia.org/wiki/N%27Djamena"
+      "https://en.wikipedia.org/wiki/N%27Djamena",
+      "https://www.britannica.com/place/Chad/Cultural-life"
     ],
-    "topic_key": "ndjamena-renaming",
+    "topic_key": "ndjamena-central-market",
     "photo": {
       "url": "https://upload.wikimedia.org/wikipedia/commons/3/36/Place_de_la_nation4_%28Tchad%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
       "width": 5152,
@@ -1685,12 +1698,13 @@
   {
     "place_id": "ne-1159150855",
     "country": "Jamaica",
-    "note": "Kingston's natural harbour is sheltered by the Palisadoes, a long sand spit linking Port Royal with the rest of Jamaica. The geography made a deep-water port and left the city a striking shoreline.",
+    "note": "Kingston is UNESCO’s City of Music, with reggae, ska, dancehall and sound-system traditions rooted in the capital. Downtown recording studios and live venues keep that musical history in active use.",
     "sources": [
       "https://www.wikidata.org/wiki/Q34692",
-      "https://en.wikipedia.org/wiki/Kingston,_Jamaica"
+      "https://en.wikipedia.org/wiki/Kingston,_Jamaica",
+      "https://www.visitjamaica.com/blog/post/things-to-do-in-kingston-this-summer/"
     ],
-    "topic_key": "kingston-harbour",
+    "topic_key": "kingston-city-of-music",
     "photo": {
       "url": "https://upload.wikimedia.org/wikipedia/commons/9/99/PortofKingston.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
       "width": 442,
@@ -1725,12 +1739,13 @@
   {
     "place_id": "ne-1159150623",
     "country": "Nicaragua",
-    "note": "Managua began as a small fishing village on Lake Managua before becoming Nicaragua's capital in 1852. Earthquakes later reshaped it, and the city has been rebuilt more than once.",
+    "note": "In Managua, families begin La Purísima on November 28 with a nine-day prayer tradition that ends in La Gritería on December 7. Homes and churches set up altars, and visitors receive traditional foods and sweets.",
     "sources": [
       "https://www.wikidata.org/wiki/Q3274",
-      "https://en.wikipedia.org/wiki/Managua"
+      "https://en.wikipedia.org/wiki/Managua",
+      "https://www.mined.gob.ni/mapatradicionesculturapopular/listing/managua/"
     ],
-    "topic_key": "managua-fishing-village",
+    "topic_key": "managua-la-purisima",
     "photo": {
       "url": "https://upload.wikimedia.org/wikipedia/commons/c/cf/Avenida_Bolivar_A_Chavez.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
       "width": 2048,
@@ -1745,12 +1760,13 @@
   {
     "place_id": "ne-1159150605",
     "country": "Niger",
-    "note": "Before French colonial development, villages of Fula, Zarma, Maouri and Songhai people stood where Niamey grew. The capital's story starts with communities along the Niger, well before its city plan.",
+    "note": "Niamey’s Grand Marché and Petit Marché serve as everyday hubs for Nigerien textiles, leatherwork, spices and food. The markets bring regional craft and trade into the capital’s daily routine.",
     "sources": [
       "https://www.wikidata.org/wiki/Q3674",
-      "https://en.wikipedia.org/wiki/Niamey"
+      "https://en.wikipedia.org/wiki/Niamey",
+      "https://www.britannica.com/place/Niger/Cultural-life"
     ],
-    "topic_key": "niamey-river-villages",
+    "topic_key": "niamey-markets",
     "photo": {
       "url": "https://upload.wikimedia.org/wikipedia/commons/2/26/Niamey_from_grand_mosque_theatre_2006.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
       "width": 2589,
@@ -1765,24 +1781,26 @@
   {
     "place_id": "ne-1159151117",
     "country": "Albania",
-    "note": "Tirana was founded in 1614 around the Old Mosque and a türbe, under Ottoman Albanian nobleman Sylejman Pasha Bargjini. The capital began with a mosque, a tomb and a useful crossroads.",
+    "note": "Tirana’s New Bazaar brings local produce, Albanian cheeses, olive oil and artisan goods into a central market district. Cafés and small shops make it part of ordinary city life as well as a place to shop.",
     "sources": [
       "https://www.wikidata.org/wiki/Q19689",
-      "https://en.wikipedia.org/wiki/Tirana"
+      "https://en.wikipedia.org/wiki/Tirana",
+      "https://akt.gov.al/en/cities/tirane/"
     ],
-    "topic_key": "tirana-old-mosque",
+    "topic_key": "tirana-new-bazaar",
     "photo": null,
     "review_status": "draft"
   },
   {
     "place_id": "ne-1159150655",
     "country": "Nepal",
-    "note": "Kathmandu was the historic political and cultural centre of the Newar people in Nepal Mandala. The modern capital sits inside a much older valley civilisation, with temples to show for it.",
+    "note": "Kathmandu’s Indra Jatra lasts eight days each September. Newar communities mark it with chariot processions, masked dances and the public appearance of the living goddess Kumari.",
     "sources": [
       "https://www.wikidata.org/wiki/Q3037",
-      "https://en.wikipedia.org/wiki/Kathmandu"
+      "https://en.wikipedia.org/wiki/Kathmandu",
+      "https://ntb.gov.np/en/indra-jatra"
     ],
-    "topic_key": "newar-kathmandu",
+    "topic_key": "indra-jatra-kathmandu",
     "photo": {
       "url": "https://upload.wikimedia.org/wikipedia/commons/c/c8/Kathmandu_Avion_01.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
       "width": 1500,
@@ -1797,12 +1815,13 @@
   {
     "place_id": "ne-1159150781",
     "country": "Mongolia",
-    "note": "Ulaanbaatar began in 1638 as a nomadic Buddhist monastic centre and moved location 29 times before settling in its present site in 1778. A capital can take the scenic route to permanence.",
+    "note": "Ulaanbaatar hosts the central Naadam celebrations each July, with wrestling, archery and horse racing. The festival’s three contests are part of Mongolia’s national summer holiday.",
     "sources": [
       "https://www.wikidata.org/wiki/Q23430",
-      "https://en.wikipedia.org/wiki/Ulaanbaatar"
+      "https://en.wikipedia.org/wiki/Ulaanbaatar",
+      "https://www.mongoliatourism.gov.mn/"
     ],
-    "topic_key": "ulaanbaatar-monastery",
+    "topic_key": "ulaanbaatar-naadam",
     "photo": {
       "url": "https://upload.wikimedia.org/wikipedia/commons/c/c2/UB_downtown.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
       "width": 1800,
@@ -1837,12 +1856,13 @@
   {
     "place_id": "ne-1159150813",
     "country": "Kyrgyzstan",
-    "note": "The Kokand Khanate built the Pishpek fortress in 1825 to control caravan routes and collect tribute. Ruins survive near central Bishkek, a reminder of the trade roads behind the modern grid.",
+    "note": "Osh Bazaar is one of Bishkek’s main food markets, with Kyrgyz bread, dried fruit, dairy, spices and household goods. Its produce stalls make the country’s market cooking visible in the capital.",
     "sources": [
       "https://www.wikidata.org/wiki/Q9361",
-      "https://en.wikipedia.org/wiki/Bishkek"
+      "https://en.wikipedia.org/wiki/Bishkek",
+      "https://visitkyrgyzstan.org/osh-bazaar/"
     ],
-    "topic_key": "bishkek-caravan-fortress",
+    "topic_key": "bishkek-osh-bazaar",
     "photo": {
       "url": "https://upload.wikimedia.org/wikipedia/commons/4/42/Bishkek_City%27s_business_center.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
       "width": 1600,
@@ -1857,12 +1877,13 @@
   {
     "place_id": "ne-1159151281",
     "country": "Norway",
-    "note": "After a fire destroyed Oslo in 1624, King Christian IV ordered a new city closer to Akershus Fortress and named it Christiania. Oslo eventually reclaimed the older name, less the royal endorsement.",
+    "note": "Oslo’s Jul i Vinterland Christmas market fills Spikersuppa with food stalls, rides and seasonal goods during the winter season. It sits between the National Theatre and the Parliament.",
     "sources": [
       "https://www.wikidata.org/wiki/Q585",
-      "https://en.wikipedia.org/wiki/Oslo"
+      "https://en.wikipedia.org/wiki/Oslo",
+      "https://www.visitoslo.com/whats-on/christmas/gift-shopping-christmas-markets"
     ],
-    "topic_key": "oslo-christiania-fire",
+    "topic_key": "oslo-christmas-market",
     "photo": {
       "url": "https://upload.wikimedia.org/wikipedia/commons/8/82/View_from_siloen.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
       "width": 2816,
@@ -1897,12 +1918,13 @@
   {
     "place_id": "ne-1159150625",
     "country": "Sierra Leone",
-    "note": "Freetown is the traditional homeland of Sierra Leone's Krio people, whose culture grew from the city's distinct settlement history. The capital's local identity has its own name and language.",
+    "note": "Freetown’s Krio culture has its own language, cuisine and musical traditions, shaped by the city’s history as a home for freed Black settlers and their descendants. Krio is widely used as a lingua franca across Sierra Leone.",
     "sources": [
       "https://www.wikidata.org/wiki/Q3780",
-      "https://en.wikipedia.org/wiki/Freetown"
+      "https://en.wikipedia.org/wiki/Freetown",
+      "https://www.britannica.com/topic/Krio"
     ],
-    "topic_key": "freetown-creoles",
+    "topic_key": "freetown-krio-culture",
     "photo": {
       "url": "https://upload.wikimedia.org/wikipedia/commons/4/4c/Freetown-aerialview.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
       "width": 2048,
@@ -1917,12 +1939,13 @@
   {
     "place_id": "ne-1159151141",
     "country": "Benin",
-    "note": "Cotonou is Benin's seat of government and largest city, while the smaller Porto-Novo is the official capital. The distinction gives the country two civic centres and one extra map fact.",
+    "note": "Cotonou’s Dantokpa Market is one of West Africa’s largest open-air markets, selling food, cloth, household goods and craft items. Traders and shoppers travel there from across Benin and neighboring countries.",
     "sources": [
       "https://www.wikidata.org/wiki/Q43595",
-      "https://en.wikipedia.org/wiki/Cotonou"
+      "https://en.wikipedia.org/wiki/Cotonou",
+      "https://www.britannica.com/place/Benin/Cultural-life"
     ],
-    "topic_key": "cotonou-and-porto-novo",
+    "topic_key": "cotonou-dantokpa-market",
     "photo": {
       "url": "https://upload.wikimedia.org/wikipedia/commons/d/d7/Vue_panoramique_quartier_cadj%C3%A9houn-Cotonou_au_B%C3%A9nin_1.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
       "width": 4160,
@@ -1937,12 +1960,13 @@
   {
     "place_id": "ne-1159150991",
     "country": "Laos",
-    "note": "Pha That Luang, a Buddhist stupa and national icon, stands in Vientiane. The city's most recognizable landmark is a place of worship, not merely a photogenic gold surface.",
+    "note": "Vientiane’s That Luang Festival brings pilgrims to the golden stupa for religious ceremonies, folk performances, traditional music and a trade fair. It is one of the capital’s major annual gatherings.",
     "sources": [
       "https://www.wikidata.org/wiki/Q9326",
-      "https://en.wikipedia.org/wiki/Vientiane"
+      "https://en.wikipedia.org/wiki/Vientiane",
+      "https://kpl.gov.la/en/detail.aspx?id=111900"
     ],
-    "topic_key": "pha-that-luang",
+    "topic_key": "that-luang-festival",
     "photo": {
       "url": "https://upload.wikimedia.org/wikipedia/commons/2/28/20171118_Vientiane_3220_DxO.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
       "width": 4650,
@@ -1957,12 +1981,13 @@
   {
     "place_id": "ne-1159150811",
     "country": "Latvia",
-    "note": "Riga's historic centre is UNESCO-listed for its Art Nouveau and nineteenth-century wooden architecture. Two very different building vocabularies share the old-town walk.",
+    "note": "Bishkek’s Osh Bazaar is known for its bread, produce, spices and stalls selling traditional felt goods. It remains a working city market, not a museum display.",
     "sources": [
       "https://www.wikidata.org/wiki/Q1773",
-      "https://en.wikipedia.org/wiki/Riga"
+      "https://en.wikipedia.org/wiki/Riga",
+      "https://visitkyrgyzstan.org/osh-bazaar/"
     ],
-    "topic_key": "riga-art-nouveau",
+    "topic_key": "bishkek-osh-bazaar",
     "photo": {
       "url": "https://upload.wikimedia.org/wikipedia/commons/2/2b/Vistas_desde_la_iglesia_de_San_Pedro%2C_Riga%2C_Letonia%2C_2012-08-07%2C_DD_12.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
       "width": 5159,
@@ -1977,12 +2002,13 @@
   {
     "place_id": "ne-1159150943",
     "country": "Mauritania",
-    "note": "Nouakchott was once a mid-sized coastal village; construction began in 1958 after it was chosen as the new country's capital. The city grew from a modest settlement into Mauritania's main hub.",
+    "note": "Nouakchott’s Marché Capitale and fish market bring together Saharan trade goods and Atlantic catch. Tea stalls and market vendors make the city’s food culture visible in its busiest public spaces.",
     "sources": [
       "https://www.wikidata.org/wiki/Q3688",
-      "https://en.wikipedia.org/wiki/Nouakchott"
+      "https://en.wikipedia.org/wiki/Nouakchott",
+      "https://www.britannica.com/place/Mauritania/Cultural-life"
     ],
-    "topic_key": "nouakchott-village-capital",
+    "topic_key": "nouakchott-markets",
     "photo": {
       "url": "https://upload.wikimedia.org/wikipedia/commons/8/83/15-Nouakchott-eH-R0058185.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
       "width": 1280,
@@ -1997,12 +2023,13 @@
   {
     "place_id": "ne-1159150717",
     "country": "Oman",
-    "note": "Muscat was already a leading port for trade between east and west by the first century CE. Its harbour has been part of the city's identity for much longer than the modern skyline.",
+    "note": "Muttrah Souq in Muscat is a covered market for frankincense, silver, textiles and household goods. Residents still shop there alongside visitors, keeping the old port district’s trading role in daily use.",
     "sources": [
       "https://www.wikidata.org/wiki/Q3826",
-      "https://en.wikipedia.org/wiki/Muscat"
+      "https://en.wikipedia.org/wiki/Muscat",
+      "https://experienceoman.om/destinations/muscat/muttrah-souq/"
     ],
-    "topic_key": "muscat-trading-port",
+    "topic_key": "muttrah-souq",
     "photo": {
       "url": "https://upload.wikimedia.org/wikipedia/commons/1/1a/Old_city_of_Maskat.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
       "width": 1259,
@@ -2037,12 +2064,13 @@
   {
     "place_id": "ne-1159150875",
     "country": "Croatia",
-    "note": "Roman Andautonia stood near modern Zagreb, at today's Šćitarjevo. The capital's local history starts well before its name appears in a medieval record.",
+    "note": "Zagreb’s Advent market turns the city centre into a winter gathering, with food stands, music and seasonal decorations across its squares. The market has repeatedly been named among Europe’s best Christmas markets.",
     "sources": [
       "https://www.wikidata.org/wiki/Q1435",
-      "https://en.wikipedia.org/wiki/Zagreb"
+      "https://en.wikipedia.org/wiki/Zagreb",
+      "https://www.infozagreb.hr/experience/advent-in-zagreb"
     ],
-    "topic_key": "zagreb-roman-settlement",
+    "topic_key": "zagreb-advent",
     "photo": {
       "url": "https://upload.wikimedia.org/wikipedia/commons/c/cd/Zagreb_%2829255640143%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
       "width": 6016,
@@ -2057,12 +2085,13 @@
   {
     "place_id": "ne-1159151177",
     "country": "Bosnia and Herzegovina",
-    "note": "Sarajevo has a mosque, Catholic church, Orthodox church and synagogue within one neighbourhood. The city's religious history can be read over a short walk, weather permitting.",
+    "note": "Bosnian coffee is served slowly in a džezva with a small cup and a piece of rahat lokum. Sarajevo’s cafés keep the preparation and the unhurried visit that goes with it in everyday practice.",
     "sources": [
       "https://www.wikidata.org/wiki/Q11194",
-      "https://en.wikipedia.org/wiki/Sarajevo"
+      "https://en.wikipedia.org/wiki/Sarajevo",
+      "https://www.visitsarajevo.ba/bosnian-coffee/"
     ],
-    "topic_key": "four-faiths-neighbourhood",
+    "topic_key": "sarajevo-bosnian-coffee",
     "photo": {
       "url": "https://upload.wikimedia.org/wikipedia/commons/e/e3/Sarajevo_City_Panorama.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
       "width": 2800,
@@ -2077,12 +2106,13 @@
   {
     "place_id": "ne-1159150677",
     "country": "Moldova",
-    "note": "Chișinău hosts Moldova's national wine festival every October. The capital's civic calendar has a vineyard appointment built into it, which seems a sensible use of an autumn weekend.",
+    "note": "Chișinău hosts Moldova’s National Wine Day each October, with wineries pouring local varieties and producers bringing food and crafts to the capital. The public celebration centers on Moldovan wine culture.",
     "sources": [
       "https://www.wikidata.org/wiki/Q21197",
-      "https://en.wikipedia.org/wiki/Chi%C8%99in%C4%83u"
+      "https://en.wikipedia.org/wiki/Chi%C8%99in%C4%83u",
+      "https://wineofmoldova.com/en/national-wine-day/"
     ],
-    "topic_key": "chisinau-wine-festival",
+    "topic_key": "chisinau-wine-day",
     "photo": {
       "url": "https://upload.wikimedia.org/wikipedia/commons/5/52/Arch_of_Triumph%2C_Chisinau%2C_Republic_of_Moldova_%2851160304626_cropped%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
       "width": 1600,
@@ -2097,24 +2127,26 @@
   {
     "place_id": "ne-1159150907",
     "country": "Malawi",
-    "note": null,
+    "note": "Kigali Cultural Village is a market for Rwandan artisans and food vendors, with crafts, clothing, jewelry and local dishes. The stalls bring makers and cooks into a central public space.",
     "sources": [
       "https://www.wikidata.org/wiki/Q3876",
-      "https://en.wikipedia.org/wiki/Lilongwe"
+      "https://en.wikipedia.org/wiki/Lilongwe",
+      "https://www.visitrwanda.com/wp-content/uploads/2020/07/Rwanda_Key_Tourist_Attractions.pdf"
     ],
-    "topic_key": null,
+    "topic_key": "kigali-cultural-village",
     "photo": null,
     "review_status": "draft"
   },
   {
     "place_id": "ne-1159150873",
     "country": "Eritrea",
-    "note": "UNESCO listed Asmara in 2017 for its well-preserved Italian colonial modernist architecture. The city's streets make a clear outdoor guide to twentieth-century building styles.",
+    "note": "Asmara’s coffee ceremony is a common form of hospitality in Eritrea. Coffee is roasted, ground and brewed in front of guests, often with incense and popcorn served alongside it.",
     "sources": [
       "https://www.wikidata.org/wiki/Q3642",
-      "https://en.wikipedia.org/wiki/Asmara"
+      "https://en.wikipedia.org/wiki/Asmara",
+      "https://www.britannica.com/place/Eritrea/Cultural-life"
     ],
-    "topic_key": "asmara-modernism",
+    "topic_key": "asmara-coffee-ceremony",
     "photo": {
       "url": "https://upload.wikimedia.org/wikipedia/commons/b/b0/Fiat_tagliero%2C_09.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
       "width": 3456,
@@ -2129,12 +2161,13 @@
   {
     "place_id": "ne-1159150443",
     "country": "Mauritius",
-    "note": null,
+    "note": "Port Louis’s Chinatown Food and Cultural Festival fills Royal Street with Sino-Mauritian food, lion and dragon dances, music and arts. The annual event is organized with support from the city and cultural institutions.",
     "sources": [
       "https://www.wikidata.org/wiki/Q3929",
-      "https://en.wikipedia.org/wiki/Port_Louis"
+      "https://en.wikipedia.org/wiki/Port_Louis",
+      "https://www.abcgroup.mu/newsroom/abc-renouvelle-son-soutien-au-chinatown-food-cultural-festival-a337.html"
     ],
-    "topic_key": null,
+    "topic_key": "port-louis-chinatown-festival",
     "photo": {
       "url": "https://upload.wikimedia.org/wikipedia/commons/8/8d/Mauritius_port_louis.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
       "width": 5272,
@@ -2169,12 +2202,13 @@
   {
     "place_id": "ne-1159149085",
     "country": "Macau S.A.R",
-    "note": "Macau's historic centre brings Portuguese and Chinese architecture into one UNESCO-listed district. The city's downtown does a fair amount of historical explaining before lunch.",
+    "note": "Macau’s annual Grand Prix brings motor racing through the Guia Circuit, a street course that runs around the peninsula. The event has been held since 1954 and remains part of the city’s sporting calendar.",
     "sources": [
       "https://www.wikidata.org/wiki/Q14773",
-      "https://en.wikipedia.org/wiki/Macau"
+      "https://en.wikipedia.org/wiki/Macau",
+      "https://www.macau.grandprix.gov.mo/en/"
     ],
-    "topic_key": "macau-heritage",
+    "topic_key": "macau-grand-prix",
     "photo": {
       "url": "https://upload.wikimedia.org/wikipedia/commons/0/02/Panorama_of_Macau_Peninsula2021.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
       "width": 4876,
@@ -2189,12 +2223,13 @@
   {
     "place_id": "ne-1159150451",
     "country": "Bahrain",
-    "note": "Manama was named the Arab Capital of Culture for 2012. The Gulf trading city has an official place on the cultural calendar alongside its older role as a port.",
+    "note": "Manama’s Bab Al Bahrain souq district remains a place to buy spices, textiles, sweets and pearl-related crafts. Its shops and cafés carry on the capital’s trading culture in the old commercial centre.",
     "sources": [
       "https://www.wikidata.org/wiki/Q3882",
-      "https://en.wikipedia.org/wiki/Manama"
+      "https://en.wikipedia.org/wiki/Manama",
+      "https://www.bahrain.com/en/bab-al-bahrain"
     ],
-    "topic_key": "arab-culture-capital",
+    "topic_key": "manama-bab-al-bahrain-souq",
     "photo": {
       "url": "https://upload.wikimedia.org/wikipedia/commons/f/f2/Bahrain_World_trade_Center_.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
       "width": 2048,
@@ -2209,12 +2244,13 @@
   {
     "place_id": "ne-1159150809",
     "country": "Lithuania",
-    "note": "Vilnius lent its name to Vilnian Baroque, an architectural style associated with the city's Old Town. UNESCO listed the town in 1994; its local adjective has travelled farther than most.",
+    "note": "Vilnius’s Kaziukas Fair fills the Old Town each March with craftspeople selling woodwork, ceramics, textiles and the decorated rye biscuits called verbos. The market tradition dates to the early seventeenth century.",
     "sources": [
       "https://www.wikidata.org/wiki/Q216",
-      "https://en.wikipedia.org/wiki/Vilnius"
+      "https://en.wikipedia.org/wiki/Vilnius",
+      "https://www.govilnius.lt/api/files/66179147fe6751f1aba690b0/EN%20Hales%20Market%202024%202%20%281%29.pdf"
     ],
-    "topic_key": "vilnius-named-baroque",
+    "topic_key": "vilnius-kaziukas-fair",
     "photo": {
       "url": "https://upload.wikimedia.org/wikipedia/commons/9/9d/Gedimino_pilis_by_Augustas_Didzgalvis.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
       "width": 1800,
@@ -2229,24 +2265,26 @@
   {
     "place_id": "ne-1159150445",
     "country": "Palestine",
-    "note": "Gaza has been inhabited since at least the fifteenth century BCE and its Mediterranean port once flourished under Roman rule. The city has long connected inland routes to the sea.",
+    "note": "Gaza’s sumaghiyyeh is a local dish of beef, chard, chickpeas and sumac, traditionally prepared for celebrations and family gatherings. The sharp sumac broth gives the dish its name.",
     "sources": [
       "https://www.wikidata.org/wiki/Q47492",
-      "https://en.wikipedia.org/wiki/Gaza_City"
+      "https://en.wikipedia.org/wiki/Gaza_City",
+      "https://en.wikipedia.org/wiki/Palestinian_cuisine"
     ],
-    "topic_key": "gaza-ancient-port",
+    "topic_key": "gaza-sumaghiyyeh",
     "photo": null,
     "review_status": "draft"
   },
   {
     "place_id": "ne-1159150073",
     "country": "North Macedonia",
-    "note": "Skopje's 2014 project recast parts of the centre with neoclassical buildings and monuments. It gave the city a very modern chapter in the old argument over what a capital should look like.",
+    "note": "Skopje’s Old Bazaar remains a working district of workshops, teahouses, bakeries and small shops. Its craft streets include traditional silversmithing and copperwork alongside everyday trade.",
     "sources": [
       "https://www.wikidata.org/wiki/Q384",
-      "https://en.wikipedia.org/wiki/Skopje"
+      "https://en.wikipedia.org/wiki/Skopje",
+      "https://macedonia-timeless.com/eng/what-to-do/culture/old-bazaar/"
     ],
-    "topic_key": "skopje-2014",
+    "topic_key": "skopje-old-bazaar",
     "photo": {
       "url": "https://upload.wikimedia.org/wikipedia/commons/0/0e/Stone_Bridge_Skopje_4.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
       "width": 5220,
@@ -2261,24 +2299,26 @@
   {
     "place_id": "ne-1159151189",
     "country": "Somaliland",
-    "note": "Hargeisa began as a watering and trading stop between Somaliland's coast and interior. Livestock and travellers needed a place to pause, which is a practical way to start a city.",
+    "note": "Hargeisa’s International Book Fair brings Somali and international writers, poets and publishers to the city each summer. Readings and discussions make literature a public event in the Somaliland capital.",
     "sources": [
       "https://www.wikidata.org/wiki/Q168652",
-      "https://en.wikipedia.org/wiki/Hargeisa"
+      "https://en.wikipedia.org/wiki/Hargeisa",
+      "https://www.hargeisabookfair.com/"
     ],
-    "topic_key": "hargeisa-trading-stop",
+    "topic_key": "hargeisa-book-fair",
     "photo": null,
     "review_status": "draft"
   },
   {
     "place_id": "ne-1159149757",
     "country": "Kosovo",
-    "note": "The classical-era settlement of Ulpiana is part of the heritage around Pristina, in the territory of the ancient Dardanian Kingdom. The capital's surroundings hold a city older than its modern name.",
+    "note": "Pristina hosts Sunny Hill, a summer music festival that brings international and Kosovan artists to the capital. The event is organized by the Sunny Hill Foundation.",
     "sources": [
       "https://www.wikidata.org/wiki/Q25270",
-      "https://en.wikipedia.org/wiki/Pristina"
+      "https://en.wikipedia.org/wiki/Pristina",
+      "https://www.sunnyhillfestival.com/about"
     ],
-    "topic_key": "ulpiana-near-pristina",
+    "topic_key": "pristina-sunny-hill",
     "photo": {
       "url": "https://upload.wikimedia.org/wikipedia/commons/d/d7/PRISHTINA_2013_%2813%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
       "width": 4256,
@@ -2293,12 +2333,13 @@
   {
     "place_id": "ne-1159149463",
     "country": "Slovakia",
-    "note": "St Martin's Cathedral in Bratislava crowned eleven Hungarian kings and eight queens while the city was the kingdom's capital. The coronation business ran from 1536 to 1783.",
+    "note": "Bratislava’s Christmas market fills the Old Town squares with seasonal food, craft stalls and public gatherings in December. Local specialties include lokše potato pancakes and medovina honey wine.",
     "sources": [
       "https://www.wikidata.org/wiki/Q1780",
-      "https://en.wikipedia.org/wiki/Bratislava"
+      "https://en.wikipedia.org/wiki/Bratislava",
+      "https://www.visitbratislava.com/events/christmas-markets/"
     ],
-    "topic_key": "hungarian-coronations",
+    "topic_key": "bratislava-christmas-market",
     "photo": {
       "url": "https://upload.wikimedia.org/wikipedia/commons/4/45/Hlavn%C3%A9_Namestie_%2835096533142%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
       "width": 4719,
@@ -2353,12 +2394,13 @@
   {
     "place_id": "ne-1159151199",
     "country": "Malta",
-    "note": "Valletta holds 320 monuments within 0.55 square kilometres and has UNESCO World Heritage status. The city packs a great deal of stone history into a very short walk.",
+    "note": "Valletta’s February carnival brings decorated floats, satirical costumes and dance groups through the capital’s streets. The city’s parade is part of Malta’s annual pre-Lenten season.",
     "sources": [
       "https://www.wikidata.org/wiki/Q23800",
-      "https://en.wikipedia.org/wiki/Valletta"
+      "https://en.wikipedia.org/wiki/Valletta",
+      "https://www.visitmalta.com/en/a/valletta-carnival/"
     ],
-    "topic_key": "valletta-monuments",
+    "topic_key": "valletta-carnival",
     "photo": {
       "url": "https://upload.wikimedia.org/wikipedia/commons/2/29/Malta%2C_2010_-_panoramio_-_Bengt_Nyman_%2823%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
       "width": 5000,
@@ -2373,12 +2415,13 @@
   {
     "place_id": "ne-1159150831",
     "country": "Lesotho",
-    "note": "Maseru's name comes from a Sesotho word meaning 'red sandstones'. It began as a police camp and became Lesotho's capital in 1869, so both its name and origin are unusually literal.",
+    "note": "Maseru’s Basotho Hat craft market sells the conical mokorotlo hat, woven from local grass and recognized as a national symbol. The same weaving tradition produces baskets and household items.",
     "sources": [
       "https://www.wikidata.org/wiki/Q3909",
-      "https://en.wikipedia.org/wiki/Maseru"
+      "https://en.wikipedia.org/wiki/Maseru",
+      "https://www.lesotho.travel/"
     ],
-    "topic_key": "maseru-red-sandstone",
+    "topic_key": "maseru-basotho-hat",
     "photo": {
       "url": "https://upload.wikimedia.org/wikipedia/commons/0/09/Maseru_from_Parliament_Hill.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
       "width": 5184,
@@ -2413,12 +2456,13 @@
   {
     "place_id": "ne-1159149461",
     "country": "Slovenia",
-    "note": "Roman Emona stood on the site of modern Ljubljana, beside a trade route between the northern Adriatic and the Danube. The capital's street plan has had a long time to collect history.",
+    "note": "Ljubljana’s Dragon Carnival brings masked groups, kurent figures and local folklore through the city centre before Lent. The dragon is a familiar emblem of the capital, but carnival is its annual street tradition.",
     "sources": [
       "https://www.wikidata.org/wiki/Q437",
-      "https://en.wikipedia.org/wiki/Ljubljana"
+      "https://en.wikipedia.org/wiki/Ljubljana",
+      "https://www.visitljubljana.com/en/visitors/events/dragon-carnival/"
     ],
-    "topic_key": "roman-ljubljana",
+    "topic_key": "ljubljana-dragon-carnival",
     "photo": {
       "url": "https://upload.wikimedia.org/wikipedia/commons/f/f6/2021-07-28_Ljubljana-0881.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
       "width": 6000,
@@ -2433,12 +2477,13 @@
   {
     "place_id": "ne-1159151083",
     "country": "Brunei",
-    "note": "Kampong Ayer, Bandar Seri Begawan's historic water village, is often nicknamed the Venice of the East. It is an inhabited neighbourhood on the Brunei River, not a decorative moat.",
+    "note": "Kampong Ayer is still a lived-in water village, with homes, schools, mosques and shops connected by walkways and water taxis. Residents commute across the Brunei River to the capital’s land-based districts.",
     "sources": [
       "https://www.wikidata.org/wiki/Q9279",
-      "https://en.wikipedia.org/wiki/Bandar_Seri_Begawan"
+      "https://en.wikipedia.org/wiki/Bandar_Seri_Begawan",
+      "https://www.bruneitourism.com/places-to-go/kampong-ayer/"
     ],
-    "topic_key": "kampong-ayer",
+    "topic_key": "kampong-ayer-daily-life",
     "photo": {
       "url": "https://upload.wikimedia.org/wikipedia/commons/5/59/Sultan_Omar_Ali_Saifuddin_Mosque_02.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
       "width": 3933,
@@ -2453,24 +2498,26 @@
   {
     "place_id": "ne-1159150663",
     "country": "Papua New Guinea",
-    "note": "Motu-Koitabu people had inhabited the site of Port Moresby for centuries before it became Papua New Guinea's capital. The city's coastal beginning predates its port and government offices.",
+    "note": "Port Moresby’s Hiri Moale Festival celebrates the Motu-Koitabu people’s historic trading voyages in lakatoi sailing canoes. The annual event includes canoe displays, dance, music and cultural dress.",
     "sources": [
       "https://www.wikidata.org/wiki/Q36526",
-      "https://en.wikipedia.org/wiki/Port_Moresby"
+      "https://en.wikipedia.org/wiki/Port_Moresby",
+      "https://www.papuanewguinea.travel/"
     ],
-    "topic_key": "motu-koitabu",
+    "topic_key": "hiri-moale-festival",
     "photo": null,
     "review_status": "draft"
   },
   {
     "place_id": "ne-1159150785",
     "country": "Namibia",
-    "note": "Windhoek developed around a hot spring known to local pastoral communities. In 1840, Jonker Afrikaner settled there and built a stone church, giving the future capital a very early landmark.",
+    "note": "Windhoek’s Oktoberfest brings German-style beer, food and music into Namibia’s capital, alongside local craft beer and Namibian vendors. The event reflects one strand of the city’s mixed cultural life.",
     "sources": [
       "https://www.wikidata.org/wiki/Q3935",
-      "https://en.wikipedia.org/wiki/Windhoek"
+      "https://en.wikipedia.org/wiki/Windhoek",
+      "https://www.oktoberfestnamibia.com/"
     ],
-    "topic_key": "windhoek-hot-spring-church",
+    "topic_key": "windhoek-oktoberfest",
     "photo": {
       "url": "https://upload.wikimedia.org/wikipedia/commons/a/a1/Windhoek-Skyline.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
       "width": 1840,
@@ -2485,12 +2532,13 @@
   {
     "place_id": "ne-1159150585",
     "country": "Guyana",
-    "note": "Georgetown's St George's Cathedral is a major painted-timber landmark, set among buildings shaped by British and Dutch colonial rule. Stabroek Market keeps the city centre practical.",
+    "note": "Stabroek Market is Georgetown’s central market for produce, fish, clothing and household goods. Its iron clock tower marks a busy trading hall that residents still use every day.",
     "sources": [
       "https://www.wikidata.org/wiki/Q10717",
-      "https://en.wikipedia.org/wiki/Georgetown,_Guyana"
+      "https://en.wikipedia.org/wiki/Georgetown,_Guyana",
+      "https://www.guyanatourism.com/attraction/stabroek-market/"
     ],
-    "topic_key": "st-georges-cathedral",
+    "topic_key": "georgetown-stabroek-market",
     "photo": {
       "url": "https://upload.wikimedia.org/wikipedia/commons/8/85/St_George%27s_Cathedral.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
       "width": 2609,
@@ -2505,12 +2553,13 @@
   {
     "place_id": "ne-1159150597",
     "country": "Suriname",
-    "note": "Paramaribo's historic inner city has been on UNESCO's World Heritage List since 2002. Its wooden streetscape keeps the capital's colonial-era urban history visible at walking speed.",
+    "note": "Paramaribo marks Keti Koti on July 1 with music, food and public remembrance of emancipation. The name means “broken chains” in Sranan Tongo, and celebrations take place across the capital.",
     "sources": [
       "https://www.wikidata.org/wiki/Q3001",
-      "https://en.wikipedia.org/wiki/Paramaribo"
+      "https://en.wikipedia.org/wiki/Paramaribo",
+      "https://www.surinametourism.sr/"
     ],
-    "topic_key": "paramaribo-wooden-centre",
+    "topic_key": "paramaribo-keti-koti",
     "photo": {
       "url": "https://upload.wikimedia.org/wikipedia/commons/1/1b/Waterkant_Paramaribo_with_the_Unesco_Heritage_Buildings.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
       "width": 3600,
@@ -2525,12 +2574,13 @@
   {
     "place_id": "ne-1159148173",
     "country": "Sri Lanka",
-    "note": "Jaffna Public Library was burned and later rebuilt; it remains one of the city's defining cultural landmarks. Its history is a reminder that a library can be both a collection and a public memory.",
+    "note": "Jaffna’s Nallur Kandaswamy Temple festival lasts 25 days in August and September, ending with a large chariot procession through the city. Devotees gather for daily rituals and music.",
     "sources": [
       "https://www.wikidata.org/wiki/Q215277",
-      "https://en.wikipedia.org/wiki/Jaffna"
+      "https://en.wikipedia.org/wiki/Jaffna",
+      "https://www.srilanka.travel/what-to-do/northern-sri-lanka"
     ],
-    "topic_key": "jaffna-library",
+    "topic_key": "jaffna-nallur-festival",
     "photo": {
       "url": "https://upload.wikimedia.org/wikipedia/commons/b/b9/Jaffna_montage.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
       "width": 1800,
@@ -2545,12 +2595,13 @@
   {
     "place_id": "ne-1159150577",
     "country": "East Timor",
-    "note": "Dili has served as the economic hub and chief port of Timor-Leste since 1769, when it became the capital of Portuguese Timor. The harbour has been part of the city's story from early on.",
+    "note": "Timor-Leste’s tais weaving is practiced by women in communities across the country, including around Dili. The handwoven cloth is used for ceremonies, gifts and clothing, with patterns tied to local identity.",
     "sources": [
       "https://www.wikidata.org/wiki/Q9310",
-      "https://en.wikipedia.org/wiki/Dili"
+      "https://en.wikipedia.org/wiki/Dili",
+      "https://ich.unesco.org/en/RL/traditional-handwoven-textile-tai-00811"
     ],
-    "topic_key": "dili-port",
+    "topic_key": "dili-tais-weaving",
     "photo": {
       "url": "https://upload.wikimedia.org/wikipedia/commons/a/aa/Aussenministerium_und_Avenida_de_Portugal.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
       "width": 720,
@@ -2565,12 +2616,13 @@
   {
     "place_id": "ne-1159151207",
     "country": "The Bahamas",
-    "note": "Nassau was once considered a pirate stronghold. Its late-eighteenth-century growth followed Loyalist arrivals, including enslaved people brought with them, a history that deserves its full weight.",
+    "note": "Nassau’s Junkanoo parade fills Bay Street on Boxing Day and New Year’s morning with goatskin drums, cowbells, horns and handmade costumes. Groups spend much of the year preparing their music and outfits.",
     "sources": [
       "https://www.wikidata.org/wiki/Q2467",
-      "https://en.wikipedia.org/wiki/Nassau,_Bahamas"
+      "https://en.wikipedia.org/wiki/Nassau,_Bahamas",
+      "https://www.bahamas.com/events/junkanoo"
     ],
-    "topic_key": "nassau-pirate-history",
+    "topic_key": "nassau-junkanoo",
     "photo": {
       "url": "https://upload.wikimedia.org/wikipedia/commons/a/a1/BHA_Nassau%2C_Paradise_Island%2C_Atlantis_Bridge_001.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
       "width": 3264,
@@ -2585,24 +2637,27 @@
   {
     "place_id": "ne-1159151209",
     "country": "Cyprus",
-    "note": "Nicosia is Europe's last divided capital, with a dividing line running through the city. Its long continuity as Cyprus's capital now sits beside a very visible modern boundary.",
+    "note": "Nicosia’s annual German Christmas Fayre brings mulled wine, festive music and handmade goods to Eleftheria Square. The city centre becomes a shared seasonal market for local residents and visitors.",
     "sources": [
       "https://www.wikidata.org/wiki/Q3856",
-      "https://en.wikipedia.org/wiki/Nicosia"
+      "https://en.wikipedia.org/wiki/Nicosia",
+      "https://www.cyiff.eu/",
+      "https://www.nicosia.org.cy/el-GR/news/events/list/2026/12/22929/"
     ],
-    "topic_key": "nicosia-divided-capital",
+    "topic_key": "nicosia-christmas-fayre",
     "photo": null,
     "review_status": "draft"
   },
   {
     "place_id": "ne-1159151153",
     "country": "Botswana",
-    "note": "Gaborone takes its name from Chief Gaborone of the Tlokwa people, who controlled land nearby. The capital's name preserves a local leader's place in the landscape.",
+    "note": "Gaborone hosts the Maitisong Festival each year, with theatre, music, dance and visual arts performances at venues around the capital. The programme includes Botswana artists alongside regional performers.",
     "sources": [
       "https://www.wikidata.org/wiki/Q3919",
-      "https://en.wikipedia.org/wiki/Gaborone"
+      "https://en.wikipedia.org/wiki/Gaborone",
+      "https://maitisong.org/"
     ],
-    "topic_key": "gaborone-chief",
+    "topic_key": "gaborone-maitisong-festival",
     "photo": {
       "url": "https://upload.wikimedia.org/wikipedia/commons/5/54/Gaborone_skyline.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
       "width": 4608,
@@ -2617,12 +2672,13 @@
   {
     "place_id": "ne-1159141603",
     "country": "The Gambia",
-    "note": "Locals also call Brikama 'Satey Ba', meaning 'big town'. The name is a plainspoken measure of its place in The Gambia, where it is one of the country's largest cities.",
+    "note": "Brikama is known for woodcarving, including carved masks and figures made by local artists. The craft is sold in workshops and roadside stalls and draws on Mandinka and wider Gambian artistic traditions.",
     "sources": [
       "https://www.wikidata.org/wiki/Q916988",
-      "https://en.wikipedia.org/wiki/Brikama"
+      "https://en.wikipedia.org/wiki/Brikama",
+      "https://www.accessgambia.com/information/wood-carvings.html"
     ],
-    "topic_key": "brikama-satey-ba",
+    "topic_key": "brikama-woodcarving",
     "photo": {
       "url": "https://upload.wikimedia.org/wikipedia/commons/d/d9/316665074_34a80dfc88_o.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
       "width": 2592,
@@ -2637,12 +2693,13 @@
   {
     "place_id": "ne-1159150339",
     "country": "Barbados",
-    "note": null,
+    "note": "Bridgetown’s Crop Over season ends with Grand Kadooment, a costumed parade of masquerade bands, soca music and moving bars. Bridgetown Market is another central event, with food, drink and craft stalls.",
     "sources": [
       "https://www.wikidata.org/wiki/Q36168",
-      "https://en.wikipedia.org/wiki/Bridgetown"
+      "https://en.wikipedia.org/wiki/Bridgetown",
+      "https://ncf.bb/crop-over/"
     ],
-    "topic_key": null,
+    "topic_key": "bridgetown-crop-over",
     "photo": {
       "url": "https://upload.wikimedia.org/wikipedia/commons/4/4f/Bridgetown_aerial.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
       "width": 1936,
@@ -2657,12 +2714,13 @@
   {
     "place_id": "ne-1159146301",
     "country": "Gibraltar",
-    "note": null,
+    "note": "Gibraltar’s Calentita Food Festival brings food stalls, live entertainment, cooking displays and dance to the city each summer. Local chefs and home cooks present dishes shaped by the Rock’s mixed food culture.",
     "sources": [
       "https://www.wikidata.org/wiki/Q1410",
-      "https://en.wikipedia.org/wiki/Gibraltar"
+      "https://en.wikipedia.org/wiki/Gibraltar",
+      "https://www.visitgibraltar.gi/events/calentita-food-festival"
     ],
-    "topic_key": null,
+    "topic_key": "gibraltar-calentita",
     "photo": null,
     "review_status": "draft"
   },
@@ -2689,12 +2747,13 @@
   {
     "place_id": "ne-1159150917",
     "country": "Fiji",
-    "note": null,
+    "note": "Suva’s Hibiscus Festival is an annual celebration with cultural performances, food stalls, music and a community pageant. The festival has been part of the capital’s public calendar for decades.",
     "sources": [
       "https://www.wikidata.org/wiki/Q38807",
-      "https://en.wikipedia.org/wiki/Suva"
+      "https://en.wikipedia.org/wiki/Suva",
+      "https://www.fiji.travel/events/hibiscus-festival"
     ],
-    "topic_key": null,
+    "topic_key": "suva-hibiscus-festival",
     "photo": {
       "url": "https://upload.wikimedia.org/wikipedia/commons/8/85/Suva%2C_Fiji_52.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
       "width": 5184,
@@ -2729,12 +2788,13 @@
   {
     "place_id": "ne-1159150587",
     "country": "Iceland",
-    "note": null,
+    "note": "Reykjavík’s Þorrablót midwinter gatherings feature traditional Icelandic foods such as fermented shark, smoked lamb and rye bread. The name comes from the old winter month Þorri.",
     "sources": [
       "https://www.wikidata.org/wiki/Q1764",
-      "https://en.wikipedia.org/wiki/Reykjav%C3%ADk"
+      "https://en.wikipedia.org/wiki/Reykjav%C3%ADk",
+      "https://visitreykjavik.is/thorrablot"
     ],
-    "topic_key": null,
+    "topic_key": "reykjavik-thorrablot",
     "photo": {
       "url": "https://upload.wikimedia.org/wikipedia/commons/c/cd/Reykjav%C3%ADk_5545_%28cropped%29.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
       "width": 3888,
@@ -2749,12 +2809,13 @@
   {
     "place_id": "ne-1159146055",
     "country": "Curacao",
-    "note": null,
+    "note": "Willemstad’s Tumba Festival brings Curaçaoan bands together to compete with original songs before Carnival. Tumba blends African and Caribbean rhythms with lyrics in Papiamentu.",
     "sources": [
       "https://www.wikidata.org/wiki/Q132679",
-      "https://en.wikipedia.org/wiki/Willemstad"
+      "https://en.wikipedia.org/wiki/Willemstad",
+      "https://www.curacao.com/en/article/curacaos-best-festivals-and-cultural-events-a-travelers-guide"
     ],
-    "topic_key": null,
+    "topic_key": "willemstad-tumba",
     "photo": {
       "url": "https://upload.wikimedia.org/wikipedia/commons/2/22/Handelskade_in_Willemstad.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
       "width": 6000,
@@ -2789,12 +2850,13 @@
   {
     "place_id": "ne-1159150449",
     "country": "French Polynesia",
-    "note": null,
+    "note": "Papeete hosts Heiva i Tahiti each July, with dance, singing, sports and traditional arts from across French Polynesia. Groups perform in the capital’s To’ata amphitheatre.",
     "sources": [
       "https://www.wikidata.org/wiki/Q130800",
-      "https://en.wikipedia.org/wiki/Papeete"
+      "https://en.wikipedia.org/wiki/Papeete",
+      "https://tahiti-tourisme.com/en/heiva-i-tahiti/"
     ],
-    "topic_key": null,
+    "topic_key": "papeete-heiva",
     "photo": {
       "url": "https://upload.wikimedia.org/wikipedia/commons/0/0e/Papeete_-_Marina_Taina.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
       "width": 1280,
@@ -2829,12 +2891,13 @@
   {
     "place_id": "ne-1159151205",
     "country": "Cape Verde",
-    "note": null,
+    "note": "Praia’s Kriol Jazz Festival pairs Cape Verdean music with jazz performers from Africa, Europe and the Americas. Concerts take place in the capital each spring.",
     "sources": [
       "https://www.wikidata.org/wiki/Q497019",
-      "https://en.wikipedia.org/wiki/Praia,_Cape_Verde_(municipality)"
+      "https://en.wikipedia.org/wiki/Praia,_Cape_Verde_(municipality)",
+      "https://krioljazzfestival.com/"
     ],
-    "topic_key": null,
+    "topic_key": "praia-kriol-jazz",
     "photo": {
       "url": "https://upload.wikimedia.org/wikipedia/commons/7/7b/Praia-H%C3%B4tel_de_ville_%282%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
       "width": 3648,
@@ -2849,12 +2912,13 @@
   {
     "place_id": "ne-1159151201",
     "country": "Maldives",
-    "note": null,
+    "note": "Malé’s Bodu Eid celebrations include music and dance, including bodu beru, the large-drum performance found across the Maldives. Families gather for the holiday and public festivities.",
     "sources": [
       "https://www.wikidata.org/wiki/Q9347",
-      "https://en.wikipedia.org/wiki/Mal%C3%A9"
+      "https://en.wikipedia.org/wiki/Mal%C3%A9",
+      "https://visitmaldives.com/en/experience/eid-al-adha-or-bodu-eid-as-we-know-it"
     ],
-    "topic_key": null,
+    "topic_key": "male-bodu-eid",
     "photo": {
       "url": "https://upload.wikimedia.org/wikipedia/commons/b/b4/Male-total.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
       "width": 3072,
@@ -2881,12 +2945,13 @@
   {
     "place_id": "ne-1159146437",
     "country": "Luxembourg",
-    "note": null,
+    "note": "Luxembourg City’s Schueberfouer fair arrives each August with rides, food stands and market stalls on the Glacis. The annual gathering began as a medieval trade fair.",
     "sources": [
       "https://www.wikidata.org/wiki/Q32",
-      "https://en.wikipedia.org/wiki/Luxembourg"
+      "https://en.wikipedia.org/wiki/Luxembourg",
+      "https://www.luxembourg-city.com/en/what-s-on/event/schueberfouer"
     ],
-    "topic_key": null,
+    "topic_key": "luxembourg-schueberfouer",
     "photo": {
       "url": "https://upload.wikimedia.org/wikipedia/commons/9/9f/Greinskapell%2C_Luxembourg_City_6.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
       "width": 3456,
@@ -2901,12 +2966,13 @@
   {
     "place_id": "ne-1159151151",
     "country": "Bhutan",
-    "note": null,
+    "note": "Thimphu’s annual tshechu brings masked dances and religious performances to the courtyard of Tashichho Dzong. Residents attend in their finest kira and gho, and families gather for the festival.",
     "sources": [
       "https://www.wikidata.org/wiki/Q9270",
-      "https://en.wikipedia.org/wiki/Thimphu"
+      "https://en.wikipedia.org/wiki/Thimphu",
+      "https://bhutan.travel/page/festivals"
     ],
-    "topic_key": null,
+    "topic_key": "thimphu-tshechu",
     "photo": {
       "url": "https://upload.wikimedia.org/wikipedia/commons/5/5b/ThimphuView.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
       "width": 2048,
@@ -2921,12 +2987,13 @@
   {
     "place_id": "ne-1159146907",
     "country": "New Caledonia",
-    "note": null,
+    "note": "Nouméa’s annual Melanesia 2000 festival brought Kanak dance, music and cultural performances to the capital. The event helped establish a public stage for Kanak culture.",
     "sources": [
       "https://www.wikidata.org/wiki/Q9733",
-      "https://en.wikipedia.org/wiki/Noum%C3%A9a"
+      "https://en.wikipedia.org/wiki/Noum%C3%A9a",
+      "https://www.noumea.nc/culture/"
     ],
-    "topic_key": null,
+    "topic_key": "noumea-melanesia-festival",
     "photo": {
       "url": "https://upload.wikimedia.org/wikipedia/commons/7/7a/Noum%C3%A9aCentre.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
       "width": 3648,
@@ -2961,12 +3028,13 @@
   {
     "place_id": "ne-1159150665",
     "country": "Solomon Islands",
-    "note": null,
+    "note": "Honiara’s National Panpipe Festival brings traditional dance, arts exhibitions and panpipe music to the National Art Gallery over five days. The 2026 event was opened in the capital by the Ministry of Culture.",
     "sources": [
       "https://www.wikidata.org/wiki/Q40921",
-      "https://en.wikipedia.org/wiki/Honiara"
+      "https://en.wikipedia.org/wiki/Honiara",
+      "https://solomons.gov.sb/the-national-panpipe-festival-2026-officially-opens-in-honiara/"
     ],
-    "topic_key": null,
+    "topic_key": "honiara-panpipe-festival",
     "photo": {
       "url": "https://upload.wikimedia.org/wikipedia/commons/8/8d/Honiara_aerial_crop.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
       "width": 374,
@@ -2981,12 +3049,13 @@
   {
     "place_id": "ne-1159146057",
     "country": "Aruba",
-    "note": null,
+    "note": "Oranjestad’s Carnival season includes weeks of music, costume events and street parades, culminating in the Grand Parade before Lent. Aruba’s tumba and calypso bands provide much of the soundtrack.",
     "sources": [
       "https://www.wikidata.org/wiki/Q131243",
-      "https://en.wikipedia.org/wiki/Oranjestad"
+      "https://en.wikipedia.org/wiki/Oranjestad",
+      "https://www.aruba.com/us/our-island/culture/carnival"
     ],
-    "topic_key": null,
+    "topic_key": "oranjestad-carnival",
     "photo": {
       "url": "https://upload.wikimedia.org/wikipedia/commons/d/d0/ARUBA-oranjestad-hafen-1.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
       "width": 1215,
@@ -3001,12 +3070,13 @@
   {
     "place_id": "ne-1159144449",
     "country": "Belize",
-    "note": null,
+    "note": "Belize City marks Baron Bliss Day each March with a harbor regatta and other public events. The day remembers benefactor Baron Bliss, whose bequest established a trust for Belize.",
     "sources": [
       "https://www.wikidata.org/wiki/Q108223",
-      "https://en.wikipedia.org/wiki/Belize_City"
+      "https://en.wikipedia.org/wiki/Belize_City",
+      "https://www.travelbelize.org/event/baron-bliss-day/"
     ],
-    "topic_key": null,
+    "topic_key": "belize-city-baron-bliss-day",
     "photo": {
       "url": "https://upload.wikimedia.org/wikipedia/commons/a/ad/Belize_City_Aerial_Shots.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
       "width": 1024,
@@ -3021,24 +3091,26 @@
   {
     "place_id": "ne-1159151197",
     "country": "Samoa",
-    "note": null,
+    "note": "Apia’s to’ona’i is the Sunday family lunch, often cooked in an umu earth oven. Samoa Tourism describes Sunday as a day of rest, church and a shared meal prepared by the household.",
     "sources": [
       "https://www.wikidata.org/wiki/Q36260",
-      "https://en.wikipedia.org/wiki/Apia"
+      "https://en.wikipedia.org/wiki/Apia",
+      "https://www.samoa.travel/discover/our-food-and-cuisine/"
     ],
-    "topic_key": null,
+    "topic_key": "apia-toonai",
     "photo": null,
     "review_status": "draft"
   },
   {
     "place_id": "ne-1159149089",
     "country": "Andorra",
-    "note": null,
+    "note": "Andorra la Vella’s Mercat de la Vall brings local agricultural produce and handmade goods to the historic centre on the first Saturday of each month from May to October. Nearby shops take part too.",
     "sources": [
       "https://www.wikidata.org/wiki/Q228",
-      "https://en.wikipedia.org/wiki/Andorra"
+      "https://en.wikipedia.org/wiki/Andorra",
+      "https://visitandorra.com/es/agenda/mercat-de-la-vall/"
     ],
-    "topic_key": null,
+    "topic_key": "andorra-la-vella-market",
     "photo": {
       "url": "https://upload.wikimedia.org/wikipedia/commons/e/e4/Andorra_la_Vella_-_footpath.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
       "width": 3736,
@@ -3053,12 +3125,13 @@
   {
     "place_id": "ne-1159151185",
     "country": "Bermuda",
-    "note": null,
+    "note": "Hamilton marks Bermuda’s Cup Match holiday with cricket, music, roadside camping and seasonal food. The annual Somerset versus St George’s match is a two-day island celebration around Emancipation Day.",
     "sources": [
       "https://www.wikidata.org/wiki/Q30985",
-      "https://en.wikipedia.org/wiki/Hamilton,_Bermuda"
+      "https://en.wikipedia.org/wiki/Hamilton,_Bermuda",
+      "https://www.gotobermuda.com/our-island/festivals-holidays/cupmatch"
     ],
-    "topic_key": null,
+    "topic_key": "bermuda-cup-match",
     "photo": {
       "url": "https://upload.wikimedia.org/wikipedia/commons/e/e7/Front_Street%2C_Hamilton%2C_Bermuda.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
       "width": 2048,
@@ -3073,12 +3146,13 @@
   {
     "place_id": "ne-1159150431",
     "country": "Saint Vincent and the Grenadines",
-    "note": null,
+    "note": "Kingstown’s Nine Mornings Festival begins before dawn during the nine days before Christmas. Vincentians gather for sea baths, cycling, music, dancing and street events.",
     "sources": [
       "https://www.wikidata.org/wiki/Q41474",
-      "https://en.wikipedia.org/wiki/Kingstown"
+      "https://en.wikipedia.org/wiki/Kingstown",
+      "https://tourism.gov.vc/tourism/index.php/festivals-a-events"
     ],
-    "topic_key": null,
+    "topic_key": "kingstown-nine-mornings",
     "photo": {
       "url": "https://upload.wikimedia.org/wikipedia/commons/c/cb/St._Vincent%2C_Karibik_-_Kingstown_City_-_panoramio.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
       "width": 4000,
@@ -3093,12 +3167,13 @@
   {
     "place_id": "ne-1159150579",
     "country": "Vanuatu",
-    "note": null,
+    "note": "Port Vila’s Fest’Napuan is a music festival where performers from Vanuatu and the Pacific share contemporary and traditional styles. It is held each year in the capital.",
     "sources": [
       "https://www.wikidata.org/wiki/Q37806",
-      "https://en.wikipedia.org/wiki/Port_Vila"
+      "https://en.wikipedia.org/wiki/Port_Vila",
+      "https://www.vanuatu.travel/en/events/festnapuan"
     ],
-    "topic_key": null,
+    "topic_key": "port-vila-festnapuan",
     "photo": {
       "url": "https://upload.wikimedia.org/wikipedia/commons/e/e8/Port_Vila_aerial.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
       "width": 1024,
@@ -3113,24 +3188,26 @@
   {
     "place_id": "ne-1159132353",
     "country": "Northern Cyprus",
-    "note": null,
+    "note": "Famagusta’s Orange Festival pairs local citrus harvest traditions with music and folk performance. Community groups and neighboring municipalities revived the spring event in 2026.",
     "sources": [
       "https://www.wikidata.org/wiki/Q193190",
-      "https://en.wikipedia.org/wiki/Famagusta"
+      "https://en.wikipedia.org/wiki/Famagusta",
+      "https://en.politis.com.cy/culture/1002871/orange-festival-revived"
     ],
-    "topic_key": null,
+    "topic_key": "famagusta-orange-festival",
     "photo": null,
     "review_status": "draft"
   },
   {
     "place_id": "ne-1159150433",
     "country": "Saint Lucia",
-    "note": null,
+    "note": "Castries hosts the Saint Lucia Jazz and Arts Festival, with concerts and performances across the capital and island. The programme includes jazz, soca, reggae and local artists.",
     "sources": [
       "https://www.wikidata.org/wiki/Q41699",
-      "https://en.wikipedia.org/wiki/Castries"
+      "https://en.wikipedia.org/wiki/Castries",
+      "https://www.stlucia.org/en/experiences/festivals/saint-lucia-jazz-arts-festival/"
     ],
-    "topic_key": null,
+    "topic_key": "castries-jazz-festival",
     "photo": {
       "url": "https://upload.wikimedia.org/wikipedia/commons/e/ea/CastriesStLucia.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
       "width": 2592,
@@ -3145,12 +3222,13 @@
   {
     "place_id": "ne-1159149077",
     "country": "Monaco",
-    "note": null,
+    "note": "Monaco’s International Circus Festival brings circus companies from around the world to the Fontvieille Big Top each January. The festival’s competition awards the Golden Clown.",
     "sources": [
       "https://www.wikidata.org/wiki/Q235",
-      "https://en.wikipedia.org/wiki/Monaco"
+      "https://en.wikipedia.org/wiki/Monaco",
+      "https://www.montecarlosbm.com/en/agenda/international-circus-festival-monte-carlo"
     ],
-    "topic_key": null,
+    "topic_key": "monaco-circus-festival",
     "photo": {
       "url": "https://upload.wikimedia.org/wikipedia/commons/d/da/Panorama_von_Monaco-La_Turbie.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
       "width": 6869,
@@ -3165,12 +3243,13 @@
   {
     "place_id": "ne-1159146061",
     "country": "Liechtenstein",
-    "note": null,
+    "note": "Liechtenstein’s National Day gathering in Vaduz includes a torchlight procession, bonfire on the castle hill and public celebration on August 15. Residents meet on the streets around the capital.",
     "sources": [
       "https://www.wikidata.org/wiki/Q1844",
-      "https://en.wikipedia.org/wiki/Vaduz"
+      "https://en.wikipedia.org/wiki/Vaduz",
+      "https://tourismus.li/en/experience/events/national-day/"
     ],
-    "topic_key": null,
+    "topic_key": "vaduz-national-day",
     "photo": {
       "url": "https://upload.wikimedia.org/wikipedia/commons/9/9b/View_of_Vaduz.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
       "width": 4272,
@@ -3185,12 +3264,13 @@
   {
     "place_id": "ne-1159146037",
     "country": "Isle of Man",
-    "note": null,
+    "note": "Douglas hosts the Isle of Man’s annual Manx Music Festival, known locally as the Guild. Singers, musicians and dancers compete and perform in the capital.",
     "sources": [
       "https://www.wikidata.org/wiki/Q18569",
-      "https://en.wikipedia.org/wiki/Douglas,_Isle_of_Man"
+      "https://en.wikipedia.org/wiki/Douglas,_Isle_of_Man",
+      "https://www.manxmusicfestival.org/"
     ],
-    "topic_key": null,
+    "topic_key": "douglas-manx-music-festival",
     "photo": {
       "url": "https://upload.wikimedia.org/wikipedia/commons/0/03/The_View_From_Douglas_Head%2C_Isle_Of_Man..jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
       "width": 3828,

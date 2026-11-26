@@ -3,7 +3,7 @@
 ## [Unreleased] - Representative city stop cards batch 2
 
 - **Candidate coverage:** Adds 93 verified draft cards from the next country and territory candidates, keyed by stable generator place IDs.
-- **Research quality:** Adds 54 original, source-linked cultural notes and 83 permissively licensed, fully attributed photos; 39 cards remain without a sourced note.
+- **Research quality:** Adds 80 original, source-linked cultural notes and 83 permissively licensed, fully attributed photos; 13 cards remain without a sourced note.
 - **Entity matching:** Leaves seven candidates unresolved where the research tool could not verify a matching Wikidata entity by exact English label and location.
 
 ## [Unreleased] - Representative city stop cards batch 1
