@@ -1,5 +1,11 @@
 # Changelog — per-PR exhaustive (enforced in CI)
 
+## [Unreleased] - Fill sourced stop-card null notes
+
+- **Coverage:** Adds 46 original, source-backed cultural notes across the existing 307 cards, reducing null notes from 97 to 51.
+- **Priority:** Covers Christmas Eve at the Vatican, city festivals, foodways, music, crafts and seasonal customs across country capitals and major cities.
+- **Review:** Keeps unsupported places null; all cards remain in draft status and retain their existing Commons photo metadata.
+
 ## [Unreleased] - Representative city stop cards batch 3
 
 - **Candidate coverage:** Adds 114 verified draft cards from the next city-tier candidates, keyed by stable generator place IDs.

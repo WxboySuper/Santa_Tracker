@@ -181,12 +181,14 @@
   {
     "place_id": "ne-1159150621",
     "country": "Paraguay",
-    "note": null,
+    "note": "Asunción’s craft traditions include ñandutí, a fine needle lace whose name means “spider web” in Guaraní. Paraguay’s culture ministry recognizes the lace-making techniques as intangible cultural heritage passed between generations.",
     "sources": [
       "https://www.wikidata.org/wiki/Q2933",
-      "https://en.wikipedia.org/wiki/Asunci%C3%B3n"
+      "https://en.wikipedia.org/wiki/Asunci%C3%B3n",
+      "https://cultura.gov.py/2019/07/cultura-declara-al-encaje-nanduti-como-patrimonio-nacional-cultural-inmaterial/",
+      "https://asuncioncity.com/es/cultura/"
     ],
-    "topic_key": null,
+    "topic_key": "asuncion-nanduti",
     "photo": null,
     "review_status": "draft"
   },
@@ -253,12 +255,14 @@
   {
     "place_id": "ne-1159150853",
     "country": "El Salvador",
-    "note": null,
+    "note": "At San Salvador’s Mercado Central, a city food festival has showcased everyday Salvadoran dishes including pupusas, tamales and yuca. Pupusas are also celebrated nationally with a dedicated day in November.",
     "sources": [
       "https://www.wikidata.org/wiki/Q3110",
-      "https://en.wikipedia.org/wiki/San_Salvador"
+      "https://en.wikipedia.org/wiki/San_Salvador",
+      "https://sansalvador.gob.sv/renovado-mercado-central-brillo-con-su-1er-festival-gastronomico/",
+      "https://elsalvador.travel/esp/dia-nacional-de-la-pupusa-destinos-para-disfrutar-de-un-sabor-de-cultura-y-tradicion/"
     ],
-    "topic_key": null,
+    "topic_key": "san-salvador-pupusa-market",
     "photo": null,
     "review_status": "draft"
   },
@@ -317,12 +321,14 @@
   {
     "place_id": "ne-1159150997",
     "country": "Guinea",
-    "note": null,
+    "note": "Conakry’s annual 72 Heures du Livre turns three April days into a citywide book gathering, with readings, exhibitions, discussions and author signings. It began in 2009 alongside World Book Day.",
     "sources": [
       "https://www.wikidata.org/wiki/Q3733",
-      "https://en.wikipedia.org/wiki/Conakry"
+      "https://en.wikipedia.org/wiki/Conakry",
+      "https://www.72heuresdulivreconakry.com/",
+      "https://mcta.gov.gn/chapiteaux-le-premier-ministre-lance-officiellement-les-72-heures-du-livre/"
     ],
-    "topic_key": null,
+    "topic_key": "conakry-book-festival",
     "photo": null,
     "review_status": "draft"
   },
@@ -509,12 +515,13 @@
   {
     "place_id": "ne-1159151275",
     "country": "Sudan",
-    "note": null,
+    "note": "Hageeba, an early urban style of Sudanese popular song, grew around Khartoum and Omdurman in the 1920s. A lead singer and chorus, often with frame-drum rhythm, carried its songs into coffee shops and radio.",
     "sources": [
       "https://www.wikidata.org/wiki/Q1963",
-      "https://en.wikipedia.org/wiki/Khartoum"
+      "https://en.wikipedia.org/wiki/Khartoum",
+      "https://en.wikipedia.org/wiki/Music_of_Sudan"
     ],
-    "topic_key": null,
+    "topic_key": "khartoum-hageeba-music",
     "photo": null,
     "review_status": "draft"
   },
@@ -1678,12 +1685,14 @@
   {
     "place_id": "ne-1159150583",
     "country": "Honduras",
-    "note": null,
+    "note": "Each February, pilgrims gather at the Basilica of Suyapa in Tegucigalpa for the feast of Our Lady of Suyapa. The celebration includes an overnight vigil, music and a procession honoring Honduras’s patron saint.",
     "sources": [
       "https://www.wikidata.org/wiki/Q3238",
-      "https://en.wikipedia.org/wiki/Tegucigalpa"
+      "https://en.wikipedia.org/wiki/Tegucigalpa",
+      "https://dnh.gob.hn/diario/ventana-al-alma-catracha-las-costumbres-que-definen-el-pulso-de-honduras",
+      "https://www.visitcentroamerica.com/que-descubrir/fiestas/"
     ],
-    "topic_key": null,
+    "topic_key": "tegucigalpa-suyapa-feast",
     "photo": {
       "url": "https://upload.wikimedia.org/wikipedia/commons/2/2c/Centro_historico_de_Tegucigalpa_y_Comayag%C3%BCela.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
       "width": 6000,
@@ -1836,12 +1845,13 @@
   {
     "place_id": "ne-1159149385",
     "country": "Rwanda",
-    "note": null,
+    "note": "KigaliUP is Rwanda’s annual music festival, bringing Rwandan and regional performers together across styles including traditional music, blues, hip-hop and reggae. The festival has been held since 2011.",
     "sources": [
       "https://www.wikidata.org/wiki/Q3859",
-      "https://en.wikipedia.org/wiki/Kigali"
+      "https://en.wikipedia.org/wiki/Kigali",
+      "https://visitrwanda.com/interests/festivals-and-events/"
     ],
-    "topic_key": null,
+    "topic_key": "kigali-kigaliup-music",
     "photo": {
       "url": "https://upload.wikimedia.org/wikipedia/commons/8/83/Kigali2018Cropped.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
       "width": 3000,
@@ -2354,12 +2364,14 @@
   {
     "place_id": "ne-1159150803",
     "country": "Guinea Bissau",
-    "note": null,
+    "note": "Bissau’s Carnival brings groups from across Guinea-Bissau into the capital for several days of parades. Participants make masks and costumes that draw on the country’s different regional and ethnic traditions.",
     "sources": [
       "https://www.wikidata.org/wiki/Q3739",
-      "https://en.wikipedia.org/wiki/Bissau"
+      "https://en.wikipedia.org/wiki/Bissau",
+      "https://www.bmeia.gv.at/fileadmin/user_upload/Vertretungen/Dakar/Dokumente/20160215_guide_guinea_bissau_european_union_afectos_en.pdf",
+      "https://africa.si.edu/exhibits/playful/playful_performers.pdf"
     ],
-    "topic_key": null,
+    "topic_key": "bissau-carnival",
     "photo": {
       "url": "https://upload.wikimedia.org/wikipedia/commons/6/65/20130610_-_Monumento_aos_Her%C3%B3is_da_Independ%C3%AAncia.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
       "width": 4928,
@@ -3285,12 +3297,13 @@
   {
     "place_id": "ne-1159127243",
     "country": "Vatican",
-    "note": null,
+    "note": "On Christmas Eve, the Pope celebrates the Mass during the Night in St Peter’s Basilica. The Vatican’s published liturgical calendar places the celebration there, making the basilica the focal point of the city-state’s Christmas observance.",
     "sources": [
       "https://www.wikidata.org/wiki/Q237",
-      "https://en.wikipedia.org/wiki/Vatican_City"
+      "https://en.wikipedia.org/wiki/Vatican_City",
+      "https://www.vatican.va/content/leo-xiv/en/events/event.dir.html/content/vaticanevents/en/2025/12/24/messa-notte-natale.html"
     ],
-    "topic_key": null,
+    "topic_key": "vatican-christmas-midnight-mass",
     "photo": {
       "url": "https://upload.wikimedia.org/wikipedia/commons/5/50/0_Basilique_Saint-Pierre_-_Rome_%281%29.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
       "width": 3833,
@@ -3518,12 +3531,13 @@
   {
     "place_id": "ne-1159146949",
     "country": "Germany",
-    "note": null,
+    "note": "Stuttgart’s Cannstatter Volksfest is an annual autumn fair with beer tents, rides and a large agricultural exhibition. The city’s harvest festival combines a local fairground tradition with Swabian food and music.",
     "sources": [
       "https://www.wikidata.org/wiki/Q1022",
-      "https://en.wikipedia.org/wiki/Stuttgart"
+      "https://en.wikipedia.org/wiki/Stuttgart",
+      "https://www.cannstatter-volksfest.de/en/"
     ],
-    "topic_key": null,
+    "topic_key": "stuttgart-cannstatter-volksfest",
     "photo": {
       "url": "https://upload.wikimedia.org/wikipedia/commons/6/66/Neues_Schloss_Schlossplatzspringbrunnen_Jubil%C3%A4umss%C3%A4ule_Schlossplatz_Stuttgart_2015_01.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
       "width": 6285,
@@ -3538,12 +3552,14 @@
   {
     "place_id": "ne-1159147167",
     "country": "Japan",
-    "note": null,
+    "note": "Yokohama’s Chinatown marks Lunar New Year with lion dances and lantern displays. The celebrations follow a different calendar from Japan’s January New Year and are centered on the city’s large Chinese community.",
     "sources": [
       "https://www.wikidata.org/wiki/Q38283",
-      "https://en.wikipedia.org/wiki/Yokohama"
+      "https://en.wikipedia.org/wiki/Yokohama",
+      "https://www.yokohamajapan.com/events/detail.php?id=171",
+      "https://www.yokohama-masobyo.jp/en/events/"
     ],
-    "topic_key": null,
+    "topic_key": "yokohama-chinatown-lunar-new-year",
     "photo": {
       "url": "https://upload.wikimedia.org/wikipedia/commons/a/a2/Minato-mirai_from_Yamashita_Park_at_night.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
       "width": 3335,
@@ -3558,12 +3574,14 @@
   {
     "place_id": "ne-1159149125",
     "country": "South Korea",
-    "note": null,
+    "note": "Incheon’s Chinatown hosts an annual festival devoted to jajangmyeon, Korean noodles with black-bean sauce. The city presents it as a chance to explore the dish’s history and the neighborhood’s food culture.",
     "sources": [
       "https://www.wikidata.org/wiki/Q20934",
-      "https://en.wikipedia.org/wiki/Incheon"
+      "https://en.wikipedia.org/wiki/Incheon",
+      "https://www.incheon.go.kr/en/EN020501/3090214",
+      "https://eng-itour.incheon.go.kr/cmn/board/BBSMSTR_000000000080/6249bbsDetail.do"
     ],
-    "topic_key": null,
+    "topic_key": "incheon-jajangmyeon-festival",
     "photo": {
       "url": "https://upload.wikimedia.org/wikipedia/commons/e/ec/Incheon_Cityscape.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
       "width": 4000,
@@ -3578,12 +3596,14 @@
   {
     "place_id": "ne-1159149129",
     "country": "China",
-    "note": null,
+    "note": "In Xiamen, Mid-Autumn gatherings can include bobing, a dice game played for mooncake prizes. Six dice determine the winning combinations, turning the festival table into a local game as well as a meal.",
     "sources": [
       "https://www.wikidata.org/wiki/Q68744",
-      "https://en.wikipedia.org/wiki/Xiamen"
+      "https://en.wikipedia.org/wiki/Xiamen",
+      "https://admissions.xmu.edu.cn/Magic_XMU/Xiamen_City.htm",
+      "https://www.investxiamen.org.cn/detail_en/161.html"
     ],
-    "topic_key": null,
+    "topic_key": "xiamen-bobing-mooncake-game",
     "photo": {
       "url": "https://upload.wikimedia.org/wikipedia/commons/5/51/Xiamen_night_cityscape_2018_-_Flickr_-_Jaykhuang.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
       "width": 2000,
@@ -3718,12 +3738,12 @@
   {
     "place_id": "ne-1159149913",
     "country": "China",
-    "note": null,
+    "note": "The Lüshun International Cherry Blossom Festival takes place near Dalian from late April into May. Its park holds thousands of cherry trees, drawing visitors for the spring bloom.",
     "sources": [
       "https://www.wikidata.org/wiki/Q74881",
       "https://en.wikipedia.org/wiki/Dalian"
     ],
-    "topic_key": null,
+    "topic_key": "dalian-cherry-blossoms",
     "photo": {
       "url": "https://upload.wikimedia.org/wikipedia/commons/b/b4/Dalian_Skyline_Enhanced.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
       "width": 3264,
@@ -3862,12 +3882,13 @@
   {
     "place_id": "ne-1159150461",
     "country": "Taiwan",
-    "note": null,
+    "note": "The Dajia Mazu pilgrimage begins in Taichung and travels through central Taiwan over several days. Worshippers accompany the goddess’s palanquin on foot, making the spring journey a major annual religious gathering.",
     "sources": [
       "https://www.wikidata.org/wiki/Q245023",
-      "https://en.wikipedia.org/wiki/Taichung"
+      "https://en.wikipedia.org/wiki/Taichung",
+      "https://en.wikipedia.org/wiki/Dajia_Mazu_Pilgrimage"
     ],
-    "topic_key": null,
+    "topic_key": "taichung-mazu-pilgrimage",
     "photo": {
       "url": "https://upload.wikimedia.org/wikipedia/commons/e/ef/Taichung_montage.PNG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
       "width": 533,
@@ -3922,12 +3943,12 @@
   {
     "place_id": "ne-1159151217",
     "country": "China",
-    "note": null,
+    "note": "Zibo’s barbecue became a local food draw, with diners grilling skewered meat and wrapping it in thin pancakes with scallions. The city’s barbecue streets and restaurants became especially popular with domestic visitors.",
     "sources": [
       "https://www.wikidata.org/wiki/Q198370",
       "https://en.wikipedia.org/wiki/Zibo"
     ],
-    "topic_key": null,
+    "topic_key": "zibo-barbecue",
     "photo": {
       "url": "https://upload.wikimedia.org/wikipedia/commons/a/ab/Zibo_montage.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
       "width": 1200,
@@ -3975,12 +3996,14 @@
   {
     "place_id": "ne-1159151225",
     "country": "United States of America",
-    "note": null,
+    "note": "Each spring, the Heard Museum Guild’s Indian Fair and Market brings hundreds of Indigenous artists to Phoenix to show and sell their work. The weekend also includes food and live cultural performances.",
     "sources": [
       "https://www.wikidata.org/wiki/Q16556",
-      "https://en.wikipedia.org/wiki/Phoenix,_Arizona"
+      "https://en.wikipedia.org/wiki/Phoenix,_Arizona",
+      "https://heard.org/event/fair/",
+      "https://heard.org/fair-artists/"
     ],
-    "topic_key": null,
+    "topic_key": "phoenix-heard-indian-market",
     "photo": {
       "url": "https://upload.wikimedia.org/wikipedia/commons/9/9d/Phoenix%2C_Arizona.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
       "width": 2024,
@@ -4016,12 +4039,14 @@
   {
     "place_id": "ne-1159151235",
     "country": "United States of America",
-    "note": null,
+    "note": "Dallas hosts the State Fair of Texas each autumn at Fair Park. The multiweek event brings livestock competitions, food stalls, rides and concerts to the city.",
     "sources": [
       "https://www.wikidata.org/wiki/Q16557",
-      "https://en.wikipedia.org/wiki/Dallas"
+      "https://en.wikipedia.org/wiki/Dallas",
+      "https://bigtex.com/wp-content/uploads/2026/06/2026_SFT_Livestock-Exhibitor-Handbook-v.-1.pdf",
+      "https://en.wikipedia.org/wiki/State_Fair_of_Texas"
     ],
-    "topic_key": null,
+    "topic_key": "dallas-state-fair",
     "photo": {
       "url": "https://upload.wikimedia.org/wikipedia/commons/4/41/Dallas_Skyline_with_Arts_District.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
       "width": 4032,
@@ -4036,12 +4061,13 @@
   {
     "place_id": "ne-1159151239",
     "country": "United States of America",
-    "note": null,
+    "note": "Boston’s Marathon is run each year on Patriots’ Day, with spectators lining the route from Hopkinton into the city. The Boston Athletic Association organized the first race in 1897.",
     "sources": [
       "https://www.wikidata.org/wiki/Q100",
-      "https://en.wikipedia.org/wiki/Boston"
+      "https://en.wikipedia.org/wiki/Boston",
+      "https://www.baa.org/races/boston-marathon/history/"
     ],
-    "topic_key": null,
+    "topic_key": "boston-marathon",
     "photo": {
       "url": "https://upload.wikimedia.org/wikipedia/commons/e/e6/Boston_from_the_Harbour%2C_Massachusetts_%28493360%29_%2810772382303%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
       "width": 3762,
@@ -4097,12 +4123,14 @@
   {
     "place_id": "ne-1159151251",
     "country": "Vietnam",
-    "note": null,
+    "note": "Water puppetry is a northern Vietnamese stage tradition, and Hanoi’s Thang Long Water Puppet Theatre presents it with musicians accompanying the figures from a water-filled stage. The stories often draw on village life and folklore.",
     "sources": [
       "https://www.wikidata.org/wiki/Q1858",
-      "https://en.wikipedia.org/wiki/Hanoi"
+      "https://en.wikipedia.org/wiki/Hanoi",
+      "https://en.wikipedia.org/wiki/Water_puppetry",
+      "https://en.wikipedia.org/wiki/Thang_Long_Water_Puppet_Theatre"
     ],
-    "topic_key": null,
+    "topic_key": "hanoi-water-puppetry",
     "photo": {
       "url": "https://upload.wikimedia.org/wikipedia/commons/1/10/Hanoi_Skyline_-_NKS.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
       "width": 5959,
@@ -4137,12 +4165,14 @@
   {
     "place_id": "ne-1159151261",
     "country": "Spain",
-    "note": null,
+    "note": "On Sant Jordi Day, April 23, Barcelona’s streets fill with book and rose stalls. People exchange books and flowers as the city marks Catalonia’s patron-saint day and its literary culture.",
     "sources": [
       "https://www.wikidata.org/wiki/Q1492",
-      "https://en.wikipedia.org/wiki/Barcelona"
+      "https://en.wikipedia.org/wiki/Barcelona",
+      "https://www.spain.info/en/discover-spain/fiesta-sant-jordi-barcelona/",
+      "https://patrimoni.gencat.cat/en/collection/sant-jordi-and-day-book"
     ],
-    "topic_key": null,
+    "topic_key": "barcelona-sant-jordi-books-roses",
     "photo": {
       "url": "https://upload.wikimedia.org/wikipedia/commons/6/67/Aerial_view_of_La_Sagrada_Familia%2C_Barcelona%2C_Spain_%2851227006134%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
       "width": 4677,
@@ -4197,12 +4227,13 @@
   {
     "place_id": "ne-1159151285",
     "country": "Pakistan",
-    "note": null,
+    "note": "Lahore’s annual Literary Festival brings writers, historians and readers to the Alhamra Arts Center for public talks and book events. Its program ranges from Pakistani literature to international writing and ideas.",
     "sources": [
       "https://www.wikidata.org/wiki/Q11739",
-      "https://en.wikipedia.org/wiki/Lahore"
+      "https://en.wikipedia.org/wiki/Lahore",
+      "https://lahorelitfest.org/llf-2026/"
     ],
-    "topic_key": null,
+    "topic_key": "lahore-literary-festival",
     "photo": {
       "url": "https://upload.wikimedia.org/wikipedia/commons/7/7c/Eye_Of_Lahore_%28Minar_e_Pakistan%29_evening.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
       "width": 4288,
@@ -4217,12 +4248,13 @@
   {
     "place_id": "ne-1159151289",
     "country": "South Africa",
-    "note": null,
+    "note": "Durban’s bunny chow is a hollowed-out loaf filled with curry, a street-food form associated with the city’s Indian South African community. It is commonly served with the bread’s removed center alongside it.",
     "sources": [
       "https://www.wikidata.org/wiki/Q5468",
-      "https://en.wikipedia.org/wiki/Durban"
+      "https://en.wikipedia.org/wiki/Durban",
+      "https://en.wikipedia.org/wiki/Bunny_chow"
     ],
-    "topic_key": null,
+    "topic_key": "durban-bunny-chow",
     "photo": {
       "url": "https://upload.wikimedia.org/wikipedia/commons/4/4d/Durban_-_panoramio_-_---%3DXEON%3D---.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
       "width": 3072,
@@ -4237,12 +4269,13 @@
   {
     "place_id": "ne-1159151293",
     "country": "Mexico",
-    "note": null,
+    "note": "Mariachi music is closely tied to Guadalajara and the surrounding state of Jalisco. The city hosts the International Mariachi and Charrería Festival, bringing ensembles together for concerts and public performances.",
     "sources": [
       "https://www.wikidata.org/wiki/Q9022",
-      "https://en.wikipedia.org/wiki/Guadalajara"
+      "https://en.wikipedia.org/wiki/Guadalajara",
+      "https://en.wikipedia.org/wiki/International_Mariachi_Festival"
     ],
-    "topic_key": null,
+    "topic_key": "guadalajara-mariachi",
     "photo": {
       "url": "https://upload.wikimedia.org/wikipedia/commons/3/38/Panor%C3%A1mica_Guadalajara_desde_edificio_Bansi_hacia_norte_%28cropped%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
       "width": 3195,
@@ -4298,12 +4331,14 @@
   {
     "place_id": "ne-1159151315",
     "country": "Italy",
-    "note": null,
+    "note": "Panettone is Milan’s classic Christmas cake: a tall, enriched bread traditionally studded with raisins and candied citrus peel. In Milan it appears on tables through the December holiday season.",
     "sources": [
       "https://www.wikidata.org/wiki/Q490",
-      "https://en.wikipedia.org/wiki/Milan"
+      "https://en.wikipedia.org/wiki/Milan",
+      "https://www.yesmilano.it/en/see-and-do/itineraries/10-things-do-milano-christmas",
+      "https://www.italia.it/en/italy/things-to-do/history-of-pandoro-and-panettone"
     ],
-    "topic_key": null,
+    "topic_key": "milan-panettone-christmas",
     "photo": {
       "url": "https://upload.wikimedia.org/wikipedia/commons/1/10/Milano%2C_Duomo_with_Milan_Cathedral_and_Galleria_Vittorio_Emanuele_II%2C_2016.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
       "width": 3048,
@@ -4370,12 +4405,13 @@
   {
     "place_id": "ne-1159151327",
     "country": "China",
-    "note": null,
+    "note": "Chongqing hot pot is built around a shared bubbling broth seasoned with chilies and Sichuan pepper. The municipal government describes both the cooking methods and the communal way of eating as part of the dish’s local heritage.",
     "sources": [
       "https://www.wikidata.org/wiki/Q11725",
-      "https://en.wikipedia.org/wiki/Chongqing"
+      "https://en.wikipedia.org/wiki/Chongqing",
+      "https://english.cq.gov.cn/specials/Eat/DiscoverLocalFood/202608/t20260818_15947625.html"
     ],
-    "topic_key": null,
+    "topic_key": "chongqing-hotpot",
     "photo": {
       "url": "https://upload.wikimedia.org/wikipedia/commons/5/51/Chongqing_montage_newest_2013.png?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
       "width": 770,
@@ -4471,12 +4507,13 @@
   {
     "place_id": "ne-1159151339",
     "country": "Indonesia",
-    "note": null,
+    "note": "Ludruk is a popular East Javanese theater form associated with Surabaya. Its performances combine comic dialogue, music and dance, often using everyday characters and local speech.",
     "sources": [
       "https://www.wikidata.org/wiki/Q11462",
-      "https://en.wikipedia.org/wiki/Surabaya"
+      "https://en.wikipedia.org/wiki/Surabaya",
+      "https://en.wikipedia.org/wiki/Ludruk"
     ],
-    "topic_key": null,
+    "topic_key": "surabaya-ludruk-theatre",
     "photo": null,
     "review_status": "draft"
   },
@@ -4503,12 +4540,13 @@
   {
     "place_id": "ne-1159151349",
     "country": "Egypt",
-    "note": null,
+    "note": "Alexandria hosts an annual Mediterranean Film Festival, screening work from countries around the region. The event gives the port city a recurring place on the regional film calendar.",
     "sources": [
       "https://www.wikidata.org/wiki/Q87",
-      "https://en.wikipedia.org/wiki/Alexandria"
+      "https://en.wikipedia.org/wiki/Alexandria",
+      "https://en.wikipedia.org/wiki/Alexandria_International_Film_Festival"
     ],
-    "topic_key": null,
+    "topic_key": "alexandria-mediterranean-film-festival",
     "photo": {
       "url": "https://upload.wikimedia.org/wikipedia/commons/4/48/AlexandriaSkyline.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
       "width": 5700,
@@ -4544,12 +4582,13 @@
   {
     "place_id": "ne-1159151353",
     "country": "Germany",
-    "note": null,
+    "note": "Hamburg’s Sunday Fish Market opens early along the Elbe, with fishmongers, produce stalls and food vendors. The market is a long-running weekend ritual for residents and visitors alike.",
     "sources": [
       "https://www.wikidata.org/wiki/Q1055",
-      "https://en.wikipedia.org/wiki/Hamburg"
+      "https://en.wikipedia.org/wiki/Hamburg",
+      "https://www.hamburg.com/visitors/attractions/fish-market-20754"
     ],
-    "topic_key": null,
+    "topic_key": "hamburg-fish-market",
     "photo": {
       "url": "https://upload.wikimedia.org/wikipedia/commons/0/01/Hamburg_view_St._Nikolai.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
       "width": 5200,
@@ -4605,12 +4644,14 @@
   {
     "place_id": "ne-1159151367",
     "country": "China",
-    "note": null,
+    "note": "Wuhan calls its breakfast ritual guozao, literally “having breakfast early.” Hot dry noodles, sesame-coated and served with scallions and pickled vegetables, are among the city’s best-known morning dishes.",
     "sources": [
       "https://www.wikidata.org/wiki/Q11746",
-      "https://en.wikipedia.org/wiki/Wuhan"
+      "https://en.wikipedia.org/wiki/Wuhan",
+      "https://www.wuhan.gov.cn/ztzl/25zt/whgzwh/index.shtml",
+      "https://www.fohb.gov.cn/info/2022-08/20220818144000_304.html"
     ],
-    "topic_key": null,
+    "topic_key": "wuhan-guozao-breakfast",
     "photo": {
       "url": "https://upload.wikimedia.org/wikipedia/commons/f/f0/%E6%AD%A6%E6%B1%89%E9%BB%84%E9%B9%A4%E6%A5%BC%E4%BF%AF%E7%9E%B0.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
       "width": 3648,
@@ -4625,12 +4666,13 @@
   {
     "place_id": "ne-1159151369",
     "country": "China",
-    "note": null,
+    "note": "Changsha’s black stinky tofu is a signature street snack, fermented, fried and served with a spicy sauce. Stalls selling it are a familiar part of the city’s night-market food scene.",
     "sources": [
       "https://www.wikidata.org/wiki/Q174091",
-      "https://en.wikipedia.org/wiki/Changsha"
+      "https://en.wikipedia.org/wiki/Changsha",
+      "https://en.wikipedia.org/wiki/Changsha_stinky_tofu"
     ],
-    "topic_key": null,
+    "topic_key": "changsha-stinky-tofu",
     "photo": {
       "url": "https://upload.wikimedia.org/wikipedia/commons/7/75/Helong_Stadium.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
       "width": 2002,
@@ -4705,12 +4747,13 @@
   {
     "place_id": "ne-1159151381",
     "country": "China",
-    "note": null,
+    "note": "Tianjin is associated with mahua, a twisted fried dough snack that is crisp outside and light inside. The city’s Guifaxiang shop is known for making the snack in braided, hand-formed shapes.",
     "sources": [
       "https://www.wikidata.org/wiki/Q11736",
-      "https://en.wikipedia.org/wiki/Tianjin"
+      "https://en.wikipedia.org/wiki/Tianjin",
+      "https://en.wikipedia.org/wiki/Mahua_(food)"
     ],
-    "topic_key": null,
+    "topic_key": "tianjin-mahua",
     "photo": {
       "url": "https://upload.wikimedia.org/wikipedia/commons/3/39/Tianjin_montage.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
       "width": 605,
@@ -4766,12 +4809,13 @@
   {
     "place_id": "ne-1159151387",
     "country": "China",
-    "note": null,
+    "note": "Hangzhou is known for Longjing, or Dragon Well, green tea grown around West Lake. Spring tea picking and careful pan-firing are part of the local tea craft.",
     "sources": [
       "https://www.wikidata.org/wiki/Q4970",
-      "https://en.wikipedia.org/wiki/Hangzhou"
+      "https://en.wikipedia.org/wiki/Hangzhou",
+      "https://en.wikipedia.org/wiki/Longjing_tea"
     ],
-    "topic_key": null,
+    "topic_key": "hangzhou-longjing-tea",
     "photo": {
       "url": "https://upload.wikimedia.org/wikipedia/commons/a/a0/Huanglong_%26_Broken_Bridge_-_Hangzhou_City_%26_West_Lake_near_Broken_Bridge.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
       "width": 3936,
@@ -4881,12 +4925,13 @@
   {
     "place_id": "ne-1159151411",
     "country": "India",
-    "note": null,
+    "note": "Pune’s public Ganesh festival brings neighborhood mandals together for processions, music and temporary shrines. The city’s celebrations have become one of Maharashtra’s largest annual gatherings.",
     "sources": [
       "https://www.wikidata.org/wiki/Q1538",
-      "https://en.wikipedia.org/wiki/Pune"
+      "https://en.wikipedia.org/wiki/Pune",
+      "https://en.wikipedia.org/wiki/Ganeshotsav_(Pune)"
     ],
-    "topic_key": null,
+    "topic_key": "pune-ganesh-festival",
     "photo": {
       "url": "https://upload.wikimedia.org/wikipedia/commons/3/3b/Shaniwar_Wada_Main_Gate_01.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
       "width": 4624,
@@ -4994,12 +5039,14 @@
   {
     "place_id": "ne-1159151433",
     "country": "India",
-    "note": null,
+    "note": "Ahmedabad celebrates Uttarayan in January with kite flying from rooftops across the city. The International Kite Festival adds visiting kite makers and displays to the local Makar Sankranti observance.",
     "sources": [
       "https://www.wikidata.org/wiki/Q1070",
-      "https://en.wikipedia.org/wiki/Ahmedabad"
+      "https://en.wikipedia.org/wiki/Ahmedabad",
+      "https://www.gujarattourism.com/fair-and-festival/international-kite-festival.html",
+      "https://en.wikipedia.org/wiki/International_Kite_Festival_(India)"
     ],
-    "topic_key": null,
+    "topic_key": "ahmedabad-uttarayan-kites",
     "photo": {
       "url": "https://upload.wikimedia.org/wikipedia/commons/1/19/Amdavad_Aerial.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
       "width": 500,
@@ -5054,12 +5101,13 @@
   {
     "place_id": "ne-1159151447",
     "country": "Brazil",
-    "note": null,
+    "note": "In Porto Alegre, chimarrão is a common social drink: hot water poured over yerba mate in a shared cuia and passed among friends. It reflects the wider gaúcho culture of Rio Grande do Sul.",
     "sources": [
       "https://www.wikidata.org/wiki/Q40269",
-      "https://en.wikipedia.org/wiki/Porto_Alegre"
+      "https://en.wikipedia.org/wiki/Porto_Alegre",
+      "https://en.wikipedia.org/wiki/Chimarr%C3%A3o"
     ],
-    "topic_key": null,
+    "topic_key": "porto-alegre-chimarrao",
     "photo": {
       "url": "https://upload.wikimedia.org/wikipedia/commons/5/55/Aerial_view_of_the_point_of_Porto_Alegre_extending_into_Gua%C3%ADba_Lake.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
       "width": 800,
@@ -5074,12 +5122,14 @@
   {
     "place_id": "ne-1159151449",
     "country": "Brazil",
-    "note": null,
+    "note": "Curitiba’s Christmas season includes a free children’s choir performance at the historic Palácio Avenida. The December concerts are part of the city’s Natal de Curitiba program.",
     "sources": [
       "https://www.wikidata.org/wiki/Q4361",
-      "https://en.wikipedia.org/wiki/Curitiba"
+      "https://en.wikipedia.org/wiki/Curitiba",
+      "https://turismo.curitiba.pr.gov.br/conteudo/natal-de-curitiba/2201",
+      "https://www.curitiba.pr.gov.br/noticias/natal-de-curitiba-2026-tera-show-de-aguas-no-tingui-e-segunda-edicao-do-disney-celebra/"
     ],
-    "topic_key": null,
+    "topic_key": "curitiba-christmas-choir",
     "photo": {
       "url": "https://upload.wikimedia.org/wikipedia/commons/7/7a/Curitiba_Eixos_e_densidade_78_%2824160257688%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
       "width": 1200,
@@ -5094,12 +5144,13 @@
   {
     "place_id": "ne-1159151451",
     "country": "Brazil",
-    "note": null,
+    "note": "Fortaleza’s June festas juninas bring forró music and dancing into neighborhood squares. The seasonal celebrations include bonfires, regional food and dance steps shared across northeastern Brazil.",
     "sources": [
       "https://www.wikidata.org/wiki/Q43463",
-      "https://en.wikipedia.org/wiki/Fortaleza"
+      "https://en.wikipedia.org/wiki/Fortaleza",
+      "https://en.wikipedia.org/wiki/Festa_Junina"
     ],
-    "topic_key": null,
+    "topic_key": "fortaleza-forro-music",
     "photo": {
       "url": "https://upload.wikimedia.org/wikipedia/commons/9/9f/Praia_do_Mucuripe.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
       "width": 1509,
@@ -5148,12 +5199,13 @@
   {
     "place_id": "ne-1159151479",
     "country": "United States of America",
-    "note": null,
+    "note": "San Francisco’s Chinese New Year Festival and Parade fills Chinatown with lion and dragon performances, a flower market fair and neighborhood street events. The multiweek celebration is organized by the Chinese Chamber of Commerce.",
     "sources": [
       "https://www.wikidata.org/wiki/Q62",
-      "https://en.wikipedia.org/wiki/San_Francisco"
+      "https://en.wikipedia.org/wiki/San_Francisco",
+      "https://media.api.sf.gov/documents/SF_Chinese_Chamber_of_Commerce.pdf"
     ],
-    "topic_key": null,
+    "topic_key": "san-francisco-lunar-new-year-parade",
     "photo": {
       "url": "https://upload.wikimedia.org/wikipedia/commons/1/1e/San_Francisco_from_the_Marin_Headlands_in_March_2019.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
       "width": 2048,
@@ -5168,12 +5220,14 @@
   {
     "place_id": "ne-1159151485",
     "country": "United States of America",
-    "note": null,
+    "note": "Houston’s annual Livestock Show and Rodeo pairs professional rodeo events with livestock competitions, concerts and a public fair. The event has been part of the city’s calendar since 1932.",
     "sources": [
       "https://www.wikidata.org/wiki/Q16555",
-      "https://en.wikipedia.org/wiki/Houston"
+      "https://en.wikipedia.org/wiki/Houston",
+      "https://www.visithoustontexas.com/events/livestock-show-and-rodeo/",
+      "https://www.rodeohouston.com/about-us/"
     ],
-    "topic_key": null,
+    "topic_key": "houston-livestock-rodeo",
     "photo": {
       "url": "https://upload.wikimedia.org/wikipedia/commons/7/78/Houston_montage.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
       "width": 1500,
@@ -5188,12 +5242,13 @@
   {
     "place_id": "ne-1159151487",
     "country": "United States of America",
-    "note": null,
+    "note": "Miami’s Calle Ocho Music Festival takes over 15 blocks of Little Havana each March, with Latin and Caribbean music, folkloric dance, food stalls and local crafts. It is the headline event of Carnaval Miami.",
     "sources": [
       "https://www.wikidata.org/wiki/Q8652",
-      "https://en.wikipedia.org/wiki/Miami"
+      "https://en.wikipedia.org/wiki/Miami",
+      "https://www.miamiandbeaches.com/event/calle-ocho-music-festival/103"
     ],
-    "topic_key": null,
+    "topic_key": "miami-calle-ocho",
     "photo": {
       "url": "https://upload.wikimedia.org/wikipedia/commons/e/e8/Downtown_Miami_aerial_2008.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
       "width": 3262,
@@ -5242,12 +5297,13 @@
   {
     "place_id": "ne-1159151519",
     "country": "Netherlands",
-    "note": null,
+    "note": "Amsterdam Light Festival brings illuminated artworks to the city’s canals each winter. Visitors can follow the installations on foot or from boats moving through the evening waterways.",
     "sources": [
       "https://www.wikidata.org/wiki/Q727",
-      "https://en.wikipedia.org/wiki/Amsterdam"
+      "https://en.wikipedia.org/wiki/Amsterdam",
+      "https://amsterdamlightfestival.com/en"
     ],
-    "topic_key": null,
+    "topic_key": "amsterdam-light-festival",
     "photo": null,
     "review_status": "draft"
   },
@@ -5315,11 +5371,13 @@
   {
     "place_id": "ne-1159151537",
     "country": "Japan",
-    "note": null,
+    "note": "Osaka’s Tenjin Matsuri is a two-day summer festival with music, dance and a procession of portable shrines. On the final evening, boats carry the celebration along the Okawa River beneath fireworks.",
     "sources": [
-      "https://www.wikidata.org/wiki/Q11439906"
+      "https://www.wikidata.org/wiki/Q11439906",
+      "https://www.japan.travel/en/spot/30/",
+      "https://osaka-info.jp/experience/en/osaka/spot/611"
     ],
-    "topic_key": null,
+    "topic_key": "osaka-tenjin-matsuri",
     "photo": {
       "url": "https://upload.wikimedia.org/wikipedia/commons/c/ca/Osaka_Castle_03bs3200.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
       "width": 3200,
@@ -5334,12 +5392,14 @@
   {
     "place_id": "ne-1159151541",
     "country": "India",
-    "note": null,
+    "note": "Dilli Haat in New Delhi is a permanent open-air market where artisans sell crafts and handloom goods from across India. State food stalls make it a meeting place for regional cooking as well as craft.",
     "sources": [
       "https://www.wikidata.org/wiki/Q987",
-      "https://en.wikipedia.org/wiki/New_Delhi"
+      "https://en.wikipedia.org/wiki/New_Delhi",
+      "https://www.delhitourism.gov.in/shopping/dilli_haat.html",
+      "https://www.delhitourism.gov.in/tourist_place/dilli_haat_INA.html"
     ],
-    "topic_key": null,
+    "topic_key": "new-delhi-dilli-haat",
     "photo": {
       "url": "https://upload.wikimedia.org/wikipedia/commons/b/bf/India_Gate_Legendary_Saga_Of_Supreme_Sacrifice.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
       "width": 6000,
@@ -5354,12 +5414,14 @@
   {
     "place_id": "ne-1159151543",
     "country": "India",
-    "note": null,
+    "note": "Bengaluru Karaga is a nine-day festival held at Dharmaraya Swamy Temple. Sustained by the city’s Thigala gardener community, it includes a nighttime procession through the old Pete neighborhoods.",
     "sources": [
       "https://www.wikidata.org/wiki/Q1355",
-      "https://en.wikipedia.org/wiki/Bengaluru"
+      "https://en.wikipedia.org/wiki/Bengaluru",
+      "https://bengaluruurban.nic.in/en/tourism/art-and-festivals/",
+      "https://utsav.gov.in/public/view-event/bengaluru-karaga-festival-1"
     ],
-    "topic_key": null,
+    "topic_key": "bengaluru-karaga",
     "photo": null,
     "review_status": "draft"
   },
@@ -5386,12 +5448,13 @@
   {
     "place_id": "ne-1159151569",
     "country": "United States of America",
-    "note": null,
+    "note": "Los Angeles remains a center of film and television production, with Hollywood studios and working crews shaping the city’s daily creative life. Film premieres and screenings are part of its regular cultural calendar.",
     "sources": [
       "https://www.wikidata.org/wiki/Q65",
-      "https://en.wikipedia.org/wiki/Los_Angeles"
+      "https://en.wikipedia.org/wiki/Los_Angeles",
+      "https://en.wikipedia.org/wiki/Culture_of_Los_Angeles"
     ],
-    "topic_key": null,
+    "topic_key": "los-angeles-film-production",
     "photo": {
       "url": "https://upload.wikimedia.org/wikipedia/commons/6/69/Los_Angeles_with_Mount_Baldy.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
       "width": 8267,
@@ -5406,12 +5469,14 @@
   {
     "place_id": "ne-1159151583",
     "country": "South Africa",
-    "note": null,
+    "note": "Cape Town’s Tweede Nuwe Jaar parade brings Kaapse Klopse minstrel troupes into the streets in early January. Ghoema music, coordinated dancing and bright costumes carry the city’s New Year tradition into the new season.",
     "sources": [
       "https://www.wikidata.org/wiki/Q5465",
-      "https://en.wikipedia.org/wiki/Cape_Town"
+      "https://en.wikipedia.org/wiki/Cape_Town",
+      "https://www.capetown.gov.za/media-and-news/tweede-nuwe-jaar-tens-of-thousands-celebrate-in-cape-town/",
+      "https://resource.capetown.gov.za/documentcentre/Documents/Graphics%20and%20educational%20material/Department%20of%20Arts%20and%20Culture%20Brochure.pdf"
     ],
-    "topic_key": null,
+    "topic_key": "cape-town-tweede-nuwe-jaar",
     "photo": {
       "url": "https://upload.wikimedia.org/wikipedia/commons/f/f9/Ciudad_del_Cabo_desde_Cabeza_de_Le%C3%B3n%2C_Sud%C3%A1frica%2C_2018-07-22%2C_DD_34.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
       "width": 8688,
