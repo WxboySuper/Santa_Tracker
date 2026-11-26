@@ -1,5 +1,11 @@
 # Changelog — per-PR exhaustive (enforced in CI)
 
+## [Unreleased] - Representative city stop cards batch 2
+
+- **Candidate coverage:** Adds 93 verified draft cards from the next country and territory candidates, keyed by stable generator place IDs.
+- **Research quality:** Adds 80 original, source-linked cultural notes and 83 permissively licensed, fully attributed photos; 13 cards remain without a sourced note.
+- **Entity matching:** Leaves seven candidates unresolved where the research tool could not verify a matching Wikidata entity by exact English label and location.
+
 ## [Unreleased] - Weather cron Worker no longer bundles Next.js (#542)
 
 - **Weather:** `lib/weather.ts` builds responses with the standard `Response.json` instead of `NextResponse`. The weather cron Worker imports this module, and `next/server` pulled Next's Node-only code (`__dirname`) into its bundle, so Cloudflare rejected the upload. The cron bundle drops from 242 KiB to 35 KiB. The `/api/weather` responses are unchanged.
