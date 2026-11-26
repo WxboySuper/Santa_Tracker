@@ -141,19 +141,29 @@ function localArrivalRange(places: Candidate[], route: Route): { min: string; ma
   return { min: first.label, max: last.label };
 }
 
-function populationCoverage(places: Candidate[], pool: Candidate[]): { covered: number; total: number; share: number } {
+function hasPopulationData(place: Candidate, seen: Set<string>): boolean {
+  if (!place || !place.id) return false;
+  if (!Number.isFinite(place.population) || (place.population ?? 0) <= 0) return false;
+  if (!Number.isFinite(place.lat) || !Number.isFinite(place.lng)) return false;
+  if (seen.has(place.id)) return false;
+  seen.add(place.id);
+  return true;
+}
+
+function populationCandidates(pool: Candidate[]): Candidate[] {
   const seen = new Set<string>();
-  const populated = pool.filter((place) => {
-    if (!place || !place.id || !Number.isFinite(place.population) || (place.population ?? 0) <= 0
-      || !Number.isFinite(place.lat) || !Number.isFinite(place.lng) || seen.has(place.id)) return false;
-    seen.add(place.id);
-    return true;
-  });
+  return pool.filter((place) => hasPopulationData(place, seen));
+}
+
+function isWithinCoverageRadius(candidate: Candidate, places: Candidate[]): boolean {
+  return places.some((stop) => haversineKm(candidate, stop) <= 500);
+}
+
+function populationCoverage(places: Candidate[], pool: Candidate[]): { covered: number; total: number; share: number } {
+  const populated = populationCandidates(pool);
   const total = populated.reduce((sum, place) => sum + (place.population ?? 0), 0);
-  let covered = 0;
-  for (const candidate of populated) {
-    if (places.some((stop) => haversineKm(candidate, stop) <= 500)) covered += candidate.population ?? 0;
-  }
+  const covered = populated.filter((candidate) => isWithinCoverageRadius(candidate, places))
+    .reduce((sum, place) => sum + (place.population ?? 0), 0);
   return { covered, total, share: total > 0 ? covered / total : 0 };
 }
 
@@ -168,24 +178,69 @@ function requireValue<T>(value: T | undefined, message: string): T {
   return value;
 }
 
-export function buildReport(places: Candidate[], route: Route, config: GeneratorConfig = DEFAULT_GENERATOR_LIMITS, pool: Candidate[] = places): RouteReport {
-  if (places.length === 0 || route.stops.length === 0) throw new Error('Cannot report an empty route');
-  if (places.length !== route.stops.length) throw new Error('Report locations do not match route stops');
+function buildRouteLegs(places: Candidate[], route: Route, config: GeneratorConfig): {
+  legs: RouteLegReport[];
+  lastDeparture: number;
+  routeEnd: number;
+} {
   const first = requireValue(places[0], 'Missing first route location');
   const firstStop = requireValue(route.stops[0], 'Missing first route stop');
   const last = requireValue(places.at(-1), 'Missing final route location');
   const lastStop = requireValue(route.stops.at(-1), 'Missing final route stop');
   const lastDeparture = Date.parse(lastStop.departureIso);
   const routeEnd = lastDeparture + scheduledTravelMilliseconds(last, NORTH_POLE, config);
-  const legs = [launchLeg(first, firstStop, config), ...deliveryLegs(places, route, config), returnLeg(last, lastStop, routeEnd, config)];
-  const speeds = legs.map((leg) => leg.kmh);
-  const coverage = populationCoverage(places, pool);
-  const mix = countsBy(places, (place) => place.category);
-  const countryCodes = [...new Set(places.map((place) => place.country))].sort();
-  const candidateCountryCodes = [...new Set(pool.flatMap((place) =>
-    typeof place?.country === 'string' && place.country.trim() ? [place.country] : []))].sort();
+  const legs = [launchLeg(first, firstStop, config), ...deliveryLegs(places, route, config),
+    returnLeg(last, lastStop, routeEnd, config)];
+  return { legs, lastDeparture, routeEnd };
+}
+
+function countryCodes(places: Candidate[]): string[] {
+  return [...new Set(places.map((place) => place.country))].sort();
+}
+
+function candidateCountryCodes(pool: Candidate[]): string[] {
+  const codes = pool.flatMap((place) =>
+    typeof place?.country === 'string' && place.country.trim() ? [place.country] : []);
+  return [...new Set(codes)].sort();
+}
+
+function legDistanceSummary(places: Candidate[], legs: RouteLegReport[]): {
+  deliveryLegCount: number;
+  shortDeliveryLegCount: number;
+  shareDeliveryLegsUnder300Km: number;
+} {
   const deliveryLegCount = Math.max(0, places.length - 1);
   const shortDeliveryLegCount = legs.filter((leg) => leg.kind === 'delivery' && leg.km < 300).length;
+  const shareDeliveryLegsUnder300Km = deliveryLegCount > 0
+    ? shortDeliveryLegCount / deliveryLegCount
+    : 0;
+  return { deliveryLegCount, shortDeliveryLegCount, shareDeliveryLegsUnder300Km };
+}
+
+function speedSummary(legs: RouteLegReport[]): {
+  medianLegSpeedKmh: number;
+  p90LegSpeedKmh: number;
+  maxLegSpeedKmh: number;
+} {
+  const speeds = legs.map((leg) => leg.kmh);
+  return {
+    medianLegSpeedKmh: percentile(speeds, 0.5),
+    p90LegSpeedKmh: percentile(speeds, 0.9),
+    maxLegSpeedKmh: Math.max(...speeds),
+  };
+}
+
+export function buildReport(places: Candidate[], route: Route, config: GeneratorConfig = DEFAULT_GENERATOR_LIMITS, pool: Candidate[] = places): RouteReport {
+  if (places.length === 0 || route.stops.length === 0) throw new Error('Cannot report an empty route');
+  if (places.length !== route.stops.length) throw new Error('Report locations do not match route stops');
+  const routeLegSummary = buildRouteLegs(places, route, config);
+  const { legs, lastDeparture, routeEnd } = routeLegSummary;
+  const coverage = populationCoverage(places, pool);
+  const mix = countsBy(places, (place) => place.category);
+  const coveredCountries = countryCodes(places);
+  const availableCountries = candidateCountryCodes(pool);
+  const legDistances = legDistanceSummary(places, legs);
+  const speeds = speedSummary(legs);
   const arrivals = localArrivalRange(places, route);
   return {
     seed: config.seed,
@@ -193,9 +248,9 @@ export function buildReport(places: Candidate[], route: Route, config: Generator
     candidateCount: pool.length,
     invalidCandidateIds: [],
     unselectedCandidateCount: Math.max(0, pool.length - places.length),
-    countriesCovered: countryCodes.length,
-    countryCodes,
-    uncoveredCountryCodes: candidateCountryCodes.filter((code) => !countryCodes.includes(code)),
+    countriesCovered: coveredCountries.length,
+    countryCodes: coveredCountries,
+    uncoveredCountryCodes: availableCountries.filter((code) => !coveredCountries.includes(code)),
     mix,
     stopTiers: tierCounts(places),
     continentBalance: countsBy(places, (place) => classifyRegion(place).continent),
@@ -205,18 +260,14 @@ export function buildReport(places: Candidate[], route: Route, config: Generator
     localArrivalHistogram: localArrivalHistogram(places, route),
     localArrivalMin: arrivals.min,
     localArrivalMax: arrivals.max,
-    shortDeliveryLegCount,
-    deliveryLegCount,
-    shareDeliveryLegsUnder300Km: deliveryLegCount > 0 ? shortDeliveryLegCount / deliveryLegCount : 0,
+    ...legDistances,
     subnationalCoverageNote: 'Unavailable: candidate data has no US state, Canadian province or Australian state/territory field.',
     legs,
     eastwardLegs: legs.filter((leg) => isEastwardDelta(leg.eastwardDegrees)),
     detours: detours(places),
     longestLegs: [...legs].sort((left, right) => right.km - left.km).slice(0, 20),
     issues: [],
-    medianLegSpeedKmh: percentile(speeds, 0.5),
-    p90LegSpeedKmh: percentile(speeds, 0.9),
-    maxLegSpeedKmh: Math.max(...speeds),
+    ...speeds,
     totalDistanceKm: legs.reduce((total, leg) => total + leg.km, 0),
     populationWithin500Km: coverage.covered,
     worldPopulationEstimate: coverage.total,
