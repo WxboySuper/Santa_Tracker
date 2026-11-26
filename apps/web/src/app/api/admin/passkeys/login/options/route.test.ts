@@ -1,10 +1,10 @@
 ﻿import { afterEach, describe, expect, it, vi } from "vitest";
-import { checkLoginRateLimit } from "@/lib/admin-login";
+import { recordPasskeyOptionsRequest } from "@/lib/admin-login";
 import { createAuthenticationChallenge, webAuthnSettings } from "@/lib/admin-passkeys";
 import { getAdminClientIp } from "@/lib/admin-client-ip";
 import { POST } from "./route";
 
-vi.mock("@/lib/admin-login", () => ({ checkLoginRateLimit: vi.fn(async () => null) }));
+vi.mock("@/lib/admin-login", () => ({ recordPasskeyOptionsRequest: vi.fn(async () => null) }));
 vi.mock("@/lib/admin-passkeys", () => ({
   createAuthenticationChallenge: vi.fn(async () => ({ options: { challenge: "challenge-value" }, challenge: { id: "challenge-id" } })),
   recordPasskeyFailure: vi.fn(async () => undefined),
@@ -32,8 +32,8 @@ describe("POST /api/admin/passkeys/login/options", () => {
     }
 
     expect(getAdminClientIp).toHaveBeenCalledTimes(6);
-    expect(checkLoginRateLimit).toHaveBeenCalledTimes(6);
-    expect(checkLoginRateLimit).toHaveBeenCalledWith("passkey-options:198.51.100.1");
+    expect(recordPasskeyOptionsRequest).toHaveBeenCalledTimes(6);
+    expect(recordPasskeyOptionsRequest).toHaveBeenCalledWith("198.51.100.1");
     expect(createAuthenticationChallenge).toHaveBeenCalledTimes(6);
     expect(webAuthnSettings).toHaveBeenCalledTimes(6);
   });
@@ -48,6 +48,6 @@ describe("POST /api/admin/passkeys/login/options", () => {
 
     expect(response.status).toBe(503);
     expect(await response.json()).toEqual({ error: "Admin authentication is unavailable: trusted Cloudflare client IP is missing" });
-    expect(checkLoginRateLimit).not.toHaveBeenCalled();
+    expect(recordPasskeyOptionsRequest).not.toHaveBeenCalled();
   });
 });

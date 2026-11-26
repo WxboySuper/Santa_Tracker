@@ -66,11 +66,14 @@ export class PersistentAdminThrottleStore implements ThrottleStore {
 }
 
 const loginThrottle = createLoginThrottle({ store: createThrottleStore() });
+const PASSKEY_OPTIONS_REQUEST_LIMIT = 30;
+const passkeyOptionsThrottle = createLoginThrottle({ store: createThrottleStore(), maxAttempts: PASSKEY_OPTIONS_REQUEST_LIMIT + 1 });
 
 export const checkLoginRateLimit = (ip: string) => loginThrottle.check({ ip });
 export const checkLoginRateLimitNow = (ip: string) => loginThrottle.checkNow({ ip });
 export const recordLoginAttempt = (ip: string) => loginThrottle.recordFailure({ ip });
 export const clearLoginAttempts = (ip: string) => loginThrottle.clear({ ip });
+export const recordPasskeyOptionsRequest = (ip: string) => passkeyOptionsThrottle.recordFailure({ ip: `passkey-options:${ip}` });
 
 const THROTTLE_KEY = "admin-auth/login-throttle.json";
 const MAX_THROTTLE_KEYS = 10_000;

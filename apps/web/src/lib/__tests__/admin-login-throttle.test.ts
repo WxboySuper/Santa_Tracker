@@ -37,6 +37,14 @@ describe("admin login throttle", () => {
     expect(decision).toEqual({ retryAfterSeconds: 3600 });
   });
 
+  it("allows thirty passkey challenge requests before throttling the next request", async () => {
+    const { store } = setup();
+    const optionsThrottle = createLoginThrottle({ store, clock: () => 0, maxAttempts: 31 });
+    for (let i = 0; i < 30; i += 1) expect(await optionsThrottle.recordFailure({ ip: "passkey-options:ip-a" })).toBeNull();
+    expect(await optionsThrottle.recordFailure({ ip: "passkey-options:ip-a" })).toEqual({ retryAfterSeconds: 900 });
+    expect(await optionsThrottle.check({ ip: "passkey-options:ip-a" })).toEqual({ retryAfterSeconds: 900 });
+  });
+
   it("counts simultaneous failures without losing same-IP updates", async () => {
     const { throttle } = setup();
     await Promise.all(Array.from({ length: 5 }, () => throttle.recordFailure({ ip: "ip-a" })));

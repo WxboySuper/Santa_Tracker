@@ -20,14 +20,16 @@ export async function DELETE(request: Request): Promise<Response> {
   const input = await readCappedJson(request, 1024);
   if (!input.ok) return Response.json({ error: input.error }, { status: input.status });
   if (!isSessionInput(input.value)) return Response.json({ error: "A session ID is required" }, { status: 400 });
+  let revoked: boolean;
   try {
     const currentId = await getAdminTokenSessionId({ token: getRequestToken(request) });
     if (input.value.sessionId === currentId) return Response.json({ error: "Use logout to end the current session" }, { status: 400 });
-    const revoked = await revokeAdminSession(input.value.sessionId);
-    if (!revoked) return Response.json({ error: "Session not found or already revoked" }, { status: 404 });
-    await appendAuthAudit({ action: "session_revoke", result: "success", sessionId: input.value.sessionId });
-    return Response.json({ revoked: true }, { headers: { "Cache-Control": "no-store" } });
+    revoked = await revokeAdminSession(input.value.sessionId);
   } catch { return storageUnavailable(); }
+  if (!revoked) return Response.json({ error: "Session not found or already revoked" }, { status: 404 });
+  try { await appendAuthAudit({ action: "session_revoke", result: "success", sessionId: input.value.sessionId }); }
+  catch (error) { console.error("Admin session was revoked but its audit event could not be stored", error); }
+  return Response.json({ revoked: true }, { headers: { "Cache-Control": "no-store" } });
 }
 
 function storageUnavailable(): Response {

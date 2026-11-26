@@ -172,7 +172,8 @@ async function setLoginCookie(input: { request: Request; result: LoginResult; ip
   await clearLoginAttempts(ip);
   try { await appendAuthAudit({ action: "password_login", result: "success" }); }
   catch {
-    try { await revokeResultToken(result); } catch { /* the 503 response still clears no credentials to the caller */ }
+    try { await revokeResultToken(result); }
+    catch (error) { console.error("Failed to revoke admin session after its audit write failed; no token was issued", error); }
     return storageUnavailable();
   }
   const response = respondWith(result);

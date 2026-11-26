@@ -1,4 +1,4 @@
-import { checkLoginRateLimit } from "@/lib/admin-login";
+import { recordPasskeyOptionsRequest } from "@/lib/admin-login";
 import { createAuthenticationChallenge, recordPasskeyFailure, webAuthnSettings } from "@/lib/admin-passkeys";
 import { setChallengeCookie, tooManyAttempts } from "@/lib/admin-passkey-http";
 import { NextResponse } from "next/server";
@@ -14,9 +14,8 @@ export async function POST(request: Request): Promise<Response> {
 async function processLoginOptions(request: Request): Promise<Response> {
   const ip = getAdminClientIp(request);
   if (!ip) return NextResponse.json({ error: ADMIN_CLIENT_IP_UNAVAILABLE }, { status: 503 });
-  const throttleKey = `passkey-options:${ip}`;
-  const locked = await checkLoginRateLimit(throttleKey);
-  if (locked) return throttled(locked.retryAfterSeconds);
+  const throttle = await recordPasskeyOptionsRequest(ip);
+  if (throttle) return throttled(throttle.retryAfterSeconds);
   return createOptions(request);
 }
 
