@@ -55,6 +55,12 @@ describe("scheduled weather refresh", () => {
     expect(partial.size).toBe(1);
   });
 
+  it("selects the earliest stop when the published route is not chronological", () => {
+    const route = fixtureRoute();
+    const points = weatherRoutePoints([...route].reverse(), takeoff - 30 * 60_000);
+    expect(points[0]).toEqual({ lat: route[0]!.location.lat, lon: route[0]!.location.lng });
+  });
+
   it("keeps the simulated full-flight provider call total under 1,000 regardless of visitor count", async () => {
     const route = fixtureRoute();
     let clock = takeoff - 30 * 60_000;

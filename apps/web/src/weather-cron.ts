@@ -15,6 +15,7 @@ export default {
   async scheduled(event: { scheduledTime: number }, env: CronEnv): Promise<void> {
     if (env.WEATHER_ENABLED === "false" || !isWeatherRefreshOpen(event.scheduledTime)) return;
     try {
+      if (!env.SANTA_SNAPSHOTS) throw new Error("Missing SANTA_SNAPSHOTS binding");
       const route = await loadRouteNodesRaw(undefined, env.SANTA_SNAPSHOTS);
       const limiter = env.WEATHER_FALLBACK_BUDGET.get(env.WEATHER_FALLBACK_BUDGET.idFromName("global"));
       let providerCalls = 0;
