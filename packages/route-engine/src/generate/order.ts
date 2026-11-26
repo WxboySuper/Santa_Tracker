@@ -10,6 +10,7 @@ import {
   stopTier,
 } from './sweep';
 import { classifyRegion } from './regions';
+import { compareStableIds } from './selection';
 import { DEFAULT_GENERATOR_LIMITS, NORTH_POLE, RETURN_DEADLINE_UTC, TAKEOFF_UTC, type Candidate, type GeneratorConfig } from './types';
 
 const MINUTE_MS = 60_000;
@@ -231,7 +232,7 @@ type SweepRanking = {
 type RankedStop = { stop: PlannedStop; score: number };
 
 function betterPlannedStop(candidate: PlannedStop, score: number, best: PlannedStop | undefined, bestScore: number): boolean {
-  return score > bestScore || (score === bestScore && candidate.place.id.localeCompare(best?.place.id ?? '') < 0);
+  return score > bestScore || (score === bestScore && compareStableIds(candidate.place.id, best?.place.id ?? '') < 0);
 }
 
 function previousIdeal(route: TimedCandidate[]): number | undefined {
@@ -295,7 +296,7 @@ function initialSweepState(pool: Candidate[], config: GeneratorConfig): SweepSta
 function seededCandidateRanks(pool: Candidate[], seed: number): Map<string, number> {
   const random = seededRandom(seed);
   const randomRanks = new Map<string, number>();
-  for (const place of [...pool].sort((a, b) => a.id.localeCompare(b.id))) randomRanks.set(place.id, random());
+  for (const place of [...pool].sort((a, b) => compareStableIds(a.id, b.id))) randomRanks.set(place.id, random());
   return randomRanks;
 }
 
@@ -329,7 +330,7 @@ function executeGreedySweep(state: SweepState, bands: Candidate[][], randomRanks
 function firstFeasibleStart(pool: Candidate[], config: GeneratorConfig): TimedCandidate {
   const candidate = pool.filter((place) => canStartFromNorthPole(place, config))
     .sort((left, right) => requiredSnapshotOffset(right) - requiredSnapshotOffset(left)
-      || left.id.localeCompare(right.id))[0];
+      || compareStableIds(left.id, right.id))[0];
   if (!candidate) throw new Error('No candidate can be reached within its local Christmas window and the return deadline');
   const first = candidateTiming({ place: candidate, prior: NORTH_POLE, priorDeparture: Date.parse(TAKEOFF_UTC), index: 0, config });
   if (!first) throw new Error(`Cannot schedule the first route stop: ${candidate.name}`);
@@ -531,7 +532,7 @@ function rankInsertions(initial: TimedCandidate[], pool: Candidate[], config: Ge
   const initiallyCovered = new Set(initial.map((place) => place.country));
   const random = seededRandom(config.seed ^ 0x27d4eb2d);
   const tieBreaks = new Map<string, number>();
-  for (const place of [...pool].sort((left, right) => left.id.localeCompare(right.id))) tieBreaks.set(place.id, random());
+  for (const place of [...pool].sort((left, right) => compareStableIds(left.id, right.id))) tieBreaks.set(place.id, random());
   return pool.filter((place) => !initial.some((selected) => selected.id === place.id)).map((place) => ({
     place,
     newCountry: !initiallyCovered.has(place.country),
@@ -663,8 +664,8 @@ function rankCountryCoverageGroups(state: InsertionState, pool: Candidate[], pas
   }
   return [...groups.values()].map((group) => ({
     ...group,
-    candidates: group.candidates.sort((left, right) => left.rank - right.rank || left.place.id.localeCompare(right.place.id)),
-  })).sort((left, right) => left.rank - right.rank || left.country.localeCompare(right.country));
+    candidates: group.candidates.sort((left, right) => left.rank - right.rank || compareStableIds(left.place.id, right.place.id)),
+  })).sort((left, right) => left.rank - right.rank || compareStableIds(left.country, right.country));
 }
 
 function tryCountryRepresentative(state: InsertionState, place: Candidate, pass: InsertionPass): boolean {

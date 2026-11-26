@@ -1,6 +1,7 @@
 import type { Route } from '@santa-tracker/contracts';
 import { haversineKm, legSpeedKmh, type LatLng } from '../geo';
 import { classifyRegion, formatUtcOffset } from './regions';
+import { compareStableIds } from './selection';
 import {
   detourRatio,
   eastwardLegReason,
@@ -122,7 +123,7 @@ function localArrivalHistogram(places: Candidate[], route: Route): Record<string
     const hour = `${local.hour.toString().padStart(2, '0')}:00`;
     histogram[hour] = (histogram[hour] ?? 0) + 1;
   });
-  return Object.fromEntries(Object.entries(histogram).sort(([left], [right]) => left.localeCompare(right)));
+  return Object.fromEntries(Object.entries(histogram).sort(([left], [right]) => compareStableIds(left, right)));
 }
 
 function localArrivalRange(places: Candidate[], route: Route): { min: string; max: string } {
