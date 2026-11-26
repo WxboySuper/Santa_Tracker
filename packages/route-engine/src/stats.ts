@@ -44,6 +44,7 @@ type FlightTotals = { elapsedMs: number; remainingMs: number };
 type SpeedStats = { currentKmh: number; averageKmh: number };
 type PlayfulStats = Pick<JourneyStats, 'presentsDelivered' | 'cookiesEaten' | 'reindeerSnacks' | 'chimneysVisited'>;
 const utcOffsetBands = new Map<string, number>();
+const routeTimestampValues = new Map<string, number>();
 
 const regionNames = new Intl.DisplayNames(['en'], { type: 'region' });
 const nameToCode = makeCountryNameIndex();
@@ -385,8 +386,11 @@ function timestampMs({ value }: { value: Date | number }): number {
 }
 
 function routeTimestampMs(value: string): number {
+  const cached = routeTimestampValues.get(value);
+  if (cached !== undefined) return cached;
   const result = Date.parse(value);
   if (!Number.isFinite(result)) throw new RangeError('route contains invalid ISO timestamps');
+  routeTimestampValues.set(value, result);
   return result;
 }
 
