@@ -6,6 +6,13 @@
 - **Caching and failure handling:** Rounds coordinates to a 0.25 degree grid, caches at the edge for 12 minutes, times out provider calls, and returns `null` when weather is unavailable.
 - **Provider terms:** Uses Open-Meteo. Its no-key free endpoint permits non-commercial use within published rate limits; weather data is CC BY 4.0 and requires attribution. Commercial use needs a paid plan. See https://open-meteo.com/en/terms.
 
+## [Unreleased] - Environment-aware seasonal configuration (#301)
+
+- **Typed flags:** Promotes the feature registry from scaffold-only metadata to strict, typed configuration and includes the effective seasonal config in canonical immutable snapshots.
+- **Environment controls:** Adds separate development, preview, and production flag overrides with compare-and-set writes, operator reasons, audit history, and per-flag expiry. Unknown persisted flags fall back to registry defaults; expired flags stop applying.
+- **Preview API:** Adds a non-mutating preview for a chosen UTC time and candidate overrides, including derived mode, effective flags, and the active route snapshot ID.
+- **Docs and tests:** Documents the configuration API and adds tests for environment isolation, unknown keys, expiration, audit records, and stale writes.
+
 ## [Unreleased] - Cross-browser readiness matrix (#324)
 
 - **Opt-in Playwright profiles:** Adds open and closed fixture runs for Firefox and WebKit desktop, iPhone 13, Pixel 5, and iPad emulation, a 3840x2160 desktop viewport, and a 740x360 landscape phone viewport. The default project set stays unchanged.
