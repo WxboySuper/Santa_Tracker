@@ -348,7 +348,8 @@ function executeGreedySweep({ state, bands, randomRanks, config, includeDenseFil
   const bandIndices = new Map<string, number>();
   bands.forEach((band, index) => band.forEach((place) => bandIndices.set(place.id, index)));
   const ranking: SweepRanking = { bandIndices, randomRanks, config };
-  const bandCaps = bandMaximumStops([...state.remaining.values()], [], MAX_ROUTE_STOPS);
+  // The launch was selected before the sweep starts, so count it against its band's allocation.
+  const bandCaps = bandMaximumStops([...state.remaining.values()], state.route, MAX_ROUTE_STOPS);
   const routeBandCounts = new Map<number, number>();
   for (const band of bands) sweepOffsetBand({ state, band, ranking, bandCaps, routeBandCounts, includeDenseFill });
 }
