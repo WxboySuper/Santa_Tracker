@@ -83,4 +83,14 @@ describe('chooseCandidates', () => {
     expect(result.invalidCandidateIds).toEqual(['city-a']);
     expect(result.duplicateCandidateIds).toEqual([]);
   });
+
+  it('reports repeated invalid IDs once without classifying them as accepted duplicates', () => {
+    const invalidFirst = { ...pool[0]!, lat: Number.NaN };
+    const invalidSecond = { ...pool[0]!, lng: Number.NaN };
+    const result = chooseCandidates([invalidFirst, invalidSecond, pool[1]!], DEFAULT_GENERATOR_LIMITS);
+
+    expect(result.candidates.map((place) => place.id)).toEqual(['town-b']);
+    expect(result.invalidCandidateIds).toEqual(['city-a']);
+    expect(result.duplicateCandidateIds).toEqual([]);
+  });
 });

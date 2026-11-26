@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { admin1Coverage, admin1UnitFor } from './admin1';
-import { admin1CodeAt, isSupportedAdmin1Code } from '../../../../tools/route-generator/admin1.mjs';
+import { admin1CodeAt, isSupportedAdmin1Code, normalizeAdmin1Feature } from '../../../../tools/route-generator/admin1.mjs';
 import type { Candidate } from './types';
 
 const candidate = (country: string, admin1Code: string | null): Candidate => ({
@@ -38,6 +38,15 @@ describe('admin-1 coverage', () => {
     expect(isSupportedAdmin1Code('US', 'US-')).toBe(false);
     expect(isSupportedAdmin1Code(null as unknown as string, 'US-CA')).toBe(false);
     expect(isSupportedAdmin1Code('US', null as unknown as string)).toBe(false);
+  });
+
+  it('loads supported external territory polygons for refresh lookups', () => {
+    const feature = normalizeAdmin1Feature({
+      properties: { iso_a2: 'US', iso_3166_2: 'US-PR', name: 'Puerto Rico' },
+      geometry: { type: 'Polygon', coordinates: [] },
+    });
+
+    expect(feature?.code).toBe('US-PR');
   });
 
   it('ignores unsupported boundary geometry and validates target-country coordinates', () => {

@@ -340,6 +340,7 @@ function isRepeatedCountryDetour(order: Candidate[], index: number, counts: Map<
 
 function moveCoverageDetourToTail<T extends Candidate>(order: T[], currentCount: number,
   counts: Map<string, number>, config: GeneratorConfig): T[] | undefined {
+  const currentEastward = eastwardCount(order);
   for (let index = 1; index < order.length - 1; index++) {
     const via = order[index];
     if (!via || !isRepeatedCountryDetour(order, index, counts)) continue;
@@ -347,7 +348,7 @@ function moveCoverageDetourToTail<T extends Candidate>(order: T[], currentCount:
     // tail, where its North Pole return leg replaces the detour. Any new
     // reversal still has to pass the offset-anomaly timing rule.
     const proposal = [...order.slice(0, index), ...order.slice(index + 1), via];
-    if (hardDetourCount(proposal) < currentCount && hasReasonedTiming(proposal, config)) return proposal;
+    if (acceptsDetourReposition(proposal, currentCount, currentEastward, config)) return proposal;
   }
   return undefined;
 }

@@ -12,3 +12,4 @@ export function admin1CodeAt(
   features: Admin1BoundaryFeature[],
 ): string | undefined | null;
 export function isSupportedAdmin1Code(country: string, code: unknown): boolean;
+export function normalizeAdmin1Feature(value: unknown): Admin1BoundaryFeature | undefined;

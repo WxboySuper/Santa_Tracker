@@ -92,16 +92,31 @@ type CandidateValidation =
 
 function validateCandidateForSelection(place: Candidate, label: string, state: CandidateValidationState): CandidateValidation {
   const id = hasNonEmptyText(place.id) ? place.id : undefined;
-  if (id && state.seen.has(id)) return { kind: 'duplicate', id };
+  if (isDuplicateCandidateId(id, state.seen)) return { kind: 'duplicate', id: id! };
   if (isVetoedCandidate(place, state.vetoed)) return { kind: 'vetoed' };
   const resolved = candidateWithResolvedOffset(place, state.options);
   if (!resolved || !validCandidate(resolved)) return { kind: 'invalid', id: label };
-  if (id) state.seen.add(id);
+  rememberAcceptedCandidateId(id, state.seen);
   return { kind: 'accepted', place: enrichCandidate(resolved, state.config) };
+}
+
+function isDuplicateCandidateId(id: string | undefined, seen: Set<string>): boolean {
+  return id !== undefined && seen.has(id);
+}
+
+function rememberAcceptedCandidateId(id: string | undefined, seen: Set<string>): void {
+  if (id !== undefined) seen.add(id);
+}
+
+function recordInvalidCandidateId(id: string, invalidIds: string[], invalidSeen: Set<string>): void {
+  if (invalidSeen.has(id)) return;
+  invalidSeen.add(id);
+  invalidIds.push(id);
 }
 
 function validateAndEnrichCandidates({ updated, rowLabels, vetoed, config, options }: CandidateValidationOptions): CandidateSelection {
   const seen = new Set<string>();
+  const invalidSeen = new Set<string>();
   const candidates: Candidate[] = [];
   const invalidCandidateIds: string[] = [];
   const duplicateCandidateIds: string[] = [];
@@ -109,7 +124,7 @@ function validateAndEnrichCandidates({ updated, rowLabels, vetoed, config, optio
   for (const [index, place] of updated.entries()) {
     const result = validateCandidateForSelection(place, rowLabels[index] ?? `row-${index + 1}`, state);
     if (result.kind === 'vetoed') continue;
-    if (result.kind === 'invalid') invalidCandidateIds.push(result.id);
+    if (result.kind === 'invalid') recordInvalidCandidateId(result.id, invalidCandidateIds, invalidSeen);
     if (result.kind === 'duplicate') {
       duplicateCandidateIds.push(result.id);
     }

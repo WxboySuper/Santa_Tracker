@@ -297,8 +297,10 @@ function rankAdmin1Place(state: InsertionState, place: Candidate, unit: string, 
   return { place, rank };
 }
 
-function rankAdmin1CoverageGroup(state: InsertionState, pool: Candidate[], unit: string, pass: InsertionPass): Admin1CoverageGroup | undefined {
+function rankAdmin1CoverageGroup(state: InsertionState, pool: Candidate[], selectedIds: Set<string>,
+  unit: string, pass: InsertionPass): Admin1CoverageGroup | undefined {
   const candidates = pool.flatMap((place) => {
+    if (selectedIds.has(place.id)) return [];
     const candidate = rankAdmin1Place(state, place, unit, pass);
     return candidate ? [candidate] : [];
   }).sort((left, right) => left.rank - right.rank || compareStableIds(left.place.id, right.place.id));
@@ -307,9 +309,10 @@ function rankAdmin1CoverageGroup(state: InsertionState, pool: Candidate[], unit:
 }
 
 function rankAdmin1CoverageGroups(state: InsertionState, pool: Candidate[], pass: InsertionPass): Admin1CoverageGroup[] {
+  const selectedIds = new Set(state.route.map((place) => place.id));
   return [...REQUIRED_ADMIN1_CODES].flatMap((unit) => {
     if (state.admin1Counts.has(unit)) return [];
-    const group = rankAdmin1CoverageGroup(state, pool, unit, pass);
+    const group = rankAdmin1CoverageGroup(state, pool, selectedIds, unit, pass);
     return group ? [group] : [];
   }).sort((left, right) => left.rank - right.rank || compareStableIds(left.unit, right.unit));
 }

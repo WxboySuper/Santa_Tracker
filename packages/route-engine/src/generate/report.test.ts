@@ -42,6 +42,8 @@ describe('buildReport', () => {
     expect(() => buildReport([], { ...route, stops: [] }, { config: DEFAULT_GENERATOR_LIMITS, pool: [place], ...cleanValidation })).toThrow(/empty route/);
     const twoStops: Route = { ...route, stops: [firstStop, { ...firstStop, locationId: createLocationId('location_two'), arrivalIso: '2026-12-25T01:01:00.000Z', departureIso: '2026-12-25T01:01:30.000Z' }] };
     expect(() => buildReport([place], twoStops, { config: DEFAULT_GENERATOR_LIMITS, pool: [place], ...cleanValidation })).toThrow(/do not match route stops/);
+    const nullStop: Route = { ...route, stops: [null] as unknown as Route['stops'] };
+    expect(() => buildReport([place], nullStop, { config: DEFAULT_GENERATOR_LIMITS, pool: [place], ...cleanValidation })).toThrow(/Missing first route stop/);
   });
 
   it('measures delivery speed over the scheduled departure-to-arrival interval', () => {

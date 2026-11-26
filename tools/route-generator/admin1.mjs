@@ -77,13 +77,13 @@ function pointInFeature(point, feature) {
   return false;
 }
 
-function normalizeAdmin1Feature(value) {
+export function normalizeAdmin1Feature(value) {
   if (!value || typeof value !== 'object') return undefined;
   const properties = value.properties ?? {};
   const country = clean(properties.iso_a2);
   const code = clean(properties.iso_3166_2);
   if (!ADMIN1_COUNTRIES.has(country)) return undefined;
-  if (!REQUIRED_ADMIN1_CODES.has(code)) return undefined;
+  if (!SUPPORTED_TARGET_ADMIN1_CODES.has(code)) return undefined;
   if (!value.geometry) return undefined;
   return { country, code, name: clean(properties.name), geometry: value.geometry };
 }

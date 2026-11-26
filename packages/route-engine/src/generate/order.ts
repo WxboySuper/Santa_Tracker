@@ -60,7 +60,7 @@ function assertNoRemovedSweepConfig(config: GeneratorConfig): void {
   const values = config as unknown as Record<string, unknown>;
   const removed = REMOVED_SWEEP_CONFIG_KEYS.filter((key) => key in values);
   if (removed.length > 0) {
-    throw new Error(`Unsupported legacy sweep config keys: ${removed.join(', ')}`);
+    throw new Error(`Unsupported legacy midnight-sweep-2026 config keys: ${removed.join(', ')}`);
   }
 }
 
@@ -376,9 +376,8 @@ function greedySweep(pool: Candidate[], config: GeneratorConfig, includeDenseFil
 }
 
 function planOrder(order: Candidate[], config: GeneratorConfig): RoutePlan | undefined {
-  // Timing and the return deadline are checked by planTiming. Detours use a
-  // separate gate so singleton-country coverage can remain feasible.
   if (!selectionConstraintsAllow(order, config)) return undefined;
+  if (hardDetourCount(order) > 0) return undefined;
   return planTiming(order, config);
 }
 

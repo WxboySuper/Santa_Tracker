@@ -186,8 +186,8 @@ function tierCounts(places: Candidate[]): Record<StopTier, number> {
   return counts;
 }
 
-function requireValue<T>(value: T | undefined, message: string): T {
-  if (value === undefined) throw new Error(message);
+function requireValue<T>(value: T | null | undefined, message: string): T {
+  if (value === undefined || value === null) throw new Error(message);
   return value;
 }
 

@@ -1,9 +1,7 @@
 import { copyFile, readFile, rename, rm, writeFile } from 'node:fs/promises';
-import requiredAdmin1Units from '../../packages/route-engine/src/generate/admin1-units.json' with { type: 'json' };
 import { admin1CodeAt, isSupportedAdmin1Code, loadAdmin1Features } from './admin1.mjs';
 
 const DATA_FILES = ['places.json', 'curated.json'];
-const REQUIRED_ADMIN1_CODES = new Set(Object.values(requiredAdmin1Units).flat());
 
 function isSupportedExistingCode(place, code) {
   return isSupportedAdmin1Code(place.country, code);
@@ -12,7 +10,7 @@ function isSupportedExistingCode(place, code) {
 function candidateWithAdmin1Code(place, code, preserveExisting = true) {
   const candidate = { ...place };
   delete candidate.admin1Code;
-  if (code && REQUIRED_ADMIN1_CODES.has(code)) return { ...candidate, admin1Code: code };
+  if (code && isSupportedExistingCode(place, code)) return { ...candidate, admin1Code: code };
   return preserveExisting && isSupportedExistingCode(place, place.admin1Code) ? { ...candidate, admin1Code: place.admin1Code } : candidate;
 }
 
