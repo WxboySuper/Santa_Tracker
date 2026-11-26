@@ -30,4 +30,3 @@ function parseEtag(value: string | null): string | null {
   const match = value && /^"([^"]*)"$/.exec(value);
   return match ? match[1] ?? null : null;
 }
-
