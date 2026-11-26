@@ -78,11 +78,7 @@ async function fetchWeatherBatches(
   for (let start = 0; start < unique.length; start += batchSize) {
     const batch = unique.slice(start, start + batchSize);
     const body = await fetchJson({ url: providerUrl(batch.map(([, point]) => point)), fetcher });
-    try {
-      for (const [key, weather] of parseWeatherBatch(body, batch)) results.set(key, weather);
-    } catch (error) {
-      console.warn("Open-Meteo weather batch was incomplete", error);
-    }
+    for (const [key, weather] of parseWeatherBatch(body, batch)) results.set(key, weather);
   }
   return results;
 }
@@ -93,18 +89,27 @@ function getUniqueWeatherPoints(points: WeatherPoint[]): [string, WeatherPoint][
   })).entries()];
 }
 function parseWeatherBatch(body: unknown, batch: [string, WeatherPoint][]): Map<string, WeatherResult> {
-  if (!Array.isArray(body) || body.length !== batch.length) {
-    const count = Array.isArray(body) ? body.length : 0;
-    throw new Error(`Open-Meteo returned ${count} rows for a ${batch.length}-cell batch`);
+  const rows = Array.isArray(body) ? body : batch.length === 1 ? [body] : null;
+  if (!rows) {
+    console.warn(`Open-Meteo returned no row array for a ${batch.length}-cell batch`);
+    return new Map();
   }
+  if (rows.length !== batch.length) console.warn(`Open-Meteo returned ${rows.length} rows for a ${batch.length}-cell batch`);
   const requested = new Set(batch.map(([key]) => key));
   const results = new Map<string, WeatherResult>();
-  for (const row of body) {
+  for (const row of rows) {
     const parsed = parseWeatherRow(row, requested);
-    if (!parsed || results.has(parsed[0])) throw new Error("Open-Meteo returned an invalid or duplicate weather row");
+    if (!parsed) {
+      console.warn("Open-Meteo returned an invalid or unrequested weather row");
+      continue;
+    }
+    if (results.has(parsed[0])) {
+      console.warn("Open-Meteo returned a duplicate weather row", parsed[0]);
+      continue;
+    }
     results.set(...parsed);
   }
-  if (results.size !== batch.length) throw new Error("Open-Meteo omitted a requested weather cell");
+  if (results.size !== batch.length) console.warn(`Open-Meteo supplied ${results.size} of ${batch.length} requested weather cells`);
   return results;
 }
 function parseWeatherRow(row: unknown, requested: Set<string>): [string, WeatherResult] | null {
@@ -222,13 +227,22 @@ async function cacheWeatherResult(store: WeatherKV | null, key: string, weather:
 }
 
 async function fetchWeatherFallback({ budget, store, key, point, fetcher }: WeatherFallbackOptions): Promise<Response> {
-  if (!budget) return nullWeather();
+  if (!budget) {
+    console.warn("Weather fallback unavailable: global provider budget binding is missing");
+    return nullWeather();
+  }
   try {
     const permission = await budget.fetch("https://weather-budget/consume", { method: "POST" });
-    if (!permission.ok) return nullWeather();
+    if (!permission.ok) {
+      console.warn("Weather fallback denied by global provider budget", permission.status);
+      return nullWeather();
+    }
     const weather = await fetchWeather(point, fetcher);
     if (!weather) return nullWeather({ status: 502 });
     await cacheWeatherResult(store, key, weather);
     return NextResponse.json(weather, { headers: PUBLIC_WEATHER_HEADERS });
-  } catch { return nullWeather(); }
+  } catch (error) {
+    console.error("Weather fallback failed", error);
+    return nullWeather();
+  }
 }

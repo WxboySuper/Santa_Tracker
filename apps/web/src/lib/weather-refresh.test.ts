@@ -46,8 +46,13 @@ describe("scheduled weather refresh", () => {
     expect(calls.map(url => url.searchParams.get("latitude")!.split(",").length)).toEqual([50, 50, 21]);
     expect(result.size).toBe(121);
     const first = points[0]!;
-    const partial = await fetchWeatherBatch(points.slice(0, 2), async () => Response.json({ latitude: first.lat, longitude: first.lon, current: { temperature_2m: 2, weather_code: 0 } }));
-    expect(partial.size).toBe(0);
+    const singleton = await fetchWeatherBatch([first], async () => Response.json({ latitude: first.lat, longitude: first.lon, current: { temperature_2m: 2, weather_code: 0 } }));
+    expect(singleton.size).toBe(1);
+    const partial = await fetchWeatherBatch(points.slice(0, 2), async () => Response.json([
+      { latitude: first.lat, longitude: first.lon, current: { temperature_2m: 2, weather_code: 0 } },
+      { latitude: "invalid", longitude: first.lon, current: { temperature_2m: 2, weather_code: 0 } },
+    ]));
+    expect(partial.size).toBe(1);
   });
 
   it("keeps the simulated full-flight provider call total under 1,000 regardless of visitor count", async () => {
