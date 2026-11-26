@@ -1,6 +1,6 @@
 import type { RegistrationResponseJSON } from "@simplewebauthn/server";
 import { getAdminTokenSessionId, requirePasskeyManagementAuth } from "@/lib/auth";
-import { finishRegistration, PasskeyRequestError, recordPasskeyFailure } from "@/lib/admin-passkeys";
+import { finishRegistration, PasskeyRegistrationConflictError, PasskeyRequestError, recordPasskeyFailure } from "@/lib/admin-passkeys";
 import { authError, challengeIdFromRequest, clearChallengeCookie, tokenFromRequest } from "@/lib/admin-passkey-http";
 import { readCappedJson } from "@/lib/admin-json";
 import { NextResponse } from "next/server";
@@ -33,6 +33,7 @@ async function processRegistration(request: Request): Promise<Response> {
     return response;
   } catch (error) {
     if (error instanceof PasskeyRequestError) return registrationFailure(error.message, 400);
+    if (error instanceof PasskeyRegistrationConflictError) return clearChallengeCookie(NextResponse.json({ error: error.message }, { status: 409 }));
     return clearChallengeCookie(NextResponse.json({ error: "Admin authentication storage is unavailable" }, { status: 503 }));
   }
 }

@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { AuthenticationResponseJSON, RegistrationResponseJSON } from "@simplewebauthn/server";
 import { verifyAuthenticationResponse, verifyRegistrationResponse } from "@simplewebauthn/server";
 import { consumeAuthChallenge, createAdminSession, deletePasskey, installPasskey, resetAdminAuthStateForTests, readAdminAuthState } from "./admin-auth-state";
-import { authorizeRecoverySessionForPasskeyManagement, createAuthenticationChallenge, createRegistrationChallenge, finishAuthentication, finishRegistration, loginWithRecoveryCode, webAuthnSettings } from "./admin-passkeys";
+import { authorizeRecoverySessionForPasskeyManagement, createAuthenticationChallenge, createRegistrationChallenge, finishAuthentication, finishRegistration, loginWithRecoveryCode, PasskeyRegistrationConflictError, webAuthnSettings } from "./admin-passkeys";
 import { getAdminTokenSessionId, requirePasskeyManagementAuth, verifyAdminToken } from "./auth";
 import { loginAdmin } from "./admin-login";
 
@@ -60,6 +60,11 @@ describe("admin passkey service", () => {
     expect(result.recoveryCodes).toHaveLength(10);
     expect((await readAdminAuthState()).passkeys).toHaveLength(1);
     expect((await readAdminAuthState()).recoveryCodeHashes).toHaveLength(10);
+  });
+
+  it("reports duplicate passkey installation as a registration conflict", async () => {
+    await installPasskey({ id: "credential-one", publicKey: "AQID", counter: 0 }, ["stored-recovery-hash"]);
+    await expect(registerPasskeyForTest(0)).rejects.toBeInstanceOf(PasskeyRegistrationConflictError);
   });
 
   it("consumes recovery codes once and creates a revocable session", async () => {

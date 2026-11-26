@@ -1,4 +1,4 @@
-import { requireAdminAuth, getAdminTokenSessionId } from "@/lib/auth";
+import { requirePasskeyManagementAuth, getAdminTokenSessionId } from "@/lib/auth";
 import { appendAuthAudit, listActiveAdminSessions, revokeAdminSession } from "@/lib/admin-auth-state";
 import { readCappedJson } from "@/lib/admin-json";
 
@@ -35,7 +35,7 @@ function storageUnavailable(): Response {
 }
 
 async function authorize(request: Request): Promise<Response | null> {
-  const auth = await requireAdminAuth(request);
+  const auth = await requirePasskeyManagementAuth(request);
   return auth.ok ? null : Response.json({ error: auth.error }, { status: auth.status });
 }
 

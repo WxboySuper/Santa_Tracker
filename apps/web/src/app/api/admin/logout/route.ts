@@ -10,16 +10,22 @@ export async function POST(request: Request) {
     try {
       if (await verifyAdminToken({ token })) {
         const auth = await requireAdminLogoutAuth(request);
-        if (!auth.ok) return NextResponse.json({ error: auth.error }, { status: auth.status });
+        if (!auth.ok) {
+          const denied = NextResponse.json({ error: auth.error }, { status: auth.status });
+          return auth.status === 503 ? clearAuthCookies(denied) : denied;
+        }
       }
       const sessionId = await getAdminTokenSessionId({ token });
       await revokeAdminToken({ token });
       if (sessionId) await appendAuthAudit({ action: "logout", result: "success", sessionId });
     } catch {
-      return NextResponse.json({ error: "Admin authentication storage is unavailable" }, { status: 503 });
+      return clearAuthCookies(NextResponse.json({ error: "Admin authentication storage is unavailable" }, { status: 503 }));
     }
   }
-  const response = NextResponse.json({ message: "Logged out" }, { status: 200 });
+  return clearAuthCookies(NextResponse.json({ message: "Logged out" }, { status: 200 }));
+}
+
+function clearAuthCookies(response: NextResponse): NextResponse {
   response.cookies.set("admin_token", "", {
     httpOnly: true,
     secure: shouldUseSecureAdminCookie(),

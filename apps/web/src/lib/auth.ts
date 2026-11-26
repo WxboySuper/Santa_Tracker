@@ -1,6 +1,6 @@
 import * as jose from "jose";
 import { getSecretKey, getAdminPassword } from "./config";
-import { appendAuthAudit, createAdminSession, readActiveSession, revokeAdminSession } from "./admin-auth-state";
+import { appendAuthAudit, createAdminSession, readActiveSession, readAdminAuthState, revokeAdminSession } from "./admin-auth-state";
 
 // Use HS256 with SECRET_KEY — replaces Flask's URLSafeTimedSerializer
 const alg = "HS256";
@@ -38,7 +38,7 @@ export async function verifyAdminToken(input: { token: string }): Promise<boolea
     return false;
   }
   if (payload.admin !== true || typeof payload.jti !== "string") return false;
-  return (await readActiveSession(payload.jti)) !== null;
+  return isUsableSession(await readActiveSession(payload.jti));
 }
 
 export async function getAdminTokenCsrfToken(input: { token: string }): Promise<string | null> {
@@ -134,7 +134,14 @@ async function verifyAdminTokenClaims(input: { token: string }): Promise<{ csrf:
   } catch { return null; }
   if (!hasAdminSessionClaims(payload)) return null;
   const session = await readActiveSession(payload.jti);
+  if (!await isUsableSession(session)) return null;
   return session ? { csrf: payload.csrf, authMethod: session.authMethod } : null;
+}
+
+async function isUsableSession(session: Awaited<ReturnType<typeof readActiveSession>>): Promise<boolean> {
+  if (!session) return false;
+  if (session.authMethod !== "password") return true;
+  return (await readAdminAuthState()).passkeys.length === 0;
 }
 
 function hasAdminSessionClaims(payload: jose.JWTPayload): payload is jose.JWTPayload & { admin: true; jti: string; csrf: string } {

@@ -1,8 +1,8 @@
 import { describe, expect, it, beforeEach, afterEach, vi } from "vitest";
-import { createAdminSession, readActiveSession, resetAdminAuthStateForTests } from "./admin-auth-state";
+import { createAdminSession, installPasskey, readActiveSession, resetAdminAuthStateForTests } from "./admin-auth-state";
 import { createAdminToken, getAdminTokenCsrfToken, getAdminTokenSessionId, requireAdminAuth, revokeAdminToken, verifyAdminToken } from "./auth";
 import { POST as logout } from "@/app/api/admin/logout/route";
-import { DELETE as revokeSession } from "@/app/api/admin/sessions/route";
+import { DELETE as revokeSession, GET as listSessions } from "@/app/api/admin/sessions/route";
 
 async function createCookieSession() {
   const token = await createAdminToken();
@@ -20,6 +20,22 @@ describe("admin session and CSRF enforcement", () => {
     expect(await getAdminTokenSessionId({ token })).toBeTruthy();
     await revokeAdminToken({ token });
     expect(await verifyAdminToken({ token })).toBe(false);
+  });
+
+  it("invalidates pre-enrollment password sessions as soon as a passkey is installed", async () => {
+    const token = await createAdminToken();
+    expect(await verifyAdminToken({ token })).toBe(true);
+    await installPasskey({ id: "credential-one", publicKey: "AQID", counter: 0 }, []);
+    expect(await verifyAdminToken({ token })).toBe(false);
+  });
+
+  it("does not allow a single-code recovery session to list other sessions", async () => {
+    const token = await createAdminToken({ authMethod: "recovery" });
+    await installPasskey({ id: "credential-one", publicKey: "AQID", counter: 0 }, []);
+    const response = await listSessions(new Request("https://example.test/api/admin/sessions", {
+      headers: { authorization: `Bearer ${token}` },
+    }));
+    expect(response.status).toBe(403);
   });
 
   it("expires server-side sessions", async () => {

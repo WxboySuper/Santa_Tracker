@@ -13,6 +13,7 @@ const CHALLENGE_TTL_MS = 5 * 60 * 1000;
 const RECOVERY_CODE_COUNT = 10;
 
 export class PasskeyRequestError extends Error {}
+export class PasskeyRegistrationConflictError extends Error {}
 
 export function webAuthnSettings(request: Request, isProduction = process.env.NODE_ENV === "production"): { rpId: string; origin: string } {
   const url = new URL(request.url);
@@ -71,7 +72,15 @@ export async function finishRegistration(input: { request: Request; challengeId:
   const credential = await verifyRegistration(input, challenge.challenge);
   const recoveryCodes = await generateFirstRecoverySet();
   const hashes = recoveryCodes ? await Promise.all(recoveryCodes.map(code => hashRecoveryCode({ code: normalizeRecoveryCode({ code }) }))) : null;
-  const recoveryCodesStored = await installPasskey({ id: credential.id, publicKey: encodeBase64Url(credential.publicKey), counter: credential.counter, transports: credential.transports }, hashes);
+  let recoveryCodesStored: boolean;
+  try {
+    recoveryCodesStored = await installPasskey({ id: credential.id, publicKey: encodeBase64Url(credential.publicKey), counter: credential.counter, transports: credential.transports }, hashes);
+  } catch (error) {
+    if (error instanceof Error && (error.message === "Passkey is already registered" || error.message === "Passkey limit reached")) {
+      throw new PasskeyRegistrationConflictError(error.message);
+    }
+    throw error;
+  }
   await appendAuthAudit({ action: "passkey_registration", result: "success", sessionId: input.sessionId });
   return { recoveryCodes: recoveryCodesStored ? recoveryCodes : null };
 }
