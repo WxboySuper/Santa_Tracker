@@ -3,6 +3,7 @@ import path from "path";
 import { getSantaRoutePath } from "./config";
 import { getSantaSnapshotsBucket } from "./cloudflare-bindings";
 import { getSnapshotStore } from "./storage";
+import type { R2BucketLike } from "./storage/r2-backend";
 import { ensureStoreBootstrapped, persistSantaRoute, persistTrialRoute, removeTrialRoute } from "./storage/publish";
 import { DATASET_SANTA_ROUTE, DATASET_TRIAL_ROUTE } from "./storage/types";
 
@@ -259,14 +260,14 @@ function flattenLegacyLocation(item: JsonRecord): JsonRecord {
   };
 }
 
-async function getRouteStore() {
-  const store = getSnapshotStore(getSantaSnapshotsBucket());
+async function getRouteStore(bucket?: R2BucketLike | null) {
+  const store = getSnapshotStore(bucket ?? getSantaSnapshotsBucket());
   await ensureStoreBootstrapped(store);
   return store;
 }
 
-async function readPublishedSantaRouteJson(): Promise<string> {
-  const store = await getRouteStore();
+async function readPublishedSantaRouteJson(bucket?: R2BucketLike | null): Promise<string> {
+  const store = await getRouteStore(bucket);
   const active = await store.readActive(DATASET_SANTA_ROUTE);
   if (!active) {
     const missing = new Error(`Route file not found: ${getSantaRoutePath()}`);
@@ -326,8 +327,8 @@ function parseRouteNodes(nodes: unknown[]): RouteNode[] {
   return parsed;
 }
 
-export async function loadRouteNodesRaw(source?: string | JsonRecord | unknown[]): Promise<RouteNode[]> {
-  const obj = source === undefined ? JSON.parse(await readPublishedSantaRouteJson()) : await readRouteSource(source);
+export async function loadRouteNodesRaw(source?: string | JsonRecord | unknown[], bucket?: R2BucketLike | null): Promise<RouteNode[]> {
+  const obj = source === undefined ? JSON.parse(await readPublishedSantaRouteJson(bucket)) : await readRouteSource(source);
   return parseRouteNodes(extractRouteNodes(obj));
 }
 

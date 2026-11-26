@@ -15,7 +15,7 @@ export default {
   async scheduled(event: { scheduledTime: number }, env: CronEnv): Promise<void> {
     if (env.WEATHER_ENABLED === "false" || !isWeatherRefreshOpen(event.scheduledTime)) return;
     try {
-      const route = await loadRouteNodesRaw();
+      const route = await loadRouteNodesRaw(undefined, env.SANTA_SNAPSHOTS);
       const limiter = env.WEATHER_FALLBACK_BUDGET.get(env.WEATHER_FALLBACK_BUDGET.idFromName("global"));
       let providerCalls = 0;
       const provider = async (input: RequestInfo | URL, init?: RequestInit) => {

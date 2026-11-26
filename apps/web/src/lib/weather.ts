@@ -71,7 +71,9 @@ export async function fetchWeatherBatch(
     const batch = unique.slice(start, start + batchSize);
     const body = await fetchJson(providerUrl(batch.map(([, point]) => point)), fetcher);
     const rows = Array.isArray(body) ? body : [body];
-    if (rows.length !== batch.length) continue;
+    if (rows.length !== batch.length) {
+      throw new Error(`Open-Meteo returned ${rows.length} rows for a ${batch.length}-cell batch`);
+    }
     const requestedKeys = new Set(batch.map(([key]) => key));
     for (const row of rows) {
       if (!row || typeof row !== "object") continue;
