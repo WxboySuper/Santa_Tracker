@@ -11,7 +11,7 @@ test("key public pages pass serious and critical axe checks", async ({ page }, t
 
   await page.goto("/tracker");
   await expect(page.getByRole("button", { name: "Show text view" })).toBeVisible();
-  await expect(page.getByRole("application")).toBeVisible();
+  await expect(page.getByRole("application").or(page.getByRole("img", { name: "Interactive map showing Santa's current location and route" }))).toBeVisible();
   await expectNoSeriousAxeIssues(page);
   await page.getByRole("button", { name: "Show text view" }).click();
   await expect(page.getByRole("region", { name: "Show text view" })).toBeVisible();

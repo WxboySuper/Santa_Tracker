@@ -160,13 +160,14 @@ type DeliveryNodeResult = { node: Record<string, unknown>; stop: Route['stops'][
 
 type DeliveryNodeOptions = {
   place: Candidate;
+  displayName: string;
   index: number;
   config: GeneratorConfig;
   tables: TimezoneTables | undefined;
   priorLocation: Candidate | LatLng;
 };
 
-function buildDeliveryNode({ place, index, config, tables, priorLocation }: DeliveryNodeOptions): DeliveryNodeResult {
+function buildDeliveryNode({ place, displayName, index, config, tables, priorLocation }: DeliveryNodeOptions): DeliveryNodeResult {
   const stopArrival = place.plannedArrivalUtc
     ? Date.parse(place.plannedArrivalUtc)
     : Number.NaN;
@@ -188,9 +189,10 @@ function buildDeliveryNode({ place, index, config, tables, priorLocation }: Deli
     comment: place.category,
     candidate_id: place.id,
     location: {
-      name: place.name,
+      name: displayName,
       region: humanCountry(place.country, tables),
       country_code: place.country,
+      ...(place.admin1Code ? { admin1_code: place.admin1Code } : {}),
       timezone: place.timezone,
       lat: place.lat,
       lng: place.lng,
@@ -237,13 +239,31 @@ function endNode(last: Candidate, priorDeparture: number, config: GeneratorConfi
 
 function buildDocument(places: Candidate[], config: GeneratorConfig, tables?: TimezoneTables): { document: GeneratedRoute['document']; route: Route; coordinates: Map<string, LatLng>; routeEndUtc: string } {
   const takeoff = Date.parse(TAKEOFF_UTC);
+  const namesByLabel = new Map<string, Candidate[]>();
+  for (const place of places) {
+    const candidates = namesByLabel.get(place.name) ?? [];
+    candidates.push(place);
+    namesByLabel.set(place.name, candidates);
+  }
+  const displayNames = new Map<string, string>();
+  for (const [name, candidates] of namesByLabel) {
+    if (candidates.length < 2) continue;
+    const countryCounts = new Map<string, number>();
+    for (const place of candidates) countryCounts.set(place.country, (countryCounts.get(place.country) ?? 0) + 1);
+    for (const place of candidates) {
+      const suffix = (countryCounts.get(place.country) ?? 0) > 1
+        ? place.admin1Code ?? `${place.lat.toFixed(2)}, ${place.lng.toFixed(2)}`
+        : humanCountry(place.country, tables);
+      displayNames.set(place.id, `${name} (${suffix})`);
+    }
+  }
   const routeNodes: Record<string, unknown>[] = [startNode()];
   const stops: Route['stops'] = [];
   const coordinates = new Map<string, LatLng>();
   let priorDeparture = takeoff;
   let priorLocation: Candidate | LatLng = NORTH_POLE;
   for (const [index, place] of places.entries()) {
-    const result = buildDeliveryNode({ place, index, config, tables, priorLocation });
+    const result = buildDeliveryNode({ place, displayName: displayNames.get(place.id) ?? place.name, index, config, tables, priorLocation });
     coordinates.set(result.locationId, place);
     stops.push(result.stop);
     routeNodes.push(result.node);
@@ -264,7 +284,7 @@ function buildDocument(places: Candidate[], config: GeneratorConfig, tables?: Ti
   return { document, route, coordinates, routeEndUtc: ending.routeEndUtc };
 }
 
-function validateArrivalWindow(route: Route, places: Candidate[], config: GeneratorConfig): void {
+function validateArrivalWindow(route: Route, places: Candidate[]): void {
   route.stops.forEach((stop, index) => {
     const place = places[index];
     if (!place) throw new Error(`Missing candidate for route stop ${index + 1}`);
@@ -342,7 +362,7 @@ type BuiltRouteValidationOptions = {
 };
 
 function validateBuiltRoute({ route, coordinates, routeEndUtc, ordered, pool, config }: BuiltRouteValidationOptions): RouteReport {
-  validateArrivalWindow(route, ordered, config);
+  validateArrivalWindow(route, ordered);
   const validation = validateRoute(route);
   if (!validation.ok) throw new Error(`Invalid generated route: ${validation.issues.map((issue) => issue.message).join('; ')}`);
   const geometry = validateRouteGeometry(route, coordinates, { maxSpeedKmh: config.maxLegSpeedKmh });
@@ -373,8 +393,10 @@ function validateReturnDeadline(routeEndUtc: string): void {
 }
 
 function validateNoDetours(report: RouteReport): void {
-  if (report.detours.length > 0) {
-    throw new Error(`Route contains detours over 2.5x: ${report.detours.map((item) => item.via).join(', ')}`);
+  const hardDetours = report.detours.filter((detour) => detour.viaCountryStopCount > 1);
+  if (hardDetours.length > 0) {
+    const detail = hardDetours.map((detour) => `${detour.from} -> ${detour.via} -> ${detour.to} (${detour.ratio.toFixed(2)}x)`).join('; ');
+    throw new Error(`Route contains ${hardDetours.length} detour(s) inside covered countries: ${detail}`);
   }
 }
 

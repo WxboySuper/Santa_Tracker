@@ -28,6 +28,17 @@ describe('midnight sweep ordering', () => {
     expect(new Set(ordered.map((place) => place.country))).toEqual(new Set(testPlaces.map((place) => place.country)));
   });
 
+  it('reserves a representative in every available UTC-offset band', () => {
+    const places: Candidate[] = [
+      { id: 'ki', name: 'Kiritimati', country: 'KI', lat: 1.87, lng: -157.4,
+        timezone: 'Pacific/Kiritimati', utcOffsetMinutes: 840, category: 'populated', population: 10_000 },
+      { id: 'au-sa', name: 'Adelaide', country: 'KI', lat: -34.93, lng: 138.6,
+        timezone: 'Australia/Adelaide', utcOffsetMinutes: 630, category: 'populated', population: 10_000 },
+    ];
+    const ordered = sweepOrder(places);
+    expect(new Set(ordered.map((place) => place.utcOffsetMinutes))).toEqual(new Set([840, 630]));
+  });
+
   it('sweeps north-to-south within a band, then reverses latitude direction in the next band', () => {
     const places: Candidate[] = [
       { id: 'north-a', name: 'Northern island', country: 'KI', lat: 10, lng: 170, timezone: 'Etc/GMT-14', utcOffsetMinutes: 840, category: 'populated', population: 10_000 },
@@ -68,7 +79,7 @@ describe('midnight sweep ordering', () => {
 
   it('justifies a polar launch across the date line without treating pole longitude as route progress', () => {
     const first: Candidate = { id: 'polar-launch', name: 'Date-line island', country: 'KI', lat: 1, lng: -178,
-      timezone: 'Etc/GMT-11', utcOffsetMinutes: 660, category: 'populated', population: 5_000 };
+      timezone: 'Etc/GMT-12', utcOffsetMinutes: 720, category: 'populated', population: 5_000 };
     const planned = candidateTiming({ place: first, prior: NORTH_POLE, priorDeparture: Date.parse('2026-12-24T10:00:00.000Z'),
       index: 0, config: DEFAULT_GENERATOR_LIMITS });
     expect(planned).toBeDefined();
@@ -100,7 +111,7 @@ describe('midnight sweep ordering', () => {
     const nearby = { ...testPlaces[0]!, id: 'nearby', name: 'Nearby', country: 'KI', lat: 1.88, lng: -157.4 };
     expect(hasFeasibleTiming([testPlaces[0]!, nearby])).toBe(false);
     const capped = { ...DEFAULT_GENERATOR_LIMITS, maxStopsPerCountry: 1 };
-    const sameCountry = { ...testPlaces[1]!, country: 'KI' };
+    const sameCountry = { ...testPlaces[1]!, country: 'KI', utcOffsetMinutes: testPlaces[0]!.utcOffsetMinutes };
     expect(hasFeasibleTiming([testPlaces[0]!, sameCountry], capped)).toBe(false);
   });
 

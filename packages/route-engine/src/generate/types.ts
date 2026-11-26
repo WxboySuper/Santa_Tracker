@@ -1,5 +1,6 @@
 import type { Route } from '@santa-tracker/contracts';
 import type { LatLng } from '../geo';
+import type { Admin1Coverage } from './admin1';
 
 export type StopTier = 'major' | 'city' | 'town' | 'hop';
 export type EastwardReason = 'dateline' | 'offset-anomaly' | 'return';
@@ -18,6 +19,8 @@ export type Candidate = LatLng & {
   isCapital?: boolean;
   isNationalCapital?: boolean;
   headlineLandmark?: boolean;
+  /** Natural Earth ISO 3166-2 first-order subdivision code where applicable. */
+  admin1Code?: string | null;
   source?: string;
   plannedArrivalUtc?: string;
   plannedStopTier?: StopTier;
@@ -33,7 +36,7 @@ export type GeneratorConfig = {
   maxLegSpeedKmh: number;
   p90LegSpeedMaxKmh: number;
   minStopSeparationKm: number;
-  /** A twelve-stop ceiling keeps large national inventories from consuming the dense-fill budget. */
+  /** Limits optional dense fill; mandatory country, admin-1, and offset-band coverage may exceed it. */
   maxStopsPerCountry: number;
   underservedCountries: string[];
   generatedAt: string;
@@ -59,6 +62,8 @@ export type RouteLegReport = {
 
 export type RouteDetourReport = {
   via: string;
+  viaCountry: string;
+  viaCountryStopCount: number;
   from: string;
   to: string;
   ratio: number;
@@ -73,11 +78,15 @@ export type RouteReport = {
   countriesCovered: number;
   countryCodes: string[];
   uncoveredCountryCodes: string[];
+  uncoveredCountryReasons: { code: string; candidateCount: number; reason: string }[];
+  admin1Coverage: Admin1Coverage;
   mix: Record<string, number>;
   stopTiers: Record<StopTier, number>;
   continentBalance: Record<string, number>;
   subregionBalance: Record<string, number>;
   offsetBalance: Record<string, number>;
+  offsetPopulationShare: Record<string, number>;
+  offsetLandCoverageShare: Record<string, number>;
   hourly: { hour: number; count: number }[];
   localArrivalHistogram: Record<string, number>;
   localArrivalMin: string;

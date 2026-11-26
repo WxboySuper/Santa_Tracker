@@ -1,6 +1,7 @@
 ﻿import { LegacyRouteFixtureSchema } from '@santa-tracker/contracts';
 import { haversineKm, legSpeedKmh } from '../geo';
 import { classifyRegion } from './regions';
+import { REQUIRED_ADMIN1_UNITS } from './admin1';
 import { NORTH_POLE, TAKEOFF_UTC, type Candidate, type GeneratorConfig, type RouteReport } from './types';
 
 export type AuditCheck = { name: string; pass: boolean; detail: string };
@@ -13,7 +14,7 @@ export type RouteAuditContext = {
   zonesByCountry: Record<string, string[]>;
   utcOffsetsByTimezone: Record<string, number>;
   countryBoundsByCode: Record<string, { minLat: number; maxLat: number; minLng: number; maxLng: number }>;
-  report: Pick<RouteReport, 'continentBalance' | 'subregionBalance'>;
+  report: Pick<RouteReport, 'continentBalance' | 'subregionBalance'> & Partial<Pick<RouteReport, 'uncoveredCountryReasons'>>;
   vetoIds: string[];
   worldPlaces?: Candidate[];
 };
@@ -29,6 +30,7 @@ type RouteNode = {
     name: string;
     label?: string;
     country_code?: string;
+    admin1_code?: string | null;
     timezone?: string;
     lat: number;
     lng: number;
@@ -450,6 +452,42 @@ function addSelectionChecks(context: RouteAuditContext, view: AuditView, checks:
   addCoordinateChecks(context, view, checks);
   addExperienceCheck(view, checks);
   addStopTierCheck(view, checks);
+  addCountryCoverageCheck(context, view, checks);
+  addAdmin1CoverageCheck(view, checks);
+}
+
+function addCountryCoverageCheck(context: RouteAuditContext, view: AuditView, checks: AuditCheck[]): void {
+  const available = [...new Set(context.pool.map((place) => place.country))].sort();
+  const covered = new Set(view.places.map((place) => place.country));
+  const omitted = available.filter((code) => !covered.has(code));
+  const reasons = new Map((context.report.uncoveredCountryReasons ?? []).map((entry) => [entry.code, entry]));
+  const undocumented = omitted.filter((code) => !(reasons.get(code)?.reason.trim())
+    || (reasons.get(code)?.candidateCount ?? 0) < 1);
+  addCheck(checks, 'Country and territory coverage', undocumented.length === 0,
+    omitted.length === 0 ? `${available.length}/${available.length} candidate countries and territories covered.`
+      : `${available.length - omitted.length}/${available.length} covered; omissions ${omitted.map((code) => `${code} (${reasons.get(code)?.reason ?? 'no reason recorded'})`).join('; ')}.`);
+}
+
+function addAdmin1CoverageCheck(view: AuditView, checks: AuditCheck[]): void {
+  const required = new Set<string>(Object.values(REQUIRED_ADMIN1_UNITS).flatMap((codes) => [...codes]));
+  const covered = new Set<string>();
+  const mismatches: string[] = [];
+  view.delivery.forEach((node, index) => {
+    const place = view.places[index];
+    if (!place || !['US', 'CA', 'AU'].includes(place.country)) return;
+    const actual = node.location.admin1_code ?? undefined;
+    const expected = place.admin1Code ?? undefined;
+    if (actual !== expected) mismatches.push(`${node.location.name}: route admin1 ${actual ?? 'missing'} differs from candidate ${expected ?? 'missing'}`);
+    if (actual && required.has(actual)) covered.add(actual);
+  });
+  const missing = [...required].filter((code) => !covered.has(code));
+  const failures = [...mismatches, ...(missing.length ? [`uncovered ${missing.join(', ')}`] : [])];
+  const us = REQUIRED_ADMIN1_UNITS.US.filter((code) => covered.has(code)).length;
+  const ca = REQUIRED_ADMIN1_UNITS.CA.filter((code) => covered.has(code)).length;
+  const au = REQUIRED_ADMIN1_UNITS.AU.filter((code) => covered.has(code)).length;
+  addCheck(checks, 'US/Canada/Australia admin-1 coverage', failures.length === 0,
+    failures.length ? failures.slice(0, 12).join('; ')
+      : `US ${us}/${REQUIRED_ADMIN1_UNITS.US.length}, Canada ${ca}/${REQUIRED_ADMIN1_UNITS.CA.length}, Australia ${au}/${REQUIRED_ADMIN1_UNITS.AU.length}; route codes match candidate metadata.`);
 }
 
 function addFlightWindowCheck(context: RouteAuditContext, view: AuditView, checks: AuditCheck[]): void {

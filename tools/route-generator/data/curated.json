@@ -63,7 +63,8 @@
     "timezone": "America/New_York",
     "utcOffsetMinutes": -300,
     "category": "cultural",
-    "source": "https://www.wikidata.org/wiki/Q9202"
+    "source": "https://www.wikidata.org/wiki/Q9202",
+    "admin1Code": null
   },
   {
     "id": "Q29070",
@@ -613,7 +614,8 @@
     "timezone": "America/St_Johns",
     "utcOffsetMinutes": -210,
     "category": "cultural",
-    "source": "https://www.wikidata.org/wiki/Q189113"
+    "source": "https://www.wikidata.org/wiki/Q189113",
+    "admin1Code": "CA-NL"
   },
   {
     "id": "Q223385",
@@ -646,7 +648,8 @@
     "timezone": "Australia/Sydney",
     "utcOffsetMinutes": 660,
     "category": "cultural",
-    "source": "https://www.wikidata.org/wiki/Q45178"
+    "source": "https://www.wikidata.org/wiki/Q45178",
+    "admin1Code": "AU-NSW"
   },
   {
     "id": "Q37200",
@@ -734,7 +737,8 @@
     "timezone": "America/Los_Angeles",
     "utcOffsetMinutes": -480,
     "category": "cultural",
-    "source": "https://www.wikidata.org/wiki/Q44440"
+    "source": "https://www.wikidata.org/wiki/Q44440",
+    "admin1Code": null
   },
   {
     "id": "Q79961",
@@ -811,7 +815,8 @@
     "timezone": "Australia/Brisbane",
     "utcOffsetMinutes": 600,
     "category": "nature",
-    "source": "https://www.wikidata.org/wiki/Q7343"
+    "source": "https://www.wikidata.org/wiki/Q7343",
+    "admin1Code": null
   },
   {
     "id": "Q351",
@@ -822,7 +827,8 @@
     "timezone": "America/Denver",
     "utcOffsetMinutes": -420,
     "category": "nature",
-    "source": "https://www.wikidata.org/wiki/Q351"
+    "source": "https://www.wikidata.org/wiki/Q351",
+    "admin1Code": "US-WY"
   },
   {
     "id": "Q28061",
@@ -1031,7 +1037,8 @@
     "timezone": "Australia/Brisbane",
     "utcOffsetMinutes": 600,
     "category": "nature",
-    "source": "https://www.wikidata.org/wiki/Q134905"
+    "source": "https://www.wikidata.org/wiki/Q134905",
+    "admin1Code": "AU-QLD"
   },
   {
     "id": "Q138170",
@@ -1042,7 +1049,8 @@
     "timezone": "Australia/Hobart",
     "utcOffsetMinutes": 660,
     "category": "nature",
-    "source": "https://www.wikidata.org/wiki/Q138170"
+    "source": "https://www.wikidata.org/wiki/Q138170",
+    "admin1Code": "AU-TAS"
   },
   {
     "id": "Q155495",
@@ -1064,7 +1072,8 @@
     "timezone": "America/Edmonton",
     "utcOffsetMinutes": -360,
     "category": "nature",
-    "source": "https://www.wikidata.org/wiki/Q72895"
+    "source": "https://www.wikidata.org/wiki/Q72895",
+    "admin1Code": "CA-BC"
   },
   {
     "id": "Q48608",
@@ -1097,7 +1106,8 @@
     "timezone": "America/Chicago",
     "utcOffsetMinutes": -360,
     "category": "nature",
-    "source": "https://www.wikidata.org/wiki/Q242681"
+    "source": "https://www.wikidata.org/wiki/Q242681",
+    "admin1Code": "US-KY"
   },
   {
     "id": "Q189849",
@@ -1240,7 +1250,8 @@
     "timezone": "America/Anchorage",
     "utcOffsetMinutes": -540,
     "category": "special",
-    "source": "https://www.wikidata.org/wiki/Q79809"
+    "source": "https://www.wikidata.org/wiki/Q79809",
+    "admin1Code": "US-AK"
   },
   {
     "id": "Q26087",
@@ -1273,7 +1284,8 @@
     "timezone": "Antarctica/Macquarie",
     "utcOffsetMinutes": 660,
     "category": "special",
-    "source": "https://www.wikidata.org/wiki/Q46650"
+    "source": "https://www.wikidata.org/wiki/Q46650",
+    "admin1Code": "AU-X03~"
   },
   {
     "id": "Q9009773",
@@ -1295,7 +1307,8 @@
     "timezone": "America/Anchorage",
     "utcOffsetMinutes": -540,
     "category": "special",
-    "source": "https://www.wikidata.org/wiki/Q1343019"
+    "source": "https://www.wikidata.org/wiki/Q1343019",
+    "admin1Code": null
   },
   {
     "id": "Q25923",
@@ -1603,7 +1616,8 @@
     "timezone": "Australia/Perth",
     "utcOffsetMinutes": 480,
     "category": "special",
-    "source": "https://www.wikidata.org/wiki/Q131198"
+    "source": "https://www.wikidata.org/wiki/Q131198",
+    "admin1Code": null
   },
   {
     "id": "Q131305",
@@ -1614,7 +1628,8 @@
     "timezone": "Pacific/Pago_Pago",
     "utcOffsetMinutes": -660,
     "category": "special",
-    "source": "https://www.wikidata.org/wiki/Q131305"
+    "source": "https://www.wikidata.org/wiki/Q131305",
+    "admin1Code": null
   },
   {
     "id": "Q35086",
@@ -1647,6 +1662,7 @@
     "timezone": "Pacific/Pago_Pago",
     "utcOffsetMinutes": -660,
     "category": "special",
-    "source": "https://www.wikidata.org/wiki/Q46879"
+    "source": "https://www.wikidata.org/wiki/Q46879",
+    "admin1Code": null
   }
 ]

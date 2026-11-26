@@ -50,8 +50,11 @@ time. The Petra item (Q5788) receives the verified Jordan timezone
 `Asia/Amman` because the library assigns its Wikidata point to
 `Asia/Jerusalem`.
 
-Refresh bounds first, then curated and populated-place data. Review the derived
-JSON and `COVERAGE.md` after each refresh. Candidate coordinates come from
-Natural Earth or Wikidata; do not hand-enter them. If a Wikidata item has no
-country claim, refresh stops so its location can be reviewed instead of
-guessed.
+Refresh bounds first, then curated and populated-place data, then run
+`node tools/route-generator/refresh-admin1.mjs`. The last step point-in-polygon
+matches US, Canadian and Australian candidates against Natural Earth's 10m
+admin-1 states/provinces layer and records ISO 3166-2 codes on the candidate
+rows. Natural Earth data is public domain. Review the derived JSON and
+`COVERAGE.md` after each refresh. Candidate coordinates come from Natural Earth
+or Wikidata; do not hand-enter them. If a Wikidata item has no country claim,
+refresh stops so its location can be reviewed instead of guessed.

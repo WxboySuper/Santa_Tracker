@@ -11,14 +11,17 @@ flight window allows. Tiny hops are welcome because they add coverage.
    next. A nearby stop from an adjacent higher-offset band may interleave when its overlapping local window and
    offset anomaly make the move feasible. Constrained 2-opt and or-opt improvements stay within contiguous same-band
    segments.
-2. Reserve one feasible stop for every country or territory before population-weighted dense filling. Where the
-   candidate snapshot has admin identifiers, also reserve at least one stop per US state, Canadian
-   province/territory, and Australian state/territory. If a required representative cannot fit the complete route,
-   report it as uncovered. Then fill dense regions with short, population-weighted hops, including nearby towns and
-   villages and feasible remote bridge stops that shorten gaps between regions. Respect 20 km separation throughout.
-3. The candidate snapshots currently have no state, province, territory, or other subnational identifiers. Report
-   this data gap and do not claim subnational coverage without those identifiers. List candidate countries or
-   territories the route could not reach.
+2. Mandatory coverage comes before optional dense fill: reserve at least one feasible stop for every candidate
+   country or territory, all 50 US states plus the District of Columbia, all 13 Canadian provinces and territories,
+   and all six Australian states plus the Northern Territory and Australian Capital Territory. Candidate coordinates
+   receive Natural Earth ISO 3166-2 codes by point-in-polygon against the public-domain 10m admin-1 layer. If a
+   representative cannot fit the route, record its code, candidate count, and a per-code feasibility reason. Then
+   fill dense regions with short, population-weighted hops, including nearby towns and villages and feasible remote
+   bridge stops that shorten gaps between regions. Respect 20 km separation throughout.
+3. Dense-fill capacity is capped by UTC-offset band. Split the remaining 700-stop budget in proportion to a blend of
+   each band's candidate population share and its distinct 2-degree candidate-grid share, a snapshot proxy for land
+   coverage. Mandatory country and admin-1 representatives may exceed their band's dense-fill share. No band should
+   be starved while another is bloated.
 4. Maximize stop count subject to the local-time window, dwell, speed and return constraints. Target 550-700 stops;
    the readability ceiling is about 1,000. There is no fixed route total, pinned sequence, arrival anchor, offset cap
    or category quota.
@@ -26,9 +29,9 @@ flight window allows. Tiny hops are welcome because they add coverage.
    `return` reason. The local-time window alone does not justify backtracking.
 
 The route should chain dense nearby candidates before moving west. When a remaining country's candidate cannot fit
-the route constraints, list that country in the review report. The current candidate snapshot has no subnational
-identifier, so US state, Canadian province/territory and Australian state/territory coverage cannot be measured.
-Report that data gap.
+the route constraints, list that country and its reason in the review report. The review report also lists each
+band's stop count beside its candidate population and land-grid shares, and reports the required US, Canadian and
+Australian admin-1 counts and any uncovered codes.
 
 ## Timing and stop tiers
 
@@ -51,9 +54,11 @@ Report that data gap.
 
 ## Country limit
 
-The generator allows at most twelve stops per country. This ceiling keeps the largest national inventories from
-using the dense-fill budget after every country has had a representative selected. The seeded sweep prioritizes
-feasible country coverage, then fills dense clusters. Unreachable countries remain in the report.
+The generator allows at most twelve optional dense-fill stops per country. This ceiling keeps the largest national
+inventories from using the dense-fill budget after every country has had a representative selected. Mandatory
+admin-1 coverage may exceed this ceiling, so the US can receive one representative in each state. The seeded sweep
+prioritizes feasible country and admin-1 coverage, then fills dense clusters. Unreachable countries remain in the
+report with a per-code reason.
 
 ## Eastward legs and detours
 

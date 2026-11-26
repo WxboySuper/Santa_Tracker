@@ -95,7 +95,7 @@ function expectReportMeetsFlightLimits(generated: GeneratedDraft, inputs: Genera
   expect(report.localArrivalMin).toMatch(/^23:|^00:/);
   expect(report.localArrivalMax).toMatch(/^0[0-5]:/);
   expect(report.deliveryLegCount).toBe(report.count - 1);
-  expect(report.shortDeliveryLegCount).toBeGreaterThan(400);
+  expect(report.shortDeliveryLegCount).toBeGreaterThan(report.deliveryLegCount / 2);
   expect(report.uncoveredCountryCodes.length).toBeGreaterThan(0);
   expect(Object.keys(report.offsetBalance).length).toBeGreaterThan(10);
 }

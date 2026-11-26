@@ -11,6 +11,7 @@ import {
   stopTier,
 } from './sweep';
 import { scheduledTravelMilliseconds } from './order';
+import { admin1Coverage } from './admin1';
 import { DEFAULT_GENERATOR_LIMITS, NORTH_POLE, TAKEOFF_UTC, type Candidate, type GeneratorConfig, type RouteDetourReport, type RouteLegReport, type RouteReport, type StopTier } from './types';
 
 function countsBy(places: Candidate[], key: (place: Candidate) => string): Record<string, number> {
@@ -99,19 +100,22 @@ function returnLeg(last: Candidate, lastStop: Route['stops'][number], routeEnd: 
     eastwardDegrees: eastward, eastwardReason: isEastwardDelta(eastward) ? 'return' : undefined });
 }
 
-function detourAt(places: Candidate[], index: number): RouteDetourReport {
+function detourAt(places: Candidate[], index: number, countryCounts: Map<string, number>): RouteDetourReport {
   const from = places[index - 1]!;
   const via = places[index]!;
   const to = places[index + 1]!;
   const ratio = detourRatio(from, via, to);
-  return { from: from.name, via: via.name, to: to.name, ratio };
+  return { from: from.name, via: via.name, viaCountry: via.country,
+    viaCountryStopCount: countryCounts.get(via.country) ?? 0, to: to.name, ratio };
 }
 
 function detours(places: Candidate[]): RouteDetourReport[] {
+  const countryCounts = new Map<string, number>();
+  for (const place of places) countryCounts.set(place.country, (countryCounts.get(place.country) ?? 0) + 1);
   const result: RouteDetourReport[] = [];
   for (let index = 1; index < places.length - 1; index++) {
-    const detour = detourAt(places, index);
-    if (detour.ratio > 2.5) result.push(detour);
+    const detour = detourAt(places, index, countryCounts);
+    if (detour.ratio > 2.5 && detour.viaCountryStopCount > 1) result.push(detour);
   }
   return result;
 }
@@ -144,7 +148,7 @@ function localArrivalRange(places: Candidate[], route: Route): { min: string; ma
 }
 
 function hasPopulationData(place: Candidate, seen: Set<string>): boolean {
-  if (!place || !place.id) return false;
+  if (!place?.id) return false;
   if (!Number.isFinite(place.population) || (place.population ?? 0) <= 0) return false;
   if (!Number.isFinite(place.lat) || !Number.isFinite(place.lng)) return false;
   if (seen.has(place.id)) return false;
@@ -206,6 +210,68 @@ function candidateCountryCodes(pool: Candidate[]): string[] {
   return [...new Set(codes)].sort();
 }
 
+function offsetShares(pool: Candidate[], value: (places: Candidate[]) => number): Record<string, number> {
+  const groups = new Map<string, Candidate[]>();
+  for (const place of pool) {
+    if (!place || !Number.isFinite(place.utcOffsetMinutes)) continue;
+    const offset = formatUtcOffset(place.utcOffsetMinutes ?? 0);
+    const band = groups.get(offset) ?? [];
+    band.push(place);
+    groups.set(offset, band);
+  }
+  const totals = [...groups.values()].map(value);
+  const total = totals.reduce((sum, item) => sum + item, 0);
+  return Object.fromEntries([...groups.entries()].sort(([left], [right]) => compareStableIds(left, right))
+    .map(([offset, places]) => [offset, total > 0 ? value(places) / total : 0]));
+}
+
+function bandPopulation(places: Candidate[]): number {
+  return places.reduce((sum, place) => sum + Math.max(0, place.population ?? 0), 0);
+}
+
+function bandLandCellCount(places: Candidate[]): number {
+  const cells = new Set(places.map((place) => {
+    const normalizedLng = ((place.lng + 180) % 360 + 360) % 360 - 180;
+    return `${Math.floor((place.lat + 90) / 2)}:${Math.floor((normalizedLng + 180) / 2)}`;
+  }));
+  return cells.size;
+}
+
+function uncoveredCountryReasons(uncovered: string[], pool: Candidate[], selected: Candidate[], minimumSeparationKm: number): RouteReport['uncoveredCountryReasons'] {
+  return uncovered.map((code) => {
+    const candidates = pool.filter((place) => place.country === code);
+    let reason: string;
+    if (candidates.length === 0) {
+      reason = 'No candidate rows exist for this country or territory in the committed place snapshot.';
+    } else {
+      const conflicts = candidates.map((candidate) => selected.map((place) => ({ place, km: haversineKm(candidate, place) }))
+        .sort((left, right) => left.km - right.km)[0])
+        .filter((nearest): nearest is { place: Candidate; km: number } => nearest !== undefined && nearest.km < minimumSeparationKm);
+      if (conflicts.length === candidates.length) {
+        const closest = conflicts.sort((left, right) => left.km - right.km)[0];
+        reason = closest
+          ? `Every candidate is within ${minimumSeparationKm} km of a selected stop; the closest conflict is ${closest.place.name} (${closest.place.country}) at ${closest.km.toFixed(1)} km.`
+          : `Every candidate is within the ${minimumSeparationKm} km minimum separation of another selected stop.`;
+      } else if (candidates.every((place) => place.lat < -35)) {
+        const names = candidates.map((place) => place.name).slice(0, 3).join(', ');
+        reason = `The only candidate${candidates.length === 1 ? '' : 's'} (${names}) lie south of 35°S; none fit before the 02:30 southern-local cutoff while preserving the westbound schedule and return deadline.`;
+      } else {
+        reason = 'Candidate rows exist, but none could be inserted while preserving the local-time window, 20 km separation, reasoned westward legs, speed limits, and return deadline.';
+      }
+    }
+    return { code, candidateCount: candidates.length, reason };
+  });
+}
+
+function subnationalNote(coverage: RouteReport['admin1Coverage']): string {
+  const summaries = Object.entries(coverage).map(([country, entry]) => `${country} ${entry.covered}/${entry.required}`);
+  const missing = Object.entries(coverage).flatMap(([country, entry]) => entry.missingCodes.map((code) => `${country} ${code}`));
+  const noUsStates = coverage.US.covered === 0 ? ' There is no US state coverage.' : '';
+  return missing.length
+    ? `Natural Earth admin-1 coverage: ${summaries.join(', ')}. Missing: ${missing.join(', ')}.${noUsStates}`
+    : `Natural Earth admin-1 coverage complete: ${summaries.join(', ')}.`;
+}
+
 function legDistanceSummary(places: Candidate[], legs: RouteLegReport[]): {
   deliveryLegCount: number;
   shortDeliveryLegCount: number;
@@ -241,6 +307,8 @@ export function buildReport(places: Candidate[], route: Route, config: Generator
   const mix = countsBy(places, (place) => place.category);
   const coveredCountries = countryCodes(places);
   const availableCountries = candidateCountryCodes(pool);
+  const missingCountries = availableCountries.filter((code) => !coveredCountries.includes(code));
+  const adminCoverage = admin1Coverage(places);
   const legDistances = legDistanceSummary(places, legs);
   const speeds = speedSummary(legs);
   const arrivals = localArrivalRange(places, route);
@@ -252,18 +320,22 @@ export function buildReport(places: Candidate[], route: Route, config: Generator
     unselectedCandidateCount: Math.max(0, pool.length - places.length),
     countriesCovered: coveredCountries.length,
     countryCodes: coveredCountries,
-    uncoveredCountryCodes: availableCountries.filter((code) => !coveredCountries.includes(code)),
+    uncoveredCountryCodes: missingCountries,
+    uncoveredCountryReasons: uncoveredCountryReasons(missingCountries, pool, places, config.minStopSeparationKm),
+    admin1Coverage: adminCoverage,
     mix,
     stopTiers: tierCounts(places),
     continentBalance: countsBy(places, (place) => classifyRegion(place).continent),
     subregionBalance: countsBy(places, (place) => classifyRegion(place).subregion),
     offsetBalance: countsBy(places, (place) => formatUtcOffset(place.utcOffsetMinutes ?? 0)),
+    offsetPopulationShare: offsetShares(pool, bandPopulation),
+    offsetLandCoverageShare: offsetShares(pool, bandLandCellCount),
     hourly: routeHours(route),
     localArrivalHistogram: localArrivalHistogram(places, route),
     localArrivalMin: arrivals.min,
     localArrivalMax: arrivals.max,
     ...legDistances,
-    subnationalCoverageNote: 'Unavailable: candidate data has no US state, Canadian province or Australian state/territory field.',
+    subnationalCoverageNote: subnationalNote(adminCoverage),
     legs,
     eastwardLegs: legs.filter((leg) => isEastwardDelta(leg.eastwardDegrees)),
     detours: detours(places),
