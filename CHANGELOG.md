@@ -1,5 +1,11 @@
 # Changelog — per-PR exhaustive (enforced in CI)
 
+## [Unreleased] - Representative city stop cards batch 3
+
+- **Candidate coverage:** Adds 114 verified draft cards from the next city-tier candidates, keyed by stable generator place IDs.
+- **Research quality:** Adds 37 original, source-linked cultural notes and 104 permissively licensed, attributed photos; 77 cards remain without a sourced note.
+- **Entity matching:** Includes only candidates matched to an English Wikidata entity within 40 km; 11 candidates remain unresolved.
+
 ## [Unreleased] - Representative city stop cards batch 2
 
 - **Candidate coverage:** Adds 93 verified draft cards from the next country and territory candidates, keyed by stable generator place IDs.
