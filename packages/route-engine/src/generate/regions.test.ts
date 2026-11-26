@@ -20,6 +20,13 @@ describe('classifyRegion', () => {
     expect(() => classifyRegion(candidate('ZZ', 'Unknown place'))).toThrow('No explicit continent mapping');
   });
 
+  it('reports Siberian Russia as Northern Asia', () => {
+    expect(classifyRegion(candidate('RU', 'Siberian settlement', 60, 90))).toMatchObject({
+      continent: 'Asia',
+      subregion: 'Northern Asia',
+    });
+  });
+
   it('maps every country code in the committed route', async () => {
     const text = await readFile(new URL('../../../../docs/planning/route-2026-draft/route.json', import.meta.url), 'utf8');
     const document = JSON.parse(text) as {

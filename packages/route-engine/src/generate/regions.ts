@@ -19,7 +19,8 @@ const NORTH_AMERICA = new Set([
 const OCEANIA = new Set(['AS', 'AU', 'CK', 'FJ', 'FM', 'GU', 'KI', 'MH', 'MP', 'NC', 'NF', 'NR', 'NU', 'NZ', 'PF', 'PG', 'PN', 'PW', 'SB', 'TK', 'TO', 'TV', 'VU', 'WF', 'WS']);
 const PACIFIC_ISLANDS = new Set(['AS', 'CK', 'FJ', 'FM', 'GU', 'KI', 'MH', 'MP', 'NC', 'NF', 'NR', 'NU', 'PF', 'PG', 'PN', 'PW', 'SB', 'TK', 'TO', 'TV', 'VU', 'WF', 'WS']);
 const WESTERN_ASIA = new Set(['AM', 'AZ', 'GE']);
-const CENTRAL_ASIA = new Set(['KZ', 'KG', 'TJ', 'TM', 'UZ', 'RU']);
+const CENTRAL_ASIA = new Set(['KZ', 'KG', 'TJ', 'TM', 'UZ']);
+const NORTHERN_ASIA = new Set(['RU']);
 const EAST_ASIA = new Set(['CN', 'HK', 'JP', 'KP', 'KR', 'MO', 'MN', 'TW']);
 const SOUTH_ASIA = new Set(['AF', 'BD', 'BT', 'IN', 'MV', 'NP', 'PK', 'LK']);
 const SOUTHEAST_ASIA = new Set(['BN', 'CC', 'CX', 'ID', 'KH', 'LA', 'MM', 'MY', 'PH', 'SG', 'TH', 'TL', 'VN']);
@@ -51,6 +52,7 @@ const ASIA_SUBREGIONS = new Map<string, string>([
   ...subregionEntries(SOUTH_ASIA, 'South Asia'),
   ...subregionEntries(SOUTHEAST_ASIA, 'Southeast Asia'),
   ...subregionEntries(CENTRAL_ASIA, 'Central Asia'),
+  ...subregionEntries(NORTHERN_ASIA, 'Northern Asia'),
   ...subregionEntries(WESTERN_ASIA, 'Western Asia'),
 ]);
 const NORTH_AMERICA_SUBREGIONS = new Map<string, string>([
