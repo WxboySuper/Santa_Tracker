@@ -149,28 +149,41 @@ describe('journey stats', () => {
     expect(() => deriveJourneyStats(overlappingRoute, start, locations)).toThrow('route stops must not overlap');
     expect(() => createReplay(overlappingRoute, { locations })).toThrow('replay route stops must not overlap');
   });
+
+  it('rejects invalid timezone metadata with a clear error', () => {
+    const invalidTimezoneLocations = locations.map(location => ({ ...location, timezone: 'Invalid/Zone' }));
+    expect(() => deriveJourneyStats(route, start, invalidTimezoneLocations)).toThrow('invalid timezone: Invalid/Zone');
+  });
 });
 
 describe('replay controller', () => {
   it('starts at takeoff, reaches landing, and clamps out of range seeks', () => {
     const replay = createReplay(route, { locations });
-    expect(replay.at(0).journeyTimeMs).toBe(start);
-    replay.seek(new Date(landing + 99_000));
-    expect(replay.at(0).journeyTimeMs).toBe(landing);
-    expect(replay.at(0).state.isComplete).toBe(true);
-    replay.seek(-50);
-    expect(replay.at(0).journeyTimeMs).toBe(start);
-    replay.seek(1);
-    expect(replay.at(0).journeyTimeMs).toBe(start);
-    replay.seekFraction(1);
-    expect(replay.at(0).journeyTimeMs).toBe(landing);
+    expect(replay.at({ wallClockNow: 0 }).journeyTimeMs).toBe(start);
+    replay.seek({ position: new Date(landing + 99_000), wallClockNow: 0 });
+    expect(replay.at({ wallClockNow: 0 }).journeyTimeMs).toBe(landing);
+    expect(replay.at({ wallClockNow: 0 }).state.isComplete).toBe(true);
+    replay.seek({ position: -50, wallClockNow: 0 });
+    expect(replay.at({ wallClockNow: 0 }).journeyTimeMs).toBe(start);
+    replay.seek({ position: 1, wallClockNow: 0 });
+    expect(replay.at({ wallClockNow: 0 }).journeyTimeMs).toBe(start);
+    replay.seekFraction({ fraction: 1, wallClockNow: 0 });
+    expect(replay.at({ wallClockNow: 0 }).journeyTimeMs).toBe(landing);
+  });
+
+  it('stops playback at the final departure before seeking back', () => {
+    const replay = createReplay(route, { locations });
+    replay.play({ wallClockNow: 0 });
+    expect(replay.at({ wallClockNow: 4_000_000 }).isPlaying).toBe(false);
+    replay.seek({ position: start, wallClockNow: 4_000_001 });
+    expect(replay.at({ wallClockNow: 4_000_002 })).toMatchObject({ journeyTimeMs: start, isPlaying: false });
   });
 
   it('returns a neutral frame for an empty route', () => {
     const emptyRoute: Route = { schemaVersion: SCHEMA_VERSION, season: 2026, stops: [] };
     const replay = createReplay(emptyRoute, { locations: [] });
-    replay.play(10);
-    expect(replay.at(20)).toMatchObject({
+    replay.play({ wallClockNow: 10 });
+    expect(replay.at({ wallClockNow: 20 })).toMatchObject({
       journeyTimeMs: 0,
       isPlaying: false,
       state: { currentIndex: null, nextIndex: null, progress: 0, isComplete: false },
@@ -188,47 +201,47 @@ describe('replay controller', () => {
 
   it('rejects non-finite seeks without changing the replay anchor', () => {
     const replay = createReplay(route, { locations });
-    replay.seekFraction(0.25);
-    const before = replay.at(0);
-    expect(() => replay.seek(Number.NaN)).toThrow(RangeError);
-    expect(() => replay.seek(Number.POSITIVE_INFINITY)).toThrow(RangeError);
-    expect(() => replay.seek(Number.NEGATIVE_INFINITY)).toThrow(RangeError);
-    expect(replay.at(0)).toEqual(before);
+    replay.seekFraction({ fraction: 0.25, wallClockNow: 0 });
+    const before = replay.at({ wallClockNow: 0 });
+    expect(() => replay.seek({ position: Number.NaN, wallClockNow: 0 })).toThrow(RangeError);
+    expect(() => replay.seek({ position: Number.POSITIVE_INFINITY, wallClockNow: 0 })).toThrow(RangeError);
+    expect(() => replay.seek({ position: Number.NEGATIVE_INFINITY, wallClockNow: 0 })).toThrow(RangeError);
+    expect(replay.at({ wallClockNow: 0 })).toEqual(before);
   });
 
   it('pauses, seeks by fraction, changes speed, and resets from the injected wall clock', () => {
     const replay = createReplay(route, { locations, speed: 2, startAt: start + 300_000 });
-    replay.play(1000);
-    expect(replay.at(2000).journeyTimeMs).toBe(start + 302_000);
-    replay.pause(2500);
-    expect(replay.at(20_000).journeyTimeMs).toBe(start + 303_000);
-    replay.seekFraction(0.5, 20_000);
-    expect(replay.at(20_000).journeyTimeMs).toBe(start + 1_800_000);
-    replay.setSpeed(4, 20_000);
-    replay.play(20_000);
-    expect(replay.at(20_100).journeyTimeMs).toBe(start + 1_800_400);
-    replay.reset(30_000);
-    expect(replay.at(50_000).journeyTimeMs).toBe(start + 300_000);
+    replay.play({ wallClockNow: 1000 });
+    expect(replay.at({ wallClockNow: 2000 }).journeyTimeMs).toBe(start + 302_000);
+    replay.pause({ wallClockNow: 2500 });
+    expect(replay.at({ wallClockNow: 20_000 }).journeyTimeMs).toBe(start + 303_000);
+    replay.seekFraction({ fraction: 0.5, wallClockNow: 20_000 });
+    expect(replay.at({ wallClockNow: 20_000 }).journeyTimeMs).toBe(start + 1_800_000);
+    replay.setSpeed({ speed: 4, wallClockNow: 20_000 });
+    replay.play({ wallClockNow: 20_000 });
+    expect(replay.at({ wallClockNow: 20_100 }).journeyTimeMs).toBe(start + 1_800_400);
+    replay.reset({ wallClockNow: 30_000 });
+    expect(replay.at({ wallClockNow: 50_000 }).journeyTimeMs).toBe(start + 300_000);
   });
 
   it('matches live state and stats at exactly the same journey instant', () => {
     const replay = createReplay(route, { locations, candidatePool: locations });
-    replay.seek(start + 1_450_000);
-    const frame = replay.at(0);
+    replay.seek({ position: start + 1_450_000, wallClockNow: 0 });
+    const frame = replay.at({ wallClockNow: 0 });
     expect(frame.state).toEqual(deriveJourneyState(route, frame.time));
     expect(frame.stats).toEqual(deriveJourneyStats(route, frame.time, locations, locations));
   });
 
   it('does not mutate when sampling the same wall clock repeatedly', () => {
     const replay = createReplay(route, { locations, speed: 3 });
-    replay.play(100);
-    const first = replay.at(500);
-    expect(replay.at(500)).toEqual(first);
+    replay.play({ wallClockNow: 100 });
+    const first = replay.at({ wallClockNow: 500 });
+    expect(replay.at({ wallClockNow: 500 })).toEqual(first);
   });
 
   it('rejects playback speeds outside 0.5x through 64x', () => {
     const replay = createReplay(route, { locations });
-    expect(() => replay.setSpeed(0.25)).toThrow(RangeError);
+    expect(() => replay.setSpeed({ speed: 0.25, wallClockNow: 0 })).toThrow(RangeError);
     expect(() => createReplay(route, { locations, speed: 65 })).toThrow(RangeError);
   });
 });

@@ -35,16 +35,16 @@ const replay = createReplay(routeSnapshot, {
   startAt: takeoffTimestamp,
 });
 
-replay.play(performance.now());
-const frame = replay.at(performance.now());
-replay.pause(performance.now());
-replay.seekFraction(0.5, performance.now()); // fraction of first arrival through final departure
-replay.seek(new Date('2026-12-25T00:00:00Z'), performance.now());
-replay.setSpeed(4, performance.now());
-replay.reset(performance.now());
+replay.play({ wallClockNow: performance.now() });
+const frame = replay.at({ wallClockNow: performance.now() });
+replay.pause({ wallClockNow: performance.now() });
+replay.seekFraction({ fraction: 0.5, wallClockNow: performance.now() }); // fraction of first arrival through final departure
+replay.seek({ position: new Date('2026-12-25T00:00:00Z'), wallClockNow: performance.now() });
+replay.setSpeed({ speed: 4, wallClockNow: performance.now() });
+replay.reset({ wallClockNow: performance.now() });
 ```
 
-Playback speed ranges from 0.5x through 64x. `seek` accepts an absolute `Date` or epoch-millisecond timestamp. `seekFraction` accepts a fraction from 0 through 1. Times outside the route are clamped to first arrival or final departure. Control methods accept the same injected wall clock used by `at`; `at(wallClockNow)` is read-only and returns a new `Date`, the journey timestamp, `JourneyState`, `JourneyStats`, speed, and play status. `reset` returns to the configured `startAt`, or first arrival by default, and pauses.
+Playback speed ranges from 0.5x through 64x. `seek` accepts an absolute `Date` or epoch-millisecond timestamp. `seekFraction` accepts a fraction from 0 through 1. Times outside the route are clamped to first arrival or final departure. Control methods take a named `wallClockNow` value and use the same injected clock as `at`. The read-only `at({ wallClockNow })` method returns a new `Date`, journey timestamp, `JourneyState`, `JourneyStats`, speed, and play status. `reset` returns to the configured `startAt`, or first arrival by default, and pauses.
 
 The controller copies the route, location, and candidate-pool records at creation. An archive can therefore play its saved route and metadata without consulting the current season configuration. Store versioned route, location, and candidate-pool snapshots together if old replay data must survive future catalog edits.
 

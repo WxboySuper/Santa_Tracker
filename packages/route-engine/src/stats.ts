@@ -130,7 +130,7 @@ function deriveRouteLegs(stops: Route['stops'], locations: RouteStatsLocation[])
       distanceKm: haversineKm(locations[index]!.coordinates, locations[index + 1]!.coordinates),
       startMs,
       endMs,
-      durationMs: Math.max(0, endMs - startMs),
+      durationMs: endMs - startMs,
     };
   });
 }
@@ -295,7 +295,12 @@ function utcOffsetBand({ location, season }: { location: RouteStatsLocation; sea
   const cached = utcOffsetBands.get(cacheKey);
   if (cached !== undefined) return cached;
   const referenceTime = Date.UTC(season, 11, 25, 12);
-  const parts = new Intl.DateTimeFormat('en-US', { timeZone: location.timezone, timeZoneName: 'longOffset' }).formatToParts(referenceTime);
+  let parts: Intl.DateTimeFormatPart[];
+  try {
+    parts = new Intl.DateTimeFormat('en-US', { timeZone: location.timezone, timeZoneName: 'longOffset' }).formatToParts(referenceTime);
+  } catch {
+    throw new RangeError(`invalid timezone: ${location.timezone}`);
+  }
   const offset = parts.find(part => part.type === 'timeZoneName')?.value ?? 'GMT';
   const match = /^GMT([+-])(\d{2}):(\d{2})$/.exec(offset);
   if (!match) {
