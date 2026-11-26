@@ -1,5 +1,9 @@
 # Changelog — per-PR exhaustive (enforced in CI)
 
+## [Unreleased] - Fix weather cron deploy order (#542)
+
+- **Deploy:** Deploys the weather cron Worker before the vinext app build. Wrangler refuses to deploy while the build's `.cloudflare/output` exists, which failed the first deploy after #545 before the app Worker was updated.
+
 ## [Unreleased] - Bounded weather provider calls (#542)
 
 - **Scheduled weather refresh:** Adds a 15-minute Worker cron that runs from 30 minutes before takeoff through the 26-hour flight and replay window. It reads the active route, fetches upcoming and current stop weather in batches of at most 50 cells, and stores results in shared KV for 30 minutes.
