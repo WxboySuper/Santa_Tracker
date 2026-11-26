@@ -130,6 +130,14 @@ describe('journey stats', () => {
   it('does not allow a caller to format non-finite timestamps silently', () => {
     expect(() => deriveJourneyStats(route, Number.NaN, locations)).toThrow(RangeError);
   });
+
+  it('rejects malformed schedule timestamps instead of returning NaN stats', () => {
+    const malformedRoute = {
+      ...route,
+      stops: route.stops.map((stop, index) => index === 1 ? { ...stop, arrivalIso: 'not-a-date' } : stop),
+    } as unknown as Route;
+    expect(() => deriveJourneyStats(malformedRoute, start, locations)).toThrow('route contains invalid ISO timestamps');
+  });
 });
 
 describe('replay controller', () => {
@@ -141,6 +149,10 @@ describe('replay controller', () => {
     expect(replay.at(0).state.isComplete).toBe(true);
     replay.seek(-50);
     expect(replay.at(0).journeyTimeMs).toBe(start);
+    replay.seek(1);
+    expect(replay.at(0).journeyTimeMs).toBe(start);
+    replay.seekFraction(1);
+    expect(replay.at(0).journeyTimeMs).toBe(landing);
   });
 
   it('returns a neutral frame for an empty route', () => {
@@ -165,7 +177,7 @@ describe('replay controller', () => {
 
   it('rejects non-finite seeks without changing the replay anchor', () => {
     const replay = createReplay(route, { locations });
-    replay.seek(0.25);
+    replay.seekFraction(0.25);
     const before = replay.at(0);
     expect(() => replay.seek(Number.NaN)).toThrow(RangeError);
     expect(() => replay.seek(Number.POSITIVE_INFINITY)).toThrow(RangeError);
@@ -179,7 +191,7 @@ describe('replay controller', () => {
     expect(replay.at(2000).journeyTimeMs).toBe(start + 302_000);
     replay.pause(2500);
     expect(replay.at(20_000).journeyTimeMs).toBe(start + 303_000);
-    replay.seek(0.5, 20_000);
+    replay.seekFraction(0.5, 20_000);
     expect(replay.at(20_000).journeyTimeMs).toBe(start + 1_800_000);
     replay.setSpeed(4, 20_000);
     replay.play(20_000);

@@ -103,13 +103,13 @@ function resolveLocations(stops: Route['stops'], locations: readonly RouteStatsL
 }
 
 function deriveRouteInterval({ stops, nowMs }: { stops: Route['stops']; nowMs: number }): RouteInterval {
-  const firstArrival = Date.parse(stops[0]!.arrivalIso);
-  const lastDeparture = Date.parse(stops.at(-1)!.departureIso);
+  const firstArrival = routeTimestampMs(stops[0]!.arrivalIso);
+  const lastDeparture = routeTimestampMs(stops.at(-1)!.departureIso);
   return { firstArrival, lastDeparture, boundedNow: Math.min(lastDeparture, Math.max(firstArrival, nowMs)) };
 }
 
 function visitedStopIndexes({ stops, locations, nowMs }: { stops: Route['stops']; locations: RouteStatsLocation[]; nowMs: number }): number[] {
-  return stops.flatMap((stop, index) => isDeliveryStop(locations[index]!) && Date.parse(stop.arrivalIso) <= nowMs ? [index] : []);
+  return stops.flatMap((stop, index) => isDeliveryStop(locations[index]!) && routeTimestampMs(stop.arrivalIso) <= nowMs ? [index] : []);
 }
 
 function deriveCountriesVisited(indexes: number[], locations: RouteStatsLocation[]): string[] {
@@ -123,8 +123,8 @@ function deriveTimeZonesCrossed(indexes: number[], locations: RouteStatsLocation
 function deriveRouteLegs(stops: Route['stops'], locations: RouteStatsLocation[]): RouteLeg[] {
   return stops.slice(0, -1).map((stop, index) => {
     const nextStop = stops[index + 1]!;
-    const startMs = Date.parse(stop.departureIso);
-    const endMs = Date.parse(nextStop.arrivalIso);
+    const startMs = routeTimestampMs(stop.departureIso);
+    const endMs = routeTimestampMs(nextStop.arrivalIso);
     return {
       distanceKm: haversineKm(locations[index]!.coordinates, locations[index + 1]!.coordinates),
       startMs,
@@ -196,19 +196,19 @@ function deliveredPresents({ stops, routeLocations, candidatePool, nowMs, season
   const deliveryIndexes = routeLocations.flatMap((location, index) => isDeliveryStop(location) ? [index] : []);
   if (deliveryIndexes.length === 0) return 0;
   const firstIndex = deliveryIndexes[0]!;
-  const firstArrivalMs = Date.parse(stops[firstIndex]!.arrivalIso);
+  const firstArrivalMs = routeTimestampMs(stops[firstIndex]!.arrivalIso);
   const startStopIndex = findPreviousBoundary({ locations: routeLocations, index: firstIndex });
-  const takeoffMs = startStopIndex === undefined ? firstArrivalMs : Date.parse(stops[startStopIndex]!.departureIso);
+  const takeoffMs = startStopIndex === undefined ? firstArrivalMs : routeTimestampMs(stops[startStopIndex]!.departureIso);
   if (nowMs < takeoffMs) return 0;
 
   const allocations = allocatePresents(deliveryIndexes, routeLocations, candidatePool, season);
   let delivered = 0;
   for (const [deliveryNumber, routeIndex] of deliveryIndexes.entries()) {
     const stop = stops[routeIndex]!;
-    const arrivalMs = Date.parse(stop.arrivalIso);
-    const departureMs = Date.parse(stop.departureIso);
+    const arrivalMs = routeTimestampMs(stop.arrivalIso);
+    const departureMs = routeTimestampMs(stop.departureIso);
     const previousIndex = findPreviousRouteStop({ locations: routeLocations, index: routeIndex });
-    const inboundStartMs = previousIndex === undefined ? arrivalMs : Date.parse(stops[previousIndex]!.departureIso);
+    const inboundStartMs = previousIndex === undefined ? arrivalMs : routeTimestampMs(stops[previousIndex]!.departureIso);
     const hasInboundFlight = previousIndex !== undefined && arrivalMs > inboundStartMs;
     const allocation = allocations[deliveryNumber] ?? 0;
     if (nowMs >= departureMs) {
@@ -225,7 +225,7 @@ function deliveredPresents({ stops, routeLocations, candidatePool, nowMs, season
     break;
   }
   // Flooring keeps the visible counter integer-valued; the underlying schedule is linear.
-  if (deliveryIndexes.every(index => nowMs >= Date.parse(stops[index]!.departureIso))) return PRESENTS_TOTAL;
+  if (deliveryIndexes.every(index => nowMs >= routeTimestampMs(stops[index]!.departureIso))) return PRESENTS_TOTAL;
   const roundingTolerance = Number.EPSILON * PRESENTS_TOTAL * 2;
   return Math.min(PRESENTS_TOTAL, Math.floor(delivered + roundingTolerance));
 }
@@ -374,6 +374,12 @@ function emptyStats(): JourneyStats {
 function timestampMs({ value }: { value: Date | number }): number {
   const result = value instanceof Date ? value.getTime() : value;
   if (!Number.isFinite(result)) throw new RangeError('time must be a valid timestamp');
+  return result;
+}
+
+function routeTimestampMs(value: string): number {
+  const result = Date.parse(value);
+  if (!Number.isFinite(result)) throw new RangeError('route contains invalid ISO timestamps');
   return result;
 }
 

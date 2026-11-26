@@ -25,6 +25,7 @@ export type ReplayController = {
   play(wallClockNow?: number): void;
   pause(wallClockNow?: number): void;
   seek(position: Date | number, wallClockNow?: number): void;
+  seekFraction(fraction: number, wallClockNow?: number): void;
   setSpeed(speed: number, wallClockNow?: number): void;
   reset(wallClockNow?: number): void;
   at(wallClockNow: number): ReplayFrame;
@@ -70,7 +71,11 @@ export function createReplay(route: Route, options: ReplayOptions): ReplayContro
       playing = false;
     },
     seek(position, wallClockNow = 0) {
-      const target = seekTarget(position, firstArrival, lastDeparture);
+      const target = timestampMs(position);
+      anchorAt(target, wallClockNow);
+    },
+    seekFraction(fraction, wallClockNow = 0) {
+      const target = fractionTarget(fraction, firstArrival, lastDeparture);
       anchorAt(target, wallClockNow);
     },
     setSpeed(nextSpeed, wallClockNow = 0) {
@@ -97,15 +102,12 @@ export function createReplay(route: Route, options: ReplayOptions): ReplayContro
   };
 }
 
-function seekTarget(position: Date | number, firstArrival?: number, lastDeparture?: number): number {
-  const rawPosition = timestampMs(position);
-  const isFraction = typeof position === 'number'
-    && firstArrival !== undefined
-    && lastDeparture !== undefined
-    && rawPosition >= 0
-    && rawPosition <= 1;
-  if (isFraction) return firstArrival + rawPosition * (lastDeparture - firstArrival);
-  return rawPosition;
+function fractionTarget(fraction: number, firstArrival?: number, lastDeparture?: number): number {
+  if (!Number.isFinite(fraction) || fraction < 0 || fraction > 1) {
+    throw new RangeError('replay fraction must be between 0 and 1');
+  }
+  if (firstArrival === undefined || lastDeparture === undefined) return 0;
+  return firstArrival + fraction * (lastDeparture - firstArrival);
 }
 
 function validateSpeed(speed: number): number {
