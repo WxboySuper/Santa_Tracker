@@ -6,7 +6,7 @@ import type { Candidate } from './types';
 function routeFixture(points: { id: string; name: string; lng: number; country?: string; offset?: number; reason?: string; population?: number; category?: string; arrivalUtc?: string; tier?: string; duration?: number; transitSeconds?: number }[]): { document: unknown; selected: Candidate[] } {
   const selected = points.map((point) => ({ id: point.id, name: point.name, country: point.country ?? 'US', timezone: 'Etc/UTC', utcOffsetMinutes: point.offset ?? 0,
     category: point.category ?? 'populated', population: point.population ?? 1000, lat: 0, lng: point.lng }));
-  const start = { id: 'start', type: 'START', location: { name: 'North Pole', region: 'Arctic', lat: 80, lng: 180 }, schedule: { arrival_utc: null, departure_utc: '2026-12-24T10:00:00.000Z' }, stop_experience: {}, transit_to_here: null };
+  const start = { id: 'start', type: 'START', location: { name: 'North Pole', region: 'Arctic', lat: 90, lng: 180 }, schedule: { arrival_utc: null, departure_utc: '2026-12-24T10:00:00.000Z' }, stop_experience: {}, transit_to_here: null };
   const deliveries = points.map((point, index) => ({
     id: point.id, type: 'DELIVERY', candidate_id: point.id,
     location: { name: point.name, region: 'Test', country_code: point.country ?? 'US', timezone: 'Etc/UTC', timezone_offset: 0, lat: 0, lng: point.lng },

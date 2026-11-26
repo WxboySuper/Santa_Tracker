@@ -202,7 +202,7 @@ describe('midnight sweep ordering', () => {
     expect(Math.max(localSpeed, oceanSpeed)).toBeLessThanOrEqual(DEFAULT_GENERATOR_LIMITS.maxLegSpeedKmh);
   });
 
-  it('allows a late intermediate stop when a faster final segment still meets the return deadline', () => {
+  it('allows a late intermediate stop and final segment while preserving return slack', () => {
     const prior = { lat: 68.1, lng: -170, utcOffsetMinutes: -660 };
     const intermediate: Candidate = {
       id: 'late-intermediate', name: 'Late intermediate', country: 'AS', lat: 67.8, lng: -170,
@@ -220,7 +220,7 @@ describe('midnight sweep ordering', () => {
 
     const directReturn = plannedIntermediate.departure
       + scheduledTravelMilliseconds(intermediate, NORTH_POLE, DEFAULT_GENERATOR_LIMITS);
-    expect(directReturn).toBeGreaterThan(Date.parse('2026-12-25T14:00:00.000Z'));
+    expect(directReturn).toBeLessThanOrEqual(Date.parse('2026-12-25T14:00:00.000Z'));
 
     const plannedFinal = candidateTiming({ place: final, prior: intermediate,
       priorDeparture: plannedIntermediate.departure, index: 3, config: DEFAULT_GENERATOR_LIMITS });
@@ -229,6 +229,7 @@ describe('midnight sweep ordering', () => {
     const actualReturn = plannedFinal.departure
       + scheduledTravelMilliseconds(final, NORTH_POLE, DEFAULT_GENERATOR_LIMITS);
     expect(actualReturn).toBeLessThanOrEqual(Date.parse('2026-12-25T14:00:00.000Z'));
+    expect(actualReturn).toBeGreaterThan(directReturn);
   });
 
   it('produces the same candidate order for the same seed', () => {

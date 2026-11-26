@@ -113,7 +113,8 @@ export type RouteReport = {
 
 export const TAKEOFF_UTC = '2026-12-24T10:00:00.000Z';
 export const RETURN_DEADLINE_UTC = '2026-12-25T14:00:00.000Z';
-export const NORTH_POLE = { lat: 80, lng: 180 } as const;
+// Longitude is a conventional date-line value at the pole, where it is undefined.
+export const NORTH_POLE = { lat: 90, lng: 180 } as const;
 
 export const DEFAULT_GENERATOR_LIMITS: GeneratorConfig = {
   seed: 2026,
