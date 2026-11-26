@@ -94,8 +94,8 @@ export function inspectSeasonConfig(raw: string | null, environment: SeasonConfi
 export interface SeasonConfigRepository {
   read(environment: SeasonConfigEnvironment): Promise<SeasonConfigState>;
   readWithStatus(environment: SeasonConfigEnvironment): Promise<{ state: SeasonConfigState; corrupt: boolean; etag: string }>;
-  replace(environment: SeasonConfigEnvironment, expectedUpdatedAt: string, overrides: FeatureFlagOverrides, actor: string, reason: string): Promise<SeasonConfigState | null>;
-  repair(environment: SeasonConfigEnvironment, expectedCorruptEtag: string, overrides: FeatureFlagOverrides, actor: string, reason: string): Promise<SeasonConfigState | null>;
+  replace(input: { environment: SeasonConfigEnvironment; expectedUpdatedAt: string; overrides: FeatureFlagOverrides; actor: string; reason: string }): Promise<SeasonConfigState | null>;
+  repair(input: { environment: SeasonConfigEnvironment; expectedCorruptEtag: string; overrides: FeatureFlagOverrides; actor: string; reason: string }): Promise<SeasonConfigState | null>;
 }
 
 export class SeasonConfigCorruptError extends Error {
@@ -120,7 +120,7 @@ export function createSeasonConfigRepository(
   return {
     async read(environment) { return (await readWithStatus(environment)).state; },
     readWithStatus,
-    replace(environment, expectedUpdatedAt, overrides, actor, reason) {
+    replace({ environment, expectedUpdatedAt, overrides, actor, reason }) {
       return lock(async () => {
         const inspected = inspectSeasonConfig(await store.read(seasonConfigStorageKey(environment)), environment);
         if (inspected.corrupt) throw new SeasonConfigCorruptError();
@@ -138,7 +138,7 @@ export function createSeasonConfigRepository(
         return next;
       });
     },
-    repair(environment, expectedCorruptEtag, overrides, actor, reason) {
+    repair({ environment, expectedCorruptEtag, overrides, actor, reason }) {
       return lock(async () => {
         const key = seasonConfigStorageKey(environment);
         const raw = await store.read(key);

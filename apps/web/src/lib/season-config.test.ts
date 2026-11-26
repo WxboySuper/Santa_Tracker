@@ -29,7 +29,7 @@ describe("season configuration", () => {
       async read() { return "not-json"; },
       async write() { throw new Error("must not write corrupt state"); },
     }, Date.now, async work => work());
-    await expect(repository.replace("preview", defaultSeasonConfigState("preview").updatedAt, {}, "admin", "replace")).rejects.toBeInstanceOf(SeasonConfigCorruptError);
+    await expect(repository.replace({ environment: "preview", expectedUpdatedAt: defaultSeasonConfigState("preview").updatedAt, overrides: {}, actor: "admin", reason: "replace" })).rejects.toBeInstanceOf(SeasonConfigCorruptError);
   });
 
   it("repairs corrupt storage only with its ETag and preserves the corrupt value as a backup", async () => {
@@ -43,8 +43,8 @@ describe("season configuration", () => {
     expect(inspected.etag).toMatch(/^"corrupt-[a-f0-9]{64}"$/);
     const expected = inspected.etag.slice(1, -1);
 
-    expect(await repository.repair("preview", "corrupt-wrong", {}, "admin", "Repair corrupt configuration: test")).toBeNull();
-    const repaired = await repository.repair("preview", expected, {}, "admin", "Repair corrupt configuration: test");
+    expect(await repository.repair({ environment: "preview", expectedCorruptEtag: "corrupt-wrong", overrides: {}, actor: "admin", reason: "Repair corrupt configuration: test" })).toBeNull();
+    const repaired = await repository.repair({ environment: "preview", expectedCorruptEtag: expected, overrides: {}, actor: "admin", reason: "Repair corrupt configuration: test" });
 
     expect(repaired?.audit[0]?.reason).toBe("Repair corrupt configuration: test");
     expect([...valuesByKey.entries()].some(([key, value]) => key.startsWith("season/config/corrupt-backups/preview/") && value === "not-json")).toBe(true);
@@ -70,9 +70,9 @@ describe("season configuration", () => {
       async write(key, body) { valuesByKey.set(key, body); },
     }, () => Date.parse("2026-11-26T12:00:00.000Z"), async work => work());
     const override = { weatherEnabled: { enabled: true, expiresAt: null } };
-    const saved = await repository.replace("preview", "1970-01-01T00:00:00.000Z", override, "admin", "Preview weather before launch");
+    const saved = await repository.replace({ environment: "preview", expectedUpdatedAt: "1970-01-01T00:00:00.000Z", overrides: override, actor: "admin", reason: "Preview weather before launch" });
     expect(saved?.audit[0]).toMatchObject({ actor: "admin", reason: "Preview weather before launch", previous: {}, next: override });
     expect(await repository.read("production")).toEqual(defaultSeasonConfigState("production"));
-    expect(await repository.replace("preview", "1970-01-01T00:00:00.000Z", {}, "admin", "stale")).toBeNull();
+    expect(await repository.replace({ environment: "preview", expectedUpdatedAt: "1970-01-01T00:00:00.000Z", overrides: {}, actor: "admin", reason: "stale" })).toBeNull();
   });
 });

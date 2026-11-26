@@ -31,15 +31,27 @@ async function readJsonBody(request: Request): Promise<JsonBodyResult> {
 
 function parseUpdateValue(value: unknown): UpdateBodyResult {
   if (!isRecord(value)) return { kind: "invalid" };
-  const keys = Object.keys(value).sort().join(",");
-  if (keys !== "overrides,reason" && keys !== "overrides,reason,repair") return { kind: "invalid" };
-  if ("repair" in value && typeof value.repair !== "boolean") return { kind: "invalid" };
+  if (!hasValidUpdateKeys(value)) return { kind: "invalid" };
+  const repair = parseRepairFlag(value);
+  if (repair === null) return { kind: "invalid" };
   const overrides = parseFeatureFlagOverrides(value.overrides);
-  if (!overrides || typeof value.reason !== "string") return { kind: "invalid" };
-  const reason = value.reason.trim();
-  return reason.length > 0 && reason.length <= 500
-    ? { kind: "body", value: { overrides, reason, repair: value.repair === true } }
-    : { kind: "invalid" };
+  const reason = parseReason(value.reason);
+  return overrides && reason ? { kind: "body", value: { overrides, reason, repair } } : { kind: "invalid" };
+}
+
+function hasValidUpdateKeys(value: Record<string, unknown>): boolean {
+  const keys = Object.keys(value).sort().join(",");
+  return keys === "overrides,reason" || keys === "overrides,reason,repair";
+}
+
+function parseRepairFlag(value: Record<string, unknown>): boolean | null {
+  return !("repair" in value) || typeof value.repair === "boolean" ? value.repair === true : null;
+}
+
+function parseReason(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const reason = value.trim();
+  return reason.length > 0 && reason.length <= 500 ? reason : null;
 }
 
 function parsePreviewValue(value: unknown): PreviewBodyResult {

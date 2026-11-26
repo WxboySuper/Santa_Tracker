@@ -76,7 +76,7 @@ describe("/api/admin/season-config", () => {
     const response = await PUT(request);
 
     expect(response.status).toBe(200);
-    expect(repo.repair).toHaveBeenCalledWith("preview", "corrupt-token", {}, "admin", "Repair corrupt configuration: Restore known config");
+    expect(repo.repair).toHaveBeenCalledWith({ environment: "preview", expectedCorruptEtag: "corrupt-token", overrides: {}, actor: "admin", reason: "Repair corrupt configuration: Restore known config" });
   });
 
   it("caps streamed PUT bodies when Content-Length is absent", async () => {
