@@ -28,10 +28,10 @@ export async function createAdminToken(): Promise<string> {
   return jwt;
 }
 
-export async function verifyAdminToken(token: string): Promise<boolean> {
+export async function verifyAdminToken(input: { token: string }): Promise<boolean> {
   const secret = getSecret();
   try {
-    const { payload } = await jose.jwtVerify(token, secret);
+    const { payload } = await jose.jwtVerify(input.token, secret);
     if (payload.admin !== true || typeof payload.jti !== "string") return false;
     return (await readActiveSession(payload.jti)) !== null;
   } catch {
@@ -41,32 +41,32 @@ export async function verifyAdminToken(token: string): Promise<boolean> {
   }
 }
 
-export async function getAdminTokenCsrfToken(token: string): Promise<string | null> {
+export async function getAdminTokenCsrfToken(input: { token: string }): Promise<string | null> {
   try {
-    const { payload } = await jose.jwtVerify(token, getSecret());
+    const { payload } = await jose.jwtVerify(input.token, getSecret());
     return typeof payload.csrf === "string" ? payload.csrf : null;
   } catch { return null; }
 }
 
-export async function getAdminTokenSessionId(token: string): Promise<string | null> {
+export async function getAdminTokenSessionId(input: { token: string }): Promise<string | null> {
   try {
-    const { payload } = await jose.jwtVerify(token, getSecret());
+    const { payload } = await jose.jwtVerify(input.token, getSecret());
     return typeof payload.jti === "string" ? payload.jti : null;
   } catch { return null; }
 }
 
-export async function revokeAdminToken(token: string): Promise<void> {
+export async function revokeAdminToken(input: { token: string }): Promise<void> {
   try {
-    const { payload } = await jose.jwtVerify(token, getSecret());
+    const { payload } = await jose.jwtVerify(input.token, getSecret());
     if (typeof payload.jti === "string") await revokeAdminSession(payload.jti);
   } catch { /* invalid or expired tokens need no revocation record */ }
 }
 
-export function verifyAdminPassword(password: string): boolean {
+export function verifyAdminPassword(input: { password: string }): boolean {
   const adminPassword = getAdminPassword();
   if (!adminPassword) return false;
   // timing-safe compare
-  const a = new TextEncoder().encode(password);
+  const a = new TextEncoder().encode(input.password);
   const b = new TextEncoder().encode(adminPassword);
   let diff = a.length ^ b.length;
   const length = Math.max(a.length, b.length);
@@ -80,11 +80,11 @@ export async function requireAdminAuth(request: Request): Promise<{ ok: boolean;
   if (!credential.token) {
     return { ok: false, error: "Authentication required", status: 401 };
   }
-  const claims = await verifyAdminTokenClaims(credential.token);
+  const claims = await verifyAdminTokenClaims({ token: credential.token });
   if (!claims) {
     return { ok: false, error: "Invalid credentials", status: 403 };
   }
-  if (requiresCsrf(request, credential) && !hasValidCsrf(request, claims.csrf)) {
+  if (requiresCsrf(request, credential) && !hasValidCsrf({ request, expected: claims.csrf })) {
     await appendAuthAudit({ action: "csrf_rejected", result: "failure" });
     return { ok: false, error: "CSRF validation failed", status: 403 };
   }
@@ -92,7 +92,7 @@ export async function requireAdminAuth(request: Request): Promise<{ ok: boolean;
 }
 
 function requiresCsrf(request: Request, credential: { cookieAuth: boolean }): boolean {
-  return credential.cookieAuth && isMutation(request.method);
+  return credential.cookieAuth && isMutation({ method: request.method });
 }
 
 function readAdminCredential(request: Request): { token: string | null; cookieAuth: boolean; invalid: boolean } {
@@ -105,9 +105,9 @@ function readAdminCredential(request: Request): { token: string | null; cookieAu
   catch { return { token: null, cookieAuth: true, invalid: true }; }
 }
 
-async function verifyAdminTokenClaims(token: string): Promise<{ csrf: string } | null> {
+async function verifyAdminTokenClaims(input: { token: string }): Promise<{ csrf: string } | null> {
   try {
-    const { payload } = await jose.jwtVerify(token, getSecret());
+    const { payload } = await jose.jwtVerify(input.token, getSecret());
     if (!hasAdminSessionClaims(payload)) return null;
     return await readActiveSession(payload.jti) ? { csrf: payload.csrf } : null;
   } catch { return null; }
@@ -117,11 +117,12 @@ function hasAdminSessionClaims(payload: jose.JWTPayload): payload is jose.JWTPay
   return payload.admin === true && typeof payload.jti === "string" && typeof payload.csrf === "string";
 }
 
-function isMutation(method: string): boolean {
-  return !["GET", "HEAD", "OPTIONS"].includes(method.toUpperCase());
+function isMutation(input: { method: string }): boolean {
+  return !["GET", "HEAD", "OPTIONS"].includes(input.method.toUpperCase());
 }
 
-function hasValidCsrf(request: Request, expected: string): boolean {
+function hasValidCsrf(input: { request: Request; expected: string }): boolean {
+  const { request, expected } = input;
   const origin = request.headers.get("origin");
   if (!origin || origin !== expectedOrigin(request)) return false;
   const supplied = request.headers.get("x-csrf-token");
@@ -137,7 +138,8 @@ function expectedOrigin(request: Request): string {
   return configured ? new URL(configured).origin : new URL(request.url).origin;
 }
 
-export function maskToken(token: string): string {
+export function maskToken(input: { token: string }): string {
+  const { token } = input;
   if (!token) return "<empty>";
   if (token.length <= 8) return "*".repeat(token.length);
   return `${token.slice(0, 4)}...${token.slice(-4)}`;

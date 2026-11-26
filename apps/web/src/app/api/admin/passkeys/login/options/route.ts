@@ -8,22 +8,33 @@ export const dynamic = "force-dynamic";
 
 export async function POST(request: Request): Promise<Response> {
   const ip = getAdminClientIp(request);
-  if (!ip) { await recordPasskeyFailure("passkey_login_throttled"); return tooManyAttempts(60); }
+  if (!ip) return throttled(60);
   const locked = await checkLoginRateLimit(ip);
-  if (locked) { await recordPasskeyFailure("passkey_login_throttled"); return tooManyAttempts(locked.retryAfterSeconds); }
+  if (locked) return throttled(locked.retryAfterSeconds);
+  return createOptions(request, ip);
+}
+
+async function createOptions(request: Request, ip: string): Promise<Response> {
   try {
     const settings = webAuthnSettings(request);
-    if (request.headers.get("origin") !== settings.origin) {
-      await recordPasskeyFailure("passkey_login_origin_rejected");
-      return NextResponse.json({ error: "Invalid origin" }, { status: 403 });
-    }
+    if (request.headers.get("origin") !== settings.origin) return invalidOrigin();
     const throttle = await recordLoginAttempt(ip);
     if (throttle) return tooManyAttempts(throttle.retryAfterSeconds);
     const result = await createAuthenticationChallenge(request);
     return setChallengeCookie(NextResponse.json({ options: result.options }, { headers: { "Cache-Control": "no-store" } }), result.challenge.id);
   } catch (error) {
-    await recordPasskeyFailure("passkey_login_options");
+    await recordPasskeyFailure({ action: "passkey_login_options" });
     const status = error instanceof Error && error.message === "Passkey login is not configured" ? 409 : 503;
     return NextResponse.json({ error: status === 409 ? "Passkey login is not configured" : "Unable to start passkey login" }, { status });
   }
+}
+
+async function invalidOrigin(): Promise<Response> {
+  await recordPasskeyFailure({ action: "passkey_login_origin_rejected" });
+  return NextResponse.json({ error: "Invalid origin" }, { status: 403 });
+}
+
+async function throttled(retryAfterSeconds: number): Promise<Response> {
+  await recordPasskeyFailure({ action: "passkey_login_throttled" });
+  return tooManyAttempts(retryAfterSeconds);
 }

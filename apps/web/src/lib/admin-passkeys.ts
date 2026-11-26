@@ -6,7 +6,7 @@ import {
   type AuthenticationResponseJSON,
   type RegistrationResponseJSON,
 } from "@simplewebauthn/server";
-import { appendAuthAudit, consumeAuthChallenge, consumeRecoveryCode, deletePasskey, installPasskey, readAdminAuthState, readPasskey, saveAuthChallenge, updatePasskeyCounter, replaceRecoveryCodes, type AdminAuthChallenge } from "./admin-auth-state";
+import { appendAuthAudit, consumeAuthChallenge, consumeRecoveryCode, deletePasskey, installPasskey, readAdminAuthState, readPasskey, saveAuthChallenge, updatePasskeyCounter, replaceRecoveryCodes, type AdminAuthChallenge, type StoredPasskey } from "./admin-auth-state";
 import { createAdminToken } from "./auth";
 
 const CHALLENGE_TTL_MS = 5 * 60 * 1000;
@@ -16,31 +16,35 @@ export function webAuthnSettings(request: Request): { rpId: string; origin: stri
   const url = new URL(request.url);
   const rpId = process.env.ADMIN_WEBAUTHN_RP_ID ?? (process.env.NODE_ENV === "production" ? "" : url.hostname);
   const origin = process.env.ADMIN_WEBAUTHN_ORIGIN ?? (process.env.NODE_ENV === "production" ? "" : url.origin);
-  const expectedOrigin = parseExpectedOrigin(origin);
-  validateRpId(url.hostname, rpId);
+  const expectedOrigin = parseExpectedOrigin({ origin });
+  validateRpId({ hostname: url.hostname, rpId });
   if (process.env.NODE_ENV === "production" && expectedOrigin.protocol !== "https:") throw new Error("WebAuthn origin must use HTTPS in production");
   return { rpId, origin };
 }
 
-function parseExpectedOrigin(origin: string): URL {
+function parseExpectedOrigin(input: { origin: string }): URL {
+  const { origin } = input;
   if (!origin) throw new Error("WebAuthn origin and RP ID must be configured");
   const parsed = new URL(origin);
   if (parsed.origin !== origin) throw new Error("WebAuthn origin and RP ID must be configured");
   return parsed;
 }
 
-function validateRpId(hostname: string, rpId: string): void {
+function validateRpId(input: { hostname: string; rpId: string }): void {
+  const { hostname, rpId } = input;
   if (!rpId) throw new Error("Request host does not match the WebAuthn RP ID");
-  if (!isWithinRpDomain(hostname, rpId)) {
+  if (!isWithinRpDomain({ hostname, rpId })) {
     throw new Error("Request host does not match the WebAuthn RP ID");
   }
 }
 
-function isWithinRpDomain(hostname: string, rpId: string): boolean {
+function isWithinRpDomain(input: { hostname: string; rpId: string }): boolean {
+  const { hostname, rpId } = input;
   return hostname === rpId || hostname.endsWith(`.${rpId}`);
 }
 
-export async function createRegistrationChallenge(request: Request, sessionId: string): Promise<{ challenge: AdminAuthChallenge; options: Awaited<ReturnType<typeof generateRegistrationOptions>> }> {
+export async function createRegistrationChallenge(input: { request: Request; sessionId: string }): Promise<{ challenge: AdminAuthChallenge; options: Awaited<ReturnType<typeof generateRegistrationOptions>> }> {
+  const { request, sessionId } = input;
   const { rpId } = webAuthnSettings(request);
   const state = await readAdminAuthState();
   const options = await generateRegistrationOptions({
@@ -67,7 +71,7 @@ export async function finishRegistration(input: { request: Request; challengeId:
   if (!verification.verified) throw new Error("Passkey registration could not be verified");
   const state = await readAdminAuthState();
   const recoveryCodes = state.recoveryCodeHashes.length === 0 ? generateRecoveryCodes() : null;
-  const hashes = recoveryCodes ? await Promise.all(recoveryCodes.map(code => hashRecoveryCode(normalizeRecoveryCode(code)))) : null;
+  const hashes = recoveryCodes ? await Promise.all(recoveryCodes.map(code => hashRecoveryCode({ code: normalizeRecoveryCode({ code }) }))) : null;
   const credential = verification.registrationInfo.credential;
   await installPasskey({ id: credential.id, publicKey: encodeBase64Url(credential.publicKey), counter: credential.counter, transports: credential.transports }, hashes);
   await appendAuthAudit({ action: "passkey_registration", result: "success", sessionId: input.sessionId });
@@ -94,31 +98,39 @@ export async function finishAuthentication(input: { request: Request; challengeI
   if (!challenge) throw new Error("Authentication challenge expired or unavailable");
   const credential = await readPasskey(input.response.id);
   if (!credential) throw new Error("Unknown passkey");
-  const { rpId, origin } = webAuthnSettings(input.request);
-  const verification = await verifyAuthenticationResponse({
-    response: input.response,
-    expectedChallenge: challenge.challenge,
-    expectedOrigin: origin,
-    expectedRPID: rpId,
-    requireUserVerification: true,
-    credential: { id: credential.id, publicKey: Uint8Array.from(decodeBase64Url(credential.publicKey)), counter: credential.counter, transports: credential.transports },
-  });
-  if (!verification.verified) throw new Error("Passkey authentication could not be verified");
-  const newCounter = verification.authenticationInfo.newCounter;
-  if (credential.counter !== 0 && newCounter !== 0 && newCounter <= credential.counter) {
-    await appendAuthAudit({ action: "passkey_login", result: "failure" });
-    throw new Error("Passkey counter did not advance");
-  }
+  const newCounter = await verifyAuthentication(input, challenge.challenge, credential);
+  await ensureCounterAdvances(credential.counter, newCounter);
   await updatePasskeyCounter(credential.id, newCounter);
   const token = await createAdminToken();
   await appendAuthAudit({ action: "passkey_login", result: "success" });
   return token;
 }
 
-export async function loginWithRecoveryCode(code: string): Promise<string> {
+async function verifyAuthentication(input: { request: Request; response: AuthenticationResponseJSON }, challenge: string, credential: StoredPasskey): Promise<number> {
+  const { rpId, origin } = webAuthnSettings(input.request);
+  const verification = await verifyAuthenticationResponse({
+    response: input.response,
+    expectedChallenge: challenge,
+    expectedOrigin: origin,
+    expectedRPID: rpId,
+    requireUserVerification: true,
+    credential: { id: credential.id, publicKey: Uint8Array.from(decodeBase64Url({ value: credential.publicKey })), counter: credential.counter, transports: credential.transports },
+  });
+  if (!verification.verified) throw new Error("Passkey authentication could not be verified");
+  return verification.authenticationInfo.newCounter;
+}
+
+async function ensureCounterAdvances(previous: number, next: number): Promise<void> {
+  if (previous !== 0 && next !== 0 && next <= previous) {
+    await appendAuthAudit({ action: "passkey_login", result: "failure" });
+    throw new Error("Passkey counter did not advance");
+  }
+}
+
+export async function loginWithRecoveryCode(input: { code: string }): Promise<string> {
   const state = await readAdminAuthState();
   if (state.passkeys.length === 0) throw new Error("Recovery codes are not configured");
-  const valid = await consumeRecoveryCode(await hashRecoveryCode(normalizeRecoveryCode(code)));
+  const valid = await consumeRecoveryCode(await hashRecoveryCode({ code: normalizeRecoveryCode(input) }));
   if (!valid) {
     await appendAuthAudit({ action: "recovery_login", result: "failure" });
     throw new Error("Invalid recovery code");
@@ -131,19 +143,19 @@ export async function loginWithRecoveryCode(code: string): Promise<string> {
 export async function rotateRecoveryCodes(): Promise<string[]> {
   if ((await readAdminAuthState()).passkeys.length === 0) throw new Error("Register a passkey before creating recovery codes");
   const codes = generateRecoveryCodes();
-  await replaceRecoveryCodes(await Promise.all(codes.map(code => hashRecoveryCode(normalizeRecoveryCode(code)))));
+  await replaceRecoveryCodes(await Promise.all(codes.map(code => hashRecoveryCode({ code: normalizeRecoveryCode({ code }) }))));
   await appendAuthAudit({ action: "recovery_codes_rotate", result: "success" });
   return codes;
 }
 
-export async function deleteRegisteredPasskey(id: string): Promise<boolean> {
-  const removed = await deletePasskey(id);
+export async function deleteRegisteredPasskey(input: { id: string }): Promise<boolean> {
+  const removed = await deletePasskey(input.id);
   if (removed) await appendAuthAudit({ action: "passkey_revoke", result: "success" });
   return removed;
 }
 
-export async function recordPasskeyFailure(action: string): Promise<void> {
-  await appendAuthAudit({ action, result: "failure" });
+export async function recordPasskeyFailure(input: { action: string }): Promise<void> {
+  await appendAuthAudit({ action: input.action, result: "failure" });
 }
 
 async function saveChallenge<T extends { challenge: string }>(input: { purpose: AdminAuthChallenge["purpose"]; sessionId: string | null; challenge: string }, options: T): Promise<{ challenge: AdminAuthChallenge; options: T }> {
@@ -159,12 +171,12 @@ function generateRecoveryCodes(): string[] {
   });
 }
 
-function normalizeRecoveryCode(code: string): string {
-  return code.replace(/[^0-9A-Fa-f]/g, "").toUpperCase();
+function normalizeRecoveryCode(input: { code: string }): string {
+  return input.code.replace(/[^0-9A-Fa-f]/g, "").toUpperCase();
 }
 
-async function hashRecoveryCode(code: string): Promise<string> {
-  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(code));
+async function hashRecoveryCode(input: { code: string }): Promise<string> {
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(input.code));
   return encodeBase64Url(new Uint8Array(digest));
 }
 
@@ -174,7 +186,8 @@ function encodeBase64Url(bytes: Uint8Array): string {
   return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
 }
 
-function decodeBase64Url(value: string): Uint8Array {
+function decodeBase64Url(input: { value: string }): Uint8Array {
+  const { value } = input;
   const base64 = value.replace(/-/g, "+").replace(/_/g, "/");
   const binary = atob(base64 + "=".repeat((4 - base64.length % 4) % 4));
   return Uint8Array.from(binary, char => char.charCodeAt(0));

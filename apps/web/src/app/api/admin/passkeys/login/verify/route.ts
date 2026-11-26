@@ -10,9 +10,9 @@ export const dynamic = "force-dynamic";
 
 export async function POST(request: Request): Promise<Response> {
   const ip = getAdminClientIp(request);
-  if (!ip) { await recordPasskeyFailure("passkey_login_throttled"); return tooManyAttempts(60); }
+  if (!ip) { await recordPasskeyFailure({ action: "passkey_login_throttled" }); return tooManyAttempts(60); }
   const locked = await checkLoginRateLimit(ip);
-  if (locked) { await recordPasskeyFailure("passkey_login_throttled"); return tooManyAttempts(locked.retryAfterSeconds); }
+  if (locked) { await recordPasskeyFailure({ action: "passkey_login_throttled" }); return tooManyAttempts(locked.retryAfterSeconds); }
   let settings: ReturnType<typeof webAuthnSettings>;
   try { settings = webAuthnSettings(request); }
   catch { return failed(ip, "Authentication is not configured", 503); }
@@ -31,7 +31,7 @@ export async function POST(request: Request): Promise<Response> {
   }
 }
 async function failed(ip: string, message: string, status: number): Promise<Response> {
-  await recordPasskeyFailure("passkey_login");
+  await recordPasskeyFailure({ action: "passkey_login" });
   const throttle = await recordLoginAttempt(ip);
   const response = NextResponse.json({ error: throttle ? "Too many authentication attempts" : message }, {
     status: throttle ? 429 : status,

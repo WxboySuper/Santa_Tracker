@@ -20,10 +20,10 @@ export async function DELETE(request: Request): Promise<Response> {
   if (!input.ok) return Response.json({ error: input.error }, { status: input.status });
   if (!isPasskeyInput(input.value)) return Response.json({ error: "A passkey ID is required" }, { status: 400 });
   try {
-    const removed = await deleteRegisteredPasskey(input.value.id);
+    const removed = await deleteRegisteredPasskey({ id: input.value.id });
     return Response.json({ removed }, { status: removed ? 200 : 404, headers: { "Cache-Control": "no-store" } });
   } catch (error) {
-    await recordPasskeyFailure("passkey_revoke");
+    await recordPasskeyFailure({ action: "passkey_revoke" });
     return Response.json({ error: error instanceof Error ? error.message : "Unable to remove passkey" }, { status: 409 });
   }
 }
@@ -35,7 +35,7 @@ export async function POST(request: Request): Promise<Response> {
     const codes = await rotateRecoveryCodes();
     return Response.json({ recoveryCodes: codes }, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
-    await recordPasskeyFailure("recovery_codes_rotate");
+    await recordPasskeyFailure({ action: "recovery_codes_rotate" });
     return Response.json({ error: error instanceof Error ? error.message : "Unable to rotate recovery codes" }, { status: 409 });
   }
 }

@@ -48,7 +48,7 @@ export async function responseWithSession(token: string, body: Record<string, un
     path: "/",
     maxAge: ADMIN_SESSION_TTL_SECONDS,
   });
-  const csrf = await getAdminTokenCsrfToken(token);
+  const csrf = await getAdminTokenCsrfToken({ token });
   if (csrf) response.cookies.set("admin_csrf", csrf, {
     httpOnly: false,
     secure: shouldUseSecureAdminCookie(),

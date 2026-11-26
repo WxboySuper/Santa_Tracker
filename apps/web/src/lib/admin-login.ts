@@ -117,7 +117,7 @@ async function issueSessionToken(payload: unknown, ip?: string): Promise<AdminAp
   if (!adminPassword) {
     return { status: 500, body: { error: "Admin access not configured" } };
   }
-  if (!verifyAdminPassword(password as string)) return rejectPasswordLogin(ip, "password_login", true);
+  if (!verifyAdminPassword({ password: password as string })) return rejectPasswordLogin(ip, "password_login", true);
   if ((await readAdminAuthState()).passkeys.length > 0) return rejectPasswordLogin(ip, "password_login_disabled", false);
   try {
     const token = await createAdminToken();

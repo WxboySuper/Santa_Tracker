@@ -85,8 +85,12 @@ function parseJsonState(raw: string): unknown {
 }
 
 function isAdminAuthState(value: unknown): value is AdminAuthState {
-  if (!isRecord(value) || value.version !== 1 || !hasValidCollections(value)) return false;
+  if (!hasAuthStateEnvelope(value)) return false;
   return hasSafeCounts(value) && hasValidEntries(value);
+}
+
+function hasAuthStateEnvelope(value: unknown): value is AdminAuthCollections & { version: 1 } {
+  return isRecord(value) && value.version === 1 && hasValidCollections(value);
 }
 
 function hasSafeCounts(value: AdminAuthCollections): boolean {

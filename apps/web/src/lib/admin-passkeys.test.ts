@@ -16,7 +16,7 @@ vi.mock("@simplewebauthn/server", () => ({
 const request = new Request("https://example.test/api/admin/passkeys");
 
 async function registerPasskeyForTest(counter: number) {
-  const { challenge } = await createRegistrationChallenge(request, "session-one");
+  const { challenge } = await createRegistrationChallenge({ request, sessionId: "session-one" });
   vi.mocked(verifyRegistrationResponse).mockResolvedValue({
     verified: true,
     registrationInfo: {
@@ -45,13 +45,13 @@ describe("admin passkey service", () => {
   });
 
   it("keeps a challenge available when a consumer requests the wrong purpose", async () => {
-    const { challenge } = await createRegistrationChallenge(request, "session-one");
+    const { challenge } = await createRegistrationChallenge({ request, sessionId: "session-one" });
     expect(await consumeAuthChallenge(challenge.id, "authentication")).toBeNull();
     expect(await consumeAuthChallenge(challenge.id, "registration")).not.toBeNull();
   });
 
   it("registers a passkey and returns one-time recovery codes", async () => {
-    const { challenge } = await createRegistrationChallenge(request, "session-one");
+    const { challenge } = await createRegistrationChallenge({ request, sessionId: "session-one" });
     vi.mocked(verifyRegistrationResponse).mockResolvedValue({
       verified: true,
       registrationInfo: {
@@ -68,9 +68,9 @@ describe("admin passkey service", () => {
 
   it("consumes recovery codes once and creates a revocable session", async () => {
     const { recoveryCodes } = await registerPasskeyForTest(0);
-    const token = await loginWithRecoveryCode(recoveryCodes![0]!);
-    expect(await verifyAdminToken(token)).toBe(true);
-    await expect(loginWithRecoveryCode(recoveryCodes![0]!)).rejects.toThrow("Invalid recovery code");
+    const token = await loginWithRecoveryCode({ code: recoveryCodes![0]! });
+    expect(await verifyAdminToken({ token })).toBe(true);
+    await expect(loginWithRecoveryCode({ code: recoveryCodes![0]! })).rejects.toThrow("Invalid recovery code");
     expect((await readAdminAuthState()).recoveryCodeHashes).toHaveLength(9);
   });
 
@@ -82,7 +82,7 @@ describe("admin passkey service", () => {
       authenticationInfo: { credentialID: "credential-one", newCounter: 2, userVerified: true, credentialDeviceType: "singleDevice", credentialBackedUp: false, origin: "https://example.test", rpID: "example.test" },
     });
     const token = await finishAuthentication({ request, challengeId: authentication.challenge.id, response: { id: "credential-one" } as AuthenticationResponseJSON });
-    expect(await verifyAdminToken(token)).toBe(true);
+    expect(await verifyAdminToken({ token })).toBe(true);
     expect((await readAdminAuthState()).passkeys[0]?.counter).toBe(2);
     await expect(finishAuthentication({ request, challengeId: authentication.challenge.id, response: { id: "credential-one" } as AuthenticationResponseJSON })).rejects.toThrow("Authentication challenge expired or unavailable");
   });

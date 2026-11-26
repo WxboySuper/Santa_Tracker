@@ -120,7 +120,7 @@ async function setLoginCookie(req: Request, result: Awaited<ReturnType<typeof lo
     path: "/",
     maxAge: ADMIN_SESSION_TTL_SECONDS,
   });
-  const csrfToken = await getAdminTokenCsrfToken(token);
+  const csrfToken = await getAdminTokenCsrfToken({ token });
   if (csrfToken) response.cookies.set("admin_csrf", csrfToken, {
     httpOnly: false,
     secure: shouldUseSecureAdminCookie(),

@@ -8,9 +8,9 @@ export const dynamic = "force-dynamic";
 
 export async function POST(request: Request): Promise<Response> {
   const ip = getAdminClientIp(request);
-  if (!ip) { await recordPasskeyFailure("recovery_login_throttled"); return tooManyAttempts(60); }
+  if (!ip) { await recordPasskeyFailure({ action: "recovery_login_throttled" }); return tooManyAttempts(60); }
   const locked = await checkLoginRateLimit(ip);
-  if (locked) { await recordPasskeyFailure("recovery_login_throttled"); return tooManyAttempts(locked.retryAfterSeconds); }
+  if (locked) { await recordPasskeyFailure({ action: "recovery_login_throttled" }); return tooManyAttempts(locked.retryAfterSeconds); }
   try {
     const settings = webAuthnSettings(request);
     if (request.headers.get("origin") !== settings.origin) return failure(ip, "Invalid origin", 403);
@@ -19,13 +19,13 @@ export async function POST(request: Request): Promise<Response> {
   if (!input.ok) return failure(ip, input.error, input.status);
   if (!isRecoveryInput(input.value)) return failure(ip, "A recovery code is required", 400);
   try {
-    const token = await loginWithRecoveryCode(input.value.code);
+    const token = await loginWithRecoveryCode({ code: input.value.code });
     await clearLoginAttempts(ip);
     return responseWithSession(token, { authenticated: true, recoveryCodeUsed: true });
   } catch { return failure(ip, "Invalid recovery code", 401); }
 }
 async function failure(ip: string, message: string, status: number): Promise<Response> {
-  await recordPasskeyFailure("recovery_login");
+  await recordPasskeyFailure({ action: "recovery_login" });
   const throttle = await recordLoginAttempt(ip);
   return Response.json({ error: throttle ? "Too many authentication attempts" : message }, {
     status: throttle ? 429 : status,

@@ -15,7 +15,7 @@ export async function POST(request: Request): Promise<Response> {
 
 async function processRegistration(request: Request): Promise<Response> {
   const token = tokenFromRequest(request);
-  const sessionId = token ? await getAdminTokenSessionId(token) : null;
+  const sessionId = token ? await getAdminTokenSessionId({ token }) : null;
   const challengeId = challengeIdFromRequest(request);
   if (!sessionId || !challengeId) {
     return registrationFailure("Registration challenge expired or unavailable", 400);
@@ -37,7 +37,7 @@ async function processRegistration(request: Request): Promise<Response> {
 }
 
 async function registrationFailure(message: string, status: number): Promise<Response> {
-  await recordPasskeyFailure("passkey_registration");
+  await recordPasskeyFailure({ action: "passkey_registration" });
   return clearChallengeCookie(NextResponse.json({ error: message }, { status }));
 }
 
