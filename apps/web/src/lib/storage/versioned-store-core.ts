@@ -1,4 +1,6 @@
-import type { ActivePointer, SnapshotVersion, VersionedSnapshotStore } from "./types";
+import type { ActivationAuditEntry, ActivePointer, SnapshotVersion, VersionedSnapshotStore } from "./types";
+
+const MAX_ACTIVATION_AUDIT_ENTRIES = 1_000;
 
 export function makeVersionId(): string {
   const stamp = new Date().toISOString().replace(/[:.]/g, "-");
@@ -10,6 +12,13 @@ export interface VersionedStoreBackend {
   write(key: string, body: string): Promise<void>;
   delete(key: string): Promise<boolean>;
   list(prefix: string): Promise<string[]>;
+}
+
+interface ActivationRequest {
+  dataset: string;
+  versionId: string;
+  action: ActivationAuditEntry["action"];
+  details: Omit<ActivationAuditEntry, "versionId" | "previousVersionId" | "at" | "action">;
 }
 
 function activeKey(dataset: string): string {
@@ -40,6 +49,34 @@ export function createVersionedSnapshotStore(backend: VersionedStoreBackend): Ve
     return match ? `${match[1]}:${match[2]}:${match[3]}.${match[4]}Z` : versionId;
   }
 
+  async function activate({ dataset, versionId, action, details }: ActivationRequest): Promise<void> {
+    const body = await backend.read(versionKey(dataset, versionId));
+    if (body === null) throw new Error(`Unknown version ${versionId} for ${dataset}`);
+    const current = await readPointer(dataset);
+    const at = new Date().toISOString();
+    const entry: ActivationAuditEntry = {
+      action,
+      versionId,
+      previousVersionId: current?.versionId ?? null,
+      actor: details.actor,
+      at,
+      reason: details.reason,
+      checksum: details.checksum || await checksum({ value: body }),
+    };
+    const pointer: ActivePointer = {
+      versionId,
+      updatedAt: at,
+      audit: [...(current?.audit ?? []), entry].slice(-MAX_ACTIVATION_AUDIT_ENTRIES),
+    };
+    await backend.write(activeKey(dataset), JSON.stringify(pointer, null, 2));
+  }
+
+  async function checksum({ value }: { value: string }): Promise<string> {
+    const bytes = new TextEncoder().encode(value);
+    const digest = await globalThis.crypto.subtle.digest("SHA-256", bytes);
+    return [...new Uint8Array(digest)].map(byte => byte.toString(16).padStart(2, "0")).join("");
+  }
+
   return {
     async readActive(dataset) {
       const pointer = await readPointer(dataset);
@@ -60,17 +97,13 @@ export function createVersionedSnapshotStore(backend: VersionedStoreBackend): Ve
       return version;
     },
 
-    async activateVersion(dataset, versionId) {
-      const exists = await backend.read(versionKey(dataset, versionId));
-      if (!exists) throw new Error(`Unknown version ${versionId} for ${dataset}`);
-      const pointer: ActivePointer = { versionId, updatedAt: new Date().toISOString() };
-      await backend.write(activeKey(dataset), JSON.stringify(pointer, null, 2));
+    async activateVersion(dataset, versionId, details = { actor: "system", reason: "Version activated", checksum: "" }) {
+      await activate({ dataset, versionId, action: "activate", details });
     },
 
-    async rollback(dataset) {
-      const pointerRaw = await backend.read(activeKey(dataset));
-      if (!pointerRaw) throw new Error(`No active version for ${dataset}`);
-      const current = JSON.parse(pointerRaw) as ActivePointer;
+    async rollback(dataset, details = { actor: "system", reason: "Rollback to previous version", checksum: "" }, expectedPreviousVersionId) {
+      const current = await readPointer(dataset);
+      if (!current) throw new Error(`No active version for ${dataset}`);
       const keys = await backend.list(versionsPrefix(dataset));
       const versionIds = keys
         .map(k => k.slice(versionsPrefix(dataset).length).replace(/\.json$/, ""))
@@ -78,9 +111,13 @@ export function createVersionedSnapshotStore(backend: VersionedStoreBackend): Ve
         .sort()
         .reverse();
       const idx = versionIds.indexOf(current.versionId);
-      const previousId = idx >= 0 ? versionIds[idx + 1] : versionIds[1];
+      if (idx < 0) throw new Error(`Active version ${current.versionId} is missing for ${dataset}`);
+      const previousId = versionIds[idx + 1];
       if (!previousId) throw new Error(`No prior version to roll back for ${dataset}`);
-      await this.activateVersion(dataset, previousId);
+      if (expectedPreviousVersionId !== undefined && expectedPreviousVersionId !== previousId) {
+        throw new Error(`Previous version changed for ${dataset}`);
+      }
+      await activate({ dataset, versionId: previousId, action: "rollback", details });
       return { versionId: previousId, createdAt: createdAtFromVersionId(previousId) };
     },
 

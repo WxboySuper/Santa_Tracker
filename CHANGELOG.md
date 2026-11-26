@@ -6,6 +6,12 @@
 - **Research quality:** Adds 37 original, source-linked cultural notes and 104 permissively licensed, attributed photos; 77 cards remain without a sourced note.
 - **Entity matching:** Includes only candidates matched to an English Wikidata entity within 40 km; 11 candidates remain unresolved.
 
+## [Unreleased] - Validated route snapshot release controls (#302)
+
+- **Route validation:** Adds a read-only validator for stored route versions, with season, schema, SHA-256 checksum, coordinate, duplicate-name, and schedule checks.
+- **Activation and rollback:** Adds authenticated APIs guarded by `If-Match`; successful pointer changes keep the actor, reason, previous version, checksum, and timestamp in the same atomic active-pointer write.
+- **Docs and tests:** Documents the operator API and tests route validation, checksum stability, activation audit history, and rollback.
+
 ## [Unreleased] - Representative city stop cards batch 2
 
 - **Candidate coverage:** Adds 93 verified draft cards from the next country and territory candidates, keyed by stable generator place IDs.
