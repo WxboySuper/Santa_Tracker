@@ -1,4 +1,5 @@
-import { applyCandidateOverrides, assertNoLegacySelectionOverrides, type RouteOverrides } from './overrides';
+import { applyCandidateOverrides, type RouteOverrides } from './overrides';
+import { assertNoLegacySelectionOverrides } from './selection-overrides';
 import type { Candidate, GeneratorConfig } from './types';
 
 export type CandidateSelection = { candidates: Candidate[]; invalidCandidateIds: string[]; duplicateCandidateIds: string[] };

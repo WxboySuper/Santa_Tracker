@@ -7,14 +7,6 @@ export type RouteOverrides = {
   rename?: Record<string, string>;
 };
 
-export function assertNoLegacySelectionOverrides(overrides: RouteOverrides): void {
-  const hasLocks = (overrides.lock?.length ?? 0) > 0;
-  const hasSwaps = Object.keys(overrides.swap ?? {}).length > 0;
-  if (hasLocks || hasSwaps) {
-    throw new Error('Lock and swap selection overrides are unsupported by the midnight sweep');
-  }
-}
-
 function validateIds(known: Set<string>, ids: string[]): void {
   for (const id of ids) {
     if (!known.has(id)) throw new Error(`Unknown stop: ${id}`);
