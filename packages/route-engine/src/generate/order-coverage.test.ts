@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { allocateBandFill, bandMaximumStops } from './order-coverage';
+import { allocateBandFill, bandMaximumStops, insertCountryCoverage } from './order-coverage';
+import { planTiming } from './order-shared';
+import { DEFAULT_GENERATOR_LIMITS, type Candidate } from './types';
 
 describe('band fill allocation', () => {
   it('allocates the full remainder when every band weight is zero', () => {
@@ -40,5 +42,67 @@ describe('band fill allocation', () => {
 
     expect(caps.get(0)).toBeGreaterThanOrEqual(1);
     expect([...caps.values()].reduce((sum, count) => sum + count, 0)).toBe(11);
+  });
+
+  it('preserves every existing country when replacing one stop with two near the route ceiling', () => {
+    const makePlace = (id: string, country: string, lat: number, lng: number): Candidate => ({
+      id,
+      name: id,
+      country,
+      lat,
+      lng,
+      timezone: 'Etc/UTC',
+      utcOffsetMinutes: 0,
+      category: 'populated',
+      population: 1_000,
+    });
+    const route = Array.from({ length: 699 }, (_, index) => makePlace(
+      `route-${index}`,
+      index === 0 ? 'US' : index === 1 ? 'FR' : 'CA',
+      0,
+      100 - index * 0.2,
+    ));
+    const planned = planTiming(route, DEFAULT_GENERATOR_LIMITS);
+    expect(planned).toBeDefined();
+    if (!planned) throw new Error('Expected the 699-stop route to be feasible');
+
+    const expanded = insertCountryCoverage(planned.places, [
+      ...route,
+      makePlace('new-GB', 'GB', 2, -30),
+      makePlace('new-DE', 'DE', 2, -31),
+    ], DEFAULT_GENERATOR_LIMITS);
+
+    expect(expanded).toHaveLength(700);
+    expect(new Set(expanded.map((place) => place.country))).toEqual(new Set(['US', 'FR', 'CA', 'GB', 'DE']));
+  });
+
+  it('chooses compatible country representatives before one that blocks multiple countries', () => {
+    const makePlace = (id: string, country: string, lat: number, lng: number, utcOffsetMinutes: number): Candidate => ({
+      id,
+      name: id,
+      country,
+      lat,
+      lng,
+      timezone: 'Etc/UTC',
+      utcOffsetMinutes,
+      category: 'populated',
+      population: 1_000,
+    });
+    const launch = makePlace('launch-US', 'US', 0, 100, 0);
+    const initial = planTiming([launch], DEFAULT_GENERATOR_LIMITS);
+    expect(initial).toBeDefined();
+    if (!initial) throw new Error('Expected the initial route to be feasible');
+
+    const expanded = insertCountryCoverage(initial.places, [
+      launch,
+      makePlace('the-valley-AI', 'AI', 18.220833333333, -63.051666666667, -240),
+      makePlace('philipsburg-SX', 'SX', 18.024166666667, -63.043333333333, -240),
+      makePlace('marigot-MF', 'MF', 18.066666666667, -63.084722222222, -240),
+    ], DEFAULT_GENERATOR_LIMITS);
+
+    const countries = new Set(expanded.map((place) => place.country));
+    expect(countries.has('AI')).toBe(true);
+    expect(countries.has('SX')).toBe(true);
+    expect(countries.has('MF')).toBe(false);
   });
 });

@@ -7,6 +7,8 @@ import { compareStableIds } from './selection';
 import type { Candidate, GeneratorConfig } from './types';
 import { categoryPreference, countryCapacity, hardDetourCount, MAX_ROUTE_STOPS, planTiming, requiredSnapshotOffset, canStartFromNorthPole, REQUIRED_ADMIN1_CODES, seededRandom, SeparationIndex, type RoutePlan, type TimedCandidate } from './order-shared';
 
+const COUNTRY_COVERAGE_CONFLICT_WEIGHT = 50;
+
 function insertionPositions(order: Candidate[], place: Candidate): { index: number; addedDistance: number }[] {
   const positions: { index: number; addedDistance: number }[] = [];
   // The launch candidate stays first, so coverage insertions cannot precede it.
@@ -203,10 +205,23 @@ function rankCountryCoverageGroups(state: InsertionState, pool: Candidate[], pas
     group.rank = Math.min(group.rank, rank);
     groups.set(place.country, group);
   }
-  return [...groups.values()].map((group) => ({
+  const rankedGroups = [...groups.values()].map((group) => ({
     ...group,
     candidates: group.candidates.sort((left, right) => left.rank - right.rank || compareStableIds(left.place.id, right.place.id)),
-  })).sort((left, right) => left.rank - right.rank || compareStableIds(left.country, right.country));
+  }));
+  const representatives = rankedGroups.flatMap((group) => {
+    const place = group.candidates.find((candidate) => state.separation.allows(candidate.place))?.place;
+    return place ? [{ country: group.country, place }] : [];
+  });
+  return rankedGroups.map((group) => {
+    const otherRepresentatives = representatives.filter((candidate) => candidate.country !== group.country);
+    const candidates = group.candidates.map((candidate) => {
+      const conflicts = otherRepresentatives.filter((other) =>
+        haversineKm(candidate.place, other.place) < pass.config.minStopSeparationKm).length;
+      return { ...candidate, rank: candidate.rank + conflicts * pass.config.minStopSeparationKm * COUNTRY_COVERAGE_CONFLICT_WEIGHT };
+    }).sort((left, right) => left.rank - right.rank || compareStableIds(left.place.id, right.place.id));
+    return { ...group, candidates, rank: candidates[0]?.rank ?? Number.POSITIVE_INFINITY };
+  }).sort((left, right) => left.rank - right.rank || compareStableIds(left.country, right.country));
 }
 
 function tryCountryRepresentative(state: InsertionState, place: Candidate, pass: InsertionPass): boolean {
@@ -216,9 +231,10 @@ function tryCountryRepresentative(state: InsertionState, place: Candidate, pass:
 }
 
 function stateWithoutStop(state: InsertionState, place: TimedCandidate, pass: InsertionPass): InsertionState | undefined {
-  // Keep the launch fixed. A singleton country stop may be exchanged only
-  // when the caller proves the replacement covers more countries overall.
+  // Keep the launch and every country's last stop. Replacement must preserve
+  // existing mandatory coverage while adding new countries.
   if (state.route[0]?.id === place.id) return undefined;
+  if (state.counts.get(place.country) === 1) return undefined;
   if (isFinalRequiredAdmin1OrOffsetStop(state, place)) return undefined;
   const remaining = state.route.filter((selected) => selected.id !== place.id);
   if (!planTiming(remaining, pass.config)) return undefined;
