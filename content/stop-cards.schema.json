@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Santa Tracker stop card",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["place_id", "country", "note", "sources", "topic_key", "photo", "review_status"],
+  "properties": {
+    "place_id": { "type": "string", "minLength": 1 },
+    "country": { "type": "string", "minLength": 1 },
+    "note": { "type": ["string", "null"], "minLength": 40, "maxLength": 280 },
+    "sources": { "type": "array", "items": { "type": "string", "format": "uri" }, "minItems": 1 },
+    "topic_key": { "type": ["string", "null"], "pattern": "^[a-z0-9][a-z0-9._-]*$" },
+    "photo": { "type": ["object", "null"], "additionalProperties": false, "required": ["url", "width", "height", "author", "license", "license_url", "source_page"], "properties": {
+      "url": { "type": "string", "format": "uri" }, "width": { "type": "integer", "minimum": 1 }, "height": { "type": "integer", "minimum": 1 },
+      "author": { "type": "string", "minLength": 1 }, "license": { "enum": ["CC0", "Public domain", "CC BY", "CC BY-SA"] },
+      "license_url": { "type": "string", "format": "uri" }, "source_page": { "type": "string", "format": "uri" }
+    } },
+    "review_status": { "enum": ["draft", "approved", "stale"] },
+    "allow_duplicate_topic": { "type": "boolean" },
+    "country": { "type": "string" }
+  }
+}

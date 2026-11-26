@@ -1,5 +1,11 @@
 # Changelog — per-PR exhaustive (enforced in CI)
 
+## [Unreleased] - Source-backed stop card contract (#260)
+
+- **Card schema:** Defines stable place IDs, concise sourced notes, unique topic keys, review status, and fully attributed permissive-license photos.
+- **Validation:** Adds CI checks for missing sources, repeated place IDs or topics, near-duplicate notes, and unlicensed or unattributed photos.
+- **Research tooling:** Adds a cached, rate-limited research script for Wikidata entities, Wikipedia summaries, and Wikimedia Commons image license metadata.
+
 ## [Unreleased] - Route freeze moved to Dec 5 (#321)
 
 - **Freeze gates:** Records the owner's 2026-11-26 decision to move the route freeze from Nov 25 to Dec 5, 18:00 UTC. The other gates are unchanged.

@@ -40,6 +40,9 @@ jobs:
       - name: Test
         run: pnpm test
 
+      - name: Validate stop cards
+        run: pnpm content:validate
+
       - name: Production build
         run: pnpm build
 
