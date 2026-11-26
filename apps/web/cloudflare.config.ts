@@ -21,11 +21,14 @@ export default defineConfig({
       VINEXT_KV_CACHE: bindings.kv(),
       // Create in Cloudflare dashboard before deploy; name is a placeholder.
       SANTA_SNAPSHOTS: bindings.r2({ name: "santa-tracker-snapshots" }),
+      WEATHER_CACHE: bindings.kv({ id: "REPLACE_WITH_WEATHER_CACHE_NAMESPACE_ID" }),
+      WEATHER_BUDGET: bindings.worker({ worker: "santa-weather-cron" }),
       // Runtime vars (surface on process.env via nodejs_compat). Without these the app
       // ignores the R2 binding and keeps Advent disabled. Mirrors wrangler.toml [vars].
       // SECRET_KEY and ADMIN_PASSWORD are set separately with `wrangler secret put`.
       SANTA_STORAGE_BACKEND: bindings.text("r2"),
       ADVENT_ENABLED: bindings.text("true"),
+      WEATHER_ENABLED: bindings.text("true"),
     },
   }),
 });

@@ -1,0 +1,52 @@
+import { FLIGHT_WINDOW_MS, takeoffForYear } from "./countdown";
+import { fetchWeatherBatch, WEATHER_TTL_SECONDS, weatherCellKey, type WeatherKV, type WeatherPoint } from "./weather";
+import type { RouteNode } from "./locations";
+
+export const WEATHER_REFRESH_CRON = "*/15 * * * *";
+export const WEATHER_LOOKAHEAD_MS = 2 * 60 * 60 * 1000;
+export const WEATHER_BATCH_SIZE = 50;
+const WINDOW_LEAD_MS = 30 * 60 * 1000;
+
+export function isWeatherRefreshOpen(now: number): boolean {
+  const year = new Date(now).getUTCFullYear();
+  return [year - 1, year, year + 1].some(candidate => {
+    const takeoff = takeoffForYear(candidate);
+    return now >= takeoff - WINDOW_LEAD_MS && now < takeoff + FLIGHT_WINDOW_MS;
+  });
+}
+
+export function weatherRoutePoints(route: RouteNode[], now: number): WeatherPoint[] {
+  const scheduled = route.map((node, index) => ({
+    node,
+    index,
+    at: Date.parse(node.schedule?.arrival_utc ?? node.schedule?.departure_utc ?? ""),
+  })).filter(entry => Number.isFinite(entry.at));
+  const current = scheduled.filter(entry => entry.at <= now).at(-1) ?? scheduled[0];
+  const upcoming = scheduled.filter(entry => entry.at >= now && entry.at <= now + WEATHER_LOOKAHEAD_MS);
+  const selected = [...(current ? [current] : []), ...upcoming].map(entry => entry.node.location);
+  return [...new Map(selected.map(point => {
+    const normalized = { lat: point.lat, lon: point.lng };
+    return [weatherCellKey(normalized), normalized] as const;
+  })).values()];
+}
+
+export async function refreshWeather(
+  now: number,
+  route: RouteNode[],
+  store: WeatherKV,
+  fetcher: typeof fetch = fetch,
+): Promise<number> {
+  if (!isWeatherRefreshOpen(now)) return 0;
+  const points = weatherRoutePoints(route, now);
+  const missing: WeatherPoint[] = [];
+  for (const point of points) {
+    try {
+      if (!await store.get(weatherCellKey(point))) missing.push(point);
+    } catch { missing.push(point); }
+  }
+  const results = await fetchWeatherBatch(missing, fetcher, WEATHER_BATCH_SIZE);
+  for (const [key, value] of results) {
+    try { await store.put(key, JSON.stringify(value), { expirationTtl: WEATHER_TTL_SECONDS }); } catch { /* Retry on the next cron tick. */ }
+  }
+  return Math.ceil(missing.length / WEATHER_BATCH_SIZE);
+}

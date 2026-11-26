@@ -30,6 +30,14 @@ The Worker caches the flag read for up to 7 seconds. `/api/route` has a 60-secon
 
 The Worker keeps the last successfully read, valid flag document in memory per isolate. If a later storage read fails or returns corrupt data, it continues using that last-known-good document, so a saved hide survives a transient storage problem. Failed reads are cached for at most 7 seconds before retrying. On a cold isolate with no valid read yet, or when the key is missing, defaults preserve the regular season schedule; storage trouble on startup never hides a feature by accident. Requests continue using the normal season rules.
 
+## Weather provider controls
+
+The weather cron runs every 15 minutes, but does provider work only from 09:30 UTC on Dec 24 through 12:00 UTC on Dec 25. It reads the active route and refreshes current and upcoming stop cells in groups of at most 50. The endpoint reads shared KV first. Every Open-Meteo call, from cron or an endpoint fallback, passes through one Durable Object budget capped at 900 calls per UTC day and 300 per minute.
+
+To turn weather off, set `WEATHER_ENABLED=false` in `apps/web/cloudflare.config.ts`, `apps/web/wrangler.toml`, and `apps/web/weather-cron.wrangler.toml`, then deploy both Workers. The endpoint returns `null` and the scheduled worker exits before reading the route or contacting Open-Meteo.
+
+Before the first deployment, the owner must create a Cloudflare KV namespace named `santa-weather-cache`, copy its ID, and replace `REPLACE_WITH_WEATHER_CACHE_NAMESPACE_ID` in `apps/web/cloudflare.config.ts`, `apps/web/wrangler.toml`, and `apps/web/weather-cron.wrangler.toml`. The deploy workflow deploys the cron Worker before the application Worker. The Durable Object namespace is registered by its migration on that first cron Worker deployment. Do not create or bind production resources from a local Wrangler command.
+
 ## Gaps to close before December
 
 See the [November 2026 browser and accessibility matrix](qa/browser-matrix-2026-11.md) for automated browser and viewport results, saved screenshots, reproducible failures, and owner-run real-device and screen-reader checks.

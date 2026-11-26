@@ -1,63 +1,118 @@
 import { NextResponse } from "next/server";
 
-const GRID = 0.25;
-const CACHE_SECONDS = 720;
+export const WEATHER_GRID = 0.25;
+export const WEATHER_TTL_SECONDS = 30 * 60;
 const TIMEOUT_MS = 4500;
 const labels: Record<number, string> = { 0: "Clear", 1: "Mostly clear", 2: "Partly cloudy", 3: "Overcast", 45: "Fog", 48: "Icy fog", 51: "Light drizzle", 53: "Drizzle", 55: "Heavy drizzle", 56: "Freezing drizzle", 57: "Heavy freezing drizzle", 61: "Light rain", 63: "Rain", 65: "Heavy rain", 66: "Freezing rain", 67: "Heavy freezing rain", 71: "Light snow", 73: "Snow", 75: "Heavy snow", 77: "Snow grains", 80: "Rain showers", 81: "Heavy showers", 82: "Violent showers", 85: "Snow showers", 86: "Heavy snow showers", 95: "Thunderstorm", 96: "Thunderstorm with hail", 99: "Severe thunderstorm with hail" };
+export type WeatherResult = { temperatureC: number; temperatureF: number; code: number; label: string };
+export type WeatherPoint = { lat: number; lon: number };
 type WeatherFetch = (url: string, init: RequestInit) => Promise<Response>;
-type WeatherResult = { temperatureC: number; temperatureF: number; code: number; label: string };
-function displayWeather(temperatureC: number, code: number): WeatherResult { return { temperatureC, temperatureF: Math.round((temperatureC * 9 / 5 + 32) * 10) / 10, code, label: labels[code] ?? "Weather" }; }
-function validWeather(data: { current?: { temperature_2m?: unknown; weather_code?: unknown } }): data is { current: { temperature_2m: number; weather_code: number } } {
-  return typeof data.current?.temperature_2m === "number" && Number.isFinite(data.current.temperature_2m) && typeof data.current.weather_code === "number" && Number.isInteger(data.current.weather_code);
+export interface WeatherKV {
+  get(key: string): Promise<string | null>;
+  put(key: string, value: string, options?: { expirationTtl?: number }): Promise<void>;
 }
-export async function fetchWeather(lat: number, lon: number, fetcher: WeatherFetch = fetch): Promise<WeatherResult | null> {
-  const roundedLat = Math.round(lat / GRID) * GRID;
-  const roundedLon = Math.round(lon / GRID) * GRID;
+export interface FallbackBudget {
+  fetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response>;
+}
+
+function rounded(point: WeatherPoint): WeatherPoint {
+  return { lat: Math.round(point.lat / WEATHER_GRID) * WEATHER_GRID, lon: Math.round(point.lon / WEATHER_GRID) * WEATHER_GRID };
+}
+export function weatherCellKey(point: WeatherPoint): string {
+  const cell = rounded(point);
+  return `cell:${cell.lat.toFixed(2)}:${cell.lon.toFixed(2)}`;
+}
+function displayWeather(temperatureC: number, code: number): WeatherResult {
+  return { temperatureC, temperatureF: Math.round((temperatureC * 9 / 5 + 32) * 10) / 10, code, label: labels[code] ?? "Weather" };
+}
+function validCurrent(value: unknown): value is { temperature_2m: number; weather_code: number } {
+  if (!value || typeof value !== "object") return false;
+  const current = value as Record<string, unknown>;
+  return typeof current.temperature_2m === "number" && Number.isFinite(current.temperature_2m) && typeof current.weather_code === "number" && Number.isInteger(current.weather_code);
+}
+function providerUrl(points: WeatherPoint[]): string {
   const url = new URL("https://api.open-meteo.com/v1/forecast");
-  url.search = new URLSearchParams({ latitude: String(roundedLat), longitude: String(roundedLon), current: "temperature_2m,weather_code", temperature_unit: "celsius", forecast_days: "1" }).toString();
+  url.search = new URLSearchParams({
+    latitude: points.map(point => String(point.lat)).join(","),
+    longitude: points.map(point => String(point.lon)).join(","),
+    current: "temperature_2m,weather_code", temperature_unit: "celsius", forecast_days: "1",
+  }).toString();
+  return url.toString();
+}
+async function fetchJson(url: string, fetcher: WeatherFetch): Promise<unknown | null> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
   try {
-    const response = await fetcher(url.toString(), { signal: controller.signal, headers: { Accept: "application/json" } });
-    if (!response.ok) return null;
-    const data = await response.json() as { current?: { temperature_2m?: unknown; weather_code?: unknown } };
-    return validWeather(data) ? displayWeather(data.current.temperature_2m, data.current.weather_code) : null;
+    const response = await fetcher(url, { signal: controller.signal, headers: { Accept: "application/json" } });
+    return response.ok ? await response.json() : null;
   } catch { return null; } finally { clearTimeout(timer); }
 }
-function parseCoordinate(value: string | null, minimum: number, maximum: number): number | null {
-  if (value === null) return null;
-  if (value.trim() === "") return null;
-  const coordinate = Number(value);
-  if (!Number.isFinite(coordinate)) return null;
-  if (coordinate < minimum) return null;
-  if (coordinate > maximum) return null;
-  return coordinate;
+export async function fetchWeather(lat: number, lon: number, fetcher: WeatherFetch = fetch): Promise<WeatherResult | null> {
+  const body = await fetchJson(providerUrl([rounded({ lat, lon })]), fetcher);
+  const current = body && typeof body === "object" ? (body as { current?: unknown }).current : null;
+  return validCurrent(current) ? displayWeather(current.temperature_2m, current.weather_code) : null;
 }
-function parseCoordinates(params: URLSearchParams): { lat: number; lon: number } | null {
+
+/** Fetches unique grid cells in bounded multi-coordinate provider calls. */
+export async function fetchWeatherBatch(
+  points: WeatherPoint[], fetcher: WeatherFetch = fetch, batchSize = 50,
+): Promise<Map<string, WeatherResult>> {
+  const unique = [...new Map(points.map(point => {
+    const cell = rounded(point);
+    return [weatherCellKey(cell), cell] as const;
+  })).entries()];
+  const results = new Map<string, WeatherResult>();
+  for (let start = 0; start < unique.length; start += batchSize) {
+    const batch = unique.slice(start, start + batchSize);
+    const body = await fetchJson(providerUrl(batch.map(([, point]) => point)), fetcher);
+    const rows = Array.isArray(body) ? body : [body];
+    rows.forEach((row, index) => {
+      const current = row && typeof row === "object" ? (row as { current?: unknown }).current : null;
+      if (batch[index] && validCurrent(current)) results.set(batch[index][0], displayWeather(current.temperature_2m, current.weather_code));
+    });
+  }
+  return results;
+}
+function parseCoordinate(value: string | null, min: number, max: number): number | null {
+  if (value === null || value.trim() === "") return null;
+  const number = Number(value);
+  return Number.isFinite(number) && number >= min && number <= max ? number : null;
+}
+function getBindings(): { weather: WeatherKV | null; budget: FallbackBudget | null } {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { env } = require("cloudflare:workers") as { env: { WEATHER_CACHE?: WeatherKV; WEATHER_BUDGET?: FallbackBudget } };
+    return { weather: env.WEATHER_CACHE ?? null, budget: env.WEATHER_BUDGET ?? null };
+  } catch { return { weather: null, budget: null }; }
+}
+
+export async function getWeatherResponse(
+  request: Request,
+  options: { enabled?: boolean; store?: WeatherKV | null; budget?: FallbackBudget | null; fetcher?: WeatherFetch } = {},
+): Promise<Response> {
+  if (options.enabled === false || process.env.WEATHER_ENABLED === "false") return NextResponse.json(null, { headers: { "Cache-Control": "no-store" } });
+  const params = new URL(request.url).searchParams;
   const lat = parseCoordinate(params.get("lat"), -90, 90);
   const lon = parseCoordinate(params.get("lon"), -180, 180);
-  if (lat === null || lon === null) return null;
-  return { lat, lon };
-}
-async function cachedWeather(key: Request, cache: Cache | undefined): Promise<Response | null> {
-  if (!cache) return null;
-  try { return (await cache.match(key)) ?? null; } catch { return null; }
-}
-export async function getWeatherResponse(request: Request): Promise<Response> {
-  const coordinates = parseCoordinates(new URL(request.url).searchParams);
-  if (!coordinates) return NextResponse.json({ error: "Invalid coordinates" }, { status: 400 });
-  const lat = Math.round(coordinates.lat / GRID) * GRID;
-  const lon = Math.round(coordinates.lon / GRID) * GRID;
-  const key = new URL(request.url); key.search = new URLSearchParams({ lat: String(lat), lon: String(lon) }).toString();
-  const cache = (globalThis as typeof globalThis & { caches?: { default?: Cache } }).caches?.default;
-  const keyRequest = new Request(key.toString());
-  const cached = await cachedWeather(keyRequest, cache);
-  if (cached) return cached;
-  const weather = await fetchWeather(lat, lon);
-  if (!weather) return NextResponse.json(null, { status: 502, headers: { "Cache-Control": "no-store" } });
-  const response = NextResponse.json(weather, { status: 200, headers: { "Cache-Control": `public, max-age=0, s-maxage=${CACHE_SECONDS}`, "CDN-Cache-Control": `public, max-age=${CACHE_SECONDS}` } });
-  if (cache) {
-    try { await cache.put(keyRequest, response.clone()); } catch { /* A cache outage must not hide a fresh weather result. */ }
+  if (lat === null || lon === null) return NextResponse.json({ error: "Invalid coordinates" }, { status: 400 });
+  const point = rounded({ lat, lon });
+  const bindings = options.store === undefined && options.budget === undefined ? getBindings() : null;
+  const store = options.store ?? bindings?.weather ?? null;
+  const budget = options.budget ?? bindings?.budget ?? null;
+  const key = weatherCellKey(point);
+  if (store) {
+    try {
+      const value = await store.get(key);
+      if (value) return NextResponse.json(JSON.parse(value), { headers: { "Cache-Control": "public, max-age=0, s-maxage=720" } });
+    } catch { /* A KV outage falls through to the bounded fallback. */ }
   }
-  return response;
+  if (!budget) return NextResponse.json(null, { headers: { "Cache-Control": "no-store" } });
+  try {
+    const permission = await budget.fetch("https://weather-budget/consume", { method: "POST" });
+    if (!permission.ok) return NextResponse.json(null, { headers: { "Cache-Control": "no-store" } });
+    const weather = await fetchWeather(point.lat, point.lon, options.fetcher);
+    if (!weather) return NextResponse.json(null, { status: 502, headers: { "Cache-Control": "no-store" } });
+    try { await store?.put(key, JSON.stringify(weather), { expirationTtl: WEATHER_TTL_SECONDS }); } catch { /* Keep the response even if KV is down. */ }
+    return NextResponse.json(weather, { headers: { "Cache-Control": "public, max-age=0, s-maxage=720" } });
+  } catch { return NextResponse.json(null, { headers: { "Cache-Control": "no-store" } }); }
 }
