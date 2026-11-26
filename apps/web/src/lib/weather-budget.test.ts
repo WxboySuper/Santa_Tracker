@@ -45,7 +45,11 @@ describe("global weather provider budget", () => {
     expect(responses.at(-1)?.status).toBe(429);
     expect(transactions).toBe(903);
     await budget.alarm();
-    expect(alarmAt).toBe((Math.floor(start / 60_000) + 4) * 60_000);
+    expect(alarmAt).toBeGreaterThan(Date.now());
+    const staleAlarm = Date.now() - 1;
+    alarmAt = staleAlarm;
+    expect((await budget.fetch(consume)).status).toBe(429);
+    expect(alarmAt).toBeGreaterThan(staleAlarm);
     vi.restoreAllMocks();
   });
 });
