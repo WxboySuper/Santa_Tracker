@@ -12,25 +12,38 @@ export async function POST(request: Request): Promise<Response> {
 }
 
 async function processRecoveryLogin(request: Request): Promise<Response> {
-  const ip = getAdminClientIp(request);
-  if (!ip) return Response.json({ error: "Admin authentication is unavailable" }, { status: 503 });
-  const locked = await checkLoginRateLimit(ip);
-  if (locked) { await recordPasskeyFailure({ action: "recovery_login_throttled" }); return tooManyAttempts(locked.retryAfterSeconds); }
+  const ip = await recoveryClientIp(request);
+  if (ip instanceof Response) return ip;
+  const code = await readRecoveryCode(request, ip);
+  if (code instanceof Response) return code;
   try {
-    const settings = webAuthnSettings(request);
-    if (request.headers.get("origin") !== settings.origin) return failure(ip, "Invalid origin", 403);
-  } catch { return Response.json({ error: "Authentication is not configured" }, { status: 503 }); }
-  const input = await readCappedJson(request, 4096);
-  if (!input.ok) return failure(ip, input.error, input.status);
-  if (!isRecoveryInput(input.value)) return failure(ip, "A recovery code is required", 400);
-  try {
-    const token = await loginWithRecoveryCode({ code: input.value.code });
+    const token = await loginWithRecoveryCode({ code });
     await clearLoginAttempts(ip);
     return responseWithSession(token, { authenticated: true, recoveryCodeUsed: true });
   } catch (error) {
     if (error instanceof Error && error.message === "Invalid recovery code") return failure(ip, "Invalid recovery code", 401);
     return Response.json({ error: "Admin authentication storage is unavailable" }, { status: 503 });
   }
+}
+
+async function recoveryClientIp(request: Request): Promise<string | Response> {
+  const ip = getAdminClientIp(request);
+  if (!ip) return Response.json({ error: "Admin authentication is unavailable" }, { status: 503 });
+  const locked = await checkLoginRateLimit(ip);
+  if (!locked) return ip;
+  await recordPasskeyFailure({ action: "recovery_login_throttled" });
+  return tooManyAttempts(locked.retryAfterSeconds);
+}
+
+async function readRecoveryCode(request: Request, ip: string): Promise<string | Response> {
+  let origin: string;
+  try { origin = webAuthnSettings(request).origin; }
+  catch { return Response.json({ error: "Authentication is not configured" }, { status: 503 }); }
+  if (request.headers.get("origin") !== origin) return failure(ip, "Invalid origin", 403);
+  const input = await readCappedJson(request, 4096);
+  if (!input.ok) return failure(ip, input.error, input.status);
+  if (!isRecoveryInput(input.value)) return failure(ip, "A recovery code is required", 400);
+  return input.value.code;
 }
 async function failure(ip: string, message: string, status: number): Promise<Response> {
   await recordPasskeyFailure({ action: "recovery_login" });

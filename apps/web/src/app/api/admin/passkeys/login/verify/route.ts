@@ -14,28 +14,46 @@ export async function POST(request: Request): Promise<Response> {
 }
 
 async function processLoginVerification(request: Request): Promise<Response> {
+  const ip = await requestIp(request);
+  if (ip instanceof Response) return ip;
+  const parsed = await readAuthenticationRequest(request, ip);
+  if (parsed instanceof Response) return parsed;
+  try {
+    const token = await finishAuthentication({ request, challengeId: parsed.challengeId, response: parsed.response });
+    await clearLoginAttempts(parsed.ip);
+    await clearLoginAttempts(`passkey-options:${parsed.ip}`);
+    const response = await responseWithSession(token, { authenticated: true });
+    return clearChallengeCookie(response);
+  } catch (error) {
+    if (error instanceof PasskeyRequestError) return failed(parsed.ip, "Invalid passkey response", 401);
+    return NextResponse.json({ error: "Admin authentication storage is unavailable" }, { status: 503 });
+  }
+}
+
+async function requestIp(request: Request): Promise<string | Response> {
   const ip = getAdminClientIp(request);
   if (!ip) return NextResponse.json({ error: "Admin authentication is unavailable" }, { status: 503 });
   const locked = await checkLoginRateLimit(ip);
-  if (locked) { await recordPasskeyFailure({ action: "passkey_login_throttled" }); return tooManyAttempts(locked.retryAfterSeconds); }
-  let settings: ReturnType<typeof webAuthnSettings>;
-  try { settings = webAuthnSettings(request); }
-  catch { return failed(ip, "Authentication is not configured", 503); }
-  if (request.headers.get("origin") !== settings.origin) return failed(ip, "Invalid origin", 403);
+  if (!locked) return ip;
+  await recordPasskeyFailure({ action: "passkey_login_throttled" });
+  return tooManyAttempts(locked.retryAfterSeconds);
+}
+
+async function readAuthenticationRequest(request: Request, ip: string): Promise<{ ip: string; challengeId: string; response: AuthenticationResponseJSON } | Response> {
+  const settings = await getRequestSettings(request, ip);
+  if (settings instanceof Response) return settings;
   const challengeId = challengeIdFromRequest(request);
   const input = await readCappedJson(request, 64 * 1024);
   if (!input.ok) return failed(ip, input.error, input.status);
   if (!challengeId || !isAuthenticationResponse(input.value)) return failed(ip, "Invalid passkey response", 401);
-  try {
-    const token = await finishAuthentication({ request, challengeId, response: input.value });
-    await clearLoginAttempts(ip);
-    await clearLoginAttempts(`passkey-options:${ip}`);
-    const response = await responseWithSession(token, { authenticated: true });
-    return clearChallengeCookie(response);
-  } catch (error) {
-    if (error instanceof PasskeyRequestError) return failed(ip, "Invalid passkey response", 401);
-    return NextResponse.json({ error: "Admin authentication storage is unavailable" }, { status: 503 });
-  }
+  return { ip, challengeId, response: input.value };
+}
+
+async function getRequestSettings(request: Request, ip: string): Promise<ReturnType<typeof webAuthnSettings> | Response> {
+  let settings: ReturnType<typeof webAuthnSettings>;
+  try { settings = webAuthnSettings(request); }
+  catch { return failed(ip, "Authentication is not configured", 503); }
+  return request.headers.get("origin") === settings.origin ? settings : failed(ip, "Invalid origin", 403);
 }
 async function failed(ip: string, message: string, status: number): Promise<Response> {
   await recordPasskeyFailure({ action: "passkey_login" });
