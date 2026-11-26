@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireAdminAuth } from "@/lib/auth";
 import { readEmergencyControls, replaceEmergencyControls, type EmergencyControlValues } from "@/lib/emergency-controls";
-import { readCappedBody } from "@/lib/read-capped-body";
+import { readCappedJson } from "@/lib/admin-json";
 
 export const dynamic = "force-dynamic";
 const NO_STORE = { "Cache-Control": "private, no-store" };
@@ -40,22 +40,10 @@ type JsonResult = { kind: "body"; value: { values: EmergencyControlValues; reaso
 const MAX_BODY_BYTES = 2_048;
 
 async function readJson(request: Request): Promise<JsonResult> {
-  if (!hasJsonContentType(request)) return { kind: "invalid" };
-  const declaredLength = Number(request.headers.get("content-length"));
-  if (Number.isFinite(declaredLength) && declaredLength > MAX_BODY_BYTES) return { kind: "too-large" };
-  const bytes = await readCappedBody(request.body, MAX_BODY_BYTES);
-  if (bytes.kind !== "bytes") return bytes;
-  try {
-    const parsed: unknown = JSON.parse(new TextDecoder().decode(bytes.value));
-    const value = parseEmergencyPayload(parsed);
-    return value ? { kind: "body", value } : { kind: "invalid" };
-  } catch {
-    return { kind: "invalid" };
-  }
-}
-
-function hasJsonContentType(request: Request): boolean {
-  return request.headers.get("content-type")?.toLowerCase().startsWith("application/json") ?? false;
+  const result = await readCappedJson(request, MAX_BODY_BYTES);
+  if (!result.ok) return result.status === 413 ? { kind: "too-large" } : { kind: "invalid" };
+  const value = parseEmergencyPayload(result.value);
+  return value ? { kind: "body", value } : { kind: "invalid" };
 }
 
 function parseEmergencyPayload(value: unknown): { values: EmergencyControlValues; reason: string } | null {

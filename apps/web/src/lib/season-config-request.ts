@@ -1,5 +1,5 @@
 import { parseFeatureFlagOverrides, SEASON_CONFIG_ENVIRONMENTS, type SeasonConfigEnvironment } from "./season-config";
-import { readCappedBody } from "./read-capped-body";
+import { readCappedJson } from "./admin-json";
 
 export type UpdateBody = { overrides: NonNullable<ReturnType<typeof parseFeatureFlagOverrides>>; reason: string };
 export type UpdateBodyResult = { kind: "body"; value: UpdateBody } | { kind: "invalid" } | { kind: "too-large" };
@@ -25,11 +25,8 @@ export async function readPreviewBody(request: Request): Promise<PreviewBodyResu
 }
 
 async function readJsonBody(request: Request): Promise<JsonBodyResult> {
-  if (!request.headers.get("content-type")?.toLowerCase().startsWith("application/json")) return { kind: "invalid" };
-  const bytes = await readCappedBody(request.body, 8_192);
-  if (bytes.kind !== "bytes") return bytes;
-  try { return { kind: "value", value: JSON.parse(new TextDecoder().decode(bytes.value)) as unknown }; }
-  catch { return { kind: "invalid" }; }
+  const result = await readCappedJson(request, 8_192);
+  return result.ok ? { kind: "value", value: result.value } : result.status === 413 ? { kind: "too-large" } : { kind: "invalid" };
 }
 
 function parseUpdateValue(value: unknown): UpdateBodyResult {
