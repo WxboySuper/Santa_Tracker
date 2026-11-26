@@ -24,6 +24,7 @@ export function pathDistance(order: Candidate[]): number {
 }
 
 export function eastwardCount(order: Candidate[]): number {
+  if (order.length === 0) return 0;
   let count = isEastwardDelta(longitudeDelta(NORTH_POLE, order[0]!)) ? 1 : 0;
   for (let index = 1; index < order.length; index++) {
     if (isEastwardDelta(longitudeDelta(order[index - 1]!, order[index]!))) count++;

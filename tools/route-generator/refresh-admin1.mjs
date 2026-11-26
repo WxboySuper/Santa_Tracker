@@ -8,16 +8,19 @@ const REQUIRED_ADMIN1_CODES = new Set(Object.values(requiredAdmin1Units).flat())
 function candidateWithAdmin1Code(place, code) {
   const candidate = { ...place };
   delete candidate.admin1Code;
-  return code && code.startsWith(`${place.country}-`) && REQUIRED_ADMIN1_CODES.has(code)
-    ? { ...candidate, admin1Code: code }
-    : candidate;
+  if (code && REQUIRED_ADMIN1_CODES.has(code)) return { ...candidate, admin1Code: code };
+  const existing = place.admin1Code;
+  const supportedExisting = typeof existing === 'string'
+    && existing.startsWith(`${place.country}-`)
+    && (!['US', 'CA', 'AU'].includes(place.country) || REQUIRED_ADMIN1_CODES.has(existing));
+  return supportedExisting ? { ...candidate, admin1Code: existing } : candidate;
 }
 
 function hasSupportedAdmin1Code(candidate) {
   const code = candidate.admin1Code;
   if (typeof code !== 'string') return false;
   if (!code.startsWith(`${candidate.country}-`)) return false;
-  return REQUIRED_ADMIN1_CODES.has(code);
+  return !['US', 'CA', 'AU'].includes(candidate.country) || REQUIRED_ADMIN1_CODES.has(code);
 }
 
 function validateEnrichedCandidate(candidate, file) {

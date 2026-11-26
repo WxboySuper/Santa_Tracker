@@ -3,7 +3,7 @@ import { assertNoLegacySelectionOverrides } from './selection-overrides';
 import type { Candidate, GeneratorConfig } from './types';
 
 export type CandidateSelection = { candidates: Candidate[]; invalidCandidateIds: string[]; duplicateCandidateIds: string[] };
-export type CandidateSelectionOptions = { deferUtcOffsetValidation?: boolean };
+export type CandidateSelectionOptions = { recoverMissingUtcOffset?: (place: Candidate) => Candidate | undefined };
 type CandidateRows = { candidates: Candidate[]; rowLabels: string[]; invalidCandidateIds: string[] };
 type CandidateValidationOptions = {
   updated: Candidate[];
@@ -38,11 +38,10 @@ function hasValidCoordinates(place: Candidate): boolean {
   return place.lng >= -180 && place.lng <= 180;
 }
 
-function validCandidate(place: Candidate, deferUtcOffsetValidation: boolean): boolean {
+function validCandidate(place: Candidate): boolean {
   if (!hasCandidateIdentity(place)) return false;
   if (!hasValidCoordinates(place)) return false;
-  return Number.isInteger(place.utcOffsetMinutes)
-    || (deferUtcOffsetValidation && place.utcOffsetMinutes === undefined);
+  return Number.isInteger(place.utcOffsetMinutes);
 }
 
 function isCandidateRecord(value: unknown): value is Candidate {
@@ -84,17 +83,24 @@ function validateAndEnrichCandidates({ updated, rowLabels, vetoed, config, optio
   const duplicateCandidateIds: string[] = [];
   for (const [index, place] of updated.entries()) {
     if (isVetoedCandidate(place, vetoed)) continue;
-    if (!validCandidate(place, options.deferUtcOffsetValidation ?? false)) {
+    if (!hasCandidateIdentity(place) || !hasValidCoordinates(place)) {
       invalidCandidateIds.push(rowLabels[index] ?? `row-${index + 1}`);
       continue;
     }
-    if (seen.has(place.id)) {
-      invalidCandidateIds.push(place.id);
-      duplicateCandidateIds.push(place.id);
+    const resolved = Number.isInteger(place.utcOffsetMinutes)
+      ? place
+      : options.recoverMissingUtcOffset?.(place);
+    if (!resolved || !validCandidate(resolved)) {
+      invalidCandidateIds.push(rowLabels[index] ?? `row-${index + 1}`);
       continue;
     }
-    seen.add(place.id);
-    candidates.push(enrichCandidate(place, config));
+    if (seen.has(resolved.id)) {
+      invalidCandidateIds.push(resolved.id);
+      duplicateCandidateIds.push(resolved.id);
+      continue;
+    }
+    seen.add(resolved.id);
+    candidates.push(enrichCandidate(resolved, config));
   }
   return { candidates, invalidCandidateIds, duplicateCandidateIds };
 }

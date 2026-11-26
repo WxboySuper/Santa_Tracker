@@ -437,7 +437,16 @@ function addGeometryWarnings(report: RouteReport, geometryIssues: ReturnType<typ
 
 export function generateRoute(pool: Candidate[], config: GeneratorConfig, overrides: RouteOverrides = {}, tables?: TimezoneTables): GeneratedRoute {
   validateGeneratorConfig(config);
-  const selection = chooseCandidates(pool, config, overrides, { deferUtcOffsetValidation: Boolean(tables) });
+  const selection = chooseCandidates(pool, config, overrides, {
+    recoverMissingUtcOffset: tables ? (place) => {
+      try {
+        return normalizeCandidateTimezone(place, overrides, tables);
+      } catch (error) {
+        if (isInvalidCandidateTimezoneError(error)) return undefined;
+        throw error;
+      }
+    } : undefined,
+  });
   const normalized = normalizeCandidateTimezones(selection.candidates, overrides, tables);
   const chosen = normalized.candidates;
   if (chosen.length === 0) throw new Error('No eligible route candidates remain after timezone validation');

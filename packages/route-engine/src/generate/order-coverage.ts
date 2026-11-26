@@ -9,8 +9,9 @@ import { categoryPreference, countryCapacity, hardDetourCount, MAX_ROUTE_STOPS, 
 
 function insertionPositions(order: Candidate[], place: Candidate): { index: number; addedDistance: number }[] {
   const positions: { index: number; addedDistance: number }[] = [];
+  // The launch candidate stays first, so coverage insertions cannot precede it.
   for (let index = 1; index <= order.length; index++) {
-    const from = index === 0 ? NORTH_POLE : order[index - 1];
+    const from = order[index - 1];
     const to = index === order.length ? NORTH_POLE : order[index];
     if (!from || !to) continue;
     const removed = haversineKm(from, to);
@@ -161,6 +162,7 @@ export function insertCountryCoverage(initial: TimedCandidate[], pool: Candidate
   for (let attempt = 0; attempt < 2; attempt++) {
     const before = state.counts.size;
     const groups = rankCountryCoverageGroups(state, pool, pass);
+    replaceOneStopWithTwoCountries(state, groups, pass);
     insertCountryCoverageGroups(state, groups, pass);
     if (state.counts.size === before) break;
   }
@@ -174,7 +176,7 @@ function bestBandInsertionPosition(state: InsertionState, place: Candidate, pass
   let best = Number.POSITIVE_INFINITY;
   for (let index = 1; index <= state.route.length; index++) {
     if (!placeFitsNeighborBand(state, place, index, pass)) continue;
-    const from = index === 0 ? NORTH_POLE : state.route[index - 1];
+    const from = state.route[index - 1];
     const to = index === state.route.length ? NORTH_POLE : state.route[index];
     if (!from || !to) continue;
     const added = haversineKm(from, place) + haversineKm(place, to) - haversineKm(from, to);
@@ -209,6 +211,55 @@ function tryCountryRepresentative(state: InsertionState, place: Candidate, pass:
   if (!state.separation.allows(place)) return false;
   const positions = insertionPositions(state.route, place);
   return addAtFeasiblePosition(state, place, positions, pass);
+}
+
+function stateWithoutStop(state: InsertionState, place: TimedCandidate, pass: InsertionPass): InsertionState | undefined {
+  const unit = admin1UnitFor(place);
+  if (unit && REQUIRED_ADMIN1_CODES.has(unit) && state.admin1Counts.get(unit) === 1) return undefined;
+  const remaining = state.route.filter((selected) => selected.id !== place.id);
+  if (!planTiming(remaining, pass.config)) return undefined;
+  return insertionState(remaining, pass.config.minStopSeparationKm);
+}
+
+function tryCountryPair(base: InsertionState, firstGroup: CountryCoverageGroup, secondGroup: CountryCoverageGroup,
+  pass: InsertionPass): InsertionState | undefined {
+  for (const first of firstGroup.candidates.slice(0, 20)) {
+    const afterFirst = insertionState(base.route, pass.config.minStopSeparationKm);
+    if (!tryCountryRepresentative(afterFirst, first.place, pass)) continue;
+    for (const second of secondGroup.candidates.slice(0, 20)) {
+      const attempt = insertionState(afterFirst.route, pass.config.minStopSeparationKm);
+      if (tryCountryRepresentative(attempt, second.place, pass)) return attempt;
+    }
+  }
+  return undefined;
+}
+
+function tryCountryPairAfterRemoving(state: InsertionState, existing: TimedCandidate, groups: CountryCoverageGroup[],
+  pass: InsertionPass): InsertionState | undefined {
+  const base = stateWithoutStop(state, existing, pass);
+  if (!base) return undefined;
+  for (let left = 0; left < groups.length; left++) {
+    const first = groups[left];
+    if (!first) continue;
+    for (let right = left + 1; right < groups.length; right++) {
+      const second = groups[right];
+      if (!second) continue;
+      const attempt = tryCountryPair(base, first, second, pass);
+      if (attempt) return attempt;
+    }
+  }
+  return undefined;
+}
+
+function replaceOneStopWithTwoCountries(state: InsertionState, groups: CountryCoverageGroup[], pass: InsertionPass): boolean {
+  if (state.route.length >= MAX_ROUTE_STOPS) return false;
+  for (const existing of state.route) {
+    const attempt = tryCountryPairAfterRemoving(state, existing, groups, pass);
+    if (!attempt) continue;
+    Object.assign(state, attempt);
+    return true;
+  }
+  return false;
 }
 
 function insertCountryGroup(state: InsertionState, group: CountryCoverageGroup, pass: InsertionPass): void {
@@ -421,13 +472,28 @@ export function selectMandatoryRepresentatives(pool: Candidate[], config: Genera
   const adminGroups = orderedMandatoryGroups(pool, [...REQUIRED_ADMIN1_CODES], admin1UnitFor);
   selectRepresentatives(adminGroups, selection.coveredAdmin1, selection, config);
   const countryCodes = [...new Set(pool.map((place) => place.country))];
-  selectRepresentatives(orderedMandatoryGroups(pool, countryCodes, (place) => place.country), selection.coveredCountries, selection, config);
+  const countryGroups = orderedMandatoryGroups(pool, countryCodes, (place) => place.country);
+  selectRepresentatives(preferLowConflictCountryGroups(countryGroups, config.minStopSeparationKm),
+    selection.coveredCountries, selection, config);
   const coveredOffsets = new Set(selection.selected.map((place) => String(requiredSnapshotOffset(place))));
   const offsetCodes = [...new Set(pool.map((place) => String(requiredSnapshotOffset(place))))];
   const offsetGroups = orderedMandatoryGroups(pool, offsetCodes, (place) => String(requiredSnapshotOffset(place)))
     .sort((left, right) => left.candidates.length - right.candidates.length || Number(right.key) - Number(left.key));
   selectRepresentatives(offsetGroups, coveredOffsets, selection, config);
   return selection.selected;
+}
+
+function preferLowConflictCountryGroups(groups: MandatoryGroup[], minimumKm: number): MandatoryGroup[] {
+  const singletonGroups = groups.filter((group) => group.candidates.length === 1);
+  const conflictCount = new Map(singletonGroups.map((group) => {
+    const place = group.candidates[0]!;
+    const conflicts = singletonGroups.filter((other) => other.key !== group.key
+      && haversineKm(place, other.candidates[0]!) < minimumKm).length;
+    return [group.key, conflicts] as const;
+  }));
+  return [...groups].sort((left, right) => left.candidates.length - right.candidates.length
+    || (conflictCount.get(left.key) ?? 0) - (conflictCount.get(right.key) ?? 0)
+    || compareStableIds(left.key, right.key));
 }
 
 export function mandatoryLaunch(representatives: Candidate[], pool: Candidate[], config: GeneratorConfig): {
@@ -448,7 +514,7 @@ function compareLaunchPreference(left: Candidate, right: Candidate): number {
 
 function launchMatchesRequiredAdmin1(launch: Candidate, existing: Candidate | undefined, alreadySelected: boolean): boolean {
   const unit = existing ? admin1UnitFor(existing) : undefined;
-  return alreadySelected || !unit || !REQUIRED_ADMIN1_CODES.has(unit) || launch.admin1Code === existing?.admin1Code;
+  return alreadySelected || !unit || !REQUIRED_ADMIN1_CODES.has(unit) || admin1UnitFor(launch) === unit;
 }
 
 function launchRepresentativePool(launch: Candidate, representatives: Candidate[], alreadySelected: boolean,

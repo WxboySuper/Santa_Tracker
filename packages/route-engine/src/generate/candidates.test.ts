@@ -45,7 +45,7 @@ describe('chooseCandidates', () => {
     expect(result.candidates[0]?.isNationalCapital).toBe(true);
   });
 
-  it('reports invalid candidate rows without discarding the valid pool', () => {
+  it('rejects missing UTC offsets unless the generator supplies a recovery resolver', () => {
     const { utcOffsetMinutes: _offset, ...missingOffset } = pool[0]!;
     const invalid = { ...missingOffset, id: 'missing-offset' };
     const result = chooseCandidates([pool[0]!, invalid], DEFAULT_GENERATOR_LIMITS);
