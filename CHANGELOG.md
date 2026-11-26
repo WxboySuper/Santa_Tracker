@@ -6,6 +6,13 @@
 - **Global provider limit:** `/api/weather` checks shared KV first. Both cron and request-time provider calls pass through one Durable Object budget capped at 900 per UTC day and 300 per minute. Missing data returns `null` when the budget or bindings are unavailable.
 - **Emergency switch and setup:** `WEATHER_ENABLED=false` disables both cron refresh and the endpoint. The launch runbook documents KV provisioning and the config ID update required before deployment.
 
+## [Unreleased] - Advent fallback library and takedown lock (#270, #421)
+
+- Added a day-specific fallback activity for all 24 Advent dates using the existing typed activity modules. The fallback flag is on by default and in the Cloudflare Worker config; authenticated previews expose fallback payloads only for unlocked days.
+- Made flag parsing case-insensitive and kept preview output aligned with whether the fallback flag is enabled.
+- Documented the exceptional takedown procedure in launch readiness and clarified the API contract for live, preview, and archive reads.
+- Added tests for every day's fallback and for hiding a past takedown-locked day from live, preview, and archive reads.
+
 ## [Unreleased] - Route freeze moved to Dec 5 (#321)
 
 - **Freeze gates:** Records the owner's 2026-11-26 decision to move the route freeze from Nov 25 to Dec 5, 18:00 UTC. The other gates are unchanged.
@@ -27,6 +34,13 @@
 - **Season modes:** Adds a pure UTC-derived annual mode for off-season, preparation, Advent, flight, and post-season, sharing schedule boundaries with the existing feature gates without changing public access behavior.
 - **Admin override:** Adds a single-owner admin API to set and clear audited mode overrides with compare-and-set writes, required reasons, and a hard 48-hour expiry limit. Expired overrides are ignored and reported.
 - **Docs and tests:** Describes the mode schedule and emergency-switch relationship, with tests for each UTC boundary, expiry behavior, auth, validation, audit records, and storage conflicts.
+
+## [Unreleased] - Journey statistics and replay (#257, #259)
+
+- **Route engine:** Adds deterministic distance, stop, country, time zone, flight-time, and speed statistics. Presents now follow a smooth flight-and-dwell schedule from zero to the documented 7 billion playful estimate, allocated across route UTC-offset bands using the complete candidate pool as a population proxy.
+- **Replay:** Adds injected-clock play, pause, seek, speed, and reset controls. Replay owns copies of its route, stop metadata, and candidate-pool snapshot and returns the same state and statistics as live calculations for the same journey instant.
+- **Package exports:** Exposes the stats and replay APIs from the route-engine root and dedicated ./stats and ./replay entry points.
+- **Docs and tests:** Adds docs/JOURNEY_STATS.md and boundary, parity, determinism, localization, speed, and sampled monotonicity tests.
 
 ## [Unreleased] — Authoritative tracker state and map fallback (#251, #253)
 

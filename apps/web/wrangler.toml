@@ -28,6 +28,7 @@ service = "santa-weather-cron"
 
 [vars]
 ADVENT_ENABLED = "true"
+ADVENT_FALLBACKS_ENABLED = "true"
 SANTA_STORAGE_BACKEND = "r2"
 WEATHER_ENABLED = "true"
 # Set via `wrangler secret put`:

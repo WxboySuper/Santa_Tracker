@@ -29,6 +29,7 @@ export default defineConfig({
       SANTA_STORAGE_BACKEND: bindings.text("r2"),
       ADVENT_ENABLED: bindings.text("true"),
       WEATHER_ENABLED: bindings.text("true"),
+      ADVENT_FALLBACKS_ENABLED: bindings.text("true"),
     },
   }),
 });
