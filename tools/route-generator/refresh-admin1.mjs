@@ -9,11 +9,11 @@ function isSupportedExistingCode(place, code) {
   return isSupportedAdmin1Code(place.country, code);
 }
 
-function candidateWithAdmin1Code(place, code) {
+function candidateWithAdmin1Code(place, code, preserveExisting = true) {
   const candidate = { ...place };
   delete candidate.admin1Code;
   if (code && REQUIRED_ADMIN1_CODES.has(code)) return { ...candidate, admin1Code: code };
-  return isSupportedExistingCode(place, place.admin1Code) ? { ...candidate, admin1Code: place.admin1Code } : candidate;
+  return preserveExisting && isSupportedExistingCode(place, place.admin1Code) ? { ...candidate, admin1Code: place.admin1Code } : candidate;
 }
 
 function hasSupportedAdmin1Code(candidate) {
@@ -53,7 +53,7 @@ function enrichCandidate(place, context) {
   if (admin1Code === undefined) return candidateWithAdmin1Code(place, place.admin1Code);
   if (admin1Code === null) {
     context.unassigned.push(`${place.country} ${place.id} ${place.name}`);
-    return candidateWithAdmin1Code(place, place.admin1Code);
+    return candidateWithAdmin1Code(place, undefined, false);
   }
   context.assigned.push(admin1Code);
   return candidateWithAdmin1Code(place, admin1Code);
