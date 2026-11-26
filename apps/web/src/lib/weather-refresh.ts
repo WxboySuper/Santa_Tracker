@@ -1,19 +1,11 @@
-import { FLIGHT_WINDOW_MS, takeoffForYear } from "./countdown";
 import { fetchWeatherBatch, WEATHER_TTL_SECONDS, weatherCellKey, type WeatherKV, type WeatherPoint } from "./weather";
+import { isWeatherRefreshOpen } from "./weather-window";
 import type { RouteNode } from "./locations";
 
 export const WEATHER_REFRESH_CRON = "*/15 * * * *";
 export const WEATHER_LOOKAHEAD_MS = 2 * 60 * 60 * 1000;
 export const WEATHER_BATCH_SIZE = 50;
-const WINDOW_LEAD_MS = 30 * 60 * 1000;
-
-export function isWeatherRefreshOpen(now: number): boolean {
-  const year = new Date(now).getUTCFullYear();
-  return [year - 1, year, year + 1].some(candidate => {
-    const takeoff = takeoffForYear(candidate);
-    return now >= takeoff - WINDOW_LEAD_MS && now < takeoff + FLIGHT_WINDOW_MS;
-  });
-}
+export { isWeatherRefreshOpen } from "./weather-window";
 
 export function weatherRoutePoints(route: RouteNode[], now: number): WeatherPoint[] {
   const scheduled = route.map((node, index) => ({

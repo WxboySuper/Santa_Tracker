@@ -70,8 +70,15 @@ jobs:
           ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
           ADVENT_ENABLED: "true"
 
-      # The owner provisions WEATHER_CACHE and replaces its placeholder ID in both Worker configs
+      # The owner provisions WEATHER_CACHE and replaces its placeholder ID in each Worker config
       # before the first run. This local workflow edit never creates Cloudflare resources.
+      - name: Validate weather KV namespace
+        run: |
+          if grep -q 'REPLACE_WITH_WEATHER_CACHE_NAMESPACE_ID' apps/web/cloudflare.config.ts apps/web/wrangler.toml apps/web/weather-cron.wrangler.toml; then
+            echo "::error::Create the weather KV namespace and replace its ID in all Worker configs before deployment"
+            exit 1
+          fi
+        shell: bash
       - name: Deploy weather cron Worker
         working-directory: apps/web
         run: pnpm exec wrangler deploy --config weather-cron.wrangler.toml

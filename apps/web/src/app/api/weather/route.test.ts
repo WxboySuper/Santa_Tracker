@@ -2,6 +2,8 @@ import { describe, expect, it, vi } from "vitest";
 import { fetchWeather, getWeatherResponse, type WeatherKV, type WeatherResult } from "@/lib/weather";
 import { GET } from "./route";
 
+const flightNow = Date.UTC(2026, 11, 24, 10);
+
 describe("weather API", () => {
   it("rounds coordinates to the grid and converts temperature", async () => {
     const fetcher = vi.fn(async (url: string) => {
@@ -24,6 +26,7 @@ describe("weather API", () => {
     const valid = await getWeatherResponse(new Request("https://example.test/api/weather?lat=0&lon=0"), {
       store, budget: { fetch: async () => new Response(null, { status: 204 }) },
       fetcher: async () => Response.json({ current: { temperature_2m: 10, weather_code: 3 } }),
+      now: flightNow,
     });
     expect(valid.status).toBe(200);
     expect(await valid.json()).toEqual({ temperatureC: 10, temperatureF: 50, code: 3, label: "Overcast" });
@@ -33,6 +36,7 @@ describe("weather API", () => {
     const response = await getWeatherResponse(new Request("https://example.test/api/weather?lat=0&lon=0"), {
       budget: { fetch: async () => new Response(null, { status: 204 }) },
       fetcher: async () => { throw new Error("offline"); },
+      now: flightNow,
     });
     expect(response.status).toBe(502);
     expect(response.headers.get("Cache-Control")).toBe("no-store");
@@ -48,6 +52,7 @@ describe("weather API", () => {
       store,
       budget: { fetch: async () => new Response(null, { status: 204 }) },
       fetcher: async () => Response.json({ current: { temperature_2m: 10, weather_code: 3 } }),
+      now: flightNow,
     });
     expect(response.status).toBe(200);
     expect((await response.json() as WeatherResult).label).toBe("Overcast");
@@ -56,9 +61,23 @@ describe("weather API", () => {
     const fetcher = vi.fn(async () => Response.json({ current: { temperature_2m: 10, weather_code: 3 } }));
     const request = new Request("https://example.test/api/weather?lat=0&lon=0");
     const disabled = await getWeatherResponse(request, { enabled: false, fetcher });
-    const denied = await getWeatherResponse(request, { store: { get: async () => null, put: async () => undefined }, budget: { fetch: async () => new Response(null, { status: 429 }) }, fetcher });
+    const denied = await getWeatherResponse(request, { store: { get: async () => null, put: async () => undefined }, budget: { fetch: async () => new Response(null, { status: 429 }) }, fetcher, now: flightNow });
     expect(await disabled.json()).toBeNull();
     expect(await denied.json()).toBeNull();
     expect(fetcher).not.toHaveBeenCalled();
+  });
+  it("rejects malformed KV values and keeps off-season misses off the provider", async () => {
+    const budget = { fetch: vi.fn(async () => new Response(null, { status: 204 })) };
+    const fetcher = vi.fn(async () => Response.json({ current: { temperature_2m: 10, weather_code: 3 } }));
+    const store: WeatherKV = { get: async () => JSON.stringify({ temperatureC: "warm" }), put: async () => undefined };
+    const request = new Request("https://example.test/api/weather?lat=0&lon=0");
+    const malformed = await getWeatherResponse(request, { store, budget, fetcher, now: flightNow });
+    expect((await malformed.json() as WeatherResult).label).toBe("Overcast");
+    expect(budget.fetch).toHaveBeenCalledOnce();
+    expect(fetcher).toHaveBeenCalledOnce();
+    const offSeason = await getWeatherResponse(request, { store: { get: async () => null, put: async () => undefined }, budget, fetcher, now: Date.UTC(2026, 10, 26) });
+    expect(await offSeason.json()).toBeNull();
+    expect(budget.fetch).toHaveBeenCalledTimes(1);
+    expect(fetcher).toHaveBeenCalledOnce();
   });
 });

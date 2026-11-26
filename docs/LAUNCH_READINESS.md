@@ -32,7 +32,7 @@ The Worker keeps the last successfully read, valid flag document in memory per i
 
 ## Weather provider controls
 
-The weather cron runs every 15 minutes, but does provider work only from 09:30 UTC on Dec 24 through 12:00 UTC on Dec 25. It reads the active route and refreshes current and upcoming stop cells in groups of at most 50. The endpoint reads shared KV first. Every Open-Meteo call, from cron or an endpoint fallback, passes through one Durable Object budget capped at 900 calls per UTC day and 300 per minute.
+The weather cron runs every 15 minutes, but reads the active route and does provider work only from 09:30 UTC on Dec 24 through 12:00 UTC on Dec 25. It refreshes current and upcoming stop cells in groups of at most 50. The endpoint reads shared KV first and only permits fallback calls during that same window. Every Open-Meteo call, from cron or an endpoint fallback, passes through one Durable Object budget capped at 900 calls per UTC day and 300 per minute.
 
 To turn weather off, set `WEATHER_ENABLED=false` in `apps/web/cloudflare.config.ts`, `apps/web/wrangler.toml`, and `apps/web/weather-cron.wrangler.toml`, then deploy both Workers. The endpoint returns `null` and the scheduled worker exits before reading the route or contacting Open-Meteo.
 

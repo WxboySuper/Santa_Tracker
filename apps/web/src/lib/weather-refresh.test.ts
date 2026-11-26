@@ -35,14 +35,16 @@ describe("scheduled weather refresh", () => {
   it("splits provider URLs at 50 unique grid cells", async () => {
     const calls: URL[] = [];
     const points = Array.from({ length: 121 }, (_, index) => ({ lat: -60 + index * 0.25, lon: -150 + index * 0.25 }));
-    await fetchWeatherBatch(points, async input => {
+    const result = await fetchWeatherBatch(points, async input => {
       const url = new URL(input as string);
       calls.push(url);
       const coordinates = url.searchParams.get("latitude")!.split(",");
-      return Response.json(coordinates.map(() => ({ current: { temperature_2m: 2, weather_code: 0 } })));
+      const longitudes = url.searchParams.get("longitude")!.split(",");
+      return Response.json(coordinates.map((latitude, index) => ({ latitude: Number(latitude), longitude: Number(longitudes[index]), current: { temperature_2m: 2, weather_code: 0 } })).reverse());
     }, WEATHER_BATCH_SIZE);
     expect(calls).toHaveLength(3);
     expect(calls.map(url => url.searchParams.get("latitude")!.split(",").length)).toEqual([50, 50, 21]);
+    expect(result.size).toBe(121);
   });
 
   it("keeps the simulated full-flight provider call total under 1,000 regardless of visitor count", async () => {
@@ -52,8 +54,10 @@ describe("scheduled weather refresh", () => {
     let calls = 0;
     const provider = async (input: RequestInfo | URL) => {
       calls += 1;
-      const coords = new URL(String(input)).searchParams.get("latitude")!.split(",");
-      return Response.json(coords.map(() => ({ current: { temperature_2m: 0, weather_code: 1 } })));
+      const url = new URL(String(input));
+      const latitudes = url.searchParams.get("latitude")!.split(",");
+      const longitudes = url.searchParams.get("longitude")!.split(",");
+      return Response.json(latitudes.map((latitude, index) => ({ latitude: Number(latitude), longitude: Number(longitudes[index]), current: { temperature_2m: 0, weather_code: 1 } })));
     };
     const end = takeoff + 26 * 60 * 60_000;
     for (; clock < end; clock += 15 * 60_000) await refreshWeather(clock, route, store, provider);

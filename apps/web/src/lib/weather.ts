@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { isWeatherRefreshOpen } from "./weather-window";
 
 export const WEATHER_GRID = 0.25;
 export const WEATHER_TTL_SECONDS = 30 * 60;
@@ -70,10 +71,17 @@ export async function fetchWeatherBatch(
     const batch = unique.slice(start, start + batchSize);
     const body = await fetchJson(providerUrl(batch.map(([, point]) => point)), fetcher);
     const rows = Array.isArray(body) ? body : [body];
-    rows.forEach((row, index) => {
-      const current = row && typeof row === "object" ? (row as { current?: unknown }).current : null;
-      if (batch[index] && validCurrent(current)) results.set(batch[index][0], displayWeather(current.temperature_2m, current.weather_code));
-    });
+    if (rows.length !== batch.length) continue;
+    const requestedKeys = new Set(batch.map(([key]) => key));
+    for (const row of rows) {
+      if (!row || typeof row !== "object") continue;
+      const coordinates = row as { latitude?: unknown; longitude?: unknown; current?: unknown };
+      if (typeof coordinates.latitude !== "number" || typeof coordinates.longitude !== "number") continue;
+      const key = weatherCellKey({ lat: coordinates.latitude, lon: coordinates.longitude });
+      if (requestedKeys.has(key) && validCurrent(coordinates.current)) {
+        results.set(key, displayWeather(coordinates.current.temperature_2m, coordinates.current.weather_code));
+      }
+    }
   }
   return results;
 }
@@ -85,14 +93,18 @@ function parseCoordinate(value: string | null, min: number, max: number): number
 function getBindings(): { weather: WeatherKV | null; budget: FallbackBudget | null } {
   try {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const { env } = require("cloudflare:workers") as { env: { WEATHER_CACHE?: WeatherKV; WEATHER_BUDGET?: FallbackBudget } };
-    return { weather: env.WEATHER_CACHE ?? null, budget: env.WEATHER_BUDGET ?? null };
+    const { env } = require("cloudflare:workers") as { env: {
+      WEATHER_CACHE?: WeatherKV;
+      WEATHER_FALLBACK_BUDGET?: { idFromName(name: string): unknown; get(id: unknown): FallbackBudget };
+    } };
+    const namespace = env.WEATHER_FALLBACK_BUDGET;
+    return { weather: env.WEATHER_CACHE ?? null, budget: namespace?.get(namespace.idFromName("global")) ?? null };
   } catch { return { weather: null, budget: null }; }
 }
 
 export async function getWeatherResponse(
   request: Request,
-  options: { enabled?: boolean; store?: WeatherKV | null; budget?: FallbackBudget | null; fetcher?: WeatherFetch } = {},
+  options: { enabled?: boolean; store?: WeatherKV | null; budget?: FallbackBudget | null; fetcher?: WeatherFetch; now?: number } = {},
 ): Promise<Response> {
   if (options.enabled === false || process.env.WEATHER_ENABLED === "false") return NextResponse.json(null, { headers: { "Cache-Control": "no-store" } });
   const params = new URL(request.url).searchParams;
@@ -100,20 +112,32 @@ export async function getWeatherResponse(
   const lon = parseCoordinate(params.get("lon"), -180, 180);
   if (lat === null || lon === null) return NextResponse.json({ error: "Invalid coordinates" }, { status: 400 });
   const point = rounded({ lat, lon });
-  const bindings = options.store === undefined && options.budget === undefined ? getBindings() : null;
-  const store = options.store ?? bindings?.weather ?? null;
-  const budget = options.budget ?? bindings?.budget ?? null;
+  const bindings = getBindings();
+  const store = options.store === undefined ? bindings.weather : options.store;
+  const budget = options.budget === undefined ? bindings.budget : options.budget;
   const key = weatherCellKey(point);
   const cached = await readWeatherFromStore(store, key);
   if (cached) return cached;
+  if (!isWeatherRefreshOpen(options.now ?? Date.now())) return nullWeather();
   return fetchWeatherFallback(budget, store, key, point, options.fetcher);
+}
+
+function isWeatherResult(value: unknown): value is WeatherResult {
+  if (!value || typeof value !== "object") return false;
+  const weather = value as Record<string, unknown>;
+  return typeof weather.temperatureC === "number" && Number.isFinite(weather.temperatureC)
+    && typeof weather.temperatureF === "number" && Number.isFinite(weather.temperatureF)
+    && typeof weather.code === "number" && Number.isInteger(weather.code)
+    && typeof weather.label === "string";
 }
 
 async function readWeatherFromStore(store: WeatherKV | null, key: string): Promise<Response | null> {
   if (!store) return null;
   try {
     const value = await store.get(key);
-    return value ? NextResponse.json(JSON.parse(value), { headers: PUBLIC_WEATHER_HEADERS }) : null;
+    if (!value) return null;
+    const parsed: unknown = JSON.parse(value);
+    return isWeatherResult(parsed) ? NextResponse.json(parsed, { headers: PUBLIC_WEATHER_HEADERS }) : null;
   } catch { return null; }
 }
 
