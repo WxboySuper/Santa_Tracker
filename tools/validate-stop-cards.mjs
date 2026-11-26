@@ -11,6 +11,16 @@ try {
 const cardKeys = new Set(['place_id', 'country', 'note', 'sources', 'topic_key', 'photo', 'review_status', 'allow_duplicate_topic']);
 const photoKeys = new Set(['url', 'width', 'height', 'author', 'license', 'license_url', 'source_page']);
 const extraKeys = (value, allowed) => Object.keys(value).filter((key) => !allowed.has(key));
+/** An absolute https:// URL with a host, as the schema's format: uri plus ^https:// requires. */
+function isHttpsUrl(value) {
+  if (typeof value !== 'string') return false;
+  try {
+    const url = new URL(value);
+    return url.protocol === 'https:' && url.hostname.length > 0;
+  } catch {
+    return false;
+  }
+}
 const errors = [];
 const allowedLicenses = new Set(['CC0', 'Public domain', 'CC BY', 'CC BY-SA']);
 const normalized = (value) => value.toLocaleLowerCase('en').normalize('NFKD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, ' ').trim();
@@ -31,7 +41,7 @@ for (const [index, card] of cards.entries()) {
   if (!card || typeof card !== 'object' || typeof card.place_id !== 'string' || !card.place_id.trim()) { errors.push(prefix + ': place_id is required'); continue; }
   if (placeIds.has(card.place_id)) errors.push(prefix + ': duplicate place_id ' + card.place_id); else placeIds.add(card.place_id);
   if (typeof card.country !== 'string' || !card.country.trim()) errors.push(prefix + ': country is required');
-  if (!Array.isArray(card.sources) || card.sources.length === 0 || card.sources.some((source) => typeof source !== 'string' || !/^https:\/\//.test(source))) errors.push(prefix + ': at least one HTTPS source URL is required');
+  if (!Array.isArray(card.sources) || card.sources.length === 0 || card.sources.some((source) => !isHttpsUrl(source))) errors.push(prefix + ': at least one HTTPS source URL is required');
   if (card.note !== null && (typeof card.note !== 'string' || card.note.length < 40 || card.note.length > 280)) errors.push(prefix + ': note must be null or 40 to 280 characters');
   if (card.topic_key !== null && (typeof card.topic_key !== 'string' || !/^[a-z0-9][a-z0-9._-]*$/.test(card.topic_key))) errors.push(prefix + ': topic_key must use lowercase letters, digits, dots, dashes, or underscores');
   if (card.note !== null && (typeof card.topic_key !== 'string' || !/^[a-z0-9][a-z0-9._-]*$/.test(card.topic_key))) errors.push(prefix + ': a note requires a valid topic_key');
@@ -54,7 +64,7 @@ for (const [index, card] of cards.entries()) {
     else {
       for (const key of extraKeys(photo, photoKeys)) errors.push(prefix + ': unknown photo field ' + key);
       if (!allowedLicenses.has(photo.license)) errors.push(prefix + ': unsupported photo license');
-      for (const key of ['url', 'license_url', 'source_page']) if (typeof photo[key] !== 'string' || !/^https:\/\//.test(photo[key])) errors.push(prefix + ': photo.' + key + ' must be an HTTPS URL');
+      for (const key of ['url', 'license_url', 'source_page']) if (!isHttpsUrl(photo[key])) errors.push(prefix + ': photo.' + key + ' must be an HTTPS URL');
       if (!Number.isInteger(photo.width) || photo.width < 1 || !Number.isInteger(photo.height) || photo.height < 1) errors.push(prefix + ': photo dimensions must be positive integers');
       if (typeof photo.author !== 'string' || !photo.author.trim()) errors.push(prefix + ': photo attribution is required');
     }

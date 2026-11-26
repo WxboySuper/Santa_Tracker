@@ -70,4 +70,14 @@ describe('stop card validation', () => {
     expect(missing.status).toBe(1);
     expect(missing.stderr).toContain('could not load');
   });
+  it('requires real HTTPS URLs with a host for sources and photo links', async () => {
+    const card = validCard('Q10', null, 'harbour');
+    card.sources = ['https://'];
+    card.photo = { url: 'https://', width: 800, height: 600, author: 'A. Photographer', license: 'CC BY', license_url: 'https:///nohost', source_page: 'http://commons.wikimedia.org/x' };
+    const result = await validate([card]);
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain('HTTPS source URL');
+    expect(result.stderr).toContain('photo.url must be an HTTPS URL');
+    expect(result.stderr).toContain('photo.source_page must be an HTTPS URL');
+  });
 });
