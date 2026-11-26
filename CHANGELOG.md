@@ -1,5 +1,11 @@
 # Changelog — per-PR exhaustive (enforced in CI)
 
+## [Unreleased] - Representative city stop cards batch 3
+
+- **Candidate coverage:** Adds 114 verified draft cards from the next city-tier candidates, keyed by stable generator place IDs.
+- **Research quality:** Adds 37 original, source-linked cultural notes and 104 permissively licensed, attributed photos; 77 cards remain without a sourced note.
+- **Entity matching:** Includes only candidates matched to an English Wikidata entity within 40 km; 11 candidates remain unresolved.
+
 ## [Unreleased] - Validated route snapshot release controls (#302)
 
 - **Route validation:** Adds a read-only validator for stored route versions, with season, schema, SHA-256 checksum, coordinate, duplicate-name, and schedule checks.
@@ -25,7 +31,6 @@
 - **Scheduled weather refresh:** Adds a 15-minute Worker cron that runs from 30 minutes before takeoff through the 26-hour flight and replay window. It reads the active route, fetches upcoming and current stop weather in batches of at most 50 cells, and stores results in shared KV for 30 minutes.
 - **Global provider limit:** `/api/weather` checks shared KV first. Both cron and request-time provider calls pass through one Durable Object budget capped at 900 per UTC day and 300 per minute. Missing data returns `null` when the budget or bindings are unavailable.
 - **Emergency switch and setup:** `WEATHER_ENABLED=false` disables both cron refresh and the endpoint. The launch runbook documents KV provisioning and the GitHub repository variable required before deployment.
-
 ## [Unreleased] - Representative city stop cards batch 1
 
 - **Candidate coverage:** Adds draft cards for the top 100 country or territory candidates by population, keyed to stable generator place IDs.
