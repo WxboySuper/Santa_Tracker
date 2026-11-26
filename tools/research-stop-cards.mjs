@@ -1,5 +1,6 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
+import { permissiveLicense } from './stop-card-license.mjs';
 
 const args = process.argv.slice(2);
 const cacheDir = resolve('.cache/stop-card-research');
@@ -65,7 +66,7 @@ for (const id of [...new Set(requested)]) {
     const metadata = info?.extmetadata ?? {};
     const license = metadata.LicenseShortName?.value ?? '';
     const author = plainText(metadata.Artist?.value);
-    const normalizedLicense = license.startsWith('CC0') ? 'CC0' : /public domain/i.test(license) ? 'Public domain' : /^CC BY-SA/.test(license) ? 'CC BY-SA' : /^CC BY/.test(license) ? 'CC BY' : null;
+    const normalizedLicense = permissiveLicense(license);
     const licenseUrl = String(metadata.LicenseUrl?.value ?? '').replace(/^http:\/\//, 'https://');
     const photoUrl = String(info?.thumburl ?? info?.url ?? '').replace(/^http:\/\//, 'https://');
     const width = info?.thumbwidth ?? info?.width;
