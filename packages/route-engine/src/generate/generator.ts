@@ -96,6 +96,9 @@ function nearestCountryTimezone(place: Candidate, tables: TimezoneTables, offset
   const nearest = points.reduce((best, point) => haversineKm(place, point) < haversineKm(place, best) ? point : best, first);
   const utcOffsetMinutes = offsetOverride ?? tables.utcOffsetsByTimezone?.[nearest.timezone];
   if (utcOffsetMinutes === undefined) throw new InvalidCandidateTimezoneError(`Missing committed UTC offset for ${nearest.timezone}`);
+  if (!Number.isInteger(utcOffsetMinutes) || utcOffsetMinutes < -720 || utcOffsetMinutes > 840) {
+    throw new InvalidCandidateTimezoneError(`Invalid snapshot UTC offset override for ${place.name}: ${utcOffsetMinutes}`);
+  }
   return { ...place, timezone: nearest.timezone, utcOffsetMinutes };
 }
 

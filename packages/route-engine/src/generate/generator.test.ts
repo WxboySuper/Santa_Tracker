@@ -174,6 +174,20 @@ describe('generateRoute midnight sweep', () => {
     expect(generated.locations[0]?.utcOffsetMinutes).toBe(720);
   });
 
+  it.each([720.5, -721, 841])('reports an invalid UTC offset override %s as a malformed candidate', (offset) => {
+    const mismatched = { ...candidates[0]!, id: 'invalid-offset-override', timezone: 'America/New_York' };
+    const tables = {
+      zonesByCountry: { FJ: ['Pacific/Kiritimati'] },
+      zonePointsByCountry: { FJ: [{ timezone: 'Pacific/Kiritimati', lat: 80, lng: 170 }] },
+      utcOffsetsByTimezone: { 'Pacific/Kiritimati': 840 },
+      countryNames: { FJ: 'Fiji' },
+    };
+    const generated = generateRoute([candidates[0]!, mismatched], config,
+      { utcOffsetMinutes: { 'invalid-offset-override': offset } }, tables);
+    expect(generated.report.invalidCandidateIds).toContain('invalid-offset-override');
+    expect(generated.locations.map((place) => place.id)).not.toContain('invalid-offset-override');
+  });
+
   it('reports a missing snapshot offset when its valid timezone cannot recover it', () => {
     const { utcOffsetMinutes: _offset, ...candidateWithoutOffset } = candidates[0]!;
     const missingOffset = { ...candidateWithoutOffset, id: 'missing-snapshot-offset' };

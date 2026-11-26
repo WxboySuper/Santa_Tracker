@@ -5,7 +5,7 @@ import { stopDurationSeconds, stopTier } from './sweep';
 import { admin1UnitFor } from './admin1';
 import { compareStableIds } from './selection';
 import type { Candidate, GeneratorConfig } from './types';
-import { categoryPreference, countryCapacity, hardDetourCount, MAX_ROUTE_STOPS, planTiming, requiredSnapshotOffset, canStartFromNorthPole, REQUIRED_ADMIN1_CODES, seededRandom, SeparationIndex, type RoutePlan, type TimedCandidate } from './order';
+import { categoryPreference, countryCapacity, hardDetourCount, MAX_ROUTE_STOPS, planTiming, requiredSnapshotOffset, canStartFromNorthPole, REQUIRED_ADMIN1_CODES, seededRandom, SeparationIndex, type RoutePlan, type TimedCandidate } from './order-shared';
 
 function insertionPositions(order: Candidate[], place: Candidate): { index: number; addedDistance: number }[] {
   const positions: { index: number; addedDistance: number }[] = [];
@@ -214,39 +214,48 @@ function tryCountryRepresentative(state: InsertionState, place: Candidate, pass:
 }
 
 function stateWithoutStop(state: InsertionState, place: TimedCandidate, pass: InsertionPass): InsertionState | undefined {
-  const unit = admin1UnitFor(place);
-  if (unit && REQUIRED_ADMIN1_CODES.has(unit) && state.admin1Counts.get(unit) === 1) return undefined;
+  if (isFinalRequiredAdmin1Stop(state, place)) return undefined;
   const remaining = state.route.filter((selected) => selected.id !== place.id);
   if (!planTiming(remaining, pass.config)) return undefined;
   return insertionState(remaining, pass.config.minStopSeparationKm);
 }
 
-function tryCountryPair(base: InsertionState, firstGroup: CountryCoverageGroup, secondGroup: CountryCoverageGroup,
-  pass: InsertionPass): InsertionState | undefined {
-  for (const first of firstGroup.candidates.slice(0, 20)) {
-    const afterFirst = insertionState(base.route, pass.config.minStopSeparationKm);
-    if (!tryCountryRepresentative(afterFirst, first.place, pass)) continue;
-    for (const second of secondGroup.candidates.slice(0, 20)) {
-      const attempt = insertionState(afterFirst.route, pass.config.minStopSeparationKm);
-      if (tryCountryRepresentative(attempt, second.place, pass)) return attempt;
-    }
+function isFinalRequiredAdmin1Stop(state: InsertionState, place: Candidate): boolean {
+  const unit = admin1UnitFor(place);
+  return unit !== undefined && REQUIRED_ADMIN1_CODES.has(unit) && state.admin1Counts.get(unit) === 1;
+}
+
+function trySecondCountry(afterFirst: InsertionState, candidates: CountryCoverageCandidate[], pass: InsertionPass): InsertionState | undefined {
+  for (const second of candidates) {
+    const attempt = insertionState(afterFirst.route, pass.config.minStopSeparationKm);
+    if (tryCountryRepresentative(attempt, second.place, pass)) return attempt;
   }
   return undefined;
+}
+
+function tryCountryPair(base: InsertionState, firstGroup: CountryCoverageGroup, secondGroup: CountryCoverageGroup,
+  pass: InsertionPass): InsertionState | undefined {
+  for (const first of firstGroup.candidates) {
+    const afterFirst = insertionState(base.route, pass.config.minStopSeparationKm);
+    if (!tryCountryRepresentative(afterFirst, first.place, pass)) continue;
+    const attempt = trySecondCountry(afterFirst, secondGroup.candidates, pass);
+    if (attempt) return attempt;
+  }
+  return undefined;
+}
+
+function candidateCountryPairs(groups: CountryCoverageGroup[]): [CountryCoverageGroup, CountryCoverageGroup][] {
+  return groups.flatMap((first, index) => groups.slice(index + 1)
+    .map((second): [CountryCoverageGroup, CountryCoverageGroup] => [first, second]));
 }
 
 function tryCountryPairAfterRemoving(state: InsertionState, existing: TimedCandidate, groups: CountryCoverageGroup[],
   pass: InsertionPass): InsertionState | undefined {
   const base = stateWithoutStop(state, existing, pass);
   if (!base) return undefined;
-  for (let left = 0; left < groups.length; left++) {
-    const first = groups[left];
-    if (!first) continue;
-    for (let right = left + 1; right < groups.length; right++) {
-      const second = groups[right];
-      if (!second) continue;
-      const attempt = tryCountryPair(base, first, second, pass);
-      if (attempt) return attempt;
-    }
+  for (const [first, second] of candidateCountryPairs(groups)) {
+    const attempt = tryCountryPair(base, first, second, pass);
+    if (attempt) return attempt;
   }
   return undefined;
 }
@@ -266,7 +275,7 @@ function insertCountryGroup(state: InsertionState, group: CountryCoverageGroup, 
   if (state.counts.has(group.country)) return;
   // Keep alternatives so a representative whose best nearby splice is blocked
   // by timing or detours does not hide another feasible place in that country.
-  for (const candidate of group.candidates.slice(0, 20)) {
+  for (const candidate of group.candidates) {
     if (tryCountryRepresentative(state, candidate.place, pass)) return;
   }
 }
@@ -307,7 +316,7 @@ function rankAdmin1CoverageGroups(state: InsertionState, pool: Candidate[], pass
 
 function insertAdmin1Group(state: InsertionState, group: Admin1CoverageGroup, pass: InsertionPass): void {
   if (state.admin1Counts.has(group.unit)) return;
-  for (const candidate of group.candidates.slice(0, 20)) {
+  for (const candidate of group.candidates) {
     if (!state.separation.allows(candidate.place)) continue;
     if (tryCountryRepresentative(state, candidate.place, pass)) break;
   }
@@ -386,16 +395,20 @@ function denseFillBandWeights(bandPlaces: Map<number, Candidate[]>): { offset: n
   }));
 }
 
-function allocateBandFill(weights: { offset: number; weight: number }[], remaining: number): { offset: number; count: number }[] {
-  const weightTotal = weights.reduce((sum, item) => sum + item.weight, 0) || 1;
+export function allocateBandFill(weights: { offset: number; weight: number }[], remaining: number): { offset: number; count: number }[] {
+  if (remaining <= 0 || weights.length === 0) return weights.map(({ offset }) => ({ offset, count: 0 }));
+  const weightTotal = weights.reduce((sum, item) => sum + Math.max(0, item.weight), 0);
   const allocations = weights.map(({ offset, weight }) => {
-    const exact = remaining * weight / weightTotal;
+    const share = weightTotal > 0 ? Math.max(0, weight) / weightTotal : 1 / weights.length;
+    const exact = remaining * share;
     return { offset, count: Math.floor(exact), remainder: exact - Math.floor(exact) };
   });
   let unassigned = remaining - allocations.reduce((sum, item) => sum + item.count, 0);
-  for (const item of allocations.sort((left, right) => right.remainder - left.remainder || right.offset - left.offset)) {
-    if (unassigned <= 0) break;
-    item.count++;
+  const byRemainder = allocations.sort((left, right) => right.remainder - left.remainder || right.offset - left.offset);
+  for (let index = 0; unassigned > 0; index++) {
+    const allocation = byRemainder[index % byRemainder.length];
+    if (!allocation) break;
+    allocation.count++;
     unassigned--;
   }
   return allocations;

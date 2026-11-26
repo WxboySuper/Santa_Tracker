@@ -2,7 +2,7 @@ import { haversineKm, type LatLng } from '../geo';
 import { detourRatio, isEastwardDelta, longitudeDelta } from './sweep';
 import { compareStableIds } from './selection';
 import { NORTH_POLE, RETURN_DEADLINE_UTC, TAKEOFF_UTC, type Candidate, type GeneratorConfig } from './types';
-import { candidateTiming, hardDetourCount, planTiming, requiredSnapshotOffset, scheduledTravelMilliseconds, seededRandom, type TimedCandidate } from './order';
+import { candidateTiming, hardDetourCount, planTiming, requiredSnapshotOffset, scheduledTravelMilliseconds, seededRandom, type TimedCandidate } from './order-shared';
 
 export function detourCount(order: Candidate[]): number {
   let count = 0;
@@ -24,8 +24,7 @@ export function pathDistance(order: Candidate[]): number {
 }
 
 export function eastwardCount(order: Candidate[]): number {
-  if (order.length === 0) return 0;
-  let count = isEastwardDelta(longitudeDelta(NORTH_POLE, order[0]!)) ? 1 : 0;
+  let count = 0;
   for (let index = 1; index < order.length; index++) {
     if (isEastwardDelta(longitudeDelta(order[index - 1]!, order[index]!))) count++;
   }

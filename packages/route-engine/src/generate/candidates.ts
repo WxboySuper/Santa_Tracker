@@ -76,31 +76,38 @@ function isVetoedCandidate(place: Candidate, vetoed: Set<string>): boolean {
   return hasNonEmptyText(place.id) && vetoed.has(place.id);
 }
 
+type CandidateValidation =
+  | { kind: 'vetoed' }
+  | { kind: 'invalid'; id: string }
+  | { kind: 'duplicate'; id: string }
+  | { kind: 'accepted'; place: Candidate };
+
+function validateCandidateForSelection(place: Candidate, label: string, vetoed: Set<string>, seen: Set<string>,
+  config: GeneratorConfig, options: CandidateSelectionOptions): CandidateValidation {
+  if (isVetoedCandidate(place, vetoed)) return { kind: 'vetoed' };
+  if (!hasCandidateIdentity(place) || !hasValidCoordinates(place)) return { kind: 'invalid', id: label };
+  const resolved = Number.isInteger(place.utcOffsetMinutes) ? place : options.recoverMissingUtcOffset?.(place);
+  if (!resolved || !validCandidate(resolved)) return { kind: 'invalid', id: label };
+  if (seen.has(resolved.id)) return { kind: 'duplicate', id: resolved.id };
+  seen.add(resolved.id);
+  return { kind: 'accepted', place: enrichCandidate(resolved, config) };
+}
+
 function validateAndEnrichCandidates({ updated, rowLabels, vetoed, config, options }: CandidateValidationOptions): CandidateSelection {
   const seen = new Set<string>();
   const candidates: Candidate[] = [];
   const invalidCandidateIds: string[] = [];
   const duplicateCandidateIds: string[] = [];
   for (const [index, place] of updated.entries()) {
-    if (isVetoedCandidate(place, vetoed)) continue;
-    if (!hasCandidateIdentity(place) || !hasValidCoordinates(place)) {
-      invalidCandidateIds.push(rowLabels[index] ?? `row-${index + 1}`);
-      continue;
+    const result = validateCandidateForSelection(place, rowLabels[index] ?? `row-${index + 1}`,
+      vetoed, seen, config, options);
+    if (result.kind === 'vetoed') continue;
+    if (result.kind === 'invalid') invalidCandidateIds.push(result.id);
+    if (result.kind === 'duplicate') {
+      invalidCandidateIds.push(result.id);
+      duplicateCandidateIds.push(result.id);
     }
-    const resolved = Number.isInteger(place.utcOffsetMinutes)
-      ? place
-      : options.recoverMissingUtcOffset?.(place);
-    if (!resolved || !validCandidate(resolved)) {
-      invalidCandidateIds.push(rowLabels[index] ?? `row-${index + 1}`);
-      continue;
-    }
-    if (seen.has(resolved.id)) {
-      invalidCandidateIds.push(resolved.id);
-      duplicateCandidateIds.push(resolved.id);
-      continue;
-    }
-    seen.add(resolved.id);
-    candidates.push(enrichCandidate(resolved, config));
+    if (result.kind === 'accepted') candidates.push(result.place);
   }
   return { candidates, invalidCandidateIds, duplicateCandidateIds };
 }

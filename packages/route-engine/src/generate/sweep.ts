@@ -200,6 +200,6 @@ function createFormatter(timeZone: string): Intl.DateTimeFormat {
 
 export function detourRatio(from: LatLng, via: LatLng, to: LatLng): number {
   const direct = haversineKm(from, to);
-  if (direct === 0) return Number.POSITIVE_INFINITY;
+  if (direct === 0) return Number.MAX_SAFE_INTEGER;
   return (haversineKm(from, via) + haversineKm(via, to)) / direct;
 }

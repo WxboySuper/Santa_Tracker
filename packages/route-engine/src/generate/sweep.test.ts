@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { christmasArrival, christmasWindow, eastwardLegReason, isInChristmasWindow, isInSouthernChristmasWindow, localClock, stopDurationSeconds, stopTier } from './sweep';
+import { christmasArrival, christmasWindow, detourRatio, eastwardLegReason, isInChristmasWindow, isInSouthernChristmasWindow, localClock, stopDurationSeconds, stopTier } from './sweep';
 import { christmasOffset, parseUtcOffset } from './timezone';
 import type { Candidate } from './types';
 
@@ -48,6 +48,10 @@ describe('christmasArrival', () => {
     expect(isInSouthernChristmasWindow({ iso: '2026-12-25T02:30:00.000Z', timezoneOrOffset: 0 })).toBe(true);
     expect(isInSouthernChristmasWindow({ iso: '2026-12-25T02:31:00.000Z', timezoneOrOffset: 0 })).toBe(false);
     expect(isInSouthernChristmasWindow({ iso: '2026-12-24T23:00:00.000Z', timezoneOrOffset: 0 })).toBe(true);
+  });
+
+  it('keeps a zero-length direct span finite in detour reports', () => {
+    expect(detourRatio({ lat: 0, lng: 0 }, { lat: 1, lng: 1 }, { lat: 0, lng: 0 })).toBe(Number.MAX_SAFE_INTEGER);
   });
 
   it('labels eastward moves whose destination offset advances local midnight', () => {

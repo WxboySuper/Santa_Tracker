@@ -4,23 +4,22 @@ import { admin1CodeAt, loadAdmin1Features } from './admin1.mjs';
 
 const DATA_FILES = ['places.json', 'curated.json'];
 const REQUIRED_ADMIN1_CODES = new Set(Object.values(requiredAdmin1Units).flat());
+const TARGET_COUNTRIES = new Set(['US', 'CA', 'AU']);
+
+function isSupportedExistingCode(place, code) {
+  if (typeof code !== 'string' || !code.startsWith(`${place.country}-`)) return false;
+  return !TARGET_COUNTRIES.has(place.country) || REQUIRED_ADMIN1_CODES.has(code);
+}
 
 function candidateWithAdmin1Code(place, code) {
   const candidate = { ...place };
   delete candidate.admin1Code;
   if (code && REQUIRED_ADMIN1_CODES.has(code)) return { ...candidate, admin1Code: code };
-  const existing = place.admin1Code;
-  const supportedExisting = typeof existing === 'string'
-    && existing.startsWith(`${place.country}-`)
-    && (!['US', 'CA', 'AU'].includes(place.country) || REQUIRED_ADMIN1_CODES.has(existing));
-  return supportedExisting ? { ...candidate, admin1Code: existing } : candidate;
+  return isSupportedExistingCode(place, place.admin1Code) ? { ...candidate, admin1Code: place.admin1Code } : candidate;
 }
 
 function hasSupportedAdmin1Code(candidate) {
-  const code = candidate.admin1Code;
-  if (typeof code !== 'string') return false;
-  if (!code.startsWith(`${candidate.country}-`)) return false;
-  return !['US', 'CA', 'AU'].includes(candidate.country) || REQUIRED_ADMIN1_CODES.has(code);
+  return isSupportedExistingCode(candidate, candidate.admin1Code);
 }
 
 function validateEnrichedCandidate(candidate, file) {
@@ -41,21 +40,24 @@ function formatCandidateError(place, error) {
   return `${place.country ?? '(unknown)'} ${place.id ?? '(unknown)'} ${place.name ?? '(unnamed)'}: ${message}`;
 }
 
-function enrichCandidate(place, { file, featurePolygons, assigned, unassigned, lookupErrors }) {
-  if (!place || typeof place !== 'object') throw new TypeError(`${file} contains a non-object candidate`);
-  let admin1Code;
+function lookupAdmin1Code(place, { file, featurePolygons, lookupErrors }) {
   try {
-    admin1Code = admin1CodeAt(place, featurePolygons);
+    return admin1CodeAt(place, featurePolygons);
   } catch (error) {
     lookupErrors.push(formatCandidateError(place, error));
-    return candidateWithAdmin1Code(place, place.admin1Code);
+    return undefined;
   }
+}
+
+function enrichCandidate(place, context) {
+  if (!place || typeof place !== 'object') throw new TypeError(`${context.file} contains a non-object candidate`);
+  const admin1Code = lookupAdmin1Code(place, context);
   if (admin1Code === undefined) return candidateWithAdmin1Code(place, place.admin1Code);
   if (admin1Code === null) {
-    unassigned.push(`${place.country} ${place.id} ${place.name}`);
+    context.unassigned.push(`${place.country} ${place.id} ${place.name}`);
     return candidateWithAdmin1Code(place, place.admin1Code);
   }
-  assigned.push(admin1Code);
+  context.assigned.push(admin1Code);
   return candidateWithAdmin1Code(place, admin1Code);
 }
 
