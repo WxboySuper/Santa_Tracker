@@ -1,5 +1,25 @@
 # Changelog — per-PR exhaustive (enforced in CI)
 
+## [Unreleased] - Representative city stop cards batch 1
+
+- **Candidate coverage:** Adds draft cards for the top 100 country or territory candidates by population, keyed to stable generator place IDs.
+- **Research quality:** Adds original, source-linked cultural notes and permissively licensed landscape photos where matching attribution metadata is available; unsupported notes remain null.
+- **Research matching:** Audits Wikidata entities against candidate coordinates and retains only supported source and photo metadata.
+- **Topic uniqueness:** Keeps country/topic duplicates subject to the per-card exemption rule.
+
+## [Unreleased] - Source-backed stop card contract (#260)
+
+- **Card schema:** Defines stable place IDs, concise sourced notes, unique topic keys, review status, and fully attributed permissive-license photos.
+- **Validation:** Adds CI checks for missing sources, repeated place IDs or topics, near-duplicate notes, and unlicensed or unattributed photos.
+- **Research tooling:** Adds a cached, rate-limited research script for Wikidata entities, Wikipedia summaries, and Wikimedia Commons image license metadata.
+
+## [Unreleased] - Advent fallback library and takedown lock (#270, #421)
+
+- Added a day-specific fallback activity for all 24 Advent dates using the existing typed activity modules. The fallback flag is on by default and in the Cloudflare Worker config; authenticated previews expose fallback payloads only for unlocked days.
+- Made flag parsing case-insensitive and kept preview output aligned with whether the fallback flag is enabled.
+- Documented the exceptional takedown procedure in launch readiness and clarified the API contract for live, preview, and archive reads.
+- Added tests for every day's fallback and for hiding a past takedown-locked day from live, preview, and archive reads.
+
 ## [Unreleased] - Route freeze moved to Dec 5 (#321)
 
 - **Freeze gates:** Records the owner's 2026-11-26 decision to move the route freeze from Nov 25 to Dec 5, 18:00 UTC. The other gates are unchanged.
@@ -10,7 +30,6 @@
 - **Weather endpoint:** Adds `GET /api/weather?lat={latitude}&lon={longitude}` with Celsius and Fahrenheit temperatures, the provider's numeric weather code, and a short label.
 - **Caching and failure handling:** Rounds coordinates to a 0.25 degree grid, caches at the edge for 12 minutes, times out provider calls, and returns `null` when weather is unavailable.
 - **Provider terms:** Uses Open-Meteo. Its no-key free endpoint permits non-commercial use within published rate limits; weather data is CC BY 4.0 and requires attribution. Commercial use needs a paid plan. See https://open-meteo.com/en/terms.
-
 ## [Unreleased] - Cross-browser readiness matrix (#324)
 
 - **Opt-in Playwright profiles:** Adds open and closed fixture runs for Firefox and WebKit desktop, iPhone 13, Pixel 5, and iPad emulation, a 3840x2160 desktop viewport, and a 740x360 landscape phone viewport. The default project set stays unchanged.
@@ -21,6 +40,13 @@
 - **Season modes:** Adds a pure UTC-derived annual mode for off-season, preparation, Advent, flight, and post-season, sharing schedule boundaries with the existing feature gates without changing public access behavior.
 - **Admin override:** Adds a single-owner admin API to set and clear audited mode overrides with compare-and-set writes, required reasons, and a hard 48-hour expiry limit. Expired overrides are ignored and reported.
 - **Docs and tests:** Describes the mode schedule and emergency-switch relationship, with tests for each UTC boundary, expiry behavior, auth, validation, audit records, and storage conflicts.
+
+## [Unreleased] - Journey statistics and replay (#257, #259)
+
+- **Route engine:** Adds deterministic distance, stop, country, time zone, flight-time, and speed statistics. Presents now follow a smooth flight-and-dwell schedule from zero to the documented 7 billion playful estimate, allocated across route UTC-offset bands using the complete candidate pool as a population proxy.
+- **Replay:** Adds injected-clock play, pause, seek, speed, and reset controls. Replay owns copies of its route, stop metadata, and candidate-pool snapshot and returns the same state and statistics as live calculations for the same journey instant.
+- **Package exports:** Exposes the stats and replay APIs from the route-engine root and dedicated ./stats and ./replay entry points.
+- **Docs and tests:** Adds docs/JOURNEY_STATS.md and boundary, parity, determinism, localization, speed, and sampled monotonicity tests.
 
 ## [Unreleased] — Authoritative tracker state and map fallback (#251, #253)
 
