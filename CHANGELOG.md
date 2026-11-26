@@ -6,6 +6,12 @@
 - **Research quality:** Adds 80 original, source-linked cultural notes and 83 permissively licensed, fully attributed photos; 13 cards remain without a sourced note.
 - **Entity matching:** Leaves seven candidates unresolved where the research tool could not verify a matching Wikidata entity by exact English label and location.
 
+## [Unreleased] - Bounded weather provider calls (#542)
+
+- **Scheduled weather refresh:** Adds a 15-minute Worker cron that runs from 30 minutes before takeoff through the 26-hour flight and replay window. It reads the active route, fetches upcoming and current stop weather in batches of at most 50 cells, and stores results in shared KV for 30 minutes.
+- **Global provider limit:** `/api/weather` checks shared KV first. Both cron and request-time provider calls pass through one Durable Object budget capped at 900 per UTC day and 300 per minute. Missing data returns `null` when the budget or bindings are unavailable.
+- **Emergency switch and setup:** `WEATHER_ENABLED=false` disables both cron refresh and the endpoint. The launch runbook documents KV provisioning and the GitHub repository variable required before deployment.
+
 ## [Unreleased] - Representative city stop cards batch 1
 
 - **Candidate coverage:** Adds draft cards for the top 100 country or territory candidates by population, keyed to stable generator place IDs.
