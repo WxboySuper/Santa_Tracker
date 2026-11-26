@@ -100,4 +100,10 @@ describe('stop card validation', () => {
     expect(result.status).toBe(1);
     expect(result.stderr).toContain('HTTPS source URL');
   });
+  it('reports a note after a malformed entry instead of crashing', async () => {
+    const result = await validate([null, validCard('Q15', 'This harbour town lights a floating tree on its old quay every December evening.', 'floating-tree')]);
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain('cards[0]: place_id is required');
+    expect(result.stderr).not.toContain('TypeError');
+  });
 });
