@@ -10,6 +10,10 @@ export const dynamic = "force-dynamic";
 export async function POST(request: Request): Promise<Response> {
   const auth = await requireAdminAuth(request);
   if (!auth.ok) return authError(auth.error, auth.status);
+  return processRegistration(request);
+}
+
+async function processRegistration(request: Request): Promise<Response> {
   const token = tokenFromRequest(request);
   const sessionId = token ? await getAdminTokenSessionId(token) : null;
   const challengeId = challengeIdFromRequest(request);

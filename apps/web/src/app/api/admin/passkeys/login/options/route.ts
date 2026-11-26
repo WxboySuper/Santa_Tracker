@@ -17,6 +17,8 @@ export async function POST(request: Request): Promise<Response> {
       await recordPasskeyFailure("passkey_login_origin_rejected");
       return NextResponse.json({ error: "Invalid origin" }, { status: 403 });
     }
+    const throttle = await recordLoginAttempt(ip);
+    if (throttle) return tooManyAttempts(throttle.retryAfterSeconds);
     const result = await createAuthenticationChallenge(request);
     return setChallengeCookie(NextResponse.json({ options: result.options }, { headers: { "Cache-Control": "no-store" } }), result.challenge.id);
   } catch (error) {

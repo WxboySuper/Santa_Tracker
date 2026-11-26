@@ -99,7 +99,7 @@ export async function loginAdmin(payload: unknown, ip?: string): Promise<AdminAp
     return await issueSessionToken(payload, ip);
   } catch (error) {
     console.error("Admin login internal error", error);
-    return badRequest("Invalid data format");
+    return { status: 503, body: { error: "Admin authentication storage is unavailable" } };
   }
 }
 

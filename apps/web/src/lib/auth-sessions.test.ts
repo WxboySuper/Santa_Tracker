@@ -1,10 +1,12 @@
-import { describe, expect, it, beforeEach } from "vitest";
+import { describe, expect, it, beforeEach, afterEach, vi } from "vitest";
 import { createAdminSession, readActiveSession, resetAdminAuthStateForTests } from "./admin-auth-state";
 import { createAdminToken, getAdminTokenCsrfToken, getAdminTokenSessionId, requireAdminAuth, revokeAdminToken, verifyAdminToken } from "./auth";
 import { POST as logout } from "@/app/api/admin/logout/route";
+import { DELETE as revokeSession } from "@/app/api/admin/sessions/route";
 
 describe("admin session and CSRF enforcement", () => {
   beforeEach(async () => { await resetAdminAuthStateForTests(); });
+  afterEach(() => vi.unstubAllEnvs());
 
   it("revokes an issued session immediately", async () => {
     const token = await createAdminToken();
@@ -46,5 +48,37 @@ describe("admin session and CSRF enforcement", () => {
   it("keeps explicit bearer authentication available to API clients", async () => {
     const token = await createAdminToken();
     expect((await requireAdminAuth(new Request("https://example.test/api/admin/flags", { method: "POST", headers: { authorization: `Bearer ${token}` } }))).ok).toBe(true);
+  });
+
+  it("allows logout to revoke the presented bearer session", async () => {
+    const token = await createAdminToken();
+    const response = await logout(new Request("https://example.test/api/admin/logout", { method: "POST", headers: { authorization: `Bearer ${token}` } }));
+    expect(response.status).toBe(200);
+    expect(await verifyAdminToken(token)).toBe(false);
+  });
+
+  it("rejects revoking the current session and directs the owner to logout", async () => {
+    const token = await createAdminToken();
+    const csrf = await getAdminTokenCsrfToken(token);
+    const sessionId = await getAdminTokenSessionId(token);
+    const response = await revokeSession(new Request("https://example.test/api/admin/sessions", {
+      method: "DELETE",
+      headers: { cookie: `admin_token=${token}; admin_csrf=${csrf}`, origin: "https://example.test", "x-csrf-token": csrf!, "content-type": "application/json" },
+      body: JSON.stringify({ sessionId }),
+    }));
+    expect(response.status).toBe(400);
+    expect(await verifyAdminToken(token)).toBe(true);
+  });
+
+  it("derives the CSRF origin from the request when production WebAuthn origin is unset", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("ADMIN_WEBAUTHN_ORIGIN", "");
+    const token = await createAdminToken();
+    const csrf = await getAdminTokenCsrfToken(token);
+    const response = await requireAdminAuth(new Request("https://example.test/api/admin/flags", {
+      method: "POST",
+      headers: { cookie: `admin_token=${token}; admin_csrf=${csrf}`, origin: "https://example.test", "x-csrf-token": csrf! },
+    }));
+    expect(response.ok).toBe(true);
   });
 });

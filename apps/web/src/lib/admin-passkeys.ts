@@ -30,9 +30,14 @@ function parseExpectedOrigin(origin: string): URL {
 }
 
 function validateRpId(hostname: string, rpId: string): void {
-  if (!rpId || (hostname !== rpId && !hostname.endsWith(`.${rpId}`))) {
+  if (!rpId) throw new Error("Request host does not match the WebAuthn RP ID");
+  if (!isWithinRpDomain(hostname, rpId)) {
     throw new Error("Request host does not match the WebAuthn RP ID");
   }
+}
+
+function isWithinRpDomain(hostname: string, rpId: string): boolean {
+  return hostname === rpId || hostname.endsWith(`.${rpId}`);
 }
 
 export async function createRegistrationChallenge(request: Request, sessionId: string): Promise<{ challenge: AdminAuthChallenge; options: Awaited<ReturnType<typeof generateRegistrationOptions>> }> {
@@ -99,7 +104,12 @@ export async function finishAuthentication(input: { request: Request; challengeI
     credential: { id: credential.id, publicKey: Uint8Array.from(decodeBase64Url(credential.publicKey)), counter: credential.counter, transports: credential.transports },
   });
   if (!verification.verified) throw new Error("Passkey authentication could not be verified");
-  await updatePasskeyCounter(credential.id, verification.authenticationInfo.newCounter);
+  const newCounter = verification.authenticationInfo.newCounter;
+  if (credential.counter !== 0 && newCounter !== 0 && newCounter <= credential.counter) {
+    await appendAuthAudit({ action: "passkey_login", result: "failure" });
+    throw new Error("Passkey counter did not advance");
+  }
+  await updatePasskeyCounter(credential.id, newCounter);
   const token = await createAdminToken();
   await appendAuthAudit({ action: "passkey_login", result: "success" });
   return token;

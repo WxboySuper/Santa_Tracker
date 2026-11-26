@@ -84,11 +84,15 @@ export async function requireAdminAuth(request: Request): Promise<{ ok: boolean;
   if (!claims) {
     return { ok: false, error: "Invalid credentials", status: 403 };
   }
-  if (credential.cookieAuth && isMutation(request.method) && !hasValidCsrf(request, claims.csrf)) {
+  if (requiresCsrf(request, credential) && !hasValidCsrf(request, claims.csrf)) {
     await appendAuthAudit({ action: "csrf_rejected", result: "failure" });
     return { ok: false, error: "CSRF validation failed", status: 403 };
   }
   return { ok: true };
+}
+
+function requiresCsrf(request: Request, credential: { cookieAuth: boolean }): boolean {
+  return credential.cookieAuth && isMutation(request.method);
 }
 
 function readAdminCredential(request: Request): { token: string | null; cookieAuth: boolean; invalid: boolean } {
@@ -104,9 +108,13 @@ function readAdminCredential(request: Request): { token: string | null; cookieAu
 async function verifyAdminTokenClaims(token: string): Promise<{ csrf: string } | null> {
   try {
     const { payload } = await jose.jwtVerify(token, getSecret());
-    if (payload.admin !== true || typeof payload.jti !== "string" || typeof payload.csrf !== "string") return null;
+    if (!hasAdminSessionClaims(payload)) return null;
     return await readActiveSession(payload.jti) ? { csrf: payload.csrf } : null;
   } catch { return null; }
+}
+
+function hasAdminSessionClaims(payload: jose.JWTPayload): payload is jose.JWTPayload & { admin: true; jti: string; csrf: string } {
+  return payload.admin === true && typeof payload.jti === "string" && typeof payload.csrf === "string";
 }
 
 function isMutation(method: string): boolean {
@@ -126,9 +134,7 @@ function hasValidCsrf(request: Request, expected: string): boolean {
 
 function expectedOrigin(request: Request): string {
   const configured = process.env.ADMIN_WEBAUTHN_ORIGIN;
-  if (configured) return configured;
-  if (process.env.NODE_ENV === "production") return "";
-  return new URL(request.url).origin;
+  return configured ? new URL(configured).origin : new URL(request.url).origin;
 }
 
 export function maskToken(token: string): string {

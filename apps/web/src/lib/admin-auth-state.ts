@@ -85,25 +85,31 @@ function parseJsonState(raw: string): unknown {
 }
 
 function isAdminAuthState(value: unknown): value is AdminAuthState {
-  return isRecord(value)
-    && value.version === 1
-    && hasValidCollections(value)
-    && value.passkeys.length <= 10
-    && value.recoveryCodeHashes.length <= 10
-    && value.passkeys.every(isStoredPasskey)
+  if (!isRecord(value) || value.version !== 1 || !hasValidCollections(value)) return false;
+  return hasSafeCounts(value) && hasValidEntries(value);
+}
+
+function hasSafeCounts(value: AdminAuthCollections): boolean {
+  return value.passkeys.length <= 10 && value.recoveryCodeHashes.length <= 10;
+}
+
+function hasValidEntries(value: AdminAuthCollections): boolean {
+  return value.passkeys.every(isStoredPasskey)
     && value.sessions.every(isSession)
     && value.challenges.every(isChallenge)
     && value.audit.every(isAuditEvent)
     && value.recoveryCodeHashes.every(item => typeof item === "string");
 }
 
-function hasValidCollections(value: Record<string, unknown>): value is Record<string, unknown> & {
+type AdminAuthCollections = Record<string, unknown> & {
   passkeys: unknown[];
   sessions: unknown[];
   challenges: unknown[];
   audit: unknown[];
   recoveryCodeHashes: unknown[];
-} {
+};
+
+function hasValidCollections(value: Record<string, unknown>): value is AdminAuthCollections {
   return Array.isArray(value.passkeys)
     && Array.isArray(value.sessions)
     && Array.isArray(value.challenges)
@@ -121,15 +127,41 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function isStoredPasskey(value: unknown): value is StoredPasskey {
   if (!isRecord(value)) return false;
-  if (typeof value.id !== "string" || value.id.length < 1 || value.id.length > 1024) return false;
-  if (typeof value.publicKey !== "string" || !/^[A-Za-z0-9_-]+$/.test(value.publicKey)) return false;
-  if (!Number.isSafeInteger(value.counter) || (value.counter as number) < 0) return false;
+  if (!isValidPasskeyId(value.id) || !isValidPublicKey(value.publicKey) || !isValidCounter(value.counter)) return false;
   return value.transports === undefined || (Array.isArray(value.transports) && value.transports.every(item => typeof item === "string"));
+}
+
+function isValidPasskeyId(value: unknown): value is string {
+  return typeof value === "string" && value.length >= 1 && value.length <= 1024;
+}
+
+function isValidPublicKey(value: unknown): value is string {
+  return typeof value === "string" && /^[A-Za-z0-9_-]+$/.test(value);
+}
+
+function isValidCounter(value: unknown): value is number {
+  return Number.isSafeInteger(value) && (value as number) >= 0;
 }
 
 function isSession(value: unknown): value is AdminSessionRecord {
   if (!isRecord(value)) return false;
-  return typeof value.id === "string" && typeof value.csrfToken === "string" && typeof value.createdAt === "number" && Number.isSafeInteger(value.createdAt) && typeof value.expiresAt === "number" && Number.isSafeInteger(value.expiresAt) && value.expiresAt > value.createdAt && (value.revokedAt === null || (typeof value.revokedAt === "number" && Number.isSafeInteger(value.revokedAt)));
+  return hasSessionIdentity(value) && hasValidSessionTimes(value) && isValidRevocationTime(value.revokedAt);
+}
+
+function hasSessionIdentity(value: Record<string, unknown>): boolean {
+  return typeof value.id === "string" && typeof value.csrfToken === "string";
+}
+
+function hasValidSessionTimes(value: Record<string, unknown>): boolean {
+  return isSafeTimestamp(value.createdAt) && isSafeTimestamp(value.expiresAt) && (value.expiresAt as number) > (value.createdAt as number);
+}
+
+function isValidRevocationTime(value: unknown): boolean {
+  return value === null || isSafeTimestamp(value);
+}
+
+function isSafeTimestamp(value: unknown): value is number {
+  return typeof value === "number" && Number.isSafeInteger(value);
 }
 
 function isChallenge(value: unknown): value is AdminAuthChallenge {
@@ -190,7 +222,7 @@ export async function saveAuthChallenge(challenge: AdminAuthChallenge): Promise<
 export async function consumeAuthChallenge(id: string, purpose: AdminAuthChallenge["purpose"], now = Date.now()): Promise<AdminAuthChallenge | null> {
   return mutateState(state => {
     const challenge = state.challenges.find(item => item.id === id && item.purpose === purpose && item.expiresAt > now);
-    state.challenges = state.challenges.filter(item => item.id !== id);
+    if (challenge) state.challenges = state.challenges.filter(item => item.id !== id);
     return challenge ?? null;
   });
 }

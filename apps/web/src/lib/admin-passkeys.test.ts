@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { AuthenticationResponseJSON, RegistrationResponseJSON } from "@simplewebauthn/server";
 import { verifyAuthenticationResponse, verifyRegistrationResponse } from "@simplewebauthn/server";
-import { deletePasskey, installPasskey, resetAdminAuthStateForTests, readAdminAuthState } from "./admin-auth-state";
+import { consumeAuthChallenge, deletePasskey, installPasskey, resetAdminAuthStateForTests, readAdminAuthState } from "./admin-auth-state";
 import { createAuthenticationChallenge, createRegistrationChallenge, finishAuthentication, finishRegistration, loginWithRecoveryCode, webAuthnSettings } from "./admin-passkeys";
 import { verifyAdminToken } from "./auth";
 import { loginAdmin } from "./admin-login";
@@ -44,6 +44,12 @@ describe("admin passkey service", () => {
     expect(() => webAuthnSettings(request)).toThrow("must use HTTPS in production");
   });
 
+  it("keeps a challenge available when a consumer requests the wrong purpose", async () => {
+    const { challenge } = await createRegistrationChallenge(request, "session-one");
+    expect(await consumeAuthChallenge(challenge.id, "authentication")).toBeNull();
+    expect(await consumeAuthChallenge(challenge.id, "registration")).not.toBeNull();
+  });
+
   it("registers a passkey and returns one-time recovery codes", async () => {
     const { challenge } = await createRegistrationChallenge(request, "session-one");
     vi.mocked(verifyRegistrationResponse).mockResolvedValue({
@@ -79,6 +85,16 @@ describe("admin passkey service", () => {
     expect(await verifyAdminToken(token)).toBe(true);
     expect((await readAdminAuthState()).passkeys[0]?.counter).toBe(2);
     await expect(finishAuthentication({ request, challengeId: authentication.challenge.id, response: { id: "credential-one" } as AuthenticationResponseJSON })).rejects.toThrow("Authentication challenge expired or unavailable");
+  });
+
+  it("rejects a non-advancing signature counter", async () => {
+    await registerPasskeyForTest(2);
+    const authentication = await createAuthenticationChallenge(request);
+    vi.mocked(verifyAuthenticationResponse).mockResolvedValue({
+      verified: true,
+      authenticationInfo: { credentialID: "credential-one", newCounter: 2, userVerified: true, credentialDeviceType: "singleDevice", credentialBackedUp: false, origin: "https://example.test", rpID: "example.test" },
+    });
+    await expect(finishAuthentication({ request, challengeId: authentication.challenge.id, response: { id: "credential-one" } as AuthenticationResponseJSON })).rejects.toThrow("Passkey counter did not advance");
   });
 
   it("disables password login after passkey setup without revealing password correctness", async () => {
