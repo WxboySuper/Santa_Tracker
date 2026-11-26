@@ -24,7 +24,13 @@ async function cachedJson(key, url) {
 }
 for (const id of [...new Set(requested)]) {
   const candidate = candidateById.get(id);
-  const qid = /^Q\d+$/.test(id) ? id : candidate?.source?.match(/wikidata\.org\/wiki\/(Q\d+)/)?.[1];
+  let qid = /^Q\d+$/.test(id) ? id : candidate?.source?.match(/wikidata\.org\/wiki\/(Q\d+)/)?.[1];
+  if (!qid && candidate) {
+    const search = new URL('https://www.wikidata.org/w/api.php');
+    search.search = new URLSearchParams({ action: 'wbsearchentities', format: 'json', language: 'en', limit: '10', search: candidate.name + ' ' + candidate.country }).toString();
+    const matches = await cachedJson('wikidata-search-' + id, search);
+    qid = matches.search?.[0]?.id;
+  }
   const entityResult = qid ? await cachedJson('wikidata-' + qid, 'https://www.wikidata.org/wiki/Special:EntityData/' + qid + '.json') : null;
   const entity = entityResult?.entities?.[qid];
   if (!entity && !candidate) throw new Error('Unknown candidate place ID: ' + id);
@@ -51,8 +57,9 @@ for (const id of [...new Set(requested)]) {
   const pages = Object.values(wikipedia?.query?.pages ?? {});
   const page = pages[0];
   const facts = (entity?.claims?.P166 ?? []).slice(0, 10).map((claim) => claim.mainsnak?.datavalue?.value?.id).filter(Boolean);
-  const wikidataSource = qid ? 'https://www.wikidata.org/wiki/' + qid : candidate.source;
-  const draft = { place_id: id, country: candidate?.country ?? null, label: entity?.labels?.en?.value ?? candidate?.name ?? id, description: entity?.descriptions?.en?.value ?? null, wikipedia_extract: page?.extract ?? null, wikipedia_source: page?.fullurl ?? null, wikidata_source: wikidataSource, notable_award_qids: facts, photo, note: null, topic_key: null, sources: [wikidataSource, ...(page?.fullurl ? [page.fullurl] : [])], review_status: 'draft' };
+  const wikidataSource = qid ? 'https://www.wikidata.org/wiki/' + qid : null;
+  const sources = [wikidataSource, page?.fullurl, candidate?.source].filter((source) => typeof source === 'string' && source.startsWith('https://'));
+  const draft = { place_id: id, country: candidate?.country ?? entity?.claims?.P17?.[0]?.mainsnak?.datavalue?.value?.id ?? null, label: entity?.labels?.en?.value ?? candidate?.name ?? id, description: entity?.descriptions?.en?.value ?? null, wikipedia_extract: page?.extract ?? null, wikipedia_source: page?.fullurl ?? null, wikidata_source: wikidataSource, notable_award_qids: facts, photo, note: null, topic_key: null, sources, review_status: 'draft' };
   await writeFile(resolve(output, id + '.json'), JSON.stringify(draft, null, 2) + '\n');
 }
 console.log('Wrote ' + new Set(requested).size + ' research drafts to ' + output);
