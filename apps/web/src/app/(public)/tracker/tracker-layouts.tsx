@@ -8,6 +8,7 @@ import { localDayHour, localTimeAt, shortDuration } from "@/lib/tracker-local-ti
 import { christmasInJanuary, festiveMoment, greetingFor } from "@/lib/tracker-festive";
 import { bearingBetween } from "@/lib/tracker-map-geometry";
 import { useTrackerNow } from "@/lib/use-tracker-now";
+import { useStopWeather, type StopWeather } from "@/lib/use-stop-weather";
 import { JourneyCard } from "./tracker-chrome";
 import "./tracker-layouts.css";
 
@@ -46,7 +47,8 @@ function flightState(nodes: RouteNode[], timedNodes: RouteNode[], position: Sant
   const takeoff = departure(nodes[0] ?? ({} as RouteNode));
   if (!position || (Number.isFinite(takeoff) && now < takeoff) || position.journey.progress >= 1) return null;
   const index = position.journey.currentIndex;
-  const current = index === null ? undefined : timedNodes[index];
+  // On the first leg out of the North Pole there is no "current" stop yet: treat the Pole as where Santa just left.
+  const current = index === null ? nodes[0] : timedNodes[index];
   if (!current || current.type === "END") return null;
   const candidate = position.journey.nextIndex === null ? undefined : timedNodes[position.journey.nextIndex];
   return {
@@ -110,6 +112,29 @@ function NowPanel({ flight, translator }: { flight: Flight; translator: Translat
 }
 
 /** Globe, right edge: the festive side of the place Santa is over, and what is coming up. */
+/** Fahrenheit for readers whose browser region uses it; everyone else gets Celsius. */
+function prefersFahrenheit(): boolean {
+  if (typeof navigator === "undefined") return false;
+  return /-(US|LR|MM|BS|BZ|KY|PW|FM|MH)$/i.test(navigator.language);
+}
+
+function temperature(weather: StopWeather): string {
+  const value = prefersFahrenheit() ? `${Math.round(weather.temperatureF)}°F` : `${Math.round(weather.temperatureC)}°C`;
+  return value.replace("-", "−");
+}
+
+/** Current weather where Santa is. Open-Meteo data is CC BY 4.0, so the credit sits beside it. */
+function WeatherLine({ node, next, translator }: { node: RouteNode; next?: RouteNode; translator: Translator }) {
+  const weather = useStopWeather(node);
+  useStopWeather(next); // Ask ahead, so the next stop's weather is ready when Santa lands.
+  if (!weather) return null;
+  return <p className="tl-weather">
+    <span className="tl-weather-temp">{temperature(weather)}</span>
+    <span>{weather.label}</span>
+    <a className="tl-weather-credit" href="https://open-meteo.com/" target="_blank" rel="noreferrer">{translator.t("tracker.here.weatherCredit")}</a>
+  </p>;
+}
+
 function HerePanel({ flight, translator }: { flight: Flight; translator: Translator }) {
   const { current, now, stats } = flight;
   const code = (current.location as { country_code?: string }).country_code;
@@ -118,6 +143,7 @@ function HerePanel({ flight, translator }: { flight: Flight; translator: Transla
   const moment = festiveMoment(day, hour);
   return <section className="tl-panel tl-panel-here" aria-label={translator.t("tracker.here.label")}>
     <p className="tl-panel-kicker">{translator.t(`tracker.here.${moment}`, { time: localTimeAt(current, now) })}</p>
+    <WeatherLine node={current} next={flight.next} translator={translator} />
     <p className="tl-greeting" lang={greeting.language === "English" ? "en" : undefined}>{greeting.text}</p>
     <p className="tl-panel-sub">{translator.t("tracker.here.in", { language: greeting.language })}</p>
     {christmasInJanuary(code) && <p className="tl-panel-note">{translator.t("tracker.here.january")}</p>}

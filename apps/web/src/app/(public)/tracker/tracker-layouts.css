@@ -175,6 +175,30 @@
   line-height: 1.2;
 }
 
+.tl-weather {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.5rem;
+  align-items: baseline;
+  margin: 0.35rem 0 0;
+  color: var(--tt-soft);
+  font-size: 0.82rem;
+}
+
+.tl-weather-temp {
+  color: var(--tt-ink);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.tl-weather-credit {
+  margin-left: auto;
+  color: var(--tt-soft);
+  font-size: 0.68rem;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
 .tl-panel-note {
   margin: 0.7rem 0 0;
   padding-left: 0.6rem;

@@ -120,6 +120,7 @@ export const en = {
   'tracker.here.morning': 'Christmas morning here · {time}',
   'tracker.here.day': 'Christmas Day here · {time}',
   'tracker.here.in': 'Merry Christmas in {language}',
+  'tracker.here.weatherCredit': 'Open-Meteo',
   'tracker.here.january': 'Most Christians here keep Christmas on 7 January, so tonight is an ordinary night for many.',
   'tracker.localTime': 'Santa local time',
   'tracker.tvFindMeHint': 'Choose a place in immersive mode to see the arrival estimate here.',
