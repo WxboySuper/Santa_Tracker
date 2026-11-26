@@ -7,6 +7,17 @@
 - Documented the exceptional takedown procedure in launch readiness and clarified the API contract for live, preview, and archive reads.
 - Added tests for every day's fallback and for hiding a past takedown-locked day from live, preview, and archive reads.
 
+## [Unreleased] - Route freeze moved to Dec 5 (#321)
+
+- **Freeze gates:** Records the owner's 2026-11-26 decision to move the route freeze from Nov 25 to Dec 5, 18:00 UTC. The other gates are unchanged.
+- **Launch readiness:** Moves route approval and activation in the dates table to the Dec 5 freeze.
+
+## [Unreleased] - Current stop weather API (#320)
+
+- **Weather endpoint:** Adds `GET /api/weather?lat={latitude}&lon={longitude}` with Celsius and Fahrenheit temperatures, the provider's numeric weather code, and a short label.
+- **Caching and failure handling:** Rounds coordinates to a 0.25 degree grid, caches at the edge for 12 minutes, times out provider calls, and returns `null` when weather is unavailable.
+- **Provider terms:** Uses Open-Meteo. Its no-key free endpoint permits non-commercial use within published rate limits; weather data is CC BY 4.0 and requires attribution. Commercial use needs a paid plan. See https://open-meteo.com/en/terms.
+
 ## [Unreleased] - Cross-browser readiness matrix (#324)
 
 - **Opt-in Playwright profiles:** Adds open and closed fixture runs for Firefox and WebKit desktop, iPhone 13, Pixel 5, and iPad emulation, a 3840x2160 desktop viewport, and a 740x360 landscape phone viewport. The default project set stays unchanged.
