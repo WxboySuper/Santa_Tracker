@@ -58,4 +58,16 @@ describe('stop card validation', () => {
     expect(result.stderr).toContain('cards[2]: topic_key market already used');
     expect(result.stderr).not.toContain('cards[1]');
   });
+  it('matches the schema: trims countries, needs boolean exemptions, rejects unknown fields and bad files', async () => {
+    const a = validCard('Q8', null, 'lights');
+    const b = { ...validCard('Q9', null, 'lights'), country: ' Exampleland ', allow_duplicate_topic: 'true', extra: 1 };
+    const result = await validate([a, b]);
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain('topic_key lights already used');
+    expect(result.stderr).toContain('allow_duplicate_topic must be a boolean');
+    expect(result.stderr).toContain('unknown field extra');
+    const missing = spawnSync(process.execPath, [resolve(root, 'tools/validate-stop-cards.mjs'), resolve(tmpdir(), 'no-such-cards.json')], { encoding: 'utf8' });
+    expect(missing.status).toBe(1);
+    expect(missing.stderr).toContain('could not load');
+  });
 });

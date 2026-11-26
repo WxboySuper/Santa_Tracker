@@ -1,7 +1,16 @@
 import { readFile } from 'node:fs/promises';
 
 const dataPath = process.argv[2] ?? new URL('../content/stop-cards.json', import.meta.url);
-const cards = JSON.parse(await readFile(dataPath, 'utf8'));
+let cards;
+try {
+  cards = JSON.parse(await readFile(dataPath, 'utf8'));
+} catch (error) {
+  process.stderr.write(`Stop card validation failed:\n- could not load ${String(dataPath)}: ${error.message}\n`);
+  process.exit(1);
+}
+const cardKeys = new Set(['place_id', 'country', 'note', 'sources', 'topic_key', 'photo', 'review_status', 'allow_duplicate_topic']);
+const photoKeys = new Set(['url', 'width', 'height', 'author', 'license', 'license_url', 'source_page']);
+const extraKeys = (value, allowed) => Object.keys(value).filter((key) => !allowed.has(key));
 const errors = [];
 const allowedLicenses = new Set(['CC0', 'Public domain', 'CC BY', 'CC BY-SA']);
 const normalized = (value) => value.toLocaleLowerCase('en').normalize('NFKD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, ' ').trim();
@@ -12,7 +21,10 @@ function similarity(left, right) {
   let shared = 0; for (const gram of a) if (b.has(gram)) shared++;
   return shared / (a.size + b.size - shared);
 }
-if (!Array.isArray(cards)) throw new Error('Stop cards must be a JSON array');
+if (!Array.isArray(cards)) {
+  process.stderr.write('Stop card validation failed:\n- stop cards must be a JSON array\n');
+  process.exit(1);
+}
 const placeIds = new Set(); const topics = new Map();
 for (const [index, card] of cards.entries()) {
   const prefix = 'cards[' + index + ']';
@@ -27,17 +39,20 @@ for (const [index, card] of cards.entries()) {
     for (let prior = 0; prior < index; prior++) if (typeof cards[prior].note === 'string' && similarity(card.note, cards[prior].note) >= 0.72) errors.push(prefix + ': note duplicates or closely matches cards[' + prior + ']');
   }
   // Topic keys are unique per country whether or not the note is written yet. The first holder of a key keeps it.
-  const country = String(card.country ?? '').toLocaleLowerCase('en');
-  if (country && typeof card.topic_key === 'string' && card.topic_key && !card.allow_duplicate_topic) {
+  for (const key of extraKeys(card, cardKeys)) errors.push(prefix + ': unknown field ' + key);
+  if (card.allow_duplicate_topic !== undefined && typeof card.allow_duplicate_topic !== 'boolean') errors.push(prefix + ': allow_duplicate_topic must be a boolean');
+  const country = String(card.country ?? '').trim().toLocaleLowerCase('en');
+  if (country && typeof card.topic_key === 'string' && card.topic_key && card.allow_duplicate_topic !== true) {
     const key = country + ':' + card.topic_key;
     if (!topics.has(key)) topics.set(key, index);
-    else if (!cards[topics.get(key)].allow_duplicate_topic) errors.push(prefix + ': topic_key ' + card.topic_key + ' already used in ' + card.country);
+    else if (cards[topics.get(key)].allow_duplicate_topic !== true) errors.push(prefix + ': topic_key ' + card.topic_key + ' already used in ' + card.country);
   }
   if (!['draft', 'approved', 'stale'].includes(card.review_status)) errors.push(prefix + ': invalid review_status');
   if (card.photo !== null) {
     const photo = card.photo;
     if (!photo || typeof photo !== 'object') errors.push(prefix + ': photo must be null or an object');
     else {
+      for (const key of extraKeys(photo, photoKeys)) errors.push(prefix + ': unknown photo field ' + key);
       if (!allowedLicenses.has(photo.license)) errors.push(prefix + ': unsupported photo license');
       for (const key of ['url', 'license_url', 'source_page']) if (typeof photo[key] !== 'string' || !/^https:\/\//.test(photo[key])) errors.push(prefix + ': photo.' + key + ' must be an HTTPS URL');
       if (!Number.isInteger(photo.width) || photo.width < 1 || !Number.isInteger(photo.height) || photo.height < 1) errors.push(prefix + ': photo dimensions must be positive integers');
