@@ -150,7 +150,9 @@ export function eastwardLegReason(options: {
   const stillBeforeWestwardSweep = fromOffset === undefined
     ? destinationIndex === 0
     : fromOffset > 12 * 60;
-  if (destinationIndex < 5 && stillBeforeWestwardSweep && nearDateline && toOffset !== undefined && toOffset >= 13 * 60) {
+  const launchAcrossDateline = destinationIndex === 0 && nearDateline && toOffset !== undefined && toOffset >= 12 * 60;
+  const openingDatelineSweep = destinationIndex < 5 && stillBeforeWestwardSweep && nearDateline && toOffset !== undefined && toOffset >= 13 * 60;
+  if (launchAcrossDateline || openingDatelineSweep) {
     return 'dateline';
   }
 

@@ -63,6 +63,17 @@ function countryCapacity(place: Candidate, counts: Map<string, number>, config: 
   return (counts.get(place.country) ?? 0) < config.maxStopsPerCountry;
 }
 
+function selectionConstraintsAllow(order: Candidate[], config: GeneratorConfig): boolean {
+  const countryCounts = new Map<string, number>();
+  const separation = new SeparationIndex(config.minStopSeparationKm);
+  for (const place of order) {
+    if (!countryCapacity(place, countryCounts, config) || !separation.allows(place)) return false;
+    countryCounts.set(place.country, (countryCounts.get(place.country) ?? 0) + 1);
+    separation.add(place);
+  }
+  return true;
+}
+
 function separationCell(place: LatLng, cellSize: number): string {
   const latitude = place.lat * Math.PI / 180;
   const longitude = place.lng * Math.PI / 180;
@@ -348,7 +359,7 @@ function greedySweep(pool: Candidate[], config: GeneratorConfig): GreedySelectio
   return { selected: state.route, unselected: [...state.remaining.values()] };
 }
 
-function planOrder(order: Candidate[], config: GeneratorConfig): RoutePlan | undefined {
+function planTiming(order: Candidate[], config: GeneratorConfig): RoutePlan | undefined {
   const planned: TimedCandidate[] = [];
   const arrivalTimes: number[] = [];
   const departures: number[] = [];
@@ -369,6 +380,11 @@ function planOrder(order: Candidate[], config: GeneratorConfig): RoutePlan | und
   if (!final || finalDeparture === undefined) return undefined;
   if (finalDeparture + scheduledTravelMilliseconds(final, NORTH_POLE, config) > Date.parse(RETURN_DEADLINE_UTC)) return undefined;
   return { places: planned, arrivalTimes, departures };
+}
+
+function planOrder(order: Candidate[], config: GeneratorConfig): RoutePlan | undefined {
+  if (!selectionConstraintsAllow(order, config)) return undefined;
+  return planTiming(order, config);
 }
 
 function detourCount(order: Candidate[]): number {
@@ -427,7 +443,7 @@ function reduceEastwardAt(best: TimedCandidate[], index: number, config: Generat
   for (let target = index - 1; target >= firstPosition; target--) {
     const proposal = moveOrOpt(best, index, target);
     if (!reducesBacktracking(proposal, priorEastward, priorDetours)) continue;
-    const plan = planOrder(proposal, config);
+    const plan = planTiming(proposal, config);
     if (plan) return plan.places;
   }
   return undefined;
@@ -498,7 +514,7 @@ function improveWithLocalSearch(initial: TimedCandidate[], config: GeneratorConf
     const proposal = localProposal(best, first, second, random);
     const cost = routeCost(proposal);
     if (!canAcceptLocalProposal(cost, bestCost)) continue;
-    const planned = planOrder(proposal, config);
+    const planned = planTiming(proposal, config);
     if (!planned) continue;
     best = planned.places;
     bestCost = cost;
@@ -579,7 +595,7 @@ function addAtFeasiblePosition(state: InsertionState, place: Candidate, position
   const priorDetours = detourCount(state.route);
   for (const { index } of insertionOptions(state, place, positions, pass)) {
     const proposal = [...state.route.slice(0, index), place, ...state.route.slice(index)];
-    const plan = planOrder(proposal, pass.config);
+    const plan = planTiming(proposal, pass.config);
     if (!insertionPlanIsAcceptable(plan, priorEastward, priorDetours)) continue;
     state.route = plan.places;
     state.counts.set(place.country, (state.counts.get(place.country) ?? 0) + 1);
