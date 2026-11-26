@@ -80,7 +80,9 @@ export async function requireAdminAuth(request: Request): Promise<{ ok: boolean;
   if (!credential.token) {
     return { ok: false, error: "Authentication required", status: 401 };
   }
-  const claims = await verifyAdminTokenClaims({ token: credential.token });
+  let claims: { csrf: string } | null;
+  try { claims = await verifyAdminTokenClaims({ token: credential.token }); }
+  catch { return { ok: false, error: "Admin authentication storage is unavailable", status: 503 }; }
   if (!claims) {
     return { ok: false, error: "Invalid credentials", status: 403 };
   }

@@ -9,6 +9,11 @@ import { getAdminClientIp } from "@/lib/admin-client-ip";
 export const dynamic = "force-dynamic";
 
 export async function POST(request: Request): Promise<Response> {
+  try { return await processLoginVerification(request); }
+  catch { return NextResponse.json({ error: "Admin authentication storage is unavailable" }, { status: 503 }); }
+}
+
+async function processLoginVerification(request: Request): Promise<Response> {
   const ip = getAdminClientIp(request);
   if (!ip) { await recordPasskeyFailure({ action: "passkey_login_throttled" }); return tooManyAttempts(60); }
   const locked = await checkLoginRateLimit(ip);

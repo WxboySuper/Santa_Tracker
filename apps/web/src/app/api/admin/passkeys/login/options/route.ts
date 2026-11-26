@@ -7,11 +7,20 @@ import { getAdminClientIp } from "@/lib/admin-client-ip";
 export const dynamic = "force-dynamic";
 
 export async function POST(request: Request): Promise<Response> {
+  try { return await processLoginOptions(request); }
+  catch { return storageUnavailable(); }
+}
+
+async function processLoginOptions(request: Request): Promise<Response> {
   const ip = getAdminClientIp(request);
   if (!ip) return throttled(60);
   const locked = await checkLoginRateLimit(ip);
   if (locked) return throttled(locked.retryAfterSeconds);
   return createOptions(request, ip);
+}
+
+function storageUnavailable(): Response {
+  return NextResponse.json({ error: "Admin authentication storage is unavailable" }, { status: 503 });
 }
 
 async function createOptions(request: Request, ip: string): Promise<Response> {

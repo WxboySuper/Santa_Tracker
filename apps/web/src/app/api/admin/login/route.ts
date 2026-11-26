@@ -11,11 +11,20 @@ export function getClientIp(req: Request): string | null {
 }
 
 export async function POST(req: Request) {
+  try { return await processLoginRequest(req); }
+  catch { return storageUnavailable(); }
+}
+
+async function processLoginRequest(req: Request) {
   const ip = getClientIp(req);
   if (!ip) return throttledResponse(60);
   const lockout = await checkLoginRateLimit(ip);
   if (lockout) return throttledResponse(lockout.retryAfterSeconds);
   return processLogin(req, ip);
+}
+
+function storageUnavailable() {
+  return NextResponse.json({ error: "Admin authentication storage is unavailable" }, { status: 503 });
 }
 
 async function processLogin(req: Request, ip: string) {
