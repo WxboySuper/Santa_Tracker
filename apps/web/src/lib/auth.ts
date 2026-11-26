@@ -101,6 +101,18 @@ export async function requirePasskeyManagementAuth(request: Request): Promise<{ 
   return auth;
 }
 
+export async function requireAdminLogoutAuth(request: Request): Promise<{ ok: boolean; error?: string; status?: number; authMethod?: "password" | "passkey" | "recovery" | "recovery_confirmed" }> {
+  const auth = await requireAdminAuth(request);
+  if (auth.ok || auth.error !== "CSRF validation failed") return auth;
+  const credential = readAdminCredential(request);
+  if (!credential.cookieAuth || !credential.token) return auth;
+  let claims: { csrf: string; authMethod: "password" | "passkey" | "recovery" | "recovery_confirmed" } | null;
+  try { claims = await verifyAdminTokenClaims({ token: credential.token }); }
+  catch { return { ok: false, error: "Admin authentication storage is unavailable", status: 503 }; }
+  if (!claims || !hasLogoutCsrf(request, claims.csrf)) return auth;
+  return { ok: true, authMethod: claims.authMethod };
+}
+
 function requiresCsrf(request: Request, credential: { cookieAuth: boolean }): boolean {
   return credential.cookieAuth && isMutation({ method: request.method });
 }
@@ -140,6 +152,14 @@ function hasValidCsrf(input: { request: Request; expected: string }): boolean {
   const cookieValue = csrfCookieValue(request);
   if (!supplied || !cookieValue) return false;
   try { return decodeURIComponent(cookieValue) === supplied && supplied === expected; }
+  catch { return false; }
+}
+
+function hasLogoutCsrf(request: Request, expected: string): boolean {
+  if (!hasExpectedOrigin(request)) return false;
+  const cookieValue = csrfCookieValue(request);
+  if (!cookieValue) return false;
+  try { return decodeURIComponent(cookieValue) === expected; }
   catch { return false; }
 }
 

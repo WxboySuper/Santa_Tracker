@@ -36,7 +36,7 @@ describe("admin session and CSRF enforcement", () => {
     expect(await verifyAdminToken({ token })).toBe(true);
     const accepted = await logout(new Request("https://example.test/api/admin/logout", {
       method: "POST",
-      headers: { cookie, origin: "https://example.test", "x-csrf-token": csrf! },
+      headers: { cookie, origin: "https://example.test" },
     }));
     expect(accepted.status).toBe(200);
     expect(await verifyAdminToken({ token })).toBe(false);

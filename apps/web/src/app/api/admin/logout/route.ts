@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getAdminTokenSessionId, requireAdminAuth, revokeAdminToken, shouldUseSecureAdminCookie, verifyAdminToken } from "@/lib/auth";
+import { getAdminTokenSessionId, requireAdminLogoutAuth, revokeAdminToken, shouldUseSecureAdminCookie, verifyAdminToken } from "@/lib/auth";
 import { appendAuthAudit } from "@/lib/admin-auth-state";
 import { tokenFromRequest } from "@/lib/admin-passkey-http";
 
@@ -9,7 +9,7 @@ export async function POST(request: Request) {
   if (token) {
     try {
       if (await verifyAdminToken({ token })) {
-        const auth = await requireAdminAuth(request);
+        const auth = await requireAdminLogoutAuth(request);
         if (!auth.ok) return NextResponse.json({ error: auth.error }, { status: auth.status });
       }
       const sessionId = await getAdminTokenSessionId({ token });
