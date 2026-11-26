@@ -294,14 +294,22 @@ function assertNonNegativeSetting(value: number, message: string, allowZero: boo
   if (!allowZero && value === 0) throw new Error(message);
 }
 
-function validateCategoryWeights(weights: Record<string, number>): void {
-  const entries = Object.entries(weights);
-  if (entries.length === 0) throw new Error('Category weights are required');
+function validateWeightValues(entries: [string, number][]): void {
   if (entries.some(([, weight]) => !Number.isFinite(weight) || weight < 0)) {
     throw new Error('Category weights must be finite and non-negative');
   }
+}
+
+function validateWeightTotal(entries: [string, number][]): void {
   const total = entries.reduce((sum, [, weight]) => sum + weight, 0);
   if (!Number.isFinite(total) || total <= 0) throw new Error('Category weights must have a finite positive total');
+}
+
+function validateCategoryWeights(weights: Record<string, number>): void {
+  const entries = Object.entries(weights);
+  if (entries.length === 0) throw new Error('Category weights are required');
+  validateWeightValues(entries);
+  validateWeightTotal(entries);
 }
 
 function validateGeneratorConfig(config: GeneratorConfig): void {
