@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createEmergencyControlsRepository, DEFAULT_EMERGENCY_CONTROLS, EMERGENCY_CONTROLS_KEY, parseEmergencyControls, type EmergencyControlValues } from "./emergency-controls";
+import { createEmergencyControlsRepository, EMERGENCY_CONTROLS_KEY, parseEmergencyControls, type EmergencyControlValues } from "./emergency-controls";
 
 const values: EmergencyControlValues = {
   noMap: true,
@@ -8,8 +8,8 @@ const values: EmergencyControlValues = {
 };
 
 describe("emergency controls", () => {
-  it("uses defaults when no controls have been saved and fails safe on invalid data", () => {
-    expect(parseEmergencyControls(null)).toBe(DEFAULT_EMERGENCY_CONTROLS);
+  it("fails closed when controls are missing or invalid", () => {
+    expect(parseEmergencyControls(null)).toMatchObject({ noMap: true, simplifiedTracker: true, killedFeatures: { weather: true, soundscape: true } });
     expect(parseEmergencyControls("invalid")).toMatchObject({ noMap: true, simplifiedTracker: true, killedFeatures: { weather: true, soundscape: true } });
   });
 
@@ -21,8 +21,8 @@ describe("emergency controls", () => {
     }, () => Date.parse("2026-11-26T12:00:00.000Z"), async work => work());
 
     const first = await repo.replace(values, "", "admin", "Map delivery issue");
-    expect(first).toMatchObject({ ...values, audit: [{ actor: "admin", reason: "Map delivery issue", previous: { noMap: false, simplifiedTracker: false, killedFeatures: { weather: false, soundscape: false } }, next: values }] });
+    expect(first).toMatchObject({ ...values, audit: [{ actor: "admin", reason: "Map delivery issue", previous: { noMap: true, simplifiedTracker: true, killedFeatures: { weather: true, soundscape: true } }, next: values }] });
     expect(valuesByKey.has(EMERGENCY_CONTROLS_KEY)).toBe(true);
-    expect(await repo.replace(DEFAULT_EMERGENCY_CONTROLS, "", "admin", "stale write")).toBeNull();
+    expect(await repo.replace(values, "", "admin", "stale write")).toBeNull();
   });
 });

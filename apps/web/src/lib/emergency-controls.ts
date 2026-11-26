@@ -58,7 +58,7 @@ function parseValues(value: unknown): EmergencyControlValues | null {
 }
 
 export function parseEmergencyControls(raw: string | null): EmergencyControls {
-  if (!raw) return DEFAULT_EMERGENCY_CONTROLS;
+  if (!raw) return SAFE_EMERGENCY_CONTROLS;
   try {
     const parsed: unknown = JSON.parse(raw);
     return decodeEmergencyControls(parsed);

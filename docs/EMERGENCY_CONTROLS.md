@@ -19,6 +19,6 @@ The API requires a signed admin session and a non-empty reason of at most 500 ch
 
 ## Runtime API
 
-`GET /api/runtime-controls` returns only `noMap`, `simplifiedTracker`, `killedFeatures`, and `updatedAt`. It is private/no-store and contains no audit data. Runtime clients should apply these presentation switches without changing route timing or position. If stored data is malformed or unavailable, this endpoint returns no-map mode, simplified mode, and all optional kills enabled.
+`GET /api/runtime-controls` returns only `noMap`, `simplifiedTracker`, `killedFeatures`, and `updatedAt`. It is private/no-store and contains no audit data. Runtime clients should apply these presentation switches without changing route timing or position. If the stored control record is missing or malformed, this endpoint returns no-map mode, simplified mode, and all optional kills enabled. The owner can restore normal presentation by saving an explicit control state through the authenticated admin API.
 
 The snapshot activation API validates a target version before changing the active route pointer. The admin experience should display the validation report and require operator confirmation with an activation reason before sending the request. See [Admin route snapshots](ADMIN_SNAPSHOTS.md).
