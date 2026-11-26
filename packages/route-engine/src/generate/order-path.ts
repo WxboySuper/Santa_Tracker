@@ -83,7 +83,7 @@ function reduceEastwardMoves(initial: TimedCandidate[], config: GeneratorConfig)
   }
 }
 
-type RouteCost = { distance: number; eastward: number; detours: number };
+export type RouteCost = { distance: number; eastward: number; detours: number };
 
 function routeCost(order: Candidate[]): RouteCost {
   return { distance: pathDistance(order), eastward: eastwardCount(order), detours: detourCount(order) };
@@ -113,7 +113,8 @@ function improvesPath(cost: RouteCost, current: RouteCost): boolean {
   return cost.distance < current.distance - 0.01;
 }
 
-function canAcceptLocalProposal(cost: RouteCost, current: RouteCost): boolean {
+export function canAcceptLocalProposal(cost: RouteCost, current: RouteCost): boolean {
+  if (cost.eastward > current.eastward || cost.detours > current.detours) return false;
   return improvesSweep(cost, current) || improvesPath(cost, current);
 }
 
@@ -352,7 +353,7 @@ function moveCoverageDetourToTail<T extends Candidate>(order: T[], currentCount:
 function repositionCoverageDetour<T extends Candidate>(order: T[], currentCount: number,
   currentEastward: number, config: GeneratorConfig): T[] | undefined {
   for (const index of hardDetourIndexes(order)) {
-    const proposal = repositionDetourAt(order, index, currentCount, currentEastward, config);
+    const proposal = repositionDetourAt({ order, index, currentCount, currentEastward, config });
     if (proposal) return proposal;
   }
   return undefined;
@@ -373,8 +374,15 @@ function acceptsDetourReposition(proposal: Candidate[], currentCount: number,
   return hasReasonedTiming(proposal, config);
 }
 
-function repositionDetourAt<T extends Candidate>(order: T[], index: number, currentCount: number,
-  currentEastward: number, config: GeneratorConfig): T[] | undefined {
+type DetourRepositionOptions<T extends Candidate> = {
+  order: T[];
+  index: number;
+  currentCount: number;
+  currentEastward: number;
+  config: GeneratorConfig;
+};
+
+function repositionDetourAt<T extends Candidate>({ order, index, currentCount, currentEastward, config }: DetourRepositionOptions<T>): T[] | undefined {
   for (const target of repositionTargets(order, index)) {
     const proposal = moveOrOpt(order, index, target);
     if (acceptsDetourReposition(proposal, currentCount, currentEastward, config)) return proposal;

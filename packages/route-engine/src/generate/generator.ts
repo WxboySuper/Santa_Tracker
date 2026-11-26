@@ -140,8 +140,13 @@ function transit({ from, to, travelDurationMilliseconds, description, cameraZoom
 }
 
 function localTimeLabel(place: Candidate, arrival: number): string {
-  const local = localClock({ iso: new Date(arrival).toISOString(), timezoneOrOffset: place.utcOffsetMinutes ?? 0 });
+  const local = localClock({ iso: new Date(arrival).toISOString(), timezoneOrOffset: candidateOffset(place) });
   return `${local.hour.toString().padStart(2, '0')}:${local.minute.toString().padStart(2, '0')}`;
+}
+
+function candidateOffset(place: Candidate): number {
+  if (place.utcOffsetMinutes === undefined) throw new InvalidCandidateTimezoneError(`Missing snapshot UTC offset for ${place.name}`);
+  return place.utcOffsetMinutes;
 }
 
 function startNode(): Record<string, unknown> {
@@ -196,7 +201,7 @@ function buildDeliveryNode({ place, displayName, index, config, tables, priorLoc
       timezone: place.timezone,
       lat: place.lat,
       lng: place.lng,
-      timezone_offset: (place.utcOffsetMinutes ?? 0) / 60,
+      timezone_offset: candidateOffset(place) / 60,
     },
     schedule: {
       arrival_utc: new Date(stopArrival).toISOString(),
@@ -296,10 +301,11 @@ function validateArrivalWindow(route: Route, places: Candidate[]): void {
   route.stops.forEach((stop, index) => {
     const place = places[index];
     if (!place) throw new Error(`Missing candidate for route stop ${index + 1}`);
-    if (!isInChristmasWindow({ iso: stop.arrivalIso, timezoneOrOffset: place.utcOffsetMinutes ?? 0 })) {
+    const timezoneOffset = candidateOffset(place);
+    if (!isInChristmasWindow({ iso: stop.arrivalIso, timezoneOrOffset: timezoneOffset })) {
       throw new Error(`${place.name} arrives outside its local window`);
     }
-    if (place.lat < -35 && !isInSouthernChristmasWindow({ iso: stop.arrivalIso, timezoneOrOffset: place.utcOffsetMinutes ?? 0 })) {
+    if (place.lat < -35 && !isInSouthernChristmasWindow({ iso: stop.arrivalIso, timezoneOrOffset: timezoneOffset })) {
       throw new Error(`${place.name} arrives after the southern 02:30 local limit`);
     }
   });

@@ -1,8 +1,10 @@
 import { unzipSync } from 'fflate';
 import shapefile from 'shapefile';
+import requiredAdmin1Units from '../../packages/route-engine/src/generate/admin1-units.json' with { type: 'json' };
 
 export const ADMIN1_BOUNDARY_SOURCE = 'https://naturalearth.s3.amazonaws.com/10m_cultural/ne_10m_admin_1_states_provinces.zip';
 const ADMIN1_COUNTRIES = new Set(['US', 'CA', 'AU']);
+const REQUIRED_ADMIN1_CODES = new Set(Object.values(requiredAdmin1Units).flat());
 const GEOMETRY_TOLERANCE = 1e-9;
 
 function clean(value) {
@@ -26,7 +28,9 @@ function segmentLengthSquared(start, end) {
 }
 
 function pointOnSegment(point, start, end) {
-  if (!validPoint(point) || !validPoint(start) || !validPoint(end)) return false;
+  if (!validPoint(point)) return false;
+  if (!validPoint(start)) return false;
+  if (!validPoint(end)) return false;
   if (Math.abs(crossProduct(point, start, end)) > GEOMETRY_TOLERANCE) return false;
   const dot = dotProduct(point, start, end);
   if (dot < -GEOMETRY_TOLERANCE) return false;
@@ -77,7 +81,7 @@ function normalizeAdmin1Feature(value) {
   const country = clean(properties.iso_a2);
   const code = clean(properties.iso_3166_2);
   if (!ADMIN1_COUNTRIES.has(country)) return undefined;
-  if (!code) return undefined;
+  if (!REQUIRED_ADMIN1_CODES.has(code)) return undefined;
   if (!value.geometry) return undefined;
   return { country, code, name: clean(properties.name), geometry: value.geometry };
 }
@@ -108,7 +112,13 @@ async function openAdmin1Source(files) {
 }
 
 function sortAdmin1Features(features) {
-  return features.sort((left, right) => left.country.localeCompare(right.country) || left.code.localeCompare(right.code));
+  return features.sort((left, right) => compareText(left.country, right.country) || compareText(left.code, right.code));
+}
+
+function compareText(left, right) {
+  if (left < right) return -1;
+  if (left > right) return 1;
+  return 0;
 }
 
 export async function loadAdmin1Features() {
@@ -123,10 +133,18 @@ function requireCandidate(place) {
 }
 
 function candidatePoint(place) {
-  if (!Number.isFinite(place.lat)) throw new TypeError(`Candidate ${place.id ?? '(unknown)'} has a non-finite latitude`);
-  if (!Number.isFinite(place.lng)) throw new TypeError(`Candidate ${place.id ?? '(unknown)'} has a non-finite longitude`);
-  if (place.lat < -90 || place.lat > 90) throw new RangeError(`Candidate ${place.id ?? '(unknown)'} latitude is out of range`);
-  if (place.lng < -180 || place.lng > 180) throw new RangeError(`Candidate ${place.id ?? '(unknown)'} longitude is out of range`);
+  const coordinates = [
+    { name: 'latitude', value: place.lat, minimum: -90, maximum: 90 },
+    { name: 'longitude', value: place.lng, minimum: -180, maximum: 180 },
+  ];
+  for (const coordinate of coordinates) {
+    if (!Number.isFinite(coordinate.value)) {
+      throw new TypeError(`Candidate ${place.id ?? '(unknown)'} has a non-finite ${coordinate.name}`);
+    }
+    if (coordinate.value < coordinate.minimum || coordinate.value > coordinate.maximum) {
+      throw new RangeError(`Candidate ${place.id ?? '(unknown)'} ${coordinate.name} is out of range`);
+    }
+  }
   return [place.lng, place.lat];
 }
 

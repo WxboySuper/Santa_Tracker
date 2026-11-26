@@ -256,7 +256,7 @@ function uncoveredCountryReasons(uncovered: string[], pool: Candidate[], selecte
         const names = candidates.map((place) => place.name).slice(0, 3).join(', ');
         reason = `The only candidate${candidates.length === 1 ? '' : 's'} (${names}) lie south of 35°S; none fit before the 02:30 southern-local cutoff while preserving the westbound schedule and return deadline.`;
       } else {
-        reason = 'Candidate rows exist, but none could be inserted while preserving the local-time window, 20 km separation, reasoned westward legs, speed limits, and return deadline.';
+        reason = `Candidate rows exist, but none could be inserted while preserving the local-time window, ${minimumSeparationKm} km separation, reasoned westward legs, speed limits, and return deadline.`;
       }
     }
     return { code, candidateCount: candidates.length, reason };
