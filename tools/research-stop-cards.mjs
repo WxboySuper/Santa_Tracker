@@ -158,22 +158,24 @@ function pageText(page = {}) {
   return { wikipedia_extract: page.extract ?? null, wikipedia_source: page.fullurl ?? null };
 }
 
+/**
+ * A research draft has two parts. `card` holds exactly the fields content/stop-cards.json accepts, so a curator writes
+ * the note and topic and copies it across as is. `research` holds the material the note is written from, never published.
+ */
 function buildDraft({ id, candidate, match, page, photo }) {
   const wikidataSource = 'https://www.wikidata.org/wiki/' + match.qid;
   const text = pageText(page);
-  return {
+  const card = {
     place_id: id,
     country: candidate.country,
-    ...entityText(match.entity, candidate),
-    ...text,
-    wikidata_source: wikidataSource,
-    notable_award_qids: awardIds(match.entity),
-    photo,
     note: null,
-    topic_key: null,
     sources: [wikidataSource, text.wikipedia_source, candidate.source].filter(isHttps),
+    topic_key: null,
+    photo,
     review_status: 'draft',
   };
+  const research = { ...entityText(match.entity, candidate), ...text, wikidata_source: wikidataSource, notable_award_qids: awardIds(match.entity) };
+  return { card, research };
 }
 
 async function researchPlace(id) {

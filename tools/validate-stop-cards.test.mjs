@@ -93,4 +93,11 @@ describe('stop card validation', () => {
     expect(result.stderr).toContain('place_id must not have leading or trailing spaces');
     expect(result.stderr).toContain('duplicate place_id Q13');
   });
+  it('rejects source URLs with whitespace, as the schema does', async () => {
+    const card = validCard('Q14', null, 'quay');
+    card.sources = [' https://example.org/source '];
+    const result = await validate([card]);
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain('HTTPS source URL');
+  });
 });
