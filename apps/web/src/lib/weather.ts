@@ -40,7 +40,8 @@ function parseCoordinates(params: URLSearchParams): { lat: number; lon: number }
   return { lat, lon };
 }
 async function cachedWeather(key: Request, cache: Cache | undefined): Promise<Response | null> {
-  return cache ? (await cache.match(key)) ?? null : null;
+  if (!cache) return null;
+  try { return (await cache.match(key)) ?? null; } catch { return null; }
 }
 export async function getWeatherResponse(request: Request): Promise<Response> {
   const coordinates = parseCoordinates(new URL(request.url).searchParams);
@@ -50,8 +51,7 @@ export async function getWeatherResponse(request: Request): Promise<Response> {
   const key = new URL(request.url); key.search = new URLSearchParams({ lat: String(lat), lon: String(lon) }).toString();
   const cache = (globalThis as typeof globalThis & { caches?: { default?: Cache } }).caches?.default;
   const keyRequest = new Request(key.toString());
-  let cached: Response | null = null;
-  try { cached = await cachedWeather(keyRequest, cache); } catch { cached = null; }
+  const cached = await cachedWeather(keyRequest, cache);
   if (cached) return cached;
   const weather = await fetchWeather(lat, lon);
   if (!weather) return NextResponse.json(null, { status: 502, headers: { "Cache-Control": "no-store" } });
