@@ -29,6 +29,13 @@
 - **Admin override:** Adds a single-owner admin API to set and clear audited mode overrides with compare-and-set writes, required reasons, and a hard 48-hour expiry limit. Expired overrides are ignored and reported.
 - **Docs and tests:** Describes the mode schedule and emergency-switch relationship, with tests for each UTC boundary, expiry behavior, auth, validation, audit records, and storage conflicts.
 
+## [Unreleased] - Journey statistics and replay (#257, #259)
+
+- **Route engine:** Adds deterministic distance, stop, country, time zone, flight-time, and speed statistics. Presents now follow a smooth flight-and-dwell schedule from zero to the documented 7 billion playful estimate, allocated across route UTC-offset bands using the complete candidate pool as a population proxy.
+- **Replay:** Adds injected-clock play, pause, seek, speed, and reset controls. Replay owns copies of its route, stop metadata, and candidate-pool snapshot and returns the same state and statistics as live calculations for the same journey instant.
+- **Package exports:** Exposes the stats and replay APIs from the route-engine root and dedicated ./stats and ./replay entry points.
+- **Docs and tests:** Adds docs/JOURNEY_STATS.md and boundary, parity, determinism, localization, speed, and sampled monotonicity tests.
+
 ## [Unreleased] — Authoritative tracker state and map fallback (#251, #253)
 
 - **Route snapshot metadata:** `GET /api/route` now returns an additive SHA-256 content version alongside the unchanged `route_nodes` field. `GET /api/time` provides a separate dynamic server timestamp with `Cache-Control: no-store`.
