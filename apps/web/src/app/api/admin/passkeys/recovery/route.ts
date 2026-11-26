@@ -2,7 +2,7 @@ import { checkLoginRateLimit, clearLoginAttempts, recordLoginAttempt } from "@/l
 import { PasskeyRequestError, recordPasskeyFailure, loginWithRecoveryCode, webAuthnSettings } from "@/lib/admin-passkeys";
 import { readCappedJson } from "@/lib/admin-json";
 import { responseWithSession, tooManyAttempts } from "@/lib/admin-passkey-http";
-import { getAdminClientIp } from "@/lib/admin-client-ip";
+import { ADMIN_CLIENT_IP_UNAVAILABLE, getAdminClientIp } from "@/lib/admin-client-ip";
 
 export const dynamic = "force-dynamic";
 
@@ -32,7 +32,7 @@ async function processRecoveryLogin(request: Request): Promise<Response> {
 
 async function recoveryClientIp(request: Request): Promise<string | Response> {
   const ip = getAdminClientIp(request);
-  if (!ip) return Response.json({ error: "Admin authentication is unavailable" }, { status: 503 });
+  if (!ip) return Response.json({ error: ADMIN_CLIENT_IP_UNAVAILABLE }, { status: 503 });
   const locked = await checkLoginRateLimit(ip);
   if (!locked) return ip;
   await recordPasskeyFailure({ action: "recovery_login_throttled" });

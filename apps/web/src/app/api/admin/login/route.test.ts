@@ -31,6 +31,20 @@ describe("admin login route", () => {
     expect(getClientIp(new Request("http://example.test", { headers: { "cf-connecting-ip": "x".repeat(46) } }))).toBeNull();
   });
 
+  it("reports missing trusted IP as an ingress configuration error", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    const checkThrottle = vi.spyOn(adminLogin, "checkLoginRateLimit");
+    const response = await POST(new Request("https://example.test/api/admin/login", {
+      method: "POST",
+      headers: { "x-real-ip": "198.51.100.1", "content-type": "application/json" },
+      body: JSON.stringify({ password: "correct horse" }),
+    }));
+
+    expect(response.status).toBe(503);
+    expect(await response.json()).toEqual({ error: "Admin authentication is unavailable: trusted Cloudflare client IP is missing" });
+    expect(checkThrottle).not.toHaveBeenCalled();
+  });
+
   it("locks after five failures, ignores spoofed forwarded-for, and hides password correctness", async () => {
     const commonHeaders = { "cf-connecting-ip": "198.51.100.50", "content-type": "application/json" };
     for (let index = 0; index < 4; index += 1) {

@@ -4,7 +4,7 @@ import { finishAuthentication, PasskeyRequestError, recordPasskeyFailure, webAut
 import { challengeIdFromRequest, clearChallengeCookie, responseWithSession, tooManyAttempts } from "@/lib/admin-passkey-http";
 import { readCappedJson } from "@/lib/admin-json";
 import { NextResponse } from "next/server";
-import { getAdminClientIp } from "@/lib/admin-client-ip";
+import { ADMIN_CLIENT_IP_UNAVAILABLE, getAdminClientIp } from "@/lib/admin-client-ip";
 
 export const dynamic = "force-dynamic";
 
@@ -32,7 +32,7 @@ async function processLoginVerification(request: Request): Promise<Response> {
 
 async function requestIp(request: Request): Promise<string | Response> {
   const ip = getAdminClientIp(request);
-  if (!ip) return NextResponse.json({ error: "Admin authentication is unavailable" }, { status: 503 });
+  if (!ip) return NextResponse.json({ error: ADMIN_CLIENT_IP_UNAVAILABLE }, { status: 503 });
   const locked = await checkLoginRateLimit(ip);
   if (!locked) return ip;
   await recordPasskeyFailure({ action: "passkey_login_throttled" });

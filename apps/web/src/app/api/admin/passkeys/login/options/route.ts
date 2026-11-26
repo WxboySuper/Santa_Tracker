@@ -2,7 +2,7 @@ import { checkLoginRateLimit } from "@/lib/admin-login";
 import { createAuthenticationChallenge, recordPasskeyFailure, webAuthnSettings } from "@/lib/admin-passkeys";
 import { setChallengeCookie, tooManyAttempts } from "@/lib/admin-passkey-http";
 import { NextResponse } from "next/server";
-import { getAdminClientIp } from "@/lib/admin-client-ip";
+import { ADMIN_CLIENT_IP_UNAVAILABLE, getAdminClientIp } from "@/lib/admin-client-ip";
 
 export const dynamic = "force-dynamic";
 
@@ -13,7 +13,7 @@ export async function POST(request: Request): Promise<Response> {
 
 async function processLoginOptions(request: Request): Promise<Response> {
   const ip = getAdminClientIp(request);
-  if (!ip) return storageUnavailable();
+  if (!ip) return NextResponse.json({ error: ADMIN_CLIENT_IP_UNAVAILABLE }, { status: 503 });
   const throttleKey = `passkey-options:${ip}`;
   const locked = await checkLoginRateLimit(throttleKey);
   if (locked) return throttled(locked.retryAfterSeconds);

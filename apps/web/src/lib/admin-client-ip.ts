@@ -1,6 +1,7 @@
 import { isIP } from "node:net";
 
 const MAX_IP_LENGTH = 45;
+export const ADMIN_CLIENT_IP_UNAVAILABLE = "Admin authentication is unavailable: trusted Cloudflare client IP is missing";
 
 export function getAdminClientIp(request: Request, isProduction = process.env.NODE_ENV === "production"): string | null {
   const cloudflareIp = normalizeIp(request.headers.get("cf-connecting-ip"));

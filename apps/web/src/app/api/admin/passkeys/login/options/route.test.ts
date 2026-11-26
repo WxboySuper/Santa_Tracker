@@ -14,7 +14,10 @@ vi.mock("@/lib/admin-passkey-http", () => ({
   setChallengeCookie: vi.fn((response: Response) => response),
   tooManyAttempts: vi.fn((retryAfterSeconds: number) => Response.json({}, { status: 429, headers: { "Retry-After": String(retryAfterSeconds) } })),
 }));
-vi.mock("@/lib/admin-client-ip", () => ({ getAdminClientIp: vi.fn(() => "198.51.100.1") }));
+vi.mock("@/lib/admin-client-ip", () => ({
+  ADMIN_CLIENT_IP_UNAVAILABLE: "Admin authentication is unavailable: trusted Cloudflare client IP is missing",
+  getAdminClientIp: vi.fn(() => "198.51.100.1"),
+}));
 
 afterEach(() => vi.clearAllMocks());
 
@@ -33,5 +36,18 @@ describe("POST /api/admin/passkeys/login/options", () => {
     expect(checkLoginRateLimit).toHaveBeenCalledWith("passkey-options:198.51.100.1");
     expect(createAuthenticationChallenge).toHaveBeenCalledTimes(6);
     expect(webAuthnSettings).toHaveBeenCalledTimes(6);
+  });
+
+  it("reports a missing trusted production IP instead of a storage outage", async () => {
+    vi.mocked(getAdminClientIp).mockReturnValueOnce(null);
+
+    const response = await POST(new Request("https://example.test/api/admin/passkeys/login/options", {
+      method: "POST",
+      headers: { origin: "https://example.test" },
+    }));
+
+    expect(response.status).toBe(503);
+    expect(await response.json()).toEqual({ error: "Admin authentication is unavailable: trusted Cloudflare client IP is missing" });
+    expect(checkLoginRateLimit).not.toHaveBeenCalled();
   });
 });

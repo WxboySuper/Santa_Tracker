@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getAdminClientIp } from "@/lib/admin-client-ip";
+import { ADMIN_CLIENT_IP_UNAVAILABLE, getAdminClientIp } from "@/lib/admin-client-ip";
 import { checkLoginRateLimit, checkLoginRateLimitNow, clearLoginAttempts, loginAdmin, recordLoginAttempt, wasLoginAttemptRecorded } from "@/lib/admin-login";
 import { respondWith } from "@/lib/admin-api";
 import { ADMIN_SESSION_TTL_SECONDS, getAdminTokenCsrfToken, revokeAdminToken, shouldUseSecureAdminCookie } from "@/lib/auth";
@@ -20,7 +20,7 @@ export async function POST(req: Request) {
 
 async function processLoginRequest(req: Request) {
   const ip = getClientIp(req);
-  if (!ip) return NextResponse.json({ error: "Admin authentication is unavailable" }, { status: 503 });
+  if (!ip) return NextResponse.json({ error: ADMIN_CLIENT_IP_UNAVAILABLE }, { status: 503 });
   const lockout = await checkLoginRateLimit(ip);
   if (lockout) return throttledResponse({ retryAfterSeconds: lockout.retryAfterSeconds });
   return processLogin({ request: req, ip });
