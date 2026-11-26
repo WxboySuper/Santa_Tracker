@@ -4,6 +4,13 @@ import type { Candidate, GeneratorConfig } from './types';
 export type CandidateSelection = { candidates: Candidate[]; invalidCandidateIds: string[]; duplicateCandidateIds: string[] };
 export type CandidateSelectionOptions = { deferUtcOffsetValidation?: boolean };
 type CandidateRows = { candidates: Candidate[]; rowLabels: string[]; invalidCandidateIds: string[] };
+type CandidateValidationOptions = {
+  updated: Candidate[];
+  rowLabels: string[];
+  vetoed: Set<string>;
+  config: GeneratorConfig;
+  options: CandidateSelectionOptions;
+};
 
 function routeCategory(place: Candidate, config: GeneratorConfig): string {
   if (['cultural', 'nature', 'special'].includes(place.category)) return place.category;
@@ -68,8 +75,7 @@ function isVetoedCandidate(place: Candidate, vetoed: Set<string>): boolean {
   return hasNonEmptyText(place.id) && vetoed.has(place.id);
 }
 
-function validateAndEnrichCandidates(updated: Candidate[], rowLabels: string[], vetoed: Set<string>, config: GeneratorConfig,
-  options: CandidateSelectionOptions): CandidateSelection {
+function validateAndEnrichCandidates({ updated, rowLabels, vetoed, config, options }: CandidateValidationOptions): CandidateSelection {
   const seen = new Set<string>();
   const candidates: Candidate[] = [];
   const invalidCandidateIds: string[] = [];
@@ -97,7 +103,7 @@ export function chooseCandidates(pool: Candidate[], config: GeneratorConfig, ove
   const vetoed = new Set(overrides.veto ?? []);
   const rows = collectCandidateRows(pool);
   const updated = applyCandidateOverrides(rows.candidates, overrides);
-  const selection = validateAndEnrichCandidates(updated, rows.rowLabels, vetoed, config, options);
+  const selection = validateAndEnrichCandidates({ updated, rowLabels: rows.rowLabels, vetoed, config, options });
   const invalidCandidateIds = [...rows.invalidCandidateIds, ...selection.invalidCandidateIds];
   if (selection.candidates.length === 0) throw new Error('No eligible route candidates remain after vetoes and validation');
   return { ...selection, invalidCandidateIds };

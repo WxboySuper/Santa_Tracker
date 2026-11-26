@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { christmasArrival, christmasWindow, eastwardLegReason, isInChristmasWindow, stopDurationSeconds, stopTier } from './sweep';
+import { christmasArrival, christmasWindow, eastwardLegReason, isInChristmasWindow, localClock, stopDurationSeconds, stopTier } from './sweep';
 import { christmasOffset, parseUtcOffset } from './timezone';
 import type { Candidate } from './types';
 
@@ -16,6 +16,10 @@ describe('christmasArrival', () => {
     expect(christmasArrival({ timezoneOrOffset: 'America/New_York', minutesAfterMidnight: 20 })).toBe('2026-12-25T05:20:00.000Z');
     expect(christmasArrival({ timezoneOrOffset: 'Asia/Kolkata', minutesAfterMidnight: 20 })).toBe('2026-12-24T18:50:00.000Z');
     expect(christmasArrival({ timezoneOrOffset: 'Asia/Kathmandu', minutesAfterMidnight: 20 })).toBe('2026-12-24T18:35:00.000Z');
+  });
+
+  it('normalizes an IANA midnight hour to zero', () => {
+    expect(localClock({ iso: '2026-12-25T00:00:00.000Z', timezoneOrOffset: 'Europe/London' }).hour).toBe(0);
   });
 
   it('rejects invalid offsets and time zones', () => {

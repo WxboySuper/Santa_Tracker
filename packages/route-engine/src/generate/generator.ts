@@ -16,6 +16,13 @@ type TimezoneTables = {
   countryNames?: Record<string, string>;
 };
 
+class InvalidCandidateTimezoneError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'InvalidCandidateTimezoneError';
+  }
+}
+
 export { DEFAULT_GENERATOR_LIMITS };
 export type { Candidate, GeneratedRoute, GeneratorConfig, RouteReport } from './types';
 
@@ -26,12 +33,11 @@ function stableHash(value: string, seed: number): number {
 }
 
 function normalizeCandidateTimezones(pool: Candidate[], overrides: RouteOverrides, tables?: TimezoneTables): { candidates: Candidate[]; invalidCandidateIds: string[] } {
-  if (!tables) return { candidates: pool, invalidCandidateIds: [] };
   const candidates: Candidate[] = [];
   const invalidCandidateIds: string[] = [];
   for (const place of pool) {
     try {
-      candidates.push(normalizeCandidateTimezone(place, overrides, tables));
+      candidates.push(tables ? normalizeCandidateTimezone(place, overrides, tables) : validateCandidateIanaTimezone(place, overrides));
     } catch (error) {
       if (!isInvalidCandidateTimezoneError(error)) throw error;
       invalidCandidateIds.push(place.id);
@@ -41,10 +47,7 @@ function normalizeCandidateTimezones(pool: Candidate[], overrides: RouteOverride
 }
 
 function isInvalidCandidateTimezoneError(error: unknown): error is Error {
-  if (!(error instanceof Error)) return false;
-  return error.message.startsWith('No IANA timezone table for country ')
-    || error.message.startsWith('Invalid candidate IANA time zone:')
-    || error.message.startsWith('Missing snapshot UTC offset for ');
+  return error instanceof InvalidCandidateTimezoneError;
 }
 
 function isSupportedIanaTimezone(timezone: string): boolean {
@@ -56,18 +59,22 @@ function isSupportedIanaTimezone(timezone: string): boolean {
   }
 }
 
+function validateCandidateIanaTimezone(place: Candidate, overrides: RouteOverrides): Candidate {
+  if (isSupportedIanaTimezone(place.timezone)) return place;
+  if (overrides.timezone?.[place.id]) throw new Error(`Invalid IANA timezone override for ${place.name}: ${place.timezone}`);
+  throw new InvalidCandidateTimezoneError(`Invalid candidate IANA time zone: ${place.name} (${place.timezone})`);
+}
+
 function normalizeCandidateTimezone(place: Candidate, overrides: RouteOverrides, tables: TimezoneTables): Candidate {
-  if (!isSupportedIanaTimezone(place.timezone) && !overrides.timezone?.[place.id]) {
-    throw new Error(`Invalid candidate IANA time zone: ${place.name} (${place.timezone})`);
-  }
+  validateCandidateIanaTimezone(place, overrides);
   const allowed = tables.zonesByCountry[place.country];
-  if (!allowed) throw new Error(`No IANA timezone table for country ${place.country} (${place.name})`);
+  if (!allowed) throw new InvalidCandidateTimezoneError(`No IANA timezone table for country ${place.country} (${place.name})`);
   if (allowed.includes(place.timezone)) return requireSnapshotOffset(place);
   return timezoneForMismatch(place, overrides, tables);
 }
 
 function requireSnapshotOffset(place: Candidate): Candidate {
-  if (place.utcOffsetMinutes === undefined) throw new Error(`Missing snapshot UTC offset for ${place.name}`);
+  if (place.utcOffsetMinutes === undefined) throw new InvalidCandidateTimezoneError(`Missing snapshot UTC offset for ${place.name}`);
   return place;
 }
 
@@ -86,7 +93,7 @@ function nearestCountryTimezone(place: Candidate, tables: TimezoneTables): Candi
   if (!first) throw timezoneCountryError(place);
   const nearest = points.reduce((best, point) => haversineKm(place, point) < haversineKm(place, best) ? point : best, first);
   const utcOffsetMinutes = tables.utcOffsetsByTimezone?.[nearest.timezone];
-  if (utcOffsetMinutes === undefined) throw new Error(`Missing committed UTC offset for ${nearest.timezone}`);
+  if (utcOffsetMinutes === undefined) throw new InvalidCandidateTimezoneError(`Missing committed UTC offset for ${nearest.timezone}`);
   return { ...place, timezone: nearest.timezone, utcOffsetMinutes };
 }
 

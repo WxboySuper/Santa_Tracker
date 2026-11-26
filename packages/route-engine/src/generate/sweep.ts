@@ -94,7 +94,7 @@ export function localClock({ iso, timezoneOrOffset }: ZonedInstant): LocalClock 
     if (!part) throw new Error(`Missing ${name} in formatted time`);
     return Number(part.value);
   };
-  return { year: value('year'), month: value('month'), day: value('day'), hour: value('hour'), minute: value('minute') };
+  return { year: value('year'), month: value('month'), day: value('day'), hour: value('hour') % 24, minute: value('minute') };
 }
 
 export function localMinuteInChristmasWindow({ iso, timezoneOrOffset }: ZonedInstant): number {
