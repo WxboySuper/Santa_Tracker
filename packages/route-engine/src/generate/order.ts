@@ -117,8 +117,13 @@ type CandidateTimingOptions = {
 
 function latestLocalArrival(place: Candidate, window: ReturnType<typeof christmasWindow>): number {
   if (place.lat >= -35) return window.endUtc;
-  const southernLimit = Date.parse(christmasArrival({ timezoneOrOffset: place.utcOffsetMinutes ?? 0, minutesAfterMidnight: 150 }));
+  const southernLimit = Date.parse(christmasArrival({ timezoneOrOffset: requiredSnapshotOffset(place), minutesAfterMidnight: 150 }));
   return Math.min(window.endUtc, southernLimit);
+}
+
+function requiredSnapshotOffset(place: Candidate): number {
+  if (!Number.isInteger(place.utcOffsetMinutes)) throw new Error(`Missing snapshot UTC offset for ${place.name}`);
+  return place.utcOffsetMinutes!;
 }
 
 function deliveryLongitudeIsAllowed(prior: Candidate | LatLng, place: Candidate, index: number, arrival: number): boolean {
@@ -131,7 +136,7 @@ function deliveryLongitudeIsAllowed(prior: Candidate | LatLng, place: Candidate,
 }
 
 export function candidateTiming({ place, prior, priorDeparture, index, config }: CandidateTimingOptions): PlannedStop | undefined {
-  const window = christmasWindow(place.utcOffsetMinutes ?? 0);
+  const window = christmasWindow(requiredSnapshotOffset(place));
   const arrival = Math.max(window.startUtc, priorDeparture + scheduledTravelMilliseconds(prior, place, config));
   if (arrival > latestLocalArrival(place, window)) return undefined;
   if (!deliveryLongitudeIsAllowed(prior, place, index, arrival)) return undefined;
@@ -178,7 +183,7 @@ function optionScore(options: {
   const westwardDegrees = Math.max(0, -stop.eastwardDegrees);
   const latitudeProgress = Math.max(0, (place.lat - prior.lat) * latitudeDirection);
   const idleMinutes = Math.max(0, stop.arrival - priorDeparture) / MINUTE_MS;
-  const offsetProgress = previousIdeal === undefined ? 0 : Math.max(0, (christmasWindow(place.utcOffsetMinutes ?? 0).idealUtc - previousIdeal) / MINUTE_MS);
+  const offsetProgress = previousIdeal === undefined ? 0 : Math.max(0, (christmasWindow(requiredSnapshotOffset(place)).idealUtc - previousIdeal) / MINUTE_MS);
   const category = categoryPreference(place, config);
   const populationTie = Math.log10((place.population ?? 0) + 1);
   const dwellReward = (60 - place.plannedStopDurationSeconds) * 3;
@@ -294,7 +299,7 @@ function seededCandidateRanks(pool: Candidate[], seed: number): Map<string, numb
 function offsetBands(pool: Candidate[]): Candidate[][] {
   const bands = new Map<number, Candidate[]>();
   for (const place of pool) {
-    const offset = place.utcOffsetMinutes ?? 0;
+    const offset = requiredSnapshotOffset(place);
     const band = bands.get(offset) ?? [];
     band.push(place);
     bands.set(offset, band);
@@ -321,7 +326,7 @@ function executeGreedySweep(state: SweepState, bands: Candidate[][], randomRanks
 
 function firstFeasibleStart(pool: Candidate[], config: GeneratorConfig): TimedCandidate {
   const candidate = pool.filter((place) => canStartFromNorthPole(place, config))
-    .sort((left, right) => (right.utcOffsetMinutes ?? 0) - (left.utcOffsetMinutes ?? 0)
+    .sort((left, right) => requiredSnapshotOffset(right) - requiredSnapshotOffset(left)
       || left.id.localeCompare(right.id))[0];
   if (!candidate) throw new Error('No candidate can be reached within its local Christmas window and the return deadline');
   const first = candidateTiming({ place: candidate, prior: NORTH_POLE, priorDeparture: Date.parse(TAKEOFF_UTC), index: 0, config });
@@ -558,7 +563,8 @@ function placeFitsNeighborBand(state: InsertionState, place: Candidate, index: n
   const before = index > 0 ? state.route[index - 1] : undefined;
   const after = state.route[index];
   const neighbors = [before, after].filter((candidate): candidate is TimedCandidate => candidate !== undefined);
-  return neighbors.every((candidate) => Math.abs((candidate.utcOffsetMinutes ?? 0) - (place.utcOffsetMinutes ?? 0)) <= pass.bandSpreadMinutes);
+  const offset = requiredSnapshotOffset(place);
+  return neighbors.every((candidate) => Math.abs(requiredSnapshotOffset(candidate) - offset) <= pass.bandSpreadMinutes);
 }
 
 function insertionOptions(state: InsertionState, place: Candidate, positions: RankedInsertion['positions'], pass: InsertionPass): RankedInsertion['positions'] {
@@ -602,6 +608,7 @@ function insertFeasibleCandidates(initial: TimedCandidate[], pool: Candidate[], 
 /** Greedy time-stepped midnight sweep followed by constrained 2-opt/or-opt improvements. */
 export function sweepOrder(places: Candidate[], config: GeneratorConfig = DEFAULT_GENERATOR_LIMITS): Candidate[] {
   if (places.length === 0) throw new Error('Cannot order an empty route');
+  places.forEach(requiredSnapshotOffset);
   const greedy = greedySweep(places, config);
   const initial = greedy.selected;
   const improved = improveWithLocalSearch(initial, config);

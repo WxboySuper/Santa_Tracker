@@ -109,4 +109,39 @@ describe('generateRoute midnight sweep', () => {
     expect(generated.report.count).toBe(1);
     expect(generated.report.invalidCandidateIds).toEqual(['bad-timezone']);
   });
+
+  it('recovers a missing UTC offset before candidate validation when timezone tables can resolve it', () => {
+    const { utcOffsetMinutes: _offset, ...candidateWithoutOffset } = candidates[0]!;
+    const recoverable = { ...candidateWithoutOffset, id: 'recoverable-offset', timezone: 'Etc/UTC' };
+    const tables = {
+      zonesByCountry: { FJ: ['Pacific/Kiritimati'] },
+      zonePointsByCountry: { FJ: [{ timezone: 'Pacific/Kiritimati', lat: 80, lng: 170 }] },
+      utcOffsetsByTimezone: { 'Pacific/Kiritimati': 840 },
+      countryNames: { FJ: 'Fiji' },
+    };
+    const generated = generateRoute([recoverable], config, {}, tables);
+    expect(generated.locations[0]?.utcOffsetMinutes).toBe(840);
+    expect(generated.report.invalidCandidateIds).toEqual([]);
+  });
+
+  it('reports a missing snapshot offset when its valid timezone cannot recover it', () => {
+    const { utcOffsetMinutes: _offset, ...candidateWithoutOffset } = candidates[0]!;
+    const missingOffset = { ...candidateWithoutOffset, id: 'missing-snapshot-offset' };
+    const tables = {
+      zonesByCountry: { FJ: ['Pacific/Kiritimati'] },
+      zonePointsByCountry: { FJ: [{ timezone: 'Pacific/Kiritimati', lat: 80, lng: 170 }] },
+      utcOffsetsByTimezone: { 'Pacific/Kiritimati': 840 },
+      countryNames: { FJ: 'Fiji' },
+    };
+    const generated = generateRoute([candidates[0]!, missingOffset], config, {}, tables);
+    expect(generated.report.invalidCandidateIds).toEqual(['missing-snapshot-offset']);
+    expect(generated.report.issues).toContain('Invalid candidate row skipped: missing-snapshot-offset');
+  });
+
+  it('keeps duplicate IDs raw in the report and describes the duplicate separately', () => {
+    const duplicate = { ...candidates[0]!, name: 'Duplicate Pacific A' };
+    const generated = generateRoute([candidates[0]!, duplicate], config);
+    expect(generated.report.invalidCandidateIds).toEqual(['pacific-a']);
+    expect(generated.report.issues).toContain('Duplicate candidate ID skipped: pacific-a');
+  });
 });

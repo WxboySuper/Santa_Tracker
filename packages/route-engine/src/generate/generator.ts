@@ -43,7 +43,8 @@ function normalizeCandidateTimezones(pool: Candidate[], overrides: RouteOverride
 function isInvalidCandidateTimezoneError(error: unknown): error is Error {
   if (!(error instanceof Error)) return false;
   return error.message.startsWith('No IANA timezone table for country ')
-    || error.message.startsWith('Invalid candidate IANA time zone:');
+    || error.message.startsWith('Invalid candidate IANA time zone:')
+    || error.message.startsWith('Missing snapshot UTC offset for ');
 }
 
 function isSupportedIanaTimezone(timezone: string): boolean {
@@ -388,7 +389,7 @@ function addGeometryWarnings(report: RouteReport, geometryIssues: ReturnType<typ
 
 export function generateRoute(pool: Candidate[], config: GeneratorConfig, overrides: RouteOverrides = {}, tables?: TimezoneTables): GeneratedRoute {
   validateGeneratorConfig(config);
-  const selection = chooseCandidates(pool, config, overrides);
+  const selection = chooseCandidates(pool, config, overrides, { deferUtcOffsetValidation: Boolean(tables) });
   const normalized = normalizeCandidateTimezones(selection.candidates, overrides, tables);
   const chosen = normalized.candidates;
   if (chosen.length === 0) throw new Error('No eligible route candidates remain after timezone validation');
@@ -397,5 +398,6 @@ export function generateRoute(pool: Candidate[], config: GeneratorConfig, overri
   const report = validateBuiltRoute({ route: built.route, coordinates: built.coordinates, routeEndUtc: built.routeEndUtc, ordered, pool: chosen, config });
   report.invalidCandidateIds = [...selection.invalidCandidateIds, ...normalized.invalidCandidateIds];
   report.issues.push(...report.invalidCandidateIds.map((id) => `Invalid candidate row skipped: ${id}`));
+  report.issues.push(...selection.duplicateCandidateIds.map((id) => `Duplicate candidate ID skipped: ${id}`));
   return { document: built.document, route: built.route, locations: ordered, report };
 }

@@ -58,6 +58,7 @@ describe('chooseCandidates', () => {
     const duplicate = { ...pool[0]!, name: 'Duplicate city row' };
     const result = chooseCandidates([pool[0]!, duplicate], DEFAULT_GENERATOR_LIMITS);
     expect(result.candidates.map((place) => place.id)).toEqual(['city-a']);
-    expect(result.invalidCandidateIds).toEqual(['city-a (duplicate candidate ID)']);
+    expect(result.invalidCandidateIds).toEqual(['city-a']);
+    expect(result.duplicateCandidateIds).toEqual(['city-a']);
   });
 });

@@ -116,6 +116,11 @@ describe('midnight sweep ordering', () => {
     }
   });
 
+  it('rejects a missing snapshot UTC offset instead of scheduling in UTC', () => {
+    const { utcOffsetMinutes: _offset, ...withoutOffset } = testPlaces[0]!;
+    expect(() => sweepOrder([withoutOffset as Candidate])).toThrow(/Missing snapshot UTC offset/);
+  });
+
   it('schedules local hops and ocean legs below the p90 and hard speed limits', () => {
     const local = haversineKm(testPlaces[2]!, testPlaces[3]!);
     const ocean = haversineKm(testPlaces[0]!, testPlaces[3]!);

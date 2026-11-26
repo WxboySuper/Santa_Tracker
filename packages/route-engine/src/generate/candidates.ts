@@ -1,7 +1,8 @@
 import { applyCandidateOverrides, type RouteOverrides } from './overrides';
 import type { Candidate, GeneratorConfig } from './types';
 
-export type CandidateSelection = { candidates: Candidate[]; invalidCandidateIds: string[] };
+export type CandidateSelection = { candidates: Candidate[]; invalidCandidateIds: string[]; duplicateCandidateIds: string[] };
+export type CandidateSelectionOptions = { deferUtcOffsetValidation?: boolean };
 type CandidateRows = { candidates: Candidate[]; rowLabels: string[]; invalidCandidateIds: string[] };
 
 function routeCategory(place: Candidate, config: GeneratorConfig): string {
@@ -28,10 +29,11 @@ function hasValidCoordinates(place: Candidate): boolean {
   return place.lng >= -180 && place.lng <= 180;
 }
 
-function validCandidate(place: Candidate): boolean {
+function validCandidate(place: Candidate, deferUtcOffsetValidation: boolean): boolean {
   if (!hasCandidateIdentity(place)) return false;
   if (!hasValidCoordinates(place)) return false;
-  return Number.isInteger(place.utcOffsetMinutes);
+  return Number.isInteger(place.utcOffsetMinutes)
+    || (deferUtcOffsetValidation && place.utcOffsetMinutes === undefined);
 }
 
 function isCandidateRecord(value: unknown): value is Candidate {
@@ -66,32 +68,36 @@ function isVetoedCandidate(place: Candidate, vetoed: Set<string>): boolean {
   return hasNonEmptyText(place.id) && vetoed.has(place.id);
 }
 
-function validateAndEnrichCandidates(updated: Candidate[], rowLabels: string[], vetoed: Set<string>, config: GeneratorConfig): CandidateSelection {
+function validateAndEnrichCandidates(updated: Candidate[], rowLabels: string[], vetoed: Set<string>, config: GeneratorConfig,
+  options: CandidateSelectionOptions): CandidateSelection {
   const seen = new Set<string>();
   const candidates: Candidate[] = [];
   const invalidCandidateIds: string[] = [];
+  const duplicateCandidateIds: string[] = [];
   for (const [index, place] of updated.entries()) {
     if (isVetoedCandidate(place, vetoed)) continue;
-    if (!validCandidate(place)) {
+    if (!validCandidate(place, options.deferUtcOffsetValidation ?? false)) {
       invalidCandidateIds.push(rowLabels[index] ?? `row-${index + 1}`);
       continue;
     }
     if (seen.has(place.id)) {
-      invalidCandidateIds.push(`${rowLabels[index] ?? place.id} (duplicate candidate ID)`);
+      invalidCandidateIds.push(place.id);
+      duplicateCandidateIds.push(place.id);
       continue;
     }
     seen.add(place.id);
     candidates.push(enrichCandidate(place, config));
   }
-  return { candidates, invalidCandidateIds };
+  return { candidates, invalidCandidateIds, duplicateCandidateIds };
 }
 
 /** Return the full eligible pool. The old route lock describes a reviewed selection, not this sweep. */
-export function chooseCandidates(pool: Candidate[], config: GeneratorConfig, overrides: RouteOverrides = {}): CandidateSelection {
+export function chooseCandidates(pool: Candidate[], config: GeneratorConfig, overrides: RouteOverrides = {},
+  options: CandidateSelectionOptions = {}): CandidateSelection {
   const vetoed = new Set(overrides.veto ?? []);
   const rows = collectCandidateRows(pool);
   const updated = applyCandidateOverrides(rows.candidates, overrides);
-  const selection = validateAndEnrichCandidates(updated, rows.rowLabels, vetoed, config);
+  const selection = validateAndEnrichCandidates(updated, rows.rowLabels, vetoed, config, options);
   const invalidCandidateIds = [...rows.invalidCandidateIds, ...selection.invalidCandidateIds];
   if (selection.candidates.length === 0) throw new Error('No eligible route candidates remain after vetoes and validation');
   return { ...selection, invalidCandidateIds };
