@@ -121,10 +121,9 @@ async function verifyAuthentication(input: { request: Request; response: Authent
 }
 
 async function ensureCounterAdvances(previous: number, next: number): Promise<void> {
-  if (previous !== 0 && next !== 0 && next <= previous) {
-    await appendAuthAudit({ action: "passkey_login", result: "failure" });
-    throw new Error("Passkey counter did not advance");
-  }
+  if (previous === 0 || next === 0 || next > previous) return;
+  await appendAuthAudit({ action: "passkey_login", result: "failure" });
+  throw new Error("Passkey counter did not advance");
 }
 
 export async function loginWithRecoveryCode(input: { code: string }): Promise<string> {

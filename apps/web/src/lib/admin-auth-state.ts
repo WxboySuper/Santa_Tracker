@@ -132,7 +132,12 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 function isStoredPasskey(value: unknown): value is StoredPasskey {
   if (!isRecord(value)) return false;
   if (!isValidPasskeyId(value.id) || !isValidPublicKey(value.publicKey) || !isValidCounter(value.counter)) return false;
-  return value.transports === undefined || (Array.isArray(value.transports) && value.transports.every(item => typeof item === "string"));
+  return isValidTransports(value.transports);
+}
+
+function isValidTransports(value: unknown): boolean {
+  if (value === undefined) return true;
+  return Array.isArray(value) && value.every(item => typeof item === "string");
 }
 
 function isValidPasskeyId(value: unknown): value is string {
