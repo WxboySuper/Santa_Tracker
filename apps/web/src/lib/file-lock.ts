@@ -33,10 +33,15 @@ async function tryCreate(lock: LockFile): Promise<boolean> {
     await handle.close();
     return true;
   } catch (error: unknown) {
-    const code = (error as NodeJS.ErrnoException).code;
-    if (code === "EEXIST" || (code === "EPERM" && await lockFileExists(lock))) return false;
+    if (await isLockContention(error, lock)) return false;
     throw error;
   }
+}
+
+async function isLockContention(error: unknown, lock: LockFile): Promise<boolean> {
+  const code = (error as NodeJS.ErrnoException).code;
+  if (code === "EEXIST") return true;
+  return code === "EPERM" && await lockFileExists(lock);
 }
 
 async function lockFileExists(lock: LockFile): Promise<boolean> {

@@ -13,6 +13,14 @@ export async function POST(request: Request): Promise<Response> {
 }
 
 async function authorizeManagement(request: Request): Promise<Response> {
+  const access = await recoveryManagementAccess(request);
+  if (access instanceof Response) return access;
+  const code = await readRecoveryManagementCode(request);
+  if (code instanceof Response) return code;
+  return confirmRecoveryManagement(access, code);
+}
+
+async function recoveryManagementAccess(request: Request): Promise<{ ip: string; sessionId: string } | Response> {
   const auth = await requireAdminAuth(request);
   if (!auth.ok) return authError(auth.error, auth.status);
   if (auth.authMethod !== "recovery") return Response.json({ error: "This action is only available to a recovery session" }, { status: 409 });
@@ -23,13 +31,21 @@ async function authorizeManagement(request: Request): Promise<Response> {
   const token = tokenFromRequest(request);
   const sessionId = token ? await getAdminTokenSessionId({ token }) : null;
   if (!sessionId) return authError("Active admin session required", 401);
+  return { ip, sessionId };
+}
+
+async function readRecoveryManagementCode(request: Request): Promise<string | Response> {
   const input = await readCappedJson(request, 1024);
   if (!input.ok) return Response.json({ error: input.error }, { status: input.status });
-  if (!isCodeInput(input.value)) return rejectedCode(ip, "A second recovery code is required", 400);
+  if (!isCodeInput(input.value)) return Response.json({ error: "A second recovery code is required" }, { status: 400 });
+  return input.value.code;
+}
+
+async function confirmRecoveryManagement(access: { ip: string; sessionId: string }, code: string): Promise<Response> {
   try {
-    const authorized = await authorizeRecoverySessionForPasskeyManagement({ code: input.value.code, sessionId });
-    if (!authorized) return rejectedCode(ip, "Recovery code is invalid or the session has expired", 401);
-    await clearLoginAttempts(ip);
+    const authorized = await authorizeRecoverySessionForPasskeyManagement({ code, sessionId: access.sessionId });
+    if (!authorized) return rejectedCode(access.ip, "Recovery code is invalid or the session has expired", 401);
+    await clearLoginAttempts(access.ip);
     return Response.json({ authorized: true }, { headers: { "Cache-Control": "no-store" } });
   } catch { return Response.json({ error: "Admin authentication storage is unavailable" }, { status: 503 }); }
 }
