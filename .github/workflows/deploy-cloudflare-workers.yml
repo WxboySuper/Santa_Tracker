@@ -70,13 +70,8 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           SANTA_R2_BUCKET: santa-tracker-snapshots
 
-      - name: Build vinext Worker bundle
-        run: pnpm --filter @santa-tracker/web build:vinext
-        env:
-          SECRET_KEY: ${{ secrets.SECRET_KEY }}
-          ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
-          ADVENT_ENABLED: "true"
-          WEATHER_CACHE_NAMESPACE_ID: ${{ vars.WEATHER_CACHE_NAMESPACE_ID }}
+      # Deploy the cron Worker before the app build: Wrangler refuses to run while `.cloudflare/output`
+      # (the vinext build output) exists, and this Worker does not need the app bundle.
       - name: Deploy weather cron Worker
         working-directory: apps/web
         run: pnpm exec wrangler deploy --config weather-cron.wrangler.toml
@@ -84,6 +79,13 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           WEATHER_CACHE_NAMESPACE_ID: ${{ vars.WEATHER_CACHE_NAMESPACE_ID }}
 
+      - name: Build vinext Worker bundle
+        run: pnpm --filter @santa-tracker/web build:vinext
+        env:
+          SECRET_KEY: ${{ secrets.SECRET_KEY }}
+          ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
+          ADVENT_ENABLED: "true"
+          WEATHER_CACHE_NAMESPACE_ID: ${{ vars.WEATHER_CACHE_NAMESPACE_ID }}
       - name: Deploy to Cloudflare Workers
         run: pnpm --filter @santa-tracker/web deploy:vinext
         env:
