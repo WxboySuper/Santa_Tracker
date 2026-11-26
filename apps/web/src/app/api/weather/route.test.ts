@@ -11,11 +11,11 @@ describe("weather API", () => {
       expect(url).toContain("longitude=0");
       return Response.json({ current: { temperature_2m: 10, weather_code: 3 } });
     });
-    await expect(fetchWeather(51.49, -0.12, fetcher)).resolves.toEqual({ temperatureC: 10, temperatureF: 50, code: 3, label: "Overcast" });
+    await expect(fetchWeather({ lat: 51.49, lon: -0.12 }, fetcher)).resolves.toEqual({ temperatureC: 10, temperatureF: 50, code: 3, label: "Overcast" });
   });
   it("returns null when the provider fails or gives malformed data", async () => {
-    await expect(fetchWeather(0, 0, async () => { throw new Error("offline"); })).resolves.toBeNull();
-    await expect(fetchWeather(0, 0, async () => Response.json({ current: {} }))).resolves.toBeNull();
+    await expect(fetchWeather({ lat: 0, lon: 0 }, async () => { throw new Error("offline"); })).resolves.toBeNull();
+    await expect(fetchWeather({ lat: 0, lon: 0 }, async () => Response.json({ current: {} }))).resolves.toBeNull();
   });
   it("rejects invalid coordinates and returns the contract", async () => {
     const invalid = await GET(new Request("https://example.test/api/weather?lat=91&lon=0"));

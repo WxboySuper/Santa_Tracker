@@ -7,6 +7,8 @@ const TIMEOUT_MS = 4500;
 const labels: Record<number, string> = { 0: "Clear", 1: "Mostly clear", 2: "Partly cloudy", 3: "Overcast", 45: "Fog", 48: "Icy fog", 51: "Light drizzle", 53: "Drizzle", 55: "Heavy drizzle", 56: "Freezing drizzle", 57: "Heavy freezing drizzle", 61: "Light rain", 63: "Rain", 65: "Heavy rain", 66: "Freezing rain", 67: "Heavy freezing rain", 71: "Light snow", 73: "Snow", 75: "Heavy snow", 77: "Snow grains", 80: "Rain showers", 81: "Heavy showers", 82: "Violent showers", 85: "Snow showers", 86: "Heavy snow showers", 95: "Thunderstorm", 96: "Thunderstorm with hail", 99: "Severe thunderstorm with hail" };
 export type WeatherResult = { temperatureC: number; temperatureF: number; code: number; label: string };
 export type WeatherPoint = { lat: number; lon: number };
+type WeatherCurrent = { temperature_2m: number; weather_code: number };
+type CoordinateRange = { min: number; max: number };
 type WeatherFetch = (url: string, init: RequestInit) => Promise<Response>;
 export interface WeatherKV {
   get(key: string): Promise<string | null>;
@@ -27,7 +29,9 @@ const PUBLIC_WEATHER_HEADERS = { "Cache-Control": "public, max-age=0, s-maxage=7
 function nullWeather(status = 200): Response {
   return NextResponse.json(null, { status, headers: { "Cache-Control": "no-store" } });
 }
-function displayWeather(temperatureC: number, code: number): WeatherResult {
+function displayWeather(current: WeatherCurrent): WeatherResult {
+  const temperatureC = current.temperature_2m;
+  const code = current.weather_code;
   return { temperatureC, temperatureF: Math.round((temperatureC * 9 / 5 + 32) * 10) / 10, code, label: labels[code] ?? "Weather" };
 }
 function validCurrent(value: unknown): value is { temperature_2m: number; weather_code: number } {
@@ -55,17 +59,21 @@ async function fetchJson(url: string, fetcher: WeatherFetch): Promise<unknown | 
     return response.ok ? await response.json() : null;
   } catch { return null; } finally { clearTimeout(timer); }
 }
-export async function fetchWeather(lat: number, lon: number, fetcher: WeatherFetch = fetch): Promise<WeatherResult | null> {
-  const body = await fetchJson(providerUrl([rounded({ lat, lon })]), fetcher);
+export async function fetchWeather(point: WeatherPoint, fetcher: WeatherFetch = fetch): Promise<WeatherResult | null> {
+  const body = await fetchJson(providerUrl([rounded(point)]), fetcher);
   const current = body && typeof body === "object" ? (body as { current?: unknown }).current : null;
-  return validCurrent(current) ? displayWeather(current.temperature_2m, current.weather_code) : null;
+  return validCurrent(current) ? displayWeather(current) : null;
 }
 
 /** Fetches unique grid cells in bounded multi-coordinate provider calls. */
 export async function fetchWeatherBatch(
   points: WeatherPoint[], fetcher: WeatherFetch = fetch, batchSize = 50,
 ): Promise<Map<string, WeatherResult>> {
-  const unique = getUniqueWeatherPoints(points);
+  return fetchWeatherBatches(getUniqueWeatherPoints(points), fetcher, batchSize);
+}
+async function fetchWeatherBatches(
+  unique: [string, WeatherPoint][], fetcher: WeatherFetch, batchSize: number,
+): Promise<Map<string, WeatherResult>> {
   const results = new Map<string, WeatherResult>();
   for (let start = 0; start < unique.length; start += batchSize) {
     const batch = unique.slice(start, start + batchSize);
@@ -100,12 +108,12 @@ function parseWeatherRow(row: unknown, requested: Set<string>): [string, Weather
   const coordinates = row as { latitude?: unknown; longitude?: unknown; current?: unknown };
   if (!finiteNumber(coordinates.latitude) || !finiteNumber(coordinates.longitude) || !validCurrent(coordinates.current)) return null;
   const key = weatherCellKey({ lat: coordinates.latitude, lon: coordinates.longitude });
-  return requested.has(key) ? [key, displayWeather(coordinates.current.temperature_2m, coordinates.current.weather_code)] : null;
+  return requested.has(key) ? [key, displayWeather(coordinates.current)] : null;
 }
-function parseCoordinate(value: string | null, min: number, max: number): number | null {
+function parseCoordinate(value: string | null, range: CoordinateRange): number | null {
   if (value === null || value.trim() === "") return null;
   const number = Number(value);
-  return Number.isFinite(number) && number >= min && number <= max ? number : null;
+  return Number.isFinite(number) && number >= range.min && number <= range.max ? number : null;
 }
 function getBindings(): { weather: WeatherKV | null; budget: FallbackBudget | null } {
   try {
@@ -121,8 +129,8 @@ function getBindings(): { weather: WeatherKV | null; budget: FallbackBudget | nu
 
 function getWeatherPoint(request: Request): WeatherPoint | null {
   const params = new URL(request.url).searchParams;
-  const lat = parseCoordinate(params.get("lat"), -90, 90);
-  const lon = parseCoordinate(params.get("lon"), -180, 180);
+  const lat = parseCoordinate(params.get("lat"), { min: -90, max: 90 });
+  const lon = parseCoordinate(params.get("lon"), { min: -180, max: 180 });
   return lat === null || lon === null ? null : rounded({ lat, lon });
 }
 
@@ -163,8 +171,11 @@ function isWeatherResult(value: unknown): value is WeatherResult {
   const weather = value as Record<string, unknown>;
   return finiteNumber(weather.temperatureC)
     && finiteNumber(weather.temperatureF)
-    && typeof weather.code === "number" && Number.isInteger(weather.code)
+    && integerNumber(weather.code)
     && typeof weather.label === "string";
+}
+function integerNumber(value: unknown): value is number {
+  return typeof value === "number" && Number.isInteger(value);
 }
 
 async function readWeatherFromStore(store: WeatherKV | null, key: string): Promise<Response | null> {
@@ -194,7 +205,7 @@ async function fetchWeatherFallback({ budget, store, key, point, fetcher }: Weat
   try {
     const permission = await budget.fetch("https://weather-budget/consume", { method: "POST" });
     if (!permission.ok) return nullWeather();
-    const weather = await fetchWeather(point.lat, point.lon, fetcher);
+    const weather = await fetchWeather(point, fetcher);
     if (!weather) return nullWeather(502);
     await cacheWeatherResult(store, key, weather);
     return NextResponse.json(weather, { headers: PUBLIC_WEATHER_HEADERS });
