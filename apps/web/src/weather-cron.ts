@@ -5,7 +5,7 @@ import type { WeatherKV } from "./lib/weather";
 import type { R2BucketLike } from "./lib/storage/r2-backend";
 
 interface CronEnv {
-  WEATHER_CACHE: WeatherKV;
+  WEATHER_CACHE?: WeatherKV;
   SANTA_SNAPSHOTS: R2BucketLike;
   WEATHER_ENABLED?: string;
   WEATHER_FALLBACK_BUDGET: { idFromName(name: string): unknown; get(id: unknown): { fetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> } };
@@ -16,6 +16,7 @@ export default {
     if (env.WEATHER_ENABLED === "false" || !isWeatherRefreshOpen(event.scheduledTime)) return;
     try {
       if (!env.SANTA_SNAPSHOTS) throw new Error("Missing SANTA_SNAPSHOTS binding");
+      if (!env.WEATHER_CACHE) throw new Error("Missing WEATHER_CACHE binding");
       const route = await loadRouteNodesRaw(undefined, env.SANTA_SNAPSHOTS);
       const limiter = env.WEATHER_FALLBACK_BUDGET.get(env.WEATHER_FALLBACK_BUDGET.idFromName("global"));
       let providerCalls = 0;

@@ -47,10 +47,11 @@ function uniqueValidRoutePoints(selected: RouteCoordinate[]): WeatherPoint[] {
 export async function refreshWeather(
   now: number,
   route: RouteNode[],
-  store: WeatherKV,
+  store: WeatherKV | null | undefined,
   fetcher: typeof fetch = fetch,
 ): Promise<number> {
   if (!isWeatherRefreshOpen(now)) return 0;
+  if (!store) throw new Error("Missing WEATHER_CACHE binding");
   const points = weatherRoutePoints(route, now);
   await Promise.all(points.map(async point => {
     try { await store.put(weatherRouteCellKey(point), "1", { expirationTtl: WEATHER_TTL_SECONDS }); } catch { /* Keep fallback closed if KV is unavailable. */ }

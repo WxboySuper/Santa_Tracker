@@ -25,6 +25,10 @@ function expiringStore(getTime: () => number): WeatherKV {
 }
 
 describe("scheduled weather refresh", () => {
+  it("fails loudly when the shared weather KV binding is missing", async () => {
+    await expect(refreshWeather(takeoff, fixtureRoute(), undefined)).rejects.toThrow("Missing WEATHER_CACHE binding");
+  });
+
   it("gates the cron to the half-hour before takeoff through the 26-hour replay window", () => {
     expect(isWeatherRefreshOpen(takeoff - 30 * 60_000)).toBe(true);
     expect(isWeatherRefreshOpen(takeoff - 30 * 60_000 - 1)).toBe(false);
