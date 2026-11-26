@@ -1,4 +1,5 @@
 import { expect, test } from './fixtures';
+import { getFixtureProjectName } from './fixture-project';
 import type { Page } from '@playwright/test';
 import { expectNoSeriousAxeIssues } from './axe-check';
 
@@ -58,7 +59,7 @@ test('home works at narrow widths, with motion settings, and passes axe', async 
   await page.clock.install({ time: new Date('2026-09-14T10:00:00Z') });
   await page.goto('/');
   await expect(page.getByRole('heading', { level: 1, name: 'Santa Tracker' })).toBeVisible();
-  if (testInfo.project.name === 'open') {
+  if (getFixtureProjectName(testInfo.project) === 'open') {
     await expect(page.getByRole('link', { name: 'Visit the calendar' })).toHaveAttribute('href', '/advent');
     await expect(page.getByRole('link', { name: 'Open the tracker' })).toHaveAttribute('href', '/tracker');
   } else {

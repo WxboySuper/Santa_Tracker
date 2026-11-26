@@ -3,12 +3,26 @@ import os from "node:os";
 import path from "node:path";
 import { expect, test } from "vitest";
 import { getEndpointForProject, getRuntimeConfig } from "./fixtures";
+import { getFixtureProjectName } from "./fixture-project";
 import { prepareFixtureData } from "./fixture-data";
 import { openFirstDay } from "./calendar-validation";
 import { getStartupFailure, waitForServers, type StartupResult } from "./server-processes";
 import { isServerEndpointMap } from "./validation";
 
 type CalendarFixture = { source: string; temporaryRoot: string; calendarPath: string };
+
+test.each([
+  { project: { name: "open" }, expected: "open" },
+  { project: { name: "matrix-open-firefox", metadata: { fixtureProject: "open" } }, expected: "open" },
+  { project: { name: "matrix-closed-firefox", metadata: { fixtureProject: "closed" } }, expected: "closed" },
+])("fixture project metadata selects $expected", ({ project, expected }) => {
+  expect(getFixtureProjectName(project)).toBe(expected);
+});
+
+test("fixture project metadata rejects unknown values", () => {
+  expect(() => getFixtureProjectName({ name: "matrix-open-firefox", metadata: { fixtureProject: "Open" } }))
+    .toThrow("Unknown fixtureProject for project matrix-open-firefox: Open");
+});
 
 async function withCalendarFixture(
   name: string,

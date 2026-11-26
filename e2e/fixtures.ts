@@ -1,5 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { expect, test as base } from "@playwright/test";
+import { getFixtureProjectName } from "./fixture-project";
 import { isHttpEndpointUrl, isRecord, isServerEndpointMap } from "./validation";
 
 type RuntimeConfig = { endpoints: Record<string, string>; adminPassword: string };
@@ -63,7 +64,7 @@ const test = base.extend({
   baseURL: async ({}, use, testInfo) => {
     const runtimeFile = process.env.E2E_RUNTIME_FILE;
     if (!runtimeFile) throw new Error("E2E_RUNTIME_FILE is not configured");
-    const endpoint = await getEndpointForProject(runtimeFile, testInfo.project.name);
+    const endpoint = await getEndpointForProject(runtimeFile, getFixtureProjectName(testInfo.project));
     // eslint-disable-next-line react-hooks/rules-of-hooks -- Playwright's fixture callback is not a React hook.
     await use(endpoint);
   },
