@@ -6,6 +6,50 @@
 - **Named revisions:** Adds named restore point listing, comparison, and restore into a new draft version without changing the active published route. Revision creation rejects unavailable draft content instead of pinning a broken restore point.
 - **Documentation and tests:** Documents the admin API contract and covers autosave isolation, concurrent and stale writes, bounded request bodies, comparison, restore, corrupt revision data, and invalid-draft feedback. Filesystem lock failures now stop writes instead of proceeding without serialization.
 
+## [Unreleased] - Representative city stop cards batch 3
+
+- **Candidate coverage:** Adds 114 verified draft cards from the next city-tier candidates, keyed by stable generator place IDs.
+- **Research quality:** Adds 37 original, source-linked cultural notes and 104 permissively licensed, attributed photos; 77 cards remain without a sourced note.
+- **Entity matching:** Includes only candidates matched to an English Wikidata entity within 40 km; 11 candidates remain unresolved.
+
+## [Unreleased] - Validated route snapshot release controls (#302)
+
+- **Route validation:** Adds a read-only validator for stored route versions, with season, schema, SHA-256 checksum, coordinate, duplicate-name, and schedule checks.
+- **Activation and rollback:** Adds authenticated APIs guarded by `If-Match`; successful pointer changes keep the actor, reason, previous version, checksum, and timestamp in the same atomic active-pointer write.
+- **Docs and tests:** Documents the operator API and tests route validation, checksum stability, activation audit history, and rollback.
+
+## [Unreleased] - Representative city stop cards batch 2
+
+- **Candidate coverage:** Adds 93 verified draft cards from the next country and territory candidates, keyed by stable generator place IDs.
+- **Research quality:** Adds 80 original, source-linked cultural notes and 83 permissively licensed, fully attributed photos; 13 cards remain without a sourced note.
+- **Entity matching:** Leaves seven candidates unresolved where the research tool could not verify a matching Wikidata entity by exact English label and location.
+
+## [Unreleased] - Weather cron Worker no longer bundles Next.js (#542)
+
+- **Weather:** `lib/weather.ts` builds responses with the standard `Response.json` instead of `NextResponse`. The weather cron Worker imports this module, and `next/server` pulled Next's Node-only code (`__dirname`) into its bundle, so Cloudflare rejected the upload. The cron bundle drops from 242 KiB to 35 KiB. The `/api/weather` responses are unchanged.
+
+## [Unreleased] - Fix weather cron deploy order (#542)
+
+- **Deploy:** Deploys the weather cron Worker before the vinext app build. Wrangler refuses to deploy while the build's `.cloudflare/output` exists, which failed the first deploy after #545 before the app Worker was updated.
+
+## [Unreleased] - Bounded weather provider calls (#542)
+
+- **Scheduled weather refresh:** Adds a 15-minute Worker cron that runs from 30 minutes before takeoff through the 26-hour flight and replay window. It reads the active route, fetches upcoming and current stop weather in batches of at most 50 cells, and stores results in shared KV for 30 minutes.
+- **Global provider limit:** `/api/weather` checks shared KV first. Both cron and request-time provider calls pass through one Durable Object budget capped at 900 per UTC day and 300 per minute. Missing data returns `null` when the budget or bindings are unavailable.
+- **Emergency switch and setup:** `WEATHER_ENABLED=false` disables both cron refresh and the endpoint. The launch runbook documents KV provisioning and the GitHub repository variable required before deployment.
+## [Unreleased] - Representative city stop cards batch 1
+
+- **Candidate coverage:** Adds draft cards for the top 100 country or territory candidates by population, keyed to stable generator place IDs.
+- **Research quality:** Adds original, source-linked cultural notes and permissively licensed landscape photos where matching attribution metadata is available; unsupported notes remain null.
+- **Research matching:** Audits Wikidata entities against candidate coordinates and retains only supported source and photo metadata.
+- **Topic uniqueness:** Keeps country/topic duplicates subject to the per-card exemption rule.
+
+## [Unreleased] - Source-backed stop card contract (#260)
+
+- **Card schema:** Defines stable place IDs, concise sourced notes, unique topic keys, review status, and fully attributed permissive-license photos.
+- **Validation:** Adds CI checks for missing sources, repeated place IDs or topics, near-duplicate notes, and unlicensed or unattributed photos.
+- **Research tooling:** Adds a cached, rate-limited research script for Wikidata entities, Wikipedia summaries, and Wikimedia Commons image license metadata.
+
 ## [Unreleased] - Advent fallback library and takedown lock (#270, #421)
 
 - Added a day-specific fallback activity for all 24 Advent dates using the existing typed activity modules. The fallback flag is on by default and in the Cloudflare Worker config; authenticated previews expose fallback payloads only for unlocked days.
@@ -23,6 +67,12 @@
 - **Weather endpoint:** Adds `GET /api/weather?lat={latitude}&lon={longitude}` with Celsius and Fahrenheit temperatures, the provider's numeric weather code, and a short label.
 - **Caching and failure handling:** Rounds coordinates to a 0.25 degree grid, caches at the edge for 12 minutes, times out provider calls, and returns `null` when weather is unavailable.
 - **Provider terms:** Uses Open-Meteo. Its no-key free endpoint permits non-commercial use within published rate limits; weather data is CC BY 4.0 and requires attribution. Commercial use needs a paid plan. See https://open-meteo.com/en/terms.
+
+## [Unreleased] - Launch-day emergency controls API (#303)
+
+- **Emergency switches:** Adds audited, compare-and-set controls for no-map mode, simplified tracker mode, and weather/soundscape kills. Updates require an operator reason and retain the prior and next values.
+- **Runtime contract:** Adds a safe public projection at `GET /api/runtime-controls`; malformed stored controls fail closed to no-map, simplified mode, and disabled optional features.
+- **Docs and tests:** Documents the admin and runtime API contracts and tests defaults, fail-safe parsing, audit history, and stale-write rejection.
 
 ## [Unreleased] - Cross-browser readiness matrix (#324)
 

@@ -1,0 +1,109 @@
+import { describe, expect, it } from 'vitest';
+import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { resolve } from 'node:path';
+import { spawnSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
+
+const root = resolve(fileURLToPath(new URL('..', import.meta.url)));
+function validCard(id, note, topic = 'winter-market') {
+  return { place_id: id, note, sources: ['https://example.org/source'], topic_key: topic, country: 'Exampleland', photo: null, review_status: 'draft' };
+}
+async function validate(cards) {
+  const dir = await mkdtemp(resolve(tmpdir(), 'santa-cards-'));
+  try {
+    const path = resolve(dir, 'cards.json');
+    await writeFile(path, JSON.stringify(cards));
+    return spawnSync(process.execPath, [resolve(root, 'tools/validate-stop-cards.mjs'), path], { encoding: 'utf8' });
+  } finally { await rm(dir, { recursive: true, force: true }); }
+}
+describe('stop card validation', () => {
+  it('accepts distinct sourced notes and null photos', async () => {
+    const result = await validate([validCard('Q1', 'This town holds a winter market each December, drawing visitors to its old central square.', 'market'), validCard('Q2', 'The local museum preserves a collection of regional textiles and records their makers.', 'textiles')]);
+    expect(result.status).toBe(0);
+  });
+  it('rejects missing sources, repeated topics, and near-duplicate notes', async () => {
+    const a = validCard('Q1', 'This town holds a winter market each December, drawing visitors to its old central square.', 'market');
+    const b = validCard('Q2', 'This town holds a winter market each December, drawing visitors to its old central square.', 'market');
+    b.sources = [];
+    const result = await validate([a, b]);
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain('source URL');
+    expect(result.stderr).toContain('closely matches');
+    expect(result.stderr).toContain('already used');
+  });
+  it('rejects unsupported or unattributed photos', async () => {
+    const card = validCard('Q3', null);
+    card.photo = { url: 'https://example.org/photo.jpg', width: 800, height: 600, author: '', license: 'All rights reserved', license_url: 'https://example.org/license', source_page: 'https://example.org/page' };
+    const result = await validate([card]);
+    expect(result.stderr).toContain('unsupported photo license');
+    expect(result.stderr).toContain('attribution is required');
+  });
+  it('reports malformed records without crashing and checks required country and topic keys', async () => {
+    const card = validCard('Q4', null);
+    card.country = '';
+    card.topic_key = 'Bad Topic';
+    const result = await validate([null, card]);
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain('place_id is required');
+    expect(result.stderr).toContain('country is required');
+    expect(result.stderr).toContain('topic_key');
+  });
+  it('checks topic keys per country even when notes are still null, across three or more cards', async () => {
+    const first = validCard('Q5', null, 'market');
+    const exempt = { ...validCard('Q6', null, 'market'), allow_duplicate_topic: true };
+    const third = validCard('Q7', null, 'market');
+    const result = await validate([first, exempt, third]);
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain('cards[2]: topic_key market already used');
+    expect(result.stderr).not.toContain('cards[1]');
+  });
+  it('matches the schema: trims countries, needs boolean exemptions, rejects unknown fields and bad files', async () => {
+    const a = validCard('Q8', null, 'lights');
+    const b = { ...validCard('Q9', null, 'lights'), country: ' Exampleland ', allow_duplicate_topic: 'true', extra: 1 };
+    const result = await validate([a, b]);
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain('topic_key lights already used');
+    expect(result.stderr).toContain('allow_duplicate_topic must be a boolean');
+    expect(result.stderr).toContain('unknown field extra');
+    const missing = spawnSync(process.execPath, [resolve(root, 'tools/validate-stop-cards.mjs'), resolve(tmpdir(), 'no-such-cards.json')], { encoding: 'utf8' });
+    expect(missing.status).toBe(1);
+    expect(missing.stderr).toContain('could not load');
+  });
+  it('requires real HTTPS URLs with a host for sources and photo links', async () => {
+    const card = validCard('Q10', null, 'harbour');
+    card.sources = ['https://'];
+    card.photo = { url: 'https://', width: 800, height: 600, author: 'A. Photographer', license: 'CC BY', license_url: 'https:///nohost', source_page: 'http://commons.wikimedia.org/x' };
+    const result = await validate([card]);
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain('HTTPS source URL');
+    expect(result.stderr).toContain('photo.url must be an HTTPS URL');
+    expect(result.stderr).toContain('photo.source_page must be an HTTPS URL');
+  });
+  it('does not let an exempt first holder exempt later cards', async () => {
+    const exemptFirst = { ...validCard('Q11', null, 'bells'), allow_duplicate_topic: true };
+    const later = validCard('Q12', null, 'bells');
+    const result = await validate([exemptFirst, later]);
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain('cards[1]: topic_key bells already used');
+  });
+  it('rejects padded place IDs and treats them as duplicates of the trimmed ID', async () => {
+    const result = await validate([validCard('Q13', null, 'river'), validCard(' Q13 ', null, 'canal')]);
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain('place_id must not have leading or trailing spaces');
+    expect(result.stderr).toContain('duplicate place_id Q13');
+  });
+  it('rejects source URLs with whitespace, as the schema does', async () => {
+    const card = validCard('Q14', null, 'quay');
+    card.sources = [' https://example.org/source '];
+    const result = await validate([card]);
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain('HTTPS source URL');
+  });
+  it('reports a note after a malformed entry instead of crashing', async () => {
+    const result = await validate([null, validCard('Q15', 'This harbour town lights a floating tree on its old quay every December evening.', 'floating-tree')]);
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain('cards[0]: place_id is required');
+    expect(result.stderr).not.toContain('TypeError');
+  });
+});
