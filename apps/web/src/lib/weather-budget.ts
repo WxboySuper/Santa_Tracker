@@ -23,7 +23,10 @@ export class WeatherFallbackBudget {
     const now = Date.now();
     const minute = Math.floor(now / 60_000);
     const allowed = await this.consumeBudget(now, minute, parsed.fallbackCell);
-    if (!allowed) return new Response(null, { status: 429 });
+    if (!allowed) {
+      await this.scheduleMinuteCleanup(minute);
+      return new Response(null, { status: 429 });
+    }
     await this.scheduleMinuteCleanup(minute);
     return new Response(null, { status: 204 });
   }

@@ -21,17 +21,14 @@ function getScheduledRouteStops(route: RouteNode[]): ScheduledRouteStop[] {
   return route.map(node => ({
     node,
     at: Date.parse(node.schedule?.arrival_utc ?? node.schedule?.departure_utc ?? ""),
-  })).filter(entry => Number.isFinite(entry.at));
+  })).filter(entry => Number.isFinite(entry.at)).sort((left, right) => left.at - right.at);
 }
 
 function findCurrentRouteStop(scheduled: ScheduledRouteStop[], now: number): ScheduledRouteStop | undefined {
   const current = scheduled.reduce<ScheduledRouteStop | undefined>((latest, entry) =>
     entry.at <= now && (!latest || entry.at > latest.at) ? entry : latest,
   undefined);
-  if (current) return current;
-  return scheduled.reduce<ScheduledRouteStop | undefined>((earliest, entry) =>
-    !earliest || entry.at < earliest.at ? entry : earliest,
-  undefined);
+  return current;
 }
 
 function getUpcomingRouteStops(scheduled: ScheduledRouteStop[], now: number): ScheduledRouteStop[] {

@@ -29,6 +29,7 @@ export default {
       console.info(`Weather refresh attempted ${providerCalls} provider calls and stored ${storedCells} cells`);
     } catch (error) {
       console.error("Weather cron refresh failed", error);
+      throw error;
     }
   },
 };
