@@ -4,7 +4,7 @@ import { draftConflictResponse, statusFromError } from "@/lib/route-draft-errors
 import { getRouteDraftService } from "@/lib/route-drafts";
 
 export const dynamic = "force-dynamic";
-const MAX_ROUTE_DRAFT_BYTES = 5_000_000;
+const MAX_ROUTE_DRAFT_BYTES = 5 * 1024 * 1024;
 
 export async function GET(request: Request): Promise<Response> {
   const denied = await authFailure(request);
@@ -53,6 +53,9 @@ function saveFailure(error: unknown): Response {
   const conflict = draftConflictResponse(error);
   if (conflict) return conflict;
   const status = statusFromError(error);
-  const message = status === 412 ? "Draft changed since it was read" : "Unable to save route draft";
+  const message = status === 412 ? "Draft changed since it was read"
+    : status === 413 ? "Draft data exceeds the 5 MB limit"
+      : status === 400 ? "Draft data must be JSON serializable and no more than 100 levels deep"
+        : "Unable to save route draft";
   return Response.json({ error: message, saved: false }, { status });
 }

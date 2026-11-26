@@ -1,10 +1,13 @@
 import { LegacyRouteFixtureSchema } from "@santa-tracker/contracts";
+import { z } from "zod";
 import { getSantaSnapshotsBucket } from "./cloudflare-bindings";
 import { withWriteLock } from "./file-lock";
 import { getKeyValueStore, getSnapshotStore } from "./storage";
 import type { VersionedSnapshotStore } from "./storage/types";
 
 export const DATASET_ROUTE_DRAFT = "santa-route-draft";
+export const MAX_ROUTE_DRAFT_BYTES = 5 * 1024 * 1024;
+const MAX_ROUTE_DRAFT_DEPTH = 100;
 const REVISIONS_KEY = `${DATASET_ROUTE_DRAFT}/named-revisions.json`;
 
 export interface NamedRouteRevision {
@@ -31,6 +34,13 @@ export interface RouteDraftService {
   createRevision(name: string, expectedEtag: string): Promise<NamedRouteRevision>;
   restoreRevision(revisionId: string, expectedEtag: string): Promise<RouteDraftState>;
 }
+
+const NamedRouteRevisionSchema = z.object({
+  id: z.string().regex(/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i),
+  name: z.string().trim().min(1).max(80),
+  versionId: z.string().regex(/^[A-Za-z0-9_-]{1,100}$/),
+  createdAt: z.string().datetime(),
+}).strict();
 
 interface DraftEnvelope {
   data: unknown;
@@ -60,6 +70,30 @@ function validate(data: unknown): RouteDraftState["validation"] {
   };
 }
 
+function serializeDraft(data: unknown): string {
+  let serialized: string | undefined;
+  try { serialized = JSON.stringify({ data, savedAt: new Date().toISOString() }); }
+  catch { throw Object.assign(new Error("Draft data must be JSON serializable"), { status: 400 }); }
+  if (serialized === undefined) throw Object.assign(new Error("Draft data must be JSON serializable"), { status: 400 });
+  if (new TextEncoder().encode(serialized).byteLength > MAX_ROUTE_DRAFT_BYTES) {
+    throw Object.assign(new Error("Draft data exceeds the 5 MB limit"), { status: 413 });
+  }
+  if (exceedsDraftDepth(data)) throw Object.assign(new Error("Draft data exceeds the maximum nesting depth"), { status: 400 });
+  return serialized;
+}
+
+function exceedsDraftDepth(root: unknown): boolean {
+  const pending: { value: unknown; depth: number }[] = [{ value: root, depth: 0 }];
+  while (pending.length > 0) {
+    const current = pending.pop()!;
+    if (current.depth > MAX_ROUTE_DRAFT_DEPTH) return true;
+    if (typeof current.value !== "object" || current.value === null) continue;
+    const children = Array.isArray(current.value) ? current.value : Object.values(current.value);
+    for (const child of children) pending.push({ value: child, depth: current.depth + 1 });
+  }
+  return false;
+}
+
 function parseRevisions(raw: string | null): NamedRouteRevision[] {
   if (!raw) return [];
   let value: unknown;
@@ -71,21 +105,9 @@ function parseRevisions(raw: string | null): NamedRouteRevision[] {
 }
 
 function parseNamedRevision(value: unknown): NamedRouteRevision {
-  if (!isRecord(value)) throw corruptManifestError();
-  if (typeof value.id !== "string") throw corruptManifestError();
-  if (!isRevisionId(value.id)) throw corruptManifestError();
-  if (typeof value.name !== "string") throw corruptManifestError();
-  if (!value.name.trim()) throw corruptManifestError();
-  if (value.name.length > 80) throw corruptManifestError();
-  if (typeof value.versionId !== "string") throw corruptManifestError();
-  if (!/^[A-Za-z0-9_-]{1,100}$/.test(value.versionId)) throw corruptManifestError();
-  if (typeof value.createdAt !== "string") throw corruptManifestError();
-  if (Number.isNaN(Date.parse(value.createdAt))) throw corruptManifestError();
-  return { id: value.id, name: value.name, versionId: value.versionId, createdAt: value.createdAt };
-}
-
-function isRevisionId(value: string): boolean {
-  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+  const parsed = NamedRouteRevisionSchema.safeParse(value);
+  if (!parsed.success) throw corruptManifestError();
+  return parsed.data;
 }
 
 function corruptManifestError(): Error & { status: number } {
@@ -177,8 +199,8 @@ export function createRouteDraftService(store: VersionedSnapshotStore, readManif
       return lock(async () => {
         const current = await readState();
         ensureFresh(expectedEtag, current);
-        const envelope: DraftEnvelope = { data, savedAt: new Date().toISOString() };
-        const version = await store.saveNewVersion(DATASET_ROUTE_DRAFT, JSON.stringify(envelope));
+        const serialized = serializeDraft(data);
+        const version = await store.saveNewVersion(DATASET_ROUTE_DRAFT, serialized);
         await store.activateVersion(DATASET_ROUTE_DRAFT, version.versionId);
         return readState();
       });
@@ -228,7 +250,8 @@ export function createRouteDraftService(store: VersionedSnapshotStore, readManif
         if (!revision) throw Object.assign(new Error("Named revision not found"), { status: 404 });
         const raw = await store.readVersion(DATASET_ROUTE_DRAFT, revision.versionId);
         const envelope = requireRevisionEnvelope(raw);
-        const version = await store.saveNewVersion(DATASET_ROUTE_DRAFT, JSON.stringify({ ...envelope, savedAt: new Date().toISOString() }));
+        const serialized = serializeDraft(envelope.data);
+        const version = await store.saveNewVersion(DATASET_ROUTE_DRAFT, serialized);
         await store.activateVersion(DATASET_ROUTE_DRAFT, version.versionId);
         return readState();
       });

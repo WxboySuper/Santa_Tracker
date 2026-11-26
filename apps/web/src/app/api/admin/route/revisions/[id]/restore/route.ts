@@ -2,6 +2,8 @@ import { requireAdminAuth } from "@/lib/auth";
 import { draftConflictResponse, statusFromError } from "@/lib/route-draft-errors";
 import { getRouteDraftService } from "@/lib/route-drafts";
 
+export const dynamic = "force-dynamic";
+
 export async function POST(request: Request, context: { params: Promise<{ id: string }> }): Promise<Response> {
   const denied = await authFailure(request);
   if (denied) return denied;

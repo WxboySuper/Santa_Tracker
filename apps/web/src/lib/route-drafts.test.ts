@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { createVersionedSnapshotStore, type VersionedStoreBackend } from "./storage/versioned-store-core";
-import { createRouteDraftService } from "./route-drafts";
+import { createRouteDraftService, DATASET_ROUTE_DRAFT } from "./route-drafts";
 
 function makeFixture(name = "Auckland") {
   return {
@@ -88,6 +88,16 @@ describe("route draft revisions", () => {
     expect(saved.source).toBe("draft");
     expect(saved.validation.valid).toBe(false);
     expect(saved.validation.issues.length).toBeGreaterThan(0);
+  });
+
+  it("rejects oversized and deeply nested drafts before writing a version", async () => {
+    const { service, store } = setup();
+    const initial = await service.getState();
+    await expect(service.save({ text: "x".repeat(5 * 1024 * 1024) }, initial.etag)).rejects.toMatchObject({ status: 413 });
+    let nested: unknown = "leaf";
+    for (let depth = 0; depth < 102; depth += 1) nested = { child: nested };
+    await expect(service.save(nested, initial.etag)).rejects.toMatchObject({ status: 400 });
+    expect(await store.readActive(DATASET_ROUTE_DRAFT)).toBeNull();
   });
 
   it("allows only one concurrent save for the same revision token", async () => {
