@@ -132,6 +132,7 @@ describe("admin login throttle", () => {
     };
     const store = new PersistentAdminThrottleStore(storage, async action => action());
 
+    expect(await store.get({ key: "ip:new" })).toEqual({ attempts: [], lockoutUntil: now + 60_000, lockoutLevel: 0, lastLockoutAt: -1 });
     await expect(store.update({ key: "ip:new", transform: () => active })).rejects.toThrow("no eligible IP state to evict");
     expect(JSON.parse(stored)).toHaveProperty("ip:0");
     expect(JSON.parse(stored)).not.toHaveProperty("ip:new");

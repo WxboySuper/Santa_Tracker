@@ -32,7 +32,18 @@ export class PersistentAdminThrottleStore implements ThrottleStore {
   }
 
   async get({ key }: { key: string }): Promise<ThrottleState | undefined> {
-    return cloneState(readThrottleMap(await this.store.read(THROTTLE_KEY))[key]);
+    const values = readThrottleMap(await this.store.read(THROTTLE_KEY));
+    const current = values[key];
+    if (current) return cloneState(current);
+    return this.fullStoreThrottle(values);
+  }
+
+  private fullStoreThrottle(values: Record<string, ThrottleState>): ThrottleState | undefined {
+    if (Object.keys(values).length < MAX_THROTTLE_KEYS) return undefined;
+    const now = Date.now();
+    const nextExpiry = Math.min(...Object.values(values).map(state => state.lockoutUntil));
+    if (nextExpiry <= now) return undefined;
+    return { attempts: [], lockoutUntil: nextExpiry, lockoutLevel: 0, lastLockoutAt: -1 };
   }
 
   async set({ key, value }: { key: string; value: ThrottleState }): Promise<void> {
