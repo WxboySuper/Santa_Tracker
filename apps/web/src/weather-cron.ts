@@ -2,9 +2,11 @@ import { loadRouteNodesRaw } from "./lib/locations";
 import { isWeatherRefreshOpen, refreshWeather } from "./lib/weather-refresh";
 import { WeatherFallbackBudget } from "./lib/weather-budget";
 import type { WeatherKV } from "./lib/weather";
+import type { R2BucketLike } from "./lib/storage/r2-backend";
 
 interface CronEnv {
   WEATHER_CACHE: WeatherKV;
+  SANTA_SNAPSHOTS: R2BucketLike;
   WEATHER_ENABLED?: string;
   WEATHER_FALLBACK_BUDGET: { idFromName(name: string): unknown; get(id: unknown): { fetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> } };
 }
@@ -15,12 +17,15 @@ export default {
     try {
       const route = await loadRouteNodesRaw();
       const limiter = env.WEATHER_FALLBACK_BUDGET.get(env.WEATHER_FALLBACK_BUDGET.idFromName("global"));
+      let providerCalls = 0;
       const provider = async (input: RequestInfo | URL, init?: RequestInit) => {
         const permission = await limiter.fetch("https://weather-budget/consume", { method: "POST" });
-        return permission.ok ? fetch(input, init) : new Response(null, { status: 429 });
+        if (!permission.ok) return new Response(null, { status: 429 });
+        providerCalls += 1;
+        return fetch(input, init);
       };
-      const calls = await refreshWeather(event.scheduledTime, route, env.WEATHER_CACHE, provider);
-      console.info(`Weather refresh completed with ${calls} provider batches`);
+      const storedCells = await refreshWeather(event.scheduledTime, route, env.WEATHER_CACHE, provider);
+      console.info(`Weather refresh attempted ${providerCalls} provider calls and stored ${storedCells} cells`);
     } catch (error) {
       console.error("Weather cron refresh failed", error);
     }

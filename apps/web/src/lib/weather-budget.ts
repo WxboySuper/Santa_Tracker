@@ -3,6 +3,7 @@ interface BudgetStorage {
   get<T>(key: string): Promise<T | undefined>;
   put(values: Record<string, unknown>): Promise<void>;
   transaction<T>(callback: (storage: BudgetStorage) => Promise<T>): Promise<T>;
+  getAlarm(): Promise<number | null>;
   setAlarm(timestamp: number): Promise<void>;
   list(options: { prefix: string }): Promise<Map<string, unknown>>;
   delete(keys: string[]): Promise<void>;
@@ -26,7 +27,9 @@ export class WeatherFallbackBudget {
       return true;
     });
     if (!allowed) return new Response(null, { status: 429 });
-    await this.state.storage.setAlarm((minute + 2) * 60_000);
+    const existingAlarm = await this.state.storage.getAlarm();
+    const cleanupAt = (minute + 2) * 60_000;
+    if (existingAlarm === null || existingAlarm > cleanupAt) await this.state.storage.setAlarm(cleanupAt);
     return new Response(null, { status: 204 });
   }
 

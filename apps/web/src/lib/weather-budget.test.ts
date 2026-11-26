@@ -11,6 +11,7 @@ describe("global weather provider budget", () => {
       get(key: string): Promise<unknown>;
       put(entries: Record<string, unknown>): Promise<void>;
       transaction<T>(callback: (store: TestStorage) => Promise<T>): Promise<T>;
+      getAlarm(): Promise<number | null>;
       setAlarm(timestamp: number): Promise<void>;
       list(options: { prefix: string }): Promise<Map<string, unknown>>;
       delete(keys: string[]): Promise<void>;
@@ -24,6 +25,7 @@ describe("global weather provider budget", () => {
         transactionQueue = result.then(() => undefined, () => undefined);
         return result;
       },
+      getAlarm: async () => null,
       setAlarm: async () => undefined,
       list: async ({ prefix }: { prefix: string }) => new Map([...values].filter(([key]) => key.startsWith(prefix))),
       delete: async (keys: string[]) => { for (const key of keys) values.delete(key); },

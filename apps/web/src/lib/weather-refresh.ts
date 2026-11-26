@@ -39,8 +39,12 @@ export async function refreshWeather(
     } catch { missing.push(point); }
   }
   const results = await fetchWeatherBatch(missing, fetcher, WEATHER_BATCH_SIZE);
+  let storedCells = 0;
   for (const [key, value] of results) {
-    try { await store.put(key, JSON.stringify(value), { expirationTtl: WEATHER_TTL_SECONDS }); } catch { /* Retry on the next cron tick. */ }
+    try {
+      await store.put(key, JSON.stringify(value), { expirationTtl: WEATHER_TTL_SECONDS });
+      storedCells += 1;
+    } catch { /* Retry on the next cron tick. */ }
   }
-  return Math.ceil(missing.length / WEATHER_BATCH_SIZE);
+  return storedCells;
 }

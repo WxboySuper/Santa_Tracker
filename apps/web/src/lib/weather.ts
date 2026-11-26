@@ -102,24 +102,38 @@ function getBindings(): { weather: WeatherKV | null; budget: FallbackBudget | nu
   } catch { return { weather: null, budget: null }; }
 }
 
+function getWeatherPoint(request: Request): WeatherPoint | null {
+  const params = new URL(request.url).searchParams;
+  const lat = parseCoordinate(params.get("lat"), -90, 90);
+  const lon = parseCoordinate(params.get("lon"), -180, 180);
+  return lat === null || lon === null ? null : rounded({ lat, lon });
+}
+
+function resolveWeatherBindings(options: { store?: WeatherKV | null; budget?: FallbackBudget | null }) {
+  const bindings = getBindings();
+  return {
+    store: options.store === undefined ? bindings.weather : options.store,
+    budget: options.budget === undefined ? bindings.budget : options.budget,
+  };
+}
+
+function weatherIsDisabled(enabled?: boolean): boolean {
+  return enabled === false || process.env.WEATHER_ENABLED === "false";
+}
+
 export async function getWeatherResponse(
   request: Request,
   options: { enabled?: boolean; store?: WeatherKV | null; budget?: FallbackBudget | null; fetcher?: WeatherFetch; now?: number } = {},
 ): Promise<Response> {
-  if (options.enabled === false || process.env.WEATHER_ENABLED === "false") return NextResponse.json(null, { headers: { "Cache-Control": "no-store" } });
-  const params = new URL(request.url).searchParams;
-  const lat = parseCoordinate(params.get("lat"), -90, 90);
-  const lon = parseCoordinate(params.get("lon"), -180, 180);
-  if (lat === null || lon === null) return NextResponse.json({ error: "Invalid coordinates" }, { status: 400 });
-  const point = rounded({ lat, lon });
-  const bindings = getBindings();
-  const store = options.store === undefined ? bindings.weather : options.store;
-  const budget = options.budget === undefined ? bindings.budget : options.budget;
+  if (weatherIsDisabled(options.enabled)) return nullWeather();
+  const point = getWeatherPoint(request);
+  if (!point) return NextResponse.json({ error: "Invalid coordinates" }, { status: 400 });
+  const { store, budget } = resolveWeatherBindings(options);
   const key = weatherCellKey(point);
   const cached = await readWeatherFromStore(store, key);
   if (cached) return cached;
   if (!isWeatherRefreshOpen(options.now ?? Date.now())) return nullWeather();
-  return fetchWeatherFallback(budget, store, key, point, options.fetcher);
+  return fetchWeatherFallback({ budget, store, key, point, fetcher: options.fetcher });
 }
 
 function isWeatherResult(value: unknown): value is WeatherResult {
@@ -141,20 +155,26 @@ async function readWeatherFromStore(store: WeatherKV | null, key: string): Promi
   } catch { return null; }
 }
 
-async function fetchWeatherFallback(
-  budget: FallbackBudget | null,
-  store: WeatherKV | null,
-  key: string,
-  point: WeatherPoint,
-  fetcher?: WeatherFetch,
-): Promise<Response> {
+interface WeatherFallbackOptions {
+  budget: FallbackBudget | null;
+  store: WeatherKV | null;
+  key: string;
+  point: WeatherPoint;
+  fetcher?: WeatherFetch;
+}
+
+async function cacheWeatherResult(store: WeatherKV | null, key: string, weather: WeatherResult): Promise<void> {
+  try { await store?.put(key, JSON.stringify(weather), { expirationTtl: WEATHER_TTL_SECONDS }); } catch { /* Keep the response even if KV is down. */ }
+}
+
+async function fetchWeatherFallback({ budget, store, key, point, fetcher }: WeatherFallbackOptions): Promise<Response> {
   if (!budget) return nullWeather();
   try {
     const permission = await budget.fetch("https://weather-budget/consume", { method: "POST" });
     if (!permission.ok) return nullWeather();
     const weather = await fetchWeather(point.lat, point.lon, fetcher);
     if (!weather) return nullWeather(502);
-    try { await store?.put(key, JSON.stringify(weather), { expirationTtl: WEATHER_TTL_SECONDS }); } catch { /* Keep the response even if KV is down. */ }
+    await cacheWeatherResult(store, key, weather);
     return NextResponse.json(weather, { headers: PUBLIC_WEATHER_HEADERS });
   } catch { return nullWeather(); }
 }
