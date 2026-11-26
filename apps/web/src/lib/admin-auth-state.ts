@@ -252,9 +252,17 @@ export async function appendAuthAudit(event: Omit<AdminAuthAuditEvent, "at"> & {
   await mutateState(state => { state.audit.push({ ...event, at: event.at ?? new Date().toISOString() }); });
 }
 
-export async function createAdminSession(now = Date.now(), ttlSeconds = 12 * 60 * 60, authMethod: AdminSessionRecord["authMethod"] = "password"): Promise<AdminSessionRecord> {
+export async function createAdminSession(
+  now = Date.now(),
+  ttlSeconds = 12 * 60 * 60,
+  authMethod: AdminSessionRecord["authMethod"] = "password",
+  auditAction?: string,
+): Promise<AdminSessionRecord> {
   const session: AdminSessionRecord = { id: crypto.randomUUID(), csrfToken: randomToken(), createdAt: now, expiresAt: now + ttlSeconds * 1000, revokedAt: null, authMethod };
-  await mutateState(state => { state.sessions.push(session); });
+  await mutateState(state => {
+    state.sessions.push(session);
+    if (auditAction) state.audit.push({ action: auditAction, result: "success", at: new Date(now).toISOString(), sessionId: session.id });
+  });
   return session;
 }
 

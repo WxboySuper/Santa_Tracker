@@ -1,5 +1,5 @@
 import { describe, expect, it, beforeEach, afterEach, vi } from "vitest";
-import { createAdminSession, installPasskey, readActiveSession, resetAdminAuthStateForTests } from "./admin-auth-state";
+import { createAdminSession, installPasskey, readActiveSession, readAdminAuthState, resetAdminAuthStateForTests } from "./admin-auth-state";
 import { createAdminToken, getAdminTokenCsrfToken, getAdminTokenSessionId, requireAdminAuth, revokeAdminToken, verifyAdminToken } from "./auth";
 import { POST as logout } from "@/app/api/admin/logout/route";
 import { DELETE as revokeSession, GET as listSessions } from "@/app/api/admin/sessions/route";
@@ -20,6 +20,14 @@ describe("admin session and CSRF enforcement", () => {
     expect(await getAdminTokenSessionId({ token })).toBeTruthy();
     await revokeAdminToken({ token });
     expect(await verifyAdminToken({ token })).toBe(false);
+  });
+
+  it("writes the successful-login audit event atomically with its session", async () => {
+    const session = await createAdminSession(Date.now(), 12 * 60 * 60, "password", "password_login");
+    const state = await readAdminAuthState();
+
+    expect(state.sessions.find(item => item.id === session.id)).toBeDefined();
+    expect(state.audit).toContainEqual(expect.objectContaining({ action: "password_login", result: "success", sessionId: session.id }));
   });
 
   it("invalidates pre-enrollment password sessions as soon as a passkey is installed", async () => {

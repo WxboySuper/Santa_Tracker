@@ -20,8 +20,10 @@ async function processLoginVerification(request: Request): Promise<Response> {
   if (parsed instanceof Response) return parsed;
   try {
     const token = await finishAuthentication({ request, challengeId: parsed.challengeId, response: parsed.response });
-    await clearLoginAttempts(parsed.ip);
-    await clearLoginAttempts(`passkey-options:${parsed.ip}`);
+    try { await clearLoginAttempts(parsed.ip); }
+    catch (error) { console.error("Failed to clear the passkey verification throttle after successful authentication", error); }
+    try { await clearLoginAttempts(`passkey-options:${parsed.ip}`); }
+    catch (error) { console.error("Failed to clear the passkey options throttle after successful authentication", error); }
     const response = await responseWithSession(token, { authenticated: true });
     return clearChallengeCookie(response);
   } catch (error) {

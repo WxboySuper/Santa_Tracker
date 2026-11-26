@@ -144,7 +144,7 @@ async function validatePasswordLogin(payload: unknown, ip?: string): Promise<Adm
 
 async function createPasswordSession(): Promise<AdminApiResult> {
   try {
-    const token = await createAdminToken();
+    const token = await createAdminToken({ auditAction: "password_login" });
     return { status: 200, body: { token } };
   } catch {
     return { status: 503, body: { error: "Admin authentication storage is unavailable" } };

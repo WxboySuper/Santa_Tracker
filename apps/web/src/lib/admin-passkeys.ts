@@ -132,8 +132,7 @@ export async function finishAuthentication(input: { request: Request; challengeI
   const newCounter = await verifyAuthentication(input, challenge.challenge, credential);
   await ensureCounterAdvances(credential.counter, newCounter);
   await updatePasskeyCounter(credential.id, newCounter);
-  const token = await createAdminToken({ authMethod: "passkey" });
-  await appendAuthAudit({ action: "passkey_login", result: "success" });
+  const token = await createAdminToken({ authMethod: "passkey", auditAction: "passkey_login" });
   return token;
 }
 
@@ -169,8 +168,7 @@ export async function loginWithRecoveryCode(input: { code: string }): Promise<st
     await appendAuthAudit({ action: "recovery_login", result: "failure" });
     throw new PasskeyRequestError("Invalid recovery code");
   }
-  const token = await createAdminToken({ authMethod: "recovery" });
-  await appendAuthAudit({ action: "recovery_login", result: "success" });
+  const token = await createAdminToken({ authMethod: "recovery", auditAction: "recovery_login" });
   return token;
 }
 

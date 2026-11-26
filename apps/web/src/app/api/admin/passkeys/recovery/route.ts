@@ -18,7 +18,8 @@ async function processRecoveryLogin(request: Request): Promise<Response> {
   if (code instanceof Response) return code;
   try {
     const token = await loginWithRecoveryCode({ code });
-    await clearLoginAttempts(ip);
+    try { await clearLoginAttempts(ip); }
+    catch (error) { console.error("Failed to clear the recovery throttle after successful authentication", error); }
     return responseWithSession(token, { authenticated: true, recoveryCodeUsed: true });
   } catch (error) {
     if (error instanceof PasskeyRequestError && error.message === "Invalid recovery code") return failure(ip, "Invalid recovery code", 401);

@@ -169,13 +169,8 @@ async function setLoginCookie(input: { request: Request; result: LoginResult; ip
     return throttledResponse({ retryAfterSeconds: lockout?.retryAfterSeconds ?? 900 });
   }
   if (result.status !== 200) return respondWith(result);
-  await clearLoginAttempts(ip);
-  try { await appendAuthAudit({ action: "password_login", result: "success" }); }
-  catch {
-    try { await revokeResultToken(result); }
-    catch (error) { console.error("Failed to revoke admin session after its audit write failed; no token was issued", error); }
-    return storageUnavailable();
-  }
+  try { await clearLoginAttempts(ip); }
+  catch (error) { console.error("Failed to clear the login throttle after successful authentication", error); }
   const response = respondWith(result);
   const token = result.body.token;
   if (typeof token !== "string") return response;

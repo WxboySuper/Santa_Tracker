@@ -16,9 +16,9 @@ function getSecret(): Uint8Array {
   return new TextEncoder().encode(getSecretKey());
 }
 
-export async function createAdminToken(input: { authMethod?: "password" | "passkey" | "recovery" | "recovery_confirmed" } = {}): Promise<string> {
+export async function createAdminToken(input: { authMethod?: "password" | "passkey" | "recovery" | "recovery_confirmed"; auditAction?: string } = {}): Promise<string> {
   const secret = getSecret();
-  const session = await createAdminSession(Date.now(), ADMIN_SESSION_TTL_SECONDS, input.authMethod ?? "password");
+  const session = await createAdminSession(Date.now(), ADMIN_SESSION_TTL_SECONDS, input.authMethod ?? "password", input.auditAction);
   const jwt = await new jose.SignJWT({ admin: true, csrf: session.csrfToken })
     .setProtectedHeader({ alg })
     .setJti(session.id)
