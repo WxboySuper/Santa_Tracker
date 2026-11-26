@@ -10,7 +10,7 @@ import {
   longitudeDelta,
   stopTier,
 } from './sweep';
-import { requiredSnapshotOffset, scheduledTravelMilliseconds } from './order';
+import { requiredSnapshotOffset, scheduledTravelMilliseconds } from './order-shared';
 import { admin1Coverage } from './admin1';
 import { NORTH_POLE, RETURN_DEADLINE_UTC, TAKEOFF_UTC, type Candidate, type GeneratorConfig, type RouteDetourReport, type RouteLegReport, type RouteReport, type StopTier } from './types';
 

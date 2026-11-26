@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { allocateBandFill, bandMaximumStops, insertCountryCoverage } from './order-coverage';
+import { allocateBandFill, bandMaximumStops, insertCountryCoverage, mandatoryLaunch } from './order-coverage';
 import { planTiming } from './order-shared';
 import { DEFAULT_GENERATOR_LIMITS, type Candidate } from './types';
 
@@ -17,6 +17,10 @@ describe('band fill allocation', () => {
       '-420': 6,
       '-360': 6,
     });
+  });
+
+  it('returns no mandatory launch for an empty candidate pool', () => {
+    expect(mandatoryLaunch([], [], DEFAULT_GENERATOR_LIMITS)).toBeUndefined();
   });
 
   it('counts the already selected launch against its offset-band cap', () => {
@@ -77,27 +81,23 @@ describe('band fill allocation', () => {
   });
 
   it('chooses compatible country representatives before one that blocks multiple countries', () => {
-    const makePlace = (id: string, country: string, lat: number, lng: number, utcOffsetMinutes: number): Candidate => ({
-      id,
-      name: id,
-      country,
-      lat,
-      lng,
+    const makePlace = (place: Pick<Candidate, 'id' | 'country' | 'lat' | 'lng' | 'utcOffsetMinutes'>): Candidate => ({
+      ...place,
+      name: place.id,
       timezone: 'Etc/UTC',
-      utcOffsetMinutes,
       category: 'populated',
       population: 1_000,
     });
-    const launch = makePlace('launch-US', 'US', 0, 100, 0);
+    const launch = makePlace({ id: 'launch-US', country: 'US', lat: 0, lng: 100, utcOffsetMinutes: 0 });
     const initial = planTiming([launch], DEFAULT_GENERATOR_LIMITS);
     expect(initial).toBeDefined();
     if (!initial) throw new Error('Expected the initial route to be feasible');
 
     const expanded = insertCountryCoverage(initial.places, [
       launch,
-      makePlace('the-valley-AI', 'AI', 18.220833333333, -63.051666666667, -240),
-      makePlace('philipsburg-SX', 'SX', 18.024166666667, -63.043333333333, -240),
-      makePlace('marigot-MF', 'MF', 18.066666666667, -63.084722222222, -240),
+      makePlace({ id: 'the-valley-AI', country: 'AI', lat: 18.220833333333, lng: -63.051666666667, utcOffsetMinutes: -240 }),
+      makePlace({ id: 'philipsburg-SX', country: 'SX', lat: 18.024166666667, lng: -63.043333333333, utcOffsetMinutes: -240 }),
+      makePlace({ id: 'marigot-MF', country: 'MF', lat: 18.066666666667, lng: -63.084722222222, utcOffsetMinutes: -240 }),
     ], DEFAULT_GENERATOR_LIMITS);
 
     const countries = new Set(expanded.map((place) => place.country));

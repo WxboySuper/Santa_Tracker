@@ -429,7 +429,7 @@ function validateRouteTimeline(stops: Route['stops']): void {
   for (const stop of stops) {
     const arrival = routeTimestampMs(stop.arrivalIso);
     const departure = routeTimestampMs(stop.departureIso);
-    if (departure <= arrival) throw new RangeError('route departure must be after arrival');
+    if (departure < arrival) throw new RangeError('route departure must not precede arrival');
     if (arrival <= previousArrival) throw new RangeError('route arrivals must be strictly increasing');
     if (arrival < previousDeparture) throw new RangeError('route stops must not overlap');
     previousArrival = arrival;

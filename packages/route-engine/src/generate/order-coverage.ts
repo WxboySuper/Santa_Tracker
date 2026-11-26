@@ -175,6 +175,7 @@ export function insertCountryCoverage(initial: TimedCandidate[], pool: Candidate
 
 type CountryCoverageCandidate = { place: Candidate; rank: number };
 type CountryCoverageGroup = { country: string; rank: number; candidates: CountryCoverageCandidate[] };
+type CountryRepresentative = { country: string; place: Candidate };
 
 function bestBandInsertionPosition(state: InsertionState, place: Candidate, pass: InsertionPass): number {
   let best = Number.POSITIVE_INFINITY;
@@ -187,6 +188,27 @@ function bestBandInsertionPosition(state: InsertionState, place: Candidate, pass
     best = Math.min(best, added);
   }
   return best;
+}
+
+function countryRepresentatives(groups: CountryCoverageGroup[], separation: SeparationIndex): CountryRepresentative[] {
+  return groups.flatMap((group) => {
+    const place = group.candidates.find((candidate) => separation.allows(candidate.place))?.place;
+    return place ? [{ country: group.country, place }] : [];
+  });
+}
+
+function representativeConflictCount(place: Candidate, country: string, representatives: CountryRepresentative[], minimumKm: number): number {
+  return representatives.filter((representative) => representative.country !== country
+    && haversineKm(place, representative.place) < minimumKm).length;
+}
+
+function rankAgainstOtherCountries(group: CountryCoverageGroup, representatives: CountryRepresentative[], pass: InsertionPass): CountryCoverageGroup {
+  const candidates = group.candidates.map((candidate) => ({
+    ...candidate,
+    rank: candidate.rank + representativeConflictCount(candidate.place, group.country, representatives, pass.config.minStopSeparationKm)
+      * pass.config.minStopSeparationKm * COUNTRY_COVERAGE_CONFLICT_WEIGHT,
+  })).sort((left, right) => left.rank - right.rank || compareStableIds(left.place.id, right.place.id));
+  return { ...group, candidates, rank: candidates[0]?.rank ?? Number.POSITIVE_INFINITY };
 }
 
 function rankCountryCoverageGroups(state: InsertionState, pool: Candidate[], pass: InsertionPass): CountryCoverageGroup[] {
@@ -209,19 +231,9 @@ function rankCountryCoverageGroups(state: InsertionState, pool: Candidate[], pas
     ...group,
     candidates: group.candidates.sort((left, right) => left.rank - right.rank || compareStableIds(left.place.id, right.place.id)),
   }));
-  const representatives = rankedGroups.flatMap((group) => {
-    const place = group.candidates.find((candidate) => state.separation.allows(candidate.place))?.place;
-    return place ? [{ country: group.country, place }] : [];
-  });
-  return rankedGroups.map((group) => {
-    const otherRepresentatives = representatives.filter((candidate) => candidate.country !== group.country);
-    const candidates = group.candidates.map((candidate) => {
-      const conflicts = otherRepresentatives.filter((other) =>
-        haversineKm(candidate.place, other.place) < pass.config.minStopSeparationKm).length;
-      return { ...candidate, rank: candidate.rank + conflicts * pass.config.minStopSeparationKm * COUNTRY_COVERAGE_CONFLICT_WEIGHT };
-    }).sort((left, right) => left.rank - right.rank || compareStableIds(left.place.id, right.place.id));
-    return { ...group, candidates, rank: candidates[0]?.rank ?? Number.POSITIVE_INFINITY };
-  }).sort((left, right) => left.rank - right.rank || compareStableIds(left.country, right.country));
+  const representatives = countryRepresentatives(rankedGroups, state.separation);
+  return rankedGroups.map((group) => rankAgainstOtherCountries(group, representatives, pass))
+    .sort((left, right) => left.rank - right.rank || compareStableIds(left.country, right.country));
 }
 
 function tryCountryRepresentative(state: InsertionState, place: Candidate, pass: InsertionPass): boolean {
@@ -548,7 +560,9 @@ export function mandatoryLaunch(representatives: Candidate[], pool: Candidate[],
   launch: Candidate;
   representatives: Candidate[];
 } | undefined {
-  const maxOffset = Math.max(...pool.map(requiredSnapshotOffset));
+  if (pool.length === 0) return undefined;
+  let maxOffset = Number.NEGATIVE_INFINITY;
+  for (const place of pool) maxOffset = Math.max(maxOffset, requiredSnapshotOffset(place));
   const launchCandidates = pool.filter((place) => requiredSnapshotOffset(place) === maxOffset && canStartFromNorthPole(place, config));
   return launchCandidates.sort(compareLaunchPreference).map((launch) => launchWithRepresentatives(launch, representatives, config))
     .find((candidate): candidate is { launch: Candidate; representatives: Candidate[] } => candidate !== undefined);

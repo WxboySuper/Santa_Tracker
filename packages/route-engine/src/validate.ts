@@ -19,8 +19,8 @@ function zodIssuesToValidationIssues(error: z.ZodError): ValidationIssue[] {
   }));
 }
 
-function isDepartureAfterArrival(stop: Route['stops'][number]): boolean {
-  return Date.parse(stop.departureIso) > Date.parse(stop.arrivalIso);
+function isDepartureNotBeforeArrival(stop: Route['stops'][number]): boolean {
+  return Date.parse(stop.departureIso) >= Date.parse(stop.arrivalIso);
 }
 
 function isArrivalIncreasing(prevArrivalMs: number, arrivalMs: number): boolean {
@@ -34,8 +34,8 @@ function collectChronologicalIssues(route: Route): ValidationIssue[] {
     const stop = route.stops[i];
     if (!stop) continue;
 
-    if (!isDepartureAfterArrival(stop)) {
-      issues.push({ path: `stops.${i}.departureIso`, message: 'departure must be after arrival' });
+    if (!isDepartureNotBeforeArrival(stop)) {
+      issues.push({ path: `stops.${i}.departureIso`, message: 'departure must not precede arrival' });
     }
 
     if (i === 0) continue;

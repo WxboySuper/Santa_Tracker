@@ -145,7 +145,7 @@ function validateRouteTimestamps(route: Route): void {
   for (const stop of route.stops) {
     const arrival = parseRouteTimestamp({ value: stop.arrivalIso });
     const departure = parseRouteTimestamp({ value: stop.departureIso });
-    if (departure <= arrival) throw new RangeError('replay route departure must be after arrival');
+    if (departure < arrival) throw new RangeError('replay route departure must not precede arrival');
     if (arrival <= previousArrival) throw new RangeError('replay route arrivals must be strictly increasing');
     if (arrival < previousDeparture) throw new RangeError('replay route stops must not overlap');
     previousArrival = arrival;
