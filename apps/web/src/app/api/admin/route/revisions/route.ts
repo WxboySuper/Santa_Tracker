@@ -1,6 +1,10 @@
 import { requireAdminAuth } from "@/lib/auth";
+import { readCappedJson } from "@/lib/admin-json";
 import { draftConflictResponse, statusFromError } from "@/lib/route-draft-errors";
 import { getRouteDraftService } from "@/lib/route-drafts";
+
+export const dynamic = "force-dynamic";
+const MAX_REVISION_REQUEST_BYTES = 16_384;
 
 export async function GET(request: Request): Promise<Response> {
   const denied = await authFailure(request);
@@ -42,23 +46,16 @@ export async function POST(request: Request): Promise<Response> {
   if (denied) return denied;
   const ifMatch = request.headers.get("if-match");
   if (!ifMatch) return Response.json({ error: "If-Match is required" }, { status: 428 });
-  const name = await readRevisionName(request);
-  if (typeof name !== "string") return name;
+  const body = await readCappedJson(request, MAX_REVISION_REQUEST_BYTES);
+  if (!body.ok) return Response.json({ error: body.error }, { status: body.status });
+  const name = getName(body.value);
+  if (!name) return Response.json({ error: "Revision name must contain 1 to 80 characters" }, { status: 400 });
   return createRevision(name, ifMatch);
 }
 
 async function authFailure(request: Request): Promise<Response | null> {
   const auth = await requireAdminAuth(request);
   return auth.ok ? null : Response.json({ error: auth.error }, { status: auth.status });
-}
-
-async function readRevisionName(request: Request): Promise<string | Response> {
-  let body: unknown;
-  try { body = await request.json(); }
-  catch { return Response.json({ error: "Request body must be valid JSON" }, { status: 400 }); }
-  const name = getName(body);
-  if (!name) return Response.json({ error: "Revision name must contain 1 to 80 characters" }, { status: 400 });
-  return name;
 }
 
 function getName(body: unknown): string | null {

@@ -41,7 +41,7 @@ function setup() {
     async body => { manifest = body; },
     withLock,
   );
-  return { files, store, service };
+  return { files, store, service, setManifest: (raw: string | null) => { manifest = raw; }, getManifest: () => manifest };
 }
 
 describe("route draft revisions", () => {
@@ -112,5 +112,16 @@ describe("route draft revisions", () => {
 
     await expect(service.compareRevisions(revision.id, revision.id)).rejects.toMatchObject({ status: 410 });
     await expect(service.restoreRevision(revision.id, saved.etag)).rejects.toMatchObject({ status: 410 });
+  });
+
+  it("preserves a corrupt named-revisions manifest instead of overwriting it", async () => {
+    const { service, setManifest, getManifest } = setup();
+    const initial = await service.getState();
+    const saved = await service.save(makeFixture("Saved"), initial.etag);
+    setManifest("not-json");
+
+    await expect(service.listRevisions()).rejects.toMatchObject({ status: 500 });
+    await expect(service.createRevision("Must not overwrite history", saved.etag)).rejects.toMatchObject({ status: 500 });
+    expect(getManifest()).toBe("not-json");
   });
 });

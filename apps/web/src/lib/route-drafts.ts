@@ -62,17 +62,34 @@ function validate(data: unknown): RouteDraftState["validation"] {
 
 function parseRevisions(raw: string | null): NamedRouteRevision[] {
   if (!raw) return [];
+  let value: unknown;
   try {
-    const value: unknown = JSON.parse(raw);
-    if (!Array.isArray(value)) return [];
-    return value.filter((item): item is NamedRouteRevision =>
-      typeof item === "object" && item !== null &&
-      typeof item.id === "string" && typeof item.name === "string" &&
-      typeof item.versionId === "string" && typeof item.createdAt === "string",
-    );
-  } catch {
-    return [];
-  }
+    value = JSON.parse(raw);
+  } catch { throw corruptManifestError(); }
+  if (!Array.isArray(value)) throw corruptManifestError();
+  return value.map(parseNamedRevision);
+}
+
+function parseNamedRevision(value: unknown): NamedRouteRevision {
+  if (!isRecord(value)) throw corruptManifestError();
+  if (typeof value.id !== "string") throw corruptManifestError();
+  if (!isRevisionId(value.id)) throw corruptManifestError();
+  if (typeof value.name !== "string") throw corruptManifestError();
+  if (!value.name.trim()) throw corruptManifestError();
+  if (value.name.length > 80) throw corruptManifestError();
+  if (typeof value.versionId !== "string") throw corruptManifestError();
+  if (!/^[A-Za-z0-9_-]{1,100}$/.test(value.versionId)) throw corruptManifestError();
+  if (typeof value.createdAt !== "string") throw corruptManifestError();
+  if (Number.isNaN(Date.parse(value.createdAt))) throw corruptManifestError();
+  return { id: value.id, name: value.name, versionId: value.versionId, createdAt: value.createdAt };
+}
+
+function isRevisionId(value: string): boolean {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+}
+
+function corruptManifestError(): Error & { status: number } {
+  return Object.assign(new Error("Named revisions manifest is corrupt"), { status: 500 });
 }
 
 async function readRouteDraftSource(store: VersionedSnapshotStore): Promise<RouteDraftSource> {
