@@ -1,5 +1,12 @@
 # Changelog — per-PR exhaustive (enforced in CI)
 
+## [Unreleased] - Representative city stop cards batch 1
+
+- **Candidate coverage:** Adds draft cards for the top 100 country or territory candidates by population, keyed to stable generator place IDs.
+- **Research quality:** Adds original, source-linked cultural notes and permissively licensed landscape photos where matching attribution metadata is available; unsupported notes remain null.
+- **Research matching:** Improves Wikidata identity checks, coordinate-based disambiguation, and Commons cache validation for ambiguous candidate names. Failed candidates no longer abort a batch, and reruns preserve curator fields.
+- **Topic uniqueness:** Registers an exempt first topic holder so later duplicate keys still fail unless the later card is also explicitly exempt.
+
 ## [Unreleased] - Source-backed stop card contract (#260)
 
 - **Card schema:** Defines stable place IDs, concise sourced notes, unique topic keys, review status, and fully attributed permissive-license photos.
