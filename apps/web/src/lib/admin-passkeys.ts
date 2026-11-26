@@ -16,10 +16,23 @@ export function webAuthnSettings(request: Request): { rpId: string; origin: stri
   const url = new URL(request.url);
   const rpId = process.env.ADMIN_WEBAUTHN_RP_ID ?? (process.env.NODE_ENV === "production" ? "" : url.hostname);
   const origin = process.env.ADMIN_WEBAUTHN_ORIGIN ?? (process.env.NODE_ENV === "production" ? "" : url.origin);
-  if (!rpId || !origin || new URL(origin).origin !== origin) throw new Error("WebAuthn origin and RP ID must be configured");
-  if (process.env.NODE_ENV === "production" && new URL(origin).protocol !== "https:") throw new Error("WebAuthn origin must use HTTPS in production");
-  if (url.hostname !== rpId && !url.hostname.endsWith(`.${rpId}`)) throw new Error("Request host does not match the WebAuthn RP ID");
+  const expectedOrigin = parseExpectedOrigin(origin);
+  validateRpId(url.hostname, rpId);
+  if (process.env.NODE_ENV === "production" && expectedOrigin.protocol !== "https:") throw new Error("WebAuthn origin must use HTTPS in production");
   return { rpId, origin };
+}
+
+function parseExpectedOrigin(origin: string): URL {
+  if (!origin) throw new Error("WebAuthn origin and RP ID must be configured");
+  const parsed = new URL(origin);
+  if (parsed.origin !== origin) throw new Error("WebAuthn origin and RP ID must be configured");
+  return parsed;
+}
+
+function validateRpId(hostname: string, rpId: string): void {
+  if (!rpId || (hostname !== rpId && !hostname.endsWith(`.${rpId}`))) {
+    throw new Error("Request host does not match the WebAuthn RP ID");
+  }
 }
 
 export async function createRegistrationChallenge(request: Request, sessionId: string): Promise<{ challenge: AdminAuthChallenge; options: Awaited<ReturnType<typeof generateRegistrationOptions>> }> {

@@ -67,16 +67,8 @@ function getAdapter(): StateAdapter {
 
 function parseState(raw: string | null): AdminAuthState {
   if (!raw) return emptyState();
-  let value: unknown;
-  try { value = JSON.parse(raw); }
-  catch { throw new Error("Admin authentication state is corrupt"); }
-  if (!isRecord(value) || value.version !== 1 || !Array.isArray(value.passkeys) || !Array.isArray(value.sessions) || !Array.isArray(value.challenges) || !Array.isArray(value.audit) || !Array.isArray(value.recoveryCodeHashes)) {
-    throw new Error("Admin authentication state is corrupt");
-  }
-  if (value.passkeys.length > 10 || value.recoveryCodeHashes.length > 10) throw new Error("Admin authentication state is corrupt");
-  if (!value.passkeys.every(isStoredPasskey) || !value.sessions.every(isSession) || !value.challenges.every(isChallenge) || !value.audit.every(isAuditEvent) || !value.recoveryCodeHashes.every(item => typeof item === "string")) {
-    throw new Error("Admin authentication state is corrupt");
-  }
+  const value = parseJsonState(raw);
+  if (!isAdminAuthState(value)) throw corruptStateError();
   return {
     version: 1,
     passkeys: value.passkeys.slice(0, 10),
@@ -85,6 +77,42 @@ function parseState(raw: string | null): AdminAuthState {
     challenges: value.challenges,
     audit: value.audit.slice(-MAX_AUDIT_EVENTS),
   };
+}
+
+function parseJsonState(raw: string): unknown {
+  try { return JSON.parse(raw); }
+  catch { throw corruptStateError(); }
+}
+
+function isAdminAuthState(value: unknown): value is AdminAuthState {
+  return isRecord(value)
+    && value.version === 1
+    && hasValidCollections(value)
+    && value.passkeys.length <= 10
+    && value.recoveryCodeHashes.length <= 10
+    && value.passkeys.every(isStoredPasskey)
+    && value.sessions.every(isSession)
+    && value.challenges.every(isChallenge)
+    && value.audit.every(isAuditEvent)
+    && value.recoveryCodeHashes.every(item => typeof item === "string");
+}
+
+function hasValidCollections(value: Record<string, unknown>): value is Record<string, unknown> & {
+  passkeys: unknown[];
+  sessions: unknown[];
+  challenges: unknown[];
+  audit: unknown[];
+  recoveryCodeHashes: unknown[];
+} {
+  return Array.isArray(value.passkeys)
+    && Array.isArray(value.sessions)
+    && Array.isArray(value.challenges)
+    && Array.isArray(value.audit)
+    && Array.isArray(value.recoveryCodeHashes);
+}
+
+function corruptStateError(): Error {
+  return new Error("Admin authentication state is corrupt");
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

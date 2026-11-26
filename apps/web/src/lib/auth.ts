@@ -75,35 +75,30 @@ export function verifyAdminPassword(password: string): boolean {
 }
 
 export async function requireAdminAuth(request: Request): Promise<{ ok: boolean; error?: string; status?: number }> {
-  let token: string | null = null;
-  let cookieAuth = false;
-  const auth = request.headers.get("authorization");
-  if (auth?.startsWith("Bearer ")) {
-    token = auth.slice(7);
-  } else {
-    cookieAuth = true;
-    const cookieHeader = request.headers.get("cookie") ?? "";
-    const match = /(?:^|;\s*)admin_token=([^;]*)/.exec(cookieHeader);
-    if (match?.[1]) {
-      try {
-        token = decodeURIComponent(match[1]);
-      } catch {
-        return { ok: false, error: "Invalid credentials", status: 403 };
-      }
-    }
-  }
-  if (!token) {
+  const credential = readAdminCredential(request);
+  if (credential.invalid) return { ok: false, error: "Invalid credentials", status: 403 };
+  if (!credential.token) {
     return { ok: false, error: "Authentication required", status: 401 };
   }
-  const claims = await verifyAdminTokenClaims(token);
+  const claims = await verifyAdminTokenClaims(credential.token);
   if (!claims) {
     return { ok: false, error: "Invalid credentials", status: 403 };
   }
-  if (cookieAuth && isMutation(request.method) && !hasValidCsrf(request, claims.csrf)) {
+  if (credential.cookieAuth && isMutation(request.method) && !hasValidCsrf(request, claims.csrf)) {
     await appendAuthAudit({ action: "csrf_rejected", result: "failure" });
     return { ok: false, error: "CSRF validation failed", status: 403 };
   }
   return { ok: true };
+}
+
+function readAdminCredential(request: Request): { token: string | null; cookieAuth: boolean; invalid: boolean } {
+  const authorization = request.headers.get("authorization");
+  if (authorization?.startsWith("Bearer ")) return { token: authorization.slice(7), cookieAuth: false, invalid: false };
+  const cookieHeader = request.headers.get("cookie") ?? "";
+  const match = /(?:^|;\s*)admin_token=([^;]*)/.exec(cookieHeader);
+  if (!match?.[1]) return { token: null, cookieAuth: true, invalid: false };
+  try { return { token: decodeURIComponent(match[1]), cookieAuth: true, invalid: false }; }
+  catch { return { token: null, cookieAuth: true, invalid: true }; }
 }
 
 async function verifyAdminTokenClaims(token: string): Promise<{ csrf: string } | null> {

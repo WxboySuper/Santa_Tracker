@@ -14,26 +14,27 @@ export async function POST(request: Request): Promise<Response> {
   const sessionId = token ? await getAdminTokenSessionId(token) : null;
   const challengeId = challengeIdFromRequest(request);
   if (!sessionId || !challengeId) {
-    await recordPasskeyFailure("passkey_registration");
-    return Response.json({ error: "Registration challenge expired or unavailable" }, { status: 400 });
+    return registrationFailure("Registration challenge expired or unavailable", 400);
   }
   const input = await readCappedJson(request, 64 * 1024);
   if (!input.ok) {
-    await recordPasskeyFailure("passkey_registration");
-    return Response.json({ error: input.error }, { status: input.status });
+    return registrationFailure(input.error, input.status);
   }
   if (!isRegistrationResponse(input.value)) {
-    await recordPasskeyFailure("passkey_registration");
-    return Response.json({ error: "Invalid passkey response" }, { status: 400 });
+    return registrationFailure("Invalid passkey response", 400);
   }
   try {
     const result = await finishRegistration({ request, challengeId, sessionId, response: input.value });
     const response = clearChallengeCookie(NextResponse.json({ registered: true, recoveryCodes: result.recoveryCodes }, { headers: { "Cache-Control": "no-store" } }));
     return response;
   } catch (error) {
-    await recordPasskeyFailure("passkey_registration");
-    return clearChallengeCookie(NextResponse.json({ error: error instanceof Error ? error.message : "Unable to verify passkey" }, { status: 400 }));
+    return registrationFailure(error instanceof Error ? error.message : "Unable to verify passkey", 400);
   }
+}
+
+async function registrationFailure(message: string, status: number): Promise<Response> {
+  await recordPasskeyFailure("passkey_registration");
+  return clearChallengeCookie(NextResponse.json({ error: message }, { status }));
 }
 
 function isRegistrationResponse(value: unknown): value is RegistrationResponseJSON {

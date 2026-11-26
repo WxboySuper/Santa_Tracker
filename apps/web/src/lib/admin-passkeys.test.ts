@@ -15,9 +15,23 @@ vi.mock("@simplewebauthn/server", () => ({
 
 const request = new Request("https://example.test/api/admin/passkeys");
 
+async function registerPasskeyForTest(counter: number) {
+  const { challenge } = await createRegistrationChallenge(request, "session-one");
+  vi.mocked(verifyRegistrationResponse).mockResolvedValue({
+    verified: true,
+    registrationInfo: {
+      credential: { id: "credential-one", publicKey: Uint8Array.from([1, 2, 3]), counter },
+      credentialType: "public-key", fmt: "none", aaguid: "", attestationObject: new Uint8Array(), userVerified: true,
+      credentialDeviceType: "singleDevice", credentialBackedUp: false, origin: "https://example.test", rpID: "example.test",
+    },
+  });
+  return finishRegistration({ request, challengeId: challenge.id, sessionId: "session-one", response: { id: "credential-one" } as RegistrationResponseJSON });
+}
+
 describe("admin passkey service", () => {
   beforeEach(async () => {
     await resetAdminAuthStateForTests();
+    vi.stubEnv("NODE_ENV", "test");
     vi.stubEnv("ADMIN_WEBAUTHN_RP_ID", "example.test");
     vi.stubEnv("ADMIN_WEBAUTHN_ORIGIN", "https://example.test");
   });
@@ -47,16 +61,7 @@ describe("admin passkey service", () => {
   });
 
   it("consumes recovery codes once and creates a revocable session", async () => {
-    const { challenge } = await createRegistrationChallenge(request, "session-one");
-    vi.mocked(verifyRegistrationResponse).mockResolvedValue({
-      verified: true,
-      registrationInfo: {
-        credential: { id: "credential-one", publicKey: Uint8Array.from([1, 2, 3]), counter: 0 },
-        credentialType: "public-key", fmt: "none", aaguid: "", attestationObject: new Uint8Array(), userVerified: true,
-        credentialDeviceType: "multiDevice", credentialBackedUp: true, origin: "https://example.test", rpID: "example.test",
-      },
-    });
-    const { recoveryCodes } = await finishRegistration({ request, challengeId: challenge.id, sessionId: "session-one", response: { id: "credential-one" } as RegistrationResponseJSON });
+    const { recoveryCodes } = await registerPasskeyForTest(0);
     const token = await loginWithRecoveryCode(recoveryCodes![0]!);
     expect(await verifyAdminToken(token)).toBe(true);
     await expect(loginWithRecoveryCode(recoveryCodes![0]!)).rejects.toThrow("Invalid recovery code");
@@ -64,16 +69,7 @@ describe("admin passkey service", () => {
   });
 
   it("verifies a passkey login and advances its signature counter", async () => {
-    const registration = await createRegistrationChallenge(request, "session-one");
-    vi.mocked(verifyRegistrationResponse).mockResolvedValue({
-      verified: true,
-      registrationInfo: {
-        credential: { id: "credential-one", publicKey: Uint8Array.from([1, 2, 3]), counter: 1 },
-        credentialType: "public-key", fmt: "none", aaguid: "", attestationObject: new Uint8Array(), userVerified: true,
-        credentialDeviceType: "singleDevice", credentialBackedUp: false, origin: "https://example.test", rpID: "example.test",
-      },
-    });
-    await finishRegistration({ request, challengeId: registration.challenge.id, sessionId: "session-one", response: { id: "credential-one" } as RegistrationResponseJSON });
+    await registerPasskeyForTest(1);
     const authentication = await createAuthenticationChallenge(request);
     vi.mocked(verifyAuthenticationResponse).mockResolvedValue({
       verified: true,

@@ -117,22 +117,8 @@ async function issueSessionToken(payload: unknown, ip?: string): Promise<AdminAp
   if (!adminPassword) {
     return { status: 500, body: { error: "Admin access not configured" } };
   }
-  const passwordValid = verifyAdminPassword(password as string);
-  if (!passwordValid) {
-    const result: AdminApiResult = { status: 401, body: { error: "Invalid password" } };
-    recordedFailures.add(result);
-    const limit = ip ? await recordLoginAttempt(ip) : null;
-    await readAdminAuthState();
-    await appendAuthAudit({ action: "password_login", result: "failure" });
-    return limit ? { status: 429, body: { error: "Too many login attempts, please try again later" } } : result;
-  }
-  if ((await readAdminAuthState()).passkeys.length > 0) {
-    const result: AdminApiResult = { status: 401, body: { error: "Invalid password" } };
-    recordedFailures.add(result);
-    const limit = ip ? await recordLoginAttempt(ip) : null;
-    await appendAuthAudit({ action: "password_login_disabled", result: "failure" });
-    return limit ? { status: 429, body: { error: "Too many login attempts, please try again later" } } : result;
-  }
+  if (!verifyAdminPassword(password as string)) return rejectPasswordLogin(ip, "password_login", true);
+  if ((await readAdminAuthState()).passkeys.length > 0) return rejectPasswordLogin(ip, "password_login_disabled", false);
   try {
     const token = await createAdminToken();
     await appendAuthAudit({ action: "password_login", result: "success" });
@@ -140,6 +126,15 @@ async function issueSessionToken(payload: unknown, ip?: string): Promise<AdminAp
   } catch {
     return { status: 500, body: { error: "Failed to create session" } };
   }
+}
+
+async function rejectPasswordLogin(ip: string | undefined, action: string, equalizeStateRead: boolean): Promise<AdminApiResult> {
+  const result: AdminApiResult = { status: 401, body: { error: "Invalid password" } };
+  recordedFailures.add(result);
+  const limit = ip ? await recordLoginAttempt(ip) : null;
+  if (equalizeStateRead) await readAdminAuthState();
+  await appendAuthAudit({ action, result: "failure" });
+  return limit ? { status: 429, body: { error: "Too many login attempts, please try again later" } } : result;
 }
 
 function extractPassword(payload: unknown): unknown {

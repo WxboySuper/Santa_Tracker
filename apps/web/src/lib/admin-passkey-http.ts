@@ -20,25 +20,23 @@ export function challengeIdFromRequest(request: Request): string | null {
 }
 
 export function setChallengeCookie(response: NextResponse, challengeId: string): NextResponse {
-  response.cookies.set(CHALLENGE_COOKIE, challengeId, {
-    httpOnly: true,
-    secure: shouldUseSecureAdminCookie(),
-    sameSite: "strict",
-    path: "/api/admin/passkeys",
-    maxAge: 5 * 60,
-  });
+  response.cookies.set(CHALLENGE_COOKIE, challengeId, challengeCookieOptions(5 * 60));
   return response;
 }
 
 export function clearChallengeCookie(response: NextResponse): NextResponse {
-  response.cookies.set(CHALLENGE_COOKIE, "", {
+  response.cookies.set(CHALLENGE_COOKIE, "", challengeCookieOptions(0));
+  return response;
+}
+
+function challengeCookieOptions(maxAge: number) {
+  return {
     httpOnly: true,
     secure: shouldUseSecureAdminCookie(),
     sameSite: "strict",
     path: "/api/admin/passkeys",
-    maxAge: 0,
-  });
-  return response;
+    maxAge,
+  } as const;
 }
 
 export async function responseWithSession(token: string, body: Record<string, unknown>): Promise<NextResponse> {
