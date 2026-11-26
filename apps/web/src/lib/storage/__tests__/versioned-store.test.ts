@@ -24,7 +24,11 @@ describe("versioned snapshot store", () => {
     expect(activeAfterFirst).toBe(JSON.stringify({ v: 1 }));
 
     const second = await store.saveNewVersion("santa-route", JSON.stringify({ v: 2 }));
-    await store.activateVersion("santa-route", second.versionId);
+    await store.activateVersion("santa-route", second.versionId, {
+      actor: "admin",
+      reason: "Route reviewed",
+      checksum: "abc12345",
+    });
     const activeAfterSecond = await store.readActive("santa-route");
     expect(activeAfterSecond).toBe(JSON.stringify({ v: 2 }));
 
@@ -32,6 +36,16 @@ describe("versioned snapshot store", () => {
     expect(rolled.versionId).toBe(first.versionId);
     const activeAfterRollback = await store.readActive("santa-route");
     expect(activeAfterRollback).toBe(JSON.stringify({ v: 1 }));
+    const pointer = await store.readActiveVersion("santa-route");
+    expect(pointer?.audit).toHaveLength(3);
+    expect(pointer?.audit?.map(entry => entry.action)).toEqual(["activate", "activate", "rollback"]);
+    expect(pointer?.audit?.at(-1)).toMatchObject({
+      versionId: first.versionId,
+      previousVersionId: second.versionId,
+      actor: "system",
+      action: "rollback",
+      checksum: expect.stringMatching(/^[a-f0-9]{64}$/),
+    });
   });
 
   it("lists versions newest-first", async () => {
