@@ -1,5 +1,11 @@
 # Changelog — per-PR exhaustive (enforced in CI)
 
+## [Unreleased] - Route draft autosave and restore points (#296)
+
+- **Draft isolation:** Adds authenticated route draft autosave APIs backed by a separate immutable version dataset, with `If-Match` protection, a 5 MB/100-level data limit, and validation feedback for incomplete edits.
+- **Named revisions:** Adds named restore point listing, comparison, and restore into a new draft version without changing the active published route. Revision creation rejects unavailable draft content instead of pinning a broken restore point.
+- **Documentation and tests:** Documents the admin API contract and covers autosave isolation, concurrent and stale writes, bounded request bodies, comparison, restore, corrupt revision data, and invalid-draft feedback. Filesystem lock failures now stop writes instead of proceeding without serialization.
+
 ## [Unreleased] - Fill sourced stop-card null notes
 
 - **Coverage:** Adds 46 original, source-backed cultural notes across the existing 307 cards, reducing null notes from 97 to 51.
