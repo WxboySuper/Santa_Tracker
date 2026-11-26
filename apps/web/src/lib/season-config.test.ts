@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createSeasonConfigRepository, defaultSeasonConfigState, parseFeatureFlagOverrides, parseSeasonConfig, resolveFeatureFlags, seasonConfigStorageKey } from "./season-config";
+import { createSeasonConfigRepository, defaultSeasonConfigState, inspectSeasonConfig, parseFeatureFlagOverrides, parseSeasonConfig, resolveFeatureFlags, SeasonConfigCorruptError, seasonConfigStorageKey } from "./season-config";
 
 describe("season configuration", () => {
   it("keeps configuration scoped to known environments and feature keys", () => {
@@ -13,6 +13,23 @@ describe("season configuration", () => {
     expect(parseSeasonConfig(unknown, "preview")).toEqual(defaultSeasonConfigState("preview"));
     expect(parseFeatureFlagOverrides({ mapEnabled: { enabled: false, expiresAt: null }, unknown: { enabled: true, expiresAt: null } })).toBeNull();
     expect(seasonConfigStorageKey("preview")).not.toBe(seasonConfigStorageKey("production"));
+  });
+
+  it.each([
+    ["invalid JSON", "{"],
+    ["schema-invalid JSON", JSON.stringify({ version: 1, environment: "preview", overrides: { unknown: true }, updatedAt: "bad", audit: [] })],
+    ["another environment", JSON.stringify({ ...defaultSeasonConfigState("development"), updatedAt: "2026-11-26T12:00:00.000Z" })],
+  ])("marks %s as corrupt while keeping safe runtime defaults", (_label, raw) => {
+    expect(inspectSeasonConfig(raw, "preview")).toEqual({ state: defaultSeasonConfigState("preview"), corrupt: true });
+    expect(parseSeasonConfig(raw, "preview")).toEqual(defaultSeasonConfigState("preview"));
+  });
+
+  it("refuses to overwrite corrupt stored configuration", async () => {
+    const repository = createSeasonConfigRepository({
+      async read() { return "not-json"; },
+      async write() { throw new Error("must not write corrupt state"); },
+    }, Date.now, async work => work());
+    await expect(repository.replace("preview", defaultSeasonConfigState("preview").updatedAt, {}, "admin", "replace")).rejects.toBeInstanceOf(SeasonConfigCorruptError);
   });
 
   it("reverts expired feature overrides to registry defaults", () => {

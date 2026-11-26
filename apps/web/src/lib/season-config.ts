@@ -79,17 +79,29 @@ export function defaultSeasonConfigState(environment: SeasonConfigEnvironment): 
 }
 
 export function parseSeasonConfig(raw: string | null, environment: SeasonConfigEnvironment): SeasonConfigState {
-  if (!raw) return defaultSeasonConfigState(environment);
+  return inspectSeasonConfig(raw, environment).state;
+}
+
+export function inspectSeasonConfig(raw: string | null, environment: SeasonConfigEnvironment): { state: SeasonConfigState; corrupt: boolean } {
+  if (raw === null) return { state: defaultSeasonConfigState(environment), corrupt: false };
   let value: unknown;
-  try { value = JSON.parse(raw) as unknown; } catch { return defaultSeasonConfigState(environment); }
+  try { value = JSON.parse(raw) as unknown; } catch { return { state: defaultSeasonConfigState(environment), corrupt: true }; }
   const parsed = stateSchema.safeParse(value);
-  if (!parsed.success || parsed.data.environment !== environment) return defaultSeasonConfigState(environment);
-  return { ...parsed.data, audit: parsed.data.audit.slice(-MAX_AUDIT_ENTRIES) };
+  if (!parsed.success || parsed.data.environment !== environment) return { state: defaultSeasonConfigState(environment), corrupt: true };
+  return { state: { ...parsed.data, audit: parsed.data.audit.slice(-MAX_AUDIT_ENTRIES) }, corrupt: false };
 }
 
 export interface SeasonConfigRepository {
   read(environment: SeasonConfigEnvironment): Promise<SeasonConfigState>;
+  readWithStatus(environment: SeasonConfigEnvironment): Promise<{ state: SeasonConfigState; corrupt: boolean }>;
   replace(environment: SeasonConfigEnvironment, expectedUpdatedAt: string, overrides: FeatureFlagOverrides, actor: string, reason: string): Promise<SeasonConfigState | null>;
+}
+
+export class SeasonConfigCorruptError extends Error {
+  constructor() {
+    super("Stored season configuration is corrupt");
+    this.name = "SeasonConfigCorruptError";
+  }
 }
 
 type Lock = <T>(work: () => Promise<T>) => Promise<T>;
@@ -99,11 +111,15 @@ export function createSeasonConfigRepository(
   now: () => number = Date.now,
   lock: Lock = withWriteLock,
 ): SeasonConfigRepository {
+  const readWithStatus = async (environment: SeasonConfigEnvironment) => inspectSeasonConfig(await store.read(seasonConfigStorageKey(environment)), environment);
   return {
-    async read(environment) { return parseSeasonConfig(await store.read(seasonConfigStorageKey(environment)), environment); },
+    async read(environment) { return (await readWithStatus(environment)).state; },
+    readWithStatus,
     replace(environment, expectedUpdatedAt, overrides, actor, reason) {
       return lock(async () => {
-        const current = parseSeasonConfig(await store.read(seasonConfigStorageKey(environment)), environment);
+        const inspected = inspectSeasonConfig(await store.read(seasonConfigStorageKey(environment)), environment);
+        if (inspected.corrupt) throw new SeasonConfigCorruptError();
+        const current = inspected.state;
         if (current.updatedAt !== expectedUpdatedAt) return null;
         const at = new Date(Math.max(now(), Date.parse(current.updatedAt) + 1 || 0)).toISOString();
         const next: SeasonConfigState = {
@@ -136,12 +152,14 @@ export async function readEffectiveSeasonConfig(
   seasonalConfig: SeasonalConfig;
   expiredFlags: FeatureFlagKey[];
   modeOverrideStatus: "none" | "active" | "expired";
+  corrupt: boolean;
 }> {
-  const [state, seasonOverride, active] = await Promise.all([
-    getRepository().read(environment),
+  const [stored, seasonOverride, active] = await Promise.all([
+    getRepository().readWithStatus(environment),
     readSeasonOverrideState(),
     getSnapshotStore(getSantaSnapshotsBucket()).readActiveVersion(DATASET_SANTA_ROUTE),
   ]);
+  const { state, corrupt } = stored;
   const selectedOverrides = candidateOverrides ?? state.overrides;
   const { flags, expiredFlags } = resolveFeatureFlags(selectedOverrides, at);
   const effectiveMode = effectiveSeasonMode(at, seasonMode(at), seasonOverride.override);
@@ -150,7 +168,7 @@ export async function readEffectiveSeasonConfig(
     flags,
     activeSnapshotId: active?.versionId ?? null,
   });
-  return { environment, updatedAt: state.updatedAt, seasonalConfig, expiredFlags, modeOverrideStatus: effectiveMode.overrideStatus };
+  return { environment, updatedAt: state.updatedAt, seasonalConfig, expiredFlags, modeOverrideStatus: effectiveMode.overrideStatus, corrupt };
 }
 
 export function resolveFeatureFlags(overrides: FeatureFlagOverrides, at: Date): { flags: FeatureFlags; expiredFlags: FeatureFlagKey[] } {
