@@ -76,7 +76,7 @@ describe("admin season mode API", () => {
       updatedAt, audit: [],
     });
     const read = await GET(request("GET"));
-    expect((await read.json()).overrideStatus).toBe("expired");
+    expect((await read.json() as { overrideStatus: string }).overrideStatus).toBe("expired");
     vi.mocked(writeSeasonOverride).mockResolvedValue(null);
     const conflict = await PUT(request("PUT", { mode: "advent", expiresAt: "2026-11-03T12:00:00Z", reason: "preview" }));
     expect(conflict.status).toBe(412);

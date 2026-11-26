@@ -30,6 +30,14 @@ The Worker caches the flag read for up to 7 seconds. `/api/route` has a 60-secon
 
 The Worker keeps the last successfully read, valid flag document in memory per isolate. If a later storage read fails or returns corrupt data, it continues using that last-known-good document, so a saved hide survives a transient storage problem. Failed reads are cached for at most 7 seconds before retrying. On a cold isolate with no valid read yet, or when the key is missing, defaults preserve the regular season schedule; storage trouble on startup never hides a feature by accident. Requests continue using the normal season rules.
 
+## Weather provider controls
+
+The weather cron runs every 15 minutes, but reads the active route and does provider work only from 09:30 UTC on Dec 24 through 12:00 UTC on Dec 25. It refreshes current and upcoming stop cells in groups of at most 50. The endpoint reads shared KV first and only permits fallback calls during that same window. Every Open-Meteo call, from cron or an endpoint fallback, passes through one Durable Object budget capped at 900 calls per UTC day and 300 per minute.
+
+To turn weather off, set `WEATHER_ENABLED=false` in `apps/web/cloudflare.config.ts`, `apps/web/wrangler.toml`, and `apps/web/weather-cron.wrangler.toml`, then deploy both Workers. The endpoint returns `null` and the scheduled worker exits before reading the route or contacting Open-Meteo.
+
+Before the first deployment, the owner must create a Cloudflare KV namespace named `santa-weather-cache` and add its 32-character ID as the GitHub repository variable `WEATHER_CACHE_NAMESPACE_ID`. The deploy workflow validates the variable, injects the binding into the Wrangler configs in its temporary checkout, and deploys the cron Worker before the application Worker. The Durable Object namespace is registered by its migration on that first cron Worker deployment. Do not create or bind production resources from a local Wrangler command.
+
 ## Exceptional Advent takedown
 
 Use this procedure when a published day presents a credible safety, privacy, rights, or material factual risk. `is_unlocked_override: false` hides the day from live, admin preview, and archive reads. Do not add a separate archive control or delete the schedule and payload as the first response.
