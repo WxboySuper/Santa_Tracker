@@ -1,5 +1,12 @@
 # Changelog — per-PR exhaustive (enforced in CI)
 
+## [Unreleased] - Place notes and photos in the globe's Here panel
+
+- **Here panel:** Shows the stop card for the place Santa is over: a sourced cultural note with its source link, and on wider screens a Wikimedia photo with author and license credit. Cards are matched by the route stop's `candidate_id`.
+- **Stop cards API:** `GET /api/stop-cards` serves the cards from `content/stop-cards.json`. Production serves only owner-approved cards; development and the demo also serve drafts.
+- **Weather in development:** `/api/weather` calls the provider directly outside production, so the demo shows weather. Production keeps the bounded, route-only path.
+- **Tests:** The weather window test follows `FLIGHT_WINDOW_MS` instead of a fixed 26 hours.
+
 ## [Unreleased] - Weather in the globe's Here panel
 
 - **Weather:** The globe's Here panel shows current conditions where Santa is, from `/api/weather`, with the Open-Meteo credit its CC BY 4.0 licence requires. Fahrenheit for US-style browser regions, Celsius elsewhere. Requests wait 1.5 seconds on a stop and prefetch the next stop, so fast replays don't spend the provider's rate limit.

@@ -9,6 +9,8 @@ import { christmasInJanuary, festiveMoment, greetingFor } from "@/lib/tracker-fe
 import { bearingBetween } from "@/lib/tracker-map-geometry";
 import { useTrackerNow } from "@/lib/use-tracker-now";
 import { useStopWeather, type StopWeather } from "@/lib/use-stop-weather";
+import { useStopCard } from "@/lib/use-stop-card";
+import type { StopCardView } from "@/lib/stop-cards";
 import { JourneyCard } from "./tracker-chrome";
 import "./tracker-layouts.css";
 
@@ -135,22 +137,51 @@ function WeatherLine({ node, next, translator }: { node: RouteNode; next?: Route
   </p>;
 }
 
+function sourceName(url: string): string {
+  try {
+    const host = new URL(url).hostname.replace(/^www\./, "");
+    return host.endsWith("wikipedia.org") ? "Wikipedia" : host;
+  } catch {
+    return url;
+  }
+}
+
+/** A photo of the place, edge to edge across the top of the panel, with the credit its license asks for. */
+function PlacePhoto({ photo, place }: { photo: NonNullable<StopCardView["photo"]>; place: string }) {
+  return <figure className="tl-place-photo">
+    {/* eslint-disable-next-line @next/next/no-img-element -- Wikimedia thumbnails are already sized; no optimiser runs on Workers. */}
+    <img src={photo.url} alt={place} width={photo.width} height={photo.height} loading="lazy" decoding="async" referrerPolicy="no-referrer" />
+    <figcaption>
+      <a href={photo.sourcePage} target="_blank" rel="noreferrer">{photo.author}</a>
+      {", "}
+      <a href={photo.licenseUrl} target="_blank" rel="noreferrer">{photo.license}</a>
+    </figcaption>
+  </figure>;
+}
+
+/** Globe, right edge: the festive side of the place Santa is over, and what is coming up. */
 function HerePanel({ flight, translator }: { flight: Flight; translator: Translator }) {
   const { current, now, stats } = flight;
   const code = (current.location as { country_code?: string }).country_code;
   const greeting = greetingFor(code);
   const { day, hour } = localDayHour(current, now);
   const moment = festiveMoment(day, hour);
+  const card = useStopCard(current);
   return <section className="tl-panel tl-panel-here" aria-label={translator.t("tracker.here.label")}>
+    {card?.photo && <PlacePhoto key={current.id} photo={card.photo} place={current.location.name} />}
     <p className="tl-panel-kicker">{translator.t(`tracker.here.${moment}`, { time: localTimeAt(current, now) })}</p>
     <WeatherLine node={current} next={flight.next} translator={translator} />
     <p className="tl-greeting" lang={greeting.language === "English" ? "en" : undefined}>{greeting.text}</p>
     <p className="tl-panel-sub">{translator.t("tracker.here.in", { language: greeting.language })}</p>
+    {card?.note && <p className="tl-place-note">
+      {card.note}
+      {card.source && <> <a className="tl-place-source" href={card.source} target="_blank" rel="noreferrer">{sourceName(card.source)}</a></>}
+    </p>}
     {christmasInJanuary(code) && <p className="tl-panel-note">{translator.t("tracker.here.january")}</p>}
     {stats.upcoming.length > 0 && <>
       <h3 className="tl-panel-heading">{translator.t("tracker.feed.upcoming")}</h3>
       <ol className="tl-panel-list">
-        {stats.upcoming.slice(0, 4).map(line => <li key={line.node.id}><span>{line.node.location.name}</span><span className="tl-li-time">{line.local}</span></li>)}
+        {stats.upcoming.slice(0, card?.note ? 3 : 4).map(line => <li key={line.node.id}><span>{line.node.location.name}</span><span className="tl-li-time">{line.local}</span></li>)}
       </ol>
     </>}
   </section>;
