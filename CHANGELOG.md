@@ -24,6 +24,10 @@
 
 - **Freeze gates:** Records the owner's 2026-11-26 decision to move the route freeze from Nov 25 to Dec 5, 18:00 UTC. The other gates are unchanged.
 - **Launch readiness:** Moves route approval and activation in the dates table to the Dec 5 freeze.
+## [Unreleased] - Weather in the globe's Here panel
+
+- **Weather:** The globe's Here panel shows current conditions where Santa is, from `/api/weather`, with the Open-Meteo credit its CC BY 4.0 licence requires. Fahrenheit for US-style browser regions, Celsius elsewhere. Requests wait 1.5 seconds on a stop and prefetch the next stop, so fast replays don't spend the provider's rate limit.
+- **First leg:** On the leg out of the North Pole, the globe panels now say Santa just left the North Pole, instead of showing the finished-journey card.
 
 ## [Unreleased] - Current stop weather API (#320)
 
