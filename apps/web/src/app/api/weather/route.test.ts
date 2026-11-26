@@ -18,10 +18,19 @@ describe("weather API", () => {
     const invalid = await GET(new Request("https://example.test/api/weather?lat=91&lon=0"));
     expect(invalid.status).toBe(400);
     expect((await GET(new Request("https://example.test/api/weather?lat=0"))).status).toBe(400);
+    expect((await GET(new Request("https://example.test/api/weather?lat=&lon="))).status).toBe(400);
     vi.stubGlobal("fetch", async () => Response.json({ current: { temperature_2m: 10, weather_code: 3 } }));
     const valid = await GET(new Request("https://example.test/api/weather?lat=0&lon=0"));
     expect(valid.status).toBe(200);
     expect(await valid.json()).toEqual({ temperatureC: 10, temperatureF: 50, code: 3, label: "Overcast" });
+    vi.unstubAllGlobals();
+  });
+  it("returns uncached null with a retryable error status when weather is unavailable", async () => {
+    vi.stubGlobal("fetch", async () => { throw new Error("offline"); });
+    const response = await GET(new Request("https://example.test/api/weather?lat=0&lon=0"));
+    expect(response.status).toBe(502);
+    expect(response.headers.get("Cache-Control")).toBe("no-store");
+    expect(await response.json()).toBeNull();
     vi.unstubAllGlobals();
   });
 });
