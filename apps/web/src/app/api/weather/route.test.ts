@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { fetchWeather, getWeatherResponse, type WeatherKV } from "@/lib/weather";
+import { fetchWeather, getWeatherResponse, type WeatherKV, type WeatherResult } from "@/lib/weather";
 import { GET } from "./route";
 
 describe("weather API", () => {
@@ -46,7 +46,7 @@ describe("weather API", () => {
       fetcher: async () => Response.json({ current: { temperature_2m: 10, weather_code: 3 } }),
     });
     expect(response.status).toBe(200);
-    expect((await response.json()).label).toBe("Overcast");
+    expect((await response.json() as WeatherResult).label).toBe("Overcast");
     vi.unstubAllGlobals();
   });
   it("fetches fresh weather if the edge cache read fails", async () => {
@@ -56,7 +56,7 @@ describe("weather API", () => {
       fetcher: async () => Response.json({ current: { temperature_2m: 10, weather_code: 3 } }),
     });
     expect(response.status).toBe(200);
-    expect((await response.json()).label).toBe("Overcast");
+    expect((await response.json() as WeatherResult).label).toBe("Overcast");
   });
   it("returns null without provider calls when weather is disabled or the budget denies fallback", async () => {
     const fetcher = vi.fn(async () => Response.json({ current: { temperature_2m: 10, weather_code: 3 } }));
