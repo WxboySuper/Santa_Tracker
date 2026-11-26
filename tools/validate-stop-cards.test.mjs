@@ -80,4 +80,11 @@ describe('stop card validation', () => {
     expect(result.stderr).toContain('photo.url must be an HTTPS URL');
     expect(result.stderr).toContain('photo.source_page must be an HTTPS URL');
   });
+  it('does not let an exempt first holder exempt later cards', async () => {
+    const exemptFirst = { ...validCard('Q11', null, 'bells'), allow_duplicate_topic: true };
+    const later = validCard('Q12', null, 'bells');
+    const result = await validate([exemptFirst, later]);
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain('cards[1]: topic_key bells already used');
+  });
 });

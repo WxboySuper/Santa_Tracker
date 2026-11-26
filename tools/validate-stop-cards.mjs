@@ -52,10 +52,12 @@ for (const [index, card] of cards.entries()) {
   for (const key of extraKeys(card, cardKeys)) errors.push(prefix + ': unknown field ' + key);
   if (card.allow_duplicate_topic !== undefined && typeof card.allow_duplicate_topic !== 'boolean') errors.push(prefix + ': allow_duplicate_topic must be a boolean');
   const country = String(card.country ?? '').trim().toLocaleLowerCase('en');
-  if (country && typeof card.topic_key === 'string' && card.topic_key && card.allow_duplicate_topic !== true) {
+  // The first card with a topic in a country holds it. A later card may share it only if that card itself is marked
+  // allow_duplicate_topic; the flag on the first holder exempts nobody else.
+  if (country && typeof card.topic_key === 'string' && card.topic_key) {
     const key = country + ':' + card.topic_key;
     if (!topics.has(key)) topics.set(key, index);
-    else if (cards[topics.get(key)].allow_duplicate_topic !== true) errors.push(prefix + ': topic_key ' + card.topic_key + ' already used in ' + card.country);
+    else if (card.allow_duplicate_topic !== true) errors.push(prefix + ': topic_key ' + card.topic_key + ' already used in ' + card.country);
   }
   if (!['draft', 'approved', 'stale'].includes(card.review_status)) errors.push(prefix + ': invalid review_status');
   if (card.photo !== null) {
