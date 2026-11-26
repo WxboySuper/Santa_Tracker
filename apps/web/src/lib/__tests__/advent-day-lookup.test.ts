@@ -3,7 +3,7 @@ import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { getAdminAdventDay } from "../admin-advent";
-import { getDayContent, loadAdventCalendarDict, type AdventDay } from "../advent";
+import { getArchiveDayContent, getDayContent, loadAdventCalendarDict, type AdventDay } from "../advent";
 
 vi.mock("../config", () => ({ isAdventEnabled: vi.fn(() => true) }));
 vi.mock("../advent", async (importOriginal) => {
@@ -43,6 +43,20 @@ describe("Advent day lookup regressions", () => {
     const result = await getDayContent(24, { filePath: calendarPath, currentTime: new Date("2026-12-01T00:00:00Z") });
     expect(result).toMatchObject({ day: 24, title: "Locked winter note", is_unlocked: false });
     expect(result?.payload).toBeUndefined();
+  });
+
+  it("hides an already-unlocked day from live and archive reads after a takedown lock", async () => {
+    const lockedPastDay = { ...day, unlock_time: "2026-12-01T12:00:00Z", is_unlocked_override: false };
+    await writeCalendar([lockedPastDay]);
+    const options = { filePath: calendarPath, currentTime: new Date("2026-12-25T00:00:00Z") };
+
+    const live = await getDayContent(24, options);
+    const archive = await getArchiveDayContent(24, options);
+
+    expect(live).toMatchObject({ day: 24, is_unlocked: false });
+    expect(live?.payload).toBeUndefined();
+    expect(archive).toMatchObject({ day: 24, is_unlocked: false });
+    expect(archive?.payload).toBeUndefined();
   });
 
   it("returns locked content to an authenticated admin reader", async () => {

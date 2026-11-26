@@ -6,6 +6,13 @@
 - **Validation:** Adds CI checks for missing sources, repeated place IDs or topics, near-duplicate notes, and unlicensed or unattributed photos.
 - **Research tooling:** Adds a cached, rate-limited research script for Wikidata entities, Wikipedia summaries, and Wikimedia Commons image license metadata.
 
+## [Unreleased] - Advent fallback library and takedown lock (#270, #421)
+
+- Added a day-specific fallback activity for all 24 Advent dates using the existing typed activity modules. The fallback flag is on by default and in the Cloudflare Worker config; authenticated previews expose fallback payloads only for unlocked days.
+- Made flag parsing case-insensitive and kept preview output aligned with whether the fallback flag is enabled.
+- Documented the exceptional takedown procedure in launch readiness and clarified the API contract for live, preview, and archive reads.
+- Added tests for every day's fallback and for hiding a past takedown-locked day from live, preview, and archive reads.
+
 ## [Unreleased] - Route freeze moved to Dec 5 (#321)
 
 - **Freeze gates:** Records the owner's 2026-11-26 decision to move the route freeze from Nov 25 to Dec 5, 18:00 UTC. The other gates are unchanged.
