@@ -13,7 +13,9 @@ interface BudgetState { storage: BudgetStorage }
 export class WeatherFallbackBudget {
   constructor(private readonly state: BudgetState) {}
 
-  async fetch(): Promise<Response> {
+  async fetch(request: Request): Promise<Response> {
+    if (new URL(request.url).pathname !== "/consume") return new Response(null, { status: 404 });
+    if (request.method !== "POST") return new Response(null, { status: 405 });
     const now = Date.now();
     const day = new Date(now).toISOString().slice(0, 10);
     const minute = Math.floor(now / 60_000);

@@ -16,11 +16,13 @@ describe("global weather provider budget", () => {
       list(options: { prefix: string }): Promise<Map<string, unknown>>;
       delete(keys: string[]): Promise<void>;
     };
+    let transactions = 0;
     let transactionQueue = Promise.resolve();
     const storage: TestStorage = {
       get: async (key: string) => values.get(key),
       put: async (entries: Record<string, unknown>) => { for (const [key, value] of Object.entries(entries)) values.set(key, value); },
       transaction: <T>(callback: (store: TestStorage) => Promise<T>) => {
+        transactions += 1;
         const result = transactionQueue.then(() => callback(storage));
         transactionQueue = result.then(() => undefined, () => undefined);
         return result;
@@ -31,9 +33,13 @@ describe("global weather provider budget", () => {
       delete: async (keys: string[]) => { for (const key of keys) values.delete(key); },
     };
     const budget = new WeatherFallbackBudget({ storage } as never);
-    const responses = await Promise.all(Array.from({ length: 901 }, () => budget.fetch()));
+    expect((await budget.fetch(new Request("https://weather-budget/consume", { method: "GET" }))).status).toBe(405);
+    expect((await budget.fetch(new Request("https://weather-budget/other", { method: "POST" }))).status).toBe(404);
+    const consume = new Request("https://weather-budget/consume", { method: "POST" });
+    const responses = await Promise.all(Array.from({ length: 901 }, () => budget.fetch(consume)));
     expect(responses.filter(response => response.status === 204)).toHaveLength(900);
     expect(responses.at(-1)?.status).toBe(429);
+    expect(transactions).toBe(901);
     vi.restoreAllMocks();
   });
 });
