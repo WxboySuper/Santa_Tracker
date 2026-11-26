@@ -1,5 +1,11 @@
 # Changelog — per-PR exhaustive (enforced in CI)
 
+## [Unreleased] - Route draft autosave and restore points (#296)
+
+- **Draft isolation:** Adds authenticated route draft autosave APIs backed by a separate immutable version dataset, with `If-Match` protection and validation feedback for incomplete edits.
+- **Named revisions:** Adds named restore point listing, comparison, and restore into a new draft version without changing the active published route.
+- **Documentation and tests:** Documents the admin API contract and covers autosave isolation, stale writes, comparison, restore, and invalid-draft feedback.
+
 ## [Unreleased] - Advent fallback library and takedown lock (#270, #421)
 
 - Added a day-specific fallback activity for all 24 Advent dates using the existing typed activity modules. The fallback flag is on by default and in the Cloudflare Worker config; authenticated previews expose fallback payloads only for unlocked days.
