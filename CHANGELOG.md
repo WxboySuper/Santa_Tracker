@@ -1,5 +1,11 @@
 # Changelog — per-PR exhaustive (enforced in CI)
 
+## [Unreleased] - Admin passkeys and recovery (#295)
+
+- **WebAuthn owner authentication:** Adds passkey registration and login ceremonies, a single-owner account model with multiple passkeys, one-use recovery codes stored as hashes, and password-login cutoff after the first registered passkey.
+- **Session safety:** Makes signed admin sessions persisted, expiring, and revocable; adds session listing/revocation, double-submit CSRF checks for cookie mutations, shared login throttling, and bounded auth audit records. Filesystem lock errors fail closed instead of allowing concurrent writes.
+- **Documentation and tests:** Documents the API and origin/RP-ID configuration; tests registration, authentication, one-time recovery, session revocation, CSRF, and concurrent password-login throttling.
+
 ## [Unreleased] - Source-backed stop card contract (#260)
 
 - **Card schema:** Defines stable place IDs, concise sourced notes, unique topic keys, review status, and fully attributed permissive-license photos.

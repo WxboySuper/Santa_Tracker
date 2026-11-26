@@ -1,5 +1,6 @@
 import * as jose from "jose";
 import { getSecretKey, getAdminPassword } from "./config";
+import { appendAuthAudit, createAdminSession, readActiveSession, revokeAdminSession } from "./admin-auth-state";
 
 // Use HS256 with SECRET_KEY — replaces Flask's URLSafeTimedSerializer
 const alg = "HS256";
@@ -17,8 +18,10 @@ function getSecret(): Uint8Array {
 
 export async function createAdminToken(): Promise<string> {
   const secret = getSecret();
-  const jwt = await new jose.SignJWT({ admin: true })
+  const session = await createAdminSession();
+  const jwt = await new jose.SignJWT({ admin: true, csrf: session.csrfToken })
     .setProtectedHeader({ alg })
+    .setJti(session.id)
     .setIssuedAt()
     .setExpirationTime(`${ADMIN_SESSION_TTL_SECONDS}s`)
     .sign(secret);
@@ -29,12 +32,34 @@ export async function verifyAdminToken(token: string): Promise<boolean> {
   const secret = getSecret();
   try {
     const { payload } = await jose.jwtVerify(token, secret);
-    return payload.admin === true;
+    if (payload.admin !== true || typeof payload.jti !== "string") return false;
+    return (await readActiveSession(payload.jti)) !== null;
   } catch {
     // Do NOT fallback to raw password comparison — security fix per audit
     // Previously Flask accepted raw ADMIN_PASSWORD as bearer token; we remove that.
     return false;
   }
+}
+
+export async function getAdminTokenCsrfToken(token: string): Promise<string | null> {
+  try {
+    const { payload } = await jose.jwtVerify(token, getSecret());
+    return typeof payload.csrf === "string" ? payload.csrf : null;
+  } catch { return null; }
+}
+
+export async function getAdminTokenSessionId(token: string): Promise<string | null> {
+  try {
+    const { payload } = await jose.jwtVerify(token, getSecret());
+    return typeof payload.jti === "string" ? payload.jti : null;
+  } catch { return null; }
+}
+
+export async function revokeAdminToken(token: string): Promise<void> {
+  try {
+    const { payload } = await jose.jwtVerify(token, getSecret());
+    if (typeof payload.jti === "string") await revokeAdminSession(payload.jti);
+  } catch { /* invalid or expired tokens need no revocation record */ }
 }
 
 export function verifyAdminPassword(password: string): boolean {
@@ -51,10 +76,12 @@ export function verifyAdminPassword(password: string): boolean {
 
 export async function requireAdminAuth(request: Request): Promise<{ ok: boolean; error?: string; status?: number }> {
   let token: string | null = null;
+  let cookieAuth = false;
   const auth = request.headers.get("authorization");
   if (auth?.startsWith("Bearer ")) {
     token = auth.slice(7);
   } else {
+    cookieAuth = true;
     const cookieHeader = request.headers.get("cookie") ?? "";
     const match = /(?:^|;\s*)admin_token=([^;]*)/.exec(cookieHeader);
     if (match?.[1]) {
@@ -68,11 +95,45 @@ export async function requireAdminAuth(request: Request): Promise<{ ok: boolean;
   if (!token) {
     return { ok: false, error: "Authentication required", status: 401 };
   }
-  const valid = await verifyAdminToken(token);
-  if (!valid) {
+  const claims = await verifyAdminTokenClaims(token);
+  if (!claims) {
     return { ok: false, error: "Invalid credentials", status: 403 };
   }
+  if (cookieAuth && isMutation(request.method) && !hasValidCsrf(request, claims.csrf)) {
+    await appendAuthAudit({ action: "csrf_rejected", result: "failure" });
+    return { ok: false, error: "CSRF validation failed", status: 403 };
+  }
   return { ok: true };
+}
+
+async function verifyAdminTokenClaims(token: string): Promise<{ csrf: string } | null> {
+  try {
+    const { payload } = await jose.jwtVerify(token, getSecret());
+    if (payload.admin !== true || typeof payload.jti !== "string" || typeof payload.csrf !== "string") return null;
+    return await readActiveSession(payload.jti) ? { csrf: payload.csrf } : null;
+  } catch { return null; }
+}
+
+function isMutation(method: string): boolean {
+  return !["GET", "HEAD", "OPTIONS"].includes(method.toUpperCase());
+}
+
+function hasValidCsrf(request: Request, expected: string): boolean {
+  const origin = request.headers.get("origin");
+  if (!origin || origin !== expectedOrigin(request)) return false;
+  const supplied = request.headers.get("x-csrf-token");
+  const cookieHeader = request.headers.get("cookie") ?? "";
+  const match = /(?:^|;\s*)admin_csrf=([^;]*)/.exec(cookieHeader);
+  if (!supplied || !match?.[1]) return false;
+  try { return decodeURIComponent(match[1]) === supplied && supplied === expected; }
+  catch { return false; }
+}
+
+function expectedOrigin(request: Request): string {
+  const configured = process.env.ADMIN_WEBAUTHN_ORIGIN;
+  if (configured) return configured;
+  if (process.env.NODE_ENV === "production") return "";
+  return new URL(request.url).origin;
 }
 
 export function maskToken(token: string): string {

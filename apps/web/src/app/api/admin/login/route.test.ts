@@ -110,7 +110,7 @@ describe("admin login route", () => {
     const verifyPassword = vi.spyOn(auth, "verifyAdminPassword");
     const requests = Array.from({ length: 20 }, () => POST(new Request("http://example.test/api/admin/login", {
       method: "POST",
-      headers: { "cf-connecting-ip": "198.51.100.53", "content-type": "application/json" },
+      headers: { "cf-connecting-ip": "198.51.100.55", "content-type": "application/json" },
       body: JSON.stringify({ password: "wrong" }),
     })));
     const responses = await Promise.all(requests);
@@ -211,7 +211,7 @@ describe("admin login route", () => {
     expect(loginCookie).toContain("Secure");
     expect(loginCookie).toContain("Path=/");
 
-    const clear = logout(new Request("http://internal.example.test/api/admin/logout", {
+    const clear = await logout(new Request("http://internal.example.test/api/admin/logout", {
       method: "POST", headers: { "x-forwarded-proto": "https" },
     }));
     const logoutCookie = clear.headers.get("set-cookie") ?? "";
@@ -228,7 +228,7 @@ describe("admin login route", () => {
       headers: { "cf-connecting-ip": "198.51.100.63", "content-type": "application/json", "x-forwarded-proto": "https" },
       body: JSON.stringify({ password: "correct horse" }),
     }));
-    const logoutResponse = logout(new Request("http://internal.example.test/api/admin/logout", { method: "POST" }));
+    const logoutResponse = await logout(new Request("http://internal.example.test/api/admin/logout", { method: "POST" }));
 
     expect(login.headers.get("set-cookie")).toContain("Secure");
     expect(logoutResponse.headers.get("set-cookie")).toContain("Secure");
