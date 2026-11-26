@@ -4,6 +4,7 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { renderDayContent } from "@/components/advent/day-content";
+import { getAdventFallbackActivity } from "@/components/advent/activities/fallback-activities";
 import { loadAdventCalendar, validateAdventCalendar } from "../advent";
 import type { AdventPublicDay } from "../advent";
 
@@ -53,6 +54,16 @@ describe("wired Advent days", () => {
       const day = days.find((candidate) => candidate.day === number);
       expect(day, `day ${number} exists`).toBeDefined();
       expect(render(day as AdventPublicDay), `day ${number} renders`).not.toContain("FALLBACK");
+    }
+  });
+
+  it("renders a playable typed fallback for every day when authored content is unusable", async () => {
+    const days = await loadAdventCalendar({ filePath: file });
+    for (const day of days) {
+      const fallbackActivity = getAdventFallbackActivity(day.day);
+      expect(fallbackActivity, `day ${day.day} has a fallback`).not.toBeNull();
+      const html = renderDayContent({ ...day, is_unlocked: true, payload: {} }, createElement("p", null, "FALLBACK"));
+      expect(renderToStaticMarkup(html), `day ${day.day} renders an activity`).not.toContain("FALLBACK");
     }
   });
 
