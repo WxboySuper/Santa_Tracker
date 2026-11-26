@@ -10,7 +10,12 @@ export type RouteStatsLocation = {
   timezone: string;
   coordinates: { lat: number; lng: number };
   population?: number;
+  /** START and END markers are route bounds, not delivery stops. */
+  type?: 'START' | 'DELIVERY' | 'END';
 };
+
+/** Playful estimate of the total presents delivered during a full journey. */
+export const PRESENTS_TOTAL = 7_000_000_000;
 
 export type JourneyStats = {
   distanceTravelledKm: number;
@@ -38,6 +43,7 @@ type DistanceTotals = { totalKm: number; travelledKm: number };
 type FlightTotals = { elapsedMs: number; remainingMs: number };
 type SpeedStats = { currentKmh: number; averageKmh: number };
 type PlayfulStats = Pick<JourneyStats, 'presentsDelivered' | 'cookiesEaten' | 'reindeerSnacks' | 'chimneysVisited'>;
+const utcOffsetBands = new Map<string, number>();
 
 const regionNames = new Intl.DisplayNames(['en'], { type: 'region' });
 const nameToCode = makeCountryNameIndex();
@@ -48,6 +54,7 @@ export function deriveJourneyStats(
   route: Route,
   now: Date | number,
   locations: readonly RouteStatsLocation[],
+  candidatePool: readonly RouteStatsLocation[] = locations,
 ): JourneyStats {
   const stops = route.stops;
   if (stops.length === 0) return emptyStats();
@@ -55,19 +62,19 @@ export function deriveJourneyStats(
   const nowMs = timestampMs(now);
   const locationsByStop = resolveLocations(stops, locations);
   const interval = deriveRouteInterval(stops, nowMs);
-  const visitedIndexes = visitedStopIndexes(stops, nowMs);
+  const visitedIndexes = visitedStopIndexes(stops, locationsByStop, nowMs);
   const legs = deriveRouteLegs(stops, locationsByStop);
   const distance = deriveDistance(legs, interval.boundedNow);
   const flight = deriveFlightTime(legs, interval.boundedNow);
   const journeyTime = deriveJourneyTime(interval);
   const speed = deriveSpeed(legs, interval.boundedNow, distance.travelledKm, flight.elapsedMs);
-  const playful = derivePlayfulStats(visitedIndexes, locationsByStop);
+  const playful = derivePlayfulStats(stops, locationsByStop, candidatePool, visitedIndexes.length, nowMs, route.season);
 
   return {
     distanceTravelledKm: distance.travelledKm,
     distanceRemainingKm: Math.max(0, distance.totalKm - distance.travelledKm),
     stopsVisited: visitedIndexes.length,
-    stopsRemaining: stops.length - visitedIndexes.length,
+    stopsRemaining: locationsByStop.filter(isDeliveryStop).length - visitedIndexes.length,
     countriesVisited: deriveCountriesVisited(visitedIndexes, locationsByStop),
     timeZonesCrossed: deriveTimeZonesCrossed(visitedIndexes, locationsByStop),
     elapsedFlightTimeMs: flight.elapsedMs,
@@ -99,8 +106,8 @@ function deriveRouteInterval(stops: Route['stops'], nowMs: number): RouteInterva
   return { firstArrival, lastDeparture, boundedNow: Math.min(lastDeparture, Math.max(firstArrival, nowMs)) };
 }
 
-function visitedStopIndexes(stops: Route['stops'], nowMs: number): number[] {
-  return stops.flatMap((stop, index) => Date.parse(stop.arrivalIso) <= nowMs ? [index] : []);
+function visitedStopIndexes(stops: Route['stops'], locations: RouteStatsLocation[], nowMs: number): number[] {
+  return stops.flatMap((stop, index) => isDeliveryStop(locations[index]!) && Date.parse(stop.arrivalIso) <= nowMs ? [index] : []);
 }
 
 function deriveCountriesVisited(indexes: number[], locations: RouteStatsLocation[]): string[] {
@@ -160,16 +167,164 @@ function deriveSpeed(legs: RouteLeg[], nowMs: number, travelledKm: number, elaps
   };
 }
 
-function derivePlayfulStats(indexes: number[], locations: RouteStatsLocation[]): PlayfulStats {
-  // Estimate 20% of visited population receive presents. Missing population contributes 0.
-  const population = indexes.reduce((sum, index) => sum + Math.max(0, locations[index]!.population ?? 0), 0);
-  const presentsDelivered = Math.floor(population * 0.2);
+function derivePlayfulStats(
+  stops: Route['stops'],
+  routeLocations: RouteStatsLocation[],
+  candidatePool: readonly RouteStatsLocation[],
+  visitedStopCount: number,
+  nowMs: number,
+  season: number,
+): PlayfulStats {
+  const presentsDelivered = deliveredPresents(stops, routeLocations, candidatePool, nowMs, season);
   return {
     presentsDelivered,
     cookiesEaten: presentsDelivered * 2,
-    reindeerSnacks: indexes.length * 9,
+    reindeerSnacks: visitedStopCount * 9,
     chimneysVisited: Math.ceil(presentsDelivered / 4),
   };
+}
+
+function deliveredPresents(
+  stops: Route['stops'],
+  routeLocations: RouteStatsLocation[],
+  candidatePool: readonly RouteStatsLocation[],
+  nowMs: number,
+  season: number,
+): number {
+  const deliveryIndexes = routeLocations.flatMap((location, index) => isDeliveryStop(location) ? [index] : []);
+  if (deliveryIndexes.length === 0) return 0;
+  const firstIndex = deliveryIndexes[0]!;
+  const firstArrivalMs = Date.parse(stops[firstIndex]!.arrivalIso);
+  const startStopIndex = findPreviousBoundary(stops, routeLocations, firstIndex);
+  const takeoffMs = startStopIndex === undefined ? firstArrivalMs : Date.parse(stops[startStopIndex]!.departureIso);
+  if (nowMs < takeoffMs) return 0;
+
+  const allocations = allocatePresents(deliveryIndexes, routeLocations, candidatePool, season);
+  let delivered = 0;
+  for (const [deliveryNumber, routeIndex] of deliveryIndexes.entries()) {
+    const stop = stops[routeIndex]!;
+    const arrivalMs = Date.parse(stop.arrivalIso);
+    const departureMs = Date.parse(stop.departureIso);
+    const previousIndex = findPreviousRouteStop(stops, routeLocations, routeIndex);
+    const inboundStartMs = previousIndex === undefined ? arrivalMs : Date.parse(stops[previousIndex]!.departureIso);
+    const hasInboundFlight = previousIndex !== undefined && arrivalMs > inboundStartMs;
+    const allocation = allocations[deliveryNumber] ?? 0;
+    if (nowMs >= departureMs) {
+      delivered += allocation;
+      continue;
+    }
+    if (nowMs < arrivalMs) {
+      const inboundProgress = hasInboundFlight ? linearProgress(nowMs, inboundStartMs, arrivalMs) : 0;
+      delivered += allocation * 0.3 * inboundProgress;
+      break;
+    }
+    const dwellProgress = linearProgress(nowMs, arrivalMs, departureMs);
+    delivered += allocation * (hasInboundFlight ? 0.3 + 0.7 * dwellProgress : dwellProgress);
+    break;
+  }
+  // Flooring keeps the visible counter integer-valued; the underlying schedule is linear.
+  if (deliveryIndexes.every(index => nowMs >= Date.parse(stops[index]!.departureIso))) return PRESENTS_TOTAL;
+  const roundingTolerance = Number.EPSILON * PRESENTS_TOTAL * 2;
+  return Math.min(PRESENTS_TOTAL, Math.floor(delivered + roundingTolerance));
+}
+
+function allocatePresents(
+  deliveryIndexes: number[],
+  routeLocations: RouteStatsLocation[],
+  candidatePool: readonly RouteStatsLocation[],
+  season: number,
+): number[] {
+  const poolByBand = sumPopulationByBand(candidatePool, season);
+  const bandByStop = deliveryIndexes.map(index => utcOffsetBand(routeLocations[index]!, season));
+  const routeBands = [...new Set(bandByStop)];
+  const routeBandWeights = new Map(routeBands.map(band => [band,
+    deliveryIndexes.reduce((sum, index, deliveryNumber) => sum + (bandByStop[deliveryNumber] === band ? populationWeight(routeLocations[index]!) : 0), 0),
+  ]));
+  const bandWeights = routeBands.map(band => (poolByBand.get(band) ?? 0) || (routeBandWeights.get(band) ?? 0));
+  const bandAllocations = splitIntegerTotal(PRESENTS_TOTAL, bandWeights);
+  const allocationByBand = new Map(routeBands.map((band, index) => [band, bandAllocations[index] ?? 0]));
+  const result = Array.from({ length: deliveryIndexes.length }, () => 0);
+  for (const band of routeBands) {
+    const stopNumbers = bandByStop.flatMap((candidateBand, index) => candidateBand === band ? [index] : []);
+    const weights = stopNumbers.map(stopNumber => populationWeight(routeLocations[deliveryIndexes[stopNumber]!]!));
+    const allocations = splitIntegerTotal(allocationByBand.get(band) ?? 0, weights);
+    for (const [index, stopNumber] of stopNumbers.entries()) result[stopNumber] = allocations[index] ?? 0;
+  }
+  return result;
+}
+
+function sumPopulationByBand(locations: readonly RouteStatsLocation[], season: number): Map<number, number> {
+  const totals = new Map<number, number>();
+  for (const location of locations) {
+    if (!isDeliveryStop(location)) continue;
+    const band = utcOffsetBand(location, season);
+    totals.set(band, (totals.get(band) ?? 0) + candidatePopulation(location));
+  }
+  return totals;
+}
+
+function splitIntegerTotal(total: number, weights: number[]): number[] {
+  const safeWeights = weights.map(weight => Math.max(0, weight));
+  const weightTotal = safeWeights.reduce((sum, weight) => sum + weight, 0);
+  if (weightTotal === 0) return safeWeights.map((_, index) => index === safeWeights.length - 1 ? total : 0);
+  const exact = safeWeights.map(weight => total * weight / weightTotal);
+  const result = exact.map(Math.floor);
+  const remaining = total - result.reduce((sum, value) => sum + value, 0);
+  const byRemainder = exact.map((value, index) => ({ index, remainder: value - result[index]! }))
+    .sort((left, right) => right.remainder - left.remainder || left.index - right.index);
+  for (let index = 0; index < remaining; index++) result[byRemainder[index]!.index]! += 1;
+  return result;
+}
+
+function populationWeight(location: RouteStatsLocation): number {
+  const population = location.population ?? 0;
+  return Number.isFinite(population) ? Math.max(10_000, population) : 10_000;
+}
+
+function candidatePopulation(location: RouteStatsLocation): number {
+  const population = location.population ?? 0;
+  return Number.isFinite(population) ? Math.max(0, population) : 0;
+}
+
+function utcOffsetBand(location: RouteStatsLocation, season: number): number {
+  const cacheKey = `${season}:${location.timezone}`;
+  const cached = utcOffsetBands.get(cacheKey);
+  if (cached !== undefined) return cached;
+  const referenceTime = Date.UTC(season, 11, 25, 12);
+  const parts = new Intl.DateTimeFormat('en-US', { timeZone: location.timezone, timeZoneName: 'longOffset' }).formatToParts(referenceTime);
+  const offset = parts.find(part => part.type === 'timeZoneName')?.value ?? 'GMT';
+  const match = /^GMT([+-])(\d{2}):(\d{2})$/.exec(offset);
+  if (!match) {
+    utcOffsetBands.set(cacheKey, 0);
+    return 0;
+  }
+  const minutes = Number(match[2]) * 60 + Number(match[3]);
+  const band = match[1] === '-' ? -minutes : minutes;
+  utcOffsetBands.set(cacheKey, band);
+  return band;
+}
+
+function isDeliveryStop(location: RouteStatsLocation): boolean {
+  return location.type !== 'START' && location.type !== 'END';
+}
+
+function findPreviousBoundary(stops: Route['stops'], locations: RouteStatsLocation[], index: number): number | undefined {
+  for (let candidate = index - 1; candidate >= 0; candidate--) {
+    if (locations[candidate]!.type === 'START') return candidate;
+  }
+  return findPreviousRouteStop(stops, locations, index);
+}
+
+function findPreviousRouteStop(stops: Route['stops'], locations: RouteStatsLocation[], index: number): number | undefined {
+  for (let candidate = index - 1; candidate >= 0; candidate--) {
+    if (locations[candidate]!.type !== 'END') return candidate;
+  }
+  return undefined;
+}
+
+function linearProgress(nowMs: number, startMs: number, endMs: number): number {
+  if (endMs <= startMs) return nowMs >= endMs ? 1 : 0;
+  return Math.min(1, Math.max(0, (nowMs - startMs) / (endMs - startMs)));
 }
 
 function legProgress(leg: RouteLeg, nowMs: number): number {

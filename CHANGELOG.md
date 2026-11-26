@@ -13,8 +13,8 @@
 
 ## [Unreleased] - Journey statistics and replay (#257, #259)
 
-- **Route engine:** Adds deterministic distance, stop, country, time zone, flight-time, and speed statistics with documented magical estimates and locale-aware number formatting.
-- **Replay:** Adds injected-clock play, pause, seek, speed, and reset controls. Replay owns copies of its route and location snapshot and returns the same state and statistics as live calculations for the same journey instant.
+- **Route engine:** Adds deterministic distance, stop, country, time zone, flight-time, and speed statistics. Presents now follow a smooth flight-and-dwell schedule from zero to the documented 7 billion playful estimate, allocated across route UTC-offset bands using the complete candidate pool as a population proxy.
+- **Replay:** Adds injected-clock play, pause, seek, speed, and reset controls. Replay owns copies of its route, stop metadata, and candidate-pool snapshot and returns the same state and statistics as live calculations for the same journey instant.
 - **Package exports:** Exposes the stats and replay APIs from the route-engine root and dedicated ./stats and ./replay entry points.
 - **Docs and tests:** Adds docs/JOURNEY_STATS.md and boundary, parity, determinism, localization, speed, and sampled monotonicity tests.
 

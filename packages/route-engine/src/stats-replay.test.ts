@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { createLocationId, SCHEMA_VERSION, type Route } from '@santa-tracker/contracts';
-import { deriveJourneyStats, formatStat, type RouteStatsLocation } from './stats';
+import { deriveJourneyStats, formatStat, PRESENTS_TOTAL, type RouteStatsLocation } from './stats';
 import { createReplay } from './replay';
 import { deriveJourneyState } from './state';
 
@@ -36,7 +36,7 @@ describe('journey stats', () => {
     expect(complete.distanceTravelledKm).toBeGreaterThan(complete.distanceRemainingKm);
     expect(complete.distanceRemainingKm).toBe(0);
     expect(complete.remainingFlightTimeMs).toBe(0);
-    expect(complete.presentsDelivered).toBe(6_200_000);
+    expect(complete.presentsDelivered).toBe(PRESENTS_TOTAL);
   });
 
   it('normalizes country names and uses locale aware number formatting', () => {
@@ -52,13 +52,79 @@ describe('journey stats', () => {
       'presentsDelivered', 'cookiesEaten', 'reindeerSnacks', 'chimneysVisited',
     ] as const;
     let previous = deriveJourneyStats(route, start - 1000, locations);
-    for (let index = 0; index <= 500; index++) {
-      const timestamp = start - 1000 + (3_602_000 * index) / 500;
+    for (let index = 0; index <= 5000; index++) {
+      const timestamp = start - 1000 + (3_602_000 * index) / 5000;
       const current = deriveJourneyStats(route, timestamp, locations);
       expect(current).toEqual(deriveJourneyStats(route, timestamp, locations));
       for (const key of monotonicKeys) expect(current[key]).toBeGreaterThanOrEqual(previous[key]);
       previous = current;
     }
+  });
+
+  it('keeps delivery continuous through inbound flight and dwell boundaries', () => {
+    const starts = [start - 600_000, start, start + 600_000, start + 1_200_000, start + 1_800_000, start + 3_000_000, start + 3_600_000];
+    for (const boundary of starts) {
+      const before = deriveJourneyStats(route, boundary - 1, locations).presentsDelivered;
+      const at = deriveJourneyStats(route, boundary, locations).presentsDelivered;
+      expect(at).toBeGreaterThanOrEqual(before);
+      expect(at - before).toBeLessThan(200_000);
+    }
+  });
+
+  it('delivers 30 percent on each inbound leg and 70 percent during dwell, excluding route markers', () => {
+    const markedRoute: Route = {
+      ...route,
+      stops: [
+        { locationId: createLocationId('north-pole'), arrivalIso: new Date(start - 10_000).toISOString(), departureIso: new Date(start).toISOString(), durationSeconds: 10 },
+        { locationId: createLocationId('delivery'), arrivalIso: new Date(start + 10_000).toISOString(), departureIso: new Date(start + 20_000).toISOString(), durationSeconds: 10 },
+        { locationId: createLocationId('end'), arrivalIso: new Date(start + 30_000).toISOString(), departureIso: new Date(start + 40_000).toISOString(), durationSeconds: 10 },
+      ],
+    };
+    const markedLocations: RouteStatsLocation[] = [
+      { id: 'north-pole', name: 'North Pole', country: 'Arctic', timezone: 'UTC', coordinates: { lat: 90, lng: 0 }, type: 'START' },
+      { id: 'delivery', name: 'Fixture City', country: 'Fixture', timezone: 'UTC', coordinates: { lat: 0, lng: 0 }, population: 100, type: 'DELIVERY' },
+      { id: 'end', name: 'North Pole', country: 'Arctic', timezone: 'UTC', coordinates: { lat: 90, lng: 0 }, type: 'END' },
+    ];
+    const beforeTakeoff = deriveJourneyStats(markedRoute, start - 1, markedLocations);
+    const halfwayFlight = deriveJourneyStats(markedRoute, start + 5_000, markedLocations);
+    const arrival = deriveJourneyStats(markedRoute, start + 10_000, markedLocations);
+    const halfwayDwell = deriveJourneyStats(markedRoute, start + 15_000, markedLocations);
+    const departure = deriveJourneyStats(markedRoute, start + 20_000, markedLocations);
+    expect(beforeTakeoff.presentsDelivered).toBe(0);
+    expect(beforeTakeoff.stopsRemaining).toBe(1);
+    expect(halfwayFlight.presentsDelivered).toBeGreaterThan(0);
+    expect(arrival.presentsDelivered).toBe(Math.floor(PRESENTS_TOTAL * 0.3));
+    expect(halfwayDwell.presentsDelivered).toBe(Math.floor(PRESENTS_TOTAL * 0.65));
+    expect(arrival.stopsVisited).toBe(1);
+    expect(departure.presentsDelivered).toBe(PRESENTS_TOTAL);
+    expect(departure.stopsRemaining).toBe(0);
+  });
+
+  it('keeps each UTC-offset band allocation independent of its stop count', () => {
+    const pool: RouteStatsLocation[] = [
+      { id: 'east-pool-a', name: 'East A', country: 'A', timezone: 'Etc/GMT+5', coordinates: { lat: 0, lng: 0 }, population: 100 },
+      { id: 'east-pool-b', name: 'East B', country: 'A', timezone: 'Etc/GMT+5', coordinates: { lat: 0, lng: 1 }, population: 100 },
+      { id: 'west-pool', name: 'West', country: 'B', timezone: 'Etc/GMT-5', coordinates: { lat: 0, lng: 2 }, population: 300 },
+    ];
+    const bandShareAfterEastStops = (includeExtraEastStop: boolean) => {
+      const testRoute: Route = {
+        ...route,
+        stops: [
+          { locationId: createLocationId('origin'), arrivalIso: new Date(start).toISOString(), departureIso: new Date(start + 10_000).toISOString(), durationSeconds: 10 },
+          { locationId: createLocationId('east-a'), arrivalIso: new Date(start + 20_000).toISOString(), departureIso: new Date(start + 30_000).toISOString(), durationSeconds: 10 },
+          ...(includeExtraEastStop ? [{ locationId: createLocationId('east-a'), arrivalIso: new Date(start + 40_000).toISOString(), departureIso: new Date(start + 50_000).toISOString(), durationSeconds: 10 }] : []),
+          { locationId: createLocationId('west'), arrivalIso: new Date(start + (includeExtraEastStop ? 60_000 : 40_000)).toISOString(), departureIso: new Date(start + (includeExtraEastStop ? 70_000 : 50_000)).toISOString(), durationSeconds: 10 },
+        ],
+      };
+      const metadata: RouteStatsLocation[] = [
+        { id: 'origin', name: 'North Pole', country: 'Arctic', timezone: 'Etc/GMT+5', coordinates: { lat: 0, lng: 0 }, type: 'START' },
+        { id: 'east-a', name: 'East A', country: 'A', timezone: 'Etc/GMT+5', coordinates: { lat: 0, lng: 1 }, population: 10 },
+        { id: 'west', name: 'West', country: 'B', timezone: 'Etc/GMT-5', coordinates: { lat: 0, lng: 2 }, population: 10 },
+      ];
+      const eastDeparture = start + (includeExtraEastStop ? 50_000 : 30_000);
+      return deriveJourneyStats(testRoute, eastDeparture, metadata, pool).presentsDelivered;
+    };
+    expect(bandShareAfterEastStops(false)).toBe(bandShareAfterEastStops(true));
   });
 
   it('does not allow a caller to format non-finite timestamps silently', () => {
@@ -123,11 +189,11 @@ describe('replay controller', () => {
   });
 
   it('matches live state and stats at exactly the same journey instant', () => {
-    const replay = createReplay(route, { locations });
+    const replay = createReplay(route, { locations, candidatePool: locations });
     replay.seek(start + 1_450_000);
     const frame = replay.at(0);
     expect(frame.state).toEqual(deriveJourneyState(route, frame.time));
-    expect(frame.stats).toEqual(deriveJourneyStats(route, frame.time, locations));
+    expect(frame.stats).toEqual(deriveJourneyStats(route, frame.time, locations, locations));
   });
 
   it('does not mutate when sampling the same wall clock repeatedly', () => {

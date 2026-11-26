@@ -9,6 +9,7 @@ export type ReplayOptions = {
   speed?: number;
   startAt?: Date | number;
   locations: readonly RouteStatsLocation[];
+  candidatePool?: readonly RouteStatsLocation[];
 };
 
 export type ReplayFrame = {
@@ -33,6 +34,7 @@ export type ReplayController = {
 export function createReplay(route: Route, options: ReplayOptions): ReplayController {
   const replayRoute: Route = { ...route, stops: route.stops.map(stop => ({ ...stop })) };
   const replayLocations = options.locations.map(location => ({ ...location, coordinates: { ...location.coordinates } }));
+  const replayCandidatePool = (options.candidatePool ?? options.locations).map(location => ({ ...location, coordinates: { ...location.coordinates } }));
   const hasRoute = replayRoute.stops.length > 0;
   const firstArrival = hasRoute ? parseRouteTimestamp(replayRoute.stops[0]!.arrivalIso) : undefined;
   const lastDeparture = hasRoute ? parseRouteTimestamp(replayRoute.stops.at(-1)!.departureIso) : undefined;
@@ -87,7 +89,7 @@ export function createReplay(route: Route, options: ReplayOptions): ReplayContro
         journeyTimeMs,
         time,
         state: deriveJourneyState(replayRoute, time),
-        stats: deriveJourneyStats(replayRoute, journeyTimeMs, replayLocations),
+        stats: deriveJourneyStats(replayRoute, journeyTimeMs, replayLocations, replayCandidatePool),
         isPlaying: hasRoute && playing && lastDeparture !== undefined && journeyTimeMs < lastDeparture,
         speed,
       };
