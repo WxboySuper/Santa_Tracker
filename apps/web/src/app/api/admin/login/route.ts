@@ -22,77 +22,83 @@ async function processLoginRequest(req: Request) {
   const ip = getClientIp(req);
   if (!ip) return NextResponse.json({ error: "Admin authentication is unavailable" }, { status: 503 });
   const lockout = await checkLoginRateLimit(ip);
-  if (lockout) return throttledResponse(lockout.retryAfterSeconds);
-  return processLogin(req, ip);
+  if (lockout) return throttledResponse({ retryAfterSeconds: lockout.retryAfterSeconds });
+  return processLogin({ request: req, ip });
 }
 
 function storageUnavailable() {
   return NextResponse.json({ error: "Admin authentication storage is unavailable" }, { status: 503 });
 }
 
-async function processLogin(req: Request, ip: string) {
-  const payload = await readCappedJsonBody(req);
-  if (payload.kind === "too-large") return handleOversizedLogin(ip);
-  if (payload.kind === "invalid") return handleMalformedLogin(ip);
-  return verifyLogin(req, ip, payload.value);
+async function processLogin(input: { request: Request; ip: string }) {
+  const { request, ip } = input;
+  const payload = await readCappedJsonBody(request);
+  if (payload.kind === "too-large") return handleOversizedLogin({ ip });
+  if (payload.kind === "invalid") return handleMalformedLogin({ ip });
+  return verifyLogin({ request, ip, payload: payload.value });
 }
 
-async function handleOversizedLogin(ip: string) {
-  const result = await countInvalidLogin(ip);
-  if (result.status === 429) return throttledResponse(await getRetryAfter(ip));
+async function handleOversizedLogin({ ip }: { ip: string }) {
+  const result = await countInvalidLogin({ ip });
+  if (result.status === 429) return throttledResponse({ retryAfterSeconds: await getRetryAfter({ ip }) });
   return NextResponse.json({ error: "Request body too large" }, { status: 413 });
 }
 
-async function handleMalformedLogin(ip: string) {
-  const result = await countInvalidLogin(ip);
-  if (result.status === 429) return throttledResponse(await getRetryAfter(ip));
+async function handleMalformedLogin({ ip }: { ip: string }) {
+  const result = await countInvalidLogin({ ip });
+  if (result.status === 429) return throttledResponse({ retryAfterSeconds: await getRetryAfter({ ip }) });
   return respondWith(result);
 }
 
-async function countInvalidLogin(ip: string) {
+async function countInvalidLogin({ ip }: { ip: string }) {
   return loginAdmin(null, ip);
 }
 
-async function getRetryAfter(ip: string): Promise<number> {
+async function getRetryAfter({ ip }: { ip: string }): Promise<number> {
   return (await checkLoginRateLimit(ip))?.retryAfterSeconds ?? 900;
 }
 
-async function verifyLogin(req: Request, ip: string, payload: unknown) {
+async function verifyLogin(input: { request: Request; ip: string; payload: unknown }) {
+  const { request, ip, payload } = input;
   const lockout = checkLoginRateLimitNow(ip);
-  if (lockout) return throttledResponse(lockout.retryAfterSeconds);
+  if (lockout) return throttledResponse({ retryAfterSeconds: lockout.retryAfterSeconds });
   if (lockout === undefined) {
     const asyncLockout = await checkLoginRateLimit(ip);
-    if (asyncLockout) return throttledResponse(asyncLockout.retryAfterSeconds);
+    if (asyncLockout) return throttledResponse({ retryAfterSeconds: asyncLockout.retryAfterSeconds });
   }
   const login = loginAdmin(payload, ip);
-  if (login instanceof Promise) return completeAsyncLogin(req, login, ip);
+  if (login instanceof Promise) return completeAsyncLogin({ request, login, ip });
   const result = login;
-  const failure = await failedLoginLimit(ip, result);
-  if (failure) return throttledResponse(failure.retryAfterSeconds);
-  return setLoginCookie(req, result, ip);
+  const failure = await failedLoginLimit({ ip, result });
+  if (failure) return throttledResponse({ retryAfterSeconds: failure.retryAfterSeconds });
+  return setLoginCookie({ request, result, ip });
 }
 
-async function completeAsyncLogin(req: Request, login: Promise<Awaited<ReturnType<typeof loginAdmin>>>, ip: string) {
+type LoginResult = Awaited<ReturnType<typeof loginAdmin>>;
+
+async function completeAsyncLogin(input: { request: Request; login: Promise<LoginResult>; ip: string }) {
+  const { request, login, ip } = input;
   const result = await login;
-  const rejection = await asyncLoginRejection(result, ip);
+  const rejection = await asyncLoginRejection({ result, ip });
   if (rejection) return rejection;
-  return setLoginCookie(req, result, ip);
+  return setLoginCookie({ request, result, ip });
 }
 
-async function asyncLoginRejection(result: Awaited<ReturnType<typeof loginAdmin>>, ip: string): Promise<Response | null> {
-  const failure = await failedLoginLimit(ip, result);
-  if (failure) return throttledResponse(failure.retryAfterSeconds);
+async function asyncLoginRejection(input: { result: LoginResult; ip: string }): Promise<Response | null> {
+  const { result, ip } = input;
+  const failure = await failedLoginLimit({ ip, result });
+  if (failure) return throttledResponse({ retryAfterSeconds: failure.retryAfterSeconds });
   if (result.status !== 200) return null;
   const lockout = await checkLoginRateLimit(ip);
-  if (lockout) return throttledLoginResponse(result, lockout.retryAfterSeconds);
+  if (lockout) return throttledLoginResponse({ result, retryAfterSeconds: lockout.retryAfterSeconds });
   const syncLockout = checkLoginRateLimitNow(ip);
-  if (syncLockout) return throttledLoginResponse(result, syncLockout.retryAfterSeconds);
+  if (syncLockout) return throttledLoginResponse({ result, retryAfterSeconds: syncLockout.retryAfterSeconds });
   return null;
 }
 
-async function throttledLoginResponse(result: Awaited<ReturnType<typeof loginAdmin>>, retryAfterSeconds: number): Promise<Response> {
-  const revokeFailure = await revokeThrottledLogin(result);
-  return revokeFailure ?? throttledResponse(retryAfterSeconds);
+async function throttledLoginResponse(input: { result: LoginResult; retryAfterSeconds: number }): Promise<Response> {
+  const revokeFailure = await revokeThrottledLogin(input.result);
+  return revokeFailure ?? throttledResponse({ retryAfterSeconds: input.retryAfterSeconds });
 }
 
 async function revokeThrottledLogin(result: Awaited<ReturnType<typeof loginAdmin>>): Promise<Response | null> {
@@ -105,7 +111,7 @@ async function revokeThrottledLogin(result: Awaited<ReturnType<typeof loginAdmin
   }
 }
 
-async function failedLoginLimit(ip: string, result: Awaited<ReturnType<typeof loginAdmin>>) {
+async function failedLoginLimit({ ip, result }: { ip: string; result: LoginResult }) {
   if (result.status !== 401 || wasLoginAttemptRecorded(result)) return null;
   return recordLoginAttempt(ip);
 }
@@ -156,10 +162,11 @@ function parseJson(bytes: Uint8Array): { kind: "body"; value: unknown } | { kind
   }
 }
 
-async function setLoginCookie(req: Request, result: Awaited<ReturnType<typeof loginAdmin>>, ip: string) {
+async function setLoginCookie(input: { request: Request; result: LoginResult; ip: string }) {
+  const { request, result, ip } = input;
   if (result.status === 429) {
     const lockout = await checkLoginRateLimit(ip);
-    return throttledResponse(lockout?.retryAfterSeconds ?? 900);
+    return throttledResponse({ retryAfterSeconds: lockout?.retryAfterSeconds ?? 900 });
   }
   if (result.status !== 200) return respondWith(result);
   await clearLoginAttempts(ip);
@@ -189,7 +196,7 @@ async function setLoginCookie(req: Request, result: Awaited<ReturnType<typeof lo
   return response;
 }
 
-async function throttledResponse(retryAfterSeconds: number) {
+async function throttledResponse({ retryAfterSeconds }: { retryAfterSeconds: number }) {
   try { await appendAuthAudit({ action: "password_login_throttled", result: "failure" }); } catch { /* preserve the rate-limit response during audit storage failures */ }
   return NextResponse.json({ error: "Too many login attempts, please try again later" }, {
     status: 429,
@@ -197,7 +204,7 @@ async function throttledResponse(retryAfterSeconds: number) {
   });
 }
 
-async function revokeResultToken(result: Awaited<ReturnType<typeof loginAdmin>>) {
+async function revokeResultToken(result: LoginResult) {
   if (result.status !== 200 || typeof result.body.token !== "string") return;
   await revokeAdminToken({ token: result.body.token });
 }
