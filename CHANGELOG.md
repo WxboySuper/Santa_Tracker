@@ -6,13 +6,10 @@
 - **Validation:** Adds CI checks for missing sources, repeated place IDs or topics, near-duplicate notes, and unlicensed or unattributed photos.
 - **Research tooling:** Adds a cached, rate-limited research script for Wikidata entities, Wikipedia summaries, and Wikimedia Commons image license metadata.
 
-
 ## [Unreleased] - Route freeze moved to Dec 5 (#321)
 
 - **Freeze gates:** Records the owner's 2026-11-26 decision to move the route freeze from Nov 25 to Dec 5, 18:00 UTC. The other gates are unchanged.
 - **Launch readiness:** Moves route approval and activation in the dates table to the Dec 5 freeze.
-
-
 
 ## [Unreleased] - Current stop weather API (#320)
 
