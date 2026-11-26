@@ -1,4 +1,8 @@
 {
+  "exclude": [
+    "docs/planning/route-2026-draft/review.html",
+    "docs/planning/route-2026-draft/route.json"
+  ],
   "rules": [
     {
       "path": "apps/web/**/*.ts",
