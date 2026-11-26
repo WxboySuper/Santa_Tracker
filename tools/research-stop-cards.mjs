@@ -144,23 +144,32 @@ async function wikipediaPage(id, title) {
   return Object.values(result.query?.pages ?? {})[0];
 }
 
-function buildDraft(id, candidate, { qid, entity }, page, photo) {
-  const wikidataSource = 'https://www.wikidata.org/wiki/' + qid;
-  const sources = [wikidataSource, page?.fullurl, candidate.source].filter((source) => typeof source === 'string' && source.startsWith('https://'));
-  const awards = (entity.claims?.P166 ?? []).slice(0, 10).map((claim) => claim.mainsnak?.datavalue?.value?.id).filter(Boolean);
+const isHttps = (source) => typeof source === 'string' && source.startsWith('https://');
+const awardId = (claim) => claim.mainsnak?.datavalue?.value?.id;
+const awardIds = (entity) => (entity.claims?.P166 ?? []).slice(0, 10).map(awardId).filter(Boolean);
+
+function entityText(entity, candidate) {
+  return { label: entity.labels?.en?.value ?? candidate.name, description: entity.descriptions?.en?.value ?? null };
+}
+
+function pageText(page = {}) {
+  return { wikipedia_extract: page.extract ?? null, wikipedia_source: page.fullurl ?? null };
+}
+
+function buildDraft({ id, candidate, match, page, photo }) {
+  const wikidataSource = 'https://www.wikidata.org/wiki/' + match.qid;
+  const text = pageText(page);
   return {
     place_id: id,
     country: candidate.country,
-    label: entity.labels?.en?.value ?? candidate.name,
-    description: entity.descriptions?.en?.value ?? null,
-    wikipedia_extract: page?.extract ?? null,
-    wikipedia_source: page?.fullurl ?? null,
+    ...entityText(match.entity, candidate),
+    ...text,
     wikidata_source: wikidataSource,
-    notable_award_qids: awards,
+    notable_award_qids: awardIds(match.entity),
     photo,
     note: null,
     topic_key: null,
-    sources,
+    sources: [wikidataSource, text.wikipedia_source, candidate.source].filter(isHttps),
     review_status: 'draft',
   };
 }
@@ -175,7 +184,7 @@ async function researchPlace(id) {
   if (!match.entity) throw new Error('no Wikidata entity found');
   const page = await wikipediaPage(id, match.entity.sitelinks?.enwiki?.title ?? candidate.name);
   const photo = await commonsPhoto(id, match.entity);
-  await writeFile(target, JSON.stringify(buildDraft(id, candidate, match, page, photo), null, 2) + '\n');
+  await writeFile(target, JSON.stringify(buildDraft({ id, candidate, match, page, photo }), null, 2) + '\n');
   return 'written';
 }
 
