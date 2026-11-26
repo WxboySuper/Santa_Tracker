@@ -366,7 +366,7 @@ function repositionTargets(order: Candidate[], index: number): number[] {
   return order.map((_, target) => target).filter((target) => target > 0 && target !== index);
 }
 
-function acceptsDetourReposition<T extends Candidate>(proposal: T[], currentCount: number,
+function acceptsDetourReposition(proposal: Candidate[], currentCount: number,
   currentEastward: number, config: GeneratorConfig): boolean {
   if (eastwardCount(proposal) > currentEastward) return false;
   if (hardDetourCount(proposal) >= currentCount) return false;
