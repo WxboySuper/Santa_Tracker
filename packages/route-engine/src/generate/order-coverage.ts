@@ -571,9 +571,9 @@ export function mandatoryLaunch(representatives: Candidate[], pool: Candidate[],
 }
 
 function compareLaunchPreference(left: Candidate, right: Candidate): number {
-  const leftLongitude = left.lng < 0 ? left.lng + 360 : left.lng;
-  const rightLongitude = right.lng < 0 ? right.lng + 360 : right.lng;
-  return rightLongitude - leftLongitude || right.lat - left.lat || compareStableIds(left.id, right.id);
+  // Longitude does not give a launch direction at the North Pole. Use the
+  // population tie-breaker instead of treating the pole's stored lng as real.
+  return (right.population ?? 0) - (left.population ?? 0) || compareStableIds(left.id, right.id);
 }
 
 function launchMatchesRequiredAdmin1(launch: Candidate, existing: Candidate | undefined, alreadySelected: boolean): boolean {

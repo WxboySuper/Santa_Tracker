@@ -125,6 +125,9 @@ export function isInSouthernChristmasWindow(options: ZonedInstant): boolean {
 }
 
 export function longitudeDelta(from: LatLng, to: LatLng): number {
+  // At either pole every longitude names the same point, so it cannot define
+  // eastward or westward route progress.
+  if (Math.abs(from.lat) === 90 || Math.abs(to.lat) === 90) return 0;
   return ((to.lng - from.lng + 540) % 360) - 180;
 }
 
