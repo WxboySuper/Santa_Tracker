@@ -7,6 +7,7 @@ import { chooseCandidates } from './candidates';
 import { scheduledTravelMilliseconds, sweepOrder } from './order';
 import { buildReport } from './report';
 import { eastwardLegReason, isEastwardDelta, isInChristmasWindow, isInSouthernChristmasWindow, localClock, longitudeDelta, stopDurationSeconds } from './sweep';
+import { InvalidCandidateTimezoneError, isInvalidCandidateTimezoneError } from './timezone-error';
 import type { TimedCandidate } from './order-shared';
 import { DEFAULT_GENERATOR_LIMITS, NORTH_POLE, RETURN_DEADLINE_UTC, TAKEOFF_UTC, type Candidate, type GeneratedRoute, type GeneratorConfig, type RouteReport } from './types';
 
@@ -16,13 +17,6 @@ type TimezoneTables = {
   utcOffsetsByTimezone?: Record<string, number>;
   countryNames?: Record<string, string>;
 };
-
-class InvalidCandidateTimezoneError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = 'InvalidCandidateTimezoneError';
-  }
-}
 
 export { DEFAULT_GENERATOR_LIMITS };
 export type { Candidate, GeneratedRoute, GeneratorConfig, RouteReport } from './types';
@@ -45,10 +39,6 @@ function normalizeCandidateTimezones(pool: Candidate[], overrides: RouteOverride
     }
   }
   return { candidates, invalidCandidateIds };
-}
-
-function isInvalidCandidateTimezoneError(error: unknown): error is Error {
-  return error instanceof InvalidCandidateTimezoneError;
 }
 
 function isSupportedIanaTimezone(timezone: string): boolean {
@@ -191,7 +181,9 @@ type DeliveryNodeOptions = {
   priorLocation: Candidate | LatLng;
 };
 
-function buildDeliveryNode({ place, displayName, index, config, tables, priorLocation }: DeliveryNodeOptions): DeliveryNodeResult {
+type DeliveryTiming = { stopArrival: number; tier: TimedCandidate['plannedStopTier']; durationSeconds: number };
+
+function deliveryTiming(place: TimedCandidate): DeliveryTiming {
   const stopArrival = Date.parse(place.plannedArrivalUtc);
   const tier = place.plannedStopTier;
   const durationSeconds = place.plannedStopDurationSeconds;
@@ -199,6 +191,11 @@ function buildDeliveryNode({ place, displayName, index, config, tables, priorLoc
   if (!Number.isFinite(durationSeconds) || durationSeconds !== stopDurationSeconds(tier)) {
     throw new Error(`Invalid sweep duration for ${place.name}: ${String(durationSeconds)}s for ${tier} tier`);
   }
+  return { stopArrival, tier, durationSeconds };
+}
+
+function buildDeliveryNode({ place, displayName, index, config, tables, priorLocation }: DeliveryNodeOptions): DeliveryNodeResult {
+  const { stopArrival, tier, durationSeconds } = deliveryTiming(place);
   const stopDeparture = stopArrival + durationSeconds * 1000;
   const stopId = `stop_${stableHash(place.id, config.seed).toString(36)}_${index.toString().padStart(3, '0')}`;
   const locationId = createLocationId(stopId);

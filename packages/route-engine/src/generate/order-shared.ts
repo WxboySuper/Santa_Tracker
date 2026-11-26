@@ -11,6 +11,7 @@ import {
 } from './sweep';
 import { classifyRegion } from './regions';
 import { REQUIRED_ADMIN1_UNITS } from './admin1';
+import { InvalidCandidateTimezoneError } from './timezone-error';
 import { NORTH_POLE, RETURN_DEADLINE_UTC, TAKEOFF_UTC, type Candidate, type GeneratorConfig } from './types';
 
 const EARTH_RADIUS_KM = 6_371;
@@ -122,7 +123,7 @@ function latestLocalArrival(place: Candidate, window: ReturnType<typeof christma
 }
 
 export function requiredSnapshotOffset(place: Candidate): number {
-  if (!Number.isInteger(place.utcOffsetMinutes)) throw new Error(`Missing snapshot UTC offset for ${place.name}`);
+  if (!Number.isInteger(place.utcOffsetMinutes)) throw new InvalidCandidateTimezoneError(`Missing snapshot UTC offset for ${place.name}`);
   return place.utcOffsetMinutes!;
 }
 
@@ -160,8 +161,10 @@ export function timingAndDetourAllows(place: Candidate, route: Candidate[]): boo
 }
 
 export function categoryPreference(place: Candidate, config: GeneratorConfig): number {
-  if (place.category === 'capital') return config.weights.hub ?? 0;
-  return config.weights[place.category] ?? 0;
+  const category = place.category === 'capital' ? 'hub' : place.category;
+  const weight = config.weights[category];
+  if (weight === undefined) throw new Error(`Missing category tie-break weight for ${category}`);
+  return weight;
 }
 
 export function canStartFromNorthPole(place: Candidate, config: GeneratorConfig): boolean {

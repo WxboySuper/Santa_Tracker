@@ -84,6 +84,13 @@ describe('generateRoute midnight sweep', () => {
     expect(generated.report.issues).toContain('Invalid candidate row skipped: row-2');
   });
 
+  it('collects invalid timezone offsets in the no-tables candidate path', () => {
+    const invalidOffset = { ...candidates[1]!, id: 'bad-offset', country: 'FJ', utcOffsetMinutes: 900 };
+    const generated = generateRoute([candidates[0]!, invalidOffset], config);
+    expect(generated.report.count).toBe(1);
+    expect(generated.report.invalidCandidateIds).toContain('bad-offset');
+  });
+
   it('records flight time and speed separately from a local-window wait', () => {
     const lateWindowStop: Candidate = {
       id: 'late-window-stop', name: 'Late Window Stop', country: 'US', lat: 70, lng: 170,

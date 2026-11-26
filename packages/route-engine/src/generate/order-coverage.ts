@@ -222,7 +222,13 @@ function stateWithoutStop(state: InsertionState, place: TimedCandidate, pass: In
 
 function isFinalRequiredAdmin1OrOffsetStop(state: InsertionState, place: Candidate): boolean {
   const unit = admin1UnitFor(place);
-  if (unit !== undefined && REQUIRED_ADMIN1_CODES.has(unit) && state.admin1Counts.get(unit) === 1) return true;
+  if (unit === undefined) return isFinalOffsetBandStop(state, place);
+  if (!REQUIRED_ADMIN1_CODES.has(unit)) return isFinalOffsetBandStop(state, place);
+  if (state.admin1Counts.get(unit) === 1) return true;
+  return isFinalOffsetBandStop(state, place);
+}
+
+function isFinalOffsetBandStop(state: InsertionState, place: Candidate): boolean {
   return state.bandCounts.get(requiredSnapshotOffset(place)) === 1;
 }
 

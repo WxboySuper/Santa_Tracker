@@ -12,7 +12,10 @@ type CandidateValidationOptions = {
   config: GeneratorConfig;
   options: CandidateSelectionOptions;
 };
-type CandidateValidationState = Pick<CandidateValidationOptions, 'vetoed' | 'config' | 'options'> & { seen: Set<string> };
+type CandidateValidationState = Pick<CandidateValidationOptions, 'vetoed' | 'config' | 'options'> & {
+  seenRows: Set<string>;
+  acceptedIds: Set<string>;
+};
 
 function routeCategory(place: Candidate, config: GeneratorConfig): string {
   if (place.category === 'capital') return 'capital';
@@ -42,7 +45,9 @@ function hasValidCoordinates(place: Candidate): boolean {
 function validCandidate(place: Candidate): boolean {
   if (!hasCandidateIdentity(place)) return false;
   if (!hasValidCoordinates(place)) return false;
-  return Number.isInteger(place.utcOffsetMinutes);
+  return Number.isInteger(place.utcOffsetMinutes)
+    && place.utcOffsetMinutes! >= -720
+    && place.utcOffsetMinutes! <= 840;
 }
 
 function isCandidateRecord(value: unknown): value is Candidate {
@@ -85,27 +90,22 @@ function candidateWithResolvedOffset(place: Candidate, options: CandidateSelecti
 }
 
 type CandidateValidation =
-  | { kind: 'vetoed' }
-  | { kind: 'invalid'; id: string }
+  | { kind: 'vetoed'; duplicateId?: string }
+  | { kind: 'invalid'; id: string; duplicateId?: string }
   | { kind: 'duplicate'; id: string }
-  | { kind: 'accepted'; place: Candidate };
+  | { kind: 'accepted'; place: Candidate; duplicateId?: string };
 
 function validateCandidateForSelection(place: Candidate, label: string, state: CandidateValidationState): CandidateValidation {
   const id = hasNonEmptyText(place.id) ? place.id : undefined;
-  if (isDuplicateCandidateId(id, state.seen)) return { kind: 'duplicate', id: id! };
-  if (isVetoedCandidate(place, state.vetoed)) return { kind: 'vetoed' };
+  const duplicateRow = id !== undefined && state.seenRows.has(id);
+  if (id !== undefined) state.seenRows.add(id);
+  if (id !== undefined && state.acceptedIds.has(id)) return { kind: 'duplicate', id };
+  const duplicateId = duplicateRow ? id : undefined;
+  if (isVetoedCandidate(place, state.vetoed)) return { kind: 'vetoed', duplicateId };
   const resolved = candidateWithResolvedOffset(place, state.options);
-  if (!resolved || !validCandidate(resolved)) return { kind: 'invalid', id: label };
-  rememberAcceptedCandidateId(id, state.seen);
-  return { kind: 'accepted', place: enrichCandidate(resolved, state.config) };
-}
-
-function isDuplicateCandidateId(id: string | undefined, seen: Set<string>): boolean {
-  return id !== undefined && seen.has(id);
-}
-
-function rememberAcceptedCandidateId(id: string | undefined, seen: Set<string>): void {
-  if (id !== undefined) seen.add(id);
+  if (!resolved || !validCandidate(resolved)) return { kind: 'invalid', id: label, duplicateId };
+  if (id !== undefined) state.acceptedIds.add(id);
+  return { kind: 'accepted', place: enrichCandidate(resolved, state.config), duplicateId };
 }
 
 function recordInvalidCandidateId(id: string, invalidIds: string[], invalidSeen: Set<string>): void {
@@ -114,20 +114,27 @@ function recordInvalidCandidateId(id: string, invalidIds: string[], invalidSeen:
   invalidIds.push(id);
 }
 
+function recordDuplicateCandidateId(id: string, duplicateIds: string[], duplicateSeen: Set<string>): void {
+  if (duplicateSeen.has(id)) return;
+  duplicateSeen.add(id);
+  duplicateIds.push(id);
+}
+
 function validateAndEnrichCandidates({ updated, rowLabels, vetoed, config, options }: CandidateValidationOptions): CandidateSelection {
-  const seen = new Set<string>();
+  const seenRows = new Set<string>();
+  const acceptedIds = new Set<string>();
   const invalidSeen = new Set<string>();
+  const duplicateSeen = new Set<string>();
   const candidates: Candidate[] = [];
   const invalidCandidateIds: string[] = [];
   const duplicateCandidateIds: string[] = [];
-  const state: CandidateValidationState = { vetoed, seen, config, options };
+  const state: CandidateValidationState = { vetoed, seenRows, acceptedIds, config, options };
   for (const [index, place] of updated.entries()) {
     const result = validateCandidateForSelection(place, rowLabels[index] ?? `row-${index + 1}`, state);
+    const duplicateId = result.kind === 'duplicate' ? result.id : result.duplicateId;
+    if (duplicateId) recordDuplicateCandidateId(duplicateId, duplicateCandidateIds, duplicateSeen);
     if (result.kind === 'vetoed') continue;
     if (result.kind === 'invalid') recordInvalidCandidateId(result.id, invalidCandidateIds, invalidSeen);
-    if (result.kind === 'duplicate') {
-      duplicateCandidateIds.push(result.id);
-    }
     if (result.kind === 'accepted') candidates.push(result.place);
   }
   return { candidates, invalidCandidateIds, duplicateCandidateIds };

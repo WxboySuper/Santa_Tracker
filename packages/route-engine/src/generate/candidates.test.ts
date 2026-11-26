@@ -21,6 +21,11 @@ describe('chooseCandidates', () => {
     expect(result.candidates.map((place) => place.id)).toEqual(['town-b', 'landmark-c']);
   });
 
+  it('rejects a veto that does not name a candidate', () => {
+    expect(() => chooseCandidates(pool, DEFAULT_GENERATOR_LIMITS, { veto: ['misspelled-id'] }))
+      .toThrow(/Unknown stop: misspelled-id/);
+  });
+
   it('rejects stale selection locks and swaps instead of ignoring them', () => {
     expect(() => chooseCandidates(pool, DEFAULT_GENERATOR_LIMITS, { lock: ['city-a'] })).toThrow(/Lock and swap/);
     expect(() => chooseCandidates(pool, DEFAULT_GENERATOR_LIMITS, { swap: { 'city-a': 'town-b' } })).toThrow(/Lock and swap/);
@@ -53,6 +58,13 @@ describe('chooseCandidates', () => {
     expect(result.invalidCandidateIds).toEqual(['missing-offset']);
   });
 
+  it('reports offsets outside the civil-time range as invalid candidates', () => {
+    const invalidOffset = { ...pool[1]!, id: 'invalid-offset', utcOffsetMinutes: 900 };
+    const result = chooseCandidates([pool[0]!, invalidOffset], DEFAULT_GENERATOR_LIMITS);
+    expect(result.candidates.map((place) => place.id)).toEqual(['city-a']);
+    expect(result.invalidCandidateIds).toEqual(['invalid-offset']);
+  });
+
   it('reports malformed names instead of throwing on a data row', () => {
     const malformed = { ...pool[0], id: 'missing-name', name: null } as unknown as Candidate;
     const result = chooseCandidates([pool[0]!, malformed], DEFAULT_GENERATOR_LIMITS);
@@ -81,7 +93,7 @@ describe('chooseCandidates', () => {
 
     expect(result.candidates.map((place) => place.id)).toEqual(['town-b', 'city-a']);
     expect(result.invalidCandidateIds).toEqual(['city-a']);
-    expect(result.duplicateCandidateIds).toEqual([]);
+    expect(result.duplicateCandidateIds).toEqual(['city-a']);
   });
 
   it('reports repeated invalid IDs once without classifying them as accepted duplicates', () => {
@@ -91,6 +103,6 @@ describe('chooseCandidates', () => {
 
     expect(result.candidates.map((place) => place.id)).toEqual(['town-b']);
     expect(result.invalidCandidateIds).toEqual(['city-a']);
-    expect(result.duplicateCandidateIds).toEqual([]);
+    expect(result.duplicateCandidateIds).toEqual(['city-a']);
   });
 });

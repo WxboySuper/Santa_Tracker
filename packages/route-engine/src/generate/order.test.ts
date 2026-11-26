@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { haversineKm } from '../geo';
 import { eastwardLegReason, isInChristmasWindow, localClock, longitudeDelta } from './sweep';
 import { DEFAULT_GENERATOR_LIMITS, NORTH_POLE, type Candidate } from './types';
-import { candidateTiming, hasFeasibleTiming, longitudeDelta as orderLongitudeDelta, scheduledTravelMilliseconds, sweepOrder } from './order';
+import { candidateTiming, categoryPreference, hasFeasibleTiming, longitudeDelta as orderLongitudeDelta, scheduledTravelMilliseconds, sweepOrder } from './order';
 
 const testPlaces: Candidate[] = [
   { id: 'ki', name: 'Kiritimati', country: 'KI', lat: 1.87, lng: -157.4, timezone: 'Pacific/Kiritimati', utcOffsetMinutes: 840, category: 'populated', population: 7_380 },
@@ -14,6 +14,11 @@ const testPlaces: Candidate[] = [
 describe('midnight sweep ordering', () => {
   it('keeps longitudeDelta available from the order module', () => {
     expect(orderLongitudeDelta(testPlaces[0]!, testPlaces[1]!)).toBe(longitudeDelta(testPlaces[0]!, testPlaces[1]!));
+  });
+
+  it('rejects candidate categories without an explicit tie-break weight', () => {
+    expect(() => categoryPreference({ ...testPlaces[0]!, category: 'mispeled' }, DEFAULT_GENERATOR_LIMITS))
+      .toThrow(/Missing category tie-break weight for mispeled/);
   });
 
   it('rejects removed route-order config instead of silently ignoring it', () => {
