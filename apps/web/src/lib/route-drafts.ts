@@ -233,6 +233,10 @@ export function createRouteDraftService(store: VersionedSnapshotStore, readManif
         if (current.source !== "draft" || !current.versionId) {
           throw Object.assign(new Error("Save a draft before creating a named revision"), { status: 409 });
         }
+        const currentRaw = await store.readVersion(DATASET_ROUTE_DRAFT, current.versionId);
+        if (!parseDraftEnvelope(currentRaw)) {
+          throw Object.assign(new Error("Draft content is unavailable"), { status: 410 });
+        }
         const existing = await readRevisions();
         const revision: NamedRouteRevision = {
           id: crypto.randomUUID(), name: name.trim(), versionId: current.versionId, createdAt: new Date().toISOString(),

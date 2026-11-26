@@ -124,6 +124,16 @@ describe("route draft revisions", () => {
     await expect(service.restoreRevision(revision.id, saved.etag)).rejects.toMatchObject({ status: 410 });
   });
 
+  it("does not create a named revision for missing current draft content", async () => {
+    const { files, service } = setup();
+    const initial = await service.getState();
+    const saved = await service.save(makeFixture("Saved"), initial.etag);
+    files.delete(`santa-route-draft/versions/${saved.versionId}.json`);
+
+    await expect(service.createRevision("Unavailable point", saved.etag)).rejects.toMatchObject({ status: 410 });
+    await expect(service.listRevisions()).resolves.toEqual([]);
+  });
+
   it("preserves a corrupt named-revisions manifest instead of overwriting it", async () => {
     const { service, setManifest, getManifest } = setup();
     const initial = await service.getState();
