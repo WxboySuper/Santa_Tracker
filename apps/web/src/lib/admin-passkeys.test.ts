@@ -28,10 +28,16 @@ async function registerPasskeyForTest(counter: number) {
   return finishRegistration({ request, challengeId: challenge.id, sessionId: "session-one", response: { id: "credential-one" } as RegistrationResponseJSON });
 }
 
+function mockAuthenticationCounter(counter: number): void {
+  vi.mocked(verifyAuthenticationResponse).mockResolvedValue({
+    verified: true,
+    authenticationInfo: { credentialID: "credential-one", newCounter: counter, userVerified: true, credentialDeviceType: "singleDevice", credentialBackedUp: false, origin: "https://example.test", rpID: "example.test" },
+  });
+}
+
 describe("admin passkey service", () => {
   beforeEach(async () => {
     await resetAdminAuthStateForTests();
-    vi.stubEnv("NODE_ENV", "test");
     vi.stubEnv("ADMIN_WEBAUTHN_RP_ID", "example.test");
     vi.stubEnv("ADMIN_WEBAUTHN_ORIGIN", "https://example.test");
   });
@@ -67,10 +73,7 @@ describe("admin passkey service", () => {
   it("verifies a passkey login and advances its signature counter", async () => {
     await registerPasskeyForTest(1);
     const authentication = await createAuthenticationChallenge(request);
-    vi.mocked(verifyAuthenticationResponse).mockResolvedValue({
-      verified: true,
-      authenticationInfo: { credentialID: "credential-one", newCounter: 2, userVerified: true, credentialDeviceType: "singleDevice", credentialBackedUp: false, origin: "https://example.test", rpID: "example.test" },
-    });
+    mockAuthenticationCounter(2);
     const token = await finishAuthentication({ request, challengeId: authentication.challenge.id, response: { id: "credential-one" } as AuthenticationResponseJSON });
     expect(await verifyAdminToken({ token })).toBe(true);
     expect((await readAdminAuthState()).passkeys[0]?.counter).toBe(2);
@@ -80,20 +83,14 @@ describe("admin passkey service", () => {
   it("rejects a non-advancing signature counter", async () => {
     await registerPasskeyForTest(2);
     const authentication = await createAuthenticationChallenge(request);
-    vi.mocked(verifyAuthenticationResponse).mockResolvedValue({
-      verified: true,
-      authenticationInfo: { credentialID: "credential-one", newCounter: 2, userVerified: true, credentialDeviceType: "singleDevice", credentialBackedUp: false, origin: "https://example.test", rpID: "example.test" },
-    });
+    mockAuthenticationCounter(2);
     await expect(finishAuthentication({ request, challengeId: authentication.challenge.id, response: { id: "credential-one" } as AuthenticationResponseJSON })).rejects.toThrow("Passkey counter did not advance");
   });
 
   it("does not overwrite a non-zero signature counter with an unsupported zero", async () => {
     await registerPasskeyForTest(2);
     const authentication = await createAuthenticationChallenge(request);
-    vi.mocked(verifyAuthenticationResponse).mockResolvedValue({
-      verified: true,
-      authenticationInfo: { credentialID: "credential-one", newCounter: 0, userVerified: true, credentialDeviceType: "singleDevice", credentialBackedUp: false, origin: "https://example.test", rpID: "example.test" },
-    });
+    mockAuthenticationCounter(0);
     await finishAuthentication({ request, challengeId: authentication.challenge.id, response: { id: "credential-one" } as AuthenticationResponseJSON });
     expect((await readAdminAuthState()).passkeys[0]?.counter).toBe(2);
   });

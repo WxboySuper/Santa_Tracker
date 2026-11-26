@@ -104,20 +104,30 @@ export async function loginAdmin(payload: unknown, ip?: string): Promise<AdminAp
 }
 
 async function issueSessionToken(payload: unknown, ip?: string): Promise<AdminApiResult> {
+  const rejection = await passwordLoginRejection(payload, ip);
+  if (rejection) return rejection;
+  return createPasswordSession();
+}
+
+async function passwordLoginRejection(payload: unknown, ip?: string): Promise<AdminApiResult | null> {
+  if (ip && checkLoginRateLimitNow(ip)) return throttleResult();
+  return validatePasswordLogin(payload, ip);
+}
+
+async function validatePasswordLogin(payload: unknown, ip?: string): Promise<AdminApiResult | null> {
   const password = extractPassword(payload);
-  const lockout = ip ? checkLoginRateLimitNow(ip) : null;
-  if (lockout) return throttleResult();
   if (!password) {
     const limit = ip ? await recordLoginAttempt(ip) : null;
     await appendAuthAudit({ action: "password_login", result: "failure" });
     return limit ? throttleResult() : badRequest("Password required");
   }
-  const adminPassword = getAdminPassword();
-  if (!adminPassword) {
-    return { status: 500, body: { error: "Admin access not configured" } };
-  }
+  if (!getAdminPassword()) return { status: 500, body: { error: "Admin access not configured" } };
   if (!verifyAdminPassword({ password: password as string })) return rejectPasswordLogin(ip, "password_login", true);
   if ((await readAdminAuthState()).passkeys.length > 0) return rejectPasswordLogin(ip, "password_login_disabled", false);
+  return null;
+}
+
+async function createPasswordSession(): Promise<AdminApiResult> {
   try {
     const token = await createAdminToken();
     await appendAuthAudit({ action: "password_login", result: "success" });
