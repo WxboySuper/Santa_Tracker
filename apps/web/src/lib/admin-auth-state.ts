@@ -170,7 +170,8 @@ function isAuthMethod(value: unknown): value is AdminSessionRecord["authMethod"]
 }
 
 function hasSessionIdentity(value: Record<string, unknown>): boolean {
-  return typeof value.id === "string" && typeof value.csrfToken === "string";
+  return typeof value.id === "string" && value.id.length <= 128
+    && typeof value.csrfToken === "string" && value.csrfToken.length <= 128;
 }
 
 function hasValidSessionTimes(value: Record<string, unknown>): boolean {
@@ -187,12 +188,19 @@ function isSafeTimestamp(value: unknown): value is number {
 
 function isChallenge(value: unknown): value is AdminAuthChallenge {
   if (!isRecord(value)) return false;
-  return typeof value.id === "string" && typeof value.challenge === "string" && (value.purpose === "registration" || value.purpose === "authentication") && (value.sessionId === null || typeof value.sessionId === "string") && Number.isSafeInteger(value.expiresAt);
+  return typeof value.id === "string" && value.id.length <= 128
+    && typeof value.challenge === "string" && value.challenge.length <= 1024
+    && (value.purpose === "registration" || value.purpose === "authentication")
+    && (value.sessionId === null || (typeof value.sessionId === "string" && value.sessionId.length <= 128))
+    && Number.isSafeInteger(value.expiresAt);
 }
 
 function isAuditEvent(value: unknown): value is AdminAuthAuditEvent {
   if (!isRecord(value)) return false;
-  return typeof value.action === "string" && value.action.length <= 80 && (value.result === "success" || value.result === "failure") && typeof value.at === "string" && !Number.isNaN(Date.parse(value.at));
+  return typeof value.action === "string" && value.action.length <= 80
+    && (value.result === "success" || value.result === "failure")
+    && typeof value.at === "string" && value.at.length <= 40 && !Number.isNaN(Date.parse(value.at))
+    && (value.sessionId === undefined || (typeof value.sessionId === "string" && value.sessionId.length <= 128));
 }
 
 async function mutateState<T>(update: (state: AdminAuthState) => T | Promise<T>): Promise<T> {

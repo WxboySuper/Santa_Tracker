@@ -12,12 +12,15 @@ export function getClientIp(req: Request): string | null {
 
 export async function POST(req: Request) {
   try { return await processLoginRequest(req); }
-  catch { return storageUnavailable(); }
+  catch (error) {
+    console.error("Admin login request failed", error);
+    return storageUnavailable();
+  }
 }
 
 async function processLoginRequest(req: Request) {
   const ip = getClientIp(req);
-  if (!ip) return storageUnavailable();
+  if (!ip) return NextResponse.json({ error: "Admin authentication is unavailable" }, { status: 503 });
   const lockout = await checkLoginRateLimit(ip);
   if (lockout) return throttledResponse(lockout.retryAfterSeconds);
   return processLogin(req, ip);
