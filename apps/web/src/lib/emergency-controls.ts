@@ -61,16 +61,26 @@ export function parseEmergencyControls(raw: string | null): EmergencyControls {
   if (!raw) return DEFAULT_EMERGENCY_CONTROLS;
   try {
     const parsed: unknown = JSON.parse(raw);
-    if (!isRecord(parsed) || Object.keys(parsed).sort().join(",") !== "audit,killedFeatures,noMap,simplifiedTracker,updatedAt,version") return SAFE_EMERGENCY_CONTROLS;
-    if (parsed.version !== 1 || typeof parsed.updatedAt !== "string" || !Array.isArray(parsed.audit)) return SAFE_EMERGENCY_CONTROLS;
-    const values = parseValues(parsed);
-    if (!values || !isTimestamp(parsed.updatedAt)) return SAFE_EMERGENCY_CONTROLS;
-    const audit = parsed.audit.filter(isValidAuditEntry).slice(-MAX_AUDIT_ENTRIES);
-    if (audit.length !== parsed.audit.length) return SAFE_EMERGENCY_CONTROLS;
-    return { version: 1, ...values, updatedAt: parsed.updatedAt, audit };
+    return decodeEmergencyControls(parsed);
   } catch {
     return SAFE_EMERGENCY_CONTROLS;
   }
+}
+
+function decodeEmergencyControls(parsed: unknown): EmergencyControls {
+  if (!hasValidControlsHeader(parsed)) return SAFE_EMERGENCY_CONTROLS;
+  const value = parsed as Record<string, unknown>;
+  const values = parseValues(value);
+  if (!values || !isTimestamp(value.updatedAt as string)) return SAFE_EMERGENCY_CONTROLS;
+  const audit = (value.audit as unknown[]).filter(isValidAuditEntry).slice(-MAX_AUDIT_ENTRIES);
+  if (audit.length !== (value.audit as unknown[]).length) return SAFE_EMERGENCY_CONTROLS;
+  return { version: 1, ...values, updatedAt: value.updatedAt as string, audit };
+}
+
+function hasValidControlsHeader(value: unknown): boolean {
+  if (!isRecord(value)) return false;
+  if (Object.keys(value).sort().join(",") !== "audit,killedFeatures,noMap,simplifiedTracker,updatedAt,version") return false;
+  return value.version === 1 && typeof value.updatedAt === "string" && Array.isArray(value.audit);
 }
 
 function isTimestamp(value: string): boolean {
@@ -78,11 +88,19 @@ function isTimestamp(value: string): boolean {
 }
 
 function isValidAuditEntry(value: unknown): value is EmergencyControlAuditEntry {
-  return isRecord(value) && Object.keys(value).sort().join(",") === "actor,at,next,previous,reason"
-    && typeof value.actor === "string" && value.actor.length > 0
-    && typeof value.at === "string" && isTimestamp(value.at) && value.at !== ""
-    && typeof value.reason === "string" && value.reason.trim().length > 0
-    && parseValues(value.previous) !== null && parseValues(value.next) !== null;
+  if (!hasAuditEntryShape(value)) return false;
+  const entry = value as Record<string, unknown>;
+  return isValidAuditMetadata(entry) && parseValues(entry.previous) !== null && parseValues(entry.next) !== null;
+}
+
+function hasAuditEntryShape(value: unknown): boolean {
+  return isRecord(value) && Object.keys(value).sort().join(",") === "actor,at,next,previous,reason";
+}
+
+function isValidAuditMetadata(entry: Record<string, unknown>): boolean {
+  return typeof entry.actor === "string" && entry.actor.length > 0
+    && typeof entry.at === "string" && isTimestamp(entry.at) && entry.at !== ""
+    && typeof entry.reason === "string" && entry.reason.trim().length > 0;
 }
 
 export interface EmergencyControlsRepository {

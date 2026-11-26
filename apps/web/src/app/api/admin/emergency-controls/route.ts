@@ -23,9 +23,10 @@ export async function PUT(request: Request) {
   const expectedUpdatedAt = parseEtag(request.headers.get("if-match"));
   if (expectedUpdatedAt === null) return NextResponse.json({ error: "If-Match is required. Read current emergency controls first." }, { status: 428, headers: NO_STORE });
   const body = await readJson(request);
-  if (!body) return NextResponse.json({ error: "Expected JSON emergency control values and a reason" }, { status: 400, headers: NO_STORE });
+  if (body.kind === "too-large") return NextResponse.json({ error: "Request body exceeds 2048 bytes" }, { status: 413, headers: NO_STORE });
+  if (body.kind === "invalid") return NextResponse.json({ error: "Expected JSON emergency control values and a reason" }, { status: 400, headers: NO_STORE });
   try {
-    const state = await replaceEmergencyControls(body.values, expectedUpdatedAt, "admin", body.reason);
+    const state = await replaceEmergencyControls(body.value.values, expectedUpdatedAt, "admin", body.value.reason);
     if (!state) return NextResponse.json({ error: "Emergency controls changed. Reload before retrying." }, { status: 412, headers: NO_STORE });
     return NextResponse.json(state, { headers: { ...NO_STORE, ETag: makeEtag(state.updatedAt) } });
   } catch (error) {
@@ -34,30 +35,79 @@ export async function PUT(request: Request) {
   }
 }
 
-async function readJson(request: Request): Promise<{ values: EmergencyControlValues; reason: string } | null> {
-  if (!request.headers.get("content-type")?.toLowerCase().startsWith("application/json")) return null;
-  const length = Number(request.headers.get("content-length"));
-  if (Number.isFinite(length) && length > 2_048) return null;
-  let value: unknown;
-  try { value = await request.json() as unknown; } catch { return null; }
-  if (typeof value !== "object" || value === null || Array.isArray(value)) return null;
-  const record = value as Record<string, unknown>;
-  if (Object.keys(record).sort().join(",") !== "killedFeatures,noMap,reason,simplifiedTracker") return null;
-  const killed = record.killedFeatures;
-  if (typeof killed !== "object" || killed === null || Array.isArray(killed)) return null;
-  const killedFeatures = killed as Record<string, unknown>;
-  if (Object.keys(killedFeatures).sort().join(",") !== "soundscape,weather") return null;
-  if (typeof record.noMap !== "boolean" || typeof record.simplifiedTracker !== "boolean") return null;
-  if (typeof killedFeatures.weather !== "boolean" || typeof killedFeatures.soundscape !== "boolean") return null;
-  if (typeof record.reason !== "string" || record.reason.trim().length === 0 || record.reason.length > 500) return null;
-  return {
-    values: {
-      noMap: record.noMap,
-      simplifiedTracker: record.simplifiedTracker,
-      killedFeatures: { weather: killedFeatures.weather, soundscape: killedFeatures.soundscape },
-    },
-    reason: record.reason.trim(),
-  };
+type JsonResult = { kind: "body"; value: { values: EmergencyControlValues; reason: string } } | { kind: "invalid" } | { kind: "too-large" };
+type ByteResult = { kind: "bytes"; value: Uint8Array } | { kind: "invalid" } | { kind: "too-large" };
+const MAX_BODY_BYTES = 2_048;
+
+async function readJson(request: Request): Promise<JsonResult> {
+  if (!hasJsonContentType(request)) return { kind: "invalid" };
+  const declaredLength = Number(request.headers.get("content-length"));
+  if (Number.isFinite(declaredLength) && declaredLength > MAX_BODY_BYTES) return { kind: "too-large" };
+  const bytes = await readCappedBody(request.body);
+  if (bytes.kind !== "bytes") return bytes;
+  try {
+    const parsed: unknown = JSON.parse(new TextDecoder().decode(bytes.value));
+    const value = parseEmergencyPayload(parsed);
+    return value ? { kind: "body", value } : { kind: "invalid" };
+  } catch {
+    return { kind: "invalid" };
+  }
+}
+
+function hasJsonContentType(request: Request): boolean {
+  return request.headers.get("content-type")?.toLowerCase().startsWith("application/json") ?? false;
+}
+
+async function readCappedBody(body: ReadableStream<Uint8Array> | null): Promise<ByteResult> {
+  if (!body) return { kind: "bytes", value: new Uint8Array() };
+  const reader = body.getReader();
+  try { return await collectCappedChunks(reader); }
+  catch { return { kind: "invalid" }; }
+  finally { reader.releaseLock(); }
+}
+
+async function collectCappedChunks(reader: ReadableStreamDefaultReader<Uint8Array>): Promise<ByteResult> {
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  while (true) {
+    const chunk = await reader.read();
+    if (chunk.done) return { kind: "bytes", value: joinChunks(chunks, total) };
+    total += chunk.value.byteLength;
+    if (total > MAX_BODY_BYTES) {
+      void reader.cancel().catch(() => undefined);
+      return { kind: "too-large" };
+    }
+    chunks.push(chunk.value);
+  }
+}
+
+function joinChunks(chunks: Uint8Array[], total: number): Uint8Array {
+  const bytes = new Uint8Array(total);
+  let offset = 0;
+  for (const chunk of chunks) { bytes.set(chunk, offset); offset += chunk.byteLength; }
+  return bytes;
+}
+
+function parseEmergencyPayload(value: unknown): { values: EmergencyControlValues; reason: string } | null {
+  if (!isRecord(value) || !hasExactKeys(value, "killedFeatures,noMap,reason,simplifiedTracker")) return null;
+  const killedFeatures = parseKilledFeatures(value.killedFeatures);
+  if (!killedFeatures || typeof value.noMap !== "boolean" || typeof value.simplifiedTracker !== "boolean") return null;
+  if (typeof value.reason !== "string" || value.reason.trim().length === 0 || value.reason.length > 500) return null;
+  return { values: { noMap: value.noMap, simplifiedTracker: value.simplifiedTracker, killedFeatures }, reason: value.reason.trim() };
+}
+
+function parseKilledFeatures(value: unknown): EmergencyControlValues["killedFeatures"] | null {
+  if (!isRecord(value) || !hasExactKeys(value, "soundscape,weather")) return null;
+  if (typeof value.weather !== "boolean" || typeof value.soundscape !== "boolean") return null;
+  return { weather: value.weather, soundscape: value.soundscape };
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function hasExactKeys(value: Record<string, unknown>, keys: string): boolean {
+  return Object.keys(value).sort().join(",") === keys;
 }
 
 function makeEtag(updatedAt: string): string { return `"${updatedAt}"`; }
