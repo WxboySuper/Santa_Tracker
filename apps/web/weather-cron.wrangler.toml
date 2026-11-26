@@ -12,10 +12,6 @@ SANTA_STORAGE_BACKEND = "r2"
 binding = "SANTA_SNAPSHOTS"
 bucket_name = "santa-tracker-snapshots"
 
-[[kv_namespaces]]
-binding = "WEATHER_CACHE"
-id = "REPLACE_WITH_WEATHER_CACHE_NAMESPACE_ID"
-
 [[durable_objects.bindings]]
 name = "WEATHER_FALLBACK_BUDGET"
 class_name = "WeatherFallbackBudget"

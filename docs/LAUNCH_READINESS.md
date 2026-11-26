@@ -36,7 +36,7 @@ The weather cron runs every 15 minutes, but reads the active route and does prov
 
 To turn weather off, set `WEATHER_ENABLED=false` in `apps/web/cloudflare.config.ts`, `apps/web/wrangler.toml`, and `apps/web/weather-cron.wrangler.toml`, then deploy both Workers. The endpoint returns `null` and the scheduled worker exits before reading the route or contacting Open-Meteo.
 
-Before the first deployment, the owner must create a Cloudflare KV namespace named `santa-weather-cache`, copy its ID, and replace `REPLACE_WITH_WEATHER_CACHE_NAMESPACE_ID` in `apps/web/cloudflare.config.ts`, `apps/web/wrangler.toml`, and `apps/web/weather-cron.wrangler.toml`. The deploy workflow deploys the cron Worker before the application Worker. The Durable Object namespace is registered by its migration on that first cron Worker deployment. Do not create or bind production resources from a local Wrangler command.
+Before the first deployment, the owner must create a Cloudflare KV namespace named `santa-weather-cache` and add its 32-character ID as the GitHub repository variable `WEATHER_CACHE_NAMESPACE_ID`. The deploy workflow validates the variable, injects the binding into the Wrangler configs in its temporary checkout, and deploys the cron Worker before the application Worker. The Durable Object namespace is registered by its migration on that first cron Worker deployment. Do not create or bind production resources from a local Wrangler command.
 
 ## Exceptional Advent takedown
 

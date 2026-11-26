@@ -19,9 +19,9 @@ export default defineConfig({
       ASSETS: bindings.assets(),
       IMAGES: bindings.images(),
       VINEXT_KV_CACHE: bindings.kv(),
-      // Create in Cloudflare dashboard before deploy; name is a placeholder.
+      // Create in Cloudflare dashboard before deploy.
       SANTA_SNAPSHOTS: bindings.r2({ name: "santa-tracker-snapshots" }),
-      WEATHER_CACHE: bindings.kv({ id: "REPLACE_WITH_WEATHER_CACHE_NAMESPACE_ID" }),
+      WEATHER_CACHE: bindings.kv({ id: process.env.WEATHER_CACHE_NAMESPACE_ID! }),
       WEATHER_FALLBACK_BUDGET: bindings.durableObject({ worker: "santa-weather-cron", exportName: "WeatherFallbackBudget" }),
       // Runtime vars (surface on process.env via nodejs_compat). Without these the app
       // ignores the R2 binding and keeps Advent disabled. Mirrors wrangler.toml [vars].
