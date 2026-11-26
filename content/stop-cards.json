@@ -1981,13 +1981,14 @@
   {
     "place_id": "ne-1159150811",
     "country": "Latvia",
-    "note": "Bishkek’s Osh Bazaar is known for its bread, produce, spices and stalls selling traditional felt goods. It remains a working city market, not a museum display.",
+    "note": "Riga’s Old Town Christmas market fills Dome Square with craft stalls, gingerbread and holiday concerts. The city’s first market there opened in 2000 and has become a local winter tradition.",
     "sources": [
       "https://www.wikidata.org/wiki/Q1773",
       "https://en.wikipedia.org/wiki/Riga",
-      "https://visitkyrgyzstan.org/osh-bazaar/"
+      "https://visitkyrgyzstan.org/osh-bazaar/",
+      "https://www.riga.lv/en/event/old-town-christmas-market-doma-square?date=0"
     ],
-    "topic_key": "bishkek-osh-bazaar",
+    "topic_key": "riga-christmas-market",
     "photo": {
       "url": "https://upload.wikimedia.org/wikipedia/commons/2/2b/Vistas_desde_la_iglesia_de_San_Pedro%2C_Riga%2C_Letonia%2C_2012-08-07%2C_DD_12.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
       "width": 5159,
@@ -2127,13 +2128,14 @@
   {
     "place_id": "ne-1159150907",
     "country": "Malawi",
-    "note": "Kigali Cultural Village is a market for Rwandan artisans and food vendors, with crafts, clothing, jewelry and local dishes. The stalls bring makers and cooks into a central public space.",
+    "note": "Lilongwe’s walled Old Town market sells produce, household goods and local crafts. It is one of Malawi’s largest markets and serves the city’s everyday shopping needs.",
     "sources": [
       "https://www.wikidata.org/wiki/Q3876",
       "https://en.wikipedia.org/wiki/Lilongwe",
-      "https://www.visitrwanda.com/wp-content/uploads/2020/07/Rwanda_Key_Tourist_Attractions.pdf"
+      "https://www.visitrwanda.com/wp-content/uploads/2020/07/Rwanda_Key_Tourist_Attractions.pdf",
+      "https://www.malawitourism.com/experiences/culture/market-visits/"
     ],
-    "topic_key": "kigali-cultural-village",
+    "topic_key": "lilongwe-old-town-market",
     "photo": null,
     "review_status": "draft"
   },
