@@ -18,23 +18,37 @@ async function processRecoveryLogin(request: Request): Promise<Response> {
   if (code instanceof Response) return code;
   try {
     const token = await loginWithRecoveryCode({ code });
-    try { await clearLoginAttempts(ip); }
+    try { await clearLoginAttempts({ ip }); }
     catch (error) { console.error("Failed to clear the recovery throttle after successful authentication", error); }
     return responseWithSession(token, { authenticated: true, recoveryCodeUsed: true });
   } catch (error) {
-    if (error instanceof PasskeyRequestError && error.message === "Invalid recovery code") return failure(ip, "Invalid recovery code", 401);
-    if (error instanceof PasskeyRequestError && error.message === "Recovery codes are not configured") {
-      await recordPasskeyFailure({ action: "recovery_login_unconfigured" });
-      return Response.json({ error: error.message }, { status: 409, headers: { "Cache-Control": "no-store" } });
-    }
-    return Response.json({ error: "Admin authentication storage is unavailable" }, { status: 503 });
+    return recoveryLoginError(error, ip);
   }
+}
+
+async function recoveryLoginError(error: unknown, ip: string): Promise<Response> {
+  if (isInvalidRecoveryCode(error)) return failure(ip, "Invalid recovery code", 401);
+  if (isRecoveryNotConfigured(error)) return unconfiguredRecoveryResponse(error);
+  return Response.json({ error: "Admin authentication storage is unavailable" }, { status: 503 });
+}
+
+function isInvalidRecoveryCode(error: unknown): boolean {
+  return error instanceof PasskeyRequestError && error.message === "Invalid recovery code";
+}
+
+function isRecoveryNotConfigured(error: unknown): error is PasskeyRequestError {
+  return error instanceof PasskeyRequestError && error.message === "Recovery codes are not configured";
+}
+
+async function unconfiguredRecoveryResponse(error: PasskeyRequestError): Promise<Response> {
+  await recordPasskeyFailure({ action: "recovery_login_unconfigured" });
+  return Response.json({ error: error.message }, { status: 409, headers: { "Cache-Control": "no-store" } });
 }
 
 async function recoveryClientIp(request: Request): Promise<string | Response> {
   const ip = getAdminClientIp(request);
   if (!ip) return Response.json({ error: ADMIN_CLIENT_IP_UNAVAILABLE }, { status: 503 });
-  const locked = await checkLoginRateLimit(ip);
+  const locked = await checkLoginRateLimit({ ip });
   if (!locked) return ip;
   await recordPasskeyFailure({ action: "recovery_login_throttled" });
   return tooManyAttempts(locked.retryAfterSeconds);
@@ -52,7 +66,7 @@ async function readRecoveryCode(request: Request, ip: string): Promise<string | 
 }
 async function failure(ip: string, message: string, status: number): Promise<Response> {
   await recordPasskeyFailure({ action: "recovery_login" });
-  const throttle = await recordLoginAttempt(ip);
+  const throttle = await recordLoginAttempt({ ip });
   return Response.json({ error: throttle ? "Too many authentication attempts" : message }, {
     status: throttle ? 429 : status,
     headers: throttle ? { "Retry-After": String(throttle.retryAfterSeconds) } : { "Cache-Control": "no-store" },

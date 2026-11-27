@@ -88,7 +88,8 @@ export async function requireAdminAuth(request: Request): Promise<{ ok: boolean;
     return { ok: false, error: "Invalid credentials", status: 403 };
   }
   if (requiresCsrf(request, credential) && !hasValidCsrf({ request, expected: claims.csrf })) {
-    await appendAuthAudit({ action: "csrf_rejected", result: "failure" });
+    try { await appendAuthAudit({ action: "csrf_rejected", result: "failure" }); }
+    catch (error) { console.error("Failed to record rejected CSRF request", error); }
     return { ok: false, error: "CSRF validation failed", status: 403 };
   }
   return { ok: true, authMethod: claims.authMethod };

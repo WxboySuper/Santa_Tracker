@@ -33,20 +33,14 @@ async function tryCreate(lock: LockFile): Promise<boolean> {
     await handle.close();
     return true;
   } catch (error: unknown) {
-    if (await isLockContention(error, lock)) return false;
+    if (isLockContention(error)) return false;
     throw error;
   }
 }
 
-async function isLockContention(error: unknown, lock: LockFile): Promise<boolean> {
+function isLockContention(error: unknown): boolean {
   const code = (error as NodeJS.ErrnoException).code;
-  if (code === "EEXIST") return true;
-  return code === "EPERM" && await lockFileExists(lock);
-}
-
-async function lockFileExists(lock: LockFile): Promise<boolean> {
-  try { await fs.access(lock.path); return true; }
-  catch { return false; }
+  return code === "EEXIST";
 }
 
 async function isStale(lock: LockFile, timeoutMs: number): Promise<boolean> {

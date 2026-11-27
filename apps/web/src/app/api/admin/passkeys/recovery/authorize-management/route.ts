@@ -26,7 +26,7 @@ async function recoveryManagementAccess(request: Request): Promise<{ ip: string;
   if (auth.authMethod !== "recovery") return Response.json({ error: "This action is only available to a recovery session" }, { status: 409 });
   const ip = getAdminClientIp(request);
   if (!ip) return Response.json({ error: "Admin authentication is unavailable" }, { status: 503 });
-  const locked = await checkLoginRateLimit(ip);
+  const locked = await checkLoginRateLimit({ ip });
   if (locked) return tooManyAttempts(locked.retryAfterSeconds);
   const token = tokenFromRequest(request);
   const sessionId = token ? await getAdminTokenSessionId({ token }) : null;
@@ -45,13 +45,13 @@ async function confirmRecoveryManagement(access: { ip: string; sessionId: string
   try {
     const authorized = await authorizeRecoverySessionForPasskeyManagement({ code, sessionId: access.sessionId });
     if (!authorized) return rejectedCode(access.ip, "Recovery code is invalid or the session has expired", 401);
-    await clearLoginAttempts(access.ip);
+    await clearLoginAttempts({ ip: access.ip });
     return Response.json({ authorized: true }, { headers: { "Cache-Control": "no-store" } });
   } catch { return Response.json({ error: "Admin authentication storage is unavailable" }, { status: 503 }); }
 }
 
 async function rejectedCode(ip: string, message: string, status: number): Promise<Response> {
-  const throttle = await recordLoginAttempt(ip);
+  const throttle = await recordLoginAttempt({ ip });
   return Response.json({ error: throttle ? "Too many authentication attempts" : message }, {
     status: throttle ? 429 : status,
     headers: throttle ? { "Retry-After": String(throttle.retryAfterSeconds) } : { "Cache-Control": "no-store" },

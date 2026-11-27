@@ -14,7 +14,7 @@ export async function POST(request: Request): Promise<Response> {
 async function processLoginOptions(request: Request): Promise<Response> {
   const ip = getAdminClientIp(request);
   if (!ip) return NextResponse.json({ error: ADMIN_CLIENT_IP_UNAVAILABLE }, { status: 503 });
-  const throttle = await recordPasskeyOptionsRequest(ip);
+  const throttle = await recordPasskeyOptionsRequest({ ip });
   if (throttle) return throttled(throttle.retryAfterSeconds);
   return createOptions(request);
 }

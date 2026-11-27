@@ -145,8 +145,8 @@ describe("admin passkey service", () => {
   it("disables password login after passkey setup without revealing password correctness", async () => {
     vi.stubEnv("ADMIN_PASSWORD", "correct horse");
     await installPasskey({ id: "credential-one", publicKey: "AQID", counter: 0 }, []);
-    const correct = await loginAdmin({ password: "correct horse" });
-    const incorrect = await loginAdmin({ password: "wrong" });
+    const correct = await loginAdmin({ payload: { password: "correct horse" } });
+    const incorrect = await loginAdmin({ payload: { password: "wrong" } });
     expect(correct.status).toBe(401);
     expect(incorrect.status).toBe(401);
     expect(correct.body).toEqual(incorrect.body);

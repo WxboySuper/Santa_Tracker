@@ -21,7 +21,7 @@ export async function POST(req: Request) {
 async function processLoginRequest(req: Request) {
   const ip = getClientIp(req);
   if (!ip) return NextResponse.json({ error: ADMIN_CLIENT_IP_UNAVAILABLE }, { status: 503 });
-  const lockout = await checkLoginRateLimit(ip);
+  const lockout = await checkLoginRateLimit({ ip });
   if (lockout) return throttledResponse({ retryAfterSeconds: lockout.retryAfterSeconds });
   return processLogin({ request: req, ip });
 }
@@ -51,22 +51,22 @@ async function handleMalformedLogin({ ip }: { ip: string }) {
 }
 
 async function countInvalidLogin({ ip }: { ip: string }) {
-  return loginAdmin(null, ip);
+  return loginAdmin({ payload: null, ip });
 }
 
 async function getRetryAfter({ ip }: { ip: string }): Promise<number> {
-  return (await checkLoginRateLimit(ip))?.retryAfterSeconds ?? 900;
+  return (await checkLoginRateLimit({ ip }))?.retryAfterSeconds ?? 900;
 }
 
 async function verifyLogin(input: { request: Request; ip: string; payload: unknown }) {
   const { request, ip, payload } = input;
-  const lockout = checkLoginRateLimitNow(ip);
+  const lockout = checkLoginRateLimitNow({ ip });
   if (lockout) return throttledResponse({ retryAfterSeconds: lockout.retryAfterSeconds });
   if (lockout === undefined) {
-    const asyncLockout = await checkLoginRateLimit(ip);
+    const asyncLockout = await checkLoginRateLimit({ ip });
     if (asyncLockout) return throttledResponse({ retryAfterSeconds: asyncLockout.retryAfterSeconds });
   }
-  const login = loginAdmin(payload, ip);
+  const login = loginAdmin({ payload, ip });
   if (login instanceof Promise) return completeAsyncLogin({ request, login, ip });
   const result = login;
   const failure = await failedLoginLimit({ ip, result });
@@ -89,9 +89,9 @@ async function asyncLoginRejection(input: { result: LoginResult; ip: string }): 
   const failure = await failedLoginLimit({ ip, result });
   if (failure) return throttledResponse({ retryAfterSeconds: failure.retryAfterSeconds });
   if (result.status !== 200) return null;
-  const lockout = await checkLoginRateLimit(ip);
+  const lockout = await checkLoginRateLimit({ ip });
   if (lockout) return throttledLoginResponse({ result, retryAfterSeconds: lockout.retryAfterSeconds });
-  const syncLockout = checkLoginRateLimitNow(ip);
+  const syncLockout = checkLoginRateLimitNow({ ip });
   if (syncLockout) return throttledLoginResponse({ result, retryAfterSeconds: syncLockout.retryAfterSeconds });
   return null;
 }
@@ -113,7 +113,7 @@ async function revokeThrottledLogin(result: Awaited<ReturnType<typeof loginAdmin
 
 async function failedLoginLimit({ ip, result }: { ip: string; result: LoginResult }) {
   if (result.status !== 401 || wasLoginAttemptRecorded(result)) return null;
-  return recordLoginAttempt(ip);
+  return recordLoginAttempt({ ip });
 }
 
 async function readCappedJsonBody(req: Request): Promise<{ kind: "body"; value: unknown } | { kind: "too-large" } | { kind: "invalid" }> {
@@ -165,11 +165,11 @@ function parseJson(bytes: Uint8Array): { kind: "body"; value: unknown } | { kind
 async function setLoginCookie(input: { request: Request; result: LoginResult; ip: string }) {
   const { request, result, ip } = input;
   if (result.status === 429) {
-    const lockout = await checkLoginRateLimit(ip);
+    const lockout = await checkLoginRateLimit({ ip });
     return throttledResponse({ retryAfterSeconds: lockout?.retryAfterSeconds ?? 900 });
   }
   if (result.status !== 200) return respondWith(result);
-  try { await clearLoginAttempts(ip); }
+  try { await clearLoginAttempts({ ip }); }
   catch (error) { console.error("Failed to clear the login throttle after successful authentication", error); }
   const response = respondWith(result);
   const token = result.body.token;

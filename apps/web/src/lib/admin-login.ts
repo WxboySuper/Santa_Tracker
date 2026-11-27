@@ -69,11 +69,11 @@ const loginThrottle = createLoginThrottle({ store: createThrottleStore() });
 const PASSKEY_OPTIONS_REQUEST_LIMIT = 30;
 const passkeyOptionsThrottle = createLoginThrottle({ store: createThrottleStore(), maxAttempts: PASSKEY_OPTIONS_REQUEST_LIMIT + 1 });
 
-export const checkLoginRateLimit = (ip: string) => loginThrottle.check({ ip });
-export const checkLoginRateLimitNow = (ip: string) => loginThrottle.checkNow({ ip });
-export const recordLoginAttempt = (ip: string) => loginThrottle.recordFailure({ ip });
-export const clearLoginAttempts = (ip: string) => loginThrottle.clear({ ip });
-export const recordPasskeyOptionsRequest = (ip: string) => passkeyOptionsThrottle.recordFailure({ ip: `passkey-options:${ip}` });
+export const checkLoginRateLimit = ({ ip }: { ip: string }) => loginThrottle.check({ ip });
+export const checkLoginRateLimitNow = ({ ip }: { ip: string }) => loginThrottle.checkNow({ ip });
+export const recordLoginAttempt = ({ ip }: { ip: string }) => loginThrottle.recordFailure({ ip });
+export const clearLoginAttempts = ({ ip }: { ip: string }) => loginThrottle.clear({ ip });
+export const recordPasskeyOptionsRequest = ({ ip }: { ip: string }) => passkeyOptionsThrottle.recordFailure({ ip: `passkey-options:${ip}` });
 
 const THROTTLE_KEY = "admin-auth/login-throttle.json";
 const MAX_THROTTLE_KEYS = 10_000;
@@ -109,36 +109,36 @@ function latestAttempt(state: ThrottleState): number {
   return state.attempts.at(-1) ?? state.lastLockoutAt;
 }
 
-export async function loginAdmin(payload: unknown, ip?: string): Promise<AdminApiResult> {
+export async function loginAdmin({ payload, ip }: { payload: unknown; ip?: string }): Promise<AdminApiResult> {
   try {
-    return await issueSessionToken(payload, ip);
+    return await issueSessionToken({ payload, ip });
   } catch (error) {
     console.error("Admin login internal error", error);
     return { status: 503, body: { error: "Admin authentication storage is unavailable" } };
   }
 }
 
-async function issueSessionToken(payload: unknown, ip?: string): Promise<AdminApiResult> {
-  const rejection = await passwordLoginRejection(payload, ip);
+async function issueSessionToken({ payload, ip }: { payload: unknown; ip?: string }): Promise<AdminApiResult> {
+  const rejection = await passwordLoginRejection({ payload, ip });
   if (rejection) return rejection;
   return createPasswordSession();
 }
 
-async function passwordLoginRejection(payload: unknown, ip?: string): Promise<AdminApiResult | null> {
-  if (ip && checkLoginRateLimitNow(ip)) return throttleResult();
-  return validatePasswordLogin(payload, ip);
+async function passwordLoginRejection({ payload, ip }: { payload: unknown; ip?: string }): Promise<AdminApiResult | null> {
+  if (ip && checkLoginRateLimitNow({ ip })) return throttleResult();
+  return validatePasswordLogin({ payload, ip });
 }
 
-async function validatePasswordLogin(payload: unknown, ip?: string): Promise<AdminApiResult | null> {
+async function validatePasswordLogin({ payload, ip }: { payload: unknown; ip?: string }): Promise<AdminApiResult | null> {
   const password = extractPassword(payload);
   if (!password) {
-    const limit = ip ? await recordLoginAttempt(ip) : null;
+    const limit = ip ? await recordLoginAttempt({ ip }) : null;
     await appendAuthAudit({ action: "password_login", result: "failure" });
     return limit ? throttleResult() : badRequest("Password required");
   }
   if (!getAdminPassword()) return { status: 500, body: { error: "Admin access not configured" } };
-  if (!verifyAdminPassword({ password: password as string })) return rejectPasswordLogin(ip, "password_login", true);
-  if ((await readAdminAuthState()).passkeys.length > 0) return rejectPasswordLogin(ip, "password_login_disabled", false);
+  if (!verifyAdminPassword({ password: password as string })) return rejectPasswordLogin({ ip, action: "password_login", equalizeStateRead: true });
+  if ((await readAdminAuthState()).passkeys.length > 0) return rejectPasswordLogin({ ip, action: "password_login_disabled", equalizeStateRead: false });
   return null;
 }
 
@@ -155,10 +155,10 @@ function throttleResult(): AdminApiResult {
   return { status: 429, body: { error: "Too many login attempts, please try again later" } };
 }
 
-async function rejectPasswordLogin(ip: string | undefined, action: string, equalizeStateRead: boolean): Promise<AdminApiResult> {
+async function rejectPasswordLogin({ ip, action, equalizeStateRead }: { ip?: string; action: string; equalizeStateRead: boolean }): Promise<AdminApiResult> {
   const result: AdminApiResult = { status: 401, body: { error: "Invalid password" } };
   recordedFailures.add(result);
-  const limit = ip ? await recordLoginAttempt(ip) : null;
+  const limit = ip ? await recordLoginAttempt({ ip }) : null;
   if (equalizeStateRead) await readAdminAuthState();
   await appendAuthAudit({ action, result: "failure" });
   return limit ? { status: 429, body: { error: "Too many login attempts, please try again later" } } : result;

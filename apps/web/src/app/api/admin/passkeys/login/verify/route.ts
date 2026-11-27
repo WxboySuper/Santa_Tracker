@@ -20,9 +20,9 @@ async function processLoginVerification(request: Request): Promise<Response> {
   if (parsed instanceof Response) return parsed;
   try {
     const token = await finishAuthentication({ request, challengeId: parsed.challengeId, response: parsed.response });
-    try { await clearLoginAttempts(parsed.ip); }
+    try { await clearLoginAttempts({ ip: parsed.ip }); }
     catch (error) { console.error("Failed to clear the passkey verification throttle after successful authentication", error); }
-    try { await clearLoginAttempts(`passkey-options:${parsed.ip}`); }
+    try { await clearLoginAttempts({ ip: `passkey-options:${parsed.ip}` }); }
     catch (error) { console.error("Failed to clear the passkey options throttle after successful authentication", error); }
     const response = await responseWithSession(token, { authenticated: true });
     return clearChallengeCookie(response);
@@ -35,7 +35,7 @@ async function processLoginVerification(request: Request): Promise<Response> {
 async function requestIp(request: Request): Promise<string | Response> {
   const ip = getAdminClientIp(request);
   if (!ip) return NextResponse.json({ error: ADMIN_CLIENT_IP_UNAVAILABLE }, { status: 503 });
-  const locked = await checkLoginRateLimit(ip);
+  const locked = await checkLoginRateLimit({ ip });
   if (!locked) return ip;
   await recordPasskeyFailure({ action: "passkey_login_throttled" });
   return tooManyAttempts(locked.retryAfterSeconds);
@@ -59,7 +59,7 @@ async function getRequestSettings(request: Request, ip: string): Promise<ReturnT
 }
 async function failed(ip: string, message: string, status: number): Promise<Response> {
   await recordPasskeyFailure({ action: "passkey_login" });
-  const throttle = await recordLoginAttempt(ip);
+  const throttle = await recordLoginAttempt({ ip });
   const response = NextResponse.json({ error: throttle ? "Too many authentication attempts" : message }, {
     status: throttle ? 429 : status,
     headers: throttle ? { "Retry-After": String(throttle.retryAfterSeconds) } : { "Cache-Control": "no-store" },
