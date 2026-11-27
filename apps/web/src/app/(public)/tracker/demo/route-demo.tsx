@@ -23,8 +23,8 @@ function useDraftRoute(): RouteNode[] {
   useEffect(() => {
     const controller = new AbortController();
     fetch(SOURCE, { signal: controller.signal })
-      .then(response => (response.ok ? response.json<{ route_nodes: unknown }>() : { route_nodes: [] }))
-      .then((data: { route_nodes: unknown }) => setNodes(validRouteNodes(data.route_nodes)))
+      .then(response => (response.ok ? response.json() : { route_nodes: [] }))
+      .then((data: unknown) => setNodes(validRouteNodes((data as { route_nodes?: unknown } | null)?.route_nodes)))
       .catch(() => undefined);
     return () => controller.abort();
   }, []);
