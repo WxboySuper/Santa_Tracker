@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useRef, useState, type Dispatch, type RefObject } from "react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState, type Dispatch, type RefObject } from "react";
 import type { createTranslator } from "@santa-tracker/localization";
 import type { RouteNode } from "@/lib/locations";
 import { routeNodesToContractRoute } from "@/lib/route-bridge";
@@ -12,7 +12,8 @@ import { TvTrackerDashboard } from "./tracker-map-tv";
 import { TrackerToolbar } from "./tracker-chrome";
 import type { TrackerThemeId } from "@/lib/tracker-theme";
 import type { TrackerLayoutId } from "@/lib/tracker-layout";
-import { GlobeView } from "@/components/tracker-globe/globe-view";
+// three.js is large: load the globe only when the globe layout is on screen, so other views and pages stay light.
+const GlobeView = lazy(() => import("@/components/tracker-3d/globe-view").then(module => ({ default: module.GlobeView })));
 import { LayoutChrome } from "./tracker-layouts";
 
 type Translator = ReturnType<typeof createTranslator>;
@@ -160,7 +161,7 @@ export function TrackerMapView(props: TrackerMapViewProps) {
         <button className="tracker-tv-exit" type="button" onClick={toggleTv}>{translator.t("tracker.exitTv")}</button>
       </div> : <>
         {globe && mode !== "text"
-          ? <GlobeView nodes={timedNodes} position={position} adapter={adapter} label={translator.t("tracker.mapLabel")} onStopFollowing={() => setFollowing(false)} onUnavailable={onGlobeUnavailable} />
+          ? <Suspense fallback={<div className="tt-globe" aria-hidden="true" />}><GlobeView nodes={timedNodes} position={position} adapter={adapter} label={translator.t("tracker.mapLabel")} onStopFollowing={() => setFollowing(false)} onUnavailable={onGlobeUnavailable} /></Suspense>
           : <MapSurface mode={mode} element={element} nodes={nodes} position={position} translator={translator} locale={locale} />}
         <TrackerToolbar mode={mode} following={following} dispatch={dispatch} translator={translator} adapter={adapter} setFollowing={setFollowing} immersive={immersive} hidden={immersive && !visible} toggleImmersive={toggleImmersive} toggleTv={toggleTv} />
         <MapInstructions mode={mode} translator={translator} />
