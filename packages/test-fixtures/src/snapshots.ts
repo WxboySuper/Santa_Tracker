@@ -12,6 +12,11 @@ export function createDeterministicSnapshot(overrides: Partial<Snapshot> = {}): 
     validationReport: { valid: true, issueCount: 0, issues: [] },
     createdAtIso: '2026-12-01T00:00:00.000Z',
     checksum: 'sha256:deterministic-checksum-001',
+    seasonalConfig: {
+      mode: 'off-season',
+      flags: { adventEnabled: false, mapEnabled: true, weatherEnabled: false, soundscapeEnabled: false },
+      activeSnapshotId: null,
+    },
     route,
     ...overrides,
   };

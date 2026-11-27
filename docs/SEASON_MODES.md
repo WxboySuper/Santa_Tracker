@@ -23,3 +23,7 @@ An active override replaces only the derived season mode until `expiresAt`. At t
 Season modes describe the product's annual state. The existing emergency switches are separate safety controls for the Advent and tracker feature gates. Hiding a feature through an emergency switch continues to close its public gate regardless of the derived or overridden season mode. A season-mode override does not enable hidden features or change their date windows.
 
 The derived and effective modes are available to admin code only for now. Public pages and APIs continue to use the existing feature gates until a later change adopts season modes deliberately.
+
+## Feature configuration
+
+Feature flags use the registered keys in `@santa-tracker/contracts`. Development, preview, and production keep separate overrides. An expired override returns to its registry default; unknown keys and malformed environment records also return defaults. Admins can preview a candidate flag map at a chosen UTC timestamp with `POST /api/admin/season-config/preview` before saving or publishing it. See [seasonal configuration](SEASONAL_CONFIGURATION.md).
