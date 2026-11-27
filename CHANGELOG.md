@@ -9,6 +9,7 @@
 - **API and E2E contracts:** Groups throttle inputs into named objects and updates Playwright API writes to send the double-submit token with the configured public test origin.
 - **Documentation and tests:** Documents API and origin/RP-ID configuration; tests registration, authentication, one-time recovery, recovery step-up, session revocation, CSRF, and throttling.
 - **Admin screens:** The emergency switches and route simulator send the `X-CSRF-Token` header (read from the `admin_csrf` cookie) on their changes, through a shared `adminCsrfHeaders()` helper.
+- **Production config:** Sets `ADMIN_WEBAUTHN_RP_ID` and `ADMIN_WEBAUTHN_ORIGIN` for santa.weatherboysuper.com in the Worker vars, so passkeys work in production instead of failing closed.
 
 ## [Unreleased] - Version IDs sort in creation order
 

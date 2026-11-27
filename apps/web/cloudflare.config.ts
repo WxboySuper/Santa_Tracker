@@ -30,6 +30,8 @@ export default defineConfig({
       ADVENT_ENABLED: bindings.text("true"),
       WEATHER_ENABLED: bindings.text("true"),
       ADVENT_FALLBACKS_ENABLED: bindings.text("true"),
+      ADMIN_WEBAUTHN_RP_ID: bindings.text("santa.weatherboysuper.com"),
+      ADMIN_WEBAUTHN_ORIGIN: bindings.text("https://santa.weatherboysuper.com"),
     },
   }),
 });
