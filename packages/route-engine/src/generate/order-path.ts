@@ -65,6 +65,7 @@ type HardDetourSearch = { order: TimedCandidate[]; currentHardDetours: number; c
 
 function considerHardDetourTwoOpt(search: HardDetourSearch, left: number, right: number): void {
   const proposal = moveTwoOpt(search.order, left, right);
+  if (!antarcticStopsAtOffsetBandEdge(proposal)) return;
   if (hardDetourCount(proposal) >= search.currentHardDetours || eastwardCount(proposal) > search.currentEastward) return;
   const distance = pathDistance(proposal);
   if (distance >= search.bestDistance || !search.accepts(proposal)) return;
@@ -118,6 +119,7 @@ function reduceEastwardAt(best: TimedCandidate[], index: number, config: Generat
   const firstPosition = Math.max(1, index - 1 - 6);
   for (let target = index - 1; target >= firstPosition; target--) {
     const proposal = moveOrOpt(best, index, target);
+    if (!antarcticStopsAtOffsetBandEdge(proposal)) continue;
     if (!reducesBacktracking(proposal, priorEastward, priorDetours)) continue;
     const plan = planTiming(proposal, config);
     if (plan) return plan.places;
@@ -200,6 +202,7 @@ export function improveWithLocalSearch(initial: TimedCandidate[], config: Genera
     const second = 1 + Math.floor(random() * Math.max(1, best.length - 1));
     if (!sameOffsetBand(best, first, second)) continue;
     const proposal = localProposal(best, first, second, random);
+    if (!antarcticStopsAtOffsetBandEdge(proposal)) continue;
     const cost = routeCost(proposal);
     if (!canAcceptLocalProposal(cost, bestCost)) continue;
     const planned = planTiming(proposal, config);
@@ -212,6 +215,23 @@ export function improveWithLocalSearch(initial: TimedCandidate[], config: Genera
 
 function unwrappedWestwardLongitude(place: Candidate, launch: Candidate): number {
   return place.lng + 360 * Math.floor((launch.lng - place.lng) / 360);
+}
+
+function isAntarcticStop(place: Candidate): boolean {
+  return place.country === 'AQ';
+}
+
+function antarcticStopsAtOffsetBandEdge(order: Candidate[]): boolean {
+  for (const [index, place] of order.entries()) {
+    if (!isAntarcticStop(place)) continue;
+    const offset = requiredSnapshotOffset(place);
+    const sameBandBefore = order.slice(0, index).some((candidate) =>
+      requiredSnapshotOffset(candidate) === offset && !isAntarcticStop(candidate));
+    const sameBandAfter = order.slice(index + 1).some((candidate) =>
+      requiredSnapshotOffset(candidate) === offset && !isAntarcticStop(candidate));
+    if (sameBandBefore && sameBandAfter) return false;
+  }
+  return true;
 }
 
 export function bandedBoustrophedonOrder(places: Candidate[], launch: Candidate, config: GeneratorConfig): Candidate[] {
@@ -229,9 +249,15 @@ export function bandedBoustrophedonOrder(places: Candidate[], launch: Candidate,
   [...bands.entries()].sort(([left], [right]) => right - left).forEach(([, placesInBand], offsetBandIndex) => {
     const latitudeDirection: -1 | 1 = offsetBandIndex % 2 === 0 ? -1 : 1;
     ordered.push(...placesInBand.sort((left, right) => {
+      // Keep the polar coverage stop at the edge of its band so it cannot
+      // divide the adjacent South Pacific island chain into two long legs.
+      const polarPriority = Number(isAntarcticStop(left)) - Number(isAntarcticStop(right));
+      if (polarPriority !== 0) return polarPriority;
+      const latitudeDifference = (left.lat - right.lat) * latitudeDirection;
+      if (Math.abs(latitudeDifference) > 0.25) return latitudeDifference;
       const longitudeDifference = unwrappedWestwardLongitude(right, launch) - unwrappedWestwardLongitude(left, launch);
       if (Math.abs(longitudeDifference) > 0.25) return longitudeDifference;
-      return (left.lat - right.lat) * latitudeDirection || compareStableIds(left.id, right.id);
+      return compareStableIds(left.id, right.id);
     }));
   });
   return improveBandedPath(ordered, config, sweepBandById);
@@ -271,6 +297,7 @@ function bandPathScore(order: Candidate[], config: GeneratorConfig): BandPathSco
 type BandProposalOptions = { proposal: Candidate[]; current: BandPathScore; search: BandPathSearch; config: GeneratorConfig };
 
 function considerBandProposal({ proposal, current, search, config }: BandProposalOptions): void {
+  if (!antarcticStopsAtOffsetBandEdge(proposal)) return;
   const score = bandPathScore(proposal, config);
   if (score.hardDetours > current.hardDetours || score.eastward > current.eastward) return;
   if (score.hardDetours === current.hardDetours && score.detours > current.detours) return;
@@ -446,6 +473,7 @@ function repositionTargets(order: Candidate[], index: number): number[] {
 function repairDetourReposition({ proposal, currentCount, currentEastward, eastwardLimit, config, accepts }: DetourRepairContext & {
   proposal: Candidate[];
 }): Candidate[] | undefined {
+  if (!antarcticStopsAtOffsetBandEdge(proposal)) return undefined;
   if (hardDetourCount(proposal) >= currentCount) return undefined;
   const initialPlan = planTiming(proposal, config);
   if (!initialPlan) return undefined;

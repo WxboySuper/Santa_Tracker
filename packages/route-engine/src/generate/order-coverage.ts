@@ -88,6 +88,20 @@ function placeFitsNeighborBand(state: InsertionState, place: Candidate, index: n
   const before = index > 0 ? state.route[index - 1] : undefined;
   const after = state.route[index];
   const offset = requiredSnapshotOffset(place);
+  let lastOffsetIndex = -1;
+  let lastAntarcticIndex = -1;
+  for (const [candidateIndex, candidate] of state.route.entries()) {
+    if (requiredSnapshotOffset(candidate) !== offset) continue;
+    lastOffsetIndex = candidateIndex;
+    if (candidate.country === 'AQ') lastAntarcticIndex = candidateIndex;
+  }
+  if (place.country === 'AQ') {
+    if (lastOffsetIndex >= 0) return index === lastOffsetIndex + 1;
+    return (!before || requiredSnapshotOffset(before) >= offset)
+      && (!after || requiredSnapshotOffset(after) <= offset);
+  } else if (lastAntarcticIndex >= 0 && index > lastAntarcticIndex) {
+    return false;
+  }
   const neighbors = [before, after].filter((candidate): candidate is TimedCandidate => candidate !== undefined);
   return neighbors.every((candidate) => Math.abs(requiredSnapshotOffset(candidate) - offset) <= pass.bandSpreadMinutes);
 }
@@ -154,9 +168,8 @@ export function insertFeasibleCandidates(initial: TimedCandidate[], pool: Candid
 export function insertCountryCoverage(initial: TimedCandidate[], pool: Candidate[], config: GeneratorConfig): TimedCandidate[] {
   const pass: InsertionPass = {
     config,
-    // Overlapping local windows make a feasible country representative
-    // possible outside the two nearest offset bands. planOrder still checks
-    // every arrival, eastward exception, detour, speed and return constraint.
+    // Coverage may use an overlapping local window outside the nearest bands;
+    // planTiming still validates every arrival and reasoned eastward move.
     bandSpreadMinutes: Number.POSITIVE_INFINITY,
     coverageOnly: true,
     maxPositionAttempts: 40,

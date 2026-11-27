@@ -69,7 +69,83 @@
       "priority": 2
     },
     {
-      "id": "stop_7d70pt_001",
+      "id": "stop_zju3ib_001",
+      "type": "DELIVERY",
+      "comment": "populated",
+      "candidate_id": "ne-1159151739",
+      "location": {
+        "name": "Atafu",
+        "region": "Tokelau",
+        "country_code": "TK",
+        "timezone": "Pacific/Fakaofo",
+        "lat": -8.5486182,
+        "lng": -172.4976654,
+        "timezone_offset": 13
+      },
+      "schedule": {
+        "arrival_utc": "2026-12-24T10:37:06.000Z",
+        "departure_utc": "2026-12-24T10:37:09.000Z",
+        "local_arrival_time": "23:37",
+        "time_window_status": "GREEN"
+      },
+      "stop_experience": {
+        "duration_seconds": 3,
+        "stop_tier": "hop",
+        "camera_zoom": 14,
+        "weather_condition": "clear",
+        "presents_delivered_at_stop": 1
+      },
+      "transit_to_here": {
+        "description": "Flight to Atafu",
+        "duration_seconds": 381,
+        "distance_km": 2009.6,
+        "speed_curve": "HYPERSONIC",
+        "speed_kmh": 18988,
+        "camera_zoom": 9
+      },
+      "notes": "https://www.naturalearthdata.com/downloads/10m-cultural-vectors/10m-populated-places/",
+      "priority": 2
+    },
+    {
+      "id": "stop_n204up_002",
+      "type": "DELIVERY",
+      "comment": "underserved",
+      "candidate_id": "ne-1159149071",
+      "location": {
+        "name": "Funafuti",
+        "region": "Tuvalu",
+        "country_code": "TV",
+        "timezone": "Pacific/Funafuti",
+        "lat": -8.516652,
+        "lng": 179.2166471,
+        "timezone_offset": 12
+      },
+      "schedule": {
+        "arrival_utc": "2026-12-24T11:00:00.000Z",
+        "departure_utc": "2026-12-24T11:00:03.000Z",
+        "local_arrival_time": "23:00",
+        "time_window_status": "GREEN"
+      },
+      "stop_experience": {
+        "duration_seconds": 3,
+        "stop_tier": "hop",
+        "camera_zoom": 14,
+        "weather_condition": "clear",
+        "presents_delivered_at_stop": 1
+      },
+      "transit_to_here": {
+        "description": "Flight to Funafuti",
+        "duration_seconds": 206,
+        "distance_km": 911.12,
+        "speed_curve": "HYPERSONIC",
+        "speed_kmh": 15922,
+        "camera_zoom": 9
+      },
+      "notes": "https://www.naturalearthdata.com/downloads/10m-cultural-vectors/10m-populated-places/",
+      "priority": 2
+    },
+    {
+      "id": "stop_7d70pt_003",
       "type": "DELIVERY",
       "comment": "underserved",
       "candidate_id": "ne-1159151197",
@@ -83,9 +159,9 @@
         "timezone_offset": 13
       },
       "schedule": {
-        "arrival_utc": "2026-12-24T10:38:20.000Z",
-        "departure_utc": "2026-12-24T10:38:30.000Z",
-        "local_arrival_time": "23:38",
+        "arrival_utc": "2026-12-24T11:04:22.000Z",
+        "departure_utc": "2026-12-24T11:04:32.000Z",
+        "local_arrival_time": "00:04",
         "time_window_status": "GREEN"
       },
       "stop_experience": {
@@ -97,128 +173,52 @@
       },
       "transit_to_here": {
         "description": "Flight to Apia",
-        "duration_seconds": 455,
-        "distance_km": 2400.02,
+        "duration_seconds": 259,
+        "distance_km": 1147.18,
         "speed_curve": "HYPERSONIC",
-        "speed_kmh": 18989,
-        "camera_zoom": 9
-      },
-      "notes": "https://www.naturalearthdata.com/downloads/10m-cultural-vectors/10m-populated-places/",
-      "priority": 2
-    },
-    {
-      "id": "stop_13foj7x_002",
-      "type": "DELIVERY",
-      "comment": "populated",
-      "candidate_id": "ne-1159151737",
-      "location": {
-        "name": "Waitangi",
-        "region": "New Zealand",
-        "country_code": "NZ",
-        "timezone": "Pacific/Chatham",
-        "lat": -44.03266464895095,
-        "lng": -176.35075368252146,
-        "timezone_offset": 13.75
-      },
-      "schedule": {
-        "arrival_utc": "2026-12-24T10:49:12.000Z",
-        "departure_utc": "2026-12-24T10:49:15.000Z",
-        "local_arrival_time": "00:34",
-        "time_window_status": "GREEN"
-      },
-      "stop_experience": {
-        "duration_seconds": 3,
-        "stop_tier": "hop",
-        "camera_zoom": 14,
-        "weather_condition": "clear",
-        "presents_delivered_at_stop": 1
-      },
-      "transit_to_here": {
-        "description": "Flight to Waitangi",
-        "duration_seconds": 642,
-        "distance_km": 3385.91,
-        "speed_curve": "HYPERSONIC",
-        "speed_kmh": 18986,
-        "camera_zoom": 9
-      },
-      "notes": "https://www.naturalearthdata.com/downloads/10m-cultural-vectors/10m-populated-places/",
-      "priority": 2
-    },
-    {
-      "id": "stop_1p5g6ye_003",
-      "type": "DELIVERY",
-      "comment": "populated",
-      "candidate_id": "ne-1159146079",
-      "location": {
-        "name": "Zucchelli Station",
-        "region": "Antarctica",
-        "country_code": "AQ",
-        "timezone": "Antarctica/McMurdo",
-        "lat": -74.6191926,
-        "lng": 164.2190271,
-        "timezone_offset": 13
-      },
-      "schedule": {
-        "arrival_utc": "2026-12-24T11:00:25.000Z",
-        "departure_utc": "2026-12-24T11:00:28.000Z",
-        "local_arrival_time": "00:00",
-        "time_window_status": "GREEN"
-      },
-      "stop_experience": {
-        "duration_seconds": 3,
-        "stop_tier": "hop",
-        "camera_zoom": 14,
-        "weather_condition": "clear",
-        "presents_delivered_at_stop": 1
-      },
-      "transit_to_here": {
-        "description": "Flight to Zucchelli Station",
-        "duration_seconds": 670,
-        "distance_km": 3534.69,
-        "speed_curve": "HYPERSONIC",
-        "speed_kmh": 18992,
-        "camera_zoom": 9
-      },
-      "notes": "https://www.naturalearthdata.com/downloads/10m-cultural-vectors/10m-populated-places/",
-      "priority": 2
-    },
-    {
-      "id": "stop_rv6pbe_004",
-      "type": "DELIVERY",
-      "comment": "underserved",
-      "candidate_id": "ne-1159146039",
-      "location": {
-        "name": "Neiafu",
-        "region": "Tonga",
-        "country_code": "TO",
-        "timezone": "Pacific/Tongatapu",
-        "lat": -18.6495735,
-        "lng": -173.9832927,
-        "timezone_offset": 13
-      },
-      "schedule": {
-        "arrival_utc": "2026-12-24T11:20:34.000Z",
-        "departure_utc": "2026-12-24T11:20:44.000Z",
-        "local_arrival_time": "00:20",
-        "time_window_status": "GREEN"
-      },
-      "stop_experience": {
-        "duration_seconds": 10,
-        "stop_tier": "town",
-        "camera_zoom": 14,
-        "weather_condition": "clear",
-        "presents_delivered_at_stop": 1
-      },
-      "transit_to_here": {
-        "description": "Flight to Neiafu",
-        "duration_seconds": 1206,
-        "distance_km": 6360.69,
-        "speed_curve": "HYPERSONIC",
-        "speed_kmh": 18987,
+        "speed_kmh": 15945,
         "camera_zoom": 9,
-        "eastward_reason": "dateline"
+        "eastward_reason": "offset-anomaly"
       },
       "notes": "https://www.naturalearthdata.com/downloads/10m-cultural-vectors/10m-populated-places/",
+      "priority": 2
+    },
+    {
+      "id": "stop_15wubic_004",
+      "type": "DELIVERY",
+      "comment": "special",
+      "candidate_id": "Q31002",
+      "location": {
+        "name": "Mata-Utu",
+        "region": "Wallis & Futuna",
+        "country_code": "WF",
+        "timezone": "Pacific/Wallis",
+        "lat": -13.2827,
+        "lng": -176.1737,
+        "timezone_offset": 12
+      },
+      "schedule": {
+        "arrival_utc": "2026-12-24T11:06:21.000Z",
+        "departure_utc": "2026-12-24T11:07:21.000Z",
+        "local_arrival_time": "23:06",
+        "time_window_status": "GREEN"
+      },
+      "stop_experience": {
+        "duration_seconds": 60,
+        "stop_tier": "major",
+        "camera_zoom": 14,
+        "weather_condition": "clear",
+        "presents_delivered_at_stop": 1
+      },
+      "transit_to_here": {
+        "description": "Flight to Mata-Utu",
+        "duration_seconds": 109,
+        "distance_km": 480.12,
+        "speed_curve": "HYPERSONIC",
+        "speed_kmh": 15857,
+        "camera_zoom": 9
+      },
+      "notes": "https://www.wikidata.org/wiki/Q31002",
       "priority": 2
     },
     {
@@ -236,9 +236,9 @@
         "timezone_offset": 13
       },
       "schedule": {
-        "arrival_utc": "2026-12-24T11:21:53.000Z",
-        "departure_utc": "2026-12-24T11:22:03.000Z",
-        "local_arrival_time": "00:21",
+        "arrival_utc": "2026-12-24T11:10:39.000Z",
+        "departure_utc": "2026-12-24T11:10:49.000Z",
+        "local_arrival_time": "00:10",
         "time_window_status": "GREEN"
       },
       "stop_experience": {
@@ -250,10 +250,10 @@
       },
       "transit_to_here": {
         "description": "Flight to Nuku'alofa",
-        "duration_seconds": 69,
-        "distance_km": 305.5,
+        "duration_seconds": 198,
+        "distance_km": 879.36,
         "speed_curve": "HYPERSONIC",
-        "speed_kmh": 15939,
+        "speed_kmh": 15988,
         "camera_zoom": 9
       },
       "notes": "https://www.naturalearthdata.com/downloads/10m-cultural-vectors/10m-populated-places/",
@@ -274,9 +274,9 @@
         "timezone_offset": 12
       },
       "schedule": {
-        "arrival_utc": "2026-12-24T11:24:51.000Z",
-        "departure_utc": "2026-12-24T11:25:21.000Z",
-        "local_arrival_time": "23:24",
+        "arrival_utc": "2026-12-24T11:13:37.000Z",
+        "departure_utc": "2026-12-24T11:14:07.000Z",
+        "local_arrival_time": "23:13",
         "time_window_status": "GREEN"
       },
       "stop_experience": {
@@ -312,9 +312,9 @@
         "timezone_offset": 12
       },
       "schedule": {
-        "arrival_utc": "2026-12-24T11:25:47.000Z",
-        "departure_utc": "2026-12-24T11:25:57.000Z",
-        "local_arrival_time": "23:25",
+        "arrival_utc": "2026-12-24T11:14:33.000Z",
+        "departure_utc": "2026-12-24T11:14:43.000Z",
+        "local_arrival_time": "23:14",
         "time_window_status": "GREEN"
       },
       "stop_experience": {
@@ -336,7 +336,45 @@
       "priority": 2
     },
     {
-      "id": "stop_stdm14_008",
+      "id": "stop_152aeoi_008",
+      "type": "DELIVERY",
+      "comment": "underserved",
+      "candidate_id": "ne-1159141885",
+      "location": {
+        "name": "Lautoka",
+        "region": "Fiji",
+        "country_code": "FJ",
+        "timezone": "Pacific/Fiji",
+        "lat": -17.6160966,
+        "lng": 177.4666247,
+        "timezone_offset": 12
+      },
+      "schedule": {
+        "arrival_utc": "2026-12-24T11:14:48.000Z",
+        "departure_utc": "2026-12-24T11:14:58.000Z",
+        "local_arrival_time": "23:14",
+        "time_window_status": "GREEN"
+      },
+      "stop_experience": {
+        "duration_seconds": 10,
+        "stop_tier": "town",
+        "camera_zoom": 14,
+        "weather_condition": "clear",
+        "presents_delivered_at_stop": 1
+      },
+      "transit_to_here": {
+        "description": "Flight to Lautoka",
+        "duration_seconds": 5,
+        "distance_km": 21.08,
+        "speed_curve": "HYPERSONIC",
+        "speed_kmh": 15179,
+        "camera_zoom": 9
+      },
+      "notes": "https://www.naturalearthdata.com/downloads/10m-cultural-vectors/10m-populated-places/",
+      "priority": 2
+    },
+    {
+      "id": "stop_stdm14_009",
       "type": "DELIVERY",
       "comment": "underserved",
       "candidate_id": "ne-1159150579",
@@ -364,93 +402,17 @@
       },
       "transit_to_here": {
         "description": "Flight to Port Vila",
-        "duration_seconds": 217,
-        "distance_km": 963.55,
+        "duration_seconds": 219,
+        "distance_km": 969.4,
         "speed_curve": "HYPERSONIC",
-        "speed_kmh": 15985,
+        "speed_kmh": 15935,
         "camera_zoom": 9
       },
       "notes": "https://www.naturalearthdata.com/downloads/10m-cultural-vectors/10m-populated-places/",
       "priority": 2
     },
     {
-      "id": "stop_que17c_009",
-      "type": "DELIVERY",
-      "comment": "special",
-      "candidate_id": "Q2740764",
-      "location": {
-        "name": "Burnt Pine",
-        "region": "Norfolk Island",
-        "country_code": "NF",
-        "timezone": "Pacific/Norfolk",
-        "lat": -29.033333333333,
-        "lng": 167.95,
-        "timezone_offset": 12
-      },
-      "schedule": {
-        "arrival_utc": "2026-12-24T12:04:53.000Z",
-        "departure_utc": "2026-12-24T12:05:53.000Z",
-        "local_arrival_time": "00:04",
-        "time_window_status": "GREEN"
-      },
-      "stop_experience": {
-        "duration_seconds": 60,
-        "stop_tier": "major",
-        "camera_zoom": 14,
-        "weather_condition": "clear",
-        "presents_delivered_at_stop": 1
-      },
-      "transit_to_here": {
-        "description": "Flight to Burnt Pine",
-        "duration_seconds": 283,
-        "distance_km": 1257.06,
-        "speed_curve": "HYPERSONIC",
-        "speed_kmh": 15991,
-        "camera_zoom": 9
-      },
-      "notes": "https://www.wikidata.org/wiki/Q2740764",
-      "priority": 2
-    },
-    {
-      "id": "stop_1tioctw_010",
-      "type": "DELIVERY",
-      "comment": "underserved",
-      "candidate_id": "ne-1159146907",
-      "location": {
-        "name": "Nouméa",
-        "region": "New Caledonia",
-        "country_code": "NC",
-        "timezone": "Pacific/Noumea",
-        "lat": -22.2625278,
-        "lng": 166.4442852,
-        "timezone_offset": 11
-      },
-      "schedule": {
-        "arrival_utc": "2026-12-24T12:08:46.000Z",
-        "departure_utc": "2026-12-24T12:08:56.000Z",
-        "local_arrival_time": "23:08",
-        "time_window_status": "GREEN"
-      },
-      "stop_experience": {
-        "duration_seconds": 10,
-        "stop_tier": "town",
-        "camera_zoom": 14,
-        "weather_condition": "clear",
-        "presents_delivered_at_stop": 1
-      },
-      "transit_to_here": {
-        "description": "Flight to Nouméa",
-        "duration_seconds": 173,
-        "distance_km": 767.83,
-        "speed_curve": "HYPERSONIC",
-        "speed_kmh": 15978,
-        "camera_zoom": 9
-      },
-      "notes": "https://www.naturalearthdata.com/downloads/10m-cultural-vectors/10m-populated-places/",
-      "priority": 2
-    },
-    {
-      "id": "stop_xsqpgn_011",
+      "id": "stop_xsqpgn_010",
       "type": "DELIVERY",
       "comment": "underserved",
       "candidate_id": "ne-1159134859",
@@ -464,9 +426,9 @@
         "timezone_offset": 11
       },
       "schedule": {
-        "arrival_utc": "2026-12-24T12:11:46.000Z",
-        "departure_utc": "2026-12-24T12:11:56.000Z",
-        "local_arrival_time": "23:11",
+        "arrival_utc": "2026-12-24T12:01:12.000Z",
+        "departure_utc": "2026-12-24T12:01:22.000Z",
+        "local_arrival_time": "23:01",
         "time_window_status": "GREEN"
       },
       "stop_experience": {
@@ -478,148 +440,33 @@
       },
       "transit_to_here": {
         "description": "Flight to Luganville",
-        "duration_seconds": 170,
-        "distance_km": 754.5,
+        "duration_seconds": 62,
+        "distance_km": 275.19,
         "speed_curve": "HYPERSONIC",
-        "speed_kmh": 15978,
+        "speed_kmh": 15979,
         "camera_zoom": 9
       },
       "notes": "https://www.naturalearthdata.com/downloads/10m-cultural-vectors/10m-populated-places/",
       "priority": 2
     },
     {
-      "id": "stop_zju3ib_012",
-      "type": "DELIVERY",
-      "comment": "populated",
-      "candidate_id": "ne-1159151739",
-      "location": {
-        "name": "Atafu",
-        "region": "Tokelau",
-        "country_code": "TK",
-        "timezone": "Pacific/Fakaofo",
-        "lat": -8.5486182,
-        "lng": -172.4976654,
-        "timezone_offset": 13
-      },
-      "schedule": {
-        "arrival_utc": "2026-12-24T12:19:20.000Z",
-        "departure_utc": "2026-12-24T12:19:23.000Z",
-        "local_arrival_time": "01:19",
-        "time_window_status": "GREEN"
-      },
-      "stop_experience": {
-        "duration_seconds": 3,
-        "stop_tier": "hop",
-        "camera_zoom": 14,
-        "weather_condition": "clear",
-        "presents_delivered_at_stop": 1
-      },
-      "transit_to_here": {
-        "description": "Flight to Atafu",
-        "duration_seconds": 444,
-        "distance_km": 2340.24,
-        "speed_curve": "HYPERSONIC",
-        "speed_kmh": 18975,
-        "camera_zoom": 9,
-        "eastward_reason": "offset-anomaly"
-      },
-      "notes": "https://www.naturalearthdata.com/downloads/10m-cultural-vectors/10m-populated-places/",
-      "priority": 2
-    },
-    {
-      "id": "stop_15wubic_013",
-      "type": "DELIVERY",
-      "comment": "special",
-      "candidate_id": "Q31002",
-      "location": {
-        "name": "Mata-Utu",
-        "region": "Wallis & Futuna",
-        "country_code": "WF",
-        "timezone": "Pacific/Wallis",
-        "lat": -13.2827,
-        "lng": -176.1737,
-        "timezone_offset": 12
-      },
-      "schedule": {
-        "arrival_utc": "2026-12-24T12:21:52.000Z",
-        "departure_utc": "2026-12-24T12:22:52.000Z",
-        "local_arrival_time": "00:21",
-        "time_window_status": "GREEN"
-      },
-      "stop_experience": {
-        "duration_seconds": 60,
-        "stop_tier": "major",
-        "camera_zoom": 14,
-        "weather_condition": "clear",
-        "presents_delivered_at_stop": 1
-      },
-      "transit_to_here": {
-        "description": "Flight to Mata-Utu",
-        "duration_seconds": 149,
-        "distance_km": 661.88,
-        "speed_curve": "HYPERSONIC",
-        "speed_kmh": 15992,
-        "camera_zoom": 9
-      },
-      "notes": "https://www.wikidata.org/wiki/Q31002",
-      "priority": 2
-    },
-    {
-      "id": "stop_n204up_014",
+      "id": "stop_1tioctw_011",
       "type": "DELIVERY",
       "comment": "underserved",
-      "candidate_id": "ne-1159149071",
+      "candidate_id": "ne-1159146907",
       "location": {
-        "name": "Funafuti",
-        "region": "Tuvalu",
-        "country_code": "TV",
-        "timezone": "Pacific/Funafuti",
-        "lat": -8.516652,
-        "lng": 179.2166471,
-        "timezone_offset": 12
+        "name": "Nouméa",
+        "region": "New Caledonia",
+        "country_code": "NC",
+        "timezone": "Pacific/Noumea",
+        "lat": -22.2625278,
+        "lng": 166.4442852,
+        "timezone_offset": 11
       },
       "schedule": {
-        "arrival_utc": "2026-12-24T12:25:37.000Z",
-        "departure_utc": "2026-12-24T12:25:40.000Z",
-        "local_arrival_time": "00:25",
-        "time_window_status": "GREEN"
-      },
-      "stop_experience": {
-        "duration_seconds": 3,
-        "stop_tier": "hop",
-        "camera_zoom": 14,
-        "weather_condition": "clear",
-        "presents_delivered_at_stop": 1
-      },
-      "transit_to_here": {
-        "description": "Flight to Funafuti",
-        "duration_seconds": 165,
-        "distance_km": 730.77,
-        "speed_curve": "HYPERSONIC",
-        "speed_kmh": 15944,
-        "camera_zoom": 9
-      },
-      "notes": "https://www.naturalearthdata.com/downloads/10m-cultural-vectors/10m-populated-places/",
-      "priority": 2
-    },
-    {
-      "id": "stop_ku3bax_015",
-      "type": "DELIVERY",
-      "comment": "populated",
-      "candidate_id": "ne-1159149079",
-      "location": {
-        "name": "Tarawa",
-        "region": "Kiribati",
-        "country_code": "KI",
-        "timezone": "Pacific/Tarawa",
-        "lat": 1.3381875,
-        "lng": 173.0175708,
-        "timezone_offset": 12
-      },
-      "schedule": {
-        "arrival_utc": "2026-12-24T12:30:32.000Z",
-        "departure_utc": "2026-12-24T12:30:42.000Z",
-        "local_arrival_time": "00:30",
+        "arrival_utc": "2026-12-24T12:04:12.000Z",
+        "departure_utc": "2026-12-24T12:04:22.000Z",
+        "local_arrival_time": "23:04",
         "time_window_status": "GREEN"
       },
       "stop_experience": {
@@ -630,18 +477,212 @@
         "presents_delivered_at_stop": 1
       },
       "transit_to_here": {
-        "description": "Flight to Tarawa",
-        "duration_seconds": 292,
-        "distance_km": 1293.41,
+        "description": "Flight to Nouméa",
+        "duration_seconds": 170,
+        "distance_km": 754.5,
         "speed_curve": "HYPERSONIC",
-        "speed_kmh": 15946,
+        "speed_kmh": 15978,
         "camera_zoom": 9
       },
       "notes": "https://www.naturalearthdata.com/downloads/10m-cultural-vectors/10m-populated-places/",
       "priority": 2
     },
     {
-      "id": "stop_1o8m1ay_016",
+      "id": "stop_que17c_012",
+      "type": "DELIVERY",
+      "comment": "special",
+      "candidate_id": "Q2740764",
+      "location": {
+        "name": "Burnt Pine",
+        "region": "Norfolk Island",
+        "country_code": "NF",
+        "timezone": "Pacific/Norfolk",
+        "lat": -29.033333333333,
+        "lng": 167.95,
+        "timezone_offset": 12
+      },
+      "schedule": {
+        "arrival_utc": "2026-12-24T12:07:15.000Z",
+        "departure_utc": "2026-12-24T12:08:15.000Z",
+        "local_arrival_time": "00:07",
+        "time_window_status": "GREEN"
+      },
+      "stop_experience": {
+        "duration_seconds": 60,
+        "stop_tier": "major",
+        "camera_zoom": 14,
+        "weather_condition": "clear",
+        "presents_delivered_at_stop": 1
+      },
+      "transit_to_here": {
+        "description": "Flight to Burnt Pine",
+        "duration_seconds": 173,
+        "distance_km": 767.83,
+        "speed_curve": "HYPERSONIC",
+        "speed_kmh": 15978,
+        "camera_zoom": 9,
+        "eastward_reason": "offset-anomaly"
+      },
+      "notes": "https://www.wikidata.org/wiki/Q2740764",
+      "priority": 2
+    },
+    {
+      "id": "stop_13foj7x_013",
+      "type": "DELIVERY",
+      "comment": "populated",
+      "candidate_id": "ne-1159151737",
+      "location": {
+        "name": "Waitangi",
+        "region": "New Zealand",
+        "country_code": "NZ",
+        "timezone": "Pacific/Chatham",
+        "lat": -44.03266464895095,
+        "lng": -176.35075368252146,
+        "timezone_offset": 13.75
+      },
+      "schedule": {
+        "arrival_utc": "2026-12-24T12:15:07.000Z",
+        "departure_utc": "2026-12-24T12:15:10.000Z",
+        "local_arrival_time": "02:00",
+        "time_window_status": "GREEN"
+      },
+      "stop_experience": {
+        "duration_seconds": 3,
+        "stop_tier": "hop",
+        "camera_zoom": 14,
+        "weather_condition": "clear",
+        "presents_delivered_at_stop": 1
+      },
+      "transit_to_here": {
+        "description": "Flight to Waitangi",
+        "duration_seconds": 412,
+        "distance_km": 2171.4,
+        "speed_curve": "HYPERSONIC",
+        "speed_kmh": 18973,
+        "camera_zoom": 9,
+        "eastward_reason": "offset-anomaly"
+      },
+      "notes": "https://www.naturalearthdata.com/downloads/10m-cultural-vectors/10m-populated-places/",
+      "priority": 2
+    },
+    {
+      "id": "stop_18k8onx_014",
+      "type": "DELIVERY",
+      "comment": "populated",
+      "candidate_id": "ne-1159151171",
+      "location": {
+        "name": "Hobart",
+        "region": "Australia",
+        "country_code": "AU",
+        "admin1_code": "AU-TAS",
+        "timezone": "Australia/Hobart",
+        "lat": -42.8500085,
+        "lng": 147.2950297,
+        "timezone_offset": 11
+      },
+      "schedule": {
+        "arrival_utc": "2026-12-24T12:26:06.000Z",
+        "departure_utc": "2026-12-24T12:26:16.000Z",
+        "local_arrival_time": "23:26",
+        "time_window_status": "GREEN"
+      },
+      "stop_experience": {
+        "duration_seconds": 10,
+        "stop_tier": "town",
+        "camera_zoom": 14,
+        "weather_condition": "clear",
+        "presents_delivered_at_stop": 1
+      },
+      "transit_to_here": {
+        "description": "Flight to Hobart",
+        "duration_seconds": 656,
+        "distance_km": 2914.16,
+        "speed_curve": "HYPERSONIC",
+        "speed_kmh": 15992,
+        "camera_zoom": 9
+      },
+      "notes": "https://www.naturalearthdata.com/downloads/10m-cultural-vectors/10m-populated-places/",
+      "priority": 2
+    },
+    {
+      "id": "stop_1p5g6ye_015",
+      "type": "DELIVERY",
+      "comment": "populated",
+      "candidate_id": "ne-1159146079",
+      "location": {
+        "name": "Zucchelli Station",
+        "region": "Antarctica",
+        "country_code": "AQ",
+        "timezone": "Antarctica/McMurdo",
+        "lat": -74.6191926,
+        "lng": 164.2190271,
+        "timezone_offset": 13
+      },
+      "schedule": {
+        "arrival_utc": "2026-12-24T12:37:45.000Z",
+        "departure_utc": "2026-12-24T12:37:48.000Z",
+        "local_arrival_time": "01:37",
+        "time_window_status": "GREEN"
+      },
+      "stop_experience": {
+        "duration_seconds": 3,
+        "stop_tier": "hop",
+        "camera_zoom": 14,
+        "weather_condition": "clear",
+        "presents_delivered_at_stop": 1
+      },
+      "transit_to_here": {
+        "description": "Flight to Zucchelli Station",
+        "duration_seconds": 689,
+        "distance_km": 3633.2,
+        "speed_curve": "HYPERSONIC",
+        "speed_kmh": 18983,
+        "camera_zoom": 9,
+        "eastward_reason": "offset-anomaly"
+      },
+      "notes": "https://www.naturalearthdata.com/downloads/10m-cultural-vectors/10m-populated-places/",
+      "priority": 2
+    },
+    {
+      "id": "stop_g8ub3o_016",
+      "type": "DELIVERY",
+      "comment": "underserved",
+      "candidate_id": "ne-1159150665",
+      "location": {
+        "name": "Honiara",
+        "region": "Solomon Islands",
+        "country_code": "SB",
+        "timezone": "Pacific/Guadalcanal",
+        "lat": -9.4379943,
+        "lng": 159.9497657,
+        "timezone_offset": 11
+      },
+      "schedule": {
+        "arrival_utc": "2026-12-24T13:00:43.000Z",
+        "departure_utc": "2026-12-24T13:00:53.000Z",
+        "local_arrival_time": "00:00",
+        "time_window_status": "GREEN"
+      },
+      "stop_experience": {
+        "duration_seconds": 10,
+        "stop_tier": "town",
+        "camera_zoom": 14,
+        "weather_condition": "clear",
+        "presents_delivered_at_stop": 1
+      },
+      "transit_to_here": {
+        "description": "Flight to Honiara",
+        "duration_seconds": 1375,
+        "distance_km": 7252.92,
+        "speed_curve": "HYPERSONIC",
+        "speed_kmh": 18989,
+        "camera_zoom": 9
+      },
+      "notes": "https://www.naturalearthdata.com/downloads/10m-cultural-vectors/10m-populated-places/",
+      "priority": 2
+    },
+    {
+      "id": "stop_1o8m1ay_017",
       "type": "DELIVERY",
       "comment": "underserved",
       "candidate_id": "ne-1159149063",
@@ -655,9 +696,9 @@
         "timezone_offset": 12
       },
       "schedule": {
-        "arrival_utc": "2026-12-24T12:33:12.000Z",
-        "departure_utc": "2026-12-24T12:33:22.000Z",
-        "local_arrival_time": "00:33",
+        "arrival_utc": "2026-12-24T13:07:57.000Z",
+        "departure_utc": "2026-12-24T13:08:07.000Z",
+        "local_arrival_time": "01:07",
         "time_window_status": "GREEN"
       },
       "stop_experience": {
@@ -669,17 +710,18 @@
       },
       "transit_to_here": {
         "description": "Flight to Majuro",
-        "duration_seconds": 150,
-        "distance_km": 666.22,
+        "duration_seconds": 424,
+        "distance_km": 2233.03,
         "speed_curve": "HYPERSONIC",
-        "speed_kmh": 15989,
-        "camera_zoom": 9
+        "speed_kmh": 18960,
+        "camera_zoom": 9,
+        "eastward_reason": "offset-anomaly"
       },
       "notes": "https://www.naturalearthdata.com/downloads/10m-cultural-vectors/10m-populated-places/",
       "priority": 2
     },
     {
-      "id": "stop_5a4gy2_017",
+      "id": "stop_5a4gy2_018",
       "type": "DELIVERY",
       "comment": "special",
       "candidate_id": "Q31026",
@@ -693,9 +735,9 @@
         "timezone_offset": 12
       },
       "schedule": {
-        "arrival_utc": "2026-12-24T12:37:04.000Z",
-        "departure_utc": "2026-12-24T12:38:04.000Z",
-        "local_arrival_time": "00:37",
+        "arrival_utc": "2026-12-24T13:11:49.000Z",
+        "departure_utc": "2026-12-24T13:12:49.000Z",
+        "local_arrival_time": "01:11",
         "time_window_status": "GREEN"
       },
       "stop_experience": {
@@ -717,7 +759,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1nomtx0_018",
+      "id": "stop_1nomtx0_019",
       "type": "DELIVERY",
       "comment": "underserved",
       "candidate_id": "ne-1159149061",
@@ -731,9 +773,9 @@
         "timezone_offset": 11
       },
       "schedule": {
-        "arrival_utc": "2026-12-24T12:42:52.000Z",
-        "departure_utc": "2026-12-24T12:42:55.000Z",
-        "local_arrival_time": "23:42",
+        "arrival_utc": "2026-12-24T13:17:37.000Z",
+        "departure_utc": "2026-12-24T13:17:40.000Z",
+        "local_arrival_time": "00:17",
         "time_window_status": "GREEN"
       },
       "stop_experience": {
@@ -755,7 +797,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1hq37xk_019",
+      "id": "stop_1hq37xk_020",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159138227",
@@ -769,9 +811,9 @@
         "timezone_offset": 12
       },
       "schedule": {
-        "arrival_utc": "2026-12-24T12:58:18.000Z",
-        "departure_utc": "2026-12-24T12:58:21.000Z",
-        "local_arrival_time": "00:58",
+        "arrival_utc": "2026-12-24T13:33:03.000Z",
+        "departure_utc": "2026-12-24T13:33:06.000Z",
+        "local_arrival_time": "01:33",
         "time_window_status": "GREEN"
       },
       "stop_experience": {
@@ -793,7 +835,7 @@
       "priority": 2
     },
     {
-      "id": "stop_qreljg_020",
+      "id": "stop_qreljg_021",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159146019",
@@ -807,9 +849,9 @@
         "timezone_offset": 10
       },
       "schedule": {
-        "arrival_utc": "2026-12-24T13:11:09.000Z",
-        "departure_utc": "2026-12-24T13:11:12.000Z",
-        "local_arrival_time": "23:11",
+        "arrival_utc": "2026-12-24T13:45:54.000Z",
+        "departure_utc": "2026-12-24T13:45:57.000Z",
+        "local_arrival_time": "23:45",
         "time_window_status": "GREEN"
       },
       "stop_experience": {
@@ -831,7 +873,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1mkof54_021",
+      "id": "stop_1mkof54_022",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159149065",
@@ -845,9 +887,9 @@
         "timezone_offset": 10
       },
       "schedule": {
-        "arrival_utc": "2026-12-24T13:12:02.000Z",
-        "departure_utc": "2026-12-24T13:12:32.000Z",
-        "local_arrival_time": "23:12",
+        "arrival_utc": "2026-12-24T13:46:47.000Z",
+        "departure_utc": "2026-12-24T13:47:17.000Z",
+        "local_arrival_time": "23:46",
         "time_window_status": "GREEN"
       },
       "stop_experience": {
@@ -869,7 +911,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1wxaeuh_022",
+      "id": "stop_1wxaeuh_023",
       "type": "DELIVERY",
       "comment": "underserved",
       "candidate_id": "ne-1159149497",
@@ -883,9 +925,9 @@
         "timezone_offset": 10
       },
       "schedule": {
-        "arrival_utc": "2026-12-24T13:19:20.000Z",
-        "departure_utc": "2026-12-24T13:19:30.000Z",
-        "local_arrival_time": "23:19",
+        "arrival_utc": "2026-12-24T13:54:05.000Z",
+        "departure_utc": "2026-12-24T13:54:15.000Z",
+        "local_arrival_time": "23:54",
         "time_window_status": "GREEN"
       },
       "stop_experience": {
@@ -907,7 +949,7 @@
       "priority": 2
     },
     {
-      "id": "stop_czawnx_023",
+      "id": "stop_czawnx_024",
       "type": "DELIVERY",
       "comment": "underserved",
       "candidate_id": "ne-1159116387",
@@ -921,9 +963,9 @@
         "timezone_offset": 10
       },
       "schedule": {
-        "arrival_utc": "2026-12-24T13:19:49.000Z",
-        "departure_utc": "2026-12-24T13:19:59.000Z",
-        "local_arrival_time": "23:19",
+        "arrival_utc": "2026-12-24T13:54:34.000Z",
+        "departure_utc": "2026-12-24T13:54:44.000Z",
+        "local_arrival_time": "23:54",
         "time_window_status": "GREEN"
       },
       "stop_experience": {
@@ -945,7 +987,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1wdb7gj_024",
+      "id": "stop_1wdb7gj_025",
       "type": "DELIVERY",
       "comment": "underserved",
       "candidate_id": "ne-1159149495",
@@ -959,9 +1001,9 @@
         "timezone_offset": 10
       },
       "schedule": {
-        "arrival_utc": "2026-12-24T13:20:10.000Z",
-        "departure_utc": "2026-12-24T13:20:20.000Z",
-        "local_arrival_time": "23:20",
+        "arrival_utc": "2026-12-24T13:54:55.000Z",
+        "departure_utc": "2026-12-24T13:55:05.000Z",
+        "local_arrival_time": "23:54",
         "time_window_status": "GREEN"
       },
       "stop_experience": {
@@ -983,7 +1025,7 @@
       "priority": 2
     },
     {
-      "id": "stop_r7b8dg_025",
+      "id": "stop_r7b8dg_026",
       "type": "DELIVERY",
       "comment": "underserved",
       "candidate_id": "ne-1159136841",
@@ -997,9 +1039,9 @@
         "timezone_offset": 11
       },
       "schedule": {
-        "arrival_utc": "2026-12-24T13:25:09.000Z",
-        "departure_utc": "2026-12-24T13:25:19.000Z",
-        "local_arrival_time": "00:25",
+        "arrival_utc": "2026-12-24T13:59:54.000Z",
+        "departure_utc": "2026-12-24T14:00:04.000Z",
+        "local_arrival_time": "00:59",
         "time_window_status": "GREEN"
       },
       "stop_experience": {
@@ -1022,44 +1064,6 @@
       "priority": 2
     },
     {
-      "id": "stop_6y1z4m_026",
-      "type": "DELIVERY",
-      "comment": "underserved",
-      "candidate_id": "ne-1159116427",
-      "location": {
-        "name": "Arawa",
-        "region": "Papua New Guinea",
-        "country_code": "PG",
-        "timezone": "Pacific/Bougainville",
-        "lat": -6.228,
-        "lng": 155.5659907,
-        "timezone_offset": 11
-      },
-      "schedule": {
-        "arrival_utc": "2026-12-24T13:26:16.000Z",
-        "departure_utc": "2026-12-24T13:26:26.000Z",
-        "local_arrival_time": "00:26",
-        "time_window_status": "GREEN"
-      },
-      "stop_experience": {
-        "duration_seconds": 10,
-        "stop_tier": "town",
-        "camera_zoom": 14,
-        "weather_condition": "clear",
-        "presents_delivered_at_stop": 1
-      },
-      "transit_to_here": {
-        "description": "Flight to Arawa",
-        "duration_seconds": 57,
-        "distance_km": 250.82,
-        "speed_curve": "HYPERSONIC",
-        "speed_kmh": 15841,
-        "camera_zoom": 9
-      },
-      "notes": "https://www.naturalearthdata.com/downloads/10m-cultural-vectors/10m-populated-places/",
-      "priority": 2
-    },
-    {
       "id": "stop_pipc41_027",
       "type": "DELIVERY",
       "comment": "underserved",
@@ -1074,9 +1078,9 @@
         "timezone_offset": 11
       },
       "schedule": {
-        "arrival_utc": "2026-12-24T13:26:56.000Z",
-        "departure_utc": "2026-12-24T13:26:59.000Z",
-        "local_arrival_time": "00:26",
+        "arrival_utc": "2026-12-24T14:01:30.000Z",
+        "departure_utc": "2026-12-24T14:01:33.000Z",
+        "local_arrival_time": "01:01",
         "time_window_status": "GREEN"
       },
       "stop_experience": {
@@ -1088,6 +1092,44 @@
       },
       "transit_to_here": {
         "description": "Flight to Sohano",
+        "duration_seconds": 86,
+        "distance_km": 381.07,
+        "speed_curve": "HYPERSONIC",
+        "speed_kmh": 15952,
+        "camera_zoom": 9
+      },
+      "notes": "https://www.naturalearthdata.com/downloads/10m-cultural-vectors/10m-populated-places/",
+      "priority": 2
+    },
+    {
+      "id": "stop_6y1z4m_028",
+      "type": "DELIVERY",
+      "comment": "underserved",
+      "candidate_id": "ne-1159116427",
+      "location": {
+        "name": "Arawa",
+        "region": "Papua New Guinea",
+        "country_code": "PG",
+        "timezone": "Pacific/Bougainville",
+        "lat": -6.228,
+        "lng": 155.5659907,
+        "timezone_offset": 11
+      },
+      "schedule": {
+        "arrival_utc": "2026-12-24T14:02:03.000Z",
+        "departure_utc": "2026-12-24T14:02:13.000Z",
+        "local_arrival_time": "01:02",
+        "time_window_status": "GREEN"
+      },
+      "stop_experience": {
+        "duration_seconds": 10,
+        "stop_tier": "town",
+        "camera_zoom": 14,
+        "weather_condition": "clear",
+        "presents_delivered_at_stop": 1
+      },
+      "transit_to_here": {
+        "description": "Flight to Arawa",
         "duration_seconds": 30,
         "distance_km": 132.96,
         "speed_curve": "HYPERSONIC",
@@ -1098,7 +1140,7 @@
       "priority": 2
     },
     {
-      "id": "stop_o2dt3_028",
+      "id": "stop_o2dt3_029",
       "type": "DELIVERY",
       "comment": "underserved",
       "candidate_id": "ne-1159149499",
@@ -1112,9 +1154,9 @@
         "timezone_offset": 10
       },
       "schedule": {
-        "arrival_utc": "2026-12-24T13:28:10.000Z",
-        "departure_utc": "2026-12-24T13:28:20.000Z",
-        "local_arrival_time": "23:28",
+        "arrival_utc": "2026-12-24T14:03:53.000Z",
+        "departure_utc": "2026-12-24T14:04:03.000Z",
+        "local_arrival_time": "00:03",
         "time_window_status": "GREEN"
       },
       "stop_experience": {
@@ -1126,17 +1168,17 @@
       },
       "transit_to_here": {
         "description": "Flight to Rabaul",
-        "duration_seconds": 71,
-        "distance_km": 311.4,
+        "duration_seconds": 100,
+        "distance_km": 440.68,
         "speed_curve": "HYPERSONIC",
-        "speed_kmh": 15789,
+        "speed_kmh": 15864,
         "camera_zoom": 9
       },
       "notes": "https://www.naturalearthdata.com/downloads/10m-cultural-vectors/10m-populated-places/",
       "priority": 2
     },
     {
-      "id": "stop_3i0v3s_029",
+      "id": "stop_3i0v3s_030",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159151169",
@@ -1151,9 +1193,9 @@
         "timezone_offset": 10
       },
       "schedule": {
-        "arrival_utc": "2026-12-24T13:36:31.000Z",
-        "departure_utc": "2026-12-24T13:37:31.000Z",
-        "local_arrival_time": "23:36",
+        "arrival_utc": "2026-12-24T14:12:14.000Z",
+        "departure_utc": "2026-12-24T14:13:14.000Z",
+        "local_arrival_time": "00:12",
         "time_window_status": "GREEN"
       },
       "stop_experience": {
@@ -1175,7 +1217,7 @@
       "priority": 2
     },
     {
-      "id": "stop_zmun88_030",
+      "id": "stop_zmun88_031",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159145335",
@@ -1190,9 +1232,9 @@
         "timezone_offset": 11
       },
       "schedule": {
-        "arrival_utc": "2026-12-24T13:37:53.000Z",
-        "departure_utc": "2026-12-24T13:38:03.000Z",
-        "local_arrival_time": "00:37",
+        "arrival_utc": "2026-12-24T14:13:36.000Z",
+        "departure_utc": "2026-12-24T14:13:46.000Z",
+        "local_arrival_time": "01:13",
         "time_window_status": "GREEN"
       },
       "stop_experience": {
@@ -1214,7 +1256,7 @@
       "priority": 2
     },
     {
-      "id": "stop_19llm7r_031",
+      "id": "stop_19llm7r_032",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159151623",
@@ -1229,9 +1271,9 @@
         "timezone_offset": 11
       },
       "schedule": {
-        "arrival_utc": "2026-12-24T13:40:34.000Z",
-        "departure_utc": "2026-12-24T13:41:34.000Z",
-        "local_arrival_time": "00:40",
+        "arrival_utc": "2026-12-24T14:16:17.000Z",
+        "departure_utc": "2026-12-24T14:17:17.000Z",
+        "local_arrival_time": "01:16",
         "time_window_status": "GREEN"
       },
       "stop_experience": {
@@ -1253,7 +1295,7 @@
       "priority": 1
     },
     {
-      "id": "stop_cybrat_032",
+      "id": "stop_cybrat_033",
       "type": "DELIVERY",
       "comment": "hub",
       "candidate_id": "ne-1159147785",
@@ -1268,9 +1310,9 @@
         "timezone_offset": 11
       },
       "schedule": {
-        "arrival_utc": "2026-12-24T13:41:50.000Z",
-        "departure_utc": "2026-12-24T13:42:20.000Z",
-        "local_arrival_time": "00:41",
+        "arrival_utc": "2026-12-24T14:17:33.000Z",
+        "departure_utc": "2026-12-24T14:18:03.000Z",
+        "local_arrival_time": "01:17",
         "time_window_status": "GREEN"
       },
       "stop_experience": {
@@ -1292,7 +1334,7 @@
       "priority": 2
     },
     {
-      "id": "stop_10qt204_033",
+      "id": "stop_10qt204_034",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159145331",
@@ -1307,9 +1349,9 @@
         "timezone_offset": 11
       },
       "schedule": {
-        "arrival_utc": "2026-12-24T13:43:02.000Z",
-        "departure_utc": "2026-12-24T13:43:12.000Z",
-        "local_arrival_time": "00:43",
+        "arrival_utc": "2026-12-24T14:18:45.000Z",
+        "departure_utc": "2026-12-24T14:18:55.000Z",
+        "local_arrival_time": "01:18",
         "time_window_status": "GREEN"
       },
       "stop_experience": {
@@ -1331,7 +1373,7 @@
       "priority": 2
     },
     {
-      "id": "stop_1rxy9oq_034",
+      "id": "stop_1rxy9oq_035",
       "type": "DELIVERY",
       "comment": "populated",
       "candidate_id": "ne-1159150403",
@@ -1346,9 +1388,9 @@
         "timezone_offset": 11
       },
       "schedule": {
-        "arrival_utc": "2026-12-24T13:44:17.000Z",
-        "departure_utc": "2026-12-24T13:44:27.000Z",
-        "local_arrival_time": "00:44",
+        "arrival_utc": "2026-12-24T14:20:00.000Z",
+        "departure_utc": "2026-12-24T14:20:10.000Z",
+        "local_arrival_time": "01:20",
         "time_window_status": "GREEN"
       },
       "stop_experience": {
@@ -1370,63 +1412,24 @@
       "priority": 2
     },
     {
-      "id": "stop_clr2z0_035",
-      "type": "DELIVERY",
-      "comment": "hub",
-      "candidate_id": "ne-1159145641",
-      "location": {
-        "name": "Cranbourne",
-        "region": "Australia",
-        "country_code": "AU",
-        "admin1_code": "AU-VIC",
-        "timezone": "Australia/Melbourne",
-        "lat": -38.0996008,
-        "lng": 145.2833695,
-        "timezone_offset": 11
-      },
-      "schedule": {
-        "arrival_utc": "2026-12-24T13:45:16.000Z",
-        "departure_utc": "2026-12-24T13:45:46.000Z",
-        "local_arrival_time": "00:45",
-        "time_window_status": "GREEN"
-      },
-      "stop_experience": {
-        "duration_seconds": 30,
-        "stop_tier": "city",
-        "camera_zoom": 14,
-        "weather_condition": "clear",
-        "presents_delivered_at_stop": 1
-      },
-      "transit_to_here": {
-        "description": "Flight to Cranbourne",
-        "duration_seconds": 49,
-        "distance_km": 213.34,
-        "speed_curve": "HYPERSONIC",
-        "speed_kmh": 15674,
-        "camera_zoom": 9
-      },
-      "notes": "https://www.naturalearthdata.com/downloads/10m-cultural-vectors/10m-populated-places/",
-      "priority": 2
-    },
-    {
-      "id": "stop_crmbip_036",
+      "id": "stop_c77ouc_036",
       "type": "DELIVERY",
       "comment": "populated",
-      "candidate_id": "ne-1159145831",
+      "candidate_id": "ne-1159145533",
       "location": {
-        "name": "Smithton",
+        "name": "Bordertown",
         "region": "Australia",
         "country_code": "AU",
-        "admin1_code": "AU-TAS",
-        "timezone": "Australia/Hobart",
-        "lat": -40.8329223,
-        "lng": 145.1166613,
+        "admin1_code": "AU-SA",
+        "timezone": "Australia/Melbourne",
+        "lat": -36.3161955,
+        "lng": 140.7666426,
         "timezone_offset": 11
       },
       "schedule": {
-        "arrival_utc": "2026-12-24T13:46:55.000Z",
-        "departure_utc": "2026-12-24T13:46:58.000Z",
-        "local_arrival_time": "00:46",
+        "arrival_utc": "2026-12-24T14:22:02.000Z",
+        "departure_utc": "2026-12-24T14:22:05.000Z",
+        "local_arrival_time": "01:22",
         "time_window_status": "GREEN"
       },
       "stop_experience": {
@@ -1437,11 +1440,11 @@
         "presents_delivered_at_stop": 1
       },
       "transit_to_here": {
-        "description": "Flight to Smithton",
-        "duration_seconds": 69,
-        "distance_km": 304.27,
+        "description": "Flight to Bordertown",
+        "duration_seconds": 112,
+        "distance_km": 495.59,
         "speed_curve": "HYPERSONIC",
-        "speed_kmh": 15875,
+        "speed_kmh": 15930,
         "camera_zoom": 9
       },
       "notes": "https://www.naturalearthdata.com/downloads/10m-cultural-vectors/10m-populated-places/",
@@ -1463,9 +1466,9 @@
         "timezone_offset": 10.5
       },
       "schedule": {
-        "arrival_utc": "2026-12-24T13:49:22.000Z",
-        "departure_utc": "2026-12-24T13:49:25.000Z",
-        "local_arrival_time": "00:19",
+        "arrival_utc": "2026-12-24T14:22:28.000Z",
+        "departure_utc": "2026-12-24T14:22:31.000Z",
+        "local_arrival_time": "00:52",
         "time_window_status": "GREEN"
       },
       "stop_experience": {
@@ -1477,10 +1480,10 @@
       },
       "transit_to_here": {
         "description": "Flight to Kingston South East",
-        "duration_seconds": 144,
-        "distance_km": 636.9,
+        "duration_seconds": 23,
+        "distance_km": 100,
         "speed_curve": "HYPERSONIC",
-        "speed_kmh": 15922,
+        "speed_kmh": 15651,
         "camera_zoom": 9
       },
       "notes": "https://www.naturalearthdata.com/downloads/10m-cultural-vectors/10m-populated-places/",
@@ -1502,9 +1505,9 @@
         "timezone_offset": 10
       },
       "schedule": {
-        "arrival_utc": "2026-12-24T13:53:59.000Z",
-        "departure_utc": "2026-12-24T13:54:02.000Z",
-        "local_arrival_time": "23:53",
+        "arrival_utc": "2026-12-24T14:27:05.000Z",
+        "departure_utc": "2026-12-24T14:27:08.000Z",
+        "local_arrival_time": "00:27",
         "time_window_status": "GREEN"
       },
       "stop_experience": {
@@ -1541,9 +1544,9 @@
         "timezone_offset": 9.5
       },
       "schedule": {
-        "arrival_utc": "2026-12-24T13:56:19.000Z",
-        "departure_utc": "2026-12-24T13:56:29.000Z",
-        "local_arrival_time": "23:26",
+        "arrival_utc": "2026-12-24T14:29:25.000Z",
+        "departure_utc": "2026-12-24T14:29:35.000Z",
+        "local_arrival_time": "23:59",
         "time_window_status": "GREEN"
       },
       "stop_experience": {

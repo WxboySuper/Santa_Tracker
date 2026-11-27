@@ -36,4 +36,5 @@ describe('local route proposals', () => {
     expect(canAcceptLocalProposal(proposal, current)).toBe(true);
     expect(canAcceptLocalProposal({ ...proposal, eastward: 1 }, current)).toBe(false);
   });
+
 });

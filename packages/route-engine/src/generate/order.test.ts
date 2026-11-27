@@ -70,6 +70,31 @@ describe('midnight sweep ordering', () => {
     expect(ordered.slice(2, 4).map((place) => place.id)).toEqual(['south-b', 'north-b']);
   });
 
+  it('keeps Antarctic coverage at an edge of its offset band instead of between island stops', () => {
+    const places: Candidate[] = [
+      { id: 'ki', name: 'Kiritimati', country: 'KI', lat: 1.87, lng: -157.4,
+        timezone: 'Pacific/Kiritimati', utcOffsetMinutes: 840, category: 'populated', population: 7_380 },
+      { id: 'ws', name: 'Apia', country: 'WS', lat: -13.8, lng: -171.8,
+        timezone: 'Pacific/Apia', utcOffsetMinutes: 780, category: 'populated', population: 37_000 },
+      { id: 'nz', name: 'Waitangi', country: 'NZ', lat: -44, lng: -176.4,
+        timezone: 'Pacific/Chatham', utcOffsetMinutes: 825, category: 'populated', population: 300 },
+      { id: 'aq', name: 'Zucchelli Station', country: 'AQ', lat: -74.6, lng: 164.2,
+        timezone: 'Antarctica/McMurdo', utcOffsetMinutes: 780, category: 'special', population: 0 },
+      { id: 'to', name: 'Neiafu', country: 'TO', lat: -18.6, lng: -174,
+        timezone: 'Pacific/Tongatapu', utcOffsetMinutes: 780, category: 'populated', population: 4_320 },
+      { id: 'to-capital', name: "Nuku'alofa", country: 'TO', lat: -21.1, lng: -175.2,
+        timezone: 'Pacific/Tongatapu', utcOffsetMinutes: 780, category: 'populated', population: 23_658 },
+    ];
+
+    const ordered = sweepOrder(places);
+    const antarcticIndex = ordered.findIndex((place) => place.country === 'AQ');
+    const sameBand = ordered.filter((place) => place.utcOffsetMinutes === 780);
+    const antarcticBandIndex = sameBand.findIndex((place) => place.country === 'AQ');
+
+    expect(antarcticIndex).toBeGreaterThanOrEqual(0);
+    expect(antarcticBandIndex === 0 || antarcticBandIndex === sameBand.length - 1).toBe(true);
+  });
+
   it('keeps an eastward move when the destination offset justifies it', () => {
     const from: Candidate = { id: 'source', name: 'Western Australia', country: 'AU', lat: -10, lng: 160,
       timezone: 'Australia/Brisbane', utcOffsetMinutes: 600, category: 'populated', population: 500_000 };

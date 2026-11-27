@@ -4,10 +4,9 @@ import { LegacyRouteFixtureSchema } from '@santa-tracker/contracts';
 import { loadRouteNodesRaw } from '../locations';
 import { generateRoute, type Candidate, DEFAULT_GENERATOR_LIMITS } from '../../../../../packages/route-engine/src/generate/generator';
 
-const countries = ['US', 'CA', 'MX', 'BZ', 'GT', 'HN', 'PA', 'SV', 'AR', 'BO'];
 const places: Candidate[] = Array.from({ length: 10 }, (_, index) => ({
-  id: `test-${index}`, name: `Test ${index}`, country: countries[index] ?? 'US', lat: 80, lng: index * 2,
-  timezone: 'Pacific/Kiritimati', utcOffsetMinutes: 840, population: 2_000_000, category: index % 2 ? 'hub' : 'cultural',
+  id: `test-${index}`, name: `Test ${index}`, country: 'US', lat: 35, lng: -109 - index * 0.5,
+  timezone: 'America/Denver', utcOffsetMinutes: -420, population: 2_000_000, category: index % 2 ? 'hub' : 'cultural',
 }));
 
 describe('generated legacy route compatibility', () => {

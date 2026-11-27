@@ -22,6 +22,7 @@ flight window allows. Tiny hops are welcome because they add coverage.
    each band's candidate population share and its distinct 2-degree candidate-grid share, a snapshot proxy for land
    coverage. Mandatory country and admin-1 representatives may exceed their band's dense-fill share. No band should
    be starved while another is bloated.
+   Keep Antarctic stations at the edge of their offset band; do not place a polar leg inside a Pacific island chain.
 4. Maximize stop count subject to the local-time window, dwell, speed and return constraints. Target 550-700 stops;
    the readability ceiling is about 1,000. There is no fixed route total, pinned sequence, arrival anchor, offset cap
    or category quota.

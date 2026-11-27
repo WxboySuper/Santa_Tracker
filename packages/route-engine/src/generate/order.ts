@@ -4,7 +4,7 @@ import { compareStableIds } from './selection';
 import { admin1UnitFor } from './admin1';
 import { isInvalidCandidateTimezoneError } from './timezone-error';
 import { bandMaximumStops, insertAdmin1Coverage, insertCountryCoverage, insertFeasibleCandidates, insertOffsetBandCoverage, mandatoryLaunch, selectMandatoryRepresentatives, type InsertionPass } from './order-coverage';
-import { bandedBoustrophedonOrder, improveWithLocalSearch, reduceCoverageDetours, reduceHardDetoursWithinBands } from './order-path';
+import { bandedBoustrophedonOrder, detourCount, eastwardCount, improveWithLocalSearch, pathDistance, reduceCoverageDetours, reduceHardDetoursWithinBands } from './order-path';
 import {
   candidateTiming,
   canStartFromNorthPole,
@@ -323,7 +323,7 @@ type SweepBandOptions = {
   includeDenseFill: boolean;
 };
 
-function sweepOffsetBand({ state, band, ranking, bandCaps, routeBandCounts, includeDenseFill }: SweepBandOptions): void {
+function sweepBandCandidates({ state, band, ranking, bandCaps, routeBandCounts, includeDenseFill }: SweepBandOptions): void {
   const offset = band[0] ? requiredSnapshotOffset(band[0]) : undefined;
   if (offset === undefined) return;
   while (state.remaining.size > 0 && state.route.length < MAX_ROUTE_STOPS) {
@@ -335,6 +335,15 @@ function sweepOffsetBand({ state, band, ranking, bandCaps, routeBandCounts, incl
     advanceSweep(state, next);
     routeBandCounts.set(offset, (routeBandCounts.get(offset) ?? 0) + 1);
   }
+}
+
+function sweepOffsetBand(options: SweepBandOptions): void {
+  const localPlaces = options.band.filter((place) => place.country !== 'AQ');
+  const antarcticPlaces = options.band.filter((place) => place.country === 'AQ');
+  // Complete the local island and coastal chain before its polar coverage stop.
+  // Antarctica remains mandatory, but it must sit at the edge of its UTC band.
+  sweepBandCandidates({ ...options, band: localPlaces });
+  sweepBandCandidates({ ...options, band: antarcticPlaces });
 }
 
 type GreedySweepOptions = {
@@ -385,6 +394,31 @@ function planOrder(order: Candidate[], config: GeneratorConfig): RoutePlan | und
   if (!selectionConstraintsAllow(order, config)) return undefined;
   if (hardDetourCount(order) > 0) return undefined;
   return planTiming(order, config);
+}
+
+function moveAntarcticaToOffsetBandEdge(initial: TimedCandidate[], config: GeneratorConfig): TimedCandidate[] {
+  const originalEastward = eastwardCount(initial);
+  const originalDetours = detourCount(initial);
+  let best = initial;
+  let bestDistance = pathDistance(initial);
+  for (const polarStop of initial.filter((place) => place.country === 'AQ')) {
+    const remaining = initial.filter((place) => place.id !== polarStop.id);
+    const offset = requiredSnapshotOffset(polarStop);
+    const sameBand = remaining.flatMap((place, index) => requiredSnapshotOffset(place) === offset ? [index] : []);
+    const edgePositions = sameBand.length > 0 ? [sameBand[0]!, sameBand.at(-1)! + 1] : [1, remaining.length];
+    for (const position of new Set(edgePositions)) {
+      const proposal = [...remaining.slice(0, position), polarStop, ...remaining.slice(position)];
+      const planned = planOrder(proposal, config);
+      if (!planned) continue;
+      const eastward = eastwardCount(planned.places);
+      const detours = detourCount(planned.places);
+      const distance = pathDistance(planned.places);
+      if (eastward > originalEastward || detours > originalDetours || distance >= bestDistance - 0.01) continue;
+      best = planned.places;
+      bestDistance = distance;
+    }
+  }
+  return best;
 }
 
 function planMandatoryRoute(pool: Candidate[], config: GeneratorConfig): TimedCandidate[] | undefined {
@@ -457,12 +491,12 @@ export function sweepOrder(places: Candidate[], config: GeneratorConfig = DEFAUL
   const mandatoryRoute = planMandatoryRoute(places, config);
   if (mandatoryRoute) {
     const expanded = expandMandatoryRoute(mandatoryRoute, places, config);
-    if (expanded) return expanded;
+    if (expanded) return moveAntarcticaToOffsetBandEdge(expanded, config);
   }
   const mandatory = greedyCoverageRoute(places, config);
   const route = expandGreedyCoverageRoute(mandatory, places, config);
   if (!route) throw new Error('No route ordering satisfies the local Christmas window, speed limits, separation, and return deadline');
-  return route;
+  return moveAntarcticaToOffsetBandEdge(route, config);
 }
 
 export function hasFeasibleTiming(order: Candidate[], config: GeneratorConfig = DEFAULT_GENERATOR_LIMITS): boolean {

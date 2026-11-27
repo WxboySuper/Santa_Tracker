@@ -51,7 +51,7 @@ describe('band fill allocation', () => {
   });
 
   it('counts the already selected launch against its offset-band cap', () => {
-    const place = (id: string, utcOffsetMinutes: number) => ({
+    const place = ({ id, utcOffsetMinutes }: { id: string; utcOffsetMinutes: number }) => ({
       id,
       name: id,
       country: 'US',
@@ -63,13 +63,16 @@ describe('band fill allocation', () => {
       population: 10_000,
     });
     const launch = {
-      ...place('launch', 0),
+      ...place({ id: 'launch', utcOffsetMinutes: 0 }),
       plannedArrivalUtc: '2026-12-25T01:00:00.000Z',
       plannedStopTier: 'town' as const,
       plannedStopDurationSeconds: 10,
     };
 
-    const caps = bandMaximumStops([place('same-band', 0), place('other-band', 60)], [launch], 11);
+    const caps = bandMaximumStops([
+      place({ id: 'same-band', utcOffsetMinutes: 0 }),
+      place({ id: 'other-band', utcOffsetMinutes: 60 }),
+    ], [launch], 11);
 
     expect(caps.get(0)).toBeGreaterThanOrEqual(1);
     expect([...caps.values()].reduce((sum, count) => sum + count, 0)).toBe(11);
@@ -77,7 +80,7 @@ describe('band fill allocation', () => {
 
   it('lets mandatory admin-1 coverage exceed a dense-fill band cap', () => {
     const config = { ...DEFAULT_GENERATOR_LIMITS, maxStopsPerCountry: 1 };
-    const makePlace = (id: string, lat: number, lng: number, admin1Code?: string): Candidate => ({
+    const makePlace = ({ id, lat, lng, admin1Code }: { id: string; lat: number; lng: number; admin1Code?: string }): Candidate => ({
       id,
       name: id,
       country: 'US',
@@ -89,8 +92,8 @@ describe('band fill allocation', () => {
       population: 10_000,
       ...(admin1Code ? { admin1Code } : {}),
     });
-    const launch = makePlace('launch', 29.7604, -180);
-    const requiredState = makePlace('required-state', 30.2672, 179.5, 'US-TX');
+    const launch = makePlace({ id: 'launch', lat: 29.7604, lng: -180 });
+    const requiredState = makePlace({ id: 'required-state', lat: 30.2672, lng: 179.5, admin1Code: 'US-TX' });
     const initial = planTiming([launch], config);
     expect(initial).toBeDefined();
     if (!initial) throw new Error('Expected a feasible initial stop');
@@ -108,7 +111,7 @@ describe('band fill allocation', () => {
   });
 
   it('preserves every existing country when replacing one stop with two near the route ceiling', () => {
-    const makePlace = (id: string, country: string, lat: number, lng: number): Candidate => ({
+    const makePlace = ({ id, country, lat, lng }: { id: string; country: string; lat: number; lng: number }): Candidate => ({
       id,
       name: id,
       country,
@@ -119,20 +122,20 @@ describe('band fill allocation', () => {
       category: 'populated',
       population: 1_000,
     });
-    const route = Array.from({ length: 699 }, (_, index) => makePlace(
-      `route-${index}`,
-      index === 0 ? 'US' : index === 1 ? 'FR' : 'CA',
-      0,
-      100 - index * 0.2,
-    ));
+    const route = [...Array(699).keys()].map((index) => makePlace({
+      id: `route-${index}`,
+      country: index === 0 ? 'US' : index === 1 ? 'FR' : 'CA',
+      lat: 0,
+      lng: 100 - index * 0.2,
+    }));
     const planned = planTiming(route, DEFAULT_GENERATOR_LIMITS);
     expect(planned).toBeDefined();
     if (!planned) throw new Error('Expected the 699-stop route to be feasible');
 
     const expanded = insertCountryCoverage(planned.places, [
       ...route,
-      makePlace('new-GB', 'GB', 2, -30),
-      makePlace('new-DE', 'DE', 2, -31),
+      makePlace({ id: 'new-GB', country: 'GB', lat: 2, lng: -30 }),
+      makePlace({ id: 'new-DE', country: 'DE', lat: 2, lng: -31 }),
     ], DEFAULT_GENERATOR_LIMITS);
 
     expect(expanded).toHaveLength(700);
