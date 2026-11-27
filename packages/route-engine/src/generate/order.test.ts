@@ -196,12 +196,12 @@ describe('midnight sweep ordering', () => {
     expect(haversineKm(ordered[0]!, samePlace)).toBe(0);
   });
 
-  it('rejects an arbitrary route that violates separation or the country cap', () => {
+  it('checks timing independently from separation and country selection limits', () => {
     const nearby = { ...testPlaces[0]!, id: 'nearby', name: 'Nearby', country: 'KI', lat: 1.88, lng: -157.4 };
-    expect(hasFeasibleTiming([testPlaces[0]!, nearby])).toBe(false);
+    expect(hasFeasibleTiming([testPlaces[0]!, nearby])).toBe(true);
     const capped = { ...DEFAULT_GENERATOR_LIMITS, maxStopsPerCountry: 1 };
     const sameCountry = { ...testPlaces[1]!, country: 'KI', utcOffsetMinutes: testPlaces[0]!.utcOffsetMinutes };
-    expect(hasFeasibleTiming([testPlaces[0]!, sameCountry], capped)).toBe(false);
+    expect(hasFeasibleTiming([testPlaces[0]!, sameCountry], capped)).toBe(true);
   });
 
   it('does not admit a repeated-country detour that final route planning rejects', () => {

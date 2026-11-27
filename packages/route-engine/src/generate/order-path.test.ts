@@ -58,7 +58,7 @@ describe('local route proposals', () => {
 
     expect(acceptsRouteMetrics(reasonedCoverage, current)).toBe(false);
     expect(acceptsRouteMetrics(reasonedCoverage, current, { coverageTradeoff: true })).toBe(true);
-    expect(acceptsRouteMetrics(repeatedCountryViolation, current, { coverageTradeoff: true })).toBe(true);
+    expect(acceptsRouteMetrics(repeatedCountryViolation, current, { coverageTradeoff: true })).toBe(false);
     expect(acceptsRouteMetrics({ ...current, eastward: 4 }, current, { coverageTradeoff: true })).toBe(false);
   });
 

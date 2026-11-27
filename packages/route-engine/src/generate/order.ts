@@ -494,6 +494,7 @@ export function sweepOrder(places: Candidate[], config: GeneratorConfig = DEFAUL
   if (mandatoryRoute) {
     const expanded = expandMandatoryRoute(mandatoryRoute, places, config);
     if (expanded) return moveAntarcticaToOffsetBandEdge(expanded, config);
+    return moveAntarcticaToOffsetBandEdge(mandatoryRoute, config);
   }
   const mandatory = greedyCoverageRoute(places, config);
   const route = expandGreedyCoverageRoute(mandatory, places, config);
@@ -503,7 +504,7 @@ export function sweepOrder(places: Candidate[], config: GeneratorConfig = DEFAUL
 
 export function hasFeasibleTiming(order: Candidate[], config: GeneratorConfig = DEFAULT_GENERATOR_LIMITS): boolean {
   try {
-    return planOrder(order, config) !== undefined;
+    return acceptRouteProposal(order, config, { checkSelection: false, requireHardDetourFree: false }) !== undefined;
   } catch (error) {
     if (isInvalidCandidateTimezoneError(error)) return false;
     throw error;

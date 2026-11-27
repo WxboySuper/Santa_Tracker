@@ -41,20 +41,17 @@ export type InsertionPass = {
 };
 
 function rankInsertions(initial: TimedCandidate[], pool: Candidate[], config: GeneratorConfig): RankedInsertion[] {
-  const initiallyCovered = new Set(initial.map((place) => place.country));
   const random = seededRandom(config.seed ^ 0x27d4eb2d);
   const tieBreaks = new Map<string, number>();
   for (const place of [...pool].sort((left, right) => compareStableIds(left.id, right.id))) tieBreaks.set(place.id, random());
   return pool.filter((place) => !initial.some((selected) => selected.id === place.id)).map((place) => ({
     place,
-    newCountry: !initiallyCovered.has(place.country),
     positions: insertionPositions(initial, place),
     dwellSeconds: stopDurationSeconds(stopTier(place)),
     populationPriority: Math.log10((place.population ?? 0) + 1) * 20,
     categoryPriority: categoryPreference(place, config) * 2,
     random: tieBreaks.get(place.id) ?? 0,
-  })).sort((left, right) => Number(right.newCountry) - Number(left.newCountry)
-    || ((left.positions[0]?.addedDistance ?? Number.POSITIVE_INFINITY) + left.dwellSeconds * 1.1
+  })).sort((left, right) => ((left.positions[0]?.addedDistance ?? Number.POSITIVE_INFINITY) + left.dwellSeconds * 1.1
       - left.populationPriority - left.categoryPriority)
       - ((right.positions[0]?.addedDistance ?? Number.POSITIVE_INFINITY) + right.dwellSeconds * 1.1
         - right.populationPriority - right.categoryPriority)
@@ -149,7 +146,7 @@ function addAtFeasiblePosition(state: InsertionState, place: Candidate, position
   const addsRequiredOffsetBand = !state.bandCounts.has(offset);
   const addsCountryCoverage = !state.counts.has(place.country);
   const coverageTradeoff = addsCountryCoverage || addsRequiredAdmin1 || addsRequiredOffsetBand;
-  if (!coverageTradeoff && pass.maxStopsByBand
+  if (pass.maxStopsByBand
     && (state.bandCounts.get(offset) ?? 0) >= (pass.maxStopsByBand.get(offset) ?? 0)) return false;
   for (const { index } of insertionOptions(state, place, positions, pass)) {
     const proposal = [...state.route.slice(0, index), place, ...state.route.slice(index)];

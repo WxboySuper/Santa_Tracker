@@ -21,7 +21,9 @@ function routeMetrics(order: Candidate[], includePathCost = true): RouteMetrics 
 export function acceptsRouteMetrics(proposal: RouteMetrics, current: RouteMetrics,
   options: { coverageTradeoff?: boolean } = {}): boolean {
   if (proposal.eastward > current.eastward + (options.coverageTradeoff ? 1 : 0)) return false;
-  if (proposal.hardDetours > current.hardDetours && !options.coverageTradeoff) return false;
+  // Coverage can add a singleton stop for a missing country, but it cannot
+  // create a repeated-country detour.
+  if (proposal.hardDetours > current.hardDetours) return false;
   if (proposal.hardDetours < current.hardDetours) return true;
   if (options.coverageTradeoff || proposal.detours === undefined || current.detours === undefined) return true;
   return proposal.detours <= current.detours;
@@ -47,11 +49,12 @@ export function selectionConstraintsAllow(order: Candidate[], config: GeneratorC
 }
 
 export type RouteAcceptanceOptions = { previous?: Candidate[]; coverageTradeoff?: boolean; requireHardDetourFree?: boolean;
-  selectionAlreadyValidated?: boolean };
+  checkSelection?: boolean; selectionAlreadyValidated?: boolean };
 
 export function acceptRoutePlan(plan: RoutePlan | undefined, config: GeneratorConfig,
   options: RouteAcceptanceOptions = {}): RoutePlan | undefined {
-  if (!plan || (!options.selectionAlreadyValidated && !selectionConstraintsAllow(plan.places, config))) return undefined;
+  if (!plan || (options.checkSelection !== false && !options.selectionAlreadyValidated
+    && !selectionConstraintsAllow(plan.places, config))) return undefined;
   const hardDetours = hardDetourCount(plan.places);
   if (options.requireHardDetourFree && hardDetours > 0) return undefined;
   if (options.previous && !acceptsRouteMetrics(routeMetrics(plan.places, false), routeMetrics(options.previous, false), options)) return undefined;

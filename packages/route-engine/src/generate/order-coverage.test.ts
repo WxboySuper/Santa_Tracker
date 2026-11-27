@@ -78,7 +78,7 @@ describe('band fill allocation', () => {
     expect([...caps.values()].reduce((sum, count) => sum + count, 0)).toBe(11);
   });
 
-  it('lets mandatory admin-1 coverage exceed a dense-fill band cap', () => {
+  it('keeps dense fill inside a band cap even for a required admin-1 unit', () => {
     const config = { ...DEFAULT_GENERATOR_LIMITS, maxStopsPerCountry: 1 };
     const makePlace = ({ id, lat, lng, admin1Code }: { id: string; lat: number; lng: number; admin1Code?: string }): Candidate => ({
       id,
@@ -107,7 +107,7 @@ describe('band fill allocation', () => {
       maxStopsByBand: new Map([[-360, 1]]),
     });
 
-    expect(expanded.map((place) => place.id)).toContain('required-state');
+    expect(expanded.map((place) => place.id)).not.toContain('required-state');
   });
 
   it('preserves every existing country when replacing one stop with two near the route ceiling', () => {
