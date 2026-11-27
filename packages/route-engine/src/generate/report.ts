@@ -50,8 +50,8 @@ function actualLeg(options: ActualLegOptions): RouteLegReport {
   const leg: RouteLegReport = { from: fromName, to: toName, km, kmh, gapMinutes, kind, eastwardDegrees };
   if (isEastwardDelta(eastwardDegrees)) {
     if (!eastwardReason) throw new Error(`Unjustified eastward leg from ${fromName} to ${toName}`);
-    leg.eastwardReason = eastwardReason;
   }
+  if (eastwardReason) leg.eastwardReason = eastwardReason;
   return leg;
 }
 

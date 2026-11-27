@@ -67,6 +67,14 @@ describe('christmasArrival', () => {
     })).toBe('offset-anomaly');
   });
 
+  it('labels a polar launch into the dateline band despite undefined pole longitude', () => {
+    const destination: Candidate = {
+      id: 'tabuaeran', name: 'Tabuaeran', country: 'KI', lat: 3.87727, lng: -159.33746,
+      timezone: 'Pacific/Kiritimati', utcOffsetMinutes: 840, category: 'populated',
+    };
+    expect(eastwardLegReason({ from: { lat: 90, lng: 180 }, to: destination, destinationIndex: 0 })).toBe('dateline');
+  });
+
   it('assigns dwell from population, capital and curated landmark tier', () => {
     const candidate = (overrides: Partial<Candidate>): Candidate => ({
       id: 'place', name: 'Place', country: 'AA', lat: 0, lng: 0, timezone: 'UTC', category: 'populated', ...overrides,

@@ -147,20 +147,20 @@ export function eastwardLegReason(options: {
 }): EastwardReason | undefined {
   const { from, to, destinationIndex, arrivalUtc } = options;
   const eastward = longitudeDelta(from, to);
-  if (!isEastwardDelta(eastward)) return undefined;
-
   const fromOffset = offsetFor(from);
   const toOffset = offsetFor(to);
+  const polarLaunchAcrossDateline = destinationIndex === 0 && fromOffset === undefined
+    && Math.abs(to.lng) >= 150 && toOffset !== undefined && toOffset >= 12 * 60;
+  if (polarLaunchAcrossDateline) return 'dateline';
+  if (!isEastwardDelta(eastward)) return undefined;
+
   const nearDateline = Math.abs(from.lng) >= 150 && Math.abs(to.lng) >= 150;
   const fromLongitude = ((from.lng + 180) % 360 + 360) % 360 - 180;
   const toLongitude = ((to.lng + 180) % 360 + 360) % 360 - 180;
   const crossesDateline = Math.abs(toLongitude - fromLongitude) > 180;
-  const polarLaunchAcrossDateline = destinationIndex === 0 && fromOffset === undefined
-    && Math.abs(to.lng) >= 150 && toOffset !== undefined && toOffset >= 12 * 60;
   const stillBeforeWestwardSweep = fromOffset !== undefined && fromOffset > 12 * 60;
   const openingDatelineSweep = destinationIndex < 5 && stillBeforeWestwardSweep && nearDateline && crossesDateline
     && toOffset !== undefined && toOffset >= 13 * 60;
-  if (polarLaunchAcrossDateline) return 'dateline';
   if (openingDatelineSweep) {
     return 'dateline';
   }

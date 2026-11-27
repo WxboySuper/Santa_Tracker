@@ -98,8 +98,15 @@ function offsetBandPositions(state: InsertionState, offset: number): OffsetBandP
   return positions;
 }
 
-function polarStopFitsBandEdge(positions: OffsetBandPositions, before: TimedCandidate | undefined,
-  after: TimedCandidate | undefined, index: number, offset: number): boolean {
+type PolarStopPlacement = {
+  positions: OffsetBandPositions;
+  before: TimedCandidate | undefined;
+  after: TimedCandidate | undefined;
+  index: number;
+  offset: number;
+};
+
+function polarStopFitsBandEdge({ positions, before, after, index, offset }: PolarStopPlacement): boolean {
   if (positions.lastOffsetIndex >= 0) return index === positions.lastOffsetIndex + 1;
   return (!before || requiredSnapshotOffset(before) >= offset)
     && (!after || requiredSnapshotOffset(after) <= offset);
@@ -120,7 +127,7 @@ function placeFitsNeighborBand(state: InsertionState, place: Candidate, index: n
   const after = state.route[index];
   const offset = requiredSnapshotOffset(place);
   const positions = offsetBandPositions(state, offset);
-  if (place.country === 'AQ') return polarStopFitsBandEdge(positions, before, after, index, offset);
+  if (place.country === 'AQ') return polarStopFitsBandEdge({ positions, before, after, index, offset });
   if (!localStopFitsPolarBoundary(positions, index)) return false;
   return neighborOffsetsFit(before, after, offset, pass.bandSpreadMinutes);
 }

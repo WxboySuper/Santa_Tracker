@@ -4,7 +4,7 @@ import requiredAdmin1Units from '../../packages/route-engine/src/generate/admin1
 
 export const ADMIN1_BOUNDARY_SOURCE = 'https://naturalearth.s3.amazonaws.com/10m_cultural/ne_10m_admin_1_states_provinces.zip';
 const ADMIN1_COUNTRIES = new Set(['US', 'CA', 'AU']);
-const REQUIRED_ADMIN1_CODES = new Set(Object.values(requiredAdmin1Units).flat());
+export const REQUIRED_ADMIN1_CODES = new Set(Object.values(requiredAdmin1Units).flat());
 const PRESERVED_EXTERNAL_ADMIN1_CODES = new Set(['US-PR', 'AU-X03~']);
 const SUPPORTED_TARGET_ADMIN1_CODES = new Set([...REQUIRED_ADMIN1_CODES, ...PRESERVED_EXTERNAL_ADMIN1_CODES]);
 const GEOMETRY_TOLERANCE = 1e-9;
@@ -80,8 +80,8 @@ function pointInFeature(point, feature) {
 export function normalizeAdmin1Feature(value) {
   if (!value || typeof value !== 'object') return undefined;
   const properties = value.properties ?? {};
-  const country = clean(properties.iso_a2);
-  const code = clean(properties.iso_3166_2);
+  const country = clean(properties.iso_a2).toUpperCase();
+  const code = clean(properties.iso_3166_2).toUpperCase();
   if (!ADMIN1_COUNTRIES.has(country)) return undefined;
   if (!SUPPORTED_TARGET_ADMIN1_CODES.has(code)) return undefined;
   if (!value.geometry) return undefined;
@@ -163,6 +163,14 @@ export function isSupportedAdmin1Code(country, code) {
   return SUPPORTED_TARGET_ADMIN1_CODES.has(normalizedCode);
 }
 
+export function missingRequiredAdmin1Codes(candidates) {
+  const covered = new Set(candidates.flatMap((candidate) => {
+    const code = candidate?.admin1Code;
+    return REQUIRED_ADMIN1_CODES.has(code) && isSupportedAdmin1Code(candidate?.country, code) ? [code] : [];
+  }));
+  return [...REQUIRED_ADMIN1_CODES].filter((code) => !covered.has(code)).sort(compareText);
+}
+
 function requireAdmin1Features(features) {
   if (!Array.isArray(features)) throw new TypeError('Admin-1 lookup requires a feature array');
   return features;
@@ -171,10 +179,7 @@ function requireAdmin1Features(features) {
 function findAdmin1Feature(place, point, features) {
   const matches = features.filter((feature) => feature?.country === place.country && pointInFeature(point, feature));
   const byCode = new Map(matches.map((feature) => [feature.code, feature]));
-  if (byCode.size > 1) {
-    const codes = [...byCode.keys()].sort(compareText).join(', ');
-    throw new Error(`Candidate ${place.id ?? '(unknown)'} lies on an ambiguous admin-1 border: ${codes}`);
-  }
+  if (byCode.size > 1) return undefined;
   return byCode.values().next().value;
 }
 

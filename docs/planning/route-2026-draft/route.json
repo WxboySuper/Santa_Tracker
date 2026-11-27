@@ -63,7 +63,8 @@
         "distance_km": 9576.42,
         "speed_curve": "HYPERSONIC",
         "speed_kmh": 18995,
-        "camera_zoom": 9
+        "camera_zoom": 9,
+        "eastward_reason": "dateline"
       },
       "notes": "https://www.wikidata.org/wiki/Q127335",
       "priority": 2

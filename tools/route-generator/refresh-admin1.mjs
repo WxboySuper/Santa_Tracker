@@ -1,8 +1,9 @@
 import { copyFile, readFile, rename, rm, writeFile } from 'node:fs/promises';
-import { admin1CodeAt, isSupportedAdmin1Code, loadAdmin1Features } from './admin1.mjs';
+import { admin1CodeAt, isSupportedAdmin1Code, loadAdmin1Features, missingRequiredAdmin1Codes } from './admin1.mjs';
 
 const DATA_FILES = ['places.json', 'curated.json'];
 const TRANSACTION_MARKER = new URL('./data/.admin1-refresh-transaction.json', import.meta.url);
+const COMMITTED_MARKER = new URL('./data/.admin1-refresh-committed', import.meta.url);
 
 function isSupportedExistingCode(place, code) {
   return isSupportedAdmin1Code(place.country, code);
@@ -11,6 +12,9 @@ function isSupportedExistingCode(place, code) {
 function candidateWithAdmin1Code(place, code, preserveExisting = true) {
   const candidate = { ...place };
   if (code && isSupportedExistingCode(place, code)) return { ...candidate, admin1Code: code };
+  if (place.admin1Code !== undefined && place.admin1Code !== null && !isSupportedExistingCode(place, place.admin1Code)) {
+    throw new Error(`Unsupported admin1Code for ${place.country} candidate ${place.id}`);
+  }
   if (preserveExisting && place.admin1Code === null) return { ...candidate, admin1Code: null };
   delete candidate.admin1Code;
   return preserveExisting && isSupportedExistingCode(place, place.admin1Code) ? { ...candidate, admin1Code: place.admin1Code } : candidate;
@@ -73,7 +77,7 @@ async function prepareDataFile(file, featurePolygons) {
   const indentation = file === 'places.json' ? 0 : 2;
   const temporary = new URL(`./data/.${file}.${process.pid}.tmp`, import.meta.url);
   const backup = new URL(`./data/.${file}.${process.pid}.bak`, import.meta.url);
-  return { file, path, temporary, backup, contents: `${JSON.stringify(enriched, null, indentation)}\n`, assigned, unassigned };
+  return { file, path, temporary, backup, contents: `${JSON.stringify(enriched, null, indentation)}\n`, candidates: enriched, assigned, unassigned };
 }
 
 async function stageDataFiles(prepared) {
@@ -93,12 +97,15 @@ async function installDataFiles(prepared) {
       await rename(item.temporary, item.path);
       installed.push(item);
     }
+    await writeFile(COMMITTED_MARKER, '', { flag: 'wx' });
   } catch (error) {
     for (const item of installed.reverse()) await copyFile(item.backup, item.path);
     await rm(TRANSACTION_MARKER, { force: true });
+    await rm(COMMITTED_MARKER, { force: true });
     throw error;
   }
   await rm(TRANSACTION_MARKER, { force: true });
+  await rm(COMMITTED_MARKER, { force: true });
 }
 
 async function readTransactionManifest() {
@@ -110,14 +117,30 @@ async function readTransactionManifest() {
   }
 }
 
+function backupPrefixFor(file) {
+  return `.${file}.`;
+}
+
+function backupProcessId(entry) {
+  if (typeof entry?.backup !== 'string') return undefined;
+  const prefix = backupPrefixFor(entry?.file);
+  if (!entry.backup.startsWith(prefix)) return undefined;
+  if (!entry.backup.endsWith('.bak')) return undefined;
+  return entry.backup.slice(prefix.length, -4);
+}
+
+function isDataFile(file) {
+  return DATA_FILES.includes(file);
+}
+
+function isNumericBackupProcessId(processId) {
+  return typeof processId === 'string' && /^\d+$/.test(processId);
+}
+
 function backupNameForEntry(entry) {
-  const backupPrefix = `.${entry?.file}.`;
-  const backupPid = typeof entry?.backup === 'string' && entry.backup.startsWith(backupPrefix)
-    ? entry.backup.slice(backupPrefix.length, -4)
-    : '';
-  if (!DATA_FILES.includes(entry?.file) || !/^\d+$/.test(backupPid) || !entry.backup.endsWith('.bak')) {
-    throw new Error('admin-1 refresh marker contains an invalid backup path');
-  }
+  const processId = backupProcessId(entry);
+  if (!isDataFile(entry?.file)) throw new Error('admin-1 refresh marker contains an invalid backup path');
+  if (!isNumericBackupProcessId(processId)) throw new Error('admin-1 refresh marker contains an invalid backup path');
   return { file: entry.file, backup: entry.backup };
 }
 
@@ -132,12 +155,31 @@ async function restoreBackupEntry(entry) {
   await copyFile(new URL(`./data/${entry.backup}`, import.meta.url), new URL(`./data/${entry.file}`, import.meta.url));
 }
 
+async function transactionWasCommitted() {
+  try {
+    await readFile(COMMITTED_MARKER, 'utf8');
+    return true;
+  } catch (error) {
+    if (error?.code === 'ENOENT') return false;
+    throw error;
+  }
+}
+
 async function recoverInterruptedInstall() {
   const manifest = await readTransactionManifest();
-  if (!manifest) return;
+  if (!manifest) {
+    await rm(COMMITTED_MARKER, { force: true });
+    return;
+  }
+  if (await transactionWasCommitted()) {
+    await rm(TRANSACTION_MARKER, { force: true });
+    await rm(COMMITTED_MARKER, { force: true });
+    return;
+  }
   const entries = validateTransactionManifest(manifest);
   for (const entry of entries) await restoreBackupEntry(entry);
   await rm(TRANSACTION_MARKER, { force: true });
+  await rm(COMMITTED_MARKER, { force: true });
 }
 
 async function cleanupStagedFiles(prepared) {
@@ -152,6 +194,8 @@ async function main() {
   const prepared = [];
   try {
     for (const file of DATA_FILES) prepared.push(await prepareDataFile(file, featurePolygons));
+    const missingCodes = missingRequiredAdmin1Codes(prepared.flatMap((item) => item.candidates));
+    if (missingCodes.length > 0) throw new Error(`admin-1 refresh would leave required coverage missing: ${missingCodes.join(', ')}`);
     await stageDataFiles(prepared);
     await installDataFiles(prepared);
   } finally {

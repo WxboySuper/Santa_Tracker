@@ -140,7 +140,7 @@ describe('midnight sweep ordering', () => {
       priorDeparture: Date.parse('2026-12-24T14:00:00.000Z'), index: 2, config: DEFAULT_GENERATOR_LIMITS })).toBeUndefined();
   });
 
-  it('treats polar longitude as undefined for launch and return direction', () => {
+  it('treats polar longitude as undefined and records its dateline launch band', () => {
     const first: Candidate = { id: 'polar-launch', name: 'Date-line island', country: 'KI', lat: 1, lng: -178,
       timezone: 'Etc/GMT-12', utcOffsetMinutes: 720, category: 'populated', population: 5_000 };
     const planned = candidateTiming({ place: first, prior: NORTH_POLE, priorDeparture: Date.parse('2026-12-24T10:00:00.000Z'),
@@ -148,7 +148,7 @@ describe('midnight sweep ordering', () => {
     expect(planned).toBeDefined();
     expect(longitudeDelta(NORTH_POLE, first)).toBe(0);
     expect(longitudeDelta(first, NORTH_POLE)).toBe(0);
-    expect(eastwardLegReason({ from: NORTH_POLE, to: first, destinationIndex: 0, arrivalUtc: planned?.arrival })).toBeUndefined();
+    expect(eastwardLegReason({ from: NORTH_POLE, to: first, destinationIndex: 0, arrivalUtc: planned?.arrival })).toBe('dateline');
   });
 
   it('does not treat a same-offset eastward jog as a justified exception', () => {

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { admin1Coverage, admin1UnitFor } from './admin1';
-import { admin1CodeAt, isSupportedAdmin1Code, normalizeAdmin1Feature } from '../../../../tools/route-generator/admin1.mjs';
+import { admin1CodeAt, isSupportedAdmin1Code, missingRequiredAdmin1Codes, normalizeAdmin1Feature } from '../../../../tools/route-generator/admin1.mjs';
 import type { Candidate } from './types';
 
 const candidate = (country: string, admin1Code: string | null): Candidate => ({
@@ -54,12 +54,22 @@ describe('admin-1 coverage', () => {
     expect(isSupportedAdmin1Code('US', null as unknown as string)).toBe(false);
   });
 
+  it('counts required units only from country-matched candidate codes', () => {
+    const missing = missingRequiredAdmin1Codes([candidate('CA', 'US-CA')]);
+
+    expect(missing).toContain('US-CA');
+    expect(missing).toContain('US-AK');
+  });
+
   it('normalizes admin-1 codes consistently in the engine and polygon tooling', () => {
     const polygon = { type: 'Polygon', coordinates: [[[-1, -1], [1, -1], [1, 1], [-1, 1], [-1, -1]]] };
     const features = [{ country: 'US', code: 'US-CA', name: 'California', geometry: polygon }];
 
     expect(isSupportedAdmin1Code(' us ', ' us-ca ')).toBe(true);
     expect(admin1CodeAt(candidate('us', null), features)).toBe('US-CA');
+    expect(normalizeAdmin1Feature({
+      properties: { iso_a2: ' us ', iso_3166_2: ' us-ca ', name: 'California' }, geometry: polygon,
+    })).toMatchObject({ country: 'US', code: 'US-CA' });
   });
 
   it('loads supported external territory polygons for refresh lookups', () => {
@@ -78,7 +88,7 @@ describe('admin-1 coverage', () => {
     expect(() => admin1CodeAt({ ...candidate('US', null), lat: Number.NaN }, features)).toThrow(/non-finite latitude/);
   });
 
-  it('rejects a point that falls on multiple admin-1 units instead of assigning the first code', () => {
+  it('leaves a point on multiple admin-1 units unassigned instead of choosing an arbitrary code', () => {
     const polygon = (minLng: number, maxLng: number) => ({
       type: 'Polygon',
       coordinates: [[
@@ -90,7 +100,7 @@ describe('admin-1 coverage', () => {
       { country: 'US', code: 'US-NV', name: 'Nevada', geometry: polygon(0, 1) },
     ];
 
-    expect(() => admin1CodeAt(candidate('US', null), features)).toThrow(/ambiguous admin-1 border.*US-CA.*US-NV/);
+    expect(admin1CodeAt(candidate('US', null), features)).toBeNull();
   });
 
   it('validates coordinates before skipping countries without admin-1 coverage', () => {
