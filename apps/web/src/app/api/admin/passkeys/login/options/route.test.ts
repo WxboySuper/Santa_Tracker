@@ -33,7 +33,7 @@ describe("POST /api/admin/passkeys/login/options", () => {
 
     expect(getAdminClientIp).toHaveBeenCalledTimes(6);
     expect(recordPasskeyOptionsRequest).toHaveBeenCalledTimes(6);
-    expect(recordPasskeyOptionsRequest).toHaveBeenCalledWith("198.51.100.1");
+    expect(recordPasskeyOptionsRequest).toHaveBeenCalledWith({ ip: "198.51.100.1" });
     expect(createAuthenticationChallenge).toHaveBeenCalledTimes(6);
     expect(webAuthnSettings).toHaveBeenCalledTimes(6);
   });
