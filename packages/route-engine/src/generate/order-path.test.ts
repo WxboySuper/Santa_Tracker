@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { bandedBoustrophedonOrder, canAcceptLocalProposal, detourCount, eastwardCount, type RouteCost } from './order-path';
+import { acceptsRouteMetrics, bandedBoustrophedonOrder, canAcceptLocalProposal, detourCount, eastwardCount, type RouteCost } from './order-path';
 import { hardDetourCount } from './order-shared';
 import { DEFAULT_GENERATOR_LIMITS, type Candidate } from './types';
 
@@ -49,6 +49,17 @@ describe('local route proposals', () => {
     const proposal: RouteCost = { distance: 110, eastward: 0, detours: 2, hardDetours: 0 };
     expect(canAcceptLocalProposal(proposal, current)).toBe(true);
     expect(canAcceptLocalProposal({ ...proposal, eastward: 1 }, current)).toBe(false);
+  });
+
+  it('uses one acceptance rule for coverage tradeoffs and ordinary ordering moves', () => {
+    const current = { eastward: 2, detours: 1, hardDetours: 0, distance: 100 };
+    const reasonedCoverage = { ...current, eastward: 3, detours: 2, distance: 120 };
+    const repeatedCountryViolation = { ...reasonedCoverage, hardDetours: 1 };
+
+    expect(acceptsRouteMetrics(reasonedCoverage, current)).toBe(false);
+    expect(acceptsRouteMetrics(reasonedCoverage, current, { coverageTradeoff: true })).toBe(true);
+    expect(acceptsRouteMetrics(repeatedCountryViolation, current, { coverageTradeoff: true })).toBe(true);
+    expect(acceptsRouteMetrics({ ...current, eastward: 4 }, current, { coverageTradeoff: true })).toBe(false);
   });
 
 });

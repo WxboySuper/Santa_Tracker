@@ -1,8 +1,71 @@
 import { haversineKm, type LatLng } from '../geo';
 import { detourRatio, isEastwardDelta, longitudeDelta } from './sweep';
 import { compareStableIds } from './selection';
+import { admin1UnitFor } from './admin1';
 import { NORTH_POLE, RETURN_DEADLINE_UTC, TAKEOFF_UTC, type Candidate, type GeneratorConfig } from './types';
-import { candidateTiming, hardDetourCount, planTiming, requiredSnapshotOffset, scheduledTravelMilliseconds, seededRandom, type TimedCandidate } from './order-shared';
+import { candidateTiming, countryCapacity, hardDetourCount, planTiming, requiredSnapshotOffset, scheduledTravelMilliseconds, seededRandom,
+  REQUIRED_ADMIN1_CODES, SeparationIndex, type RoutePlan, type TimedCandidate } from './order-shared';
+
+export type RouteMetrics = { eastward: number; detours?: number; hardDetours: number; distance?: number };
+
+function routeMetrics(order: Candidate[], includePathCost = true): RouteMetrics {
+  const metrics: RouteMetrics = { eastward: eastwardCount(order), hardDetours: hardDetourCount(order) };
+  if (includePathCost) {
+    metrics.detours = detourCount(order);
+    metrics.distance = pathDistance(order);
+  }
+  return metrics;
+}
+
+/** One policy for route feasibility and monotonic ordering changes. */
+export function acceptsRouteMetrics(proposal: RouteMetrics, current: RouteMetrics,
+  options: { coverageTradeoff?: boolean } = {}): boolean {
+  if (proposal.eastward > current.eastward + (options.coverageTradeoff ? 1 : 0)) return false;
+  if (proposal.hardDetours > current.hardDetours && !options.coverageTradeoff) return false;
+  if (proposal.hardDetours < current.hardDetours) return true;
+  if (options.coverageTradeoff || proposal.detours === undefined || current.detours === undefined) return true;
+  return proposal.detours <= current.detours;
+}
+
+export function selectionConstraintsAllow(order: Candidate[], config: GeneratorConfig, checkSeparation = true): boolean {
+  const separation = checkSeparation ? new SeparationIndex(config.minStopSeparationKm) : undefined;
+  const countryCounts = new Map<string, number>();
+  const coveredAdmin1 = new Set<string>();
+  const coveredOffsets = new Set<number>();
+  for (const place of order) {
+    if (separation && !separation.allows(place)) return false;
+    const unit = admin1UnitFor(place);
+    const addsRequiredAdmin1 = unit !== undefined && REQUIRED_ADMIN1_CODES.has(unit) && !coveredAdmin1.has(unit);
+    const addsRequiredOffset = !coveredOffsets.has(requiredSnapshotOffset(place));
+    if (!countryCapacity(place, countryCounts, config) && !addsRequiredAdmin1 && !addsRequiredOffset) return false;
+    separation?.add(place);
+    countryCounts.set(place.country, (countryCounts.get(place.country) ?? 0) + 1);
+    if (unit) coveredAdmin1.add(unit);
+    coveredOffsets.add(requiredSnapshotOffset(place));
+  }
+  return true;
+}
+
+export type RouteAcceptanceOptions = { previous?: Candidate[]; coverageTradeoff?: boolean; requireHardDetourFree?: boolean;
+  selectionAlreadyValidated?: boolean };
+
+export function acceptRoutePlan(plan: RoutePlan | undefined, config: GeneratorConfig,
+  options: RouteAcceptanceOptions = {}): RoutePlan | undefined {
+  if (!plan || (!options.selectionAlreadyValidated && !selectionConstraintsAllow(plan.places, config))) return undefined;
+  const hardDetours = hardDetourCount(plan.places);
+  if (options.requireHardDetourFree && hardDetours > 0) return undefined;
+  if (options.previous && !acceptsRouteMetrics(routeMetrics(plan.places, false), routeMetrics(options.previous, false), options)) return undefined;
+  return plan;
+}
+
+export function acceptRouteProposal(order: Candidate[], config: GeneratorConfig,
+  options: RouteAcceptanceOptions = {}): RoutePlan | undefined {
+  return acceptRoutePlan(planTiming(order, config), config, options);
+}
+
+export function timingAndDetourAllows(place: Candidate, route: Candidate[], options: { coverageTradeoff?: boolean } = {}): boolean {
+  return acceptsRouteMetrics(routeMetrics([...route, place], false), routeMetrics(route, false), options);
+}
 
 export function detourCount(order: Candidate[]): number {
   // Local search tracks every geometric detour. hardDetourCount separately
@@ -69,7 +132,7 @@ function considerHardDetourTwoOpt(search: HardDetourSearch, left: number, right:
   if (hardDetourCount(proposal) >= search.currentHardDetours || eastwardCount(proposal) > search.currentEastward) return;
   const distance = pathDistance(proposal);
   if (distance >= search.bestDistance || !search.accepts(proposal)) return;
-  const plan = planTiming(proposal, search.config);
+  const plan = acceptRouteProposal(proposal, search.config, { previous: search.order });
   if (!plan) return;
   search.best = plan.places;
   search.bestDistance = distance;
@@ -121,7 +184,7 @@ function reduceEastwardAt(best: TimedCandidate[], index: number, config: Generat
     const proposal = moveOrOpt(best, index, target);
     if (!antarcticStopsAtOffsetBandEdge(proposal)) continue;
     if (!reducesBacktracking(proposal, priorEastward, priorDetours)) continue;
-    const plan = planTiming(proposal, config);
+    const plan = acceptRouteProposal(proposal, config, { previous: best });
     if (plan) return plan.places;
   }
   return undefined;
@@ -147,7 +210,8 @@ function reduceEastwardMoves(initial: TimedCandidate[], config: GeneratorConfig)
 export type RouteCost = { distance: number; eastward: number; detours: number; hardDetours?: number };
 
 function routeCost(order: Candidate[]): RouteCost {
-  return { distance: pathDistance(order), eastward: eastwardCount(order), detours: detourCount(order), hardDetours: hardDetourCount(order) };
+  const metrics = routeMetrics(order);
+  return { eastward: metrics.eastward, detours: metrics.detours!, hardDetours: metrics.hardDetours, distance: metrics.distance! };
 }
 
 function localProposal(order: Candidate[], first: number, second: number, random: () => number): Candidate[] {
@@ -181,12 +245,9 @@ function improvesPath(cost: RouteCost, current: RouteCost): boolean {
 export function canAcceptLocalProposal(cost: RouteCost, current: RouteCost): boolean {
   const hardDetours = cost.hardDetours ?? cost.detours;
   const currentHardDetours = current.hardDetours ?? current.detours;
-  if (cost.eastward > current.eastward || hardDetours > currentHardDetours) return false;
-  // The audit treats repeated-country detours as violations. A singleton
-  // detour is an explicit mandatory-coverage warning, so allow that tradeoff
-  // when it removes a hard detour without adding eastward legs.
-  if (hardDetours < currentHardDetours) return true;
-  if (cost.detours > current.detours) return false;
+  const proposalMetrics = { ...cost, hardDetours };
+  const currentMetrics = { ...current, hardDetours: currentHardDetours };
+  if (!acceptsRouteMetrics(proposalMetrics, currentMetrics)) return false;
   return improvesSweep(cost, current) || improvesPath(cost, current);
 }
 
@@ -205,7 +266,7 @@ export function improveWithLocalSearch(initial: TimedCandidate[], config: Genera
     if (!antarcticStopsAtOffsetBandEdge(proposal)) continue;
     const cost = routeCost(proposal);
     if (!canAcceptLocalProposal(cost, bestCost)) continue;
-    const planned = planTiming(proposal, config);
+    const planned = acceptRouteProposal(proposal, config, { previous: best });
     if (!planned) continue;
     best = planned.places;
     bestCost = cost;

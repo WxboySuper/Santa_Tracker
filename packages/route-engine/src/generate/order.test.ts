@@ -3,7 +3,7 @@ import { haversineKm } from '../geo';
 import { eastwardLegReason, isInChristmasWindow, localClock, longitudeDelta } from './sweep';
 import { DEFAULT_GENERATOR_LIMITS, NORTH_POLE, type Candidate } from './types';
 import { candidateTiming, categoryPreference, hasFeasibleTiming, longitudeDelta as orderLongitudeDelta, moveAntarcticaToOffsetBandEdge, planTiming, scheduledTravelMilliseconds, sweepOrder } from './order';
-import { timingAndDetourAllows } from './order-shared';
+import { timingAndDetourAllows } from './order';
 
 const testPlaces: Candidate[] = [
   { id: 'ki', name: 'Kiritimati', country: 'KI', lat: 1.87, lng: -157.4, timezone: 'Pacific/Kiritimati', utcOffsetMinutes: 840, category: 'populated', population: 7_380 },
@@ -27,9 +27,10 @@ describe('midnight sweep ordering', () => {
     expect(() => sweepOrder([unweighted])).toThrow(/Missing category tie-break weight for mispeled/);
   });
 
-  it('rejects removed route-order config instead of silently ignoring it', () => {
+  it('ignores removed route-order config keys', () => {
     const legacyConfig = { ...DEFAULT_GENERATOR_LIMITS, routeOrderIds: ['ki'] } as typeof DEFAULT_GENERATOR_LIMITS;
-    expect(() => sweepOrder(testPlaces, legacyConfig)).toThrow(/routeOrderIds/);
+    expect(sweepOrder(testPlaces, legacyConfig).map((place) => place.id))
+      .toEqual(sweepOrder(testPlaces, DEFAULT_GENERATOR_LIMITS).map((place) => place.id));
   });
 
   it('starts in the earliest reachable offset band and keeps delivery legs westward', () => {

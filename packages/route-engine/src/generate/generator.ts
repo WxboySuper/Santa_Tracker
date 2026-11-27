@@ -3,7 +3,7 @@ import { validateRouteGeometry } from '../geometry-validate';
 import { haversineKm, legSpeedKmh, type LatLng } from '../geo';
 import { validateRoute } from '../validate';
 import type { RouteOverrides } from './overrides';
-import { chooseCandidates } from './candidates';
+import { chooseCandidates, normalizeCandidateCodes } from './candidates';
 import { scheduledTravelMilliseconds, sweepOrder } from './order';
 import { buildReport } from './report';
 import { eastwardLegReason, isEastwardDelta, isInChristmasWindow, isInSouthernChristmasWindow, localClock, longitudeDelta, stopDurationSeconds } from './sweep';
@@ -60,13 +60,19 @@ function normalizeCandidateTimezone(place: Candidate, overrides: RouteOverrides,
   validateCandidateIanaTimezone(place, overrides);
   const allowed = tables.zonesByCountry[place.country];
   if (!allowed) throw new InvalidCandidateTimezoneError(`No IANA timezone table for country ${place.country} (${place.name})`);
-  if (allowed.includes(place.timezone)) return requireSnapshotOffset(place);
+  if (allowed.includes(place.timezone)) {
+    return candidateWithCommittedTimezone(place, place.timezone, tables, overrides.utcOffsetMinutes?.[place.id]);
+  }
   return timezoneForMismatch(place, overrides, tables);
 }
 
-function requireSnapshotOffset(place: Candidate): Candidate {
-  if (place.utcOffsetMinutes === undefined) throw new InvalidCandidateTimezoneError(`Missing snapshot UTC offset for ${place.name}`);
-  return place;
+function candidateWithCommittedTimezone(place: Candidate, timezone: string, tables: TimezoneTables,
+  override?: number): Candidate {
+  const committedOffset = committedOffsetFor(timezone, tables);
+  if (place.utcOffsetMinutes !== undefined && place.utcOffsetMinutes !== committedOffset) {
+    throw new InvalidCandidateTimezoneError(`Candidate UTC offset ${place.utcOffsetMinutes} does not match committed offset ${committedOffset} for ${timezone} (${place.name})`);
+  }
+  return { ...place, utcOffsetMinutes: resolvedTimezoneOffset(place, timezone, tables, override) };
 }
 
 function timezoneForMismatch(place: Candidate, overrides: RouteOverrides, tables: TimezoneTables): Candidate {
@@ -472,7 +478,8 @@ function addGeometryWarnings(report: RouteReport, geometryIssues: ReturnType<typ
 
 export function generateRoute(pool: Candidate[], config: GeneratorConfig, overrides: RouteOverrides = {}, tables?: TimezoneTables): GeneratedRoute {
   validateGeneratorConfig(config);
-  const selection = chooseCandidates(pool, config, overrides, {
+  const normalizedPool = pool.map(normalizeCandidateCodes);
+  const selection = chooseCandidates(normalizedPool, config, overrides, {
     recoverMissingUtcOffset: tables ? (place) => {
       try {
         return normalizeCandidateTimezone(place, overrides, tables);
@@ -488,7 +495,7 @@ export function generateRoute(pool: Candidate[], config: GeneratorConfig, overri
   const ordered = sweepOrder(chosen, config);
   const built = buildDocument(ordered, config, tables);
   const report = validateBuiltRoute({ route: built.route, coordinates: built.coordinates, routeEndUtc: built.routeEndUtc,
-    ordered, pool, config, invalidCandidateIds: [...selection.invalidCandidateIds, ...normalized.invalidCandidateIds],
+    ordered, pool: normalizedPool, config, invalidCandidateIds: [...selection.invalidCandidateIds, ...normalized.invalidCandidateIds],
     duplicateCandidateIds: selection.duplicateCandidateIds });
   return { document: built.document, route: built.route, locations: ordered, report };
 }

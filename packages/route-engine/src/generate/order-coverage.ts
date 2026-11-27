@@ -1,11 +1,11 @@
 import { haversineKm } from '../geo';
 import { NORTH_POLE } from './types';
-import { eastwardCount } from './order-path';
+import { acceptRoutePlan, acceptRouteProposal } from './order-path';
 import { stopDurationSeconds, stopTier } from './sweep';
 import { admin1UnitFor } from './admin1';
 import { compareStableIds } from './selection';
 import type { Candidate, GeneratorConfig } from './types';
-import { categoryPreference, countryCapacity, hardDetourCount, MAX_ROUTE_STOPS, planTiming, requiredSnapshotOffset, canStartFromNorthPole, REQUIRED_ADMIN1_CODES, seededRandom, SeparationIndex, type RoutePlan, type TimedCandidate } from './order-shared';
+import { categoryPreference, countryCapacity, MAX_ROUTE_STOPS, planTiming, requiredSnapshotOffset, canStartFromNorthPole, REQUIRED_ADMIN1_CODES, seededRandom, SeparationIndex, type TimedCandidate } from './order-shared';
 
 const COUNTRY_COVERAGE_CONFLICT_WEIGHT = 50;
 
@@ -77,13 +77,6 @@ function insertionState(initial: TimedCandidate[], minimumSeparationKm: number):
   return { route: [...initial], counts, admin1Counts, bandCounts, separation };
 }
 
-function insertionPlanIsAcceptable(plan: RoutePlan | undefined, eastward: number, detours: number,
-  coverageTradeoff: boolean): plan is RoutePlan {
-  if (!plan) return false;
-  return (coverageTradeoff || eastwardCount(plan.places) <= eastward)
-    && hardDetourCount(plan.places) <= detours;
-}
-
 type OffsetBandPositions = { lastOffsetIndex: number; lastAntarcticIndex: number };
 
 function recordOffsetBandPosition(positions: OffsetBandPositions, candidate: TimedCandidate, index: number, offset: number): void {
@@ -151,8 +144,6 @@ function passesInsertionCandidateGates(state: InsertionState, item: RankedInsert
 function addAtFeasiblePosition(state: InsertionState, place: Candidate, positions: RankedInsertion['positions'], pass: InsertionPass): boolean {
   if (pass.maxStops !== undefined && state.route.length >= pass.maxStops) return false;
   const offset = requiredSnapshotOffset(place);
-  const priorEastward = eastwardCount(state.route);
-  const priorDetours = hardDetourCount(state.route);
   const unit = admin1UnitFor(place);
   const addsRequiredAdmin1 = unit !== undefined && REQUIRED_ADMIN1_CODES.has(unit) && !state.admin1Counts.has(unit);
   const addsRequiredOffsetBand = !state.bandCounts.has(offset);
@@ -162,8 +153,10 @@ function addAtFeasiblePosition(state: InsertionState, place: Candidate, position
     && (state.bandCounts.get(offset) ?? 0) >= (pass.maxStopsByBand.get(offset) ?? 0)) return false;
   for (const { index } of insertionOptions(state, place, positions, pass)) {
     const proposal = [...state.route.slice(0, index), place, ...state.route.slice(index)];
-    const plan = planTiming(proposal, pass.config);
-    if (!insertionPlanIsAcceptable(plan, priorEastward, priorDetours, coverageTradeoff)) continue;
+    // Insertion gates and the live separation index already validate selection constraints.
+    const plan = acceptRoutePlan(planTiming(proposal, pass.config), pass.config,
+      { previous: state.route, coverageTradeoff, selectionAlreadyValidated: true });
+    if (!plan) continue;
     state.route = plan.places;
     state.counts.set(place.country, (state.counts.get(place.country) ?? 0) + 1);
     const unit = admin1UnitFor(place);
@@ -290,7 +283,7 @@ function stateWithoutStop(state: InsertionState, place: TimedCandidate, pass: In
   if (state.counts.get(place.country) === 1) return undefined;
   if (isFinalRequiredAdmin1OrOffsetStop(state, place)) return undefined;
   const remaining = state.route.filter((selected) => selected.id !== place.id);
-  if (!planTiming(remaining, pass.config)) return undefined;
+  if (!acceptRouteProposal(remaining, pass.config, { selectionAlreadyValidated: true })) return undefined;
   return insertionState(remaining, pass.config.minStopSeparationKm);
 }
 

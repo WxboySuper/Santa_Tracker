@@ -24,9 +24,21 @@ function coveredAdmin1Codes(places: Candidate[]): Set<string> {
   }));
 }
 
-function targetAdmin1Country(value: unknown): RequiredAdmin1Country | undefined {
+export function normalizeCountryCode(value: unknown): string | undefined {
   if (typeof value !== 'string') return undefined;
   const country = value.trim().toUpperCase();
+  return country || undefined;
+}
+
+export function normalizeAdmin1Code(value: unknown): string | undefined {
+  if (typeof value !== 'string') return undefined;
+  const code = value.trim().toUpperCase();
+  return code || undefined;
+}
+
+function targetAdmin1Country(value: unknown): RequiredAdmin1Country | undefined {
+  const country = normalizeCountryCode(value);
+  if (!country) return undefined;
   return Object.hasOwn(REQUIRED_ADMIN1_UNITS, country) ? country as RequiredAdmin1Country : undefined;
 }
 
@@ -44,7 +56,7 @@ export function admin1UnitFor(place: Candidate): string | undefined {
   if (!country) return undefined;
   const units: readonly string[] | undefined = REQUIRED_ADMIN1_UNITS[country];
   if (!units) return undefined;
-  const code = place.admin1Code?.trim().toUpperCase();
+  const code = normalizeAdmin1Code(place.admin1Code);
   if (!code) return undefined;
   if (!code.startsWith(`${country}-`)) return undefined;
   return isRequiredOrExternalAdmin1Unit(country, units, code) ? code : undefined;

@@ -4,7 +4,8 @@ import { compareStableIds } from './selection';
 import { admin1UnitFor } from './admin1';
 import { isInvalidCandidateTimezoneError } from './timezone-error';
 import { bandMaximumStops, insertAdmin1Coverage, insertCountryCoverage, insertFeasibleCandidates, insertOffsetBandCoverage, mandatoryLaunch, selectMandatoryRepresentatives, type InsertionPass } from './order-coverage';
-import { bandedBoustrophedonOrder, detourCount, eastwardCount, improveWithLocalSearch, pathDistance, reduceCoverageDetours, reduceHardDetoursWithinBands } from './order-path';
+import { acceptRouteProposal, bandedBoustrophedonOrder, detourCount, eastwardCount, improveWithLocalSearch, pathDistance,
+  reduceCoverageDetours, reduceHardDetoursWithinBands, timingAndDetourAllows } from './order-path';
 import {
   candidateTiming,
   canStartFromNorthPole,
@@ -12,12 +13,10 @@ import {
   countryCapacity,
   hardDetourCount,
   MAX_ROUTE_STOPS,
-  planTiming,
   REQUIRED_ADMIN1_CODES,
   requiredSnapshotOffset,
   seededRandom,
   SeparationIndex,
-  timingAndDetourAllows,
   type PlannedStop,
   type RoutePlan,
   type TimedCandidate,
@@ -36,70 +35,15 @@ export {
   scheduledTravelMilliseconds,
   seededRandom,
   SeparationIndex,
-  timingAndDetourAllows,
   REQUIRED_ADMIN1_CODES,
 } from './order-shared';
+export { timingAndDetourAllows } from './order-path';
 export { longitudeDelta } from './sweep';
 export type { PlannedStop, RoutePlan, TimedCandidate } from './order-shared';
 
 const MINUTE_MS = 60_000;
 const LOCAL_CLUSTER_HOP_KM = 300;
 const SOUTHERN_POLAR_APPROACH_RADIUS_KM = 3_500;
-const REMOVED_SWEEP_CONFIG_KEYS = [
-  'arrivalAnchorMinutes',
-  'categoryQuotas',
-  'endStopId',
-  'fixedTotal',
-  'maxCountryRun',
-  'maxStopsPerUtcOffset',
-  'offsetCaps',
-  'openingStopIds',
-  'routeOrderIds',
-  'total',
-] as const;
-
-function assertNoRemovedSweepConfig(config: GeneratorConfig): void {
-  const values = config as unknown as Record<string, unknown>;
-  const removed = REMOVED_SWEEP_CONFIG_KEYS.filter((key) => key in values);
-  if (removed.length > 0) {
-    throw new Error(`Unsupported legacy midnight-sweep-2026 config keys: ${removed.join(', ')}`);
-  }
-}
-
-type CoverageCapOptions = { place: Candidate; countryCounts: Map<string, number>; coveredAdmin1: Set<string>;
-  coveredOffsets: Set<number>; config: GeneratorConfig };
-
-function requiredCoverageAllowsCountryCap({ place, countryCounts, coveredAdmin1, coveredOffsets, config }: CoverageCapOptions): boolean {
-  const unit = admin1UnitFor(place);
-  const addsRequiredAdmin1 = unit !== undefined && REQUIRED_ADMIN1_CODES.has(unit) && !coveredAdmin1.has(unit);
-  const addsRequiredOffsetBand = !coveredOffsets.has(requiredSnapshotOffset(place));
-  if (countryCapacity(place, countryCounts, config)) return true;
-  if (addsRequiredAdmin1) return true;
-  return addsRequiredOffsetBand;
-}
-
-function recordSelectionCoverage(place: Candidate, countryCounts: Map<string, number>, coveredAdmin1: Set<string>,
-  coveredOffsets: Set<number>): void {
-  countryCounts.set(place.country, (countryCounts.get(place.country) ?? 0) + 1);
-  const unit = admin1UnitFor(place);
-  if (unit) coveredAdmin1.add(unit);
-  coveredOffsets.add(requiredSnapshotOffset(place));
-}
-
-function selectionConstraintsAllow(order: Candidate[], config: GeneratorConfig): boolean {
-  const separation = new SeparationIndex(config.minStopSeparationKm);
-  const countryCounts = new Map<string, number>();
-  const coveredAdmin1 = new Set<string>();
-  const coveredOffsets = new Set<number>();
-  for (const place of order) {
-    if (!separation.allows(place)) return false;
-    if (!requiredCoverageAllowsCountryCap({ place, countryCounts, coveredAdmin1, coveredOffsets, config })) return false;
-    separation.add(place);
-    recordSelectionCoverage(place, countryCounts, coveredAdmin1, coveredOffsets);
-  }
-  return true;
-}
-
 function scoreCoverage(newCountry: boolean, newAdmin1: boolean): number {
   return Number(newCountry) * 100_000_000 + Number(newAdmin1) * 100_000_000;
 }
@@ -201,17 +145,14 @@ function candidateCanExtendRoute(state: SweepState, place: Candidate, config: Ge
   const addsRequiredOffsetBand = !state.bandCounts.has(requiredSnapshotOffset(place));
   const addsCountryCoverage = !state.countryCounts.has(place.country);
   const hasCountryCapacity = countryCapacity(place, state.countryCounts, config);
-  if (hasCountryCapacity) return extensionPassesTiming(place, addsCountryCoverage, addsRequiredAdmin1, state.route);
-  if (addsRequiredAdmin1) return extensionPassesTiming(place, addsCountryCoverage, true, state.route);
-  if (addsRequiredOffsetBand) return extensionPassesTiming(place, addsCountryCoverage, false, state.route);
+  if (hasCountryCapacity || addsRequiredAdmin1 || addsRequiredOffsetBand) {
+    return extensionPassesTiming(place, state.route, addsCountryCoverage || addsRequiredAdmin1 || addsRequiredOffsetBand);
+  }
   return false;
 }
 
-function extensionPassesTiming(place: Candidate, addsCountryCoverage: boolean, addsRequiredAdmin1: boolean,
-  route: Candidate[]): boolean {
-  if (addsCountryCoverage) return true;
-  if (addsRequiredAdmin1) return true;
-  return timingAndDetourAllows(place, route);
+function extensionPassesTiming(place: Candidate, route: Candidate[], coverageTradeoff: boolean): boolean {
+  return timingAndDetourAllows(place, route, { coverageTradeoff });
 }
 
 function isNewRequiredAdmin1(place: Candidate, coveredAdmin1: Map<string, number>): boolean {
@@ -392,9 +333,7 @@ function greedySweep(pool: Candidate[], config: GeneratorConfig, includeDenseFil
 }
 
 function planOrder(order: Candidate[], config: GeneratorConfig): RoutePlan | undefined {
-  if (!selectionConstraintsAllow(order, config)) return undefined;
-  if (hardDetourCount(order) > 0) return undefined;
-  return planTiming(order, config);
+  return acceptRouteProposal(order, config, { requireHardDetourFree: true });
 }
 
 type PolarRouteChoice = { places: TimedCandidate[]; eastward: number; detours: number; distance: number; config: GeneratorConfig };
@@ -441,6 +380,22 @@ function isNearbySouthernCandidate(place: TimedCandidate | undefined, approach: 
     && haversineKm(place, approach) <= SOUTHERN_POLAR_APPROACH_RADIUS_KM;
 }
 
+function nearbySouthernProposal(current: TimedCandidate[], polarStopId: string, nearbyId: string): Candidate[] | undefined {
+  const polarIndex = current.findIndex((place) => place.id === polarStopId);
+  if (polarIndex < 2) return undefined;
+  const approach = current[polarIndex - 1];
+  const later = current.findIndex((place) => place.id === nearbyId);
+  if (!approach || later <= polarIndex || later > polarIndex + 8) return undefined;
+  const nearby = current[later];
+  if (!isNearbySouthernCandidate(nearby, approach)) return undefined;
+  const proposal = [...current];
+  const [moved] = proposal.splice(later, 1);
+  if (!moved) return undefined;
+  const target = moved.lat > approach.lat ? polarIndex - 1 : polarIndex;
+  proposal.splice(target, 0, moved);
+  return proposal;
+}
+
 function considerNearbySouthernMoves(choice: PolarRouteChoice, initial: TimedCandidate[], polarStopId: string): void {
   const initialPolarIndex = initial.findIndex((place) => place.id === polarStopId);
   if (initialPolarIndex < 2) return;
@@ -448,22 +403,8 @@ function considerNearbySouthernMoves(choice: PolarRouteChoice, initial: TimedCan
   for (const nearbyId of nearbyIds) {
     // Earlier accepted moves change the polar index and approach, so build
     // each proposal from the current best route rather than the stale input.
-    const current = choice.places;
-    const polarIndex = current.findIndex((place) => place.id === polarStopId);
-    if (polarIndex < 2) return;
-    const southernApproach = current[polarIndex - 1];
-    const later = current.findIndex((place) => place.id === nearbyId);
-    if (!southernApproach || later <= polarIndex || later > polarIndex + 8) continue;
-    const nearby = current[later];
-    if (!isNearbySouthernCandidate(nearby, southernApproach)) continue;
-    const proposal = [...current];
-    const [moved] = proposal.splice(later, 1);
-    if (!moved) continue;
-    // If the island is north of the approach, finish it before turning south.
-    // A more southern stop belongs between the approach and the polar station.
-    const target = moved.lat > southernApproach.lat ? polarIndex - 1 : polarIndex;
-    proposal.splice(target, 0, moved);
-    considerPolarRoute(choice, proposal);
+    const proposal = nearbySouthernProposal(choice.places, polarStopId, nearbyId);
+    if (proposal) considerPolarRoute(choice, proposal);
   }
 }
 
@@ -489,7 +430,7 @@ function planMandatoryRoute(pool: Candidate[], config: GeneratorConfig): TimedCa
   const { representatives, launch } = mandatory;
   if (representatives.length === 0 || representatives.length > MAX_ROUTE_STOPS) return undefined;
   const ordered = bandedBoustrophedonOrder(representatives, launch, config);
-  const detourFree = reduceCoverageDetours(ordered, config, (proposal) => selectionConstraintsAllow(proposal, config));
+  const detourFree = reduceCoverageDetours(ordered, config, (proposal) => acceptRouteProposal(proposal, config) !== undefined);
   if (hardDetourCount(detourFree) > 0) return undefined;
   const initialPlan = planOrder(detourFree, config);
   if (!initialPlan) return undefined;
@@ -537,16 +478,15 @@ function expandGreedyCoverageRoute(mandatory: TimedCandidate[], pool: Candidate[
   const expanded = insertFeasibleCandidates(mandatory, pool, densePass);
   const optimized = improveWithLocalSearch(expanded, config);
   const hardDetourRepaired = reduceHardDetoursWithinBands({ initial: optimized, config,
-    accepts: (proposal) => selectionConstraintsAllow(proposal, config) });
+    accepts: (proposal) => acceptRouteProposal(proposal, config) !== undefined });
   const finalOrder = reduceCoverageDetours(hardDetourRepaired, config,
-    (proposal) => selectionConstraintsAllow(proposal, config));
+    (proposal) => acceptRouteProposal(proposal, config) !== undefined);
   const plan = planOrder(finalOrder, config);
   return plan?.places;
 }
 
 /** Greedy time-stepped midnight sweep followed by constrained 2-opt/or-opt improvements. */
 export function sweepOrder(places: Candidate[], config: GeneratorConfig = DEFAULT_GENERATOR_LIMITS): TimedCandidate[] {
-  assertNoRemovedSweepConfig(config);
   if (places.length === 0) throw new Error('Cannot order an empty route');
   places.forEach(requiredSnapshotOffset);
   places.forEach((place) => categoryPreference(place, config));

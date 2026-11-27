@@ -1,13 +1,14 @@
 import { applyCandidateOverrides, type RouteOverrides } from './overrides';
 import { assertNoLegacySelectionOverrides } from './selection-overrides';
+import { normalizeAdmin1Code, normalizeCountryCode } from './admin1';
 import type { Candidate, GeneratorConfig } from './types';
 
 export type CandidateSelection = { candidates: Candidate[]; invalidCandidateIds: string[]; duplicateCandidateIds: string[] };
 export type CandidateSelectionOptions = { recoverMissingUtcOffset?: (place: Candidate) => Candidate | undefined };
-type CandidateRows = { candidates: Candidate[]; rowLabels: string[]; invalidCandidateIds: string[] };
+type CandidateRows = { candidates: Candidate[]; rowLabelsById: Map<string, string>; invalidCandidateIds: string[] };
 type CandidateValidationOptions = {
   updated: Candidate[];
-  rowLabels: string[];
+  rowLabelsById: Map<string, string>;
   vetoed: Set<string>;
   config: GeneratorConfig;
   options: CandidateSelectionOptions;
@@ -61,17 +62,32 @@ function rowLabel(value: unknown, index: number): string {
 
 function collectCandidateRows(pool: Candidate[]): CandidateRows {
   const candidates: Candidate[] = [];
-  const rowLabels: string[] = [];
+  const rowLabelsById = new Map<string, string>();
   const invalidCandidateIds: string[] = [];
   for (const [index, place] of pool.entries()) {
     if (!isCandidateRecord(place)) {
       invalidCandidateIds.push(rowLabel(place, index));
       continue;
     }
-    candidates.push(place);
-    rowLabels.push(rowLabel(place, index));
+    const normalized = normalizeCandidateCodes(place);
+    candidates.push(normalized);
+    rowLabelsById.set(normalized.id, rowLabel(normalized, index));
   }
-  return { candidates, rowLabels, invalidCandidateIds };
+  return { candidates, rowLabelsById, invalidCandidateIds };
+}
+
+/** Canonicalize candidate identifiers once before selection, reports, and coverage checks. */
+export function normalizeCandidateCodes<T extends Candidate>(place: T): T {
+  if (typeof place !== 'object' || place === null) return place;
+  const country = normalizeCountryCode(place.country);
+  const admin1Code = normalizeAdmin1Code(place.admin1Code);
+  const timezone = typeof place.timezone === 'string' ? place.timezone.trim() : place.timezone;
+  return {
+    ...place,
+    ...(country ? { country } : {}),
+    ...(typeof place.admin1Code === 'string' ? { admin1Code: admin1Code ?? null } : {}),
+    ...(timezone ? { timezone } : {}),
+  };
 }
 
 function wikidataCandidate(place: Candidate): boolean {
@@ -95,7 +111,7 @@ type CandidateValidation =
   | { kind: 'duplicate'; id: string }
   | { kind: 'accepted'; place: Candidate; duplicateId?: string };
 
-type CandidateRowIdentity = { id?: string; duplicateId?: string; alreadyAccepted: boolean };
+type CandidateRowIdentity = { id?: string; duplicateId?: string; duplicateRow: boolean };
 
 function trackCandidateRowIdentity(place: Candidate, state: CandidateValidationState): CandidateRowIdentity {
   const id = hasNonEmptyText(place.id) ? place.id : undefined;
@@ -104,13 +120,13 @@ function trackCandidateRowIdentity(place: Candidate, state: CandidateValidationS
   return {
     id,
     duplicateId: duplicateRow ? id : undefined,
-    alreadyAccepted: id !== undefined && state.acceptedIds.has(id),
+    duplicateRow: duplicateRow && id !== undefined && state.acceptedIds.has(id),
   };
 }
 
 function validateCandidateForSelection(place: Candidate, label: string, state: CandidateValidationState): CandidateValidation {
   const identity = trackCandidateRowIdentity(place, state);
-  if (identity.alreadyAccepted && identity.id) return { kind: 'duplicate', id: identity.id };
+  if (identity.duplicateRow && identity.id) return { kind: 'duplicate', id: identity.id };
   const { id, duplicateId } = identity;
   if (isVetoedCandidate(place, state.vetoed)) return { kind: 'vetoed', duplicateId };
   const resolved = candidateWithResolvedOffset(place, state.options);
@@ -142,13 +158,14 @@ function recordCandidateValidation(result: CandidateValidation, output: Candidat
   if (result.kind === 'accepted') output.candidates.push(result.place);
 }
 
-function validateAndEnrichCandidates({ updated, rowLabels, vetoed, config, options }: CandidateValidationOptions): CandidateSelection {
+function validateAndEnrichCandidates({ updated, rowLabelsById, vetoed, config, options }: CandidateValidationOptions): CandidateSelection {
   const output: CandidateValidationOutput = {
     candidates: [], invalidCandidateIds: [], duplicateCandidateIds: [], invalidSeen: new Set(), duplicateSeen: new Set(),
   };
   const state: CandidateValidationState = { vetoed, seenRows: new Set(), acceptedIds: new Set(), config, options };
   for (const [index, place] of updated.entries()) {
-    const result = validateCandidateForSelection(place, rowLabels[index] ?? `row-${index + 1}`, state);
+    const label = rowLabelsById.get(place.id) ?? rowLabel(place, index);
+    const result = validateCandidateForSelection(place, label, state);
     recordCandidateValidation(result, output);
   }
   return { candidates: output.candidates, invalidCandidateIds: output.invalidCandidateIds,
@@ -162,7 +179,7 @@ export function chooseCandidates(pool: Candidate[], config: GeneratorConfig, ove
   const vetoed = new Set(overrides.veto ?? []);
   const rows = collectCandidateRows(pool);
   const updated = applyCandidateOverrides(rows.candidates, overrides);
-  const selection = validateAndEnrichCandidates({ updated, rowLabels: rows.rowLabels, vetoed, config, options });
+  const selection = validateAndEnrichCandidates({ updated, rowLabelsById: rows.rowLabelsById, vetoed, config, options });
   const invalidCandidateIds = [...rows.invalidCandidateIds, ...selection.invalidCandidateIds];
   if (selection.candidates.length === 0) throw new Error('No eligible route candidates remain after vetoes and validation');
   return { ...selection, invalidCandidateIds };

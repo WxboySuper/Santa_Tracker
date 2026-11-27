@@ -197,7 +197,7 @@ describe('generateRoute midnight sweep', () => {
     expect(generated.locations.map((place) => place.id)).not.toContain('invalid-offset-override');
   });
 
-  it('reports a missing snapshot offset when its valid timezone cannot recover it', () => {
+  it('recovers a missing snapshot offset from the committed offset table', () => {
     const { utcOffsetMinutes: _offset, ...candidateWithoutOffset } = candidates[0]!;
     const missingOffset = { ...candidateWithoutOffset, id: 'missing-snapshot-offset' };
     const tables = {
@@ -207,8 +207,9 @@ describe('generateRoute midnight sweep', () => {
       countryNames: { FJ: 'Fiji' },
     };
     const generated = generateRoute([candidates[0]!, missingOffset], config, {}, tables);
-    expect(generated.report.invalidCandidateIds).toEqual(['missing-snapshot-offset']);
-    expect(generated.report.issues).toContain('Invalid candidate row skipped: missing-snapshot-offset');
+    expect(generated.locations.map((place) => place.id)).toContain('missing-snapshot-offset');
+    expect(generated.locations.find((place) => place.id === 'missing-snapshot-offset')?.utcOffsetMinutes).toBe(840);
+    expect(generated.report.invalidCandidateIds).toEqual([]);
   });
 
   it('keeps duplicate IDs raw in the report and describes the duplicate separately', () => {

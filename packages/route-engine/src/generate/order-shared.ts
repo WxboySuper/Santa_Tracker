@@ -151,16 +151,6 @@ export function candidateTiming({ place, prior, priorDeparture, index, config }:
   };
 }
 
-export function timingAndDetourAllows(place: Candidate, route: Candidate[]): boolean {
-  const prior = route.at(-1);
-  if (!prior || route.length < 2) return true;
-  const beforePrior = route.at(-2);
-  if (!beforePrior) return true;
-  const priorCountryCount = route.filter((candidate) => candidate.country === prior.country).length;
-  if (priorCountryCount === 1 && place.country !== prior.country) return true;
-  return detourRatio(beforePrior, prior, place) <= 2.5;
-}
-
 export function categoryPreference(place: Candidate, config: GeneratorConfig): number {
   const category = place.category === 'capital' ? 'hub' : place.category;
   const weight = config.weights[category];
