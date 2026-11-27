@@ -163,7 +163,7 @@ export function createGlobe(canvas: HTMLCanvasElement, theme: TrackerTheme, onSt
 
   let disposed = false;
   fetch(LAND_URL)
-    .then(response => (response.ok ? (response.json() as Promise<Topology>) : Promise.reject<Topology>(new Error(String(response.status)))))
+    .then(response => (response.ok ? response.json<Topology>() : Promise.reject<Topology>(new Error(String(response.status)))))
     .then((topology: Topology) => {
       if (disposed) return;
       texture.image = paintTexture(theme, landRings(topology));
