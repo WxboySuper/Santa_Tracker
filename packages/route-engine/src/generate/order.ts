@@ -44,6 +44,7 @@ export type { PlannedStop, RoutePlan, TimedCandidate } from './order-shared';
 
 const MINUTE_MS = 60_000;
 const LOCAL_CLUSTER_HOP_KM = 300;
+const SOUTHERN_POLAR_APPROACH_RADIUS_KM = 3_500;
 const REMOVED_SWEEP_CONFIG_KEYS = [
   'arrivalAnchorMinutes',
   'categoryQuotas',
@@ -436,19 +437,32 @@ function considerPolarApproachSwap(choice: PolarRouteChoice, initial: TimedCandi
 }
 
 function isNearbySouthernCandidate(place: TimedCandidate | undefined, approach: TimedCandidate): place is TimedCandidate {
-  return place !== undefined && place.country !== 'AQ' && Math.abs(place.lat - approach.lat) <= 15;
+  return place !== undefined && place.country !== 'AQ'
+    && haversineKm(place, approach) <= SOUTHERN_POLAR_APPROACH_RADIUS_KM;
 }
 
-function considerNearbySouthernMoves(choice: PolarRouteChoice, initial: TimedCandidate[], polarIndex: number): void {
-  const southernApproach = initial[polarIndex - 1];
-  if (!southernApproach) return;
-  const lastCandidate = Math.min(initial.length, polarIndex + 9);
-  for (let later = polarIndex + 1; later < lastCandidate; later++) {
-    const nearby = initial[later];
+function considerNearbySouthernMoves(choice: PolarRouteChoice, initial: TimedCandidate[], polarStopId: string): void {
+  const initialPolarIndex = initial.findIndex((place) => place.id === polarStopId);
+  if (initialPolarIndex < 2) return;
+  const nearbyIds = initial.slice(initialPolarIndex + 1, initialPolarIndex + 9).map((place) => place.id);
+  for (const nearbyId of nearbyIds) {
+    // Earlier accepted moves change the polar index and approach, so build
+    // each proposal from the current best route rather than the stale input.
+    const current = choice.places;
+    const polarIndex = current.findIndex((place) => place.id === polarStopId);
+    if (polarIndex < 2) return;
+    const southernApproach = current[polarIndex - 1];
+    const later = current.findIndex((place) => place.id === nearbyId);
+    if (!southernApproach || later <= polarIndex || later > polarIndex + 8) continue;
+    const nearby = current[later];
     if (!isNearbySouthernCandidate(nearby, southernApproach)) continue;
-    const proposal = [...initial];
+    const proposal = [...current];
     const [moved] = proposal.splice(later, 1);
-    if (moved) proposal.splice(polarIndex - 1, 0, moved);
+    if (!moved) continue;
+    // If the island is north of the approach, finish it before turning south.
+    // A more southern stop belongs between the approach and the polar station.
+    const target = moved.lat > southernApproach.lat ? polarIndex - 1 : polarIndex;
+    proposal.splice(target, 0, moved);
     considerPolarRoute(choice, proposal);
   }
 }
@@ -457,10 +471,14 @@ export function moveAntarcticaToOffsetBandEdge(initial: TimedCandidate[], config
   const choice: PolarRouteChoice = { places: initial, eastward: eastwardCount(initial), detours: detourCount(initial),
     distance: pathDistance(initial), config };
   for (const polarStop of initial.filter((place) => place.country === 'AQ')) {
-    considerPolarBandEdges(choice, initial, polarStop);
-    const polarIndex = initial.findIndex((place) => place.id === polarStop.id);
-    considerPolarApproachSwap(choice, initial, polarIndex);
-    if (polarIndex >= 2) considerNearbySouthernMoves(choice, initial, polarIndex);
+    const current = choice.places;
+    const currentPolarStop = current.find((place) => place.id === polarStop.id);
+    if (!currentPolarStop) continue;
+    considerPolarBandEdges(choice, current, currentPolarStop);
+    const afterBandEdge = choice.places;
+    const polarIndex = afterBandEdge.findIndex((place) => place.id === polarStop.id);
+    considerPolarApproachSwap(choice, afterBandEdge, polarIndex);
+    considerNearbySouthernMoves(choice, choice.places, polarStop.id);
   }
   return choice.places;
 }

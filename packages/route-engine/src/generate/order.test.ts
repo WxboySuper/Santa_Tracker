@@ -115,6 +115,29 @@ describe('midnight sweep ordering', () => {
     expect(ordered).toEqual(['Hobart', 'Waitangi', 'Zucchelli Station', 'Honiara']);
   });
 
+  it('finishes nearby Tonga stops before turning south into Antarctica', () => {
+    const places: Candidate[] = [
+      { id: 'apia', name: 'Apia', country: 'WS', lat: -13.84, lng: -171.77,
+        timezone: 'Pacific/Apia', utcOffsetMinutes: 780, category: 'populated', population: 37_000 },
+      { id: 'waitangi', name: 'Waitangi', country: 'NZ', lat: -44.03, lng: -176.35,
+        timezone: 'Pacific/Chatham', utcOffsetMinutes: 825, category: 'populated', population: 300 },
+      { id: 'zucchelli', name: 'Zucchelli Station', country: 'AQ', lat: -74.62, lng: 164.22,
+        timezone: 'Antarctica/McMurdo', utcOffsetMinutes: 780, category: 'special', population: 0 },
+      { id: 'neiafu', name: 'Neiafu', country: 'TO', lat: -18.65, lng: -173.98,
+        timezone: 'Pacific/Tongatapu', utcOffsetMinutes: 780, category: 'populated', population: 4_320 },
+      { id: 'nukualofa', name: "Nuku'alofa", country: 'TO', lat: -21.14, lng: -175.22,
+        timezone: 'Pacific/Tongatapu', utcOffsetMinutes: 780, category: 'populated', population: 23_658 },
+      { id: 'honiara', name: 'Honiara', country: 'SB', lat: -9.44, lng: 159.95,
+        timezone: 'Pacific/Guadalcanal', utcOffsetMinutes: 660, category: 'populated', population: 56_000 },
+    ];
+
+    const initial = planTiming(places, DEFAULT_GENERATOR_LIMITS);
+    expect(initial).toBeDefined();
+    const ordered = moveAntarcticaToOffsetBandEdge(initial!.places, DEFAULT_GENERATOR_LIMITS).map((place) => place.name);
+
+    expect(ordered).toEqual(['Apia', 'Neiafu', "Nuku'alofa", 'Waitangi', 'Zucchelli Station', 'Honiara']);
+  });
+
   it('keeps an eastward move when the destination offset justifies it', () => {
     const from: Candidate = { id: 'source', name: 'Western Australia', country: 'AU', lat: -10, lng: 160,
       timezone: 'Australia/Brisbane', utcOffsetMinutes: 600, category: 'populated', population: 500_000 };
