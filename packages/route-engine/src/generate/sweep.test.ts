@@ -67,6 +67,19 @@ describe('christmasArrival', () => {
     })).toBe('offset-anomaly');
   });
 
+  it('does not justify an eastward move when the destination offset moves backward', () => {
+    const destination: Candidate = {
+      id: 'backward-offset', name: 'Western destination', country: 'US', lat: 35, lng: 2,
+      timezone: 'America/Chicago', utcOffsetMinutes: -300, category: 'populated',
+    };
+    expect(eastwardLegReason({
+      from: { lat: 35, lng: 0, utcOffsetMinutes: 300 },
+      to: destination,
+      destinationIndex: 4,
+      arrivalUtc: Date.parse('2026-12-25T04:00:00.000Z'),
+    })).toBeUndefined();
+  });
+
   it('does not annotate a polar launch because longitude is undefined at the pole', () => {
     const destination: Candidate = {
       id: 'tabuaeran', name: 'Tabuaeran', country: 'KI', lat: 3.87727, lng: -159.33746,

@@ -3,6 +3,7 @@ import { haversineKm, legSpeedKmh } from '../geo';
 import { classifyRegion } from './regions';
 import { REQUIRED_ADMIN1_UNITS } from './admin1';
 import { ianaOffsetMinutesAt } from './timezone';
+import { eastwardLegReason } from './sweep';
 import { NORTH_POLE, TAKEOFF_UTC, type Candidate, type GeneratorConfig, type RouteReport } from './types';
 
 export type AuditCheck = { name: string; pass: boolean; detail: string };
@@ -526,10 +527,6 @@ function unwrapEastwardDelta(fromLng: number, toLng: number): number {
   return delta;
 }
 
-function normalizedLongitude(longitude: number): number {
-  return ((longitude + 180) % 360 + 360) % 360 - 180;
-}
-
 type AuditDeliveryLegContext = {
   from: Candidate;
   to: Candidate;
@@ -626,26 +623,29 @@ function addSpeedCheck(legs: AuditLeg[], checks: AuditCheck[]): void {
   addCheck(checks, 'Leg speed', pass, `calculated p90 ${human(p90)} km/h (limit 20,000); max ${human(maximum)} km/h (limit 25,000).`);
 }
 
+function expectedEastwardReason(view: AuditView, leg: AuditLeg): string | undefined {
+  if (leg.kind === 'return') return 'return';
+  const destinationIndex = leg.toNode ? view.delivery.indexOf(leg.toNode) : -1;
+  const destination = view.places[destinationIndex];
+  if (!destination || destinationIndex < 0) return undefined;
+  const prior = destinationIndex === 0 ? NORTH_POLE : view.places[destinationIndex - 1];
+  if (!prior) return undefined;
+  const arrival = Date.parse(leg.toNode?.schedule.arrival_utc ?? '');
+  return eastwardLegReason({ from: prior, to: destination, destinationIndex, arrivalUtc: arrival });
+}
+
+function eastwardLegDetail(view: AuditView, leg: AuditLeg): { detail: string; violation?: string } {
+  const reason = leg.toNode?.transit_to_here?.eastward_reason ?? 'none';
+  const plausible = reason === expectedEastwardReason(view, leg);
+  const detail = `${leg.fromName} -> ${leg.toName} (${Math.round(leg.eastward)}° east, reason ${reason})`;
+  return plausible ? { detail } : { detail, violation: `${leg.fromName} -> ${leg.toName}: ${reason} is missing or implausible` };
+}
+
 function addEastwardCheck(view: AuditView, legs: AuditLeg[], checks: AuditCheck[]): void {
-  const firstOffsetAtOrBelow12 = view.places.findIndex((place) => (place.utcOffsetMinutes ?? Infinity) <= 720);
   const eastward = legs.filter((leg) => leg.eastward > 1 && leg.kind !== 'launch');
-  const violations: string[] = [];
-  const details = eastward.map((leg) => {
-    const reason = leg.toNode?.transit_to_here?.eastward_reason ?? 'none';
-    const destinationIndex = leg.toNode ? view.delivery.indexOf(leg.toNode) : -1;
-    const originOffset = destinationIndex > 0 ? view.places[destinationIndex - 1]?.utcOffsetMinutes : undefined;
-    const destinationOffset = destinationIndex >= 0 ? view.places[destinationIndex]?.utcOffsetMinutes : undefined;
-    const beforeSweep = destinationIndex >= 0 && (firstOffsetAtOrBelow12 === -1 || destinationIndex < firstOffsetAtOrBelow12)
-      && (destinationOffset ?? -Infinity) > 720;
-    const originLongitude = destinationIndex > 0 ? view.delivery[destinationIndex - 1]?.location.lng : undefined;
-    const crossesDateLine = originLongitude !== undefined && Math.abs(normalizedLongitude(leg.toNode?.location.lng ?? 0) - normalizedLongitude(originLongitude)) > 180;
-    const plausible = reason === 'dateline' ? beforeSweep && crossesDateLine
-      : reason === 'return' ? leg.kind === 'return'
-        : reason === 'offset-anomaly' ? originOffset !== undefined && destinationOffset !== undefined && destinationOffset > originOffset
-          : false;
-    if (!plausible) violations.push(`${leg.fromName} -> ${leg.toName}: ${reason} is missing or implausible`);
-    return `${leg.fromName} -> ${leg.toName} (${Math.round(leg.eastward)}° east, reason ${reason})`;
-  });
+  const findings = eastward.map((leg) => eastwardLegDetail(view, leg));
+  const violations = findings.flatMap((finding) => finding.violation ? [finding.violation] : []);
+  const details = findings.map((finding) => finding.detail);
   addCheck(checks, 'Eastward legs', violations.length === 0,
     `${eastward.length ? details.join('; ') : 'no legs move east by more than 1°'}${violations.length ? `. Failures: ${violations.join('; ')}` : ''}.`);
 }

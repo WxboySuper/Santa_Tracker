@@ -17,6 +17,7 @@ import { NORTH_POLE, RETURN_DEADLINE_UTC, TAKEOFF_UTC, type Candidate, type Gene
 
 const EARTH_RADIUS_KM = 6_371;
 const FAST_CROSSING_KM = 1_500;
+const FAST_OCEAN_CROSSING_KM = 3_500;
 const OCEAN_ISLAND_COUNTRIES = new Set([
   'AS', 'AW', 'AX', 'BB', 'BL', 'BM', 'BQ', 'BS', 'CC', 'CK', 'CX', 'CW', 'DM', 'FO', 'GD', 'GG', 'GL',
   'GP', 'GU', 'HM', 'IM', 'IO', 'IS', 'JE', 'JM', 'KN', 'KY', 'LC', 'MF', 'MH', 'MP', 'MQ', 'MS',
@@ -57,7 +58,11 @@ function isOceanCrossing(from: Candidate | LatLng, to: Candidate | LatLng, dista
 }
 
 function planningSpeed(from: Candidate | LatLng, to: Candidate | LatLng, distanceKm: number, config: GeneratorConfig): number {
-  const target = isOceanCrossing(from, to, distanceKm) ? config.targetLegSpeedKmh : config.localLegSpeedKmh;
+  const oceanCrossing = isOceanCrossing(from, to, distanceKm);
+  if (oceanCrossing && distanceKm >= FAST_OCEAN_CROSSING_KM) {
+    return Math.min(config.targetLegSpeedKmh, config.maxLegSpeedKmh);
+  }
+  const target = oceanCrossing ? config.targetLegSpeedKmh : config.localLegSpeedKmh;
   return Math.min(target, config.maxLegSpeedKmh, config.p90LegSpeedMaxKmh * 0.95);
 }
 

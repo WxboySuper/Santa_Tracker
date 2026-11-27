@@ -170,8 +170,9 @@ export function eastwardLegReason(options: {
   const window = christmasWindow(toOffset);
   const destinationInWindow = arrivalUtc !== undefined && arrivalUtc >= window.startUtc && arrivalUtc <= window.endUtc;
   const offsetAdvancesTheClock = offsetJump > longitudeClockChange + 10 && destinationIdealUtc < sourceIdealUtc;
-  const offsetResetsTheClock = offsetJump < -longitudeClockChange - 10 && destinationIdealUtc > sourceIdealUtc;
-  if ((offsetAdvancesTheClock || offsetResetsTheClock) && destinationInWindow) return 'offset-anomaly';
+  const smallOffsetReset = offsetJump < -longitudeClockChange - 10 && offsetJump >= -120
+    && destinationIdealUtc > sourceIdealUtc;
+  if ((offsetAdvancesTheClock || smallOffsetReset) && destinationInWindow) return 'offset-anomaly';
   return undefined;
 }
 

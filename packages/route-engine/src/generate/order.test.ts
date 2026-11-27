@@ -288,18 +288,23 @@ describe('midnight sweep ordering', () => {
     expect(() => sweepOrder([withoutOffset as Candidate])).toThrow(/Missing snapshot UTC offset/);
   });
 
-  it('schedules local hops and ocean legs below the p90 and hard speed limits', () => {
+  it('keeps local hops under p90 and permits fast long ocean crossings below the hard cap', () => {
     const local = haversineKm(testPlaces[2]!, testPlaces[3]!);
     const ocean = haversineKm(testPlaces[0]!, testPlaces[3]!);
     const localTravel = scheduledTravelMilliseconds(testPlaces[2]!, testPlaces[3]!, DEFAULT_GENERATOR_LIMITS);
     const oceanTravel = scheduledTravelMilliseconds(testPlaces[0]!, testPlaces[3]!, DEFAULT_GENERATOR_LIMITS);
+    const fastOceanConfig = { ...DEFAULT_GENERATOR_LIMITS, targetLegSpeedKmh: 25_000 };
+    const fastOceanTravel = scheduledTravelMilliseconds(testPlaces[0]!, testPlaces[3]!, fastOceanConfig);
     expect(localTravel % 1000).toBe(0);
     expect(oceanTravel % 1000).toBe(0);
     const localSpeed = local / (localTravel / 3_600_000);
     const oceanSpeed = ocean / (oceanTravel / 3_600_000);
+    const fastOceanSpeed = ocean / (fastOceanTravel / 3_600_000);
     expect(localSpeed).toBeLessThanOrEqual(DEFAULT_GENERATOR_LIMITS.p90LegSpeedMaxKmh);
     expect(oceanSpeed).toBeLessThanOrEqual(DEFAULT_GENERATOR_LIMITS.p90LegSpeedMaxKmh);
+    expect(fastOceanSpeed).toBeGreaterThan(DEFAULT_GENERATOR_LIMITS.p90LegSpeedMaxKmh);
     expect(Math.max(localSpeed, oceanSpeed)).toBeLessThanOrEqual(DEFAULT_GENERATOR_LIMITS.maxLegSpeedKmh);
+    expect(fastOceanSpeed).toBeLessThanOrEqual(fastOceanConfig.maxLegSpeedKmh);
   });
 
   it('allows a late intermediate stop and final segment while preserving return slack', () => {
