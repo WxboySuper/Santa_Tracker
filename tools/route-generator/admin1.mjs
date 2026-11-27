@@ -154,11 +154,13 @@ function candidatePoint(place) {
 export function isSupportedAdmin1Code(country, code) {
   if (typeof country !== 'string') return false;
   if (typeof code !== 'string') return false;
-  if (!ADMIN1_COUNTRIES.has(country)) return false;
-  const prefix = `${country}-`;
-  if (!code.startsWith(prefix)) return false;
-  if (!/^[A-Z0-9~]+$/.test(code.slice(prefix.length))) return false;
-  return SUPPORTED_TARGET_ADMIN1_CODES.has(code);
+  const normalizedCountry = country.trim().toUpperCase();
+  const normalizedCode = code.trim().toUpperCase();
+  if (!ADMIN1_COUNTRIES.has(normalizedCountry)) return false;
+  const prefix = `${normalizedCountry}-`;
+  if (!normalizedCode.startsWith(prefix)) return false;
+  if (!/^[A-Z0-9~]+$/.test(normalizedCode.slice(prefix.length))) return false;
+  return SUPPORTED_TARGET_ADMIN1_CODES.has(normalizedCode);
 }
 
 function requireAdmin1Features(features) {
@@ -179,7 +181,8 @@ function findAdmin1Feature(place, point, features) {
 export function admin1CodeAt(candidate, featureRows) {
   const place = requireCandidate(candidate);
   const point = candidatePoint(place);
-  if (!ADMIN1_COUNTRIES.has(place.country)) return undefined;
+  const country = typeof place.country === 'string' ? place.country.trim().toUpperCase() : '';
+  if (!ADMIN1_COUNTRIES.has(country)) return undefined;
   const features = requireAdmin1Features(featureRows);
-  return findAdmin1Feature(place, point, features)?.code ?? null;
+  return findAdmin1Feature({ ...place, country }, point, features)?.code ?? null;
 }

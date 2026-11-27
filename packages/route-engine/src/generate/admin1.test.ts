@@ -54,6 +54,14 @@ describe('admin-1 coverage', () => {
     expect(isSupportedAdmin1Code('US', null as unknown as string)).toBe(false);
   });
 
+  it('normalizes admin-1 codes consistently in the engine and polygon tooling', () => {
+    const polygon = { type: 'Polygon', coordinates: [[[-1, -1], [1, -1], [1, 1], [-1, 1], [-1, -1]]] };
+    const features = [{ country: 'US', code: 'US-CA', name: 'California', geometry: polygon }];
+
+    expect(isSupportedAdmin1Code(' us ', ' us-ca ')).toBe(true);
+    expect(admin1CodeAt(candidate('us', null), features)).toBe('US-CA');
+  });
+
   it('loads supported external territory polygons for refresh lookups', () => {
     const feature = normalizeAdmin1Feature({
       properties: { iso_a2: 'US', iso_3166_2: 'US-PR', name: 'Puerto Rico' },

@@ -473,14 +473,23 @@ function repositionTargets(order: Candidate[], index: number): number[] {
 function repairDetourReposition({ proposal, currentCount, currentEastward, eastwardLimit, config, accepts }: DetourRepairContext & {
   proposal: Candidate[];
 }): Candidate[] | undefined {
-  if (!antarcticStopsAtOffsetBandEdge(proposal)) return undefined;
-  if (hardDetourCount(proposal) >= currentCount) return undefined;
+  if (!isCandidateDetourRepair(proposal, currentCount)) return undefined;
   const initialPlan = planTiming(proposal, config);
   if (!initialPlan) return undefined;
   const repaired = eastwardCount(initialPlan.places) > currentEastward
     ? reduceEastwardMoves(initialPlan.places, config) : initialPlan.places;
-  if (hardDetourCount(repaired) >= currentCount || eastwardCount(repaired) > eastwardLimit) return undefined;
-  return hasReasonedTiming(repaired, config) && accepts(repaired) ? repaired : undefined;
+  return isAcceptedDetourRepair(repaired, { currentCount, eastwardLimit, config, accepts }) ? repaired : undefined;
+}
+
+function isCandidateDetourRepair(proposal: Candidate[], currentCount: number): boolean {
+  return antarcticStopsAtOffsetBandEdge(proposal) && hardDetourCount(proposal) < currentCount;
+}
+
+function isAcceptedDetourRepair(repaired: Candidate[], context: Pick<DetourRepairContext, 'currentCount' | 'eastwardLimit' | 'config' | 'accepts'>): boolean {
+  return hardDetourCount(repaired) < context.currentCount
+    && eastwardCount(repaired) <= context.eastwardLimit
+    && hasReasonedTiming(repaired, context.config)
+    && context.accepts(repaired);
 }
 
 type DetourRepositionOptions = DetourRepairContext & { order: Candidate[]; index: number };

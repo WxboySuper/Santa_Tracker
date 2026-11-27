@@ -84,26 +84,45 @@ function insertionPlanIsAcceptable(plan: RoutePlan | undefined, eastward: number
     && hardDetourCount(plan.places) <= detours;
 }
 
+type OffsetBandPositions = { lastOffsetIndex: number; lastAntarcticIndex: number };
+
+function recordOffsetBandPosition(positions: OffsetBandPositions, candidate: TimedCandidate, index: number, offset: number): void {
+  if (requiredSnapshotOffset(candidate) !== offset) return;
+  positions.lastOffsetIndex = index;
+  if (candidate.country === 'AQ') positions.lastAntarcticIndex = index;
+}
+
+function offsetBandPositions(state: InsertionState, offset: number): OffsetBandPositions {
+  const positions: OffsetBandPositions = { lastOffsetIndex: -1, lastAntarcticIndex: -1 };
+  state.route.forEach((candidate, index) => recordOffsetBandPosition(positions, candidate, index, offset));
+  return positions;
+}
+
+function polarStopFitsBandEdge(positions: OffsetBandPositions, before: TimedCandidate | undefined,
+  after: TimedCandidate | undefined, index: number, offset: number): boolean {
+  if (positions.lastOffsetIndex >= 0) return index === positions.lastOffsetIndex + 1;
+  return (!before || requiredSnapshotOffset(before) >= offset)
+    && (!after || requiredSnapshotOffset(after) <= offset);
+}
+
+function localStopFitsPolarBoundary(positions: OffsetBandPositions, index: number): boolean {
+  return positions.lastAntarcticIndex < 0 || index <= positions.lastAntarcticIndex;
+}
+
+function neighborOffsetsFit(before: TimedCandidate | undefined, after: TimedCandidate | undefined,
+  offset: number, bandSpreadMinutes: number): boolean {
+  const neighbors = [before, after].filter((candidate): candidate is TimedCandidate => candidate !== undefined);
+  return neighbors.every((candidate) => Math.abs(requiredSnapshotOffset(candidate) - offset) <= bandSpreadMinutes);
+}
+
 function placeFitsNeighborBand(state: InsertionState, place: Candidate, index: number, pass: InsertionPass): boolean {
   const before = index > 0 ? state.route[index - 1] : undefined;
   const after = state.route[index];
   const offset = requiredSnapshotOffset(place);
-  let lastOffsetIndex = -1;
-  let lastAntarcticIndex = -1;
-  for (const [candidateIndex, candidate] of state.route.entries()) {
-    if (requiredSnapshotOffset(candidate) !== offset) continue;
-    lastOffsetIndex = candidateIndex;
-    if (candidate.country === 'AQ') lastAntarcticIndex = candidateIndex;
-  }
-  if (place.country === 'AQ') {
-    if (lastOffsetIndex >= 0) return index === lastOffsetIndex + 1;
-    return (!before || requiredSnapshotOffset(before) >= offset)
-      && (!after || requiredSnapshotOffset(after) <= offset);
-  } else if (lastAntarcticIndex >= 0 && index > lastAntarcticIndex) {
-    return false;
-  }
-  const neighbors = [before, after].filter((candidate): candidate is TimedCandidate => candidate !== undefined);
-  return neighbors.every((candidate) => Math.abs(requiredSnapshotOffset(candidate) - offset) <= pass.bandSpreadMinutes);
+  const positions = offsetBandPositions(state, offset);
+  if (place.country === 'AQ') return polarStopFitsBandEdge(positions, before, after, index, offset);
+  if (!localStopFitsPolarBoundary(positions, index)) return false;
+  return neighborOffsetsFit(before, after, offset, pass.bandSpreadMinutes);
 }
 
 function insertionOptions(state: InsertionState, place: Candidate, positions: RankedInsertion['positions'], pass: InsertionPass): RankedInsertion['positions'] {

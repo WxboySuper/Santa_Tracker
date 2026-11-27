@@ -101,27 +101,42 @@ async function installDataFiles(prepared) {
   await rm(TRANSACTION_MARKER, { force: true });
 }
 
-async function recoverInterruptedInstall() {
-  let manifest;
+async function readTransactionManifest() {
   try {
-    manifest = JSON.parse(await readFile(TRANSACTION_MARKER, 'utf8'));
+    return JSON.parse(await readFile(TRANSACTION_MARKER, 'utf8'));
   } catch (error) {
-    if (error?.code === 'ENOENT') return;
+    if (error?.code === 'ENOENT') return undefined;
     throw error;
   }
+}
+
+function backupNameForEntry(entry) {
+  const backupPrefix = `.${entry?.file}.`;
+  const backupPid = typeof entry?.backup === 'string' && entry.backup.startsWith(backupPrefix)
+    ? entry.backup.slice(backupPrefix.length, -4)
+    : '';
+  if (!DATA_FILES.includes(entry?.file) || !/^\d+$/.test(backupPid) || !entry.backup.endsWith('.bak')) {
+    throw new Error('admin-1 refresh marker contains an invalid backup path');
+  }
+  return { file: entry.file, backup: entry.backup };
+}
+
+function validateTransactionManifest(manifest) {
   if (!Array.isArray(manifest) || manifest.length !== DATA_FILES.length) {
     throw new Error('admin-1 refresh marker is invalid; refusing to read candidate data');
   }
-  for (const entry of manifest) {
-    const backupPrefix = `.${entry?.file}.`;
-    const backupPid = typeof entry?.backup === 'string' && entry.backup.startsWith(backupPrefix)
-      ? entry.backup.slice(backupPrefix.length, -4)
-      : '';
-    if (!DATA_FILES.includes(entry?.file) || !/^\d+$/.test(backupPid) || !entry.backup.endsWith('.bak')) {
-      throw new Error('admin-1 refresh marker contains an invalid backup path');
-    }
-    await copyFile(new URL(`./data/${entry.backup}`, import.meta.url), new URL(`./data/${entry.file}`, import.meta.url));
-  }
+  return manifest.map(backupNameForEntry);
+}
+
+async function restoreBackupEntry(entry) {
+  await copyFile(new URL(`./data/${entry.backup}`, import.meta.url), new URL(`./data/${entry.file}`, import.meta.url));
+}
+
+async function recoverInterruptedInstall() {
+  const manifest = await readTransactionManifest();
+  if (!manifest) return;
+  const entries = validateTransactionManifest(manifest);
+  for (const entry of entries) await restoreBackupEntry(entry);
   await rm(TRANSACTION_MARKER, { force: true });
 }
 

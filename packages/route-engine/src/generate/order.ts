@@ -396,58 +396,73 @@ function planOrder(order: Candidate[], config: GeneratorConfig): RoutePlan | und
   return planTiming(order, config);
 }
 
-export function moveAntarcticaToOffsetBandEdge(initial: TimedCandidate[], config: GeneratorConfig): TimedCandidate[] {
-  let best = initial;
-  let bestEastward = eastwardCount(initial);
-  let bestDetours = detourCount(initial);
-  let bestDistance = pathDistance(initial);
-  const consider = (proposal: Candidate[]): void => {
-    const planned = planOrder(proposal, config);
-    if (!planned) return;
-    const eastward = eastwardCount(planned.places);
-    const detours = detourCount(planned.places);
-    const distance = pathDistance(planned.places);
-    // Keep each repair Pareto-safe: it may reduce eastward legs or detours,
-    // but it cannot add either. When counts tie, prefer the shorter route.
-    if (eastward > bestEastward || detours > bestDetours) return;
-    const reducesViolations = eastward < bestEastward || detours < bestDetours;
-    if (!reducesViolations && distance >= bestDistance - 0.01) return;
-    best = planned.places;
-    bestEastward = eastward;
-    bestDetours = detours;
-    bestDistance = distance;
-  };
-  for (const polarStop of initial.filter((place) => place.country === 'AQ')) {
-    const remaining = initial.filter((place) => place.id !== polarStop.id);
-    const offset = requiredSnapshotOffset(polarStop);
-    const sameBand = remaining.flatMap((place, index) => requiredSnapshotOffset(place) === offset ? [index] : []);
-    const edgePositions = sameBand.length > 0 ? [sameBand[0]!, sameBand.at(-1)! + 1] : [1, remaining.length];
-    for (const position of new Set(edgePositions)) {
-      consider([...remaining.slice(0, position), polarStop, ...remaining.slice(position)]);
-    }
+type PolarRouteChoice = { places: TimedCandidate[]; eastward: number; detours: number; distance: number; config: GeneratorConfig };
 
-    const polarIndex = initial.findIndex((place) => place.id === polarStop.id);
-    if (polarIndex < 2) continue;
-    // At the southern Pacific boundary, reversing the two approach stops can
-    // keep the latitude sweep moving south into Antarctica instead of
-    // bouncing through Tasmania immediately before the polar leg.
-    const approach = [...initial];
-    [approach[polarIndex - 2], approach[polarIndex - 1]] = [approach[polarIndex - 1]!, approach[polarIndex - 2]!];
-    consider(approach);
+function considerPolarRoute(choice: PolarRouteChoice, proposal: Candidate[]): void {
+  const planned = planOrder(proposal, choice.config);
+  if (!planned) return;
+  const eastward = eastwardCount(planned.places);
+  const detours = detourCount(planned.places);
+  const distance = pathDistance(planned.places);
+  // Keep each repair Pareto-safe: it may reduce eastward legs or detours,
+  // but it cannot add either. When counts tie, prefer the shorter route.
+  if (eastward > choice.eastward || detours > choice.detours) return;
+  const reducesViolations = eastward < choice.eastward || detours < choice.detours;
+  if (!reducesViolations && distance >= choice.distance - 0.01) return;
+  choice.places = planned.places;
+  choice.eastward = eastward;
+  choice.detours = detours;
+  choice.distance = distance;
+}
 
-    const southernApproach = initial[polarIndex - 1];
-    if (!southernApproach) continue;
-    for (let later = polarIndex + 1; later < Math.min(initial.length, polarIndex + 9); later++) {
-      const nearbySouthernStop = initial[later];
-      if (!nearbySouthernStop || nearbySouthernStop.country === 'AQ'
-        || Math.abs(nearbySouthernStop.lat - southernApproach.lat) > 15) continue;
-      const proposal = [...initial];
-      const [moved] = proposal.splice(later, 1);
-      if (moved) proposal.splice(polarIndex - 1, 0, moved);
-      consider(proposal);
-    }
+function considerPolarBandEdges(choice: PolarRouteChoice, initial: TimedCandidate[], polarStop: TimedCandidate): void {
+  const remaining = initial.filter((place) => place.id !== polarStop.id);
+  const offset = requiredSnapshotOffset(polarStop);
+  const sameBand = remaining.flatMap((place, index) => requiredSnapshotOffset(place) === offset ? [index] : []);
+  const edgePositions = sameBand.length > 0 ? [sameBand[0]!, sameBand.at(-1)! + 1] : [1, remaining.length];
+  for (const position of new Set(edgePositions)) {
+    considerPolarRoute(choice, [...remaining.slice(0, position), polarStop, ...remaining.slice(position)]);
   }
-  return best;
+}
+
+function considerPolarApproachSwap(choice: PolarRouteChoice, initial: TimedCandidate[], polarIndex: number): void {
+  if (polarIndex < 2) return;
+  // At the southern Pacific boundary, reversing the two approach stops can
+  // keep the latitude sweep moving south into Antarctica instead of
+  // bouncing through Tasmania immediately before the polar leg.
+  const approach = [...initial];
+  [approach[polarIndex - 2], approach[polarIndex - 1]] = [approach[polarIndex - 1]!, approach[polarIndex - 2]!];
+  considerPolarRoute(choice, approach);
+}
+
+function isNearbySouthernCandidate(place: TimedCandidate | undefined, approach: TimedCandidate): place is TimedCandidate {
+  return place !== undefined && place.country !== 'AQ' && Math.abs(place.lat - approach.lat) <= 15;
+}
+
+function considerNearbySouthernMoves(choice: PolarRouteChoice, initial: TimedCandidate[], polarIndex: number): void {
+  const southernApproach = initial[polarIndex - 1];
+  if (!southernApproach) return;
+  const lastCandidate = Math.min(initial.length, polarIndex + 9);
+  for (let later = polarIndex + 1; later < lastCandidate; later++) {
+    const nearby = initial[later];
+    if (!isNearbySouthernCandidate(nearby, southernApproach)) continue;
+    const proposal = [...initial];
+    const [moved] = proposal.splice(later, 1);
+    if (moved) proposal.splice(polarIndex - 1, 0, moved);
+    considerPolarRoute(choice, proposal);
+  }
+}
+
+export function moveAntarcticaToOffsetBandEdge(initial: TimedCandidate[], config: GeneratorConfig): TimedCandidate[] {
+  const choice: PolarRouteChoice = { places: initial, eastward: eastwardCount(initial), detours: detourCount(initial),
+    distance: pathDistance(initial), config };
+  for (const polarStop of initial.filter((place) => place.country === 'AQ')) {
+    considerPolarBandEdges(choice, initial, polarStop);
+    const polarIndex = initial.findIndex((place) => place.id === polarStop.id);
+    considerPolarApproachSwap(choice, initial, polarIndex);
+    if (polarIndex >= 2) considerNearbySouthernMoves(choice, initial, polarIndex);
+  }
+  return choice.places;
 }
 
 function planMandatoryRoute(pool: Candidate[], config: GeneratorConfig): TimedCandidate[] | undefined {
