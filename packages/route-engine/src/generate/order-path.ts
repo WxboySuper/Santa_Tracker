@@ -419,17 +419,18 @@ function bandPathScore(order: Candidate[], config: GeneratorConfig): BandPathSco
     hardDetours: hardDetourCount(order), eastward: eastwardCount(order), distance: pathDistance(order) };
 }
 
+function acceptsBandRepairScore(proposal: BandPathScore, current: BandPathScore): boolean {
+  if (proposal.eastward > current.eastward) return false;
+  if (proposal.prefix > current.prefix) return true;
+  return acceptsRouteMetrics(proposal, current);
+}
+
 type BandProposalOptions = { proposal: Candidate[]; current: BandPathScore; search: BandPathSearch; config: GeneratorConfig };
 
 function considerBandProposal({ proposal, current, search, config }: BandProposalOptions): void {
   if (!antarcticStopsAtOffsetBandEdge(proposal)) return;
   const score = bandPathScore(proposal, config);
-  const improvesFeasiblePrefix = score.prefix > current.prefix;
-  if (score.eastward > current.eastward) return;
-  if (!improvesFeasiblePrefix && score.hardDetours > current.hardDetours) return;
-  // A feasible prefix takes priority while the mandatory path is being built.
-  // The final shared acceptance pass still repairs or rejects any detours.
-  if (!improvesFeasiblePrefix && score.hardDetours === current.hardDetours && score.detours > current.detours) return;
+  if (!acceptsBandRepairScore(score, current)) return;
   if (!betterBandProposal(score, search.bestScore)) return;
   search.best = proposal;
   search.bestScore = score;
