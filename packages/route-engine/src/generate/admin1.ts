@@ -24,6 +24,12 @@ function coveredAdmin1Codes(places: Candidate[]): Set<string> {
   }));
 }
 
+function targetAdmin1Country(value: unknown): RequiredAdmin1Country | undefined {
+  if (typeof value !== 'string') return undefined;
+  const country = value.trim().toUpperCase();
+  return Object.hasOwn(REQUIRED_ADMIN1_UNITS, country) ? country as RequiredAdmin1Country : undefined;
+}
+
 export function admin1Coverage(places: Candidate[]): Admin1Coverage {
   const covered = coveredAdmin1Codes(places);
   return Object.fromEntries(Object.entries(REQUIRED_ADMIN1_UNITS).map(([country, units]) => {
@@ -34,12 +40,16 @@ export function admin1Coverage(places: Candidate[]): Admin1Coverage {
 }
 
 export function admin1UnitFor(place: Candidate): string | undefined {
-  if (typeof place.country !== 'string') return undefined;
-  const country = place.country.trim().toUpperCase() as RequiredAdmin1Country;
+  const country = targetAdmin1Country(place.country);
+  if (!country) return undefined;
   const units: readonly string[] | undefined = REQUIRED_ADMIN1_UNITS[country];
   if (!units) return undefined;
   const code = place.admin1Code?.trim().toUpperCase();
   if (!code) return undefined;
   if (!code.startsWith(`${country}-`)) return undefined;
-  return units.includes(code) || OPTIONAL_EXTERNAL_ADMIN1_CODES[country]?.includes(code) ? code : undefined;
+  return isRequiredOrExternalAdmin1Unit(country, units, code) ? code : undefined;
+}
+
+function isRequiredOrExternalAdmin1Unit(country: RequiredAdmin1Country, units: readonly string[], code: string): boolean {
+  return units.includes(code) || OPTIONAL_EXTERNAL_ADMIN1_CODES[country]?.includes(code) === true;
 }
