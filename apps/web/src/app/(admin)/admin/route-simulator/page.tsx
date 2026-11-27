@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import { adminCsrfHeaders } from "@/lib/admin-csrf";
 
 interface SimulationResponse {
   error?: string;
@@ -8,7 +9,7 @@ interface SimulationResponse {
 async function runSimulation(url: string, successLabel: string, setStatus: (value: string) => void): Promise<SimulationResponse | null> {
   const res = await fetch(url, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...adminCsrfHeaders() },
     body: JSON.stringify({}),
     credentials: "include",
   });
