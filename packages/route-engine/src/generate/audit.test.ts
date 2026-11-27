@@ -3,13 +3,13 @@ import { auditRouteDocument, coordinateAuditFailures } from './audit';
 import { DEFAULT_GENERATOR_LIMITS } from './types';
 import type { Candidate } from './types';
 
-function routeFixture(points: { id: string; name: string; lng: number; country?: string; offset?: number; reason?: string; population?: number; category?: string; arrivalUtc?: string; tier?: string; duration?: number; transitSeconds?: number }[]): { document: unknown; selected: Candidate[] } {
-  const selected = points.map((point) => ({ id: point.id, name: point.name, country: point.country ?? 'US', timezone: 'Etc/UTC', utcOffsetMinutes: point.offset ?? 0,
+function routeFixture(points: { id: string; name: string; lng: number; country?: string; offset?: number; timezone?: string; reason?: string; population?: number; category?: string; arrivalUtc?: string; tier?: string; duration?: number; transitSeconds?: number }[]): { document: unknown; selected: Candidate[] } {
+  const selected = points.map((point) => ({ id: point.id, name: point.name, country: point.country ?? 'US', timezone: point.timezone ?? 'Etc/UTC', utcOffsetMinutes: point.offset ?? 0,
     category: point.category ?? 'populated', population: point.population ?? 1000, lat: 0, lng: point.lng }));
-  const start = { id: 'start', type: 'START', location: { name: 'North Pole', region: 'Arctic', lat: 80, lng: 180 }, schedule: { arrival_utc: null, departure_utc: '2026-12-24T10:00:00.000Z' }, stop_experience: {}, transit_to_here: null };
+  const start = { id: 'start', type: 'START', location: { name: 'North Pole', region: 'Arctic', lat: 90, lng: 180 }, schedule: { arrival_utc: null, departure_utc: '2026-12-24T10:00:00.000Z' }, stop_experience: {}, transit_to_here: null };
   const deliveries = points.map((point, index) => ({
     id: point.id, type: 'DELIVERY', candidate_id: point.id,
-    location: { name: point.name, region: 'Test', country_code: point.country ?? 'US', timezone: 'Etc/UTC', timezone_offset: 0, lat: 0, lng: point.lng },
+    location: { name: point.name, region: 'Test', country_code: point.country ?? 'US', timezone: point.timezone ?? 'Etc/UTC', timezone_offset: (point.offset ?? 0) / 60, lat: 0, lng: point.lng },
     schedule: { arrival_utc: point.arrivalUtc ?? `2026-12-24T23:${String(20 + index * 10).padStart(2, '0')}:00.000Z`, departure_utc: point.arrivalUtc ? new Date(Date.parse(point.arrivalUtc) + 30_000).toISOString() : `2026-12-24T23:${String(20 + index * 10).padStart(2, '0')}:30.000Z` },
     stop_experience: { presents_delivered_at_stop: 1, camera_zoom: 1, weather_condition: 'clear', stop_tier: point.tier ?? 'town', duration_seconds: point.duration ?? 10 },
     transit_to_here: { duration_seconds: point.transitSeconds ?? 0, distance_km: 1, speed_kmh: 100, ...(point.reason ? { eastward_reason: point.reason } : {}) },
@@ -20,9 +20,11 @@ function routeFixture(points: { id: string; name: string; lng: number; country?:
 }
 
 function auditFixture(fixture: ReturnType<typeof routeFixture>) {
+  const zonesByCountry = Object.fromEntries(fixture.selected.map((place) => [place.country, [...new Set(fixture.selected
+    .filter((candidate) => candidate.country === place.country).map((candidate) => candidate.timezone))]]));
   const result = auditRouteDocument(fixture.document, {
-    config: { ...DEFAULT_GENERATOR_LIMITS, weights: { hub: 100 }, requiredStopIds: [], requiredCountries: [] },
-    pool: fixture.selected, selected: fixture.selected, zonesByCountry: { US: ['Etc/UTC'] }, utcOffsetsByTimezone: { 'Etc/UTC': 0 },
+    config: { ...DEFAULT_GENERATOR_LIMITS, weights: { hub: 100 } },
+    pool: fixture.selected, selected: fixture.selected, zonesByCountry, utcOffsetsByTimezone: {},
     countryBoundsByCode: { US: { minLat: -90, maxLat: 90, minLng: -180, maxLng: 180 }, CA: { minLat: -90, maxLat: 90, minLng: -180, maxLng: 180 } }, report: { continentBalance: {}, subregionBalance: {} }, vetoIds: [],
   });
   return result.checks;
@@ -34,8 +36,6 @@ describe('auditRouteDocument', () => {
       config: {
         ...DEFAULT_GENERATOR_LIMITS,
         weights: { hub: 100 },
-        requiredStopIds: ['required-stop'],
-        requiredCountries: ['US'],
       },
       pool: [],
       selected: [],
@@ -49,7 +49,6 @@ describe('auditRouteDocument', () => {
     expect(result.pass).toBe(false);
     expect(result.checks.find((check) => check.name === 'Legacy route schema')?.pass).toBe(false);
     expect(result.checks.find((check) => check.name === 'North Pole start and end')?.pass).toBe(false);
-    expect(result.checks.some((check) => check.name === 'Required iconic and regional stops')).toBe(false);
   });
 
   it('rejects a stop outside its country bounds and an alternate-source coordinate mismatch', () => {
@@ -86,7 +85,7 @@ describe('auditRouteDocument', () => {
         schedule: { arrival_utc: '2026-12-24T23:50:00.000Z', departure_utc: '2026-12-24T23:51:00.000Z' },
       },
     ] }, {
-      config: { ...DEFAULT_GENERATOR_LIMITS, weights: { hub: 100 }, requiredStopIds: ['required-stop'], requiredCountries: ['US'] },
+      config: { ...DEFAULT_GENERATOR_LIMITS, weights: { hub: 100 } },
       pool: [],
       selected: [],
       zonesByCountry: {},
@@ -161,6 +160,17 @@ describe('auditRouteDocument', () => {
     expect(fastLeg.find((check) => check.name === 'Leg speed')?.pass).toBe(false);
   });
 
+  it('validates the snapshot offset against the IANA zone at arrival', () => {
+    const checks = auditFixture(routeFixture([{
+      id: 'denver', name: 'Denver', lng: -104.9903, timezone: 'America/Denver', offset: -360,
+      arrivalUtc: '2026-12-25T06:00:00.000Z',
+    }]));
+    const timezone = checks.find((check) => check.name === 'Timezone and local arrival window');
+
+    expect(timezone?.pass).toBe(false);
+    expect(timezone?.detail).toContain('America/Denver offset -420 at arrival');
+  });
+
   it('enforces the owner-updated 20 km minimum stop separation', () => {
     const tooClose = auditFixture(routeFixture([
       { id: 'a', name: 'A', lng: -100 }, { id: 'b', name: 'B', lng: -99.9 },
@@ -172,16 +182,16 @@ describe('auditRouteDocument', () => {
     expect(separated.find((check) => check.name === 'Vetoes, coordinates, duplicates, and separation')?.pass).toBe(true);
   });
 
-  it('keeps the committed old draft as an eastward and detour regression case', async () => {
+  it('keeps the frozen old draft as an eastward and detour regression case', async () => {
     const { readFile } = await import('node:fs/promises');
-    const document: unknown = JSON.parse(await readFile(new URL('../../../../docs/planning/route-2026-draft/route.json', import.meta.url), 'utf8'));
+    const document: unknown = JSON.parse(await readFile(new URL('./fixtures/route-2026-legacy.json', import.meta.url), 'utf8'));
     const nodes = (document as { route_nodes: { type: string; candidate_id: string; location: { name: string; country_code: string; timezone: string; timezone_offset: number; lat: number; lng: number }; comment?: string }[] }).route_nodes;
     const selected = nodes.filter((node) => node.type === 'DELIVERY').map((node) => ({
       id: node.candidate_id, name: node.location.name, country: node.location.country_code, timezone: node.location.timezone,
       utcOffsetMinutes: node.location.timezone_offset * 60, category: node.comment ?? 'populated', lat: node.location.lat, lng: node.location.lng,
     }));
     const result = auditRouteDocument(document, {
-      config: { ...DEFAULT_GENERATOR_LIMITS, weights: { hub: 100 }, requiredStopIds: [], requiredCountries: [] },
+      config: { ...DEFAULT_GENERATOR_LIMITS, weights: { hub: 100 } },
       pool: selected, selected, zonesByCountry: {}, utcOffsetsByTimezone: {}, countryBoundsByCode: {},
       report: { continentBalance: {}, subregionBalance: {} }, vetoIds: [],
     });

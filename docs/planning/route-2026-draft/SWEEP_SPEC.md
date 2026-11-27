@@ -1,57 +1,86 @@
-# 2026 route rebuild: the midnight sweep
+# 2026 route rebuild: banded midnight sweep
 
-Owner direction, 2026-11-25, after reviewing the draft on a map. The draft (160 stops, 243,959 km) zig-zagged:
-Brisbane to Honiara and back to Sydney, Göbekli Tepe to Helsinki and back to Istanbul, São Paulo to Greenland
-(9,372 km) and on to Suriname (7,059 km). It passed every audit check because nothing measured doubling back.
-The route is rebuilt from scratch on a different idea.
+Owner direction, 2026-11-25. Santa follows local midnight west around the world and visits as many places as the
+flight window allows. Tiny hops are welcome because they add coverage.
 
-## The idea
+## Route objective
 
-Santa follows midnight west around the world in one continuous sweep, visiting as many places as he can.
+1. Bucket places by their committed Dec 24-25 UTC offset, including half-hour and quarter-hour offsets as separate
+   bands. Advance bands westward as local midnight moves. Within the active band, choose an open nearest-neighbor
+   path and alternate the preferred latitude direction north-to-south, then south-to-north, from one band to the
+   next. A nearby stop from an adjacent higher-offset band may interleave when its overlapping local window and
+   offset anomaly make the move feasible. Constrained 2-opt and or-opt improvements stay within contiguous same-band
+   segments.
+2. Mandatory coverage comes before optional dense fill: reserve at least one feasible stop for every candidate
+   country or territory, all 50 US states plus the District of Columbia, all 13 Canadian provinces and territories,
+   and all six Australian states plus the Northern Territory and Australian Capital Territory. Candidate coordinates
+   receive Natural Earth ISO 3166-2 codes by point-in-polygon against the public-domain 10m admin-1 layer. If a
+   representative cannot fit the route, record its code, candidate count, and a per-code feasibility reason. Then
+   fill dense regions with short, population-weighted hops, including nearby towns and villages and feasible remote
+   bridge stops that shorten gaps between regions. Respect 20 km separation throughout.
+3. Dense-fill capacity is capped by UTC-offset band. Split the remaining 700-stop budget in proportion to a blend of
+   each band's candidate population share and its distinct 2-degree candidate-grid share, a snapshot proxy for land
+   coverage. Mandatory country and admin-1 representatives may exceed their band's dense-fill share. No band should
+   be starved while another is bloated.
+   Keep Antarctic stations at the edge of their offset band; do not place a polar leg inside a Pacific island chain.
+4. Maximize stop count subject to the local-time window, dwell, speed and return constraints. Target 550-700 stops;
+   the readability ceiling is about 1,000. There is no fixed route total, pinned sequence, arrival anchor, offset cap
+   or category quota.
+5. Keep the route westward. An eastward leg is allowed only when its record has a `dateline`, `offset-anomaly` or
+   `return` reason. The local-time window alone does not justify backtracking.
 
-1. **Westward sweep.** The route moves west with local midnight. An eastward leg is a defect unless it has a
-   recorded, specific reason (see "Eastward legs"). "The local-time window forced it" is not a reason on its own:
-   that means the ordering is poorly optimised.
-2. **Local window 23:00 to 05:00.** Every delivery stop's local arrival time is between 23:00 on Dec 24 and 05:00
-   on Dec 25 local time (owner decision). Aim for the middle of the window; do not use the window as slack for
-   detours.
-3. **Coverage first, then more stops.** Maximise the number of stops and the spread of places, in this order:
-   every inhabited country and territory the sweep passes at a sensible time gets at least one stop; then fill in
-   more stops along the path. There is no fixed total (the old `total: 160` is gone). Stop count is limited only
-   by pacing.
-4. **Geography decides.** Stops that force a detour are dropped or swapped for places on the path (owner
-   decision). Category weights (hub, cultural, underserved, nature, special) become a tie-breaker for which place
-   to pick nearby, not quotas.
-5. **No hand-pinned order.** `routeOrderIds`, `arrivalAnchorMinutes` and per-offset caps are removed. The order
-   comes from the algorithm, reproducibly from a seed.
+The route should chain dense nearby candidates before moving west. When a remaining country's candidate cannot fit
+the route constraints, list that country and its reason in the review report. The review report also lists each
+band's stop count beside its candidate population and land-grid shares, and reports the required US, Canadian and
+Australian admin-1 counts and any uncovered codes.
 
-## Fixed constraints (unchanged, owner-approved)
+## Timing and stop tiers
 
-- Takeoff from the North Pole Dec 24 2026 10:00 UTC; return to the North Pole by Dec 25 14:00 UTC (28 h window).
-- Each stop lasts 60 seconds (stop length is not what limits the count).
-- Leg speed: p90 at most 20,000 km/h, hard max 25,000 km/h. Minimum 2 minutes between arrivals.
-- No two stops closer than 100 km (configurable `minStopSeparationKm`), except a named major-city exception list
-  (owner to confirm; Mexico City and Teotihuacan are the known case).
-- Tone rules and the sensitive-place veto list from the current generator stay in force.
-- Landmarks the owner expects to see should be candidates: Great Wall, Angkor, Machu Picchu.
+- Takeoff is 2026-12-24 10:00 UTC. Return by 2026-12-25 14:00 UTC.
+- Arrive from 23:00 Dec 24 through 05:00 Dec 25 at each destination. South of 35 degrees south, arrive no later
+  than 02:30 local time.
+- Major stops dwell 60 seconds: population at least 1,000,000, a national capital with population at least 250,000,
+  or a curated headline landmark in the `special` or `cultural` category.
+- City stops dwell 30 seconds: population 100,000-999,999, another national capital, or another curated landmark.
+- Town stops dwell 10 seconds: population 5,000-99,999.
+- Hop stops dwell 3 seconds: population below 5,000 or unknown.
+- A stop can begin after the prior stop's dwell and travel time. There is no extra arrival gap.
+- Keep p90 leg speed at or below 20,000 km/h and every leg at or below 25,000 km/h. Transit duration is proportional
+  to leg distance at a smooth pace, so local legs within a region use the same speed. The generator uses 4,000 km/h
+  for local legs and 19,000 km/h for long ocean, island, cross-continent and polar crossings. Sparse bands can leave
+  time for long crossings. Transit time rounds up to whole seconds so it never understates the schedule; stop dwell
+  comes out before the next leg, and any local-window wait stays in the schedule gap.
+- Stops must be at least 20 km apart. This permits nearby pairs such as Mexico City and Teotihuacan without an
+  exception list.
 
-## Eastward legs
+## Country limit
 
-An eastward leg (longitude moving east by more than 1 degree, after date-line unwrapping) is allowed only with a
-machine-checkable reason code, recorded on the leg:
+The generator allows at most twelve optional dense-fill stops per country. This ceiling keeps the largest national
+inventories from using the dense-fill budget after every country has had a representative selected. Mandatory
+admin-1 coverage may exceed this ceiling, so the US can receive one representative in each state. The seeded sweep
+prioritizes feasible country and admin-1 coverage, then fills dense clusters. Unreachable countries remain in the
+report with a per-code reason.
 
-- `dateline`: the first legs after takeoff in the UTC+14/+13 Pacific, before the sweep is established.
-- `offset-anomaly`: the destination's UTC offset puts its local midnight earlier than its longitude suggests
-  (for example China on one zone, western Kazakhstan, Spain on UTC+1, Argentina on UTC-3), and visiting it later
-  would break the 23:00-05:00 window.
+## Eastward legs and detours
+
+Measure longitude movement after date-line unwrapping. An eastward leg is movement by more than 1 degree. Each
+eastward leg must store `transit_to_here.eastward_reason` with one of these values:
+
+- `dateline`: an early leg near the date line into the UTC+13 or UTC+14 Pacific, before the sweep is established.
+- `offset-anomaly`: the destination's UTC offset puts local midnight earlier than its longitude suggests, and the
+  destination is still inside its arrival window. Examples include China's single time zone, western Kazakhstan,
+  Spain on UTC+1 and Argentina on UTC-3.
 - `return`: the final leg to the North Pole.
 
-Any other eastward leg fails the audit. The audit also fails a leg whose distance is more than 2.5 times the
-direct distance between the stops on either side of it (a detour). Every eastward leg and every detour flag is
-listed in the review report with its reason.
+Any other eastward leg fails review. A detour is a stop where the two-leg path through it is more than 2.5 times the
+direct distance between its neighboring stops. Local search must not add eastward legs or detours.
 
-## What the generator reports
+## Required report
 
-Total stops, countries and territories covered, stops per continent, total path length, leg speed median, p90 and
-max, local-arrival histogram, every eastward leg with its reason, the longest 20 legs, and the share of the world's
-population within 500 km of a stop.
+Report stop count and tier counts, countries and territories covered, uncovered candidate countries, subnational
+coverage gaps, stop counts by UTC-offset band, path length, median/p90/maximum leg speed, local-arrival min/max and
+hourly histogram, the share of delivery legs under 300 km, every eastward leg and its reason, detour flags, and the
+20 longest legs. Keep the population estimate within 500 km as a separate candidate-snapshot proxy.
+
+Expected landmark candidates include the Great Wall, Angkor Wat and Machu Picchu. Never use a third-party Santa
+route as candidate data or as a source for route ordering.

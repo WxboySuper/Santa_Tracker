@@ -11,15 +11,28 @@ if (resolve(process.cwd()) !== repositoryRoot) {
 }
 
 const args = process.argv.slice(2);
+const optionValues = new Map<string, string>();
+const supportedOptions = new Set(['--seed', '--overrides', '--output-dir']);
+for (let index = 0; index < args.length; index++) {
+  const name = args[index] ?? '';
+  if (name === '--total') {
+    throw new Error('The --total option was removed by the sweep-based generator; remove it from the invocation');
+  }
+  if (!supportedOptions.has(name)) throw new Error(`Unknown route generator option: ${name}`);
+  if (optionValues.has(name)) throw new Error(`Duplicate route generator option: ${name}`);
+  const value = args[index + 1];
+  if (!value || value.startsWith('--')) throw new Error(`Route generator option ${name} requires a value`);
+  optionValues.set(name, value);
+  index++;
+}
+
 function option(name: string): string | undefined {
-  const index = args.indexOf(name);
-  return index < 0 ? undefined : args[index + 1];
+  return optionValues.get(name);
 }
 
 const seed = Number(option('--seed') ?? 2026);
-const total = Number(option('--total') ?? 160);
-if (!Number.isSafeInteger(seed) || !Number.isSafeInteger(total) || total < 1) {
-  throw new Error('Seed and total must be positive integers');
+if (!Number.isSafeInteger(seed)) {
+  throw new Error('Seed must be a safe integer');
 }
 const extraOverrides = option('--overrides')
   ? JSON.parse(await readFile(resolve(option('--overrides') ?? ''), 'utf8')) as RouteOverrides
@@ -35,7 +48,6 @@ if (!isDraftOutput && !isScratchOutput) {
 
 const inputs = await loadGeneratorInputs({
   seed,
-  total,
   overrides: extraOverrides,
 });
 const generated = generateDraft(inputs);
@@ -47,11 +59,18 @@ await Promise.all([
 console.log(JSON.stringify({
   seed,
   stops: generated.report.count,
+  countriesCovered: generated.report.countriesCovered,
+  stopTiers: generated.report.stopTiers,
   continentBalance: generated.report.continentBalance,
   offsetBalance: generated.report.offsetBalance,
   medianLegSpeedKmh: generated.report.medianLegSpeedKmh,
   p90LegSpeedKmh: generated.report.p90LegSpeedKmh,
+  maxLegSpeedKmh: generated.report.maxLegSpeedKmh,
   totalDistanceKm: Math.round(generated.report.totalDistanceKm),
+  localArrivalHistogram: generated.report.localArrivalHistogram,
+  eastwardLegs: generated.report.eastwardLegs,
+  longestLegs: generated.report.longestLegs,
+  populationCoverageWithin500Km: generated.report.populationCoverageWithin500Km,
   lastDepartureUtc: generated.report.lastDepartureUtc,
   routeEndUtc: generated.report.routeEndUtc,
   outputDir: relative(repositoryRoot, outputDir) || '.',

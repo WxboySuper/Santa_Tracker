@@ -2,69 +2,114 @@ import { describe, expect, it } from 'vitest';
 import { chooseCandidates } from './candidates';
 import { DEFAULT_GENERATOR_LIMITS, type Candidate } from './types';
 
-const countries = ['US', 'CA', 'MX', 'BZ', 'GT', 'HN', 'PA', 'SV', 'AR', 'BO', 'BR', 'CL', 'CO', 'EC', 'PE', 'PY', 'SR', 'VE', 'AU', 'NZ'];
-const pool: Candidate[] = Array.from({ length: 20 }, (_, index) => ({
-  id: `place-${index}`,
-  name: `Place ${index}`,
-  country: countries[index] ?? 'US',
-  lat: index,
-  lng: index,
-  timezone: index < 10 ? 'America/New_York' : 'Asia/Kolkata',
-  utcOffsetMinutes: index < 10 ? -300 : 330,
-  category: 'hub',
-  population: 2_000_000,
-}));
+const pool: Candidate[] = [
+  { id: 'city-a', name: 'City A', country: 'AA', lat: 1, lng: 1, timezone: 'UTC', utcOffsetMinutes: 0, category: 'populated', population: 300_000 },
+  { id: 'town-b', name: 'Town B', country: 'BB', lat: 2, lng: 2, timezone: 'UTC', utcOffsetMinutes: 0, category: 'populated', population: 20_000 },
+  { id: 'landmark-c', name: 'Landmark C', country: 'CC', lat: 3, lng: 3, timezone: 'UTC', utcOffsetMinutes: 0, category: 'cultural', source: 'https://www.wikidata.org/wiki/Q3' },
+];
 
 describe('chooseCandidates', () => {
-  it('filters vetoed ids before category quota selection', () => {
-    const config = { ...DEFAULT_GENERATOR_LIMITS, total: 10, maxStopsPerUtcOffset: 40, weights: { hub: 1 }, endStopId: 'place-19' };
-    const first = chooseCandidates(pool, config, {});
-    const vetoedWest = first.find((place) => place.timezone === 'America/New_York');
-    if (!vetoedWest) throw new Error('Expected a western candidate in the initial selection');
+  it('normalizes country, admin-1, timezone, and category text before selection', () => {
+    const messy = { ...pool[0]!, country: ' aa ', admin1Code: ' us-ca ', timezone: ' UTC ', category: ' POPULATED ' };
+    const result = chooseCandidates([messy], DEFAULT_GENERATOR_LIMITS);
 
-    const selected = chooseCandidates(pool, config, { veto: [vetoedWest.id] });
-
-    expect(selected.map((place) => place.id)).not.toContain(vetoedWest.id);
-    expect(selected).toHaveLength(10);
-    expect(selected.every((place) => place.category === 'hub')).toBe(true);
+    expect(result.candidates[0]).toMatchObject({ country: 'AA', admin1Code: 'US-CA', timezone: 'UTC', category: 'hub' });
   });
 
-  it('selects from the configured category without a regional preference quota', () => {
-    const config = { ...DEFAULT_GENERATOR_LIMITS, total: 1, maxStopsPerUtcOffset: 40, weights: { hub: 1 }, endStopId: 'place-0' };
-    const selected = chooseCandidates(pool, config, {});
-    expect(selected[0]?.timezone).toBe('America/New_York');
+  it('keeps the full pool and classifies populated places for tie-breaking', () => {
+    const result = chooseCandidates(pool, { ...DEFAULT_GENERATOR_LIMITS, underservedCountries: ['BB'] });
+    expect(result.candidates.map((place) => place.id)).toEqual(['city-a', 'town-b', 'landmark-c']);
+    expect(result.candidates.map((place) => place.category)).toEqual(['hub', 'underserved', 'cultural']);
+    expect(result.invalidCandidateIds).toEqual([]);
   });
 
-  it('preserves category quota after a same-category swap', () => {
-    const config = { ...DEFAULT_GENERATOR_LIMITS, total: 10, maxStopsPerUtcOffset: 40, weights: { hub: 1 }, endStopId: 'place-19' };
-    const initial = chooseCandidates(pool, config, {});
-    const western = initial.find((place) => place.timezone === 'America/New_York');
-    const easternExtra = pool.find((place) => place.timezone === 'Asia/Kolkata' && !initial.some((selected) => selected.id === place.id));
-    if (!western || !easternExtra) throw new Error('Expected west and east candidates for the swap test');
-    const finalIds = initial.map((place) => place.id).filter((id) => id !== western.id).concat(easternExtra.id);
-    const swapped = chooseCandidates(pool, config, { lock: finalIds, swap: { [western.id]: easternExtra.id } });
-    expect(swapped.map((place) => place.id)).toContain(easternExtra.id);
-    expect(swapped.every((place) => place.category === 'hub')).toBe(true);
-    expect(swapped.map((place) => place.id)).toHaveLength(10);
+  it('applies a candidate veto', () => {
+    const result = chooseCandidates(pool, DEFAULT_GENERATOR_LIMITS, { veto: ['city-a'] });
+    expect(result.candidates.map((place) => place.id)).toEqual(['town-b', 'landmark-c']);
   });
 
-  it('keeps a swapped final route locked while replacing the old stop', () => {
-    const config = { ...DEFAULT_GENERATOR_LIMITS, total: 10, maxStopsPerUtcOffset: 40, weights: { hub: 1 }, endStopId: 'place-19' };
-    const initial = chooseCandidates(pool, config, {});
-    const source = initial.find((place) => place.id !== config.endStopId);
-    const target = pool.find((place) => !initial.some((selected) => selected.id === place.id));
-    if (!source || !target) throw new Error('Expected a selected source and an available swap target');
-    const finalIds = initial.map((place) => place.id).filter((id) => id !== source.id).concat(target.id);
-    const swapped = chooseCandidates(pool, config, { lock: finalIds, swap: { [source.id]: target.id } });
-
-    expect(swapped.map((place) => place.id)).toHaveLength(10);
-    expect(swapped.map((place) => place.id)).toEqual(expect.arrayContaining(finalIds));
-    expect(swapped.map((place) => place.id)).not.toContain(source.id);
+  it('rejects a veto that does not name a candidate', () => {
+    expect(() => chooseCandidates(pool, DEFAULT_GENERATOR_LIMITS, { veto: ['misspelled-id'] }))
+      .toThrow(/Unknown stop: misspelled-id/);
   });
 
-  it('reserves a stop from every required country', () => {
-    const config = { ...DEFAULT_GENERATOR_LIMITS, total: 10, maxStopsPerUtcOffset: 40, weights: { hub: 1 }, endStopId: 'place-19', requiredCountries: [countries[5] ?? 'HN'] };
-    const selected = chooseCandidates(pool, config, {});
-    expect(selected.some((place) => place.country === countries[5])).toBe(true);
+  it('rejects stale selection locks and swaps instead of ignoring them', () => {
+    expect(() => chooseCandidates(pool, DEFAULT_GENERATOR_LIMITS, { lock: ['city-a'] })).toThrow(/Lock and swap/);
+    expect(() => chooseCandidates(pool, DEFAULT_GENERATOR_LIMITS, { swap: { 'city-a': 'town-b' } })).toThrow(/Lock and swap/);
+  });
+
+  it('applies owner rename and timezone overrides to candidates', () => {
+    const result = chooseCandidates(pool, DEFAULT_GENERATOR_LIMITS, { rename: { 'city-a': 'Renamed City' }, timezone: { 'city-a': 'Etc/UTC' } });
+    expect(result.candidates[0]?.name).toBe('Renamed City');
+    expect(result.candidates[0]?.timezone).toBe('Etc/UTC');
+  });
+
+  it('combines capital aliases with OR semantics', () => {
+    const capital: Candidate = { ...pool[1]!, isNationalCapital: false, isCapital: true };
+    const result = chooseCandidates([capital], DEFAULT_GENERATOR_LIMITS);
+    expect(result.candidates[0]?.isNationalCapital).toBe(true);
+  });
+
+  it('preserves capital category for reporting and hub-equivalent ranking', () => {
+    const capital: Candidate = { ...pool[0]!, id: 'capital-a', category: 'capital', population: 300_000 };
+    const result = chooseCandidates([capital], DEFAULT_GENERATOR_LIMITS);
+    expect(result.candidates[0]?.category).toBe('capital');
+    expect(result.candidates[0]?.isNationalCapital).toBe(true);
+  });
+
+  it('rejects missing UTC offsets unless the generator supplies a recovery resolver', () => {
+    const { utcOffsetMinutes: _offset, ...missingOffset } = pool[0]!;
+    const invalid = { ...missingOffset, id: 'missing-offset' };
+    const result = chooseCandidates([pool[0]!, invalid], DEFAULT_GENERATOR_LIMITS);
+    expect(result.candidates.map((place) => place.id)).toEqual(['city-a']);
+    expect(result.invalidCandidateIds).toEqual(['missing-offset']);
+  });
+
+  it('reports offsets outside the civil-time range as invalid candidates', () => {
+    const invalidOffset = { ...pool[1]!, id: 'invalid-offset', utcOffsetMinutes: 900 };
+    const result = chooseCandidates([pool[0]!, invalidOffset], DEFAULT_GENERATOR_LIMITS);
+    expect(result.candidates.map((place) => place.id)).toEqual(['city-a']);
+    expect(result.invalidCandidateIds).toEqual(['invalid-offset']);
+  });
+
+  it('reports malformed names instead of throwing on a data row', () => {
+    const malformed = { ...pool[0], id: 'missing-name', name: null } as unknown as Candidate;
+    const result = chooseCandidates([pool[0]!, malformed], DEFAULT_GENERATOR_LIMITS);
+    expect(result.candidates.map((place) => place.id)).toEqual(['city-a']);
+    expect(result.invalidCandidateIds).toEqual(['missing-name']);
+  });
+
+  it('reports non-object pool rows without aborting valid candidate selection', () => {
+    const result = chooseCandidates([pool[0]!, null as unknown as Candidate], DEFAULT_GENERATOR_LIMITS);
+    expect(result.candidates.map((place) => place.id)).toEqual(['city-a']);
+    expect(result.invalidCandidateIds).toEqual(['row-2']);
+  });
+
+  it('reports duplicate candidate identities instead of silently shrinking the pool', () => {
+    const duplicate = { ...pool[0]!, name: 'Duplicate city row' };
+    const result = chooseCandidates([pool[0]!, duplicate], DEFAULT_GENERATOR_LIMITS);
+    expect(result.candidates.map((place) => place.id)).toEqual(['city-a']);
+    expect(result.invalidCandidateIds).toEqual([]);
+    expect(result.duplicateCandidateIds).toEqual(['city-a']);
+  });
+
+  it('does not let an invalid first row block a later valid row with the same ID', () => {
+    const invalidFirst = { ...pool[0]!, lat: Number.NaN };
+    const duplicate = { ...pool[0]!, name: 'Duplicate city row' };
+    const result = chooseCandidates([invalidFirst, pool[1]!, duplicate], DEFAULT_GENERATOR_LIMITS);
+
+    expect(result.candidates.map((place) => place.id)).toEqual(['town-b', 'city-a']);
+    expect(result.invalidCandidateIds).toEqual(['city-a']);
+    expect(result.duplicateCandidateIds).toEqual(['city-a']);
+  });
+
+  it('reports repeated invalid IDs once without classifying them as accepted duplicates', () => {
+    const invalidFirst = { ...pool[0]!, lat: Number.NaN };
+    const invalidSecond = { ...pool[0]!, lng: Number.NaN };
+    const result = chooseCandidates([invalidFirst, invalidSecond, pool[1]!], DEFAULT_GENERATOR_LIMITS);
+
+    expect(result.candidates.map((place) => place.id)).toEqual(['town-b']);
+    expect(result.invalidCandidateIds).toEqual(['city-a']);
+    expect(result.duplicateCandidateIds).toEqual(['city-a']);
   });
 });

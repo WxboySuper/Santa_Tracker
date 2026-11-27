@@ -4,15 +4,14 @@ import { LegacyRouteFixtureSchema } from '@santa-tracker/contracts';
 import { loadRouteNodesRaw } from '../locations';
 import { generateRoute, type Candidate, DEFAULT_GENERATOR_LIMITS } from '../../../../../packages/route-engine/src/generate/generator';
 
-const countries = ['US', 'CA', 'MX', 'BZ', 'GT', 'HN', 'PA', 'SV', 'AR', 'BO'];
 const places: Candidate[] = Array.from({ length: 10 }, (_, index) => ({
-  id: `test-${index}`, name: `Test ${index}`, country: countries[index] ?? 'US', lat: 80, lng: index * 2,
-  timezone: 'Pacific/Kiritimati', utcOffsetMinutes: 840, population: 2_000_000, category: index % 2 ? 'hub' : 'cultural',
+  id: `test-${index}`, name: `Test ${index}`, country: 'US', lat: 35, lng: -109 - index * 0.5,
+  timezone: 'America/Denver', utcOffsetMinutes: -420, population: 2_000_000, category: index % 2 ? 'hub' : 'cultural',
 }));
 
 describe('generated legacy route compatibility', () => {
   it('loads draft nodes and converts every one into the contract route', async () => {
-    const generated = generateRoute(places, { ...DEFAULT_GENERATOR_LIMITS, total: places.length, endStopId: 'test-1', openingStopIds: ['test-0'], maxStopsPerUtcOffset: 40, minStopSeparationKm: 0, weights: { hub: 50, cultural: 50 } });
+    const generated = generateRoute(places, { ...DEFAULT_GENERATOR_LIMITS, weights: { hub: 50, cultural: 50 } });
     expect(LegacyRouteFixtureSchema.safeParse(generated.document).success).toBe(true);
     const rawNodes = await loadRouteNodesRaw(JSON.stringify(generated.document));
     const converted = routeNodesToContractRoute(rawNodes);

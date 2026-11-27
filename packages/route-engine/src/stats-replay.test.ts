@@ -3,6 +3,7 @@ import { createLocationId, SCHEMA_VERSION, type Route } from '@santa-tracker/con
 import { deriveJourneyStats, formatStat, PRESENTS_TOTAL, type RouteStatsLocation } from './stats';
 import { createReplay } from './replay';
 import { deriveJourneyState } from './state';
+import { validateRoute } from './validate';
 
 const start = Date.parse('2026-12-24T10:00:00.000Z');
 const route: Route = {
@@ -22,6 +23,19 @@ const locations: RouteStatsLocation[] = [
 const landing = start + 3_600_000;
 
 describe('journey stats', () => {
+  it('supports schema-valid zero-dwell stops in validation, stats, and replay', () => {
+    const zeroDwellRoute: Route = {
+      ...route,
+      stops: route.stops.map((stop, index) => index === 0
+        ? { ...stop, departureIso: stop.arrivalIso, durationSeconds: 0 }
+        : stop),
+    };
+
+    expect(validateRoute(zeroDwellRoute).ok).toBe(true);
+    expect(() => deriveJourneyStats(zeroDwellRoute, landing, locations)).not.toThrow();
+    expect(() => createReplay(zeroDwellRoute, { locations })).not.toThrow();
+  });
+
   it('counts from before takeoff through landing', () => {
     const before = deriveJourneyStats(route, start - 1, locations);
     expect(before.stopsVisited).toBe(0);

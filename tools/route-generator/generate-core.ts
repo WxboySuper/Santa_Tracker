@@ -59,7 +59,18 @@ function mergeOverrideFiles(base: RouteOverrides, extra: RouteOverrides): RouteO
   };
 }
 
-export async function loadGeneratorInputs(options: { seed?: number; total?: number; overrides?: RouteOverrides } = {}): Promise<GeneratorInputs> {
+function keepSweepOverrides(overrides: RouteOverrides): RouteOverrides {
+  // The committed route-2026 override snapshot still contains reviewed-route
+  // locks and swaps. Those pins belong to the superseded fixed sequence.
+  return {
+    veto: overrides.veto,
+    timezone: overrides.timezone,
+    utcOffsetMinutes: overrides.utcOffsetMinutes,
+    rename: overrides.rename,
+  };
+}
+
+export async function loadGeneratorInputs(options: { seed?: number; overrides?: RouteOverrides } = {}): Promise<GeneratorInputs> {
   const [routeConfig, places, curated, draftOverrides, localOverrides, tables, countryNames, countryBounds] = await Promise.all([
     readJson<Partial<GeneratorConfig>>(new URL('./config.json', import.meta.url)),
     readJson<Candidate[]>(new URL('./data/places.json', import.meta.url)),
@@ -74,7 +85,6 @@ export async function loadGeneratorInputs(options: { seed?: number; total?: numb
     ...DEFAULT_GENERATOR_LIMITS,
     ...routeConfig,
     seed: options.seed ?? DEFAULT_GENERATOR_LIMITS.seed,
-    total: options.total ?? DEFAULT_GENERATOR_LIMITS.total,
   } as GeneratorConfig;
   const pool = [
     ...places.map((place) => ({ ...place, category: 'populated' })),
@@ -83,7 +93,7 @@ export async function loadGeneratorInputs(options: { seed?: number; total?: numb
   return {
     config,
     pool,
-    overrides: mergeOverrideFiles(mergeOverrideFiles(draftOverrides, localOverrides), options.overrides ?? {}),
+    overrides: mergeOverrideFiles(mergeOverrideFiles(keepSweepOverrides(draftOverrides), localOverrides), options.overrides ?? {}),
     tables: { ...tables, countryNames, countryBoundsByCode: countryBounds.boundsByCountry },
     countryNames,
   };
@@ -111,53 +121,60 @@ function table(title: string, headers: string[], rows: string[]): string {
   return `<section><h2>${escapeHtml(title)}</h2><table><thead><tr>${head}</tr></thead><tbody>${rows.join('')}</tbody></table></section>`;
 }
 
-function storedSpeedPercentile(transitNodes: { transit_to_here?: { speed_kmh?: number | null } | null }[], fraction: number): number {
-  const speeds = transitNodes.map((node) => node.transit_to_here?.speed_kmh)
-    .filter((speed): speed is number => speed !== undefined && speed !== null)
-    .sort((left, right) => left - right);
-  return speeds[Math.max(0, Math.ceil(speeds.length * fraction) - 1)] ?? 0;
-}
-
-function maximumStoredSpeed(transitNodes: { transit_to_here?: { speed_kmh?: number | null } | null }[]): number {
-  return Math.max(0, ...transitNodes.map((node) => node.transit_to_here?.speed_kmh ?? 0));
-}
-
 export function renderReview(generated: GeneratedRoute, inputs: GeneratorInputs): string {
   const { config, countryNames } = inputs;
   const deliveryNodes = generated.document.route_nodes.slice(1, -1) as {
     id: string;
     type: string;
-    location: { name: string; country_code: string; lat: number; lng: number; timezone_offset: number };
+    location: { name: string; country_code: string; admin1_code?: string; lat: number; lng: number; timezone_offset: number };
     schedule: { arrival_utc: string; departure_utc: string; local_arrival_time: string };
-    transit_to_here?: { distance_km?: number | null; speed_kmh?: number | null } | null;
+    transit_to_here?: { distance_km?: number | null; speed_kmh?: number | null; eastward_reason?: string } | null;
+    stop_experience?: { stop_tier?: string; duration_seconds?: number };
     comment: string;
   }[];
   const stopRows = generated.locations.map((place, index) => {
     const node = deliveryNodes[index];
     const country = countryNames[place.country] ?? place.country;
-    return `<tr><td>${index + 1}</td><td>${escapeHtml(place.name)}</td><td>${escapeHtml(country)}</td><td>${escapeHtml(node?.schedule.arrival_utc ?? '')}</td><td>${escapeHtml(node?.schedule.local_arrival_time ?? '')}</td><td>${escapeHtml(place.timezone)}</td><td>${place.lat.toFixed(5)}, ${place.lng.toFixed(5)}</td><td>${escapeHtml(place.category)}</td><td>${node?.transit_to_here?.distance_km ?? ''}</td><td>${node?.transit_to_here?.speed_kmh ?? ''}</td><td>${linkCell(place.source)}</td></tr>`;
+    return `<tr><td>${index + 1}</td><td>${escapeHtml(node?.location.name ?? place.name)}</td><td>${escapeHtml(country)}</td><td>${escapeHtml(node?.location.admin1_code ?? '')}</td><td>${escapeHtml(node?.schedule.arrival_utc ?? '')}</td><td>${escapeHtml(node?.schedule.local_arrival_time ?? '')}</td><td>${escapeHtml(place.timezone)}</td><td>${place.lat.toFixed(5)}, ${place.lng.toFixed(5)}</td><td>${escapeHtml(place.category)}</td><td>${escapeHtml(node?.stop_experience?.stop_tier ?? '')}</td><td>${node?.stop_experience?.duration_seconds ?? ''}</td><td>${node?.transit_to_here?.distance_km ?? ''}</td><td>${node?.transit_to_here?.speed_kmh ?? ''}</td><td>${escapeHtml(node?.transit_to_here?.eastward_reason ?? '')}</td><td>${linkCell(place.source)}</td></tr>`;
   });
   const transitNodes = generated.document.route_nodes.slice(1) as {
-    transit_to_here?: { distance_km?: number | null; speed_kmh?: number | null } | null;
+    transit_to_here?: { distance_km?: number | null; speed_kmh?: number | null; eastward_reason?: string } | null;
   }[];
   const legRows = generated.report.legs.map((leg, index) => {
     const transit = transitNodes[index]?.transit_to_here;
-    return `<tr><td>${index + 1}</td><td>${escapeHtml(leg.kind)}</td><td>${escapeHtml(leg.from)}</td><td>${escapeHtml(leg.to)}</td><td>${transit?.distance_km ?? ''}</td><td>${Math.round(leg.gapMinutes)}</td><td>${transit?.speed_kmh ?? ''}</td></tr>`;
+    return `<tr><td>${index + 1}</td><td>${escapeHtml(leg.kind)}</td><td>${escapeHtml(leg.from)}</td><td>${escapeHtml(leg.to)}</td><td>${transit?.distance_km ?? ''}</td><td>${Math.round(leg.gapMinutes)}</td><td>${transit?.speed_kmh ?? ''}</td><td>${escapeHtml(transit?.eastward_reason ?? '')}</td></tr>`;
   });
-  const categoryRows = Object.entries(generated.report.mix).map(([category, entry]) => `<tr><td>${escapeHtml(category)}</td><td>${entry.count}</td><td>${entry.target}</td></tr>`);
+  const categoryRows = Object.entries(generated.report.mix).map(([category, count]) => `<tr><td>${escapeHtml(category)}</td><td>${count}</td></tr>`);
+  const tierRows = Object.entries(generated.report.stopTiers).map(([tier, count]) => `<tr><td>${escapeHtml(tier)}</td><td>${count}</td></tr>`);
   const continentRows = Object.entries(generated.report.continentBalance).sort(([a], [b]) => a.localeCompare(b)).map(([name, count]) => `<tr><td>${escapeHtml(name)}</td><td>${count}</td></tr>`);
   const subregionRows = Object.entries(generated.report.subregionBalance).sort(([a], [b]) => a.localeCompare(b)).map(([name, count]) => `<tr><td>${escapeHtml(name)}</td><td>${count}</td></tr>`);
-  const offsetRows = Object.entries(generated.report.offsetBalance).sort(([a], [b]) => a.localeCompare(b)).map(([offset, count]) => `<tr><td>${escapeHtml(offset)}</td><td>${count}</td></tr>`);
+  const offsets = [...new Set([...Object.keys(generated.report.offsetPopulationShare), ...Object.keys(generated.report.offsetBalance)])].sort((a, b) => a.localeCompare(b));
+  const offsetRows = offsets.map((offset) => `<tr><td>${escapeHtml(offset)}</td><td>${generated.report.offsetBalance[offset] ?? 0}</td><td>${((generated.report.offsetPopulationShare[offset] ?? 0) * 100).toFixed(1)}%</td><td>${((generated.report.offsetLandCoverageShare[offset] ?? 0) * 100).toFixed(1)}%</td></tr>`);
   const hourRows = generated.report.hourly.map((entry) => `<tr><td>${entry.hour}</td><td>${entry.count}</td></tr>`);
-  const ownerRows = config.ownerDecisionIds.map((id) => {
-    const place = generated.locations.find((candidate) => candidate.id === id) ?? inputs.pool.find((candidate) => candidate.id === id);
-    return place ? `<li>${escapeHtml(place.name)} (${escapeHtml(countryNames[place.country] ?? place.country)})</li>` : `<li>Missing owner decision stop ${escapeHtml(id)}</li>`;
-  });
   const warningRows = generated.report.issues.length
     ? generated.report.issues.map((issue) => `<li>${escapeHtml(issue)}</li>`)
     : ['<li>No generator warnings.</li>'];
-  const summary = `${generated.report.count} delivery stops. Total route length ${Math.round(generated.report.totalDistanceKm).toLocaleString('en-US')} km, including the launch and return. Stored leg speeds: median ${storedSpeedPercentile(transitNodes, 0.5).toLocaleString('en-US')} km/h, p90 ${storedSpeedPercentile(transitNodes, 0.9).toLocaleString('en-US')} km/h, maximum ${maximumStoredSpeed(transitNodes).toLocaleString('en-US')} km/h. Last delivery departure ${escapeHtml(generated.report.lastDepartureUtc)}. North Pole return ${escapeHtml(generated.report.routeEndUtc)}.`;
-  const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>2026 Santa route draft review</title><style>body{font:15px/1.5 system-ui,sans-serif;margin:2rem;color:#17212b}h1,h2{color:#123b52}table{border-collapse:collapse;margin:1rem 0 2rem;width:100%;white-space:nowrap}th,td{border:1px solid #ccd5dc;padding:.4rem .55rem;text-align:left}th{background:#e7f0f4;cursor:pointer}section{overflow:auto}.summary{max-width:75rem}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(20rem,1fr));gap:1rem}#filter{padding:.6rem;width:min(28rem,90%)}a{color:#075985}</style></head><body><h1>2026 Santa route draft</h1><p class="summary">Seed ${config.seed}. Generated offline from committed snapshots. ${summary}</p><div class="grid">${table('Category mix',['Category','Actual','Target'],categoryRows)}${table('Stops by continent',['Continent','Stops'],continentRows)}${table('Stops by subregion',['Subregion','Stops'],subregionRows)}${table('Stops by UTC offset',['UTC offset','Stops'],offsetRows)}${table('Stops by UTC flight hour',['Hours after takeoff','Stops'],hourRows)}</div><h2>Warnings</h2><ul>${warningRows.join('')}</ul><h2>Owner decisions</h2><ul>${ownerRows.join('')}</ul><h2>Stops</h2><input id="filter" placeholder="Filter by stop, country, timezone, or source"><section><table id="stops"><thead><tr>${['Order','Name','Country','UTC arrival','Local arrival','Timezone','Lat, lon','Category','Leg km','Leg km/h','Source'].map((name) => `<th>${escapeHtml(name)}</th>`).join('')}</tr></thead><tbody>${stopRows.join('')}</tbody></table></section>${table('Every leg, including launch and return',['#','Type','From','To','Distance km','Arrival gap min','Speed km/h'],legRows)}<script>document.querySelectorAll('table').forEach(table=>table.querySelectorAll('th').forEach(th=>th.addEventListener('click',()=>{const body=table.tBodies[0];const index=[...table.querySelectorAll('th')].indexOf(th);const rows=[...body.rows];rows.sort((a,b)=>a.cells[index].textContent.localeCompare(b.cells[index].textContent,undefined,{numeric:true}));rows.forEach(row=>body.append(row))})));document.querySelector('#filter').addEventListener('input',event=>document.querySelectorAll('#stops tbody tr').forEach(row=>row.hidden=!row.textContent.toLowerCase().includes(event.target.value.toLowerCase())))</script></body></html>`;
+  const ownerDecisionRows = [
+    ['Sweep', 'Process exact UTC-offset bands westward. Alternate north-to-south and south-to-north latitude preference by band.'],
+    ['Selection', 'Reserve one stop per candidate country/territory and every required US, Canadian and Australian admin-1 unit before dense fill.'],
+    ['Arrival window', 'Use 23:00-05:00 local. South of 35 degrees south, arrive by 02:30.'],
+    ['Pacing', '20,000 km/h p90 and 25,000 km/h hard maximum; no extra arrival gap.'],
+    ['Separation', 'Keep selected stops at least 20 km apart.'],
+    ['Dwell', 'Major 60 s, city 30 s, town 10 s, hop 3 s.'],
+    ['Country limit', 'The 12-stop country ceiling applies to optional dense fill; mandatory admin-1 representatives may exceed it.'],
+    ['Band fill', 'Dense-fill capacity is split by candidate population share and distinct 2-degree land-grid coverage; mandatory coverage can exceed a band share.'],
+  ].map(([decision, applied]) => `<tr><td>${escapeHtml(decision ?? '')}</td><td>${escapeHtml(applied ?? '')}</td></tr>`);
+  const tierSummary = Object.entries(generated.report.stopTiers).map(([tier, count]) => `${tier} ${count}`).join(', ');
+  const coverage = (generated.report.populationCoverageWithin500Km * 100).toLocaleString('en-US', { maximumFractionDigits: 1 });
+  const shortLegShare = (generated.report.shareDeliveryLegsUnder300Km * 100).toLocaleString('en-US', { maximumFractionDigits: 1 });
+  const summary = `${generated.report.count} delivery stops from ${generated.report.candidateCount.toLocaleString('en-US')} candidate rows across ${generated.report.countriesCovered} of ${new Set(inputs.pool.map((place) => place.country)).size} candidate countries and territories (${generated.report.unselectedCandidateCount.toLocaleString('en-US')} rows not selected; ${generated.report.invalidCandidateIds.length} invalid rows skipped and reported). Stop tiers: ${tierSummary}. Path length ${Math.round(generated.report.totalDistanceKm).toLocaleString('en-US')} km. Leg speeds: median ${Math.round(generated.report.medianLegSpeedKmh).toLocaleString('en-US')} km/h, p90 ${Math.round(generated.report.p90LegSpeedKmh).toLocaleString('en-US')} km/h, maximum ${Math.round(generated.report.maxLegSpeedKmh).toLocaleString('en-US')} km/h. Local arrivals run from ${generated.report.localArrivalMin} to ${generated.report.localArrivalMax}; ${generated.report.shortDeliveryLegCount}/${generated.report.deliveryLegCount} delivery legs (${shortLegShare}%) are under 300 km. ${coverage}% of the population estimate in the candidate snapshot is within 500 km of a stop. Last departure ${escapeHtml(generated.report.lastDepartureUtc)}. North Pole return ${escapeHtml(generated.report.routeEndUtc)}.`;
+  const localRows = Object.entries(generated.report.localArrivalHistogram).map(([hour, count]) => `<tr><td>${escapeHtml(hour)}</td><td>${count}</td></tr>`);
+  const uncoveredCountryRows = generated.report.uncoveredCountryReasons.map((item) => `<tr><td>${escapeHtml(item.code)}</td><td>${item.candidateCount}</td><td>${escapeHtml(item.reason)}</td></tr>`);
+  const admin1Rows = Object.entries(generated.report.admin1Coverage).map(([country, coverage]) => `<tr><td>${escapeHtml(country)}</td><td>${coverage.covered}/${coverage.required}</td><td>${escapeHtml(coverage.missingCodes.join(', ') || 'None')}</td></tr>`);
+  const eastwardRows = generated.report.eastwardLegs.map((leg) => `<tr><td>${escapeHtml(leg.from)}</td><td>${escapeHtml(leg.to)}</td><td>${leg.eastwardDegrees.toFixed(1)}</td><td>${escapeHtml(leg.eastwardReason ?? '')}</td></tr>`);
+  const detourRows = generated.report.detours.map((item) => `<tr><td>${escapeHtml(item.from)}</td><td>${escapeHtml(item.via)}</td><td>${escapeHtml(item.to)}</td><td>${item.ratio.toFixed(2)}</td></tr>`);
+  const longestRows = generated.report.longestLegs.map((leg) => `<tr><td>${escapeHtml(leg.kind)}</td><td>${escapeHtml(leg.from)}</td><td>${escapeHtml(leg.to)}</td><td>${Math.round(leg.km)}</td><td>${Math.round(leg.kmh)}</td><td>${escapeHtml(leg.eastwardReason ?? '')}</td></tr>`);
+  const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>2026 Santa route draft review</title><style>body{font:15px/1.5 system-ui,sans-serif;margin:2rem;color:#17212b}h1,h2{color:#123b52}table{border-collapse:collapse;margin:1rem 0 2rem;width:100%;white-space:nowrap}th,td{border:1px solid #ccd5dc;padding:.4rem .55rem;text-align:left}th{background:#e7f0f4;cursor:pointer}section{overflow:auto}.summary{max-width:75rem}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(20rem,1fr));gap:1rem}#filter{padding:.6rem;width:min(28rem,90%)}a{color:#075985}</style></head><body><h1>2026 Santa route draft</h1><p class="summary">Seed ${config.seed}. Generated offline from committed snapshots. ${summary}</p><div class="grid">${table('Stop tiers',['Tier','Stops'],tierRows)}${table('Category tie-break mix',['Category','Stops'],categoryRows)}${table('Stops by continent',['Continent','Stops'],continentRows)}${table('Stops by subregion',['Subregion','Stops'],subregionRows)}${table('Stops by UTC offset',['UTC offset','Stops','Candidate population share','Candidate land-grid share'],offsetRows)}${table('Local arrival histogram',['Local hour','Stops'],localRows)}${table('Stops by UTC flight hour',['Hours after takeoff','Stops'],hourRows)}</div>${table('Owner decisions',['Decision','Applied'],ownerDecisionRows)}<h2>Coverage gaps</h2><p>${escapeHtml(generated.report.subnationalCoverageNote)}</p>${table('Required admin-1 coverage',['Country','Covered / required','Uncovered codes'],admin1Rows)}${table('Candidate countries not reached',['Country code','Candidate rows','Reason'],uncoveredCountryRows.length ? uncoveredCountryRows : ['<tr><td colspan="3">None</td></tr>'])}<h2>Warnings</h2><ul>${warningRows.join('')}</ul><h2>Eastward legs</h2>${table('Every eastward leg and its reason',['From','To','Degrees','Reason'],eastwardRows.length ? eastwardRows : ['<tr><td colspan="4">None</td></tr>'])}<h2>Detours over 2.5x</h2>${table('Detour checks',['From','Via','To','Ratio'],detourRows.length ? detourRows : ['<tr><td colspan="4">None</td></tr>'])}${table('20 longest legs',['Type','From','To','Distance km','Speed km/h','Eastward reason'],longestRows)}<h2>Stops</h2><input id="filter" placeholder="Filter by stop, country, timezone, or source"><section><table id="stops"><thead><tr>${['Order','Name','Country','Admin-1','UTC arrival','Local arrival','Timezone','Lat, lon','Category','Tier','Dwell seconds','Leg km','Leg km/h','Eastward reason','Source'].map((name) => `<th>${escapeHtml(name)}</th>`).join('')}</tr></thead><tbody>${stopRows.join('')}</tbody></table></section>${table('Every leg, including launch and return',['#','Type','From','To','Distance km','Arrival gap min','Speed km/h','Eastward reason'],legRows)}<script>document.querySelectorAll('table').forEach(table=>table.querySelectorAll('th').forEach((th,index)=>th.addEventListener('click',()=>{const body=table.tBodies[0];const rows=[...body.rows];rows.sort((a,b)=>a.cells[index].textContent.localeCompare(b.cells[index].textContent,undefined,{numeric:true}));rows.forEach(row=>body.append(row))})));document.querySelector('#filter').addEventListener('input',event=>document.querySelectorAll('#stops tbody tr').forEach(row=>row.hidden=!row.textContent.toLowerCase().includes(event.target.value.toLowerCase())))</script></body></html>`;
   return html;
 }
 
