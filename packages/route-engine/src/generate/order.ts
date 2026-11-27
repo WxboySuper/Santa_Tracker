@@ -141,14 +141,21 @@ function previousIdeal(route: TimedCandidate[]): number | undefined {
 function candidateCanExtendRoute(state: SweepState, place: Candidate, config: GeneratorConfig): boolean {
   if (!state.remaining.has(place.id)) return false;
   if (!state.separation.allows(place)) return false;
-  const addsRequiredAdmin1 = isNewRequiredAdmin1(place, state.admin1Counts);
-  const addsRequiredOffsetBand = !state.bandCounts.has(requiredSnapshotOffset(place));
-  const addsCountryCoverage = !state.countryCounts.has(place.country);
-  const hasCountryCapacity = countryCapacity(place, state.countryCounts, config);
-  if (hasCountryCapacity || addsRequiredAdmin1 || addsRequiredOffsetBand) {
-    return extensionPassesAcceptance(state.route, place, config, addsCountryCoverage || addsRequiredAdmin1 || addsRequiredOffsetBand);
-  }
-  return false;
+  if (!candidateHasCapacityOrCoverage(state, place, config)) return false;
+  const coverageTradeoff = isCoverageTradeoff(state, place);
+  return extensionPassesAcceptance(state.route, place, config, coverageTradeoff);
+}
+
+function candidateHasCapacityOrCoverage(state: SweepState, place: Candidate, config: GeneratorConfig): boolean {
+  if (countryCapacity(place, state.countryCounts, config)) return true;
+  if (isNewRequiredAdmin1(place, state.admin1Counts)) return true;
+  return !state.bandCounts.has(requiredSnapshotOffset(place));
+}
+
+function isCoverageTradeoff(state: SweepState, place: Candidate): boolean {
+  if (!state.countryCounts.has(place.country)) return true;
+  if (isNewRequiredAdmin1(place, state.admin1Counts)) return true;
+  return !state.bandCounts.has(requiredSnapshotOffset(place));
 }
 
 function extensionPassesAcceptance(route: TimedCandidate[], place: Candidate, config: GeneratorConfig, coverageTradeoff: boolean): boolean {
@@ -388,8 +395,10 @@ function nearbySouthernProposal(current: TimedCandidate[], polarStopId: string, 
   const polarIndex = current.findIndex((place) => place.id === polarStopId);
   if (polarIndex < 2) return undefined;
   const approach = current[polarIndex - 1];
+  if (!approach) return undefined;
   const later = current.findIndex((place) => place.id === nearbyId);
-  if (!approach || later <= polarIndex || later > polarIndex + 8) return undefined;
+  if (later <= polarIndex) return undefined;
+  if (later > polarIndex + 8) return undefined;
   const nearby = current[later];
   if (!isNearbySouthernCandidate(nearby, approach)) return undefined;
   const proposal = [...current];

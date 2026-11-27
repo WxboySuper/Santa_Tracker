@@ -480,22 +480,26 @@ function addGeometryWarnings(report: RouteReport, geometryIssues: ReturnType<typ
   }));
 }
 
+function normalizeSelectionTimezone(place: Candidate, overrides: RouteOverrides, tables: TimezoneTables): Candidate | undefined {
+  try {
+    return normalizeCandidateTimezone(place, overrides, tables);
+  } catch (error) {
+    if (!isInvalidCandidateTimezoneError(error)) throw error;
+    if (overrides.timezone?.[place.id] !== undefined) throw error;
+    return undefined;
+  }
+}
+
+function selectionTimezoneNormalizer(overrides: RouteOverrides, tables?: TimezoneTables): ((place: Candidate) => Candidate | undefined) | undefined {
+  if (!tables) return undefined;
+  return (place) => normalizeSelectionTimezone(place, overrides, tables);
+}
+
 export function generateRoute(pool: Candidate[], config: GeneratorConfig, overrides: RouteOverrides = {}, tables?: TimezoneTables): GeneratedRoute {
   validateGeneratorConfig(config);
   const normalizedPool = pool.map(normalizeCandidateCodes);
-  const selection = chooseCandidates(normalizedPool, config, overrides, {
-    normalizeTimezone: tables ? (place) => {
-      try {
-        return normalizeCandidateTimezone(place, overrides, tables);
-      } catch (error) {
-        if (isInvalidCandidateTimezoneError(error)) {
-          if (overrides.timezone?.[place.id] !== undefined) throw error;
-          return undefined;
-        }
-        throw error;
-      }
-    } : undefined,
-  });
+  const selection = chooseCandidates(normalizedPool, config, overrides,
+    { normalizeTimezone: selectionTimezoneNormalizer(overrides, tables) });
   const normalized = normalizeCandidateTimezones(selection.candidates, overrides);
   const chosen = normalized.candidates;
   if (chosen.length === 0) throw new Error('No eligible route candidates remain after timezone validation');

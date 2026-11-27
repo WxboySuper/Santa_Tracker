@@ -79,19 +79,33 @@ function collectCandidateRows(pool: Candidate[]): CandidateRows {
 }
 
 /** Canonicalize candidate identifiers once before selection, reports, and coverage checks. */
-export function normalizeCandidateCodes<T extends Candidate>(place: T): T {
-  if (typeof place !== 'object' || place === null) return place;
+function normalizedCountry(place: Candidate): Partial<Candidate> {
   const country = normalizeCountryCode(place.country);
+  return country ? { country } : {};
+}
+
+function normalizedAdmin1(place: Candidate): Partial<Candidate> {
   const admin1Code = normalizeAdmin1Code(place.admin1Code);
-  const timezone = typeof place.timezone === 'string' ? place.timezone.trim() : place.timezone;
-  const category = typeof place.category === 'string' ? place.category.trim().toLowerCase() : place.category;
-  return {
-    ...place,
-    ...(country ? { country } : {}),
-    ...(typeof place.admin1Code === 'string' ? { admin1Code: admin1Code ?? null } : {}),
-    ...(timezone ? { timezone } : {}),
-    ...(category ? { category } : {}),
-  };
+  return typeof place.admin1Code === 'string' ? { admin1Code: admin1Code ?? null } : {};
+}
+
+function normalizedTimezone(place: Candidate): Partial<Candidate> {
+  if (typeof place.timezone !== 'string') return {};
+  const timezone = place.timezone.trim();
+  return timezone ? { timezone } : {};
+}
+
+function normalizedCategory(place: Candidate): Partial<Candidate> {
+  if (typeof place.category !== 'string') return {};
+  const category = place.category.trim().toLowerCase();
+  return category ? { category } : {};
+}
+
+export function normalizeCandidateCodes<T extends Candidate>(place: T): T {
+  if (typeof place !== 'object') return place;
+  if (place === null) return place;
+  return { ...place, ...normalizedCountry(place), ...normalizedAdmin1(place),
+    ...normalizedTimezone(place), ...normalizedCategory(place) };
 }
 
 function wikidataCandidate(place: Candidate): boolean {

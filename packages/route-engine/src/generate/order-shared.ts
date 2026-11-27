@@ -165,33 +165,43 @@ export function canStartFromNorthPole(place: Candidate, config: GeneratorConfig)
   return Boolean(candidateTiming({ place, prior: NORTH_POLE, priorDeparture: Date.parse(TAKEOFF_UTC), index: 0, config }));
 }
 
-export function planTiming(order: Candidate[], config: GeneratorConfig): RoutePlan | undefined {
-  const planned: TimedCandidate[] = [];
-  const arrivalTimes: number[] = [];
-  const departures: number[] = [];
-  let prior: Candidate | LatLng = NORTH_POLE;
-  let priorDeparture = Date.parse(TAKEOFF_UTC);
-  for (const [index, place] of order.entries()) {
-    let stop: PlannedStop | undefined;
-    try {
-      stop = candidateTiming({ place, prior, priorDeparture, index, config });
-    } catch (error) {
-      if (isInvalidCandidateTimezoneError(error)) return undefined;
-      throw error;
-    }
-    if (!stop) return undefined;
-    planned.push(stop.place);
-    arrivalTimes.push(stop.arrival);
-    departures.push(stop.departure);
-    prior = stop.place;
-    priorDeparture = stop.departure;
+type RoutePlanBuilder = { places: TimedCandidate[]; arrivalTimes: number[]; departures: number[];
+  prior: Candidate | LatLng; priorDeparture: number };
+
+function appendPlannedStop(builder: RoutePlanBuilder, place: Candidate, index: number, config: GeneratorConfig): boolean {
+  let stop: PlannedStop | undefined;
+  try {
+    stop = candidateTiming({ place, prior: builder.prior, priorDeparture: builder.priorDeparture, index, config });
+  } catch (error) {
+    if (isInvalidCandidateTimezoneError(error)) return false;
+    throw error;
   }
-  if (planned.length === 0) return undefined;
-  const final = planned.at(-1);
-  const finalDeparture = departures.at(-1);
-  if (!final || finalDeparture === undefined) return undefined;
-  if (finalDeparture + scheduledTravelMilliseconds(final, NORTH_POLE, config) > Date.parse(RETURN_DEADLINE_UTC)) return undefined;
-  return { places: planned, arrivalTimes, departures };
+  if (!stop) return false;
+  builder.places.push(stop.place);
+  builder.arrivalTimes.push(stop.arrival);
+  builder.departures.push(stop.departure);
+  builder.prior = stop.place;
+  builder.priorDeparture = stop.departure;
+  return true;
+}
+
+function returnsByDeadline(builder: RoutePlanBuilder, config: GeneratorConfig): boolean {
+  const final = builder.places.at(-1);
+  if (!final) return false;
+  const finalDeparture = builder.departures.at(-1);
+  if (finalDeparture === undefined) return false;
+  return finalDeparture + scheduledTravelMilliseconds(final, NORTH_POLE, config) <= Date.parse(RETURN_DEADLINE_UTC);
+}
+
+export function planTiming(order: Candidate[], config: GeneratorConfig): RoutePlan | undefined {
+  const builder: RoutePlanBuilder = { places: [], arrivalTimes: [], departures: [],
+    prior: NORTH_POLE, priorDeparture: Date.parse(TAKEOFF_UTC) };
+  for (const [index, place] of order.entries()) {
+    if (!appendPlannedStop(builder, place, index, config)) return undefined;
+  }
+  if (builder.places.length === 0) return undefined;
+  if (!returnsByDeadline(builder, config)) return undefined;
+  return { places: builder.places, arrivalTimes: builder.arrivalTimes, departures: builder.departures };
 }
 
 export function hardDetourCount(order: Candidate[]): number {

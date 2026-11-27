@@ -20,30 +20,54 @@ function routeMetrics(order: Candidate[], includePathCost = true): RouteMetrics 
 /** One policy for route feasibility and monotonic ordering changes. */
 export function acceptsRouteMetrics(proposal: RouteMetrics, current: RouteMetrics,
   options: { coverageTradeoff?: boolean } = {}): boolean {
-  if (proposal.eastward > current.eastward + (options.coverageTradeoff ? 1 : 0)) return false;
+  const eastwardAllowance = current.eastward + (options.coverageTradeoff ? 1 : 0);
+  if (proposal.eastward > eastwardAllowance) return false;
   // Coverage can add a singleton stop for a missing country, but it cannot
   // create a repeated-country detour.
   if (proposal.hardDetours > current.hardDetours) return false;
   if (proposal.hardDetours < current.hardDetours) return true;
-  if (options.coverageTradeoff || proposal.detours === undefined || current.detours === undefined) return true;
+  if (options.coverageTradeoff) return true;
+  if (proposal.detours === undefined) return true;
+  if (current.detours === undefined) return true;
   return proposal.detours <= current.detours;
 }
 
+type SelectionState = { separation?: SeparationIndex; countryCounts: Map<string, number>;
+  coveredAdmin1: Set<string>; coveredOffsets: Set<number>; config: GeneratorConfig };
+
+function requiredAdmin1CoverageAllows(place: Candidate, state: SelectionState): boolean {
+  const unit = admin1UnitFor(place);
+  if (unit === undefined) return false;
+  if (!REQUIRED_ADMIN1_CODES.has(unit)) return false;
+  return !state.coveredAdmin1.has(unit);
+}
+
+function countryOrCoverageAllows(place: Candidate, state: SelectionState): boolean {
+  if (countryCapacity(place, state.countryCounts, state.config)) return true;
+  if (requiredAdmin1CoverageAllows(place, state)) return true;
+  return !state.coveredOffsets.has(requiredSnapshotOffset(place));
+}
+
+function selectionPlaceAllows(place: Candidate, state: SelectionState): boolean {
+  if (!state.separation) return countryOrCoverageAllows(place, state);
+  if (!state.separation.allows(place)) return false;
+  return countryOrCoverageAllows(place, state);
+}
+
+function recordSelectedPlace(place: Candidate, state: SelectionState): void {
+  const unit = admin1UnitFor(place);
+  state.separation?.add(place);
+  state.countryCounts.set(place.country, (state.countryCounts.get(place.country) ?? 0) + 1);
+  if (unit) state.coveredAdmin1.add(unit);
+  state.coveredOffsets.add(requiredSnapshotOffset(place));
+}
+
 export function selectionConstraintsAllow(order: Candidate[], config: GeneratorConfig, checkSeparation = true): boolean {
-  const separation = checkSeparation ? new SeparationIndex(config.minStopSeparationKm) : undefined;
-  const countryCounts = new Map<string, number>();
-  const coveredAdmin1 = new Set<string>();
-  const coveredOffsets = new Set<number>();
+  const state: SelectionState = { separation: checkSeparation ? new SeparationIndex(config.minStopSeparationKm) : undefined,
+    countryCounts: new Map(), coveredAdmin1: new Set(), coveredOffsets: new Set(), config };
   for (const place of order) {
-    if (separation && !separation.allows(place)) return false;
-    const unit = admin1UnitFor(place);
-    const addsRequiredAdmin1 = unit !== undefined && REQUIRED_ADMIN1_CODES.has(unit) && !coveredAdmin1.has(unit);
-    const addsRequiredOffset = !coveredOffsets.has(requiredSnapshotOffset(place));
-    if (!countryCapacity(place, countryCounts, config) && !addsRequiredAdmin1 && !addsRequiredOffset) return false;
-    separation?.add(place);
-    countryCounts.set(place.country, (countryCounts.get(place.country) ?? 0) + 1);
-    if (unit) coveredAdmin1.add(unit);
-    coveredOffsets.add(requiredSnapshotOffset(place));
+    if (!selectionPlaceAllows(place, state)) return false;
+    recordSelectedPlace(place, state);
   }
   return true;
 }
@@ -68,14 +92,31 @@ function returnsByDeadline(plan: RoutePlan, config: GeneratorConfig): boolean {
 export type RouteAcceptanceOptions = { previous?: Candidate[]; coverageTradeoff?: boolean; requireHardDetourFree?: boolean;
   checkSelection?: boolean; selectionAlreadyValidated?: boolean };
 
+function selectionCheckIsRequired(options: RouteAcceptanceOptions): boolean {
+  if (options.checkSelection === false) return false;
+  return !options.selectionAlreadyValidated;
+}
+
+function routePlanPassesConstraints(plan: RoutePlan, config: GeneratorConfig, options: RouteAcceptanceOptions): boolean {
+  if (!offsetsFollowMidnightSweep(plan.places)) return false;
+  if (!returnsByDeadline(plan, config)) return false;
+  if (!selectionCheckIsRequired(options)) return true;
+  if (!selectionConstraintsAllow(plan.places, config)) return false;
+  return true;
+}
+
 export function acceptRoutePlan(plan: RoutePlan | undefined, config: GeneratorConfig,
   options: RouteAcceptanceOptions = {}): RoutePlan | undefined {
-  if (!plan || !offsetsFollowMidnightSweep(plan.places) || !returnsByDeadline(plan, config)
-    || (options.checkSelection !== false && !options.selectionAlreadyValidated
-    && !selectionConstraintsAllow(plan.places, config))) return undefined;
+  if (!plan) return undefined;
+  if (!routePlanPassesConstraints(plan, config, options)) return undefined;
   const hardDetours = hardDetourCount(plan.places);
-  if (options.requireHardDetourFree && hardDetours > 0) return undefined;
-  if (options.previous && !acceptsRouteMetrics(routeMetrics(plan.places, false), routeMetrics(options.previous, false), options)) return undefined;
+  if (options.requireHardDetourFree) {
+    if (hardDetours > 0) return undefined;
+  }
+  if (options.previous) {
+    const previousMetrics = routeMetrics(options.previous, false);
+    if (!acceptsRouteMetrics(routeMetrics(plan.places, false), previousMetrics, options)) return undefined;
+  }
   return plan;
 }
 
