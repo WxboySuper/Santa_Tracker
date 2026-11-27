@@ -282,32 +282,64 @@ export type PresentAllocationRouteNode = {
 /** Interpolate the allocated present total from generated route nodes without loading the candidate pool. */
 export function interpolatePresentsDeliveredFromRouteNodes(routeNodes: readonly PresentAllocationRouteNode[], now: Date | number): number {
   const nowMs = timestampMs({ value: now });
-  const deliveries = routeNodes.flatMap((node, index) => node.type === 'DELIVERY' ? [{ node, index }] : []);
+  const deliveries = routeNodes
+    .map((node, index) => ({ node, index }))
+    .filter(({ node }) => node.type === 'DELIVERY');
   if (deliveries.length === 0) return 0;
 
   const allocations = deliveries.map(({ node }) => node.stop_experience?.presents);
-  if (allocations.some((value) => typeof value !== 'number' || !Number.isSafeInteger(value) || value < 0)
-    || allocations.reduce<number>((sum, value) => sum + (typeof value === 'number' ? value : 0), 0) !== PRESENTS_TOTAL) {
-    throw new RangeError('route delivery present allocations must be non-negative integers summing to PRESENTS_TOTAL');
+  assertPresentAllocations(allocations);
+  const delivered = interpolateAllocatedPresents({ routeNodes, deliveries, allocations, nowMs });
+
+  return allDeliveriesDeparted(deliveries, nowMs) ? PRESENTS_TOTAL : floorPresentEstimate(delivered);
+}
+
+type IndexedPresentRouteNode = { node: PresentAllocationRouteNode; index: number };
+
+function assertPresentAllocations(allocations: readonly unknown[]): asserts allocations is readonly number[] {
+  let total = 0;
+  for (const value of allocations) {
+    if (typeof value !== 'number' || !Number.isSafeInteger(value) || value < 0) {
+      throw new RangeError('route delivery present allocations must be non-negative integers summing to PRESENTS_TOTAL');
+    }
+    total += value;
   }
+  if (total !== PRESENTS_TOTAL) throw new RangeError('route delivery present allocations must be non-negative integers summing to PRESENTS_TOTAL');
+}
 
-  const delivered = deliveries.reduce((sum, { node, index }, allocationIndex) => {
-    const arrivalMs = routeNodeTimestamp(node, 'arrival_utc');
-    const departureMs = routeNodeTimestamp(node, 'departure_utc');
-    if (departureMs < arrivalMs) throw new RangeError('route departure must not precede arrival');
-    const previous = previousRouteNode(routeNodes, index);
-    const inboundStartMs = previous ? routeNodeTimestamp(previous, 'departure_utc') : arrivalMs;
-    const progress = interpolateStopPresentProgress({
-      nowMs,
-      inboundStartMs,
-      arrivalMs,
-      departureMs,
-      hasInboundFlight: previous !== undefined && arrivalMs > inboundStartMs,
-    });
-    return sum + allocations[allocationIndex]! * progress;
-  }, 0);
+function interpolateAllocatedPresents({ routeNodes, deliveries, allocations, nowMs }: {
+  routeNodes: readonly PresentAllocationRouteNode[];
+  deliveries: IndexedPresentRouteNode[];
+  allocations: readonly number[];
+  nowMs: number;
+}): number {
+  return deliveries.reduce((sum, delivery, index) => sum + allocations[index]! * routeDeliveryProgress({ routeNodes, delivery, nowMs }), 0);
+}
 
-  if (deliveries.every(({ node }) => nowMs >= routeNodeTimestamp(node, 'departure_utc'))) return PRESENTS_TOTAL;
+function routeDeliveryProgress({ routeNodes, delivery, nowMs }: {
+  routeNodes: readonly PresentAllocationRouteNode[];
+  delivery: IndexedPresentRouteNode;
+  nowMs: number;
+}): number {
+  const arrivalMs = routeNodeTimestamp(delivery.node, 'arrival_utc');
+  const departureMs = routeNodeTimestamp(delivery.node, 'departure_utc');
+  if (departureMs < arrivalMs) throw new RangeError('route departure must not precede arrival');
+  const previous = previousRouteNode(routeNodes, delivery.index);
+  const inboundStartMs = previous ? routeNodeTimestamp(previous, 'departure_utc') : arrivalMs;
+  return interpolateStopPresentProgress({
+    nowMs,
+    inboundStartMs,
+    arrivalMs,
+    departureMs,
+    hasInboundFlight: previous !== undefined && arrivalMs > inboundStartMs,
+  });
+}
+
+function allDeliveriesDeparted(deliveries: IndexedPresentRouteNode[], nowMs: number): boolean {
+  return deliveries.every(({ node }) => nowMs >= routeNodeTimestamp(node, 'departure_utc'));
+}
+
+function floorPresentEstimate(delivered: number): number {
   const roundingTolerance = Number.EPSILON * PRESENTS_TOTAL * 2;
   return Math.min(PRESENTS_TOTAL, Math.floor(delivered + roundingTolerance));
 }
