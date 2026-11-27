@@ -79,6 +79,15 @@
 - **Caching and failure handling:** Rounds coordinates to a 0.25 degree grid, caches at the edge for 12 minutes, times out provider calls, and returns `null` when weather is unavailable.
 - **Provider terms:** Uses Open-Meteo. Its no-key free endpoint permits non-commercial use within published rate limits; weather data is CC BY 4.0 and requires attribution. Commercial use needs a paid plan. See https://open-meteo.com/en/terms.
 
+## [Unreleased] - Environment-aware seasonal configuration (#301)
+
+- **Corruption handling:** Flags invalid JSON, schema-invalid data, and environment mismatches in admin reads and previews; runtime reads use safe defaults, normal writes refuse corrupt data, and an explicit ETag-guarded repair preserves the original bytes under a backup key.
+- **Bounded request bodies:** Caps streamed preview and update bodies at 8 KiB regardless of `Content-Length`.
+- **Typed flags:** Promotes the feature registry from scaffold-only metadata to strict, typed configuration and includes the effective seasonal config in canonical immutable snapshots.
+- **Environment controls:** Adds separate development, preview, and production flag overrides with compare-and-set writes, operator reasons, audit history, and per-flag expiry. Unknown persisted flags fall back to registry defaults; expired flags stop applying.
+- **Preview API:** Adds a non-mutating preview for a chosen UTC time and candidate overrides, including derived mode, effective flags, and the active route snapshot ID.
+- **Docs and tests:** Documents the configuration API and adds tests for environment isolation, unknown keys, expiration, audit records, and stale writes.
+
 ## [Unreleased] - Launch-day emergency controls API (#303)
 
 - **Emergency switches:** Adds audited, compare-and-set controls for no-map mode, simplified tracker mode, and weather/soundscape kills. Updates require an operator reason and retain the prior and next values.
