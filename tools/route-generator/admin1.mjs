@@ -165,7 +165,8 @@ export function isSupportedAdmin1Code(country, code) {
 
 export function missingRequiredAdmin1Codes(candidates) {
   const covered = new Set(candidates.flatMap((candidate) => {
-    const code = candidate?.admin1Code;
+    const rawCode = candidate?.admin1Code;
+    const code = typeof rawCode === 'string' ? rawCode.trim().toUpperCase() : rawCode;
     return REQUIRED_ADMIN1_CODES.has(code) && isSupportedAdmin1Code(candidate?.country, code) ? [code] : [];
   }));
   return [...REQUIRED_ADMIN1_CODES].filter((code) => !covered.has(code)).sort(compareText);

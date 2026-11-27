@@ -94,8 +94,12 @@ function nearestZonePoint(place: Candidate, tables: TimezoneTables): NonNullable
 }
 
 function resolvedTimezoneOffset(place: Candidate, timezone: string, tables: TimezoneTables, override?: number): number {
-  const utcOffsetMinutes = override ?? tables.utcOffsetsByTimezone?.[timezone];
-  if (utcOffsetMinutes === undefined) throw new InvalidCandidateTimezoneError(`Missing committed UTC offset for ${timezone}`);
+  const committedOffset = tables.utcOffsetsByTimezone?.[timezone];
+  if (committedOffset === undefined) throw new InvalidCandidateTimezoneError(`Missing committed UTC offset for ${timezone}`);
+  if (override !== undefined && override !== committedOffset) {
+    throw new InvalidCandidateTimezoneError(`Snapshot UTC offset ${override} does not match committed offset ${committedOffset} for ${timezone} (${place.name})`);
+  }
+  const utcOffsetMinutes = override ?? committedOffset;
   if (!isValidSnapshotOffset(utcOffsetMinutes)) {
     throw new InvalidCandidateTimezoneError(`Invalid snapshot UTC offset override for ${place.name}: ${utcOffsetMinutes}`);
   }

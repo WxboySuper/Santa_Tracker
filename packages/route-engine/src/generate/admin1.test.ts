@@ -61,6 +61,12 @@ describe('admin-1 coverage', () => {
     expect(missing).toContain('US-AK');
   });
 
+  it('normalizes country and code before required-unit coverage checks', () => {
+    const missing = missingRequiredAdmin1Codes([candidate(' us ', ' us-ca ')]);
+
+    expect(missing).not.toContain('US-CA');
+  });
+
   it('normalizes admin-1 codes consistently in the engine and polygon tooling', () => {
     const polygon = { type: 'Polygon', coordinates: [[[-1, -1], [1, -1], [1, 1], [-1, 1], [-1, -1]]] };
     const features = [{ country: 'US', code: 'US-CA', name: 'California', geometry: polygon }];

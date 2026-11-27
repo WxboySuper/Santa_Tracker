@@ -168,17 +168,19 @@ describe('generateRoute midnight sweep', () => {
     expect(generated.report.invalidCandidateIds).toEqual([]);
   });
 
-  it('preserves an explicit UTC offset override during country-timezone recovery', () => {
-    const mismatched = { ...candidates[0]!, timezone: 'America/New_York' };
+  it('rejects an explicit UTC offset override that disagrees with the resolved timezone', () => {
+    const mismatched = { ...candidates[0]!, id: 'mismatched-offset-override', timezone: 'America/New_York' };
     const tables = {
       zonesByCountry: { FJ: ['Pacific/Kiritimati'] },
       zonePointsByCountry: { FJ: [{ timezone: 'Pacific/Kiritimati', lat: 80, lng: 170 }] },
       utcOffsetsByTimezone: { 'Pacific/Kiritimati': 840 },
       countryNames: { FJ: 'Fiji' },
     };
-    const generated = generateRoute([mismatched], config, { utcOffsetMinutes: { 'pacific-a': 720 } }, tables);
-    expect(generated.locations[0]?.timezone).toBe('Pacific/Kiritimati');
-    expect(generated.locations[0]?.utcOffsetMinutes).toBe(720);
+    const generated = generateRoute([candidates[0]!, mismatched], config,
+      { utcOffsetMinutes: { 'mismatched-offset-override': 720 } }, tables);
+    expect(generated.locations.map((place) => place.id)).toEqual(['pacific-a']);
+    expect(generated.report.invalidCandidateIds).toEqual(['mismatched-offset-override']);
+    expect(generated.report.issues).toContain('Invalid candidate row skipped: mismatched-offset-override');
   });
 
   it.each([720.5, -721, 841])('reports an invalid UTC offset override %s as a malformed candidate', (offset) => {

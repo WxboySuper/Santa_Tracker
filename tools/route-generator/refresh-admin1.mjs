@@ -9,15 +9,27 @@ function isSupportedExistingCode(place, code) {
   return isSupportedAdmin1Code(place.country, code);
 }
 
+function hasUnsupportedExistingCode(place) {
+  const code = place.admin1Code;
+  return code !== undefined && code !== null && !isSupportedExistingCode(place, code);
+}
+
+function preferredAdmin1Code(place, code, preserveExisting) {
+  if (code && isSupportedExistingCode(place, code)) return code.trim().toUpperCase();
+  if (preserveExisting && place.admin1Code === null) return null;
+  const existing = place.admin1Code;
+  if (preserveExisting && existing && isSupportedExistingCode(place, existing)) return existing.trim().toUpperCase();
+  return undefined;
+}
+
 function candidateWithAdmin1Code(place, code, preserveExisting = true) {
-  const candidate = { ...place };
-  if (code && isSupportedExistingCode(place, code)) return { ...candidate, admin1Code: code };
-  if (place.admin1Code !== undefined && place.admin1Code !== null && !isSupportedExistingCode(place, place.admin1Code)) {
+  if (hasUnsupportedExistingCode(place)) {
     throw new Error(`Unsupported admin1Code for ${place.country} candidate ${place.id}`);
   }
-  if (preserveExisting && place.admin1Code === null) return { ...candidate, admin1Code: null };
-  delete candidate.admin1Code;
-  return preserveExisting && isSupportedExistingCode(place, place.admin1Code) ? { ...candidate, admin1Code: place.admin1Code } : candidate;
+  const admin1Code = preferredAdmin1Code(place, code, preserveExisting);
+  if (admin1Code !== undefined) return { ...place, admin1Code };
+  const { admin1Code: _discarded, ...candidate } = place;
+  return candidate;
 }
 
 function hasSupportedAdmin1Code(candidate) {
