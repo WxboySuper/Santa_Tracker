@@ -41,7 +41,7 @@ async function asAdmin(check: () => Promise<boolean>): Promise<boolean> {
 function isAdminSession(): Promise<boolean> {
   return asAdmin(async () => {
     const token = (await cookies()).get("admin_token")?.value;
-    return token ? verifyAdminToken(token) : false;
+    return token ? verifyAdminToken({ token }) : false;
   });
 }
 

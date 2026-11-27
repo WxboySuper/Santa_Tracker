@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { createLoginThrottle, InMemoryThrottleStore, type ThrottleStore } from "../admin-login-throttle";
+import { PersistentAdminThrottleStore } from "../admin-login";
 
 const MINUTE = 60_000;
 
@@ -34,6 +35,14 @@ describe("admin login throttle", () => {
     advance(60 * MINUTE);
     for (let i = 0; i < 5; i += 1) decision = await throttle.recordFailure({ ip: "ip-a" });
     expect(decision).toEqual({ retryAfterSeconds: 3600 });
+  });
+
+  it("allows thirty passkey challenge requests before throttling the next request", async () => {
+    const { store } = setup();
+    const optionsThrottle = createLoginThrottle({ store, clock: () => 0, maxAttempts: 31 });
+    for (let i = 0; i < 30; i += 1) expect(await optionsThrottle.recordFailure({ ip: "passkey-options:ip-a" })).toBeNull();
+    expect(await optionsThrottle.recordFailure({ ip: "passkey-options:ip-a" })).toEqual({ retryAfterSeconds: 900 });
+    expect(await optionsThrottle.check({ ip: "passkey-options:ip-a" })).toEqual({ retryAfterSeconds: 900 });
   });
 
   it("counts simultaneous failures without losing same-IP updates", async () => {
@@ -119,5 +128,21 @@ describe("admin login throttle", () => {
     expect(await store.get({ key: "ip:locked-b" })).toBeDefined();
     now += 15 * MINUTE;
     expect(await throttle.check({ ip: "new" })).toBeNull();
+  });
+
+  it("does not evict a persistent active lockout to make room for a new key", async () => {
+    const now = Date.now();
+    const active = { attempts: [now], lockoutUntil: now + 60_000, lockoutLevel: 1, lastLockoutAt: now };
+    let stored = JSON.stringify(Object.fromEntries(Array.from({ length: 10_000 }, (_, index) => [`ip:${index}`, active])));
+    const storage = {
+      async read() { return stored; },
+      async write(_key: string, value: string) { stored = value; },
+    };
+    const store = new PersistentAdminThrottleStore(storage, async action => action());
+
+    expect(await store.get({ key: "ip:new" })).toEqual({ attempts: [], lockoutUntil: now + 60_000, lockoutLevel: 0, lastLockoutAt: -1 });
+    await expect(store.update({ key: "ip:new", transform: () => active })).rejects.toThrow("no eligible IP state to evict");
+    expect(JSON.parse(stored)).toHaveProperty("ip:0");
+    expect(JSON.parse(stored)).not.toHaveProperty("ip:new");
   });
 });

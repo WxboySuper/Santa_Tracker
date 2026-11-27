@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireAdminAuth } from "@/lib/auth";
 import { readEmergencyControls, replaceEmergencyControls, type EmergencyControlValues } from "@/lib/emergency-controls";
+import { readCappedJson } from "@/lib/admin-json";
 
 export const dynamic = "force-dynamic";
 const NO_STORE = { "Cache-Control": "private, no-store" };
@@ -36,56 +37,13 @@ export async function PUT(request: Request) {
 }
 
 type JsonResult = { kind: "body"; value: { values: EmergencyControlValues; reason: string } } | { kind: "invalid" } | { kind: "too-large" };
-type ByteResult = { kind: "bytes"; value: Uint8Array } | { kind: "invalid" } | { kind: "too-large" };
 const MAX_BODY_BYTES = 2_048;
 
 async function readJson(request: Request): Promise<JsonResult> {
-  if (!hasJsonContentType(request)) return { kind: "invalid" };
-  const declaredLength = Number(request.headers.get("content-length"));
-  if (Number.isFinite(declaredLength) && declaredLength > MAX_BODY_BYTES) return { kind: "too-large" };
-  const bytes = await readCappedBody(request.body);
-  if (bytes.kind !== "bytes") return bytes;
-  try {
-    const parsed: unknown = JSON.parse(new TextDecoder().decode(bytes.value));
-    const value = parseEmergencyPayload(parsed);
-    return value ? { kind: "body", value } : { kind: "invalid" };
-  } catch {
-    return { kind: "invalid" };
-  }
-}
-
-function hasJsonContentType(request: Request): boolean {
-  return request.headers.get("content-type")?.toLowerCase().startsWith("application/json") ?? false;
-}
-
-async function readCappedBody(body: ReadableStream<Uint8Array> | null): Promise<ByteResult> {
-  if (!body) return { kind: "bytes", value: new Uint8Array() };
-  const reader = body.getReader();
-  try { return await collectCappedChunks(reader); }
-  catch { return { kind: "invalid" }; }
-  finally { reader.releaseLock(); }
-}
-
-async function collectCappedChunks(reader: ReadableStreamDefaultReader<Uint8Array>): Promise<ByteResult> {
-  const chunks: Uint8Array[] = [];
-  let total = 0;
-  while (true) {
-    const chunk = await reader.read();
-    if (chunk.done) return { kind: "bytes", value: joinChunks(chunks, total) };
-    total += chunk.value.byteLength;
-    if (total > MAX_BODY_BYTES) {
-      void reader.cancel().catch(() => undefined);
-      return { kind: "too-large" };
-    }
-    chunks.push(chunk.value);
-  }
-}
-
-function joinChunks(chunks: Uint8Array[], total: number): Uint8Array {
-  const bytes = new Uint8Array(total);
-  let offset = 0;
-  for (const chunk of chunks) { bytes.set(chunk, offset); offset += chunk.byteLength; }
-  return bytes;
+  const result = await readCappedJson(request, MAX_BODY_BYTES);
+  if (!result.ok) return result.status === 413 ? { kind: "too-large" } : { kind: "invalid" };
+  const value = parseEmergencyPayload(result.value);
+  return value ? { kind: "body", value } : { kind: "invalid" };
 }
 
 function parseEmergencyPayload(value: unknown): { values: EmergencyControlValues; reason: string } | null {

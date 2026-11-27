@@ -164,7 +164,8 @@ export function createGlobe(canvas: HTMLCanvasElement, theme: TrackerTheme, onSt
   let disposed = false;
   fetch(LAND_URL)
     .then(response => (response.ok ? response.json() : Promise.reject(new Error(String(response.status)))))
-    .then((topology: Topology) => {
+    .then((value: unknown) => {
+      const topology = value as Topology;
       if (disposed) return;
       texture.image = paintTexture(theme, landRings(topology));
       texture.needsUpdate = true;
