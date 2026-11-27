@@ -105,18 +105,24 @@ function routePlanPassesConstraints(plan: RoutePlan, config: GeneratorConfig, op
   return true;
 }
 
+function hasForbiddenHardDetours(hardDetours: number, options: RouteAcceptanceOptions): boolean {
+  if (!options.requireHardDetourFree) return false;
+  return hardDetours > 0;
+}
+
+function satisfiesPreviousRoute(plan: RoutePlan, options: RouteAcceptanceOptions): boolean {
+  if (!options.previous) return true;
+  const previousMetrics = routeMetrics(options.previous, false);
+  return acceptsRouteMetrics(routeMetrics(plan.places, false), previousMetrics, options);
+}
+
 export function acceptRoutePlan(plan: RoutePlan | undefined, config: GeneratorConfig,
   options: RouteAcceptanceOptions = {}): RoutePlan | undefined {
   if (!plan) return undefined;
   if (!routePlanPassesConstraints(plan, config, options)) return undefined;
   const hardDetours = hardDetourCount(plan.places);
-  if (options.requireHardDetourFree) {
-    if (hardDetours > 0) return undefined;
-  }
-  if (options.previous) {
-    const previousMetrics = routeMetrics(options.previous, false);
-    if (!acceptsRouteMetrics(routeMetrics(plan.places, false), previousMetrics, options)) return undefined;
-  }
+  if (hasForbiddenHardDetours(hardDetours, options)) return undefined;
+  if (!satisfiesPreviousRoute(plan, options)) return undefined;
   return plan;
 }
 
