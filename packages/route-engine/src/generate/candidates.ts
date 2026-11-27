@@ -82,11 +82,13 @@ export function normalizeCandidateCodes<T extends Candidate>(place: T): T {
   const country = normalizeCountryCode(place.country);
   const admin1Code = normalizeAdmin1Code(place.admin1Code);
   const timezone = typeof place.timezone === 'string' ? place.timezone.trim() : place.timezone;
+  const category = typeof place.category === 'string' ? place.category.trim().toLowerCase() : place.category;
   return {
     ...place,
     ...(country ? { country } : {}),
     ...(typeof place.admin1Code === 'string' ? { admin1Code: admin1Code ?? null } : {}),
     ...(timezone ? { timezone } : {}),
+    ...(category ? { category } : {}),
   };
 }
 

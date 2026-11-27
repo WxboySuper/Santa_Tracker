@@ -9,11 +9,11 @@ const pool: Candidate[] = [
 ];
 
 describe('chooseCandidates', () => {
-  it('normalizes country, admin-1, and timezone text before selection', () => {
-    const messy = { ...pool[0]!, country: ' aa ', admin1Code: ' us-ca ', timezone: ' UTC ' };
+  it('normalizes country, admin-1, timezone, and category text before selection', () => {
+    const messy = { ...pool[0]!, country: ' aa ', admin1Code: ' us-ca ', timezone: ' UTC ', category: ' POPULATED ' };
     const result = chooseCandidates([messy], DEFAULT_GENERATOR_LIMITS);
 
-    expect(result.candidates[0]).toMatchObject({ country: 'AA', admin1Code: 'US-CA', timezone: 'UTC' });
+    expect(result.candidates[0]).toMatchObject({ country: 'AA', admin1Code: 'US-CA', timezone: 'UTC', category: 'hub' });
   });
 
   it('keeps the full pool and classifies populated places for tie-breaking', () => {
