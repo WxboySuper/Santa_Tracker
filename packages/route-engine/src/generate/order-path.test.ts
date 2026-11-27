@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { canAcceptLocalProposal, detourCount, eastwardCount, type RouteCost } from './order-path';
+import { bandedBoustrophedonOrder, canAcceptLocalProposal, detourCount, eastwardCount, type RouteCost } from './order-path';
 import { hardDetourCount } from './order-shared';
+import { DEFAULT_GENERATOR_LIMITS, type Candidate } from './types';
 
 describe('local route proposals', () => {
   it('counts zero eastward legs for an empty route', () => {
@@ -10,6 +11,19 @@ describe('local route proposals', () => {
   it('does not assign a longitude direction to the North Pole launch', () => {
     expect(eastwardCount([{ id: 'launch-stop', name: 'Launch stop', country: 'AA', lat: 1, lng: -176,
       timezone: 'Etc/GMT', utcOffsetMinutes: 0, category: 'populated', population: 1_000 }])).toBe(0);
+  });
+
+  it("does not anchor band longitude ordering to the pole's placeholder longitude", () => {
+    const launch = (lng: number): Candidate => ({ id: 'pole', name: 'North Pole', country: 'AQ', lat: 90, lng,
+      timezone: 'Etc/GMT', utcOffsetMinutes: 0, category: 'special' });
+    const countries = ['US', 'CA', 'MX'];
+    const places: Candidate[] = [-170, 0, 170].map((lng, index) => ({ id: `place-${index}`, name: `Place ${index}`,
+      country: countries[index]!, lat: 0, lng, timezone: 'Etc/GMT', utcOffsetMinutes: 0, category: 'populated', population: 1_000 }));
+
+    const fromEastPole = bandedBoustrophedonOrder(places, launch(180), DEFAULT_GENERATOR_LIMITS);
+    const fromArbitraryPole = bandedBoustrophedonOrder(places, launch(-90), DEFAULT_GENERATOR_LIMITS);
+
+    expect(fromArbitraryPole.map((place) => place.id)).toEqual(fromEastPole.map((place) => place.id));
   });
 
   it('counts isolated coverage detours during local search', () => {

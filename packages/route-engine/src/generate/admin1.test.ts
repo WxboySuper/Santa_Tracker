@@ -30,6 +30,10 @@ describe('admin-1 coverage', () => {
     expect(admin1UnitFor(candidate('AU', null))).toBeUndefined();
   });
 
+  it('treats a malformed country as uncovered instead of throwing', () => {
+    expect(admin1UnitFor({ ...candidate('US', 'US-CA'), country: null } as unknown as Candidate)).toBeUndefined();
+  });
+
   it('normalizes the country and admin-1 code before counting coverage', () => {
     const lowerCaseCode = candidate('us', ' us-ca ');
 

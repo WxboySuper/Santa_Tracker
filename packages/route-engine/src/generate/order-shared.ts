@@ -156,7 +156,8 @@ export function timingAndDetourAllows(place: Candidate, route: Candidate[]): boo
   if (!prior || route.length < 2) return true;
   const beforePrior = route.at(-2);
   if (!beforePrior) return true;
-  if (route.filter((candidate) => candidate.country === prior.country).length === 1) return true;
+  const priorCountryCount = route.filter((candidate) => candidate.country === prior.country).length;
+  if (priorCountryCount === 1 && place.country !== prior.country) return true;
   return detourRatio(beforePrior, prior, place) <= 2.5;
 }
 

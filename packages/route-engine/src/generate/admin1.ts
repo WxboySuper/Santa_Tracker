@@ -34,6 +34,7 @@ export function admin1Coverage(places: Candidate[]): Admin1Coverage {
 }
 
 export function admin1UnitFor(place: Candidate): string | undefined {
+  if (typeof place.country !== 'string') return undefined;
   const country = place.country.trim().toUpperCase() as RequiredAdmin1Country;
   const units: readonly string[] | undefined = REQUIRED_ADMIN1_UNITS[country];
   if (!units) return undefined;

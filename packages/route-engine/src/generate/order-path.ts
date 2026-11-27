@@ -213,10 +213,6 @@ export function improveWithLocalSearch(initial: TimedCandidate[], config: Genera
   return best;
 }
 
-function unwrappedWestwardLongitude(place: Candidate, launch: Candidate): number {
-  return place.lng + 360 * Math.floor((launch.lng - place.lng) / 360);
-}
-
 function isAntarcticStop(place: Candidate): boolean {
   return place.country === 'AQ';
 }
@@ -255,7 +251,7 @@ export function bandedBoustrophedonOrder(places: Candidate[], launch: Candidate,
       if (polarPriority !== 0) return polarPriority;
       const latitudeDifference = (left.lat - right.lat) * latitudeDirection;
       if (Math.abs(latitudeDifference) > 0.25) return latitudeDifference;
-      const longitudeDifference = unwrappedWestwardLongitude(right, launch) - unwrappedWestwardLongitude(left, launch);
+      const longitudeDifference = right.lng - left.lng;
       if (Math.abs(longitudeDifference) > 0.25) return longitudeDifference;
       return compareStableIds(left.id, right.id);
     }));

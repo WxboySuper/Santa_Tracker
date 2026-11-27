@@ -1,28 +1,41 @@
 import { copyFile, readFile, rename, rm, writeFile } from 'node:fs/promises';
+import { pathToFileURL } from 'node:url';
 import { admin1CodeAt, isSupportedAdmin1Code, loadAdmin1Features, missingRequiredAdmin1Codes } from './admin1.mjs';
 
 const DATA_FILES = ['places.json', 'curated.json'];
 const TRANSACTION_MARKER = new URL('./data/.admin1-refresh-transaction.json', import.meta.url);
 const COMMITTED_MARKER = new URL('./data/.admin1-refresh-committed', import.meta.url);
+const TARGET_ADMIN1_COUNTRIES = new Set(['US', 'CA', 'AU']);
+
+function isTargetAdmin1Candidate(place) {
+  return typeof place.country === 'string' && TARGET_ADMIN1_COUNTRIES.has(place.country.trim().toUpperCase());
+}
 
 function isSupportedExistingCode(place, code) {
   return isSupportedAdmin1Code(place.country, code);
 }
 
 function hasUnsupportedExistingCode(place) {
+  if (!isTargetAdmin1Candidate(place)) return false;
   const code = place.admin1Code;
   return code !== undefined && code !== null && !isSupportedExistingCode(place, code);
 }
 
-function preferredAdmin1Code(place, code, preserveExisting) {
-  if (code && isSupportedExistingCode(place, code)) return code.trim().toUpperCase();
-  if (preserveExisting && place.admin1Code === null) return null;
-  const existing = place.admin1Code;
-  if (preserveExisting && existing && isSupportedExistingCode(place, existing)) return existing.trim().toUpperCase();
-  return undefined;
+function normalizedSupportedCode(place, code) {
+  if (typeof code !== 'string' || !isSupportedExistingCode(place, code)) return undefined;
+  return code.trim().toUpperCase();
 }
 
-function candidateWithAdmin1Code(place, code, preserveExisting = true) {
+function preferredAdmin1Code(place, code, preserveExisting) {
+  const requested = normalizedSupportedCode(place, code);
+  if (requested) return requested;
+  if (!preserveExisting) return undefined;
+  if (place.admin1Code === null) return null;
+  return normalizedSupportedCode(place, place.admin1Code);
+}
+
+export function candidateWithAdmin1Code(place, code, preserveExisting = true) {
+  if (!isTargetAdmin1Candidate(place)) return { ...place };
   if (hasUnsupportedExistingCode(place)) {
     throw new Error(`Unsupported admin1Code for ${place.country} candidate ${place.id}`);
   }
@@ -39,6 +52,7 @@ function hasSupportedAdmin1Code(candidate) {
 function validateEnrichedCandidate(candidate, file) {
   if (!candidate || typeof candidate !== 'object') throw new TypeError(`${file} contains a non-object candidate`);
   if (candidate.admin1Code === undefined || candidate.admin1Code === null) return;
+  if (!isTargetAdmin1Candidate(candidate)) return;
   if (!hasSupportedAdmin1Code(candidate)) {
     throw new Error(`${file} has an unsupported admin1Code for ${candidate.country} candidate ${candidate.id}`);
   }
@@ -219,10 +233,12 @@ async function main() {
   process.stdout.write(`Unmatched candidates: ${unassigned.length}${unassigned.length ? ` (${unassigned.join('; ')})` : ''}\n`);
 }
 
-try {
-  await main();
-} catch (error) {
-  const message = error instanceof Error ? error.message : String(error);
-  process.stderr.write(`Could not refresh admin-1 candidate codes: ${message}\n`);
-  process.exitCode = 1;
+if (process.argv[1] && pathToFileURL(process.argv[1]).href === import.meta.url) {
+  try {
+    await main();
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    process.stderr.write(`Could not refresh admin-1 candidate codes: ${message}\n`);
+    process.exitCode = 1;
+  }
 }

@@ -3,6 +3,7 @@ import { haversineKm } from '../geo';
 import { eastwardLegReason, isInChristmasWindow, localClock, longitudeDelta } from './sweep';
 import { DEFAULT_GENERATOR_LIMITS, NORTH_POLE, type Candidate } from './types';
 import { candidateTiming, categoryPreference, hasFeasibleTiming, longitudeDelta as orderLongitudeDelta, moveAntarcticaToOffsetBandEdge, planTiming, scheduledTravelMilliseconds, sweepOrder } from './order';
+import { timingAndDetourAllows } from './order-shared';
 
 const testPlaces: Candidate[] = [
   { id: 'ki', name: 'Kiritimati', country: 'KI', lat: 1.87, lng: -157.4, timezone: 'Pacific/Kiritimati', utcOffsetMinutes: 840, category: 'populated', population: 7_380 },
@@ -177,6 +178,16 @@ describe('midnight sweep ordering', () => {
     const capped = { ...DEFAULT_GENERATOR_LIMITS, maxStopsPerCountry: 1 };
     const sameCountry = { ...testPlaces[1]!, country: 'KI', utcOffsetMinutes: testPlaces[0]!.utcOffsetMinutes };
     expect(hasFeasibleTiming([testPlaces[0]!, sameCountry], capped)).toBe(false);
+  });
+
+  it('does not admit a repeated-country detour that final route planning rejects', () => {
+    const route = [
+      { ...testPlaces[0]!, country: 'AA', lat: 0, lng: 0 },
+      { ...testPlaces[0]!, id: 'repeat', country: 'BB', lat: 0, lng: 10 },
+    ];
+    const repeatedCountry = { ...testPlaces[0]!, id: 'repeat-again', country: 'BB', lat: 0, lng: 0.1 };
+
+    expect(timingAndDetourAllows(repeatedCountry, route)).toBe(false);
   });
 
   it('returns false for malformed offsets in feasibility probes', () => {

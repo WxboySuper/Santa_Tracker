@@ -94,16 +94,27 @@ function nearestZonePoint(place: Candidate, tables: TimezoneTables): NonNullable
 }
 
 function resolvedTimezoneOffset(place: Candidate, timezone: string, tables: TimezoneTables, override?: number): number {
-  const committedOffset = tables.utcOffsetsByTimezone?.[timezone];
-  if (committedOffset === undefined) throw new InvalidCandidateTimezoneError(`Missing committed UTC offset for ${timezone}`);
-  if (override !== undefined && override !== committedOffset) {
-    throw new InvalidCandidateTimezoneError(`Snapshot UTC offset ${override} does not match committed offset ${committedOffset} for ${timezone} (${place.name})`);
-  }
+  const committedOffset = committedOffsetFor(timezone, tables);
+  validateOffsetOverride(place, timezone, override, committedOffset);
   const utcOffsetMinutes = override ?? committedOffset;
-  if (!isValidSnapshotOffset(utcOffsetMinutes)) {
-    throw new InvalidCandidateTimezoneError(`Invalid snapshot UTC offset override for ${place.name}: ${utcOffsetMinutes}`);
-  }
+  assertValidSnapshotOffset(place, utcOffsetMinutes);
   return utcOffsetMinutes;
+}
+
+function committedOffsetFor(timezone: string, tables: TimezoneTables): number {
+  const offset = tables.utcOffsetsByTimezone?.[timezone];
+  if (offset === undefined) throw new InvalidCandidateTimezoneError(`Missing committed UTC offset for ${timezone}`);
+  return offset;
+}
+
+function validateOffsetOverride(place: Candidate, timezone: string, override: number | undefined, committedOffset: number): void {
+  if (override === undefined || override === committedOffset) return;
+  throw new InvalidCandidateTimezoneError(`Snapshot UTC offset ${override} does not match committed offset ${committedOffset} for ${timezone} (${place.name})`);
+}
+
+function assertValidSnapshotOffset(place: Candidate, offset: number): void {
+  if (isValidSnapshotOffset(offset)) return;
+  throw new InvalidCandidateTimezoneError(`Invalid snapshot UTC offset override for ${place.name}: ${offset}`);
 }
 
 function isValidSnapshotOffset(offset: number): boolean {
