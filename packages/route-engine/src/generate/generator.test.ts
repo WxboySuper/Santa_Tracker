@@ -168,6 +168,19 @@ describe('generateRoute midnight sweep', () => {
     expect(generated.report.invalidCandidateIds).toEqual([]);
   });
 
+  it('normalizes stale source offsets from the committed timezone snapshot', () => {
+    const staleOffset = { ...candidates[0]!, id: 'stale-source-offset', utcOffsetMinutes: 780 };
+    const tables = {
+      zonesByCountry: { FJ: ['Pacific/Kiritimati'] },
+      zonePointsByCountry: { FJ: [{ timezone: 'Pacific/Kiritimati', lat: 80, lng: 170 }] },
+      utcOffsetsByTimezone: { 'Pacific/Kiritimati': 840 },
+      countryNames: { FJ: 'Fiji' },
+    };
+    const generated = generateRoute([staleOffset], config, {}, tables);
+    expect(generated.locations[0]?.utcOffsetMinutes).toBe(840);
+    expect(generated.report.invalidCandidateIds).toEqual([]);
+  });
+
   it('rejects an explicit UTC offset override that disagrees with the resolved timezone', () => {
     const mismatched = { ...candidates[0]!, id: 'mismatched-offset-override', timezone: 'America/New_York' };
     const tables = {

@@ -4,7 +4,7 @@ import { normalizeAdmin1Code, normalizeCountryCode } from './admin1';
 import type { Candidate, GeneratorConfig } from './types';
 
 export type CandidateSelection = { candidates: Candidate[]; invalidCandidateIds: string[]; duplicateCandidateIds: string[] };
-export type CandidateSelectionOptions = { recoverMissingUtcOffset?: (place: Candidate) => Candidate | undefined };
+export type CandidateSelectionOptions = { normalizeTimezone?: (place: Candidate) => Candidate | undefined };
 type CandidateRows = { candidates: Candidate[]; rowLabelsById: Map<string, string>; invalidCandidateIds: string[] };
 type CandidateValidationOptions = {
   updated: Candidate[];
@@ -71,7 +71,9 @@ function collectCandidateRows(pool: Candidate[]): CandidateRows {
     }
     const normalized = normalizeCandidateCodes(place);
     candidates.push(normalized);
-    rowLabelsById.set(normalized.id, rowLabel(normalized, index));
+    if (hasNonEmptyText(normalized.id) && !rowLabelsById.has(normalized.id)) {
+      rowLabelsById.set(normalized.id, rowLabel(normalized, index));
+    }
   }
   return { candidates, rowLabelsById, invalidCandidateIds };
 }
@@ -103,8 +105,9 @@ function isVetoedCandidate(place: Candidate, vetoed: Set<string>): boolean {
 function candidateWithResolvedOffset(place: Candidate, options: CandidateSelectionOptions): Candidate | undefined {
   if (!hasCandidateIdentity(place)) return undefined;
   if (!hasValidCoordinates(place)) return undefined;
+  if (options.normalizeTimezone) return options.normalizeTimezone(place);
   if (Number.isInteger(place.utcOffsetMinutes)) return place;
-  return options.recoverMissingUtcOffset?.(place);
+  return undefined;
 }
 
 type CandidateValidation =

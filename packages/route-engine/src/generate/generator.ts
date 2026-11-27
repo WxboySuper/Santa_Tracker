@@ -27,12 +27,12 @@ function stableHash(value: string, seed: number): number {
   return hash;
 }
 
-function normalizeCandidateTimezones(pool: Candidate[], overrides: RouteOverrides, tables?: TimezoneTables): { candidates: Candidate[]; invalidCandidateIds: string[] } {
+function normalizeCandidateTimezones(pool: Candidate[], overrides: RouteOverrides): { candidates: Candidate[]; invalidCandidateIds: string[] } {
   const candidates: Candidate[] = [];
   const invalidCandidateIds: string[] = [];
   for (const place of pool) {
     try {
-      candidates.push(tables ? normalizeCandidateTimezone(place, overrides, tables) : validateCandidateIanaTimezone(place, overrides));
+      candidates.push(validateCandidateIanaTimezone(place, overrides));
     } catch (error) {
       if (!isInvalidCandidateTimezoneError(error)) throw error;
       invalidCandidateIds.push(place.id);
@@ -52,7 +52,9 @@ function isSupportedIanaTimezone(timezone: string): boolean {
 
 function validateCandidateIanaTimezone(place: Candidate, overrides: RouteOverrides): Candidate {
   if (isSupportedIanaTimezone(place.timezone)) return place;
-  if (overrides.timezone?.[place.id]) throw new Error(`Invalid IANA timezone override for ${place.name}: ${place.timezone}`);
+  if (overrides.timezone?.[place.id]) {
+    throw new InvalidCandidateTimezoneError(`Invalid IANA timezone override for ${place.name}: ${place.timezone}`);
+  }
   throw new InvalidCandidateTimezoneError(`Invalid candidate IANA time zone: ${place.name} (${place.timezone})`);
 }
 
@@ -68,16 +70,12 @@ function normalizeCandidateTimezone(place: Candidate, overrides: RouteOverrides,
 
 function candidateWithCommittedTimezone(place: Candidate, timezone: string, tables: TimezoneTables,
   override?: number): Candidate {
-  const committedOffset = committedOffsetFor(timezone, tables);
-  if (place.utcOffsetMinutes !== undefined && place.utcOffsetMinutes !== committedOffset) {
-    throw new InvalidCandidateTimezoneError(`Candidate UTC offset ${place.utcOffsetMinutes} does not match committed offset ${committedOffset} for ${timezone} (${place.name})`);
-  }
-  return { ...place, utcOffsetMinutes: resolvedTimezoneOffset(place, timezone, tables, override) };
+  return { ...place, timezone, utcOffsetMinutes: resolvedTimezoneOffset(place, timezone, tables, override) };
 }
 
 function timezoneForMismatch(place: Candidate, overrides: RouteOverrides, tables: TimezoneTables): Candidate {
   if (overrides.timezone?.[place.id]) {
-    throw new Error(`Timezone override ${place.timezone} for ${place.name} does not belong to country ${place.country}`);
+    throw new InvalidCandidateTimezoneError(`Timezone override ${place.timezone} for ${place.name} does not belong to country ${place.country}`);
   }
   return nearestCountryTimezone(place, tables, overrides.utcOffsetMinutes?.[place.id]);
 }
@@ -480,16 +478,19 @@ export function generateRoute(pool: Candidate[], config: GeneratorConfig, overri
   validateGeneratorConfig(config);
   const normalizedPool = pool.map(normalizeCandidateCodes);
   const selection = chooseCandidates(normalizedPool, config, overrides, {
-    recoverMissingUtcOffset: tables ? (place) => {
+    normalizeTimezone: tables ? (place) => {
       try {
         return normalizeCandidateTimezone(place, overrides, tables);
       } catch (error) {
-        if (isInvalidCandidateTimezoneError(error)) return undefined;
+        if (isInvalidCandidateTimezoneError(error)) {
+          if (overrides.timezone?.[place.id] !== undefined) throw error;
+          return undefined;
+        }
         throw error;
       }
     } : undefined,
   });
-  const normalized = normalizeCandidateTimezones(selection.candidates, overrides, tables);
+  const normalized = normalizeCandidateTimezones(selection.candidates, overrides);
   const chosen = normalized.candidates;
   if (chosen.length === 0) throw new Error('No eligible route candidates remain after timezone validation');
   const ordered = sweepOrder(chosen, config);
