@@ -217,6 +217,7 @@ describe('midnight sweep ordering', () => {
   it('returns false for malformed offsets in feasibility probes', () => {
     const { utcOffsetMinutes: _offset, ...missingOffset } = testPlaces[0]!;
     expect(hasFeasibleTiming([missingOffset as Candidate])).toBe(false);
+    expect(planTiming([missingOffset as Candidate], DEFAULT_GENERATOR_LIMITS)).toBeUndefined();
   });
 
   it('keeps long Hong Kong to mainland China legs at regional speed', () => {

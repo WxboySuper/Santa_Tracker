@@ -11,7 +11,7 @@ import {
 } from './sweep';
 import { classifyRegion } from './regions';
 import { REQUIRED_ADMIN1_UNITS } from './admin1';
-import { InvalidCandidateTimezoneError } from './timezone-error';
+import { InvalidCandidateTimezoneError, isInvalidCandidateTimezoneError } from './timezone-error';
 import { NORTH_POLE, RETURN_DEADLINE_UTC, TAKEOFF_UTC, type Candidate, type GeneratorConfig } from './types';
 
 const EARTH_RADIUS_KM = 6_371;
@@ -169,7 +169,13 @@ export function planTiming(order: Candidate[], config: GeneratorConfig): RoutePl
   let prior: Candidate | LatLng = NORTH_POLE;
   let priorDeparture = Date.parse(TAKEOFF_UTC);
   for (const [index, place] of order.entries()) {
-    const stop = candidateTiming({ place, prior, priorDeparture, index, config });
+    let stop: PlannedStop | undefined;
+    try {
+      stop = candidateTiming({ place, prior, priorDeparture, index, config });
+    } catch (error) {
+      if (isInvalidCandidateTimezoneError(error)) return undefined;
+      throw error;
+    }
     if (!stop) return undefined;
     planned.push(stop.place);
     arrivalTimes.push(stop.arrival);
