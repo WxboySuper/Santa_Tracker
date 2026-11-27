@@ -208,6 +208,8 @@ type DeliveryNodeOptions = {
   priorLocation: Candidate | LatLng;
 };
 
+type DeliveryNodeMetadata = { displayNames: Map<string, string>; presents: number[] };
+
 type DeliveryTiming = { stopArrival: number; tier: TimedCandidate['plannedStopTier']; durationSeconds: number };
 
 function deliveryTiming(place: TimedCandidate): DeliveryTiming {
@@ -333,15 +335,15 @@ function statsLocationsForCandidates(places: Candidate[]): RouteStatsLocation[] 
 }
 
 function buildDeliveryNodes(places: TimedCandidate[], config: GeneratorConfig, tables: TimezoneTables | undefined,
-  displayNames: Map<string, string>, presents: number[]): { routeNodes: Record<string, unknown>[]; stops: Route['stops']; coordinates: Map<string, LatLng>; priorDeparture: number } {
+  metadata: DeliveryNodeMetadata): { routeNodes: Record<string, unknown>[]; stops: Route['stops']; coordinates: Map<string, LatLng>; priorDeparture: number } {
   const routeNodes: Record<string, unknown>[] = [startNode()];
   const stops: Route['stops'] = [];
   const coordinates = new Map<string, LatLng>();
   let priorDeparture = Date.parse(TAKEOFF_UTC);
   let priorLocation: Candidate | LatLng = NORTH_POLE;
   for (const [index, place] of places.entries()) {
-    const result = buildDeliveryNode({ place, displayName: displayNames.get(place.id) ?? place.name,
-      presents: presents[index] ?? 0, index, config, tables, priorLocation });
+    const result = buildDeliveryNode({ place, displayName: metadata.displayNames.get(place.id) ?? place.name,
+      presents: metadata.presents[index] ?? 0, index, config, tables, priorLocation });
     coordinates.set(result.locationId, place);
     stops.push(result.stop);
     routeNodes.push(result.node);
@@ -355,7 +357,8 @@ function buildDocument(places: TimedCandidate[], config: GeneratorConfig, tables
   presents: number[] = []): { document: GeneratedRoute['document']; route: Route; coordinates: Map<string, LatLng>; routeEndUtc: string } {
   const last = places.at(-1);
   if (!last) throw new Error('Cannot build an empty route');
-  const deliveries = buildDeliveryNodes(places, config, tables, displayNamesFor(places, tables), presents);
+  const deliveries = buildDeliveryNodes(places, config, tables,
+    { displayNames: displayNamesFor(places, tables), presents });
   const ending = endNode(last, deliveries.priorDeparture, config);
   deliveries.routeNodes.push(ending.node);
   const route = { schemaVersion: SCHEMA_VERSION, season: 2026, stops: deliveries.stops } as Route;
